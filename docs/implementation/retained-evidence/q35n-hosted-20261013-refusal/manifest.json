@@ -1,0 +1,316 @@
+{
+  "files": {
+    "build/Sail-Support-LICENSE": {
+      "bytes": 2716,
+      "encoding": "identity",
+      "path": "build/Sail-Support-LICENSE",
+      "sha256": "9e52d88fe1802beb469e538b8c026ff5e7f9413ef06cd3ce898ee3928ae24df0"
+    },
+    "build/base-import.log": {
+      "bytes": 2298,
+      "encoding": "identity",
+      "path": "build/base-import.log",
+      "sha256": "67a9fc05a0fcf85289a98a75aeac3ed8e2a0f081566bdba6c703dcb961056f26"
+    },
+    "build/baseline-build.log": {
+      "bytes": 13097,
+      "encoding": "identity",
+      "path": "build/baseline-build.log",
+      "sha256": "2eb37879433f3427a5c3aeaa15664eea0165ad9da0822c7b50e7621757fbbfc9"
+    },
+    "build/closure.log": {
+      "bytes": 621,
+      "encoding": "identity",
+      "path": "build/closure.log",
+      "sha256": "e92450c98f286707cd2e2887c7fc57c3b8ec4991561fccf2003ecb30854c7f29"
+    },
+    "build/create.log": {
+      "bytes": 101,
+      "encoding": "identity",
+      "path": "build/create.log",
+      "sha256": "17ef5d1f596534c00116f676659b4e46a4f6b6c0e5a20564f1e372d5917a69e9"
+    },
+    "build/dependency-order.log": {
+      "bytes": 46963,
+      "encoding": "identity",
+      "path": "build/dependency-order.log",
+      "sha256": "71f448d9d1ace173de3e71982f443b517a488f78ec01a9a7bfeecc4b5273ff44"
+    },
+    "build/invariant.log": {
+      "bytes": 68,
+      "encoding": "identity",
+      "path": "build/invariant.log",
+      "sha256": "0b69c6e293764bf81a3cdcabd16c7cfc6fe5a70199a604437025b8aa932ddef0"
+    },
+    "build/inventory-0.log": {
+      "bytes": 60,
+      "encoding": "identity",
+      "path": "build/inventory-0.log",
+      "sha256": "f2ac8575bea89c4abcf1ada50fedcf1101dc654dd77d49ac3133e1c4ab1cc471"
+    },
+    "build/lib.log": {
+      "bytes": 71,
+      "encoding": "identity",
+      "path": "build/lib.log",
+      "sha256": "ff3c422756fa962132b8afe1fd7e11f11f79498ecbb03438203d346e50e9fb8e"
+    },
+    "build/package-build-tests.log": {
+      "bytes": 464,
+      "encoding": "identity",
+      "path": "build/package-build-tests.log",
+      "sha256": "3c2bdccd8c268151497c40c36ab68af36299ad14c1a5fd4e0ce4bc92e8f247fd"
+    },
+    "build/package-metadata.txt": {
+      "bytes": 2333,
+      "encoding": "identity",
+      "path": "build/package-metadata.txt",
+      "sha256": "4ea2a515f16496a12834a905503ce32a9c2d341dd3f6ae1b095062d897f36036"
+    },
+    "build/patch-0-baseline-source.log": {
+      "bytes": 431,
+      "encoding": "identity",
+      "path": "build/patch-0-baseline-source.log",
+      "sha256": "fbd8d982db13f2a9a0ed791d06fb60224ab3161ebc2a518ac6a7bde96eb09eac"
+    },
+    "build/patch-0-candidate-source.log": {
+      "bytes": 431,
+      "encoding": "identity",
+      "path": "build/patch-0-candidate-source.log",
+      "sha256": "fbd8d982db13f2a9a0ed791d06fb60224ab3161ebc2a518ac6a7bde96eb09eac"
+    },
+    "build/patch-1-candidate-source.log": {
+      "bytes": 530,
+      "encoding": "identity",
+      "path": "build/patch-1-candidate-source.log",
+      "sha256": "4786011e25328706add383aabdf407cf62eec3aca01fa323042f1e8e46ab9c1b"
+    },
+    "build/receipt.json": {
+      "bytes": 53854,
+      "encoding": "identity",
+      "path": "build/receipt.json",
+      "sha256": "489d96c3d6015732d0d5acdf0ac505b182fb5d20a28d3152ff011d2bcc47875b"
+    },
+    "build/repositories.log": {
+      "bytes": 0,
+      "encoding": "identity",
+      "path": "build/repositories.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "build/repository.log": {
+      "bytes": 28,
+      "encoding": "identity",
+      "path": "build/repository.log",
+      "sha256": "db1223df9d8f476d2a2dd82f763fc5f1d301e00c0955b0d5a389eff4d2aad52f"
+    },
+    "build/root-0.log": {
+      "bytes": 554,
+      "encoding": "identity",
+      "path": "build/root-0.log",
+      "sha256": "5f290d689044fc1f0007d6c915907ba7225a6c4e4e1b0cae409e3e4c0626f0ba"
+    },
+    "build/root-1.log": {
+      "bytes": 28,
+      "encoding": "identity",
+      "path": "build/root-1.log",
+      "sha256": "8c9215a2b8108f55a725f33d036a1131e298456e9827d3c0b524711d29618601"
+    },
+    "build/strict-0.log": {
+      "bytes": 0,
+      "encoding": "identity",
+      "path": "build/strict-0.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "build/strict-1.log": {
+      "bytes": 0,
+      "encoding": "identity",
+      "path": "build/strict-1.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "build/strict-10.log": {
+      "bytes": 0,
+      "encoding": "identity",
+      "path": "build/strict-10.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "build/strict-11.log": {
+      "bytes": 0,
+      "encoding": "identity",
+      "path": "build/strict-11.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "build/strict-12.log": {
+      "bytes": 0,
+      "encoding": "identity",
+      "path": "build/strict-12.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "build/strict-13.log": {
+      "bytes": 0,
+      "encoding": "identity",
+      "path": "build/strict-13.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "build/strict-14.log": {
+      "bytes": 0,
+      "encoding": "identity",
+      "path": "build/strict-14.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "build/strict-15.log": {
+      "bytes": 0,
+      "encoding": "identity",
+      "path": "build/strict-15.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "build/strict-16.log": {
+      "bytes": 0,
+      "encoding": "identity",
+      "path": "build/strict-16.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "build/strict-17.log": {
+      "bytes": 0,
+      "encoding": "identity",
+      "path": "build/strict-17.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "build/strict-18.log": {
+      "bytes": 0,
+      "encoding": "identity",
+      "path": "build/strict-18.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "build/strict-19.log": {
+      "bytes": 0,
+      "encoding": "identity",
+      "path": "build/strict-19.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "build/strict-2.log": {
+      "bytes": 0,
+      "encoding": "identity",
+      "path": "build/strict-2.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "build/strict-20.log": {
+      "bytes": 0,
+      "encoding": "identity",
+      "path": "build/strict-20.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "build/strict-21.log": {
+      "bytes": 0,
+      "encoding": "identity",
+      "path": "build/strict-21.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "build/strict-22.log": {
+      "bytes": 0,
+      "encoding": "identity",
+      "path": "build/strict-22.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "build/strict-23.log": {
+      "bytes": 0,
+      "encoding": "identity",
+      "path": "build/strict-23.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "build/strict-24.log": {
+      "bytes": 0,
+      "encoding": "identity",
+      "path": "build/strict-24.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "build/strict-25.log": {
+      "bytes": 0,
+      "encoding": "identity",
+      "path": "build/strict-25.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "build/strict-26.log": {
+      "bytes": 0,
+      "encoding": "identity",
+      "path": "build/strict-26.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "build/strict-27.log": {
+      "bytes": 0,
+      "encoding": "identity",
+      "path": "build/strict-27.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "build/strict-28.log": {
+      "bytes": 0,
+      "encoding": "identity",
+      "path": "build/strict-28.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "build/strict-3.log": {
+      "bytes": 0,
+      "encoding": "identity",
+      "path": "build/strict-3.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "build/strict-4.log": {
+      "bytes": 0,
+      "encoding": "identity",
+      "path": "build/strict-4.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "build/strict-5.log": {
+      "bytes": 0,
+      "encoding": "identity",
+      "path": "build/strict-5.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "build/strict-6.log": {
+      "bytes": 0,
+      "encoding": "identity",
+      "path": "build/strict-6.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "build/strict-7.log": {
+      "bytes": 0,
+      "encoding": "identity",
+      "path": "build/strict-7.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "build/strict-8.log": {
+      "bytes": 0,
+      "encoding": "identity",
+      "path": "build/strict-8.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "build/strict-9.log": {
+      "bytes": 0,
+      "encoding": "identity",
+      "path": "build/strict-9.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "build/where.log": {
+      "bytes": 75,
+      "encoding": "identity",
+      "path": "build/where.log",
+      "sha256": "146b580a45d8a4604cc998247cccdef345cbe975522a68eb881a7ed451b1430b"
+    },
+    "capture.json": {
+      "bytes": 809,
+      "encoding": "identity",
+      "path": "capture.json",
+      "sha256": "b8c63f565f9fc60b1b2923e3b92a8f27027e909d0119686d5c2791ce17367ead"
+    },
+    "join/failure.json": {
+      "bytes": 155,
+      "encoding": "identity",
+      "path": "join/failure.json",
+      "sha256": "ec269e2d2db9330f307073a6912445c9ef99dc6132bc3e86fbac62d1f8d44403"
+    },
+    "plan/plan.json": {
+      "bytes": 270,
+      "encoding": "identity",
+      "path": "plan/plan.json",
+      "sha256": "6ede2c6b43159285b742358941d535c1334d7bd2252ff721d58736963128c4d4"
+    }
+  }
+}

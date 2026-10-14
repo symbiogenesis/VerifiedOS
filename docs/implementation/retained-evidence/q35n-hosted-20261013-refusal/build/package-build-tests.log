@@ -1,0 +1,11 @@
+The following actions will be performed:
+=== install 2 packages
+  ∗ rocq-sail-stdpp      0.20.3
+  ∗ rocq-stdpp-bitvector 1.13.0
+
+<><> Processing actions <><><><><><><><><><><><><><><><><><><><><><><><><><><><>
+⬇ retrieved rocq-stdpp-bitvector.1.13.0  (cached)
+⬇ retrieved rocq-sail-stdpp.0.20.3  (https://github.com/rems-project/coq-sail/archive/refs/tags/0.20.3.tar.gz)
+∗ installed rocq-stdpp-bitvector.1.13.0
+∗ installed rocq-sail-stdpp.0.20.3
+Done.
