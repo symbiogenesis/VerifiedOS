@@ -61,3 +61,36 @@ in the guest's native lane and records hashes and process results. This finite
 comparison is separate from the proof gate and is not a refinement theorem.
 `run.py test --only admission` checks the host behavior, whole-generation refusal,
 input boundaries, and image/graph/artifact mismatch handling.
+
+## Production input join
+
+`run.py admission production-record COMPOSITION --projections DIRECTORY --build-record BUILD --image IMAGE --graph GRAPH --out RECORD`
+consumes the composer's exact regenerated admission request skeleton and replays
+its build record against the published projections, final image, canonical graph
+and every runtime artifact. The build checker owns the graph's actual ELF binding.
+The record preserves each runtime member, package identity, symbolic artifact
+slot, declared tier and derivation source. Exact source, producer, projection,
+build-record, checker, image, graph, artifact and derivation bytes are bound and
+rechecked before returning or publishing the record. Publication cannot replace
+any consumed input, including a hardlinked alias.
+
+This join always emits `scope: production-admission-refusal`, `decision: refused`,
+`generation_accepted: false` and `production_admission: false`. Each member names
+its remaining blockers and owners: an unassigned tier, an absent derivation,
+unaccepted executable roster status where applicable, and the unavailable
+production derivation checker. A supplied derivation source binds its bytes only;
+even complete fixture metadata cannot supply proof checking, artifact-to-proof
+correspondence or Tier-0/1 evidence. The join implements the production input
+boundary while the actual checker and real member evidence remain open.
+
+`run.py admission check-production-record RECORD` recomputes the complete refusal
+against current inputs. A different image, graph, artifact, derivation, projection,
+build record or checker invalidates the saved record. Duplicate JSON fields and
+forged success flags refuse. Both commands exit `1` for a current, bound generation
+refusal and `2` for malformed, stale or unreadable inputs. Validity of a saved
+refusal is separate from generation acceptance.
+
+The focused admission tests use synthetic products and derivation references in
+real ELF containers. They check positive identity joins, every absent member's
+blockers, stale identities, drift after build validation, protected publication
+and refusal replay; they establish no production derivation verdict.
