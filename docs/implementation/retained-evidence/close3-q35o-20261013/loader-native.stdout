@@ -1,0 +1,15 @@
+.cmxs=[]
+..cmxs=[]
+foo.cmxs=[.cmxs]
+foo.CMXS=[.CMXS]
+.hidden.cmxs=[.cmxs]
+sail_plugin_coq.cmxs
+sail_plugin_c.cmxs
+sail_plugin_output.cmxs
+sail_plugin_smt.cmxs
+sail_plugin_lem.cmxs
+sail_plugin_lean.cmxs
+sail_plugin_doc.cmxs
+sail_plugin_ocaml.cmxs
+sail_plugin_sv.cmxs
+sail_plugin_latex.cmxs
