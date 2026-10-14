@@ -36,10 +36,10 @@ Every case runs against a sandbox built from the working tree, so the checker un
 test is the one on disk rather than the one at HEAD, and no case can touch the real
 repository. The sandbox is a git repository because the checker reads its corpus from
 the index. Cases run in parallel across one sandbox per worker, and a sandbox is
-hardlinks into one pristine template rather than a copy of it, which together are
-what make a whole pass half a minute rather than a coffee break; a case only ever
-sees its own sandbox, and a write breaks its link before it lands, so neither the
-parallelism nor the sharing changes a verdict.
+hardlinks into one pristine template rather than a copy of it. Checker modules are
+compiled once into bytecode whose source hashes each fresh interpreter validates;
+imports write no bytecode. A case only sees its own sandbox, and a write breaks its
+link before it lands, so neither the parallelism nor the sharing changes a verdict.
 
     tools/run.py selftest                 # every case
     tools/run.py selftest --rule K-23     # one rule, while iterating on it
@@ -54,6 +54,7 @@ import gzip
 import hashlib
 import json
 import os
+import py_compile
 import re
 import shutil
 import stat
@@ -191,7 +192,11 @@ class Sandbox:
             raise SystemExit("--fix rewrites documents in place, which writes through "
                              "this sandbox's hardlinks into the template; it may only "
                              "run on the repair sandbox, which holds real copies")
-        argv = [sys.executable, "-c",
+        # Each import validates a cached module against its current source bytes,
+        # even after a same-size, same-mtime mutation. -B leaves the shared caches
+        # immutable: mutated sources compile in that fresh process without publishing
+        # new bytecode through a sandbox's links.
+        argv = [sys.executable, "--check-hash-based-pycs", "always", "-B", "-c",
             "import sys; sys.path.insert(0, sys.argv.pop(1)); "
             "import check; raise SystemExit(check.main())",
             str((self.path / CHECKER).parent)] + (["--fix"] if fix else []) + (
@@ -237,6 +242,28 @@ def _link_or_copy(src: str | Path, dst: str | Path) -> None:
         os.link(src, dst)
     except OSError:
         shutil.copy2(src, dst)
+
+
+def _warm_bytecode(template: Path, jobs: int) -> int:
+    """Compile checker tools once; fresh processes still validate every source hash.
+
+    These non-indexed caches are hardlinked into the workers with their sources.
+    Compilation is only preparation: a rejected source or unavailable cache leaves
+    imports to produce their ordinary verdict and diagnostics. In particular, an
+    invalid tool the checker never imports must not become a new selftest finding.
+    """
+    sources = [template / CHECKER, *(template / "tools/vos").rglob("*.py")]
+
+    def compile_one(source: Path) -> bool:
+        try:
+            cached = py_compile.compile(
+                str(source), doraise=True, quiet=2,
+                invalidation_mode=py_compile.PycInvalidationMode.CHECKED_HASH)
+        except (OSError, py_compile.PyCompileError):
+            return False
+        return cached is not None
+
+    return sum(_across(compile_one, sources, jobs))
 
 
 def stand_up(template: Path, path: Path, fix_ok: bool = False, *, jobs: int = 1) -> Sandbox:
@@ -2763,20 +2790,19 @@ def main(argv: list[str] | None = None) -> int:
     sandbox = args.sandbox or Path(tempfile.mkdtemp(prefix="verifiedos-selftest-"))
 
     repo = corpus_mod.find_root()
-    jobs = max(1, min(args.jobs, len(selected)))
+    case_jobs = min(max(1, args.jobs), len(selected))
+    jobs = max(1, case_jobs)
     # Placement overlaps file writes rather than checker runs, so a run selecting no
-    # case, the repair path's alone, still places its template and first sandbox
+    # case, the repair path's alone, still places its template and repair sandbox
     # across --jobs workers.
     width = jobs if selected else max(1, args.jobs)
 
-    # One sandbox per worker, and one more the repair path keeps to itself so that its
-    # five runs go beside the cases rather than after them. Where the lane never runs,
-    # under a shard or when no selected rule carries a --fix branch, the extra sandbox
-    # is stood up cheap, as links, and joins the case queue instead of holding real
-    # copies for nothing.
+    # One sandbox per case worker and, only where it runs, a private repair sandbox.
+    # The completed template is the unmutated baseline, so no case sandbox must finish
+    # standing up before that checker starts. A repair-only run needs no case sandbox.
     repairable = _needs_repair(selected, args.shard, args.repair_only)
     made: list[Sandbox] = []
-    print(f"building {jobs + 1} sandbox(es) at {sandbox}")
+    print(f"building {case_jobs + int(repairable)} sandbox(es) at {sandbox}")
     template = sandbox / "template"
     with clock.timing("phase", "template"):
         copied, carried = build_template(repo, template, width)
@@ -2785,23 +2811,36 @@ def main(argv: list[str] | None = None) -> int:
     print()
 
     try:
-        # The baseline needs one sandbox and nothing else, so only the first is stood
-        # up before it, using the available setup workers across its directories.
-        # The rest land while the baseline runs, one worker per sandbox, each joining
-        # the queue as it does, and the case wave draws them out as they arrive.
-        with clock.timing("phase", "first sandbox"):
-            made.append(stand_up(template, sandbox / "w0", jobs=width))
-        boxes: Queue[Sandbox] = Queue()
+        with clock.timing("phase", "checked bytecode"):
+            _warm_bytecode(template, width)
+        # The baseline only reads the template. Workers unlink before every mutation,
+        # and the repair worker holds private copies, so setup can overlap that read
+        # without changing its inputs. Only those worker sandboxes enter the queue.
+        baseline = Sandbox(template, template)
+        boxes: Queue[Sandbox | BaseException] = Queue()
         with ThreadPoolExecutor(max_workers=jobs) as setup:
-            def later(i: int) -> Sandbox:
-                box = stand_up(template, sandbox / f"w{i}", fix_ok=repairable and i == jobs)
+            def later(i: int, *, fix_ok: bool = False) -> Sandbox:
+                try:
+                    with clock.timing("phase", f"sandbox w{i}"):
+                        box = stand_up(template, sandbox / f"w{i}", fix_ok=fix_ok,
+                                       jobs=width if not selected else 1)
+                except BaseException as err:
+                    if not fix_ok:
+                        # No initial worker is guaranteed to exist now that setup
+                        # overlaps the baseline. Wake waiting cases on setup failure.
+                        boxes.put(err)
+                    raise
                 made.append(box)
                 if not box.fix_ok:
                     boxes.put(box)
                 return box
 
-            standing = [setup.submit(later, i) for i in range(1, jobs + 1)]
-            code = _run(selected, made[0], boxes, standing[-1], jobs, repairable, clock,
+            standing = [setup.submit(later, i) for i in range(case_jobs)]
+            repair_ready = (setup.submit(later, case_jobs, fix_ok=True)
+                            if repairable else None)
+            if repair_ready is not None:
+                standing.append(repair_ready)
+            code = _run(selected, baseline, boxes, repair_ready, jobs, repairable, clock,
                         sharded=args.shard is not None, repair_only=args.repair_only)
             for future in standing:
                 future.result()   # a sandbox that failed to stand up is loud, not lost
@@ -2852,8 +2891,8 @@ def _verdict(case: Case, box: Sandbox) -> Verdict:
     return Verdict(seeded, SURVIVED, how)
 
 
-def _run(selected: list[Case], first: Sandbox, boxes: Queue[Sandbox],
-         repair_ready: Future[Sandbox], jobs: int, repairable: bool | None = None,
+def _run(selected: list[Case], baseline: Sandbox, boxes: Queue[Sandbox | BaseException],
+         repair_ready: Future[Sandbox] | None, jobs: int, repairable: bool | None = None,
          clock: timings.Clock | None = None, *, sharded: bool = False,
          repair_only: bool = False) -> int:
     if repair_only and (selected or repairable is False):
@@ -2862,6 +2901,9 @@ def _run(selected: list[Case], first: Sandbox, boxes: Queue[Sandbox],
 
     def one(case: Case) -> Verdict:
         box = boxes.get()
+        if isinstance(box, BaseException):
+            boxes.put(box)   # every other waiting case must wake and fail too
+            raise box
         started = time.perf_counter()
         try:
             return _verdict(case, box)
@@ -2872,6 +2914,8 @@ def _run(selected: list[Case], first: Sandbox, boxes: Queue[Sandbox],
                          started)
 
     def timed_repair() -> tuple[list[str], list[str]]:
+        if repair_ready is None:
+            raise ValueError("the repair path needs its private sandbox")
         with measured.timing("phase", "repair path"):
             return _repair_path(repair_ready)
 
@@ -2892,7 +2936,7 @@ def _run(selected: list[Case], first: Sandbox, boxes: Queue[Sandbox],
         # introduced. That verdict discards the repair path's report, and leaving the
         # pool still waits for it, so no checker is running when the estate is removed.
         with measured.timing("phase", "baseline"):
-            code, out, _ = first.check()
+            code, out, _ = baseline.check()
         if code != 0:
             print("FAIL: the unmutated sandbox does not pass, so no case can decide anything:")
             showing = False
@@ -2906,8 +2950,6 @@ def _run(selected: list[Case], first: Sandbox, boxes: Queue[Sandbox],
             return 1
         print("ok: the unmutated sandbox passes, so every finding below is the mutant")
         print()
-        boxes.put(first)
-
         with measured.timing("phase", "cases"):
             verdicts = list(pool.map(one, selected))
         repair: list[str] = []
@@ -2931,7 +2973,7 @@ def _run(selected: list[Case], first: Sandbox, boxes: Queue[Sandbox],
 
     print("\n".join(repair_out))
     print()
-    gaps = _registry_coverage(first)
+    gaps = _registry_coverage(baseline)
     print()
 
     beside = len(repair) + len(gaps)

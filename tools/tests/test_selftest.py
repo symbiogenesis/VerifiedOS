@@ -7,13 +7,14 @@ A case's checker run stops after its rule's group, and only a survivor runs whol
 import contextlib
 import io
 import json
+import os
 import stat
 import subprocess
 import tempfile
 from concurrent.futures import Future
 from pathlib import Path
 from queue import Queue
-from threading import Barrier, Lock
+from threading import Barrier, Event, Lock
 from types import SimpleNamespace
 from typing import cast
 from unittest.mock import patch
@@ -98,7 +99,7 @@ def _repair_only_runs_beside_the_baseline() -> None:
     for code, repair_only in ((0, True), (1, True), (0, False)):
         ran.clear()
         printed = io.StringIO()
-        boxes: Queue[selftest.Sandbox] = Queue()
+        boxes: Queue[selftest.Sandbox | BaseException] = Queue()
         with patch.object(selftest, "_repair_path", repair), \
                 patch.object(selftest, "_registry_coverage", return_value=[]), \
                 contextlib.redirect_stdout(printed):
@@ -140,7 +141,8 @@ def _shard_leaves_the_repair_path_to_repair_only() -> None:
     for sharded, held in ((True, "the repair path is left to --repair-only"),
                           (False, "the repair path had nothing to prove")):
         printed = io.StringIO()
-        boxes: Queue[selftest.Sandbox] = Queue()
+        boxes: Queue[selftest.Sandbox | BaseException] = Queue()
+        boxes.put(cast("selftest.Sandbox", _Baseline(0)))
         with patch.object(selftest, "_verdict", killed), \
                 patch.object(selftest, "_registry_coverage", return_value=[]), \
                 contextlib.redirect_stdout(printed):
@@ -149,6 +151,203 @@ def _shard_leaves_the_repair_path_to_repair_only() -> None:
         out = printed.getvalue()
         ensure(result == 0 and f"killed its mutant, {held}, and the registry" in out,
                f"sharded {sharded} must close on {held!r}, got {result}: {out}")
+
+
+def _baseline_overlaps_setup_and_never_enters_the_case_queue() -> None:
+    setup_started, baseline_started = Event(), Event()
+    seeded: list[str] = []
+    checker_paths: list[Path] = []
+    placed: list[selftest.Sandbox] = []
+    place = selftest.stand_up
+
+    with tempfile.TemporaryDirectory(prefix="vos-selftest-setup-") as td:
+        estate = Path(td) / "estate"
+        template = estate / "template"
+
+        def build(_repo: Path, into: Path, _jobs: int) -> tuple[int, int]:
+            (into / ".git").mkdir(parents=True)
+            (into / "subject.txt").write_bytes(b"pristine\n")
+            return 1, 0
+
+        def stand_up(source: Path, target: Path, fix_ok: bool = False, *,
+                     jobs: int = 1) -> selftest.Sandbox:
+            setup_started.set()
+            ensure(baseline_started.wait(10), "case setup blocked the baseline")
+            box = place(source, target, fix_ok, jobs=jobs)
+            placed.append(box)
+            return box
+
+        def check(box: selftest.Sandbox, fix: bool = False,
+                  through: str | None = None) -> tuple[int, list[str], list[str]]:
+            ensure(not fix, "this selection owns no repair sandbox")
+            checker_paths.append(box.path)
+            if through is None:
+                ensure(box.path == template and not box.touched,
+                       "the baseline must read the immutable template")
+                ensure(setup_started.wait(10), "baseline started without overlapping setup")
+                baseline_started.set()
+                return 0, [], []
+            ensure(box.path != template, "a case mutated the baseline template")
+            ensure(box.read("subject.txt") == through, "a case saw another worker's mutant")
+            return 1, [], [through]
+
+        def seed(rule: str) -> selftest.Mutation:
+            def apply(box: selftest.Sandbox) -> bool:
+                seeded.append(rule)
+                return box.write("subject.txt", rule)
+            return apply
+
+        selected = [(rule, "private bytes", seed(rule)) for rule in ("K-01", "K-02")]
+        printed = io.StringIO()
+        with (patch.object(selftest, "build_template", build),
+              patch.object(selftest, "stand_up", stand_up),
+              patch.object(selftest.Sandbox, "check", check),
+              patch.object(selftest, "_select_cases", return_value=selected),
+              patch.object(selftest, "_needs_repair", return_value=False),
+              patch.object(selftest, "_registry_coverage", return_value=[]),
+              contextlib.redirect_stdout(printed)):
+            result = selftest.main(["--jobs", "2", "--sandbox", str(estate), "--keep"])
+        ensure(result == 0 and sorted(seeded) == ["K-01", "K-02"],
+               f"the complete selected population must run: {printed.getvalue()}")
+        ensure(len(placed) == 2 and checker_paths.count(template) == 1,
+               "setup needs one sandbox per case worker and one template baseline read")
+        ensure((template / "subject.txt").read_bytes() == b"pristine\n"
+               and all(box.read("subject.txt") == "pristine\n" and not box.touched
+                       for box in placed),
+               "the immutable baseline and every reset worker must retain pristine bytes")
+        out = printed.getvalue()
+        ensure(out.index("K-01: private bytes") < out.index("K-02: private bytes"),
+               "concurrent cases must keep selection order in the report")
+
+
+def _repair_only_constructs_no_case_sandbox() -> None:
+    placed: list[tuple[Path, bool, int]] = []
+    with tempfile.TemporaryDirectory(prefix="vos-selftest-repair-setup-") as td:
+        estate = Path(td) / "estate"
+        template = estate / "template"
+
+        def build(_repo: Path, into: Path, _jobs: int) -> tuple[int, int]:
+            into.mkdir(parents=True)
+            return 0, 0
+
+        def stand_up(source: Path, target: Path, fix_ok: bool = False, *,
+                     jobs: int = 1) -> selftest.Sandbox:
+            placed.append((target, fix_ok, jobs))
+            return selftest.Sandbox(target, source, fix_ok)
+
+        def repair(ready: Future[selftest.Sandbox]) -> tuple[list[str], list[str]]:
+            ensure(ready.result().fix_ok, "the repair worker must have private copies")
+            return [], ["--- the repair path ---", "  ok: held"]
+
+        def check(box: selftest.Sandbox, fix: bool = False,
+                  through: str | None = None) -> tuple[int, list[str], list[str]]:
+            ensure(box.path == template and not fix and through is None,
+                   "repair-only still needs one complete immutable baseline")
+            return 0, [], []
+
+        with (patch.object(selftest, "build_template", build),
+              patch.object(selftest, "stand_up", stand_up),
+              patch.object(selftest.Sandbox, "check", check),
+              patch.object(selftest, "_repair_path", repair),
+              patch.object(selftest, "_registry_coverage", return_value=[]),
+              contextlib.redirect_stdout(io.StringIO())):
+            result = selftest.main(["--repair-only", "--jobs", "3", "--sandbox",
+                                    str(estate), "--keep"])
+        ensure(result == 0 and placed == [(estate / "w0", True, 3)],
+               f"repair-only must construct just its repair sandbox, got {placed}")
+
+
+def _failed_case_setup_wakes_every_waiting_case() -> None:
+    boxes: Queue[selftest.Sandbox | BaseException] = Queue()
+    boxes.put(OSError("sandbox placement failed"))
+    with contextlib.redirect_stdout(io.StringIO()):
+        try:
+            selftest._run(selftest.CASES[:3], cast("selftest.Sandbox", _Baseline(0)),
+                          boxes, None, 3, False)
+        except OSError as err:
+            ensure(str(err) == "sandbox placement failed",
+                   "setup failure must preserve its original diagnostic")
+        else:
+            raise AssertionError("a missing worker must fail rather than strand waiting cases")
+
+
+def _checked_bytecode_reads_same_metadata_mutants_and_preserves_the_template() -> None:
+    sources = {
+        "tools/check.py": ('from vos import subject\nREPORT = "pass K-25: checker"\n'
+                           'CODE = 0\ndef main():\n'
+                           '    print(subject.REPORT)\n    print(REPORT)\n'
+                           '    return max(CODE, subject.CODE)\n'),
+        "tools/vos/__init__.py": "",
+        "tools/vos/subject.py": 'REPORT = "pass K-24: subject"\nCODE = 0\n',
+    }
+    with tempfile.TemporaryDirectory(prefix="vos-selftest-bytecode-") as td:
+        root = Path(td)
+        template = root / "template"
+        (template / ".git").mkdir(parents=True)
+        for rel, text in sources.items():
+            path = template / rel
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(text, encoding="utf-8", newline="")
+        ensure(selftest._warm_bytecode(template, 2) == len(sources),
+               "each checker tool must receive a bytecode cache")
+        caches = {path.relative_to(template): path.read_bytes()
+                  for path in template.rglob("*.pyc")}
+        ensure(len(caches) == len(sources)
+               and all(int.from_bytes(data[4:8], "little") == 3 for data in caches.values()),
+               "every prepared cache must require source-hash validation")
+        box = selftest.stand_up(template, root / "worker")
+        ensure(box.check()[0] == 0, "the compiled baseline must retain its verdict")
+
+        for rule, rel in (("K-24", "tools/vos/subject.py"), ("K-25", "tools/check.py")):
+            def seed(target: selftest.Sandbox, rel: str = rel) -> bool:
+                path = target.path / rel
+                original = path.stat()
+                changed = target.write(rel, target.read(rel).replace("pass", "FAIL")
+                                       .replace("CODE = 0", "CODE = 1"))
+                os.utime(path, ns=(original.st_atime_ns, original.st_mtime_ns))
+                ensure(path.stat().st_size == original.st_size
+                       and path.stat().st_mtime_ns == original.st_mtime_ns,
+                       "the mutant must defeat size-and-timestamp cache validation")
+                return changed
+
+            verdict = selftest._verdict((rule, "same metadata source mutant", seed), box)
+            ensure(verdict.outcome == KILLED,
+                   f"cached imports must read the source mutant: {verdict.detail}")
+            ensure(all((template / name).read_bytes() == data
+                       and (box.path / name).read_bytes() == data
+                       for name, data in caches.items()),
+                   "fresh imports must not replace or edit shared bytecode caches")
+            box.reset()
+            ensure(box.check()[0] == 0, "reset must restore the original source verdict")
+
+        ensure(box.delete("tools/vos/subject.py"), "the imported source must be present")
+        code, out, failed = box.check()
+        ensure(code != 0 and not failed and any("ImportError" in line for line in out),
+               "an orphaned bytecode cache must not replace a deleted source")
+        box.reset()
+        cache = next(path for path in box.path.rglob("*.pyc")
+                     if path.name.startswith("subject."))
+        cache.unlink()
+        cache.write_bytes(b"invalid bytecode")
+        ensure(box.check()[0] == 0 and cache.read_bytes() == b"invalid bytecode",
+               "a malformed cache must fall back to source without publishing bytecode")
+        ensure(all((template / name).read_bytes() == data for name, data in caches.items()),
+               "cache fallback must preserve the template")
+
+
+def _bytecode_preparation_does_not_turn_unused_syntax_into_a_finding() -> None:
+    with tempfile.TemporaryDirectory(prefix="vos-selftest-bytecode-refusal-") as td:
+        template = Path(td)
+        (template / "tools/vos").mkdir(parents=True)
+        (template / "tools/check.py").write_bytes(b"def main():\n    return 0\n")
+        unused = template / "tools/vos/unused.py"
+        unused.write_bytes(b"this is not valid Python !!!\n")
+        printed = io.StringIO()
+        with contextlib.redirect_stderr(printed), contextlib.redirect_stdout(printed):
+            compiled = selftest._warm_bytecode(template, 2)
+        ensure(compiled == 1 and not printed.getvalue()
+               and selftest.Sandbox(template, template).check()[0] == 0,
+               "unused malformed source must retain its ordinary import behavior")
 
 
 def _git(root: Path, *args: str) -> bytes:
@@ -555,6 +754,14 @@ def cases() -> list[Case]:
         Case("repair-only-runs-beside-the-baseline", _repair_only_runs_beside_the_baseline),
         Case("shard-leaves-the-repair-path-to-repair-only",
              _shard_leaves_the_repair_path_to_repair_only),
+        Case("baseline-overlaps-setup-and-never-enters-the-case-queue",
+             _baseline_overlaps_setup_and_never_enters_the_case_queue),
+        Case("repair-only-constructs-no-case-sandbox", _repair_only_constructs_no_case_sandbox),
+        Case("failed-case-setup-wakes-every-waiting-case", _failed_case_setup_wakes_every_waiting_case),
+        Case("checked-bytecode-reads-same-metadata-mutants-and-preserves-the-template",
+             _checked_bytecode_reads_same_metadata_mutants_and_preserves_the_template),
+        Case("bytecode-preparation-does-not-turn-unused-syntax-into-a-finding",
+             _bytecode_preparation_does_not_turn_unused_syntax_into_a_finding),
         Case("checker-stops-after-the-rules-group", _checker_stops_after_the_rules_group),
         Case("case-verdict-reruns-only-survivors", _case_verdict_reruns_only_survivors),
         Case("holder-seeds-survive-changed-completion-prose", _holder_seeds_survive_changed_completion_prose),
