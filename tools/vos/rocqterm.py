@@ -250,6 +250,9 @@ def plugin_directories(share: Path) -> list[Path]:
         raise TermError("SAIL_NO_PLUGINS disables the canonical Rocq plugin")
     override = os.environ.get("SAIL_PLUGIN_DIR")
     if override is None:
+        if "SAIL_DIR" in os.environ or "DUNE_DIR_LOCATIONS" in os.environ:
+            raise TermError("SAIL_DIR or DUNE_DIR_LOCATIONS can move the library or plugin "
+                            "sites; an explicit absolute SAIL_PLUGIN_DIR is required")
         directories = [(share / PLUGIN).parent.resolve()]
     else:
         directories = [Path(value) for value in override.split(":")]
@@ -268,12 +271,15 @@ def loaded_plugins(share: Path) -> list[Path]:
     Sail loads every .cmxs returned by Sys.readdir in each selected directory;
     another plugin can also register a backend, so binding only the coq filename
     cannot identify the emission. os.scandir reads the same native enumeration.
+    Leading-dot-only names have no extension in OCaml; hidden names with a
+    non-dot prefix do. These pre/post inventories bind stable inputs, not an
+    atomic observation of Dynlink execution.
     """
     loaded = []
     for directory in plugin_directories(share):
         with os.scandir(directory) as entries:
             loaded.extend(directory / entry.name for entry in entries
-                          if Path(entry.name).suffix == ".cmxs")
+                          if entry.name.endswith(".cmxs") and entry.name[:-5].strip("."))
     return loaded
 
 
@@ -294,6 +300,8 @@ def selected_plugin(share: Path) -> Path:
 def toolchain(sail: str, z3: str) -> Toolchain:
     """The selected Sail with its plugin and library, and the solver, by digest."""
     share = Path(_output([sail, "--dir"]).strip())
+    if not share.is_absolute():
+        raise TermError("sail --dir must name an absolute library directory")
     plugin = selected_plugin(share)
     library = share / "lib"
     files = {path.relative_to(library).as_posix(): receipts.digest(path)
