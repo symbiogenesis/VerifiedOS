@@ -18,9 +18,11 @@ from vos import boot, composer
 from vos.jsonutil import unique_object
 
 SCHEMA = "tools/composer/composition.schema.json"
+PACKAGE_SCHEMA = "tools/composer/package.schema.json"
 EXAMPLE = "tools/composer/m8a-composition.json"
 GENERATED = "tools/composer/generated"
-PRODUCERS = ("tools/vos/composition.py", "tools/vos/composer.py", "tools/vos/boot.py", SCHEMA)
+PRODUCERS = ("tools/vos/composition.py", "tools/vos/composer.py", "tools/vos/boot.py", SCHEMA,
+             PACKAGE_SCHEMA)
 OUTPUTS = ("manifest.json", "manifest.c", "graph-input.json", "recipe-members.json",
            "admission-request.json")
 
@@ -62,6 +64,45 @@ def _decode_json(path: Path, data: bytes) -> object:
 
 def _is_integer(checker: object, value: object) -> bool:
     return type(value) is int
+
+
+def _package(root: Path, member: dict[str, Any]) -> dict[str, Any] | None:
+    """Bind a source-owned package inventory; unresolved handlers remain explicit.
+
+    Legacy HandlerGraph descriptors keep their comparison format. A production
+    package inventory is separate from that numeric descriptor and carries no
+    executable, interface-refinement or admission verdict.
+    """
+    ref = member["descriptor"]
+    if ref is None:
+        return None
+    value = _json(_path(root, ref["path"]), ref["sha256"])
+    if not isinstance(value, dict) or value.get("package_id") != member["package_id"]:
+        raise CompositionError(f"{member['id']}: descriptor package identity differs")
+    if "schema_version" not in value:
+        return {"package_id": value["package_id"], "sources": [], "interfaces": [],
+                "handler_graph": value}
+    schema = _json(_path(root, PACKAGE_SCHEMA))
+    if not isinstance(schema, dict):
+        raise CompositionError("package schema must be an object")
+    checker = Draft202012Validator.TYPE_CHECKER.redefine("integer", _is_integer)
+    validator = validators.extend(Draft202012Validator, type_checker=checker)
+    errors = list(validator(schema).iter_errors(value))
+    if errors or type(value["schema_version"]) is not int:
+        detail = f"{errors[0].json_path}: {errors[0].message}" if errors else "expected an integer version"
+        raise CompositionError(f"{member['id']}: package descriptor schema: {detail}")
+    names = [interface["id"] for interface in value["interfaces"]]
+    if len(set(names)) != len(names):
+        raise CompositionError(f"{member['id']}: duplicate package interface identity")
+    for source in (*value["sources"], *(interface["source"] for interface in value["interfaces"])):
+        _bound(root, source)
+    graph = value["handler_graph"]
+    return {**value, "handler_graph": None if graph is None else
+            {"package_id": value["package_id"], **graph}}
+
+
+def _package_sources(package: dict[str, Any]) -> list[dict[str, str]]:
+    return [*package["sources"], *(interface["source"] for interface in package["interfaces"])]
 
 
 def _bound(root: Path, ref: object) -> None:
@@ -118,11 +159,10 @@ def _graph(root: Path, raw: dict[str, Any]) -> composer.CompositionInput | None:
         "type_count": 0, "intent_count": 0, "world_count": 0,
         "inventory": [], "verified_parsers": [], "ring_depth_ceiling": 0}
     for index, member in enumerate(raw["members"]):
-        if member["descriptor"] is None:
+        package = _package(root, member)
+        if package is None or package["handler_graph"] is None:
             continue
-        descriptor = _json(_path(root, member["descriptor"]["path"]), member["descriptor"]["sha256"])
-        if not isinstance(descriptor, dict) or descriptor.get("package_id") != member["package_id"]:
-            raise CompositionError(f"{member['id']}: descriptor package identity differs")
+        descriptor = package["handler_graph"]
         try:
             # Even a partially resolved input must reject a malformed present
             # descriptor. Keep its original owner and target roster indices.
@@ -257,13 +297,21 @@ def _binding(root: Path, raw: dict[str, Any], input_binding: dict[str, str],
     for producer in raw["producers"]:
         for ref in producer["sources"]:
             _bound(root, ref)
+    packages = []
     for member in raw["members"]:
         for ref in (*member["sources"], member["descriptor"], member["derivation"]["source"]):
             if ref is not None:
                 _bound(root, ref)
+        # The outer inventory digest binds the transitive references, whose
+        # actual bytes must still match at the projection/publication boundary.
+        package = _package(root, member)
+        if package is not None:
+            packages.append({"member": member["id"], "descriptor": member["descriptor"],
+                             "sources": _package_sources(package)})
     return {"input": input_binding, "roster": roster_binding,
             "projection_producers": [reference(root, path) for path in PRODUCERS],
-            "member_producers": raw["producers"], "configuration": raw["configuration"]}
+            "member_producers": raw["producers"], "configuration": raw["configuration"],
+            "package_sources": packages}
 
 
 def _manifest(raw: dict[str, Any]) -> dict[str, object]:
@@ -298,6 +346,7 @@ def _projections(root: Path, raw: dict[str, Any], input_binding: dict[str, str],
         return composer.canonical_bytes({"schema_version": 1, "kind": kind, "binding": binding,
                                          "production_admission": False, "payload": payload})
     manifest = _manifest(raw)
+    packages = [_package(root, member) for member in raw["members"]]
     graph = _graph(root, raw)
     binding = _binding(root, raw, input_binding, roster_binding)
     image = [m for m in raw["members"] if roster.by_id()[m["id"]].kind == "image"]
@@ -307,7 +356,8 @@ def _projections(root: Path, raw: dict[str, Any], input_binding: dict[str, str],
             "graph-input.json": envelope("typed-handler-graph-input", {
                 "document": None if graph is None else composer.document(graph),
                 "descriptor_slots": [{"member": m["id"], "package_id": m["package_id"],
-                                      "source": m["descriptor"]} for m in raw["members"]]}),
+                                      "source": m["descriptor"], "package": package}
+                                     for m, package in zip(raw["members"], packages, strict=True)]}),
             "recipe-members.json": envelope("image-recipe-members", {
                 "name": raw["name"], "roster": boot.CONTRACT,
                 "configuration": raw["configuration"], "tohost": raw["tohost"],
@@ -340,6 +390,9 @@ def emit(root: Path, source: str, output: str) -> dict[str, str]:
         sources.update(ref["path"] for ref in
                        (*member["sources"], member["descriptor"], member["derivation"]["source"])
                        if ref is not None)
+        package = _package(root, member)
+        if package is not None:
+            sources.update(ref["path"] for ref in _package_sources(package))
     protected = {_path(root, path) for path in sources}
     targets: dict[str, Path] = {}
     # Preflight every leaf before writing anything: a later collision must not

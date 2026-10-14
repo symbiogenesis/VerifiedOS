@@ -109,7 +109,7 @@ swapped package identities, conflicting order, invalid extents, stale bindings
 and substituted derivation references. Fixture descriptor and recipe schemas
 remain unchanged.
 
-The M8a input explicitly leaves descriptors, target producers, placements,
+The M8a input explicitly leaves unresolved descriptors, target producers, placements,
 entry products, admission tiers and derivation sources unresolved where the
 products are absent. Its source list identifies existing statements and the
 supervisor's comparison manifest; it does not make them target products. The
@@ -124,6 +124,43 @@ declared type, intent, world, format, parser and ring limits before withholding
 an incomplete graph. Absent graph choices remain unresolved. Once complete,
 their document uses the existing composer schema; every descriptor source must
 name its own package.
+
+### Source-owned package inventories
+
+[The package inventory schema](package.schema.json) describes existing component
+sources and named interface owners separately from `HandlerGraph.Descriptor`.
+The [supervisor inventory](packages/supervisor.json) binds its bounded planner,
+context reactor, headers and lifecycle transport contract. The
+[copy-service inventory](packages/copy-service.json) binds its bounded C core,
+atomic and notification adapters, headers, ring declaration and executable
+boundary documentation. Their source digests identify the actual checkout bytes;
+they carry no target product, producer qualification, refinement, derivation or
+admission verdict.
+
+Each inventory has a closed versioned shape, its roster package identity, source
+bindings, uniquely named interface bindings and a `handler_graph` slot. The two
+existing components leave that slot null: their lifecycle and copy-ring boundaries
+do not choose the register's open handler intents or ambiguity policy. Null remains
+unresolved when every package inventory is present or a graph context is declared.
+It never converts to an empty accepted descriptor. A resolved slot supplies the
+existing numeric `desc_manifest` and `desc_edges`; the adapter applies the same
+owner, roster and twelve-conjunct checks as a direct reference descriptor. Direct
+reference descriptors retain their comparison format.
+
+`graph-input.json` projects the normalized package inventories beside their
+descriptor source bindings, preserving package identity while withholding an
+incomplete numeric graph. Every projection's common binding includes the inventory
+sources and interface owners. Construction and publication recheck those exact
+declared digests, and projection/build-record output preflights protect their files
+against path aliases and hardlinks. A changed component or interface owner refuses
+until its inventory is deliberately rebound and all projections are regenerated.
+The focused `test --only test_composition_packages` covers the real identities,
+unresolved slots, wrapped/direct descriptor agreement, stale transitive sources and
+publication refusals. The other roster inventories, real handler declarations,
+target products, image and admission remain joins for M7.1d.
+
+### Placement and build bindings
+
 Image entries may be unresolved; a declared entry follows the boot contract's
 `_start` rule. Planned text/data extents must fit executable/writable MainMemory,
 with no overlap with each other, the graph reservation or aligned HTIF word.

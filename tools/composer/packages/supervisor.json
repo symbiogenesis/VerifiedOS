@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "package_id": "supervisor",
+  "sources": [
+    {
+      "path": "supervisor/src/supervisor.c",
+      "sha256": "98b3c2fc154d2992ea3994f3cf99b6ab29ad2c7e9c434743debb58522a4e2dfd"
+    },
+    {
+      "path": "supervisor/src/context.c",
+      "sha256": "100fb0ac5292491871b7c6942e1b5ec114007473b5032b20e8bda9fffe88f3f0"
+    },
+    {
+      "path": "supervisor/include/vos_supervisor.h",
+      "sha256": "9b21363299a00b5b872db57922ac0b49bdf7d4d72b20b726fc0ca5c15b7a3c28"
+    },
+    {
+      "path": "supervisor/include/vos_supervisor_context.h",
+      "sha256": "100d8d0744e7596f8cc91d86af6c583687cd55e1a667d02776317ed03a402799"
+    },
+    {
+      "path": "supervisor/include/vos_context_layout.h",
+      "sha256": "321964764103d0f48fedad126547e9f3d3af4a148efce43a89cae18a34776dc6"
+    }
+  ],
+  "interfaces": [
+    {
+      "id": "supervisor-context",
+      "source": {
+        "path": "docs/implementation/contracts/supervisor-context.md",
+        "sha256": "81932e4e77ec85f6321364770d859b828f41dc019084253a80fe2fb629001be6"
+      }
+    }
+  ],
+  "handler_graph": null
+}
