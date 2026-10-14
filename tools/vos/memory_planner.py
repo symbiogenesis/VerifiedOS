@@ -207,6 +207,7 @@ def check_placement(instance: Instance, placement: object) -> list[str]:
     by_id: dict[str, dict[str, Any]] = {}
     buffers = {b.id: b for b in instance.buffers}
     pools = {p.id: p for p in instance.pools}
+    conflicts = set(instance.conflicts)
     for raw in placement:
         try:
             row = _mapping(raw, "placement")
@@ -255,7 +256,7 @@ def check_placement(instance: Instance, placement: object) -> list[str]:
             lrow, rrow = by_id[left.id], by_id[right.id]
             if lrow["pool"] != rrow["pool"]:
                 continue
-            coexist = tuple(sorted((left.id, right.id))) in instance.conflicts or any(
+            coexist = tuple(sorted((left.id, right.id))) in conflicts or any(
                 max(ls, rs) < min(le, re)
                 for ls, le in left.intervals for rs, re in right.intervals)
             if coexist and max(lrow["offset"], rrow["offset"]) < min(

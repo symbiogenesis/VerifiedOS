@@ -114,6 +114,33 @@ def _limits_never_truncate_into_false_infeasibility() -> None:
            "invalid candidate reached optional toolchain work")
 
 
+def _declared_pool_order_and_conflict_snapshots() -> None:
+    instance = _instance([
+        _buffer("x", 1, allowed_pools=["z"], fixed_offset=0),
+        _buffer("y", 2, allowed_pools=["a"], fixed_offset=0),
+        _buffer("w", 3, allowed_pools=["m"], fixed_offset=0),
+    ], pools=[{"id": "z", "capacity": 1}, {"id": "a", "capacity": 2},
+              {"id": "m", "capacity": 3}])
+    placement = [{"id": identifier, "pool": pool, "offset": 0}
+                 for identifier, pool in (("x", "z"), ("y", "a"), ("w", "m"))]
+    encoding = cert.encode(instance, objective_bound=6)
+    witness = cert.assignment_for_placement(instance, encoding, placement)
+    ensure(_satisfies(encoding, witness), "pool index reordered declared height-vector coordinates")
+    ensure(cert.decode_assignment(instance, encoding, list(witness)) == placement,
+           "pool index changed assignment decoding")
+    ensure(not _models(cert.encode(instance, objective_bound=5)),
+           "misindexed pool heights admitted an impossible total extent")
+
+    raw = asdict(_instance([_buffer("x", 1, intervals=[]),
+                           _buffer("y", 1, intervals=[])], 1))
+    separate = planner.parse_instance(raw)
+    raw["conflicts"] = [["y", "x"]]
+    conflicting = planner.parse_instance(raw)
+    ensure(bool(_models(cert.encode(separate))) and not _models(cert.encode(conflicting)),
+           "encoder reused conflict membership across input snapshots")
+    ensure(bool(_models(cert.encode(separate))), "new graph mutated the retained encoding input")
+
+
 def _empty_domains_and_zero_objective() -> None:
     impossible = _instance([_buffer("x", 5)], 4)
     encoding = cert.encode(impossible)
@@ -271,6 +298,8 @@ def cases() -> list[Case]:
     return [Case("CNF both directions against complete truth tables", _both_encoding_directions),
             Case("CNF aliases reservations gaps and zero extents", _aliases_reservations_gaps_and_zero_extents),
             Case("encoding budgets keep feasible fallback", _limits_never_truncate_into_false_infeasibility),
+            Case("declared pool coordinates and fresh conflict snapshots",
+                 _declared_pool_order_and_conflict_snapshots),
             Case("empty domains and zero objective", _empty_domains_and_zero_objective),
             Case("formula identity and SAT decoder refusals", _identities_and_decoder_refusals),
             Case("host DIMACS command", _encode_cli_contract),

@@ -104,6 +104,24 @@ def _aliases_and_zero_extents() -> None:
            "live view must conflict after root's last use")
 
 
+def _conflict_graph_diagnostics_and_freshness() -> None:
+    identifiers = ("z", "a", "m", "q")
+    raw = _raw([_buffer(identifier, 1, intervals=[]) for identifier in identifiers],
+               conflicts=[["m", "z"], ["z", "a"], ["a", "z"], ["q", "a"]])
+    instance = memory.parse_instance(raw)
+    placement = [{"id": identifier, "pool": "a", "offset": 0} for identifier in identifiers]
+    ensure(memory.check_placement(instance, placement) ==
+           ["overlap: z/a", "overlap: z/m", "overlap: a/q"],
+           "conflict lookup changed buffer-order diagnostics or missed reversed edges")
+    raw["conflicts"] = [["z", "q"]]
+    changed = memory.parse_instance(raw)
+    ensure(memory.check_placement(changed, placement) == ["overlap: z/q"],
+           "a previous graph's conflict lookup survived a new input snapshot")
+    ensure(memory.check_placement(instance, placement) ==
+           ["overlap: z/a", "overlap: z/m", "overlap: a/q"],
+           "another snapshot changed the retained conflict graph")
+
+
 def _baseline_retention_and_componentwise_objective() -> None:
     raw = _raw([_buffer("0", 2, allowed_pools=["a", "b"]),
                 _buffer("1", 2, allowed_pools=["a", "b"])],
@@ -241,6 +259,7 @@ def cases() -> list[Case]:
     return [Case("schema-and-integer-boundaries", _schema_and_integer_boundaries),
             Case("checker-preserves-every-constraint", _checker_preserves_every_constraint),
             Case("aliases-and-zero-extents", _aliases_and_zero_extents),
+            Case("conflict-graph-order-and-freshness", _conflict_graph_diagnostics_and_freshness),
             Case("baseline-retention-and-pool-objective", _baseline_retention_and_componentwise_objective),
             Case("certificates-scoped-and-replayed", _certificates_are_scoped_and_replayed),
             Case("exact-search-independent-grid", _exact_search_matches_an_independent_grid),

@@ -135,6 +135,7 @@ def encode(instance: planner.Instance, *, objective_bound: int | None = None,
         _number(objective_bound, "objective_bound", -1)
     caps = _pool_limits(instance, pool_limits)
     pools = {pool.id: pool for pool in instance.pools}
+    conflicts = set(instance.conflicts)
     work = 0
     clauses: list[tuple[int, ...]] = []
     groups: list[tuple[int, ...]] = []
@@ -201,7 +202,7 @@ def encode(instance: planner.Instance, *, objective_bound: int | None = None,
             right = instance.buffers[j]
             charge(1 + len(left.intervals) * len(right.intervals))
             same_storage = (left.alias_of or left.id) == (right.alias_of or right.id)
-            coexist = tuple(sorted((left.id, right.id))) in instance.conflicts or any(
+            coexist = tuple(sorted((left.id, right.id))) in conflicts or any(
                 max(ls, rs) < min(le, re)
                 for ls, le in left.intervals for rs, re in right.intervals)
             for left_index, (lp, lo) in enumerate(all_choices[i]):
@@ -235,11 +236,12 @@ def encode(instance: planner.Instance, *, objective_bound: int | None = None,
         vectors = [vector for vector in itertools.product(*height_domains)
                    if sum(vector) <= objective_bound]
         height_variables = group(len(vectors))
+        pool_indices = {pool.id: index for index, pool in enumerate(instance.pools)}
         for i, buffer in enumerate(instance.buffers):
             for choice_index, (pool_id, offset) in enumerate(all_choices[i]):
                 if not buffer.size:
                     continue
-                pool_index = next(k for k, pool in enumerate(instance.pools) if pool.id == pool_id)
+                pool_index = pool_indices[pool_id]
                 for height_variable, vector in zip(height_variables, vectors, strict=True):
                     charge()
                     if offset + buffer.size > vector[pool_index]:
