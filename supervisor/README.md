@@ -50,6 +50,21 @@ epochs and the existing effect refusals. The host runner's receipt binds both
 manifest projections and keeps production admission false. Authenticated target
 handoff and full-roster boot/fault observations remain required for M7.1b.
 
+The same focused manifest tests compile the exact checked C snapshot through
+[the nonblocking native join](../tools/vos/supervisor_manifest_join.py) and
+[its C control](test/manifest_context.c). The reactor publishes real scalar
+requests to the kernel's lifecycle decoder and consumes its acknowledgments.
+Controls cover fault-invalidated publication without watermark advancement,
+filtered grants, full-width epochs, clearing and fresh-root installation,
+backoff anchored at delayed acknowledgment, definitive malformed-request
+recovery after retirement, restart and a failed-start prefix. Four independently
+spoiled source variants must compile and execute before their failed controls
+count as detected. The native report binds both manifest projections, exact
+source/header snapshots, compiler bytes and reported version, arguments, logs
+and executable bytes; snapshot or source drift withholds success. Native roots,
+clock values and resident scrub remain host premises. This join supplies no
+authenticated handoff, target execution or full-roster acceptance.
+
 [include/vos_supervisor.h](include/vos_supervisor.h) fixes capacities of 16 units and
 16 backoff entries for this build. These are implementation bounds, not normative
 limits. No allocation, recursion or garbage collector is used. Manifest admission
