@@ -165,20 +165,20 @@ def _native_consumer() -> None:
 
 
 def _native_manifest_context() -> None:
-    with _sandbox() as (root, _raw):
-        with tempfile.TemporaryDirectory(prefix="vos-supervisor-manifest-context-") as temporary:
-            result = supervisor_manifest_join.run(root, Path(temporary).resolve())
-            ensure(result["comparison"] == "passed" and result["production_admission"] is False,
-                   "native context join changed its evidence scope")
-            ensure(set(result["projections"]) == set(supervisor.MANIFESTS),
-                   "context join did not bind both checked manifest projections")
-            ensure(len(result["cases"]) == 5 and
-                   [case["verdict"] for case in result["cases"]] == ["passed", *["killed"] * 4],
-                   "compiled context defects lack execution evidence")
-            ensure(all(case["compiled"] and case["executed"] for case in result["cases"]),
-                   "a stillborn mutant was reported detected")
-            ensure(set(result["inputs"]) == set(supervisor_manifest_join.INPUTS),
-                   "context join source identity is incomplete")
+    with (_sandbox() as (root, _raw),
+          tempfile.TemporaryDirectory(prefix="vos-supervisor-manifest-context-") as temporary):
+        result = supervisor_manifest_join.run(root, Path(temporary).resolve())
+        ensure(result["comparison"] == "passed" and result["production_admission"] is False,
+               "native context join changed its evidence scope")
+        ensure(set(result["projections"]) == set(supervisor.MANIFESTS),
+               "context join did not bind both checked manifest projections")
+        ensure(len(result["cases"]) == 5 and
+               [case["verdict"] for case in result["cases"]] == ["passed", *["killed"] * 4],
+               "compiled context defects lack execution evidence")
+        ensure(all(case["compiled"] and case["executed"] for case in result["cases"]),
+               "a stillborn mutant was reported detected")
+        ensure(set(result["inputs"]) == set(supervisor_manifest_join.INPUTS),
+               "context join source identity is incomplete")
 
 
 def cases() -> list[Case]:

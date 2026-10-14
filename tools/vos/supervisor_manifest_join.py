@@ -86,13 +86,14 @@ def run(root: Path, work: Path, compiler: str | None = None) -> dict[str, Any]:
         for name, data in inputs.items():
             destination = lane / name
             destination.parent.mkdir(parents=True, exist_ok=True)
+            compiled_data = data
             if mutation is not None and name == mutation[1]:
                 old, new = mutation[2].encode(), mutation[3].encode()
                 if data.count(old) != 1:
                     raise ValueError(f"{mutation[0]} mutation site drifted")
-                data = data.replace(old, new, 1)
-            destination.write_bytes(data)
-            staged[name] = data
+                compiled_data = data.replace(old, new, 1)
+            destination.write_bytes(compiled_data)
+            staged[name] = compiled_data
         for name, data in manifest.items():
             (lane / name).write_bytes(data)
             staged[name] = data
