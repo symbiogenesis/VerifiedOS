@@ -10,9 +10,11 @@ WCET and the copy service's separately owned allocation remain separate inputs.
 import hashlib
 import json
 import re
+import struct
 import subprocess
 from itertools import pairwise
 from pathlib import Path
+from typing import Any
 
 from vos import (
     asm,
@@ -26,6 +28,7 @@ from vos import (
     kernel_target,
     kernelrun,
     receipts,
+    supervisor,
     trace,
 )
 from vos.cli import compiler_diff
@@ -40,7 +43,45 @@ INPUTS = ("supervisor/include", "supervisor/src", "supervisor/test/context_join.
           "tools/vos/kernel_effects.py", "tools/vos/kernel_restore.py",
           "tools/vos/kernel_target.py", "tools/vos/kernelrun.py", "tools/vos/trace.py",
           "tools/vos/boot_handoff.py", "tools/vos/jsonc.py", "tools/vos/receipts.py",
-          "tools/vos/cli/compiler_diff.py")
+          "tools/vos/cli/compiler_diff.py", "tools/vos/supervisor.py")
+
+
+def manifest_bytes(payload: dict[str, Any]) -> bytes:
+    """Independent RV64 C layout account for this three-unit component join."""
+    if (payload["units"] != ["crypto-core", "storage", "copy-service"] or
+            payload["order"] != [0, 1, 2] or payload["edges"] != [0, 1, 0] or
+            payload["policy"]["restart_members"] != 7):
+        raise ValueError("generated manifest does not match the three-unit target component")
+    policy = payload["policy"]
+    words = [3, *payload["order"], *([0] * 13), *payload["edges"], *([0] * 13),
+             *policy["threshold"], *policy["clear_threshold"], *policy["respond"],
+             policy["min_dwell"], policy["max_interventions"], policy["escalation"],
+             len(policy["backoff"]), *policy["backoff"], *([0] * (16 - len(policy["backoff"]))),
+             policy["ceiling"], policy["boot_bound"], policy["restart_members"]]
+    if len(words) != 80:
+        raise ValueError("generated manifest exceeds the checked target C layout")
+    return struct.pack("<80I", *words)
+
+
+def manifest_unit(root: Path, out: Path) -> tuple[Path, dict[str, bytes], bytes]:
+    """Compile a checked immutable projection, never the handwritten policy."""
+    snapshot = supervisor.checked_manifest(root)
+    expected = manifest_bytes(json.loads(snapshot["manifest.json"])["payload"])
+    out.mkdir(parents=True, exist_ok=True)
+    for name, data in snapshot.items():
+        (out / name).write_bytes(data)
+    unit = out / "manifest-target.c"
+    unit.write_text('#define VOS_JOIN_GENERATED_MANIFEST 1\n'
+                    f'#include "{(root / "supervisor/test/context_join.c").as_posix()}"\n'
+                    '#include "manifest.c"\n',
+                    encoding="utf-8", newline="\n")
+    return unit, snapshot, expected
+
+
+def manifest_unchanged(root: Path, out: Path, snapshot: dict[str, bytes]) -> None:
+    if (supervisor.checked_manifest(root) != snapshot or
+            any((out / name).read_bytes() != data for name, data in snapshot.items())):
+        raise ValueError("generated target manifest changed during execution")
 
 
 def namespace(stream: str, prefix: str) -> str:
@@ -79,7 +120,7 @@ def source(kernel_stream: str, supervisor_stream: str,
            service_text: str = "", service_data: str = "", init_extra: str = "",
            after_ack: str = "", retire_extra: str = "", fault_handler: str = "",
            dispatch_handler: str = "", supervisor_publish_extra: str = "",
-           timer_extra: str = "") -> str:
+           timer_extra: str = "", initial_empty: bool = False) -> str:
     """Compose original compiled units with explicit authority and timer adapters.
 
     Offline service fragments own their labels and declared extents. The default
@@ -90,7 +131,7 @@ def source(kernel_stream: str, supervisor_stream: str,
     timer_extra runs only after timer-cause validation, with trusted c31/c18 roots
     and c2 stack, before any supervisor request consumption or completion check.
     """
-    if defect not in {"none", "stale", "incomplete", "ack-write", "asr",
+    if defect not in {"none", "stale", "incomplete", "ack-write", "manifest-write", "asr",
                       "partial", "fault-before", "fault-after", "fault-backoff", "publication"}:
         raise ValueError("unknown lifecycle target control")
     if owned_bytes <= 0 or owned_bytes > 524288 or owned_bytes & (owned_bytes - 1):
@@ -249,7 +290,7 @@ def source(kernel_stream: str, supervisor_stream: str,
               dispatch_handler, "    j lifecycle_control_pass", "lifecycle_fault_entry:"]
     lines += _address(10, "request")
     lines += ["    call k_vos_kernel_lifecycle_fault", *_root(), fault_handler]
-    if defect in {"ack-write", "asr"}:
+    if defect in {"ack-write", "manifest-write", "asr"}:
         lines += ["    cspecialrw c20, mepcc, cnull", "    cgetaddr x5, c20",
                   "    li x6, supervisor_permission_control", "    li x3, 9",
                   "    bne x5, x6, lifecycle_fail", "    j lifecycle_control_pass"]
@@ -289,9 +330,10 @@ def source(kernel_stream: str, supervisor_stream: str,
         if cursor is not None:
             lines += [f"    cgetaddr x5, c{reg}", f"    li x6, {cursor}",
                       "    bne x5, x6, supervisor_failed"]
-    if defect in {"ack-write", "asr"}:
-        lines += ["supervisor_permission_control:", "    sd x0, 0(c11)" if defect == "ack-write" else
-                  "    csrr x5, mcause"]
+    if defect in {"ack-write", "manifest-write", "asr"}:
+        instruction = ("    sd x0, 0(c11)" if defect == "ack-write" else
+                       "    sd x0, 0(c10)" if defect == "manifest-write" else "    csrr x5, mcause")
+        lines += ["supervisor_permission_control:", instruction]
     if defect == "fault-backoff":
         lines += ["    ld x5, 32(c11)", "    li x6, 1", "    bne x5, x6, supervisor_react",
                   "    ld x5, 80(c11)", "    ld x6, 88(c11)", "    bgeu x5, x6, supervisor_react",
@@ -301,7 +343,7 @@ def source(kernel_stream: str, supervisor_stream: str,
               "    lc c11, 8(c2)", "    cincoffsetimm c2, c2, 16",
               "    li x5, -1", "    beq x10, x5, supervisor_failed",
               "    beqz x10, supervisor_poll_return", supervisor_publish_extra]
-    if defect == "partial":
+    if defect == "partial" or (initial_empty and defect not in {"fault-before", "fault-after"}):
         lines += ["    ld x5, 80(c11)", "    beqz x5, supervisor_poll_return"]
     if defect == "fault-before":
         lines += ["    ld x5, 80(c11)", "    bnez x5, supervisor_publish",
@@ -419,13 +461,17 @@ def longest_path(counts: dict[str, int], owned_bytes: int = 64,
             "clock": "one executor step per tick; not physical WCET"}
 
 
-def reaction_path(counts: dict[str, int]) -> dict[str, object]:
-    """Whole-function overcount for the immutable three-unit, one-delay policy."""
+def reaction_path(counts: dict[str, int], *, backoff_count: int = 1) -> dict[str, object]:
+    """Whole-function overcount for the immutable three-unit component policy."""
+    if type(backoff_count) is not int or not 0 <= backoff_count <= 16:
+        raise ValueError("supervisor reaction account requires an admitted backoff count")
     charges = {
         "vos_join_react": 1, "vos_supervisor_context_recover": 1,
         "vos_supervisor_context_step": 1 + 64 + 16 + 3,
         "context_ack_ok": 2 * (1 + 16 + 4 + 3), "context_ack_read": 2,
-        "vos_supervisor_manifest_ok": 3 * (1 + 8 + 1),
+        # recover, step and plan each validate: the detector and backoff loops
+        # are sequential, so charge their admitted lengths plus one whole body.
+        "vos_supervisor_manifest_ok": 3 * (1 + 8 + backoff_count),
         "vos_supervisor_order_ok": 3 * (1 + 3), "members": 7,
         "vos_supervisor_plan": 1 + 3, "vos_supervisor_backoff": 1,
     }
@@ -433,12 +479,13 @@ def reaction_path(counts: dict[str, int]) -> dict[str, object]:
     if total >= SLOT:
         raise ValueError("supervisor reaction account does not fit its admitted fixed slot")
     return {"function_instruction_counts": counts, "whole_body_multipliers": charges,
+            "backoff_count": backoff_count,
             "entry_publication_steps": 256, "longest_path_steps": total, "slot_steps": SLOT}
 
 
 def observations(log: Path, symbols: dict[str, int], windows: tuple[int, int],
                  bitmap: tuple[int, int], bound: dict[str, object],
-                 defect: str = "none") -> dict[str, object]:
+                 defect: str = "none", expected_manifest: bytes | None = None) -> dict[str, object]:
     """Stream actual retire/effect records; do not infer success from HTIF alone."""
     work_bound = bound["longest_path_steps"]
     if not isinstance(work_bound, int) or work_bound <= 0:
@@ -448,6 +495,8 @@ def observations(log: Path, symbols: dict[str, int], windows: tuple[int, int],
     digest = hashlib.sha256()
     buffers = {name: bytearray(size) for name, size in
                (("request", 512), ("acknowledgment", 256), ("lifecycle_owned_span", 64))}
+    if expected_manifest is not None:
+        buffers["supervisor_manifest"] = bytearray(len(expected_manifest))
     slots = {name: {} for name in ("saved_clear", "restore_context")}
     requests, acknowledgments, entries, releases, traps = [], [], [], [], []
     caps: dict[str, list[int]] = {}
@@ -589,6 +638,8 @@ def observations(log: Path, symbols: dict[str, int], windows: tuple[int, int],
         "no_ecall": not extra_syscall,
         "sequence_last_fences": all(publication_fences),
     }
+    if expected_manifest is not None:
+        facts["exact_generated_manifest_in_target"] = bytes(buffers["supervisor_manifest"]) == expected_manifest
     if defect in {"none", "partial", "fault-before", "fault-after", "fault-backoff"}:
         acks = [item["words"] for item in acknowledgments]
         accepted_requests = [item for item in requests if not item["invalidated"]]
@@ -596,7 +647,8 @@ def observations(log: Path, symbols: dict[str, int], windows: tuple[int, int],
         facts.update({
             "fixed_release_empty_and_occupied": len(releases) >= 4 and
                 all(item["expected"] == item["observed"] for item in releases) and
-                any(a[0] == b[0] == 2 for a, b in pairwise(acks)),
+                (any(a[0] == 0 for a in acks) if expected_manifest is not None else
+                 any(a[0] == b[0] == 2 for a, b in pairwise(acks))),
             "work_within_account": bool(work_steps) and max(work_steps) <= work_bound,
             "timer_only_consumption": bool(timer_consumption) and all(timer_consumption),
             "exact_start_retire_start": [req[0:2] for req in reqs] == [[1, 2], [2, 1], [3, 2]] and
@@ -638,12 +690,21 @@ def observations(log: Path, symbols: dict[str, int], windows: tuple[int, int],
 
 
 def run(root: Path, ccomp: Path, config: Path, simulator: Path,
-        build_receipt: Path, out: Path, timeout: int = 180) -> dict[str, object]:
+        build_receipt: Path, out: Path, timeout: int = 180, *,
+        generated_manifest: bool = False) -> dict[str, object]:
     root, ccomp, config, simulator, build_receipt, out = (
         p.resolve() for p in (root, ccomp, config, simulator, build_receipt, out))
     out.mkdir(parents=True, exist_ok=True)
-    provenance, provenance_files = compiler_provenance.read(ccomp)
-    receipts.write(out / "report.json", {"status": "incomplete", "ok": False})
+    receipts.write(out / "report.json", {"status": "incomplete", "ok": False,
+                                       "generated_manifest": generated_manifest})
+    try:
+        provenance, provenance_files = compiler_provenance.read(ccomp)
+    except (OSError, ValueError, TypeError) as error:
+        receipts.write(out / "report.json", {"status": "refused", "ok": False,
+            "stage": "compiler-provenance", "reason": str(error),
+            "generated_manifest": generated_manifest, "production_admission": False,
+            "milestone_acceptance": "open", "target_execution": False})
+        raise
     inputs = receipts.inputs(root, *INPUTS)
     model = receipts.inputs(root, "model")
     external = {"ccomp": receipts.digest(ccomp), "config": receipts.digest(config),
@@ -652,17 +713,29 @@ def run(root: Path, ccomp: Path, config: Path, simulator: Path,
     args = [str(ccomp), "-conf", str(config), "-fverifiedos-typed",
             "-I" + str(root / "supervisor/include"), "-I" + str(root / "kernel/include")]
     source_path = root / "supervisor/test/context_join.c"
+    snapshot: dict[str, bytes] = {}
+    expected_manifest = None
+    if generated_manifest:
+        source_path, snapshot, expected_manifest = manifest_unit(root, out)
+    unit_bytes = source_path.read_bytes() if generated_manifest else b""
     kernel = compiler_diff.compile_c([*args, "-DVOS_JOIN_KERNEL"], source_path, out / "kernel")
-    supervisor = compiler_diff.compile_c(args, source_path, out / "supervisor")
-    if kernel.stream is None or supervisor.stream is None:
-        raise ValueError(f"component compilation refused: {kernel.said}; {supervisor.said}")
+    supervisor_component = compiler_diff.compile_c(args, root / "supervisor/test/context_join.c", out / "supervisor")
+    if generated_manifest:
+        manifest_unchanged(root, out, snapshot)
+        if source_path.read_bytes() != unit_bytes:
+            raise ValueError("generated target compilation unit changed during compilation")
+    if kernel.stream is None or supervisor_component.stream is None:
+        raise ValueError(f"component compilation refused: {kernel.said}; {supervisor_component.said}")
     bound = longest_path(instruction_counts(kernel.stream))
-    reaction = reaction_path(instruction_counts(supervisor.stream))
+    backoff_count = (len(json.loads(snapshot["manifest.json"])["payload"]["policy"]["backoff"])
+                     if generated_manifest else 1)
+    reaction = reaction_path(instruction_counts(supervisor_component.stream), backoff_count=backoff_count)
     boundary_steps = bound["padded_boundary_steps"]
     if not isinstance(boundary_steps, int):
         raise TypeError("the finite composition account did not return an integer boundary")
     windows = boot_handoff.timer_windows(root)
-    assembly = source(kernel.stream, supervisor.stream, windows, (0, 1), boundary_steps)
+    assembly = source(kernel.stream, supervisor_component.stream, windows, (0, 1), boundary_steps,
+                      initial_empty=generated_manifest)
     probe = asm.Assembler(assembly, "layout", text_base=TEXT_BASE, data_base=DATA_BASE)
     probe.assemble()
     bitmap = kernel_target.revocation_window(root, probe.symbols["grant_slots"])
@@ -675,10 +748,15 @@ def run(root: Path, ccomp: Path, config: Path, simulator: Path,
     profile_path = out / "profile.json"
     receipts.write(profile_path, profile)
     cases = []
-    for defect in ("none", "stale", "incomplete", "ack-write", "asr",
-                   "partial", "fault-before", "fault-after", "fault-backoff", "publication"):
-        text = source(kernel.stream, supervisor.stream, windows, bitmap,
-                      boundary_steps, defect=defect)
+    controls = ("none", "stale", "incomplete", "ack-write", "asr",
+                "partial", "fault-before", "fault-after", "fault-backoff", "publication")
+    if generated_manifest:
+        # This composition's 1-step initial delay is already expired at its next
+        # fixed slot. Waiting-phase fault evidence belongs to the comparison run.
+        controls = (*(name for name in controls if name != "fault-backoff"), "manifest-write")
+    for defect in controls:
+        text = source(kernel.stream, supervisor_component.stream, windows, bitmap,
+                      boundary_steps, defect=defect, initial_empty=generated_manifest)
         emitted = out / f"{defect}.s"
         emitted.write_text(text, encoding="utf-8", newline="\n")
         assembler = asm.Assembler(text, defect, text_base=TEXT_BASE, data_base=DATA_BASE)
@@ -694,7 +772,8 @@ def run(root: Path, ccomp: Path, config: Path, simulator: Path,
             log.seek(max(0, log_path.stat().st_size - 8192))
             tail = log.read().decode("utf-8", errors="replace")
         verdict, code, detail = compiler_diff.htif_verdict(tail, done.returncode)
-        observed = observations(log_path, assembler.symbols, windows, bitmap, bound, defect)
+        observed = observations(log_path, assembler.symbols, windows, bitmap, bound, defect,
+                                expected_manifest)
         cases.append({"name": defect, "htif": verdict, "code": code, "detail": detail,
                       "ok": verdict == "pass" and bool(observed["ok"]),
                       "elf_sha256": receipts.digest(elf), "source_sha256": receipts.digest(emitted),
@@ -706,18 +785,27 @@ def run(root: Path, ccomp: Path, config: Path, simulator: Path,
                               "simulator": receipts.digest(simulator), "model_receipt": receipts.digest(build_receipt)})
     if not compiler_provenance.unchanged(provenance_files):
         raise ValueError("contained compiler build receipt changed during execution")
+    if generated_manifest:
+        manifest_unchanged(root, out, snapshot)
+        if source_path.read_bytes() != unit_bytes:
+            raise ValueError("generated target compilation unit changed during execution")
+    limits = ["explicit reset initialization, not firmware or boot",
+              "three service lifecycle states; service bodies not executed",
+              "one64-byte owned span; no copy ring teardown claim",
+              "logical instruction clock; no physical WCET claim",
+              "remaining finite decision controls are separately bound target receipts"]
+    if generated_manifest:
+        limits.append("waiting-phase faults retain the separate long-delay comparison policy")
     report = {"compiler_provenance": provenance, "compiler_receipts_sha256": provenance_files,
             "status": "complete", "milestone_acceptance": "open", "sources": inputs,
               "external": external, "model_sources": model, "bound": bound,
               "profile": {"path": str(profile_path), "sha256": receipts.digest(profile_path)},
               "reaction_bound": reaction, "cases": cases,
-              "kernel": compiler_diff._compiled_json(kernel), "supervisor": compiler_diff._compiled_json(supervisor),
-              "inputs_unchanged": unchanged, "ok": unchanged and len(cases) == 10 and
-              all(case["ok"] for case in cases),
-              "limits": ["explicit reset initialization, not firmware or boot",
-                         "three service lifecycle states; service bodies not executed",
-                         "one64-byte owned span; no copy ring teardown claim",
-                         "logical instruction clock; no physical WCET claim",
-                         "remaining finite decision controls are separately bound target receipts"]}
+              "kernel": compiler_diff._compiled_json(kernel), "supervisor": compiler_diff._compiled_json(supervisor_component),
+              "production_manifest": {name: hashlib.sha256(data).hexdigest() for name, data in snapshot.items()},
+              "production_admission": False, "generated_manifest": generated_manifest,
+              "expected_manifest_sha256": hashlib.sha256(expected_manifest).hexdigest() if expected_manifest else None,
+              "inputs_unchanged": unchanged, "ok": unchanged and len(cases) == len(controls) and
+              all(case["ok"] for case in cases), "limits": limits}
     receipts.write(out / "report.json", report)
     return report

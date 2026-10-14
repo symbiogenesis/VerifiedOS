@@ -23,11 +23,15 @@
 
 void vos_join_manifest(struct vos_supervisor_manifest *out)
 {
+#ifdef VOS_JOIN_GENERATED_MANIFEST
+    *out = vos_m8a_supervisor_manifest;
+#else
     struct vos_supervisor_manifest m = {
         3, {0, 1, 2}, {0, 1, 0}, {0}, {0}, {0},
         0, 3, VOS_FAIL_STOP, 1, {500000}, 500000, 3, 7
     };
     *out = m;
+#endif
 }
 
 int vos_join_init(struct vos_kernel_effect_state *e,

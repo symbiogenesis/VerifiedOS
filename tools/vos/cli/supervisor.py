@@ -24,10 +24,12 @@ def cmd_check(_args: argparse.Namespace) -> int:
 
 
 def cmd_target(args: argparse.Namespace) -> int:
-    work = env.load().lane_root / "supervisor-target"
+    generated = args.generated_manifest
+    work = env.load().lane_root / ("supervisor-manifest-target" if generated else "supervisor-target")
     with env.hold_lock(work, "a contained supervisor lifecycle target experiment"):
         report = lifecycle_target.run(find_root(), args.ccomp, args.compiler_config,
-                                      args.simulator, args.build_receipt, work, args.timeout)
+                                      args.simulator, args.build_receipt, work, args.timeout,
+                                      generated_manifest=generated)
     print(f"report: {work / 'report.json'}")
     print("Bounded target transport; full roster acceptance remains open.")
     return 0 if report["ok"] else 1
@@ -40,6 +42,8 @@ def flags(name: str, parser: argparse.ArgumentParser) -> None:
         parser.add_argument("--simulator", type=Path, required=True)
         parser.add_argument("--build-receipt", type=Path, required=True)
         parser.add_argument("--timeout", type=int, default=180)
+        parser.add_argument("--generated-manifest", action="store_true",
+                            help="consume the checked production manifest in the bounded target component")
 
 
 COMMANDS: cli.Table = {
