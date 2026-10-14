@@ -51,15 +51,17 @@ def _glyph_decisions_survive_compression() -> None:
         packed = plain + ".gz"
         path = root / plain
         path.parent.mkdir(parents=True)
-        for text in ("ASCII\r\nclean\rthird", "Unicode λ is clean\n",
-                     "first\rsecond\r\n" + glyphs.REPLACEMENT + "\n",
-                     "bad " + chr(0xC2) + chr(0xA0) + "\n"):
+        for text, damaged in (("ASCII\r\nclean\rthird", False), ("Unicode λ is clean\n", False),
+                              ("first\rsecond\r\n" + glyphs.REPLACEMENT + "\n", True),
+                              ("bad " + chr(0xC2) + chr(0xA0) + "\n", True)):
             blob = text.encode("utf-8")
             path.write_bytes(blob)
             (root / packed).write_bytes(gzip.compress(blob, mtime=0))
             original, compressed = _ctx(root, plain), _ctx(root, packed)
             glyphs.run(original)
             glyphs.run(compressed)
+            ensure(bool(original.rep.findings) == damaged,
+                   "the fixture must exercise both clean text and detected damage")
             ensure([line.replace(plain, packed) for line in original.rep.out] == compressed.rep.out,
                    "gzip must keep the original encoding-damage decision and line numbers")
 
