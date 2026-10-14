@@ -13,6 +13,7 @@ finding rather than a stopped run, K-67 fails closed on an owner it cannot read,
 and K-75 decides the one floor site its single mutant does not seed.
 """
 
+import gzip
 import json
 import subprocess
 import sys
@@ -2354,6 +2355,50 @@ def _k81_generated_device_package_is_outside_the_window() -> None:
            f"only the tracked document's restatement is read: {found!r}")
 
 
+def _k81_name_candidates_keep_scan_decisions() -> None:
+    unnamed = "evidence/terms.txt"
+    named = "evidence/current.txt"
+    decoy = "evidence/decoy.txt"
+    with patch.object(pins.pins_mod, "scan_text", wraps=pins.pins_mod.scan_text) as scan:
+        ctx = _k81({unnamed: "deadbeef 0123456789\n" * 100,
+                    named: "\n\nEXAMPLE-CORE at deadbeef\n",
+                    decoy: "longexample-core at deadbeef\n"
+                           "deadbeef before example-core\n"}, {})
+    found = _findings_under(ctx, "K-81")
+    ensure(len(found) == 1 and f"{named}:3 states" in found[0],
+           f"case folding, name boundaries and name-before-id ownership hold: {found!r}")
+    ensure(ctx.shared["pin_restatements"] == 1,
+           "substring candidates still require the authoritative attribution scan")
+    scanned = {call.args[0] for call in scan.call_args_list}
+    ensure(unnamed not in scanned and named in scanned and decoy in scanned,
+           f"only a file carrying no upstream spelling skips the id scan: {scanned!r}")
+
+
+def _k81_compressed_text_keeps_decisions() -> None:
+    plain = corpus_mod.COMPRESSED_EVIDENCE + "reading.txt"
+    packed = plain + ".gz"
+    text = "first\rsecond\r\nEXAMPLE-CORE at deadbeef\r\n"
+    pin = pins.pins_mod.Pin("upstream/example-core", "example/example-core", "1234abcd", 1)
+    settled = {pin.path: (pin, pin.short + "0" * 32)}
+    with sandbox_tree({"docs/requirements-register.md": _REGISTER_MIN,
+                       plain: text, packed: ""}) as root:
+        (root / packed).write_bytes(gzip.compress(text.encode(), mtime=0))
+        ctx = _context(root)
+        found: list[str] = []
+        held, _, _ = pins._restatements(ctx, [pin], settled, found)
+        ensure(held == 2 and len(found) == 2,
+               f"both representations remain restatement surfaces: {found!r}")
+        ensure(found[0].replace(plain, packed) == found[1] and f"{plain}:3 states" in found[0],
+               f"compressed text keeps universal newline attribution and diagnostics: {found!r}")
+        for blob in (b"", b"plaintext", gzip.compress(b"bad\xff"),
+                     gzip.compress(text.encode())[:-3]):
+            (root / packed).write_bytes(blob)
+            found = []
+            held, _, _ = pins._restatements(ctx, [pin], settled, found)
+            ensure(held == 1 and len(found) == 1 and f"{plain}:3 states" in found[0],
+                   f"an unreadable binary keeps the pin scan's existing skip: {found!r}")
+
+
 def _k81_historical_residue_requires_reason() -> None:
     ctx = _k81({"docs/history.md": "example-core measured at abcd1234\n"},
                {("docs/history.md", "abcd1234"): " "})
@@ -2653,6 +2698,9 @@ def cases() -> list[Case]:
              _k81_moved_gitlink_is_quoted_apart_from_its_row),
         Case("k81-generated-device-package-is-outside-the-window",
              _k81_generated_device_package_is_outside_the_window),
+        Case("k81-name-candidates-keep-scan-decisions",
+             _k81_name_candidates_keep_scan_decisions),
+        Case("k81-compressed-text-keeps-decisions", _k81_compressed_text_keeps_decisions),
         Case("k116-consumed-bindings-are-held-whole-and-fail-closed",
              _k116_consumed_bindings_are_held_whole_and_fail_closed),
         Case("k116-moved-gitlink-is-quoted-apart-from-its-binding",
