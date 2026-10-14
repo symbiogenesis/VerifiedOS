@@ -40,7 +40,7 @@ import re
 import shlex
 import subprocess
 from pathlib import Path
-from typing import TypedDict
+from typing import NotRequired, TypedDict
 
 from vos import receipts
 
@@ -129,6 +129,8 @@ class Toolchain(TypedDict):
     rocq_plugin: Tool
     z3: Tool
     library: Manifest
+    loaded_plugins: NotRequired[list[Tool]]
+    plugin_directories: NotRequired[list[str]]
 
 
 def output_dir(tree: Path) -> Path:
@@ -242,10 +244,57 @@ def inputs(root: Path, listed: list[str], profile: Path) -> Inputs:
     }
 
 
+def plugin_directories(share: Path) -> list[Path]:
+    """The native search directories Sail 0.20.3 loads, in loader order."""
+    if "SAIL_NO_PLUGINS" in os.environ:
+        raise TermError("SAIL_NO_PLUGINS disables the canonical Rocq plugin")
+    override = os.environ.get("SAIL_PLUGIN_DIR")
+    if override is None:
+        directories = [(share / PLUGIN).parent.resolve()]
+    else:
+        directories = [Path(value) for value in override.split(":")]
+        if any(not value or not path.is_absolute()
+               for value, path in zip(override.split(":"), directories, strict=True)):
+            raise TermError("SAIL_PLUGIN_DIR requires nonempty absolute native directories")
+    for directory in directories:
+        if not directory.is_dir():
+            raise TermError(f"Sail plugin directory does not exist: {directory}")
+    return directories
+
+
+def loaded_plugins(share: Path) -> list[Path]:
+    """Every native plugin selected by the loader, retaining enumeration order.
+
+    Sail loads every .cmxs returned by Sys.readdir in each selected directory;
+    another plugin can also register a backend, so binding only the coq filename
+    cannot identify the emission. os.scandir reads the same native enumeration.
+    """
+    loaded = []
+    for directory in plugin_directories(share):
+        with os.scandir(directory) as entries:
+            loaded.extend(directory / entry.name for entry in entries
+                          if Path(entry.name).suffix == ".cmxs")
+    return loaded
+
+
+def selected_plugin(share: Path) -> Path:
+    """The unique named Rocq plugin among the loader's complete population.
+
+    Relative override paths would name different plugins from identity and
+    emission working directories. Duplicate candidates load twice rather than
+    choosing one. Neither selection has an unambiguous canonical identity.
+    """
+    candidates = [path for path in loaded_plugins(share) if path.name == PLUGIN.name]
+    if len(candidates) != 1 or not candidates[0].is_file():
+        raise TermError(f"Sail's selected directories contain {len(candidates)} Rocq "
+                        "plugin candidates; exactly one existing native plugin is required")
+    return candidates[0].resolve()
+
+
 def toolchain(sail: str, z3: str) -> Toolchain:
     """The selected Sail with its plugin and library, and the solver, by digest."""
     share = Path(_output([sail, "--dir"]).strip())
-    plugin = (share / PLUGIN).resolve()
+    plugin = selected_plugin(share)
     library = share / "lib"
     files = {path.relative_to(library).as_posix(): receipts.digest(path)
              for path in library.rglob("*.sail") if path.is_file()}
@@ -256,6 +305,8 @@ def toolchain(sail: str, z3: str) -> Toolchain:
         "rocq_plugin": _tool(str(plugin), ""),
         "z3": _tool(z3, _output([z3, "--version"])),
         "library": manifest(files),
+        "loaded_plugins": [_tool(str(path), "") for path in loaded_plugins(share)],
+        "plugin_directories": [str(path.resolve()) for path in plugin_directories(share)],
     }
 
 

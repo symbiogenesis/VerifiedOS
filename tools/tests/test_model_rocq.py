@@ -12,6 +12,7 @@ import argparse
 import hashlib
 import io
 import json
+import os
 import tempfile
 from collections.abc import Callable, Iterator
 from contextlib import contextmanager, redirect_stderr, redirect_stdout
@@ -254,8 +255,90 @@ def _command_parse() -> None:
                "only a line opening with Axiom declares one")
 
 
+def _selected_plugin_identity() -> None:
+    with tempfile.TemporaryDirectory(prefix="vos-test-plugin-") as temporary:
+        root = Path(temporary).resolve()
+        share = root / "share" / "sail"
+        installed = (share / rocqterm.PLUGIN).resolve()
+        private = root / "private"
+        extra = root / "extra"
+        installed.parent.mkdir(parents=True)
+        private.mkdir()
+        extra.mkdir()
+        installed.write_bytes(b"installed backend")
+        candidate = private / rocqterm.PLUGIN.name
+        candidate.write_bytes(b"private backend")
+        other = extra / "other_backend.cmxs"
+        other.write_bytes(b"other loaded backend")
+        (extra / "unused.cma").write_bytes(b"not a native plugin")
+        (share / "lib").mkdir(parents=True)
+        (share / "lib" / "prelude.sail").write_bytes(b"default Order dec")
+        sail = root / "sail"
+        z3 = root / "z3"
+        sail.write_bytes(b"sail binary")
+        z3.write_bytes(b"solver binary")
+        real_path = Path
+
+        def native_path(value: str) -> Path:
+            return {"/private": private, "/extra": extra}.get(value, real_path(value))
+
+        with patch.dict(os.environ, {}, clear=True):
+            ensure(rocqterm.selected_plugin(share) == installed,
+                   "the installed directory supplies the default plugin")
+        with (patch.dict(os.environ, {"SAIL_PLUGIN_DIR": "/extra:/private"}, clear=True),
+              patch.object(rocqterm, "Path", side_effect=native_path)):
+            selected = rocqterm.selected_plugin(share)
+            ensure(selected == candidate, "the loader override replaces the default")
+            identity = rocqterm._tool(str(selected), "")
+            ensure(identity["sha256"] == hashlib.sha256(b"private backend").hexdigest(),
+                   "the identity hashes the selected private bytes")
+            ensure(rocqterm.loaded_plugins(share) == [other, candidate],
+                   "all native plugins retain selected directory and enumeration order")
+            ensure(rocqterm.plugin_directories(share) == [extra, private],
+                   "the loader search order is retained")
+            with patch.object(rocqterm, "_output",
+                              side_effect=lambda argv: str(share) if "--dir" in argv else "version"):
+                before = rocqterm.toolchain(str(sail), str(z3))
+                ensure([row["path"] for row in before["loaded_plugins"]] ==
+                       [str(other), str(candidate)], "the full plugin population enters the receipt")
+                other.write_bytes(b"changed other backend")
+                ensure(rocqterm.toolchain(str(sail), str(z3)) != before,
+                       "a different loaded backend changed during emission changes the identity")
+            candidate.write_bytes(b"changed private backend")
+            ensure(rocqterm._tool(str(selected), "") != identity,
+                   "a selected plugin changed during emission changes the identity")
+
+
+def _unsupported_plugin_selection() -> None:
+    with tempfile.TemporaryDirectory(prefix="vos-test-plugin-refusal-") as temporary:
+        root = Path(temporary).resolve()
+        private = root / "private"
+        private.mkdir()
+        (private / rocqterm.PLUGIN.name).write_bytes(b"private backend")
+        real_path = Path
+
+        def native_path(value: str) -> Path:
+            return private if value == "/private" else real_path(value)
+
+        controls = ({"SAIL_NO_PLUGINS": ""},
+                    {"SAIL_PLUGIN_DIR": ""},
+                    {"SAIL_PLUGIN_DIR": "relative"},
+                    {"SAIL_PLUGIN_DIR": "/private:/private"},
+                    {"SAIL_PLUGIN_DIR": "/missing"})
+        for selection in controls:
+            with (patch.dict(os.environ, selection, clear=True),
+                  patch.object(rocqterm, "Path", side_effect=native_path)):
+                try:
+                    rocqterm.selected_plugin(root)
+                except rocqterm.TermError:
+                    continue
+            raise AssertionError(f"unsupported plugin selection must refuse: {selection}")
+
+
 def cases() -> list[Case]:
-    return [Case("positive-emission", _positive_emission),
+    return [Case("selected-plugin-identity", _selected_plugin_identity),
+            Case("unsupported-plugin-selection", _unsupported_plugin_selection),
+            Case("positive-emission", _positive_emission),
             Case("missing-configuration", _missing_configuration),
             Case("stale-configuration", _stale_configuration),
             Case("configuration-moves-during-emission", _configuration_moves_during_emission),
