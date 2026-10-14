@@ -461,13 +461,17 @@ def longest_path(counts: dict[str, int], owned_bytes: int = 64,
             "clock": "one executor step per tick; not physical WCET"}
 
 
-def reaction_path(counts: dict[str, int]) -> dict[str, object]:
+def reaction_path(counts: dict[str, int], *, backoff_count: int = 1) -> dict[str, object]:
     """Whole-function overcount for the immutable three-unit component policy."""
+    if type(backoff_count) is not int or not 0 <= backoff_count <= 16:
+        raise ValueError("supervisor reaction account requires an admitted backoff count")
     charges = {
         "vos_join_react": 1, "vos_supervisor_context_recover": 1,
         "vos_supervisor_context_step": 1 + 64 + 16 + 3,
         "context_ack_ok": 2 * (1 + 16 + 4 + 3), "context_ack_read": 2,
-        "vos_supervisor_manifest_ok": 3 * (1 + 8 + 1),
+        # recover, step and plan each validate: the detector and backoff loops
+        # are sequential, so charge their admitted lengths plus one whole body.
+        "vos_supervisor_manifest_ok": 3 * (1 + 8 + backoff_count),
         "vos_supervisor_order_ok": 3 * (1 + 3), "members": 7,
         "vos_supervisor_plan": 1 + 3, "vos_supervisor_backoff": 1,
     }
@@ -475,6 +479,7 @@ def reaction_path(counts: dict[str, int]) -> dict[str, object]:
     if total >= SLOT:
         raise ValueError("supervisor reaction account does not fit its admitted fixed slot")
     return {"function_instruction_counts": counts, "whole_body_multipliers": charges,
+            "backoff_count": backoff_count,
             "entry_publication_steps": 256, "longest_path_steps": total, "slot_steps": SLOT}
 
 
@@ -722,7 +727,9 @@ def run(root: Path, ccomp: Path, config: Path, simulator: Path,
     if kernel.stream is None or supervisor_component.stream is None:
         raise ValueError(f"component compilation refused: {kernel.said}; {supervisor_component.said}")
     bound = longest_path(instruction_counts(kernel.stream))
-    reaction = reaction_path(instruction_counts(supervisor_component.stream))
+    backoff_count = (len(json.loads(snapshot["manifest.json"])["payload"]["policy"]["backoff"])
+                     if generated_manifest else 1)
+    reaction = reaction_path(instruction_counts(supervisor_component.stream), backoff_count=backoff_count)
     boundary_steps = bound["padded_boundary_steps"]
     if not isinstance(boundary_steps, int):
         raise TypeError("the finite composition account did not return an integer boundary")

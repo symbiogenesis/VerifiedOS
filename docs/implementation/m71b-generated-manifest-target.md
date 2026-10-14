@@ -25,6 +25,12 @@ retirement, incomplete publication and phase cuts, and add an attempted store
 through the manifest capability. They retain images and trace identities when
 a qualified target run becomes available.
 
+The supervisor reaction account uses the checked generated manifest's actual
+backoff-table length. It charges each of the three possible manifest validations
+for both its detector loop and every admitted backoff entry, and refuses an
+account that reaches the declared fixed-slot limit. The scalar comparison mode
+retains its one-entry account.
+
 The production policy's first backoff is one logical step, which expires before
 the next declared fixed slot. Its prepared run supplies an empty publication
 before ordinary start to compare empty and occupied padded releases. Faults before

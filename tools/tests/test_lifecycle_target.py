@@ -42,6 +42,10 @@ def report_retains_locked_tools(generated: bool = False, drift: str = "") -> Non
         assembler = SimpleNamespace(symbols={"grant_slots": 512}, assemble=lambda: ([], {}, 0))
         def execute(*args: object, **kwargs: object) -> subprocess.CompletedProcess[str]:
             return subprocess.CompletedProcess([], 0)
+        def account(counts: dict[str, int], *, backoff_count: int = 1) -> dict[str, object]:
+            ensure(backoff_count == (4 if generated else 1),
+                   "target reaction account did not consume its actual manifest backoff count")
+            return {}
         with ExitStack() as stack:
             replacements = [
                 (target.compiler_provenance, "find_root", lambda: root),
@@ -52,7 +56,7 @@ def report_retains_locked_tools(generated: bool = False, drift: str = "") -> Non
                 (target.compiler_diff, "_compiled_json", lambda *args: {}),
                 (target, "instruction_counts", lambda *args: {}),
                 (target, "longest_path", lambda *args: {"padded_boundary_steps": 1}),
-                (target, "reaction_path", lambda *args: {}),
+                (target, "reaction_path", account),
                 (target.boot_handoff, "timer_windows", lambda *args: (1, 2)),
                 (target, "source", lambda *args, **kwargs: "fixture assembly"),
                 (target.asm, "Assembler", lambda *args, **kwargs: assembler),
@@ -138,6 +142,36 @@ def locked_producer_refusal() -> None:
         ensure(lock.read_bytes() == lock_before, "target refusal changed the locked toolchain")
 
 
+def admitted_backoff_account() -> None:
+    counts = dict.fromkeys(("vos_join_react", "vos_supervisor_context_recover",
+                           "vos_supervisor_context_step", "context_ack_ok", "context_ack_read",
+                           "vos_supervisor_manifest_ok", "vos_supervisor_order_ok", "members",
+                           "vos_supervisor_plan", "vos_supervisor_backoff"), 0)
+    counts["vos_supervisor_manifest_ok"] = 1000
+    ensure(target.reaction_path(counts)["longest_path_steps"] == 30256,
+           "default scalar comparison account changed")
+    ensure(target.reaction_path(counts, backoff_count=4)["longest_path_steps"] == 39256,
+           "four backoff checks at each of three validations were undercharged")
+    ensure(target.reaction_path(counts, backoff_count=16)["longest_path_steps"] == 75256,
+           "maximum admitted backoff table was undercharged")
+    for invalid in (-1, 17, True):
+        try:
+            target.reaction_path(counts, backoff_count=invalid)
+        except ValueError as error:
+            ensure("admitted backoff count" in str(error), "invalid count received an unrelated refusal")
+        else:
+            raise AssertionError(f"reaction account accepted an invalid backoff count: {invalid}")
+    counts["vos_supervisor_manifest_ok"] = 6500
+    ensure(target.reaction_path(counts)["longest_path_steps"] == 195256,
+           "slot-limit control no longer exercises the old admitted account")
+    try:
+        target.reaction_path(counts, backoff_count=4)
+    except ValueError as error:
+        ensure("fixed slot" in str(error), "over-budget generated account received an unrelated refusal")
+    else:
+        raise AssertionError("larger generated backoff table bypassed the fixed-slot refusal")
+
+
 def native_generated_unit() -> None:
     compiler = supervisor.c_compiler()
     ensure(compiler is not None, "native C compiler is missing")
@@ -204,5 +238,6 @@ def cases() -> list[Case]:
         Case("generated C, JSON and compilation-unit drift refuse", generated_snapshot_drift),
         Case("independent generated target layout and roster refusal", generated_layout),
         Case("locked producer refusal is recorded before target compilation", locked_producer_refusal),
+        Case("admitted backoff loops charge their actual count and refuse slot overflow", admitted_backoff_account),
         Case("native generated target wrapper and live policy mutation", native_generated_unit, lane="guest"),
     ]
