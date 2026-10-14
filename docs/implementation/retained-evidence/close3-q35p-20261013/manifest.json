@@ -1,0 +1,97 @@
+{
+  "schema": "verifiedos-q35p-semantic-refusal/1",
+  "files": {
+    "CHERI-LICENSE": {
+      "bytes": 2649,
+      "sha256": "f5ef0b3be793e83d91e1451a8309a9731ce4fed9b7eae84d4b2e0c13f8638feb"
+    },
+    "Model-LICENSE": {
+      "bytes": 3363,
+      "sha256": "14cfdf5bfb57ba19f57f31c4a79b3712ede0fda06b1674cb40dec393f8694185"
+    },
+    "Sail-LICENSE": {
+      "bytes": 2594,
+      "sha256": "cc5133e58dd523cb772ac7b2c3047845b54667fe856165aef651f059ca51b2fe"
+    },
+    "Sail-Support-LICENSE": {
+      "bytes": 2716,
+      "sha256": "9e52d88fe1802beb469e538b8c026ff5e7f9413ef06cd3ce898ee3928ae24df0"
+    },
+    "bindings.compile.log": {
+      "bytes": 1153,
+      "sha256": "ac948e323cadb3aef1ce17a5c7998d331917cea53e71b59ec28bfab531c65c0e"
+    },
+    "bindings.sail.txt": {
+      "bytes": 13553,
+      "sha256": "aff11682da08211dc364a767dcec579b008d1ca1603054d8e9ab71c82e0701b4"
+    },
+    "bindings.v.txt": {
+      "bytes": 15954,
+      "sha256": "30190de2408bc74636f4e8cb69b3af7c7d0f17394568303040e156be1992e2e1"
+    },
+    "bindings_types.compile.log": {
+      "bytes": 5698,
+      "sha256": "426fbc2c5b647221aa176a615aa626bf56fa784df95f73c7e48bbece6c43414b"
+    },
+    "bindings_types.v.txt": {
+      "bytes": 16983,
+      "sha256": "5b9b80db7b3dc5b49311ca6a8c4563ddbe0d896a7239fe7f820145e2fda1d7ff"
+    },
+    "compile.json": {
+      "bytes": 2010,
+      "sha256": "e61489efab27a0039dbf943fffb9530bf947075fb3e77c486d34e2e78f74c4e5"
+    },
+    "data-outcomes.txt": {
+      "bytes": 2656,
+      "sha256": "7974b82c80cacfa961b14fa3820892665d887641064f40239904d2eea8653d46"
+    },
+    "emission.log": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "emulator-outcome-callers.txt": {
+      "bytes": 1704,
+      "sha256": "10af2d3ce8467ba7193d8750de6acc98b72922d924ab16e49136dd2b37aaa574"
+    },
+    "emulator-write-callers.txt": {
+      "bytes": 1701,
+      "sha256": "ba1c8bca1c9e955ce2d1eac67d78529aec1a555644721f99f5f4495e81516f37"
+    },
+    "generation.json": {
+      "bytes": 766,
+      "sha256": "c330df1c0cd2d64ec7123c9a6db9b0d8fb0acf69072cc250cccb6448ee660111"
+    },
+    "inputs.json": {
+      "bytes": 4390,
+      "sha256": "8cb6c89bda0ea053bddc4d17647914478161f45ab3f66d4bcc8bce04954fc6e6"
+    },
+    "non-rocq.json": {
+      "bytes": 1080,
+      "sha256": "416164f3f14f27bcdd45a5b562adbacfdb9b52c144e341f662e93ff0f4ee7fbf"
+    },
+    "outcome-algebra.txt": {
+      "bytes": 4470,
+      "sha256": "8a94f35db6a73736967c526a0ed31259fe0f4dec8c515a9293ff7cd6605a027a"
+    },
+    "outcome-bindings.txt": {
+      "bytes": 833,
+      "sha256": "da5a29ad6e20b4e50825b46d9ef3d4182c28b669787c3e1e38d69a14d7bfa157"
+    },
+    "refusal.json": {
+      "bytes": 1536,
+      "sha256": "154e5d9f7d9c116839fd5936c6e06a0977c5687cffeeae056c043342225024cd"
+    },
+    "runtime-tags.txt": {
+      "bytes": 1635,
+      "sha256": "152c53dcdf70eb6e118d5597d2faf3b51f88af6f9e8675747ee0805f4a0f65d6"
+    },
+    "sail-journal.json": {
+      "bytes": 109440,
+      "sha256": "58d4feeb8b6c292f6b3a9ef3c1d67b69263294d6d37f5869b75309c3fcf5d992"
+    },
+    "state-tags.txt": {
+      "bytes": 972,
+      "sha256": "ca1a8c984d8b9cd6764e8c7baf8cb603639549a6d978669ef8e3eb5dd8e6589f"
+    }
+  }
+}

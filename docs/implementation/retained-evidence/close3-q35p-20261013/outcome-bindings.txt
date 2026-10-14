@@ -1,0 +1,19 @@
+9: Module Defs (A : Arch) (I : InterfaceT A).
+10:
+11: Definition monad E := I.iMon (fun _ => E).
+12: Definition returnm {A E} : A -> monad E A := I.Ret.
+13:
+14: Definition monadR R E := I.iMon (fun _ => (R + E)%type).
+15: Definition returnR {A E} R : A -> monadR R E A := I.Ret.
+16:
+17: Definition bind {A B E : Type} (m : monad E A) (f : A -> monad E B) : monad E B := I.iMon_bind m f.
+18: #[warnings="-notation-overridden"]
+19: Notation "m >>= f" := (bind m f) (at level 50, left associativity).
+20: Definition bind0 {A E} (m : monad E unit) (n : monad E A) :=
+21:   m >>= fun (_ : unit) => n.
+22: #[warnings="-notation-overridden"]
+23: Notation "m >> n" := (bind0 m n) (at level 50, left associativity).
+24:
+25: Definition fail {A E} (msg : string) : monad E A :=
+26:   I.Next (I.GenericFail msg) (fun f => match f with end).
+27:

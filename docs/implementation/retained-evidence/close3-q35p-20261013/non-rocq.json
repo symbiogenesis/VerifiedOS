@@ -1,0 +1,29 @@
+{
+  "command": "python tools/run.py model emit",
+  "exit": 0,
+  "scope": "single unchanged-baseline C++ emission; no model source candidate or paired re-emission",
+  "artifacts": {
+    "sail_riscv_model.cpp": {
+      "bytes": 11983792,
+      "sha256": "453c178c9e879c9accb079dfa59045370fb6e29ef085d141e23c259ba7bd4c5a"
+    },
+    "sail_riscv_model.h": {
+      "bytes": 349513,
+      "sha256": "6ca662c9ae433d73dbf4431aafd89987445bf390e7ebc421bbf97906a1883098"
+    },
+    "config/default_config.h": {
+      "bytes": 41069,
+      "sha256": "ec1e0048213b7b829b827f16932a69f166eb6051830be9a233f7e5af42d3278b"
+    }
+  },
+  "source_sha256": {
+    "model/model/core/phys_mem_interface.sail": "ed3daca022439095926c3848618057902807f4cfedba49a4d8fee8512474cb0f",
+    "model/model/core/mem_metadata.sail": "6f6ec6b80e8ed63c0330c21926197671738a478f811dcf0ce87d33f06bfe2718",
+    "model/model/prelude/errors.sail": "2d848d05bd6b20ccfeb054d639aef4c2e03692aa1dfb5d356544e99ecae97d3a"
+  },
+  "stages": {
+    "configure_seconds": 70.7,
+    "emit_seconds": 157.6
+  },
+  "source_diff_empty": true
+}

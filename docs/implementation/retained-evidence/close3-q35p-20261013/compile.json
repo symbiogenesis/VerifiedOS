@@ -1,0 +1,63 @@
+{
+  "scope": "original-diagnostic negative reproducer; not strict acceptance",
+  "rows": [
+    {
+      "file": "bindings_types.v",
+      "argv": [
+        "/root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/bin/rocq",
+        "c",
+        "-q",
+        "-boot",
+        "-R",
+        "/root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/lib/coq/theories",
+        "Corelib",
+        "-Q",
+        "/root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/lib/coq/user-contrib/Stdlib",
+        "Stdlib",
+        "-Q",
+        "/root/build/lane-close3-20261013-memory/q35p/stdpp",
+        "stdpp",
+        "-R",
+        "/root/build/lane-close3-20261013-memory/q35p/support",
+        "SailStdpp",
+        "-R",
+        "/root/build/lane-close3-20261013-memory/q35p/baseline",
+        "Probe",
+        "/root/build/lane-close3-20261013-memory/q35p/baseline/bindings_types.v"
+      ],
+      "cwd": "/tmp/vos-q35p-compile-c_k4u922",
+      "exit": 0,
+      "seconds": 1.0438711643218994,
+      "log_sha256": "426fbc2c5b647221aa176a615aa626bf56fa784df95f73c7e48bbece6c43414b"
+    },
+    {
+      "file": "bindings.v",
+      "argv": [
+        "/root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/bin/rocq",
+        "c",
+        "-q",
+        "-boot",
+        "-R",
+        "/root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/lib/coq/theories",
+        "Corelib",
+        "-Q",
+        "/root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/lib/coq/user-contrib/Stdlib",
+        "Stdlib",
+        "-Q",
+        "/root/build/lane-close3-20261013-memory/q35p/stdpp",
+        "stdpp",
+        "-R",
+        "/root/build/lane-close3-20261013-memory/q35p/support",
+        "SailStdpp",
+        "-R",
+        "/root/build/lane-close3-20261013-memory/q35p/baseline",
+        "Probe",
+        "/root/build/lane-close3-20261013-memory/q35p/baseline/bindings.v"
+      ],
+      "cwd": "/tmp/vos-q35p-compile-c_k4u922",
+      "exit": 1,
+      "seconds": 0.7532916069030762,
+      "log_sha256": "ac948e323cadb3aef1ce17a5c7998d331917cea53e71b59ec28bfab531c65c0e"
+    }
+  ]
+}
