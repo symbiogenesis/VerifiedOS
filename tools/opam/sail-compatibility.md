@@ -280,4 +280,44 @@ The bounded controller correction uses `Assumption_N.v` and `Frozen_N.v`,
 preserving query contents, compiler flags, command labels and acceptance logic.
 Its focused regression captures the actual compiler arguments of both loops;
 independent review and all ten selected controller cases passed. A fresh hosted
-campaign is still required before any source snapshot portability claim.
+campaign must pass before any source snapshot portability claim.
+
+[Hosted native-inventory refusal](../../docs/implementation/retained-evidence/q35n-hosted-20261014-refusal/manifest.json), SHA256 `b75cddf27c49fdb70323ae3b1ccd63611ee58cf1d867dfc1b6487f19a143d668`,
+retains the corrected [cold campaign](https://github.com/symbiogenesis/VerifiedOS/actions/runs/38497276040)
+at `42798d568df3988609d8afb6afbc2051634c6753`. All 48 recorded native commands
+exited zero, including the cold dependency/package build with tests and all 29
+strict support compiles. The `SailStdpp.Inhabited` search returned no declarations
+and its assumption query returned no output. The next search, for
+`SailStdpp.TypeCasts`, printed `TypeCasts.Z_eq_dec.U` first; the common inventory
+parser refused that spelling because it lacks the required
+`SailStdpp.TypeCasts.` prefix. These observations establish neither canonical
+ownership of the printed symbol nor completeness of the empty response.
+
+The TypeCasts assumption query, remaining inventories, frozen repetition, probes,
+recursive kernel check and snapshot export/import were not reached. The import
+job was skipped and the join refused the campaign. The common prefix/uniqueness
+guard remains unchanged; a compiler exit of zero supplies no complete audit.
+
+## Native support inventory prerequisite
+
+Q35q owns a bounded qualification of native declaration names and module membership
+for the recipe's exact 29 support modules. Each printed row needs native canonical
+provenance, with explicit treatment of aliases, functor results and sealed fields.
+An empty or alias-only module needs native evidence for that classification and
+its complete owned declaration set. Blind prefix insertion, dropping a row or
+accepting an unrecognized name cannot establish coverage.
+
+The existing common inventory guard, strict flags, exact allowed axiom contexts,
+locked packages, source semantics, prover and project lock remain unchanged.
+Controls cover a valid owned declaration, a proven alias-only/zero-declaration
+case, and foreign, ambiguous, missing, duplicate and unproved-empty refusals.
+The qualified adapter must run on real hosted native inputs, audit every owned
+declaration's exact assumptions and join the recursive kernel check before Q35n
+resumes its independent cold export/import campaign. That support result still
+does not accept Q35b's canonical consumer.
+
+Stop after three candidate checks or twenty active minutes, retaining the first
+unsupported native lookup and naming a further owner act instead of widening
+the campaign. Q35q's estimate prices this bounded diagnosis and adapter
+qualification; unattended native runtime and a further incompatibility are not
+a completion forecast. The contract must land before adapter implementation.

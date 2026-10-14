@@ -1,0 +1,5 @@
+{
+  "reason": "campaign job failed, skipped or supplied no success verdict",
+  "schema": "verifiedos-sail-support-qualification/1",
+  "status": "failed"
+}

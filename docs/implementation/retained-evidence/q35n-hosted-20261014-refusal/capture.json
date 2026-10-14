@@ -1,0 +1,40 @@
+{
+  "available_verdict": "failure",
+  "changed_proof_settings": false,
+  "changed_source_semantics": false,
+  "credits": {
+    "canonical_consumer": false,
+    "cold_package_tests": true,
+    "complete_native_assumptions": false,
+    "frozen_repetition": false,
+    "portable_snapshot": false,
+    "production_carriage": false,
+    "recursive_kernel": false,
+    "strict_support_compilation": true
+  },
+  "native_inventory_observations": [
+    {
+      "assumptions_query": "empty output",
+      "canonical_ownership": "not qualified",
+      "inventory": "empty native search response",
+      "module": "SailStdpp.Inhabited"
+    },
+    {
+      "canonical_ownership": "not qualified",
+      "first_printed_symbol": "TypeCasts.Z_eq_dec.U",
+      "module": "SailStdpp.TypeCasts",
+      "parser_verdict": "refusal",
+      "required_prefix": "SailStdpp.TypeCasts."
+    }
+  ],
+  "next_owner": "Q35q",
+  "passed_strict_modules": 29,
+  "reason": "unexpected or repeated native symbol TypeCasts.Z_eq_dec.U",
+  "recorded_command_exits_zero": true,
+  "recorded_commands": 48,
+  "run_attempt": 1,
+  "run_id": 38497276040,
+  "run_url": "https://github.com/symbiogenesis/VerifiedOS/actions/runs/38497276040",
+  "tested_revision": "42798d568df3988609d8afb6afbc2051634c6753",
+  "unchanged_common_inventory_guard": true
+}
