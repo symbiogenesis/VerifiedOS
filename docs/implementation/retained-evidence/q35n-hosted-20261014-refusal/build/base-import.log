@@ -1,0 +1,59 @@
+The following actions will be performed:
+=== install 21 packages
+  ∗ base-bigarray         base
+  ∗ base-domains          base
+  ∗ base-effects          base
+  ∗ base-nnp              base
+  ∗ base-threads          base
+  ∗ base-unix             base
+  ∗ conf-gmp              5
+  ∗ conf-linux-libc-dev   0
+  ∗ conf-pkg-config       5
+  ∗ dune                  3.24.2
+  ∗ ocaml                 5.4.1
+  ∗ ocaml-base-compiler   5.4.1
+  ∗ ocaml-compiler        5.4.1
+  ∗ ocaml-config          3
+  ∗ ocaml-options-vanilla 1
+  ∗ ocamlfind             1.9.8
+  ∗ rocq-core             9.3.0
+  ∗ rocq-runtime          9.3.0
+  ∗ rocq-stdlib           9.2.0
+  ∗ rocq-stdpp            1.13.0
+  ∗ zarith                1.14
+
+<><> Processing actions <><><><><><><><><><><><><><><><><><><><><><><><><><><><>
+∗ installed base-bigarray.base
+∗ installed base-threads.base
+∗ installed base-unix.base
+⬇ retrieved conf-gmp.5  (https://opam.ocaml.org/cache)
+∗ installed conf-gmp.5
+∗ installed conf-linux-libc-dev.0
+⬇ retrieved conf-pkg-config.5  (2 extra sources)
+⬇ retrieved conf-pkg-config.5  (2 extra sources)
+∗ installed conf-pkg-config.5
+⬇ retrieved ocaml-config.3  (2 extra sources)
+⬇ retrieved ocaml-config.3  (2 extra sources)
+∗ installed ocaml-options-vanilla.1
+⬇ retrieved dune.3.24.2  (https://opam.ocaml.org/cache)
+⬇ retrieved ocamlfind.1.9.8  (https://opam.ocaml.org/cache)
+⬇ retrieved ocaml-compiler.5.4.1  (https://opam.ocaml.org/cache)
+⬇ retrieved rocq-stdlib.9.2.0  (https://github.com/coq/stdlib/releases/download/V9.2.0/stdlib-9.2.0.tar.gz)
+⬇ retrieved rocq-core.9.3.0, rocq-runtime.9.3.0  (https://opam.ocaml.org/cache)
+⬇ retrieved rocq-stdpp.1.13.0  (https://github.com/rocq-iris/stdpp/archive/refs/tags/stdpp-1.13.0.tar.gz)
+⬇ retrieved zarith.1.14  (https://opam.ocaml.org/cache)
+∗ installed ocaml-compiler.5.4.1
+∗ installed ocaml-base-compiler.5.4.1
+∗ installed ocaml-config.3
+∗ installed ocaml.5.4.1
+∗ installed base-domains.base
+∗ installed base-effects.base
+∗ installed base-nnp.base
+∗ installed ocamlfind.1.9.8
+∗ installed zarith.1.14
+∗ installed dune.3.24.2
+∗ installed rocq-runtime.9.3.0
+∗ installed rocq-core.9.3.0
+∗ installed rocq-stdlib.9.2.0
+∗ installed rocq-stdpp.1.13.0
+Done.
