@@ -26,6 +26,8 @@ Copyright 2026 Edward Miller.
 | `docs/implementation/retained-evidence/q35o-20261013/Model-LICENSE` and `CHERI-LICENSE` | the upstream models' own terms | Verbatim notices retained with the generated model fragment. |
 | `docs/implementation/retained-evidence/q35n-hosted-20261013-refusal/build/package-metadata.txt` | `BSD-2-Clause`, in that bundle's `build/Sail-Support-LICENSE` | Effective package metadata derived from coq-sail 0.20.3, with the reviewed source/patch identities added. |
 | `docs/implementation/retained-evidence/q35n-hosted-20261013-refusal/build/Sail-Support-LICENSE` | the upstream library's own terms | Verbatim coq-sail notice retained with the cold qualification refusal. |
+| `docs/implementation/retained-evidence/q35n-hosted-20261014-refusal/build/package-metadata.txt` | `BSD-2-Clause`, in that bundle's `build/Sail-Support-LICENSE` | Effective coq-sail 0.20.3 metadata retained with the native-inventory refusal. |
+| `docs/implementation/retained-evidence/q35n-hosted-20261014-refusal/build/Sail-Support-LICENSE` | the upstream library's own terms | Verbatim coq-sail notice retained with the second cold qualification refusal. |
 | [LICENSE.md](LICENSE.md), [LICENSE-docs.md](LICENSE-docs.md) | the stewards' own terms | Verbatim license texts. Apache's appendix placeholder is filled in as Apache's own instructions direct; nothing else is changed in either file. |
 
 The split is decidable by path and extension alone. The named upstream patch and
