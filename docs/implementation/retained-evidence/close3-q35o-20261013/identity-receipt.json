@@ -1,0 +1,370 @@
+{
+  "installed": {
+    "sail": {
+      "path": "/root/.opam/verifiedos-sail-0.20.3-ocaml-5.4.1/bin/sail",
+      "sha256": "547f755c390610304fc5ebd87e9cf53cbef9b79311f5c44b88f0768b88c36826",
+      "version": "Sail 0.20.3 (sail @ opam-v2.5.0 0.20.3)"
+    },
+    "rocq_plugin": {
+      "path": "/root/.opam/verifiedos-sail-0.20.3-ocaml-5.4.1/share/libsail/plugins/sail_plugin_coq.cmxs",
+      "sha256": "244227b1a3bcf9329d9feeb34a4c0d90d6d950a140c1495660c7c4a340d418a4",
+      "version": ""
+    },
+    "z3": {
+      "path": "/root/z3-5.1.0/bin/z3",
+      "sha256": "f12647df960955e4484afcba8cd0ffa02a9fd5d73dd2429a07578600ab299969",
+      "version": "Z3 version 5.1.0 - 64 bit"
+    },
+    "library": {
+      "files": 60,
+      "aggregate": "46c3d0b854b43815ac797aa5d69f9039cb52d70150fb8cd6eab55f03a475a8e9",
+      "sha256": {
+        "arith.sail": "5ebb5506b68f001600c95ecc642cfc321bb6d129431148026bd7d1261a31f3ab",
+        "concurrency_interface.sail": "10ec18b00f6ac52f976a0d42fb6c70e863957ff7c6335c5fda4e7a759613da7d",
+        "concurrency_interface/barrier.sail": "261f0755c62066652a23842e4f4d6f4a25b70b537cb883b39a5b6a6a033f32e7",
+        "concurrency_interface/cache_op.sail": "c8c1c0fdc6a502d79020235766b8f45fae90ee4e4fd55bf63c3fc8bb6fcb8c99",
+        "concurrency_interface/common.sail": "d6d031aba23919c8074c7f73875d8f6d22e728f576b141766f343624e118ec99",
+        "concurrency_interface/emulator_memory.sail": "46fefdac1eadbbe5f054d7309fbb357e123ceafe2fbfaea07fe0354be670a505",
+        "concurrency_interface/exception.sail": "df921991d27a10218d7fe1a54cd50d986cfc3f54ea221b37aa3c9ddbe1d5692b",
+        "concurrency_interface/read_write.sail": "0e1534fea30fa4c806924bd35968001f527908fd64818d8996f8382dcf79765a",
+        "concurrency_interface/read_write_v1.sail": "e4c397d1ecc7b9a739398a4435ac0e1531ad8f6b69144fb8cd53ccc892561cdb",
+        "concurrency_interface/read_write_v2.sail": "f081906713667c24fde3055adee0914e09dc70a0356ab6a5ab191815d5a10436",
+        "concurrency_interface/sysreg.sail": "48ffa8856da1a48575d8bb617841a51ec5648b0844577ee3df0b22f677ff83a0",
+        "concurrency_interface/tlbi.sail": "79f7bc99fc0b71266861ab8ef1447e43040c523b2d1dc94d6079b9ea16c62605",
+        "concurrency_interface/translation.sail": "39bb6ac26b99466406dfb26186fcd53d389aebb7fe72b3f702ef6e003e7ff658",
+        "dec_bits.sail": "e7451c5ed8016661d357a0261129e4b8e7302905c9d3bc08fb9016f74cc45ccb",
+        "elf.sail": "f3f2176f022c8bf7851933e95c4564d983e6cd4d669fb3d6ebbd5854c17bf6ec",
+        "exception.sail": "0166f24062af2169a1b16f878367aabddb5a02b56d5cec1181860fdab6234632",
+        "exception_basic.sail": "21f6b824bdacdd253d62c7a6fb0d52c71113ed271c64fb10b9f350c96087a200",
+        "exception_result.sail": "b36642a03dd7765cd64d8e141352ec9b92da00c41fd08a6527f29fe7e10e7bc1",
+        "float.sail": "53bf4f44a488c209c7e31b107ec87421ae7876b10b061c2cc70e84fecc74c5fe",
+        "float/add.sail": "b77bfc1c4e0ef08f7fe6444f714d2800023a0261d6029e91fbb8a84129cf3666",
+        "float/arith_internal.sail": "6f3b9103380392140d6dff50f5d40b9e26489ff8891a55192496f68660c81824",
+        "float/classify.sail": "5b73810b001aa95908dfec313172b8c3fbb4cbdd81e2a01556848b23522d8636",
+        "float/common.sail": "7b019ef910e6e6f53c3115ab71fd82ab4f0e349eb9ffb97328904870f9c44dd9",
+        "float/eq.sail": "1f5e75e651ee21524186e438669aad66a51743415f00e69386b656f24770751e",
+        "float/ge.sail": "fb34a943a1f1eaddc1d471498af53b28174c57e2727b533111c323b606aeea7f",
+        "float/ge_quiet.sail": "d3ff646b24223dda1cbd118bd802e6bda7be9a53c48eb5a80a395f615b6c1482",
+        "float/gt.sail": "2b8b39888a51a16967fdec4298ec52bf8851de74020fbdbc53c7c47e55df4c67",
+        "float/gt_quiet.sail": "b7a01ad13debb79cab5af199fbcdb190700b559aa68df23b336141ffdf2dfce0",
+        "float/inf.sail": "c4d31dbf4f9c011a3c171b142035923beedcde97af4b38a0707cec095b981d29",
+        "float/interface.sail": "0251513792446a87fdd04befa6daca16b3058188556be71b1b9c45fb1c76090b",
+        "float/le.sail": "1c344f7e4b51d979be9ae29ef1e02ce4054f5fdb710864b8622975788b32d83f",
+        "float/le_quiet.sail": "c482172f5e6d8b8fde3dac93b7e4644996744c4e58576834934d5274eb6fbc82",
+        "float/lt.sail": "d3525004155388d11968d60e5e9de2d84b36b92b43c1aa6183ba9e3ec1f0e3b9",
+        "float/lt_quiet.sail": "f5fa47301916512f82171837c79e17f1c8b9e08681014b7ea873f967969a9b39",
+        "float/nan.sail": "0b5e8517b3a0ad042c81774b170cb9777c7210d39c651f67cc019281c7ca65d8",
+        "float/ne.sail": "57f195a8c0820a9a690acf24c127084e8a03f7f04f04fe4bdca907c825b9b5d5",
+        "float/normal.sail": "769c2fb37d1f18569d4be85a23923b1cf4e2f070e7d35852bd276fb63f8437bb",
+        "float/rounding.sail": "855ef9d65cd46dea201465247e9c5265e573b2044adfd0df8890fcd5db9f9ad7",
+        "float/sign.sail": "37d148a02f3e8740c171cc609bb5b99951e74a65b5cc11a824926336aa6387c9",
+        "float/zero.sail": "c2306a3f048d72af15032e8aaa7752348d12e37a3c856c62c9ac18d9fb8bd420",
+        "flow.sail": "accf8fee8044ec357fd1a80a0288fefca4812c4a1cee6f8397355c0e49aa81fb",
+        "generic_equality.sail": "27878933fe5c1d46479718731dec4cd1c2c1c7bcaa7dc027040acf0ece3052f7",
+        "hex_bits.sail": "c11a5961b2ae9286a9f7a9f05597db80aa3c79b06588de96239c0286232bf588",
+        "hex_bits_signed.sail": "164a11ca3e003b7eaba37101c37683d58f00279a058505ef098c6a7e5f423ef5",
+        "instr_kinds.sail": "ad9099954f6cd43845725c924c1d6b2904b93b3936fcc7c707cca6ea871aa12d",
+        "isla.sail": "0f96414cdaf3ab75602e1636a8cd0bfd5e6ed7821168a26a3c8100350b49eaf5",
+        "mapping.sail": "23e9beadf849813e9050c96dfda25457b7229492cc9b7fb5480c50274ef9d52d",
+        "mono_rewrites.sail": "418f27b7b401fec2bc9a9bd44a2efe8b922beb848747486e09344bf17ab44732",
+        "option.sail": "f80e65d6303860fb49851d80ed4ab157448ef0f13ae1ae49a3b4012aef12935b",
+        "prelude.sail": "363b042195a2535602574fd19e878ce09f47695d70479a87184620657608db4b",
+        "real.sail": "e491b08f4a1919cef6d1a12c80039007bb7113cba04f014dc8ebf91548038242",
+        "regfp.sail": "f021d187aa94b4645b826343ad3378c76440536f2625fecbe7acad3ac5c17261",
+        "result.sail": "fc11a0713a6a5319de4170a90f50e350e0579325be422616192eb275bf3eb590",
+        "reverse_endianness.sail": "fee76f55b5373436521cb1f0cb1a0ea9215fcebd6d166bf5a89b58e56e842626",
+        "smt.sail": "530cffc0e4a05676617ed6f2213e474839d0daa61526f3d955d669dbb59508e9",
+        "string.sail": "7e9a9a54128740f0f8b85958299b836a098375382dab891697fa37987c1f5a75",
+        "trace.sail": "5719221afe95c884c518c36427b791d9fd0f88070f5f5eb90da2475dc7820410",
+        "vector.sail": "73855de7cdfbef3cc5ba22b64478d1ae031ad56fdc80a4dedc8fdfbb4db1218b",
+        "vector_dec.sail": "12647d83900723f976690733d7482eac648914acde682876508eeb72e57bb69c",
+        "vector_inc.sail": "12647d83900723f976690733d7482eac648914acde682876508eeb72e57bb69c"
+      }
+    },
+    "loaded_plugins": [
+      {
+        "path": "/root/.opam/verifiedos-sail-0.20.3-ocaml-5.4.1/share/libsail/plugins/sail_plugin_coq.cmxs",
+        "sha256": "244227b1a3bcf9329d9feeb34a4c0d90d6d950a140c1495660c7c4a340d418a4",
+        "version": ""
+      },
+      {
+        "path": "/root/.opam/verifiedos-sail-0.20.3-ocaml-5.4.1/share/libsail/plugins/sail_plugin_c.cmxs",
+        "sha256": "f702e17d05dd9358a6cedf744c36903379cb76e21abbc676572d0f6217892ea3",
+        "version": ""
+      },
+      {
+        "path": "/root/.opam/verifiedos-sail-0.20.3-ocaml-5.4.1/share/libsail/plugins/sail_plugin_output.cmxs",
+        "sha256": "de444b5a2926400285b35903633d0aafa71bfe785ea65183e3460c85b903bad1",
+        "version": ""
+      },
+      {
+        "path": "/root/.opam/verifiedos-sail-0.20.3-ocaml-5.4.1/share/libsail/plugins/sail_plugin_smt.cmxs",
+        "sha256": "45afea4e28090c3d51b44effb65f858181f31daa133b539ab063aaea2a89b87f",
+        "version": ""
+      },
+      {
+        "path": "/root/.opam/verifiedos-sail-0.20.3-ocaml-5.4.1/share/libsail/plugins/sail_plugin_lem.cmxs",
+        "sha256": "50fabbec28dda6f99225a5e8680a6cba13629ed4b50a5fe04d02b87954778c53",
+        "version": ""
+      },
+      {
+        "path": "/root/.opam/verifiedos-sail-0.20.3-ocaml-5.4.1/share/libsail/plugins/sail_plugin_lean.cmxs",
+        "sha256": "ad0ad6fab2f5e18f440209b95177513345ade346a21ac3d71f5510e0c12f95db",
+        "version": ""
+      },
+      {
+        "path": "/root/.opam/verifiedos-sail-0.20.3-ocaml-5.4.1/share/libsail/plugins/sail_plugin_doc.cmxs",
+        "sha256": "ecb2cb515faaf933dab0c3ba99200a79a3ad81e6885450edbcf88b2d90db732b",
+        "version": ""
+      },
+      {
+        "path": "/root/.opam/verifiedos-sail-0.20.3-ocaml-5.4.1/share/libsail/plugins/sail_plugin_ocaml.cmxs",
+        "sha256": "91127afaa7b751295aa8941d6832707682d9545920a1ddd5a22ab605a728df58",
+        "version": ""
+      },
+      {
+        "path": "/root/.opam/verifiedos-sail-0.20.3-ocaml-5.4.1/share/libsail/plugins/sail_plugin_sv.cmxs",
+        "sha256": "c5f9903f598e4ef2a0e8bc9573b7bd47121d63fd5e55c0f7b1c0771c2b970daa",
+        "version": ""
+      },
+      {
+        "path": "/root/.opam/verifiedos-sail-0.20.3-ocaml-5.4.1/share/libsail/plugins/sail_plugin_latex.cmxs",
+        "sha256": "8cf234949ca8ae886eb8ff0c0da74d8453688c083a533fd0a2bf5ceaa937cccf",
+        "version": ""
+      }
+    ],
+    "plugin_directories": [
+      "/root/.opam/verifiedos-sail-0.20.3-ocaml-5.4.1/share/libsail/plugins"
+    ]
+  },
+  "private": {
+    "sail": {
+      "path": "/root/.opam/verifiedos-sail-0.20.3-ocaml-5.4.1/bin/sail",
+      "sha256": "547f755c390610304fc5ebd87e9cf53cbef9b79311f5c44b88f0768b88c36826",
+      "version": "Sail 0.20.3 (sail @ opam-v2.5.0 0.20.3)"
+    },
+    "rocq_plugin": {
+      "path": "/root/build/lane-close3-20261013-emission/plugins/sail_plugin_coq.cmxs",
+      "sha256": "0f72713960fb46d255f7fc9d0be3fb0a6577d0547bb3bd1106a92b0d0e5fd6bd",
+      "version": ""
+    },
+    "z3": {
+      "path": "/root/z3-5.1.0/bin/z3",
+      "sha256": "f12647df960955e4484afcba8cd0ffa02a9fd5d73dd2429a07578600ab299969",
+      "version": "Z3 version 5.1.0 - 64 bit"
+    },
+    "library": {
+      "files": 60,
+      "aggregate": "46c3d0b854b43815ac797aa5d69f9039cb52d70150fb8cd6eab55f03a475a8e9",
+      "sha256": {
+        "arith.sail": "5ebb5506b68f001600c95ecc642cfc321bb6d129431148026bd7d1261a31f3ab",
+        "concurrency_interface.sail": "10ec18b00f6ac52f976a0d42fb6c70e863957ff7c6335c5fda4e7a759613da7d",
+        "concurrency_interface/barrier.sail": "261f0755c62066652a23842e4f4d6f4a25b70b537cb883b39a5b6a6a033f32e7",
+        "concurrency_interface/cache_op.sail": "c8c1c0fdc6a502d79020235766b8f45fae90ee4e4fd55bf63c3fc8bb6fcb8c99",
+        "concurrency_interface/common.sail": "d6d031aba23919c8074c7f73875d8f6d22e728f576b141766f343624e118ec99",
+        "concurrency_interface/emulator_memory.sail": "46fefdac1eadbbe5f054d7309fbb357e123ceafe2fbfaea07fe0354be670a505",
+        "concurrency_interface/exception.sail": "df921991d27a10218d7fe1a54cd50d986cfc3f54ea221b37aa3c9ddbe1d5692b",
+        "concurrency_interface/read_write.sail": "0e1534fea30fa4c806924bd35968001f527908fd64818d8996f8382dcf79765a",
+        "concurrency_interface/read_write_v1.sail": "e4c397d1ecc7b9a739398a4435ac0e1531ad8f6b69144fb8cd53ccc892561cdb",
+        "concurrency_interface/read_write_v2.sail": "f081906713667c24fde3055adee0914e09dc70a0356ab6a5ab191815d5a10436",
+        "concurrency_interface/sysreg.sail": "48ffa8856da1a48575d8bb617841a51ec5648b0844577ee3df0b22f677ff83a0",
+        "concurrency_interface/tlbi.sail": "79f7bc99fc0b71266861ab8ef1447e43040c523b2d1dc94d6079b9ea16c62605",
+        "concurrency_interface/translation.sail": "39bb6ac26b99466406dfb26186fcd53d389aebb7fe72b3f702ef6e003e7ff658",
+        "dec_bits.sail": "e7451c5ed8016661d357a0261129e4b8e7302905c9d3bc08fb9016f74cc45ccb",
+        "elf.sail": "f3f2176f022c8bf7851933e95c4564d983e6cd4d669fb3d6ebbd5854c17bf6ec",
+        "exception.sail": "0166f24062af2169a1b16f878367aabddb5a02b56d5cec1181860fdab6234632",
+        "exception_basic.sail": "21f6b824bdacdd253d62c7a6fb0d52c71113ed271c64fb10b9f350c96087a200",
+        "exception_result.sail": "b36642a03dd7765cd64d8e141352ec9b92da00c41fd08a6527f29fe7e10e7bc1",
+        "float.sail": "53bf4f44a488c209c7e31b107ec87421ae7876b10b061c2cc70e84fecc74c5fe",
+        "float/add.sail": "b77bfc1c4e0ef08f7fe6444f714d2800023a0261d6029e91fbb8a84129cf3666",
+        "float/arith_internal.sail": "6f3b9103380392140d6dff50f5d40b9e26489ff8891a55192496f68660c81824",
+        "float/classify.sail": "5b73810b001aa95908dfec313172b8c3fbb4cbdd81e2a01556848b23522d8636",
+        "float/common.sail": "7b019ef910e6e6f53c3115ab71fd82ab4f0e349eb9ffb97328904870f9c44dd9",
+        "float/eq.sail": "1f5e75e651ee21524186e438669aad66a51743415f00e69386b656f24770751e",
+        "float/ge.sail": "fb34a943a1f1eaddc1d471498af53b28174c57e2727b533111c323b606aeea7f",
+        "float/ge_quiet.sail": "d3ff646b24223dda1cbd118bd802e6bda7be9a53c48eb5a80a395f615b6c1482",
+        "float/gt.sail": "2b8b39888a51a16967fdec4298ec52bf8851de74020fbdbc53c7c47e55df4c67",
+        "float/gt_quiet.sail": "b7a01ad13debb79cab5af199fbcdb190700b559aa68df23b336141ffdf2dfce0",
+        "float/inf.sail": "c4d31dbf4f9c011a3c171b142035923beedcde97af4b38a0707cec095b981d29",
+        "float/interface.sail": "0251513792446a87fdd04befa6daca16b3058188556be71b1b9c45fb1c76090b",
+        "float/le.sail": "1c344f7e4b51d979be9ae29ef1e02ce4054f5fdb710864b8622975788b32d83f",
+        "float/le_quiet.sail": "c482172f5e6d8b8fde3dac93b7e4644996744c4e58576834934d5274eb6fbc82",
+        "float/lt.sail": "d3525004155388d11968d60e5e9de2d84b36b92b43c1aa6183ba9e3ec1f0e3b9",
+        "float/lt_quiet.sail": "f5fa47301916512f82171837c79e17f1c8b9e08681014b7ea873f967969a9b39",
+        "float/nan.sail": "0b5e8517b3a0ad042c81774b170cb9777c7210d39c651f67cc019281c7ca65d8",
+        "float/ne.sail": "57f195a8c0820a9a690acf24c127084e8a03f7f04f04fe4bdca907c825b9b5d5",
+        "float/normal.sail": "769c2fb37d1f18569d4be85a23923b1cf4e2f070e7d35852bd276fb63f8437bb",
+        "float/rounding.sail": "855ef9d65cd46dea201465247e9c5265e573b2044adfd0df8890fcd5db9f9ad7",
+        "float/sign.sail": "37d148a02f3e8740c171cc609bb5b99951e74a65b5cc11a824926336aa6387c9",
+        "float/zero.sail": "c2306a3f048d72af15032e8aaa7752348d12e37a3c856c62c9ac18d9fb8bd420",
+        "flow.sail": "accf8fee8044ec357fd1a80a0288fefca4812c4a1cee6f8397355c0e49aa81fb",
+        "generic_equality.sail": "27878933fe5c1d46479718731dec4cd1c2c1c7bcaa7dc027040acf0ece3052f7",
+        "hex_bits.sail": "c11a5961b2ae9286a9f7a9f05597db80aa3c79b06588de96239c0286232bf588",
+        "hex_bits_signed.sail": "164a11ca3e003b7eaba37101c37683d58f00279a058505ef098c6a7e5f423ef5",
+        "instr_kinds.sail": "ad9099954f6cd43845725c924c1d6b2904b93b3936fcc7c707cca6ea871aa12d",
+        "isla.sail": "0f96414cdaf3ab75602e1636a8cd0bfd5e6ed7821168a26a3c8100350b49eaf5",
+        "mapping.sail": "23e9beadf849813e9050c96dfda25457b7229492cc9b7fb5480c50274ef9d52d",
+        "mono_rewrites.sail": "418f27b7b401fec2bc9a9bd44a2efe8b922beb848747486e09344bf17ab44732",
+        "option.sail": "f80e65d6303860fb49851d80ed4ab157448ef0f13ae1ae49a3b4012aef12935b",
+        "prelude.sail": "363b042195a2535602574fd19e878ce09f47695d70479a87184620657608db4b",
+        "real.sail": "e491b08f4a1919cef6d1a12c80039007bb7113cba04f014dc8ebf91548038242",
+        "regfp.sail": "f021d187aa94b4645b826343ad3378c76440536f2625fecbe7acad3ac5c17261",
+        "result.sail": "fc11a0713a6a5319de4170a90f50e350e0579325be422616192eb275bf3eb590",
+        "reverse_endianness.sail": "fee76f55b5373436521cb1f0cb1a0ea9215fcebd6d166bf5a89b58e56e842626",
+        "smt.sail": "530cffc0e4a05676617ed6f2213e474839d0daa61526f3d955d669dbb59508e9",
+        "string.sail": "7e9a9a54128740f0f8b85958299b836a098375382dab891697fa37987c1f5a75",
+        "trace.sail": "5719221afe95c884c518c36427b791d9fd0f88070f5f5eb90da2475dc7820410",
+        "vector.sail": "73855de7cdfbef3cc5ba22b64478d1ae031ad56fdc80a4dedc8fdfbb4db1218b",
+        "vector_dec.sail": "12647d83900723f976690733d7482eac648914acde682876508eeb72e57bb69c",
+        "vector_inc.sail": "12647d83900723f976690733d7482eac648914acde682876508eeb72e57bb69c"
+      }
+    },
+    "loaded_plugins": [
+      {
+        "path": "/root/build/lane-close3-20261013-emission/plugins/sail_plugin_coq.cmxs",
+        "sha256": "0f72713960fb46d255f7fc9d0be3fb0a6577d0547bb3bd1106a92b0d0e5fd6bd",
+        "version": ""
+      },
+      {
+        "path": "/root/.opam/verifiedos-sail-0.20.3-ocaml-5.4.1/share/libsail/plugins/sail_plugin_c.cmxs",
+        "sha256": "f702e17d05dd9358a6cedf744c36903379cb76e21abbc676572d0f6217892ea3",
+        "version": ""
+      },
+      {
+        "path": "/root/.opam/verifiedos-sail-0.20.3-ocaml-5.4.1/share/libsail/plugins/sail_plugin_output.cmxs",
+        "sha256": "de444b5a2926400285b35903633d0aafa71bfe785ea65183e3460c85b903bad1",
+        "version": ""
+      },
+      {
+        "path": "/root/.opam/verifiedos-sail-0.20.3-ocaml-5.4.1/share/libsail/plugins/sail_plugin_smt.cmxs",
+        "sha256": "45afea4e28090c3d51b44effb65f858181f31daa133b539ab063aaea2a89b87f",
+        "version": ""
+      },
+      {
+        "path": "/root/.opam/verifiedos-sail-0.20.3-ocaml-5.4.1/share/libsail/plugins/sail_plugin_lem.cmxs",
+        "sha256": "50fabbec28dda6f99225a5e8680a6cba13629ed4b50a5fe04d02b87954778c53",
+        "version": ""
+      },
+      {
+        "path": "/root/.opam/verifiedos-sail-0.20.3-ocaml-5.4.1/share/libsail/plugins/sail_plugin_lean.cmxs",
+        "sha256": "ad0ad6fab2f5e18f440209b95177513345ade346a21ac3d71f5510e0c12f95db",
+        "version": ""
+      },
+      {
+        "path": "/root/.opam/verifiedos-sail-0.20.3-ocaml-5.4.1/share/libsail/plugins/sail_plugin_doc.cmxs",
+        "sha256": "ecb2cb515faaf933dab0c3ba99200a79a3ad81e6885450edbcf88b2d90db732b",
+        "version": ""
+      },
+      {
+        "path": "/root/.opam/verifiedos-sail-0.20.3-ocaml-5.4.1/share/libsail/plugins/sail_plugin_ocaml.cmxs",
+        "sha256": "91127afaa7b751295aa8941d6832707682d9545920a1ddd5a22ab605a728df58",
+        "version": ""
+      },
+      {
+        "path": "/root/.opam/verifiedos-sail-0.20.3-ocaml-5.4.1/share/libsail/plugins/sail_plugin_sv.cmxs",
+        "sha256": "c5f9903f598e4ef2a0e8bc9573b7bd47121d63fd5e55c0f7b1c0771c2b970daa",
+        "version": ""
+      },
+      {
+        "path": "/root/.opam/verifiedos-sail-0.20.3-ocaml-5.4.1/share/libsail/plugins/sail_plugin_latex.cmxs",
+        "sha256": "8cf234949ca8ae886eb8ff0c0da74d8453688c083a533fd0a2bf5ceaa937cccf",
+        "version": ""
+      }
+    ],
+    "plugin_directories": [
+      "/root/build/lane-close3-20261013-emission/plugins"
+    ]
+  },
+  "loader_sources": {
+    "/root/.opam/verifiedos-sail-0.20.3-ocaml-5.4.1/.opam-switch/sources/sail.0.20.3/src/bin/sail.ml": "82cf0ee3369b235d58e3028ac1c4de916986b2377a6b192a7cee086962f12ec8",
+    "/root/.opam/verifiedos-sail-0.20.3-ocaml-5.4.1/lib/libsail/Libsail_sites.ml": "1f116cecdb8f20bfbecc576a1fba9af28d7927e368e141631363777990fb468b",
+    "/root/.opam/verifiedos-sail-0.20.3-ocaml-5.4.1/lib/dune-site/helpers.ml": "bbda71d6168b43ef6156d41ff05509e2fcb1b9ce36cac622895b09eaba390b90",
+    "/root/.opam/verifiedos-sail-0.20.3-ocaml-5.4.1/lib/dune-site/private/dune_site_private.ml": "0f41befcb998d5942ddaf404a5bb4e35c0cc8c38916cd35c61247d13beaf65e8",
+    "/root/.opam/verifiedos-sail-0.20.3-ocaml-5.4.1/.opam-switch/sources/sail_coq_backend.0.20.3/src/sail_coq_backend/pretty_print_coq.ml": "3863856c7015e919b1dc253bbc8b49f205b679a2fd70404489a022c8b55ccfe3"
+  },
+  "native_extension_controls": [
+    ".cmxs=[]",
+    "..cmxs=[]",
+    "foo.cmxs=[.cmxs]",
+    "foo.CMXS=[.CMXS]",
+    ".hidden.cmxs=[.cmxs]"
+  ],
+  "native_directory_order": [
+    "sail_plugin_coq.cmxs",
+    "sail_plugin_c.cmxs",
+    "sail_plugin_output.cmxs",
+    "sail_plugin_smt.cmxs",
+    "sail_plugin_lem.cmxs",
+    "sail_plugin_lean.cmxs",
+    "sail_plugin_doc.cmxs",
+    "sail_plugin_ocaml.cmxs",
+    "sail_plugin_sv.cmxs",
+    "sail_plugin_latex.cmxs"
+  ],
+  "python_directory_order": [
+    "sail_plugin_coq.cmxs",
+    "sail_plugin_c.cmxs",
+    "sail_plugin_output.cmxs",
+    "sail_plugin_smt.cmxs",
+    "sail_plugin_lem.cmxs",
+    "sail_plugin_lean.cmxs",
+    "sail_plugin_doc.cmxs",
+    "sail_plugin_ocaml.cmxs",
+    "sail_plugin_sv.cmxs",
+    "sail_plugin_latex.cmxs"
+  ],
+  "enumeration_equal": true,
+  "prover_version": "The Rocq Prover, version 9.3.0\ncompiled with OCaml 5.4.1",
+  "ocaml_version": "The OCaml toplevel, version 5.4.1",
+  "regeneration": {
+    "argv": [
+      "opam",
+      "exec",
+      "--switch=verifiedos-sail-0.20.3-ocaml-5.4.1",
+      "--",
+      "/root/.opam/verifiedos-sail-0.20.3-ocaml-5.4.1/bin/sail",
+      "--strict-var",
+      "--strict-bitvector",
+      "--strict-exponentials",
+      "--require-version",
+      "0.20.3",
+      "--rocq",
+      "--rocq-alt-modules",
+      "SailStdpp.Base SailStdpp.ConcurrencyInterfaceTypes SailStdpp.ConcurrencyInterface SailStdpp.ConcurrencyInterfaceBuiltins",
+      "--rocq-output-dir",
+      "/root/build/lane-close3-20261013-emission/probe-repeat",
+      "-o",
+      "SyntaxProbe",
+      "/root/build/lane-close3-20261013-emission/SyntaxProbe.sail"
+    ],
+    "exit": 0,
+    "outputs": {
+      "SyntaxProbe.v": {
+        "candidate": "b5e7c299c12552ccab550cdf12b11399d3ae87ce3b436d4650d3ebf32bd2c5dc",
+        "repeat": "b5e7c299c12552ccab550cdf12b11399d3ae87ce3b436d4650d3ebf32bd2c5dc",
+        "equal": true
+      },
+      "SyntaxProbe_types.v": {
+        "candidate": "8f47ccf067c008712393cf9434065949b1e5f860036ab131e79a9802de41d479",
+        "repeat": "8f47ccf067c008712393cf9434065949b1e5f860036ab131e79a9802de41d479",
+        "equal": true
+      }
+    }
+  },
+  "canonical_imports": [
+    "(*Generated by Sail from rv64d.*)",
+    "Require Import SailStdpp.Base.",
+    "Require Import SailStdpp.ConcurrencyInterfaceTypes.",
+    "Require Import SailStdpp.ConcurrencyInterface.",
+    "Require Import SailStdpp.ConcurrencyInterfaceBuiltins.",
+    "Require Import rv64d_types.",
+    "Require Import riscv_extras.",
+    "Import Defs.",
+    "Import ListNotations.",
+    "Open Scope string.",
+    "Open Scope bool.",
+    "Open Scope Z."
+  ],
+  "syntax_candidate_only": true,
+  "compiled_size_acceptance": false
+}

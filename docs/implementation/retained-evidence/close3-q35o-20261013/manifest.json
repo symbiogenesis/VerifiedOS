@@ -1,0 +1,148 @@
+{
+  "files": {
+    "LICENSE.model": {
+      "bytes": 3363,
+      "encoding": "identity",
+      "path": "LICENSE.model",
+      "sha256": "14cfdf5bfb57ba19f57f31c4a79b3712ede0fda06b1674cb40dec393f8694185"
+    },
+    "LICENSE.sail": {
+      "bytes": 2594,
+      "encoding": "identity",
+      "path": "LICENSE.sail",
+      "sha256": "cc5133e58dd523cb772ac7b2c3047845b54667fe856165aef651f059ca51b2fe"
+    },
+    "SyntaxProbe.sail": {
+      "bytes": 822,
+      "encoding": "identity",
+      "path": "SyntaxProbe.sail",
+      "sha256": "1d0a9d491989e0e9a56273f1d956a24264700840b6c6f69841a2768d6067aad7"
+    },
+    "backend-dune-project.txt": {
+      "bytes": 97,
+      "encoding": "identity",
+      "path": "backend-dune-project.txt",
+      "sha256": "2f9a1da15272991063deb9a17772229a2957cf550cadbfe4eb850ff7607483fa"
+    },
+    "baseline-main.log": {
+      "bytes": 752,
+      "encoding": "identity",
+      "path": "baseline-main.log",
+      "sha256": "3fb767c4de606c94a3dbc6c9370076f6235b2c1fc43f672ef64a73338bbdcb9b"
+    },
+    "baseline-types.log": {
+      "bytes": 6103,
+      "encoding": "identity",
+      "path": "baseline-types.log",
+      "sha256": "41f4586ba76626ac762eca3580d8c7572aeb1908efb90187e84116e7f912cc6c"
+    },
+    "candidate-main-refusal.log": {
+      "bytes": 188,
+      "encoding": "identity",
+      "path": "candidate-main-refusal.log",
+      "sha256": "956d5db6e12cc80f9ffe94733fe4a9076872be9a4c14946c4a1711a156f14b38"
+    },
+    "candidate-types.log": {
+      "bytes": 0,
+      "encoding": "identity",
+      "path": "candidate-types.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "canonical-imports.txt": {
+      "bytes": 361,
+      "encoding": "identity",
+      "path": "canonical-imports.txt",
+      "sha256": "32835c984c1978e9d0a16e6c0abde2ffbf7a2b954d4e305a6f14798d57a5c68c"
+    },
+    "canonical-receipt.json": {
+      "bytes": 28273,
+      "encoding": "identity",
+      "path": "canonical-receipt.json",
+      "sha256": "4691afa21a2a82edf28033ce6e18e90a01dc6775683d65a863b68ca611ed8bf3"
+    },
+    "frozen-baseline.json": {
+      "bytes": 901601,
+      "encoding": "identity",
+      "path": "frozen-baseline.json",
+      "sha256": "cdf8c590e8c11ebc068b33b49aa4711bd453f8e0c5ab194873ef5471decaa400"
+    },
+    "frozen-candidate.json": {
+      "bytes": 901601,
+      "encoding": "identity",
+      "path": "frozen-candidate.json",
+      "sha256": "cdf8c590e8c11ebc068b33b49aa4711bd453f8e0c5ab194873ef5471decaa400"
+    },
+    "frozen-comparison.json": {
+      "bytes": 6564,
+      "encoding": "identity",
+      "path": "frozen-comparison.json",
+      "sha256": "e8e7dfa59b22ee647e3ad1ddc538f351e2226eaa390a5f95c286f0adcf420a64"
+    },
+    "frozen-receipt.json": {
+      "bytes": 7736,
+      "encoding": "identity",
+      "path": "frozen-receipt.json",
+      "sha256": "5a7137e8b40aca8c02afa1ef264b121e9777ce3df7814f50bc4f4ed846b93c1d"
+    },
+    "identity-receipt.json": {
+      "bytes": 22012,
+      "encoding": "identity",
+      "path": "identity-receipt.json",
+      "sha256": "5f8085d39913c9bb91afd2b12c398b52e5fbf0db0b66c73d691cc1137d36bd91"
+    },
+    "loader-native.stderr": {
+      "bytes": 45,
+      "encoding": "identity",
+      "path": "loader-native.stderr",
+      "sha256": "73f7d708ddfeaa846af9ef6a9759e091a31ec9c2d32a6cf62dfb0f5bf1bf1d3a"
+    },
+    "loader-native.stdout": {
+      "bytes": 289,
+      "encoding": "identity",
+      "path": "loader-native.stdout",
+      "sha256": "ae6800b80352646a7e1b68c7039727a18b9ac9f5f833b1e8fa3b1fe810a84645"
+    },
+    "plugin-build.log": {
+      "bytes": 45,
+      "encoding": "identity",
+      "path": "plugin-build.log",
+      "sha256": "73f7d708ddfeaa846af9ef6a9759e091a31ec9c2d32a6cf62dfb0f5bf1bf1d3a"
+    },
+    "probe-receipt.json": {
+      "bytes": 6057,
+      "encoding": "identity",
+      "path": "probe-receipt.json",
+      "sha256": "cc3081c32510933819d9a9174f374c1ac9779c7f77d09e051b2ffdc3a27e223f"
+    },
+    "qualification.json": {
+      "bytes": 2311,
+      "encoding": "identity",
+      "path": "qualification.json",
+      "sha256": "309c557d4b1691656229606b74fceabbc77e971a1b069fd9a319885e985b10f7"
+    },
+    "repeat.stderr": {
+      "bytes": 190,
+      "encoding": "identity",
+      "path": "repeat.stderr",
+      "sha256": "3c26e4a5272adf160b23de81b983e741a5f1693d7e1f47f3cc979e06c8be0521"
+    },
+    "repeat.stdout": {
+      "bytes": 0,
+      "encoding": "identity",
+      "path": "repeat.stdout",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "sail-emission-syntax.patch": {
+      "bytes": 10669,
+      "encoding": "identity",
+      "path": "sail-emission-syntax.patch",
+      "sha256": "e223a5b9688ae58e52143bd06075fb54020101d526200b46f68b116bebbdb9cb"
+    },
+    "strict-support-receipt.json": {
+      "bytes": 32062,
+      "encoding": "identity",
+      "path": "strict-support-receipt.json",
+      "sha256": "6c0d5a068b50d27e39e18a8fff737e1dc2c1dc7d61981ba165feb788b287e4a1"
+    }
+  }
+}

@@ -1,0 +1,76 @@
+{
+  "task": "Q35o bounded independent emission compatibility qualification",
+  "revision": "dc638f09ac5b113f775af123c562aadef12c01db",
+  "local_date": "2026-10-13 America/Chicago",
+  "canonical_started": "2026-10-14T03:43:13Z",
+  "canonical_finished": "2026-10-14T03:48:02Z",
+  "finished_utc": "2026-10-14T03:57:39Z",
+  "source_pin": "3df54034910b31a1e00d948ee965b2e9603d68e0",
+  "strict_support_selection": [
+    "Base",
+    "ConcurrencyInterface",
+    "ConcurrencyInterfaceBuiltins",
+    "ConcurrencyInterfaceBuiltinsV2",
+    "ConcurrencyInterfaceTypes",
+    "ConcurrencyInterfaceTypesV2",
+    "ConcurrencyInterfaceV2",
+    "GenericValue",
+    "Hoare",
+    "Impl_base",
+    "Inhabited",
+    "Instances",
+    "Instr_kinds",
+    "MachineWord",
+    "MachineWordInterface",
+    "MachineWordTest",
+    "Operators_mwords",
+    "Prompt",
+    "Prompt_monad",
+    "Real",
+    "State",
+    "State_lemmas",
+    "State_lifting",
+    "State_monad",
+    "State_monad_lemmas",
+    "String",
+    "TypeCasts",
+    "Undefined",
+    "Values",
+    "Values_lemmas"
+  ],
+  "extra_vs_hosted_recipe": [
+    "MachineWordTest"
+  ],
+  "frozen_types": {
+    "declarations": 300,
+    "printed": 236,
+    "all_identical": true
+  },
+  "strict_types": {
+    "exit": 0,
+    "diagnostics": 0
+  },
+  "strict_main": {
+    "exit": 1,
+    "first_diagnostic": "Import Defs reopens >>= notation; notation-overridden",
+    "accepted": false
+  },
+  "canonical_candidate_emission": "not performed",
+  "hosted_syntax_qualification": "not performed",
+  "production_carriage": false,
+  "item_closed": false,
+  "native_lane": "/root/build/lane-close3-20261013-emission",
+  "tests": {
+    "model_rocq": {
+      "cases": 11,
+      "exit": 0
+    },
+    "focused_ty_linux": 0,
+    "focused_ty_win32": 0
+  },
+  "tools": {
+    "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/close3-20261013-emission/tools/vos/rocqterm.py": "96cdd9e7b3c0cb26edd7c2f26b0b782b8cfccedf65bd17d76421107105357ed8",
+    "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/close3-20261013-emission/tools/vos/proofreading.py": "bbafa1f7afa210b49c771b55bf2ac1973ae4cb1735f5116520c0b5c61c17a1a7",
+    "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/close3-20261013-emission/tools/vos/proofaudit.py": "dc070238fbd144751619a6ff75a6cf43a59d3c482bb31d7b5fda904e51194737"
+  }
+}

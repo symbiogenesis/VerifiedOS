@@ -1,0 +1,217 @@
+--- a/src/sail_coq_backend/pretty_print_coq.ml
++++ b/src/sail_coq_backend/pretty_print_coq.ml
+@@ -184,7 +184,7 @@
+ let enclose_record = enclose (string "{| ") (string " |}")
+ 
+ (* Record updates from the notations we can generate *)
+-let enclose_record_update = enclose (string "{[ ") (string " ]}")
++let enclose_record_update = enclose (string "sail_update (") (string ")")
+ 
+ (* Record updates using coq-record-updates package *)
+ let enclose_coq_record_update = enclose (string "<|") (string "|>")
+@@ -2583,15 +2583,15 @@
+     (* Use level 1 to match stdpp *)
+     match fields with
+     | [_] ->
+-        string "Notation \"{[ r 'with' '" ^^ idpp ^^ string "' := e ]}\" :=" ^//^ string "{| " ^^ idpp
+-        ^^ string " := e |} (at level 1, only parsing)."
++        string "Notation \"'sail_update' '(' r 'with' '" ^^ idpp ^^ string "' := e ')'\" :=" ^//^ string "{| " ^^ idpp
++        ^^ string " := e |} (at level 0, only parsing)."
+     | _ ->
+-        string "Notation \"{[ r 'with' '" ^^ idpp ^^ string "' := e ]}\" :=" ^//^ string "match r with Build_"
++        string "Notation \"'sail_update' '(' r 'with' '" ^^ idpp ^^ string "' := e ')'\" :=" ^//^ string "match r with Build_"
+         ^^ type_id_pp ^^ match_parameters ^^ space
+         ^^ separate space (List.mapi (pp_field true "_") fields)
+         ^^ string " =>" ^//^ string "Build_" ^^ type_id_pp ^^ build_parameters ^^ space
+         ^^ separate space (List.mapi (pp_field false "e") fields)
+-        ^//^ string "end (at level 1)" ^^ dot
++        ^//^ string "end (at level 0)" ^^ dot
+   in
+   if !opt_coq_record_update then (
+     let typq_ids, _ = typquant_names_separate ctxt typq in
+@@ -2618,6 +2618,7 @@
+         ^^ string " : " ^^ of_num_id_pp ^^ space
+         ^^ parens (num_of_id_pp ^^ string " x")
+         ^^ string " = x.";
++        string "Proof.";
+         string "  destruct x; reflexivity.";
+         string "Qed.";
+       ]
+@@ -2628,6 +2629,7 @@
+         string "Lemma " ^^ num_of_id_pp ^^ string "_injective "
+         ^^ parens (string "x y : " ^^ typ_id_pp)
+         ^^ string " : " ^^ num_of_id_pp ^^ string " x = " ^^ num_of_id_pp ^^ string " y -> x = y.";
++        string "Proof.";
+         string "  intro.";
+         string "  rewrite <- (" ^^ typ_id_pp ^^ string "_num_of_roundtrip x).";
+         string "  rewrite <- (" ^^ typ_id_pp ^^ string "_num_of_roundtrip y).";
+@@ -2639,6 +2641,7 @@
+     separate hardline
+       [
+         string "Definition " ^^ typ_id_pp ^^ string "_eq_dec (x y : " ^^ typ_id_pp ^^ string ") : {x = y} + {x <> y}.";
++        string "Proof.";
+         string "  refine (match Z.eq_dec (" ^^ num_of_id_pp ^^ string " x) (" ^^ num_of_id_pp ^^ string " y) with";
+         string "  | left e => left (" ^^ num_of_id_pp ^^ string "_injective x y e)";
+         string "  | right ne => right _";
+@@ -2653,11 +2656,13 @@
+         string "Definition " ^^ typ_id_pp ^^ string "_beq (x y : " ^^ typ_id_pp ^^ string ") : bool :=";
+         string "  Z.eqb (" ^^ num_of_id_pp ^^ string " x) (" ^^ num_of_id_pp ^^ string " y).";
+         string "Lemma " ^^ typ_id_pp ^^ string "_beq_iff x y : " ^^ typ_id_pp ^^ string "_beq x y = true <-> x = y.";
++        string "Proof.";
+         string "  unfold " ^^ typ_id_pp ^^ string "_beq.";
+         string "  rewrite Z.eqb_eq.";
+         string "  split; [apply " ^^ num_of_id_pp ^^ string "_injective | congruence].";
+         string "Qed.";
+         string "Lemma " ^^ typ_id_pp ^^ string "_beq_refl x : " ^^ typ_id_pp ^^ string "_beq x x = true.";
++        string "Proof.";
+         string "apply " ^^ typ_id_pp ^^ string "_beq_iff; reflexivity.";
+         string "Qed.";
+       ]
+@@ -2781,6 +2786,7 @@
+                               )
+                            )
+                         );
++                      string "Proof.";
+                       string "refine {|";
+                       string "  encode x := encode ("
+                       ^^ separate_map (string ", ") (fun ((fid, _), _) -> fname fid ^^ space ^^ string "x") fs
+@@ -2802,7 +2808,7 @@
+                (nest 2
+                   (flow (break 1)
+                      (((string "Instance Decidable_eq_" ^^ type_id_pp) :: typq_pps) @ eq_req_pps @ [colon; class_pp])
+-                  ^^ hardline ^^ intros_pp "x" ^^ intros_pp "y"
++                  ^^ hardline ^^ string "Proof." ^^ hardline ^^ intros_pp "x" ^^ intros_pp "y"
+                   ^^ separate hardline
+                        (List.init numfields (fun n ->
+                             let ns = string_of_int n in
+@@ -2876,6 +2882,7 @@
+                           )
+                        )
+                   ^^ hardline
++                  ^^ string "Proof." ^^ hardline
+                   ^^ string "refine (Decidable_eq_from_dec (fun x y => _))."
+                   ^^ hardline
+                   ^^ string "decide equality; refine (generic_dec _ _)."
+@@ -3084,7 +3091,8 @@
+               ([
+                  string "#[export]";
+                  string "Instance Countable_" ^^ id_pp ^^ string " : Countable " ^^ id_pp ^^ string ".";
+-                 string "refine {|";
++                 string "Proof.";
++                      string "refine {|";
+                  string "  encode x := match x with";
+                ]
+               @ List.mapi
+@@ -3107,7 +3115,8 @@
+               [
+                 string "#[export]";
+                 string "Instance Countable_" ^^ id_pp ^^ string " : Countable " ^^ id_pp ^^ string ".";
+-                string "refine {|";
++                string "Proof.";
++                      string "refine {|";
+                 string "  encode x := encode (" ^^ num_of_id_pp ^^ string " x);";
+                 string "  decode x := z ← decode x; mret (" ^^ of_num_id_pp ^^ string " z);";
+                 string "|}.";
+@@ -3554,7 +3563,7 @@
+         List.map2 (fun idpp b -> surround 3 0 (string "(*" ^^ idpp ^^ string "*) exact (") b (string ").")) idpps bodies
+       in
+       let pres = pre1 :: pren in
+-      separate hardline pres ^^ dot ^^ hardline ^^ separate hardline bodies ^^ break 1 ^^ string "Defined." ^^ hardline
++      separate hardline pres ^^ dot ^^ hardline ^^ string "Proof." ^^ hardline ^^ separate hardline bodies ^^ break 1 ^^ string "Defined." ^^ hardline
+ 
+ let doc_funcl global proof_mode mutrec r funcl =
+   let pre, ctxt, details = doc_funcl_init global proof_mode mutrec r funcl in
+@@ -3570,7 +3579,7 @@
+       match r with
+       | Rec_aux (Rec_measure _, _) ->
+           group
+-            (pre ^^ dot ^^ hardline
++            (pre ^^ dot ^^ hardline ^^ string "Proof." ^^ hardline
+             ^^ surround 3 0 (string "exact (") body (string ").")
+             ^^ hardline ^^ string "Defined."
+             )
+@@ -3966,7 +3975,7 @@
+             ^^ string " : EqDecision " ^^ reg_type_pp ^^ string " := " ^^ reg_type_pp ^^ string "_eq_dec.";
+             string "Instance "
+             ^^ doc_id ctxt (prepend_id "Countable_" reg_type_id)
+-            ^^ string " : Countable " ^^ reg_type_pp ^^ string ". refine {|";
++            ^^ string " : Countable " ^^ reg_type_pp ^^ string ". Proof. refine {|";
+             string "  encode x := encode (" ^^ num_of_pp ^^ string " x);";
+             string "  decode x := " ^^ of_num_pp ^^ string " <$> decode x";
+             string "|}.";
+@@ -4112,6 +4121,7 @@
+               string "    congruence.";
+               string "  Qed.";
+               string "  #[export] Instance Decidable_eq_register : EqDecision register.";
++              string "  Proof.";
+               string "  refine (fun r r' => match Pos.eq_dec (register_encode r) (register_encode r') with";
+               string "  | left e => left (register_encode_inj _ _ e)";
+               string "  | right ne => right _";
+@@ -4127,6 +4137,7 @@
+               string
+                 "Definition register_transport {P : Type -> Type} {r r' : register} : r = r' -> P (type_of_register r) \
+                  -> P (type_of_register r').";
++              string "Proof.";
+               string "refine (";
+               string "  match r, r' with";
+               separate_map hardline
+@@ -4173,6 +4184,7 @@
+           string "  end.";
+           empty;
+           string "Lemma register_beq_refl (r : register) : register_beq r r = true.";
++          string "Proof.";
+           string "destruct r; simpl; autorewrite with register_beq_refls; reflexivity.";
+           string "Qed.";
+           empty;
+@@ -4227,6 +4239,7 @@
+           empty;
+           string "Lemma string_of_register_roundtrip (r : register) :";
+           string "  register_of_string (string_of_register r) = Some r.";
++          string "Proof.";
+           string "case r; intro r'; destruct r'; reflexivity.";
+           string "Qed.";
+           empty;
+@@ -4262,7 +4275,8 @@
+                   string
+                     "#[export] Instance Countable_register_values `(r : register) : Countable (type_of_register r) | \
+                      100.";
+-                  string "refine {|";
++                  string "Proof.";
++                      string "refine {|";
+                   string "  encode := match r with";
+                   separate_map hardline
+                     (fun (typ_id, _typ) ->
+@@ -4374,12 +4388,14 @@
+         string "  end.";
+         empty;
+         string "Lemma register_lookup_set (r : register) regs v: register_lookup r (register_set r v regs) = v.";
++        string "Proof.";
+         string "destruct regs, r; simpl; autorewrite with register_beq_refls; reflexivity.";
+         string "Qed.";
+         empty;
+         string "Lemma irrelevant_register_set (r r' : register) regs v:";
+         string "  register_beq r r' = false ->";
+         string "  register_lookup r (register_set r' v regs) = register_lookup r regs.";
++        string "Proof.";
+         string "destruct regs, r, r'; simpl; intro EQ; rewrite ?EQ; reflexivity.";
+         string "Qed.";
+         empty;
+@@ -4429,7 +4445,9 @@
+     let type_regs_map = Bindings.bindings type_regs_map in
+ 
+     let reg_enums =
+-      List.fold_left (fun pp (t, rs) -> pp ^^ per_type_register_enum bare_ctxt t rs) empty type_regs_map
++      List.fold_left (fun pp (t, rs) -> pp ^^ per_type_register_enum bare_ctxt t rs)
++        (string "Create Rewrite HintDb register_beq_iffs." ^^ hardline
++         ^^ string "Create Rewrite HintDb register_beq_refls." ^^ hardline) type_regs_map
+     in
+ 
+     let generic_value_register_type_pp =
+@@ -4644,6 +4662,7 @@
+           string "      | None => fun H => _";
+           string "    end eq_refl";
+           string "  }.";
++          string "  Proof.";
+           string "  exfalso; destruct v; simpl in H; congruence.";
+           string "  Defined.";
+           empty;

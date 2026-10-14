@@ -1,0 +1,4 @@
+File "/root/build/lane-close3-20261013-emission/probe-candidate/SyntaxProbe.v", line 7, characters 0-12:
+Error: Notation "_ >>= _" was already used.
+[notation-overridden,parsing,default]
+

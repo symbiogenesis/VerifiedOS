@@ -1,0 +1,83 @@
+File "/root/build/lane-close3-20261013-emission/probe-baseline/SyntaxProbe_types.v", line 26, characters 3-18:
+Warning: This interactive proof is not started by the "Proof" command.
+[missing-proof-command,fragile,default]
+File "/root/build/lane-close3-20261013-emission/probe-baseline/SyntaxProbe_types.v", line 34, characters 0-150:
+Warning: This interactive proof is not started by the "Proof" command.
+[missing-proof-command,fragile,default]
+File "/root/build/lane-close3-20261013-emission/probe-baseline/SyntaxProbe_types.v", line 45, characters 0-129:
+Warning: Closed notations (i.e. starting and ending with a terminal symbol)
+should usually be at level 0 (default).
+[closed-notation-not-level-0,parsing,default]
+File "/root/build/lane-close3-20261013-emission/probe-baseline/SyntaxProbe_types.v", line 47, characters 0-132:
+Warning: Closed notations (i.e. starting and ending with a terminal symbol)
+should usually be at level 0 (default).
+[closed-notation-not-level-0,parsing,default]
+File "/root/build/lane-close3-20261013-emission/probe-baseline/SyntaxProbe_types.v", line 64, characters 2-26:
+Warning: This interactive proof is not started by the "Proof" command.
+[missing-proof-command,fragile,default]
+File "/root/build/lane-close3-20261013-emission/probe-baseline/SyntaxProbe_types.v", line 67, characters 2-8:
+Warning: This interactive proof is not started by the "Proof" command.
+[missing-proof-command,fragile,default]
+File "/root/build/lane-close3-20261013-emission/probe-baseline/SyntaxProbe_types.v", line 73, characters 2-154:
+Warning: This interactive proof is not started by the "Proof" command.
+[missing-proof-command,fragile,default]
+File "/root/build/lane-close3-20261013-emission/probe-baseline/SyntaxProbe_types.v", line 82, characters 2-22:
+Warning: This interactive proof is not started by the "Proof" command.
+[missing-proof-command,fragile,default]
+File "/root/build/lane-close3-20261013-emission/probe-baseline/SyntaxProbe_types.v", line 87, characters 0-36:
+Warning: This interactive proof is not started by the "Proof" command.
+[missing-proof-command,fragile,default]
+File "/root/build/lane-close3-20261013-emission/probe-baseline/SyntaxProbe_types.v", line 93, characters 0-111:
+Warning: This interactive proof is not started by the "Proof" command.
+[missing-proof-command,fragile,default]
+File "/root/build/lane-close3-20261013-emission/probe-baseline/SyntaxProbe_types.v", line 159, characters 2-26:
+Warning: This interactive proof is not started by the "Proof" command.
+[missing-proof-command,fragile,default]
+File "/root/build/lane-close3-20261013-emission/probe-baseline/SyntaxProbe_types.v", line 162, characters 2-8:
+Warning: This interactive proof is not started by the "Proof" command.
+[missing-proof-command,fragile,default]
+File "/root/build/lane-close3-20261013-emission/probe-baseline/SyntaxProbe_types.v", line 168, characters 2-193:
+Warning: This interactive proof is not started by the "Proof" command.
+[missing-proof-command,fragile,default]
+File "/root/build/lane-close3-20261013-emission/probe-baseline/SyntaxProbe_types.v", line 177, characters 2-35:
+Warning: This interactive proof is not started by the "Proof" command.
+[missing-proof-command,fragile,default]
+File "/root/build/lane-close3-20261013-emission/probe-baseline/SyntaxProbe_types.v", line 182, characters 0-49:
+Warning: This interactive proof is not started by the "Proof" command.
+[missing-proof-command,fragile,default]
+File "/root/build/lane-close3-20261013-emission/probe-baseline/SyntaxProbe_types.v", line 184, characters 0-63:
+Warning: Implicitly declaring Rewrite hint databases is deprecated. Please
+explicitly create "register_beq_iffs"
+[implicit-create-rewrite-hint-db,deprecated-since-9.2,deprecated,default]
+File "/root/build/lane-close3-20261013-emission/probe-baseline/SyntaxProbe_types.v", line 185, characters 0-65:
+Warning: Implicitly declaring Rewrite hint databases is deprecated. Please
+explicitly create "register_beq_refls"
+[implicit-create-rewrite-hint-db,deprecated-since-9.2,deprecated,default]
+File "/root/build/lane-close3-20261013-emission/probe-baseline/SyntaxProbe_types.v", line 191, characters 76-200:
+Warning: This interactive proof is not started by the "Proof" command.
+[missing-proof-command,fragile,default]
+File "/root/build/lane-close3-20261013-emission/probe-baseline/SyntaxProbe_types.v", line 235, characters 2-163:
+Warning: This interactive proof is not started by the "Proof" command.
+[missing-proof-command,fragile,default]
+File "/root/build/lane-close3-20261013-emission/probe-baseline/SyntaxProbe_types.v", line 248, characters 0-93:
+Warning: This interactive proof is not started by the "Proof" command.
+[missing-proof-command,fragile,default]
+File "/root/build/lane-close3-20261013-emission/probe-baseline/SyntaxProbe_types.v", line 270, characters 0-68:
+Warning: This interactive proof is not started by the "Proof" command.
+[missing-proof-command,fragile,default]
+File "/root/build/lane-close3-20261013-emission/probe-baseline/SyntaxProbe_types.v", line 300, characters 0-43:
+Warning: This interactive proof is not started by the "Proof" command.
+[missing-proof-command,fragile,default]
+File "/root/build/lane-close3-20261013-emission/probe-baseline/SyntaxProbe_types.v", line 322, characters 0-139:
+Warning: This interactive proof is not started by the "Proof" command.
+[missing-proof-command,fragile,default]
+File "/root/build/lane-close3-20261013-emission/probe-baseline/SyntaxProbe_types.v", line 342, characters 0-106:
+Warning: Closed notations (i.e. starting and ending with a terminal symbol)
+should usually be at level 0 (default).
+[closed-notation-not-level-0,parsing,default]
+File "/root/build/lane-close3-20261013-emission/probe-baseline/SyntaxProbe_types.v", line 360, characters 0-74:
+Warning: This interactive proof is not started by the "Proof" command.
+[missing-proof-command,fragile,default]
+File "/root/build/lane-close3-20261013-emission/probe-baseline/SyntaxProbe_types.v", line 366, characters 0-64:
+Warning: This interactive proof is not started by the "Proof" command.
+[missing-proof-command,fragile,default]
