@@ -211,17 +211,12 @@ work, failed commits/restores, every crash boundary, grant revocation and repeat
 switches through endurance exhaustion. The generated corpus size is a computed
 run result, not a maintained document count.
 
-Replay uses Guest CI's proof gate on GitHub Actions, including native
-symbol/assumption audit and kernel recheck. Local reproduction for focused
-debugging or a CI outage uses an isolated worktree. Bounded mutation
-qualification uses `vos.seeded.chosen` to select 24 mutants over `edge_ok`,
+Replay and publication follow the repository's [validation handoff](../../../AGENTS.md#tool-execution-and-validation).
+Bounded mutation qualification uses `vos.seeded.chosen` to select 24 mutants over `edge_ok`,
 `propose`, `reusable`, `cp_ok`, `ram` and `store`, plus targeted memory-inventory
 omissions. Compile each mutant's definitions independently in the native proof
 environment before checking its proofs: definition failures are stillborn,
 not killed, and survivors need individual investigation. The completion evidence
 identifies the actual prover and replay helper; the separate `seed coq` vector
 harness is not interchangeable evidence. The integrator owns requirement-header
-generation, the portable receipt, the final Host CI verdict and Guest CI dispatch
-after integration. Record the guest run and pending status and finish without
-waiting for its verdict; the user will report any issues. A pending run supplies
-no passing proof evidence.
+generation and the portable receipt in addition to the shared validation handoff.

@@ -77,7 +77,7 @@ These are the numbers this document owns. Each has a ground and a stated way to 
 
 ## 3. The record
 
-One record per result, two renderings generated together and never authored apart: a machine-readable record the gate of §4 reads, and a Markdown document a reader reads, generated from the record so the two cannot drift. It is the freeze contract's report shape with the product columns this document adds, and it reuses that contract's `manifest` conventions rather than restating them.
+Each result follows the [freeze contract's generated report and `manifest` conventions](freeze-measurement.md#7-the-report), with the product blocks and columns below. The gate of §4 reads the machine-readable record.
 
 ### Blocks
 
@@ -126,7 +126,7 @@ One record per result, two renderings generated together and never authored apar
 ### Column conventions
 
 - **The four families are four clocks and are never summed, averaged, or converted into one another.** `host_elapsed` is wall-clock on a host, the family Q4's `llama-bench` runs and Q9's build and proof components land in; `target_model_cycles` is worst-case cycles from the timing-annotated Sail model at the revision the manifest names, no wall-clock figure until R-11-017's operating point is selected; `fpga_observed` is a clock reading on an FPGA whose clock is not the target's; `silicon_measured` is a reading on the part. A figure belongs to exactly one family, and a report placing one family's figure in another's column is rejected by §4.
-- **A cell where the axis does not apply carries `n/a`**, never a blank and never a dash, on the freeze contract's ground: a blank is indistinguishable from an omitted measurement, which is the confusion the gate exists to catch.
+- Not-applicable cells follow the [freeze contract's `n/a` convention](freeze-measurement.md#column-conventions).
 - **Every count carries the predicate it was taken with and every figure the revision it was taken at**, the plan's own convention, carried in `method` and `manifest` rather than in prose beside the number.
 - **A verdict read against a `proposed` parameter says so**, and such a verdict is a reading and not a gate result until the parameter is ratified.
 - **No limit's pass value is copied into the record.** The record names the limit by id and the gate reads the limit from this document, so a limit that moves moves once.
