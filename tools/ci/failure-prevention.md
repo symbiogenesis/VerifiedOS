@@ -51,6 +51,14 @@ interrupted publication. Producing a bundle does not stage it or edit an owning 
 
 ## Command and workflow preparation
 
+Before publishing a new settled revision, `fanout finish` runs the existing static
+analysis, command-lane fixtures and retained-evidence citation tests. Each command
+has a five-minute limit and a nonzero exit or timeout refuses publication. A final
+checkout/revision check binds the preparation to the published bytes. Already
+published pending-host resumes do not repeat it. The [fanout contract](../fanout.md)
+owns its refusal and ordering controls; full local suites remain excluded and
+hosted acceptance stays mandatory.
+
 Help-only lane declarations generate their documentation and test enumeration from
 command metadata. Operational commands retain independent handler fixtures; lane
 portability checks do not depend on the checkout's historical staged boot receipts.

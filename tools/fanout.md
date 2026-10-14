@@ -45,7 +45,13 @@ subject names the lane branch and its latest non-merge commit subject, because t
 published commit's subject titles its Host CI push run. Resolve
 conflicts and shared edits normally; it never resets a checkout. `finish` includes
 integration into `main` when needed, runs `check --fix`, requires clean settled
-inputs, and pushes only `main` without force. CI dispatches on `main` with the exact
+inputs, and pushes only `main` without force. Before each new publication it runs
+`typecheck`, `test --only test_lanes` and `test --only test_retained_evidence` on
+the settled checkout, each with a five-minute limit. A finding, crash or timeout
+stops publication and hosted dispatch. The checkout and revision are rechecked
+after these commands; resume of an already published revision does not repeat
+them. These focused checks do not run a full local suite or replace Host CI.
+CI dispatches on `main` with the exact
 commit as its revision input. Authentication uses the configured GitHub credentials;
 the REST client reads `GH_TOKEN`, then `GITHUB_TOKEN`, then the noninteractive Git
 credential helper. It needs Actions read/write access as well as Git push access.
@@ -140,6 +146,10 @@ unmerged or moved branches, retained outputs, host-managed preservation, wrong
 revision or incomplete Host CI evidence, failed dispatch and interrupted resume, and
 a reading base refused at init or at publication, forwarded with Guest CI's dispatch
 alone, and read as none from a journal without the field.
+Publication controls must demonstrate that each preparation command's nonzero exit
+and timeout leave the remote untouched and start no hosted handoff, that a changed
+checkout is refused after preparation, and that successful preparation precedes
+publication without repeating on an unchanged pending-host resume.
 Run focused tests and typecheck during implementation, then require hosted Host CI
 and dispatch every Guest CI lane for the settled revision. Host CI analyzes workflow
 edits with zizmor and actionlint, as the tools guide's
