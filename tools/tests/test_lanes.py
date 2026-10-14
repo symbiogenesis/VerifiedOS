@@ -38,8 +38,11 @@ from tests.harness import TOOLS, Case, ensure
 from tests.test_boot_attachments import _attached_recipe
 from tests.test_boot_chain import _chain_reports
 from tests.test_boot_crypto import _shard, _staged_root
+from tests.test_composition import _graph_image
 from vos import (
     admission,
+    admission_production,
+    boot,
     boot_crypto_target,
     composer,
     kernelrun,
@@ -212,22 +215,47 @@ def _production_build_fixture(action: str, scratch: Path) -> list[str]:
             (scratch / path).write_bytes(f"test-only lane bytes for {member['id']}".encode())
             artifacts[member["artifact_slot"]] = path
     (scratch / production.EXAMPLE).write_bytes(composer.canonical_bytes(raw))
+    graph_input = production._graph(scratch, raw)
+    ensure(graph_input is not None, "synthetic lane descriptors must resolve their graph")
+    if graph_input is None:
+        raise AssertionError("synthetic lane graph is unresolved")
+    graph = composer.graph_bytes(graph_input)
+    memory = boot.regions(scratch / raw["configuration"]["path"])[0]
+    raw["graph_placement"] = {"base": hex(memory.base + 4096), "bytes": len(graph)}
+    (scratch / production.EXAMPLE).write_bytes(composer.canonical_bytes(raw))
     outputs = production.emit(scratch, production.EXAMPLE, f"{relative}/projections")
-    graph_input = json.loads((directory / "projections/graph-input.json").read_bytes())["payload"]["document"]
-    graph = composer.graph_bytes(composer.parse_document(graph_input))
     (directory / "graph.json").write_bytes(graph)
-    (directory / "image.bin").write_bytes(b"test-only lane image")
+    _graph_image(scratch, f"{relative}/image.elf", graph)
     (directory / "artifact-paths.json").write_bytes(composer.canonical_bytes(artifacts))
     args = [production.EXAMPLE, "--projections", f"{relative}/projections",
-            "--graph", f"{relative}/graph.json", "--image", f"{relative}/image.bin"]
+            "--graph", f"{relative}/graph.json", "--image", f"{relative}/image.elf"]
     if action == "build-record":
         return [*args, "--artifacts", f"{relative}/artifact-paths.json", "--output", f"{relative}/record.json"]
     record = production.build_record(scratch, production.EXAMPLE,
         {name: (directory / "projections" / name).read_bytes() for name in outputs},
         {slot: production.reference(scratch, path) for slot, path in artifacts.items()},
-        production.reference(scratch, f"{relative}/image.bin"), graph)
+        production.reference(scratch, f"{relative}/image.elf"), graph)
     (directory / "record.json").write_bytes(composer.canonical_bytes(record))
     return [*args, "--record", f"{relative}/record.json"]
+
+
+def _production_admission_fixture(action: str, scratch: Path) -> list[str]:
+    """Reach each production handler with a valid, deliberately refused generation."""
+    built = _production_build_fixture(f"admission-{action}", scratch)
+    paths = {built[index]: built[index + 1] for index in range(1, len(built), 2)}
+    for relative in admission_production.CHECKERS:
+        destination = scratch / relative
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(_ROOT / relative, destination)
+    output = Path(paths["--record"]).with_name("admission-refusal.json").as_posix()
+    if action == "production-record":
+        return [built[0], "--projections", paths["--projections"],
+                "--build-record", paths["--record"], "--image", paths["--image"],
+                "--graph", paths["--graph"], "--out", output]
+    record = admission_production.make_record(scratch, built[0], paths["--projections"],
+        paths["--record"], paths["--image"], paths["--graph"])
+    admission_production.publish_record(scratch, record, output)
+    return [output]
 
 
 def _admission_fixture(scratch: Path) -> list[str]:
@@ -320,6 +348,8 @@ _RUNS: dict[tuple[str, str], Argv] = {
     ("composer", "promote"): partial(_production_fixture, "promote"),
     ("admission", "record"): _admission_fixture,
     ("admission", "emit-reference"): lambda scratch: ["--out", str(scratch / "AdmissionComparison.v")],
+    ("admission", "production-record"): partial(_production_admission_fixture, "production-record"),
+    ("admission", "check-production-record"): partial(_production_admission_fixture, "check-production-record"),
     ("kernel", "reader"): _kernel_vectors,
     ("boot-handoff", "layout"): lambda _: [],
     # `chain-join` composes shard receipts written here, one per campaign job.
@@ -410,6 +440,15 @@ def _declared_subcommands_answer_on_this_lane() -> None:
             if (name, sub) == ("composer", "promote"):
                 ensure(code == 1 and "production promotion refused:" in said,
                        f"incomplete composition must reach its semantic refusal: {said!r}")
+                continue
+            if name == "admission" and sub in {"production-record", "check-production-record"}:
+                ensure(code == 1, f"unchecked production must return a generation refusal: {said!r}")
+                refusal = json.loads(out.getvalue())
+                ensure(refusal["scope"] == admission_production.SCOPE and
+                       refusal["decision"] == "refused" and refusal["production_admission"] is False and
+                       refusal["members"] and all(member["decision"] == "refused"
+                                                  for member in refusal["members"]),
+                       "production lane handlers must bind an explicit whole-generation refusal")
                 continue
             ensure(code == 0,
                    f"`run.py {name} {sub}` exited {code}: {said[-400:]!r}")
