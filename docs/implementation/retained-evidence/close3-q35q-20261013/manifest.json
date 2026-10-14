@@ -1,0 +1,118 @@
+{
+  "files": {
+    "CensusSignature.v": {
+      "bytes": 456,
+      "encoding": "identity",
+      "path": "CensusSignature.v",
+      "sha256": "a5202da751445419ce50242ae6ef9a6b96a14c96afaa14e1c24118a85feee1e0"
+    },
+    "Sail-Support-LICENSE": {
+      "bytes": 2716,
+      "encoding": "identity",
+      "path": "Sail-Support-LICENSE",
+      "sha256": "9e52d88fe1802beb469e538b8c026ff5e7f9413ef06cd3ce898ee3928ae24df0"
+    },
+    "candidate-1-native-signature.stderr.log": {
+      "bytes": 0,
+      "encoding": "identity",
+      "path": "candidate-1-native-signature.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "candidate-1-native-signature.stdout.log": {
+      "bytes": 2847,
+      "encoding": "identity",
+      "path": "candidate-1-native-signature.stdout.log",
+      "sha256": "53305232461d3c05561635c968318829a2b4254ba5629e63aba2cf1b3277b39b"
+    },
+    "patch-0.stderr.log": {
+      "bytes": 0,
+      "encoding": "identity",
+      "path": "patch-0.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "patch-0.stdout.log": {
+      "bytes": 431,
+      "encoding": "identity",
+      "path": "patch-0.stdout.log",
+      "sha256": "fbd8d982db13f2a9a0ed791d06fb60224ab3161ebc2a518ac6a7bde96eb09eac"
+    },
+    "patch-1.stderr.log": {
+      "bytes": 0,
+      "encoding": "identity",
+      "path": "patch-1.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "patch-1.stdout.log": {
+      "bytes": 530,
+      "encoding": "identity",
+      "path": "patch-1.stdout.log",
+      "sha256": "4786011e25328706add383aabdf407cf62eec3aca01fa323042f1e8e46ab9c1b"
+    },
+    "prover-version.stderr.log": {
+      "bytes": 0,
+      "encoding": "identity",
+      "path": "prover-version.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "prover-version.stdout.log": {
+      "bytes": 57,
+      "encoding": "identity",
+      "path": "prover-version.stdout.log",
+      "sha256": "bed18c6aed8995deb0f7988289c882981df1dc032ea306912c9b81bd96cd3907"
+    },
+    "receipt.json": {
+      "bytes": 13115,
+      "encoding": "identity",
+      "path": "receipt.json",
+      "sha256": "a6973e3185d7909d9ad0427e343eb1ef44a6c7179da364d6d437cca8f8184059"
+    },
+    "strict-MachineWordInterface.stderr.log": {
+      "bytes": 0,
+      "encoding": "identity",
+      "path": "strict-MachineWordInterface.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "strict-MachineWordInterface.stdout.log": {
+      "bytes": 0,
+      "encoding": "identity",
+      "path": "strict-MachineWordInterface.stdout.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "switch-after.lock": {
+      "bytes": 35243,
+      "encoding": "identity",
+      "path": "switch-after.lock",
+      "sha256": "d824ae973ee113133642c715ddd1073269e12280fa49d305f7b4d61f58fe18f6"
+    },
+    "switch-before.lock": {
+      "bytes": 35243,
+      "encoding": "identity",
+      "path": "switch-before.lock",
+      "sha256": "d824ae973ee113133642c715ddd1073269e12280fa49d305f7b4d61f58fe18f6"
+    },
+    "switch-export-after.stderr.log": {
+      "bytes": 45,
+      "encoding": "identity",
+      "path": "switch-export-after.stderr.log",
+      "sha256": "73f7d708ddfeaa846af9ef6a9759e091a31ec9c2d32a6cf62dfb0f5bf1bf1d3a"
+    },
+    "switch-export-after.stdout.log": {
+      "bytes": 0,
+      "encoding": "identity",
+      "path": "switch-export-after.stdout.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "switch-export-before.stderr.log": {
+      "bytes": 45,
+      "encoding": "identity",
+      "path": "switch-export-before.stderr.log",
+      "sha256": "73f7d708ddfeaa846af9ef6a9759e091a31ec9c2d32a6cf62dfb0f5bf1bf1d3a"
+    },
+    "switch-export-before.stdout.log": {
+      "bytes": 0,
+      "encoding": "identity",
+      "path": "switch-export-before.stdout.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  }
+}

@@ -1,0 +1,323 @@
+{
+  "active_seconds": 1.9743595960007951,
+  "base_revision": "bd5e0b024d1b3f80139f9b513b55f6664e17466c",
+  "candidate_checks": 1,
+  "commands": [
+    {
+      "argv": [
+        "patch",
+        "-p1",
+        "-i",
+        "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/close3-20261013-inventory/docs/implementation/retained-evidence/root/build/lane-q35g-20261003/q35g/coq-sail-reals-eqdep.patch"
+      ],
+      "cwd": "/root/build/lane-close3-20261013-inventory/q35q-census/source/coq-sail-0.20.3",
+      "exit": 0,
+      "logs": {
+        "stderr": {
+          "bytes": 0,
+          "path": "patch-0.stderr.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stdout": {
+          "bytes": 431,
+          "path": "patch-0.stdout.log",
+          "sha256": "fbd8d982db13f2a9a0ed791d06fb60224ab3161ebc2a518ac6a7bde96eb09eac"
+        }
+      },
+      "name": "patch-0",
+      "seconds": 0.012577299999975367
+    },
+    {
+      "argv": [
+        "patch",
+        "-p1",
+        "-i",
+        "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/close3-20261013-inventory/docs/implementation/retained-evidence/q35n-20261013/sail-support-strict.patch"
+      ],
+      "cwd": "/root/build/lane-close3-20261013-inventory/q35q-census/source/coq-sail-0.20.3",
+      "exit": 0,
+      "logs": {
+        "stderr": {
+          "bytes": 0,
+          "path": "patch-1.stderr.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stdout": {
+          "bytes": 530,
+          "path": "patch-1.stdout.log",
+          "sha256": "4786011e25328706add383aabdf407cf62eec3aca01fa323042f1e8e46ab9c1b"
+        }
+      },
+      "name": "patch-1",
+      "seconds": 0.014361200999701396
+    },
+    {
+      "argv": [
+        "/root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/bin/rocq",
+        "-v"
+      ],
+      "cwd": "/tmp/vos-q35q-census-j0m0ne0g",
+      "exit": 0,
+      "logs": {
+        "stderr": {
+          "bytes": 0,
+          "path": "prover-version.stderr.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stdout": {
+          "bytes": 57,
+          "path": "prover-version.stdout.log",
+          "sha256": "bed18c6aed8995deb0f7988289c882981df1dc032ea306912c9b81bd96cd3907"
+        }
+      },
+      "name": "prover-version",
+      "seconds": 0.028028900000208523
+    },
+    {
+      "argv": [
+        "opam",
+        "switch",
+        "export",
+        "--full",
+        "--freeze",
+        "--switch=verifiedos-rocq-9.3.0-ocaml-5.4.1",
+        "/root/build/lane-close3-20261013-inventory/q35q-census/evidence/switch-before.lock"
+      ],
+      "cwd": "/tmp/vos-q35q-census-j0m0ne0g",
+      "exit": 0,
+      "logs": {
+        "stderr": {
+          "bytes": 45,
+          "path": "switch-export-before.stderr.log",
+          "sha256": "73f7d708ddfeaa846af9ef6a9759e091a31ec9c2d32a6cf62dfb0f5bf1bf1d3a"
+        },
+        "stdout": {
+          "bytes": 0,
+          "path": "switch-export-before.stdout.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      },
+      "name": "switch-export-before",
+      "seconds": 0.31316829999923357
+    },
+    {
+      "argv": [
+        "/root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/bin/rocq",
+        "c",
+        "-boot",
+        "-R",
+        "/root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/lib/coq/theories",
+        "Corelib",
+        "-Q",
+        "/root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/lib/coq/user-contrib/Stdlib",
+        "Stdlib",
+        "-Q",
+        "/root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/lib/coq/user-contrib/stdpp",
+        "stdpp",
+        "-R",
+        "/root/build/lane-close3-20261013-inventory/q35q-census/source/coq-sail-0.20.3/src-stdpp",
+        "SailStdpp",
+        "-q",
+        "-w",
+        "+default,-abstract-large-number",
+        "-set",
+        "Default Goal Selector=!",
+        "-disallow-sprop",
+        "/root/build/lane-close3-20261013-inventory/q35q-census/source/coq-sail-0.20.3/src-stdpp/MachineWordInterface.v"
+      ],
+      "cwd": "/tmp/vos-q35q-census-j0m0ne0g",
+      "exit": 0,
+      "logs": {
+        "stderr": {
+          "bytes": 0,
+          "path": "strict-MachineWordInterface.stderr.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stdout": {
+          "bytes": 0,
+          "path": "strict-MachineWordInterface.stdout.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      },
+      "name": "strict-MachineWordInterface",
+      "seconds": 0.6981152970001858
+    },
+    {
+      "argv": [
+        "/root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/bin/rocq",
+        "c",
+        "-boot",
+        "-R",
+        "/root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/lib/coq/theories",
+        "Corelib",
+        "-Q",
+        "/root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/lib/coq/user-contrib/Stdlib",
+        "Stdlib",
+        "-Q",
+        "/root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/lib/coq/user-contrib/stdpp",
+        "stdpp",
+        "-R",
+        "/root/build/lane-close3-20261013-inventory/q35q-census/source/coq-sail-0.20.3/src-stdpp",
+        "SailStdpp",
+        "-q",
+        "-w",
+        "+default,-abstract-large-number",
+        "-set",
+        "Default Goal Selector=!",
+        "-disallow-sprop",
+        "-o",
+        "/root/build/lane-close3-20261013-inventory/q35q-census/CensusSignature.vo",
+        "/tmp/vos-q35q-census-j0m0ne0g/CensusSignature.v"
+      ],
+      "cwd": "/tmp/vos-q35q-census-j0m0ne0g",
+      "exit": 0,
+      "logs": {
+        "stderr": {
+          "bytes": 0,
+          "path": "candidate-1-native-signature.stderr.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stdout": {
+          "bytes": 2847,
+          "path": "candidate-1-native-signature.stdout.log",
+          "sha256": "53305232461d3c05561635c968318829a2b4254ba5629e63aba2cf1b3277b39b"
+        }
+      },
+      "name": "candidate-1-native-signature",
+      "seconds": 0.45361379899986787
+    },
+    {
+      "argv": [
+        "opam",
+        "switch",
+        "export",
+        "--full",
+        "--freeze",
+        "--switch=verifiedos-rocq-9.3.0-ocaml-5.4.1",
+        "/root/build/lane-close3-20261013-inventory/q35q-census/evidence/switch-after.lock"
+      ],
+      "cwd": "/tmp/vos-q35q-census-j0m0ne0g",
+      "exit": 0,
+      "logs": {
+        "stderr": {
+          "bytes": 45,
+          "path": "switch-export-after.stderr.log",
+          "sha256": "73f7d708ddfeaa846af9ef6a9759e091a31ec9c2d32a6cf62dfb0f5bf1bf1d3a"
+        },
+        "stdout": {
+          "bytes": 0,
+          "path": "switch-export-after.stdout.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      },
+      "name": "switch-export-after",
+      "seconds": 0.2495857989997603
+    }
+  ],
+  "compiled_object_sha256": {
+    "/root/build/lane-close3-20261013-inventory/q35q-census/CensusSignature.vo": "5604419cf43fb4813ae4efe0757268249cf715e67d92f71ed570f3197d0a3e48",
+    "/root/build/lane-close3-20261013-inventory/q35q-census/source/coq-sail-0.20.3/src-stdpp/MachineWordInterface.vo": "b243d6dc86bc21cab43964ea2b51b0bfbe9832bd0ee6a8f7b20a7a8e02b1879a"
+  },
+  "contract_revision": "f3596f70393160fbf6c0ea9f4de3366c2a51dce5",
+  "ended_utc": "2026-10-14T03:40:43.504619+00:00",
+  "first_unsupported_shape": "SailStdpp.MachineWordInterface.MachineWordInterface: native signature-field type completeness",
+  "further_owner": "A separately reviewed native kernel-metadata signature/functor field enumerator retaining complete elaborated types and actual implementation connections, with fail-closed controls, before support adapter qualification.",
+  "input_sha256_after": {
+    "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/close3-20261013-inventory/docs/implementation/retained-evidence/q35n-20261013/sail-support-strict.patch": "cee3710ee8b21c439885190e30cf0618fe68fb3a4071dd9991c2f5db37122477",
+    "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/close3-20261013-inventory/docs/implementation/retained-evidence/root/build/lane-q35g-20261003/q35g/coq-sail-reals-eqdep.patch": "a74749c56f38127371cb748de26ffcc1d1f0bf65bbcbb8ab1d0e9c278ba202a5",
+    "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/close3-20261013-inventory/tools/opam/rocq.lock": "3e70338fb77832f9e09ee8780cd10524e002420b1ca9aa5f56a15777765e1b32",
+    "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/close3-20261013-inventory/tools/opam/sail-support-qualification.json": "fe528488ce7e12e077eaee00555cc477325986fc9ee12d5b896e5b651f256d46",
+    "/root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/.opam-switch/sources/rocq-core.9.3.0/vernac/printmod.ml": "97e49e267f6c3f7639c11ff93ee36dabc160b9fb9f1ac38a55b8c30400b6f8fe",
+    "/root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/bin/rocq": "9a2a4eacf47b44c6ec582bc2b9f9cde9de11af77164e0637103fca9865efd5ac",
+    "/root/build/fanout-retained/b510da045be59ec016ee/close3-20261013-q43/lane/sail.tar.gz": "1a0e226608ac84add6cd1f61a11637ea9db5e00e1551b2070945310078c9e031",
+    "/root/build/lane-close3-20261013-inventory/q35q-census/source/coq-sail-0.20.3/src-stdpp/MachineWordInterface.v": "e9cf76bc0e4caf728e15341c64c8c6b7b5168f26868888b54a279a57a1c5e6d1",
+    "/tmp/vos-q35q-census-j0m0ne0g/CensusSignature.v": "a5202da751445419ce50242ae6ef9a6b96a14c96afaa14e1c24118a85feee1e0"
+  },
+  "input_sha256_before": {
+    "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/close3-20261013-inventory/docs/implementation/retained-evidence/q35n-20261013/sail-support-strict.patch": "cee3710ee8b21c439885190e30cf0618fe68fb3a4071dd9991c2f5db37122477",
+    "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/close3-20261013-inventory/docs/implementation/retained-evidence/root/build/lane-q35g-20261003/q35g/coq-sail-reals-eqdep.patch": "a74749c56f38127371cb748de26ffcc1d1f0bf65bbcbb8ab1d0e9c278ba202a5",
+    "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/close3-20261013-inventory/tools/opam/rocq.lock": "3e70338fb77832f9e09ee8780cd10524e002420b1ca9aa5f56a15777765e1b32",
+    "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/close3-20261013-inventory/tools/opam/sail-support-qualification.json": "fe528488ce7e12e077eaee00555cc477325986fc9ee12d5b896e5b651f256d46",
+    "/root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/.opam-switch/sources/rocq-core.9.3.0/vernac/printmod.ml": "97e49e267f6c3f7639c11ff93ee36dabc160b9fb9f1ac38a55b8c30400b6f8fe",
+    "/root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/bin/rocq": "9a2a4eacf47b44c6ec582bc2b9f9cde9de11af77164e0637103fca9865efd5ac",
+    "/root/build/fanout-retained/b510da045be59ec016ee/close3-20261013-q43/lane/sail.tar.gz": "1a0e226608ac84add6cd1f61a11637ea9db5e00e1551b2070945310078c9e031",
+    "/root/build/lane-close3-20261013-inventory/q35q-census/source/coq-sail-0.20.3/src-stdpp/MachineWordInterface.v": "e9cf76bc0e4caf728e15341c64c8c6b7b5168f26868888b54a279a57a1c5e6d1",
+    "/tmp/vos-q35q-census-j0m0ne0g/CensusSignature.v": "a5202da751445419ce50242ae6ef9a6b96a14c96afaa14e1c24118a85feee1e0"
+  },
+  "inputs_unchanged": true,
+  "native_lane": "/root/build/lane-close3-20261013-inventory/q35q-census",
+  "native_process_cwd": "/tmp/vos-q35q-census-j0m0ne0g",
+  "native_readings_identical": true,
+  "native_signature_field_labels": [
+    "idx",
+    "Z_idx",
+    "N_idx",
+    "nat_idx",
+    "idx_Z",
+    "idx_N",
+    "idx_nat",
+    "Z_idx_Z",
+    "idx_Z_idx",
+    "nat_idx_Z",
+    "idx_N_Z_idx",
+    "cast_idx",
+    "cast_idx_refl",
+    "idx_S",
+    "idx_add",
+    "idx_mul",
+    "Z_idx_S",
+    "idx_Z_idx_mul",
+    "word",
+    "zeros",
+    "ones",
+    "get_bit",
+    "set_bit",
+    "word_0_eq",
+    "get_bit_eq_nat",
+    "word_to_bools",
+    "bools_to_word",
+    "word_to_Z",
+    "word_to_N",
+    "Z_to_word",
+    "N_to_word",
+    "word_to_N_range",
+    "word_to_Z_range",
+    "testbit_word_to_N_high",
+    "word_to_bools_length",
+    "word_to_bools_get_bit",
+    "word_to_bools_nth_Some",
+    "bools_to_word_get_bit",
+    "bools_to_word_nth_Some",
+    "slice",
+    "update_slice",
+    "zero_extend",
+    "sign_extend",
+    "concat",
+    "and",
+    "or",
+    "xor",
+    "not",
+    "add",
+    "sub",
+    "mul",
+    "logical_shift_left",
+    "logical_shift_right",
+    "arith_shift_right",
+    "replicate",
+    "eqb",
+    "eqb_true_iff",
+    "eq_dec",
+    "reverse_endian",
+    "word_to_binary_string",
+    "word_list_concat",
+    "word_split_list"
+  ],
+  "native_signature_typed_labels": [],
+  "outcome": "refused",
+  "reason": "native module-type printer returns field labels without their types",
+  "schema": "verifiedos-sail-native-census-diagnosis/1",
+  "scope": "One actual MachineWordInterface strict compile and bounded native type-completeness diagnosis; no support adapter, full census, assumption audit, kernel or hosted acceptance.",
+  "started_utc": "2026-10-14T03:40:41.598009+00:00",
+  "switch_exports_identical": true,
+  "tested_revision": "f3596f70393160fbf6c0ea9f4de3366c2a51dce5"
+}
