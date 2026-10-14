@@ -28,6 +28,8 @@ Copyright 2026 Edward Miller.
 | `docs/implementation/retained-evidence/q35n-hosted-20261013-refusal/build/Sail-Support-LICENSE` | the upstream library's own terms | Verbatim coq-sail notice retained with the cold qualification refusal. |
 | `docs/implementation/retained-evidence/q35n-hosted-20261014-refusal/build/package-metadata.txt` and `build/inventory-1.log` beneath that bundle | `BSD-2-Clause`, in that bundle's `build/Sail-Support-LICENSE` | Effective coq-sail 0.20.3 metadata and printed upstream declaration types retained with the native-inventory refusal. |
 | `docs/implementation/retained-evidence/q35n-hosted-20261014-refusal/build/Sail-Support-LICENSE` | the upstream library's own terms | Verbatim coq-sail notice retained with the second cold qualification refusal. |
+| `docs/implementation/retained-evidence/q35q-native-20261013/candidate-1-Provenance.stdout.log` and `candidate-2-SignatureBoundary.stdout.log` beneath that bundle | `BSD-2-Clause`, in that bundle's `Sail-Support-LICENSE` | Printed coq-sail 0.20.3 module and signature declarations retained with the bounded native inventory diagnosis. |
+| `docs/implementation/retained-evidence/q35q-native-20261013/Sail-Support-LICENSE` | the upstream library's own terms | Verbatim coq-sail notice accompanying the printed native provenance. |
 | [LICENSE.md](LICENSE.md), [LICENSE-docs.md](LICENSE-docs.md) | the stewards' own terms | Verbatim license texts. Apache's appendix placeholder is filled in as Apache's own instructions direct; nothing else is changed in either file. |
 
 The split is decidable by path and extension alone. The named upstream patch and

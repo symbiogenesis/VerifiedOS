@@ -1,0 +1,16 @@
+{
+  "files": {
+    "native-report.json": {
+      "bytes": 5446,
+      "encoding": "identity",
+      "path": "native-report.json",
+      "sha256": "2e35e7bcb79663fdea93695a17a7bc8f4cdef8a03c4b236329ee0b5d9d35cf8f"
+    },
+    "target-refusal.json": {
+      "bytes": 277,
+      "encoding": "identity",
+      "path": "target-refusal.json",
+      "sha256": "d062a892b5441b5f2ebd0119d4a0e4340a6fe38f4671c24a0ac3f15ffd7f2232"
+    }
+  }
+}

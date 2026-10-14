@@ -41,8 +41,12 @@ the supervisor's [immutable typed C manifest](../../../tools/composer/generated/
 The bounded host consumer regenerates its expected C and JSON projections, checks their
 published bytes and source bindings, and compiles the checked C snapshot. Its native
 controls check the declared service order and current-epoch start/restart grants.
-The scalar target still uses the [handwritten comparison manifest](../../../supervisor/src/manifest.c).
-Binding the generated manifest to the admitted image and target handoff remains open.
+The default scalar target uses the [handwritten comparison manifest](../../../supervisor/src/manifest.c).
+[The generated target mode](../m71b-generated-manifest-target.md) prepares the exact
+checked production manifest for the bounded contained consumer; its native object
+layout and compiled mutation checks pass. Actual generated-manifest target execution
+requires valid locked compiler provenance. Binding the manifest to the admitted image
+and authenticated target handoff remains open.
 
 The final shared M7.1 target capture and re-staged producer manifests consume
 Q39's qualified locked compiler identity. Q43 demonstrates genuine unchanged

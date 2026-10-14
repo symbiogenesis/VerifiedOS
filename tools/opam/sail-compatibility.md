@@ -321,3 +321,11 @@ unsupported native lookup and naming a further owner act instead of widening
 the campaign. Q35q's estimate prices this bounded diagnosis and adapter
 qualification; unattended native runtime and a further incompatibility are not
 a completion forecast. The contract must land before adapter implementation.
+
+[The bounded native diagnosis](../../docs/implementation/q35q-native-inventory.md)
+resolves the first shortened TypeCasts spelling through native `Locate` and
+establishes Inhabited's empty kernel-declaration body and abbreviation provenance.
+Its next signature-field assumption lookup refuses. A separately scoped
+module-signature and abstract-functor census contract is required before a reader
+can qualify those shapes. The common inventory guard and allowed contexts remain
+unchanged; Q35q's complete native and hosted recursive-kernel qualification is open.

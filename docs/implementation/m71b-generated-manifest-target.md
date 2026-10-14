@@ -40,6 +40,12 @@ generated mode does not claim that case.
 
 ## Native evidence
 
+[Integrated native layout and target refusal](retained-evidence/m71b-generated-manifest-20261013/manifest.json),
+SHA256 `883342b839f8c893af56718c4e0e9f9afa03aedc873641dec4f29c37a99df294`,
+retains the refreshed integrated native receipt and the earlier compiler preflight
+refusal. The native receipt binds the regenerated projections and final source
+and header identities; the refusal records no target execution.
+
 The focused `test_lifecycle_target` native case compiles the actual generated
 wrapper with the native C compiler and executes its manifest-copy function. It
 compares every emitted byte with the independent layout account. A second,
@@ -50,7 +56,7 @@ failure does not count as detection.
 The native receipt records the compiler path, executable SHA-256 and reported
 version, both projection identities, both executable identities and the emitted
 layout digests at
-`/root/build/lane-close3-20261013-kernel/supervisor-manifest-native/report.json`.
+`/root/build/supervisor-manifest-native/report.json`.
 It explicitly carries `target_execution: false`, `production_admission: false`
 and open milestone acceptance. Temporary probe sources and executables are
 removed after the native control.
@@ -59,6 +65,10 @@ Focused controls also verify exact projection identity retention, independent
 field offsets, rejection of a different roster, C/JSON/wrapper changes during
 compilation, and rejection of invalid locked compiler provenance before any
 target compilation. These supply preparation and native consumer evidence.
+The reaction account charges every admitted backoff entry at each of the three
+manifest validations. Its independent controls retain the one-entry scalar
+account, check the generated and maximum table lengths, and refuse a generated
+reaction that the former one-entry charge admitted beyond the fixed slot.
 
 ## Target refusal and remaining acceptance
 

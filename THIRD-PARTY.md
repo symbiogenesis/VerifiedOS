@@ -361,6 +361,11 @@ full frozen snapshot containing the two reviewed BSD-2-Clause patches and that
 notice. It distributes no dependency source tree or compiled library object.
 Its authored probes and qualification controller follow the original-file map.
 The project proof-switch lock remains unchanged until actual consumer acceptance.
+Q35q retains printed module and signature provenance from the same reviewed
+coq-sail release, with its exact BSD-2-Clause notice in
+`docs/implementation/retained-evidence/q35q-native-20261013/Sail-Support-LICENSE`,
+re-read on 2026-10-13. Its authored lookup queries copy no upstream proof script;
+no support source tree or compiled object is distributed.
 Q35o retains only the generated tag-loop fragment and its diagnostics, with the
 exact RISC-V and CHERI model notices, re-read on 2026-10-13. The fragment keeps
 BSD-2-Clause terms; no complete emitted term is distributed by that evidence.

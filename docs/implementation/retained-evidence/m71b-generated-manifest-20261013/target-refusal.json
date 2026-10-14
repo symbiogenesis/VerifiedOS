@@ -1,0 +1,10 @@
+{
+  "generated_manifest": true,
+  "milestone_acceptance": "open",
+  "ok": false,
+  "production_admission": false,
+  "reason": "contained compiler toolchain does not bind the recorded lock",
+  "stage": "compiler-provenance",
+  "status": "refused",
+  "target_execution": false
+}

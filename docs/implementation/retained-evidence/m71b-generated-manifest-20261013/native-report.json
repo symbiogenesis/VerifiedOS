@@ -1,0 +1,76 @@
+{
+  "compiler": {
+    "path": "/usr/bin/cc",
+    "reported_version": "cc (Ubuntu 15.2.0-16ubuntu1) 15.2.0",
+    "sha256": "5b06a5b85cab901e2af3e8f351a6d4e8e6a93af24797bd8c01e5391ac6b4e63b"
+  },
+  "controls": [
+    {
+      "binary_sha256": "124e6d015a6b7f9bb70027bd0ad8ecc17c94e7104094379ee528d9653125fc1b",
+      "compiled_manifest_sha256": "3b9742cd854cd3cb716a8729d17bf7ef34ee374af3e22126e653283643698aab",
+      "emitted_layout_sha256": "685b740bb8a8e2e875283c431bdf393ef31e350f05786212043cb34795562661",
+      "exit_code": 0,
+      "layout_matches": true,
+      "mutated": false
+    },
+    {
+      "binary_sha256": "5aa0b6b26535bac199481a53cd4e78cf8260a3fcf9e930f7ba3854bcad1cec06",
+      "compiled_manifest_sha256": "5d554975e9acb5d58b4ad83ef1f2f4f43a44fb30ddb3d2dbd8b87a4e7bad11fd",
+      "emitted_layout_sha256": "54a1c053f2e0fb2a9342d737f0baf030de2b45c69c3660a0cb6b313f0aeb2e06",
+      "exit_code": 0,
+      "layout_matches": false,
+      "mutated": true
+    }
+  ],
+  "evidence": "native C wrapper and independently computed object layout",
+  "expected_layout_sha256": "685b740bb8a8e2e875283c431bdf393ef31e350f05786212043cb34795562661",
+  "manifest": {
+    "manifest.c": "3b9742cd854cd3cb716a8729d17bf7ef34ee374af3e22126e653283643698aab",
+    "manifest.json": "3f9c3cc0e51812e46897821b4dc42b36d7c20a36038f4c261e2b5ab30ec812ea"
+  },
+  "milestone_acceptance": "open",
+  "ok": true,
+  "production_admission": false,
+  "sources": {
+    "kernel/include/vos_copy_loan.h": "ad3d491b7c445e20317ed165f2ca67f9f67543a80d0b127c57054a9a965d16f3",
+    "kernel/include/vos_effects.h": "eac8a5f3bc0c54ad88beafecc984def2f658a635c9a8175a1e52c5ce16a266f4",
+    "kernel/include/vos_handoff.h": "93e92e98ca5270a2da8c2f6959a3e74c51d60341afae34576abce808289cfe58",
+    "kernel/include/vos_kernel.h": "06e6c2296493cd3d3a96be57694148739138de8f6560e8e40315cecb1e9fd301",
+    "kernel/include/vos_lifecycle.h": "99dbdb2c4d4a36e62183e28e2d5987831de3618213900f3b5b0251e2e6327554",
+    "kernel/include/vos_platform.h": "23eeb34f4c6c239391dbec8a304a9eb0af0aa4b55153b633b523478bfcbaf2b0",
+    "kernel/include/vos_target.h": "ca88dae4e118adcad257e4f70cf255230aa43a2cf80c4d1e2818091688d3d4d2",
+    "kernel/src/context.c": "cc21437a5b2de43182a417181ce0d9d011385b493a518d1b3350c9b95f5975d7",
+    "kernel/src/copy_loan.c": "2e923b2d3b6052129dcb5b49153ee81c72d3cb1a0210d61047610ec2bc0fc08f",
+    "kernel/src/effects.c": "899f48a638699894c36d8b8a9a5341b52faad592ced1cb0d8655f1fc2cdf4359",
+    "kernel/src/executive.c": "56aaaf7ae9b9ada1e17a2966663b74f2e51c1b5d8c3e7ff98fbb2ff5f953d97f",
+    "kernel/src/handoff.c": "9278a79d0d05c2aa838bf8090e1bf567630b5bc013dc2202f9af0e765be4d760",
+    "kernel/src/lifecycle.c": "7d6123ddebb250a871aa2ffe93bf0f67bbeadb286e8e61efdba14c499d6039f0",
+    "kernel/src/partition.c": "1aa12614aa994022e81902c33b273f147333710b56d1c01349f41ee43dae2168",
+    "kernel/src/target.c": "efaac096b8da1181607fed0f6b0778965fceba196ec93b8a35aedb737ae6f039",
+    "supervisor/include/vos_context_layout.h": "321964764103d0f48fedad126547e9f3d3af4a148efce43a89cae18a34776dc6",
+    "supervisor/include/vos_supervisor.h": "9b21363299a00b5b872db57922ac0b49bdf7d4d72b20b726fc0ca5c15b7a3c28",
+    "supervisor/include/vos_supervisor_context.h": "100d8d0744e7596f8cc91d86af6c583687cd55e1a667d02776317ed03a402799",
+    "supervisor/include/vos_supervisor_effects.h": "d4788e16aa95049351527f631b040f5dd5c97986d82a52ff075e19954b5ec1cd",
+    "supervisor/src/context.c": "100fb0ac5292491871b7c6942e1b5ec114007473b5032b20e8bda9fffe88f3f0",
+    "supervisor/src/effects.c": "1d4296de8664d5db017cc47c57fcf91506ee31904c20fe6a67f35c7c8d6f0715",
+    "supervisor/src/manifest.c": "825bf58cb0c62d82a4e56dcea8156ab65212dbeef41d7085751a47d08421630d",
+    "supervisor/src/supervisor.c": "98b3c2fc154d2992ea3994f3cf99b6ab29ad2c7e9c434743debb58522a4e2dfd",
+    "supervisor/test/context_join.c": "f770ae738e2f39967a2e75c09561c18569af5302476ae1ec6cfa15c63c7d5a2a",
+    "tools/tests/test_lifecycle_target.py": "16d7d744434fe96b84c3ee632e9fd2a9b5eb5aa065cffb9321e5480f5953740d",
+    "tools/vos/asm.py": "0de2f6ac03769c80764e16ba7bdd02f6aa3c23f2c4edb1dbf27801b6edba5384",
+    "tools/vos/boot_handoff.py": "e3f705979136a71c5edb4921ebda22a47e7e1bcc086c6bcb9ee3c817a3bd7fb7",
+    "tools/vos/cli/compiler_diff.py": "0dbb55ffb68e0fbdda7cec5b1519862f1e272997d918b3a550f6392d9bea478d",
+    "tools/vos/dialect.py": "cc528d7e322b892085014866cdb0371b26369f14d45dbf7fde2ed68da9013f10",
+    "tools/vos/image.py": "417cda8b7a12af64c4cfe5a67c43b80d5092ccd6e948bcddd605c11f3911b4a6",
+    "tools/vos/jsonc.py": "4b8936b34e68f07415126c8dbbd7490e0dc0e9fc68053c68f175f18fc52654f5",
+    "tools/vos/kernel_effects.py": "bba56f5fcfb8e34234f8f013b35aa1a7feaa2fc565db5b4b172222c2ab520adb",
+    "tools/vos/kernel_restore.py": "9237b497f6914e9a042ec361944efb74df6598a28b944f83083bd3631a69a9b0",
+    "tools/vos/kernel_target.py": "aa193eab9ce1d984ffd24b1501bf3018d0c7ba1458ec799c60f10aac106d48a6",
+    "tools/vos/kernelrun.py": "163c70f5221cec02db5376af60ef77349a58b5013a117b44c93e7b671152d176",
+    "tools/vos/lifecycle_target.py": "7c9da20cb403d8053577515852ae0a0ccf378ab77142c89649d03d13edfa3578",
+    "tools/vos/receipts.py": "0d557f15fd07cbc9b0abc5f68ac3abb58ca2b78da34924221c416412440ab3e2",
+    "tools/vos/supervisor.py": "eaf51ed7948328a6e59d36fdcd632be6c87b2c43447f2b5eb1c3adc6b2d0bd8d",
+    "tools/vos/trace.py": "14d2633da138446fe51d79c7f2c0e981bd964b82223f3e86b546a9b8c8c60745"
+  },
+  "target_execution": false
+}
