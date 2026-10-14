@@ -1,7 +1,8 @@
 # SPDX-License-Identifier: Apache-2.0
-"""Execute composition-time admission metadata and compare the Gallina reference.
+"""Execute reference decisions and bind production admission refusal records.
 
-Every record is fixture-reference evidence. Real derivation checking remains open.
+Reference records carry fixture metadata; production records bind real input
+identities and refuse unavailable derivation checks. Neither admits production.
 """
 
 import argparse
@@ -9,8 +10,9 @@ import json
 import subprocess
 import sys
 from pathlib import Path
+from typing import cast
 
-from vos import admission, boot, corpus, env
+from vos import admission, admission_production, boot, corpus, env
 
 
 def _compare(root: Path) -> int:
@@ -65,6 +67,15 @@ def main(argv: list[str] | None = None) -> int:
     record.add_argument("--graph", required=True)
     record.add_argument("--roster", default=boot.CONTRACT)
     record.add_argument("--out", required=True)
+    production = commands.add_parser("production-record", help="join production inputs and record unchecked evidence refusals")
+    production.add_argument("source")
+    production.add_argument("--projections", required=True)
+    production.add_argument("--build-record", required=True)
+    production.add_argument("--image", required=True)
+    production.add_argument("--graph", required=True)
+    production.add_argument("--out", required=True)
+    replay = commands.add_parser("check-production-record", help="replay a production refusal against its exact inputs")
+    replay.add_argument("record")
     args = parser.parse_args(argv)
     root = corpus.find_root()
     try:
@@ -74,12 +85,26 @@ def main(argv: list[str] | None = None) -> int:
             Path(args.out).write_text(admission.comparison_source(admission.read_reference(root)),
                                       encoding="utf-8", newline="\n")
             return 0
+        if args.command in ("production-record", "check-production-record"):
+            if args.command == "production-record":
+                result = admission_production.make_record(root, args.source, args.projections,
+                    args.build_record, args.image, args.graph)
+                admission_production.publish_record(root, result, args.out)
+            else:
+                saved = admission_production._json(admission_production._path(root, args.record).read_bytes(), args.record)
+                admission_production.validate_record(root, saved)
+                result = cast("dict[str, object]", saved)
+            print(json.dumps({"decision": result["decision"], "scope": result["scope"],
+                              "production_admission": False, "members": result["members"],
+                              "open": result["open"]}))
+            return 1
         result = admission.make_record(root, args.request, Path(args.image).read_bytes(),
                                         Path(args.graph).read_bytes(), boot.load_roster(root, args.roster))
         Path(args.out).write_bytes(admission.canonical(result))
         print(json.dumps({"decision": result["decision"], "scope": result["scope"],
                           "production_admission": False, "open": result["open"]}))
         return 0 if result["decision"] == "accepted" else 1
-    except (admission.AdmissionError, boot.RecipeError, OSError, subprocess.TimeoutExpired) as exc:
+    except (admission.AdmissionError, admission_production.ProductionAdmissionError,
+            boot.RecipeError, OSError, subprocess.TimeoutExpired) as exc:
         print(f"FAIL admission: {exc}")
         return 2
