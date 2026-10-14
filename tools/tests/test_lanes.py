@@ -176,6 +176,9 @@ def _production_fixture(action: str, scratch: Path) -> list[str]:
         for ref in (member["descriptor"], member["derivation"]["source"]):
             if ref is not None:
                 paths.add(ref["path"])
+        package = production._package(_ROOT, member)
+        if package is not None:
+            paths.update(ref["path"] for ref in production._package_sources(package))
     for producer in raw["producers"]:
         paths.update(ref["path"] for ref in producer["sources"])
     for relative in paths:
