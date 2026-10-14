@@ -4,6 +4,7 @@
 import hashlib
 import io
 import json
+import re
 import subprocess
 import tarfile
 import tempfile
@@ -185,10 +186,54 @@ def complete_join_and_missing_steps() -> None:
                     member.write_bytes(data)
 
 
+def temporary_query_compiler_argv() -> None:
+    """Exercise the actual query-loop argv without invoking a native compiler."""
+    with tempfile.TemporaryDirectory(prefix="vos-sail-query-argv-") as directory:
+        root = Path(directory)
+        side = root / "side"
+        (side / "tools/opam").mkdir(parents=True)
+        (side / route.RECIPE).write_text('{}', encoding="utf-8")
+        query_text, reading = "Require Import SailStdpp.Base.\n", "frozen reading\n"
+        frozen = side / "frozen.json"
+        route.write(frozen, {"queries": [{"query": query_text,
+            "query_sha256": hashlib.sha256(query_text.encode()).hexdigest(),
+            "baseline_sha256": hashlib.sha256(reading.encode()).hexdigest()}]})
+        found = {"support_axioms": [], "frozen_inventory": {
+            "path": "frozen.json", "sha256": route.receipts.digest(frozen)}}
+        calls: list[tuple[str, list[str]]] = []
+
+        def capture(label: str, argv: list[str], cwd: Path, *, strict: bool = False,
+                    timeout: int = 10800) -> subprocess.CompletedProcess[str]:
+            source = Path(argv[-1])
+            ensure(source.is_file(), "actual compiler input was written")
+            ensure(re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", source.stem) is not None,
+                   "compiler argv contains an invalid Rocq module identifier: " + source.name)
+            calls.append((label, argv))
+            if label.startswith("inventory-"):
+                stdout = route.proofaudit.EMPTY_BLACKLIST + "\nSailStdpp.Base.fixture_symbol: unit\n"
+            elif label.startswith("assumptions-"):
+                stdout = route.proofaudit.MARKER + "SailStdpp.Base.fixture_symbol\nClosed under the global context\n"
+            else:
+                ensure(source.read_text() == query_text, "frozen declaration query remains unchanged")
+                stdout = reading
+            return subprocess.CompletedProcess(argv, 0, stdout, "")
+
+        with patch.dict(route.os.environ, {"TESTED_REVISION": "a" * 40, "GITHUB_SHA": "a" * 40}):
+            campaign = route.Campaign(root / "campaign", side, "build")
+            with patch.object(campaign, "run", side_effect=capture):
+                route.audit_sources(campaign, found, [side / "Base.v"], [])
+                route.freeze_sources(campaign, found, side / "baseline", side / "candidate", [])
+        ensure([label for label, _ in calls] == ["inventory-0", "assumptions-0",
+                "frozen-0-baseline", "frozen-0-candidate"], "both temporary query families reach compiler argv")
+        for _, argv in calls[:2]:
+            ensure(argv[-len(route.STRICT)-1:-1] == route.STRICT, "strict inventory/audit flags unchanged")
+
+
 def cases() -> list[Case]:
     return [Case("main-revision-guards", revision_guards), Case("immutable-assets", asset_guards),
             Case("contained-source-symlinks", archive_guards), Case("closure-and-portability", closure_and_portability),
             Case("exact-kernel-context", exact_kernel_context), Case("cold-and-snapshot", cold_and_snapshot_guards),
             Case("failed-skipped-join", failed_and_skipped_join),
             Case("timeout-retains-diagnostics", timeout_preserves_diagnostics),
-            Case("complete-join-required-steps", complete_join_and_missing_steps)]
+            Case("complete-join-required-steps", complete_join_and_missing_steps),
+            Case("valid-temporary-query-compiler-argv", temporary_query_compiler_argv)]

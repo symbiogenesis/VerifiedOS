@@ -230,6 +230,55 @@ def identity_tree(roots: list[Path]) -> dict[str, str]:
     return identities
 
 
+def audit_sources(campaign: Campaign, found: dict[str, Any], selected: list[Path],
+                  candidate_map: list[str]) -> None:
+    root = campaign.root
+    audits: dict[str, object] = {}
+    for index, source in enumerate(selected):
+        module = "SailStdpp." + source.stem
+        query = root / ("Assumption_" + str(index) + ".v")
+        query.write_text(proofaudit.inventory_query(module), encoding="utf-8", newline="")
+        listed_symbols = campaign.run("inventory-" + str(index), campaign.executable(
+            ["rocq", "c", *candidate_map, *STRICT, str(query)]), root)
+        if listed_symbols.stderr.strip():
+            raise ValueError("native inventory printed a diagnostic")
+        symbols = proofaudit.inventory(listed_symbols.stdout, module)
+        query.write_text(proofaudit.assumption_query(module, symbols), encoding="utf-8", newline="")
+        checked = campaign.run("assumptions-" + str(index), campaign.executable(
+            ["rocq", "c", *candidate_map, *STRICT, str(query)]), root)
+        if checked.stderr.strip():
+            raise ValueError("native assumption audit printed a diagnostic")
+        proofaudit.assumptions(checked.stdout, symbols)
+        for symbol in symbols:
+            names = {entry.split(" : ", 1)[0] for entry in symbol["assumptions"]}
+            if not names <= set(found["support_axioms"]):
+                raise ValueError("native declaration has an undeclared assumption")
+        audits[module] = symbols
+    if not any(audits.values()):
+        raise ValueError("native source inventory enumerated no declaration")
+    write(campaign.upload / "native-assumptions.json", audits)
+
+
+def freeze_sources(campaign: Campaign, found: dict[str, Any], pristine: Path,
+                   candidate: Path, mappings: list[str]) -> None:
+    root, side = campaign.root, campaign.side
+    frozen = load(asset(side, found["frozen_inventory"]))
+    for index, row in enumerate(frozen["queries"]):
+        query = root / ("Frozen_" + str(index) + ".v")
+        query.write_text(row["query"], encoding="utf-8", newline="")
+        readings: list[str] = []
+        for name, tree in (("baseline", pristine / "_build/default/src-stdpp"),
+                           ("candidate", candidate / "src-stdpp")):
+            result = campaign.run("frozen-" + str(index) + "-" + name,
+                campaign.executable(["rocq", "c", *mappings, "-R", str(tree), "SailStdpp", "-q", str(query)]), root)
+            readings.append(result.stdout + result.stderr)
+            query.with_suffix(".vo").unlink(missing_ok=True)
+        if hashlib.sha256(row["query"].encode()).hexdigest() != row["query_sha256"]:
+            raise ValueError("frozen query text differs from reviewed query")
+        if readings[0] != readings[1] or hashlib.sha256(readings[0].encode()).hexdigest() != row["baseline_sha256"]:
+            raise ValueError("frozen elaborated reading differs")
+
+
 def qualify(campaign: Campaign, found: dict[str, Any], imported: Path | None) -> None:
     root, side = campaign.root, campaign.side
     os.chdir(root)
@@ -333,45 +382,8 @@ def qualify(campaign: Campaign, found: dict[str, Any], imported: Path | None) ->
     for index, source in enumerate(selected):
         campaign.run("strict-" + str(index), campaign.executable(["rocq", "c", *candidate_map,
                       *STRICT, str(source)]), root, strict=True)
-    audits: dict[str, object] = {}
-    for index, source in enumerate(selected):
-        module = "SailStdpp." + source.stem
-        query = root / ("assumption-" + str(index) + ".v")
-        query.write_text(proofaudit.inventory_query(module), encoding="utf-8", newline="")
-        listed_symbols = campaign.run("inventory-" + str(index), campaign.executable(
-            ["rocq", "c", *candidate_map, *STRICT, str(query)]), root)
-        if listed_symbols.stderr.strip():
-            raise ValueError("native inventory printed a diagnostic")
-        symbols = proofaudit.inventory(listed_symbols.stdout, module)
-        query.write_text(proofaudit.assumption_query(module, symbols), encoding="utf-8", newline="")
-        checked = campaign.run("assumptions-" + str(index), campaign.executable(
-            ["rocq", "c", *candidate_map, *STRICT, str(query)]), root)
-        if checked.stderr.strip():
-            raise ValueError("native assumption audit printed a diagnostic")
-        proofaudit.assumptions(checked.stdout, symbols)
-        for symbol in symbols:
-            names = {entry.split(" : ", 1)[0] for entry in symbol["assumptions"]}
-            if not names <= set(found["support_axioms"]):
-                raise ValueError("native declaration has an undeclared assumption")
-        audits[module] = symbols
-    if not any(audits.values()):
-        raise ValueError("native source inventory enumerated no declaration")
-    write(campaign.upload / "native-assumptions.json", audits)
-    frozen = load(asset(side, found["frozen_inventory"]))
-    for index, row in enumerate(frozen["queries"]):
-        query = root / ("frozen-" + str(index) + ".v")
-        query.write_text(row["query"], encoding="utf-8", newline="")
-        readings: list[str] = []
-        for name, tree in (("baseline", pristine / "_build/default/src-stdpp"),
-                           ("candidate", candidate / "src-stdpp")):
-            result = campaign.run("frozen-" + str(index) + "-" + name,
-                campaign.executable(["rocq", "c", *mappings, "-R", str(tree), "SailStdpp", "-q", str(query)]), root)
-            readings.append(result.stdout + result.stderr)
-            query.with_suffix(".vo").unlink(missing_ok=True)
-        if hashlib.sha256(row["query"].encode()).hexdigest() != row["query_sha256"]:
-            raise ValueError("frozen query text differs from reviewed query")
-        if readings[0] != readings[1] or hashlib.sha256(readings[0].encode()).hexdigest() != row["baseline_sha256"]:
-            raise ValueError("frozen elaborated reading differs")
+    audit_sources(campaign, found, selected, candidate_map)
+    freeze_sources(campaign, found, pristine, candidate, mappings)
     probes = root / "probes"
     probes.mkdir()
     for name, entry in found["probes"].items():
