@@ -189,8 +189,10 @@ not been installed or accepted by this trial.
 
 ## Focused strict-source result
 
-[Strict support source bundle](../../docs/implementation/retained-evidence/q35n-20261013/manifest.json), SHA256 `00881c60c8d4a33b67350a5cc3cd5881125bbb755f940d61840d618ad333ed91`,
+[Strict support source bundle](../../docs/implementation/retained-evidence/q35n-20261013/manifest.json), SHA256 `ae642cb4d20b7d2d414f8f2f7617007b40ea7cd7aa75c5ae74b34c0357cd7db7`,
 binds all retained source-derived readings, probes, transcripts and identities.
+Large frozen readings use lossless gzip storage; the manifest preserves their
+original content hashes and byte counts alongside the stored identities.
 
 Q35n's 2026-10-13 private trial, at `07e2724f`, compiles all 29 selected
 `src-stdpp` modules without diagnostics under the consumer's strict settings.

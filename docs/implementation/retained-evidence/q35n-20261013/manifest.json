@@ -132,29 +132,37 @@
       "path": "freeze/ConcurrencyInterface.candidate.txt",
       "sha256": "26f3c96ebe6de34dbe16bc20910dae05472205f9f9496aa69d1a0c1ff0db6cec"
     },
-    "freeze/ConcurrencyInterfaceTypes.baseline.txt": {
+    "freeze/ConcurrencyInterfaceTypes.baseline.txt.gz": {
       "bytes": 2309139,
-      "encoding": "identity",
-      "path": "freeze/ConcurrencyInterfaceTypes.baseline.txt",
-      "sha256": "fd78683beafeeec59ffa3941927bb75c88ea9b5bb926b5da16ca1119db94d267"
+      "encoding": "gzip",
+      "path": "freeze/ConcurrencyInterfaceTypes.baseline.txt.gz",
+      "sha256": "fd78683beafeeec59ffa3941927bb75c88ea9b5bb926b5da16ca1119db94d267",
+      "stored_bytes": 21429,
+      "stored_sha256": "4fe7f6ec47640e3ee49af184797743dfd4d5466065ffa300e831469314b9c230"
     },
-    "freeze/ConcurrencyInterfaceTypes.candidate.txt": {
+    "freeze/ConcurrencyInterfaceTypes.candidate.txt.gz": {
       "bytes": 2309139,
-      "encoding": "identity",
-      "path": "freeze/ConcurrencyInterfaceTypes.candidate.txt",
-      "sha256": "fd78683beafeeec59ffa3941927bb75c88ea9b5bb926b5da16ca1119db94d267"
+      "encoding": "gzip",
+      "path": "freeze/ConcurrencyInterfaceTypes.candidate.txt.gz",
+      "sha256": "fd78683beafeeec59ffa3941927bb75c88ea9b5bb926b5da16ca1119db94d267",
+      "stored_bytes": 21429,
+      "stored_sha256": "4fe7f6ec47640e3ee49af184797743dfd4d5466065ffa300e831469314b9c230"
     },
-    "freeze/ConcurrencyInterfaceTypesV2.baseline.txt": {
+    "freeze/ConcurrencyInterfaceTypesV2.baseline.txt.gz": {
       "bytes": 194318,
-      "encoding": "identity",
-      "path": "freeze/ConcurrencyInterfaceTypesV2.baseline.txt",
-      "sha256": "126f922c4bf66c0e32ae8be28d204ecde4ac39bebc56fd0d6b0d76e4483fa177"
+      "encoding": "gzip",
+      "path": "freeze/ConcurrencyInterfaceTypesV2.baseline.txt.gz",
+      "sha256": "126f922c4bf66c0e32ae8be28d204ecde4ac39bebc56fd0d6b0d76e4483fa177",
+      "stored_bytes": 2903,
+      "stored_sha256": "7d8003d15fc8b2084d3a14a795ee468ba6e7315b1ac7eca86dd9b2a64b06f743"
     },
-    "freeze/ConcurrencyInterfaceTypesV2.candidate.txt": {
+    "freeze/ConcurrencyInterfaceTypesV2.candidate.txt.gz": {
       "bytes": 194318,
-      "encoding": "identity",
-      "path": "freeze/ConcurrencyInterfaceTypesV2.candidate.txt",
-      "sha256": "126f922c4bf66c0e32ae8be28d204ecde4ac39bebc56fd0d6b0d76e4483fa177"
+      "encoding": "gzip",
+      "path": "freeze/ConcurrencyInterfaceTypesV2.candidate.txt.gz",
+      "sha256": "126f922c4bf66c0e32ae8be28d204ecde4ac39bebc56fd0d6b0d76e4483fa177",
+      "stored_bytes": 2903,
+      "stored_sha256": "7d8003d15fc8b2084d3a14a795ee468ba6e7315b1ac7eca86dd9b2a64b06f743"
     },
     "freeze/ConcurrencyInterfaceV2.baseline.txt": {
       "bytes": 97,
@@ -168,29 +176,37 @@
       "path": "freeze/ConcurrencyInterfaceV2.candidate.txt",
       "sha256": "26f3c96ebe6de34dbe16bc20910dae05472205f9f9496aa69d1a0c1ff0db6cec"
     },
-    "freeze/GenericValue.baseline.txt": {
+    "freeze/GenericValue.baseline.txt.gz": {
       "bytes": 1098356,
-      "encoding": "identity",
-      "path": "freeze/GenericValue.baseline.txt",
-      "sha256": "316c0d6933ea9c564ba2f65f1221df4893ce5859bd5f05537c8e5566f418f77a"
+      "encoding": "gzip",
+      "path": "freeze/GenericValue.baseline.txt.gz",
+      "sha256": "316c0d6933ea9c564ba2f65f1221df4893ce5859bd5f05537c8e5566f418f77a",
+      "stored_bytes": 15958,
+      "stored_sha256": "f6377424ecf2147c935af2869229a7e5bee71937f675c19e2fa66a519d8dfae7"
     },
-    "freeze/GenericValue.candidate.txt": {
+    "freeze/GenericValue.candidate.txt.gz": {
       "bytes": 1098356,
-      "encoding": "identity",
-      "path": "freeze/GenericValue.candidate.txt",
-      "sha256": "316c0d6933ea9c564ba2f65f1221df4893ce5859bd5f05537c8e5566f418f77a"
+      "encoding": "gzip",
+      "path": "freeze/GenericValue.candidate.txt.gz",
+      "sha256": "316c0d6933ea9c564ba2f65f1221df4893ce5859bd5f05537c8e5566f418f77a",
+      "stored_bytes": 15958,
+      "stored_sha256": "f6377424ecf2147c935af2869229a7e5bee71937f675c19e2fa66a519d8dfae7"
     },
-    "freeze/Hoare.baseline.txt": {
+    "freeze/Hoare.baseline.txt.gz": {
       "bytes": 3257695,
-      "encoding": "identity",
-      "path": "freeze/Hoare.baseline.txt",
-      "sha256": "d3e6e5feb522c5796d3f12299fa615124e371460ce09d7d23bb00a1ef0096617"
+      "encoding": "gzip",
+      "path": "freeze/Hoare.baseline.txt.gz",
+      "sha256": "d3e6e5feb522c5796d3f12299fa615124e371460ce09d7d23bb00a1ef0096617",
+      "stored_bytes": 50460,
+      "stored_sha256": "cdb1b2b99eaaca2df1aba5344296a6f0dd90fb34587d2d0ffdc6ca348c24bc33"
     },
-    "freeze/Hoare.candidate.txt": {
+    "freeze/Hoare.candidate.txt.gz": {
       "bytes": 3257695,
-      "encoding": "identity",
-      "path": "freeze/Hoare.candidate.txt",
-      "sha256": "d3e6e5feb522c5796d3f12299fa615124e371460ce09d7d23bb00a1ef0096617"
+      "encoding": "gzip",
+      "path": "freeze/Hoare.candidate.txt.gz",
+      "sha256": "d3e6e5feb522c5796d3f12299fa615124e371460ce09d7d23bb00a1ef0096617",
+      "stored_bytes": 50460,
+      "stored_sha256": "cdb1b2b99eaaca2df1aba5344296a6f0dd90fb34587d2d0ffdc6ca348c24bc33"
     },
     "freeze/Inhabited.baseline.txt": {
       "bytes": 854,
@@ -216,29 +232,37 @@
       "path": "freeze/Instances.candidate.txt",
       "sha256": "6df1189f064a2eb1c79c09529bcae11c032a6acd2f53efd3d2c9cb2453c16e58"
     },
-    "freeze/MachineWord.baseline.txt": {
+    "freeze/MachineWord.baseline.txt.gz": {
       "bytes": 649539,
-      "encoding": "identity",
-      "path": "freeze/MachineWord.baseline.txt",
-      "sha256": "f64ef14152ea6cfb1e1209e5b1e6a8179ab8460c818aa2d31e36c228583b5c2c"
+      "encoding": "gzip",
+      "path": "freeze/MachineWord.baseline.txt.gz",
+      "sha256": "f64ef14152ea6cfb1e1209e5b1e6a8179ab8460c818aa2d31e36c228583b5c2c",
+      "stored_bytes": 26623,
+      "stored_sha256": "aedb9d5f475b60a270fa7fa494ad220199a75ba8252d6d487117e47bab43e09c"
     },
-    "freeze/MachineWord.candidate.txt": {
+    "freeze/MachineWord.candidate.txt.gz": {
       "bytes": 649539,
-      "encoding": "identity",
-      "path": "freeze/MachineWord.candidate.txt",
-      "sha256": "f64ef14152ea6cfb1e1209e5b1e6a8179ab8460c818aa2d31e36c228583b5c2c"
+      "encoding": "gzip",
+      "path": "freeze/MachineWord.candidate.txt.gz",
+      "sha256": "f64ef14152ea6cfb1e1209e5b1e6a8179ab8460c818aa2d31e36c228583b5c2c",
+      "stored_bytes": 26623,
+      "stored_sha256": "aedb9d5f475b60a270fa7fa494ad220199a75ba8252d6d487117e47bab43e09c"
     },
-    "freeze/Operators_mwords.baseline.txt": {
+    "freeze/Operators_mwords.baseline.txt.gz": {
       "bytes": 107401,
-      "encoding": "identity",
-      "path": "freeze/Operators_mwords.baseline.txt",
-      "sha256": "ac0d9e6c193539028be823f0aa8846c5eaad7b3a9ce6664fb4bf02ab04fd25ff"
+      "encoding": "gzip",
+      "path": "freeze/Operators_mwords.baseline.txt.gz",
+      "sha256": "ac0d9e6c193539028be823f0aa8846c5eaad7b3a9ce6664fb4bf02ab04fd25ff",
+      "stored_bytes": 7012,
+      "stored_sha256": "d920044f93bed13fc2217d53ca4ac9a79e498254cbbcd229529fa5a8c1ad090f"
     },
-    "freeze/Operators_mwords.candidate.txt": {
+    "freeze/Operators_mwords.candidate.txt.gz": {
       "bytes": 107401,
-      "encoding": "identity",
-      "path": "freeze/Operators_mwords.candidate.txt",
-      "sha256": "ac0d9e6c193539028be823f0aa8846c5eaad7b3a9ce6664fb4bf02ab04fd25ff"
+      "encoding": "gzip",
+      "path": "freeze/Operators_mwords.candidate.txt.gz",
+      "sha256": "ac0d9e6c193539028be823f0aa8846c5eaad7b3a9ce6664fb4bf02ab04fd25ff",
+      "stored_bytes": 7012,
+      "stored_sha256": "d920044f93bed13fc2217d53ca4ac9a79e498254cbbcd229529fa5a8c1ad090f"
     },
     "freeze/Prompt.baseline.txt": {
       "bytes": 67809,
@@ -252,17 +276,21 @@
       "path": "freeze/Prompt.candidate.txt",
       "sha256": "b809405c35a62a6d95378459ace53aa2c24385c1a12ce60de59b125ed9166c44"
     },
-    "freeze/Prompt_monad.baseline.txt": {
+    "freeze/Prompt_monad.baseline.txt.gz": {
       "bytes": 309353,
-      "encoding": "identity",
-      "path": "freeze/Prompt_monad.baseline.txt",
-      "sha256": "e59a64354ec017fa654eed6478c125f1173f5c6b356d34f5962314f2b969746b"
+      "encoding": "gzip",
+      "path": "freeze/Prompt_monad.baseline.txt.gz",
+      "sha256": "e59a64354ec017fa654eed6478c125f1173f5c6b356d34f5962314f2b969746b",
+      "stored_bytes": 8688,
+      "stored_sha256": "332c5d29137cd26977677ab5602d591044670ca4abe340626e4652d9b04b5ce0"
     },
-    "freeze/Prompt_monad.candidate.txt": {
+    "freeze/Prompt_monad.candidate.txt.gz": {
       "bytes": 309353,
-      "encoding": "identity",
-      "path": "freeze/Prompt_monad.candidate.txt",
-      "sha256": "e59a64354ec017fa654eed6478c125f1173f5c6b356d34f5962314f2b969746b"
+      "encoding": "gzip",
+      "path": "freeze/Prompt_monad.candidate.txt.gz",
+      "sha256": "e59a64354ec017fa654eed6478c125f1173f5c6b356d34f5962314f2b969746b",
+      "stored_bytes": 8688,
+      "stored_sha256": "332c5d29137cd26977677ab5602d591044670ca4abe340626e4652d9b04b5ce0"
     },
     "freeze/Real.baseline.txt": {
       "bytes": 84332,
@@ -288,17 +316,21 @@
       "path": "freeze/State.candidate.txt",
       "sha256": "2ee0817e3e16ef04cddf42d7853711e6c53149d0af56d8c47f7382fb0086d2e0"
     },
-    "freeze/State_lemmas.baseline.txt": {
+    "freeze/State_lemmas.baseline.txt.gz": {
       "bytes": 44207259,
-      "encoding": "identity",
-      "path": "freeze/State_lemmas.baseline.txt",
-      "sha256": "7e281772442acb7ea0518d419cba2f3f421136835ec59bac69a4e78c647e8bbb"
+      "encoding": "gzip",
+      "path": "freeze/State_lemmas.baseline.txt.gz",
+      "sha256": "7e281772442acb7ea0518d419cba2f3f421136835ec59bac69a4e78c647e8bbb",
+      "stored_bytes": 245914,
+      "stored_sha256": "c5c604f9a13ed26df61b3bed0df3dc19d929c1d4d1f0384d28b20e59754355e5"
     },
-    "freeze/State_lemmas.candidate.txt": {
+    "freeze/State_lemmas.candidate.txt.gz": {
       "bytes": 44207259,
-      "encoding": "identity",
-      "path": "freeze/State_lemmas.candidate.txt",
-      "sha256": "7e281772442acb7ea0518d419cba2f3f421136835ec59bac69a4e78c647e8bbb"
+      "encoding": "gzip",
+      "path": "freeze/State_lemmas.candidate.txt.gz",
+      "sha256": "7e281772442acb7ea0518d419cba2f3f421136835ec59bac69a4e78c647e8bbb",
+      "stored_bytes": 245914,
+      "stored_sha256": "c5c604f9a13ed26df61b3bed0df3dc19d929c1d4d1f0384d28b20e59754355e5"
     },
     "freeze/State_lifting.baseline.txt": {
       "bytes": 9306,
@@ -324,41 +356,53 @@
       "path": "freeze/State_monad.candidate.txt",
       "sha256": "1e5ff51906ff27a48b0221755bf4ad77c0c58ae405ee44238654ee64ae681ec0"
     },
-    "freeze/State_monad_lemmas.baseline.txt": {
+    "freeze/State_monad_lemmas.baseline.txt.gz": {
       "bytes": 42696817,
-      "encoding": "identity",
-      "path": "freeze/State_monad_lemmas.baseline.txt",
-      "sha256": "0c7a5dfaeecd6b2615df0cbd7b6915314440f1aeb986053c7aa77f636f371bd3"
+      "encoding": "gzip",
+      "path": "freeze/State_monad_lemmas.baseline.txt.gz",
+      "sha256": "0c7a5dfaeecd6b2615df0cbd7b6915314440f1aeb986053c7aa77f636f371bd3",
+      "stored_bytes": 201377,
+      "stored_sha256": "b8053d819fa40cf53c2ced27a8524c007089063fdf624a1b56ae48c56beb333f"
     },
-    "freeze/State_monad_lemmas.candidate.txt": {
+    "freeze/State_monad_lemmas.candidate.txt.gz": {
       "bytes": 42696817,
-      "encoding": "identity",
-      "path": "freeze/State_monad_lemmas.candidate.txt",
-      "sha256": "0c7a5dfaeecd6b2615df0cbd7b6915314440f1aeb986053c7aa77f636f371bd3"
+      "encoding": "gzip",
+      "path": "freeze/State_monad_lemmas.candidate.txt.gz",
+      "sha256": "0c7a5dfaeecd6b2615df0cbd7b6915314440f1aeb986053c7aa77f636f371bd3",
+      "stored_bytes": 201377,
+      "stored_sha256": "b8053d819fa40cf53c2ced27a8524c007089063fdf624a1b56ae48c56beb333f"
     },
-    "freeze/String.baseline.txt": {
+    "freeze/String.baseline.txt.gz": {
       "bytes": 171234,
-      "encoding": "identity",
-      "path": "freeze/String.baseline.txt",
-      "sha256": "dd24d6b019a7597371dbf0bd386bc76b3b4a4891b2f3e95df76ab5cefb8283d4"
+      "encoding": "gzip",
+      "path": "freeze/String.baseline.txt.gz",
+      "sha256": "dd24d6b019a7597371dbf0bd386bc76b3b4a4891b2f3e95df76ab5cefb8283d4",
+      "stored_bytes": 5326,
+      "stored_sha256": "774a2b5e73138ba0c7400f86a3efee2bd52cb294c4945cf7d4e6c522bcd31ee0"
     },
-    "freeze/String.candidate.txt": {
+    "freeze/String.candidate.txt.gz": {
       "bytes": 171234,
-      "encoding": "identity",
-      "path": "freeze/String.candidate.txt",
-      "sha256": "dd24d6b019a7597371dbf0bd386bc76b3b4a4891b2f3e95df76ab5cefb8283d4"
+      "encoding": "gzip",
+      "path": "freeze/String.candidate.txt.gz",
+      "sha256": "dd24d6b019a7597371dbf0bd386bc76b3b4a4891b2f3e95df76ab5cefb8283d4",
+      "stored_bytes": 5326,
+      "stored_sha256": "774a2b5e73138ba0c7400f86a3efee2bd52cb294c4945cf7d4e6c522bcd31ee0"
     },
-    "freeze/Values.baseline.txt": {
+    "freeze/Values.baseline.txt.gz": {
       "bytes": 863076,
-      "encoding": "identity",
-      "path": "freeze/Values.baseline.txt",
-      "sha256": "858207b83a8c4d3feb26695232972103362f9bffd19f05c5d65d5dc9bb78504d"
+      "encoding": "gzip",
+      "path": "freeze/Values.baseline.txt.gz",
+      "sha256": "858207b83a8c4d3feb26695232972103362f9bffd19f05c5d65d5dc9bb78504d",
+      "stored_bytes": 29887,
+      "stored_sha256": "e049f44520c0aa7a983f4a2603bd360ddac61e59233220b2662fdc3f186c2b48"
     },
-    "freeze/Values.candidate.txt": {
+    "freeze/Values.candidate.txt.gz": {
       "bytes": 863076,
-      "encoding": "identity",
-      "path": "freeze/Values.candidate.txt",
-      "sha256": "858207b83a8c4d3feb26695232972103362f9bffd19f05c5d65d5dc9bb78504d"
+      "encoding": "gzip",
+      "path": "freeze/Values.candidate.txt.gz",
+      "sha256": "858207b83a8c4d3feb26695232972103362f9bffd19f05c5d65d5dc9bb78504d",
+      "stored_bytes": 29887,
+      "stored_sha256": "e049f44520c0aa7a983f4a2603bd360ddac61e59233220b2662fdc3f186c2b48"
     },
     "freeze/Values_lemmas.baseline.txt": {
       "bytes": 22708,

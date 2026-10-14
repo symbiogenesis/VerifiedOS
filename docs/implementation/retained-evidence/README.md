@@ -29,7 +29,10 @@ and `bytes`. Members must be indexed files beneath the manifest's own directory;
 absolute paths, traversal, missing copies and mismatched hashes or sizes fail.
 For an `encoding: gzip` member, `stored_sha256` and `stored_bytes` bind the stored
 copy, and `sha256` and `bytes` also bind its decompressed contents. Only `identity`
-and `gzip` encodings are accepted. Each manifest requires its own hash-checked
+and `gzip` encodings are accepted. A lossless storage change preserves the recorded
+content hash and byte count, binds the new stored bytes, and refreshes the manifest's
+external hash citation; native paths inside historical records stay unchanged.
+Each manifest requires its own hash-checked
 citation from a tracked document or record outside this directory. Listing
 another manifest as a member binds its bytes but does not cite its children.
 A manifest cannot cite itself or make an otherwise uncited bundle count as cited.
@@ -68,4 +71,4 @@ relation.
 build receipt and grants no acceptance beyond what its citing note states. Absolute
 paths inside a record identify artifacts on the recording host. Traces, images and
 toolchains that a record binds by hash stay in native storage when they are retained
-at all; reading a copy does not require them. Do not rewrite a copy.
+at all; reading a copy does not require them. Do not rewrite its recorded contents.
