@@ -9,7 +9,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from tests.harness import Case, ensure
-from tests.test_composition import _resolve_descriptors, _sandbox, _write
+from tests.test_composition import _graph_image, _resolve_descriptors, _sandbox, _write
 from vos import composer
 from vos import composition as c
 from vos.cli import composer as cli
@@ -36,7 +36,7 @@ def _products() -> Iterator[Path]:
             paths[member["artifact_slot"]] = relative
         (root / ARTIFACTS).write_bytes(composer.canonical_bytes(paths))
         (root / GRAPH).write_bytes(graph)
-        (root / IMAGE).write_bytes(b"test-only composed image")
+        _graph_image(root, IMAGE, graph)
         c.emit(root, c.EXAMPLE, PROJECT)
         yield root
 

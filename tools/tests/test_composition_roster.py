@@ -6,7 +6,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from tests.harness import Case, ensure
-from tests.test_composition import _refused, _resolve_descriptors, _sandbox
+from tests.test_composition import _graph_image, _refused, _resolve_descriptors, _sandbox
 from vos import boot
 from vos import composition as c
 
@@ -97,7 +97,7 @@ def _build_roster_binding() -> None:
             relative = f"products/{member['id']}.bin"
             (root / relative).write_bytes(member["id"].encode("utf-8"))
             artifacts[member["artifact_slot"]] = c.reference(root, relative)
-        (directory / "image.bin").write_bytes(b"test-only composed image")
+        _graph_image(root, "products/image.bin", graph)
         image = c.reference(root, "products/image.bin")
         outputs = c.projections(root)
         record = c.build_record(root, c.EXAMPLE, outputs, artifacts, image, graph)

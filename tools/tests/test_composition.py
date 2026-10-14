@@ -15,6 +15,7 @@ from unittest.mock import patch
 from tests.harness import Case, ensure
 from vos import boot, composer, jsonc
 from vos import composition as c
+from vos import image as elf_image
 from vos.cli import composer as cli
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -299,7 +300,23 @@ def _resolve_descriptors(root: Path, raw: dict[str, Any]) -> bytes:
         member["descriptor"] = c.reference(root, relative)
     _write(root, raw)
     projected = json.loads(c.projections(root)["graph-input.json"])["payload"]["document"]
-    return composer.graph_bytes(composer.parse_document(projected))
+    graph = composer.graph_bytes(composer.parse_document(projected))
+    if raw["graph_placement"] is None:
+        memory = boot.regions(root / raw["configuration"]["path"])[0]
+        raw["graph_placement"] = {"base": hex(memory.base + 4096), "bytes": 4096}
+        _write(root, raw)
+    return graph
+
+
+def _graph_image(root: Path, relative: str, graph: bytes) -> None:
+    """Produce an ordinary ELF fixture; its graph binding grants no admission."""
+    raw = c.load(root)
+    memory = boot.regions(root / raw["configuration"]["path"])[0]
+    placement = raw["graph_placement"]
+    elf_image.write_elf(root / relative, [
+        elf_image.Section(".text", memory.base, bytearray(b"\x13\x00\x00\x00"), executable=True),
+        elf_image.Section(".handler_graph", int(placement["base"], 16), bytearray(graph))],
+        {"_start": (".text", memory.base)}, memory.base)
 
 
 def _graph_owner_boundary() -> None:
@@ -396,7 +413,7 @@ def _build_composition_snapshot_binding() -> None:
             relative = f"products/{member['id']}.bin"
             (root / relative).write_bytes(member["id"].encode("utf-8"))
             artifacts[member["artifact_slot"]] = c.reference(root, relative)
-        (directory / "image.bin").write_bytes(b"test-only composed image")
+        _graph_image(root, "products/image.bin", graph)
         image = c.reference(root, "products/image.bin")
         outputs = c.projections(root)
         path = root / c.EXAMPLE
@@ -481,7 +498,7 @@ def _declared_source_drift_case(kind: str) -> None:
             product = f"products/{runtime['id']}.bin"
             (root / product).write_bytes(runtime["id"].encode("utf-8"))
             artifacts[runtime["artifact_slot"]] = c.reference(root, product)
-        (directory / "image.bin").write_bytes(b"test-only composed image")
+        _graph_image(root, "products/image.bin", graph)
         image = c.reference(root, "products/image.bin")
         outputs = c.projections(root)
         record = c.build_record(root, c.EXAMPLE, outputs, artifacts, image, graph)
@@ -590,7 +607,7 @@ def _build_bindings() -> None:
             relative = f"products/{member['id']}.bin"
             (root / relative).write_bytes(f"test-only bytes for {member['id']}".encode())
             artifacts[member["artifact_slot"]] = c.reference(root, relative)
-        (directory / "image.bin").write_bytes(b"test-only composed image")
+        _graph_image(root, "products/image.bin", graph)
         image = c.reference(root, "products/image.bin")
         outputs = c.projections(root)
         record = c.build_record(root, c.EXAMPLE, outputs, artifacts, image, graph)
@@ -686,7 +703,7 @@ def _build_artifact_publication_drift() -> None:
             relative = f"products/{member['id']}.bin"
             (root / relative).write_bytes(b"identical test-only payload")
             artifacts[member["artifact_slot"]] = c.reference(root, relative)
-        (directory / "image.bin").write_bytes(b"test-only composed image")
+        _graph_image(root, "products/image.bin", graph)
         image = c.reference(root, "products/image.bin")
         outputs = c.projections(root)
         record = c.build_record(root, c.EXAMPLE, outputs, artifacts, image, graph)
@@ -747,7 +764,7 @@ def _artifact_path_substitutions() -> None:
             relative = f"products/{member['id']}.bin"
             (root / relative).write_bytes(b"identical test-only payload")
             artifacts[member["artifact_slot"]] = c.reference(root, relative)
-        (directory / "image.bin").write_bytes(b"test-only composed image")
+        _graph_image(root, "products/image.bin", graph)
         image = c.reference(root, "products/image.bin")
         outputs = c.projections(root)
         record = c.build_record(root, c.EXAMPLE, outputs, artifacts, image, graph)
