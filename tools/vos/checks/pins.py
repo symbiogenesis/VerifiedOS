@@ -980,6 +980,9 @@ _CAPTURING_RECEIPTS: dict[str, str] = {
 # These sites retain measured or external editions, or record identifiers that
 # resemble object ids. They do not state this repository's current top-level pin.
 SITE_RESIDUE: dict[tuple[str, str], str] = {
+    ("docs/implementation/retained-evidence/close3-q35p-20261013/bindings.sail.txt", "bb07488d"):
+        "the unchanged historical CHERI transplant header in Q35p's model-owner reproducer, "
+        "not a statement of the current comparison gitlink",
     **{(file, "bb07488d"): "the historical CHERI source transplanted into the curated model"
        for file in (
            "model/model/core/addr_checks.sail",

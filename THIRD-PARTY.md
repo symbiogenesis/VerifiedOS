@@ -379,14 +379,14 @@ BSD-2-Clause terms; no complete emitted term is distributed by that evidence.
 Q35p retains the model-derived minimal memory/tag reproducer and its generated
 outputs, paired coq-sail interface excerpts, and locked Sail library/runtime
 excerpts in `docs/implementation/retained-evidence/close3-q35p-20261013/`.
-The actual selected model, CHERI, Sail 0.20.3 and coq-sail 0.20.3 notices were
+The actual selected model, CHERI, locked Sail and paired support notices were
 re-read for this incorporation and retained beside those BSD-2-Clause excerpts.
 Authored reproducer scaffolding uses the same terms. The licensing map names
 each source-derived file; no complete canonical term, dependency source tree or
 compiled object is distributed.
 Q35o's compatibility evidence in
 `docs/implementation/retained-evidence/close3-q35o-20261013/` retains a private
-syntax-only diff to Sail 0.20.3's `src/sail_coq_backend/pretty_print_coq.ml` at
+syntax-only diff to the locked Sail's `src/sail_coq_backend/pretty_print_coq.ml` at
 `3df54034910b31a1e00d948ee965b2e9603d68e0`, printed generated declarations and
 an imports-only canonical fragment. The selected file's own BSD-2-Clause header
 and release notice were read before incorporation; `LICENSE.sail` and

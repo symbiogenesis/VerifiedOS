@@ -2059,6 +2059,9 @@ CASES: list[Case] = [
     ("K-81", "a scoped libclang license reading changed without its recorded edition",
      _literal("THIRD-PARTY.md", "2078da43e25a4623cab2d0d60decddf709aaea28",
               "0000000000000000000000000000000000000000")),
+    ("K-81", "a copied model transplant edition changed outside its exact retained-source residue",
+     _literal("docs/implementation/retained-evidence/close3-q35p-20261013/bindings.sail.txt",
+              "bb07488d", "bb07488e")),
 
     # One holder citation moved onto the id the numbering is missing, which is the
     # defect in the shape it actually arrives in rather than an invented one: the plan
