@@ -1,0 +1,88 @@
+{
+  "files": {
+    "Provenance.v": {
+      "bytes": 329,
+      "encoding": "identity",
+      "path": "Provenance.v",
+      "sha256": "80a586e0c4ed2099a9228ff53e966c792057d8ce35cfceb69551391c8488da87"
+    },
+    "Sail-Support-LICENSE": {
+      "bytes": 2716,
+      "encoding": "identity",
+      "path": "Sail-Support-LICENSE",
+      "sha256": "9e52d88fe1802beb469e538b8c026ff5e7f9413ef06cd3ce898ee3928ae24df0"
+    },
+    "SignatureBoundary.v": {
+      "bytes": 341,
+      "encoding": "identity",
+      "path": "SignatureBoundary.v",
+      "sha256": "7fef42c0653d04baa977dd56fc8aa79062ece1af996fe6a9f4757303c5c07a91"
+    },
+    "candidate-1-Inhabited.stderr.log": {
+      "bytes": 0,
+      "encoding": "identity",
+      "path": "candidate-1-Inhabited.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "candidate-1-Inhabited.stdout.log": {
+      "bytes": 0,
+      "encoding": "identity",
+      "path": "candidate-1-Inhabited.stdout.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "candidate-1-Provenance.stderr.log": {
+      "bytes": 0,
+      "encoding": "identity",
+      "path": "candidate-1-Provenance.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "candidate-1-Provenance.stdout.log": {
+      "bytes": 3878,
+      "encoding": "identity",
+      "path": "candidate-1-Provenance.stdout.log",
+      "sha256": "5d30116e0e48be60acd8149ae4ec34edcc842081665ca3195ff3f63d837ebaeb"
+    },
+    "candidate-1-TypeCasts.stderr.log": {
+      "bytes": 0,
+      "encoding": "identity",
+      "path": "candidate-1-TypeCasts.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "candidate-1-TypeCasts.stdout.log": {
+      "bytes": 0,
+      "encoding": "identity",
+      "path": "candidate-1-TypeCasts.stdout.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "candidate-2-MachineWordInterface.stderr.log": {
+      "bytes": 0,
+      "encoding": "identity",
+      "path": "candidate-2-MachineWordInterface.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "candidate-2-MachineWordInterface.stdout.log": {
+      "bytes": 0,
+      "encoding": "identity",
+      "path": "candidate-2-MachineWordInterface.stdout.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "candidate-2-SignatureBoundary.stderr.log": {
+      "bytes": 206,
+      "encoding": "identity",
+      "path": "candidate-2-SignatureBoundary.stderr.log",
+      "sha256": "08dc4e2ebbe9dd2352b09e1ba7ec668c16d7661d301da5c6cf57c246eba26d43"
+    },
+    "candidate-2-SignatureBoundary.stdout.log": {
+      "bytes": 1515,
+      "encoding": "identity",
+      "path": "candidate-2-SignatureBoundary.stdout.log",
+      "sha256": "2a98e0482fb79e0d690c32646428f6f45d1c5c58f90e46b0dbc9d4ef301429d0"
+    },
+    "receipt.json": {
+      "bytes": 8456,
+      "encoding": "identity",
+      "path": "receipt.json",
+      "sha256": "a727686c46a2a95431c2da0d3d01e39e9297d42aa85f3ba5719de39528d959e9"
+    }
+  }
+}
