@@ -1,0 +1,23 @@
+{
+  "rows": [
+    {
+      "label": "baseline-emission",
+      "argv": [
+        "/root/.opam/verifiedos-sail-0.20.3-ocaml-5.4.1/bin/sail",
+        "--rocq",
+        "--drocq-undef-axioms",
+        "--rocq-output-dir",
+        "/root/build/lane-close3-20261013-memory/q35p/baseline",
+        "-o",
+        "bindings",
+        "/root/build/lane-close3-20261013-memory/q35p/bindings.sail"
+      ],
+      "cwd": "/tmp/vos-q35p-native-418wv3u0",
+      "exit": 0,
+      "seconds": 1.1934418678283691,
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "source_sha256": "aff11682da08211dc364a767dcec579b008d1ca1603054d8e9ab71c82e0701b4",
+  "sail_sha256": "547f755c390610304fc5ebd87e9cf53cbef9b79311f5c44b88f0768b88c36826"
+}

@@ -1,0 +1,42 @@
+145: with
+146:   'pa : Type,
+147:   'translation_summary : Type,
+148:   'arch_ak : Type,
+149:   'abort : Type
+150: = {
+151:     val pa_bits : 'pa -> {'pasize, 'pasize in {32, 64}. bits('pasize)}
+152:
+153:     impl emulator_or_isla(request) = {
+154:         let pa = pa_bits(request.pa);
+155:         // In Isla, the address of an instruction fetch must be concrete
+156:         let pa = if mem_read_request_is_ifetch(request) | __monomorphize_reads then __monomorphize(pa) else pa;
+157:         let tag: option(bool) = if request.tag then {
+158:             if length(pa) == 32 then {
+159:                 Some(read_tag#(32, pa))
+160:             } else {
+161:                 Some(read_tag#(64, pa))
+162:             }
+163:         } else {
+164:             None()
+165:         };
+166:         if mem_read_request_is_exclusive(request) then {
+167:             if length(pa) == 32 then {
+168:                 Ok((read_mem_exclusive#(request, 32, pa, request.size), tag))
+169:             } else {
+170:                 Ok((read_mem_exclusive#(request, 64, pa, request.size), tag))
+171:             }
+172:         } else if mem_read_request_is_ifetch(request) then {
+173:             if length(pa) == 32 then {
+174:                 Ok((read_mem_ifetch#(request, 32, pa, request.size), tag))
+175:             } else {
+176:                 Ok((read_mem_ifetch#(request, 64, pa, request.size), tag))
+177:             }
+178:         } else {
+179:             if length(pa) == 32 then {
+180:                 Ok((read_mem#(request, 32, pa, request.size), tag))
+181:             } else {
+182:                 Ok((read_mem#(request, 64, pa, request.size), tag))
+183:             }
+184:         }
+185:     }
+186: }

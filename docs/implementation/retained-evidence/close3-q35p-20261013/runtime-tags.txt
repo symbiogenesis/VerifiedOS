@@ -1,0 +1,58 @@
+178: unit write_tag_bool(const uint64_t address, const bool tag)
+179: {
+180:   uint64_t mask = address & ~MASK;
+181:   uint64_t offset = address & MASK;
+182:
+183:   struct tag_block *current = sail_tags;
+184:
+185:   while (current != NULL) {
+186:     if (current->block_id == mask) {
+187:       current->mem[offset] = tag;
+188:       return UNIT;
+189:     } else {
+190:       current = current->next;
+191:     }
+192:   }
+193:
+194:   /*
+195:    * If we couldn't find a block matching the mask, allocate a new
+196:    * one, write the byte, and put it at the front of the block list.
+197:    */
+198:   struct tag_block *new_block = (struct tag_block *)malloc(sizeof(struct tag_block));
+199:   new_block->block_id = mask;
+200:   new_block->mem = (bool *)calloc(MASK + 1, sizeof(bool));
+201:   new_block->mem[offset] = tag;
+202:   new_block->next = sail_tags;
+203:   sail_tags = new_block;
+204:
+205:   return UNIT;
+206: }
+207:
+208: unit emulator_write_tag(const uint64_t addr_size, const sbits addr, const bool tag)
+209: {
+210:   write_tag_bool(addr.bits, tag);
+211:   return UNIT;
+212: }
+213:
+214: bool read_tag_bool(const uint64_t address)
+215: {
+216:   uint64_t mask = address & ~MASK;
+217:   uint64_t offset = address & MASK;
+218:
+219:   struct tag_block *current = sail_tags;
+220:
+221:   while (current != NULL) {
+222:     if (current->block_id == mask) {
+223:       return current->mem[offset];
+224:     } else {
+225:       current = current->next;
+226:     }
+227:   }
+228:
+229:   return false;
+230: }
+231:
+232: bool emulator_read_tag(const uint64_t addr_size, const sbits addr)
+233: {
+234:   return read_tag_bool(addr.bits);
+235: }

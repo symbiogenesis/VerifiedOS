@@ -1,0 +1,41 @@
+215: // the bool in the result is for the success/failure of a write-exclusive or a CAS, i.e.
+216: outcome sail_mem_write : forall 'n 'vasize, 'n > 0 & 'vasize > 0.
+217:   Mem_write_request('n, 'vasize, 'pa, 'translation_summary, 'arch_ak)
+218:       -> result(option(bool), 'abort)
+219: with
+220:   'pa : Type,
+221:   'translation_summary : Type,
+222:   'arch_ak : Type,
+223:   'abort : Type
+224: = {
+225:     val pa_bits : 'pa -> {'pasize, 'pasize in {32, 64}. bits('pasize)}
+226:
+227:     impl emulator_or_isla(request) = {
+228:         let pa = pa_bits(request.pa);
+229:         let pa = if __monomorphize_writes then __monomorphize(pa) else pa;
+230:         let b: bool = match request.value {
+231:             Some(value) => if mem_write_request_is_exclusive(request) then {
+232:                 if length(pa) == 32 then {
+233:                     write_mem_exclusive#(request, 32, pa, request.size, value)
+234:                 } else {
+235:                     write_mem_exclusive#(request, 64, pa, request.size, value)
+236:                 }
+237:             } else {
+238:                 if length(pa) == 32 then {
+239:                     write_mem#(request, 32, pa, request.size, value)
+240:                 } else {
+241:                     write_mem#(request, 64, pa, request.size, value)
+242:                 }
+243:             },
+244:             None() => true
+245:         };
+246:         match request.tag {
+247:             Some(tag) => if length(pa) == 32 then {
+248:                 write_tag#(32, pa, tag)
+249:             } else {
+250:                 write_tag#(64, pa, tag)
+251:             },
+252:             None() => ()
+253:         };
+254:         Ok(Some(b))
+255:     }

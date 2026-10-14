@@ -1,0 +1,110 @@
+112:
+113: Module Interface (A : Arch).
+114:   Import A.
+115:
+116:   Definition va := bv va_size.
+117:   Definition accessKind := Access_kind arch_ak.
+118:
+119:   Module ReadReq.
+120:     Record t {n : N} :=
+121:       make
+122:         { pa : pa;
+123:           access_kind : accessKind;
+124:           va : option va;
+125:           translation : translation;
+126:           tag : bool;
+127:         }.
+128:     Arguments t : clear implicits.
+129:   End ReadReq.
+130:
+131:   Module WriteReq.
+132:     Record t {n : N} :=
+133:       make
+134:         { pa : pa;
+135:           access_kind : accessKind;
+136:           value : bv (8 * n);
+137:           va : option va;
+138:           translation : A.translation;
+139:           tag : option bool;
+140:         }.
+141:     Arguments t : clear implicits.
+142:   End WriteReq.
+143:
+144:   Section T.
+145:     Context {eOutcome : Type -> Type}.
+146:
+147:   Inductive outcome : Type -> Type :=
+148:     (** The access_kind says whether this is an explicit system register
+149:         access, and if so what system register identifier was used. *)
+150:   | RegRead (reg : reg) (access_kind : option sys_reg_id) : outcome (reg_type reg)
+151:
+152:     (** The access_kind says whether this is an explicit system register
+153:         access, and if so what system register identifier was used.
+154:
+155:         The dep_on would be the dependency of the register write.
+156:
+157:         Generally, writing the PC introduces no dependency because control
+158:         dependencies are specified by the branch announce *)
+159:   | RegWrite (reg : reg) (access_kind : option sys_reg_id)
+160:              (regval: reg_type reg) : outcome unit
+161:   | MemRead (n : N) : ReadReq.t n ->
+162:                       outcome (bv (8 * n) * option bool + abort)
+163:   | MemWrite (n : N) : WriteReq.t n -> outcome (option bool + abort)
+164:     (** Declare the opcode of the current instruction when known. Used for
+165:         dependency computation *)
+166:   | InstrAnnounce (opcode : bvn) : outcome unit
+167:     (** The deps here specify the control dependency *)
+168:   | BranchAnnounce sz (pa : mword sz) : outcome unit
+169:   | Barrier : barrier -> outcome unit
+170:   | CacheOp : cache_op -> outcome unit
+171:   | TlbOp : tlb_op -> outcome unit
+172:   | TakeException : fault -> outcome unit
+173:   | ReturnException (pa : pa) : outcome unit
+174:   | TranslationStart : trans_start -> outcome unit
+175:   | TranslationEnd : trans_end -> outcome unit
+176:
+177:   (** Custom outcome to support simplified models on either side that want
+178:       symbolic outcomes. This can be use to represent abstracted sail function
+179:       for example the Arm translation function *)
+180:   | ExtraOutcome {A} : eOutcome A -> outcome A
+181:
+182:   (** Bail out when something went wrong; this may be refined in the future.
+183:       This is an ISA model triggered failure *)
+184:   | GenericFail (msg : string) : outcome False
+185:
+186:   | CycleCount : outcome unit
+187:   | GetCycleCount : outcome Z
+188:
+189:   (** The next two outcomes are for handling non-determinism. Choose will branch
+190:       the possible executions non-deterministically for every value of the
+191:       type given by the code *)
+192:   | Choose ty : outcome (choose_type ty)
+193:   (** Discard means that the instruction could never have made the previous
+194:       non-deterministic choices and the current execution can be silently
+195:       discarded. *)
+196:   | Discard : outcome False
+197:
+198:   (** Messages from the model for tracing or debugging *)
+199:   | Message : string -> outcome unit.
+200:
+201:
+202:   (********** Monad instance **********)
+203:
+204:   (** This is a naive but inefficient implementation of the instruction monad.
+205:       It might be replaced by an more efficient version later. *)
+206:   (* TODO: Do something like itrees to take the full outcome type as a
+207:      parameter *)
+208:   Inductive iMon {A : Type} :=
+209:   | Ret : A -> iMon
+210:   | Next {T : Type} : outcome T -> (T -> iMon) -> iMon.
+211:   Arguments iMon : clear implicits.
+212:
+213:   Global Instance iMon_mret_inst : MRet iMon := { mret a := Ret }.
+214:
+215:   Fixpoint iMon_bind {a b : Type} (ma : iMon a) (f : a -> iMon b) :=
+216:     match ma with
+217:     | Ret x => f x
+218:     | Next oc k => Next oc (fun x => iMon_bind (k x) f) end.
+219:   Global Instance iMon_mbind_inst : MBind iMon :=
+220:     { mbind _ _ f x := iMon_bind x f}.
+221:

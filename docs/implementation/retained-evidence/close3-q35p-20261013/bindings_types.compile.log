@@ -1,0 +1,79 @@
+File "/root/build/lane-close3-20261013-memory/q35p/baseline/bindings_types.v", line 129, characters 2-26:
+Warning: This interactive proof is not started by the "Proof" command.
+[missing-proof-command,fragile,default]
+File "/root/build/lane-close3-20261013-memory/q35p/baseline/bindings_types.v", line 132, characters 2-8:
+Warning: This interactive proof is not started by the "Proof" command.
+[missing-proof-command,fragile,default]
+File "/root/build/lane-close3-20261013-memory/q35p/baseline/bindings_types.v", line 138, characters 2-160:
+Warning: This interactive proof is not started by the "Proof" command.
+[missing-proof-command,fragile,default]
+File "/root/build/lane-close3-20261013-memory/q35p/baseline/bindings_types.v", line 147, characters 2-24:
+Warning: This interactive proof is not started by the "Proof" command.
+[missing-proof-command,fragile,default]
+File "/root/build/lane-close3-20261013-memory/q35p/baseline/bindings_types.v", line 152, characters 0-38:
+Warning: This interactive proof is not started by the "Proof" command.
+[missing-proof-command,fragile,default]
+File "/root/build/lane-close3-20261013-memory/q35p/baseline/bindings_types.v", line 158, characters 0-115:
+Warning: This interactive proof is not started by the "Proof" command.
+[missing-proof-command,fragile,default]
+File "/root/build/lane-close3-20261013-memory/q35p/baseline/bindings_types.v", line 202, characters 2-26:
+Warning: This interactive proof is not started by the "Proof" command.
+[missing-proof-command,fragile,default]
+File "/root/build/lane-close3-20261013-memory/q35p/baseline/bindings_types.v", line 205, characters 2-8:
+Warning: This interactive proof is not started by the "Proof" command.
+[missing-proof-command,fragile,default]
+File "/root/build/lane-close3-20261013-memory/q35p/baseline/bindings_types.v", line 211, characters 2-157:
+Warning: This interactive proof is not started by the "Proof" command.
+[missing-proof-command,fragile,default]
+File "/root/build/lane-close3-20261013-memory/q35p/baseline/bindings_types.v", line 220, characters 2-23:
+Warning: This interactive proof is not started by the "Proof" command.
+[missing-proof-command,fragile,default]
+File "/root/build/lane-close3-20261013-memory/q35p/baseline/bindings_types.v", line 225, characters 0-37:
+Warning: This interactive proof is not started by the "Proof" command.
+[missing-proof-command,fragile,default]
+File "/root/build/lane-close3-20261013-memory/q35p/baseline/bindings_types.v", line 231, characters 0-113:
+Warning: This interactive proof is not started by the "Proof" command.
+[missing-proof-command,fragile,default]
+File "/root/build/lane-close3-20261013-memory/q35p/baseline/bindings_types.v", line 253, characters 2-26:
+Warning: This interactive proof is not started by the "Proof" command.
+[missing-proof-command,fragile,default]
+File "/root/build/lane-close3-20261013-memory/q35p/baseline/bindings_types.v", line 256, characters 2-8:
+Warning: This interactive proof is not started by the "Proof" command.
+[missing-proof-command,fragile,default]
+File "/root/build/lane-close3-20261013-memory/q35p/baseline/bindings_types.v", line 262, characters 2-166:
+Warning: This interactive proof is not started by the "Proof" command.
+[missing-proof-command,fragile,default]
+File "/root/build/lane-close3-20261013-memory/q35p/baseline/bindings_types.v", line 271, characters 2-26:
+Warning: This interactive proof is not started by the "Proof" command.
+[missing-proof-command,fragile,default]
+File "/root/build/lane-close3-20261013-memory/q35p/baseline/bindings_types.v", line 276, characters 0-40:
+Warning: This interactive proof is not started by the "Proof" command.
+[missing-proof-command,fragile,default]
+File "/root/build/lane-close3-20261013-memory/q35p/baseline/bindings_types.v", line 282, characters 0-119:
+Warning: This interactive proof is not started by the "Proof" command.
+[missing-proof-command,fragile,default]
+File "/root/build/lane-close3-20261013-memory/q35p/baseline/bindings_types.v", line 300, characters 3-15:
+Warning: This interactive proof is not started by the "Proof" command.
+[missing-proof-command,fragile,default]
+File "/root/build/lane-close3-20261013-memory/q35p/baseline/bindings_types.v", line 307, characters 0-151:
+Warning: This interactive proof is not started by the "Proof" command.
+[missing-proof-command,fragile,default]
+File "/root/build/lane-close3-20261013-memory/q35p/baseline/bindings_types.v", line 318, characters 0-132:
+Warning: Closed notations (i.e. starting and ending with a terminal symbol)
+should usually be at level 0 (default).
+[closed-notation-not-level-0,parsing,default]
+File "/root/build/lane-close3-20261013-memory/q35p/baseline/bindings_types.v", line 370, characters 0-68:
+Warning: This interactive proof is not started by the "Proof" command.
+[missing-proof-command,fragile,default]
+File "/root/build/lane-close3-20261013-memory/q35p/baseline/bindings_types.v", line 400, characters 0-43:
+Warning: This interactive proof is not started by the "Proof" command.
+[missing-proof-command,fragile,default]
+File "/root/build/lane-close3-20261013-memory/q35p/baseline/bindings_types.v", line 422, characters 0-79:
+Warning: This interactive proof is not started by the "Proof" command.
+[missing-proof-command,fragile,default]
+File "/root/build/lane-close3-20261013-memory/q35p/baseline/bindings_types.v", line 456, characters 0-74:
+Warning: This interactive proof is not started by the "Proof" command.
+[missing-proof-command,fragile,default]
+File "/root/build/lane-close3-20261013-memory/q35p/baseline/bindings_types.v", line 462, characters 0-64:
+Warning: This interactive proof is not started by the "Proof" command.
+[missing-proof-command,fragile,default]

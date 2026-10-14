@@ -1,0 +1,23 @@
+Definition read_tagS {Regs A E} (addr : mword A) : monadS Regs bool E :=
+  let addr := mword_to_N addr in
+  readS (fun s => opt_def false (NMap.find addr s.(ss_tagstate))).
+
+Definition put_tag {Regs} addr (tag : bool) (s : sequential_state Regs) : sequential_state Regs :=
+  let write_tag mem addr := NMap.add addr tag mem in
+  {| ss_regstate := s.(ss_regstate);
+     ss_memstate := s.(ss_memstate);
+     ss_tagstate := write_tag s.(ss_tagstate) addr;
+     ss_output := s.(ss_output);
+  |}.
+
+Definition write_tag_rawS {Regs E} (wk:write_kind) (addr : N) (tag : bool) : monadS Regs bool E :=
+  updateS (put_tag addr tag) >>$
+  returnS true.
+
+Definition write_tagS {Regs E A} (wk:write_kind) (addr : mword A) (tag : bool) : monadS Regs bool E :=
+  let addr := mword_to_N addr in
+  write_tag_rawS wk addr tag.
+
+Definition write_tag_boolS {Regs E A} (addr : mword A) (tag : bool) : monadS Regs bool E :=
+  let addr := mword_to_N addr in
+  write_tag_rawS Write_plain addr tag.
