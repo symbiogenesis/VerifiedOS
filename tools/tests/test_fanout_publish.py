@@ -1,8 +1,10 @@
 # SPDX-License-Identifier: Apache-2.0
 """Batch completion publishes only main, then orders hosted CI and retirement."""
 
+import subprocess
 from collections.abc import Callable
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import patch
 
 from tests.fanout_fixture import commit, finish_args, fixture, git, init, refuses
@@ -45,6 +47,7 @@ def _publish_wait_resume() -> None:
 
         with (patch.object(fanout_ci, "repository", return_value="example/repo"),
               patch.object(fanout_ci, "advance", side_effect=advance),
+              patch.object(fanout, "_prepublication", wraps=fanout._prepublication) as preparation,
               patch.object(fanout_retire, "retire", side_effect=retire)):
             ensure(not fanout.finish(root, state, path, finish_args()), "pending host stops completion")
             ensure(state["status"] == "host-pending" and not state["retired"], "pending is not success")
@@ -53,6 +56,7 @@ def _publish_wait_resume() -> None:
             ensure(state["status"] == "complete", "completion persisted")
             ensure(fanout.finish(root, state, path, finish_args()), "completed resume is read-only")
             ensure(observed == ["ci", "ci", "retire"], "no repeated dispatch or retirement")
+            ensure(preparation.call_count == 1, "pending and completed resumes do not repeat preparation")
             commit(root, "new inputs")
             refuses(lambda: fanout.finish(root, state, path, finish_args()), "inputs changed")
 
@@ -162,6 +166,71 @@ def _remote_changes_during_ci() -> None:
             ensure(state["status"] != "complete", "remote change does not complete")
 
 
+def _preparation_refuses_publication() -> None:
+    for selector in ("typecheck", "test_lanes", "test_retained_evidence"):
+        with fixture() as (root, lane, remote):
+            script = root / "tools/run.py"
+            script.write_text(
+                "import sys\n"
+                f"raise SystemExit(1 if sys.argv[-1] == {selector!r} else 0)\n",
+                encoding="utf-8", newline="")
+            git(root, "add", "--", "tools/run.py")
+            commit(root, "preparation finding")
+            state, path = init(root, lane)
+            with patch.object(fanout_ci, "advance") as handoff:
+                refuses(lambda state=state, path=path: fanout.finish(root, state, path, finish_args()),
+                        "main was not pushed")
+                handoff.assert_not_called()
+            ensure(git(remote, "for-each-ref", "--format=%(refname)") == "",
+                   f"{selector} finding leaves the remote untouched")
+            ensure(state["ci"] is None, "refused preparation records no hosted evidence")
+
+
+def _preparation_timeout_one(selector: str) -> None:
+    with fixture() as (root, lane, remote):
+        state, path = init(root, lane)
+
+        def launch(argv: list[str], *, cwd: Path, check: bool,
+                   timeout: int) -> subprocess.CompletedProcess[bytes]:
+            if argv[-1] == selector:
+                ensure(cwd == root and timeout == 300,
+                       "preparation uses the settled checkout and its bounded limit")
+                raise subprocess.TimeoutExpired(argv, timeout)
+            return subprocess.run(argv, cwd=cwd, check=check, timeout=timeout)
+
+        with (patch.object(fanout, "subprocess", SimpleNamespace(run=launch)),
+              patch.object(fanout_ci, "advance") as handoff):
+            try:
+                fanout.finish(root, state, path, finish_args())
+            except subprocess.TimeoutExpired:
+                pass
+            else:
+                raise AssertionError("preparation timeout must stop publication")
+            handoff.assert_not_called()
+        ensure(git(remote, "for-each-ref", "--format=%(refname)") == "",
+               "preparation timeout leaves the remote untouched")
+        ensure(state["ci"] is None, "timeout records no hosted evidence")
+
+
+def _preparation_timeout() -> None:
+    for selector in ("typecheck", "test_lanes", "test_retained_evidence"):
+        _preparation_timeout_one(selector)
+
+
+def _preparation_changes_inputs() -> None:
+    with fixture() as (root, lane, remote):
+        state, _ = init(root, lane)
+        revision = git(root, "rev-parse", "HEAD")
+
+        def changed(checkout: Path) -> None:
+            (checkout / "README.md").write_text("concurrent edit\n", encoding="utf-8")
+
+        with patch.object(fanout, "_prepublication", side_effect=changed):
+            refuses(lambda: fanout._publish(root, state, revision), "uncommitted inputs")
+        ensure(git(remote, "for-each-ref", "--format=%(refname)") == "",
+               "preparation cannot publish a checkout changed during its checks")
+
+
 def cases() -> list[Case]:
     return [Case("publish, pending host, resume and retirement order", _publish_wait_resume),
             Case("reading base reaches CI and needs a proper descendant",
@@ -169,4 +238,7 @@ def cases() -> list[Case]:
             Case("partial retirement resumes without checkout", _retirement_resume),
             Case("concurrent inputs prevent retirement", _inputs_change_during_ci),
             Case("main-only completion and publication without tags", _main_only),
-            Case("remote changes prevent retirement", _remote_changes_during_ci)]
+            Case("remote changes prevent retirement", _remote_changes_during_ci),
+            Case("each preparation finding prevents publication", _preparation_refuses_publication),
+            Case("each preparation timeout prevents publication", _preparation_timeout),
+            Case("changed inputs during preparation prevent publication", _preparation_changes_inputs)]

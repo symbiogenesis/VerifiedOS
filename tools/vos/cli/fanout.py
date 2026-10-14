@@ -298,7 +298,22 @@ def _prepare(root: Path, paths: list[str], message: str | None) -> None:
     _clean(root)
 
 
+def _prepublication(root: Path) -> None:
+    """Focused feedback for recurring integration failures; hosted gates still decide."""
+    commands = (("typecheck",), ("test", "--only", "test_lanes"),
+                ("test", "--only", "test_retained_evidence"))
+    for command in commands:
+        label = " ".join(command)
+        print(f"Before publication: {label}", flush=True)
+        result = subprocess.run([sys.executable, str(root / "tools" / "run.py"), *command],
+                                cwd=root, check=False, timeout=300)
+        if result.returncode:
+            raise ValueError(f"prepublication {label} exited {result.returncode}; main was not pushed")
+
+
 def _publish(root: Path, state: Batch, revision: str) -> str:
+    _settled(root, state, revision)
+    _prepublication(root)
     _settled(root, state, revision)
     remote = state["remote"]
     # Explicitly disable followTags even if a user's Git configuration enables it.
