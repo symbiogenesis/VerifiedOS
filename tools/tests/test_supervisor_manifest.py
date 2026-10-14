@@ -25,6 +25,11 @@ def _sandbox() -> Iterator[tuple[Path, dict[str, Any]]]:
              *composition.PRODUCERS}
     for member in raw["members"]:
         paths.update(ref["path"] for ref in member["sources"])
+        if member["descriptor"] is not None:
+            paths.add(member["descriptor"]["path"])
+            package = composition._package(ROOT, member)
+            if package is not None:
+                paths.update(ref["path"] for ref in composition._package_sources(package))
     for producer in raw["producers"]:
         paths.update(ref["path"] for ref in producer["sources"])
     paths.update(f"supervisor/{name}" for name in supervisor.SOURCES)

@@ -1,0 +1,57 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "VerifiedOS source-owned package inventory",
+  "description": "Existing component sources and interface owners. A null handler_graph is unresolved, never an empty admitted graph or an executable/admission verdict.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "package_id", "sources", "interfaces", "handler_graph"],
+  "properties": {
+    "schema_version": {"const": 1},
+    "package_id": {"type": "string", "pattern": "^[a-z][a-z0-9-]*$"},
+    "sources": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {"$ref": "#/$defs/source"}
+    },
+    "interfaces": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "source"],
+        "properties": {
+          "id": {"type": "string", "pattern": "^[a-z][a-z0-9-]*$"},
+          "source": {"$ref": "#/$defs/source"}
+        }
+      }
+    },
+    "handler_graph": {
+      "anyOf": [
+        {"type": "null"},
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["desc_manifest", "desc_edges"],
+          "properties": {
+            "desc_manifest": {"type": "integer", "minimum": 0},
+            "desc_edges": {"type": "array", "description": "Exact edge fields and numeric validation belong to vos.composer.parse_document."}
+          }
+        }
+      ]
+    }
+  },
+  "$defs": {
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "sha256"],
+      "properties": {
+        "path": {"type": "string", "minLength": 1},
+        "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+      }
+    }
+  }
+}

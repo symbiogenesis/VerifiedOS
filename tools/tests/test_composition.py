@@ -32,6 +32,11 @@ def _sandbox() -> Iterator[tuple[Path, dict[str, Any]]]:
     paths = {c.EXAMPLE, boot.CONTRACT, raw["configuration"]["path"], *c.PRODUCERS}
     for member in raw["members"]:
         paths.update(ref["path"] for ref in member["sources"])
+        if member["descriptor"] is not None:
+            paths.add(member["descriptor"]["path"])
+            package = c._package(ROOT, member)
+            if package is not None:
+                paths.update(ref["path"] for ref in c._package_sources(package))
     for producer in raw["producers"]:
         paths.update(ref["path"] for ref in producer["sources"])
     with tempfile.TemporaryDirectory(prefix="vos-composition-") as temporary:
