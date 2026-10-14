@@ -6,7 +6,7 @@ import operator
 import tempfile
 from collections.abc import Iterable
 from pathlib import Path
-from typing import SupportsIndex
+from typing import SupportsIndex, override
 
 from tests.harness import Case, ensure
 from vos import corpus
@@ -48,12 +48,15 @@ def _other_offset_orders_retain_results() -> None:
 
 
 class _CountedText(str):
+    __slots__ = ("scanned",)
+
     def __init__(self, _text: str) -> None:
         self.scanned = 0
 
-    def count(self, sub: str, start: SupportsIndex = 0,
+    @override
+    def count(self, sub: str, start: SupportsIndex | None = 0,
               end: SupportsIndex | None = None, /) -> int:
-        first = operator.index(start)
+        first = 0 if start is None else operator.index(start)
         finish = len(self) if end is None else operator.index(end)
         self.scanned += max(0, finish - first)
         return super().count(sub, start) if end is None else super().count(sub, start, end)
