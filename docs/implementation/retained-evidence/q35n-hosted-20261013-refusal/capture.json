@@ -1,0 +1,23 @@
+{
+  "available_verdict": "failure",
+  "changed_proof_settings": false,
+  "changed_source_semantics": false,
+  "controller_correction": "75df666a0642a182cea188bfaea70b1cee8945ca",
+  "credits": {
+    "canonical_consumer": false,
+    "cold_package_tests": true,
+    "frozen_repetition": false,
+    "native_assumptions": false,
+    "portable_snapshot": false,
+    "production_carriage": false,
+    "recursive_kernel": false,
+    "strict_support_compilation": true
+  },
+  "first_failed_command": "inventory-0",
+  "passed_strict_modules": 29,
+  "reason": "Error: Invalid character '-' in identifier \"assumption-0\".",
+  "run_attempt": 1,
+  "run_id": 38354508897,
+  "run_url": "https://github.com/symbiogenesis/VerifiedOS/actions/runs/38354508897",
+  "tested_revision": "eb10cff9ef91e66560ec0a986782b8c24c19b556"
+}

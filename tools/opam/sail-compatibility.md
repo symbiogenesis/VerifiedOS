@@ -266,3 +266,18 @@ timeout diagnostics and supplies no passed verdict on an incomplete campaign.
 This source campaign qualifies a support candidate's portability only. The
 project lock and production carriage still require Q35p's semantic agreement,
 Q35o's emission compatibility and Q35b's actual canonical consumer acceptance.
+
+[First hosted cold source refusal](../../docs/implementation/retained-evidence/q35n-hosted-20261013-refusal/manifest.json), SHA256 `f819c10c3dd0c7a61750629f14c67d6ed2e142d3500f362d151dd30585a572c5`,
+retains the actual [campaign](https://github.com/symbiogenesis/VerifiedOS/actions/runs/38354508897)
+at `eb10cff9ef91e66560ec0a986782b8c24c19b556`. The guarded plan, cold dependency
+installation with package tests and all 29 strict support compiles passed. The
+first declaration inventory failed because the controller used `assumption-0.v`,
+an invalid Rocq module identifier. No native assumption, frozen repetition,
+recursive kernel or snapshot verdict was reached. The import job was skipped and
+the join refused the failed campaign.
+
+The bounded controller correction uses `Assumption_N.v` and `Frozen_N.v`,
+preserving query contents, compiler flags, command labels and acceptance logic.
+Its focused regression captures the actual compiler arguments of both loops;
+independent review and all ten selected controller cases passed. A fresh hosted
+campaign is still required before any source snapshot portability claim.

@@ -1,0 +1,1 @@
+# To update the current shell environment, run: eval $(opam env --switch=sail-support-qualification)
