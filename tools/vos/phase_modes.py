@@ -165,6 +165,7 @@ def _tables(contract: ModeContract) -> Tables:
         if name not in tables:
             raise ValueError(f"initial names an undeclared mode: {name}")
     seen: set[Transition] = set()
+    outgoing: dict[str, list[str]] = {}
     for transition in contract.transitions:
         for name in (transition.source, transition.target):
             if name not in tables:
@@ -183,14 +184,15 @@ def _tables(contract: ModeContract) -> Tables:
                 and transition.to_phase == (transition.from_phase + 1) % length):
             raise ValueError(f"no-op transition into the source's own continuation: "
                              f"{transition.to_json()}")
+        outgoing.setdefault(transition.source, []).append(transition.target)
     reachable = set(contract.initial)
     frontier = deque(contract.initial)
     while frontier:
         mode = frontier.popleft()
-        for transition in contract.transitions:
-            if transition.source == mode and transition.target not in reachable:
-                reachable.add(transition.target)
-                frontier.append(transition.target)
+        for target in outgoing.get(mode, ()):
+            if target not in reachable:
+                reachable.add(target)
+                frontier.append(target)
     unreachable = [name for name in tables if name not in reachable]
     if unreachable:
         raise ValueError(f"no initial mode reaches declared mode(s): {', '.join(unreachable)}")
@@ -214,6 +216,24 @@ def _counts(contract: ModeContract, modes: list[str]) -> dict[str, int]:
     return counts
 
 
+def _trace[S](history: dict[S, tuple[S, Batch, Step] | None],
+              state: S) -> tuple[tuple[Batch, ...], tuple[Step, ...]]:
+    """Reconstruct the first-discovery path only when a counterexample is returned.
+
+    Each noninitial state retains one predecessor edge instead of copying its
+    entire prefix. Breadth-first discovery still owns the shortest path and ties.
+    """
+    batches: list[Batch] = []
+    steps: list[Step] = []
+    while (edge := history[state]) is not None:
+        state, batch, step = edge
+        batches.append(batch)
+        steps.append(step)
+    batches.reverse()
+    steps.reverse()
+    return tuple(batches), tuple(steps)
+
+
 def check(contract: ModeContract) -> ModeResult:
     """Explore the reachable product to closure, or to its earliest failing cycle.
 
@@ -227,16 +247,19 @@ def check(contract: ModeContract) -> ModeResult:
     switches = _switches(contract)
     banks = next(iter(tables.values()))[0].banks
     pending: deque[ModeState] = deque()
-    history: dict[ModeState, tuple[tuple[Batch, ...], tuple[Step, ...]]] = {}
+    history: dict[ModeState, tuple[ModeState, Batch, Step] | None] = {}
     for mode in contract.initial:
         initial: ModeState = (mode, 0, (0,) * banks, ())
-        history[initial] = ((), ())
+        history[initial] = None
         pending.append(initial)
     taken: set[int] = set()
     drain = 0
 
-    def failed(trace: tuple[Batch, ...], steps: tuple[Step, ...], state: ModeState,
-               reason: str) -> ModeResult:
+    def failed(state: ModeState, reason: str, batch: Batch | None = None) -> ModeResult:
+        trace, steps = _trace(history, state)
+        if batch is not None:
+            trace = (*trace, batch)
+            steps = (*steps, (state[0], state[1]))
         return ModeResult(False, len(history), trace, state, reason, trace_modes=steps,
                           mode_states=_counts(contract, [known[0] for known in history]),
                           transitions_taken=tuple(sorted(taken)))
@@ -245,28 +268,25 @@ def check(contract: ModeContract) -> ModeResult:
         state = pending.popleft()
         mode, phase, busy, flight = state
         table, refresh, paths = tables[mode]
-        prefix, steps = history[state]
         drain = max([drain, *(remaining for _, remaining, _, _ in flight)])
         reserved = list(busy)
         for entry in refresh[phase]:
             if busy[entry[0]]:
-                return failed(prefix, steps, state, "refresh-overlap")
+                return failed(state, "refresh-overlap")
             reserved[entry[0]] = entry[1]
         launched: list[Flight] = []
         for bank, remaining, occupancy, hart in flight:
             if remaining > 1:
                 launched.append((bank, remaining - 1, occupancy, hart))
             elif reserved[bank]:
-                return failed(prefix, steps, state, "path-blocked")
+                return failed(state, "path-blocked")
             elif any(other == hart for _, _, _, other in launched):
-                return failed(prefix, steps, state, "order-inverted")
+                return failed(state, "order-inverted")
             else:
                 reserved[bank] = occupancy
         for batch in table.arrivals[phase]:
-            trace = (*prefix, batch)
-            trace_steps = (*steps, (mode, phase))
             if len(batch) > table.grants[phase]:
-                return failed(trace, trace_steps, state, "arrival-blocked")
+                return failed(state, "arrival-blocked", batch)
             accepting = list(reserved)
             issued = list(launched)
             for request in batch:
@@ -274,9 +294,9 @@ def check(contract: ModeContract) -> ModeResult:
                 if paths[bank]:
                     issued.append((bank, paths[bank], occupancy, hart))
                 elif accepting[bank]:
-                    return failed(trace, trace_steps, state, "arrival-blocked")
+                    return failed(state, "arrival-blocked", batch)
                 elif any(other == hart for _, _, _, other in issued):
-                    return failed(trace, trace_steps, state, "order-inverted")
+                    return failed(state, "order-inverted", batch)
                 else:
                     accepting[bank] = occupancy
             carried = tuple(max(0, cycles - 1) for cycles in accepting)
@@ -287,7 +307,7 @@ def check(contract: ModeContract) -> ModeResult:
                 successors.append((target, to_phase, carried, tuple(issued)))
             for successor in successors:
                 if successor not in history:
-                    history[successor] = (trace, trace_steps)
+                    history[successor] = (state, batch, (mode, phase))
                     pending.append(successor)
     return ModeResult(True, len(history), drain=drain,
                       mode_states=_counts(contract, [known[0] for known in history]),
@@ -310,19 +330,20 @@ def check_completion(contract: ModeContract) -> ModeCompletionResult:
     switches = _switches(contract)
     banks = next(iter(tables.values()))[0].banks
     pending: deque[tuple[str, CompletionState]] = deque()
-    history: dict[tuple[str, CompletionState], tuple[tuple[Batch, ...], tuple[Step, ...]]] = {}
+    history: dict[tuple[str, CompletionState],
+                  tuple[tuple[str, CompletionState], Batch, Step] | None] = {}
     for mode in contract.initial:
         initial = (mode, CompletionState(0, (0,) * banks, ()))
-        history[initial] = ((), ())
+        history[initial] = None
         pending.append(initial)
     taken: set[int] = set()
     maximum = 0
     while pending:
         mode, state = pending.popleft()
         table, refresh, paths = tables[mode]
-        prefix, steps = history[(mode, state)]
         duration, drain_failure, drain_reason = _drain(table, refresh, paths, state)
         if drain_failure is not None:
+            prefix, steps = _trace(history, (mode, state))
             return ModeCompletionResult(None, len(history), prefix, _lift(mode, state),
                                         f"drain-{drain_reason}", drain_status="blocked",
                                         drain_failure=_lift(mode, drain_failure),
@@ -333,6 +354,7 @@ def check_completion(contract: ModeContract) -> ModeCompletionResult:
         for batch in table.arrivals[state.phase]:
             successor, reason = _step(table, refresh, paths, state, batch, ordering=True)
             if successor is None:
+                prefix, steps = _trace(history, (mode, state))
                 return ModeCompletionResult(
                     False if reason == "completion-order-inverted" else None, len(history),
                     (*prefix, batch), _lift(mode, state), reason,
@@ -346,7 +368,7 @@ def check_completion(contract: ModeContract) -> ModeCompletionResult:
                                                         successor.operations)))
             for entry in targets:
                 if entry not in history:
-                    history[entry] = ((*prefix, batch), (*steps, (mode, state.phase)))
+                    history[entry] = ((mode, state), batch, (mode, state.phase))
                     pending.append(entry)
     return ModeCompletionResult(True, len(history), quiescent_drain=maximum,
                                 drain_status="finite",
