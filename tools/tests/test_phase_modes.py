@@ -5,12 +5,14 @@ import hashlib
 import json
 import shutil
 import tempfile
-from collections.abc import Callable
+from collections import deque
+from collections.abc import Callable, Iterator
 from contextlib import redirect_stdout
 from dataclasses import asdict
 from io import StringIO
 from pathlib import Path
-from typing import cast
+from typing import cast, override
+from unittest.mock import patch
 
 from tests.harness import TOOLS, Case, ensure
 from vos import phase_completion, phase_modes, phase_service
@@ -494,6 +496,120 @@ def _checker_validation() -> None:
            "a result serializes its mode counts as an object")
 
 
+def _graph_reference(contract: ModeContract, bad: set[str]) -> tuple[
+        phase_modes.ModeResult, phase_modes.ModeCompletionResult]:
+    """One-phase empty modes reduce the product to an independently traced graph BFS."""
+    history: dict[str, tuple[str, ...]] = dict.fromkeys(contract.initial, ())
+    pending = deque(contract.initial)
+    taken: set[int] = set()
+    while pending:
+        mode = pending.popleft()
+        prefix: tuple[str, ...] = history[mode]
+        if mode in bad:
+            path = (*prefix, mode)
+            trace: tuple[phase_service.Batch, ...] = (*(() for _ in prefix), ((0, 1),))
+            steps = tuple((name, 0) for name in path)
+            counts = {name: int(name in history) for name in contract.modes}
+            indices = tuple(sorted(taken))
+            return (phase_modes.ModeResult(False, len(history), trace, (mode, 0, (0,), ()),
+                                           "arrival-blocked", trace_modes=steps,
+                                           mode_states=counts, transitions_taken=indices),
+                    phase_modes.ModeCompletionResult(
+                        None, len(history), trace, phase_modes.ModeCompletionState(mode, 0, (0,), ()),
+                        "arrival-blocked", trace_modes=steps, mode_states=counts,
+                        transitions_taken=indices))
+        for index, transition in enumerate(contract.transitions):
+            if transition.source == mode:
+                taken.add(index)
+                if transition.target not in history:
+                    history[transition.target] = (*prefix, mode)
+                    pending.append(transition.target)
+    counts = {name: int(name in history) for name in contract.modes}
+    indices = tuple(sorted(taken))
+    return (phase_modes.ModeResult(True, len(history), drain=0, mode_states=counts,
+                                   transitions_taken=indices),
+            phase_modes.ModeCompletionResult(True, len(history), quiescent_drain=0,
+                                             drain_status="finite", mode_states=counts,
+                                             transitions_taken=indices))
+
+
+def _graph_oracle() -> None:
+    # All directed three-mode graphs, including cycles and joining paths. The
+    # declaration and initial orders exercise shortest-counterexample tie breaks.
+    names = ("C", "A", "B")
+    possible = tuple(Transition(source, 0, target, 0)
+                     for source in names for target in names if source != target)
+    quiet = Contract((0,), (((),),))
+    blocked = Contract((0,), ((((0, 1),),),))
+    compared = 0
+    for mask in range(1 << len(possible)):
+        transitions = tuple(edge for index, edge in enumerate(possible) if mask & (1 << index))
+        for initial in (("A",), ("B", "A")):
+            reachable = set(initial)
+            while True:
+                expanded = reachable | {edge.target for edge in transitions
+                                        if edge.source in reachable}
+                if expanded == reachable:
+                    break
+                reachable = expanded
+            missing = [name for name in names if name not in reachable]
+            if missing:
+                contract = ModeContract(initial, dict.fromkeys(names, quiet), transitions)
+                for checker in (check, check_completion):
+                    try:
+                        checker(contract)
+                    except ValueError as error:
+                        ensure(str(error) == "no initial mode reaches declared mode(s): "
+                               + ", ".join(missing), "graph reachability changed refusal order")
+                    else:
+                        raise AssertionError("an unreachable mode was accepted")
+                continue
+            for bad_mask in range(1 << len(names)):
+                bad = {name for index, name in enumerate(names) if bad_mask & (1 << index)}
+                contract = ModeContract(initial, {name: blocked if name in bad else quiet
+                                                  for name in names}, transitions)
+                acceptance, completion = _graph_reference(contract, bad)
+                ensure(check(contract) == acceptance and check_completion(contract) == completion,
+                       f"product changed the reference BFS verdict or trace: {contract}")
+                compared += 1
+    ensure(compared > 500, "the graph oracle exercised too few reachable products")
+
+
+def _linear_graph_work() -> None:
+    visits = 0
+
+    class CountedTransitions(tuple[Transition, ...]):
+        __slots__ = ()
+
+        @override
+        def __iter__(self) -> Iterator[Transition]:
+            nonlocal visits
+            for transition in super().__iter__():
+                visits += 1
+                yield transition
+
+    names = tuple(f"mode{index}" for index in range(128))
+    transitions = CountedTransitions(tuple(Transition(left, 0, right, 0)
+                                          for left, right in zip(names, (*names[1:], names[0]),
+                                                                 strict=True)))
+    quiet = Contract((0,), (((),),))
+    contract = ModeContract((names[0],), dict.fromkeys(names, quiet), transitions)
+    ensure(len(phase_modes._tables(contract)) == len(names), "the complete mode cycle was lost")
+    ensure(visits == len(transitions),
+           "reachability must index transitions once instead of rescanning for every mode")
+
+    # A long closed product needs no materialized trace, despite exploring every
+    # phase of each mode. Prefix copying previously grew with every visited depth.
+    frame = 128
+    table = Contract((0,) * frame, (((),),) * frame)
+    contract = ModeContract(("first",), {"first": table, "second": table},
+                            (Transition("first", frame - 1, "second", 0),))
+    with patch.object(phase_modes, "_trace", wraps=phase_modes._trace) as reconstructed:
+        ensure(check(contract).states == check_completion(contract).states == 2 * frame,
+               "the long closed product skipped reachable states")
+        ensure(reconstructed.call_count == 0, "a closed exploration must not reconstruct prefixes")
+
+
 def cases() -> list[Case]:
     return [Case("refusals", _refusals), Case("arrival-blocked", _arrival_blocked),
             Case("refresh-overlap", _refresh_overlap), Case("path-blocked", _path_blocked),
@@ -501,4 +617,5 @@ def cases() -> list[Case]:
             Case("single-mode", _single_mode), Case("projection", _projection),
             Case("completion-inversion", _completion_inversion),
             Case("drain-blocked", _drain_blocked), Case("cli-receipts", _cli_receipts),
-            Case("evaluate", _evaluate), Case("checker-validation", _checker_validation)]
+            Case("evaluate", _evaluate), Case("checker-validation", _checker_validation),
+            Case("graph-oracle", _graph_oracle), Case("linear-graph-work", _linear_graph_work)]
