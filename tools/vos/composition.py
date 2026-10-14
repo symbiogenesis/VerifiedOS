@@ -15,13 +15,14 @@ from typing import Any, cast
 from jsonschema import Draft202012Validator, validators
 
 from vos import boot, composer
+from vos import image as elf_image
 from vos.jsonutil import unique_object
 
 SCHEMA = "tools/composer/composition.schema.json"
 PACKAGE_SCHEMA = "tools/composer/package.schema.json"
 EXAMPLE = "tools/composer/m8a-composition.json"
 GENERATED = "tools/composer/generated"
-PRODUCERS = ("tools/vos/composition.py", "tools/vos/composer.py", "tools/vos/boot.py", SCHEMA,
+PRODUCERS = ("tools/vos/composition.py", "tools/vos/composer.py", "tools/vos/boot.py", "tools/vos/image.py", SCHEMA,
              PACKAGE_SCHEMA)
 OUTPUTS = ("manifest.json", "manifest.c", "graph-input.json", "recipe-members.json",
            "admission-request.json")
@@ -432,6 +433,26 @@ def _distinct_artifacts(root: Path, artifacts: dict[str, dict[str, str]]) -> Non
             raise CompositionError("build record: runtime members share a substituted artifact")
 
 
+def _image_graph(root: Path, image: dict[str, str], graph: bytes,
+                 placement: dict[str, Any] | None) -> None:
+    """Join the regenerated graph to the actual physical image-load bytes."""
+    if placement is None:
+        raise CompositionError("build record: unresolved graph placement")
+    snapshot = _path(root, image["path"]).read_bytes()
+    if digest(snapshot) != image["sha256"]:
+        raise CompositionError(f"stale source binding: {image['path']}")
+    try:
+        section = elf_image.read_only_section(snapshot, ".handler_graph")
+    except ValueError as error:
+        raise CompositionError(f"build record: graph/image binding: {error}") from error
+    if section.addr != int(placement["base"], 16):
+        raise CompositionError("build record: graph/image binding: graph address differs from placement")
+    if section.data != graph:
+        raise CompositionError("build record: graph/image binding: embedded graph bytes differ")
+    if len(section.data) > placement["bytes"]:
+        raise CompositionError("build record: graph/image binding: graph exceeds reserved extent")
+
+
 def build_record(root: Path, source: str, outputs: dict[str, bytes],
                  artifacts: dict[str, dict[str, str]], image: dict[str, str], graph: bytes) -> dict[str, object]:
     """Resolve produced artifact slots separately; this is byte binding, not admission."""
@@ -450,6 +471,7 @@ def build_record(root: Path, source: str, outputs: dict[str, bytes],
     for ref in [*artifacts.values(), image]:
         _bound(root, ref)
     _distinct_artifacts(root, artifacts)
+    _image_graph(root, image, graph, raw["graph_placement"])
     binding = _binding(root, raw, input_binding, roster_binding)
     # Produced bytes can drift while source bindings are constructed. Recheck
     # their declared identities at this publication boundary as well.

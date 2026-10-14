@@ -167,3 +167,81 @@ def write_elf(path: Path, sections: list[Section], symbols: dict[str, tuple[str,
 
 def _align_up(value: int, alignment: int) -> int:
     return (value + alignment - 1) // alignment * alignment
+
+
+def read_only_section(blob: bytes, name: str) -> Section:
+    """Read an allocated section and verify the bytes the physical loader sees.
+
+    This accepts the position-fixed ELF64 RISC-V format the in-tree writer emits.
+    A section header alone is no loading evidence: exactly one read-only,
+    non-executable PT_LOAD must carry all its bytes, and no other load segment
+    may overwrite its physical extent, including with a zero-filled tail.
+    """
+    def file_bytes(offset: int, size: int) -> bytes:
+        if offset + size > len(blob):
+            raise ValueError("ELF extent exceeds the image bytes")
+        return blob[offset:offset + size]
+
+    if len(blob) < EHDR_SIZE:
+        raise ValueError("image is not a supported ELF64 RISC-V executable")
+    header = struct.unpack_from("<16sHHIQQQIHHHHHH", blob)
+    ident, kind, machine, version = header[:4]
+    if (ident[:7] != b"\x7fELF\x02\x01\x01" or kind != ET_EXEC
+            or machine != EM_RISCV or version != 1 or header[8] != EHDR_SIZE
+            or header[9] != PHDR_SIZE or header[11] != SHDR_SIZE):
+        raise ValueError("image is not a supported ELF64 RISC-V executable")
+    phoff, shoff = header[5:7]
+    phnum, shnum, strings_index = header[10], header[12], header[13]
+    if not 0 < strings_index < shnum or not 0 < phnum < 0xffff:
+        raise ValueError("ELF graph binding requires ordinary section and program tables")
+    file_bytes(phoff, phnum * PHDR_SIZE)
+    file_bytes(shoff, shnum * SHDR_SIZE)
+    sections = [struct.unpack_from("<IIQQQQIIQQ", blob, shoff + index * SHDR_SIZE)
+                for index in range(shnum)]
+    strings = sections[strings_index]
+    if strings[1] != SHT_STRTAB:
+        raise ValueError("ELF section-name table is not a string table")
+    names = file_bytes(strings[4], strings[5])
+    matching = []
+    for section in sections:
+        offset = section[0]
+        end = names.find(b"\0", offset)
+        if offset >= len(names) or end < 0:
+            raise ValueError("ELF section name is outside the string table")
+        if names[offset:end] == name.encode("utf-8"):
+            matching.append(section)
+    if len(matching) != 1:
+        raise ValueError(f"ELF must contain exactly one {name} section")
+    section = matching[0]
+    kind, flags, address, offset, size = section[1:6]
+    if (kind != SHT_PROGBITS or size == 0
+            or flags & (SHF_ALLOC | SHF_WRITE | SHF_EXECINSTR) != SHF_ALLOC):
+        raise ValueError(f"ELF {name} section must be allocated, read-only and non-executable")
+    if address + size > 1 << 64:
+        raise ValueError(f"ELF {name} section wraps its physical address extent")
+    data = file_bytes(offset, size)
+    carriers = 0
+    for index in range(phnum):
+        segment = struct.unpack_from("<IIQQQQQQ", blob, phoff + index * PHDR_SIZE)
+        kind, flags, offset, _, physical, file_size, memory_size, _ = segment
+        if kind != PT_LOAD:
+            continue
+        if file_size > memory_size:
+            raise ValueError("ELF load segment's file extent exceeds its memory extent")
+        if physical + memory_size > 1 << 64:
+            raise ValueError("ELF load segment wraps its physical address extent")
+        file_bytes(offset, file_size)
+        if physical >= address + size or address >= physical + memory_size:
+            continue
+        if carriers:
+            raise ValueError(f"ELF load segments overlap {name}")
+        if (physical > address or physical + file_size < address + size
+                or flags & (PF_R | PF_W | PF_X) != PF_R):
+            raise ValueError(f"ELF {name} needs a complete read-only, non-executable load segment")
+        loaded = file_bytes(offset + address - physical, size)
+        if loaded != data:
+            raise ValueError(f"ELF load segment substitutes {name} bytes")
+        carriers += 1
+    if carriers != 1:
+        raise ValueError(f"ELF {name} is not physically loaded")
+    return Section(name, address, bytearray(data))

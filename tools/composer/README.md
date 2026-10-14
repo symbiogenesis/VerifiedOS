@@ -174,6 +174,15 @@ They reserve space rather than proving the size or identity of a built image.
 `vos.composition.build_record` resolves runtime artifact slots to actual file
 paths and digests after producing member bytes. It binds the input and all
 projection digests, regenerates the graph and binds the final image bytes.
+The image must be a position-fixed ELF64 RISC-V executable whose allocated
+`.handler_graph` section contains that exact graph at the declared reservation.
+The reader checks the actual physical `PT_LOAD` bytes: one complete read-only,
+non-executable segment must load the graph, and no other segment may overwrite
+it, including through a zero-filled memory tail. A containing segment may carry
+other read-only bytes. A section header, matching independent file digests or an
+unresolved placement cannot supply this graph/image join. Malformed file extents
+and physical address wraparound refuse before publication. The image reader is
+included in each projection's producer identity.
 `validate_build_record` first refuses malformed root containers and missing or
 extra root fields, then rechecks those inputs and bytes; it trusts no reported
 admission boolean. It compares canonical JSON bytes with the regenerated record,
@@ -205,11 +214,17 @@ is the default when `--projections` is omitted.
 
 `composer check-build-record INPUT --projections PROJECTION_DIRECTORY --record RECORD --graph GRAPH --image IMAGE`
 revalidates a saved record against those published projections, the current runtime
-artifacts, graph and final image. It writes no files. Changed projections, produced
+artifacts, graph and final image, including the embedded graph and its physical load
+binding. It writes no files. Changed projections, produced
 bytes or source bindings refuse; an unresolved graph also prevents record generation.
 Both operations retain `production_admission: false`. The focused
 `test --only test_composition_build_cli` covers the canonical round trip, publication
 and byte substitutions, malformed path maps, output aliases and unresolved inputs.
+The focused `test --only test_composition_image` uses emitted ELF fixtures to check
+embedded and loaded byte substitutions, graph placement and permissions, overlapping
+load and zero-fill extents, physical wraparound, and a valid containing load segment.
+These fixtures establish the byte join and retain `production_admission: false`;
+they supply no real member descriptor, target-product or derivation verdict.
 
 `composer promote INPUT` refuses the roster's incomplete members and the absent
 production admission implementation. M7.1a placement/image construction, M7.1b
