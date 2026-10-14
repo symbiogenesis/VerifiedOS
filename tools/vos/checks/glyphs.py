@@ -78,14 +78,25 @@ MOJIBAKE_MARKS = (*(chr(b) for b in LEAD_BYTES), REPLACEMENT)
 
 
 def _lines_carrying(raw: str, offsets: Iterable[int]) -> list[int]:
-    """One entry per line, however many hits it carries: the repair is one visit."""
+    """One entry per line, however many hits it carries: the repair is one visit.
+
+    Regex hits arrive in source order, so newline accounting advances with them
+    instead of scanning the entire prefix for every damaged character. Such a
+    reading touches at most the source length. Other offset orders retain the
+    prefix reader's result by restarting the count when an offset moves back.
+    """
     found: list[int] = []
     last = -1
+    at = line = 0
     for offset in offsets:
-        i = raw.count("\n", 0, offset)
-        if i != last:
-            found.append(i + 1)
-            last = i
+        if offset < at or offset < 0 or at < 0:
+            line = raw.count("\n", 0, offset)
+        else:
+            line += raw.count("\n", at, offset)
+        at = offset
+        if line != last:
+            found.append(line + 1)
+            last = line
     return found
 
 
