@@ -2,7 +2,7 @@
 
 *This **derived view** is the single enumeration of the frozen profile required by **R-15-001a** and used by R-15-001, R-15-014, and R-18-003a. The normative source is [requirements-register.md](../requirements-register.md), the artifact audited under R-05-152.*
 
-> **Precedence.** Where this document and the register disagree, **the register wins and this document is defective.** Every row cites the requirement that governs it, so a disagreement is a locatable defect rather than an ambiguity. This document adds no obligation of its own; it collects obligations stated elsewhere.
+> **Precedence.** [The register's rules for derived views](../requirements-register.md#how-to-read-this) apply. Every row cites its governing requirement.
 
 ## Why this document exists
 
