@@ -343,7 +343,8 @@ ground: moving a row's release would claim a licence reading nobody took.
 import codecs
 import re
 import tomllib
-from collections.abc import Callable
+import zlib
+from collections.abc import Callable, Iterator
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, cast
 
@@ -1926,7 +1927,7 @@ def _dev_tools(ctx: Context) -> None:
                f"each of the {pinned} pins its pip constraint files carry is a held row's")
 
 
-def _sources(ctx: Context) -> list[tuple[str, str, list[bool]]]:
+def _sources(ctx: Context) -> Iterator[tuple[str, str, list[bool]]]:
     """Every file this rule reads, as its lines and which of them a fence displays.
 
     **The window is the git index**, because a pin is restated wherever somebody
@@ -1965,15 +1966,16 @@ def _sources(ctx: Context) -> list[tuple[str, str, list[bool]]]:
     tracked file is made of is the glyphs group's question, and pricing one
     unreadable file under both would report one defect twice.
     """
-    window: list[tuple[str, str, list[bool]]] = [
-        (doc.name, doc.raw, doc.fenced) for doc in ctx.corpus.docs]
+    for doc in ctx.corpus.docs:
+        yield doc.name, doc.raw, doc.fenced
     machine = generated.paths()
 
     # Narrowed here rather than trusted, which is what `Context.shared` being `Any`
     # asks of each reader: the counts group puts `(rel, text)` pairs there and this
     # is the sentence saying so.
     ported = cast("list[tuple[str, str]]", ctx.shared.get("citation_window", []))
-    window += [(rel, text, []) for rel, text in ported]
+    for rel, text in ported:
+        yield rel, text, []
 
     for rel in ctx.corpus.tracked:
         if rel in ctx.corpus or rel.startswith(corpus_mod.UNREAD_PREFIX):
@@ -1981,11 +1983,13 @@ def _sources(ctx: Context) -> list[tuple[str, str, list[bool]]]:
         if rel in machine:
             continue
         try:
-            text = (ctx.root / rel).read_text(encoding="utf-8")
-        except (OSError, UnicodeDecodeError):
+            # Preserve read_text's universal-newline behavior for these files,
+            # including retained text now stored as lossless gzip evidence.
+            text = corpus_mod.scan_bytes(ctx.root, rel).decode("utf-8")
+            text = text.replace("\r\n", "\n").replace("\r", "\n")
+        except (OSError, UnicodeDecodeError, EOFError, ValueError, zlib.error):
             continue
-        window.append((rel, text, []))
-    return window
+        yield rel, text, []
 
 
 def _pins(ctx: Context) -> None:
@@ -2098,6 +2102,14 @@ def _restatements(ctx: Context, rows: list[pins_mod.Pin],
     held = 0
 
     for file, text, fenced in _sources(ctx):
+        # Attribution requires an upstream name on the id's own line. Rejecting
+        # a file carrying none of the folded spellings is therefore equivalent
+        # to the full scan, and avoids visiting every hex literal in large proof
+        # dumps. A substring here is only a candidate; scan_text still decides
+        # name boundaries, overlaps, line ownership and id boundaries.
+        low = text.lower()
+        if not any(needle in low for needle, _, _ in named):
+            continue
         for site in pins_mod.scan_text(file, text, named):
             if fenced and fenced[site.index]:
                 continue
