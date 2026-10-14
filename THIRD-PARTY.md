@@ -366,9 +366,35 @@ coq-sail release, with its exact BSD-2-Clause notice in
 `docs/implementation/retained-evidence/q35q-native-20261013/Sail-Support-LICENSE`,
 re-read on 2026-10-13. Its authored lookup queries copy no upstream proof script;
 no support source tree or compiled object is distributed.
-Q35o retains only the generated tag-loop fragment and its diagnostics, with the
+The signature type completeness evidence in
+`docs/implementation/retained-evidence/close3-q35q-20261013/` retains additional
+printed module/signature declarations from the same immutable coq-sail release,
+under BSD-2-Clause with its adjacent `Sail-Support-LICENSE`, re-read on 2026-10-13.
+Its authored query copies no proof script. The locally inspected Rocq printer
+source is bound only by digest and is not copied or excerpted. No support source
+tree or compiled object is distributed by this evidence.
+The `q35o-20261013/` refusal bundle retains the generated tag-loop fragment and its diagnostics, with the
 exact RISC-V and CHERI model notices, re-read on 2026-10-13. The fragment keeps
 BSD-2-Clause terms; no complete emitted term is distributed by that evidence.
+Q35p retains the model-derived minimal memory/tag reproducer and its generated
+outputs, paired coq-sail interface excerpts, and locked Sail library/runtime
+excerpts in `docs/implementation/retained-evidence/close3-q35p-20261013/`.
+The actual selected model, CHERI, Sail 0.20.3 and coq-sail 0.20.3 notices were
+re-read for this incorporation and retained beside those BSD-2-Clause excerpts.
+Authored reproducer scaffolding uses the same terms. The licensing map names
+each source-derived file; no complete canonical term, dependency source tree or
+compiled object is distributed.
+Q35o's compatibility evidence in
+`docs/implementation/retained-evidence/close3-q35o-20261013/` retains a private
+syntax-only diff to Sail 0.20.3's `src/sail_coq_backend/pretty_print_coq.ml` at
+`3df54034910b31a1e00d948ee965b2e9603d68e0`, printed generated declarations and
+an imports-only canonical fragment. The selected file's own BSD-2-Clause header
+and release notice were read before incorporation; `LICENSE.sail` and
+`LICENSE.model` preserve the exact notices. Authored backend modifications use
+the same terms. The minimal `SyntaxProbe.sail` is authored Apache-2.0 source.
+The plugin is an external private qualification build; no plugin binary,
+dependency source tree or complete canonical term is distributed or installed
+as the acceptance compiler by this evidence.
 
 Tools used to observe, execute, or accelerate a build do not automatically license its output. Non-commercial restrictions also govern use, even where nothing is distributed.
 

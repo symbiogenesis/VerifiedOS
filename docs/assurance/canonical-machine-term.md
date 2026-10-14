@@ -10,7 +10,7 @@
 2. It seeds and configures the lane's tree with the configure line `run.py model build` and `run.py model emit` share (`_configure` in [the model command](../../tools/vos/cli/model.py)), reads the target's Sail command back out of the tree with `ninja -t commands`, and refuses a missing frozen profile or a command whose `--config` is not it.
 3. It runs `cmake --build <tree> -j 1 --target generated_rocq_rv64d`, refuses a run whose configuration, listed sources or toolchain moved while Sail read them, and writes the generation-identity receipt beside the term. A refusal after the build deletes what the build wrote, so no output stands without its receipt.
 
-The Sail command the target runs, as the receipt records it with the lane's tree written `<tree>` and the checkout `<checkout>`:
+The retained Q35f command, with the lane's tree written `<tree>` and the checkout `<checkout>`; [Q35o's current generation record](../implementation/q35o-emission-compatibility-20261013.md) additionally binds the alternate module selection excluding unused `Real`:
 
 ```console
 sail --strict-var --strict-bitvector --strict-exponentials --require-version 0.20.3 \
@@ -195,7 +195,7 @@ Q35g changed `rocq-sail-stdpp` at its 0.20.3 release, which is also `rems-projec
 
 No package builds the library's BBV variant, which needs `coq-bbv`, and no module of it was compiled with the change. Twenty of the release's 30 `src-stdpp` modules are symbolic links into the variant's `src/` directory, `Values`, `Real`, `State_monad`, `Prompt_monad` and `Undefined` among them, as [`/root/build/lane-q35g-20261003/repair/repair.log`](../implementation/retained-evidence/root/build/lane-q35g-20261003/repair/repair.log) lists. So the variant takes every change to those modules, `Real`'s use of the variant's own `Decidable_eq_from_dec` included, besides the deletion in its own `Instances.v`. Generated code that uses reals changes nothing, as the probe models below show. Hand-written code that used `R`'s inhabitant or decidable equality without importing `SailStdpp.Real` must import it. A trace consumer or `ChoiceSource` oracle that answers a real choice supplies a `CReal`, `Rrepr r` for a real `r`.
 
-The term itself requires `SailStdpp.Real`, which Sail emits for every model. Sail 0.20.3's `--rocq-alt-modules` option replaces the emitted import list, so the model's list less `Real` removes the import with no Sail change. Q35g's backend change instead decides whether a model uses reals and imports `Real` only then. It reads the types of the model's type definitions, registers, top-level lets, function bodies, outcome instantiations and declarations other than external ones.
+The current canonical target excludes unused `SailStdpp.Real` through Sail 0.20.3's `--rocq-alt-modules` option, with [actual target emission evidence](../implementation/q35o-emission-compatibility-20261013.md). Sail's default import list includes `Real` for every model. Q35g's separate backend probe instead decides whether a model uses reals and imports `Real` only then. It reads the types of the model's type definitions, registers, top-level lets, function bodies, outcome instantiations and declarations other than external ones.
 
 The two diffs are held as retained evidence under their upstreams' BSD-2-Clause terms, with coq-sail's release licence [`/root/build/lane-q35g-20261003/tagtree/LICENSE`](../implementation/retained-evidence/root/build/lane-q35g-20261003/tagtree/LICENSE) beside them and Sail's in [SAIL-LICENSE.md](../../tools/sail-lsp/SAIL-LICENSE.md), as [the licensing map](../../COPYRIGHT.md#the-map) and [THIRD-PARTY.md](../../THIRD-PARTY.md) state; they go to no upstream and into no switch. The receipt binds them by SHA-256:
 
@@ -247,7 +247,7 @@ The results, which [`/root/build/lane-q35g-20261003/final-emit.txt`](../implemen
 ### Routes that take the five out
 
 - **Upstream.** Neither upstream has the change, and [section 8's readings](#8-what-stays-owed-and-the-blocking-input) find no issue or pull request proposing it. Sail's default branch, `sail2`, 43 commits after the 0.20.3 tag, still lists `Real` in every default import, and coq-sail's `main` is its 0.20.3 tag.
-- **The term's import.** `--rocq-alt-modules` in the model's target removes it at the locked Sail, as the backend change does on the probe model, so no Sail change is needed. The flag is a change to the model's target, and it moves the generation identity (F-777).
+- **The term's import.** The current target uses `--rocq-alt-modules` at the locked Sail, and [Q35o's actual emission](../implementation/q35o-emission-compatibility-20261013.md) contains no unused `Real` import. The generation identity binds the changed command. F-777's term-import obligation is closed; support carriage and complete consumer acceptance remain open.
 - **The library.** No route leaves the library's bytes unchanged. Every model loads `Values` through `SailStdpp.Base`, and the term needs the concurrency-interface modules, which require `Real`.
 - **Carriage.** The opam guide can carry the changed library, which removes the need for any upstream change. It would install the 0.20.3 release archive with Q35g's library diff into the proof switch, with `rocq-stdpp-bitvector` 1.13.0, and export the lock again from a hosted run. The published `rocq-core` bound would not apply, since the source's own opam file states none. The guide now permits bounded, qualified compatibility sources beyond QuickChick, and the [paired-release package trial](../../tools/opam/sail-compatibility.md) supplies the actual Dune build missing from Q35g's evidence. Production carriage still needs the complete strict source, frozen-reading, exact-assumption and fresh hosted acceptance of the library change; the diff it would apply is already tracked under the licensing map's row. Each Sail bump re-applies the diff until an upstream release adopts it (F-778).
 - **Admission.** The review gate can instead admit the five by name under R-05-164 (F-481).
@@ -329,17 +329,25 @@ closure and no complete compiled-size result.
 The [refusal record](../implementation/retained-evidence/q35o-20261013/refusal.json)
 binds the source identities and preserves the stopping decision. No model
 primitive, statement, assumption, support definition or backend changed to make
-this compile. The target's unused `Real` import, generated proof syntax and
-matching record-update syntax remain Q35o's work. A private plugin override
-also needs the generation identity to bind the plugin Sail actually loads;
-the current identity helper names the installed default plugin. No private
-backend adaptation was started.
+this compile. [Q35o's current qualification](../implementation/q35o-emission-compatibility-20261013.md)
+emits the actual target without unused `Real` and binds the complete selected
+native plugin population and directory order. Unsupported library/site selectors
+require explicit absolute plugin selection. The private syntax trial retains a
+further notation refusal; complete frozen/strict consumer and hosted plugin
+qualification remain open. The identity checks bind stable inputs before and
+after generation and supply no atomic observation of dynamic plugin loading.
 
-The next owner act is Q35p's separately priced, bounded semantic compatibility delivery in
-[the checklist](../implementation/implementation-checklist.md#q-assessment-actions). It
-must inventory all five Q35f emulator-memory definitions in
+Q35p's [bounded seven-binding qualification](../implementation/q35p-memory-bindings.md)
+reproduces this mismatch against the canonical concurrency outcome monad.
+That interface has no standalone granule-keyed tag operation, and its value-free
+write branch returns without a tag write. The prompt and state primitives supply
+no qualified conversion into that outcome monad. The next owner act must qualify
+a semantics-preserving tag operation or adapter before the whole-term compile
+can proceed. The existing scope in
+[the checklist](../implementation/implementation-checklist.md#q-assessment-actions)
+covers all five Q35f emulator-memory definitions in
 [phys_mem_interface.sail](../../model/model/core/phys_mem_interface.sail), both
-tag primitives and their emitted monads. It must preserve the existing Sail
+tag primitives and their emitted monads. The qualification must preserve the existing Sail
 and emulator behavior: granule-indexed tags, clearing every overwritten granule,
 metadata writes only after successful data writes, and all existing refusals.
 A target adapter or binding needs an explicit agreement with those semantics;
