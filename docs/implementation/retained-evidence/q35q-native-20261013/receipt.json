@@ -1,0 +1,203 @@
+{
+  "base_revision": "2429c100b947c8c6c9f438cbc2dda4cbebc53e63",
+  "candidate_checks": 2,
+  "checks": [
+    {
+      "commands": [
+        {
+          "argv": [
+            "/root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/bin/rocq",
+            "c",
+            "-boot",
+            "-R",
+            "/root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/lib/coq/theories",
+            "Corelib",
+            "-Q",
+            "/root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/lib/coq/user-contrib/Stdlib",
+            "Stdlib",
+            "-Q",
+            "/root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/lib/coq/user-contrib/stdpp",
+            "stdpp",
+            "-R",
+            "/root/build/lane-close3-20261013-q43/coq-sail-0.20.3/src-stdpp",
+            "SailStdpp",
+            "-q",
+            "-w",
+            "+default,-abstract-large-number",
+            "-set",
+            "Default Goal Selector=!",
+            "-disallow-sprop",
+            "/root/build/lane-close3-20261013-q43/coq-sail-0.20.3/src-stdpp/Inhabited.v"
+          ],
+          "cwd": "/tmp/vos-q35q-native-h022u56t",
+          "exit": 0,
+          "input_sha256": "e1176682f45b6f6e3506a91ebd920af288fb9529f07c51bf7f3ec9bb15fe83ee",
+          "logs": {
+            "stderr": "candidate-1-Inhabited.stderr.log",
+            "stdout": "candidate-1-Inhabited.stdout.log"
+          },
+          "name": "Inhabited"
+        },
+        {
+          "argv": [
+            "/root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/bin/rocq",
+            "c",
+            "-boot",
+            "-R",
+            "/root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/lib/coq/theories",
+            "Corelib",
+            "-Q",
+            "/root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/lib/coq/user-contrib/Stdlib",
+            "Stdlib",
+            "-Q",
+            "/root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/lib/coq/user-contrib/stdpp",
+            "stdpp",
+            "-R",
+            "/root/build/lane-close3-20261013-q43/coq-sail-0.20.3/src-stdpp",
+            "SailStdpp",
+            "-q",
+            "-w",
+            "+default,-abstract-large-number",
+            "-set",
+            "Default Goal Selector=!",
+            "-disallow-sprop",
+            "/root/build/lane-close3-20261013-q43/coq-sail-0.20.3/src-stdpp/TypeCasts.v"
+          ],
+          "cwd": "/tmp/vos-q35q-native-h022u56t",
+          "exit": 0,
+          "input_sha256": "46a81e309964850ba2389d8a898ab3febd6242a22649b02716ce31763bdaa6e9",
+          "logs": {
+            "stderr": "candidate-1-TypeCasts.stderr.log",
+            "stdout": "candidate-1-TypeCasts.stdout.log"
+          },
+          "name": "TypeCasts"
+        },
+        {
+          "argv": [
+            "/root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/bin/rocq",
+            "c",
+            "-boot",
+            "-R",
+            "/root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/lib/coq/theories",
+            "Corelib",
+            "-Q",
+            "/root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/lib/coq/user-contrib/Stdlib",
+            "Stdlib",
+            "-Q",
+            "/root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/lib/coq/user-contrib/stdpp",
+            "stdpp",
+            "-R",
+            "/root/build/lane-close3-20261013-q43/coq-sail-0.20.3/src-stdpp",
+            "SailStdpp",
+            "-q",
+            "-w",
+            "+default,-abstract-large-number",
+            "-set",
+            "Default Goal Selector=!",
+            "-disallow-sprop",
+            "/tmp/vos-q35q-native-h022u56t/Provenance.v"
+          ],
+          "cwd": "/tmp/vos-q35q-native-h022u56t",
+          "exit": 0,
+          "input_sha256": "80a586e0c4ed2099a9228ff53e966c792057d8ce35cfceb69551391c8488da87",
+          "logs": {
+            "stderr": "candidate-1-Provenance.stderr.log",
+            "stdout": "candidate-1-Provenance.stdout.log"
+          },
+          "name": "Provenance"
+        }
+      ],
+      "scratch": "/tmp/vos-q35q-native-h022u56t"
+    },
+    {
+      "commands": [
+        {
+          "argv": [
+            "/root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/bin/rocq",
+            "c",
+            "-boot",
+            "-R",
+            "/root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/lib/coq/theories",
+            "Corelib",
+            "-Q",
+            "/root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/lib/coq/user-contrib/Stdlib",
+            "Stdlib",
+            "-Q",
+            "/root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/lib/coq/user-contrib/stdpp",
+            "stdpp",
+            "-R",
+            "/root/build/lane-close3-20261013-q43/coq-sail-0.20.3/src-stdpp",
+            "SailStdpp",
+            "-q",
+            "-w",
+            "+default,-abstract-large-number",
+            "-set",
+            "Default Goal Selector=!",
+            "-disallow-sprop",
+            "/root/build/lane-close3-20261013-q43/coq-sail-0.20.3/src-stdpp/MachineWordInterface.v"
+          ],
+          "cwd": "/tmp/vos-q35q-boundary-qrtuiok8",
+          "exit": 0,
+          "input_sha256": "e9cf76bc0e4caf728e15341c64c8c6b7b5168f26868888b54a279a57a1c5e6d1",
+          "logs": {
+            "stderr": "candidate-2-MachineWordInterface.stderr.log",
+            "stdout": "candidate-2-MachineWordInterface.stdout.log"
+          },
+          "name": "MachineWordInterface",
+          "query": null
+        },
+        {
+          "argv": [
+            "/root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/bin/rocq",
+            "c",
+            "-boot",
+            "-R",
+            "/root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/lib/coq/theories",
+            "Corelib",
+            "-Q",
+            "/root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/lib/coq/user-contrib/Stdlib",
+            "Stdlib",
+            "-Q",
+            "/root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/lib/coq/user-contrib/stdpp",
+            "stdpp",
+            "-R",
+            "/root/build/lane-close3-20261013-q43/coq-sail-0.20.3/src-stdpp",
+            "SailStdpp",
+            "-q",
+            "-w",
+            "+default,-abstract-large-number",
+            "-set",
+            "Default Goal Selector=!",
+            "-disallow-sprop",
+            "/tmp/vos-q35q-boundary-qrtuiok8/SignatureBoundary.v"
+          ],
+          "cwd": "/tmp/vos-q35q-boundary-qrtuiok8",
+          "exit": 1,
+          "input_sha256": "7fef42c0653d04baa977dd56fc8aa79062ece1af996fe6a9f4757303c5c07a91",
+          "logs": {
+            "stderr": "candidate-2-SignatureBoundary.stderr.log",
+            "stdout": "candidate-2-SignatureBoundary.stdout.log"
+          },
+          "name": "SignatureBoundary",
+          "query": "Require SailStdpp.MachineWordInterface.\nSet Printing All.\nSet Printing Width 1000000.\nPrint Module SailStdpp.MachineWordInterface.\nPrint Module Type SailStdpp.MachineWordInterface.MachineWordInterface.\nLocate SailStdpp.MachineWordInterface.MachineWordInterface.idx.\nPrint Assumptions SailStdpp.MachineWordInterface.MachineWordInterface.idx.\n"
+        }
+      ],
+      "scratch": "/tmp/vos-q35q-boundary-qrtuiok8"
+    }
+  ],
+  "first_unsupported_lookup": "SailStdpp.MachineWordInterface.MachineWordInterface.idx",
+  "further_owner": "Native module-signature and abstract-functor declaration census and instantiated-field audit.",
+  "locked_switch": "verifiedos-rocq-9.3.0-ocaml-5.4.1",
+  "outcome": "refused",
+  "postcheck_file_sha256": {
+    "/root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/bin/rocq": "9a2a4eacf47b44c6ec582bc2b9f9cde9de11af77164e0637103fca9865efd5ac",
+    "/root/build/lane-close3-20261013-q43/coq-sail-0.20.3/LICENSE": "9e52d88fe1802beb469e538b8c026ff5e7f9413ef06cd3ce898ee3928ae24df0",
+    "/root/build/lane-close3-20261013-q43/coq-sail-0.20.3/src-stdpp/Inhabited.v": "e1176682f45b6f6e3506a91ebd920af288fb9529f07c51bf7f3ec9bb15fe83ee",
+    "/root/build/lane-close3-20261013-q43/coq-sail-0.20.3/src-stdpp/MachineWordInterface.v": "e9cf76bc0e4caf728e15341c64c8c6b7b5168f26868888b54a279a57a1c5e6d1",
+    "/root/build/lane-close3-20261013-q43/coq-sail-0.20.3/src-stdpp/TypeCasts.v": "46a81e309964850ba2389d8a898ab3febd6242a22649b02716ce31763bdaa6e9",
+    "/root/build/lane-close3-20261013-q43/sail.tar.gz": "1a0e226608ac84add6cd1f61a11637ea9db5e00e1551b2070945310078c9e031"
+  },
+  "prover_version": "The Rocq Prover, version 9.3.0\ncompiled with OCaml 5.4.1\n",
+  "schema": "verifiedos-sail-native-provenance/1",
+  "scope": "Two bounded native diagnostics; no complete support census, assumption audit, recursive kernel or hosted acceptance."
+}
