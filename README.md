@@ -4,7 +4,7 @@ Design for an end-to-end formally verified computer, built around a bespoke in-o
 
 Engineering effort is treated as free and trust as the scarce resource, so security comes ahead of performance and ahead of compatibility with existing hardware and software.
 
-The first release targets a [general-purpose laptop](docs/spec.md#r-18-004a). The [release scope](docs/spec.md#r-18-004) defers the browser, handset and server ensemble. The design [prefers open standards wherever its guarantees permit](docs/spec.md#r-04-001a); the [compute and graphics compatibility plan](docs/implementation/compute-compatibility.md) records the proposed OpenCL, SPIR-V, HIP and Vulkan SC surfaces.
+The first release targets a [general-purpose laptop](docs/spec.md#r-18-004a). The [release scope](docs/spec.md#r-18-004) defers the browser, handset and server ensemble. The design [prefers open standards wherever its guarantees permit](docs/spec.md#r-04-001a); the [compute and graphics compatibility plan](docs/implementation/compute-compatibility.md) records the proposed OpenCL, SPIR-V and HIP surfaces and assesses Vulkan and Vulkan SC frontends over shared native execution.
 
 > This repository contains the design and an implementation in progress. The [implementation status](docs/implementation/implementation-checklist.md#current-summary) records completed artifacts and remaining work toward the full system.
 

@@ -26,9 +26,11 @@ source/API adaptation over that same execution path, qualifying libraries
 separately. Prefer existing frontends, transformations, semantics, test corpora
 and library interfaces over a new project-specific kernel language or a second
 runtime. Reuse still needs licence review and the platform's proof chain.
-The graphics surface assessed on the same path is Vulkan SC-shaped, with
-OpenGL entering only as producer-side source; the [graphics API surface](#graphics-api-surface)
-states its three separately claimed surfaces and their start-froms.
+The graphics assessment prefers established application interfaces over a new
+public graphics API. Ordinary Vulkan compatibility for named workloads and
+Vulkan SC are separate frontend candidates over the same internal native path;
+OpenGL enters only as producer-side source. The [graphics API surface](#graphics-api-surface)
+owns their selection, porting costs and distinct compatibility claims.
 
 OpenCL and SPIR-V are Khronos standards. [HIP](https://rocm.docs.amd.com/projects/HIP/en/latest/what_is_hip.html) is an
 open-source portability API in the AMD ecosystem; open source does not make it an independently standardized
@@ -121,27 +123,85 @@ them.
 
 ## Graphics API surface
 
-Status: **assessed direction for Q30g's slice selection; nothing selected,
-priced, implemented or claimed conformant**. Primary-source readings in this
-section are dated 2026-09-20. They are feasibility evidence, not dependency
-pins or qualification results, and no source is incorporated by this section.
+Status: **assessed direction for Q30g's slice selection; no graphics slice
+selected, priced, implemented or claimed conformant**. Primary-source readings
+for the start-froms are dated 2026-09-20; the frontend and clean-slate assessment
+is dated 2026-10-14. These are feasibility evidence, not dependency pins or
+qualification results, and no source is incorporated by this section.
 
-The compatibility boundary above sorts an API by when it decides what code
-runs. OpenGL decides at draw time, compiling shader text and state-dependent
-program variants while the application runs. Vulkan decides at pipeline
-creation, earlier but still at runtime. Vulkan SC decides offline, before the
-application starts. This platform decides at admission, with a proof. Each
-step in that chain moves the decision earlier, and only the last step is this
-project's own. [Zink](https://docs.mesa3d.org/drivers/zink.html) shows the
-first step is viable: it is a Gallium driver that emits Vulkan calls, and its
-debug options include disabling its asynchronous pipeline compiles, which is
-the runtime compilation R-13-018 excludes from every datapath. The layering
-lesson transfers; the layer's placement does not. Translation here is a
-producer act, and the surface layered on is the certified-kernel dispatch,
-not a runtime Vulkan driver.
+### Application interfaces and internal execution
 
-[Vulkan SC](https://www.khronos.org/vulkansc/) is the standardized form of
-the subset that fits. Khronos's [overview of its differences](https://www.khronos.org/blog/vulkan-sc-overview)
+R-04-001a makes an established standard interface the preferred application
+entry point wherever its semantics preserve the platform guarantees. The
+candidate path is an application calling a Vulkan or Vulkan SC frontend,
+which uses Q30f's bounded native dispatch and the R-12-083 renderer, then hands
+surfaces to the compositor. The small native interface is an internal
+implementation boundary; applications are not required to adopt a novel public
+graphics API. Direct certified native code remains available on the same path.
+
+The shared frontend is a linked source library or contained service using the
+existing typed service messages. It owns the selected standard's objects,
+descriptors, command recording, synchronization and errors. Runtime API calls translate to
+bounded native operations; shader translation, specialization and certification
+finish at the producer before generation admission. This distinction permits
+runtime command recording and changing data without a shader compiler in the
+display path, a hardware command processor or a second execution stack.
+The frontend is substantial adapter and driver engineering, shared across
+ports. Its implementation, proofs and maintenance need pricing alongside the
+application-specific build integration and any residual source changes.
+
+Ordinary Vulkan accepts SPIR-V and pipeline creation at runtime. For a named
+application with a complete shader inventory, the candidate frontend can
+preserve supported calls while resolving pipeline creation to pre-admitted
+implementations. Vulkan SC already requires offline pipeline compilation, but
+it is a separate API variant, not drop-in ordinary Vulkan support; Khronos's
+[comparison](https://www.khronos.org/blog/vulkan-sc-overview) describes that
+distinction. Either frontend owes its own feature audit and qualification.
+Preserved calls after rebuilding do not establish a stock-binary or ABI claim.
+
+The [Vulkan pipeline specification](https://docs.vulkan.org/spec/latest/chapters/pipelines.html)
+owns ordinary pipeline behavior. A Vulkan pipeline cache or a captured run does
+not establish a complete inventory. The producer must cover every permitted
+shader, specialization and pipeline-state combination, or prove that a shared
+admitted implementation preserves those combinations with runtime data.
+Previously unknown runtime-generated shaders remain a porting gap under
+R-13-018a. No interpreter, runtime compiler or admission-policy exception is
+selected here. An ordinary Vulkan cache miss is not permission to reject
+otherwise supported behavior: an admission-only miss needs an explicit
+adapter diagnostic and is recorded as a compatibility divergence. The
+SC-only no-match result below must not be presented as an ordinary Vulkan error.
+
+### Internal simplification and its limits
+
+[Aaltonen's No Graphics API](https://www.sebastianaaltonen.com/blog/no-graphics-api)
+motivates typed memory access, fewer persistent objects and simpler dependency
+expression. Its 150-line API sketch covers a limited feature set; it retains
+CPU/GPU address distinctions, memory classes, barriers and signal/wait operations.
+[Khronos's subsystem-replacement approach](https://www.khronos.org/blog/simplifying-vulkan-one-subsystem-at-a-time)
+provides a standard-facing route to similar simplification; its descriptor-heap
+work was developed over roughly three years. Neither source establishes this
+machine's renderer correctness or performance.
+
+The native design uses ordinary typed capability-bounded data, admitted entry
+identities and bounded completion. Resource tables are scoped to a delegated
+session; a bindless index grants no new authority, and ring payloads never
+carry capabilities. State parameters may remain runtime data when their
+admitted code and resource contracts permit it, reducing executable variants
+without on-demand compilation. Removing GPU-specific binding or cache machinery
+does not remove initialization, aliasing, happens-before, exclusive borrows,
+completion, cancellation, revocation or safe-reuse obligations. Assess the
+simplification by total implementation state, porting effort and proof obligations.
+
+Modern GPU rasterizers, samplers and cache hierarchies are not the V-class RVV
+software renderer. Its image and sampler semantics, bandwidth, latency and
+energy costs remain qualification work. Dynamic rendering, shader objects and
+descriptor heaps are assessed only when the selected workload needs them;
+their existence neither requires their adoption nor proves their local mapping.
+
+### Vulkan SC mapping candidate
+
+[Vulkan SC](https://www.khronos.org/vulkansc/) provides a standardized offline
+pipeline object model suited to this assessment. Khronos's [overview of its differences](https://www.khronos.org/blog/vulkan-sc-overview)
 states that it is based on Vulkan 1.2, that "Vulkan SC does not support
 online pipeline compilation, and thus all pipelines must be compiled offline"
 by a pipeline cache compiler from SPIR-V and a JSON description of every
@@ -175,23 +235,25 @@ profile, whose online compiler is mandatory.
 | Loader, ICDs and layers | Absent. There is no dynamic linking, so the adapter is linked or reached as a compartment, and enumeration reflects the manifest as the OpenCL discovery row does. The [Khronos loader's](https://github.com/KhronosGroup/VulkanSC-Loader) own README states it is for development environments and not for production. |
 | Sparse binding, ray tracing, mesh shading, device-generated commands | Excluded, or a named-invariant conflict recorded at selection. |
 
-Three claims follow, each stated separately under R-13-018c:
+Three implementation surfaces are assessed separately. Any selection applies
+R-13-018c's claim discipline and amends R-13-018a's interface enumeration before
+implementation; the ordinary Vulkan and Vulkan SC frontend claims stay distinct:
 
 1. **Compute pipelines** are nearly the pilot's path: ahead-of-time SPIR-V,
    fixed pools and work-groups lowered to RVV. Adding the `Shader` execution
    model beside the `Kernel` model is a Q30g slice candidate whose
    correspondence and lowering owners are Q30d and Q30e.
-2. **The SC-shaped host object model** over Q30f's dispatch is adapter work,
-   audited command family by command family as the feature map audits OpenCL.
-   Selecting it amends R-13-018a's enumeration of adapted interfaces, a
-   register act taken at selection and not by this section.
+2. **The standard-facing host object model** over Q30f's dispatch is adapter
+   work, audited command family by command family as the feature map audits
+   OpenCL. Ordinary Vulkan call preservation and the SC-shaped model are
+   distinct candidates; the mapping table describes the latter, not ordinary
+   Vulkan conformance. Each shares the same native foundations.
 3. **Graphics pipelines** wait on the R-12-083 renderer and on the image and
-   sampler audit the pilot disables. The adapter is a thin shell over that
-   renderer; the renderer is the cost. The porting plan lists it among the
-   net-new artifacts the userland gates on, and no checklist cell yet prices
-   it. Larrabee is the caution the [prior-art entry](../background/inspirations.md#larrabee-the-software-renderer-on-general-cores-the-one-industrial-run-of-the-v-class-thesis-and-the-sampler-its-own-team-kept)
-   records: it was cancelled on the compatibility contract, not the
-   architecture, and this surface never promises the runtime personality.
+   sampler audit the pilot disables. The frontend reuses that renderer; its
+   interface/semantic work and the renderer need separate prices. The porting
+   plan lists the renderer among the net-new artifacts the userland gates on,
+   and no checklist cell yet prices it. Larrabee's [prior-art entry](../background/inspirations.md#larrabee-the-software-renderer-on-general-cores-the-one-industrial-run-of-the-v-class-thesis-and-the-sampler-its-own-team-kept)
+   records the compatibility burden that bounded call preservation leaves open.
 
 OpenGL is online by contract: it accepts shader text at runtime, and its
 pipeline set depends on state known only at draw time, which is why Zink
@@ -204,6 +266,37 @@ applications, parallel to HIP's. An application's complete pipeline
 inventory is part of its source closure; runtime-generated variants remain
 the porting gap the [porting discipline](userspace-porting.md#the-porting-discipline-five-obstacles-every-target-meets)
 records.
+
+### Frontend selection and porting acceptance
+
+Q30g starts with one named application or toolkit workload and its required
+API revision, features, extensions and complete shader/pipeline inventory.
+Compare an ordinary Vulkan frontend, Vulkan SC adaptation and direct native
+execution on that same workload. Freeze the supported domain, output and
+numerical oracle, error cases, resource limits and finite acceptance thresholds
+before implementation. Pin the applicable standard and conformance-corpus
+revisions; a workload subset is reported as a subset even if its tests pass.
+
+The selection record separates shared frontend/renderer implementation and
+proof costs from per-application source edits, producer/build integration,
+pipeline inventory maintenance and unsupported behavior. It accounts for all
+mandatory requirements of any claimed profile, feature discovery, object and
+descriptor lifetime, command ordering, memory visibility, presentation and
+errors. Standard objects may be implemented differently internally only while
+preserving their supported observable semantics. Features not selected remain
+unsupported or unimplemented with a reason and owner, rather than silently
+receiving weaker semantics.
+
+Qualification exercises preserved calls and output, permitted runtime pipeline
+choices, undelegated resources, stale descriptors/handles, pool exhaustion,
+ordering errors, cancellation, restart and a shader absent from the admitted
+closure. Record the expected result and any standard divergence for each.
+Compare code/proof/storage footprint, internal state and adapter latency with
+direct native execution using identical workers, schedules and memory placement;
+retain applicable deadline, CT and isolation evidence. Target throughput,
+bandwidth and energy claims need their own evidence. Missing renderer, image/sampler,
+semantic or proof foundations receive separate estimates before dependent
+implementation; this comparison does not enlarge Q30g's conditional allowance.
 
 ### Start-froms and what each establishes
 
