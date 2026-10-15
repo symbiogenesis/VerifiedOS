@@ -129,17 +129,17 @@ name its own package.
 
 [The package inventory schema](package.schema.json) describes existing component
 sources and named interface owners separately from `HandlerGraph.Descriptor`.
-The [supervisor inventory](packages/supervisor.json) binds its bounded planner,
-context reactor, headers and lifecycle transport contract. The
-[copy-service inventory](packages/copy-service.json) binds its bounded C core,
-atomic and notification adapters, headers, ring declaration and executable
-boundary documentation. Their source digests identify the actual checkout bytes;
-they carry no target product, producer qualification, refinement, derivation or
-admission verdict.
+The [production input](m8a-composition.json) names every real roster member's
+[source-owned inventory](packages/); those files own the component and interface
+source lists. Their source digests identify the actual checkout bytes. The storage
+and crypto-core
+sources remain statements: the boot verifier's C is not a storage-crypto compartment.
+None of these inventories carries a target product, producer qualification,
+refinement, derivation or admission verdict.
 
 Each inventory has a closed versioned shape, its roster package identity, source
-bindings, uniquely named interface bindings and a `handler_graph` slot. The two
-existing components leave that slot null: their lifecycle and copy-ring boundaries
+bindings, uniquely named interface bindings and a `handler_graph` slot. These
+components leave that slot null: their declared boundaries
 do not choose the register's open handler intents or ambiguity policy. Null remains
 unresolved when every package inventory is present or a graph context is declared.
 It never converts to an empty accepted descriptor. A resolved slot supplies the
@@ -156,7 +156,8 @@ against path aliases and hardlinks. A changed component or interface owner refus
 until its inventory is deliberately rebound and all projections are regenerated.
 The focused `test --only test_composition_packages` covers the real identities,
 unresolved slots, wrapped/direct descriptor agreement, stale transitive sources and
-publication refusals. The other roster inventories, real handler declarations,
+publication refusals. It independently checks each roster member's source/interface
+owners and refuses source drift in every inventory. Real handler declarations,
 target products, image and admission remain joins for M7.1d.
 
 ### Placement and build bindings

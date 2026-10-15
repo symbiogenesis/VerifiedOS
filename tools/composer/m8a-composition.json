@@ -45,7 +45,10 @@
           "sha256": "231f8a2e9cc3f022e3647ef04d17a2e56fbb2b54ea7bcb10ae76d5caf52f4592"
         }
       ],
-      "descriptor": null,
+      "descriptor": {
+        "path": "tools/composer/packages/rot-firmware.json",
+        "sha256": "98ee998798505a59f7e57e211c21ffa3b0aa6f8b2f3031b04e52ae1a6034aa58"
+      },
       "artifact_slot": "rot-firmware-artifact",
       "entry": null,
       "placement": null,
@@ -66,7 +69,10 @@
           "sha256": "9e4f93790feb8709b506fcca022d39b4a61dad9bef7d3d36ad753419bce0e1a5"
         }
       ],
-      "descriptor": null,
+      "descriptor": {
+        "path": "tools/composer/packages/mmode-firmware.json",
+        "sha256": "f418507759ccd4261272ba55d4b1dd7959ed8ffbeb009999d1913c913bcc9451"
+      },
       "artifact_slot": "mmode-firmware-artifact",
       "entry": null,
       "placement": null,
@@ -95,7 +101,10 @@
           "sha256": "c6246b6a5828de333a08f1140ff63003c5722d54ec88d5a9dd3ab60cff96c3b0"
         }
       ],
-      "descriptor": null,
+      "descriptor": {
+        "path": "tools/composer/packages/kernel.json",
+        "sha256": "8a74dd48397d71aacde225254fd7cf4425563d11bc9baaa7a8cc647645c05700"
+      },
       "artifact_slot": "kernel-artifact",
       "entry": null,
       "placement": null,
@@ -156,7 +165,10 @@
           "sha256": "70d8785b066fdee5fe5461885ee17c2006e87b268519488505b19dbd87facac2"
         }
       ],
-      "descriptor": null,
+      "descriptor": {
+        "path": "tools/composer/packages/crypto-core.json",
+        "sha256": "fdb0dac4354e67a070f6790d14cc03a66ad7af1eb92dd030c7915ae2d828ffba"
+      },
       "artifact_slot": "crypto-core-artifact",
       "entry": null,
       "placement": null,
@@ -185,7 +197,10 @@
           "sha256": "789d4702371963d7bd079498438394c6f6e5c199ee0dee67578a5acf66fdd1a6"
         }
       ],
-      "descriptor": null,
+      "descriptor": {
+        "path": "tools/composer/packages/storage.json",
+        "sha256": "691deed283325817f1ced4fff32fc8e2a3c6d4e9c2f963a60e1b35f4767ce400"
+      },
       "artifact_slot": "storage-artifact",
       "entry": null,
       "placement": null,
@@ -238,7 +253,10 @@
           "sha256": "71b49958eb14d5bcb65e0c2217137833858b54a12241df42eeb2753d1b028dfc"
         }
       ],
-      "descriptor": null,
+      "descriptor": {
+        "path": "tools/composer/packages/composer.json",
+        "sha256": "c81d53ad89bae74e730b2913be12cf0b1f1076bb6c580b47953df7d2e26368fe"
+      },
       "artifact_slot": "composer-artifact",
       "entry": null,
       "placement": null,
@@ -263,7 +281,10 @@
           "sha256": "d7ab6be61f72f62daa3493c4affbfbb20de4492e2a76ddf14967c5ef7623cdbb"
         }
       ],
-      "descriptor": null,
+      "descriptor": {
+        "path": "tools/composer/packages/admission.json",
+        "sha256": "3ee936e74756eff7b98614c5723153e9910defdf284449c670fe6f6cc6584ab1"
+      },
       "artifact_slot": "admission-artifact",
       "entry": null,
       "placement": null,

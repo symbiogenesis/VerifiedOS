@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "package_id": "composer",
+  "sources": [
+    {
+      "path": "tools/vos/composer.py",
+      "sha256": "71b49958eb14d5bcb65e0c2217137833858b54a12241df42eeb2753d1b028dfc"
+    },
+    {
+      "path": "tools/vos/composition.py",
+      "sha256": "8a7c27e6e930973300a1517a010e5502dbb137a4b6a511b86c3dc190e19959f9"
+    },
+    {
+      "path": "tools/vos/cli/composer.py",
+      "sha256": "1b37789cba6655f8e0da3eadcb8631f2214e8dbe2bcb14d20c9207b3cfc4abf4"
+    },
+    {
+      "path": "proofs/HandlerGraph.v",
+      "sha256": "2353a27a43e88f37484450335df834ba945bae2900055e94777e06189a02dfcd"
+    }
+  ],
+  "interfaces": [
+    {
+      "id": "composition-input",
+      "source": {
+        "path": "tools/composer/composition.schema.json",
+        "sha256": "3204562d5d59b9375e4f65665681323b172c18f9bad8e7e7ee998dd957d0c1fa"
+      }
+    },
+    {
+      "id": "package-inventory",
+      "source": {
+        "path": "tools/composer/package.schema.json",
+        "sha256": "9e5327ce04e8fc54f4f0631ad77fb62c36c02d05800848ece349305e8f0b7bc9"
+      }
+    },
+    {
+      "id": "composition-projections",
+      "source": {
+        "path": "docs/implementation/contracts/boot-roster.md",
+        "sha256": "4c6d995de9f5c971cb891c0b602406b21f62c68e5afa91197179cdd522fb787c"
+      }
+    }
+  ],
+  "handler_graph": null
+}

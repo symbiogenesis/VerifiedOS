@@ -1,0 +1,39 @@
+{
+  "schema_version": 1,
+  "package_id": "crypto-core",
+  "sources": [
+    {
+      "path": "proofs/Keccak.v",
+      "sha256": "231f8a2e9cc3f022e3647ef04d17a2e56fbb2b54ea7bcb10ae76d5caf52f4592"
+    },
+    {
+      "path": "proofs/Sha256.v",
+      "sha256": "2ff6dd7481b56fbb6dc6fc9267590e591ffe30bf07114fae8191319ace7aca0c"
+    },
+    {
+      "path": "proofs/AesGcm.v",
+      "sha256": "a1117410ed352177164d78f3f928339e499af6e55a38d6328eb3021af459988d"
+    },
+    {
+      "path": "proofs/MlDsa.v",
+      "sha256": "70d8785b066fdee5fe5461885ee17c2006e87b268519488505b19dbd87facac2"
+    }
+  ],
+  "interfaces": [
+    {
+      "id": "storage-compartment",
+      "source": {
+        "path": "docs/implementation/contracts/boot-roster.md",
+        "sha256": "4c6d995de9f5c971cb891c0b602406b21f62c68e5afa91197179cdd522fb787c"
+      }
+    },
+    {
+      "id": "storage-authentication",
+      "source": {
+        "path": "docs/implementation/storage-recovery-policy.md",
+        "sha256": "1b9d06c289217e4d12871c22e92dd2b15eec224893ce18b1b8fd8ab0432d519f"
+      }
+    }
+  ],
+  "handler_graph": null
+}

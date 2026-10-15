@@ -6,7 +6,13 @@ from pathlib import Path
 from unittest.mock import patch
 
 from tests.harness import Case, ensure
-from tests.test_composition import _graph_image, _refused, _resolve_descriptors, _sandbox
+from tests.test_composition import (
+    _graph_image,
+    _rebind_inventory_source,
+    _refused,
+    _resolve_descriptors,
+    _sandbox,
+)
 from vos import boot
 from vos import composition as c
 
@@ -36,7 +42,7 @@ def _roster_reader_snapshot() -> None:
 
 
 def _projection_roster_binding() -> None:
-    with _sandbox() as (root, _raw):
+    with _sandbox() as (root, raw):
         path = root / boot.CONTRACT
         original = path.read_bytes()
         substituted = _rank_substitution(original)
@@ -53,6 +59,7 @@ def _projection_roster_binding() -> None:
         ensure(reads >= 2, "control reaches roster publication after its validation")
         for data in (original, original + b"\n<!-- independent formatting -->\n"):
             path.write_bytes(data)
+            _rebind_inventory_source(root, raw, boot.CONTRACT)
             outputs = c.projections(root)
             recipe = json.loads(outputs["recipe-members.json"])
             ensure([m["id"] for m in recipe["payload"]["members"]] ==

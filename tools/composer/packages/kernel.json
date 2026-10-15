@@ -1,0 +1,90 @@
+{
+  "schema_version": 1,
+  "package_id": "kernel",
+  "sources": [
+    {
+      "path": "kernel/src/context.c",
+      "sha256": "cc21437a5b2de43182a417181ce0d9d011385b493a518d1b3350c9b95f5975d7"
+    },
+    {
+      "path": "kernel/src/copy_loan.c",
+      "sha256": "2e923b2d3b6052129dcb5b49153ee81c72d3cb1a0210d61047610ec2bc0fc08f"
+    },
+    {
+      "path": "kernel/src/effects.c",
+      "sha256": "899f48a638699894c36d8b8a9a5341b52faad592ced1cb0d8655f1fc2cdf4359"
+    },
+    {
+      "path": "kernel/src/executive.c",
+      "sha256": "56aaaf7ae9b9ada1e17a2966663b74f2e51c1b5d8c3e7ff98fbb2ff5f953d97f"
+    },
+    {
+      "path": "kernel/src/handoff.c",
+      "sha256": "9278a79d0d05c2aa838bf8090e1bf567630b5bc013dc2202f9af0e765be4d760"
+    },
+    {
+      "path": "kernel/src/lifecycle.c",
+      "sha256": "7d6123ddebb250a871aa2ffe93bf0f67bbeadb286e8e61efdba14c499d6039f0"
+    },
+    {
+      "path": "kernel/src/partition.c",
+      "sha256": "1aa12614aa994022e81902c33b273f147333710b56d1c01349f41ee43dae2168"
+    },
+    {
+      "path": "kernel/src/target.c",
+      "sha256": "efaac096b8da1181607fed0f6b0778965fceba196ec93b8a35aedb737ae6f039"
+    },
+    {
+      "path": "kernel/include/vos_copy_loan.h",
+      "sha256": "ad3d491b7c445e20317ed165f2ca67f9f67543a80d0b127c57054a9a965d16f3"
+    },
+    {
+      "path": "kernel/include/vos_effects.h",
+      "sha256": "eac8a5f3bc0c54ad88beafecc984def2f658a635c9a8175a1e52c5ce16a266f4"
+    },
+    {
+      "path": "kernel/include/vos_handoff.h",
+      "sha256": "93e92e98ca5270a2da8c2f6959a3e74c51d60341afae34576abce808289cfe58"
+    },
+    {
+      "path": "kernel/include/vos_kernel.h",
+      "sha256": "06e6c2296493cd3d3a96be57694148739138de8f6560e8e40315cecb1e9fd301"
+    },
+    {
+      "path": "kernel/include/vos_lifecycle.h",
+      "sha256": "99dbdb2c4d4a36e62183e28e2d5987831de3618213900f3b5b0251e2e6327554"
+    },
+    {
+      "path": "kernel/include/vos_platform.h",
+      "sha256": "23eeb34f4c6c239391dbec8a304a9eb0af0aa4b55153b633b523478bfcbaf2b0"
+    },
+    {
+      "path": "kernel/include/vos_target.h",
+      "sha256": "ca88dae4e118adcad257e4f70cf255230aa43a2cf80c4d1e2818091688d3d4d2"
+    }
+  ],
+  "interfaces": [
+    {
+      "id": "kernel-boundary",
+      "source": {
+        "path": "kernel/README.md",
+        "sha256": "a555e1c1e137ef8b1da732ea12c3a1df0a8e275afbb5160a994b097ebb918953"
+      }
+    },
+    {
+      "id": "scalar-abi",
+      "source": {
+        "path": "docs/implementation/contracts/purecap-abi.md",
+        "sha256": "1e4ab8e65d7fef144eafdc8664818a34e3b6dc76de17701fc791fcad4d19966a"
+      }
+    },
+    {
+      "id": "supervisor-context",
+      "source": {
+        "path": "docs/implementation/contracts/supervisor-context.md",
+        "sha256": "81932e4e77ec85f6321364770d859b828f41dc019084253a80fe2fb629001be6"
+      }
+    }
+  ],
+  "handler_graph": null
+}

@@ -1,0 +1,39 @@
+{
+  "schema_version": 1,
+  "package_id": "admission",
+  "sources": [
+    {
+      "path": "tools/vos/admission.py",
+      "sha256": "d7ab6be61f72f62daa3493c4affbfbb20de4492e2a76ddf14967c5ef7623cdbb"
+    },
+    {
+      "path": "tools/vos/admission_production.py",
+      "sha256": "8afc16d3876b3839a126ebc1f9344df59b8610e7d6a781e4d697d2a4185dc2ae"
+    },
+    {
+      "path": "tools/vos/cli/admission.py",
+      "sha256": "05f22875d1dc419bd1271a766e8a94e188555346cd7907f04d9b816480293317"
+    },
+    {
+      "path": "proofs/AdmissionPath.v",
+      "sha256": "acb3d68026bfd38df2a4fed05efabbea6eea4929e370d112b28929c437ffd539"
+    }
+  ],
+  "interfaces": [
+    {
+      "id": "admission-boundary",
+      "source": {
+        "path": "tools/admission/README.md",
+        "sha256": "81001cc594f2ea00da8ae55a8983850923f3a196cc035f78efb83555aade0951"
+      }
+    },
+    {
+      "id": "composition-projections",
+      "source": {
+        "path": "docs/implementation/contracts/boot-roster.md",
+        "sha256": "4c6d995de9f5c971cb891c0b602406b21f62c68e5afa91197179cdd522fb787c"
+      }
+    }
+  ],
+  "handler_graph": null
+}
