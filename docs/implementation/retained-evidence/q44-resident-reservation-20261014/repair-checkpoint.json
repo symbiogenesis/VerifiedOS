@@ -1,0 +1,109 @@
+{
+  "schema": 1,
+  "kind": "new-proof-checkpoint",
+  "status": "candidate",
+  "base_commit": "0b5bd0addec04365c492b1989ad2e325385476cb",
+  "target": "proofs/ResidentReads.v",
+  "allowed_assumptions": [],
+  "budget": {
+    "attempts": 12,
+    "active_seconds": 1800,
+    "replan_after_failures": 3
+  },
+  "scope": "First executable two-holder reservation reference, abstract verifier and modeled barrier seams; no source or target refinement",
+  "attempts": [
+    {
+      "number": 1,
+      "source_sha256": "6e595da2a5a02778f86297e3fca51f0282864bc18695e72bf4fa7f397b3e5af9",
+      "seconds": 0.6260402000000003,
+      "exit": 1,
+      "log": "/root/build/lane-checklist-20261014-supervisor/resident-proof-focused/attempt-1.log"
+    },
+    {
+      "number": 2,
+      "source_sha256": "ccbac6413fc6daa55f43232c54679c6ea15bc0d5f0b55024408274c0471a3d42",
+      "seconds": 0.6527772800000022,
+      "exit": 1,
+      "log": "/root/build/lane-checklist-20261014-supervisor/resident-proof-focused/attempt-2.log"
+    },
+    {
+      "number": 3,
+      "source_sha256": "3287a067a537aa06ef58eebcd37c81a7c24f70e0fde24d5794d9163a8c8d428c",
+      "seconds": 0.7113460250000117,
+      "exit": 1,
+      "log": "/root/build/lane-checklist-20261014-supervisor/resident-proof-focused/attempt-3.log"
+    },
+    {
+      "number": 4,
+      "source_sha256": "1977baf63486c3736e281ce24e6f34cdc02240a2a53ab18851d83d290f0254d4",
+      "seconds": 1.1249343000000005,
+      "exit": 1,
+      "log": "/root/build/lane-checklist-20261014-supervisor/resident-proof-focused/attempt-4.log"
+    },
+    {
+      "number": 5,
+      "source_sha256": "cf905924b80d12700669c881fd901664c1f0e982cb5dad1caf8d7774e972a2be",
+      "seconds": 60,
+      "exit": 124,
+      "log": "/root/build/lane-checklist-20261014-supervisor/resident-proof-focused/attempt-5.log"
+    },
+    {
+      "number": 6,
+      "source_sha256": "cf905924b80d12700669c881fd901664c1f0e982cb5dad1caf8d7774e972a2be",
+      "seconds": 12.084204792999998,
+      "exit": 124,
+      "log": "/root/build/lane-checklist-20261014-supervisor/resident-proof-focused/attempt-6.log"
+    },
+    {
+      "number": 7,
+      "source_sha256": "abf0c9f99758f27ad9590692b70f614b33d55e4af771803667a89c989d667723",
+      "seconds": 2.3211186210000108,
+      "exit": 1,
+      "log": "/root/build/lane-checklist-20261014-supervisor/resident-proof-focused/attempt-7.log"
+    },
+    {
+      "number": 8,
+      "source_sha256": "2f3de98906b972fc3787a36cb22e370d60b9563c68b8f2a62b0beebd3d37b265",
+      "seconds": 2.5636358100000223,
+      "exit": 0,
+      "log": "/root/build/lane-checklist-20261014-supervisor/resident-proof-focused/attempt-8.log"
+    }
+  ],
+  "frozen_reading": "New declarations had no base elaborated target. Integrator reviewed definitions/statements before attempts and final source scope before generating header. Final source hash in final-report.json; no existing declaration was changed.",
+  "strategy": "case analysis of executable checks, common-state/journal frame induction, exact admit/begin/complete linkage, and closed two-holder computed witnesses",
+  "last_diagnostic": "All new module strict compile, native per-symbol assumptions and kernel recheck pass; hosted cold proof acceptance remains deferred",
+  "final_source_sha256": "fad48123a9bb334e3b1b29489d29eda366688449d21c50bf4ef9e80143df465f",
+  "final_feedback": {
+    "schema": 1,
+    "scope": "ResidentReads only, focused local feedback; no full proof gate acceptance",
+    "source": "proofs/ResidentReads.v",
+    "source_sha256": "fad48123a9bb334e3b1b29489d29eda366688449d21c50bf4ef9e80143df465f",
+    "prover": "The Rocq Prover, version 9.3.0",
+    "switch": "verifiedos-rocq-9.3.0-ocaml-5.4.1",
+    "strict_arguments": [
+      "-w",
+      "+default,-abstract-large-number",
+      "-set",
+      "Default Goal Selector=!",
+      "-disallow-sprop"
+    ],
+    "strict_compile": "passed",
+    "compile_seconds": 2.7138449219999643,
+    "symbol_count": 183,
+    "symbol_assumptions": "all empty",
+    "quantified_record_count": 0,
+    "witnessed_record_count": 0,
+    "unbuilt": [],
+    "audit_seconds": 1.9100967159999982,
+    "kernel_recheck": "passed",
+    "kernel_seconds": 13.621408495999958,
+    "sealed_library_names_closed_by_native_reading": [],
+    "admitted_roots": [],
+    "compiled_object_sha256": "fb34880b7dbd48d2fa027509838302d0ec8c58bd873da173cadd735cb304bc69",
+    "inputs_unchanged": true,
+    "hosted_proof_acceptance": "pending integrator cold Guest CI dispatch"
+  },
+  "rejected_strategies": [
+    "Unrestricted simpl on a let-bound dependent lifetime witness expanded symbolic executable terms and timed out; use explicit introductions and closed computation instead."
+  ]
+}

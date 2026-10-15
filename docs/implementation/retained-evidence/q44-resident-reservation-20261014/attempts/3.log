@@ -1,0 +1,20 @@
+File "./proofs/ResidentReads.v", line 400, characters 75-77:
+Error:
+In environment
+b : Bounds
+s : State
+h, d, start, len : nat
+r : Resident
+Hr : backing (common s) = Some r
+Hresident : resident_ok b r = true
+Hholder : h < 2
+Hauth : authority (common s) h = true
+Hdomain : d = domain (resident_identity r)
+Hroot : current_root (common s) (resident_identity r) = true
+Hlen : 0 < len
+Hwindow : start + len <= length (resident_bytes r)
+Hexpiry : clock (common s) + retention_bound b <= counter_bound b
+Htoken : next_token (common s) < counter_bound b
+The term "id" has type "?A -> ?A" while it is expected to have type
+ "Identity".
+

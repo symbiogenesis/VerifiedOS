@@ -1,0 +1,1 @@
+Recorded diagnostic from returned gallina.CompileTimeout: strict focused compilation exceeded its declared 60-second limit. The helper stopped the compiler process group. No completed object, proof success or partial proof evidence was claimed. No partial stdout was retained by this attempt.
