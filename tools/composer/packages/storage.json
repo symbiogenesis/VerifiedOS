@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "package_id": "storage",
+  "sources": [
+    {
+      "path": "proofs/ExecutableIndex.v",
+      "sha256": "5b2a2a8c38ec44c3c8d2c325961d1648e1d5e3b542721b98352ab27e0c0c5d92"
+    },
+    {
+      "path": "proofs/JournalIndex.v",
+      "sha256": "0f21ba600cbdf4bfd7efaa6af6d772ed93d51f9092daa454dd3616da2dc2bb74"
+    },
+    {
+      "path": "proofs/StorageRecovery.v",
+      "sha256": "789d4702371963d7bd079498438394c6f6e5c199ee0dee67578a5acf66fdd1a6"
+    },
+    {
+      "path": "proofs/KeyspaceDomains.v",
+      "sha256": "fe153d81f1c85646113efb6c1574a2d36f7e59fc6b46f4d9d109de8988ea7872"
+    }
+  ],
+  "interfaces": [
+    {
+      "id": "storage-recovery",
+      "source": {
+        "path": "docs/implementation/storage-recovery-policy.md",
+        "sha256": "1b9d06c289217e4d12871c22e92dd2b15eec224893ce18b1b8fd8ab0432d519f"
+      }
+    },
+    {
+      "id": "block-device",
+      "source": {
+        "path": "interfaces/block-device-contract.md",
+        "sha256": "6fb3f3b9cba02a6d7a23cc97116ff40e561fdbb1f4e1e5606dbde1b0a50d6bfd"
+      }
+    },
+    {
+      "id": "storage-compartment",
+      "source": {
+        "path": "docs/implementation/contracts/boot-roster.md",
+        "sha256": "4c6d995de9f5c971cb891c0b602406b21f62c68e5afa91197179cdd522fb787c"
+      }
+    }
+  ],
+  "handler_graph": null
+}

@@ -27,6 +27,26 @@ def _write(root: Path, raw: dict[str, Any]) -> None:
     (root / c.EXAMPLE).write_bytes(composer.canonical_bytes(raw))
 
 
+def _rebind_inventory_source(root: Path, raw: dict[str, Any], source: str) -> None:
+    """Explicitly refresh every inventory declaring a deliberately changed owner."""
+    ref = c.reference(root, source)
+    for member in raw["members"]:
+        if member["descriptor"] is None:
+            continue
+        path = root / member["descriptor"]["path"]
+        package = json.loads(path.read_bytes())
+        if "schema_version" not in package:
+            continue
+        refs = [*package["sources"], *(item["source"] for item in package["interfaces"])]
+        if any(item["path"] == source for item in refs):
+            for item in refs:
+                if item["path"] == source:
+                    item.update(ref)
+            path.write_bytes(composer.canonical_bytes(package))
+            member["descriptor"] = c.reference(root, path.relative_to(root).as_posix())
+    _write(root, raw)
+
+
 @contextmanager
 def _sandbox() -> Iterator[tuple[Path, dict[str, Any]]]:
     raw = json.loads((ROOT / c.EXAMPLE).read_bytes())
@@ -228,10 +248,12 @@ def _stale_inputs_and_projections() -> None:
         path = root / raw["members"][0]["sources"][0]["path"]
         path.write_bytes(path.read_bytes() + b"\n")
         _refused(lambda: c.load(root), "stale source binding")
-    with _sandbox() as (root, _raw):
+    with _sandbox() as (root, raw):
         c.emit(root, c.EXAMPLE, "out/project")
         path = root / "tools/vos/composition.py"
         path.write_bytes(path.read_bytes() + b"\n")
+        _refused(lambda: c.check(root, c.EXAMPLE, "out/project"), "stale source binding")
+        _rebind_inventory_source(root, raw, "tools/vos/composition.py")
         _refused(lambda: c.check(root, c.EXAMPLE, "out/project"), "stale generated projection")
 
 

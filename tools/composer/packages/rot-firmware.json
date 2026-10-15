@@ -1,0 +1,75 @@
+{
+  "schema_version": 1,
+  "package_id": "rot-firmware",
+  "sources": [
+    {
+      "path": "firmware/chain/rom.c",
+      "sha256": "1fce07f2c434ba867bb24ab19476a79a471537f96d79656c220945f4569c0116"
+    },
+    {
+      "path": "firmware/chain/rom_entry.s",
+      "sha256": "87b6b0fc049ed16581555f9dabca5338686e86acc3596dee023fd6a9713a8906"
+    },
+    {
+      "path": "firmware/chain/runtime.c",
+      "sha256": "2f585d7d836eba2e5ac114c361f309387b67928cbc09eab5962296a3ffabf752"
+    },
+    {
+      "path": "firmware/chain/runtime_entry.s",
+      "sha256": "4b72612a1b8d06c10d168031978033591ffe7417413182d8634189d158cea07c"
+    },
+    {
+      "path": "firmware/chain/rot_policy.s",
+      "sha256": "0f90c3e982ae801da2b784ac7dde970b3d69f44f49f9acba791a947f8dcbecf1"
+    },
+    {
+      "path": "firmware/chain/chain_common.c",
+      "sha256": "c86313341a9cc83871254abf0d2bc0d95ed4e36fd7d0b291575c1ba2d50804c4"
+    },
+    {
+      "path": "firmware/chain/vos_chain.h",
+      "sha256": "e01a03ad104292b09a4d89e7826fae7ad70e01c91e5021a2274f82f271dd4ae8"
+    },
+    {
+      "path": "firmware/rot/boot_verify.c",
+      "sha256": "543c003e2e8446f74297fa4ed029a2c3363f4cb2cfee60698b2e17701095e344"
+    },
+    {
+      "path": "firmware/crypto/slh256s.c",
+      "sha256": "9138f83951aa9c4d8bbb72c0a8f6f56c916584064887451ffa65ef2062a9764f"
+    },
+    {
+      "path": "firmware/crypto/keccak.c",
+      "sha256": "c958e23cb6fb5e1bf008b441b0e8249710db8450b74c5df3e3388eca5a0ef9cb"
+    },
+    {
+      "path": "firmware/include/vos_boot.h",
+      "sha256": "ee392a6fc8b26707d5940f8f5347c59dc8abcacb6d8192a577e767a935f083e0"
+    },
+    {
+      "path": "firmware/include/vos_signature.h",
+      "sha256": "fe18278f2216c2b5c53b3596ec9f14243aed20eb02e4efbee8673bf929491329"
+    },
+    {
+      "path": "firmware/include/vos_keccak.h",
+      "sha256": "b930bd73e98d4486eb6fffdb7d79a4aa9393d27566ba21977b0a2c4a31aa4b74"
+    }
+  ],
+  "interfaces": [
+    {
+      "id": "boot-handoff",
+      "source": {
+        "path": "docs/implementation/contracts/boot-handoff.md",
+        "sha256": "0aa457a8a00b81f0e1db1d39a7d9db438671f893222ebd631359066491eff112"
+      }
+    },
+    {
+      "id": "boot-signature-boundary",
+      "source": {
+        "path": "firmware/crypto/README.md",
+        "sha256": "dc03f13b67f6252887c8c51dee3902bb911a48d1cfd47fe97816aa9f00f0fbd6"
+      }
+    }
+  ],
+  "handler_graph": null
+}

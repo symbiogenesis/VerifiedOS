@@ -1,0 +1,63 @@
+{
+  "schema_version": 1,
+  "package_id": "mmode-firmware",
+  "sources": [
+    {
+      "path": "firmware/chain/mmode.c",
+      "sha256": "fab18e306ba3585781b454ed5fe73b7cec4498d2db6ed6605ed53f7a23d0692b"
+    },
+    {
+      "path": "firmware/chain/mmode_entry.s",
+      "sha256": "0d7a26e8a711ca25c6e10ff906629c1a78a83b90cd44617d0ce10e519cff0004"
+    },
+    {
+      "path": "firmware/chain/chain_common.c",
+      "sha256": "c86313341a9cc83871254abf0d2bc0d95ed4e36fd7d0b291575c1ba2d50804c4"
+    },
+    {
+      "path": "firmware/chain/vos_chain.h",
+      "sha256": "e01a03ad104292b09a4d89e7826fae7ad70e01c91e5021a2274f82f271dd4ae8"
+    },
+    {
+      "path": "firmware/mmode/handoff.s",
+      "sha256": "8238bf6f1fd830963151dc02b4e6d7819de0b341b15bb18070f2fb132ada1aa3"
+    },
+    {
+      "path": "firmware/crypto/mldsa87.c",
+      "sha256": "8a71504305a89f2515b1fbe19943a0398411d9d8757f61d7b58998c4bfd800c5"
+    },
+    {
+      "path": "firmware/crypto/keccak.c",
+      "sha256": "c958e23cb6fb5e1bf008b441b0e8249710db8450b74c5df3e3388eca5a0ef9cb"
+    },
+    {
+      "path": "firmware/include/vos_boot.h",
+      "sha256": "ee392a6fc8b26707d5940f8f5347c59dc8abcacb6d8192a577e767a935f083e0"
+    },
+    {
+      "path": "firmware/include/vos_signature.h",
+      "sha256": "fe18278f2216c2b5c53b3596ec9f14243aed20eb02e4efbee8673bf929491329"
+    },
+    {
+      "path": "firmware/include/vos_keccak.h",
+      "sha256": "b930bd73e98d4486eb6fffdb7d79a4aa9393d27566ba21977b0a2c4a31aa4b74"
+    }
+  ],
+  "interfaces": [
+    {
+      "id": "boot-handoff",
+      "source": {
+        "path": "docs/implementation/contracts/boot-handoff.md",
+        "sha256": "0aa457a8a00b81f0e1db1d39a7d9db438671f893222ebd631359066491eff112"
+      }
+    },
+    {
+      "id": "scalar-abi",
+      "source": {
+        "path": "docs/implementation/contracts/purecap-abi.md",
+        "sha256": "1e4ab8e65d7fef144eafdc8664818a34e3b6dc76de17701fc791fcad4d19966a"
+      }
+    }
+  ],
+  "handler_graph": null
+}

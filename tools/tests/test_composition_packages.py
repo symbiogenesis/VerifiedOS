@@ -8,7 +8,14 @@ from typing import Any
 from unittest.mock import patch
 
 from tests.harness import Case, ensure
-from tests.test_composition import ROOT, _refused, _resolve_descriptors, _sandbox, _write
+from tests.test_composition import (
+    ROOT,
+    _rebind_inventory_source,
+    _refused,
+    _resolve_descriptors,
+    _sandbox,
+    _write,
+)
 from tests.test_composition_build_cli import PROJECT, _build, _check, _products
 from vos import composer
 from vos import composition as c
@@ -31,7 +38,9 @@ def _real_component_identities() -> None:
     output = json.loads(c.projections(ROOT)["graph-input.json"])
     slots = {item["member"]: item for item in output["payload"]["descriptor_slots"]}
     ensure({name for name, slot in slots.items() if slot["package"] is not None}
-           == {"supervisor", "copy-service"}, "only existing component inventories are resolved")
+           == {"rot-firmware", "mmode-firmware", "kernel", "supervisor", "crypto-core",
+               "storage", "copy-service", "composer", "admission"},
+           "every real roster member has a source-owned inventory")
     supervisor = slots["supervisor"]["package"]
     copy = slots["copy-service"]["package"]
     ensure(supervisor["package_id"] == "supervisor" and copy["package_id"] == "copy-service",
@@ -43,13 +52,57 @@ def _real_component_identities() -> None:
     ensure({item["id"]: item["source"]["path"] for item in copy["interfaces"]} == {
         "ring-reference": "interfaces/ring-reference.json",
         "copy-service-boundary": "copy-service/README.md"}, "copy boundary owners are existing artifacts")
-    ensure(supervisor["handler_graph"] is None and copy["handler_graph"] is None,
+    ensure(all(slot["package"]["handler_graph"] is None for slot in slots.values()),
            "real package identity does not invent handler intents or manifest bounds")
     ensure(output["payload"]["document"] is None and output["production_admission"] is False,
            "unresolved real roster yields neither a graph nor admission")
     package_sources = {item["member"]: item["sources"] for item in output["binding"]["package_sources"]}
     ensure(package_sources["supervisor"] == c._package_sources(supervisor),
            "transitive sources appear in the common projection binding")
+
+
+def _roster_inventory_owners() -> None:
+    output = json.loads(c.projections(ROOT)["graph-input.json"])
+    slots = {item["member"]: item for item in output["payload"]["descriptor_slots"]}
+    expected: dict[str, tuple[str, str]] = {
+        "rot-firmware": ("firmware/chain/rom.c", "docs/implementation/contracts/boot-handoff.md"),
+        "mmode-firmware": ("firmware/chain/mmode.c", "docs/implementation/contracts/purecap-abi.md"),
+        "kernel": ("kernel/src/lifecycle.c", "kernel/README.md"),
+        "supervisor": ("supervisor/src/context.c", "docs/implementation/contracts/supervisor-context.md"),
+        "crypto-core": ("proofs/AesGcm.v", "docs/implementation/contracts/boot-roster.md"),
+        "storage": ("proofs/StorageRecovery.v", "docs/implementation/storage-recovery-policy.md"),
+        "copy-service": ("copy-service/src/copy_service.c", "interfaces/ring-reference.json"),
+        "composer": ("tools/vos/composition.py", "tools/composer/composition.schema.json"),
+        "admission": ("tools/vos/admission_production.py", "tools/admission/README.md"),
+    }
+    bindings = {item["member"]: item["sources"] for item in output["binding"]["package_sources"]}
+    for name, (source, interface) in expected.items():
+        package = slots[name]["package"]
+        ensure(package["package_id"] == name, f"{name}: independent roster identity")
+        ensure(source in {ref["path"] for ref in package["sources"]}, f"{name}: actual source owner")
+        ensure(interface in {item["source"]["path"] for item in package["interfaces"]},
+               f"{name}: actual interface owner")
+        ensure(bindings[name] == c._package_sources(package), f"{name}: complete transitive bindings")
+        ensure(all(c.reference(ROOT, ref["path"]) == ref for ref in bindings[name]),
+               f"{name}: exact source bytes")
+    for name in ("crypto-core", "storage"):
+        ensure(all(ref["path"].startswith("proofs/") for ref in slots[name]["package"]["sources"]),
+               f"{name}: statements do not borrow firmware code as a nonexistent compartment product")
+    recipe = json.loads(c.projections(ROOT)["recipe-members.json"])["payload"]["members"]
+    ensure(all(member["status"] != "executable" for member in recipe),
+           "resolved inventories cannot promote the roster's target status")
+
+
+def _roster_inventory_source_drift() -> None:
+    names = ("rot-firmware", "mmode-firmware", "kernel", "crypto-core", "storage", "composer", "admission")
+    for name in names:
+        for role in ("sources", "interfaces"):
+            with _sandbox() as (root, raw):
+                _path, inventory = _inventory(root, raw, name)
+                ref = inventory[role][0] if role == "sources" else inventory[role][0]["source"]
+                path = root / ref["path"]
+                path.write_bytes(path.read_bytes() + b"\n")
+                _refused(lambda: c.projections(root), "stale source binding")
 
 
 def _unresolved_wrapped_graph() -> None:
@@ -153,6 +206,7 @@ def _transitive_source_drift() -> None:
             path.write_bytes(original + b"\n")
             ref.update(c.reference(root, ref["path"]))
             _save(root, raw, inventory_path, inventory)
+            _rebind_inventory_source(root, raw, ref["path"])
             rebound = c.projections(root)
             ensure(unchanged != rebound, "deliberately rebound source changes dependent projection identities")
             ensure(json.loads(rebound["graph-input.json"])["payload"]["document"] is None,
@@ -215,6 +269,8 @@ def _transitive_build_record_collisions() -> None:
 
 def cases() -> list[Case]:
     return [Case("real-component-package-identities", _real_component_identities),
+            Case("roster-package-source-and-interface-owners", _roster_inventory_owners),
+            Case("roster-package-source-drift", _roster_inventory_source_drift),
             Case("unresolved-handler-slot-withholds-graph", _unresolved_wrapped_graph),
             Case("wrapped-direct-graph-agreement", _wrapped_graph_agreement),
             Case("package-schema-and-identity", _inventory_shape_and_identity),
