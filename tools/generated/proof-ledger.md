@@ -937,6 +937,8 @@ being a finding of the rules that read them rather than a row of this table.
 | R-10-005c | proofs/ObjectRouter.v | the_specification_never_backpressures_the_commit | claimed |
 | R-10-005c | proofs/StorageRecovery.v | admitted_recovery_contains_the_complete_ordered_transaction | claimed |
 | R-10-005c | proofs/StorageRecovery.v | the_l2_writer_has_arm_independent_crash_prefix_replay | claimed |
+| R-10-006a | proofs/ResidentReads.v | n/a | cited |
+| R-10-006b | proofs/ResidentReads.v | n/a | cited |
 | R-10-007 | proofs/KeyspaceDomains.v | n/a | cited |
 | R-10-008 | proofs/JournalIndex.v | n/a | cited |
 | R-10-008 | proofs/KeyspaceDomains.v | n/a | cited |

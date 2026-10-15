@@ -24,7 +24,7 @@
       "id": "admission-boundary",
       "source": {
         "path": "tools/admission/README.md",
-        "sha256": "81001cc594f2ea00da8ae55a8983850923f3a196cc035f78efb83555aade0951"
+        "sha256": "c4e920031ac0302d400b1f8fdf507f5b4350eee8b64f52952b6043746cbddcc3"
       }
     },
     {

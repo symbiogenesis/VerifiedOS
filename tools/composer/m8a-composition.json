@@ -283,7 +283,7 @@
       ],
       "descriptor": {
         "path": "tools/composer/packages/admission.json",
-        "sha256": "3ee936e74756eff7b98614c5723153e9910defdf284449c670fe6f6cc6584ab1"
+        "sha256": "08b01a926a1ded4cb204cc9c0cde2dd64945977d711c78cd5fc9d4a9f5570ef3"
       },
       "artifact_slot": "admission-artifact",
       "entry": null,
