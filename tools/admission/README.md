@@ -94,3 +94,7 @@ The focused admission tests use synthetic products and derivation references in
 real ELF containers. They check positive identity joins, every absent member's
 blockers, stale identities, drift after build validation, protected publication
 and refusal replay; they establish no production derivation verdict.
+
+[The production prerequisite handoff](../../docs/implementation/contracts/production-admission.md)
+assigns the installed-object, real-derivation and checker-foundation decisions
+needed before this refusal join can become an independently checked admission.
