@@ -1,0 +1,53 @@
+File "./proofs/ResidentReads.v", line 327, characters 35-46:
+Error:
+In environment
+verify : list nat -> list nat -> bool
+s : State
+h, seq : nat
+r : Request
+r0 : Resident
+Unable to unify "common s" with
+ "common
+    (after
+       (if verify (resident_bytes r0) (root_digest (resident_identity r0))
+        then
+         {|
+           after :=
+             set_session s h
+               {|
+                 sequence := sequence (sessions s h);
+                 pending := None;
+                 response :=
+                   Some
+                     (slice (resident_bytes r0)
+                        (window_start (request_handle r) + offset r)
+                        (count r));
+                 reads := S (reads (sessions s h));
+                 authentications := S (authentications (sessions s h))
+               |};
+           payload :=
+             Some
+               (slice (resident_bytes r0)
+                  (window_start (request_handle r) + offset r) 
+                  (count r));
+           journal :=
+             [ResponsePublication h; PrivatePending h; RequestPublication h] ++
+             [PrivateAuthentications h; PrivateReads h; ResponsePublication h]
+         |}
+        else
+         {|
+           after :=
+             set_session s h
+               {|
+                 sequence := sequence (sessions s h);
+                 pending := None;
+                 response := None;
+                 reads := reads (sessions s h);
+                 authentications := S (authentications (sessions s h))
+               |};
+           payload := None;
+           journal :=
+             [ResponsePublication h; PrivatePending h; RequestPublication h] ++
+             [PrivateAuthentications h]
+         |}))".
+

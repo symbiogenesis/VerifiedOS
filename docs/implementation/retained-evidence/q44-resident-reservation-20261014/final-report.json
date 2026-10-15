@@ -1,0 +1,30 @@
+{
+  "schema": 1,
+  "scope": "ResidentReads only, focused local feedback; no full proof gate acceptance",
+  "source": "proofs/ResidentReads.v",
+  "source_sha256": "fad48123a9bb334e3b1b29489d29eda366688449d21c50bf4ef9e80143df465f",
+  "prover": "The Rocq Prover, version 9.3.0",
+  "switch": "verifiedos-rocq-9.3.0-ocaml-5.4.1",
+  "strict_arguments": [
+    "-w",
+    "+default,-abstract-large-number",
+    "-set",
+    "Default Goal Selector=!",
+    "-disallow-sprop"
+  ],
+  "strict_compile": "passed",
+  "compile_seconds": 2.7138449219999643,
+  "symbol_count": 183,
+  "symbol_assumptions": "all empty",
+  "quantified_record_count": 0,
+  "witnessed_record_count": 0,
+  "unbuilt": [],
+  "audit_seconds": 1.9100967159999982,
+  "kernel_recheck": "passed",
+  "kernel_seconds": 13.621408495999958,
+  "sealed_library_names_closed_by_native_reading": [],
+  "admitted_roots": [],
+  "compiled_object_sha256": "fb34880b7dbd48d2fa027509838302d0ec8c58bd873da173cadd735cb304bc69",
+  "inputs_unchanged": true,
+  "hosted_proof_acceptance": "pending integrator cold Guest CI dispatch"
+}

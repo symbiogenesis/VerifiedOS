@@ -1,0 +1,1100 @@
+[
+  {
+    "name": "ResidentReads.Begun",
+    "type": "Set",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.Bounds",
+    "type": "Set",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.Build_Begun",
+    "type": "forall (_ : ResidentReads.State) (_ : bool) (_ : list ResidentReads.Cell), ResidentReads.Begun",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.Build_Bounds",
+    "type": "forall (_ : nat) (_ : nat) (_ : nat) (_ : nat), ResidentReads.Bounds",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.Build_Common",
+    "type": "forall (_ : option ResidentReads.Resident) (_ : forall _ : nat, option ResidentReads.Reservation) (_ : forall _ : nat, bool) (_ : nat) (_ : nat) (_ : nat) (_ : nat) (_ : nat), ResidentReads.Common",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.Build_Handle",
+    "type": "forall (_ : nat) (_ : nat) (_ : nat) (_ : ResidentReads.Identity) (_ : nat) (_ : nat), ResidentReads.Handle",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.Build_Identity",
+    "type": "forall (_ : nat) (_ : nat) (_ : nat) (_ : nat) (_ : ResidentReads.RootKind) (_ : nat) (_ : list nat), ResidentReads.Identity",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.Build_Outcome",
+    "type": "forall (_ : ResidentReads.State) (_ : option (list nat)) (_ : list ResidentReads.Cell), ResidentReads.Outcome",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.Build_Request",
+    "type": "forall (_ : ResidentReads.Handle) (_ : nat) (_ : ResidentReads.Identity) (_ : nat) (_ : nat) (_ : nat), ResidentReads.Request",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.Build_Reservation",
+    "type": "forall (_ : ResidentReads.Handle) (_ : nat), ResidentReads.Reservation",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.Build_Resident",
+    "type": "forall (_ : ResidentReads.Identity) (_ : list nat) (_ : bool), ResidentReads.Resident",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.Build_Session",
+    "type": "forall (_ : nat) (_ : option ResidentReads.Request) (_ : option (list nat)) (_ : nat) (_ : nat), ResidentReads.Session",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.Build_State",
+    "type": "forall (_ : ResidentReads.Common) (_ : forall _ : nat, ResidentReads.Session), ResidentReads.State",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.Cell",
+    "type": "Set",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.Cell_ind",
+    "type": "forall (P : forall _ : ResidentReads.Cell, Prop) (_ : P ResidentReads.CommonCounter) (_ : forall h : nat, P (ResidentReads.CommonReservation h)) (_ : P ResidentReads.CommonBacking) (_ : forall h : nat, P (ResidentReads.PrivateSequence h)) (_ : forall h : nat, P (ResidentReads.PrivatePending h)) (_ : forall h : nat, P (ResidentReads.PrivateReads h)) (_ : forall h : nat, P (ResidentReads.PrivateAuthentications h)) (_ : forall h : nat, P (ResidentReads.RequestPublication h)) (_ : forall h : nat, P (ResidentReads.ResponsePublication h)) (c : ResidentReads.Cell), P c",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.Cell_rec",
+    "type": "forall (P : forall _ : ResidentReads.Cell, Set) (_ : P ResidentReads.CommonCounter) (_ : forall h : nat, P (ResidentReads.CommonReservation h)) (_ : P ResidentReads.CommonBacking) (_ : forall h : nat, P (ResidentReads.PrivateSequence h)) (_ : forall h : nat, P (ResidentReads.PrivatePending h)) (_ : forall h : nat, P (ResidentReads.PrivateReads h)) (_ : forall h : nat, P (ResidentReads.PrivateAuthentications h)) (_ : forall h : nat, P (ResidentReads.RequestPublication h)) (_ : forall h : nat, P (ResidentReads.ResponsePublication h)) (c : ResidentReads.Cell), P c",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.Cell_rect",
+    "type": "forall (P : forall _ : ResidentReads.Cell, Type) (_ : P ResidentReads.CommonCounter) (_ : forall h : nat, P (ResidentReads.CommonReservation h)) (_ : P ResidentReads.CommonBacking) (_ : forall h : nat, P (ResidentReads.PrivateSequence h)) (_ : forall h : nat, P (ResidentReads.PrivatePending h)) (_ : forall h : nat, P (ResidentReads.PrivateReads h)) (_ : forall h : nat, P (ResidentReads.PrivateAuthentications h)) (_ : forall h : nat, P (ResidentReads.RequestPublication h)) (_ : forall h : nat, P (ResidentReads.ResponsePublication h)) (c : ResidentReads.Cell), P c",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.Common",
+    "type": "Set",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.CommonBacking",
+    "type": "ResidentReads.Cell",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.CommonCounter",
+    "type": "ResidentReads.Cell",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.CommonReservation",
+    "type": "forall _ : nat, ResidentReads.Cell",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.Handle",
+    "type": "Set",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.Identity",
+    "type": "Set",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.Outcome",
+    "type": "Set",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.PrivateAuthentications",
+    "type": "forall _ : nat, ResidentReads.Cell",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.PrivatePending",
+    "type": "forall _ : nat, ResidentReads.Cell",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.PrivateReads",
+    "type": "forall _ : nat, ResidentReads.Cell",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.PrivateSequence",
+    "type": "forall _ : nat, ResidentReads.Cell",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.Request",
+    "type": "Set",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.RequestPublication",
+    "type": "forall _ : nat, ResidentReads.Cell",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.Reservation",
+    "type": "Set",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.Resident",
+    "type": "Set",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.ResponsePublication",
+    "type": "forall _ : nat, ResidentReads.Cell",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.RootKind",
+    "type": "Set",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.RootKind_ind",
+    "type": "forall (P : forall _ : ResidentReads.RootKind, Prop) (_ : P ResidentReads.SystemImage) (_ : P ResidentReads.UserData) (r : ResidentReads.RootKind), P r",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.RootKind_rec",
+    "type": "forall (P : forall _ : ResidentReads.RootKind, Set) (_ : P ResidentReads.SystemImage) (_ : P ResidentReads.UserData) (r : ResidentReads.RootKind), P r",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.RootKind_rect",
+    "type": "forall (P : forall _ : ResidentReads.RootKind, Type) (_ : P ResidentReads.SystemImage) (_ : P ResidentReads.UserData) (r : ResidentReads.RootKind), P r",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.Session",
+    "type": "Set",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.State",
+    "type": "Set",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.SystemImage",
+    "type": "ResidentReads.RootKind",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.UserData",
+    "type": "ResidentReads.RootKind",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.accepted",
+    "type": "forall _ : ResidentReads.Begun, bool",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.accepting",
+    "type": "forall _ : ResidentReads.Resident, bool",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.admission_installs_exact_window",
+    "type": "forall (b : ResidentReads.Bounds) (s : ResidentReads.State) (h d : nat) (id : ResidentReads.Identity) (start len : nat) (s' : ResidentReads.State) (handle : ResidentReads.Handle) (_ : @eq (prod ResidentReads.State (option ResidentReads.Handle)) (ResidentReads.admit b s h d id start len) (@pair ResidentReads.State (option ResidentReads.Handle) s' (@Some ResidentReads.Handle handle))), @ex ResidentReads.Resident (fun r : ResidentReads.Resident => @ex ResidentReads.Reservation (fun held : ResidentReads.Reservation => and (@eq (option ResidentReads.Resident) (ResidentReads.backing (ResidentReads.common s')) (@Some ResidentReads.Resident r)) (and (@eq ResidentReads.Identity (ResidentReads.resident_identity r) id) (and (@eq ResidentReads.Identity (ResidentReads.handle_identity handle) id) (and (@eq nat (ResidentReads.holder handle) h) (and (@eq nat (ResidentReads.window_start handle) start) (and (@eq nat (ResidentReads.window_length handle) len) (and (le (Nat.add start len) (@length nat (ResidentReads.resident_bytes r))) (and (lt O len) (and (lt h (S (S O))) (and (@eq nat d (ResidentReads.domain id)) (and (@eq bool (ResidentReads.authority (ResidentReads.common s') h) true) (and (@eq (option ResidentReads.Reservation) (ResidentReads.reservations (ResidentReads.common s') h) (@Some ResidentReads.Reservation held)) (and (@eq ResidentReads.Handle (ResidentReads.reserved_handle held) handle) (and (le (ResidentReads.token handle) (ResidentReads.counter_bound b)) (and (le (ResidentReads.expires held) (ResidentReads.counter_bound b)) (ResidentReads.window_inside (ResidentReads.common s') handle)))))))))))))))))",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.admit",
+    "type": "forall (_ : ResidentReads.Bounds) (_ : ResidentReads.State) (_ : nat) (_ : nat) (_ : ResidentReads.Identity) (_ : nat) (_ : nat), prod ResidentReads.State (option ResidentReads.Handle)",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.admitted_completion_within_window",
+    "type": "forall (verify : forall (_ : list nat) (_ : list nat), bool) (b : ResidentReads.Bounds) (s : ResidentReads.State) (h : ResidentReads.Handle) (d : nat) (id : ResidentReads.Identity) (off len seq : nat) (bytes : list nat) (_ : ResidentReads.window_inside (ResidentReads.common s) h) (_ : @eq bool (ResidentReads.accepted (ResidentReads.begin_read b s h d id off len)) true) (_ : @eq (option (list nat)) (ResidentReads.payload (ResidentReads.complete verify (ResidentReads.begun_state (ResidentReads.begin_read b s h d id off len)) (ResidentReads.holder h) seq)) (@Some (list nat) bytes)), @ex ResidentReads.Resident (fun r : ResidentReads.Resident => and (@eq (option ResidentReads.Resident) (ResidentReads.backing (ResidentReads.common s)) (@Some ResidentReads.Resident r)) (and (@eq ResidentReads.Identity (ResidentReads.resident_identity r) (ResidentReads.handle_identity h)) (and (le (Nat.add (Nat.add (ResidentReads.window_start h) off) len) (@length nat (ResidentReads.resident_bytes r))) (@eq (list nat) bytes (ResidentReads.slice (ResidentReads.resident_bytes r) (Nat.add (ResidentReads.window_start h) off) len)))))",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.after",
+    "type": "forall _ : ResidentReads.Outcome, ResidentReads.State",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.at_clock",
+    "type": "forall (_ : ResidentReads.State) (_ : nat), ResidentReads.State",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.authentications",
+    "type": "forall _ : ResidentReads.Session, nat",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.authority",
+    "type": "forall (_ : ResidentReads.Common) (_ : nat), bool",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.backing",
+    "type": "forall _ : ResidentReads.Common, option ResidentReads.Resident",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.begin_common_frame",
+    "type": "forall (b : ResidentReads.Bounds) (s : ResidentReads.State) (h : ResidentReads.Handle) (d : nat) (id : ResidentReads.Identity) (off len : nat), @eq ResidentReads.Common (ResidentReads.common (ResidentReads.begun_state (ResidentReads.begin_read b s h d id off len))) (ResidentReads.common s)",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.begin_journal",
+    "type": "forall _ : ResidentReads.Begun, list ResidentReads.Cell",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.begin_no_common_writes",
+    "type": "forall (b : ResidentReads.Bounds) (s : ResidentReads.State) (h : ResidentReads.Handle) (d : nat) (id : ResidentReads.Identity) (off len : nat), ResidentReads.no_common (ResidentReads.begin_journal (ResidentReads.begin_read b s h d id off len))",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.begin_read",
+    "type": "forall (_ : ResidentReads.Bounds) (_ : ResidentReads.State) (_ : ResidentReads.Handle) (_ : nat) (_ : ResidentReads.Identity) (_ : nat) (_ : nat), ResidentReads.Begun",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.begin_stores_bounded_request",
+    "type": "forall (b : ResidentReads.Bounds) (s : ResidentReads.State) (h : ResidentReads.Handle) (d : nat) (id : ResidentReads.Identity) (off len : nat) (_ : @eq bool (ResidentReads.accepted (ResidentReads.begin_read b s h d id off len)) true), @ex ResidentReads.Request (fun q : ResidentReads.Request => and (@eq (option ResidentReads.Request) (ResidentReads.pending (ResidentReads.sessions (ResidentReads.begun_state (ResidentReads.begin_read b s h d id off len)) (ResidentReads.holder h))) (@Some ResidentReads.Request q)) (and (@eq ResidentReads.Handle (ResidentReads.request_handle q) h) (and (@eq nat (ResidentReads.caller_domain q) d) (and (@eq ResidentReads.Identity (ResidentReads.supplied_identity q) id) (and (@eq nat (ResidentReads.offset q) off) (and (@eq nat (ResidentReads.count q) len) (and (le (Nat.add off len) (ResidentReads.window_length h)) (and (le len (ResidentReads.read_bound b)) (and (@eq bool (ResidentReads.live (ResidentReads.common s) h d id) true) (and (@eq nat (ResidentReads.request_sequence q) (S (ResidentReads.sequence (ResidentReads.sessions s (ResidentReads.holder h))))) (and (le (ResidentReads.request_sequence q) (ResidentReads.counter_bound b)) (@eq nat (ResidentReads.sequence (ResidentReads.sessions (ResidentReads.begun_state (ResidentReads.begin_read b s h d id off len)) (ResidentReads.holder h))) (ResidentReads.request_sequence q)))))))))))))",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.begun_request_within_backing",
+    "type": "forall (b : ResidentReads.Bounds) (s : ResidentReads.State) (h : ResidentReads.Handle) (d : nat) (id : ResidentReads.Identity) (off len : nat) (_ : ResidentReads.window_inside (ResidentReads.common s) h) (_ : @eq bool (ResidentReads.accepted (ResidentReads.begin_read b s h d id off len)) true), @ex ResidentReads.Request (fun q : ResidentReads.Request => @ex ResidentReads.Resident (fun r : ResidentReads.Resident => and (@eq (option ResidentReads.Request) (ResidentReads.pending (ResidentReads.sessions (ResidentReads.begun_state (ResidentReads.begin_read b s h d id off len)) (ResidentReads.holder h))) (@Some ResidentReads.Request q)) (and (@eq (option ResidentReads.Resident) (ResidentReads.backing (ResidentReads.common (ResidentReads.begun_state (ResidentReads.begin_read b s h d id off len)))) (@Some ResidentReads.Resident r)) (and (@eq ResidentReads.Identity (ResidentReads.resident_identity r) (ResidentReads.handle_identity (ResidentReads.request_handle q))) (le (Nat.add (Nat.add (ResidentReads.window_start (ResidentReads.request_handle q)) (ResidentReads.offset q)) (ResidentReads.count q)) (@length nat (ResidentReads.resident_bytes r)))))))",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.begun_state",
+    "type": "forall _ : ResidentReads.Begun, ResidentReads.State",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.boot_epoch",
+    "type": "forall _ : ResidentReads.Handle, nat",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.bounds_ok",
+    "type": "forall _ : ResidentReads.Bounds, bool",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.byte_bound",
+    "type": "forall _ : ResidentReads.Bounds, nat",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.caller_domain",
+    "type": "forall _ : ResidentReads.Request, nat",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.cancel_reservations",
+    "type": "forall _ : ResidentReads.State, ResidentReads.State",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.clear_pending",
+    "type": "forall _ : ResidentReads.Session, ResidentReads.Session",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.clock",
+    "type": "forall _ : ResidentReads.Common, nat",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.common",
+    "type": "forall _ : ResidentReads.State, ResidentReads.Common",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.common_counter",
+    "type": "forall _ : ResidentReads.Common, nat",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.common_increment_then_decrement_is_rejected",
+    "type": "forall writes : list ResidentReads.Cell, not (ResidentReads.no_common (@app ResidentReads.Cell (@cons ResidentReads.Cell ResidentReads.CommonCounter (@cons ResidentReads.Cell ResidentReads.CommonCounter (@nil ResidentReads.Cell))) writes))",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.complete",
+    "type": "forall (_ : forall (_ : list nat) (_ : list nat), bool) (_ : ResidentReads.State) (_ : nat) (_ : nat), ResidentReads.Outcome",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.complete_common_frame",
+    "type": "forall (verify : forall (_ : list nat) (_ : list nat), bool) (s : ResidentReads.State) (h seq : nat), @eq ResidentReads.Common (ResidentReads.common (ResidentReads.after (ResidentReads.complete verify s h seq))) (ResidentReads.common s)",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.complete_no_common_writes",
+    "type": "forall (verify : forall (_ : list nat) (_ : list nat), bool) (s : ResidentReads.State) (h seq : nat), ResidentReads.no_common (ResidentReads.journal (ResidentReads.complete verify s h seq))",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.complete_preserves_sequences",
+    "type": "forall (verify : forall (_ : list nat) (_ : list nat), bool) (s : ResidentReads.State) (h seq k : nat), @eq nat (ResidentReads.sequence (ResidentReads.sessions (ResidentReads.after (ResidentReads.complete verify s h seq)) k)) (ResidentReads.sequence (ResidentReads.sessions s k))",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.completion_exact",
+    "type": "forall (verify : forall (_ : list nat) (_ : list nat), bool) (s : ResidentReads.State) (h seq : nat) (bytes : list nat) (_ : @eq (option (list nat)) (ResidentReads.payload (ResidentReads.complete verify s h seq)) (@Some (list nat) bytes)), @ex ResidentReads.Request (fun q : ResidentReads.Request => @ex ResidentReads.Resident (fun r : ResidentReads.Resident => and (@eq (option ResidentReads.Request) (ResidentReads.pending (ResidentReads.sessions s h)) (@Some ResidentReads.Request q)) (and (@eq nat seq (ResidentReads.request_sequence q)) (and (lt h (S (S O))) (and (@eq nat (ResidentReads.holder (ResidentReads.request_handle q)) h) (and (@eq bool (ResidentReads.live (ResidentReads.common s) (ResidentReads.request_handle q) (ResidentReads.caller_domain q) (ResidentReads.supplied_identity q)) true) (and (@eq (option ResidentReads.Resident) (ResidentReads.backing (ResidentReads.common s)) (@Some ResidentReads.Resident r)) (and (@eq bool (verify (ResidentReads.resident_bytes r) (ResidentReads.root_digest (ResidentReads.resident_identity r))) true) (@eq (list nat) bytes (ResidentReads.slice (ResidentReads.resident_bytes r) (Nat.add (ResidentReads.window_start (ResidentReads.request_handle q)) (ResidentReads.offset q)) (ResidentReads.count q)))))))))))",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.completion_removes_or_preserves_pending",
+    "type": "forall (verify : forall (_ : list nat) (_ : list nat), bool) (s : ResidentReads.State) (h seq k : nat), or (@eq (option ResidentReads.Request) (ResidentReads.pending (ResidentReads.sessions (ResidentReads.after (ResidentReads.complete verify s h seq)) k)) (@None ResidentReads.Request)) (@eq (option ResidentReads.Request) (ResidentReads.pending (ResidentReads.sessions (ResidentReads.after (ResidentReads.complete verify s h seq)) k)) (ResidentReads.pending (ResidentReads.sessions s k)))",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.completion_retains",
+    "type": "forall (verify : forall (_ : list nat) (_ : list nat), bool) (s : ResidentReads.State) (h seq : nat) (expected : list nat) (_ : ResidentReads.retains s expected), ResidentReads.retains (ResidentReads.after (ResidentReads.complete verify s h seq)) expected",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.corrupt_retained_bytes_refuse_authentication",
+    "type": "forall kind : ResidentReads.RootKind, and (@eq (option (list nat)) (ResidentReads.payload (ResidentReads.complete ResidentReads.fixture_verify (ResidentReads.with_bytes (ResidentReads.two_pending kind) (@cons nat O (@cons nat O (@cons nat O (@nil nat))))) O (S O))) (@None (list nat))) (@eq (option (list nat)) (ResidentReads.payload (ResidentReads.complete ResidentReads.fixture_verify (ResidentReads.with_bytes (ResidentReads.two_pending kind) (@cons nat O (@cons nat O (@cons nat O (@nil nat))))) (S O) (S O))) (@None (list nat)))",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.count",
+    "type": "forall _ : ResidentReads.Request, nat",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.counter_bound",
+    "type": "forall _ : ResidentReads.Bounds, nat",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.current_authority_refuses",
+    "type": "forall (verify : forall (_ : list nat) (_ : list nat), bool) (s : ResidentReads.State) (h seq : nat) (q : ResidentReads.Request) (_ : @eq (option ResidentReads.Request) (ResidentReads.pending (ResidentReads.sessions s h)) (@Some ResidentReads.Request q)) (_ : @eq bool (ResidentReads.live (ResidentReads.common s) (ResidentReads.request_handle q) (ResidentReads.caller_domain q) (ResidentReads.supplied_identity q)) false), @eq (option (list nat)) (ResidentReads.payload (ResidentReads.complete verify s h seq)) (@None (list nat))",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.current_boot",
+    "type": "forall _ : ResidentReads.Common, nat",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.current_generation",
+    "type": "forall _ : ResidentReads.Common, nat",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.current_root",
+    "type": "forall (_ : ResidentReads.Common) (_ : ResidentReads.Identity), bool",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.domain",
+    "type": "forall _ : ResidentReads.Identity, nat",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.empty_session",
+    "type": "ResidentReads.Session",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.exact_independent_payloads",
+    "type": "forall kind : ResidentReads.RootKind, and (@eq (option (list nat)) (ResidentReads.payload (ResidentReads.read_fixture kind (ResidentReads.two_holders kind) O O (S (S (S O))))) (@Some (list nat) (@cons nat (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S O))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))) (@cons nat (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S O)))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))) (@cons nat (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S O))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))) (@nil nat)))))) (and (@eq (option (list nat)) (ResidentReads.payload (ResidentReads.read_fixture kind (ResidentReads.two_holders kind) (S O) O (S (S O)))) (@Some (list nat) (@cons nat (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S O)))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))) (@cons nat (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S O))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))) (@nil nat))))) (@eq (option (list nat)) (ResidentReads.payload (ResidentReads.read_fixture kind (ResidentReads.two_holders kind) O (S (S (S O))) O)) (@Some (list nat) (@nil nat))))",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.expired_inflight_read_refuses",
+    "type": "forall kind : ResidentReads.RootKind, @eq (option (list nat)) (ResidentReads.payload (ResidentReads.complete ResidentReads.fixture_verify (ResidentReads.at_clock (ResidentReads.two_pending kind) (S (S (S (S O))))) O (S O))) (@None (list nat))",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.expired_system_generation_refuses",
+    "type": "let s : ResidentReads.State := ResidentReads.two_pending ResidentReads.SystemImage in let c : ResidentReads.Common := ResidentReads.common s in let changed : ResidentReads.State := ResidentReads.set_common s (ResidentReads.Build_Common (ResidentReads.backing c) (ResidentReads.reservations c) (ResidentReads.authority c) (ResidentReads.next_token c) (ResidentReads.clock c) (ResidentReads.current_boot c) (S (S O)) (ResidentReads.common_counter c)) in @eq (option (list nat)) (ResidentReads.payload (ResidentReads.complete ResidentReads.fixture_verify changed O (S O))) (@None (list nat))",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.expires",
+    "type": "forall _ : ResidentReads.Reservation, nat",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.failed_authentication_refuses",
+    "type": "forall (verify : forall (_ : list nat) (_ : list nat), bool) (s : ResidentReads.State) (h seq : nat) (r : ResidentReads.Resident) (_ : @eq (option ResidentReads.Resident) (ResidentReads.backing (ResidentReads.common s)) (@Some ResidentReads.Resident r)) (_ : @eq bool (verify (ResidentReads.resident_bytes r) (ResidentReads.root_digest (ResidentReads.resident_identity r))) false), @eq (option (list nat)) (ResidentReads.payload (ResidentReads.complete verify s h seq)) (@None (list nat))",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.fixture_bounds",
+    "type": "ResidentReads.Bounds",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.fixture_handle",
+    "type": "forall (_ : ResidentReads.RootKind) (_ : nat), ResidentReads.Handle",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.fixture_identity",
+    "type": "forall _ : ResidentReads.RootKind, ResidentReads.Identity",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.fixture_reservation",
+    "type": "forall (_ : ResidentReads.RootKind) (_ : nat), ResidentReads.Reservation",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.fixture_resident",
+    "type": "forall _ : ResidentReads.RootKind, ResidentReads.Resident",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.fixture_retains_reservations_and_transfers",
+    "type": "forall kind : ResidentReads.RootKind, ResidentReads.retains (ResidentReads.two_pending kind) (@cons nat (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S O))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))) (@cons nat (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S O)))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))) (@cons nat (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S O))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))) (@nil nat))))",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.fixture_verify",
+    "type": "forall (_ : list nat) (_ : list nat), bool",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.generation",
+    "type": "forall _ : ResidentReads.Identity, nat",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.handle_eq_dec",
+    "type": "forall x y : ResidentReads.Handle, sumbool (@eq ResidentReads.Handle x y) (not (@eq ResidentReads.Handle x y))",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.handle_identity",
+    "type": "forall _ : ResidentReads.Handle, ResidentReads.Identity",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.holder",
+    "type": "forall _ : ResidentReads.Handle, nat",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.identity_eq_dec",
+    "type": "forall x y : ResidentReads.Identity, sumbool (@eq ResidentReads.Identity x y) (not (@eq ResidentReads.Identity x y))",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.initial",
+    "type": "forall _ : ResidentReads.RootKind, ResidentReads.State",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.interval",
+    "type": "forall (_ : nat) (_ : nat) (_ : nat), bool",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.is_common",
+    "type": "forall _ : ResidentReads.Cell, bool",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.journal",
+    "type": "forall _ : ResidentReads.Outcome, list ResidentReads.Cell",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.live",
+    "type": "forall (_ : ResidentReads.Common) (_ : ResidentReads.Handle) (_ : nat) (_ : ResidentReads.Identity), bool",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.next_token",
+    "type": "forall _ : ResidentReads.Common, nat",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.no_common",
+    "type": "forall _ : list ResidentReads.Cell, Prop",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.object_id",
+    "type": "forall _ : ResidentReads.Identity, nat",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.offset",
+    "type": "forall _ : ResidentReads.Request, nat",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.omitted_authentication_serves_wrong_bytes",
+    "type": "forall kind : ResidentReads.RootKind, @eq (option (list nat)) (ResidentReads.payload (ResidentReads.complete (fun _ _ : list nat => true) (ResidentReads.with_bytes (ResidentReads.two_pending kind) (@cons nat O (@cons nat O (@cons nat O (@nil nat))))) O (S O))) (@Some (list nat) (@cons nat O (@cons nat O (@cons nat O (@nil nat)))))",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.one_holder",
+    "type": "forall _ : ResidentReads.RootKind, ResidentReads.State",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.outside_window_refuses",
+    "type": "forall kind : ResidentReads.RootKind, @eq (option (list nat)) (ResidentReads.payload (ResidentReads.read_fixture kind (ResidentReads.two_holders kind) (S O) (S O) (S (S O)))) (@None (list nat))",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.owner",
+    "type": "forall _ : ResidentReads.Identity, nat",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.payload",
+    "type": "forall _ : ResidentReads.Outcome, option (list nat)",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.pending",
+    "type": "forall _ : ResidentReads.Session, option ResidentReads.Request",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.read_bound",
+    "type": "forall _ : ResidentReads.Bounds, nat",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.read_common_frame",
+    "type": "forall (verify : forall (_ : list nat) (_ : list nat), bool) (b : ResidentReads.Bounds) (s : ResidentReads.State) (h : ResidentReads.Handle) (d : nat) (id : ResidentReads.Identity) (off len : nat), @eq ResidentReads.Common (ResidentReads.common (ResidentReads.after (ResidentReads.read_once verify b s h d id off len))) (ResidentReads.common s)",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.read_fixture",
+    "type": "forall (_ : ResidentReads.RootKind) (_ : ResidentReads.State) (_ : nat) (_ : nat) (_ : nat), ResidentReads.Outcome",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.read_no_common_writes",
+    "type": "forall (verify : forall (_ : list nat) (_ : list nat), bool) (b : ResidentReads.Bounds) (s : ResidentReads.State) (h : ResidentReads.Handle) (d : nat) (id : ResidentReads.Identity) (off len : nat), ResidentReads.no_common (ResidentReads.journal (ResidentReads.read_once verify b s h d id off len))",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.read_once",
+    "type": "forall (_ : forall (_ : list nat) (_ : list nat), bool) (_ : ResidentReads.Bounds) (_ : ResidentReads.State) (_ : ResidentReads.Handle) (_ : nat) (_ : ResidentReads.Identity) (_ : nat) (_ : nat), ResidentReads.Outcome",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.reads",
+    "type": "forall _ : ResidentReads.Session, nat",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.refused_begin_preserves_pending",
+    "type": "forall (b : ResidentReads.Bounds) (s : ResidentReads.State) (h : ResidentReads.Handle) (d : nat) (id : ResidentReads.Identity) (off len : nat) (q : ResidentReads.Request) (_ : @eq (option ResidentReads.Request) (ResidentReads.pending (ResidentReads.sessions s (ResidentReads.holder h))) (@Some ResidentReads.Request q)), @eq (option ResidentReads.Request) (ResidentReads.pending (ResidentReads.sessions (ResidentReads.begun_state (ResidentReads.begin_read b s h d id off len)) (ResidentReads.holder h))) (@Some ResidentReads.Request q)",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.repeat_fixed_reservation",
+    "type": "forall (verify : forall (_ : list nat) (_ : list nat), bool) (b : ResidentReads.Bounds) (n : nat) (s : ResidentReads.State) (h : ResidentReads.Handle), and (@eq ResidentReads.Common (ResidentReads.common (@fst ResidentReads.State (list ResidentReads.Cell) (ResidentReads.repeat_reads verify b n s h))) (ResidentReads.common s)) (ResidentReads.no_common (@snd ResidentReads.State (list ResidentReads.Cell) (ResidentReads.repeat_reads verify b n s h)))",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.repeat_reads",
+    "type": "forall (_ : forall (_ : list nat) (_ : list nat), bool) (_ : ResidentReads.Bounds) (_ : nat) (_ : ResidentReads.State) (_ : ResidentReads.Handle), prod ResidentReads.State (list ResidentReads.Cell)",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.repeated_reads_with_fixed_admissions",
+    "type": "forall kind : ResidentReads.RootKind, let s : ResidentReads.State := @fst ResidentReads.State (list ResidentReads.Cell) (ResidentReads.repeat_reads ResidentReads.fixture_verify ResidentReads.fixture_bounds (S (S (S O))) (ResidentReads.two_holders kind) (ResidentReads.fixture_handle kind O)) in let t : ResidentReads.State := @fst ResidentReads.State (list ResidentReads.Cell) (ResidentReads.repeat_reads ResidentReads.fixture_verify ResidentReads.fixture_bounds (S (S (S O))) s (ResidentReads.fixture_handle kind (S O))) in and (@eq nat (ResidentReads.reads (ResidentReads.sessions t O)) (S (S (S O)))) (and (@eq nat (ResidentReads.reads (ResidentReads.sessions t (S O))) (S (S (S O)))) (and (@eq (option (list nat)) (ResidentReads.response (ResidentReads.sessions t O)) (@Some (list nat) (@cons nat (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S O))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))) (@cons nat (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S O)))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))) (@cons nat (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S O))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))) (@nil nat)))))) (and (@eq (option (list nat)) (ResidentReads.response (ResidentReads.sessions t (S O))) (@Some (list nat) (@cons nat (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S O)))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))) (@cons nat (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S O))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))) (@nil nat))))) (@eq nat (ResidentReads.next_token (ResidentReads.common t)) (S (S O))))))",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.request_handle",
+    "type": "forall _ : ResidentReads.Request, ResidentReads.Handle",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.request_sequence",
+    "type": "forall _ : ResidentReads.Request, nat",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.reservations",
+    "type": "forall (_ : ResidentReads.Common) (_ : nat), option ResidentReads.Reservation",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.reserved_handle",
+    "type": "forall _ : ResidentReads.Reservation, ResidentReads.Handle",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.resident_bytes",
+    "type": "forall _ : ResidentReads.Resident, list nat",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.resident_identity",
+    "type": "forall _ : ResidentReads.Resident, ResidentReads.Identity",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.resident_ok",
+    "type": "forall (_ : ResidentReads.Bounds) (_ : ResidentReads.Resident), bool",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.response",
+    "type": "forall _ : ResidentReads.Session, option (list nat)",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.retained_identity",
+    "type": "forall (_ : ResidentReads.Common) (_ : ResidentReads.Identity) (_ : list nat), Prop",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.retained_transfer_mutation_is_detected_without_reservation",
+    "type": "forall kind : ResidentReads.RootKind, let changed : ResidentReads.State := ResidentReads.with_bytes (ResidentReads.two_pending kind) (@cons nat O (@cons nat O (@cons nat O (@nil nat)))) in let c : ResidentReads.Common := ResidentReads.common changed in let no_reservations : ResidentReads.State := ResidentReads.set_common changed (ResidentReads.Build_Common (ResidentReads.backing c) (fun _ : nat => @None ResidentReads.Reservation) (ResidentReads.authority c) (ResidentReads.next_token c) (ResidentReads.clock c) (ResidentReads.current_boot c) (ResidentReads.current_generation c) (ResidentReads.common_counter c)) in not (ResidentReads.retains no_reservations (@cons nat (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S O))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))) (@cons nat (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S O)))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))) (@cons nat (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S O))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))) (@nil nat)))))",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.retains",
+    "type": "forall (_ : ResidentReads.State) (_ : list nat), Prop",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.retention_bound",
+    "type": "forall _ : ResidentReads.Bounds, nat",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.retire",
+    "type": "forall (_ : ResidentReads.State) (_ : bool), ResidentReads.State",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.retirement_cancels",
+    "type": "forall (s : ResidentReads.State) (barrier : bool) (h : nat), and (@eq (option ResidentReads.Reservation) (ResidentReads.reservations (ResidentReads.common (ResidentReads.retire s barrier)) h) (@None ResidentReads.Reservation)) (and (@eq (option ResidentReads.Request) (ResidentReads.pending (ResidentReads.sessions (ResidentReads.retire s barrier) h)) (@None ResidentReads.Request)) (@eq nat (ResidentReads.sequence (ResidentReads.sessions (ResidentReads.retire s barrier) h)) (ResidentReads.sequence (ResidentReads.sessions s h))))",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.retirement_does_not_wait_for_holders",
+    "type": "forall kind : ResidentReads.RootKind, and (@eq (option (list nat)) (ResidentReads.payload (ResidentReads.complete ResidentReads.fixture_verify (ResidentReads.retire (ResidentReads.two_pending kind) false) O (S O))) (@None (list nat))) (and (@eq (option (list nat)) (ResidentReads.payload (ResidentReads.complete ResidentReads.fixture_verify (ResidentReads.retire (ResidentReads.two_pending kind) false) (S O) (S O))) (@None (list nat))) (@eq (option ResidentReads.Resident) (ResidentReads.backing (ResidentReads.common (ResidentReads.retire (ResidentReads.two_pending kind) false))) (@Some ResidentReads.Resident (ResidentReads.Build_Resident (ResidentReads.fixture_identity kind) (@cons nat (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S O))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))) (@cons nat (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S O)))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))) (@cons nat (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S O))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))) (@nil nat)))) false))))",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.revoke",
+    "type": "forall (_ : ResidentReads.State) (_ : nat), ResidentReads.State",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.revoked_inflight_read_refuses",
+    "type": "forall kind : ResidentReads.RootKind, and (@eq (option (list nat)) (ResidentReads.payload (ResidentReads.complete ResidentReads.fixture_verify (ResidentReads.revoke (ResidentReads.two_pending kind) O) O (S O))) (@None (list nat))) (@eq (option (list nat)) (ResidentReads.payload (ResidentReads.complete ResidentReads.fixture_verify (ResidentReads.revoke (ResidentReads.two_pending kind) O) (S O) (S O))) (@Some (list nat) (@cons nat (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S O)))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))) (@cons nat (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S O))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))) (@nil nat)))))",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.root_digest",
+    "type": "forall _ : ResidentReads.Identity, list nat",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.root_kind",
+    "type": "forall _ : ResidentReads.Identity, ResidentReads.RootKind",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.same_identity_mutation_breaks_live_retention",
+    "type": "forall kind : ResidentReads.RootKind, not (ResidentReads.retains (ResidentReads.with_bytes (ResidentReads.two_pending kind) (@cons nat O (@cons nat O (@cons nat O (@nil nat))))) (@cons nat (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S O))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))) (@cons nat (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S O)))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))) (@cons nat (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S O))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))) (@nil nat)))))",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.sequence",
+    "type": "forall _ : ResidentReads.Session, nat",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.sequence_exhaustion_refuses",
+    "type": "forall (b : ResidentReads.Bounds) (s : ResidentReads.State) (h : ResidentReads.Handle) (d : nat) (id : ResidentReads.Identity) (off len : nat) (_ : le (ResidentReads.counter_bound b) (ResidentReads.sequence (ResidentReads.sessions s (ResidentReads.holder h)))), @eq bool (ResidentReads.accepted (ResidentReads.begin_read b s h d id off len)) false",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.sessions",
+    "type": "forall (_ : ResidentReads.State) (_ : nat), ResidentReads.Session",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.set",
+    "type": "forall {A : Type} (_ : forall _ : nat, A) (_ : nat) (_ : A) (_ : nat), A",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.set_common",
+    "type": "forall (_ : ResidentReads.State) (_ : ResidentReads.Common), ResidentReads.State",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.set_other",
+    "type": "forall (A : Type) (f : forall _ : nat, A) (h : nat) (v : A) (k : nat) (_ : not (@eq nat k h)), @eq A (@ResidentReads.set A f h v k) (f k)",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.set_same",
+    "type": "forall (A : Type) (f : forall _ : nat, A) (h : nat) (v : A), @eq A (@ResidentReads.set A f h v h) v",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.set_session",
+    "type": "forall (_ : ResidentReads.State) (_ : nat) (_ : ResidentReads.Session), ResidentReads.State",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.slice",
+    "type": "forall (_ : list nat) (_ : nat) (_ : nat), list nat",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.stale_completion_keeps_successor",
+    "type": "forall kind : ResidentReads.RootKind, let first : ResidentReads.Outcome := ResidentReads.read_fixture kind (ResidentReads.two_holders kind) O O (S (S (S O))) in let successor : ResidentReads.State := ResidentReads.begun_state (ResidentReads.begin_read ResidentReads.fixture_bounds (ResidentReads.after first) (ResidentReads.fixture_handle kind O) (S (S (S (S (S (S (S O))))))) (ResidentReads.fixture_identity kind) O (S (S (S O)))) in and (@eq ResidentReads.State (ResidentReads.after (ResidentReads.complete ResidentReads.fixture_verify successor O (S O))) successor) (and (@eq (list ResidentReads.Cell) (ResidentReads.journal (ResidentReads.complete ResidentReads.fixture_verify successor O (S O))) (@nil ResidentReads.Cell)) (@eq (option (list nat)) (ResidentReads.payload (ResidentReads.complete ResidentReads.fixture_verify successor O (S (S O)))) (@Some (list nat) (@cons nat (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S O))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))) (@cons nat (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S O)))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))) (@cons nat (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S O))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))) (@nil nat)))))))",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.stale_completion_unchanged",
+    "type": "forall (verify : forall (_ : list nat) (_ : list nat), bool) (s : ResidentReads.State) (h seq : nat) (q : ResidentReads.Request) (_ : @eq (option ResidentReads.Request) (ResidentReads.pending (ResidentReads.sessions s h)) (@Some ResidentReads.Request q)) (_ : not (@eq nat seq (ResidentReads.request_sequence q))), and (@eq ResidentReads.State (ResidentReads.after (ResidentReads.complete verify s h seq)) s) (and (@eq (option (list nat)) (ResidentReads.payload (ResidentReads.complete verify s h seq)) (@None (list nat))) (@eq (list ResidentReads.Cell) (ResidentReads.journal (ResidentReads.complete verify s h seq)) (@nil ResidentReads.Cell)))",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.supplied_identity",
+    "type": "forall _ : ResidentReads.Request, ResidentReads.Identity",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.token",
+    "type": "forall _ : ResidentReads.Handle, nat",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.two_accepted_transfers",
+    "type": "forall kind : ResidentReads.RootKind, and (@eq (option (list nat)) (ResidentReads.payload (ResidentReads.complete ResidentReads.fixture_verify (ResidentReads.two_pending kind) O (S O))) (@Some (list nat) (@cons nat (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S O))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))) (@cons nat (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S O)))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))) (@cons nat (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S O))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))) (@nil nat)))))) (@eq (option (list nat)) (ResidentReads.payload (ResidentReads.complete ResidentReads.fixture_verify (ResidentReads.two_pending kind) (S O) (S O))) (@Some (list nat) (@cons nat (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S O)))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))) (@cons nat (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S O))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))) (@nil nat)))))",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.two_holders",
+    "type": "forall _ : ResidentReads.RootKind, ResidentReads.State",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.two_independent_admissions",
+    "type": "forall kind : ResidentReads.RootKind, and (@eq (prod ResidentReads.State (option ResidentReads.Handle)) (ResidentReads.admit ResidentReads.fixture_bounds (ResidentReads.initial kind) O (S (S (S (S (S (S (S O))))))) (ResidentReads.fixture_identity kind) O (S (S (S O)))) (@pair ResidentReads.State (option ResidentReads.Handle) (ResidentReads.one_holder kind) (@Some ResidentReads.Handle (ResidentReads.fixture_handle kind O)))) (@eq (prod ResidentReads.State (option ResidentReads.Handle)) (ResidentReads.admit ResidentReads.fixture_bounds (ResidentReads.one_holder kind) (S O) (S (S (S (S (S (S (S O))))))) (ResidentReads.fixture_identity kind) (S O) (S (S O))) (@pair ResidentReads.State (option ResidentReads.Handle) (ResidentReads.two_holders kind) (@Some ResidentReads.Handle (ResidentReads.fixture_handle kind (S O)))))",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.two_pending",
+    "type": "forall _ : ResidentReads.RootKind, ResidentReads.State",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.unavailable_barrier_keeps_backing",
+    "type": "forall (s : ResidentReads.State) (r : ResidentReads.Resident) (_ : @eq (option ResidentReads.Resident) (ResidentReads.backing (ResidentReads.common s)) (@Some ResidentReads.Resident r)), @eq (option ResidentReads.Resident) (ResidentReads.backing (ResidentReads.common (ResidentReads.retire s false))) (@Some ResidentReads.Resident (ResidentReads.Build_Resident (ResidentReads.resident_identity r) (ResidentReads.resident_bytes r) false))",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.version",
+    "type": "forall _ : ResidentReads.Identity, nat",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.window_inside",
+    "type": "forall (_ : ResidentReads.Common) (_ : ResidentReads.Handle), Prop",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.window_length",
+    "type": "forall _ : ResidentReads.Handle, nat",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.window_start",
+    "type": "forall _ : ResidentReads.Handle, nat",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.with_bytes",
+    "type": "forall (_ : ResidentReads.State) (_ : list nat), ResidentReads.State",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.with_response",
+    "type": "forall (_ : ResidentReads.Session) (_ : option (list nat)), ResidentReads.Session",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.witness_Begun",
+    "type": "ResidentReads.Begun",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.witness_Bounds",
+    "type": "ResidentReads.Bounds",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.witness_Common",
+    "type": "ResidentReads.Common",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.witness_Handle",
+    "type": "ResidentReads.Handle",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.witness_Identity",
+    "type": "ResidentReads.Identity",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.witness_Outcome",
+    "type": "ResidentReads.Outcome",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.witness_Request",
+    "type": "ResidentReads.Request",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.witness_Reservation",
+    "type": "ResidentReads.Reservation",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.witness_Resident",
+    "type": "ResidentReads.Resident",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.witness_Session",
+    "type": "ResidentReads.Session",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.witness_State",
+    "type": "ResidentReads.State",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.wrong_domain_refuses",
+    "type": "forall kind : ResidentReads.RootKind, @eq (option (list nat)) (ResidentReads.payload (ResidentReads.read_once ResidentReads.fixture_verify ResidentReads.fixture_bounds (ResidentReads.two_holders kind) (ResidentReads.fixture_handle kind O) (S (S (S (S (S (S (S (S O)))))))) (ResidentReads.fixture_identity kind) O (S (S (S O))))) (@None (list nat))",
+    "assumptions": [],
+    "claims": []
+  },
+  {
+    "name": "ResidentReads.wrong_version_and_root_refuse",
+    "type": "forall kind : ResidentReads.RootKind, let wrong_version : ResidentReads.Identity := ResidentReads.Build_Identity (S O) (S (S (S (S (S (S (S O))))))) (S O) (S (S O)) kind (S O) (@cons nat (S (S (S (S (S (S (S (S (S (S (S O))))))))))) (@cons nat (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S O)))))))))))))))))))))) (@nil nat))) in let wrong_root : ResidentReads.Identity := ResidentReads.Build_Identity (S O) (S (S (S (S (S (S (S O))))))) (S O) (S O) kind (S O) (@cons nat (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S (S O)))))))))))))))))))))) (@cons nat (S (S (S (S (S (S (S (S (S (S (S O))))))))))) (@nil nat))) in and (@eq (option (list nat)) (ResidentReads.payload (ResidentReads.read_once ResidentReads.fixture_verify ResidentReads.fixture_bounds (ResidentReads.two_holders kind) (ResidentReads.fixture_handle kind O) (S (S (S (S (S (S (S O))))))) wrong_version O (S (S (S O))))) (@None (list nat))) (@eq (option (list nat)) (ResidentReads.payload (ResidentReads.read_once ResidentReads.fixture_verify ResidentReads.fixture_bounds (ResidentReads.two_holders kind) (ResidentReads.fixture_handle kind O) (S (S (S (S (S (S (S O))))))) wrong_root O (S (S (S O))))) (@None (list nat)))",
+    "assumptions": [],
+    "claims": []
+  }
+]
