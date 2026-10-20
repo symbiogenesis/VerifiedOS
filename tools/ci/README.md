@@ -677,3 +677,28 @@ and `proofs/`.
 from a passing run's artifact, its SHA-256 equal to the artifact's. That landing copies
 `report.json` and any failing step's text log, at their `out/instrument-ci/` paths,
 under `docs/implementation/retained-evidence/`, each cited with its SHA-256.
+
+## Sail runtime qualification
+
+[sail-runtime-qualification.yml](../../.github/workflows/sail-runtime-qualification.yml)
+measures an upstream Sail runtime candidate on GitHub Actions. Dispatch on `main`
+with `revision` naming a full VerifiedOS commit already on main,
+`candidate_revision` recording the local Sail commit, `patch_sha256` naming the
+SHA-256 of its binary Git diff from Sail
+`8857cacf492c71b537e879a862ab5b62ba4abf81`, and `patch_gzip_base64` carrying that
+diff compressed with gzip and encoded as base64. The patch digest binds the tested
+bytes; the candidate revision is a label, not evidence of a remote branch. Only
+`lib/rts.c`, `lib/rts.h`, and the two `test/oneoff/rts_memory/` files may change.
+
+The driver retains the immutable upstream archive and its hash, applies the patch,
+and checks C and C++ regressions with GCC, Clang, and ASan/UBSan. Both revisions
+use identical GCC options on one runner. Measurements cover buffer transfers,
+the existing scalar RAM reader, and raw loading of a prepared 8 MiB image.
+Head-of-list controls and eight-block traversal cases distinguish inexpensive
+lookups from sparse-list overhead; buffer cases include block boundaries.
+Setup and result validation stay outside timers. One warmup is discarded, seven
+paired samples alternate process order, and summaries report median, minimum,
+maximum, and ratio. The artifact retains raw samples, source archive, patch,
+benchmark source, commands, and compiler/CPU identity. Benchmarks run only in CI;
+these measurements supply focused runtime evidence and no model, proof, or
+whole-emulator acceptance.
