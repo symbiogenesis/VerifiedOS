@@ -454,9 +454,9 @@ can then run locally without a local full-suite run. This standalone route may b
 read to obtain its artifact; the separate Guest CI handoff still finishes without
 polling or waiting for Guest CI.
 
-The [package-only preparation receipt](../../docs/implementation/retained-evidence/dependencies-20261019/runtime-notices/preparation.json),
+The [preliminary package-only preparation receipt](../../docs/implementation/retained-evidence/dependencies-20261019/runtime-notices/preparation.json),
 SHA-256 `164de6e518bf681e3f32e6869c5144b5455b473813cddec16e86e793ad28e686`,
-checks the packaging script, notices, library identities and executable mode
+checks its packaging-script snapshot, notices, library identities and executable mode
 against a historical emulator. It is preparation evidence only; a successful
 current hosted model build and its full CTest receipt remain required.
 
@@ -482,6 +482,18 @@ without downloaded source, compiled objects, libraries, executables or test keys
 These campaigns are acceptance outside Host CI and Guest CI. Read their results
 and retain the successful receipts before adopting a refreshed oracle. The
 separate Guest CI handoff still finishes without waiting for Guest CI.
+
+The [complete hosted OpenSSL qualification](../../docs/implementation/retained-evidence/dependencies-20261019/openssl-hosted/manifest.json),
+SHA256 `bbcb9b4ee5a315b2e48335e0038d6a10f23cf94a1609d34976b2f2bb71d8d206`,
+retains all three successful jobs from the [refresh run](https://github.com/symbiogenesis/VerifiedOS/actions/runs/39358955434).
+The boot campaign records 184 passing checks with Gallina comparison; ML-KEM
+records 154 unrestricted reference checks and 225 independent comparisons;
+ML-DSA records 160 official and 26 authored reference cases, followed by twelve
+passing comparisons for each of three independent seeds. Each receipt preserves
+its applicable exclusions, tested revision and source/build identities. The
+bundle also retains the source-match verification, private-build manifests,
+source license and compressed build and campaign logs. These host comparisons
+qualify the refreshed external oracle; target and refinement joins remain open.
 
 ## Instrument switch route
 

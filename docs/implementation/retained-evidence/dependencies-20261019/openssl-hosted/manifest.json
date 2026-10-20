@@ -1,0 +1,184 @@
+{
+  "files": {
+    "OpenSSL-LICENSE.txt": {
+      "bytes": 10175,
+      "encoding": "identity",
+      "path": "OpenSSL-LICENSE.txt",
+      "sha256": "7d5450cb2d142651b8afa315b5f238efc805dad827d91ba367d8516bc9d49e7a"
+    },
+    "boot/build-manifest.json": {
+      "bytes": 2585,
+      "encoding": "identity",
+      "path": "boot/build-manifest.json",
+      "sha256": "1988ee8c06d3d9ec87f319d0c4d0fe24ab7d127f89b36a6b73a087d249aa3fa2"
+    },
+    "boot/build.log.gz": {
+      "bytes": 1996682,
+      "encoding": "gzip",
+      "path": "boot/build.log.gz",
+      "sha256": "289948fb8a378a8545b4c7373d0e22ae3c6795d75d6f4fdda96fb030fe6f1807",
+      "stored_bytes": 56073,
+      "stored_sha256": "f0da41e959ad1a0764aeaeac66171ffc33fafb637081be4253fbc8a2b49f3870"
+    },
+    "boot/configure.log.gz": {
+      "bytes": 1211,
+      "encoding": "gzip",
+      "path": "boot/configure.log.gz",
+      "sha256": "dac061cc9fcb9c91f0a081bd34eb86f1d3e25ac4ba415e556099c28e1be57d26",
+      "stored_bytes": 398,
+      "stored_sha256": "69e114969b6480b42d4e8f2f974672d655783dede1fc855a95d0a42064a3ebf6"
+    },
+    "boot/install.log.gz": {
+      "bytes": 42281,
+      "encoding": "gzip",
+      "path": "boot/install.log.gz",
+      "sha256": "23481d179f0fa4e9cea39c40a065c9ce5cbf875b4644d7b4cdcacadae673a802",
+      "stored_bytes": 2032,
+      "stored_sha256": "65a27c286ee7626b34415b5ba30c59fae73dfc846e2a50e780d04635a1366026"
+    },
+    "boot/oracle.json": {
+      "bytes": 74418,
+      "encoding": "identity",
+      "path": "boot/oracle.json",
+      "sha256": "ec1b6d13b320245421ec139f54b95d5214a0eaed05d5ab868687a03866ac2669"
+    },
+    "boot/qualification.json": {
+      "bytes": 183,
+      "encoding": "identity",
+      "path": "boot/qualification.json",
+      "sha256": "dccffe9e25058748a46aa6236377a338827bc5eec984c6244f22873d862d667c"
+    },
+    "boot/qualification.log.gz": {
+      "bytes": 522,
+      "encoding": "gzip",
+      "path": "boot/qualification.log.gz",
+      "sha256": "aa1f9a8b80b5ae85bfc8a68e42fc08b2646efb8eb4386749dbdd061e349ca021",
+      "stored_bytes": 361,
+      "stored_sha256": "e78dd4e5800d3ee5b16be0518b6aadffee02ecceb9080cc8866fb1d48f6dd146"
+    },
+    "hosted-run.json": {
+      "bytes": 8928,
+      "encoding": "identity",
+      "path": "hosted-run.json",
+      "sha256": "58fa51cda9d20da9540b2d7bc9b687969b1c4a5b890aa0fc231c9cecf408f4e7"
+    },
+    "mldsa/baseline.json": {
+      "bytes": 75771,
+      "encoding": "identity",
+      "path": "mldsa/baseline.json",
+      "sha256": "d1dacaff034c240e4c55127e5c075f111aed336bfc9dddf03521ba6cebb76f03"
+    },
+    "mldsa/build-manifest.json": {
+      "bytes": 2584,
+      "encoding": "identity",
+      "path": "mldsa/build-manifest.json",
+      "sha256": "c54ef851de97d736735dd52c361e7b6b3dcd101c42824bc337ab12d8f55feb61"
+    },
+    "mldsa/build.log.gz": {
+      "bytes": 1996682,
+      "encoding": "gzip",
+      "path": "mldsa/build.log.gz",
+      "sha256": "4576527f0cf380c4c7abbef8e40a0dc0a5dfd520400b3735d9a404145d1d6205",
+      "stored_bytes": 56074,
+      "stored_sha256": "cfe4100c2c915a9f0fd8a8f5ab4798484d6be7cc3cf47aeea372a39dbe645999"
+    },
+    "mldsa/configure.log.gz": {
+      "bytes": 1211,
+      "encoding": "gzip",
+      "path": "mldsa/configure.log.gz",
+      "sha256": "dac061cc9fcb9c91f0a081bd34eb86f1d3e25ac4ba415e556099c28e1be57d26",
+      "stored_bytes": 398,
+      "stored_sha256": "69e114969b6480b42d4e8f2f974672d655783dede1fc855a95d0a42064a3ebf6"
+    },
+    "mldsa/install.log.gz": {
+      "bytes": 42281,
+      "encoding": "gzip",
+      "path": "mldsa/install.log.gz",
+      "sha256": "23481d179f0fa4e9cea39c40a065c9ce5cbf875b4644d7b4cdcacadae673a802",
+      "stored_bytes": 2032,
+      "stored_sha256": "65a27c286ee7626b34415b5ba30c59fae73dfc846e2a50e780d04635a1366026"
+    },
+    "mldsa/oracle.json": {
+      "bytes": 7185,
+      "encoding": "identity",
+      "path": "mldsa/oracle.json",
+      "sha256": "e0da8d277f3e22daee7ccea2102d8d244451176b4e34be9c5c9360a3e7ce3704"
+    },
+    "mldsa/qualification.json": {
+      "bytes": 184,
+      "encoding": "identity",
+      "path": "mldsa/qualification.json",
+      "sha256": "c3a07df66b05fd73c5c411238b1f3f47720509c5b11c8fa2f8b0da21fa784876"
+    },
+    "mldsa/qualification.log.gz": {
+      "bytes": 4167,
+      "encoding": "gzip",
+      "path": "mldsa/qualification.log.gz",
+      "sha256": "7654615d6c35291da80497ce8f105ebc00383b4807c3df4b6e4f10863bdae134",
+      "stored_bytes": 696,
+      "stored_sha256": "ab442d4eface44e4fce17a24e52fcee6f7bb0918d40c4d1ad3576181a517703e"
+    },
+    "mlkem/baseline.json": {
+      "bytes": 47782,
+      "encoding": "identity",
+      "path": "mlkem/baseline.json",
+      "sha256": "04ecd4b3b0adc76d3b850de95c6ba5ca3718e3c68035d2da42415c4f7a428b78"
+    },
+    "mlkem/build-manifest.json": {
+      "bytes": 2589,
+      "encoding": "identity",
+      "path": "mlkem/build-manifest.json",
+      "sha256": "1ecf05be42003132c4097ec361ae9a2d27ab71da62f46f110391ef6ad40c4f94"
+    },
+    "mlkem/build.log.gz": {
+      "bytes": 1996682,
+      "encoding": "gzip",
+      "path": "mlkem/build.log.gz",
+      "sha256": "16c7d45c32c7870ee6cfc4f2c62def42aaed32074079147e9b29ca4350397980",
+      "stored_bytes": 56074,
+      "stored_sha256": "ca9b0a8770734ae1a6cf3da9a43ebe02e1251abc58b32913af6469b497dcbfa6"
+    },
+    "mlkem/configure.log.gz": {
+      "bytes": 1211,
+      "encoding": "gzip",
+      "path": "mlkem/configure.log.gz",
+      "sha256": "dac061cc9fcb9c91f0a081bd34eb86f1d3e25ac4ba415e556099c28e1be57d26",
+      "stored_bytes": 398,
+      "stored_sha256": "69e114969b6480b42d4e8f2f974672d655783dede1fc855a95d0a42064a3ebf6"
+    },
+    "mlkem/install.log.gz": {
+      "bytes": 42281,
+      "encoding": "gzip",
+      "path": "mlkem/install.log.gz",
+      "sha256": "23481d179f0fa4e9cea39c40a065c9ce5cbf875b4644d7b4cdcacadae673a802",
+      "stored_bytes": 2032,
+      "stored_sha256": "65a27c286ee7626b34415b5ba30c59fae73dfc846e2a50e780d04635a1366026"
+    },
+    "mlkem/oracle.json": {
+      "bytes": 149929,
+      "encoding": "identity",
+      "path": "mlkem/oracle.json",
+      "sha256": "915672e2e7b31cfe11ef5289269d93e9d2ac8962d8b73d4a41c2975b039f4ec5"
+    },
+    "mlkem/qualification.json": {
+      "bytes": 184,
+      "encoding": "identity",
+      "path": "mlkem/qualification.json",
+      "sha256": "ad02b947a163eda29c6b42660d57e654e9f31e13ceda3c670d7b0a8851742ee5"
+    },
+    "mlkem/qualification.log.gz": {
+      "bytes": 6024,
+      "encoding": "gzip",
+      "path": "mlkem/qualification.log.gz",
+      "sha256": "9496225cdd513c46285c70005fa984ce1319c01056fb2ae18fc820ed35440f3a",
+      "stored_bytes": 627,
+      "stored_sha256": "ed468e227a686e5b3a584e9897ad001f0cb947e3579e20fe13912ba6344428d9"
+    },
+    "verification.json": {
+      "bytes": 6238,
+      "encoding": "identity",
+      "path": "verification.json",
+      "sha256": "f27150dd80180d4fd6d75ae1e8d21e4f58ceaa44e6877788ddb5a5b53fe98abf"
+    }
+  }
+}

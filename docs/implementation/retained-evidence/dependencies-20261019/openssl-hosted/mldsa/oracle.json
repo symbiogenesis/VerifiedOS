@@ -1,0 +1,118 @@
+{
+  "oracle": "OpenSSL 3.5.9 default provider",
+  "openssl": {
+    "version": "OpenSSL 3.5.9 29 Sep 2026 (Library: OpenSSL 3.5.9 29 Sep 2026)\nbuilt on: Tue Oct 20 02:39:13 2026 UTC\nplatform: linux-x86_64\noptions:  bn(64,64)\ncompiler: gcc -fPIC -pthread -m64 -Wa,--noexecstack -Wall -O3 -DOPENSSL_USE_NODELETE -DL_ENDIAN -DOPENSSL_PIC -DOPENSSL_BUILDING_OPENSSL -DNDEBUG\nOPENSSLDIR: \"/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/ssl\"\nENGINESDIR: \"/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/lib/engines-3\"\nMODULESDIR: \"/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/lib/ossl-modules\"\nSeeding source: os-specific\nCPUINFO: OPENSSL_ia32cap=0xfeda3203078bffff:0x00400684219c07a9:0x0000000000000010:0x0000000000000000:0x0000000000000000",
+    "source": {
+      "version": "3.5.9",
+      "revision": "45e844fa2a14ec92d146bd8f5778ac130b6625fb",
+      "url": "https://github.com/openssl/openssl/releases/download/openssl-3.5.9/openssl-3.5.9.tar.gz",
+      "archive_sha256": "603f5602e2eef00d77fbd429d34dcd5822bb301757a1bc9cdb24c670f1eb859a",
+      "license_sha256": "7d5450cb2d142651b8afa315b5f238efc805dad827d91ba367d8516bc9d49e7a",
+      "license": "Apache-2.0"
+    },
+    "build_manifest": "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/build-manifest.json",
+    "build_manifest_sha256": "c54ef851de97d736735dd52c361e7b6b3dcd101c42824bc337ab12d8f55feb61",
+    "binaries": {
+      "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl": "07774bd9ba2879a87a99cf6e28ad2e18d544a24d926213d9a715cc3c10f27c39",
+      "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/lib/libcrypto.so.3": "687e0dade1620e36399a7b415b391be98aeb0bb0d24b32955ea0f92968730647",
+      "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/lib/libssl.so.3": "a14abe2f9f26dbb8901b65adbcfd0e0c155816db72af1a458c8c98aaa3c9a142"
+    },
+    "configuration_sha256": "a65a2cb9f4ee8ffdc7ef4f0ac600c0bdafb95b7b1ab457188ac610a62f5ad6b3"
+  },
+  "gallina_bindings": {
+    "proofs/PqArith.v": "cc0226ae9512ce40ada9f7400fad3765b5bfc8b2ae7c0adb9e015e469985be1d",
+    "PqArith.vo": "2826bab878893a10223460200ad8b03ab4fc7fa0c13ffe3278d99942af234cbe",
+    "proofs/Keccak.v": "231f8a2e9cc3f022e3647ef04d17a2e56fbb2b54ea7bcb10ae76d5caf52f4592",
+    "Keccak.vo": "e58f22026aad6fcf3d088078c0bc38ffe33a3374b5db7bbcf9d69517e010fc3d",
+    "proofs/MlDsa.v": "70d8785b066fdee5fe5461885ee17c2006e87b268519488505b19dbd87facac2",
+    "MlDsa.vo": "6cc389fe3c94042a23892d9e32d9e2643276add169fbe86c63b386de59ca4d42",
+    "ExtractDsa.v": "8b8842fc7c38f6558dc2a8f4925d333606abca5dae73f5d7e7627b48b3124dc5",
+    "mldsa.ml": "822842907d67fe0ec451ff0b2adfd3821b0cd0db957da7665b2316dbf95bb712",
+    "mldsa.mli": "8968e9a40d066008e06278877171c038c12936b445bfc29d0c24151c47aa93c8",
+    "driver.ml": "13071ce65a0dae808bc7cc5e33137a1d8fd61fa521fa1dec1232ec76f5e8adbb",
+    "dsa.exe": "50397a3071e7f8bebd35583627fac5cac0cc13facfe79f5e4d550e9ef76900f5",
+    "proofs/campaigns/mldsa_vectors.py": "22daf35ed409ad90bba23ae1510c24cf0862f1a320afe1bb0f87d9b0020d0f26"
+  },
+  "harness_sha256": "6ef241d2ff762140fec84936e4a92647aa795c26c696262ad7a89c4031506e97",
+  "cases": [
+    {
+      "case": 0,
+      "seed": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+      "hedging_bytes": "fffefdfcfbfaf9f8f7f6f5f4f3f2f1f0efeeedecebeae9e8e7e6e5e4e3e2e1e0",
+      "message_sha256": "77c11baa344ed99cdc6420aa436cccaa7f9de3018ae60e76e401cc9f577667b4",
+      "context": "0056657269666965644f53206f7261636c65ff00",
+      "public_key_sha256": "91dc389cfaa01470b7f66eee45a4ae9026d154817c754dfe22298b3fa241ffcd",
+      "secret_key_sha256": "764d3e223ed90c07bc91a0ab6ecd170e5c66ffe39f7039298596039a36005435",
+      "gallina_signature_sha256": "2297fefcc26a8be581d131dbd09cbbaf8a84aabe17ab13c0955c878980631b4d",
+      "openssl_signature_sha256": "2297fefcc26a8be581d131dbd09cbbaf8a84aabe17ab13c0955c878980631b4d",
+      "comparisons": {
+        "public-key-bytes": true,
+        "secret-key-bytes": true,
+        "signature-bytes": true,
+        "openssl-verifies-gallina": true,
+        "gallina-verifies-openssl": true,
+        "changed-message": true,
+        "changed-context": true,
+        "changed-challenge": true,
+        "strict-response-boundary": true,
+        "hint-endpoint-overflow": true,
+        "short-signature": true,
+        "changed-public-key": true
+      }
+    },
+    {
+      "case": 1,
+      "seed": "434445464748494a4b4c4d4e4f505152535455565758595a5b5c5d5e5f606162",
+      "hedging_bytes": "ecebeae9e8e7e6e5e4e3e2e1e0dfdedddcdbdad9d8d7d6d5d4d3d2d1d0cfcecd",
+      "message_sha256": "676ae310dfb476887e004713306a7fc895c042c2cb37a827c73e6e43852084b6",
+      "context": "0056657269666965644f53206f7261636c65ff01",
+      "public_key_sha256": "4f9e66d7d85d6ebae331471f92697f0f452a289380c7549e2610833221ecc888",
+      "secret_key_sha256": "572efc860c7baca91ab5d4dd10843b9ea07a8ab6aa0f19e635b57623ddac4a98",
+      "gallina_signature_sha256": "089be158b508f1438acb14f7967949c59887e89d8f11bc250d313fb746270bbf",
+      "openssl_signature_sha256": "089be158b508f1438acb14f7967949c59887e89d8f11bc250d313fb746270bbf",
+      "comparisons": {
+        "public-key-bytes": true,
+        "secret-key-bytes": true,
+        "signature-bytes": true,
+        "openssl-verifies-gallina": true,
+        "gallina-verifies-openssl": true,
+        "changed-message": true,
+        "changed-context": true,
+        "changed-challenge": true,
+        "strict-response-boundary": true,
+        "hint-endpoint-overflow": true,
+        "short-signature": true,
+        "changed-public-key": true
+      }
+    },
+    {
+      "case": 2,
+      "seed": "868788898a8b8c8d8e8f909192939495969798999a9b9c9d9e9fa0a1a2a3a4a5",
+      "hedging_bytes": "d9d8d7d6d5d4d3d2d1d0cfcecdcccbcac9c8c7c6c5c4c3c2c1c0bfbebdbcbbba",
+      "message_sha256": "5f2bf8c8a85f1d599b1f89a7a38d180adcb930b83207e2b3a66c0d153af99532",
+      "context": "0056657269666965644f53206f7261636c65ff02",
+      "public_key_sha256": "555c2e03ca4bfabd643af373b82d8706b94f2c958af0dceb45b17c8cd19c6bd2",
+      "secret_key_sha256": "63b40e60fdb819d194f385831a408e37c82f58b7e62e2f0f4b60b6eb268e251e",
+      "gallina_signature_sha256": "4070b0863375a0c29ce2d9711b714ac3488600d5f8fa3d90d161ccb2285ac1eb",
+      "openssl_signature_sha256": "4070b0863375a0c29ce2d9711b714ac3488600d5f8fa3d90d161ccb2285ac1eb",
+      "comparisons": {
+        "public-key-bytes": true,
+        "secret-key-bytes": true,
+        "signature-bytes": true,
+        "openssl-verifies-gallina": true,
+        "gallina-verifies-openssl": true,
+        "changed-message": true,
+        "changed-context": true,
+        "changed-challenge": true,
+        "strict-response-boundary": true,
+        "hint-endpoint-overflow": true,
+        "short-signature": true,
+        "changed-public-key": true
+      }
+    }
+  ],
+  "started_unix": 1792464340.5948322,
+  "finished_unix": 1792464373.7281854,
+  "passed": true,
+  "scope": "authored public inputs; exact key/signature bytes, bidirectional verification and paired corruption refusals; no imported crypto implementation, no production signing or standard-KAT label"
+}

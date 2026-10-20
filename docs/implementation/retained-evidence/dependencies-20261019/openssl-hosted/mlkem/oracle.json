@@ -1,0 +1,4921 @@
+{
+  "pass": true,
+  "failure": "",
+  "checks": [
+    {
+      "label": "0-keygen-public",
+      "pass": true,
+      "reference_sha256": "dab922fd907972b9a523c25069a89543c39cf87a08a8ff3924b39ed8c22c2ba4",
+      "oracle_sha256": "dab922fd907972b9a523c25069a89543c39cf87a08a8ff3924b39ed8c22c2ba4"
+    },
+    {
+      "label": "0-keygen-private",
+      "pass": true,
+      "reference_sha256": "10e39057970b3d64f6e177a5a9b1bb39a186536bbec338027ad9e3abfa9a9b53",
+      "oracle_sha256": "10e39057970b3d64f6e177a5a9b1bb39a186536bbec338027ad9e3abfa9a9b53"
+    },
+    {
+      "label": "0-encaps-ciphertext",
+      "pass": true,
+      "reference_sha256": "11da5f818c01e6d349b09fea49e4b14350686c53a49015fb8a5f2f2d9860ea17",
+      "oracle_sha256": "11da5f818c01e6d349b09fea49e4b14350686c53a49015fb8a5f2f2d9860ea17"
+    },
+    {
+      "label": "0-encaps-key",
+      "pass": true,
+      "reference_sha256": "34dc88f2bcde062ef5aa57f3e406150130b023ae4d55e2926535c163f3760cba",
+      "oracle_sha256": "34dc88f2bcde062ef5aa57f3e406150130b023ae4d55e2926535c163f3760cba"
+    },
+    {
+      "label": "0-decaps",
+      "pass": true,
+      "reference_sha256": "34dc88f2bcde062ef5aa57f3e406150130b023ae4d55e2926535c163f3760cba",
+      "oracle_sha256": "34dc88f2bcde062ef5aa57f3e406150130b023ae4d55e2926535c163f3760cba"
+    },
+    {
+      "label": "0-openssl-random-encaps",
+      "pass": true,
+      "reference_sha256": "57ed9f4050068d51117c25af1038321ad908e9a570621194a56bfdcb96ec8f32",
+      "oracle_sha256": "57ed9f4050068d51117c25af1038321ad908e9a570621194a56bfdcb96ec8f32"
+    },
+    {
+      "label": "0-implicit-rejection",
+      "pass": true,
+      "reference_sha256": "c6bf8ae162b78a7a3d1d86115572410d36e6297abae4588c6907840a70ebcca2",
+      "oracle_sha256": "c6bf8ae162b78a7a3d1d86115572410d36e6297abae4588c6907840a70ebcca2"
+    },
+    {
+      "label": "0-short-ciphertext-refused",
+      "pass": true,
+      "reference_sha256": "ec947170824a09f8b502f402ac3ef7eb02b6a4096b54a190836b79d5155e0ed2",
+      "oracle_sha256": "ec947170824a09f8b502f402ac3ef7eb02b6a4096b54a190836b79d5155e0ed2"
+    },
+    {
+      "label": "0-long-ciphertext-refused",
+      "pass": true,
+      "reference_sha256": "ec947170824a09f8b502f402ac3ef7eb02b6a4096b54a190836b79d5155e0ed2",
+      "oracle_sha256": "ec947170824a09f8b502f402ac3ef7eb02b6a4096b54a190836b79d5155e0ed2"
+    },
+    {
+      "label": "1-keygen-public",
+      "pass": true,
+      "reference_sha256": "ce5629591da514fc1851a123ee64c88ae8e05927c7b4cf5c863c2c6e35790dd9",
+      "oracle_sha256": "ce5629591da514fc1851a123ee64c88ae8e05927c7b4cf5c863c2c6e35790dd9"
+    },
+    {
+      "label": "1-keygen-private",
+      "pass": true,
+      "reference_sha256": "3939dd191dd3dfb08bab7fd18f0f02d822e69a927b93683e7adbecd2e6e7e264",
+      "oracle_sha256": "3939dd191dd3dfb08bab7fd18f0f02d822e69a927b93683e7adbecd2e6e7e264"
+    },
+    {
+      "label": "1-encaps-ciphertext",
+      "pass": true,
+      "reference_sha256": "e67a8f73b0114e8ea6cafee4d9efee0ba8755a666fbdb62dbbaab32b4b4e952b",
+      "oracle_sha256": "e67a8f73b0114e8ea6cafee4d9efee0ba8755a666fbdb62dbbaab32b4b4e952b"
+    },
+    {
+      "label": "1-encaps-key",
+      "pass": true,
+      "reference_sha256": "1934f92a194d5e6a2c21b53145fa3ea313fcea87b9e4a8d3a5575400d86ede5c",
+      "oracle_sha256": "1934f92a194d5e6a2c21b53145fa3ea313fcea87b9e4a8d3a5575400d86ede5c"
+    },
+    {
+      "label": "1-decaps",
+      "pass": true,
+      "reference_sha256": "1934f92a194d5e6a2c21b53145fa3ea313fcea87b9e4a8d3a5575400d86ede5c",
+      "oracle_sha256": "1934f92a194d5e6a2c21b53145fa3ea313fcea87b9e4a8d3a5575400d86ede5c"
+    },
+    {
+      "label": "1-openssl-random-encaps",
+      "pass": true,
+      "reference_sha256": "3ef18b733b4a54ca306893e2cb3b2034b3bf513d7c4a3272c8a35970c4a75d0e",
+      "oracle_sha256": "3ef18b733b4a54ca306893e2cb3b2034b3bf513d7c4a3272c8a35970c4a75d0e"
+    },
+    {
+      "label": "1-implicit-rejection",
+      "pass": true,
+      "reference_sha256": "24f45839bf221fabf3ff47d0cd6145b9272da8f5b03d998f72e97fa266a432ed",
+      "oracle_sha256": "24f45839bf221fabf3ff47d0cd6145b9272da8f5b03d998f72e97fa266a432ed"
+    },
+    {
+      "label": "1-short-ciphertext-refused",
+      "pass": true,
+      "reference_sha256": "ec947170824a09f8b502f402ac3ef7eb02b6a4096b54a190836b79d5155e0ed2",
+      "oracle_sha256": "ec947170824a09f8b502f402ac3ef7eb02b6a4096b54a190836b79d5155e0ed2"
+    },
+    {
+      "label": "1-long-ciphertext-refused",
+      "pass": true,
+      "reference_sha256": "ec947170824a09f8b502f402ac3ef7eb02b6a4096b54a190836b79d5155e0ed2",
+      "oracle_sha256": "ec947170824a09f8b502f402ac3ef7eb02b6a4096b54a190836b79d5155e0ed2"
+    },
+    {
+      "label": "2-keygen-public",
+      "pass": true,
+      "reference_sha256": "40e99f58909d5fe2b327234bbfaa672405a74b85bad8a5d4c9c15f4dba788921",
+      "oracle_sha256": "40e99f58909d5fe2b327234bbfaa672405a74b85bad8a5d4c9c15f4dba788921"
+    },
+    {
+      "label": "2-keygen-private",
+      "pass": true,
+      "reference_sha256": "31b439790abfbf94752fc72b3e1939fe906e0dcba0affd7254ba3ea12a9f6a9b",
+      "oracle_sha256": "31b439790abfbf94752fc72b3e1939fe906e0dcba0affd7254ba3ea12a9f6a9b"
+    },
+    {
+      "label": "2-encaps-ciphertext",
+      "pass": true,
+      "reference_sha256": "98825a2a68ebd48758be8c0857f0c5db5a88d680afa98b47fb2bc1e816eef5d4",
+      "oracle_sha256": "98825a2a68ebd48758be8c0857f0c5db5a88d680afa98b47fb2bc1e816eef5d4"
+    },
+    {
+      "label": "2-encaps-key",
+      "pass": true,
+      "reference_sha256": "fd86c73c9705134ae702e27b47d177dd5d56038864092a3cac5b0e3e08437682",
+      "oracle_sha256": "fd86c73c9705134ae702e27b47d177dd5d56038864092a3cac5b0e3e08437682"
+    },
+    {
+      "label": "2-decaps",
+      "pass": true,
+      "reference_sha256": "fd86c73c9705134ae702e27b47d177dd5d56038864092a3cac5b0e3e08437682",
+      "oracle_sha256": "fd86c73c9705134ae702e27b47d177dd5d56038864092a3cac5b0e3e08437682"
+    },
+    {
+      "label": "2-openssl-random-encaps",
+      "pass": true,
+      "reference_sha256": "4cba2e19eda2480df82a4d05e83d961c1b2a964dbe003a7bf157b5fd7c91c056",
+      "oracle_sha256": "4cba2e19eda2480df82a4d05e83d961c1b2a964dbe003a7bf157b5fd7c91c056"
+    },
+    {
+      "label": "2-implicit-rejection",
+      "pass": true,
+      "reference_sha256": "f39a536788410e4f0b407556e51557cb36d68b87c0b8cb5c19a990a8780d02a0",
+      "oracle_sha256": "f39a536788410e4f0b407556e51557cb36d68b87c0b8cb5c19a990a8780d02a0"
+    },
+    {
+      "label": "2-short-ciphertext-refused",
+      "pass": true,
+      "reference_sha256": "ec947170824a09f8b502f402ac3ef7eb02b6a4096b54a190836b79d5155e0ed2",
+      "oracle_sha256": "ec947170824a09f8b502f402ac3ef7eb02b6a4096b54a190836b79d5155e0ed2"
+    },
+    {
+      "label": "2-long-ciphertext-refused",
+      "pass": true,
+      "reference_sha256": "ec947170824a09f8b502f402ac3ef7eb02b6a4096b54a190836b79d5155e0ed2",
+      "oracle_sha256": "ec947170824a09f8b502f402ac3ef7eb02b6a4096b54a190836b79d5155e0ed2"
+    },
+    {
+      "label": "3-keygen-public",
+      "pass": true,
+      "reference_sha256": "549562b6e3bc0943f60404986619a4d67b5d622bf3cbe4b62cbe511a2efefeb0",
+      "oracle_sha256": "549562b6e3bc0943f60404986619a4d67b5d622bf3cbe4b62cbe511a2efefeb0"
+    },
+    {
+      "label": "3-keygen-private",
+      "pass": true,
+      "reference_sha256": "b4914ac18d2061f36e71b0cb311cb163e161ec6a5b979b2b092ac7baa372830a",
+      "oracle_sha256": "b4914ac18d2061f36e71b0cb311cb163e161ec6a5b979b2b092ac7baa372830a"
+    },
+    {
+      "label": "3-encaps-ciphertext",
+      "pass": true,
+      "reference_sha256": "19d5bed8cc42f0e0ced792327202d731e916af44003909fe6ec43bec1a581902",
+      "oracle_sha256": "19d5bed8cc42f0e0ced792327202d731e916af44003909fe6ec43bec1a581902"
+    },
+    {
+      "label": "3-encaps-key",
+      "pass": true,
+      "reference_sha256": "c71c8c32e16b18aee8f0470c95a5a8d4876b4713f01d3aba8edc26e93fec6ea8",
+      "oracle_sha256": "c71c8c32e16b18aee8f0470c95a5a8d4876b4713f01d3aba8edc26e93fec6ea8"
+    },
+    {
+      "label": "3-decaps",
+      "pass": true,
+      "reference_sha256": "c71c8c32e16b18aee8f0470c95a5a8d4876b4713f01d3aba8edc26e93fec6ea8",
+      "oracle_sha256": "c71c8c32e16b18aee8f0470c95a5a8d4876b4713f01d3aba8edc26e93fec6ea8"
+    },
+    {
+      "label": "3-openssl-random-encaps",
+      "pass": true,
+      "reference_sha256": "932841f3d33c3780f981fe31308d40ea2d9f0f76aeb66bf1e0567dae79752342",
+      "oracle_sha256": "932841f3d33c3780f981fe31308d40ea2d9f0f76aeb66bf1e0567dae79752342"
+    },
+    {
+      "label": "3-implicit-rejection",
+      "pass": true,
+      "reference_sha256": "e0b0ca00b2feee28020e44c4c11d761f9696471c30b3504e8375102319e024b0",
+      "oracle_sha256": "e0b0ca00b2feee28020e44c4c11d761f9696471c30b3504e8375102319e024b0"
+    },
+    {
+      "label": "3-short-ciphertext-refused",
+      "pass": true,
+      "reference_sha256": "ec947170824a09f8b502f402ac3ef7eb02b6a4096b54a190836b79d5155e0ed2",
+      "oracle_sha256": "ec947170824a09f8b502f402ac3ef7eb02b6a4096b54a190836b79d5155e0ed2"
+    },
+    {
+      "label": "3-long-ciphertext-refused",
+      "pass": true,
+      "reference_sha256": "ec947170824a09f8b502f402ac3ef7eb02b6a4096b54a190836b79d5155e0ed2",
+      "oracle_sha256": "ec947170824a09f8b502f402ac3ef7eb02b6a4096b54a190836b79d5155e0ed2"
+    },
+    {
+      "label": "4-keygen-public",
+      "pass": true,
+      "reference_sha256": "1847b0030d03f3b69fa13eb8331bb37002887ca0f8f33ee4f6228be6e680722a",
+      "oracle_sha256": "1847b0030d03f3b69fa13eb8331bb37002887ca0f8f33ee4f6228be6e680722a"
+    },
+    {
+      "label": "4-keygen-private",
+      "pass": true,
+      "reference_sha256": "8e0fab6a05ee0e356122aa0784254932ca2df10d71f5bd33731e2206c2343795",
+      "oracle_sha256": "8e0fab6a05ee0e356122aa0784254932ca2df10d71f5bd33731e2206c2343795"
+    },
+    {
+      "label": "4-encaps-ciphertext",
+      "pass": true,
+      "reference_sha256": "feb6d426e0e37b93144b9ca1a98410a26af6c660392b42e457cfc4ed4e7c5716",
+      "oracle_sha256": "feb6d426e0e37b93144b9ca1a98410a26af6c660392b42e457cfc4ed4e7c5716"
+    },
+    {
+      "label": "4-encaps-key",
+      "pass": true,
+      "reference_sha256": "97e9c0bf0953ef401d2dcbb1867c34e40f5e6dfd64c6a9a4172c674e0d55cd1e",
+      "oracle_sha256": "97e9c0bf0953ef401d2dcbb1867c34e40f5e6dfd64c6a9a4172c674e0d55cd1e"
+    },
+    {
+      "label": "4-decaps",
+      "pass": true,
+      "reference_sha256": "97e9c0bf0953ef401d2dcbb1867c34e40f5e6dfd64c6a9a4172c674e0d55cd1e",
+      "oracle_sha256": "97e9c0bf0953ef401d2dcbb1867c34e40f5e6dfd64c6a9a4172c674e0d55cd1e"
+    },
+    {
+      "label": "4-openssl-random-encaps",
+      "pass": true,
+      "reference_sha256": "3c0726e9d1c7de045c21cc35658a3a5ac762de58adc50f3087f15a13a6dfc70d",
+      "oracle_sha256": "3c0726e9d1c7de045c21cc35658a3a5ac762de58adc50f3087f15a13a6dfc70d"
+    },
+    {
+      "label": "4-implicit-rejection",
+      "pass": true,
+      "reference_sha256": "3bcd5dce3bcd10dc2f7c5c66a153f63fc14d0b958eb1a99f96c2310460c43f8f",
+      "oracle_sha256": "3bcd5dce3bcd10dc2f7c5c66a153f63fc14d0b958eb1a99f96c2310460c43f8f"
+    },
+    {
+      "label": "4-short-ciphertext-refused",
+      "pass": true,
+      "reference_sha256": "ec947170824a09f8b502f402ac3ef7eb02b6a4096b54a190836b79d5155e0ed2",
+      "oracle_sha256": "ec947170824a09f8b502f402ac3ef7eb02b6a4096b54a190836b79d5155e0ed2"
+    },
+    {
+      "label": "4-long-ciphertext-refused",
+      "pass": true,
+      "reference_sha256": "ec947170824a09f8b502f402ac3ef7eb02b6a4096b54a190836b79d5155e0ed2",
+      "oracle_sha256": "ec947170824a09f8b502f402ac3ef7eb02b6a4096b54a190836b79d5155e0ed2"
+    },
+    {
+      "label": "5-keygen-public",
+      "pass": true,
+      "reference_sha256": "e9505bb4416409b8ed3c7cc3826221af427965034ac348f498428796d0296b5f",
+      "oracle_sha256": "e9505bb4416409b8ed3c7cc3826221af427965034ac348f498428796d0296b5f"
+    },
+    {
+      "label": "5-keygen-private",
+      "pass": true,
+      "reference_sha256": "e9f0a032be661b2baf84a5b34a2b4d0c28c4414952ee309801b9742432063aea",
+      "oracle_sha256": "e9f0a032be661b2baf84a5b34a2b4d0c28c4414952ee309801b9742432063aea"
+    },
+    {
+      "label": "5-encaps-ciphertext",
+      "pass": true,
+      "reference_sha256": "05a5126b44cf1102821bf19dc4ecf48f2c08d7c5966998300df8e67df9d4b2ac",
+      "oracle_sha256": "05a5126b44cf1102821bf19dc4ecf48f2c08d7c5966998300df8e67df9d4b2ac"
+    },
+    {
+      "label": "5-encaps-key",
+      "pass": true,
+      "reference_sha256": "fcee855b6f407a9367617a16fc787e935bcfaf15288cff0310bd63c140bcbd31",
+      "oracle_sha256": "fcee855b6f407a9367617a16fc787e935bcfaf15288cff0310bd63c140bcbd31"
+    },
+    {
+      "label": "5-decaps",
+      "pass": true,
+      "reference_sha256": "fcee855b6f407a9367617a16fc787e935bcfaf15288cff0310bd63c140bcbd31",
+      "oracle_sha256": "fcee855b6f407a9367617a16fc787e935bcfaf15288cff0310bd63c140bcbd31"
+    },
+    {
+      "label": "5-openssl-random-encaps",
+      "pass": true,
+      "reference_sha256": "c2d3b68efee266d0615dc9bd41f04507bd7c3ac9166c1cb95e9b41bb2bf7b36d",
+      "oracle_sha256": "c2d3b68efee266d0615dc9bd41f04507bd7c3ac9166c1cb95e9b41bb2bf7b36d"
+    },
+    {
+      "label": "5-implicit-rejection",
+      "pass": true,
+      "reference_sha256": "774ee859b70dc03eca0f9c8acb36ed4045f20dec5fd476aec14583ba057d0469",
+      "oracle_sha256": "774ee859b70dc03eca0f9c8acb36ed4045f20dec5fd476aec14583ba057d0469"
+    },
+    {
+      "label": "5-short-ciphertext-refused",
+      "pass": true,
+      "reference_sha256": "ec947170824a09f8b502f402ac3ef7eb02b6a4096b54a190836b79d5155e0ed2",
+      "oracle_sha256": "ec947170824a09f8b502f402ac3ef7eb02b6a4096b54a190836b79d5155e0ed2"
+    },
+    {
+      "label": "5-long-ciphertext-refused",
+      "pass": true,
+      "reference_sha256": "ec947170824a09f8b502f402ac3ef7eb02b6a4096b54a190836b79d5155e0ed2",
+      "oracle_sha256": "ec947170824a09f8b502f402ac3ef7eb02b6a4096b54a190836b79d5155e0ed2"
+    },
+    {
+      "label": "6-keygen-public",
+      "pass": true,
+      "reference_sha256": "c4cf8e6bac06a325e8446c465fcae0743f53030ee7d9c64c006a1953ad70befb",
+      "oracle_sha256": "c4cf8e6bac06a325e8446c465fcae0743f53030ee7d9c64c006a1953ad70befb"
+    },
+    {
+      "label": "6-keygen-private",
+      "pass": true,
+      "reference_sha256": "d6512cbd42d70a095cccf9741de24fffa38b432aff787a44ba12537337bb5565",
+      "oracle_sha256": "d6512cbd42d70a095cccf9741de24fffa38b432aff787a44ba12537337bb5565"
+    },
+    {
+      "label": "6-encaps-ciphertext",
+      "pass": true,
+      "reference_sha256": "397f14dd26a6a31c3e0cf3ce33f7604e4144d0312b4b89ddc97bcc46fe01327e",
+      "oracle_sha256": "397f14dd26a6a31c3e0cf3ce33f7604e4144d0312b4b89ddc97bcc46fe01327e"
+    },
+    {
+      "label": "6-encaps-key",
+      "pass": true,
+      "reference_sha256": "40da1c0be20a62c9abe1aa7c04af3de7b0397e20eeed8335a623ea893b64941a",
+      "oracle_sha256": "40da1c0be20a62c9abe1aa7c04af3de7b0397e20eeed8335a623ea893b64941a"
+    },
+    {
+      "label": "6-decaps",
+      "pass": true,
+      "reference_sha256": "40da1c0be20a62c9abe1aa7c04af3de7b0397e20eeed8335a623ea893b64941a",
+      "oracle_sha256": "40da1c0be20a62c9abe1aa7c04af3de7b0397e20eeed8335a623ea893b64941a"
+    },
+    {
+      "label": "6-openssl-random-encaps",
+      "pass": true,
+      "reference_sha256": "412cd3060ccfcc679d6e9144b27fbf5009aa6af1a767857afa474dab6c640b63",
+      "oracle_sha256": "412cd3060ccfcc679d6e9144b27fbf5009aa6af1a767857afa474dab6c640b63"
+    },
+    {
+      "label": "6-implicit-rejection",
+      "pass": true,
+      "reference_sha256": "3447fe82896c78065fd16da311099681de3304730c1f0ecccfa47ffb99fd1283",
+      "oracle_sha256": "3447fe82896c78065fd16da311099681de3304730c1f0ecccfa47ffb99fd1283"
+    },
+    {
+      "label": "6-short-ciphertext-refused",
+      "pass": true,
+      "reference_sha256": "ec947170824a09f8b502f402ac3ef7eb02b6a4096b54a190836b79d5155e0ed2",
+      "oracle_sha256": "ec947170824a09f8b502f402ac3ef7eb02b6a4096b54a190836b79d5155e0ed2"
+    },
+    {
+      "label": "6-long-ciphertext-refused",
+      "pass": true,
+      "reference_sha256": "ec947170824a09f8b502f402ac3ef7eb02b6a4096b54a190836b79d5155e0ed2",
+      "oracle_sha256": "ec947170824a09f8b502f402ac3ef7eb02b6a4096b54a190836b79d5155e0ed2"
+    },
+    {
+      "label": "7-keygen-public",
+      "pass": true,
+      "reference_sha256": "864c99c4e5df4f6ddae3085df0698325699358eb3c04fa6a08aae49ed1a2cf90",
+      "oracle_sha256": "864c99c4e5df4f6ddae3085df0698325699358eb3c04fa6a08aae49ed1a2cf90"
+    },
+    {
+      "label": "7-keygen-private",
+      "pass": true,
+      "reference_sha256": "62f72f9ee7218f4a2e7808a2d1e1c8d61364ee01546f877c7c496854d9c2f220",
+      "oracle_sha256": "62f72f9ee7218f4a2e7808a2d1e1c8d61364ee01546f877c7c496854d9c2f220"
+    },
+    {
+      "label": "7-encaps-ciphertext",
+      "pass": true,
+      "reference_sha256": "21de5db57cbba9b742968ebed42fee45f0f3b74bc095ca43659c0435d6d11002",
+      "oracle_sha256": "21de5db57cbba9b742968ebed42fee45f0f3b74bc095ca43659c0435d6d11002"
+    },
+    {
+      "label": "7-encaps-key",
+      "pass": true,
+      "reference_sha256": "1ebcd2546804557d7e4de319a9a32b63048e5985d89e5cde0588d443efbb2434",
+      "oracle_sha256": "1ebcd2546804557d7e4de319a9a32b63048e5985d89e5cde0588d443efbb2434"
+    },
+    {
+      "label": "7-decaps",
+      "pass": true,
+      "reference_sha256": "1ebcd2546804557d7e4de319a9a32b63048e5985d89e5cde0588d443efbb2434",
+      "oracle_sha256": "1ebcd2546804557d7e4de319a9a32b63048e5985d89e5cde0588d443efbb2434"
+    },
+    {
+      "label": "7-openssl-random-encaps",
+      "pass": true,
+      "reference_sha256": "1794452304c5fbf00db6e7017d5aaeee37f0b836037d58598b1976dfb49984dd",
+      "oracle_sha256": "1794452304c5fbf00db6e7017d5aaeee37f0b836037d58598b1976dfb49984dd"
+    },
+    {
+      "label": "7-implicit-rejection",
+      "pass": true,
+      "reference_sha256": "06ecf0d56dfb94fc6f7531c4656c4e0c8f70f00d5bdb8fbabc64a640c94c4d03",
+      "oracle_sha256": "06ecf0d56dfb94fc6f7531c4656c4e0c8f70f00d5bdb8fbabc64a640c94c4d03"
+    },
+    {
+      "label": "7-short-ciphertext-refused",
+      "pass": true,
+      "reference_sha256": "ec947170824a09f8b502f402ac3ef7eb02b6a4096b54a190836b79d5155e0ed2",
+      "oracle_sha256": "ec947170824a09f8b502f402ac3ef7eb02b6a4096b54a190836b79d5155e0ed2"
+    },
+    {
+      "label": "7-long-ciphertext-refused",
+      "pass": true,
+      "reference_sha256": "ec947170824a09f8b502f402ac3ef7eb02b6a4096b54a190836b79d5155e0ed2",
+      "oracle_sha256": "ec947170824a09f8b502f402ac3ef7eb02b6a4096b54a190836b79d5155e0ed2"
+    },
+    {
+      "label": "8-keygen-public",
+      "pass": true,
+      "reference_sha256": "169f074a6cc9674a655180cee7b9dd985b71462021b804ca7370fd78cff72225",
+      "oracle_sha256": "169f074a6cc9674a655180cee7b9dd985b71462021b804ca7370fd78cff72225"
+    },
+    {
+      "label": "8-keygen-private",
+      "pass": true,
+      "reference_sha256": "3875228743f65008cb31a27293cccf7b71030e4a6c6c6cd00e21d3be7e9398a6",
+      "oracle_sha256": "3875228743f65008cb31a27293cccf7b71030e4a6c6c6cd00e21d3be7e9398a6"
+    },
+    {
+      "label": "8-encaps-ciphertext",
+      "pass": true,
+      "reference_sha256": "83543fd90b427baf68ffabeb9d8241f46c1e9b23c720d408b373812baea8046b",
+      "oracle_sha256": "83543fd90b427baf68ffabeb9d8241f46c1e9b23c720d408b373812baea8046b"
+    },
+    {
+      "label": "8-encaps-key",
+      "pass": true,
+      "reference_sha256": "d75cc38bb6958114bfd6de54eaf73cece2fab9140b361d0cf8962dcd555f8c97",
+      "oracle_sha256": "d75cc38bb6958114bfd6de54eaf73cece2fab9140b361d0cf8962dcd555f8c97"
+    },
+    {
+      "label": "8-decaps",
+      "pass": true,
+      "reference_sha256": "d75cc38bb6958114bfd6de54eaf73cece2fab9140b361d0cf8962dcd555f8c97",
+      "oracle_sha256": "d75cc38bb6958114bfd6de54eaf73cece2fab9140b361d0cf8962dcd555f8c97"
+    },
+    {
+      "label": "8-openssl-random-encaps",
+      "pass": true,
+      "reference_sha256": "3e50b831acc328bfe29e5a5b18613c5a97fd58c42b05146958e60179dfc15b28",
+      "oracle_sha256": "3e50b831acc328bfe29e5a5b18613c5a97fd58c42b05146958e60179dfc15b28"
+    },
+    {
+      "label": "8-implicit-rejection",
+      "pass": true,
+      "reference_sha256": "4860f49cd5b443ad034a8e5e3f77a2ecde75a97a7df575d8bd31addc8a0fcde2",
+      "oracle_sha256": "4860f49cd5b443ad034a8e5e3f77a2ecde75a97a7df575d8bd31addc8a0fcde2"
+    },
+    {
+      "label": "8-short-ciphertext-refused",
+      "pass": true,
+      "reference_sha256": "ec947170824a09f8b502f402ac3ef7eb02b6a4096b54a190836b79d5155e0ed2",
+      "oracle_sha256": "ec947170824a09f8b502f402ac3ef7eb02b6a4096b54a190836b79d5155e0ed2"
+    },
+    {
+      "label": "8-long-ciphertext-refused",
+      "pass": true,
+      "reference_sha256": "ec947170824a09f8b502f402ac3ef7eb02b6a4096b54a190836b79d5155e0ed2",
+      "oracle_sha256": "ec947170824a09f8b502f402ac3ef7eb02b6a4096b54a190836b79d5155e0ed2"
+    },
+    {
+      "label": "9-keygen-public",
+      "pass": true,
+      "reference_sha256": "34f629452964eea6ae769230ec86dd74310bd7f272c97ec57d667a567f9f2b27",
+      "oracle_sha256": "34f629452964eea6ae769230ec86dd74310bd7f272c97ec57d667a567f9f2b27"
+    },
+    {
+      "label": "9-keygen-private",
+      "pass": true,
+      "reference_sha256": "31fac8ae16b18c5add2a9aac6b1f560e4a1a7ce498b6bdf313482881daf1a95f",
+      "oracle_sha256": "31fac8ae16b18c5add2a9aac6b1f560e4a1a7ce498b6bdf313482881daf1a95f"
+    },
+    {
+      "label": "9-encaps-ciphertext",
+      "pass": true,
+      "reference_sha256": "b645a0698f6555b64f3035fc12c4b3c69edb2a57fc8d0b67f710e84689f4e754",
+      "oracle_sha256": "b645a0698f6555b64f3035fc12c4b3c69edb2a57fc8d0b67f710e84689f4e754"
+    },
+    {
+      "label": "9-encaps-key",
+      "pass": true,
+      "reference_sha256": "24f53f8cf7a6c4946c5002853645095f0672712f06ca84e70269f3345a4b08ab",
+      "oracle_sha256": "24f53f8cf7a6c4946c5002853645095f0672712f06ca84e70269f3345a4b08ab"
+    },
+    {
+      "label": "9-decaps",
+      "pass": true,
+      "reference_sha256": "24f53f8cf7a6c4946c5002853645095f0672712f06ca84e70269f3345a4b08ab",
+      "oracle_sha256": "24f53f8cf7a6c4946c5002853645095f0672712f06ca84e70269f3345a4b08ab"
+    },
+    {
+      "label": "9-openssl-random-encaps",
+      "pass": true,
+      "reference_sha256": "51a6cd50e24170d84f453417ae4bd1396b24711c461ffa5cdb42bf4262abac02",
+      "oracle_sha256": "51a6cd50e24170d84f453417ae4bd1396b24711c461ffa5cdb42bf4262abac02"
+    },
+    {
+      "label": "9-implicit-rejection",
+      "pass": true,
+      "reference_sha256": "8f2e2e301b043ea2792296ef21cb17310314432b41b54b540152c5b5036a8fba",
+      "oracle_sha256": "8f2e2e301b043ea2792296ef21cb17310314432b41b54b540152c5b5036a8fba"
+    },
+    {
+      "label": "9-short-ciphertext-refused",
+      "pass": true,
+      "reference_sha256": "ec947170824a09f8b502f402ac3ef7eb02b6a4096b54a190836b79d5155e0ed2",
+      "oracle_sha256": "ec947170824a09f8b502f402ac3ef7eb02b6a4096b54a190836b79d5155e0ed2"
+    },
+    {
+      "label": "9-long-ciphertext-refused",
+      "pass": true,
+      "reference_sha256": "ec947170824a09f8b502f402ac3ef7eb02b6a4096b54a190836b79d5155e0ed2",
+      "oracle_sha256": "ec947170824a09f8b502f402ac3ef7eb02b6a4096b54a190836b79d5155e0ed2"
+    },
+    {
+      "label": "10-keygen-public",
+      "pass": true,
+      "reference_sha256": "d2a97767c142fbcd57acf82b0df11053e134a106095eeb49ac6fef6faf245d59",
+      "oracle_sha256": "d2a97767c142fbcd57acf82b0df11053e134a106095eeb49ac6fef6faf245d59"
+    },
+    {
+      "label": "10-keygen-private",
+      "pass": true,
+      "reference_sha256": "0c2fb2f469d168511123dbd0ac6adfbb0b5754312157ff282a695494ce6f639c",
+      "oracle_sha256": "0c2fb2f469d168511123dbd0ac6adfbb0b5754312157ff282a695494ce6f639c"
+    },
+    {
+      "label": "10-encaps-ciphertext",
+      "pass": true,
+      "reference_sha256": "431aa85c5fb17f668aefb3f08c4950552fc4ab3f296978ae09fe265ddc641129",
+      "oracle_sha256": "431aa85c5fb17f668aefb3f08c4950552fc4ab3f296978ae09fe265ddc641129"
+    },
+    {
+      "label": "10-encaps-key",
+      "pass": true,
+      "reference_sha256": "e8bbc8a6fb8f232601de0f91cc0ab2d453837cd2557f6176b24171e128f50acb",
+      "oracle_sha256": "e8bbc8a6fb8f232601de0f91cc0ab2d453837cd2557f6176b24171e128f50acb"
+    },
+    {
+      "label": "10-decaps",
+      "pass": true,
+      "reference_sha256": "e8bbc8a6fb8f232601de0f91cc0ab2d453837cd2557f6176b24171e128f50acb",
+      "oracle_sha256": "e8bbc8a6fb8f232601de0f91cc0ab2d453837cd2557f6176b24171e128f50acb"
+    },
+    {
+      "label": "10-openssl-random-encaps",
+      "pass": true,
+      "reference_sha256": "59b986c33eb5821f00744902aeb9b038e6400d6e12f6a6fbc02e6a5b337593fa",
+      "oracle_sha256": "59b986c33eb5821f00744902aeb9b038e6400d6e12f6a6fbc02e6a5b337593fa"
+    },
+    {
+      "label": "10-implicit-rejection",
+      "pass": true,
+      "reference_sha256": "58d7205c4f718d27efe245d92aa59810e43b906d9781abce88712c6158b130ff",
+      "oracle_sha256": "58d7205c4f718d27efe245d92aa59810e43b906d9781abce88712c6158b130ff"
+    },
+    {
+      "label": "10-short-ciphertext-refused",
+      "pass": true,
+      "reference_sha256": "ec947170824a09f8b502f402ac3ef7eb02b6a4096b54a190836b79d5155e0ed2",
+      "oracle_sha256": "ec947170824a09f8b502f402ac3ef7eb02b6a4096b54a190836b79d5155e0ed2"
+    },
+    {
+      "label": "10-long-ciphertext-refused",
+      "pass": true,
+      "reference_sha256": "ec947170824a09f8b502f402ac3ef7eb02b6a4096b54a190836b79d5155e0ed2",
+      "oracle_sha256": "ec947170824a09f8b502f402ac3ef7eb02b6a4096b54a190836b79d5155e0ed2"
+    },
+    {
+      "label": "11-keygen-public",
+      "pass": true,
+      "reference_sha256": "2c4d0b3699b3e6734bb14e67e1c5cb2809073491149da6b8cb7e68a167397067",
+      "oracle_sha256": "2c4d0b3699b3e6734bb14e67e1c5cb2809073491149da6b8cb7e68a167397067"
+    },
+    {
+      "label": "11-keygen-private",
+      "pass": true,
+      "reference_sha256": "39aa1fed658cb56d65c41840501bdb8a13cf5248c699d0d1801a2970e86b510f",
+      "oracle_sha256": "39aa1fed658cb56d65c41840501bdb8a13cf5248c699d0d1801a2970e86b510f"
+    },
+    {
+      "label": "11-encaps-ciphertext",
+      "pass": true,
+      "reference_sha256": "b53e5b02e2fcfea3eb48183eb6047db649c1ebadf0a7df07e1afa2276fe077b3",
+      "oracle_sha256": "b53e5b02e2fcfea3eb48183eb6047db649c1ebadf0a7df07e1afa2276fe077b3"
+    },
+    {
+      "label": "11-encaps-key",
+      "pass": true,
+      "reference_sha256": "331c1e6042d258da411a0f9209328dc20c0d6a7997576f3ee43cf46e1f792b59",
+      "oracle_sha256": "331c1e6042d258da411a0f9209328dc20c0d6a7997576f3ee43cf46e1f792b59"
+    },
+    {
+      "label": "11-decaps",
+      "pass": true,
+      "reference_sha256": "331c1e6042d258da411a0f9209328dc20c0d6a7997576f3ee43cf46e1f792b59",
+      "oracle_sha256": "331c1e6042d258da411a0f9209328dc20c0d6a7997576f3ee43cf46e1f792b59"
+    },
+    {
+      "label": "11-openssl-random-encaps",
+      "pass": true,
+      "reference_sha256": "8d75fae50f7a68b76e63373277487157d41908cfacc8f478abcdd36ff27ed061",
+      "oracle_sha256": "8d75fae50f7a68b76e63373277487157d41908cfacc8f478abcdd36ff27ed061"
+    },
+    {
+      "label": "11-implicit-rejection",
+      "pass": true,
+      "reference_sha256": "99c602d402d1883c43a1bb64f71da601057301095e59335faa0c8eb35d2e69a5",
+      "oracle_sha256": "99c602d402d1883c43a1bb64f71da601057301095e59335faa0c8eb35d2e69a5"
+    },
+    {
+      "label": "11-short-ciphertext-refused",
+      "pass": true,
+      "reference_sha256": "ec947170824a09f8b502f402ac3ef7eb02b6a4096b54a190836b79d5155e0ed2",
+      "oracle_sha256": "ec947170824a09f8b502f402ac3ef7eb02b6a4096b54a190836b79d5155e0ed2"
+    },
+    {
+      "label": "11-long-ciphertext-refused",
+      "pass": true,
+      "reference_sha256": "ec947170824a09f8b502f402ac3ef7eb02b6a4096b54a190836b79d5155e0ed2",
+      "oracle_sha256": "ec947170824a09f8b502f402ac3ef7eb02b6a4096b54a190836b79d5155e0ed2"
+    },
+    {
+      "label": "12-keygen-public",
+      "pass": true,
+      "reference_sha256": "d24b461ee9a40c6e3beeb2f5163b292f3e8a426c505b5b32a06f39564db0faad",
+      "oracle_sha256": "d24b461ee9a40c6e3beeb2f5163b292f3e8a426c505b5b32a06f39564db0faad"
+    },
+    {
+      "label": "12-keygen-private",
+      "pass": true,
+      "reference_sha256": "651e98a7794672b4f44bce2631b40bcdd57eba2ef566cf24e03fd3fff41f1335",
+      "oracle_sha256": "651e98a7794672b4f44bce2631b40bcdd57eba2ef566cf24e03fd3fff41f1335"
+    },
+    {
+      "label": "12-encaps-ciphertext",
+      "pass": true,
+      "reference_sha256": "298301b27f29cf3b25d32fce77f216693e7955d083973a8e7142a137842fcee1",
+      "oracle_sha256": "298301b27f29cf3b25d32fce77f216693e7955d083973a8e7142a137842fcee1"
+    },
+    {
+      "label": "12-encaps-key",
+      "pass": true,
+      "reference_sha256": "a683f929b0838aa25b7e9554b39834eb32da5d7116158127ca8547e5e02b0138",
+      "oracle_sha256": "a683f929b0838aa25b7e9554b39834eb32da5d7116158127ca8547e5e02b0138"
+    },
+    {
+      "label": "12-decaps",
+      "pass": true,
+      "reference_sha256": "a683f929b0838aa25b7e9554b39834eb32da5d7116158127ca8547e5e02b0138",
+      "oracle_sha256": "a683f929b0838aa25b7e9554b39834eb32da5d7116158127ca8547e5e02b0138"
+    },
+    {
+      "label": "12-openssl-random-encaps",
+      "pass": true,
+      "reference_sha256": "a7b34c7c4bef60d4ef52a5646ac0be57845f339f4665896465d7e0d78a6c7301",
+      "oracle_sha256": "a7b34c7c4bef60d4ef52a5646ac0be57845f339f4665896465d7e0d78a6c7301"
+    },
+    {
+      "label": "12-implicit-rejection",
+      "pass": true,
+      "reference_sha256": "372ba0450cb7f1b31353ebaa81d7a73ffda67f4d38c7e0ddfb14b4a4feee69d5",
+      "oracle_sha256": "372ba0450cb7f1b31353ebaa81d7a73ffda67f4d38c7e0ddfb14b4a4feee69d5"
+    },
+    {
+      "label": "12-short-ciphertext-refused",
+      "pass": true,
+      "reference_sha256": "ec947170824a09f8b502f402ac3ef7eb02b6a4096b54a190836b79d5155e0ed2",
+      "oracle_sha256": "ec947170824a09f8b502f402ac3ef7eb02b6a4096b54a190836b79d5155e0ed2"
+    },
+    {
+      "label": "12-long-ciphertext-refused",
+      "pass": true,
+      "reference_sha256": "ec947170824a09f8b502f402ac3ef7eb02b6a4096b54a190836b79d5155e0ed2",
+      "oracle_sha256": "ec947170824a09f8b502f402ac3ef7eb02b6a4096b54a190836b79d5155e0ed2"
+    },
+    {
+      "label": "13-keygen-public",
+      "pass": true,
+      "reference_sha256": "65471f72bb13c147e2dd16d6099bafbf3bc5799bc68ceddbb2461d65b4d5b2d5",
+      "oracle_sha256": "65471f72bb13c147e2dd16d6099bafbf3bc5799bc68ceddbb2461d65b4d5b2d5"
+    },
+    {
+      "label": "13-keygen-private",
+      "pass": true,
+      "reference_sha256": "f513bd7860479ba8f8ab4040daed74e22095557256a46a71eb689e2a2dd4ef0e",
+      "oracle_sha256": "f513bd7860479ba8f8ab4040daed74e22095557256a46a71eb689e2a2dd4ef0e"
+    },
+    {
+      "label": "13-encaps-ciphertext",
+      "pass": true,
+      "reference_sha256": "9d452d50a2de0eba8998286943a9f73584c0c280547c82ede58f17aabe970fd9",
+      "oracle_sha256": "9d452d50a2de0eba8998286943a9f73584c0c280547c82ede58f17aabe970fd9"
+    },
+    {
+      "label": "13-encaps-key",
+      "pass": true,
+      "reference_sha256": "144c594d9d9d110c43bd939bc215325f8cebae31f5ff4dc1ca0124734e556f54",
+      "oracle_sha256": "144c594d9d9d110c43bd939bc215325f8cebae31f5ff4dc1ca0124734e556f54"
+    },
+    {
+      "label": "13-decaps",
+      "pass": true,
+      "reference_sha256": "144c594d9d9d110c43bd939bc215325f8cebae31f5ff4dc1ca0124734e556f54",
+      "oracle_sha256": "144c594d9d9d110c43bd939bc215325f8cebae31f5ff4dc1ca0124734e556f54"
+    },
+    {
+      "label": "13-openssl-random-encaps",
+      "pass": true,
+      "reference_sha256": "8c8ff9ef5faae96e9b4f074530b5df4fbc268001d1b91dc250d93ba78881364b",
+      "oracle_sha256": "8c8ff9ef5faae96e9b4f074530b5df4fbc268001d1b91dc250d93ba78881364b"
+    },
+    {
+      "label": "13-implicit-rejection",
+      "pass": true,
+      "reference_sha256": "5680049209ea2206c7a3c5b24c75bfad749268d9e171886bbd37c94e1a845ee5",
+      "oracle_sha256": "5680049209ea2206c7a3c5b24c75bfad749268d9e171886bbd37c94e1a845ee5"
+    },
+    {
+      "label": "13-short-ciphertext-refused",
+      "pass": true,
+      "reference_sha256": "ec947170824a09f8b502f402ac3ef7eb02b6a4096b54a190836b79d5155e0ed2",
+      "oracle_sha256": "ec947170824a09f8b502f402ac3ef7eb02b6a4096b54a190836b79d5155e0ed2"
+    },
+    {
+      "label": "13-long-ciphertext-refused",
+      "pass": true,
+      "reference_sha256": "ec947170824a09f8b502f402ac3ef7eb02b6a4096b54a190836b79d5155e0ed2",
+      "oracle_sha256": "ec947170824a09f8b502f402ac3ef7eb02b6a4096b54a190836b79d5155e0ed2"
+    },
+    {
+      "label": "14-keygen-public",
+      "pass": true,
+      "reference_sha256": "6f5801a93e934d7d16d24045eed7c2ae7cf9ec234bfd39c404109953be2c9b15",
+      "oracle_sha256": "6f5801a93e934d7d16d24045eed7c2ae7cf9ec234bfd39c404109953be2c9b15"
+    },
+    {
+      "label": "14-keygen-private",
+      "pass": true,
+      "reference_sha256": "f4397b6ba04adf0458be9e92ce94c40dc3c12402e4f2cd6c73746fcbe79e920d",
+      "oracle_sha256": "f4397b6ba04adf0458be9e92ce94c40dc3c12402e4f2cd6c73746fcbe79e920d"
+    },
+    {
+      "label": "14-encaps-ciphertext",
+      "pass": true,
+      "reference_sha256": "14722237ee99933a5db992e1de7e552fec3cb72718967e0213b456d59b4ea0b6",
+      "oracle_sha256": "14722237ee99933a5db992e1de7e552fec3cb72718967e0213b456d59b4ea0b6"
+    },
+    {
+      "label": "14-encaps-key",
+      "pass": true,
+      "reference_sha256": "d1fe3c3e9a731b650f227b66bd312255fb2a3333207c4d20b13ecd123358b8ac",
+      "oracle_sha256": "d1fe3c3e9a731b650f227b66bd312255fb2a3333207c4d20b13ecd123358b8ac"
+    },
+    {
+      "label": "14-decaps",
+      "pass": true,
+      "reference_sha256": "d1fe3c3e9a731b650f227b66bd312255fb2a3333207c4d20b13ecd123358b8ac",
+      "oracle_sha256": "d1fe3c3e9a731b650f227b66bd312255fb2a3333207c4d20b13ecd123358b8ac"
+    },
+    {
+      "label": "14-openssl-random-encaps",
+      "pass": true,
+      "reference_sha256": "4ca07ccc1ad221fa46b587fd12e36f2a1d0d5588d7cddc9a4c51a5ff7f1ec8ca",
+      "oracle_sha256": "4ca07ccc1ad221fa46b587fd12e36f2a1d0d5588d7cddc9a4c51a5ff7f1ec8ca"
+    },
+    {
+      "label": "14-implicit-rejection",
+      "pass": true,
+      "reference_sha256": "10140ab12ab62f6a8aa80a5001a16fa809892b4d624b069d5201500d83996fff",
+      "oracle_sha256": "10140ab12ab62f6a8aa80a5001a16fa809892b4d624b069d5201500d83996fff"
+    },
+    {
+      "label": "14-short-ciphertext-refused",
+      "pass": true,
+      "reference_sha256": "ec947170824a09f8b502f402ac3ef7eb02b6a4096b54a190836b79d5155e0ed2",
+      "oracle_sha256": "ec947170824a09f8b502f402ac3ef7eb02b6a4096b54a190836b79d5155e0ed2"
+    },
+    {
+      "label": "14-long-ciphertext-refused",
+      "pass": true,
+      "reference_sha256": "ec947170824a09f8b502f402ac3ef7eb02b6a4096b54a190836b79d5155e0ed2",
+      "oracle_sha256": "ec947170824a09f8b502f402ac3ef7eb02b6a4096b54a190836b79d5155e0ed2"
+    },
+    {
+      "label": "15-keygen-public",
+      "pass": true,
+      "reference_sha256": "7972ed63fc6226077aed0475fb8550da8d5f4cbeae2a3742178f57e634900c17",
+      "oracle_sha256": "7972ed63fc6226077aed0475fb8550da8d5f4cbeae2a3742178f57e634900c17"
+    },
+    {
+      "label": "15-keygen-private",
+      "pass": true,
+      "reference_sha256": "1445921bdf19e63ca676fa6156ab8900d3fe34e64b314e0d201a6d9ecdaef634",
+      "oracle_sha256": "1445921bdf19e63ca676fa6156ab8900d3fe34e64b314e0d201a6d9ecdaef634"
+    },
+    {
+      "label": "15-encaps-ciphertext",
+      "pass": true,
+      "reference_sha256": "0b01c6c3ff18f8f229e7fcfa674de52bfaa40a8f532496661e6dfc1d405195a7",
+      "oracle_sha256": "0b01c6c3ff18f8f229e7fcfa674de52bfaa40a8f532496661e6dfc1d405195a7"
+    },
+    {
+      "label": "15-encaps-key",
+      "pass": true,
+      "reference_sha256": "75bcc176572d4dee39ab8c1dd79bda8a968b26ffdc27d2123bf836a4d21fc6c4",
+      "oracle_sha256": "75bcc176572d4dee39ab8c1dd79bda8a968b26ffdc27d2123bf836a4d21fc6c4"
+    },
+    {
+      "label": "15-decaps",
+      "pass": true,
+      "reference_sha256": "75bcc176572d4dee39ab8c1dd79bda8a968b26ffdc27d2123bf836a4d21fc6c4",
+      "oracle_sha256": "75bcc176572d4dee39ab8c1dd79bda8a968b26ffdc27d2123bf836a4d21fc6c4"
+    },
+    {
+      "label": "15-openssl-random-encaps",
+      "pass": true,
+      "reference_sha256": "7e700588b586a84b27aa4321e6d4c34564e63580e593f8fbb64f9c98828530aa",
+      "oracle_sha256": "7e700588b586a84b27aa4321e6d4c34564e63580e593f8fbb64f9c98828530aa"
+    },
+    {
+      "label": "15-implicit-rejection",
+      "pass": true,
+      "reference_sha256": "3ee25bc5d5b855548f2a7faf87a9971460d84451c59f4b93f00761162a6f893b",
+      "oracle_sha256": "3ee25bc5d5b855548f2a7faf87a9971460d84451c59f4b93f00761162a6f893b"
+    },
+    {
+      "label": "15-short-ciphertext-refused",
+      "pass": true,
+      "reference_sha256": "ec947170824a09f8b502f402ac3ef7eb02b6a4096b54a190836b79d5155e0ed2",
+      "oracle_sha256": "ec947170824a09f8b502f402ac3ef7eb02b6a4096b54a190836b79d5155e0ed2"
+    },
+    {
+      "label": "15-long-ciphertext-refused",
+      "pass": true,
+      "reference_sha256": "ec947170824a09f8b502f402ac3ef7eb02b6a4096b54a190836b79d5155e0ed2",
+      "oracle_sha256": "ec947170824a09f8b502f402ac3ef7eb02b6a4096b54a190836b79d5155e0ed2"
+    },
+    {
+      "label": "16-keygen-public",
+      "pass": true,
+      "reference_sha256": "c93948406d0444f5bd15f88f6b7119de4cad068cf938213b29347c539d7cba83",
+      "oracle_sha256": "c93948406d0444f5bd15f88f6b7119de4cad068cf938213b29347c539d7cba83"
+    },
+    {
+      "label": "16-keygen-private",
+      "pass": true,
+      "reference_sha256": "cebbd6dc085fcdb063b235030cbc33f6f201f30442ce573a7cddf145871adcb8",
+      "oracle_sha256": "cebbd6dc085fcdb063b235030cbc33f6f201f30442ce573a7cddf145871adcb8"
+    },
+    {
+      "label": "16-encaps-ciphertext",
+      "pass": true,
+      "reference_sha256": "515fa80708503ddad5359fe700382c91297b098f4f096d74e84b51ed3fac2dc7",
+      "oracle_sha256": "515fa80708503ddad5359fe700382c91297b098f4f096d74e84b51ed3fac2dc7"
+    },
+    {
+      "label": "16-encaps-key",
+      "pass": true,
+      "reference_sha256": "b9c2dc6bf4af2209c0786bcafe77e662c2fbdf84bac4dc86802dfe0110b8b039",
+      "oracle_sha256": "b9c2dc6bf4af2209c0786bcafe77e662c2fbdf84bac4dc86802dfe0110b8b039"
+    },
+    {
+      "label": "16-decaps",
+      "pass": true,
+      "reference_sha256": "b9c2dc6bf4af2209c0786bcafe77e662c2fbdf84bac4dc86802dfe0110b8b039",
+      "oracle_sha256": "b9c2dc6bf4af2209c0786bcafe77e662c2fbdf84bac4dc86802dfe0110b8b039"
+    },
+    {
+      "label": "16-openssl-random-encaps",
+      "pass": true,
+      "reference_sha256": "dcc60ba395b6194df9e6566ef4e3b5240009ac4cc93b439395d50ded06b427da",
+      "oracle_sha256": "dcc60ba395b6194df9e6566ef4e3b5240009ac4cc93b439395d50ded06b427da"
+    },
+    {
+      "label": "16-implicit-rejection",
+      "pass": true,
+      "reference_sha256": "cf272da0fa21b4b3f6ec0e9000205675960ea0abc399a9168408841fcd3d6cd5",
+      "oracle_sha256": "cf272da0fa21b4b3f6ec0e9000205675960ea0abc399a9168408841fcd3d6cd5"
+    },
+    {
+      "label": "16-short-ciphertext-refused",
+      "pass": true,
+      "reference_sha256": "ec947170824a09f8b502f402ac3ef7eb02b6a4096b54a190836b79d5155e0ed2",
+      "oracle_sha256": "ec947170824a09f8b502f402ac3ef7eb02b6a4096b54a190836b79d5155e0ed2"
+    },
+    {
+      "label": "16-long-ciphertext-refused",
+      "pass": true,
+      "reference_sha256": "ec947170824a09f8b502f402ac3ef7eb02b6a4096b54a190836b79d5155e0ed2",
+      "oracle_sha256": "ec947170824a09f8b502f402ac3ef7eb02b6a4096b54a190836b79d5155e0ed2"
+    },
+    {
+      "label": "17-keygen-public",
+      "pass": true,
+      "reference_sha256": "abbded047c49109734292b746eec5725a0eef163f627a04e5ad9efec5adb0b54",
+      "oracle_sha256": "abbded047c49109734292b746eec5725a0eef163f627a04e5ad9efec5adb0b54"
+    },
+    {
+      "label": "17-keygen-private",
+      "pass": true,
+      "reference_sha256": "346ed0417e65773e870a50256a0c9995e4c8c69366c50f08486cc2c747edb09d",
+      "oracle_sha256": "346ed0417e65773e870a50256a0c9995e4c8c69366c50f08486cc2c747edb09d"
+    },
+    {
+      "label": "17-encaps-ciphertext",
+      "pass": true,
+      "reference_sha256": "6124777c908dc8c337eb5af5ae5e05dbaa7a8d9161cf733d607905a99f54facc",
+      "oracle_sha256": "6124777c908dc8c337eb5af5ae5e05dbaa7a8d9161cf733d607905a99f54facc"
+    },
+    {
+      "label": "17-encaps-key",
+      "pass": true,
+      "reference_sha256": "abc89344233e111151e2a630da73d46b4566834bb70b5b006fc7db84b8c68ca1",
+      "oracle_sha256": "abc89344233e111151e2a630da73d46b4566834bb70b5b006fc7db84b8c68ca1"
+    },
+    {
+      "label": "17-decaps",
+      "pass": true,
+      "reference_sha256": "abc89344233e111151e2a630da73d46b4566834bb70b5b006fc7db84b8c68ca1",
+      "oracle_sha256": "abc89344233e111151e2a630da73d46b4566834bb70b5b006fc7db84b8c68ca1"
+    },
+    {
+      "label": "17-openssl-random-encaps",
+      "pass": true,
+      "reference_sha256": "6cf37840f58e2b17a293da8d1a992231cfe19d8102bb64c5f7f9f927b8b29979",
+      "oracle_sha256": "6cf37840f58e2b17a293da8d1a992231cfe19d8102bb64c5f7f9f927b8b29979"
+    },
+    {
+      "label": "17-implicit-rejection",
+      "pass": true,
+      "reference_sha256": "d6b1e4ddf5f4770439f4fa58dd06d382a10e6348f7620843ea7c964ec2afa662",
+      "oracle_sha256": "d6b1e4ddf5f4770439f4fa58dd06d382a10e6348f7620843ea7c964ec2afa662"
+    },
+    {
+      "label": "17-short-ciphertext-refused",
+      "pass": true,
+      "reference_sha256": "ec947170824a09f8b502f402ac3ef7eb02b6a4096b54a190836b79d5155e0ed2",
+      "oracle_sha256": "ec947170824a09f8b502f402ac3ef7eb02b6a4096b54a190836b79d5155e0ed2"
+    },
+    {
+      "label": "17-long-ciphertext-refused",
+      "pass": true,
+      "reference_sha256": "ec947170824a09f8b502f402ac3ef7eb02b6a4096b54a190836b79d5155e0ed2",
+      "oracle_sha256": "ec947170824a09f8b502f402ac3ef7eb02b6a4096b54a190836b79d5155e0ed2"
+    },
+    {
+      "label": "18-keygen-public",
+      "pass": true,
+      "reference_sha256": "802dd179bbf8c1f7aa6d57322cd59ccac1517832a7e3ba3ec92a499f9e8505e5",
+      "oracle_sha256": "802dd179bbf8c1f7aa6d57322cd59ccac1517832a7e3ba3ec92a499f9e8505e5"
+    },
+    {
+      "label": "18-keygen-private",
+      "pass": true,
+      "reference_sha256": "f25bb1cc7f339d5a2cb8083ca0a09c5d15b35b7969dbf67d67fe6eb5eb3cf4e9",
+      "oracle_sha256": "f25bb1cc7f339d5a2cb8083ca0a09c5d15b35b7969dbf67d67fe6eb5eb3cf4e9"
+    },
+    {
+      "label": "18-encaps-ciphertext",
+      "pass": true,
+      "reference_sha256": "0d472359d578aa6b8f8a1108ec57fa166398383e93e967248c6f834414fa1966",
+      "oracle_sha256": "0d472359d578aa6b8f8a1108ec57fa166398383e93e967248c6f834414fa1966"
+    },
+    {
+      "label": "18-encaps-key",
+      "pass": true,
+      "reference_sha256": "ab0e224d56239a957db891f80f690e6773891269068b761648ec244e3d23421e",
+      "oracle_sha256": "ab0e224d56239a957db891f80f690e6773891269068b761648ec244e3d23421e"
+    },
+    {
+      "label": "18-decaps",
+      "pass": true,
+      "reference_sha256": "ab0e224d56239a957db891f80f690e6773891269068b761648ec244e3d23421e",
+      "oracle_sha256": "ab0e224d56239a957db891f80f690e6773891269068b761648ec244e3d23421e"
+    },
+    {
+      "label": "18-openssl-random-encaps",
+      "pass": true,
+      "reference_sha256": "94c7e52b8e81c7560c2a23fde47675e618f492d982afc4a963ba46383705224c",
+      "oracle_sha256": "94c7e52b8e81c7560c2a23fde47675e618f492d982afc4a963ba46383705224c"
+    },
+    {
+      "label": "18-implicit-rejection",
+      "pass": true,
+      "reference_sha256": "92d3969c64a1116e68b5fea4191afdb1a8483438c00149c8278a18113a9b1ffc",
+      "oracle_sha256": "92d3969c64a1116e68b5fea4191afdb1a8483438c00149c8278a18113a9b1ffc"
+    },
+    {
+      "label": "18-short-ciphertext-refused",
+      "pass": true,
+      "reference_sha256": "ec947170824a09f8b502f402ac3ef7eb02b6a4096b54a190836b79d5155e0ed2",
+      "oracle_sha256": "ec947170824a09f8b502f402ac3ef7eb02b6a4096b54a190836b79d5155e0ed2"
+    },
+    {
+      "label": "18-long-ciphertext-refused",
+      "pass": true,
+      "reference_sha256": "ec947170824a09f8b502f402ac3ef7eb02b6a4096b54a190836b79d5155e0ed2",
+      "oracle_sha256": "ec947170824a09f8b502f402ac3ef7eb02b6a4096b54a190836b79d5155e0ed2"
+    },
+    {
+      "label": "19-keygen-public",
+      "pass": true,
+      "reference_sha256": "a9896af8e28cb25018313a8862edcb079df972f5f26fe09425290eccbefcb44e",
+      "oracle_sha256": "a9896af8e28cb25018313a8862edcb079df972f5f26fe09425290eccbefcb44e"
+    },
+    {
+      "label": "19-keygen-private",
+      "pass": true,
+      "reference_sha256": "f7657f1f5aec1b1d5568b16297460898c7c30f6681812e7926464dbee5866c97",
+      "oracle_sha256": "f7657f1f5aec1b1d5568b16297460898c7c30f6681812e7926464dbee5866c97"
+    },
+    {
+      "label": "19-encaps-ciphertext",
+      "pass": true,
+      "reference_sha256": "79147aa8913577f7fa2ae32d0e345258407f3637ab05a86f2817f0b5f43b4082",
+      "oracle_sha256": "79147aa8913577f7fa2ae32d0e345258407f3637ab05a86f2817f0b5f43b4082"
+    },
+    {
+      "label": "19-encaps-key",
+      "pass": true,
+      "reference_sha256": "79751a783b142b5a1de613c02ce3551afce4cf312204f4251bf7b836c8044a99",
+      "oracle_sha256": "79751a783b142b5a1de613c02ce3551afce4cf312204f4251bf7b836c8044a99"
+    },
+    {
+      "label": "19-decaps",
+      "pass": true,
+      "reference_sha256": "79751a783b142b5a1de613c02ce3551afce4cf312204f4251bf7b836c8044a99",
+      "oracle_sha256": "79751a783b142b5a1de613c02ce3551afce4cf312204f4251bf7b836c8044a99"
+    },
+    {
+      "label": "19-openssl-random-encaps",
+      "pass": true,
+      "reference_sha256": "7b67ea0ddb60ffba932d68b8084841b05b6db4a95b21f6194fa7492c309140b8",
+      "oracle_sha256": "7b67ea0ddb60ffba932d68b8084841b05b6db4a95b21f6194fa7492c309140b8"
+    },
+    {
+      "label": "19-implicit-rejection",
+      "pass": true,
+      "reference_sha256": "5257800219be084e475bf410396d94322b14b48ba8bd1d3fe7956bf8ad6cae25",
+      "oracle_sha256": "5257800219be084e475bf410396d94322b14b48ba8bd1d3fe7956bf8ad6cae25"
+    },
+    {
+      "label": "19-short-ciphertext-refused",
+      "pass": true,
+      "reference_sha256": "ec947170824a09f8b502f402ac3ef7eb02b6a4096b54a190836b79d5155e0ed2",
+      "oracle_sha256": "ec947170824a09f8b502f402ac3ef7eb02b6a4096b54a190836b79d5155e0ed2"
+    },
+    {
+      "label": "19-long-ciphertext-refused",
+      "pass": true,
+      "reference_sha256": "ec947170824a09f8b502f402ac3ef7eb02b6a4096b54a190836b79d5155e0ed2",
+      "oracle_sha256": "ec947170824a09f8b502f402ac3ef7eb02b6a4096b54a190836b79d5155e0ed2"
+    },
+    {
+      "label": "20-keygen-public",
+      "pass": true,
+      "reference_sha256": "5988eaaf1d24008d9a83ee1bc675f250cac7abf4428aad254e06143f381d8ca0",
+      "oracle_sha256": "5988eaaf1d24008d9a83ee1bc675f250cac7abf4428aad254e06143f381d8ca0"
+    },
+    {
+      "label": "20-keygen-private",
+      "pass": true,
+      "reference_sha256": "38ac74f71e020b64a9c80cbac5034a0aa0c91ec91a806c38c7d2817989502452",
+      "oracle_sha256": "38ac74f71e020b64a9c80cbac5034a0aa0c91ec91a806c38c7d2817989502452"
+    },
+    {
+      "label": "20-encaps-ciphertext",
+      "pass": true,
+      "reference_sha256": "7bb3553cd0f30054f170c064ef5b30aa6141785cafe7fb5baf64c01b356d3d12",
+      "oracle_sha256": "7bb3553cd0f30054f170c064ef5b30aa6141785cafe7fb5baf64c01b356d3d12"
+    },
+    {
+      "label": "20-encaps-key",
+      "pass": true,
+      "reference_sha256": "4694ce77ea9924f525834e70dde11aa443df232364552f3c0b13580efe7ab7dc",
+      "oracle_sha256": "4694ce77ea9924f525834e70dde11aa443df232364552f3c0b13580efe7ab7dc"
+    },
+    {
+      "label": "20-decaps",
+      "pass": true,
+      "reference_sha256": "4694ce77ea9924f525834e70dde11aa443df232364552f3c0b13580efe7ab7dc",
+      "oracle_sha256": "4694ce77ea9924f525834e70dde11aa443df232364552f3c0b13580efe7ab7dc"
+    },
+    {
+      "label": "20-openssl-random-encaps",
+      "pass": true,
+      "reference_sha256": "a1a3c2c0a8ac303da4a7cb9e381ab32c8334989e069af363d982e5da7d696672",
+      "oracle_sha256": "a1a3c2c0a8ac303da4a7cb9e381ab32c8334989e069af363d982e5da7d696672"
+    },
+    {
+      "label": "20-implicit-rejection",
+      "pass": true,
+      "reference_sha256": "315219f09e4c017e7e20dab9fd913ae0a7a617a3662901ea4ac8423e4e9de362",
+      "oracle_sha256": "315219f09e4c017e7e20dab9fd913ae0a7a617a3662901ea4ac8423e4e9de362"
+    },
+    {
+      "label": "20-short-ciphertext-refused",
+      "pass": true,
+      "reference_sha256": "ec947170824a09f8b502f402ac3ef7eb02b6a4096b54a190836b79d5155e0ed2",
+      "oracle_sha256": "ec947170824a09f8b502f402ac3ef7eb02b6a4096b54a190836b79d5155e0ed2"
+    },
+    {
+      "label": "20-long-ciphertext-refused",
+      "pass": true,
+      "reference_sha256": "ec947170824a09f8b502f402ac3ef7eb02b6a4096b54a190836b79d5155e0ed2",
+      "oracle_sha256": "ec947170824a09f8b502f402ac3ef7eb02b6a4096b54a190836b79d5155e0ed2"
+    },
+    {
+      "label": "21-keygen-public",
+      "pass": true,
+      "reference_sha256": "5d65e5a9ce0bb339022408ff6ff081b12c1e066787652d4a5f60b4f60124a98a",
+      "oracle_sha256": "5d65e5a9ce0bb339022408ff6ff081b12c1e066787652d4a5f60b4f60124a98a"
+    },
+    {
+      "label": "21-keygen-private",
+      "pass": true,
+      "reference_sha256": "0a637e4e1455d35eff807a8b2509e566912a1340917eacacd49b1c5c1a04e6e8",
+      "oracle_sha256": "0a637e4e1455d35eff807a8b2509e566912a1340917eacacd49b1c5c1a04e6e8"
+    },
+    {
+      "label": "21-encaps-ciphertext",
+      "pass": true,
+      "reference_sha256": "adbed6d38caff44ff727930e9aedc7aef962fae7f46f0abe3ffaa5fc80539236",
+      "oracle_sha256": "adbed6d38caff44ff727930e9aedc7aef962fae7f46f0abe3ffaa5fc80539236"
+    },
+    {
+      "label": "21-encaps-key",
+      "pass": true,
+      "reference_sha256": "9f54012ef1e53bc5f240f8bcdb2db73c53d44371a854ca3bd3348e14c42fe7d2",
+      "oracle_sha256": "9f54012ef1e53bc5f240f8bcdb2db73c53d44371a854ca3bd3348e14c42fe7d2"
+    },
+    {
+      "label": "21-decaps",
+      "pass": true,
+      "reference_sha256": "9f54012ef1e53bc5f240f8bcdb2db73c53d44371a854ca3bd3348e14c42fe7d2",
+      "oracle_sha256": "9f54012ef1e53bc5f240f8bcdb2db73c53d44371a854ca3bd3348e14c42fe7d2"
+    },
+    {
+      "label": "21-openssl-random-encaps",
+      "pass": true,
+      "reference_sha256": "31b21821d6cfcbd7cbb6ee93b960882efd700e7062000b035fb72e2a9a079021",
+      "oracle_sha256": "31b21821d6cfcbd7cbb6ee93b960882efd700e7062000b035fb72e2a9a079021"
+    },
+    {
+      "label": "21-implicit-rejection",
+      "pass": true,
+      "reference_sha256": "219d86c5bea08a0126d4eb0deaac9bdf3274fc7ee7f2de77f5b89d20c5d6ffb4",
+      "oracle_sha256": "219d86c5bea08a0126d4eb0deaac9bdf3274fc7ee7f2de77f5b89d20c5d6ffb4"
+    },
+    {
+      "label": "21-short-ciphertext-refused",
+      "pass": true,
+      "reference_sha256": "ec947170824a09f8b502f402ac3ef7eb02b6a4096b54a190836b79d5155e0ed2",
+      "oracle_sha256": "ec947170824a09f8b502f402ac3ef7eb02b6a4096b54a190836b79d5155e0ed2"
+    },
+    {
+      "label": "21-long-ciphertext-refused",
+      "pass": true,
+      "reference_sha256": "ec947170824a09f8b502f402ac3ef7eb02b6a4096b54a190836b79d5155e0ed2",
+      "oracle_sha256": "ec947170824a09f8b502f402ac3ef7eb02b6a4096b54a190836b79d5155e0ed2"
+    },
+    {
+      "label": "22-keygen-public",
+      "pass": true,
+      "reference_sha256": "89ca43adef2d1a8b69e9c02a25bf40c92d7b3273c8a44911bc7181ba333d3bb8",
+      "oracle_sha256": "89ca43adef2d1a8b69e9c02a25bf40c92d7b3273c8a44911bc7181ba333d3bb8"
+    },
+    {
+      "label": "22-keygen-private",
+      "pass": true,
+      "reference_sha256": "acf603e6430aff8e7e7f5b871b0cd78400c8aa1dbf71199824e39ee449a5295a",
+      "oracle_sha256": "acf603e6430aff8e7e7f5b871b0cd78400c8aa1dbf71199824e39ee449a5295a"
+    },
+    {
+      "label": "22-encaps-ciphertext",
+      "pass": true,
+      "reference_sha256": "6290a47c9512e51d63235c1911ed784d769594cca26d340a74d228e3f6ff3983",
+      "oracle_sha256": "6290a47c9512e51d63235c1911ed784d769594cca26d340a74d228e3f6ff3983"
+    },
+    {
+      "label": "22-encaps-key",
+      "pass": true,
+      "reference_sha256": "c0cef7ceb7c15b7f8c056a60dbebce3d539e27fa2642ed748cd2460ae3bb55d2",
+      "oracle_sha256": "c0cef7ceb7c15b7f8c056a60dbebce3d539e27fa2642ed748cd2460ae3bb55d2"
+    },
+    {
+      "label": "22-decaps",
+      "pass": true,
+      "reference_sha256": "c0cef7ceb7c15b7f8c056a60dbebce3d539e27fa2642ed748cd2460ae3bb55d2",
+      "oracle_sha256": "c0cef7ceb7c15b7f8c056a60dbebce3d539e27fa2642ed748cd2460ae3bb55d2"
+    },
+    {
+      "label": "22-openssl-random-encaps",
+      "pass": true,
+      "reference_sha256": "cbb86c314720b91751c2d8cce34508c39bc6f187dd172abf55941ceef73dd873",
+      "oracle_sha256": "cbb86c314720b91751c2d8cce34508c39bc6f187dd172abf55941ceef73dd873"
+    },
+    {
+      "label": "22-implicit-rejection",
+      "pass": true,
+      "reference_sha256": "37e9215bff4e68ff1c46f68de8dc37813fe9c72f838f56e25affa66f57b1218e",
+      "oracle_sha256": "37e9215bff4e68ff1c46f68de8dc37813fe9c72f838f56e25affa66f57b1218e"
+    },
+    {
+      "label": "22-short-ciphertext-refused",
+      "pass": true,
+      "reference_sha256": "ec947170824a09f8b502f402ac3ef7eb02b6a4096b54a190836b79d5155e0ed2",
+      "oracle_sha256": "ec947170824a09f8b502f402ac3ef7eb02b6a4096b54a190836b79d5155e0ed2"
+    },
+    {
+      "label": "22-long-ciphertext-refused",
+      "pass": true,
+      "reference_sha256": "ec947170824a09f8b502f402ac3ef7eb02b6a4096b54a190836b79d5155e0ed2",
+      "oracle_sha256": "ec947170824a09f8b502f402ac3ef7eb02b6a4096b54a190836b79d5155e0ed2"
+    },
+    {
+      "label": "23-keygen-public",
+      "pass": true,
+      "reference_sha256": "cab5f6bdaa828c2570395c873ffc5a00de94144522c60a5246eac3d2f7bcd08b",
+      "oracle_sha256": "cab5f6bdaa828c2570395c873ffc5a00de94144522c60a5246eac3d2f7bcd08b"
+    },
+    {
+      "label": "23-keygen-private",
+      "pass": true,
+      "reference_sha256": "99c512190f5fb423bb199060c75fc7b010c1f033640458deaef6a071e74314d8",
+      "oracle_sha256": "99c512190f5fb423bb199060c75fc7b010c1f033640458deaef6a071e74314d8"
+    },
+    {
+      "label": "23-encaps-ciphertext",
+      "pass": true,
+      "reference_sha256": "81cfc15cd4f1000e372be1a440e8432d7338541f5922b7e6b6751bfa14434757",
+      "oracle_sha256": "81cfc15cd4f1000e372be1a440e8432d7338541f5922b7e6b6751bfa14434757"
+    },
+    {
+      "label": "23-encaps-key",
+      "pass": true,
+      "reference_sha256": "20fa5b546c157cb8e0e719f2aca7cdf50ef57d0d00aa6e0d3053c13e2ce1e5e4",
+      "oracle_sha256": "20fa5b546c157cb8e0e719f2aca7cdf50ef57d0d00aa6e0d3053c13e2ce1e5e4"
+    },
+    {
+      "label": "23-decaps",
+      "pass": true,
+      "reference_sha256": "20fa5b546c157cb8e0e719f2aca7cdf50ef57d0d00aa6e0d3053c13e2ce1e5e4",
+      "oracle_sha256": "20fa5b546c157cb8e0e719f2aca7cdf50ef57d0d00aa6e0d3053c13e2ce1e5e4"
+    },
+    {
+      "label": "23-openssl-random-encaps",
+      "pass": true,
+      "reference_sha256": "0b444bf74da393a5378ebc040c7c4c56418e660186a6d5b429c0cdb84da01f70",
+      "oracle_sha256": "0b444bf74da393a5378ebc040c7c4c56418e660186a6d5b429c0cdb84da01f70"
+    },
+    {
+      "label": "23-implicit-rejection",
+      "pass": true,
+      "reference_sha256": "7ae3a18d15fa3a822787f8cf904b87a8161fc30224a21374e935fac499e03112",
+      "oracle_sha256": "7ae3a18d15fa3a822787f8cf904b87a8161fc30224a21374e935fac499e03112"
+    },
+    {
+      "label": "23-short-ciphertext-refused",
+      "pass": true,
+      "reference_sha256": "ec947170824a09f8b502f402ac3ef7eb02b6a4096b54a190836b79d5155e0ed2",
+      "oracle_sha256": "ec947170824a09f8b502f402ac3ef7eb02b6a4096b54a190836b79d5155e0ed2"
+    },
+    {
+      "label": "23-long-ciphertext-refused",
+      "pass": true,
+      "reference_sha256": "ec947170824a09f8b502f402ac3ef7eb02b6a4096b54a190836b79d5155e0ed2",
+      "oracle_sha256": "ec947170824a09f8b502f402ac3ef7eb02b6a4096b54a190836b79d5155e0ed2"
+    },
+    {
+      "label": "24-keygen-public",
+      "pass": true,
+      "reference_sha256": "423751d772bc11188b23acc0afc95a6c6adc9f14529861741ebcca4b8088143d",
+      "oracle_sha256": "423751d772bc11188b23acc0afc95a6c6adc9f14529861741ebcca4b8088143d"
+    },
+    {
+      "label": "24-keygen-private",
+      "pass": true,
+      "reference_sha256": "e629c44faa4e8f7007371cbf7115b6adc9d61c568c97c4fceaaab7cfccf43418",
+      "oracle_sha256": "e629c44faa4e8f7007371cbf7115b6adc9d61c568c97c4fceaaab7cfccf43418"
+    },
+    {
+      "label": "24-encaps-ciphertext",
+      "pass": true,
+      "reference_sha256": "db6e9d2c5a8dde996e95a46f8cf734827f8a8a51bd7aab132f503758d471746f",
+      "oracle_sha256": "db6e9d2c5a8dde996e95a46f8cf734827f8a8a51bd7aab132f503758d471746f"
+    },
+    {
+      "label": "24-encaps-key",
+      "pass": true,
+      "reference_sha256": "1bbb11c2b766719f6c29efac00df17dbaec8a759b1f80f0adc91719d2e1682b6",
+      "oracle_sha256": "1bbb11c2b766719f6c29efac00df17dbaec8a759b1f80f0adc91719d2e1682b6"
+    },
+    {
+      "label": "24-decaps",
+      "pass": true,
+      "reference_sha256": "1bbb11c2b766719f6c29efac00df17dbaec8a759b1f80f0adc91719d2e1682b6",
+      "oracle_sha256": "1bbb11c2b766719f6c29efac00df17dbaec8a759b1f80f0adc91719d2e1682b6"
+    },
+    {
+      "label": "24-openssl-random-encaps",
+      "pass": true,
+      "reference_sha256": "83067b1707fcdc8230d34a9268fd244749ff574b93a54af33856f312fd770e96",
+      "oracle_sha256": "83067b1707fcdc8230d34a9268fd244749ff574b93a54af33856f312fd770e96"
+    },
+    {
+      "label": "24-implicit-rejection",
+      "pass": true,
+      "reference_sha256": "a513137d48336589260b4b87d7668dcd6877ad4bfd593b10a1a5e75f0f4219d4",
+      "oracle_sha256": "a513137d48336589260b4b87d7668dcd6877ad4bfd593b10a1a5e75f0f4219d4"
+    },
+    {
+      "label": "24-short-ciphertext-refused",
+      "pass": true,
+      "reference_sha256": "ec947170824a09f8b502f402ac3ef7eb02b6a4096b54a190836b79d5155e0ed2",
+      "oracle_sha256": "ec947170824a09f8b502f402ac3ef7eb02b6a4096b54a190836b79d5155e0ed2"
+    },
+    {
+      "label": "24-long-ciphertext-refused",
+      "pass": true,
+      "reference_sha256": "ec947170824a09f8b502f402ac3ef7eb02b6a4096b54a190836b79d5155e0ed2",
+      "oracle_sha256": "ec947170824a09f8b502f402ac3ef7eb02b6a4096b54a190836b79d5155e0ed2"
+    }
+  ],
+  "commands": [
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-000",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkey",
+        "-in",
+        "seed.der",
+        "-inform",
+        "DER",
+        "-pubout",
+        "-outform",
+        "DER",
+        "-out",
+        "oracle-public.der"
+      ],
+      "exit": 0
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-000",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkey",
+        "-provparam",
+        "ml-kem.retain_seed=no",
+        "-in",
+        "seed.der",
+        "-inform",
+        "DER",
+        "-outform",
+        "DER",
+        "-out",
+        "oracle-private.der"
+      ],
+      "exit": 0
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-000",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkeyutl",
+        "-encap",
+        "-pubin",
+        "-inkey",
+        "public.der",
+        "-keyform",
+        "DER",
+        "-pkeyopt",
+        "hexikme:69faa607eba3445cb12ea2f8cb4f9f0a7ad8d47e8149b1885affa63fa1c8c7b8",
+        "-out",
+        "oracle-ciphertext.bin",
+        "-secret",
+        "oracle-secret.bin"
+      ],
+      "exit": 0
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-000",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkeyutl",
+        "-decap",
+        "-inkey",
+        "private.der",
+        "-keyform",
+        "DER",
+        "-in",
+        "ciphertext.bin",
+        "-secret",
+        "decaps-secret.bin"
+      ],
+      "exit": 0
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-000",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkeyutl",
+        "-encap",
+        "-pubin",
+        "-inkey",
+        "public.der",
+        "-keyform",
+        "DER",
+        "-out",
+        "random-ciphertext.bin",
+        "-secret",
+        "random-secret.bin"
+      ],
+      "exit": 0
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-000",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkeyutl",
+        "-decap",
+        "-inkey",
+        "private.der",
+        "-keyform",
+        "DER",
+        "-in",
+        "tampered.bin",
+        "-secret",
+        "tampered-secret.bin"
+      ],
+      "exit": 0
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-000",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkeyutl",
+        "-decap",
+        "-inkey",
+        "private.der",
+        "-keyform",
+        "DER",
+        "-in",
+        "malformed.bin",
+        "-secret",
+        "malformed-secret.bin"
+      ],
+      "exit": 1
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-000",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkeyutl",
+        "-decap",
+        "-inkey",
+        "private.der",
+        "-keyform",
+        "DER",
+        "-in",
+        "malformed.bin",
+        "-secret",
+        "malformed-secret.bin"
+      ],
+      "exit": 1
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-001",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkey",
+        "-in",
+        "seed.der",
+        "-inform",
+        "DER",
+        "-pubout",
+        "-outform",
+        "DER",
+        "-out",
+        "oracle-public.der"
+      ],
+      "exit": 0
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-001",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkey",
+        "-provparam",
+        "ml-kem.retain_seed=no",
+        "-in",
+        "seed.der",
+        "-inform",
+        "DER",
+        "-outform",
+        "DER",
+        "-out",
+        "oracle-private.der"
+      ],
+      "exit": 0
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-001",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkeyutl",
+        "-encap",
+        "-pubin",
+        "-inkey",
+        "public.der",
+        "-keyform",
+        "DER",
+        "-pkeyopt",
+        "hexikme:ac41aa3e536f7505fc884b2099d60fbb5239e3bd5dd62e0c2d55c190cb035f21",
+        "-out",
+        "oracle-ciphertext.bin",
+        "-secret",
+        "oracle-secret.bin"
+      ],
+      "exit": 0
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-001",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkeyutl",
+        "-decap",
+        "-inkey",
+        "private.der",
+        "-keyform",
+        "DER",
+        "-in",
+        "ciphertext.bin",
+        "-secret",
+        "decaps-secret.bin"
+      ],
+      "exit": 0
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-001",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkeyutl",
+        "-encap",
+        "-pubin",
+        "-inkey",
+        "public.der",
+        "-keyform",
+        "DER",
+        "-out",
+        "random-ciphertext.bin",
+        "-secret",
+        "random-secret.bin"
+      ],
+      "exit": 0
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-001",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkeyutl",
+        "-decap",
+        "-inkey",
+        "private.der",
+        "-keyform",
+        "DER",
+        "-in",
+        "tampered.bin",
+        "-secret",
+        "tampered-secret.bin"
+      ],
+      "exit": 0
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-001",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkeyutl",
+        "-decap",
+        "-inkey",
+        "private.der",
+        "-keyform",
+        "DER",
+        "-in",
+        "malformed.bin",
+        "-secret",
+        "malformed-secret.bin"
+      ],
+      "exit": 1
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-001",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkeyutl",
+        "-decap",
+        "-inkey",
+        "private.der",
+        "-keyform",
+        "DER",
+        "-in",
+        "malformed.bin",
+        "-secret",
+        "malformed-secret.bin"
+      ],
+      "exit": 1
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-002",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkey",
+        "-in",
+        "seed.der",
+        "-inform",
+        "DER",
+        "-pubout",
+        "-outform",
+        "DER",
+        "-out",
+        "oracle-public.der"
+      ],
+      "exit": 0
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-002",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkey",
+        "-provparam",
+        "ml-kem.retain_seed=no",
+        "-in",
+        "seed.der",
+        "-inform",
+        "DER",
+        "-outform",
+        "DER",
+        "-out",
+        "oracle-private.der"
+      ],
+      "exit": 0
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-002",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkeyutl",
+        "-encap",
+        "-pubin",
+        "-inkey",
+        "public.der",
+        "-keyform",
+        "DER",
+        "-pkeyopt",
+        "hexikme:36fa9fb503f0cbeb5db5062b03b7d5b8a7acd74b9c5d011e83c5afc225d6f32c",
+        "-out",
+        "oracle-ciphertext.bin",
+        "-secret",
+        "oracle-secret.bin"
+      ],
+      "exit": 0
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-002",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkeyutl",
+        "-decap",
+        "-inkey",
+        "private.der",
+        "-keyform",
+        "DER",
+        "-in",
+        "ciphertext.bin",
+        "-secret",
+        "decaps-secret.bin"
+      ],
+      "exit": 0
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-002",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkeyutl",
+        "-encap",
+        "-pubin",
+        "-inkey",
+        "public.der",
+        "-keyform",
+        "DER",
+        "-out",
+        "random-ciphertext.bin",
+        "-secret",
+        "random-secret.bin"
+      ],
+      "exit": 0
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-002",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkeyutl",
+        "-decap",
+        "-inkey",
+        "private.der",
+        "-keyform",
+        "DER",
+        "-in",
+        "tampered.bin",
+        "-secret",
+        "tampered-secret.bin"
+      ],
+      "exit": 0
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-002",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkeyutl",
+        "-decap",
+        "-inkey",
+        "private.der",
+        "-keyform",
+        "DER",
+        "-in",
+        "malformed.bin",
+        "-secret",
+        "malformed-secret.bin"
+      ],
+      "exit": 1
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-002",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkeyutl",
+        "-decap",
+        "-inkey",
+        "private.der",
+        "-keyform",
+        "DER",
+        "-in",
+        "malformed.bin",
+        "-secret",
+        "malformed-secret.bin"
+      ],
+      "exit": 1
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-003",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkey",
+        "-in",
+        "seed.der",
+        "-inform",
+        "DER",
+        "-pubout",
+        "-outform",
+        "DER",
+        "-out",
+        "oracle-public.der"
+      ],
+      "exit": 0
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-003",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkey",
+        "-provparam",
+        "ml-kem.retain_seed=no",
+        "-in",
+        "seed.der",
+        "-inform",
+        "DER",
+        "-outform",
+        "DER",
+        "-out",
+        "oracle-private.der"
+      ],
+      "exit": 0
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-003",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkeyutl",
+        "-encap",
+        "-pubin",
+        "-inkey",
+        "public.der",
+        "-keyform",
+        "DER",
+        "-pkeyopt",
+        "hexikme:635d51a5b9c2815f31a8f3999f0fe642710edae60a958e7eb575c2dc389a795e",
+        "-out",
+        "oracle-ciphertext.bin",
+        "-secret",
+        "oracle-secret.bin"
+      ],
+      "exit": 0
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-003",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkeyutl",
+        "-decap",
+        "-inkey",
+        "private.der",
+        "-keyform",
+        "DER",
+        "-in",
+        "ciphertext.bin",
+        "-secret",
+        "decaps-secret.bin"
+      ],
+      "exit": 0
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-003",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkeyutl",
+        "-encap",
+        "-pubin",
+        "-inkey",
+        "public.der",
+        "-keyform",
+        "DER",
+        "-out",
+        "random-ciphertext.bin",
+        "-secret",
+        "random-secret.bin"
+      ],
+      "exit": 0
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-003",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkeyutl",
+        "-decap",
+        "-inkey",
+        "private.der",
+        "-keyform",
+        "DER",
+        "-in",
+        "tampered.bin",
+        "-secret",
+        "tampered-secret.bin"
+      ],
+      "exit": 0
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-003",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkeyutl",
+        "-decap",
+        "-inkey",
+        "private.der",
+        "-keyform",
+        "DER",
+        "-in",
+        "malformed.bin",
+        "-secret",
+        "malformed-secret.bin"
+      ],
+      "exit": 1
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-003",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkeyutl",
+        "-decap",
+        "-inkey",
+        "private.der",
+        "-keyform",
+        "DER",
+        "-in",
+        "malformed.bin",
+        "-secret",
+        "malformed-secret.bin"
+      ],
+      "exit": 1
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-004",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkey",
+        "-in",
+        "seed.der",
+        "-inform",
+        "DER",
+        "-pubout",
+        "-outform",
+        "DER",
+        "-out",
+        "oracle-public.der"
+      ],
+      "exit": 0
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-004",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkey",
+        "-provparam",
+        "ml-kem.retain_seed=no",
+        "-in",
+        "seed.der",
+        "-inform",
+        "DER",
+        "-outform",
+        "DER",
+        "-out",
+        "oracle-private.der"
+      ],
+      "exit": 0
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-004",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkeyutl",
+        "-encap",
+        "-pubin",
+        "-inkey",
+        "public.der",
+        "-keyform",
+        "DER",
+        "-pkeyopt",
+        "hexikme:cdae45856e338ded7ff348509a721822d1616159b9e71fafde91ac9e3570f020",
+        "-out",
+        "oracle-ciphertext.bin",
+        "-secret",
+        "oracle-secret.bin"
+      ],
+      "exit": 0
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-004",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkeyutl",
+        "-decap",
+        "-inkey",
+        "private.der",
+        "-keyform",
+        "DER",
+        "-in",
+        "ciphertext.bin",
+        "-secret",
+        "decaps-secret.bin"
+      ],
+      "exit": 0
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-004",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkeyutl",
+        "-encap",
+        "-pubin",
+        "-inkey",
+        "public.der",
+        "-keyform",
+        "DER",
+        "-out",
+        "random-ciphertext.bin",
+        "-secret",
+        "random-secret.bin"
+      ],
+      "exit": 0
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-004",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkeyutl",
+        "-decap",
+        "-inkey",
+        "private.der",
+        "-keyform",
+        "DER",
+        "-in",
+        "tampered.bin",
+        "-secret",
+        "tampered-secret.bin"
+      ],
+      "exit": 0
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-004",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkeyutl",
+        "-decap",
+        "-inkey",
+        "private.der",
+        "-keyform",
+        "DER",
+        "-in",
+        "malformed.bin",
+        "-secret",
+        "malformed-secret.bin"
+      ],
+      "exit": 1
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-004",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkeyutl",
+        "-decap",
+        "-inkey",
+        "private.der",
+        "-keyform",
+        "DER",
+        "-in",
+        "malformed.bin",
+        "-secret",
+        "malformed-secret.bin"
+      ],
+      "exit": 1
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-005",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkey",
+        "-in",
+        "seed.der",
+        "-inform",
+        "DER",
+        "-pubout",
+        "-outform",
+        "DER",
+        "-out",
+        "oracle-public.der"
+      ],
+      "exit": 0
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-005",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkey",
+        "-provparam",
+        "ml-kem.retain_seed=no",
+        "-in",
+        "seed.der",
+        "-inform",
+        "DER",
+        "-outform",
+        "DER",
+        "-out",
+        "oracle-private.der"
+      ],
+      "exit": 0
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-005",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkeyutl",
+        "-encap",
+        "-pubin",
+        "-inkey",
+        "public.der",
+        "-keyform",
+        "DER",
+        "-pkeyopt",
+        "hexikme:84114c9a05fd466efe58223642a74490cd510d73077853c9592e3c890fa7fae0",
+        "-out",
+        "oracle-ciphertext.bin",
+        "-secret",
+        "oracle-secret.bin"
+      ],
+      "exit": 0
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-005",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkeyutl",
+        "-decap",
+        "-inkey",
+        "private.der",
+        "-keyform",
+        "DER",
+        "-in",
+        "ciphertext.bin",
+        "-secret",
+        "decaps-secret.bin"
+      ],
+      "exit": 0
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-005",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkeyutl",
+        "-encap",
+        "-pubin",
+        "-inkey",
+        "public.der",
+        "-keyform",
+        "DER",
+        "-out",
+        "random-ciphertext.bin",
+        "-secret",
+        "random-secret.bin"
+      ],
+      "exit": 0
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-005",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkeyutl",
+        "-decap",
+        "-inkey",
+        "private.der",
+        "-keyform",
+        "DER",
+        "-in",
+        "tampered.bin",
+        "-secret",
+        "tampered-secret.bin"
+      ],
+      "exit": 0
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-005",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkeyutl",
+        "-decap",
+        "-inkey",
+        "private.der",
+        "-keyform",
+        "DER",
+        "-in",
+        "malformed.bin",
+        "-secret",
+        "malformed-secret.bin"
+      ],
+      "exit": 1
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-005",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkeyutl",
+        "-decap",
+        "-inkey",
+        "private.der",
+        "-keyform",
+        "DER",
+        "-in",
+        "malformed.bin",
+        "-secret",
+        "malformed-secret.bin"
+      ],
+      "exit": 1
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-006",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkey",
+        "-in",
+        "seed.der",
+        "-inform",
+        "DER",
+        "-pubout",
+        "-outform",
+        "DER",
+        "-out",
+        "oracle-public.der"
+      ],
+      "exit": 0
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-006",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkey",
+        "-provparam",
+        "ml-kem.retain_seed=no",
+        "-in",
+        "seed.der",
+        "-inform",
+        "DER",
+        "-outform",
+        "DER",
+        "-out",
+        "oracle-private.der"
+      ],
+      "exit": 0
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-006",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkeyutl",
+        "-encap",
+        "-pubin",
+        "-inkey",
+        "public.der",
+        "-keyform",
+        "DER",
+        "-pkeyopt",
+        "hexikme:d46d81a3fd61efbcd85370b47144aad297e0722080f25c25ad9edb20e325c7af",
+        "-out",
+        "oracle-ciphertext.bin",
+        "-secret",
+        "oracle-secret.bin"
+      ],
+      "exit": 0
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-006",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkeyutl",
+        "-decap",
+        "-inkey",
+        "private.der",
+        "-keyform",
+        "DER",
+        "-in",
+        "ciphertext.bin",
+        "-secret",
+        "decaps-secret.bin"
+      ],
+      "exit": 0
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-006",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkeyutl",
+        "-encap",
+        "-pubin",
+        "-inkey",
+        "public.der",
+        "-keyform",
+        "DER",
+        "-out",
+        "random-ciphertext.bin",
+        "-secret",
+        "random-secret.bin"
+      ],
+      "exit": 0
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-006",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkeyutl",
+        "-decap",
+        "-inkey",
+        "private.der",
+        "-keyform",
+        "DER",
+        "-in",
+        "tampered.bin",
+        "-secret",
+        "tampered-secret.bin"
+      ],
+      "exit": 0
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-006",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkeyutl",
+        "-decap",
+        "-inkey",
+        "private.der",
+        "-keyform",
+        "DER",
+        "-in",
+        "malformed.bin",
+        "-secret",
+        "malformed-secret.bin"
+      ],
+      "exit": 1
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-006",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkeyutl",
+        "-decap",
+        "-inkey",
+        "private.der",
+        "-keyform",
+        "DER",
+        "-in",
+        "malformed.bin",
+        "-secret",
+        "malformed-secret.bin"
+      ],
+      "exit": 1
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-007",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkey",
+        "-in",
+        "seed.der",
+        "-inform",
+        "DER",
+        "-pubout",
+        "-outform",
+        "DER",
+        "-out",
+        "oracle-public.der"
+      ],
+      "exit": 0
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-007",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkey",
+        "-provparam",
+        "ml-kem.retain_seed=no",
+        "-in",
+        "seed.der",
+        "-inform",
+        "DER",
+        "-outform",
+        "DER",
+        "-out",
+        "oracle-private.der"
+      ],
+      "exit": 0
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-007",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkeyutl",
+        "-encap",
+        "-pubin",
+        "-inkey",
+        "public.der",
+        "-keyform",
+        "DER",
+        "-pkeyopt",
+        "hexikme:beb6f4baa9c87f309531b2169117ef4a0b53ed386510b3b66a70a0b189fd584f",
+        "-out",
+        "oracle-ciphertext.bin",
+        "-secret",
+        "oracle-secret.bin"
+      ],
+      "exit": 0
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-007",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkeyutl",
+        "-decap",
+        "-inkey",
+        "private.der",
+        "-keyform",
+        "DER",
+        "-in",
+        "ciphertext.bin",
+        "-secret",
+        "decaps-secret.bin"
+      ],
+      "exit": 0
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-007",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkeyutl",
+        "-encap",
+        "-pubin",
+        "-inkey",
+        "public.der",
+        "-keyform",
+        "DER",
+        "-out",
+        "random-ciphertext.bin",
+        "-secret",
+        "random-secret.bin"
+      ],
+      "exit": 0
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-007",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkeyutl",
+        "-decap",
+        "-inkey",
+        "private.der",
+        "-keyform",
+        "DER",
+        "-in",
+        "tampered.bin",
+        "-secret",
+        "tampered-secret.bin"
+      ],
+      "exit": 0
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-007",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkeyutl",
+        "-decap",
+        "-inkey",
+        "private.der",
+        "-keyform",
+        "DER",
+        "-in",
+        "malformed.bin",
+        "-secret",
+        "malformed-secret.bin"
+      ],
+      "exit": 1
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-007",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkeyutl",
+        "-decap",
+        "-inkey",
+        "private.der",
+        "-keyform",
+        "DER",
+        "-in",
+        "malformed.bin",
+        "-secret",
+        "malformed-secret.bin"
+      ],
+      "exit": 1
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-008",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkey",
+        "-in",
+        "seed.der",
+        "-inform",
+        "DER",
+        "-pubout",
+        "-outform",
+        "DER",
+        "-out",
+        "oracle-public.der"
+      ],
+      "exit": 0
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-008",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkey",
+        "-provparam",
+        "ml-kem.retain_seed=no",
+        "-in",
+        "seed.der",
+        "-inform",
+        "DER",
+        "-outform",
+        "DER",
+        "-out",
+        "oracle-private.der"
+      ],
+      "exit": 0
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-008",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkeyutl",
+        "-encap",
+        "-pubin",
+        "-inkey",
+        "public.der",
+        "-keyform",
+        "DER",
+        "-pkeyopt",
+        "hexikme:80c1d269a0fc3cda87503f3c3c3a4b5aa067f96a413a1f3de547da36456531a5",
+        "-out",
+        "oracle-ciphertext.bin",
+        "-secret",
+        "oracle-secret.bin"
+      ],
+      "exit": 0
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-008",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkeyutl",
+        "-decap",
+        "-inkey",
+        "private.der",
+        "-keyform",
+        "DER",
+        "-in",
+        "ciphertext.bin",
+        "-secret",
+        "decaps-secret.bin"
+      ],
+      "exit": 0
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-008",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkeyutl",
+        "-encap",
+        "-pubin",
+        "-inkey",
+        "public.der",
+        "-keyform",
+        "DER",
+        "-out",
+        "random-ciphertext.bin",
+        "-secret",
+        "random-secret.bin"
+      ],
+      "exit": 0
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-008",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkeyutl",
+        "-decap",
+        "-inkey",
+        "private.der",
+        "-keyform",
+        "DER",
+        "-in",
+        "tampered.bin",
+        "-secret",
+        "tampered-secret.bin"
+      ],
+      "exit": 0
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-008",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkeyutl",
+        "-decap",
+        "-inkey",
+        "private.der",
+        "-keyform",
+        "DER",
+        "-in",
+        "malformed.bin",
+        "-secret",
+        "malformed-secret.bin"
+      ],
+      "exit": 1
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-008",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkeyutl",
+        "-decap",
+        "-inkey",
+        "private.der",
+        "-keyform",
+        "DER",
+        "-in",
+        "malformed.bin",
+        "-secret",
+        "malformed-secret.bin"
+      ],
+      "exit": 1
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-009",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkey",
+        "-in",
+        "seed.der",
+        "-inform",
+        "DER",
+        "-pubout",
+        "-outform",
+        "DER",
+        "-out",
+        "oracle-public.der"
+      ],
+      "exit": 0
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-009",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkey",
+        "-provparam",
+        "ml-kem.retain_seed=no",
+        "-in",
+        "seed.der",
+        "-inform",
+        "DER",
+        "-outform",
+        "DER",
+        "-out",
+        "oracle-private.der"
+      ],
+      "exit": 0
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-009",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkeyutl",
+        "-encap",
+        "-pubin",
+        "-inkey",
+        "public.der",
+        "-keyform",
+        "DER",
+        "-pkeyopt",
+        "hexikme:17a7b12a89b7bc46132c50ba31a2bcfca04dd78b654002b835d0039ed01429bb",
+        "-out",
+        "oracle-ciphertext.bin",
+        "-secret",
+        "oracle-secret.bin"
+      ],
+      "exit": 0
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-009",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkeyutl",
+        "-decap",
+        "-inkey",
+        "private.der",
+        "-keyform",
+        "DER",
+        "-in",
+        "ciphertext.bin",
+        "-secret",
+        "decaps-secret.bin"
+      ],
+      "exit": 0
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-009",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkeyutl",
+        "-encap",
+        "-pubin",
+        "-inkey",
+        "public.der",
+        "-keyform",
+        "DER",
+        "-out",
+        "random-ciphertext.bin",
+        "-secret",
+        "random-secret.bin"
+      ],
+      "exit": 0
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-009",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkeyutl",
+        "-decap",
+        "-inkey",
+        "private.der",
+        "-keyform",
+        "DER",
+        "-in",
+        "tampered.bin",
+        "-secret",
+        "tampered-secret.bin"
+      ],
+      "exit": 0
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-009",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkeyutl",
+        "-decap",
+        "-inkey",
+        "private.der",
+        "-keyform",
+        "DER",
+        "-in",
+        "malformed.bin",
+        "-secret",
+        "malformed-secret.bin"
+      ],
+      "exit": 1
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-009",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkeyutl",
+        "-decap",
+        "-inkey",
+        "private.der",
+        "-keyform",
+        "DER",
+        "-in",
+        "malformed.bin",
+        "-secret",
+        "malformed-secret.bin"
+      ],
+      "exit": 1
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-010",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkey",
+        "-in",
+        "seed.der",
+        "-inform",
+        "DER",
+        "-pubout",
+        "-outform",
+        "DER",
+        "-out",
+        "oracle-public.der"
+      ],
+      "exit": 0
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-010",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkey",
+        "-provparam",
+        "ml-kem.retain_seed=no",
+        "-in",
+        "seed.der",
+        "-inform",
+        "DER",
+        "-outform",
+        "DER",
+        "-out",
+        "oracle-private.der"
+      ],
+      "exit": 0
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-010",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkeyutl",
+        "-encap",
+        "-pubin",
+        "-inkey",
+        "public.der",
+        "-keyform",
+        "DER",
+        "-pkeyopt",
+        "hexikme:f1d29f7b4722113f43da9b5c08326e0b35cb5a4791c0c8a2ce408e56584d81ad",
+        "-out",
+        "oracle-ciphertext.bin",
+        "-secret",
+        "oracle-secret.bin"
+      ],
+      "exit": 0
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-010",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkeyutl",
+        "-decap",
+        "-inkey",
+        "private.der",
+        "-keyform",
+        "DER",
+        "-in",
+        "ciphertext.bin",
+        "-secret",
+        "decaps-secret.bin"
+      ],
+      "exit": 0
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-010",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkeyutl",
+        "-encap",
+        "-pubin",
+        "-inkey",
+        "public.der",
+        "-keyform",
+        "DER",
+        "-out",
+        "random-ciphertext.bin",
+        "-secret",
+        "random-secret.bin"
+      ],
+      "exit": 0
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-010",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkeyutl",
+        "-decap",
+        "-inkey",
+        "private.der",
+        "-keyform",
+        "DER",
+        "-in",
+        "tampered.bin",
+        "-secret",
+        "tampered-secret.bin"
+      ],
+      "exit": 0
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-010",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkeyutl",
+        "-decap",
+        "-inkey",
+        "private.der",
+        "-keyform",
+        "DER",
+        "-in",
+        "malformed.bin",
+        "-secret",
+        "malformed-secret.bin"
+      ],
+      "exit": 1
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-010",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkeyutl",
+        "-decap",
+        "-inkey",
+        "private.der",
+        "-keyform",
+        "DER",
+        "-in",
+        "malformed.bin",
+        "-secret",
+        "malformed-secret.bin"
+      ],
+      "exit": 1
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-011",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkey",
+        "-in",
+        "seed.der",
+        "-inform",
+        "DER",
+        "-pubout",
+        "-outform",
+        "DER",
+        "-out",
+        "oracle-public.der"
+      ],
+      "exit": 0
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-011",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkey",
+        "-provparam",
+        "ml-kem.retain_seed=no",
+        "-in",
+        "seed.der",
+        "-inform",
+        "DER",
+        "-outform",
+        "DER",
+        "-out",
+        "oracle-private.der"
+      ],
+      "exit": 0
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-011",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkeyutl",
+        "-encap",
+        "-pubin",
+        "-inkey",
+        "public.der",
+        "-keyform",
+        "DER",
+        "-pkeyopt",
+        "hexikme:50fa6eb05b45eeb58893e6565c378e686d2b070a9d858d7ff08cc6d715de6103",
+        "-out",
+        "oracle-ciphertext.bin",
+        "-secret",
+        "oracle-secret.bin"
+      ],
+      "exit": 0
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-011",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkeyutl",
+        "-decap",
+        "-inkey",
+        "private.der",
+        "-keyform",
+        "DER",
+        "-in",
+        "ciphertext.bin",
+        "-secret",
+        "decaps-secret.bin"
+      ],
+      "exit": 0
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-011",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkeyutl",
+        "-encap",
+        "-pubin",
+        "-inkey",
+        "public.der",
+        "-keyform",
+        "DER",
+        "-out",
+        "random-ciphertext.bin",
+        "-secret",
+        "random-secret.bin"
+      ],
+      "exit": 0
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-011",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkeyutl",
+        "-decap",
+        "-inkey",
+        "private.der",
+        "-keyform",
+        "DER",
+        "-in",
+        "tampered.bin",
+        "-secret",
+        "tampered-secret.bin"
+      ],
+      "exit": 0
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-011",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkeyutl",
+        "-decap",
+        "-inkey",
+        "private.der",
+        "-keyform",
+        "DER",
+        "-in",
+        "malformed.bin",
+        "-secret",
+        "malformed-secret.bin"
+      ],
+      "exit": 1
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-011",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkeyutl",
+        "-decap",
+        "-inkey",
+        "private.der",
+        "-keyform",
+        "DER",
+        "-in",
+        "malformed.bin",
+        "-secret",
+        "malformed-secret.bin"
+      ],
+      "exit": 1
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-012",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkey",
+        "-in",
+        "seed.der",
+        "-inform",
+        "DER",
+        "-pubout",
+        "-outform",
+        "DER",
+        "-out",
+        "oracle-public.der"
+      ],
+      "exit": 0
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-012",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkey",
+        "-provparam",
+        "ml-kem.retain_seed=no",
+        "-in",
+        "seed.der",
+        "-inform",
+        "DER",
+        "-outform",
+        "DER",
+        "-out",
+        "oracle-private.der"
+      ],
+      "exit": 0
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-012",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkeyutl",
+        "-encap",
+        "-pubin",
+        "-inkey",
+        "public.der",
+        "-keyform",
+        "DER",
+        "-pkeyopt",
+        "hexikme:81c2797212ff7382d05b40328ff4df8089293f72473cf9b0d810346b66694c3f",
+        "-out",
+        "oracle-ciphertext.bin",
+        "-secret",
+        "oracle-secret.bin"
+      ],
+      "exit": 0
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-012",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkeyutl",
+        "-decap",
+        "-inkey",
+        "private.der",
+        "-keyform",
+        "DER",
+        "-in",
+        "ciphertext.bin",
+        "-secret",
+        "decaps-secret.bin"
+      ],
+      "exit": 0
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-012",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkeyutl",
+        "-encap",
+        "-pubin",
+        "-inkey",
+        "public.der",
+        "-keyform",
+        "DER",
+        "-out",
+        "random-ciphertext.bin",
+        "-secret",
+        "random-secret.bin"
+      ],
+      "exit": 0
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-012",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkeyutl",
+        "-decap",
+        "-inkey",
+        "private.der",
+        "-keyform",
+        "DER",
+        "-in",
+        "tampered.bin",
+        "-secret",
+        "tampered-secret.bin"
+      ],
+      "exit": 0
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-012",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkeyutl",
+        "-decap",
+        "-inkey",
+        "private.der",
+        "-keyform",
+        "DER",
+        "-in",
+        "malformed.bin",
+        "-secret",
+        "malformed-secret.bin"
+      ],
+      "exit": 1
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-012",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkeyutl",
+        "-decap",
+        "-inkey",
+        "private.der",
+        "-keyform",
+        "DER",
+        "-in",
+        "malformed.bin",
+        "-secret",
+        "malformed-secret.bin"
+      ],
+      "exit": 1
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-013",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkey",
+        "-in",
+        "seed.der",
+        "-inform",
+        "DER",
+        "-pubout",
+        "-outform",
+        "DER",
+        "-out",
+        "oracle-public.der"
+      ],
+      "exit": 0
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-013",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkey",
+        "-provparam",
+        "ml-kem.retain_seed=no",
+        "-in",
+        "seed.der",
+        "-inform",
+        "DER",
+        "-outform",
+        "DER",
+        "-out",
+        "oracle-private.der"
+      ],
+      "exit": 0
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-013",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkeyutl",
+        "-encap",
+        "-pubin",
+        "-inkey",
+        "public.der",
+        "-keyform",
+        "DER",
+        "-pkeyopt",
+        "hexikme:14682232b71e211ddef934155dd38c0ec6179441a5ff1ca520586c2871f496fa",
+        "-out",
+        "oracle-ciphertext.bin",
+        "-secret",
+        "oracle-secret.bin"
+      ],
+      "exit": 0
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-013",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkeyutl",
+        "-decap",
+        "-inkey",
+        "private.der",
+        "-keyform",
+        "DER",
+        "-in",
+        "ciphertext.bin",
+        "-secret",
+        "decaps-secret.bin"
+      ],
+      "exit": 0
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-013",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkeyutl",
+        "-encap",
+        "-pubin",
+        "-inkey",
+        "public.der",
+        "-keyform",
+        "DER",
+        "-out",
+        "random-ciphertext.bin",
+        "-secret",
+        "random-secret.bin"
+      ],
+      "exit": 0
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-013",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkeyutl",
+        "-decap",
+        "-inkey",
+        "private.der",
+        "-keyform",
+        "DER",
+        "-in",
+        "tampered.bin",
+        "-secret",
+        "tampered-secret.bin"
+      ],
+      "exit": 0
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-013",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkeyutl",
+        "-decap",
+        "-inkey",
+        "private.der",
+        "-keyform",
+        "DER",
+        "-in",
+        "malformed.bin",
+        "-secret",
+        "malformed-secret.bin"
+      ],
+      "exit": 1
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-013",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkeyutl",
+        "-decap",
+        "-inkey",
+        "private.der",
+        "-keyform",
+        "DER",
+        "-in",
+        "malformed.bin",
+        "-secret",
+        "malformed-secret.bin"
+      ],
+      "exit": 1
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-014",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkey",
+        "-in",
+        "seed.der",
+        "-inform",
+        "DER",
+        "-pubout",
+        "-outform",
+        "DER",
+        "-out",
+        "oracle-public.der"
+      ],
+      "exit": 0
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-014",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkey",
+        "-provparam",
+        "ml-kem.retain_seed=no",
+        "-in",
+        "seed.der",
+        "-inform",
+        "DER",
+        "-outform",
+        "DER",
+        "-out",
+        "oracle-private.der"
+      ],
+      "exit": 0
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-014",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkeyutl",
+        "-encap",
+        "-pubin",
+        "-inkey",
+        "public.der",
+        "-keyform",
+        "DER",
+        "-pkeyopt",
+        "hexikme:bea38aec3df3f7440ea2bf76edddfc259408af84a96e0ef988c14edbad003233",
+        "-out",
+        "oracle-ciphertext.bin",
+        "-secret",
+        "oracle-secret.bin"
+      ],
+      "exit": 0
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-014",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkeyutl",
+        "-decap",
+        "-inkey",
+        "private.der",
+        "-keyform",
+        "DER",
+        "-in",
+        "ciphertext.bin",
+        "-secret",
+        "decaps-secret.bin"
+      ],
+      "exit": 0
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-014",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkeyutl",
+        "-encap",
+        "-pubin",
+        "-inkey",
+        "public.der",
+        "-keyform",
+        "DER",
+        "-out",
+        "random-ciphertext.bin",
+        "-secret",
+        "random-secret.bin"
+      ],
+      "exit": 0
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-014",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkeyutl",
+        "-decap",
+        "-inkey",
+        "private.der",
+        "-keyform",
+        "DER",
+        "-in",
+        "tampered.bin",
+        "-secret",
+        "tampered-secret.bin"
+      ],
+      "exit": 0
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-014",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkeyutl",
+        "-decap",
+        "-inkey",
+        "private.der",
+        "-keyform",
+        "DER",
+        "-in",
+        "malformed.bin",
+        "-secret",
+        "malformed-secret.bin"
+      ],
+      "exit": 1
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-014",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkeyutl",
+        "-decap",
+        "-inkey",
+        "private.der",
+        "-keyform",
+        "DER",
+        "-in",
+        "malformed.bin",
+        "-secret",
+        "malformed-secret.bin"
+      ],
+      "exit": 1
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-015",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkey",
+        "-in",
+        "seed.der",
+        "-inform",
+        "DER",
+        "-pubout",
+        "-outform",
+        "DER",
+        "-out",
+        "oracle-public.der"
+      ],
+      "exit": 0
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-015",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkey",
+        "-provparam",
+        "ml-kem.retain_seed=no",
+        "-in",
+        "seed.der",
+        "-inform",
+        "DER",
+        "-outform",
+        "DER",
+        "-out",
+        "oracle-private.der"
+      ],
+      "exit": 0
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-015",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkeyutl",
+        "-encap",
+        "-pubin",
+        "-inkey",
+        "public.der",
+        "-keyform",
+        "DER",
+        "-pkeyopt",
+        "hexikme:9f0d685e3e1a3f54008c9c6de7ec6c311c1aef8deca6441abb67c79e170a7908",
+        "-out",
+        "oracle-ciphertext.bin",
+        "-secret",
+        "oracle-secret.bin"
+      ],
+      "exit": 0
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-015",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkeyutl",
+        "-decap",
+        "-inkey",
+        "private.der",
+        "-keyform",
+        "DER",
+        "-in",
+        "ciphertext.bin",
+        "-secret",
+        "decaps-secret.bin"
+      ],
+      "exit": 0
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-015",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkeyutl",
+        "-encap",
+        "-pubin",
+        "-inkey",
+        "public.der",
+        "-keyform",
+        "DER",
+        "-out",
+        "random-ciphertext.bin",
+        "-secret",
+        "random-secret.bin"
+      ],
+      "exit": 0
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-015",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkeyutl",
+        "-decap",
+        "-inkey",
+        "private.der",
+        "-keyform",
+        "DER",
+        "-in",
+        "tampered.bin",
+        "-secret",
+        "tampered-secret.bin"
+      ],
+      "exit": 0
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-015",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkeyutl",
+        "-decap",
+        "-inkey",
+        "private.der",
+        "-keyform",
+        "DER",
+        "-in",
+        "malformed.bin",
+        "-secret",
+        "malformed-secret.bin"
+      ],
+      "exit": 1
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-015",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkeyutl",
+        "-decap",
+        "-inkey",
+        "private.der",
+        "-keyform",
+        "DER",
+        "-in",
+        "malformed.bin",
+        "-secret",
+        "malformed-secret.bin"
+      ],
+      "exit": 1
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-016",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkey",
+        "-in",
+        "seed.der",
+        "-inform",
+        "DER",
+        "-pubout",
+        "-outform",
+        "DER",
+        "-out",
+        "oracle-public.der"
+      ],
+      "exit": 0
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-016",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkey",
+        "-provparam",
+        "ml-kem.retain_seed=no",
+        "-in",
+        "seed.der",
+        "-inform",
+        "DER",
+        "-outform",
+        "DER",
+        "-out",
+        "oracle-private.der"
+      ],
+      "exit": 0
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-016",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkeyutl",
+        "-encap",
+        "-pubin",
+        "-inkey",
+        "public.der",
+        "-keyform",
+        "DER",
+        "-pkeyopt",
+        "hexikme:f07a0fb8a85ed2ee5b4d5471cf9fc4dfa91672a270e1709ce9f36e3fd85ccc65",
+        "-out",
+        "oracle-ciphertext.bin",
+        "-secret",
+        "oracle-secret.bin"
+      ],
+      "exit": 0
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-016",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkeyutl",
+        "-decap",
+        "-inkey",
+        "private.der",
+        "-keyform",
+        "DER",
+        "-in",
+        "ciphertext.bin",
+        "-secret",
+        "decaps-secret.bin"
+      ],
+      "exit": 0
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-016",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkeyutl",
+        "-encap",
+        "-pubin",
+        "-inkey",
+        "public.der",
+        "-keyform",
+        "DER",
+        "-out",
+        "random-ciphertext.bin",
+        "-secret",
+        "random-secret.bin"
+      ],
+      "exit": 0
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-016",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkeyutl",
+        "-decap",
+        "-inkey",
+        "private.der",
+        "-keyform",
+        "DER",
+        "-in",
+        "tampered.bin",
+        "-secret",
+        "tampered-secret.bin"
+      ],
+      "exit": 0
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-016",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkeyutl",
+        "-decap",
+        "-inkey",
+        "private.der",
+        "-keyform",
+        "DER",
+        "-in",
+        "malformed.bin",
+        "-secret",
+        "malformed-secret.bin"
+      ],
+      "exit": 1
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-016",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkeyutl",
+        "-decap",
+        "-inkey",
+        "private.der",
+        "-keyform",
+        "DER",
+        "-in",
+        "malformed.bin",
+        "-secret",
+        "malformed-secret.bin"
+      ],
+      "exit": 1
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-017",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkey",
+        "-in",
+        "seed.der",
+        "-inform",
+        "DER",
+        "-pubout",
+        "-outform",
+        "DER",
+        "-out",
+        "oracle-public.der"
+      ],
+      "exit": 0
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-017",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkey",
+        "-provparam",
+        "ml-kem.retain_seed=no",
+        "-in",
+        "seed.der",
+        "-inform",
+        "DER",
+        "-outform",
+        "DER",
+        "-out",
+        "oracle-private.der"
+      ],
+      "exit": 0
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-017",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkeyutl",
+        "-encap",
+        "-pubin",
+        "-inkey",
+        "public.der",
+        "-keyform",
+        "DER",
+        "-pkeyopt",
+        "hexikme:1f36e69583a8ad54beff9ac834f8340face9736a3f2311f1b2c31df12f576918",
+        "-out",
+        "oracle-ciphertext.bin",
+        "-secret",
+        "oracle-secret.bin"
+      ],
+      "exit": 0
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-017",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkeyutl",
+        "-decap",
+        "-inkey",
+        "private.der",
+        "-keyform",
+        "DER",
+        "-in",
+        "ciphertext.bin",
+        "-secret",
+        "decaps-secret.bin"
+      ],
+      "exit": 0
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-017",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkeyutl",
+        "-encap",
+        "-pubin",
+        "-inkey",
+        "public.der",
+        "-keyform",
+        "DER",
+        "-out",
+        "random-ciphertext.bin",
+        "-secret",
+        "random-secret.bin"
+      ],
+      "exit": 0
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-017",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkeyutl",
+        "-decap",
+        "-inkey",
+        "private.der",
+        "-keyform",
+        "DER",
+        "-in",
+        "tampered.bin",
+        "-secret",
+        "tampered-secret.bin"
+      ],
+      "exit": 0
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-017",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkeyutl",
+        "-decap",
+        "-inkey",
+        "private.der",
+        "-keyform",
+        "DER",
+        "-in",
+        "malformed.bin",
+        "-secret",
+        "malformed-secret.bin"
+      ],
+      "exit": 1
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-017",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkeyutl",
+        "-decap",
+        "-inkey",
+        "private.der",
+        "-keyform",
+        "DER",
+        "-in",
+        "malformed.bin",
+        "-secret",
+        "malformed-secret.bin"
+      ],
+      "exit": 1
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-018",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkey",
+        "-in",
+        "seed.der",
+        "-inform",
+        "DER",
+        "-pubout",
+        "-outform",
+        "DER",
+        "-out",
+        "oracle-public.der"
+      ],
+      "exit": 0
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-018",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkey",
+        "-provparam",
+        "ml-kem.retain_seed=no",
+        "-in",
+        "seed.der",
+        "-inform",
+        "DER",
+        "-outform",
+        "DER",
+        "-out",
+        "oracle-private.der"
+      ],
+      "exit": 0
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-018",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkeyutl",
+        "-encap",
+        "-pubin",
+        "-inkey",
+        "public.der",
+        "-keyform",
+        "DER",
+        "-pkeyopt",
+        "hexikme:c8b4edf2ac1b60b2db3730963fe7343af4ab36ef55c98071cd7dbb76a7fed635",
+        "-out",
+        "oracle-ciphertext.bin",
+        "-secret",
+        "oracle-secret.bin"
+      ],
+      "exit": 0
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-018",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkeyutl",
+        "-decap",
+        "-inkey",
+        "private.der",
+        "-keyform",
+        "DER",
+        "-in",
+        "ciphertext.bin",
+        "-secret",
+        "decaps-secret.bin"
+      ],
+      "exit": 0
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-018",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkeyutl",
+        "-encap",
+        "-pubin",
+        "-inkey",
+        "public.der",
+        "-keyform",
+        "DER",
+        "-out",
+        "random-ciphertext.bin",
+        "-secret",
+        "random-secret.bin"
+      ],
+      "exit": 0
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-018",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkeyutl",
+        "-decap",
+        "-inkey",
+        "private.der",
+        "-keyform",
+        "DER",
+        "-in",
+        "tampered.bin",
+        "-secret",
+        "tampered-secret.bin"
+      ],
+      "exit": 0
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-018",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkeyutl",
+        "-decap",
+        "-inkey",
+        "private.der",
+        "-keyform",
+        "DER",
+        "-in",
+        "malformed.bin",
+        "-secret",
+        "malformed-secret.bin"
+      ],
+      "exit": 1
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-018",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkeyutl",
+        "-decap",
+        "-inkey",
+        "private.der",
+        "-keyform",
+        "DER",
+        "-in",
+        "malformed.bin",
+        "-secret",
+        "malformed-secret.bin"
+      ],
+      "exit": 1
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-019",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkey",
+        "-in",
+        "seed.der",
+        "-inform",
+        "DER",
+        "-pubout",
+        "-outform",
+        "DER",
+        "-out",
+        "oracle-public.der"
+      ],
+      "exit": 0
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-019",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkey",
+        "-provparam",
+        "ml-kem.retain_seed=no",
+        "-in",
+        "seed.der",
+        "-inform",
+        "DER",
+        "-outform",
+        "DER",
+        "-out",
+        "oracle-private.der"
+      ],
+      "exit": 0
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-019",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkeyutl",
+        "-encap",
+        "-pubin",
+        "-inkey",
+        "public.der",
+        "-keyform",
+        "DER",
+        "-pkeyopt",
+        "hexikme:1135ee83db7d0479220612b0b1cfe97b99fee14adc7da4e4c21c6aab0ba38221",
+        "-out",
+        "oracle-ciphertext.bin",
+        "-secret",
+        "oracle-secret.bin"
+      ],
+      "exit": 0
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-019",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkeyutl",
+        "-decap",
+        "-inkey",
+        "private.der",
+        "-keyform",
+        "DER",
+        "-in",
+        "ciphertext.bin",
+        "-secret",
+        "decaps-secret.bin"
+      ],
+      "exit": 0
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-019",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkeyutl",
+        "-encap",
+        "-pubin",
+        "-inkey",
+        "public.der",
+        "-keyform",
+        "DER",
+        "-out",
+        "random-ciphertext.bin",
+        "-secret",
+        "random-secret.bin"
+      ],
+      "exit": 0
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-019",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkeyutl",
+        "-decap",
+        "-inkey",
+        "private.der",
+        "-keyform",
+        "DER",
+        "-in",
+        "tampered.bin",
+        "-secret",
+        "tampered-secret.bin"
+      ],
+      "exit": 0
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-019",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkeyutl",
+        "-decap",
+        "-inkey",
+        "private.der",
+        "-keyform",
+        "DER",
+        "-in",
+        "malformed.bin",
+        "-secret",
+        "malformed-secret.bin"
+      ],
+      "exit": 1
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-019",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkeyutl",
+        "-decap",
+        "-inkey",
+        "private.der",
+        "-keyform",
+        "DER",
+        "-in",
+        "malformed.bin",
+        "-secret",
+        "malformed-secret.bin"
+      ],
+      "exit": 1
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-020",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkey",
+        "-in",
+        "seed.der",
+        "-inform",
+        "DER",
+        "-pubout",
+        "-outform",
+        "DER",
+        "-out",
+        "oracle-public.der"
+      ],
+      "exit": 0
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-020",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkey",
+        "-provparam",
+        "ml-kem.retain_seed=no",
+        "-in",
+        "seed.der",
+        "-inform",
+        "DER",
+        "-outform",
+        "DER",
+        "-out",
+        "oracle-private.der"
+      ],
+      "exit": 0
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-020",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkeyutl",
+        "-encap",
+        "-pubin",
+        "-inkey",
+        "public.der",
+        "-keyform",
+        "DER",
+        "-pkeyopt",
+        "hexikme:dfcac341d34fadf54b5423dd9f37c0465a43b33bd2288b52157bc5ac992d4dd0",
+        "-out",
+        "oracle-ciphertext.bin",
+        "-secret",
+        "oracle-secret.bin"
+      ],
+      "exit": 0
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-020",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkeyutl",
+        "-decap",
+        "-inkey",
+        "private.der",
+        "-keyform",
+        "DER",
+        "-in",
+        "ciphertext.bin",
+        "-secret",
+        "decaps-secret.bin"
+      ],
+      "exit": 0
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-020",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkeyutl",
+        "-encap",
+        "-pubin",
+        "-inkey",
+        "public.der",
+        "-keyform",
+        "DER",
+        "-out",
+        "random-ciphertext.bin",
+        "-secret",
+        "random-secret.bin"
+      ],
+      "exit": 0
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-020",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkeyutl",
+        "-decap",
+        "-inkey",
+        "private.der",
+        "-keyform",
+        "DER",
+        "-in",
+        "tampered.bin",
+        "-secret",
+        "tampered-secret.bin"
+      ],
+      "exit": 0
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-020",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkeyutl",
+        "-decap",
+        "-inkey",
+        "private.der",
+        "-keyform",
+        "DER",
+        "-in",
+        "malformed.bin",
+        "-secret",
+        "malformed-secret.bin"
+      ],
+      "exit": 1
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-020",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkeyutl",
+        "-decap",
+        "-inkey",
+        "private.der",
+        "-keyform",
+        "DER",
+        "-in",
+        "malformed.bin",
+        "-secret",
+        "malformed-secret.bin"
+      ],
+      "exit": 1
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-021",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkey",
+        "-in",
+        "seed.der",
+        "-inform",
+        "DER",
+        "-pubout",
+        "-outform",
+        "DER",
+        "-out",
+        "oracle-public.der"
+      ],
+      "exit": 0
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-021",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkey",
+        "-provparam",
+        "ml-kem.retain_seed=no",
+        "-in",
+        "seed.der",
+        "-inform",
+        "DER",
+        "-outform",
+        "DER",
+        "-out",
+        "oracle-private.der"
+      ],
+      "exit": 0
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-021",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkeyutl",
+        "-encap",
+        "-pubin",
+        "-inkey",
+        "public.der",
+        "-keyform",
+        "DER",
+        "-pkeyopt",
+        "hexikme:fd2c3c91b0965110cb4033b3c1f6445ca3f41a640d837870a4e48f89c803e1fd",
+        "-out",
+        "oracle-ciphertext.bin",
+        "-secret",
+        "oracle-secret.bin"
+      ],
+      "exit": 0
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-021",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkeyutl",
+        "-decap",
+        "-inkey",
+        "private.der",
+        "-keyform",
+        "DER",
+        "-in",
+        "ciphertext.bin",
+        "-secret",
+        "decaps-secret.bin"
+      ],
+      "exit": 0
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-021",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkeyutl",
+        "-encap",
+        "-pubin",
+        "-inkey",
+        "public.der",
+        "-keyform",
+        "DER",
+        "-out",
+        "random-ciphertext.bin",
+        "-secret",
+        "random-secret.bin"
+      ],
+      "exit": 0
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-021",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkeyutl",
+        "-decap",
+        "-inkey",
+        "private.der",
+        "-keyform",
+        "DER",
+        "-in",
+        "tampered.bin",
+        "-secret",
+        "tampered-secret.bin"
+      ],
+      "exit": 0
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-021",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkeyutl",
+        "-decap",
+        "-inkey",
+        "private.der",
+        "-keyform",
+        "DER",
+        "-in",
+        "malformed.bin",
+        "-secret",
+        "malformed-secret.bin"
+      ],
+      "exit": 1
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-021",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkeyutl",
+        "-decap",
+        "-inkey",
+        "private.der",
+        "-keyform",
+        "DER",
+        "-in",
+        "malformed.bin",
+        "-secret",
+        "malformed-secret.bin"
+      ],
+      "exit": 1
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-022",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkey",
+        "-in",
+        "seed.der",
+        "-inform",
+        "DER",
+        "-pubout",
+        "-outform",
+        "DER",
+        "-out",
+        "oracle-public.der"
+      ],
+      "exit": 0
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-022",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkey",
+        "-provparam",
+        "ml-kem.retain_seed=no",
+        "-in",
+        "seed.der",
+        "-inform",
+        "DER",
+        "-outform",
+        "DER",
+        "-out",
+        "oracle-private.der"
+      ],
+      "exit": 0
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-022",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkeyutl",
+        "-encap",
+        "-pubin",
+        "-inkey",
+        "public.der",
+        "-keyform",
+        "DER",
+        "-pkeyopt",
+        "hexikme:ea1773b25451d664a8dc36c26f6c15f44ccdb6b32746cd99de412cb723b5b5d2",
+        "-out",
+        "oracle-ciphertext.bin",
+        "-secret",
+        "oracle-secret.bin"
+      ],
+      "exit": 0
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-022",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkeyutl",
+        "-decap",
+        "-inkey",
+        "private.der",
+        "-keyform",
+        "DER",
+        "-in",
+        "ciphertext.bin",
+        "-secret",
+        "decaps-secret.bin"
+      ],
+      "exit": 0
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-022",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkeyutl",
+        "-encap",
+        "-pubin",
+        "-inkey",
+        "public.der",
+        "-keyform",
+        "DER",
+        "-out",
+        "random-ciphertext.bin",
+        "-secret",
+        "random-secret.bin"
+      ],
+      "exit": 0
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-022",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkeyutl",
+        "-decap",
+        "-inkey",
+        "private.der",
+        "-keyform",
+        "DER",
+        "-in",
+        "tampered.bin",
+        "-secret",
+        "tampered-secret.bin"
+      ],
+      "exit": 0
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-022",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkeyutl",
+        "-decap",
+        "-inkey",
+        "private.der",
+        "-keyform",
+        "DER",
+        "-in",
+        "malformed.bin",
+        "-secret",
+        "malformed-secret.bin"
+      ],
+      "exit": 1
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-022",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkeyutl",
+        "-decap",
+        "-inkey",
+        "private.der",
+        "-keyform",
+        "DER",
+        "-in",
+        "malformed.bin",
+        "-secret",
+        "malformed-secret.bin"
+      ],
+      "exit": 1
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-023",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkey",
+        "-in",
+        "seed.der",
+        "-inform",
+        "DER",
+        "-pubout",
+        "-outform",
+        "DER",
+        "-out",
+        "oracle-public.der"
+      ],
+      "exit": 0
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-023",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkey",
+        "-provparam",
+        "ml-kem.retain_seed=no",
+        "-in",
+        "seed.der",
+        "-inform",
+        "DER",
+        "-outform",
+        "DER",
+        "-out",
+        "oracle-private.der"
+      ],
+      "exit": 0
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-023",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkeyutl",
+        "-encap",
+        "-pubin",
+        "-inkey",
+        "public.der",
+        "-keyform",
+        "DER",
+        "-pkeyopt",
+        "hexikme:fef195183e1ec2c1f13dabe7cac9c031f4c1dd9fb80f2647dfe4bb7edc00e07c",
+        "-out",
+        "oracle-ciphertext.bin",
+        "-secret",
+        "oracle-secret.bin"
+      ],
+      "exit": 0
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-023",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkeyutl",
+        "-decap",
+        "-inkey",
+        "private.der",
+        "-keyform",
+        "DER",
+        "-in",
+        "ciphertext.bin",
+        "-secret",
+        "decaps-secret.bin"
+      ],
+      "exit": 0
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-023",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkeyutl",
+        "-encap",
+        "-pubin",
+        "-inkey",
+        "public.der",
+        "-keyform",
+        "DER",
+        "-out",
+        "random-ciphertext.bin",
+        "-secret",
+        "random-secret.bin"
+      ],
+      "exit": 0
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-023",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkeyutl",
+        "-decap",
+        "-inkey",
+        "private.der",
+        "-keyform",
+        "DER",
+        "-in",
+        "tampered.bin",
+        "-secret",
+        "tampered-secret.bin"
+      ],
+      "exit": 0
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-023",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkeyutl",
+        "-decap",
+        "-inkey",
+        "private.der",
+        "-keyform",
+        "DER",
+        "-in",
+        "malformed.bin",
+        "-secret",
+        "malformed-secret.bin"
+      ],
+      "exit": 1
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-023",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkeyutl",
+        "-decap",
+        "-inkey",
+        "private.der",
+        "-keyform",
+        "DER",
+        "-in",
+        "malformed.bin",
+        "-secret",
+        "malformed-secret.bin"
+      ],
+      "exit": 1
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-024",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkey",
+        "-in",
+        "seed.der",
+        "-inform",
+        "DER",
+        "-pubout",
+        "-outform",
+        "DER",
+        "-out",
+        "oracle-public.der"
+      ],
+      "exit": 0
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-024",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkey",
+        "-provparam",
+        "ml-kem.retain_seed=no",
+        "-in",
+        "seed.der",
+        "-inform",
+        "DER",
+        "-outform",
+        "DER",
+        "-out",
+        "oracle-private.der"
+      ],
+      "exit": 0
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-024",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkeyutl",
+        "-encap",
+        "-pubin",
+        "-inkey",
+        "public.der",
+        "-keyform",
+        "DER",
+        "-pkeyopt",
+        "hexikme:841d3997bd178418b8b2e3c7931beed76ec0464e53e65f84f1091dad05af20ae",
+        "-out",
+        "oracle-ciphertext.bin",
+        "-secret",
+        "oracle-secret.bin"
+      ],
+      "exit": 0
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-024",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkeyutl",
+        "-decap",
+        "-inkey",
+        "private.der",
+        "-keyform",
+        "DER",
+        "-in",
+        "ciphertext.bin",
+        "-secret",
+        "decaps-secret.bin"
+      ],
+      "exit": 0
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-024",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkeyutl",
+        "-encap",
+        "-pubin",
+        "-inkey",
+        "public.der",
+        "-keyform",
+        "DER",
+        "-out",
+        "random-ciphertext.bin",
+        "-secret",
+        "random-secret.bin"
+      ],
+      "exit": 0
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-024",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkeyutl",
+        "-decap",
+        "-inkey",
+        "private.der",
+        "-keyform",
+        "DER",
+        "-in",
+        "tampered.bin",
+        "-secret",
+        "tampered-secret.bin"
+      ],
+      "exit": 0
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-024",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkeyutl",
+        "-decap",
+        "-inkey",
+        "private.der",
+        "-keyform",
+        "DER",
+        "-in",
+        "malformed.bin",
+        "-secret",
+        "malformed-secret.bin"
+      ],
+      "exit": 1
+    },
+    {
+      "cwd": "/root/build/lane-openssl-39358955434-mlkem/mlkem-openssl/case-024",
+      "command": [
+        "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl",
+        "pkeyutl",
+        "-decap",
+        "-inkey",
+        "private.der",
+        "-keyform",
+        "DER",
+        "-in",
+        "malformed.bin",
+        "-secret",
+        "malformed-secret.bin"
+      ],
+      "exit": 1
+    }
+  ],
+  "reference_exit": 0,
+  "inputs": {
+    "PqArith": {
+      "source_sha256": "cc0226ae9512ce40ada9f7400fad3765b5bfc8b2ae7c0adb9e015e469985be1d",
+      "vo_sha256": "f9ac06ad4838f68181fb3a2d7391185734821b8de70de9c4bdc199874145e51f"
+    },
+    "Keccak": {
+      "source_sha256": "231f8a2e9cc3f022e3647ef04d17a2e56fbb2b54ea7bcb10ae76d5caf52f4592",
+      "vo_sha256": "18a42caa12737b8d41b75b7ff97abb8a4f20597b9b754327b6d78f0651e7de11"
+    },
+    "MlKem": {
+      "source_sha256": "96e3291727983f91c8acf94ce44cda14b36b7ed64af324ea0ec7ca5ae885a1c5",
+      "vo_sha256": "858dac3fc6c7f9bec29388961b255250fa140f7a440cd0d22cdf4c5f61ecdf0a"
+    }
+  },
+  "reference_executable_sha256": "ccdf8c64ce7f47569fb1b658d8f78c2bc9c4f720c2a39ce7094ddf952a365809",
+  "openssl": {
+    "version": "OpenSSL 3.5.9 29 Sep 2026 (Library: OpenSSL 3.5.9 29 Sep 2026)\nbuilt on: Tue Oct 20 02:38:41 2026 UTC\nplatform: linux-x86_64\noptions:  bn(64,64)\ncompiler: gcc -fPIC -pthread -m64 -Wa,--noexecstack -Wall -O3 -DOPENSSL_USE_NODELETE -DL_ENDIAN -DOPENSSL_PIC -DOPENSSL_BUILDING_OPENSSL -DNDEBUG\nOPENSSLDIR: \"/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/ssl\"\nENGINESDIR: \"/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/lib/engines-3\"\nMODULESDIR: \"/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/lib/ossl-modules\"\nSeeding source: os-specific\nCPUINFO: OPENSSL_ia32cap=0xfeda3203078bffff:0x00400684219c07a9:0x0000000000000010:0x0000000000000000:0x0000000000000000",
+    "source": {
+      "version": "3.5.9",
+      "revision": "45e844fa2a14ec92d146bd8f5778ac130b6625fb",
+      "url": "https://github.com/openssl/openssl/releases/download/openssl-3.5.9/openssl-3.5.9.tar.gz",
+      "archive_sha256": "603f5602e2eef00d77fbd429d34dcd5822bb301757a1bc9cdb24c670f1eb859a",
+      "license_sha256": "7d5450cb2d142651b8afa315b5f238efc805dad827d91ba367d8516bc9d49e7a",
+      "license": "Apache-2.0"
+    },
+    "build_manifest": "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/build-manifest.json",
+    "build_manifest_sha256": "1ecf05be42003132c4097ec361ae9a2d27ab71da62f46f110391ef6ad40c4f94",
+    "binaries": {
+      "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/bin/openssl": "07774bd9ba2879a87a99cf6e28ad2e18d544a24d926213d9a715cc3c10f27c39",
+      "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/lib/libcrypto.so.3": "70fe04e2e53a4b90ceb4046a812e0e01ea6e7b1ce47589d7f0856e3e557f59b2",
+      "/home/runner/work/_temp/openssl-qualification-root/openssl/3.5.9/lib/libssl.so.3": "a14abe2f9f26dbb8901b65adbcfd0e0c155816db72af1a458c8c98aaa3c9a142"
+    },
+    "configuration_sha256": "a65a2cb9f4ee8ffdc7ef4f0ac600c0bdafb95b7b1ab457188ac610a62f5ad6b3"
+  },
+  "cases": 25,
+  "elapsed_seconds": 104.37996333699994,
+  "scope": "Independent private source-built OpenSSL execution, default provider, generated test seeds; no proof of native oracle, extraction or compiler"
+}
