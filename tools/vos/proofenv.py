@@ -74,7 +74,7 @@ def install_line(steps: tuple[tuple[str, ...], ...]) -> str:
 
 
 def _env_path(name: str, default: Path) -> Path:
-    return Path(os.environ[name]) if os.environ.get(name) else default
+    return Path(os.environ[name]) if bool(os.environ.get(name)) else default
 
 
 def _gitdir_pointer(root: Path) -> str | None:
@@ -325,13 +325,13 @@ def rocq_command() -> list[str]:
     env.py's `_apply_opam_env` puts on PATH, so a bare `rocq` finds nothing.
     """
     override = os.environ.get("VOS_ROCQ")
-    if override:
+    if bool(override):
         return [override, "c"]
     pinned = opam_root() / ROCQ_SWITCH / "bin" / "rocq"
     if pinned.is_file():
         return [str(pinned), "c"]
     found = shutil.which("rocq")
-    if found:
+    if bool(found):
         return [found, "c"]
     raise SystemExit(f"no prover: neither $VOS_ROCQ, nor {pinned}, nor rocq on PATH. "
                      f"{install_line(ROCQ_INSTALL)}")
@@ -351,13 +351,13 @@ def rocqchk_command() -> list[str]:
     as `coqchk` and its usage is `coqchk <options> modules`.
     """
     override = os.environ.get("VOS_ROCQCHK")
-    if override:
+    if bool(override):
         return [override]
     pinned = opam_root() / ROCQ_SWITCH / "bin" / "rocqchk"
     if pinned.is_file():
         return [str(pinned)]
     found = shutil.which("rocqchk")
-    if found:
+    if bool(found):
         return [found]
     raise SystemExit(f"no kernel re-checker: neither $VOS_ROCQCHK, nor {pinned}, nor "
                      f"rocqchk on PATH. {install_line(ROCQ_INSTALL)}")
@@ -395,7 +395,7 @@ def git_dir(root: Path) -> Path | None:
     needs no translating.
     """
     override = os.environ.get("VOS_GIT_DIR")
-    if override:
+    if bool(override):
         return Path(override)
     target = _gitdir_pointer(root)
     if target is None:

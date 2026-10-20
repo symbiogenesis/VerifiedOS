@@ -5,7 +5,7 @@ one registered worker lane."""
 import argparse
 import subprocess
 import tempfile
-from collections.abc import Callable, Iterator
+from collections.abc import Callable, Generator
 from contextlib import contextmanager
 from pathlib import Path
 
@@ -29,7 +29,7 @@ def commit(root: Path, name: str) -> str:
 
 
 @contextmanager
-def fixture() -> Iterator[tuple[Path, Path, Path]]:
+def fixture() -> Generator[tuple[Path, Path, Path]]:
     with sandbox_tree(FILES) as root, tempfile.TemporaryDirectory(prefix="vos-remote-") as remote:
         git(root, "config", "user.name", "Fanout test")
         git(root, "config", "user.email", "fanout@example.invalid")

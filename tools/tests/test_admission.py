@@ -4,7 +4,7 @@
 import copy
 import sys
 import tempfile
-from collections.abc import Callable, Iterator
+from collections.abc import Callable, Generator
 from contextlib import contextmanager
 from dataclasses import replace
 from pathlib import Path
@@ -26,7 +26,7 @@ def _reject(fn: Callable[[], object], needle: str) -> None:
 
 
 @contextmanager
-def _fixture() -> Iterator[tuple[Path, boot.Roster, dict[str, object]]]:
+def _fixture() -> Generator[tuple[Path, boot.Roster, dict[str, object]]]:
     parent = toolenv.environment(ROOT, sys.platform).parent / "admission-tests"
     parent.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(dir=parent) as temporary:

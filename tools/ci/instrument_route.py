@@ -472,9 +472,9 @@ def plan_record(checkout: Path, asked: Request, checks: Sequence[Check]) -> dict
         for side, revision in (("candidate", asked.revision), ("base", asked.base_revision)):
             if revision:
                 source = source_at(checkout, revision, SEED)
-                found = string_constant(source, "COQ_SUBJECT") if source else None
+                found = string_constant(source, "COQ_SUBJECT") if bool(source) else None
                 # One printable line, as a job output carries it, or none.
-                subjects[side] = found if found and found.isprintable() else None
+                subjects[side] = found if bool(found) and found.isprintable() else None
     return {
         "schema": 1, "workflow": WORKFLOW,
         "request": {"ref": asked.ref, "revision": asked.revision,
@@ -510,7 +510,7 @@ def plan_outputs(asked: Request, ok: bool,
 def github_output(values: dict[str, str], target: Path | str | None = None) -> None:
     """Append job outputs, each one line, to the file GitHub reads them from."""
     target = target or os.environ.get("GITHUB_OUTPUT")
-    if not target:
+    if not bool(target):
         return
     if any(c in value for value in values.values() for c in "\r\n"):
         raise ValueError("a job output must be one line")
@@ -775,7 +775,7 @@ def classify(exit_code: int | None, limit: int, *, oom: Sequence[str] | None,
     """
     if exit_code == 0 and journal_complete is None:
         return Outcome(PASSED, "exit 0")
-    if oom:
+    if bool(oom):
         return Outcome(UNDECIDED, f"the kernel's OOM killer acted during the step: {oom[0]}")
     if exit_code in (124, 137) and seconds is not None and seconds < limit:
         return Outcome(UNDECIDED, f"the step exited {exit_code} after {seconds:.1f} s, short "
@@ -796,7 +796,7 @@ def classify(exit_code: int | None, limit: int, *, oom: Sequence[str] | None,
     if prover_timeout:
         return Outcome(UNDECIDED, "a compile reached gallina's per-file timeout and "
                        "raised out of the step")
-    if journal_complete:
+    if bool(journal_complete):
         return Outcome(COMPLETED, f"the run finished: its journal closes on every mutant "
                        f"it picked, and it exited {exit_code}")
     if exit_code is None:
@@ -808,7 +808,7 @@ def classify(exit_code: int | None, limit: int, *, oom: Sequence[str] | None,
 
 def time_figures(text: str | None) -> dict[str, float] | None:
     """GNU time's figures from its output file, None where it wrote none."""
-    if not text:
+    if not bool(text):
         return None
     found: dict[str, float] = {str(key): float(value) for key, value in
                                re.findall(r"(?m)^(real|user|sys|maxrss_kb) ([0-9.]+)$", text)}
@@ -946,7 +946,7 @@ def side_command(step: str, side: Path, receipt: dict[str, object],
     by naming none."""
     inputs = as_object(receipt.get("inputs", {}))
     flag = receipt.get("flag")
-    if flag not in ("", "--recipe"):
+    if not isinstance(flag, str) or flag not in ("", "--recipe"):
         raise ValueError(f"the receipt records no flag the provisioning sets: {flag!r}")
     flags = [flag] if flag else []
     entry = [python, str(side / "tools" / "run.py")]
@@ -1796,7 +1796,7 @@ def cmd_join(args: argparse.Namespace) -> int:
     text = summary(report)
     print(text)
     target = os.environ.get("GITHUB_STEP_SUMMARY")
-    if target:
+    if bool(target):
         with Path(target).open("a", encoding="utf-8", newline="") as stream:
             stream.write(text)
     return 1 if report["verdict"] == REFUSED else 0

@@ -15,7 +15,7 @@ import stat
 import subprocess
 import sys
 import tempfile
-from collections.abc import Callable, Iterator
+from collections.abc import Callable, Generator
 from contextlib import contextmanager
 from dataclasses import dataclass
 from functools import cache
@@ -75,7 +75,7 @@ def with_env(name: str, value: str | None, fn: Callable[[], None]) -> None:
 
 
 @contextmanager
-def sandbox_tree(files: dict[str, str]) -> Iterator[Path]:
+def sandbox_tree(files: dict[str, str]) -> Generator[Path]:
     """A throwaway git-tracked tree holding exactly `files` (relative path -> text).
 
     Contents are written byte-for-byte (UTF-8, no newline translation), then

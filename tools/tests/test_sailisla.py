@@ -8,7 +8,7 @@ import shutil
 import subprocess
 import tarfile
 import tomllib
-from collections.abc import Callable, Iterator
+from collections.abc import Callable, Generator
 from contextlib import contextmanager, nullcontext, redirect_stderr, redirect_stdout
 from pathlib import Path
 from types import SimpleNamespace
@@ -91,7 +91,7 @@ _UPSTREAM_LOCK = """version = 3
 name = "crossbeam-channel"
 version = "0.5.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "aa"
+checksum = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
 dependencies = [
  "crossbeam-utils",
 ]
@@ -100,7 +100,7 @@ dependencies = [
 name = "crossbeam-utils"
 version = "0.8.19"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bb"
+checksum = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
 """
 
 
@@ -114,7 +114,7 @@ def _refusal(call: Callable[[], object]) -> str:
 
 def _lock_override() -> None:
     declared = {"crossbeam-channel": "0.5.17"}
-    override = _UPSTREAM_LOCK.replace('"0.5.12"', '"0.5.17"').replace('"aa"', '"cc"')
+    override = _UPSTREAM_LOCK.replace('"0.5.12"', '"0.5.17"').replace('"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"', '"cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"')
     sailisla.check_lock_override(_UPSTREAM_LOCK, override, declared)
     metadata = '\n[metadata]\nnote = "{}"\n'
     sailisla.check_lock_override(_UPSTREAM_LOCK + metadata.format("a"), override + metadata.format("a"),
@@ -122,8 +122,8 @@ def _lock_override() -> None:
     for changed in (override.replace('"0.8.19"', '"0.8.23"'),
                     override.replace('"0.5.17"', '"0.5.16"'),
                     override.replace(' "crossbeam-utils",\n', ""),
-                    override.replace('checksum = "cc"\n', ""),
-                    override.replace('checksum = "cc"', 'checksum = "cc"\nreplace = "x"'),
+                    override.replace('checksum = "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"\n', ""),
+                    override.replace('checksum = "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"', 'checksum = "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"\nreplace = "x"'),
                     override.replace("version = 3", "version = 4"),
                     override + metadata.format("b"),
                     override + '\n[[package]]\nname = "extra"\nversion = "1.0.0"\n'):
@@ -139,8 +139,8 @@ def _lock_override() -> None:
 
 def _lock_override_upstream_caught_up() -> None:
     declared = {"crossbeam-channel": "0.5.17"}
-    override = _UPSTREAM_LOCK.replace('"0.5.12"', '"0.5.17"').replace('"aa"', '"cc"')
-    newer = _UPSTREAM_LOCK.replace('"0.5.12"', '"0.5.18"').replace('"aa"', '"dd"')
+    override = _UPSTREAM_LOCK.replace('"0.5.12"', '"0.5.17"').replace('"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"', '"cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"')
+    newer = _UPSTREAM_LOCK.replace('"0.5.12"', '"0.5.18"').replace('"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"', '"dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"')
     message = _refusal(lambda: sailisla.check_lock_override(newer, override, declared))
     ensure("upstream already carries crossbeam-channel 0.5.18" in message
            and "retire or regenerate the override" in message,
@@ -168,7 +168,7 @@ def _sail_pin_is_locked_release() -> None:
     lock = json.loads((TOOLS / "sail-isla/lock.json").read_text(encoding="utf-8"))
 
     def pin(version: str) -> sailisla.SailPin:
-        return cast(sailisla.SailPin, {**lock["sail"], "version": version})
+        return {**lock["sail"], "version": version}
 
     installed = 'installed: [\n  "ocaml.5.4.1"\n  "sail.0.20.3"\n  "sail_maker.0.20.3"\n]\n'
     with sandbox_tree({"tools/opam/sail.lock": installed}) as root:
@@ -187,7 +187,7 @@ def _sail_pin_is_locked_release() -> None:
 
 
 @contextmanager
-def _provisioning(root: Path) -> Iterator[None]:
+def _provisioning(root: Path) -> Generator[None]:
     """Everything `provision` reaches beyond its runner and the sandbox's files, faked:
     the lane lock, the prerequisites, the platform, the fetched sources and their lock
     override's check, the Rust install, an archive under the tracked Sail pin's

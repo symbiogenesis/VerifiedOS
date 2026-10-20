@@ -382,10 +382,10 @@ def cmd_install(args: argparse.Namespace) -> int:
     prefix = verilator_prefix()
     with env.hold_lock(prefix, "Verilator installation"):
         binary = prefix / "bin" / "verilator"
-        if _installed_verilator() and _verilator_version(str(binary)) == VERILATOR_PIN:
+        if bool(_installed_verilator()) and _verilator_version(str(binary)) == VERILATOR_PIN:
             print(f"ok verilator {VERILATOR_PIN} at {binary}")
             return 0
-        missing = [name for name in VERILATOR_PREREQUISITES if not shutil.which(name)]
+        missing = [name for name in VERILATOR_PREREQUISITES if not bool(shutil.which(name))]
         if not missing:
             header = subprocess.run(("g++", "-x", "c++", "-E", "-include", "FlexLexer.h", "-"),
                                     input="", text=True, stdout=subprocess.DEVNULL,

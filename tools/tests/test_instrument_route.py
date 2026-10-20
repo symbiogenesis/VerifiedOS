@@ -8,7 +8,7 @@ import re
 import subprocess
 import sys
 import tempfile
-from collections.abc import Callable, Iterator
+from collections.abc import Callable, Generator
 from contextlib import contextmanager, redirect_stdout
 from io import StringIO
 from pathlib import Path
@@ -55,7 +55,7 @@ def _commit(root: Path, files: dict[str, str], message: str) -> str:
 
 
 @contextmanager
-def _history() -> Iterator[tuple[Path, dict[str, str]]]:
+def _history() -> Generator[tuple[Path, dict[str, str]]]:
     """main at base then tip, the tip declaring RECIPE, and a sibling never on main."""
     with sandbox_tree({"README.md": "fixture\n"}) as root:
         for key, value in (("user.name", "Fixture"), ("user.email", "fixture@example.invalid"),

@@ -8,7 +8,7 @@ import io
 import json
 import tempfile
 import zipfile
-from collections.abc import Iterator
+from collections.abc import Generator
 from contextlib import contextmanager
 from pathlib import Path
 from unittest.mock import patch
@@ -288,7 +288,7 @@ def _needs_from_jobs() -> None:
 
 
 @contextmanager
-def _repository() -> Iterator[tuple[Path, dict[str, str]]]:
+def _repository() -> Generator[tuple[Path, dict[str, str]]]:
     with sandbox_tree({"README.md": "fixture\n"}) as root:
         for key, value in (("user.name", "Fixture"), ("user.email", "fixture@example.invalid"),
                            ("commit.gpgsign", "false")):

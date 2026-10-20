@@ -5,7 +5,7 @@ import argparse
 import io
 import subprocess
 import tempfile
-from collections.abc import Iterator
+from collections.abc import Generator
 from contextlib import contextmanager, nullcontext, redirect_stderr, redirect_stdout
 from pathlib import Path
 from types import SimpleNamespace
@@ -109,7 +109,7 @@ def _campaign_holds_its_directory_lock() -> None:
         events: list[str] = []
 
         @contextmanager
-        def held(target: Path, what: str) -> Iterator[None]:
+        def held(target: Path, what: str) -> Generator[None]:
             events.append(f"{what} holds {target.relative_to(out).as_posix()}, "
                           f"{'after' if any(out.glob('persistence-*')) else 'before'} its output")
             try:

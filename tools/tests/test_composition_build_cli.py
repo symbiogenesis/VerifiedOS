@@ -2,7 +2,7 @@
 """File-backed build records bind published outputs without admitting fixtures."""
 
 import json
-from collections.abc import Iterator
+from collections.abc import Generator
 from contextlib import contextmanager, redirect_stdout
 from io import StringIO
 from pathlib import Path
@@ -22,7 +22,7 @@ IMAGE = "products/image.bin"
 
 
 @contextmanager
-def _products() -> Iterator[Path]:
+def _products() -> Generator[Path]:
     with _sandbox() as (root, raw):
         graph = _resolve_descriptors(root, raw)
         directory = root / "products"

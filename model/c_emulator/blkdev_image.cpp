@@ -260,8 +260,10 @@ bool image::note(const std::string &json) {
   }
   if (m_receipt != nullptr) {
     const std::string sequenced = "{\"sequence\":" + number(m_sequence++) + "," + json.substr(1);
-    if (std::fputs(sequenced.c_str(), m_receipt) == EOF || std::fputc('\n', m_receipt) == EOF ||
-        std::fflush(m_receipt) != 0) {
+    if (
+      std::fputs(sequenced.c_str(), m_receipt) == EOF || std::fputc('\n', m_receipt) == EOF ||
+      std::fflush(m_receipt) != 0
+    ) {
       m_receipt_failed = true;
       m_failed = true;
       std::fprintf(stderr, "Block device receipt failed: %s\n", error_text().c_str());
@@ -288,8 +290,10 @@ void image::release() {
 
 void image::bind(mode how, const std::vector<uint8_t> &fixture) {
   const geometry g = m_geometry;
-  if (g.block_bytes == 0 || g.block_count == 0 || g.block_count > UINT64_MAX / g.block_bytes ||
-      g.block_bytes * g.block_count > UINT64_MAX - header_bytes) {
+  if (
+    g.block_bytes == 0 || g.block_count == 0 || g.block_count > UINT64_MAX / g.block_bytes ||
+    g.block_bytes * g.block_count > UINT64_MAX - header_bytes
+  ) {
     refuse("the composition's geometry has no image length");
   }
   const uint64_t medium_bytes = g.block_bytes * g.block_count;

@@ -7,7 +7,7 @@ import json
 import shutil
 import sys
 import tempfile
-from collections.abc import Callable, Iterator
+from collections.abc import Callable, Generator
 from contextlib import contextmanager, redirect_stdout
 from pathlib import Path
 from typing import cast
@@ -31,7 +31,7 @@ def _refused[T](kind: type[Exception], fn: Callable[[], T], needle: str) -> None
 
 
 @contextmanager
-def _scratch() -> Iterator[Path]:
+def _scratch() -> Generator[Path]:
     """A throwaway root holding the configuration and the fixture's files."""
     parent = toolenv.environment(ROOT, sys.platform).parent / "boot-tests"
     parent.mkdir(parents=True, exist_ok=True)

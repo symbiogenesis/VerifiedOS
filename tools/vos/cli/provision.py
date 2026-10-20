@@ -253,7 +253,7 @@ def _client() -> tuple[str | None, str]:
 
 def _ask_client() -> tuple[str | None, str]:
     where = shutil.which("opam")
-    return where, _release(_say(("opam", "--version"))) if where else ""
+    return where, _release(_say(("opam", "--version"))) if bool(where) else ""
 
 
 def _release(text: str) -> str:
@@ -447,7 +447,7 @@ def _unlisted(switch: str, root: Path, client: tuple[str | None, str]) -> str:
 
 
 # What makes the reviewed client's upgrade of an older root a hard one, which it writes
-# before it reads the root, as opam 2.6.0's `OpamFormatUpgrade.upgrades` decides it. For
+# before it reads the root, as opam 2.6.1's `OpamFormatUpgrade.upgrades` decides it. For
 # every format older than 2.6~alpha it runs `cond_hard_upg_2_6_alpha` over the
 # configured repositories' archives while it gathers the hard upgrades, before the
 # format decides anything, and that condition catches nothing but its own answer, so an
@@ -457,7 +457,7 @@ def _unlisted(switch: str, root: Path, client: tuple[str | None, str]) -> str:
 # reads a configured repository's archive as nested. Every other older root it upgrades
 # in memory to read. Read from that release's source, so the reading claims nothing of
 # another reviewed client until its source is read.
-_UPGRADES_READ: str = "2.6.0"
+_UPGRADES_READ: str = "2.6.1"
 _HARD_BEFORE = "2.0~beta5"
 _HARD_FROM: tuple[str, ...] = ("2.1~alpha", "2.1~alpha2")
 _NESTED_BEFORE = "2.6~alpha"
@@ -619,7 +619,7 @@ def _opam_client() -> Found:
     plans a recipe over it.
     """
     where, found = _client()
-    client = f"opam {found or 'answering no version'} at {where}" if where else "no opam on PATH"
+    client = f"opam {found or 'answering no version'} at {where}" if bool(where) else "no opam on PATH"
     reviewed = found == opam_client.OPAM_VERSION
     root = env.opam_root()
     fmt = opam_client.root_format(root)

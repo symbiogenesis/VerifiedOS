@@ -4,7 +4,7 @@
 import json
 import os
 import shutil
-from collections.abc import Callable, Iterator
+from collections.abc import Callable, Generator
 from contextlib import contextmanager, redirect_stdout
 from io import StringIO
 from pathlib import Path
@@ -37,7 +37,7 @@ def _refused(fn: Callable[[], object], phrase: str) -> None:
 
 
 @contextmanager
-def _fixture(*, evidence: bool = True, kernel_status: str | None = None) -> Iterator[tuple[Path, dict[str, Any]]]:
+def _fixture(*, evidence: bool = True, kernel_status: str | None = None) -> Generator[tuple[Path, dict[str, Any]]]:
     # All products and derivation bytes below are synthetic controls. They supply
     # exact declared identities and a real ELF container, never proof evidence.
     with _sandbox() as (root, raw):

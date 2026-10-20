@@ -7,7 +7,7 @@ inventory maintained by the tests. Every write stays under this checkout's out/.
 
 import json
 import tempfile
-from collections.abc import Callable, Iterator
+from collections.abc import Callable, Generator
 from contextlib import contextmanager
 from pathlib import Path
 from typing import Any
@@ -19,7 +19,7 @@ ROOT = Path(__file__).resolve().parents[2]
 
 
 @contextmanager
-def _fixture() -> Iterator[tuple[Path, dict[str, Any]]]:
+def _fixture() -> Generator[tuple[Path, dict[str, Any]]]:
     source: dict[str, Any] = json.loads((ROOT / formats.SOURCE).read_text(encoding="utf-8"))
     paths = {formats.SOURCE, formats.CROWN, formats.REGISTER,
              "docs/assurance/unassigned-proof-map.md",

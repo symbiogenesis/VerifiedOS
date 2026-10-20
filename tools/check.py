@@ -116,7 +116,7 @@ def run(root: Path, fix: bool = False, through: str | None = None,
         art = read_artifacts(corpus)
     ctx = Context(root=root, corpus=corpus, reg=reg, art=art, rep=Reporter(), fix=fix,
                   clock=measured)
-    decided = re.compile(rf"\s*(?:ok|FAIL) {re.escape(through)}:") if through else None
+    decided = re.compile(rf"\s*(?:ok|FAIL) {re.escape(through)}:") if bool(through) else None
     skipped = 0
     for index, group in enumerate(GROUPS):
         start = len(ctx.rep.out)

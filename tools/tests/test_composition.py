@@ -5,7 +5,7 @@ import json
 import os
 import shutil
 import tempfile
-from collections.abc import Callable, Iterator
+from collections.abc import Callable, Generator
 from contextlib import contextmanager, redirect_stdout
 from io import StringIO
 from pathlib import Path
@@ -48,7 +48,7 @@ def _rebind_inventory_source(root: Path, raw: dict[str, Any], source: str) -> No
 
 
 @contextmanager
-def _sandbox() -> Iterator[tuple[Path, dict[str, Any]]]:
+def _sandbox() -> Generator[tuple[Path, dict[str, Any]]]:
     raw = json.loads((ROOT / c.EXAMPLE).read_bytes())
     paths = {c.EXAMPLE, boot.CONTRACT, raw["configuration"]["path"], *c.PRODUCERS}
     for member in raw["members"]:

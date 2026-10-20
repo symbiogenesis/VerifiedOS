@@ -149,7 +149,7 @@ def snapshot(root: Path, path: Path, owned: bool = True) -> LaneRecord:
         owner = worktree.primary(root)
         records = worktree.registered(root)
         record = next((item for item in records[1:] if Path(item.path) == path), None)
-        if record is None or not record.lane or not record.lane_root:
+        if record is None or not bool(record.lane) or not bool(record.lane_root):
             raise RetirementError(f"not a dedicated registered checkout: {path}")
         worktree.verify(root, path, record.head, branch=record.branch, exact=True)
         if owned:

@@ -51,7 +51,7 @@ def main(argv: list[str] | None = None) -> int:
         except ValueError as err:
             raise ValueError(f"exact measurement report cannot be encoded as JSON: {err}") from err
         report.update(measured)
-        code = 0 if report["within_declared_limits"] else 1
+        code = 0 if bool(report["within_declared_limits"]) else 1
     except (OSError, TypeError, ValueError) as err:
         report["error"] = str(err)
         code = 2

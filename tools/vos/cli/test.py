@@ -89,7 +89,7 @@ def _lanes() -> frozenset[Lane]:
 def _module_names(only: str | None) -> list[str]:
     """Every test module under `tools/tests/`, sorted so the report order is fixed."""
     names = sorted(path.stem for path in TESTS.glob("test_*.py"))
-    if only:
+    if bool(only):
         names = [name for name in names if only in name]
     return names
 
@@ -208,7 +208,7 @@ def run(only: str | None = None, slow: bool = False, jobs: int | None = None,
     if not names:
         rep.report("tests", "empty suite:",
                    ["nothing under tools/tests/ matches test_*.py"
-                    + (f" and --only '{only}'" if only else "")])
+                    + (f" and --only '{only}'" if bool(only) else "")])
     else:
         # decided once, ahead of the pool: the probe is a subprocess, and every module
         # would otherwise pay for it and could in principle be answered differently

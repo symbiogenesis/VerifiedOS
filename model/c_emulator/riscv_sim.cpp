@@ -88,8 +88,10 @@ void deep_merge_json(jsoncons::json &base, const jsoncons::json &json_override, 
     // If both are objects with size 1 this must be a union that is
     // changing its variant.  Replace the entire object.  See above
     // for the effects of a typo.
-    if (base.size() == 1 && json_override.size() == 1 &&
-        base.object_range().begin()->key() != json_override.object_range().begin()->key()) {
+    if (
+      base.size() == 1 && json_override.size() == 1 &&
+      base.object_range().begin()->key() != json_override.object_range().begin()->key()
+    ) {
       base = json_override;
       return;
     }

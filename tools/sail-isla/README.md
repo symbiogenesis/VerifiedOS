@@ -30,17 +30,23 @@ crossbeam-epoch past RUSTSEC-2025-0024 and RUSTSEC-2026-0204. Right after
 fetching Isla, before the Rust download and Sail build, provisioning refuses the
 override unless it equals upstream's Cargo.lock apart from the versions and
 checksums of the packages `lock.json` declares for it, and unless each declared
-version is a later plain release than upstream's. An Isla repin with a changed
-upstream lock, or one whose upstream lock already carries a declared release,
+version is a later plain release than upstream's. Besides the security fixes,
+the override refreshes compatible crate releases that preserve that graph.
+Releases requiring a new package or changed dependency edge remain outside this
+qualified override. An Isla repin with a changed upstream lock, or one whose upstream lock already carries a declared release,
 needs the override regenerated or retired. The authored driver's Cargo.lock
 fixes the testgen dependency graph; ordinary builds use `--locked`. The explicit
 lalrpop-util lexer feature supplies a feature required by upstream's generated
-ACL2 parser without editing upstream source. The build does not request the
-optional web or litmus executables, LLVM, or a new opam solution. Cargo still
+ACL2 parser without editing upstream source. Its `lalrpop-util` version must
+match the generated parser's trait interface. The direct `sha2` dependency stays
+at 0.8.2 because upstream's `opts::parse` and `parse_with_arch` take that
+release's concrete `Sha256` type; a newer SHA2 type cannot cross those calls.
+The build does not request the optional web or litmus executables, LLVM, or a
+new opam solution. Cargo still
 builds transitive libraries required by the two selected crate graphs.
 
 The Isla lock override still carries two RustSec advisories, as OSV listed them
-on 2026-09-30: rand 0.7.3
+on 2026-10-20: rand 0.7.3
 ([RUSTSEC-2026-0097](https://rustsec.org/advisories/RUSTSEC-2026-0097.html),
 fixed in 0.8.6) through the isla crate that provides isla-execute-function, and
 the unmaintained bincode 1.3.3
@@ -52,7 +58,7 @@ bincode advisory's OSV range covers every bincode release, so only replacing
 the crate upstream would clear it.
 
 The driver's Cargo.lock carries four RustSec advisories, as OSV listed them on
-2026-09-30, each reached only through isla-testgen and its nested Isla
+2026-10-20, each reached only through isla-testgen and its nested Isla
 bcc7ee84. Through isla-testgen's crossbeam 0.7.3 come crossbeam-utils 0.7.2
 ([RUSTSEC-2022-0041](https://rustsec.org/advisories/RUSTSEC-2022-0041.html),
 unsound 64-bit atomic arithmetic on 32-bit targets, fixed in 0.8.7) and

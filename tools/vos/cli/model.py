@@ -621,7 +621,7 @@ def configure_command(e: env.Environment, build_dir: Path,
         "-DENABLE_RISCV_TESTS=TRUE",
         *e.compilers, *e.ccache, *(extra or []),
         f"-DTEST_DOWNLOAD_VERSION={test_version}",
-        *([f"-DSAIL_BIN={sail}"] if sail else []),
+        *([f"-DSAIL_BIN={sail}"] if bool(sail) else []),
     ]
 
 
@@ -1632,7 +1632,7 @@ def cmd_lane(e: env.Environment, args: argparse.Namespace) -> int:
     print(f"typecheck cache  {e.typecheck_cache}")
     print(f"oracle tree      {e.oracle_root} (shared by every lane)")
     print(f"build log        {_placed(e.log('model-build'))}")
-    print(f"building now     {f'yes, pid {holder}' if holder else 'no'}")
+    print(f"building now     {f'yes, pid {holder}' if bool(holder) else 'no'}")
     return 0
 
 

@@ -256,7 +256,7 @@ def _exporter(root: Path) -> dict[str, object]:
 def _build(root: Path, bound: int, only: str | None) -> dict[str, object]:
     work = proofs_cli.workspace(root)
     sources = sorted((root / proofs_cli.PROOFS).glob("*.v"))
-    if only:
+    if bool(only):
         sources = [source for source in sources if only in source.name]
     if not sources:
         raise cic_corpus.ParseError("no proof source matched, so there is nothing to read")

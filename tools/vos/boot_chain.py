@@ -1085,7 +1085,7 @@ def freeze_findings(root: Path, manifest: Mapping[str, Any], *, historical: bool
             else ("revision", "compiler_sha256", "toolchain"))
     found += [f"the chain's compiler {key} is not {boot_crypto_target.MANIFEST}'s"
               for key in keys
-              if not chain_compiler.get(key) or chain_compiler.get(key) != crypto_compiler.get(key)]
+              if not bool(chain_compiler.get(key)) or chain_compiler.get(key) != crypto_compiler.get(key)]
     ini = manifest.get("compiler_inputs_sha256", {}).get("compcert.ini")
     if ini is None or ini != crypto.get("compiler_inputs_sha256", {}).get("compcert.ini"):
         found.append(f"the chain's compcert.ini is not {boot_crypto_target.MANIFEST}'s")

@@ -12,7 +12,7 @@ path does not say which proof sources the live set holds, so one case reads that
 """
 
 import tempfile
-from collections.abc import Iterator
+from collections.abc import Generator
 from contextlib import contextmanager
 from dataclasses import replace
 from pathlib import Path
@@ -25,7 +25,7 @@ IF, WITH, AMP, OF = k117.FORM_IF, k117.FORM_WITH, k117.FORM_AMP, k117.FORM_OF
 
 
 @contextmanager
-def _tree(files: dict[str, str | bytes]) -> Iterator[Path]:
+def _tree(files: dict[str, str | bytes]) -> Generator[Path]:
     with tempfile.TemporaryDirectory(prefix="vos-k117-") as td:
         root = Path(td)
         for rel, content in files.items():
@@ -397,7 +397,7 @@ def _the_live_rows_read_their_instruments() -> None:
     for row in k117.INSTRUMENTS:
         stated = row.release if not isinstance(row.release, k117.Literal) else (
             k117.literal(root, row.release)[0])
-        number = k117.release_of(stated) if stated else None
+        number = k117.release_of(stated) if bool(stated) else None
         if number is None or number < k117.SINCE:
             older.add(row.name)
     ensure(older == {"the Wasm oracle's recipes", "compare_component.py",

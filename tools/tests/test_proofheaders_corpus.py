@@ -2,7 +2,7 @@
 """The selftest corpus sweep reports defects and never writes through its template."""
 
 import tempfile
-from collections.abc import Iterator
+from collections.abc import Generator
 from contextlib import contextmanager
 from pathlib import Path
 from unittest.mock import patch
@@ -17,7 +17,7 @@ from vos.register import REGISTER
 
 
 @contextmanager
-def _fixture(crlf: bool = False) -> Iterator[tuple[selftest.Sandbox, dict[str, bytes]]]:
+def _fixture(crlf: bool = False) -> Generator[tuple[selftest.Sandbox, dict[str, bytes]]]:
     reg = _register()
     sources = {
         memplan.SOURCE: _SOURCE.replace("Fixture.v", "MemoryPlan.v") + _TOY,

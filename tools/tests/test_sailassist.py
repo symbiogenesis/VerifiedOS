@@ -11,7 +11,7 @@ import subprocess
 import sys
 import tempfile
 import time
-from collections.abc import Iterator
+from collections.abc import Generator
 from contextlib import contextmanager, redirect_stderr, redirect_stdout, suppress
 from importlib.util import module_from_spec, spec_from_file_location
 from pathlib import Path
@@ -26,7 +26,7 @@ from vos.commands import BY_NAME
 
 
 @contextmanager
-def _session(*, limit: int = 12, seconds: int = 1800) -> Iterator[tuple[Path, Path, Path]]:
+def _session(*, limit: int = 12, seconds: int = 1800) -> Generator[tuple[Path, Path, Path]]:
     files = {"docs/requirements-register.md": "# R-15-001\n",
              "docs/hardware/isa-profile.md": "frozen ISA\n",
              "model/config/verifiedos.json": "{}\n",

@@ -23,7 +23,7 @@ import subprocess
 import sys
 import tempfile
 import time
-from collections.abc import Callable, Iterator
+from collections.abc import Callable, Generator
 from contextlib import contextmanager, redirect_stdout
 from pathlib import Path
 from unittest.mock import Mock, patch
@@ -58,7 +58,7 @@ _CLOSED: dict[str, str] = {
 
 
 @contextmanager
-def _closed_tree() -> Iterator[Path]:
+def _closed_tree() -> Generator[Path]:
     with tempfile.TemporaryDirectory(prefix="vos-seed-") as td:
         root = Path(td)
         for rel, text in _CLOSED.items():
@@ -68,7 +68,7 @@ def _closed_tree() -> Iterator[Path]:
 
 
 @contextmanager
-def _stub_prover(compiled: list[str]) -> Iterator[gallina.Prover]:
+def _stub_prover(compiled: list[str]) -> Generator[gallina.Prover]:
     """A prover that records each source it is handed, by stem, and prints one green
     property set and one vector for every compile, and one walked set that held for the
     walk harness's."""

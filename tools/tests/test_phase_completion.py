@@ -124,7 +124,7 @@ def _small_schedule_oracle() -> None:
         result = check(contract)
         ensure(result.ordered is (first_completion <= second_completion),
                f"completion differs from absolute cycle oracle: {contract}")
-        if result.ordered:
+        if bool(result.ordered):
             ensure(result.quiescent_drain
                    == max(first_completion, second_completion - 1),
                    f"boundary drain differs from absolute cycle oracle: {contract}")

@@ -804,7 +804,7 @@ def run(root: Path, ccomp: Path, config: Path, simulator: Path,
               "kernel": compiler_diff._compiled_json(kernel), "supervisor": compiler_diff._compiled_json(supervisor_component),
               "production_manifest": {name: hashlib.sha256(data).hexdigest() for name, data in snapshot.items()},
               "production_admission": False, "generated_manifest": generated_manifest,
-              "expected_manifest_sha256": hashlib.sha256(expected_manifest).hexdigest() if expected_manifest else None,
+              "expected_manifest_sha256": hashlib.sha256(expected_manifest).hexdigest() if bool(expected_manifest) else None,
               "inputs_unchanged": unchanged, "ok": unchanged and len(cases) == len(controls) and
               all(case["ok"] for case in cases), "limits": limits}
     receipts.write(out / "report.json", report)

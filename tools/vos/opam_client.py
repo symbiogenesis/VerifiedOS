@@ -38,7 +38,7 @@ from pathlib import Path
 
 from vos import receipts
 
-OPAM_VERSION = "2.6.0"
+OPAM_VERSION = "2.6.1"
 
 # The root format the reviewed client writes, the `opam-root-version` a root it creates
 # or rewrites declares; 2.6.0's release notes record raising it to 2.6. Guest bootstrap
@@ -50,8 +50,8 @@ OPAM_ROOT_FORMAT = "2.6"
 # the digest GitHub publishes for the asset and the opam dev team's signature over
 # it, which THIRD-PARTY.md records as reviewed.
 OPAM_HASHES: dict[str, tuple[str, str]] = {
-    "aarch64": ("arm64", "aeaeb4294a9abaa7d37844d9138230125933c648e631da2eec888b5e4ce55bde"),
-    "x86_64": ("x86_64", "a59184447f881005dae70b2ae455c3a7e9549834a41c635c49a5a28235eca758"),
+    "aarch64": ("arm64", "8b24ef2f3f44a31763f54878454fb52afa1f2db7e00abed58b8d4e7ee7e290a6"),
+    "x86_64": ("x86_64", "b533d393a6967150d6ef41cb3d71e147e93ecbabeb59e921aa412c0ae79ebe3d"),
 }
 
 # The repositories a root is initialized with, the first as `opam init`'s default and

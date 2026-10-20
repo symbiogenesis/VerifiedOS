@@ -427,8 +427,8 @@ def run(ctx: Context) -> None:
         # a view declares what it must carry either by owning subsections or by a
         # pattern over the entry bodies; which of the two it is changes only where the
         # members come from, so the membership test itself is stated once
-        if view.get("secs") or view.get("body"):
-            if view.get("secs"):
+        if bool(view.get("secs")) or bool(view.get("body")):
+            if bool(view.get("secs")):
                 bearing = [i for i in reg.ids if reg.subsection.get(i) in view["secs"]]
             else:
                 pattern = re.compile(view["body"], re.IGNORECASE)
@@ -440,7 +440,7 @@ def run(ctx: Context) -> None:
         # a matrix view is bearing over a product rather than a subsection: what it
         # must carry is every pair of its own two enumerations, each resting on a
         # requirement
-        if view.get("cells"):
+        if bool(view.get("cells")):
             expected = [f"{b} by {p}" for b in art.cm_bounds for p in art.cm_props]
             gaps = [f"{pair} has no cell" for pair in expected if pair not in art.cm_cells]
             gaps += [f"{pair} names no enumerated boundary or property"
@@ -483,7 +483,7 @@ def run(ctx: Context) -> None:
         # the profile's CSR bank is the one table in a derived view whose rows are
         # decided one at a time rather than carried wholesale from a subsection, so
         # each row owes the requirement that admits or excludes it, as a cell does
-        if view.get("csr_rows"):
+        if bool(view.get("csr_rows")):
             uncited = [f"§{sec}: {row.split('|')[1].strip()} cites no requirement"
                        for sec, rows in art.csr_rows.items() for row in rows
                        if not REQ_TOKEN_RE.search(row)]
@@ -492,7 +492,7 @@ def run(ctx: Context) -> None:
                        f"all {total} rows of the CSR bank cite a governing requirement", "  ")
 
         # a view standing in for the CJ- vocabulary must account for every target
-        if view.get("targets"):
+        if bool(view.get("targets")):
             lowered = doc.raw.lower()
             rep.report("K-17", "CJ- target(s) unaccounted for:",
                        [t for t in reg.cj_targets if t.lower() not in lowered],

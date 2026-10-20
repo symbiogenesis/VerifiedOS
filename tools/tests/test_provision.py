@@ -549,7 +549,7 @@ def _unread_switch_is_not_absent() -> None:
 
 def _hard_upgrade_is_read_from_the_root() -> None:
     """Whether the reviewed client must write an older root's upgrade before it reads it
-    is read as opam 2.6.0 decides it, below 2.6~alpha alone and from every configured
+    is read as opam 2.6.1 decides it, below 2.6~alpha alone and from every configured
     repository's archive before the format: an archive the client fails on, or may
     misread, leaves the reading undecided whatever the format and wherever its
     repository is listed; otherwise the upgrade is hard below 2.0~beta5, at 2.1~alpha
@@ -664,7 +664,7 @@ def _hard_upgrade_is_read_from_the_root() -> None:
         ensure(not provision._upgrades_to_read(corrupt),
                "an archive the client cannot read stops the reading undecided")
         nested_root = root_at(Path(td) / "release", "2.2", {"default": nested})
-        with patch.object(provision.opam_client, "OPAM_VERSION", "2.6.1"):
+        with patch.object(provision.opam_client, "OPAM_VERSION", "2.6.2"):
             ensure(not provision._upgrades_to_read(nested_root),
                    "another reviewed release claims no hard upgrade until its source is "
                    "read")

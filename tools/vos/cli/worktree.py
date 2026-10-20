@@ -62,7 +62,7 @@ def _lane_fields(path: Path) -> tuple[str | None, str | None]:
 
 def _git(root: Path, *args: str, allowed: tuple[int, ...] = (0,),
          stdin: bytes | None = None) -> bytes:
-    if os.environ.get("VOS_GIT_DIR"):
+    if bool(os.environ.get("VOS_GIT_DIR")):
         raise WorktreeError("unset VOS_GIT_DIR before using worktree commands; each checkout "
                             "must resolve its own Git administrative directory")
     child_env = {key: value for key, value in os.environ.items() if key not in _GIT_LOCATION}
@@ -121,7 +121,7 @@ def registered(root: Path) -> list[Worktree]:
         where = _path(fields["worktree"])
         lane, lane_root = _lane_fields(where)
         result.append(Worktree(str(where), fields.get("HEAD", ""),
-                               branch.removeprefix("refs/heads/") if branch else None,
+                               branch.removeprefix("refs/heads/") if bool(branch) else None,
                                "bare" in fields, "locked" in fields, "prunable" in fields,
                                lane=lane, lane_root=lane_root))
     if not result:

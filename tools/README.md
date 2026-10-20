@@ -527,6 +527,12 @@ date, and any other change then follows from it; when that package keeps its ver
 any other `[[package]]` change is index drift from the re-resolution and is reviewed
 on its own.
 
+The supported interpreter remains Python 3.14. Python 3.15.0 is released, but
+the all-groups, wheels-only resolution fails because the hook runner requires
+PyYAML and its released 6.0.3 files have no CPython 3.15 wheels. A Python 3.15
+move requires that wheel closure to resolve under `no-build = true`; source
+builds are not a fallback.
+
 When a compatible Python is absent, install it explicitly with your platform's
 installer or `uv python install --no-config 3.14`. That one command bypasses project
 configuration for the manual install. The project keeps `python-downloads = "never"`,
@@ -1082,9 +1088,8 @@ confines every hook to paths under `model/`, the exclusion names
 pinned by the full commit of the tag its `# frozen:` comment names, and its
 [THIRD-PARTY.md](../THIRD-PARTY.md) development-tools row states both, which K-118
 holds against the configuration; whether the commit is the tag's is read at review
-with `git ls-remote`. clang-format stays at the release upstream's own hooks pin,
-because a later release lays out upstream's code differently and would ask for
-rewrites of upstream bytes. The model-hooks job of
+with `git ls-remote`. A formatter upgrade includes the source layout changes its
+new release requires. The model-hooks job of
 [Host CI](../.github/workflows/host-gates.yml) runs the set with `--all-files`, which
 selects the tracked files under `model/` outside `model/dependencies/` and nothing
 else, and with `SKIP=markdown-link-check`, because that hook fetches every external

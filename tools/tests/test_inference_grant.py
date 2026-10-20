@@ -138,17 +138,17 @@ def all_live_arithmetic_defects_are_killed() -> None:
         return None if rate is None else rate + 1
 
     def rounds_up(grant: int, traffic: int | None) -> int | None:
-        return None if not traffic else (grant + traffic - 1) // traffic
+        return None if not bool(traffic) else (grant + traffic - 1) // traffic
 
     def drops_grant(grant: int, traffic: int | None) -> int | None:
-        return None if not traffic else 1
+        return None if not bool(traffic) else 1
 
     def omits_kv(shape: Shape, placement: g.KvPlacement) -> int:
         return shape.resident_bytes
 
     def bypasses_above_grant(grant: int, traffic: int | None,
                             requested: int) -> Refusal | None:
-        return None if traffic else Refusal.PER_TOKEN_BYTES_NOT_DECLARED
+        return None if bool(traffic) else Refusal.PER_TOKEN_BYTES_NOT_DECLARED
 
     for candidate in (adds_one, rounds_up, drops_grant):
         killed("admitted_rate", candidate, every_generated_rate_is_the_exact_spending_limit)

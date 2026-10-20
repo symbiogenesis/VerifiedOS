@@ -180,8 +180,8 @@ def score(grant: Grant, banks: int) -> Score | None:
     per_discharge = grant.banks_per_discharge_phase
     discharge_cycles, clock = grant.discharge_phase_cycles, grant.clock_hz
     floor_us, region = grant.retention_floor_us, grant.region_bytes
-    if (banks < 1 or not per_refresh or not refresh_cycles or not per_discharge
-            or not discharge_cycles or not clock or not region or floor_us is None):
+    if (banks < 1 or not bool(per_refresh) or not bool(refresh_cycles) or not bool(per_discharge)
+            or not bool(discharge_cycles) or not bool(clock) or not bool(region) or floor_us is None):
         return None
 
     refresh_phases = -(-banks // per_refresh)                        # ceiling division

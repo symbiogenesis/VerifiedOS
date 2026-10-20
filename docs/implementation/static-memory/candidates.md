@@ -27,21 +27,22 @@ and permission notice remain in the downloaded workspace. Registry dependency
 licenses and source identities are recorded separately in the build receipt.
 
 The bridge is the only added upstream binary target. The downloaded upstream
-algorithms and dependency lock remain unchanged at their manifest hashes.
-Cargo builds only `coreba` and the bridge in a fresh native copy.
+algorithms and dependency lock remain unchanged. A fresh native build copy uses
+the qualified [Cargo override](../../../tools/memory-planner/idealloc.Cargo.lock)
+declared by the pin manifest; Cargo builds only `coreba` and the bridge.
 
-The archived upstream lock carries published RustSec advisories, as the OSV
-database listed them on 2026-09-29. In `coreba`'s dependency closure, rand 0.8.5
-is unsound with a custom logger
-([RUSTSEC-2026-0097](https://rustsec.org/advisories/RUSTSEC-2026-0097.html),
-fixed in 0.8.6), and crossbeam-epoch 0.9.18, reached through Rayon, can
-dereference an invalid pointer in its `fmt::Pointer` implementation
-([RUSTSEC-2026-0204](https://rustsec.org/advisories/RUSTSEC-2026-0204.html),
-fixed in 0.9.20). The unmaintained adler 1.0.2 and ttf-parser 0.20.0 are
-locked for other workspace members and are not compiled here. The archived
-lock's identity is separate from any qualified build override. The executable
-is an untrusted candidate producer, and the portable checker decides every
-placement it returns.
+The override updates rand to 0.8.8 and crossbeam-epoch to 0.9.21, clearing
+[RUSTSEC-2026-0097](https://rustsec.org/advisories/RUSTSEC-2026-0097.html) and
+[RUSTSEC-2026-0204](https://rustsec.org/advisories/RUSTSEC-2026-0204.html) from
+`coreba`'s selected dependency closure. An OSV query of the complete override
+lock on 2026-10-20 reports only adler 1.0.2
+([RUSTSEC-2025-0056](https://rustsec.org/advisories/RUSTSEC-2025-0056.html)) and
+ttf-parser 0.20.0
+([RUSTSEC-2026-0192](https://rustsec.org/advisories/RUSTSEC-2026-0192.html)),
+both locked for other workspace members and absent from this build's selected
+graph. Resolving those advisories requires changing upstream's package graph
+or manifests, outside this qualified override. The executable remains an untrusted candidate
+producer, and the portable checker decides every placement it returns.
 
 ### Qualified Cargo overrides
 

@@ -72,7 +72,7 @@ def _consistent(name: str, analysis: Analysis) -> None:
            f"{name}: a closed expansion requires program_zero_wait")
     ensure(not analysis.program_zero_wait or analysis.expansion != "refuted",
            f"{name}: program_zero_wait requires an expansion not refuted by a realizable trace")
-    expected = ("closed" if analysis.zero_wait else "refuted" if analysis.realizable
+    expected = ("closed" if analysis.zero_wait else "refuted" if bool(analysis.realizable)
                 else "unrealizable")
     ensure(analysis.expansion == expected and analysis.zero_wait is analysis.acceptance.zero_wait,
            f"{name}: expansion verdict disagrees with the acceptance predicate")
