@@ -422,6 +422,34 @@ owns shared documentation, license records, merging and final validation. The
 [worktree and check procedures](../README.md#worktree-isolation-during-fan-out)
 apply to every lane.
 
+## Hosted model snapshots
+
+[model-snapshot.yml](../../.github/workflows/model-snapshot.yml) is a manual
+build route for acceptance checks that run beside a contained compiler. Dispatch
+it on `main`, with a full `revision` already on `main` and the consuming machine's
+`architecture` (`arm64` or `x64`). It performs a cold Sail bootstrap and the normal
+model build, including the full CTest suite, on GitHub Actions. It runs neither
+the contained compiler nor the complete Guest CI lanes.
+
+The artifact contains `model-snapshot.tar.gz`: the emulator, its original
+`model-build.json` and `model-build.log`, source/run identity, file hashes,
+dynamic-library inventory and applicable notices. It includes the selected
+model/CHERI, dependency and Sail-runtime notices, and the prominent GMP-use notice
+with LGPL-3/GPL-3 texts. Packaging requires resolved dynamic system GMP; no system
+library or compiler binary accompanies the emulator. Recipients can substitute a
+compatible modified GMP through that dynamic interface.
+
+Download the artifact from the successful run named for the exact revision and
+architecture, verify `snapshot.json`'s file hashes, and unpack it in the assigned
+native build lane. Consumers still validate the model receipt, executable, log
+and complete model-source roster against their checkout. A snapshot from another
+revision is usable only where those required source bytes match; its original
+identity is never relabelled. The
+[complete-vector compiler comparison](../wasm-oracle/README.md#the-purecap-counterpart-ipc_oraclec-m12f)
+can then run locally without a local full-suite run. This standalone route may be
+read to obtain its artifact; the separate Guest CI handoff still finishes without
+polling or waiting for Guest CI.
+
 ## Instrument switch route
 
 [instrument-switches.yml](../../.github/workflows/instrument-switches.yml) builds and

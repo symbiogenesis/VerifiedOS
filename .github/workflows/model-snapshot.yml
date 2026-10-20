@@ -1,0 +1,157 @@
+# SPDX-License-Identifier: Apache-2.0
+# Source-bound emulator for acceptance checks that run beside a contained compiler.
+# Full CTest stays hosted; this workflow never receives that compiler or its source.
+name: model-snapshot
+run-name: ${{ format('model-snapshot:{0}:{1}', inputs.architecture, inputs.revision || github.sha) }}
+on:
+  workflow_dispatch:
+    inputs:
+      revision:
+        description: Full commit SHA already on main (empty selects current main)
+        type: string
+        default: ""
+      architecture:
+        description: Architecture of the machine consuming the emulator
+        type: choice
+        options: [arm64, x64]
+        default: arm64
+permissions:
+  contents: read
+concurrency:
+  group: ${{ github.workflow }}-${{ github.run_id }}
+  cancel-in-progress: false
+defaults:
+  run:
+    shell: bash
+env:
+  PYTHONUTF8: "1"
+  PYTHONUNBUFFERED: "1"
+  TESTED_REVISION: ${{ inputs.revision || github.sha }}
+jobs:
+  snapshot:
+    runs-on: ${{ inputs.architecture == 'arm64' && 'ubuntu-26.04-arm' || 'ubuntu-26.04' }}
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.revision || github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+          submodules: false
+      - name: Verify dispatched revision belongs to main
+        id: dispatch
+        shell: python
+        env:
+          DISPATCH_REF: ${{ github.ref }}
+          DISPATCH_MAIN_SHA: ${{ github.sha }}
+        run: |
+          import os
+          import re
+          import subprocess
+
+          revision = os.environ["TESTED_REVISION"]
+          if os.environ["DISPATCH_REF"] != "refs/heads/main" or not re.fullmatch(r"[0-9a-f]{40}", revision):
+              raise SystemExit("Dispatch must use main and a full lowercase commit SHA")
+          actual = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+          if actual != revision:
+              raise SystemExit("Checkout does not match the requested revision")
+          subprocess.run(["git", "merge-base", "--is-ancestor", revision,
+                          os.environ["DISPATCH_MAIN_SHA"]], check=True)
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.14"
+      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+        with:
+          version-file: tools/pyproject.toml
+          enable-cache: false
+      - name: Cold Sail bootstrap
+        timeout-minutes: 50
+        run: |
+          python3 tools/ci/bootstrap_guest.py --root "$RUNNER_TEMP/model-snapshot-root" \
+            --install-system --toolchain sail --github-env "$GITHUB_ENV" \
+            --github-path "$GITHUB_PATH" 2>&1 | tee "$RUNNER_TEMP/model-snapshot-bootstrap.log"
+      - name: Build the model and run its full CTest suite
+        timeout-minutes: 60
+        run: python3 tools/run.py model build
+      - name: Package the emulator, receipts and notices
+        run: |
+          python3 - <<'PY'
+          import hashlib
+          import json
+          import os
+          from pathlib import Path
+          import re
+          import shutil
+          import subprocess
+          import tarfile
+
+          root = Path(os.environ["GITHUB_WORKSPACE"])
+          temporary = Path(os.environ["RUNNER_TEMP"])
+          output = temporary / "model-snapshot"
+          output.mkdir()
+          build = Path(os.environ["VOS_BUILD_DIR"])
+          logs = Path(os.environ["VOS_LOG_DIR"])
+          record = json.loads((logs / "model-build.json").read_text())
+          if record.get("exit_code") != 0 or record.get("stages") != {"configure": 0, "build": 0, "ctest": 0}:
+              raise SystemExit("Model build has no successful full-suite receipt")
+          for source in (build / "c_emulator/sail_riscv_sim", logs / "model-build.json", logs / "model-build.log"):
+              shutil.copy2(source, output / source.name)
+          notices = output / "notices"
+          notices.mkdir()
+          for source in (root / "COPYRIGHT.md", root / "THIRD-PARTY.md"):
+              shutil.copyfile(source, notices / source.name)
+          for source in (root / "model").rglob("*"):
+              if source.is_file() and re.match(r"(?i)^(licen[cs]e|copying|copyright|authors|notice)(?:[._-]|$)", source.name):
+                  target = notices / source.relative_to(root)
+                  target.parent.mkdir(parents=True, exist_ok=True)
+                  shutil.copyfile(source, target)
+          sail = Path(subprocess.check_output(["sail", "--dir"], text=True).strip())
+          runtime_notices = notices / "sail-runtime"
+          runtime_notices.mkdir()
+          shutil.copyfile(sail / "LICENSE", runtime_notices / "LICENSE")
+          runtime_files = ("elf.c", "elf.h", "rts.c", "rts.h", "sail.c", "sail.h",
+                           "sail_failure.c", "sail_failure.h", "sail_coverage.h",
+                           "cJSON.c", "cJSON.h", "sail_config.c", "sail_config.h")
+          for name in runtime_files:
+              source = sail / "lib" / name
+              header = re.match(rb"\s*(/\*.*?\*/)", source.read_bytes(), re.DOTALL)
+              if header is None:
+                  raise SystemExit("Runtime source has no opening notice: " + str(source))
+              (runtime_notices / (name + ".notice")).write_bytes(header[1] + b"\n")
+          linked = subprocess.check_output(["ldd", str(output / "sail_riscv_sim")], text=True)
+          if not re.search(r"\blibgmp\.so\.[0-9]+\s+=>\s+/", linked) or "not found" in linked:
+              raise SystemExit("Snapshot requires replaceable system GMP and resolved dynamic libraries")
+          (output / "dynamic-libraries.txt").write_text(linked)
+          (notices / "GMP-USE.txt").write_text(
+              "sail_riscv_sim uses the system GNU MP (GMP) shared library.\n"
+              "GMP is licensed under LGPL-3.0-or-later OR GPL-2.0-or-later;\n"
+              "this artifact uses the LGPL-3.0-or-later option. The executable\n"
+              "remains dynamically linked so recipients can use a compatible\n"
+              "modified GMP. The system GMP shared library is not included.\n")
+          for source in (Path("/usr/share/doc/libgmp10/copyright"),
+                         Path("/usr/share/common-licenses/LGPL-3"),
+                         Path("/usr/share/common-licenses/GPL-3")):
+              shutil.copyfile(source, notices / ("GMP-" + source.name))
+          identity = {
+              "revision": os.environ["TESTED_REVISION"],
+              "run_url": "https://github.com/" + os.environ["GITHUB_REPOSITORY"] + "/actions/runs/" + os.environ["GITHUB_RUN_ID"],
+              "architecture": os.uname().machine,
+              "files": {str(p.relative_to(output)): hashlib.sha256(p.read_bytes()).hexdigest()
+                        for p in sorted(output.rglob("*")) if p.is_file()},
+          }
+          (output / "snapshot.json").write_text(json.dumps(identity, indent=2) + "\n")
+          with tarfile.open(temporary / "model-snapshot.tar.gz", "w:gz") as archive:
+              archive.add(output, arcname="model-snapshot")
+          PY
+      - name: Preserve the snapshot or failure diagnostics
+        if: ${{ always() && steps.dispatch.outcome == 'success' }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: model-snapshot-${{ env.TESTED_REVISION }}-${{ runner.arch }}
+          path: |
+            ${{ runner.temp }}/model-snapshot.tar.gz
+            ${{ runner.temp }}/model-snapshot-bootstrap.log
+            ${{ runner.temp }}/model-snapshot-root/logs/model-build.json
+            ${{ runner.temp }}/model-snapshot-root/logs/model-build.log
+          if-no-files-found: warn
+          retention-days: 30

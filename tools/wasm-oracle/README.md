@@ -81,6 +81,11 @@ $ python3 tools/wasm-oracle/compare_component.py \
 
 The model snapshot contains `sail_riscv_sim` and its successful `model-build.json` receipt. The Wasm side compiles in the declared switch above unless `--switch` names another, and the command refuses a switch whose prover is not the Rocq release [gallina.py](../vos/gallina.py) states for the oracle. It identifies that environment, including its package export and installed libraries, and its receipt says whether the switch was the declared one, by its name and by its export installing the snapshot's packages. M1.2f's recorded comparison named `--switch certirocq-0.9.1`, the undeclared legacy switch. Missing or changed dependencies invalidate the evidence. Source or tool changes require this experiment to be reissued; Host CI and Guest CI do not execute it. The older `run.py compiler-diff component` aggregate-output mode remains a driver diagnostic and does not satisfy the complete-vector contract. Agreement is finite differential evidence, not a refinement proof.
 
+For a current source-bound emulator when full suites must remain hosted, use the
+[manual model snapshot route](../ci/README.md#hosted-model-snapshots). Its artifact
+preserves the actual hosted build and CTest receipt; the comparison still checks
+the complete model-source roster and all producer identities locally.
+
 ## Keeping the VM under a long build
 
 WSL2 tears the utility VM down 60 s after its last instance stops, taking `dockerd` and every container with it, so a build left running between two commands dies with it, and the opam install above is long enough to be that build whichever environment runs it. The repository's answer is a bounded keepalive process rather than the global `[wsl2] vmIdleTimeout=-1` in `%USERPROFILE%\.wslconfig`; start it from the repository root before a long build:

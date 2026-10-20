@@ -6,3 +6,4 @@ self-hosted-runner:
   # error.
   labels:
     - ubuntu-26.04
+    - ubuntu-26.04-arm
