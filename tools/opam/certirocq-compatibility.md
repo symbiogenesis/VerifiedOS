@@ -23,7 +23,10 @@ The initial source selection is:
 
 Keep OCaml 4.14.4, ocamlfind 1.9.8, CompCert 3.18 and ExtLib 0.13.2.
 Use Rocq 9.3.0 and Stdlib 9.2.0. Keep Dune 3.23.1 and Mathematical Components
-2.4.0 from the oracle snapshot. Record the complete resolved closure before building; no implicit
+2.4.0 and Menhir/MenhirLib 20260209 from the oracle snapshot. WasmCert's new
+`rocq-parseque` dependency selects release 0.3.1, replacing `coq-parseque` 0.2.2.
+MenhirLib's published bound also needs a target-only metadata trial.
+Record the complete resolved closure before building; no implicit
 dependency downgrade is permitted. Read each selected source's actual licence
 and applicable file notices before building it, and bind archives, metadata,
 source revisions and patches by digest. Native outputs are not distributed.
