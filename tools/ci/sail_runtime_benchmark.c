@@ -1,4 +1,4 @@
-/* SPDX-License-Identifier: Apache-2.0 */
+// SPDX-License-Identifier: Apache-2.0
 /* CI-only focused runtime measurements, not whole-emulator performance. */
 #define _POSIX_C_SOURCE 200809L
 #include <inttypes.h>
