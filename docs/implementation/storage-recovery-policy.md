@@ -38,6 +38,10 @@ The implementation must settle record framing, authentication and commit represe
 
 The block-device contract remains unchanged. It permits non-prefix bit tears, misdirected reads and arbitrary recorded corruption. `rec_landed = rec_len` is a symbolic predicate and cannot decode or authenticate those bytes. A decoder/verifier and transaction-completeness bridge must be reviewed before any device trace is presented as one of JournalIndex.v's record traces. Missing, invalid or over-limit evidence is a refusal, not an invented intact record.
 
+## Correction below authenticated recovery
+
+The [BeamFS layout assessment](../background/architectural-alternatives.md#beamfs-style-single-device-fec-deferred) records optional logical-block FEC under R-10-021, beyond R-12-026–R-12-030's mandatory media correction and patrol. It selects no additional format. Reconstructed bytes still pass the independent decoder/authentication and complete-transaction bridge above. Successful correction neither establishes freshness nor authorizes suffix salvage. Any persistent repair must preserve the same acknowledged prefix and retained roots across its own crash cuts; a readable authenticated candidate alone supplies no durable repair verdict.
+
 ## Early executable publication checkpoint
 
 M5.3d owns one bounded stage, publish and reopen interface over its selected
