@@ -24,7 +24,7 @@ repos:
       - id: check-executables-have-shebangs
       - id: check-shebang-scripts-are-executable
   - repo: https://github.com/pre-commit/mirrors-clang-format
-    rev: "75ca4ad908dc4a99f57921f29b7e6c1521e10b26" # frozen: v21.1.8
+    rev: 98ad4ddb9c057de2f5b9e93e44e6db959807d68c # frozen: v23.1.3
     hooks:
       - id: clang-format
         types_or: [c, c++] # Don't try running clang-format on .json files

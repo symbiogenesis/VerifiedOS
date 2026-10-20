@@ -1088,9 +1088,8 @@ confines every hook to paths under `model/`, the exclusion names
 pinned by the full commit of the tag its `# frozen:` comment names, and its
 [THIRD-PARTY.md](../THIRD-PARTY.md) development-tools row states both, which K-118
 holds against the configuration; whether the commit is the tag's is read at review
-with `git ls-remote`. clang-format stays at the release upstream's own hooks pin,
-because a later release lays out upstream's code differently and would ask for
-rewrites of upstream bytes. The model-hooks job of
+with `git ls-remote`. A formatter upgrade includes the source layout changes its
+new release requires. The model-hooks job of
 [Host CI](../.github/workflows/host-gates.yml) runs the set with `--all-files`, which
 selects the tracked files under `model/` outside `model/dependencies/` and nothing
 else, and with `SKIP=markdown-link-check`, because that hook fetches every external
