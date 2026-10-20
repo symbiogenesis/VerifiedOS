@@ -1,0 +1,88 @@
+{
+  "files": {
+    "compiler-preparation.json": {
+      "bytes": 337,
+      "encoding": "identity",
+      "path": "compiler-preparation.json",
+      "sha256": "e775f4aae2c907641a6c06167c1ecb7a0d20138833250f3e5767892e0ebb7323"
+    },
+    "hosted-model-run.json": {
+      "bytes": 2921,
+      "encoding": "identity",
+      "path": "hosted-model-run.json",
+      "sha256": "77de99d556f126275ce4a16e3fb6e3ccb7c05f87c4426bbc32251e973778b61e"
+    },
+    "model-build.json": {
+      "bytes": 165609,
+      "encoding": "identity",
+      "path": "model-build.json",
+      "sha256": "abdaa3d2c1f70cd814feaa4ef1f2d237e7a50518f31c26ad954037e55f4535ad"
+    },
+    "model-download-verification.json": {
+      "bytes": 5250,
+      "encoding": "identity",
+      "path": "model-download-verification.json",
+      "sha256": "f70c6fdf746a48a9d0178a8574d3d243cccf1340b87ec1a3c7d3d4e8b72af969"
+    },
+    "model-snapshot.json": {
+      "bytes": 4653,
+      "encoding": "identity",
+      "path": "model-snapshot.json",
+      "sha256": "85b17519f569879f667761a5a8a4efe2ebd058becd488c183edcde8665178893"
+    },
+    "model-system-libraries.json": {
+      "bytes": 2565,
+      "encoding": "identity",
+      "path": "model-system-libraries.json",
+      "sha256": "2a91592b4a60dbaaa3410d46a9d3a194cf07c8860d21446222daf1a58be213d2"
+    },
+    "orchestration.json": {
+      "bytes": 1110,
+      "encoding": "identity",
+      "path": "orchestration.json",
+      "sha256": "b0b98ff32f6a16cbea35573d5d79a283681d68ea3a127a591a4542943c0dc590"
+    },
+    "population.json": {
+      "bytes": 3363,
+      "encoding": "identity",
+      "path": "population.json",
+      "sha256": "edd034d4035a3e4b65ee08d5371bf353de5c3d62d022ab6cbd98cf6028141b7f"
+    },
+    "producer-identity.json": {
+      "bytes": 1556,
+      "encoding": "identity",
+      "path": "producer-identity.json",
+      "sha256": "a0ac8fb213d42eb6da1bdedeacd4e0193ecd0fb1bc4cdf1405b566160a4da2a4"
+    },
+    "producer-libraries.json": {
+      "bytes": 253768,
+      "encoding": "identity",
+      "path": "producer-libraries.json",
+      "sha256": "149b5d804a5f93db9d1f7b659baca12c59f4f513a17789e251643da685ef1299"
+    },
+    "producer-packages.export": {
+      "bytes": 2137,
+      "encoding": "identity",
+      "path": "producer-packages.export",
+      "sha256": "8437b97944f4dcc666d2df1f2ed4db67221bf23be3efbc3ce1b483b70c04f3b1"
+    },
+    "result.json": {
+      "bytes": 188588,
+      "encoding": "identity",
+      "path": "result.json",
+      "sha256": "7790b75280d05dee9050d250b5c1d1e1629ec5f389f8ce3bb2addd81a945d5a2"
+    },
+    "run.log": {
+      "bytes": 102,
+      "encoding": "identity",
+      "path": "run.log",
+      "sha256": "e226192847b5ee1e61e971f26957b1b437762ecec76bcab7a6fc088622f10beb"
+    },
+    "steps.json": {
+      "bytes": 6200,
+      "encoding": "identity",
+      "path": "steps.json",
+      "sha256": "a3482f23c9d832a3ec9050af1e6561261ebccbaedc9504455ab708bfa3bfaaca"
+    }
+  }
+}

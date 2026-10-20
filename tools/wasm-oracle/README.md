@@ -95,6 +95,19 @@ For a current source-bound emulator when full suites must remain hosted, use the
 preserves the actual hosted build and CTest receipt; the comparison still checks
 the complete model-source roster and all producer identities locally.
 
+The [refreshed complete-vector comparison](../../docs/implementation/retained-evidence/dependencies-20261019/component-vector/manifest.json),
+SHA256 `2a769828089acf66ad2febc2e227eaa055062364ec442cf48bfdd49bb47d23cd`,
+records fresh C and Wasm executions in the declared switch, installing the
+snapshot's exact packages. Both arms agree at all 84 positions, and their mask
+mutants agree with first failure 40; both crossed comparisons and all 84
+single-position corruption controls refuse agreement. The source-bound emulator
+comes from the successful [hosted model build](https://github.com/symbiogenesis/VerifiedOS/actions/runs/39358580038),
+which ran the complete CTest suite. The bundle retains that run's original
+revision, model receipt, verified download and runtime inventory alongside the
+comparison's sources, producer identities, package export and command results.
+This is the finite authored-C reference comparison under the component contract;
+the remaining backend and refinement joins retain their existing owners.
+
 ## Keeping the VM under a long build
 
 WSL2 tears the utility VM down 60 s after its last instance stops, taking `dockerd` and every container with it, so a build left running between two commands dies with it, and the opam install above is long enough to be that build whichever environment runs it. The repository's answer is a bounded keepalive process rather than the global `[wsl2] vmIdleTimeout=-1` in `%USERPROFILE%\.wslconfig`; start it from the repository root before a long build:

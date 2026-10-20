@@ -1,0 +1,155 @@
+[
+  {
+    "argv": [
+      "opam",
+      "switch",
+      "export",
+      "--switch=verifiedos-certirocq-0.9.1-ocaml-4.14.4",
+      "/root/build/lane-deps-integration-20261019/component-vector-final/producer/packages.export"
+    ],
+    "cwd": "/root/build/lane-deps-integration-20261019/component-vector-final",
+    "exit": 0,
+    "name": "package-export",
+    "seconds": 0.24761950299944147,
+    "stderr_sha256": "73f7d708ddfeaa846af9ef6a9759e091a31ec9c2d32a6cf62dfb0f5bf1bf1d3a",
+    "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "argv": [
+      "opam",
+      "var",
+      "prefix",
+      "--switch=verifiedos-certirocq-0.9.1-ocaml-4.14.4"
+    ],
+    "cwd": "/root/build/lane-deps-integration-20261019/component-vector-final",
+    "exit": 0,
+    "name": "switch-prefix",
+    "seconds": 0.016007600000193634,
+    "stderr_sha256": "73f7d708ddfeaa846af9ef6a9759e091a31ec9c2d32a6cf62dfb0f5bf1bf1d3a",
+    "stdout_sha256": "b690c665c269fa3ff2438aa84d38d00169c958aa396491ee157785885bb5fbba"
+  },
+  {
+    "argv": [
+      "opam",
+      "exec",
+      "--switch=verifiedos-certirocq-0.9.1-ocaml-4.14.4",
+      "--",
+      "/root/build/lane-deps-matrix-20261019/certirocq/opam-root/verifiedos-certirocq-0.9.1-ocaml-4.14.4/bin/coqc",
+      "--version"
+    ],
+    "cwd": "/root/build/lane-deps-integration-20261019/component-vector-final",
+    "exit": 0,
+    "name": "prover-version",
+    "seconds": 0.016544200000680576,
+    "stderr_sha256": "73f7d708ddfeaa846af9ef6a9759e091a31ec9c2d32a6cf62dfb0f5bf1bf1d3a",
+    "stdout_sha256": "25dc95d08899a577f7e8b2a5307dfdb9cfd8e3c9e003a9e09ae08769445cbf40"
+  },
+  {
+    "argv": [
+      "sh",
+      "/mnt/c/Users/symbi/source/repos/VerifiedOS/tools/wasm-oracle/node.sh",
+      "-p",
+      "process.execPath"
+    ],
+    "cwd": "/root/build/lane-deps-integration-20261019/component-vector-final",
+    "exit": 0,
+    "name": "node-identity",
+    "seconds": 0.16843490100018244,
+    "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "stdout_sha256": "a54f3a58d51a9bc4ed81005d84a4255d3cc90ba2a2153b272fec3b86a6220775"
+  },
+  {
+    "argv": [
+      "opam",
+      "exec",
+      "--switch=verifiedos-certirocq-0.9.1-ocaml-4.14.4",
+      "--",
+      "/root/build/lane-deps-matrix-20261019/certirocq/opam-root/verifiedos-certirocq-0.9.1-ocaml-4.14.4/bin/coqc",
+      "EndpointIPC.v"
+    ],
+    "cwd": "/root/build/lane-deps-integration-20261019/component-vector-final/positive",
+    "exit": 0,
+    "name": "positive-EndpointIPC",
+    "seconds": 0.5805109049997554,
+    "stderr_sha256": "73f7d708ddfeaa846af9ef6a9759e091a31ec9c2d32a6cf62dfb0f5bf1bf1d3a",
+    "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "argv": [
+      "opam",
+      "exec",
+      "--switch=verifiedos-certirocq-0.9.1-ocaml-4.14.4",
+      "--",
+      "/root/build/lane-deps-matrix-20261019/certirocq/opam-root/verifiedos-certirocq-0.9.1-ocaml-4.14.4/bin/coqc",
+      "ipc_oracle.v"
+    ],
+    "cwd": "/root/build/lane-deps-integration-20261019/component-vector-final/positive",
+    "exit": 0,
+    "name": "positive-ipc_oracle",
+    "seconds": 2.2369402220001575,
+    "stderr_sha256": "73f7d708ddfeaa846af9ef6a9759e091a31ec9c2d32a6cf62dfb0f5bf1bf1d3a",
+    "stdout_sha256": "cf28e764574b9ae995a7f4c57d8f30ea045178db576c3e436867845672d19a16"
+  },
+  {
+    "argv": [
+      "/root/build/lane-deps-tooling-20261019/toolchains/node-v26.12.0-linux-arm64/bin/node",
+      "--stack-size=10000000",
+      "/mnt/c/Users/symbi/source/repos/VerifiedOS/tools/wasm-oracle/run_vector.mjs",
+      "/root/build/lane-deps-integration-20261019/component-vector-final/positive/ipc_oracle.ipc_checks.wasm",
+      "/root/build/lane-deps-integration-20261019/component-vector-final/population.json"
+    ],
+    "cwd": "/root/build/lane-deps-integration-20261019/component-vector-final/positive",
+    "exit": 0,
+    "name": "positive-wasm",
+    "seconds": 0.06685780000043451,
+    "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "stdout_sha256": "c602d435f0d16d40915399f864807b4bc434ffa797b1609f9bdd5b3b4a07757a"
+  },
+  {
+    "argv": [
+      "opam",
+      "exec",
+      "--switch=verifiedos-certirocq-0.9.1-ocaml-4.14.4",
+      "--",
+      "/root/build/lane-deps-matrix-20261019/certirocq/opam-root/verifiedos-certirocq-0.9.1-ocaml-4.14.4/bin/coqc",
+      "EndpointIPC.v"
+    ],
+    "cwd": "/root/build/lane-deps-integration-20261019/component-vector-final/mask-mutant",
+    "exit": 0,
+    "name": "mask-mutant-EndpointIPC",
+    "seconds": 0.4254994050006644,
+    "stderr_sha256": "73f7d708ddfeaa846af9ef6a9759e091a31ec9c2d32a6cf62dfb0f5bf1bf1d3a",
+    "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "argv": [
+      "opam",
+      "exec",
+      "--switch=verifiedos-certirocq-0.9.1-ocaml-4.14.4",
+      "--",
+      "/root/build/lane-deps-matrix-20261019/certirocq/opam-root/verifiedos-certirocq-0.9.1-ocaml-4.14.4/bin/coqc",
+      "ipc_oracle.v"
+    ],
+    "cwd": "/root/build/lane-deps-integration-20261019/component-vector-final/mask-mutant",
+    "exit": 0,
+    "name": "mask-mutant-ipc_oracle",
+    "seconds": 2.3789699330000076,
+    "stderr_sha256": "73f7d708ddfeaa846af9ef6a9759e091a31ec9c2d32a6cf62dfb0f5bf1bf1d3a",
+    "stdout_sha256": "ba625c9a18aa07a9985ee8923c7cc48b9cbee9186eb048d56f04a4fa68e76b6c"
+  },
+  {
+    "argv": [
+      "/root/build/lane-deps-tooling-20261019/toolchains/node-v26.12.0-linux-arm64/bin/node",
+      "--stack-size=10000000",
+      "/mnt/c/Users/symbi/source/repos/VerifiedOS/tools/wasm-oracle/run_vector.mjs",
+      "/root/build/lane-deps-integration-20261019/component-vector-final/mask-mutant/ipc_oracle.ipc_checks.wasm",
+      "/root/build/lane-deps-integration-20261019/component-vector-final/population.json"
+    ],
+    "cwd": "/root/build/lane-deps-integration-20261019/component-vector-final/mask-mutant",
+    "exit": 0,
+    "name": "mask-mutant-wasm",
+    "seconds": 0.07810160100052599,
+    "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "stdout_sha256": "0881af326f28d22e62520b1381c199b45c529a889307cf2647f4df96e123e7e8"
+  }
+]

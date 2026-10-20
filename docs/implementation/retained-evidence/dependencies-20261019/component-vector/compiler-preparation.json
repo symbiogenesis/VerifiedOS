@@ -1,0 +1,6 @@
+{
+  "scope": "root-owned integration acceptance output; no consumer execution",
+  "original_ini_sha256": "e0efcb8f02d749b406ed243e21408307f2189af136ae562a48b0d2044581550f",
+  "replay_ini_sha256": "1ceb8a3b86349b89df37487ee8679e5b84245631d2bbb1c10f5c12fa9524f161",
+  "only_change": "absolute runtime lookup after comparator copies INI"
+}

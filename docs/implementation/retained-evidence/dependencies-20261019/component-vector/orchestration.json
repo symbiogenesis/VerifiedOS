@@ -1,0 +1,28 @@
+{
+  "schema": "verifiedos-component-refresh-orchestration-v1",
+  "argv": [
+    "/usr/bin/python3",
+    "-B",
+    "/mnt/c/Users/symbi/source/repos/VerifiedOS/tools/wasm-oracle/compare_component.py",
+    "--compiler",
+    "/root/build/lane-deps-upstream-20261019/contained/compiler/ccomp",
+    "--compiler-config",
+    "/root/build/lane-deps-integration-20261019/component-compcert.ini",
+    "--model-snapshot",
+    "/root/build/lane-deps-integration-20261019/model-snapshot",
+    "--out",
+    "/root/build/lane-deps-integration-20261019/component-vector-final",
+    "--switch",
+    "verifiedos-certirocq-0.9.1-ocaml-4.14.4"
+  ],
+  "cwd": "/tmp/verifiedos-deps-20261019-root",
+  "environment": {
+    "OPAMROOT": "/root/build/lane-deps-matrix-20261019/certirocq/opam-root",
+    "OPAMSWITCH": "verifiedos-certirocq-0.9.1-ocaml-4.14.4",
+    "NODE_TOOLCHAIN_ROOT": "/root/build/lane-deps-tooling-20261019/toolchains"
+  },
+  "exit_code": 0,
+  "seconds": 24.317188898000495,
+  "log_sha256": "e226192847b5ee1e61e971f26957b1b437762ecec76bcab7a6fc088622f10beb",
+  "revision": "8f6329938c9cbe8c6e23fb0e975e5a5b52e251d1"
+}

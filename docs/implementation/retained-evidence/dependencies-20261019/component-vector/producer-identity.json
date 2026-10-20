@@ -1,0 +1,16 @@
+{
+  "libraries_sha256": "149b5d804a5f93db9d1f7b659baca12c59f4f513a17789e251643da685ef1299",
+  "package_export_sha256": "8437b97944f4dcc666d2df1f2ed4db67221bf23be3efbc3ce1b483b70c04f3b1",
+  "representation_sha256": "b95c5d11554492ec5cc313cca80611eeb0feead433eabde3fb2ad59a8a9e3ac2",
+  "scope": "the declared oracle switch, installing its snapshot's packages",
+  "switch": "verifiedos-certirocq-0.9.1-ocaml-4.14.4",
+  "tools": {
+    "/root/build/lane-deps-integration-20261019/component-vector-final/compcert.ini": "1ceb8a3b86349b89df37487ee8679e5b84245631d2bbb1c10f5c12fa9524f161",
+    "/root/build/lane-deps-integration-20261019/component-vector-final/profile.json": "e2bb4968e24741fc266fd400b529faa90a7d3d3acd66e5c8bde1fc8347d22625",
+    "/root/build/lane-deps-integration-20261019/model-snapshot/sail_riscv_sim": "e7fde7a3685c55345997db1e7bcceef6efe6342d0e026bbe05dcbb6b50cdc7a6",
+    "/root/build/lane-deps-matrix-20261019/certirocq/opam-root/verifiedos-certirocq-0.9.1-ocaml-4.14.4/bin/coqc": "c6a3066a0f5e76b1552458f1dcd4c9592561beedf33b8487502d0e626544c71c",
+    "/root/build/lane-deps-matrix-20261019/certirocq/opam-root/verifiedos-certirocq-0.9.1-ocaml-4.14.4/bin/ocamlrun": "fc1c6fc1ea61d83d79ab2365688c4fa045bd4e7f0f846e2ac416f42ce6cfda65",
+    "/root/build/lane-deps-tooling-20261019/toolchains/node-v26.12.0-linux-arm64/bin/node": "eb9c23a331c876ff7eeb7fd08b5c215da294bc18dc3a066d526254357f0f6942",
+    "/root/build/lane-deps-upstream-20261019/contained/compiler/ccomp": "7dbd8f7cfb9118a756d320b171aa954a63e890519a1e968b989477192d00d620"
+  }
+}

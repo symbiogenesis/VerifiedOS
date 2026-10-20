@@ -1,0 +1,56 @@
+{
+  "libgmp.so.10": {
+    "path": "/usr/lib/aarch64-linux-gnu/libgmp.so.10",
+    "resolved_path": "/usr/lib/aarch64-linux-gnu/libgmp.so.10.5.0",
+    "sha256": "29f12afa1650be2b39dce1d298cf6b308ab13bea4497e07572c3e24e02b8dcc0",
+    "package": "libgmp10:arm64",
+    "version": "2:6.3.0+dfsg-5ubuntu2",
+    "notice": "notices/GMP-copyright",
+    "notice_sha256": "7d366aef5ba325150246de1d7820c4c9926cd27ca61a69948492b26cd3b61601"
+  },
+  "libstdc++.so.6": {
+    "path": "/usr/lib/aarch64-linux-gnu/libstdc++.so.6",
+    "resolved_path": "/usr/lib/aarch64-linux-gnu/libstdc++.so.6.0.35",
+    "sha256": "d604f900ea3d02c57ad0a97b48b1666262759be4accc08bf37150b36715d48ef",
+    "package": "libstdc++6:arm64",
+    "version": "16-20260322-1ubuntu1",
+    "notice": "notices/GCC-libstdc++6-copyright",
+    "notice_sha256": "d7815dd2364180835891947d96d808878204dea45b8597602a7952332195fbea"
+  },
+  "libm.so.6": {
+    "path": "/usr/lib/aarch64-linux-gnu/libm.so.6",
+    "resolved_path": "/usr/lib/aarch64-linux-gnu/libm.so.6",
+    "sha256": "ffeae799646fae7a8af80402a88f4bc84bfc110af834f5e756aae2fa0a1a9602",
+    "package": "libc6:arm64",
+    "version": "2.43-2ubuntu2.4",
+    "notice": "notices/GLIBC-copyright",
+    "notice_sha256": "c31d10900fdb95d1889005145a2205bb75e3bc018d3ec8265b81364901748e09"
+  },
+  "libgcc_s.so.1": {
+    "path": "/usr/lib/aarch64-linux-gnu/libgcc_s.so.1",
+    "resolved_path": "/usr/lib/aarch64-linux-gnu/libgcc_s.so.1",
+    "sha256": "a886d874bfcc27b5b3de47504eb861af8f15cf8c2aea160bd3b973e1a1a95255",
+    "package": "libgcc-s1:arm64",
+    "version": "16-20260322-1ubuntu1",
+    "notice": "notices/GCC-libgcc-s1-copyright",
+    "notice_sha256": "d7815dd2364180835891947d96d808878204dea45b8597602a7952332195fbea"
+  },
+  "libc.so.6": {
+    "path": "/usr/lib/aarch64-linux-gnu/libc.so.6",
+    "resolved_path": "/usr/lib/aarch64-linux-gnu/libc.so.6",
+    "sha256": "7b17086ce95b15145e6c2c5f8146395f80e2df1af2636fbf78e90c546a70df06",
+    "package": "libc6:arm64",
+    "version": "2.43-2ubuntu2.4",
+    "notice": "notices/GLIBC-copyright",
+    "notice_sha256": "c31d10900fdb95d1889005145a2205bb75e3bc018d3ec8265b81364901748e09"
+  },
+  "ld-linux-aarch64.so.1": {
+    "path": "/lib/ld-linux-aarch64.so.1",
+    "resolved_path": "/usr/lib/aarch64-linux-gnu/ld-linux-aarch64.so.1",
+    "sha256": "7cdd4ce693d93790bf088dca2e86857f758335b6010d913e086fa384e7704a46",
+    "package": "libc6:arm64",
+    "version": "2.43-2ubuntu2.4",
+    "notice": "notices/GLIBC-copyright",
+    "notice_sha256": "c31d10900fdb95d1889005145a2205bb75e3bc018d3ec8265b81364901748e09"
+  }
+}
