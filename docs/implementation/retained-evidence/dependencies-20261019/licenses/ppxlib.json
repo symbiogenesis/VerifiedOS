@@ -1,0 +1,83 @@
+{
+  "schema": 1,
+  "read_date": "2026-10-19",
+  "package": "ppxlib",
+  "version": "0.39.0",
+  "archive_url": "https://github.com/ocaml-ppx/ppxlib/releases/download/0.39.0/ppxlib-0.39.0.tbz",
+  "archive_sha256": "441a2814dbac3f5dc0c8dcefca263548e9b4d6dda1ef2990ce6a4999e108be3c",
+  "license_files": [
+    {
+      "name": "ppxlib-0.39.0/LICENSE.md",
+      "sha256": "10cb8606938a88b5c03f2d4c434d0bc63b62ef6618464bf6aa16b0ab9f63a90f",
+      "blob": "b96242c18c2000871edad8d45c60e62cd71802da"
+    },
+    {
+      "name": "ppxlib-0.39.0/bench/vendored/ppx_sexp_conv.v0.15.1/LICENSE.md",
+      "sha256": "bdb264891f0edb7acd12b960b0faaacd3685dd4b969529e7309968365ddb4d48",
+      "blob": "9328396a17246c005c3d94f722956bf71b2b81cc"
+    }
+  ],
+  "lgpl_header_files": [
+    {
+      "path": "ppxlib-0.39.0/ast/ast.ml",
+      "sha256": "d3a41bd71f5e6c05bf6f213719ddc93ec139c90ce10979300de051e9ed7fb1e4"
+    },
+    {
+      "path": "ppxlib-0.39.0/ast/ast_helper_lite.ml",
+      "sha256": "d1f3f5f74716918a9aca3e335a3d1c3c894e1c32dc216250891662c7304e3e41"
+    },
+    {
+      "path": "ppxlib-0.39.0/ast/ast_helper_lite.mli",
+      "sha256": "7285874186a7a777684cd8114df9cb7af2d669d1210fb35673d9fd65c6c1992d"
+    },
+    {
+      "path": "ppxlib-0.39.0/ast/versions.ml",
+      "sha256": "867a3bb3db8e4e6b293463840d3b99b0011ac1403094eba2c8302149c9d6b457"
+    },
+    {
+      "path": "ppxlib-0.39.0/ast/versions.mli",
+      "sha256": "8db795b9f6c13c8d05cefac84b522ddf8af6ba4a55aca33e3751a0e3453b6dd1"
+    },
+    {
+      "path": "ppxlib-0.39.0/astlib/ast_408.ml",
+      "sha256": "d3de1dbcbddba06180e0ef1efb9eeabf6fd29c52081208775b965aa251c9773c"
+    },
+    {
+      "path": "ppxlib-0.39.0/astlib/ast_409.ml",
+      "sha256": "7a3e20f4fdfc8d3de7a393c4c367aed36816f5c41e07746980cfe00274a2e0ed"
+    },
+    {
+      "path": "ppxlib-0.39.0/astlib/ast_410.ml",
+      "sha256": "217b60e670eeda87eadf001836d18fbceb16439dd4d19ac1d3b03962ea6a42f4"
+    },
+    {
+      "path": "ppxlib-0.39.0/astlib/ast_411.ml",
+      "sha256": "2615ddd40ce6da6dacc98a968df84c6ce860217f8a1d662ec3c39dd9ba4fd87e"
+    },
+    {
+      "path": "ppxlib-0.39.0/astlib/ast_412.ml",
+      "sha256": "78aaec47cabe240d26d44dd0b80318d492a67baf196ab4f35dec99aa02e4c932"
+    },
+    {
+      "path": "ppxlib-0.39.0/astlib/ast_413.ml",
+      "sha256": "dcfabb9a9c27a169bbeb41a9563bb6c629ea44681f65d2bfb678029924ec3fcf"
+    },
+    {
+      "path": "ppxlib-0.39.0/astlib/ast_414.ml",
+      "sha256": "16ef20aa1b80d98f3e59575718628636d1d26377396d19cbe237b743512993c1"
+    },
+    {
+      "path": "ppxlib-0.39.0/astlib/astlib.ml",
+      "sha256": "03cf49fa6e785b180d486affda72900d3063a94a05ebf6cfad493105bc8955f7"
+    },
+    {
+      "path": "ppxlib-0.39.0/astlib/pprintast.ml",
+      "sha256": "01f1a7347d7c70b4fbc5b04e076299333511136a25b98142b69b18f58bfe1d8d"
+    },
+    {
+      "path": "ppxlib-0.39.0/astlib/pprintast.mli",
+      "sha256": "c914ef44494ed4006fa1fe2c38faedc26f1c5f44aefbaa2f6dd5c9cd37a3eb42"
+    }
+  ],
+  "use": "QuickChick plugin build dependency; source and compiled tools remain hosted build inputs, with no source or executable conveyed here."
+}
