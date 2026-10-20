@@ -6,7 +6,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
-from collections.abc import Callable, Iterator
+from collections.abc import Callable, Generator
 from contextlib import contextmanager
 from pathlib import Path
 from typing import Any
@@ -19,7 +19,7 @@ ROOT = TOOLS.parent
 
 
 @contextmanager
-def _sandbox() -> Iterator[tuple[Path, dict[str, Any]]]:
+def _sandbox() -> Generator[tuple[Path, dict[str, Any]]]:
     raw = json.loads((ROOT / composition.EXAMPLE).read_bytes())
     paths = {composition.EXAMPLE, boot.CONTRACT, raw["configuration"]["path"],
              *composition.PRODUCERS}

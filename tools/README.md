@@ -527,6 +527,12 @@ date, and any other change then follows from it; when that package keeps its ver
 any other `[[package]]` change is index drift from the re-resolution and is reviewed
 on its own.
 
+The supported interpreter remains Python 3.14. Python 3.15.0 is released, but
+the all-groups, wheels-only resolution fails because the hook runner requires
+PyYAML and its released 6.0.3 files have no CPython 3.15 wheels. A Python 3.15
+move requires that wheel closure to resolve under `no-build = true`; source
+builds are not a fallback.
+
 When a compatible Python is absent, install it explicitly with your platform's
 installer or `uv python install --no-config 3.14`. That one command bypasses project
 configuration for the manual install. The project keeps `python-downloads = "never"`,

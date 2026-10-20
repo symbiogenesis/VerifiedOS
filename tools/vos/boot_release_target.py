@@ -240,7 +240,7 @@ def run(root: Path, out: Path, ccomp: Path, ccomp_args: list[str], simulator: Pa
                                   watch={"kernel_entry": built.symbols["kernel_entry"]})
                 row["main_die"] = {"verdict": main.verdict, "first_pc": main.first_pc,
                                     "kernel_entry": main.reached.get("kernel_entry"), "retired": main.retired}
-                if main.verdict != "success" or main.first_pc != lay["BRINGUP_MMODE_LOAD_BASE"] or not main.reached.get("kernel_entry"):
+                if main.verdict != "success" or main.first_pc != lay["BRINGUP_MMODE_LOAD_BASE"] or not bool(main.reached.get("kernel_entry")):
                     problems.append("main die did not execute the released handoff through kernel entry")
         row["passed"] = not problems
         return row

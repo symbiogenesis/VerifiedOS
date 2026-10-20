@@ -127,7 +127,7 @@ def _certificate_operators_refuse_false_optimality() -> None:
         seen = counts.get(operator["name"], {})
         ensure(seen.get(mutants.KILLED, 0) > 0,
                f"{operator['name']} never moved the optimality replay: {seen}")
-        ensure(not seen.get(mutants.SURVIVED) and not seen.get(mutants.MISKILLED),
+        ensure(not bool(seen.get(mutants.SURVIVED)) and not bool(seen.get(mutants.MISKILLED)),
                f"{operator['name']} produced a survivor or a miskill: {seen}")
     for item in result["outcomes"]:
         if item["verdict"] == mutants.KILLED:

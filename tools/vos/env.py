@@ -187,7 +187,7 @@ SAIL_INSTALL: tuple[tuple[str, ...], ...] = (
 # probe can report what a prefix answered rather than only whether the directory is
 # there; `_prepend_z3_path` below states what a missing prefix costs, and it is the one
 # invariant here whose absence is silent rather than loud.
-Z3_VERSION = "5.1.0"
+Z3_VERSION = "5.3.1"
 Z3_PREFIX = Path(f"/root/z3-{Z3_VERSION}")
 Z3_DISTRIBUTION = "4.13.3"
 
@@ -363,7 +363,7 @@ def _jobs(cpus: int, mem_mb: int) -> int:
     4 and prevents the thrash.
     """
     raw = os.environ.get("VOS_JOBS")
-    if raw:
+    if bool(raw):
         # Garbage and non-positive counts alike are refused by name, because either
         # would otherwise go straight onto ninja's command line as `-j`.
         try:
@@ -413,7 +413,7 @@ def _ccache_args() -> list[str]:
     trade this project should take. ccache hashes the preprocessed source, so the
     default configuration is sound.
     """
-    if not shutil.which("ccache"):
+    if not bool(shutil.which("ccache")):
         return []
     os.environ.setdefault("CCACHE_DIR", "/root/.ccache")
     os.environ.setdefault("CCACHE_MAXSIZE", "25G")
@@ -435,7 +435,7 @@ def _compiler_args() -> list[str]:
     and fast trees were retired and rebuilt at the flip (I10), with the canonical's
     memo cache saved aside and restored exactly as a lane seed would be.
     """
-    if shutil.which("clang") and shutil.which("clang++"):
+    if bool(shutil.which("clang")) and bool(shutil.which("clang++")):
         return ["-DCMAKE_C_COMPILER=clang", "-DCMAKE_CXX_COMPILER=clang++"]
     return []
 
@@ -532,7 +532,7 @@ def _apply_opam_env() -> None:
     otherwise wait on a prompt the caller cannot see, and an empty line or the caller's
     OPAMYES would rewrite the root one way. It declines instead, exits nonzero, and the
     loop runs without the switch's environment."""
-    if not shutil.which("opam"):
+    if not bool(shutil.which("opam")):
         return
     proc = subprocess.run(["opam", "env", f"--switch={SAIL_SWITCH}", "--shell=sh"],
                           capture_output=True, text=True, check=False,
@@ -693,7 +693,7 @@ def build_lock(build_dir: Path) -> IO[str] | None:
     tree; dropping it closes the descriptor and releases the lock. `None` means the lock
     is already held on a descriptor this process inherited, which is the detached case.
     """
-    if os.environ.get(BUILD_LOCK_HELD):
+    if bool(os.environ.get(BUILD_LOCK_HELD)):
         return None
     handle, holder = _try_lock(build_dir)
     if handle is None:

@@ -522,7 +522,7 @@ def main(argv: list[str] | None = None) -> int:
             checked_import(args.snapshot, args.expected_sha256)
         campaign = Campaign(args.root, args.side, args.command)
         qualify(campaign, found, args.snapshot if args.command == "import" else None)
-        if output := os.environ.get("GITHUB_OUTPUT"):
+        if bool(output := os.environ.get("GITHUB_OUTPUT")):
             with Path(output).open("a", encoding="utf-8", newline="") as stream:
                 stream.write("snapshot_sha256=" + campaign.report["export_sha256"] + "\n")
     except (OSError, ValueError, KeyError, TypeError, subprocess.SubprocessError) as error:

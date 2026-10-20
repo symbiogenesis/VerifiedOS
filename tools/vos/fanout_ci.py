@@ -193,7 +193,7 @@ def validate_state(value: object) -> CIState:
 
 def _token(root: Path, repo: str) -> str:
     token = os.environ.get("GH_TOKEN") or os.environ.get("GITHUB_TOKEN")
-    if token:
+    if bool(token):
         return token
     environment = dict(os.environ, GIT_TERMINAL_PROMPT="0", GCM_INTERACTIVE="never")
     try:

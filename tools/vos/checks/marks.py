@@ -181,7 +181,7 @@ def run(ctx: Context) -> None:
     else:
         for path in markable:
             fault = _fault(root, path, expected)
-            if fault:
+            if bool(fault):
                 faults.append(fault)
     rep.report("K-52", "file(s) whose license mark is missing or misspelled:", faults,
                f"all {len(markable)} markable files carry `{expected}` in their own "

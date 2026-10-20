@@ -128,7 +128,7 @@ def _figures(results: list[Result], log: Path,
         found = re.search(pattern, said.get(member, ""))
         if found is None:
             raise ValueError(f"{member} produced no {label} measurement")
-        figures[label] = found.group(1) if found.lastindex else found.group(0)
+        figures[label] = found.group(1) if bool(found.lastindex) else found.group(0)
     return figures
 
 

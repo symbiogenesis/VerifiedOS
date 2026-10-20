@@ -466,7 +466,7 @@ def run(ctx: Context) -> None:
     # are skipped rather than resolved: resolved, they would hold every restating
     # count-word to "zero", and one routine `--fix` would write that corruption
     # into three documents and leave the next run green.
-    dead = {q for q in REQUIRED_COUNTS if not ctx.q.get(q)}
+    dead = {q for q in REQUIRED_COUNTS if not bool(ctx.q.get(q))}
     claimed = {quantity for _, quantity, _, _ in CLAIMS}
     missed: list[str] = [
         f"{q}'s owner no longer states its enumeration in a form this rule reads, "
@@ -486,9 +486,9 @@ def run(ctx: Context) -> None:
                           f"the claim in {file} must state it in digits")
             continue
         r = figures.resolve_claim(ctx, file, pattern, want, quantity)
-        if r.fixed:
+        if bool(r.fixed):
             rep.line(r.fixed)
-        if r.finding:
+        if bool(r.finding):
             missed.append(r.finding)
     rep.report("K-24", "asserted count(s) disagreeing with their artifact:", missed,
                f"all {len(CLAIMS)} asserted counts agree")
@@ -496,7 +496,7 @@ def run(ctx: Context) -> None:
     # --- the status column is three classes, and every row is in one ----------------
     rep.report("K-25", "crown-jewel row(s) whose status is in no class:",
                [f"row {row.split('|')[1].strip()}: {cj_status(row)}"
-                for row in art.cj_rows if not cj_class(row)],
+                for row in art.cj_rows if not bool(cj_class(row))],
                f"{ctx.q['cj-specs']} rows partition into {ctx.q['cj-authored']} authored, "
                f"{ctx.q['cj-partial']} partial, {ctx.q['cj-unauthored']} not authored")
 

@@ -494,7 +494,7 @@ def _campaign_restore_faults(gates: str, campaign: str) -> list[str]:
             faults.append(f"the campaign's {name!r} is not identified as {ident}")
     recipe = " ".join(_workflow_step(campaign, "Identify the toolchain recipe")
                       .replace("\\\n", " ").split())
-    if not model.get("toolchains") or (
+    if not bool(model.get("toolchains")) or (
             f"$(python3 tools/ci/bootstrap_guest.py --print-recipe-identity "
             f"{model['toolchains']})") not in recipe:
         faults.append("the campaign's recipe identity is not the model lane's selection's")

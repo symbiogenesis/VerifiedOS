@@ -177,7 +177,7 @@ def report(root: Path, field: str | None, artifact: str | None,
         return 1, out
     conclusions = _seam_conclusions(record)
 
-    if requirement:
+    if bool(requirement):
         if not REQ_TOKEN_RE.fullmatch(requirement):
             out.append(f"'{requirement}' is no requirement id; the form is R-nn-nnn "
                        "with an optional letter suffix")
@@ -200,7 +200,7 @@ def report(root: Path, field: str | None, artifact: str | None,
         out.extend(f"FAIL: {fault}" for fault in faults)
         return (0 if found and not faults else 1), out
 
-    if field:
+    if bool(field):
         if field not in record.field_set:
             out.append(f"no Prop field '{field}' in the Vocabulary record; the fields are:")
             out.extend(f"  {f}" for f in record.fields)
@@ -208,7 +208,7 @@ def report(root: Path, field: str | None, artifact: str | None,
         out.extend(field_lines(record, conclusions, field))
         return 0, out
 
-    if artifact:
+    if bool(artifact):
         bindings_path = root / fieldbindings.BINDINGS
         if not bindings_path.is_file():
             out.append(f"FAIL: {fieldbindings.BINDINGS} is not in the repository")

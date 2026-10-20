@@ -1460,7 +1460,7 @@ def run_harness(root: Path, simulator: Path, out: Path, timeout: int,
             if _observed(run) != case.emulator or run.first_pc != load_base:
                 problems.append(f"emulator {_observed(run)} from {run.first_pc}, "
                                 f"expected {case.emulator} from {load_base:#x}")
-            if case.emulator == "success" and not run.reached.get("kernel_entry"):
+            if case.emulator == "success" and not bool(run.reached.get("kernel_entry")):
                 problems.append("the run never retired the kernel entry")
             if case.name == "valid":
                 valid_said, valid_record = said, record

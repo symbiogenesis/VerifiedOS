@@ -32,7 +32,7 @@ import tarfile
 import tempfile
 import threading
 import time
-from collections.abc import Callable, Iterator
+from collections.abc import Callable, Generator
 from contextlib import (
     ExitStack,
     contextmanager,
@@ -505,7 +505,7 @@ def _seed_test_data_refuses_unverified() -> None:
 
 
 @contextmanager
-def _copies_spied() -> Iterator[Mock]:
+def _copies_spied() -> Generator[Mock]:
     """`_copy_regular_file` as it is, with the calls the seeding makes of it recorded."""
     with patch.object(_MODEL, "_copy_regular_file",
                       wraps=_MODEL._copy_regular_file) as copied:
@@ -1056,7 +1056,7 @@ def _copy_regular_file_refuses_a_fifo_and_a_link() -> None:
 
 
 @contextmanager
-def _changed_after_verifying(change: Callable[[], object]) -> Iterator[None]:
+def _changed_after_verifying(change: Callable[[], object]) -> Generator[None]:
     """`verify_test_corpus` as it is, except that `change` runs once the first suite it
     is asked about has verified, which is the window between a verification and its
     reader that no check by name closes."""
@@ -2157,5 +2157,5 @@ def cases() -> list[Case]:
         # Only where cmake is on PATH: the runner has no skipped verdict, and a case
         # that returned without cmake would pass having decided nothing.
         *([Case("cmake-suite-listing", _cmake_suite_listing, lane="guest")]
-          if shutil.which("cmake") else []),
+          if bool(shutil.which("cmake")) else []),
     ]

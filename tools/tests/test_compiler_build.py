@@ -4,7 +4,7 @@
 import json
 import sys
 import tempfile
-from collections.abc import Callable, Iterator
+from collections.abc import Callable, Generator
 from contextlib import ExitStack, contextmanager
 from dataclasses import replace
 from pathlib import Path
@@ -83,7 +83,7 @@ sys.exit(1 if outcome == 'refused' else 0)
 
 
 @contextmanager
-def _session(mode: str = "ordinary") -> Iterator[tuple[cb.Settings, Path]]:
+def _session(mode: str = "ordinary") -> Generator[tuple[cb.Settings, Path]]:
     with tempfile.TemporaryDirectory(prefix="vos-compiler-controller-") as temporary, ExitStack() as stack:
         root = Path(temporary).resolve()
         lane, source, driver, checkout = (root / name for name in ("lane", "source", "driver", "checkout"))
@@ -104,7 +104,7 @@ def _session(mode: str = "ordinary") -> Iterator[tuple[cb.Settings, Path]]:
         held: set[Path] = set()
 
         @contextmanager
-        def fixture_lock(path: Path, _: str) -> Iterator[None]:
+        def fixture_lock(path: Path, _: str) -> Generator[None]:
             if path in held:
                 raise ValueError("fixture lock held")
             held.add(path)

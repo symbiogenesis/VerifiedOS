@@ -11,7 +11,7 @@ manifest, never the tracked one.
 import json
 import os
 import tempfile
-from collections.abc import Iterator
+from collections.abc import Generator
 from contextlib import contextmanager
 from pathlib import Path
 
@@ -25,7 +25,7 @@ _SENTINEL_NS = 1_000_000_000
 
 
 @contextmanager
-def _corpus_copy() -> Iterator[tuple[Path, differential.Corpus]]:
+def _corpus_copy() -> Generator[tuple[Path, differential.Corpus]]:
     """The real manifest, copied byte-for-byte under a throwaway root."""
     manifest = find_root() / differential.CORPUS_DIR / differential.MANIFEST
     with tempfile.TemporaryDirectory(prefix="vos-test-") as td:

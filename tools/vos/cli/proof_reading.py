@@ -125,7 +125,7 @@ def _prover() -> tuple[str, str]:
 def modules_in(objects: Path, named: list[str] | None = None) -> list[str]:
     """The modules to read: every source the directory holds, or the ones named."""
     present = sorted(path.stem for path in objects.glob("*.v"))
-    chosen = sorted(set(named)) if named else present
+    chosen = sorted(set(named)) if bool(named) else present
     missing = sorted(set(chosen) - set(present))
     if missing:
         raise proofreading.ReadingError(f"{objects} holds no source for {', '.join(missing)}")

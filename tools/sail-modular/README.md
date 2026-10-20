@@ -16,7 +16,11 @@ qualification host uses Ubuntu's `libclang1-21` package version
 `1:21.1.8-6ubuntu1`; on that distribution the explicit provisioning command is
 `sudo apt-get install libclang1-21=1:21.1.8-6ubuntu1`. Other supported native
 images must supply the same LLVM 21.1.8 library explicitly; the command refuses
-other versions and never runs a package manager. CMake
+other versions and never runs a package manager. LLVM 23.1.3 is the current
+upstream release, but the supported Ubuntu image supplies no `libclang1-23`
+package. Its available 22.1.2 library has not passed this adapter's AST and
+partitioning qualification, so the exact qualified 21.1.8 prerequisite remains.
+CMake
 3.24 or later with the Linux RESCAN link-group feature is required. Stage resource
 measurements use the operating system's `wait4`, with no timing-tool dependency.
 Its peak RSS is the maximum child/descendant value, not the sum of concurrent

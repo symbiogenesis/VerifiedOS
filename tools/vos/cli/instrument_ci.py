@@ -106,7 +106,7 @@ class GitHub(fanout_ci.GitHub):
                 pass
         except urllib.error.HTTPError as error:
             target = error.headers.get("Location") if error.code in (301, 302, 303, 307, 308) else None
-            if target:
+            if bool(target):
                 return str(target)
             raise fanout_ci.APIError(error.code) from None
         except OSError:
@@ -118,7 +118,7 @@ def fetch(url: str, limit: int) -> bytes:
     """An artifact's bytes from the address its redirect named, fetched with no
     credentials and refused past `limit` bytes."""
     parsed = urllib.parse.urlsplit(url)
-    if parsed.scheme != "https" or not parsed.hostname:
+    if parsed.scheme != "https" or not bool(parsed.hostname):
         raise fanout_ci.CIError("an artifact redirect must name an https address")
     # An https address only, carrying no credential of ours.
     request = urllib.request.Request(url, headers={"User-Agent": "VerifiedOS-instrument-ci"})  # noqa: S310
@@ -465,7 +465,7 @@ def imports_of(source: str, module: str, package: bool) -> set[str]:
             if node.level:
                 base = module.split(".") if package else module.split(".")[:-1]
                 base = base[:len(base) - (node.level - 1)]
-                prefix = ".".join([*base, *([node.module] if node.module else [])])
+                prefix = ".".join([*base, *([node.module] if bool(node.module) else [])])
             else:
                 prefix = node.module or ""
             found.add(prefix)
@@ -731,7 +731,7 @@ def closing_evidence(checkout: Path, report: dict[str, object], plan: dict[str, 
     build = _receipt(by_key.get("build"))
     tested = build.get("source_revision") if build is not None else None
     dispatching = str(plan.get("dispatching_commit") or "")
-    target = parent or (f"{closing}^1" if closing else "main")
+    target = parent or (f"{closing}^1" if bool(closing) else "main")
     if parent is not None and closing is not None:
         named, first = _commit_of(checkout, parent), _commit_of(checkout, f"{closing}^1")
         if named is None or named != first:
@@ -778,7 +778,7 @@ def closing_evidence(checkout: Path, report: dict[str, object], plan: dict[str, 
             refusals.append(f"the run compares a base at sample {request.get('sample')}, not "
                             f"{route.FULL_SAMPLE}")
         source = route.source_at(checkout, tested, route.SEED)
-        default = route.string_constant(source, "COQ_SUBJECT") if source else None
+        default = route.string_constant(source, "COQ_SUBJECT") if bool(source) else None
         subjects = (route.as_object(plan.get("subjects", {}))
                     if isinstance(plan.get("subjects"), dict) else {})
         if default is None or any(value != default for value in subjects.values()):

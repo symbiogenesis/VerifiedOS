@@ -5,7 +5,7 @@ import hashlib
 import io
 import json
 import os
-from collections.abc import Iterator
+from collections.abc import Generator
 from contextlib import contextmanager, redirect_stderr, redirect_stdout
 from pathlib import Path
 from typing import Any
@@ -79,7 +79,7 @@ def _identity(root: Path, raw: dict[str, Any]) -> None:
 
 
 @contextmanager
-def _sandbox_tree(files: dict[str, str]) -> Iterator[Path]:
+def _sandbox_tree(files: dict[str, str]) -> Generator[Path]:
     with sandbox_tree({**files, sailbundle.PROJECT_FILE: "fixture project"}) as root:
         _identity(root, json.loads((root / sailbundle.BUNDLE).read_bytes()))
         yield root

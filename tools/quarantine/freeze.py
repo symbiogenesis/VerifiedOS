@@ -1625,7 +1625,7 @@ def _provenance_block(contract: Contract, joined: Join | None,
         }
 
     strata, hits = joined.strata(), joined.hits()
-    varying = [oc for oc in OPERAND_CLASSES if contract.varying(oc)]
+    varying = [oc for oc in OPERAND_CLASSES if bool(contract.varying(oc))]
     invariant = [oc for oc in OPERAND_CLASSES if contract.varying(oc) is False]
     total = sum(strata.values())
 
@@ -1847,7 +1847,7 @@ def g2(record: Record) -> Verdict:
                         f"the provenance block carries no count for {', '.join(absent)}; "
                         "a zero is a value and an absence is a rejection (R-15-036k)")
     residue = record.provenance.get("join_residue")
-    if residue is not None and residue.measured and residue.number:
+    if residue is not None and residue.measured and bool(residue.number):
         return _verdict("G-2", REJECT,
                         f"the join residue is {residue.shown} and every site must join")
     unmeasured = [oc for oc in OPERAND_CLASSES if not record.provenance[oc].measured]

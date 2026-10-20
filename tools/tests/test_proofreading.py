@@ -515,7 +515,7 @@ def _a_reading_that_moves_writes_nothing() -> None:
             """The default route over the directory, with `moved` rewritten mid-read."""
             def read(_objects: Path, _scratch: Path, module: str, _bound: int,
                      ) -> dict[str, Any]:
-                if moved:
+                if bool(moved):
                     (objects / moved).write_bytes(b"rewritten")
                 return {f"{module}.a": _entry(f"{module}.a")}
 

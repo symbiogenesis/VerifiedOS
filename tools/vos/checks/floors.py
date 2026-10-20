@@ -278,7 +278,7 @@ def run(ctx: Context) -> None:
 
     # the register citations the view table carries, which live in a .py and so reach
     # neither the names group nor the links group
-    populated = {sub for sub in reg.subsection.values() if sub}
+    populated = {sub for sub in reg.subsection.values() if bool(sub)}
     cited = 0
     unanswered: list[str] = []
     for view in ctx.views:
@@ -291,7 +291,7 @@ def run(ctx: Context) -> None:
             if sub not in populated:
                 unanswered.append(f"{view['file']} draws its members from §{sub}, "
                                   "where the register carries no entries")
-        if view.get("body"):
+        if bool(view.get("body")):
             cited += 1
             pattern = re.compile(view["body"], re.IGNORECASE)
             if not any(pattern.search(body) for body in reg.body.values()):

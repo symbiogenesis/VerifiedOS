@@ -113,9 +113,9 @@ def owned_figures(ctx: Context) -> None:
             held += 1
             r = figures.resolve_claim(ctx, file, pattern, m.group(1),
                                       f"the {key} figure")
-            if r.fixed:
+            if bool(r.fixed):
                 rep.line(r.fixed)
-            if r.finding:
+            if bool(r.finding):
                 missed.append(r.finding)
 
     range_id, range_pattern = RANGE_OWNER
@@ -130,9 +130,9 @@ def owned_figures(ctx: Context) -> None:
             r = figures.resolve_claim(ctx, file, pattern,
                                       shape.format(lo=lo, hi=hi),
                                       "the no-C code-size range")
-            if r.fixed:
+            if bool(r.fixed):
                 rep.line(r.fixed)
-            if r.finding:
+            if bool(r.finding):
                 missed.append(r.finding)
 
     rep.report("K-69", "owned figure(s) restated differently than their entry fixes:",

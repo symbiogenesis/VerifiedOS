@@ -7,7 +7,7 @@ import re
 import subprocess
 import sys
 import time
-from collections.abc import Iterator
+from collections.abc import Generator
 from contextlib import contextmanager
 from dataclasses import asdict
 from pathlib import Path
@@ -81,7 +81,7 @@ def _location(root: Path, name: str) -> Path:
 
 
 @contextmanager
-def _exclusive(root: Path) -> Iterator[None]:
+def _exclusive(root: Path) -> Generator[None]:
     """All batches in one integration checkout share a process-lifetime lock."""
     directory = _location(root, "lock").parent
     directory.mkdir(parents=True, exist_ok=True)

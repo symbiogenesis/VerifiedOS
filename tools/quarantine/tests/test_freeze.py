@@ -582,7 +582,7 @@ def _split_is_read_not_declared() -> None:
     # R-15-036k's normative split is §4's Class column, and this module holds no second
     # copy of it: a class moved from one side to the other in the contract moves here.
     contract, _ = _read()
-    varying = [oc for oc in freeze.OPERAND_CLASSES if contract.varying(oc)]
+    varying = [oc for oc in freeze.OPERAND_CLASSES if bool(contract.varying(oc))]
     ensure(varying == ["OC-3", "OC-4", "OC-5"],
            f"the contract puts three classes on the site-varying side, got {varying}")
     moved = freeze.parse(contract.raw.replace(

@@ -91,7 +91,7 @@ def cmd_run(args: argparse.Namespace) -> int:
 
 
 def _require_simulator(simulator: Path, explicit: bool, receipt: str | None) -> None:
-    if explicit and not receipt:
+    if explicit and not bool(receipt):
         raise ValueError("an explicit simulator requires --build-receipt for its model sources")
     if not simulator.is_file():
         raise ValueError(f"no golden emulator at {simulator}; run `run.py model build` first")

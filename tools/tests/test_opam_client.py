@@ -41,7 +41,7 @@ def opam_root(root: Path, layout: str, stamps: dict[str, str] | None = None,
     (repo / "repos-config").write_bytes(
         f'opam-version: "2.0"\nrepositories: [\n{listing}]\n'.encode())
     for name, _ in configured:
-        stamp = f'stamp: "{stamps[name]}"\n' if stamps.get(name) else ""
+        stamp = f'stamp: "{stamps[name]}"\n' if bool(stamps.get(name)) else ""
         payload = f'opam-version: "2.0"\nupstream: "https://example.invalid"\n{stamp}'.encode()
         package = b'opam-version: "2.0"\n'
         if layout == "unpacked":

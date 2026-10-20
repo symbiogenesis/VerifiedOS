@@ -200,7 +200,7 @@ class Sandbox:
             "import sys; sys.path.insert(0, sys.argv.pop(1)); "
             "import check; raise SystemExit(check.main())",
             str((self.path / CHECKER).parent)] + (["--fix"] if fix else []) + (
-            ["--through", through] if through else [])
+            ["--through", through] if bool(through) else [])
         # a run is seconds, so an overrun of CHECK_TIMEOUT is a hang (a mutant that
         # sends a pattern into catastrophic backtracking), and it must land as its
         # case's failure rather than as a run that never ends; errors='replace' for the
@@ -1578,7 +1578,7 @@ CASES: list[Case] = [
      _literal(PROFILE, "Sail: `AMOCAS`", "Sail: `AMO`")),
 
     ("K-67", "a resolved checker pin drifted from the manifest",
-     _literal("tools/uv.lock", 'name = "ruff"\nversion = "0.16.10"',
+     _literal("tools/uv.lock", 'name = "ruff"\nversion = "0.17.1"',
               'name = "ruff"\nversion = "0.16.8"')),
 
     # One site of a fact two pairs state is reworded while its siblings stand, which

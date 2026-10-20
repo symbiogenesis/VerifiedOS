@@ -169,11 +169,11 @@ def _outlining_table(out: list[str]) -> None:
                f"{'pays from m (pc-relative)':>26}")
     for row in freeze.outlining_break_even(_REGION_LENGTHS):
         n, m = row.n, row.break_even_absolute
-        absolute = str(m) if m else "never"
-        pcrel = (str(row.break_even_pcrelative) if row.break_even_pcrelative
+        absolute = str(m) if bool(m) else "never"
+        pcrel = (str(row.break_even_pcrelative) if bool(row.break_even_pcrelative)
                  else "never")
-        inline = f"{n * m:,}" if m else "n/a"
-        outlined = f"{n + m + 1:,}" if m else "n/a"
+        inline = f"{n * m:,}" if bool(m) else "n/a"
+        outlined = f"{n + m + 1:,}" if bool(m) else "n/a"
         out.append(f"  {n:>9}  {absolute:>23}  {inline:>13}  {outlined:>15}  "
                    f"{pcrel:>26}")
     out.append("")

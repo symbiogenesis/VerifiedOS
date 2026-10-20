@@ -1453,7 +1453,7 @@ def read_output(path: Path, expected_side: str | None = None) -> Output:
             and isinstance(head, str) and isinstance(produced, str)
             and (verdict is None or type(verdict) is int)):
         raise ValueError(f"{path}: a field of the record is missing or of the wrong type")
-    if side not in ("wasm-host", "purecap") or (expected_side and side != expected_side):
+    if side not in ("wasm-host", "purecap") or (bool(expected_side) and side != expected_side):
         raise ValueError(f"{path}: side {side!r} is not {expected_side or 'a component side'}")
     if length < 0 or re.fullmatch(r"[0-9a-f]{64}", digest) is None:
         raise ValueError(f"{path}: invalid output length or SHA-256 digest")
@@ -1713,7 +1713,7 @@ def _program(args: argparse.Namespace) -> int:
         print(f"{'DISAGREE':<16} {line}")
     counts = " ".join(f"{verdict}={tally[verdict]}" for verdict in VERDICTS)
     print(f"TOTAL {counts} of {len(reports)}"
-          + (f"; {len(differs)} disagreement(s) with the recorded run" if against else "")
+          + (f"; {len(differs)} disagreement(s) with the recorded run" if bool(against) else "")
           + (f"; {waits}" if simulator is None else ""))
     if closed:
         print(("every perturbed program failed at its moved check"

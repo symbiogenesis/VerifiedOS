@@ -15,7 +15,7 @@ import json
 import os
 import subprocess
 import tempfile
-from collections.abc import Callable, Iterator
+from collections.abc import Callable, Generator
 from contextlib import contextmanager, redirect_stderr, redirect_stdout
 from dataclasses import dataclass
 from pathlib import Path
@@ -82,7 +82,7 @@ class Lane:
 
 
 @contextmanager
-def lane(*, profile: bool = True) -> Iterator[Lane]:
+def lane(*, profile: bool = True) -> Generator[Lane]:
     with tempfile.TemporaryDirectory(prefix="vos-test-rocq-") as temporary:
         root = Path(temporary).resolve()
         model_dir = root / "model" / "model"
@@ -257,7 +257,7 @@ def _command_parse() -> None:
 
 
 @contextmanager
-def _plugin_environment(selection: dict[str, str]) -> Iterator[None]:
+def _plugin_environment(selection: dict[str, str]) -> Generator[None]:
     """Isolate only the loader controls while preserving inherited host settings."""
     with patch.dict(os.environ, selection):
         for name in ("SAIL_PLUGIN_DIR", "SAIL_NO_PLUGINS", "SAIL_DIR", "DUNE_DIR_LOCATIONS"):

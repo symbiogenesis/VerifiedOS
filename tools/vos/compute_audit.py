@@ -6,8 +6,8 @@ import re
 import xml.etree.ElementTree as ET
 from dataclasses import dataclass
 
-REGISTRY_REVISION = "85da0d12c298ffa9eefd2adb1864f2c8193cbe3e"
-REGISTRY_SHA256 = "eb5178c428da9e77ede6350bc74ab302890a8e321a44cd84dbf54ea16bdd6946"
+REGISTRY_REVISION = "f03cc607100cc8212cb6aff1d92938448c9c1be0"
+REGISTRY_SHA256 = "c24f63ad9aa5776fe67808926ae85613248ebbeefa7373fceb406a0bd12ce016"
 REGISTRY_URL = ("https://raw.githubusercontent.com/KhronosGroup/OpenCL-Docs/"
                 f"{REGISTRY_REVISION}/xml/cl.xml")
 AUDIT_PATH = "docs/implementation/compute-feature-map.md"

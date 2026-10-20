@@ -786,13 +786,13 @@ def _class_members(listed: str, registered: set[str], struck: set[str],
         first, last = m.group(1), m.group(2)
         if last is None:
             problem = unplaceable(first, "names")
-            if problem:
+            if bool(problem):
                 wrong.append(problem)
             else:
                 members.append(first)
             continue
         ends = [p for p in (unplaceable(first, "opens a range at"),
-                            unplaceable(last, "closes a range at")) if p]
+                            unplaceable(last, "closes a range at")) if bool(p)]
         if ends:
             wrong += ends
             continue

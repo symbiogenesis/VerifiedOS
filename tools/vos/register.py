@@ -82,11 +82,11 @@ def read_register(corpus: Corpus) -> Register:
                 reg.body[current] = line
                 reg.accepts[current] = 0
                 reg.accept_text[current] = ""
-                if section:
+                if bool(section):
                     reg.per_section[section] += 1
 
         elif lead == "·":
-            if entry and line.startswith("· Accept:"):
+            if bool(entry) and line.startswith("· Accept:"):
                 # criteria are conjunctive, and they come before the lines that follow
                 # them: `entry` outlives the trace where `current` does not, so one
                 # written below the trace is caught here rather than going uncounted
@@ -94,7 +94,7 @@ def read_register(corpus: Corpus) -> Register:
                 reg.accept_text[entry] += " " + line
                 if saw_tail:
                     reg.late_accept.append(entry)
-            elif current:
+            elif bool(current):
                 m = _CONFER_RE.match(line)
                 if m:
                     # a property line conferring membership in a set another entry collects
@@ -201,7 +201,7 @@ def read_artifacts(corpus: Corpus) -> Artifacts:
             elif line.startswith("#"):
                 sec = None
                 excluding = bool(_EXCLUSION_SECTION_RE.match(line))
-            elif sec and line.startswith("| `"):
+            elif bool(sec) and line.startswith("| `"):
                 art.csr_rows[sec].append(line)
             elif (excluding and line.startswith("|")
                   and not _TABLE_RULE_RE.match(line)

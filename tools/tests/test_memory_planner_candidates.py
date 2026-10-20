@@ -8,7 +8,7 @@ import json
 import subprocess
 import tarfile
 import tempfile
-from collections.abc import Iterator
+from collections.abc import Generator
 from contextlib import contextmanager, nullcontext, redirect_stdout
 from dataclasses import asdict
 from pathlib import Path
@@ -213,7 +213,7 @@ def lock_spans_build_search_and_evidence() -> None:
         events: list[str] = []
 
         @contextmanager
-        def held(target: Path, what: str) -> Iterator[None]:
+        def held(target: Path, what: str) -> Generator[None]:
             events.append(f"{what} holds {target.name}")
             try:
                 yield

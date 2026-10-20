@@ -58,7 +58,7 @@ def run(ctx: Context) -> None:
 
     for ident in reg.ids:
         trace = reg.trace_of.get(ident)
-        if not trace:
+        if not bool(trace):
             continue
         derived = "r-" + ident[2:].lower()
 
@@ -79,7 +79,7 @@ def run(ctx: Context) -> None:
                 )
             shown = shown_section.split(".")[0]
             actual = corpus.anchor_sec.get(anchor)
-            if actual and shown != actual:
+            if bool(actual) and shown != actual:
                 wrong_section.append(f"{ident} shows §{shown} for #{anchor}, which sits in §{actual}")
 
         # a second citation, another requirement's bookmark, or a note after the link

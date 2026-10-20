@@ -36,7 +36,7 @@ import signal
 import subprocess
 import sys
 import time
-from collections.abc import Callable, Iterator
+from collections.abc import Callable, Generator
 from contextlib import contextmanager, suppress
 from contextvars import ContextVar
 from dataclasses import dataclass
@@ -403,7 +403,7 @@ _OBSERVER: ContextVar[Callable[[Compiled], None] | None] = ContextVar("gallina_o
 
 
 @contextmanager
-def observed(callback: Callable[[Compiled], None]) -> Iterator[None]:
+def observed(callback: Callable[[Compiled], None]) -> Generator[None]:
     """Tell `callback` of each prover run this thread makes inside the block, as it ends,
     the one that reaches its limit among them."""
     token = _OBSERVER.set(callback)

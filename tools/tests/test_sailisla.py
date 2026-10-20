@@ -8,7 +8,7 @@ import shutil
 import subprocess
 import tarfile
 import tomllib
-from collections.abc import Callable, Iterator
+from collections.abc import Callable, Generator
 from contextlib import contextmanager, nullcontext, redirect_stderr, redirect_stdout
 from pathlib import Path
 from types import SimpleNamespace
@@ -168,7 +168,7 @@ def _sail_pin_is_locked_release() -> None:
     lock = json.loads((TOOLS / "sail-isla/lock.json").read_text(encoding="utf-8"))
 
     def pin(version: str) -> sailisla.SailPin:
-        return cast(sailisla.SailPin, {**lock["sail"], "version": version})
+        return {**lock["sail"], "version": version}
 
     installed = 'installed: [\n  "ocaml.5.4.1"\n  "sail.0.20.3"\n  "sail_maker.0.20.3"\n]\n'
     with sandbox_tree({"tools/opam/sail.lock": installed}) as root:
@@ -187,7 +187,7 @@ def _sail_pin_is_locked_release() -> None:
 
 
 @contextmanager
-def _provisioning(root: Path) -> Iterator[None]:
+def _provisioning(root: Path) -> Generator[None]:
     """Everything `provision` reaches beyond its runner and the sandbox's files, faked:
     the lane lock, the prerequisites, the platform, the fetched sources and their lock
     override's check, the Rust install, an archive under the tracked Sail pin's

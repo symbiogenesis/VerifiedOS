@@ -11,7 +11,7 @@ import os
 import shutil
 import subprocess
 import tempfile
-from collections.abc import Iterable, Iterator
+from collections.abc import Generator, Iterable
 from contextlib import contextmanager
 from pathlib import Path
 
@@ -25,7 +25,7 @@ def digest(path: Path) -> str:
 
 
 @contextmanager
-def atomic_path(path: Path) -> Iterator[Path]:
+def atomic_path(path: Path) -> Generator[Path]:
     """Publish only on successful exit; callers close all handles before returning."""
     path.parent.mkdir(parents=True, exist_ok=True)
     with tempfile.NamedTemporaryFile(dir=path.parent, prefix=f".{path.name}.",

@@ -949,7 +949,7 @@ def _platform_imports(tree: ast.Module, banned: frozenset[str]) -> list[Site]:
                 if None in values.values():
                     stack.append((child, reach, child.test))
                     continue
-                taken = frozenset(platform for platform, value in values.items() if value)
+                taken = frozenset(platform for platform, value in values.items() if bool(value))
                 for branch, platforms in ((child.body, taken), (child.orelse, reach - taken)):
                     if platforms:
                         stack.append((ast.Module(body=branch, type_ignores=[]), platforms,

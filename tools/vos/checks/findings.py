@@ -114,9 +114,9 @@ def run(ctx: Context) -> None:
     for file, quantity, _, pattern in CLAIMS:
         result = figures.resolve_claim(ctx, file, pattern, str(ctx.q[quantity]),
                                        quantity)
-        if result.fixed:
+        if bool(result.fixed):
             rep.line(result.fixed)
-        if result.finding:
+        if bool(result.finding):
             found.append(result.finding)
 
     opened = sum(1 for e in index.entries

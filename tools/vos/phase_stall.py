@@ -629,7 +629,7 @@ def join(analysis: Analysis, comparison: Comparison) -> dict[str, Json]:
         # count of zero lies below the model on that term.
         switches = "refuted" if slot.switches == 0 else "covered"
         statuses.extend((stalls, residency, switches))
-        reasons.extend(reason for reason in (stalls_reason, residency_reason) if reason)
+        reasons.extend(reason for reason in (stalls_reason, residency_reason) if bool(reason))
         if residency == "unknown" and report.boundary_outstanding:
             reasons.append("boundary-outstanding-uncovered")
         if switches == "refuted":
@@ -651,7 +651,7 @@ def join(analysis: Analysis, comparison: Comparison) -> dict[str, Json]:
     drain, drain_reason = _term("boundary.d_pipe_completion", comparison.d_pipe_completion,
                                 drain_required, "drain ")
     statuses.append(drain)
-    if drain_reason:
+    if bool(drain_reason):
         reasons.append(drain_reason)
     arithmetic = phase_cost.assess(comparison)
     arithmetic_verdict = arithmetic["arithmetic_verdict"]

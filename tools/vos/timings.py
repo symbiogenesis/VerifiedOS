@@ -18,7 +18,7 @@ import os
 import sys
 import threading
 import time
-from collections.abc import Iterator
+from collections.abc import Generator
 from contextlib import contextmanager, suppress
 from pathlib import Path
 from typing import NamedTuple
@@ -111,7 +111,7 @@ class Clock:
         self._record(kind, name, ended.wall - begun.wall, begun.wall, cpu, child)
 
     @contextmanager
-    def timing(self, kind: str, name: str) -> Iterator[None]:
+    def timing(self, kind: str, name: str) -> Generator[None]:
         """Measure the block, whether it returns or raises."""
         begun = reading()
         try:

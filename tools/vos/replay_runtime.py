@@ -183,7 +183,7 @@ def _frame(pipe: _Pipe) -> tuple[str, Point, bool | None, bytes | None] | tuple[
     if matched is None:
         _fail("native protocol frame refuses")
     fields = matched.groups()
-    available = None if fields[5] is None else fields[5] == b"1"
+    available: bool | None = None if fields[5] is None else bool(fields[5] == b"1")
     word = None if fields[6] is None else bytes.fromhex(fields[6].decode("ascii"))
     return (raw[:1].decode("ascii"), _point(fields), available, word)
 

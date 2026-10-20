@@ -18,7 +18,7 @@ import tarfile
 import tempfile
 import time
 import tomllib
-from collections.abc import Iterator
+from collections.abc import Generator
 from dataclasses import asdict
 from pathlib import Path, PurePosixPath
 from typing import Any
@@ -216,7 +216,7 @@ checked before addressing local files; unexpected source files are also refused.
 
 
 @contextlib.contextmanager
-def hold_output(root: Path, output: Path) -> Iterator[Path]:
+def hold_output(root: Path, output: Path) -> Generator[Path]:
     """Hold the lock beside `output`, the lock a lane retirement takes, for one run.
 
     Cargo flocks `target/<profile>/.cargo-lock` and `$CARGO_HOME/.package-cache`, both

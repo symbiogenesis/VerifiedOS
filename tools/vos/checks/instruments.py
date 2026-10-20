@@ -703,7 +703,7 @@ def _selections(root: Path, tracked: set[str],
         asks, unread = _asks(tree, rel == _RIG_FILE) if tree else (None, [])
         stated = switches.get(rel, set())
         if asks is None:
-            if stated:
+            if bool(stated):
                 found.append(f"the table names {rel} as choosing {sorted(stated)}, and it "
                              "resolves no prover through gallina.prover")
         elif rel not in switches:
@@ -800,7 +800,7 @@ def _imported(node: ast.AST) -> dict[str, object]:
                     if a.name in _MODULES}
     elif isinstance(node, ast.Import):
         return {a.asname: _MODULES[a.name.removeprefix("vos.")] for a in node.names
-                if a.asname and a.name.removeprefix("vos.") in _MODULES
+                if bool(a.asname) and a.name.removeprefix("vos.") in _MODULES
                 and a.name.startswith("vos.")}
     return {}
 

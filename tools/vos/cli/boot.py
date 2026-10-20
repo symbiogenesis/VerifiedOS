@@ -33,7 +33,7 @@ SCOPE = ("boot harness evidence at the composed boundary; M7.1 acceptance stays 
 
 
 def _out(name: str, given: str | None) -> Path:
-    if given:
+    if bool(given):
         return Path(given)
     # The guest's outputs are the lane's; a host composition is derived output under the
     # ignored build tree, on freeze-emit's precedent.

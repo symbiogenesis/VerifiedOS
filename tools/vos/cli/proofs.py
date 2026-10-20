@@ -164,7 +164,7 @@ class Witnesses:
         rather than over names: one record reached both from the source and from a
         companion it Requires is one witnessed record and not two, so the figure this
         reports is comparable with the quantified count printed beside it."""
-        return sum(1 for record in self.quantified if self.witnesses.get(record))
+        return sum(1 for record in self.quantified if bool(self.witnesses.get(record)))
 
 
 def _split_top(text: str, mark: str) -> tuple[str, str] | None:
@@ -730,7 +730,7 @@ def _gate_modules(root: Path) -> list[Path]:
                 pending += [alias.name for alias in node.names]
             elif isinstance(node, ast.ImportFrom):
                 anchor = package[:len(package) + 1 - node.level] if node.level else []
-                named = ".".join([*anchor, *([node.module] if node.module else [])])
+                named = ".".join([*anchor, *([node.module] if bool(node.module) else [])])
                 pending += [named, *(f"{named}.{alias.name}" for alias in node.names)]
     return sorted(found)
 

@@ -529,9 +529,9 @@ def tag_plane(ctx: Context) -> None:
         # eleven. A tag-plane site therefore never needs a span to be exempted.
         r = figures.resolve_claim(ctx, file, pattern, expected[key],
                                   f"the tag plane's {key} figure")
-        if r.fixed:
+        if bool(r.fixed):
             rep.line(r.fixed)
-        if r.finding:
+        if bool(r.finding):
             missed.append(r.finding)
 
     # The two codewords R-15-181a prices, each held at the floor and at its own sums,
@@ -555,7 +555,7 @@ def tag_plane(ctx: Context) -> None:
             start, end = raw.rfind("\n", 0, m.start()) + 1, raw.find("\n", m.end())
             copy = _bands(raw[start:end if end >= 0 else len(raw)], SPEC, g, normative,
                           fallback, missed)
-            if held and copy and copy != held:
+            if bool(held) and bool(copy) and copy != held:
                 missed.append(f"{SPEC} restates R-15-247a's bands as {_band_text(copy)}, "
                               f"where the entry states {_band_text(held)}")
 

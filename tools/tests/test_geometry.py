@@ -13,7 +13,7 @@ uniqueness rule.
 """
 
 import tempfile
-from collections.abc import Iterator
+from collections.abc import Generator
 from contextlib import contextmanager
 from pathlib import Path
 
@@ -43,7 +43,7 @@ _FILES = {
 
 
 @contextmanager
-def _tree(files: dict[str, str]) -> Iterator[Path]:
+def _tree(files: dict[str, str]) -> Generator[Path]:
     """A throwaway root holding exactly `files`. No git: `read` opens paths and
     never the index, so the harness's tracked sandbox would buy nothing here."""
     with tempfile.TemporaryDirectory(prefix="vos-test-") as td:

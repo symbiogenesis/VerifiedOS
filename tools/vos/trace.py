@@ -183,7 +183,7 @@ class Verdict:
         return self.error is None and self.divergence is None
 
     def line(self) -> str:
-        if self.error:
+        if bool(self.error):
             return self.error
         if self.divergence:
             return f"prefix {self.prefix} of {self.compared} compared"

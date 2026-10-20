@@ -1714,7 +1714,7 @@ def _banned_list_covers_what_cannot_be_imported() -> None:
         return any(name == ban or name.startswith(ban + ".") for ban in listed)
 
     def separated(name: str) -> list[str]:
-        roots = {module.partition(".")[0] for module in (name, failed[name]) if module}
+        roots = {module.partition(".")[0] for module in (name, failed[name]) if bool(module)}
         return [_SEPARABLE[root] for root in sorted(roots) if root in _SEPARABLE]
 
     failed = _import_failures()

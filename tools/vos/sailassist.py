@@ -107,7 +107,7 @@ def toolchain(scratch: Path) -> dict[str, Any]:
     binaries["python"] = receipts.digest(Path(sys.executable))
     libraries: dict[str, str] = {}
     library: str | None = None
-    if compiler := shutil.which("sail"):
+    if bool(compiler := shutil.which("sail")):
         result = subprocess.run([compiler, "--dir"], cwd=scratch, capture_output=True, check=False, timeout=15)
         if result.returncode:
             raise ValueError("cannot identify the selected Sail library with sail --dir")
@@ -392,7 +392,7 @@ def typecheck(root: Path, directory: Path, log_root: Path, change: str,
         raise ValueError("a candidate needs a change description and a finite positive timeout")
     journal = load(directory)
     check_frozen(root, journal)
-    if reason := refusal(journal):
+    if bool(reason := refusal(journal)):
         raise ValueError(reason)
     before = manifest(root)
     number = len(journal["attempts"]) + 1

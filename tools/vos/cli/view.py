@@ -125,7 +125,7 @@ def weave(corpus: Corpus) -> tuple[list[str], int, list[str]]:
 def _output_path(root: Path, name: str | None) -> Path:
     """Keep derived output outside the checkout's source and indexed files."""
     base = root.resolve()
-    requested = Path(name) if name else Path("out/spec-woven.md")
+    requested = Path(name) if bool(name) else Path("out/spec-woven.md")
     path = (requested if requested.is_absolute() else base / requested).resolve()
     if path.is_relative_to(base):
         relative = path.relative_to(base).as_posix()

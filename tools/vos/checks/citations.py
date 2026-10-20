@@ -125,7 +125,7 @@ def _transcribable(reg: Register, cited: set[str]) -> set[str]:
     named = set(cited)
     for ident in cited:
         body = reg.body.get(ident)
-        if body:
+        if bool(body):
             named |= set(proofcites.ids(body))
     return named
 
