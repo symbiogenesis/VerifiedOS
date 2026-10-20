@@ -19,10 +19,11 @@ The initial source selection is:
 | CertiRocq | `49cd1c23b74678d36f7f37412a5c1ce6d00f41d2`, release `v0.9.1+9.1` | Preserve the qualified compiler's pipeline rather than adopt unrelated development work. |
 | MetaRocq | `9242c14bc377611a56d45283977ea754fd499c47` | Rocq `V9.3.0` selects this source in `dev/ci/ci-basic-overlay.sh`. Its selection is compatibility evidence, not acceptance of this oracle. |
 | WasmCert-Coq | `58a3d3f8b7af4dc8aa9351f254a9e672643b21f8`, release `v2.2.1` | The release selected by [CertiRocq PR 166](https://github.com/CertiRocq/certirocq/pull/166). Its published prover bound still excludes 9.3. |
+| Equations | `d562d8c413f4b0d2a837ef742d08fa59d14107e6` | Rocq `V9.3.0`'s CI selection; the newest released Equations package still excludes 9.3. |
 
 Keep OCaml 4.14.4, ocamlfind 1.9.8, CompCert 3.18 and ExtLib 0.13.2.
-Use Rocq 9.3.0 and Stdlib 9.2.0, with the released Equations package for that
-prover. Record the complete resolved closure before building; no implicit
+Use Rocq 9.3.0 and Stdlib 9.2.0. Keep Dune 3.23.1 and Mathematical Components
+2.4.0 from the oracle snapshot. Record the complete resolved closure before building; no implicit
 dependency downgrade is permitted. Read each selected source's actual licence
 and applicable file notices before building it, and bind archives, metadata,
 source revisions and patches by digest. Native outputs are not distributed.
