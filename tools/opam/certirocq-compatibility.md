@@ -5,6 +5,21 @@ current release. The production oracle stays at its qualified snapshot until
 the acceptance below holds. CertiRocq builds and checks remain local under
 the [instrument-route contract](../ci/README.md#instrument-switch-route).
 
+## Upstream assessment
+
+The 2026-10-19 reading of PR 166 at
+`ea16ec556ebc509a5c7fd42c60591b6eb3fdf30b` finds useful Wasm memory proofs,
+but its package still requires Coq below 9.2 and the old Equations edition.
+WasmCert's own replacement release excludes 9.3. The PR's passing Nix checks
+exercise 9.1; they establish no 9.3 result. PR 160 adapts a development switch
+and leaves package-bound changes to PR 159. Applying both PR heads would also
+adopt a newer compiler pipeline needing unreleased MetaRocq erasure work.
+
+The release-based candidate below avoids that unrelated pipeline change and
+targets the latest stable prover directly. Its metadata solution and actual
+source compatibility are separate questions. Neither open PR is by itself a
+qualified replacement for the current oracle.
+
 ## Bounded candidate contract
 
 Commit this contract before building or repairing the candidate. Use a private
@@ -88,3 +103,27 @@ must be dispatched; neither workflow performs these oracle checks. Retire each
 compatibility patch after a released source admits the target prover and passes
 the same acceptance. Rocq 9.2 is not a fallback candidate: the target is the
 kernel already selected for the project's proofs.
+
+## Same-prover grammar continuation
+
+The cross-version Menhir reading is a stopped comparison: the original
+Rocq 9.1.1 reading and the candidate's 9.3.0 reading differ in the parentheses
+printed around `parse`'s match return type. Retain that difference and its
+diagnostics; it is not a passing frozen reading.
+
+A separate bounded diagnostic reference may compile the original Menhir source
+at the target prover with only its three late `Proof` commands deleted. Preserve
+every original term, statement and tactic, the package build flags and the
+target environment. Keep the reference in its own native build tree, retain
+its missing-`Proof` warnings, and grant that reference no package acceptance.
+It is a reference for the grammar edit, not a replacement production source.
+
+Compare that reference's frozen public types, universes, executable bodies and
+assumptions for `pop`, `reduce_step` and `parse` byte for byte with the candidate
+that moves those commands before `refine`. Bind the complete source inventory,
+loaded library environment, logical mappings and compile settings; other
+source differences or a different same-prover reading stop this continuation.
+The existing total repair budget still applies. This separate target-version
+qualification does not change the authored-proof repair workflow or erase the
+failed cross-version comparison. All consumer, re-import and vector acceptance
+above remains due.
