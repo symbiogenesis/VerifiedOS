@@ -352,7 +352,8 @@ def _owned_logs(logs: Path, lane: str, peers: list[str]) -> tuple[list[Path], li
 # root: the proof workspace (`vos.cli.proofs._hold`). The other locks the tools' own
 # Python and shell producers take are `*.lock` files: `env.hold_lock` and
 # `env.build_lock` lock `<target>.lock` beside their target, and the toolchain
-# installer scripts `.<name>.lock`. A producer the tools run can lock files of its own
+# installer scripts `.<name>.lock`, and the private OpenSSL installer
+# `<prefix>/.install.lock`. A producer the tools run can lock files of its own
 # inside its output, and those are covered only through a `*.lock` its launcher holds
 # beside that output, and only while the launcher holds it: the curated emulator's
 # block-image lock through the `persistence.lock` a block persistence campaign holds

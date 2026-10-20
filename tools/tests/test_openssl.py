@@ -37,11 +37,12 @@ def _probe(prefix: Path, *, version: str | None = None,
     return run
 
 
-def _refuses(action: Callable[[], object], message: str) -> None:
+def _refuses(action: Callable[[], object], message: str | tuple[str, ...]) -> None:
     try:
         action()
     except ValueError as error:
-        ensure(message in str(error), f"wrong refusal: {error}")
+        messages = (message,) if isinstance(message, str) else message
+        ensure(any(wanted in str(error) for wanted in messages), f"wrong refusal: {error}")
         return
     raise AssertionError("oracle identity accepted a bad control")
 
@@ -98,7 +99,10 @@ def explicit_selection_and_owned_installation() -> None:
         marker = prefix / "someone-elses-file"
         marker.write_text("preserve", encoding="utf-8")
         with patch.object(openssl.sys, "platform", "linux"):
-            _refuses(lambda: openssl.install(prefix, 2), "nonempty unowned")
+            # Linux's temporary fixture can reach the persistent-prefix guard first;
+            # either boundary must refuse before touching the unrelated contents.
+            _refuses(lambda: openssl.install(prefix, 2),
+                     ("nonempty unowned", "direct persistent native prefix"))
         ensure(marker.read_text() == "preserve", "bootstrap overwrote an unrelated installation")
 
 

@@ -4,6 +4,7 @@
 import argparse
 import ast
 import errno
+import hashlib
 import io
 import json
 import os
@@ -824,11 +825,21 @@ def _idealloc_build_lock() -> None:
         output = lane / "memory-planner-idealloc"
         checkout = root / "checkout"
         (checkout / candidates.BRIDGE_PATH).parent.mkdir(parents=True)
-        (checkout / candidates.PIN_PATH).write_text(json.dumps(
-            {"schema": candidates.PIN_SCHEMA, "files": [], "commit": "0" * 40, "license": "fixture"}),
-            encoding="utf-8")
+        sources = {"Cargo.lock": "version = 3\npackage = []\n",
+                   "Cargo.toml": '[workspace]\nmembers = ["coreba"]\n',
+                   "coreba/Cargo.toml": '[package]\nname = "coreba"\nversion = "0.0.0"\n'}
+        pin = {"schema": candidates.PIN_SCHEMA, "commit": "0" * 40, "license": "fixture",
+               "files": [{"path": name, "sha256": hashlib.sha256(text.encode()).hexdigest()}
+                         for name, text in sources.items()],
+               "cargo_lock": "idealloc.Cargo.lock", "cargo_lock_overrides": {}}
+        (checkout / candidates.PIN_PATH).write_text(json.dumps(pin), encoding="utf-8")
+        (checkout / candidates.PIN_PATH).with_name("idealloc.Cargo.lock").write_text(
+            sources["Cargo.lock"], encoding="utf-8")
         (checkout / candidates.BRIDGE_PATH).write_text("// bridge\n", encoding="utf-8")
-        (output / "upstream" / "coreba" / "src" / "bin").mkdir(parents=True)
+        for name, text in sources.items():
+            source = output / "upstream" / name
+            source.parent.mkdir(parents=True, exist_ok=True)
+            source.write_text(text, encoding="utf-8")
         seen: list[str] = []
 
         def cargo(*_: object) -> tuple[str, dict[str, str], dict[str, str]]:
@@ -1340,6 +1351,7 @@ def _producer_lock_inventory() -> None:
     `flock` neither excludes nor is excluded by."""
     lock_files = {("vos/env.py", "_flock"), ("vos/env.py", "_unlock"),  # env._lock_path
                   ("vos/cli/fanout.py", "_exclusive"),  # out/fanout/.lock, host side
+                  ("vos/openssl.py", "install"),  # <private prefix>/.install.lock
                   ("vos/fanout_retire.py", "retain_native")}  # the retirement itself
     directories = {("vos/cli/proofs.py", "_hold")}
     sources = _tool_sources("*.py")
