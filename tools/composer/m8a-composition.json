@@ -47,7 +47,7 @@
       ],
       "descriptor": {
         "path": "tools/composer/packages/rot-firmware.json",
-        "sha256": "98ee998798505a59f7e57e211c21ffa3b0aa6f8b2f3031b04e52ae1a6034aa58"
+        "sha256": "c2e98286fe7d27d24e13954c9d055b516c9f4674ec8fa36a9e4111991b740abc"
       },
       "artifact_slot": "rot-firmware-artifact",
       "entry": null,

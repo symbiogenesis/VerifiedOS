@@ -67,7 +67,7 @@
       "id": "boot-signature-boundary",
       "source": {
         "path": "firmware/crypto/README.md",
-        "sha256": "dc03f13b67f6252887c8c51dee3902bb911a48d1cfd47fe97816aa9f00f0fbd6"
+        "sha256": "963fac48ad51b8cd318bb419033fd31845cc296353ed02d3f207a515cd491502"
       }
     }
   ],
