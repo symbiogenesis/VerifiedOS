@@ -26,21 +26,44 @@ file hashes and reviewed MIT license are in the
 and permission notice remain in the downloaded workspace. Registry dependency
 licenses and source identities are recorded separately in the build receipt.
 
-The bridge is the only added upstream binary target. The upstream algorithms and
-dependency lock remain unchanged. Cargo builds only `coreba` and the bridge.
+The bridge is the only added upstream binary target. The downloaded upstream
+algorithms and dependency lock remain unchanged. A fresh native build copy uses
+the qualified [Cargo override](../../../tools/memory-planner/idealloc.Cargo.lock)
+declared by the pin manifest; Cargo builds only `coreba` and the bridge.
 
-That unchanged lock carries published RustSec advisories, as the OSV database
-listed them on 2026-09-29. In `coreba`'s dependency closure, rand 0.8.5 is
-unsound with a custom logger
-([RUSTSEC-2026-0097](https://rustsec.org/advisories/RUSTSEC-2026-0097.html),
-fixed in 0.8.6), and crossbeam-epoch 0.9.18, reached through Rayon, can
-dereference an invalid pointer in its `fmt::Pointer` implementation
-([RUSTSEC-2026-0204](https://rustsec.org/advisories/RUSTSEC-2026-0204.html),
-fixed in 0.9.20). The unmaintained adler 1.0.2 and ttf-parser 0.20.0 are
-locked for other workspace members and are not compiled here. The lock stays
-byte-identical to upstream's so the build reproduces the published
-implementation; the executable is an untrusted candidate producer, and the
-portable checker decides every placement it returns.
+The override updates rand to 0.8.8 and crossbeam-epoch to 0.9.21, clearing
+[RUSTSEC-2026-0097](https://rustsec.org/advisories/RUSTSEC-2026-0097.html) and
+[RUSTSEC-2026-0204](https://rustsec.org/advisories/RUSTSEC-2026-0204.html) from
+`coreba`'s selected dependency closure. An OSV query of the complete override
+lock on 2026-10-20 reports only adler 1.0.2
+([RUSTSEC-2025-0056](https://rustsec.org/advisories/RUSTSEC-2025-0056.html)) and
+ttf-parser 0.20.0
+([RUSTSEC-2026-0192](https://rustsec.org/advisories/RUSTSEC-2026-0192.html)),
+both locked for other workspace members and absent from this build's selected
+graph. Resolving those advisories requires changing upstream's package graph
+or manifests, outside this qualified override. The executable remains an untrusted candidate
+producer, and the portable checker decides every placement it returns.
+
+### Qualified Cargo overrides
+
+A build may use a tracked, resolver-generated `idealloc.Cargo.lock` whose
+registry-package overrides are explicitly declared in `idealloc.json`.
+Each override changes only a unique registry entry's version and checksum to
+a strictly later plain release. Package membership, dependency fields and edges,
+source fields, other package keys and top-level lock metadata must remain
+exactly those of the verified upstream lock. Undeclared, stale, malformed or
+graph-changing overrides are refused before tool installation or compilation.
+The override applies only to the fresh native build copy; it never changes the
+downloaded source or the upstream lock's recorded digest.
+
+The build receipt binds the upstream lock, override, pin manifest, shared Rust
+toolchain and actual dependency archives. Every changed package's own license
+instruments are read before adoption. Acceptance requires an actual locked
+release bridge build, a fixed direct bridge fixture checked by the portable
+feasibility validator, real malformed-input refusals and wrong-identity/overlap
+negative-output controls. Focused tests must reject changed graph/format,
+undeclared and stale overrides. These checks execute no benchmark or timing
+comparison campaign; full suites and benchmarks remain hosted.
 
 The shared [Rust toolchain pin](../../../tools/rust-toolchain.json), which the
 [optional Isla tools](../../../tools/sail-isla/README.md) also read, fixes the
