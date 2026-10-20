@@ -19,8 +19,11 @@ R-04-001a and R-13-018a through R-13-018c remain the normative owners.
 The 1.2 source mode is the common mandatory language base useful to the pilot
 and both surveyed OpenCL routes; it does not discard the later API or optional
 language features from the audit. 3.0.19 is a reproducible qualification target,
-not a claim to be the newest standard. The upstream tags read on 2026-09-19
-also include [3.1.2 at 219be24fc8947c68ee45b4d25b55a92b8f799f29](https://github.com/KhronosGroup/OpenCL-Docs/tree/219be24fc8947c68ee45b4d25b55a92b8f799f29).
+not a claim to be the newest standard. The upstream tags checked on 2026-10-19
+identify [3.1.2 at 219be24fc8947c68ee45b4d25b55a92b8f799f29](https://github.com/KhronosGroup/OpenCL-Docs/tree/219be24fc8947c68ee45b4d25b55a92b8f799f29)
+as the latest release. The [development tip at f03cc607100cc8212cb6aff1d92938448c9c1be0](https://github.com/KhronosGroup/OpenCL-Docs/tree/f03cc607100cc8212cb6aff1d92938448c9c1be0)
+also carries the 3.1 core feature block, including
+`clGetKernelSuggestedLocalWorkSize`; it is outside this frozen audit.
 Q30g owns a clause/API/capability delta audit before a 3.1 claim or next feature
 slice: retain every applicable addition, assign its proof and resource work,
 and explain any rejection against a requirement or measured limit. The pilot
