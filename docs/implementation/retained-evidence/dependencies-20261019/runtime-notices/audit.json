@@ -1,0 +1,68 @@
+{
+  "scope": "read-only local Ubuntu runtime/notice identities; hosted workflow must read its own selected installed files",
+  "package_versions": "gcc-16-base:arm64\t16-20260322-1ubuntu1\nlibc6:arm64\t2.43-2ubuntu2.4\nlibgcc-s1:arm64\t16-20260322-1ubuntu1\nlibstdc++6:arm64\t16-20260322-1ubuntu1\n",
+  "libraries": [
+    {
+      "path": "/usr/lib/aarch64-linux-gnu/libc.so.6",
+      "resolved": "/usr/lib/aarch64-linux-gnu/libc.so.6",
+      "sha256": "7b17086ce95b15145e6c2c5f8146395f80e2df1af2636fbf78e90c546a70df06",
+      "package_owner": "libc6:arm64: /usr/lib/aarch64-linux-gnu/libc.so.6"
+    },
+    {
+      "path": "/usr/lib/aarch64-linux-gnu/libm.so.6",
+      "resolved": "/usr/lib/aarch64-linux-gnu/libm.so.6",
+      "sha256": "ffeae799646fae7a8af80402a88f4bc84bfc110af834f5e756aae2fa0a1a9602",
+      "package_owner": "libc6:arm64: /usr/lib/aarch64-linux-gnu/libm.so.6"
+    },
+    {
+      "path": "/usr/lib/aarch64-linux-gnu/ld-linux-aarch64.so.1",
+      "resolved": "/usr/lib/aarch64-linux-gnu/ld-linux-aarch64.so.1",
+      "sha256": "7cdd4ce693d93790bf088dca2e86857f758335b6010d913e086fa384e7704a46",
+      "package_owner": "libc6:arm64: /usr/lib/aarch64-linux-gnu/ld-linux-aarch64.so.1"
+    },
+    {
+      "path": "/usr/lib/aarch64-linux-gnu/libstdc++.so.6",
+      "resolved": "/usr/lib/aarch64-linux-gnu/libstdc++.so.6.0.35",
+      "sha256": "d604f900ea3d02c57ad0a97b48b1666262759be4accc08bf37150b36715d48ef",
+      "package_owner": "libstdc++6:arm64: /usr/lib/aarch64-linux-gnu/libstdc++.so.6.0.35"
+    },
+    {
+      "path": "/usr/lib/aarch64-linux-gnu/libgcc_s.so.1",
+      "resolved": "/usr/lib/aarch64-linux-gnu/libgcc_s.so.1",
+      "sha256": "a886d874bfcc27b5b3de47504eb861af8f15cf8c2aea160bd3b973e1a1a95255",
+      "package_owner": "libgcc-s1:arm64: /usr/lib/aarch64-linux-gnu/libgcc_s.so.1"
+    }
+  ],
+  "notices": [
+    {
+      "path": "/usr/share/doc/libc6/copyright",
+      "resolved": "/usr/share/doc/libc6/copyright",
+      "sha256": "c31d10900fdb95d1889005145a2205bb75e3bc018d3ec8265b81364901748e09",
+      "bytes": 53241
+    },
+    {
+      "path": "/usr/share/doc/libstdc++6/copyright",
+      "resolved": "/usr/share/doc/gcc-16-base/copyright",
+      "sha256": "d7815dd2364180835891947d96d808878204dea45b8597602a7952332195fbea",
+      "bytes": 73896
+    },
+    {
+      "path": "/usr/share/doc/libgcc-s1/copyright",
+      "resolved": "/usr/share/doc/gcc-16-base/copyright",
+      "sha256": "d7815dd2364180835891947d96d808878204dea45b8597602a7952332195fbea",
+      "bytes": 73896
+    },
+    {
+      "path": "/usr/share/common-licenses/LGPL-2.1",
+      "resolved": "/usr/share/common-licenses/LGPL-2.1",
+      "sha256": "20e50fe7aae3e56378ebf0417d9de904f55a0e61e4df315333e632a4d3555d95",
+      "bytes": 26419
+    },
+    {
+      "path": "/usr/share/common-licenses/GPL-3",
+      "resolved": "/usr/share/common-licenses/GPL-3",
+      "sha256": "3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986",
+      "bytes": 35149
+    }
+  ]
+}

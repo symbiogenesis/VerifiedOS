@@ -435,9 +435,13 @@ The artifact contains `model-snapshot.tar.gz`: the emulator, its original
 `model-build.json` and `model-build.log`, source/run identity, file hashes,
 dynamic-library inventory and applicable notices. It includes the selected
 model/CHERI, dependency and Sail-runtime notices, and the prominent GMP-use notice
-with LGPL-3/GPL-3 texts. Packaging requires resolved dynamic system GMP; no system
-library or compiler binary accompanies the emulator. Recipients can substitute a
-compatible modified GMP through that dynamic interface.
+with LGPL-3/GPL-3 texts, glibc's use notice and LGPL-2.1 text, and GCC runtime
+copyrights with their linking exception and GPL-3 text. `system-libraries.json`
+binds each resolved shared library to its hash, installed package/version and
+notice hash. Packaging requires the reviewed dynamic system libraries and refuses
+an additional dependency; no system library or compiler binary accompanies the
+emulator. Recipients can substitute compatible modified libraries through those
+dynamic interfaces.
 
 Download the artifact from the successful run named for the exact revision and
 architecture, verify `snapshot.json`'s file hashes, and unpack it in the assigned
@@ -449,6 +453,12 @@ identity is never relabelled. The
 can then run locally without a local full-suite run. This standalone route may be
 read to obtain its artifact; the separate Guest CI handoff still finishes without
 polling or waiting for Guest CI.
+
+The [package-only preparation receipt](../../docs/implementation/retained-evidence/dependencies-20261019/runtime-notices/preparation.json),
+SHA-256 `164de6e518bf681e3f32e6869c5144b5455b473813cddec16e86e793ad28e686`,
+checks the packaging script, notices, library identities and executable mode
+against a historical emulator. It is preparation evidence only; a successful
+current hosted model build and its full CTest receipt remain required.
 
 ## OpenSSL oracle refresh
 

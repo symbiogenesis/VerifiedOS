@@ -132,6 +132,62 @@ jobs:
                          Path("/usr/share/common-licenses/LGPL-3"),
                          Path("/usr/share/common-licenses/GPL-3")):
               shutil.copyfile(source, notices / ("GMP-" + source.name))
+          glibc = sorted(set(re.findall(r"\b(?:libc\.so\.6|libm\.so\.6|ld-linux[\w.-]+)", linked)))
+          if "libc.so.6" not in glibc:
+              raise SystemExit("Snapshot requires the declared dynamic system C library")
+          (notices / "GLIBC-USE.txt").write_text(
+              "sail_riscv_sim uses the system GNU C Library: " + ", ".join(glibc) + ".\n"
+              "The library's default grant is LGPL-2.1-or-later; its package\n"
+              "copyright retains the separately licensed file exceptions.\n"
+              "The executable remains dynamically linked to compatible system\n"
+              "libraries, so recipients can use compatible modified libraries.\n"
+              "No C library, math library or dynamic loader is included.\n")
+          for source in (Path("/usr/share/doc/libc6/copyright"),
+                         Path("/usr/share/common-licenses/LGPL-2.1")):
+              shutil.copyfile(source, notices / ("GLIBC-" + source.name))
+          (notices / "GCC-RUNTIME-USE.txt").write_text(
+              "sail_riscv_sim uses the system libstdc++ and libgcc runtimes.\n"
+              "These runtimes use GPL-3.0-or-later with GCC Runtime Library\n"
+              "Exception 3.1, reproduced in the package copyright notices.\n"
+              "GCC-GPL-3 supplies the GPL text. Shared libraries are not included.\n")
+          shutil.copyfile("/usr/share/common-licenses/GPL-3", notices / "GCC-GPL-3")
+          packages = {"libgmp.so.10": ("libgmp10", "GMP-copyright"),
+                      "libstdc++.so.6": ("libstdc++6", "GCC-libstdc++6-copyright"),
+                      "libgcc_s.so.1": ("libgcc-s1", "GCC-libgcc-s1-copyright"),
+                      "libc.so.6": ("libc6", "GLIBC-copyright"),
+                      "libm.so.6": ("libc6", "GLIBC-copyright")}
+          libraries = {}
+          for mapped, loader in re.findall(r"=>\s+(/\S+)|^\s*(/\S+)", linked, re.MULTILINE):
+              path = Path(mapped or loader)
+              name = path.name
+              wanted = ("libc6", "GLIBC-copyright") if name.startswith("ld-linux-") else packages.get(name)
+              if wanted is None:
+                  raise SystemExit("Unreviewed dynamic dependency: " + name)
+              resolved = path.resolve(strict=True)
+              owners = subprocess.check_output(["dpkg-query", "-S", str(resolved)], text=True).strip().splitlines()
+              if len(owners) != 1:
+                  raise SystemExit("Ambiguous system-library owner: " + str(resolved))
+              owner = owners[0].rsplit(": ", 1)[0]
+              if owner.split(":")[0] != wanted[0]:
+                  raise SystemExit("Unexpected system-library package: " + owner)
+              version = subprocess.check_output(["dpkg-query", "-W", "-f=${Version}", owner], text=True).strip()
+              source = Path("/usr/share/doc") / wanted[0] / "copyright"
+              shutil.copyfile(source, notices / wanted[1])
+              libraries[name] = {"path": str(path), "resolved_path": str(resolved),
+                                 "sha256": hashlib.sha256(resolved.read_bytes()).hexdigest(),
+                                 "package": owner, "version": version, "notice": "notices/" + wanted[1],
+                                 "notice_sha256": hashlib.sha256(source.read_bytes()).hexdigest()}
+          if not set(packages) <= set(libraries):
+              raise SystemExit("Snapshot lacks its declared dynamic runtime libraries")
+          (output / "system-libraries.json").write_text(json.dumps(libraries, indent=2) + "\n")
+          (output / "SYSTEM-RUNTIME-USE.txt").write_text(
+              "This emulator uses the system GNU MP and GNU C Library, and the\n"
+              "GCC libstdc++ and libgcc runtimes. Their grants and use notices\n"
+              "are in notices/GMP-USE.txt, GLIBC-USE.txt and GCC-RUNTIME-USE.txt.\n"
+              "The notices directory includes package copyrights, LGPL-3,\n"
+              "LGPL-2.1, GPL-3 and GCC Runtime Library Exception 3.1.\n"
+              "The shared libraries remain replaceable and are not bundled.\n"
+              "system-libraries.json identifies the actual build-time libraries.\n")
           identity = {
               "revision": os.environ["TESTED_REVISION"],
               "run_url": "https://github.com/" + os.environ["GITHUB_REPOSITORY"] + "/actions/runs/" + os.environ["GITHUB_RUN_ID"],

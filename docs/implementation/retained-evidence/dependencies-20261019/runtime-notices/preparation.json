@@ -1,0 +1,124 @@
+{
+  "checked_utc": "2026-10-20T01:56:11.620350+00:00",
+  "scope": "diagnostic package preparation against historical existing model only; no model build, CTest, campaigns or final source acceptance",
+  "source_acceptance": false,
+  "tooling_lane_revision": "0683ae79113a942ca7138e48014caf4198fe5b7c",
+  "workflow_sha256": "cf0ddeae2c209f3582eef30199f369d7c780d714e6b81cb97cf78bfd10965a8b",
+  "config_sha256": "a97beb0e029cc3fe92b201737a30322637a39fe752bfdcca047703205eab8cf2",
+  "package_script_sha256": "5453b38448151c2be843ecd3eb01b585c818788363ed43b5aea4f3285a155879",
+  "linters": [
+    {
+      "tool": "zizmor",
+      "command": [
+        "/root/build/lane-deps-tooling-20261019/workflow-review-venv/bin/zizmor",
+        "--offline",
+        "/tmp/vos-deps-tooling-20261019/snapshot-runtime-preparation-6nmjizog/model-snapshot.yml"
+      ],
+      "exit": 0,
+      "stdout": "No findings to report. Good job! (1 suppressed)\n",
+      "stderr": " INFO zizmor: \ud83c\udf08 zizmor v1.31.1\n INFO audit: zizmor: \ud83c\udf08 completed /tmp/vos-deps-tooling-20261019/snapshot-runtime-preparation-6nmjizog/model-snapshot.yml\n"
+    },
+    {
+      "tool": "actionlint",
+      "command": [
+        "/root/build/lane-deps-tooling-20261019/actionlint/actionlint_1.7.12_linux_arm64/actionlint",
+        "-shellcheck=",
+        "-pyflakes=",
+        "-config-file",
+        "/tmp/vos-deps-tooling-20261019/snapshot-runtime-preparation-6nmjizog/actionlint.yml",
+        "/tmp/vos-deps-tooling-20261019/snapshot-runtime-preparation-6nmjizog/model-snapshot.yml"
+      ],
+      "exit": 0,
+      "stdout": "",
+      "stderr": ""
+    }
+  ],
+  "build": "/root/build/verifiedos-model",
+  "logs": "/root/logs",
+  "output": "/tmp/vos-deps-tooling-20261019/snapshot-runtime-preparation-6nmjizog",
+  "package_exit": 0,
+  "stdout": "",
+  "stderr": "",
+  "verdict": "preparation passed only",
+  "archive_sha256": "e69faa168da9cd976de31c4bef53170ae0445714b305e2ac65512b1c730e2fea",
+  "snapshot_identity_sha256": "8c61712668cd96a1d1b40d9918493dcce3fbda331834a5c38590c7b8440ca197",
+  "system_libraries_sha256": "2a91592b4a60dbaaa3410d46a9d3a194cf07c8860d21446222daf1a58be213d2",
+  "packaged_files": 42,
+  "binary_mode": "0755",
+  "archive_binary_mode": "0755",
+  "expected_library_count": 6,
+  "libraries": {
+    "libgmp.so.10": {
+      "path": "/usr/lib/aarch64-linux-gnu/libgmp.so.10",
+      "resolved_path": "/usr/lib/aarch64-linux-gnu/libgmp.so.10.5.0",
+      "sha256": "29f12afa1650be2b39dce1d298cf6b308ab13bea4497e07572c3e24e02b8dcc0",
+      "package": "libgmp10:arm64",
+      "version": "2:6.3.0+dfsg-5ubuntu2",
+      "notice": "notices/GMP-copyright",
+      "notice_sha256": "7d366aef5ba325150246de1d7820c4c9926cd27ca61a69948492b26cd3b61601"
+    },
+    "libstdc++.so.6": {
+      "path": "/usr/lib/aarch64-linux-gnu/libstdc++.so.6",
+      "resolved_path": "/usr/lib/aarch64-linux-gnu/libstdc++.so.6.0.35",
+      "sha256": "d604f900ea3d02c57ad0a97b48b1666262759be4accc08bf37150b36715d48ef",
+      "package": "libstdc++6:arm64",
+      "version": "16-20260322-1ubuntu1",
+      "notice": "notices/GCC-libstdc++6-copyright",
+      "notice_sha256": "d7815dd2364180835891947d96d808878204dea45b8597602a7952332195fbea"
+    },
+    "libm.so.6": {
+      "path": "/usr/lib/aarch64-linux-gnu/libm.so.6",
+      "resolved_path": "/usr/lib/aarch64-linux-gnu/libm.so.6",
+      "sha256": "ffeae799646fae7a8af80402a88f4bc84bfc110af834f5e756aae2fa0a1a9602",
+      "package": "libc6:arm64",
+      "version": "2.43-2ubuntu2.4",
+      "notice": "notices/GLIBC-copyright",
+      "notice_sha256": "c31d10900fdb95d1889005145a2205bb75e3bc018d3ec8265b81364901748e09"
+    },
+    "libgcc_s.so.1": {
+      "path": "/usr/lib/aarch64-linux-gnu/libgcc_s.so.1",
+      "resolved_path": "/usr/lib/aarch64-linux-gnu/libgcc_s.so.1",
+      "sha256": "a886d874bfcc27b5b3de47504eb861af8f15cf8c2aea160bd3b973e1a1a95255",
+      "package": "libgcc-s1:arm64",
+      "version": "16-20260322-1ubuntu1",
+      "notice": "notices/GCC-libgcc-s1-copyright",
+      "notice_sha256": "d7815dd2364180835891947d96d808878204dea45b8597602a7952332195fbea"
+    },
+    "libc.so.6": {
+      "path": "/usr/lib/aarch64-linux-gnu/libc.so.6",
+      "resolved_path": "/usr/lib/aarch64-linux-gnu/libc.so.6",
+      "sha256": "7b17086ce95b15145e6c2c5f8146395f80e2df1af2636fbf78e90c546a70df06",
+      "package": "libc6:arm64",
+      "version": "2.43-2ubuntu2.4",
+      "notice": "notices/GLIBC-copyright",
+      "notice_sha256": "c31d10900fdb95d1889005145a2205bb75e3bc018d3ec8265b81364901748e09"
+    },
+    "ld-linux-aarch64.so.1": {
+      "path": "/lib/ld-linux-aarch64.so.1",
+      "resolved_path": "/usr/lib/aarch64-linux-gnu/ld-linux-aarch64.so.1",
+      "sha256": "7cdd4ce693d93790bf088dca2e86857f758335b6010d913e086fa384e7704a46",
+      "package": "libc6:arm64",
+      "version": "2.43-2ubuntu2.4",
+      "notice": "notices/GLIBC-copyright",
+      "notice_sha256": "c31d10900fdb95d1889005145a2205bb75e3bc018d3ec8265b81364901748e09"
+    }
+  },
+  "notice_hashes": {
+    "notices/GCC-GPL-3": "3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986",
+    "notices/GCC-RUNTIME-USE.txt": "adb42eb622eee5d97c3355690f83a3f7d9413a628343898dfd7786dee2e90300",
+    "notices/GCC-libgcc-s1-copyright": "d7815dd2364180835891947d96d808878204dea45b8597602a7952332195fbea",
+    "notices/GCC-libstdc++6-copyright": "d7815dd2364180835891947d96d808878204dea45b8597602a7952332195fbea",
+    "notices/GLIBC-LGPL-2.1": "20e50fe7aae3e56378ebf0417d9de904f55a0e61e4df315333e632a4d3555d95",
+    "notices/GLIBC-USE.txt": "3053e6607246cb60bec52962dc1a9d9acd817e53f79dabbbf738bfcb1b938343",
+    "notices/GLIBC-copyright": "c31d10900fdb95d1889005145a2205bb75e3bc018d3ec8265b81364901748e09",
+    "notices/GMP-GPL-3": "3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986",
+    "notices/GMP-LGPL-3": "e3a994d82e644b03a792a930f574002658412f62407f5fee083f2555c5f23118",
+    "notices/GMP-USE.txt": "58d3a5055377dcf37037b5071c8a7df45fdbbbb739a0c7af97fe4246f07bfd84",
+    "notices/GMP-copyright": "7d366aef5ba325150246de1d7820c4c9926cd27ca61a69948492b26cd3b61601"
+  },
+  "archive_members_verified": 43,
+  "all_packaged_file_hashes_verified": true,
+  "no_shared_library_binaries_in_archive": true,
+  "input_workflow_unchanged": true,
+  "passed": true
+}
