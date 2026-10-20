@@ -22,8 +22,10 @@ The initial source selection is:
 | Equations | `d562d8c413f4b0d2a837ef742d08fa59d14107e6` | Rocq `V9.3.0`'s CI selection; the newest released Equations package still excludes 9.3. |
 
 Keep OCaml 4.14.4, ocamlfind 1.9.8, CompCert 3.18 and ExtLib 0.13.2.
-Use Rocq 9.3.0 and Stdlib 9.2.0. Keep Dune 3.23.1 and Mathematical Components
-2.4.0 and Menhir/MenhirLib 20260209 from the oracle snapshot. WasmCert's new
+Use Rocq 9.3.0 and Stdlib 9.2.0. Keep Dune 3.23.1 and Menhir/MenhirLib
+20260209 from the oracle snapshot. Mathematical Components selects 2.6.0,
+whose published bounds admit the prover; 2.4.0 and 2.5.0 exclude it.
+WasmCert's new
 `rocq-parseque` dependency selects release 0.3.1, replacing `coq-parseque` 0.2.2.
 MenhirLib's published bound also needs a target-only metadata trial.
 Record the complete resolved closure before building; no implicit
