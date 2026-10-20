@@ -3,6 +3,7 @@
 
 import argparse
 import copy
+import hashlib
 import io
 import json
 import subprocess
@@ -15,7 +16,7 @@ from pathlib import Path
 from typing import Any
 from unittest.mock import patch
 
-from tests.harness import TOOLS, Case, ensure
+from tests.harness import TOOLS, Case, ensure, sandbox_tree
 from vos import memory_planner as planner
 from vos import memory_planner_candidates as candidates
 from vos.cli import memory_planner_candidates as cli
@@ -161,6 +162,46 @@ def pin_manifest_schema_is_current() -> None:
            "the idealloc manifest must be the schema whose Rust pin lives in the shared owner")
 
 
+def override_copy_and_early_refusal() -> None:
+    upstream = ('version = 3\n[[package]]\nname = "crate"\nversion = "1.0.0"\n'
+                'source = "registry+https://github.com/rust-lang/crates.io-index"\n'
+                f'checksum = "{"a" * 64}"\ndependencies = []\n')
+    override = upstream.replace('"1.0.0"', '"1.0.1"').replace('"' + "a" * 64 + '"', '"' + "b" * 64 + '"')
+    selected = {"Cargo.lock": upstream, "Cargo.toml": "[workspace]\nmembers = []\n"}
+    pin = {"schema": candidates.PIN_SCHEMA, "commit": "0" * 40, "license": "MIT",
+           "files": [{"path": name, "sha256": hashlib.sha256(text.encode()).hexdigest()}
+                     for name, text in selected.items()],
+           "cargo_lock": "idealloc.Cargo.lock", "cargo_lock_overrides": {"crate": "1.0.1"}}
+    with sandbox_tree({candidates.PIN_PATH: json.dumps(pin),
+                       "tools/memory-planner/idealloc.Cargo.lock": override}) as root:
+        output = root / "native"
+        source = output / "upstream"
+        source.mkdir(parents=True)
+        for name, text in selected.items():
+            (source / name).write_bytes(text.encode("utf-8"))
+        (source / "unselected.rs").write_text("stale source", encoding="utf-8")
+        build = candidates._build_copy(root, output, source, pin)
+        ensure((source / "Cargo.lock").read_text(encoding="utf-8") == upstream,
+               "the downloaded upstream lock must stay pristine")
+        ensure((build / "Cargo.lock").read_text(encoding="utf-8") == override
+               and not (build / "unselected.rs").exists(),
+               "only selected source and the declared override reach the fresh build copy")
+        (build / "stale.rs").write_text("stale build", encoding="utf-8")
+        candidates._build_copy(root, output, source, pin)
+        ensure(not (build / "stale.rs").exists(), "a previous build must not contribute source")
+        (root / "tools/memory-planner/idealloc.Cargo.lock").write_text(
+            override.replace("dependencies = []", 'dependencies = ["undeclared"]'), encoding="utf-8")
+        with (patch.object(candidates, "native_output", return_value=output),
+              patch.object(candidates, "rust_environment") as install):
+            try:
+                candidates.build_idealloc(root, output)
+            except ValueError:
+                pass
+            else:
+                raise AssertionError("a graph-changing override reached the build")
+            ensure(not install.called, "an override must be refused before tool installation")
+
+
 def rust_component_digest_mismatch_is_refused() -> None:
     with tempfile.TemporaryDirectory() as temporary:
         output = Path(temporary)
@@ -280,6 +321,7 @@ def cases() -> list[Case]:
             Case("comparison corpus local candidates checked", corpus_candidates_are_checked_and_repeatable),
             Case("dependency archive and unpacked-source tampering refused", dependency_archive_and_source_identity),
             Case("idealloc pin manifest schema leaves Rust to its owner", pin_manifest_schema_is_current),
+            Case("idealloc override preserves source and refuses drift before installers", override_copy_and_early_refusal),
             Case("Rust component digest mismatch refused before install", rust_component_digest_mismatch_is_refused),
             Case("optional setup failure preserves CLI baseline", setup_failure_preserves_cli_baseline),
             Case("output lock spans build, search and evidence", lock_spans_build_search_and_evidence),

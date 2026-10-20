@@ -112,8 +112,35 @@ def owner_moves_the_isla_stamp() -> None:
     ensure(before != after, "a Rust pin change must invalidate the Isla provision stamp")
 
 
+def registry_lock_overrides_are_strict() -> None:
+    upstream = ('version = 3\n[[package]]\nname = "crate"\nversion = "1.0.0"\n'
+                'source = "registry+https://github.com/rust-lang/crates.io-index"\n'
+                f'checksum = "{"a" * 64}"\ndependencies = []\n')
+    override = upstream.replace('"1.0.0"', '"1.0.1"').replace('"' + "a" * 64 + '"', '"' + "b" * 64 + '"')
+    declared = {"crate": "1.0.1"}
+    rust_toolchain.check_lock_override(upstream, override, declared, consumer="fixture")
+    for changed in (override.replace("version = 3", "version = 4"),
+                    override.replace("dependencies = []", 'dependencies = ["added"]'),
+                    override.replace('"1.0.1"', '"1.0.0"'),
+                    override.replace('"' + "b" * 64 + '"', '"short"'),
+                    override + '\n[[package]]\nname = "added"\nversion = "1.0.0"\n'):
+        _refused(lambda text=changed: rust_toolchain.check_lock_override(
+            upstream, text, declared, consumer="fixture"))
+    _refused(lambda: rust_toolchain.check_lock_override(upstream, override, {}, consumer="fixture"))
+    _refused(lambda: rust_toolchain.check_lock_override(override, override, declared, consumer="fixture"))
+    _refused(lambda: rust_toolchain.check_lock_override("package = 1", "package = 1", {}, consumer="fixture"))
+    with patch.object(rust_toolchain, "check_lock_override", side_effect=ValueError("shared refusal")):
+        try:
+            sailisla.check_lock_override(upstream, override, declared)
+        except sailisla.IslaError as exc:
+            ensure(str(exc) == "shared refusal", "Isla must preserve its public refusal type")
+        else:
+            raise AssertionError("Isla bypassed the shared lock guard")
+
+
 def cases() -> list[Case]:
     return [Case("rust-pin-has-one-owner", one_owner),
+            Case("registry-lock-overrides-have-one-strict-guard", registry_lock_overrides_are_strict),
             Case("rust-pin-shape-is-strict", strict_shape),
             Case("both-native-consumers-read-the-owner", consumers_read_the_owner),
             Case("rust-pin-change-invalidates-isla-stamp", owner_moves_the_isla_stamp)]

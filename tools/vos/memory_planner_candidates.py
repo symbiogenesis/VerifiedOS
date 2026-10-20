@@ -30,7 +30,7 @@ from vos import memory_planner as planner
 MAX_OBJECTS = 4096
 MAX_TOTAL_SIZE = (1 << 31) - 1
 PIN_PATH = "tools/memory-planner/idealloc.json"
-PIN_SCHEMA = "vos-idealloc-pin-v3"
+PIN_SCHEMA = "vos-idealloc-pin-v4"
 BRIDGE_PATH = "tools/memory-planner/idealloc/bridge.rs"
 
 
@@ -235,6 +235,31 @@ def hold_output(root: Path, output: Path) -> Generator[Path]:
         yield output
 
 
+def _build_copy(root: Path, output: Path, source: Path, pin: dict[str, Any]) -> Path:
+    """Validate the override before installers and copy only hash-verified source files."""
+    name, versions = pin.get("cargo_lock"), pin.get("cargo_lock_overrides")
+    if (not isinstance(name, str) or name in ("", ".", "..")
+            or Path(name).name != name or "/" in name or "\\" in name
+            or not isinstance(versions, dict)
+            or any(not isinstance(key, str) or not isinstance(value, str) for key, value in versions.items())):
+        raise ValueError("idealloc needs a local lock override and declared package releases")
+    override = (root / PIN_PATH).parent / name
+    raw = override.read_bytes()
+    rust_toolchain.check_lock_override((source / "Cargo.lock").read_text(encoding="utf-8"),
+                                      raw.decode("utf-8"), versions, consumer="idealloc")
+    build = output / "build"
+    if build.exists():
+        shutil.rmtree(build)
+    build.mkdir()
+    for entry in pin["files"]:
+        relative = Path(entry["path"])
+        target = build / relative
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(source / relative, target)
+    (build / "Cargo.lock").write_bytes(raw)
+    return build
+
+
 def build_idealloc(root: Path, output: Path) -> dict[str, Any]:
     """Build only a hash-bound upstream core and this repository's authored bridge.
 
@@ -242,7 +267,7 @@ def build_idealloc(root: Path, output: Path) -> dict[str, Any]:
     """
     output = native_output(root, output)
     pin = json.loads((root / PIN_PATH).read_text(encoding="utf-8"))
-    # Version 3 moved the Rust pin to the shared rust_toolchain owner.
+    # Version 4 permits only declared graph-preserving registry lock overrides.
     if pin.get("schema") != PIN_SCHEMA or "rust" in pin:
         raise ValueError(f"unsupported idealloc pin manifest; expected {PIN_SCHEMA}")
     source = output / "upstream"
@@ -259,10 +284,11 @@ def build_idealloc(root: Path, output: Path) -> dict[str, Any]:
                 raise ValueError(f"idealloc source digest mismatch: {relative}")
             target.parent.mkdir(parents=True, exist_ok=True)
             target.write_bytes(data)
-    # Preserve the workspace so its original lock remains valid. Build only coreba;
-    # the only guest manifest change adds our bin to that crate.
+    upstream_lock = digest(source / "Cargo.lock")
+    source = _build_copy(root, output, source, pin)
     workspace = source / "Cargo.toml"
     bridge = source / "coreba/src/bin/vos_bridge.rs"
+    bridge.parent.mkdir(parents=True, exist_ok=True)
     bridge.write_bytes((root / BRIDGE_PATH).read_bytes())
     manifest = source / "coreba/Cargo.toml"
     with manifest.open("a", encoding="utf-8", newline="") as stream:
@@ -307,11 +333,13 @@ def build_idealloc(root: Path, output: Path) -> dict[str, Any]:
         raise ValueError(f"idealloc build failed; inspect {output / 'compile.log'}")
     executable = output / "target/release/vos-idealloc"
     rustc = Path(cargo_env["RUSTC"])
-    receipt = {"schema": "vos-idealloc-build-v3", "commit": pin["commit"], "license": pin["license"],
+    receipt = {"schema": "vos-idealloc-build-v4", "commit": pin["commit"], "license": pin["license"],
                "manifest_sha256": digest(root / PIN_PATH), "bridge_sha256": digest(root / BRIDGE_PATH),
                "rust_pin_sha256": digest(root / rust_toolchain.PATH),
                "workspace_sha256": digest(workspace), "patched_crate_manifest_sha256": digest(manifest),
-               "lock_sha256": digest(source / "Cargo.lock"), "dependency_closure": closure,
+               "upstream_lock_sha256": upstream_lock,
+               "lock_sha256": digest(source / "Cargo.lock"),
+               "cargo_lock_overrides": pin["cargo_lock_overrides"], "dependency_closure": closure,
                "command": command, "build_seconds": time.perf_counter() - begin,
                "executable": str(executable), "executable_sha256": digest(executable),
                "compiler": subprocess.run([str(rustc), "-vV"], cwd=output, env=cargo_env,

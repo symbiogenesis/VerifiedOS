@@ -19,7 +19,6 @@ import shutil
 import subprocess
 import tarfile
 import time
-import tomllib
 import urllib.request
 from contextlib import chdir
 from pathlib import Path
@@ -211,60 +210,12 @@ def _fetch(pin: SourcePin, destination: Path, runner: Runner) -> None:
         raise IslaError(f"optional source checkout has wrong revision or edits: {destination}")
 
 
-_RELEASE = re.compile(r"(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)")
-
-
-def _release(version: object, what: str) -> tuple[int, int, int]:
-    """A plain major.minor.patch release; pre-release and build suffixes are refused."""
-    match = _RELEASE.fullmatch(version) if isinstance(version, str) else None
-    if match is None:
-        raise IslaError(f"{what} is not a plain major.minor.patch release: {version!r}")
-    return int(match[1]), int(match[2]), int(match[3])
-
-
 def check_lock_override(upstream: str, override: str, versions: dict[str, str]) -> None:
-    """Refuse an override differing from upstream's lock beyond the declared versions.
-
-    A declared package keeps every other field, including its source and
-    dependencies, and changes only its version and checksum, to a release later
-    than upstream's. Every other package entry and top-level key must be identical.
-    """
+    """Keep Isla's public refusal type while both Rust consumers share the guard."""
     try:
-        before, after = tomllib.loads(upstream), tomllib.loads(override)
-    except tomllib.TOMLDecodeError as exc:
-        raise IslaError("an Isla Cargo.lock is not TOML") from exc
-    if ({key: value for key, value in before.items() if key != "package"}
-            != {key: value for key, value in after.items() if key != "package"}):
-        raise IslaError("the Isla lock override changes the lock format")
-
-    def split(lock: dict[str, object]) -> tuple[list[str], dict[str, dict[str, object]]]:
-        rows = cast(list[dict[str, object]], lock.get("package", []))
-        kept = sorted(json.dumps(row, sort_keys=True) for row in rows if row["name"] not in versions)
-        moved: dict[str, dict[str, object]] = {}
-        for row in rows:
-            name = cast(str, row["name"])
-            if name in versions:
-                if name in moved:
-                    raise IslaError(f"overridden Isla lock package is not unique: {name}")
-                moved[name] = row
-        return kept, moved
-
-    kept_before, moved_before = split(before)
-    kept_after, moved_after = split(after)
-    if kept_before != kept_after:
-        raise IslaError("the Isla lock override changes an undeclared package")
-    if set(moved_before) != set(versions) or set(moved_after) != set(versions):
-        raise IslaError("a declared Isla lock override names no locked package")
-    for name, version in versions.items():
-        old, new = moved_before[name], moved_after[name]
-        changing = ("version", "checksum")
-        if (new["version"] != version or set(old) != set(new)
-                or {k: v for k, v in old.items() if k not in changing}
-                != {k: v for k, v in new.items() if k not in changing}):
-            raise IslaError(f"the Isla lock override for {name} is not the declared version alone")
-        if _release(old["version"], f"upstream's {name}") >= _release(version, f"the declared {name}"):
-            raise IslaError(f"upstream already carries {name} {old['version']}; "
-                            "retire or regenerate the override")
+        rust_toolchain.check_lock_override(upstream, override, versions, consumer="Isla")
+    except ValueError as exc:
+        raise IslaError(str(exc)) from exc
 
 
 def baseline_packages(root: Path, sail: SailPin) -> set[str]:
