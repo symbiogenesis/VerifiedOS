@@ -982,6 +982,27 @@ _CAPTURING_RECEIPTS: dict[str, str] = {
 # These sites retain measured or external editions, or record identifiers that
 # resemble object ids. They do not state this repository's current top-level pin.
 SITE_RESIDUE: dict[tuple[str, str], str] = {
+    **{("docs/hardware/cheri-version-matrix.md", ident): reason
+       for oid, reason in {
+           "46f0cd20d4cb7aa83616370f58fc8e220d7b53e8":
+               "the Alliance fork's main comparison, not the riscv/sail-riscv gitlink",
+           "7726ab7586de0ef4a4a23e2d37fd4310fd43bedd":
+               "the Alliance fork's codasip comparison branch",
+           "32bf55e2965dcdcfb0139d209e7a7b9dd1314583":
+               "the Alliance QEMU main comparison, not the CTSRD-CHERI oracle gitlink",
+           "7f5ba85156d6f2c0f64d909d3ad900661966091f":
+               "the Alliance QEMU RVY-support comparison branch",
+           "d847ab5e94692d7edd2402bb0523f4a592396fc9":
+               "the Cambridge 0.9.9-upgrade comparison, not the selected master oracle",
+           "157a45a70f9d3ceea4b25e07d0777240ade56f38":
+               "the Cambridge 0.9.8.2-upgrade comparison branch",
+           "e66c89496aaf422c5caa62fba79122a359e642bf":
+               "the Cambridge pdr32 comparison branch",
+           "5b12002f14900341fe79fa3fbb00a4b45505d187":
+               "the TestRIG RVY-support comparison, not its selected master gitlink",
+       }.items() for ident in (oid[:8], oid)},
+    ("docs/hardware/cheri-version-matrix.md", "96c96126f48fd7e73bb3aedffd35a70547dfaf49"):
+        "the archived Alliance standalone model, not the Cambridge oracle gitlink",
     **{(file, "47bc545117348495f71aad9e20d5c9bb9ed3a757"):
        "the historical Katamaran source measured by the recorded Q35 dependency trial"
        for file in (

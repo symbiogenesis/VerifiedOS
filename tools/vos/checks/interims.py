@@ -303,9 +303,6 @@ NON_PREMISE: dict[tuple[str, str], NonPremise] = {
     (RECORD, "upstream/libjade"): NonPremise(
         (EASYCRYPT,), "the pin row of a planned comparator, never built, copied or "
         "extracted", ("Planned independent comparator from the Jasmin/EasyCrypt lineage",)),
-    (RECORD, "Pinned as submodules"): NonPremise(
-        (EASYCRYPT,), "the licence instruments re-read at an advanced pin",
-        ("- libjade: `LICENSE` and the two texts under `LICENSES/`.",)),
     (RECORD, "Proof and lowering references"): NonPremise(
         (FSTAR, EASYCRYPT), "where the comparators' licence terms were located",
         ("**Cryptography references.** Reviews on",)),
