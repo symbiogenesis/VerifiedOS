@@ -1,0 +1,8 @@
+{
+  "switch": "verifiedos-rocq-9.3.0-ocaml-5.4.1",
+  "exports": {
+    "before": "3e70338fb77832f9e09ee8780cd10524e002420b1ca9aa5f56a15777765e1b32",
+    "after": "3e70338fb77832f9e09ee8780cd10524e002420b1ca9aa5f56a15777765e1b32"
+  },
+  "lock_sha256": "3e70338fb77832f9e09ee8780cd10524e002420b1ca9aa5f56a15777765e1b32"
+}

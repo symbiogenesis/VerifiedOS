@@ -1,0 +1,246 @@
+{
+  "reviewer": "tooling independent lane",
+  "checked_utc": "2026-10-20T01:40:06.835797+00:00",
+  "acceptance": true,
+  "scope": "Final indexed build source provenance and independent four-invocation guarded header replay; no rebuild or full test suite",
+  "input_archive_sha256": "4ffd06b264224c71e9bf33876eb1648eff3105126294493dd2f564db069fd4c0",
+  "frozen_inputs": {
+    "tools/fiat_crypto_emit.py": "8012315740e4b6cd5e137b9adecc36973f7396b68196441e861bc0541b89115e",
+    "tools/generated/fiat-crypto/25519_32.h": "73cad2027e43d7e5b7989aa6af789506795fb31827613416724747794f089a41",
+    "tools/generated/fiat-crypto/manifest.json": "899ffe478ab6c913c2e8d8b7075b4524004b3c95e6cbf1f9594340ab481e3c45",
+    "tools/generated/fiat-crypto/p256_32.h": "17de0b48a08adb55607294254659e0218c417447e2d7f23adce69e09468b1d85",
+    "tools/opam/rocq.lock": "3e70338fb77832f9e09ee8780cd10524e002420b1ca9aa5f56a15777765e1b32"
+  },
+  "source_receipt_sha256": "3e988bbecb34ac8a150a72cfb5ecb1f18b0b6ee4b692857e683be4b66489526a",
+  "source_index_revision": "1e721c6f18c43b90922e7bc57fd64848e5cff2be",
+  "source_index_matches_selected_commit": true,
+  "archives": [
+    {
+      "path": ".",
+      "revision": "1e721c6f18c43b90922e7bc57fd64848e5cff2be",
+      "archive": "source-00.tar",
+      "archive_sha256": "f511c7dbdc37898239d3513975a241473279767dcbf2f348c9cceb010e287536",
+      "archive_commit": "1e721c6f18c43b90922e7bc57fd64848e5cff2be",
+      "source_files_verified": 1698,
+      "source_symlinks_verified": 1
+    },
+    {
+      "path": "coqprime",
+      "revision": "5e7a62fe05871f1cf402e01f2d07c8d5afa6a509",
+      "archive": "source-01.tar",
+      "archive_sha256": "8be752cbe892f31db570b36e2666d61d3cb71b022acec3fa9bb2aee1e8547d10",
+      "archive_commit": "5e7a62fe05871f1cf402e01f2d07c8d5afa6a509",
+      "source_files_verified": 495,
+      "source_symlinks_verified": 0
+    },
+    {
+      "path": "etc/coq-scripts",
+      "revision": "8cf5f49d140ec46e35c828d787299dca17ea3c7c",
+      "archive": "source-02.tar",
+      "archive_sha256": "bc91290061f508d4c3f3235ff3f4be0f5c929ec2823e151aa9fd974402426741",
+      "archive_commit": "8cf5f49d140ec46e35c828d787299dca17ea3c7c",
+      "source_files_verified": 130,
+      "source_symlinks_verified": 0
+    },
+    {
+      "path": "rewriter",
+      "revision": "902bd7bfd807f4511fa07b0b1f07ca640f9da4a8",
+      "archive": "source-03.tar",
+      "archive_sha256": "428865dc1fe613028d2d6c160fe175fd82d0e9c6067ce0359930a125fda40239",
+      "archive_commit": "902bd7bfd807f4511fa07b0b1f07ca640f9da4a8",
+      "source_files_verified": 528,
+      "source_symlinks_verified": 12
+    },
+    {
+      "path": "rewriter/etc/coq-scripts",
+      "revision": "8cf5f49d140ec46e35c828d787299dca17ea3c7c",
+      "archive": "source-04.tar",
+      "archive_sha256": "bc91290061f508d4c3f3235ff3f4be0f5c929ec2823e151aa9fd974402426741",
+      "archive_commit": "8cf5f49d140ec46e35c828d787299dca17ea3c7c",
+      "source_files_verified": 130,
+      "source_symlinks_verified": 0
+    },
+    {
+      "path": "rupicola",
+      "revision": "d33f7024a7a03c9e0f05f746dff8434d450a4f6e",
+      "archive": "source-05.tar",
+      "archive_sha256": "c68f1c7743ebe5c9b9d8de8c514bc582e19a7c20327e01679ba59b270f6af04e",
+      "archive_commit": "d33f7024a7a03c9e0f05f746dff8434d450a4f6e",
+      "source_files_verified": 145,
+      "source_symlinks_verified": 0
+    },
+    {
+      "path": "rupicola/bedrock2",
+      "revision": "757f17c6083bf8d43b5293a0db545c8d0aa32a13",
+      "archive": "source-06.tar",
+      "archive_sha256": "1bf5106f9a8179b90a5a94246a87b39794118b2cdc40db5b3cf29440673a8ca6",
+      "archive_commit": "757f17c6083bf8d43b5293a0db545c8d0aa32a13",
+      "source_files_verified": 355,
+      "source_symlinks_verified": 4
+    },
+    {
+      "path": "rupicola/bedrock2/deps/coqutil",
+      "revision": "4c399b76628330f77c53c25ebbeceadb115602ee",
+      "archive": "source-07.tar",
+      "archive_sha256": "8115b8ee6436e64b4449619032c5f4e233705453ef89391834a78fe79f861eea",
+      "archive_commit": "4c399b76628330f77c53c25ebbeceadb115602ee",
+      "source_files_verified": 149,
+      "source_symlinks_verified": 0
+    },
+    {
+      "path": "rupicola/bedrock2/deps/coqutil/etc/coq-scripts",
+      "revision": "8cf5f49d140ec46e35c828d787299dca17ea3c7c",
+      "archive": "source-08.tar",
+      "archive_sha256": "bc91290061f508d4c3f3235ff3f4be0f5c929ec2823e151aa9fd974402426741",
+      "archive_commit": "8cf5f49d140ec46e35c828d787299dca17ea3c7c",
+      "source_files_verified": 130,
+      "source_symlinks_verified": 0
+    },
+    {
+      "path": "rupicola/bedrock2/deps/kami",
+      "revision": "9217329eb4e1d751f28ab175ebab230b1e8fd4da",
+      "archive": "source-09.tar",
+      "archive_sha256": "f9da2267a93164471ffa49567f7c57794414fb15b2d04fe740893e3e3bdce347",
+      "archive_commit": "9217329eb4e1d751f28ab175ebab230b1e8fd4da",
+      "source_files_verified": 176,
+      "source_symlinks_verified": 1
+    },
+    {
+      "path": "rupicola/bedrock2/deps/riscv-coq",
+      "revision": "45dc8dfc17c77aabb433355b9d39edc6bfd429ae",
+      "archive": "source-10.tar",
+      "archive_sha256": "4c5db3e8026797ae55859d2bed8ee8f7591ba7b5ff1f0587e530f33fa9ae13b2",
+      "archive_commit": "45dc8dfc17c77aabb433355b9d39edc6bfd429ae",
+      "source_files_verified": 156,
+      "source_symlinks_verified": 0
+    }
+  ],
+  "source_files_verified": 4092,
+  "source_deltas": [],
+  "upstream_generator_inputs": {
+    "Makefile.coq.local": "f95308829a789321f1c74d1a36eac9f1cd74972a4c0b1498587b9cb26e1c8837",
+    "src/Util/make_tactics.sh": "adf4af68d35722fd87628ab8474d997992b98d5d20c87284f1b74996573272be",
+    "src/Util/Tactics.v": "6cdb293460cc85fd13d67fa9d107aadbe4ef5bcfa71a39781edc4488c5b208d2"
+  },
+  "build_receipt_sha256": "516b6c656f643d26c045ca7d28cbae56ae8e99452d3f3bc70909b878dada0ba1",
+  "build_log_sha256": "1017faa5897c66475a819afc3f03aaf5ef419bad6208e2ba1521689bae5b077d",
+  "build_command": [
+    "opam",
+    "exec",
+    "--switch=verifiedos-rocq-9.3.0-ocaml-5.4.1",
+    "--",
+    "make",
+    "-j2",
+    "SKIP_BEDROCK2=1",
+    "COQC=/root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/bin/rocq c",
+    "standalone-unified-ocaml"
+  ],
+  "build_environment": {
+    "switch": "verifiedos-rocq-9.3.0-ocaml-5.4.1",
+    "prover": "9.3.0",
+    "ocaml": "5.4.1",
+    "lock_sha256": "3e70338fb77832f9e09ee8780cd10524e002420b1ca9aa5f56a15777765e1b32",
+    "export_before_sha256": "3e70338fb77832f9e09ee8780cd10524e002420b1ca9aa5f56a15777765e1b32",
+    "export_after_sha256": "3e70338fb77832f9e09ee8780cd10524e002420b1ca9aa5f56a15777765e1b32"
+  },
+  "generator_sha256": "eb983672439aa0ca1375f0760af5097ac09ceb0f4182062dcbe93a7de3c24389",
+  "invocations": [
+    {
+      "command": [
+        "fiat_crypto",
+        "unsaturated-solinas",
+        "25519",
+        "32",
+        "10",
+        "2^255 - 19",
+        "carry_mul",
+        "carry_square",
+        "carry_scmul121666",
+        "carry",
+        "add",
+        "sub",
+        "opp",
+        "selectznz",
+        "to_bytes",
+        "from_bytes",
+        "--static"
+      ],
+      "exit": 0,
+      "stdout": "25519_32.h.run1.stdout",
+      "stdout_sha256": "0600b8d461d3bf94199efced49097c7682623ed27a4c146d7dde103859338ef0",
+      "stderr": "25519_32.h.run1.stderr",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "command": [
+        "fiat_crypto",
+        "unsaturated-solinas",
+        "25519",
+        "32",
+        "10",
+        "2^255 - 19",
+        "carry_mul",
+        "carry_square",
+        "carry_scmul121666",
+        "carry",
+        "add",
+        "sub",
+        "opp",
+        "selectznz",
+        "to_bytes",
+        "from_bytes",
+        "--static"
+      ],
+      "exit": 0,
+      "stdout": "25519_32.h.run2.stdout",
+      "stdout_sha256": "0600b8d461d3bf94199efced49097c7682623ed27a4c146d7dde103859338ef0",
+      "stderr": "25519_32.h.run2.stderr",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "command": [
+        "fiat_crypto",
+        "word-by-word-montgomery",
+        "p256",
+        "32",
+        "2^256 - 2^224 + 2^192 + 2^96 - 1",
+        "--static"
+      ],
+      "exit": 0,
+      "stdout": "p256_32.h.run1.stdout",
+      "stdout_sha256": "1cce0302f067c020553c06eae6547430bd6f1ff8d9198cd1258de2c8888ea0ca",
+      "stderr": "p256_32.h.run1.stderr",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "command": [
+        "fiat_crypto",
+        "word-by-word-montgomery",
+        "p256",
+        "32",
+        "2^256 - 2^224 + 2^192 + 2^96 - 1",
+        "--static"
+      ],
+      "exit": 0,
+      "stdout": "p256_32.h.run2.stdout",
+      "stdout_sha256": "1cce0302f067c020553c06eae6547430bd6f1ff8d9198cd1258de2c8888ea0ca",
+      "stderr": "p256_32.h.run2.stderr",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "emission_receipt_sha256": "f20b97d0c8a9ed30f459051fb363107fe4e3a8be3d0adfe5a6822ab8035cf0a8",
+  "check_exit": 0,
+  "check_log_sha256": "5d5b4c6cb6c538f01e066ce4da96794b45f5ae171dabf99e567f0ca98d9e1283",
+  "outputs": {
+    "25519_32.h": {
+      "raw_sha256": "0600b8d461d3bf94199efced49097c7682623ed27a4c146d7dde103859338ef0",
+      "header_sha256": "73cad2027e43d7e5b7989aa6af789506795fb31827613416724747794f089a41"
+    },
+    "p256_32.h": {
+      "raw_sha256": "1cce0302f067c020553c06eae6547430bd6f1ff8d9198cd1258de2c8888ea0ca",
+      "header_sha256": "17de0b48a08adb55607294254659e0218c417447e2d7f23adce69e09468b1d85"
+    }
+  },
+  "verdict": "passed: all eleven archive identities and 4092 source files unchanged, selected Git index intact, unchanged locked proof environment, build identity and log verified, both frozen headers reproduce twice byte-for-byte",
+  "previous_diagnostic": "The separate archive-only first build and its truncated Tactics.v remain refused; no earlier receipt is promoted or relabelled."
+}

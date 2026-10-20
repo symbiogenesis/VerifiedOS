@@ -11,10 +11,11 @@ import hashlib
 import json
 import re
 import subprocess
+import tarfile
 from pathlib import Path, PurePosixPath
 from typing import Any
 
-PIN = "f3ecb2cf1f771de34771e967193ee7f0ee0b0acf"
+PIN = "1e721c6f18c43b90922e7bc57fd64848e5cff2be"
 RECIPES = {
     "25519_32.h": ["unsaturated-solinas", "25519", "32", "10", "2^255 - 19",
                    "carry_mul", "carry_square", "carry_scmul121666", "carry",
@@ -74,6 +75,40 @@ def source_receipt(path: Path) -> list[dict[str, str]]:
     return result
 
 
+def verify_source_tree(root: Path, receipt: Path) -> str:
+    """The upstream build queries Git and must preserve every archived source byte."""
+    source_receipt(receipt)
+    revision = subprocess.check_output(
+        ["git", "-C", str(root), "rev-parse", "HEAD"], cwd=root, text=True).strip()
+    if revision != PIN:
+        raise ValueError("Fiat build source has no matching parent Git index")
+    index = subprocess.run(["git", "-C", str(root), "diff-index", "--cached", "--quiet",
+                            "HEAD", "--"], cwd=root, capture_output=True, check=False)
+    if index.returncode != 0:
+        raise ValueError("Fiat build parent Git index differs from its selected revision")
+    for row in json.loads(receipt.read_text(encoding="utf-8")):
+        relative = Path(row["path"])
+        if relative.is_absolute() or ".." in relative.parts:
+            raise ValueError("Fiat source directory escapes its build tree")
+        folder = root / relative
+        with tarfile.open(receipt.parent / row["archive"]) as archive:
+            for member in archive:
+                name = PurePosixPath(member.name)
+                if name.is_absolute() or ".." in name.parts:
+                    raise ValueError("Fiat archive member escapes its source directory")
+                actual = folder / member.name
+                if not actual.resolve().is_relative_to(root.resolve()):
+                    raise ValueError("Fiat source member escapes its build tree")
+                if member.isfile():
+                    content = archive.extractfile(member)
+                    if content is None or actual.is_symlink() or actual.read_bytes() != content.read():
+                        raise ValueError("Fiat build changed archived source: " + str(actual))
+                elif member.issym() and (not actual.is_symlink()
+                                        or actual.readlink().as_posix() != member.linkname):
+                    raise ValueError("Fiat build changed an archived source link")
+    return revision
+
+
 def verify_outputs(folder: Path, recorded: dict[str, Any], generated: dict[str, bytes]) -> None:
     if recorded.get("schema") != 1 or recorded.get("source_pin") != PIN \
             or recorded.get("recipes") != RECIPES \
@@ -109,6 +144,8 @@ def verify_build_environment(root: Path, environment: object) -> None:
 
 def verify_build_identity(root: Path, recorded: dict[str, Any]) -> None:
     verify_build_environment(root, recorded.get("build_environment"))
+    if recorded.get("source_index_revision") != PIN:
+        raise ValueError("Fiat build parent Git index is missing or different")
     executable = recorded.get("generator_executable")
     if not isinstance(executable, str) or not executable.startswith("/root/build/") \
             or "\x00" in executable or ".." in PurePosixPath(executable).parts:
@@ -177,7 +214,7 @@ def main() -> int:
     folder = root / DESTINATION
     try:
         _execute(args, folder)
-    except (OSError, ValueError, subprocess.CalledProcessError) as error:
+    except (OSError, ValueError, subprocess.CalledProcessError, tarfile.TarError) as error:
         print("FAIL:", error)
         return 1
     print("PASS: both headers reproduce byte-for-byte; each generator invocation repeated")
@@ -224,6 +261,7 @@ def _execute(args: argparse.Namespace, folder: Path) -> None:
             raise ValueError("build receipt identifies a different source or generator")
         build_identity = {"build_command": build["command"],
                           "build_environment": build.get("environment"),
+                          "source_index_revision": verify_source_tree(binary.parents[2], args.source_receipt),
                           "generator_executable": str(binary)}
         verify_build_identity(folder.parents[2], build_identity)
         recorded = {"schema": 1, "source_pin": PIN, "sources": sources,
@@ -237,8 +275,10 @@ def _execute(args: argparse.Namespace, folder: Path) -> None:
         for name, raw in generated.items():
             (folder / name).write_bytes(wrap(name, raw))
         manifest_path.write_text(json.dumps(recorded, indent=2) + "\n", encoding="utf-8")
-    elif args.source_receipt is not None and recorded.get("sources") != source_receipt(args.source_receipt):
-        raise ValueError("source archive identities differ from the reviewed emission")
+    elif args.source_receipt is not None:
+        if recorded.get("sources") != source_receipt(args.source_receipt):
+            raise ValueError("source archive identities differ from the reviewed emission")
+        verify_source_tree(binary.parents[2], args.source_receipt)
     verify_outputs(folder, recorded, generated)
     verify_record(folder.parents[2], PIN)
     (work / "fiat-emission.json").write_text(json.dumps({

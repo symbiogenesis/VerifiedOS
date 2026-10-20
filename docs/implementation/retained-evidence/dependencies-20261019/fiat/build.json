@@ -1,0 +1,35 @@
+{
+  "command": [
+    "opam",
+    "exec",
+    "--switch=verifiedos-rocq-9.3.0-ocaml-5.4.1",
+    "--",
+    "make",
+    "-j2",
+    "SKIP_BEDROCK2=1",
+    "COQC=/root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/bin/rocq c",
+    "standalone-unified-ocaml"
+  ],
+  "exit": 0,
+  "source_pin": "1e721c6f18c43b90922e7bc57fd64848e5cff2be",
+  "elapsed_seconds": 1130.5,
+  "prover_version": "The Rocq Prover, version 9.3.0\ncompiled with OCaml 5.4.1",
+  "environment": {
+    "switch": "verifiedos-rocq-9.3.0-ocaml-5.4.1",
+    "prover": "9.3.0",
+    "ocaml": "5.4.1",
+    "lock_sha256": "3e70338fb77832f9e09ee8780cd10524e002420b1ca9aa5f56a15777765e1b32",
+    "export_before_sha256": "3e70338fb77832f9e09ee8780cd10524e002420b1ca9aa5f56a15777765e1b32",
+    "export_after_sha256": "3e70338fb77832f9e09ee8780cd10524e002420b1ca9aa5f56a15777765e1b32"
+  },
+  "log": "build.log",
+  "log_sha256": "1017faa5897c66475a819afc3f03aaf5ef419bad6208e2ba1521689bae5b077d",
+  "generator_executable": "/root/build/deps-refresh-20261019-fiat-indexed/source/src/ExtractionOCaml/fiat_crypto",
+  "generator_sha256": "eb983672439aa0ca1375f0760af5097ac09ceb0f4182062dcbe93a7de3c24389",
+  "source_preparation": {
+    "archives": "eleven exact LF Git archives; parent Git index restored by fetch/reset to source_pin before make, so upstream make_tactics.sh can enumerate its tracked imports",
+    "parent_index_revision": "1e721c6f18c43b90922e7bc57fd64848e5cff2be",
+    "verified_archived_files": 4092
+  },
+  "ocaml_version": "5.4.1"
+}

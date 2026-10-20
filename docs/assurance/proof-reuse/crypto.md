@@ -68,7 +68,7 @@ The Coq development proves arithmetic transformations and code generation. For a
 
 **Current emitted-artifact boundary.** Q40's
 [recorded emission](../../implementation/fiat-crypto-emission.md) derives both
-32-bit field headers from Fiat-Crypto `f3ecb2cf1f771de34771e967193ee7f0ee0b0acf`
+32-bit field headers from Fiat-Crypto `1e721c6f18c43b90922e7bc57fd64848e5cff2be`
 with the locked Rocq kernel in an unchanged proof switch. Repeated recipes,
 6,786 independent integer checks and a second isolated emission reproduce the
 recorded bodies and wrapped headers. The dated source and license readings above

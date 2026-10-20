@@ -1,0 +1,98 @@
+{
+  "generator_executable": "/root/build/deps-refresh-20261019-fiat-indexed/source/src/ExtractionOCaml/fiat_crypto",
+  "generator_sha256": "eb983672439aa0ca1375f0760af5097ac09ceb0f4182062dcbe93a7de3c24389",
+  "invocations": [
+    {
+      "command": [
+        "fiat_crypto",
+        "unsaturated-solinas",
+        "25519",
+        "32",
+        "10",
+        "2^255 - 19",
+        "carry_mul",
+        "carry_square",
+        "carry_scmul121666",
+        "carry",
+        "add",
+        "sub",
+        "opp",
+        "selectznz",
+        "to_bytes",
+        "from_bytes",
+        "--static"
+      ],
+      "exit": 0,
+      "stdout": "25519_32.h.run1.stdout",
+      "stdout_sha256": "0600b8d461d3bf94199efced49097c7682623ed27a4c146d7dde103859338ef0",
+      "stderr": "25519_32.h.run1.stderr",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "command": [
+        "fiat_crypto",
+        "unsaturated-solinas",
+        "25519",
+        "32",
+        "10",
+        "2^255 - 19",
+        "carry_mul",
+        "carry_square",
+        "carry_scmul121666",
+        "carry",
+        "add",
+        "sub",
+        "opp",
+        "selectznz",
+        "to_bytes",
+        "from_bytes",
+        "--static"
+      ],
+      "exit": 0,
+      "stdout": "25519_32.h.run2.stdout",
+      "stdout_sha256": "0600b8d461d3bf94199efced49097c7682623ed27a4c146d7dde103859338ef0",
+      "stderr": "25519_32.h.run2.stderr",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "command": [
+        "fiat_crypto",
+        "word-by-word-montgomery",
+        "p256",
+        "32",
+        "2^256 - 2^224 + 2^192 + 2^96 - 1",
+        "--static"
+      ],
+      "exit": 0,
+      "stdout": "p256_32.h.run1.stdout",
+      "stdout_sha256": "1cce0302f067c020553c06eae6547430bd6f1ff8d9198cd1258de2c8888ea0ca",
+      "stderr": "p256_32.h.run1.stderr",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "command": [
+        "fiat_crypto",
+        "word-by-word-montgomery",
+        "p256",
+        "32",
+        "2^256 - 2^224 + 2^192 + 2^96 - 1",
+        "--static"
+      ],
+      "exit": 0,
+      "stdout": "p256_32.h.run2.stdout",
+      "stdout_sha256": "1cce0302f067c020553c06eae6547430bd6f1ff8d9198cd1258de2c8888ea0ca",
+      "stderr": "p256_32.h.run2.stderr",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "outputs": {
+    "25519_32.h": {
+      "raw_sha256": "0600b8d461d3bf94199efced49097c7682623ed27a4c146d7dde103859338ef0",
+      "header_sha256": "73cad2027e43d7e5b7989aa6af789506795fb31827613416724747794f089a41"
+    },
+    "p256_32.h": {
+      "raw_sha256": "1cce0302f067c020553c06eae6547430bd6f1ff8d9198cd1258de2c8888ea0ca",
+      "header_sha256": "17de0b48a08adb55607294254659e0218c417447e2d7f23adce69e09468b1d85"
+    }
+  }
+}

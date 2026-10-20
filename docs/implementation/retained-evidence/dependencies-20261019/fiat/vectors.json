@@ -1,0 +1,32 @@
+{
+  "compiler": "cc (Ubuntu 15.2.0-16ubuntu1) 15.2.0",
+  "command": [
+    "cc",
+    "-std=c11",
+    "-O2",
+    "-Wall",
+    "-Wextra",
+    "-Werror",
+    "-Wno-unused-function",
+    "-shared",
+    "-fPIC",
+    "-I",
+    "/mnt/c/Users/symbi/source/repos/VerifiedOS/tools/generated/fiat-crypto",
+    "/root/build/deps-refresh-20261019-fiat-indexed/vectors/fiat-vectors.c",
+    "-o",
+    "/root/build/deps-refresh-20261019-fiat-indexed/vectors/fiat-vectors.so"
+  ],
+  "fields": {
+    "25519": {
+      "pairs": 377,
+      "operation_results": 3393,
+      "header_sha256": "73cad2027e43d7e5b7989aa6af789506795fb31827613416724747794f089a41"
+    },
+    "p256": {
+      "pairs": 377,
+      "operation_results": 3393,
+      "header_sha256": "17de0b48a08adb55607294254659e0218c417447e2d7f23adce69e09468b1d85"
+    }
+  },
+  "scope": "canonical inputs below p; multiply, square, add, subtract, negate, both selects, serialization round trip, 121666 scaling or Montgomery one; no divstep or target/constant-time claim"
+}

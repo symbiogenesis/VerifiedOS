@@ -1,11 +1,11 @@
 {
   "schema": 1,
-  "source_pin": "f3ecb2cf1f771de34771e967193ee7f0ee0b0acf",
+  "source_pin": "1e721c6f18c43b90922e7bc57fd64848e5cff2be",
   "sources": [
     {
       "path": ".",
-      "revision": "f3ecb2cf1f771de34771e967193ee7f0ee0b0acf",
-      "archive_sha256": "b704c5301468f8584fde0bfc8698081f373a23c5bd51e39741058199e11ba80c"
+      "revision": "1e721c6f18c43b90922e7bc57fd64848e5cff2be",
+      "archive_sha256": "f511c7dbdc37898239d3513975a241473279767dcbf2f348c9cceb010e287536"
     },
     {
       "path": "coqprime",
@@ -59,7 +59,7 @@
     }
   ],
   "owners": {
-    "tools/fiat_crypto_emit.py": "2bcdcf47ab5d544e73846c14b1c0d3b1004f604b201f4cd5d18718ba1e79f7a9"
+    "tools/fiat_crypto_emit.py": "8012315740e4b6cd5e137b9adecc36973f7396b68196441e861bc0541b89115e"
   },
   "recipes": {
     "25519_32.h": [
@@ -88,7 +88,7 @@
       "--static"
     ]
   },
-  "generator_sha256": "3f34a8230b5112c33889d6b8d01adb2724bf474888197ed2523519bab3572812",
+  "generator_sha256": "eb983672439aa0ca1375f0760af5097ac09ceb0f4182062dcbe93a7de3c24389",
   "build_command": [
     "opam",
     "exec",
@@ -108,15 +108,16 @@
     "export_before_sha256": "3e70338fb77832f9e09ee8780cd10524e002420b1ca9aa5f56a15777765e1b32",
     "export_after_sha256": "3e70338fb77832f9e09ee8780cd10524e002420b1ca9aa5f56a15777765e1b32"
   },
-  "generator_executable": "/root/build/lane-checklist-20261010-b/fiat-a/source/src/ExtractionOCaml/fiat_crypto",
+  "source_index_revision": "1e721c6f18c43b90922e7bc57fd64848e5cff2be",
+  "generator_executable": "/root/build/deps-refresh-20261019-fiat-indexed/source/src/ExtractionOCaml/fiat_crypto",
   "outputs": {
     "25519_32.h": {
       "raw_sha256": "0600b8d461d3bf94199efced49097c7682623ed27a4c146d7dde103859338ef0",
-      "header_sha256": "b200b3ce50fd2020fe1d8e8dd7f2b258e08ad3bc2a1b2bcef7d72ab07afa96f6"
+      "header_sha256": "73cad2027e43d7e5b7989aa6af789506795fb31827613416724747794f089a41"
     },
     "p256_32.h": {
       "raw_sha256": "1cce0302f067c020553c06eae6547430bd6f1ff8d9198cd1258de2c8888ea0ca",
-      "header_sha256": "0b865a4c6be783e00827a3aaaa79619153053cfa5f0f6a985f479c85bd46ed54"
+      "header_sha256": "17de0b48a08adb55607294254659e0218c417447e2d7f23adce69e09468b1d85"
     }
   }
 }
