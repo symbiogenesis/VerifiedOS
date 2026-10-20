@@ -1,0 +1,166 @@
+# SPDX-License-Identifier: Apache-2.0
+# Full oracle refresh campaigns run here; they are outside Host CI and Guest CI.
+name: openssl-qualification
+run-name: ${{ format('openssl-qualification:{0}', inputs.revision || github.sha) }}
+on:
+  workflow_dispatch:
+    inputs:
+      revision:
+        description: Full commit SHA already on main (empty selects current main)
+        type: string
+        default: ""
+permissions:
+  contents: read
+concurrency:
+  group: ${{ github.workflow }}-${{ github.run_id }}
+  cancel-in-progress: false
+defaults:
+  run:
+    shell: bash
+env:
+  PYTHONUTF8: "1"
+  PYTHONUNBUFFERED: "1"
+  TESTED_REVISION: ${{ inputs.revision || github.sha }}
+jobs:
+  qualification:
+    name: OpenSSL oracle (${{ matrix.suite }})
+    runs-on: ubuntu-26.04
+    timeout-minutes: 360
+    strategy:
+      fail-fast: false
+      matrix:
+        suite: [boot, mlkem, mldsa]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.revision || github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+          submodules: false
+      - name: Verify dispatched revision belongs to main
+        id: dispatch
+        shell: python
+        env:
+          DISPATCH_REF: ${{ github.ref }}
+          DISPATCH_MAIN_SHA: ${{ github.sha }}
+        run: |
+          import os
+          import re
+          import subprocess
+
+          revision = os.environ["TESTED_REVISION"]
+          if os.environ["DISPATCH_REF"] != "refs/heads/main" or not re.fullmatch(r"[0-9a-f]{40}", revision):
+              raise SystemExit("Dispatch must use main and a full lowercase commit SHA")
+          actual = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+          if actual != revision:
+              raise SystemExit("Checkout does not match the requested revision")
+          subprocess.run(["git", "merge-base", "--is-ancestor", revision,
+                          os.environ["DISPATCH_MAIN_SHA"]], check=True)
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.14"
+      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+        with:
+          version-file: tools/pyproject.toml
+          enable-cache: false
+      - name: Cold reference toolchain bootstrap
+        timeout-minutes: 70
+        run: |
+          python3 tools/ci/bootstrap_guest.py --root "$RUNNER_TEMP/openssl-qualification-root" \
+            --install-system --toolchain rocq --github-env "$GITHUB_ENV" \
+            --github-path "$GITHUB_PATH" 2>&1 | tee "$RUNNER_TEMP/rocq-bootstrap.log"
+      - name: Build the exact private OpenSSL source release
+        timeout-minutes: 20
+        run: |
+          python3 -B tools/ci/bootstrap_openssl.py \
+            --prefix "$RUNNER_TEMP/openssl-qualification-root/openssl/3.5.9" \
+            --jobs 2 --github-env "$GITHUB_ENV" --github-path "$GITHUB_PATH" \
+            2>&1 | tee "$RUNNER_TEMP/openssl-bootstrap.log"
+      - name: Run the complete reference and oracle populations
+        timeout-minutes: 200
+        env:
+          SUITE: ${{ matrix.suite }}
+        run: |
+          sudo -E env PATH="$PATH" GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=safe.directory \
+            GIT_CONFIG_VALUE_0="$GITHUB_WORKSPACE" python3 - <<'PY' 2>&1 | tee "$RUNNER_TEMP/qualification.log"
+          import json
+          import os
+          from pathlib import Path
+          import shutil
+          import subprocess
+          import sys
+
+          repo = Path(os.environ["GITHUB_WORKSPACE"])
+          suite = os.environ["SUITE"]
+          if suite not in {"boot", "mlkem", "mldsa"}:
+              raise SystemExit("Unknown qualification population")
+          lane = Path("/root/build") / ("lane-openssl-" + os.environ["GITHUB_RUN_ID"] + "-" + suite)
+          lane.mkdir(parents=True, exist_ok=False)
+          os.chdir(lane)
+          opam_bin = Path(os.environ["VOS_ROCQ"]).parent
+          def run(*args):
+              subprocess.run([str(arg) for arg in args], cwd=lane, check=True)
+          python = sys.executable
+          if suite == "boot":
+              run(python, repo / "tools/run.py", "boot-crypto", "run", "--gallina", "--out", lane / "boot-crypto")
+          elif suite == "mlkem":
+              proofs = lane / "mlkem/proofs"
+              proofs.mkdir(parents=True)
+              for name in ("PqArith.v", "Keccak.v", "MlKem.v"):
+                  shutil.copyfile(repo / "proofs" / name, proofs / name)
+                  run(opam_bin / "rocq", "c", "-q", "-Q", proofs, "", proofs / name)
+              run(python, "-B", repo / "proofs/campaigns/mlkem_vectors.py", "--repo", repo,
+                  "--build", lane / "mlkem", "--opam-bin", opam_bin)
+              run(python, "-B", repo / "proofs/campaigns/mlkem_openssl.py", "--repo", repo,
+                  "--reference", lane / "mlkem", "--build", lane / "mlkem-openssl", "--cases", "25")
+          else:
+              run(python, "-B", repo / "proofs/campaigns/mldsa_vectors.py", "--work", lane / "mldsa", "--jobs", "2")
+              run(python, "-B", repo / "proofs/campaigns/mldsa_openssl.py", "--baseline", lane / "mldsa",
+                  "--work", lane / "mldsa-openssl")
+          (lane / "qualification.json").write_text(json.dumps({
+              "revision": os.environ["TESTED_REVISION"], "suite": suite, "passed": True,
+              "run_url": "https://github.com/" + os.environ["GITHUB_REPOSITORY"] + "/actions/runs/" + os.environ["GITHUB_RUN_ID"],
+          }, indent=2) + "\n")
+          PY
+      - name: Collect receipts, notices and failure diagnostics
+        if: ${{ always() && steps.dispatch.outcome == 'success' }}
+        env:
+          SUITE: ${{ matrix.suite }}
+        run: |
+          sudo -E env PATH="$PATH" python3 - <<'PY'
+          import os
+          from pathlib import Path
+          import shutil
+
+          temporary = Path(os.environ["RUNNER_TEMP"])
+          output = temporary / "qualification-evidence"
+          output.mkdir()
+          lane = Path("/root/build") / ("lane-openssl-" + os.environ["GITHUB_RUN_ID"] + "-" + os.environ["SUITE"])
+          names = {"report.json", "receipt.json", "qualification.json", "mlkem-vector-receipt.json",
+                   "mlkem-openssl-receipt.json", "OpenSSL-LICENSE.txt", "OpenSSL-build-manifest.json",
+                   "LICENSE.txt", "package-copyright.txt", "NIST-README.md", "NIST-NOTICE.md", "README.md"}
+          for source in lane.rglob("*") if lane.exists() else ():
+              if source.is_file() and (source.name in names or source.suffix == ".log"):
+                  target = output / "campaign" / source.relative_to(lane)
+                  target.parent.mkdir(parents=True, exist_ok=True)
+                  shutil.copyfile(source, target)
+          prefix = temporary / "openssl-qualification-root/openssl/3.5.9"
+          for name in ("build-manifest.json", "build-progress.json", "configure.log", "build.log", "install.log"):
+              source = prefix / name
+              if source.is_file():
+                  target = output / "openssl" / name
+                  target.parent.mkdir(parents=True, exist_ok=True)
+                  shutil.copyfile(source, target)
+          for name in ("rocq-bootstrap.log", "openssl-bootstrap.log", "qualification.log"):
+              source = temporary / name
+              if source.is_file():
+                  shutil.copyfile(source, output / name)
+          PY
+      - name: Preserve qualification evidence
+        if: ${{ always() && steps.dispatch.outcome == 'success' }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: openssl-qualification-${{ matrix.suite }}-${{ env.TESTED_REVISION }}
+          path: ${{ runner.temp }}/qualification-evidence
+          if-no-files-found: warn
+          retention-days: 30

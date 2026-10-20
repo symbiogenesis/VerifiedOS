@@ -450,6 +450,29 @@ can then run locally without a local full-suite run. This standalone route may b
 read to obtain its artifact; the separate Guest CI handoff still finishes without
 polling or waiting for Guest CI.
 
+## OpenSSL oracle refresh
+
+[openssl-qualification.yml](../../.github/workflows/openssl-qualification.yml)
+runs the full independent comparisons required when the source-bound OpenSSL
+oracle changes. Dispatch it on `main` with a full `revision` already on `main`.
+Every job cold-installs the locked Rocq toolchain and uses
+[bootstrap_openssl.py](bootstrap_openssl.py) to build the exact checksummed
+OpenSSL release in a private prefix. Consumers verify its source license,
+build manifest, executable, configuration and actually loaded libraries.
+The system OpenSSL installation is not replaced.
+
+The three jobs run the full boot-signature population with Gallina comparison,
+the complete ML-KEM reference vectors followed by all 225 independent
+comparisons, and the complete ML-DSA reference vectors followed by its three-seed
+exact, cross-verification and refusal comparisons. Debugging limits are absent.
+Receipts retain their original source and run identities; an incomplete or failed
+campaign supplies no qualification. Artifacts contain receipts, notices and logs,
+without downloaded source, compiled objects, libraries, executables or test keys.
+
+These campaigns are acceptance outside Host CI and Guest CI. Read their results
+and retain the successful receipts before adopting a refreshed oracle. The
+separate Guest CI handoff still finishes without waiting for Guest CI.
+
 ## Instrument switch route
 
 [instrument-switches.yml](../../.github/workflows/instrument-switches.yml) builds and
