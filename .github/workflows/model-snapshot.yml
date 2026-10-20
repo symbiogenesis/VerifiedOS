@@ -83,9 +83,14 @@ jobs:
           import re
           import shutil
           import subprocess
+          import sys
           import tarfile
 
           root = Path(os.environ["GITHUB_WORKSPACE"])
+          sys.path.insert(0, str(root / "tools"))
+          from vos import env
+
+          env.load()
           temporary = Path(os.environ["RUNNER_TEMP"])
           output = temporary / "model-snapshot"
           output.mkdir()

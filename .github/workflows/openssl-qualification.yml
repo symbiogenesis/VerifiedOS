@@ -81,7 +81,14 @@ jobs:
         env:
           SUITE: ${{ matrix.suite }}
         run: |
-          sudo -E env PATH="$PATH" GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=safe.directory \
+          sudo env PATH="$PATH" RUNNER_TEMP="$RUNNER_TEMP" \
+            GITHUB_WORKSPACE="$GITHUB_WORKSPACE" GITHUB_RUN_ID="$GITHUB_RUN_ID" \
+            GITHUB_REPOSITORY="$GITHUB_REPOSITORY" TESTED_REVISION="$TESTED_REVISION" SUITE="$SUITE" \
+            VOS_ROCQ="$VOS_ROCQ" VOS_ROCQCHK="$VOS_ROCQCHK" OPAMROOT="$OPAMROOT" \
+            VOS_ROOT="$GITHUB_WORKSPACE" VOS_BUILD_ROOT="$VOS_BUILD_ROOT" VOS_LOG_DIR="$VOS_LOG_DIR" \
+            VOS_OPENSSL_ROOT="$VOS_OPENSSL_ROOT" OPENSSL_CONF="$OPENSSL_CONF" \
+            OPENSSL_MODULES="$OPENSSL_MODULES" TMPDIR="$TMPDIR" UV_CACHE_DIR="$UV_CACHE_DIR" \
+            PYTHONUTF8=1 PYTHONUNBUFFERED=1 GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=safe.directory \
             GIT_CONFIG_VALUE_0="$GITHUB_WORKSPACE" python3 - <<'PY' 2>&1 | tee "$RUNNER_TEMP/qualification.log"
           import json
           import os
@@ -127,7 +134,8 @@ jobs:
         env:
           SUITE: ${{ matrix.suite }}
         run: |
-          sudo -E env PATH="$PATH" python3 - <<'PY'
+          sudo env PATH="$PATH" RUNNER_TEMP="$RUNNER_TEMP" GITHUB_RUN_ID="$GITHUB_RUN_ID" \
+            SUITE="$SUITE" python3 - <<'PY'
           import os
           from pathlib import Path
           import shutil
