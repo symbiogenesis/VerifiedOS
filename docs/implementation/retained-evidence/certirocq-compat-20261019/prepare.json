@@ -1,0 +1,266 @@
+[
+  {
+    "label": "pin-coq-compcert",
+    "args": [
+      "/root/build/certirocq-compat-20261019/opam",
+      "pin",
+      "add",
+      "--no-action",
+      "--kind=path",
+      "coq-compcert.3.18",
+      "/root/build/certirocq-compat-20261019/sources/compcert-metadata",
+      "-y"
+    ],
+    "exit": 0,
+    "seconds": 1.0676937103271484,
+    "log": "/root/build/certirocq-compat-20261019/logs/pin-coq-compcert.log"
+  },
+  {
+    "label": "pin-rocq-equations",
+    "args": [
+      "/root/build/certirocq-compat-20261019/opam",
+      "pin",
+      "add",
+      "--no-action",
+      "--kind=path",
+      "rocq-equations.dev",
+      "/root/build/certirocq-compat-20261019/sources/equations",
+      "-y"
+    ],
+    "exit": 0,
+    "seconds": 1.0679214000701904,
+    "log": "/root/build/certirocq-compat-20261019/logs/pin-rocq-equations.log"
+  },
+  {
+    "label": "pin-coq-wasm",
+    "args": [
+      "/root/build/certirocq-compat-20261019/opam",
+      "pin",
+      "add",
+      "--no-action",
+      "--kind=path",
+      "coq-wasm.2.2.1",
+      "/root/build/certirocq-compat-20261019/sources/wasmcert",
+      "-y"
+    ],
+    "exit": 0,
+    "seconds": 1.0180983543395996,
+    "log": "/root/build/certirocq-compat-20261019/logs/pin-coq-wasm.log"
+  },
+  {
+    "label": "pin-rocq-metarocq-common",
+    "args": [
+      "/root/build/certirocq-compat-20261019/opam",
+      "pin",
+      "add",
+      "--no-action",
+      "--kind=path",
+      "rocq-metarocq-common.dev",
+      "/root/build/certirocq-compat-20261019/sources/metarocq",
+      "-y"
+    ],
+    "exit": 0,
+    "seconds": 1.1182878017425537,
+    "log": "/root/build/certirocq-compat-20261019/logs/pin-rocq-metarocq-common.log"
+  },
+  {
+    "label": "pin-rocq-metarocq-erasure-plugin",
+    "args": [
+      "/root/build/certirocq-compat-20261019/opam",
+      "pin",
+      "add",
+      "--no-action",
+      "--kind=path",
+      "rocq-metarocq-erasure-plugin.dev",
+      "/root/build/certirocq-compat-20261019/sources/metarocq",
+      "-y"
+    ],
+    "exit": 0,
+    "seconds": 1.1682517528533936,
+    "log": "/root/build/certirocq-compat-20261019/logs/pin-rocq-metarocq-erasure-plugin.log"
+  },
+  {
+    "label": "pin-rocq-metarocq-erasure",
+    "args": [
+      "/root/build/certirocq-compat-20261019/opam",
+      "pin",
+      "add",
+      "--no-action",
+      "--kind=path",
+      "rocq-metarocq-erasure.dev",
+      "/root/build/certirocq-compat-20261019/sources/metarocq",
+      "-y"
+    ],
+    "exit": 0,
+    "seconds": 1.0677075386047363,
+    "log": "/root/build/certirocq-compat-20261019/logs/pin-rocq-metarocq-erasure.log"
+  },
+  {
+    "label": "pin-rocq-metarocq-pcuic",
+    "args": [
+      "/root/build/certirocq-compat-20261019/opam",
+      "pin",
+      "add",
+      "--no-action",
+      "--kind=path",
+      "rocq-metarocq-pcuic.dev",
+      "/root/build/certirocq-compat-20261019/sources/metarocq",
+      "-y"
+    ],
+    "exit": 0,
+    "seconds": 1.067427396774292,
+    "log": "/root/build/certirocq-compat-20261019/logs/pin-rocq-metarocq-pcuic.log"
+  },
+  {
+    "label": "pin-rocq-metarocq-quotation",
+    "args": [
+      "/root/build/certirocq-compat-20261019/opam",
+      "pin",
+      "add",
+      "--no-action",
+      "--kind=path",
+      "rocq-metarocq-quotation.dev",
+      "/root/build/certirocq-compat-20261019/sources/metarocq",
+      "-y"
+    ],
+    "exit": 0,
+    "seconds": 1.0678188800811768,
+    "log": "/root/build/certirocq-compat-20261019/logs/pin-rocq-metarocq-quotation.log"
+  },
+  {
+    "label": "pin-rocq-metarocq-safechecker-plugin",
+    "args": [
+      "/root/build/certirocq-compat-20261019/opam",
+      "pin",
+      "add",
+      "--no-action",
+      "--kind=path",
+      "rocq-metarocq-safechecker-plugin.dev",
+      "/root/build/certirocq-compat-20261019/sources/metarocq",
+      "-y"
+    ],
+    "exit": 0,
+    "seconds": 1.1180408000946045,
+    "log": "/root/build/certirocq-compat-20261019/logs/pin-rocq-metarocq-safechecker-plugin.log"
+  },
+  {
+    "label": "pin-rocq-metarocq-safechecker",
+    "args": [
+      "/root/build/certirocq-compat-20261019/opam",
+      "pin",
+      "add",
+      "--no-action",
+      "--kind=path",
+      "rocq-metarocq-safechecker.dev",
+      "/root/build/certirocq-compat-20261019/sources/metarocq",
+      "-y"
+    ],
+    "exit": 0,
+    "seconds": 7.370157480239868,
+    "log": "/root/build/certirocq-compat-20261019/logs/pin-rocq-metarocq-safechecker.log"
+  },
+  {
+    "label": "pin-rocq-metarocq-template-pcuic",
+    "args": [
+      "/root/build/certirocq-compat-20261019/opam",
+      "pin",
+      "add",
+      "--no-action",
+      "--kind=path",
+      "rocq-metarocq-template-pcuic.dev",
+      "/root/build/certirocq-compat-20261019/sources/metarocq",
+      "-y"
+    ],
+    "exit": 0,
+    "seconds": 8.293377161026001,
+    "log": "/root/build/certirocq-compat-20261019/logs/pin-rocq-metarocq-template-pcuic.log"
+  },
+  {
+    "label": "pin-rocq-metarocq-template",
+    "args": [
+      "/root/build/certirocq-compat-20261019/opam",
+      "pin",
+      "add",
+      "--no-action",
+      "--kind=path",
+      "rocq-metarocq-template.dev",
+      "/root/build/certirocq-compat-20261019/sources/metarocq",
+      "-y"
+    ],
+    "exit": 0,
+    "seconds": 1.3249914646148682,
+    "log": "/root/build/certirocq-compat-20261019/logs/pin-rocq-metarocq-template.log"
+  },
+  {
+    "label": "pin-rocq-metarocq-translations",
+    "args": [
+      "/root/build/certirocq-compat-20261019/opam",
+      "pin",
+      "add",
+      "--no-action",
+      "--kind=path",
+      "rocq-metarocq-translations.dev",
+      "/root/build/certirocq-compat-20261019/sources/metarocq",
+      "-y"
+    ],
+    "exit": 0,
+    "seconds": 5.411235570907593,
+    "log": "/root/build/certirocq-compat-20261019/logs/pin-rocq-metarocq-translations.log"
+  },
+  {
+    "label": "pin-rocq-metarocq-utils",
+    "args": [
+      "/root/build/certirocq-compat-20261019/opam",
+      "pin",
+      "add",
+      "--no-action",
+      "--kind=path",
+      "rocq-metarocq-utils.dev",
+      "/root/build/certirocq-compat-20261019/sources/metarocq",
+      "-y"
+    ],
+    "exit": 0,
+    "seconds": 9.116174221038818,
+    "log": "/root/build/certirocq-compat-20261019/logs/pin-rocq-metarocq-utils.log"
+  },
+  {
+    "label": "pin-certirocq",
+    "args": [
+      "/root/build/certirocq-compat-20261019/opam",
+      "pin",
+      "add",
+      "--no-action",
+      "--kind=path",
+      "rocq-certirocq.dev+9.3",
+      "/root/build/certirocq-compat-20261019/sources/certirocq",
+      "-y"
+    ],
+    "exit": 0,
+    "seconds": 9.708864450454712,
+    "log": "/root/build/certirocq-compat-20261019/logs/pin-certirocq.log"
+  },
+  {
+    "label": "05-solve",
+    "args": [
+      "/root/build/certirocq-compat-20261019/opam",
+      "install",
+      "--dry-run",
+      "--json=/root/build/certirocq-compat-20261019/solve.json",
+      "-y",
+      "ocaml-base-compiler.4.14.4",
+      "ocamlfind.1.9.8",
+      "dune.3.23.1",
+      "coq.9.3.0",
+      "rocq-stdlib.9.2.0",
+      "coq-compcert.3.18",
+      "coq-ext-lib.0.13.2",
+      "coq-flocq.4.2.2",
+      "coq-mathcomp-ssreflect.2.4.0",
+      "menhir.20260209",
+      "rocq-certirocq.dev+9.3"
+    ],
+    "exit": 20,
+    "seconds": 4.68387770652771,
+    "log": "/root/build/certirocq-compat-20261019/logs/05-solve.log"
+  }
+]

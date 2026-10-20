@@ -1,0 +1,17 @@
+{
+  "query": "From MenhirLib Require Import Automaton Interpreter.\nSet Printing All.\nSet Printing Universes.\nSet Printing Parentheses.\nSet Printing Depth 1000000.\nSet Printing Width 1000000.\nModule Probe (A: Automaton.T).\nModule I := Interpreter.Make A.\nCheck I.pop.\nPrint I.pop.\nPrint Assumptions I.pop.\nCheck I.reduce_step.\nPrint I.reduce_step.\nPrint Assumptions I.reduce_step.\nCheck I.parse.\nPrint I.parse.\nPrint Assumptions I.parse.\nEnd Probe.\n",
+  "query_sha256": "ec718881b3687e79d3c90d0e80bed6b481aaf4406d517cf49e0d0fc32f5ac9e5",
+  "results": {
+    "baseline": {
+      "exit": 0,
+      "sha256": "ad6ef3463dafc69780b63d4b5dfb614a56f83da1bca94ff816d1a62dc62fa01a",
+      "bytes": 35176
+    },
+    "candidate": {
+      "exit": 0,
+      "sha256": "887d1a21bd7271624ef753f2fcfbf0fd86bf06498c09f7e121816ca7ef514a29",
+      "bytes": 35174
+    }
+  },
+  "equal": false
+}

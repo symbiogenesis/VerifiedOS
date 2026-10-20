@@ -15,7 +15,9 @@ The package metadata was rechecked on 2026-10-19 with opam 2.6.1 in a private
 root. Constraining the qualified root versions leaves the Sail, proof and
 Rupicola snapshots current. The latest stable findlib remains 1.9.8; its OCaml
 bound still prevents a stable 5.5 compiler in those switches. CertiRocq stays
-on Rocq 9.1.1 because its compiler and Wasm library require Rocq below 9.2;
+on Rocq 9.1.1 under the qualified release's bounds; the
+[bounded 9.3 qualification](certirocq-compatibility.md#native-trial-verdict)
+builds CompCert but stops at a WasmCert executable-definition adaptation;
 its OCaml 4.14 closure also cannot take the newer Jane Street PPX packages
 that require OCaml 5.1. Rupicola's Rocq 9.2 runtime and QuickChick's Rocq-Elpi
 closure retain dune below 3.24. QuickChick resolution and qualification use only

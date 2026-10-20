@@ -127,3 +127,49 @@ The existing total repair budget still applies. This separate target-version
 qualification does not change the authored-proof repair workflow or erase the
 failed cross-version comparison. All consumer, re-import and vector acceptance
 above remains due.
+
+## Native trial verdict
+
+[Native Rocq 9.3 compatibility trial](../../docs/implementation/retained-evidence/certirocq-compat-20261019/manifest.json), SHA256 `b40b542a17f28533921c39960b8bd4f6f8bc9d15931e2d57c60e2b8ac517832d`,
+records a stopped candidate on 2026-10-19. No replacement snapshot is qualified.
+The private resolver found a complete solution; its dry-run action records are
+simulations, not build results. Actual builds installed Rocq 9.3.0, Stdlib 9.2.0,
+MathComp 2.6.0, parseque 0.3.1 and CompCert 3.18. An initial metadata-only path pin
+omitted package sources; the corrected retry used the verified complete archives.
+That setup failure supplies no compatibility verdict.
+
+MenhirLib 20260209 first refused three late `Proof` commands. Moving those
+commands before `refine` built the library in two candidate checks. The original
+cross-prover frozen comparison remains failed. The separately scoped target-version
+reference built with its missing-`Proof` warnings retained, and its readings for
+`pop`, `reduce_step` and `parse` match the candidate byte for byte, SHA256
+`887d1a21bd7271624ef753f2fcfbf0fd86bf06498c09f7e121816ca7ef514a29`.
+This establishes that grammar comparison only. Upstream already carries the exact
+three-command relocation in [Menhir `6dedce5`](https://gitlab.inria.fr/fpottier/menhir/-/commit/6dedce5de5df8f139c42326f3bd95e7a1c878674).
+A future source pin must also preserve Menhir's generated-parser version check:
+the development source defines `require_unreleased`, whereas the selected generator
+requires `require_20260209`. Upstream's release stamping owns that adjustment.
+
+The next actual build stopped in WasmCert `theories/numerics.v`, line 1585,
+at `BofZ_normalise`: `Cannot apply lemma Eqdep_dec.eq_proofs_unicity_on`.
+[WasmCert `72c33dcb`](https://github.com/WasmCert/WasmCert-Coq/commit/72c33dcb6b629bbd744f5b6b4a6ebf6f2d9fa0c6)
+contains an adaptation, but it changes the executable `normalise` definition from
+`ltac:(abstract exact false)` to explicit `false` as well as simplifying the proof.
+It was not applied: an executable-definition/transparency change exceeds this
+candidate's repair boundary. This is an unresolved port, not a refutation of the
+theorem or evidence that Rocq 9.3 cannot support the oracle.
+
+Equations, MetaRocq, CertiRocq's plugins and bootstraps, all consumer and exact
+assumption checks, fresh snapshot import and the complete-vector comparison were
+not reached. The existing qualified switch's ordinary and full exports are each
+byte-identical before and after the trial; its ordinary export still matches the
+tracked production lock. Native sources, complete frozen readings and build outputs
+remain in `/root/build/certirocq-compat-20261019`; the portable bundle retains their
+identities, commands, diagnostics and comparison results.
+
+The next candidate needs an explicit contract for the upstream WasmCert
+`normalise` adaptation: freeze its public types, executable meaning and assumptions,
+review the intended transparency change, and qualify that source before resuming
+the remaining closure and all acceptance above. Neither raising the package bounds
+nor combining the two CertiRocq PR heads discharges that work. The production
+oracle remains at Rocq 9.1.1.

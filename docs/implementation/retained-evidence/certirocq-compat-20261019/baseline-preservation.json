@@ -1,0 +1,50 @@
+{
+  "baseline": {
+    "root": "/root/build/fanout-retained/314f14d5fbd20fd942a6/deps-matrix-20261019/lane/certirocq/opam-root",
+    "switch": "verifiedos-certirocq-0.9.1-ocaml-4.14.4",
+    "args": [
+      "/root/build/certirocq-compat-20261019/opam",
+      "switch",
+      "export",
+      "--full",
+      "--switch=verifiedos-certirocq-0.9.1-ocaml-4.14.4",
+      "/root/build/certirocq-compat-20261019/baseline-before.export"
+    ],
+    "exit": 0,
+    "sha256": "580c9206c730258f4e94878d59bdacacfee6190dd3ce8884e143880b62447657",
+    "tracked_sha256": "8437b97944f4dcc666d2df1f2ed4db67221bf23be3efbc3ce1b483b70c04f3b1",
+    "snapshot_sha256": "8437b97944f4dcc666d2df1f2ed4db67221bf23be3efbc3ce1b483b70c04f3b1",
+    "snapshot_matches_production": true
+  },
+  "comparisons": [
+    {
+      "kind": "snapshot",
+      "args": [
+        "/root/build/certirocq-compat-20261019/opam",
+        "switch",
+        "export",
+        "--switch=verifiedos-certirocq-0.9.1-ocaml-4.14.4",
+        "/root/build/certirocq-compat-20261019/baseline-after-snapshot.export"
+      ],
+      "exit": 0,
+      "before_sha256": "8437b97944f4dcc666d2df1f2ed4db67221bf23be3efbc3ce1b483b70c04f3b1",
+      "after_sha256": "8437b97944f4dcc666d2df1f2ed4db67221bf23be3efbc3ce1b483b70c04f3b1",
+      "equal": true
+    },
+    {
+      "kind": "full",
+      "args": [
+        "/root/build/certirocq-compat-20261019/opam",
+        "switch",
+        "export",
+        "--full",
+        "--switch=verifiedos-certirocq-0.9.1-ocaml-4.14.4",
+        "/root/build/certirocq-compat-20261019/baseline-after-full.export"
+      ],
+      "exit": 0,
+      "before_sha256": "580c9206c730258f4e94878d59bdacacfee6190dd3ce8884e143880b62447657",
+      "after_sha256": "580c9206c730258f4e94878d59bdacacfee6190dd3ce8884e143880b62447657",
+      "equal": true
+    }
+  ]
+}

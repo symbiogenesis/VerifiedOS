@@ -1,0 +1,16 @@
+[
+  {
+    "package": "coq-menhirlib",
+    "source": "/root/build/certirocq-compat-20261019/sources/menhir",
+    "archive_sha256": "69f0414b047d1d5b3507eb8277cd328a60d430bdff51de912b47adb2c25de4f3",
+    "original_metadata_sha256": null,
+    "metadata_sha256": "52de2b9b6e96c77d54d66615d906140d4089c1a9c80ff398d944269277db8b87"
+  },
+  {
+    "package": "coq-compcert",
+    "source": "/root/build/certirocq-compat-20261019/sources/compcert",
+    "archive_sha256": "564b312b3ed3162f02605f0108feb555bd28fe7a80b97ea269c546bcc60c1cf0",
+    "original_metadata_sha256": null,
+    "metadata_sha256": "d916a4eb00eff16ccf8baf8caa8971665e2bb8dbf23f5f9f0c0b9e0ad0c8166b"
+  }
+]

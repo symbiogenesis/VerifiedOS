@@ -1,0 +1,12 @@
+{
+  "args": [
+    "/root/build/certirocq-compat-20261019/opam",
+    "install",
+    "--json=/root/build/certirocq-compat-20261019/compcert-wasm.json",
+    "-y",
+    "coq-compcert.3.18",
+    "coq-wasm.2.2.1"
+  ],
+  "exit": 31,
+  "seconds": 190.5101306438446
+}

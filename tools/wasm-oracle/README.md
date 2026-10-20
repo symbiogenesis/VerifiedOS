@@ -4,6 +4,11 @@ This is the inner loop of the three-loop discipline ([implementation-checklist Â
 
 ## Pinned environment
 
+The [bounded Rocq 9.3 qualification](../opam/certirocq-compatibility.md#native-trial-verdict)
+stops at a WasmCert executable-definition adaptation. Its contract owns the next
+candidate and adoption checks. The environment below is the qualified production
+snapshot.
+
 * **Compiler**: CertiRocq **0.9.1 for Rocq 9.1**, the released `rocq-certirocq.0.9.1+9.1` from the `rocq-released` opam repository, MIT. It is a release rather than a source pin because the release now carries both things a pin used to buy: the merged CertiCoq-Wasm backend (`theories/CodegenWasm`, mechanized against WasmCert-Coq, CPP 2025) that the `coq-certicoq` 0.9 release predated, and `rocq-metarocq-erasure-plugin` and `rocq-metarocq-safechecker-plugin` at `>= 1.5.1`, which is *released* MetaRocq rather than the unreleased 9.1 branch main tracked. There is therefore no clone, no checkout and no compatibility patch; the erasure inlining toggle a patch used to move already sits in `unsafe_passes` here.
 * **Prover**: Rocq 9.1.1. CertiRocq requires `rocq-core {>= "9.1" & < "9.2~"}`, and its `coq-wasm` dependency also requires Coq below 9.2. The [proof gate](../vos/cli/proofs.py) independently uses Rocq 9.3.0.
 * **OCaml**: 4.14.4 with ocamlfind 1.9.8. CertiRocq's unmodified native `certirocqc` bootstrap fails with OCaml 5.4.1 because its runtime's `Hd_val` macro collides with the inline function introduced in OCaml 5.2; OCaml 4.14.4 defines `Hd_val` as the same macro, token for token. The [package snapshot guide](../opam/README.md) records this boundary and the independent 5.4.1 switches. The container imports the same snapshot; its published Rocq 9.1 image's OCaml 4.14.2 only runs opam.

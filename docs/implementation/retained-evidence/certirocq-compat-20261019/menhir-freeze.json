@@ -1,0 +1,10 @@
+{
+  "query": "From MenhirLib Require Import Automaton Interpreter.\nSet Printing All.\nSet Printing Universes.\nSet Printing Depth 1000000.\nSet Printing Width 1000000.\nModule Probe (A: Automaton.T).\nModule I := Interpreter.Make A.\nCheck I.pop.\nPrint I.pop.\nPrint Assumptions I.pop.\nCheck I.reduce_step.\nPrint I.reduce_step.\nPrint Assumptions I.reduce_step.\nCheck I.parse.\nPrint I.parse.\nPrint Assumptions I.parse.\nEnd Probe.\n",
+  "query_sha256": "6d46621ced496a978e2b8e749153f397616535cafedf80fbc794936f3cac22b8",
+  "baseline_compiler": "/root/build/fanout-retained/314f14d5fbd20fd942a6/deps-matrix-20261019/lane/certirocq/opam-root/verifiedos-certirocq-0.9.1-ocaml-4.14.4/bin/rocq",
+  "baseline_exit": 0,
+  "baseline_sha256": "ad6ef3463dafc69780b63d4b5dfb614a56f83da1bca94ff816d1a62dc62fa01a",
+  "candidate_exit": 0,
+  "candidate_sha256": "887d1a21bd7271624ef753f2fcfbf0fd86bf06498c09f7e121816ca7ef514a29",
+  "equal": false
+}

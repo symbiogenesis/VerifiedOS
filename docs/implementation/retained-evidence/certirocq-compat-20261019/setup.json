@@ -1,0 +1,98 @@
+[
+  {
+    "label": "01-client",
+    "args": [
+      "/root/build/certirocq-compat-20261019/opam",
+      "--version"
+    ],
+    "exit": 0,
+    "seconds": 0.06655693054199219,
+    "log": "/root/build/certirocq-compat-20261019/logs/01-client.log"
+  },
+  {
+    "label": "02-init",
+    "args": [
+      "/root/build/certirocq-compat-20261019/opam",
+      "init",
+      "--bare",
+      "--no-setup",
+      "--no-opamrc",
+      "-y",
+      "default",
+      "https://opam.ocaml.org"
+    ],
+    "exit": 0,
+    "seconds": 15.019715547561646,
+    "log": "/root/build/certirocq-compat-20261019/logs/02-init.log"
+  },
+  {
+    "label": "03-repository",
+    "args": [
+      "/root/build/certirocq-compat-20261019/opam",
+      "repository",
+      "add",
+      "rocq-released",
+      "https://rocq-prover.org/opam/released",
+      "--dont-select",
+      "-y"
+    ],
+    "exit": 0,
+    "seconds": 2.6257846355438232,
+    "log": "/root/build/certirocq-compat-20261019/logs/03-repository.log"
+  },
+  {
+    "label": "04-create",
+    "args": [
+      "/root/build/certirocq-compat-20261019/opam",
+      "switch",
+      "create",
+      "trial",
+      "--repos=rocq-released,default",
+      "--empty",
+      "--no-switch",
+      "-y"
+    ],
+    "exit": 0,
+    "seconds": 0.7162923812866211,
+    "log": "/root/build/certirocq-compat-20261019/logs/04-create.log"
+  },
+  {
+    "label": "metadata-rocq-equations",
+    "args": [
+      "/root/build/certirocq-compat-20261019/opam",
+      "show",
+      "--switch=trial",
+      "--raw",
+      "rocq-equations"
+    ],
+    "exit": 0,
+    "seconds": 0.8666777610778809,
+    "log": "/root/build/certirocq-compat-20261019/logs/metadata-rocq-equations.log"
+  },
+  {
+    "label": "metadata-coq-wasm",
+    "args": [
+      "/root/build/certirocq-compat-20261019/opam",
+      "show",
+      "--switch=trial",
+      "--raw",
+      "coq-wasm"
+    ],
+    "exit": 0,
+    "seconds": 0.8169763088226318,
+    "log": "/root/build/certirocq-compat-20261019/logs/metadata-coq-wasm.log"
+  },
+  {
+    "label": "metadata-coq-compcert",
+    "args": [
+      "/root/build/certirocq-compat-20261019/opam",
+      "show",
+      "--switch=trial",
+      "--raw",
+      "coq-compcert"
+    ],
+    "exit": 0,
+    "seconds": 0.867354154586792,
+    "log": "/root/build/certirocq-compat-20261019/logs/metadata-coq-compcert.log"
+  }
+]

@@ -1,0 +1,45 @@
+{
+  "target": "MenhirLib.Interpreter.Make.pop",
+  "source_sha256": "4891ad9d65843fefa4d9d424e0d065e241760f705464efc233796d445b16294f",
+  "candidate_sha256": "69cfbdd086858ef37fa50eed10866379a51bd858113a9716331d88f9e46e7fde",
+  "strategy": "Move the existing Proof command before unshelve refine; preserve every tactic and term.",
+  "budget": {
+    "attempts": 12,
+    "active_seconds": 7200
+  },
+  "attempts": [
+    {
+      "ordinal": 1,
+      "args": [
+        "/root/build/certirocq-compat-20261019/opam",
+        "install",
+        "--json=/root/build/certirocq-compat-20261019/menhir-repair-1.json",
+        "-y",
+        "coq-menhirlib.20260209"
+      ],
+      "exit": 31,
+      "seconds": 6.847759962081909,
+      "log": "/root/build/certirocq-compat-20261019/logs/10-menhir-pop-repair.log"
+    },
+    {
+      "ordinal": 2,
+      "args": [
+        "/root/build/certirocq-compat-20261019/opam",
+        "install",
+        "--json=/root/build/certirocq-compat-20261019/menhir-repair-2.json",
+        "-y",
+        "coq-menhirlib.20260209"
+      ],
+      "exit": 0,
+      "seconds": 10.058825731277466,
+      "log": "/root/build/certirocq-compat-20261019/logs/11-menhir-proof-openings.log"
+    }
+  ],
+  "status": "candidate",
+  "targets": [
+    "MenhirLib.Interpreter.Make.pop",
+    "MenhirLib.Interpreter.Make.reduce_step",
+    "MenhirLib.Interpreter.Make.parse"
+  ],
+  "patch_sha256": "4b4230492f7545f91a2c32a356d3632e0f8a0a99bc71b7b1e946c4ea990bc0ac"
+}

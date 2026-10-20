@@ -1,0 +1,57 @@
+{
+  "source": "/root/build/certirocq-compat-20261019/menhir-reference/menhir-20260209-0c6d021629bafa2fa32302d01d9594d2a026ec75",
+  "args": [
+    "make",
+    "-C",
+    "/root/build/certirocq-compat-20261019/menhir-reference/menhir-20260209-0c6d021629bafa2fa32302d01d9594d2a026ec75/coq-menhirlib",
+    "-j2"
+  ],
+  "exit": 0,
+  "seconds": 4.239146947860718,
+  "source_inventory": {
+    "coq-menhirlib/src/Alphabet.v": "407536dd86312af3c6eecde819c615262164f97a1591adff52ab897fbdfe8f3b",
+    "coq-menhirlib/src/Automaton.v": "c0cf962ae8e0f90721dfe1710c1ef945150484212b2ff2779ba2fcef43025ad8",
+    "coq-menhirlib/src/Grammar.v": "95dcae0c2362121518ae7d3d60ecd8d9e4beb224c7d8e08344acd41dd072c6a1",
+    "coq-menhirlib/src/Interpreter.v": "04aa7bda193a67219fea99ee6f1b86eb7db3da735b04e32f662ac1e5c041b02c",
+    "coq-menhirlib/src/Interpreter_complete.v": "5f8fc100c0058b87787f96ca529decf9f52b3c36d4ffd3dc39d4dff06e1ead85",
+    "coq-menhirlib/src/Interpreter_correct.v": "d18e9ae38aff5d248975995bc215ab902cbc7ff7bbe08a0fd58111badd453ce3",
+    "coq-menhirlib/src/Main.v": "60a12aa75f505b4beac075eb4c5e4cdbf113ed872b446149263adf21c96a3a8d",
+    "coq-menhirlib/src/Validator_classes.v": "eeeac3525034b6f848b57c67f925f22351561a86e990d68b13fd4a187d42c084",
+    "coq-menhirlib/src/Validator_complete.v": "c7e1f4f25be2a4371d06dd1d01ea2adb21d889c1c18739ebf74afca8408b4f64",
+    "coq-menhirlib/src/Validator_safe.v": "8ccb355851f85c51e52b74eb5d48454fcf6979949d8403a846f22c89ba81d9cf",
+    "coq-menhirlib/src/Version.v": "3746feeefa899fe0d43e4db0ec53f2d7ddd72076d9fab29cdcc9ecb0250072e6",
+    "demos/rocq-minicalc/Lexer.v": "fc64016aadb494b7c9d2199eb17b1844064d6aea78c08cf1b24853460e5b6790",
+    "demos/rocq-minicalc/MiniCalc.v": "254f6db136d07e21020ad62797bb62626def4c45e5e15c90d1262a934c8a32ea",
+    "demos/rocq-syntax-errors/Extraction.v": "f2fa8c406c83765cc32e8eeb5acc7aa7367fa088e6c9e0a707f58c24cce33f14"
+  },
+  "reference_sha256": "04aa7bda193a67219fea99ee6f1b86eb7db3da735b04e32f662ac1e5c041b02c",
+  "candidate_sha256": "69cfbdd086858ef37fa50eed10866379a51bd858113a9716331d88f9e46e7fde",
+  "readings": {
+    "reference": {
+      "args": [
+        "/root/build/certirocq-compat-20261019/opam-root/trial/bin/rocq",
+        "c",
+        "-Q",
+        "/root/build/certirocq-compat-20261019/menhir-reference/menhir-20260209-0c6d021629bafa2fa32302d01d9594d2a026ec75/coq-menhirlib/src",
+        "MenhirLib",
+        "/tmp/verifiedos-certirocq-20261019-ed7581990b704404bc7eab33000edded/Frozen.v"
+      ],
+      "exit": 0,
+      "sha256": "887d1a21bd7271624ef753f2fcfbf0fd86bf06498c09f7e121816ca7ef514a29",
+      "bytes": 35174
+    },
+    "candidate": {
+      "args": [
+        "/root/build/certirocq-compat-20261019/opam-root/trial/bin/rocq",
+        "c",
+        "/tmp/verifiedos-certirocq-20261019-ed7581990b704404bc7eab33000edded/Frozen.v"
+      ],
+      "exit": 0,
+      "sha256": "887d1a21bd7271624ef753f2fcfbf0fd86bf06498c09f7e121816ca7ef514a29",
+      "bytes": 35174
+    }
+  },
+  "equal": true,
+  "query_sha256": "6d46621ced496a978e2b8e749153f397616535cafedf80fbc794936f3cac22b8",
+  "other_source_changes": []
+}

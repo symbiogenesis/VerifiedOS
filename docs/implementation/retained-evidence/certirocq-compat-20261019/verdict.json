@@ -1,0 +1,52 @@
+{
+  "schema": 1,
+  "kind": "certirocq-compatibility-trial",
+  "date": "2026-10-19",
+  "status": "stopped",
+  "target": {
+    "rocq": "9.3.0",
+    "stdlib": "9.2.0",
+    "ocaml": "4.14.4"
+  },
+  "production_adopted": false,
+  "production_snapshot_preserved": true,
+  "resolver_only": "solve-2.json is a dry run; simulated actions are not build evidence",
+  "actual_passes": [
+    "Rocq 9.3.0",
+    "Stdlib 9.2.0",
+    "MathComp 2.6.0",
+    "parseque 0.3.1",
+    "CompCert 3.18",
+    "MenhirLib after three Proof command relocations"
+  ],
+  "first_setup_failure": "Metadata-only path pins omitted package source; corrected with verified complete release archives before compatibility checks.",
+  "first_source_failure": "MenhirLib20260209 late Proof command at Interpreter.v194; three commands relocated. Original cross-prover readings differ; separate same9.3 diagnostic reference matches exactly.",
+  "stopping_failure": {
+    "package": "coq-wasm.2.2.1",
+    "file": "theories/numerics.v",
+    "line": 1585,
+    "declaration": "BofZ_normalise",
+    "diagnostic": "Cannot apply lemma Eqdep_dec.eq_proofs_unicity_on",
+    "source_sha256": "b28b380f13f4cb96f4621afc49b88768bf19be432f64c363b43e98682023af96",
+    "actual_build_result": "compcert-wasm-build.json",
+    "upstream_fix": "https://github.com/WasmCert/WasmCert-Coq/commit/72c33dcb6b629bbd744f5b6b4a6ebf6f2d9fa0c6",
+    "reason": "The upstream adaptation changes the executable definition normalise from ltac:(abstract exact false) to false, outside this behavior-preserving trial. It was not applied."
+  },
+  "not_reached": [
+    "Equations source build",
+    "MetaRocq source build",
+    "CertiRocq package/plugins/native bootstraps",
+    "oracle consumers/kernel/assumption checks",
+    "fresh export/import repetition",
+    "full84-vector containedC/Wasm comparisons and controls"
+  ],
+  "repair": {
+    "candidate_checks": 2,
+    "diagnostic_reference_builds": 1,
+    "limit_attempts": 12,
+    "limit_attended_seconds": 7200,
+    "stopped_at_semantic_boundary": true
+  },
+  "next_action": "Scope and freeze the WasmCert normalise executable-definition/transparency adaptation, then qualify the remaining source closure and all consumer acceptance. No failed comparison is normalized away.",
+  "native_outputs": "/root/build/certirocq-compat-20261019"
+}

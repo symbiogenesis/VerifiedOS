@@ -281,6 +281,20 @@ The extraction review remains due before any generator binary distribution.
 
 ### Compatibility trial and API reuse readings
 
+The [CertiRocq compatibility trial](tools/opam/certirocq-compatibility.md) uses
+its immutable sources only for local research in a private native prefix.
+Their actual instruments and in-file notices were read on 2026-10-19 before
+building: CertiRocq and MetaRocq retain their MIT instruments and the file-specific
+terms inventoried in the production rows below; the selected MetaRocq still
+carries the BedRock exception reference without its text. WasmCert's MIT
+instrument expressly identifies its `src/Parray/` as LGPL, while those copied
+Rocq sources themselves name LGPL version 2.1. Equations is LGPL-2.1-only,
+MathComp's `LICENCE` is CeCILL-B, and parseque's `LICENSE` is MIT. Menhir and
+CompCert retain the exact release archives and use terms recorded below.
+No upstream source, plugin, compiler or generated binary is distributed by
+this trial. A compatibility result supplies no production-carriage permission
+or proof verdict.
+
 The [Sail support compatibility trial](tools/opam/sail-compatibility.md), recorded
 2026-10-12, uses coq-sail 0.20.3 at
 `e7b914cddc032e3676eebd87a808229828013e9c` and stdpp/bitvector 1.13.0 as external

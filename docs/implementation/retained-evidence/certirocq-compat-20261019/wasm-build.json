@@ -1,0 +1,24 @@
+{
+  "args": [
+    "/root/build/certirocq-compat-20261019/opam",
+    "install",
+    "--json=/root/build/certirocq-compat-20261019/install-wasm.json",
+    "-y",
+    "ocaml-base-compiler.4.14.4",
+    "ocamlfind.1.9.8",
+    "dune.3.23.1",
+    "coq.9.3.0",
+    "rocq-stdlib.9.2.0",
+    "coq-compcert.3.18",
+    "coq-ext-lib.0.13.2",
+    "coq-flocq.4.2.2",
+    "coq-mathcomp-ssreflect.2.6.0",
+    "menhir.20260209",
+    "rocq-parseque.0.3.1",
+    "coq-menhirlib.20260209",
+    "coq-wasm.2.2.1"
+  ],
+  "cwd": "/tmp/verifiedos-certirocq-20261019-ed7581990b704404bc7eab33000edded",
+  "exit": 31,
+  "seconds": 605.1026091575623
+}

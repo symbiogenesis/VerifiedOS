@@ -1,0 +1,35 @@
+{
+  "certirocq": {
+    "repo": "CertiRocq/certirocq",
+    "revision": "49cd1c23b74678d36f7f37412a5c1ce6d00f41d2",
+    "url": "https://codeload.github.com/CertiRocq/certirocq/tar.gz/49cd1c23b74678d36f7f37412a5c1ce6d00f41d2",
+    "archive_sha256": "c5fc1a0593e04294438c33aaac6ed9aa3528d87801360dc3c7c760e30f208084",
+    "licenses": {
+      "LICENSE.md": "136a03804522ebaa80a74f76798083823ad4d81016d03d60c60f7cb90cb38aaf"
+    }
+  },
+  "metarocq": {
+    "repo": "MetaRocq/metarocq",
+    "revision": "9242c14bc377611a56d45283977ea754fd499c47",
+    "url": "https://codeload.github.com/MetaRocq/metarocq/tar.gz/9242c14bc377611a56d45283977ea754fd499c47",
+    "archive_sha256": "f99b234e8346277a6b73d4b5afd752bdba1274330123bdfc894276a1bdb96c4f",
+    "licenses": {
+      "LICENSE": "310ccd944e4d5aa1a024ec1a4a1a182492aa2b4d1e540c0158cb7d60b1a1f437"
+    }
+  },
+  "wasmcert": {
+    "repo": "WasmCert/WasmCert-Coq",
+    "revision": "58a3d3f8b7af4dc8aa9351f254a9e672643b21f8",
+    "url": "https://codeload.github.com/WasmCert/WasmCert-Coq/tar.gz/58a3d3f8b7af4dc8aa9351f254a9e672643b21f8",
+    "archive_sha256": "a92ffd6fee59faba221263ecb3a9382d0e04c3ccf5ead4a473b10da0d6276ff4",
+    "licenses": {
+      "LICENSE.txt": "dff2b19c5813011fb7801fd372ae5a0049688dd1ddae477c572e4aba9255d369"
+    }
+  },
+  "equations": {
+    "repo": "mattam82/Coq-Equations",
+    "revision": "d562d8c413f4b0d2a837ef742d08fa59d14107e6",
+    "archive_sha256": "08eb0535a9c6169d3107460e4b407daf873e72f87e16840e3ad3f24d04187898",
+    "license_sha256": "d4594b82f4d50840df6a7e9d14132a8c0a3cc05d0ac46d15310a264a1f75447e"
+  }
+}
