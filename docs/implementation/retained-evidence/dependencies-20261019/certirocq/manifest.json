@@ -1,0 +1,34 @@
+{
+  "files": {
+    "container-registry.json": {
+      "bytes": 3092,
+      "encoding": "identity",
+      "path": "container-registry.json",
+      "sha256": "3e3a316d978ab4e58189e20b48f58c605c911706e8c1491cb06ba1b13ec64e4b"
+    },
+    "installation.json": {
+      "bytes": 8568,
+      "encoding": "identity",
+      "path": "installation.json",
+      "sha256": "ee8472c41d9c957dbe9c6ed3d37d8fc4aaef5afcfe2bc82972a78a8b660aef6c"
+    },
+    "mdx-archive-members.txt": {
+      "bytes": 20212,
+      "encoding": "identity",
+      "path": "mdx-archive-members.txt",
+      "sha256": "9c82cf146b019836b53f839007f53d448bb6e6de171d02b4eae65386ab5a73ba"
+    },
+    "mdx-installed-files.txt": {
+      "bytes": 16427,
+      "encoding": "identity",
+      "path": "mdx-installed-files.txt",
+      "sha256": "60e9be5c8677e59f1303155f2671a61fdc735012bc00a80507fdcefc4d1b2a2b"
+    },
+    "qualification.json": {
+      "bytes": 17683,
+      "encoding": "identity",
+      "path": "qualification.json",
+      "sha256": "5970add2ec281efc9798f3fc835c89a6c5757387ccde7690778917086193d00c"
+    }
+  }
+}

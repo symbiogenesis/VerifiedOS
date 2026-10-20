@@ -13,6 +13,15 @@ This is the inner loop of the three-loop discipline ([implementation-checklist Â
 
 [tools/opam/certirocq.lock](../opam/certirocq.lock) is the export of a fresh aarch64 switch built with opam 2.6.1. The unpatched CertiRocq release, including its native `certirocqc` and `certirocqchk` bootstraps, built with OCaml 4.14.4; its compatible transitive updates are ExtLib 0.13.2 and mdx 2.7.0, and the other locked packages and compiler invariant remain unchanged. `demo.v` printed `true` through the compiled Wasm, and `ipc_oracle.v`'s 84 checks answered `true` in the kernel and through Wasm; the seeded twin answered `false`, with the Wasm runner exiting 1. Both recipes below import this snapshot. The Docker build is unexercised: the image is published for `linux/amd64` alone, and the aarch64 guest where these checks ran has not built it. The Gallina vector harnesses compile in the proof gate's switch and exercise nothing in this one.
 
+The [fresh bootstrap and oracle qualification](../../docs/implementation/retained-evidence/dependencies-20261019/certirocq/manifest.json),
+SHA-256 `74be4b871584e7615304f7c50bfe7cf9e6a978152366c5b69574ca416721134c`,
+retains the actual 4,314.465-second installation, both native bootstraps,
+positive and negative oracle checks, exact export, license readings, mdx
+archive/install membership and the current container-registry audit. The first
+wrapper's invalid optional executable lookup is preserved separately from its
+successful installation; corrected qualification reused that installation.
+The complete-vector M1.2f comparison below remains a separate acceptance check.
+
 `run.py provision --apply` plans nothing for this switch, whose only route is the recipe here, a person's rather than a tool's, and `provision`'s oracle row holds only over a root that carries the declared switch.
 
 Two environments install the same opam package. The container is the portable one and the opam switch is the one that runs on an arm64 host, because `rocq/rocq-prover` publishes `linux/amd64` alone at every 9.1 tag.
