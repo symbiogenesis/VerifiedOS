@@ -194,7 +194,7 @@ def openssl_verify(work: Path, case: Case) -> bool:
 
 
 def openssl_identity(work: Path) -> dict[str, object]:
-    return openssl.record(work)
+    return dict[str, object](openssl.record(work))
 
 
 def gallina_build(root: Path, work: Path) -> tuple[ModuleType, dict[str, str]]:
