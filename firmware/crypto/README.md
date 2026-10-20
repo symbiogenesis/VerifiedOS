@@ -45,12 +45,23 @@ The campaign compiles host C with warnings as errors, freestanding options and
 AddressSanitizer/UndefinedBehaviorSanitizer. It compares every applicable
 byte-oriented pure, internal and external-mu verification input in pinned NIST
 ACVP files, records excluded prehash/partial-byte inputs, and compares positive
-and corrupted signatures with installed OpenSSL 3.5.5. `--gallina` additionally
+and corrupted signatures with private source-built OpenSSL 3.5.9. `--gallina` additionally
 extracts the exact ML-DSA reference and compares each selected interface and its
 refusals. It also compares streaming SHAKE256 against `Keccak.v` and Python's
 independent digest over empty inputs and absorb/padding/squeeze rate boundaries.
 `--first` runs one positive per scheme as an explicitly incomplete
 development checkpoint. Neither option can claim target acceptance.
+
+The external oracle and disposable image signers share
+[one source/build identity owner](../../tools/vos/openssl.py). Install it with
+`python3 tools/ci/bootstrap_openssl.py --prefix /root/build/lane-<assignment>/openssl-3.5.9 --jobs 2`,
+then set `VOS_OPENSSL_ROOT` to that prefix. The command also supports
+`--github-env` and `--github-path` for hosted provisioning. Each consumer refuses
+a different release, changed build identity or a foreign loaded crypto library;
+the system OpenSSL package is unchanged. Source license, build and actual
+executable/library identities replace distribution-package claims in new receipts.
+The [dependency-refresh contract](../../docs/assurance/pq-reference-contract.md#executable-oracle-dependency-refresh)
+requires separate complete hosted oracle campaigns before refreshed acceptance.
 
 `boot-crypto target` compiles [signature_target.c](signature_target.c) through
 the accepted contained compiler and executes all five real signature interfaces

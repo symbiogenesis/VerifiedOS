@@ -7,9 +7,10 @@ This helper supplies neither a production root nor target qualification.
 """
 
 import hashlib
-import shutil
 import subprocess
 from pathlib import Path
+
+from vos import openssl
 
 
 class SlhSigner:
@@ -21,10 +22,8 @@ class SlhSigner:
         self.public_bytes = public_bytes
         self.signature_bytes = signature_bytes
         work.mkdir(parents=True, exist_ok=True)
-        executable = shutil.which("openssl")
-        if executable is None:
-            raise ValueError("SLH boot signing needs OpenSSL with SLH-DSA-SHAKE-256s")
-        self.executable = Path(executable)
+        self.openssl = openssl.record(work)
+        self.executable = openssl.executable()
         self.version = self._run("version", "-a").strip()
         self.executable_sha256 = hashlib.sha256(self.executable.read_bytes()).hexdigest()
         self.roots: dict[str, bytes] = {}
@@ -35,7 +34,7 @@ class SlhSigner:
                 raise ValueError(f"unsupported lifecycle root {state}")
             key = work / f"{state}-key.pem"
             public = work / f"{state}-public.der"
-            self._run("genpkey", "-algorithm", "SLH-DSA-SHAKE-256s", "-out", str(key))
+            self._run("genpkey", "-provider", "default", "-algorithm", "SLH-DSA-SHAKE-256s", "-out", str(key))
             key.chmod(0o600)
             self._run("pkey", "-in", str(key), "-pubout", "-outform", "DER", "-out", str(public))
             encoded = public.read_bytes()
@@ -48,6 +47,8 @@ class SlhSigner:
             self.keys[pk] = key
 
     def _run(self, *args: str) -> str:
+        if openssl.identity() != self.openssl:
+            raise ValueError("OpenSSL source build changed during boot signing")
         result = subprocess.run([str(self.executable), *args], cwd=self.work,
                                 capture_output=True, text=True, timeout=120, check=False)
         if result.returncode:
@@ -64,7 +65,7 @@ class SlhSigner:
         prefix = self.work / f"{identity}.message"
         signature = self.work / f"{identity}.signature"
         prefix.write_bytes(message)
-        self._run("pkeyutl", "-sign", "-inkey", str(self.keys[public]), "-in", str(prefix),
+        self._run("pkeyutl", "-sign", "-provider", "default", "-inkey", str(self.keys[public]), "-in", str(prefix),
                   "-out", str(signature), "-pkeyopt", "message-encoding:0")
         result = signature.read_bytes()
         if len(result) != self.signature_bytes:
@@ -73,9 +74,11 @@ class SlhSigner:
         return result
 
     def identity(self) -> dict[str, object]:
+        if openssl.identity() != self.openssl:
+            raise ValueError("OpenSSL source build changed during boot signing")
         if hashlib.sha256(self.executable.read_bytes()).hexdigest() != self.executable_sha256:
             raise ValueError("the OpenSSL executable changed during boot signing")
-        return {"scheme": "SLH-DSA-SHAKE-256s", "interface": "internal message",
+        return {"scheme": "SLH-DSA-SHAKE-256s", "interface": "internal message", "openssl": self.openssl,
                 "openssl_version": self.version, "openssl_executable": str(self.executable),
                 "openssl_sha256": self.executable_sha256,
                 "roots": {state: pk.hex() for state, pk in self.roots.items()},

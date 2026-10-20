@@ -12,11 +12,16 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
-from pathlib import Path
 import selectors
-import shutil
 import subprocess
+import sys
 import time
+from pathlib import Path
+
+sys.dont_write_bytecode = True
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "tools"))
+
+from vos import openssl as oracle
 
 
 def sha(path: Path) -> str:
@@ -45,12 +50,7 @@ def main() -> int:
     executable = args.reference / "mlkem_vectors"
     if sha(executable) != previous["executable_sha256"]:
         raise ValueError("executable differs from vector receipt")
-    openssl = Path(shutil.which("openssl") or "").resolve()
-    version = subprocess.check_output([str(openssl), "version", "-a"], text=True)
-    if "OpenSSL 3.5.5 " not in version:
-        raise ValueError("qualify this OpenSSL version before changing the campaign")
-    notice = Path("/usr/share/doc/openssl/copyright")
-    shutil.copyfile(notice, args.build / "openssl-package-copyright.txt")
+    identity = oracle.record(args.build)
     rows, commands = [], []
     algorithm = der(0x30, der(0x06, bytes.fromhex("608648016503040403")))
 
@@ -61,7 +61,7 @@ def main() -> int:
         return der(0x30, der(0x02, b"\0") + algorithm + der(0x04, der(0x80 if seed else 0x04, value)))
 
     def openssl_run(directory: Path, options: list[str], refusal: bool = False) -> None:
-        command = [str(openssl)] + options
+        command = [str(oracle.executable())] + options
         done = subprocess.run(command, cwd=directory, capture_output=True, timeout=30, check=False)
         commands.append({"cwd": str(directory), "command": command, "exit": done.returncode})
         with (directory / "openssl.stderr").open("ab") as stream:
@@ -100,8 +100,8 @@ def main() -> int:
         for index in range(args.cases):
             directory = args.build / f"case-{index:03d}"
             directory.mkdir(exist_ok=True)
-            def seed(label: str) -> bytes:
-                return hashlib.sha256(f"VerifiedOS independent ML-KEM test {index} {label}".encode()).digest()
+            def seed(label: str, case: int = index) -> bytes:
+                return hashlib.sha256(f"VerifiedOS independent ML-KEM test {case} {label}".encode()).digest()
             d, z, m = seed("d"), seed("z"), seed("m")
             ek, dk = [bytes.fromhex(s) for s in reference("keygen", d, z).split(":")]
             (directory / "public.der").write_bytes(public_key(ek))
@@ -130,7 +130,7 @@ def main() -> int:
                 openssl_run(directory, ["pkeyutl", "-decap", "-inkey", "private.der", "-keyform", "DER", "-in", "malformed.bin", "-secret", "malformed-secret.bin"], True)
                 record(f"{index}-{label}-ciphertext-refused", reference("decaps", dk, bad).encode(), b"REJECT")
             print("independent case", index, "PASS", flush=True)
-    except Exception as error:
+    except (AssertionError, OSError, RuntimeError, ValueError, subprocess.SubprocessError) as error:
         failure = str(error)
     finally:
         process.stdin.close()
@@ -140,14 +140,13 @@ def main() -> int:
             process.terminate()
             process.wait(timeout=10)
         selector.close()
+    if oracle.identity() != identity:
+        failure = "OpenSSL source build changed during the campaign"
     receipt = {"pass": not failure and process.returncode == 0, "failure": failure, "checks": rows,
                "commands": commands, "reference_exit": process.returncode, "inputs": previous["inputs"],
-               "reference_executable_sha256": sha(executable), "openssl_version": version,
-               "openssl_binary_sha256": sha(openssl), "openssl_package_notice_sha256": sha(notice),
-               "libcrypto_sha256": sha(Path("/usr/lib/aarch64-linux-gnu/libcrypto.so.3")),
-               "upstream_revision": "67b5686b4419b4cb8caa502711c41815f5279751", "upstream_license": "Apache-2.0",
+               "reference_executable_sha256": sha(executable), "openssl": identity,
                "cases": args.cases, "elapsed_seconds": time.monotonic() - start,
-               "scope": "Independent installed OpenSSL execution, default provider, generated test seeds; no proof of native oracle, extraction or compiler"}
+               "scope": "Independent private source-built OpenSSL execution, default provider, generated test seeds; no proof of native oracle, extraction or compiler"}
     (args.build / "mlkem-openssl-receipt.json").write_text(json.dumps(receipt, indent=2), encoding="utf-8")
     print("independent campaign", "PASS" if receipt["pass"] else "FAIL", len(rows), "checks", failure, flush=True)
     return 0 if receipt["pass"] else 1

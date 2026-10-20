@@ -4,8 +4,6 @@
 import hashlib
 import importlib.util
 import json
-import re
-import shutil
 import subprocess
 import time
 from dataclasses import dataclass, replace
@@ -13,7 +11,7 @@ from pathlib import Path
 from types import ModuleType
 from typing import Any
 
-from vos import acvp, boot_handoff, receipts
+from vos import acvp, boot_handoff, openssl, receipts
 
 # The ACVP identities are acvp.py's; these names keep the receipts' fields and readers.
 # Every ACVP download goes through `official`, so acvp.py's refusal of an unpinned
@@ -23,15 +21,13 @@ SOURCES: dict[str, tuple[str, str]] = {
     scheme: (family, acvp.VECTORS[family])
     for scheme, family in (("slh", "SLH-DSA-sigVer-FIPS205"), ("mldsa", "ML-DSA-sigVer-FIPS204"))}
 NOTICE_SHA = acvp.NOTICE_SHA
-OPENSSL_REVISION = "67b5686b4419b4cb8caa502711c41815f5279751"
-OPENSSL_LICENSE_SHA = "7d5450cb2d142651b8afa315b5f238efc805dad827d91ba367d8516bc9d49e7a"
 SOURCE_FILES = ("firmware/crypto/keccak.c", "firmware/crypto/slh256s.c",
                 "firmware/crypto/mldsa87.c", "firmware/crypto/check_signature.c",
                 "firmware/rot/boot_verify.c", "firmware/include/vos_signature.h",
                 "firmware/include/vos_keccak.h", "firmware/include/vos_boot.h")
 EVIDENCE_FILES = (*SOURCE_FILES, "tools/vos/boot_crypto.py", "tools/vos/cli/boot_crypto.py",
     "tools/vos/boot_handoff.py", "tools/vos/acvp.py", "tools/vos/receipts.py", "tools/vos/env.py",
-    "tools/vos/proofenv.py", "proofs/campaigns/mldsa_vectors.py", "proofs/MlDsa.v",
+    "tools/vos/proofenv.py", "tools/vos/openssl.py", "proofs/campaigns/mldsa_vectors.py", "proofs/MlDsa.v",
     "proofs/PqArith.v", "proofs/Keccak.v", "firmware/crypto/fixtures.json")
 
 
@@ -181,7 +177,7 @@ def openssl_verify(work: Path, case: Case) -> bool:
     (work / "public.der").write_bytes(public_der(case))
     (work / "message.bin").write_bytes(case.message)
     (work / "signature.bin").write_bytes(case.signature)
-    command = ["openssl", "pkeyutl", "-verify", "-provider", "default", "-pubin", "-keyform", "DER",
+    command = [str(openssl.executable()), "pkeyutl", "-verify", "-provider", "default", "-pubin", "-keyform", "DER",
                "-inkey", "public.der", "-in", "message.bin", "-sigfile", "signature.bin"]
     if case.mode.endswith("-internal"):
         command += ["-pkeyopt", "message-encoding:0"]
@@ -198,23 +194,7 @@ def openssl_verify(work: Path, case: Case) -> bool:
 
 
 def openssl_identity(work: Path) -> dict[str, object]:
-    version = run(["openssl", "version", "-a"], work)
-    if not version.startswith("OpenSSL 3.5.5 "):
-        raise ValueError("requalify another OpenSSL release before this campaign")
-    url = f"https://raw.githubusercontent.com/openssl/openssl/{OPENSSL_REVISION}/LICENSE.txt"
-    fetch(url, work / "OpenSSL-LICENSE.txt", OPENSSL_LICENSE_SHA)
-    executable = Path(shutil.which("openssl") or "")
-    linkage = run(["ldd", str(executable)], work)
-    binaries = {str(executable): sha(executable.read_bytes())}
-    for match in re.finditer(r"(?:libcrypto|libssl)\.so\.3 => (\S+)", linkage):
-        path = Path(match.group(1))
-        binaries[str(path)] = sha(path.read_bytes())
-    if len(binaries) != 3:
-        raise ValueError("OpenSSL binary/library identity incomplete")
-    notice = Path("/usr/share/doc/openssl/copyright").read_bytes()
-    (work / "OpenSSL-package-copyright.txt").write_bytes(notice)
-    return {"version": version, "binaries": binaries, "license_sha256": OPENSSL_LICENSE_SHA,
-            "package_notice_sha256": sha(notice)}
+    return openssl.record(work)
 
 
 def gallina_build(root: Path, work: Path) -> tuple[ModuleType, dict[str, str]]:
@@ -279,8 +259,8 @@ def shake_cases(binary: Path, work: Path, oracle: ModuleType | None) -> list[dic
 def boot_cases(root: Path, binary: Path, work: Path) -> list[dict[str, object]]:
     """Sign an authored fixed header with OpenSSL, then bind the real callback."""
     lay = boot_handoff.layout(root)
-    run(["openssl", "genpkey", "-algorithm", "SLH-DSA-SHAKE-256s", "-out", "boot-key.pem"], work)
-    run(["openssl", "pkey", "-in", "boot-key.pem", "-pubout", "-outform", "DER", "-out", "boot-public.der"], work)
+    run([str(openssl.executable()), "genpkey", "-provider", "default", "-algorithm", "SLH-DSA-SHAKE-256s", "-out", "boot-key.pem"], work)
+    run([str(openssl.executable()), "pkey", "-in", "boot-key.pem", "-pubout", "-outform", "DER", "-out", "boot-public.der"], work)
     raw = (work / "boot-public.der").read_bytes()
     pk = raw[-64:]
     probe = Case("boot", "slh-internal", pk, b"", b"", b"", True)
@@ -296,7 +276,7 @@ def boot_cases(root: Path, binary: Path, work: Path) -> list[dict[str, object]]:
     at = lay["BOOT_HDR_PAYLOAD_DIGEST"]
     prefix[at:at+32] = hashlib.shake_256(payload).digest(32)
     (work / "boot-prefix.bin").write_bytes(prefix)
-    run(["openssl", "pkeyutl", "-sign", "-inkey", "boot-key.pem", "-in", "boot-prefix.bin",
+    run([str(openssl.executable()), "pkeyutl", "-sign", "-provider", "default", "-inkey", "boot-key.pem", "-in", "boot-prefix.bin",
          "-out", "boot-signature.bin", "-pkeyopt", "message-encoding:0"], work)
     signature = (work / "boot-signature.bin").read_bytes()
     if len(signature) != lay["BOOT_SIGNATURE_BYTES"]:
@@ -419,6 +399,8 @@ def campaign(root: Path, work: Path, gallina: bool = False, first: bool = False)
     require_unchanged(root, sources)
     if receipts.executables("gcc") != compiler_identity:
         raise ValueError("C compiler changed during the campaign")
+    if openssl.identity() != identities:
+        raise ValueError("OpenSSL source build changed during the campaign")
     return {"passed": all(r["passed"] for r in records), "records": records, "omitted_vectors": omitted,
             "git_revision": revision,
             "source_sha256": sources, "binary_sha256": sha(binary.read_bytes()),

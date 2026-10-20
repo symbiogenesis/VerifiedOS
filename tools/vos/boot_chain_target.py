@@ -19,7 +19,6 @@ import hashlib
 import importlib
 import json
 import re
-import shutil
 import subprocess
 import time
 from collections.abc import Mapping, Sequence
@@ -232,14 +231,12 @@ class MlDsaSigner:
         self.work = work
         self.signature_bytes = signature_bytes
         work.mkdir(parents=True, exist_ok=True)
-        executable = shutil.which("openssl")
-        if executable is None:
-            raise ValueError("kernel-stage signing needs OpenSSL with ML-DSA-87")
-        self.executable = Path(executable)
+        self.openssl = boot_crypto.openssl.record(work)
+        self.executable = boot_crypto.openssl.executable()
         self.executable_sha256 = receipts.digest(self.executable)
         self.version = self._run("version", "-a").strip()
         self.key = work / "kernel-key.pem"
-        self._run("genpkey", "-algorithm", "ML-DSA-87", "-out", str(self.key))
+        self._run("genpkey", "-provider", "default", "-algorithm", "ML-DSA-87", "-out", str(self.key))
         self.key.chmod(0o600)
         public = work / "kernel-public.der"
         self._run("pkey", "-in", str(self.key), "-pubout", "-outform", "DER", "-out", str(public))
@@ -251,6 +248,8 @@ class MlDsaSigner:
         self.signed = 0
 
     def _run(self, *args: str) -> str:
+        if boot_crypto.openssl.identity() != self.openssl:
+            raise ValueError("OpenSSL source build changed during kernel-stage signing")
         result = subprocess.run([str(self.executable), *args], cwd=self.work, capture_output=True,
                                 text=True, timeout=120, check=False)
         if result.returncode:
@@ -261,7 +260,7 @@ class MlDsaSigner:
         identity = hashlib.sha256(message).hexdigest()
         prefix, signature = self.work / f"{identity}.message", self.work / f"{identity}.mldsa"
         prefix.write_bytes(message)
-        self._run("pkeyutl", "-sign", "-inkey", str(self.key), "-in", str(prefix),
+        self._run("pkeyutl", "-sign", "-provider", "default", "-inkey", str(self.key), "-in", str(prefix),
                   "-out", str(signature), "-pkeyopt", "message-encoding:0")
         result = signature.read_bytes()
         if len(result) != self.signature_bytes:
@@ -270,9 +269,11 @@ class MlDsaSigner:
         return result
 
     def identity(self) -> dict[str, object]:
+        if boot_crypto.openssl.identity() != self.openssl:
+            raise ValueError("OpenSSL source build changed during kernel-stage signing")
         if receipts.digest(self.executable) != self.executable_sha256:
             raise ValueError("the OpenSSL executable changed during kernel-stage signing")
-        return {"scheme": "ML-DSA-87", "interface": "internal message, no context",
+        return {"scheme": "ML-DSA-87", "interface": "internal message, no context", "openssl": self.openssl,
                 "openssl_version": self.version, "openssl_executable": str(self.executable),
                 "openssl_sha256": self.executable_sha256, "root": self.public.hex(),
                 "signed_prefixes": self.signed}
