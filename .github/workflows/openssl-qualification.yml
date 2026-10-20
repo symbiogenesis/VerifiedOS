@@ -105,6 +105,7 @@ jobs:
           lane.mkdir(parents=True, exist_ok=False)
           os.chdir(lane)
           opam_bin = Path(os.environ["VOS_ROCQ"]).parent
+          os.environ["PATH"] = str(opam_bin) + os.pathsep + os.environ["PATH"]
           def run(*args):
               subprocess.run([str(arg) for arg in args], cwd=lane, check=True)
           python = sys.executable
