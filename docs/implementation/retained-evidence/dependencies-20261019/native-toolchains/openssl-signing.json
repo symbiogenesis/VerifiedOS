@@ -1,0 +1,78 @@
+{
+  "scope": "bounded image-signing/verification adapters; no target execution or full campaign",
+  "checks": {
+    "slh-internal-positive": true,
+    "slh-internal-corruption": true,
+    "slh-internal-short-refusal": true,
+    "mldsa-internal-positive": true,
+    "mldsa-internal-corruption": true,
+    "mldsa-internal-short-refusal": true
+  },
+  "identities": {
+    "slh-internal": {
+      "scheme": "SLH-DSA-SHAKE-256s",
+      "interface": "internal message",
+      "openssl": {
+        "version": "OpenSSL 3.5.9 29 Sep 2026 (Library: OpenSSL 3.5.9 29 Sep 2026)\nbuilt on: Tue Oct 20 01:32:49 2026 UTC\nplatform: linux-aarch64\noptions:  bn(64,64)\ncompiler: gcc -fPIC -pthread -Wa,--noexecstack -Wall -O3 -DOPENSSL_USE_NODELETE -DOPENSSL_PIC -DOPENSSL_BUILDING_OPENSSL -DNDEBUG\nOPENSSLDIR: \"/root/build/lane-deps-upstream-20261019/openssl-installed-3.5.9/ssl\"\nENGINESDIR: \"/root/build/lane-deps-upstream-20261019/openssl-installed-3.5.9/lib/engines-3\"\nMODULESDIR: \"/root/build/lane-deps-upstream-20261019/openssl-installed-3.5.9/lib/ossl-modules\"\nSeeding source: os-specific\nCPUINFO: OPENSSL_armcap=0xffd",
+        "source": {
+          "version": "3.5.9",
+          "revision": "45e844fa2a14ec92d146bd8f5778ac130b6625fb",
+          "url": "https://github.com/openssl/openssl/releases/download/openssl-3.5.9/openssl-3.5.9.tar.gz",
+          "archive_sha256": "603f5602e2eef00d77fbd429d34dcd5822bb301757a1bc9cdb24c670f1eb859a",
+          "license_sha256": "7d5450cb2d142651b8afa315b5f238efc805dad827d91ba367d8516bc9d49e7a",
+          "license": "Apache-2.0"
+        },
+        "build_manifest": "/root/build/lane-deps-upstream-20261019/openssl-installed-3.5.9/build-manifest.json",
+        "build_manifest_sha256": "e5d95b6af4ef0c8bed2a41a4a1f5ff4cf5ce377ca09586978e416460ab5fc3d6",
+        "binaries": {
+          "/root/build/lane-deps-upstream-20261019/openssl-installed-3.5.9/bin/openssl": "6b841850c1c94957631e12a2551dc06eb097f258dc4af06f9df790e98d97159e",
+          "/root/build/lane-deps-upstream-20261019/openssl-installed-3.5.9/lib/libcrypto.so.3": "60200037b452ce167dea7934e18afd51c4ab9cb28347fea6eec2578e0bc44814",
+          "/root/build/lane-deps-upstream-20261019/openssl-installed-3.5.9/lib/libssl.so.3": "935aaebc166735a216ca9a2bc5c3da1ae1378e0153d192c57c9a9be1e2a22621"
+        },
+        "configuration_sha256": "a65a2cb9f4ee8ffdc7ef4f0ac600c0bdafb95b7b1ab457188ac610a62f5ad6b3"
+      },
+      "openssl_version": "OpenSSL 3.5.9 29 Sep 2026 (Library: OpenSSL 3.5.9 29 Sep 2026)\nbuilt on: Tue Oct 20 01:32:49 2026 UTC\nplatform: linux-aarch64\noptions:  bn(64,64)\ncompiler: gcc -fPIC -pthread -Wa,--noexecstack -Wall -O3 -DOPENSSL_USE_NODELETE -DOPENSSL_PIC -DOPENSSL_BUILDING_OPENSSL -DNDEBUG\nOPENSSLDIR: \"/root/build/lane-deps-upstream-20261019/openssl-installed-3.5.9/ssl\"\nENGINESDIR: \"/root/build/lane-deps-upstream-20261019/openssl-installed-3.5.9/lib/engines-3\"\nMODULESDIR: \"/root/build/lane-deps-upstream-20261019/openssl-installed-3.5.9/lib/ossl-modules\"\nSeeding source: os-specific\nCPUINFO: OPENSSL_armcap=0xffd",
+      "openssl_executable": "/root/build/lane-deps-upstream-20261019/openssl-installed-3.5.9/bin/openssl",
+      "openssl_sha256": "6b841850c1c94957631e12a2551dc06eb097f258dc4af06f9df790e98d97159e",
+      "roots": {
+        "development": "e00f32e0bbbc39705970d8e1ebd3ed0cfc1d6317e4deba6d3b0b8534110d31cf71bc242b3468daff529fa1ebfcd9e7769c6a2f9c91535f7e13276e7be3d46558"
+      },
+      "signed_prefixes": 1
+    },
+    "mldsa-internal": {
+      "scheme": "ML-DSA-87",
+      "interface": "internal message, no context",
+      "openssl": {
+        "version": "OpenSSL 3.5.9 29 Sep 2026 (Library: OpenSSL 3.5.9 29 Sep 2026)\nbuilt on: Tue Oct 20 01:32:49 2026 UTC\nplatform: linux-aarch64\noptions:  bn(64,64)\ncompiler: gcc -fPIC -pthread -Wa,--noexecstack -Wall -O3 -DOPENSSL_USE_NODELETE -DOPENSSL_PIC -DOPENSSL_BUILDING_OPENSSL -DNDEBUG\nOPENSSLDIR: \"/root/build/lane-deps-upstream-20261019/openssl-installed-3.5.9/ssl\"\nENGINESDIR: \"/root/build/lane-deps-upstream-20261019/openssl-installed-3.5.9/lib/engines-3\"\nMODULESDIR: \"/root/build/lane-deps-upstream-20261019/openssl-installed-3.5.9/lib/ossl-modules\"\nSeeding source: os-specific\nCPUINFO: OPENSSL_armcap=0xffd",
+        "source": {
+          "version": "3.5.9",
+          "revision": "45e844fa2a14ec92d146bd8f5778ac130b6625fb",
+          "url": "https://github.com/openssl/openssl/releases/download/openssl-3.5.9/openssl-3.5.9.tar.gz",
+          "archive_sha256": "603f5602e2eef00d77fbd429d34dcd5822bb301757a1bc9cdb24c670f1eb859a",
+          "license_sha256": "7d5450cb2d142651b8afa315b5f238efc805dad827d91ba367d8516bc9d49e7a",
+          "license": "Apache-2.0"
+        },
+        "build_manifest": "/root/build/lane-deps-upstream-20261019/openssl-installed-3.5.9/build-manifest.json",
+        "build_manifest_sha256": "e5d95b6af4ef0c8bed2a41a4a1f5ff4cf5ce377ca09586978e416460ab5fc3d6",
+        "binaries": {
+          "/root/build/lane-deps-upstream-20261019/openssl-installed-3.5.9/bin/openssl": "6b841850c1c94957631e12a2551dc06eb097f258dc4af06f9df790e98d97159e",
+          "/root/build/lane-deps-upstream-20261019/openssl-installed-3.5.9/lib/libcrypto.so.3": "60200037b452ce167dea7934e18afd51c4ab9cb28347fea6eec2578e0bc44814",
+          "/root/build/lane-deps-upstream-20261019/openssl-installed-3.5.9/lib/libssl.so.3": "935aaebc166735a216ca9a2bc5c3da1ae1378e0153d192c57c9a9be1e2a22621"
+        },
+        "configuration_sha256": "a65a2cb9f4ee8ffdc7ef4f0ac600c0bdafb95b7b1ab457188ac610a62f5ad6b3"
+      },
+      "openssl_version": "OpenSSL 3.5.9 29 Sep 2026 (Library: OpenSSL 3.5.9 29 Sep 2026)\nbuilt on: Tue Oct 20 01:32:49 2026 UTC\nplatform: linux-aarch64\noptions:  bn(64,64)\ncompiler: gcc -fPIC -pthread -Wa,--noexecstack -Wall -O3 -DOPENSSL_USE_NODELETE -DOPENSSL_PIC -DOPENSSL_BUILDING_OPENSSL -DNDEBUG\nOPENSSLDIR: \"/root/build/lane-deps-upstream-20261019/openssl-installed-3.5.9/ssl\"\nENGINESDIR: \"/root/build/lane-deps-upstream-20261019/openssl-installed-3.5.9/lib/engines-3\"\nMODULESDIR: \"/root/build/lane-deps-upstream-20261019/openssl-installed-3.5.9/lib/ossl-modules\"\nSeeding source: os-specific\nCPUINFO: OPENSSL_armcap=0xffd",
+      "openssl_executable": "/root/build/lane-deps-upstream-20261019/openssl-installed-3.5.9/bin/openssl",
+      "openssl_sha256": "6b841850c1c94957631e12a2551dc06eb097f258dc4af06f9df790e98d97159e",
+      "root": "5dc062bee4eae77a3b5695ba4352a2ee5ac0d3b05b6a5eb92968145281c7aa76db4f971ffa3d1cb6a9f9abb2759de7ec6f368fe83e71b1fb09eb5c007d650f5634b43a412a8ae6759521bf4ee301a44fbe71e75c24951e59ce97f8fc13bdcf0044dfc29a325b972e3cf913ebf3230950e31c4569de93c61e35eec1efec7c0546fc4d8ca5d6352c1e220d407d57544d7f1242abd68e4c93fea550c201352af6217b4fcf842021ee9a995dcc9bec82944f7a4111a71be49f5269379e2977319cdb8e75c3dc830f696e3907da7ad0c192a44d81e992f3a1c44cc4296e4a996b6cc27319496ff70f4538ef1cecb2d91482f21ffcb8e03e8a1a0cf3869d2eed38e300de71456b3e4f97a93ecab3041eb0d23aaf7faa8091059f26e70b191b09abe2dbe7ec0bf850b4948729765587f9bdc0acd2f6f1772a15ee4dbdc706bec4d3967bab47765bc461f6794154042b94cf2d80605a4161601264254f5d9798c1cc65da5a956d3bd062caf10e381700163e939daeac197871b3411f23d6c2db1d4d9588c6e1b38273c1449bb0c698246a979f3b224cea6abf78529a9ae5e2a50c0871bb8a1531642860e1a7dbf74920cbf25f5f9fd474b580db88d6cc75c3cd124e46d9b0b7fddfacfd650558446a43b4f7186114328106e28bd6bc81924f85e210b5d04272df98da7206b0e501059d717f6a1599795cc36c61d4c0d8560173dbf1c33869073bf291bd20b9f05b94432d4b1b01daec7748fb041efe7454a8501671288a8ae4e6b89f18628f8180665f4a8dec2dc4affa222c548fb536be742ce3a959507f81c01df6ed139ddb93ef86e63c9e0316ce4670b8bbce410a7724783486145185e41b83c9a549d1eafc13aed2f928f5b5607148e6db7d61939ff931b2de6b7497b7e0b5e2d9bf550b46501593e5e0a7df0e0026f9edbd753aee081d7852c2d6bfc5385e90038cbfff43cd39d2de058e3edd67caa9e4652d7dfc2b6220bd4d34e489bddb42583ebe4a9baa5dafd322d3e4e7b16cc2d39a66719ef3a5a3d30386bf4dafb8ad226e3aed77c988432e4d3ab0163fb47dd758cbc5257f2bda68310f15d92eb60e26dd72a762ed2887e975e09b6662d87e2101e6ac7bd8b6966eff60e20252a48979db814e6748c8973352cd2a7a8cb45ab2a4f52bc3a7bf65e9b4caaf9c007d59b7c03c15a5a52f63506401559bab9ec5349ad3e2cdbe1e3d49b6138e9d6921cc90ccdc6ef0061869947485b4ff6d11422278693dff3906005ff1001e188f409975d0351e22bae854d0bf20f345cad9b8c44822cc0cee1def401ee3838ac3a3f6fc19dc10bfc8964997dfebda82c1e301737ed88e75f69a0e05115d12d389e38c1d6f78e8417d3b81d7fe9efdd2b92c300293d4b156774e6bf6feaf3c4048717c8e3aa07abafce14566dc45963ec8418e4dd54b5f77b90484b89edc765948ccf6cb34ed743cd92db9fbe2a8960478116ae66c13d1c949fcefb33b41b209c252aaedc861e16adfe007df9110be200ebf3098313bc22779243d9d30fe08f4af3d41f1464925dcad1708c39bd24a78a968782bbf223b17829772617d963b473a291a65c7a70eca4f1da4ab0577f30b3d89d46ca4a5686b167ddb8b05b6b3a8f7c445a191271a2a7e0e1f6a3418f0257371ebef8eb7b02c38a22bffb2a6e1abf4a9c6d7b0336a889a7a2fbe66e9fbbc7f95b680288a7803a2023625473ba43aa457155508c257cb5fe7a58373b1ab39df4d4580456b79e438a48561f8e1d44cc9763a510a2665b23c22de75db8f3c0041915e46c1fcc16656057245174c0fc0a267fcb2e43848163e1c4a2bad6cfdc024123caa561cf183c78c4998e129ab90bd91abed645b9bb94f2ff156a499a861c1c937ae59c4682027bd32de0026e091ca0237140ca0e540bfa8fa2321f45a39b4b2cf6a8ade04485d106e7e23adeeab889d4f5bd654b7ddbb1d2cd0a56986aaf1b87f32092bd5f1a1efc99a89068b070bd9c20c8a2c7e4967b06c7954f5c9cd9bdede9dfbf08d33eda67e04bbcb0675280ee07b310ec260d49a7a3f1c6f62bbd635f54913490609fcd00ea023160481b70fd7d788736bfabc583626de6325172383e4eb87e67a912cefc20d9fdc49b0535b1817fb706374a92836c09222b799334195c39b6bf93ee285aebe0de3d042e271a640bcfa7c349b2c1e5ef88b1e82156af124549728a03fd347533e3c60a38bbe211521638526a0225bb2153743f701dd3621c01a9ec23aa47f7015deaf4f0b8dafa3dd17c4bc0701c4e330292d9cfe10400303cfbba155ff7d877eabef48125708cfad79063c8674d85f00509e44ef4f0c69cc1ffa8bdfd7145c0bdfdc880c0e5fa2c20001e019b4f0dce99ea32d17c0842fd57289b48a6f45d6bb04497fd44d63fbfaf398e3397eeffa353b9947a10f782dbbf6ce3fbbdcd4580ae32bfec6eb31bf6bf435cf9a8a3c0a7c8984453a436bac75e5efdc706eb12fe1f105cbe625ee3d7c887ec6f9e1d8df5bec54dbb008aadb2073749e60b2729e252a796f12525c5c50836e4e7a1e05eb842bc136f85be23a1ee22d1b42ecec9633306ea36a7dd1a9fea6f66c17749d822d0de293ac263e9da06a5ac8b39f214f2c589914d5b5ba4aaeff07472cd3133a4c880b3946e05d67ebac5e74d38c6ba28bcfc757f7dab71af4e8a979725ac2b7c99419c67f3c6c02a4e3d0165fcf36353e113125b399523cb1ea4531acbf606cba3fda47c8c2a372e130ea6729457b60410fe4f32f72e3d327d25aeee53cfb3a21bb6f8bb95899dfcfe48f5a64a014c0cb9268b06e3e83995bc929cdecee6bc9ffa365b32d0e7edf34c45f84e7069d8b23a2bd6d72936a786229f877efc39a3bc6aeddefeb200d462ba01393a988053b7775dbfdfec3b490c1a5b6025bda258a0791094af9522f515e38394eee5ab60aa172353bbdd3f42ded64138697c655f0ebab3739b5d9886c0823d21df8ff9958d7cef021f277d99ea2c8dd950a3e38c1f4744492f1b318c44ea272d67d9ed68c92591aeb309446b31bca674363027a7512964ef5faf8c320c2f8ba52dc2567d5befa3df7d166893267d2126ea52904dd9faf24877b14a4d89ba3e532252c86f03b12e2cbc6c131b5431bbb9a5949eef1004fa46ee107e5e8db9efe0c0807fdd1ec37cbc3ebd31395622047d342d32bebd018f5f445e9fec0a1d6e86b4adf9f3a937eae0aa0333343226ef5cd6cc6944a9afb2562405e22b97ef9cae026d606dfa797851b02babac8e2750b3540a3474903408739b7ed924fc05f908c754cd36b5ebcedb31cde90298bf002172d11030f86702f38831d6bb5e7411af5f31bfccdc72c01bcb467971855c1ea208ae7cfeb71ba068215d9286df94f399cb553333ce3e5a5228976e39bc69c3281fcc87a82c8636e8e5892fd68f940ed4fa6b7109cab37c130a6d03b5bd7ea54a3ff606353a58d2eb6a0269210abeb89728d3ac6d390fdf2fc4125516aa2d93dc54836b7e3b25112225a028d85879ed2fc9f5c8362039b5266800b5469aa8aec8c4c024ea941606427d57117935a0b2549f43ae4e700858acdb171c141c07bee81165ed06586168d92f4cd8d96101c184e096baa8632a07de86842e2361e0d1d9a861a9162a7a1bf502ce20f9fca0410310fe7507ee445",
+      "signed_prefixes": 1
+    }
+  },
+  "passed": true,
+  "sources": {
+    "tools/vos/openssl.py": "924a405399eb4679fa1196db04707cdb4546486a3524a5b76674b30a3bd15712",
+    "tools/vos/boot_crypto.py": "047d0e2f7b84dc78338c3372e3d386e91ae347b0b5227f2b987dde7afddfb2c9",
+    "tools/vos/boot_signing.py": "eadb69e01c3d98bd58212fafd43abc0e03101c39e15a6a12da0684421e7a2493",
+    "tools/vos/boot_chain_target.py": "ce0076d0fd865ea6ba2a3b001d095b0eaa5150f2de7fccc8b2428e0630875590"
+  }
+}

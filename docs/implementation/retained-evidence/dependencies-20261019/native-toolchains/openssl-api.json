@@ -1,0 +1,382 @@
+{
+  "scope": "bounded CLI/API adaptation checks only; not the full vector, independent-oracle, boot or target campaign",
+  "version": "OpenSSL 3.5.9 29 Sep 2026 (Library: OpenSSL 3.5.9 29 Sep 2026)\nbuilt on: Tue Oct 20 01:32:49 2026 UTC\nplatform: linux-aarch64\noptions:  bn(64,64)\ncompiler: gcc -fPIC -pthread -Wa,--noexecstack -Wall -O3 -DOPENSSL_USE_NODELETE -DOPENSSL_PIC -DOPENSSL_BUILDING_OPENSSL -DNDEBUG\nOPENSSLDIR: \"/root/build/lane-deps-upstream-20261019/openssl-installed-3.5.9/ssl\"\nENGINESDIR: \"/root/build/lane-deps-upstream-20261019/openssl-installed-3.5.9/lib/engines-3\"\nMODULESDIR: \"/root/build/lane-deps-upstream-20261019/openssl-installed-3.5.9/lib/ossl-modules\"\nSeeding source: os-specific\nCPUINFO: OPENSSL_armcap=0xffd\n",
+  "build_receipt_sha256": "e5d95b6af4ef0c8bed2a41a4a1f5ff4cf5ce377ca09586978e416460ab5fc3d6",
+  "adapter_sha256": "047d0e2f7b84dc78338c3372e3d386e91ae347b0b5227f2b987dde7afddfb2c9",
+  "fixtures_sha256": "b47c0e265f012325095f035ea405603594738cb88d44db1fb8fb787120662abb",
+  "checks": {
+    "slh-fixture-positive": true,
+    "slh-changed-message": true,
+    "slh-short-signature": true,
+    "mldsa-fixture-positive": true,
+    "mldsa-changed-message": true,
+    "mldsa-short-signature": true,
+    "mldsa87-public-der-size": true,
+    "mldsa87-private-export-supported": true,
+    "mldsa-repeat-test-entropy-exact": true,
+    "mldsa-positive": true,
+    "mldsa-corrupt": true,
+    "mldsa-internal-repeat-test-entropy-exact": true,
+    "mldsa-internal-positive": true,
+    "mldsa-internal-corrupt": true,
+    "mldsa-mu-repeat-test-entropy-exact": true,
+    "mldsa-mu-positive": true,
+    "mldsa-mu-corrupt": true,
+    "mlkem1024-repeat-ikme-exact": true,
+    "mlkem1024-lengths": true,
+    "mlkem1024-decap-positive": true,
+    "mlkem1024-implicit-rejection": true,
+    "mlkem1024-short-refused": true
+  },
+  "commands": [
+    {
+      "args": [
+        "version",
+        "-a"
+      ],
+      "exit": 0,
+      "stdout": "OpenSSL 3.5.9 29 Sep 2026 (Library: OpenSSL 3.5.9 29 Sep 2026)\nbuilt on: Tue Oct 20 01:32:49 2026 UTC\nplatform: linux-aarch64\noptions:  bn(64,64)\ncompiler: gcc -fPIC -pthread -Wa,--noexecstack -Wall -O3 -DOPENSSL_USE_NODELETE -DOPENSSL_PIC -DOPENSSL_BUILDING_OPENSSL -DNDEBUG\nOPENSSLDIR: \"/root/build/lane-deps-upstream-20261019/openssl-installed-3.5.9/ssl\"\nENGINESDIR: \"/root/build/lane-deps-upstream-20261019/openssl-installed-3.5.9/lib/engines-3\"\nMODULESDIR: \"/root/build/lane-deps-upstream-20261019/openssl-installed-3.5.9/lib/ossl-modules\"\nSeeding source: os-specific\nCPUINFO: OPENSSL_armcap=0xffd\n",
+      "stderr": "",
+      "seconds": 0.002574600000116334
+    },
+    {
+      "args": [
+        "genpkey",
+        "-provider",
+        "default",
+        "-algorithm",
+        "ML-DSA-87",
+        "-pkeyopt",
+        "hexseed:000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+        "-out",
+        "dsa.pem"
+      ],
+      "exit": 0,
+      "stdout": "",
+      "stderr": "",
+      "seconds": 0.003958599999805301
+    },
+    {
+      "args": [
+        "pkey",
+        "-in",
+        "dsa.pem",
+        "-pubout",
+        "-outform",
+        "DER",
+        "-out",
+        "dsa-public.der"
+      ],
+      "exit": 0,
+      "stdout": "",
+      "stderr": "",
+      "seconds": 0.012502899000082834
+    },
+    {
+      "args": [
+        "pkey",
+        "-in",
+        "dsa.pem",
+        "-outform",
+        "DER",
+        "-out",
+        "dsa-private.der",
+        "-provparam",
+        "ml-dsa.output_formats=priv-only"
+      ],
+      "exit": 0,
+      "stdout": "",
+      "stderr": "",
+      "seconds": 0.0035514000001057866
+    },
+    {
+      "args": [
+        "pkeyutl",
+        "-sign",
+        "-provider",
+        "default",
+        "-inkey",
+        "/root/build/lane-deps-upstream-20261019/openssl-3.5.9-qualification/focused-api/dsa.pem",
+        "-in",
+        "message.bin",
+        "-out",
+        "signature.bin",
+        "-pkeyopt",
+        "hexcontext-string:00564f53ff",
+        "-pkeyopt",
+        "hextest-entropy:2222222222222222222222222222222222222222222222222222222222222222"
+      ],
+      "exit": 0,
+      "stdout": "",
+      "stderr": "",
+      "seconds": 0.004365799999959563
+    },
+    {
+      "args": [
+        "pkeyutl",
+        "-sign",
+        "-provider",
+        "default",
+        "-inkey",
+        "/root/build/lane-deps-upstream-20261019/openssl-3.5.9-qualification/focused-api/dsa.pem",
+        "-in",
+        "message.bin",
+        "-out",
+        "signature.bin",
+        "-pkeyopt",
+        "hexcontext-string:00564f53ff",
+        "-pkeyopt",
+        "hextest-entropy:2222222222222222222222222222222222222222222222222222222222222222"
+      ],
+      "exit": 0,
+      "stdout": "",
+      "stderr": "",
+      "seconds": 0.004712800000106654
+    },
+    {
+      "args": [
+        "pkeyutl",
+        "-sign",
+        "-provider",
+        "default",
+        "-inkey",
+        "/root/build/lane-deps-upstream-20261019/openssl-3.5.9-qualification/focused-api/dsa.pem",
+        "-in",
+        "message.bin",
+        "-out",
+        "signature.bin",
+        "-pkeyopt",
+        "message-encoding:0",
+        "-pkeyopt",
+        "hextest-entropy:2222222222222222222222222222222222222222222222222222222222222222"
+      ],
+      "exit": 0,
+      "stdout": "",
+      "stderr": "",
+      "seconds": 0.005240299999968556
+    },
+    {
+      "args": [
+        "pkeyutl",
+        "-sign",
+        "-provider",
+        "default",
+        "-inkey",
+        "/root/build/lane-deps-upstream-20261019/openssl-3.5.9-qualification/focused-api/dsa.pem",
+        "-in",
+        "message.bin",
+        "-out",
+        "signature.bin",
+        "-pkeyopt",
+        "message-encoding:0",
+        "-pkeyopt",
+        "hextest-entropy:2222222222222222222222222222222222222222222222222222222222222222"
+      ],
+      "exit": 0,
+      "stdout": "",
+      "stderr": "",
+      "seconds": 0.005832100000134233
+    },
+    {
+      "args": [
+        "pkeyutl",
+        "-sign",
+        "-provider",
+        "default",
+        "-inkey",
+        "/root/build/lane-deps-upstream-20261019/openssl-3.5.9-qualification/focused-api/dsa.pem",
+        "-in",
+        "message.bin",
+        "-out",
+        "signature.bin",
+        "-pkeyopt",
+        "mu:1",
+        "-pkeyopt",
+        "hextest-entropy:2222222222222222222222222222222222222222222222222222222222222222"
+      ],
+      "exit": 0,
+      "stdout": "",
+      "stderr": "",
+      "seconds": 0.0044342999999571475
+    },
+    {
+      "args": [
+        "pkeyutl",
+        "-sign",
+        "-provider",
+        "default",
+        "-inkey",
+        "/root/build/lane-deps-upstream-20261019/openssl-3.5.9-qualification/focused-api/dsa.pem",
+        "-in",
+        "message.bin",
+        "-out",
+        "signature.bin",
+        "-pkeyopt",
+        "mu:1",
+        "-pkeyopt",
+        "hextest-entropy:2222222222222222222222222222222222222222222222222222222222222222"
+      ],
+      "exit": 0,
+      "stdout": "",
+      "stderr": "",
+      "seconds": 0.0056020999995780585
+    },
+    {
+      "args": [
+        "genpkey",
+        "-provider",
+        "default",
+        "-algorithm",
+        "ML-KEM-1024",
+        "-pkeyopt",
+        "hexseed:000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f",
+        "-out",
+        "kem.pem"
+      ],
+      "exit": 0,
+      "stdout": "",
+      "stderr": "",
+      "seconds": 0.004767999999785388
+    },
+    {
+      "args": [
+        "pkey",
+        "-in",
+        "kem.pem",
+        "-pubout",
+        "-outform",
+        "DER",
+        "-out",
+        "kem-public.der"
+      ],
+      "exit": 0,
+      "stdout": "",
+      "stderr": "",
+      "seconds": 0.0032549000002290995
+    },
+    {
+      "args": [
+        "pkey",
+        "-in",
+        "kem.pem",
+        "-outform",
+        "DER",
+        "-out",
+        "kem-private.der",
+        "-provparam",
+        "ml-kem.retain_seed=no"
+      ],
+      "exit": 0,
+      "stdout": "",
+      "stderr": "",
+      "seconds": 0.003388399999948888
+    },
+    {
+      "args": [
+        "pkeyutl",
+        "-encap",
+        "-provider",
+        "default",
+        "-pubin",
+        "-inkey",
+        "kem-public.der",
+        "-keyform",
+        "DER",
+        "-pkeyopt",
+        "hexikme:3333333333333333333333333333333333333333333333333333333333333333",
+        "-out",
+        "ciphertext.bin",
+        "-secret",
+        "secret.bin"
+      ],
+      "exit": 0,
+      "stdout": "",
+      "stderr": "",
+      "seconds": 0.002855900000213296
+    },
+    {
+      "args": [
+        "pkeyutl",
+        "-encap",
+        "-provider",
+        "default",
+        "-pubin",
+        "-inkey",
+        "kem-public.der",
+        "-keyform",
+        "DER",
+        "-pkeyopt",
+        "hexikme:3333333333333333333333333333333333333333333333333333333333333333",
+        "-out",
+        "ciphertext.bin",
+        "-secret",
+        "secret.bin"
+      ],
+      "exit": 0,
+      "stdout": "",
+      "stderr": "",
+      "seconds": 0.0030020990002412873
+    },
+    {
+      "args": [
+        "pkeyutl",
+        "-decap",
+        "-provider",
+        "default",
+        "-inkey",
+        "kem-private.der",
+        "-keyform",
+        "DER",
+        "-in",
+        "ciphertext.bin",
+        "-secret",
+        "recovered.bin"
+      ],
+      "exit": 0,
+      "stdout": "",
+      "stderr": "",
+      "seconds": 0.0033823000003394554
+    },
+    {
+      "args": [
+        "pkeyutl",
+        "-decap",
+        "-provider",
+        "default",
+        "-inkey",
+        "kem-private.der",
+        "-keyform",
+        "DER",
+        "-in",
+        "ciphertext.bin",
+        "-secret",
+        "recovered.bin"
+      ],
+      "exit": 0,
+      "stdout": "",
+      "stderr": "",
+      "seconds": 0.0032261999999718682
+    },
+    {
+      "args": [
+        "pkeyutl",
+        "-decap",
+        "-provider",
+        "default",
+        "-inkey",
+        "kem-private.der",
+        "-keyform",
+        "DER",
+        "-in",
+        "ciphertext.bin",
+        "-secret",
+        "recovered.bin"
+      ],
+      "exit": 1,
+      "stdout": "",
+      "stderr": "Public Key operation error\n",
+      "seconds": 0.0030393000001822656
+    }
+  ],
+  "passed": true
+}

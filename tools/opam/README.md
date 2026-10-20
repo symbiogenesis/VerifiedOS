@@ -9,7 +9,26 @@ Each `.lock` file records the complete compiler, root-package and installed-pack
 | [certirocq.lock](certirocq.lock) | `verifiedos-certirocq-0.9.1-ocaml-4.14.4` | CertiRocq 0.9.1+9.1, Rocq 9.1.1, CompCert 3.18 |
 | [quickchick.lock](quickchick.lock) | `verifiedos-quickchick-9.3.0-ocaml-5.4.1` | QuickChick and `coq-simple-io` at pinned commits, ExtLib 0.13.2, Rocq 9.3.0, Stdlib 9.2.0, dune 3.23.1 |
 | [rupicola.lock](rupicola.lock) | `verifiedos-rupicola-9.2.0-ocaml-5.4.1` | Rupicola 0.0.11, bedrock2 compiler 0.0.9, Rocq 9.2.0 |
-| [contained-compiler.lock](contained-compiler.lock) | `verifiedos-contained-compiler-9.3.0-ocaml-4.14.2` | Rocq 9.3.0, Stdlib 9.2.0, OCaml 4.14.2, Menhir 20260209 |
+| [contained-compiler.lock](contained-compiler.lock) | `verifiedos-contained-compiler-9.3.0-ocaml-4.14.4` | Rocq 9.3.0, Stdlib 9.2.0, OCaml 4.14.4, dune 3.24.2, Menhir 20260209 |
+
+The package metadata was rechecked on 2026-10-19 with opam 2.6.1 in a private
+root. Constraining the qualified root versions leaves the Sail, proof and
+Rupicola snapshots current. The latest stable findlib remains 1.9.8; its OCaml
+bound still prevents a stable 5.5 compiler in those switches. CertiRocq stays
+on Rocq 9.1.1 because its compiler and Wasm library require Rocq below 9.2;
+its OCaml 4.14 closure also cannot take the newer Jane Street PPX packages
+that require OCaml 5.1. Rupicola's Rocq 9.2 runtime and QuickChick's Rocq-Elpi
+closure retain dune below 3.24. QuickChick resolution and qualification use only
+the hosted instrument route; no local QuickChick switch was imported or built.
+
+The current QuickChick lock is the byte-exact export from the
+[2026-10-19 hosted recipe run](https://github.com/symbiogenesis/VerifiedOS/actions/runs/39348906266),
+tested at `b9b451560f1f551ee8dae37f8828fcac60978d0b`. Its fresh build, property
+checks, independent clean import and export comparison passed. Only ppxlib moves,
+from 0.38.0 to 0.39.0. The separate lock-adoption commit
+`4550a7da9c6db9c13d26546a471639b424d75c5d` preserves the tested route inputs;
+`instrument-ci read --closing` confirms that binding. This qualification does not
+state a Host CI or Guest CI verdict for later integration commits.
 
 The Sail, proof, QuickChick and Rupicola switches use OCaml 5.4.1 and ocamlfind 1.9.8. OCaml 5.5.1 is available, but the [released findlib package](https://opam.ocaml.org/packages/ocamlfind/ocamlfind.1.9.8/) requires OCaml below 5.5.0; its 5.5-compatible package is `1.9.9~preview`, marked `avoid-version`.
 
@@ -28,6 +47,16 @@ The CertiRocq oracle switch selects OCaml 4.14.4 and ocamlfind 1.9.8. The unmodi
 In that switch the release builds with its bootstrap, and the [Wasm oracle's](../wasm-oracle/README.md) positive checks answer `true` and its seeded negative check `false`. The switch's export, [certirocq.lock](certirocq.lock), imported by the create-and-import form below into a fresh root that the reviewed client created, installs the lock's packages, and the same checks answer the same in the imported switch. That switch's own `opam switch export` omits the lock's `compiler:` section, since the import records no switch invariant (F-496); after `opam switch set-invariant --switch=SWITCH ocaml-base-compiler.4.14.4 -y` it reproduces the lock byte for byte. The Gallina vector harnesses load Stdlib alone and compile in the proof switch, so they exercise nothing in this one. The Docker and native import recipes import that snapshot.
 
 CertiRocq and its Wasm library require Rocq below 9.2, and the oracle switch's Coq 9.1.1 compatibility package fixes the standard library at 9.0.0. Those library constraints do not limit the proof gate, QuickChick or Rupicola switch.
+
+The contained-compiler snapshot is an actual fresh export with an explicit
+OCaml 4.14.4 compiler invariant. The
+[native compiler and OpenSSL refresh evidence](../../docs/implementation/retained-evidence/dependencies-20261019/native-toolchains/manifest.json),
+SHA-256 `123319f4a3241d7c916fa6f9e6374bd0743844055de530ae3dfeea69dd10a8eb`,
+binds the isolated build and unchanged-source consumer comparison: 216 expected
+proof objects, 334 identical extracted files and byte-identical assembly under
+the same Clang preprocessing configuration. Only OCaml 4.14.2 to 4.14.4 and
+dune 3.23.1 to 3.24.2 change in this closure. This local consumer check leaves
+Q39's separate whole-environment kernel acceptance open.
 
 **Qualified compatibility sources.** A reviewed recipe may select an immutable upstream commit or a checksummed release archive with bounded compatibility patches when no released package serves the locked toolchain. This applies beyond QuickChick. Its contract must name the affected consumer, unchanged semantic guarantees, exact package versions, source and patch digests, actual licence readings, stopping condition and retirement condition. A mutable branch, unrecorded patch or resolver-selected downgrade is refused. Preserve the locked prover and every dependency version unless the owner separately approves and qualifies a change; a library downgrade is not a shortcut around a compatibility failure. Keep trials in the assigned native lane and preserve shared switches byte for byte. Compile the complete selected closure under the consumer's existing settings, compare frozen elaborated readings where source semantics change, audit exact assumptions and run recursive kernel checks. A changed statement, definition or assumption returns to its owner. The affected hosted acceptance, fresh when required, must pass before exporting a production snapshot. A metadata-only build supplies no semantic or assumption acceptance. The [Sail support trial](sail-compatibility.md) is the first bounded non-QuickChick route.
 

@@ -1,0 +1,75 @@
+{
+  "bindings": {
+    "bin/openssl": "6b841850c1c94957631e12a2551dc06eb097f258dc4af06f9df790e98d97159e",
+    "build.log": "1ef9d715dcdeb52f0576063e4cad2f292e1956f2eaf8b37de8e88c27f54103d8",
+    "configure.log": "47a81bca46fc694632bafd0692a43ce6297d0cb6fda03de91f0e871dc4b0f6d5",
+    "install.log": "d3a9348828f5798520a08b1ad6d88f79238113b172ce8f8d79517dfc718116bc",
+    "lib/libcrypto.so.3": "60200037b452ce167dea7934e18afd51c4ab9cb28347fea6eec2578e0bc44814",
+    "lib/libssl.so.3": "935aaebc166735a216ca9a2bc5c3da1ae1378e0153d192c57c9a9be1e2a22621",
+    "source/LICENSE.txt": "7d5450cb2d142651b8afa315b5f238efc805dad827d91ba367d8516bc9d49e7a",
+    "ssl/openssl.cnf": "a65a2cb9f4ee8ffdc7ef4f0ac600c0bdafb95b7b1ab457188ac610a62f5ad6b3"
+  },
+  "passed": true,
+  "prefix": "/root/build/lane-deps-upstream-20261019/openssl-installed-3.5.9",
+  "schema": "verifiedos-openssl-source-build/1",
+  "source": {
+    "archive_sha256": "603f5602e2eef00d77fbd429d34dcd5822bb301757a1bc9cdb24c670f1eb859a",
+    "license": "Apache-2.0",
+    "license_sha256": "7d5450cb2d142651b8afa315b5f238efc805dad827d91ba367d8516bc9d49e7a",
+    "revision": "45e844fa2a14ec92d146bd8f5778ac130b6625fb",
+    "url": "https://github.com/openssl/openssl/releases/download/openssl-3.5.9/openssl-3.5.9.tar.gz",
+    "version": "3.5.9"
+  },
+  "steps": [
+    {
+      "argv": [
+        "perl",
+        "Configure",
+        "linux-aarch64",
+        "--prefix=/root/build/lane-deps-upstream-20261019/openssl-installed-3.5.9",
+        "--openssldir=/root/build/lane-deps-upstream-20261019/openssl-installed-3.5.9/ssl",
+        "--libdir=lib",
+        "shared",
+        "no-tests",
+        "-Wl,-rpath,/root/build/lane-deps-upstream-20261019/openssl-installed-3.5.9/lib"
+      ],
+      "exit": 0,
+      "name": "configure",
+      "seconds": 4.245752349000213
+    },
+    {
+      "argv": [
+        "make",
+        "-j2",
+        "build_sw"
+      ],
+      "exit": 0,
+      "name": "build",
+      "seconds": 126.39459904099976
+    },
+    {
+      "argv": [
+        "make",
+        "install_sw",
+        "install_ssldirs"
+      ],
+      "exit": 0,
+      "name": "install",
+      "seconds": 2.9122142670003086
+    }
+  ],
+  "tools": {
+    "gcc": {
+      "path": "/usr/bin/gcc",
+      "sha256": "5b06a5b85cab901e2af3e8f351a6d4e8e6a93af24797bd8c01e5391ac6b4e63b"
+    },
+    "make": {
+      "path": "/usr/bin/make",
+      "sha256": "b12eeb672d64e798b84f297c116651ccbb3ca726a108c74ffe9a60d85547315d"
+    },
+    "perl": {
+      "path": "/usr/bin/perl",
+      "sha256": "51d562fb5f145f8c12610790b6f67b2868d1aa7c977906b533250f00903681cd"
+    }
+  }
+}

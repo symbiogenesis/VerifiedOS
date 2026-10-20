@@ -1,0 +1,192 @@
+{
+  "schema": 1,
+  "purpose": "unchanged compiler consumer validation for dune-only snapshot upgrade",
+  "root": "/root/build/lane-deps-upstream-20261019/contained/opam-root",
+  "switch": "contained-refresh",
+  "compiler_source": "/root/build/lane-deps-upstream-20261019/contained/compiler",
+  "historical_compiler": "/root/build/lane-checklist-20261010-c/q39/clean-rebuild-1/compiler",
+  "source_archive_sha256": "5e1ee17831f6af647106b88065e7c1990c8cf5f22a1e04b54329767cfc34f139",
+  "source_revision": "ec5b8250bb9b895a3162375e8ac80cda2ccdcbee",
+  "scratch": "/tmp/vos-contained-consumer-6cjaytvk",
+  "package_build_receipt_sha256": "9e813a6602f66a905959ee926617014fb15d5a0d431a9b33e1d0799fd27a30e4",
+  "steps": [
+    {
+      "name": "consumer-configure",
+      "command": [
+        "/root/build/lane-deps-upstream-20261019/opam-audit/bin/opam",
+        "exec",
+        "--switch=contained-refresh",
+        "--",
+        "sh",
+        "./configure",
+        "rv64-linux",
+        "-ignore-coq-version"
+      ],
+      "cwd": "/root/build/lane-deps-upstream-20261019/contained/compiler",
+      "exit_code": 0,
+      "seconds": 0.612,
+      "log_sha256": "d01437f14d27d74d8939cb253645f7c92a14ec8a5995232d650242b2f0a664e1"
+    },
+    {
+      "name": "consumer-clean",
+      "command": [
+        "/root/build/lane-deps-upstream-20261019/opam-audit/bin/opam",
+        "exec",
+        "--switch=contained-refresh",
+        "--",
+        "make",
+        "clean"
+      ],
+      "cwd": "/root/build/lane-deps-upstream-20261019/contained/compiler",
+      "exit_code": 0,
+      "seconds": 0.343,
+      "log_sha256": "7287177bc9d74edd005b1942c197dc06499136341a8a92d885d66d95bbcd716e"
+    },
+    {
+      "name": "consumer-depend",
+      "command": [
+        "/root/build/lane-deps-upstream-20261019/opam-audit/bin/opam",
+        "exec",
+        "--switch=contained-refresh",
+        "--",
+        "make",
+        "-j2",
+        "depend"
+      ],
+      "cwd": "/root/build/lane-deps-upstream-20261019/contained/compiler",
+      "exit_code": 0,
+      "seconds": 1.811,
+      "log_sha256": "57b12341de15b7fe0b1caf0fad1c240eff67bc37be193bc9baf32902e5cb3374"
+    },
+    {
+      "name": "consumer-proof",
+      "command": [
+        "/root/build/lane-deps-upstream-20261019/opam-audit/bin/opam",
+        "exec",
+        "--switch=contained-refresh",
+        "--",
+        "make",
+        "-j2",
+        "proof"
+      ],
+      "cwd": "/root/build/lane-deps-upstream-20261019/contained/compiler",
+      "exit_code": 0,
+      "seconds": 558.86,
+      "log_sha256": "90265f737ece8e90f8b785772e0a5fdf0869b80f4462a846e78f0b657d53f670"
+    },
+    {
+      "name": "consumer-extraction",
+      "command": [
+        "/root/build/lane-deps-upstream-20261019/opam-audit/bin/opam",
+        "exec",
+        "--switch=contained-refresh",
+        "--",
+        "make",
+        "-j2",
+        "extraction"
+      ],
+      "cwd": "/root/build/lane-deps-upstream-20261019/contained/compiler",
+      "exit_code": 0,
+      "seconds": 11.541,
+      "log_sha256": "0f2674842e8f5bf6f13e9ed8e4784436ccc0528d6f8e6af33e161e986b9fa9dc"
+    },
+    {
+      "name": "consumer-ccomp",
+      "command": [
+        "/root/build/lane-deps-upstream-20261019/opam-audit/bin/opam",
+        "exec",
+        "--switch=contained-refresh",
+        "--",
+        "make",
+        "-j2",
+        "ccomp"
+      ],
+      "cwd": "/root/build/lane-deps-upstream-20261019/contained/compiler",
+      "exit_code": 0,
+      "seconds": 13.177,
+      "log_sha256": "a39675678ba988c93b94d9529751918831793d7ec49cba6b4055101387b2e2d3"
+    },
+    {
+      "name": "consumer-old-output",
+      "command": [
+        "/root/build/lane-deps-upstream-20261019/opam-audit/bin/opam",
+        "exec",
+        "--switch=contained-refresh",
+        "--",
+        "/root/build/lane-checklist-20261010-c/q39/clean-rebuild-1/compiler/ccomp",
+        "-S",
+        "-o",
+        "/root/build/lane-deps-upstream-20261019/contained/probe-old.s",
+        "/tmp/vos-contained-consumer-6cjaytvk/dependency_probe.c"
+      ],
+      "cwd": "/tmp/vos-contained-consumer-6cjaytvk",
+      "exit_code": 0,
+      "seconds": 0.148,
+      "log_sha256": "73f7d708ddfeaa846af9ef6a9759e091a31ec9c2d32a6cf62dfb0f5bf1bf1d3a"
+    },
+    {
+      "name": "consumer-new-output",
+      "command": [
+        "/root/build/lane-deps-upstream-20261019/opam-audit/bin/opam",
+        "exec",
+        "--switch=contained-refresh",
+        "--",
+        "/root/build/lane-deps-upstream-20261019/contained/compiler/ccomp",
+        "-S",
+        "-o",
+        "/root/build/lane-deps-upstream-20261019/contained/probe-new.s",
+        "/tmp/vos-contained-consumer-6cjaytvk/dependency_probe.c"
+      ],
+      "cwd": "/tmp/vos-contained-consumer-6cjaytvk",
+      "exit_code": 2,
+      "seconds": 0.026,
+      "log_sha256": "23c2b0fc658795da4e7040ad5f47b1088ad25bd92a5e2376f0a3004f65c92f7d"
+    }
+  ],
+  "kernel_acceptance": "not performed; existing Q39 acceptance remains open",
+  "tool_identities_before": {
+    "ocamlc": {
+      "path": "/root/build/lane-deps-upstream-20261019/contained/opam-root/contained-refresh/bin/ocamlc.opt",
+      "sha256": "964c5b3a41023677742341326764da294d5f9599b5b5dbc9bccad5b122aefc0d"
+    },
+    "ocamlopt": {
+      "path": "/root/build/lane-deps-upstream-20261019/contained/opam-root/contained-refresh/bin/ocamlopt.opt",
+      "sha256": "c98481a46e5a2b4096507da14e405d505e2adc83b07a8eb0743a28040a0df5cf"
+    },
+    "coqc": {
+      "path": "/root/build/lane-deps-upstream-20261019/contained/opam-root/contained-refresh/bin/coqc",
+      "sha256": "9ab671607b31fd46da97171894a31d63f762fb77d93e4a86257ad911efc37ff1"
+    },
+    "coqtop": {
+      "path": "/root/build/lane-deps-upstream-20261019/contained/opam-root/contained-refresh/bin/coqtop",
+      "sha256": "0eadfe6350e1970bd166713488c236e5670c765907e6bddb38c8aef6c97242ac"
+    },
+    "coqchk": {
+      "path": "/root/build/lane-deps-upstream-20261019/contained/opam-root/contained-refresh/bin/coqchk",
+      "sha256": "8bf4ca0e4ca04343d28ca2fe7fecb98f9f976caf41df1d1068da3d7ae7eec29e"
+    },
+    "dune": {
+      "path": "/root/build/lane-deps-upstream-20261019/contained/opam-root/contained-refresh/bin/dune",
+      "sha256": "1570116d2ddbecf2371ae2e8faa6ae78b74f45d13cad740691edc3ff0560f3d3"
+    },
+    "menhir": {
+      "path": "/root/build/lane-deps-upstream-20261019/contained/opam-root/contained-refresh/bin/menhir",
+      "sha256": "261a4477bd223d0d8e3a1f9dc117748a5c3aa1bb18235f0cccbafb019a07c3e2"
+    },
+    "ocamlfind": {
+      "path": "/root/build/lane-deps-upstream-20261019/contained/opam-root/contained-refresh/bin/ocamlfind",
+      "sha256": "9349321174974dadbae5f56531713420bf556f4b258a3cfd947f47d997865b79"
+    }
+  },
+  "historical_compiler_sha256": "85778fced1f047d3df0cc663804f8a0cfe1a9029fd149f2c05ead945fe0c279c",
+  "historical_extraction_files": 334,
+  "proof_object_population": {
+    "passed": true,
+    "objects": 216
+  },
+  "extraction_byte_comparison": {
+    "passed": true,
+    "files": 334
+  },
+  "authored_source_unchanged": true
+}

@@ -1,0 +1,52 @@
+{
+  "files": {
+    "contained-build.json": {
+      "bytes": 1941,
+      "encoding": "identity",
+      "path": "contained-build.json",
+      "sha256": "9e813a6602f66a905959ee926617014fb15d5a0d431a9b33e1d0799fd27a30e4"
+    },
+    "contained-consumer.json": {
+      "bytes": 7011,
+      "encoding": "identity",
+      "path": "contained-consumer.json",
+      "sha256": "ed136f017359740cb0f6f7b5cd856eed5fd2941820c558d1c9bc6187579306c0"
+    },
+    "contained-licenses.json": {
+      "bytes": 1513,
+      "encoding": "identity",
+      "path": "contained-licenses.json",
+      "sha256": "d7d85ad95f54771b6e14ac871e5eb5c12f8c64708e104c14033bb9d39e27bd6e"
+    },
+    "contained-ocaml-licenses.json": {
+      "bytes": 27812,
+      "encoding": "identity",
+      "path": "contained-ocaml-licenses.json",
+      "sha256": "957155e413567dd81b5c56b88c16d52b934cb0971771b33f2246a7214f25e753"
+    },
+    "contained-validation.json": {
+      "bytes": 2596,
+      "encoding": "identity",
+      "path": "contained-validation.json",
+      "sha256": "ca02807beed2553e52bc047ab183ebf460174313cd3203351c54e4171f86007a"
+    },
+    "openssl-api.json": {
+      "bytes": 10223,
+      "encoding": "identity",
+      "path": "openssl-api.json",
+      "sha256": "89076f883b166e2a46e0ff10e9334a7959fcba4184a67e1a1f7727c2df463433"
+    },
+    "openssl-build.json": {
+      "bytes": 2587,
+      "encoding": "identity",
+      "path": "openssl-build.json",
+      "sha256": "e5d95b6af4ef0c8bed2a41a4a1f5ff4cf5ce377ca09586978e416460ab5fc3d6"
+    },
+    "openssl-signing.json": {
+      "bytes": 12064,
+      "encoding": "identity",
+      "path": "openssl-signing.json",
+      "sha256": "610fcadfd889bc80048364b3123a0fd35a6cf914891f7ff9372a13ee746fba3b"
+    }
+  }
+}

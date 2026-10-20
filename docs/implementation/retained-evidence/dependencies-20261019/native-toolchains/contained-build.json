@@ -1,0 +1,46 @@
+{
+  "schema": 1,
+  "purpose": "actual isolated contained compiler OCaml4.14.4 and Dune3.24.2 refresh",
+  "root": "/root/build/lane-deps-upstream-20261019/contained/opam-root",
+  "switch": "contained-refresh",
+  "scratch": "/tmp/vos-contained-4144-_t5ji_b0",
+  "snapshot_original_sha256": "c9450ca1d889cd1fb511e149a414a2a7d2548fa7bdbc50a53dd1b048e0de68da",
+  "candidate_sha256": "982f22ed4165415d83b9fc73fd0337b6c49e9db732dd930c00e1d53726506cdf",
+  "binary": "/root/build/lane-deps-upstream-20261019/opam-audit/bin/opam",
+  "binary_sha256": "8b24ef2f3f44a31763f54878454fb52afa1f2db7e00abed58b8d4e7ee7e290a6",
+  "root_initialization_receipt": "/root/build/lane-deps-upstream-20261019/contained/interim-4.14.2-build-receipt.json",
+  "root_initialization_receipt_sha256": "5354c58d3db294bd6be005bd912dcf1a0e5dacc71cd87ecf6b5a6d15b77bb40f",
+  "ocaml_license_receipt_sha256": "957155e413567dd81b5c56b88c16d52b934cb0971771b33f2246a7214f25e753",
+  "steps": [
+    {
+      "label": "import-4144",
+      "command": [
+        "/root/build/lane-deps-upstream-20261019/opam-audit/bin/opam",
+        "switch",
+        "import",
+        "/root/build/lane-deps-upstream-20261019/contained/candidate-ocaml4.14.4.lock",
+        "--switch=contained-refresh",
+        "--jobs=2",
+        "-y"
+      ],
+      "seconds": 1166.921,
+      "exit_code": 0,
+      "log": "/root/build/lane-deps-upstream-20261019/contained/import-4144.log"
+    },
+    {
+      "label": "export-4144",
+      "command": [
+        "/root/build/lane-deps-upstream-20261019/opam-audit/bin/opam",
+        "switch",
+        "export",
+        "/root/build/lane-deps-upstream-20261019/contained/built.lock",
+        "--switch=contained-refresh"
+      ],
+      "seconds": 0.538,
+      "exit_code": 0,
+      "log": "/root/build/lane-deps-upstream-20261019/contained/export-4144.log"
+    }
+  ],
+  "export_sha256": "8abe004c0dce34abe0c1b6696d41d72f565ce9b180974c1347764bacde6ee227",
+  "passed": true
+}

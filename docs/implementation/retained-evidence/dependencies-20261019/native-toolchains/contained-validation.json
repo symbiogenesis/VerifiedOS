@@ -1,0 +1,81 @@
+{
+  "schema": 1,
+  "scope": "OCaml4.14.2 to4.14.4 and Dune3.23.1 to3.24.2, actual isolated build and unchanged-source consumer verification",
+  "build_receipt_sha256": "9e813a6602f66a905959ee926617014fb15d5a0d431a9b33e1d0799fd27a30e4",
+  "consumer_receipt_sha256": "3ab966be6733f7732a941c87afcf547748b8a170381063ad54b1ca419a4fc260",
+  "prior_export_sha256": "8abe004c0dce34abe0c1b6696d41d72f565ce9b180974c1347764bacde6ee227",
+  "steps": [
+    {
+      "label": "set-invariant-4144",
+      "command": [
+        "/root/build/lane-deps-upstream-20261019/opam-audit/bin/opam",
+        "switch",
+        "set-invariant",
+        "ocaml-base-compiler.4.14.4",
+        "--switch=contained-refresh",
+        "-y"
+      ],
+      "exit_code": 0,
+      "seconds": 3.001,
+      "log_sha256": "2f748fba2ce292197e0d053bddaf5dbb3eefae21bc2d5c4df2d1c8cfba5125de"
+    },
+    {
+      "label": "final-export",
+      "command": [
+        "/root/build/lane-deps-upstream-20261019/opam-audit/bin/opam",
+        "switch",
+        "export",
+        "/root/build/lane-deps-upstream-20261019/contained/final.lock",
+        "--switch=contained-refresh"
+      ],
+      "exit_code": 0,
+      "seconds": 0.374,
+      "log_sha256": "73f7d708ddfeaa846af9ef6a9759e091a31ec9c2d32a6cf62dfb0f5bf1bf1d3a"
+    }
+  ],
+  "whole_environment_kernel_acceptance": false,
+  "kernel_note": "Existing Q39 complete kernel acceptance remains open; no audit restarted",
+  "invariant_only_metadata_change": true,
+  "installed_packages": [
+    "base-bigarray.base",
+    "base-threads.base",
+    "base-unix.base",
+    "conf-gmp.5",
+    "conf-linux-libc-dev.0",
+    "conf-pkg-config.5",
+    "coq-core.9.3.0",
+    "coq-stdlib.9.2.0",
+    "coq.9.3.0",
+    "coqide-server.9.3.0",
+    "dune.3.24.2",
+    "menhir.20260209",
+    "menhirCST.20260209",
+    "menhirGLR.20260209",
+    "menhirLib.20260209",
+    "menhirSdk.20260209",
+    "ocaml-base-compiler.4.14.4",
+    "ocaml-config.2",
+    "ocaml-options-vanilla.1",
+    "ocaml.4.14.4",
+    "ocamlfind.1.9.8",
+    "rocq-core.9.3.0",
+    "rocq-runtime.9.3.0",
+    "rocq-stdlib.9.2.0",
+    "zarith.1.14"
+  ],
+  "compiler_packages": [
+    "base-bigarray.base",
+    "base-threads.base",
+    "base-unix.base",
+    "ocaml-base-compiler.4.14.4",
+    "ocaml-config.2",
+    "ocaml-options-vanilla.1",
+    "ocaml.4.14.4"
+  ],
+  "final_export_sha256": "982f22ed4165415d83b9fc73fd0337b6c49e9db732dd930c00e1d53726506cdf",
+  "licenses": {
+    "dune": "d7d85ad95f54771b6e14ac871e5eb5c12f8c64708e104c14033bb9d39e27bd6e",
+    "ocaml": "957155e413567dd81b5c56b88c16d52b934cb0971771b33f2246a7214f25e753"
+  },
+  "passed": true
+}
