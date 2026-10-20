@@ -40,7 +40,8 @@ The first five commits of PR 166 supply the Wasm memory/int64 adaptations:
 `769c72b4ed18915e3d4aedf2becaf3baadeb9126` and
 `f452cd11d3fa50f44dd492e48d3611cc1df38780`.
 Exclude its subsequent renames and correctness-proof restructuring.
-[PR 160](https://github.com/CertiRocq/certirocq/pull/160) supplies candidate
+[PR 160](https://github.com/CertiRocq/certirocq/pull/160), reviewed at head
+`35b87650bac0d01470ab7e41581b3697f9ef3da0`, supplies candidate
 orphan end-tactic, `Monomorphic_entry` and Ltac-value API adaptations, transplanted
 to the release's file layout only where the selected APIs require them.
 Its development pipeline changes are outside this candidate.
@@ -62,13 +63,19 @@ scoped next action instead of receiving a production snapshot.
 The candidate's complete package closure must build, including CertiRocq's
 plugins and both native bootstraps. Compile the unchanged `demo.v`,
 `EndpointIPC.v` and `ipc_oracle.v` under their existing consumer settings.
-Require the demo and all IPC checks to answer `true` through Wasm, and the
+Require the original in-kernel IPC population and verdict, the demo and all IPC
+checks to answer `true` through Wasm, and the
 existing mask-boundary negative to answer `false` with a nonzero runner exit.
-Record recursive kernel rechecks and exact assumptions with their actual
-scope; an upstream build or a metadata solution supplies neither verdict.
+For the compiled `demo`, `EndpointIPC` and `ipc_oracle` consumer roots, require
+recursive kernel rechecks to exit zero and exact-assumption comparisons to pass
+against the same named roots in the qualified baseline switch, recording each
+constant's assumption set and any difference. An unexplained new or missing
+assumption refuses adoption. An upstream build or a metadata solution supplies
+neither verdict.
 
 Export with an explicit compiler invariant, import into another empty private
-root, repeat the checks and require a byte-identical re-export. Before adoption,
+root, repeat the functional, kernel and exact-assumption checks and require a
+byte-identical re-export. Before adoption,
 reissue the [complete-vector C/Wasm comparison](../wasm-oracle/README.md#the-purecap-counterpart-ipc_oraclec-m12f),
 including both mutants, crossed comparisons and every observation-position
 control, against the qualified contained compiler and source-bound emulator.
