@@ -75,7 +75,8 @@ def operational_failure_is_not_refusal() -> None:
                 pass
             else:
                 raise AssertionError("malformed driver verdict became signature refusal")
-        with patch.object(b.subprocess, "run", return_value=subprocess.CompletedProcess([], 2, "", "error")):
+        with (patch.object(b.openssl, "executable", return_value=work / "openssl"),
+              patch.object(b.subprocess, "run", return_value=subprocess.CompletedProcess([], 2, "", "error"))):
             try:
                 b.openssl_verify(work, case)
             except ValueError:

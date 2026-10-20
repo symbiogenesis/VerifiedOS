@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-"""Independent executable ML-DSA-87 comparison with installed OpenSSL 3.5.5.
+"""Independent executable ML-DSA-87 comparison with the selected private OpenSSL.
 
 All seeds, messages, contexts and hedging bytes here are public authored tests,
 not standard KATs. Only DER framing and CLI glue are authored here; OpenSSL and
@@ -10,19 +10,14 @@ from __future__ import annotations
 
 import argparse
 import json
-from pathlib import Path
-import re
-import shutil
-import time
 import sys
-import urllib.request
+import time
+from pathlib import Path
+from typing import Any
 
 sys.dont_write_bytecode = True
 import mldsa_vectors as campaign
-
-OPENSSL_COMMIT = "67b5686b4419b4cb8caa502711c41815f5279751"
-LICENSE_SHA = "7d5450cb2d142651b8afa315b5f238efc805dad827d91ba367d8516bc9d49e7a"
-LICENSE_URL = f"https://raw.githubusercontent.com/openssl/openssl/{OPENSSL_COMMIT}/LICENSE.txt"
+from vos import openssl as oracle
 
 
 def der(tag: int, data: bytes) -> bytes:
@@ -50,7 +45,7 @@ def openssl_verify(work: Path, pk: bytes, message: bytes, context: bytes, sig: b
     (work / "check-pk.der").write_bytes(public_der(pk))
     (work / "check-message.bin").write_bytes(message)
     (work / "check-signature.bin").write_bytes(sig)
-    command = ["openssl", "pkeyutl", "-verify", "-provider", "default", "-pubin",
+    command = [str(oracle.executable()), "pkeyutl", "-verify", "-provider", "default", "-pubin",
                "-keyform", "DER", "-inkey", "check-pk.der", "-in", "check-message.bin",
                "-sigfile", "check-signature.bin", "-pkeyopt", "hexcontext-string:" + context.hex()]
     result = campaign.run(command, work)
@@ -79,26 +74,8 @@ def main() -> int:
             raise ValueError("baseline source drift")
     if receipt["bindings"]["dsa.exe"] != campaign.sha((baseline / "dsa.exe").read_bytes()):
         raise ValueError("baseline executable drift")
-    version = campaign.checked(["openssl", "version", "-a"], work, "version.log")
-    if not version.startswith("OpenSSL 3.5.5 "):
-        raise ValueError("this campaign qualified OpenSSL 3.5.5; requalify another version's license/API")
-    license_path = work / "LICENSE.txt"
-    if not license_path.exists():
-        license_path.write_bytes(urllib.request.urlopen(LICENSE_URL, timeout=60).read())
-    if campaign.sha(license_path.read_bytes()) != LICENSE_SHA:
-        raise ValueError("OpenSSL selected revision license mismatch")
-    executable = Path(shutil.which("openssl") or "")
-    linkage = campaign.checked(["ldd", str(executable)], work, "linkage.log")
-    binaries = {str(executable): campaign.sha(executable.read_bytes())}
-    for match in re.finditer(r"(?:libcrypto|libssl)\.so\.3 => (\S+)", linkage):
-        library = Path(match.group(1)); binaries[str(library)] = campaign.sha(library.read_bytes())
-    if len(binaries) != 3:
-        raise ValueError("could not bind OpenSSL and both libraries")
-    copyright_path = Path("/usr/share/doc/openssl/copyright")
-    copyright_sha = campaign.sha(copyright_path.read_bytes())
-    (work / "package-copyright.txt").write_bytes(copyright_path.read_bytes())
-    package = campaign.checked(["dpkg-query", "-W", "openssl", "libssl3t64"], work, "package.log")
-    results = []
+    identity = oracle.record(work)
+    results: list[dict[str, Any]] = []
     started = time.time()
     for index in range(3):
         stage = work / f"case-{index}"; stage.mkdir(exist_ok=True)
@@ -110,11 +87,11 @@ def main() -> int:
         if len(pair) != 2:
             raise ValueError("Gallina key generation did not return a pair")
         pk, sk = map(bytes.fromhex, pair)
-        campaign.checked(["openssl", "genpkey", "-provider", "default", "-algorithm", "ML-DSA-87",
+        campaign.checked([str(oracle.executable()), "genpkey", "-provider", "default", "-algorithm", "ML-DSA-87",
                           "-pkeyopt", "hexseed:" + seed.hex(), "-out", "key.pem"], stage, "keygen.log")
-        campaign.checked(["openssl", "pkey", "-in", "key.pem", "-pubout", "-outform", "DER",
+        campaign.checked([str(oracle.executable()), "pkey", "-in", "key.pem", "-pubout", "-outform", "DER",
                           "-out", "public.der"], stage, "public-export.log")
-        campaign.checked(["openssl", "pkey", "-in", "key.pem", "-outform", "DER", "-out", "private.der",
+        campaign.checked([str(oracle.executable()), "pkey", "-in", "key.pem", "-outform", "DER", "-out", "private.der",
                           "-provparam", "ml-dsa.output_formats=priv-only"], stage, "private-export.log")
         comparisons = {"public-key-bytes": (stage / "public.der").read_bytes() == public_der(pk),
                        "secret-key-bytes": (stage / "private.der").read_bytes() == private_der(sk)}
@@ -123,7 +100,7 @@ def main() -> int:
             raise ValueError("Gallina signer did not return a signature")
         own_sig = bytes.fromhex(ours[0])
         (stage / "message.bin").write_bytes(message)
-        campaign.checked(["openssl", "pkeyutl", "-sign", "-provider", "default", "-inkey", "key.pem",
+        campaign.checked([str(oracle.executable()), "pkeyutl", "-sign", "-provider", "default", "-inkey", "key.pem",
                           "-in", "message.bin", "-out", "openssl.sig", "-pkeyopt",
                           "hexcontext-string:" + context.hex(), "-pkeyopt", "hextest-entropy:" + rnd.hex()],
                          stage, "sign.log")
@@ -156,10 +133,10 @@ def main() -> int:
                         "gallina_signature_sha256": campaign.sha(own_sig),
                         "openssl_signature_sha256": campaign.sha(other_sig), "comparisons": comparisons})
         print(index, comparisons, flush=True)
-    report = {"oracle": "OpenSSL 3.5.5 default provider", "upstream_commit": OPENSSL_COMMIT,
-              "license_url": LICENSE_URL, "license_sha256": LICENSE_SHA,
-              "package_copyright_sha256": copyright_sha, "package": package, "version": version,
-              "binaries": binaries, "gallina_bindings": receipt["bindings"],
+    if oracle.identity() != identity:
+        raise ValueError("OpenSSL source build changed during the campaign")
+    report = {"oracle": f"OpenSSL {oracle.VERSION} default provider", "openssl": identity,
+              "gallina_bindings": receipt["bindings"],
               "harness_sha256": campaign.sha(Path(__file__).read_bytes()), "cases": results,
               "started_unix": started, "finished_unix": time.time(),
               "passed": all(all(case["comparisons"].values()) for case in results),
