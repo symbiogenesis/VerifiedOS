@@ -17,6 +17,11 @@
    in
    let params =
      Lsp.Types.PublishDiagnosticsParams.create ~uri:(Lsp.Types.DocumentUri.of_path file) ~diagnostics:diags ()
+@@ -163,3 +164,3 @@
+ let on_initialize ~(config : Server_config.t) _params =
+-  let server_info = Lsp.Types.InitializeResult.create_serverInfo ~name:"sail_lsp" () in
++  let server_info = Lsp.Types.ServerInfo.create ~name:"sail_lsp" () in
+   let sync =
 @@ -285,6 +286,40 @@
    | Some project_file ->
        state := Some (Server_state.load_project ~default_sail_dir:config.default_sail_dir [project_file])
@@ -58,6 +63,16 @@
  
  let on_notification ~config notif =
    let open Lsp.Types in
+@@ -318,3 +353,3 @@
+               match change with
+-              | { range = Some range; text; _ } ->
++              | `TextDocumentContentChangePartial { range; text; _ } ->
+                   (* LSP positions are UTF-16 code-unit offsets; store them as-is. The
+@@ -324,3 +359,3 @@
+                   Sail_file.edit_file handle { Sail_file.range = (startp, endp); text }
+-              | { range = None; text; _ } -> ignore (Sail_file.editor_take_file ~contents:text file)
++              | `TextDocumentContentChangeWholeDocument { text } -> ignore (Sail_file.editor_take_file ~contents:text file)
+             )
 @@ -334,20 +369,27 @@
            );
            [diagnostics_for_handle file handle]

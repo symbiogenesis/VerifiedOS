@@ -66,7 +66,9 @@ It reloads changed compiler-owned file contents, preserves editor-owned unsaved
 buffers, rebuilds project checking state, and publishes diagnostics for every
 open document. Missing or unreadable dependencies clear typed state and produce
 an explicit diagnostic. Restoring the dependency permits a new check. The patch
-and its upstream context carry BSD-2-Clause; the selected upstream
+also adapts initialization and whole/partial text-change constructors to the
+pinned LSP runtime while preserving those handlers' behavior. Its upstream
+context and authored changes carry BSD-2-Clause; the selected upstream
 [license notice](SAIL-LICENSE.md) is retained verbatim. No upstream compiler or
 server source is otherwise vendored. Patch application requires the existing
 native `patch` utility and refuses mismatched context (`--fuzz=0`).
