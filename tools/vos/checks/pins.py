@@ -953,9 +953,10 @@ RESIDUE: dict[str, str] = {
                "about that upstream rather than a pin taken here",
 }
 
-# The gitlinks of September 2026's native receipts, which record the index they ran
+# The gitlinks of retained native receipts, which record the index they ran
 # against rather than restating the current pins.
 _CAPTURED_GITLINKS: dict[str, str] = {
+    "5c20b839e556b78c0ee7f1ce5b28fb00d0e69d78": "SECOMP",
     "bb07488dac8322fc4a653a01d049e16fa05c9065": "sail-cheri-riscv",
     "3243f93905c1de3504e910f76c07f96fef1394d7": "sail-riscv",
     "90cebef1411617fc3eedd359bdf00cb44b1c2439": "llvm-project",
@@ -981,6 +982,20 @@ _CAPTURING_RECEIPTS: dict[str, str] = {
 # These sites retain measured or external editions, or record identifiers that
 # resemble object ids. They do not state this repository's current top-level pin.
 SITE_RESIDUE: dict[tuple[str, str], str] = {
+    **{(file, "47bc545117348495f71aad9e20d5c9bb9ed3a757"):
+       "the historical Katamaran source measured by the recorded Q35 dependency trial"
+       for file in (
+           "docs/assurance/machine-logic-breakdown.md",
+           "docs/assurance/machine-logic-dependency-trial.md",
+           "tools/machine-logic-trial/trial.py",
+       )},
+    ("docs/implementation/completion-log.md", "5c20b839"):
+        "the historical SECOMP source and licence reading recorded at M1.1",
+    ("docs/implementation/completion-log.md", "ae79548c0fb30c708ec3f870d4b462611ed87b4f"):
+        "the OpenTitan source reading recorded at the completed Q41 contract landing",
+    ("docs/implementation/retained-evidence/q39/shelving-triage-20261012/release-triage.json",
+     "5c20b839e556b78c0ee7f1ce5b28fb00d0e69d78"):
+        "the immutable SECOMP comparison base used in the historical Q39 triage",
     ("docs/implementation/retained-evidence/close3-q35p-20261013/bindings.sail.txt", "bb07488d"):
         "the unchanged historical CHERI transplant header in Q35p's model-owner reproducer, "
         "not a statement of the current comparison gitlink",

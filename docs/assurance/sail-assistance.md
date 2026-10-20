@@ -345,7 +345,7 @@ Source-level modules are already available upstream and in this repository's
 [upstream's module documentation](https://github.com/rems-project/sail/blob/3df54034910b31a1e00d948ee965b2e9603d68e0/doc/asciidoc/modules.adoc)
 describes those rules. They do not imply a separately compiled extension ABI.
 The [inspected upstream C++ generation recipe](https://github.com/riscv/sail-riscv/blob/8890da780108672e05cf87b6d119bf6a76113fbf/model/CMakeLists.txt)
-still emits one model translation unit from selected modules. The paper's
+at the historical source reading emits one model translation unit from selected modules. The paper's
 [fork](https://github.com/imec-csa/sail-riscv/tree/aa8cb46a9284b30b537bcd803cd163d5517f2e2e)
 instead uses generated-C rewriting, shared-state handling and loader hooks.
 
