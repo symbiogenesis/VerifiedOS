@@ -12,6 +12,33 @@ Acceptance requires compiled, assumption-audited definitions and theorems per fi
 
 Acceptance is conjunctive. A structural scheme with abstract oracles, finite examples or an incomplete standard adapter does not close M3.4b. Any remaining arithmetic, sampler, signature or campaign work stays explicitly open. Computational reductions, target code refinement, binary constant time, masked hardware, entropy quality and production side-channel security are separate obligations.
 
+## Executable-oracle dependency refresh
+
+The independent OpenSSL oracle selects the 3.5 LTS line. A refresh to 3.5.9
+uses its exact official source archive, revision and own Apache-2.0 license
+instruments. A single source/build identity owner governs the boot-signature,
+ML-KEM, ML-DSA and image-signing consumers. Private source installation leaves
+the system package unchanged. A source-built receipt identifies its source
+license and successful build; it must not claim the distribution package's
+copyright file, version or fixed architecture-specific library path.
+
+Before invoking the oracle, verify the selected release, source/build manifest,
+executable and actually loaded crypto library. Refuse an unknown version, foreign
+loaded library or stale build identity. Retain the same default-provider APIs,
+parameter sets, test entropy, message/context conventions and success/refusal
+interpretation. Version refresh never relaxes a positive or refusal predicate.
+
+Acceptance requires a real private build and focused positive, corruption and
+malformed-length controls. Renew the complete boot-signature campaign with its
+Gallina comparison, the ML-KEM oracle population against a matching complete
+vector baseline, and the ML-DSA exact/cross/refusal population against its matching
+extracted baseline on hosted CI. Full suites remain CI-only. Host CI and Guest CI
+do not execute these separate campaigns and supply no substitute verdict. Retain
+the run, tested revision, source and producer identities and actual results;
+historical observations retain their tested editions. Target streams need no
+restaging solely for this external oracle refresh when their authored source,
+model, compiler and required staging identities remain valid.
+
 ## Security-premise qualification
 
 R-17-049 and R-17-049e/f govern a separate qualification record, not an extra claim made by the functional-reference milestone. The record identifies the selected FIPS edition, parameter set, executable reference and reduction theorem, with a correspondence for every algorithmic difference from the theorem's subject. ML-KEM's Fujisaki-Okamoto construction and ML-DSA's Fiat-Shamir-with-aborts construction have separate records. Each states its exact security game, adversary and oracle access, quantitative loss, computational assumptions, randomness requirements, and any ROM, QROM or ideal-permutation premise. An ML-DSA record spells out the selected MSIS/SelfTargetMSIS formulation and any reduction used to relate it to MLWE; a generic lattice-hardness label does not decide that choice.
