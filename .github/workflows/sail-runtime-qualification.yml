@@ -1,0 +1,84 @@
+# SPDX-License-Identifier: Apache-2.0
+# Standalone upstream runtime measurements; supplies no model or proof admission.
+name: sail-runtime-qualification
+run-name: sail-runtime-qualification:${{ inputs.candidate_revision }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      revision:
+        description: Full VerifiedOS commit SHA already on main
+        type: string
+        required: true
+      candidate_revision:
+        description: Full local Sail candidate commit SHA (recorded identity only)
+        type: string
+        required: true
+      patch_sha256:
+        description: SHA-256 of the uncompressed git diff from the pinned Sail base
+        type: string
+        required: true
+      patch_gzip_base64:
+        description: Base64 of gzip-compressed git diff from the pinned Sail base
+        type: string
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  qualify:
+    runs-on: ubuntu-26.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.revision }}
+          fetch-depth: 0
+          persist-credentials: false
+          submodules: false
+
+      - name: Verify dispatched revision belongs to main
+        id: dispatch
+        shell: python
+        env:
+          TESTED_REVISION: ${{ inputs.revision }}
+          DISPATCH_REF: ${{ github.ref }}
+          DISPATCH_MAIN_SHA: ${{ github.sha }}
+        run: |
+          import os
+          import re
+          import subprocess
+
+          revision = os.environ["TESTED_REVISION"]
+          if os.environ["DISPATCH_REF"] != "refs/heads/main" or not re.fullmatch(r"[0-9a-f]{40}", revision):
+              raise SystemExit("Dispatch requires main and a full lowercase commit SHA")
+          actual = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+          if actual != revision:
+              raise SystemExit("Checkout differs from requested revision")
+          subprocess.run(["git", "merge-base", "--is-ancestor", revision,
+                          os.environ["DISPATCH_MAIN_SHA"]], check=True)
+
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.14"
+
+      - name: Install runtime headers
+        run: sudo apt-get update && sudo apt-get install --no-install-recommends -y libgmp-dev clang
+
+      - name: Qualify and measure the exact candidate patch
+        env:
+          TESTED_REVISION: ${{ inputs.revision }}
+          CANDIDATE_REVISION: ${{ inputs.candidate_revision }}
+          CANDIDATE_PATCH_SHA256: ${{ inputs.patch_sha256 }}
+          CANDIDATE_PATCH_GZIP_BASE64: ${{ inputs.patch_gzip_base64 }}
+        run: python tools/ci/sail_runtime_qualification.py
+
+      - name: Retain sources, commands and raw measurements
+        if: ${{ always() && steps.dispatch.outcome == 'success' }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: sail-runtime-${{ inputs.candidate_revision }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/sail-runtime-qualification/upload
+          if-no-files-found: error
+          retention-days: 90
