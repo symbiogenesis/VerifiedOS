@@ -48,7 +48,10 @@ than authored or upstream source, so neither original-file row reaches it: it
 records the package names, versions, sources and checksums a resolver chose,
 each package keeping its own terms. That includes
 [tools/sail-isla/isla.Cargo.lock](tools/sail-isla/isla.Cargo.lock), upstream
-Isla's Cargo-generated lock with two package entries changed.
+Isla's Cargo-generated lock, and
+[tools/memory-planner/idealloc.Cargo.lock](tools/memory-planner/idealloc.Cargo.lock),
+idealloc's Cargo-generated lock, each with reviewed package-version and checksum
+overrides that preserve its upstream dependency graph.
 
 A full frozen opam snapshot can embed upstream patch bytes as extra files. Those
 bytes retain their upstream terms; Q35n's standalone hosted snapshot carries its

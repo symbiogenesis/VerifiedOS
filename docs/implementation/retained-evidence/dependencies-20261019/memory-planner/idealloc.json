@@ -1,0 +1,123 @@
+{
+  "operation": "direct bridge correctness qualification",
+  "passed": true,
+  "scope": "one fixed functional fixture plus six refusal controls; no benchmark, timing comparison, optimality or performance claim",
+  "instance": {
+    "name": "fixed-bridge-correctness",
+    "pools": [
+      {
+        "id": "p",
+        "capacity": 12
+      }
+    ],
+    "buffers": [
+      {
+        "id": "a",
+        "size": 2,
+        "allowed_pools": [
+          "p"
+        ],
+        "intervals": [
+          [
+            0,
+            3
+          ]
+        ]
+      },
+      {
+        "id": "b",
+        "size": 3,
+        "allowed_pools": [
+          "p"
+        ],
+        "intervals": [
+          [
+            1,
+            4
+          ]
+        ]
+      },
+      {
+        "id": "c",
+        "size": 2,
+        "allowed_pools": [
+          "p"
+        ],
+        "intervals": [
+          [
+            3,
+            6
+          ]
+        ]
+      }
+    ]
+  },
+  "instance_sha256": "67953dd4428959e3404af67ab0c750d6001324487734945f8ff8a5663968789e",
+  "output": "0\t3\n1\t0\n2\t3\n",
+  "placement": [
+    {
+      "id": "a",
+      "pool": "p",
+      "offset": 3
+    },
+    {
+      "id": "b",
+      "pool": "p",
+      "offset": 0
+    },
+    {
+      "id": "c",
+      "pool": "p",
+      "offset": 3
+    }
+  ],
+  "controls": [
+    {
+      "name": "empty",
+      "exit": 1,
+      "stderr": "Error: \"empty instance\"\n",
+      "refused": true
+    },
+    {
+      "name": "zero-size",
+      "exit": 1,
+      "stderr": "Error: \"invalid positive-size open-interval job\"\n",
+      "refused": true
+    },
+    {
+      "name": "invalid-open-interval",
+      "exit": 1,
+      "stderr": "Error: \"invalid positive-size open-interval job\"\n",
+      "refused": true
+    },
+    {
+      "name": "invalid-iterations",
+      "exit": 1,
+      "stderr": "Error: \"invalid iteration bound\"\n",
+      "refused": true
+    },
+    {
+      "name": "wrong-identity-output",
+      "refused": true,
+      "finding": "duplicate or unknown idealloc identity"
+    },
+    {
+      "name": "overlap-output",
+      "refused": true,
+      "findings": [
+        "overlap: a/b",
+        "overlap: b/c"
+      ]
+    }
+  ],
+  "build_receipt": "/root/build/lane-deps-tooling-20261019/idealloc-build/build-evidence.json",
+  "build_receipt_sha256": "1a2eb4db0d43c973c606003bfc01b99ececa76554652a9996c478550c8987855",
+  "upstream_lock_sha256": "6e48f02d61d7e789eb721ba35e922b3eba97c12e003f5e11bb2252332cdacc01",
+  "override_sha256": "3f8d164d7d41e42954e62cd6d887718adf96017f991a157c42041b4ba2e62313",
+  "manifest_sha256": "554995d97fde4cfaae4f0491f76b2ee3bf2a0265d372ec5bb2f91b4a30030a89",
+  "recipe_sha256": {
+    "tools/vos/memory_planner_candidates.py": "591ef7038cdb8637038a528ba845e5a41a84125bc325430384587884b883fec3",
+    "tools/vos/rust_toolchain.py": "b8cf40d6a0dfec26c0d823ec9ce2134e2434e39f102856d434d73da6fa9b307c"
+  },
+  "executable_sha256": "de877cedf0fa2fd7167a575aae97564200096e465efc8b6b0c1a699cc0422e27"
+}

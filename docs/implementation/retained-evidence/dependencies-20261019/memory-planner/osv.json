@@ -1,0 +1,25 @@
+{
+  "checked_utc": "2026-10-20T01:29:03.897625+00:00",
+  "source": "https://api.osv.dev/v1/querybatch",
+  "locks": {
+    "idealloc": {
+      "packages_checked": 144,
+      "findings": [
+        {
+          "name": "adler",
+          "version": "1.0.2",
+          "advisories": [
+            "RUSTSEC-2025-0056"
+          ]
+        },
+        {
+          "name": "ttf-parser",
+          "version": "0.20.0",
+          "advisories": [
+            "RUSTSEC-2026-0192"
+          ]
+        }
+      ]
+    }
+  }
+}

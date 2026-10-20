@@ -1,0 +1,62 @@
+{
+  "checked_utc": "2026-10-20T01:37:41.083267+00:00",
+  "source": "https://api.osv.dev/v1/querybatch",
+  "locks": {
+    "standalone": {
+      "packages_checked": 126,
+      "findings": [
+        {
+          "name": "bincode",
+          "version": "1.3.3",
+          "advisories": [
+            "RUSTSEC-2025-0141"
+          ]
+        },
+        {
+          "name": "rand",
+          "version": "0.7.3",
+          "advisories": [
+            "GHSA-cq8v-f236-94qc",
+            "RUSTSEC-2026-0097"
+          ]
+        }
+      ]
+    },
+    "driver": {
+      "packages_checked": 142,
+      "findings": [
+        {
+          "name": "bincode",
+          "version": "1.3.3",
+          "advisories": [
+            "RUSTSEC-2025-0141"
+          ]
+        },
+        {
+          "name": "crossbeam-utils",
+          "version": "0.7.2",
+          "advisories": [
+            "GHSA-qc84-gqf4-9926",
+            "RUSTSEC-2022-0041"
+          ]
+        },
+        {
+          "name": "memoffset",
+          "version": "0.5.6",
+          "advisories": [
+            "GHSA-wfg4-322g-9vqv",
+            "RUSTSEC-2023-0045"
+          ]
+        },
+        {
+          "name": "rand",
+          "version": "0.7.3",
+          "advisories": [
+            "GHSA-cq8v-f236-94qc",
+            "RUSTSEC-2026-0097"
+          ]
+        }
+      ]
+    }
+  }
+}
