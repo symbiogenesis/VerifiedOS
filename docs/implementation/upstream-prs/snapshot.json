@@ -218,6 +218,91 @@
       "evidence": [
         "[Latest failed Docker run](https://github.com/CertiRocq/certirocq/actions/runs/39468861002) passes dependency installation and compiler construction but fails the axioms runtime test."
       ]
+    },
+    {
+      "id": "16",
+      "repository": "rems-project/coq-sail",
+      "topic": "Represent standalone granule-keyed capability-tag operations",
+      "issue": "https://github.com/rems-project/coq-sail/blob/e7b914cddc032e3676eebd87a808229828013e9c/src-stdpp/ConcurrencyInterface.v#L147",
+      "pr": null,
+      "benefit": "Removes Q35p's semantic blocker to canonical machine-term compilation and the machine-code proof route that consumes that term.",
+      "reviewed_head": null,
+      "review": "No submission recorded. Coordinate coq-sail's outcome interface and interpreters with Sail's Rocq bindings. The retained compile requires M unit for a standalone tag write but resolves to a prompt-monad bool operation. Existing data-memory outcomes carry tags on byte-addressed transfers and have no standalone granule-keyed tag operation. The candidate needs an agreed semantic interface or an explicitly justified adapter.",
+      "next_action": "TBD: agree standalone tag-read/write outcomes and bindings with both upstreams, in parallel with candidates 17 and 18.",
+      "evidence": [
+        "[Q35p memory/tag qualification](q35p-memory-bindings.md#actual-semantic-boundary) retains the exact refusal and explains why a missing-value data write has no tag effect and a dummy value would add a data write.",
+        "Acceptance preserves raw granule keys, default-false absent tags, every overwritten-granule clear, metadata only after successful data writes and existing refusals. It then joins Q35o and Q35b for strict whole-term compilation, exact assumptions and compiled size; no new assumption or discarded tag effect supplies acceptance."
+      ],
+      "proposed_on": "2026-10-21"
+    },
+    {
+      "id": "17",
+      "repository": "rems-project/coq-sail",
+      "topic": "Support strict Rocq 9.3 source syntax and scoped notation",
+      "issue": "https://github.com/rems-project/coq-sail/tree/e7b914cddc032e3676eebd87a808229828013e9c",
+      "pr": null,
+      "benefit": "Upstreams the retained strict-source compatibility work needed to qualify Sail support at the locked prover and reduces the carried compatibility patch.",
+      "reviewed_head": null,
+      "review": "No submission recorded. The retained support candidate compiles the selected modules without diagnostics and preserves the inventoried elaborated types, universes and transparent bodies. Its changes cover first-goal selection, abbreviation and hint syntax, induction registrations, an unused Zeuclid export and sail_update record notation. Coordinate the notation API with candidate 18. Candidate 1's Eqdep removal and candidate 9's optional Real dependencies retain their separate scopes; support carriage and canonical consumer acceptance remain open.",
+      "next_action": "TBD: prepare this compatibility PR with candidate 18 first, agree notation scope and retain the existing strict flags and semantic readings.",
+      "evidence": [
+        "[Focused strict-source result](../../tools/opam/sail-compatibility.md#focused-strict-source-result) owns the immutable patch, frozen comparisons, selected-module scope and remaining production-carriage predicate.",
+        "Acceptance includes upstream syntax/notation client regressions, unchanged elaborated readings and exact assumptions, complete native declaration census and hosted recursive checking. Q35n cold snapshot qualification, Q35q support qualification and Q35b consumer acceptance remain their owners' separate joins."
+      ],
+      "proposed_on": "2026-10-21"
+    },
+    {
+      "id": "18",
+      "repository": "rems-project/sail",
+      "topic": "Emit strict Rocq 9.3 syntax with compatible notation scope",
+      "issue": "https://github.com/rems-project/sail/blob/8857cacf492c71b537e879a862ab5b62ba4abf81/src/sail_coq_backend/pretty_print_coq.ml",
+      "pr": null,
+      "benefit": "Removes Q35o's generated-syntax and notation blockers to compiling the canonical machine term against the qualified support library.",
+      "reviewed_head": null,
+      "review": "No submission recorded. The retained backend candidate adds explicit Proof openings, rewrite-database declarations and candidate 17's record spelling. Its minimal generated types strictly compile with unchanged inventoried declarations. The generated main module still refuses duplicate >>= notation at Import Defs; the namespace agreement is unfinished. Upstream PR 1790 concerns top-level monadic value definitions and has a separate scope.",
+      "next_action": "TBD: prepare the coordinated backend PR with candidate 17, resolve bind-notation ownership and extend the probe to a complete generated main module.",
+      "evidence": [
+        "[Q35o immutable syntax trial](q35o-emission-compatibility-20261013.md#immutable-syntax-trial-and-exact-stop) retains the candidate, frozen minimal types and exact main-module notation refusal.",
+        "[Sail PR 1790](https://github.com/rems-project/sail/pull/1790) is related ongoing backend work; coordinate integration without treating it as this strict-syntax repair.",
+        "Acceptance preserves notation expansions and executable readings, qualifies every canonical emitted declaration and the actual plugin identity, and completes strict whole-term compilation, exact closure, compiled size and hosted cold qualification under the existing owners. The minimal types result alone supplies no canonical consumer verdict."
+      ],
+      "proposed_on": "2026-10-21"
+    },
+    {
+      "id": "19",
+      "repository": "rocq-prover/rocq",
+      "topic": "Report complete typed module signatures or explicit incompleteness",
+      "issue": "https://github.com/rocq-prover/rocq/blob/74165991678536f8f31f3c7740477ce20cfdafd4/vernac/printmod.ml#L423",
+      "pr": null,
+      "benefit": "Addresses Q35q's missing native signature-field types, which block the declaration census needed to qualify Sail support.",
+      "reviewed_head": null,
+      "review": "No submission recorded. The actual MachineWordInterface printer returns parameter labels without types despite full printing, and abstract signature fields are unavailable to ordinary global-constant queries. Rocq can fall back to names-only module printing after a noncritical exception. That behavior is compatible with the observation, but the underlying exception remains unidentified. Start with a minimized reproduction, then repair rich printing or add an opt-in mode that refuses incomplete metadata; a stable structured census interface is a possible later scope.",
+      "next_action": "TBD: minimize the missing-types reproduction and agree complete typed reporting with upstream after the paired compatibility work is prepared.",
+      "evidence": [
+        "[Native signature completeness diagnosis](q35q-signature-types.md#focused-native-result) records the actual incomplete output and the limits of the fallback hypothesis.",
+        "[The native census contract](contracts/sail-support-census.md#census-and-provenance) requires names, elaborated types, enclosing signatures/functor parameters and provenance, with concrete implementation assumptions audited separately.",
+        "Acceptance covers signatures, unapplied functors, nested fields, sealed concrete results and empty/alias-only modules, plus refusal of omitted fields, ambiguous or foreign resolution, duplicates and missing implementation connections. Complete output must not be inferred from ordinary global-constant lookup of abstract fields.",
+        "[Related issue 11904](https://github.com/rocq-prover/rocq/issues/11904) concerns notation conflicts; it does not establish this observation's root cause. Candidates 4 and 10 remain separate checker-policy changes."
+      ],
+      "proposed_on": "2026-10-21"
+    },
+    {
+      "id": "R-1",
+      "repository": "rocq-prover/rocq",
+      "topic": "Request regression-backed Rocq 9.3 soundness backports",
+      "issue": "https://github.com/rocq-prover/rocq/blob/74165991678536f8f31f3c7740477ce20cfdafd4/CONTRIBUTING.md#release-management",
+      "pr": null,
+      "benefit": "Addresses known locked-prover defects and creates a path to retiring the specific local proof restrictions after qualified release adoption.",
+      "reviewed_head": null,
+      "review": "Release-manager follow-up; no backport request or submission is recorded here. The identified fixes are already merged on master. Upstream assigns milestone selection and backport decisions to its release managers. Prepare regression-backed backport commits if requested; release publication and VerifiedOS lock adoption remain separate acts.",
+      "next_action": "Request the appropriate 9.3 milestone/backports for fixes 22388, 22392 and 22394; discuss checker fix 22556 with the release manager and qualify any resulting release before changing local restrictions.",
+      "evidence": [
+        "[Fix 22388](https://github.com/rocq-prover/rocq/pull/22388) corrects the environment used for cofixpoint recursive trees; [fix 22392](https://github.com/rocq-prover/rocq/pull/22392) rejects recursive calls outside the main nested-cofixpoint branch; [fix 22394](https://github.com/rocq-prover/rocq/pull/22394) repairs inductive subtyping with constructor let-ins.",
+        "[Checker fix 22556](https://github.com/rocq-prover/rocq/pull/22556) addresses the separate sealed-module delta-resolver anomaly; its release adoption and VST requalification retain their existing obligations.",
+        "[The prover lock guide](../../tools/opam/README.md) owns the recorded defects, local restrictions, residual exposure and exact lock-move predicate. Acceptance requires the chosen release to carry the fixes and their regression tests, then project-specific requalification; a milestone, prepared backport or upstream merge supplies no release-adoption verdict."
+      ],
+      "kind": "backport",
+      "proposed_on": "2026-10-21"
     }
   ],
   "pulls": [
