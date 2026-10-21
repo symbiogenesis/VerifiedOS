@@ -1,0 +1,762 @@
+{
+  "version": 1,
+  "author": "symbiogenesis",
+  "created_since": "2026-10-19",
+  "observed_at": "2026-10-21 01:53:24 UTC",
+  "items": [
+    {
+      "id": "1",
+      "repository": "rems-project/coq-sail",
+      "topic": "Remove unnecessary Eq_rect_eq dependence",
+      "issue": null,
+      "pr": "https://github.com/rems-project/coq-sail/pull/14",
+      "benefit": "Removes an unnecessary loaded axiom from bitvector conversion support for the canonical machine term.",
+      "reviewed_head": "f8ae73234befd767c60deb3068e09acd56200618",
+      "review": "Replaces the equality step with decidable index equality, preserves theorem statements, and adds assumption regressions for both exposed lemmas. No actionable static defect found. No maintainer review or comments recorded.",
+      "next_action": "Await maintainer review and upstream validation.",
+      "evidence": [
+        "The PR reports package/full @runtest builds, recursive kernel checking, and unchanged printed theorem types; these were not independently rerun for this tracker."
+      ]
+    },
+    {
+      "id": "2",
+      "repository": "rems-project/sail",
+      "topic": "Refresh LSP state after dependency edits",
+      "issue": null,
+      "pr": "https://github.com/rems-project/sail/pull/1786",
+      "benefit": "Makes cross-file model editing dependable and offers a path to retire the maintained local dependency-refresh patch.",
+      "reviewed_head": "0a2fc6ab261a9c26c63c35c9a03aadbb31527db1",
+      "review": "Handles per-document navigation, compiler-owned cache reload, watched dependencies/projects, and save/close propagation. Tests cover missing/restored dependencies, unsaved buffers, multiple projects and symlink retargeting. No actionable static defect found; no maintainer review or comments recorded.",
+      "next_action": "Upstream maintainer action/approval for CI, then review.",
+      "evidence": [
+        "Both upstream workflows are action_required; the test matrix has no executed jobs. This is an approval/action block, not an observed code failure.",
+        "The PR reports release builds and 16 selected protocol tests; those claims were not independently rerun."
+      ]
+    },
+    {
+      "id": "3",
+      "repository": "tchajed/coq-record-update",
+      "topic": "Support Rocq 9.3 postfix update syntax",
+      "issue": null,
+      "pr": "https://github.com/tchajed/coq-record-update/pull/68",
+      "benefit": "Addresses the measured RecordUpdate notation compatibility blocker in the machine-logic dependency trial.",
+      "reviewed_head": "ec90000b354b979f7eb8c221884340ec42bbbc27",
+      "review": "Custom-entry factoring retains application precedence; regressions cover chaining, nested updates and printing. No actionable static defect found. No maintainer review or comments recorded.",
+      "next_action": "Await maintainer review; displayed build matrix passes.",
+      "evidence": []
+    },
+    {
+      "id": "4",
+      "repository": "rocq-prover/rocq",
+      "topic": "Opt-in axiom-free checker exit status",
+      "issue": "https://github.com/rocq-prover/rocq/issues/10372",
+      "pr": "https://github.com/rocq-prover/rocq/pull/22609",
+      "benefit": "Reduces reliance on parsing human-readable context summaries to decide proof acceptance.",
+      "reviewed_head": "956ec7d95d33cca4197482edd58c40f0856e69b6",
+      "review": "Tests cover explicit/imported/sealed axioms, unsafe flags, primitives, module parameters and trust modes. No actionable isolated defect found. No maintainer review or comments recorded. Integration with candidate 10 needs a combined-option regression.",
+      "next_action": "Await upstream review; exercise -axiom-free without -o together with candidate 10.",
+      "evidence": [
+        "GitLab reports a successful light pipeline through a NEUTRAL check; FULL_CI is false. It is not evidence of a full GitLab pipeline pass."
+      ]
+    },
+    {
+      "id": "5",
+      "repository": "rems-project/sail",
+      "topic": "Expose opt-in constructor splitting for C/C++",
+      "issue": "https://github.com/rems-project/sail/issues/1647",
+      "pr": "https://github.com/rems-project/sail/pull/1788",
+      "benefit": "Allows specialization of constant-argument extension dispatch in generated model executors; the VerifiedOS speedup remains unmeasured.",
+      "reviewed_head": "bbd7a3f0e55419d9703f87143fabd2c12d8884c7",
+      "review": "Adds repeatable --c-split for enum/union arguments and scattered calls, with refusal of unsupported shapes and name collisions. Generated-call and execution fixtures are included. No actionable static defect found. No maintainer review or comments recorded.",
+      "next_action": "Upstream maintainer action/approval for CI, then review.",
+      "evidence": [
+        "The upstream matrix and formatting workflows are action_required with no executed matrix jobs.",
+        "The PR reports C/C++ execution and sanitizer controls. Valgrind was unavailable and skipped."
+      ]
+    },
+    {
+      "id": "6",
+      "repository": "rems-project/sail",
+      "topic": "Bulk physical-memory transfer and raw loading",
+      "issue": "https://github.com/rems-project/sail/issues/1671",
+      "pr": "https://github.com/rems-project/sail/pull/1789",
+      "benefit": "Reduces byte-at-a-time sparse-memory overhead in model loading, dumps and debugger transfers.",
+      "reviewed_head": "75116a2423ad5ea8eba121fb859ac672ac0722c5",
+      "review": "Adds bulk sparse-memory access and buffered load_raw while retaining byte/scalar behavior, sparse zero reads, address wrapping and capability tags. Boundary, hole, interoperability, loader-tail and cleanup regressions are included. No actionable static defect found. No maintainer review or comments recorded.",
+      "next_action": "Upstream maintainer action/approval for CI, then review.",
+      "evidence": [
+        "Upstream workflows remain action_required, so the upstream matrix has no passing verdict.",
+        "[VerifiedOS focused runtime qualification](https://github.com/symbiogenesis/VerifiedOS/actions/runs/39372528576) passed for exact PR head 75116a2423ad5ea8eba121fb859ac672ac0722c5 using harness revision 95ba606d6f18012560ac439d4323ebab0669b52f. This is separate focused evidence, not an upstream matrix pass."
+      ]
+    },
+    {
+      "id": "7",
+      "repository": "riscv/sail-riscv",
+      "topic": "Regenerate outputs when the Sail toolchain changes",
+      "issue": null,
+      "pr": null,
+      "benefit": "Prevents stale generated C++, documentation and proof terms after compiler replacement.",
+      "reviewed_head": null,
+      "review": "No matching authored PR found.",
+      "next_action": "TBD: add compiler dependencies and a regeneration regression.",
+      "evidence": []
+    },
+    {
+      "id": "8",
+      "repository": "katamaran-project/katamaran",
+      "topic": "Remove unused Program.Equality imports",
+      "issue": null,
+      "pr": "https://github.com/katamaran-project/katamaran/pull/73",
+      "benefit": "Removes import pollution relevant to the exact loaded-assumption policy for the machine-logic foundation.",
+      "reviewed_head": "8b953fe8f17bb4553792c63665d368dc7f6bbd26",
+      "review": "Only removes imports from six Iris modules. No actionable static defect found. The PR reports unchanged theorem types and assumption lists plus import-pollution controls; unchanged assumption lists do not establish a new axiom-freedom theorem. No maintainer review or comments recorded.",
+      "next_action": "Upstream maintainer action/approval for CI, then validation.",
+      "evidence": [
+        "Focused builds and before/after assumption comparisons are author-reported and were not independently rerun.",
+        "The Nix workflow is action_required; no passing hosted result is available."
+      ]
+    },
+    {
+      "id": "9",
+      "repository": "rems-project/coq-sail",
+      "topic": "Make classical real-number dependencies optional",
+      "issue": "https://github.com/rems-project/coq-sail/blob/e7b914cddc032e3676eebd87a808229828013e9c/src/Values.v#L73",
+      "pr": null,
+      "benefit": "Could remove four unused real-number axioms from non-real machine models.",
+      "reviewed_head": null,
+      "review": "Candidate 1 removes Eqdep dependence only; it does not implement this separate real-number interface change.",
+      "next_action": "TBD: agree library API and conditional Sail-import design.",
+      "evidence": []
+    },
+    {
+      "id": "10",
+      "repository": "rocq-prover/rocq",
+      "topic": "Account for sealed implementations under -norec/admission",
+      "issue": "https://github.com/rocq-prover/rocq/issues/22569",
+      "pr": "https://github.com/rocq-prover/rocq/pull/22611",
+      "benefit": "Could simplify the proof gate sealed-field workaround and its extra assumption-query/load passes.",
+      "reviewed_head": "af891980905006f8fdda654c573939dbe936242f",
+      "review": "Tests retain genuine hidden/declared axioms and compare recursive, -norec and -admit output. No actionable isolated defect found. A cross-PR interaction with candidate 4 remains a static integration concern, not an executed reproduction. No maintainer review or comments recorded.",
+      "next_action": "Add combined -axiom-free/-norec/-admit regressions and ensure bookkeeping is enabled without -o.",
+      "evidence": [
+        "[checker/coqchk_main.ml at the reviewed head](https://github.com/rocq-prover/rocq/blob/af891980905006f8fdda654c573939dbe936242f/checker/coqchk_main.ml#L203) requests admitted-library bookkeeping only with output_context. When combined with candidate 4, axiom-free checking without -o may still misclassify benign sealed fields. Consider enabling bookkeeping for output_context OR axiom_free, then test the interaction.",
+        "GitLab reports a successful light pipeline through a NEUTRAL check with FULL_CI:false; no full GitLab pass is claimed."
+      ]
+    },
+    {
+      "id": "11",
+      "repository": "lowRISC/cva6-cheri",
+      "topic": "Independently configure Zbkb and Zbkx",
+      "issue": "https://github.com/lowRISC/mocha/issues/748",
+      "pr": null,
+      "benefit": "Addresses the F-471 coupling of retained bit-manipulation instructions to unwanted AES/SHA extensions.",
+      "reviewed_head": null,
+      "review": "No matching authored PR found. Mocha issue 748 is related extension-configuration discussion, not this exact implementation.",
+      "next_action": "TBD: discuss configuration controls and decoder-matrix tests with upstream.",
+      "evidence": []
+    },
+    {
+      "id": "12",
+      "repository": "CHERIoT-Platform/cheri-rust",
+      "topic": "Preserve capability tags in small-aggregate calls",
+      "issue": "https://github.com/CHERIoT-Platform/cheri-rust/issues/271",
+      "pr": null,
+      "benefit": "Improves correctness of the selected future Rust compiler baseline across Rust/Rust and Rust/C calls.",
+      "reviewed_head": null,
+      "review": "No matching authored PR found; the upstream issue has an existing assignee and unsettled mixed-aggregate ABI details.",
+      "next_action": "TBD: coordinate ABI rules and add Rust/Rust plus Rust/C regressions.",
+      "evidence": []
+    },
+    {
+      "id": "13",
+      "repository": "CHERIoT-Platform/cheri-rust",
+      "topic": "Test capability-metadata misuse during CTFE",
+      "issue": "https://github.com/CHERIoT-Platform/cheri-rust/issues/204",
+      "pr": null,
+      "benefit": "Adds safety evidence for capability padding and partial-pointer operations before target adaptation.",
+      "reviewed_head": null,
+      "review": "No matching authored PR found.",
+      "next_action": "TBD: add positive and rejection tests requested by upstream.",
+      "evidence": []
+    },
+    {
+      "id": "14",
+      "repository": "CertiRocq/certirocq",
+      "topic": "Fix OCaml 5.2+ bootstrap Hd_val collision",
+      "issue": null,
+      "pr": "https://github.com/CertiRocq/certirocq/pull/167",
+      "benefit": "Removes one reason for retaining an older OCaml environment for executable oracles; separate Rocq compatibility limits remain.",
+      "reviewed_head": "971c1eb1b5f0adecfc280872bd5b71b0d7f33a0f",
+      "review": "Narrow four-file header-boundary fix. No actionable static defect found. Maintainer zoep reproduced both the bug and fix locally and merged the PR. The failed Docker job is the earlier missing MetaRocq.Erasure.EImplementLazyForce dependency failure, addressed by CI-1.",
+      "next_action": "Track release inclusion; qualify VerifiedOS adoption separately.",
+      "evidence": [
+        "[Original Docker failure](https://github.com/CertiRocq/certirocq/actions/runs/39377893256) occurs before bootstrap bridge compilation because the image lacks the required MetaRocq module. Four Nix checks pass."
+      ]
+    },
+    {
+      "id": "15",
+      "repository": "lowRISC/mocha",
+      "topic": "Add richer optional retirement tracing",
+      "issue": "https://github.com/lowRISC/mocha/issues/231",
+      "pr": null,
+      "benefit": "Helps diagnose Sail/RTL divergence during scalar bring-up using operand, register and memory observations.",
+      "reviewed_head": null,
+      "review": "No matching authored PR found.",
+      "next_action": "TBD: agree generic optional tracing based on existing RVFI values.",
+      "evidence": []
+    },
+    {
+      "id": "CI-1",
+      "repository": "CertiRocq/certirocq",
+      "topic": "Restore the Docker CI build environment",
+      "issue": null,
+      "pr": "https://github.com/CertiRocq/certirocq/pull/168",
+      "benefit": "Repairs upstream validation infrastructure for the bootstrap fix and subsequent CertiRocq contributions.",
+      "reviewed_head": "f3015e6a9f82ca8b08522d1e1e108d556c16d902",
+      "review": "Updates the image dependency route and main-branch trigger. Maintainer zoep indicated intent to merge; the PR is still open at observation. Four Nix checks pass. The latest Docker run reaches tests/axioms, where print_lst segfaults and Makefile line 45 reports Error 139. Root cause is unestablished; this is a runtime-test failure, not an approval/permissions block.",
+      "next_action": "Investigate the print_lst segfault before treating Docker validation as restored.",
+      "evidence": [
+        "[Latest failed Docker run](https://github.com/CertiRocq/certirocq/actions/runs/39468861002) passes dependency installation and compiler construction but fails the axioms runtime test."
+      ]
+    }
+  ],
+  "pulls": [
+    {
+      "headRefOid": "f8ae73234befd767c60deb3068e09acd56200618",
+      "isDraft": false,
+      "mergedAt": null,
+      "number": 14,
+      "state": "OPEN",
+      "statusCheckRollup": [],
+      "title": "Remove an unnecessary axiom from bitvector conversion proofs",
+      "updatedAt": "2026-10-20T03:51:04Z",
+      "url": "https://github.com/rems-project/coq-sail/pull/14",
+      "workflow_runs": []
+    },
+    {
+      "headRefOid": "0a2fc6ab261a9c26c63c35c9a03aadbb31527db1",
+      "isDraft": false,
+      "mergedAt": null,
+      "number": 1786,
+      "state": "OPEN",
+      "statusCheckRollup": [],
+      "title": "LSP: refresh open documents after dependency changes",
+      "updatedAt": "2026-10-20T04:17:10Z",
+      "url": "https://github.com/rems-project/sail/pull/1786",
+      "workflow_runs": [
+        {
+          "name": "Check formatting",
+          "status": "completed",
+          "conclusion": "action_required",
+          "html_url": "https://github.com/rems-project/sail/actions/runs/39368651122"
+        },
+        {
+          "name": "Test matrix",
+          "status": "completed",
+          "conclusion": "action_required",
+          "html_url": "https://github.com/rems-project/sail/actions/runs/39368651120"
+        }
+      ]
+    },
+    {
+      "headRefOid": "ec90000b354b979f7eb8c221884340ec42bbbc27",
+      "isDraft": false,
+      "mergedAt": null,
+      "number": 68,
+      "state": "OPEN",
+      "statusCheckRollup": [
+        {
+          "__typename": "CheckRun",
+          "completedAt": "2026-10-20T03:59:19Z",
+          "conclusion": "SUCCESS",
+          "detailsUrl": "https://github.com/tchajed/coq-record-update/actions/runs/39366958809/job/118445864494",
+          "name": "build (dev)",
+          "startedAt": "2026-10-20T03:57:02Z",
+          "status": "COMPLETED",
+          "workflowName": "CI"
+        },
+        {
+          "__typename": "CheckRun",
+          "completedAt": "2026-10-20T03:57:52Z",
+          "conclusion": "SUCCESS",
+          "detailsUrl": "https://github.com/tchajed/coq-record-update/actions/runs/39366958834/job/118445864105",
+          "name": "build",
+          "startedAt": "2026-10-20T03:57:01Z",
+          "status": "COMPLETED",
+          "workflowName": "Flake build"
+        },
+        {
+          "__typename": "CheckRun",
+          "completedAt": "2026-10-20T04:00:49Z",
+          "conclusion": "SUCCESS",
+          "detailsUrl": "https://github.com/tchajed/coq-record-update/actions/runs/39366958809/job/118445864487",
+          "name": "build (9.3)",
+          "startedAt": "2026-10-20T03:57:02Z",
+          "status": "COMPLETED",
+          "workflowName": "CI"
+        },
+        {
+          "__typename": "CheckRun",
+          "completedAt": "2026-10-20T03:58:59Z",
+          "conclusion": "SUCCESS",
+          "detailsUrl": "https://github.com/tchajed/coq-record-update/actions/runs/39366958809/job/118445864526",
+          "name": "build (9.2)",
+          "startedAt": "2026-10-20T03:57:02Z",
+          "status": "COMPLETED",
+          "workflowName": "CI"
+        },
+        {
+          "__typename": "CheckRun",
+          "completedAt": "2026-10-20T03:59:01Z",
+          "conclusion": "SUCCESS",
+          "detailsUrl": "https://github.com/tchajed/coq-record-update/actions/runs/39366958809/job/118445864527",
+          "name": "build (9.1)",
+          "startedAt": "2026-10-20T03:57:02Z",
+          "status": "COMPLETED",
+          "workflowName": "CI"
+        },
+        {
+          "__typename": "CheckRun",
+          "completedAt": "2026-10-20T03:59:13Z",
+          "conclusion": "SUCCESS",
+          "detailsUrl": "https://github.com/tchajed/coq-record-update/actions/runs/39366958809/job/118445864499",
+          "name": "build (8.20)",
+          "startedAt": "2026-10-20T03:57:02Z",
+          "status": "COMPLETED",
+          "workflowName": "CI"
+        },
+        {
+          "__typename": "CheckRun",
+          "completedAt": "2026-10-20T03:59:21Z",
+          "conclusion": "SUCCESS",
+          "detailsUrl": "https://github.com/tchajed/coq-record-update/actions/runs/39366958809/job/118445864500",
+          "name": "build (8.19)",
+          "startedAt": "2026-10-20T03:57:02Z",
+          "status": "COMPLETED",
+          "workflowName": "CI"
+        },
+        {
+          "__typename": "CheckRun",
+          "completedAt": "2026-10-20T03:59:10Z",
+          "conclusion": "SUCCESS",
+          "detailsUrl": "https://github.com/tchajed/coq-record-update/actions/runs/39366958809/job/118445864593",
+          "name": "build (8.18)",
+          "startedAt": "2026-10-20T03:57:02Z",
+          "status": "COMPLETED",
+          "workflowName": "CI"
+        },
+        {
+          "__typename": "CheckRun",
+          "completedAt": "2026-10-20T03:59:44Z",
+          "conclusion": "SUCCESS",
+          "detailsUrl": "https://github.com/tchajed/coq-record-update/actions/runs/39366958809/job/118445864370",
+          "name": "build (8.17)",
+          "startedAt": "2026-10-20T03:57:02Z",
+          "status": "COMPLETED",
+          "workflowName": "CI"
+        }
+      ],
+      "title": "Support Rocq 9.3",
+      "updatedAt": "2026-10-20T03:56:56Z",
+      "url": "https://github.com/tchajed/coq-record-update/pull/68",
+      "workflow_runs": [
+        {
+          "name": "Flake build",
+          "status": "completed",
+          "conclusion": "success",
+          "html_url": "https://github.com/tchajed/coq-record-update/actions/runs/39366958834"
+        },
+        {
+          "name": "CI",
+          "status": "completed",
+          "conclusion": "success",
+          "html_url": "https://github.com/tchajed/coq-record-update/actions/runs/39366958809"
+        }
+      ]
+    },
+    {
+      "headRefOid": "956ec7d95d33cca4197482edd58c40f0856e69b6",
+      "isDraft": false,
+      "mergedAt": null,
+      "number": 22609,
+      "state": "OPEN",
+      "statusCheckRollup": [
+        {
+          "__typename": "CheckRun",
+          "completedAt": "2026-10-20T04:53:23Z",
+          "conclusion": "SUCCESS",
+          "detailsUrl": "https://github.com/rocq-prover/rocq/actions/runs/39370651738/job/118457857142",
+          "name": "macOS",
+          "startedAt": "2026-10-20T04:39:58Z",
+          "status": "COMPLETED",
+          "workflowName": "Github CI"
+        },
+        {
+          "__typename": "CheckRun",
+          "completedAt": "2026-10-20T05:17:45Z",
+          "conclusion": "SUCCESS",
+          "detailsUrl": "https://github.com/rocq-prover/rocq/actions/runs/39370651738/job/118457857268",
+          "name": "Windows",
+          "startedAt": "2026-10-20T04:39:52Z",
+          "status": "COMPLETED",
+          "workflowName": "Github CI"
+        },
+        {
+          "__typename": "CheckRun",
+          "completedAt": "2026-10-20T04:48:27Z",
+          "conclusion": "SUCCESS",
+          "detailsUrl": "https://github.com/rocq-prover/rocq/actions/runs/39370651738/job/118457857336",
+          "name": "Linux (latest OCaml)",
+          "startedAt": "2026-10-20T04:39:53Z",
+          "status": "COMPLETED",
+          "workflowName": "Github CI"
+        },
+        {
+          "__typename": "CheckRun",
+          "completedAt": "2026-10-20T04:46:22Z",
+          "conclusion": "NEUTRAL",
+          "detailsUrl": "https://gitlab.inria.fr/coq/coq/-/pipelines/1512666",
+          "name": "GitLab CI pipeline (pull request)",
+          "startedAt": "2026-10-20T04:46:22Z",
+          "status": "COMPLETED",
+          "workflowName": ""
+        },
+        {
+          "__typename": "StatusContext",
+          "context": "doc:init: corelib artifact",
+          "startedAt": "2026-10-20T04:41:55Z",
+          "state": "SUCCESS",
+          "targetUrl": "https://coq.gitlabpages.inria.fr/-/coq/-/jobs/8096701/artifacts/_build/default/doc/corelib/html/index.html"
+        },
+        {
+          "__typename": "StatusContext",
+          "context": "doc:ml-api:odoc: ml-api artifact",
+          "startedAt": "2026-10-20T04:41:54Z",
+          "state": "SUCCESS",
+          "targetUrl": "https://coq.gitlabpages.inria.fr/-/coq/-/jobs/8096702/artifacts/_build/default/_doc/_html/index.html"
+        },
+        {
+          "__typename": "StatusContext",
+          "context": "doc:refman: refman artifact",
+          "startedAt": "2026-10-20T04:43:19Z",
+          "state": "SUCCESS",
+          "targetUrl": "https://coq.gitlabpages.inria.fr/-/coq/-/jobs/8096699/artifacts/doc/refman-html/index.html"
+        }
+      ],
+      "title": "checker: add opt-in -axiom-free exit status",
+      "updatedAt": "2026-10-20T04:38:34Z",
+      "url": "https://github.com/rocq-prover/rocq/pull/22609",
+      "workflow_runs": [
+        {
+          "name": "Github CI",
+          "status": "completed",
+          "conclusion": "success",
+          "html_url": "https://github.com/rocq-prover/rocq/actions/runs/39370651738"
+        }
+      ]
+    },
+    {
+      "headRefOid": "bbd7a3f0e55419d9703f87143fabd2c12d8884c7",
+      "isDraft": false,
+      "mergedAt": null,
+      "number": 1788,
+      "state": "OPEN",
+      "statusCheckRollup": [],
+      "title": "C/C++: expose opt-in constructor splitting",
+      "updatedAt": "2026-10-20T05:14:57Z",
+      "url": "https://github.com/rems-project/sail/pull/1788",
+      "workflow_runs": [
+        {
+          "name": "Check formatting",
+          "status": "completed",
+          "conclusion": "action_required",
+          "html_url": "https://github.com/rems-project/sail/actions/runs/39373407885"
+        },
+        {
+          "name": "Test matrix",
+          "status": "completed",
+          "conclusion": "action_required",
+          "html_url": "https://github.com/rems-project/sail/actions/runs/39373407902"
+        }
+      ]
+    },
+    {
+      "headRefOid": "75116a2423ad5ea8eba121fb859ac672ac0722c5",
+      "isDraft": false,
+      "mergedAt": null,
+      "number": 1789,
+      "state": "OPEN",
+      "statusCheckRollup": [],
+      "title": "runtime: add bulk memory transfers and buffer raw image loading",
+      "updatedAt": "2026-10-20T05:03:58Z",
+      "url": "https://github.com/rems-project/sail/pull/1789",
+      "workflow_runs": [
+        {
+          "name": "Test matrix",
+          "status": "completed",
+          "conclusion": "action_required",
+          "html_url": "https://github.com/rems-project/sail/actions/runs/39372889623"
+        },
+        {
+          "name": "Check formatting",
+          "status": "completed",
+          "conclusion": "action_required",
+          "html_url": "https://github.com/rems-project/sail/actions/runs/39372889680"
+        }
+      ]
+    },
+    {
+      "headRefOid": "8b953fe8f17bb4553792c63665d368dc7f6bbd26",
+      "isDraft": false,
+      "mergedAt": null,
+      "number": 73,
+      "state": "OPEN",
+      "statusCheckRollup": [],
+      "title": "Remove unused Program.Equality imports from the Iris model",
+      "updatedAt": "2026-10-20T05:18:13Z",
+      "url": "https://github.com/katamaran-project/katamaran/pull/73",
+      "workflow_runs": [
+        {
+          "name": "nix",
+          "status": "completed",
+          "conclusion": "action_required",
+          "html_url": "https://github.com/katamaran-project/katamaran/actions/runs/39373527048"
+        }
+      ]
+    },
+    {
+      "headRefOid": "af891980905006f8fdda654c573939dbe936242f",
+      "isDraft": false,
+      "mergedAt": null,
+      "number": 22611,
+      "state": "OPEN",
+      "statusCheckRollup": [
+        {
+          "__typename": "CheckRun",
+          "completedAt": "2026-10-20T05:56:43Z",
+          "conclusion": "SUCCESS",
+          "detailsUrl": "https://github.com/rocq-prover/rocq/actions/runs/39376255949/job/118474960858",
+          "name": "macOS",
+          "startedAt": "2026-10-20T05:41:49Z",
+          "status": "COMPLETED",
+          "workflowName": "Github CI"
+        },
+        {
+          "__typename": "CheckRun",
+          "completedAt": "2026-10-20T06:19:00Z",
+          "conclusion": "SUCCESS",
+          "detailsUrl": "https://github.com/rocq-prover/rocq/actions/runs/39376255949/job/118474960751",
+          "name": "Windows",
+          "startedAt": "2026-10-20T05:41:45Z",
+          "status": "COMPLETED",
+          "workflowName": "Github CI"
+        },
+        {
+          "__typename": "CheckRun",
+          "completedAt": "2026-10-20T05:50:27Z",
+          "conclusion": "SUCCESS",
+          "detailsUrl": "https://github.com/rocq-prover/rocq/actions/runs/39376255949/job/118474961753",
+          "name": "Linux (latest OCaml)",
+          "startedAt": "2026-10-20T05:41:46Z",
+          "status": "COMPLETED",
+          "workflowName": "Github CI"
+        },
+        {
+          "__typename": "CheckRun",
+          "completedAt": "2026-10-20T05:48:57Z",
+          "conclusion": "NEUTRAL",
+          "detailsUrl": "https://gitlab.inria.fr/coq/coq/-/pipelines/1512687",
+          "name": "GitLab CI pipeline (pull request)",
+          "startedAt": "2026-10-20T05:48:57Z",
+          "status": "COMPLETED",
+          "workflowName": ""
+        },
+        {
+          "__typename": "StatusContext",
+          "context": "doc:init: corelib artifact",
+          "startedAt": "2026-10-20T05:45:00Z",
+          "state": "SUCCESS",
+          "targetUrl": "https://coq.gitlabpages.inria.fr/-/coq/-/jobs/8096788/artifacts/_build/default/doc/corelib/html/index.html"
+        },
+        {
+          "__typename": "StatusContext",
+          "context": "doc:ml-api:odoc: ml-api artifact",
+          "startedAt": "2026-10-20T05:44:43Z",
+          "state": "SUCCESS",
+          "targetUrl": "https://coq.gitlabpages.inria.fr/-/coq/-/jobs/8096789/artifacts/_build/default/_doc/_html/index.html"
+        },
+        {
+          "__typename": "StatusContext",
+          "context": "doc:refman: refman artifact",
+          "startedAt": "2026-10-20T05:46:29Z",
+          "state": "SUCCESS",
+          "targetUrl": "https://coq.gitlabpages.inria.fr/-/coq/-/jobs/8096786/artifacts/doc/refman-html/index.html"
+        }
+      ],
+      "title": "checker: report sealed implementation assumptions with -norec",
+      "updatedAt": "2026-10-20T05:41:43Z",
+      "url": "https://github.com/rocq-prover/rocq/pull/22611",
+      "workflow_runs": [
+        {
+          "name": "Github CI",
+          "status": "completed",
+          "conclusion": "success",
+          "html_url": "https://github.com/rocq-prover/rocq/actions/runs/39376255949"
+        }
+      ]
+    },
+    {
+      "headRefOid": "971c1eb1b5f0adecfc280872bd5b71b0d7f33a0f",
+      "isDraft": false,
+      "mergedAt": "2026-10-20T13:15:31Z",
+      "number": 167,
+      "state": "MERGED",
+      "statusCheckRollup": [
+        {
+          "__typename": "CheckRun",
+          "completedAt": "2026-10-20T13:39:28Z",
+          "conclusion": "FAILURE",
+          "detailsUrl": "https://github.com/CertiRocq/certirocq/actions/runs/39377893256/job/118648166449",
+          "name": "build-matrix (rocq-certirocq.opam, mattam82/metacoq:metarocq-1.5.1-rocq-9.1)",
+          "startedAt": "2026-10-20T13:15:18Z",
+          "status": "COMPLETED",
+          "workflowName": "Compile and test"
+        },
+        {
+          "__typename": "CheckRun",
+          "completedAt": "2026-10-20T06:01:02Z",
+          "conclusion": "SUCCESS",
+          "detailsUrl": "https://github.com/CertiRocq/certirocq/actions/runs/39377893542/job/118480067814",
+          "name": "rocq-core",
+          "startedAt": "2026-10-20T06:00:09Z",
+          "status": "COMPLETED",
+          "workflowName": "Nix CI for bundle default"
+        },
+        {
+          "__typename": "CheckRun",
+          "completedAt": "2026-10-20T06:01:47Z",
+          "conclusion": "SUCCESS",
+          "detailsUrl": "https://github.com/CertiRocq/certirocq/actions/runs/39377893542/job/118480343865",
+          "name": "coq",
+          "startedAt": "2026-10-20T06:01:04Z",
+          "status": "COMPLETED",
+          "workflowName": "Nix CI for bundle default"
+        },
+        {
+          "__typename": "CheckRun",
+          "completedAt": "2026-10-20T06:02:39Z",
+          "conclusion": "SUCCESS",
+          "detailsUrl": "https://github.com/CertiRocq/certirocq/actions/runs/39377893542/job/118480561515",
+          "name": "metarocq",
+          "startedAt": "2026-10-20T06:01:49Z",
+          "status": "COMPLETED",
+          "workflowName": "Nix CI for bundle default"
+        },
+        {
+          "__typename": "CheckRun",
+          "completedAt": "2026-10-20T06:20:19Z",
+          "conclusion": "SUCCESS",
+          "detailsUrl": "https://github.com/CertiRocq/certirocq/actions/runs/39377893542/job/118480810725",
+          "name": "CertiRocq",
+          "startedAt": "2026-10-20T06:02:41Z",
+          "status": "COMPLETED",
+          "workflowName": "Nix CI for bundle default"
+        }
+      ],
+      "title": "Fix bootstrap Hd_val collision with OCaml 5.2+",
+      "updatedAt": "2026-10-20T13:15:31Z",
+      "url": "https://github.com/CertiRocq/certirocq/pull/167",
+      "workflow_runs": [
+        {
+          "name": "Nix CI for bundle default",
+          "status": "completed",
+          "conclusion": "success",
+          "html_url": "https://github.com/CertiRocq/certirocq/actions/runs/39377893542"
+        },
+        {
+          "name": "Compile and test",
+          "status": "completed",
+          "conclusion": "failure",
+          "html_url": "https://github.com/CertiRocq/certirocq/actions/runs/39377893256"
+        }
+      ]
+    },
+    {
+      "headRefOid": "f3015e6a9f82ca8b08522d1e1e108d556c16d902",
+      "isDraft": false,
+      "mergedAt": null,
+      "number": 168,
+      "state": "OPEN",
+      "statusCheckRollup": [
+        {
+          "__typename": "CheckRun",
+          "completedAt": "2026-10-20T19:15:08Z",
+          "conclusion": "FAILURE",
+          "detailsUrl": "https://github.com/CertiRocq/certirocq/actions/runs/39468861002/job/118787303035",
+          "name": "build-matrix (rocq-certirocq.opam, mattam82/metacoq:metarocq-1.5.1-rocq-9.1)",
+          "startedAt": "2026-10-20T17:45:36Z",
+          "status": "COMPLETED",
+          "workflowName": "Compile and test"
+        },
+        {
+          "__typename": "CheckRun",
+          "completedAt": "2026-10-20T17:46:09Z",
+          "conclusion": "SUCCESS",
+          "detailsUrl": "https://github.com/CertiRocq/certirocq/actions/runs/39468856043/job/118787288835",
+          "name": "rocq-core",
+          "startedAt": "2026-10-20T17:45:34Z",
+          "status": "COMPLETED",
+          "workflowName": "Nix CI for bundle default"
+        },
+        {
+          "__typename": "CheckRun",
+          "completedAt": "2026-10-20T17:46:56Z",
+          "conclusion": "SUCCESS",
+          "detailsUrl": "https://github.com/CertiRocq/certirocq/actions/runs/39468856043/job/118787604325",
+          "name": "coq",
+          "startedAt": "2026-10-20T17:46:12Z",
+          "status": "COMPLETED",
+          "workflowName": "Nix CI for bundle default"
+        },
+        {
+          "__typename": "CheckRun",
+          "completedAt": "2026-10-20T17:47:38Z",
+          "conclusion": "SUCCESS",
+          "detailsUrl": "https://github.com/CertiRocq/certirocq/actions/runs/39468856043/job/118787988962",
+          "name": "metarocq",
+          "startedAt": "2026-10-20T17:46:58Z",
+          "status": "COMPLETED",
+          "workflowName": "Nix CI for bundle default"
+        },
+        {
+          "__typename": "CheckRun",
+          "completedAt": "2026-10-20T18:14:35Z",
+          "conclusion": "SUCCESS",
+          "detailsUrl": "https://github.com/CertiRocq/certirocq/actions/runs/39468856043/job/118788329432",
+          "name": "CertiRocq",
+          "startedAt": "2026-10-20T17:47:40Z",
+          "status": "COMPLETED",
+          "workflowName": "Nix CI for bundle default"
+        }
+      ],
+      "title": "Restore the Docker CI build environment",
+      "updatedAt": "2026-10-20T17:47:25Z",
+      "url": "https://github.com/CertiRocq/certirocq/pull/168",
+      "workflow_runs": [
+        {
+          "name": "Compile and test",
+          "status": "completed",
+          "conclusion": "failure",
+          "html_url": "https://github.com/CertiRocq/certirocq/actions/runs/39468861002"
+        },
+        {
+          "name": "Nix CI for bundle default",
+          "status": "completed",
+          "conclusion": "success",
+          "html_url": "https://github.com/CertiRocq/certirocq/actions/runs/39468856043"
+        }
+      ]
+    }
+  ],
+  "reviewed_on": "2026-10-20"
+}

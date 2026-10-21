@@ -982,6 +982,12 @@ _CAPTURING_RECEIPTS: dict[str, str] = {
 # These sites retain measured or external editions, or record identifiers that
 # resemble object ids. They do not state this repository's current top-level pin.
 SITE_RESIDUE: dict[tuple[str, str], str] = {
+    **{(file, "39373527048"):
+       "the Katamaran PR's GitHub Actions workflow run identifier, not a commit"
+       for file in (
+           "docs/implementation/upstream-prs.md",
+           "docs/implementation/upstream-prs/snapshot.json",
+       )},
     **{("docs/hardware/cheri-version-matrix.md", ident): reason
        for oid, reason in {
            "46f0cd20d4cb7aa83616370f58fc8e220d7b53e8":
