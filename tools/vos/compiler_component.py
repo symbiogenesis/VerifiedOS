@@ -113,16 +113,16 @@ def package_recipe(export: str, package: str) -> tuple[str, ...]:
     stack: list[str] = []
     recipes: list[tuple[str, ...]] = []
     start: int | None = None
-    for index, token in enumerate(tokens):
-        if not stack and token == "package":
+    for index, word in enumerate(tokens):
+        if not stack and word == "package":
             if index + 2 >= len(tokens) or tokens[index + 2] != "{":
                 raise ValueError("malformed frozen opam package declaration")
             if tokens[index + 1] == f'"{package}"':
                 start = index
-        if token in ("[", "{", "("):
-            stack.append(token)
-        elif token in ("]", "}", ")"):
-            if not stack or stack.pop() != {"]": "[", "}": "{", ")": "("}[token]:
+        if word in ("[", "{", "("):
+            stack.append(word)
+        elif word in ("]", "}", ")"):
+            if not stack or stack.pop() != {"]": "[", "}": "{", ")": "("}[word]:
                 raise ValueError("unbalanced frozen opam package metadata")
             if not stack and start is not None:
                 recipes.append(tuple(tokens[start:index + 1]))
