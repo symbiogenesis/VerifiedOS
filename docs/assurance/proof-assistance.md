@@ -502,6 +502,17 @@ from a complete exclusion argument, and record every computational assumption.
 Neither case selects a Lean dependency, a new checker or a native-evaluation
 exception to the locked Rocq acceptance route.
 
+For a new external Lean validation experiment, the [Comparator deprecation
+notice at `865edc14`](https://github.com/leanprover/comparator/blob/865edc14486c3388e9225daa971da8e157488c3e/README.md#deprecation)
+directs users to Lean 4.35.0 or later's `lake comparator` and `lake check`;
+the standalone repository was archived on 2026-10-20. Preserve the exact tool
+and version when describing historical evidence. Migrating an old package is a
+separate compatibility exercise, not a successful replay of its original setup.
+The [decision evidence view](../background/math-evidence.md) records such
+inspection and replay limits; family 103's supplied class-equality formalization
+excludes the paper's explicit compiler and numerical runtime bounds from its
+selected target and has not been independently replayed here.
+
 The survey's PolaritySAT audit supplies a concrete statement-level check:
 `(x OR y) AND (NOT x OR NOT y)` is satisfiable with neither variable pure,
 and the largest variable has no unique polarity under the claimed definition.
