@@ -60,9 +60,9 @@ the evidence that depends on it.
 
 | Member | Kind | Rank | Status | Executable owner | Reference | Entry and handoff |
 | --- | --- | --- | --- | --- | --- | --- |
-| `rot-firmware` | `rot` | n/a | `statement-only` | M3.5 for the firmware; M7.1f for the boot verifier's executable crypto | [RotFirmware.v](../../../proofs/RotFirmware.v), [RomVerifier.v](../../../proofs/RomVerifier.v), [Keccak.v](../../../proofs/Keccak.v) | RoT reset on [the RoT composition](../../../model/config/verifiedos-rot.json); its ROM stage verifies `mmode-firmware` with SLH-DSA over SHAKE256 as the RoT's own integer code (R-09-005a, R-15-059), measures it and releases the main die through M3.5's harness |
-| `mmode-firmware` | `image` | 1 | `statement-only` | M3.5 | [MModeFirmware.v](../../../proofs/MModeFirmware.v) | the image entry, reached with the reset root pair; enters `kernel` through [the selected scalar handoff](purecap-abi.md#7-the-kernel-entry-interface) |
-| `kernel` | `image` | 2 | `statement-only` | M4.4 | [KernelInstance.v](../../../proofs/KernelInstance.v), [PartitionContext.v](../../../proofs/PartitionContext.v), [CyclicExecutive.v](../../../proofs/CyclicExecutive.v) | entered from `mmode-firmware` by the handoff's no-link sentry jump; dispatches `supervisor` as its first partition by `mret` |
+| `rot-firmware` | `rot` | n/a | `partial` | M3.5 for the firmware; M7.1f for the boot verifier's executable crypto | [RotFirmware.v](../../../proofs/RotFirmware.v), [RomVerifier.v](../../../proofs/RomVerifier.v), [Keccak.v](../../../proofs/Keccak.v) | RoT reset on [the RoT composition](../../../model/config/verifiedos-rot.json); its ROM stage verifies `mmode-firmware` with SLH-DSA over SHAKE256 as the RoT's own integer code (R-09-005a, R-15-059), measures it and releases the main die through M3.5's harness |
+| `mmode-firmware` | `image` | 1 | `partial` | M3.5 | [MModeFirmware.v](../../../proofs/MModeFirmware.v) | the image entry, reached with the reset root pair; enters `kernel` through [the selected scalar handoff](purecap-abi.md#7-the-kernel-entry-interface) |
+| `kernel` | `image` | 2 | `partial` | M4.4 | [KernelInstance.v](../../../proofs/KernelInstance.v), [PartitionContext.v](../../../proofs/PartitionContext.v), [CyclicExecutive.v](../../../proofs/CyclicExecutive.v) | entered from `mmode-firmware` by the handoff's no-link sentry jump; dispatches `supervisor` as its first partition by `mret` |
 | `supervisor` | `image` | 3 | `partial` | M7.1 | [SupervisionTree.v](../../../proofs/SupervisionTree.v) | the kernel's first partition; starts `crypto-core`, `storage` and `copy-service` in its manifest's start order |
 | `crypto-core` | `image` | 4 | `statement-only` | M5.3d for the seal/open and keyed-digest operations storage invokes | [Keccak.v](../../../proofs/Keccak.v), [Sha256.v](../../../proofs/Sha256.v), [AesGcm.v](../../../proofs/AesGcm.v), [MlDsa.v](../../../proofs/MlDsa.v) | started by `supervisor` before `storage`; holds the volume keys and serves storage's seal/open and keyed-digest calls through its entry, no key material crossing to the caller (R-10-022, R-10-012, R-10-023) |
 | `storage` | `image` | 5 | `statement-only` | M5.3d | [ExecutableIndex.v](../../../proofs/ExecutableIndex.v), [JournalIndex.v](../../../proofs/JournalIndex.v), [StorageRecovery.v](../../../proofs/StorageRecovery.v) | started by `supervisor`; one index body at the system-integrity and user-data instantiations over the modeled block device, calling `crypto-core` for seal/open over ciphertext extents and tags |
@@ -82,15 +82,18 @@ exists only as a Gallina statement, and `fixture` in a fixture roster alone. A `
 `statement-only` member blocks acceptance, and a recipe that names one is refused with its
 owner.
 
-**No member has an accepted target product at this contract's revision.** The supervisor and
-[copy-service](../../../copy-service/README.md) have bounded host C implementations,
-and the offline composer and admission checker have
-reference implementations; their remaining target, descriptor and derivation joins keep
-those rows `partial`. The other rows remain `statement-only`. The tracked Fiat-Crypto
-emissions are C field arithmetic that no target build compiles. The modeled block device
-and the RoT peripherals are executable Sail devices, which the members use and which are
-not roster members. A status moves to `executable` in the same edit that adds the
-member's product to a recipe, on the owner's landed evidence.
+**The complete roster remains blocked.** The [compiled boot chain](boot-handoff.md#9-the-target-chain)
+and [finite kernel composition](../../../kernel/README.md#finite-compiled-target)
+have target execution evidence. The [scalar integration checkpoint](#2a-scalar-integration-and-producer-joins)
+joins the supervisor, kernel lifecycle consumer and copy service with normal
+restart and two refusal controls. These bounded products do not yet supply the
+complete roster recipe, authenticated handoff and all producer joins required
+below, so their rows remain `partial`. The offline composer and admission checker
+also remain `partial`; executable storage and its separate crypto-core compartment
+remain open at M5.3d. The modeled block device and RoT peripherals are executable
+Sail devices used by members, not roster members themselves. A status moves to
+`executable` in the same edit that adds the member's product to a recipe, on the
+owner's landed evidence.
 
 **The crypto core is a compartment of the image, never code linked into its callers.**
 R-10-022's acceptance has the filesystem compartment invoke seal/open over ciphertext
@@ -123,6 +126,12 @@ The scalar roster's kernel input is the accepted M4.4a composition plus M4.4b-i'
 restart and service-effect bindings. M4.4b-ii's group/elastic duties and M4.4b-iii's
 V/M context duties keep their own acceptance and do not gate this declared scalar
 composition. This split does not accept a callback stub or change a roster status.
+
+[M4.4b-i's landing evidence](../completion-log.md#m44b-i-bind-scalar-restart-and-service-effects)
+records a passing bounded join of the non-ASR supervisor, lifecycle consumer and
+copy service: normal restart, stale-grant refusal and incomplete-completion
+refusal. Its holder set has no external loans and zero joined protected-call
+depth. Full measured boot, storage and the complete roster remain open.
 
 M7.1a owns the first real kernel-to-supervisor-to-copy-service integration. Before
 joining the products, their owners freeze the entry, notification, completion and
