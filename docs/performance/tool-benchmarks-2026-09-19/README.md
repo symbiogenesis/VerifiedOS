@@ -16,7 +16,7 @@ checking.
 | [checker-benchmark.py](checker-benchmark.py), [checker-results.json](checker-results.json) | The recorded checkout was `1c7ac000d1cade95a8ab863f0b20fe7484b92ce9` with uncommitted edits to `tools/tests/test_corpus.py`, `tools/vos/checks/generated.py`, and `tools/vos/corpus.py`. Those paths later landed in `d1d977884bdb084bbe9b5973444c05444ae292b2`. The exact timed working-tree bytes are not pinned by the JSON. Batch and separate reads returned identical bytes and checker reports with zero findings. The full checker median was 3.388 s with separate reads and 3.642 s with batch reads, so this run does not support a whole-checker speedup. |
 | [runner-final-benchmark.py](runner-final-benchmark.py), [runner-final-results.json](runner-final-results.json) | The baseline CLI source is loaded from `7a06adca16388873e26d02d59200b1acb87f13ec`. The candidate was a working tree based on `bfc6d0d00c80f93e94cc8212b4be244ea4f51cd9`; the reset repair later landed in `ecc9ace7d8bd5d38715e31116a082b60bc9e6389`. The published 5.277 s to 3.996 s comparison is the `baseline` to `reset` pair. `guarded` is an unlanded experimental source splice, not the accepted implementation. The script imports other modules from the running checkout. |
 
-For an exploratory replay, run a script from the repository root with the
+Replays are benchmarks and run only on CI. From the repository root, use the
 checkout's managed Python, for example
 `python tools/performance/2026-09-19/proof-benchmark.py`. Each script discovers
 its checkout. The proof and checker scripts write `replay-*-results.json` under

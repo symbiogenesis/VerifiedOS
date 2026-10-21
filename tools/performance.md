@@ -9,9 +9,9 @@ authored statement of the same fact.
 
 ## Scope and acceptance
 
-This maintenance batch covers proof source analysis, host document checking and
-validation orchestration. Its starting revision is
-`62a39d76b4946638043d5d780b0759d9241f99aa`.
+This contract covers proof source analysis, host document checking and
+validation orchestration. Dated measurements below retain their own baseline
+and candidate identities.
 
 An optimization is accepted only when all applicable conditions hold:
 
@@ -28,14 +28,17 @@ An optimization is accepted only when all applicable conditions hold:
 4. Mutation sandboxes remain independent. Every selected case runs, failures
    remain failures, and reporting order stays deterministic. Worker reuse must
    not preserve mutations or uncontrolled process state between cases.
-5. Measurements identify the revision, input scope, interpreter, command,
+5. Benchmarks run only on CI. Measurements identify the revision, input scope, interpreter, command,
    repetitions and worker count. Compare equivalent work on the same machine;
    record component time separately from end-to-end time. Accept a repeatable
    improvement in the changed path without a material end-to-end regression.
    Timing noise is not a test failure or a speedup claim.
-6. The integrated tree passes `python tools/run.py --check --tests`. New
-   deliverables are tracked before validation. The integrator owns generated
-   repairs, shared documentation and the final stable-tree wave.
+6. The integrated tree follows the
+   [validation handoff](../AGENTS.md#tool-execution-and-validation): Host CI must
+   pass, and every Guest CI lane is dispatched without waiting for its verdict.
+   New deliverables are tracked before validation. The integrator owns generated
+   repairs, shared documentation and the final stable-tree checks. Experiments
+   outside those workflows retain their separate acceptance predicates.
 
 The proof lane owns source-analysis machinery and its consumers; the checker
 lane owns document/checker parsing; the runner lane owns sandbox and worker
@@ -147,7 +150,7 @@ retain fresh processes for checker mutations.
 [checker samples](../docs/performance/tool-benchmarks-2026-09-19/checker-results.json), and
 [template script](../docs/performance/tool-benchmarks-2026-09-19/runner-final-benchmark.py) and
 [template samples](../docs/performance/tool-benchmarks-2026-09-19/runner-final-results.json) are tracked.
-Replays write new results under ignored `out/performance-20260919/`
+CI-only replays write new results under ignored `out/performance-20260919/`
 and measure the current checkout, so they do not recreate the historical input
 population after later source edits. The native proof-cache and assumption-audit
 regressions exercise actual Rocq behavior; these timing scripts do not issue proof
