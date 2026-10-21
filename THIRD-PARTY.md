@@ -281,6 +281,16 @@ The extraction review remains due before any generator binary distribution.
 
 ### Compatibility trial and API reuse readings
 
+The [CertiRocq bootstrap backport](tools/opam/certirocq-hdval-adoption.md)
+selects only PR 167's four C-header changes over the existing release for
+local qualification. The release and merged revision's own `LICENSE.md`
+were read on 2026-10-20: both carry the same MIT instrument, SHA-256
+`136a03804522ebaa80a74f76798083823ad4d81016d03d60c60f7cb90cb38aaf`.
+The four changed bootstrap files state no separate terms. The patch is fetched
+by immutable commit and checksum, with no upstream source or executable
+redistributed. The production snapshot changes only after the contract's
+acceptance; the archive's other file-specific terms remain those recorded below.
+
 The [CertiRocq compatibility trial](tools/opam/certirocq-compatibility.md) uses
 its immutable sources only for local research in a private native prefix.
 Their actual instruments and in-file notices were read on 2026-10-19 before
