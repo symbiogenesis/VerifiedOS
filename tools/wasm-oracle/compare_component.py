@@ -115,6 +115,14 @@ def main() -> int:
             "oracle installed packages or frozen CertiRocq source recipe differ from the selected snapshot")
     prefix = Path(execute("switch-prefix", ["opam", "var", "prefix", "--switch=" + args.switch], out).stdout.strip())
     require(prefix.is_absolute() and prefix.is_dir(), "invalid oracle switch prefix")
+    installed_metadata = (prefix / ".opam-switch/packages"
+                          / f"rocq-certirocq.{gallina.CERTIROCQ_VERSION}" / "opam")
+    installed_metadata_bytes = installed_metadata.read_bytes()
+    require(cc.matches_installed_oracle(installed_metadata_bytes.decode("utf-8"),
+                                       oracle_snapshot.read_text(encoding="utf-8"),
+                                       gallina.CERTIROCQ_VERSION),
+            "last-installed CertiRocq recipe differs from the selected snapshot")
+    (producer / "certirocq-installed.opam").write_bytes(installed_metadata_bytes)
     coqc = prefix / "bin/coqc"
     tool_paths = [coqc, prefix / "bin/ocamlrun"]
     def library_manifest() -> dict[str, str]:
@@ -141,6 +149,8 @@ def main() -> int:
     save(producer / "identity.json", {"switch": args.switch, "tools": tool_ids,
         "package_export_sha256": sha(producer / "packages.export"), "libraries_sha256": sha(producer / "libraries.json"),
         "oracle_snapshot": str(oracle_snapshot), "oracle_snapshot_sha256": sha(oracle_snapshot),
+        "installed_metadata": str(installed_metadata),
+        "installed_metadata_sha256": sha(producer / "certirocq-installed.opam"),
         "certirocq_recipe_sha256": hashlib.sha256(json.dumps(
             cc.package_recipe(package_export, "rocq-certirocq"), separators=(",", ":")).encode()).hexdigest(),
         "representation_sha256": sha(representation),
@@ -243,6 +253,8 @@ def main() -> int:
     require(all(sha(Path(path)) == digest for path, digest in sources.items()), "source changed during comparison")
     require(all(sha(Path(path)) == digest for path, digest in tool_ids.items()), "tool changed during comparison")
     require(library_manifest() == libraries, "oracle library content or membership changed during comparison")
+    require(installed_metadata.read_bytes() == installed_metadata_bytes,
+            "last-installed CertiRocq recipe changed during comparison")
     execute("package-reexport", ["opam", "switch", "export", "--full", "--freeze", "--switch=" + args.switch,
                                  str(producer / "packages.final.export")], out)
     require(cc.matches_oracle_snapshot((producer / "packages.final.export").read_text(encoding="utf-8"),

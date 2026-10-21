@@ -234,6 +234,13 @@ package "rocq-certirocq" {
         lock = root / "tools/opam/certirocq.lock"
         lock.parent.mkdir(parents=True)
         lock.write_text(expected, encoding="utf-8")
+        prefix = root / "oracle-prefix"
+        metadata = (prefix / ".opam-switch/packages"
+                    / f"rocq-certirocq.{gallina.CERTIROCQ_VERSION}" / "opam")
+        metadata.parent.mkdir(parents=True)
+        patched = expected.split('package "rocq-certirocq" {', 1)[1].rsplit("}", 1)[0]
+        patched = patched.replace('  version: "0.9.1+9.1"\n', "")
+        metadata.write_text(patched, encoding="utf-8")
         for label, exported, accepted in (
             ("patched", expected, True),
             ("unpatched", expected.replace('  patches: ["hdval.patch"]\n', ''), False),
@@ -242,13 +249,37 @@ package "rocq-certirocq" {
             ("failed export", "", False)):
             with (patch.object(provision, "_switch_at", return_value=present),
                   patch.object(provision, "find_root", return_value=root),
-                  patch.object(provision, "_say", return_value=exported) as say):
+                  patch.object(provision, "_say", side_effect=[exported, str(prefix)]) as say):
                 found = fact.probe()
             ensure(found.present is accepted, f"{label} producer reported as {found}")
             ensure("frozen" in found.saw, "the finding identifies the source-provenance check")
-            ensure(say.call_args.args[0] == (
+            ensure(say.call_args_list[0].args[0] == (
                 "opam", "switch", "export", "--switch", gallina.ORACLE_SWITCH, "--full", "--freeze", "-"),
                 "the source probe exports full frozen metadata to stdout without a file")
+        for label, actual in (
+            ("approved overlay before rebuilding", patched.replace('  patches: ["hdval.patch"]\n', "")),
+            ("malformed installed metadata", patched + '"unterminated'),
+            ("missing installed metadata", None)):
+            if actual is None:
+                metadata.unlink()
+            else:
+                metadata.write_text(actual, encoding="utf-8")
+            with (patch.object(provision, "_switch_at", return_value=present),
+                  patch.object(provision, "find_root", return_value=root),
+                  patch.object(provision, "_say", side_effect=[expected, str(prefix)]) as say):
+                found = fact.probe()
+            ensure(not found.present and not found.repairable,
+                   f"{label} is refused despite the approved overlay export")
+            ensure(say.call_args_list[1].args[0] == (
+                "opam", "var", "prefix", "--switch", gallina.ORACLE_SWITCH),
+                "the last-installed record is located by a read-only prefix lookup")
+        for invalid_prefix in ("", "relative-prefix"):
+            with (patch.object(provision, "_switch_at", return_value=present),
+                  patch.object(provision, "find_root", return_value=root),
+                  patch.object(provision, "_say", side_effect=[expected, invalid_prefix])):
+                found = fact.probe()
+            ensure(not found.present and not found.repairable,
+                   "a failed or relative prefix lookup cannot identify installed metadata")
         lock.unlink()
         with (patch.object(provision, "_switch_at", return_value=present),
               patch.object(provision, "find_root", return_value=root),

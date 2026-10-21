@@ -147,6 +147,31 @@ package "rocq-certirocq" {
             pass
         else:
             raise AssertionError("missing, duplicate or malformed package recipe accepted")
+    metadata = recipe.split("{", 1)[1].rsplit("}", 1)[0]
+    version = "0.9.1+9.1"
+    without_version = metadata.replace(f'  version: "{version}"\n', "")
+    for actual in (without_version, metadata.replace("version:", "version :"),
+                   f'name : "rocq-certirocq"\n{metadata}'):
+        ensure(cc.matches_installed_oracle(actual, expected, version),
+               "last-installed metadata may omit or consistently retain its name/version")
+    for label, actual in (
+        ("approved overlay with unpatched installation", without_version.replace(
+            '  patches: ["hd-val-971c1eb.patch"]\n', "")),
+        ("another installed patch", without_version.replace('sha256=f350152f', 'sha256=0350152f')),
+        ("another installed version", metadata.replace(version, "0.9.1+9.2")),
+        ("another installed name", f'name: "another-package"\n{without_version}'),
+        ("duplicate version", f'version: "{version}"\n{metadata}'),
+        ("conflicting duplicate name", f'name: "rocq-certirocq"\nname: "another"\n{metadata}'),
+        ("conflicting exported version", without_version),
+        ("missing installed metadata", ""),
+        ("malformed installed metadata", without_version + '"unterminated'),
+        ("unbalanced installed metadata", without_version + "]")):
+        try:
+            target = expected.replace(version, "0.9.1+9.2") if label == "conflicting exported version" else expected
+            accepted = cc.matches_installed_oracle(actual, target, version)
+        except ValueError:
+            accepted = False
+        ensure(not accepted, f"{label} cannot claim the installed frozen producer")
 
 
 def cases() -> list[Case]:
