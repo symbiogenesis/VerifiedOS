@@ -47,7 +47,7 @@
       ],
       "descriptor": {
         "path": "tools/composer/packages/rot-firmware.json",
-        "sha256": "c2e98286fe7d27d24e13954c9d055b516c9f4674ec8fa36a9e4111991b740abc"
+        "sha256": "e69d1407bd2824e634fbf97394e250bda2f1c2bca145bfc3b09f12d826802c5e"
       },
       "artifact_slot": "rot-firmware-artifact",
       "entry": null,
@@ -71,7 +71,7 @@
       ],
       "descriptor": {
         "path": "tools/composer/packages/mmode-firmware.json",
-        "sha256": "f418507759ccd4261272ba55d4b1dd7959ed8ffbeb009999d1913c913bcc9451"
+        "sha256": "84ded307b08a4f33abdf1b2d3c5f58d020997494f2e784279f9d57c048390fc0"
       },
       "artifact_slot": "mmode-firmware-artifact",
       "entry": null,
@@ -103,7 +103,7 @@
       ],
       "descriptor": {
         "path": "tools/composer/packages/kernel.json",
-        "sha256": "8a74dd48397d71aacde225254fd7cf4425563d11bc9baaa7a8cc647645c05700"
+        "sha256": "c2570333d347fb8200783d6d431992a7ae00fcc5a76fe6167fd9d5b3a1e2b585"
       },
       "artifact_slot": "kernel-artifact",
       "entry": null,
@@ -167,7 +167,7 @@
       ],
       "descriptor": {
         "path": "tools/composer/packages/crypto-core.json",
-        "sha256": "521722c65dc28e4efeede0b64f3425b86ae1db244eafe36c7e82c14c47ed1bba"
+        "sha256": "a143438363ad3ae2765f8bb9e089f7f49fafe891ec09f45d00c135251c36004b"
       },
       "artifact_slot": "crypto-core-artifact",
       "entry": null,
@@ -199,7 +199,7 @@
       ],
       "descriptor": {
         "path": "tools/composer/packages/storage.json",
-        "sha256": "23826025f43cc1fe8b304b6c38146c054a514834e3dbb993c4644f8dcd004153"
+        "sha256": "4d35f21b4d493c11aa6cc045177fa120fe502c4ecbae3b3c21f3d4b5d9885bc4"
       },
       "artifact_slot": "storage-artifact",
       "entry": null,
@@ -255,7 +255,7 @@
       ],
       "descriptor": {
         "path": "tools/composer/packages/composer.json",
-        "sha256": "c81d53ad89bae74e730b2913be12cf0b1f1076bb6c580b47953df7d2e26368fe"
+        "sha256": "acb846076ebb9e7451262351a365657dbb8bb749e62b3373a386f6953c6166b7"
       },
       "artifact_slot": "composer-artifact",
       "entry": null,
@@ -283,7 +283,7 @@
       ],
       "descriptor": {
         "path": "tools/composer/packages/admission.json",
-        "sha256": "08b01a926a1ded4cb204cc9c0cde2dd64945977d711c78cd5fc9d4a9f5570ef3"
+        "sha256": "47d6e2e1494cdcc028b3f8a7458e0e6e9c369e5364970b7410fe4817ceedc111"
       },
       "artifact_slot": "admission-artifact",
       "entry": null,
