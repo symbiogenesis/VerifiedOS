@@ -287,6 +287,16 @@ pilot sequence, numeric comparator, assumptions or acceptance thresholds.
 | [Matrix multiplication](../../background/open-math-conjectures.md#matrix-multiplication-exponent-equals-two) | A finite candidate requires the construction and certificates themselves, exact rectangular shapes, arithmetic domain, scratch and transfer bounds. Q30d/Q30e would prove the candidate's declared operation and executable lowering, including conversions and tails. A different reduction order is a separately admitted entry/reference, not a zero-ULP implementation of this pilot by algebraic identity alone. An announced exponent or unreproduced optimization certificate supplies no local proof or throughput. Without an inverse of `2`, the best listed `4` by `4` scheme uses `49` products, so a `48`-product scheme needs exact division by `2` in the declared domain. With integer constants, a recursive `3` by `3` block scheme needs at least `22` products and so cannot beat Strassen's exponent; a single `3` by `3` kernel's addition count must include its basis conversions. The inspected Lean exponent proof trusts `native_decide` for its certificate checks and supplies no finite kernel. |
 | [Hadamard matrices](../../background/open-math-conjectures.md#hadamard-matrix-conjecture) | The independently checked finite matrices, including order 668, are concrete witnesses for a later transform slice selected by Q30g. A local certificate would bind the selected bytes to `H*H^T = n*I`; finite orthogonality supplies no fast transform algorithm. The lowering still needs normalization, scaling, rounding, overflow, padding, layout and WCET proofs against that slice's semantics. The [Bonsai rotation handoff](../../performance/bonsai2-assessment.md#finite-rotation-proof-handoff) already has a power-of-two consumer independent of the universal conjecture; it is outside the current GEMM pilot. |
 
+The [ordinary rank-48 replay](../../background/rank48-replay.md) supplies an
+independent finite check of the pinned rational bilinear identity, agreement
+between its straight-line programs and matrices, and its count of 48 products
+and 204 linear operations. It establishes neither the alternative-basis variants nor
+target cost. A later Q30g comparison must freeze an arithmetic domain admitting
+`1/2`, representative rectangular shapes, tails, scratch and transfer budgets,
+and classical, Strassen and rank-49 baselines. The current FP32 pilot still
+requires its increasing-`k` FMA sequence and zero-ULP comparison; the algebraic
+identity cannot replace that numerical contract.
+
 Candidate generation may remain untrusted. Selection needs a finite input and
 resource contract before a new implementation is priced; the existing pilot
 proofs proceed without solving any of these conjectures. Q30b/Q30c reuse their
