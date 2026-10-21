@@ -122,6 +122,29 @@ rules alter the feasible instance. They remain separate opt-in transformations
 in the [existing research experiments](static-memory/experiments.md), rather than
 transparent offset substitutions.
 
+## Recognized bipartite-crossing candidate
+
+The optional `--two-stack` candidate reuses the existing
+[two-laminar-stack construction](../../tools/vos/static_memory_structure.py)
+under Q5b's comparison boundary. Its supported subset has one pool, unit
+alignment, one nonempty half-open lifetime per positive-size buffer, and no
+reserved ranges, fixed locations, aliases or explicit extra conflicts. Object
+identities and endpoint semantics survive conversion. A non-bipartite crossing
+graph or an unsupported field is a diagnosed refusal, never a reason to erase
+a constraint. A declared object-count bound limits recognition and construction;
+the candidate does not invoke the research module's exponential fallback.
+
+Acceptance requires that supported nested, crossing and adjacent-endpoint cases
+produce independently checked placements at peak live load; small cases agree
+with exhaustive optimum evidence. Unsupported and over-budget cases preserve
+the checked supplied baseline. Candidate corruption must be rejected by the
+ordinary checker. CLI controls are explicit, cannot be silently ignored by
+other actions, and bind the candidate implementation's source identity to the
+result. A structural producer's optimum label supplies no new admission theorem:
+the existing finite certification endpoint remains separate. Corpus reporting
+records eligibility and span, with no elapsed-time benchmark or product-capacity
+credit. Q5b still requires the actual roster and target constraints.
+
 ## Compatibility boundaries
 
 The [adapters](../../tools/vos/memory_planner_adapters.py) and their
