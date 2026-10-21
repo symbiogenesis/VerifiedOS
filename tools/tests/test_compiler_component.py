@@ -104,7 +104,53 @@ def _declared_switch_and_prover_release() -> None:
                f"version {wrong} is not {release}")
 
 
+def _frozen_oracle_provenance() -> None:
+    # Same-version metadata must distinguish both obtaining and applying the fix.
+    expected = '''opam-version: "2.0"
+installed: [
+  "ocaml.4.14.4"
+  "rocq-certirocq.0.9.1+9.1"
+]
+package "rocq-certirocq" {
+  version: "0.9.1+9.1"
+  description: """A recipe with {braces}, # text and a package declaration."""
+  patches: ["hd-val-971c1eb.patch"]
+  build: [["make" "all"]]
+  url {
+    src: "https://example.invalid/certirocq-release.tar.gz"
+    checksum: "sha512=release-source"
+  }
+  extra-source "hd-val-971c1eb.patch" {
+    src: "https://github.com/CertiRocq/certirocq/commit/971c1eb1b5f0adecfc280872bd5b71b0d7f33a0f.patch"
+    checksum: "sha256=f350152fd710608b912e9584ae6ef2a005fb8f7d2fc8b7b1e4b15911c9de109b"
+  }
+}
+'''
+    reformatted = expected.replace('  version:', '  # export comment\n    version:').replace(
+        'patches: ["hd-val-971c1eb.patch"]', 'patches: [\n "hd-val-971c1eb.patch"\n ]')
+    ensure(cc.matches_oracle_snapshot(reformatted, expected),
+           "formatting/comments preserve a complete frozen recipe")
+    for label, altered in (
+        ("missing patch application", expected.replace('  patches: ["hd-val-971c1eb.patch"]\n', '')),
+        ("wrong patch digest", expected.replace('sha256=f350152f', 'sha256=0350152f')),
+        ("wrong patch source", expected.replace('/971c1eb1b5f0adec', '/071c1eb1b5f0adec')),
+        ("wrong release digest", expected.replace('sha512=release-source', 'sha512=another-source')),
+        ("changed build", expected.replace('"make" "all"', '"make" "other"'))):
+        ensure(cc.installed(altered) == cc.installed(expected), "the package versions are unchanged")
+        ensure(not cc.matches_oracle_snapshot(altered, expected), f"{label} cannot claim the frozen producer")
+    unpatched = expected[:expected.index('package "rocq-certirocq"')]
+    recipe = expected[expected.index('package "rocq-certirocq"'):]
+    for malformed in (unpatched, expected + recipe, expected[:-2], expected + '"unterminated'):
+        try:
+            cc.matches_oracle_snapshot(malformed, expected)
+        except ValueError:
+            pass
+        else:
+            raise AssertionError("missing, duplicate or malformed package recipe accepted")
+
+
 def cases() -> list[Case]:
     return [Case("source-owned-component-wrappers", _population_and_wrappers),
             Case("component-coordinate-and-shape-refusals", _every_coordinate_and_shape),
-            Case("declared-switch-and-prover-release", _declared_switch_and_prover_release)]
+            Case("declared-switch-and-prover-release", _declared_switch_and_prover_release),
+            Case("frozen-oracle-source-and-patch-provenance", _frozen_oracle_provenance)]
