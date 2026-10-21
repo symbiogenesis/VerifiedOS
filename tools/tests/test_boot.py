@@ -204,7 +204,7 @@ def _membership_refusals() -> None:
              (with_members([*ids, "stranger"]), fixture, "not a member"),
              (with_members(ids[:2]), fixture, "missing member fixture-service"),
              (with_members([ids[1], ids[0], ids[2]]), fixture, "contradicts"),
-             (with_members(["kernel"]), contract, "statement-only"),
+             (with_members(["kernel"]), contract, "partial"),
              (with_members(["rot-firmware"]), contract, "`rot` member"),
              (with_members(["admission"]), contract, "`offline` member"))
     for candidate, roster, needle in cases:
