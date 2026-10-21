@@ -55,6 +55,8 @@ python tools/run.py memory-planner resources --json
 python tools/run.py memory-planner resources --resource-budget resources.json --json
 python tools/run.py memory-planner resource-proof --resource-budget resources.json --json
 python tools/run.py memory-planner plan --instance instance.json --baseline baseline.json --candidate candidate.json --work-budget 10000 --json
+python tools/run.py memory-planner plan --instance instance.json --baseline baseline.json --two-stack --two-stack-max-objects 512 --json
+python tools/run.py memory-planner structure-corpus --two-stack-max-objects 512 --json
 python tools/run.py memory-planner check --instance instance.json --candidate candidate.json --json
 python tools/run.py memory-planner solve --instance instance.json --work-budget 10000 --certify --json
 python tools/run.py memory-planner verify --instance instance.json --evidence result.json --json
@@ -133,6 +135,17 @@ identities and endpoint semantics survive conversion. A non-bipartite crossing
 graph or an unsupported field is a diagnosed refusal, never a reason to erase
 a constraint. A declared object-count bound limits recognition and construction;
 the candidate does not invoke the research module's exponential fallback.
+
+`plan` and `demo` accept `--two-stack` only with an explicitly supplied positive
+`--two-stack-max-objects`. The result's `two_stack_candidate` records recognition,
+the peak live load, checked pool heights or the precise refusal. The normal service
+demo has alignment and explicit cross-worker conflicts, so it demonstrates refusal
+of that richer instance while retaining its usual checked result. `structure-corpus`
+uses the existing [synthetic comparison corpus](../../tools/vos/memory_planner_candidates.py)
+and the same explicit bound to report recognized cases and selected byte spans;
+it performs no elapsed-time measurements. Result source hashes bind the adapter,
+structural constructor and corpus owner. Unsupported controls are refused before
+any input file is opened.
 
 Acceptance requires that supported nested, crossing and adjacent-endpoint cases
 produce independently checked placements at peak live load; small cases agree
