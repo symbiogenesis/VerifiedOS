@@ -4,7 +4,8 @@
 
 Run in WSL with --out in the assigned native lane. The switch is the oracle's
 declared one, imported from tools/opam/certirocq.lock, unless --switch names
-another; this installs nothing. See compiler-component.md for scope.
+another. --oracle-snapshot selects a candidate's frozen export for qualification;
+this installs nothing. See compiler-component.md for scope.
 """
 
 import argparse
@@ -26,7 +27,7 @@ from vos.cli import compiler_diff as cd
 # Rocq release its prover must report. K-117 reads both here.
 SWITCH = gallina.ORACLE_SWITCH
 ROCQ_VERSION = gallina.ORACLE_ROCQ_VERSION
-# The declared switch's snapshot, whose installed packages a declared switch's are.
+# The declared switch's snapshot, including its frozen CertiRocq source recipe.
 SNAPSHOT = "tools/opam/certirocq.lock"
 
 
@@ -49,8 +50,11 @@ def main() -> int:
     for name in ("compiler", "compiler-config", "model-snapshot", "out"):
         parser.add_argument("--" + name, required=True, type=Path)
     parser.add_argument("--switch", default=SWITCH)
+    parser.add_argument("--oracle-snapshot", type=Path,
+                        help="candidate frozen opam export; defaults to the declared oracle snapshot")
     args = parser.parse_args()
     root = Path(__file__).resolve().parents[2]
+    oracle_snapshot = (args.oracle_snapshot or root / SNAPSHOT).resolve()
     out = Path(args.out).resolve()
     require(sys.platform != "win32" and out.is_relative_to(Path("/root/build"))
             and any(part.startswith("lane-") for part in out.parts), "use a dedicated native lane")
@@ -81,8 +85,8 @@ def main() -> int:
         "proofs/EndpointIPC.v", "tools/wasm-oracle/ipc_oracle.v", "tools/wasm-oracle/ipc_oracle.c",
         "tools/wasm-oracle/compare_component.py", "tools/wasm-oracle/run_vector.mjs",
         "tools/wasm-oracle/node.sh", "tools/vos/compiler_component.py", "tools/vos/cli/compiler_diff.py",
-        "tools/generated/dialect-table.json", "docs/implementation/contracts/compiler-component.md",
-        SNAPSHOT)]
+        "tools/generated/dialect-table.json", "docs/implementation/contracts/compiler-component.md")]
+    selected.append(oracle_snapshot)
     selected += sorted((root / "tools/vos").rglob("*.py"))
     sources = {str(path): sha(path) for path in selected}
     compiler = Path(args.compiler).resolve()
@@ -104,8 +108,11 @@ def main() -> int:
     profile.write_bytes((root / "model/config/verifiedos.json").read_bytes())
     producer = out / "producer"
     producer.mkdir()
-    execute("package-export", ["opam", "switch", "export", "--switch=" + args.switch,
+    execute("package-export", ["opam", "switch", "export", "--full", "--freeze", "--switch=" + args.switch,
                                str(producer / "packages.export")], out)
+    package_export = (producer / "packages.export").read_text(encoding="utf-8")
+    require(cc.matches_oracle_snapshot(package_export, oracle_snapshot.read_text(encoding="utf-8")),
+            "oracle installed packages or frozen CertiRocq source recipe differ from the selected snapshot")
     prefix = Path(execute("switch-prefix", ["opam", "var", "prefix", "--switch=" + args.switch], out).stdout.strip())
     require(prefix.is_absolute() and prefix.is_dir(), "invalid oracle switch prefix")
     coqc = prefix / "bin/coqc"
@@ -128,16 +135,17 @@ def main() -> int:
                      str(config): sha(config), str(profile): sha(profile)})
     representation = prefix / "lib/coq/user-contrib/CertiRocq/CodegenWasm/LambdaANF_to_Wasm.v"
     shutil.copy2(representation, producer / "LambdaANF_to_Wasm.v")
-    # The declared switch by its name and by the packages it installs, the snapshot's own,
-    # so a switch of that name built some other way is not taken for it.
-    declared = args.switch == SWITCH and (
-        cc.installed((producer / "packages.export").read_text(encoding="utf-8"))
-        == cc.installed((root / SNAPSHOT).read_text(encoding="utf-8")))
+    # Recipe comparison above includes source/patch provenance: an unpatched package
+    # at the same version cannot qualify as the snapshot's backported producer.
+    declared = args.switch == SWITCH and oracle_snapshot == (root / SNAPSHOT).resolve()
     save(producer / "identity.json", {"switch": args.switch, "tools": tool_ids,
         "package_export_sha256": sha(producer / "packages.export"), "libraries_sha256": sha(producer / "libraries.json"),
+        "oracle_snapshot": str(oracle_snapshot), "oracle_snapshot_sha256": sha(oracle_snapshot),
+        "certirocq_recipe_sha256": hashlib.sha256(json.dumps(
+            cc.package_recipe(package_export, "rocq-certirocq"), separators=(",", ":")).encode()).hexdigest(),
         "representation_sha256": sha(representation),
-        "scope": "the declared oracle switch, installing its snapshot's packages" if declared
-                 else "a switch other than the declared oracle's, by its name or its packages"})
+        "scope": "the declared oracle switch, matching its frozen source recipe and packages" if declared
+                 else "candidate oracle switch, matching the selected frozen snapshot"})
     gallina_source = (root / "tools/wasm-oracle/ipc_oracle.v").read_text(encoding="utf-8")
     c_source = (root / "tools/wasm-oracle/ipc_oracle.c").read_text(encoding="utf-8")
     endpoint = (root / "proofs/EndpointIPC.v").read_bytes()
@@ -235,6 +243,10 @@ def main() -> int:
     require(all(sha(Path(path)) == digest for path, digest in sources.items()), "source changed during comparison")
     require(all(sha(Path(path)) == digest for path, digest in tool_ids.items()), "tool changed during comparison")
     require(library_manifest() == libraries, "oracle library content or membership changed during comparison")
+    execute("package-reexport", ["opam", "switch", "export", "--full", "--freeze", "--switch=" + args.switch,
+                                 str(producer / "packages.final.export")], out)
+    require(cc.matches_oracle_snapshot((producer / "packages.final.export").read_text(encoding="utf-8"),
+                                      package_export), "oracle packages or source recipe changed during comparison")
     require(receipts.inputs(root, "model") == model_sources and sha(model_path) == model_receipt_sha256,
             "model source roster or receipt changed during comparison")
     require({str(path) for path in (root / "tools/vos").rglob("*.py")} <= set(sources),

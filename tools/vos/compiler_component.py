@@ -88,6 +88,57 @@ def installed(export: str) -> tuple[str, ...]:
     return tuple(sorted(names))
 
 
+_OPAM_TOKEN = re.compile(
+    r'(?P<space>\s+)|(?P<comment>\#[^\r\n]*)'
+    r'|(?P<string>"""(?:\\[\s\S]|(?!""")[\s\S])*"""|"(?:\\[\s\S]|[^"\\])*")'
+    r'|(?P<token>[\[\]{}()]|[^\s"#\[\]{}()]+)')
+
+
+def package_recipe(export: str, package: str) -> tuple[str, ...]:
+    """Read one complete frozen package recipe, ignoring only comments and spacing.
+
+    Full opam exports retain source URLs, checksums, extra sources and patch/build
+    commands even when installed package versions alone cannot distinguish a backport.
+    Keep every string byte and token so a changed recipe cannot gain that identity.
+    """
+    tokens: list[str] = []
+    position = 0
+    while position < len(export):
+        found = _OPAM_TOKEN.match(export, position)
+        if found is None:
+            raise ValueError("malformed frozen opam package metadata")
+        if found.lastgroup not in ("space", "comment"):
+            tokens.append(found.group())
+        position = found.end()
+    stack: list[str] = []
+    recipes: list[tuple[str, ...]] = []
+    start: int | None = None
+    for index, token in enumerate(tokens):
+        if not stack and token == "package":
+            if index + 2 >= len(tokens) or tokens[index + 2] != "{":
+                raise ValueError("malformed frozen opam package declaration")
+            if tokens[index + 1] == f'"{package}"':
+                start = index
+        if token in ("[", "{", "("):
+            stack.append(token)
+        elif token in ("]", "}", ")"):
+            if not stack or stack.pop() != {"]": "[", "}": "{", ")": "("}[token]:
+                raise ValueError("unbalanced frozen opam package metadata")
+            if not stack and start is not None:
+                recipes.append(tuple(tokens[start:index + 1]))
+                start = None
+    if stack or len(recipes) != 1:
+        raise ValueError(f"the export must contain exactly one frozen {package} recipe")
+    return recipes[0]
+
+
+def matches_oracle_snapshot(export: str, snapshot: str) -> bool:
+    """Require both the installed closure and CertiRocq's complete source recipe."""
+    return (installed(export) == installed(snapshot)
+            and package_recipe(export, "rocq-certirocq")
+            == package_recipe(snapshot, "rocq-certirocq"))
+
+
 def reports_release(version: str, release: str) -> bool:
     """Whether a prover's `--version` output reports exactly that release, not a later
     one it prefixes or a development build of it."""
