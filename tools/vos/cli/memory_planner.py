@@ -13,13 +13,14 @@ from vos import memory_planner as planner
 from vos import memory_planner_adapters as adapters
 from vos import memory_planner_contracts as contracts
 from vos import memory_planner_resources as resources
+from vos import memory_planner_structure as structure
 from vos.corpus import find_root
 
 
 def parser() -> argparse.ArgumentParser:
     result = argparse.ArgumentParser(description=__doc__)
     result.add_argument("action", choices=("plan", "check", "solve", "verify", "demo", "contracts",
-                                          "resources", "resource-proof", "demo-tflm"))
+                                          "resources", "resource-proof", "demo-tflm", "structure-corpus"))
     result.add_argument("--instance", type=Path, help="portable instance JSON")
     result.add_argument("--baseline", type=Path, help="standing placement JSON, checked first")
     result.add_argument("--candidate", type=Path, action="append", default=[],
@@ -32,6 +33,10 @@ def parser() -> argparse.ArgumentParser:
                         help="deterministic optional search budget; zero retains supplied candidates")
     result.add_argument("--certify", action="store_true", help="request independent finite optimality replay")
     result.add_argument("--replay-budget", type=int, help="independent replay limit (default: 100000)")
+    result.add_argument("--two-stack", action="store_true",
+                        help="try the recognized bipartite-crossing candidate; requires an explicit object limit")
+    result.add_argument("--two-stack-max-objects", type=int,
+                        help="declared object-count limit for --two-stack or structure-corpus")
     result.add_argument("--json", action="store_true", help="emit the full result and evidence")
     return result
 
@@ -56,7 +61,9 @@ def source_identity(root: Path) -> dict[str, str]:
     names = ("tools/vos/memory_planner.py", "tools/vos/memory_planner_contracts.py",
              "tools/vos/memory_planner_adapters.py", "tools/vos/memory_planner_resources.py",
              "tools/vos/cli/memory_planner.py", "proofs/MemoryPlannerContracts.v",
-             "proofs/MemoryPlannerResources.v")
+             "proofs/MemoryPlannerResources.v", "tools/vos/memory_planner_structure.py",
+             "tools/vos/static_memory_structure.py", "tools/vos/static_memory.py",
+             "tools/vos/memory_planner_candidates.py")
     return {name: hashlib.sha256((root / name).read_bytes()).hexdigest() for name in names}
 
 
@@ -109,10 +116,12 @@ def run(args: argparse.Namespace, inputs: dict[str, str]) -> dict[str, Any]:
         "work_budget": {"plan", "solve", "demo"},
         "replay_budget": {"plan", "solve", "demo", "verify", "resources", "resource-proof"},
         "certify": {"plan", "solve", "demo"},
+        "two_stack": {"plan", "demo"},
+        "two_stack_max_objects": {"plan", "demo", "structure-corpus"},
     }
     for option, actions in option_actions.items():
         value = getattr(args, option)
-        supplied = value is not None if option in {"work_budget", "replay_budget"} else bool(value)
+        supplied = value is not None if option in {"work_budget", "replay_budget", "two_stack_max_objects"} else bool(value)
         if supplied and args.action not in actions:
             flag = "--" + option.replace("_", "-")
             raise ValueError(f"{flag} is only supported by {', '.join(sorted(actions))}")
@@ -120,6 +129,15 @@ def run(args: argparse.Namespace, inputs: dict[str, str]) -> dict[str, Any]:
     replay_budget = 100000 if args.replay_budget is None else args.replay_budget
     if work_budget < 0 or replay_budget < 1:
         raise ValueError("work budget must be nonnegative and replay budget positive")
+    wants_structure = args.two_stack or args.action == "structure-corpus"
+    if wants_structure and args.two_stack_max_objects is None:
+        raise ValueError("--two-stack-max-objects is required for the two-stack candidate")
+    if args.two_stack_max_objects is not None:
+        if not wants_structure:
+            raise ValueError("--two-stack-max-objects requires --two-stack or structure-corpus")
+        structure.object_limit(args.two_stack_max_objects)
+    if args.action == "structure-corpus":
+        return structure.corpus_report(max_objects=args.two_stack_max_objects)
     if args.action in {"resources", "resource-proof"}:
         raw = read_json(args.resource_budget, inputs) if args.resource_budget else resources.demo_resources()
         report = resources.analyze_resources(raw, max_work=replay_budget)
@@ -139,9 +157,15 @@ def run(args: argparse.Namespace, inputs: dict[str, str]) -> dict[str, Any]:
     if args.action == "demo":
         raw, baseline, candidate = service_demo()
         instance = planner.parse_instance(raw)
-        result = planner.plan(instance, baseline, candidates=(candidate,),
+        two_stack = structure.TwoStackCandidate(max_objects=args.two_stack_max_objects) if args.two_stack else None
+        demo_candidates: list[planner.Candidate] = [candidate]
+        if two_stack is not None:
+            demo_candidates.append(two_stack)
+        result = planner.plan(instance, baseline, candidates=demo_candidates,
                               work_budget=work_budget, certify=args.certify,
                               replay_budget=replay_budget)
+        if two_stack is not None:
+            result["two_stack_candidate"] = two_stack.last_evidence
         result.update(instance=raw, baseline=baseline,
                       measurement_scope="constructed non-ML scratch example, not a target benchmark")
         return result
@@ -164,10 +188,16 @@ def run(args: argparse.Namespace, inputs: dict[str, str]) -> dict[str, Any]:
     if args.baseline is None:
         raise ValueError("plan requires --baseline")
     baseline = read_json(args.baseline, inputs)
-    candidates = tuple(partial(load_candidate, path, inputs) for path in args.candidate)
-    return planner.plan(instance, baseline, candidates=candidates,
-                        work_budget=work_budget, certify=args.certify,
-                        replay_budget=replay_budget)
+    candidates: list[planner.Candidate] = [partial(load_candidate, path, inputs) for path in args.candidate]
+    two_stack = structure.TwoStackCandidate(max_objects=args.two_stack_max_objects) if args.two_stack else None
+    if two_stack is not None:
+        candidates.append(two_stack)
+    result = planner.plan(instance, baseline, candidates=candidates,
+                          work_budget=work_budget, certify=args.certify,
+                          replay_budget=replay_budget)
+    if two_stack is not None:
+        result["two_stack_candidate"] = two_stack.last_evidence
+    return result
 
 
 def main(argv: list[str] | None = None) -> int:
