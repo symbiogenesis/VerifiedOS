@@ -120,7 +120,7 @@ eight byte enables. `address_index` is sent first and `address_tag` follows with
 not a capability tag. The capability tag rides `data_wuser` on a store and
 `data_ruser` on a load response: a capability store carries the stored value's
 tag, every other store carries zero, and a store whose enables do not cover the
-whole granule writes the tag clear, so no data write leaves a capability
+whole granule writes the tag clear, so a partial store cannot leave a capability
 standing. A load may carry `strip_tag`, which the response echoes as
 `data_strip_tag`, and the load unit then delivers the value untagged. `kill_req`
 cancels a load between its two phases, and `data_gnt`, `data_rvalid` and

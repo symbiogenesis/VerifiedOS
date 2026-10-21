@@ -6,9 +6,9 @@
 
 ## How to read a row
 
-- **Consumed by** lists every definition of the statement that touches the field: a seam lemma that takes it as premise or concludes it, the substrate or tower conjunction that carries it, the `Ax` ledger, or a record coercion. This is the blast-radius column: an edit that changes what a field *states* re-opens exactly the definitions listed, and nothing else, which is what entitles a workstream behind one field to refactor freely against a fixed statement. `tools/run.py blast` answers the same question as a query, with the seam-to-seam trail shown.
+- **Consumed by** lists the definitions that directly read the field: a seam lemma that takes it as premise or concludes it, the substrate or tower conjunction that carries it, the `Ax` ledger, or a record coercion. Changing what the field states re-opens those definitions and the R-18-031(b) linking theorem. A downstream seam also re-opens if repairing a direct consumer changes its conclusion statement. `python tools/run.py blast --field FIELD` reports the direct consumers, that conditional downstream trail and the linking theorem; the table alone is not the complete impact report.
 - **Authored by** names the artifact that gives the field its meaning: a crown-jewel inventory row (see [crown-jewels.md](crown-jewels.md)), a theorem target, or the register entry that states it. Proofs against a wrong authoring artifact match it rather than check it, so this column is review-gate subject matter, not a tool's.
-- **Instantiated by** names the proof development that discharges the field, linked, or `none yet`. A row reading `none yet` is R-18-031(a)'s uncovered obligation, named. Today every row reads `none yet`: no proof workstream has landed, which is the honest position the [crown-jewel inventory](crown-jewels.md) counts from the specification side.
+- **Instantiated by** names the proof development that discharges the field, linked, or `none yet`. A row reading `none yet` is R-18-031(a)'s uncovered obligation, named. The table records no development discharging these apex fields. Existing statements, abstract proofs and bounded qualification results do not by themselves instantiate the composed-system obligations; the [crown-jewel inventory](crown-jewels.md) records their scope.
 
 ## The bindings
 

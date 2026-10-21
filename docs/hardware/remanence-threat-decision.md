@@ -12,7 +12,7 @@ The product owner records a deployment identity, which data remains sensitive af
 | Require a protected window | A concrete protection construction and the complete copy/lifetime record demonstrate the declared window under its stated attacker and power conditions | Additional capacity, circuitry, verification, metadata, power and latency must be priced and any conflicting register clauses amended before implementation |
 | Decline that deployment | The required window cannot be supported by the available construction/evidence | The product does not serve that deployment; this is scope control, not hardening |
 
-No user or deployment-specific requirement was supplied to this fan-out, so it cannot select the protected-window arm on behalf of an unnamed deployment. The current product claim remains the register's residual arm; a deployment requiring closure is refused until its evidence exists. This records the boundary rather than assuming an ephemeral key disappears first.
+The current product claim takes the register's residual arm. A deployment requiring a protected window is refused until its owner declares the threat conditions and the complete protection evidence supports that window. An ephemeral key's lifetime must be qualified separately from the data's; it cannot be assumed to end first.
 
 ## 2. Retention is not recoverability
 
