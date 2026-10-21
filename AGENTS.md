@@ -97,9 +97,10 @@ restrictions hide installed Git, Python or uv.
 
 Follow the [check schedule](tools/README.md#check-scheduling-during-fan-out) for
 focused feedback, derived-artifact repair and integration order. Read-only scouts
-run no gates; workers do not run `--fix` or bare `run.py`. Reserve complete suites
-for GitHub Actions; local gate runs require focused debugging or a hosted-service
-outage, with reason, scope and verdict recorded.
+run no gates; workers do not run `--fix` or bare `run.py`. Run complete host and
+guest suites, proof gates and all benchmarks only on GitHub Actions, including
+during a hosted-service outage. Local builds and focused checks are allowed;
+record their reason, scope and verdict. They do not replace hosted acceptance.
 
 For the settled batch:
 
@@ -128,4 +129,4 @@ the command records Guest CI dispatch and safe retirement; never wait for Guest 
 - **Add a checker rule with its registry row and mutant.** Update the appropriate [check module](tools/vos/checks/), [rule registry](tools/check-rules.md), and [selftest](tools/vos/cli/selftest.py). Enumeration readers also need the applicable floor or documented fail-closed treatment. See [adding a rule](tools/README.md#adding-a-rule-to-the-checker).
 - **Generate validation where an oracle exists.** Use `oracle`, `seed`, and `quickchick` as described in [the generator guide](tools/README.md#the-three-generators-and-what-each-answers). Distinguish stillborn mutants (did not compile), killed mutants (detected), and survivors (not detected); compilation failures are not kills, and survival needs investigation.
 - **Reserve the checkout exclusively for `seed properties`.** It temporarily mutates `model/` in place. No other reader, writer, gate, or staging operation may use that checkout for the entire run, including another window. Investigate unexpected capability-format or selftest-baseline failures for an overlapping mutation run.
-- **Account for corpus membership.** The checker reads working-tree contents of indexed files; new documents are invisible until tracked. The selftest also copies non-ignored untracked files, so its baseline can differ. Keep scratch notes in ignored output directories and track intended deliverables before final validation.
+- **Account for corpus membership.** The checker reads working-tree contents of indexed files; new documents are invisible until tracked. The selftest also copies non-ignored untracked files, so its baseline can differ. Keep disposable agent files in a unique session directory under the system temporary directory, outside repositories and worktrees; follow the [filesystem placement rules](tools/README.md#where-a-file-lives-and-which-lane-touches-it) for tool outputs. Track intended deliverables before final validation.

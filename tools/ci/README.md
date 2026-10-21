@@ -107,22 +107,12 @@ Package repositories provide the archive
 checksums for the snapshot imports; distribution package versions follow the runner
 image. This records a package resolution, not a bit-for-bit toolchain image.
 
-For local reproduction during focused debugging or a hosted-service outage, run
-the affected commands on native Linux from the repository root. To reproduce the
-complete guest suite when needed:
-
-```sh
-python3 tools/ci/bootstrap_guest.py --root "$HOME/build/guest-ci" --install-system
-. "$HOME/build/guest-ci/environment.sh"
-python3 tools/run.py evidence --out "$VOS_LOG_DIR/evidence.json"
-python3 tools/run.py model bundle --check
-python3 tools/run.py rtl lint
-python3 tools/run.py rtl widthcheck
-python3 tools/run.py rtl crosscheck
-```
-
-This runs every lane's commands on one machine; the complete `evidence` sweep
-includes the proof gate.
+Complete guest suites, proof gates and all benchmarks run only on GitHub Actions,
+including during a hosted-service outage. For focused local debugging, use the
+affected build or targeted check through `run.py` under the
+[check schedule](../README.md#check-scheduling-during-fan-out), recording its
+reason, scope and verdict. A focused result supplies no complete guest verdict;
+dispatch every hosted lane for the settled revision.
 
 Bootstrap and standalone `rtl install` select workers through [vos/env.py](../vos/env.py).
 `os.process_cpu_count()` supplies usable logical CPUs, including Linux affinity limits;

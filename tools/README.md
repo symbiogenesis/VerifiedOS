@@ -19,9 +19,10 @@ to size jobs within the process's available CPU allocation.
 ## One entry point, and the commands under it
 
 [run.py](run.py) dispatches commands by name; `run.py <command> --help` describes
-their arguments. A bare `run.py` runs the local host gate for diagnosis. For settled
-inputs, follow the [validation handoff](../AGENTS.md#tool-execution-and-validation)
-and [check schedule](#check-scheduling-during-fan-out).
+their arguments. A bare `run.py` selects the complete host gate, which runs only
+on GitHub Actions. Use the [check schedule](#check-scheduling-during-fan-out) for
+local builds and focused checks, and the
+[validation handoff](../AGENTS.md#tool-execution-and-validation) for settled inputs.
 
 [Host CI](../.github/workflows/host-gates.yml) runs on Windows and Ubuntu for pushes
 and pull requests to `main`, or through manual dispatch from `main`, without
@@ -119,7 +120,7 @@ aggregate jobs to them. The aggregate checks require every shard and unpartition
 on both platforms and the model-hooks job to succeed, including refusal after a
 skipped or cancelled job.
 One shard, or one unpartitioned job, alone supplies only a partial verdict. The
-unsharded local command retains the complete suite.
+unsharded command retains the complete suite and is reserved for GitHub Actions.
 
 <a id="workflow-analysis"></a>**Ubuntu's unpartitioned job analyzes every workflow**, in a
 step of its own that runs whatever the gate's verdict and fails the job on either
@@ -561,14 +562,11 @@ guest then reads across the OS boundary and what it never writes back across.
 
 ```console
 $ python tools/run.py help                       # every command, and the lane it runs in
-$ python tools/run.py --check                    # local diagnosis: the three host gates, read-only
-$ python tools/run.py --fix                      # repair derived facts before publishing a CI candidate
-$ python tools/run.py --check --tests            # local reproduction of Host CI when needed
 $ python tools/check.py                          # checker feedback after a coherent document batch
 $ python tools/run.py check --fix                # integrator: arithmetic repair alone
-$ python tools/run.py selftest                   # every rule against its own mutant
+$ python tools/run.py selftest --rule K-110      # focused mutation feedback for the changed rule
 $ python tools/run.py typecheck                  # the tools against their own discipline
-$ python tools/run.py test                       # the tools against their own tests
+$ python tools/run.py test --only test_lanes     # focused behavioral feedback for an affected module
 $ python tools/run.py blast --field spatial_safety
 $ python tools/quarantine/gate.py                # the deferred instruments, off the wave
 $ python tools/run.py coread                     # the pairs owed a reading
@@ -587,23 +585,23 @@ $ python tools/run.py ring emit                  # the ring contract's generated
 $ python tools/run.py ring check                 # and the tracked one held against it
 ```
 
-The rest need the toolchain, so asked for on the host they are re-launched in the
-guest and say so. Inside the guest they are `python3 tools/run.py <command>` and
-nothing else changes.
+The following commands need the toolchain, so asked for on the host they are
+re-launched in the guest and say so. Inside the guest they are
+`python3 tools/run.py <command>`. Select checks for the issue being investigated;
+the examples are not a local acceptance suite. The [Guest CI contract](ci/README.md)
+lists the complete hosted campaigns, including the proof gate. `model build` also
+runs the full bundled CTest suite, so that command is CI-only. QuickChick switch
+checks run only on the [instrument switch route](ci/README.md#instrument-switch-route).
 
 ```console
 $ python tools/run.py provision                  # is this machine the lane, and what is missing
 $ python tools/run.py provision --apply          # and install what this tree states a command for
 $ python tools/run.py provision --only gate      # the rows the three host gates alone want
-$ python tools/run.py evidence                   # the whole exit-evidence sweep, one block
-$ python tools/run.py evidence --no-build        # and without rebuilding first
-$ python tools/run.py evidence --no-proofs       # and without the proof gate
 $ python tools/run.py model typecheck
 $ python tools/run.py model bundle               # regenerate the model's own bundle
 $ python tools/run.py model bundle --check       # and hold the tracked one against it
 $ python tools/run.py model rocq                 # the canonical Rocq term and its identity
 $ python tools/run.py model lane                 # where this checkout builds
-$ python tools/run.py model build --background
 $ python tools/run.py model wait                 # and its verdict when it lands
 $ python tools/run.py model oracle
 $ python tools/run.py model corpus
@@ -622,22 +620,24 @@ $ python tools/run.py testrig run --seeds 100 --defect none
 $ python tools/run.py testrig run --defect tag-dropped --shrink
 $ python tools/run.py testrig bridge             # both dialects, one run
 $ python tools/run.py oracle vectors --spec capformat
-$ python tools/run.py quickchick check           # and what the install costs
 $ python tools/run.py quickchick vectors         # the Gallina front's answers
 $ python tools/run.py quickchick freeze          # the freeze's model, stated twice
 $ python tools/run.py seed coq --sample 20
 $ python tools/run.py seed sail --spec keccak --sample 14
-$ python tools/run.py proofs                     # choose CPU/memory limits for each phase
-$ python tools/run.py proofs --jobs 8            # explicitly override both worker limits
-$ python tools/run.py proofs --jobs 1            # keep kernel checking in one process
-$ python tools/run.py proofs --fresh             # force compilation and full kernel recheck
 ```
 
 There is no `-d` on the `wsl` invocation `run.py` makes: it uses WSL's default distribution, expected to be the Ubuntu installation carrying the toolchain. No release number or distribution name is enforced by the tools. `wsl --install` can change that default, so check `wsl -l -v` after installing another distribution; `wsl -s Ubuntu` selects Ubuntu again.
 
 The entry-point spellings differ by OS. Use `python` on Windows; the `python3` app-execution alias may not launch an interpreter. Use `python3` in Ubuntu, where a bare `python` is not guaranteed. [PEP 394](https://peps.python.org/pep-0394/) gives the guest spelling, which the shebangs and WSL launcher retain. The [installation guidance](#running-them) supplies a compatible interpreter; after bootstrap, both lanes use it in their managed environment.
 
-`run.py model build` writes its whole run to a log and prints only where the log is, because a fifteen-minute build is started and left. The last line it writes is `ALL_DONE`, so a caller waits on a marker instead of guessing at a sleep. Each line ninja prints as an edge finishes carries the seconds since the build began. Where the memory available covers it beside the build, as the log's `== host:` line states, the suite's Sail test, `smt_properties_rv64d`, starts as soon as configure has passed, over a Sail memo of its own that no command the build runs writes, and the ctest stage places its run after the rest of the suite's, closed by a `STAGE ctest-early` line that gives its start in the build's seconds; the evidence sweep sums the two runs' tallies.
+`run.py model build` writes its complete hosted run to a log. Its
+`--background` form detaches and returns the log location. Use `run.py model wait`
+to wait on the lane lock and read the completion verdict; an `ALL_DONE` marker
+alone cannot establish that the build and its current receipt passed. Ninja edge
+lines give seconds since the build began. When the recorded memory budget permits,
+the Sail test `smt_properties_rv64d` starts after configure alongside compilation,
+with a private Sail memo. The CTest stage collects that early run and the rest of
+the suite, and the evidence sweep sums their tallies.
 
 `run.py test` leaves the cases marked slow to `--slow`. Concurrent test modules run
 in separate spawned processes, isolating their environment overrides, patches and
@@ -714,6 +714,15 @@ A lane standing up for the first time is seeded from the primary worktree's tree
 | Proof staging, compiled `.vo`, audit scratch, lock and full `proofs/proof-evidence.json` | `<lane_root>/proof-gate/` | The proof gate, `proofs status` and `proofs export`, reached through the guest hop; source identities still bind the original checkout |
 | Portable [proof receipt](../proofs/proof-evidence.json) | `proofs/proof-evidence.json` in the checkout, tracked by Git | Successful proof runs and `proofs export` publish it atomically; `proofs export --check` compares it with the native run |
 | Exported evidence in `out/evidence/` and tracked generated artifacts | Inside the checkout | The evidence exporter and artifact generators; host readers consume their explicit outputs |
+| Disposable agent scripts, probes, notes, captures and commit messages | A unique session directory under the system temporary directory, outside repositories and worktrees | The agent's host tools; native diagnostics use an explicit absolute temporary working directory |
+
+On Windows, obtain the temporary root with `[System.IO.Path]::GetTempPath()`.
+Preserve inherited system and profile environment variables; isolate only child
+`TEMP` and `TMP` when needed. For COM activation, set both the PowerShell location
+and `[Environment]::CurrentDirectory` to the temporary directory and restore both
+in `finally`. Resolve output paths before launching and reject relative paths or
+unexpanded `%NAME%` tokens. A literal `%SystemDrive%` or `ProgramData/Microsoft/Windows/Caches`
+tree in a checkout is a launch error to correct, not an artifact to ignore.
 
 The crossing that stays is priced, and the price is what fixed the split. [vos/env.py](vos/env.py)'s docstring carries the figures with their dates: a cmake configure walks the whole model project and pays per stat, about 17 s from `/mnt/c` against 1 s from ext4; a `git status` over the checkout is 3.2 s from the guest against 0.14 s on the host; and a tool's bootstrap through the Linux environment in the checkout is 0.78 s against 0.37 s. The host pays the same tax in reverse and pays it oftener, `tools/check.py` costing about 1 s over the NTFS checkout against 11 to 18 s over the same tree on the `wsl.localhost` share, on the loop that runs after every document edit, which is why the plan's I1 measured moving the checkout onto ext4 and refused it. What would flip the whole table is a person working from inside the guest, the Remote-WSL posture `run.py provision` prints as not reached: then the checkout belongs on ext4 too, the host gates run there as they do on the Ubuntu CI runner, and nothing crosses.
 
@@ -938,9 +947,11 @@ Use the existing verdict for unchanged inputs. If a checker run already reports
 arithmetic drift, invalid instructions or owed co-reads, resolve those findings
 before running a selftest: its baseline runs the whole checker even under `--rule`,
 and a failed baseline supplies no mutation verdict. Workers report deferred repair
-and checks explicitly. They do not run `--fix` or bare `run.py`. Local host and guest
-gate runs are reserved for focused debugging or an unavailable hosted service;
-record the reason, scope and verdict for such a run.
+and checks explicitly. They do not run `--fix` or bare `run.py`. Local builds and
+focused checks are allowed; record their reason, scope and verdict. Complete host
+and guest/proof suites and all benchmarks run only on GitHub Actions, including
+during a hosted-service outage. Use focused selections to investigate a specific
+issue; do not reconstruct a full suite by batching selections.
 
 **Budget workers across the machine.** The full runner already parallelizes its
 gates; selftest, behavioral tests and typecheck also run internal workers. Reserve
@@ -1299,7 +1310,7 @@ authored-source preservation and dependent-export convergence. It runs under pla
 focused route. `run.py test --only proofheaders` covers the smaller fixtures,
 including missed findings and premature writes, without repeating the corpus sweep.
 
-Keep a cleanup inventory and its retention reasons with the task's local output.
+Keep a cleanup inventory and its retention reasons in the session's temporary directory.
 Use explicit paths beneath the inspected `out/` root, recheck them before deletion,
 and do not follow links into other directories. Worktree retirement remains the
 separate [owned-lane procedure](#worktree-isolation-during-fan-out).

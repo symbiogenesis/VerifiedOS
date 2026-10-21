@@ -148,12 +148,14 @@ the behavior the requirements specify.
 
 The [plan and checkpoint schema](../../tools/sail-assist.schema.json) is ordinary
 JSON Schema Draft 2020-12. Copy the [example plan](../../tools/sail-assist/example-plan.json)
-to ignored lane output and replace its target, requirements and validation plan
-with the actual task. Existing affected paths are required at initialization;
+to the session's unique system temporary directory, outside the checkout, and
+replace its target, requirements and validation plan with the actual task. Pass
+that file's guest-readable absolute path to `--plan`; a Windows temporary path
+uses its `/mnt/<drive>/...` form in WSL. Existing affected paths are required at initialization;
 new sources created during repair are included in subsequent input manifests.
 
 ```console
-python tools/run.py sail-assist init bounds-repair --plan out/bounds-plan.json
+python tools/run.py sail-assist init bounds-repair --plan <absolute-plan-path>
 python tools/run.py sail-assist typecheck bounds-repair --change "Describe the candidate" --json
 python tools/run.py sail-assist status bounds-repair --json
 python tools/run.py sail-assist replan bounds-repair --note "Cause and materially different approach"
