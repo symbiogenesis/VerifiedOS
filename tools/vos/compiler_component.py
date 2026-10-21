@@ -91,7 +91,7 @@ def installed(export: str) -> tuple[str, ...]:
 _OPAM_TOKEN = re.compile(
     r'(?P<space>\s+)|(?P<comment>\#[^\r\n]*)'
     r'|(?P<string>"""(?:\\[\s\S]|(?!""")[\s\S])*"""|"(?:\\[\s\S]|[^"\\])*")'
-    r'|(?P<token>[\[\]{}()]|[^\s"#\[\]{}()]+)')
+    r'|(?P<token>[\[\]{}():]|[^\s"#\[\]{}():]+)')
 
 
 def package_recipe(export: str, package: str) -> tuple[str, ...]:
@@ -137,6 +137,49 @@ def matches_oracle_snapshot(export: str, snapshot: str) -> bool:
     return (installed(export) == installed(snapshot)
             and package_recipe(export, "rocq-certirocq")
             == package_recipe(snapshot, "rocq-certirocq"))
+
+
+def _recipe_without_identity(recipe: tuple[str, ...], package: str, version: str, *,
+                             exported: bool) -> tuple[str, ...]:
+    """Check optional installed name/version fields and omit export-added identity."""
+    body = recipe[3:-1]
+    result: list[str] = []
+    seen: set[str] = set()
+    depth = 0
+    index = 0
+    while index < len(body):
+        word = body[index]
+        if depth == 0 and word in ("name", "version"):
+            value = package if word == "name" else version
+            if (word in seen or body[index + 1:index + 3] != (":", f'"{value}"')):
+                raise ValueError(f"conflicting or repeated installed package {word}")
+            seen.add(word)
+            index += 3
+            continue
+        if word in ("[", "{", "("):
+            depth += 1
+        elif word in ("]", "}", ")"):
+            depth -= 1
+        result.append(word)
+        index += 1
+    if exported and "version" not in seen:
+        raise ValueError("the frozen oracle recipe has no expected package version")
+    return tuple(result)
+
+
+def matches_installed_oracle(metadata: str, snapshot: str, version: str) -> bool:
+    """Check last-installed metadata, which a changed pin overlay cannot replace.
+
+    An export reads pinned packages from their current overlay even before a
+    rebuild. The installed record instead belongs to the completed installation.
+    Its directory supplies the known version; opam may also retain name/version
+    fields there, while full exports always add the package version.
+    """
+    package = "rocq-certirocq"
+    expected = package_recipe(snapshot, package)
+    actual = package_recipe(f'package "{package}" {{\n{metadata}\n}}\n', package)
+    return (_recipe_without_identity(actual, package, version, exported=False)
+            == _recipe_without_identity(expected, package, version, exported=True))
 
 
 def reports_release(version: str, release: str) -> bool:

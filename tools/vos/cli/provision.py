@@ -432,12 +432,21 @@ def _oracle_switch() -> Found:
     try:
         snapshot = (find_root() / "tools/opam/certirocq.lock").read_text(encoding="utf-8")
         matches = compiler_component.matches_oracle_snapshot(exported, snapshot)
+        if matches:
+            prefix = Path(_say(("opam", "var", "prefix", "--switch", gallina.ORACLE_SWITCH)))
+            if not prefix.is_absolute():
+                return Found(False, f"{found.saw}; frozen source provenance unread: "
+                                    "the oracle switch supplied no absolute prefix", repairable=False)
+            metadata = (prefix / ".opam-switch/packages"
+                        / f"rocq-certirocq.{gallina.CERTIROCQ_VERSION}" / "opam")
+            matches = compiler_component.matches_installed_oracle(
+                metadata.read_text(encoding="utf-8"), snapshot, gallina.CERTIROCQ_VERSION)
     except (OSError, UnicodeError, ValueError) as err:
         return Found(False, f"{found.saw}; frozen source provenance unread: {err}", repairable=False)
     if not matches:
-        return Found(False, f"{found.saw}; packages or frozen CertiRocq recipe differ from "
+        return Found(False, f"{found.saw}; packages or frozen/installed CertiRocq recipe differ from "
                             "tools/opam/certirocq.lock", repairable=False)
-    return Found(True, f"{found.saw}; frozen CertiRocq source recipe and packages match the snapshot")
+    return Found(True, f"{found.saw}; frozen and installed CertiRocq recipes and packages match the snapshot")
 
 
 def _pinned_source(switch: str, package: str, pin: str) -> Found:
