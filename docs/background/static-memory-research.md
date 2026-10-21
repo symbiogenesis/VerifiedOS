@@ -6,7 +6,7 @@ Static allocation makes memory use explicit and bounds interference. It does not
 
 The most promising first work is offline: improve physical placement, change object lifetimes and representations, and jointly schedule computation and reclamation. More flexible sharing and movement deserve separate experiments with their changed assumptions visible. Neither a new allocator nor a new MMU is a prerequisite for studying the first group.
 
-One such experiment has since been taken as a design decision for one scope. The laptop's desktop runs in an elastic domain whose one pool is a fixed extent the plan places, filled at runtime by a verified, revocation-gated allocator ([§8](../spec.md#r-08-047a)), and its costs are charged the way this page asks: fragmentation and quarantine allowances inside the extent, sweep time in the domain's own slots, and in-label residuals booked rather than hidden. It changes no fixed-tier assumption below, and the agenda here continues to govern the fixed tier and every composition without an elastic domain.
+The laptop's desktop uses elastic domains: each profile has a general domain and a separate domain for each application declared isolated ([desktop composition](../implementation/isolated-desktop-composition.md)). Each domain owns one composition-fixed pool per memory class on each island it occupies, with runtime allocation inside those extents ([pool contract](../spec.md#r-08-047a)). Fragmentation and quarantine allowances are charged inside each extent, sweep time in the domain's own slots, and in-label residuals remain explicit. The static-planning assumptions below apply outside those pools; the research also informs placement and capacity accounting for their fixed envelopes.
 
 ## What remains valuable
 
@@ -83,7 +83,7 @@ The [baseline](../implementation/static-memory/baseline.md) states the proof ass
 
 ## Application lifecycle and workflow profiles
 
-The [workflow and hibernation contract](../implementation/workflow-profiles.md) carries the 19 September 2026 follow-up literature review and Q32's qualification scope. Frozen residency saves execution but retains memory. Semantic checkpoint, complete authority retirement and sanitization can release an app's private working set into a prechecked slate binding; immutable code, checkpoint storage, services, quarantine and transition scratch remain charged. Joint optimization must include every transition and repeated mode changes, not only endpoint peaks. The revocation mechanism remains required; a general online heap allocator is deferred pending a concrete fixed-pool/region failure under the same workload.
+The [workflow and hibernation contract](../implementation/workflow-profiles.md) carries the 19 September 2026 follow-up literature review and Q32's qualification scope. Frozen residency saves execution but retains memory. Semantic checkpoint, complete authority retirement and sanitization can release an app's private working set into a prechecked slate binding; immutable code, checkpoint storage, services, quarantine and transition scratch remain charged. Joint optimization must include every transition and repeated mode changes, not only endpoint peaks. The revocation mechanism remains required. Desktop members use the elastic heap and hibernation ladder; slate bindings remain available for non-members and compositions without an elastic domain ([R-14-011c](../spec.md#r-14-011c)).
 
 ## Research with a plausible path to this design
 

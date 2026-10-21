@@ -8,7 +8,7 @@ The gate audits **the register**, entry by entry (R-05-150, R-05-152). Review re
 
 - [spec.md](../spec.md) supplies rationale and worked arguments. Use it to understand an obligation; decide the obligation against its register entry.
 - Derived views such as the [coverage matrix](coverage-matrix.md), [crown jewels](crown-jewels.md) and [absence contract](../hardware/absence-contract.md) add no obligations. A disagreement belongs to the requirement from which the view derives (R-15-001a).
-- Executable Sail semantics alone establish neither a property of those semantics nor hardware refinement. Consult the [crown-jewel status](crown-jewels.md) and [implementation checklist](../implementation/implementation-checklist.md) for the corresponding artifacts.
+- Executable Sail semantics alone establish neither a property of those semantics nor hardware refinement. The [crown-jewel status](crown-jewels.md) records whether a specification is authored, partial or absent; it does not certify that its theorem is proved. Use the [implementation checklist](../implementation/implementation-checklist.md) and linked [completion evidence](../implementation/completion-log.md) to establish what was implemented or checked, at which revision and with which remaining limits.
 - Complete extraction is a claim to review: look for normative obligations omitted from the register, not only defects in existing entries (R-05-151).
 
 ## 2. How to read one entry
