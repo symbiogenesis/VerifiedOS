@@ -109,6 +109,9 @@ The private candidate root and build outputs remain under
 That interrupted installation must not be treated as a qualified producer.
 The retained recovery and consumer drivers describe the remaining procedure,
 including source/helper identity checks and full original-file audits in both
-roots. Source-provenance guards are integrated separately: they check both
-frozen exports and last-installed metadata, without changing the current
-production package selection.
+roots. Source-provenance guards are integrated separately for full snapshots:
+they check both frozen exports and last-installed metadata. The exact existing
+version-only snapshot retains its historical installed-version recognition,
+identified by its digest; unknown version-only snapshots are refused. Receipts
+label that legacy scope without claiming frozen-source acceptance. The current
+production package selection is unchanged.

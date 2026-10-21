@@ -419,7 +419,8 @@ def _switch_found(switch: str, package: str, pin: str, *, older: bool,
 def _oracle_switch() -> Found:
     """Require the oracle's source recipe as well as its package release.
 
-    A header backport keeps the released version number. Read frozen metadata to
+    The exact legacy snapshot retains its version-only recognition. For a full
+    snapshot, a header backport keeps the released version number. Read metadata to
     distinguish that producer from an unpatched installation, without installing
     or changing a switch. Existing missing-client/root/version findings retain
     the switch probe's wording and repairability.
@@ -446,6 +447,8 @@ def _oracle_switch() -> Found:
     if not matches:
         return Found(False, f"{found.saw}; packages or frozen/installed CertiRocq recipe differ from "
                             "tools/opam/certirocq.lock", repairable=False)
+    if compiler_component.legacy_oracle_snapshot(snapshot):
+        return Found(True, f"{found.saw}; packages match the qualified legacy version-only snapshot")
     return Found(True, f"{found.saw}; frozen and installed CertiRocq recipes and packages match the snapshot")
 
 

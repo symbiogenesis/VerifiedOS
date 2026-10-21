@@ -143,9 +143,10 @@ def main() -> int:
                      str(config): sha(config), str(profile): sha(profile)})
     representation = prefix / "lib/coq/user-contrib/CertiRocq/CodegenWasm/LambdaANF_to_Wasm.v"
     shutil.copy2(representation, producer / "LambdaANF_to_Wasm.v")
-    # Recipe comparison above includes source/patch provenance: an unpatched package
+    # For full snapshots, recipe comparison includes source/patch provenance: a package
     # at the same version cannot qualify as the snapshot's backported producer.
     declared = args.switch == SWITCH and oracle_snapshot == (root / SNAPSHOT).resolve()
+    legacy = cc.legacy_oracle_snapshot(oracle_snapshot.read_text(encoding="utf-8"))
     save(producer / "identity.json", {"switch": args.switch, "tools": tool_ids,
         "package_export_sha256": sha(producer / "packages.export"), "libraries_sha256": sha(producer / "libraries.json"),
         "oracle_snapshot": str(oracle_snapshot), "oracle_snapshot_sha256": sha(oracle_snapshot),
@@ -154,7 +155,9 @@ def main() -> int:
         "certirocq_recipe_sha256": hashlib.sha256(json.dumps(
             cc.package_recipe(package_export, "rocq-certirocq"), separators=(",", ":")).encode()).hexdigest(),
         "representation_sha256": sha(representation),
-        "scope": "the declared oracle switch, matching its frozen source recipe and packages" if declared
+        "source_provenance_checked": not legacy,
+        "scope": "legacy oracle switch, matching its snapshot's installed package versions" if legacy
+                 else "the declared oracle switch, matching its frozen source recipe and packages" if declared
                  else "candidate oracle switch, matching the selected frozen snapshot"})
     gallina_source = (root / "tools/wasm-oracle/ipc_oracle.v").read_text(encoding="utf-8")
     c_source = (root / "tools/wasm-oracle/ipc_oracle.c").read_text(encoding="utf-8")

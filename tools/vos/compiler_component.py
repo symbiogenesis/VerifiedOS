@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 """Ordered observations for the reference Gallina/authored-C comparison."""
 
+import hashlib
 import json
 import re
 from dataclasses import dataclass
@@ -132,11 +133,22 @@ def package_recipe(export: str, package: str) -> tuple[str, ...]:
     return recipes[0]
 
 
+def legacy_oracle_snapshot(snapshot: str) -> bool:
+    """Recognize only the qualified version-only snapshot preceding the backport.
+
+    Its historical recognition checks installed versions. Every other snapshot
+    must carry a full frozen recipe; deleting metadata cannot select this exception.
+    """
+    return hashlib.sha256(snapshot.encode("utf-8")).hexdigest() == (
+        "8437b97944f4dcc666d2df1f2ed4db67221bf23be3efbc3ce1b483b70c04f3b1")
+
+
 def matches_oracle_snapshot(export: str, snapshot: str) -> bool:
-    """Require both the installed closure and CertiRocq's complete source recipe."""
+    """Check versions and frozen provenance, retaining the exact legacy snapshot."""
     return (installed(export) == installed(snapshot)
-            and package_recipe(export, "rocq-certirocq")
-            == package_recipe(snapshot, "rocq-certirocq"))
+            and (legacy_oracle_snapshot(snapshot)
+                 or package_recipe(export, "rocq-certirocq")
+                 == package_recipe(snapshot, "rocq-certirocq")))
 
 
 def _recipe_without_identity(recipe: tuple[str, ...], package: str, version: str, *,
@@ -176,10 +188,12 @@ def matches_installed_oracle(metadata: str, snapshot: str, version: str) -> bool
     fields there, while full exports always add the package version.
     """
     package = "rocq-certirocq"
-    expected = package_recipe(snapshot, package)
     actual = package_recipe(f'package "{package}" {{\n{metadata}\n}}\n', package)
-    return (_recipe_without_identity(actual, package, version, exported=False)
-            == _recipe_without_identity(expected, package, version, exported=True))
+    body = _recipe_without_identity(actual, package, version, exported=False)
+    if legacy_oracle_snapshot(snapshot):
+        return bool(body) and f"{package}.{version}" in installed(snapshot)
+    expected = package_recipe(snapshot, package)
+    return body == _recipe_without_identity(expected, package, version, exported=True)
 
 
 def reports_release(version: str, release: str) -> bool:

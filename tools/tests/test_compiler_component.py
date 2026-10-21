@@ -83,6 +83,22 @@ def _declared_switch_and_prover_release() -> None:
     reexport = head + "installed: [\n" + "".join(reversed(body.splitlines(keepends=True))) + "]" + rest
     ensure("compiler:" not in reexport and cc.installed(reexport) == listed,
            "a re-export without the compiler section installs the snapshot's packages")
+    ensure(cc.matches_oracle_snapshot(reexport, lock),
+           "the real production snapshot recognizes its imported switch")
+    if cc.legacy_oracle_snapshot(lock):
+        metadata = f'opam-version: "2.0"\nversion: "{gallina.CERTIROCQ_VERSION}"\n'
+        ensure(cc.matches_installed_oracle(metadata, lock, gallina.CERTIROCQ_VERSION),
+               "the exact legacy snapshot retains installed-version recognition")
+        ensure(not cc.matches_installed_oracle(metadata.replace(gallina.CERTIROCQ_VERSION, "0.9.1+9.2"),
+                                               lock, "0.9.1+9.2"),
+               "the legacy exception does not admit another installed version")
+        for unknown in (lock + "\n", lock + "# unqualified version-only snapshot\n"):
+            try:
+                cc.matches_oracle_snapshot(reexport, unknown)
+            except ValueError:
+                pass
+            else:
+                raise AssertionError("unknown version-only snapshot bypassed frozen metadata")
     other = lock.replace(f'"rocq-certirocq.{gallina.CERTIROCQ_VERSION}"\n', "")
     ensure(cc.installed(other) != listed, "a switch lacking a package is another switch")
     for label, text in (("no list", "opam-version: \"2.0\"\n"),
