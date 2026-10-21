@@ -2,7 +2,7 @@
   "version": 1,
   "author": "symbiogenesis",
   "created_since": "2026-10-19",
-  "observed_at": "2026-10-21 06:00:33 UTC",
+  "observed_at": "2026-10-21 06:13:22 UTC",
   "items": [
     {
       "id": "1",
@@ -275,12 +275,12 @@
       "issue": "https://github.com/rocq-prover/rocq/issues/11904",
       "pr": "https://github.com/rocq-prover/rocq/pull/22614",
       "benefit": "Makes incomplete module-signature output explicit so typed consumers can reject it; Q35q's complete native census remains a separate qualification.",
-      "reviewed_head": "eee1662058ea596d3fe3443bfb0e58affa16f9dd",
-      "review": "Adds one configurable warning after successful names-only fallback, shared by Print Module and Print Module Type. Explicit short printing stays silent, and existing warning promotion rejects fallback output without a new option. Independent static review found no blockers. This reports incompleteness; it does not repair the underlying lookup failure or implement the native census.",
+      "reviewed_head": "0ceaa1c5f13b8595b03a4f298641f8824914f833",
+      "review": "Adds one default-enabled warning after successful names-only fallback, shared by Print Module and Print Module Type. Explicit short printing stays silent; standard warning controls remain available. The single-commit PR keeps focused regressions and a concise warning description. Independent static review found no blockers in the shared helper. This reports incompleteness; it does not repair the underlying lookup failure or implement the native census.",
       "next_action": "Await upstream review and CI; retain Q35q native census, exact assumption audit and locked-prover qualification as separate acceptance work.",
       "evidence": [
         "The missing-types reproduction reduces to a module type with t : Type and x : t. A private diagnostic build identifies a swallowed Not_found; the PR reports the existing fallback rather than changing typed rendering.",
-        "Focused author validation: Rocq worker and Ltac plugin built with OCaml 5.4.1; the new ModulePrintingFallback output regression and existing PrintModule and bug_9555 output regressions pass. Controls cover both commands, warning promotion and suppression, intentional short output and successful typed output. Full upstream suites remain CI-only.",
+        "Focused author validation: Rocq worker and Ltac plugin built with OCaml 5.4.1; the reduced ModulePrintingFallback output regression passes. Existing PrintModule and bug_9555 output results are reused because the printing implementation is unchanged. Controls cover both fallback commands, warning promotion, intentional short output and successful typed output. Full upstream suites remain CI-only.",
         "[Related issue 11904](https://github.com/rocq-prover/rocq/issues/11904) concerns conflicting-notation imports. The PR references it without claiming a fix.",
         "[The native census contract](contracts/sail-support-census.md#census-and-provenance) still requires complete native field types, enclosing signatures and functor parameters, provenance and separate concrete implementation assumption audits. The warning supplies no census or support-adoption verdict."
       ],
@@ -843,7 +843,7 @@
       ]
     },
     {
-      "headRefOid": "eee1662058ea596d3fe3443bfb0e58affa16f9dd",
+      "headRefOid": "0ceaa1c5f13b8595b03a4f298641f8824914f833",
       "isDraft": false,
       "mergedAt": null,
       "number": 22614,
@@ -853,22 +853,22 @@
           "__typename": "CheckRun",
           "completedAt": "0001-01-01T00:00:00Z",
           "conclusion": "",
-          "detailsUrl": "https://gitlab.inria.fr/coq/coq/-/pipelines/1513933",
+          "detailsUrl": "https://gitlab.inria.fr/coq/coq/-/pipelines/1513946",
           "name": "GitLab CI pipeline (pull request)",
-          "startedAt": "2026-10-21T06:00:03Z",
+          "startedAt": "2026-10-21T06:13:00Z",
           "status": "QUEUED",
           "workflowName": ""
         }
       ],
       "title": "printing: warn when module contents cannot be printed",
-      "updatedAt": "2026-10-21T05:59:51Z",
+      "updatedAt": "2026-10-21T06:12:47Z",
       "url": "https://github.com/rocq-prover/rocq/pull/22614",
       "workflow_runs": [
         {
           "name": "Github CI",
           "status": "pending",
           "conclusion": null,
-          "html_url": "https://github.com/rocq-prover/rocq/actions/runs/39552731642"
+          "html_url": "https://github.com/rocq-prover/rocq/actions/runs/39554040413"
         }
       ]
     }
