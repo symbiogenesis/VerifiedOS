@@ -110,6 +110,22 @@ no allocator implementation, Iris/VST proof library or donor runtime mechanism.
 Their authored finite models are governed by this repository's license; no
 upstream theorem is relicensed or claimed as an imported proof.
 
+### Finite matrix-identity research inputs
+
+The [rank-48 replay](docs/background/rank48-replay.md) reads six coefficient and
+straight-line-program files from `jgdumas/plinopt` at
+`c379f291329b834bbcd10607daed735048a817a9`, bound by the hashes in
+[the input record](tools/matrix-identity/plinopt.json). The selected revision's
+[CeCILL-B 1.0 license](https://github.com/jgdumas/plinopt/blob/c379f291329b834bbcd10607daed735048a817a9/Licence_CeCILL-B_V1-en.txt),
+README and AUTHORS are read. The credited upstream authors are Jean-Guillaume
+Dumas, Bruno Grenet, Clément Pernet and Alexandre Sedoglavic. Inputs are fetched
+only for an explicitly requested experiment into a unique system temporary
+directory, or supplied from an external directory; neither upstream source,
+programs, coefficient files nor binaries are redistributed here. The independent
+Python checker is authored here and interprets the input language as rational
+data. Only input identities and the resulting check report are retained. This
+use supplies no imported proof or production arithmetic implementation.
+
 ## Pinned as submodules
 
 The Git index contains a gitlink for each component below, with no source files beneath it. Initializing a submodule obtains its code from the upstream under that component's terms.

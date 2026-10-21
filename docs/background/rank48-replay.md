@@ -6,6 +6,19 @@ The host `matrix-identity` command consumes the six explicitly supplied PLinOpt
 `.sms` and `.slp` files for L, R and P. It never executes those programs as
 Python or compiles upstream software. Inputs stay outside this repository.
 
+```console
+python tools/run.py matrix-identity replay --fetch --output ABSOLUTE_REPORT_PATH
+python tools/run.py matrix-identity replay --source-dir ABSOLUTE_INPUT_DIRECTORY
+python tools/run.py matrix-identity check-report
+```
+
+The [retained report](rank48-replay.json) checks all 4,096 bilinear coefficients,
+48 products and 204 linear operations (200 additions/subtractions and four
+halvings), with both corruption controls refused. Its upstream identity is
+[the pinned PLinOpt edition](../../tools/matrix-identity/plinopt.json).
+`check-report` checks receipt identities without retrieving or rerunning external
+inputs; only `replay` performs the finite mathematical check.
+
 Acceptance requires strict parsing of sparse rational matrices and a bounded
 linear straight-line language; duplicate entries, undefined variables,
 overwritten variables, unknown syntax, extra outputs, wrong dimensions and

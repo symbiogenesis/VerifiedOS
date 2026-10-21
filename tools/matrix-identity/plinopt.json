@@ -1,0 +1,12 @@
+{
+  "revision": "c379f291329b834bbcd10607daed735048a817a9",
+  "files": {
+    "L.sms": "acd034de1ccd02570d41b098827666f062346eccc8eceea9b352e292391d05fa",
+    "L.slp": "b021b1d260e9b01e6970c1c704684aa8d5fb7fb3d9ab7ac23e361786b129c49d",
+    "R.sms": "bde98dc3051e8109bf1c2de5c30dbd671345d39acd6c5c2d1cc3c7c1256777b8",
+    "R.slp": "3a152ea5e41f2ff04f31357aca7fc08000c0a0733b1acda0207e67bf6c4cf434",
+    "P.sms": "fcd97838986bf12d7704723335a1cc72effe337dfede46ed9558ed094d772a0d",
+    "P.slp": "9e0ffdf3bfebe86f6a3cd427ba469d59d67d82f4f897fe0cab6366c1f402cefd"
+  },
+  "license_url": "https://github.com/jgdumas/plinopt/blob/c379f291329b834bbcd10607daed735048a817a9/Licence_CeCILL-B_V1-en.txt"
+}
