@@ -2,7 +2,7 @@
   "version": 1,
   "author": "symbiogenesis",
   "created_since": "2026-10-19",
-  "observed_at": "2026-10-21 01:53:24 UTC",
+  "observed_at": "2026-10-21 06:00:33 UTC",
   "items": [
     {
       "id": "1",
@@ -272,17 +272,17 @@
       "id": "19",
       "repository": "rocq-prover/rocq",
       "topic": "Report complete typed module signatures or explicit incompleteness",
-      "issue": "https://github.com/rocq-prover/rocq/blob/74165991678536f8f31f3c7740477ce20cfdafd4/vernac/printmod.ml#L423",
-      "pr": null,
-      "benefit": "Addresses Q35q's missing native signature-field types, which block the declaration census needed to qualify Sail support.",
-      "reviewed_head": null,
-      "review": "No submission recorded. The actual MachineWordInterface printer returns parameter labels without types despite full printing, and abstract signature fields are unavailable to ordinary global-constant queries. Rocq can fall back to names-only module printing after a noncritical exception. That behavior is compatible with the observation, but the underlying exception remains unidentified. Start with a minimized reproduction, then repair rich printing or add an opt-in mode that refuses incomplete metadata; a stable structured census interface is a possible later scope.",
-      "next_action": "TBD: minimize the missing-types reproduction and agree complete typed reporting with upstream after the paired compatibility work is prepared.",
+      "issue": "https://github.com/rocq-prover/rocq/issues/11904",
+      "pr": "https://github.com/rocq-prover/rocq/pull/22614",
+      "benefit": "Makes incomplete module-signature output explicit so typed consumers can reject it; Q35q's complete native census remains a separate qualification.",
+      "reviewed_head": "eee1662058ea596d3fe3443bfb0e58affa16f9dd",
+      "review": "Adds one configurable warning after successful names-only fallback, shared by Print Module and Print Module Type. Explicit short printing stays silent, and existing warning promotion rejects fallback output without a new option. Independent static review found no blockers. This reports incompleteness; it does not repair the underlying lookup failure or implement the native census.",
+      "next_action": "Await upstream review and CI; retain Q35q native census, exact assumption audit and locked-prover qualification as separate acceptance work.",
       "evidence": [
-        "[Native signature completeness diagnosis](q35q-signature-types.md#focused-native-result) records the actual incomplete output and the limits of the fallback hypothesis.",
-        "[The native census contract](contracts/sail-support-census.md#census-and-provenance) requires names, elaborated types, enclosing signatures/functor parameters and provenance, with concrete implementation assumptions audited separately.",
-        "Acceptance covers signatures, unapplied functors, nested fields, sealed concrete results and empty/alias-only modules, plus refusal of omitted fields, ambiguous or foreign resolution, duplicates and missing implementation connections. Complete output must not be inferred from ordinary global-constant lookup of abstract fields.",
-        "[Related issue 11904](https://github.com/rocq-prover/rocq/issues/11904) concerns notation conflicts; it does not establish this observation's root cause. Candidates 4 and 10 remain separate checker-policy changes."
+        "The missing-types reproduction reduces to a module type with t : Type and x : t. A private diagnostic build identifies a swallowed Not_found; the PR reports the existing fallback rather than changing typed rendering.",
+        "Focused author validation: Rocq worker and Ltac plugin built with OCaml 5.4.1; the new ModulePrintingFallback output regression and existing PrintModule and bug_9555 output regressions pass. Controls cover both commands, warning promotion and suppression, intentional short output and successful typed output. Full upstream suites remain CI-only.",
+        "[Related issue 11904](https://github.com/rocq-prover/rocq/issues/11904) concerns conflicting-notation imports. The PR references it without claiming a fix.",
+        "[The native census contract](contracts/sail-support-census.md#census-and-provenance) still requires complete native field types, enclosing signatures and functor parameters, provenance and separate concrete implementation assumption audits. The warning supplies no census or support-adoption verdict."
       ],
       "proposed_on": "2026-10-21"
     },
@@ -841,7 +841,37 @@
           "html_url": "https://github.com/CertiRocq/certirocq/actions/runs/39468856043"
         }
       ]
+    },
+    {
+      "headRefOid": "eee1662058ea596d3fe3443bfb0e58affa16f9dd",
+      "isDraft": false,
+      "mergedAt": null,
+      "number": 22614,
+      "state": "OPEN",
+      "statusCheckRollup": [
+        {
+          "__typename": "CheckRun",
+          "completedAt": "0001-01-01T00:00:00Z",
+          "conclusion": "",
+          "detailsUrl": "https://gitlab.inria.fr/coq/coq/-/pipelines/1513933",
+          "name": "GitLab CI pipeline (pull request)",
+          "startedAt": "2026-10-21T06:00:03Z",
+          "status": "QUEUED",
+          "workflowName": ""
+        }
+      ],
+      "title": "printing: warn when module contents cannot be printed",
+      "updatedAt": "2026-10-21T05:59:51Z",
+      "url": "https://github.com/rocq-prover/rocq/pull/22614",
+      "workflow_runs": [
+        {
+          "name": "Github CI",
+          "status": "pending",
+          "conclusion": null,
+          "html_url": "https://github.com/rocq-prover/rocq/actions/runs/39552731642"
+        }
+      ]
     }
   ],
-  "reviewed_on": "2026-10-20"
+  "reviewed_on": "2026-10-21"
 }
