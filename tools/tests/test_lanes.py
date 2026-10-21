@@ -336,6 +336,7 @@ _RUNS: dict[tuple[str, str], Argv] = {
     ("memory-planner", "contracts"): lambda _: [],
     ("memory-planner", "resources"): lambda _: [],
     ("memory-planner", "resource-proof"): lambda _: [],
+    ("memory-planner", "structure-corpus"): lambda _: ["--two-stack-max-objects", "8"],
     ("memory-certificates", "encode"): _memory_encoding,
     ("boot", "roster"): lambda _: [],
     ("composer", "compose"): _composition_fixture,

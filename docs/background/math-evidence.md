@@ -13,7 +13,7 @@ This validates metadata and finite host/reference behavior. It supplies no theor
 | [Family 103 logspace derandomization formalization](#logspace103) | source inspection | await workload | 2026-10-20 |
 | [Finite 48-product matrix multiplication](#rank48) | independent replay | await workload | 2026-10-20 |
 | [Shortest-path implementation evidence scope](#shortest-path) | source inspection | await workload | 2026-10-20 |
-| [Local exact two-stack lifetime placement](#two-stack) | source inspection | evaluate now | 2026-10-20 |
+| [Local exact two-stack lifetime placement](#two-stack) | independent replay | evaluate now | 2026-10-20 |
 | [Few-type packing and scheduling](#type-fpt) | source inspection | await workload | 2026-10-20 |
 
 ## Lean Comparator maintenance route <a id="comparator"></a>
@@ -168,24 +168,26 @@ Next action: Keep Dijkstra as the baseline. For a named graph pass, record its s
 
 ## Local exact two-stack lifetime placement <a id="two-stack"></a>
 
-The existing host structural implementation constructs peak-load-optimal placements for its recognized bipartite-crossing interval subset. The optional planner adapter must preserve that subset's constraints and independently validate emitted candidates through the existing checker.
+The bounded portable two-stack adapter reuses the local structural construction on its recognized bipartite-crossing interval subset. Candidates are independently checked and the validated baseline is retained on unsupported structure, failure or regression; ordinary evidence remains checked feasible unless separate finite certification is requested.
 
-Evidence stage: **source inspection**. Disposition: **evaluate now**. Inspected: 2026-10-20.
+Evidence stage: **independent replay**. Disposition: **evaluate now**. Inspected: 2026-10-20.
 
 Selected sources:
 
 - [tools/vos/static_memory_structure.py](../../tools/vos/static_memory_structure.py); identity `22ccaa7771aaa473a5e36383213d7c8def87d2a0721e6123fc9605d42c9ec679`.
+- [tools/vos/memory_planner_structure.py](../../tools/vos/memory_planner_structure.py); identity `84156a4782f93764a8badc3b2e0b23f21d896c0563a541b00880f094c1d8bb0e`.
 
 Assumptions and exclusions:
 
 - The recognized adapter subset has one pool, unit alignment and single lifetime intervals; unsupported pinning, aliases, reservations and extra conflicts require refusal or retained fallback.
 - Endpoint reuse semantics and the existing placement checker own legality. This algorithm supplies no target admission or theorem for unrestricted static allocation.
+- Independent replay covers the focused host structural regressions, including small exhaustive comparisons and refusal controls; it supplies no admitted structural theorem, actual-roster capacity improvement or target timing.
 
-Consumer: [tools/vos/cli/placement.py](../../tools/vos/cli/placement.py). Owner: Q5b portable placement planner.
+Consumer: [tools/vos/cli/memory_planner.py](../../tools/vos/cli/memory_planner.py). Owner: Q5b portable placement planner.
 
-Local evidence: [docs/implementation/static-memory/structure.md](../implementation/static-memory/structure.md); [tools/vos/static_memory_structure.py](../../tools/vos/static_memory_structure.py).
+Local evidence: [docs/implementation/static-memory/structure.md](../implementation/static-memory/structure.md); [tools/vos/static_memory_structure.py](../../tools/vos/static_memory_structure.py); [tools/tests/test_memory_planner_structure.py](../../tools/tests/test_memory_planner_structure.py).
 
-Next action: Expose the recognized subset as an optional candidate adapter, preserve the existing baseline and fallback, and check each candidate plus touching-endpoint, crossing, unsupported-constraint and malformed-input regressions.
+Next action: Run the bounded candidate and eligibility report on the actual composed roster under Q5b, retaining its standing baseline and all target constraints. Diagnose unsupported instances and report improvement or no improvement without extrapolating the synthetic byte spans.
 
 ## Few-type packing and scheduling <a id="type-fpt"></a>
 

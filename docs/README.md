@@ -51,6 +51,7 @@ standalone language specification and its relationship to VerifiedOS's CHERI-TAL
 | [Absence contract](hardware/absence-contract.md) | Absent hardware structures and audit evidence |
 | [Crown-jewel inventory](assurance/crown-jewels.md) | Specifications, theorem targets and review status |
 | [Coverage matrix](assurance/coverage-matrix.md) | Property-boundary coverage |
+| [Mathematical research evidence](background/math-evidence.md) | Versioned research dispositions and finite reference-composer dictionary shapes |
 | [Profile-freeze measurements](implementation/contracts/freeze-measurement.md) | Measurement recipe and acceptance thresholds |
 | [Block geometry](hardware/block-geometry-constraint.md) | Shared block-size constraints |
 | [Bank-count exploration](hardware/bank-count-dse-contract.md) | Candidate banks, constraints and objectives |

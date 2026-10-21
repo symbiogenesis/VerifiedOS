@@ -8,10 +8,9 @@ import shutil
 import tempfile
 from pathlib import Path
 
+from tests.harness import Case, ensure
 from vos import composer
 from vos import math_evidence as evidence
-
-from tests.harness import Case, ensure
 
 ROOT = Path(__file__).resolve().parents[2]
 
