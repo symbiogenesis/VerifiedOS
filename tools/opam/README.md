@@ -57,6 +57,11 @@ the export carries its `compiler:` section (F-496). The Gallina vector harnesses
 load Stdlib alone and compile in the proof switch, so they exercise nothing in
 this one. The Docker and native import recipes select this snapshot.
 
+The merged bootstrap header fix has a [bounded backport qualification](certirocq-hdval-adoption.md#deferred-qualification).
+Its initial complete build passes, but production adoption is deferred pending
+the remaining consumer and reproducibility checks. This snapshot still selects
+the qualified, unpatched release.
+
 CertiRocq and its Wasm library require Rocq below 9.2, and the oracle switch's Coq 9.1.1 compatibility package fixes the standard library at 9.0.0. Those library constraints do not limit the proof gate, QuickChick or Rupicola switch.
 
 The contained-compiler snapshot is an actual fresh export with an explicit

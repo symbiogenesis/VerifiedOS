@@ -1,0 +1,13 @@
+{
+  "checks": {
+    "versions_unchanged": true,
+    "original_matches_original": true,
+    "original_refused_under_approved_overlay": true
+  },
+  "success": true,
+  "installed_record": "/root/build/lane-deps-matrix-20261019/certirocq/opam-root/verifiedos-certirocq-0.9.1-ocaml-4.14.4/.opam-switch/packages/rocq-certirocq.0.9.1+9.1/opam",
+  "installed_record_sha256": "30533c901319fa321013482db08de952d2c1b66fe00ae8af17bae533f9a056a4",
+  "helper_sha256": "ba95e41b020634f5b153da3efd824ab041d5288baacb10217f52b394d851606b",
+  "baseline_sha256": "580c9206c730258f4e94878d59bdacacfee6190dd3ce8884e143880b62447657",
+  "patched_recipe_sha256": "cb4f823c3e20e593535822fe5e3c82588099aa2fef13d86dd68fd640ccfefb62"
+}

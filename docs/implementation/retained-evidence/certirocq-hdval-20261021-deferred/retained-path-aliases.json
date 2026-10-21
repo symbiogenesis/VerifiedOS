@@ -1,0 +1,17 @@
+[
+  {
+    "alias": "/root/build/lane-deps-matrix-20261019",
+    "retained": "/root/build/fanout-retained/314f14d5fbd20fd942a6/deps-matrix-20261019/lane",
+    "purpose": "read-only access for compiled absolute paths"
+  },
+  {
+    "alias": "/root/build/lane-deps-upstream-20261019",
+    "retained": "/root/build/fanout-retained/314f14d5fbd20fd942a6/deps-upstream-20261019/lane",
+    "purpose": "read-only access for compiled absolute paths"
+  },
+  {
+    "alias": "/root/build/lane-deps-tooling-20261019",
+    "retained": "/root/build/fanout-retained/314f14d5fbd20fd942a6/deps-tooling-20261019/lane",
+    "purpose": "read-only access for compiled absolute paths"
+  }
+]

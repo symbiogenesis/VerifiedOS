@@ -188,7 +188,7 @@
       "benefit": "Removes one reason for retaining an older OCaml environment for executable oracles; separate Rocq compatibility limits remain.",
       "reviewed_head": "971c1eb1b5f0adecfc280872bd5b71b0d7f33a0f",
       "review": "Narrow four-file header-boundary fix. No actionable static defect found. Maintainer zoep reproduced both the bug and fix locally and merged the PR. The failed Docker job is the earlier missing MetaRocq.Erasure.EImplementLazyForce dependency failure, addressed by CI-1.",
-      "next_action": "Track release inclusion; qualify VerifiedOS adoption separately.",
+      "next_action": "Initial backport build passed; production adoption deferred at user request pending consumer checks, clean replay and complete-vector acceptance. See the [backport record](../../tools/opam/certirocq-hdval-adoption.md#deferred-qualification).",
       "evidence": [
         "[Original Docker failure](https://github.com/CertiRocq/certirocq/actions/runs/39377893256) occurs before bootstrap bridge compilation because the image lacks the required MetaRocq module. Four Nix checks pass."
       ]

@@ -1,6 +1,6 @@
 # CertiRocq bootstrap header backport
 
-This contract adopts the header-boundary fix merged in
+This contract scopes a backport of the header-boundary fix merged in
 [CertiRocq PR 167](https://github.com/CertiRocq/certirocq/pull/167) for the
 [Wasm oracle](../wasm-oracle/README.md). Commit the contract before building
 the candidate. The qualified production snapshot remains the owner until the
@@ -77,3 +77,38 @@ Host CI must pass for the settled `main` revision and every Guest CI lane must
 be dispatched without waiting for its verdict. The local-only
 [instrument constraint](../ci/README.md#instrument-switch-route) remains in
 force; neither hosted workflow supplies this oracle's acceptance evidence.
+
+## Deferred qualification
+
+Production adoption is deferred at the user's request on 2026-10-21. The
+long-running qualification has stopped; the production snapshot and native
+and container recipes still select the qualified, unpatched release. The
+remaining acceptance above is future work, not a passing verdict.
+
+The [deferred native qualification evidence](../../docs/implementation/retained-evidence/certirocq-hdval-20261021-deferred/manifest.json),
+SHA-256 `04beb991779390754c644107583d6109cf33b1d4eda1923021e641a6d87b3e4c`,
+retains the completed closure build, actual candidate export, source recipe,
+command outputs, header controls and interruption records. Its successful
+closure import took 3982.286 seconds, about 66 minutes. All installed package
+versions and the other packages' frozen recipes match the original snapshot.
+The original switch's ordinary and full frozen exports remain byte-identical.
+
+| Acceptance step | Current result |
+| --- | --- |
+| Complete selected closure and native bootstraps | Initial patched build passed. |
+| Newer-header syntax controls | Original bridges fail on the collision; patched bridges compile with upstream's selected compiler and original warning settings. This does not qualify a newer OCaml switch. |
+| Original-file boundary | Preliminary roster differs only at the declared bridge files; final post-install audits remain pending. |
+| Same-version metadata pin and final frozen export | Rebuild stopped; the retained pinned input is not a successful installed export. |
+| Patched consumers, recursive kernel and exact-assumption comparison | Pending. Retained consumer results belong to the unpatched baseline only. |
+| Independent empty-root import and byte-identical re-export | Pending. |
+| Complete-vector comparison and controls | Pending. |
+| Production snapshot adoption | Deferred until acceptance passes. |
+
+The private candidate root and build outputs remain under
+`/root/build/lane-certirocq-hdval-adopt-20261020/` for a future explicit resume.
+That interrupted installation must not be treated as a qualified producer.
+The retained recovery and consumer drivers describe the remaining procedure,
+including source/helper identity checks and full original-file audits in both
+roots. Source-provenance guards are integrated separately: they check both
+frozen exports and last-installed metadata, without changing the current
+production package selection.

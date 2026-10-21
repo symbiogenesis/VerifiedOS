@@ -1,0 +1,101 @@
+{
+  "candidate_consumers_run": false,
+  "candidate_full_export_sha256": "cb4f823c3e20e593535822fe5e3c82588099aa2fef13d86dd68fd640ccfefb62",
+  "clean_replay_run": false,
+  "complete_vector_run": false,
+  "completed_closure_build": true,
+  "owned_processes": {
+    "436": {
+      "command": "/usr/bin/python3 /mnt/c/Users/symbi/AppData/Local/Temp/verifiedos-certirocq-adopt-20261020-35a60dac42ab4682aad206bde2dee954/native_accept_recovery.py ",
+      "pgid": 436,
+      "ppid": 434
+    },
+    "437": {
+      "command": "/root/build/lane-deps-matrix-20261019/certirocq/bin/opam switch import --switch=verifiedos-certirocq-0.9.1-ocaml-4.14.4 /root/build/lane-certirocq-hdval-adopt-20261020/candidate.pinned.input.lock -y -j4 ",
+      "pgid": 436,
+      "ppid": 436
+    },
+    "1483": {
+      "command": "bwrap --unshare-net --new-session --die-with-parent --proc /proc --dev /dev --setenv TMPDIR /opam-tmp --setenv TMP /opam-tmp --setenv TEMPDIR /opam-tmp --setenv TEMP /opam-tmp --bind /tmp /tmp --tmpfs /opam-tmp --tmpfs /run --symlink /usr/bin /bin --ro-bind /boot /boot --ro-bind /build /build --ro-bind /compare /compare --ro-bind /etc /etc --ro-bind /home /home --symlink /usr/lib /lib --ro-bind /lost+found /lost+found --ro-bind /media /media --ro-bind /mnt /mnt --ro-bind /opt /opt --ro-bind /proofs /proofs --ro-bind /root /root --symlink /usr/sbin /sbin --ro-bind /snap /snap --ro-bind /srv /srv --ro-bind /usr /usr --ro-bind /var /var --ro-bind /root/build/lane-certirocq-hdval-adopt-20261020/candidate-root /root/build/lane-certirocq-hdval-adopt-20261020/candidate-root --ro-bind /root/build/lane-certirocq-hdval-adopt-20261020/candidate-root/verifiedos-certirocq-0.9.1-ocaml-4.14.4 /root/build/lane-certirocq-hdval-adopt-20261020/candidate-root/verifiedos-certirocq-0.9.1-ocaml-4.14.4 --bind /root/build/lane-certirocq-hdval-adopt-20261020/candidate-root/verifiedos-certirocq-0.9.1-ocaml-4.14.4/.opam-switch/build/rocq-certirocq.0.9.1+9.1 /root/build/lane-certirocq-hdval-adopt-20261020/candidate-root/verifiedos-certirocq-0.9.1-ocaml-4.14.4/.opam-switch/build/rocq-certirocq.0.9.1+9.1 --bind /root/.ccache /root/.ccache --bind /root/.cache/dune /root/.cache/dune make plugins ",
+      "pgid": 436,
+      "ppid": 437
+    },
+    "1493": {
+      "command": "make plugins ",
+      "pgid": 1493,
+      "ppid": 1483
+    },
+    "1650": {
+      "command": "make -f Makefile ",
+      "pgid": 1493,
+      "ppid": 1493
+    },
+    "7662": {
+      "command": "/bin/sh -c make --no-print-directory -f \"Makefile\" real-all ",
+      "pgid": 1493,
+      "ppid": 1650
+    },
+    "7663": {
+      "command": "make --no-print-directory -f Makefile real-all ",
+      "pgid": 1493,
+      "ppid": 7662
+    },
+    "10186": {
+      "command": "/bin/sh -c \"/root/build/lane-certirocq-hdval-adopt-20261020/candidate-root/verifiedos-certirocq-0.9.1-ocaml-4.14.4/bin/ocamlfind\" opt      -c  -thread -bin-annot -strict-sequence -w -a+1..3-4+5..8-9+10..26-27+28..39-40-41-42+43-44-45+46..47-48+49..57-58+59..66-67-68+69-70 -w -33  -w -34  -w -32  -w -39  -w -20  -w -60  -w -8  -w -37  -I extraction -I static -I .  -I \"/root/build/lane-certirocq-hdval-adopt-20261020/candidate-root/verifiedos-certirocq-0.9.1-ocaml-4.14.4/lib/coq//user-contrib/MetaRocq/Template\" -warn-error +a-3 -package rocq-runtime.plugins.ltac -package rocq-metarocq-template-ocaml.plugin,stdlib-shims  -for-pack Certirocq_plugin extraction/glue.ml ",
+      "pgid": 1493,
+      "ppid": 7663
+    },
+    "10187": {
+      "command": "/root/build/lane-certirocq-hdval-adopt-20261020/candidate-root/verifiedos-certirocq-0.9.1-ocaml-4.14.4/bin/ocamlfind opt -c -thread -bin-annot -strict-sequence -w -a+1..3-4+5..8-9+10..26-27+28..39-40-41-42+43-44-45+46..47-48+49..57-58+59..66-67-68+69-70 -w -33 -w -34 -w -32 -w -39 -w -20 -w -60 -w -8 -w -37 -I extraction -I static -I . -I /root/build/lane-certirocq-hdval-adopt-20261020/candidate-root/verifiedos-certirocq-0.9.1-ocaml-4.14.4/lib/coq//user-contrib/MetaRocq/Template -warn-error +a-3 -package rocq-runtime.plugins.ltac -package rocq-metarocq-template-ocaml.plugin,stdlib-shims -for-pack Certirocq_plugin extraction/glue.ml ",
+      "pgid": 1493,
+      "ppid": 10186
+    },
+    "10188": {
+      "command": "ocamlopt.opt -c -bin-annot -strict-sequence -w -a+1..3-4+5..8-9+10..26-27+28..39-40-41-42+43-44-45+46..47-48+49..57-58+59..66-67-68+69-70 -w -33 -w -34 -w -32 -w -39 -w -20 -w -60 -w -8 -w -37 -I extraction -I static -I . -I /root/build/lane-certirocq-hdval-adopt-20261020/candidate-root/verifiedos-certirocq-0.9.1-ocaml-4.14.4/lib/coq//user-contrib/MetaRocq/Template -warn-error +a-3 -for-pack Certirocq_plugin -thread -I /root/build/lane-certirocq-hdval-adopt-20261020/candidate-root/verifiedos-certirocq-0.9.1-ocaml-4.14.4/lib/findlib -I /root/build/lane-certirocq-hdval-adopt-20261020/candidate-root/verifiedos-certirocq-0.9.1-ocaml-4.14.4/lib/rocq-runtime/clib -I /root/build/lane-certirocq-hdval-adopt-20261020/candidate-root/verifiedos-certirocq-0.9.1-ocaml-4.14.4/lib/rocq-runtime/config -I /root/build/lane-certirocq-hdval-adopt-20261020/candidate-root/verifiedos-certirocq-0.9.1-ocaml-4.14.4/lib/rocq-runtime/boot -I /root/build/lane-certirocq-hdval-adopt-20261020/candidate-root/verifiedos-certirocq-0.9.1-ocaml-4.14.4/lib/rocq-runtime/perf -I /root/build/lane-certirocq-hdval-adopt-20261020/candidate-root/verifiedos-certirocq-0.9.1-ocaml-4.14.4/lib/rocq-runtime/lib -I /root/build/lane-certirocq-hdval-adopt-20261020/candidate-root/verifiedos-certirocq-0.9.1-ocaml-4.14.4/lib/rocq-runtime/gramlib -I /root/build/lane-certirocq-hdval-adopt-20261020/candidate-root/verifiedos-certirocq-0.9.1-ocaml-4.14.4/lib/rocq-runtime/vm -I /root/build/lane-certirocq-hdval-adopt-20261020/candidate-root/verifiedos-certirocq-0.9.1-ocaml-4.14.4/lib/rocq-runtime/kernel -I /root/build/lane-certirocq-hdval-adopt-20261020/candidate-root/verifiedos-certirocq-0.9.1-ocaml-4.14.4/lib/rocq-runtime/library -I /root/build/lane-certirocq-hdval-adopt-20261020/candidate-root/verifiedos-certirocq-0.9.1-ocaml-4.14.4/lib/rocq-runtime/engine -I /root/build/lane-certirocq-hdval-adopt-20261020/candidate-root/verifiedos-certirocq-0.9.1-ocaml-4.14.4/lib/rocq-runtime/pretyping -I /root/build/lane-certirocq-hdval-adopt-20261020/candidate-root/verifiedos-certirocq-0.9.1-ocaml-4.14.4/lib/zarith -I /root/build/lane-certirocq-hdval-adopt-20261020/candidate-root/verifiedos-certirocq-0.9.1-ocaml-4.14.4/lib/rocq-runtime/interp -I /root/build/lane-certirocq-hdval-adopt-20261020/candidate-root/verifiedos-certirocq-0.9.1-ocaml-4.14.4/lib/rocq-runtime/parsing -I /root/build/lane-certirocq-hdval-adopt-20261020/candidate-root/verifiedos-certirocq-0.9.1-ocaml-4.14.4/lib/rocq-runtime/proofs -I /root/build/lane-certirocq-hdval-adopt-20261020/candidate-root/verifiedos-certirocq-0.9.1-ocaml-4.14.4/lib/rocq-runtime/printing -I /root/build/lane-certirocq-hdval-adopt-20261020/candidate-root/verifiedos-certirocq-0.9.1-ocaml-4.14.4/lib/rocq-runtime/tactics -I /root/build/lane-certirocq-hdval-adopt-20261020/candidate-root/verifiedos-certirocq-0.9.1-ocaml-4.14.4/lib/rocq-runtime/vernac -I /root/build/lane-certirocq-hdval-adopt-20261020/candidate-root/verifiedos-certirocq-0.9.1-ocaml-4.14.4/lib/rocq-runtime/plugins/ltac -I /root/build/lane-certirocq-hdval-adopt-20261020/candidate-root/verifiedos-certirocq-0.9.1-ocaml-4.14.4/lib/rocq-metarocq-template-ocaml -I /root/build/lane-certirocq-hdval-adopt-20261020/candidate-root/verifiedos-certirocq-0.9.1-ocaml-4.14.4/lib/stdlib-shims extraction/glue.ml ",
+      "pgid": 1493,
+      "ppid": 10187
+    }
+  },
+  "production_snapshot_changed": false,
+  "reason": "User requested finishing the session and deferring the long qualification on 2026-10-21.",
+  "retained_package_logs": [
+    {
+      "bytes": 5919,
+      "copy": "/root/build/lane-certirocq-hdval-adopt-20261020/deferred-package-commands/rocq-certirocq-83680-07ed0c.out",
+      "sha256": "f5cc494d13927c17dc90e17444ee93c61c948b0a55b90d295a92352c128f70fd",
+      "source": "/root/build/lane-certirocq-hdval-adopt-20261020/candidate-root/log/rocq-certirocq-83680-07ed0c.out"
+    },
+    {
+      "bytes": 10268,
+      "copy": "/root/build/lane-certirocq-hdval-adopt-20261020/deferred-package-commands/rocq-certirocq-437-f4fd36.out",
+      "sha256": "b1e3e0b704b830d3016b69b12a2e6aeef10c29cccb280414d180dee2fc941e72",
+      "source": "/root/build/lane-certirocq-hdval-adopt-20261020/candidate-root/log/rocq-certirocq-437-f4fd36.out (deleted)"
+    },
+    {
+      "bytes": 683,
+      "copy": "/root/build/lane-certirocq-hdval-adopt-20261020/deferred-package-commands/rocq-certirocq-83680-07ed0c.info",
+      "sha256": "15ff4db171e6d302d41c08aad727d1cded56c6fecdca3f2efb3599c705324c2b",
+      "source": "/root/build/lane-certirocq-hdval-adopt-20261020/candidate-root/log/rocq-certirocq-83680-07ed0c.info"
+    },
+    {
+      "bytes": 679,
+      "copy": "/root/build/lane-certirocq-hdval-adopt-20261020/deferred-package-commands/rocq-certirocq-437-f4fd36.info",
+      "sha256": "feaeedf0cbcbb548b9faa05453cfcde5f67b65a526a54c8280472692c3a78fcc",
+      "source": "/root/build/lane-certirocq-hdval-adopt-20261020/candidate-root/log/rocq-certirocq-437-f4fd36.info (deleted)"
+    },
+    {
+      "bytes": 44303,
+      "copy": "/root/build/lane-certirocq-hdval-adopt-20261020/deferred-package-commands/rocq-certirocq-437-e5c440.out",
+      "sha256": "adbf5b488b0ca04e2ca14466fd8ef92b67ca3319e74f9d6ff3e43939d6f0490f",
+      "source": "/root/build/lane-certirocq-hdval-adopt-20261020/candidate-root/log/rocq-certirocq-437-e5c440.out"
+    },
+    {
+      "bytes": 683,
+      "copy": "/root/build/lane-certirocq-hdval-adopt-20261020/deferred-package-commands/rocq-certirocq-437-e5c440.info",
+      "sha256": "ac020710481fc17143f932fa95d71781569c1e121ff7580598a3ebf21aac5453",
+      "source": "/root/build/lane-certirocq-hdval-adopt-20261020/candidate-root/log/rocq-certirocq-437-e5c440.info"
+    }
+  ],
+  "status": "deferred",
+  "success": false
+}

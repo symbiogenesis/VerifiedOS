@@ -1,0 +1,332 @@
+{
+  "audit_helper_sha256": "dc070238fbd144751619a6ff75a6cf43a59d3c482bb31d7b5fda904e51194737",
+  "exact_reference": null,
+  "prefix": "/root/build/fanout-retained/314f14d5fbd20fd942a6/deps-matrix-20261019/lane/certirocq/opam-root/verifiedos-certirocq-0.9.1-ocaml-4.14.4",
+  "root": "/root/build/lane-deps-matrix-20261019/certirocq/opam-root",
+  "source_sha256": {
+    "proofs/EndpointIPC.v": "3b2a2f3a5ed8adf7bb28fc1ea921913061186923dccfeea74273b76f5fb7c7cc",
+    "tools/wasm-oracle/demo.v": "fab9b4bf5b170486580eb78b7a9f13887aaf3248d57cb4499709b38cb795157c",
+    "tools/wasm-oracle/ipc_oracle.v": "7a919c406f6e7ef77c3f779bd502f7606c49808f6aab419b1995801fa9b3820c",
+    "tools/wasm-oracle/run_demo.mjs": "837e6234d18de5494fe8658e4b1fe659023aef6bddd49f85481441c68c820e0c"
+  },
+  "steps": [
+    {
+      "argv": [
+        "/root/build/lane-deps-matrix-20261019/certirocq/bin/opam",
+        "var",
+        "prefix",
+        "--switch=verifiedos-certirocq-0.9.1-ocaml-4.14.4"
+      ],
+      "cwd": "/root/build/lane-certirocq-hdval-adopt-20261020/consumers-baseline",
+      "exit_code": 0,
+      "expected": 0,
+      "name": "prefix",
+      "seconds": 0.023909199999991415,
+      "stderr_sha256": "73f7d708ddfeaa846af9ef6a9759e091a31ec9c2d32a6cf62dfb0f5bf1bf1d3a",
+      "stdout_sha256": "f583430d0635fe9fe5d3184ec6e7b8e387822ebc12360ce84e4779c46d598767"
+    },
+    {
+      "argv": [
+        "/root/build/lane-deps-matrix-20261019/certirocq/bin/opam",
+        "exec",
+        "--switch=verifiedos-certirocq-0.9.1-ocaml-4.14.4",
+        "--",
+        "/root/build/fanout-retained/314f14d5fbd20fd942a6/deps-matrix-20261019/lane/certirocq/opam-root/verifiedos-certirocq-0.9.1-ocaml-4.14.4/bin/coqc",
+        "--version"
+      ],
+      "cwd": "/root/build/lane-certirocq-hdval-adopt-20261020/consumers-baseline",
+      "exit_code": 0,
+      "expected": 0,
+      "name": "versions",
+      "seconds": 4.77349985699999,
+      "stderr_sha256": "73f7d708ddfeaa846af9ef6a9759e091a31ec9c2d32a6cf62dfb0f5bf1bf1d3a",
+      "stdout_sha256": "25dc95d08899a577f7e8b2a5307dfdb9cfd8e3c9e003a9e09ae08769445cbf40"
+    },
+    {
+      "argv": [
+        "/root/build/lane-deps-matrix-20261019/certirocq/bin/opam",
+        "exec",
+        "--switch=verifiedos-certirocq-0.9.1-ocaml-4.14.4",
+        "--",
+        "/root/build/fanout-retained/314f14d5fbd20fd942a6/deps-matrix-20261019/lane/certirocq/opam-root/verifiedos-certirocq-0.9.1-ocaml-4.14.4/bin/coqc",
+        "demo.v"
+      ],
+      "cwd": "/root/build/lane-certirocq-hdval-adopt-20261020/consumers-baseline/positive",
+      "exit_code": 0,
+      "expected": 0,
+      "name": "positive-demo",
+      "seconds": 1.1068286830000034,
+      "stderr_sha256": "9109a06710be6d5cf97ddff84e5366a4232fcf72d964e2ef53e9261cae6e883a",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "argv": [
+        "/root/build/lane-deps-matrix-20261019/certirocq/bin/opam",
+        "exec",
+        "--switch=verifiedos-certirocq-0.9.1-ocaml-4.14.4",
+        "--",
+        "/root/build/fanout-retained/314f14d5fbd20fd942a6/deps-matrix-20261019/lane/certirocq/opam-root/verifiedos-certirocq-0.9.1-ocaml-4.14.4/bin/coqc",
+        "EndpointIPC.v"
+      ],
+      "cwd": "/root/build/lane-certirocq-hdval-adopt-20261020/consumers-baseline/positive",
+      "exit_code": 0,
+      "expected": 0,
+      "name": "positive-EndpointIPC",
+      "seconds": 0.5629468960000281,
+      "stderr_sha256": "73f7d708ddfeaa846af9ef6a9759e091a31ec9c2d32a6cf62dfb0f5bf1bf1d3a",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "argv": [
+        "/root/build/lane-deps-matrix-20261019/certirocq/bin/opam",
+        "exec",
+        "--switch=verifiedos-certirocq-0.9.1-ocaml-4.14.4",
+        "--",
+        "/root/build/fanout-retained/314f14d5fbd20fd942a6/deps-matrix-20261019/lane/certirocq/opam-root/verifiedos-certirocq-0.9.1-ocaml-4.14.4/bin/coqc",
+        "ipc_oracle.v"
+      ],
+      "cwd": "/root/build/lane-certirocq-hdval-adopt-20261020/consumers-baseline/positive",
+      "exit_code": 0,
+      "expected": 0,
+      "name": "positive-ipc_oracle",
+      "seconds": 3.818242166999994,
+      "stderr_sha256": "73f7d708ddfeaa846af9ef6a9759e091a31ec9c2d32a6cf62dfb0f5bf1bf1d3a",
+      "stdout_sha256": "cf28e764574b9ae995a7f4c57d8f30ea045178db576c3e436867845672d19a16"
+    },
+    {
+      "argv": [
+        "/root/build/lane-deps-tooling-20261019/toolchains/node-v26.12.0-linux-arm64/bin/node",
+        "--stack-size=10000000",
+        "run_demo.mjs",
+        "demo.oracle_demo.wasm"
+      ],
+      "cwd": "/root/build/lane-certirocq-hdval-adopt-20261020/consumers-baseline/positive",
+      "exit_code": 0,
+      "expected": 0,
+      "name": "wasm-demo.oracle_demo",
+      "seconds": 0.0582112999999822,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "a17fcf0a2f50e2d495e4f90ce263410edc183add6c62699a2facbccf60410f74"
+    },
+    {
+      "argv": [
+        "/root/build/lane-deps-tooling-20261019/toolchains/node-v26.12.0-linux-arm64/bin/node",
+        "--stack-size=10000000",
+        "run_demo.mjs",
+        "ipc_oracle.ipc_oracle.wasm"
+      ],
+      "cwd": "/root/build/lane-certirocq-hdval-adopt-20261020/consumers-baseline/positive",
+      "exit_code": 0,
+      "expected": 0,
+      "name": "wasm-ipc_oracle.ipc_oracle",
+      "seconds": 0.05381830000004584,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "a17fcf0a2f50e2d495e4f90ce263410edc183add6c62699a2facbccf60410f74"
+    },
+    {
+      "argv": [
+        "/root/build/lane-deps-matrix-20261019/certirocq/bin/opam",
+        "exec",
+        "--switch=verifiedos-certirocq-0.9.1-ocaml-4.14.4",
+        "--",
+        "/root/build/fanout-retained/314f14d5fbd20fd942a6/deps-matrix-20261019/lane/certirocq/opam-root/verifiedos-certirocq-0.9.1-ocaml-4.14.4/bin/coqc",
+        "DemoKernel.v"
+      ],
+      "cwd": "/root/build/lane-certirocq-hdval-adopt-20261020/consumers-baseline/positive",
+      "exit_code": 0,
+      "expected": 0,
+      "name": "demo-kernel",
+      "seconds": 0.5440615950000165,
+      "stderr_sha256": "73f7d708ddfeaa846af9ef6a9759e091a31ec9c2d32a6cf62dfb0f5bf1bf1d3a",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "argv": [
+        "/root/build/lane-deps-matrix-20261019/certirocq/bin/opam",
+        "exec",
+        "--switch=verifiedos-certirocq-0.9.1-ocaml-4.14.4",
+        "--",
+        "/root/build/fanout-retained/314f14d5fbd20fd942a6/deps-matrix-20261019/lane/certirocq/opam-root/verifiedos-certirocq-0.9.1-ocaml-4.14.4/bin/coqc",
+        "EndpointIPC.v"
+      ],
+      "cwd": "/root/build/lane-certirocq-hdval-adopt-20261020/consumers-baseline/negative",
+      "exit_code": 0,
+      "expected": 0,
+      "name": "negative-EndpointIPC",
+      "seconds": 0.5600605949999817,
+      "stderr_sha256": "73f7d708ddfeaa846af9ef6a9759e091a31ec9c2d32a6cf62dfb0f5bf1bf1d3a",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "argv": [
+        "/root/build/lane-deps-matrix-20261019/certirocq/bin/opam",
+        "exec",
+        "--switch=verifiedos-certirocq-0.9.1-ocaml-4.14.4",
+        "--",
+        "/root/build/fanout-retained/314f14d5fbd20fd942a6/deps-matrix-20261019/lane/certirocq/opam-root/verifiedos-certirocq-0.9.1-ocaml-4.14.4/bin/coqc",
+        "ipc_oracle.v"
+      ],
+      "cwd": "/root/build/lane-certirocq-hdval-adopt-20261020/consumers-baseline/negative",
+      "exit_code": 0,
+      "expected": 0,
+      "name": "negative-ipc_oracle",
+      "seconds": 3.2665843450000125,
+      "stderr_sha256": "73f7d708ddfeaa846af9ef6a9759e091a31ec9c2d32a6cf62dfb0f5bf1bf1d3a",
+      "stdout_sha256": "ba625c9a18aa07a9985ee8923c7cc48b9cbee9186eb048d56f04a4fa68e76b6c"
+    },
+    {
+      "argv": [
+        "/root/build/lane-deps-tooling-20261019/toolchains/node-v26.12.0-linux-arm64/bin/node",
+        "--stack-size=10000000",
+        "run_demo.mjs",
+        "ipc_oracle.ipc_oracle.wasm"
+      ],
+      "cwd": "/root/build/lane-certirocq-hdval-adopt-20261020/consumers-baseline/negative",
+      "exit_code": 1,
+      "expected": 1,
+      "name": "wasm-negative",
+      "seconds": 0.0592358709999985,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "2ed27c1421e6928dbe13dbfdb5c59e1045b30341fe7ebe05700006bc5ac572c0"
+    },
+    {
+      "argv": [
+        "/root/build/lane-deps-matrix-20261019/certirocq/bin/opam",
+        "exec",
+        "--switch=verifiedos-certirocq-0.9.1-ocaml-4.14.4",
+        "--",
+        "/root/build/fanout-retained/314f14d5fbd20fd942a6/deps-matrix-20261019/lane/certirocq/opam-root/verifiedos-certirocq-0.9.1-ocaml-4.14.4/bin/coqc",
+        "demoInventory.v"
+      ],
+      "cwd": "/root/build/lane-certirocq-hdval-adopt-20261020/consumers-baseline/positive",
+      "exit_code": 0,
+      "expected": 0,
+      "name": "inventory-demo",
+      "seconds": 0.46794726600001013,
+      "stderr_sha256": "73f7d708ddfeaa846af9ef6a9759e091a31ec9c2d32a6cf62dfb0f5bf1bf1d3a",
+      "stdout_sha256": "4c1114e7af00baecbe9c21321b38f30bab6f5fc442700ca9b1039ab89dd3ac6c"
+    },
+    {
+      "argv": [
+        "/root/build/lane-deps-matrix-20261019/certirocq/bin/opam",
+        "exec",
+        "--switch=verifiedos-certirocq-0.9.1-ocaml-4.14.4",
+        "--",
+        "/root/build/fanout-retained/314f14d5fbd20fd942a6/deps-matrix-20261019/lane/certirocq/opam-root/verifiedos-certirocq-0.9.1-ocaml-4.14.4/bin/coqc",
+        "demoAssumptions.v"
+      ],
+      "cwd": "/root/build/lane-certirocq-hdval-adopt-20261020/consumers-baseline/positive",
+      "exit_code": 0,
+      "expected": 0,
+      "name": "assumptions-demo",
+      "seconds": 0.39045530499998904,
+      "stderr_sha256": "73f7d708ddfeaa846af9ef6a9759e091a31ec9c2d32a6cf62dfb0f5bf1bf1d3a",
+      "stdout_sha256": "a2306b7a2efbe9de39babf471474b8c75d2a01ff2ee7aa8b6f3e479bfb1f6c36"
+    },
+    {
+      "argv": [
+        "/root/build/lane-deps-matrix-20261019/certirocq/bin/opam",
+        "exec",
+        "--switch=verifiedos-certirocq-0.9.1-ocaml-4.14.4",
+        "--",
+        "/root/build/fanout-retained/314f14d5fbd20fd942a6/deps-matrix-20261019/lane/certirocq/opam-root/verifiedos-certirocq-0.9.1-ocaml-4.14.4/bin/coqc",
+        "EndpointIPCInventory.v"
+      ],
+      "cwd": "/root/build/lane-certirocq-hdval-adopt-20261020/consumers-baseline/positive",
+      "exit_code": 0,
+      "expected": 0,
+      "name": "inventory-EndpointIPC",
+      "seconds": 0.11903424000001905,
+      "stderr_sha256": "73f7d708ddfeaa846af9ef6a9759e091a31ec9c2d32a6cf62dfb0f5bf1bf1d3a",
+      "stdout_sha256": "e91e05a04e0d6b65580107da91bae21504f738adb582948c2fb32ab143e2c92e"
+    },
+    {
+      "argv": [
+        "/root/build/lane-deps-matrix-20261019/certirocq/bin/opam",
+        "exec",
+        "--switch=verifiedos-certirocq-0.9.1-ocaml-4.14.4",
+        "--",
+        "/root/build/fanout-retained/314f14d5fbd20fd942a6/deps-matrix-20261019/lane/certirocq/opam-root/verifiedos-certirocq-0.9.1-ocaml-4.14.4/bin/coqc",
+        "EndpointIPCAssumptions.v"
+      ],
+      "cwd": "/root/build/lane-certirocq-hdval-adopt-20261020/consumers-baseline/positive",
+      "exit_code": 0,
+      "expected": 0,
+      "name": "assumptions-EndpointIPC",
+      "seconds": 0.41180849400001307,
+      "stderr_sha256": "73f7d708ddfeaa846af9ef6a9759e091a31ec9c2d32a6cf62dfb0f5bf1bf1d3a",
+      "stdout_sha256": "251b5f6ae4e60edce5bfc9c769dfee9603aa03c04d4f554f96783cc102bcc955"
+    },
+    {
+      "argv": [
+        "/root/build/lane-deps-matrix-20261019/certirocq/bin/opam",
+        "exec",
+        "--switch=verifiedos-certirocq-0.9.1-ocaml-4.14.4",
+        "--",
+        "/root/build/fanout-retained/314f14d5fbd20fd942a6/deps-matrix-20261019/lane/certirocq/opam-root/verifiedos-certirocq-0.9.1-ocaml-4.14.4/bin/coqc",
+        "ipc_oracleInventory.v"
+      ],
+      "cwd": "/root/build/lane-certirocq-hdval-adopt-20261020/consumers-baseline/positive",
+      "exit_code": 0,
+      "expected": 0,
+      "name": "inventory-ipc_oracle",
+      "seconds": 0.7651824180000517,
+      "stderr_sha256": "73f7d708ddfeaa846af9ef6a9759e091a31ec9c2d32a6cf62dfb0f5bf1bf1d3a",
+      "stdout_sha256": "2c5379fbdb7e97e90572669b3a03cf4f0d16ad240254d49c2f4ac6409e32e169"
+    },
+    {
+      "argv": [
+        "/root/build/lane-deps-matrix-20261019/certirocq/bin/opam",
+        "exec",
+        "--switch=verifiedos-certirocq-0.9.1-ocaml-4.14.4",
+        "--",
+        "/root/build/fanout-retained/314f14d5fbd20fd942a6/deps-matrix-20261019/lane/certirocq/opam-root/verifiedos-certirocq-0.9.1-ocaml-4.14.4/bin/coqc",
+        "ipc_oracleAssumptions.v"
+      ],
+      "cwd": "/root/build/lane-certirocq-hdval-adopt-20261020/consumers-baseline/positive",
+      "exit_code": 0,
+      "expected": 0,
+      "name": "assumptions-ipc_oracle",
+      "seconds": 0.5835157079999931,
+      "stderr_sha256": "73f7d708ddfeaa846af9ef6a9759e091a31ec9c2d32a6cf62dfb0f5bf1bf1d3a",
+      "stdout_sha256": "dac478c73d561ea99c78345b08dc9b98f8630cade939f95343b7702f56f5f8a3"
+    },
+    {
+      "argv": [
+        "/root/build/lane-deps-matrix-20261019/certirocq/bin/opam",
+        "exec",
+        "--switch=verifiedos-certirocq-0.9.1-ocaml-4.14.4",
+        "--",
+        "/root/build/fanout-retained/314f14d5fbd20fd942a6/deps-matrix-20261019/lane/certirocq/opam-root/verifiedos-certirocq-0.9.1-ocaml-4.14.4/bin/coqchk",
+        "-silent",
+        "-o",
+        "-Q",
+        ".",
+        "",
+        "demo",
+        "EndpointIPC",
+        "ipc_oracle"
+      ],
+      "cwd": "/root/build/lane-certirocq-hdval-adopt-20261020/consumers-baseline/positive",
+      "exit_code": 0,
+      "expected": 0,
+      "name": "recursive-kernel",
+      "seconds": 25.726480981999998,
+      "stderr_sha256": "5dc3cbf18640903abb3626cdf2d40964b121e4479867a715b032ce28a6cf4bff",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "success": true,
+  "switch": "verifiedos-certirocq-0.9.1-ocaml-4.14.4",
+  "symbols_per_module": {
+    "EndpointIPC": 602,
+    "demo": 2,
+    "ipc_oracle": 101
+  },
+  "tool_sha256": {
+    "/root/build/fanout-retained/314f14d5fbd20fd942a6/deps-matrix-20261019/lane/certirocq/opam-root/verifiedos-certirocq-0.9.1-ocaml-4.14.4/bin/coqc": "c6a3066a0f5e76b1552458f1dcd4c9592561beedf33b8487502d0e626544c71c",
+    "/root/build/fanout-retained/314f14d5fbd20fd942a6/deps-matrix-20261019/lane/certirocq/opam-root/verifiedos-certirocq-0.9.1-ocaml-4.14.4/bin/coqchk": "cc3510640865f827d79257a51b3fb11ecdf8d5347990bdfe4fe80a210fadcb5f",
+    "/root/build/lane-deps-matrix-20261019/certirocq/bin/opam": "8b24ef2f3f44a31763f54878454fb52afa1f2db7e00abed58b8d4e7ee7e290a6",
+    "/root/build/lane-deps-tooling-20261019/toolchains/node-v26.12.0-linux-arm64/bin/node": "eb9c23a331c876ff7eeb7fd08b5c215da294bc18dc3a066d526254357f0f6942"
+  }
+}

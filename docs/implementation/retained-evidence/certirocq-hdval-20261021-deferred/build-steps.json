@@ -1,0 +1,127 @@
+[
+  {
+    "argv": [
+      "/root/build/fanout-retained/314f14d5fbd20fd942a6/deps-matrix-20261019/lane/certirocq/bin/opam",
+      "switch",
+      "export",
+      "--switch=verifiedos-certirocq-0.9.1-ocaml-4.14.4",
+      "/root/build/lane-certirocq-hdval-adopt-20261020/baseline.lock"
+    ],
+    "exit_code": 0,
+    "log": "/root/build/lane-certirocq-hdval-adopt-20261020/logs/baseline-export.log",
+    "log_sha256": "73f7d708ddfeaa846af9ef6a9759e091a31ec9c2d32a6cf62dfb0f5bf1bf1d3a",
+    "name": "baseline-export",
+    "seconds": 0.256
+  },
+  {
+    "argv": [
+      "/root/build/fanout-retained/314f14d5fbd20fd942a6/deps-matrix-20261019/lane/certirocq/bin/opam",
+      "init",
+      "--bare",
+      "--no-setup",
+      "--no-opamrc",
+      "-y",
+      "default",
+      "https://opam.ocaml.org"
+    ],
+    "exit_code": 0,
+    "log": "/root/build/lane-certirocq-hdval-adopt-20261020/logs/init.log",
+    "log_sha256": "c1deb32ca188d764c4ba66c70cf13df30dc27b49c03e6d970d3929ca61991690",
+    "name": "init",
+    "seconds": 13.12
+  },
+  {
+    "argv": [
+      "/root/build/fanout-retained/314f14d5fbd20fd942a6/deps-matrix-20261019/lane/certirocq/bin/opam",
+      "repository",
+      "add",
+      "rocq-released",
+      "https://rocq-prover.org/opam/released",
+      "--dont-select",
+      "-y"
+    ],
+    "exit_code": 0,
+    "log": "/root/build/lane-certirocq-hdval-adopt-20261020/logs/add-rocq-released.log",
+    "log_sha256": "18f312292c870a017d2dc91b5a1d4fa7ac1a3c6424c5265e841fbe5a4237f170",
+    "name": "add-rocq-released",
+    "seconds": 3.063
+  },
+  {
+    "argv": [
+      "/root/build/fanout-retained/314f14d5fbd20fd942a6/deps-matrix-20261019/lane/certirocq/bin/opam",
+      "switch",
+      "create",
+      "verifiedos-certirocq-0.9.1-ocaml-4.14.4",
+      "--empty",
+      "--no-switch",
+      "--repos=rocq-released,default",
+      "-y"
+    ],
+    "exit_code": 0,
+    "log": "/root/build/lane-certirocq-hdval-adopt-20261020/logs/create-switch.log",
+    "log_sha256": "9e7a4f5f1931aa5c579c53f5b812ed2752816bad518c872a9407240452e0d743",
+    "name": "create-switch",
+    "seconds": 0.921
+  },
+  {
+    "argv": [
+      "/root/build/fanout-retained/314f14d5fbd20fd942a6/deps-matrix-20261019/lane/certirocq/bin/opam",
+      "switch",
+      "import",
+      "--switch=verifiedos-certirocq-0.9.1-ocaml-4.14.4",
+      "/root/build/lane-certirocq-hdval-adopt-20261020/candidate.input.lock",
+      "-y",
+      "-j4"
+    ],
+    "exit_code": 0,
+    "log": "/root/build/lane-certirocq-hdval-adopt-20261020/logs/import-candidate-resumed.log",
+    "log_sha256": "c8e5d94d522b27700b532ae8de244f493711db7febdafb536d800cc5b942ffca",
+    "name": "import-candidate-resumed",
+    "seconds": 3982.286
+  },
+  {
+    "argv": [
+      "/root/build/fanout-retained/314f14d5fbd20fd942a6/deps-matrix-20261019/lane/certirocq/bin/opam",
+      "switch",
+      "set-invariant",
+      "--switch=verifiedos-certirocq-0.9.1-ocaml-4.14.4",
+      "ocaml-base-compiler.4.14.4",
+      "-y"
+    ],
+    "exit_code": 0,
+    "log": "/root/build/lane-certirocq-hdval-adopt-20261020/logs/set-invariant.log",
+    "log_sha256": "2f748fba2ce292197e0d053bddaf5dbb3eefae21bc2d5c4df2d1c8cfba5125de",
+    "name": "set-invariant",
+    "seconds": 2.176
+  },
+  {
+    "argv": [
+      "/root/build/fanout-retained/314f14d5fbd20fd942a6/deps-matrix-20261019/lane/certirocq/bin/opam",
+      "switch",
+      "export",
+      "--switch=verifiedos-certirocq-0.9.1-ocaml-4.14.4",
+      "--full",
+      "--freeze",
+      "/root/build/lane-certirocq-hdval-adopt-20261020/candidate.full.lock"
+    ],
+    "exit_code": 0,
+    "log": "/root/build/lane-certirocq-hdval-adopt-20261020/logs/export-candidate.log",
+    "log_sha256": "73f7d708ddfeaa846af9ef6a9759e091a31ec9c2d32a6cf62dfb0f5bf1bf1d3a",
+    "name": "export-candidate",
+    "seconds": 0.435
+  },
+  {
+    "argv": [
+      "/root/build/fanout-retained/314f14d5fbd20fd942a6/deps-matrix-20261019/lane/certirocq/bin/opam",
+      "switch",
+      "export",
+      "--switch=verifiedos-certirocq-0.9.1-ocaml-4.14.4",
+      "/root/build/lane-certirocq-hdval-adopt-20261020/candidate.lock"
+    ],
+    "exit_code": 0,
+    "log": "/root/build/lane-certirocq-hdval-adopt-20261020/logs/export-candidate-ordinary.log",
+    "log_sha256": "73f7d708ddfeaa846af9ef6a9759e091a31ec9c2d32a6cf62dfb0f5bf1bf1d3a",
+    "name": "export-candidate-ordinary",
+    "seconds": 0.168
+  }
+]

@@ -27,7 +27,7 @@ The review inspected diffs, PR descriptions, public checks and discussion. It ra
 | 11 | `lowRISC/cva6-cheri` — Independently configure Zbkb and Zbkx | [Reference](https://github.com/lowRISC/mocha/issues/748) | **TBD** | TBD: discuss configuration controls and decoder-matrix tests with upstream. |
 | 12 | `CHERIoT-Platform/cheri-rust` — Preserve capability tags in small-aggregate calls | [Reference](https://github.com/CHERIoT-Platform/cheri-rust/issues/271) | **TBD** | TBD: coordinate ABI rules and add Rust/Rust plus Rust/C regressions. |
 | 13 | `CHERIoT-Platform/cheri-rust` — Test capability-metadata misuse during CTFE | [Reference](https://github.com/CHERIoT-Platform/cheri-rust/issues/204) | **TBD** | TBD: add positive and rejection tests requested by upstream. |
-| 14 | `CertiRocq/certirocq` — Fix OCaml 5.2+ bootstrap Hd_val collision | [#167](https://github.com/CertiRocq/certirocq/pull/167) | Merged | Track release inclusion; qualify VerifiedOS adoption separately. |
+| 14 | `CertiRocq/certirocq` — Fix OCaml 5.2+ bootstrap Hd_val collision | [#167](https://github.com/CertiRocq/certirocq/pull/167) | Merged | Initial backport build passed; production adoption deferred at user request pending consumer checks, clean replay and complete-vector acceptance. See the [backport record](../../tools/opam/certirocq-hdval-adoption.md#deferred-qualification). |
 | 15 | `lowRISC/mocha` — Add richer optional retirement tracing | [Reference](https://github.com/lowRISC/mocha/issues/231) | **TBD** | TBD: agree generic optional tracing based on existing RVFI values. |
 | CI-1 | `CertiRocq/certirocq` — Restore the Docker CI build environment | [#168](https://github.com/CertiRocq/certirocq/pull/168) | Open | Investigate the print_lst segfault before treating Docker validation as restored. |
 
@@ -279,7 +279,7 @@ Merged: `2026-10-20T13:15:31Z`.
 
 - [Original Docker failure](https://github.com/CertiRocq/certirocq/actions/runs/39377893256) occurs before bootstrap bridge compilation because the image lacks the required MetaRocq module. Four Nix checks pass.
 
-**Next action:** Track release inclusion; qualify VerifiedOS adoption separately.
+**Next action:** Initial backport build passed; production adoption deferred at user request pending consumer checks, clean replay and complete-vector acceptance. See the [backport record](../../tools/opam/certirocq-hdval-adoption.md#deferred-qualification).
 
 ### CI-1. CertiRocq/certirocq #168
 

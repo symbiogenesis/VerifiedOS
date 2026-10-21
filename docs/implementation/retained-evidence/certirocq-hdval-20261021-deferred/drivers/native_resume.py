@@ -1,0 +1,10 @@
+from pathlib import Path
+source = Path('/mnt/c/Users/symbi/AppData/Local/Temp/verifiedos-certirocq-adopt-20261020-35a60dac42ab4682aad206bde2dee954/native_build.py').read_text()
+exec(source.split('if digest(OPAM)')[0])
+STEPS.extend(json.loads((WORK/'build-steps.json').read_text()))
+run('import-candidate-resumed', [OPAM,'switch','import','--switch='+SWITCH,WORK/'candidate.input.lock','-y','-j4'])
+run('set-invariant', [OPAM,'switch','set-invariant','--switch='+SWITCH,'ocaml-base-compiler.4.14.4','-y'])
+run('export-candidate', [OPAM,'switch','export','--switch='+SWITCH,'--full','--freeze',WORK/'candidate.full.lock'])
+run('export-candidate-ordinary', [OPAM,'switch','export','--switch='+SWITCH,WORK/'candidate.lock'])
+save('candidate-build.json', dict(success=True,root=str(ROOT),switch=SWITCH,opam=str(OPAM),full_export_sha256=digest(WORK/'candidate.full.lock'),steps=STEPS))
+print('CANDIDATE BUILD PASSED', flush=True)

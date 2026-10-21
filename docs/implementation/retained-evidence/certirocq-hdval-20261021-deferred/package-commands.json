@@ -1,0 +1,62 @@
+[
+  {
+    "source": "/root/build/lane-certirocq-hdval-adopt-20261020/candidate-root/log/rocq-certirocq-404-4c23dc.out",
+    "copy": "/root/build/lane-certirocq-hdval-adopt-20261020/package-commands/rocq-certirocq-404-4c23dc.out",
+    "bytes": 341,
+    "sha256": "1489e34138f0b91bd21657c4f4848dbb3391c6f0bb7ae49308076dca0dc3069a"
+  },
+  {
+    "source": "/root/build/lane-certirocq-hdval-adopt-20261020/candidate-root/log/rocq-certirocq-404-4c23dc.info",
+    "copy": "/root/build/lane-certirocq-hdval-adopt-20261020/package-commands/rocq-certirocq-404-4c23dc.info",
+    "bytes": 636,
+    "sha256": "97bb8c25610f679deb2075ee2984d9575caf728f200c6ac767e1e6ee62934971"
+  },
+  {
+    "source": "/root/build/lane-certirocq-hdval-adopt-20261020/candidate-root/log/rocq-certirocq-404-dcd982.out",
+    "copy": "/root/build/lane-certirocq-hdval-adopt-20261020/package-commands/rocq-certirocq-404-dcd982.out",
+    "bytes": 10268,
+    "sha256": "b1e3e0b704b830d3016b69b12a2e6aeef10c29cccb280414d180dee2fc941e72"
+  },
+  {
+    "source": "/root/build/lane-certirocq-hdval-adopt-20261020/candidate-root/log/rocq-certirocq-404-dcd982.info",
+    "copy": "/root/build/lane-certirocq-hdval-adopt-20261020/package-commands/rocq-certirocq-404-dcd982.info",
+    "bytes": 625,
+    "sha256": "fe58e48d2f39a6d047cd508d9f7607e18fceddb7b0b806734cd970395cc13217"
+  },
+  {
+    "source": "/root/build/lane-certirocq-hdval-adopt-20261020/candidate-root/log/rocq-certirocq-404-649e9e.out",
+    "copy": "/root/build/lane-certirocq-hdval-adopt-20261020/package-commands/rocq-certirocq-404-649e9e.out",
+    "bytes": 88758,
+    "sha256": "f204b40ff881589760fd93b8cb2c90bb73da931ca5eab1488875d9cebd35faad"
+  },
+  {
+    "source": "/root/build/lane-certirocq-hdval-adopt-20261020/candidate-root/log/rocq-certirocq-404-649e9e.info",
+    "copy": "/root/build/lane-certirocq-hdval-adopt-20261020/package-commands/rocq-certirocq-404-649e9e.info",
+    "bytes": 629,
+    "sha256": "c11c5b0952dd6febb64b5cb514b29c75f6281022faca39f1e497bcded1fd004d"
+  },
+  {
+    "source": "/root/build/lane-certirocq-hdval-adopt-20261020/candidate-root/log/rocq-certirocq-404-720c6f.out",
+    "copy": "/root/build/lane-certirocq-hdval-adopt-20261020/package-commands/rocq-certirocq-404-720c6f.out",
+    "bytes": 21873,
+    "sha256": "473bf5bdca2d79a9b33145762fccde8a248e0e478fcca82da32366da9996b51a"
+  },
+  {
+    "source": "/root/build/lane-certirocq-hdval-adopt-20261020/candidate-root/log/rocq-certirocq-404-720c6f.info",
+    "copy": "/root/build/lane-certirocq-hdval-adopt-20261020/package-commands/rocq-certirocq-404-720c6f.info",
+    "bytes": 631,
+    "sha256": "f20349674977b5b16c94d12494a553b0e131246d450c50ce507e058012c623a8"
+  },
+  {
+    "source": "/root/build/lane-certirocq-hdval-adopt-20261020/candidate-root/log/rocq-certirocq-404-412c6b.out",
+    "copy": "/root/build/lane-certirocq-hdval-adopt-20261020/package-commands/rocq-certirocq-404-412c6b.out",
+    "bytes": 92256,
+    "sha256": "d561b10a6ac5ca21555c81981332ea50cd9d4cb3ac43b1f14e4b06053e7c24d6"
+  },
+  {
+    "source": "/root/build/lane-certirocq-hdval-adopt-20261020/candidate-root/log/rocq-certirocq-404-412c6b.info",
+    "copy": "/root/build/lane-certirocq-hdval-adopt-20261020/package-commands/rocq-certirocq-404-412c6b.info",
+    "bytes": 631,
+    "sha256": "153c29790180a8decd0a75ed97cf15a37a7093b1a12ffab2251c47aa4d289c9d"
+  }
+]

@@ -1,0 +1,32 @@
+{
+  "success": true,
+  "production_snapshot_unchanged": true,
+  "installed_versions_unchanged": true,
+  "other_frozen_recipes_unchanged": true,
+  "baseline_checks": [
+    {
+      "argv": [
+        "/root/build/lane-deps-matrix-20261019/certirocq/bin/opam",
+        "switch",
+        "export",
+        "--switch=verifiedos-certirocq-0.9.1-ocaml-4.14.4",
+        "/root/build/lane-certirocq-hdval-adopt-20261020/baseline.deferred.lock"
+      ],
+      "exit_code": 0,
+      "sha256": "8437b97944f4dcc666d2df1f2ed4db67221bf23be3efbc3ce1b483b70c04f3b1"
+    },
+    {
+      "argv": [
+        "/root/build/lane-deps-matrix-20261019/certirocq/bin/opam",
+        "switch",
+        "export",
+        "--switch=verifiedos-certirocq-0.9.1-ocaml-4.14.4",
+        "--full",
+        "--freeze",
+        "/root/build/lane-certirocq-hdval-adopt-20261020/baseline.deferred.full.lock"
+      ],
+      "exit_code": 0,
+      "sha256": "580c9206c730258f4e94878d59bdacacfee6190dd3ce8884e143880b62447657"
+    }
+  ]
+}

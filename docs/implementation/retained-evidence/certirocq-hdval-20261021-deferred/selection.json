@@ -1,0 +1,11 @@
+{
+  "base_lock_sha256": "8437b97944f4dcc666d2df1f2ed4db67221bf23be3efbc3ce1b483b70c04f3b1",
+  "base_package_sha256": "f2e25b441ed0d9a38ad4a7cf999c7c835ac419216c10c73c387f125ea1d54c03",
+  "baseline_full_sha256": "580c9206c730258f4e94878d59bdacacfee6190dd3ce8884e143880b62447657",
+  "candidate_input_sha256": "706b6340b218dd2ce84f26d47720dde8e8f05bb0cff78c359b0a53614e90a048",
+  "candidate_package_sha256": "00eb32dd72ecc63ee25599b678d6eaeae0533c875ef3f78b72cf4a10854bb866",
+  "jobs": 4,
+  "patch_sha256": "f350152fd710608b912e9584ae6ef2a005fb8f7d2fc8b7b1e4b15911c9de109b",
+  "patch_url": "https://github.com/CertiRocq/certirocq/commit/971c1eb1b5f0adecfc280872bd5b71b0d7f33a0f.patch",
+  "unchanged_other_metadata": true
+}
