@@ -3,6 +3,13 @@
 Use this index to find each topic's owner. The linked contracts hold the details;
 implementation state and landing evidence belong in the checklist and completion log.
 
+For a first read, start with the [project overview](../README.md), then use the
+[implementation summary](implementation/implementation-checklist.md#current-summary)
+to distinguish the specified system from completed artifacts. The
+[requirements register](requirements-register.md) owns obligations; the
+[specification](spec.md) explains their rationale. For independent review, follow
+the [reviewer onramp](assurance/reviewer-onramp.md).
+
 ## Specification and companions
 
 | Start here | Purpose |
