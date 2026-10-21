@@ -494,7 +494,7 @@ M4.4's record has the other fields named above with narrower integer types whose
 padding the target ABI decides, and no magic or version. Its
 [byte reader](../../../kernel/src/handoff.c) checks the wire header and widths,
 reads each field separately and retains the save-area extents beside that record.
-Actual target entry remains section 8's join. The bring-up composition declares no
+Section 8 describes the finite target-entry join and its limits. The bring-up composition declares no
 partition, window, slot or roster row, so its descriptor is the header alone and plans no successor, which
 M4.4's kernel must refuse; the fixture, which is not that kernel, checks only
 the fields its check 7 reads.
@@ -597,14 +597,18 @@ harness run holds the kernel-entry state through the fixture's checks.
   not the one the chain produces for the same image. Section 9 measures items 4
   and 6 and integrates the ML-DSA verification into the chain's M-mode stage;
   M7.1f owns the executable verifiers (section 5).
-- **M4.4's target entry must bind the decoded records to actual capabilities.** Its
-  `struct vos_init_desc` carries no magic or version, a `has_context` flag
-  where section 6 declares the planned save area's extent, and narrower
-  integer fields laid out by the target ABI. The bounded byte reader checks
-  section 6's layout and preserves those save areas. The remaining join reads
-  the actual c10/c11/c12 capabilities, establishes their provenance and extent,
-  and constructs the initial contexts before dispatch. Host byte-reader checks
-  supply no target capability or authentication evidence.
+- **M4.4's target entry binds decoded records to actual capabilities in the finite
+  scalar composition.** Its `struct vos_init_desc` carries no magic or version,
+  a `has_context` flag where section 6 declares the planned save area's extent,
+  and narrower integer fields laid out by the target ABI. The bounded byte reader
+  checks section 6's layout and preserves those save areas.
+  [The kernel target campaign](../../../kernel/README.md#finite-compiled-target)
+  checks the actual c10/c11/c12 capabilities and root-table entries against its
+  exact composition before C access, then constructs the initial contexts and
+  dispatches them. This supplies the finite producer/consumer join; the complete
+  roster and authenticated boot integration retain their M7.1 acceptance.
+  Host byte-reader checks alone supply no target capability or authentication
+  evidence.
 - **The firmware's watchdog duty is not discharged by the bring-up release.**
   R-15-198 puts every sequencing step under a watchdog-bounded timeout that the
   RoT firmware executes, and R-15-240's pets are RoT-nonce challenge-responses;

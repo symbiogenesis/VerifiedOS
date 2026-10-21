@@ -132,9 +132,11 @@ That campaign uses the producer's fixed `main`/`service`/`leaf` fixture, two
 cuts through each selected phase, clear and cleanup population and old/pop-phase
 refusals. It is not an arbitrary-roster producer, a proof of all authority ancestry
 or physical WCET: the declared release delay uses an explicit one-instruction
-clock profile. Joining those actual protected-frame mechanisms to the real
-supervisor/copy/storage composition remains M4.4b-i's duty. The finite C frame
-reserve/pop helpers alone do not establish that full ABI.
+clock profile. The [scalar integration checkpoint](../docs/implementation/contracts/boot-roster.md#2a-scalar-integration-and-producer-joins)
+joins the supervisor, lifecycle consumer and copy service with zero protected-call
+depth and no external loans. It does not join this depth-two fixture to storage or
+establish the full protected-call ABI. The finite C frame reserve/pop helpers
+retain the same limit.
 
 ## Finite compiled target
 
@@ -298,8 +300,11 @@ clearing a pending request or publishing a refusal does not authorize resumption
 native decision/refusal controls. [The typed unit](test/lifecycle_target_unit.c)
 also lowers and runs on the accepted scalar target. Its local hardware
 observations are component inputs, not evidence of a composed timer boundary or
-ownership closure. The real supervisor/copy, privilege, fixed-release and
-fault/restart joins remain M4.4b-i and M7.1a obligations.
+ownership closure. M4.4b-i's [landed scalar join](../docs/implementation/completion-log.md#m44b-i-bind-scalar-restart-and-service-effects)
+executes the non-ASR supervisor, lifecycle consumer and copy service together,
+with normal restart, stale-grant refusal and incomplete-completion refusal.
+Its declared holder set has no external loans and zero protected-call depth.
+Authenticated boot, storage and the complete roster remain M7.1 obligations.
 
 ## Licensing
 
