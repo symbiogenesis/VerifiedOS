@@ -211,6 +211,58 @@ def _opam_probe_preserves_build_suffix() -> None:
                "the same release built for another Rocq version must be rejected")
 
 
+def _oracle_probe_requires_frozen_source() -> None:
+    """A same-version unpatched producer is reported without a repair command."""
+    expected = '''opam-version: "2.0"
+installed: [
+  "rocq-certirocq.0.9.1+9.1"
+]
+package "rocq-certirocq" {
+  version: "0.9.1+9.1"
+  patches: ["hdval.patch"]
+  url { src: "https://example.invalid/release" checksum: "sha256=release" }
+  extra-source "hdval.patch" {
+    src: "https://example.invalid/header-fix" checksum: "sha256=patch"
+  }
+}
+'''
+    fact = next(fact for fact in provision.FACTS if fact.name == "the CertiRocq oracle switch")
+    ensure(not fact.install, "oracle provenance findings invent no installation route")
+    present = provision.Found(True, "the released version is installed")
+    with tempfile.TemporaryDirectory(prefix="vos-oracle-probe-") as td:
+        root = Path(td)
+        lock = root / "tools/opam/certirocq.lock"
+        lock.parent.mkdir(parents=True)
+        lock.write_text(expected, encoding="utf-8")
+        for label, exported, accepted in (
+            ("patched", expected, True),
+            ("unpatched", expected.replace('  patches: ["hdval.patch"]\n', ''), False),
+            ("another patch", expected.replace('sha256=patch', 'sha256=other'), False),
+            ("missing metadata", expected[:expected.index('package "rocq-certirocq"')], False),
+            ("failed export", "", False)):
+            with (patch.object(provision, "_switch_at", return_value=present),
+                  patch.object(provision, "find_root", return_value=root),
+                  patch.object(provision, "_say", return_value=exported) as say):
+                found = fact.probe()
+            ensure(found.present is accepted, f"{label} producer reported as {found}")
+            ensure("frozen" in found.saw, "the finding identifies the source-provenance check")
+            ensure(say.call_args.args[0] == (
+                "opam", "switch", "export", "--switch", gallina.ORACLE_SWITCH, "--full", "--freeze", "-"),
+                "the source probe exports full frozen metadata to stdout without a file")
+        lock.unlink()
+        with (patch.object(provision, "_switch_at", return_value=present),
+              patch.object(provision, "find_root", return_value=root),
+              patch.object(provision, "_say", return_value=expected)):
+            ensure(not fact.probe().present, "a missing expected snapshot supplies no source identity")
+    for earlier in (provision.Found(False, "missing switch"),
+                    provision.Found(False, "old root/client", repairable=False),
+                    provision.Found(False, "wrong package version")):
+        with (patch.object(provision, "_switch_at", return_value=earlier),
+              patch.object(provision, "_say") as say):
+            ensure(fact.probe() == earlier, "an earlier switch finding retains its full verdict")
+            say.assert_not_called()
+
+
 def _a_pinned_source_is_held_by_its_commit() -> None:
     """QuickChick's switch builds a commit no release carries, and a pinned build calls
     itself `dev`, so its fact holds the source opam states rather than a version: the
@@ -1284,6 +1336,7 @@ def cases() -> list[Case]:
         Case("number-reads-the-banners", _number_reads_the_banners),
         Case("probes-answer-no-question", _probes_answer_no_question),
         Case("opam-probe-preserves-build-suffix", _opam_probe_preserves_build_suffix),
+        Case("oracle-probe-requires-frozen-source", _oracle_probe_requires_frozen_source),
         Case("a-pinned-source-is-held-by-its-commit", _a_pinned_source_is_held_by_its_commit),
         Case("opam-probe-holds-the-reviewed-client", _opam_probe_holds_the_reviewed_client),
         Case("opam-probe-holds-the-root", _opam_probe_holds_the_root),

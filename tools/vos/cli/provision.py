@@ -95,7 +95,7 @@ from functools import partial
 from importlib import metadata
 from pathlib import Path
 
-from vos import cli, env, gallina, opam_client
+from vos import cli, compiler_component, env, gallina, opam_client
 from vos.cli import quickchick, rtl, typecheck
 from vos.corpus import find_root
 from vos.report import Reporter
@@ -414,6 +414,30 @@ def _switch_found(switch: str, package: str, pin: str, *, older: bool,
     if not found:
         return Found(False, f"the {switch} switch carries no {package}")
     return Found(found == pin, f"{package} {found} in {switch}")
+
+
+def _oracle_switch() -> Found:
+    """Require the oracle's source recipe as well as its package release.
+
+    A header backport keeps the released version number. Read frozen metadata to
+    distinguish that producer from an unpatched installation, without installing
+    or changing a switch. Existing missing-client/root/version findings retain
+    the switch probe's wording and repairability.
+    """
+    found = _switch_at(gallina.ORACLE_SWITCH, "rocq-certirocq", gallina.CERTIROCQ_VERSION)
+    if not found.present:
+        return found
+    exported = _say(("opam", "switch", "export", "--switch", gallina.ORACLE_SWITCH,
+                     "--full", "--freeze", "-"))
+    try:
+        snapshot = (find_root() / "tools/opam/certirocq.lock").read_text(encoding="utf-8")
+        matches = compiler_component.matches_oracle_snapshot(exported, snapshot)
+    except (OSError, UnicodeError, ValueError) as err:
+        return Found(False, f"{found.saw}; frozen source provenance unread: {err}", repairable=False)
+    if not matches:
+        return Found(False, f"{found.saw}; packages or frozen CertiRocq recipe differ from "
+                            "tools/opam/certirocq.lock", repairable=False)
+    return Found(True, f"{found.saw}; frozen CertiRocq source recipe and packages match the snapshot")
 
 
 def _pinned_source(switch: str, package: str, pin: str) -> Found:
@@ -980,8 +1004,7 @@ FACTS: tuple[Fact, ...] = (
          "the M1.5 Wasm oracle",
          "tools/vos/gallina.py's ORACLE_SWITCH and CERTIROCQ_VERSION, the switch "
          "tools/wasm-oracle/README.md's recipe imports from tools/opam/certirocq.lock",
-         partial(_switch_at, gallina.ORACLE_SWITCH, "rocq-certirocq",
-                 gallina.CERTIROCQ_VERSION)),
+         _oracle_switch),
     Fact("the QuickChick switch", TOOLCHAIN,
          "run.py quickchick check and properties, and run.py seed coq --quickchick",
          "tools/vos/gallina.py's QUICKCHICK_SWITCH and "
