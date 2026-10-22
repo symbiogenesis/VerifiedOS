@@ -2,7 +2,7 @@
   "version": 1,
   "author": "symbiogenesis",
   "created_since": "2026-10-19",
-  "observed_at": "2026-10-22 17:35:30 UTC",
+  "observed_at": "2026-10-22 18:27:02 UTC",
   "items": [
     {
       "id": "1",
@@ -533,15 +533,16 @@
       "repository": "rocq-prover/rocq",
       "topic": "Return per-root results for batched Print Assumptions queries",
       "issue": "https://github.com/rocq-prover/rocq/issues/22627",
-      "pr": null,
-      "benefit": "Could share assumption traversal within one command while preserving each theorem's exact assumption attribution.",
-      "reviewed_head": null,
-      "review": "Issue 22627 requests separate results for each name in a multi-name Print Assumptions query, including names with no assumptions, while sharing work within one command. No implementation PR is recorded. PR 22610 is closed without merge; maintainers rejected a cross-command global cache and recommended improving multi-argument output. The current combined result loses the per-theorem attribution VerifiedOS needs. No project speedup is measured.",
-      "next_action": "TBD: agree per-name batched output in issue 22627, then contribute command-local traversal sharing and attribution regressions.",
+      "pr": "https://github.com/rocq-prover/rocq/pull/22628",
+      "benefit": "Preserves each theorem's assumption attribution in one multi-name query, with command-local reuse of loaded bodies.",
+      "reviewed_head": "d873bdb4b93910f92a158ea0e1a72f6fd8b985ff",
+      "review": "Adds an opt-in Printing Assumptions Per Reference flag. Default combined output and single-name output are unchanged. Each name retains its own dependency walk, assumption annotations and unsafe flags; only successfully loaded constant bodies are shared within the command. Two focused static reviews found no issues. No performance improvement is measured.",
+      "next_action": "Await upstream review and CI; qualify the output parser before adopting it in VerifiedOS.",
       "evidence": [
-        "[Issue 22627](https://github.com/rocq-prover/rocq/issues/22627) contains the concise proposal and a minimal example distinguishing two roots with different assumptions.",
-        "[The earlier repeated-query report, issue 5639](https://github.com/rocq-prover/rocq/issues/5639), [the maintainer recommendation on closed PR 22610](https://github.com/rocq-prover/rocq/pull/22610#issuecomment-6342792902) and [PR 22425’s shared-proof-term traversal work](https://github.com/rocq-prover/rocq/pull/22425) supply the closely related upstream context.",
-        "Acceptance distinguishes roots through types, sealed implementations, sections, repeated roots and unsafe flags, preserving exact per-root assumptions and context identity. Performance claims require separate measurements."
+        "[Issue 22627](https://github.com/rocq-prover/rocq/issues/22627) contains the proposal and minimal example. The PR follows [the maintainer recommendation on closed PR 22610](https://github.com/rocq-prover/rocq/pull/22610#issuecomment-6342792902).",
+        "Local native validation passed: runtime/core build and focused PrintAssumptions, RecursiveAssumptions, PrintAllAssumptions and print-assumptions-vok regressions. These are author-run checks, not a full upstream CI verdict.",
+        "Regressions cover root order and repetition, closed roots, type dependencies, sealed implementations, section closure, opaque/dependency output, False-use annotations and unsafe-flag isolation.",
+        "[Issue 5639](https://github.com/rocq-prover/rocq/issues/5639) records repeated-query costs. [PR 22425](https://github.com/rocq-prover/rocq/pull/22425) addresses shared proof-term traversal separately; this PR does not claim to solve it."
       ],
       "proposed_on": "2026-10-22",
       "priority": "medium"
@@ -1946,6 +1947,46 @@
           "status": "completed",
           "conclusion": "success",
           "html_url": "https://github.com/WebAssembly/spec/actions/runs/26472972424"
+        }
+      ]
+    },
+    {
+      "headRefOid": "d873bdb4b93910f92a158ea0e1a72f6fd8b985ff",
+      "isDraft": false,
+      "mergedAt": null,
+      "number": 22628,
+      "state": "OPEN",
+      "statusCheckRollup": [
+        {
+          "__typename": "CheckRun",
+          "completedAt": "2026-10-22T18:26:44Z",
+          "conclusion": "CANCELLED",
+          "detailsUrl": "https://gitlab.inria.fr/coq/coq/-/jobs/8127584",
+          "name": "bench",
+          "startedAt": "2026-10-22T18:26:44Z",
+          "status": "COMPLETED",
+          "workflowName": ""
+        },
+        {
+          "__typename": "CheckRun",
+          "completedAt": "0001-01-01T00:00:00Z",
+          "conclusion": "",
+          "detailsUrl": "https://gitlab.inria.fr/coq/coq/-/pipelines/1516060",
+          "name": "GitLab CI pipeline (pull request)",
+          "startedAt": "2026-10-22T18:26:45Z",
+          "status": "IN_PROGRESS",
+          "workflowName": ""
+        }
+      ],
+      "title": "Print Assumptions: add per-reference output",
+      "updatedAt": "2026-10-22T18:26:38Z",
+      "url": "https://github.com/rocq-prover/rocq/pull/22628",
+      "workflow_runs": [
+        {
+          "name": "Github CI",
+          "status": "pending",
+          "conclusion": null,
+          "html_url": "https://github.com/rocq-prover/rocq/actions/runs/39831332324"
         }
       ]
     }
