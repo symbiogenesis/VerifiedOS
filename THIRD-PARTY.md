@@ -28,17 +28,27 @@ Each component retains its upstream license file, unmodified, beside the governe
 | Transplanted capability semantics | n/a | `CTSRD-CHERI/sail-cheri-riscv` | `BSD-2-Clause` | [model/LICENCE.cheri](model/LICENCE.cheri) |
 | Transcribed capability-helper properties, `model/model/unit_tests/cap_properties.sail` | `4da8fd10` | `CTSRD-CHERI/sail-cheri-riscv-verif` | `BSD-2-Clause` | [model/LICENCE.cheri-verif](model/LICENCE.cheri-verif) |
 | ELFIO | `660e9051`, on `main`; the header reports 3.14 | Serge Lamikhov-Center | `MIT` | `model/dependencies/elfio/LICENSE.txt` |
-| Berkeley SoftFloat | `a0c6494c`, on `master`, with one locally changed file | The Regents of the University of California, John R. Hauser | `BSD-3-Clause` | `model/dependencies/softfloat/berkeley-softfloat-3/COPYING.txt` |
+| Berkeley SoftFloat | `a0c6494c`, on `master`, with two locally changed files | The Regents of the University of California, John R. Hauser | `BSD-3-Clause` | `model/dependencies/softfloat/berkeley-softfloat-3/COPYING.txt` |
 
 These licenses are permissive. Redistribution must retain the applicable notices, conditions, and disclaimers; BSD-3-Clause also restricts endorsement using the holders' or contributors' names. None requires source disclosure or restricts a field of use.
 
 The curated model is a modified derivative: curation removes upstream features and incorporates capability semantics. Its upstream notices remain applicable, and project modifications use the same terms, as recorded in [COPYRIGHT.md](COPYRIGHT.md).
 
+The indexed segmented-store overlap helper is adapted from
+[sail-riscv PR 1990](https://github.com/riscv/sail-riscv/pull/1990), at the exact
+source revision identified by the [merged-upstream review](docs/implementation/upstream-merged-review.md#model-and-hardware).
+That revision's own `LICENCE`, read on 2026-10-22, is byte-identical to
+`model/LICENCE`, SHA-256
+`14cfdf5bfb57ba19f57f31c4a79b3712ede0fda06b1674cb40dec393f8694185`.
+The helper retains the model's BSD-2-Clause notices; the authored local regression
+uses the same model-tree terms. This incorporation does not change the separate
+comparison gitlink or the curated tree's recorded starting revision.
+
 [model/LICENCE](model/LICENCE) governs the curated tree under BSD-2-Clause and excludes third-party code in `dependencies/`, where ELFIO and SoftFloat retain their own licenses. The capability-helper properties are transcribed for Sail 0.20.2 and the frozen capability widths because the upstream file does not load unchanged; the transcription loads unchanged at the locked 0.20.3. Their separate notice preserves the upstream holders and funding acknowledgements. K-80 checks the tracked license paths in the table.
 
 ELFIO has no release after `Release_3.12`. The vendored headers and README are the untagged `main` commit `660e90514a2e80fba1c55f2cee07bbeda3d1c601`, which includes bounds, overflow and use-after-free fixes, absent from that release, on the non-lazy load path the emulator's loader uses. Its `LICENSE.txt`, SHA-256 `54e2f5ccbae52ada660f9a38658cac957506b3fb94871fc0f056e9916c34aa2f` and read at that commit on 2026-09-29, states MIT, as does the notice each header except `elfio_version.hpp` carries. The local `CMakeLists.txt` is `Release_3.12`'s with a `SYSTEM` include and `SKIP_LINTING` added; it omits the upstream `ario` target and upstream's later top-level-only packaging changes.
 
-SoftFloat is the `ucb-bar/berkeley-softfloat-3` repository at `master` commit `a0c6494cdc11865811dec815d5c0049fba9d82a8` (2025-03-07), which adds BF16 conversions and build and typo fixes to Release 3e; the repository has no tags. Every vendored file is that commit's blob except `build/Linux-x86_64-GCC/platform.h`, whose local changes define `INLINE` as `static inline` rather than `inline` and drop upstream's trailing blank line. `COPYING.txt`, SHA-256 `145ea96b4a4a04a1a7738d2a2bf9e830f861971e69606187b018d9e8fc0b95c7` and read at that commit on 2026-09-29, is the Release 3e license, BSD-3-Clause.
+SoftFloat is the `ucb-bar/berkeley-softfloat-3` repository at `master` commit `a0c6494cdc11865811dec815d5c0049fba9d82a8` (2025-03-07), which adds BF16 conversions and build and typo fixes to Release 3e; the repository has no tags. Every vendored file is that commit's blob except `build/Linux-x86_64-GCC/platform.h`, whose local changes define `INLINE` as `static inline` rather than `inline` and drop upstream's trailing blank line, and `source/include/internals.h`, which incorporates only the BF16 NaN predicate correction from [PR 44](https://github.com/ucb-bar/berkeley-softfloat-3/pull/44) at [the selected revision](https://github.com/ucb-bar/berkeley-softfloat-3/tree/73e3f397e84d6d2a34bded52b0a77af3f4062ac2). No other BF16 operations are imported. `COPYING.txt`, SHA-256 `145ea96b4a4a04a1a7738d2a2bf9e830f861971e69606187b018d9e8fc0b95c7`, is the Release 3e license, BSD-3-Clause. It was read at the base commit on 2026-09-29 and at the selected correction revision on 2026-10-22; both are byte-identical to the retained notice. The source remains distributed with the curated model under those terms.
 
 ## Fetched at build time
 
@@ -46,13 +56,21 @@ The repository retains each component's license and `CMakeLists.txt` under `mode
 
 | Component | Version | Upstream | Integrity hash | License | License text |
 | --- | --- | --- | --- | --- | --- |
-| CLI11 | 2.7.2 | University of Cincinnati, Henry Schreiner | `SHA256` | `BSD-3-Clause` | `model/dependencies/CLI11/LICENSE` |
+| CLI11 | 2.7.2 development source | University of Cincinnati, Henry Schreiner | `SHA256` | `BSD-3-Clause` | `model/dependencies/CLI11/LICENSE` |
 | Asio | 1.38.2 | Christopher M. Kohlhoff | `SHA3_256` | `BSL-1.0` | `model/dependencies/asio/LICENSE_1_0.txt` |
 | jsoncons | 1.10.0 | Daniel Parker | `SHA3_256` | `BSL-1.0` | `model/dependencies/jsoncons/LICENSE` |
 
-The model-library inventory was checked on 2026-10-19: CLI11 2.7.2, Asio 1.38.2,
-jsoncons 1.10.0 and the 2026-08-20 test release remain the newest releases; ELFIO
-and SoftFloat remain at their recorded development tips.
+CLI11 uses the immutable source at
+[`08ca3298f6704bfe652f5b85e1bc22dc2800ac5f`](https://github.com/CLIUtils/CLI11/tree/08ca3298f6704bfe652f5b85e1bc22dc2800ac5f),
+carrying [PR 1472's unsigned conversion refusal](https://github.com/CLIUtils/CLI11/pull/1472)
+after release 2.7.2. Its own `LICENSE`, read on 2026-10-22, is byte-identical to
+the retained BSD-3-Clause text, SHA-256
+`cfc76368aef8f51868fa1cda6bcfa26e583406a4cf8e48e725e7624df24d8855`.
+The source archive is fetched with the SHA-256 owned by
+[its build declaration](model/dependencies/CLI11/CMakeLists.txt); no upstream
+implementation is tracked here. The emulator uses the upstream multi-header
+interface. The [bounded adoption contract](docs/implementation/upstream-adoption.md)
+owns parser qualification and the fresh hosted model-build requirement.
 
 Hashes identify the downloaded bytes; the licenses govern their use. Dependency updates maintain these pins locally and verify them through a fresh model build. Upstream reconciliation preserves a newer local dependency pin. Asio uses its official GitHub tag archive because the SourceForge endpoint does not reliably return archive bytes.
 

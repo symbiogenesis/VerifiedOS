@@ -389,7 +389,8 @@ def _lane_step_limits() -> None:
     named = {"model": ("Bootstrap guest toolchains", "Model evidence"),
              "rtl": ("Bootstrap guest toolchains", "Check generated model bundle",
                      "Lint standalone RTL", "Check frozen RTL widths and store lanes",
-                     "Crosscheck RTL against fresh model vectors"),
+                     "Crosscheck RTL against fresh model vectors",
+                     "Check frame writer and locked assertions"),
              "proofs": ("Bootstrap guest toolchains", "Proof gate",
                         "Read the proofs against the reading base")}
     ensure(set(named) == set(LANES), f"every lane's limits are read: {sorted(LANES)}")
@@ -686,6 +687,30 @@ def _adapter_precedes_model_build() -> None:
     ensure("adapter" in LANES["model"], "the reporter omits adapter refusal")
 
 
+def _framesim_is_required_and_reported() -> None:
+    step = _step("Check frame writer and locked assertions")
+    ensure("testrig framesim --controls" in step and "--corpus" not in step
+           and "continue-on-error" not in step,
+           "the frame/assertion controls must gate RTL without a model-build dependency")
+    ensure('tee "$VOS_LOG_DIR/rtl-framesim.log"' in step,
+           "the native frame/assertion diagnostics must survive the runner")
+    ensure('|| status=$?' in step and 'exit "$status"' in step
+           and '"$VOS_LOG_DIR/framesim-assertion-policy/"' in step,
+           "retaining assertion diagnostics must preserve the native command's failure")
+    with tempfile.TemporaryDirectory() as directory:
+        root = Path(directory)
+        for outcome in ("success", "failure", "skipped", "cancelled"):
+            logs = root / outcome
+            summary = report("rtl", logs, root / "absent-console", root / "absent-proof",
+                             {"bootstrap": {"outcome": "success"},
+                              "framesim": {"outcome": outcome}},
+                             "abc", toolchains="cold", sail_memo="cold")
+            result = json.loads((logs / "results.json").read_text(encoding="utf-8"))
+            ensure(result["commands"].get("framesim") == outcome
+                   and f"| framesim | {outcome} |" in summary,
+                   "the assertion-control outcome must not be omitted or reported as success")
+
+
 def cases() -> list[Case]:
     return [
         Case("bootstrap failure retains diagnostics without stale proofs", _bootstrap_failure),
@@ -700,6 +725,8 @@ def cases() -> list[Case]:
         Case("member names are escaped in Markdown tables", _member_names_cannot_break_table),
         Case("model failures name escaped diagnostics without stale excerpts", _model_failure_excerpt),
         Case("the generated adapter passes before allocating model build work", _adapter_precedes_model_build),
+        Case("the native frame/assertion gate is required and reports every outcome",
+             _framesim_is_required_and_reported),
         Case("reading outcome and base are recorded and validated", _reading_outcome_recorded),
         Case("reading step runs in the gate's environment and reads compare's verdict",
              _reading_step),

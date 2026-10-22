@@ -7,6 +7,10 @@ contributions and open watches; this review owns the retrospective adoption
 judgments below. It changes no dependency pin, implementation estimate or
 acceptance predicate.
 
+The [bounded adoption contract](upstream-adoption.md) owns the selected
+implementation follow-through and its validation scope. The findings below retain
+their stated review revision.
+
 The scope is every direct upstream gitlink, the additional projects named by the
 tracker, and the relevant compiler, proof, compute and host-tool donors named by
 their local owners. Evidence comes from first-party commit histories, merged PR

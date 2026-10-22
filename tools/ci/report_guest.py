@@ -20,7 +20,7 @@ from vos import receipts  # noqa: E402  (standalone reporting needs no locked en
 # only when a dispatch names a reading base, and is skipped otherwise.
 LANES: dict[str, tuple[str, ...]] = {
     "model": ("bootstrap", "adapter", "evidence"),
-    "rtl": ("bootstrap", "bundle", "lint", "widthcheck", "crosscheck"),
+    "rtl": ("bootstrap", "bundle", "lint", "widthcheck", "crosscheck", "framesim"),
     "proofs": ("bootstrap", "proofs", "reading"),
 }
 # The lanes that run Sail over a restored memo, the model lane's build and the rtl

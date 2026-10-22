@@ -621,6 +621,24 @@ jobs:
           /usr/bin/time -f "$GUEST_TIME" python3 tools/run.py rtl crosscheck \
             2>&1 | tee "$VOS_LOG_DIR/rtl-crosscheck.log"
 
+      - name: Check frame writer and locked assertions
+        id: framesim
+        if: ${{ matrix.lane == 'rtl' && !cancelled() && steps.dispatch.outcome != 'failure' && steps.bootstrap.outcome == 'success' }}
+        timeout-minutes: 15
+        # Synthetic frames and assertion controls require no model build or corpus.
+        run: |
+          status=0
+          /usr/bin/time -f "$GUEST_TIME" python3 tools/run.py testrig framesim --controls \
+            2>&1 | tee "$VOS_LOG_DIR/rtl-framesim.log" || status=$?
+          details="$VOS_BUILD_ROOT/rvfi-harness/assertion-policy"
+          mkdir -p -- "$VOS_LOG_DIR/framesim-assertion-policy"
+          for part in build locked-pass locked-fail unlocked-fail; do
+            if [[ -f "$details/$part.log" ]]; then
+              cp -- "$details/$part.log" "$VOS_LOG_DIR/framesim-assertion-policy/"
+            fi
+          done
+          exit "$status"
+
       - name: Report guest results
         if: ${{ !cancelled() && steps.dispatch.outcome != 'failure' }}
         env:

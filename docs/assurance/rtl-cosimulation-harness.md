@@ -228,11 +228,18 @@ complete that duty.
 | --- | --- | --- |
 | `python tools/run.py testrig adapt FRAME TRACE` | either | one frame against one golden trace: refused, divergent, incomplete or complete |
 | `python tools/run.py testrig carry` | guest | the frame's carrying capacity over the corpus's golden traces, and that every seeded single-field change is reported |
-| `python tools/run.py testrig framesim --controls --corpus` | guest | that the SystemVerilog writer's frames decode field for field as its stimulus stated, that each seeded writer mutant is reported by that stimulus, and that every member `carry` holds whole comes back whole through it |
+| `python tools/run.py testrig framesim --controls --corpus` | guest | that the SystemVerilog writer's frames decode field for field as its stimulus stated, that compiled assertions stay enabled under locked runtime controls, that each seeded writer mutant is reported by that stimulus, and that every member `carry` holds whole comes back whole through it |
 | `python tools/run.py testrig bmc` | either | the smoke's plan and its instruction scope; it runs nothing |
 | `python tools/run.py test --only rtltrace` | either | the protocol refusals, the projection, the seeds, `carry`'s totals and their scopes, the writer mutants' anchors, the stimulus layout against its bench and this document's field table against the decoder |
 
 **Every producer above is a fixture or the golden model.** `framesim`'s driver is a bench fed from stimulus files and `carry`'s producer is the golden trace re-encoded; they establish the adapter's handling of the protocol and of real record shapes, and the round trip of the authored format package's register form over the values they drive. The co-simulation gate's evidence is a frame the core wrote.
+
+Guest CI's RTL lane runs `testrig framesim --controls` without the corpus or a
+model-build dependency. Its assertion-policy fixture includes a passing assertion,
+a failing assertion after an RTL disable attempt under the runtime lock, and the
+same disable attempt without the lock. A compilation failure supplies no detection.
+The reporter retains this command's outcome and native diagnostics. These controls
+qualify the fixture's assertion policy, with the real-core attachment still owed.
 
 ## 10. What is owed
 

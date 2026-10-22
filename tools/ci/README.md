@@ -58,8 +58,11 @@ the shared Sail expectation selector and reproduces the old descending-index
 mismatch as a negative control, without a complete model build. A failed adapter
 skips the sweep and fails the lane; it grants no ISA or model acceptance. The `rtl` lane
 installs the same toolchains, restoring the model lane's download, toolchain and Sail
-memo caches and saving none, then runs the bundle comparison, RTL lint, width check
-and crosscheck. The `proofs` lane
+memo caches and saving none, then runs the bundle comparison, RTL lint, width check,
+crosscheck and synthetic frame-writer controls. The frame simulator compiles assertions
+and locks their runtime controls; passing and intentionally failing assertion probes
+exercise that policy alongside the writer mutants, without a model-build dependency.
+The `proofs` lane
 installs Rocq alone, runs the proof gate and, in a run given a `reading_base`, reads
 the proofs against that base. No lane consumes another's outputs, so a run lasts as
 long as its longest lane. One lane's failure does not cancel another. Every lane must

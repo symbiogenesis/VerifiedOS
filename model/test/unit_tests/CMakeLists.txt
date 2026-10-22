@@ -107,3 +107,9 @@ set_tests_properties(block_image_reloaded_fixture PROPERTIES
 add_executable(block_receipt "block_receipt.cpp" "../../c_emulator/blkdev_image.cpp")
 target_include_directories(block_receipt PRIVATE "../../c_emulator")
 add_test(NAME "block_receipt" COMMAND $<TARGET_FILE:block_receipt>)
+
+# Classify all BF16 representations using the actual vendored SoftFloat macro.
+add_executable(bf16_nan "bf16_nan.cpp")
+target_include_directories(bf16_nan PRIVATE
+    "../../dependencies/softfloat/berkeley-softfloat-3/source/include")
+add_test(NAME "bf16_nan" COMMAND $<TARGET_FILE:bf16_nan>)
