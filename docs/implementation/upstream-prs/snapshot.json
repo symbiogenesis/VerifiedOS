@@ -2,7 +2,7 @@
   "version": 1,
   "author": "symbiogenesis",
   "created_since": "2026-10-19",
-  "observed_at": "2026-10-22 18:27:02 UTC",
+  "observed_at": "2026-10-22 21:21:48 UTC",
   "items": [
     {
       "id": "1",
@@ -657,6 +657,154 @@
         "The cited corpus edition, 608711107b7f1edb13efd57b7d79b49477462d36, has a table.init generator without the proposed INDEX_TYPE parameterization. The diff changes declarations, offsets and instruction operands together rather than renaming fixtures.",
         "Acceptance inspects decoded feature usage and positive/invalid mixed-width cases, records generator and module identities, and filters the exact Core 3.0 scope. A newer upstream main test tree is not automatically the selected semantic edition or a local qualification verdict."
       ]
+    },
+    {
+      "id": "39",
+      "repository": "rocq-prover/rocq",
+      "topic": "Reject forged delta aliases in compiled proof libraries",
+      "issue": null,
+      "pr": "https://github.com/rocq-prover/rocq/pull/22456",
+      "benefit": "Strengthens the independent checker trusted by R-05-018a and R-05-163 against crafted compiled libraries that give incompatible declarations the same canonical identity.",
+      "reviewed_head": "d8b11360301e1ea115ff9b729472ccce25d7d554",
+      "priority": "high",
+      "proposed_on": "2026-10-22",
+      "review": "Open PR validates nontrivial serialized constant and inductive aliases against their canonical declarations before extending the checker environment. Its regressions rewrite valid compiled libraries and recompute their segment digests, then require rejection of both forgeries. This is separate from the merged resolver-substitution repair 22556 already named by R-1. VerifiedOS recompiles sources and binds cached objects by hash; no bypass of its current fresh gate was demonstrated by this review. Public platform checks do not establish a passing full upstream pipeline.",
+      "next_action": "Track review and release/backport carriage with R-1; qualify constant and inductive forgeries, legitimate aliases and current proof-gate refusals before prover adoption.",
+      "evidence": [
+        "[The proof-artifact obligations](../requirements-register.md) and [the proof gate](../../tools/README.md#current-evidence-and-generated-documentation) require independent checking and exact assumption acceptance; source and object identity remain separate controls.",
+        "[PR 22556](https://github.com/rocq-prover/rocq/pull/22556) repairs implementation delta-resolver substitution for anomaly 22555; it does not replace this serialized-alias validation.",
+        "Acceptance checks digest-recomputed constant and inductive forgeries, legitimate transparent strengthening, sealed modules and recursive/admitted roots on the qualified release. No independent upstream build or forged-object execution was run for this tracker."
+      ],
+      "kind": "watch"
+    },
+    {
+      "id": "40",
+      "repository": "mit-plv/fiat-crypto",
+      "topic": "Prove and correct Bernstein-Yang generated contracts",
+      "issue": "https://github.com/mit-plv/fiat-crypto/issues/1945",
+      "pr": "https://github.com/mit-plv/fiat-crypto/pull/2413",
+      "benefit": "Repairs false exported contracts for msat, divstep_precomp and divstep already present in the emitted P256 header, before those routines can supply inversion or refinement evidence.",
+      "reviewed_head": "144ac4d1790e9d0cd6aa235a2596e97b1f6d1af2",
+      "priority": "high",
+      "proposed_on": "2026-10-22",
+      "review": "Draft PR corrects saturated-limb and signed-word interpretations, the precomputation base/modulus, the divstep subtraction and missing premises, and adds discharged synthesis-correctness lemmas. It reports regenerated documentation with executable arithmetic unchanged. The local P256 header still claims that msat is less than the modulus it returns and specifies an odd-branch subtraction of arg4 from itself. This is a contract/proof gap, not a demonstrated arithmetic execution failure. The emission owner explicitly excludes divstep and related routines from its current vector campaign.",
+      "next_action": "Coordinate review of the draft and narrower overlapping repairs as one work item, resolve outstanding upstream checks, and qualify discharged contracts, assumptions and exact regenerated output before extending local emission or inversion claims.",
+      "evidence": [
+        "[The P256 header](../../tools/generated/fiat-crypto/p256_32.h) contains the affected contracts. [The emission contract](fiat-crypto-emission.md#current-2026-10-19-emission-and-replay) records 6,786 checked operation results and makes no divstep claim.",
+        "Related narrower PRs [2402](https://github.com/mit-plv/fiat-crypto/pull/2402), [2417](https://github.com/mit-plv/fiat-crypto/pull/2417) and [2420](https://github.com/mit-plv/fiat-crypto/pull/2420) cover the same exported contracts; coordinate the chosen repair rather than commissioning duplicate patches.",
+        "Acceptance checks all three synthesized contracts and their exact assumptions at the locked prover, saturated n+1-limb values, signed delta bounds and inversion preconditions; rebuild the pinned generator and replay the recorded recipes. Comment repair alone supplies neither target refinement nor a complete inversion theorem."
+      ],
+      "kind": "watch"
+    },
+    {
+      "id": "41",
+      "repository": "WebAssembly/spec",
+      "topic": "Exercise relaxed-dot intermediate i16 overflow",
+      "issue": null,
+      "pr": "https://github.com/WebAssembly/spec/pull/2228",
+      "benefit": "Strengthens Q34g’s mandatory relaxed-SIMD corpus with cases that distinguish the required intermediate truncation from a direct sum into i32.",
+      "reviewed_head": "ce2f20c26b4f2b66c85d7cc90d0571f5b00f89b7",
+      "priority": "high",
+      "proposed_on": "2026-10-22",
+      "review": "Open PR adds boundary cases with byte operands -128, making each pair sum 32768 and exposing the i16 intermediate. For the add variant with zero accumulator, a direct-byte sum returns 65536, outside the proposed allowed lane values -65536, -1 and 65534. The existing inputs keep pair sums in range and cannot distinguish that error. The captured upstream interpreter check fails the new add-variant case with wrong return values, so the expected-result/reference disagreement remains unresolved; neither side supplies accepted local semantics. This is required guest-feature coverage; no local interpreter failure was demonstrated.",
+      "next_action": "Resolve the failing upstream overflow case and outstanding checks, then qualify the agreed fixtures in Q34g’s shared manifest against the generation-fixed DET choices, including a control that omits the i16 intermediate.",
+      "evidence": [
+        "[The complete guest-language contract](contracts/wasm-execution.md#wasm-30-inside-the-existing-boundary) includes fixed and relaxed SIMD with generation-fixed DET choices. [The shared corpus](contracts/wasm-execution.md#shared-upstream-corpus) has one feature-mapped fixture manifest.",
+        "Acceptance exercises both relaxed-dot forms, the intermediate-overflow case, nonzero accumulators and ordinary in-range controls. Each implementation must return its selected deterministic result; a broad allowed-result set must not replace the exact DET-profile check.",
+        "The upstream report describes interpreter bugs that the preceding corpus missed. [The captured interpreter log](https://github.com/WebAssembly/spec/actions/runs/32062414434/job/99852679950) reports wrong return values at relaxed_dot_product.wast lines 117-126. This tracker read that failure and the fixture diff without independently executing the reproducers or assigning the discrepancy to the test or interpreter."
+      ],
+      "kind": "watch"
+    },
+    {
+      "id": "42",
+      "repository": "rems-project/sail",
+      "topic": "Sign the data operand for SystemVerilog arithmetic right shift",
+      "issue": "https://github.com/rems-project/sail/issues/1632",
+      "pr": null,
+      "benefit": "Repairs the generated SystemVerilog reference required by R-15-090 for imported-core formal equivalence, including retained SRA, SRAI, SRAW and SRAIW behavior.",
+      "reviewed_head": null,
+      "priority": "high",
+      "proposed_on": "2026-10-22",
+      "review": "Issue 1632 remains open with no matching repair PR found in the open-PR inventory or all-state searches for its number and arithmetic shift. The inspected sail2 revision 57fd0cef057bb90ed58208599056439edee22e60 emits x >>> signed'(y) for bvashr: it signs the shift amount while the data bitvector remains unsigned, so the SystemVerilog operation shifts logically. This is static source confirmation for the planned SV route, not evidence of a current emulator failure or an executed local reproduction.",
+      "next_action": "TBD: coordinate a data-operand signedness repair under issue 1632 and add generated-SystemVerilog arithmetic-shift regressions before using that reference for formal equivalence.",
+      "evidence": [
+        "[R-15-090](../requirements-register.md) owns the generated-SV equivalence rung. [The retained base clauses](../../model/model/extensions/I/base_insts.sail) call shift_bits_right_arith for SRAI, SRA, SRAW and SRAIW.",
+        "[The inspected emitter](https://github.com/rems-project/sail/blob/57fd0cef057bb90ed58208599056439edee22e60/src/sail_sv_backend/jib_sv.ml) and issue 1632 identify the misplaced signed cast. Unmentioned upstream work cannot be excluded by the targeted search.",
+        "Acceptance compares executed generated SV with independent Sail/C or SMT expectations for positive and negative data, zero and maximum architectural shifts, RV32/RV64 and RV64 word-result sign extension; include a negative control retaining the misplaced cast. Preserve existing shift-width handling and FEV acceptance."
+      ]
+    },
+    {
+      "id": "43",
+      "repository": "WebAssembly/spec",
+      "topic": "Specify signed zero for floating zero times finite nonzero",
+      "issue": "https://github.com/WebAssembly/spec/issues/2300",
+      "pr": null,
+      "benefit": "Closes a numeric-semantic gap in the full Core 3.0 reference Q34g must curate, including the sign of zero in ordinary floating multiplication.",
+      "reviewed_head": null,
+      "priority": "high",
+      "proposed_on": "2026-10-22",
+      "review": "Issue 2300 remains open; no matching open repair PR was found. The inspected fmul rules cover zero times infinity and zero times zero but omit zero times finite nonzero. Those cases reach ieee_N(0), whose zero rounding returns +0, so expressions such as -0 times +1 lose their required sign. The issue reports agreement among the reference interpreter and two independent runtimes on -0. This review checked the written rules but did not execute those runtimes.",
+      "next_action": "TBD: coordinate explicit signed-zero cases under issue 2300, keeping prose and formal rules aligned, with both operand orders, signs, f32/f64 and applicable SIMD regressions.",
+      "evidence": [
+        "[The numeric contract](contracts/wasm-execution.md#wasm-30-inside-the-existing-boundary) requires complete deterministic Core 3.0 numeric behavior; [the semantic-upstream assessment](../assurance/proof-reuse/parsers.md#other-source-leads) keeps the selected edition and generated proof frontier explicit.",
+        "[The upstream multiplication rules](https://github.com/WebAssembly/spec/blob/main/document/core/exec/numerics.rst#op-fmul) and issue 2300 identify the missing cases. Acceptance fixes the qualified semantic edition rather than silently changing the meaning of a pinned reference.",
+        "Acceptance covers positive/negative zero with positive/negative finite nonzero operands in both orders and widths, plus zero/zero, infinity, NaN and nonzero-underflow controls; qualify scalar rules and their fixed-SIMD consumers. No specification edit alone establishes local engine refinement."
+      ]
+    },
+    {
+      "id": "44",
+      "repository": "WebAssembly/spec",
+      "topic": "Preserve bounds premises for SpecTec slices and update paths",
+      "issue": "https://github.com/WebAssembly/spec/issues/2196",
+      "pr": null,
+      "benefit": "Prevents Q34g from consuming generated semantics whose missing bounds premises allow an out-of-bounds memory write reduction alongside the intended trap.",
+      "reviewed_head": null,
+      "priority": "high",
+      "proposed_on": "2026-10-22",
+      "review": "Issue 2196 already covers missing or wrong middle-end side conditions. Issue 2301 supplies a slice-update example with no emitted bounds premise and reports that a totalized generated backend admits both an out-of-bounds i32.store write and a trap. Keep these as one repair item. Related Wasm-DSL/spectec PRs 204 and 216 remain open, but neither is evidence that the specific bounds repair has landed in the selected WebAssembly/spec edition. No independent backend reproduction was executed.",
+      "next_action": "TBD: coordinate the bounds repair and its backport under issues 2196/2301, tracking the related SpecTec PRs; require nested-path bounds and trap/write exclusivity before consuming generated semantics.",
+      "evidence": [
+        "[Issue 2301](https://github.com/WebAssembly/spec/issues/2301) contains the reduced slice-update case and identifies missing guards in SliceE, UpdE, ExtE and update paths. [Issue 2196](https://github.com/WebAssembly/spec/issues/2196) is the existing umbrella; no duplicate issue is proposed.",
+        "Related open work is [Wasm-DSL/spectec PR 204](https://github.com/Wasm-DSL/spectec/pull/204) and [PR 216](https://github.com/Wasm-DSL/spectec/pull/216). [The local semantic-upstream assessment](../assurance/proof-reuse/parsers.md#other-source-leads) requires qualification of the exact generated artifact and admitted-version frontier.",
+        "Acceptance covers zero-length and boundary slices, out-of-bounds lengths/indices, nested update paths with bounds checked against each reached list, ordinary valid stores and exclusive trapping for invalid stores. A proposal-repository merge is not acceptance of a backport or a generated Core 3.0 theorem."
+      ]
+    },
+    {
+      "id": "45",
+      "repository": "mit-plv/fiat-crypto",
+      "topic": "Make archive-build import generation complete or fail explicitly",
+      "issue": "https://github.com/mit-plv/fiat-crypto/issues/1626",
+      "pr": null,
+      "benefit": "Removes the index-restoration workaround from the reproducible generator build and prevents incomplete generated imports from looking like a successful source-archive build.",
+      "reviewed_head": null,
+      "priority": "medium",
+      "proposed_on": "2026-10-22",
+      "review": "Issue 1626 remains open and already owns the request that builds not depend on Git. No matching repair PR was found by issue-number, archive and git ls-files searches. At the selected generator pin, src/Util/make_tactics.sh enumerates tactic modules with git ls-files inside command substitution; an archive without its Git index emits a truncated import list. The retained October 19 qualification reproduces that condition and restores the exact parent index before building. This extends an existing issue with concrete evidence rather than proposing another report.",
+      "next_action": "TBD: contribute the retained archive/index reproducer to issue 1626 and agree deterministic complete import generation or an explicit refusal when required Git metadata is absent.",
+      "evidence": [
+        "[The current emission record](fiat-crypto-emission.md#current-2026-10-19-emission-and-replay) owns the successful indexed build, source-byte checks and truncated-import refusal control.",
+        "[The pinned script](https://github.com/mit-plv/fiat-crypto/blob/1e721c6f18c43b90922e7bc57fd64848e5cff2be/src/Util/make_tactics.sh) generates imports from tracked tactic files. The upstream issue is broader than that script; coordinate the supported archive distribution and dependency scope.",
+        "Acceptance compares the complete generated import roster and a real generator build from the exact Git checkout and supported source archive, with missing/partial-index refusal controls. Preserve deterministic ordering, the locked proof switch, source identities and existing emission replay checks."
+      ]
+    },
+    {
+      "id": "46",
+      "repository": "logsem/machine_utils",
+      "topic": "Establish licensing and attribution for cerise and griotte sources",
+      "issue": "https://github.com/logsem/machine_utils",
+      "pr": null,
+      "benefit": "Removes the first-party-terms blocker to qualifying the Cerise, Cerisier and Griotte proof donors without inferring a license from their parent repositories.",
+      "reviewed_head": null,
+      "priority": "high",
+      "proposed_on": "2026-10-22",
+      "review": "Unfiled issue proposal. At review, the cerise revision 6808152216bcee011c6e6cdcf3500ff8547104f1, griotte revision 56d2f2b6d9373f1349f8689455715f168dd86ece and main revision 3040e1bc4158020a69e96a9a2dcf1b6b30503acd contain no license instrument in the inspected recursive inventories; the inspected cerise opam metadata names anonymous authors and no license. The all-state issue inventory contains only two unrelated closed PRs, and license/licence searches return no match. Absence from these sites does not establish that no grant exists elsewhere; ask the maintainers to establish the applicable terms and attribution.",
+      "next_action": "TBD: open a focused license-and-attribution clarification request for the cerise/griotte revisions, then prepare a license PR only from maintainer-provided terms; retain the local replay/incorporation refusal until first-party evidence is recorded.",
+      "evidence": [
+        "[The third-party owner](../../THIRD-PARTY.md#proof-and-lowering-references) explicitly requires first-party terms before replay or incorporation, including a maintainer statement that an identified parent grant covers the separately published dependency.",
+        "Cerise and Cerisier select [machine_utils 68081522](https://github.com/logsem/machine_utils/tree/6808152216bcee011c6e6cdcf3500ff8547104f1); Griotte uses the separate [griotte branch](https://github.com/logsem/machine_utils/tree/56d2f2b6d9373f1349f8689455715f168dd86ece). [The proof-donor inventory](../assurance/proof-reuse/hardware.md#hw-05-cerise-universal-contract-and-sentry-encapsulation) retains their separate semantic and assumption joins.",
+        "Acceptance records the responsible first party’s grant, covered revisions/files and attribution at the owning ledger, then performs the separately required compatibility, exact-assumption and consumer-theorem qualification. This tracker update files no issue, assigns no license and imports no proof source."
+      ],
+      "kind": "proposal"
     }
   ],
   "pulls": [
@@ -927,7 +1075,7 @@
       "state": "OPEN",
       "statusCheckRollup": [],
       "title": "runtime: add bulk memory transfers and buffer raw image loading",
-      "updatedAt": "2026-10-20T05:03:58Z",
+      "updatedAt": "2026-10-22T21:20:05Z",
       "url": "https://github.com/rems-project/sail/pull/1789",
       "workflow_runs": [
         {
@@ -1959,6 +2107,36 @@
       "statusCheckRollup": [
         {
           "__typename": "CheckRun",
+          "completedAt": "2026-10-22T18:41:45Z",
+          "conclusion": "SUCCESS",
+          "detailsUrl": "https://github.com/rocq-prover/rocq/actions/runs/39831332324/job/120008523650",
+          "name": "macOS",
+          "startedAt": "2026-10-22T18:27:19Z",
+          "status": "COMPLETED",
+          "workflowName": "Github CI"
+        },
+        {
+          "__typename": "CheckRun",
+          "completedAt": "2026-10-22T19:08:03Z",
+          "conclusion": "SUCCESS",
+          "detailsUrl": "https://github.com/rocq-prover/rocq/actions/runs/39831332324/job/120008524130",
+          "name": "Windows",
+          "startedAt": "2026-10-22T18:27:19Z",
+          "status": "COMPLETED",
+          "workflowName": "Github CI"
+        },
+        {
+          "__typename": "CheckRun",
+          "completedAt": "2026-10-22T18:36:22Z",
+          "conclusion": "SUCCESS",
+          "detailsUrl": "https://github.com/rocq-prover/rocq/actions/runs/39831332324/job/120008524042",
+          "name": "Linux (latest OCaml)",
+          "startedAt": "2026-10-22T18:27:18Z",
+          "status": "COMPLETED",
+          "workflowName": "Github CI"
+        },
+        {
+          "__typename": "CheckRun",
           "completedAt": "2026-10-22T18:26:44Z",
           "conclusion": "CANCELLED",
           "detailsUrl": "https://gitlab.inria.fr/coq/coq/-/jobs/8127584",
@@ -1969,24 +2147,887 @@
         },
         {
           "__typename": "CheckRun",
-          "completedAt": "0001-01-01T00:00:00Z",
-          "conclusion": "",
+          "completedAt": "2026-10-22T18:36:00Z",
+          "conclusion": "NEUTRAL",
           "detailsUrl": "https://gitlab.inria.fr/coq/coq/-/pipelines/1516060",
           "name": "GitLab CI pipeline (pull request)",
-          "startedAt": "2026-10-22T18:26:45Z",
-          "status": "IN_PROGRESS",
+          "startedAt": "2026-10-22T18:36:00Z",
+          "status": "COMPLETED",
           "workflowName": ""
+        },
+        {
+          "__typename": "StatusContext",
+          "context": "doc:init: corelib artifact",
+          "startedAt": "2026-10-22T18:31:50Z",
+          "state": "SUCCESS",
+          "targetUrl": "https://coq.gitlabpages.inria.fr/-/coq/-/jobs/8127600/artifacts/_build/default/doc/corelib/html/index.html"
+        },
+        {
+          "__typename": "StatusContext",
+          "context": "doc:ml-api:odoc: ml-api artifact",
+          "startedAt": "2026-10-22T18:31:39Z",
+          "state": "SUCCESS",
+          "targetUrl": "https://coq.gitlabpages.inria.fr/-/coq/-/jobs/8127601/artifacts/_build/default/_doc/_html/index.html"
+        },
+        {
+          "__typename": "StatusContext",
+          "context": "doc:refman: refman artifact",
+          "startedAt": "2026-10-22T18:33:01Z",
+          "state": "SUCCESS",
+          "targetUrl": "https://coq.gitlabpages.inria.fr/-/coq/-/jobs/8127598/artifacts/doc/refman-html/index.html"
         }
       ],
       "title": "Print Assumptions: add per-reference output",
-      "updatedAt": "2026-10-22T18:26:38Z",
+      "updatedAt": "2026-10-22T19:00:44Z",
       "url": "https://github.com/rocq-prover/rocq/pull/22628",
       "workflow_runs": [
         {
           "name": "Github CI",
-          "status": "pending",
-          "conclusion": null,
+          "status": "completed",
+          "conclusion": "success",
           "html_url": "https://github.com/rocq-prover/rocq/actions/runs/39831332324"
+        }
+      ]
+    },
+    {
+      "headRefOid": "d8b11360301e1ea115ff9b729472ccce25d7d554",
+      "isDraft": false,
+      "mergedAt": null,
+      "number": 22456,
+      "state": "OPEN",
+      "statusCheckRollup": [
+        {
+          "__typename": "CheckRun",
+          "completedAt": "2026-10-19T12:47:51Z",
+          "conclusion": "SUCCESS",
+          "detailsUrl": "https://github.com/rocq-prover/rocq/actions/runs/39252622668/job/118059907997",
+          "name": "macOS",
+          "startedAt": "2026-10-19T12:30:52Z",
+          "status": "COMPLETED",
+          "workflowName": "Github CI"
+        },
+        {
+          "__typename": "CheckRun",
+          "completedAt": "2026-10-19T13:09:36Z",
+          "conclusion": "SUCCESS",
+          "detailsUrl": "https://github.com/rocq-prover/rocq/actions/runs/39252622668/job/118059907393",
+          "name": "Windows",
+          "startedAt": "2026-10-19T12:30:45Z",
+          "status": "COMPLETED",
+          "workflowName": "Github CI"
+        },
+        {
+          "__typename": "CheckRun",
+          "completedAt": "2026-10-19T12:39:17Z",
+          "conclusion": "SUCCESS",
+          "detailsUrl": "https://github.com/rocq-prover/rocq/actions/runs/39252622668/job/118059907942",
+          "name": "Linux (latest OCaml)",
+          "startedAt": "2026-10-19T12:30:46Z",
+          "status": "COMPLETED",
+          "workflowName": "Github CI"
+        },
+        {
+          "__typename": "CheckRun",
+          "completedAt": "2026-10-19T15:33:02Z",
+          "conclusion": "FAILURE",
+          "detailsUrl": "https://gitlab.inria.fr/coq/coq/-/jobs/8093196",
+          "name": "GitLab CI job plugin:ci-autosubst_ocaml (pull request)",
+          "startedAt": "2026-10-19T15:33:02Z",
+          "status": "COMPLETED",
+          "workflowName": ""
+        },
+        {
+          "__typename": "CheckRun",
+          "completedAt": "2026-10-19T15:33:19Z",
+          "conclusion": "FAILURE",
+          "detailsUrl": "https://gitlab.inria.fr/coq/coq/-/jobs/8093202",
+          "name": "GitLab CI job plugin:ci-elpi_hb (pull request)",
+          "startedAt": "2026-10-19T15:33:19Z",
+          "status": "COMPLETED",
+          "workflowName": ""
+        },
+        {
+          "__typename": "CheckRun",
+          "completedAt": "2026-10-19T15:44:02Z",
+          "conclusion": "FAILURE",
+          "detailsUrl": "https://gitlab.inria.fr/coq/coq/-/jobs/8093203",
+          "name": "GitLab CI job plugin:ci-equations (pull request)",
+          "startedAt": "2026-10-19T15:44:02Z",
+          "status": "COMPLETED",
+          "workflowName": ""
+        },
+        {
+          "__typename": "CheckRun",
+          "completedAt": "2026-10-19T15:46:28Z",
+          "conclusion": "FAILURE",
+          "detailsUrl": "https://gitlab.inria.fr/coq/coq/-/jobs/8093214",
+          "name": "GitLab CI job plugin:ci-rocq_lsp (pull request)",
+          "startedAt": "2026-10-19T15:46:28Z",
+          "status": "COMPLETED",
+          "workflowName": ""
+        },
+        {
+          "__typename": "CheckRun",
+          "completedAt": "2026-10-19T15:37:03Z",
+          "conclusion": "FAILURE",
+          "detailsUrl": "https://gitlab.inria.fr/coq/coq/-/jobs/8093217",
+          "name": "GitLab CI job plugin:ci-tactician (pull request)",
+          "startedAt": "2026-10-19T15:37:03Z",
+          "status": "COMPLETED",
+          "workflowName": ""
+        },
+        {
+          "__typename": "CheckRun",
+          "completedAt": "2026-10-19T17:19:55Z",
+          "conclusion": "FAILURE",
+          "detailsUrl": "https://gitlab.inria.fr/coq/coq/-/pipelines/1512056",
+          "name": "GitLab CI pipeline (pull request)",
+          "startedAt": "2026-10-19T17:19:55Z",
+          "status": "COMPLETED",
+          "workflowName": ""
+        },
+        {
+          "__typename": "CheckRun",
+          "completedAt": "2026-10-19T12:32:07Z",
+          "conclusion": "CANCELLED",
+          "detailsUrl": "https://gitlab.inria.fr/coq/coq/-/jobs/8093139",
+          "name": "bench",
+          "startedAt": "2026-10-19T12:32:07Z",
+          "status": "COMPLETED",
+          "workflowName": ""
+        },
+        {
+          "__typename": "StatusContext",
+          "context": "doc:init: corelib artifact",
+          "startedAt": "2026-10-19T15:18:29Z",
+          "state": "SUCCESS",
+          "targetUrl": "https://coq.gitlabpages.inria.fr/-/coq/-/jobs/8093171/artifacts/_build/default/doc/corelib/html/index.html"
+        },
+        {
+          "__typename": "StatusContext",
+          "context": "doc:ml-api:odoc: ml-api artifact",
+          "startedAt": "2026-10-19T15:18:22Z",
+          "state": "SUCCESS",
+          "targetUrl": "https://coq.gitlabpages.inria.fr/-/coq/-/jobs/8093172/artifacts/_build/default/_doc/_html/index.html"
+        },
+        {
+          "__typename": "StatusContext",
+          "context": "doc:refman: refman artifact",
+          "startedAt": "2026-10-19T15:20:16Z",
+          "state": "SUCCESS",
+          "targetUrl": "https://coq.gitlabpages.inria.fr/-/coq/-/jobs/8093169/artifacts/doc/refman-html/index.html"
+        }
+      ],
+      "title": "rocqchk: fix soundness bug accepting proofs of False through forged delta aliases",
+      "updatedAt": "2026-10-19T12:31:55Z",
+      "url": "https://github.com/rocq-prover/rocq/pull/22456",
+      "workflow_runs": [
+        {
+          "name": "Github CI",
+          "status": "completed",
+          "conclusion": "success",
+          "html_url": "https://github.com/rocq-prover/rocq/actions/runs/39252622668"
+        }
+      ]
+    },
+    {
+      "headRefOid": "144ac4d1790e9d0cd6aa235a2596e97b1f6d1af2",
+      "isDraft": true,
+      "mergedAt": null,
+      "number": 2413,
+      "state": "OPEN",
+      "statusCheckRollup": [
+        {
+          "__typename": "CheckRun",
+          "completedAt": "2026-09-03T02:35:30Z",
+          "conclusion": "CANCELLED",
+          "detailsUrl": "https://github.com/mit-plv/fiat-crypto/actions/runs/33583780890/job/100103496690",
+          "name": "macOS 15 (x86_64)",
+          "startedAt": "2026-09-02T02:35:30Z",
+          "status": "COMPLETED",
+          "workflowName": "CI (Coq, MacOS)"
+        },
+        {
+          "__typename": "CheckRun",
+          "completedAt": "2026-09-02T21:06:10Z",
+          "conclusion": "SUCCESS",
+          "detailsUrl": "https://github.com/mit-plv/fiat-crypto/actions/runs/33583780877/job/100103496234",
+          "name": "alpine-edge",
+          "startedAt": "2026-09-02T18:23:39Z",
+          "status": "COMPLETED",
+          "workflowName": "CI (Coq, Alpine)"
+        },
+        {
+          "__typename": "CheckRun",
+          "completedAt": "2026-09-02T20:33:51Z",
+          "conclusion": "SUCCESS",
+          "detailsUrl": "https://github.com/mit-plv/fiat-crypto/actions/runs/33583780876/job/100103496536",
+          "name": "archlinux",
+          "startedAt": "2026-09-02T16:58:16Z",
+          "status": "COMPLETED",
+          "workflowName": "CI (Coq, Arch Linux)"
+        },
+        {
+          "__typename": "CheckRun",
+          "completedAt": "2026-09-02T18:06:44Z",
+          "conclusion": "SUCCESS",
+          "detailsUrl": "https://github.com/mit-plv/fiat-crypto/actions/runs/33583780920/job/100103496833",
+          "name": "debian-sid",
+          "startedAt": "2026-09-02T14:38:10Z",
+          "status": "COMPLETED",
+          "workflowName": "CI (Coq, Debian)"
+        },
+        {
+          "__typename": "CheckRun",
+          "completedAt": "2026-09-02T20:08:19Z",
+          "conclusion": "SUCCESS",
+          "detailsUrl": "https://github.com/mit-plv/fiat-crypto/actions/runs/33583780940/job/100103496552",
+          "name": "windows",
+          "startedAt": "2026-09-02T14:09:16Z",
+          "status": "COMPLETED",
+          "workflowName": "CI (Coq, Windows)"
+        },
+        {
+          "__typename": "CheckRun",
+          "completedAt": "2026-09-02T18:43:50Z",
+          "conclusion": "SUCCESS",
+          "detailsUrl": "https://github.com/mit-plv/fiat-crypto/actions/runs/33583780870/job/100103496691",
+          "name": "docker-master",
+          "startedAt": "2026-09-02T16:47:46Z",
+          "status": "COMPLETED",
+          "workflowName": "CI (Coq, docker, dev)"
+        },
+        {
+          "__typename": "CheckRun",
+          "completedAt": "2026-09-02T18:04:27Z",
+          "conclusion": "SUCCESS",
+          "detailsUrl": "https://github.com/mit-plv/fiat-crypto/actions/runs/33583780869/job/100103496329",
+          "name": "dependabot-automerge",
+          "startedAt": "2026-09-02T18:04:24Z",
+          "status": "COMPLETED",
+          "workflowName": "Dependabot Automerge"
+        },
+        {
+          "__typename": "CheckRun",
+          "completedAt": "2026-09-02T17:40:34Z",
+          "conclusion": "SUCCESS",
+          "detailsUrl": "https://github.com/mit-plv/fiat-crypto/actions/runs/33583780901/job/100103496336",
+          "name": "test-c",
+          "startedAt": "2026-09-02T17:39:53Z",
+          "status": "COMPLETED",
+          "workflowName": "Test Generated C"
+        },
+        {
+          "__typename": "CheckRun",
+          "completedAt": "2026-09-02T14:11:15Z",
+          "conclusion": "SUCCESS",
+          "detailsUrl": "https://github.com/mit-plv/fiat-crypto/actions/runs/33583776028/job/100103482622",
+          "name": "test-c",
+          "startedAt": "2026-09-02T14:10:37Z",
+          "status": "COMPLETED",
+          "workflowName": "Test Generated C"
+        },
+        {
+          "__typename": "CheckRun",
+          "completedAt": "2026-09-02T16:36:49Z",
+          "conclusion": "SUCCESS",
+          "detailsUrl": "https://github.com/mit-plv/fiat-crypto/actions/runs/33583780885/job/100103496623",
+          "name": "test-go",
+          "startedAt": "2026-09-02T16:36:19Z",
+          "status": "COMPLETED",
+          "workflowName": "Test Generated Go"
+        },
+        {
+          "__typename": "CheckRun",
+          "completedAt": "2026-09-02T19:03:20Z",
+          "conclusion": "SUCCESS",
+          "detailsUrl": "https://github.com/mit-plv/fiat-crypto/actions/runs/33583776070/job/100103482640",
+          "name": "test-go",
+          "startedAt": "2026-09-02T19:02:48Z",
+          "status": "COMPLETED",
+          "workflowName": "Test Generated Go"
+        },
+        {
+          "__typename": "CheckRun",
+          "completedAt": "2026-09-02T19:02:40Z",
+          "conclusion": "SUCCESS",
+          "detailsUrl": "https://github.com/mit-plv/fiat-crypto/actions/runs/33583781018/job/100103496999",
+          "name": "test-json",
+          "startedAt": "2026-09-02T19:02:16Z",
+          "status": "COMPLETED",
+          "workflowName": "Test Generated JSON"
+        },
+        {
+          "__typename": "CheckRun",
+          "completedAt": "2026-09-02T14:38:07Z",
+          "conclusion": "SUCCESS",
+          "detailsUrl": "https://github.com/mit-plv/fiat-crypto/actions/runs/33583776030/job/100103482593",
+          "name": "test-json",
+          "startedAt": "2026-09-02T14:37:44Z",
+          "status": "COMPLETED",
+          "workflowName": "Test Generated JSON"
+        },
+        {
+          "__typename": "CheckRun",
+          "completedAt": "2026-09-02T14:15:41Z",
+          "conclusion": "SUCCESS",
+          "detailsUrl": "https://github.com/mit-plv/fiat-crypto/actions/runs/33583780879/job/100103496471",
+          "name": "test-java",
+          "startedAt": "2026-09-02T14:14:55Z",
+          "status": "COMPLETED",
+          "workflowName": "Test Generated Java"
+        },
+        {
+          "__typename": "CheckRun",
+          "completedAt": "2026-09-02T16:37:39Z",
+          "conclusion": "SUCCESS",
+          "detailsUrl": "https://github.com/mit-plv/fiat-crypto/actions/runs/33583776031/job/100103482501",
+          "name": "test-java",
+          "startedAt": "2026-09-02T16:36:52Z",
+          "status": "COMPLETED",
+          "workflowName": "Test Generated Java"
+        },
+        {
+          "__typename": "CheckRun",
+          "completedAt": "2026-09-02T15:31:05Z",
+          "conclusion": "SUCCESS",
+          "detailsUrl": "https://github.com/mit-plv/fiat-crypto/actions/runs/33583780934/job/100103496804",
+          "name": "test-rust",
+          "startedAt": "2026-09-02T15:28:09Z",
+          "status": "COMPLETED",
+          "workflowName": "Test Generated Rust"
+        },
+        {
+          "__typename": "CheckRun",
+          "completedAt": "2026-09-02T21:08:07Z",
+          "conclusion": "SUCCESS",
+          "detailsUrl": "https://github.com/mit-plv/fiat-crypto/actions/runs/33583775999/job/100103482723",
+          "name": "test-rust",
+          "startedAt": "2026-09-02T21:05:08Z",
+          "status": "COMPLETED",
+          "workflowName": "Test Generated Rust"
+        },
+        {
+          "__typename": "CheckRun",
+          "completedAt": "2026-09-02T18:45:07Z",
+          "conclusion": "SUCCESS",
+          "detailsUrl": "https://github.com/mit-plv/fiat-crypto/actions/runs/33583780921/job/100103496705",
+          "name": "test-zig",
+          "startedAt": "2026-09-02T18:44:39Z",
+          "status": "COMPLETED",
+          "workflowName": "Test Generated Zig"
+        },
+        {
+          "__typename": "CheckRun",
+          "completedAt": "2026-09-02T15:36:19Z",
+          "conclusion": "SUCCESS",
+          "detailsUrl": "https://github.com/mit-plv/fiat-crypto/actions/runs/33583775967/job/100103482330",
+          "name": "test-zig",
+          "startedAt": "2026-09-02T15:35:54Z",
+          "status": "COMPLETED",
+          "workflowName": "Test Generated Zig"
+        },
+        {
+          "__typename": "CheckRun",
+          "completedAt": "2026-09-02T14:11:55Z",
+          "conclusion": "SUCCESS",
+          "detailsUrl": "https://github.com/mit-plv/fiat-crypto/actions/runs/33583780916/job/100103496480",
+          "name": "check-opam-bounds (pull_request)",
+          "startedAt": "2026-09-02T14:11:19Z",
+          "status": "COMPLETED",
+          "workflowName": "Update Opam Bounds"
+        },
+        {
+          "__typename": "CheckRun",
+          "completedAt": "2026-09-03T04:26:40Z",
+          "conclusion": "SUCCESS",
+          "detailsUrl": "https://github.com/mit-plv/fiat-crypto/actions/runs/33583780890/job/100103496537",
+          "name": "macOS 14 (arm64)",
+          "startedAt": "2026-09-03T01:37:37Z",
+          "status": "COMPLETED",
+          "workflowName": "CI (Coq, MacOS)"
+        },
+        {
+          "__typename": "CheckRun",
+          "completedAt": "2026-09-03T09:55:27Z",
+          "conclusion": "FAILURE",
+          "detailsUrl": "https://github.com/mit-plv/fiat-crypto/actions/runs/33583780877/job/100424424433",
+          "name": "test-standalone-edge",
+          "startedAt": "2026-09-03T09:55:03Z",
+          "status": "COMPLETED",
+          "workflowName": "CI (Coq, Alpine)"
+        },
+        {
+          "__typename": "CheckRun",
+          "completedAt": "2026-09-03T09:24:44Z",
+          "conclusion": "FAILURE",
+          "detailsUrl": "https://github.com/mit-plv/fiat-crypto/actions/runs/33583780870/job/100377670098",
+          "name": "validate-docker-master",
+          "startedAt": "2026-09-03T09:23:53Z",
+          "status": "COMPLETED",
+          "workflowName": "CI (Coq, docker, dev)"
+        },
+        {
+          "__typename": "CheckRun",
+          "completedAt": "2026-09-03T04:26:41Z",
+          "conclusion": "SKIPPED",
+          "detailsUrl": "https://github.com/mit-plv/fiat-crypto/actions/runs/33583780890/job/100522360413",
+          "name": "combine-standalone",
+          "startedAt": "2026-09-03T04:26:41Z",
+          "status": "COMPLETED",
+          "workflowName": "CI (Coq, MacOS)"
+        },
+        {
+          "__typename": "CheckRun",
+          "completedAt": "2026-09-02T02:35:30Z",
+          "conclusion": "SKIPPED",
+          "detailsUrl": "https://github.com/mit-plv/fiat-crypto/actions/runs/33583780916/job/100103497391",
+          "name": "update-opam-bounds",
+          "startedAt": "2026-09-02T02:35:30Z",
+          "status": "COMPLETED",
+          "workflowName": "Update Opam Bounds"
+        },
+        {
+          "__typename": "CheckRun",
+          "completedAt": "2026-09-03T09:36:05Z",
+          "conclusion": "SUCCESS",
+          "detailsUrl": "https://github.com/mit-plv/fiat-crypto/actions/runs/33583780876/job/100414085202",
+          "name": "test-standalone",
+          "startedAt": "2026-09-03T09:35:48Z",
+          "status": "COMPLETED",
+          "workflowName": "CI (Coq, Arch Linux)"
+        },
+        {
+          "__typename": "CheckRun",
+          "completedAt": "2026-09-03T09:48:34Z",
+          "conclusion": "SUCCESS",
+          "detailsUrl": "https://github.com/mit-plv/fiat-crypto/actions/runs/33583780920/job/100365136998",
+          "name": "test-standalone-host (sid)",
+          "startedAt": "2026-09-03T09:48:10Z",
+          "status": "COMPLETED",
+          "workflowName": "CI (Coq, Debian)"
+        },
+        {
+          "__typename": "CheckRun",
+          "completedAt": "2026-09-03T08:22:58Z",
+          "conclusion": "SUCCESS",
+          "detailsUrl": "https://github.com/mit-plv/fiat-crypto/actions/runs/33583780940/job/100405712013",
+          "name": "test-standalone",
+          "startedAt": "2026-09-03T08:22:32Z",
+          "status": "COMPLETED",
+          "workflowName": "CI (Coq, Windows)"
+        },
+        {
+          "__typename": "CheckRun",
+          "completedAt": "2026-09-02T17:35:01Z",
+          "conclusion": "SUCCESS",
+          "detailsUrl": "https://github.com/mit-plv/fiat-crypto/actions/runs/33583780934/job/100103496939",
+          "name": "Build on no_std target (thumbv7em-none-eabi)",
+          "startedAt": "2026-09-02T17:34:42Z",
+          "status": "COMPLETED",
+          "workflowName": "Test Generated Rust"
+        },
+        {
+          "__typename": "CheckRun",
+          "completedAt": "2026-09-02T19:08:09Z",
+          "conclusion": "SUCCESS",
+          "detailsUrl": "https://github.com/mit-plv/fiat-crypto/actions/runs/33583775999/job/100103482482",
+          "name": "Build on no_std target (thumbv7em-none-eabi)",
+          "startedAt": "2026-09-02T19:07:52Z",
+          "status": "COMPLETED",
+          "workflowName": "Test Generated Rust"
+        },
+        {
+          "__typename": "CheckRun",
+          "completedAt": "2026-09-03T04:26:41Z",
+          "conclusion": "SKIPPED",
+          "detailsUrl": "https://github.com/mit-plv/fiat-crypto/actions/runs/33583780890/job/100522360832",
+          "name": "test-standalone",
+          "startedAt": "2026-09-03T04:26:41Z",
+          "status": "COMPLETED",
+          "workflowName": "CI (Coq, MacOS)"
+        },
+        {
+          "__typename": "CheckRun",
+          "completedAt": "2026-09-03T09:44:03Z",
+          "conclusion": "SUCCESS",
+          "detailsUrl": "https://github.com/mit-plv/fiat-crypto/actions/runs/33583780877/job/100424424408",
+          "name": "publish-standalone",
+          "startedAt": "2026-09-03T09:43:46Z",
+          "status": "COMPLETED",
+          "workflowName": "CI (Coq, Alpine)"
+        },
+        {
+          "__typename": "CheckRun",
+          "completedAt": "2026-09-03T09:35:23Z",
+          "conclusion": "SUCCESS",
+          "detailsUrl": "https://github.com/mit-plv/fiat-crypto/actions/runs/33583780876/job/100414085100",
+          "name": "publish-standalone-dry-run",
+          "startedAt": "2026-09-03T09:35:05Z",
+          "status": "COMPLETED",
+          "workflowName": "CI (Coq, Arch Linux)"
+        },
+        {
+          "__typename": "CheckRun",
+          "completedAt": "2026-09-03T09:58:26Z",
+          "conclusion": "SUCCESS",
+          "detailsUrl": "https://github.com/mit-plv/fiat-crypto/actions/runs/33583780920/job/100365136950",
+          "name": "test-standalone-container (sid)",
+          "startedAt": "2026-09-03T09:58:02Z",
+          "status": "COMPLETED",
+          "workflowName": "CI (Coq, Debian)"
+        },
+        {
+          "__typename": "CheckRun",
+          "completedAt": "2026-09-03T10:03:16Z",
+          "conclusion": "SUCCESS",
+          "detailsUrl": "https://github.com/mit-plv/fiat-crypto/actions/runs/33583780940/job/100405711986",
+          "name": "publish-standalone",
+          "startedAt": "2026-09-03T10:02:59Z",
+          "status": "COMPLETED",
+          "workflowName": "CI (Coq, Windows)"
+        },
+        {
+          "__typename": "CheckRun",
+          "completedAt": "2026-09-03T11:03:26Z",
+          "conclusion": "SUCCESS",
+          "detailsUrl": "https://github.com/mit-plv/fiat-crypto/actions/runs/33583780870/job/100377670180",
+          "name": "build-js-of-ocaml (master, 4.11.1)",
+          "startedAt": "2026-09-03T10:56:54Z",
+          "status": "COMPLETED",
+          "workflowName": "CI (Coq, docker, dev)"
+        },
+        {
+          "__typename": "CheckRun",
+          "completedAt": "2026-09-03T09:28:43Z",
+          "conclusion": "SUCCESS",
+          "detailsUrl": "https://github.com/mit-plv/fiat-crypto/actions/runs/33583780934/job/100354425061",
+          "name": "test-rust-check-all",
+          "startedAt": "2026-09-03T09:28:35Z",
+          "status": "COMPLETED",
+          "workflowName": "Test Generated Rust"
+        },
+        {
+          "__typename": "CheckRun",
+          "completedAt": "2026-09-03T10:25:32Z",
+          "conclusion": "SUCCESS",
+          "detailsUrl": "https://github.com/mit-plv/fiat-crypto/actions/runs/33583775999/job/100425040773",
+          "name": "test-rust-check-all",
+          "startedAt": "2026-09-03T10:25:24Z",
+          "status": "COMPLETED",
+          "workflowName": "Test Generated Rust"
+        },
+        {
+          "__typename": "CheckRun",
+          "completedAt": "2026-09-03T13:20:41Z",
+          "conclusion": "FAILURE",
+          "detailsUrl": "https://github.com/mit-plv/fiat-crypto/actions/runs/33583780877/job/100604260784",
+          "name": "alpine-check-all",
+          "startedAt": "2026-09-03T13:20:38Z",
+          "status": "COMPLETED",
+          "workflowName": "CI (Coq, Alpine)"
+        },
+        {
+          "__typename": "CheckRun",
+          "completedAt": "2026-09-03T04:26:41Z",
+          "conclusion": "SKIPPED",
+          "detailsUrl": "https://github.com/mit-plv/fiat-crypto/actions/runs/33583780890/job/100522360946",
+          "name": "publish-standalone",
+          "startedAt": "2026-09-03T04:26:41Z",
+          "status": "COMPLETED",
+          "workflowName": "CI (Coq, MacOS)"
+        },
+        {
+          "__typename": "CheckRun",
+          "completedAt": "2026-09-03T12:53:45Z",
+          "conclusion": "SUCCESS",
+          "detailsUrl": "https://github.com/mit-plv/fiat-crypto/actions/runs/33583780876/job/100598621919",
+          "name": "archlinux-check-all",
+          "startedAt": "2026-09-03T12:53:42Z",
+          "status": "COMPLETED",
+          "workflowName": "CI (Coq, Arch Linux)"
+        },
+        {
+          "__typename": "CheckRun",
+          "completedAt": "2026-09-03T11:14:10Z",
+          "conclusion": "SUCCESS",
+          "detailsUrl": "https://github.com/mit-plv/fiat-crypto/actions/runs/33583780920/job/100365136962",
+          "name": "publish-standalone-dry-run",
+          "startedAt": "2026-09-03T11:13:52Z",
+          "status": "COMPLETED",
+          "workflowName": "CI (Coq, Debian)"
+        },
+        {
+          "__typename": "CheckRun",
+          "completedAt": "2026-09-03T12:59:15Z",
+          "conclusion": "SUCCESS",
+          "detailsUrl": "https://github.com/mit-plv/fiat-crypto/actions/runs/33583780940/job/100606509673",
+          "name": "windows-check-all",
+          "startedAt": "2026-09-03T12:59:12Z",
+          "status": "COMPLETED",
+          "workflowName": "CI (Coq, Windows)"
+        },
+        {
+          "__typename": "CheckRun",
+          "completedAt": "2026-09-03T10:07:03Z",
+          "conclusion": "SUCCESS",
+          "detailsUrl": "https://github.com/mit-plv/fiat-crypto/actions/runs/33583780870/job/100377670093",
+          "name": "build-wasm-of-ocaml (master, 4.14.1)",
+          "startedAt": "2026-09-03T09:58:29Z",
+          "status": "COMPLETED",
+          "workflowName": "CI (Coq, docker, dev)"
+        },
+        {
+          "__typename": "CheckRun",
+          "completedAt": "2026-09-03T12:22:32Z",
+          "conclusion": "FAILURE",
+          "detailsUrl": "https://github.com/mit-plv/fiat-crypto/actions/runs/33583780890/job/100522360432",
+          "name": "macos-check-all",
+          "startedAt": "2026-09-03T12:22:29Z",
+          "status": "COMPLETED",
+          "workflowName": "CI (Coq, MacOS)"
+        },
+        {
+          "__typename": "CheckRun",
+          "completedAt": "2026-09-03T13:40:17Z",
+          "conclusion": "SUCCESS",
+          "detailsUrl": "https://github.com/mit-plv/fiat-crypto/actions/runs/33583780920/job/100626643696",
+          "name": "debian-check-all",
+          "startedAt": "2026-09-03T13:40:13Z",
+          "status": "COMPLETED",
+          "workflowName": "CI (Coq, Debian)"
+        },
+        {
+          "__typename": "CheckRun",
+          "completedAt": "2026-09-03T09:50:18Z",
+          "conclusion": "SUCCESS",
+          "detailsUrl": "https://github.com/mit-plv/fiat-crypto/actions/runs/33583780870/job/100377669986",
+          "name": "generated-files (master)",
+          "startedAt": "2026-09-03T09:25:53Z",
+          "status": "COMPLETED",
+          "workflowName": "CI (Coq, docker, dev)"
+        },
+        {
+          "__typename": "CheckRun",
+          "completedAt": "2026-09-03T11:44:49Z",
+          "conclusion": "SUCCESS",
+          "detailsUrl": "https://github.com/mit-plv/fiat-crypto/actions/runs/33583780870/job/100377670138",
+          "name": "standalone-haskell (master)",
+          "startedAt": "2026-09-03T10:56:29Z",
+          "status": "COMPLETED",
+          "workflowName": "CI (Coq, docker, dev)"
+        },
+        {
+          "__typename": "CheckRun",
+          "completedAt": "2026-09-03T11:59:54Z",
+          "conclusion": "SUCCESS",
+          "detailsUrl": "https://github.com/mit-plv/fiat-crypto/actions/runs/33583780870/job/100377670146",
+          "name": "test-amd64",
+          "startedAt": "2026-09-03T09:25:53Z",
+          "status": "COMPLETED",
+          "workflowName": "CI (Coq, docker, dev)"
+        },
+        {
+          "__typename": "CheckRun",
+          "completedAt": "2026-09-03T10:37:37Z",
+          "conclusion": "FAILURE",
+          "detailsUrl": "https://github.com/mit-plv/fiat-crypto/actions/runs/33583780870/job/100377669549",
+          "name": "test-standalone (master, dev, default)",
+          "startedAt": "2026-09-03T10:37:17Z",
+          "status": "COMPLETED",
+          "workflowName": "CI (Coq, docker, dev)"
+        },
+        {
+          "__typename": "CheckRun",
+          "completedAt": "2026-09-03T08:22:28Z",
+          "conclusion": "SUCCESS",
+          "detailsUrl": "https://github.com/mit-plv/fiat-crypto/actions/runs/33583780870/job/100377669460",
+          "name": "publish-standalone-dry-run",
+          "startedAt": "2026-09-03T08:22:11Z",
+          "status": "COMPLETED",
+          "workflowName": "CI (Coq, docker, dev)"
+        },
+        {
+          "__typename": "CheckRun",
+          "completedAt": "2026-09-03T13:42:54Z",
+          "conclusion": "SUCCESS",
+          "detailsUrl": "https://github.com/mit-plv/fiat-crypto/actions/runs/33583780870/job/100623585699",
+          "name": "deploy-js-wasm-of-ocaml",
+          "startedAt": "2026-09-03T13:41:22Z",
+          "status": "COMPLETED",
+          "workflowName": "CI (Coq, docker, dev)"
+        },
+        {
+          "__typename": "CheckRun",
+          "completedAt": "2026-09-03T14:17:00Z",
+          "conclusion": "FAILURE",
+          "detailsUrl": "https://github.com/mit-plv/fiat-crypto/actions/runs/33583780870/job/100672625359",
+          "name": "docker-check-all",
+          "startedAt": "2026-09-03T14:16:55Z",
+          "status": "COMPLETED",
+          "workflowName": "CI (Coq, docker, dev)"
+        }
+      ],
+      "title": "Fix and prove the Bernstein-Yang word-by-word Montgomery specs (scrutineer #2522, #2523, #2524)",
+      "updatedAt": "2026-09-02T02:35:25Z",
+      "url": "https://github.com/mit-plv/fiat-crypto/pull/2413",
+      "workflow_runs": [
+        {
+          "name": "Test Generated Zig",
+          "status": "completed",
+          "conclusion": "success",
+          "html_url": "https://github.com/mit-plv/fiat-crypto/actions/runs/33583780921"
+        },
+        {
+          "name": "Test Generated JSON",
+          "status": "completed",
+          "conclusion": "success",
+          "html_url": "https://github.com/mit-plv/fiat-crypto/actions/runs/33583781018"
+        },
+        {
+          "name": "Test Generated Go",
+          "status": "completed",
+          "conclusion": "success",
+          "html_url": "https://github.com/mit-plv/fiat-crypto/actions/runs/33583780885"
+        },
+        {
+          "name": "Test Generated C",
+          "status": "completed",
+          "conclusion": "success",
+          "html_url": "https://github.com/mit-plv/fiat-crypto/actions/runs/33583780901"
+        },
+        {
+          "name": "Dependabot Automerge",
+          "status": "completed",
+          "conclusion": "success",
+          "html_url": "https://github.com/mit-plv/fiat-crypto/actions/runs/33583780869"
+        },
+        {
+          "name": "Test Generated Java",
+          "status": "completed",
+          "conclusion": "success",
+          "html_url": "https://github.com/mit-plv/fiat-crypto/actions/runs/33583780879"
+        },
+        {
+          "name": "Update Opam Bounds",
+          "status": "completed",
+          "conclusion": "success",
+          "html_url": "https://github.com/mit-plv/fiat-crypto/actions/runs/33583780916"
+        },
+        {
+          "name": "CI (Coq, Debian)",
+          "status": "completed",
+          "conclusion": "success",
+          "html_url": "https://github.com/mit-plv/fiat-crypto/actions/runs/33583780920"
+        },
+        {
+          "name": "CI (Coq, docker, dev)",
+          "status": "completed",
+          "conclusion": "failure",
+          "html_url": "https://github.com/mit-plv/fiat-crypto/actions/runs/33583780870"
+        },
+        {
+          "name": "CI (Coq, MacOS)",
+          "status": "completed",
+          "conclusion": "cancelled",
+          "html_url": "https://github.com/mit-plv/fiat-crypto/actions/runs/33583780890"
+        },
+        {
+          "name": "CI (Coq, Windows)",
+          "status": "completed",
+          "conclusion": "success",
+          "html_url": "https://github.com/mit-plv/fiat-crypto/actions/runs/33583780940"
+        },
+        {
+          "name": "CI (Coq, Arch Linux)",
+          "status": "completed",
+          "conclusion": "success",
+          "html_url": "https://github.com/mit-plv/fiat-crypto/actions/runs/33583780876"
+        },
+        {
+          "name": "CI (Coq, Alpine)",
+          "status": "completed",
+          "conclusion": "failure",
+          "html_url": "https://github.com/mit-plv/fiat-crypto/actions/runs/33583780877"
+        },
+        {
+          "name": "Test Generated Rust",
+          "status": "completed",
+          "conclusion": "success",
+          "html_url": "https://github.com/mit-plv/fiat-crypto/actions/runs/33583780934"
+        },
+        {
+          "name": "Test Generated Go",
+          "status": "completed",
+          "conclusion": "success",
+          "html_url": "https://github.com/mit-plv/fiat-crypto/actions/runs/33583776070"
+        },
+        {
+          "name": "Test Generated Java",
+          "status": "completed",
+          "conclusion": "success",
+          "html_url": "https://github.com/mit-plv/fiat-crypto/actions/runs/33583776031"
+        },
+        {
+          "name": "Test Generated C",
+          "status": "completed",
+          "conclusion": "success",
+          "html_url": "https://github.com/mit-plv/fiat-crypto/actions/runs/33583776028"
+        },
+        {
+          "name": "Test Generated Zig",
+          "status": "completed",
+          "conclusion": "success",
+          "html_url": "https://github.com/mit-plv/fiat-crypto/actions/runs/33583775967"
+        },
+        {
+          "name": "Test Generated JSON",
+          "status": "completed",
+          "conclusion": "success",
+          "html_url": "https://github.com/mit-plv/fiat-crypto/actions/runs/33583776030"
+        },
+        {
+          "name": "Test Generated Rust",
+          "status": "completed",
+          "conclusion": "success",
+          "html_url": "https://github.com/mit-plv/fiat-crypto/actions/runs/33583775999"
+        }
+      ]
+    },
+    {
+      "headRefOid": "ce2f20c26b4f2b66c85d7cc90d0571f5b00f89b7",
+      "isDraft": false,
+      "mergedAt": null,
+      "number": 2228,
+      "state": "OPEN",
+      "statusCheckRollup": [
+        {
+          "__typename": "CheckRun",
+          "completedAt": "2026-09-01T12:20:22Z",
+          "conclusion": "FAILURE",
+          "detailsUrl": "https://github.com/WebAssembly/spec/actions/runs/32062414434/job/99852679950",
+          "name": "interpreter",
+          "startedAt": "2026-09-01T12:16:49Z",
+          "status": "COMPLETED",
+          "workflowName": "CI for interpreter & tests"
+        },
+        {
+          "__typename": "StatusContext",
+          "context": "ipr",
+          "startedAt": "2026-10-19T20:33:48Z",
+          "state": "FAILURE",
+          "targetUrl": "https://labs.w3.org/repo-manager/pr/id/WebAssembly/spec/2228"
+        }
+      ],
+      "title": "test/relaxed_dot: add i16-intermediate overflow boundary cases",
+      "updatedAt": "2026-09-01T18:23:08Z",
+      "url": "https://github.com/WebAssembly/spec/pull/2228",
+      "workflow_runs": [
+        {
+          "name": "CI for interpreter & tests",
+          "status": "completed",
+          "conclusion": "failure",
+          "html_url": "https://github.com/WebAssembly/spec/actions/runs/32062414434"
         }
       ]
     }
