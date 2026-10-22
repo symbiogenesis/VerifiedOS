@@ -6,6 +6,8 @@ Submitted PR review dated **2026-10-22 (America/Chicago)**. GitHub status observ
 
 This tracker preserves the original candidate numbers and includes the related CertiRocq Docker CI repair. **TBD** means no matching authored PR is recorded. Additional recommendations carry their own proposal dates; the GitHub facts retain the observation time above. Upstream-owned PR watches, issue proposals and backport follow-ups are counted separately from authored submissions.
 
+The [merged-upstream review](upstream-merged-review.md) looks backwards at recent upstream changes, their current local use and opportunities for adoption.
+
 Submitted PRs: **12**; open: **7**; merged: **5**; closed without merge: **0**; candidates marked TBD: **18**; backport follow-ups: **1**; issue proposals marked TBD: **4**.
 
 Upstream PR watches: **13**; open: **13**; merged: **0**; closed without merge: **0**.

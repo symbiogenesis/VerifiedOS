@@ -212,6 +212,8 @@ def render(snapshot: Snapshot) -> str:
         "Additional recommendations carry their own proposal dates; the GitHub facts "
         "retain the observation time above. Upstream-owned PR watches, issue proposals "
         "and backport follow-ups are counted separately from authored submissions.", "",
+        "The [merged-upstream review](upstream-merged-review.md) looks backwards at "
+        "recent upstream changes, their current local use and opportunities for adoption.", "",
         f"Submitted PRs: **{len(authored)}**; open: **{counts['open']}**; "
         f"merged: **{counts['merged']}**; closed without merge: **{counts['closed']}**; "
         f"candidates marked TBD: **{pending}**; backport follow-ups: **{backports}**; "

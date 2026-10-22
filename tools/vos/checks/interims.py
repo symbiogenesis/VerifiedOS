@@ -198,6 +198,7 @@ EXCLUDED: dict[str, str] = {
                     "certificate, validation record or acceptance (R-05-152)",
     "docs/background/": _SURVEY,
     "docs/implementation/static-memory/literature.md": _SURVEY,
+    "docs/implementation/upstream-merged-review.md": _SURVEY,
     "docs/languages/": "language dossiers: design and verification-route surveys; a "
                        "component written in a language is admitted at its item",
     "docs/assurance/proof-reuse/": "the proof-reuse subject records, which qualify "

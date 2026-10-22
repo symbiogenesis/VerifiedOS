@@ -982,6 +982,25 @@ _CAPTURING_RECEIPTS: dict[str, str] = {
 # These sites retain measured or external editions, or record identifiers that
 # resemble object ids. They do not state this repository's current top-level pin.
 SITE_RESIDUE: dict[tuple[str, str], str] = {
+    **{("docs/implementation/upstream-merged-review.md", ident): reason
+       for ident, reason in {
+           "94139d1b7413cdbe517a80dcdb8b365b2189af0e":
+               "the upstream segment-store correction compared with the curated model, "
+               "not the current sail-riscv reference gitlink",
+           "35d5ebc383ac20ad0b918a5fd30db11047ca2805":
+               "the newer Mocha AXI observation candidate, not the selected Mocha gitlink",
+           "7a654caed0e1121e9ad405038ea40f9a0840a49d":
+               "the newer Mocha AXI ordering correction, not the selected Mocha gitlink",
+           "4f8ce828fcacd6f392cb4f9be9046d46ce4bec07":
+               "the concurrency-interface v2 candidate reviewed for a future port, "
+               "not the current sail-riscv reference gitlink",
+           "3229c62ba0c424a0f6346d622907238c94885bb2":
+               "the newer Katamaran universal-contract method reference, "
+               "not the selected compatibility-trial gitlink",
+           "56fede178c18d18ea3cda56c33217f8c718157d0":
+               "the newer Rust pointer-simplification correction proposed for comparison, "
+               "not the selected compiler-reference gitlink",
+       }.items()},
     **{(file, ident):
        f"the Katamaran PR's GitHub Actions {kind} identifier, not a commit"
        for file in (
