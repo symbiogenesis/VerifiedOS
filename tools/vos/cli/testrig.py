@@ -22,8 +22,8 @@ Eight commands, and three of them need no toolchain:
                frame an RTL would have to write, and hold the adapter to it and
                to seeded field changes
     framesim   build the SystemVerilog frame writer (tools/rvfi-harness/) behind
-               its bench and hold the frame it writes to the decoder, and with
-               --controls require each seeded writer mutant to be reported
+               its bench, qualify its locked assertion policy and hold the frame
+               it writes to the decoder; --controls adds seeded writer mutants
     bmc        print the bounded model-checking smoke this harness owes, with its
                instruction scope read out of the dialect table; it runs nothing
 
@@ -806,6 +806,8 @@ def cmd_bmc(args: argparse.Namespace) -> int:
 # `framesim` would report that as a frame that does not come back.
 HARNESS_DIR = "tools/rvfi-harness"
 HARNESS_SOURCES = (f"{HARNESS_DIR}/vos_rvfi_frame.sv", f"{HARNESS_DIR}/vos_rvfi_frame_tb.sv")
+ASSERTION_BENCH = f"{HARNESS_DIR}/vos_assertion_policy_tb.sv"
+ASSERTION_LOCK = "+verilator+assert+lock"
 STIMULUS: tuple[tuple[str, int], ...] = (
     ("pad", 6), ("valid", 1), ("trap", 1), ("cause", 64), ("pc_rdata", 64),
     ("pc_wdata", 64), ("insn", 32), ("rd_addr", 5), ("rd_tag", 1), ("rd_bits", 64),
@@ -888,7 +890,8 @@ def _framesim_one(binary: Path, work: Path, name: str,
     stim.write_text("".join(stimulus_line(d) + "\n" for d in drives), encoding="ascii",
                     newline="\n")
     frame.unlink(missing_ok=True)
-    done = subprocess.run([str(binary), f"+stimulus={stim}", f"+count={len(drives)}",
+    done = subprocess.run([str(binary), ASSERTION_LOCK,
+                           f"+stimulus={stim}", f"+count={len(drives)}",
                            f"+frame={frame}"], capture_output=True, text=True,
                           errors="replace", check=False, cwd=work)
     if done.returncode:
@@ -919,18 +922,72 @@ WRITER_MUTANTS: dict[str, tuple[str, str]] = {
 }
 
 
+def _verilate_sources(verilator: str, here: Path, sources: Sequence[Path],
+                      top: str) -> subprocess.CompletedProcess[str]:
+    """Build an assertion-enabled bench in `here`, retaining its compiler log."""
+    built = subprocess.run(
+        [verilator, "--binary", "--assert", "--timescale", "1ns/1ps", "-Wall",
+         *(f"-Wno-{waiver}" for waiver in VERILATOR_WAIVERS), "--Mdir", str(here / "obj_dir"),
+         "-o", "framesim", "--top-module", top, *(str(s) for s in sources)],
+        capture_output=True, text=True, errors="replace", check=False, cwd=here)
+    (here / "build.log").write_text(built.stdout + built.stderr, encoding="utf-8")
+    return built
+
+
 def _verilate(verilator: str, root: Path, here: Path,
               writer: Path) -> subprocess.CompletedProcess[str]:
     """The bench and `writer` built under Verilator in `here`, its log beside it."""
     sources = (root / rtl.FORMAT_PACKAGE, root / rtl.ADAPTER_PACKAGE, writer,
                root / HARNESS_SOURCES[1])
-    built = subprocess.run(
-        [verilator, "--binary", "--timescale", "1ns/1ps", "-Wall",
-         *(f"-Wno-{waiver}" for waiver in VERILATOR_WAIVERS), "--Mdir", str(here / "obj_dir"),
-         "-o", "framesim", "--top-module", "vos_rvfi_frame_tb", *(str(s) for s in sources)],
-        capture_output=True, text=True, errors="replace", check=False, cwd=here)
-    (here / "build.log").write_text(built.stdout + built.stderr, encoding="utf-8")
-    return built
+    return _verilate_sources(verilator, here, sources, "vos_rvfi_frame_tb")
+
+
+def _assertion_controls(verilator: str, root: Path, work: Path) -> int:
+    """Distinguish an active locked assertion from an RTL-disabled assertion.
+
+    All three runs use one compiled bench. A compiler refusal or unrelated runtime
+    failure supplies no assertion evidence. The passing action witnesses evaluation;
+    the unlocked failing case witnesses that the RTL disable request takes effect.
+    """
+    here = work / "assertion-policy"
+    here.mkdir(parents=True, exist_ok=True)
+    built = _verilate_sources(verilator, here, (root / ASSERTION_BENCH,),
+                              "vos_assertion_policy_tb")
+    if built.returncode:
+        print(f"FAIL assertion-policy: STILLBORN bench; no assertion was exercised; "
+              f"log {here / 'build.log'}")
+        return 1
+    failures = 0
+    for name, locked, failing in (("locked-pass", True, False),
+                                   ("locked-fail", True, True),
+                                   ("unlocked-fail", False, True)):
+        command = [str(here / "obj_dir" / "framesim")]
+        if locked:
+            command.append(ASSERTION_LOCK)
+        if failing:
+            command.append("+fail")
+        done = subprocess.run(command, capture_output=True, text=True, errors="replace",
+                              check=False, cwd=here)
+        text = done.stdout + done.stderr
+        (here / f"{name}.log").write_text(text, encoding="utf-8")
+        disabled = "assertion-policy: disable requested" in text
+        passed = "assertion-policy: assertion passed" in text
+        failed = "assertion-policy: assertion failed" in text
+        completed = "assertion-policy: completed" in text
+        if locked and failing:
+            valid = disabled and done.returncode != 0 and failed and not completed and not passed
+            outcome = "assertion refused the failing value despite RTL disable"
+        else:
+            valid = disabled and done.returncode == 0 and completed and not failed and passed == locked
+            outcome = ("assertion evaluated successfully" if locked else
+                       "RTL disable suppressed the failing assertion")
+        if not valid:
+            failures += 1
+            print(f"FAIL assertion-policy {name}: exit {done.returncode}; "
+                  f"log {here / f'{name}.log'}")
+        else:
+            print(f"ok assertion-policy {name}: {outcome}")
+    return failures
 
 
 def _writer_controls(verilator: str, root: Path, work: Path, drives: list[Drive],
@@ -977,7 +1034,9 @@ def cmd_framesim(args: argparse.Namespace) -> int:
     The bench is driven from Python-written stimulus, so the expected retirements
     are stated once and the frame has to come back as exactly those: the writer's
     field widths, its order count, its trailer, the x0 and stale-cause rules, and
-    the register-form round trip through the authored format package. With
+    the register-form round trip through the authored format package. Every run
+    qualifies assertion evaluation, locked failure after RTL disable and unlocked
+    suppression, using the same compiled assertion-policy bench. With
     `--controls` each of `WRITER_MUTANTS` is built and driven with the same stimulus
     and must be reported. With `--corpus` every member `carry` can hold whole is
     driven as well, from its golden trace, and the frame the writer returns must
@@ -996,6 +1055,7 @@ def cmd_framesim(args: argparse.Namespace) -> int:
         return 1
     lock = env.hold_lock(work / "framesim.log", "a frame-writer simulation")
     try:
+        policy_failures = _assertion_controls(verilator, root, work)
         built = _verilate(verilator, root, work, root / HARNESS_SOURCES[0])
         if built.returncode:
             print(built.stdout + built.stderr)
@@ -1061,7 +1121,10 @@ def cmd_framesim(args: argparse.Namespace) -> int:
 
     print(f"verilator        {rtl.VERILATOR_PIN}, {warnings} warning line(s) under -Wall "
           f"with {' and '.join(VERILATOR_WAIVERS)} waived")
-    if failures or uncontrolled:
+    if failures or uncontrolled or policy_failures:
+        if policy_failures:
+            print(f"FAIL {policy_failures} assertion-policy control(s) did not decide "
+                  "as required")
         if failures:
             print(f"FAIL {failures} member(s) did not come back whole through the writer")
         if uncontrolled:
