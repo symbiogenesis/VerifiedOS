@@ -77,6 +77,12 @@ For example, take a local packet cell with fixed capacity `N`, represented lengt
 
 A copied snapshot of several fields requires exclusion throughout the copy or a separately proved snapshot protocol. Loading fields individually, surrounding a racing non-atomic copy with a sequence counter, or making each payload byte atomic does not establish that protocol. Publication of a complete immutable payload is the selected way to expose several fields consistently. Refinements retained across a call must be stable under that call's actual interference relation; a hidden getter or callback that can write invalidates current-content facts exactly like an explicit write.
 
+### Ante as a candidate for static invalidation
+
+[Ante's place-and-mutation design](https://antelang.org/blog/safe_cyclic_mutability/) is a candidate for inferring which operations invalidate a local interior view. A comparison would distinguish reference validity from the truth of current-content refinements: a stable scalar overwrite can preserve a view's address while invalidating `current(c) = x`. It would accept a disjoint stable-field update where the view and invariant remain valid, and reject later view use after an invalidating replacement, container mutation or destruction. Hidden writes through callbacks and control captured by handlers must receive the same treatment as explicit writes.
+
+Any selected analysis must establish the existing ownership, opening/closing and capture obligations across every supported exit, including suspension and cancellation; address stability alone discharges none of them. It must preserve the local domain boundary and the artifact-level exclusive-access rules. The [producer evaluation](../background/architectural-alternatives.md#ante-place-sensitive-mutation-and-invalidation) retains this as a candidate donation, with no rule selection or qualification commissioned here.
+
 ## Transfer, sharing and lifecycle eligibility
 
 Eligibility follows fields, instantiated type parameters, environments, tasks and stored continuations transitively. A representation boundary can hide implementation details from clients only with a checked theorem exposing its actual captures and operations to the verifier.

@@ -2808,6 +2808,16 @@ The evaluated alternative is the capacity-exhaustion machinery general-purpose L
 
 ---
 
+## Ante: place-sensitive mutation and invalidation
+
+[Ante's original shared-mutability article](https://antelang.org/blog/safe_shared_mutability/) distinguishes mutation that preserves interior references from operations that invalidate them. The [19 October 2026 design](https://antelang.org/blog/safe_cyclic_mutability/) supersedes that account with places, unstable places and `Mutate` effects. It checks invalidation at uses and call sites; shared `ref`/`mut` references implement neither `Send` nor `Sync`. Its static checks avoid runtime borrow checking, not allocation or reference-counting costs. Reference-counted cycles still leak, and the article records unfinished handler/invalidation interactions.
+
+**Derived ground for deferral:** [R-05-009](../spec.md#r-05-009) admits non-Rust producers on equal terms, but these articles establish neither the kernel-checked elaboration into an existing semantic anchor nor the [source correspondence and final-code evidence](../spec.md#r-05-026) that route requires. A separate load-bearing Ante semantics would also owe [R-05-020's anchor conditions](../spec.md#r-05-020). An untrusted evidence-producing frontend could instead use the existing route; its source borrow checker alone supplies no admission evidence.
+
+**Potential donation:** place-sensitive invalidation is a candidate for Vela's [local-cell views and current-content facts](../languages/interior-mutability.md#ante-as-a-candidate-for-static-invalidation). Address stability and validity of a dependent fact are separate obligations: overwriting a scalar can preserve its address while invalidating a fact about its value. Source aliases would have to elaborate through the existing ownership and checked invariant operations. [R-05-096a](../spec.md#r-05-096a) requires read-only duplicable aliases and exclusive non-atomic authority across other threads, compartments and device states; [R-05-096b](../spec.md#r-05-096b) checks local splits and the manifest join. This evaluation establishes no such lowering theorem or sharing exception.
+
+**Disposition:** defer Ante as a producer and retain its invalidation analysis as a candidate donor for Vela. No Ante rule is selected or claimed as adopted lineage. Reopening needs a blocked consumer, a comparison against the dossier's existing rules and evidence connecting the selected rule to the accepted semantics and final artifact. The [language strategy's commissioning constraints](../languages/verification-strategy.md#recommendation) retain their force; this entry commissions no compiler or qualification run.
+
 ## Functional CHERI Rust compiler starting point
 
 **Displaced starting point:** constructing the functional capability-aware Rust/LLVM port anew as part of the net-new certifying Rust producer. R-18-014/R-18-015 still require that producer and its CHERI-TAL derivations; this disposition selects its implementation baseline, not a substitute certificate or compiler theorem.
