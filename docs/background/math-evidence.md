@@ -9,7 +9,7 @@ This validates metadata and finite host/reference behavior. It supplies no theor
 | [Lean Comparator maintenance route](#comparator) | source inspection | evaluate now | 2026-10-20 |
 | [Immutable composer dictionary shapes](#composer-dictionaries) | independent replay | evaluate now | 2026-10-20 |
 | [Disputed DCP attack and MLWE premise](#dcp) | source inspection | monitor security | 2026-10-20 |
-| [Conditional family 109 integer multiplication bound](#integer109) | source inspection | await workload | 2026-10-20 |
+| [Conditional family 109 integer multiplication bound](#integer109) | source inspection | await workload | 2026-10-21 |
 | [Family 103 logspace derandomization formalization](#logspace103) | source inspection | await workload | 2026-10-20 |
 | [Finite 48-product matrix multiplication](#rank48) | independent replay | await workload | 2026-10-20 |
 | [Shortest-path implementation evidence scope](#shortest-path) | source inspection | await workload | 2026-10-20 |
@@ -83,24 +83,31 @@ Next action: Acquire the exact October 8 revision and bind its bytes, compare th
 
 ## Conditional family 109 integer multiplication bound <a id="integer109"></a>
 
-The pinned selected-result record reports kappa = 836330098538459/500000000000000000, approximately 0.001672660197076918, for the RohanArun1094 owner-packing construction. This remains a conditional finite construction, not an unconditional multiplication theorem.
+The pinned selected-result record reports conditional kappa = 23/10000 = 0.0023 for zxv's #4359 productive-helper construction. Archived #4441 and #4470 claim 0.00300105 and 0.00302015; #4483 retains 0.00302015 with sufficient supplier rank 2^2800000000. The intake record marks those three partially reviewed and merged for archive only; the selected frontier remains 0.0023.
 
-Evidence stage: **source inspection**. Disposition: **await workload**. Inspected: 2026-10-20.
+Evidence stage: **source inspection**. Disposition: **await workload**. Inspected: 2026-10-21.
 
 Selected sources:
 
-- [git](https://github.com/CrocSwap/integer-mult-bounds/blob/12fa8c5c844be21bfefb38a19503fbd867a11244/certificates/selected-result.json); identity `12fa8c5c844be21bfefb38a19503fbd867a11244`.
+- [git](https://github.com/CrocSwap/integer-mult-bounds/blob/f9f85c1e4fa1e955ff39f10fca447e3e2a4e4adc/certificates/selected-result.json); identity `f9f85c1e4fa1e955ff39f10fca447e3e2a4e4adc`.
+- [git](https://github.com/CrocSwap/integer-mult-bounds/blob/f9f85c1e4fa1e955ff39f10fca447e3e2a4e4adc/docs/research/pr-intake-evidence/pr4359/PROOF-REVIEW.md); identity `f9f85c1e4fa1e955ff39f10fca447e3e2a4e4adc`.
+- [git](https://github.com/CrocSwap/integer-mult-bounds/blob/f9f85c1e4fa1e955ff39f10fca447e3e2a4e4adc/docs/research/pr-intake-evidence/pr4359/VALIDATION.json); identity `f9f85c1e4fa1e955ff39f10fca447e3e2a4e4adc`.
+- [git](https://github.com/CrocSwap/integer-mult-bounds/blob/f9f85c1e4fa1e955ff39f10fca447e3e2a4e4adc/research/fresh-helper-thinned/README.md); identity `f9f85c1e4fa1e955ff39f10fca447e3e2a4e4adc`.
+- [git](https://github.com/CrocSwap/integer-mult-bounds/blob/f9f85c1e4fa1e955ff39f10fca447e3e2a4e4adc/research/joint-helper-lattice/README.md); identity `f9f85c1e4fa1e955ff39f10fca447e3e2a4e4adc`.
+- [git](https://github.com/CrocSwap/integer-mult-bounds/blob/f9f85c1e4fa1e955ff39f10fca447e3e2a4e4adc/research/rank-convergence/README.md); identity `f9f85c1e4fa1e955ff39f10fca447e3e2a4e4adc`.
+- [git](https://github.com/CrocSwap/integer-mult-bounds/blob/f9f85c1e4fa1e955ff39f10fca447e3e2a4e4adc/docs/research/pr-intake-decisions.json); identity `f9f85c1e4fa1e955ff39f10fca447e3e2a4e4adc`.
 
 Assumptions and exclusions:
 
-- The selected-result and community-batch1099-review records were inspected; their experiments and certificate packages were not independently replayed.
-- All-size/compiler, common-label/mutable-source, whole-call hosting, precision/tape, exact-recovery, analytic-transfer and bit-model H1-H5 obligations remain conditional; no complete Lean multiplication theorem is supplied.
+- The selected record, AI-assisted changed-interface review and supplied 23-stage/59-artifact validation receipt were inspected; their verifiers and complete transitive proof stack were not independently replayed or reviewed here.
+- Native producer/movement, fixed-tape execution, precision, fine-prime padding, analytic decomposition and exact recovery remain inherited premises; no complete formal or independent human verification of the multiplication theorem is supplied.
+- Later package statements and intake dispositions were inspected, not independently replayed. Archival merge is not scientific admission; sufficient supplier rank and its exponent reductions are neither a multiplication-input threshold nor a measured speedup.
 
 Consumer: [docs/performance/toolchain-residency.md#research-leads-for-bounded-resident-passes](../performance/toolchain-residency.md#research-leads-for-bounded-resident-passes). Owner: M1.10 bounded resident producers.
 
-Local evidence: [docs/background/open-math-conjectures.md#optimal-bit-complexity-of-integer-multiplication](open-math-conjectures.md#optimal-bit-complexity-of-integer-multiplication).
+Local evidence: [docs/background/open-math-conjectures.md#optimal-bit-complexity-of-integer-multiplication](open-math-conjectures.md#optimal-bit-complexity-of-integer-multiplication); [docs/performance/performance-estimates.md#how-to-read-this](../performance/performance-estimates.md#how-to-read-this).
 
-Next action: Retain the conditional status and freeze the complete model assumptions before choosing any concrete large-integer workload; compare finite workspace and operation counts before requesting CI timing.
+Next action: Keep selected and archival claims distinct; require source-bound replay and review of changed compiler/native/outer interfaces before treating a stronger claim as admitted. Identify a large exact-arithmetic workload, freeze its model assumptions and operand sizes, then compare complete time and storage with simpler algorithms before requesting CI timing.
 
 ## Family 103 logspace derandomization formalization <a id="logspace103"></a>
 

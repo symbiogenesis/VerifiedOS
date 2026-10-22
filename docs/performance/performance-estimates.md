@@ -23,6 +23,8 @@
 - **Figures sit in one place and take one shape**, so that reading a row's cost never means reading its prose.
   A figure cell is one or more clauses separated by `; `, each a range (`−10% to −40%`, or a single `≈0%`) followed by the scope it holds over (`sustained`, `code size`, `system`, `vs scalar`); an optional `(40–100×)` restates a large range as a multiple. A row whose effect carries no figure of its own states `n/a` and explains itself in Notes, and no cell carries prose in place of a number. Everything a figure needs qualifying by is in Notes, so the column stays parseable and the two ends of a row cannot drift apart.
 
+These estimates assign no speedup to the [integer-multiplication research](../background/open-math-conjectures.md#optimal-bit-complexity-of-integer-multiplication). Its conditional logarithmic-exponent savings and sufficient supplier-rank bounds do not establish finite-input runtimes or a usable crossover. A future large exact-arithmetic workload follows the [Wasm arithmetic handoff](../implementation/contracts/wasm-execution.md#mathematical-research-handoff): freeze operand sizes, compare complete time and storage with simpler algorithms, and charge setup, precision/recovery, transfers and interruption costs.
+
 ---
 
 ## The big table
