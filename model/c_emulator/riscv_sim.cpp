@@ -1,5 +1,4 @@
 #include "riscv_sim.h"
-#include "CLI11.hpp"
 #include "cli_options.h"
 #include "config_utils.h"
 #include "elf_loader.h"
@@ -10,6 +9,7 @@
 #include "riscv_callbacks_stop_at_pc.h"
 #include "riscv_model_impl.h"
 #include "rot_slow_clock.h"
+#include <CLI/CLI.hpp>
 #ifdef SAILCOV
 #include "sail_coverage.h"
 #endif

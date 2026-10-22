@@ -1,5 +1,15 @@
 # Sail unit tests. Currently this only runs the default config (RV64D).
 
+# Exercise the emulator's actual parser without initializing the Sail model.
+# The controller checks CLI11's conversion diagnostic and exit code, so model
+# startup failures or an unrelated bad argument cannot satisfy a refusal case.
+add_executable(cli_options_parser "cli_options_parser.cpp" "../../c_emulator/cli_options.cpp")
+target_include_directories(cli_options_parser PRIVATE "../../c_emulator")
+target_link_libraries(cli_options_parser PRIVATE CLI11)
+add_test(NAME "cli_unsigned_parser"
+    COMMAND ${CMAKE_COMMAND} -DPARSER=$<TARGET_FILE:cli_options_parser>
+            -P "${CMAKE_CURRENT_SOURCE_DIR}/cli_unsigned_parser.cmake")
+
 add_executable(unit_tests
     "main_unit_tests.cpp"
 )
