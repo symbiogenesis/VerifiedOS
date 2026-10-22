@@ -150,8 +150,8 @@
     },
     {
       "id": "integer109",
-      "title": "Conditional family 109 integer multiplication bound",
-      "claim": "The pinned selected-result record reports conditional kappa = 23/10000 = 0.0023 for zxv's #4359 productive-helper construction. Archived #4441 and #4470 claim 0.00300105 and 0.00302015; #4483 retains 0.00302015 with sufficient supplier rank 2^2800000000. The intake record marks those three partially reviewed and merged for archive only; the selected frontier remains 0.0023.",
+      "title": "Integer multiplication: conditional frontier and Lean artifact",
+      "claim": "CrocSwap's selected conditional kappa is 0.0023; partially reviewed archival #4441/#4470 claim 0.00300105/0.00302015 and #4483 retains the latter with sufficient supplier rank 2^2800000000. Separately, platypii's MathlibTM2.mulInTime exports an all-input fixed-machine exact multiplier at kappa = 3299646951/2^46, with no explicit algorithmic/runtime hypothesis. Upstream CI reports a successful build and axiom audits at the pinned revision; no independent Lean replay or practical speedup is established here.",
       "sources": [
         {
           "url": "https://github.com/CrocSwap/integer-mult-bounds/blob/f9f85c1e4fa1e955ff39f10fca447e3e2a4e4adc/certificates/selected-result.json",
@@ -187,24 +187,62 @@
           "url": "https://github.com/CrocSwap/integer-mult-bounds/blob/f9f85c1e4fa1e955ff39f10fca447e3e2a4e4adc/docs/research/pr-intake-decisions.json",
           "kind": "git",
           "identity": "f9f85c1e4fa1e955ff39f10fca447e3e2a4e4adc"
+        },
+        {
+          "url": "https://github.com/platypii/integer-mult-bounds-lean/blob/228513faf7ebca347d345c187687a379bfb5ed8c/IntegerMultBounds/MathlibTM2/Statement.lean",
+          "kind": "git",
+          "identity": "228513faf7ebca347d345c187687a379bfb5ed8c"
+        },
+        {
+          "url": "https://github.com/platypii/integer-mult-bounds-lean/blob/228513faf7ebca347d345c187687a379bfb5ed8c/IntegerMultBounds/MathlibTM2/Theorem.lean",
+          "kind": "git",
+          "identity": "228513faf7ebca347d345c187687a379bfb5ed8c"
+        },
+        {
+          "url": "https://github.com/platypii/integer-mult-bounds-lean/blob/228513faf7ebca347d345c187687a379bfb5ed8c/IntegerMultBounds/MathlibTM2/Fast/CompactFinalR.lean",
+          "kind": "git",
+          "identity": "228513faf7ebca347d345c187687a379bfb5ed8c"
+        },
+        {
+          "url": "https://github.com/platypii/integer-mult-bounds-lean/blob/228513faf7ebca347d345c187687a379bfb5ed8c/CompletedProofCheck.lean",
+          "kind": "git",
+          "identity": "228513faf7ebca347d345c187687a379bfb5ed8c"
+        },
+        {
+          "url": "https://github.com/platypii/integer-mult-bounds-lean/blob/228513faf7ebca347d345c187687a379bfb5ed8c/.github/workflows/lean.yml",
+          "kind": "git",
+          "identity": "228513faf7ebca347d345c187687a379bfb5ed8c"
+        },
+        {
+          "url": "https://github.com/platypii/integer-mult-bounds-lean/blob/228513faf7ebca347d345c187687a379bfb5ed8c/lake-manifest.json",
+          "kind": "git",
+          "identity": "228513faf7ebca347d345c187687a379bfb5ed8c"
+        },
+        {
+          "url": "https://github.com/leanprover-community/mathlib4/blob/d13f23b723b8a846827a245b89c10fc7d3f11612/Mathlib/Computability/TuringMachine/Computable.lean",
+          "kind": "git",
+          "identity": "d13f23b723b8a846827a245b89c10fc7d3f11612"
         }
       ],
       "inspected": "2026-10-21",
       "stage": "source inspection",
       "assumptions": [
         "The selected record, AI-assisted changed-interface review and supplied 23-stage/59-artifact validation receipt were inspected; their verifiers and complete transitive proof stack were not independently replayed or reviewed here.",
-        "Native producer/movement, fixed-tape execution, precision, fine-prime padding, analytic decomposition and exact recovery remain inherited premises; no complete formal or independent human verification of the multiplication theorem is supplied.",
-        "Later package statements and intake dispositions were inspected, not independently replayed. Archival merge is not scientific admission; sufficient supplier rank and its exponent reductions are neither a multiplication-input threshold nor a measured speedup."
+        "For CrocSwap's selected construction, native producer/movement, fixed-tape execution, precision, fine-prime padding, analytic decomposition and exact recovery remain inherited premises; its larger saving has no complete formal or independent human verification here.",
+        "Later CrocSwap package statements and intake dispositions were inspected, not independently replayed. Archival merge is not scientific admission; sufficient supplier rank and its exponent reductions are neither a multiplication-input threshold nor a measured speedup.",
+        "The separate Lean statement, public proof, final transform-cost discharge, pinned Mathlib computation definition and audit source were inspected. Its one fixed FinTM2 machine computes exact products for every natural-number pair in standard binary; the asymptotic worst-case bound uses total encoded input length. Model correspondence and the full transitive development have not been independently reviewed or rebuilt here.",
+        "Lean CI run 39718287684 at 228513faf7ebca347d345c187687a379bfb5ed8c reports successful build, AxiomAudit and CompletedProofCheck steps. Audit source permits propext, Classical.choice and Quot.sound; CI step metadata and an allowlist are not an independent kernel replay. The source theorem's saving is recorded; README parameter prose is stale."
       ],
       "consumer": {
         "artifact": "docs/performance/toolchain-residency.md#research-leads-for-bounded-resident-passes",
         "owner": "M1.10 bounded resident producers"
       },
       "disposition": "await workload",
-      "next_action": "Keep selected and archival claims distinct; require source-bound replay and review of changed compiler/native/outer interfaces before treating a stronger claim as admitted. Identify a large exact-arithmetic workload, freeze its model assumptions and operand sizes, then compare complete time and storage with simpler algorithms before requesting CI timing.",
+      "next_action": "Keep CrocSwap's selected and archival claims distinct from the separate Lean theorem. Independently replay the pinned Lean statement and axiom closure and review its machine-model correspondence before proof reuse; require source-bound review/replay before promoting a larger CrocSwap saving. Identify a large exact-arithmetic workload and compare complete finite time and storage with simpler algorithms before requesting CI timing.",
       "evidence": [
         "docs/background/open-math-conjectures.md#optimal-bit-complexity-of-integer-multiplication",
-        "docs/performance/performance-estimates.md#how-to-read-this"
+        "docs/performance/performance-estimates.md#how-to-read-this",
+        "docs/assurance/proof-assistance.md#research-handoff-for-future-proof-producers"
       ]
     },
     {

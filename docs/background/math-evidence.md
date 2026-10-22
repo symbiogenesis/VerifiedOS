@@ -9,7 +9,7 @@ This validates metadata and finite host/reference behavior. It supplies no theor
 | [Lean Comparator maintenance route](#comparator) | source inspection | evaluate now | 2026-10-20 |
 | [Immutable composer dictionary shapes](#composer-dictionaries) | independent replay | evaluate now | 2026-10-20 |
 | [Disputed DCP attack and MLWE premise](#dcp) | source inspection | monitor security | 2026-10-20 |
-| [Conditional family 109 integer multiplication bound](#integer109) | source inspection | await workload | 2026-10-21 |
+| [Integer multiplication: conditional frontier and Lean artifact](#integer109) | source inspection | await workload | 2026-10-21 |
 | [Family 103 logspace derandomization formalization](#logspace103) | source inspection | await workload | 2026-10-20 |
 | [Finite 48-product matrix multiplication](#rank48) | independent replay | await workload | 2026-10-20 |
 | [Shortest-path implementation evidence scope](#shortest-path) | source inspection | await workload | 2026-10-20 |
@@ -81,9 +81,9 @@ Local evidence: [docs/assurance/proof-reuse/crypto.md#what-the-attack-correction
 
 Next action: Acquire the exact October 8 revision and bind its bytes, compare the changed algorithm and advantage argument with the pinned refutation's register, rounding and oracle assumptions, and record a substantive disposition only after that comparison.
 
-## Conditional family 109 integer multiplication bound <a id="integer109"></a>
+## Integer multiplication: conditional frontier and Lean artifact <a id="integer109"></a>
 
-The pinned selected-result record reports conditional kappa = 23/10000 = 0.0023 for zxv's #4359 productive-helper construction. Archived #4441 and #4470 claim 0.00300105 and 0.00302015; #4483 retains 0.00302015 with sufficient supplier rank 2^2800000000. The intake record marks those three partially reviewed and merged for archive only; the selected frontier remains 0.0023.
+CrocSwap's selected conditional kappa is 0.0023; partially reviewed archival #4441/#4470 claim 0.00300105/0.00302015 and #4483 retains the latter with sufficient supplier rank 2^2800000000. Separately, platypii's MathlibTM2.mulInTime exports an all-input fixed-machine exact multiplier at kappa = 3299646951/2^46, with no explicit algorithmic/runtime hypothesis. Upstream CI reports a successful build and axiom audits at the pinned revision; no independent Lean replay or practical speedup is established here.
 
 Evidence stage: **source inspection**. Disposition: **await workload**. Inspected: 2026-10-21.
 
@@ -96,18 +96,27 @@ Selected sources:
 - [git](https://github.com/CrocSwap/integer-mult-bounds/blob/f9f85c1e4fa1e955ff39f10fca447e3e2a4e4adc/research/joint-helper-lattice/README.md); identity `f9f85c1e4fa1e955ff39f10fca447e3e2a4e4adc`.
 - [git](https://github.com/CrocSwap/integer-mult-bounds/blob/f9f85c1e4fa1e955ff39f10fca447e3e2a4e4adc/research/rank-convergence/README.md); identity `f9f85c1e4fa1e955ff39f10fca447e3e2a4e4adc`.
 - [git](https://github.com/CrocSwap/integer-mult-bounds/blob/f9f85c1e4fa1e955ff39f10fca447e3e2a4e4adc/docs/research/pr-intake-decisions.json); identity `f9f85c1e4fa1e955ff39f10fca447e3e2a4e4adc`.
+- [git](https://github.com/platypii/integer-mult-bounds-lean/blob/228513faf7ebca347d345c187687a379bfb5ed8c/IntegerMultBounds/MathlibTM2/Statement.lean); identity `228513faf7ebca347d345c187687a379bfb5ed8c`.
+- [git](https://github.com/platypii/integer-mult-bounds-lean/blob/228513faf7ebca347d345c187687a379bfb5ed8c/IntegerMultBounds/MathlibTM2/Theorem.lean); identity `228513faf7ebca347d345c187687a379bfb5ed8c`.
+- [git](https://github.com/platypii/integer-mult-bounds-lean/blob/228513faf7ebca347d345c187687a379bfb5ed8c/IntegerMultBounds/MathlibTM2/Fast/CompactFinalR.lean); identity `228513faf7ebca347d345c187687a379bfb5ed8c`.
+- [git](https://github.com/platypii/integer-mult-bounds-lean/blob/228513faf7ebca347d345c187687a379bfb5ed8c/CompletedProofCheck.lean); identity `228513faf7ebca347d345c187687a379bfb5ed8c`.
+- [git](https://github.com/platypii/integer-mult-bounds-lean/blob/228513faf7ebca347d345c187687a379bfb5ed8c/.github/workflows/lean.yml); identity `228513faf7ebca347d345c187687a379bfb5ed8c`.
+- [git](https://github.com/platypii/integer-mult-bounds-lean/blob/228513faf7ebca347d345c187687a379bfb5ed8c/lake-manifest.json); identity `228513faf7ebca347d345c187687a379bfb5ed8c`.
+- [git](https://github.com/leanprover-community/mathlib4/blob/d13f23b723b8a846827a245b89c10fc7d3f11612/Mathlib/Computability/TuringMachine/Computable.lean); identity `d13f23b723b8a846827a245b89c10fc7d3f11612`.
 
 Assumptions and exclusions:
 
 - The selected record, AI-assisted changed-interface review and supplied 23-stage/59-artifact validation receipt were inspected; their verifiers and complete transitive proof stack were not independently replayed or reviewed here.
-- Native producer/movement, fixed-tape execution, precision, fine-prime padding, analytic decomposition and exact recovery remain inherited premises; no complete formal or independent human verification of the multiplication theorem is supplied.
-- Later package statements and intake dispositions were inspected, not independently replayed. Archival merge is not scientific admission; sufficient supplier rank and its exponent reductions are neither a multiplication-input threshold nor a measured speedup.
+- For CrocSwap's selected construction, native producer/movement, fixed-tape execution, precision, fine-prime padding, analytic decomposition and exact recovery remain inherited premises; its larger saving has no complete formal or independent human verification here.
+- Later CrocSwap package statements and intake dispositions were inspected, not independently replayed. Archival merge is not scientific admission; sufficient supplier rank and its exponent reductions are neither a multiplication-input threshold nor a measured speedup.
+- The separate Lean statement, public proof, final transform-cost discharge, pinned Mathlib computation definition and audit source were inspected. Its one fixed FinTM2 machine computes exact products for every natural-number pair in standard binary; the asymptotic worst-case bound uses total encoded input length. Model correspondence and the full transitive development have not been independently reviewed or rebuilt here.
+- Lean CI run 39718287684 at 228513faf7ebca347d345c187687a379bfb5ed8c reports successful build, AxiomAudit and CompletedProofCheck steps. Audit source permits propext, Classical.choice and Quot.sound; CI step metadata and an allowlist are not an independent kernel replay. The source theorem's saving is recorded; README parameter prose is stale.
 
 Consumer: [docs/performance/toolchain-residency.md#research-leads-for-bounded-resident-passes](../performance/toolchain-residency.md#research-leads-for-bounded-resident-passes). Owner: M1.10 bounded resident producers.
 
-Local evidence: [docs/background/open-math-conjectures.md#optimal-bit-complexity-of-integer-multiplication](open-math-conjectures.md#optimal-bit-complexity-of-integer-multiplication); [docs/performance/performance-estimates.md#how-to-read-this](../performance/performance-estimates.md#how-to-read-this).
+Local evidence: [docs/background/open-math-conjectures.md#optimal-bit-complexity-of-integer-multiplication](open-math-conjectures.md#optimal-bit-complexity-of-integer-multiplication); [docs/performance/performance-estimates.md#how-to-read-this](../performance/performance-estimates.md#how-to-read-this); [docs/assurance/proof-assistance.md#research-handoff-for-future-proof-producers](../assurance/proof-assistance.md#research-handoff-for-future-proof-producers).
 
-Next action: Keep selected and archival claims distinct; require source-bound replay and review of changed compiler/native/outer interfaces before treating a stronger claim as admitted. Identify a large exact-arithmetic workload, freeze its model assumptions and operand sizes, then compare complete time and storage with simpler algorithms before requesting CI timing.
+Next action: Keep CrocSwap's selected and archival claims distinct from the separate Lean theorem. Independently replay the pinned Lean statement and axiom closure and review its machine-model correspondence before proof reuse; require source-bound review/replay before promoting a larger CrocSwap saving. Identify a large exact-arithmetic workload and compare complete finite time and storage with simpler algorithms before requesting CI timing.
 
 ## Family 103 logspace derandomization formalization <a id="logspace103"></a>
 
