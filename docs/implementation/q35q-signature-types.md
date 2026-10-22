@@ -16,6 +16,8 @@ The candidate interval is 2026-10-14 03:40:41.598009–03:40:43.504619 UTC, or 2
 
 ## Remaining owner act
 
+Rocq [PR 22614](https://github.com/rocq-prover/rocq/pull/22614) is merged into `master` at `01b86fef6a51c6d0e3a9f2e50266f7fa1db3dbce`. It adds `module-printing-fallback` when rich printing falls back to field names. After the [qualified prover adoption](../../tools/opam/README.md#merged-checker-and-printer-improvements), census queries should unset `Short Module Printing` and use `Set Warnings "+module-printing-fallback"` to reject that incomplete output directly. The locked Rocq 9.3.0 lacks this warning. The upstream change supplies an explicit refusal signal; complete typed metadata remains the prerequisite below.
+
 Commission and qualify a native module-body producer that retains each signature and unapplied functor field's elaborated type, enclosing signature and parameters without treating abstract obligations as owned global constants. Its complete enumeration must account for the selected module population, nested fields, inductive families and constructors, aliases, and concrete implementations. It needs the census contract's positive and refusal controls at the locked prover before a support adapter may consume it.
 
 One untested route is a temporary query functor parameter carrying the actual signature, with native type queries inside that parameter's scope. Such a route would still owe complete enumeration and faithful provenance; it could supply no concrete implementation-assumption verdict. It is a future owner hypothesis, not a passing candidate.

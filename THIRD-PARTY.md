@@ -181,7 +181,7 @@ The consumed rows cover all direct tool access. No proof under [proofs/](proofs/
 | `upstream/cheri-compressed-cap` | `CTSRD-CHERI/cheri-compressed-cap` | `5b3dfd25` | `BSD-2-Clause`; `test/FuzzedDataProvider.h` is `Apache-2.0 WITH LLVM-exception` | Library narrowed to the frozen 64+1-bit fields in the unpublished emulator repository, from the edition the completion log records. No build or check here uses it. | pinned for a struck milestone |
 | `upstream/qemu` | `CTSRD-CHERI/qemu` | `d0bb921c`, on `qemu-cheri` | `GPL-2.0`, with the [file-specific terms](#development-tools-contained-by-use) below | Base of the unpublished fast-emulator fork; its `VERSION` is 7.0.0. Nothing here runs or vendors the fork. | pinned for a struck milestone |
 | `upstream/rupicola` | `mit-plv/rupicola` | `d33f7024` | `MIT` | Relational-compilation toolkit for the GC-free lowering review, with Bedrock2 as a nested submodule. The lowering switch uses released opam packages. | pinned to read later |
-| `upstream/katamaran` | `katamaran-project/katamaran` | `47264135` | `BSD-2-Clause` | Deferred separation-logic verifier using its own deep embedding rather than Sail. | pinned to read later |
+| `upstream/katamaran` | `katamaran-project/katamaran` | `8b953fe8` | `BSD-2-Clause` | Deferred separation-logic verifier using its own deep embedding rather than Sail; selected merged PR 73 import cleanup. | pinned to read later |
 | `upstream/sail-katamaran-backend` | `katamaran-project/sail-backend` | `c9b1cd02` | `BSD-2-Clause`, stated in packaging; see below | Translation backend for the Katamaran route. | pinned to read later |
 | `upstream/cerise` | `logsem/cerise` | `9eb72e67` | `BSD-3-Clause`; `extra/` is `BSD-2-Clause` | Capability-machine contract and sentry-reasoning reference for the kernel milestone. | pinned to read later |
 | `upstream/cerisier` | `logsem/cerisier` | `57ed584a` | `BSD-3-Clause`; `extra/` is `BSD-2-Clause` | Extension of that contract to local attestation. | pinned to read later |
@@ -226,6 +226,16 @@ The following reviews were recorded on 2026-08-29 at the pinned editions.
 **Rupicola and Bedrock2.** Each root `LICENSE` is MIT and identifies its authors through `AUTHORS`: Rupicola, copyright 2019; Bedrock2, copyright 2017-2021. Bedrock2 is Rupicola's nested submodule. These terms permit the independent rebuilding contemplated by the lowering route.
 
 **Katamaran and its Sail backend.** Katamaran's `LICENSE` is BSD-2-Clause, copyright 2019 Dominique Devriese, Georgy Lukyanov, Sander Huyghebaert, and Steven Keuchel, developed at the Vrije Universiteit Brussel Software Languages Lab.
+
+At selected merged PR head `8b953fe8f17bb4553792c63665d368dc7f6bbd26`, the
+license was re-read and has SHA-256
+`6b961710f8d256461e624d0659fbaade43505b2ae709f91c8f0c3e34a08d010a`.
+The sole source delta from the preceding reference is PR 73's unused
+`Program.Equality` import removal in six Iris modules. This gitlink remains a
+source reference for the separately commissioned machine-logic continuation;
+no Katamaran source, compiled library or binary is redistributed or accepted
+as a proof dependency by this update. Historical dependency-trial identities
+and their qualification refusals remain unchanged.
 
 The Sail backend states its terms in `default.nix`, `nanosail.nix`, and `monads.nix`. Each sets `meta.license = licenses.bsd2` for a package built from the repository; together they cover `sail_katamaran_backend`, `nanosail`, and `monads`. There is no standalone license or notice file. `dune-project` names Marius Goyet and Frederic Vogels but omits a license stanza, so generated opam files omit it too. The recorded review accepts the packaging grant as BSD-2-Clause and requires a redistribution notice using that authorship information if vendored. `sail.opam.locked` describes the separate Sail dependency and supplies no evidence for the backend's terms.
 

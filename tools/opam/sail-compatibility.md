@@ -335,3 +335,8 @@ governs qualification of those shapes before a reader is implemented. The
 returns labels without their required types, so a complete native field-metadata
 producer remains owed. The common inventory guard and allowed contexts remain
 unchanged; Q35q's complete native and hosted recursive-kernel qualification is open.
+
+The merged [Rocq module-printing warning](../../docs/implementation/q35q-signature-types.md#remaining-owner-act)
+provides a direct incompleteness refusal after qualified prover adoption. Promote
+`module-printing-fallback` to an error in rich-print queries at that point; the
+locked prover and the complete native type-producer obligation remain unchanged.

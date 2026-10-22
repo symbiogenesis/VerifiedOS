@@ -146,3 +146,33 @@ source through this lock.
 If an import fails after creating its switch, retry the import command directly, omitting creation. The provisioner checks for an existing switch and skips creation automatically, so `run.py provision --apply` can resume a partial installation.
 
 To refresh a resolution, update repository metadata, review `opam upgrade --switch=SWITCH --dry-run`, and apply the compatible upgrade in that project switch. Recheck the compiler and library constraints when newer releases appear. Run the affected model, proof, oracle or lowering checks, then export the tested versions with `opam switch export --switch=SWITCH tools/opam/NAME.lock`. Keep the export and any changed version constants together. Record the package constraint or demonstrated build incompatibility whenever an older dependency is retained.
+
+## Merged checker and printer improvements
+
+Rocq [PR 22611](https://github.com/rocq-prover/rocq/pull/22611) and
+[PR 22614](https://github.com/rocq-prover/rocq/pull/22614) are merged into `master`
+for milestone `9.4+rc1`. The proof switch still locks Rocq 9.3.0, which contains
+neither change. Their [tracker entries](../../docs/implementation/upstream-prs.md)
+record the merge revisions and public checks. A qualified prover-lock move must
+precede relying on these improvements in production.
+
+PR 22611 records sealed implementation dependencies while collecting context
+output from admitted libraries under `-norec` or `-admit`; admitted terms remain
+unchecked. At adoption, compare those native contexts against the proof gate's
+existing extra admitted-root cover pass, retaining genuine hidden axioms and
+admission accounting. Once the comparison and hosted proof acceptance pass, retire
+that redundant context pass. Checked alias/functor sealed-field assumption queries
+retain their independent purpose and remain required. The separate
+[`-axiom-free` PR 22609](https://github.com/rocq-prover/rocq/pull/22609) is still open;
+its integration must enable the bookkeeping without `-o` and cover the combined
+options before replacing context-summary parsing.
+
+PR 22614 adds the default warning `module-printing-fallback` when rich module or
+module-type printing returns names without types. After adoption, Q35q's rich-print
+queries should unset `Short Module Printing` and use
+`Set Warnings "+module-printing-fallback"` to reject incomplete output directly.
+Explicit short printing emits no warning. This removes silent fallback from those
+queries; Q35q still needs its [complete native type producer](../../docs/implementation/q35q-signature-types.md#remaining-owner-act),
+census, exact concrete-implementation assumption audit and hosted recursive check.
+The current strict flags, inventory guards, proof handling and lock stay in force
+until their respective replacements qualify.

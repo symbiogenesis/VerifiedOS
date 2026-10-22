@@ -15,7 +15,7 @@ work assigned below. Q35b's canonical-term compile and closure remain its own
 prerequisites. Q35d's Stage 0 may precede the logic, under its existing stop and
 reject conditions; its function proofs wait on the separately landed foundations.
 
-The [Q35m dependency trial](machine-logic-dependency-trial.md) reproduces strict-source refusals in both required framework chains and records a separately scoped unpriced continuation. Complete framework audits remain unavailable; the separate equality-import probe exposes F-786. Q35k requires compatible, carried libraries and remains closed.
+The [Q35m dependency trial](machine-logic-dependency-trial.md) reproduces strict-source refusals in both required framework chains and records a separately scoped unpriced continuation. Its [upstream import cleanup](machine-logic-dependency-trial.md#the-programequality-imports-separate-assumption-conflict) supplies the source route for F-786 without a local patch; complete framework audits remain unavailable. Q35k requires compatible, carried libraries and remains closed.
 
 ## 1. Source identities, terms and qualification
 

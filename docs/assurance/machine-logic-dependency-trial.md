@@ -103,6 +103,15 @@ to add it to a development-local allowlist. The continuation must resolve this
 import through a reviewed source route that preserves the required statements;
 adding an assumption is not a compatibility fix.
 
+Katamaran [PR 73](https://github.com/katamaran-project/katamaran/pull/73) supplies
+that import removal upstream. The deferred reference pin selects its merged head
+`8b953fe8f17bb4553792c63665d368dc7f6bbd26`, which removes unused
+`Program.Equality` imports from six Iris modules without changing definitions,
+statements or proof scripts. The continuation can consume this source directly
+without carrying a local import-removal patch. The PR's hosted job was skipped;
+its reported Rocq 9.2 checks leave the locked-prover and complete-closure
+qualification below open. The frozen trial and F-786 retain their original inputs.
+
 ### The separate stock-Iris result
 
 The native Iris 4.5.0 source was built with its published `make-package iris
@@ -152,7 +161,8 @@ one source-compatibility continuation before dispatch. Its identified work is:
 - Resolve the namespace deprecations in the exact Islaris and Lithium sources,
   the postfix-notation diagnostics in exact RecordUpdate and Katamaran, and the
   source-level pinned-setting conflicts, keeping the compiler settings fixed.
-- Resolve the `Program.Equality` dependency's undeclared axiom and select the
+- Select the merged upstream import cleanup above, verify the absence of its
+  loaded `eq_rect_eq` axiom in the complete candidate closure, and select the
   remaining Equations, stdpp-unstable/bitvector and isla-lang generation inputs
   with their actual licences and exact identities. No API port depth is measured
   by the early failures above, so deeper API work is neither asserted necessary
