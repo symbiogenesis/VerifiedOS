@@ -4268,6 +4268,7 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 
 **R-15-055** IS: Vector crypto `Zvkned`/`Zvknhb`/`Zvkg`/`Zvbb`/`Zvbc` and scalar crypto bit-manipulation `Zbkb`/`Zbkc`/`Zbkx` are adopted: table-free AES/SHA-2/GHASH on the vector unit.
 · Accept: table-free primitives have no cache-timing substrate; `Zvbb`/`Zvbc` carry baseline Keccak while the NTT rides plain RVV; and the adoption is over **no secret-labeled operand**, these units serving the non-secret path while the secret path is R-05-004a's dedicated masked datapath, with the refusal discharged at R-05-070's fourth rejection site rather than declared here. The units stay on R-15-053's `Zkt`/`Zvkt` list unchanged and carry no R-15-053a probing statement.
+· Accept: the native profile excludes x86 AES-NI execution and an AES-NI compatibility layer. Its AES round and key-schedule acceleration is `Zvkned`, with `Zvkg` for GHASH, subject to the same secret-operand refusal; secret AES requires the masked datapath. An x86 implementation's correctness, timing or performance results do not establish RVV/CHERI binary properties or masked-datapath security.
 · Trace: CJ-LEAK
 
 **R-15-056** IS: A frozen Keccak-f[1600] permutation is adopted as a single vector instruction, moving the constant-time obligation for the dominant post-quantum hash onto a fixed-latency hardware permutation.
