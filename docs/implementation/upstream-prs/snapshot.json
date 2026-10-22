@@ -532,19 +532,19 @@
       "id": "32",
       "repository": "rocq-prover/rocq",
       "topic": "Return per-root results for batched Print Assumptions queries",
-      "issue": "https://github.com/rocq-prover/rocq/pull/22610#issuecomment-6342792902",
+      "issue": "https://github.com/rocq-prover/rocq/issues/22627",
       "pr": null,
       "benefit": "Could share assumption traversal within one command while preserving each theorem's exact assumption attribution.",
       "reviewed_head": null,
-      "review": "New design/PR proposal; no issue has been filed. PR 22610 closed without merge on 2026-10-22. Maintainers rejected a cross-command global cache and recommended improving multi-argument output. No matching open replacement PR was found. Today's aggregate result for multiple roots does not provide the per-theorem attribution VerifiedOS needs; no project speedup is measured.",
-      "next_action": "TBD: agree per-root batched output with maintainers, then contribute bounded command-local traversal sharing and attribution regressions instead of reviving the rejected global cache.",
+      "review": "Issue 22627 requests separate results for each name in a multi-name Print Assumptions query, including names with no assumptions, while sharing work within one command. No implementation PR is recorded. PR 22610 is closed without merge; maintainers rejected a cross-command global cache and recommended improving multi-argument output. The current combined result loses the per-theorem attribution VerifiedOS needs. No project speedup is measured.",
+      "next_action": "TBD: agree per-name batched output in issue 22627, then contribute command-local traversal sharing and attribution regressions.",
       "evidence": [
-        "[Closed PR 22610](https://github.com/rocq-prover/rocq/pull/22610) and [the maintainer recommendation](https://github.com/rocq-prover/rocq/pull/22610#issuecomment-6342792902) own the design direction.",
+        "[Issue 22627](https://github.com/rocq-prover/rocq/issues/22627) contains the concise proposal and a minimal example distinguishing two roots with different assumptions.",
+        "[The earlier repeated-query report, issue 5639](https://github.com/rocq-prover/rocq/issues/5639), [the maintainer recommendation on closed PR 22610](https://github.com/rocq-prover/rocq/pull/22610#issuecomment-6342792902) and [PR 22425’s shared-proof-term traversal work](https://github.com/rocq-prover/rocq/pull/22425) supply the closely related upstream context.",
         "Acceptance distinguishes roots through types, sealed implementations, sections, repeated roots and unsafe flags, preserving exact per-root assumptions and context identity. Performance claims require separate measurements."
       ],
       "proposed_on": "2026-10-22",
-      "priority": "medium",
-      "kind": "proposal"
+      "priority": "medium"
     },
     {
       "id": "33",
