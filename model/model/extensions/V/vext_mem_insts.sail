@@ -402,7 +402,7 @@ function clause execute VSXSEGTYPE(nf, vm, vs2, rs1, width, vs3, _mop) = {
   assert(num_elem > 0);
 
   if illegal_indexed_store(vs3, nf, 2 ^ EEW_index_pow, EMUL_index_pow, EMUL_data_pow) |
-     not(valid_src_overlap(vs2, EEW_index, EMUL_index_pow, vs3, EEW_data, EMUL_data_pow)) |
+     not(valid_src_overlap_segmented(vs2, EEW_index, EMUL_index_pow, vs3, EEW_data, EMUL_data_pow, nf)) |
      not(valid_vm_src_overlap(vm, vs2, EEW_index)) |
      not(valid_vm_src_overlap(vm, vs3, EEW_data))
   then return Illegal_Instruction();
