@@ -11,11 +11,12 @@
 // model can be configured at, which is what makes it evidence for the V class
 // and not only for the machine the test happens to run on.
 //
-// Every property below places its authority in `c2` and its data in `v8`, and
-// leaves the region at [0x80000000, 0x80001000) so that a base address 16 bytes
-// below the top admits exactly two 64-bit elements. That is the shape the
-// element-wise claim needs: whether the access faults is decided by how far its
-// *elements* reach and not by where the access begins.
+// The capability-boundary properties place their authority in `c2` and their
+// data in `v8`, in the region [0x80000000, 0x80001000), so that a base address
+// 16 bytes below the top admits exactly two 64-bit elements. Whether an access
+// faults is decided by how far its *elements* reach, not just where it begins.
+// The indexed source-overlap properties use additional vector register groups
+// in the same region to distinguish legal and reserved operand combinations.
 
 // The region every property below authorises against, and the register the
 // checks name when they fail.
@@ -332,3 +333,108 @@ function test_an_indexed_vector_access_is_checked_per_element() -> unit = {
     _ => assert(false, "an index inside the authority must load"),
   };
 }
+
+// Indexed stores must not read any register at two EEWs, including a later
+// data field. These instruction-level cases adapt sail-riscv PR 1990 to the
+// purecap model and exercise both encodings through the unchanged decoder.
+function vector_indexed_store_decoded(nf : nfields, index : vregidx,
+                                    width : vlewidth, data : vregidx,
+                                    mop : indexed_mop) -> instruction = {
+  let inst = VSXSEGTYPE(nf, 0b1, index, encdec_reg(0b00010), width, data, mop);
+  let word : bits(32) = encdec(inst);
+  assert(word[27 .. 26] == encdec_indexed_mop(mop));
+  let decoded : instruction = encdec(word);
+  assert(decoded == inst, "indexed segment-store encoding must round trip");
+  decoded
+}
+
+function vector_indexed_store_overlap_cases(mop : indexed_mop) -> unit = {
+  let region = vector_test_region();
+  C(encdec_reg(0b00010)) = setCapAddrChecked(region, 0x0000000080000600);
+  vector_test_vtype(0b010, 1); // SEW=32, LMUL=1
+  // Zero indices keep every legal store inside the capability. Data registers
+  // are also zero so the same register can serve as a legal same-EEW index.
+  foreach (i from 1 to 8) { V(Vregidx(to_bits(5, i))) = zeros() };
+
+  match execute(vector_indexed_store_decoded(2, Vregidx(0b00011), VLE8,
+                                             Vregidx(0b00010), mop)) {
+    Illegal_Instruction() => (),
+    _ => assert(false, "later segment source overlap at a different EEW must trap"),
+  };
+  match execute(vector_indexed_store_decoded(3, Vregidx(0b00100), VLE64,
+                                             Vregidx(0b00010), mop)) {
+    Illegal_Instruction() => (),
+    _ => assert(false, "a wider index overlapping the final field must trap"),
+  };
+
+  // Same-EEW overlap is legal at either data field and at LMUL=2.
+  match execute(vector_indexed_store_decoded(2, Vregidx(0b00011), VLE32,
+                                             Vregidx(0b00010), mop)) {
+    Retire_Success() => (),
+    _ => assert(false, "same-EEW segment source overlap must retire"),
+  };
+  vtype[vlmul] = 0b001;
+  match execute(vector_indexed_store_decoded(2, Vregidx(0b00110), VLE32,
+                                             Vregidx(0b00100), mop)) {
+    Retire_Success() => (),
+    _ => assert(false, "same-EEW LMUL=2 overlap must retire"),
+  };
+  match execute(vector_indexed_store_decoded(2, Vregidx(0b00110), VLE8,
+                                             Vregidx(0b00100), mop)) {
+    Illegal_Instruction() => (),
+    _ => assert(false, "LMUL=2 later-field overlap must trap"),
+  };
+
+  // Fractional LMUL still allocates a distinct register to each data field.
+  vtype[vlmul] = 0b111;
+  match execute(vector_indexed_store_decoded(2, Vregidx(0b00011), VLE8,
+                                             Vregidx(0b00010), mop)) {
+    Illegal_Instruction() => (),
+    _ => assert(false, "fractional-LMUL later-field overlap must trap"),
+  };
+
+  // Adjacent disjoint groups on both sides, and the non-segmented form, retain
+  // their legal decisions even though index EEW differs from data EEW.
+  vtype[vlmul] = 0b000;
+  match execute(vector_indexed_store_decoded(2, Vregidx(0b00001), VLE8,
+                                             Vregidx(0b00010), mop)) {
+    Retire_Success() => (),
+    _ => assert(false, "an index below the data fields must retire"),
+  };
+  match execute(vector_indexed_store_decoded(2, Vregidx(0b00100), VLE8,
+                                             Vregidx(0b00010), mop)) {
+    Retire_Success() => (),
+    _ => assert(false, "an index after the data fields must retire"),
+  };
+  match execute(vector_indexed_store_decoded(1, Vregidx(0b00011), VLE8,
+                                             Vregidx(0b00010), mop)) {
+    Retire_Success() => (),
+    _ => assert(false, "a disjoint non-segmented indexed store must retire"),
+  };
+
+  // Source legality precedes the capability check. With the same untagged base,
+  // illegal later-field overlap must remain an instruction fault, while a
+  // disjoint source reaches the existing per-element capability check.
+  C(encdec_reg(0b00010)) = null_cap;
+  match execute(vector_indexed_store_decoded(2, Vregidx(0b00011), VLE8,
+                                             Vregidx(0b00010), mop)) {
+    Illegal_Instruction() => (),
+    _ => assert(false, "illegal source overlap must precede a capability fault"),
+  };
+  match execute(vector_indexed_store_decoded(2, Vregidx(0b00100), VLE8,
+                                             Vregidx(0b00010), mop)) {
+    Ext_DataAddr_Check_Failure((capEx, idx)) => {
+      assert(capEx == CapEx_TagViolation);
+      assert(idx == capreg_idx_of_regidx(encdec_reg(0b00010)));
+    },
+    _ => assert(false, "a legal indexed store must retain its capability check"),
+  };
+}
+
+$[test]
+function test_ordered_indexed_segment_store_source_overlap() -> unit =
+  vector_indexed_store_overlap_cases(INDEXED_ORDERED)
+
+$[test]
+function test_unordered_indexed_segment_store_source_overlap() -> unit =
+  vector_indexed_store_overlap_cases(INDEXED_UNORDERED)
