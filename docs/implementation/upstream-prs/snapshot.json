@@ -560,7 +560,7 @@
       "next_action": "Reproduce the retained integer-memory cases, then coordinate a narrow legality-before-assertion repair under issue 1800 with valid controls and preserved capability fault ordering.",
       "evidence": [
         "[The curated memory clauses](../../model/model/extensions/V/vext_mem_insts.sail) retain the assertion ordering; the relevant path does not require floating-point extensions.",
-        "[The upstream diagnosis](https://github.com/riscv/sail-riscv/issues/1800#issuecomment-4929291049) identifies the memory assertions. [PR 1828](https://github.com/riscv/sail-riscv/pull/1828) is closed unmerged; upstream master eb3e896f3ef0db8e21f54fd61a0681d39a9fa266 still contains the assertion ordering at observation.",
+        "[The upstream diagnosis in issue 1800](https://github.com/riscv/sail-riscv/issues/1800) identifies the memory assertions. [PR 1828](https://github.com/riscv/sail-riscv/pull/1828) is closed unmerged; the current upstream source still contains the assertion ordering at observation.",
         "Acceptance covers lower and upper invalid EMUL combinations and adjacent valid controls for each retained form, architectural state at the trap and capability permission/fault precedence. A new upstream pin alone supplies no local model qualification."
       ]
     },
