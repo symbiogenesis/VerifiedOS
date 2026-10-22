@@ -53,7 +53,8 @@ class Item(TypedDict):
     review: str
     next_action: str
     evidence: list[str]
-    kind: NotRequired[Literal["backport"]]
+    kind: NotRequired[Literal["backport", "watch", "proposal"]]
+    priority: NotRequired[Literal["highest", "high", "medium"]]
     proposed_on: NotRequired[str]
 
 
@@ -71,6 +72,7 @@ HERE = Path(__file__).resolve().parent
 SOURCE = HERE / "snapshot.json"
 OUTPUT = HERE.parent / "upstream-prs.md"
 FIELDS = ("number,title,url,state,isDraft,headRefOid,updatedAt,mergedAt,statusCheckRollup")
+ORIGINAL_IDS = frozenset(str(i) for i in range(1, 16))
 
 
 def github(*args: str) -> str:
@@ -87,7 +89,7 @@ def validate(snapshot: Snapshot) -> None:
     if snapshot["version"] != 1:
         raise ValueError("unsupported snapshot version")
     ids = [item["id"] for item in snapshot["items"]]
-    if len(ids) != len(set(ids)) or not {str(i) for i in range(1, 16)}.issubset(ids):
+    if len(ids) != len(set(ids)) or not ORIGINAL_IDS.issubset(ids):
         raise ValueError("preserve every original candidate ID exactly once")
     urls = [pull["url"] for pull in snapshot["pulls"]]
     mapped = [item["pr"] for item in snapshot["items"] if item["pr"] is not None]
@@ -97,10 +99,18 @@ def validate(snapshot: Snapshot) -> None:
         if pull["state"] not in {"OPEN", "CLOSED", "MERGED"}:
             raise ValueError(f"unknown PR state: {pull['url']}")
     for item in snapshot["items"]:
-        if item.get("kind") not in {None, "backport"}:
+        if "kind" in item and item["kind"] not in {"backport", "watch", "proposal"}:
             raise ValueError(f"unknown work item kind: {item['id']}")
+        if item["id"] in ORIGINAL_IDS and "kind" in item:
+            raise ValueError("preserve every original candidate's authored classification")
+        if "priority" in item and item["priority"] not in {"highest", "high", "medium"}:
+            raise ValueError(f"unknown work item priority: {item['id']}")
         if item.get("kind") == "backport" and item["pr"] is not None:
             raise ValueError("map a submitted backport PR as a separate candidate")
+        if item.get("kind") == "watch" and item["pr"] is None:
+            raise ValueError("an upstream PR watch item requires a mapped PR")
+        if item.get("kind") == "proposal" and item["pr"] is not None:
+            raise ValueError("an issue proposal cannot have a mapped PR")
 
 
 def refresh(snapshot: Snapshot) -> None:
@@ -141,13 +151,57 @@ def cell(value: str) -> str:
     return value.replace("|", "\\|").replace("\n", " ")
 
 
+def pull_review(item: Item, pull: Pull) -> list[str]:
+    """Keep authored and watched PRs subject to the same evidence presentation."""
+    lines = [
+        f"### {item['id']}. {item['repository']} #{pull['number']}", "",
+        f"[{pull['title']}]({pull['url']}) — **{pull['state'].capitalize()}**.", "",
+        f"Current head: `{pull['headRefOid']}`. PR updated: `{pull['updatedAt']}`.", "",
+    ]
+    if "priority" in item:
+        lines.extend([f"**Priority:** {item['priority'].capitalize()}.", ""])
+    lines.extend([f"**Project benefit:** {item['benefit']}", "",
+                  f"**Static review:** {item['review']}", ""])
+    if item["reviewed_head"] != pull["headRefOid"]:
+        lines.extend(["**Review stale:** the current head differs from the reviewed "
+                      f"head `{item['reviewed_head']}`. Re-review the new diff.", ""])
+    if pull["mergedAt"] is not None:
+        lines.extend([f"Merged: `{pull['mergedAt']}`.", ""])
+    lines.extend(["**Public checks:**", ""])
+    for check in pull["statusCheckRollup"]:
+        name = check.get("name") or check.get("context") or "Unnamed check"
+        verdict = check.get("conclusion") or check.get("state") or check.get("status")
+        url = check.get("detailsUrl") or check.get("targetUrl")
+        label = f"[{cell(name)}]({url})" if url is not None and url else cell(name)
+        lines.append(f"- {label}: **{verdict or 'UNKNOWN'}**.")
+    if not pull["statusCheckRollup"]:
+        lines.append("- No check-run or commit-status result is displayed on the PR.")
+    lines.extend(["", "**Actions runs for this head:**", ""])
+    for run in pull["workflow_runs"]:
+        verdict = run["conclusion"] or run["status"]
+        lines.append(f"- [{cell(run['name'])}]({run['html_url']}): **{verdict}**.")
+    if not pull["workflow_runs"]:
+        lines.append("- No Actions workflow run was found for this head.")
+    if item["evidence"]:
+        lines.extend(["", "**Additional evidence:**", ""])
+        lines.extend(f"- {entry}" for entry in item["evidence"])
+    lines.extend(["", f"**Next action:** {item['next_action']}", ""])
+    return lines
+
+
 def render(snapshot: Snapshot) -> str:
     validate(snapshot)
     pulls = {pull["url"]: pull for pull in snapshot["pulls"]}
-    counts = Counter(pull["state"].lower() for pull in pulls.values())
-    pending = sum(item["pr"] is None and item.get("kind") != "backport"
+    authored = [pulls[item["pr"]] for item in snapshot["items"]
+                if item["pr"] is not None and item.get("kind") != "watch"]
+    watched = [pulls[item["pr"]] for item in snapshot["items"]
+               if item["pr"] is not None and item.get("kind") == "watch"]
+    counts = Counter(pull["state"].lower() for pull in authored)
+    watch_counts = Counter(pull["state"].lower() for pull in watched)
+    pending = sum(item["pr"] is None and "kind" not in item
                   for item in snapshot["items"])
     backports = sum(item.get("kind") == "backport" for item in snapshot["items"])
+    proposals = sum(item.get("kind") == "proposal" for item in snapshot["items"])
     lines = [
         "# Upstream pull request tracker", "",
         "<!-- Generated by upstream-prs/render.py from upstream-prs/snapshot.json. -->", "",
@@ -156,17 +210,22 @@ def render(snapshot: Snapshot) -> str:
         "This tracker preserves the original candidate numbers and includes the related "
         "CertiRocq Docker CI repair. **TBD** means no matching authored PR is recorded. "
         "Additional recommendations carry their own proposal dates; the GitHub facts "
-        "retain the observation time above. Backport follow-ups are counted separately.", "",
-        f"Submitted PRs: **{len(pulls)}**; open: **{counts['open']}**; "
+        "retain the observation time above. Upstream-owned PR watches, issue proposals "
+        "and backport follow-ups are counted separately from authored submissions.", "",
+        f"Submitted PRs: **{len(authored)}**; open: **{counts['open']}**; "
         f"merged: **{counts['merged']}**; closed without merge: **{counts['closed']}**; "
-        f"candidates marked TBD: **{pending}**; backport follow-ups: **{backports}**.", "",
+        f"candidates marked TBD: **{pending}**; backport follow-ups: **{backports}**; "
+        f"issue proposals marked TBD: **{proposals}**.", "",
+        f"Upstream PR watches: **{len(watched)}**; open: **{watch_counts['open']}**; "
+        f"merged: **{watch_counts['merged']}**; "
+        f"closed without merge: **{watch_counts['closed']}**.", "",
         "The review inspected diffs, PR descriptions, public checks and discussion. "
         "It ran no independent upstream builds or tests. An upstream merge does not "
         "establish adoption or qualification of the change in VerifiedOS. "
         "An absent check result, action-required run, or neutral result is not a passing gate.", "",
         "## Candidate status", "",
-        "| ID | Upstream / work item | PR | Status | Next action |",
-        "| --- | --- | --- | --- | --- |",
+        "| ID | Upstream / work item | Priority | PR | Status | Next action |",
+        "| --- | --- | --- | --- | --- | --- |",
     ]
     for item in snapshot["items"]:
         pull = pulls.get(item["pr"] or "")
@@ -175,8 +234,13 @@ def render(snapshot: Snapshot) -> str:
         status = ("Draft" if pull["isDraft"] else pull["state"].capitalize()) if pull else "**TBD**"
         if item.get("kind") == "backport":
             status = "Backport follow-up"
+        elif item.get("kind") == "proposal":
+            status = "**TBD — issue proposal**"
+        elif item.get("kind") == "watch":
+            status += " (watch)"
+        priority = item["priority"].capitalize() if "priority" in item else "n/a"
         lines.append(f"| {item['id']} | `{item['repository']}` — {cell(item['topic'])} | "
-                     f"{link} | {status} | {cell(item['next_action'])} |")
+                     f"{priority} | {link} | {status} | {cell(item['next_action'])} |")
     lines.extend(["", "## Unsubmitted candidates and follow-ups", "",
                   "Proposed PRs remain unsubmitted until an authored PR is mapped. "
                   "Backport follow-ups use the upstream release-management process. "
@@ -188,6 +252,8 @@ def render(snapshot: Snapshot) -> str:
         lines.extend([f"### {item['id']}. {item['repository']} — {item['topic']}", ""])
         if "proposed_on" in item:
             lines.extend([f"**Proposed:** {item['proposed_on']} (America/Chicago).", ""])
+        if "priority" in item:
+            lines.extend([f"**Priority:** {item['priority'].capitalize()}.", ""])
         lines.extend([f"**Project benefit:** {item['benefit']}", "",
                       f"**Scope and readiness:** {item['review']}", ""])
         if item["evidence"]:
@@ -197,40 +263,14 @@ def render(snapshot: Snapshot) -> str:
         lines.extend([f"**Next action:** {item['next_action']}", ""])
     lines.extend(["## Submitted PR review", ""])
     for item in snapshot["items"]:
-        if item["pr"] is None:
-            continue
-        pull = pulls[item["pr"]]
-        lines.extend([
-            f"### {item['id']}. {item['repository']} #{pull['number']}", "",
-            f"[{pull['title']}]({pull['url']}) — **{pull['state'].capitalize()}**.", "",
-            f"Current head: `{pull['headRefOid']}`. PR updated: `{pull['updatedAt']}`.", "",
-            f"**Project benefit:** {item['benefit']}", "",
-            f"**Static review:** {item['review']}", "",
-        ])
-        if item["reviewed_head"] != pull["headRefOid"]:
-            lines.extend(["**Review stale:** the current head differs from the reviewed "
-                          f"head `{item['reviewed_head']}`. Re-review the new diff.", ""])
-        if pull["mergedAt"] is not None:
-            lines.extend([f"Merged: `{pull['mergedAt']}`.", ""])
-        lines.extend(["**Public checks:**", ""])
-        for check in pull["statusCheckRollup"]:
-            name = check.get("name") or check.get("context") or "Unnamed check"
-            verdict = check.get("conclusion") or check.get("state") or check.get("status")
-            url = check.get("detailsUrl") or check.get("targetUrl")
-            label = f"[{cell(name)}]({url})" if url is not None and url else cell(name)
-            lines.append(f"- {label}: **{verdict or 'UNKNOWN'}**.")
-        if not pull["statusCheckRollup"]:
-            lines.append("- No check-run or commit-status result is displayed on the PR.")
-        lines.extend(["", "**Actions runs for this head:**", ""])
-        for run in pull["workflow_runs"]:
-            verdict = run["conclusion"] or run["status"]
-            lines.append(f"- [{cell(run['name'])}]({run['html_url']}): **{verdict}**.")
-        if not pull["workflow_runs"]:
-            lines.append("- No Actions workflow run was found for this head.")
-        if item["evidence"]:
-            lines.extend(["", "**Additional evidence:**", ""])
-            lines.extend(f"- {entry}" for entry in item["evidence"])
-        lines.extend(["", f"**Next action:** {item['next_action']}", ""])
+        if item["pr"] is not None and item.get("kind") != "watch":
+            lines.extend(pull_review(item, pulls[item["pr"]]))
+    lines.extend(["## Upstream PR watchlist", "",
+                  "These upstream-owned PRs are explicitly mapped for adoption or collaboration. "
+                  "They do not count as authored submissions.", ""])
+    for item in snapshot["items"]:
+        if item["pr"] is not None and item.get("kind") == "watch":
+            lines.extend(pull_review(item, pulls[item["pr"]]))
     lines.extend([
         "## Maintenance", "",
         "[snapshot.json](upstream-prs/snapshot.json) owns the candidate mapping, "
@@ -238,7 +278,9 @@ def render(snapshot: Snapshot) -> str:
         "configured read-only GitHub CLI queries, then regenerate and check:", "",
         "```powershell", "python docs/implementation/upstream-prs/render.py --refresh",
         "python docs/implementation/upstream-prs/render.py --check", "```", "",
-        "Refresh preserves review notes and flags changed PR heads. New authored PRs "
+        "Discovery is bounded to authored PRs created since the recorded date in listed "
+        "upstreams; upstream-owned watch PRs require explicit mappings. Refresh reads "
+        "every mapped PR, preserves review notes and flags changed PR heads. New authored PRs "
         "in a listed upstream stop refresh until their mapping is reviewed. Update the "
         "human review and next action when discussion or evidence changes; "
         "`--check` checks agreement with the captured snapshot, not live GitHub freshness.", "",
