@@ -1,5 +1,5 @@
 #include "cli_options.h"
-#include "CLI11.hpp"
+#include <CLI/CLI.hpp>
 
 CLIOptions parse_cli(int argc, char **argv) {
   CLI::App app("Sail RISC-V Model");
