@@ -2,7 +2,7 @@
   "version": 1,
   "author": "symbiogenesis",
   "created_since": "2026-10-19",
-  "observed_at": "2026-10-22 21:21:48 UTC",
+  "observed_at": "2026-10-22 22:04:00 UTC",
   "items": [
     {
       "id": "1",
@@ -53,10 +53,11 @@
       "pr": "https://github.com/rocq-prover/rocq/pull/22609",
       "benefit": "Reduces reliance on parsing human-readable context summaries to decide proof acceptance.",
       "reviewed_head": "956ec7d95d33cca4197482edd58c40f0856e69b6",
-      "review": "Tests cover explicit/imported/sealed axioms, unsafe flags, primitives, module parameters and trust modes. No actionable isolated defect found. No maintainer review or comments recorded. Integration with candidate 10 needs a combined-option regression.",
-      "next_action": "Await upstream review; exercise -axiom-free without -o together with candidate 10.",
+      "review": "Tests cover explicit/imported/sealed axioms, unsafe flags, primitives, module parameters and trust modes. Maintainer SkySkimmer flagged a redundant unsafe-flags fold and potentially incomplete coverage of unsafe flags hidden by module sealing under -admit/-norec, and suggested checking flags_are_safe in axiom collection after candidates 10 and 22. The author acknowledged the request. Candidate 10 is merged; candidate 22 remains open. Integration still needs combined-option coverage without -o.",
+      "next_action": "Address the maintainer's unsafe-flag collection request with candidate 10 and coordinate candidate 22; exercise -axiom-free without -o across recursive, -norec, -admit and sealed-module cases.",
       "evidence": [
-        "GitLab reports a successful light pipeline through a NEUTRAL check; FULL_CI is false. It is not evidence of a full GitLab pipeline pass."
+        "GitLab reports a successful light pipeline through a NEUTRAL check; FULL_CI is false. It is not evidence of a full GitLab pipeline pass.",
+        "[Maintainer review](https://github.com/rocq-prover/rocq/pull/22609#discussion_r4337474886) requests the unsafe-flag collection change; [the author's reply](https://github.com/rocq-prover/rocq/pull/22609#discussion_r4350847776) acknowledges it."
       ]
     },
     {
@@ -1442,7 +1443,7 @@
         }
       ],
       "title": "printing: warn when module contents cannot be printed",
-      "updatedAt": "2026-10-22T08:05:22Z",
+      "updatedAt": "2026-10-22T22:03:18Z",
       "url": "https://github.com/rocq-prover/rocq/pull/22614",
       "workflow_runs": [
         {
@@ -1929,16 +1930,16 @@
       "url": "https://github.com/rems-project/sail/pull/1795",
       "workflow_runs": [
         {
-          "name": "Check formatting",
-          "status": "completed",
-          "conclusion": "success",
-          "html_url": "https://github.com/rems-project/sail/actions/runs/39789875827"
-        },
-        {
           "name": "Test matrix",
           "status": "completed",
           "conclusion": "success",
           "html_url": "https://github.com/rems-project/sail/actions/runs/39789875777"
+        },
+        {
+          "name": "Check formatting",
+          "status": "completed",
+          "conclusion": "success",
+          "html_url": "https://github.com/rems-project/sail/actions/runs/39789875827"
         }
       ]
     },
