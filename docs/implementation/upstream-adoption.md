@@ -29,6 +29,24 @@ Host CI on Windows and Ubuntu, and dispatch every Guest CI lane for the settled
 revision. Finish with Guest CI pending and no claim of its success. Checks outside
 those workflows retain their separate acceptance requirements.
 
+## Local qualification
+
+The focused development checks on 2026-10-22 establish the following results:
+
+| Consumer | Result and distinguishing control |
+| --- | --- |
+| Indexed segmented stores | The generated-model harness passes ordered and unordered cases at VLEN256 and the shipped V-class VLEN4096, including legal overlap/disjoint and capability-fault-ordering controls. Restoring the old guard compiles successfully and makes both instruction forms fail specifically at the later-segment overlap expectation. The corrected source is restored byte-for-byte and its focused runs pass again. Strict Sail typechecking also passes on the final authored bytes. |
+| Frame writer | Pinned Verilator 5.052 passes the frame round trip and existing writer-mutant controls. The assertion-policy fixture passes its active positive control, detects the intended failure after RTL disables assertions under the runtime lock, and suppresses that failure without the lock. Focused tool tests bind the compiler/runtime arguments and preserve all reported outcomes. |
+| Emulator CLI | A native target linking the actual option parser passes its isolated CTest, including prefixed negatives, whitespace, overflow, valid prefixes and unsigned maxima. The hash-verified preceding 2.7.2 amalgamated header fails the same regression by accepting `--inst-limit 0b-1` as the maximum unsigned value. |
+| BF16 classifier | The standalone native target passes its isolated CTest and checks every 16-bit representation. The preceding vendored header compiles with the same test and fails specifically on signaling NaN `0x7f81`. |
+
+The Sail checks use locked Sail 0.20.3. The local expected Z3 5.3.1 prefix is
+absent, so the front door reports a PATH-solver fallback; the bounded journal
+retains the actual tools and diagnostics. Complete qualification therefore remains
+with Guest CI's pinned bootstrap and model evidence sweep. No complete suite or
+benchmark is run locally. Host CI and the Guest CI dispatch for the settled revision
+are recorded by the fan-out handoff and reported with the delivery.
+
 The source review's broader toolchain migrations, new proof interfaces, optional
 certificate backends and unimplemented compute/runtime consumers remain with
 their existing owners; this contract selects none of them.
