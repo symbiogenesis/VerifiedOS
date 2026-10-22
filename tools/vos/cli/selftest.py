@@ -2089,6 +2089,13 @@ CASES: list[Case] = [
     ("K-81", "a copied model transplant edition changed outside its exact retained-source residue",
      _literal("docs/implementation/retained-evidence/close3-q35p-20261013/bindings.sail.txt",
               "bb07488d", "bb07488e")),
+    ("K-81", "a watched PR workflow identifier changed outside its exact scoped capture",
+     _literal("docs/implementation/upstream-prs.md",
+              "actions/runs/33583780921): **success**",
+              "actions/runs/33583780922): **success**")),
+    ("K-81", "a declared workflow identifier used as a source pin outside its tracker scope",
+     _literal("docs/implementation/fiat-crypto-emission.md",
+              "1e721c6f18c43b90922e7bc57fd64848e5cff2be", "33583780870")),
 
     # One holder citation moved onto the id the numbering is missing, which is the
     # defect in the shape it actually arrives in rather than an invented one: the plan
