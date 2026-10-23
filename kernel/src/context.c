@@ -57,8 +57,12 @@ void vos_switch_image(const struct vos_machine *m, const struct vos_context *suc
 {
   uint32_t i;
   vos_copy_registers(succ, post);
+  /* Retain only the predecessor fields the switch does not restore. The
+   * output may be the successor record, so do not overwrite its inputs. */
   for (i = 0; i < VOS_MAX_CSRS; i++) {
-    post->csr[i] = pre->csr[i];
+    if (i >= m->csr_count || !m->roster[i].nameable) {
+      post->csr[i] = pre->csr[i];
+    }
   }
   for (i = 0; i < m->csr_count && i < VOS_MAX_CSRS; i++) {
     const struct vos_csr_row *row = &m->roster[i];
@@ -79,7 +83,9 @@ void vos_rotation_image(const struct vos_machine *m, const struct vos_context *s
   uint32_t i;
   vos_copy_registers(succ, post);
   for (i = 0; i < VOS_MAX_CSRS; i++) {
-    post->csr[i] = pre->csr[i];
+    if (i >= m->csr_count || !m->roster[i].nameable || m->roster[i].zeroized) {
+      post->csr[i] = pre->csr[i];
+    }
   }
   for (i = 0; i < m->csr_count && i < VOS_MAX_CSRS; i++) {
     const struct vos_csr_row *row = &m->roster[i];
