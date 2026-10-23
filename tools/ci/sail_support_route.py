@@ -603,9 +603,35 @@ def hidden_assumption_audit(stdout: str, expected: list[dict[str, Any]]) -> list
     return symbols
 
 
+def control_census_join(classified: dict[str, dict[str, Any]], spec: dict[str, Any]) -> None:
+    """Join the reviewed positive/hidden controls to the adapter's native classifications."""
+    # The adapter has validated every query target against its native module path.
+    modules = {module["query"]["target"] for root in classified.values() for module in root["modules"]
+               if module["query"]["target_module_id"] == module["id"] and not module["query"]["coverage_path"]}
+    if not set(spec["required_modules"]) <= modules:
+        raise ValueError("native positive-control census omits a required module")
+    controls = classified[spec["root"]]
+    guarded = {symbol["name"] for symbol in controls["symbols"]}
+    exported: set[str] = set()
+    for declaration in controls["declarations"]:
+        if declaration["classification"] != "owned":
+            continue
+        reference, connection = declaration["native_reference"], declaration["implementation_connection"]
+        if (reference["exported_name"] != declaration["exported_name"]
+                or reference["canonical_name"] not in guarded
+                or connection["audit_query_name"] != reference["canonical_name"]):
+            raise ValueError("native hidden-control ownership lacks its exact guarded audit binding")
+        exported.add(declaration["exported_name"])
+    aliases = {name for binding in controls["alias_audits"]
+               for name in (binding["exported_spelling"], binding["audit_query_name"])}
+    if any(entry["name"] not in exported | aliases for entry in spec["hidden_assumptions"]["symbols"]):
+        raise ValueError("native hidden-assumption query has no owned or alias census binding")
+
+
 def native_controls(campaign: Campaign, mappings: list[str]) -> None:
     api, spec = census_api(campaign.side), control_spec(campaign.side)
     metadata, searches, readings = native_dataset(campaign, api, spec["targets"], mappings, "control")
+    control_census_join(api.census(metadata, searches, readings, expected_modules=spec["targets"]), spec)
     report = api.qualify_controls(metadata, searches, readings)
     write(campaign.upload / "control-adapter-verdicts.json", report)
     source = campaign.side / "tools/rocq-census"
@@ -879,6 +905,7 @@ def validate_native_qualification(artifact_root: Path, side: Path, revision: str
             check_query(label, "Require " + " ".join(requested) + ".\n" + proofaudit.SETTINGS + command + name + ".\n")
         classified = api.census(metadata, searches, readings, expected_modules=requested)
         if prefix == "control":
+            control_census_join(classified, spec)
             control_report = api.qualify_controls(metadata, searches, readings)
             if control_report != load(artifact_root / "control-adapter-verdicts.json"):
                 raise ValueError("native adapter control replay differs")
