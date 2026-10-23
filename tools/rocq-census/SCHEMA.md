@@ -143,6 +143,18 @@ source and instantiated declaration metadata, actual native references, and a
 nonempty ordered resolution trace with `lookup_succeeded: true`. A status label or
 printed signature is insufficient.
 
+A declaration alias's `target_reference` equals its private instantiated
+`implementation_reference`. Its `resolver_id` is exactly the owner's instantiated
+private implementation resolver in its descent, or the root implementation
+resolver for a root-owned declaration; its owner and role must match. The public
+signature resolver is selected separately through the flat exported module's
+`implementation.resolver_id`, with that exact owner and `signature` role. Its
+complete finite kernel effects must map both the private canonical and exported
+user kernel names to the independently looked-up exported canonical, and leave
+that canonical fixed. Preserve both references and resolver roots as emitted.
+Private substitution and public canonicalization can have distinct native effects;
+neither raw canonical equality nor an unrelated resolver establishes this join.
+
 A `direct-lookup` step requires an actual native declaration lookup. A sealed field
 must additionally follow its module implementation: `FullStruct` selects the native
 signature body; `Struct` retains the separate implementation structure; `Algebraic`
