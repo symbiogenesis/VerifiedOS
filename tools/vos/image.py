@@ -66,6 +66,8 @@ class _Strtab:
         self.blob = bytearray(b"\0")
 
     def add(self, name: str) -> int:
+        if "\0" in name:
+            raise ValueError(f"ELF name contains NUL: {name!r}")
         if not name:
             return 0
         offset = len(self.blob)
@@ -86,6 +88,13 @@ def write_elf(path: Path, sections: list[Section], symbols: dict[str, tuple[str,
     # against `SHN_UNDEF` and the emulator would skip it.
     named = {section for section, _ in symbols.values()}
     sections = [s for s in sections if s.data or s.name in named]
+    # Symbols identify sections by name, and the loader finds .symtab by name.
+    # Ambiguous names would silently bind either lookup to the wrong section.
+    section_names = {".symtab", ".strtab", ".shstrtab"}
+    for section in sections:
+        if section.name in section_names:
+            raise ValueError(f"duplicate or reserved ELF section name: {section.name}")
+        section_names.add(section.name)
     index_of = {s.name: i + 1 for i, s in enumerate(sections)}
     for name, (section, _) in symbols.items():
         if section not in index_of:

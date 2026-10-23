@@ -62,8 +62,15 @@ def _section_bindings() -> None:
     _refused_image(move, "graph address differs from placement")
     def duplicate(root: Path) -> None:
         sections = _parts(root)
-        sections.append(image.Section(".handler_graph", sections[1].addr + 2048, bytearray(b"other")))
+        sections.append(image.Section(".other", sections[1].addr + 2048, bytearray(b"other")))
         _emit(root, sections)
+        # Construct malformed external input after the writer has validated names.
+        path = root / IMAGE
+        blob = bytearray(path.read_bytes())
+        shoff = struct.unpack_from("<Q", blob, 40)[0]
+        graph_name = struct.unpack_from("<I", blob, shoff + 2 * image.SHDR_SIZE)[0]
+        struct.pack_into("<I", blob, shoff + 3 * image.SHDR_SIZE, graph_name)
+        path.write_bytes(blob)
     _refused_image(duplicate, "exactly one .handler_graph")
 
 

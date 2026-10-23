@@ -106,10 +106,46 @@ def _symbol_only_section_kept() -> None:
                f"an empty unnamed section must be dropped: headers say {(e_phnum, e_shnum)}")
 
 
+def _ambiguous_section_names_refused() -> None:
+    with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
+        path = Path(td) / "f.elf"
+        for name in (".text", ".symtab", ".strtab", ".shstrtab"):
+            sections = [image.Section(".text", 0x80000000, bytearray(b"code")),
+                        image.Section(name, 0x80008000, bytearray(b"data"))]
+            path.write_bytes(b"existing image")
+            try:
+                image.write_elf(path, sections, {"_start": (".text", 0x80000000)},
+                                0x80000000)
+            except ValueError as err:
+                ensure(name in str(err), f"the refusal must name the section: {err}")
+                ensure(path.read_bytes() == b"existing image",
+                       "invalid section names must not replace the existing image")
+            else:
+                raise AssertionError(f"ambiguous section name {name} must be refused")
+
+
+def _nul_names_refused() -> None:
+    with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
+        path = Path(td) / "f.elf"
+        for section_name, symbol_name in ((".symtab\0payload", "_start"),
+                                          (".text", "tohost\0payload")):
+            section = image.Section(section_name, 0x80000000, bytearray(b"code"))
+            try:
+                image.write_elf(path, [section], {symbol_name: (section_name, section.addr)},
+                                section.addr)
+            except ValueError as err:
+                ensure("NUL" in str(err), f"the refusal must explain the invalid name: {err}")
+                ensure(not path.exists(), "a truncated ELF name must not reach an output image")
+            else:
+                raise AssertionError("a NUL-truncated ELF name must be refused")
+
+
 def cases() -> list[Case]:
     return [
         Case("golden-elf", _golden_elf),
         Case("header-arithmetic", _header_arithmetic),
         Case("symbol-in-no-section", _symbol_in_no_section),
         Case("symbol-only-section-kept", _symbol_only_section_kept),
+        Case("ambiguous-section-names-refused", _ambiguous_section_names_refused),
+        Case("nul-names-refused", _nul_names_refused),
     ]
