@@ -90,3 +90,13 @@
 	path = upstream/libjade
 	url = https://github.com/formosa-crypto/libjade
 	branch = main
+[submodule "upstream/perennial"]
+	path = upstream/perennial
+	url = https://github.com/mit-pdos/perennial
+	branch = master
+[submodule "upstream/s2n-bignum"]
+	path = upstream/s2n-bignum
+	url = https://github.com/awslabs/s2n-bignum
+[submodule "upstream/vasn"]
+	path = upstream/vasn
+	url = https://github.com/zhouxt1/vasn
