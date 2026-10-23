@@ -229,6 +229,24 @@ def _native_semantics(value: dict[str, Any]) -> None:
             _require(node["field_count"] == len(node["fields"]), "incomplete native structure fields")
             keys = [(field["namespace"], field["label"]) for field in node["fields"]]
             _require(len(set(keys)) == len(keys), "duplicate native structure namespace/label")
+            for field in node["fields"]:
+                is_module = field["kind"] in {"module", "module-type"}
+                _require(field["namespace"] == ("module" if is_module else "object")
+                         and (field["metadata"] is None) == is_module
+                         and (field["module"] is not None) == is_module, "native structure field payload differs from kind")
+                if is_module:
+                    _require(field["module"]["kind"] == field["kind"]
+                             and field["module"]["path"] == {"tag": "MPdot", "parent": node["path"], "label": field["label"]},
+                             "native child module path/kind differs from its selected field")
+                else:
+                    _require(field["metadata"]["kind"] == field["kind"], "native structure object metadata kind differs")
+        if {"path", "kind", "signature", "implementation"} == node.keys():
+            signature = node["signature"]
+            while signature["tag"] == "MoreFunctor":
+                _require(signature["parameter"]["path"] == {"tag": "MPbound", "identifier": signature["parameter_identifier"]},
+                         "native module formal lost its bound path")
+                signature = signature["result"]
+            _require(signature["structure"]["path"] == node["path"], "native module signature structure has another owner path")
         if {"packet_count", "packets"} <= node.keys():
             _require(node["packet_count"] == len(node["packets"]), "incomplete inductive packets")
         if {"constructor_count", "constructors"} <= node.keys():
@@ -252,6 +270,87 @@ def _native_semantics(value: dict[str, Any]) -> None:
                      "implementation structure discriminator disagrees")
 
 
+def _same_native(left: object, right: object, resolvers: dict[str, dict[str, Any]]) -> bool:
+    """Different resolver IDs may name the same complete native finite effects."""
+    def normalize(value: object) -> object:
+        if isinstance(value, list):
+            return [normalize(item) for item in value]
+        if isinstance(value, dict):
+            result = {}
+            for key, item in value.items():
+                if key == "resolver_id":
+                    resolver = resolvers[item]
+                    result[key] = {name: resolver[name] for name in ("root", "module_effects", "kernel_effects", "inline_keys")}
+                else:
+                    result[key] = normalize(item)
+            return result
+        return value
+    return normalize(left) == normalize(right)
+
+
+def _trace(steps: list[dict[str, Any]], source: dict[str, Any], target: dict[str, Any],
+           implementation: dict[str, Any], origin: dict[str, Any], *,
+           source_value: object, target_value: object, resolvers: dict[str, dict[str, Any]],
+           exported_reference: dict[str, Any] | None = None) -> None:
+    """Replay one local native evaluation, separate from enclosing module descents."""
+    if exported_reference is not None:
+        _require(steps[-1]["tag"] == "direct-lookup" and steps[-1]["reference"] == exported_reference,
+                 "implementation trace lacks its terminal exported native lookup")
+        local = steps[:-1]
+    else:
+        local = steps
+    structures = [index for index, step in enumerate(local) if step["tag"] == "structure-field"]
+    _require(len(structures) == 1, "implementation trace lacks its unique native structure field")
+    split = structures[0]
+    _require(local[split]["field"] == source, "implementation trace changed its source field")
+    _require(all(step["tag"] in {"module-alias", "functor-application"} for step in local[:split]),
+             "implementation trace evaluation steps are reordered")
+    substitutions = local[split + 1:]
+    _require(len(substitutions) <= 1, "implementation trace has ambiguous final substitutions")
+    if substitutions:
+        _require(substitutions[0]["tag"] == "substitution" and substitutions[0]["source"] == source
+                 and substitutions[0]["target"] == target, "implementation substitution endpoints differ")
+    else:
+        _require(source == target and _same_native(source_value, target_value, resolvers),
+                 "implementation changed its field/metadata without substitution")
+    pending: list[dict[str, Any]] = []
+    actual_origin = origin
+    for step in local[:split]:
+        expression = step["expression"]
+        while expression["tag"] in {"MENoFunctor", "MEMoreFunctor"}:
+            expression = expression["body"]
+        if step["tag"] == "module-alias":
+            _require(not pending, "native application trace omitted an ordered argument")
+            _require(step["source"] == actual_origin, "native alias trace rebased its original source path")
+            while expression["tag"] == "MEapply":
+                pending.append(expression)
+                expression = expression["function"]
+                while expression["tag"] in {"MENoFunctor", "MEMoreFunctor"}:
+                    expression = expression["body"]
+            pending.reverse()
+            _require(expression["tag"] == "MEident" and expression["path"] == step["target"],
+                     "native alias trace disagrees with its module expression")
+            actual_origin = step["target"]
+        else:
+            _require(expression["tag"] == "MEapply" and expression["argument"] == step["argument"],
+                     "native application trace disagrees with its module expression")
+            _require(bool(pending) and expression == pending.pop(0), "native application trace reordered or added an argument")
+    _require(not pending, "native application trace omitted an ordered argument")
+    _require(source["module_path"] == actual_origin, "native structure source was rebased before its original reading")
+    if implementation["kind"] in {"Struct", "FullStruct"}:
+        _require(split == 0 and local[split]["implementation_kind"] == implementation["kind"],
+                 "structure implementation trace is missing")
+    elif implementation["kind"] == "Algebraic":
+        _require(split > 0, "algebraic implementation trace is missing")
+        expression = implementation["expression"]
+        while expression["tag"] in {"MENoFunctor", "MEMoreFunctor"}:
+            expression = expression["body"]
+        _require(local[0]["expression"] == expression or local[0]["expression"] == implementation["expression"],
+                 "implementation trace does not start with its native expression")
+    else:
+        raise CensusError("abstract module supplied a concrete implementation")
+
+
 def _census(metadata: object, searches: dict[str, str], readings: dict[str, str], *,
             expected_modules: list[str]) -> dict[str, dict[str, Any]]:
     """Return canonical guarded symbols and replayable, complete per-root provenance."""
@@ -261,8 +360,8 @@ def _census(metadata: object, searches: dict[str, str], readings: dict[str, str]
              "native root population/order differs")
     requests = parse_search_requests(searches, expected_modules=expected_modules)
     _require(value["resolution_requests"] == requests, "native requests differ from original Search rows")
-    modules, fields, declarations, abbreviations, contexts, resolvers = (
-        _table(value, name) for name in ("modules", "fields", "declarations", "abbreviations", "contexts", "resolvers"))
+    modules, fields, declarations, abbreviations, contexts, resolvers, descents = (
+        _table(value, name) for name in ("modules", "fields", "declarations", "abbreviations", "contexts", "resolvers", "module_descents"))
     _native_semantics(value)
     root_ids = {root["requested"]: root["module_id"] for root in value["roots"]}
     _require(len(set(root_ids.values())) == len(root_ids), "duplicate native roots")
@@ -439,6 +538,75 @@ def _census(metadata: object, searches: dict[str, str], readings: dict[str, str]
         if "resolver_id" in node:
             _require(node["resolver_id"] in resolvers, "missing native resolver connection")
 
+    concrete_nested = {identifier for identifier, module in modules.items()
+                       if module["parent_field_id"] is not None and module["kind"] == "module"
+                       and not any(context["kind"] in _ABSTRACT
+                                   for context in context_chain(module["signature"]["result_context_id"]))}
+    descent_by_module = {descent["owner_module_id"]: descent for descent in descents.values()}
+    _require(len(descent_by_module) == len(descents) and set(descent_by_module) == concrete_nested,
+             "native nested module descent population is missing, duplicate or foreign")
+    enclosing: dict[str, list[str]] = {}
+    def descent_chain(module_id: str, active: set[str] | None = None) -> list[str]:
+        if module_id in enclosing:
+            return enclosing[module_id]
+        if module_id in root_ids.values():
+            enclosing[module_id] = []
+            return []
+        pending = set() if active is None else active
+        _require(module_id in descent_by_module and module_id not in pending, "missing or cyclic native module descent")
+        descent = descent_by_module[module_id]
+        field = fields[modules[module_id]["parent_field_id"]]
+        parent_id = field["parent_module_id"]
+        parent_chain = descent_chain(parent_id, pending | {module_id})
+        _require(descent["parent_descent_id"] == (parent_chain[-1] if parent_chain else None),
+                 "native module descent lost its direct parent")
+        enclosing[module_id] = [*parent_chain, descent["id"]]
+        return enclosing[module_id]
+
+    def native_field(module: dict[str, Any], locator: dict[str, Any]) -> dict[str, Any] | None:
+        implementation = module["implementation"]
+        if implementation["kind"] == "FullStruct":
+            _require(module["signature"]["tag"] == "NoFunctor", "concrete native module retained an unapplied functor")
+            structure = module["signature"]["structure"]
+        elif implementation["kind"] == "Struct":
+            structure = implementation["structure"]
+        else:
+            return None
+        matches = [field for field in structure["fields"]
+                   if (field["namespace"], field["label"]) == (locator["namespace"], locator["label"])]
+        _require(len(matches) == 1, "native original/instantiated module omits a selected field")
+        return matches[0]
+
+    for module_id, descent in descent_by_module.items():
+        descent_chain(module_id)
+        module = modules[module_id]
+        field = fields[module["parent_field_id"]]
+        parent = modules[field["parent_module_id"]]
+        source, target = descent["source_field"], descent["instantiated_field"]
+        for locator in (source, target):
+            _require(locator["namespace"] == "module" and locator["label"] == field["label"]
+                     and locator["packet_index"] is None and locator["constructor_index"] is None,
+                     "native module descent changed its namespace, label or indices")
+        _require(target["module_path"] == parent["native_path"], "native module descent changed its instantiated parent")
+        for name, locator in (("source_module", source), ("instantiated_module", target)):
+            child = descent[name]
+            expected_path = {"tag": "MPdot", "parent": locator["module_path"], "label": locator["label"]}
+            _require(child["kind"] == "module" and child["path"] == expected_path
+                     and child["signature"]["tag"] == "NoFunctor", "native module descent child metadata/path differs")
+        _require(descent["instantiated_module"]["path"] == module["native_path"],
+                 "native module descent does not reach its exported child")
+        parent_descent = descent_by_module.get(parent["id"])
+        implementation = parent_descent["instantiated_module"]["implementation"] if parent_descent is not None else parent["implementation"]
+        origin = parent_descent["source_module"]["path"] if parent_descent is not None else parent["native_path"]
+        _trace(descent["steps"], source, target, implementation, origin,
+               source_value=descent["source_module"], target_value=descent["instantiated_module"], resolvers=resolvers)
+        if parent_descent is not None:
+            for name, locator in (("source_module", source), ("instantiated_module", target)):
+                selected = native_field(parent_descent[name], locator)
+                if selected is not None:
+                    _require(selected["kind"] == "module" and _same_native(selected["module"], descent[name], resolvers),
+                             "native descent replaced its parent's actual before/after module field")
+
     def connection(declaration: dict[str, Any], field: dict[str, Any]) -> None:
         reference, link = declaration["native_reference"], declaration["implementation_connection"]
         _require(reference is not None and link is not None, "missing concrete implementation connection")
@@ -477,61 +645,21 @@ def _census(metadata: object, searches: dict[str, str], readings: dict[str, str]
             invariant_members = ("body_kind", "relevance", "inline_level", "primitive", "inline_code")
             _require(all(link["source_metadata"][name] == link["instantiated_metadata"][name] for name in invariant_members),
                      "implementation substitution changed constant metadata")
-        steps = link["steps"]
-        _require(steps[-1]["tag"] == "direct-lookup" and steps[-1]["reference"] == reference,
-                 "implementation trace lacks its terminal exported native lookup")
-        structures = [index for index, step in enumerate(steps) if step["tag"] == "structure-field"]
-        _require(len(structures) == 1, "implementation trace lacks its unique native structure field")
-        split = structures[0]
-        _require(steps[split]["field"] == link["source_field"], "implementation trace changed its source field")
-        _require(all(step["tag"] in {"module-alias", "functor-application"} for step in steps[:split]),
-                 "implementation trace evaluation steps are reordered")
-        substitutions = steps[split + 1:-1]
-        _require(len(substitutions) <= 1, "implementation trace has ambiguous final substitutions")
-        if substitutions:
-            _require(substitutions[0]["tag"] == "substitution"
-                     and substitutions[0]["source"] == link["source_field"]
-                     and substitutions[0]["target"] == link["instantiated_field"],
-                     "implementation substitution endpoints differ")
-        else:
-            _require(link["source_field"] == link["instantiated_field"]
-                     and link["source_metadata"] == link["instantiated_metadata"],
-                     "implementation changed its field/metadata without substitution")
-        pending_applications: list[dict[str, Any]] = []
-        for step in steps[:split]:
-            expression = step["expression"]
-            while expression["tag"] in {"MENoFunctor", "MEMoreFunctor"}:
-                expression = expression["body"]
-            if step["tag"] == "module-alias":
-                _require(not pending_applications, "native application trace omitted an ordered argument")
-                while expression["tag"] == "MEapply":
-                    pending_applications.append(expression)
-                    expression = expression["function"]
-                    while expression["tag"] in {"MENoFunctor", "MEMoreFunctor"}:
-                        expression = expression["body"]
-                pending_applications.reverse()
-                _require(expression["tag"] == "MEident" and expression["path"] == step["target"],
-                         "native alias trace disagrees with its module expression")
-            else:
-                _require(expression["tag"] == "MEapply" and expression["argument"] == step["argument"],
-                         "native application trace disagrees with its module expression")
-                _require(bool(pending_applications) and expression == pending_applications.pop(0),
-                         "native application trace reordered or added an argument")
-        _require(not pending_applications, "native application trace omitted an ordered argument")
-        implementation = modules[field["parent_module_id"]]["implementation"]
-        if implementation["kind"] in {"Struct", "FullStruct"}:
-            _require(split == 0 and steps[split]["implementation_kind"] == implementation["kind"],
-                     "structure implementation trace is missing")
-        elif implementation["kind"] == "Algebraic":
-            _require(split > 0,
-                     "algebraic implementation trace is missing")
-            expression = implementation["expression"]
-            while expression["tag"] in {"MENoFunctor", "MEMoreFunctor"}:
-                expression = expression["body"]
-            _require(steps[0]["expression"] == expression or steps[0]["expression"] == implementation["expression"],
-                     "implementation trace does not start with its native expression")
-        else:
-            raise CensusError("abstract module supplied a concrete implementation")
+        owner_id = field["parent_module_id"]
+        _require(link["enclosing_descent_ids"] == descent_chain(owner_id), "object connection lost its exact enclosing module chain")
+        owner_descent = descent_by_module.get(owner_id)
+        implementation = owner_descent["instantiated_module"]["implementation"] if owner_descent is not None else modules[owner_id]["implementation"]
+        origin = owner_descent["source_module"]["path"] if owner_descent is not None else modules[owner_id]["native_path"]
+        _trace(link["steps"], link["source_field"], link["instantiated_field"], implementation, origin,
+               source_value=link["source_metadata"], target_value=link["instantiated_metadata"],
+               resolvers=resolvers, exported_reference=reference)
+        if owner_descent is not None:
+            for name, locator, metadata_name in (("source_module", link["source_field"], "source_metadata"),
+                                                 ("instantiated_module", link["instantiated_field"], "instantiated_metadata")):
+                selected = native_field(owner_descent[name], locator)
+                if selected is not None:
+                    _require(selected["kind"] == field["kind"] and _same_native(selected["metadata"], link[metadata_name], resolvers),
+                             "object connection replaced its enclosing before/after native metadata")
         alias = declaration["alias"]
         if declaration["classification"] == "alias":
             _require(alias is not None and alias["exported_reference"] == reference
@@ -673,6 +801,7 @@ def _census(metadata: object, searches: dict[str, str], readings: dict[str, str]
                         "aliases": [row for row in root_declarations if row["classification"] == "alias"]
                                    + [row for row in value["abbreviations"] if row["module_id"] in module_ids],
                         "alias_audits": alias_audits[root], "alias_obligations": alias_obligations[root],
+                        "module_descents": [row for row in value["module_descents"] if row["owner_module_id"] in module_ids],
                         "resolutions": [row for row in value["resolutions"] if row["root_module_id"] == root_ids[root]],
                         "readings": {module["query"]["kind"] + ":" + module["query"]["target"]:
                                      readings[module["query"]["kind"] + ":" + module["query"]["target"]]
