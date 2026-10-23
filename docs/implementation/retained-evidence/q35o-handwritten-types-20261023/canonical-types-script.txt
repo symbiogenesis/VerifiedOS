@@ -1,0 +1,41 @@
+import os,sys,pathlib,json,hashlib,subprocess,time,shutil
+sys.dont_write_bytecode=True
+R=pathlib.Path('/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/checklist-20261023-a'); sys.path.insert(0,str(R/'tools'))
+from vos import proofaudit,proofreading
+L=pathlib.Path('/root/build/lane-checklist-20261023-a'); T=pathlib.Path('/tmp/vos-q35o-967eb3eb0a354cf0b7e48db8db978501'); os.chdir(T); P=pathlib.Path('/root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1')
+H=pathlib.Path('/root/build/fanout-retained/b238b053f81a8e38e616/triple-20261023-domains/lane'); O=L/'verifiedos-model/rocq'; sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
+baseline_receipt=json.loads((O/'receipt.json').read_text()); candidate_receipt=json.loads((H/'verifiedos-model/rocq/receipt.json').read_text()); assert baseline_receipt['inputs']==candidate_receipt['inputs'], 'canonical model input identities differ'
+for source in [baseline_receipt,candidate_receipt]:
+    assert all(sha(R/k)==v for k,v in source['inputs']['sources']['sha256'].items())
+assert sha(H/'verifiedos-model/rocq/receipt.json')==sha(R/'docs/implementation/retained-evidence/q35o-scope-20261023/canonical-receipt.json')
+for origin,receipt in [(O,baseline_receipt),(H/'verifiedos-model/rocq',candidate_receipt)]:
+    assert all(sha(origin/k)==v['sha256'] for k,v in receipt['outputs'].items())
+shutil.copy2(O/'receipt.json',L/'canonical-baseline-generation.json'); shutil.copy2(H/'verifiedos-model/rocq/receipt.json',L/'canonical-candidate-generation.json')
+BASE=['-boot','-R',str(P/'lib/coq/theories'),'Corelib','-Q',str(P/'lib/coq/user-contrib/Stdlib'),'Stdlib','-Q',str(L/'stdpp'),'stdpp','-R',str(L/'support/src-stdpp'),'SailStdpp','-R',str(L/'riscv-candidate'),'']
+STRICT=['-w','+default,-abstract-large-number','-set','Default Goal Selector=!','-disallow-sprop']; records=[]; readings={}; stats={}
+immutable=json.loads((L/'installed-library-before.json').read_text())
+def library_identity(): return {str(p.relative_to(P)):dict(bytes=p.stat().st_size,sha256=sha(p)) for p in sorted((P/'lib/coq').rglob('*')) if p.is_file() and p.suffix in ['.vo','.cmxs','.cma','.cmxa']}
+assert immutable==library_identity()
+def run(mode,label,argv):
+    start=time.monotonic(); d=subprocess.run(list(map(str,argv)),cwd=T,capture_output=True); out=L/('canonical-types-'+mode+'-'+label+'.stdout'); err=L/('canonical-types-'+mode+'-'+label+'.stderr'); out.write_bytes(d.stdout); err.write_bytes(d.stderr)
+    records.append(dict(mode=mode,label=label,argv=list(map(str,argv)),cwd=str(T),exit=d.returncode,elapsed_seconds=time.monotonic()-start,stdout=str(out),stderr=str(err),stdout_sha256=sha(out),stderr_sha256=sha(err)))
+    (L/'canonical-types-receipt.json').write_text(json.dumps(records,indent=2)+'\n'); print(mode,label,d.returncode,'stderr_bytes',len(d.stderr),flush=True)
+    assert d.returncode==0,d.stderr.decode(errors='replace')[-2400:]; assert immutable==library_identity(); return d
+try:
+    for mode,origin in [('baseline',O),('candidate',H/'verifiedos-model/rocq')]:
+        C=L/('canonical-types-'+mode); C.mkdir(); source=C/'rv64d_types.v'; shutil.copy2(origin/'rv64d_types.v',source)
+        run(mode,'compile',[P/'bin/rocq','c','-q',*BASE,'-R',str(C),'',source])
+        module='rv64d_types'
+        def query(phase,text):
+            name=proofreading.query_module(phase,module); file=T/(name+'.v'); file.write_text(text,newline=''); d=run(mode,phase,[P/'bin/rocq','c','-q',*BASE,'-R',str(C),'',*STRICT,file]); assert not d.stderr; assert len(d.stdout)<64*1024*1024; return d.stdout.decode()
+        names=[x['name'] for x in proofaudit.inventory(query('Inventory',proofaudit.inventory_query(module)),module)]
+        factsname=proofreading.query_module('Facts',module); facts=proofreading.answers(query('Facts',proofreading.facts_query(module,names)),[f'{n}|{kind}' for n in names for kind in ['check','about']])
+        abouts={n:proofreading.parse_about(n,proofreading.fresh_universes(facts[f'{n}|about'],factsname)) for n in names}; printed=[n for n in names if abouts[n].printed]; bodyname=proofreading.query_module('Bodies',module)
+        bodies=proofreading.answers(query('Bodies',proofreading.bodies_query(module,printed)),[f'{n}|print' for n in printed]); entries={n:proofreading.entry(proofreading.fresh_universes(facts[f'{n}|check'],factsname),abouts[n],proofreading.fresh_universes(bodies[f'{n}|print'],bodyname) if n in printed else None) for n in names}
+        (L/('canonical-types-frozen-'+mode+'.json')).write_text(json.dumps(entries,indent=2,sort_keys=True)+'\n'); readings[mode]=entries; stats[mode]=dict(declarations=len(names),printed=len(printed),source_sha256=sha(source)); print(mode,stats[mode],flush=True)
+    identical=readings['baseline']==readings['candidate']; differences=[dict(name=n,fields=[k for k in proofreading.FIELDS if a[k]!=readings['candidate'][n][k]]) for n,a in readings['baseline'].items() if a!=readings['candidate'].get(n)]
+    result=dict(all_identical=identical,stats=stats,differences=differences,prover_sha256=sha(P/'bin/rocq'),installed_library_objects=len(immutable),installed_library_unchanged=True,canonical_inputs_identical=True,comparison_compile_flags=[],query_flags=STRICT,scope='Canonical types module only; no main, closure, size, hosted plugin or production verdict')
+    (L/'canonical-types-comparison.json').write_text(json.dumps(result,indent=2)+'\n'); assert identical, differences[:10]
+    d=run('candidate','strict-compile',[P/'bin/rocq','c','-q',*BASE,'-R',str(L/'canonical-types-candidate'),'',*STRICT,L/'canonical-types-candidate/rv64d_types.v']); assert not d.stdout and not d.stderr
+except Exception as error:
+    (L/'canonical-types-refusal.json').write_text(json.dumps(dict(error_type=type(error).__name__,message=str(error),records=len(records),scope='No canonical source or output edit permitted; no qualification after this refusal'),indent=2)+'\n'); raise

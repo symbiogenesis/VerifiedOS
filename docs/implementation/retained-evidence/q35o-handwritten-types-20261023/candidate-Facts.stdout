@@ -1,0 +1,86 @@
+VOS_PROOF_READING|riscv_extras.get_time_ns|check
+riscv_extras.get_time_ns
+     : forall _ : unit, BinNums.Z
+VOS_PROOF_READING|riscv_extras.get_time_ns|about
+riscv_extras.get_time_ns : forall _ : unit, BinNums.Z
+
+riscv_extras.get_time_ns is not universe polymorphic
+riscv_extras.get_time_ns is transparent
+Expands to: Constant riscv_extras.get_time_ns
+Declared in library riscv_extras, line 24, characters 11-22
+VOS_PROOF_READING|riscv_extras.mult_vec|check
+@riscv_extras.mult_vec
+     : forall (n : BinNums.Z) (_ : Values.mword n) (_ : Values.mword n), Values.mword (BinInt.Z.mul (BinNums.Zpos (BinNums.xO BinNums.xH)) n)
+VOS_PROOF_READING|riscv_extras.mult_vec|about
+riscv_extras.mult_vec : forall {n : BinNums.Z} (_ : Values.mword n) (_ : Values.mword n), Values.mword (BinInt.Z.mul (BinNums.Zpos (BinNums.xO BinNums.xH)) n)
+
+riscv_extras.mult_vec is not universe polymorphic
+Arguments riscv_extras.mult_vec {n}%_Z_scope l r
+riscv_extras.mult_vec is transparent
+Expands to: Constant riscv_extras.mult_vec
+Declared in library riscv_extras, line 32, characters 11-19
+VOS_PROOF_READING|riscv_extras.mults_vec|check
+@riscv_extras.mults_vec
+     : forall (n : BinNums.Z) (_ : Values.mword n) (_ : Values.mword n), Values.mword (BinInt.Z.mul (BinNums.Zpos (BinNums.xO BinNums.xH)) n)
+VOS_PROOF_READING|riscv_extras.mults_vec|about
+riscv_extras.mults_vec : forall {n : BinNums.Z} (_ : Values.mword n) (_ : Values.mword n), Values.mword (BinInt.Z.mul (BinNums.Zpos (BinNums.xO BinNums.xH)) n)
+
+riscv_extras.mults_vec is not universe polymorphic
+Arguments riscv_extras.mults_vec {n}%_Z_scope l r
+riscv_extras.mults_vec is transparent
+Expands to: Constant riscv_extras.mults_vec
+Declared in library riscv_extras, line 31, characters 11-20
+VOS_PROOF_READING|riscv_extras.print_string|check
+riscv_extras.print_string
+     : forall (_ : String.string) (_ : String.string), unit
+VOS_PROOF_READING|riscv_extras.print_string|about
+riscv_extras.print_string : forall (_ : String.string) (_ : String.string), unit
+
+riscv_extras.print_string is not universe polymorphic
+Arguments riscv_extras.print_string (_ _)%_string_scope
+riscv_extras.print_string is transparent
+Expands to: Constant riscv_extras.print_string
+Declared in library riscv_extras, line 33, characters 11-23
+VOS_PROOF_READING|riscv_extras.shift_bits_left|check
+@riscv_extras.shift_bits_left
+     : forall (a b : BinNums.Z) (_ : Values.mword a) (_ : Values.mword b), Values.mword a
+VOS_PROOF_READING|riscv_extras.shift_bits_left|about
+riscv_extras.shift_bits_left : forall {a b : BinNums.Z} (_ : Values.mword a) (_ : Values.mword b), Values.mword a
+
+riscv_extras.shift_bits_left is not universe polymorphic
+Arguments riscv_extras.shift_bits_left {a b}%_Z_scope v n
+riscv_extras.shift_bits_left is transparent
+Expands to: Constant riscv_extras.shift_bits_left
+Declared in library riscv_extras, line 14, characters 11-26
+VOS_PROOF_READING|riscv_extras.shift_bits_right|check
+@riscv_extras.shift_bits_right
+     : forall (a b : BinNums.Z) (_ : Values.mword a) (_ : Values.mword b), Values.mword a
+VOS_PROOF_READING|riscv_extras.shift_bits_right|about
+riscv_extras.shift_bits_right : forall {a b : BinNums.Z} (_ : Values.mword a) (_ : Values.mword b), Values.mword a
+
+riscv_extras.shift_bits_right is not universe polymorphic
+Arguments riscv_extras.shift_bits_right {a b}%_Z_scope v n
+riscv_extras.shift_bits_right is transparent
+Expands to: Constant riscv_extras.shift_bits_right
+Declared in library riscv_extras, line 17, characters 11-27
+VOS_PROOF_READING|riscv_extras.shift_bits_right_arith|check
+@riscv_extras.shift_bits_right_arith
+     : forall (a b : BinNums.Z) (_ : Values.mword a) (_ : Values.mword b), Values.mword a
+VOS_PROOF_READING|riscv_extras.shift_bits_right_arith|about
+riscv_extras.shift_bits_right_arith : forall {a b : BinNums.Z} (_ : Values.mword a) (_ : Values.mword b), Values.mword a
+
+riscv_extras.shift_bits_right_arith is not universe polymorphic
+Arguments riscv_extras.shift_bits_right_arith {a b}%_Z_scope v n
+riscv_extras.shift_bits_right_arith is transparent
+Expands to: Constant riscv_extras.shift_bits_right_arith
+Declared in library riscv_extras, line 20, characters 11-33
+VOS_PROOF_READING|riscv_extras.sys_enable_experimental_extensions|check
+riscv_extras.sys_enable_experimental_extensions
+     : forall _ : unit, bool
+VOS_PROOF_READING|riscv_extras.sys_enable_experimental_extensions|about
+riscv_extras.sys_enable_experimental_extensions : forall _ : unit, bool
+
+riscv_extras.sys_enable_experimental_extensions is not universe polymorphic
+riscv_extras.sys_enable_experimental_extensions is transparent
+Expands to: Constant riscv_extras.sys_enable_experimental_extensions
+Declared in library riscv_extras, line 27, characters 11-45

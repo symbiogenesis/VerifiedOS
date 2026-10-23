@@ -1,0 +1,12 @@
+import pathlib,shutil,hashlib,tarfile,json,subprocess,time
+R=pathlib.Path('/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/checklist-20261023-a'); L=pathlib.Path('/root/build/lane-checklist-20261023-a'); T=pathlib.Path('/tmp/vos-q35o-967eb3eb0a354cf0b7e48db8db978501'); sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
+archive=L/'support.tar.gz'; shutil.copy2('/root/build/lane-checklist-20261023-b/q35p/support.tar.gz',archive); assert sha(archive)=='1a0e226608ac84add6cd1f61a11637ea9db5e00e1551b2070945310078c9e031'
+root=L/'support-replay'; root.mkdir()
+with tarfile.open(archive) as tar: tar.extractall(root,filter='data')
+source=root/'coq-sail-0.20.3'; assert source.is_dir(); records=[]
+for label,rel in [('axiom','root/build/lane-q35g-20261003/q35g/coq-sail-reals-eqdep.patch'),('strict','q35n-20261013/sail-support-strict.patch')]:
+    patch=R/'docs/implementation/retained-evidence'/rel; args=['patch','--fuzz=0','--forward','-p1','-d',str(source),'-i',str(patch)]; start=time.monotonic(); d=subprocess.run(args,cwd=T,capture_output=True); out=L/('source-replay-'+label+'.stdout'); err=L/('source-replay-'+label+'.stderr'); out.write_bytes(d.stdout); err.write_bytes(d.stderr)
+    records.append(dict(argv=args,cwd=str(T),exit=d.returncode,elapsed_seconds=time.monotonic()-start,patch_sha256=sha(patch),stdout_sha256=sha(out),stderr_sha256=sha(err))); assert d.returncode==0,(d.stdout,d.stderr)
+expected=json.loads((R/'docs/implementation/retained-evidence/q35o-scope-20261023/support-identities.json').read_text()); actual={k:dict(sha256=sha(source/k),bytes=(source/k).stat().st_size) for k in expected if k.endswith('.v')}
+assert all(actual[k]['sha256']==expected[k]['sha256']==sha(L/'support'/k) for k in actual)
+(L/'source-replay-receipt.json').write_text(json.dumps(dict(archive_sha256=sha(archive),records=records,exact_sources=actual,all_match_frozen_support=True,all_match_compiled_source=True,shared_inputs_changed=False),indent=2)+'\n'); print('clean original archive plus exact recorded patches reproduces all support sources',flush=True)

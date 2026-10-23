@@ -2,11 +2,20 @@
 
 Q35o remains open. The canonical target excludes its unused `Real` import and
 fresh generation identity binds the native plugin population Sail selects. The
-private syntax candidate resolves the outcome-bind notation conflict, strictly
-compiles both minimal generated modules and the actual canonical types, and
-preserves every minimal declaration reading. The untouched strict canonical main
-then refuses Q35p's existing tag-write monad mismatch. Complete canonical frozen
-comparison and hosted plugin qualification remain owed.
+private syntax candidate resolves the outcome-bind notation conflict and preserves
+the minimal and actual canonical types' elaborated declarations. The handwritten
+support and candidate types compile strictly without diagnostics. The
+retained strict canonical-main attempt against the earlier support stops at
+Q35p's tag-write monad mismatch. The main remains unqualified against Q35p's
+semantic candidate; complete main frozen comparison and hosted plugin
+qualification remain owed.
+
+[Handwritten support and canonical types frozen qualification](retained-evidence/q35o-handwritten-types-20261023/manifest.json), SHA256 `e6d5db45c31b8983a137bfbd0bd04a9ea36a400a9128aecad9f66a6b97bf835d`,
+binds the preserving handwritten import repair, exact native declaration and
+assumption readings, fresh original-plugin canonical generation, unchanged scoped
+candidate outputs, complete types comparison and strict compilation at base
+`a5e4ba0e3e2ab477cdde2ae8a59dd47b82a9da90`. The bundle retains the complete
+readings and native query output with lossless gzip storage.
 
 [Scoped canonical emission syntax qualification](retained-evidence/q35o-scope-20261023/manifest.json), SHA256 `30f9caabab5f9e92c949242b527a8702b4a6a19ec022ef821b7367465305b32c`,
 retains the 2026-10-23 private patch, commands, frozen readings, all four notation
@@ -58,6 +67,40 @@ refusals and temporary-directory cleanup. Focused locked typechecking passes for
 both Windows and Linux. Independent read-only review approved the loader identity
 repair before the separate metadata-directory correction.
 
+## Handwritten support and canonical types qualification
+
+The model-owned `riscv_extras.v` imports `List` and `Lia` explicitly from `Stdlib`.
+Its complete native inventory has byte-identical elaborated types, universes,
+transparent bodies and declaration metadata before and after that spelling
+change. Native assumption queries report a closed global context for every
+owned declaration on both sides. The candidate compiles under the existing
+strict settings without diagnostics. Comparison builds use identical original
+settings; strict compilation is a separate result.
+
+Fresh original-plugin generation through `run.py model rocq` and the retained
+scoped-plugin candidate bind identical frozen configuration and complete Sail
+source identities. Their untouched `rv64d_types.v` files compile at the original
+settings and retain byte-identical readings over the complete native inventory,
+including every transparent and inductive `Print` target. The scoped candidate
+also compiles strictly without diagnostics. A complete canonical main comparison
+still requires Q35p's separately qualified semantic candidate and consumer compile.
+
+The private support sources reproduce exactly from the authenticated paired
+release archive and the existing Q35g and Q35n patches, applied without fuzz.
+The `Base` and canonical V1 concurrency support dependency closures compile
+strictly in the assigned lane. Complete source and dependency-object inventories
+bind the actual bytes; before/after digest maps also preserve the complete
+installed library object population and the installed sentinel files. The first
+harness limit and its approved bounded replay are retained: the baseline body
+query exceeded the finite probe's resource cap, so the replay reads its complete
+unchanged output under a larger explicit cap. No body is dropped or truncated.
+
+These focused results supply no hosted immutable-plugin/source carriage,
+complete support census, whole-term assumption closure or compiled-size verdict.
+The handwritten proof-maintenance handoff requires cold Guest CI under the
+existing proof workflow; that handoff does not discharge the independent plugin
+and consumer qualifications. No complete gate suite or benchmark ran locally.
+
 ## Immutable syntax trial and exact stop
 
 The candidate derives solely from the paired Sail 0.20.3
@@ -101,19 +144,20 @@ receipt records the actual solver selected on this host; the preferred
 `/root/z3-5.3.1/bin` is absent. These observations supply no locked-toolchain or
 hosted qualification claim.
 
-The untouched canonical types compile strictly without diagnostics. The strict
-main stops at `write_tag_bool` in `__WriteRAM_Meta`: its result has type
-`Prompt_monad.monad bool`, while `M unit` is required. This is Q35p's existing
-semantic boundary, now reached after the notation repair. No canonical source or
-output was post-edited and no later compile, assumption audit or recursive kernel
-check followed the refusal. Complete canonical frozen comparison, exact closure,
-compiled size and hosted cold plugin qualification remain unperformed.
+The untouched canonical types compile strictly without diagnostics. The retained
+strict canonical-main attempt against the earlier support stops at
+`write_tag_bool` in `__WriteRAM_Meta`: its result has type
+`Prompt_monad.monad bool`, while `M unit` is required. This retained refusal
+identifies the semantic boundary assigned to Q35p. No canonical source or output
+was post-edited. That attempt supplies no complete main compile, whole-term
+assumption audit or recursive kernel verdict. The main remains unqualified
+against Q35p's semantic candidate; complete main frozen comparison, exact closure,
+compiled size and hosted cold plugin qualification remain owed.
 
-The unchanged model-owned `riscv_extras.v` prerequisite compiles at its original
-settings with its two retained `deprecated-missing-stdlib` warnings. Its strict
-source qualification remains open; this diagnostic supplies no waiver. The private
-support prerequisite applies the exact Q35g and Q35n patches to the authenticated
-paired release and compiles exactly the campaign's 29 selected modules strictly.
+The model-owned `riscv_extras.v` prerequisite now has the preserving strict
+qualification above. The private support prerequisite applies the exact Q35g
+and Q35n patches to the authenticated paired release; the scoped syntax campaign
+compiles its selected support modules strictly.
 Dependency objects are copied into this lane and bound by their complete byte
 inventory. No package test target, complete gate suite or benchmark ran locally.
 
@@ -128,8 +172,8 @@ lane containment before launching a compile; restored installed sentinel hashes
 are checked around its commands and remain unchanged. No shared source or lock was
 changed, and the restored native binaries retain their original identities.
 
-Q35p's memory/tag outcome extension and Q35q's native census remain independent
-prerequisites. The next acts must qualify those owners and the full canonical
-frozen reading, resolve model-owned handwritten support diagnostics, and complete
-the hosted immutable-plugin/source campaign before Q35b's strict whole-term compile,
+Q35p's memory/tag qualification and Q35q's native census remain independent
+prerequisites. The next acts must qualify those owners, compare the complete
+canonical main frozen reading and complete the hosted immutable-plugin/source
+campaign before Q35b's strict whole-term compile,
 exact closure and size can join the unchanged production-carriage acceptance.
