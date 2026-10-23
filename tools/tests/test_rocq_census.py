@@ -380,7 +380,7 @@ class RocqCensusHarnessTests(unittest.TestCase):
                     os.utime(replacement, ns=(original_stat.st_atime_ns, original_stat.st_mtime_ns))
                     replacement.replace(path)
                     self.assertNotEqual(path.stat().st_ino, original_stat.st_ino)
-                return identity(path)
+                return cast("dict[str, object]", identity(path))
             reader = _HELPERS["census_output"]
             with patch.dict(reader.__globals__, {"output_identity": replaced}), self.assertRaisesRegex(
                     ValueError, "native census output changed during parsing"):
