@@ -140,7 +140,7 @@
   },
   "adapter_native_controls": {
     "original_maximum_candidate_checks": 3,
-    "maximum_candidate_checks": 5,
+    "maximum_candidate_checks": 6,
     "initial_maximum_active_minutes": 30,
     "maximum_cumulative_active_minutes": 60,
     "candidate_intents": [
@@ -187,6 +187,23 @@
         "result": "native signature exit1 and Abstract implementation exit1 match expected refusals; hidden native query0/empty diagnostics reports HiddenSealed.hidden_control_axiom : True for both HiddenSealed.witness and HiddenAlias.witness; exact manifest expecting HiddenImplementation path refuses; all source/driver/native input identities unchanged; no parser/3root emission; elapsed4.070646092000004s",
         "cumulative_active_seconds": 1797.084094779,
         "remaining_current_extension_seconds": 1792.484066608
+      },
+      {
+        "ordinal": 5,
+        "revision": "e900dd1d3187a8548401a40a5cffe368f37f42b0",
+        "owner_revision": "9c6e9d604c5229beea7b3d4ae01ec58b18f0e6a2",
+        "scope": "original tiny3 native controls, then one strict exact30 native14 graph replay with all78 retained native readings; stop first refusal",
+        "output": "/root/build/lane-checklist-20261023-c/adapter-5",
+        "driver_sha256_before_and_after": "0ee89456d56cf299c2393acfd5348d19fdb2b3a5d40ea84844e12da9a1847b34",
+        "intent_sha256": "59ec35bc4e76d968d20c99449da4b1b2dbb2012dd5a20f7d48021244ae4a973d",
+        "result": "tiny3 native controls pass; full schema pass194.871s, native semantics pass4.642s, all78 readings and domains pass6.447s; first full graph alias predicate refuses SailStdpp.State_monad.NMap.E.t private canonical versus independently looked-up exported canonical; no3root emission; all source/driver/installed/copied/raw/readings identities unchanged; elapsed363.17267165600003s; peakRSS13385732KiB; releasedRSS109948KiB",
+        "cumulative_active_seconds": 2160.256768735,
+        "remaining_current_extension_seconds": 1429.311394952,
+        "read_only_diagnostics": [
+          "/root/build/lane-checklist-20261023-c/adapter-5/first-alias-diagnostic.json",
+          "/root/build/lane-checklist-20261023-c/adapter-5/public-alias-resolver-diagnostic.json"
+        ],
+        "diagnostic_finding": "private alias resolver68e3e1d3ce5ffccc09f7fe106e83c236 exactly matches own descent/private implementation and has identity kernel effects; public flat-module implementation resolver75c4ca305c1a30c32869928013ac3a12 maps SailStdpp.State_monad.NMap.E.t to Stdlib.Structures.OrderedTypeEx.N_as_OT.t and fixes that canonical target; existing wire retains both actual native resolvers"
       }
     ],
     "framing_disposition_revision": "d98d1e40741b439caf440ba62469e2714bb1f478",
@@ -194,6 +211,8 @@
     "signature_diagnostic_correction_owner_revision": "436aee02b8ddfb09eb7ab0e409def371a11d8cc6",
     "signature_diagnostic_correction": "exact contiguous native reference prefix only; original source/native exit/raw diagnostic retained; no new time or counter reset",
     "sealed_control_identity_owner_revision": "9c6e9d604c5229beea7b3d4ae01ec58b18f0e6a2",
-    "sealed_control_identity_correction": "both expected axiom names match exact locked native HiddenSealed identity; authored axiom/witness source, native resolver and support allowlist unchanged; no new time or counter reset"
+    "sealed_control_identity_correction": "both expected axiom names match exact locked native HiddenSealed identity; authored axiom/witness source, native resolver and support allowlist unchanged; no new time or counter reset",
+    "public_alias_canonicalization_owner_revision": "2e1eaf9b92342b0c1fce408f5498898a149c1506",
+    "public_alias_canonicalization_scope": "preserve private anchored resolver and require exact public module implementation resolver bridge over complete native effects; same remaining allocation and cumulative60 cap"
   }
 }
