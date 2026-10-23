@@ -1,0 +1,17 @@
+File "/root/build/lane-checklist-20261023-b/q35p/probes/CallerBridge.v", line 54, characters 15-119:
+Error:
+In environment
+B : Type
+from : Z
+to : Z
+n : nat
+meta : bool
+s : ?T
+k : () → M B
+The term
+ "D.foreach_ZM_up' from to 1 n ()
+    (λ (i : Z) (_ : ()), D.write_tag_bool (raw_key i) meta) >>=
+  k"
+has type "D.monad exception B" while it is expected to have type
+ "L.I.iMon ?E ?B".
+

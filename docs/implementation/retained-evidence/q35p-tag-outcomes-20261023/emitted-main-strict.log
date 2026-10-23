@@ -1,0 +1,4 @@
+File "/root/build/lane-checklist-20261023-b/q35p/consumer/bindings.v", line 7, characters 15-29:
+Error: Unable to locate library
+bindings_types (while searching for a .vos file).
+

@@ -1,0 +1,811 @@
+Inductive
+outcome (eOutcome : forall _ : Type@{Interface.T.u0}, Type@{Interface.T.u1})
+  : forall _ : Type@{Interface.outcome.u0},
+    Type@{max(Set,Arch.reg.u0,Arch.reg_type.u0,Arch.pa.u0,Arch.arch_ak.u0,Arch.translation.u0,Arch.trans_start.u0,Arch.trans_end.u0,Arch.barrier.u0,Arch.cache_op.u0,Arch.tlb_op.u0,Arch.fault.u0,Arch.sys_reg_id.u0,Interface.T.u1,Interface.outcome.u1+1)} :=
+    RegRead : forall (reg : A.reg) (_ : option A.sys_reg_id),
+              I.outcome eOutcome (A.reg_type reg)
+  | RegWrite : forall (reg : A.reg) (_ : option A.sys_reg_id)
+                 (_ : A.reg_type reg),
+               I.outcome eOutcome unit
+  | MemRead : forall (n : N) (_ : I.ReadReq.t n),
+              I.outcome eOutcome
+                (sum
+                   (prod (definitions.bv (N.mul (Npos (xO (xO (xO xH)))) n))
+                      (option bool))
+                   A.abort)
+  | MemWrite : forall (n : N) (_ : I.WriteReq.t n),
+               I.outcome eOutcome (sum (option bool) A.abort)
+  | TagRead : forall _ : mword (Zpos (xO (xO (xO (xO (xO (xO xH))))))),
+              I.outcome eOutcome bool
+  | TagWrite : forall (_ : mword (Zpos (xO (xO (xO (xO (xO (xO xH))))))))
+                 (_ : bool),
+               I.outcome eOutcome unit
+  | InstrAnnounce : forall _ : definitions.bvn, I.outcome eOutcome unit
+  | BranchAnnounce : forall (sz : Z) (_ : mword sz), I.outcome eOutcome unit
+  | Barrier : forall _ : A.barrier, I.outcome eOutcome unit
+  | CacheOp : forall _ : A.cache_op, I.outcome eOutcome unit
+  | TlbOp : forall _ : A.tlb_op, I.outcome eOutcome unit
+  | TakeException : forall _ : A.fault, I.outcome eOutcome unit
+  | ReturnException : forall _ : A.pa, I.outcome eOutcome unit
+  | TranslationStart : forall _ : A.trans_start, I.outcome eOutcome unit
+  | TranslationEnd : forall _ : A.trans_end, I.outcome eOutcome unit
+  | ExtraOutcome : forall (A : Type@{Interface.outcome.u1}) (_ : eOutcome A),
+                   I.outcome eOutcome A
+  | GenericFail : forall _ : string, I.outcome eOutcome False
+  | CycleCount : I.outcome eOutcome unit
+  | GetCycleCount : I.outcome eOutcome Z
+  | Choose : forall ty : ChooseType, I.outcome eOutcome (choose_type ty)
+  | Discard : I.outcome eOutcome False
+  | Message : forall _ : string, I.outcome eOutcome unit.
+
+Arguments I.outcome eOutcome%_function_scope _%_type_scope
+Arguments I.RegRead {eOutcome}%_function_scope reg access_kind
+Arguments I.RegWrite {eOutcome}%_function_scope reg access_kind regval
+Arguments I.MemRead {eOutcome}%_function_scope n%_N_scope _
+Arguments I.MemWrite {eOutcome}%_function_scope n%_N_scope _
+Arguments I.TagRead {eOutcome}%_function_scope key
+Arguments I.TagWrite {eOutcome}%_function_scope key value%_bool_scope
+Arguments I.InstrAnnounce {eOutcome}%_function_scope opcode
+Arguments I.BranchAnnounce {eOutcome}%_function_scope sz%_Z_scope pa
+Arguments I.Barrier {eOutcome}%_function_scope _
+Arguments I.CacheOp {eOutcome}%_function_scope _
+Arguments I.TlbOp {eOutcome}%_function_scope _
+Arguments I.TakeException {eOutcome}%_function_scope _
+Arguments I.ReturnException {eOutcome}%_function_scope pa
+Arguments I.TranslationStart {eOutcome}%_function_scope _
+Arguments I.TranslationEnd {eOutcome}%_function_scope _
+Arguments I.ExtraOutcome {eOutcome}%_function_scope {A}%_type_scope _
+Arguments I.GenericFail {eOutcome}%_function_scope msg%_string_scope
+Arguments I.CycleCount {eOutcome}%_function_scope
+Arguments I.GetCycleCount {eOutcome}%_function_scope
+Arguments I.Choose {eOutcome}%_function_scope ty
+Arguments I.Discard {eOutcome}%_function_scope
+Arguments I.Message {eOutcome}%_function_scope _%_string_scope
+@I.outcome_ind ?eOutcome
+     : forall
+         (P : forall (T : Type@{Interface.outcome.u0})
+                (_ : I.outcome ?eOutcome T),
+              Prop)
+         (_ : forall (reg : A.reg) (access_kind : option A.sys_reg_id),
+              P (A.reg_type reg) (@I.RegRead ?eOutcome reg access_kind))
+         (_ : forall (reg : A.reg) (access_kind : option A.sys_reg_id)
+                (regval : A.reg_type reg),
+              P unit (@I.RegWrite ?eOutcome reg access_kind regval))
+         (_ : forall (n : N) (t : I.ReadReq.t n),
+              P
+                (sum
+                   (prod (definitions.bv (N.mul (Npos (xO (xO (xO xH)))) n))
+                      (option bool))
+                   A.abort)
+                (@I.MemRead ?eOutcome n t))
+         (_ : forall (n : N) (t : I.WriteReq.t n),
+              P (sum (option bool) A.abort) (@I.MemWrite ?eOutcome n t))
+         (_ : forall key : mword (Zpos (xO (xO (xO (xO (xO (xO xH))))))),
+              P bool (@I.TagRead ?eOutcome key))
+         (_ : forall (key : mword (Zpos (xO (xO (xO (xO (xO (xO xH))))))))
+                (value : bool),
+              P unit (@I.TagWrite ?eOutcome key value))
+         (_ : forall opcode : definitions.bvn,
+              P unit (@I.InstrAnnounce ?eOutcome opcode))
+         (_ : forall (sz : Z) (pa : mword sz),
+              P unit (@I.BranchAnnounce ?eOutcome sz pa))
+         (_ : forall b : A.barrier, P unit (@I.Barrier ?eOutcome b))
+         (_ : forall c : A.cache_op, P unit (@I.CacheOp ?eOutcome c))
+         (_ : forall t : A.tlb_op, P unit (@I.TlbOp ?eOutcome t))
+         (_ : forall f : A.fault, P unit (@I.TakeException ?eOutcome f))
+         (_ : forall pa : A.pa, P unit (@I.ReturnException ?eOutcome pa))
+         (_ : forall t : A.trans_start,
+              P unit (@I.TranslationStart ?eOutcome t))
+         (_ : forall t : A.trans_end, P unit (@I.TranslationEnd ?eOutcome t))
+         (_ : forall (A : Type@{Interface.outcome.u1}) (e : ?eOutcome A),
+              P A (@I.ExtraOutcome ?eOutcome A e))
+         (_ : forall msg : string, P False (@I.GenericFail ?eOutcome msg))
+         (_ : P unit (@I.CycleCount ?eOutcome))
+         (_ : P Z (@I.GetCycleCount ?eOutcome))
+         (_ : forall ty : ChooseType,
+              P (choose_type ty) (@I.Choose ?eOutcome ty))
+         (_ : P False (@I.Discard ?eOutcome))
+         (_ : forall s : string, P unit (@I.Message ?eOutcome s))
+         (T : Type@{Interface.outcome.u0}) (o : I.outcome ?eOutcome T),
+       P T o
+where
+?eOutcome : [ |- forall _ : Type@{Interface.T.u0}, Type@{Interface.T.u1}]
+@I.outcome_rec ?eOutcome
+     : forall
+         (P : forall (T : Type@{Interface.outcome.u0})
+                (_ : I.outcome ?eOutcome T),
+              Set)
+         (_ : forall (reg : A.reg) (access_kind : option A.sys_reg_id),
+              P (A.reg_type reg) (@I.RegRead ?eOutcome reg access_kind))
+         (_ : forall (reg : A.reg) (access_kind : option A.sys_reg_id)
+                (regval : A.reg_type reg),
+              P unit (@I.RegWrite ?eOutcome reg access_kind regval))
+         (_ : forall (n : N) (t : I.ReadReq.t n),
+              P
+                (sum
+                   (prod (definitions.bv (N.mul (Npos (xO (xO (xO xH)))) n))
+                      (option bool))
+                   A.abort)
+                (@I.MemRead ?eOutcome n t))
+         (_ : forall (n : N) (t : I.WriteReq.t n),
+              P (sum (option bool) A.abort) (@I.MemWrite ?eOutcome n t))
+         (_ : forall key : mword (Zpos (xO (xO (xO (xO (xO (xO xH))))))),
+              P bool (@I.TagRead ?eOutcome key))
+         (_ : forall (key : mword (Zpos (xO (xO (xO (xO (xO (xO xH))))))))
+                (value : bool),
+              P unit (@I.TagWrite ?eOutcome key value))
+         (_ : forall opcode : definitions.bvn,
+              P unit (@I.InstrAnnounce ?eOutcome opcode))
+         (_ : forall (sz : Z) (pa : mword sz),
+              P unit (@I.BranchAnnounce ?eOutcome sz pa))
+         (_ : forall b : A.barrier, P unit (@I.Barrier ?eOutcome b))
+         (_ : forall c : A.cache_op, P unit (@I.CacheOp ?eOutcome c))
+         (_ : forall t : A.tlb_op, P unit (@I.TlbOp ?eOutcome t))
+         (_ : forall f : A.fault, P unit (@I.TakeException ?eOutcome f))
+         (_ : forall pa : A.pa, P unit (@I.ReturnException ?eOutcome pa))
+         (_ : forall t : A.trans_start,
+              P unit (@I.TranslationStart ?eOutcome t))
+         (_ : forall t : A.trans_end, P unit (@I.TranslationEnd ?eOutcome t))
+         (_ : forall (A : Type@{Interface.outcome.u1}) (e : ?eOutcome A),
+              P A (@I.ExtraOutcome ?eOutcome A e))
+         (_ : forall msg : string, P False (@I.GenericFail ?eOutcome msg))
+         (_ : P unit (@I.CycleCount ?eOutcome))
+         (_ : P Z (@I.GetCycleCount ?eOutcome))
+         (_ : forall ty : ChooseType,
+              P (choose_type ty) (@I.Choose ?eOutcome ty))
+         (_ : P False (@I.Discard ?eOutcome))
+         (_ : forall s : string, P unit (@I.Message ?eOutcome s))
+         (T : Type@{Interface.outcome.u0}) (o : I.outcome ?eOutcome T),
+       P T o
+where
+?eOutcome : [ |- forall _ : Type@{Interface.T.u0}, Type@{Interface.T.u1}]
+@I.outcome_rect ?eOutcome
+     : forall
+         (P : forall (T : Type@{Interface.outcome.u0})
+                (_ : I.outcome ?eOutcome T),
+              Type@{Interface.outcome_rect.u0})
+         (_ : forall (reg : A.reg) (access_kind : option A.sys_reg_id),
+              P (A.reg_type reg) (@I.RegRead ?eOutcome reg access_kind))
+         (_ : forall (reg : A.reg) (access_kind : option A.sys_reg_id)
+                (regval : A.reg_type reg),
+              P unit (@I.RegWrite ?eOutcome reg access_kind regval))
+         (_ : forall (n : N) (t : I.ReadReq.t n),
+              P
+                (sum
+                   (prod (definitions.bv (N.mul (Npos (xO (xO (xO xH)))) n))
+                      (option bool))
+                   A.abort)
+                (@I.MemRead ?eOutcome n t))
+         (_ : forall (n : N) (t : I.WriteReq.t n),
+              P (sum (option bool) A.abort) (@I.MemWrite ?eOutcome n t))
+         (_ : forall key : mword (Zpos (xO (xO (xO (xO (xO (xO xH))))))),
+              P bool (@I.TagRead ?eOutcome key))
+         (_ : forall (key : mword (Zpos (xO (xO (xO (xO (xO (xO xH))))))))
+                (value : bool),
+              P unit (@I.TagWrite ?eOutcome key value))
+         (_ : forall opcode : definitions.bvn,
+              P unit (@I.InstrAnnounce ?eOutcome opcode))
+         (_ : forall (sz : Z) (pa : mword sz),
+              P unit (@I.BranchAnnounce ?eOutcome sz pa))
+         (_ : forall b : A.barrier, P unit (@I.Barrier ?eOutcome b))
+         (_ : forall c : A.cache_op, P unit (@I.CacheOp ?eOutcome c))
+         (_ : forall t : A.tlb_op, P unit (@I.TlbOp ?eOutcome t))
+         (_ : forall f : A.fault, P unit (@I.TakeException ?eOutcome f))
+         (_ : forall pa : A.pa, P unit (@I.ReturnException ?eOutcome pa))
+         (_ : forall t : A.trans_start,
+              P unit (@I.TranslationStart ?eOutcome t))
+         (_ : forall t : A.trans_end, P unit (@I.TranslationEnd ?eOutcome t))
+         (_ : forall (A : Type@{Interface.outcome.u1}) (e : ?eOutcome A),
+              P A (@I.ExtraOutcome ?eOutcome A e))
+         (_ : forall msg : string, P False (@I.GenericFail ?eOutcome msg))
+         (_ : P unit (@I.CycleCount ?eOutcome))
+         (_ : P Z (@I.GetCycleCount ?eOutcome))
+         (_ : forall ty : ChooseType,
+              P (choose_type ty) (@I.Choose ?eOutcome ty))
+         (_ : P False (@I.Discard ?eOutcome))
+         (_ : forall s : string, P unit (@I.Message ?eOutcome s))
+         (T : Type@{Interface.outcome.u0}) (o : I.outcome ?eOutcome T),
+       P T o
+where
+?eOutcome : [ |- forall _ : Type@{Interface.T.u0}, Type@{Interface.T.u1}]
+D.read_tag_bool =
+fun (E : Type@{Defs.read_tag_bool.u0})
+  (key : mword (Zpos (xO (xO (xO (xO (xO (xO xH)))))))) =>
+@I.Next (fun _ : Type@{Interface.T.u0} => E) bool bool
+  (@I.TagRead (fun _ : Type@{Interface.T.u0} => E) key)
+  (@I.Ret (fun _ : Type@{Interface.T.u0} => E) bool)
+     : forall {E : Type@{Defs.read_tag_bool.u0}}
+         (_ : mword (Zpos (xO (xO (xO (xO (xO (xO xH)))))))),
+       D.monad E bool
+
+Arguments D.read_tag_bool {E}%_type_scope key
+D.write_tag_bool =
+fun (E : Type@{Defs.write_tag_bool.u0})
+  (key : mword (Zpos (xO (xO (xO (xO (xO (xO xH)))))))) 
+  (value : bool) =>
+@I.Next (fun _ : Type@{Interface.T.u0} => E) unit unit
+  (@I.TagWrite (fun _ : Type@{Interface.T.u0} => E) key value)
+  (@I.Ret (fun _ : Type@{Interface.T.u0} => E) unit)
+     : forall {E : Type@{Defs.write_tag_bool.u0}}
+         (_ : mword (Zpos (xO (xO (xO (xO (xO (xO xH)))))))) 
+         (_ : bool),
+       D.monad E unit
+
+Arguments D.write_tag_bool {E}%_type_scope key value%_bool_scope
+I.map_extra_iMon =
+fix map_extra_iMon
+  (out1 : forall _ : Type@{Interface.map_extra_iMon.u0},
+          Type@{Interface.map_extra_iMon.u1})
+  (out2 : forall _ : Type@{Interface.map_extra_iMon.u2},
+          Type@{Interface.map_extra_iMon.u3})
+  (B : Type@{Interface.map_extra_iMon.u4}) (f : I.iMonExtraMap out1 out2)
+  (mon : I.iMon out1 B) {struct mon} : I.iMon out2 B :=
+  match mon return I.iMon out2 B with
+  | @I.Ret _ _ b => @I.Ret out2 B b
+  | @I.Next _ _ T oc k0 =>
+      let k : forall _ : T, I.iMon out2 B :=
+        fun x : T => map_extra_iMon out1 out2 B f (k0 x) in
+      match
+        oc in I.outcome _ T0
+        return (forall _ : forall _ : T0, I.iMon out2 B, I.iMon out2 B)
+      with
+      | @I.RegRead _ reg direct =>
+          @I.Next out2 B (A.reg_type reg) (@I.RegRead out2 reg direct)
+      | @I.RegWrite _ reg direct val =>
+          @I.Next out2 B unit (@I.RegWrite out2 reg direct val)
+      | @I.MemRead _ n readreq =>
+          @I.Next out2 B
+            (sum
+               (prod (definitions.bv (N.mul (Npos (xO (xO (xO xH)))) n))
+                  (option bool))
+               A.abort)
+            (@I.MemRead out2 n readreq)
+      | @I.MemWrite _ n writereq =>
+          @I.Next out2 B (sum (option bool) A.abort)
+            (@I.MemWrite out2 n writereq)
+      | @I.TagRead _ key => @I.Next out2 B bool (@I.TagRead out2 key)
+      | @I.TagWrite _ key value =>
+          @I.Next out2 B unit (@I.TagWrite out2 key value)
+      | @I.InstrAnnounce _ opcode =>
+          @I.Next out2 B unit (@I.InstrAnnounce out2 opcode)
+      | @I.BranchAnnounce _ sz pa =>
+          @I.Next out2 B unit (@I.BranchAnnounce out2 sz pa)
+      | @I.Barrier _ barrier => @I.Next out2 B unit (@I.Barrier out2 barrier)
+      | @I.CacheOp _ cache_op =>
+          @I.Next out2 B unit (@I.CacheOp out2 cache_op)
+      | @I.TlbOp _ tlb_op => @I.Next out2 B unit (@I.TlbOp out2 tlb_op)
+      | @I.TakeException _ fault =>
+          @I.Next out2 B unit (@I.TakeException out2 fault)
+      | @I.ReturnException _ pa =>
+          @I.Next out2 B unit (@I.ReturnException out2 pa)
+      | @I.TranslationStart _ ts =>
+          @I.Next out2 B unit (@I.TranslationStart out2 ts)
+      | @I.TranslationEnd _ te =>
+          @I.Next out2 B unit (@I.TranslationEnd out2 te)
+      | @I.ExtraOutcome _ A aout => @I.iMon_bind out2 A B (f A aout)
+      | @I.GenericFail _ msg =>
+          @I.Next out2 B False (@I.GenericFail out2 msg)
+      | @I.CycleCount _ => @I.Next out2 B unit (@I.CycleCount out2)
+      | @I.GetCycleCount _ => @I.Next out2 B Z (@I.GetCycleCount out2)
+      | @I.Choose _ n => @I.Next out2 B (choose_type n) (@I.Choose out2 n)
+      | @I.Discard _ => @I.Next out2 B False (@I.Discard out2)
+      | @I.Message _ msg => @I.Next out2 B unit (@I.Message out2 msg)
+      end k
+  end
+     : forall
+         {out1 : forall _ : Type@{Interface.map_extra_iMon.u0},
+                 Type@{Interface.map_extra_iMon.u1}}
+         {out2 : forall _ : Type@{Interface.map_extra_iMon.u2},
+                 Type@{Interface.map_extra_iMon.u3}}
+         {B : Type@{Interface.map_extra_iMon.u4}}
+         (_ : I.iMonExtraMap out1 out2) (_ : I.iMon out1 B),
+       I.iMon out2 B
+
+Arguments I.map_extra_iMon {out1 out2}%_function_scope {B}%_type_scope f mon
+D.try_catch =
+fix try_catch
+  (A : Type@{Defs.try_catch.u1}) (E1 : Type@{Defs.try_catch.u0})
+  (E2 : Type@{Defs.try_catch.u2}) (m : D.monad E1 A)
+  (h : forall _ : E1, D.monad E2 A) {struct m} : D.monad E2 A :=
+  match m return D.monad E2 A with
+  | @I.Ret _ _ r => @I.Ret (fun _ : Type@{Interface.T.u0} => E2) A r
+  | @I.Next _ _ T o f =>
+      match
+        o in I.outcome _ T0
+        return
+          (forall
+             _ : forall _ : T0,
+                 I.iMon (fun _ : Type@{Interface.T.u0} => E1) A,
+           D.monad E2 A)
+      with
+      | @I.RegRead _ reg direct =>
+          fun
+            f0 : forall _ : A.reg_type reg,
+                 I.iMon (fun _ : Type@{Interface.T.u0} => E1) A =>
+          @I.Next (fun _ : Type@{Interface.T.u0} => E2) A 
+            (A.reg_type reg)
+            (@I.RegRead (fun _ : Type@{Interface.T.u0} => E2) reg direct)
+            (fun t : A.reg_type reg => try_catch A E1 E2 (f0 t) h)
+      | @I.RegWrite _ reg direct regval =>
+          fun
+            f0 : forall _ : unit,
+                 I.iMon (fun _ : Type@{Interface.T.u0} => E1) A =>
+          @I.Next (fun _ : Type@{Interface.T.u0} => E2) A unit
+            (@I.RegWrite (fun _ : Type@{Interface.T.u0} => E2) reg direct
+               regval)
+            (fun t : unit => try_catch A E1 E2 (f0 t) h)
+      | @I.MemRead _ n req =>
+          fun
+            f0 : forall
+                   _ : sum
+                         (prod
+                            (definitions.bv
+                               (N.mul (Npos (xO (xO (xO xH)))) n))
+                            (option bool))
+                         A.abort,
+                 I.iMon (fun _ : Type@{Interface.T.u0} => E1) A =>
+          @I.Next (fun _ : Type@{Interface.T.u0} => E2) A
+            (sum
+               (prod (definitions.bv (N.mul (Npos (xO (xO (xO xH)))) n))
+                  (option bool))
+               A.abort)
+            (@I.MemRead (fun _ : Type@{Interface.T.u0} => E2) n req)
+            (fun
+               t : sum
+                     (prod
+                        (definitions.bv (N.mul (Npos (xO (xO (xO xH)))) n))
+                        (option bool))
+                     A.abort =>
+             try_catch A E1 E2 (f0 t) h)
+      | @I.MemWrite _ n req =>
+          fun
+            f0 : forall _ : sum (option bool) A.abort,
+                 I.iMon (fun _ : Type@{Interface.T.u0} => E1) A =>
+          @I.Next (fun _ : Type@{Interface.T.u0} => E2) A
+            (sum (option bool) A.abort)
+            (@I.MemWrite (fun _ : Type@{Interface.T.u0} => E2) n req)
+            (fun t : sum (option bool) A.abort => try_catch A E1 E2 (f0 t) h)
+      | @I.TagRead _ key =>
+          fun
+            f0 : forall _ : bool,
+                 I.iMon (fun _ : Type@{Interface.T.u0} => E1) A =>
+          @I.Next (fun _ : Type@{Interface.T.u0} => E2) A bool
+            (@I.TagRead (fun _ : Type@{Interface.T.u0} => E2) key)
+            (fun t : bool => try_catch A E1 E2 (f0 t) h)
+      | @I.TagWrite _ key value =>
+          fun
+            f0 : forall _ : unit,
+                 I.iMon (fun _ : Type@{Interface.T.u0} => E1) A =>
+          @I.Next (fun _ : Type@{Interface.T.u0} => E2) A unit
+            (@I.TagWrite (fun _ : Type@{Interface.T.u0} => E2) key value)
+            (fun t : unit => try_catch A E1 E2 (f0 t) h)
+      | @I.InstrAnnounce _ opcode =>
+          fun
+            f0 : forall _ : unit,
+                 I.iMon (fun _ : Type@{Interface.T.u0} => E1) A =>
+          @I.Next (fun _ : Type@{Interface.T.u0} => E2) A unit
+            (@I.InstrAnnounce (fun _ : Type@{Interface.T.u0} => E2) opcode)
+            (fun t : unit => try_catch A E1 E2 (f0 t) h)
+      | @I.BranchAnnounce _ sz pa =>
+          fun
+            f0 : forall _ : unit,
+                 I.iMon (fun _ : Type@{Interface.T.u0} => E1) A =>
+          @I.Next (fun _ : Type@{Interface.T.u0} => E2) A unit
+            (@I.BranchAnnounce (fun _ : Type@{Interface.T.u0} => E2) sz pa)
+            (fun t : unit => try_catch A E1 E2 (f0 t) h)
+      | @I.Barrier _ barrier =>
+          fun
+            f0 : forall _ : unit,
+                 I.iMon (fun _ : Type@{Interface.T.u0} => E1) A =>
+          @I.Next (fun _ : Type@{Interface.T.u0} => E2) A unit
+            (@I.Barrier (fun _ : Type@{Interface.T.u0} => E2) barrier)
+            (fun t : unit => try_catch A E1 E2 (f0 t) h)
+      | @I.CacheOp _ op =>
+          fun
+            f0 : forall _ : unit,
+                 I.iMon (fun _ : Type@{Interface.T.u0} => E1) A =>
+          @I.Next (fun _ : Type@{Interface.T.u0} => E2) A unit
+            (@I.CacheOp (fun _ : Type@{Interface.T.u0} => E2) op)
+            (fun t : unit => try_catch A E1 E2 (f0 t) h)
+      | @I.TlbOp _ op =>
+          fun
+            f0 : forall _ : unit,
+                 I.iMon (fun _ : Type@{Interface.T.u0} => E1) A =>
+          @I.Next (fun _ : Type@{Interface.T.u0} => E2) A unit
+            (@I.TlbOp (fun _ : Type@{Interface.T.u0} => E2) op)
+            (fun t : unit => try_catch A E1 E2 (f0 t) h)
+      | @I.TakeException _ fault =>
+          fun
+            f0 : forall _ : unit,
+                 I.iMon (fun _ : Type@{Interface.T.u0} => E1) A =>
+          @I.Next (fun _ : Type@{Interface.T.u0} => E2) A unit
+            (@I.TakeException (fun _ : Type@{Interface.T.u0} => E2) fault)
+            (fun t : unit => try_catch A E1 E2 (f0 t) h)
+      | @I.ReturnException _ pa =>
+          fun
+            f0 : forall _ : unit,
+                 I.iMon (fun _ : Type@{Interface.T.u0} => E1) A =>
+          @I.Next (fun _ : Type@{Interface.T.u0} => E2) A unit
+            (@I.ReturnException (fun _ : Type@{Interface.T.u0} => E2) pa)
+            (fun t : unit => try_catch A E1 E2 (f0 t) h)
+      | @I.TranslationStart _ ts =>
+          fun
+            f0 : forall _ : unit,
+                 I.iMon (fun _ : Type@{Interface.T.u0} => E1) A =>
+          @I.Next (fun _ : Type@{Interface.T.u0} => E2) A unit
+            (@I.TranslationStart (fun _ : Type@{Interface.T.u0} => E2) ts)
+            (fun t : unit => try_catch A E1 E2 (f0 t) h)
+      | @I.TranslationEnd _ te =>
+          fun
+            f0 : forall _ : unit,
+                 I.iMon (fun _ : Type@{Interface.T.u0} => E1) A =>
+          @I.Next (fun _ : Type@{Interface.T.u0} => E2) A unit
+            (@I.TranslationEnd (fun _ : Type@{Interface.T.u0} => E2) te)
+            (fun t : unit => try_catch A E1 E2 (f0 t) h)
+      | @I.ExtraOutcome _ A0 e =>
+          fun
+            _ : forall _ : A0, I.iMon (fun _ : Type@{Interface.T.u0} => E1) A =>
+          h e
+      | @I.GenericFail _ msg =>
+          fun
+            f0 : forall _ : False,
+                 I.iMon (fun _ : Type@{Interface.T.u0} => E1) A =>
+          @I.Next (fun _ : Type@{Interface.T.u0} => E2) A False
+            (@I.GenericFail (fun _ : Type@{Interface.T.u0} => E2) msg)
+            (fun t : False => try_catch A E1 E2 (f0 t) h)
+      | @I.CycleCount _ =>
+          fun
+            f0 : forall _ : unit,
+                 I.iMon (fun _ : Type@{Interface.T.u0} => E1) A =>
+          @I.Next (fun _ : Type@{Interface.T.u0} => E2) A unit
+            (@I.CycleCount (fun _ : Type@{Interface.T.u0} => E2))
+            (fun t : unit => try_catch A E1 E2 (f0 t) h)
+      | @I.GetCycleCount _ =>
+          fun
+            f0 : forall _ : Z, I.iMon (fun _ : Type@{Interface.T.u0} => E1) A =>
+          @I.Next (fun _ : Type@{Interface.T.u0} => E2) A Z
+            (@I.GetCycleCount (fun _ : Type@{Interface.T.u0} => E2))
+            (fun t : Z => try_catch A E1 E2 (f0 t) h)
+      | @I.Choose _ n =>
+          fun
+            f0 : forall _ : choose_type n,
+                 I.iMon (fun _ : Type@{Interface.T.u0} => E1) A =>
+          @I.Next (fun _ : Type@{Interface.T.u0} => E2) A 
+            (choose_type n)
+            (@I.Choose (fun _ : Type@{Interface.T.u0} => E2) n)
+            (fun t : choose_type n => try_catch A E1 E2 (f0 t) h)
+      | @I.Discard _ =>
+          fun
+            f0 : forall _ : False,
+                 I.iMon (fun _ : Type@{Interface.T.u0} => E1) A =>
+          @I.Next (fun _ : Type@{Interface.T.u0} => E2) A False
+            (@I.Discard (fun _ : Type@{Interface.T.u0} => E2))
+            (fun t : False => try_catch A E1 E2 (f0 t) h)
+      | @I.Message _ msg =>
+          fun
+            f0 : forall _ : unit,
+                 I.iMon (fun _ : Type@{Interface.T.u0} => E1) A =>
+          @I.Next (fun _ : Type@{Interface.T.u0} => E2) A unit
+            (@I.Message (fun _ : Type@{Interface.T.u0} => E2) msg)
+            (fun t : unit => try_catch A E1 E2 (f0 t) h)
+      end f
+  end
+     : forall {A : Type@{Defs.try_catch.u1}} {E1 : Type@{Defs.try_catch.u0}}
+         {E2 : Type@{Defs.try_catch.u2}} (_ : D.monad E1 A)
+         (_ : forall _ : E1, D.monad E2 A),
+       D.monad E2 A
+
+Arguments D.try_catch {A E1 E2}%_type_scope m h%_function_scope
+L.interpret =
+fix interpret
+  (E : forall _ : Type@{TagOutcomeLaws.interpret.u0},
+       Type@{TagOutcomeLaws.interpret.u1})
+  (B : Type@{TagOutcomeLaws.interpret.u2}) (m : L.I.iMon E B) 
+  (s : L.tags) {struct m} : L.I.iMon E (prod B L.tags) :=
+  match m return L.I.iMon E (prod B L.tags) with
+  | @L.I.Ret _ _ b => @L.I.Ret E (prod B L.tags) (@pair B L.tags b s)
+  | @L.I.Next _ _ T oc k0 =>
+      let k : forall (_ : T) (_ : L.tags), L.I.iMon E (prod B L.tags) :=
+        fun (x : T) (s' : L.tags) => interpret E B (k0 x) s' in
+      match
+        oc in L.I.outcome _ T0
+        return
+          (forall
+             _ : forall (_ : T0) (_ : L.tags), L.I.iMon E (prod B L.tags),
+           L.I.iMon E (prod B L.tags))
+      with
+      | @L.I.RegRead _ reg access_kind =>
+          fun
+            k1 : forall (_ : A.reg_type reg) (_ : L.tags),
+                 L.I.iMon E (prod B L.tags) =>
+          @L.I.Next E (prod B L.tags) (A.reg_type reg)
+            (@L.I.RegRead E reg access_kind)
+            (fun x : A.reg_type reg => k1 x s)
+      | @L.I.RegWrite _ reg access_kind regval =>
+          fun k1 : forall (_ : unit) (_ : L.tags), L.I.iMon E (prod B L.tags) =>
+          @L.I.Next E (prod B L.tags) unit
+            (@L.I.RegWrite E reg access_kind regval) 
+            (fun x : unit => k1 x s)
+      | @L.I.MemRead _ n t =>
+          fun
+            k1 : forall
+                   (_ : sum
+                          (prod
+                             (definitions.bv
+                                (N.mul (Npos (xO (xO (xO xH)))) n))
+                             (option bool))
+                          A.abort)
+                   (_ : L.tags),
+                 L.I.iMon E (prod B L.tags) =>
+          @L.I.Next E (prod B L.tags)
+            (sum
+               (prod (definitions.bv (N.mul (Npos (xO (xO (xO xH)))) n))
+                  (option bool))
+               A.abort)
+            (@L.I.MemRead E n t)
+            (fun
+               x : sum
+                     (prod
+                        (definitions.bv (N.mul (Npos (xO (xO (xO xH)))) n))
+                        (option bool))
+                     A.abort =>
+             k1 x s)
+      | @L.I.MemWrite _ n t =>
+          fun
+            k1 : forall (_ : sum (option bool) A.abort) (_ : L.tags),
+                 L.I.iMon E (prod B L.tags) =>
+          @L.I.Next E (prod B L.tags) (sum (option bool) A.abort)
+            (@L.I.MemWrite E n t)
+            (fun x : sum (option bool) A.abort => k1 x s)
+      | @L.I.TagRead _ key =>
+          fun k1 : forall (_ : bool) (_ : L.tags), L.I.iMon E (prod B L.tags) =>
+          k1 (L.tag_get s key) s
+      | @L.I.TagWrite _ key value =>
+          fun k1 : forall (_ : unit) (_ : L.tags), L.I.iMon E (prod B L.tags) =>
+          k1 tt (L.tag_put s key value)
+      | @L.I.InstrAnnounce _ opcode =>
+          fun k1 : forall (_ : unit) (_ : L.tags), L.I.iMon E (prod B L.tags) =>
+          @L.I.Next E (prod B L.tags) unit (@L.I.InstrAnnounce E opcode)
+            (fun x : unit => k1 x s)
+      | @L.I.BranchAnnounce _ sz pa =>
+          fun k1 : forall (_ : unit) (_ : L.tags), L.I.iMon E (prod B L.tags) =>
+          @L.I.Next E (prod B L.tags) unit (@L.I.BranchAnnounce E sz pa)
+            (fun x : unit => k1 x s)
+      | @L.I.Barrier _ b =>
+          fun k1 : forall (_ : unit) (_ : L.tags), L.I.iMon E (prod B L.tags) =>
+          @L.I.Next E (prod B L.tags) unit (@L.I.Barrier E b)
+            (fun x : unit => k1 x s)
+      | @L.I.CacheOp _ c =>
+          fun k1 : forall (_ : unit) (_ : L.tags), L.I.iMon E (prod B L.tags) =>
+          @L.I.Next E (prod B L.tags) unit (@L.I.CacheOp E c)
+            (fun x : unit => k1 x s)
+      | @L.I.TlbOp _ t =>
+          fun k1 : forall (_ : unit) (_ : L.tags), L.I.iMon E (prod B L.tags) =>
+          @L.I.Next E (prod B L.tags) unit (@L.I.TlbOp E t)
+            (fun x : unit => k1 x s)
+      | @L.I.TakeException _ f =>
+          fun k1 : forall (_ : unit) (_ : L.tags), L.I.iMon E (prod B L.tags) =>
+          @L.I.Next E (prod B L.tags) unit (@L.I.TakeException E f)
+            (fun x : unit => k1 x s)
+      | @L.I.ReturnException _ pa =>
+          fun k1 : forall (_ : unit) (_ : L.tags), L.I.iMon E (prod B L.tags) =>
+          @L.I.Next E (prod B L.tags) unit (@L.I.ReturnException E pa)
+            (fun x : unit => k1 x s)
+      | @L.I.TranslationStart _ t =>
+          fun k1 : forall (_ : unit) (_ : L.tags), L.I.iMon E (prod B L.tags) =>
+          @L.I.Next E (prod B L.tags) unit (@L.I.TranslationStart E t)
+            (fun x : unit => k1 x s)
+      | @L.I.TranslationEnd _ t =>
+          fun k1 : forall (_ : unit) (_ : L.tags), L.I.iMon E (prod B L.tags) =>
+          @L.I.Next E (prod B L.tags) unit (@L.I.TranslationEnd E t)
+            (fun x : unit => k1 x s)
+      | @L.I.ExtraOutcome _ A y =>
+          fun k1 : forall (_ : A) (_ : L.tags), L.I.iMon E (prod B L.tags) =>
+          @L.I.Next E (prod B L.tags) A (@L.I.ExtraOutcome E A y)
+            (fun x : A => k1 x s)
+      | @L.I.GenericFail _ msg =>
+          fun
+            k1 : forall (_ : False) (_ : L.tags), L.I.iMon E (prod B L.tags) =>
+          @L.I.Next E (prod B L.tags) False (@L.I.GenericFail E msg)
+            (fun x : False => k1 x s)
+      | @L.I.CycleCount _ =>
+          fun k1 : forall (_ : unit) (_ : L.tags), L.I.iMon E (prod B L.tags) =>
+          @L.I.Next E (prod B L.tags) unit (@L.I.CycleCount E)
+            (fun x : unit => k1 x s)
+      | @L.I.GetCycleCount _ =>
+          fun k1 : forall (_ : Z) (_ : L.tags), L.I.iMon E (prod B L.tags) =>
+          @L.I.Next E (prod B L.tags) Z (@L.I.GetCycleCount E)
+            (fun x : Z => k1 x s)
+      | @L.I.Choose _ ty =>
+          fun
+            k1 : forall (_ : choose_type ty) (_ : L.tags),
+                 L.I.iMon E (prod B L.tags) =>
+          @L.I.Next E (prod B L.tags) (choose_type ty) 
+            (@L.I.Choose E ty) (fun x : choose_type ty => k1 x s)
+      | @L.I.Discard _ =>
+          fun
+            k1 : forall (_ : False) (_ : L.tags), L.I.iMon E (prod B L.tags) =>
+          @L.I.Next E (prod B L.tags) False (@L.I.Discard E)
+            (fun x : False => k1 x s)
+      | @L.I.Message _ s0 =>
+          fun k1 : forall (_ : unit) (_ : L.tags), L.I.iMon E (prod B L.tags) =>
+          @L.I.Next E (prod B L.tags) unit (@L.I.Message E s0)
+            (fun x : unit => k1 x s)
+      end k
+  end
+     : forall
+         {E : forall _ : Type@{TagOutcomeLaws.interpret.u0},
+              Type@{TagOutcomeLaws.interpret.u1}}
+         {B : Type@{TagOutcomeLaws.interpret.u2}} 
+         (_ : L.I.iMon E B) (_ : L.tags),
+       L.I.iMon E (prod B L.tags)
+
+Arguments L.interpret {E}%_function_scope {B}%_type_scope m s
+Closed under the global context
+Closed under the global context
+Closed under the global context
+Axioms:
+A.va_size : N
+A.translation : Type@{Arch.translation.u0}
+A.trans_start : Type@{Arch.trans_start.u0}
+A.trans_end : Type@{Arch.trans_end.u0}
+A.tlb_op : Type@{Arch.tlb_op.u0}
+A.sys_reg_id : Type@{Arch.sys_reg_id.u0}
+A.reg_type : forall _ : A.reg, Type@{Arch.reg_type.u0}
+A.reg : Type@{Arch.reg.u0}
+A.pa : Type@{Arch.pa.u0}
+A.fault : Type@{Arch.fault.u0}
+A.cache_op : Type@{Arch.cache_op.u0}
+A.barrier : Type@{Arch.barrier.u0}
+A.arch_ak : Type@{Arch.arch_ak.u0}
+A.abort : Type@{Arch.abort.u0}
+Axioms:
+A.va_size : N
+A.translation : Type@{Arch.translation.u0}
+A.trans_start : Type@{Arch.trans_start.u0}
+A.trans_end : Type@{Arch.trans_end.u0}
+A.tlb_op : Type@{Arch.tlb_op.u0}
+A.sys_reg_id : Type@{Arch.sys_reg_id.u0}
+A.reg_type : forall _ : A.reg, Type@{Arch.reg_type.u0}
+A.reg : Type@{Arch.reg.u0}
+A.pa : Type@{Arch.pa.u0}
+A.fault : Type@{Arch.fault.u0}
+A.cache_op : Type@{Arch.cache_op.u0}
+A.barrier : Type@{Arch.barrier.u0}
+A.arch_ak : Type@{Arch.arch_ak.u0}
+A.abort : Type@{Arch.abort.u0}
+Axioms:
+A.va_size : N
+A.translation : Type@{Arch.translation.u0}
+A.trans_start : Type@{Arch.trans_start.u0}
+A.trans_end : Type@{Arch.trans_end.u0}
+A.tlb_op : Type@{Arch.tlb_op.u0}
+A.sys_reg_id : Type@{Arch.sys_reg_id.u0}
+A.reg_type : forall _ : A.reg, Type@{Arch.reg_type.u0}
+A.reg : Type@{Arch.reg.u0}
+A.pa : Type@{Arch.pa.u0}
+A.fault : Type@{Arch.fault.u0}
+A.cache_op : Type@{Arch.cache_op.u0}
+A.barrier : Type@{Arch.barrier.u0}
+A.arch_ak : Type@{Arch.arch_ak.u0}
+A.abort : Type@{Arch.abort.u0}
+Axioms:
+A.va_size : N
+A.translation : Type@{Arch.translation.u0}
+A.trans_start : Type@{Arch.trans_start.u0}
+A.trans_end : Type@{Arch.trans_end.u0}
+A.tlb_op : Type@{Arch.tlb_op.u0}
+A.sys_reg_id : Type@{Arch.sys_reg_id.u0}
+A.reg_type : forall _ : A.reg, Type@{Arch.reg_type.u0}
+A.reg : Type@{Arch.reg.u0}
+A.pa : Type@{Arch.pa.u0}
+A.fault : Type@{Arch.fault.u0}
+A.cache_op : Type@{Arch.cache_op.u0}
+A.barrier : Type@{Arch.barrier.u0}
+A.arch_ak : Type@{Arch.arch_ak.u0}
+A.abort : Type@{Arch.abort.u0}
+Axioms:
+A.va_size : N
+A.translation : Type@{Arch.translation.u0}
+A.trans_start : Type@{Arch.trans_start.u0}
+A.trans_end : Type@{Arch.trans_end.u0}
+A.tlb_op : Type@{Arch.tlb_op.u0}
+A.sys_reg_id : Type@{Arch.sys_reg_id.u0}
+A.reg_type : forall _ : A.reg, Type@{Arch.reg_type.u0}
+A.reg : Type@{Arch.reg.u0}
+A.pa : Type@{Arch.pa.u0}
+A.fault : Type@{Arch.fault.u0}
+A.cache_op : Type@{Arch.cache_op.u0}
+A.barrier : Type@{Arch.barrier.u0}
+A.arch_ak : Type@{Arch.arch_ak.u0}
+A.abort : Type@{Arch.abort.u0}
+Axioms:
+A.va_size : N
+A.translation : Type@{Arch.translation.u0}
+A.trans_start : Type@{Arch.trans_start.u0}
+A.trans_end : Type@{Arch.trans_end.u0}
+A.tlb_op : Type@{Arch.tlb_op.u0}
+A.sys_reg_id : Type@{Arch.sys_reg_id.u0}
+A.reg_type : forall _ : A.reg, Type@{Arch.reg_type.u0}
+A.reg : Type@{Arch.reg.u0}
+A.pa : Type@{Arch.pa.u0}
+A.fault : Type@{Arch.fault.u0}
+A.cache_op : Type@{Arch.cache_op.u0}
+A.barrier : Type@{Arch.barrier.u0}
+A.arch_ak : Type@{Arch.arch_ak.u0}
+A.abort : Type@{Arch.abort.u0}
+Axioms:
+A.va_size : N
+A.translation : Type@{Arch.translation.u0}
+A.trans_start : Type@{Arch.trans_start.u0}
+A.trans_end : Type@{Arch.trans_end.u0}
+A.tlb_op : Type@{Arch.tlb_op.u0}
+A.sys_reg_id : Type@{Arch.sys_reg_id.u0}
+A.reg_type : forall _ : A.reg, Type@{Arch.reg_type.u0}
+A.reg : Type@{Arch.reg.u0}
+A.pa : Type@{Arch.pa.u0}
+A.fault : Type@{Arch.fault.u0}
+A.cache_op : Type@{Arch.cache_op.u0}
+A.barrier : Type@{Arch.barrier.u0}
+A.arch_ak : Type@{Arch.arch_ak.u0}
+A.abort : Type@{Arch.abort.u0}
+Axioms:
+A.va_size : N
+A.translation : Type@{Arch.translation.u0}
+A.trans_start : Type@{Arch.trans_start.u0}
+A.trans_end : Type@{Arch.trans_end.u0}
+A.tlb_op : Type@{Arch.tlb_op.u0}
+A.sys_reg_id : Type@{Arch.sys_reg_id.u0}
+A.reg_type : forall _ : A.reg, Type@{Arch.reg_type.u0}
+A.reg : Type@{Arch.reg.u0}
+A.pa : Type@{Arch.pa.u0}
+A.fault : Type@{Arch.fault.u0}
+A.cache_op : Type@{Arch.cache_op.u0}
+A.barrier : Type@{Arch.barrier.u0}
+A.arch_ak : Type@{Arch.arch_ak.u0}
+A.abort : Type@{Arch.abort.u0}
+Axioms:
+A.va_size : N
+A.translation : Type@{Arch.translation.u0}
+A.trans_start : Type@{Arch.trans_start.u0}
+A.trans_end : Type@{Arch.trans_end.u0}
+A.tlb_op : Type@{Arch.tlb_op.u0}
+A.sys_reg_id : Type@{Arch.sys_reg_id.u0}
+A.reg_type : forall _ : A.reg, Type@{Arch.reg_type.u0}
+A.reg : Type@{Arch.reg.u0}
+A.pa : Type@{Arch.pa.u0}
+A.fault : Type@{Arch.fault.u0}
+A.cache_op : Type@{Arch.cache_op.u0}
+A.barrier : Type@{Arch.barrier.u0}
+A.arch_ak : Type@{Arch.arch_ak.u0}
+A.abort : Type@{Arch.abort.u0}
+Axioms:
+A.va_size : N
+A.translation : Type@{Arch.translation.u0}
+A.trans_start : Type@{Arch.trans_start.u0}
+A.trans_end : Type@{Arch.trans_end.u0}
+A.tlb_op : Type@{Arch.tlb_op.u0}
+A.sys_reg_id : Type@{Arch.sys_reg_id.u0}
+A.reg_type : forall _ : A.reg, Type@{Arch.reg_type.u0}
+A.reg : Type@{Arch.reg.u0}
+A.pa : Type@{Arch.pa.u0}
+A.fault : Type@{Arch.fault.u0}
+A.cache_op : Type@{Arch.cache_op.u0}
+A.barrier : Type@{Arch.barrier.u0}
+A.arch_ak : Type@{Arch.arch_ak.u0}
+A.abort : Type@{Arch.abort.u0}
+Axioms:
+A.va_size : N
+A.translation : Type@{Arch.translation.u0}
+A.trans_start : Type@{Arch.trans_start.u0}
+A.trans_end : Type@{Arch.trans_end.u0}
+A.tlb_op : Type@{Arch.tlb_op.u0}
+A.sys_reg_id : Type@{Arch.sys_reg_id.u0}
+A.reg_type : forall _ : A.reg, Type@{Arch.reg_type.u0}
+A.reg : Type@{Arch.reg.u0}
+A.pa : Type@{Arch.pa.u0}
+A.fault : Type@{Arch.fault.u0}
+A.cache_op : Type@{Arch.cache_op.u0}
+A.barrier : Type@{Arch.barrier.u0}
+A.arch_ak : Type@{Arch.arch_ak.u0}
+A.abort : Type@{Arch.abort.u0}
