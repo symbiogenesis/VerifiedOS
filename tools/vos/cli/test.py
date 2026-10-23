@@ -88,8 +88,10 @@ def _lanes() -> frozenset[Lane]:
 
 def _module_names(only: str | None) -> list[str]:
     """Every test module under `tools/tests/`, sorted so the report order is fixed."""
+    if only is not None and not only.strip():
+        raise ValueError("--only requires a nonempty module-name substring")
     names = sorted(path.stem for path in TESTS.glob("test_*.py"))
-    if bool(only):
+    if only is not None:
         names = [name for name in names if only in name]
     return names
 
@@ -251,6 +253,8 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     if args.jobs is not None and args.jobs < 1:
         parser.error("--jobs must be positive")
+    if args.only is not None and not args.only.strip():
+        parser.error("--only requires a nonempty module-name substring")
 
     report = run(only=args.only, slow=args.slow, jobs=args.jobs, shard=args.shard,
                  record=timings.claim())
