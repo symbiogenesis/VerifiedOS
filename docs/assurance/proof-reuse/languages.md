@@ -4,7 +4,7 @@ This inventory records upstream proof artifacts examined between 2026-09-10 and 
 
 The integration baseline is the [implementation checklist](../../implementation/implementation-checklist.md): M1.1/M1.1a/M1.1b and M1.2a are completed compiler investigations, M1.6 is the completed lowering investigation, M6.1a supplies the supervision-tree reference, and M6.2a supplies the admission-path statement artifact. The corresponding target refinements and hardening proofs remain separate work. [AdmissionPath.v](../../../proofs/AdmissionPath.v) expressly distinguishes its closed statement artifacts from an implemented, verified checker; [VerifiedExit.v](../../../tools/bedrock2-lowering/VerifiedExit.v) expressly distinguishes its RV32I measurement from the descriptor derivation over 64-bit words. Those distinctions apply to completed work throughout this inventory.
 
-Source inspection, upstream publications and license inspection support the assessments below. These upstream developments are not rebuilt in this survey, and their complete transitive assumption sets are not certified here. Before importing any result into the standalone Rocq 9.2.0 gate, instantiate its actual premises, establish its relation to the frozen Sail semantics, and run the project's assumption audit under R-05-164. A theorem with a parameterized premise is not automatically an axiom-free proof of that premise. The [third-party ledger](../../../THIRD-PARTY.md) owns the repository's existing containment and incorporation decisions.
+Source inspection, upstream publications and license inspection support the assessments below. These upstream developments are not rebuilt in this survey, and their complete transitive assumption sets are not certified here. Before importing any result into the standalone gate at the [current prover lock](../../../tools/opam/rocq.lock), instantiate its actual premises, establish its relation to the frozen Sail semantics, and run the project's assumption audit under R-05-164. A theorem with a parameterized premise is not automatically an axiom-free proof of that premise. The [third-party ledger](../../../THIRD-PARTY.md) owns the repository's existing containment and incorporation decisions.
 
 ## Compiler correctness and resource planning
 
@@ -115,6 +115,60 @@ Source inspection, upstream publications and license inspection support the asse
 **Use and limits.** Compare this direct-over-Sail structure with Q35's [machine-logic breakdown](../machine-logic-breakdown.md) before authoring a new monad-to-Iris interface. A reusable direct connection could remove a separate selected-subset translation/agreement obligation only after the same canonical term, observations, instruction rules and adequacy conclusion are established. The archived edition uses Rocq 9.0.1, development Iris/stdpp and Sail support 0.20.3; the selected local proof environment, capability/tag state, purecap ABI, traps and byte laws still need qualification and adaptation. The xv6 theorem does not supply VerifiedOS's noninterference, timing, robust-preservation or compiler theorem. No current R-13-016 route, Q35k prerequisite or estimate is replaced by an unqualified candidate.
 
 **License and disposition.** The exact archived tree has no source-license grant identified. The [maintained README at `d4f20820b381017c958971459423314da2ca5c3f`](https://github.com/mit-pdos/xv6iris/blob/d4f20820b381017c958971459423314da2ca5c3f/README.md) says the original Rocq development is archived and no longer maintained; the maintained implementation is Lean. Read the Rocq architecture as a reference and retain its exact source locations as a candidate. Source adaptation is blocked until a grant covering those proof files is available, then needs compatible dependency closure, strict compilation, an exact assumption audit and a reviewed canonical-term connection. Neither the paper's license nor xv6's separate source license establishes rights to the proof framework. No source is imported and no lower effort estimate is booked.
+
+### Canonical Sail effects: existing interpreters and their tag boundary
+
+**Read 2026-10-23. Exact support source.** REMS's
+[`coq-sail` `e7b914cddc032e3676eebd87a808229828013e9c`](https://github.com/rems-project/coq-sail/tree/e7b914cddc032e3676eebd87a808229828013e9c)
+is the 0.20.3 edition already used by Q35n/Q35p. Its alternative
+[`ConcurrencyInterfaceV2.v`](https://github.com/rems-project/coq-sail/blob/e7b914cddc032e3676eebd87a808229828013e9c/src-stdpp/ConcurrencyInterfaceV2.v)
+carries multiple tag bits with a byte-addressed memory request, through
+`MemReq.num_tag`, `MemRead` and `MemWrite`. It supplies no separate
+granule-keyed tag constructor. A zero-byte request is representable in the
+type, but its interpreter behavior and equivalence to the existing tag plane
+are not established. V2 is not a qualified adapter for
+[Q35p's seven bindings](../../implementation/q35p-memory-bindings.md), and
+switching the canonical outcome interface would require a preserving owner
+act and actual consumer acceptance. The inspected
+[`LICENSE`](https://github.com/rems-project/coq-sail/blob/e7b914cddc032e3676eebd87a808229828013e9c/LICENSE)
+grants BSD-2-Clause terms to the named Sail authors; these terms do not supply
+the missing semantic agreement.
+
+**ArchSem supplies a concrete interpreter reference.** Thibaut Pérami,
+Thomas Bauereiss, Brian Campbell, Zongyuan Liu, Nils Lauermann, Alasdair
+Armstrong and Peter Sewell, *ArchSem: Reusable Rigorous Semantics of Relaxed
+Architectures*, [POPL 2026](https://doi.org/10.1145/3776650).
+At [`6b19320c5b39a4785f710c31d124479400363abc`](https://github.com/rems-project/archsem/tree/6b19320c5b39a4785f710c31d124479400363abc),
+[`FromSail.v`](https://github.com/rems-project/archsem/blob/6b19320c5b39a4785f710c31d124479400363abc/ArchSem/FromSail.v)
+defines `Sail_outcome_interp` and `iMon_from_Sail` over V2, including memory
+data and tags, exceptions and choices. Read this implementation before
+designing an effect interpreter for Q35p. It does not prove preservation of
+VerifiedOS's outcome algebra: the conversion discards instruction/branch
+announcements and messages, refuses cycle-count requests, and offers a flag
+selecting deterministic rather than nondeterministic choices. Those choices
+need an explicit observation relation before reuse.
+
+The
+[`sequential model`](https://github.com/rems-project/archsem/blob/6b19320c5b39a4785f710c31d124479400363abc/ArchSem/SeqModel.v)
+requires `NoCHERI` and explicitly refuses nonzero-tag memory requests. It
+therefore supplies no implementation of the missing tag effect. The
+[`README`](https://github.com/rems-project/archsem/blob/6b19320c5b39a4785f710c31d124479400363abc/README.md)
+also retains partiality/undefined-behavior limitations for concurrency
+models. Do not transfer a framework-level or paper theorem across these
+boundaries as an assumption-free CHERI result.
+
+**Terms, dependency fit and disposition.** The exact
+[`LICENSE`](https://github.com/rems-project/archsem/blob/6b19320c5b39a4785f710c31d124479400363abc/LICENSE)
+is BSD-2-Clause, with named Cambridge, Seoul and Aarhus contributors. The
+[`generic package`](https://github.com/rems-project/archsem/blob/6b19320c5b39a4785f710c31d124479400363abc/rocq-archsem.opam)
+fixes Sail support 0.20.3; its
+[`common package`](https://github.com/rems-project/archsem/blob/6b19320c5b39a4785f710c31d124479400363abc/rocq-archsem-common.opam)
+admits Rocq at least 9.1, fixes stdpp/bitvector 1.13.0 and adds Equations,
+RecordUpdate and Hammer tactics. These bounds are not a strict build or
+closure audit at the local lock. Retain ArchSem as an interpreter-design
+reference for the existing Q35p obligation. No new semantics, logic,
+translation, dependency, estimate reduction or acceptance claim is selected;
+R-05-020 and the existing machine-logic route remain in force.
 
 ### MetaRocq: a verified PCUIC checker with explicit normalization premises
 
