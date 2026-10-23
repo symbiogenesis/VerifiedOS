@@ -1,0 +1,14 @@
+{
+  "schema": "verifiedos-native-metadata-checkpoint/1",
+  "base_revision": "a5e4ba0e3e2ab477cdde2ae8a59dd47b82a9da90",
+  "contract": "docs/implementation/contracts/sail-support-census.md",
+  "scope": "Original typed term/universe serializer and native metadata controls; no proof acceptance or complete census",
+  "maximum_candidate_checks": 3,
+  "maximum_active_minutes": 20,
+  "stop": "First unsupported native shape, exhausted check count, or active time bound",
+  "installed_state": "Read only; rescan all installed lib/coq .vo/.glob paths and hashes before and after every candidate",
+  "native_lane": "/root/build/lane-reuse-wire-20261023-census",
+  "started_utc": "2026-10-23T06:52:17.490943Z",
+  "note": "Actual start time is recorded by the native runner before its first process; this file is the pre-edit scope checkpoint",
+  "remaining": "Native refusal controls and unexercised term constructors; module/global universe constraints; module expressions/delta resolvers; template/variance and typing metadata; concrete implementation connections; all census classification, assumption and recursive-kernel joins"
+}

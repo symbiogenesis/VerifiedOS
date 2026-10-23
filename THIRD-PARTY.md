@@ -208,6 +208,13 @@ The consumed rows cover all direct tool access. No proof under [proofs/](proofs/
 | `upstream/fiat-crypto` | `mit-plv/fiat-crypto` | `1e721c6f` | `MIT OR Apache-2.0 OR BSD-1-Clause`; this project elects `Apache-2.0` under `COPYRIGHT` | Classical field-arithmetic generator. The locked-kernel derivation at this pin emits the tracked 32-bit 25519 and P256 inclusion headers; the generator and its dependencies remain external build inputs. | generated field headers incorporated |
 | `upstream/hacl-star` | `hacl-star/hacl-star` | `504c2987` | `Apache-2.0` | Planned behavioral comparator from the F*/Low* lineage for classical primitives, among them SHA-2, SHA-3, HMAC, HKDF, ChaCha20-Poly1305, AES-GCM, X25519, Ed25519 signatures, P256 ECDSA and ECDH, and secp256k1 ECDSA. Its AES-GCM exists only as Vale assembly for x86-64 and ppc64le (`dist/gcc-compatible/aesgcm-*`), so the aarch64 guest cannot run that comparison. Its only post-quantum code is FrodoKEM; it carries no ML-KEM, ML-DSA or SLH-DSA. No differential run, build, copying, or extraction occurs here. | pinned to read later |
 | `upstream/libjade` | `formosa-crypto/libjade` | `76579946` | `CC0-1.0 OR Apache-2.0` | Planned independent comparator from the Jasmin/EasyCrypt lineage, with the same usage limits. Its primitives sit under `oldsrc-should-delete/`: SHA-2, SHA-3, SHAKE, ChaCha, Salsa20, Poly1305, Kyber512, Kyber768, ML-KEM-768, X-Wing and Falcon-512 verification, with Curve25519 in the nested `formosa-25519`. None is a conforming ML-KEM-1024 or an ML-DSA-87: the nested `formosa-mlkem` this pin selects carries `code/jasmin/1024/{ref,avx2,avx2_stack}` with `MLKEM_K = 4`, an unfinished port from K=3 whose key generation and encapsulation hash 1,184 of the 1,568 public-key bytes. Neither that repository's root nor those sources state a licence, and libjade's terms are not read as covering it, as [the reading of a later revision](docs/assurance/proof-reuse/crypto.md#formosa-ml-kem-correctness-and-ind-cca) also records. Every implementation targets AMD64 only, so a differential run needs an x86-64 machine, not the aarch64 guest. The nested `formosa-mlkem` submodule has an SSH URL: initialize this pin non-recursively, or pass `-c url.https://github.com/.insteadOf=git@github.com:` to a recursive fetch without SSH credentials. | pinned to read later |
+| `upstream/perennial` | `mit-pdos/perennial` | `65884f24` | `MIT` | Selected Rocq PoWER write/crash-interface source for M5.3d's later storage refinement. The pinned `LICENSE` has an unnamed 2021 copyright notice, which an incorporation must preserve. The local bit-tear relation, exact assumptions and locked-prover compatibility remain unqualified; no Goose runtime or proof dependency is incorporated. | read |
+| `upstream/s2n-bignum` | `awslabs/s2n-bignum` | `45ad6720` | `Apache-2.0 OR ISC OR MIT-0` | Exact NTT and Keccak functional/public-event proof reference for M3.4b and M7.1f. The root license offers the stated choices; component notices still apply. Its HOL Light/AArch64 or x86 proofs supply no CHERI-Sail theorem or admitted assembly leaf. | read |
+| `upstream/vasn` | `zhouxt1/vasn` | `5db5727c` | `MIT` | Source and independent PER-oracle candidate for R-18-029's unpriced ASN.1-to-Narcissus front end. The license credits Xiaotian Zhou, 2026. No Verus runtime, SSE2 leaf, schema, generated parser or proof dependency is incorporated. | read |
+
+### Proof source binding scope
+
+The reference pins above select the exact source editions in the [reuse binding handoff](docs/implementation/reuse-source-bindings.md). Their source license instruments were read at those editions on 2026-10-23: Perennial's [LICENSE](https://github.com/mit-pdos/perennial/blob/65884f2494ce65c5369094050dfb7eca19299152/LICENSE), s2n-bignum's [LICENSE](https://github.com/awslabs/s2n-bignum/blob/45ad6720d0a86b588661f2d699cc383d0ff89e71/LICENSE), and vasn's [LICENSE](https://github.com/zhouxt1/vasn/blob/5db5727c06a3e996be6f87c3f0fa19d37817b739/LICENSE). Only URLs and gitlinks are distributed here. Initializing one obtains external source under its own terms; no recursive dependency, package, binary or foreign-prover verdict is admitted by the pin. Implementation, extraction or redistribution requires the selected closure's own license and semantic qualification at its existing owner. The Perennial selection retains the Rocq crash interface rather than its default Lean branch.
 
 ### RTL license scope
 
@@ -400,6 +407,13 @@ under the same BSD-2-Clause terms and notices. The original OCaml query sources
 and controls follow the original-file licensing map. The locked Rocq installation's
 LGPL-2.1 license and API headers were read before building; no upstream implementation
 or linked plugin is conveyed by these bundles.
+The constructor-based metadata in
+`docs/implementation/retained-evidence/reuse-wire-census-20261023/attempt-3-native-query.stdout.log.gz`
+retains coq-sail declaration types under those same BSD-2-Clause terms, with the
+verbatim release notice at [Sail-Support-LICENSE.md](tools/rocq-census/Sail-Support-LICENSE.md).
+The original [producer](tools/rocq-census/README.md), runner and control sources
+follow the original-file map. No Rocq implementation, linked plugin or support
+object is conveyed. This metadata control supplies no complete census acceptance.
 The `q35o-20261013/` refusal bundle retains the generated tag-loop fragment and its diagnostics, with the
 exact RISC-V and CHERI model notices. The fragment keeps
 BSD-2-Clause terms; no complete emitted term is distributed by that evidence.
@@ -435,6 +449,15 @@ The scoped-notation continuation in
 source-derived kinds under BSD-2-Clause with its exact `LICENSE.sail` and
 `LICENSE.model` notices. Its authored notation controls follow the original-file
 map; the private plugin and complete canonical outputs remain native and untracked.
+The [isolated V1 tag candidate](tools/sail-tag-outcomes/README.md) distributes a
+diff to the same reviewed coq-sail release, printed interface readings and unchanged
+model-derived reproducer outputs in
+`docs/implementation/retained-evidence/reuse-wire-tags-20261023/`. These files retain
+BSD-2-Clause terms and the exact support, model, CHERI and Sail notices beside them;
+authored changes to the support use those terms. Its original finite-map interpreter,
+controls and replay helper follow the original-file map. Strict private compilation
+and bounded caller proofs do not install the candidate, change the production
+support recipe, or qualify its complete assumption and canonical-consumer joins.
 
 The handwritten-support and canonical-types qualification in
 `docs/implementation/retained-evidence/q35o-handwritten-types-20261023/` retains

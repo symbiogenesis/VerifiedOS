@@ -1,0 +1,9 @@
+from pathlib import Path
+import json,subprocess,tempfile,time,hashlib,shutil
+root=Path('/root/build/lane-reuse-wire-20261023-tags');repo=Path('/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/reuse-wire-20261023-tags');switch=Path('/root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1');cwd=tempfile.mkdtemp(prefix='vos-tags-probe-')
+q=json.loads((repo/'tools/opam/sail-support-qualification.json').read_text());flags=['-q','-boot','-R',str(switch/'lib/coq/theories'),'Corelib','-Q',str(switch/'lib/coq/user-contrib/Stdlib'),'Stdlib','-Q',str(root/'stdpp'),'stdpp','-R',str(root/'candidate'),'SailStdpp','-R',str(root/'emitted'),'']+q['strict_flags'][1:]
+shutil.copy2(repo/'tools/sail-tag-outcomes/TagInterpreter.v',root/'emitted/TagInterpreter.v');shutil.copy2(repo/'tools/sail-tag-outcomes/TagControls.v',root/'emitted/TagControls.v');rows=[]
+for name in ['bindings_types','bindings','TagInterpreter','TagControls']:
+ p=root/'emitted'/(name+'.v');argv=[str(switch/'bin/rocq'),'c']+flags+[str(p)];t=time.time();r=subprocess.run(argv,cwd=cwd,capture_output=True,text=True);log=root/(name+'-strict.log');log.write_text(r.stdout+r.stderr);rows.append({'name':name,'argv':argv,'cwd':cwd,'exit':r.returncode,'seconds':time.time()-t,'log':log.name,'source_sha256':hashlib.sha256(p.read_bytes()).hexdigest()});print(name,r.returncode,r.stderr[:2400])
+ if r.returncode:break
+(root/'probe-build.json').write_text(json.dumps(rows,indent=2)+'\n');ck=json.loads((root/'checkpoint.json').read_text());ck['attempts'].append({'ordinal':len(ck['attempts'])+1,'strategy':'Strict actual emitted reproducer and executable map interpreter','command':rows[-1]['argv'],'elapsed_seconds':sum(r['seconds'] for r in rows),'exit':rows[-1]['exit'],'diagnostic':rows[-1]['log'],'source_sha256':rows[-1]['source_sha256']});(root/'checkpoint.json').write_text(json.dumps(ck,indent=2)+'\n')

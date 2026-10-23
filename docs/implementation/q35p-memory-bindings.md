@@ -9,6 +9,8 @@ reproducer, native readings, exact compiler arguments, inputs and available logs
 The construction is a focused checkpoint; the remaining acceptance joins below
 still decide closure.
 
+<a id="actual-semantic-boundary"></a>
+
 ## Representation and native bindings
 
 The candidate applies after Q35g's axiom-removal patch and Q35n's strict syntax
@@ -76,6 +78,57 @@ Every assumption query instantiated against the actual emitted architecture and
 interface reports a closed global context; the focused kernel check exits zero.
 Final native source identities match before and after acceptance, and installed
 dependency sentinels remain unchanged.
+
+## Reusable candidate and independent controls
+
+The [reusable V1 candidate](../../tools/sail-tag-outcomes/README.md) packages a
+separate isolated construction and replay recipe. Its
+[native qualification bundle](retained-evidence/reuse-wire-tags-20261023/manifest.json),
+SHA256 `3fe661163dd4ac2c9781d2229e2a8a546306bfe87359bbecffa1f0d762aaac0d`,
+binds its semantic patch, strict support and unchanged minimal emitted modules,
+native readings, assumption queries, scoped kernel check and installed-path
+inventories at base `a5e4ba0e3e2ab477cdde2ae8a59dd47b82a9da90`.
+The [executed driver bundle](retained-evidence/reuse-wire-tags-drivers-20261023/manifest.json),
+SHA256 `04b6f1e55fc37ca623105f559be23a23c6af723a271e0adfbd49074d1680dfb6`,
+retains the original per-attempt Python commands. The packaged replay has separate
+focused host checks and pinned Ruff and Linux/Windows typing verdicts; no clean
+native replay of that packaged runner is claimed. Its host controls also enter
+the normal test runner through `test_sail_tag_outcomes`.
+
+The original [TagInterpreter.v](../../tools/sail-tag-outcomes/TagInterpreter.v)
+defines a fuelled executable finite-map interpretation, with a fixed handler and
+generic frame for other outcomes. Its primitive bridges quantify over arbitrary
+maps, keys, frames and continuations. The
+[TagControls.v](../../tools/sail-tag-outcomes/TagControls.v) instances exercise the
+actual emitted callers with complete data-environment and frame observations:
+requested and unrequested reads, data/tag order, all three `Ok` variants and
+`Err ()`, ascending clears, wraparound, forwarding and distinguishing refusals.
+These complement the arbitrary metadata-loop/map/continuation laws above; finite
+instances supply no universal physical-caller theorem.
+
+All 33 explicitly queried new proofs in this separate construction report a closed
+global context. `rocqchk -norec` passes on its two authored objects while admitting
+dependencies; its context summary supplies no accepted dependency-axiom closure.
+Both unchanged minimal Rocq outputs repeat byte for byte, and two C-target
+regenerations of that same minimal source produce identical `.c` and `.h` files.
+This is not paired full-model regeneration.
+
+Its inventories rescan all 10,904 installed proof `bin`/`lib` paths before and after,
+including additions and deletions, with unchanged identities. All 16,140 Sail paths
+are unchanged over the later query and paired-C-generation interval; initial minimal
+Rocq emission precedes that Sail inventory interval. No shared installation is
+rebuilt or repaired. Its distinct checkpoint stops at twelve checks within a
+conservative 1,001-second wall interval including preparation and evidence work.
+An eager wraparound computation is stopped for excessive allocation; lazy kernel
+conversion closes the unchanged statement. Earlier overwritten scratch logs survive
+as diagnostic summaries and final reading logs, not a complete raw attempt archive.
+
+The two immutable semantic patches share the constructor types, binding bodies and
+forwarding clauses. Comments and binding placement differ. Each native reading,
+assumption query and kernel result belongs to its own elaborated candidate; source
+comparison transfers no frozen-reading or kernel verdict between them. Both retain
+their reviewed BSD-2-Clause source notices. Neither changes the production support
+recipe, shared switch, model source or emitter.
 
 ## Bound and remaining acceptance
 

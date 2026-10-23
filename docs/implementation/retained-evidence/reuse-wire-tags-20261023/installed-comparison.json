@@ -1,0 +1,16 @@
+{
+  "inventories": {
+    "installed": {
+      "before_paths": 10904,
+      "after_paths": 10904,
+      "changed": []
+    },
+    "sail-installed": {
+      "before_paths": 16140,
+      "after_paths": 16140,
+      "changed": []
+    }
+  },
+  "proof_scope": "before first private support build through final evidence",
+  "sail_scope": "before native evidence queries and paired C regeneration through final evidence; earlier initial Rocq emissions outside this interval"
+}
