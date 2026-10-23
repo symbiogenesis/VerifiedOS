@@ -83,7 +83,7 @@ The [baseline](../implementation/static-memory/baseline.md) states the proof ass
 
 ## Application lifecycle and workflow profiles
 
-The [workflow and hibernation contract](../implementation/workflow-profiles.md) carries the 19 September 2026 follow-up literature review and Q32's qualification scope. Frozen residency saves execution but retains memory. Semantic checkpoint, complete authority retirement and sanitization can release an app's private working set into a prechecked slate binding; immutable code, checkpoint storage, services, quarantine and transition scratch remain charged. Joint optimization must include every transition and repeated mode changes, not only endpoint peaks. The revocation mechanism remains required. Desktop members use the elastic heap and hibernation ladder; slate bindings remain available for non-members and compositions without an elastic domain ([R-14-011c](../spec.md#r-14-011c)).
+The [workflow and hibernation contract](../implementation/workflow-profiles.md) owns the workflow literature comparison and Q32's qualification scope. Frozen residency saves execution but retains memory. Semantic checkpoint, complete authority retirement and sanitization can release an app's private working set into a prechecked slate binding; immutable code, checkpoint storage, services, quarantine and transition scratch remain charged. Joint optimization must include every transition and repeated mode changes, not only endpoint peaks. The revocation mechanism remains required. Desktop members use the elastic heap and hibernation ladder; slate bindings remain available for non-members and compositions without an elastic domain ([R-14-011c](../spec.md#r-14-011c)).
 
 ## Research with a plausible path to this design
 

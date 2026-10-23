@@ -238,8 +238,7 @@ integers, every single-bit, single-cleared-bit and low-mask pattern among them.
 
 ## The next layer
 
-With seam 4 in place the curated arm elaborates, so what stands is no longer a
-name or member the elaborator refuses. Two classes are measured and open.
+The curated arm elaborates. Two semantic classes remain open.
 
 **Raw readings of a register-width value.** The imported datapath reads a
 register's integer value and a capability's address by one slice of its low
@@ -304,83 +303,20 @@ is open.
 
 ## Acceptance evidence
 
-Every set below is the lines beginning `%Error` in the curated arm's output of
-`python tools/run.py rtl elaborate` under Verilator 5.052, taken in a lane
-derived from this checkout with `upstream/cva6-cheri` at the pin the registry
-then stated and the primitives read from `upstream/opentitan` at the gitlink
-then recorded, populated under a cone sparse checkout of `hw/ip/prim` and
-`hw/ip/prim_generic`. The elaborator's own `Exiting due to N error(s)` summary
-line is not one of them. The first two sets are name-resolution diagnostics,
-the elaborator stopping at that stage before any member read, and the third is
-the member layer behind them. The fourth, after seam 4, is empty; its paragraph
-names the commit it was taken at and the primitive source `rtl elaborate` reads
-now.
+**Accepted elaboration.** The run recorded in `9e6e78d7`, with the upstream
+pins that commit records, completed both arms under Verilator 5.052 with no
+curated `%Error` diagnostics. The curated inventory is 52 module kinds, 275
+cells and 4,584 declared variables against the baseline's 63, 416 and 5,325.
+Eleven structures are removed by the disabling parameters (`amo_buffer`, `bht`,
+`btb`, `compressed_decoder`, `cva6_mmu`, `cva6_ptw`, `cva6_shared_tlb`,
+`cva6_tlb`, `perf_counters`, `pmp_entry`, `ras`); none is displaced,
+introduced, unexplained or inert. These are JSON inventory counts under 5.052,
+not comparable with R1's XML figures under 5.032.
 
-**Before seam 3**, at the seam-2 registry: **44 diagnostics** over eight files,
-`branch_unit.sv` 11, `cheri_unit.sv` 11, `issue_read_operands.sv` 9,
-`load_store_unit.sv` 7, `csr_regfile.sv` 3, `include/ariane_pkg.sv` 1,
-`commit_stage.sv` 1 and `cva6.sv` 1, naming sixteen unresolved identifiers:
-`CAP_PERM_VIOLATION` 6, `set_cap_reg_flags` 5, `cap_tval2_t` 4,
-`get_cap_reg_flags` 4, `CAP_BOUNDS_VIOLATION` 3, `CAP_SEAL_VIOLATION` 3,
-`CAP_TAG_VIOLATION` 3, `legalize_arch_perms` 3, `SENTRY_CAP` 3,
-`CAP_INSTR_FETCH_FAULT` 2, `cap_report_perms_t` 2,
-`hperms_and_uperms_to_report_perms` 2, `CAP_DATA_ACCESS_FAULT` 1,
-`CAP_JUMP_BRANCH_FAULT` 1, `REG_ROOT_CAP` 1 and `report_perms_to_hperms` 1.
-
-**After seam 3**: **4 diagnostics** over two files, `cheri_unit.sv` 3 and
-`include/ariane_pkg.sv` 1, naming three identifiers, `SENTRY_CAP` 1,
-`get_cap_reg_flags` 1 and `set_cap_reg_flags` 1 at `cheri_unit.sv` and
-`REG_ROOT_CAP` 1 at `include/ariane_pkg.sv`, the three classes the seam 4
-decisions resolve, and no other imported identifier. The registry staged ten
-sources at 75 edits, each matching once, each source guarded by its exact input
-and output identity.
-
-Neither of those runs elaborates the core and neither is asked to: both sets are
-facts about names and not about members.
-
-**The member layer, with the three classes resolved**, over a registry state
-that was never committed: base `b52c0029`'s ten sources at 86 edits and 92
-guarded replacements, the registry file's SHA-256
-`1f2dfe46c61f75a834f55b5b674bb5decf5ac57845240e80040c64b97b9c1e62`, taken before
-`REG_RESET_FILE` was written and passed as the register file's `INIT_FILE` and
-before any edit below resolved a member. The diagnostics' line numbers are those
-of that registry's staged outputs. **42 diagnostics** over three files and
-thirteen source lines, every one a member the frozen record does not declare.
-`load_store_unit.sv` 23 at five lines, the levels, load-mutable,
-load-capability and store-level reads of `hperms`; `cheri_unit.sv` 11 at four
-lines, `uperms` and `hperms` in the subset test, `res_lo` and `res_hi` in the
-reserved-field test, and the representable-alignment `mask`; and `load_unit.sv`
-8 at four lines, the three levels clears. The last file was not a staged source,
-so a search of the staged sources alone did not reach it. Every site is on a
-delta deletion row and is resolved by the seam 4 decisions; the load/store
-unit's store-level read is the one whose model reading is a trap rather than a
-deletion.
-
-**After seam 4**, at `a348c81e` with `upstream/cva6-cheri` and
-`upstream/opentitan` at the gitlinks that commit records, the latter supplying
-the primitives: **0 diagnostics**. The registry stages fourteen sources at 120
-edits and 126 guarded replacements, the edits' match counts summing to more than
-the edits because one root rename matches seven reset sites. `rtl elaborate`
-completed both arms and reported the curated arm at
-52 module kinds, 275 cells and 4,584 declared variables against the baseline's
-63, 416 and 5,325, eleven structures the disabling parameters remove
-(`amo_buffer`, `bht`, `btb`, `compressed_decoder`, `cva6_mmu`, `cva6_ptw`,
-`cva6_shared_tlb`, `cva6_tlb`, `perf_counters`, `pmp_entry`, `ras`), none
-displaced, introduced, unexplained or inert. `rtl elaborate` reads its
-primitives from the tree `upstream/mocha` vendors under
-`hw/vendor/lowrisc_ip/ip`, and the runs recorded in `152762ab` and `d3f0737a`,
-with `upstream/cva6-cheri` and `upstream/mocha` at the gitlinks both commits
-record, report the same kinds, cells and removed structures at 4,582 and 5,324
-declared variables. The reviewed-pin refresh in `9e6e78d7` left both counts
-unchanged, its recorded runs reporting 4,584 and 5,325. `13a1b8a6` replaced the
-OpenTitan primitive edition with Mocha's, which accounts for one variable in
-each arm, and `7b2ae30d`'s removal of `perms_narrow`'s local `code` accounts for
-the curated arm's other. These counts are the tool's JSON inventory under 5.052
-and are not comparable with the XML figures R1 took under 5.032.
-
-The curated arm at `a348c81e` was not warning-free. Re-running the tool's own
-curated invocation there over its own composed file list and staged sources kept
-the output the tool discards on success: **277 lines beginning `%Warning`**,
+**Open warning and integer-view inventory.** The available detailed warning
+counts are tied to `a348c81e`, with `upstream/cva6-cheri` and
+`upstream/opentitan` at that commit's gitlinks. The curated invocation over
+the composed file list and staged sources reported **277 lines beginning `%Warning`**,
 `WIDTHEXPAND` 110, `SELRANGE` 79, `WIDTHTRUNC` 78, `UNSIGNED` 7, `CMPCONST` 2 and
 `ASCRANGE` 1. Of the `SELRANGE` lines, 77 selected index 1 of a one-entry
 dimension in the issue, commit and realignment paths at one issue port, and 2
@@ -391,8 +327,10 @@ floor of candidates, found **20** selects of bits `[63:0]` or `[63:2]` of a
 68-bit variable, at `branch_unit.sv` 8, `csr_regfile.sv` 5, `cva6.sv` 4,
 `ex_stage.sv` 2 and `issue_read_operands.sv` 1; **25** `WIDTHTRUNC` lines whose
 right side is 68 bits, and **33** `WIDTHEXPAND` lines whose target is 68 bits.
-No recorded run has taken these counts again, at the refreshed pins or under
-Mocha's primitives, whose `prim_ram_1p` differs from the edition read there.
+These warning counts do not describe the current pins or the current
+`upstream/mocha` primitives under `hw/vendor/lowrisc_ip/ip`; their
+`prim_ram_1p` differs from the measured edition. A current warning inventory
+remains owed.
 The elaborator folds a select of a 68-bit member of a wider packed structure
 into a select of the structure, so reads such as the branch unit's
 `fu_data_i.operand_a[VLEN-1:0]` and the store unit's `lsu_ctrl_i.data[XLEN-1:0]`

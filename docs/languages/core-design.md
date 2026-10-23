@@ -21,8 +21,7 @@ The general frontend has no identified retiring interim, so [R-05-020's translat
 ## Inputs and their actual subjects
 
 The source inspection uses repository revision
-`4aeaceedf4626ef64583a4680c19da29a469df4f`; Q20a's historical comparison
-inputs retain the identities in its own record. The
+`4aeaceedf4626ef64583a4680c19da29a469df4f`. The
 [foundation map](../hardware/cheri-foundation-map.md) records available constants and missing
 connections; the [workflow contract](workflow-contract.md) owns the
 pilot comparison, and the [compiler-route contract](compiler-route-contract.md)
