@@ -203,9 +203,10 @@ by owner and role; unrelated domains or identity effects cannot be dropped.
 Its `root` is the actual native root, established by exactly one successful
 `has_root_delta_resolver` test over the complete enumerated native path domain;
 an absent or ambiguous root refuses. A module's exported path is not automatically
-its resolver's root. Native `map_mp` substitutions use a resolver rooted exactly
-at their destination. When that precondition fails for a target module's original
-resolver, the producer uses the public empty resolver at the destination, as the
+its resolver's root. Native `map_mp` and `map_mbid` substitutions use a resolver
+rooted exactly at their destination or actual argument. When that precondition
+fails for the original module resolver, the producer uses the public empty
+resolver at that destination or argument, as the
 locked native implementation-resolution oracle does. The substitution trace names
 that exact resolver; the target module's original resolver remains separate native
 evidence. No arbitrary rerooting or domain pruning supplies this connection.

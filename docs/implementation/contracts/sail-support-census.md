@@ -191,4 +191,11 @@ missing or ambiguous root evidence refuses. This corrects the existing native
 realization within its remaining budget and changes no assumption or acceptance
 predicate.
 
+The same public root precondition also applies to bound-parameter substitution
+with an aliased actual argument. Apply the same guarded actual-or-empty resolver
+selection there, retaining its exact application-argument resolver and the original
+argument resolver separately. Ordered native bindings and inherited substitutions
+remain explicit; a nonempty substitution without an actual recorded participant
+refuses.
+
 The census extension adds 6 h, range 3–9, to Q35q's existing allowance: native grammar/classification 1–3 h, canonical implementation connections 1–3 h, and controls/evidence 1–3 h. The combined item is 10 h, range 5–15. This is a planning estimate for the commissioned scope; unattended hosted runtime and a further unsupported form are excluded. A retained refusal does not close Q35q.
