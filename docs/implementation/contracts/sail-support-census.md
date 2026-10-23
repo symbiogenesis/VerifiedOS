@@ -365,7 +365,8 @@ The sixth candidate's complete original thirty-root graph passes with all retain
 native readings and the unchanged exported/private/public resolver joins. Its
 separate fresh three-root native census succeeds, every requested native reading
 passes, and the complete positive control census passes. Full schema validation of
-that actual control emission takes about 113 seconds per call. The original
+that actual control emission takes 113 seconds in its positive call and 244 seconds
+in a later unchanged corruption call. The original
 corruption loop retains each full independent validation; its complete report
 cannot fit the preceding candidate's remaining work allowance. The current
 candidate's hard bound and finalization reserve remain unchanged. Retain its actual
@@ -373,8 +374,9 @@ stop, elapsed time, cuts and partial observations; an incomplete loop supplies n
 twelve-case acceptance.
 
 Only if that candidate stops for its time bound after the recorded positive joins,
-commission one seventh, control-only candidate of at most thirty active minutes,
-within a cumulative adapter/control ceiling of ninety active minutes. Preserve
+commission one seventh, control-only candidate of at most sixty active minutes,
+within a cumulative adapter/control ceiling of 120 active minutes. This covers
+the measured complete-validation cost without another partial loop. Preserve
 every earlier counter and unused allowance; neither time nor candidate numbering
 resets. A different refusal or uncommissioned native form still returns to this
 owner before repair. The two-campaign hosted allowance is unchanged.
