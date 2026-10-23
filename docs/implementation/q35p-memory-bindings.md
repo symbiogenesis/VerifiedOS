@@ -9,6 +9,8 @@ reproducer, native readings, exact compiler arguments, inputs and available logs
 The construction is a focused checkpoint; the remaining acceptance joins below
 still decide closure.
 
+<a id="actual-semantic-boundary"></a>
+
 ## Representation and native bindings
 
 The candidate applies after Q35g's axiom-removal patch and Q35n's strict syntax

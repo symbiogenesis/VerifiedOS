@@ -6,6 +6,7 @@ Operational entries exercise handlers; usage entries establish help alone.
 | Command | Operational handlers | Usage only |
 | --- | --- | --- |
 | `prepare` | `prepare python` | n/a |
+| `rocq-census` | n/a | `rocq-census --help` |
 | `boot` | `boot roster` | n/a |
 | `composer` | `composer build-record`, `composer check-build-record`, `composer check-project`, `composer compare`, `composer compose`, `composer fixture`, `composer project`, `composer promote` | n/a |
 | `admission` | `admission check-production-record`, `admission emit-reference`, `admission production-record`, `admission record` | n/a |

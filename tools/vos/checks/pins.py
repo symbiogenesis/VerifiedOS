@@ -978,6 +978,21 @@ _CAPTURING_RECEIPTS: dict[str, str] = {
 # These sites retain measured or external editions, or record identifiers that
 # resemble object ids. They do not state this repository's current top-level pin.
 SITE_RESIDUE: dict[tuple[str, str], str] = {
+    **{("docs/assurance/proof-reuse/systems.md", ident): reason
+       for ident, reason in {
+           "3fe5d0a957a95c27cff204e729a5e96a3e3217ad":
+               "the general Rocq Perennial framework edition read by SYS-PERENNIAL, "
+               "not the selected PoWER correspondence source gitlink",
+           "f97c83addc2f66f8d58004321f0b1f055c046c30":
+               "the surveyed default Lean lineage lacking crash logic, "
+               "not the selected Rocq PoWER source gitlink",
+           "3e3e0a484d61d0a15b578f5d5887ead84f145d71":
+               "the surveyed later Rocq master edition, "
+               "not the selected PoWER correspondence source gitlink",
+       }.items()},
+    ("docs/assurance/proof-reuse/parsers.md", "aef82ed"):
+        "the commit suffix of vasn's selected Verus toolchain release, "
+        "not the vasn source gitlink",
     **{("docs/implementation/upstream-merged-review.md", ident): reason
        for ident, reason in {
            "94139d1b7413cdbe517a80dcdb8b365b2189af0e":
@@ -1081,9 +1096,13 @@ SITE_RESIDUE: dict[tuple[str, str], str] = {
     ("docs/implementation/retained-evidence/q39/shelving-triage-20261012/release-triage.json",
      "5c20b839e556b78c0ee7f1ce5b28fb00d0e69d78"):
         "the immutable SECOMP comparison base used in the historical Q39 triage",
-    ("docs/implementation/retained-evidence/close3-q35p-20261013/bindings.sail.txt", "bb07488d"):
-        "the unchanged historical CHERI transplant header in Q35p's model-owner reproducer, "
-        "not a statement of the current comparison gitlink",
+    **{(file, "bb07488d"):
+       "the unchanged historical CHERI transplant header in Q35p's model-owner reproducer, "
+       "not a statement of the current comparison gitlink"
+       for file in (
+           "docs/implementation/retained-evidence/close3-q35p-20261013/bindings.sail.txt",
+           "docs/implementation/retained-evidence/q35p-tag-outcomes-20261023/bindings.sail.txt",
+       )},
     **{(file, "bb07488d"): "the historical CHERI source transplanted into the curated model"
        for file in (
            "model/model/core/addr_checks.sail",

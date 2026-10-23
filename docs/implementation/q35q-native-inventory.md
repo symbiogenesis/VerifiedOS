@@ -68,6 +68,8 @@ fresh outputs, membership/byte changes, identity refusal and the exact metadata-
 Linux typing checks passing. This packaging runs no additional native candidate and
 makes no native qualification claim for unexercised paths.
 
+<a id="native-module-body-api-candidate"></a>
+
 ## Native provenance and earlier boundary evidence
 
 [Native support inventory diagnosis](retained-evidence/q35q-native-20261013/manifest.json),
