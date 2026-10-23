@@ -7,6 +7,7 @@ import runpy
 import unittest
 from pathlib import Path
 from typing import Any, cast
+from unittest.mock import patch
 
 from jsonschema import Draft202012Validator
 
@@ -476,6 +477,52 @@ class SailSupportCensusTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "positive-control population is incomplete"):
             _ADAPTER["qualify_controls"](incomplete, raw, printed)
 
+    def test_control_mutations_share_untouched_evidence_and_match_whole_copy_refusals(self) -> None:
+        value, searches, readings = _controls_fixture()
+        # Native JSON has no Python cross-table aliases. Use that same small-fixture
+        # shape to compare the former full-copy path with the bounded table copies.
+        value = json.loads(json.dumps(value))
+        original = copy.deepcopy(value)
+        original_searches, original_readings = dict(searches), dict(readings)
+        _ADAPTER["census"](value, searches, readings, expected_modules=value["requested_roots"])
+        self.assertEqual(value, original)
+        def mutable_ids(item: object) -> set[int]:
+            if isinstance(item, dict):
+                return {id(item)}.union(*(mutable_ids(child) for child in item.values()))
+            if isinstance(item, list):
+                return {id(item)}.union(*(mutable_ids(child) for child in item))
+            return set()
+        clone = _ADAPTER["_control_copy"]
+        observed: list[str] = []
+        def isolated_table(evidence: dict[str, Any], table: str) -> dict[str, Any]:
+            self.assertIs(evidence, value)
+            candidate = clone(evidence, table)
+            self.assertIsNot(candidate, evidence)
+            self.assertTrue(mutable_ids(candidate[table]).isdisjoint(mutable_ids(evidence[table])))
+            for key in evidence.keys() - {table}:
+                self.assertIs(candidate[key], evidence[key], key)
+            # In particular, the full native resolver matrices and context graph
+            # remain shared by identity, including their nested mutable objects.
+            self.assertIs(candidate["resolvers"][0]["kernel_effects"], evidence["resolvers"][0]["kernel_effects"])
+            self.assertIs(candidate["contexts"][0], evidence["contexts"][0])
+            observed.append(table)
+            return candidate
+        qualify = _ADAPTER["qualify_controls"]
+        with patch.dict(qualify.__globals__, {"_control_copy": isolated_table}):
+            bounded = qualify(value, searches, readings)
+        self.assertEqual(len(observed), 12)
+        self.assertEqual(set(observed), {"fields", "declarations", "resolutions", "modules"})
+        self.assertEqual(value, original)
+        with patch.dict(qualify.__globals__, {"_control_copy": lambda evidence, _table: copy.deepcopy(evidence)}):
+            former = qualify(value, searches, readings)
+        self.assertEqual(bounded, former)
+        self.assertEqual(value, original)
+        self.assertEqual(searches, original_searches)
+        self.assertEqual(readings, original_readings)
+        for forbidden in ("resolvers", "contexts", "environment", "unknown"):
+            with self.subTest(table=forbidden), self.assertRaises(ValueError):
+                clone(value, forbidden)
+
     def test_body_identity_replaces_executable_ast_and_retains_complete_reference_domain(self) -> None:
         value, searches, _ = _fixture()
         identity = {"algorithm": "blake2b-256", "encoding": "verifiedos-rocq-native-term-json/1", "digest": "a" * 64,
@@ -743,6 +790,7 @@ def cases() -> list[Case]:
             Case("raw-native-reading-framing-diagnostics-and-truncation-refuse", checks.test_raw_native_reading_headers_truncation_and_diagnostics_refuse),
             Case("stdlib-schema-reader-agrees-with-draft202012-oracle", checks.test_schema_reader_matches_draft202012_on_positive_and_corruptions),
             Case("control-replay-retains-three-roots-and-adapter-refusal-boundary", checks.test_control_replay_uses_three_complete_roots_and_distinguishes_adapter_evidence),
+            Case("control-mutations-share-native-evidence-and-match-whole-copy-refusals", checks.test_control_mutations_share_untouched_evidence_and_match_whole_copy_refusals),
             Case("body-identities-refuse-executable-asts-and-incomplete-reference-domains", checks.test_body_identity_replaces_executable_ast_and_retains_complete_reference_domain),
             Case("private-kernel-reference-boundary-retains-exported-global-audits", checks.test_private_kernel_references_cannot_replace_exported_globals),
             Case("external-sealed-declaration-alias-keeps-supplementary-native-audit", checks.test_external_sealed_declaration_alias_has_supplementary_assumption_binding),
