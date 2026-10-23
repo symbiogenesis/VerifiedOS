@@ -77,6 +77,7 @@ DEPTH = 5
 MARKABLE: dict[str, tuple[str, str]] = {
     ".py": ("# ", ""),
     ".v": ("(* ", " *)"),
+    ".ml": ("(* ", " *)"),
     # Authored OCaml and Gallina campaign templates keep their language's syntax.
     ".ml.in": ("(* ", " *)"),
     ".v.in": ("(* ", " *)"),
