@@ -76,6 +76,13 @@ is represented by its complete effects over every enumerated field/reference and
 native inline key; this is explicitly finite domain coverage, not serialization
 of its private representation. Unsupported effects refuse.
 
+Retain transparent-body identities and their complete native reference domains,
+not executable library body ASTs. The locked native `Digest.BLAKE256` hashes the
+complete constructor encoding in memory; source and instantiated identities remain
+separate, with the same native substitution and assumption oracle requirements.
+This keeps LGPL Stdlib functor implementation text out of distributed evidence;
+the producer calls installed APIs and incorporates no upstream implementation.
+
 The hosted route may record a separate `native-census-qualified.json` only after
 all selected modules, native controls, exact assumption audits and recursive
 kernel checks pass with unchanged identities. Its validator must replay the

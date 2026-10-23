@@ -114,8 +114,18 @@ A source reference is provenance, not permission to assumption-query it.
 The schema fixes constructor-based terms, relevance/casts/cases, recursive binders,
 projections, local contexts, abstract universes and constraints, typing flags and
 conversion-oracle strategies, inductive template/variance/record metadata, and
-module implementation/algebraic-type expressions. `Def` has its exact transparent
-body; every other body kind has null `transparent_body`. Only `Undef` may have an
+module implementation/algebraic-type expressions. Every `transparent_body` is
+null: the producer never exports executable library bodies. Exactly `Def` has a
+non-null `transparent_body_identity`, using native OCaml `Digest.BLAKE256` over
+the complete deterministic constructor JSON under
+`verifiedos-rocq-native-term-json/1`. Its `digest` is exactly 64 lowercase hex
+characters. The producer computes and discards this encoding in memory, with no
+temporary body file. The identity retains the complete, deduplicated native
+`module_paths` and `kernel_names` collected during that traversal, in native key
+order. Source and instantiated identities can differ after substitution; neither
+equality nor a digest alone proves the implementation connection. Native
+substitution provenance and `Print Assumptions` retain their existing duties.
+Every other body kind has null `transparent_body_identity`. Only `Undef` may have an
 inline level; only `Primitive` has a non-null primitive identifier. Opaque proof
 bodies remain under the native assumption oracle. This type/provenance format does
 not serialize VM code, opaque proof storage, or derived recursion automata.
@@ -130,7 +140,7 @@ to their actual declarations and module-expression refinements.
 A delta resolver is opaque in the public locked API. `resolvers` explicitly records
 `finite-enumerated-domain`: its native root, effects on every enumerated module
 path and every kernel name occurring in fields, references, expressions, types,
-transparent bodies, source/instantiated metadata and connection traces, plus every
+transparent-body reference domains, source/instantiated metadata and connection traces, plus every
 native `inline_of_delta None` key/level. Each native resolver is separately named
 by owner and role; unrelated domains or identity effects cannot be dropped.
 Inline keys also receive kernel effects. Completeness is checked against that

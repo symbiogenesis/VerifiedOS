@@ -1727,6 +1727,22 @@
       ],
       "additionalProperties": false
     },
+    "transparent_body_identity": {
+      "type": "object",
+      "properties": {
+        "algorithm": {"const": "blake2b-256"},
+        "encoding": {"const": "verifiedos-rocq-native-term-json/1"},
+        "digest": {"type": "string", "minLength": 64},
+        "module_paths": {
+          "type": "array", "items": {"$ref": "#/$defs/path"}, "uniqueItems": true
+        },
+        "kernel_names": {
+          "type": "array", "items": {"$ref": "#/$defs/kernel_name"}, "uniqueItems": true
+        }
+      },
+      "required": ["algorithm", "encoding", "digest", "module_paths", "kernel_names"],
+      "additionalProperties": false
+    },
     "constant_metadata": {
       "type": "object",
       "properties": {
@@ -1760,9 +1776,12 @@
           ]
         },
         "transparent_body": {
+          "type": "null"
+        },
+        "transparent_body_identity": {
           "anyOf": [
             {
-              "$ref": "#/$defs/term"
+              "$ref": "#/$defs/transparent_body_identity"
             },
             {
               "type": "null"
@@ -1807,6 +1826,7 @@
         "section_context_innermost_first",
         "body_kind",
         "transparent_body",
+        "transparent_body_identity",
         "inline_level",
         "primitive",
         "inline_code",
