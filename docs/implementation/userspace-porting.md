@@ -392,7 +392,7 @@ Delivery order is the browser engine and interpreters, then hosted app windows a
 
 #### The bring-up Wasm interim: the pin, and what its ranking reads as here
 
-**The pin.** `wasmi-labs/wasmi` at **v2.0.0**, released 2026-09-01 and the newest release at this reading; its terms, read at that tag on 2026-09-14, are recorded in [THIRD-PARTY.md](../../THIRD-PARTY.md#the-bring-up-wasm-interpreter).
+**The pin.** `wasmi-labs/wasmi` at **v2.0.0**; its exact-tag license terms are recorded in [THIRD-PARTY.md](../../THIRD-PARTY.md#the-bring-up-wasm-interpreter).
 The pin is the interim's alone. R-14-013a is the engine the interim stands in front of, no register entry names the interim, and adopting an upstream change into an unverified interim admits nothing into that engine.
 
 **What is expected to survive curation, and what is interim-only.** Four of the release's changes trade dependent chains and memory traffic for offsets, which is the shape that survives: three accumulator registers holding intermediate values in machine registers instead of stack slots, a fixed 64-bit stack cell with a vector value spanning two adjacent cells, a flattened contiguous instance-entity buffer reached by one pointer-offset instead of a multi-step lookup, and the append-only function-body storage's baked-in body pointers.
@@ -433,9 +433,9 @@ What has no rule is a `code`-typed field at a slot inside a buffer the interpret
 Nothing in that grammar relates a memory slot to the type of what a load produces from it, so a load out of a runtime-written IR buffer reaches no `code G c` result and R-05-113's subset check has no premise to draw on.
 Supplying one is a type-system addition carrying its own soundness obligation, and defaulting to indirect defers that addition whole, which is the argument for taking indirect until the typing is priced.
 
-**Re-reading the ranking, entry by entry.**
+**Applicability of the upstream ranking.**
 Any interpreter result that improves by feeding a branch predictor is measuring hardware this machine does not have.
-Rows A-04, A-05 and A-06 of [the absence contract](../hardware/absence-contract.md) remove the direction predictor, the target predictor and the return-address stack, prediction here being static-only with zero mutable predictor state, so the whole upstream ranking is re-read before any of it informs a figure.
+Rows A-04, A-05 and A-06 of [the absence contract](../hardware/absence-contract.md) remove the direction predictor, the target predictor and the return-address stack, prediction here being static-only with zero mutable predictor state, so each upstream ranking entry needs a platform-specific applicability judgment.
 R-14-015's Accept already states the narrow case, a dispatch loop on a machine with static branch prediction and no instruction cache being the worst tenant a bulk fetch constant could have; the note is that sentence generalized from the arena to the ranking.
 
 *The predicate these verdicts were taken with.* The suite is [`wasmi-labs/wasmi-benchmarks`](https://github.com/wasmi-labs/wasmi-benchmarks), read on 2026-09-14, its membership closed there in an execute group and a startup group with `argon2` appearing in both; the table below carries one row per entry of that reading and one further row marked outside the suite, so the enumeration is the table and no count stands beside it to drift.
@@ -444,7 +444,7 @@ Each verdict is taken from the entry's own published description and the workloa
 *Reads on this target* says the branches of the entry's own guest workload, setting aside the interpreter's dispatch branch which the next paragraph prices separately for every execute entry, are ones a static rule decides, a counted loop's backward branch being predicted from its displacement sign, so the entry's placement rests on work done per iteration rather than on learned history.
 
 *One tax every execute entry pays whatever its verdict*, stated so that *reads on this target* is never read as a number that transfers: every execute entry also runs through the interpreter's own dispatch branch, which is an indirect branch in either threaded form, a jump through a table where the IR holds an op-code and a tail call through a stored pointer where it holds one, and which A-05 leaves unpredicted here.
-The verdict decides whether an entry's relative placement survives the re-reading. It never says that an absolute figure does, and no absolute figure from this upstream transfers to this machine at all.
+The verdict states whether an entry's relative placement is applicable. It never says that an absolute figure does, and no absolute figure from this upstream transfers to this machine at all.
 
 | Entry | Group | Verdict | Structure the gain rests on |
 | --- | --- | --- | --- |

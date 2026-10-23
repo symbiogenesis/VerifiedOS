@@ -35,9 +35,9 @@ resolve, but their maintained homes have moved. HIP is developed in
 whose pull requests the `ROCm/hip` commits cite, and hipBLAS in
 [ROCm/rocm-libraries](https://github.com/ROCm/rocm-libraries) under
 `projects/hipblas`; `ROCm/hipBLAS` is retired, its README directing readers to
-`ROCm/rocm-libraries`. These homes were read on 2026-09-29. A later
-re-selection, including Q30g's next-slice selection, starts from those
-repositories at a current ROCm tag rather than from the retired one.
+`ROCm/rocm-libraries`. Re-selection, including Q30g's next-slice selection,
+starts from those repositories at a current ROCm tag rather than from the retired
+one.
 
 ## Reading the dispositions
 

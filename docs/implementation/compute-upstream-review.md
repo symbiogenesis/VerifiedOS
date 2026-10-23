@@ -1,6 +1,6 @@
 # Compute candidate source and dependency review
 
-Q30a readings dated 2026-09-19. These are reproducible survey revisions, not
+Q30a records reproducible survey revisions, not
 gitlink pins, installed toolchains or incorporated source. No candidate is
 trusted by the admission checker. [COPYRIGHT.md](../../COPYRIGHT.md#terms-this-tree-does-not-carry)
 and [THIRD-PARTY.md](../../THIRD-PARTY.md) govern any later incorporation;
@@ -57,7 +57,7 @@ import, gitlink or distribution permission is implied by this document.
 
 ### Supplementary pilot instruments
 
-Readings dated 2026-09-24 add these candidates without incorporating source.
+These supplementary candidates are references; no source is incorporated.
 
 [Oclgrind](https://github.com/jrprice/Oclgrind/blob/5597a379b4f7d74c4af5532260df0366c277259f/README.md)
 provides host-side invalid-access, data-race and divergent-barrier diagnostics

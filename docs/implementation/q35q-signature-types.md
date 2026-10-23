@@ -12,7 +12,7 @@ The query explicitly unsets `Short Module Printing` and sets printing depth and 
 
 The installed locked prover's `vernac/printmod.ml`, bound by before/after digest in the receipt, contains a fallback from rich module printing to names-only printing after a noncritical exception. The observed output is compatible with that behavior; this check does not identify the underlying exception. The printer source is inspected locally and is not copied into the evidence bundle.
 
-The candidate interval is 2026-10-14 03:40:41.598009–03:40:43.504619 UTC, or 2026-10-13 22:40:41.598009–22:40:43.504619 America/Chicago. The receipt records one candidate and its active runtime. Candidate work stops at this unsupported native completeness shape. The hash-bound inputs and the complete frozen project-switch exports remain unchanged.
+The receipt records one candidate, its execution timestamps and active runtime. Candidate work stops at this unsupported native completeness shape. The hash-bound inputs and the complete frozen project-switch exports remain unchanged.
 
 ## Remaining owner act
 

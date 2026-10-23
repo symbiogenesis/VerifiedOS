@@ -21,7 +21,7 @@ fiat_crypto unsaturated-solinas 25519 32 10 '2^255 - 19' carry_mul carry_square 
 fiat_crypto word-by-word-montgomery p256 32 '2^256 - 2^224 + 2^192 + 2^96 - 1' --static
 ```
 
-The exact executable path, flags and all output transformations are frozen by the recorded successful recipe, rather than inferred from these examples. A second party must build or identify the generator at the recorded parent and nested revisions, run each invocation twice, and compare byte-for-byte raw and wrapped output hashes. A historical binary built at `5691ca0d` cannot witness generation at the current pin.
+The exact executable path, flags and all output transformations are frozen by the recorded successful recipe, rather than inferred from these examples. A second party must build or identify the generator at the recorded parent and nested revisions, run each invocation twice, and compare byte-for-byte raw and wrapped output hashes. A binary built at another source revision cannot witness generation at the selected pin.
 
 ## Research handoff for future field and code parameters
 
@@ -50,7 +50,7 @@ with its unchanged exact nested revisions and built in a fresh native tree.
 The [build receipt](retained-evidence/dependencies-20261019/fiat/build.json)
 records a successful locked Rocq 9.3.0 / OCaml 5.4.1 build in 1,130.5 seconds.
 The [before and after export hashes](retained-evidence/dependencies-20261019/fiat/switch-exports.json)
-match the unchanged proof lock. The new executable has SHA-256
+match the unchanged proof lock. The generator executable has SHA-256
 `eb983672439aa0ca1375f0760af5097ac09ceb0f4182062dcbe93a7de3c24389`.
 
 Before building, restore the parent repository's Git index at that exact
@@ -63,8 +63,7 @@ The focused control reproduces a truncated generated import list and refuses it.
 
 The [emission](retained-evidence/dependencies-20261019/fiat/emission.json)
 and [replay](retained-evidence/dependencies-20261019/fiat/replay.json) each run
-both recipes twice. Their raw bodies equal the preceding emission; the
-headers change only in their source-pin notice. The current
+both recipes twice and reproduce the tracked headers. The current
 [manifest](../../tools/generated/fiat-crypto/manifest.json) owns the raw and
 wrapped hashes, exact archives, executable, recipes and emitter identity.
 The [independent integer comparison](retained-evidence/dependencies-20261019/fiat/vectors.json)
@@ -81,21 +80,11 @@ executes each recipe twice and reproduces both wrapped headers. This identifies
 the reviewed generator; it is not a second generator rebuild.
 
 The [license receipt](retained-evidence/dependencies-20261019/fiat/licenses.json)
-records the parent instruments reread at the selected revision and verifies
-every retained instrument digest against the actual build tree. Unchanged
-nested revisions retain their dated readings. No dependency source, library,
-proof object or generator executable is incorporated.
+binds the parent and nested inputs to their own license instruments and verifies
+every retained instrument digest against the actual build tree. No dependency
+source, library, proof object or generator executable is incorporated.
 
-## Historical 2026-10-10 emission and replay
-
-Option A's entry tip, `f3ecb2cf1f771de34771e967193ee7f0ee0b0acf`, builds from fresh Git archives with the locked Rocq 9.3.0 compiler and OCaml 5.4.1. The [build receipt](retained-evidence/fiat-q40-20261010/build-receipt.json) records the successful command, compiler output, executable identity, source pin and observed proof-object counts. The cold build exited 0 in 931.98 s. Nothing was installed into the proof switch. Its [before and after exports](retained-evidence/fiat-q40-20261010/switch-exports.json) are byte-identical to each other and to [rocq.lock](../../tools/opam/rocq.lock), SHA-256 `3e70338fb77832f9e09ee8780cd10524e002420b1ca9aa5f56a15777765e1b32`. Option B is unnecessary because A succeeded.
-
-The retained 2026-10-10 emission and build receipts bind that parent, every nested archive, exact recipes, emitter, executable and build environment. The current [manifest](../../tools/generated/fiat-crypto/manifest.json) belongs to the selected emission. The generator executable has SHA-256 `3f34a8230b5112c33889d6b8d01adb2724bf474888197ed2523519bab3572812`. Two executions of each recipe produced identical raw bytes. A subsequent `--check` ran each recipe twice again in a separate native work directory and reproduced the tracked header bytes with its source-archive comparison holding. The raw hashes equal the prior emission's recorded hashes; only the wrapper's source-pin notice changes in the headers. The [emission receipt](retained-evidence/fiat-q40-20261010/emission.json) identifies each actual invocation and its raw stdout/stderr files and hashes.
-
-| Header | Raw SHA-256 | Wrapped SHA-256 |
-| --- | --- | --- |
-| `25519_32.h` | `0600b8d461d3bf94199efced49097c7682623ed27a4c146d7dde103859338ef0` | `b200b3ce50fd2020fe1d8e8dd7f2b258e08ad3bc2a1b2bcef7d72ab07afa96f6` |
-| `p256_32.h` | `1cce0302f067c020553c06eae6547430bd6f1ff8d9198cd1258de2c8888ea0ca` | `0b865a4c6be783e00827a3aaaa79619153053cfa5f0f6a985f479c85bd46ed54` |
+## Reproduction procedure
 
 Initialize the exact parent and nested gitlinks in an isolated source checkout. Archive each repository separately with `git -C <repository> -c core.autocrlf=false -c core.eol=lf archive --format=tar HEAD`, and unpack it at its recorded relative path into a fresh native build tree. Both overrides are required because host checkouts may have CRLF scripts. From the unpacked Fiat root, the successful command is:
 
@@ -105,18 +94,13 @@ opam exec --switch=verifiedos-rocq-9.3.0-ocaml-5.4.1 -- make -j2 SKIP_BEDROCK2=1
 
 The explicit `COQC` applies to recursive builds too. The manifest names the actual executable and the full build recipe; the environment binds the measured prover and OCaml versions to the current proof lock and both export hashes. The host inspector refuses missing or changed identities, a changed lock, unequal exports and a build recipe that does not use that compiler explicitly. A build receipt records an observed build rather than attesting that an arbitrary executable came from a claimed archive.
 
-The [license receipt](retained-evidence/fiat-q40-20261010/licenses.json) names each actual own file read on 2026-10-10 at that historical emission's exact revisions and hashes its LF archive bytes. The generator, source archives, libraries and proof objects are external build inputs; only the two Fiat-generated field headers are incorporated.
-
-| Nested input | Own license reading and use |
-| --- | --- |
-| `coqprime` | `LICENSE`: LGPL-2.1; 23 native proof objects built. No Coqprime source or binary is copied into the headers or distributed here. |
-| `rewriter` | `COPYRIGHT`, `LICENSE-APACHE`, `AUTHORS`: MIT / Apache-2.0 / BSD-1-Clause election, Apache-2.0 selected; 147 native proof objects. |
-| `rupicola/bedrock2/deps/coqutil` | `LICENSE` offers MIT and `AUTHORS` identifies its authors; 125 native proof objects. The containing Rupicola and Bedrock2 revisions' own `LICENSE` files offer MIT and their `AUTHORS` files were also read; no objects outside Coqutil were built under those trees. |
-| `etc/coq-scripts` and its Rewriter/Coqutil copies | Each exact revision's own `LICENSE` is MIT, copyright 2014 Jason Gross. |
-| `rupicola/bedrock2/deps/kami` | Its changed revision's own `LICENSE` is MIT, copyright CSAIL, Massachusetts Institute of Technology. It contributes no native proof object under `SKIP_BEDROCK2=1`. |
-| `rupicola/bedrock2/deps/riscv-coq` | Its changed revision's own `LICENSE.txt` is BSD-3-Clause, copyright MIT. It contributes no native proof object under this target. |
-
-Fiat's own `COPYRIGHT`, `LICENSE-APACHE` and `AUTHORS` were also read at the new parent, with Apache-2.0 elected and all emitted notices retained. No license for one nested input is inferred from another's grant.
+The selected [license receipt](retained-evidence/dependencies-20261019/fiat/licenses.json)
+records the exact parent and nested instruments. Fiat-Crypto and Rewriter offer
+MIT / Apache-2.0 / BSD-1-Clause, with Apache-2.0 elected. Coqprime's own instrument
+is LGPL-2.1; Coqutil, Rupicola, Bedrock2, Kami and the coq-scripts copies carry MIT
+terms; riscv-coq carries BSD-3-Clause. The generator, archives, libraries and proof
+objects are external build inputs. Only the two generated field headers are
+incorporated; no nested input's terms are inferred from another grant.
 
 For a preserved or rebuilt generator, run these in the guest, replacing `<checkout>` and `<native>` with the assigned checkout and its native `/root/build` lane. Create the emission/replay directories before using them:
 
@@ -128,15 +112,6 @@ python3 <checkout>/tools/fiat_crypto_vectors.py --work-dir <native>/fiat-vectors
 
 The source receipt is a JSON array of `path`, full `revision` and sibling tar `archive` basename, in the tracked manifest's order; the driver hashes each archive itself. A fresh `--emit` requires a successful build receipt naming this source pin, executable and digest, the exact reviewed build command and the measured unchanged locked environment. A rebuilt executable with a different digest is refused by `--check` until its build provenance is reviewed. Generator binaries need not themselves be reproducible across build environments. Each run retains stdout and stderr under the caller's own native work directory.
 
-The [vector receipt](retained-evidence/fiat-q40-20261010/vectors.json) records GCC 15.2.0 compiling the inclusion interface with `-std=c11 -O2 -Wall -Wextra -Werror -Wno-unused-function -shared -fPIC`. Each field passes 377 canonical-input pairs: the cross-product of 11 edges plus 256 reproducible pseudorandom pairs. Multiplication, squaring, addition, subtraction, negation, both selections, byte round trip and scalar-121666 multiplication or Montgomery one produce 3,393 checked results per field, 6,786 total, against Python integer arithmetic. This equals the prior recorded campaign's count. P256's `divstep`, `divstep_precomp`, `msat` and `nonzero` routines remain outside that campaign; no target timing, constant-time execution, complete curve protocol or compiler-refinement claim follows.
+The [vector receipt](retained-evidence/dependencies-20261019/fiat/vectors.json) records GCC 15.2.0 compiling the inclusion interface with `-std=c11 -O2 -Wall -Wextra -Werror -Wno-unused-function -shared -fPIC`. Each field passes 377 canonical-input pairs: the cross-product of 11 edges plus 256 reproducible pseudorandom pairs. Multiplication, squaring, addition, subtraction, negation, both selections, byte round trip and scalar-121666 multiplication or Montgomery one produce 3,393 checked results per field, 6,786 total, against Python integer arithmetic. P256's `divstep`, `divstep_precomp`, `msat` and `nonzero` routines remain outside that campaign; no target timing, constant-time execution, complete curve protocol or compiler-refinement claim follows.
 
 The focused host tests reject altered/missing headers, an incomplete output set, the wrong parent pin, changed source archives, a non-sibling archive path, changed owner bytes, a missing generator path, the wrong prover or OCaml identity, a stale proof lock or export hash and a different build recipe. K-88 checks the host-readable record and hashes without running Fiat; native replay executes the recorded generator twice per recipe. The third-party ledger owns the incorporated source and license records. The retained JSON files contain original observations and identities, with no upstream source, compiled proof library or generator executable.
-
-The [independent replay receipt](retained-evidence/fiat-q40-20261010/independent-replay.json),
-SHA-256 `39fb3074b3b530356b85b1d4063effff95c7f6be83fd1ef61ff1acb0753170b2`,
-records a second dedicated checkout at `82457550eb0d011290fc96583122a8769e0171a2`.
-It identifies the same generator by digest, runs each recipe twice in
-`/root/build/lane-checklist-20261010-d/fiat-independent`, and reproduces every
-header byte with the source-archive comparison holding. The worker's subsequent
-receipt-path amendment changes no generator, driver, recipe or header input.
-This is an independent second emission, not an independent generator rebuild.

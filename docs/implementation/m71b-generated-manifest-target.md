@@ -42,9 +42,8 @@ generated mode does not claim that case.
 
 [Integrated native layout and target refusal](retained-evidence/m71b-generated-manifest-20261013/manifest.json),
 SHA256 `883342b839f8c893af56718c4e0e9f9afa03aedc873641dec4f29c37a99df294`,
-retains the refreshed integrated native receipt and the earlier compiler preflight
-refusal. The native receipt binds the regenerated projections and final source
-and header identities; the refusal records no target execution.
+retains the integrated native receipt and compiler preflight refusal. The native
+receipt binds the regenerated projections and final source and header identities; the refusal records no target execution.
 
 The focused `test_lifecycle_target` native case compiles the actual generated
 wrapper with the native C compiler and executes its manifest-copy function. It
