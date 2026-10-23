@@ -20,6 +20,7 @@ import sys
 import tarfile
 import time
 import urllib.request
+from collections.abc import Iterator
 from pathlib import Path, PurePosixPath
 from types import SimpleNamespace
 from typing import Any, Protocol, cast
@@ -84,10 +85,26 @@ def load(path: Path) -> dict[str, Any]:
     return cast("dict[str, Any]", value)
 
 
+def json_chunks(value: object) -> Iterator[str]:
+    yield from json.JSONEncoder(indent=2, sort_keys=True, allow_nan=False).iterencode(value)
+    yield "\n"
+
+
 def write(path: Path, value: object) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(value, indent=2, sort_keys=True, allow_nan=False) + "\n",
-                    encoding="utf-8", newline="")
+    with path.open("w", encoding="utf-8", newline="") as stream:
+        stream.writelines(json_chunks(value))
+
+
+def require_canonical_json(path: Path, value: object) -> None:
+    digest = hashlib.sha256()
+    size = 0
+    for chunk in json_chunks(value):
+        encoded = chunk.encode("utf-8")
+        size += len(encoded)
+        digest.update(encoded)
+    if path.stat().st_size != size or receipts.digest(path) != digest.hexdigest():
+        raise ValueError("retained JSON bytes differ from the exact canonical audit")
 
 
 def select_requests(environment: dict[str, str], *, direct: str | None = None,
@@ -660,6 +677,7 @@ def audit_sources(campaign: Campaign, found: dict[str, Any], selected: list[Path
     modules = ["SailStdpp." + source.stem for source in selected]
     metadata, searches, readings = native_dataset(campaign, api, modules, candidate_map, "support")
     classified = api.census(metadata, searches, readings, expected_modules=modules)
+    del metadata, searches, readings
     write(campaign.upload / "support-census-audit.json", classified)
     audits: dict[str, object] = {}
     alias_audits: dict[str, object] = {}
@@ -755,6 +773,7 @@ def native_controls(campaign: Campaign, mappings: list[str]) -> None:
     metadata, searches, readings = native_dataset(campaign, api, spec["targets"], mappings, "control")
     control_census_join(api.census(metadata, searches, readings, expected_modules=spec["targets"]), spec)
     report = api.qualify_controls(metadata, searches, readings)
+    del metadata, searches, readings
     write(campaign.upload / "control-adapter-verdicts.json", report)
     source = campaign.side / "tools/rocq-census"
     for name, entry in spec["refusals"].items():
@@ -1006,8 +1025,10 @@ def validate_native_qualification(artifact_root: Path, side: Path, revision: str
     aliases_audited = load(artifact_root / "native-alias-assumptions.json")
     if set(audited) != set(modules) or set(aliases_audited) != set(modules):
         raise ValueError("native assumptions lack the exact module population")
-    control_report: dict[str, Any] | None = None
-    for prefix, requested in (("support", modules), ("control", spec["targets"])):
+
+    def replay_dataset(prefix: str, requested: list[str]) -> dict[str, Any] | None:
+        # Keep each complete native graph and every derived row in this call's
+        # scope, so the next dataset is parsed only after these references die.
         searches = load(artifact_root / (prefix + "-search.json"))
         readings = load(artifact_root / (prefix + "-readings.json"))
         metadata = replay_census_output(commands[prefix + "-native-census"], streams[prefix + "-native-census"][0],
@@ -1038,12 +1059,13 @@ def validate_native_qualification(artifact_root: Path, side: Path, revision: str
         classified = api.census(metadata, searches, readings, expected_modules=requested)
         if prefix == "control":
             control_census_join(classified, spec)
+            del classified
             control_report = api.qualify_controls(metadata, searches, readings)
             if control_report != load(artifact_root / "control-adapter-verdicts.json"):
                 raise ValueError("native adapter control replay differs")
-            continue
-        if classified != load(artifact_root / "support-census-audit.json"):
-            raise ValueError("native census adapter replay differs")
+            return control_report
+        del metadata
+        require_canonical_json(artifact_root / "support-census-audit.json", classified)
         for index, module in enumerate(modules):
             symbols = classified[module]["symbols"]
             check_query("assumptions-" + str(index), proofaudit.assumption_query(module, symbols))
@@ -1061,6 +1083,10 @@ def validate_native_qualification(artifact_root: Path, side: Path, revision: str
                 {entry.split(" : ", 1)[0] for entry in symbol["assumptions"]} - set(found["support_axioms"])
                     for symbol in aliases):
                 raise ValueError("native alias assumption replay differs or adds an undeclared assumption")
+        return None
+
+    replay_dataset("support", modules)
+    control_report = replay_dataset("control", spec["targets"])
     hidden = spec["hidden_assumptions"]
     for label, entry in native_refusals.items():
         check_query(label, (side / "tools/rocq-census" / entry["source"]).read_text(encoding="utf-8"))

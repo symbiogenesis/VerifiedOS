@@ -9,6 +9,7 @@ import shutil
 import subprocess
 import tarfile
 import tempfile
+import weakref
 from collections.abc import Callable
 from copy import deepcopy
 from functools import partial
@@ -27,6 +28,22 @@ def refuses(call: Callable[[], object]) -> None:
     except (OSError, ValueError, TypeError, subprocess.SubprocessError):
         return
     raise AssertionError("unsupported source-carriage input accepted")
+
+
+def canonical_json_streaming() -> None:
+    payload = {"z": [None, True, 3, {"unicode": "λ雪", "escaped": "line\n\"\\"}], "a": {"value": -0.25}}
+    expected = (json.dumps(payload, indent=2, sort_keys=True, allow_nan=False) + "\n").encode("utf-8")
+    with tempfile.TemporaryDirectory(prefix="vos-canonical-json-") as directory:
+        path = Path(directory) / "audit.json"
+        route.write(path, payload)
+        ensure(path.read_bytes() == expected, "incremental JSON writer preserves the exact prior canonical encoding")
+        route.require_canonical_json(path, payload)
+        mutations = [expected[:-1], expected.replace(b'"value": -0.25', b'"value": 0.25'),
+                     expected.replace(b'"value": -0.25', b'"value": -0.25, "value": -0.25'),
+                     json.dumps(payload, sort_keys=True).encode("utf-8") + b"\n"]
+        for changed in mutations:
+            path.write_bytes(changed)
+            refuses(lambda: route.require_canonical_json(path, payload))
 
 
 def revision_guards() -> None:
@@ -761,6 +778,45 @@ def standalone_native_replay() -> None:
                 patch.object(route, "control_spec", return_value=spec), patch.object(route, "census_api", return_value=api), \
                 patch.object(route, "kernel_reading", return_value=[]):
             route.validate_native_qualification(artifact, side, "a" * 40, run_id="1", run_attempt="2")
+
+            class OwnedGraph(dict[str, Any]):
+                def __init__(self, contents: dict[str, Any], owner: object = None) -> None:
+                    super().__init__(contents)
+                    self.owner = owner
+
+            class OwnedRows(list[Any]):
+                def __init__(self, contents: list[Any], owner: object) -> None:
+                    super().__init__(contents)
+                    self.owner = owner
+
+            watched: list[weakref.ReferenceType[OwnedGraph]] = []
+            replayed: list[str] = []
+            replay = route.replay_census_output
+
+            def owned_replay(command: dict[str, Any], stdout: str, artifact_root: Path,
+                             native_root: route.PurePosixPath, prefix: str) -> dict[str, Any]:
+                ensure(all(reference() is None for reference in watched),
+                       "the prior dataset and derived classifications die before the next native graph parse")
+                graph = OwnedGraph(replay(command, stdout, artifact_root, native_root, prefix))
+                watched.append(weakref.ref(graph))
+                replayed.append(prefix)
+                return graph
+
+            def owned_classification(metadata: object, searches: dict[str, str], readings: dict[str, str], *,
+                                     expected_modules: list[str]) -> dict[str, dict[str, Any]]:
+                graph = OwnedGraph(classify(metadata, searches, readings, expected_modules=expected_modules), metadata)
+                for value in graph.values():
+                    value["symbols"] = OwnedRows(value["symbols"], metadata)
+                    value["alias_audits"] = OwnedRows(value["alias_audits"], metadata)
+                watched.append(weakref.ref(graph))
+                return graph
+
+            # Plain function replacements avoid mocks retaining argument graphs.
+            with patch.object(route, "replay_census_output", new=owned_replay), \
+                    patch.object(api, "census", new=owned_classification):
+                route.validate_native_qualification(artifact, side, "a" * 40)
+            ensure(replayed == ["support", "control"] and all(reference() is None for reference in watched),
+                   "both complete replays release their graph, classification and loop-row owners")
             def missing_control(metadata: object, searches: dict[str, str], readings: dict[str, str], *,
                                 expected_modules: list[str]) -> dict[str, dict[str, Any]]:
                 result = classify(metadata, searches, readings, expected_modules=expected_modules)
@@ -864,7 +920,8 @@ def standalone_native_replay() -> None:
 
 
 def cases() -> list[Case]:
-    return [Case("main-revision-guards", revision_guards), Case("immutable-assets", asset_guards),
+    return [Case("canonical-json-streaming", canonical_json_streaming),
+            Case("main-revision-guards", revision_guards), Case("immutable-assets", asset_guards),
             Case("contained-source-symlinks", archive_guards), Case("closure-and-portability", closure_and_portability),
             Case("exact-kernel-context", exact_kernel_context), Case("cold-and-snapshot", cold_and_snapshot_guards),
             Case("failed-skipped-join", failed_and_skipped_join),
