@@ -1,0 +1,18 @@
+{"phase": "intent", "utc": "2026-10-23T10:46:26.678931+00:00", "elapsed_seconds": 0.0033435989999901494, "rss_kib": 33512, "max_rss_kib": 34120}
+{"phase": "native-command", "utc": "2026-10-23T10:46:28.915230+00:00", "elapsed_seconds": 2.2396538629999867, "rss_kib": 45984, "max_rss_kib": 49880, "label": "native-signature-refusal"}
+{"phase": "native-command", "utc": "2026-10-23T10:46:29.608354+00:00", "elapsed_seconds": 2.9327779889999874, "rss_kib": 45988, "max_rss_kib": 49880, "label": "native-unsupported-refusal"}
+{"phase": "native-command", "utc": "2026-10-23T10:46:29.685391+00:00", "elapsed_seconds": 3.0098144809999923, "rss_kib": 45988, "max_rss_kib": 49880, "label": "native-hidden-assumptions"}
+{"phase": "hidden-assumptions-observed", "utc": "2026-10-23T10:46:30.252110+00:00", "elapsed_seconds": 3.576538320999987, "rss_kib": 45988, "max_rss_kib": 49880, "observed_names": {"CensusControls.HiddenSealed.witness": ["CensusControls.HiddenSealed.hidden_control_axiom"], "CensusControls.HiddenAlias.witness": ["CensusControls.HiddenSealed.hidden_control_axiom"]}}
+{"phase": "retained78-reading-preflight", "utc": "2026-10-23T10:46:30.659645+00:00", "elapsed_seconds": 3.9840722779999993, "rss_kib": 50280, "max_rss_kib": 54580}
+{"phase": "strict-duplicate-free-parse", "utc": "2026-10-23T10:46:33.673253+00:00", "elapsed_seconds": 6.9976809459999885, "rss_kib": 60712, "max_rss_kib": 61488, "dataset": "/root/build/lane-checklist-20261023-c/census-14", "bytes": 1637185616}
+{"phase": "full30-graph-replay", "utc": "2026-10-23T10:47:45.327546+00:00", "elapsed_seconds": 78.65202965299999, "rss_kib": 11790040, "max_rss_kib": 13385732}
+{"phase": "adapter-census-begin", "utc": "2026-10-23T10:47:45.328099+00:00", "elapsed_seconds": 78.65251265299999, "rss_kib": 11790040, "max_rss_kib": 13385732, "census_call": 1}
+{"phase": "adapter-validate_schema-begin", "utc": "2026-10-23T10:47:45.328760+00:00", "elapsed_seconds": 78.65324125299999, "rss_kib": 11790040, "max_rss_kib": 13385732}
+{"phase": "adapter-validate_schema-end", "utc": "2026-10-23T10:51:00.200483+00:00", "elapsed_seconds": 273.52493444600003, "rss_kib": 11790092, "max_rss_kib": 13385732, "call_elapsed_seconds": 194.87121279299998}
+{"phase": "adapter-_native_semantics-begin", "utc": "2026-10-23T10:51:00.216924+00:00", "elapsed_seconds": 273.541353152, "rss_kib": 11790448, "max_rss_kib": 13385732}
+{"phase": "adapter-_native_semantics-end", "utc": "2026-10-23T10:51:04.859452+00:00", "elapsed_seconds": 278.183905556, "rss_kib": 11790448, "max_rss_kib": 13385732, "call_elapsed_seconds": 4.642194003999975}
+{"phase": "adapter-readings-and-graph-begin", "utc": "2026-10-23T10:51:04.876421+00:00", "elapsed_seconds": 278.200850262, "rss_kib": 11790448, "max_rss_kib": 13385732, "census_call": 1}
+{"phase": "adapter-_domains-begin", "utc": "2026-10-23T10:51:05.124423+00:00", "elapsed_seconds": 278.44886734700003, "rss_kib": 11792496, "max_rss_kib": 13385732}
+{"phase": "adapter-_domains-end", "utc": "2026-10-23T10:51:11.572370+00:00", "elapsed_seconds": 284.896800537, "rss_kib": 11793080, "max_rss_kib": 13385732, "call_elapsed_seconds": 6.447416288999989}
+{"phase": "adapter-census-end", "utc": "2026-10-23T10:51:32.239943+00:00", "elapsed_seconds": 305.564378369, "rss_kib": 11801976, "max_rss_kib": 13385732, "census_call": 1, "reading_calls": 78}
+{"phase": "finished", "utc": "2026-10-23T10:52:29.848568+00:00", "elapsed_seconds": 363.172992856, "rss_kib": 109948, "max_rss_kib": 13385732, "verdict": "refused", "refusal": {"type": "CensusError", "message": "unproved native alias"}}

@@ -1,0 +1,4 @@
+File "/root/build/lane-checklist-20261023-c/adapter-5/native-controls/SignatureFieldRefusal.v", line 3, characters 18-36:
+Error: The reference CensusControls.S.T was not found in the current
+environment. Did you mean CensusControls.Sealed.T?
+

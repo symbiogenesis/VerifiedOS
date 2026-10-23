@@ -1,0 +1,54 @@
+{
+  "schema": "verifiedos-rocq-census-controls/1",
+  "positive": {
+    "source": "CensusControls.v",
+    "root": "CensusControls",
+    "targets": [
+      "CensusControls",
+      "SailStdpp.TypeCasts",
+      "SailStdpp.State_monad"
+    ],
+    "required_modules": [
+      "CensusControls.S",
+      "CensusControls.F",
+      "CensusControls.Sealed",
+      "CensusControls.Applied",
+      "CensusControls.Empty",
+      "CensusControls.AliasOnly",
+      "CensusControls.HiddenSealed",
+      "SailStdpp.TypeCasts.ZEqdep",
+      "SailStdpp.State_monad.NMap",
+      "CensusControls.HiddenAlias"
+    ]
+  },
+  "signature_refusal": {
+    "source": "SignatureFieldRefusal.v",
+    "required_diagnostic": "The reference CensusControls.S.T was not found"
+  },
+  "unsupported_refusal": {
+    "source": "UnsupportedShapeRefusal.v",
+    "targets": [
+      "UnsupportedShapeRefusal.Unsupported"
+    ],
+    "mode": "census",
+    "required_diagnostic": "VOS census refused: concrete module has Abstract implementation"
+  },
+  "hidden_assumptions": {
+    "source": "HiddenAssumptions.v",
+    "symbols": [
+      {
+        "name": "CensusControls.HiddenSealed.witness",
+        "expected_axioms": [
+          "CensusControls.HiddenSealed.hidden_control_axiom"
+        ]
+      },
+      {
+        "name": "CensusControls.HiddenAlias.witness",
+        "expected_axioms": [
+          "CensusControls.HiddenSealed.hidden_control_axiom"
+        ]
+      }
+    ],
+    "note": "Control-only axiom; never added to the support allowlist"
+  }
+}

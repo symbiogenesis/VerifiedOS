@@ -1,0 +1,23 @@
+{
+  "phase": "finished",
+  "utc": "2026-10-23T10:52:29.848568+00:00",
+  "elapsed_seconds": 363.172992856,
+  "rss_kib": 109948,
+  "max_rss_kib": 13385732,
+  "verdict": "refused",
+  "refusal": {
+    "type": "CensusError",
+    "message": "unproved native alias"
+  },
+  "budget": {
+    "candidate": 5,
+    "maximum_candidates": 5,
+    "prior_active_seconds": 1797.084094779,
+    "maximum_additional_active_seconds": 1792.484066608,
+    "maximum_cumulative_active_seconds": 3600,
+    "deadline_utc": "2026-10-23T11:16:19.162947+00:00",
+    "cumulative_active_seconds": 2160.256768735,
+    "remaining_cumulative_seconds": 1439.7432312649998
+  },
+  "commands": 3
+}

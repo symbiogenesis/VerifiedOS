@@ -1,0 +1,48 @@
+{
+  "label": "native-unsupported-refusal",
+  "argv": [
+    "/root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/bin/rocq",
+    "c",
+    "-boot",
+    "-R",
+    "/root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/lib/coq/theories",
+    "Corelib",
+    "-Q",
+    "/root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/lib/coq/user-contrib/Stdlib",
+    "Stdlib",
+    "-Q",
+    "/root/build/lane-checklist-20261023-c/census-14/stdpp",
+    "stdpp",
+    "-R",
+    "/root/build/lane-checklist-20261023-c/census-14/support",
+    "SailStdpp",
+    "-Q",
+    "/root/build/lane-checklist-20261023-c/census-14/controls",
+    "",
+    "-q",
+    "-w",
+    "+default,-abstract-large-number",
+    "-set",
+    "Default Goal Selector=!",
+    "-disallow-sprop",
+    "-o",
+    "/root/build/lane-checklist-20261023-c/adapter-5/native-controls/UnsupportedShapeRefusal.vo",
+    "/root/build/lane-checklist-20261023-c/adapter-5/native-controls/UnsupportedShapeRefusal.v"
+  ],
+  "cwd": "/tmp/vos-census-fifth-controls-ks5irsw7",
+  "timeout_seconds": 59.294974975,
+  "source_sha256_before": {
+    "/root/build/lane-checklist-20261023-c/adapter-5/native-controls/UnsupportedShapeRefusal.v": "315a73481ccadc09fd8d06eb8ec3dc469aacc1bfb90c7ea5685de89bc0c30016"
+  },
+  "status": "complete",
+  "output_file_environment": null,
+  "pid": 416,
+  "process_group": 416,
+  "exit": 1,
+  "elapsed_seconds": 0.06429889400000377,
+  "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "stderr_sha256": "c9bcdb6e1bd26c041b5d1748704e5471e251a4689d4eb71076e6566dd444cf5a",
+  "source_sha256_after": {
+    "/root/build/lane-checklist-20261023-c/adapter-5/native-controls/UnsupportedShapeRefusal.v": "315a73481ccadc09fd8d06eb8ec3dc469aacc1bfb90c7ea5685de89bc0c30016"
+  }
+}

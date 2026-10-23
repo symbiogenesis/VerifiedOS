@@ -1,0 +1,20 @@
+Traceback (most recent call last):
+  File "/mnt/c/Users/symbi/AppData/Local/Temp/vos-q35q-9edbbf2478214d1597de8d0bc0996699/fifth.py", line 247, in <module>
+    classified=adapter['census'](metadata,searches,readings,expected_modules=expected)
+  File "/mnt/c/Users/symbi/AppData/Local/Temp/vos-q35q-9edbbf2478214d1597de8d0bc0996699/fifth.py", line 183, in census
+    accepted=original_census(*positional,**keywords)
+  File "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/checklist-20261023-c/tools/rocq-census/census.py", line 914, in census
+    return _census(metadata, searches, readings, expected_modules=expected_modules)
+  File "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/checklist-20261023-c/tools/rocq-census/census.py", line 796, in _census
+    connection(declaration, field)
+    ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/checklist-20261023-c/tools/rocq-census/census.py", line 759, in connection
+    _require(alias is not None and alias["exported_reference"] == reference
+    ~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+             and alias["target_reference"] == link["implementation_reference"]
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+             and alias["target_reference"]["canonical"] == reference["canonical"], "unproved native alias")
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/checklist-20261023-c/tools/rocq-census/census.py", line 39, in _require
+    raise CensusError(message)
+<run_path>.CensusError: unproved native alias

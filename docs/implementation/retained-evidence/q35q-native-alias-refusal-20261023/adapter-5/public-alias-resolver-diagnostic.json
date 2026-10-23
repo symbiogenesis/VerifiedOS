@@ -1,0 +1,146 @@
+{
+  "schema": "verifiedos-native-public-alias-bridge-diagnostic/1",
+  "scope": "read-only one exact public flat-module resolver row; no replay/query/acceptance",
+  "raw_source": "/root/build/lane-checklist-20261023-c/census-14/native-census.json",
+  "raw_sha256_from_unchanged_candidate5_cut": "980c9be21458a0c0b87fd6daf1946c8870473204763559a2346c9dc3f3a173c7",
+  "requested_module_id": "module:bc77eefe95c59f0943072b4a58f4faca",
+  "public_implementation_resolver_id": "resolver:75c4ca305c1a30c32869928013ac3a12",
+  "row_offset": 387923223,
+  "row_decoded_characters": 1226950,
+  "resolver": {
+    "id": "resolver:75c4ca305c1a30c32869928013ac3a12",
+    "owner_module_id": "module:bc77eefe95c59f0943072b4a58f4faca",
+    "role": "signature",
+    "root": {
+      "tag": "MPdot",
+      "parent": {
+        "tag": "MPdot",
+        "parent": {
+          "tag": "MPfile",
+          "directory_reversed": [
+            "State_monad",
+            "SailStdpp"
+          ]
+        },
+        "label": "NMap"
+      },
+      "label": "E"
+    },
+    "inline_keys": []
+  },
+  "kernel_effect_count": 3355,
+  "module_effect_count": 262,
+  "exact_kernel_effects": [
+    {
+      "key_role": "private_canonical",
+      "input": {
+        "path": {
+          "tag": "MPdot",
+          "parent": {
+            "tag": "MPdot",
+            "parent": {
+              "tag": "MPfile",
+              "directory_reversed": [
+                "State_monad",
+                "SailStdpp"
+              ]
+            },
+            "label": "NMap"
+          },
+          "label": "E"
+        },
+        "label": "t"
+      },
+      "output": {
+        "path": {
+          "tag": "MPdot",
+          "parent": {
+            "tag": "MPfile",
+            "directory_reversed": [
+              "OrderedTypeEx",
+              "Structures",
+              "Stdlib"
+            ]
+          },
+          "label": "N_as_OT"
+        },
+        "label": "t"
+      }
+    },
+    {
+      "key_role": "exported_user",
+      "input": {
+        "path": {
+          "tag": "MPdot",
+          "parent": {
+            "tag": "MPdot",
+            "parent": {
+              "tag": "MPfile",
+              "directory_reversed": [
+                "State_monad",
+                "SailStdpp"
+              ]
+            },
+            "label": "NMap"
+          },
+          "label": "E"
+        },
+        "label": "t"
+      },
+      "output": {
+        "path": {
+          "tag": "MPdot",
+          "parent": {
+            "tag": "MPfile",
+            "directory_reversed": [
+              "OrderedTypeEx",
+              "Structures",
+              "Stdlib"
+            ]
+          },
+          "label": "N_as_OT"
+        },
+        "label": "t"
+      }
+    },
+    {
+      "key_role": "exported_canonical",
+      "input": {
+        "path": {
+          "tag": "MPdot",
+          "parent": {
+            "tag": "MPfile",
+            "directory_reversed": [
+              "OrderedTypeEx",
+              "Structures",
+              "Stdlib"
+            ]
+          },
+          "label": "N_as_OT"
+        },
+        "label": "t"
+      },
+      "output": {
+        "path": {
+          "tag": "MPdot",
+          "parent": {
+            "tag": "MPfile",
+            "directory_reversed": [
+              "OrderedTypeEx",
+              "Structures",
+              "Stdlib"
+            ]
+          },
+          "label": "N_as_OT"
+        },
+        "label": "t"
+      }
+    }
+  ],
+  "raw_stat_after": {
+    "device": 2096,
+    "inode": 3791006,
+    "size": 1637185616,
+    "mtime_ns": 1792748088008605864
+  }
+}

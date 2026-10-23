@@ -1,0 +1,6 @@
+VOS_PROOF_AUDIT|CensusControls.HiddenSealed.witness
+Axioms:
+CensusControls.HiddenSealed.hidden_control_axiom : True
+VOS_PROOF_AUDIT|CensusControls.HiddenAlias.witness
+Axioms:
+CensusControls.HiddenSealed.hidden_control_axiom : True

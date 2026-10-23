@@ -30,11 +30,18 @@ complete graph verdict.
 SHA256 `b8be83d068822b032728f4c3a480939d00bd6d823158a3f152cc8c12f205d74a`,
 binds the abstract-field error's line wrapping and the sealed implementation's
 actual hidden-axiom identity. The expectations now name the exact native reference
-and instantiated control axiom. The
-[current replay act](contracts/sail-support-census.md#sealed-control-assumption-identity)
-preserves every earlier counter and uses only the existing time allocation's
-remainder. Complete classification, exact assumptions and hosted kernel acceptance
-remain required.
+and instantiated control axiom.
+[Exact private and public native alias resolver observations](retained-evidence/q35q-native-alias-refusal-20261023/manifest.json),
+SHA256 `3ebe3e6927cf9727a2323e6b597744d386e87f5987e20f0a6cfdd1e41b0ab420`,
+binds the next replay's passing native assays, complete schema and reading checks,
+then its exact alias refusal. The private implementation retains
+`State_monad.NMap.E.t`; its distinct public signature resolver maps that kernel
+name to the independently looked-up `OrderedTypeEx.N_as_OT.t`. Both actual native
+resolvers and references remain in the evidence. The
+[current replay act](contracts/sail-support-census.md#public-alias-canonicalization)
+requires that explicit bridge, preserves every earlier counter and uses only the
+existing time allocation's remainder. Complete classification, exact assumptions
+and hosted kernel acceptance remain required.
 
 ## Current native producer
 
