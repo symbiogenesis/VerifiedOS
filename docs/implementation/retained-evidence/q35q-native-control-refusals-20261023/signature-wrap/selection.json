@@ -1,0 +1,217 @@
+{
+  "schema": "verifiedos-native-census-text-retention/1",
+  "created_utc": "2026-10-23T10:41:05.516901+00:00",
+  "scope": "candidate3 first signature diagnostic framing refusal; exact prelaunch driver and source snapshots; no objects or large native JSON",
+  "checkpoint_commit": "6b5e8e0c",
+  "files": [
+    {
+      "path": "adapter-3/checkpoint.json",
+      "source": "/root/build/lane-checklist-20261023-c/adapter-3/checkpoint.json",
+      "bytes": 675,
+      "sha256": "200429d16de0e538dbf3bd44759eb70d9dc7a94e3b5111802e470a7b377f76ad"
+    },
+    {
+      "path": "adapter-3/command-001.json",
+      "source": "/root/build/lane-checklist-20261023-c/adapter-3/command-001.json",
+      "bytes": 1722,
+      "sha256": "fcde9e8c41e3d8b5db56ab9e100d96b13c8e52b4edf6aa95248551a100093c0d"
+    },
+    {
+      "path": "adapter-3/exception.log",
+      "source": "/root/build/lane-checklist-20261023-c/adapter-3/exception.log",
+      "bytes": 485,
+      "sha256": "24256302e1ec0eb8a3466f308769979d75db2661b6438e7f863cb8c9d2134536"
+    },
+    {
+      "path": "adapter-3/executed-driver.py",
+      "source": "/root/build/lane-checklist-20261023-c/adapter-3/executed-driver.py",
+      "bytes": 21471,
+      "sha256": "31e29b21b5b23f95d9fe2ff474bb11569b61dfd8919d0a96eeeb8cf46cb3b73f"
+    },
+    {
+      "path": "adapter-3/executed-source-inputs/00/qualify.py",
+      "source": "/root/build/lane-checklist-20261023-c/adapter-3/executed-source-inputs/00/qualify.py",
+      "bytes": 31891,
+      "sha256": "21b6f9b82f3d07e59a85ad8c4ea958727928a227cb6698b3efada78632eda8ab"
+    },
+    {
+      "path": "adapter-3/executed-source-inputs/01/census.py",
+      "source": "/root/build/lane-checklist-20261023-c/adapter-3/executed-source-inputs/01/census.py",
+      "bytes": 64785,
+      "sha256": "d9c949a048f6b446cfd7c023209594362ea54a3c452ad2730d3f084dcd7f765f"
+    },
+    {
+      "path": "adapter-3/executed-source-inputs/02/census-schema.json",
+      "source": "/root/build/lane-checklist-20261023-c/adapter-3/executed-source-inputs/02/census-schema.json",
+      "bytes": 85217,
+      "sha256": "42dfacf97dba0f36e318d7467f8ad30fa0de00de5512b400daa3b5d2189d8308"
+    },
+    {
+      "path": "adapter-3/executed-source-inputs/03/SCHEMA.md.txt",
+      "source": "/root/build/lane-checklist-20261023-c/adapter-3/executed-source-inputs/03/SCHEMA.md",
+      "bytes": 18188,
+      "sha256": "0b418e6e0606b3423404723a15c0b1a0978fff9a7e0bb679beba2ca7343ca17d"
+    },
+    {
+      "path": "adapter-3/executed-source-inputs/04/vos_rocq_census.ml",
+      "source": "/root/build/lane-checklist-20261023-c/adapter-3/executed-source-inputs/04/vos_rocq_census.ml",
+      "bytes": 58967,
+      "sha256": "5a1bcfbc332d6eb186aec8d190923d161f3e89412131751f325f32aec408141f"
+    },
+    {
+      "path": "adapter-3/executed-source-inputs/05/CensusControls.v",
+      "source": "/root/build/lane-checklist-20261023-c/adapter-3/executed-source-inputs/05/CensusControls.v",
+      "bytes": 889,
+      "sha256": "15b7141cba69a0271812349536ccedc8c6ba468a13826d7081a401c0d41980fb"
+    },
+    {
+      "path": "adapter-3/executed-source-inputs/06/SignatureFieldRefusal.v",
+      "source": "/root/build/lane-checklist-20261023-c/adapter-3/executed-source-inputs/06/SignatureFieldRefusal.v",
+      "bytes": 104,
+      "sha256": "9e25e75b2892e5395ca9e4ce602c49995908b8c5ca973ae75d36a1aa6d38185c"
+    },
+    {
+      "path": "adapter-3/executed-source-inputs/07/UnsupportedShapeRefusal.v",
+      "source": "/root/build/lane-checklist-20261023-c/adapter-3/executed-source-inputs/07/UnsupportedShapeRefusal.v",
+      "bytes": 189,
+      "sha256": "315a73481ccadc09fd8d06eb8ec3dc469aacc1bfb90c7ea5685de89bc0c30016"
+    },
+    {
+      "path": "adapter-3/executed-source-inputs/08/HiddenAssumptions.v",
+      "source": "/root/build/lane-checklist-20261023-c/adapter-3/executed-source-inputs/08/HiddenAssumptions.v",
+      "bytes": 416,
+      "sha256": "80dfaf25f56ba6aa1c105f341d350c43fde60b8523d01a10ac30377092476527"
+    },
+    {
+      "path": "adapter-3/executed-source-inputs/09/control-spec.json",
+      "source": "/root/build/lane-checklist-20261023-c/adapter-3/executed-source-inputs/09/control-spec.json",
+      "bytes": 1519,
+      "sha256": "39ba438afe6bc29f97931072c68da04441e1400ebab8647a57f91f2b2e21e729"
+    },
+    {
+      "path": "adapter-3/executed-source-inputs/10/proofaudit.py",
+      "source": "/root/build/lane-checklist-20261023-c/adapter-3/executed-source-inputs/10/proofaudit.py",
+      "bytes": 26755,
+      "sha256": "dc070238fbd144751619a6ff75a6cf43a59d3c482bb31d7b5fda904e51194737"
+    },
+    {
+      "path": "adapter-3/executed-source-inputs/11/sail_support_route.py",
+      "source": "/root/build/lane-checklist-20261023-c/adapter-3/executed-source-inputs/11/sail_support_route.py",
+      "bytes": 90224,
+      "sha256": "deb463cee9d73ff20826cc6b835a73efff39deed50fc39430f1a3dc7ae09674d"
+    },
+    {
+      "path": "adapter-3/executed-source-inputs/12/sail-support-qualification.json",
+      "source": "/root/build/lane-checklist-20261023-c/adapter-3/executed-source-inputs/12/sail-support-qualification.json",
+      "bytes": 4096,
+      "sha256": "fe528488ce7e12e077eaee00555cc477325986fc9ee12d5b896e5b651f256d46"
+    },
+    {
+      "path": "adapter-3/executed-source-inputs/13/receipt.json",
+      "source": "/root/build/lane-checklist-20261023-c/adapter-3/executed-source-inputs/13/receipt.json",
+      "bytes": 1857155,
+      "sha256": "de863d5219108e19e902bd94e0e952a91ec08753464bbe5dd2cb941624617106"
+    },
+    {
+      "path": "adapter-3/executed-source-inputs/14/native-query.stdout.log",
+      "source": "/root/build/lane-checklist-20261023-c/adapter-3/executed-source-inputs/14/native-query.stdout.log",
+      "bytes": 274,
+      "sha256": "ed5c72c65ee2e77c2fc52690713dd68b50a7eae1cdb2dd72552b71657dfd7a39"
+    },
+    {
+      "path": "adapter-3/executed-source-inputs/15/receipt.json",
+      "source": "/root/build/lane-checklist-20261023-c/adapter-3/executed-source-inputs/15/receipt.json",
+      "bytes": 1432458,
+      "sha256": "b162264745f954bfce3878d254b56aed792b017502dbf0421c1ad12370508c4f"
+    },
+    {
+      "path": "adapter-3/executed-source-inputs/16/reading-targets.json",
+      "source": "/root/build/lane-checklist-20261023-c/adapter-3/executed-source-inputs/16/reading-targets.json",
+      "bytes": 4878,
+      "sha256": "1138793fdad287acbbc051c11170f2b14efeb9aab6c3bbdab8da37c69513bd62"
+    },
+    {
+      "path": "adapter-3/executed-source-inputs/17/receipt.json",
+      "source": "/root/build/lane-checklist-20261023-c/adapter-3/executed-source-inputs/17/receipt.json",
+      "bytes": 406516,
+      "sha256": "3076848aa34fd413e11e944eb76531ad94f5ddacaa0b540fd7d26841b3ce20b9"
+    },
+    {
+      "path": "adapter-3/final-original-maps.json",
+      "source": "/root/build/lane-checklist-20261023-c/adapter-3/final-original-maps.json",
+      "bytes": 647928,
+      "sha256": "546e09207e3a7e67de1072fc68b2aafda010acdbffc3b22624dff1d0ece50b8b"
+    },
+    {
+      "path": "adapter-3/initial-original-maps.json",
+      "source": "/root/build/lane-checklist-20261023-c/adapter-3/initial-original-maps.json",
+      "bytes": 647928,
+      "sha256": "546e09207e3a7e67de1072fc68b2aafda010acdbffc3b22624dff1d0ece50b8b"
+    },
+    {
+      "path": "adapter-3/native-controls/SignatureFieldRefusal.v",
+      "source": "/root/build/lane-checklist-20261023-c/adapter-3/native-controls/SignatureFieldRefusal.v",
+      "bytes": 104,
+      "sha256": "9e25e75b2892e5395ca9e4ce602c49995908b8c5ca973ae75d36a1aa6d38185c"
+    },
+    {
+      "path": "adapter-3/native-signature-refusal.stderr.log",
+      "source": "/root/build/lane-checklist-20261023-c/adapter-3/native-signature-refusal.stderr.log",
+      "bytes": 243,
+      "sha256": "ab27f6482abae401b01c9f657239e3d530ed2a44400600655e29c11ca231dea0"
+    },
+    {
+      "path": "adapter-3/native-signature-refusal.stdout.log",
+      "source": "/root/build/lane-checklist-20261023-c/adapter-3/native-signature-refusal.stdout.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "adapter-3/phase-events.jsonl",
+      "source": "/root/build/lane-checklist-20261023-c/adapter-3/phase-events.jsonl",
+      "bytes": 589,
+      "sha256": "22d4d2d46ed93903215450a4cb7fdeae3d70f50f75d0bee96a4b677214d393e4"
+    },
+    {
+      "path": "adapter-3/prelaunch-intent.json",
+      "source": "/root/build/lane-checklist-20261023-c/adapter-3/prelaunch-intent.json",
+      "bytes": 4183,
+      "sha256": "2b1e6e4b1c3f06af03d9e675c8a02cb23ca2ca95320b394070bbe7d4cdec0e9d"
+    },
+    {
+      "path": "adapter-3/receipt.json",
+      "source": "/root/build/lane-checklist-20261023-c/adapter-3/receipt.json",
+      "bytes": 16258,
+      "sha256": "18eec1a1d11b44ea1222f0f2b7fd1f5d23c7527bf1760a4122040ee6fdafefef"
+    },
+    {
+      "path": "handoff/continuation-checkpoint.json",
+      "source": "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/checklist-20261023-c/tools/rocq-census/continuation-checkpoint.json",
+      "bytes": 12068,
+      "sha256": "915ab53f9cf9f374715bd47de61cc8810cd8f0ad09d8ab18fc049f4da0852052"
+    },
+    {
+      "path": "handoff/control-spec-after-prefix.json",
+      "source": "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/checklist-20261023-c/tools/rocq-census/control-spec.json",
+      "bytes": 1525,
+      "sha256": "5e2aa37274ddcef07f78a8c87b3073344f18e397e3f0037f8afff16148933bf7"
+    }
+  ],
+  "budget": {
+    "candidate": 3,
+    "maximum_candidates": 3,
+    "prior_active_seconds": 1789.568156587,
+    "maximum_additional_active_seconds": 1800,
+    "maximum_cumulative_active_seconds": 3600,
+    "deadline_utc": "2026-10-23T11:05:49.877344+00:00",
+    "cumulative_active_seconds": 1793.013445787,
+    "remaining_cumulative_seconds": 1806.986554213
+  },
+  "driver_prelaunch_sha256": "31e29b21b5b23f95d9fe2ff474bb11569b61dfd8919d0a96eeeb8cf46cb3b73f",
+  "driver_unchanged": true,
+  "notes": [
+    "One native query only: SignatureFieldRefusal exit1 correctly rejects abstract field; literal expectation then refuses wrapped diagnostic. Unsupported/hidden/fullgraph/control datasets were not executed.",
+    "All original source snapshots match prelaunch intent and receipt, including the old manifest. Handoff manifest is separately named after-prefix. No native source/runtime or proof predicate change.",
+    "Markdown source snapshots preserve exact bytes with .md.txt storage names so relative source links are not interpreted in the evidence directory."
+  ]
+}

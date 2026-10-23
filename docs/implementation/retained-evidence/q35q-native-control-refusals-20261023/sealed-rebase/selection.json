@@ -1,0 +1,271 @@
+{
+  "schema": "verifiedos-native-census-text-retention/1",
+  "created_utc": "2026-10-23T10:45:40.042689+00:00",
+  "scope": "candidate4 first hidden-assumption identity refusal; exact prelaunch driver and source snapshots; no objects or large native JSON",
+  "checkpoint_commit": "b501af8a",
+  "files": [
+    {
+      "path": "adapter-4/checkpoint.json",
+      "source": "/root/build/lane-checklist-20261023-c/adapter-4/checkpoint.json",
+      "bytes": 704,
+      "sha256": "2868c83e9c07fd34ba2b87904cf6e206c4dfe8fe84823067dc356799a24a9f5c"
+    },
+    {
+      "path": "adapter-4/command-001.json",
+      "source": "/root/build/lane-checklist-20261023-c/adapter-4/command-001.json",
+      "bytes": 1732,
+      "sha256": "f95717749b6e39e240b586f5faab1280b1adfa2439c0591460891d6db2e0294e"
+    },
+    {
+      "path": "adapter-4/command-002.json",
+      "source": "/root/build/lane-checklist-20261023-c/adapter-4/command-002.json",
+      "bytes": 1737,
+      "sha256": "b909562a5335a41b2e448c5d0cd92cf2d1a47e14cb46878cdadd61c677f9d858"
+    },
+    {
+      "path": "adapter-4/command-003.json",
+      "source": "/root/build/lane-checklist-20261023-c/adapter-4/command-003.json",
+      "bytes": 1711,
+      "sha256": "fec170fd48ff5a75f5961b318e1ed89af3932f3359f0c11766208c5adf1bada8"
+    },
+    {
+      "path": "adapter-4/exception.log",
+      "source": "/root/build/lane-checklist-20261023-c/adapter-4/exception.log",
+      "bytes": 634,
+      "sha256": "318eaf1d3835259ab2fca8cddc0dc50f44ee8ee09acb54cb88272c79e481a7f8"
+    },
+    {
+      "path": "adapter-4/executed-driver.py",
+      "source": "/root/build/lane-checklist-20261023-c/adapter-4/executed-driver.py",
+      "bytes": 21484,
+      "sha256": "aa1d03fb1a9c2bac5875c54709697462530585dd68431cb6cb7360fbeb378184"
+    },
+    {
+      "path": "adapter-4/executed-source-inputs/00/qualify.py",
+      "source": "/root/build/lane-checklist-20261023-c/adapter-4/executed-source-inputs/00/qualify.py",
+      "bytes": 31891,
+      "sha256": "21b6f9b82f3d07e59a85ad8c4ea958727928a227cb6698b3efada78632eda8ab"
+    },
+    {
+      "path": "adapter-4/executed-source-inputs/01/census.py",
+      "source": "/root/build/lane-checklist-20261023-c/adapter-4/executed-source-inputs/01/census.py",
+      "bytes": 64785,
+      "sha256": "d9c949a048f6b446cfd7c023209594362ea54a3c452ad2730d3f084dcd7f765f"
+    },
+    {
+      "path": "adapter-4/executed-source-inputs/02/census-schema.json",
+      "source": "/root/build/lane-checklist-20261023-c/adapter-4/executed-source-inputs/02/census-schema.json",
+      "bytes": 85217,
+      "sha256": "42dfacf97dba0f36e318d7467f8ad30fa0de00de5512b400daa3b5d2189d8308"
+    },
+    {
+      "path": "adapter-4/executed-source-inputs/03/SCHEMA.md.txt",
+      "source": "/root/build/lane-checklist-20261023-c/adapter-4/executed-source-inputs/03/SCHEMA.md",
+      "bytes": 18188,
+      "sha256": "0b418e6e0606b3423404723a15c0b1a0978fff9a7e0bb679beba2ca7343ca17d"
+    },
+    {
+      "path": "adapter-4/executed-source-inputs/04/vos_rocq_census.ml",
+      "source": "/root/build/lane-checklist-20261023-c/adapter-4/executed-source-inputs/04/vos_rocq_census.ml",
+      "bytes": 58967,
+      "sha256": "5a1bcfbc332d6eb186aec8d190923d161f3e89412131751f325f32aec408141f"
+    },
+    {
+      "path": "adapter-4/executed-source-inputs/05/CensusControls.v",
+      "source": "/root/build/lane-checklist-20261023-c/adapter-4/executed-source-inputs/05/CensusControls.v",
+      "bytes": 889,
+      "sha256": "15b7141cba69a0271812349536ccedc8c6ba468a13826d7081a401c0d41980fb"
+    },
+    {
+      "path": "adapter-4/executed-source-inputs/06/SignatureFieldRefusal.v",
+      "source": "/root/build/lane-checklist-20261023-c/adapter-4/executed-source-inputs/06/SignatureFieldRefusal.v",
+      "bytes": 104,
+      "sha256": "9e25e75b2892e5395ca9e4ce602c49995908b8c5ca973ae75d36a1aa6d38185c"
+    },
+    {
+      "path": "adapter-4/executed-source-inputs/07/UnsupportedShapeRefusal.v",
+      "source": "/root/build/lane-checklist-20261023-c/adapter-4/executed-source-inputs/07/UnsupportedShapeRefusal.v",
+      "bytes": 189,
+      "sha256": "315a73481ccadc09fd8d06eb8ec3dc469aacc1bfb90c7ea5685de89bc0c30016"
+    },
+    {
+      "path": "adapter-4/executed-source-inputs/08/HiddenAssumptions.v",
+      "source": "/root/build/lane-checklist-20261023-c/adapter-4/executed-source-inputs/08/HiddenAssumptions.v",
+      "bytes": 416,
+      "sha256": "80dfaf25f56ba6aa1c105f341d350c43fde60b8523d01a10ac30377092476527"
+    },
+    {
+      "path": "adapter-4/executed-source-inputs/09/control-spec.json",
+      "source": "/root/build/lane-checklist-20261023-c/adapter-4/executed-source-inputs/09/control-spec.json",
+      "bytes": 1525,
+      "sha256": "5e2aa37274ddcef07f78a8c87b3073344f18e397e3f0037f8afff16148933bf7"
+    },
+    {
+      "path": "adapter-4/executed-source-inputs/10/proofaudit.py",
+      "source": "/root/build/lane-checklist-20261023-c/adapter-4/executed-source-inputs/10/proofaudit.py",
+      "bytes": 26755,
+      "sha256": "dc070238fbd144751619a6ff75a6cf43a59d3c482bb31d7b5fda904e51194737"
+    },
+    {
+      "path": "adapter-4/executed-source-inputs/11/sail_support_route.py",
+      "source": "/root/build/lane-checklist-20261023-c/adapter-4/executed-source-inputs/11/sail_support_route.py",
+      "bytes": 90224,
+      "sha256": "deb463cee9d73ff20826cc6b835a73efff39deed50fc39430f1a3dc7ae09674d"
+    },
+    {
+      "path": "adapter-4/executed-source-inputs/12/sail-support-qualification.json",
+      "source": "/root/build/lane-checklist-20261023-c/adapter-4/executed-source-inputs/12/sail-support-qualification.json",
+      "bytes": 4096,
+      "sha256": "fe528488ce7e12e077eaee00555cc477325986fc9ee12d5b896e5b651f256d46"
+    },
+    {
+      "path": "adapter-4/executed-source-inputs/13/receipt.json",
+      "source": "/root/build/lane-checklist-20261023-c/adapter-4/executed-source-inputs/13/receipt.json",
+      "bytes": 1857155,
+      "sha256": "de863d5219108e19e902bd94e0e952a91ec08753464bbe5dd2cb941624617106"
+    },
+    {
+      "path": "adapter-4/executed-source-inputs/14/native-query.stdout.log",
+      "source": "/root/build/lane-checklist-20261023-c/adapter-4/executed-source-inputs/14/native-query.stdout.log",
+      "bytes": 274,
+      "sha256": "ed5c72c65ee2e77c2fc52690713dd68b50a7eae1cdb2dd72552b71657dfd7a39"
+    },
+    {
+      "path": "adapter-4/executed-source-inputs/15/receipt.json",
+      "source": "/root/build/lane-checklist-20261023-c/adapter-4/executed-source-inputs/15/receipt.json",
+      "bytes": 1432458,
+      "sha256": "b162264745f954bfce3878d254b56aed792b017502dbf0421c1ad12370508c4f"
+    },
+    {
+      "path": "adapter-4/executed-source-inputs/16/reading-targets.json",
+      "source": "/root/build/lane-checklist-20261023-c/adapter-4/executed-source-inputs/16/reading-targets.json",
+      "bytes": 4878,
+      "sha256": "1138793fdad287acbbc051c11170f2b14efeb9aab6c3bbdab8da37c69513bd62"
+    },
+    {
+      "path": "adapter-4/executed-source-inputs/17/receipt.json",
+      "source": "/root/build/lane-checklist-20261023-c/adapter-4/executed-source-inputs/17/receipt.json",
+      "bytes": 406516,
+      "sha256": "3076848aa34fd413e11e944eb76531ad94f5ddacaa0b540fd7d26841b3ce20b9"
+    },
+    {
+      "path": "adapter-4/final-original-maps.json",
+      "source": "/root/build/lane-checklist-20261023-c/adapter-4/final-original-maps.json",
+      "bytes": 647928,
+      "sha256": "546e09207e3a7e67de1072fc68b2aafda010acdbffc3b22624dff1d0ece50b8b"
+    },
+    {
+      "path": "adapter-4/initial-original-maps.json",
+      "source": "/root/build/lane-checklist-20261023-c/adapter-4/initial-original-maps.json",
+      "bytes": 647928,
+      "sha256": "546e09207e3a7e67de1072fc68b2aafda010acdbffc3b22624dff1d0ece50b8b"
+    },
+    {
+      "path": "adapter-4/native-controls/HiddenAssumptions.v",
+      "source": "/root/build/lane-checklist-20261023-c/adapter-4/native-controls/HiddenAssumptions.v",
+      "bytes": 416,
+      "sha256": "80dfaf25f56ba6aa1c105f341d350c43fde60b8523d01a10ac30377092476527"
+    },
+    {
+      "path": "adapter-4/native-controls/SignatureFieldRefusal.v",
+      "source": "/root/build/lane-checklist-20261023-c/adapter-4/native-controls/SignatureFieldRefusal.v",
+      "bytes": 104,
+      "sha256": "9e25e75b2892e5395ca9e4ce602c49995908b8c5ca973ae75d36a1aa6d38185c"
+    },
+    {
+      "path": "adapter-4/native-controls/UnsupportedShapeRefusal.v",
+      "source": "/root/build/lane-checklist-20261023-c/adapter-4/native-controls/UnsupportedShapeRefusal.v",
+      "bytes": 189,
+      "sha256": "315a73481ccadc09fd8d06eb8ec3dc469aacc1bfb90c7ea5685de89bc0c30016"
+    },
+    {
+      "path": "adapter-4/native-hidden-assumptions.stderr.log",
+      "source": "/root/build/lane-checklist-20261023-c/adapter-4/native-hidden-assumptions.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "adapter-4/native-hidden-assumptions.stdout.log",
+      "source": "/root/build/lane-checklist-20261023-c/adapter-4/native-hidden-assumptions.stdout.log",
+      "bytes": 231,
+      "sha256": "4e9669a63c74688dce6f8b9a68005cc0ccf60956c4b4a0e951f5d02b318d1e0f"
+    },
+    {
+      "path": "adapter-4/native-signature-refusal.stderr.log",
+      "source": "/root/build/lane-checklist-20261023-c/adapter-4/native-signature-refusal.stderr.log",
+      "bytes": 243,
+      "sha256": "867117945f3a84083c437ba2e337032e3674936868861deed79a1e4333917990"
+    },
+    {
+      "path": "adapter-4/native-signature-refusal.stdout.log",
+      "source": "/root/build/lane-checklist-20261023-c/adapter-4/native-signature-refusal.stdout.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "adapter-4/native-unsupported-refusal.stderr.log",
+      "source": "/root/build/lane-checklist-20261023-c/adapter-4/native-unsupported-refusal.stderr.log",
+      "bytes": 195,
+      "sha256": "37696713ad4b5415f62ba0afa7c6b4b33d4c0f422e8343dbe862ac51649e1bea"
+    },
+    {
+      "path": "adapter-4/native-unsupported-refusal.stdout.log",
+      "source": "/root/build/lane-checklist-20261023-c/adapter-4/native-unsupported-refusal.stdout.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "adapter-4/observed-hidden-assumptions.json",
+      "source": "/root/build/lane-checklist-20261023-c/adapter-4/observed-hidden-assumptions.json",
+      "bytes": 386,
+      "sha256": "c619fd61cfa9dc21c765130e5742779a0a0da2dd9fcd28a6d90e575e1a12a2fb"
+    },
+    {
+      "path": "adapter-4/phase-events.jsonl",
+      "source": "/root/build/lane-checklist-20261023-c/adapter-4/phase-events.jsonl",
+      "bytes": 1365,
+      "sha256": "35664227153eb43cbd480c619004727802e47519274e4d710a6ad145a96cab74"
+    },
+    {
+      "path": "adapter-4/prelaunch-intent.json",
+      "source": "/root/build/lane-checklist-20261023-c/adapter-4/prelaunch-intent.json",
+      "bytes": 4192,
+      "sha256": "775d53a4ed2062eb269b9ed0800d4323eadb37a994a4249df56a19a2a2090b28"
+    },
+    {
+      "path": "adapter-4/receipt.json",
+      "source": "/root/build/lane-checklist-20261023-c/adapter-4/receipt.json",
+      "bytes": 20605,
+      "sha256": "77226a9780578d422ebe9123f0ad8a032d8ba1b51b5c3dca60f0a9ce60e480fa"
+    },
+    {
+      "path": "handoff/continuation-checkpoint.json",
+      "source": "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/checklist-20261023-c/tools/rocq-census/continuation-checkpoint.json",
+      "bytes": 13509,
+      "sha256": "5d87f7077a858de4ac807a824287c5a9b6f2af8988729c12d39b2de6533d3a47"
+    },
+    {
+      "path": "handoff/control-spec-after-native-identity.json",
+      "source": "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/checklist-20261023-c/tools/rocq-census/control-spec.json",
+      "bytes": 1509,
+      "sha256": "91013ee3e6a5b1f50c7a1b0e28053b9da146f413afe906849f46b02fca05b325"
+    }
+  ],
+  "budget": {
+    "candidate": 4,
+    "maximum_candidates": 4,
+    "prior_active_seconds": 1793.013445787,
+    "maximum_additional_active_seconds": 1796.5547127,
+    "maximum_cumulative_active_seconds": 3600,
+    "deadline_utc": "2026-10-23T11:11:59.000954+00:00",
+    "cumulative_active_seconds": 1797.084094779,
+    "remaining_cumulative_seconds": 1802.915905221
+  },
+  "driver_prelaunch_sha256": "aa1d03fb1a9c2bac5875c54709697462530585dd68431cb6cb7360fbeb378184",
+  "driver_unchanged": true,
+  "notes": [
+    "Three original native queries: signature/unsupported exit1 match refusals; hidden query0 reports both exact HiddenSealed hidden-axiom identities and refuses the old manifest spelling. No fullgraph/3root control dataset executed.",
+    "All original source snapshots match prelaunch intent and receipt, including the pre-correction manifest. Handoff manifest is separately named after-native-identity. No native source/runtime or proof predicate change.",
+    "Markdown source snapshots preserve exact bytes with .md.txt storage names so relative source links are not interpreted in the evidence directory."
+  ]
+}

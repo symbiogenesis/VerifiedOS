@@ -1,0 +1,5 @@
+Traceback (most recent call last):
+  File "/mnt/c/Users/symbi/AppData/Local/Temp/vos-q35q-9edbbf2478214d1597de8d0bc0996699/third.py", line 217, in <module>
+    if code==0 or entry['diagnostic'] not in stdout+stderr:raise ValueError('native '+label+' refusal differs from exact manifest')
+                                                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: native signature refusal differs from exact manifest

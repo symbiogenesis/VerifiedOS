@@ -1,0 +1,48 @@
+{
+  "label": "native-signature-refusal",
+  "argv": [
+    "/root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/bin/rocq",
+    "c",
+    "-boot",
+    "-R",
+    "/root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/lib/coq/theories",
+    "Corelib",
+    "-Q",
+    "/root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/lib/coq/user-contrib/Stdlib",
+    "Stdlib",
+    "-Q",
+    "/root/build/lane-checklist-20261023-c/census-14/stdpp",
+    "stdpp",
+    "-R",
+    "/root/build/lane-checklist-20261023-c/census-14/support",
+    "SailStdpp",
+    "-Q",
+    "/root/build/lane-checklist-20261023-c/census-14/controls",
+    "",
+    "-q",
+    "-w",
+    "+default,-abstract-large-number",
+    "-set",
+    "Default Goal Selector=!",
+    "-disallow-sprop",
+    "-o",
+    "/root/build/lane-checklist-20261023-c/adapter-4/native-controls/SignatureFieldRefusal.vo",
+    "/root/build/lane-checklist-20261023-c/adapter-4/native-controls/SignatureFieldRefusal.v"
+  ],
+  "cwd": "/tmp/vos-census-fourth-controls-fxikxvkr",
+  "timeout_seconds": 59.984737933000005,
+  "source_sha256_before": {
+    "/root/build/lane-checklist-20261023-c/adapter-4/native-controls/SignatureFieldRefusal.v": "9e25e75b2892e5395ca9e4ce602c49995908b8c5ca973ae75d36a1aa6d38185c"
+  },
+  "status": "complete",
+  "output_file_environment": null,
+  "pid": 414,
+  "process_group": 414,
+  "exit": 1,
+  "elapsed_seconds": 0.7180099519999956,
+  "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "stderr_sha256": "867117945f3a84083c437ba2e337032e3674936868861deed79a1e4333917990",
+  "source_sha256_after": {
+    "/root/build/lane-checklist-20261023-c/adapter-4/native-controls/SignatureFieldRefusal.v": "9e25e75b2892e5395ca9e4ce602c49995908b8c5ca973ae75d36a1aa6d38185c"
+  }
+}

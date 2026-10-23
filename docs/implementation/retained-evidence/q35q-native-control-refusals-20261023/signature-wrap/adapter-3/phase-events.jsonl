@@ -1,0 +1,3 @@
+{"phase": "intent", "utc": "2026-10-23T10:35:49.877384+00:00", "elapsed_seconds": 0.00316649999999985, "rss_kib": 34652, "max_rss_kib": 36144}
+{"phase": "native-command", "utc": "2026-10-23T10:35:52.094017+00:00", "elapsed_seconds": 2.2198151, "rss_kib": 47128, "max_rss_kib": 50640, "label": "native-signature-refusal"}
+{"phase": "finished", "utc": "2026-10-23T10:35:53.319708+00:00", "elapsed_seconds": 3.4455036999999997, "rss_kib": 55700, "max_rss_kib": 55644, "verdict": "refused", "refusal": {"type": "ValueError", "message": "native signature refusal differs from exact manifest"}}

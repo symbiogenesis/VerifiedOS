@@ -1,0 +1,6 @@
+{"phase": "intent", "utc": "2026-10-23T10:42:02.446287+00:00", "elapsed_seconds": 0.0032253929999939146, "rss_kib": 33516, "max_rss_kib": 34052}
+{"phase": "native-command", "utc": "2026-10-23T10:42:04.572779+00:00", "elapsed_seconds": 2.1297308089999945, "rss_kib": 45988, "max_rss_kib": 49816, "label": "native-signature-refusal"}
+{"phase": "native-command", "utc": "2026-10-23T10:42:05.310130+00:00", "elapsed_seconds": 2.8670796199999984, "rss_kib": 45992, "max_rss_kib": 49816, "label": "native-unsupported-refusal"}
+{"phase": "native-command", "utc": "2026-10-23T10:42:05.439270+00:00", "elapsed_seconds": 2.996219841999995, "rss_kib": 45992, "max_rss_kib": 49816, "label": "native-hidden-assumptions"}
+{"phase": "hidden-assumptions-observed", "utc": "2026-10-23T10:42:06.006082+00:00", "elapsed_seconds": 3.5630327319999964, "rss_kib": 45992, "max_rss_kib": 49816, "observed_names": {"CensusControls.HiddenSealed.witness": ["CensusControls.HiddenSealed.hidden_control_axiom"], "CensusControls.HiddenAlias.witness": ["CensusControls.HiddenSealed.hidden_control_axiom"]}}
+{"phase": "finished", "utc": "2026-10-23T10:42:06.513961+00:00", "elapsed_seconds": 4.070913593, "rss_kib": 54796, "max_rss_kib": 54704, "verdict": "refused", "refusal": {"type": "ValueError", "message": "sealed/alias hidden-axiom native control differs from exact expected assumptions"}}

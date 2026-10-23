@@ -1,0 +1,23 @@
+{
+  "phase": "finished",
+  "utc": "2026-10-23T10:35:53.319708+00:00",
+  "elapsed_seconds": 3.4455036999999997,
+  "rss_kib": 55700,
+  "max_rss_kib": 55644,
+  "verdict": "refused",
+  "refusal": {
+    "type": "ValueError",
+    "message": "native signature refusal differs from exact manifest"
+  },
+  "budget": {
+    "candidate": 3,
+    "maximum_candidates": 3,
+    "prior_active_seconds": 1789.568156587,
+    "maximum_additional_active_seconds": 1800,
+    "maximum_cumulative_active_seconds": 3600,
+    "deadline_utc": "2026-10-23T11:05:49.877344+00:00",
+    "cumulative_active_seconds": 1793.013445787,
+    "remaining_cumulative_seconds": 1806.986554213
+  },
+  "commands": 1
+}

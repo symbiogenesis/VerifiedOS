@@ -1,0 +1,23 @@
+{
+  "phase": "finished",
+  "utc": "2026-10-23T10:42:06.513961+00:00",
+  "elapsed_seconds": 4.070913593,
+  "rss_kib": 54796,
+  "max_rss_kib": 54704,
+  "verdict": "refused",
+  "refusal": {
+    "type": "ValueError",
+    "message": "sealed/alias hidden-axiom native control differs from exact expected assumptions"
+  },
+  "budget": {
+    "candidate": 4,
+    "maximum_candidates": 4,
+    "prior_active_seconds": 1793.013445787,
+    "maximum_additional_active_seconds": 1796.5547127,
+    "maximum_cumulative_active_seconds": 3600,
+    "deadline_utc": "2026-10-23T11:11:59.000954+00:00",
+    "cumulative_active_seconds": 1797.084094779,
+    "remaining_cumulative_seconds": 1802.915905221
+  },
+  "commands": 3
+}

@@ -1,0 +1,185 @@
+{
+  "schema": "verifiedos-native-census-continuation/1",
+  "base_revision": "b525ad5dca6468c914a89b04b66e089584902876",
+  "contract": "docs/implementation/contracts/sail-support-census.md#census-continuation",
+  "native_lane": "/root/build/lane-checklist-20261023-c",
+  "native_budget": {
+    "maximum_candidate_checks": 6,
+    "maximum_active_minutes": 90
+  },
+  "control_budget": {
+    "maximum_candidate_checks": 3,
+    "maximum_active_minutes": 30
+  },
+  "status": "native-provenance-pass-awaiting-independent-graph-replay",
+  "candidate_intents": [
+    {
+      "ordinal": 1,
+      "scope": "compile original producer and query synthetic controls plus actual TypeCasts and State_monad",
+      "output": "/root/build/lane-checklist-20261023-c/census-1",
+      "result": "plugin compile refusal: unavailable Ind.to_string; query not started"
+    },
+    {
+      "ordinal": 2,
+      "scope": "native Names printers replace unavailable diagnostic to_string; same positive/actual targets",
+      "output": "/root/build/lane-checklist-20261023-c/census-2",
+      "result": "plugin compile refusal: unavailable Ind.print; query not started"
+    },
+    {
+      "ordinal": 3,
+      "scope": "complete API member review; body-identity schema939f65aa; same positive/actual targets",
+      "output": "/root/build/lane-checklist-20261023-c/census-3",
+      "result": "plugin compile refused strict exhaustiveness: impossible constructor without packet; query not started"
+    },
+    {
+      "ordinal": 4,
+      "scope": "explicit impossible-reference refusal; positive/actual census query",
+      "output": "/root/build/lane-checklist-20261023-c/census-4",
+      "result": "strict plugin build success; positive source import refused missing prebuilt stdpp.bitvector mapping; no callback"
+    },
+    {
+      "ordinal": 5,
+      "scope": "immutable complete private stdpp/bitvector mapping; positive and actual TypeCasts/State_monad roots; digest-only bodies",
+      "output": "/root/build/lane-checklist-20261023-c/census-5",
+      "result": "strict plugin build success; positive source refused deprecated Notation abbreviation under strict diagnostics; no callback"
+    },
+    {
+      "ordinal": 6,
+      "scope": "strict producer, synthetic controls and exact29 recipe-bound support; native per-root Search, bounded hash-bound request file, sole census callback with module-descents and digest-only bodies",
+      "output": "/root/build/lane-checklist-20261023-c/census-6",
+      "result": "strict plugin compile refused unexported Mod_declarations.subst_expr; no source compile, Search or census callback; protected identities unchanged"
+    }
+  ],
+  "installed_and_supplied_objects": "read-only; full path and byte identities before and after every candidate",
+  "acceptance": "none; native provenance and hosted joins separately required",
+  "focused_api_continuation": {
+    "owner_revision": "48f24b83a45ca82e57f933f50897d9b166cceac4",
+    "maximum_candidate_checks": 3,
+    "maximum_active_minutes": 30,
+    "prior_checks_preserved": 6,
+    "export_evidence": {
+      "mod_declarations_mli": "4dbdcbcb20c1a9eba0272e04d650bf4569fd66f1c60c5126afea43e074e9b55e",
+      "mod_subst_mli": "5fe71c2d7e3132e0cb1babe3e349411e8c10ddbf42300b3bfc18dc9807e9ac24"
+    },
+    "candidate_intents": [
+      {
+        "ordinal": 1,
+        "global_ordinal": 7,
+        "scope": "original MEident/MEapply trace rendering via public subst_mp; exact30 roots, native Search and sole complete census callback",
+        "output": "/root/build/lane-checklist-20261023-c/census-7",
+        "result": "strict plugin and control source compile pass; first Search filename search-00 invalid native module identifier; no callback; protected identities unchanged"
+      },
+      {
+        "ordinal": 2,
+        "global_ordinal": 8,
+        "scope": "valid Search00 native query filenames; unchanged exact30 roots/Search/file/census predicates",
+        "output": "/root/build/lane-checklist-20261023-c/census-8",
+        "result": "strict plugin/control and all30 native Search pass; independent parser refuses genuine terminal implicit-argument About notice; no callback; protected identities unchanged; elapsed15.78053913s"
+      },
+      {
+        "ordinal": 3,
+        "global_ordinal": 9,
+        "scope": "landed exact terminal Search notice parser; same original30 typed Search queries and1889 known request rows, complete native census via bounded frozen file, early native Abstract refusal",
+        "output": "/root/build/lane-checklist-20261023-c/census-9",
+        "result": "strict plugin/control and all30 native Search pass;1889 hash-bound requests; native callback exit129 uncaught Not_found before JSON; every protected and copied identity unchanged; elapsed16.0821429s"
+      }
+    ]
+  },
+  "diagnostic_continuation": {
+    "owner_revision": "732bff3a95bc8583a2caf592e32c0e7c663c4b13",
+    "maximum_candidate_checks": 3,
+    "maximum_active_minutes": 30,
+    "prior_checks_preserved": 9,
+    "candidate_intents": [
+      {
+        "ordinal": 1,
+        "global_ordinal": 10,
+        "scope": "diagnostic-only Not_found context labels around roots/module and object fields/expansion/native global printing/request/abbreviation/environment/resolver API operations; unchanged exact30 roots and strict flags",
+        "output": "/root/build/lane-checklist-20261023-c/census-10",
+        "result": "strictcompile/control/all30Search pass;1889 requests; explicit native lookup refusal Applied.copied serialize source_reference Printer.pr_global after missing Nametab.path_of_global CensusControls.F.copied; stopped before repair; all identities unchanged; elapsed15.9999695s"
+      }
+    ]
+  },
+  "private_reference_realization": {
+    "owner_revision": "64a6bfb0b3755d4de1e06670f81ed4b9e7f568f6",
+    "maximum_candidate_checks": 6,
+    "maximum_active_minutes": 60,
+    "prior_checks_preserved": 10,
+    "candidate_intents": [
+      {
+        "ordinal": 1,
+        "global_ordinal": 11,
+        "scope": "kernel-reference wire for private source/instantiated/alias-target identities only; original structural Names no global printer; pure uncollected abbreviation ownership/ID comparisons; complete unchanged30 roots/1889 Search requests",
+        "output": "/root/build/lane-checklist-20261023-c/census-11",
+        "result": "strictcompile/control/all30Search pass1889 requests; native callback129 assertion kernel/mod_subst.ml216 target delta root precondition; no JSON; all identities unchanged; elapsed51.244155677s"
+      },
+      {
+        "ordinal": 2,
+        "global_ordinal": 12,
+        "scope": "diagnostic-only native Assert_failure context and exact map_mp source/target API label; samecomplete30roots/1889 requests/strictflags; no resolver semantic correction",
+        "output": "/root/build/lane-checklist-20261023-c/census-12",
+        "result": "strictcompile/control/all30Search pass1889 requests; explicitassert216 root mismatch rebasing OrderedTypeEx.N_as_OT to State_monad.NMap.E; noJSON; allidentitiesunchanged; elapsed51.277323933s"
+      },
+      {
+        "ordinal": 3,
+        "global_ordinal": 13,
+        "scope": "public root checks for map_mp/map_mbid; exact actual used native resolver participants incl inherited Subs; actual resolver roots uniquely native-verified from full domain; complete unchanged30 roots1889 requests",
+        "output": "/root/build/lane-checklist-20261023-c/census-13",
+        "result": "strictcompile/control/all30Search pass1889 requests; callback killed-9 by kernel OOM anonRSS21,593,976KiB before JSON;600s bound nottimeout; all identitiesunchanged; elapsed242.404647302s"
+      },
+      {
+        "ordinal": 4,
+        "global_ordinal": 14,
+        "scope": "nonmemoizing metadata/type/raw-module lazy nodes; incremental exclusive0600 complete JSON file, exact file envelope/reader/hash joins; resolvers last over full frozen domain, distinct immutable resolver identities; unchanged30 roots1889requests600s callback",
+        "output": "/root/build/lane-checklist-20261023-c/census-14",
+        "result": "NATIVE0 strictcompile/control/all30Search1889requests; complete1637185616bytefile+BLAKE238fcfd2efa77ba49dc190e1be404ca612f8215b587dcc3298d2bc4695949f0b; provenance-only envelope/parse/identitiespass; full graph/hostedqualificationpending; elapsed110.562877798s"
+      }
+    ],
+    "storage_owner_revision": "f7c6ab1f94b852c30a1e2af032fd2034e966d2b6",
+    "distinct_resolver_owner_revision": "4c1789c69cbe45bc128ae384a4070cb1b8b2054d"
+  },
+  "adapter_native_controls": {
+    "original_maximum_candidate_checks": 3,
+    "maximum_candidate_checks": 4,
+    "initial_maximum_active_minutes": 30,
+    "maximum_cumulative_active_minutes": 60,
+    "candidate_intents": [
+      {
+        "ordinal": 1,
+        "scope": "one strict duplicate-free parse and complete schema of native14 exact30 roots;78 actual native Print Module/Type readings; unchanged full adapter graph replay without support assumptions/kernel",
+        "output": "/root/build/lane-checklist-20261023-c/adapter-1",
+        "result": "strict duplicate/schema and all78 native readings pass; full adapter refuses generic End-token counter on real FMapAVL enumeration constructor End in State_monad.NMap.Raw; source/raw/all protected inputs unchanged; elapsed840.471316848s"
+      },
+      {
+        "ordinal": 2,
+        "revision": "13cc28affc8f895435380b3c235b11d2f0077fa4",
+        "scope": "all78 retained native readings/provenance preflight; one strict duplicate-free parse of exact native14 JSON; unchanged full30 schema/graph replay; no producer rerun or support assumption/kernel gate",
+        "output": "/root/build/lane-checklist-20261023-c/adapter-2",
+        "started_utc": "2026-10-23T10:09:02.097892+00:00",
+        "remaining_budget_at_start_seconds": 959.528683152,
+        "deadline_utc": "2026-10-23T10:25:01.662890+00:00",
+        "result": "all78 framing/provenance and strict duplicate/file-identity parse pass; explicit remaining-budget TimeoutError inside recursive validate_schema/_validate before graph joins; no native controls started; source/raw/readings/all protected inputs unchanged; elapsed949.096839739s; peakRSS13379004KiB",
+        "traceback": "/root/build/lane-checklist-20261023-c/adapter-2/exception.log",
+        "source_observation": "schema object members iterate an unordered set intersection; wrong oneOf/anyOf branches can recurse before scalar discriminators; deterministic discriminator-first validation proposed for owner assessment",
+        "cumulative_active_seconds": 1789.568156587,
+        "remaining_active_seconds": 10.431843413000024
+      },
+      {
+        "ordinal": 3,
+        "revision": "0798f26ec8c9574f6dcb127ab9ef9fc459b1a36f",
+        "owner_revision": "6323af05ad3ed58360dcade4c7b2ba4b028a74d4",
+        "scope": "original tiny signature/unsupported/hidden assays first; stop at first control refusal before complete30 replay and separate3root controls",
+        "output": "/root/build/lane-checklist-20261023-c/adapter-3",
+        "driver_sha256_before_and_after": "31e29b21b5b23f95d9fe2ff474bb11569b61dfd8919d0a96eeeb8cf46cb3b73f",
+        "intent_sha256": "2b1e6e4b1c3f06af03d9e675c8a02cb23ca2ca95320b394070bbe7d4cdec0e9d",
+        "result": "native signature lookup exit1 correctly refuses CensusControls.S.T; literal manifest comparison refuses line-wrapped current/newline/environment wording; source/driver/all native input identities unchanged; no further query/parser launched; elapsed3.4452873000000004s",
+        "cumulative_active_seconds": 1793.013445787,
+        "remaining_current_extension_seconds": 1796.5547127
+      }
+    ],
+    "framing_disposition_revision": "d98d1e40741b439caf440ba62469e2714bb1f478",
+    "deterministic_schema_owner_revision": "6323af05ad3ed58360dcade4c7b2ba4b028a74d4",
+    "signature_diagnostic_correction_owner_revision": "436aee02b8ddfb09eb7ab0e409def371a11d8cc6",
+    "signature_diagnostic_correction": "exact contiguous native reference prefix only; original source/native exit/raw diagnostic retained; no new time or counter reset"
+  }
+}

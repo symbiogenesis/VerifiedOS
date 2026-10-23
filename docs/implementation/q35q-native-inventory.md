@@ -25,10 +25,15 @@ retained readings.
 SHA256 `b08d005ac0cb3f18f04a75073a6bb6fbe397e239c10d2c9901552a6eac26d33e`,
 binds the next replay's exact timeout, source snapshots and unchanged-input
 observations. It reaches its time bound inside schema validation and supplies no
-complete graph verdict. The
-[deterministic replay act](contracts/sail-support-census.md#deterministic-schema-replay)
-preserves both counters and commissions only the third bounded adapter/control
-candidate. Complete classification, exact assumptions and hosted kernel acceptance
+complete graph verdict.
+[Exact native signature and sealed-axiom control observations](retained-evidence/q35q-native-control-refusals-20261023/manifest.json),
+SHA256 `b8be83d068822b032728f4c3a480939d00bd6d823158a3f152cc8c12f205d74a`,
+binds the abstract-field error's line wrapping and the sealed implementation's
+actual hidden-axiom identity. The expectations now name the exact native reference
+and instantiated control axiom. The
+[current replay act](contracts/sail-support-census.md#sealed-control-assumption-identity)
+preserves every earlier counter and uses only the existing time allocation's
+remainder. Complete classification, exact assumptions and hosted kernel acceptance
 remain required.
 
 ## Current native producer

@@ -1,0 +1,454 @@
+{
+  "files": {
+    "sealed-rebase/adapter-4/checkpoint.json": {
+      "bytes": 704,
+      "encoding": "identity",
+      "path": "sealed-rebase/adapter-4/checkpoint.json",
+      "sha256": "2868c83e9c07fd34ba2b87904cf6e206c4dfe8fe84823067dc356799a24a9f5c"
+    },
+    "sealed-rebase/adapter-4/command-001.json": {
+      "bytes": 1732,
+      "encoding": "identity",
+      "path": "sealed-rebase/adapter-4/command-001.json",
+      "sha256": "f95717749b6e39e240b586f5faab1280b1adfa2439c0591460891d6db2e0294e"
+    },
+    "sealed-rebase/adapter-4/command-002.json": {
+      "bytes": 1737,
+      "encoding": "identity",
+      "path": "sealed-rebase/adapter-4/command-002.json",
+      "sha256": "b909562a5335a41b2e448c5d0cd92cf2d1a47e14cb46878cdadd61c677f9d858"
+    },
+    "sealed-rebase/adapter-4/command-003.json": {
+      "bytes": 1711,
+      "encoding": "identity",
+      "path": "sealed-rebase/adapter-4/command-003.json",
+      "sha256": "fec170fd48ff5a75f5961b318e1ed89af3932f3359f0c11766208c5adf1bada8"
+    },
+    "sealed-rebase/adapter-4/exception.log": {
+      "bytes": 634,
+      "encoding": "identity",
+      "path": "sealed-rebase/adapter-4/exception.log",
+      "sha256": "318eaf1d3835259ab2fca8cddc0dc50f44ee8ee09acb54cb88272c79e481a7f8"
+    },
+    "sealed-rebase/adapter-4/executed-driver.py": {
+      "bytes": 21484,
+      "encoding": "identity",
+      "path": "sealed-rebase/adapter-4/executed-driver.py",
+      "sha256": "aa1d03fb1a9c2bac5875c54709697462530585dd68431cb6cb7360fbeb378184"
+    },
+    "sealed-rebase/adapter-4/executed-source-inputs/00/qualify.py": {
+      "bytes": 31891,
+      "encoding": "identity",
+      "path": "sealed-rebase/adapter-4/executed-source-inputs/00/qualify.py",
+      "sha256": "21b6f9b82f3d07e59a85ad8c4ea958727928a227cb6698b3efada78632eda8ab"
+    },
+    "sealed-rebase/adapter-4/executed-source-inputs/01/census.py": {
+      "bytes": 64785,
+      "encoding": "identity",
+      "path": "sealed-rebase/adapter-4/executed-source-inputs/01/census.py",
+      "sha256": "d9c949a048f6b446cfd7c023209594362ea54a3c452ad2730d3f084dcd7f765f"
+    },
+    "sealed-rebase/adapter-4/executed-source-inputs/02/census-schema.json": {
+      "bytes": 85217,
+      "encoding": "identity",
+      "path": "sealed-rebase/adapter-4/executed-source-inputs/02/census-schema.json",
+      "sha256": "42dfacf97dba0f36e318d7467f8ad30fa0de00de5512b400daa3b5d2189d8308"
+    },
+    "sealed-rebase/adapter-4/executed-source-inputs/03/SCHEMA.md.txt": {
+      "bytes": 18188,
+      "encoding": "identity",
+      "path": "sealed-rebase/adapter-4/executed-source-inputs/03/SCHEMA.md.txt",
+      "sha256": "0b418e6e0606b3423404723a15c0b1a0978fff9a7e0bb679beba2ca7343ca17d"
+    },
+    "sealed-rebase/adapter-4/executed-source-inputs/04/vos_rocq_census.ml": {
+      "bytes": 58967,
+      "encoding": "identity",
+      "path": "sealed-rebase/adapter-4/executed-source-inputs/04/vos_rocq_census.ml",
+      "sha256": "5a1bcfbc332d6eb186aec8d190923d161f3e89412131751f325f32aec408141f"
+    },
+    "sealed-rebase/adapter-4/executed-source-inputs/05/CensusControls.v": {
+      "bytes": 889,
+      "encoding": "identity",
+      "path": "sealed-rebase/adapter-4/executed-source-inputs/05/CensusControls.v",
+      "sha256": "15b7141cba69a0271812349536ccedc8c6ba468a13826d7081a401c0d41980fb"
+    },
+    "sealed-rebase/adapter-4/executed-source-inputs/06/SignatureFieldRefusal.v": {
+      "bytes": 104,
+      "encoding": "identity",
+      "path": "sealed-rebase/adapter-4/executed-source-inputs/06/SignatureFieldRefusal.v",
+      "sha256": "9e25e75b2892e5395ca9e4ce602c49995908b8c5ca973ae75d36a1aa6d38185c"
+    },
+    "sealed-rebase/adapter-4/executed-source-inputs/07/UnsupportedShapeRefusal.v": {
+      "bytes": 189,
+      "encoding": "identity",
+      "path": "sealed-rebase/adapter-4/executed-source-inputs/07/UnsupportedShapeRefusal.v",
+      "sha256": "315a73481ccadc09fd8d06eb8ec3dc469aacc1bfb90c7ea5685de89bc0c30016"
+    },
+    "sealed-rebase/adapter-4/executed-source-inputs/08/HiddenAssumptions.v": {
+      "bytes": 416,
+      "encoding": "identity",
+      "path": "sealed-rebase/adapter-4/executed-source-inputs/08/HiddenAssumptions.v",
+      "sha256": "80dfaf25f56ba6aa1c105f341d350c43fde60b8523d01a10ac30377092476527"
+    },
+    "sealed-rebase/adapter-4/executed-source-inputs/09/control-spec.json": {
+      "bytes": 1525,
+      "encoding": "identity",
+      "path": "sealed-rebase/adapter-4/executed-source-inputs/09/control-spec.json",
+      "sha256": "5e2aa37274ddcef07f78a8c87b3073344f18e397e3f0037f8afff16148933bf7"
+    },
+    "sealed-rebase/adapter-4/executed-source-inputs/10/proofaudit.py": {
+      "bytes": 26755,
+      "encoding": "identity",
+      "path": "sealed-rebase/adapter-4/executed-source-inputs/10/proofaudit.py",
+      "sha256": "dc070238fbd144751619a6ff75a6cf43a59d3c482bb31d7b5fda904e51194737"
+    },
+    "sealed-rebase/adapter-4/executed-source-inputs/11/sail_support_route.py": {
+      "bytes": 90224,
+      "encoding": "identity",
+      "path": "sealed-rebase/adapter-4/executed-source-inputs/11/sail_support_route.py",
+      "sha256": "deb463cee9d73ff20826cc6b835a73efff39deed50fc39430f1a3dc7ae09674d"
+    },
+    "sealed-rebase/adapter-4/executed-source-inputs/12/sail-support-qualification.json": {
+      "bytes": 4096,
+      "encoding": "identity",
+      "path": "sealed-rebase/adapter-4/executed-source-inputs/12/sail-support-qualification.json",
+      "sha256": "fe528488ce7e12e077eaee00555cc477325986fc9ee12d5b896e5b651f256d46"
+    },
+    "sealed-rebase/adapter-4/executed-source-inputs/13/receipt.json": {
+      "bytes": 1857155,
+      "encoding": "identity",
+      "path": "sealed-rebase/adapter-4/executed-source-inputs/13/receipt.json",
+      "sha256": "de863d5219108e19e902bd94e0e952a91ec08753464bbe5dd2cb941624617106"
+    },
+    "sealed-rebase/adapter-4/executed-source-inputs/14/native-query.stdout.log": {
+      "bytes": 274,
+      "encoding": "identity",
+      "path": "sealed-rebase/adapter-4/executed-source-inputs/14/native-query.stdout.log",
+      "sha256": "ed5c72c65ee2e77c2fc52690713dd68b50a7eae1cdb2dd72552b71657dfd7a39"
+    },
+    "sealed-rebase/adapter-4/executed-source-inputs/15/receipt.json": {
+      "bytes": 1432458,
+      "encoding": "identity",
+      "path": "sealed-rebase/adapter-4/executed-source-inputs/15/receipt.json",
+      "sha256": "b162264745f954bfce3878d254b56aed792b017502dbf0421c1ad12370508c4f"
+    },
+    "sealed-rebase/adapter-4/executed-source-inputs/16/reading-targets.json": {
+      "bytes": 4878,
+      "encoding": "identity",
+      "path": "sealed-rebase/adapter-4/executed-source-inputs/16/reading-targets.json",
+      "sha256": "1138793fdad287acbbc051c11170f2b14efeb9aab6c3bbdab8da37c69513bd62"
+    },
+    "sealed-rebase/adapter-4/executed-source-inputs/17/receipt.json": {
+      "bytes": 406516,
+      "encoding": "identity",
+      "path": "sealed-rebase/adapter-4/executed-source-inputs/17/receipt.json",
+      "sha256": "3076848aa34fd413e11e944eb76531ad94f5ddacaa0b540fd7d26841b3ce20b9"
+    },
+    "sealed-rebase/adapter-4/final-original-maps.json": {
+      "bytes": 647928,
+      "encoding": "identity",
+      "path": "sealed-rebase/adapter-4/final-original-maps.json",
+      "sha256": "546e09207e3a7e67de1072fc68b2aafda010acdbffc3b22624dff1d0ece50b8b"
+    },
+    "sealed-rebase/adapter-4/initial-original-maps.json": {
+      "bytes": 647928,
+      "encoding": "identity",
+      "path": "sealed-rebase/adapter-4/initial-original-maps.json",
+      "sha256": "546e09207e3a7e67de1072fc68b2aafda010acdbffc3b22624dff1d0ece50b8b"
+    },
+    "sealed-rebase/adapter-4/native-controls/HiddenAssumptions.v": {
+      "bytes": 416,
+      "encoding": "identity",
+      "path": "sealed-rebase/adapter-4/native-controls/HiddenAssumptions.v",
+      "sha256": "80dfaf25f56ba6aa1c105f341d350c43fde60b8523d01a10ac30377092476527"
+    },
+    "sealed-rebase/adapter-4/native-controls/SignatureFieldRefusal.v": {
+      "bytes": 104,
+      "encoding": "identity",
+      "path": "sealed-rebase/adapter-4/native-controls/SignatureFieldRefusal.v",
+      "sha256": "9e25e75b2892e5395ca9e4ce602c49995908b8c5ca973ae75d36a1aa6d38185c"
+    },
+    "sealed-rebase/adapter-4/native-controls/UnsupportedShapeRefusal.v": {
+      "bytes": 189,
+      "encoding": "identity",
+      "path": "sealed-rebase/adapter-4/native-controls/UnsupportedShapeRefusal.v",
+      "sha256": "315a73481ccadc09fd8d06eb8ec3dc469aacc1bfb90c7ea5685de89bc0c30016"
+    },
+    "sealed-rebase/adapter-4/native-hidden-assumptions.stderr.log": {
+      "bytes": 0,
+      "encoding": "identity",
+      "path": "sealed-rebase/adapter-4/native-hidden-assumptions.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "sealed-rebase/adapter-4/native-hidden-assumptions.stdout.log": {
+      "bytes": 231,
+      "encoding": "identity",
+      "path": "sealed-rebase/adapter-4/native-hidden-assumptions.stdout.log",
+      "sha256": "4e9669a63c74688dce6f8b9a68005cc0ccf60956c4b4a0e951f5d02b318d1e0f"
+    },
+    "sealed-rebase/adapter-4/native-signature-refusal.stderr.log": {
+      "bytes": 243,
+      "encoding": "identity",
+      "path": "sealed-rebase/adapter-4/native-signature-refusal.stderr.log",
+      "sha256": "867117945f3a84083c437ba2e337032e3674936868861deed79a1e4333917990"
+    },
+    "sealed-rebase/adapter-4/native-signature-refusal.stdout.log": {
+      "bytes": 0,
+      "encoding": "identity",
+      "path": "sealed-rebase/adapter-4/native-signature-refusal.stdout.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "sealed-rebase/adapter-4/native-unsupported-refusal.stderr.log": {
+      "bytes": 195,
+      "encoding": "identity",
+      "path": "sealed-rebase/adapter-4/native-unsupported-refusal.stderr.log",
+      "sha256": "37696713ad4b5415f62ba0afa7c6b4b33d4c0f422e8343dbe862ac51649e1bea"
+    },
+    "sealed-rebase/adapter-4/native-unsupported-refusal.stdout.log": {
+      "bytes": 0,
+      "encoding": "identity",
+      "path": "sealed-rebase/adapter-4/native-unsupported-refusal.stdout.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "sealed-rebase/adapter-4/observed-hidden-assumptions.json": {
+      "bytes": 386,
+      "encoding": "identity",
+      "path": "sealed-rebase/adapter-4/observed-hidden-assumptions.json",
+      "sha256": "c619fd61cfa9dc21c765130e5742779a0a0da2dd9fcd28a6d90e575e1a12a2fb"
+    },
+    "sealed-rebase/adapter-4/phase-events.jsonl": {
+      "bytes": 1365,
+      "encoding": "identity",
+      "path": "sealed-rebase/adapter-4/phase-events.jsonl",
+      "sha256": "35664227153eb43cbd480c619004727802e47519274e4d710a6ad145a96cab74"
+    },
+    "sealed-rebase/adapter-4/prelaunch-intent.json": {
+      "bytes": 4192,
+      "encoding": "identity",
+      "path": "sealed-rebase/adapter-4/prelaunch-intent.json",
+      "sha256": "775d53a4ed2062eb269b9ed0800d4323eadb37a994a4249df56a19a2a2090b28"
+    },
+    "sealed-rebase/adapter-4/receipt.json": {
+      "bytes": 20605,
+      "encoding": "identity",
+      "path": "sealed-rebase/adapter-4/receipt.json",
+      "sha256": "77226a9780578d422ebe9123f0ad8a032d8ba1b51b5c3dca60f0a9ce60e480fa"
+    },
+    "sealed-rebase/handoff/continuation-checkpoint.json": {
+      "bytes": 13509,
+      "encoding": "identity",
+      "path": "sealed-rebase/handoff/continuation-checkpoint.json",
+      "sha256": "5d87f7077a858de4ac807a824287c5a9b6f2af8988729c12d39b2de6533d3a47"
+    },
+    "sealed-rebase/handoff/control-spec-after-native-identity.json": {
+      "bytes": 1509,
+      "encoding": "identity",
+      "path": "sealed-rebase/handoff/control-spec-after-native-identity.json",
+      "sha256": "91013ee3e6a5b1f50c7a1b0e28053b9da146f413afe906849f46b02fca05b325"
+    },
+    "sealed-rebase/selection.json": {
+      "bytes": 13036,
+      "encoding": "identity",
+      "path": "sealed-rebase/selection.json",
+      "sha256": "e6faf0c51995174dbd782ff63ea1a41337de0f2c16cb445a1a5e333c9283b8b0"
+    },
+    "signature-wrap/adapter-3/checkpoint.json": {
+      "bytes": 675,
+      "encoding": "identity",
+      "path": "signature-wrap/adapter-3/checkpoint.json",
+      "sha256": "200429d16de0e538dbf3bd44759eb70d9dc7a94e3b5111802e470a7b377f76ad"
+    },
+    "signature-wrap/adapter-3/command-001.json": {
+      "bytes": 1722,
+      "encoding": "identity",
+      "path": "signature-wrap/adapter-3/command-001.json",
+      "sha256": "fcde9e8c41e3d8b5db56ab9e100d96b13c8e52b4edf6aa95248551a100093c0d"
+    },
+    "signature-wrap/adapter-3/exception.log": {
+      "bytes": 485,
+      "encoding": "identity",
+      "path": "signature-wrap/adapter-3/exception.log",
+      "sha256": "24256302e1ec0eb8a3466f308769979d75db2661b6438e7f863cb8c9d2134536"
+    },
+    "signature-wrap/adapter-3/executed-driver.py": {
+      "bytes": 21471,
+      "encoding": "identity",
+      "path": "signature-wrap/adapter-3/executed-driver.py",
+      "sha256": "31e29b21b5b23f95d9fe2ff474bb11569b61dfd8919d0a96eeeb8cf46cb3b73f"
+    },
+    "signature-wrap/adapter-3/executed-source-inputs/00/qualify.py": {
+      "bytes": 31891,
+      "encoding": "identity",
+      "path": "signature-wrap/adapter-3/executed-source-inputs/00/qualify.py",
+      "sha256": "21b6f9b82f3d07e59a85ad8c4ea958727928a227cb6698b3efada78632eda8ab"
+    },
+    "signature-wrap/adapter-3/executed-source-inputs/01/census.py": {
+      "bytes": 64785,
+      "encoding": "identity",
+      "path": "signature-wrap/adapter-3/executed-source-inputs/01/census.py",
+      "sha256": "d9c949a048f6b446cfd7c023209594362ea54a3c452ad2730d3f084dcd7f765f"
+    },
+    "signature-wrap/adapter-3/executed-source-inputs/02/census-schema.json": {
+      "bytes": 85217,
+      "encoding": "identity",
+      "path": "signature-wrap/adapter-3/executed-source-inputs/02/census-schema.json",
+      "sha256": "42dfacf97dba0f36e318d7467f8ad30fa0de00de5512b400daa3b5d2189d8308"
+    },
+    "signature-wrap/adapter-3/executed-source-inputs/03/SCHEMA.md.txt": {
+      "bytes": 18188,
+      "encoding": "identity",
+      "path": "signature-wrap/adapter-3/executed-source-inputs/03/SCHEMA.md.txt",
+      "sha256": "0b418e6e0606b3423404723a15c0b1a0978fff9a7e0bb679beba2ca7343ca17d"
+    },
+    "signature-wrap/adapter-3/executed-source-inputs/04/vos_rocq_census.ml": {
+      "bytes": 58967,
+      "encoding": "identity",
+      "path": "signature-wrap/adapter-3/executed-source-inputs/04/vos_rocq_census.ml",
+      "sha256": "5a1bcfbc332d6eb186aec8d190923d161f3e89412131751f325f32aec408141f"
+    },
+    "signature-wrap/adapter-3/executed-source-inputs/05/CensusControls.v": {
+      "bytes": 889,
+      "encoding": "identity",
+      "path": "signature-wrap/adapter-3/executed-source-inputs/05/CensusControls.v",
+      "sha256": "15b7141cba69a0271812349536ccedc8c6ba468a13826d7081a401c0d41980fb"
+    },
+    "signature-wrap/adapter-3/executed-source-inputs/06/SignatureFieldRefusal.v": {
+      "bytes": 104,
+      "encoding": "identity",
+      "path": "signature-wrap/adapter-3/executed-source-inputs/06/SignatureFieldRefusal.v",
+      "sha256": "9e25e75b2892e5395ca9e4ce602c49995908b8c5ca973ae75d36a1aa6d38185c"
+    },
+    "signature-wrap/adapter-3/executed-source-inputs/07/UnsupportedShapeRefusal.v": {
+      "bytes": 189,
+      "encoding": "identity",
+      "path": "signature-wrap/adapter-3/executed-source-inputs/07/UnsupportedShapeRefusal.v",
+      "sha256": "315a73481ccadc09fd8d06eb8ec3dc469aacc1bfb90c7ea5685de89bc0c30016"
+    },
+    "signature-wrap/adapter-3/executed-source-inputs/08/HiddenAssumptions.v": {
+      "bytes": 416,
+      "encoding": "identity",
+      "path": "signature-wrap/adapter-3/executed-source-inputs/08/HiddenAssumptions.v",
+      "sha256": "80dfaf25f56ba6aa1c105f341d350c43fde60b8523d01a10ac30377092476527"
+    },
+    "signature-wrap/adapter-3/executed-source-inputs/09/control-spec.json": {
+      "bytes": 1519,
+      "encoding": "identity",
+      "path": "signature-wrap/adapter-3/executed-source-inputs/09/control-spec.json",
+      "sha256": "39ba438afe6bc29f97931072c68da04441e1400ebab8647a57f91f2b2e21e729"
+    },
+    "signature-wrap/adapter-3/executed-source-inputs/10/proofaudit.py": {
+      "bytes": 26755,
+      "encoding": "identity",
+      "path": "signature-wrap/adapter-3/executed-source-inputs/10/proofaudit.py",
+      "sha256": "dc070238fbd144751619a6ff75a6cf43a59d3c482bb31d7b5fda904e51194737"
+    },
+    "signature-wrap/adapter-3/executed-source-inputs/11/sail_support_route.py": {
+      "bytes": 90224,
+      "encoding": "identity",
+      "path": "signature-wrap/adapter-3/executed-source-inputs/11/sail_support_route.py",
+      "sha256": "deb463cee9d73ff20826cc6b835a73efff39deed50fc39430f1a3dc7ae09674d"
+    },
+    "signature-wrap/adapter-3/executed-source-inputs/12/sail-support-qualification.json": {
+      "bytes": 4096,
+      "encoding": "identity",
+      "path": "signature-wrap/adapter-3/executed-source-inputs/12/sail-support-qualification.json",
+      "sha256": "fe528488ce7e12e077eaee00555cc477325986fc9ee12d5b896e5b651f256d46"
+    },
+    "signature-wrap/adapter-3/executed-source-inputs/13/receipt.json": {
+      "bytes": 1857155,
+      "encoding": "identity",
+      "path": "signature-wrap/adapter-3/executed-source-inputs/13/receipt.json",
+      "sha256": "de863d5219108e19e902bd94e0e952a91ec08753464bbe5dd2cb941624617106"
+    },
+    "signature-wrap/adapter-3/executed-source-inputs/14/native-query.stdout.log": {
+      "bytes": 274,
+      "encoding": "identity",
+      "path": "signature-wrap/adapter-3/executed-source-inputs/14/native-query.stdout.log",
+      "sha256": "ed5c72c65ee2e77c2fc52690713dd68b50a7eae1cdb2dd72552b71657dfd7a39"
+    },
+    "signature-wrap/adapter-3/executed-source-inputs/15/receipt.json": {
+      "bytes": 1432458,
+      "encoding": "identity",
+      "path": "signature-wrap/adapter-3/executed-source-inputs/15/receipt.json",
+      "sha256": "b162264745f954bfce3878d254b56aed792b017502dbf0421c1ad12370508c4f"
+    },
+    "signature-wrap/adapter-3/executed-source-inputs/16/reading-targets.json": {
+      "bytes": 4878,
+      "encoding": "identity",
+      "path": "signature-wrap/adapter-3/executed-source-inputs/16/reading-targets.json",
+      "sha256": "1138793fdad287acbbc051c11170f2b14efeb9aab6c3bbdab8da37c69513bd62"
+    },
+    "signature-wrap/adapter-3/executed-source-inputs/17/receipt.json": {
+      "bytes": 406516,
+      "encoding": "identity",
+      "path": "signature-wrap/adapter-3/executed-source-inputs/17/receipt.json",
+      "sha256": "3076848aa34fd413e11e944eb76531ad94f5ddacaa0b540fd7d26841b3ce20b9"
+    },
+    "signature-wrap/adapter-3/final-original-maps.json": {
+      "bytes": 647928,
+      "encoding": "identity",
+      "path": "signature-wrap/adapter-3/final-original-maps.json",
+      "sha256": "546e09207e3a7e67de1072fc68b2aafda010acdbffc3b22624dff1d0ece50b8b"
+    },
+    "signature-wrap/adapter-3/initial-original-maps.json": {
+      "bytes": 647928,
+      "encoding": "identity",
+      "path": "signature-wrap/adapter-3/initial-original-maps.json",
+      "sha256": "546e09207e3a7e67de1072fc68b2aafda010acdbffc3b22624dff1d0ece50b8b"
+    },
+    "signature-wrap/adapter-3/native-controls/SignatureFieldRefusal.v": {
+      "bytes": 104,
+      "encoding": "identity",
+      "path": "signature-wrap/adapter-3/native-controls/SignatureFieldRefusal.v",
+      "sha256": "9e25e75b2892e5395ca9e4ce602c49995908b8c5ca973ae75d36a1aa6d38185c"
+    },
+    "signature-wrap/adapter-3/native-signature-refusal.stderr.log": {
+      "bytes": 243,
+      "encoding": "identity",
+      "path": "signature-wrap/adapter-3/native-signature-refusal.stderr.log",
+      "sha256": "ab27f6482abae401b01c9f657239e3d530ed2a44400600655e29c11ca231dea0"
+    },
+    "signature-wrap/adapter-3/native-signature-refusal.stdout.log": {
+      "bytes": 0,
+      "encoding": "identity",
+      "path": "signature-wrap/adapter-3/native-signature-refusal.stdout.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "signature-wrap/adapter-3/phase-events.jsonl": {
+      "bytes": 589,
+      "encoding": "identity",
+      "path": "signature-wrap/adapter-3/phase-events.jsonl",
+      "sha256": "22d4d2d46ed93903215450a4cb7fdeae3d70f50f75d0bee96a4b677214d393e4"
+    },
+    "signature-wrap/adapter-3/prelaunch-intent.json": {
+      "bytes": 4183,
+      "encoding": "identity",
+      "path": "signature-wrap/adapter-3/prelaunch-intent.json",
+      "sha256": "2b1e6e4b1c3f06af03d9e675c8a02cb23ca2ca95320b394070bbe7d4cdec0e9d"
+    },
+    "signature-wrap/adapter-3/receipt.json": {
+      "bytes": 16258,
+      "encoding": "identity",
+      "path": "signature-wrap/adapter-3/receipt.json",
+      "sha256": "18eec1a1d11b44ea1222f0f2b7fd1f5d23c7527bf1760a4122040ee6fdafefef"
+    },
+    "signature-wrap/handoff/continuation-checkpoint.json": {
+      "bytes": 12068,
+      "encoding": "identity",
+      "path": "signature-wrap/handoff/continuation-checkpoint.json",
+      "sha256": "915ab53f9cf9f374715bd47de61cc8810cd8f0ad09d8ab18fc049f4da0852052"
+    },
+    "signature-wrap/handoff/control-spec-after-prefix.json": {
+      "bytes": 1525,
+      "encoding": "identity",
+      "path": "signature-wrap/handoff/control-spec-after-prefix.json",
+      "sha256": "5e2aa37274ddcef07f78a8c87b3073344f18e397e3f0037f8afff16148933bf7"
+    },
+    "signature-wrap/selection.json": {
+      "bytes": 10496,
+      "encoding": "identity",
+      "path": "signature-wrap/selection.json",
+      "sha256": "2e6d9875ab9c3c3beff3d4062a4e60940c53e9bad397bdac4ee4fd537ef71f02"
+    }
+  }
+}

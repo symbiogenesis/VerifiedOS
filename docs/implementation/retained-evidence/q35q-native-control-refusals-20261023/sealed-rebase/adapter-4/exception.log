@@ -1,0 +1,7 @@
+Traceback (most recent call last):
+  File "/mnt/c/Users/symbi/AppData/Local/Temp/vos-q35q-9edbbf2478214d1597de8d0bc0996699/fourth.py", line 226, in <module>
+    route['hidden_assumption_audit'](stdout,hidden['symbols'])
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/checklist-20261023-c/tools/ci/sail_support_route.py", line 742, in hidden_assumption_audit
+    raise ValueError("sealed/alias hidden-axiom native control differs from exact expected assumptions")
+ValueError: sealed/alias hidden-axiom native control differs from exact expected assumptions
