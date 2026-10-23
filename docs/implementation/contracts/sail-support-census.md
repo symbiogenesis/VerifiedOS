@@ -321,4 +321,42 @@ remaining 1792.484066608 active seconds. Preserve all four earlier counters and 
 same cumulative sixty-minute ceiling, with no additional time or hosted campaign.
 Repeat the complete unchanged pipeline and stop at its first refusal or this bound.
 
+### Public alias canonicalization
+
+The fifth candidate passes the original three native assays, the complete schema,
+native metadata, resolver domains and 78 raw module readings. Its first object
+alias refuses at `SailStdpp.State_monad.NMap.E.t`: the actual private instantiated
+reference retains that canonical kernel name, while the independently looked-up
+exported canonical is `Stdlib.Structures.OrderedTypeEx.N_as_OT.t`. The private
+signature resolver preserves the former. The distinct, already emitted public
+signature resolver maps both the private canonical and exported user kernel name
+to exactly the exported canonical, which it leaves fixed. Preserve both native
+references, both resolver records and the refused replay. Its 363.172671656 active
+seconds bring cumulative active time to 2160.256768735 seconds.
+
+Every alias must retain its exact private implementation reference and bind its
+alias resolver to the owner's actual instantiated private implementation resolver
+(or the root implementation resolver for a root-owned declaration). Require that
+resolver's exact ID, owner and signature role. Independently select the public
+signature resolver only through the flat exported owner's implementation record,
+with its exact owner and signature role. Its complete finite kernel effects must
+map the private canonical and exported user to the exact independently looked-up
+exported canonical and leave that canonical fixed. Retain actual resolver roots;
+do not invent a root from the public path. A missing, foreign, unrelated or changed
+resolver, endpoint, effect or audit identity refuses. Direct canonical equality
+alone no longer stands in for this native public canonicalization join.
+
+Keep the complete schema/domain checks, original metadata/substitution/descent
+joins, exported native lookup, support allowlist and exact alias assumption audit.
+Focused fixtures must distinguish the private/public resolvers and refuse changes
+to their bindings, effects and reference endpoints. Removing the duplicate schema
+call immediately before the successful full `census` call inside
+`qualify_controls` is permitted; every mutated control still runs the complete
+independent schema and graph checks. This is no cross-call cache.
+
+Commission one sixth adapter/control candidate using only the preceding extension's
+remaining 1429.311394952 active seconds. Preserve all five earlier counters and the
+same cumulative sixty-minute ceiling, with no additional time or hosted campaign.
+Repeat the original complete pipeline and stop at its first refusal or this bound.
+
 The census extension adds 6 h, range 3–9, to Q35q's existing allowance: native grammar/classification 1–3 h, canonical implementation connections 1–3 h, and controls/evidence 1–3 h. The combined item is 10 h, range 5–15. This is a planning estimate for the commissioned scope; unattended hosted runtime and a further unsupported form are excluded. A retained refusal does not close Q35q.
