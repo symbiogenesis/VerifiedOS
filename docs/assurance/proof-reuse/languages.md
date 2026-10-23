@@ -1,6 +1,6 @@
 # Compiler, extraction, checker and ownership proof precedents
 
-This inventory records upstream proof artifacts examined between 2026-09-10 and 2026-09-13, with the bounded CIC literature follow-up dated separately below, the Synth, Encore and Loom records read on 2026-10-02, con-leche read on 2026-10-10, and the functional CHERI Rust and archived MachCSL sources read on 2026-10-12. A mature result can be a strong reference while failing this project's admission conditions. The entries distinguish a theorem in its original semantics, a reusable proof component, and a promising project whose required theorem is absent. No entry discharges a VerifiedOS requirement merely by association.
+This inventory records upstream proof artifacts and their local qualification boundaries. The latest source qualification is dated 2026-10-23; entries identify the inspected editions. A mature result can be a strong reference while failing this project's admission conditions. The entries distinguish a theorem in its original semantics, a reusable proof component, and a promising project whose required theorem is absent. No entry discharges a VerifiedOS requirement merely by association.
 
 The integration baseline is the [implementation checklist](../../implementation/implementation-checklist.md): M1.1/M1.1a/M1.1b and M1.2a are completed compiler investigations, M1.6 is the completed lowering investigation, M6.1a supplies the supervision-tree reference, and M6.2a supplies the admission-path statement artifact. The corresponding target refinements and hardening proofs remain separate work. [AdmissionPath.v](../../../proofs/AdmissionPath.v) expressly distinguishes its closed statement artifacts from an implemented, verified checker; [VerifiedExit.v](../../../tools/bedrock2-lowering/VerifiedExit.v) expressly distinguishes its RV32I measurement from the descriptor derivation over 64-bit words. Those distinctions apply to completed work throughout this inventory.
 
@@ -200,7 +200,7 @@ R-05-020 and the existing machine-logic route remain in force.
 
 #### con-leche: a model-existence proof for an executable Lean checker
 
-**Reading dated 2026-10-10; new release within the monthly window.** Joachim
+**Source qualification: 2026-10-10.** Joachim
 Breitner (Lean FRO), with Claude-assisted implementation and proofs.
 [The FROCON primary account](https://leodemoura.github.io/static/frocon2026/)
 dates publication to 2026-09-10. The inspected edition is

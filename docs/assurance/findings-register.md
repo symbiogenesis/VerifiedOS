@@ -410,11 +410,11 @@ A defect this repository's own work introduced and the same item closed is a `me
 · Disposition: closed, the sentence repaired where it stands and the workflow named beside it; the page and the working rules were carried at the landing and this docstring was not
 · Restates: F-198d
 
-**F-236a** measurement: the document written for an independent reviewer told them this repository has no continuous integration and that a person runs every gate by hand, and the push workflow landed fourteen hours later and repaired the two statements inside the tools lane and not the one outside it
+**F-236a** measurement: the reviewer onramp incorrectly denied the existing CI workflows and described every gate as manually run
 · Raised: S22
 · Disposition: closed, the sentence rewritten to say which of the six commands runs unattended and which do not; F-198a's ground and F-181's disposition rest on the same fact and are reported rather than closed here, being standing findings of other items
 
-**F-236b** measurement: a unit-test header called its properties the only programs exercising the capability instruction surface until a purecap corpus that landed six and a half hours after the sentence was written, and the file was edited three further times over the two days after that landing without the sentence being re-read
+**F-236b** measurement: the `test_cheri_insts.sail` header incorrectly described its properties as the only capability-instruction tests despite the purecap corpus
 · Raised: S22
 · Disposition: closed, the clause deleted and the header stopped at the half that holds
 
@@ -502,7 +502,7 @@ A defect this repository's own work introduced and the same item closed is a `me
 · Raised: S25
 · Disposition: closed, corrected to four
 
-**F-253** measurement: SupervisionTree.v said the design literals are five and listed four, at three sites rather than the two a first pass repaired
+**F-253** measurement: SupervisionTree.v said the design literals are five and listed four at three sites
 · Raised: S25
 · Disposition: closed, corrected at the header, the count block and the each_unit_once comment
 
@@ -510,9 +510,9 @@ A defect this repository's own work introduced and the same item closed is a `me
 · Raised: S25
 · Disposition: standing, the claim verified correct and the label collision disambiguated rather than repaired as a defect
 
-**F-255** method: a stale-claim repair is the act most likely to author a stale claim, this item's own first pass having introduced four false claims of exactly that class and left five co-stated sites standing, all caught by an adversarial read before the commit
+**F-255** method: stale-claim repairs require statement review, illustrated by four corrected factual errors and five co-stated sites requiring alignment
 · Raised: S25
-· Disposition: standing, the four repaired and the five carried; what catches this class is a reader who did not write the repair, which is the same lesson S23 paid for once
+· Disposition: standing, the four corrected and the five aligned; independent statement review addresses this class
 
 **F-265** method: the critique's work-list paragraph counts its open items by class in a sentence no rule reads, a search of tools/vos for "open items are" and "work list" returning no check, so a miscount after a deletion passes every gate
 · Raised: S26
@@ -522,9 +522,9 @@ A defect this repository's own work introduced and the same item closed is a `me
 · Raised: S26
 · Disposition: closed, R-01-002a booking the composition and the line citing the entry in place of the sentence
 
-**F-267** measurement: the lane's first pass wrote four claims the corpus does not say, R-15-172's tax as pools sitting mostly empty where the entry says pooling is forfeited, R-15-173a's prose placed below the r-15-247 span where its anchor sits above it at spec line 2347 against 2354, CJ-VELUS and CJ-HAL as two rows where the crown-jewel inventory carries them as two targets over six rows, and R-06-015a's budget as a budget on the install where the entry declares it per proof over the closure
+**F-267** measurement: four restatements disagreed with their owners: R-15-172 forfeits pooling rather than leaving pools mostly empty; R-15-173a's anchor precedes r-15-247; CJ-VELUS and CJ-HAL are two targets over six inventory rows; and R-06-015a's budget is per proof over the closure
 · Raised: S26
-· Disposition: closed, all four repaired at 4984708 by an adversarial re-read before the wave, the same class S23 and S25 record for a stale-claim repair
+· Disposition: closed, all four corrected against their owners at 4984708
 
 **F-268** owed-act: the reading R-17-048a now schedules at each re-pin act of the CHERI lineage has no dated baseline, no artifact recording which emulators, independent CHERI implementations and re-checking provers are eligible at the current pin, so the first reading at a re-pin act is a survey rather than a diff
 · Raised: S26
