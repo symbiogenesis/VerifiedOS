@@ -895,6 +895,9 @@ _ACTION_DECLARED = Declared("K-115 holds its release and commit against the work
 DEV_TOOL_PROSE = DevTool("the section's paragraphs", (
     Site("Rocq Stdlib's reviewed edition", rf"The reviewed V{_V} edition is",
          (_snap("rocq", "rocq-stdlib"),)),
+    Site("native census Stdlib source archive",
+         rf"\[the exact Stdlib release archive\]\(https://github\.com/coq/stdlib/releases/download/"
+         rf"V{_V}/stdlib-{_V}\.tar\.gz\)", (_snap("rocq", "rocq-stdlib"),)),
     Site("Sail Rocq support library's reviewed release",
          rf"The reviewed release is {_V}, the one paired with the locked Sail: the tag "
          rf"`{_V}`, fetched as \[its release archive\]"

@@ -1854,6 +1854,9 @@ CASES: list[Case] = [
     # the case survives every reviewed bump.
     ("K-118", "a development-tool row stating a release its lock does not fix",
      _first_match(THIRD_PARTY, r"filelock `(\d[^`]*)`", lambda m: f"filelock `{m[1]}.1`")),
+    ("K-118", "the native census Stdlib archive naming a release its lock does not fix",
+     _first_match(THIRD_PARTY, r"stdlib/releases/download/V(\d[^/]*)/",
+                  lambda m: f"stdlib/releases/download/V{m[1]}.1/")),
     # The other direction, which no reader of the record can see: the lock moves and
     # the row it owns stays, a bump without a licence read.
     ("K-118", "a locked Python release its development-tool row does not state",
