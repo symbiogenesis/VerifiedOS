@@ -116,7 +116,12 @@ def _validate(value: object, schema: dict[str, Any], document: dict[str, Any], s
         if properties is not None:
             if schema.get("additionalProperties") is False:
                 _require(not value.keys() - properties.keys(), f"{site}: unexpected native member")
-            for name in value.keys() & properties.keys():
+            # Reject a mismatched constructor before traversing its shared
+            # recursive members. All compatible members still validate, with
+            # lexical order within each group independent of dictionary hashes.
+            names = sorted(value.keys() & properties.keys(), key=lambda name: (
+                "const" not in properties[name] and "enum" not in properties[name], name))
+            for name in names:
                 _validate(value[name], properties[name], document, site + "." + name)
     if isinstance(value, list):
         _require(len(value) >= schema.get("minItems", 0), f"{site}: incomplete native array")

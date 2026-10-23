@@ -87,6 +87,31 @@ def _json_values() -> list[object]:
             {"value": 1}, {"value": 1.0}, {"a": 1, "b": [True, None]}, {"b": [True, None], "a": 1}]
 
 
+def _recursive_schema() -> dict[str, Any]:
+    branches: list[dict[str, Any]] = []
+    for tag in ("A", "B"):
+        # The recursive member sorts before the discriminators alphabetically.
+        # Both constructors deliberately share every other member and constraint.
+        properties = {"a_child": {"$ref": "#/$defs/node"}, "alpha": {"type": "integer"},
+                      "mode": {"enum": ["native"]}, "tag": {"const": tag} if tag == "A" else {"enum": [tag]},
+                      "zeta": {"type": "boolean"}}
+        branches.append({"type": "object", "additionalProperties": False,
+                         "required": list(properties), "properties": properties})
+    branches.append({"type": "object", "additionalProperties": False,
+                     "required": ["tag", "mode", "payload"], "properties": {
+                         "tag": {"const": "Leaf"}, "mode": {"enum": ["native"]},
+                         "payload": {"type": "string", "minLength": 1}}})
+    return {"$ref": "#/$defs/node", "$defs": {"node": {"oneOf": branches}}}
+
+
+def _recursive_value(depth: int) -> dict[str, Any]:
+    value: dict[str, Any] = {"payload": "λ雪", "tag": "Leaf", "mode": "native"}
+    for index in range(depth):
+        value = {"a_child": value, "alpha": 0, "mode": "native",
+                 "tag": "A" if index % 2 == 0 else "B", "zeta": False}
+    return value
+
+
 def _fixture(root: str = "Root") -> tuple[dict[str, Any], dict[str, str], dict[str, str]]:
     metadata = cast("dict[str, Any]", _example(_SCHEMA["$defs"]["constant_metadata"]))
     metadata.update(type={"tag": "Sort", "sort": {"tag": "Prop"}}, body_kind="Undef",
@@ -569,6 +594,105 @@ class SailSupportCensusTests(unittest.TestCase):
             for value in values:
                 self.assertEqual(_ADAPTER["_has_type"](value, kind), oracle.is_valid(value), (value, kind))
 
+    def test_schema_discriminator_traversal_is_deterministic_and_bounds_recursive_calls(self) -> None:
+        validate = _ADAPTER["validate_schema"]
+        namespace = validate.__globals__
+        original = namespace["_validate"]
+        observed: list[str] = []
+        root_members: set[int] = set()
+        root_order: list[str] = []
+        bound = 16 * 19
+        def counted(value: object, schema: dict[str, Any], document: dict[str, Any], site: str) -> None:
+            observed.append(site)
+            if site.count(".") == 1 and id(schema) in root_members:
+                root_order.append(site)
+            self.assertLessEqual(len(observed), bound, "wrong constructor recursively revisits shared children")
+            original(value, schema, document, site)
+        with patch.dict(namespace, {"_validate": counted}):
+            validate(_recursive_value(18), schema=_recursive_schema())
+        self.assertGreater(len(observed), 18, "compatible constructors must validate their descendants")
+        definition, value = _recursive_schema(), _recursive_value(3)
+        expected = ["census.mode", "census.tag", "census.a_child", "census.alpha", "census.zeta",
+                    "census.mode", "census.tag"]
+        # Every property insertion order, including reverse-built input objects,
+        # must yield this same trace despite hash-dependent set iteration.
+        for order, reverse in product(permutations(definition["$defs"]["node"]["oneOf"][0]["properties"]), (False, True)):
+            candidate = copy.deepcopy(definition)
+            for branch in candidate["$defs"]["node"]["oneOf"][:2]:
+                branch["properties"] = {name: branch["properties"][name] for name in order}
+            root_members = {id(member) for branch in candidate["$defs"]["node"]["oneOf"][:2]
+                            for member in branch["properties"].values()}
+            item = dict(reversed(list(value.items()))) if reverse else dict(value)
+            observed.clear()
+            root_order.clear()
+            with patch.dict(namespace, {"_validate": counted}):
+                validate(item, schema=candidate)
+            self.assertEqual(root_order, expected)
+
+    def test_schema_discriminator_rejection_preserves_all_branch_constraints_and_draft_verdicts(self) -> None:
+        definition, value = _recursive_schema(), _recursive_value(4)
+        oracle = Draft202012Validator(definition)
+        fixtures = [value]
+        for name, replacement in (("tag", "Unknown"), ("mode", "wrong"), ("alpha", True), ("a_child", [])):
+            candidate = copy.deepcopy(value)
+            candidate["a_child"]["a_child"][name] = replacement
+            fixtures.append(candidate)
+        candidate = copy.deepcopy(value)
+        candidate["a_child"]["a_child"]["a_child"]["a_child"]["payload"] = ""
+        fixtures.append(candidate)
+        candidate = copy.deepcopy(value)
+        del candidate["a_child"]["alpha"]
+        fixtures.append(candidate)
+        candidate = copy.deepcopy(value)
+        candidate["a_child"]["unexpected"] = True
+        fixtures.append(candidate)
+        for index, fixture in enumerate(fixtures):
+            with self.subTest(index=index):
+                try:
+                    _ADAPTER["validate_schema"](fixture, schema=definition)
+                except ValueError:
+                    accepted = False
+                else:
+                    accepted = True
+                self.assertEqual(accepted, oracle.is_valid(fixture))
+                self.assertEqual(accepted, index == 0)
+        validate = _ADAPTER["validate_schema"]
+        namespace = validate.__globals__
+        original = namespace["_validate"]
+        observed: list[str] = []
+        def trace(value: object, schema: dict[str, Any], document: dict[str, Any], site: str) -> None:
+            observed.append(site)
+            original(value, schema, document, site)
+        branch = {**definition["$defs"]["node"]["oneOf"][0], "$defs": definition["$defs"]}
+        incompatible = _recursive_value(2)  # B at the root; this branch requires A.
+        with patch.dict(namespace, {"_validate": trace}), self.assertRaisesRegex(ValueError, "unexpected constant"):
+            validate(incompatible, schema=branch)
+        self.assertEqual(observed, ["census", "census.mode", "census.tag"])
+        compatible = _recursive_value(1)
+        compatible["a_child"]["payload"] = ""
+        observed.clear()
+        with patch.dict(namespace, {"_validate": trace}), self.assertRaises(ValueError):
+            validate(compatible, schema=branch)
+        self.assertIn("census.a_child.payload", observed)
+        for keyword in ("oneOf", "anyOf"):
+            candidate = _recursive_schema()
+            first, _, leaf = candidate["$defs"]["node"].pop("oneOf")
+            candidate["$defs"]["node"][keyword] = [first, copy.deepcopy(first), leaf]
+            observed.clear()
+            with patch.dict(namespace, {"_validate": trace}):
+                try:
+                    validate(_recursive_value(1), schema=candidate)
+                except ValueError:
+                    accepted = False
+                else:
+                    accepted = True
+            self.assertEqual(accepted, keyword == "anyOf")
+            self.assertEqual(accepted, Draft202012Validator(candidate).is_valid(_recursive_value(1)))
+            self.assertEqual(observed.count("census.a_child.payload"), 2, "every compatible branch must still be validated")
+        for reference in ("#/unknown/node", "#/$defs/missing"):
+            with self.assertRaisesRegex(ValueError, "unsupported census schema reference"):
+                validate(value, schema={**definition, "$ref": reference})
+
     def test_control_replay_uses_three_complete_roots_and_distinguishes_adapter_evidence(self) -> None:
         value, searches, readings = _controls_fixture()
         report = _ADAPTER["qualify_controls"](value, searches, readings)
@@ -968,6 +1092,8 @@ def cases() -> list[Case]:
             Case("stdlib-schema-reader-agrees-with-draft202012-oracle", checks.test_schema_reader_matches_draft202012_on_positive_and_corruptions),
             Case("schema-literals-preserve-exact-canonical-json-equality", checks.test_schema_literals_preserve_exact_canonical_json_equality),
             Case("schema-type-dispatch-matches-original-and-draft-rules", checks.test_schema_type_dispatch_matches_original_rules_and_draft_oracle),
+            Case("schema-discriminators-precede-recursion-in-deterministic-bounded-traversal", checks.test_schema_discriminator_traversal_is_deterministic_and_bounds_recursive_calls),
+            Case("schema-discriminators-preserve-full-branch-constraints-and-draft-verdicts", checks.test_schema_discriminator_rejection_preserves_all_branch_constraints_and_draft_verdicts),
             Case("control-replay-retains-three-roots-and-adapter-refusal-boundary", checks.test_control_replay_uses_three_complete_roots_and_distinguishes_adapter_evidence),
             Case("control-mutations-share-native-evidence-and-match-whole-copy-refusals", checks.test_control_mutations_share_untouched_evidence_and_match_whole_copy_refusals),
             Case("body-footprint-rank-order-equals-former-subsequence-predicate", checks.test_rank_order_matches_former_subsequence_predicate_exhaustively),
