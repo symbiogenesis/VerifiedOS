@@ -18,12 +18,17 @@ to the same bytes it always did. Each reviewed member binds its own source and e
 image bytes; adding a member cannot rerecord an old image.
 """
 
+import argparse
+import io
 import tempfile
+from contextlib import redirect_stderr
 from pathlib import Path
 from typing import Final
+from unittest.mock import patch
 
 from tests.harness import Case, ensure
-from vos import asm, compose, corpus, corpus_images, freezeschema
+from vos import asm, compose, corpus, corpus_images, env, freezeschema
+from vos.cli import model as model_cli
 
 _ROOT: Final[Path] = corpus.find_root(Path(__file__).resolve())
 
@@ -119,6 +124,52 @@ def _geometry_is_a_parameter() -> None:
            f"a wider bundle carries the same sites in fewer of them, got {seen}")
 
 
+def _invalid_geometry_is_refused() -> None:
+    for header, slots, width, message in (
+        (0, 7, 16, "header must be a positive integer"),
+        (16, 0, 16, "slots must be a positive integer"),
+        (16, 7, 0, "width must be a positive integer"),
+        (-1, 7, 16, "header must be a positive integer"),
+        (16, -1, 16, "slots must be a positive integer"),
+        (16, 7, -1, "width must be a positive integer"),
+        (6, 7, 16, "header needs one escape-start bit per slot"),
+        (16, 1, 16, "verbatim instruction must fit within one bundle"),
+        (16, 3, 8, "verbatim instruction must fit within one bundle"),
+    ):
+        try:
+            compose.Geometry(header=header, slots=slots, width=width)
+        except ValueError as error:
+            ensure(message in str(error), f"unhelpful geometry diagnostic: {error}")
+        else:
+            raise AssertionError(f"invalid geometry was accepted: {(header, slots, width)}")
+
+
+def _exploratory_widths_still_pack() -> None:
+    for width, slots in ((8, 4), (12, 3), (32, 1), (64, 1)):
+        geometry = compose.Geometry(header=slots, slots=slots, width=width)
+        composed = _compose(4, geometry)
+        ensure(composed.placed[0].bundle == 0,
+               "the first escape should fit in the first bundle")
+        ensure(all(row.slot + geometry.escape_slots <= slots for row in composed.placed),
+               f"an escape ran past its bundle at width {width}")
+        ensure(geometry.escape_slots * width >= compose.CANONICAL_BITS,
+               f"an escape lost canonical bits at width {width}")
+
+
+def _freeze_cli_refuses_geometry_before_loading_inputs() -> None:
+    environment = env.Environment(_ROOT, _ROOT / "model", _ROOT, _ROOT,
+                                  "geometry-test", 1, 0, 1, 1)
+    for header, slots, width in ((16, 7, 0), (16, 1, 16), (6, 7, 16)):
+        args = argparse.Namespace(header=header, slots=slots, width=width)
+        error = io.StringIO()
+        with patch.object(model_cli.differential, "load",
+                          side_effect=AssertionError("invalid geometry must not load the corpus")), \
+                redirect_stderr(error):
+            code = model_cli.cmd_freeze_emit(environment, args)
+        ensure(code == 1 and "FAIL freeze-emit:" in error.getvalue(),
+               f"invalid geometry must produce a CLI refusal, got {code}: {error.getvalue()}")
+
+
 def _emitted_files_are_the_declared_ones() -> None:
     composed = _compose(3)
     with tempfile.TemporaryDirectory() as scratch:
@@ -143,6 +194,9 @@ def cases() -> list[Case]:
         Case("empty-dictionary-is-all-escapes", _empty_dictionary_is_all_escapes),
         Case("a-dictionary-is-a-parameter", _a_dictionary_is_a_parameter),
         Case("geometry-is-a-parameter", _geometry_is_a_parameter),
+        Case("invalid-geometry-is-refused", _invalid_geometry_is_refused),
+        Case("exploratory-widths-still-pack", _exploratory_widths_still_pack),
+        Case("freeze-cli-refuses-invalid-geometry", _freeze_cli_refuses_geometry_before_loading_inputs),
         Case("emitted-files-are-the-declared-ones", _emitted_files_are_the_declared_ones),
         Case("corpus-images-have-not-moved", _corpus_images_have_not_moved),
     ]

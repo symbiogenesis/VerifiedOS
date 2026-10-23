@@ -66,6 +66,15 @@ class Geometry:
     slots: int = 7
     width: int = 16
 
+    def __post_init__(self) -> None:
+        for name, value in (("header", self.header), ("slots", self.slots), ("width", self.width)):
+            if type(value) is not int or value <= 0:
+                raise ValueError(f"bundle {name} must be a positive integer")
+        if self.header < self.slots:
+            raise ValueError("bundle header needs one escape-start bit per slot")
+        if self.escape_slots > self.slots:
+            raise ValueError("a verbatim instruction must fit within one bundle")
+
     @property
     def bits(self) -> int:
         return self.header + self.slots * self.width
