@@ -163,8 +163,15 @@ def download(entry: dict[str, Any], target: Path) -> None:
 
 
 def same_closure(actual: list[dict[str, str]], expected: dict[str, str]) -> None:
-    if {row["name"]: row["version"] for row in actual} != expected or any(row["pin"] for row in actual):
+    if (len(actual) != len(expected) or {row["name"]: row["version"] for row in actual} != expected
+            or any(row["pin"] for row in actual)):
         raise ValueError("installed dependency closure differs from reviewed versions")
+
+
+def expected_closure(side: Path, found: dict[str, Any]) -> dict[str, str]:
+    expected = dict(package.split(".", 1) for package in compiler_component.installed(
+        asset(side, found["base_lock"]).read_text(encoding="utf-8")))
+    return expected | {"rocq-stdpp-bitvector": "1.13.0", "rocq-sail-stdpp": "0.20.3"}
 
 
 def kernel_reading(code: int, stdout: str, stderr: str, expected: list[str]) -> list[str]:
@@ -214,42 +221,58 @@ class Campaign:
     def run(self, label: str, argv: list[str], cwd: Path, *, strict: bool = False,
             timeout: int = 10800, refusal: bool = False) -> subprocess.CompletedProcess[str]:
         start = time.monotonic()
-        with subprocess.Popen(argv, cwd=cwd, env=self.environment, stdin=subprocess.DEVNULL,
-                              stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
-                              encoding="utf-8", errors="replace", start_new_session=sys.platform == "linux") as process:
-            limited = False
-            try:
-                stdout, stderr = process.communicate(timeout=timeout)
-            except subprocess.TimeoutExpired:
-                limited = True
-                if sys.platform == "linux":
-                    os.killpg(process.pid, signal.SIGTERM)
-                else:
-                    process.terminate()
-                try:
-                    stdout, stderr = process.communicate(timeout=60)
-                except subprocess.TimeoutExpired:
-                    if sys.platform == "linux":
-                        os.killpg(process.pid, signal.SIGKILL)
-                    else:
-                        process.kill()
-                    stdout, stderr = process.communicate()
-            result = subprocess.CompletedProcess(argv, 124 if limited else process.returncode, stdout, stderr)
-        log = self.upload / (label + ".log")
-        log.write_text(result.stdout + result.stderr, encoding="utf-8", newline="")
-        streams: dict[str, dict[str, str]] = {}
-        for name, value in (("stdout", result.stdout), ("stderr", result.stderr)):
-            retained = self.upload / (label + "." + name + ".log")
-            retained.write_text(value, encoding="utf-8", newline="")
-            streams[name] = {"path": retained.name, "sha256": receipts.digest(retained)}
-        self.report["commands"].append({"label": label, "argv": argv, "cwd": str(cwd),
-            "exit": result.returncode, "seconds": time.monotonic() - start,
-            "log": log.name, "log_sha256": receipts.digest(log), "strict": strict,
-            "timed_out": limited, "streams": streams, "expected_refusal": refusal,
-            "native_environment": {name: self.environment[name] for name in
-                ("VOS_CENSUS_MODE", "VOS_CENSUS_TARGETS", "VOS_CENSUS_RESOLVE", "OCAMLPATH")
-                if name in self.environment}})
+        record: dict[str, Any] = {"label": label, "argv": argv, "cwd": str(cwd), "status": "pending",
+            "process_completed": False, "exit": None, "strict": strict, "timed_out": False,
+            "expected_refusal": refusal, "native_environment": {name: self.environment[name] for name in
+                ("OPAMROOT", "OPAMSWITCH", "OPAM_SWITCH_PREFIX", "VOS_CENSUS_MODE", "VOS_CENSUS_TARGETS",
+                 "VOS_CENSUS_RESOLVE", "OCAMLPATH") if name in self.environment}}
+        self.report["commands"].append(record)
         self.save()
+        launched = False
+        completed = False
+        try:
+            with subprocess.Popen(argv, cwd=cwd, env=self.environment, stdin=subprocess.DEVNULL,
+                                  stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
+                                  encoding="utf-8", errors="replace", start_new_session=sys.platform == "linux") as process:
+                launched = True
+                limited = False
+                try:
+                    stdout, stderr = process.communicate(timeout=timeout)
+                except subprocess.TimeoutExpired:
+                    limited = True
+                    if sys.platform == "linux":
+                        os.killpg(process.pid, signal.SIGTERM)
+                    else:
+                        process.terminate()
+                    try:
+                        stdout, stderr = process.communicate(timeout=60)
+                    except subprocess.TimeoutExpired:
+                        if sys.platform == "linux":
+                            os.killpg(process.pid, signal.SIGKILL)
+                        else:
+                            process.kill()
+                        stdout, stderr = process.communicate()
+                result = subprocess.CompletedProcess(argv, 124 if limited else process.returncode, stdout, stderr)
+            completed = True
+            record.update(status="timed-out" if limited else "completed", process_completed=completed,
+                          exit=result.returncode, timed_out=limited)
+            log = self.upload / (label + ".log")
+            log.write_text(result.stdout + result.stderr, encoding="utf-8", newline="")
+            streams: dict[str, dict[str, str]] = {}
+            for name, value in (("stdout", result.stdout), ("stderr", result.stderr)):
+                retained = self.upload / (label + "." + name + ".log")
+                retained.write_text(value, encoding="utf-8", newline="")
+                streams[name] = {"path": retained.name, "sha256": receipts.digest(retained)}
+            record.update(seconds=time.monotonic() - start, log=log.name,
+                          log_sha256=receipts.digest(log), streams=streams)
+            self.save()
+        except BaseException as error:
+            status = ("interrupted" if not isinstance(error, Exception) else
+                      "recording-error" if completed else "execution-error" if launched else "launch-error")
+            record.update(status=status, seconds=time.monotonic() - start,
+                          error_type=type(error).__name__, error=str(error))
+            self.save()
+            raise
         if (limited or (result.returncode != 1 if refusal else result.returncode != 0)
                 or (strict and (result.stdout.strip() or result.stderr.strip()))):
             raise ValueError("command failed or strict diagnostic: " + label)
@@ -547,6 +570,8 @@ def publish_native_qualification(campaign: Campaign, modules: list[str], roots: 
         "recipe_sha256": receipts.digest(campaign.side / RECIPE), "sources": native_sources(campaign.side),
         "protected_roots": [str(root.resolve(strict=True)) for root in roots],
         "load_paths": campaign.report["native_load_paths"],
+        "opam_context": {"root": campaign.environment["OPAMROOT"], "switch": campaign.environment["OPAMSWITCH"],
+                         "prefix": campaign.environment["OPAM_SWITCH_PREFIX"]},
         "runtime_before": campaign.report["native_runtime_before"], "runtime_after": runtime,
         "runner": {"platform": platform.platform(), "machine": platform.machine(), "python": sys.version,
             "image_os": image["ImageOS"], "image_version": image["ImageVersion"]},
@@ -617,12 +642,21 @@ def validate_native_qualification(artifact_root: Path, side: Path, revision: str
         if (not isinstance(launcher.get("sha256"), str) or SHA256.fullmatch(launcher["sha256"]) is None
                 or (name != "python" and before.get(launcher["path"]) != launcher["sha256"])):
             raise ValueError("native launcher identity differs from protected inputs")
+    opam = row.get("opam_context")
+    if (not isinstance(opam, dict) or set(opam) != {"root", "switch", "prefix"} or opam["switch"] != SWITCH
+            or native_path(opam["prefix"]) != (PurePosixPath(native_path(opam["root"])) / SWITCH).as_posix()
+            or any(runtime[name]["path"] != (PurePosixPath(opam["prefix"]) / "bin" / name).as_posix()
+                   for name in ("rocq", "rocqchk", "ocamlfind", "ocamlopt"))):
+        raise ValueError("native opam context does not select the hashed switch launchers")
+    expected_opam_environment = {variable: opam[key] for variable, key in
+        (("OPAMROOT", "root"), ("OPAMSWITCH", "switch"), ("OPAM_SWITCH_PREFIX", "prefix"))}
     commands: dict[str, dict[str, Any]] = {}
     streams: dict[str, tuple[str, str]] = {}
     native_refusals = {"native-" + name + "-refusal": entry for name, entry in spec["refusals"].items()}
     for command in row["commands"]:
         label = command["label"]
-        if label in commands or command.get("timed_out") is not False:
+        if (label in commands or command.get("timed_out") is not False or command.get("status") != "completed"
+                or command.get("process_completed") is not True):
             raise ValueError("native qualification repeats a command or records an unfinished launch")
         commands[label] = command
         streams[label] = command_streams(artifact_root, command)
@@ -643,7 +677,7 @@ def validate_native_qualification(artifact_root: Path, side: Path, revision: str
             if label not in native_refusals and streams[label][1].strip():
                 raise ValueError("native query printed a diagnostic")
     required = {"native-plugin-build", "native-control-compile", "support-native-census", "control-native-census",
-        "native-hidden-assumptions", *native_refusals,
+        "native-hidden-assumptions", "closure", *native_refusals,
         *(label + str(index) for index in range(29) for label in ("strict-", "inventory-", "assumptions-", "alias-assumptions-")),
         *("kernel-" + name for name in ("support", "term", "eqdep", "real", "notation")),
         *("probe-compile-" + name for name in ("term", "eqdep", "real", "notation"))}
@@ -671,7 +705,20 @@ def validate_native_qualification(artifact_root: Path, side: Path, revision: str
             raise ValueError("native command does not use its protected locked executable route")
         if not all(isinstance(part, str) for part in argv):
             raise TypeError("native executable arguments must be strings")
+        check_opam_environment(command)
         return cast("list[str]", argv[4:])
+
+    def check_opam_environment(command: dict[str, Any]) -> None:
+        environment = command.get("native_environment", {})
+        if any(environment.get(variable) != value for variable, value in expected_opam_environment.items()):
+            raise ValueError("native command selected a different opam root/switch")
+
+    closure = commands["closure"]
+    check_opam_environment(closure)
+    if closure["argv"] != [runtime["opam"]["path"], "list", "--switch=" + SWITCH, "--installed",
+                           "--short", "--columns=name,version,pin", "--color=never"]:
+        raise ValueError("native closure command changed the selected package inventory")
+    same_closure(bootstrap_instrument.parse_closure(streams["closure"][0]), expected_closure(side, found))
 
     for index, module in enumerate(modules):
         source = (PurePosixPath(support_map[11]) / (module.rsplit(".", 1)[-1] + ".v")).as_posix()
@@ -865,13 +912,11 @@ def qualify(campaign: Campaign, found: dict[str, Any], imported: Path | None) ->
                                                  "rocq-sail-stdpp.0.20.3", "-y"])
     campaign.opam("invariant", ["switch", "set-invariant", "--switch=" + SWITCH,
                                "ocaml-base-compiler.5.4.1", "-y"])
+    campaign.environment.update(OPAMSWITCH=SWITCH, OPAM_SWITCH_PREFIX=str(root / "opam" / SWITCH))
     listed = campaign.opam("closure", ["list", "--switch=" + SWITCH, "--installed", "--short",
                                       "--columns=name,version,pin", "--color=never"])
     closure = bootstrap_instrument.parse_closure(listed.stdout)
-    expected_closure = dict(package.split(".", 1) for package in compiler_component.installed(
-        base_lock.read_text(encoding="utf-8")))
-    expected_closure.update({"rocq-stdpp-bitvector": "1.13.0", "rocq-sail-stdpp": "0.20.3"})
-    same_closure(closure, expected_closure)
+    same_closure(closure, expected_closure(side, found))
     campaign.report["installed_closure"] = closure
     archive = root / "support.tar.gz"
     download(found["source"], archive)

@@ -5,6 +5,7 @@ import hashlib
 import io
 import json
 import re
+import shutil
 import subprocess
 import tarfile
 import tempfile
@@ -72,6 +73,7 @@ def archive_guards() -> None:
 def closure_and_portability() -> None:
     actual = [{"name": "rocq-core", "version": "9.3.0", "pin": ""}]
     route.same_closure(actual, {"rocq-core": "9.3.0"})
+    refuses(lambda: route.same_closure([*actual, *actual], {"rocq-core": "9.3.0"}))
     refuses(lambda: route.same_closure(actual, {"rocq-core": "9.2.0"}))
     refuses(lambda: route.same_closure([actual[0] | {"pin": "main"}], {"rocq-core": "9.3.0"}))
     patch_bytes = b"immutable patch"
@@ -318,6 +320,39 @@ def hidden_alias_control_contexts() -> None:
     refuses(lambda: route.hidden_assumption_audit("".join([*blocks, blocks[1]]), expected))
 
 
+def command_intent_and_interruption() -> None:
+    with tempfile.TemporaryDirectory(prefix="vos-sail-command-intent-") as directory:
+        root = Path(directory)
+        side = root / "side"
+        (side / "tools/opam").mkdir(parents=True)
+        (side / route.RECIPE).write_text('{}', encoding="utf-8")
+        with patch.dict(route.os.environ, {"TESTED_REVISION": "a" * 40, "GITHUB_SHA": "a" * 40}):
+            campaign = route.Campaign(root / "campaign", side, "build")
+
+            def failed_launch(*_args: object, **_kwargs: object) -> None:
+                command = route.load(campaign.upload / "receipt.json")["commands"][-1]
+                ensure(command["status"] == "pending" and command["exit"] is None
+                       and command["process_completed"] is False, "intent reaches disk before Popen")
+                raise OSError("mocked launcher failure")
+
+            with patch.object(subprocess, "Popen", side_effect=failed_launch):
+                refuses(lambda: campaign.run("launch-failure", ["fixture"], root))
+            command = route.load(campaign.upload / "receipt.json")["commands"][-1]
+            ensure(command["status"] == "launch-error" and command["exit"] is None
+                   and command["process_completed"] is False, "failed launch supplies no successful exit")
+            with patch.object(subprocess, "Popen") as launched:
+                launched.return_value.__enter__.return_value.communicate.side_effect = KeyboardInterrupt
+                try:
+                    campaign.run("interrupted", ["fixture"], root)
+                except KeyboardInterrupt:
+                    pass
+                else:
+                    raise AssertionError("interruption was swallowed")
+            command = route.load(campaign.upload / "receipt.json")["commands"][-1]
+            ensure(command["status"] == "interrupted" and command["exit"] is None
+                   and command["process_completed"] is False, "interrupted command cannot inherit passing evidence")
+
+
 def standalone_native_replay() -> None:
     """Exercise complete route joins over fixtures; this supplies no native qualification."""
     with tempfile.TemporaryDirectory(prefix="vos-native-replay-") as directory:
@@ -327,6 +362,7 @@ def standalone_native_replay() -> None:
         (side / "tools/rocq-census").mkdir()
         artifact.mkdir()
         route.write(side / route.RECIPE, {})
+        shutil.copy2(route.TOOLS / "opam/rocq.lock", side / "tools/opam/rocq.lock")
         control_source = side / "tools/rocq-census"
         for name in ("SignatureFieldRefusal.v", "UnsupportedShapeRefusal.v", "HiddenAssumptions.v"):
             (control_source / name).write_text("(* " + name + " fixture *)\n", encoding="utf-8")
@@ -340,8 +376,10 @@ def standalone_native_replay() -> None:
         before = {name + "/.": "a" * 64 for name in [*protected, *[support_map[i] for i in (2, 5, 8)]]}
         before.update({"/host/bin/opam": "a" * 64, "/host/plugin/native.cmxs": "d" * 64,
             "/host/plugin/vos_rocq_census.ml": "b" * 64, "/host/controls/CensusControls.v": "c" * 64})
-        runtime = {name: {"path": "/host/bin/" + name, "resolved_path": "/host/bin/" + name, "sha256": "a" * 64}
-                   for name in ("opam", "rocq", "rocqchk", "ocamlfind", "ocamlopt")}
+        opam = {"root": "/host/opam", "switch": route.SWITCH, "prefix": "/host/opam/" + route.SWITCH}
+        runtime = {name: {"path": opam["prefix"] + "/bin/" + name, "resolved_path": opam["prefix"] + "/bin/" + name, "sha256": "a" * 64}
+                   for name in ("rocq", "rocqchk", "ocamlfind", "ocamlopt")}
+        runtime["opam"] = {"path": "/host/bin/opam", "resolved_path": "/host/bin/opam", "sha256": "a" * 64}
         before.update({entry["path"]: entry["sha256"] for entry in runtime.values()})
         runtime["python"] = {"path": "/host/python", "resolved_path": "/host/python", "sha256": "e" * 64}
         before.update({"/host/support/" + module.rsplit(".", 1)[-1] + ".v": "a" * 64 for module in modules})
@@ -355,7 +393,7 @@ def standalone_native_replay() -> None:
                 {"name": "CensusControls." + kind + ".witness", "expected_axioms": ["CensusControls.HiddenImplementation.hidden_control_axiom"]}
                 for kind in ("HiddenSealed", "HiddenAlias")]}}
         found = {"support_modules": [module.removeprefix("SailStdpp.") for module in modules], "support_axioms": [],
-                 "probes": {}}
+                 "probes": {}, "base_lock": {"path": "tools/opam/rocq.lock", "sha256": route.receipts.digest(side / "tools/opam/rocq.lock")}}
         for name in ("term", "eqdep", "real", "notation"):
             source = side / (name + ".v")
             source.write_text("(* " + name + " *)", encoding="utf-8")
@@ -365,10 +403,13 @@ def standalone_native_replay() -> None:
 
         def add(label: str, tail: list[str], stdout: str = "", stderr: str = "", *,
                 text: str | None = None, environment: dict[str, str] | None = None,
-                refusal: bool = False, strict: bool = False) -> None:
-            command: dict[str, object] = {"label": label, "argv": ["/host/bin/opam", "exec", "--switch=" + route.SWITCH,
-                "--", *tail], "exit": 1 if refusal else 0, "timed_out": False, "expected_refusal": refusal,
-                "strict": strict, "native_environment": {"OCAMLPATH": "/host/plugin:/host/lib:", **(environment or {})}}
+                refusal: bool = False, strict: bool = False, direct: bool = False) -> None:
+            command: dict[str, object] = {"label": label, "argv": ["/host/bin/opam",
+                *([] if direct else ["exec", "--switch=" + route.SWITCH, "--"]), *tail],
+                "exit": 1 if refusal else 0, "timed_out": False, "expected_refusal": refusal,
+                "status": "completed", "process_completed": True,
+                "strict": strict, "native_environment": {"OCAMLPATH": "/host/plugin:/host/lib:",
+                    "OPAMROOT": opam["root"], "OPAMSWITCH": opam["switch"], "OPAM_SWITCH_PREFIX": opam["prefix"], **(environment or {})}}
             for name, value in (("stdout", stdout), ("stderr", stderr), ("combined", stdout + stderr)):
                 (artifact / (label + "." + name + ".log")).write_text(value, encoding="utf-8")
             command["log"] = label + ".combined.log"
@@ -403,6 +444,9 @@ def standalone_native_replay() -> None:
         api = SimpleNamespace(census=classify, parse_search_requests=requests,
             reading_targets=lambda metadata: [("module", module) for module in metadata["requested_roots"]],
             qualify_controls=lambda *_args: deepcopy(control_report))
+        closure_text = "".join(name + " " + version + "\n" for name, version in sorted(route.expected_closure(side, found).items()))
+        add("closure", ["list", "--switch=" + route.SWITCH, "--installed", "--short", "--columns=name,version,pin", "--color=never"],
+            stdout=closure_text, direct=True)
         add("native-plugin-build", ["ocamlfind", "ocamlopt", "-rectypes", "-thread", "-shared", "-package",
             "rocq-runtime.vernac", "-w", "+8", "-warn-error", "+8", "-o", "/host/plugin/native.cmxs", "/host/plugin/vos_rocq_census.ml"])
         add("native-control-compile", ["rocq", "c", *support_map, *paths["controls"], *route.STRICT, "/host/controls/CensusControls.v"], strict=True)
@@ -462,6 +506,7 @@ def standalone_native_replay() -> None:
             "dispatch_revision": "a" * 40, "run_id": "1", "run_attempt": "2", "recipe_sha256": route.receipts.digest(side / route.RECIPE),
             "sources": sources, "modules": modules, "protected_roots": protected, "load_paths": paths, "commands": commands,
             "runtime_before": runtime, "runtime_after": deepcopy(runtime),
+            "opam_context": opam,
             "runner": {"platform": "fixture", "machine": "fixture", "python": "fixture"},
             "environment_boundary": route.ENVIRONMENT_BOUNDARY,
             "evidence": {path.name: {"sha256": route.receipts.digest(path), "bytes": path.stat().st_size} for path in artifact.iterdir()}}
@@ -474,6 +519,12 @@ def standalone_native_replay() -> None:
             mutations = [lambda row: row["modules"].pop(), lambda row: row["commands"].pop(),
                 lambda row: row.update(run_id="3"), lambda row: row["sources"].update(foreign="a" * 64),
                 lambda row: row["runtime_after"]["python"].update(sha256="f" * 64),
+                lambda row: next(cmd for cmd in row["commands"] if cmd["label"] == "kernel-support").update(status="pending"),
+                lambda row: next(cmd for cmd in row["commands"] if cmd["label"] == "kernel-support").update(process_completed=False),
+                lambda row: next(cmd for cmd in row["commands"] if cmd["label"] == "kernel-support")["native_environment"].update(OPAMROOT="/foreign/opam"),
+                lambda row: next(cmd for cmd in row["commands"] if cmd["label"] == "kernel-support")["native_environment"].update(OPAMSWITCH="foreign"),
+                lambda row: row.update(commands=[cmd for cmd in row["commands"] if cmd["label"] != "closure"]),
+                lambda row: next(cmd for cmd in row["commands"] if cmd["label"] == "closure")["argv"].append("foreign"),
                 lambda row: next(cmd for cmd in row["commands"] if cmd["label"] == "kernel-support")["argv"].pop(),
                 lambda row: next(cmd for cmd in row["commands"] if cmd["label"] == "support-native-census")["native_environment"].update(VOS_CENSUS_TARGETS="foreign"),
                 lambda row: next(cmd for cmd in row["commands"] if cmd["label"] == "inventory-0").pop("query_source"),
@@ -502,6 +553,19 @@ def standalone_native_replay() -> None:
             refuses(lambda: route.validate_native_qualification(artifact, side, "a" * 40))
             for name, data in original_bytes.items():
                 (artifact / name).write_bytes(data)
+            altered = deepcopy(record)
+            closure_command = next(cmd for cmd in altered["commands"] if cmd["label"] == "closure")
+            closure_files = [closure_command["streams"]["stdout"]["path"], closure_command["log"]]
+            original_bytes = {name: (artifact / name).read_bytes() for name in closure_files}
+            for name in closure_files:
+                (artifact / name).write_text(closure_text.replace("rocq-sail-stdpp 0.20.3", "rocq-sail-stdpp 0.20.2"), encoding="utf-8")
+                altered["evidence"][name] = {"sha256": route.receipts.digest(artifact / name), "bytes": (artifact / name).stat().st_size}
+            closure_command["streams"]["stdout"]["sha256"] = route.receipts.digest(artifact / closure_files[0])
+            closure_command["log_sha256"] = route.receipts.digest(artifact / closure_files[1])
+            route.write(target, altered)
+            refuses(lambda: route.validate_native_qualification(artifact, side, "a" * 40))
+            for name, data in original_bytes.items():
+                (artifact / name).write_bytes(data)
             route.write(target, record)
             (artifact / "input-identities.json").write_text('{"changed":"' + "b" * 64 + '"}', encoding="utf-8")
             changed = deepcopy(record)
@@ -523,4 +587,5 @@ def cases() -> list[Case]:
             Case("native-duplicate-json-and-streams", duplicate_json_and_streams),
             Case("native-expected-refusal-exits", expected_native_refusal_exits),
             Case("native-hidden-alias-control-contexts", hidden_alias_control_contexts),
+            Case("native-command-intent-interruption", command_intent_and_interruption),
             Case("native-standalone-replay", standalone_native_replay)]
