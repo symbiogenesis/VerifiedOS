@@ -84,6 +84,14 @@ binds the parent and nested inputs to their own license instruments and verifies
 every retained instrument digest against the actual build tree. No dependency
 source, library, proof object or generator executable is incorporated.
 
+Archived receipts for the superseded emission remain available: [build](retained-evidence/fiat-q40-20261010/build-receipt.json),
+[emission](retained-evidence/fiat-q40-20261010/emission.json),
+[independent replay](retained-evidence/fiat-q40-20261010/independent-replay.json),
+[license instruments](retained-evidence/fiat-q40-20261010/licenses.json),
+[switch exports](retained-evidence/fiat-q40-20261010/switch-exports.json) and
+[integer comparisons](retained-evidence/fiat-q40-20261010/vectors.json).
+Their source and run identities remain in the records; current acceptance is scoped above.
+
 ## Reproduction procedure
 
 Initialize the exact parent and nested gitlinks in an isolated source checkout. Archive each repository separately with `git -C <repository> -c core.autocrlf=false -c core.eol=lf archive --format=tar HEAD`, and unpack it at its recorded relative path into a fresh native build tree. Both overrides are required because host checkouts may have CRLF scripts. From the unpacked Fiat root, the successful command is:

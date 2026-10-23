@@ -294,8 +294,8 @@ own installed versions rather than relabelling this local reading.
 
 Generator dependencies and generated output have separate licensing records.
 The selected generator is `mit-plv/fiat-crypto` at
-`1e721c6f18c43b90922e7bc57fd64848e5cff2be`, built with
-`make SKIP_BEDROCK2=1 standalone-ocaml` under the locked proof switch.
+`1e721c6f18c43b90922e7bc57fd64848e5cff2be`, built in an isolated native tree
+under the locked proof switch.
 The [emission manifest](tools/generated/fiat-crypto/manifest.json) owns every
 nested revision and archive hash. The
 [license receipt](docs/implementation/retained-evidence/dependencies-20261019/fiat/licenses.json)
