@@ -29,7 +29,7 @@ type Json = dict[str, Json] | list[Json] | str | int | float | bool | None
 # untouched and json.loads reports the original malformed string. Escapes consume
 # exactly one following character, including a newline in invalid input.
 _STRING = r'"[^"\\]*(?:\\[\s\S][^"\\]*)*(?:"|\\?$)'
-_COMMENTS = re.compile(_STRING + r'|//[^\n]*|/\*(?:/|[\s\S]*?(?:\*/|$))')
+_COMMENTS = re.compile(_STRING + r'|//[^\r\n]*|/\*(?:/|[\s\S]*?(?:\*/|$))')
 _TRAILING_COMMAS = re.compile(_STRING + r'|,(?=\s*[}\]])')
 
 
