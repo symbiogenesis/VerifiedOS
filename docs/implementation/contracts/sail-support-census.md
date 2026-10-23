@@ -280,4 +280,25 @@ specified evidence corruptions. Stop at the first refusal or this bound. The
 unchanged two-campaign hosted allowance, strict flags, source semantics, support
 allowlist, complete schema and independent hosted acceptance remain required.
 
+### Signature diagnostic framing correction
+
+The third adapter/control candidate stops after its first tiny native assay. The
+abstract signature-field lookup correctly exits 1, naming
+`CensusControls.S.T` as not found. The printer wraps the later words `current
+environment` across a newline, so the unchanged contiguous diagnostic expectation
+refuses the control. Preserve that raw refusal, its 3.4452873 active seconds and
+the cumulative 1793.013445787 seconds; no graph or other control is accepted.
+
+Bind the expectation to the exact contiguous diagnostic prefix `The reference
+CensusControls.S.T was not found`. The original query source, exact referenced
+symbol, native exit and raw diagnostic remain required. This corrects text framing
+and makes the expected reference explicit; it changes no lookup or native meaning.
+
+Commission one fourth adapter/control candidate using only the preceding
+thirty-minute extension's remaining 1796.5547127 active seconds. The cumulative
+sixty-minute ceiling and all three earlier counters remain in force. Repeat the
+original complete pipeline and stop at its first refusal or this bound. No
+additional time, native form, assumption, hosted campaign or acceptance relaxation
+is commissioned.
+
 The census extension adds 6 h, range 3–9, to Q35q's existing allowance: native grammar/classification 1–3 h, canonical implementation connections 1–3 h, and controls/evidence 1–3 h. The combined item is 10 h, range 5–15. This is a planning estimate for the commissioned scope; unattended hosted runtime and a further unsupported form are excluded. A retained refusal does not close Q35q.
