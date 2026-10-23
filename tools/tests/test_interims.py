@@ -138,7 +138,7 @@ def _premise_in_declared_anchor_is_a_finding() -> None:
              "and the filesystem (§7)."),
             ("docs/assurance/proof-reuse-bearing.md", "",
              _live("docs/assurance/proof-reuse-bearing.md"),
-             "## Sources the 2026-10-23 reading added or requalified")):
+             "## Implementation interfaces and edition boundaries")):
         declared = {**_DECLARED, **{site: np for site, np in interims.NON_PREMISE.items()
                                     if site[0] == path}}
         found, _ = _decide({path: text}, declared=declared)
