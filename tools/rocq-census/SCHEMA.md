@@ -102,6 +102,36 @@ Source and instantiated metadata must be the actual native readings before and
 after the recorded substitutions. Do not re-elaborate or typecheck private sealed
 implementation terms in the ambient environment.
 
+`module_descents` retains enclosing implementation provenance once per concrete
+nested module. Its `owner_module_id` is the exported child, and its module-namespace
+source/instantiated field locators select the same label with null packet and
+constructor indices. Each native child module's path is its locator's parent path
+plus that label; the instantiated path equals the flat exported child's native
+path. The instantiated locator's parent is the flat native parent module.
+`source_module` is the original implementation child before the parent's native
+substitution; `instantiated_module` is the actual child after it. Preserve both
+complete native module readings. A private instantiated signature need not equal
+the public sealed signature.
+
+Every concrete nested module has exactly one descent, including an identity
+descent through an ordinary structure. Requested roots have none. Modules whose
+result context is an interface or unapplied functor have no concrete descent.
+`parent_descent_id` identifies the direct parent's descent, or is null when that
+parent is a requested root. The descent's steps evaluate the parent's own local
+implementation, select exactly one actual module-namespace structure field, and
+optionally finish with the aggregate native source-child to instantiated-child
+substitution. No module is represented as a global constant lookup.
+
+Every object connection's `enclosing_descent_ids` is the exact outermost-to-owner
+descent chain, empty for an object in a requested root. Its local `steps` evaluate
+the child's implementation and select the actual object field, then apply any
+aggregate native substitution and perform the exported global lookup. Dropping a
+parent functor substitution or relabeling an already substituted child as its
+original source refuses. Consumers verify descent population, parent links,
+namespaces, paths, ordered traces and complete metadata, alongside the existing
+object connection checks. The native producer retains and applies actual native
+substitutions; the wire evidence never substitutes for them.
+
 `audit_query_name` names the independently resolved instantiated exported global,
 not an uninstantiated functor source or fabricated external alias. Locked native
 Print Assumptions follows that exported name to its implementation; it remains the

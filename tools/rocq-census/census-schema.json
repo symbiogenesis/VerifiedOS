@@ -77,6 +77,10 @@
         "$ref": "#/$defs/abbreviation"
       }
     },
+    "module_descents": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/module_descent"}
+    },
     "resolvers": {
       "type": "array",
       "items": {
@@ -110,6 +114,7 @@
     "fields",
     "declarations",
     "abbreviations",
+    "module_descents",
     "resolvers",
     "resolution_requests",
     "resolutions",
@@ -2787,9 +2792,35 @@
         }
       ]
     },
+    "module_descent": {
+      "type": "object",
+      "properties": {
+        "id": {"$ref": "#/$defs/id"},
+        "owner_module_id": {"$ref": "#/$defs/id"},
+        "parent_descent_id": {
+          "anyOf": [{"$ref": "#/$defs/id"}, {"type": "null"}]
+        },
+        "lookup_succeeded": {"const": true},
+        "source_field": {"$ref": "#/$defs/field_locator"},
+        "instantiated_field": {"$ref": "#/$defs/field_locator"},
+        "source_module": {"$ref": "#/$defs/native_module"},
+        "instantiated_module": {"$ref": "#/$defs/native_module"},
+        "steps": {
+          "type": "array", "minItems": 1,
+          "items": {"$ref": "#/$defs/connection_step"}
+        }
+      },
+      "required": ["id", "owner_module_id", "parent_descent_id", "lookup_succeeded",
+                   "source_field", "instantiated_field", "source_module", "instantiated_module", "steps"],
+      "additionalProperties": false
+    },
     "connection": {
       "type": "object",
       "properties": {
+        "enclosing_descent_ids": {
+          "type": "array", "uniqueItems": true,
+          "items": {"$ref": "#/$defs/id"}
+        },
         "lookup_succeeded": {
           "const": true
         },
@@ -2828,6 +2859,7 @@
       },
       "required": [
         "lookup_succeeded",
+        "enclosing_descent_ids",
         "exported_reference",
         "source_field",
         "instantiated_field",

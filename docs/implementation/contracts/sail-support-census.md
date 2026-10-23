@@ -76,7 +76,10 @@ after native execution.
 
 Concrete implementation provenance records both exported and implementation
 identities and the ordered substitutions connecting them. A canonical name alone
-is insufficient for a sealed field. Do not re-typecheck serialized private terms
+is insufficient for a sealed field. For a nested child of an applied or aliased
+parent, retain the original child before the parent's substitution and its actual
+instantiated child, with the complete enclosing module-descent chain. An already
+substituted child cannot stand in for its original source. Do not re-typecheck serialized private terms
 in the ambient environment: audit the exported concrete name through the locked
 prover's native `Print Assumptions` implementation resolution. Abstract fields
 remain obligations and never enter that query. The opaque native delta resolver
