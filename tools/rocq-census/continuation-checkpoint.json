@@ -139,8 +139,10 @@
     "distinct_resolver_owner_revision": "4c1789c69cbe45bc128ae384a4070cb1b8b2054d"
   },
   "adapter_native_controls": {
-    "maximum_candidate_checks": 3,
-    "maximum_active_minutes": 30,
+    "original_maximum_candidate_checks": 3,
+    "maximum_candidate_checks": 4,
+    "initial_maximum_active_minutes": 30,
+    "maximum_cumulative_active_minutes": 60,
     "candidate_intents": [
       {
         "ordinal": 1,
@@ -161,8 +163,23 @@
         "source_observation": "schema object members iterate an unordered set intersection; wrong oneOf/anyOf branches can recurse before scalar discriminators; deterministic discriminator-first validation proposed for owner assessment",
         "cumulative_active_seconds": 1789.568156587,
         "remaining_active_seconds": 10.431843413000024
+      },
+      {
+        "ordinal": 3,
+        "revision": "0798f26ec8c9574f6dcb127ab9ef9fc459b1a36f",
+        "owner_revision": "6323af05ad3ed58360dcade4c7b2ba4b028a74d4",
+        "scope": "original tiny signature/unsupported/hidden assays first; stop at first control refusal before complete30 replay and separate3root controls",
+        "output": "/root/build/lane-checklist-20261023-c/adapter-3",
+        "driver_sha256_before_and_after": "31e29b21b5b23f95d9fe2ff474bb11569b61dfd8919d0a96eeeb8cf46cb3b73f",
+        "intent_sha256": "2b1e6e4b1c3f06af03d9e675c8a02cb23ca2ca95320b394070bbe7d4cdec0e9d",
+        "result": "native signature lookup exit1 correctly refuses CensusControls.S.T; literal manifest comparison refuses line-wrapped current/newline/environment wording; source/driver/all native input identities unchanged; no further query/parser launched; elapsed3.4452873000000004s",
+        "cumulative_active_seconds": 1793.013445787,
+        "remaining_current_extension_seconds": 1796.5547127
       }
     ],
-    "framing_disposition_revision": "d98d1e40741b439caf440ba62469e2714bb1f478"
+    "framing_disposition_revision": "d98d1e40741b439caf440ba62469e2714bb1f478",
+    "deterministic_schema_owner_revision": "6323af05ad3ed58360dcade4c7b2ba4b028a74d4",
+    "signature_diagnostic_correction_owner_revision": "436aee02b8ddfb09eb7ab0e409def371a11d8cc6",
+    "signature_diagnostic_correction": "exact contiguous native reference prefix only; original source/native exit/raw diagnostic retained; no new time or counter reset"
   }
 }
