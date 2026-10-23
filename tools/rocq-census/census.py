@@ -11,7 +11,7 @@ unchanged-input, native-control, exact-assumption and recursive-kernel joins.
 import copy
 import json
 import re
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from pathlib import Path
 from typing import Any, cast
 
@@ -372,7 +372,7 @@ def _trace(steps: list[dict[str, Any]], source: dict[str, Any], target: dict[str
 
 def _census(metadata: object, searches: dict[str, str], readings: dict[str, str], *,
             expected_modules: list[str]) -> dict[str, dict[str, Any]]:
-    """Return canonical guarded symbols and replayable, complete per-root provenance."""
+    """Read evidence without mutating it; return guarded symbols and complete provenance."""
     value = validate_schema(metadata)
     _require(value["requested_roots"] == expected_modules, "native requested population differs")
     _require([root["requested"] for root in value["roots"]] == expected_modules,
@@ -844,6 +844,13 @@ def census(metadata: object, searches: dict[str, str], readings: dict[str, str],
         raise CensusError("incomplete or unsupported native census graph") from error
 
 
+def _control_copy(value: dict[str, Any], table: str) -> dict[str, Any]:
+    """Isolate the one mutated table; full immutable native evidence remains shared."""
+    _require(table in {"fields", "declarations", "resolutions", "modules"},
+             "unsupported native-evidence mutation table")
+    return value | {table: copy.deepcopy(value[table])}
+
+
 def qualify_controls(metadata: object, searches: dict[str, str], readings: dict[str, str]) -> dict[str, Any]:
     """Adapter controls over retained native emission, distinct from prover refusals."""
     value = validate_schema(metadata)
@@ -885,27 +892,27 @@ def qualify_controls(metadata: object, searches: dict[str, str], readings: dict[
     report: dict[str, Any] = {"schema": "verifiedos-sail-support-adapter-controls/1",
                               "evidence_kind": "adapter-over-native-emitted-evidence",
                               "positive": dict.fromkeys(sorted(required), "accepted"), "refusals": {}}
-    mutations = {
-        "omitted-nested-field": lambda item: item["fields"].remove(next(field for field in item["fields"] if field["id"] == nested_field_id)),
-        "missing-implementation-connection": lambda item: next(row for row in item["declarations"] if row["id"] == concrete_id).update(implementation_connection=None),
-        "signature-as-global": lambda item: next(row for row in item["declarations"] if row["id"] == interface_id).update(native_reference=concrete_reference),
-        "foreign-declaration": lambda item: item["resolutions"][0]["candidates"][0].update(declaration_id="foreign", abbreviation_id=None),
-        "ambiguous-resolution": lambda item: item["resolutions"][0]["candidates"].append(copy.deepcopy(item["resolutions"][0]["candidates"][0])),
-        "duplicate-declaration": lambda item: item["declarations"].append(copy.deepcopy(item["declarations"][0])),
-        "unproved-empty": lambda item: next(row for row in item["modules"] if row["id"] == named["Empty"]["id"]).update(empty_evidence="nonempty"),
-        "unsupported-native-form": lambda item: item["fields"][0].update(kind="rewrite-rule"),
-        "reordered-implementation-trace": lambda item: next(row for row in item["declarations"] if row["id"] == concrete_id)["implementation_connection"]["steps"].reverse(),
-        "instantiated-metadata-drift": lambda item: next(row for row in item["declarations"] if row["id"] == concrete_id)["implementation_connection"]["instantiated_metadata"].update(inline_code=changed_inline_code),
-        "missing-substitution": lambda item: next(row for row in item["declarations"] if row["id"] == substituted_id)["implementation_connection"].update(
-            steps=[copy.deepcopy(step) for step in source_steps if step["tag"] != "substitution"]),
+    mutations: dict[str, tuple[str, Callable[[dict[str, Any]], None]]] = {
+        "omitted-nested-field": ("fields", lambda item: item["fields"].remove(next(field for field in item["fields"] if field["id"] == nested_field_id))),
+        "missing-implementation-connection": ("declarations", lambda item: next(row for row in item["declarations"] if row["id"] == concrete_id).update(implementation_connection=None)),
+        "signature-as-global": ("declarations", lambda item: next(row for row in item["declarations"] if row["id"] == interface_id).update(native_reference=concrete_reference)),
+        "foreign-declaration": ("resolutions", lambda item: item["resolutions"][0]["candidates"][0].update(declaration_id="foreign", abbreviation_id=None)),
+        "ambiguous-resolution": ("resolutions", lambda item: item["resolutions"][0]["candidates"].append(copy.deepcopy(item["resolutions"][0]["candidates"][0]))),
+        "duplicate-declaration": ("declarations", lambda item: item["declarations"].append(copy.deepcopy(item["declarations"][0]))),
+        "unproved-empty": ("modules", lambda item: next(row for row in item["modules"] if row["id"] == named["Empty"]["id"]).update(empty_evidence="nonempty")),
+        "unsupported-native-form": ("fields", lambda item: item["fields"][0].update(kind="rewrite-rule")),
+        "reordered-implementation-trace": ("declarations", lambda item: next(row for row in item["declarations"] if row["id"] == concrete_id)["implementation_connection"]["steps"].reverse()),
+        "instantiated-metadata-drift": ("declarations", lambda item: next(row for row in item["declarations"] if row["id"] == concrete_id)["implementation_connection"]["instantiated_metadata"].update(inline_code=changed_inline_code)),
+        "missing-substitution": ("declarations", lambda item: next(row for row in item["declarations"] if row["id"] == substituted_id)["implementation_connection"].update(
+            steps=[copy.deepcopy(step) for step in source_steps if step["tag"] != "substitution"])),
     }
     def swapped_substitution(item: dict[str, Any]) -> None:
         link = next(row for row in item["declarations"] if row["id"] == substituted_id)["implementation_connection"]
         step = next(step for step in link["steps"] if step["tag"] == "substitution")
         step["source"], step["target"] = step["target"], step["source"]
-    mutations["swapped-substitution-endpoints"] = swapped_substitution
-    for name, mutate in mutations.items():
-        candidate = copy.deepcopy(value)
+    mutations["swapped-substitution-endpoints"] = "declarations", swapped_substitution
+    for name, (table, mutate) in mutations.items():
+        candidate = _control_copy(value, table)
         mutate(candidate)
         try:
             census(candidate, searches, readings, expected_modules=expected_roots)
@@ -913,4 +920,5 @@ def qualify_controls(metadata: object, searches: dict[str, str], readings: dict[
             report["refusals"][name] = {"verdict": "refused", "reason": str(error)}
         else:
             raise CensusError(f"adapter native-evidence control survived: {name}")
+        del candidate
     return report
