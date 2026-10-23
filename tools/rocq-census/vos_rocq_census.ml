@@ -6,7 +6,7 @@ open Constr
 open Declarations
 open Mod_declarations
 
-type json = S of string | N of int | B of bool | A of json list | O of (string * json) list | Null
+type json = S of string | N of int | B of bool | A of json list | O of (string * json) list | Null | L of (unit -> json)
 let rec encode = function
 | S s -> let b = Buffer.create (String.length s + 2) in
   Buffer.add_char b '"'; String.iter (fun c -> match c with
@@ -16,6 +16,18 @@ let rec encode = function
 | N n -> string_of_int n | B b -> string_of_bool b | Null -> "null"
 | A a -> "[" ^ String.concat "," (List.map encode a) ^ "]"
 | O a -> "{" ^ String.concat "," (List.map (fun (k,v) -> encode (S k) ^ ":" ^ encode v) a) ^ "}"
+| L force -> encode(force())
+let rec write_json sink = function
+| S s -> sink(encode(S s))
+| N n -> sink(string_of_int n)
+| B b -> sink(string_of_bool b)
+| Null -> sink "null"
+| L force -> write_json sink (force())
+| A values ->
+  sink "[";List.iteri(fun index value->if index>0 then sink ",";write_json sink value)values;sink "]"
+| O fields ->
+  sink "{";List.iteri(fun index (key,value)->if index>0 then sink ",";
+    sink(encode(S key));sink ":";write_json sink value)fields;sink "}"
 let node tag xs = O (("tag", S tag)::xs)
 let arr f a = A (Array.to_list (Array.map f a))
 let lst f a = A (List.map f a)
@@ -33,6 +45,11 @@ let rec path p =
 | ModPath.MPbound x -> node "MPbound" ["identifier",mbid x]
 | ModPath.MPdot (p,i) -> node "MPdot" ["parent",path p; "label",id i]
 let kernel_name x = kernel_domain := KerName.Set.add x !kernel_domain; let p,i = KerName.repr x in O ["path",path p;"label",id i]
+let rec identity_path = function
+| ModPath.MPfile d -> node "MPfile" ["directory_reversed",dir d]
+| ModPath.MPbound x -> node "MPbound" ["identifier",mbid x]
+| ModPath.MPdot(p,i) -> node "MPdot" ["parent",identity_path p;"label",id i]
+let identity_kernel_name x = let p,i=KerName.repr x in O["path",identity_path p;"label",id i]
 let constant c = O ["user",kernel_name (Constant.user c);"canonical",kernel_name (Constant.canonical c)]
 let mind m = O ["user",kernel_name (MutInd.user m);"canonical",kernel_name (MutInd.canonical m)]
 let ind (m,i) = O ["block",mind m;"index_zero_based",N i]
@@ -122,10 +139,21 @@ let metadata_inspect () =
 
 (* Census v1 is deliberately separate from the preserved metadata-only entry. *)
 let refuse s = CErrors.user_err (Pp.str ("VOS census refused: " ^ s))
+let native_context = ref []
+let protect_context label operation =
+  let previous= !native_context in
+  native_context:=label::previous;
+  Fun.protect ~finally:(fun()->native_context:=previous) (fun()->
+    try operation() with
+    | Not_found -> refuse("native lookup missing at " ^ String.concat " > " (List.rev !native_context))
+    | Assert_failure(file,line,column) ->
+      refuse("native assertion "^file^":"^string_of_int line^":"^string_of_int column^" at "^
+        String.concat " > " (List.rev !native_context)))
+let defer label operation = L(fun()->protect_context label operation)
 let stable kind xs = kind ^ ":" ^ Digest.to_hex (Digest.string (encode (A xs)))
-let get k = function O xs -> (try List.assoc k xs with Not_found -> refuse ("missing " ^ k)) | _ -> refuse "expected object"
-let string = function S s -> s | _ -> refuse "expected string"
-let as_list = function A xs -> xs | _ -> refuse "expected array"
+let rec get k = function O xs -> (try List.assoc k xs with Not_found -> refuse ("missing " ^ k)) | L f->get k (f()) | _ -> refuse "expected object"
+let rec string = function S s -> s | L f->string(f()) | _ -> refuse "expected string"
+let rec as_list = function A xs -> xs | L f->as_list(f()) | _ -> refuse "expected array"
 let fields_rev = ref [] and modules_rev = ref [] and declarations_rev = ref [] and contexts_rev = ref []
 let abbreviations_rev = ref []
 let descents_rev = ref []
@@ -133,10 +161,14 @@ let module_ids = ref []
 let descent_ids = ref []
 let resolver_values = ref []
 let register_resolver owner role root resolver =
-  let key = stable "resolver" [S owner;S role;path root] in
-  if not (List.exists (fun (k,_,_,_,_) -> k=key) !resolver_values) then
-    resolver_values := (key,owner,role,root,resolver)::!resolver_values;
-  key
+  let same_context (_,o,r,p,_) = o=owner && r=role && ModPath.equal p root in
+  let candidates=List.filter same_context !resolver_values in
+  match List.filter(fun(_,_,_,_,actual)->actual==resolver)candidates with
+  | [(key,_,_,_,_)]->key
+  | []->
+    let key=stable "resolver" [S owner;S role;path root;N(List.length candidates)] in
+    resolver_values:=(key,owner,role,root,resolver)::!resolver_values;key
+  | _->refuse "duplicate physical native resolver identity"
 let projection_repr p = projection (Projection.make p false)
 let typing_flags f =
   let strategies = Conv_oracle.fold_strategy (fun r strategy acc ->
@@ -205,7 +237,8 @@ let full_inductive m =
      "variance",variance m.mind_variance;"section_variance",variance m.mind_sec_variance;
      "private",opt (fun b->B b) m.mind_private;"typing_flags",typing_flags m.mind_typing_flags;
      "packet_count",N (Array.length m.mind_packets);"packets",arr full_packet m.mind_packets]
-let metadata = function SFBconst c->full_constant c | SFBmind m->full_inductive m | _->refuse "non-object implementation field"
+let metadata field = defer "native declaration metadata" (fun()->match field with
+| SFBconst c->full_constant c | SFBmind m->full_inductive m | _->refuse "non-object implementation field")
 let field_kind = function SFBconst _->"constant"|SFBmind _->"mutual-inductive"|SFBmodule _->"module"|SFBmodtype _->"module-type"|SFBrules _->refuse "unsupported native rewrite field"
 let field_namespace = function SFBmodule _|SFBmodtype _->"module"|_->"object"
 let rec expression = function
@@ -223,19 +256,19 @@ let rec implementation owner p m =
   | Algebraic e -> "Algebraic",expression e,Null
   | Struct (r,fs) -> ignore (register_resolver owner "implementation" p r); "Struct",Null,raw_structure owner p fs in
   O ["kind",S kind;"expression",expr;"algebraic_type",opt expression (mod_type_alg m);"structure",structure;"resolver_id",S delta]
-and raw_structure owner p fs = O ["path",path p;"field_count",N (List.length fs);"fields",
+and raw_structure owner p fs = defer ("raw-structure "^ModPath.to_string p)(fun()->O ["path",path p;"field_count",N (List.length fs);"fields",
   lst (fun (label,f)-> O ["label",id label;"namespace",S (field_namespace f);"kind",S (field_kind f);
     "metadata",(match f with SFBconst _|SFBmind _->metadata f|_->Null);
     "module",(let child=ModPath.MPdot(p,label) in match f with
-      | SFBmodule m->raw_module owner child m | SFBmodtype m->raw_modtype owner child m | _->Null)]) fs]
-and raw_signature owner p = function
+      | SFBmodule m->raw_module owner child m | SFBmodtype m->raw_modtype owner child m | _->Null)]) fs])
+and raw_signature owner p signature = defer ("raw-signature "^ModPath.to_string p)(fun()->match signature with
 | MoreFunctor(x,ty,rest)->node "MoreFunctor" ["parameter_identifier",mbid x;
   "parameter",raw_modtype owner (ModPath.MPbound x) ty;"result",raw_signature owner p rest]
-| NoFunctor fs->node "NoFunctor" ["structure",raw_structure owner p fs]
-and raw_module owner p m = O ["path",path p;"kind",S "module";
-  "signature",raw_signature owner p (mod_type m);"implementation",implementation owner p m]
-and raw_modtype owner p m = O ["path",path p;"kind",S "module-type";
-  "signature",raw_signature owner p (mod_type m);"implementation",type_implementation owner p m]
+| NoFunctor fs->node "NoFunctor" ["structure",raw_structure owner p fs])
+and raw_module owner p m = defer ("raw-module "^ModPath.to_string p)(fun()->O ["path",path p;"kind",S "module";
+  "signature",raw_signature owner p (mod_type m);"implementation",implementation owner p m])
+and raw_modtype owner p m = defer ("raw-module-type "^ModPath.to_string p)(fun()->O ["path",path p;"kind",S "module-type";
+  "signature",raw_signature owner p (mod_type m);"implementation",type_implementation owner p m])
 and type_implementation owner p m = O ["kind",S "NotApplicable";"expression",Null;
   "algebraic_type",opt expression (mod_type_alg m);"structure",Null;
   "resolver_id",S (register_resolver owner "signature" p (mod_delta m))]
@@ -243,8 +276,17 @@ and type_implementation owner p m = O ["kind",S "NotApplicable";"expression",Nul
 (* Original implementation evaluation. Expressions are evaluated against actual
    native module bodies; native substitutions, not rendered terms, do the work. *)
 type expansion = { origin:ModPath.t; original:structure_body; instantiated:structure_body;
-                   trace:json list; substitution:Mod_subst.substitution; origin_delta:Mod_subst.delta_resolver }
+                   trace:json list; substitution:Mod_subst.substitution; origin_delta:Mod_subst.delta_resolver;
+                   substitution_resolver:Mod_subst.delta_resolver option }
 let expansion_cache = ref []
+let rec last_argument_resolver = function
+| []->None
+| step::rest ->
+  if get "tag" step=S "functor-application" then
+    let key=string(get "resolver_id" step) in
+    (match List.filter(fun(id,_,_,_,_)->id=key)!resolver_values with
+    | [(_,_,_,_,resolver)]->Some resolver | _->refuse "missing actual application resolver")
+  else last_argument_resolver rest
 let lookup_field namespace label fs =
   match List.filter (fun (l,f)->Id.equal l label && field_namespace f=namespace) fs with
   | [(_,f)]->f | []->refuse ("missing implementation field " ^ Id.to_string label)
@@ -257,18 +299,19 @@ let rec implementation_expression subs = function
   "argument",path(Mod_subst.subst_mp subs argument)]
 | MEwith _ -> refuse "module implementation contains unsupported with refinement"
 let rec implementation_module owner visiting p = match p with
-| ModPath.MPfile _|ModPath.MPbound _ -> Global.lookup_module p
+| ModPath.MPfile _|ModPath.MPbound _ -> protect_context ("Global.lookup_module "^ModPath.to_string p)(fun()->Global.lookup_module p)
 | ModPath.MPdot (parent,label) ->
   let e = expand owner visiting parent in
   (match lookup_field "module" label e.instantiated with SFBmodule m->m|_->refuse "implementation is a module type")
 and original_module owner visiting p = match p with
-| ModPath.MPfile _|ModPath.MPbound _->p,Global.lookup_module p,Mod_subst.empty_subst
+| ModPath.MPfile _|ModPath.MPbound _->p,protect_context ("original Global.lookup_module "^ModPath.to_string p)(fun()->Global.lookup_module p),Mod_subst.empty_subst,None
 | ModPath.MPdot(parent,label)->
   let e=expand owner visiting parent in
   (match lookup_field "module" label e.original with
-  | SFBmodule m->ModPath.MPdot(e.origin,label),m,e.substitution
+  | SFBmodule m->ModPath.MPdot(e.origin,label),m,e.substitution,e.substitution_resolver
   | _->refuse "original implementation field is a module type")
 and expand owner visiting p =
+  protect_context ("expand "^ModPath.to_string p)(fun()->
   let key=owner ^ ":" ^ ModPath.to_string p in
   match List.assoc_opt key !expansion_cache with
   | Some e -> e
@@ -276,28 +319,39 @@ and expand owner visiting p =
     if ModPath.Set.mem p visiting then refuse ("cyclic implementation " ^ ModPath.to_string p);
     let visiting=ModPath.Set.add p visiting in
     let target=implementation_module owner visiting p in
-    let initial_source,initial_module,inherited=original_module owner visiting p in
+    let initial_source,initial_module,inherited,inherited_resolver=original_module owner visiting p in
     let source,raw,subs,trace,origin_delta = evaluate owner visiting p initial_source initial_module [] inherited [] in
     let target_delta=mod_delta target in
+    ignore(register_resolver owner "signature" p target_delta);
     let mapped_source=Mod_subst.subst_mp subs source in
-    let subs=if ModPath.equal mapped_source p then subs else
-      Mod_subst.join subs (Mod_subst.map_mp mapped_source p target_delta) in
+    let subs,substitution_resolver=if ModPath.equal mapped_source p then
+      subs,(match last_argument_resolver(List.rev trace) with Some r->Some r|None->inherited_resolver)
+    else
+      let used=if Mod_subst.has_root_delta_resolver p target_delta then target_delta
+        else Mod_subst.empty_delta_resolver p in
+      Mod_subst.join subs (protect_context ("Mod_subst.map_mp "^ModPath.to_string mapped_source^" -> "^ModPath.to_string p)
+        (fun()->Mod_subst.map_mp mapped_source p used)),Some used in
     let trace=if ModPath.equal source p && Mod_subst.is_empty_subst subs then trace else
-      let rid=register_resolver owner "substitution" p target_delta in
+      let used=match substitution_resolver with Some r->r|None->refuse "aggregate substitution lacks actual resolver participant" in
+      let rid=register_resolver owner "substitution" p used in
       trace @ [node "substitution" ["source",locator source (Id.of_string "__module_root") None None;
         "target",locator p (Id.of_string "__module_root") None None;"resolver_id",S rid]] in
     let instantiated=Modops.subst_structure subs p raw in
-    let e={origin=source;original=raw;instantiated;trace;substitution=subs;origin_delta} in
-    expansion_cache:=(key,e)::!expansion_cache;e
+    let e={origin=source;original=raw;instantiated;trace;substitution=subs;origin_delta;substitution_resolver} in
+    expansion_cache:=(key,e)::!expansion_cache;e)
 and evaluate owner visiting destination source m arguments subs trace =
   let bind action signature arguments subs trace =
     let rec loop prefix signature arguments subs trace = match signature,arguments with
     | MoreFunctor(x,_,rest),argument::tail ->
       let argument=Mod_subst.subst_mp subs argument in
       let argmod=implementation_module owner visiting argument in
-      let delta=mod_delta argmod in
+      let original_delta=mod_delta argmod in
+      ignore(register_resolver owner "signature" argument original_delta);
+      let delta=if Mod_subst.has_root_delta_resolver argument original_delta then original_delta
+        else Mod_subst.empty_delta_resolver argument in
       let rid=register_resolver owner "application-argument" argument delta in
-      let subs=Mod_subst.join (Mod_subst.map_mbid x argument delta) subs in
+      let subs=Mod_subst.join (protect_context ("Mod_subst.map_mbid argument "^ModPath.to_string argument)
+        (fun()->Mod_subst.map_mbid x argument delta)) subs in
       let prefix=node "MEapply" ["function",prefix;"argument",path argument] in
       let step=node "functor-application" ["parameter_identifier",mbid x;"argument",path argument;
         "expression",prefix;"resolver_id",S rid] in
@@ -354,6 +408,7 @@ let reference_at delta p label packet ctor =
   | None,Some _->refuse "constructor without inductive packet"
 let actual_reference p label packet ctor =
   let kn=KerName.make p label in
+  protect_context ("actual-reference "^KerName.to_string kn)(fun()->
   let env=Global.env() in
   match packet,ctor with
   | None,None ->
@@ -365,7 +420,7 @@ let actual_reference p label packet ctor =
     if not (Environ.mem_mind proposed env) then refuse ("missing concrete inductive " ^ KerName.to_string kn);
     let m=MutInd.make kn (Environ.lookup_mind_canonical proposed env) in
     (match k with None->GlobRef.IndRef(m,i)|Some k->GlobRef.ConstructRef((m,i),k))
-  | None,Some _->refuse "constructor without inductive packet"
+  | None,Some _->refuse "constructor without inductive packet")
 
 let json_parse source =
   let n=String.length source and pos=ref 0 in
@@ -414,8 +469,23 @@ let json_parse source =
 
 let native_global_name reference =
   try Libnames.string_of_path (Nametab.path_of_global reference)
-  with Not_found -> Pp.string_of_ppcmds (Printer.pr_global reference)
+  with Not_found ->
+    let identity=match reference with
+    | GlobRef.VarRef x->Id.to_string x
+    | GlobRef.ConstRef c->Constant.to_string c
+    | GlobRef.IndRef(m,i)->KerName.to_string(MutInd.user m)^"/ind:"^string_of_int i
+    | GlobRef.ConstructRef((m,i),k)->KerName.to_string(MutInd.user m)^"/ind:"^string_of_int i^"/constructor:"^string_of_int k in
+    protect_context ("Printer.pr_global fallback after missing Nametab.path_of_global "^identity)
+      (fun()->Pp.string_of_ppcmds (Printer.pr_global reference))
 let native_reference_raw = native_reference
+let kernel_reference = function
+| GlobRef.VarRef _ -> refuse "section variable kernel reference"
+| GlobRef.ConstRef c -> O["kind",S "constant";"user",kernel_name(Constant.user c);
+  "canonical",kernel_name(Constant.canonical c);"packet_index",Null;"constructor_index",Null]
+| GlobRef.IndRef(m,i) -> O["kind",S "inductive";"user",kernel_name(MutInd.user m);
+  "canonical",kernel_name(MutInd.canonical m);"packet_index",N i;"constructor_index",Null]
+| GlobRef.ConstructRef((m,i),k) -> O["kind",S "constructor";"user",kernel_name(MutInd.user m);
+  "canonical",kernel_name(MutInd.canonical m);"packet_index",N i;"constructor_index",N k]
 let native_reference reference =
   let canonical=match reference with
   | GlobRef.ConstRef c->GlobRef.ConstRef(Constant.make1(Constant.canonical c))
@@ -476,6 +546,7 @@ let record_descent owner p = match p with
     "steps",A(module_trace e.origin parent label e.trace)] in
   descent_ids:=(owner,did)::!descent_ids;descents_rev:=record::!descents_rev
 let declare_object owner ctx abstract p label f =
+  protect_context ("object-field "^ModPath.to_string p^"."^Id.to_string label)(fun()->
   let fid=stable "field"[S owner;S "object";id label] in
   let expansion=if abstract then None else Some(expand owner ModPath.Set.empty p) in
   let declarations=match f with
@@ -502,26 +573,28 @@ let declare_object owner ctx abstract p label f =
       let direct=node "direct-lookup"["reference",native_reference r;"lookup_succeeded",B true] in
       let connection=O["lookup_succeeded",B true;"exported_reference",native_reference r;
         "source_field",locator e.origin label packet ctor;"instantiated_field",locator p label packet ctor;
-        "source_reference",native_reference source_ref;"implementation_reference",native_reference instantiated_ref;
+        "source_reference",protect_context "serialize source_reference"(fun()->kernel_reference source_ref);
+        "implementation_reference",protect_context "serialize implementation_reference"(fun()->kernel_reference instantiated_ref);
         "source_metadata",metadata original;"instantiated_metadata",metadata instantiated;
         "steps",A(complete_trace e.origin p label packet ctor e.trace@[direct]);
         "audit_query_name",get "canonical_name"(native_reference r);
         "enclosing_descent_ids",A(enclosing_descents owner)] in
       let alias=if cls="alias" then O["kind",S "declaration-alias";"exported_reference",native_reference r;
-        "target_reference",native_reference instantiated_ref;"resolver_id",S rid] else Null in connection,alias
+        "target_reference",kernel_reference instantiated_ref;"resolver_id",S rid] else Null in connection,alias
     | None,None->Null,Null | _->assert false in
     declarations_rev:=O["id",S did;"field_id",S fid;"namespace",S "object";"kind",S kind;"label",id name;
       "packet_index",opt(fun n->N n)packet;"constructor_index",opt(fun n->N n)ctor;
       "classification",S cls;"context_id",S ctx;"exported_name",S exported;
-      "native_reference",refjson;"type",term ty;"implementation_connection",connection;"alias",alias]::!declarations_rev;
+      "native_reference",refjson;"type",defer ("declaration type "^exported)(fun()->term ty);"implementation_connection",connection;"alias",alias]::!declarations_rev;
     did)declarations in
   let cls=match !classification with Some x->x|None->refuse "empty mutual inductive" in
   fields_rev:=O["id",S fid;"parent_module_id",S owner;"namespace",S "object";"label",id label;
     "kind",S(field_kind f);"context_id",S ctx;"classification",S cls;"metadata",metadata f;
     "child_module_id",Null;"declaration_ids",lst(fun s->S s)ids]::!fields_rev;
-  fid
+  fid)
 
 let rec visit_module root query parent kind ctx abstract p signature impl_builder =
+  protect_context ("visit-module "^kind^" "^ModPath.to_string p)(fun()->
   let mid=stable "module"[path p;S ctx;S kind] in
   module_ids:=(p,mid)::!module_ids;
   let query=match parent with
@@ -580,7 +653,7 @@ let rec visit_module root query parent kind ctx abstract p signature impl_builde
     "native_path",path p;"context_id",S ctx;"query",query;
     "signature",O["parameters",A params;"result_context_id",S result_ctx;"field_count",N(List.length fs);"field_ids",lst(fun s->S s)fids];
     "implementation",impl;"abbreviation_ids",A [];"empty_evidence",S(if fs=[] then "native-empty" else "nonempty")]::!modules_rev;
-  mid
+  mid)
 
 let enumerate_abbreviations () =
   let entries=Abbreviation.fold(fun key data acc->(key,data)::acc)[] in
@@ -588,7 +661,7 @@ let enumerate_abbreviations () =
   List.iter(fun(key,data)->
     let full=Abbreviation.full_path data in
     let native_owner=KerName.modpath key in
-    let owners=List.filter(fun m->get "native_path" m=path native_owner)!modules_rev in
+    let owners=List.filter(fun m->get "native_path" m=identity_path native_owner)!modules_rev in
     match owners with
     | []->()
     | [owner]->
@@ -597,7 +670,7 @@ let enumerate_abbreviations () =
       let target=match variables,notation with
       | [],Notation_term.NRef(reference,None)->reference
       | _->refuse("unsupported owned abbreviation "^Libnames.string_of_path full) in
-      let aid=stable "abbreviation"[S mid;S(Libnames.string_of_path full);kernel_name key] in
+      let aid=stable "abbreviation"[S mid;S(Libnames.string_of_path full);identity_kernel_name key] in
       abbreviations_rev:=O["id",S aid;"module_id",S mid;"exported_name",S(Libnames.string_of_path full);
         "native_abbreviation_path",S(KerName.to_string key);"enabled",B(Abbreviation.enabled data);
         "only_parsing",B(Abbreviation.only_parsing data);"interpretation",O["kind",S "direct-reference";
@@ -622,15 +695,19 @@ let environment () =
 let export_resolvers () =
   List.iter(fun(_,_,_,_,r)->List.iter(fun(_,kn)->ignore(kernel_name kn))(Mod_subst.inline_of_delta None r))!resolver_values;
   let paths=ModPath.Set.elements !module_domain and names=KerName.Set.elements !kernel_domain in
-  List.rev !resolver_values|>List.map(fun(key,owner,role,root,r)->O["id",S key;"owner_module_id",S owner;
+  List.rev !resolver_values|>List.map(fun(key,owner,role,_,r)->
+    let root=match List.filter(fun p->Mod_subst.has_root_delta_resolver p r)paths with
+      | [p]->p | _->refuse("native resolver root not uniquely enumerated for "^key) in
+    O["id",S key;"owner_module_id",S owner;
     "role",S role;"coverage",S "finite-enumerated-domain";"root",path root;
-    "module_effects",lst(fun p->O["input",path p;"output",path(Mod_subst.mp_of_delta r p);"is_alias",B(Mod_subst.mp_is_alias r p)])paths;
-    "kernel_effects",lst(fun kn->O["input",kernel_name kn;"output",kernel_name(Mod_subst.kn_of_delta r kn)])names;
+    "module_effects",defer ("module effects "^key)(fun()->lst(fun p->O["input",identity_path p;"output",identity_path(Mod_subst.mp_of_delta r p);"is_alias",B(Mod_subst.mp_is_alias r p)])paths);
+    "kernel_effects",defer ("kernel effects "^key)(fun()->lst(fun kn->O["input",identity_kernel_name kn;"output",identity_kernel_name(Mod_subst.kn_of_delta r kn)])names);
     "inline_keys",lst(fun(level,kn)->O["level",N level;"key",kernel_name kn])(Mod_subst.inline_of_delta None r)])
 let resolve_requests roots requests =
   let seen=Hashtbl.create 32 in
   List.map(fun request->
     let rid=string(get "id" request) and requested=string(get "requested_root" request) and spelling=string(get "spelling" request) in
+    protect_context ("resolve-request "^rid^" "^spelling)(fun()->
     let row=match get "row_index" request with N n when n>=0->n|_->refuse "invalid request row index" in
     if rid<>requested^":"^string_of_int row || Hashtbl.mem seen rid then refuse "invalid or duplicate resolution request id";
     Hashtbl.add seen rid();
@@ -654,7 +731,7 @@ let resolve_requests roots requests =
       | _->refuse("unclassified native abbreviation "^spelling))
     | []->refuse("missing native resolution "^spelling)
     | _->refuse("ambiguous native resolution "^spelling) in
-    O["request_id",S rid;"root_module_id",get "module_id" root;"candidates",A[candidate]])requests
+    O["request_id",S rid;"root_module_id",get "module_id" root;"candidates",A[candidate]]))requests
 let resolution_input () =
   match Sys.getenv_opt "VOS_CENSUS_RESOLVE",Sys.getenv_opt "VOS_CENSUS_RESOLVE_FILE" with
   | Some _,Some _ -> refuse "both resolution input variables supplied"
@@ -674,30 +751,50 @@ let resolution_input () =
         | exception End_of_file -> ());
         source)
     with Sys_error _|End_of_file -> refuse "unreadable or changed resolution file")
+let write_census_document value =
+  let filename=match Sys.getenv_opt "VOS_CENSUS_OUTPUT_FILE" with
+    | Some path when not(Filename.is_relative path)->path
+    | _->refuse "native census output file must be absolute" in
+  let sample=O["escaped",S "quote\" slash\\ newline\n tab\t nul\000";
+    "sequence",A[S "unicode: λ";N(-7);B true;Null;A[];O[];L(fun()->N 42)]] in
+  let buffer=Buffer.create 256 in
+  write_json (Buffer.add_string buffer) sample;
+  if Buffer.contents buffer<>encode sample then refuse "incremental JSON encoder control differs";
+  (try
+    let channel=open_out_gen [Open_wronly;Open_creat;Open_excl;Open_binary] 0o600 filename in
+    Fun.protect ~finally:(fun()->close_out_noerr channel)(fun()->
+      write_json (output_string channel) value;output_char channel '\n';flush channel;close_out channel);
+    let input=open_in_bin filename in
+    let size=Fun.protect ~finally:(fun()->close_in_noerr input)(fun()->in_channel_length input) in
+    let digest=Digest.BLAKE256.to_hex(Digest.BLAKE256.file filename) in
+    Feedback.msg_notice(Pp.str(encode(O["schema",S "verifiedos-native-census-output/1";
+      "census_schema",S "verifiedos-sail-support-census/1";"path",S filename;"bytes",N size;"blake2b_256",S digest])))
+  with Sys_error error->refuse("native census output file error: "^error))
 let census_inspect () =
   let targets=String.split_on_char ','(Sys.getenv "VOS_CENSUS_TARGETS") in
   if targets=[] || List.exists((=)"")targets || List.length(List.sort_uniq String.compare targets)<>List.length targets then refuse "empty or duplicate target population";
   let requests=as_list(json_parse(resolution_input())) in
   let roots=List.map(fun target->
-    let p=Nametab.locate_module(Libnames.qualid_of_string target) in
-    let native_module=Global.lookup_module p in
+    protect_context ("root "^target)(fun()->
+    let p=protect_context "Nametab.locate_module"(fun()->Nametab.locate_module(Libnames.qualid_of_string target)) in
+    let native_module=protect_context "Global.lookup_module"(fun()->Global.lookup_module p) in
     (match mod_expr native_module with Abstract->refuse "concrete module has Abstract implementation"|_->());
     let ctx=context None "concrete-root" p None None in
     let mid=stable "module"[path p;S ctx;S "module"] in
     let query=module_query mid target "module" in
     let actual=visit_module mid query None "module" ctx false p (mod_type native_module)
       (fun owner->implementation owner p native_module) in
-    O["requested",S target;"native_path",path p;"module_id",S actual])targets in
-  enumerate_abbreviations();
+    O["requested",S target;"native_path",path p;"module_id",S actual]))targets in
+  protect_context "enumerate-abbreviations" enumerate_abbreviations;
   let resolutions=resolve_requests roots requests in
-  let environment=environment() in
-  let resolvers=export_resolvers() in
+  let environment=defer "environment metadata" environment in
   let output=O["schema",S "verifiedos-sail-support-census/1";"producer",S "rocq-9.3.0-constructor-api";
     "requested_roots",lst(fun s->S s)targets;"roots",A roots;"contexts",A(List.rev !contexts_rev);
     "modules",A(List.rev !modules_rev);"fields",A(List.rev !fields_rev);"declarations",A(List.rev !declarations_rev);
-    "abbreviations",A(List.rev !abbreviations_rev);"module_descents",A(List.rev !descents_rev);"resolvers",A resolvers;"resolution_requests",A requests;
-    "resolutions",A resolutions;"environment",environment] in
-  Feedback.msg_notice(Pp.str(encode output))
+    "abbreviations",A(List.rev !abbreviations_rev);"module_descents",A(List.rev !descents_rev);"resolution_requests",A requests;
+    "resolutions",A resolutions;"environment",environment;
+    "resolvers",defer "export-resolvers finite effects"(fun()->A(export_resolvers()))] in
+  write_census_document output
 let inspect () = match Sys.getenv_opt "VOS_CENSUS_MODE" with
 | None|Some "metadata"->metadata_inspect()
 | Some "census"->census_inspect()

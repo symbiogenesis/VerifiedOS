@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 """Focused safety controls for the native metadata harness; no prover execution."""
+import hashlib
 import json
 import runpy
 import subprocess
@@ -10,7 +11,7 @@ from collections.abc import Callable
 from contextlib import redirect_stdout
 from io import StringIO
 from pathlib import Path
-from typing import cast
+from typing import TextIO, cast
 from unittest.mock import patch
 
 from tests.harness import Case
@@ -18,7 +19,7 @@ from tests.harness import Case
 _HELPERS = runpy.run_path(str(Path(__file__).resolve().parents[1] / "rocq-census/qualify.py"))
 
 
-def _mock_campaign(outcome: object, *, unreadable_output: bool = False) -> tuple[int, dict[str, object], dict[str, object], bytes]:
+def _mock_campaign(outcome: object, *, unreadable_output: bool = False, query_timeout_seconds: int = 180) -> tuple[int, dict[str, object], dict[str, object], bytes]:
     """Exercise the real receipt path while replacing every native launch."""
     with tempfile.TemporaryDirectory(prefix="vos-census-mocked-") as scratch:
         root = Path(scratch)
@@ -30,7 +31,7 @@ def _mock_campaign(outcome: object, *, unreadable_output: bool = False) -> tuple
         support.mkdir()
         (support / "support.vo").write_bytes(b"support")
         argv = ["rocq-census", "--switch-root", str(switch), "--support-source", str(support),
-                "--out", str(output), "--targets", "Expected"]
+                "--out", str(output), "--targets", "Expected", "--query-timeout-seconds", str(query_timeout_seconds)]
         original_read = Path.read_bytes
         def read_bytes(path: Path) -> bytes:
             if unreadable_output and path.name == "native-query.stdout.log":
@@ -45,11 +46,22 @@ def _mock_campaign(outcome: object, *, unreadable_output: bool = False) -> tuple
             checkpoint = cast("dict[str, object]", json.loads((output / "checkpoint.json").read_text()))
             if native.call_count != 2:
                 raise AssertionError("mock campaign did not cover the query invocation")
+            if native.call_args_list[0].kwargs["timeout"] != 180 or native.call_args_list[1].kwargs["timeout"] != query_timeout_seconds:
+                raise AssertionError("callback timeout changed compilation timeout or was not forwarded")
         stdout = output / "native-query.stdout.log"
         return code, receipt, checkpoint, original_read(stdout) if stdout.exists() else b""
 
 def _last_command(receipt: dict[str, object]) -> dict[str, object]:
     return cast("list[dict[str, object]]", receipt["commands"])[-1]
+
+
+def _census_result(document: object, environment: dict[str, str], command: list[str]) -> subprocess.CompletedProcess[bytes]:
+    output = Path(environment["VOS_CENSUS_OUTPUT_FILE"])
+    data = json.dumps(document).encode()
+    output.write_bytes(data)
+    envelope = {"schema": "verifiedos-native-census-output/1", "census_schema": "verifiedos-sail-support-census/1",
+                "path": str(output), "bytes": len(data), "blake2b_256": hashlib.blake2b(data, digest_size=32).hexdigest()}
+    return subprocess.CompletedProcess(command, 0, stdout=json.dumps(envelope).encode(), stderr=b"")
 
 
 class RocqCensusHarnessTests(unittest.TestCase):
@@ -229,7 +241,7 @@ class RocqCensusHarnessTests(unittest.TestCase):
                         target.write_bytes(changed)
                     envelope = {"schema": "verifiedos-sail-support-census/1", "requested_roots": ["Expected"],
                                 "roots": [{"requested": "Expected"}], "resolution_requests": []}
-                    return subprocess.CompletedProcess(command, 0, stdout=json.dumps(envelope).encode(), stderr=b"")
+                    return _census_result(envelope, environment, command)
                 with patch.object(sys, "argv", argv), redirect_stdout(StringIO()), patch("subprocess.run", side_effect=native):
                     code = cast("Callable[[], int]", _HELPERS["main"])()
                 receipt = json.loads((output / "receipt.json").read_text())
@@ -288,7 +300,7 @@ class RocqCensusHarnessTests(unittest.TestCase):
                 self.assertEqual(json.loads(request_file.read_bytes()), expected)
                 envelope = {"schema": "verifiedos-sail-support-census/1", "requested_roots": ["Expected"],
                             "roots": [{"requested": "Expected"}], "resolution_requests": expected}
-                return subprocess.CompletedProcess(command, 0, stdout=json.dumps(envelope).encode(), stderr=b"")
+                return _census_result(envelope, environment, command)
             with patch.object(sys, "argv", argv), redirect_stdout(StringIO()), patch("subprocess.run", side_effect=native):
                 code = cast("Callable[[], int]", _HELPERS["main"])()
             receipt = json.loads((output / "receipt.json").read_text())
@@ -299,6 +311,49 @@ class RocqCensusHarnessTests(unittest.TestCase):
             self.assertIn("resolution-requests.json", receipt["loaded_before"])
             self.assertIn("Search00.v", receipt["loaded_before"])
             self.assertEqual(receipt["verdict"], "native-census-provenance-only")
+
+    def test_callback_timeout_is_bounded_to_callback(self) -> None:
+        document = {"schema": "verifiedos-rocq-native-metadata/1", "acceptance": "metadata-only",
+                    "roots": [{"requested": "Expected", "native_path": {}, "module": {}}]}
+        outcome = subprocess.CompletedProcess(["mock-query"], 0, stdout=json.dumps(document).encode(), stderr=b"")
+        code, receipt, _, _ = _mock_campaign(outcome, query_timeout_seconds=600)
+        self.assertEqual(code, 0)
+        self.assertEqual(receipt["query_timeout_requested_seconds"], 600)
+        self.assertEqual(receipt["query_timeout_effective_seconds"], 600)
+        self.assertEqual(_last_command(receipt)["timeout_seconds"], 600)
+
+    def test_file_envelope_refuses_foreign_or_changed_output(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="vos-census-file-") as scratch:
+            output = Path(scratch) / "native-census.json"
+            document = {"schema": "verifiedos-sail-support-census/1", "requested_roots": ["Expected"],
+                        "roots": [{"requested": "Expected"}], "resolution_requests": []}
+            result = _census_result(document, {"VOS_CENSUS_OUTPUT_FILE": str(output)}, ["mock"])
+            envelope = json.loads(result.stdout)
+            read = _HELPERS["census_output"]
+            self.assertEqual(read(result.stdout, ["Expected"], [], output=output)["before"],
+                             read(result.stdout, ["Expected"], [], output=output)["after"])
+            for field, value in (("path", str(output.with_name("foreign.json"))), ("bytes", True),
+                                 ("blake2b_256", "0" * 64), ("unexpected", True)):
+                with self.subTest(field=field), self.assertRaises(ValueError):
+                    read(json.dumps({**envelope, field: value}).encode(), ["Expected"], [], output=output)
+            duplicate_envelope = result.stdout[:-1] + b',"bytes":' + str(envelope["bytes"]).encode() + b'}'
+            with self.assertRaises(ValueError):
+                read(duplicate_envelope, ["Expected"], [], output=output)
+            duplicate_document = json.dumps(document).replace('"requested": "Expected"',
+                '"requested": "Expected", "requested": "Expected"').encode()
+            output.write_bytes(duplicate_document)
+            duplicate_descriptor = {**envelope, "bytes": len(duplicate_document),
+                                    "blake2b_256": hashlib.blake2b(duplicate_document, digest_size=32).hexdigest()}
+            with self.assertRaises(ValueError):
+                read(json.dumps(duplicate_descriptor).encode(), ["Expected"], [], output=output)
+            _census_result(document, {"VOS_CENSUS_OUTPUT_FILE": str(output)}, ["mock"])
+            original_load = json.load
+            def changed(stream: TextIO, *, object_pairs_hook: Callable[[list[tuple[str, object]]], object] | None = None) -> object:
+                parsed = original_load(stream, object_pairs_hook=object_pairs_hook)
+                output.write_bytes(output.read_bytes() + b"\n")
+                return parsed
+            with patch("json.load", side_effect=changed), self.assertRaises(ValueError):
+                read(result.stdout, ["Expected"], [], output=output)
 
 
 def cases() -> list[Case]:
@@ -311,6 +366,8 @@ def cases() -> list[Case]:
             Case("actual-loaded-copies-and-plugin-drift-refuse", checks.test_loaded_input_freeze_detects_copy_and_plugin_drift),
             Case("loaded-drift-refuses-receipt-with-originals-unchanged", checks.test_census_receipt_refuses_actual_loaded_drift_with_originals_unchanged),
             Case("search-rows-bind-through-private-request-file", checks.test_search_campaign_binds_exact_rows_through_private_file),
+            Case("callback-timeout-preserves-compile-bound", checks.test_callback_timeout_is_bounded_to_callback),
+            Case("native-file-envelope-refuses-foreign-and-changed-output", checks.test_file_envelope_refuses_foreign_or_changed_output),
             Case("metadata-output-guard-refuses-missing-duplicate-and-foreign-emissions", checks.test_output_guard_refuses_missing_duplicate_and_foreign_emissions),
             Case("canonical-output-overlap-refuses-before-creation", checks.test_canonical_overlap_refuses_before_creation),
             Case("support-and-source-inputs-are-protected", checks.test_support_and_source_are_protected),

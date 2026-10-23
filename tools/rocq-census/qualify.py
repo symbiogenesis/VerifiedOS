@@ -21,7 +21,8 @@ from typing import cast
 
 
 def digest(path: Path) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest()
+    with path.open("rb") as stream:
+        return hashlib.file_digest(stream, "sha256").hexdigest()
 
 
 def require(condition: bool, message: str) -> None:
@@ -132,9 +133,41 @@ def metadata_output(stdout: bytes, targets: list[str]) -> None:
         raise ValueError("metadata target population differs from requested targets")
 
 
-def census_output(stdout: bytes, targets: list[str], requests: list[object]) -> None:
+def output_identity(path: Path) -> dict[str, object]:
+    require(path.is_absolute() and path.is_file() and not path.is_symlink(), "native census output is not a regular absolute file")
+    sha256, blake = hashlib.sha256(), hashlib.blake2b(digest_size=32)
+    size = 0
+    with path.open("rb") as stream:
+        for chunk in iter(lambda: stream.read(1024 * 1024), b""):
+            sha256.update(chunk)
+            blake.update(chunk)
+            size += len(chunk)
+    return {"path": str(path), "bytes": size, "sha256": sha256.hexdigest(), "blake2b_256": blake.hexdigest()}
+
+
+def unique_object(pairs: list[tuple[str, object]]) -> dict[str, object]:
+    result: dict[str, object] = {}
+    for key, value in pairs:
+        require(key not in result, f"duplicate native JSON object key: {key}")
+        result[key] = value
+    return result
+
+
+def census_output(stdout: bytes, targets: list[str], requests: list[object], *, output: Path) -> dict[str, object]:
     """Check the invocation envelope; the independent adapter owns census acceptance."""
-    value = json.loads(stdout)
+    envelope = json.loads(stdout, object_pairs_hook=unique_object)
+    require(isinstance(envelope, dict) and set(envelope) == {"schema", "census_schema", "path", "bytes", "blake2b_256"},
+            "unexpected native census output envelope fields")
+    require(envelope["schema"] == "verifiedos-native-census-output/1"
+            and envelope["census_schema"] == "verifiedos-sail-support-census/1"
+            and envelope["path"] == str(output)
+            and type(envelope["bytes"]) is int and envelope["bytes"] > 0,
+            "native census output envelope differs from exact requested output")
+    before = output_identity(output)
+    require(envelope["bytes"] == before["bytes"] and envelope["blake2b_256"] == before["blake2b_256"],
+            "native census output bytes or digest differ from envelope")
+    with output.open(encoding="utf-8") as stream:
+        value = json.load(stream, object_pairs_hook=unique_object)
     if not isinstance(value, dict) or value.get("schema") != "verifiedos-sail-support-census/1":
         raise ValueError("unexpected census schema")
     if "acceptance" in value or value.get("requested_roots") != targets:
@@ -144,6 +177,9 @@ def census_output(stdout: bytes, targets: list[str], requests: list[object]) -> 
     roots = value.get("roots")
     if not isinstance(roots, list) or any(not isinstance(root, dict) for root in roots) or [root.get("requested") for root in roots] != targets:
         raise ValueError("census native roots differ from the requested population")
+    after = output_identity(output)
+    require(before == after, "native census output changed during parsing")
+    return {"envelope": envelope, "before": before, "after": after}
 
 def captured_bytes(value: bytes | str | None) -> bytes:
     return value.encode() if isinstance(value, str) else value or b""
@@ -151,9 +187,10 @@ def captured_bytes(value: bytes | str | None) -> bytes:
 
 def run_command(label: str, command: list[str], *, out: Path, work: str,
                 env: dict[str, str], receipt: dict[str, object],
-                commands: list[dict[str, object]]) -> int:
+                commands: list[dict[str, object]], timeout_seconds: int = 180) -> int:
     record: dict[str, object] = {"label": label, "argv": command, "cwd": work,
-                                 "status": "pending", "process_completed": False, "exit": None}
+                                 "status": "pending", "process_completed": False, "exit": None,
+                                 "timeout_seconds": timeout_seconds}
     sources = {argument: digest(Path(argument)) for argument in command
                if Path(argument).suffix in {".v", ".ml"} and Path(argument).is_file()}
     record["source_sha256_before"] = sources
@@ -162,7 +199,7 @@ def run_command(label: str, command: list[str], *, out: Path, work: str,
     (out / "checkpoint.json").write_text(json.dumps(receipt, indent=2) + "\n")
     try:
         process = subprocess.run(command, cwd=work, env=env, capture_output=True,
-                                 timeout=180, check=False)
+                                 timeout=timeout_seconds, check=False)
     except subprocess.TimeoutExpired as error:
         record.update(status="timed-out", error_type=type(error).__name__, error=str(error))
         try:
@@ -197,7 +234,11 @@ def main() -> int:
     parser.add_argument("--requests", type=Path, help="Exact ordered native Search resolution requests as JSON")
     parser.add_argument("--search", action="store_true", help="Retain exact per-root native Search and derive ordered requests")
     parser.add_argument("--component-receipt", type=Path, help="Exact recipe-bound selected-support component build receipt")
+    parser.add_argument("--query-timeout-seconds", type=int, default=180,
+                        help="Callback timeout only, at most1800 seconds; compile/Search remain180 seconds")
     args = parser.parse_args()
+    if not 0 < args.query_timeout_seconds <= 1800:
+        parser.error("--query-timeout-seconds must be positive and at most1800")
     switch = args.switch_root.resolve(strict=True)
     support = args.support_source.resolve(strict=True)
     stdpp_source = args.stdpp_source.resolve(strict=True) if args.stdpp_source else None
@@ -268,6 +309,8 @@ def main() -> int:
                "support_before": dependency_before, "commands": command_records,
                "stdpp_source": str(stdpp_source) if stdpp_source else None, "stdpp_before": stdpp_before,
                "support_source_before": source_before, "component_recipe": component,
+               "query_timeout_requested_seconds": args.query_timeout_seconds,
+               "query_timeout_effective_seconds": args.query_timeout_seconds,
                "verdict": "pending", "exit": 1, "native_exit": None,
                "query_completed": False, "metadata_validated": False}
     start = time.monotonic()
@@ -275,6 +318,8 @@ def main() -> int:
     execution_finished = False
     loaded_before = None
     search_loaded_before = None
+    validated_output = None
+    output_file = out / "native-census.json"
     try:
         (out / "checkpoint.json").write_text(json.dumps(receipt, indent=2) + "\n")
         shutil.copytree(support, out / "support")
@@ -297,10 +342,16 @@ def main() -> int:
             env["VOS_CENSUS_MODE"] = "census"
             env.pop("VOS_CENSUS_RESOLVE", None)
             env.pop("VOS_CENSUS_RESOLVE_FILE", None)
+            require(not output_file.exists(), "native census output already exists before callback")
+            env["VOS_CENSUS_OUTPUT_FILE"] = str(output_file)
+            receipt["native_output_requested"] = {"path": str(output_file), "existed_before": False}
+            env.pop("VOS_CENSUS_PROGRESS_FILE", None)
         else:
             env.pop("VOS_CENSUS_MODE", None)
             env.pop("VOS_CENSUS_RESOLVE", None)
             env.pop("VOS_CENSUS_RESOLVE_FILE", None)
+            env.pop("VOS_CENSUS_OUTPUT_FILE", None)
+            env.pop("VOS_CENSUS_PROGRESS_FILE", None)
         with tempfile.TemporaryDirectory(prefix="vos-native-census-") as work:
             receipt["native_process_cwd"] = work
             plugin_exit = run_command("plugin-build", [str(switch / "bin/ocamlfind"), "ocamlopt", "-rectypes",
@@ -378,11 +429,14 @@ def main() -> int:
                     *(["-Q", str(out / "controls"), ""] if args.census else []),
                     "-q", "-w", "+default,-abstract-large-number", "-set", "Default Goal Selector=!",
                     "-disallow-sprop", "-o", str(out / "NativeControls.vo"), str(query)],
-                    out=out, work=work, env=env, receipt=receipt, commands=command_records)
+                    out=out, work=work, env=env, receipt=receipt, commands=command_records,
+                    timeout_seconds=args.query_timeout_seconds)
                 if native_exit == 0:
                     no_diagnostic(out, "native-query", permit_stdout=True)
                     if args.census:
-                        census_output((out / "native-query.stdout.log").read_bytes(), args.targets.split(","), requests)
+                        validated_output = census_output((out / "native-query.stdout.log").read_bytes(), args.targets.split(","), requests,
+                                                         output=output_file)
+                        receipt["native_output_validation"] = validated_output
                     else:
                         metadata_output((out / "native-query.stdout.log").read_bytes(), args.targets.split(","))
                     metadata_validated = True
@@ -428,7 +482,10 @@ def main() -> int:
                 receipt["search_loaded_unchanged"] = search_loaded_before == search_loaded_after
             else:
                 receipt["search_loaded_unchanged"] = True
-            identities_unchanged = all(receipt[k] for k in ("installed_unchanged", "support_unchanged", "inputs_unchanged", "native_api_unchanged", "stdpp_unchanged", "support_source_unchanged", "loaded_unchanged", "search_loaded_unchanged"))
+            output_after = output_identity(output_file) if args.census and output_file.exists() else None
+            receipt["native_output_after_execution"] = output_after
+            receipt["native_output_unchanged"] = validated_output is None or validated_output["after"] == output_after
+            identities_unchanged = all(receipt[k] for k in ("installed_unchanged", "support_unchanged", "inputs_unchanged", "native_api_unchanged", "stdpp_unchanged", "support_source_unchanged", "loaded_unchanged", "search_loaded_unchanged", "native_output_unchanged"))
         except (OSError, ValueError) as error:
             receipt["identity_refusal"] = {"error_type": type(error).__name__, "error": str(error)}
         query_record = next((record for record in command_records if record["label"] == "native-query"), {})
