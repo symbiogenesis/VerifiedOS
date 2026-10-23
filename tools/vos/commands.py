@@ -78,7 +78,7 @@ COMMANDS: tuple[Command, ...] = (
     Command("proof-search", "vos.cli.proof_search",
             "retrieve local proof examples as advisory source text, without a prover"),
     Command("rocq-census", "vos.cli.rocq_census",
-            "emit structured native module metadata as bounded qualification evidence",
+            "emit native module metadata or census provenance in an explicit private lane",
             lane="guest", host_ok=frozenset({"--help"})),
     Command("sail-context", "vos.cli.sail_context",
             "retrieve Sail declarations and references from the compiler's source bundle"),

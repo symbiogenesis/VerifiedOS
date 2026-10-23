@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-"""Run the native metadata control through the repository's guest dispatcher."""
+"""Run the native metadata/census producer through the guest dispatcher."""
 
 import runpy
 import sys
