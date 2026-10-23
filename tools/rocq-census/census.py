@@ -234,12 +234,16 @@ def _native_semantics(value: dict[str, Any]) -> None:
         if {"constructor_count", "constructors"} <= node.keys():
             _require(node["constructor_count"] == len(node["constructors"]), "incomplete inductive constructors")
         if "body_kind" in node:
-            _require((node["transparent_body"] is not None) == (node["body_kind"] == "Def"),
-                     "constant body discriminator disagrees with native body")
+            _require(node["transparent_body"] is None, "executable native body payload is prohibited")
+            _require((node["transparent_body_identity"] is not None) == (node["body_kind"] == "Def"),
+                     "constant body discriminator disagrees with native body identity")
             _require((node["primitive"] is not None) == (node["body_kind"] == "Primitive"),
                      "primitive discriminator disagrees with native body")
             _require(node["inline_level"] is None or node["body_kind"] == "Undef",
                      "inline level on a non-abstract body")
+        if {"algorithm", "encoding", "digest", "module_paths", "kernel_names"} == node.keys():
+            _require(re.fullmatch(r"[0-9a-f]{64}", node["digest"]) is not None,
+                     "native body identity is not an exact lowercase BLAKE2b-256 digest")
         if {"kind", "expression", "structure", "algebraic_type", "resolver_id"} == node.keys():
             kind = node["kind"]
             _require((node["expression"] is not None) == (kind == "Algebraic"),
@@ -398,12 +402,36 @@ def _census(metadata: object, searches: dict[str, str], readings: dict[str, str]
         _require(current["id"] == module["id"], "module reading coverage reaches another field")
 
     paths, kernels = _domains(value)
+    path_order: list[str] | None = None
+    kernel_order: list[str] | None = None
     for resolver in resolvers.values():
         _require(resolver["owner_module_id"] in modules, "foreign native resolver")
         inputs = [_key(effect["input"]) for effect in resolver["module_effects"]]
         _require(len(inputs) == len(set(inputs)) and set(inputs) == paths, "incomplete native resolver module domain")
+        if path_order is None:
+            path_order = inputs
+        _require(inputs == path_order, "native resolver module domains disagree on key order")
         inputs = [_key(effect["input"]) for effect in resolver["kernel_effects"]]
         _require(len(inputs) == len(set(inputs)) and set(inputs) == kernels, "incomplete native resolver kernel domain")
+        if kernel_order is None:
+            kernel_order = inputs
+        _require(inputs == kernel_order, "native resolver kernel domains disagree on key order")
+    if path_order is None or kernel_order is None:
+        raise CensusError("missing native resolver domain order")
+    for node in _nodes(value):
+        if {"algorithm", "encoding", "digest", "module_paths", "kernel_names"} != node.keys():
+            continue
+        body_paths = [_key(path) for path in node["module_paths"]]
+        body_kernels = [_key(kernel) for kernel in node["kernel_names"]]
+        body_path_set, body_kernel_set = set(body_paths), set(body_kernels)
+        _require(body_paths == [path for path in path_order if path in body_path_set],
+                 "native body reference paths disagree with native key order")
+        _require(body_kernels == [kernel for kernel in kernel_order if kernel in body_kernel_set],
+                 "native body kernel references disagree with native key order")
+        for reference in _nodes([node["module_paths"], node["kernel_names"]]):
+            if reference.get("tag") in {"MPfile", "MPbound", "MPdot"}:
+                _require(_key(reference) in body_path_set,
+                         "native body footprint omits a kernel path or parent module path")
     for module in modules.values():
         resolver = resolvers.get(module["implementation"]["resolver_id"], {})
         _require(resolver.get("owner_module_id") == module["id"], "module implementation names a foreign resolver")

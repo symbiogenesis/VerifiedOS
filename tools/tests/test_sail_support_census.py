@@ -53,7 +53,7 @@ def _reference(module: str, label: str = "x") -> dict[str, Any]:
 def _fixture(root: str = "Root") -> tuple[dict[str, Any], dict[str, str], dict[str, str]]:
     metadata = cast("dict[str, Any]", _example(_SCHEMA["$defs"]["constant_metadata"]))
     metadata.update(type={"tag": "Sort", "sort": {"tag": "Prop"}}, body_kind="Undef",
-                    transparent_body=None, inline_level=None, primitive=None)
+                    transparent_body=None, transparent_body_identity=None, inline_level=None, primitive=None)
     value = {"schema": "verifiedos-sail-support-census/1", "producer": "rocq-9.3.0-constructor-api",
              "requested_roots": [root], "roots": [{"requested": root, "native_path": _path(root), "module_id": root}],
              "modules": [], "fields": [], "declarations": [], "abbreviations": [], "resolvers": [],
@@ -334,6 +334,39 @@ class SailSupportCensusTests(unittest.TestCase):
         # This call uses Python fixtures; its report does not claim native execution.
         self.assertNotIn("native-prover-verdict", report)
 
+    def test_body_identity_replaces_executable_ast_and_retains_complete_reference_domain(self) -> None:
+        value, searches, _ = _fixture()
+        identity = {"algorithm": "blake2b-256", "encoding": "verifiedos-rocq-native-term-json/1", "digest": "a" * 64,
+                    "module_paths": [_path("Foreign"), _path("Foreign.Nested")],
+                    "kernel_names": [{"path": _path("Foreign.Nested"), "label": "dependency"}]}
+        for node in _ADAPTER["_nodes"](value):
+            if "body_kind" in node:
+                node.update(body_kind="Def", transparent_body_identity=copy.deepcopy(identity))
+        value, searches, readings = _finish(value, searches)
+        result = _ADAPTER["census"](value, searches, readings, expected_modules=["Root"])["Root"]
+        self.assertIsNone(result["fields"][0]["metadata"]["transparent_body"])
+        self.assertEqual(result["fields"][0]["metadata"]["transparent_body_identity"], identity)
+        mutations = {
+            "missing Def identity": lambda item: item["fields"][0]["metadata"].update(transparent_body_identity=None),
+            "non-Def identity": lambda item: item["fields"][0]["metadata"].update(body_kind="Undef"),
+            "executable AST": lambda item: item["fields"][0]["metadata"].update(transparent_body={"tag": "Rel", "index_one_based": 1}),
+            "short digest": lambda item: item["fields"][0]["metadata"]["transparent_body_identity"].update(digest="a" * 63),
+            "long digest": lambda item: item["fields"][0]["metadata"]["transparent_body_identity"].update(digest="a" * 65),
+            "uppercase digest": lambda item: item["fields"][0]["metadata"]["transparent_body_identity"].update(digest="A" * 64),
+            "nonhex digest": lambda item: item["fields"][0]["metadata"]["transparent_body_identity"].update(digest="z" * 64),
+            "unapproved digest": lambda item: item["fields"][0]["metadata"]["transparent_body_identity"].update(algorithm="md5"),
+            "omitted kernel module": lambda item: item["fields"][0]["metadata"]["transparent_body_identity"]["module_paths"].pop(),
+            "omitted parent module": lambda item: item["fields"][0]["metadata"]["transparent_body_identity"]["module_paths"].pop(0),
+            "wrong native key order": lambda item: item["fields"][0]["metadata"]["transparent_body_identity"]["module_paths"].reverse(),
+            "duplicate body reference": lambda item: item["fields"][0]["metadata"]["transparent_body_identity"]["kernel_names"].append(copy.deepcopy(identity["kernel_names"][0])),
+            "missing global body domain": lambda item: item["resolvers"][0]["kernel_effects"].pop(),
+        }
+        for name, mutate in mutations.items():
+            candidate = copy.deepcopy(value)
+            mutate(candidate)
+            with self.subTest(name=name), self.assertRaises(ValueError):
+                _ADAPTER["census"](candidate, searches, readings, expected_modules=["Root"])
+
 
 def cases() -> list[Case]:
     checks = SailSupportCensusTests()
@@ -343,4 +376,5 @@ def cases() -> list[Case]:
             Case("native-graph-and-resolver-domain-corruptions-refuse", checks.test_graph_provenance_and_resolver_domain_corruptions_refuse),
             Case("raw-native-reading-framing-diagnostics-and-truncation-refuse", checks.test_raw_native_reading_headers_truncation_and_diagnostics_refuse),
             Case("stdlib-schema-reader-agrees-with-draft202012-oracle", checks.test_schema_reader_matches_draft202012_on_positive_and_corruptions),
-            Case("control-replay-retains-three-roots-and-adapter-refusal-boundary", checks.test_control_replay_uses_three_complete_roots_and_distinguishes_adapter_evidence)]
+            Case("control-replay-retains-three-roots-and-adapter-refusal-boundary", checks.test_control_replay_uses_three_complete_roots_and_distinguishes_adapter_evidence),
+            Case("body-identities-refuse-executable-asts-and-incomplete-reference-domains", checks.test_body_identity_replaces_executable_ast_and_retains_complete_reference_domain)]
