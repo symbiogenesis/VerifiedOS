@@ -583,10 +583,10 @@ and [NOTICE.txt](https://huggingface.co/prism-ml/Ternary-Bonsai-2-27B-gguf/blob/
 Apache-2.0, with Prism ML, Inc., 2026-present, and Qwen3.8-27B/Alibaba Cloud,
 2026, attribution. Intended use is model data for comparison in an experiment
 lane, with required notices retained if later redistributed. This review
-incorporates no weights, runtime source, executable or upstream notice. The
-required Prism runtime is a separate upstream whose exact revision and compiled
-dependency licenses must be reviewed before it is built or incorporated;
-Q12's stock llama.cpp review does not cover that fork.
+incorporates no weights, runtime source, executable or upstream notice. Any
+selected runtime needs its own exact-revision and compiled-dependency review;
+Q12's stock llama.cpp review does not cover Prism's fork or newer upstream
+Hadamard support.
 
 `ukisai/Swift-Qwen3.8-27b` revision
 `048328f4059015b63f860a453bf94834af0db683` was reviewed on the same date at its
@@ -599,6 +599,51 @@ training data or outputs are selected for incorporation. The assessment takes
 the general post-training idea as a research input; independently authored
 training must identify its own permitted code and data. Reusing Swift or its
 ThinkingCap transfer component requires a separate provenance and terms decision.
+
+The same distinction applies to `ukisai/Swift-1.5-Qwen3.8-27b` revision
+`b4c84d42903a8646b25857eb2827288d92ed85a4`, reviewed on 2026-10-22 at its
+[LICENSE](https://huggingface.co/ukisai/Swift-1.5-Qwen3.8-27b/blob/b4c84d42903a8646b25857eb2827288d92ed85a4/LICENSE)
+and [NOTICE](https://huggingface.co/ukisai/Swift-1.5-Qwen3.8-27b/blob/b4c84d42903a8646b25857eb2827288d92ed85a4/NOTICE).
+Its notice identifies further post-training of Swift 1.0 and retains the
+Swift Open License v1.0 for UkisAI's contribution. Its results are research
+references, not an incorporation of weights, deltas or training data.
+
+`ukisai/Swift-Bonsai-2-GGUF` revision
+`a3bdac086bbb6b04d87d0108d18943b5f63868f7` has a separate terms reading on
+2026-10-22: its own
+[LICENSE](https://huggingface.co/ukisai/Swift-Bonsai-2-GGUF/blob/a3bdac086bbb6b04d87d0108d18943b5f63868f7/LICENSE)
+is Apache-2.0, and its
+[NOTICE.txt](https://huggingface.co/ukisai/Swift-Bonsai-2-GGUF/blob/a3bdac086bbb6b04d87d0108d18943b5f63868f7/NOTICE.txt)
+retains Prism ML and Qwen3.8/Alibaba Cloud attribution. The intended prospective
+use is model-data comparison of the released merged files, with those notices
+retained if later redistributed. This grant is read from that release; it is
+not inferred from Swift Qwen's terms. No weights, notice, runtime, training data
+or outputs are incorporated here. The experimental quality evidence and
+unestablished complete training provenance remain separate selection questions.
+
+### Muse Spark Open model research
+
+The [Muse Spark Open assessment](docs/performance/muse-spark-open-assessment.md)
+is a source review for a prospective larger-resource Q4b comparison.
+`meta-models/Muse-Spark-Open-816B-A42B` revision
+`0fb02478b02565b2ce7fc57e6051c91172774ac9` was reviewed on 2026-10-22 at its
+own [LICENSE.md](https://huggingface.co/meta-models/Muse-Spark-Open-816B-A42B/blob/0fb02478b02565b2ce7fc57e6051c91172774ac9/LICENSE.md),
+including its attached usage policy. The Muse Model License permits
+modification, fine-tuning and distillation subject to conditions, including
+notice and policy retention, a prominent "Built with Muse Spark Open"
+attribution, and usage restrictions. A model-as-a-service business above the
+specified aggregate revenue threshold needs a separate agreement; the text
+exempts research, internal use and the stated product-feature cases from that
+condition. Its definition of derivatives includes models improved using
+outputs, so a distilled student does not automatically escape the terms.
+
+These are custom terms, not an Apache-2.0 grant. Intended future use is model
+data in a comparison lane, subject to a decision on the selected artifact's
+terms and intended use before downloading weights, training or distribution.
+This review incorporates no weights, code, notices, training data or outputs
+and selects no Muse derivative for the shipped system. NVFP4 exports and any
+runtime need their own exact-revision review before use; the BF16 reading does
+not establish their complete dependency terms.
 
 ### The RTL substrate
 

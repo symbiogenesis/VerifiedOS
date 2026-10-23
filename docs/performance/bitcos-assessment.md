@@ -7,11 +7,14 @@ The [prompt-processing contract](prompt-processing-term.md) owns the coordinated
 quality, demonstration-set and register act needed to select a ternary release
 member. This assessment adds no ISA instruction or hardware block.
 
-The [Bonsai 2 and post-training review](bonsai2-assessment.md) adds a g128,
-rotated hybrid-attention candidate for a larger resource budget. Its tensor
-census, activation transforms and state costs are separate from Q12's g64
-baseline. Any reasoning-efficient derivative is finalized and quality-tested
-before choosing its BITCOS layout.
+The [Bonsai 2 and post-training review](bonsai2-assessment.md) covers the
+released size family and experimental Swift Bonsai 2 derivative, including
+the distinction between historical runtime results and current merged files.
+Their tensor censuses, activation transforms and state costs are separate
+from Q12's g64 baseline. The [Muse Spark Open assessment](muse-spark-open-assessment.md)
+adds a much larger mixture-of-experts research candidate. Any reasoning-efficient
+derivative is finalized and quality-tested before choosing its BITCOS layout;
+neither its quality nor its zero distribution is inherited from another model.
 
 ## What the paper establishes
 
@@ -23,7 +26,10 @@ with masks, while the AVX2 path builds int8 operands for VNNI. Xe2 replaces bit
 deposit with a four-weight lookup table and feeds DPAS. The reported end-to-end
 maxima are 1.18 times on CPUs and 1.27 times on GPUs; the Lunar Lake CPU loses
 because unpacking dominates. Table I reports Bonsai-4B at 37.71 percent zeros.
-The evaluated Bonsai Q2_0 scale groups have 128 weights.
+The evaluated Bonsai Q2_0 scale groups have 128 weights. The same table reports
+first-generation Bonsai 27B at only 29.66 percent zeros: 1.828 bits per weight
+with BITCOS and scales, versus 1.750 with five-trit packing and scales. That
+case favors five-trit storage. It is not a census of Bonsai 2 or Muse Spark Open.
 
 The encoding does not quantize an arbitrary model into a good ternary model.
 An exact repack preserves its existing symbols and scales; changing activation
@@ -69,6 +75,9 @@ BITCOS beats five-trit storage only when
 `z > o_bitcos - o_two`. This exposes the particularly small margin over
 five-trit at the paper's Bonsai-4B density. Per-vector offset records or generous
 alignment can consume that margin. No format wins universally after overhead.
+For the paper's `t = 1.625` and equal additional overhead, the break-even zero
+fraction is 37.5 percent. This threshold is conditional on that geometry; it
+does not replace the exact PTQ1_0 comparison or a target access schedule.
 
 For a conditional sensitivity calculation, let `N` be the eligible Q2_0
 elements read per token, including the additional embedding row, and let `H`
