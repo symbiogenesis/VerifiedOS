@@ -39,6 +39,8 @@ STRICT = ["-q", "-w", "+default,-abstract-large-number", "-set",
           "Default Goal Selector=!", "-disallow-sprop"]
 NATIVE_SCHEMA = "verifiedos-sail-support-native-qualification/1"
 ENVIRONMENT_BOUNDARY = "Launcher and protected native populations; distro runtime outside these roots is a runner observation."
+MAX_REQUEST_BYTES = 64 * 1024 * 1024
+REQUEST_VARIABLES = ("VOS_CENSUS_RESOLVE", "VOS_CENSUS_RESOLVE_FILE")
 
 
 class CensusAPI(Protocol):
@@ -82,6 +84,39 @@ def write(path: Path, value: object) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(value, indent=2, sort_keys=True, allow_nan=False) + "\n",
                     encoding="utf-8", newline="")
+
+
+def select_requests(environment: dict[str, str], *, direct: str | None = None,
+                    source: Path | None = None) -> None:
+    if (direct is None) == (source is None):
+        raise ValueError("select exactly one native resolution-request source")
+    for variable in REQUEST_VARIABLES:
+        environment.pop(variable, None)
+    if source is not None:
+        environment["VOS_CENSUS_RESOLVE_FILE"] = str(source)
+    elif direct is not None:
+        environment["VOS_CENSUS_RESOLVE"] = direct
+
+
+def request_source(environment: dict[str, str], private_root: Path) -> dict[str, Any] | None:
+    present = [name for name in REQUEST_VARIABLES if name in environment]
+    if not present:
+        return None
+    if len(present) != 1:
+        raise ValueError("ambiguous native resolution-request source")
+    if present[0] == "VOS_CENSUS_RESOLVE":
+        contents = environment[present[0]].encode("utf-8")
+        return {"kind": "environment", "bytes": len(contents), "sha256": hashlib.sha256(contents).hexdigest()}
+    path = Path(environment[present[0]])
+    if (not path.is_absolute() or path.is_symlink() or not path.is_file()
+            or not path.resolve(strict=True).is_relative_to(private_root.resolve(strict=True))
+            or path.stat().st_size > MAX_REQUEST_BYTES):
+        raise ValueError("native request file must be a private absolute regular file within 64 MiB")
+    with path.open("rb") as stream:
+        contents = stream.read(MAX_REQUEST_BYTES + 1)
+    if len(contents) > MAX_REQUEST_BYTES:
+        raise ValueError("native request file exceeds 64 MiB")
+    return {"kind": "file", "path": str(path), "bytes": len(contents), "sha256": hashlib.sha256(contents).hexdigest()}
 
 
 def asset(side: Path, entry: dict[str, Any]) -> Path:
@@ -225,7 +260,8 @@ class Campaign:
             "process_completed": False, "exit": None, "strict": strict, "timed_out": False,
             "expected_refusal": refusal, "native_environment": {name: self.environment[name] for name in
                 ("OPAMROOT", "OPAMSWITCH", "OPAM_SWITCH_PREFIX", "VOS_CENSUS_MODE", "VOS_CENSUS_TARGETS",
-                 "VOS_CENSUS_RESOLVE", "OCAMLPATH") if name in self.environment}}
+                 *REQUEST_VARIABLES, "OCAMLPATH") if name in self.environment},
+            "request_source_before": request_source(self.environment, self.root), "request_source_after": None}
         self.report["commands"].append(record)
         self.save()
         launched = False
@@ -265,6 +301,7 @@ class Campaign:
                 streams[name] = {"path": retained.name, "sha256": receipts.digest(retained)}
             record.update(seconds=time.monotonic() - start, log=log.name,
                           log_sha256=receipts.digest(log), streams=streams)
+            record["request_source_after"] = request_source(self.environment, self.root)
             self.save()
         except BaseException as error:
             status = ("interrupted" if not isinstance(error, Exception) else
@@ -273,6 +310,8 @@ class Campaign:
                           error_type=type(error).__name__, error=str(error))
             self.save()
             raise
+        if record["request_source_before"] != record["request_source_after"]:
+            raise ValueError("native resolution-request input changed during execution: " + label)
         if (limited or (result.returncode != 1 if refusal else result.returncode != 0)
                 or (strict and (result.stdout.strip() or result.stderr.strip()))):
             raise ValueError("command failed or strict diagnostic: " + label)
@@ -330,6 +369,39 @@ def native_path(value: object) -> str:
             or ".." in PurePosixPath(value).parts or PurePosixPath(value).as_posix() != value):
         raise ValueError("native identity path must be a canonical absolute POSIX spelling")
     return value
+
+
+def replay_request_source(command: dict[str, Any], artifact_root: Path, native_root: PurePosixPath) -> None:
+    environment = command.get("native_environment", {})
+    present = [name for name in REQUEST_VARIABLES if name in environment]
+    before, after = command.get("request_source_before"), command.get("request_source_after")
+    if len(present) > 1 or before != after:
+        raise ValueError("native resolution-request source is ambiguous or changed")
+    if not present:
+        if before is not None:
+            raise ValueError("native command records an unexplained resolution-request input")
+        return
+    if not isinstance(before, dict):
+        raise TypeError("native request invocation lacks its source identity")
+    if present[0] == "VOS_CENSUS_RESOLVE":
+        contents = environment[present[0]].encode("utf-8")
+        expected = {"kind": "environment", "bytes": len(contents), "sha256": hashlib.sha256(contents).hexdigest()}
+    else:
+        path = PurePosixPath(native_path(environment[present[0]]))
+        if (path.name not in {"support-requests.json", "control-requests.json"}
+                or path != native_root / "native-request-inputs" / path.name):
+            raise ValueError("native request file escaped its private invocation input")
+        retained = retained_member(artifact_root, path.name)
+        if retained.stat().st_size > MAX_REQUEST_BYTES:
+            raise ValueError("retained native request file exceeds 64 MiB")
+        with retained.open("rb") as stream:
+            contents = stream.read(MAX_REQUEST_BYTES + 1)
+        if len(contents) > MAX_REQUEST_BYTES:
+            raise ValueError("retained native request file exceeds 64 MiB")
+        expected = {"kind": "file", "path": path.as_posix(), "bytes": len(contents),
+                    "sha256": hashlib.sha256(contents).hexdigest()}
+    if before != expected:
+        raise ValueError("native resolution-request input differs from its retained bytes")
 
 
 def command_streams(root: Path, command: dict[str, Any]) -> tuple[str, str]:
@@ -392,8 +464,14 @@ def native_dataset(campaign: Campaign, api: CensusAPI, roots: list[str],
         ("inventory-" if prefix == "support" else "control-inventory-") + str(index),
         proofaudit.inventory_query(module), mappings).stdout for index, module in enumerate(roots)}
     requests = api.parse_search_requests(searches, expected_modules=roots)
-    campaign.environment.update(VOS_CENSUS_MODE="census", VOS_CENSUS_TARGETS=",".join(roots),
-                                VOS_CENSUS_RESOLVE=json.dumps(requests, separators=(",", ":")))
+    retained = campaign.upload / (prefix + "-requests.json")
+    write(retained, requests)
+    inputs = campaign.root / "native-request-inputs"
+    inputs.mkdir(exist_ok=True)
+    source = inputs / retained.name
+    shutil.copy2(retained, source)
+    select_requests(campaign.environment, source=source)
+    campaign.environment.update(VOS_CENSUS_MODE="census", VOS_CENSUS_TARGETS=",".join(roots))
     emitted = query(campaign, prefix + "-native-census",
                     "Require " + " ".join(roots) + '.\nDeclare ML Module "vos_rocq_census".\n', mappings)
     metadata = decode(emitted.stdout)
@@ -532,7 +610,12 @@ def native_controls(campaign: Campaign, mappings: list[str]) -> None:
     write(campaign.upload / "control-adapter-verdicts.json", report)
     source = campaign.side / "tools/rocq-census"
     for name, entry in spec["refusals"].items():
-        campaign.environment.update(entry.get("environment", {}))
+        environment = entry.get("environment", {})
+        if "VOS_CENSUS_RESOLVE" in environment:
+            select_requests(campaign.environment, direct=environment["VOS_CENSUS_RESOLVE"])
+        else:
+            select_requests(campaign.environment, source=Path(campaign.environment["VOS_CENSUS_RESOLVE_FILE"]))
+        campaign.environment.update(environment)
         result = query(campaign, "native-" + name + "-refusal",
                        (source / entry["source"]).read_text(encoding="utf-8"), mappings,
                        refusal=True, source_name=entry["source"])
@@ -612,6 +695,7 @@ def validate_native_qualification(artifact_root: Path, side: Path, revision: str
         raise ValueError("native qualification lacks exact selected support population")
     evidence = row.get("evidence")
     required_files = {"support-search.json", "support-census.json", "support-readings.json",
+        "support-requests.json", "control-requests.json",
         "support-census-audit.json", "native-assumptions.json", "native-alias-assumptions.json", "control-search.json", "control-census.json",
         "control-readings.json", "control-adapter-verdicts.json", "native-control-verdicts.json",
         "input-identities-before.json", "input-identities.json"}
@@ -660,6 +744,7 @@ def validate_native_qualification(artifact_root: Path, side: Path, revision: str
             raise ValueError("native qualification repeats a command or records an unfinished launch")
         commands[label] = command
         streams[label] = command_streams(artifact_root, command)
+        replay_request_source(command, artifact_root, PurePosixPath(opam["root"]).parent)
         if label in native_refusals:
             if (command.get("expected_refusal") is not True or command["exit"] != 1
                     or native_refusals[label]["diagnostic"] not in "".join(streams[label])):
@@ -772,10 +857,14 @@ def validate_native_qualification(artifact_root: Path, side: Path, revision: str
         check_query(prefix + "-native-census",
             "Require " + " ".join(requested) + '.\nDeclare ML Module "vos_rocq_census".\n')
         environment = commands[prefix + "-native-census"]["native_environment"]
+        expected_requests = api.parse_search_requests(searches, expected_modules=requested)
+        request_path = (PurePosixPath(opam["root"]).parent / "native-request-inputs" / (prefix + "-requests.json")).as_posix()
         if (environment.get("VOS_CENSUS_MODE") != "census"
                 or environment.get("VOS_CENSUS_TARGETS") != ",".join(requested)
-                or decode(environment.get("VOS_CENSUS_RESOLVE", "null")) !=
-                    api.parse_search_requests(searches, expected_modules=requested)):
+                or environment.get("VOS_CENSUS_RESOLVE_FILE") != request_path
+                or "VOS_CENSUS_RESOLVE" in environment
+                or decode((artifact_root / (prefix + "-requests.json")).read_text(encoding="utf-8")) != expected_requests
+                or metadata.get("resolution_requests") != expected_requests):
             raise ValueError("native producer invocation differs from exact roots/Search resolution requests")
         for index, module in enumerate(requested):
             label = ("inventory-" if prefix == "support" else "control-inventory-") + str(index)
