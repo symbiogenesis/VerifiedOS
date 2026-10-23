@@ -26,6 +26,23 @@ Positive controls cover a signature-only module, an unapplied functor, a sealed 
 
 Q35q still requires its complete real hosted census, exact assumption audit and recursive kernel check. Q35n's independent cold snapshot export/import campaign and Q35b's canonical consumer acceptance retain their separate predicates. This contract accepts no support carriage, proof, changed source semantics or project-lock update.
 
+## Hosted-only execution
+
+Full native Sail census generation, Python validation and corruption-control replay
+run only on GitHub-hosted Actions runners. This includes the complete support
+population, the native three-root control emission, `qualify_controls`, and
+independent replay of retained native-sized evidence. Do not run or restart these
+workloads locally in WSL or on the host. Small fixture and focused helper tests
+remain allowed locally; all profiling and performance measurements remain hosted.
+
+This placement rule supersedes the local execution permissions in the bounded
+continuations below without resetting their counters or changing acceptance. The
+seventh local control continuation was stopped at the user's request and supplies
+no complete corruption-control verdict. Its partial observations remain evidence
+of an interrupted attempt, not acceptance. The
+[performance todo](../../../tools/performance.md#native-sail-census-validation-todo)
+records the optimization work; this rule commissions no new candidate or campaign.
+
 ## Bounded execution and estimate
 
 The initial metadata step exhausted its three-candidate budget. Its retained

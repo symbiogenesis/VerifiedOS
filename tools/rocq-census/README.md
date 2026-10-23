@@ -12,15 +12,22 @@ It supplies no declaration census. `--census` selects the separate
 [wire contract](SCHEMA.md). Neither helper mode alone qualifies Q35q's hosted exact
 assumption and recursive-kernel joins.
 
-Run a focused native census using an existing locked switch, immutable precompiled
-support and its complete precompiled stdpp/bitvector mapping:
+Full native census generation, Python validation, corruption controls and independent
+retained-evidence replay are [GitHub-hosted Actions only](../../docs/implementation/contracts/sail-support-census.md#hosted-only-execution).
+Do not launch these native-sized workloads locally in WSL or on the host. Small
+fixture and focused helper tests remain allowed locally.
+
+The hosted native census step uses an existing locked switch, immutable precompiled
+support and its complete precompiled stdpp/bitvector mapping. Set `SWITCH_ROOT`,
+`SUPPORT_SOURCE` and `STDPP_SOURCE` to those absolute job paths and use a fresh
+output directory beneath `RUNNER_TEMP`:
 
 ```sh
 python3 tools/run.py rocq-census \
-  --switch-root /root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1 \
-  --out /root/build/lane-ASSIGNED/native-census-NEW \
-  --support-source /absolute/retained/support/src-stdpp \
-  --stdpp-source /absolute/retained/stdpp \
+  --switch-root "$SWITCH_ROOT" \
+  --out "$RUNNER_TEMP/native-census-NEW" \
+  --support-source "$SUPPORT_SOURCE" \
+  --stdpp-source "$STDPP_SOURCE" \
   --census --search \
   --targets CensusControls,SailStdpp.TypeCasts,SailStdpp.State_monad
 ```

@@ -102,6 +102,15 @@ guest suites, proof gates and all benchmarks only on GitHub Actions, including
 during a hosted-service outage. Local builds and focused checks are allowed;
 record their reason, scope and verdict. They do not replace hosted acceptance.
 
+Run full native Sail census generation, Python validation and corruption-control
+replay only on GitHub-hosted Actions runners. This includes `census.py`'s
+`qualify_controls` loop and independent replay of native-sized retained emissions.
+Do not launch or restart these workloads locally, in WSL or on the host, including
+profiling or diagnostic attempts through a scratch harness. Small fixture and
+focused helper tests remain allowed locally. The [census execution rule](docs/implementation/contracts/sail-support-census.md#hosted-only-execution)
+and [performance todo](tools/performance.md#native-sail-census-validation-todo)
+own the detailed scope and follow-up.
+
 For the settled batch:
 
 Use [`python tools/run.py fanout`](tools/fanout.md) for the mechanical integration,
