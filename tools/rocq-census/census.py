@@ -497,16 +497,27 @@ def _census(metadata: object, searches: dict[str, str], readings: dict[str, str]
             _require(link["source_field"] == link["instantiated_field"]
                      and link["source_metadata"] == link["instantiated_metadata"],
                      "implementation changed its field/metadata without substitution")
+        pending_applications: list[dict[str, Any]] = []
         for step in steps[:split]:
             expression = step["expression"]
             while expression["tag"] in {"MENoFunctor", "MEMoreFunctor"}:
                 expression = expression["body"]
             if step["tag"] == "module-alias":
+                _require(not pending_applications, "native application trace omitted an ordered argument")
+                while expression["tag"] == "MEapply":
+                    pending_applications.append(expression)
+                    expression = expression["function"]
+                    while expression["tag"] in {"MENoFunctor", "MEMoreFunctor"}:
+                        expression = expression["body"]
+                pending_applications.reverse()
                 _require(expression["tag"] == "MEident" and expression["path"] == step["target"],
                          "native alias trace disagrees with its module expression")
             else:
                 _require(expression["tag"] == "MEapply" and expression["argument"] == step["argument"],
                          "native application trace disagrees with its module expression")
+                _require(bool(pending_applications) and expression == pending_applications.pop(0),
+                         "native application trace reordered or added an argument")
+        _require(not pending_applications, "native application trace omitted an ordered argument")
         implementation = modules[field["parent_module_id"]]["implementation"]
         if implementation["kind"] in {"Struct", "FullStruct"}:
             _require(split == 0 and steps[split]["implementation_kind"] == implementation["kind"],

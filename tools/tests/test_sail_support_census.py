@@ -427,6 +427,46 @@ class SailSupportCensusTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             _ADAPTER["census"](value, searches, readings, expected_modules=["Root"])
 
+    def test_native_applied_functor_trace_keeps_full_expression_head_and_ordered_arguments(self) -> None:
+        value, searches, _ = _fixture()
+        _sealed(value, "Root", "Applied")
+        declaration = value["declarations"][-1]
+        link = declaration["implementation_connection"]
+        module = next(row for row in value["modules"] if row["id"] == "Root.Applied")
+        head = {"tag": "MEident", "path": _path("Foreign.F")}
+        first = {"tag": "MEapply", "function": head, "argument": _path("Arguments.A")}
+        second = {"tag": "MEapply", "function": first, "argument": _path("Arguments.B")}
+        expression = {"tag": "MENoFunctor", "body": second}
+        module["implementation"]["expression"] = expression
+        source = copy.deepcopy(link["source_field"])
+        source["module_path"] = _path("Foreign.F")
+        link.update(source_field=source, source_reference=_reference("Foreign.F"))
+        structure, substitution, lookup = copy.deepcopy(link["steps"][1:])
+        structure["field"], substitution["source"] = source, source
+        resolver = module["implementation"]["resolver_id"]
+        link["steps"] = [{"tag": "module-alias", "source": _path("Root.Applied"), "target": _path("Foreign.F"),
+                          "expression": expression, "resolver_id": resolver},
+                         *[{"tag": "functor-application", "parameter_identifier": {"stamp": index, "id": name, "directory_reversed": ["Foreign"]},
+                            "argument": prefix["argument"], "expression": prefix, "resolver_id": resolver}
+                           for index, (name, prefix) in enumerate((("X", first), ("Y", second)), 1)],
+                         structure, substitution, lookup]
+        value, searches, readings = _finish(value, searches)
+        result = _ADAPTER["census"](value, searches, readings, expected_modules=["Root"])["Root"]
+        self.assertEqual([row["name"] for row in result["symbols"]], ["Root.Applied.x", "Root.x"])
+        mutations = {
+            "wrong head": lambda item: item["declarations"][-1]["implementation_connection"]["steps"][0].update(target=_path("Foreign.Other")),
+            "wrong argument": lambda item: item["declarations"][-1]["implementation_connection"]["steps"][1].update(argument=_path("Arguments.B")),
+            "swapped argument steps": lambda item: item["declarations"][-1]["implementation_connection"]["steps"].__setitem__(slice(1, 3),
+                list(reversed(item["declarations"][-1]["implementation_connection"]["steps"][1:3]))),
+            "omitted argument": lambda item: item["declarations"][-1]["implementation_connection"]["steps"].pop(2),
+        }
+        for name, mutate in mutations.items():
+            candidate = copy.deepcopy(value)
+            mutate(candidate)
+            candidate, _, candidate_readings = _finish(candidate, searches)
+            with self.subTest(name=name), self.assertRaisesRegex(ValueError, "native (?:alias|application) trace"):
+                _ADAPTER["census"](candidate, searches, candidate_readings, expected_modules=["Root"])
+
 
 def cases() -> list[Case]:
     checks = SailSupportCensusTests()
@@ -439,4 +479,5 @@ def cases() -> list[Case]:
             Case("control-replay-retains-three-roots-and-adapter-refusal-boundary", checks.test_control_replay_uses_three_complete_roots_and_distinguishes_adapter_evidence),
             Case("body-identities-refuse-executable-asts-and-incomplete-reference-domains", checks.test_body_identity_replaces_executable_ast_and_retains_complete_reference_domain),
             Case("external-sealed-declaration-alias-keeps-supplementary-native-audit", checks.test_external_sealed_declaration_alias_has_supplementary_assumption_binding),
-            Case("bound-interface-abbreviation-remains-an-obligation", checks.test_bound_interface_abbreviation_remains_an_obligation)]
+            Case("bound-interface-abbreviation-remains-an-obligation", checks.test_bound_interface_abbreviation_remains_an_obligation),
+            Case("applied-functor-trace-preserves-native-head-and-ordered-arguments", checks.test_native_applied_functor_trace_keeps_full_expression_head_and_ordered_arguments)]
