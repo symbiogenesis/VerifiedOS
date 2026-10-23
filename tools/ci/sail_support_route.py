@@ -476,7 +476,8 @@ def control_spec(side: Path) -> dict[str, Any]:
     if (spec.get("schema") != "verifiedos-rocq-census-controls/1"
             or spec.get("positive", {}).get("root") != "CensusControls"
             or spec.get("positive", {}).get("targets") != ["CensusControls", "SailStdpp.TypeCasts", "SailStdpp.State_monad"]
-            or len(spec.get("hidden_assumptions", {}).get("symbols", [])) != 1):
+            or [entry.get("name") for entry in spec.get("hidden_assumptions", {}).get("symbols", [])] !=
+                ["CensusControls.HiddenSealed.witness", "CensusControls.HiddenAlias.witness"]):
         raise ValueError("unsupported native control specification")
     unsupported = spec["unsupported_refusal"]
     hidden = spec["hidden_assumptions"]
@@ -487,8 +488,18 @@ def control_spec(side: Path) -> dict[str, Any]:
             "unsupported": {"source": unsupported["source"], "diagnostic": unsupported["required_diagnostic"],
                 "environment": {"VOS_CENSUS_MODE": unsupported["mode"],
                     "VOS_CENSUS_TARGETS": ",".join(unsupported["targets"]), "VOS_CENSUS_RESOLVE": "[]"}}},
-        "hidden_assumptions": {"source": hidden["source"], "symbol": hidden["symbols"][0]["name"],
-            "expected_axioms": hidden["symbols"][0]["expected_axioms"]}}
+        "hidden_assumptions": {"source": hidden["source"], "symbols": hidden["symbols"]}}
+
+
+def hidden_assumption_audit(stdout: str, expected: list[dict[str, Any]]) -> list[proofaudit.Symbol]:
+    symbols: list[proofaudit.Symbol] = [{"name": entry["name"], "type": "control", "claims": [], "assumptions": []}
+                                      for entry in expected]
+    proofaudit.assumptions(stdout, symbols)
+    for symbol, declared in zip(symbols, expected, strict=True):
+        names = [entry.split(" : ", 1)[0] for entry in symbol["assumptions"]]
+        if sorted(names) != sorted(declared["expected_axioms"]) or len(names) != len(set(names)):
+            raise ValueError("sealed/alias hidden-axiom native control differs from exact expected assumptions")
+    return symbols
 
 
 def native_controls(campaign: Campaign, mappings: list[str]) -> None:
@@ -508,11 +519,7 @@ def native_controls(campaign: Campaign, mappings: list[str]) -> None:
     hidden = spec["hidden_assumptions"]
     result = query(campaign, "native-hidden-assumptions",
                    (source / hidden["source"]).read_text(encoding="utf-8"), mappings, source_name=hidden["source"])
-    symbols: list[proofaudit.Symbol] = [{"name": hidden["symbol"], "type": "control", "claims": [], "assumptions": []}]
-    proofaudit.assumptions(result.stdout, symbols)
-    names = [entry.split(" : ", 1)[0] for entry in symbols[0]["assumptions"]]
-    if sorted(names) != sorted(hidden["expected_axioms"]) or len(names) != len(set(names)):
-        raise ValueError("sealed hidden-axiom control differs from exact expected assumptions")
+    symbols = hidden_assumption_audit(result.stdout, hidden["symbols"])
     write(campaign.upload / "native-control-verdicts.json", {"schema": spec["schema"],
         "status": "passed", "adapter": report, "hidden_assumptions": symbols,
         "native_refusals": sorted(spec["refusals"])})
@@ -766,11 +773,7 @@ def validate_native_qualification(artifact_root: Path, side: Path, revision: str
             if commands[label]["native_environment"].get(key) != value:
                 raise ValueError("native refusal invocation differs from its reviewed control")
     check_query("native-hidden-assumptions", (side / "tools/rocq-census" / hidden["source"]).read_text(encoding="utf-8"))
-    symbols: list[proofaudit.Symbol] = [{"name": hidden["symbol"], "type": "control", "claims": [], "assumptions": []}]
-    proofaudit.assumptions(streams["native-hidden-assumptions"][0], symbols)
-    names = [entry.split(" : ", 1)[0] for entry in symbols[0]["assumptions"]]
-    if sorted(names) != sorted(hidden["expected_axioms"]) or len(names) != len(set(names)):
-        raise ValueError("hidden-axiom native control differs")
+    symbols = hidden_assumption_audit(streams["native-hidden-assumptions"][0], hidden["symbols"])
     if load(artifact_root / "native-control-verdicts.json") != {"schema": spec["schema"], "status": "passed",
             "adapter": control_report, "hidden_assumptions": symbols, "native_refusals": sorted(spec["refusals"])}:
         raise ValueError("native control verdict differs from raw replay")

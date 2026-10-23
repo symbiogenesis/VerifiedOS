@@ -305,6 +305,19 @@ def expected_native_refusal_exits() -> None:
                    "expected refusal retains both original streams")
 
 
+def hidden_alias_control_contexts() -> None:
+    expected = [{"name": "CensusControls." + kind + ".witness",
+                 "expected_axioms": ["CensusControls.HiddenImplementation.hidden_control_axiom"]}
+                for kind in ("HiddenSealed", "HiddenAlias")]
+    blocks = [route.proofaudit.MARKER + cast("str", entry["name"]) + "\nAxioms:\n" + entry["expected_axioms"][0] + " : Prop\n"
+              for entry in expected]
+    ensure(len(route.hidden_assumption_audit("".join(blocks), expected)) == 2,
+           "sealed implementation and its alias both expose the exact hidden control axiom")
+    refuses(lambda: route.hidden_assumption_audit(blocks[0], expected))
+    refuses(lambda: route.hidden_assumption_audit("".join(blocks).replace("hidden_control_axiom", "foreign_axiom"), expected))
+    refuses(lambda: route.hidden_assumption_audit("".join([*blocks, blocks[1]]), expected))
+
+
 def standalone_native_replay() -> None:
     """Exercise complete route joins over fixtures; this supplies no native qualification."""
     with tempfile.TemporaryDirectory(prefix="vos-native-replay-") as directory:
@@ -338,8 +351,9 @@ def standalone_native_replay() -> None:
                 "unsupported": {"source": "UnsupportedShapeRefusal.v", "diagnostic": "expected unsupported refusal",
                     "environment": {"VOS_CENSUS_MODE": "census", "VOS_CENSUS_TARGETS": "UnsupportedShapeRefusal.Unsupported",
                         "VOS_CENSUS_RESOLVE": "[]"}}},
-            "hidden_assumptions": {"source": "HiddenAssumptions.v", "symbol": "CensusControls.HiddenSealed.witness",
-                "expected_axioms": ["CensusControls.HiddenImplementation.hidden_control_axiom"]}}
+            "hidden_assumptions": {"source": "HiddenAssumptions.v", "symbols": [
+                {"name": "CensusControls." + kind + ".witness", "expected_axioms": ["CensusControls.HiddenImplementation.hidden_control_axiom"]}
+                for kind in ("HiddenSealed", "HiddenAlias")]}}
         found = {"support_modules": [module.removeprefix("SailStdpp.") for module in modules], "support_axioms": [],
                  "probes": {}}
         for name in ("term", "eqdep", "real", "notation"):
@@ -428,10 +442,11 @@ def standalone_native_replay() -> None:
             add_query("native-" + name + "-refusal", (control_source / entry["source"]).read_text(),
                 [*support_map, *paths["controls"]], stderr=entry["diagnostic"], environment=entry.get("environment"), refusal=True)
         hidden = cast("dict[str, Any]", spec["hidden_assumptions"])
-        hidden_symbols = [{"name": hidden["symbol"], "type": "control", "claims": [],
-            "assumptions": [hidden["expected_axioms"][0] + " : Prop"]}]
+        hidden_symbols = [{"name": entry["name"], "type": "control", "claims": [],
+            "assumptions": [entry["expected_axioms"][0] + " : Prop"]} for entry in hidden["symbols"]]
         add_query("native-hidden-assumptions", (control_source / hidden["source"]).read_text(), [*support_map, *paths["controls"]],
-            route.proofaudit.MARKER + hidden["symbol"] + "\nAxioms:\n" + hidden["expected_axioms"][0] + " : Prop\n")
+            "".join(route.proofaudit.MARKER + entry["name"] + "\nAxioms:\n" + entry["expected_axioms"][0] + " : Prop\n"
+                    for entry in hidden["symbols"]))
         route.write(artifact / "control-adapter-verdicts.json", control_report)
         route.write(artifact / "native-control-verdicts.json", {"schema": spec["schema"], "status": "passed", "adapter": control_report,
             "hidden_assumptions": hidden_symbols, "native_refusals": sorted(spec["refusals"])})
@@ -507,4 +522,5 @@ def cases() -> list[Case]:
             Case("native-complete-identity-population", native_identity_population),
             Case("native-duplicate-json-and-streams", duplicate_json_and_streams),
             Case("native-expected-refusal-exits", expected_native_refusal_exits),
+            Case("native-hidden-alias-control-contexts", hidden_alias_control_contexts),
             Case("native-standalone-replay", standalone_native_replay)]
