@@ -38,7 +38,12 @@ identities. Complete `.vo`/`.glob` path-to-hash maps are rescanned beneath insta
 deleted and changed paths are reported separately; any difference refuses its exit.
 The final helper also requires exactly one well-formed JSON emission with the
 expected metadata schema/boundary and exact requested target population. This output
-guard supplies no full native field-census qualification.
+guard supplies no full native field-census qualification. Before every native
+launch the runner persists pending invocation arguments. A receipt reports success
+only after a completed query, validated metadata, finished execution and unchanged
+identities. Timeouts retain available partial stdout/stderr; launch, copy, log and
+validation-read failures refuse. Native process exits remain separate from the
+final evidence verdict. Mocked controls exercise these interruption paths.
 This checks those recorded populations at the observation cuts, not every installed
 file or the interval between cuts. The runner's final canonical-path and identity-refusal packaging
 has focused helper/static checks; the retained executed runner remains independently bound.

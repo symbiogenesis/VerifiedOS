@@ -46,10 +46,14 @@ def validate_output(out: Path, protected: tuple[Path, ...]) -> Path:
     return resolved
 
 
-def control_verdict(native_exit: int, identities_unchanged: bool) -> tuple[int, str]:
+def control_verdict(native_exit: int | None, identities_unchanged: bool, *,
+                    query_completed: bool, metadata_validated: bool,
+                    execution_finished: bool) -> tuple[int, str]:
     if not identities_unchanged:
         return 1, "identity-refused"
-    return native_exit, "native-metadata-control-only" if native_exit == 0 else "refused"
+    if native_exit == 0 and query_completed and metadata_validated and execution_finished:
+        return 0, "native-metadata-control-only"
+    return native_exit if native_exit is not None and native_exit != 0 else 1, "refused"
 
 def metadata_output(stdout: bytes, targets: list[str]) -> None:
     """Refuse missing, duplicate or foreign output without claiming census completeness."""
@@ -67,6 +71,42 @@ def metadata_output(stdout: bytes, targets: list[str]) -> None:
         raise ValueError("malformed metadata root")
     if [root.get("requested") for root in roots] != targets:
         raise ValueError("metadata target population differs from requested targets")
+
+def captured_bytes(value: bytes | str | None) -> bytes:
+    return value.encode() if isinstance(value, str) else value or b""
+
+
+def run_command(label: str, command: list[str], *, out: Path, work: str,
+                env: dict[str, str], receipt: dict[str, object],
+                commands: list[dict[str, object]]) -> int:
+    record: dict[str, object] = {"label": label, "argv": command, "cwd": work,
+                                 "status": "pending", "process_completed": False, "exit": None}
+    commands.append(record)
+    # Persist intent before launch: an interrupted invocation cannot inherit success.
+    (out / "checkpoint.json").write_text(json.dumps(receipt, indent=2) + "\n")
+    try:
+        process = subprocess.run(command, cwd=work, env=env, capture_output=True,
+                                 timeout=180, check=False)
+    except subprocess.TimeoutExpired as error:
+        record.update(status="timed-out", error_type=type(error).__name__, error=str(error))
+        try:
+            (out / (label + ".stdout.log")).write_bytes(captured_bytes(error.stdout))
+            (out / (label + ".stderr.log")).write_bytes(captured_bytes(error.stderr))
+        except OSError as log_error:
+            record["log_error"] = str(log_error)
+        raise
+    except OSError as error:
+        record.update(status="launch-error", error_type=type(error).__name__, error=str(error))
+        raise
+    record.update(status="completed", process_completed=True, exit=process.returncode)
+    try:
+        (out / (label + ".stdout.log")).write_bytes(process.stdout)
+        (out / (label + ".stderr.log")).write_bytes(process.stderr)
+    except OSError as error:
+        record["log_error"] = str(error)
+        raise
+    return process.returncode
+
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
@@ -94,68 +134,78 @@ def main() -> int:
                "started_utc": datetime.datetime.now(datetime.UTC).isoformat(),
                "scope": "metadata-only; no proof or complete census acceptance",
                "input_sha256": identity, "installed_before": before,
-               "support_before": dependency_before, "commands": command_records}
-    (out / "checkpoint.json").write_text(json.dumps(receipt, indent=2) + "\n")
-    shutil.copytree(support, out / "support")
-    plugin = out / "vos_rocq_census"
-    plugin.mkdir()
-    shutil.copy2(source / "vos_rocq_census.ml", plugin)
-    (plugin / "META").write_text('description = "Original Q35q native metadata producer"\n'
-        'requires = "rocq-runtime.vernac"\nplugin(native) = "vos_rocq_census.cmxs"\n')
-    env = os.environ.copy()
-    env["PATH"] = str(switch / "bin") + os.pathsep + env.get("PATH", "")
-    env["OCAMLPATH"] = str(out) + os.pathsep + str(switch / "lib") + os.pathsep + env.get("OCAMLPATH", "")
-    env["VOS_CENSUS_TARGETS"] = args.targets
+               "support_before": dependency_before, "commands": command_records,
+               "verdict": "pending", "exit": 1, "native_exit": None,
+               "query_completed": False, "metadata_validated": False}
     start = time.monotonic()
-    code = 1
+    metadata_validated = False
+    execution_finished = False
     try:
+        (out / "checkpoint.json").write_text(json.dumps(receipt, indent=2) + "\n")
+        shutil.copytree(support, out / "support")
+        plugin = out / "vos_rocq_census"
+        plugin.mkdir()
+        shutil.copy2(source / "vos_rocq_census.ml", plugin)
+        (plugin / "META").write_text('description = "Original Q35q native metadata producer"\n'
+            'requires = "rocq-runtime.vernac"\nplugin(native) = "vos_rocq_census.cmxs"\n')
+        env = os.environ.copy()
+        env["PATH"] = str(switch / "bin") + os.pathsep + env.get("PATH", "")
+        env["OCAMLPATH"] = str(out) + os.pathsep + str(switch / "lib") + os.pathsep + env.get("OCAMLPATH", "")
+        env["VOS_CENSUS_TARGETS"] = args.targets
         with tempfile.TemporaryDirectory(prefix="vos-native-census-") as work:
             receipt["native_process_cwd"] = work
-            def run(label: str, command: list[str]) -> int:
-                process = subprocess.run(command, cwd=work, env=env, capture_output=True,
-                                         timeout=180, check=False)
-                (out / (label + ".stdout.log")).write_bytes(process.stdout)
-                (out / (label + ".stderr.log")).write_bytes(process.stderr)
-                command_records.append({"label": label, "argv": list(map(str, command)),
-                                           "cwd": work, "exit": process.returncode})
-                return process.returncode
-            code = run("plugin-build", [str(switch / "bin/ocamlfind"), "ocamlopt", "-rectypes",
+            plugin_exit = run_command("plugin-build", [str(switch / "bin/ocamlfind"), "ocamlopt", "-rectypes",
                 "-thread", "-shared", "-package", "rocq-runtime.vernac", "-w", "+8", "-warn-error", "+8",
-                "-o", str(plugin / "vos_rocq_census.cmxs"), str(plugin / "vos_rocq_census.ml")])
-            if code == 0:
+                "-o", str(plugin / "vos_rocq_census.cmxs"), str(plugin / "vos_rocq_census.ml")],
+                out=out, work=work, env=env, receipt=receipt, commands=command_records)
+            if plugin_exit == 0:
                 query = out / "NativeControls.v"
                 shutil.copy2(source / "NativeControls.v", query)
-                code = run("native-query", [str(switch / "bin/rocq"), "c", "-boot", "-R",
+                native_exit = run_command("native-query", [str(switch / "bin/rocq"), "c", "-boot", "-R",
                     str(installed / "theories"), "Corelib", "-Q",
                     str(installed / "user-contrib/Stdlib"), "Stdlib", "-Q",
                     str(installed / "user-contrib/stdpp"), "stdpp", "-R", str(out / "support"), "SailStdpp",
                     "-q", "-w", "+default,-abstract-large-number", "-set", "Default Goal Selector=!",
-                    "-disallow-sprop", "-o", str(out / "NativeControls.vo"), str(query)])
-                receipt["native_exit"] = code
-                if code == 0:
-                    try:
-                        metadata_output((out / "native-query.stdout.log").read_bytes(), args.targets.split(","))
-                    except ValueError as error:
-                        receipt["output_refusal"] = str(error)
-                        code = 1
+                    "-disallow-sprop", "-o", str(out / "NativeControls.vo"), str(query)],
+                    out=out, work=work, env=env, receipt=receipt, commands=command_records)
+                if native_exit == 0:
+                    metadata_output((out / "native-query.stdout.log").read_bytes(), args.targets.split(","))
+                    metadata_validated = True
+        execution_finished = True
+    except (OSError, subprocess.TimeoutExpired, ValueError) as error:
+        receipt["execution_refusal"] = {"error_type": type(error).__name__, "error": str(error)}
     finally:
         receipt["elapsed_seconds"] = time.monotonic() - start
-        installed_after = population(installed)
-        receipt["installed_after"] = installed_after
-        receipt["installed_changes"] = changes(before, installed_after)
-        support_after = population(support)
-        receipt["support_after"] = support_after
-        receipt["support_changes"] = changes(dependency_before, support_after)
-        receipt["input_sha256_after"] = {p: digest(Path(p)) for p in identity}
-        receipt.setdefault("native_exit", code)
-        receipt["installed_unchanged"] = not any(changes(before, installed_after).values())
-        receipt["support_unchanged"] = not any(changes(dependency_before, support_after).values())
-        receipt["inputs_unchanged"] = receipt["input_sha256_after"] == identity
-        code, verdict = control_verdict(code, all(receipt[k] for k in ("installed_unchanged", "support_unchanged", "inputs_unchanged")))
+        identities_unchanged = False
+        try:
+            installed_after = population(installed)
+            receipt["installed_after"] = installed_after
+            receipt["installed_changes"] = changes(before, installed_after)
+            support_after = population(support)
+            receipt["support_after"] = support_after
+            receipt["support_changes"] = changes(dependency_before, support_after)
+            receipt["input_sha256_after"] = {p: digest(Path(p)) for p in identity}
+            receipt["installed_unchanged"] = not any(changes(before, installed_after).values())
+            receipt["support_unchanged"] = not any(changes(dependency_before, support_after).values())
+            receipt["inputs_unchanged"] = receipt["input_sha256_after"] == identity
+            identities_unchanged = all(receipt[k] for k in ("installed_unchanged", "support_unchanged", "inputs_unchanged"))
+        except (OSError, ValueError) as error:
+            receipt["identity_refusal"] = {"error_type": type(error).__name__, "error": str(error)}
+        query_record = next((record for record in command_records if record["label"] == "native-query"), {})
+        raw_exit = query_record.get("exit")
+        native_exit = raw_exit if isinstance(raw_exit, int) else None
+        query_completed = query_record.get("process_completed") is True
+        receipt["native_exit"] = native_exit
+        receipt["query_completed"] = query_completed
+        receipt["metadata_validated"] = metadata_validated
+        receipt["execution_finished"] = execution_finished
+        code, verdict = control_verdict(native_exit, identities_unchanged,
+            query_completed=query_completed, metadata_validated=metadata_validated,
+            execution_finished=execution_finished)
         receipt["exit"] = code
         receipt["verdict"] = verdict
         (out / "receipt.json").write_text(json.dumps(receipt, indent=2) + "\n")
-    print(json.dumps({k: receipt[k] for k in ("verdict", "exit", "installed_unchanged", "support_unchanged", "inputs_unchanged")}))
+    print(json.dumps({k: receipt[k] for k in ("verdict", "exit", "native_exit", "query_completed", "metadata_validated")}))
     return code
 
 
