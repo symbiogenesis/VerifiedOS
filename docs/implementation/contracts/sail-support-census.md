@@ -232,4 +232,22 @@ retain a distinct ID and complete effects. This is an implementation correction
 inside the remaining realization budget, with no change to finite-domain coverage
 or the independent native implementation and assumption joins.
 
+### Native reading framing
+
+The first independent replay refuses `State_monad.NMap.Raw` because its printed
+inductive constructor `End` and a use of that constructor were counted as module
+closures. Its complete native reading ends with the actual outer closure; the
+strict query succeeds with empty diagnostics. Preserve that reading and the refused
+replay. This is a text-framing defect, not an unsupported native module form.
+
+Readings must match their requested native header and module/type kind, contain no
+elision or diagnostic, and retain the outer body's terminal `End` when the printer
+opens a signature or structure. Do not infer nested module balance by counting
+Gallina identifiers. Completeness of every nested module and field remains the
+constructor-based native graph's obligation, joined to the exact strict query and
+its full retained stdout. This correction permits no missing native field, changed
+reading, dropped query, synthesized type or weaker implementation connection.
+Malformed headers, missing outer closure, elision and appended diagnostics still
+refuse. Implement this correction within the existing adapter/control budget.
+
 The census extension adds 6 h, range 3–9, to Q35q's existing allowance: native grammar/classification 1–3 h, canonical implementation connections 1–3 h, and controls/evidence 1–3 h. The combined item is 10 h, range 5–15. This is a planning estimate for the commissioned scope; unattended hosted runtime and a further unsupported form are excluded. A retained refusal does not close Q35q.
