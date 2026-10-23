@@ -822,9 +822,7 @@ DEV_TOOL_ROWS: tuple[DevTool, ...] = (
              rf"{_V} in the contained compiler switch",
              (_snap("contained-compiler", "ocaml-base-compiler"),)),
         Site("the tags read", _TAGS_READ,
-             (*_OCAML_5, _snap("certirocq", "ocaml-base-compiler"), _ORACLE_OCAML), each=_TAG),
-        Site("the contained compiler's archive read", rf"The `{_V}` release archive",
-             (_snap("contained-compiler", "ocaml-base-compiler"),))),
+             (*_OCAML_5, _snap("certirocq", "ocaml-base-compiler"), _ORACLE_OCAML), each=_TAG)),
         residues=(Residue("under LGPL version 2.1", "the licence's own version"),
                   Residue("headers name version 2.1", "the licence version the headers name"))),
     DevTool("dune", (
@@ -922,8 +920,6 @@ DEV_TOOL_PROSE = DevTool("the section's paragraphs", (
          (_snap("certirocq", "coq-compcert"),))),
     residues=(
         Residue("state LGPL version 2.1", "Stdlib's licence version"),
-        Residue("the 0.20.2 release's read on",
-                "the earlier reading the current one is compared with"),
         Residue("`rocq-stdpp-bitvector` 1.13.0",
                 "the release coq-sail's metadata requires, which no project switch installs"),
         Residue("`coq-compcert >= 3.17`",
@@ -1122,9 +1118,6 @@ SITE_RESIDUE: dict[tuple[str, str], str] = {
         "the tag controller edition selected by the imported core's nested gitlink",
     ("rtl/synthesis-provenance.md", "173646d5"):
         "the tag controller edition selected by the imported core's nested gitlink",
-    ("THIRD-PARTY.md", "5691ca0d"):
-        "the Fiat-Crypto generator edition whose recorded build and licence reading "
-        "the dependency measurements describe",
     ("docs/assurance/proof-reuse/crypto.md", "e6946985"):
         "the Fiat-Crypto source and licence edition read by the dated reuse survey",
     ("docs/implementation/fiat-crypto-emission.md", "20261010"):

@@ -306,7 +306,7 @@ NON_PREMISE: dict[tuple[str, str], NonPremise] = {
         "extracted", ("Planned independent comparator from the Jasmin/EasyCrypt lineage",)),
     (RECORD, "Proof and lowering references"): NonPremise(
         (FSTAR, EASYCRYPT), "where the comparators' licence terms were located",
-        ("**Cryptography references.** Reviews on",)),
+        ("**Cryptography references.**",)),
     (RECORD, "The cryptography upstreams"): NonPremise(
         (FSTAR, EASYCRYPT), "the comparators' standing, unqualified, with nothing "
         "copied", ("without claiming the unrun",)),

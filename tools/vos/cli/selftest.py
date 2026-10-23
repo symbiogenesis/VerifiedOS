@@ -1867,6 +1867,10 @@ CASES: list[Case] = [
      _first_match("tools/opam/contained-compiler.lock",
                   r'(?s)(installed:\s*\[.*?"ocaml-base-compiler\.)([^"]+)"',
                   lambda m: f'{m[1]}{m[2]}.1"')),
+    ("K-118", "a reviewed OCaml license tag not fixed by any compiler snapshot",
+     _first_match(THIRD_PARTY,
+                  r"(?m)^(\| OCaml compiler \|[^\n]*?byte-identical at the `[^`]+` and `)([^`]+)(` tags)",
+                  lambda m: f"{m[1]}{m[2]}.1{m[3]}")),
     ("K-118", "a contained compiler Menhir runtime release its development-tool row does not state",
      _first_match("tools/opam/contained-compiler.lock", r'"menhirLib\.([^"]+)"',
                   lambda m: f'"menhirLib.{m[1]}.1"')),
@@ -2606,6 +2610,9 @@ CASES: list[Case] = [
               "carries no authorization for deterministic production signing. Its "
               "signing path's functional correctness rests on libcrux's verified "
               "ML-DSA, whose F\\* proof this campaign takes as its premise.")),
+    ("K-114", "a license-reference section acquiring an unlisted proof premise",
+     _first_match(THIRD_PARTY, r"(?m)^\*\*Cryptography references\.\*\*[^\n]*",
+                  lambda m: f"{m[0]}\nThe implementation's acceptance relies on HACL*'s proof.")),
     ("K-114", "a retained compressed record resting a result on an unlisted interim",
      _k114_compressed_premise),
     # The rewrite a modernizing lane makes: a two-branch match in a proof source turned

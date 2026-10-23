@@ -1,6 +1,6 @@
 # Preventing recurring CI failures
 
-This contract owns the maintenance work prompted by the October 2026 CI review.
+This contract owns CI preparation, generated-check diagnostics and failure prevention.
 The [validation handoff](../../AGENTS.md#tool-execution-and-validation) and
 [Guest CI contract](README.md) retain their acceptance requirements. These tools
 prepare complete inputs and improve diagnostics; they grant no model, proof,

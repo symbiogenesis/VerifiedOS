@@ -46,8 +46,7 @@ checks QuickChick's switch on manual dispatch from `main` alone, the one place t
 user's rulings let it be built and checked;
 [the instrument switch route](ci/README.md#instrument-switch-route) in the Guest CI
 contract owns it, and `run.py instrument-ci` dispatches it and reads its runs back.
-The user's ruling of 2026-09-30 keeps `run.py provision --apply`'s QuickChick import
-out of the local guest (F-616).
+`run.py provision --apply` must not import QuickChick in the local guest (F-616).
 
 **A red host CI run has to name which member went red, to a reader who cannot open its
 log.** One invocation is four members and one exit code, which reaches the run page and
@@ -747,12 +746,9 @@ It is native rather than containerized: the prover and model toolchains are buil
 
 ## The three generators, and what each answers
 
-Validation here is generated rather than authored wherever an oracle exists, and until
-these landed the technique had been proved twice and used nowhere else: M2.1 emitted
-21,546 vectors from the model itself and R1a emitted 658,659 over thirteen kinds,
-killing twelve seeded defects on between 4 and 61,579 lines. Both rigs were built
-inside one item and thrown away. These three are the standing instruments, and each
-answers one of the two findings that say why generation pays.
+Validation is generated wherever an oracle exists. The three standing instruments
+below cover model inputs, mutation sensitivity and Gallina inputs; their owning
+findings explain the blind spots each addresses.
 
 | Generator | The finding it answers | What it does |
 | --- | --- | --- |

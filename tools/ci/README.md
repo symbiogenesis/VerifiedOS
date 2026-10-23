@@ -494,10 +494,10 @@ qualify the refreshed external oracle; target and refinement joins remain open.
 checks QuickChick's switch on GitHub-hosted runners, and this section owns its contract.
 QuickChick's switch is built and checked only on this route: no QuickChick switch is
 built or checked in the local guest, and no QuickChick lock is tracked from a guest
-build. The user's ruling of 2026-09-30 keeps `run.py provision --apply`'s QuickChick
-import, which [the lock guide](../opam/README.md) names, out of the local guest (F-616).
-No CertiRocq switch is built, checked or dispatched
-on this route, the user's ruling of 2026-09-30 keeping CertiRocq's builds local. No
+build. `run.py provision --apply` must not import QuickChick in the local guest,
+as [the lock guide](../opam/README.md) states (F-616).
+CertiRocq builds stay local; no CertiRocq switch is built, checked or dispatched
+on this route. No
 switch or download cache is used, so every switch a run reports was built in that run
 from its recipe or lock in a fresh root; the uv cache Guest CI saves is read and never
 saved.

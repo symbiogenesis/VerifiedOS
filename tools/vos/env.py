@@ -8,10 +8,10 @@ The single thing here that outlives a build is the keepalive, and it is a bounde
 background process rather than a line in that global file for exactly the same reason:
 it buys the effect this repository needs, scoped to the work, and expires on its own.
 
-Five invariants every loop needs, and used to carry its own copy of:
+Five invariants shared by every loop:
 
   1. Sail's C++ emission overflows the default 8 MB stack on the full model (the M0.3
-     finding, twice reproduced). The limit is raised here, in the parent, and every
+     finding). The limit is raised here, in the parent, and every
      child inherits it.
   2. The Sail toolchain lives in a dedicated opam switch, which a bare
      `wsl -e python3 tools/run.py model` does not put on PATH.
@@ -27,26 +27,21 @@ Five invariants every loop needs, and used to carry its own copy of:
      the other one's answers. `lane_of` derives the lane from the checkout, and
      `build_lock` holds it for one build at a time.
 
-What the numbers say (measured 2026-08-18, 12-core Snapdragon X Elite, 31.6 GB host,
+Build measurements (2026-08-22, 12-core Snapdragon X Elite, 31.6 GB host,
 WSL2 default allocation of 12 CPUs and 15.7 GB). Cores are already fully exposed; the
 guest sees all 12. Raising the CPU count is therefore not available, and would not help
 if it were, because the build's critical path is two strictly single-threaded stages
 back to back: the Sail C++ emission followed by the one generated translation unit it
-produces. Both figures move as the curation deletes surface, so both are dated. The
-emission is 41.2 s at the C-class freeze against a warm memo cache, and 34.4 s
-remeasured clean 2026-08-22 (I6's stock arm). The unit, remeasured
-clean 2026-08-22 on a quiet toolchain at 10,835,851 bytes over 344,963 lines, compiles
+produces. On a quiet toolchain, emission takes 34.4 s (I6's stock arm), and the
+10,835,851-byte, 344,963-line translation unit compiles
 alone at -O2 -g in 81.8 s wall and 71 s CPU with a 1.20 GB peak under gcc 15.2.0, and
-in 38.7 s under clang 21.1.8 accepting the same command verbatim (I5's sweep); the
-139.1 s this docstring carried before was taken with a sibling lane building, so
-roughly 40% of it was contention rather than compiler. Against the 13.3 MB,
-423,101-line, 150 s unit recorded at M0.3 the direction is what matters: the floor is
-roughly 2 min and it is falling, and no amount of parallelism reduces it. Memory is
-not binding: the heaviest single compile is that unit.
+in 38.7 s under clang 21.1.8 accepting the same command verbatim (I5's sweep).
+These serial stages limit the benefit of build parallelism. Memory is not binding:
+the heaviest single compile is that unit. The figures describe this source and
+toolchain snapshot; curation and compiler changes require new measurements.
 
-The source tree's residence on /mnt/c is a suspect for exactly one stage, and the
-rejection that stood here measured a stage that is not it. Reading the 1.19 MB of Sail
-sources across 125 files does cost only ~0.4 s over 9p; `configure` walks the whole
+The source tree's residence on /mnt/c chiefly affects configuration. Reading the
+1.19 MB of Sail sources across 125 files costs only ~0.4 s over 9p; `configure` walks the whole
 824-file cmake project and pays per stat rather than per byte. Measured 2026-08-22 on a
 quiet toolchain with the arms alternated, a re-configure costs 17.0/17.4/20.4 s at
 10-12% of a core from /mnt/c against 0.9/1.0/1.1 s at 47-48% from a byte-identical ext4

@@ -11,7 +11,7 @@ Each `.lock` file records the complete compiler, root-package and installed-pack
 | [rupicola.lock](rupicola.lock) | `verifiedos-rupicola-9.2.0-ocaml-5.4.1` | Rupicola 0.0.11, bedrock2 compiler 0.0.9, Rocq 9.2.0 |
 | [contained-compiler.lock](contained-compiler.lock) | `verifiedos-contained-compiler-9.3.0-ocaml-4.14.4` | Rocq 9.3.0, Stdlib 9.2.0, OCaml 4.14.4, dune 3.24.2, Menhir 20260209 |
 
-The package metadata was rechecked on 2026-10-19 with opam 2.6.1 in a private
+The package-resolution snapshot is dated 2026-10-19 and uses opam 2.6.1 in a private
 root. Constraining the qualified root versions leaves the Sail, proof and
 Rupicola snapshots current. The latest stable findlib remains 1.9.8; its OCaml
 bound still prevents a stable 5.5 compiler in those switches. CertiRocq stays
@@ -26,8 +26,7 @@ the hosted instrument route; no local QuickChick switch was imported or built.
 The current QuickChick lock is the byte-exact export from the
 [2026-10-19 hosted recipe run](https://github.com/symbiogenesis/VerifiedOS/actions/runs/39348906266),
 tested at `b9b451560f1f551ee8dae37f8828fcac60978d0b`. Its fresh build, property
-checks, independent clean import and export comparison passed. Only ppxlib moves,
-from 0.38.0 to 0.39.0. The separate lock-adoption commit
+checks, independent clean import and export comparison passed. The lock selects ppxlib 0.39.0. The separate lock-adoption commit
 `4550a7da9c6db9c13d26546a471639b424d75c5d` preserves the tested route inputs;
 `instrument-ci read --closing` confirms that binding. This qualification does not
 state a Host CI or Guest CI verdict for later integration commits.
@@ -95,7 +94,7 @@ and the byte-identical re-export. The remaining commit pins are listed below.
 
 The recipe takes dune 3.23.1, below the proof switch's 3.24.2, because `rocq-elpi` 3.5.1, which QuickChick's `coq-mathcomp-ssreflect` dependency reaches through `rocq-mathcomp-ssreflect`, `rocq-mathcomp-boot` and `rocq-hierarchy-builder`, requires dune 3.13 or later and below 3.24.
 
-The Rupicola switch stays on Rocq 9.2.0, the kernel the proof switch left, because the released `coq-bedrock2` 0.0.9, which the bedrock2 compiler and Rupicola packages require, does not build against Rocq 9.3.0. The released lowering packages, `coq-coqutil` 0.0.7, `coq-riscv` 0.0.6, `coq-bedrock2` and `coq-bedrock2-compiler` 0.0.9 and `coq-rupicola` 0.0.11, set no upper bound on the prover; their tagged commits date from 2025-09-05 to 2025-10-02, and their GitHub releases were published on 2025-10-06. The `master` branches of mit-plv's bedrock2 and coqutil later adapted sources those packages build to three changes milestoned for Rocq 9.3+rc1, [rocq#21849](https://github.com/rocq-prover/rocq/pull/21849), [#21987](https://github.com/rocq-prover/rocq/pull/21987) and [#21478](https://github.com/rocq-prover/rocq/pull/21478): bedrock2's for #21849 and #21987, coqutil's for #21987 and #21478. No tagged release carries those adaptations. Measured on 2026-09-30 in a private opam root on the guest, in a switch created with `--repos=rocq-released,default --packages=ocaml-base-compiler.5.4.1`, `opam install -j2 ocamlfind.1.9.8 rocq-core.9.3.0 coq.9.3.0 coq-coqutil.0.0.7 coq-riscv.0.0.6 coq-bedrock2.0.0.9 coq-bedrock2-compiler.0.0.9 coq-rupicola.0.0.11` installs coqutil and riscv-coq beside `rocq-stdlib` 9.2.0 and fails first at `coq-bedrock2` 0.0.9: Rocq 9.3.0 refuses line 3 of `bedrock2/src/bedrock2/SuppressibleWarnings.v`, `Arguments warning_marker {T} msg%message_scope.`, because #21849 makes the `argument-scope-delimiter` deprecation an error by default, and the build passes no warning flag. The bedrock2 compiler and Rupicola packages were not reached.
+The Rupicola switch uses Rocq 9.2.0 because the released `coq-bedrock2` 0.0.9, which the bedrock2 compiler and Rupicola packages require, does not build against Rocq 9.3.0. The released lowering packages, `coq-coqutil` 0.0.7, `coq-riscv` 0.0.6, `coq-bedrock2` and `coq-bedrock2-compiler` 0.0.9 and `coq-rupicola` 0.0.11, set no upper bound on the prover; their tagged commits date from 2025-09-05 to 2025-10-02, and their GitHub releases were published on 2025-10-06. The `master` branches of mit-plv's bedrock2 and coqutil later adapted sources those packages build to three changes milestoned for Rocq 9.3+rc1, [rocq#21849](https://github.com/rocq-prover/rocq/pull/21849), [#21987](https://github.com/rocq-prover/rocq/pull/21987) and [#21478](https://github.com/rocq-prover/rocq/pull/21478): bedrock2's for #21849 and #21987, coqutil's for #21987 and #21478. No tagged release carries those adaptations. Measured on 2026-09-30 in a private opam root on the guest, in a switch created with `--repos=rocq-released,default --packages=ocaml-base-compiler.5.4.1`, `opam install -j2 ocamlfind.1.9.8 rocq-core.9.3.0 coq.9.3.0 coq-coqutil.0.0.7 coq-riscv.0.0.6 coq-bedrock2.0.0.9 coq-bedrock2-compiler.0.0.9 coq-rupicola.0.0.11` installs coqutil and riscv-coq beside `rocq-stdlib` 9.2.0 and fails first at `coq-bedrock2` 0.0.9: Rocq 9.3.0 refuses line 3 of `bedrock2/src/bedrock2/SuppressibleWarnings.v`, `Arguments warning_marker {T} msg%message_scope.`, because #21849 makes the `argument-scope-delimiter` deprecation an error by default, and the build passes no warning flag. The bedrock2 compiler and Rupicola packages were not reached.
 
 [The opam client's owner](../vos/opam_client.py) fixes the reviewed client release, its
 architecture-specific SHA-256 hashes, the package repositories and the one route that
@@ -129,7 +128,7 @@ $ opam switch import tools/opam/rupicola.lock \
     --switch=verifiedos-rupicola-9.2.0-ocaml-5.4.1 -y
 ```
 
-Use the corresponding switch and snapshot from the table for the other environments. The Sail switch needs only the default repository. `run.py provision --apply` imports the Sail, proof and QuickChick snapshots through the recipes in [env.py](../vos/env.py), [proofenv.py](../vos/proofenv.py) and [quickchick.py](../vos/cli/quickchick.py); the user's ruling of 2026-09-30 keeps its QuickChick import out of the local guest, QuickChick's switch being built and checked only on [the instrument switch route](../ci/README.md#instrument-switch-route) (F-616). The [Wasm oracle](../wasm-oracle/README.md) specifies the CertiRocq snapshot's import in both the native recipe and Dockerfile. Creating these switches preserves existing switches and the user's active switch.
+Use the corresponding switch and snapshot from the table for the other environments. The Sail switch needs only the default repository. `run.py provision --apply` imports the Sail, proof and QuickChick snapshots through the recipes in [env.py](../vos/env.py), [proofenv.py](../vos/proofenv.py) and [quickchick.py](../vos/cli/quickchick.py); QuickChick's switch is built and checked only on [the instrument switch route](../ci/README.md#instrument-switch-route) (F-616). The [Wasm oracle](../wasm-oracle/README.md) specifies the CertiRocq snapshot's import in both the native recipe and Dockerfile. Creating these switches preserves existing switches and the user's active switch.
 
 The contained compiler has its own switch and source-containment boundary. Import
 `contained-compiler.lock` by the same create-and-import route, using the switch
