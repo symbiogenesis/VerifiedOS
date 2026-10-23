@@ -2,6 +2,7 @@
 """Focused safety controls for the native metadata harness; no prover execution."""
 import hashlib
 import json
+import os
 import runpy
 import subprocess
 import sys
@@ -284,16 +285,20 @@ class RocqCensusHarnessTests(unittest.TestCase):
             argv = ["rocq-census", "--switch-root", str(switch), "--support-source", str(support),
                     "--out", str(output), "--targets", "Expected", "--census", "--search"]
             def native(command: list[str], **kwargs: object) -> subprocess.CompletedProcess[bytes]:
+                environment = cast("dict[str, str]", kwargs["env"])
+                self.assertNotIn("VOS_CENSUS_PROGRESS_FILE", environment)
                 if Path(command[0]).name == "ocamlfind":
+                    self.assertNotIn("VOS_CENSUS_OUTPUT_FILE", environment)
                     (output / "vos_rocq_census/vos_rocq_census.cmxs").write_bytes(b"built-plugin")
                     return subprocess.CompletedProcess(command, 0, stdout=b"", stderr=b"")
                 query = Path(command[-1])
                 self.assertTrue(query.stem.isidentifier(), "Rocq query filenames must be module identifiers")
                 if query.stem.startswith("Search"):
+                    self.assertNotIn("VOS_CENSUS_OUTPUT_FILE", environment)
                     self.assertIn("Search _ inside Expected.", query.read_text())
                     return subprocess.CompletedProcess(command, 0,
                         stdout=b"Current search blacklist :  is empty.\nExpected.entry: nat\n", stderr=b"")
-                environment = cast("dict[str, str]", kwargs["env"])
+                self.assertEqual(environment["VOS_CENSUS_OUTPUT_FILE"], str(output / "native-census.json"))
                 self.assertNotIn("VOS_CENSUS_RESOLVE", environment)
                 request_file = Path(environment["VOS_CENSUS_RESOLVE_FILE"])
                 self.assertTrue(request_file.is_relative_to(output))
@@ -301,7 +306,9 @@ class RocqCensusHarnessTests(unittest.TestCase):
                 envelope = {"schema": "verifiedos-sail-support-census/1", "requested_roots": ["Expected"],
                             "roots": [{"requested": "Expected"}], "resolution_requests": expected}
                 return _census_result(envelope, environment, command)
-            with patch.object(sys, "argv", argv), redirect_stdout(StringIO()), patch("subprocess.run", side_effect=native):
+            with (patch.object(sys, "argv", argv), redirect_stdout(StringIO()),
+                  patch("subprocess.run", side_effect=native),
+                  patch.dict(os.environ, {"VOS_CENSUS_OUTPUT_FILE": "inherited-unused", "VOS_CENSUS_PROGRESS_FILE": "inherited-unused"})):
                 code = cast("Callable[[], int]", _HELPERS["main"])()
             receipt = json.loads((output / "receipt.json").read_text())
             self.assertEqual(code, 0)
@@ -355,6 +362,30 @@ class RocqCensusHarnessTests(unittest.TestCase):
             with patch("json.load", side_effect=changed), self.assertRaises(ValueError):
                 read(result.stdout, ["Expected"], [], output=output)
 
+    def test_byte_identical_output_replacement_refuses_after_parse(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="vos-census-replaced-") as scratch:
+            output = Path(scratch) / "native-census.json"
+            document = {"schema": "verifiedos-sail-support-census/1", "requested_roots": ["Expected"],
+                        "roots": [{"requested": "Expected"}], "resolution_requests": []}
+            result = _census_result(document, {"VOS_CENSUS_OUTPUT_FILE": str(output)}, ["mock"])
+            original_stat = output.stat()
+            identity = _HELPERS["output_identity"]
+            calls = 0
+            def replaced(path: Path) -> dict[str, object]:
+                nonlocal calls
+                calls += 1
+                if calls == 2:
+                    replacement = path.with_suffix(".replacement")
+                    replacement.write_bytes(path.read_bytes())
+                    os.utime(replacement, ns=(original_stat.st_atime_ns, original_stat.st_mtime_ns))
+                    replacement.replace(path)
+                    self.assertNotEqual(path.stat().st_ino, original_stat.st_ino)
+                return identity(path)
+            reader = _HELPERS["census_output"]
+            with patch.dict(reader.__globals__, {"output_identity": replaced}), self.assertRaisesRegex(
+                    ValueError, "native census output changed during parsing"):
+                reader(result.stdout, ["Expected"], [], output=output)
+
 
 def cases() -> list[Case]:
     checks = RocqCensusHarnessTests()
@@ -368,6 +399,7 @@ def cases() -> list[Case]:
             Case("search-rows-bind-through-private-request-file", checks.test_search_campaign_binds_exact_rows_through_private_file),
             Case("callback-timeout-preserves-compile-bound", checks.test_callback_timeout_is_bounded_to_callback),
             Case("native-file-envelope-refuses-foreign-and-changed-output", checks.test_file_envelope_refuses_foreign_or_changed_output),
+            Case("byte-identical-file-replacement-refuses-after-parse", checks.test_byte_identical_output_replacement_refuses_after_parse),
             Case("metadata-output-guard-refuses-missing-duplicate-and-foreign-emissions", checks.test_output_guard_refuses_missing_duplicate_and_foreign_emissions),
             Case("canonical-output-overlap-refuses-before-creation", checks.test_canonical_overlap_refuses_before_creation),
             Case("support-and-source-inputs-are-protected", checks.test_support_and_source_are_protected),
