@@ -301,4 +301,24 @@ original complete pipeline and stop at its first refusal or this bound. No
 additional time, native form, assumption, hosted campaign or acceptance relaxation
 is commissioned.
 
+### Sealed control assumption identity
+
+The fourth candidate passes the two original native lookup/unsupported-form
+refusals. Its hidden-assumption query succeeds with empty stderr and reports
+`CensusControls.HiddenSealed.hidden_control_axiom` for both the sealed witness and
+its alias. The expected original implementation spelling therefore refuses the
+control. Preserve the exact query, raw oracle result, unchanged identities and
+4.070646092 active seconds; cumulative active time is 1797.084094779 seconds.
+
+The authored axiom remains the one in `HiddenImplementation`; the locked native
+sealed implementation resolver reports its instantiated identity beneath
+`HiddenSealed`. Bind both original witness queries to exactly that observed native
+identity. It remains an expected control-only axiom and never enters the support
+allowlist. Keep the control source and its sealed/alias provenance unchanged.
+
+Commission one fifth adapter/control candidate within the preceding extension's
+remaining 1792.484066608 active seconds. Preserve all four earlier counters and the
+same cumulative sixty-minute ceiling, with no additional time or hosted campaign.
+Repeat the complete unchanged pipeline and stop at its first refusal or this bound.
+
 The census extension adds 6 h, range 3–9, to Q35q's existing allowance: native grammar/classification 1–3 h, canonical implementation connections 1–3 h, and controls/evidence 1–3 h. The combined item is 10 h, range 5–15. This is a planning estimate for the commissioned scope; unattended hosted runtime and a further unsupported form are excluded. A retained refusal does not close Q35q.
