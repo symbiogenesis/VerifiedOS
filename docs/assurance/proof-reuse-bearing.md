@@ -1,6 +1,6 @@
 # Proof-reuse bearing record
 
-*Q27b's deliverable in [the implementation plan](../implementation/implementation-checklist.md#12-build-order-milestones-and-execution-state). For each source the outside-literature sweep added to [the proof reuse inventory](proof-reuse.md), and each source a later reading adds, it names the one open cell or slice that source bears on and what that consumer would stop owing if it took it, or records that it bears on none and says on what ground. It is keyed by source, where the inventory's [subject records](proof-reuse/) are keyed by obligation family and [the unassigned proof map](unassigned-proof-map.md) is keyed by obligation. **No range and no midpoint moves here and none is proposed.** The plan's conventions give an existing start-from no second discount and a survey no measured productivity, so what a row can do is name a start-from at a cell that had none; a source with no consumer is a finding about the survey and never a reason to open a cell for it.*
+*Q27b's deliverable in [the implementation plan](../implementation/implementation-checklist.md#12-build-order-milestones-and-execution-state). For qualified sources in [the proof reuse inventory](proof-reuse.md), it names a consumer and what that consumer would stop owing, or records why none is selected. It is keyed by source, where the inventory's [subject records](proof-reuse/) are keyed by obligation family and [the unassigned proof map](unassigned-proof-map.md) is keyed by obligation. The latest source qualification is dated 2026-10-23. The plan's conventions give an existing start-from no second discount and a survey no measured productivity. No row changes an estimate, and a source without a consumer does not justify opening a cell.*
 
 ## How to read a row
 
@@ -8,20 +8,23 @@
 - **A consumer is an open cell of the plan or a slice of the proof map**, carried by its own id and checked against the plan's open items or the map's [next slices](unassigned-proof-map.md#7-the-next-slices) before the row is written. An id that resolves to neither is deleted from the record rather than defended.
 - **The third column says what the consumer would stop owing, or that nothing is removed and why.** Nothing removed is the ordinary answer and not a failure of the row: a cell that names its start-from without moving its range is what this item delivers, and a re-price is proposed only where a newly qualified source removes a named sub-obligation.
 - **A row whose consumer is `none` carries one ground**, from this set: **taken**, the bearing is already in a landed cell or a landed artifact; **refused**, the register refuses the import at a cited entry; **uncelled**, the obligation the subject record names is owned by no open cell and no slice; **unaimed**, the subject record proposes no local consumer at all; **unread**, the source's own terms are unread or absent, so no reuse may be proposed. Where more than one holds, the row names the one the subject record's own disposition rests on, and the clause may carry the other fact.
-- **Added and re-read sources are tabled apart.** A record the sweep only re-read qualifies a source this corpus already held, and a held start-from receives no second discount, so re-reading one cannot make it newly available.
+- **Qualification alone earns no discount.** An existing start-from receives no second discount; a new source must remove a named sub-obligation before a re-price is proposed.
 - **This record does not restate the note a cell writes.** A cell's own reuse note states what that cell reuses and what work it still buys, on [the plan's conventions](../implementation/implementation-checklist.md#checklist-conventions); what lives here is the source-keyed resolution and the ground for each source that bears on nothing.
 
-## Which sources the sweep added, and the predicate that decides it
+<a id="which-sources-the-sweep-added-and-the-predicate-that-decides-it"></a>
 
-The subject records date their own readings, and those dates do not decide this question. [Systems](proof-reuse/systems.md)'s date sentence lists SYS-PROSA, SYS-LAWYER and SYS-WAITFREE among the 2026-09-13 readings although all three records are present at the earlier of the two revisions the next paragraph names, where that whole inventory is dated 2026-09-10 with no exception, and [languages](proof-reuse/languages.md) dates its inventory between 2026-09-10 and 2026-09-13 with no per-entry date, so neither sentence separates a source the sweep added from one it only re-read.
+## Consumer selection
 
-The predicate this record uses instead is textual and checkable at two named revisions: **a source is added where its own heading, or its bolded lead line under an existing heading, is present under `docs/assurance/proof-reuse/` at `f528852f680dd00d599b73feb69258e214a1385a` and absent at `e694a548e0c31520814eba0d5d1d981fd0571bb5`**, the last revision at which that inventory changed before the sweep commit `2ea8d61`; the two commits that touch it between the sweep and `f528852` add and remove no source record, so the interval's additions are the sweep's. A section heading is not a source record and is not tabled, so a section heading the sweep adds carries no row of its own. On that predicate [hardware](proof-reuse/hardware.md), [parsers](proof-reuse/parsers.md) and [protocols](proof-reuse/protocols.md) add no source, and the tables below enumerate the sources the other four add.
+The tables resolve sources to existing consumers. Source qualification and the
+consumer's reuse note establish their present fit; a source's addition date does
+not establish availability, acceptance or productivity. The subject records own
+editions, terms and theorem scope.
 
 ## Foundations: the certified-search family
 
 [Q27a](../implementation/implementation-checklist.md#12-build-order-milestones-and-execution-state) owns this family's arms and its cell states of the Rocq-side candidates that none is a start-from for any cell in the plan. The rows record which of them bears on a consumer and cite that disposition rather than re-arguing it.
 
-| Source the sweep added | Consumer | What it would remove, or the ground |
+| Source | Consumer | What it would remove, or the ground |
 | --- | --- | --- |
 | [F06 FznDrcpCheck and DRCP](proof-reuse/foundations.md#f06-fzndrcpcheck-and-the-drcp-proof-system-reference) | none · refused | The [placement disposition](../background/architectural-alternatives.md#certified-placement-and-infeasibility-no-new-certificate-machinery) declines new certificate machinery on present evidence. R-05-016 excludes acceptance on an external verdict; R-05-011c rules out a checker-count argument. A kernel-checked proof-producing route still owes that disposition's reopening conditions. |
 | [F07 VeriPB and CakePB](proof-reuse/foundations.md#f07-veripb-and-cakepb-reference) | none · refused | The verified half is HOL4's, so R-05-020's first condition fails before its yield is weighed and no bridge is proposed. |
@@ -32,13 +35,13 @@ The predicate this record uses instead is textual and checkable at two named rev
 
 ## Cryptography
 
-| Source the sweep added | Consumer | What it would remove, or the ground |
+| Source | Consumer | What it would remove, or the ground |
 | --- | --- | --- |
 | [Jasmin's compiler theorem](proof-reuse/crypto.md#jasmins-compiler-theorem-and-what-it-leaves-trusted) | none · unaimed | The record's own disposition is the boundary against which the Formosa entries are read; it acquires no source and proposes no local consumer. |
 
 ## Systems and security
 
-| Source the sweep added | Consumer | What it would remove, or the ground |
+| Source | Consumer | What it would remove, or the ground |
 | --- | --- | --- |
 | [SYS-REFINEDPROSA](proof-reuse/systems.md#sys-refinedprosa-a-response-time-bound-joined-to-the-c-scheduler-that-earns-it) | **M4.4** | Nothing. M4.4's acceptance predicate is three questions read off one corpus run and it expressly declines the duration question, and R-11-006 selects an interval-arithmetic check over a table-only executive rather than a response-time analysis, so the transferable part, the trace-to-schedule join, meets no clause M4.4 owes. The range does not move. |
 | [SYS-LILO](proof-reuse/systems.md#sys-lilo-fair-refinement-for-liveness-and-not-an-iris-instance) | none · unread | The mechanization's own terms are unread, which the record states must be settled before any adaptation is proposed; [the literature disposition](../implementation/static-memory/literature.md)'s adapted service boundary is already in the landed bounded resource contracts. |
@@ -55,7 +58,7 @@ The predicate this record uses instead is textual and checkable at two named rev
 
 ## Languages and compilers
 
-| Source the sweep added | Consumer | What it would remove, or the ground |
+| Source | Consumer | What it would remove, or the ground |
 | --- | --- | --- |
 | [RustCompCert](proof-reuse/languages.md#rustcompcert-a-rust-front-end-over-compcerto-on-compcerts-terms) | none · uncelled | It is a comparator for R-18-015's front-end-over-MIR shape, and R-18-014's certifying Rust compiler, which that shape belongs to, is net-new and [carries no cell](unassigned-proof-map.md#8-mandatory-work-outside-the-priced-total); its terms are non-commercial besides. |
 | [Cogent and Dargent](proof-reuse/languages.md#cogent-and-dargent-certified-refinement-through-a-declared-data-layout) | **U-10** | Nothing. It is the closest published layout-refinement result to R-05-083's obligation, which is U-10's subject, but the prover is Isabelle/HOL, so the method transfers and the proof terms do not: U-10 still owns the declaration, the generator and the generated check in full. The range does not move. |
@@ -75,11 +78,13 @@ The predicate this record uses instead is textual and checkable at two named rev
 | [Corten](proof-reuse/languages.md#leads-that-do-not-supply-the-requested-closed-proof) | none · unread | The preprint names no repository, deposit or code URL, so there is no artifact to pin and no licence to read. |
 | [Alive2](proof-reuse/languages.md#leads-that-do-not-supply-the-requested-closed-proof) | none · refused | It emits no re-checkable proof object, so it cannot be the existing checker that decides a producer's output under R-05-066, and R-18-019 places it as a bug-finding oracle beside the certifier and never as a second one. |
 
-## The sources the sweep re-read
+<a id="the-sources-the-sweep-re-read"></a>
 
-These records are present at `e694a548` and the sweep amends them. A re-reading records terms, an edition or a publication of record; it qualifies a source this corpus already held, so none of them is newly available and none receives a second discount at any cell.
+## Existing source qualifications
 
-| Source already held | What the sweep read into its record |
+These sources remain existing start-froms and receive no second discount.
+
+| Source | Qualification |
 | --- | --- |
 | [SYS-PROSA](proof-reuse/systems.md#sys-prosa-foundational-schedulability-analysis), [SYS-LAWYER](proof-reuse/systems.md#sys-lawyer-mechanized-obligation-based-termination) and [SYS-WAITFREE](proof-reuse/systems.md#sys-waitfree-higher-order-wait-freedom-with-an-evaluated-rocq-artifact) | Publications of record with their page ranges, the archived deposits and their stated terms. |
 | [RefinedRust](proof-reuse/languages.md#refinedrust-sound-refinement-typing-over-radium) | Its use, limits and licence paragraphs, against the Radium assurance route R-18-015 and R-18-018 name. |
@@ -88,11 +93,13 @@ These records are present at `e694a548` and the sweep amends them. A re-reading 
 | [Sail and HW-06](proof-reuse/hardware.md) | Sail's own terms and trust boundary, and HW-06's publication of record. |
 | [SMTCoq](proof-reuse/foundations.md#discovery-collections-and-search-limits) | Its supported solver list at the default branch and its CeCILL-C terms; Q27a distinguishes its reflective route from the extracted checkers and Q27c records the terms against Q3b. |
 
-## Sources the 2026-10-02 reading added
+<a id="sources-the-2026-10-02-reading-added"></a>
 
-That reading checked an outside list of WebAssembly-toolchain and Rocq-extraction candidates against their own trees, and the rules above hold for its additions. **A source is added where its own heading, or its bolded lead line under an existing heading, is present under `docs/assurance/proof-reuse/` at `3bdd9df60fb7bd64c69cd01c888326b81019c27c` and absent at `51ef750c0aeb7d6d5375a3ac591ddcda49c7bf39`**, the reading's base; the first is the only commit between the two that touches that inventory. Kiln, read at the same time, has no row: it carries no proof, so [the Wasm execution contract](../implementation/contracts/wasm-execution.md#research-selection) holds its reading.
+## WebAssembly toolchains and Rocq extraction
 
-| Source the reading added | Consumer | What it would remove, or the ground |
+Kiln carries no proof; [the Wasm execution contract](../implementation/contracts/wasm-execution.md#research-selection) owns its implementation qualification.
+
+| Source | Consumer | What it would remove, or the ground |
 | --- | --- | --- |
 | [Scry](proof-reuse/parsers.md#scry-wasm-abstract-domains-proved-over-their-own-models) | none · unaimed | The record names no local consumer: no obligation reads an analysis verdict over Wasm, the selected execution representation elides no check, and the theorems concern scry's own models rather than the pinned semantics. |
 | [F12 Ordeal](proof-reuse/foundations.md#f12-ordeal-a-certificate-checked-bit-vector-solver-reference) | none · refused | The checker's soundness is a Lean theorem, so R-05-020's first condition fails. No existing checker decides its output under R-05-066, and accepting a rewrite still needs R-05-015's kernel-checked term. |
@@ -101,16 +108,15 @@ That reading checked an outside list of WebAssembly-toolchain and Rocq-extractio
 | [Loom](proof-reuse/languages.md#leads-that-do-not-supply-the-requested-closed-proof) | none · refused | It emits no re-checkable proof object, so it cannot be the existing checker R-05-066 needs, and no cell commissions a general Wasm-to-Wasm optimizer. |
 | [SYS-GALE](proof-reuse/systems.md#sys-gale-zephyrs-primitives-re-proved-for-mechanisms-this-kernel-deletes) | none · refused | R-07-032, R-07-004 and R-07-002 delete the priorities, kernel locks and kernel allocation its primitives verify, and its ring-buffer proofs are Verus and Lean, which R-05-020's first condition refuses. |
 
-## Sources the 2026-10-10 reading added
+<a id="sources-the-2026-10-10-reading-added"></a>
 
-These source records are absent from the documentation at the reading's
-base, `efa6d4e3bc36034a08afc65ccb44e073921570b4`. Repository-wide searches
-checked their titles, authors, artifact names and identifiers. The subject
-entries date the actual formalization or correction separately from recent
-papers about older work. The [search scope](proof-reuse.md#the-2026-10-10-literature-reading)
+## Checker, protocol and scheduling references
+
+The subject entries distinguish a formalization or correction from a recent
+paper about older work. The [literature scope](proof-reuse.md#literature-scope)
 includes older results selected for their relevance.
 
-| Source the reading added | Consumer | What it would remove, or the ground |
+| Source | Consumer | What it would remove, or the ground |
 | --- | --- | --- |
 | [con-leche](proof-reuse/languages.md#con-leche-a-model-existence-proof-for-an-executable-lean-checker) | **M6.2b-0a** | Nothing. The model-existence and byte-stream refusal theorems inform review of the checker checkpoint's premises and interfaces. Lean semantics, the explicit set-theory premise and the unproved local corpus/resource bridges prevent a CIC discharge. |
 | [StrandsRocq's corrected guarantees](proof-reuse/protocols.md#strandsrocq-repaired-protocol-guarantees-with-inhabited-premises) | **M6.9c** | Nothing. Jointly inhabited freshness premises and attack witnesses are useful review examples. NSL's symbolic guarantee supplies neither TLS exporter security nor the attestation/implementation connection. |
@@ -119,16 +125,15 @@ includes older results selected for their relevance.
 | [F15 HOL Light to Rocq alignment](proof-reuse/foundations.md#f15-hol-light-to-rocq-alignment-with-regeneration-required) | none · refused | The distributed translated results are axioms, so importing them fails R-05-163/R-05-164's assumption audit. Regenerated proof closure, the foundational premises, local definition alignment and reciprocal source terms remain separate qualifications. The untrusted translation method itself is not forbidden. |
 | [FormalFlow's low-degree-test proof](proof-reuse/foundations.md#formalflows-low-individual-degree-test-a-statement-review-reference) | none · unread | No source license was found in the inspected snapshot, so no source adaptation is proposed. Its hidden-premise and corrected-statement examples inform the existing proof-review workflow; the quantum theorem has no selected local mathematical consumer. |
 
-## Sources the 2026-10-12 implementation reading added
+<a id="sources-the-2026-10-12-implementation-reading-added"></a>
 
-The source records below are absent at the reading's base
-`7c31019cec0b6dbf1cfb51afd6b9cdb01d701fbf`, except MachCSL's existing paper
-mention, which this reading qualifies against its archived Rocq source. The
-consumer's own note selects a work strategy; [the architectural alternatives](../background/architectural-alternatives.md#functional-cheri-rust-compiler-starting-point)
+## Compiler and machine integration sources
+
+The consumer's own note selects a work strategy; [the architectural alternatives](../background/architectural-alternatives.md#functional-cheri-rust-compiler-starting-point)
 retain displaced starting points. These are source/interface selections, not
 accepted local proofs or measured porting productivity.
 
-| Source the reading added or qualified | Consumer | What it would remove, or the ground |
+| Source | Consumer | What it would remove, or the ground |
 | --- | --- | --- |
 | [CHERIoT Rust](proof-reuse/languages.md#cheriot-rust-selected-functional-capability-aware-compiler-baseline) | none · uncelled | The selected functional baseline removes fresh capability-aware rustc/LLVM-port construction from the future certifying Rust implementation. R-18-014/R-18-015's producer is outside the priced total; RV64 target/ABI adaptation, safe-MIR correspondence, certificates and residency remain. No currently priced consumer loses an acceptance act. |
 | [SYS-GARAGEDOOR](proof-reuse/systems.md#sys-garagedoor-a-composed-software-image-theorem-with-explicit-machine-entry-conditions) | **Q35d** | A concrete installation/initial-state, linking and machine-invariant recipe replaces designing that integration structure independently. Local capability entry states, canonical-term execution, contracts, loop proof, refusals and relocation still require the consumer's acts; the range stays pending a demonstrated net subtask replacement. |
@@ -139,11 +144,13 @@ accepted local proofs or measured porting productivity.
 | [Archived MachCSL Rocq](proof-reuse/languages.md#archived-machcsl-a-direct-sail-monad-logic-candidate-blocked-on-source-rights) | none · unread | First-party source terms are not established. Its direct Sail-backed WP and adequacy structure remain a qualification lead rather than an adopted replacement for the required machine-logic route. |
 | [AUCurves bridge reading](proof-reuse/crypto.md#aucurves-ml-kem-and-keccak-bridges-inspected-claims-do-not-supply-implementation-proofs) | none · unaimed | The inspected ML-KEM bridge concludes `True` from a trusted registry axiom and Keccak wrappers assume their own specifications; they provide no selected implementation-proof replacement. Other arithmetic results are not disposed of by this row. |
 
-## Sources the 2026-10-23 reading added or requalified
+<a id="sources-the-2026-10-23-reading-added-or-requalified"></a>
 
-The [online review](proof-reuse.md#the-2026-10-23-online-reuse-review) compares source records with `52551efd44da5ed68af9358c0c05117ea99ec656`. Native Rocq metadata, ArchSem, fullVerif and vasn receive new subject records. Griotte already has a register consumer and a background reading; the hardware record qualifies its concrete proof interface. Perennial/PoWER, s2n-bignum, libcrux, the hardware foundations and WasmCert receive edition or theorem-scope corrections. The rows identify useful work at existing owners and claim no completed adaptation, removed acceptance clause or measured estimate reduction.
+## Implementation interfaces and edition boundaries
 
-| Source added or requalified | Consumer | Recommended use and remaining boundary |
+The [implementation reuse priorities](proof-reuse.md#implementation-reuse-priorities) identify useful work at existing owners. The rows claim no completed adaptation, removed acceptance clause or measured estimate reduction.
+
+| Source | Consumer | Recommended use and remaining boundary |
 | --- | --- | --- |
 | [F16 native Rocq module metadata](proof-reuse/foundations.md#f16-native-rocq-module-metadata-for-the-sail-support-census) | **Q35q** | Use the locked prover's typed declarations and module traversal when scoping the missing metadata producer. Complete signature/functor provenance, concrete implementation connections and native controls remain required; rocq-lsp's opaque module serialization is insufficient. |
 | [Sail V2 and ArchSem](proof-reuse/languages.md#canonical-sail-effects-existing-interpreters-and-their-tag-boundary) | **Q35p** | Read an actual effect interpreter before designing a preserving adapter. Data-associated tags, erased observations and a sequential model requiring `NoCHERI` do not implement the missing standalone tag effect or establish canonical-term agreement. |
@@ -165,7 +172,5 @@ It does not decide that a named consumer should take its source. A cell states w
 It does not price anything, propose a range, or move one. The consumer rows identify existing start-froms, method and measurement references, or restricted comparisons. None claims a removed proof obligation on which to base a re-price.
 
 It does not fix a `none` row forever. A register act or a new cell can give an uncelled obligation an owner, an unread licence can be read at the milestone that would incorporate it, and a refused import stays refused only while the entry that refuses it stands. A row changes when its ground does, and not before.
-
-It does not make the added-and-held partition a standing property of a source. That partition is a measurement at the two revisions [the predicate](#which-sources-the-sweep-added-and-the-predicate-that-decides-it) names: a later sweep re-takes it, and every source this record tables as added is held by the time that sweep runs.
 
 It performs no licence reading of its own and pins, builds or vendors nothing. The terms it repeats are the subject records', read at their files on the dates those records carry.

@@ -1,14 +1,9 @@
 # Hardware, ISA, capability and interconnect proof reuse
 
-This inventory records upstream proof subjects and their fit to VerifiedOS at
-revision `40c48830e11d2af3807d2431f7fc42ec9ce83bf3`. Source and license readings
-are dated 2026-09-10, except Sail's own terms and trust boundary in the
-paragraph below and HW-06's publication of record, which are read on
-2026-09-13. The code and decoder research handoff is checked on 2026-09-24.
-HW-17 through HW-19 are source-reviewed on 2026-10-12 against local revision
-`7c31019cec0b6dbf1cfb51afd6b9cdb01d701fbf`. The bounded hardware handoff below
-and HW-20 are source-reviewed on 2026-10-23 at local revision
-`52551efd44da5ed68af9358c0c05117ea99ec656`. A published mechanization is evidence about its stated
+This inventory records upstream proof subjects and their fit to VerifiedOS.
+The latest source qualification, dated 2026-10-23, covers the bounded hardware
+handoff and HW-20; entries identify the inspected editions and terms.
+A published mechanization is evidence about its stated
 machine, parameters and assumptions; it is not a proof of this repository's
 machine. No upstream proof is replayed by this research lane, and no source code
 is incorporated by this document.

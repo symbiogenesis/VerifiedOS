@@ -1,6 +1,6 @@
 # Proof reuse: parsing, formats, media and WebAssembly
 
-This inventory qualifies published proof developments against this project's actual obligations. Research and source inspection date: **2026-09-10**, except the EverParse front-end scope recorded below, which is read on **2026-09-13**, the Vest record, read on **2026-09-19**, and the Scry record, read on **2026-10-02**. A strong published example is not an already discharged VerifiedOS requirement. No external parser, interpreter or proof term is incorporated by this document, and no candidate below is rebuilt in the project's Rocq switch. Source inspection, upstream claims and local qualification are distinguished explicitly.
+This inventory qualifies published proof developments against this project's actual obligations. Entries identify inspected editions; the latest source qualification, dated **2026-10-23**, covers WasmCert and vasn. A strong published example is not an already discharged VerifiedOS requirement. No external parser, interpreter or proof term is incorporated by this document, and no candidate below is rebuilt in the project's Rocq switch. Source inspection, upstream claims and local qualification are distinguished explicitly.
 
 ## Local consumers and the qualification boundary
 
@@ -162,7 +162,7 @@ advertises Coq 8.13, VST 2.8 and CompCert 3.9, and its tree lacks the paper's
 `CertiGC/assumptions.v` and mutable-update proof. The API reading therefore
 uses the already-held `e42b44f4aad981210d56f9fa228414f09efd687c`, whose
 [licence](https://github.com/CertiGraph/CertiGraph/blob/e42b44f4aad981210d56f9fa228414f09efd687c/LICENSE)
-was read again and carries the MIT notice above. This reading selects no older
+carries the MIT notice above. This qualification selects no older
 dependency tuple and establishes no build at the locked prover.
 
 Q34g consumes this reading at its first collector/interface proof, before

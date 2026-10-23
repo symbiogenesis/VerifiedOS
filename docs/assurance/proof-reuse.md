@@ -4,13 +4,13 @@ This inventory identifies established external proofs that can support
 VerifiedOS's completed proof artifacts and its remaining proof obligations.
 It records the theorem or proof development, authorship, source edition,
 language, licence, assumptions and the gap to the local obligation. Source
-qualification is dated 2026-09-10, and each entry a later sweep added carries
-its own date in the subject record that holds it. The subject records
+editions and qualification limits live in the subject records. The latest
+source qualification is dated 2026-10-23. The subject records
 distinguish published results from the contents of a particular code edition,
 and a paper, an archived deposit, a maintained tree and a pen-and-paper
 metatheory beside an unverified implementation are four different findings.
 
-Which plan cell or proof-map slice each source a later sweep added actually
+Which plan cell or proof-map slice each source actually
 bears on, and the ground where a source bears on none, is resolved once in
 [the bearing record](proof-reuse-bearing.md). The subject records stay keyed by
 obligation family and state each source's theorem, terms and distance; that
@@ -22,26 +22,26 @@ protocol proofs can supply strong precedents and independent specifications;
 their proof terms cannot simply be loaded into Rocq. Even a Rocq theorem
 needs the same semantics, hypotheses and dependency closure before reuse.
 
-## The 2026-10-10 literature reading
+<a id="the-2026-10-10-literature-reading"></a>
 
-The search began with newly published or substantively corrected formal
-proofs from 2026-09-10 through 2026-10-10 inclusive, then admitted older
-results with a useful local connection. The new records distinguish an
-artifact's proof/release date from a paper's posting date. Titles, authors,
-artifact names and source identifiers were checked against the documentation
-at `efa6d4e3bc36034a08afc65ccb44e073921570b4`; existing mentions, including
-MachCSL, were not added again.
+## Literature scope
 
-The [dated bearing rows](proof-reuse-bearing.md#sources-the-2026-10-10-reading-added)
-link the new references to their local consumers or explain why none is
+The inventory includes recent formal proofs and substantive corrections, along
+with older results selected for their local relevance. The records distinguish
+an artifact's proof or release date from a paper's posting date.
+
+The [bearing rows](proof-reuse-bearing.md#sources-the-2026-10-10-reading-added)
+link the references to their local consumers or explain why none is
 selected. Their subject records hold immutable source identities, theorem
 scope, hypotheses, licenses and transfer limits. This is a bounded literature
 search, not an exhaustive census or an external-proof replay. No result
 changes the local acceptance route or discharges a requirement by citation.
 
-## The 2026-10-23 online reuse review
+<a id="the-2026-10-23-online-reuse-review"></a>
 
-This review checks existing source selections and additional implementation references against the open proof boundaries at `52551efd44da5ed68af9358c0c05117ea99ec656`. Exact editions, actual license readings, theorem scope and dependency limits live in the subject records. The [bearing rows](proof-reuse-bearing.md#sources-the-2026-10-23-reading-added-or-requalified) assign each result to its existing consumer. This is source qualification; it adds no upstream code, dependency, accepted assumption or completed proof.
+## Implementation reuse priorities
+
+Source selections and implementation references are qualified against the open proof boundaries. Exact editions, license readings, theorem scope and dependency limits live in the subject records. The [bearing rows](proof-reuse-bearing.md#sources-the-2026-10-23-reading-added-or-requalified) assign each result to its existing consumer. Source qualification adds no upstream code, dependency, accepted assumption or completed proof.
 
 The first useful implementation candidate is the locked prover's own typed module metadata for Q35q's incomplete Sail-support census. Resolving that prerequisite and Q35p's preserving tag interface serves the canonical machine term and the real cold-path proof client already prioritized by the plan. The remaining recommendations retain their consumers' readiness conditions.
 
@@ -55,12 +55,11 @@ The first useful implementation candidate is the locked prover's own typed modul
 | [Corrected WasmCert](proof-reuse/parsers.md#wasmcert-coq-type-safety-and-interpreter-refinement-with-concrete-boundaries) | Qualify the edition with repaired array-interface assumptions for Q34g. | Rocq 9.3 compatibility, concrete array/numeric/SIMD implementations, binary parsing and full Core 3.0/host refinement remain open. |
 | [vasn](proof-reuse/parsers.md#vasn-licensed-per-proof-and-differential-oracle-candidate) | Compare PER fragmentation/alignment and extension cases for the required ASN.1-to-Narcissus front end. | Verus proofs, trusted helper contracts and version-dependent injectivity supply an independent reference/oracle, not the required Rocq/native proof. |
 
-The review changes practical choices without claiming a porting saving: avoid default-branch acquisition where it loses the desired proof system, use corrected assumption interfaces, and prefer an existing precise producer API to a lossy printed transcript. Every adoption still consumes its owner's semantic correspondence and acceptance checks.
+Use immutable editions that retain the required proof system, corrected assumption interfaces and precise producer APIs. Every adoption still consumes its owner's semantic correspondence and acceptance checks; no porting saving is measured here.
 
 ## What qualifies as a gold-standard example
 
-The 2026-10-12 implementation-source reading selects concrete donors at their
-consumers: the capability-aware CHERIoT Rust compiler for the future functional
+Concrete donors are selected at their consumers: the capability-aware CHERIoT Rust compiler for the future functional
 Rust producer, GarageDoor's whole-image integration recipe for Q35d, PoWER's
 write-permission/crash correspondence for storage hardening, and a bounded Sailor
 adapter for uncovered context-state analysis. The subject records own immutable

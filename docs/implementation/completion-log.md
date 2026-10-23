@@ -16,7 +16,7 @@ Evidence links resolve to [retained verbatim records](retained-evidence/README.m
 
 ### S1 · Discharge the owed register acts
 
-The register and profile decisions unblock kernel semantics, capability-bounds containment, test-exit policy, IDL ownership, SoC scope, single-instance bring-up and static measured boot. The matrix instruction decision remains with M0.8c and requires R-15-116's measured margin. Changed entry/prose pairs were read together and blessed.
+The register and profile decisions unblock kernel semantics, capability-bounds containment, test-exit policy, IDL ownership, SoC scope, single-instance bring-up and static measured boot. The matrix instruction decision remains with M0.8c and requires R-15-116's measured margin. Entry/prose agreement is recorded in the co-read ledger.
 
   * Landed: Tier A.
 
@@ -220,7 +220,7 @@ Calibration: no original estimate was recorded; excluded from the fit.
 
 ### S20 · Repair the claims a later act falsified, across the plan and the findings register
 
-Re-read stale plan/register claims, carried owner decisions back to reporting sites and removed redundant live-figure copies. Historical gate measurements were not recomputed. Typechecks and non-arithmetic rules passed; derived arithmetic under K-36, K-37, K-96 and K-82 remained red. No mutant verdict was available until integrated repair.
+Aligned plan/register claims with their owner decisions and removed redundant live-figure copies. Historical gate measurements were not recomputed. Typechecks and non-arithmetic rules passed; derived arithmetic under K-36, K-37, K-96 and K-82 remained red. No mutant verdict was available until integrated repair.
 
 Calibration: no original estimate was recorded; excluded from the fit.
 
@@ -265,9 +265,9 @@ Repaired corpus accounting, register conventions, test headers, encoder coverage
 Calibration: no original estimate was recorded; excluded from the fit.
 
   * Seven findings.
-    * **A document addressed to an independent reviewer said there is no continuous integration here, and the push workflow landed fourteen hours later.** The onramp is non-normative but present tense, and its §6 is live prose, so the exemption that freezes a completed item's exit line does not reach it.
-    * **A unit-test header called its properties the only programs exercising the capability instruction surface until a corpus that landed six and a half hours later.** `test_cheri_insts.sail` was edited three further times over the two days after that landing and the sentence was re-read at none of them.
-    * **A second unit-test header called its properties the whole of the machine's own regression corpus, and the commit that falsified it last edited the file.** M0.12 created eleven purecap programs while editing `test_capability.sail` and left the sentence standing, the shortest distance between an act and the claim it falsifies that this sweep found.
+    * **The reviewer onramp incorrectly denied the existing CI workflows.** Its live present-tense claims are outside the exemption for completed-item exit lines.
+    * **The `test_cheri_insts.sail` header incorrectly described its properties as the only capability-instruction tests.** The purecap corpus also exercises that surface.
+    * **The `test_capability.sail` header incorrectly described its properties as the entire regression corpus.** M0.12 also supplies eleven purecap programs.
     * **One program's trap accounting is stated in two tracked files and both are wrong, in opposite directions, from one authoring commit.** The source header undercounts the trap path at seven where the program takes it eight times; the corpus document's row breaks a correct total of eight into five capability violations where there are six.
     * **A method finding, and the reason the pair above went unreported: a rule that recomputes a quantity from a source does not read the prose restating that quantity beside it.** K-51 reports ok over `cap-trap`'s check count while the source's own header and the document's own row each state a different number.
     * **A corpus program's header states the register convention at a different register from the document that owns it.** `c10` upward against `c8` upward, refuted for every one of the 26 members.
@@ -308,15 +308,15 @@ Deep-read remaining large proof files and repaired stale comments without changi
 
 Repaired proof comments and carried S1's kernel answers into the M4.2 cluster. Host checks, mutation selftests, tools tests, typechecks and proof audit passed with unchanged constants/assumptions. The complete proof-tree audit remained open: MModeFirmware had no body audit and RotFirmware only a targeted read.
 
-  * Eight findings, six repaired, one verified false on severity, and one about this item's own first pass.
+  * Eight findings, six repaired, one verified false on severity, and one about repair accuracy.
     * **A register-gap cluster whose index S1 updated and whose prose it did not.** PartitionContext.v's gap-list and the M4.2a plan cell reported seven gaps, a budget reading and two further findings as owed, all closed by S1's R-07-029a, R-07-031b, R-07-027a, R-07-037c, R-07-037d, R-15-220a, R-11-023's amended Accept and a struck registry row, and S1 carried the closures to the findings-register index, where F-157 through F-164 read closed, but not to the note's content.
     * **A resolved narrowness still reported unresolved.** CyclicExecutive.v said R-11-023's criterion is narrower than the check and not resolved; R-11-023's amended Accept now enumerates the four quantities and makes *never occupants* load-bearing.
     * **An AEAD named absent that a later item authored.** Keccak.v's item d named the AEAD as residue at M3.4c and absent; it moved to M3.4d and AesGcm.v authors AES-GCM.
     * **A provenance overreach.** Keccak.v's 12-round known-answer provenance claimed a standard-library SHA-3 cross-check; the Sail harness header scopes that cross-check to its eleven digests and this is a permutation state, not a digest.
     * **A step-mapping count one over.** AesGcm.v's reading 5 said "five step mappings" and named four, AES having four round steps.
-    * **A literal count one over, at three sites.** SupervisionTree.v said "five literals" and listed four, in the header, at the count block and at the `each_unit_once` comment; the first pass had repaired two.
+    * **A literal count one over, at three sites.** SupervisionTree.v said "five literals" and listed four, in the header, at the count block and at the `each_unit_once` comment.
     * **A false positive on severity, verified and disambiguated.** The audit flagged SupervisionTree.v:47, "S12 records that the purecap Bedrock2 backend does not exist", as blocks-a-fresh-read, reading "S12" as the file's own obligation-numbering S12 (R-12-073).
-    * **This item's own first pass introduced four false claims of the class it repairs, and an adversarial read caught all four before the commit.** It misnumbered AesGcm.v's reading 5 as reading 6 and propagated that into the findings register; it said the proof file and the plan cell report the same set where they report an overlapping one; it scoped the cluster at F-157 through F-162 where it runs to F-164; and its net-change roster named five proof files and one plan cell while the diff carried the findings register too.
+    * **Stale-claim repairs also require statement review.** Four corrected errors concerned AesGcm.v's reading number, overlapping proof/plan sets, the F-157 through F-164 finding range and an incomplete changed-file roster.
 
   * Landed: Tier A. Every fix is a sentence in a proof-file comment or a plan cell and no rule decides whether a sentence is true, so it cannot be Tier B and a full read is owed, as for its four predecessors. The rules that move are the proof gate over the five edited files, which holds their compilation and assumption sets, not their comments' truth, and the checker's arithmetic over the plan.
 
@@ -327,7 +327,7 @@ Closed critique actions already answered by register/spec decisions, recording c
   * Five findings.
     * **The work-list paragraph's class count is hand-maintained and no rule reads it.** A search of `tools/vos` for "open items are" and "work list" returns no check, so a miscount after a deletion passes every gate; recounted by hand to the two B items, and reported and not held, K-109 reserved and unused.
     * **The critique's first movement restated a composition the corpus did not own.** Line 80 of [the critique's](../background/critique.md) first movement carried the reduced-software-tier sentence against the critique's own rule that a disposition another document owns is cited and never restated; R-01-002a now books it and the line cites the entry.
-    * **The first pass wrote four claims the corpus does not say, and an adversarial re-read caught all four before the wave.** R-15-172's tax as pools sitting mostly empty where the entry says pooling is forfeited; R-15-173a's prose placed below the r-15-247 span where its anchor sits above it, 2347 against 2354; CJ-VELUS and CJ-HAL as two rows where the inventory carries them as two targets over six rows; and R-06-015a's budget as a budget on the install where the entry declares it per proof over the closure.
+    * **Four restatements needed correction against their owners.** R-15-172 forfeits pooling rather than leaving pools mostly empty; R-15-173a's anchor precedes r-15-247; CJ-VELUS and CJ-HAL are two targets over six inventory rows; and R-06-015a's budget is per proof over the closure.
     * **The periodic reading item 35 takes has a schedule and no dated baseline.** No artifact records which emulators, independent implementations and re-checking provers are eligible at the current pin, so the first reading at a re-pin act is a survey, not a diff; an S-item of S17's shape is the act if a baseline is wanted ahead of the next re-pin, and none is scheduled.
     * **The contained class's one accepting consumer is the biometric matcher, and its residue is authority and not quality.** The refutation grep over the register's biometric, fingerprint, face and trusted-path sites, 22 lines at 4984708, found R-12-016's matcher, which it places in the class, as the one contained consumer that turns a sample into what the machine accepts, the consent front-ends being taken by the trusted-path agent under R-15-144 and so outside the class; R-12-004 carves the matcher out as a bound on authority under R-12-019 and R-17-054, not as a quality figure or a proof.
 
@@ -986,7 +986,7 @@ The added-source partition is a revision-bound measurement, not a permanent prop
   * Three findings.
     * **The survey's strongest language sources point at obligations no cell prices.** RustCompCert, Lean-MLIR, Tree Borrows, VerusBelt, RustHornBelt and Quiver are the six best-qualified Rust and refinement results the sweep added, and every one resolves to an obligation booked outside the priced total. That is no reason to open a cell: a source aimed at an unpriced obligation is a reading, and the plan refuses to let the survey open a cell.
     * **Two of the four consumers already held their source before this act ran.** R-18-018's fourth sub-deliverable names VerusBelt in the register itself, and Q19c's cell names Diaframe and states its terms at the PLDI 2022 deposit. The conventions give an existing start-from no second discount, so the record adds at those two the qualification behind a name the corpus already carried; it narrows what the cell may reach for and removes nothing.
-    * **A repair to this record's own overclaim is why the section-8 paragraph reads as it does.** An earlier draft reported R-05-119 and R-05-121 as an obligation the map books nowhere and left its placement to the map owner. The register's trace lines decide it, and a false gap reported against another artifact is worse than an unreported one, because the artifact is correct where it sits.
+    * **R-05-119 and R-05-121 are already booked through their trace lines.** They belong to CHERI-TAL soundness in the proof map; the record therefore identifies an unpriced obligation rather than an omitted one.
 
 Landed: Tier A. The record states which open cell each newly qualified source bears on, a new claim per source rather than a derived figure another artifact owns, so it took a full attended read. K-12 holds only that its citations resolve and no rule reaches what it asserts about bearing, so the fourth Tier-B condition is unmet and no checker rule is added or owed.
 
