@@ -23,7 +23,7 @@
   },
   "signature_refusal": {
     "source": "SignatureFieldRefusal.v",
-    "required_diagnostic": "was not found in the current environment"
+    "required_diagnostic": "The reference CensusControls.S.T was not found"
   },
   "unsupported_refusal": {
     "source": "UnsupportedShapeRefusal.v",
