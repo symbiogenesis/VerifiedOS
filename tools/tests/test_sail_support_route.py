@@ -320,6 +320,40 @@ def hidden_alias_control_contexts() -> None:
     refuses(lambda: route.hidden_assumption_audit("".join([*blocks, blocks[1]]), expected))
 
 
+def native_control_census_bindings() -> None:
+    sealed, alias = "CensusControls.HiddenSealed.witness", "CensusControls.HiddenAlias.witness"
+    canonical = "CensusControls.HiddenImplementation.witness"
+    required = ["CensusControls.HiddenSealed", "CensusControls.HiddenAlias", "SailStdpp.TypeCasts.ZEqdep"]
+    spec = {"root": "CensusControls", "required_modules": required,
+            "hidden_assumptions": {"symbols": [{"name": sealed}, {"name": alias}]}}
+    classified: dict[str, dict[str, Any]] = {"CensusControls": {"modules": [
+        {"id": name, "query": {"target": name, "target_module_id": name, "coverage_path": []}}
+        for name in required[:2]], "symbols": [{"name": canonical}],
+        "declarations": [{"classification": "owned", "exported_name": sealed,
+            "native_reference": {"exported_name": sealed, "canonical_name": canonical},
+            "implementation_connection": {"audit_query_name": canonical}}],
+        "alias_audits": [{"exported_spelling": alias, "audit_query_name": canonical}]},
+        "SailStdpp.TypeCasts": {"modules": [{"id": required[2], "query": {
+            "target": required[2], "target_module_id": required[2], "coverage_path": []}}]}}
+    route.control_census_join(classified, spec)
+    missing_alias = deepcopy(classified)
+    missing_alias["CensusControls"]["modules"].pop()
+    refuses(lambda: route.control_census_join(missing_alias, spec))
+    unbound_alias = deepcopy(classified)
+    unbound_alias["CensusControls"]["alias_audits"] = []
+    refuses(lambda: route.control_census_join(unbound_alias, spec))
+    unbound_owned = deepcopy(classified)
+    unbound_owned["CensusControls"]["declarations"][0]["classification"] = "interface"
+    refuses(lambda: route.control_census_join(unbound_owned, spec))
+    wrong_guard = deepcopy(classified)
+    wrong_guard["CensusControls"]["symbols"][0]["name"] = "Foreign.witness"
+    refuses(lambda: route.control_census_join(wrong_guard, spec))
+    audit_binding = deepcopy(classified)
+    audit_binding["CensusControls"]["alias_audits"] = [{"exported_spelling": "CensusControls.other",
+                                                      "audit_query_name": alias}]
+    route.control_census_join(audit_binding, spec)
+
+
 def command_intent_and_interruption() -> None:
     with tempfile.TemporaryDirectory(prefix="vos-sail-command-intent-") as directory:
         root = Path(directory)
@@ -446,6 +480,7 @@ def standalone_native_replay() -> None:
         before.update({"/host/support/" + module.rsplit(".", 1)[-1] + ".v": "a" * 64 for module in modules})
         sources = {"tools/rocq-census/vos_rocq_census.ml": "b" * 64, "tools/rocq-census/CensusControls.v": "c" * 64}
         spec: dict[str, Any] = {"schema": "verifiedos-rocq-census-controls/1", "root": "CensusControls", "targets": targets,
+            "required_modules": ["CensusControls.HiddenSealed", "CensusControls.HiddenAlias", "SailStdpp.TypeCasts.ZEqdep"],
             "refusals": {"signature": {"source": "SignatureFieldRefusal.v", "diagnostic": "expected signature refusal"},
                 "unsupported": {"source": "UnsupportedShapeRefusal.v", "diagnostic": "expected unsupported refusal",
                     "environment": {"VOS_CENSUS_MODE": "census", "VOS_CENSUS_TARGETS": "UnsupportedShapeRefusal.Unsupported",
@@ -502,11 +537,23 @@ def standalone_native_replay() -> None:
         def classify(metadata: object, searches: dict[str, str], readings: dict[str, str], *,
                      expected_modules: list[str]) -> dict[str, dict[str, Any]]:
             ensure(set(searches) == set(expected_modules), "fixture adapter exact roots")
-            return {module: {"symbols": route.proofaudit.inventory(searches[module], module),
+            result: dict[str, dict[str, Any]] = {module: {"symbols": route.proofaudit.inventory(searches[module], module),
                 "alias_audits": ([{"source_kind": "declaration-alias", "source_id": "native-alias",
                     "exported_spelling": module + ".alias", "audit_query_name": "Foreign.hidden_alias",
                     "native_reference": {"canonical_name": "Foreign.hidden_alias"}}] if module == "SailStdpp.M0" else [])}
                 for module in expected_modules}
+            if "CensusControls" in result:
+                for module, value in result.items():
+                    value["modules"] = [{"id": name, "query": {"target": name, "target_module_id": name, "coverage_path": []}}
+                                        for name in spec["required_modules"] if name.startswith(module + ".")]
+                value = result["CensusControls"]
+                owned = "CensusControls.HiddenSealed.witness"
+                value["symbols"].append({"name": owned, "type": "Prop", "claims": [], "assumptions": []})
+                value["declarations"] = [{"classification": "owned", "exported_name": owned,
+                    "native_reference": {"exported_name": owned, "canonical_name": owned},
+                    "implementation_connection": {"audit_query_name": owned}}]
+                value["alias_audits"] = [{"exported_spelling": "CensusControls.HiddenAlias.witness", "audit_query_name": owned}]
+            return result
 
         def requests(searches: dict[str, str], *, expected_modules: list[str]) -> list[dict[str, object]]:
             return [{"id": module + ":" + str(index), "requested_root": module, "row_index": index, "spelling": symbol["name"]}
@@ -589,6 +636,23 @@ def standalone_native_replay() -> None:
                 patch.object(route, "control_spec", return_value=spec), patch.object(route, "census_api", return_value=api), \
                 patch.object(route, "kernel_reading", return_value=[]):
             route.validate_native_qualification(artifact, side, "a" * 40, run_id="1", run_attempt="2")
+            def missing_control(metadata: object, searches: dict[str, str], readings: dict[str, str], *,
+                                expected_modules: list[str]) -> dict[str, dict[str, Any]]:
+                result = classify(metadata, searches, readings, expected_modules=expected_modules)
+                if "CensusControls" in result:
+                    result["CensusControls"]["modules"].pop()
+                return result
+            with patch.object(api, "census", side_effect=missing_control):
+                refuses(lambda: route.validate_native_qualification(artifact, side, "a" * 40))
+
+            def unbound_control(metadata: object, searches: dict[str, str], readings: dict[str, str], *,
+                                expected_modules: list[str]) -> dict[str, dict[str, Any]]:
+                result = classify(metadata, searches, readings, expected_modules=expected_modules)
+                if "CensusControls" in result:
+                    result["CensusControls"]["alias_audits"] = []
+                return result
+            with patch.object(api, "census", side_effect=unbound_control):
+                refuses(lambda: route.validate_native_qualification(artifact, side, "a" * 40))
             mutations = [lambda row: row["modules"].pop(), lambda row: row["commands"].pop(),
                 lambda row: row.update(run_id="3"), lambda row: row["sources"].update(foreign="a" * 64),
                 lambda row: row["runtime_after"]["python"].update(sha256="f" * 64),
@@ -673,6 +737,7 @@ def cases() -> list[Case]:
             Case("native-duplicate-json-and-streams", duplicate_json_and_streams),
             Case("native-expected-refusal-exits", expected_native_refusal_exits),
             Case("native-hidden-alias-control-contexts", hidden_alias_control_contexts),
+            Case("native-control-census-bindings", native_control_census_bindings),
             Case("native-command-intent-interruption", command_intent_and_interruption),
             Case("native-request-file-protocol", request_file_protocol),
             Case("native-standalone-replay", standalone_native_replay)]
