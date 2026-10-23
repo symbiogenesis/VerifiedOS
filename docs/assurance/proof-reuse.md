@@ -39,6 +39,24 @@ scope, hypotheses, licenses and transfer limits. This is a bounded literature
 search, not an exhaustive census or an external-proof replay. No result
 changes the local acceptance route or discharges a requirement by citation.
 
+## The 2026-10-23 online reuse review
+
+This review checks existing source selections and additional implementation references against the open proof boundaries at `52551efd44da5ed68af9358c0c05117ea99ec656`. Exact editions, actual license readings, theorem scope and dependency limits live in the subject records. The [bearing rows](proof-reuse-bearing.md#sources-the-2026-10-23-reading-added-or-requalified) assign each result to its existing consumer. This is source qualification; it adds no upstream code, dependency, accepted assumption or completed proof.
+
+The first useful implementation candidate is the locked prover's own typed module metadata for Q35q's incomplete Sail-support census. Resolving that prerequisite and Q35p's preserving tag interface serves the canonical machine term and the real cold-path proof client already prioritized by the plan. The remaining recommendations retain their consumers' readiness conditions.
+
+| Candidate | Recommended use | Qualification that remains |
+| --- | --- | --- |
+| [Native Rocq module metadata](proof-reuse/foundations.md#f16-native-rocq-module-metadata-for-the-sail-support-census) | Scope Q35q's missing typed metadata producer around the installed prover's elaborated declarations and its own traversal. | Complete binder/universe/name handling, concrete implementation connections, refusal controls and exact assumption/kernel evidence. An opaque LSP serializer does not supply those fields. |
+| [Sail V2 and ArchSem's interpreter](proof-reuse/languages.md#canonical-sail-effects-existing-interpreters-and-their-tag-boundary) | Compare existing effect interpreters before designing Q35p's adapter. | Neither supplies the missing qualified standalone tag operation; preserved observations and actual canonical consumer acceptance remain owed. |
+| [Capability and hardware sources](proof-reuse/hardware.md) | Adapt Griotte's switcher proof structure and qualify the hardware-refinement sources. | Griotte requires permissions the local lattice forbids. Kami's selected shipped example uses `cheat : forall t, t`; its restored scripts and full loaded assumption context require qualification. |
+| [Rocq crash logic and PoWER](proof-reuse/systems.md) | Retain exact Rocq source editions for the storage crash-proof interface. | Current default Perennial development is Lean and lacks crash/recovery logic; native persistence/authentication correspondence remains local work. |
+| [s2n-bignum and libcrux](proof-reuse/crypto.md) | Use concrete routine proofs and explicit verification-status maps for crypto refinement and leakage review. | Foreign ISA/prover proofs and source-level secret independence do not establish constant time for the emitted CHERI binary. |
+| [Corrected WasmCert](proof-reuse/parsers.md#wasmcert-coq-type-safety-and-interpreter-refinement-with-concrete-boundaries) | Qualify the edition with repaired array-interface assumptions for Q34g. | Rocq 9.3 compatibility, concrete array/numeric/SIMD implementations, binary parsing and full Core 3.0/host refinement remain open. |
+| [vasn](proof-reuse/parsers.md#vasn-licensed-per-proof-and-differential-oracle-candidate) | Compare PER fragmentation/alignment and extension cases for the required ASN.1-to-Narcissus front end. | Verus proofs, trusted helper contracts and version-dependent injectivity supply an independent reference/oracle, not the required Rocq/native proof. |
+
+The review changes practical choices without claiming a porting saving: avoid default-branch acquisition where it loses the desired proof system, use corrected assumption interfaces, and prefer an existing precise producer API to a lossy printed transcript. Every adoption still consumes its owner's semantic correspondence and acceptance checks.
+
 ## What qualifies as a gold-standard example
 
 The 2026-10-12 implementation-source reading selects concrete donors at their
