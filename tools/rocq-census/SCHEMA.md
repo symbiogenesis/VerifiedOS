@@ -25,6 +25,14 @@ The producer emits the exact `resolution_requests` in input order, an exact orde
 `resolutions` answer for each request, and `roots` in `requested_roots` order. Each
 answer binds the request to the native root's `module_id`. Its single candidate
 identifies exactly one enumerated declaration or abbreviation, never both.
+`mode: global` requires an actual native global lookup and the declaration's
+`field_id`; `mode: interface-field` requires native structural field resolution
+and that abstract declaration's `field_id`, without a global-lookup claim.
+An interface candidate's reference identifies its native field, while the
+declaration's `native_reference` stays null and it receives no assumption query.
+`mode: abbreviation` has null `field_id` and names the independently enumerated
+abbreviation. Consumers enforce these alternatives against the enclosing context;
+the presence of a reference alone never establishes a global declaration.
 
 The runner binds complete raw Search, Print Module and Print Module Type readings
 and input identities separately. Every module's `query` names an actually queryable

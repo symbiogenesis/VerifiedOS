@@ -3414,6 +3414,15 @@
     "resolution_candidate": {
       "type": "object",
       "properties": {
+        "mode": {
+          "enum": ["global", "interface-field", "abbreviation"]
+        },
+        "field_id": {
+          "anyOf": [
+            {"$ref": "#/$defs/id"},
+            {"type": "null"}
+          ]
+        },
         "declaration_id": {
           "anyOf": [
             {
@@ -3439,6 +3448,8 @@
         }
       },
       "required": [
+        "mode",
+        "field_id",
         "declaration_id",
         "abbreviation_id",
         "reference"
