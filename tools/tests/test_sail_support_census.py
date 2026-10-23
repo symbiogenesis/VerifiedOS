@@ -148,7 +148,7 @@ def _module(value: dict[str, Any], name: str, parent: str | None, context_kind: 
                                  "algebraic_type": None, "structure": None, "resolver_id": identifier + ":resolver"},
               "abbreviation_ids": [], "empty_evidence": "native-empty"}
     value["modules"].append(module)
-    value["resolvers"].append({"id": identifier + ":resolver", "owner_module_id": identifier, "role": "implementation",
+    value["resolvers"].append({"id": identifier + ":resolver", "owner_module_id": identifier, "role": "signature",
                                "coverage": "finite-enumerated-domain", "root": _path(name),
                                "module_effects": [], "kernel_effects": [], "inline_keys": []})
     if parent is not None:
@@ -257,6 +257,54 @@ def _sealed(value: dict[str, Any], root: str, label: str) -> None:
                      {"tag": "structure-field", "field": source, "implementation_kind": "FullStruct", "resolver_id": name + ":resolver"},
                      {"tag": "substitution", "source": source, "target": link["instantiated_field"], "resolver_id": name + ":resolver"},
                      {"tag": "direct-lookup", "reference": declaration["native_reference"], "lookup_succeeded": True}]
+
+
+def _alias_fixture(*, private_matches_public: bool = False, root_owned: bool = False
+                   ) -> tuple[dict[str, Any], dict[str, str], dict[str, str]]:
+    value, searches, _ = _fixture()
+    if not root_owned:
+        _sealed(value, "Root", "Alias")
+    declaration = value["declarations"][-1]
+    field = next(row for row in value["fields"] if row["id"] == declaration["field_id"])
+    module = next(row for row in value["modules"] if row["id"] == field["parent_module_id"])
+    field["classification"] = declaration["classification"] = "alias"
+    target = _reference("Foreign.HiddenSealed")
+    reference = declaration["native_reference"]
+    reference.update(canonical=copy.deepcopy(target["canonical"]), canonical_name=target["canonical_name"])
+    link = declaration["implementation_connection"]
+    link["audit_query_name"] = target["canonical_name"]
+    if private_matches_public:
+        link["implementation_reference"]["canonical"] = copy.deepcopy(target["canonical"])
+    declaration["alias"] = {"kind": "declaration-alias", "exported_reference": reference,
+                            "target_reference": copy.deepcopy(link["implementation_reference"]),
+                            "resolver_id": module["implementation"]["resolver_id"]}
+    if root_owned:
+        value["resolutions"][0]["candidates"][0]["reference"] = copy.deepcopy(reference)
+    else:
+        expression = {"tag": "MEident", "path": _path("Foreign.HiddenSealed")}
+        module["implementation"]["expression"] = expression
+        source = {"module_path": _path("Foreign.HiddenSealed"), "namespace": "object", "label": "x",
+                  "packet_index": None, "constructor_index": None}
+        link.update(source_field=source, source_reference=_kernel_reference("Foreign.HiddenSealed"))
+        link["steps"][0].update(target=_path("Foreign.HiddenSealed"), expression=expression)
+        link["steps"][1]["field"] = source
+        link["steps"][2]["source"] = source
+    value, searches, _ = _finish(value, searches)
+    private = next(row for row in value["resolvers"] if row["id"] == declaration["alias"]["resolver_id"])
+    public = private
+    if not root_owned:
+        # Preserve a distinct native private root and public signature resolver,
+        # as in actual NMap.E.t. Neither private canonical nor private effects is relabeled.
+        private["root"] = _path("Foreign.F.E")
+        public = copy.deepcopy(private)
+        public.update(id=module["id"] + ":public-resolver", root=module["native_path"])
+        value["resolvers"].append(public)
+        module["implementation"]["resolver_id"] = public["id"]
+    value, searches, readings = _finish(value, searches)
+    for effect in public["kernel_effects"]:
+        if effect["input"] in (link["implementation_reference"]["canonical"], reference["user"]):
+            effect["output"] = copy.deepcopy(reference["canonical"])
+    return value, searches, readings
 
 
 def _controls_fixture(*, hidden_alias: bool = True) -> tuple[dict[str, Any], dict[str, str], dict[str, str]]:
@@ -695,7 +743,16 @@ class SailSupportCensusTests(unittest.TestCase):
 
     def test_control_replay_uses_three_complete_roots_and_distinguishes_adapter_evidence(self) -> None:
         value, searches, readings = _controls_fixture()
-        report = _ADAPTER["qualify_controls"](value, searches, readings)
+        qualify, validate = _ADAPTER["qualify_controls"], _ADAPTER["validate_schema"]
+        validated: list[object] = []
+        def full_schema(metadata: object, *, schema: dict[str, Any] | None = None) -> dict[str, Any]:
+            validated.append(metadata)
+            return validate(metadata, schema=schema)
+        with patch.dict(qualify.__globals__, {"validate_schema": full_schema}):
+            report = qualify(value, searches, readings)
+        self.assertEqual(len(validated), 13, "the positive census and every mutated census validate their complete schema")
+        self.assertIs(validated[0], value)
+        self.assertTrue(all(candidate is not value for candidate in validated[1:]))
         self.assertEqual(report["evidence_kind"], "adapter-over-native-emitted-evidence")
         self.assertEqual(len(report["positive"]), 8)
         self.assertEqual(report["positive"]["HiddenAlias"], "accepted")
@@ -890,29 +947,10 @@ class SailSupportCensusTests(unittest.TestCase):
                 _ADAPTER["census"](candidate, searches, readings, expected_modules=["Root"])
 
     def test_external_sealed_declaration_alias_has_supplementary_assumption_binding(self) -> None:
-        value, searches, _ = _fixture()
-        _sealed(value, "Root", "Alias")
+        value, searches, readings = _alias_fixture(private_matches_public=True)
         declaration = value["declarations"][-1]
-        field = next(row for row in value["fields"] if row["id"] == declaration["field_id"])
-        module = next(row for row in value["modules"] if row["id"] == field["parent_module_id"])
-        field["classification"] = declaration["classification"] = "alias"
         target = _reference("Foreign.HiddenSealed")
         reference = declaration["native_reference"]
-        reference.update(canonical=copy.deepcopy(target["canonical"]), canonical_name=target["canonical_name"])
-        declaration["alias"] = {"kind": "module-alias", "exported_reference": reference, "target_reference": _kernel_reference("Foreign.HiddenSealed"),
-                                "resolver_id": module["implementation"]["resolver_id"]}
-        expression = {"tag": "MEident", "path": _path("Foreign.HiddenSealed")}
-        module["implementation"]["expression"] = expression
-        link = declaration["implementation_connection"]
-        source = {"module_path": _path("Foreign.HiddenSealed"), "namespace": "object", "label": "x",
-                  "packet_index": None, "constructor_index": None}
-        link.update(source_field=source, source_reference=_kernel_reference("Foreign.HiddenSealed"), audit_query_name=target["canonical_name"])
-        link["implementation_reference"].update(canonical=copy.deepcopy(target["canonical"]))
-        declaration["alias"]["target_reference"] = copy.deepcopy(link["implementation_reference"])
-        link["steps"][0].update(target=_path("Foreign.HiddenSealed"), expression=expression)
-        link["steps"][1]["field"] = source
-        link["steps"][2]["source"] = source
-        value, searches, readings = _finish(value, searches)
         result = _ADAPTER["census"](value, searches, readings, expected_modules=["Root"])["Root"]
         self.assertEqual([row["name"] for row in result["symbols"]], ["Root.x"])
         self.assertEqual(result["alias_audits"], [{"source_kind": "declaration-alias", "source_id": declaration["id"],
@@ -924,6 +962,80 @@ class SailSupportCensusTests(unittest.TestCase):
             candidate["declarations"][-1]["alias"]["target_reference"] = replacement
             with self.subTest(replacement=replacement), self.assertRaises(ValueError):
                 _ADAPTER["census"](candidate, searches, readings, expected_modules=["Root"])
+        # Equal private/exported canonicals alone cannot replace the independently
+        # required public mapping of the exported user kernel name.
+        candidate = copy.deepcopy(value)
+        public_id = candidate["modules"][-1]["implementation"]["resolver_id"]
+        public = next(row for row in candidate["resolvers"] if row["id"] == public_id)
+        user_effect = next(row for row in public["kernel_effects"] if row["input"] == reference["user"])
+        user_effect["output"] = copy.deepcopy(reference["user"])
+        with self.assertRaisesRegex(ValueError, "exact alias canonicalization"):
+            _ADAPTER["census"](candidate, searches, readings, expected_modules=["Root"])
+
+    def test_alias_canonicalization_joins_exact_private_and_public_signature_resolvers(self) -> None:
+        value, searches, readings = _alias_fixture()
+        # Separate repeated wire values as actual JSON does; mutations cannot
+        # accidentally repair another evidence field through a Python alias.
+        value = json.loads(json.dumps(value))
+        original = copy.deepcopy(value)
+        declaration = value["declarations"][-1]
+        private_id = declaration["alias"]["resolver_id"]
+        public_id = value["modules"][-1]["implementation"]["resolver_id"]
+        private_name = declaration["implementation_connection"]["implementation_reference"]["canonical"]
+        canonical = declaration["native_reference"]["canonical"]
+        self.assertNotEqual(private_id, public_id)
+        self.assertNotEqual(private_name, canonical)
+        def resolver(item: dict[str, Any], identifier: str) -> dict[str, Any]:
+            return next(row for row in item["resolvers"] if row["id"] == identifier)
+        def effect(item: dict[str, Any], name: dict[str, Any]) -> dict[str, Any]:
+            return next(row for row in resolver(item, public_id)["kernel_effects"] if row["input"] == name)
+        private_effect = next(row for row in resolver(value, private_id)["kernel_effects"] if row["input"] == private_name)
+        self.assertEqual(private_effect["output"], private_name)
+        self.assertEqual(effect(value, private_name)["output"], canonical)
+        self.assertEqual(effect(value, canonical)["output"], canonical)
+        self.assertEqual(resolver(value, private_id)["root"], _path("Foreign.F.E"))
+        result = _ADAPTER["census"](value, searches, readings, expected_modules=["Root"])["Root"]
+        self.assertEqual([row["name"] for row in result["symbols"]], ["Root.x"])
+        self.assertEqual(result["alias_audits"][0]["audit_query_name"], "Foreign.HiddenSealed.x")
+        self.assertEqual(value, original)
+        def unrelated_private(item: dict[str, Any]) -> None:
+            other = copy.deepcopy(resolver(item, private_id))
+            other["id"] += ":unrelated"
+            item["resolvers"].append(other)
+            item["declarations"][-1]["alias"]["resolver_id"] = other["id"]
+        def changed_private_canonical(item: dict[str, Any]) -> None:
+            for reference in (item["declarations"][-1]["alias"]["target_reference"],
+                              item["declarations"][-1]["implementation_connection"]["implementation_reference"]):
+                reference["canonical"] = _reference("Root")["canonical"]
+        mutations = {
+            "private resolver replaced by public": lambda item: item["declarations"][-1]["alias"].update(resolver_id=public_id),
+            "public resolver replaced by private": lambda item: item["modules"][-1]["implementation"].update(resolver_id=private_id),
+            "unrelated same-effects private resolver": unrelated_private,
+            "missing private resolver": lambda item: item["declarations"][-1]["alias"].update(resolver_id="missing"),
+            "private resolver foreign owner": lambda item: resolver(item, private_id).update(owner_module_id="Root"),
+            "public resolver foreign owner": lambda item: resolver(item, public_id).update(owner_module_id="Root"),
+            "private resolver wrong role": lambda item: resolver(item, private_id).update(role="implementation"),
+            "public resolver wrong role": lambda item: resolver(item, public_id).update(role="substitution"),
+            "private endpoint changed": lambda item: item["declarations"][-1]["implementation_connection"]["implementation_reference"]["user"].update(path=_path("Root")),
+            "private canonical changed in both copies": changed_private_canonical,
+            "missing public bridge effect": lambda item: resolver(item, public_id)["kernel_effects"].remove(effect(item, private_name)),
+            "duplicate public bridge effect": lambda item: resolver(item, public_id)["kernel_effects"].append(copy.deepcopy(effect(item, private_name))),
+            "changed public bridge input": lambda item: effect(item, private_name).update(input=copy.deepcopy(canonical)),
+            "changed public bridge output": lambda item: effect(item, private_name).update(output=copy.deepcopy(private_name)),
+            "canonical is not a fixed point": lambda item: effect(item, canonical).update(output=copy.deepcopy(private_name)),
+            "audit identity drift": lambda item: item["declarations"][-1]["implementation_connection"].update(audit_query_name="Root.x"),
+            "exported canonical drift": lambda item: item["declarations"][-1]["native_reference"]["canonical"].update(path=_path("Root")),
+        }
+        for name, mutate in mutations.items():
+            candidate = copy.deepcopy(value)
+            mutate(candidate)
+            with self.subTest(name=name), self.assertRaises(ValueError):
+                _ADAPTER["census"](candidate, searches, readings, expected_modules=["Root"])
+        # Root-owned aliases use the root implementation as both exact anchors.
+        root, raw, printed = _alias_fixture(root_owned=True)
+        accepted = _ADAPTER["census"](root, raw, printed, expected_modules=["Root"])["Root"]
+        self.assertEqual(accepted["symbols"], [])
+        self.assertEqual(accepted["alias_audits"][0]["audit_query_name"], "Foreign.HiddenSealed.x")
 
     def test_bound_interface_abbreviation_remains_an_obligation(self) -> None:
         value, searches, _ = _fixture()
@@ -1101,6 +1213,7 @@ def cases() -> list[Case]:
             Case("body-identities-refuse-executable-asts-and-incomplete-reference-domains", checks.test_body_identity_replaces_executable_ast_and_retains_complete_reference_domain),
             Case("private-kernel-reference-boundary-retains-exported-global-audits", checks.test_private_kernel_references_cannot_replace_exported_globals),
             Case("external-sealed-declaration-alias-keeps-supplementary-native-audit", checks.test_external_sealed_declaration_alias_has_supplementary_assumption_binding),
+            Case("alias-canonicalization-binds-exact-private-and-public-native-resolvers", checks.test_alias_canonicalization_joins_exact_private_and_public_signature_resolvers),
             Case("bound-interface-abbreviation-remains-an-obligation", checks.test_bound_interface_abbreviation_remains_an_obligation),
             Case("applied-functor-trace-preserves-native-head-and-ordered-arguments", checks.test_native_applied_functor_trace_keeps_full_expression_head_and_ordered_arguments),
             Case("nested-applied-module-preserves-original-parent-substitutions", checks.test_nested_applied_module_keeps_original_parent_substitution_and_private_metadata)]
