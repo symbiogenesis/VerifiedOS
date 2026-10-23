@@ -224,7 +224,15 @@ def temporary_query_compiler_argv() -> None:
             elif label.startswith("alias-assumptions-"):
                 stdout = ""
             elif label == "support-native-census":
-                stdout = '{}'
+                output = Path(campaign.environment[route.OUTPUT_VARIABLE])
+                record = campaign.report["commands"][-1]
+                record.update(status="completed", exit=0, process_completed=True, timed_out=False, expected_refusal=False,
+                    native_environment={route.OUTPUT_VARIABLE: str(output)},
+                    output_file_before=route.output_intent(campaign.environment, campaign.root))
+                output.write_text('{ "schema": "' + route.CENSUS_SCHEMA + '" }\n', encoding="utf-8")
+                record["output_file_after"] = route.output_identity(output)
+                stdout = json.dumps({"schema": route.OUTPUT_SCHEMA, "census_schema": route.CENSUS_SCHEMA,
+                    **{key: record["output_file_after"][key] for key in ("path", "bytes", "blake2b_256")}})
             else:
                 ensure(source.read_text() == query_text, "frozen declaration query remains unchanged")
                 stdout = reading
@@ -243,6 +251,7 @@ def temporary_query_compiler_argv() -> None:
                 "frozen-0-baseline", "frozen-0-candidate"], "both temporary query families reach compiler argv")
         for _, argv in calls[:4]:
             ensure(argv[-len(route.STRICT)-1:-1] == route.STRICT, "strict inventory/audit flags unchanged")
+        ensure(route.OUTPUT_VARIABLE not in campaign.environment, "census output destination does not reach later queries")
 
 
 def native_identity_population() -> None:
@@ -448,6 +457,103 @@ def request_file_protocol() -> None:
         refuses(lambda: route.select_requests(environment, direct="[]", source=source))
 
 
+def native_output_file_protocol() -> None:
+    with tempfile.TemporaryDirectory(prefix="vos-native-output-") as directory:
+        root = Path(directory)
+        private, retained = root / "private", root / "retained"
+        private.mkdir()
+        retained.mkdir()
+        source = private / "support-census.json"
+        environment = {route.OUTPUT_VARIABLE: str(source)}
+        intent = route.output_intent(environment, private)
+        raw = ('{ "schema": "' + route.CENSUS_SCHEMA + '", "retained": [1, 2] }\n').encode()
+        source.write_bytes(raw)
+        identity = route.output_identity(source)
+        envelope = {"schema": route.OUTPUT_SCHEMA, "census_schema": route.CENSUS_SCHEMA,
+                    **{key: identity[key] for key in ("path", "bytes", "blake2b_256")}}
+        command: dict[str, Any] = {"status": "completed", "exit": 0, "process_completed": True,
+            "timed_out": False, "expected_refusal": False, "native_environment": environment,
+            "output_file_before": intent, "output_file_after": identity}
+        route.retain_census_output(json.dumps(envelope), source, retained / source.name, command)
+        ensure((retained / source.name).read_bytes() == raw, "native JSON bytes copied without reserialization")
+        ensure(identity["blake2b_256"] == hashlib.blake2b(raw, digest_size=32).hexdigest(), "independent BLAKE2b-256")
+        for mutation in (lambda row: row.update(path="/foreign/census.json"), lambda row: row.update(bytes=0),
+                         lambda row: row.update(bytes=True), lambda row: row.update(blake2b_256="F" * 64),
+                         lambda row: row.update(extra="unreviewed"), lambda row: row.pop("census_schema")):
+            altered = deepcopy(envelope)
+            mutation(altered)
+            refuses(lambda altered=altered: route.output_envelope(json.dumps(altered), str(source)))
+        for stdout in (json.dumps(envelope)[:-1], "diagnostic\n" + json.dumps(envelope),
+                       json.dumps(envelope) + json.dumps(envelope),
+                       json.dumps(envelope).replace('"schema":', '"schema":"duplicate","schema":', 1)):
+            refuses(lambda stdout=stdout: route.output_envelope(stdout, str(source)))
+        altered = deepcopy(envelope)
+        altered["blake2b_256"] = "f" * 64
+        refuses(lambda: route.retain_census_output(json.dumps(altered), source, retained / "bad.json", command))
+        source.write_bytes(raw[:-3])
+        refuses(lambda: route.retain_census_output(json.dumps(envelope), source, retained / "bad.json", command))
+        source.write_bytes(raw)
+        command["output_file_after"] = route.output_identity(source)
+        for changes in ({"exit": -9}, {"status": "pending"}, {"output_file_before": {"path": str(source), "absent": False}}):
+            refused_command = command | changes
+            refuses(lambda refused_command=refused_command:
+                    route.retain_census_output(json.dumps(envelope), source, retained / "bad.json", refused_command))
+        duplicate = ('{"schema":"' + route.CENSUS_SCHEMA + '","x":1,"x":2}').encode()
+        source.write_bytes(duplicate)
+        command["output_file_after"] = route.output_identity(source)
+        duplicate_envelope = envelope | {key: command["output_file_after"][key] for key in ("bytes", "blake2b_256")}
+        refuses(lambda: route.retain_census_output(json.dumps(duplicate_envelope), source, retained / "bad.json", command))
+        source.write_bytes(raw)
+        command["output_file_after"] = route.output_identity(source)
+        copy = shutil.copyfile
+
+        def changed_copy(src: Path, dst: Path) -> None:
+            copy(src, dst)
+            source.write_bytes(raw + b" ")
+
+        with patch.object(route.shutil, "copyfile", side_effect=changed_copy):
+            refuses(lambda: route.retain_census_output(json.dumps(envelope), source, retained / "copy-drift.json", command))
+        source.unlink()
+        refuses(lambda: route.retain_census_output(json.dumps(envelope), source, retained / "missing.json", command))
+        source.mkdir()
+        refuses(lambda: route.output_identity(source))
+        refuses(lambda: route.output_intent(environment, private))
+        refuses(lambda: route.output_intent({route.OUTPUT_VARIABLE: "relative.json"}, private))
+        refuses(lambda: route.output_intent({route.OUTPUT_VARIABLE: str(root / "outside.json")}, private))
+
+        side = root / "side"
+        (side / "tools/opam").mkdir(parents=True)
+        (side / route.RECIPE).write_text('{}', encoding="utf-8")
+        with patch.dict(route.os.environ, {"TESTED_REVISION": "a" * 40, "GITHUB_SHA": "a" * 40}), \
+                patch.object(subprocess, "Popen") as launched:
+            campaign = route.Campaign(root / "campaign", side, "build")
+            partial = campaign.root / "support-census.json"
+
+            def killed(*_args: object, **_kwargs: object) -> tuple[str, str]:
+                before = route.load(campaign.upload / "receipt.json")["commands"][-1]
+                ensure(before["output_file_before"] == {"path": str(partial), "absent": True},
+                       "expected output absence is persisted before the native launch")
+                partial.write_bytes(b'{"schema":')
+                return "", "killed native producer"
+
+            process = launched.return_value.__enter__.return_value
+            process.communicate.side_effect = killed
+            process.returncode = -9
+            refuses(lambda: route.query(campaign, "support-native-census", "", [], census_output=partial))
+            failed = campaign.report["commands"][-1]
+            ensure((campaign.upload / failed["output_partial"]).read_bytes() == b'{"schema":',
+                   "failed native partial bytes remain diagnostic evidence")
+            ensure("output_file_verified" not in failed and route.OUTPUT_VARIABLE not in campaign.environment,
+                   "killed output supplies no verified census and output setting is cleared")
+            process.communicate.side_effect = None
+            process.communicate.return_value = ("", "expected refusal")
+            process.returncode = 1
+            campaign.environment[route.OUTPUT_VARIABLE] = str(partial)
+            route.query(campaign, "native-unsupported-refusal", "", [], refusal=True)
+            ensure(route.OUTPUT_VARIABLE not in campaign.report["commands"][-1]["native_environment"],
+                   "refusal query clears an inherited census output destination")
+
+
 def standalone_native_replay() -> None:
     """Exercise complete route joins over fixtures; this supplies no native qualification."""
     with tempfile.TemporaryDirectory(prefix="vos-native-replay-") as directory:
@@ -517,6 +623,11 @@ def standalone_native_replay() -> None:
                 data = selected["VOS_CENSUS_RESOLVE"].encode("utf-8")
                 request_identity = {"kind": "environment", "bytes": len(data), "sha256": hashlib.sha256(data).hexdigest()}
             command.update(request_source_before=request_identity, request_source_after=deepcopy(request_identity))
+            if route.OUTPUT_VARIABLE in selected:
+                path = selected[route.OUTPUT_VARIABLE]
+                identity = route.output_identity(artifact / path.rsplit("/", 1)[-1]) | {"path": path}
+                command.update(output_file_before={"path": path, "absent": True}, output_file_after=identity,
+                    output_file_verified=deepcopy(identity), output_retained=path.rsplit("/", 1)[-1])
             for name, value in (("stdout", stdout), ("stderr", stderr), ("combined", stdout + stderr)):
                 (artifact / (label + "." + name + ".log")).write_text(value, encoding="utf-8")
             command["log"] = label + ".combined.log"
@@ -576,7 +687,7 @@ def standalone_native_replay() -> None:
             mapping = [*support_map, *(paths["controls"] if prefix == "control" else [])]
             searches = {module: route.proofaudit.EMPTY_BLACKLIST + "\n" + module + ".fixture: unit\n" for module in requested}
             resolution_requests = requests(searches, expected_modules=requested)
-            metadata = {"requested_roots": requested, "resolution_requests": resolution_requests}
+            metadata = {"schema": route.CENSUS_SCHEMA, "requested_roots": requested, "resolution_requests": resolution_requests}
             readings = {"module:" + module: "native module fixture " + module for module in requested}
             for suffix, value in (("census", metadata), ("search", searches), ("readings", readings), ("requests", resolution_requests)):
                 route.write(artifact / (prefix + "-" + suffix + ".json"), value)
@@ -599,9 +710,14 @@ def standalone_native_replay() -> None:
                     alias_output = "".join(route.proofaudit.MARKER + symbol["name"] + "\nClosed under the global context\n"
                                            for symbol in aliases)
                     add_query("alias-assumptions-" + str(index), route.proofaudit.assumption_query(module, aliases), mapping, alias_output)
+            output = "/host/native-census-outputs/" + prefix + "-census.json"
+            identity = route.output_identity(artifact / (prefix + "-census.json"))
+            envelope = {"schema": route.OUTPUT_SCHEMA, "census_schema": route.CENSUS_SCHEMA,
+                "path": output, "bytes": identity["bytes"], "blake2b_256": identity["blake2b_256"]}
             add_query(prefix + "-native-census", "Require " + " ".join(requested) + '.\nDeclare ML Module "vos_rocq_census".\n',
-                mapping, json.dumps(metadata), environment={"VOS_CENSUS_MODE": "census", "VOS_CENSUS_TARGETS": ",".join(requested),
-                    "VOS_CENSUS_RESOLVE_FILE": "/host/native-request-inputs/" + prefix + "-requests.json"})
+                mapping, json.dumps(envelope), environment={"VOS_CENSUS_MODE": "census", "VOS_CENSUS_TARGETS": ",".join(requested),
+                    "VOS_CENSUS_RESOLVE_FILE": "/host/native-request-inputs/" + prefix + "-requests.json",
+                    route.OUTPUT_VARIABLE: output})
         for name, entry in cast("dict[str, dict[str, Any]]", spec["refusals"]).items():
             add_query("native-" + name + "-refusal", (control_source / entry["source"]).read_text(),
                 [*support_map, *paths["controls"]], stderr=entry["diagnostic"], environment=entry.get("environment"), refusal=True)
@@ -665,6 +781,10 @@ def standalone_native_replay() -> None:
                 lambda row: next(cmd for cmd in row["commands"] if cmd["label"] == "kernel-support")["argv"].pop(),
                 lambda row: next(cmd for cmd in row["commands"] if cmd["label"] == "support-native-census")["native_environment"].update(VOS_CENSUS_TARGETS="foreign"),
                 lambda row: next(cmd for cmd in row["commands"] if cmd["label"] == "support-native-census")["request_source_after"].update(sha256="f" * 64),
+                lambda row: next(cmd for cmd in row["commands"] if cmd["label"] == "support-native-census")["output_file_before"].update(absent=False),
+                lambda row: next(cmd for cmd in row["commands"] if cmd["label"] == "support-native-census")["output_file_verified"].update(bytes=1),
+                lambda row: next(cmd for cmd in row["commands"] if cmd["label"] == "support-native-census")["native_environment"].pop(route.OUTPUT_VARIABLE),
+                lambda row: next(cmd for cmd in row["commands"] if cmd["label"] == "native-hidden-assumptions")["native_environment"].update({route.OUTPUT_VARIABLE: "/host/native-census-outputs/control-census.json"}),
                 lambda row: next(cmd for cmd in row["commands"] if cmd["label"] == "native-unsupported-refusal")["native_environment"].update(VOS_CENSUS_RESOLVE_FILE="/host/native-request-inputs/control-requests.json"),
                 lambda row: next(cmd for cmd in row["commands"] if cmd["label"] == "inventory-0").pop("query_source"),
                 lambda row: row.update(commands=[cmd for cmd in row["commands"] if cmd["label"] != "alias-assumptions-2"]),
@@ -674,6 +794,14 @@ def standalone_native_replay() -> None:
                 mutation(altered)
                 route.write(target, altered)
                 refuses(lambda: route.validate_native_qualification(artifact, side, "a" * 40, run_id="1", run_attempt="2"))
+            census_output = artifact / "support-census.json"
+            original_census = census_output.read_bytes()
+            census_output.write_bytes(original_census + b"\n")
+            altered = deepcopy(record)
+            altered["evidence"][census_output.name] = {"sha256": route.receipts.digest(census_output), "bytes": census_output.stat().st_size}
+            route.write(target, altered)
+            refuses(lambda: route.validate_native_qualification(artifact, side, "a" * 40))
+            census_output.write_bytes(original_census)
             request_file = artifact / "support-requests.json"
             original_request = request_file.read_bytes()
             request_file.unlink()
@@ -740,4 +868,5 @@ def cases() -> list[Case]:
             Case("native-control-census-bindings", native_control_census_bindings),
             Case("native-command-intent-interruption", command_intent_and_interruption),
             Case("native-request-file-protocol", request_file_protocol),
+            Case("native-output-file-protocol", native_output_file_protocol),
             Case("native-standalone-replay", standalone_native_replay)]

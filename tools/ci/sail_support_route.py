@@ -41,6 +41,9 @@ NATIVE_SCHEMA = "verifiedos-sail-support-native-qualification/1"
 ENVIRONMENT_BOUNDARY = "Launcher and protected native populations; distro runtime outside these roots is a runner observation."
 MAX_REQUEST_BYTES = 64 * 1024 * 1024
 REQUEST_VARIABLES = ("VOS_CENSUS_RESOLVE", "VOS_CENSUS_RESOLVE_FILE")
+OUTPUT_VARIABLE = "VOS_CENSUS_OUTPUT_FILE"
+OUTPUT_SCHEMA = "verifiedos-native-census-output/1"
+CENSUS_SCHEMA = "verifiedos-sail-support-census/1"
 
 
 class CensusAPI(Protocol):
@@ -117,6 +120,77 @@ def request_source(environment: dict[str, str], private_root: Path) -> dict[str,
     if len(contents) > MAX_REQUEST_BYTES:
         raise ValueError("native request file exceeds 64 MiB")
     return {"kind": "file", "path": str(path), "bytes": len(contents), "sha256": hashlib.sha256(contents).hexdigest()}
+
+
+def output_intent(environment: dict[str, str], private_root: Path) -> dict[str, Any] | None:
+    if OUTPUT_VARIABLE not in environment:
+        return None
+    path = Path(environment[OUTPUT_VARIABLE])
+    if (not path.is_absolute() or path.exists() or path.is_symlink() or not path.parent.is_dir()
+            or path.parent.is_symlink()
+            or not path.parent.resolve(strict=True).is_relative_to(private_root.resolve(strict=True))):
+        raise ValueError("native census output must be a fresh absolute private path")
+    return {"path": str(path), "absent": True}
+
+
+def output_identity(path: Path) -> dict[str, Any]:
+    if path.is_symlink() or not path.is_file():
+        raise ValueError("native census output must be a regular file")
+    before = path.stat()
+    digest = hashlib.blake2b(digest_size=32)
+    with path.open("rb") as stream:
+        opened = os.fstat(stream.fileno())
+        for block in iter(lambda: stream.read(1024 * 1024), b""):
+            digest.update(block)
+        closed = os.fstat(stream.fileno())
+    after = path.stat()
+    cuts = [(row.st_dev, row.st_ino, row.st_size, row.st_mtime_ns) for row in (before, opened, closed, after)]
+    if path.is_symlink() or len(set(cuts)) != 1:
+        raise ValueError("native census output identity changed while reading")
+    return {"path": str(path), "bytes": after.st_size, "blake2b_256": digest.hexdigest(),
+            "device": after.st_dev, "inode": after.st_ino, "mtime_ns": after.st_mtime_ns}
+
+
+def output_envelope(stdout: str, expected_path: str) -> dict[str, Any]:
+    value = decode(stdout)
+    if (not isinstance(value, dict) or set(value) != {"schema", "census_schema", "path", "bytes", "blake2b_256"}
+            or value["schema"] != OUTPUT_SCHEMA or value["census_schema"] != CENSUS_SCHEMA
+            or value["path"] != expected_path or type(value["bytes"]) is not int or value["bytes"] <= 0
+            or not isinstance(value["blake2b_256"], str) or SHA256.fullmatch(value["blake2b_256"]) is None):
+        raise ValueError("native census output envelope differs from the exact file protocol")
+    return value
+
+
+def census_file(path: Path) -> dict[str, Any]:
+    with path.open(encoding="utf-8") as stream:
+        value = json.load(stream, object_pairs_hook=json_object)
+    if not isinstance(value, dict) or value.get("schema") != CENSUS_SCHEMA:
+        raise ValueError("native census output file contains no census object")
+    return cast("dict[str, Any]", value)
+
+
+def retain_census_output(stdout: str, source: Path, retained: Path, command: dict[str, Any]) -> dict[str, Any]:
+    envelope = output_envelope(stdout, str(source))
+    if (command.get("status") != "completed" or command.get("exit") != 0
+            or command.get("process_completed") is not True or command.get("timed_out") is not False
+            or command.get("expected_refusal") is not False
+            or command.get("native_environment", {}).get(OUTPUT_VARIABLE) != str(source)
+            or command.get("output_file_before") != {"path": str(source), "absent": True}
+            or command.get("output_file_after") != output_identity(source)):
+        raise ValueError("native census output lacks unchanged launch/file identities")
+    identity = command["output_file_after"]
+    if any(identity[key] != envelope[key] for key in ("bytes", "blake2b_256")):
+        raise ValueError("native census output bytes differ from its native envelope")
+    metadata = census_file(source)
+    if output_identity(source) != identity or retained.exists() or retained.is_symlink():
+        raise ValueError("native census output changed during parsing or would overwrite retained evidence")
+    shutil.copyfile(source, retained)
+    copied = output_identity(retained)
+    if (output_identity(source) != identity
+            or any(copied[key] != envelope[key] for key in ("bytes", "blake2b_256"))):
+        raise ValueError("native census output changed during evidence copy")
+    command.update(output_file_verified=identity, output_retained=retained.name)
+    return metadata
 
 
 def asset(side: Path, entry: dict[str, Any]) -> Path:
@@ -242,6 +316,7 @@ class Campaign:
         self.upload.mkdir()
         self.environment = dict(os.environ, OPAMROOT=str(root / "opam"), OPAMYES="1",
                                 OPAMROOTISOK="1", OPAMJOBS="2", OPAMCOLOR="never")
+        self.environment.pop(OUTPUT_VARIABLE, None)
         self.report: dict[str, Any] = {"schema": SCHEMA, "phase": phase, "status": "pending",
             "run_id": os.environ.get("GITHUB_RUN_ID"), "run_attempt": os.environ.get("GITHUB_RUN_ATTEMPT"),
             "revision": os.environ["TESTED_REVISION"], "dispatch_revision": os.environ["GITHUB_SHA"],
@@ -260,8 +335,9 @@ class Campaign:
             "process_completed": False, "exit": None, "strict": strict, "timed_out": False,
             "expected_refusal": refusal, "native_environment": {name: self.environment[name] for name in
                 ("OPAMROOT", "OPAMSWITCH", "OPAM_SWITCH_PREFIX", "VOS_CENSUS_MODE", "VOS_CENSUS_TARGETS",
-                 *REQUEST_VARIABLES, "OCAMLPATH") if name in self.environment},
-            "request_source_before": request_source(self.environment, self.root), "request_source_after": None}
+                 *REQUEST_VARIABLES, OUTPUT_VARIABLE, "OCAMLPATH") if name in self.environment},
+            "request_source_before": request_source(self.environment, self.root), "request_source_after": None,
+            "output_file_before": output_intent(self.environment, self.root), "output_file_after": None}
         self.report["commands"].append(record)
         self.save()
         launched = False
@@ -302,6 +378,13 @@ class Campaign:
             record.update(seconds=time.monotonic() - start, log=log.name,
                           log_sha256=receipts.digest(log), streams=streams)
             record["request_source_after"] = request_source(self.environment, self.root)
+            output = self.environment.get(OUTPUT_VARIABLE)
+            if output is not None and (Path(output).exists() or Path(output).is_symlink()):
+                record["output_file_after"] = output_identity(Path(output))
+                if result.returncode != 0:
+                    partial = self.upload / ("partial-" + Path(output).name)
+                    shutil.copyfile(output, partial)
+                    record["output_partial"] = partial.name
             self.save()
         except BaseException as error:
             status = ("interrupted" if not isinstance(error, Exception) else
@@ -404,6 +487,30 @@ def replay_request_source(command: dict[str, Any], artifact_root: Path, native_r
         raise ValueError("native resolution-request input differs from its retained bytes")
 
 
+def replay_census_output(command: dict[str, Any], stdout: str, artifact_root: Path,
+                         native_root: PurePosixPath, prefix: str) -> dict[str, Any]:
+    expected = (native_root / "native-census-outputs" / (prefix + "-census.json")).as_posix()
+    envelope = output_envelope(stdout, expected)
+    identity = command.get("output_file_after")
+    if (command.get("native_environment", {}).get(OUTPUT_VARIABLE) != expected
+            or command.get("output_file_before") != {"path": expected, "absent": True}
+            or not isinstance(identity, dict)
+            or set(identity) != {"path", "bytes", "blake2b_256", "device", "inode", "mtime_ns"}
+            or command.get("output_file_verified") != identity
+            or any(identity[key] != envelope[key] for key in ("path", "bytes", "blake2b_256"))
+            or any(type(identity[key]) is not int or identity[key] < 0 for key in ("device", "inode", "mtime_ns"))
+            or command.get("output_retained") != prefix + "-census.json"):
+        raise ValueError("native census output lacks exact retained invocation/file identities")
+    retained = retained_member(artifact_root, command["output_retained"])
+    before = output_identity(retained)
+    if any(before[key] != envelope[key] for key in ("bytes", "blake2b_256")):
+        raise ValueError("retained census bytes differ from the original native output envelope")
+    metadata = census_file(retained)
+    if output_identity(retained) != before:
+        raise ValueError("retained native census changed during replay parsing")
+    return metadata
+
+
 def command_streams(root: Path, command: dict[str, Any]) -> tuple[str, str]:
     streams = command.get("streams")
     if not isinstance(streams, dict) or set(streams) != {"stdout", "stderr"}:
@@ -423,7 +530,9 @@ def command_streams(root: Path, command: dict[str, Any]) -> tuple[str, str]:
 
 
 def query(campaign: Campaign, label: str, text: str, mappings: list[str], *,
-          refusal: bool = False, source_name: str | None = None) -> subprocess.CompletedProcess[str]:
+          refusal: bool = False, source_name: str | None = None,
+          census_output: Path | None = None) -> subprocess.CompletedProcess[str]:
+    campaign.environment.pop(OUTPUT_VARIABLE, None)
     folder = campaign.root / "native-queries"
     folder.mkdir(exist_ok=True)
     name = source_name or label.replace("-", "_").title() + ".v"
@@ -432,8 +541,13 @@ def query(campaign: Campaign, label: str, text: str, mappings: list[str], *,
     source = folder / name
     source.write_text(text, encoding="utf-8", newline="")
     (campaign.upload / ("query-" + label + ".v")).write_bytes(source.read_bytes())
-    result = campaign.run(label, campaign.executable(["rocq", "c", *mappings,
-                          *STRICT, str(source)]), campaign.root, refusal=refusal)
+    if census_output is not None:
+        campaign.environment[OUTPUT_VARIABLE] = str(census_output)
+    try:
+        result = campaign.run(label, campaign.executable(["rocq", "c", *mappings,
+                              *STRICT, str(source)]), campaign.root, refusal=refusal)
+    finally:
+        campaign.environment.pop(OUTPUT_VARIABLE, None)
     campaign.report["commands"][-1].update(query_source="query-" + label + ".v",
         query_sha256=receipts.digest(source), native_source_name=source.name)
     campaign.save()
@@ -472,13 +586,17 @@ def native_dataset(campaign: Campaign, api: CensusAPI, roots: list[str],
     shutil.copy2(retained, source)
     select_requests(campaign.environment, source=source)
     campaign.environment.update(VOS_CENSUS_MODE="census", VOS_CENSUS_TARGETS=",".join(roots))
+    outputs = campaign.root / "native-census-outputs"
+    outputs.mkdir(mode=0o700, exist_ok=True)
+    output = outputs / (prefix + "-census.json")
     emitted = query(campaign, prefix + "-native-census",
-                    "Require " + " ".join(roots) + '.\nDeclare ML Module "vos_rocq_census".\n', mappings)
-    metadata = decode(emitted.stdout)
-    if not isinstance(metadata, dict):
-        raise TypeError("native producer did not emit one census object")
+                    "Require " + " ".join(roots) + '.\nDeclare ML Module "vos_rocq_census".\n', mappings,
+                    census_output=output)
+    metadata = retain_census_output(emitted.stdout, output, campaign.upload / (prefix + "-census.json"),
+                                    campaign.report["commands"][-1])
+    campaign.save()
     readings = native_readings(campaign, api, metadata, roots, mappings, prefix)
-    for suffix, value in (("search", searches), ("census", metadata), ("readings", readings)):
+    for suffix, value in (("search", searches), ("readings", readings)):
         write(campaign.upload / (prefix + "-" + suffix + ".json"), value)
     return metadata, searches, readings
 
@@ -758,6 +876,10 @@ def validate_native_qualification(artifact_root: Path, side: Path, revision: str
             or any(runtime[name]["path"] != (PurePosixPath(opam["prefix"]) / "bin" / name).as_posix()
                    for name in ("rocq", "rocqchk", "ocamlfind", "ocamlopt"))):
         raise ValueError("native opam context does not select the hashed switch launchers")
+    output_root = PurePosixPath(opam["root"]).parent / "native-census-outputs"
+    if any(output_root.is_relative_to(PurePosixPath(root)) or PurePosixPath(root).is_relative_to(output_root)
+           for root in protected):
+        raise ValueError("native census output overlaps protected input roots")
     expected_opam_environment = {variable: opam[key] for variable, key in
         (("OPAMROOT", "root"), ("OPAMSWITCH", "switch"), ("OPAM_SWITCH_PREFIX", "prefix"))}
     commands: dict[str, dict[str, Any]] = {}
@@ -771,6 +893,11 @@ def validate_native_qualification(artifact_root: Path, side: Path, revision: str
         commands[label] = command
         streams[label] = command_streams(artifact_root, command)
         replay_request_source(command, artifact_root, PurePosixPath(opam["root"]).parent)
+        if label not in {"support-native-census", "control-native-census"} and (
+                OUTPUT_VARIABLE in command.get("native_environment", {})
+                or any(command.get(key) is not None for key in
+                       ("output_file_before", "output_file_after", "output_file_verified", "output_retained"))):
+            raise ValueError("non-census command retained an active census output destination")
         if label in native_refusals:
             if (command.get("expected_refusal") is not True or command["exit"] != 1
                     or native_refusals[label]["diagnostic"] not in "".join(streams[label])):
@@ -875,11 +1002,10 @@ def validate_native_qualification(artifact_root: Path, side: Path, revision: str
         raise ValueError("native assumptions lack the exact module population")
     control_report: dict[str, Any] | None = None
     for prefix, requested in (("support", modules), ("control", spec["targets"])):
-        metadata = load(artifact_root / (prefix + "-census.json"))
         searches = load(artifact_root / (prefix + "-search.json"))
         readings = load(artifact_root / (prefix + "-readings.json"))
-        if decode(streams[prefix + "-native-census"][0]) != metadata:
-            raise ValueError("retained census differs from original native emission")
+        metadata = replay_census_output(commands[prefix + "-native-census"], streams[prefix + "-native-census"][0],
+            artifact_root, PurePosixPath(opam["root"]).parent, prefix)
         check_query(prefix + "-native-census",
             "Require " + " ".join(requested) + '.\nDeclare ML Module "vos_rocq_census".\n')
         environment = commands[prefix + "-native-census"]["native_environment"]
