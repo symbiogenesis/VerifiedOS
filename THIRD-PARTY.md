@@ -394,7 +394,8 @@ source is bound only by digest and is not copied or excerpted. No support source
 tree or compiled object is distributed by this evidence.
 The native API diagnosis and restored replay in
 `docs/implementation/retained-evidence/q35q-native-api-20261023/` and
-`q35q-native-api-restoration-20261023/` retain diagnostic coq-sail signature types
+`docs/implementation/retained-evidence/q35q-native-api-restoration-20261023/`
+retain diagnostic coq-sail signature types
 under the same BSD-2-Clause terms and notices. The original OCaml query sources
 and controls follow the original-file licensing map. The locked Rocq installation's
 LGPL-2.1 license and API headers were read before building; no upstream implementation
