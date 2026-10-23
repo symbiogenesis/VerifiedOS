@@ -112,6 +112,8 @@ path. The instantiated locator's parent is the flat native parent module.
 substitution; `instantiated_module` is the actual child after it. Preserve both
 complete native module readings. A private instantiated signature need not equal
 the public sealed signature.
+`field_selection_succeeded: true` records the actual selections from both native
+parent bodies. It claims no global lookup of an original uninstantiated child.
 
 Every concrete nested module has exactly one descent, including an identity
 descent through an ordinary structure. Requested roots have none. Modules whose
@@ -121,6 +123,8 @@ parent is a requested root. The descent's steps evaluate the parent's own local
 implementation, select exactly one actual module-namespace structure field, and
 optionally finish with the aggregate native source-child to instantiated-child
 substitution. No module is represented as a global constant lookup.
+Parent evaluation is anchored to the parent's descent's instantiated private
+implementation, or the requested root's implementation when the parent is a root.
 
 Every object connection's `enclosing_descent_ids` is the exact outermost-to-owner
 descent chain, empty for an object in a requested root. Its local `steps` evaluate
@@ -131,6 +135,8 @@ original source refuses. Consumers verify descent population, parent links,
 namespaces, paths, ordered traces and complete metadata, alongside the existing
 object connection checks. The native producer retains and applies actual native
 substitutions; the wire evidence never substitutes for them.
+Local object evaluation is anchored to its owner's descent's instantiated private
+implementation, or the root implementation for a root-owned object.
 
 `audit_query_name` names the independently resolved instantiated exported global,
 not an uninstantiated functor source or fabricated external alias. Locked native

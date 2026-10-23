@@ -2800,7 +2800,7 @@
         "parent_descent_id": {
           "anyOf": [{"$ref": "#/$defs/id"}, {"type": "null"}]
         },
-        "lookup_succeeded": {"const": true},
+        "field_selection_succeeded": {"const": true},
         "source_field": {"$ref": "#/$defs/field_locator"},
         "instantiated_field": {"$ref": "#/$defs/field_locator"},
         "source_module": {"$ref": "#/$defs/native_module"},
@@ -2810,7 +2810,7 @@
           "items": {"$ref": "#/$defs/connection_step"}
         }
       },
-      "required": ["id", "owner_module_id", "parent_descent_id", "lookup_succeeded",
+      "required": ["id", "owner_module_id", "parent_descent_id", "field_selection_succeeded",
                    "source_field", "instantiated_field", "source_module", "instantiated_module", "steps"],
       "additionalProperties": false
     },
