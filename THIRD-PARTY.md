@@ -441,6 +441,15 @@ The scoped-notation continuation in
 source-derived kinds under BSD-2-Clause with its exact `LICENSE.sail` and
 `LICENSE.model` notices. Its authored notation controls follow the original-file
 map; the private plugin and complete canonical outputs remain native and untracked.
+The [isolated V1 tag candidate](tools/sail-tag-outcomes/README.md) distributes a
+diff to the same reviewed coq-sail release, printed interface readings and unchanged
+model-derived reproducer outputs in
+`docs/implementation/retained-evidence/reuse-wire-tags-20261023/`. These files retain
+BSD-2-Clause terms and the exact support, model, CHERI and Sail notices beside them;
+authored changes to the support use those terms. Its original finite-map interpreter,
+controls and replay helper follow the original-file map. Strict private compilation
+and bounded caller proofs do not install the candidate, change the production
+support recipe, or qualify its complete assumption and canonical-consumer joins.
 
 Tools used to observe, execute, or accelerate a build do not automatically license its output. Non-commercial restrictions also govern use, even where nothing is distributed.
 
