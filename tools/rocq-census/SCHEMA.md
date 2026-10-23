@@ -230,6 +230,10 @@ path and every kernel name occurring in fields, references, expressions, types,
 transparent-body reference domains, source/instantiated metadata and connection traces, plus every
 native `inline_of_delta None` key/level. Each native resolver is separately named
 by owner and role; unrelated domains or identity effects cannot be dropped.
+An owner/role/path label is not resolver identity. Distinct native resolver values
+at that context retain distinct opaque IDs and complete effects; re-registration
+may reuse an ID only for the same immutable native object. Consumers may compare
+the separately retained complete finite effects, never infer equality from a label.
 Its `root` is the actual native root, established by exactly one successful
 `has_root_delta_resolver` test over the complete enumerated native path domain;
 an absent or ambiguous root refuses. A module's exported path is not automatically

@@ -224,4 +224,12 @@ records may contain native phase/path/count and memory observations, never libra
 body ASTs; they supply no acceptance. Source, strictness, input protection and all
 hosted and control predicates remain unchanged.
 
+Resolver registration also preserves distinct native values at a repeated
+owner/role/path context, including public signature and private implementation
+views. A context label alone cannot justify keeping only the first resolver.
+Reuse an opaque ID only for the same immutable native resolver object; otherwise
+retain a distinct ID and complete effects. This is an implementation correction
+inside the remaining realization budget, with no change to finite-domain coverage
+or the independent native implementation and assumption joins.
+
 The census extension adds 6 h, range 3–9, to Q35q's existing allowance: native grammar/classification 1–3 h, canonical implementation connections 1–3 h, and controls/evidence 1–3 h. The combined item is 10 h, range 5–15. This is a planning estimate for the commissioned scope; unattended hosted runtime and a further unsupported form are excluded. A retained refusal does not close Q35q.
