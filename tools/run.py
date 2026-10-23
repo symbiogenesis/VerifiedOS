@@ -33,6 +33,7 @@ working directory.
 """
 
 import io
+import shlex
 import subprocess
 import sys
 from collections.abc import Callable
@@ -98,9 +99,9 @@ def _in_guest(root: Path, command: Command, argv: list[str]) -> int:
         return subprocess.run([*GUEST, command.name, *argv],
                               cwd=root, check=False).returncode
     except OSError as err:
+        retry = shlex.join(["python3", "tools/run.py", command.name, *argv])
         print(f"the guest lane could not be reached: {err}\n"
-              f"run it inside WSL as: python3 tools/run.py {command.name} "
-              f"{' '.join(argv)}".rstrip(), file=sys.stderr)
+              f"run it inside WSL as: {retry}", file=sys.stderr)
         return 1
 
 

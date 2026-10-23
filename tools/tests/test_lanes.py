@@ -22,12 +22,14 @@ runner isolates its patches and redirected streams from other test modules.
 
 import io
 import json
+import shlex
 import shutil
 import tempfile
 from collections.abc import Callable
 from contextlib import nullcontext, redirect_stderr, redirect_stdout
 from functools import partial
 from importlib import import_module
+from importlib.util import module_from_spec, spec_from_file_location
 from itertools import product
 from pathlib import Path
 from types import ModuleType, SimpleNamespace
@@ -468,6 +470,27 @@ def _run_py_hops_on_exactly_the_rest() -> None:
            "a guest subcommand outside the set still hops")
 
 
+def _wsl_retry_preserves_arguments() -> None:
+    spec = spec_from_file_location("vos_lane_dispatch_test", TOOLS / "run.py")
+    if spec is None or spec.loader is None:
+        raise AssertionError("cannot load the dispatcher")
+    runner = module_from_spec(spec)
+    spec.loader.exec_module(runner)
+    command = next(c for c in COMMANDS if c.name == "model")
+    for arguments in ([], ["build"], ["build", "path with spaces", "", "it's literal",
+                                     "$(touch unexpected); echo surprise", "line\nbreak"]):
+        out, err = io.StringIO(), io.StringIO()
+        with (patch.object(runner.subprocess, "run", side_effect=OSError("WSL unavailable")),
+              redirect_stdout(out), redirect_stderr(err)):
+            code = runner._in_guest(_ROOT, command, arguments)
+        marker = "run it inside WSL as: "
+        ensure(code == 1 and out.getvalue() == "" and marker in err.getvalue(),
+               "unreachable WSL must fail with a retry on stderr")
+        retry = err.getvalue().partition(marker)[2]
+        ensure(shlex.split(retry) == ["python3", "tools/run.py", command.name, *arguments],
+               "the suggested shell command must preserve every argument literally")
+
+
 def _readme_names_every_declaration() -> None:
     """The reader's pointer reaches the exact generated dispatch reference."""
     text = _README.read_text(encoding="utf-8")
@@ -482,5 +505,6 @@ def cases() -> list[Case]:
         Case("every-declaration-has-a-run", _every_declaration_has_a_run),
         Case("declared-subcommands-answer", _declared_subcommands_answer_on_this_lane),
         Case("hops-on-exactly-the-rest", _run_py_hops_on_exactly_the_rest),
+        Case("wsl-retry-preserves-arguments", _wsl_retry_preserves_arguments),
         Case("readme-names-every-declaration", _readme_names_every_declaration),
     ]
