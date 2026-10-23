@@ -601,6 +601,27 @@ def _phase_validation() -> None:
                        "malformed journal phases must refuse before credentials, network or saving")
 
 
+def _completed_handoff_provenance() -> None:
+    fake = FakeGitHub(_state())
+    ensure(fake.advance(), "the fixture must first retain a complete hosted handoff")
+    for lane, change in (("host", "unobserved"), ("host", "missing-run"),
+                         ("guest", "missing-run")):
+        state: dict[str, object] = dict(copy.deepcopy(fake.state))
+        run = dict(cast(dict[str, object], state[lane]))
+        if change == "unobserved":
+            run["phase"] = "intent"
+        else:
+            run["run_id"], run["url"] = None, ""
+        state[lane] = run
+        saved: list[bool] = []
+        with patch.object(ci, "GitHub") as client:
+            _refuses(lambda state=state, saved=saved: ci.advance(
+                ROOT, cast(ci.CIState, state), lambda: saved.append(True)),
+                     f"a complete handoff cannot trust {change} {lane} provenance")
+            ensure(not client.called and not saved,
+                   "incomplete saved provenance must refuse before credentials, network or saving")
+
+
 def _transport_contract() -> None:
     with (patch.dict(os.environ, {"GH_TOKEN": "fixture-credential"}, clear=True),
           patch.object(urllib.request, "build_opener") as build):
@@ -1883,6 +1904,7 @@ def cases() -> list[Case]:
             Case("token-journal-recovery", _token_journal_recovery),
             Case("remote-validation", _remote_validation), Case("state-validation", _state_validation),
             Case("malformed-phase-refusal", _phase_validation),
+            Case("completed-handoff-provenance", _completed_handoff_provenance),
             Case("transport-contract", _transport_contract),
             Case("dispatch-subject", _dispatch_subject),
             Case("workflow-titles", _workflow_titles),
