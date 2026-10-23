@@ -1,5 +1,5 @@
-(* SPDX-License-Identifier: Apache-2.0
-   Original VerifiedOS serializer against the locked Rocq 9.3.0 public API.
+(* SPDX-License-Identifier: Apache-2.0 *)
+(* Original VerifiedOS serializer against the locked Rocq 9.3.0 public API.
    This is metadata evidence, never a census or proof-acceptance decision. *)
 open Names
 open Constr
