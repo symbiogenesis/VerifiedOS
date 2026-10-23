@@ -5,6 +5,8 @@ import copy
 import json
 import runpy
 import unittest
+from collections.abc import Iterator
+from itertools import permutations, product
 from pathlib import Path
 from typing import Any, cast
 from unittest.mock import patch
@@ -423,9 +425,35 @@ class SailSupportCensusTests(unittest.TestCase):
         value, searches, _ = _fixture()
         for reading in ("", "Module Foreign := Struct End", "Module Root := Struct",
                         "Module Root := Struct ... End", "Module Root := Struct End\nWarning: refusal",
+                        "Module Root :", "Module Root : Sig End :=", "Module Root : Sig End := (Foreign.F Foreign.A",
+                        "Module Root : Sig End := Foreign.F Foreign.A", "Module Root : Sig End := Foreign.F\nError: refusal",
                         "Module Type Root := Sig End"):
             with self.subTest(reading=reading), self.assertRaises(ValueError):
                 _ADAPTER["census"](value, searches, {"module:Root": reading}, expected_modules=["Root"])
+
+    def test_native_outer_reading_framing_keeps_end_constructors_and_algebraic_suffixes(self) -> None:
+        # Shape retained from Reading067: End is both an inductive constructor
+        # and a nested term identifier before the actual outer closure/suffix.
+        raw = ("Module State_monad.NMap.Raw : Sig "
+               "Inductive enumeration (elt : Type) : Type := End : enumeration elt | More : elt -> enumeration elt. "
+               "Definition enum_ind : forall (elt : Type) (P : enumeration elt -> Prop), P (End elt). "
+               "Module Proofs End := (FMapAVL.Raw Int.Z_as_Int OrderedTypeEx.N_as_OT)")
+        originals = {
+            "SailStdpp.State_monad.NMap.Raw": raw,
+            "CensusControls.F": "Module CensusControls.F := Functor (X:CensusControls.S) Struct Definition copied : X.T. End",
+            "CensusControls.Applied": "Module CensusControls.Applied : Sig Definition copied : CensusControls.Concrete.T. End := (CensusControls.F CensusControls.Concrete)",
+            "CensusControls.HiddenAlias": "Module CensusControls.HiddenAlias : Sig Definition witness : True. End := CensusControls.HiddenSealed",
+            "CensusControls.Sealed": "Module CensusControls.Sealed : CensusControls.S := CensusControls.Concrete",
+            "Root": 'Module Root := Struct Definition note := "Struct End ""..."" Warning: quoted". End',
+        }
+        for target, text in originals.items():
+            with self.subTest(target=target):
+                _ADAPTER["_reading"](text, "module", target)
+        _ADAPTER["_reading"]("Module Type Root.S = Sig Parameter x : Prop. End", "module-type", "Root.S")
+        for text in (raw.rsplit(" End", 1)[0], raw + "\nWarning: refusal", raw + "\nError: refusal",
+                     raw.replace("NMap.Raw :", "NMap.Wrong :", 1), raw + " trailing"):
+            with self.subTest(refusal=text), self.assertRaises(ValueError):
+                _ADAPTER["_reading"](text, "module", "SailStdpp.State_monad.NMap.Raw")
 
     def test_schema_reader_matches_draft202012_on_positive_and_corruptions(self) -> None:
         value, _, _ = _fixture()
@@ -523,11 +551,78 @@ class SailSupportCensusTests(unittest.TestCase):
             with self.subTest(table=forbidden), self.assertRaises(ValueError):
                 clone(value, forbidden)
 
+    def test_rank_order_matches_former_subsequence_predicate_exhaustively(self) -> None:
+        for size in range(4):
+            for domain in permutations(("a", "b", "c"), size):
+                ranks = {key: index for index, key in enumerate(domain)}
+                for length in range(5):
+                    for keys in product(("a", "b", "c", "foreign"), repeat=length):
+                        former = list(keys) == [key for key in domain if key in set(keys)]
+                        self.assertEqual(_ADAPTER["_ordered_subset"](list(keys), ranks), former, (domain, keys))
+
+    def test_metadata_walks_skip_resolver_effects_after_full_schema_validation(self) -> None:
+        value, searches, _ = _fixture()
+        _module(value, "Root.Nested", "Root", "concrete-module")
+        _constant(value, "Root.Nested", copy.deepcopy(value["fields"][0]["metadata"]))
+        value, searches, readings = _finish(value, searches)
+        value = json.loads(json.dumps(value))
+        matrix_ids = {id(resolver[name]) for resolver in value["resolvers"]
+                      for name in ("module_effects", "kernel_effects")}
+        namespace = _ADAPTER["census"].__globals__
+        validate, nodes, semantics = namespace["validate_schema"], namespace["_nodes"], namespace["_native_semantics"]
+        validated: list[object] = []
+        def whole_schema(metadata: object, *, schema: dict[str, Any] | None = None) -> dict[str, Any]:
+            validated.append(metadata)
+            return validate(metadata, schema=schema)
+        def metadata_nodes(item: object) -> Iterator[dict[str, Any]]:
+            self.assertNotIn(id(item), matrix_ids)
+            yield from nodes(item)
+        def native_metadata(metadata: dict[str, Any]) -> None:
+            self.assertEqual(metadata.keys(), value.keys() - {"resolvers"})
+            for key, item in metadata.items():
+                self.assertIs(item, value[key])
+            semantics(metadata)
+        with patch.dict(namespace, {"validate_schema": whole_schema, "_nodes": metadata_nodes,
+                                    "_native_semantics": native_metadata}):
+            _ADAPTER["reading_targets"](value)
+            _ADAPTER["census"](value, searches, readings, expected_modules=["Root"])
+        self.assertEqual(len(validated), 2)  # Each public entry still validates the entire graph once.
+        self.assertTrue(all(metadata is value for metadata in validated))
+        getters = {
+            "field": lambda item: item["fields"][0]["metadata"],
+            "source declaration": lambda item: item["declarations"][0]["implementation_connection"]["source_metadata"],
+            "instantiated declaration": lambda item: item["declarations"][0]["implementation_connection"]["instantiated_metadata"],
+            "descent original": lambda item: item["module_descents"][0]["source_module"]["signature"]["structure"]["fields"][0]["metadata"],
+            "descent instantiated": lambda item: item["module_descents"][0]["instantiated_module"]["signature"]["structure"]["fields"][0]["metadata"],
+        }
+        for name, get_metadata in getters.items():
+            candidate = copy.deepcopy(value)
+            get_metadata(candidate).update(body_kind="Def", transparent_body_identity=None)
+            with self.subTest(site=name), self.assertRaisesRegex(ValueError, "constant body discriminator"):
+                _ADAPTER["census"](candidate, searches, readings, expected_modules=["Root"])
+            get_metadata(candidate)["transparent_body_identity"] = {
+                "algorithm": "blake2b-256", "encoding": "verifiedos-rocq-native-term-json/1", "digest": "G" * 64,
+                "module_paths": [], "kernel_names": []}
+            with self.subTest(identity_site=name), self.assertRaisesRegex(ValueError, "exact lowercase BLAKE2b"):
+                _ADAPTER["census"](candidate, searches, readings, expected_modules=["Root"])
+        for site in ("resolver", "effect", "path"):
+            candidate = copy.deepcopy(value)
+            resolver = candidate["resolvers"][0]
+            target = resolver if site == "resolver" else resolver["module_effects"][0]
+            if site == "path":
+                target = target["output"]
+            target["metadata"] = candidate["fields"][0]["metadata"]
+            with self.subTest(resolver_site=site), self.assertRaises(ValueError):
+                _ADAPTER["reading_targets"](candidate)
+            with self.subTest(census_site=site), self.assertRaises(ValueError):
+                _ADAPTER["census"](candidate, searches, readings, expected_modules=["Root"])
+
     def test_body_identity_replaces_executable_ast_and_retains_complete_reference_domain(self) -> None:
         value, searches, _ = _fixture()
         identity = {"algorithm": "blake2b-256", "encoding": "verifiedos-rocq-native-term-json/1", "digest": "a" * 64,
                     "module_paths": [_path("Foreign"), _path("Foreign.Nested")],
-                    "kernel_names": [{"path": _path("Foreign.Nested"), "label": "dependency"}]}
+                    "kernel_names": [{"path": _path("Foreign.Nested"), "label": "dependency"},
+                                     {"path": _path("Foreign.Nested"), "label": "second"}]}
         for node in _ADAPTER["_nodes"](value):
             if "body_kind" in node:
                 node.update(body_kind="Def", transparent_body_identity=copy.deepcopy(identity))
@@ -547,6 +642,9 @@ class SailSupportCensusTests(unittest.TestCase):
             "omitted kernel module": lambda item: item["fields"][0]["metadata"]["transparent_body_identity"]["module_paths"].pop(),
             "omitted parent module": lambda item: item["fields"][0]["metadata"]["transparent_body_identity"]["module_paths"].pop(0),
             "wrong native key order": lambda item: item["fields"][0]["metadata"]["transparent_body_identity"]["module_paths"].reverse(),
+            "wrong native kernel order": lambda item: item["fields"][0]["metadata"]["transparent_body_identity"]["kernel_names"].reverse(),
+            "unknown body path": lambda item: item["fields"][0]["metadata"]["transparent_body_identity"]["module_paths"].append(_path("Unknown")),
+            "unknown body kernel": lambda item: item["fields"][0]["metadata"]["transparent_body_identity"]["kernel_names"].append({"path": _path("Foreign"), "label": "unknown"}),
             "duplicate body reference": lambda item: item["fields"][0]["metadata"]["transparent_body_identity"]["kernel_names"].append(copy.deepcopy(identity["kernel_names"][0])),
             "missing global body domain": lambda item: item["resolvers"][0]["kernel_effects"].pop(),
         }
@@ -788,9 +886,12 @@ def cases() -> list[Case]:
             Case("empty-and-alias-only-modules-require-native-provenance", checks.test_empty_and_direct_reference_alias_only_need_complete_native_bodies),
             Case("native-graph-and-resolver-domain-corruptions-refuse", checks.test_graph_provenance_and_resolver_domain_corruptions_refuse),
             Case("raw-native-reading-framing-diagnostics-and-truncation-refuse", checks.test_raw_native_reading_headers_truncation_and_diagnostics_refuse),
+            Case("native-outer-reading-framing-preserves-end-constructors-and-algebraic-suffixes", checks.test_native_outer_reading_framing_keeps_end_constructors_and_algebraic_suffixes),
             Case("stdlib-schema-reader-agrees-with-draft202012-oracle", checks.test_schema_reader_matches_draft202012_on_positive_and_corruptions),
             Case("control-replay-retains-three-roots-and-adapter-refusal-boundary", checks.test_control_replay_uses_three_complete_roots_and_distinguishes_adapter_evidence),
             Case("control-mutations-share-native-evidence-and-match-whole-copy-refusals", checks.test_control_mutations_share_untouched_evidence_and_match_whole_copy_refusals),
+            Case("body-footprint-rank-order-equals-former-subsequence-predicate", checks.test_rank_order_matches_former_subsequence_predicate_exhaustively),
+            Case("metadata-walks-skip-only-schema-valid-resolver-effects", checks.test_metadata_walks_skip_resolver_effects_after_full_schema_validation),
             Case("body-identities-refuse-executable-asts-and-incomplete-reference-domains", checks.test_body_identity_replaces_executable_ast_and_retains_complete_reference_domain),
             Case("private-kernel-reference-boundary-retains-exported-global-audits", checks.test_private_kernel_references_cannot_replace_exported_globals),
             Case("external-sealed-declaration-alias-keeps-supplementary-native-audit", checks.test_external_sealed_declaration_alias_has_supplementary_assumption_binding),
