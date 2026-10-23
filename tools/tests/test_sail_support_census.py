@@ -17,6 +17,27 @@ _DIRECTORY = Path(__file__).resolve().parents[1] / "rocq-census"
 _ADAPTER = runpy.run_path(str(_DIRECTORY / "census.py"))
 _SCHEMA = json.loads((_DIRECTORY / "census-schema.json").read_text(encoding="utf-8"))
 
+# Exact terminal line retained from candidate8 native-search-23.stdout.log.
+# Rows below use fixture types; this records printer framing, not native qualification.
+_NATIVE_ABOUT_FOOTER = (
+    '(use "About" for full details on the implicit arguments of '
+    "State_monad.NMap.Raw.Proofs.remove_min_gt_tree, State_monad.NMap.Raw.Proofs.L.PX.ltk_compat, "
+    "State_monad.NMap.Raw.Proofs.PX.ltk_compat, State_monad.NMap.Raw.Proofs.PX.ltk_compat', "
+    "State_monad.NMap.Raw.Proofs.lt_tree_node, State_monad.NMap.Raw.Proofs.gt_tree_node, "
+    "State_monad.NMap.Raw.Proofs.L.PX.ltk_compat', State_monad.NMap.Raw.Proofs.lt_right, "
+    "State_monad.NMap.Raw.Proofs.gt_left, State_monad.NMap.Raw.Proofs.gt_right, "
+    "State_monad.NMap.Raw.Proofs.lt_left, State_monad.NMap.Raw.Proofs.MX.IsTO.lt_compat, "
+    "State_monad.NMap.Raw.Proofs.PX.MO.IsTO.lt_compat, State_monad.NMap.Raw.Proofs.L.MX.lt_compat, "
+    "State_monad.NMap.Raw.Proofs.split_lt_tree, State_monad.NMap.Raw.Proofs.PX.MO.lt_compat, "
+    "State_monad.NMap.Raw.Proofs.MX.lt_compat, State_monad.NMap.Raw.Proofs.L.PX.MO.IsTO.lt_compat, "
+    "State_monad.NMap.Raw.Proofs.L.PX.MO.lt_compat, State_monad.NMap.Raw.Proofs.L.MX.IsTO.lt_compat, "
+    "State_monad.NMap.Raw.Proofs.split_gt_tree, State_monad.NMap.Raw.Proofs.gt_tree_trans, "
+    "State_monad.NMap.Raw.Proofs.lt_tree_trans, State_monad.NMap.Raw.Proofs.is_empty_2, "
+    "State_monad.NMap.Raw.Proofs.L.is_empty_2, State_monad.NMap.is_empty_2, "
+    "State_monad.NMap.Raw.Proofs.gt_leaf, State_monad.NMap.Raw.Proofs.lt_leaf, "
+    "State_monad.NMap.Raw.Proofs.empty_1, State_monad.NMap.Raw.Proofs.L.empty_1 and State_monad.NMap.empty_1)"
+)
+
 
 def _example(schema: dict[str, Any]) -> object:
     if "$ref" in schema:
@@ -197,7 +218,7 @@ def _sealed(value: dict[str, Any], root: str, label: str) -> None:
                      {"tag": "direct-lookup", "reference": declaration["native_reference"], "lookup_succeeded": True}]
 
 
-def _controls_fixture() -> tuple[dict[str, Any], dict[str, str], dict[str, str]]:
+def _controls_fixture(*, hidden_alias: bool = True) -> tuple[dict[str, Any], dict[str, str], dict[str, str]]:
     root = "CensusControls"
     value, searches, _ = _fixture(root)
     metadata = copy.deepcopy(value["fields"][0]["metadata"])
@@ -221,6 +242,8 @@ def _controls_fixture() -> tuple[dict[str, Any], dict[str, str], dict[str, str]]
     _constant(value, functor["id"], copy.deepcopy(metadata), abstract=True)
     for label in ("Sealed", "Applied", "HiddenSealed"):
         _sealed(value, root, label)
+    if hidden_alias:
+        _sealed(value, root, "HiddenAlias")
     _module(value, root + ".Empty", root, "concrete-module")
     alias = _module(value, root + ".AliasOnly", root, "concrete-module")
     alias["abbreviation_ids"] = ["control-alias"]
@@ -239,6 +262,66 @@ def _controls_fixture() -> tuple[dict[str, Any], dict[str, str], dict[str, str]]
 
 
 class SailSupportCensusTests(unittest.TestCase):
+    def test_native_terminal_about_notice_preserves_every_row_and_raw_footer(self) -> None:
+        names = _NATIVE_ABOUT_FOOTER.split(" arguments of ", 1)[1][:-1].replace(" and ", ", ").split(", ")
+        stdout = proofaudit.EMPTY_BLACKLIST + "\n" + "".join(name + ": Prop\n" for name in names)
+        rows, footer = _ADAPTER["_search_evidence"](stdout + _NATIVE_ABOUT_FOOTER + "\n")
+        self.assertEqual(len(rows), 31)
+        self.assertEqual([row["spelling"] for row in rows], names)
+        self.assertEqual([row["raw_lines"] for row in rows], [[name + ": Prop"] for name in names])
+        self.assertTrue(all(row["type"] == "Prop" for row in rows))
+        self.assertEqual(footer, {"raw": _NATIVE_ABOUT_FOOTER, "spellings": names})
+        self.assertEqual(_ADAPTER["parse_search_requests"]({"Root": stdout}, expected_modules=["Root"]),
+                         _ADAPTER["parse_search_requests"]({"Root": stdout + _NATIVE_ABOUT_FOOTER + "\n"},
+                                                          expected_modules=["Root"]))
+        for listed in ("Root.x", "Root.x and Root.Other.x"):
+            with self.subTest(listed=listed):
+                value, searches, readings = _fixture()
+                notice = '(use "About" for full details on the implicit arguments of ' + listed + ")"
+                if "Root.Other.x" in listed:
+                    _module(value, "Root.Other", "Root", "concrete-module")
+                    _constant(value, "Root.Other", copy.deepcopy(value["fields"][0]["metadata"]))
+                    searches["Root"] += "Root.Other.x: Prop\n"
+                    value["resolution_requests"] = _ADAPTER["parse_search_requests"](searches, expected_modules=["Root"])
+                    value["resolutions"].append({"request_id": "Root:1", "root_module_id": "Root", "candidates": [
+                        {"mode": "global", "field_id": "Root.Other:x", "declaration_id": "Root.Other:x:declaration",
+                         "abbreviation_id": None, "reference": _reference("Root.Other")} ]})
+                    value, searches, readings = _finish(value, searches)
+                searches["Root"] += notice + "\n"
+                result = _ADAPTER["census"](value, searches, readings, expected_modules=["Root"])["Root"]
+                self.assertEqual(result["raw_search"], searches["Root"])
+                self.assertEqual(result["search_footer"], {"raw": notice, "spellings": listed.split(" and ")})
+                self.assertEqual(result["symbols"][0]["type"], "Prop")
+
+    def test_about_notice_refuses_malformed_nonterminal_and_hidden_diagnostic_shapes(self) -> None:
+        rows = proofaudit.EMPTY_BLACKLIST + "\nRoot.x: Prop\nRoot.y: Type\n"
+        prefix = '(use "About" for full details on the implicit arguments of '
+        notice = prefix + "Root.x and Root.y)"
+        bad = {
+            "missing close": rows + notice[:-1],
+            "trailing text": rows + notice + " ignored",
+            "wrong wording": rows + notice.replace("full details", "details"),
+            "empty list": rows + prefix + ")",
+            "comma without final and": rows + prefix + "Root.x, Root.y)",
+            "Oxford comma": rows + prefix + "Root.x, and Root.y)",
+            "duplicate name": rows + prefix + "Root.x and Root.x)",
+            "unlisted name": rows + prefix + "Root.x and Foreign.z)",
+            "no declaration rows": proofaudit.EMPTY_BLACKLIST + "\n" + notice,
+            "repeated notice": rows + notice + "\n" + notice,
+            "nonterminal row": rows + notice + "\nRoot.z: Prop\n",
+            "nonterminal continuation": rows + notice + "\n  forall x, x\n",
+            "indented notice": rows + "  " + notice,
+            "multiline notice": rows + prefix + "Root.x\n and Root.y)",
+            "unknown indented notice": rows + '  (use "Check" for details)\n',
+        }
+        for diagnostic in ("Error: omitted", "Warning: omitted", "Anomaly: omitted", "Fatal error: omitted",
+                           'File "query.v", line 1, characters 0-1:'):
+            for indentation in ("", "  "):
+                bad[indentation + diagnostic] = rows + indentation + diagnostic + "\n" + notice
+        for name, stdout in bad.items():
+            with self.subTest(name=name), self.assertRaises(ValueError):
+                _ADAPTER["parse_search_requests"]({"Root": stdout}, expected_modules=["Root"])
+
     def test_canonical_rows_preserve_search_types_and_native_provenance(self) -> None:
         value, searches, readings = _fixture()
         searches["Root"] = searches["Root"].replace("Root.x:", "x:")
@@ -247,6 +330,7 @@ class SailSupportCensusTests(unittest.TestCase):
         self.assertEqual(result["symbols"], [{"name": "Root.x", "type": "Prop", "assumptions": [], "claims": []}])
         self.assertEqual(result["raw_search"], searches["Root"])
         self.assertEqual(result["search_rows"][0]["spelling"], "x")
+        self.assertIsNone(result["search_footer"])
         self.assertEqual(result["declarations"], value["declarations"])
         # Census fields remain audited even when Search does not list them.
         value["resolution_requests"], value["resolutions"] = [], []
@@ -376,11 +460,15 @@ class SailSupportCensusTests(unittest.TestCase):
         value, searches, readings = _controls_fixture()
         report = _ADAPTER["qualify_controls"](value, searches, readings)
         self.assertEqual(report["evidence_kind"], "adapter-over-native-emitted-evidence")
-        self.assertEqual(len(report["positive"]), 7)
+        self.assertEqual(len(report["positive"]), 8)
+        self.assertEqual(report["positive"]["HiddenAlias"], "accepted")
         self.assertEqual(len(report["refusals"]), 12)
         self.assertTrue(all(row["verdict"] == "refused" for row in report["refusals"].values()))
         # This call uses Python fixtures; its report does not claim native execution.
         self.assertNotIn("native-prover-verdict", report)
+        incomplete, raw, printed = _controls_fixture(hidden_alias=False)
+        with self.assertRaisesRegex(ValueError, "positive-control population is incomplete"):
+            _ADAPTER["qualify_controls"](incomplete, raw, printed)
 
     def test_body_identity_replaces_executable_ast_and_retains_complete_reference_domain(self) -> None:
         value, searches, _ = _fixture()
@@ -602,6 +690,8 @@ class SailSupportCensusTests(unittest.TestCase):
 def cases() -> list[Case]:
     checks = SailSupportCensusTests()
     return [Case("canonical-census-preserves-raw-search-and-complete-native-fields", checks.test_canonical_rows_preserve_search_types_and_native_provenance),
+            Case("native-terminal-about-notice-preserves-rows-and-raw-footer", checks.test_native_terminal_about_notice_preserves_every_row_and_raw_footer),
+            Case("about-notice-refuses-malformed-nonterminal-and-hidden-diagnostic-shapes", checks.test_about_notice_refuses_malformed_nonterminal_and_hidden_diagnostic_shapes),
             Case("signature-search-field-remains-interface-only", checks.test_interface_search_row_is_accounted_without_global_audit),
             Case("empty-and-alias-only-modules-require-native-provenance", checks.test_empty_and_direct_reference_alias_only_need_complete_native_bodies),
             Case("native-graph-and-resolver-domain-corruptions-refuse", checks.test_graph_provenance_and_resolver_domain_corruptions_refuse),

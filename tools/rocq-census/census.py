@@ -22,7 +22,11 @@ _KEYWORDS = {"$schema", "$id", "$defs", "$ref", "title", "description", "type",
              "const", "enum", "oneOf", "anyOf", "properties", "required",
              "additionalProperties", "items", "minItems", "maxItems", "uniqueItems",
              "minLength", "minimum", "maximum", "pattern"}
-_ROW = re.compile(r"^([\w']+(?:\.[\w']+)*):\s*(.*)$")
+_SEARCH_NAME = r"[\w']+(?:\.[\w']+)*"
+_ROW = re.compile(rf"^({_SEARCH_NAME}):\s*(.*)$")
+_ABOUT = re.compile(r'\(use "About" for full details on the implicit arguments of '
+                    rf"({_SEARCH_NAME}(?:(?:, {_SEARCH_NAME})* and {_SEARCH_NAME})?)\)")
+_SEARCH_DIAGNOSTIC = re.compile(r'^\s*(?:(?:Error|Warning|Anomaly|Fatal error)\s*[:!]|File ")')
 _ABSTRACT = {"module-type", "functor-parameter", "functor-result"}
 
 
@@ -123,15 +127,26 @@ def validate_schema(value: object, *, schema: dict[str, Any] | None = None) -> d
     return cast("dict[str, Any]", value)
 
 
-def _search(stdout: str) -> list[dict[str, Any]]:
+def _search_evidence(stdout: str) -> tuple[list[dict[str, Any]], dict[str, Any] | None]:
     lines = stdout.splitlines()
     _require(bool(lines) and lines[0].strip() == proofaudit.EMPTY_BLACKLIST,
              "Rocq did not confirm an empty search blacklist")
     found: list[dict[str, Any]] = []
     seen: set[str] = set()
+    footer: dict[str, Any] | None = None
     for line in lines[1:]:
         if not line.strip():
             continue
+        _require(footer is None, "native Search notice is repeated or nonterminal")
+        _require(_SEARCH_DIAGNOSTIC.match(line) is None, "native Search contains a diagnostic")
+        notice = _ABOUT.fullmatch(line)
+        if notice is not None:
+            spellings = re.split(r", | and ", notice.group(1))
+            _require(len(set(spellings)) == len(spellings) and set(spellings) <= seen,
+                     "native Search notice names duplicate or unlisted declarations")
+            footer = {"raw": line, "spellings": spellings}
+            continue
+        _require(not line.lstrip().startswith('(use '), "malformed native Search notice")
         match = _ROW.fullmatch(line)
         if match:
             spelling, typ = match.groups()
@@ -145,7 +160,11 @@ def _search(stdout: str) -> list[dict[str, Any]]:
         else:
             raise CensusError(f"unrecognized native Search output: {line}")
     _require(all(row["type"] for row in found), "a native Search row has no type")
-    return found
+    return found, footer
+
+
+def _search(stdout: str) -> list[dict[str, Any]]:
+    return _search_evidence(stdout)[0]
 
 
 def parse_search_requests(searches: dict[str, str], *, expected_modules: list[str]) -> list[dict[str, Any]]:
@@ -795,7 +814,9 @@ def _census(metadata: object, searches: dict[str, str], readings: dict[str, str]
         module_ids = {identifier for identifier, owner in owners.items() if owner == root}
         root_fields = [row for row in value["fields"] if row["parent_module_id"] in module_ids]
         root_declarations = [row for row in value["declarations"] if row["field_id"] in {field["id"] for field in root_fields}]
-        result[root] = {"symbols": symbols, "raw_search": searches[root], "search_rows": _search(searches[root]),
+        search_rows, search_footer = _search_evidence(searches[root])
+        result[root] = {"symbols": symbols, "raw_search": searches[root], "search_rows": search_rows,
+                        "search_footer": search_footer,
                         "modules": [row for row in value["modules"] if row["id"] in module_ids], "fields": root_fields,
                         "interfaces": [row for row in root_declarations if row["classification"] == "interface"],
                         "aliases": [row for row in root_declarations if row["classification"] == "alias"]
@@ -826,7 +847,7 @@ def qualify_controls(metadata: object, searches: dict[str, str], readings: dict[
     all_accepted = census(value, searches, readings, expected_modules=expected_roots)
     accepted = all_accepted["CensusControls"]
     modules = accepted["modules"]
-    required = {"S", "F", "Sealed", "Applied", "Empty", "AliasOnly", "HiddenSealed"}
+    required = {"S", "F", "Sealed", "Applied", "Empty", "AliasOnly", "HiddenSealed", "HiddenAlias"}
     named = {module["native_path"].get("label"): module for module in modules}
     _require(required <= named.keys(), "native positive-control population is incomplete")
     for root, suffix in (("SailStdpp.TypeCasts", "ZEqdep"), ("SailStdpp.State_monad", "NMap")):
@@ -835,7 +856,9 @@ def qualify_controls(metadata: object, searches: dict[str, str], readings: dict[
                  "actual native functor-application control is missing")
     _require(named["S"]["kind"] == "module-type" and bool(named["F"]["signature"]["parameters"])
              and named["Empty"]["empty_evidence"] == "native-empty"
-             and named["AliasOnly"]["empty_evidence"] == "native-alias-only", "native positive-control shapes differ")
+             and named["AliasOnly"]["empty_evidence"] == "native-alias-only"
+             and named["HiddenAlias"]["kind"] == "module"
+             and named["HiddenAlias"]["implementation"]["kind"] == "Algebraic", "native positive-control shapes differ")
     concrete = next((row for row in value["declarations"] if row["classification"] == "owned" and row["kind"] == "constant"), None)
     interface = next((row for row in value["declarations"] if row["classification"] == "interface"), None)
     if concrete is None or interface is None or not value["resolution_requests"]:
