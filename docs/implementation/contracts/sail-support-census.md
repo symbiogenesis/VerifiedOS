@@ -359,4 +359,36 @@ remaining 1429.311394952 active seconds. Preserve all five earlier counters and 
 same cumulative sixty-minute ceiling, with no additional time or hosted campaign.
 Repeat the original complete pipeline and stop at its first refusal or this bound.
 
+### Control-only completion
+
+The sixth candidate's complete original thirty-root graph passes with all retained
+native readings and the unchanged exported/private/public resolver joins. Its
+separate fresh three-root native census succeeds, every requested native reading
+passes, and the complete positive control census passes. Full schema validation of
+that actual control emission takes about 113 seconds per call. The original
+corruption loop retains each full independent validation; its complete report
+cannot fit the preceding candidate's remaining work allowance. The current
+candidate's hard bound and finalization reserve remain unchanged. Retain its actual
+stop, elapsed time, cuts and partial observations; an incomplete loop supplies no
+twelve-case acceptance.
+
+Only if that candidate stops for its time bound after the recorded positive joins,
+commission one seventh, control-only candidate of at most thirty active minutes,
+within a cumulative adapter/control ceiling of ninety active minutes. Preserve
+every earlier counter and unused allowance; neither time nor candidate numbering
+resets. A different refusal or uncommissioned native form still returns to this
+owner before repair. The two-campaign hosted allowance is unchanged.
+
+Use the exact fresh three-root raw emission, Search requests, complete native
+readings, provider receipt, strict assays and source/input identities from candidate
+six. Independently recheck those retained bytes, exact source hashes and unchanged
+installed/copied input membership before and after this continuation. The already
+passed full population and actual native assays remain separately bound evidence;
+do not filter that population to fabricate the control dataset or re-emit it.
+Run the unchanged `qualify_controls` positive boundary and all twelve corruption
+cases from the beginning, each through full schema and graph checks. Reuse no
+partial corruption verdict as a passing report and introduce no cache, omitted
+effect, changed guard, new source form or assumption. This commissions verification
+time only; source semantics, native transport and all hosted predicates stay fixed.
+
 The census extension adds 6 h, range 3–9, to Q35q's existing allowance: native grammar/classification 1–3 h, canonical implementation connections 1–3 h, and controls/evidence 1–3 h. The combined item is 10 h, range 5–15. This is a planning estimate for the commissioned scope; unattended hosted runtime and a further unsupported form are excluded. A retained refusal does not close Q35q.
