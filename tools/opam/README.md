@@ -26,7 +26,8 @@ the hosted instrument route; no local QuickChick switch was imported or built.
 The current QuickChick lock is the byte-exact export from the
 [2026-10-19 hosted recipe run](https://github.com/symbiogenesis/VerifiedOS/actions/runs/39348906266),
 tested at `b9b451560f1f551ee8dae37f8828fcac60978d0b`. Its fresh build, property
-checks, independent clean import and export comparison passed. The lock selects ppxlib 0.39.0. The separate lock-adoption commit
+checks, independent clean import and export comparison passed. The lock selects
+ppxlib 0.39.0. The separate lock-adoption commit
 `4550a7da9c6db9c13d26546a471639b424d75c5d` preserves the tested route inputs;
 `instrument-ci read --closing` confirms that binding. This qualification does not
 state a Host CI or Guest CI verdict for later integration commits.

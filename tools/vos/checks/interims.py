@@ -325,7 +325,6 @@ NON_PREMISE: dict[tuple[str, str], NonPremise] = {
         "and a source-only libcrux review mapping its remaining local proof "
         "boundaries without adopting a foreign verdict or acquiring source",
         ("it acquires no source and proposes no local consumer",
-         "The rows identify useful work at existing owners",
          "Compare actual routine safety/event theorems and the maintained verification-status map")),
     ("proofs/campaigns/mldsa-reference.md", ""): NonPremise(
         (FSTAR,), "no libcrux or HACL* body copied, and the independent comparison run "

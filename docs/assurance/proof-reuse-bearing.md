@@ -173,4 +173,4 @@ It does not price anything, propose a range, or move one. The consumer rows iden
 
 It does not fix a `none` row forever. A register act or a new cell can give an uncelled obligation an owner, an unread licence can be read at the milestone that would incorporate it, and a refused import stays refused only while the entry that refuses it stands. A row changes when its ground does, and not before.
 
-It performs no licence reading of its own and pins, builds or vendors nothing. The terms it repeats are the subject records', read at their files on the dates those records carry.
+It performs no licence reading of its own and pins, builds or vendors nothing. The terms it repeats are bound to the source editions and license instruments in the subject records.

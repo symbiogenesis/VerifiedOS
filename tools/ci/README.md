@@ -497,8 +497,7 @@ built or checked in the local guest, and no QuickChick lock is tracked from a gu
 build. `run.py provision --apply` must not import QuickChick in the local guest,
 as [the lock guide](../opam/README.md) states (F-616).
 CertiRocq builds stay local; no CertiRocq switch is built, checked or dispatched
-on this route. No
-switch or download cache is used, so every switch a run reports was built in that run
+on this route. No switch or download cache is used, so every switch a run reports was built in that run
 from its recipe or lock in a fresh root; the uv cache Guest CI saves is read and never
 saved.
 

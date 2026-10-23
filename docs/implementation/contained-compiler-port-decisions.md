@@ -16,8 +16,8 @@ with exit 129 in `MenhirLibParser.Inter.ValidSafe.safe_is_validator`, reporting
 `Modops.ModuleTypingError`. A parser-only diagnostic reproduces the failure.
 This pairing supplies no passing kernel acceptance.
 
-The selected candidate is the Rocq 9.3.0 compatibility port with the same OCaml
-and Menhir releases. Its portable lock contains released packages only. Q39
+The selected candidate is the Rocq 9.3.0 compatibility port with the locked
+OCaml 4.14.4 and Menhir 20260209 releases. Its portable lock contains released packages only. Q39
 requires two independent clean qualifications, including the independent
 lock-import build, before accepting that compiler.
 
