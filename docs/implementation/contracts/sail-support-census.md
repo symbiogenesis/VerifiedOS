@@ -12,6 +12,14 @@ For concrete modules, including sealed functor results, use native canonical res
 
 ## Acceptance and controls
 
+The common guard's owned canonical population stays separate from alias evidence.
+Every concrete declaration alias and direct-reference abbreviation also binds its
+native-proven audit target to an exact `Print Assumptions` result under the same
+unchanged support allowlist. An already audited target can be reused only with
+explicit source-to-target bindings; an external or sealed target cannot escape
+the audit because its spelling is an alias. Abstract or bound interface references
+remain obligations and authorize no global assumption.
+
 The adapter passes only when the complete selected population and every printed row are accounted for, every owned instantiated declaration has its exact assumption audit, and native input identities remain unchanged. Keep the common inventory guard unchanged. The support-specific adapter supplies only independently established canonical declarations to that guard and preserves all original rows and provenance in its evidence. No prefix insertion, discarded row or unexplained empty result may turn a refusal into success.
 
 Positive controls cover a signature-only module, an unapplied functor, a sealed concrete functor result and a proven empty/alias-only module. Refusal controls cover an omitted nested field, a signature field treated as a global constant, a missing concrete implementation connection, a foreign declaration, ambiguous resolution, a duplicate, an unsupported native module form and an unproved empty module. Controls run at the locked prover where native classification is claimed; Python fixtures alone qualify no native census.
