@@ -1,0 +1,106 @@
+{
+  "files": {
+    "adapter-2/checkpoint.json": {
+      "bytes": 1358869,
+      "encoding": "identity",
+      "path": "adapter-2/checkpoint.json",
+      "sha256": "03a61e723aebf14f08f11bbb18e0943e75f305fb9504a1849354f572f750f446"
+    },
+    "adapter-2/exception.log": {
+      "bytes": 23474,
+      "encoding": "identity",
+      "path": "adapter-2/exception.log",
+      "sha256": "9599f0beee8f285888172473c7fc061cbc3bfbf9dc419ecb43d22b164c497e68"
+    },
+    "adapter-2/receipt.json": {
+      "bytes": 1358970,
+      "encoding": "identity",
+      "path": "adapter-2/receipt.json",
+      "sha256": "ce44621a17f41ce14a86effc5a78e2e7b0a2b591f37dafe7fb9562f8a2d64284"
+    },
+    "checkpoint/continuation-checkpoint.json": {
+      "bytes": 10609,
+      "encoding": "identity",
+      "path": "checkpoint/continuation-checkpoint.json",
+      "sha256": "f2843e40148c6f3b0f12348d2810d3c2d394813bb9891eef5744c72d1b9bab56"
+    },
+    "executed-script/offline2.py": {
+      "bytes": 7555,
+      "encoding": "identity",
+      "path": "executed-script/offline2.py",
+      "sha256": "a37326ae914ca16fd959d4f9865b373271e5dfacba2e7669e819f7f38cd3fdb2"
+    },
+    "executed-source-inputs/00/qualify.py": {
+      "bytes": 31891,
+      "encoding": "identity",
+      "path": "executed-source-inputs/00/qualify.py",
+      "sha256": "21b6f9b82f3d07e59a85ad8c4ea958727928a227cb6698b3efada78632eda8ab"
+    },
+    "executed-source-inputs/01/census.py": {
+      "bytes": 63957,
+      "encoding": "identity",
+      "path": "executed-source-inputs/01/census.py",
+      "sha256": "f5730e79e4b16db7dfb61a53c005f5ad5ae84bf03b95948db89f0c3c68644ea0"
+    },
+    "executed-source-inputs/02/census-schema.json": {
+      "bytes": 85217,
+      "encoding": "identity",
+      "path": "executed-source-inputs/02/census-schema.json",
+      "sha256": "42dfacf97dba0f36e318d7467f8ad30fa0de00de5512b400daa3b5d2189d8308"
+    },
+    "executed-source-inputs/03/SCHEMA.md": {
+      "bytes": 18188,
+      "encoding": "identity",
+      "path": "executed-source-inputs/03/SCHEMA.md",
+      "sha256": "0b418e6e0606b3423404723a15c0b1a0978fff9a7e0bb679beba2ca7343ca17d"
+    },
+    "executed-source-inputs/04/proofaudit.py": {
+      "bytes": 26755,
+      "encoding": "identity",
+      "path": "executed-source-inputs/04/proofaudit.py",
+      "sha256": "dc070238fbd144751619a6ff75a6cf43a59d3c482bb31d7b5fda904e51194737"
+    },
+    "executed-source-inputs/05/vos_rocq_census.ml": {
+      "bytes": 58967,
+      "encoding": "identity",
+      "path": "executed-source-inputs/05/vos_rocq_census.ml",
+      "sha256": "5a1bcfbc332d6eb186aec8d190923d161f3e89412131751f325f32aec408141f"
+    },
+    "executed-source-inputs/06/control-spec.json": {
+      "bytes": 1519,
+      "encoding": "identity",
+      "path": "executed-source-inputs/06/control-spec.json",
+      "sha256": "39ba438afe6bc29f97931072c68da04441e1400ebab8647a57f91f2b2e21e729"
+    },
+    "executed-source-inputs/07/receipt.json": {
+      "bytes": 1857155,
+      "encoding": "identity",
+      "path": "executed-source-inputs/07/receipt.json",
+      "sha256": "de863d5219108e19e902bd94e0e952a91ec08753464bbe5dd2cb941624617106"
+    },
+    "executed-source-inputs/08/receipt.json": {
+      "bytes": 1432458,
+      "encoding": "identity",
+      "path": "executed-source-inputs/08/receipt.json",
+      "sha256": "b162264745f954bfce3878d254b56aed792b017502dbf0421c1ad12370508c4f"
+    },
+    "executed-source-inputs/09/reading-targets.json": {
+      "bytes": 4878,
+      "encoding": "identity",
+      "path": "executed-source-inputs/09/reading-targets.json",
+      "sha256": "1138793fdad287acbbc051c11170f2b14efeb9aab6c3bbdab8da37c69513bd62"
+    },
+    "reading-and-budget-identities.json": {
+      "bytes": 34664,
+      "encoding": "identity",
+      "path": "reading-and-budget-identities.json",
+      "sha256": "7d5dcaa53a58f4b2d2844dfa1bf910769175c5e20371082a4eef7c0a913468fa"
+    },
+    "selection.json": {
+      "bytes": 5746,
+      "encoding": "identity",
+      "path": "selection.json",
+      "sha256": "0a3e3303c4d2e7d225a13a0277b2d1d529f1bb3c0eb43a97624821f90744f63b"
+    }
+  }
+}

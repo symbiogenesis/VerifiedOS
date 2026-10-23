@@ -20,8 +20,12 @@ for the selected support and authored controls with unchanged recorded inputs.
 Strict duplicate-free parsing and schema validation succeed, and every planned
 native module/type reading succeeds. The first adapter replay refuses its text
 framing of an inductive constructor named `End`; the corrected framing accepts the
-retained readings. The next replay reaches its time bound inside schema validation
-and supplies no complete graph verdict. The
+retained readings.
+[Bounded complete-schema replay](retained-evidence/q35q-census-replay2-20261023/manifest.json),
+SHA256 `bb5a6decd4ad376117bc1a94829109fecfa1332bb1217d736893ee4fc27f3a10`,
+binds the next replay's exact timeout, source snapshots and unchanged-input
+observations. It reaches its time bound inside schema validation and supplies no
+complete graph verdict. The
 [deterministic replay act](contracts/sail-support-census.md#deterministic-schema-replay)
 preserves both counters and commissions only the third bounded adapter/control
 candidate. Complete classification, exact assumptions and hosted kernel acceptance

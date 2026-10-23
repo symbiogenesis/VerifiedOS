@@ -1,0 +1,266 @@
+Traceback (most recent call last):
+  File "/mnt/c/Users/symbi/AppData/Local/Temp/vos-q35q-9edbbf2478214d1597de8d0bc0996699/offline2.py", line 61, in <module>
+    result=adapter['census'](metadata,searches,readings,expected_modules=expected)
+  File "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/checklist-20261023-c/tools/rocq-census/census.py", line 889, in census
+    return _census(metadata, searches, readings, expected_modules=expected_modules)
+  File "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/checklist-20261023-c/tools/rocq-census/census.py", line 418, in _census
+    value = validate_schema(metadata)
+  File "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/checklist-20261023-c/tools/rocq-census/census.py", line 124, in validate_schema
+    _validate(value, definition, definition, "census")
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/checklist-20261023-c/tools/rocq-census/census.py", line 100, in _validate
+    _validate(value[name], properties[name], document, site + "." + name)
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/checklist-20261023-c/tools/rocq-census/census.py", line 109, in _validate
+    _validate(item, schema["items"], document, f"{site}[{index}]")
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/checklist-20261023-c/tools/rocq-census/census.py", line 70, in _validate
+    _validate(value, document["$defs"][reference[8:]], document, site)
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/checklist-20261023-c/tools/rocq-census/census.py", line 100, in _validate
+    _validate(value[name], properties[name], document, site + "." + name)
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/checklist-20261023-c/tools/rocq-census/census.py", line 70, in _validate
+    _validate(value, document["$defs"][reference[8:]], document, site)
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/checklist-20261023-c/tools/rocq-census/census.py", line 77, in _validate
+    _validate(value, branch, document, site)
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/checklist-20261023-c/tools/rocq-census/census.py", line 100, in _validate
+    _validate(value[name], properties[name], document, site + "." + name)
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/checklist-20261023-c/tools/rocq-census/census.py", line 70, in _validate
+    _validate(value, document["$defs"][reference[8:]], document, site)
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/checklist-20261023-c/tools/rocq-census/census.py", line 77, in _validate
+    _validate(value, branch, document, site)
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/checklist-20261023-c/tools/rocq-census/census.py", line 100, in _validate
+    _validate(value[name], properties[name], document, site + "." + name)
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/checklist-20261023-c/tools/rocq-census/census.py", line 70, in _validate
+    _validate(value, document["$defs"][reference[8:]], document, site)
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/checklist-20261023-c/tools/rocq-census/census.py", line 77, in _validate
+    _validate(value, branch, document, site)
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/checklist-20261023-c/tools/rocq-census/census.py", line 100, in _validate
+    _validate(value[name], properties[name], document, site + "." + name)
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/checklist-20261023-c/tools/rocq-census/census.py", line 70, in _validate
+    _validate(value, document["$defs"][reference[8:]], document, site)
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/checklist-20261023-c/tools/rocq-census/census.py", line 77, in _validate
+    _validate(value, branch, document, site)
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/checklist-20261023-c/tools/rocq-census/census.py", line 100, in _validate
+    _validate(value[name], properties[name], document, site + "." + name)
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/checklist-20261023-c/tools/rocq-census/census.py", line 70, in _validate
+    _validate(value, document["$defs"][reference[8:]], document, site)
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/checklist-20261023-c/tools/rocq-census/census.py", line 77, in _validate
+    _validate(value, branch, document, site)
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/checklist-20261023-c/tools/rocq-census/census.py", line 100, in _validate
+    _validate(value[name], properties[name], document, site + "." + name)
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/checklist-20261023-c/tools/rocq-census/census.py", line 70, in _validate
+    _validate(value, document["$defs"][reference[8:]], document, site)
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/checklist-20261023-c/tools/rocq-census/census.py", line 77, in _validate
+    _validate(value, branch, document, site)
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/checklist-20261023-c/tools/rocq-census/census.py", line 100, in _validate
+    _validate(value[name], properties[name], document, site + "." + name)
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/checklist-20261023-c/tools/rocq-census/census.py", line 70, in _validate
+    _validate(value, document["$defs"][reference[8:]], document, site)
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/checklist-20261023-c/tools/rocq-census/census.py", line 77, in _validate
+    _validate(value, branch, document, site)
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/checklist-20261023-c/tools/rocq-census/census.py", line 100, in _validate
+    _validate(value[name], properties[name], document, site + "." + name)
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/checklist-20261023-c/tools/rocq-census/census.py", line 70, in _validate
+    _validate(value, document["$defs"][reference[8:]], document, site)
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/checklist-20261023-c/tools/rocq-census/census.py", line 77, in _validate
+    _validate(value, branch, document, site)
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/checklist-20261023-c/tools/rocq-census/census.py", line 100, in _validate
+    _validate(value[name], properties[name], document, site + "." + name)
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/checklist-20261023-c/tools/rocq-census/census.py", line 70, in _validate
+    _validate(value, document["$defs"][reference[8:]], document, site)
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/checklist-20261023-c/tools/rocq-census/census.py", line 77, in _validate
+    _validate(value, branch, document, site)
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/checklist-20261023-c/tools/rocq-census/census.py", line 100, in _validate
+    _validate(value[name], properties[name], document, site + "." + name)
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/checklist-20261023-c/tools/rocq-census/census.py", line 70, in _validate
+    _validate(value, document["$defs"][reference[8:]], document, site)
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/checklist-20261023-c/tools/rocq-census/census.py", line 77, in _validate
+    _validate(value, branch, document, site)
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/checklist-20261023-c/tools/rocq-census/census.py", line 100, in _validate
+    _validate(value[name], properties[name], document, site + "." + name)
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/checklist-20261023-c/tools/rocq-census/census.py", line 70, in _validate
+    _validate(value, document["$defs"][reference[8:]], document, site)
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/checklist-20261023-c/tools/rocq-census/census.py", line 77, in _validate
+    _validate(value, branch, document, site)
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/checklist-20261023-c/tools/rocq-census/census.py", line 100, in _validate
+    _validate(value[name], properties[name], document, site + "." + name)
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/checklist-20261023-c/tools/rocq-census/census.py", line 70, in _validate
+    _validate(value, document["$defs"][reference[8:]], document, site)
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/checklist-20261023-c/tools/rocq-census/census.py", line 77, in _validate
+    _validate(value, branch, document, site)
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/checklist-20261023-c/tools/rocq-census/census.py", line 100, in _validate
+    _validate(value[name], properties[name], document, site + "." + name)
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/checklist-20261023-c/tools/rocq-census/census.py", line 70, in _validate
+    _validate(value, document["$defs"][reference[8:]], document, site)
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/checklist-20261023-c/tools/rocq-census/census.py", line 77, in _validate
+    _validate(value, branch, document, site)
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/checklist-20261023-c/tools/rocq-census/census.py", line 100, in _validate
+    _validate(value[name], properties[name], document, site + "." + name)
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/checklist-20261023-c/tools/rocq-census/census.py", line 70, in _validate
+    _validate(value, document["$defs"][reference[8:]], document, site)
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/checklist-20261023-c/tools/rocq-census/census.py", line 77, in _validate
+    _validate(value, branch, document, site)
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/checklist-20261023-c/tools/rocq-census/census.py", line 100, in _validate
+    _validate(value[name], properties[name], document, site + "." + name)
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/checklist-20261023-c/tools/rocq-census/census.py", line 70, in _validate
+    _validate(value, document["$defs"][reference[8:]], document, site)
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/checklist-20261023-c/tools/rocq-census/census.py", line 77, in _validate
+    _validate(value, branch, document, site)
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/checklist-20261023-c/tools/rocq-census/census.py", line 100, in _validate
+    _validate(value[name], properties[name], document, site + "." + name)
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/checklist-20261023-c/tools/rocq-census/census.py", line 70, in _validate
+    _validate(value, document["$defs"][reference[8:]], document, site)
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/checklist-20261023-c/tools/rocq-census/census.py", line 77, in _validate
+    _validate(value, branch, document, site)
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/checklist-20261023-c/tools/rocq-census/census.py", line 100, in _validate
+    _validate(value[name], properties[name], document, site + "." + name)
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/checklist-20261023-c/tools/rocq-census/census.py", line 70, in _validate
+    _validate(value, document["$defs"][reference[8:]], document, site)
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/checklist-20261023-c/tools/rocq-census/census.py", line 77, in _validate
+    _validate(value, branch, document, site)
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/checklist-20261023-c/tools/rocq-census/census.py", line 100, in _validate
+    _validate(value[name], properties[name], document, site + "." + name)
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/checklist-20261023-c/tools/rocq-census/census.py", line 70, in _validate
+    _validate(value, document["$defs"][reference[8:]], document, site)
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/checklist-20261023-c/tools/rocq-census/census.py", line 77, in _validate
+    _validate(value, branch, document, site)
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/checklist-20261023-c/tools/rocq-census/census.py", line 100, in _validate
+    _validate(value[name], properties[name], document, site + "." + name)
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/checklist-20261023-c/tools/rocq-census/census.py", line 70, in _validate
+    _validate(value, document["$defs"][reference[8:]], document, site)
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/checklist-20261023-c/tools/rocq-census/census.py", line 77, in _validate
+    _validate(value, branch, document, site)
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/checklist-20261023-c/tools/rocq-census/census.py", line 100, in _validate
+    _validate(value[name], properties[name], document, site + "." + name)
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/checklist-20261023-c/tools/rocq-census/census.py", line 70, in _validate
+    _validate(value, document["$defs"][reference[8:]], document, site)
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/checklist-20261023-c/tools/rocq-census/census.py", line 77, in _validate
+    _validate(value, branch, document, site)
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/checklist-20261023-c/tools/rocq-census/census.py", line 100, in _validate
+    _validate(value[name], properties[name], document, site + "." + name)
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/checklist-20261023-c/tools/rocq-census/census.py", line 109, in _validate
+    _validate(item, schema["items"], document, f"{site}[{index}]")
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/checklist-20261023-c/tools/rocq-census/census.py", line 70, in _validate
+    _validate(value, document["$defs"][reference[8:]], document, site)
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/checklist-20261023-c/tools/rocq-census/census.py", line 77, in _validate
+    _validate(value, branch, document, site)
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/checklist-20261023-c/tools/rocq-census/census.py", line 100, in _validate
+    _validate(value[name], properties[name], document, site + "." + name)
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/checklist-20261023-c/tools/rocq-census/census.py", line 70, in _validate
+    _validate(value, document["$defs"][reference[8:]], document, site)
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/checklist-20261023-c/tools/rocq-census/census.py", line 77, in _validate
+    _validate(value, branch, document, site)
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/checklist-20261023-c/tools/rocq-census/census.py", line 100, in _validate
+    _validate(value[name], properties[name], document, site + "." + name)
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/checklist-20261023-c/tools/rocq-census/census.py", line 70, in _validate
+    _validate(value, document["$defs"][reference[8:]], document, site)
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/checklist-20261023-c/tools/rocq-census/census.py", line 100, in _validate
+    _validate(value[name], properties[name], document, site + "." + name)
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/checklist-20261023-c/tools/rocq-census/census.py", line 70, in _validate
+    _validate(value, document["$defs"][reference[8:]], document, site)
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/checklist-20261023-c/tools/rocq-census/census.py", line 100, in _validate
+    _validate(value[name], properties[name], document, site + "." + name)
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/checklist-20261023-c/tools/rocq-census/census.py", line 70, in _validate
+    _validate(value, document["$defs"][reference[8:]], document, site)
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/checklist-20261023-c/tools/rocq-census/census.py", line 100, in _validate
+    _validate(value[name], properties[name], document, site + "." + name)
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/checklist-20261023-c/tools/rocq-census/census.py", line 70, in _validate
+    _validate(value, document["$defs"][reference[8:]], document, site)
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/checklist-20261023-c/tools/rocq-census/census.py", line 100, in _validate
+    _validate(value[name], properties[name], document, site + "." + name)
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/checklist-20261023-c/tools/rocq-census/census.py", line 70, in _validate
+    _validate(value, document["$defs"][reference[8:]], document, site)
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/checklist-20261023-c/tools/rocq-census/census.py", line 77, in _validate
+    _validate(value, branch, document, site)
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/checklist-20261023-c/tools/rocq-census/census.py", line 100, in _validate
+    _validate(value[name], properties[name], document, site + "." + name)
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/checklist-20261023-c/tools/rocq-census/census.py", line 111, in _validate
+    _require(len(value) >= schema.get("minLength", 0), f"{site}: empty native string")
+    ~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/checklist-20261023-c/tools/rocq-census/census.py", line 37, in _require
+    def _require(condition: bool, message: str) -> None:
+    
+  File "/mnt/c/Users/symbi/AppData/Local/Temp/vos-q35q-9edbbf2478214d1597de8d0bc0996699/offline2.py", line 25, in deadline
+    def deadline(*args):raise TimeoutError('remaining adapter/control active budget exhausted')
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TimeoutError: remaining adapter/control active budget exhausted
