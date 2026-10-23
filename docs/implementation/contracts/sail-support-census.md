@@ -104,4 +104,23 @@ incomplete population, unqualified implementation link or identity drift refuses
 Q35q. The final handoff still requires Host CI and dispatches every Guest CI lane
 without waiting for Guest CI.
 
+### Exported substitution API correction
+
+The six-candidate native step is exhausted before its first census callback.
+Candidate six refuses at strict compilation because the installed interface does
+not export `Mod_declarations.subst_expr`. The earlier successful plugin builds
+did not contain that later alias-expression substitution call. Preserve every
+candidate receipt and the original counters; none supplies census acceptance.
+
+This owner act commissions at most three additional compile/query candidates or
+thirty active minutes to replace that unavailable call with original constructor
+recursion using the installed public path/term substitution APIs. Its scope is
+the already commissioned alias/application expression and unchanged selected
+population, controls, schema and implementation-provenance obligations. An
+implementation refinement remains an explicit refusal. Record intent before each
+launch and stop at this bound or an uncommissioned native form. The adapter/control
+and two-campaign hosted budgets above remain unchanged. This correction authorizes
+no change to compiler strictness, dependency objects, source semantics, assumption
+contexts or any acceptance predicate.
+
 The census extension adds 6 h, range 3–9, to Q35q's existing allowance: native grammar/classification 1–3 h, canonical implementation connections 1–3 h, and controls/evidence 1–3 h. The combined item is 10 h, range 5–15. This is a planning estimate for the commissioned scope; unattended hosted runtime and a further unsupported form are excluded. A retained refusal does not close Q35q.
