@@ -269,6 +269,10 @@ def temporary_query_compiler_argv() -> None:
         for _, argv in calls[:4]:
             ensure(argv[-len(route.STRICT)-1:-1] == route.STRICT, "strict inventory/audit flags unchanged")
         ensure(route.OUTPUT_VARIABLE not in campaign.environment, "census output destination does not reach later queries")
+        for command in campaign.report["commands"][-2:]:
+            ensure((campaign.upload / command["frozen_query_source"]).read_bytes() == query_text.encode("utf-8")
+                   and command["query_sha256"] == hashlib.sha256(query_text.encode("utf-8")).hexdigest(),
+                   "frozen queries retain exact source bytes and bind both native invocations")
 
 
 def native_identity_population() -> None:
@@ -597,9 +601,10 @@ def standalone_native_replay() -> None:
         targets = ["CensusControls", "SailStdpp.TypeCasts", "SailStdpp.State_monad"]
         support_map = ["-boot", "-R", "/host/lib/coq/theories", "Corelib", "-Q", "/host/lib/coq/Stdlib",
             "Stdlib", "-Q", "/host/lib/coq/stdpp", "stdpp", "-R", "/host/support", "SailStdpp"]
+        baseline_tree = "/host/baseline-source/upstream/_build/default/src-stdpp"
         paths = {"support": support_map, "probes": ["-Q", "/host/probes", "Qualification"],
-                 "controls": ["-Q", "/host/controls", ""]}
-        protected = ["/host/bin", "/host/lib", "/host/support", "/host/probes", "/host/controls", "/host/plugin"]
+                 "controls": ["-Q", "/host/controls", ""], "baseline": ["-R", baseline_tree, "SailStdpp"]}
+        protected = ["/host/bin", "/host/lib", "/host/support", "/host/probes", "/host/controls", "/host/plugin", baseline_tree]
         before = {name + "/.": "a" * 64 for name in [*protected, *[support_map[i] for i in (2, 5, 8)]]}
         before.update({"/host/bin/opam": "a" * 64, "/host/plugin/native.cmxs": "d" * 64,
             "/host/plugin/vos_rocq_census.ml": "b" * 64, "/host/controls/CensusControls.v": "c" * 64})
@@ -620,7 +625,14 @@ def standalone_native_replay() -> None:
             "hidden_assumptions": {"source": "HiddenAssumptions.v", "symbols": [
                 {"name": "CensusControls." + kind + ".witness", "expected_axioms": ["CensusControls.HiddenImplementation.hidden_control_axiom"]}
                 for kind in ("HiddenSealed", "HiddenAlias")]}}
+        frozen_query, frozen_reading = "Require SailStdpp.TypeCasts.\nPrint SailStdpp.TypeCasts.fixture.\n", "frozen elaborated fixture\n"
+        frozen_file = side / "frozen.json"
+        route.write(frozen_file, {"queries": [{"module": "TypeCasts", "query": frozen_query,
+            "query_sha256": hashlib.sha256(frozen_query.encode("utf-8")).hexdigest(),
+            "baseline_sha256": hashlib.sha256(frozen_reading.encode("utf-8")).hexdigest()}]})
+        before.update(dict.fromkeys((baseline_tree + "/TypeCasts.v", baseline_tree + "/TypeCasts.vo", "/host/support/TypeCasts.vo"), "a" * 64))
         found = {"support_modules": [module.removeprefix("SailStdpp.") for module in modules], "support_axioms": [],
+                 "frozen_inventory": {"path": frozen_file.name, "sha256": route.receipts.digest(frozen_file)},
                  "probes": {}, "base_lock": {"path": "tools/opam/rocq.lock", "sha256": route.receipts.digest(side / "tools/opam/rocq.lock")}}
         for name in ("term", "eqdep", "real", "notation"):
             source = side / (name + ".v")
@@ -631,9 +643,10 @@ def standalone_native_replay() -> None:
 
         def add(label: str, tail: list[str], stdout: str = "", stderr: str = "", *,
                 text: str | None = None, environment: dict[str, str] | None = None,
-                refusal: bool = False, strict: bool = False, direct: bool = False) -> None:
+                refusal: bool = False, strict: bool = False, direct: bool = False, cwd: str = "/host") -> None:
             command: dict[str, object] = {"label": label, "argv": ["/host/bin/opam",
                 *([] if direct else ["exec", "--switch=" + route.SWITCH, "--"]), *tail],
+                "cwd": cwd,
                 "exit": 1 if refusal else 0, "timed_out": False, "expected_refusal": refusal,
                 "status": "completed", "process_completed": True,
                 "strict": strict, "native_environment": {"OCAMLPATH": "/host/plugin:/host/lib:",
@@ -703,8 +716,16 @@ def standalone_native_replay() -> None:
         closure_text = "".join(name + " " + version + "\n" for name, version in sorted(route.expected_closure(side, found).items()))
         add("closure", ["list", "--switch=" + route.SWITCH, "--installed", "--short", "--columns=name,version,pin", "--color=never"],
             stdout=closure_text, direct=True)
+        add("baseline-build", ["dune", "build", "-p", "rocq-sail-stdpp", "-j", "2", "@install"],
+            cwd="/host/baseline-source/upstream")
+        retained_frozen = artifact / "query-frozen-0.v"
+        retained_frozen.write_bytes(frozen_query.encode("utf-8"))
+        for name, mapping in (("baseline", paths["baseline"]), ("candidate", support_map[-3:])):
+            add("frozen-0-" + name, ["rocq", "c", *support_map[:-3], *mapping, "-q", "/host/Frozen_0.v"], stdout=frozen_reading)
+            commands[-1].update(frozen_query_source=retained_frozen.name,
+                query_sha256=route.receipts.digest(retained_frozen), native_source_name="Frozen_0.v")
         add("native-plugin-build", ["ocamlfind", "ocamlopt", "-rectypes", "-thread", "-shared", "-package",
-            "rocq-runtime.vernac", "-w", "+8", "-warn-error", "+8", "-o", "/host/plugin/native.cmxs", "/host/plugin/vos_rocq_census.ml"])
+            "rocq-runtime.vernac", "-w", "+8", "-warn-error", "+8", "-o", "/host/plugin/native.cmxs", "/host/plugin/vos_rocq_census.ml"], strict=True)
         add("native-control-compile", ["rocq", "c", *support_map, *paths["controls"], *route.STRICT, "/host/controls/CensusControls.v"], strict=True)
         for index, module in enumerate(modules):
             add("strict-" + str(index), ["rocq", "c", *support_map, *route.STRICT,
@@ -842,6 +863,15 @@ def standalone_native_replay() -> None:
                 lambda row: next(cmd for cmd in row["commands"] if cmd["label"] == "kernel-support")["native_environment"].update(OPAMROOT="/foreign/opam"),
                 lambda row: next(cmd for cmd in row["commands"] if cmd["label"] == "kernel-support")["native_environment"].update(OPAMSWITCH="foreign"),
                 lambda row: row.update(commands=[cmd for cmd in row["commands"] if cmd["label"] != "closure"]),
+                lambda row: row.update(commands=[cmd for cmd in row["commands"] if cmd["label"] != "frozen-0-baseline"]),
+                lambda row: row.update(commands=[cmd for cmd in row["commands"] if cmd["label"] != "frozen-0-candidate"]),
+                lambda row: row.update(commands=[cmd for cmd in row["commands"] if cmd["label"] != "baseline-build"]),
+                lambda row: row["load_paths"]["baseline"].__setitem__(1, "/host/support"),
+                lambda row: next(cmd for cmd in row["commands"] if cmd["label"] == "frozen-0-baseline")["argv"].__setitem__(-4, "/host/support"),
+                lambda row: next(cmd for cmd in row["commands"] if cmd["label"] == "frozen-0-candidate").pop("frozen_query_source"),
+                lambda row: next(cmd for cmd in row["commands"] if cmd["label"] == "baseline-build").update(cwd="/foreign/baseline-source/upstream"),
+                lambda row: next(cmd for cmd in row["commands"] if cmd["label"] == "native-plugin-build").update(strict=False),
+                lambda row: next(cmd for cmd in row["commands"] if cmd["label"] == "strict-0").update(strict=False),
                 lambda row: next(cmd for cmd in row["commands"] if cmd["label"] == "closure")["argv"].append("foreign"),
                 lambda row: next(cmd for cmd in row["commands"] if cmd["label"] == "kernel-support")["argv"].pop(),
                 lambda row: next(cmd for cmd in row["commands"] if cmd["label"] == "support-native-census")["native_environment"].update(VOS_CENSUS_TARGETS="foreign"),
@@ -860,6 +890,47 @@ def standalone_native_replay() -> None:
                 mutation(altered)
                 route.write(target, altered)
                 refuses(lambda: route.validate_native_qualification(artifact, side, "a" * 40, run_id="1", run_attempt="2"))
+
+            def refuses_rebound(replacements: dict[str, bytes], mutate: Callable[[dict[str, Any]], None] | None = None) -> None:
+                original_bytes = {name: (artifact / name).read_bytes() for name in replacements}
+                altered = deepcopy(record)
+                try:
+                    for name, contents in replacements.items():
+                        (artifact / name).write_bytes(contents)
+                        altered["evidence"][name] = {"sha256": route.receipts.digest(artifact / name), "bytes": len(contents)}
+                    for command in altered["commands"]:
+                        for stream in command["streams"].values():
+                            if stream["path"] in replacements:
+                                stream["sha256"] = route.receipts.digest(artifact / stream["path"])
+                        if command["log"] in replacements:
+                            command["log_sha256"] = route.receipts.digest(artifact / command["log"])
+                        if command.get("frozen_query_source") in replacements:
+                            command["query_sha256"] = route.receipts.digest(artifact / command["frozen_query_source"])
+                    if mutate is not None:
+                        mutate(altered)
+                    route.write(target, altered)
+                    refuses(lambda: route.validate_native_qualification(artifact, side, "a" * 40))
+                finally:
+                    for name, contents in original_bytes.items():
+                        (artifact / name).write_bytes(contents)
+                    route.write(target, record)
+
+            for label in ("strict-0", "native-plugin-build", "native-control-compile", "probe-compile-term"):
+                command = next(cmd for cmd in record["commands"] if cmd["label"] == label)
+                refuses_rebound({command["streams"]["stderr"]["path"]: b"Warning: rebound diagnostics\n",
+                                 command["log"]: b"Warning: rebound diagnostics\n"},
+                    lambda row, label=label: next(cmd for cmd in row["commands"] if cmd["label"] == label).update(strict=False))
+            changed_readings: dict[str, bytes] = {}
+            for name in ("candidate", "baseline"):
+                command = next(cmd for cmd in record["commands"] if cmd["label"] == "frozen-0-" + name)
+                changed_readings[command["streams"]["stdout"]["path"]] = b"rebound frozen reading\n"
+                changed_readings[command["log"]] = b"rebound frozen reading\n"
+                refuses_rebound(changed_readings)
+            refuses_rebound({retained_frozen.name: frozen_query.replace("fixture", "foreign").encode("utf-8")})
+            missing_object = deepcopy(before)
+            missing_object.pop(baseline_tree + "/TypeCasts.vo")
+            missing_bytes = (json.dumps(missing_object, indent=2, sort_keys=True) + "\n").encode("utf-8")
+            refuses_rebound(dict.fromkeys(("input-identities-before.json", "input-identities.json"), missing_bytes))
             census_output = artifact / "support-census.json"
             original_census = census_output.read_bytes()
             census_output.write_bytes(original_census + b"\n")

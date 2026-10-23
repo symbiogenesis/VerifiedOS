@@ -662,7 +662,7 @@ def prepare_native(campaign: Campaign, mappings: list[str]) -> tuple[Path, Path]
         + campaign.environment.get("OCAMLPATH", ""))
     campaign.run("native-plugin-build", campaign.executable(["ocamlfind", "ocamlopt", "-rectypes",
         "-thread", "-shared", "-package", "rocq-runtime.vernac", "-w", "+8", "-warn-error", "+8",
-        "-o", str(package / "vos_rocq_census.cmxs"), str(package / "vos_rocq_census.ml")]), campaign.root)
+        "-o", str(package / "vos_rocq_census.cmxs"), str(package / "vos_rocq_census.ml")]), campaign.root, strict=True)
     controls = campaign.root / "native-control-inputs"
     controls.mkdir()
     shutil.copy2(source / "CensusControls.v", controls)
@@ -856,6 +856,12 @@ def validate_native_qualification(artifact_root: Path, side: Path, revision: str
             or row.get("sources") != native_sources(side)):
         raise ValueError("native qualification does not bind the requested inputs/run")
     found, spec, api = recipe(side), control_spec(side), census_api(side)
+    frozen = load(asset(side, found["frozen_inventory"]))["queries"]
+    frozen_labels = {"frozen-" + str(index) + "-" + name
+                     for index in range(len(frozen)) for name in ("baseline", "candidate")}
+    silent_labels = {"native-plugin-build", "native-control-compile",
+                     *("strict-" + str(index) for index in range(29)),
+                     *("probe-compile-" + name for name in found["probes"])}
     modules = row["modules"]
     if (not isinstance(modules, list) or len(modules) != 29 or len(set(modules)) != 29
             or set(modules) != {"SailStdpp." + name for name in found["support_modules"]}):
@@ -931,6 +937,8 @@ def validate_native_qualification(artifact_root: Path, side: Path, revision: str
             raise ValueError("native qualification includes a failed command")
         if command["strict"] and "".join(streams[label]).strip():
             raise ValueError("strict command printed a diagnostic")
+        if label in silent_labels and (command.get("strict") is not True or any(value.strip() for value in streams[label])):
+            raise ValueError("mandatory silent compiler command changed strictness or printed a diagnostic")
         if "query_source" in command:
             source = retained_member(artifact_root, command["query_source"])
             if (source.name not in evidence or receipts.digest(source) != command["query_sha256"]
@@ -940,14 +948,14 @@ def validate_native_qualification(artifact_root: Path, side: Path, revision: str
             if label not in native_refusals and streams[label][1].strip():
                 raise ValueError("native query printed a diagnostic")
     required = {"native-plugin-build", "native-control-compile", "support-native-census", "control-native-census",
-        "native-hidden-assumptions", "closure", *native_refusals,
+        "native-hidden-assumptions", "closure", "baseline-build", *native_refusals, *frozen_labels,
         *(label + str(index) for index in range(29) for label in ("strict-", "inventory-", "assumptions-", "alias-assumptions-")),
         *("kernel-" + name for name in ("support", "term", "eqdep", "real", "notation")),
         *("probe-compile-" + name for name in ("term", "eqdep", "real", "notation"))}
     if not required <= commands.keys():
         raise ValueError("native qualification lacks complete strict/census/control/kernel commands")
     load_paths = row.get("load_paths")
-    if not isinstance(load_paths, dict) or set(load_paths) != {"support", "probes", "controls"}:
+    if not isinstance(load_paths, dict) or set(load_paths) != {"support", "probes", "controls", "baseline"}:
         raise ValueError("native qualification lacks its exact load paths")
     support_map = load_paths["support"]
     if (not isinstance(support_map, list) or len(support_map) != 13
@@ -955,9 +963,10 @@ def validate_native_qualification(artifact_root: Path, side: Path, revision: str
                 ["-boot", "-R", "Corelib", "-Q", "Stdlib", "-Q", "stdpp", "-R", "SailStdpp"]
             or any(native_path(support_map[index]) + "/." not in before for index in (2, 5, 8, 11))):
         raise ValueError("native support mappings differ from the protected input population")
-    for name, logical in (("probes", "Qualification"), ("controls", "")):
+    for name, logical in (("probes", "Qualification"), ("controls", ""), ("baseline", "SailStdpp")):
         mapping = load_paths[name]
-        if (not isinstance(mapping, list) or len(mapping) != 3 or mapping[0] != "-Q" or mapping[2] != logical
+        if (not isinstance(mapping, list) or len(mapping) != 3 or mapping[0] != ("-R" if name == "baseline" else "-Q")
+                or mapping[2] != logical
                 or native_path(mapping[1]) not in protected):
             raise ValueError("native probe/control mapping differs from its protected root")
 
@@ -982,6 +991,36 @@ def validate_native_qualification(artifact_root: Path, side: Path, revision: str
                            "--short", "--columns=name,version,pin", "--color=never"]:
         raise ValueError("native closure command changed the selected package inventory")
     same_closure(bootstrap_instrument.parse_closure(streams["closure"][0]), expected_closure(side, found))
+
+    baseline = commands["baseline-build"]
+    baseline_source = PurePosixPath(native_path(baseline["cwd"]))
+    native_root = PurePosixPath(opam["root"]).parent
+    if (baseline_source.parent != native_root / "baseline-source"
+            or executable_tail(baseline) != ["dune", "build", "-p", "rocq-sail-stdpp", "-j", "2", "@install"]
+            or load_paths["baseline"][1] != (baseline_source / "_build/default/src-stdpp").as_posix()):
+        raise ValueError("frozen baseline build differs from its locked source/load-path purpose")
+    for index, query in enumerate(frozen):
+        encoded = query["query"].encode("utf-8")
+        if (hashlib.sha256(encoded).hexdigest() != query["query_sha256"]
+                or query["module"] not in found["support_modules"]):
+            raise ValueError("frozen query differs from its reviewed source purpose")
+        readings: list[str] = []
+        for name, mapping in (("baseline", load_paths["baseline"]), ("candidate", support_map[-3:])):
+            label = "frozen-" + str(index) + "-" + name
+            command = commands[label]
+            retained = retained_member(artifact_root, command.get("frozen_query_source", ""))
+            source = (native_root / ("Frozen_" + str(index) + ".v")).as_posix()
+            if (retained.name != "query-frozen-" + str(index) + ".v" or retained.name not in evidence
+                    or retained.read_bytes() != encoded or command.get("query_sha256") != query["query_sha256"]
+                    or command.get("native_source_name") != "Frozen_" + str(index) + ".v"
+                    or native_path(command["cwd"]) != native_root.as_posix()
+                    or executable_tail(command) != ["rocq", "c", *support_map[:-3], *mapping, "-q", source]
+                    or any((PurePosixPath(mapping[1]) / (query["module"] + suffix)).as_posix() not in before
+                           for suffix in (".v", ".vo"))):
+                raise ValueError("frozen query changed its exact source, objects or compiler/load paths")
+            readings.append("".join(streams[label]))
+        if readings[0] != readings[1] or hashlib.sha256(readings[0].encode("utf-8")).hexdigest() != query["baseline_sha256"]:
+            raise ValueError("frozen native reading differs from its exact reviewed baseline")
 
     for index, module in enumerate(modules):
         source = (PurePosixPath(support_map[11]) / (module.rsplit(".", 1)[-1] + ".v")).as_posix()
@@ -1113,17 +1152,22 @@ def freeze_sources(campaign: Campaign, found: dict[str, Any], pristine: Path,
     root, side = campaign.root, campaign.side
     frozen = load(asset(side, found["frozen_inventory"]))
     for index, row in enumerate(frozen["queries"]):
+        if hashlib.sha256(row["query"].encode()).hexdigest() != row["query_sha256"]:
+            raise ValueError("frozen query text differs from reviewed query")
         query = root / ("Frozen_" + str(index) + ".v")
         query.write_text(row["query"], encoding="utf-8", newline="")
+        retained = campaign.upload / ("query-frozen-" + str(index) + ".v")
+        shutil.copyfile(query, retained)
         readings: list[str] = []
         for name, tree in (("baseline", pristine / "_build/default/src-stdpp"),
                            ("candidate", candidate / "src-stdpp")):
             result = campaign.run("frozen-" + str(index) + "-" + name,
                 campaign.executable(["rocq", "c", *mappings, "-R", str(tree), "SailStdpp", "-q", str(query)]), root)
+            campaign.report["commands"][-1].update(frozen_query_source=retained.name,
+                query_sha256=receipts.digest(query), native_source_name=query.name)
+            campaign.save()
             readings.append(result.stdout + result.stderr)
             query.with_suffix(".vo").unlink(missing_ok=True)
-        if hashlib.sha256(row["query"].encode()).hexdigest() != row["query_sha256"]:
-            raise ValueError("frozen query text differs from reviewed query")
         if readings[0] != readings[1] or hashlib.sha256(readings[0].encode()).hexdigest() != row["baseline_sha256"]:
             raise ValueError("frozen elaborated reading differs")
 
@@ -1240,9 +1284,10 @@ def qualify(campaign: Campaign, found: dict[str, Any], imported: Path | None) ->
         campaign.run("probe-compile-" + name, campaign.executable(["rocq", "c", *candidate_map,
                      "-Q", str(probes), "Qualification", *STRICT, str(source)]), root, strict=True)
     input_roots = [installed / "bin", installed / "lib", installed / ".opam-switch/build",
-                   candidate / "src-stdpp", probes, plugin, control_inputs, root / "bin"]
+                   candidate / "src-stdpp", pristine / "_build/default/src-stdpp", probes, plugin, control_inputs, root / "bin"]
     campaign.report["native_load_paths"] = {"support": candidate_map,
-        "probes": ["-Q", str(probes), "Qualification"], "controls": ["-Q", str(control_inputs), ""]}
+        "probes": ["-Q", str(probes), "Qualification"], "controls": ["-Q", str(control_inputs), ""],
+        "baseline": ["-R", str(pristine / "_build/default/src-stdpp"), "SailStdpp"]}
     inputs = identity_tree(input_roots)
     write(campaign.upload / "input-identities-before.json", inputs)
     audit_sources(campaign, found, selected, candidate_map)
