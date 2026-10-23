@@ -140,7 +140,7 @@
   },
   "adapter_native_controls": {
     "original_maximum_candidate_checks": 3,
-    "maximum_candidate_checks": 4,
+    "maximum_candidate_checks": 5,
     "initial_maximum_active_minutes": 30,
     "maximum_cumulative_active_minutes": 60,
     "candidate_intents": [
@@ -175,11 +175,25 @@
         "result": "native signature lookup exit1 correctly refuses CensusControls.S.T; literal manifest comparison refuses line-wrapped current/newline/environment wording; source/driver/all native input identities unchanged; no further query/parser launched; elapsed3.4452873000000004s",
         "cumulative_active_seconds": 1793.013445787,
         "remaining_current_extension_seconds": 1796.5547127
+      },
+      {
+        "ordinal": 4,
+        "revision": "47e13b029cce0b54f0c8ed77fdf6ccd5ff018652",
+        "owner_revision": "436aee02b8ddfb09eb7ab0e409def371a11d8cc6",
+        "scope": "original tiny native controls first; corrected exact abstract-reference diagnostic prefix; stop first refusal before full30 replay",
+        "output": "/root/build/lane-checklist-20261023-c/adapter-4",
+        "driver_sha256_before_and_after": "aa1d03fb1a9c2bac5875c54709697462530585dd68431cb6cb7360fbeb378184",
+        "intent_sha256": "775d53a4ed2062eb269b9ed0800d4323eadb37a994a4249df56a19a2a2090b28",
+        "result": "native signature exit1 and Abstract implementation exit1 match expected refusals; hidden native query0/empty diagnostics reports HiddenSealed.hidden_control_axiom : True for both HiddenSealed.witness and HiddenAlias.witness; exact manifest expecting HiddenImplementation path refuses; all source/driver/native input identities unchanged; no parser/3root emission; elapsed4.070646092000004s",
+        "cumulative_active_seconds": 1797.084094779,
+        "remaining_current_extension_seconds": 1792.484066608
       }
     ],
     "framing_disposition_revision": "d98d1e40741b439caf440ba62469e2714bb1f478",
     "deterministic_schema_owner_revision": "6323af05ad3ed58360dcade4c7b2ba4b028a74d4",
     "signature_diagnostic_correction_owner_revision": "436aee02b8ddfb09eb7ab0e409def371a11d8cc6",
-    "signature_diagnostic_correction": "exact contiguous native reference prefix only; original source/native exit/raw diagnostic retained; no new time or counter reset"
+    "signature_diagnostic_correction": "exact contiguous native reference prefix only; original source/native exit/raw diagnostic retained; no new time or counter reset",
+    "sealed_control_identity_owner_revision": "9c6e9d604c5229beea7b3d4ae01ec58b18f0e6a2",
+    "sealed_control_identity_correction": "both expected axiom names match exact locked native HiddenSealed identity; authored axiom/witness source, native resolver and support allowlist unchanged; no new time or counter reset"
   }
 }

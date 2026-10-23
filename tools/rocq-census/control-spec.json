@@ -39,13 +39,13 @@
       {
         "name": "CensusControls.HiddenSealed.witness",
         "expected_axioms": [
-          "CensusControls.HiddenImplementation.hidden_control_axiom"
+          "CensusControls.HiddenSealed.hidden_control_axiom"
         ]
       },
       {
         "name": "CensusControls.HiddenAlias.witness",
         "expected_axioms": [
-          "CensusControls.HiddenImplementation.hidden_control_axiom"
+          "CensusControls.HiddenSealed.hidden_control_axiom"
         ]
       }
     ],
