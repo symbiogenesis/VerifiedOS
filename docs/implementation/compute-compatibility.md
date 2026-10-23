@@ -42,8 +42,8 @@ full ROCm stack. A conforming profile remains a qualification question.
 
 ## Prior art and what it establishes
 
-Primary-source readings below are dated 2026-09-19. They are candidate and
-feasibility evidence, not dependency pins or VerifiedOS qualification results.
+The primary sources below supply candidate and feasibility evidence, not
+dependency pins or VerifiedOS qualification results.
 The [candidate review](compute-upstream-review.md) selects exact source revisions
 and records the component-level license and dependency readings behind Q30a.
 
@@ -124,10 +124,10 @@ them.
 ## Graphics API surface
 
 Status: **assessed direction for Q30g's slice selection; no graphics slice
-selected, priced, implemented or claimed conformant**. Primary-source readings
-for the start-froms are dated 2026-09-20; the frontend and clean-slate assessment
-is dated 2026-10-14. These are feasibility evidence, not dependency pins or
-qualification results, and no source is incorporated by this section.
+selected, priced, implemented or claimed conformant**. The frontend assessment
+is dated 2026-10-14. Its primary sources supply feasibility evidence, not
+dependency pins or qualification results, and no source is incorporated by this
+section.
 
 ### Application interfaces and internal execution
 

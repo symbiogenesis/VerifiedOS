@@ -140,9 +140,8 @@ current proof receipts.
 
 ## Dispatch decision
 
-On 2026-10-10 the acceptance reading identified the missing actual first-release
-roster. With the user delegating the continuation choice, this batch retained
-Q34i's reusable composition checks, proof witnesses and exact accounting as a
-bounded checkpoint. The accepted-roster comparison remains open; the checkpoint
-neither invents budgets nor closes full Q34i. Keeping this prerequisite gives
+The actual first-release roster is missing. Q34i's reusable composition checks,
+proof witnesses and exact accounting form a bounded checkpoint. The accepted-roster
+comparison remains open; the checkpoint neither invents budgets nor closes full
+Q34i. Keeping this prerequisite gives
 the eventual roster and Q34e join a concrete admission and pricing interface.

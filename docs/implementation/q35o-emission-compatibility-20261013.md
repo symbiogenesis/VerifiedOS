@@ -8,10 +8,8 @@ separate support/backend notation conflict before consumer acceptance.
 
 [Canonical emission syntax and identity qualification](retained-evidence/close3-q35o-20261013/manifest.json), SHA256 `c23303de03306ca8f985592f4967cf61db365ddb0168cebc16ccf8950a4c07dd`,
 binds the source patch, actual commands, diagnostics, readings, generation receipt
-and notices. These are observations from the dedicated
-`close3-20261013-emission` lane on 2026-10-13 in America/Chicago; native timestamps
-are UTC. The unchanged canonical target ran from `2026-10-14T03:43:13Z` to
-`2026-10-14T03:48:02Z`, at the committed target inputs of `2f3500f6`.
+and notices from the dedicated `close3-20261013-emission` lane at committed
+target inputs `2f3500f6`. The receipt owns the native execution timestamps.
 
 ## Canonical target and loader identity
 

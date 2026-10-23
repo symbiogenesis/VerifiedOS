@@ -220,7 +220,7 @@
       "next_action": "Investigate the print_lst segfault before treating Docker validation as restored.",
       "evidence": [
         "[Recorded failed Docker run](https://github.com/CertiRocq/certirocq/actions/runs/39468861002) passes dependency installation and compiler construction but fails the axioms runtime test.",
-        "Merged 2026-10-21 at b7138434cb8d844d3d9bc196e3db8e02308ac9eb. This additional merged status was found during refresh; it supplies no Docker runtime-test or VerifiedOS adoption verdict."
+        "Merged 2026-10-21 at b7138434cb8d844d3d9bc196e3db8e02308ac9eb. The merge supplies no Docker runtime-test or VerifiedOS adoption verdict."
       ]
     },
     {
@@ -577,7 +577,7 @@
       "reviewed_head": null,
       "priority": "high",
       "proposed_on": "2026-10-22",
-      "review": "R2 includes Zicond and currently requires wrapper models written from the curated execute clause because upstream has none. The recursive tree at upstream main c992aa61fdfe0846c5ed90324c596202a1c69b76 contains no Zicond/czero models; all-state issue/PR searches for zicond and czero each returned no match on 2026-10-22. This is an unfiled support proposal, separate from the signed division, xperm and REMUW repairs.",
+      "review": "R2 includes Zicond and currently requires wrapper models written from the curated execute clause because upstream has none. The recursive tree at upstream main c992aa61fdfe0846c5ed90324c596202a1c69b76 contains no Zicond/czero models; the recorded all-state issue/PR searches contain no zicond or czero match. This is an unfiled support proposal, separate from the signed division, xperm and REMUW repairs.",
       "next_action": "Propose generator and regenerated RV32/RV64 models plus instruction-list support, and qualify them against the curated Sail clause before retiring any R2 wrapper obligation.",
       "evidence": [
         "[The R2 smoke contract](../assurance/rtl-cosimulation-harness.md#7-the-bounded-model-checking-smoke) and [MODELS_OWED](../../tools/vos/bmc.py) explicitly name the missing conditional-zero forms.",
