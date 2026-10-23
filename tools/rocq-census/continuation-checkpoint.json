@@ -147,6 +147,20 @@
         "scope": "one strict duplicate-free parse and complete schema of native14 exact30 roots;78 actual native Print Module/Type readings; unchanged full adapter graph replay without support assumptions/kernel",
         "output": "/root/build/lane-checklist-20261023-c/adapter-1",
         "result": "strict duplicate/schema and all78 native readings pass; full adapter refuses generic End-token counter on real FMapAVL enumeration constructor End in State_monad.NMap.Raw; source/raw/all protected inputs unchanged; elapsed840.471316848s"
+      },
+      {
+        "ordinal": 2,
+        "revision": "13cc28affc8f895435380b3c235b11d2f0077fa4",
+        "scope": "all78 retained native readings/provenance preflight; one strict duplicate-free parse of exact native14 JSON; unchanged full30 schema/graph replay; no producer rerun or support assumption/kernel gate",
+        "output": "/root/build/lane-checklist-20261023-c/adapter-2",
+        "started_utc": "2026-10-23T10:09:02.097892+00:00",
+        "remaining_budget_at_start_seconds": 959.528683152,
+        "deadline_utc": "2026-10-23T10:25:01.662890+00:00",
+        "result": "all78 framing/provenance and strict duplicate/file-identity parse pass; explicit remaining-budget TimeoutError inside recursive validate_schema/_validate before graph joins; no native controls started; source/raw/readings/all protected inputs unchanged; elapsed949.096839739s; peakRSS13379004KiB",
+        "traceback": "/root/build/lane-checklist-20261023-c/adapter-2/exception.log",
+        "source_observation": "schema object members iterate an unordered set intersection; wrong oneOf/anyOf branches can recurse before scalar discriminators; deterministic discriminator-first validation proposed for owner assessment",
+        "cumulative_active_seconds": 1789.568156587,
+        "remaining_active_seconds": 10.431843413000024
       }
     ],
     "framing_disposition_revision": "d98d1e40741b439caf440ba62469e2714bb1f478"
