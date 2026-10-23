@@ -1,0 +1,8 @@
+[WARNING] Running as root is not recommended
+Warning:
+The following functions were declared but are undefined:
+read_mem#
+read_mem_exclusive#
+read_mem_ifetch#
+write_mem#
+write_mem_exclusive#

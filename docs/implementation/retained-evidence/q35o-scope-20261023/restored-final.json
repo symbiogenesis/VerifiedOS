@@ -1,0 +1,8 @@
+{
+  "lib/coq/theories/Numbers/BinNums.vo": "4bce44aaa4ea44985c27eb4e982f61f0a5ceb638b009d8cf3a7d8ad47bd1faff",
+  "lib/coq/theories/Numbers/BinNums.glob": "b4f42a25a1a0fb1a76e87e269d54dc693f720d0b425a0520e182e6d2b517f9d3",
+  "lib/coq/user-contrib/Stdlib/Numbers/BinNums.vo": "40a7bd1a92984e93837bd7d16fa7c223fb1589643302cb1b4bc92d6b47529624",
+  "lib/coq/user-contrib/Stdlib/Numbers/BinNums.glob": "3b675681e2bc8e985798c9dbb9700ac65043185d4013b6f08cb68404918b3aff",
+  "lib/coq/user-contrib/Stdlib/Logic/EqdepFacts.vo": "806e32af56067dd344a441ffc50a03a3eb32305a631ce5c2e2d95977486dc1fa",
+  "lib/coq/user-contrib/Stdlib/Logic/EqdepFacts.glob": "bc774e64ad5344dd33dcde501c035702547534e39e826dad8962cc55be151282"
+}

@@ -1,10 +1,17 @@
 # Q35o emission compatibility qualification
 
 Q35o remains open. The canonical target excludes its unused `Real` import and
-fresh generation identity binds the native plugin population Sail selects. A
-private immutable syntax candidate strictly compiles a minimal generated types
-module and preserves its complete frozen reading. Its main module refuses a
-separate support/backend notation conflict before consumer acceptance.
+fresh generation identity binds the native plugin population Sail selects. The
+private syntax candidate resolves the outcome-bind notation conflict, strictly
+compiles both minimal generated modules and the actual canonical types, and
+preserves every minimal declaration reading. The untouched strict canonical main
+then refuses Q35p's existing tag-write monad mismatch. Complete canonical frozen
+comparison and hosted plugin qualification remain owed.
+
+[Scoped canonical emission syntax qualification](retained-evidence/q35o-scope-20261023/manifest.json), SHA256 `30f9caabab5f9e92c949242b527a8702b4a6a19ec022ef821b7367465305b32c`,
+retains the 2026-10-23 private patch, commands, frozen readings, all four notation
+controls, actual canonical generation identity, first strict diagnostic and
+installed-artifact restoration evidence at base `59f8a9e9`.
 
 [Canonical emission syntax and identity qualification](retained-evidence/close3-q35o-20261013/manifest.json), SHA256 `c23303de03306ca8f985592f4967cf61db365ddb0168cebc16ccf8950a4c07dd`,
 binds the source patch, actual commands, diagnostics, readings, generation receipt
@@ -59,41 +66,70 @@ The candidate derives solely from the paired Sail 0.20.3
 release `LICENSE` were read before copying or patching. The retained patch adds
 explicit `Proof` openings and rewrite-database declarations, and emits Q35n's
 `sail_update (r with field := e)` record syntax at level 0 with the same field
-expansions. It changes no model primitive, Gallina statement, executable
-expansion, compiler setting, package pin or shared switch. Private build metadata
-and the complete selected plugin identity are retained; no acceptance compiler
-was replaced.
+expansions. It imports `Defs` with the locked prover's `-(notations)` category
+filter, preserving other imported features, then declares its four outcome-monad
+notations in `sail_concurrency_scope` and opens that scope. Their expansions remain
+`Defs.bind`, `Defs.bind0` and `Defs.pure_early_return_bind`; `>>$` retains its
+original ignored-argument continuation. No warning is disabled. No model primitive,
+Gallina statement, executable expansion, package pin or acceptance compiler changes.
 
 The minimal source extends Q35g's authored concurrency probe with an enum,
-record, variant and record update. Its original release output compiles at the
-original settings with retained diagnostics, establishing a reading only. Its
-candidate types compile with no diagnostic under the existing strict settings.
-The common native inventory and frozen-reading functions compare all 300 owned
-declarations, with 236 transparent or inductive `Print` targets. Elaborated types,
-universes, transparent bodies and inductive declarations are byte-identical.
+record, variant and record update. Both candidate output modules compile without
+diagnostics under the existing strict settings. The common native inventory and
+frozen-reading functions compare all 347 declarations: 300 in the types module
+and 47 in the main, with 283 transparent or inductive `Print` targets. Elaborated
+types, universes, transparent bodies and inductive declarations are byte-identical.
+The comparison builds use identical original settings on both sides; strict
+compilation is recorded separately because `-disallow-sprop` suppresses automatically
+generated `_sind` declarations. A cross-flag inventory supplies no comparison verdict.
 A repeat private-plugin emission reproduces both minimal output files exactly.
-These checks cover this probe, not every syntax template or the canonical term.
+Four authored controls instantiate `>>=`, `>>`, `>>$=` and `>>$` in their actual
+import contexts; each equals its original expansion by reflexivity and its native
+assumption query reports a closed global context. The candidate controls compile
+strictly without diagnostics. These checks cover this finite probe and its four
+notations, rather than every backend template or the complete canonical term.
+The changed emitter branch also serves `CONCURRENCY_INTERFACE_V2` and custom
+`concurrency_monad_params`; this canonical V1 campaign qualifies neither mode.
 
-The strict main-module compile stops at `Import Defs` with
-`notation-overridden`: `_ >>= _` was already used. The imports expose
-`ConcurrencyInterfaceBuiltins`' bind notation, while `Defs` reopens the outcome
-monad's notation. Further support/backend namespace adaptation needs its own
-agreement preserving notation expansions and frozen executable readings. No
-notation suppression, support change or semantic adapter followed this refusal.
-A private-plugin canonical emission, full canonical frozen comparison, strict
-whole-term compile, exact closure, compiled size and hosted cold plugin
-qualification were not performed or accepted.
+The actual canonical target emits through `run.py model rocq` with the private
+plugin selected by its absolute `SAIL_PLUGIN_DIR`. Its receipt binds that entire
+selected plugin population, unchanged frozen configuration, complete 133-source
+aggregate and 31 already classified emitted axioms. The native generation takes
+241.7 seconds. The private population contains only the Rocq plugin, so the compiler
+also reports unavailable unrelated-backend options in library directives. The
+receipt records the actual solver selected on this host; the preferred
+`/root/z3-5.3.1/bin` is absent. These observations supply no locked-toolchain or
+hosted qualification claim.
 
-The private support prerequisite applies the exact Q35g and Q35n patches to the
-paired support release and compiles all 29 campaign-selected modules strictly.
-Its recorded source glob additionally compiles `MachineWordTest`; this extra
-source compile adds no campaign or consumer acceptance. No package test target,
-full gate suite or benchmark ran locally. The dependency build and support objects
-stay in this lane, and the shared proof switch and project lock remain unchanged.
+The untouched canonical types compile strictly without diagnostics. The strict
+main stops at `write_tag_bool` in `__WriteRAM_Meta`: its result has type
+`Prompt_monad.monad bool`, while `M unit` is required. This is Q35p's existing
+semantic boundary, now reached after the notation repair. No canonical source or
+output was post-edited and no later compile, assumption audit or recursive kernel
+check followed the refusal. Complete canonical frozen comparison, exact closure,
+compiled size and hosted cold plugin qualification remain unperformed.
 
-Q35p's independent memory/tag outcome refusal and Q35q's native census refusal
-still block their respective semantic and support-carriage joins. The next acts
-must resolve those owners and this main-module notation conflict, then qualify
-all canonical emitted declarations and the complete consumer under Q35o, Q35b
-and the unchanged production-carriage contract. The frozen minimal types result
-supplies no evidence that those open predicates passed.
+The unchanged model-owned `riscv_extras.v` prerequisite compiles at its original
+settings with its two retained `deprecated-missing-stdlib` warnings. Its strict
+source qualification remains open; this diagnostic supplies no waiver. The private
+support prerequisite applies the exact Q35g and Q35n patches to the authenticated
+paired release and compiles exactly the campaign's 29 selected modules strictly.
+Dependency objects are copied into this lane and bound by their complete byte
+inventory. No package test target, complete gate suite or benchmark ran locally.
+
+The retained setup incident supplies no qualification evidence. An unfiltered
+native dependency sort included installed sources, and its diagnostic loop compiled
+two installed `BinNums` files before refusing `EqdepFacts`. The integrator restored
+the touched objects and glob files from the same switch's original duplicate
+installation destinations, and removed only three newly-created auxiliary files
+after preserving them. The restoration inventory and receipt are retained. The
+corrected qualification filters and asserts exact selected-source membership and
+lane containment before launching a compile; restored installed sentinel hashes
+are checked around its commands and remain unchanged. No shared source or lock was
+changed, and the restored native binaries retain their original identities.
+
+Q35p's memory/tag outcome extension and Q35q's native census remain independent
+prerequisites. The next acts must qualify those owners and the full canonical
+frozen reading, resolve model-owned handwritten support diagnostics, and complete
+the hosted immutable-plugin/source campaign before Q35b's strict whole-term compile,
+exact closure and size can join the unchanged production-carriage acceptance.

@@ -1,0 +1,15 @@
+import os,pathlib,tempfile,subprocess,json,time,hashlib,shutil
+R=pathlib.Path('/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/triple-20261023-domains'); L=pathlib.Path('/root/build/lane-triple-20261023-domains'); P=pathlib.Path('/root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1'); T=pathlib.Path(tempfile.mkdtemp(prefix='vos-q35o-canonical-')); os.chdir(T)
+O=L/'verifiedos-model/rocq'; assert (O/'receipt.json').is_file()
+C=L/'canonical-diagnostic'; C.mkdir(); shutil.copy2(R/'model/handwritten_support/riscv_extras.v',C/'riscv_extras.v')
+BASE=['-boot','-R',str(P/'lib/coq/theories'),'Corelib','-Q',str(P/'lib/coq/user-contrib/Stdlib'),'Stdlib','-Q',str(L/'private/lib/coq/user-contrib/stdpp'),'stdpp','-R',str(L/'support-source/coq-sail-0.20.3/src-stdpp'),'SailStdpp','-R',str(C),'','-R',str(O),'']; STRICT=['-w','+default,-abstract-large-number','-set','Default Goal Selector=!','-disallow-sprop']; records=[]
+sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
+immutable=json.loads((L/'restored-before.json').read_text()); assert immutable=={s:sha(P/s) for s in immutable}
+for source,strict in [(C/'riscv_extras.v',False),(O/'rv64d_types.v',True),(O/'rv64d.v',True)]:
+    assert source.resolve().is_relative_to(L.resolve())
+    args=[str(P/'bin/rocq'),'c','-q',*BASE,*(STRICT if strict else []),str(source)]; start=time.monotonic(); d=subprocess.run(args,cwd=T,capture_output=True); out=L/('canonical-'+source.stem+'.stdout'); err=L/('canonical-'+source.stem+'.stderr'); out.write_bytes(d.stdout); err.write_bytes(d.stderr)
+    records.append(dict(source=str(source),strict=strict,source_sha256=sha(source),argv=args,cwd=str(T),exit=d.returncode,elapsed=time.monotonic()-start,stdout=str(out),stderr=str(err),stdout_sha256=sha(out),stderr_sha256=sha(err))); (L/'canonical-compile-receipt.json').write_text(json.dumps(records,indent=2)+'\n'); print(source.name,d.returncode,d.stderr.decode()[:4500],flush=True); assert immutable=={s:sha(P/s) for s in immutable}
+    if d.returncode or (strict and (d.stdout or d.stderr)):
+        print('BOUNDARY: no later compile, no source/output repair',flush=True); break
+(L/'canonical-imports.txt').write_text('\n'.join(p.name+': '+x for p in [O/'rv64d_types.v',O/'rv64d.v'] for x in p.read_text().splitlines() if x.startswith('Require Import'))+'\n')
+(L/'restored-final.json').write_text(json.dumps({s:sha(P/s) for s in immutable},indent=2)+'\n')

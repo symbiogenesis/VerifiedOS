@@ -1,0 +1,46 @@
+{
+  "/root/.opam/verifiedos-sail-0.20.3-ocaml-5.4.1/.opam-switch/sources/sail_coq_backend.0.20.3/src/sail_coq_backend/pretty_print_coq.ml": {
+    "sha256": "3863856c7015e919b1dc253bbc8b49f205b679a2fd70404489a022c8b55ccfe3",
+    "bytes": 238352
+  },
+  "/root/build/lane-triple-20261023-domains/backend/src/sail_coq_backend/pretty_print_coq.ml": {
+    "sha256": "bda42286b5b4784a2dcd1490c96f697f335f35d208e382761bbff856eac44462",
+    "bytes": 239921
+  },
+  "/root/build/lane-triple-20261023-domains/plugins/sail_plugin_coq.cmxs": {
+    "sha256": "bfd722d424936648c244a2a2d42f4eca6d76a0b45fdbf439043844d5a9c28eae",
+    "bytes": 1420504
+  },
+  "/root/build/lane-triple-20261023-domains/sail-emission-syntax.patch": {
+    "sha256": "d423635ebb802858793fd273e8d79211d6902ada6fe3912a5590b0b7f1fc1432",
+    "bytes": 11836
+  },
+  "/root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/bin/rocq": {
+    "sha256": "9a2a4eacf47b44c6ec582bc2b9f9cde9de11af77164e0637103fca9865efd5ac",
+    "bytes": 8850384
+  },
+  "/root/.opam/verifiedos-sail-0.20.3-ocaml-5.4.1/bin/sail": {
+    "sha256": "547f755c390610304fc5ebd87e9cf53cbef9b79311f5c44b88f0768b88c36826",
+    "bytes": 29760472
+  },
+  "/root/build/lane-triple-20261023-domains/coq-sail-0.20.3.tar.gz": {
+    "sha256": "1a0e226608ac84add6cd1f61a11637ea9db5e00e1551b2070945310078c9e031",
+    "bytes": 114519
+  },
+  "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/triple-20261023-domains/tools/opam/rocq.lock": {
+    "sha256": "3e70338fb77832f9e09ee8780cd10524e002420b1ca9aa5f56a15777765e1b32",
+    "bytes": 864
+  },
+  "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/triple-20261023-domains/tools/opam/sail.lock": {
+    "sha256": "ff73dba9080dfeb187f7e81cf8c310ee10a81b910d9ef96c9f9f50c6459761b4",
+    "bytes": 1545
+  },
+  "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/triple-20261023-domains/tools/vos/proofaudit.py": {
+    "sha256": "dc070238fbd144751619a6ff75a6cf43a59d3c482bb31d7b5fda904e51194737",
+    "bytes": 26755
+  },
+  "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/triple-20261023-domains/tools/vos/proofreading.py": {
+    "sha256": "bbafa1f7afa210b49c771b55bf2ac1973ae4cb1735f5116520c0b5c61c17a1a7",
+    "bytes": 17793
+  }
+}

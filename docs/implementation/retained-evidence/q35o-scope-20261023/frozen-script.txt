@@ -1,0 +1,32 @@
+import os,sys,pathlib,subprocess,time,json,tempfile,hashlib
+R=pathlib.Path('/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/triple-20261023-domains'); sys.path.insert(0,str(R/'tools'))
+from vos import proofaudit,proofreading
+L=pathlib.Path('/root/build/lane-triple-20261023-domains'); T=pathlib.Path(tempfile.mkdtemp(prefix='vos-q35o-frozen-')); os.chdir(T)
+P=pathlib.Path('/root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1'); SUP=L/'support-source/coq-sail-0.20.3'
+BASE=['-boot','-R',str(P/'lib/coq/theories'),'Corelib','-Q',str(P/'lib/coq/user-contrib/Stdlib'),'Stdlib','-Q',str(L/'private/lib/coq/user-contrib/stdpp'),'stdpp','-R',str(SUP/'src-stdpp'),'SailStdpp']
+STRICT=['-w','+default,-abstract-large-number','-set','Default Goal Selector=!','-disallow-sprop']; records=[]
+def sha(p): return hashlib.sha256(p.read_bytes()).hexdigest()
+def query(mode,module,phase,text):
+    name=proofreading.query_module(phase,module); f=T/(name+'.v'); f.write_text(text,newline=''); argv=[str(P/'bin/rocq'),'c','-q',*BASE,'-R',str(L/('probe-'+mode)),'',*STRICT,str(f)]
+    begin=time.monotonic(); d=subprocess.run(argv,cwd=T,capture_output=True); out=L/(mode+'-'+name+'.stdout'); err=L/(mode+'-'+name+'.stderr'); out.write_bytes(d.stdout); err.write_bytes(d.stderr)
+    records.append(dict(mode=mode,module=module,phase=phase,argv=argv,cwd=str(T),exit=d.returncode,elapsed=time.monotonic()-begin,stdout=str(out),stderr=str(err),stdout_sha256=sha(out),stderr_sha256=sha(err)))
+    (L/'frozen-receipt.json').write_text(json.dumps(records,indent=2)+'\n')
+    assert d.returncode==0 and not d.stderr,(phase,d.stderr.decode())
+    assert len(d.stdout)<64*1024*1024
+    return d.stdout.decode()
+readings={}; stats={}
+for mode in ['baseline','candidate']:
+    readings[mode]={}; stats[mode]={}
+    for module in ['SyntaxProbe_types','SyntaxProbe']:
+        names=[x['name'] for x in proofaudit.inventory(query(mode,module,'Inventory',proofaudit.inventory_query(module)),module)]
+        factsname=proofreading.query_module('Facts',module)
+        facts=proofreading.answers(query(mode,module,'Facts',proofreading.facts_query(module,names)),[f'{n}|{kind}' for n in names for kind in ['check','about']])
+        abouts={n:proofreading.parse_about(n,proofreading.fresh_universes(facts[f'{n}|about'],factsname)) for n in names}
+        printed=[n for n in names if abouts[n].printed]; bodyname=proofreading.query_module('Bodies',module)
+        bodies=proofreading.answers(query(mode,module,'Bodies',proofreading.bodies_query(module,printed)),[f'{n}|print' for n in printed])
+        entries={n:proofreading.entry(proofreading.fresh_universes(facts[f'{n}|check'],factsname),abouts[n],proofreading.fresh_universes(bodies[f'{n}|print'],bodyname) if n in printed else None) for n in names}
+        readings[mode][module]=entries; stats[mode][module]=dict(declarations=len(names),printed=len(printed)); print(mode,module,stats[mode][module],flush=True)
+    (L/('frozen-'+mode+'.json')).write_text(json.dumps(readings[mode],indent=2,sort_keys=True)+'\n')
+repeat={n:sha(L/'probe-candidate'/n)==sha(L/'probe-repeat'/n) for n in ['SyntaxProbe.v','SyntaxProbe_types.v']}
+comparison=dict(all_identical=readings['baseline']==readings['candidate'],stats=stats,repeat_outputs=repeat,differences=[{'module':m,'name':n,'fields':[k for k in proofreading.FIELDS if a[k]!=readings['candidate'][m][n][k]]} for m in readings['baseline'] for n,a in readings['baseline'][m].items() if a!=readings['candidate'][m].get(n)])
+(L/'frozen-comparison.json').write_text(json.dumps(comparison,indent=2)+'\n'); print(json.dumps(comparison,indent=2)); assert comparison['all_identical'] and all(repeat.values())
