@@ -12,6 +12,7 @@ import json
 import os
 import platform
 import re
+import runpy
 import shutil
 import signal
 import subprocess
@@ -19,8 +20,9 @@ import sys
 import tarfile
 import time
 import urllib.request
-from pathlib import Path
-from typing import Any
+from pathlib import Path, PurePosixPath
+from types import SimpleNamespace
+from typing import Any, Protocol, cast
 
 TOOLS = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(TOOLS))
@@ -35,13 +37,45 @@ REVISION = re.compile(r"[0-9a-f]{40}")
 SHA256 = re.compile(r"[0-9a-f]{64}")
 STRICT = ["-q", "-w", "+default,-abstract-large-number", "-set",
           "Default Goal Selector=!", "-disallow-sprop"]
+NATIVE_SCHEMA = "verifiedos-sail-support-native-qualification/1"
+ENVIRONMENT_BOUNDARY = "Launcher and protected native populations; distro runtime outside these roots is a runner observation."
+
+
+class CensusAPI(Protocol):
+    def parse_search_requests(self, searches: dict[str, str], *,
+                              expected_modules: list[str]) -> list[dict[str, Any]]: ...
+
+    def reading_targets(self, metadata: object) -> list[tuple[str, str]]: ...
+
+    def census(self, metadata: object, searches: dict[str, str], readings: dict[str, str], *,
+               expected_modules: list[str]) -> dict[str, dict[str, Any]]: ...
+
+    def qualify_controls(self, metadata: object, searches: dict[str, str],
+                         readings: dict[str, str]) -> dict[str, Any]: ...
+
+
+def census_api(side: Path) -> CensusAPI:
+    return cast("CensusAPI", SimpleNamespace(**runpy.run_path(str(side / "tools/rocq-census/census.py"))))
+
+
+def json_object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+    result: dict[str, Any] = {}
+    for key, value in pairs:
+        if key in result:
+            raise ValueError("duplicate JSON object key: " + key)
+        result[key] = value
+    return result
+
+
+def decode(text: str) -> object:
+    return json.loads(text, object_pairs_hook=json_object)
 
 
 def load(path: Path) -> dict[str, Any]:
-    value = json.loads(path.read_text(encoding="utf-8"))
+    value = decode(path.read_text(encoding="utf-8"))
     if not isinstance(value, dict):
         raise TypeError("expected JSON object")
-    return value
+    return cast("dict[str, Any]", value)
 
 
 def write(path: Path, value: object) -> None:
@@ -178,7 +212,7 @@ class Campaign:
         write(self.upload / "receipt.json", self.report)
 
     def run(self, label: str, argv: list[str], cwd: Path, *, strict: bool = False,
-            timeout: int = 10800) -> subprocess.CompletedProcess[str]:
+            timeout: int = 10800, refusal: bool = False) -> subprocess.CompletedProcess[str]:
         start = time.monotonic()
         with subprocess.Popen(argv, cwd=cwd, env=self.environment, stdin=subprocess.DEVNULL,
                               stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
@@ -203,12 +237,21 @@ class Campaign:
             result = subprocess.CompletedProcess(argv, 124 if limited else process.returncode, stdout, stderr)
         log = self.upload / (label + ".log")
         log.write_text(result.stdout + result.stderr, encoding="utf-8", newline="")
+        streams: dict[str, dict[str, str]] = {}
+        for name, value in (("stdout", result.stdout), ("stderr", result.stderr)):
+            retained = self.upload / (label + "." + name + ".log")
+            retained.write_text(value, encoding="utf-8", newline="")
+            streams[name] = {"path": retained.name, "sha256": receipts.digest(retained)}
         self.report["commands"].append({"label": label, "argv": argv, "cwd": str(cwd),
             "exit": result.returncode, "seconds": time.monotonic() - start,
             "log": log.name, "log_sha256": receipts.digest(log), "strict": strict,
-            "timed_out": limited})
+            "timed_out": limited, "streams": streams, "expected_refusal": refusal,
+            "native_environment": {name: self.environment[name] for name in
+                ("VOS_CENSUS_MODE", "VOS_CENSUS_TARGETS", "VOS_CENSUS_RESOLVE", "OCAMLPATH")
+                if name in self.environment}})
         self.save()
-        if result.returncode or (strict and (result.stdout.strip() or result.stderr.strip())):
+        if (limited or (result.returncode != 1 if refusal else result.returncode != 0)
+                or (strict and (result.stdout.strip() or result.stderr.strip()))):
             raise ValueError("command failed or strict diagnostic: " + label)
         return result
 
@@ -220,43 +263,528 @@ class Campaign:
 
 
 def identity_tree(roots: list[Path]) -> dict[str, str]:
+    """Bind complete membership, bytes and symlink destinations, including empty directories."""
     identities: dict[str, str] = {}
+
+    def visit(path: Path, ancestors: frozenset[Path]) -> None:
+        resolved = path.resolve(strict=True)
+        if path.is_symlink():
+            identities[str(path) + "#symlink"] = hashlib.sha256(str(path.readlink()).encode()).hexdigest()
+        if path.is_dir():
+            if resolved in ancestors:
+                raise ValueError("cyclic protected input directory")
+            identities[str(path) + "/."] = hashlib.sha256(str(resolved).encode()).hexdigest()
+            for child in sorted(path.iterdir()):
+                visit(child, ancestors | {resolved})
+        elif path.is_file():
+            identities[str(path)] = receipts.digest(path)
+        else:
+            raise ValueError("unsupported protected input member: " + str(path))
+
     for root in roots:
-        for path in sorted(root.rglob("*")):
-            if path.is_file():
-                identities[str(path)] = receipts.digest(path)
+        if not root.is_absolute() or not root.is_dir():
+            raise ValueError("protected input root is not an existing absolute directory: " + str(root))
+        if root.is_symlink():
+            identities[str(root) + "#root-symlink"] = hashlib.sha256(str(root.readlink()).encode()).hexdigest()
+        visit(root.resolve(strict=True), frozenset())
     if not identities:
         raise ValueError("input identity population is empty")
     return identities
 
 
+def retained_member(root: Path, name: str) -> Path:
+    if (not name or Path(name).name != name or "\\" in name
+            or name in {".", ".."} or (root / name).is_symlink()):
+        raise ValueError("escaping or ambiguous native evidence member")
+    path = root / name
+    if not path.resolve(strict=True).is_relative_to(root.resolve(strict=True)):
+        raise ValueError("escaping native evidence member")
+    return path
+
+
+def native_path(value: object) -> str:
+    if (not isinstance(value, str) or "\\" in value or not PurePosixPath(value).is_absolute()
+            or ".." in PurePosixPath(value).parts or PurePosixPath(value).as_posix() != value):
+        raise ValueError("native identity path must be a canonical absolute POSIX spelling")
+    return value
+
+
+def command_streams(root: Path, command: dict[str, Any]) -> tuple[str, str]:
+    streams = command.get("streams")
+    if not isinstance(streams, dict) or set(streams) != {"stdout", "stderr"}:
+        raise ValueError("native command lacks separately bound streams")
+    values: list[str] = []
+    for name in ("stdout", "stderr"):
+        entry = streams[name]
+        path = retained_member(root, entry["path"])
+        if receipts.digest(path) != entry["sha256"]:
+            raise ValueError("native command stream bytes differ")
+        values.append(path.read_text(encoding="utf-8"))
+    combined = retained_member(root, command["log"])
+    if (receipts.digest(combined) != command["log_sha256"]
+            or combined.read_text(encoding="utf-8") != "".join(values)):
+        raise ValueError("native combined log differs from its streams")
+    return values[0], values[1]
+
+
+def query(campaign: Campaign, label: str, text: str, mappings: list[str], *,
+          refusal: bool = False, source_name: str | None = None) -> subprocess.CompletedProcess[str]:
+    folder = campaign.root / "native-queries"
+    folder.mkdir(exist_ok=True)
+    name = source_name or label.replace("-", "_").title() + ".v"
+    if re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*\.v", name) is None:
+        raise ValueError("native query requires one valid Rocq source name")
+    source = folder / name
+    source.write_text(text, encoding="utf-8", newline="")
+    (campaign.upload / ("query-" + label + ".v")).write_bytes(source.read_bytes())
+    result = campaign.run(label, campaign.executable(["rocq", "c", *mappings,
+                          *STRICT, str(source)]), campaign.root, refusal=refusal)
+    campaign.report["commands"][-1].update(query_source="query-" + label + ".v",
+        query_sha256=receipts.digest(source), native_source_name=source.name)
+    campaign.save()
+    if not refusal and result.stderr.strip():
+        raise ValueError("native query printed a diagnostic: " + label)
+    return result
+
+
+def native_readings(campaign: Campaign, api: CensusAPI, metadata: object,
+                    roots: list[str], mappings: list[str], prefix: str) -> dict[str, str]:
+    readings: dict[str, str] = {}
+    targets = api.reading_targets(metadata)
+    if len(targets) != len(set(targets)):
+        raise ValueError("native reading targets repeat")
+    for index, (kind, name) in enumerate(targets):
+        if kind not in {"module", "module-type"}:
+            raise ValueError("unsupported native reading kind")
+        command = "Print Module " if kind == "module" else "Print Module Type "
+        text = "Require " + " ".join(roots) + ".\n" + proofaudit.SETTINGS + command + name + ".\n"
+        readings[kind + ":" + name] = query(campaign, prefix + "-reading-" + str(index),
+                                          text, mappings).stdout
+    return readings
+
+
+def native_dataset(campaign: Campaign, api: CensusAPI, roots: list[str],
+                   mappings: list[str], prefix: str) -> tuple[dict[str, Any], dict[str, str], dict[str, str]]:
+    searches = {module: query(campaign,
+        ("inventory-" if prefix == "support" else "control-inventory-") + str(index),
+        proofaudit.inventory_query(module), mappings).stdout for index, module in enumerate(roots)}
+    requests = api.parse_search_requests(searches, expected_modules=roots)
+    campaign.environment.update(VOS_CENSUS_MODE="census", VOS_CENSUS_TARGETS=",".join(roots),
+                                VOS_CENSUS_RESOLVE=json.dumps(requests, separators=(",", ":")))
+    emitted = query(campaign, prefix + "-native-census",
+                    "Require " + " ".join(roots) + '.\nDeclare ML Module "vos_rocq_census".\n', mappings)
+    metadata = decode(emitted.stdout)
+    if not isinstance(metadata, dict):
+        raise TypeError("native producer did not emit one census object")
+    readings = native_readings(campaign, api, metadata, roots, mappings, prefix)
+    for suffix, value in (("search", searches), ("census", metadata), ("readings", readings)):
+        write(campaign.upload / (prefix + "-" + suffix + ".json"), value)
+    return metadata, searches, readings
+
+
+def native_sources(side: Path) -> dict[str, str]:
+    paths = ["tools/ci/sail_support_route.py", "tools/ci/bootstrap_instrument.py",
+             "tools/vos/compiler_component.py", "tools/vos/opam_client.py", "tools/vos/proofaudit.py",
+             "tools/vos/receipts.py", "tools/rocq-census/census.py", "tools/rocq-census/census-schema.json",
+             "tools/rocq-census/vos_rocq_census.ml", "tools/rocq-census/CensusControls.v",
+             "tools/rocq-census/SignatureFieldRefusal.v", "tools/rocq-census/UnsupportedShapeRefusal.v",
+             "tools/rocq-census/HiddenAssumptions.v", "tools/rocq-census/control-spec.json"]
+    tracked = subprocess.check_output(["git", "-C", str(side), "ls-files", "-z", "--", "tools"],
+                                     text=True, encoding="utf-8").split("\0")
+    python_sources = {name for name in tracked if name.endswith(".py")}
+    if not {name for name in paths if name.endswith(".py")} <= python_sources:
+        raise ValueError("native qualification implementation entrypoint is not tracked")
+    found = recipe(side)
+    paths += [RECIPE, ".github/workflows/sail-support-qualification.yml", "tools/pyproject.toml", "tools/uv.lock",
+              found["base_lock"]["path"], found["frozen_inventory"]["path"],
+              *(entry["path"] for entry in found["patches"]),
+              *(entry["path"] for entry in found["probes"].values())]
+    return {name: receipts.digest(side / name) for name in sorted(set(paths) | python_sources)}
+
+
+def native_runtime(campaign: Campaign) -> dict[str, dict[str, str]]:
+    installed = campaign.root / "opam" / SWITCH
+    launchers = {"python": Path(sys.executable), "opam": campaign.root / "bin/opam",
+                 **{name: installed / "bin" / name for name in ("rocq", "rocqchk", "ocamlfind", "ocamlopt")}}
+    return {name: {"path": str(path), "resolved_path": str(path.resolve(strict=True)),
+                   "sha256": receipts.digest(path)} for name, path in launchers.items()}
+
+
+def prepare_native(campaign: Campaign, mappings: list[str]) -> tuple[Path, Path]:
+    source = campaign.side / "tools/rocq-census"
+    package = campaign.root / "native-plugin" / "vos_rocq_census"
+    package.mkdir(parents=True)
+    shutil.copy2(source / "vos_rocq_census.ml", package)
+    (package / "META").write_text('description = "Original Q35q census producer"\n'
+        'requires = "rocq-runtime.vernac"\nplugin(native) = "vos_rocq_census.cmxs"\n', encoding="utf-8", newline="")
+    campaign.environment["OCAMLPATH"] = (str(package.parent) + os.pathsep
+        + str(campaign.root / "opam" / SWITCH / "lib") + os.pathsep
+        + campaign.environment.get("OCAMLPATH", ""))
+    campaign.run("native-plugin-build", campaign.executable(["ocamlfind", "ocamlopt", "-rectypes",
+        "-thread", "-shared", "-package", "rocq-runtime.vernac", "-w", "+8", "-warn-error", "+8",
+        "-o", str(package / "vos_rocq_census.cmxs"), str(package / "vos_rocq_census.ml")]), campaign.root)
+    controls = campaign.root / "native-control-inputs"
+    controls.mkdir()
+    shutil.copy2(source / "CensusControls.v", controls)
+    campaign.run("native-control-compile", campaign.executable(["rocq", "c", *mappings,
+        "-Q", str(controls), "", *STRICT, str(controls / "CensusControls.v")]), campaign.root, strict=True)
+    return package.parent, controls
+
+
 def audit_sources(campaign: Campaign, found: dict[str, Any], selected: list[Path],
                   candidate_map: list[str]) -> None:
-    root = campaign.root
+    api = census_api(campaign.side)
+    modules = ["SailStdpp." + source.stem for source in selected]
+    metadata, searches, readings = native_dataset(campaign, api, modules, candidate_map, "support")
+    classified = api.census(metadata, searches, readings, expected_modules=modules)
+    write(campaign.upload / "support-census-audit.json", classified)
     audits: dict[str, object] = {}
+    alias_audits: dict[str, object] = {}
     for index, source in enumerate(selected):
         module = "SailStdpp." + source.stem
-        query = root / ("Assumption_" + str(index) + ".v")
-        query.write_text(proofaudit.inventory_query(module), encoding="utf-8", newline="")
-        listed_symbols = campaign.run("inventory-" + str(index), campaign.executable(
-            ["rocq", "c", *candidate_map, *STRICT, str(query)]), root)
-        if listed_symbols.stderr.strip():
-            raise ValueError("native inventory printed a diagnostic")
-        symbols = proofaudit.inventory(listed_symbols.stdout, module)
-        query.write_text(proofaudit.assumption_query(module, symbols), encoding="utf-8", newline="")
-        checked = campaign.run("assumptions-" + str(index), campaign.executable(
-            ["rocq", "c", *candidate_map, *STRICT, str(query)]), root)
-        if checked.stderr.strip():
-            raise ValueError("native assumption audit printed a diagnostic")
+        symbols = classified[module]["symbols"]
+        checked = query(campaign, "assumptions-" + str(index), proofaudit.assumption_query(module, symbols), candidate_map)
         proofaudit.assumptions(checked.stdout, symbols)
         for symbol in symbols:
             names = {entry.split(" : ", 1)[0] for entry in symbol["assumptions"]}
             if not names <= set(found["support_axioms"]):
                 raise ValueError("native declaration has an undeclared assumption")
         audits[module] = symbols
+        bindings = classified[module]["alias_audits"]
+        aliases = alias_symbols(bindings)
+        checked = query(campaign, "alias-assumptions-" + str(index),
+                         proofaudit.assumption_query(module, aliases), candidate_map)
+        proofaudit.assumptions(checked.stdout, aliases)
+        if any({entry.split(" : ", 1)[0] for entry in symbol["assumptions"]} - set(found["support_axioms"])
+               for symbol in aliases):
+            raise ValueError("native alias target has an undeclared assumption")
+        alias_audits[module] = {"bindings": bindings, "audits": aliases}
     if not any(audits.values()):
         raise ValueError("native source inventory enumerated no declaration")
     write(campaign.upload / "native-assumptions.json", audits)
+    write(campaign.upload / "native-alias-assumptions.json", alias_audits)
+
+
+def alias_symbols(bindings: list[dict[str, Any]]) -> list[proofaudit.Symbol]:
+    """Transport exact native targets to the assumption oracle, without a type/ownership claim."""
+    return [{"name": name, "type": "", "claims": [], "assumptions": []}
+            for name in sorted({binding["audit_query_name"] for binding in bindings})]
+
+
+def control_spec(side: Path) -> dict[str, Any]:
+    spec = load(side / "tools/rocq-census/control-spec.json")
+    if (spec.get("schema") != "verifiedos-rocq-census-controls/1"
+            or spec.get("positive", {}).get("root") != "CensusControls"
+            or spec.get("positive", {}).get("targets") != ["CensusControls", "SailStdpp.TypeCasts", "SailStdpp.State_monad"]
+            or [entry.get("name") for entry in spec.get("hidden_assumptions", {}).get("symbols", [])] !=
+                ["CensusControls.HiddenSealed.witness", "CensusControls.HiddenAlias.witness"]):
+        raise ValueError("unsupported native control specification")
+    unsupported = spec["unsupported_refusal"]
+    hidden = spec["hidden_assumptions"]
+    return {"schema": spec["schema"], "root": spec["positive"]["root"],
+        "targets": spec["positive"]["targets"], "required_modules": spec["positive"]["required_modules"],
+        "refusals": {"signature": {"source": spec["signature_refusal"]["source"],
+                "diagnostic": spec["signature_refusal"]["required_diagnostic"]},
+            "unsupported": {"source": unsupported["source"], "diagnostic": unsupported["required_diagnostic"],
+                "environment": {"VOS_CENSUS_MODE": unsupported["mode"],
+                    "VOS_CENSUS_TARGETS": ",".join(unsupported["targets"]), "VOS_CENSUS_RESOLVE": "[]"}}},
+        "hidden_assumptions": {"source": hidden["source"], "symbols": hidden["symbols"]}}
+
+
+def hidden_assumption_audit(stdout: str, expected: list[dict[str, Any]]) -> list[proofaudit.Symbol]:
+    symbols: list[proofaudit.Symbol] = [{"name": entry["name"], "type": "control", "claims": [], "assumptions": []}
+                                      for entry in expected]
+    proofaudit.assumptions(stdout, symbols)
+    for symbol, declared in zip(symbols, expected, strict=True):
+        names = [entry.split(" : ", 1)[0] for entry in symbol["assumptions"]]
+        if sorted(names) != sorted(declared["expected_axioms"]) or len(names) != len(set(names)):
+            raise ValueError("sealed/alias hidden-axiom native control differs from exact expected assumptions")
+    return symbols
+
+
+def native_controls(campaign: Campaign, mappings: list[str]) -> None:
+    api, spec = census_api(campaign.side), control_spec(campaign.side)
+    metadata, searches, readings = native_dataset(campaign, api, spec["targets"], mappings, "control")
+    report = api.qualify_controls(metadata, searches, readings)
+    write(campaign.upload / "control-adapter-verdicts.json", report)
+    source = campaign.side / "tools/rocq-census"
+    for name, entry in spec["refusals"].items():
+        campaign.environment.update(entry.get("environment", {}))
+        result = query(campaign, "native-" + name + "-refusal",
+                       (source / entry["source"]).read_text(encoding="utf-8"), mappings,
+                       refusal=True, source_name=entry["source"])
+        if entry["diagnostic"] not in result.stdout + result.stderr:
+            raise ValueError("native control did not provide its expected refusal: " + name)
+    # The control axiom belongs to this expected reading alone, never the support allowlist.
+    hidden = spec["hidden_assumptions"]
+    result = query(campaign, "native-hidden-assumptions",
+                   (source / hidden["source"]).read_text(encoding="utf-8"), mappings, source_name=hidden["source"])
+    symbols = hidden_assumption_audit(result.stdout, hidden["symbols"])
+    write(campaign.upload / "native-control-verdicts.json", {"schema": spec["schema"],
+        "status": "passed", "adapter": report, "hidden_assumptions": symbols,
+        "native_refusals": sorted(spec["refusals"])})
+
+
+def publish_native_qualification(campaign: Campaign, modules: list[str], roots: list[Path]) -> None:
+    if campaign.report["native_sources_before"] != native_sources(campaign.side):
+        raise ValueError("native qualification source inputs changed during execution")
+    runtime = native_runtime(campaign)
+    if campaign.report["native_runtime_before"] != runtime:
+        raise ValueError("native qualification launchers changed during execution")
+    after = identity_tree(roots)
+    before = load(campaign.upload / "input-identities-before.json")
+    write(campaign.upload / "input-identities.json", after)
+    if before != after:
+        raise ValueError("census, assumption or kernel input population changed")
+    names = [path.name for path in campaign.upload.iterdir() if path.is_file() and path.name != "receipt.json"]
+    evidence = {name: {"sha256": receipts.digest(campaign.upload / name),
+                       "bytes": (campaign.upload / name).stat().st_size} for name in sorted(names)}
+    # These are the runner's case-sensitive environment variable spellings.
+    image = {name: os.environ.get(name) for name in ("ImageOS", "ImageVersion")}
+    qualified = {"schema": NATIVE_SCHEMA, "status": "passed", "modules": modules,
+        "revision": campaign.report["revision"], "dispatch_revision": campaign.report["dispatch_revision"],
+        "run_id": campaign.report["run_id"], "run_attempt": campaign.report["run_attempt"], "cold": True,
+        "recipe_sha256": receipts.digest(campaign.side / RECIPE), "sources": native_sources(campaign.side),
+        "protected_roots": [str(root.resolve(strict=True)) for root in roots],
+        "load_paths": campaign.report["native_load_paths"],
+        "runtime_before": campaign.report["native_runtime_before"], "runtime_after": runtime,
+        "runner": {"platform": platform.platform(), "machine": platform.machine(), "python": sys.version,
+            "image_os": image["ImageOS"], "image_version": image["ImageVersion"]},
+        "environment_boundary": ENVIRONMENT_BOUNDARY,
+        "commands": list(campaign.report["commands"]), "evidence": evidence}
+    target = campaign.upload / "native-census-qualified.json"
+    write(target, qualified)
+    try:
+        validate_native_qualification(campaign.upload, campaign.side, campaign.report["revision"],
+            run_id=campaign.report["run_id"], run_attempt=campaign.report["run_attempt"],
+            dispatch_revision=campaign.report["dispatch_revision"])
+    except (OSError, ValueError, KeyError, TypeError):
+        target.unlink(missing_ok=True)
+        raise
+
+
+def validate_native_qualification(artifact_root: Path, side: Path, revision: str, *,
+                                  run_id: str | None = None,
+                                  run_attempt: str | None = None,
+                                  dispatch_revision: str | None = None) -> dict[str, Any]:
+    """Replay the Q35q verdict independently of the later Q35n carriage decision."""
+    row = load(retained_member(artifact_root, "native-census-qualified.json"))
+    if (row.get("schema") != NATIVE_SCHEMA or row.get("status") != "passed" or row.get("cold") is not True
+            or row.get("revision") != revision or REVISION.fullmatch(revision) is None
+            or REVISION.fullmatch(row.get("dispatch_revision", "")) is None
+            or re.fullmatch(r"[1-9][0-9]*", row.get("run_id", "")) is None
+            or re.fullmatch(r"[1-9][0-9]*", row.get("run_attempt", "")) is None
+            or (run_id is not None and row.get("run_id") != run_id)
+            or (run_attempt is not None and row.get("run_attempt") != run_attempt)
+            or (dispatch_revision is not None and row.get("dispatch_revision") != dispatch_revision)
+            or row.get("recipe_sha256") != receipts.digest(side / RECIPE)
+            or row.get("sources") != native_sources(side)):
+        raise ValueError("native qualification does not bind the requested inputs/run")
+    found, spec, api = recipe(side), control_spec(side), census_api(side)
+    modules = row["modules"]
+    if (not isinstance(modules, list) or len(modules) != 29 or len(set(modules)) != 29
+            or set(modules) != {"SailStdpp." + name for name in found["support_modules"]}):
+        raise ValueError("native qualification lacks exact selected support population")
+    evidence = row.get("evidence")
+    required_files = {"support-search.json", "support-census.json", "support-readings.json",
+        "support-census-audit.json", "native-assumptions.json", "native-alias-assumptions.json", "control-search.json", "control-census.json",
+        "control-readings.json", "control-adapter-verdicts.json", "native-control-verdicts.json",
+        "input-identities-before.json", "input-identities.json"}
+    if not isinstance(evidence, dict) or not required_files <= evidence.keys():
+        raise ValueError("native qualification lacks complete raw evidence")
+    for name, identity in evidence.items():
+        path = retained_member(artifact_root, name)
+        if receipts.digest(path) != identity["sha256"] or path.stat().st_size != identity["bytes"]:
+            raise ValueError("native qualification evidence bytes differ")
+    before = load(retained_member(artifact_root, "input-identities-before.json"))
+    after = load(retained_member(artifact_root, "input-identities.json"))
+    protected = row.get("protected_roots")
+    if (not before or before != after or not isinstance(protected, list) or not protected
+            or len(protected) != len(set(protected))
+            or any(not isinstance(value, str) or SHA256.fullmatch(value) is None for value in before.values())
+            or any(native_path(root) + "/." not in before for root in protected)):
+        raise ValueError("native qualification input identities are absent, incomplete or changed")
+    runtime = row.get("runtime_before")
+    if (not isinstance(runtime, dict) or set(runtime) != {"python", "opam", "rocq", "rocqchk", "ocamlfind", "ocamlopt"}
+            or runtime != row.get("runtime_after") or not isinstance(row.get("runner"), dict)
+            or row.get("environment_boundary") != ENVIRONMENT_BOUNDARY
+            or any(not isinstance(row["runner"].get(name), str) or not row["runner"][name]
+                   for name in ("platform", "machine", "python"))):
+        raise ValueError("native qualification lacks unchanged launcher identities and runner observations")
+    for name, launcher in runtime.items():
+        native_path(launcher["path"])
+        native_path(launcher["resolved_path"])
+        if (not isinstance(launcher.get("sha256"), str) or SHA256.fullmatch(launcher["sha256"]) is None
+                or (name != "python" and before.get(launcher["path"]) != launcher["sha256"])):
+            raise ValueError("native launcher identity differs from protected inputs")
+    commands: dict[str, dict[str, Any]] = {}
+    streams: dict[str, tuple[str, str]] = {}
+    native_refusals = {"native-" + name + "-refusal": entry for name, entry in spec["refusals"].items()}
+    for command in row["commands"]:
+        label = command["label"]
+        if label in commands or command.get("timed_out") is not False:
+            raise ValueError("native qualification repeats a command or records an unfinished launch")
+        commands[label] = command
+        streams[label] = command_streams(artifact_root, command)
+        if label in native_refusals:
+            if (command.get("expected_refusal") is not True or command["exit"] != 1
+                    or native_refusals[label]["diagnostic"] not in "".join(streams[label])):
+                raise ValueError("native control supplied no expected prover refusal")
+        elif command["exit"] != 0 or command.get("expected_refusal") is not False:
+            raise ValueError("native qualification includes a failed command")
+        if command["strict"] and "".join(streams[label]).strip():
+            raise ValueError("strict command printed a diagnostic")
+        if "query_source" in command:
+            source = retained_member(artifact_root, command["query_source"])
+            if (source.name not in evidence or receipts.digest(source) != command["query_sha256"]
+                    or Path(command["argv"][-1]).name != command["native_source_name"]
+                    or command["argv"][-len(STRICT)-1:-1] != STRICT):
+                raise ValueError("native query source or strict flags differ")
+            if label not in native_refusals and streams[label][1].strip():
+                raise ValueError("native query printed a diagnostic")
+    required = {"native-plugin-build", "native-control-compile", "support-native-census", "control-native-census",
+        "native-hidden-assumptions", *native_refusals,
+        *(label + str(index) for index in range(29) for label in ("strict-", "inventory-", "assumptions-", "alias-assumptions-")),
+        *("kernel-" + name for name in ("support", "term", "eqdep", "real", "notation")),
+        *("probe-compile-" + name for name in ("term", "eqdep", "real", "notation"))}
+    if not required <= commands.keys():
+        raise ValueError("native qualification lacks complete strict/census/control/kernel commands")
+    load_paths = row.get("load_paths")
+    if not isinstance(load_paths, dict) or set(load_paths) != {"support", "probes", "controls"}:
+        raise ValueError("native qualification lacks its exact load paths")
+    support_map = load_paths["support"]
+    if (not isinstance(support_map, list) or len(support_map) != 13
+            or [support_map[index] for index in (0, 1, 3, 4, 6, 7, 9, 10, 12)] !=
+                ["-boot", "-R", "Corelib", "-Q", "Stdlib", "-Q", "stdpp", "-R", "SailStdpp"]
+            or any(native_path(support_map[index]) + "/." not in before for index in (2, 5, 8, 11))):
+        raise ValueError("native support mappings differ from the protected input population")
+    for name, logical in (("probes", "Qualification"), ("controls", "")):
+        mapping = load_paths[name]
+        if (not isinstance(mapping, list) or len(mapping) != 3 or mapping[0] != "-Q" or mapping[2] != logical
+                or native_path(mapping[1]) not in protected):
+            raise ValueError("native probe/control mapping differs from its protected root")
+
+    def executable_tail(command: dict[str, Any]) -> list[str]:
+        argv = command["argv"]
+        if (not isinstance(argv, list) or len(argv) < 5 or argv[1:4] != ["exec", "--switch=" + SWITCH, "--"]
+                or native_path(argv[0]) != runtime["opam"]["path"]):
+            raise ValueError("native command does not use its protected locked executable route")
+        if not all(isinstance(part, str) for part in argv):
+            raise TypeError("native executable arguments must be strings")
+        return cast("list[str]", argv[4:])
+
+    for index, module in enumerate(modules):
+        source = (PurePosixPath(support_map[11]) / (module.rsplit(".", 1)[-1] + ".v")).as_posix()
+        if (source not in before or executable_tail(commands["strict-" + str(index)]) !=
+                ["rocq", "c", *support_map, *STRICT, source]):
+            raise ValueError("strict support compile differs from its exact protected source")
+    for name, entry in found["probes"].items():
+        source = (PurePosixPath(load_paths["probes"][1]) / (name + ".v")).as_posix()
+        if (before.get(source) != receipts.digest(side / entry["path"])
+                or executable_tail(commands["probe-compile-" + name]) !=
+                    ["rocq", "c", *support_map, *load_paths["probes"], *STRICT, source]):
+            raise ValueError("strict probe compile differs from its reviewed source")
+    plugin_command = executable_tail(commands["native-plugin-build"])
+    if (len(plugin_command) != 14 or plugin_command[:12] != ["ocamlfind", "ocamlopt", "-rectypes",
+            "-thread", "-shared", "-package", "rocq-runtime.vernac", "-w", "+8", "-warn-error", "+8", "-o"]
+            or plugin_command[12] not in before
+            or before.get(plugin_command[13]) != row["sources"]["tools/rocq-census/vos_rocq_census.ml"]):
+        raise ValueError("native producer build differs from its protected original source")
+    control_source = (PurePosixPath(load_paths["controls"][1]) / "CensusControls.v").as_posix()
+    if (before.get(control_source) != row["sources"]["tools/rocq-census/CensusControls.v"]
+            or executable_tail(commands["native-control-compile"]) !=
+                ["rocq", "c", *support_map, *load_paths["controls"], *STRICT, control_source]):
+        raise ValueError("native positive controls differ from their protected original source")
+
+    def check_query(label: str, expected: str) -> None:
+        command = commands[label]
+        if ("query_source" not in command or retained_member(artifact_root, command["query_source"])
+                .read_text(encoding="utf-8") != expected):
+            raise ValueError("native query differs from its exact reviewed purpose: " + label)
+        mapping = [*support_map, *(load_paths["controls"] if label.startswith(("control-", "native-")) else [])]
+        argv = executable_tail(command)
+        if argv != ["rocq", "c", *mapping, *STRICT, native_path(command["argv"][-1])]:
+            raise ValueError("native query does not use its exact compiler/load-path settings")
+        environment = command.get("native_environment", {})
+        ocamlpath = environment.get("OCAMLPATH")
+        if (not isinstance(ocamlpath, str) or not ocamlpath
+                or any(native_path(path) + "/." not in before for path in ocamlpath.split(":") if path)):
+            raise ValueError("native plugin discovery includes an unprotected input directory")
+
+    audited = load(artifact_root / "native-assumptions.json")
+    aliases_audited = load(artifact_root / "native-alias-assumptions.json")
+    if set(audited) != set(modules) or set(aliases_audited) != set(modules):
+        raise ValueError("native assumptions lack the exact module population")
+    control_report: dict[str, Any] | None = None
+    for prefix, requested in (("support", modules), ("control", spec["targets"])):
+        metadata = load(artifact_root / (prefix + "-census.json"))
+        searches = load(artifact_root / (prefix + "-search.json"))
+        readings = load(artifact_root / (prefix + "-readings.json"))
+        if decode(streams[prefix + "-native-census"][0]) != metadata:
+            raise ValueError("retained census differs from original native emission")
+        check_query(prefix + "-native-census",
+            "Require " + " ".join(requested) + '.\nDeclare ML Module "vos_rocq_census".\n')
+        environment = commands[prefix + "-native-census"]["native_environment"]
+        if (environment.get("VOS_CENSUS_MODE") != "census"
+                or environment.get("VOS_CENSUS_TARGETS") != ",".join(requested)
+                or decode(environment.get("VOS_CENSUS_RESOLVE", "null")) !=
+                    api.parse_search_requests(searches, expected_modules=requested)):
+            raise ValueError("native producer invocation differs from exact roots/Search resolution requests")
+        for index, module in enumerate(requested):
+            label = ("inventory-" if prefix == "support" else "control-inventory-") + str(index)
+            if label not in streams or streams[label][0] != searches.get(module):
+                raise ValueError("retained Search differs from original native output")
+            check_query(label, proofaudit.inventory_query(module))
+        for index, (kind, name) in enumerate(api.reading_targets(metadata)):
+            label = prefix + "-reading-" + str(index)
+            if label not in streams or streams[label][0] != readings.get(kind + ":" + name):
+                raise ValueError("retained Print reading differs from original native output")
+            command = "Print Module " if kind == "module" else "Print Module Type "
+            check_query(label, "Require " + " ".join(requested) + ".\n" + proofaudit.SETTINGS + command + name + ".\n")
+        classified = api.census(metadata, searches, readings, expected_modules=requested)
+        if prefix == "control":
+            control_report = api.qualify_controls(metadata, searches, readings)
+            if control_report != load(artifact_root / "control-adapter-verdicts.json"):
+                raise ValueError("native adapter control replay differs")
+            continue
+        if classified != load(artifact_root / "support-census-audit.json"):
+            raise ValueError("native census adapter replay differs")
+        for index, module in enumerate(modules):
+            symbols = classified[module]["symbols"]
+            check_query("assumptions-" + str(index), proofaudit.assumption_query(module, symbols))
+            proofaudit.assumptions(streams["assumptions-" + str(index)][0], symbols)
+            if symbols != audited[module] or any(
+                {entry.split(" : ", 1)[0] for entry in symbol["assumptions"]} - set(found["support_axioms"])
+                    for symbol in symbols):
+                raise ValueError("native assumption replay differs from exact declaration audit")
+            bindings = classified[module]["alias_audits"]
+            aliases = alias_symbols(bindings)
+            label = "alias-assumptions-" + str(index)
+            check_query(label, proofaudit.assumption_query(module, aliases))
+            proofaudit.assumptions(streams[label][0], aliases)
+            if aliases_audited[module] != {"bindings": bindings, "audits": aliases} or any(
+                {entry.split(" : ", 1)[0] for entry in symbol["assumptions"]} - set(found["support_axioms"])
+                    for symbol in aliases):
+                raise ValueError("native alias assumption replay differs or adds an undeclared assumption")
+    hidden = spec["hidden_assumptions"]
+    for label, entry in native_refusals.items():
+        check_query(label, (side / "tools/rocq-census" / entry["source"]).read_text(encoding="utf-8"))
+        for key, value in entry.get("environment", {}).items():
+            if commands[label]["native_environment"].get(key) != value:
+                raise ValueError("native refusal invocation differs from its reviewed control")
+    check_query("native-hidden-assumptions", (side / "tools/rocq-census" / hidden["source"]).read_text(encoding="utf-8"))
+    symbols = hidden_assumption_audit(streams["native-hidden-assumptions"][0], hidden["symbols"])
+    if load(artifact_root / "native-control-verdicts.json") != {"schema": spec["schema"], "status": "passed",
+            "adapter": control_report, "hidden_assumptions": symbols, "native_refusals": sorted(spec["refusals"])}:
+        raise ValueError("native control verdict differs from raw replay")
+    for name, expected in {"support": found["support_axioms"],
+            **{name: entry["expected_axioms"] for name, entry in found["probes"].items()}}.items():
+        command = commands["kernel-" + name]
+        roots = modules if name == "support" else ["Qualification." + name]
+        if executable_tail(command) != ["rocqchk", "-silent", "-o", *support_map, *load_paths["probes"], *roots]:
+            raise ValueError("recursive kernel check omitted a root or changed its locked settings")
+        kernel_reading(command["exit"], *streams["kernel-" + name], expected)
+    return row
 
 
 def freeze_sources(campaign: Campaign, found: dict[str, Any], pristine: Path,
@@ -382,8 +910,9 @@ def qualify(campaign: Campaign, found: dict[str, Any], imported: Path | None) ->
     for index, source in enumerate(selected):
         campaign.run("strict-" + str(index), campaign.executable(["rocq", "c", *candidate_map,
                       *STRICT, str(source)]), root, strict=True)
-    audit_sources(campaign, found, selected, candidate_map)
-    freeze_sources(campaign, found, pristine, candidate, mappings)
+    campaign.report["native_sources_before"] = native_sources(side)
+    campaign.report["native_runtime_before"] = native_runtime(campaign)
+    plugin, control_inputs = prepare_native(campaign, candidate_map)
     probes = root / "probes"
     probes.mkdir()
     for name, entry in found["probes"].items():
@@ -392,9 +921,14 @@ def qualify(campaign: Campaign, found: dict[str, Any], imported: Path | None) ->
         campaign.run("probe-compile-" + name, campaign.executable(["rocq", "c", *candidate_map,
                      "-Q", str(probes), "Qualification", *STRICT, str(source)]), root, strict=True)
     input_roots = [installed / "bin", installed / "lib", installed / ".opam-switch/build",
-                   candidate / "src-stdpp", probes]
+                   candidate / "src-stdpp", probes, plugin, control_inputs, root / "bin"]
+    campaign.report["native_load_paths"] = {"support": candidate_map,
+        "probes": ["-Q", str(probes), "Qualification"], "controls": ["-Q", str(control_inputs), ""]}
     inputs = identity_tree(input_roots)
-    write(campaign.upload / "input-identities.json", inputs)
+    write(campaign.upload / "input-identities-before.json", inputs)
+    audit_sources(campaign, found, selected, candidate_map)
+    freeze_sources(campaign, found, pristine, candidate, mappings)
+    native_controls(campaign, [*candidate_map, "-Q", str(control_inputs), ""])
     for name, roots, expected in [("support", ["SailStdpp." + path.stem for path in selected], found["support_axioms"]),
                                 *[(name, ["Qualification." + name], entry["expected_axioms"])
                                   for name, entry in found["probes"].items()]]:
@@ -402,8 +936,7 @@ def qualify(campaign: Campaign, found: dict[str, Any], imported: Path | None) ->
                               *candidate_map, "-Q", str(probes), "Qualification", *roots]), root)
         names = kernel_reading(result.returncode, result.stdout, result.stderr, expected)
         campaign.report.setdefault("kernel_contexts", {})[name] = names
-    if inputs != identity_tree(input_roots):
-        raise ValueError("kernel input population changed")
+    publish_native_qualification(campaign, ["SailStdpp." + path.stem for path in selected], input_roots)
     exported = campaign.upload / "sail-support.lock"
     campaign.opam("export", ["switch", "export", "--full", "--freeze", "--switch=" + SWITCH, str(exported)])
     snapshot_metadata(exported.read_text(encoding="utf-8"), extra_files, found["source"]["sha256"])
@@ -412,7 +945,7 @@ def qualify(campaign: Campaign, found: dict[str, Any], imported: Path | None) ->
     evidence = {name: {"sha256": receipts.digest(campaign.upload / name),
                        "bytes": (campaign.upload / name).stat().st_size}
                 for name in ("input-identities.json", "native-assumptions.json", "package-metadata.txt",
-                             "Sail-Support-LICENSE", "sail-support.lock")}
+                             "Sail-Support-LICENSE", "sail-support.lock", "native-census-qualified.json")}
     campaign.report.update(status="passed", export_sha256=receipts.digest(exported),
                            export_bytes=exported.stat().st_size, reexport_identical=imported is not None,
                            evidence=evidence)
@@ -425,10 +958,12 @@ def required_labels(phase: str, frozen_count: int) -> set[str]:
     if phase not in phases:
         raise ValueError("unsupported campaign phase")
     return {"create", "invariant", "closure", "baseline-build", "dependency-order", "where", "lib",
+            "native-plugin-build", "native-control-compile", "support-native-census", "control-native-census",
+            "native-signature-refusal", "native-unsupported-refusal", "native-hidden-assumptions",
             "kernel-support", "kernel-term", "kernel-eqdep", "kernel-real", "kernel-notation", "export",
             *("probe-compile-" + name for name in ("term", "eqdep", "real", "notation")),
             *(label + str(index) for index in range(29)
-              for label in ("strict-", "inventory-", "assumptions-")),
+              for label in ("strict-", "inventory-", "assumptions-", "alias-assumptions-")),
             *("frozen-" + str(index) + "-" + side_name for index in range(frozen_count)
               for side_name in ("baseline", "candidate")), *phases[phase]}
 
@@ -436,7 +971,9 @@ def required_labels(phase: str, frozen_count: int) -> set[str]:
 def join(artifacts: Path | None, side: Path, revision: str, root: Path) -> None:
     if artifacts is None:
         raise ValueError("join needs same-run artifacts")
-    needs = json.loads(os.environ["CAMPAIGN_NEEDS"])
+    needs = decode(os.environ["CAMPAIGN_NEEDS"])
+    if not isinstance(needs, dict):
+        raise TypeError("campaign needs must be an object")
     if any(needs.get(name, {}).get("result") != "success" for name in ("plan", "build", "import")):
         raise ValueError("campaign job failed, skipped or supplied no success verdict")
     found = load(side / RECIPE)
@@ -454,9 +991,12 @@ def join(artifacts: Path | None, side: Path, revision: str, root: Path) -> None:
             raise ValueError("artifact does not bind this passing campaign")
         if receipts.digest(path.parent / "sail-support.lock") != row["export_sha256"]:
             raise ValueError("artifact snapshot differs from recorded export")
+        native = validate_native_qualification(path.parent, side, revision,
+            run_id=os.environ["GITHUB_RUN_ID"], run_attempt=os.environ["GITHUB_RUN_ATTEMPT"],
+            dispatch_revision=os.environ["GITHUB_SHA"])
         evidence = row.get("evidence")
         expected_files = {"input-identities.json", "native-assumptions.json", "package-metadata.txt",
-                          "Sail-Support-LICENSE", "sail-support.lock"}
+                          "Sail-Support-LICENSE", "sail-support.lock", "native-census-qualified.json"}
         if not isinstance(evidence, dict) or set(evidence) != expected_files:
             raise ValueError("artifact lacks its complete source/tool/object identity evidence")
         for name, identity in evidence.items():
@@ -471,13 +1011,16 @@ def join(artifacts: Path | None, side: Path, revision: str, root: Path) -> None:
                                  for value in identities.values()):
             raise ValueError("artifact input identity population is empty or malformed")
         commands = row["commands"]
+        if commands[:len(native["commands"])] != native["commands"]:
+            raise ValueError("full carriage receipt differs from its native qualification commands")
         labels = [entry["label"] for entry in commands]
         required = required_labels(row["phase"], frozen_count)
         if len(labels) != len(set(labels)) or not required <= set(labels):
             raise ValueError("artifact lacks complete strict/recursive checks")
         for command in commands:
             log = path.parent / command["log"]
-            if (log.parent != path.parent or command["exit"] != 0
+            expected_refusal = command.get("expected_refusal") is True and command in native["commands"]
+            if (log.parent != path.parent or (command["exit"] != 0 and not expected_refusal)
                     or receipts.digest(log) != command["log_sha256"]
                     or (command["strict"] and log.read_bytes().strip())):
                 raise ValueError("artifact command or diagnostics disagree")
