@@ -562,6 +562,57 @@ local definition alignment and an incorporation-time license decision.
 No concrete local theorem replacement is selected, no reciprocal source is
 copied, and no local replay or removed obligation is claimed.
 
+## F16: native Rocq module metadata for the Sail support census
+
+**Read 2026-10-23. Source and exact consumer.** Q35q's
+[typed-signature refusal](../../implementation/q35q-signature-types.md) needs
+elaborated field types even when `Print Module Type` returns only labels.
+The locked Rocq 9.3.0 source, revision
+[`c8e202eb0d6cc08b848ba27dcf2cc35804df7d96`](https://github.com/rocq-prover/rocq/tree/c8e202eb0d6cc08b848ba27dcf2cc35804df7d96),
+already exposes these through
+[`Mod_declarations.mod_type`](https://github.com/rocq-prover/rocq/blob/c8e202eb0d6cc08b848ba27dcf2cc35804df7d96/kernel/mod_declarations.mli).
+[`Declarations`](https://github.com/rocq-prover/rocq/blob/c8e202eb0d6cc08b848ba27dcf2cc35804df7d96/kernel/declarations.mli)
+retains `MoreFunctor` parameters, `NoFunctor` structures, constant
+`const_type`, inductive bodies, nested modules and module types.
+[`checker/mod_checking.ml`](https://github.com/rocq-prover/rocq/blob/c8e202eb0d6cc08b848ba27dcf2cc35804df7d96/checker/mod_checking.ml)
+provides an existing traversal pattern: `check_signature` extends the local
+environment with each functor parameter; `check_structure_field` resolves
+constant and inductive names through the delta resolver and visits nested
+module types separately. This is a concrete code reference for the already
+owed native metadata producer, with the same prover as its consumer.
+
+**Recommendation and limits.** Use these native accessors and traversal rules
+for Q35q's existing metadata-producer scope. Preserve binder contexts,
+universe information, canonical names and the distinction between abstract
+fields and concrete implementations. A metadata row supplies no concrete
+implementation-assumption verdict. The census contract still requires complete
+enumeration and its positive/refusal controls, followed by exact assumptions
+and hosted recursive kernel checks; this reading compiles no candidate and
+changes no lock. The checker traversal is implementation evidence, not a
+Rocq theorem proving completeness of a new exporter.
+
+**A serializer shortcut does not qualify.** At
+[`rocq-lsp` `2207dfcd0f211d64a8bab61491968ab3694c5c5e`](https://github.com/rocq-community/rocq-lsp/tree/2207dfcd0f211d64a8bab61491968ab3694c5c5e),
+[`ser_mod_declarations.ml`](https://github.com/rocq-community/rocq-lsp/blob/2207dfcd0f211d64a8bab61491968ab3694c5c5e/serlib/ser_mod_declarations.ml)
+serializes `module_body` and `module_type_body` through `SerType.Opaque`.
+Its `module_signature` serializer therefore does not by itself supply the
+complete nested typed census. The
+[`opam` file](https://github.com/rocq-community/rocq-lsp/blob/2207dfcd0f211d64a8bab61491968ab3694c5c5e/coq-lsp.opam)
+also leaves release Rocq bounds commented out; this development edition is
+not a demonstrated dependency solution at the project lock. Importing the
+server is not selected for Q35q.
+
+**Actual terms.** The inspected Rocq
+[`LICENSE`](https://github.com/rocq-prover/rocq/blob/c8e202eb0d6cc08b848ba27dcf2cc35804df7d96/LICENSE)
+and native source headers state LGPL-2.1, credited to INRIA, CNRS and
+contributors. The inspected rocq-lsp
+[`LICENSE`](https://github.com/rocq-community/rocq-lsp/blob/2207dfcd0f211d64a8bab61491968ab3694c5c5e/LICENSE)
+is LGPL-2.1; the serializer also carries the SerAPI authors' LGPL-2.1-or-later
+notice. Linking installed APIs and copying their implementation are distinct
+incorporation choices; any conveyed implementation needs its notices and
+applicable library obligations recorded in THIRD-PARTY.md. No upstream code
+or new runtime dependency is incorporated here.
+
 ## Discovery collections and search limits
 
 The [Rocq package catalogue](https://rocq-prover.org/packages) and
