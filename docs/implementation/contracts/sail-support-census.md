@@ -123,4 +123,13 @@ and two-campaign hosted budgets above remain unchanged. This correction authoriz
 no change to compiler strictness, dependency objects, source semantics, assumption
 contexts or any acceptance predicate.
 
+The first corrected compile succeeds. The following candidate's thirty native
+Search queries succeed, but request parsing refuses the locked printer's terminal
+`About` notice about implicit arguments. The adapter may recognize that exact
+informational grammar only at the end of Search, bind each listed spelling to a
+retained declaration row, and retain the complete raw notice. Malformed,
+nonterminal, repeated or unexplained output still refuses. This is a printing
+framing correction within the remaining candidate budget; no declaration row,
+type, native resolution or common-guard check may be removed or altered.
+
 The census extension adds 6 h, range 3–9, to Q35q's existing allowance: native grammar/classification 1–3 h, canonical implementation connections 1–3 h, and controls/evidence 1–3 h. The combined item is 10 h, range 5–15. This is a planning estimate for the commissioned scope; unattended hosted runtime and a further unsupported form are excluded. A retained refusal does not close Q35q.
