@@ -411,6 +411,14 @@ retained beside those BSD-2-Clause excerpts.
 Authored reproducer scaffolding uses the same terms. The licensing map names
 each source-derived file; no complete canonical term, dependency source tree or
 compiled object is distributed.
+The bounded tag-outcome construction in
+`docs/implementation/retained-evidence/q35p-tag-outcomes-20261023/` retains a
+semantic diff and native declaration readings from the same exact coq-sail
+release, plus the unchanged model-derived minimal reproducer and its generated
+outputs. The BSD-2-Clause support, model, CHERI and Sail notices accompany those
+source-derived members. Fresh authored law and query sources follow the
+original-file map. The construction distributes no complete dependency tree,
+compiled object or full canonical term and changes no shared switch or lock.
 Q35o's compatibility evidence in
 `docs/implementation/retained-evidence/close3-q35o-20261013/` retains a private
 syntax-only diff to the locked Sail's `src/sail_coq_backend/pretty_print_coq.ml` at
@@ -427,6 +435,15 @@ The scoped-notation continuation in
 source-derived kinds under BSD-2-Clause with its exact `LICENSE.sail` and
 `LICENSE.model` notices. Its authored notation controls follow the original-file
 map; the private plugin and complete canonical outputs remain native and untracked.
+
+The handwritten-support and canonical-types qualification in
+`docs/implementation/retained-evidence/q35o-handwritten-types-20261023/` retains
+model-derived support sources and native elaborated declaration readings under
+BSD-2-Clause, with exact model, CHERI and CHERI verification notices. Its
+`LICENSE.sail` is the Sail compiler notice; `LICENSE.support` separately records
+coq-sail's paired support notice. Authored maintenance scripts follow the
+original-file map. Complete generated canonical source and native objects
+remain untracked.
 
 Tools used to observe, execute, or accelerate a build do not automatically license its output. Non-commercial restrictions also govern use, even where nothing is distributed.
 

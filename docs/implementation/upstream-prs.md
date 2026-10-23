@@ -125,11 +125,11 @@ Proposed PRs remain unsubmitted until an authored PR is mapped. Backport follow-
 
 **Project benefit:** Removes Q35p's semantic blocker to canonical machine-term compilation and the machine-code proof route that consumes that term.
 
-**Scope and readiness:** No submission recorded. Coordinate coq-sail's outcome interface and interpreters with Sail's Rocq bindings. The retained compile requires M unit for a standalone tag write but resolves to a prompt-monad bool operation. Existing data-memory outcomes carry tags on byte-addressed transfers and have no standalone granule-keyed tag operation. The candidate needs an agreed semantic interface or an explicitly justified adapter.
+**Scope and readiness:** No submission recorded. [Q35p's bounded construction](q35p-memory-bindings.md) supplies a private standalone tag-outcome candidate and a bridge over the actual plain memory callers. Coordinate coq-sail's outcome interface and interpreters with Sail's Rocq bindings; complete conservativity, support comparison/census, whole-term consumer and cold carriage acceptance remain with their existing owners.
 
 **Evidence and acceptance:**
 
-- [Q35p memory/tag qualification](q35p-memory-bindings.md#actual-semantic-boundary) retains the exact refusal and explains why a missing-value data write has no tag effect and a dummy value would add a data write.
+- [Q35p's checked scope](q35p-memory-bindings.md#executable-interpretation-and-checked-scope) records the candidate and its limits; the [baseline evidence](retained-evidence/close3-q35p-20261013/manifest.json) retains the original semantic refusal.
 - Acceptance preserves raw granule keys, default-false absent tags, every overwritten-granule clear, metadata only after successful data writes and existing refusals. It then joins Q35o and Q35b for strict whole-term compilation, exact assumptions and compiled size; no new assumption or discarded tag effect supplies acceptance.
 
 **Next action:** TBD: agree standalone tag-read/write outcomes and bindings with both upstreams, in parallel with candidates 17 and 18.

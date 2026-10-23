@@ -1081,9 +1081,13 @@ SITE_RESIDUE: dict[tuple[str, str], str] = {
     ("docs/implementation/retained-evidence/q39/shelving-triage-20261012/release-triage.json",
      "5c20b839e556b78c0ee7f1ce5b28fb00d0e69d78"):
         "the immutable SECOMP comparison base used in the historical Q39 triage",
-    ("docs/implementation/retained-evidence/close3-q35p-20261013/bindings.sail.txt", "bb07488d"):
-        "the unchanged historical CHERI transplant header in Q35p's model-owner reproducer, "
-        "not a statement of the current comparison gitlink",
+    **{(file, "bb07488d"):
+       "the unchanged historical CHERI transplant header in Q35p's model-owner reproducer, "
+       "not a statement of the current comparison gitlink"
+       for file in (
+           "docs/implementation/retained-evidence/close3-q35p-20261013/bindings.sail.txt",
+           "docs/implementation/retained-evidence/q35p-tag-outcomes-20261023/bindings.sail.txt",
+       )},
     **{(file, "bb07488d"): "the historical CHERI source transplanted into the curated model"
        for file in (
            "model/model/core/addr_checks.sail",
