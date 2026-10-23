@@ -757,8 +757,21 @@ def _census(metadata: object, searches: dict[str, str], readings: dict[str, str]
         alias = declaration["alias"]
         if declaration["classification"] == "alias":
             _require(alias is not None and alias["exported_reference"] == reference
-                     and alias["target_reference"] == link["implementation_reference"]
-                     and alias["target_reference"]["canonical"] == reference["canonical"], "unproved native alias")
+                     and alias["target_reference"] == link["implementation_reference"], "unproved native alias")
+            _require(alias["resolver_id"] == implementation["resolver_id"],
+                     "native alias lost its exact private implementation resolver")
+            public_id = modules[owner_id]["implementation"]["resolver_id"]
+            for resolver_id in (alias["resolver_id"], public_id):
+                resolver = resolvers[resolver_id]
+                _require(resolver["owner_module_id"] == owner_id and resolver["role"] == "signature",
+                         "native alias canonicalization has a foreign owner or resolver role")
+            public = resolvers[public_id]
+            for native_input in (link["implementation_reference"]["canonical"], reference["user"], reference["canonical"]):
+                index = kernel_ranks.get(_key(native_input))
+                _require(index is not None, "native alias canonicalization is outside the complete kernel domain")
+                effect = public["kernel_effects"][index]
+                _require(effect["input"] == native_input and effect["output"] == reference["canonical"],
+                         "native public signature resolver does not establish the exact alias canonicalization")
         else:
             _require(alias is None and reference["canonical_name"].startswith(owners[field["parent_module_id"]] + "."),
                      "foreign declaration supplied as owned")
@@ -925,9 +938,9 @@ def _control_copy(value: dict[str, Any], table: str) -> dict[str, Any]:
 
 def qualify_controls(metadata: object, searches: dict[str, str], readings: dict[str, str]) -> dict[str, Any]:
     """Adapter controls over retained native emission, distinct from prover refusals."""
-    value = validate_schema(metadata)
     expected_roots = ["CensusControls", "SailStdpp.TypeCasts", "SailStdpp.State_monad"]
-    all_accepted = census(value, searches, readings, expected_modules=expected_roots)
+    all_accepted = census(metadata, searches, readings, expected_modules=expected_roots)
+    value = cast("dict[str, Any]", metadata)  # The complete public census boundary succeeded without mutation.
     accepted = all_accepted["CensusControls"]
     modules = accepted["modules"]
     required = {"S", "F", "Sealed", "Applied", "Empty", "AliasOnly", "HiddenSealed", "HiddenAlias"}
