@@ -8,7 +8,7 @@ import unittest
 from collections.abc import Iterator
 from itertools import permutations, product
 from pathlib import Path
-from typing import Any, cast
+from typing import Any, cast, override
 from unittest.mock import patch
 
 from jsonschema import Draft202012Validator
@@ -78,6 +78,13 @@ def _kernel_reference(module: str, label: str = "x") -> dict[str, Any]:
     reference = _reference(module, label)
     del reference["exported_name"], reference["canonical_name"]
     return reference
+
+
+def _json_values() -> list[object]:
+    return [None, False, True, 0, 1, -1, 0.0, -0.0, 1.0, -1.5, 1e100,
+            "", "true", "null", "1", 'quote" slash\\ newline\n tab\t nul\000', "λ雪",
+            [], [1], [1.0], [True], [None], ["λ雪", {"escaped": '\n"'}], {},
+            {"value": 1}, {"value": 1.0}, {"a": 1, "b": [True, None]}, {"b": [True, None], "a": 1}]
 
 
 def _fixture(root: str = "Root") -> tuple[dict[str, Any], dict[str, str], dict[str, str]]:
@@ -476,6 +483,15 @@ class SailSupportCensusTests(unittest.TestCase):
         candidate = copy.deepcopy(value)
         candidate["modules"][0]["signature"]["field_count"] = 1.0
         fixtures.append(candidate)
+        mutations = [lambda item: item["roots"][0]["native_path"].update(tag=None),
+                     lambda item: item["modules"][0].update(parent_field_id=False),
+                     lambda item: item["resolvers"][0]["module_effects"][0].update(is_alias=1),
+                     lambda item: item["resolvers"][0].update(kernel_effects=None),
+                     lambda item: item["fields"][0].update(metadata=[])]
+        for mutate in mutations:
+            candidate = copy.deepcopy(value)
+            mutate(candidate)
+            fixtures.append(candidate)
         for index, fixture in enumerate(fixtures):
             with self.subTest(index=index):
                 try:
@@ -490,6 +506,68 @@ class SailSupportCensusTests(unittest.TestCase):
         changed_schema["$defs"]["term"]["unevaluatedProperties"] = False
         with self.assertRaises(ValueError):
             _ADAPTER["validate_schema"](value, schema=changed_schema)
+
+    def test_schema_literals_preserve_exact_canonical_json_equality(self) -> None:
+        values = _json_values()
+        equal = _ADAPTER["_literal_equal"]
+        key = _ADAPTER["_key"]
+        for left, right in product(values, repeat=2):
+            self.assertEqual(equal(left, right), key(left) == key(right), (left, right))
+        # Numeric and container comparisons keep canonical encoding semantics,
+        # including distinctions Python's ordinary equality would collapse.
+        for left, right in ((True, 1), (1, 1.0), (0.0, -0.0), ([1], [1.0]), ({"x": True}, {"x": 1})):
+            self.assertFalse(equal(left, right))
+        class NonEqualString(str):
+            __slots__ = ()
+
+            @override
+            def __eq__(self, _other: object) -> bool:
+                return False
+
+            @override
+            def __hash__(self) -> int:
+                return str.__hash__(self)
+        self.assertTrue(equal(NonEqualString("λ雪"), "λ雪"))
+        def no_encoding(_value: object) -> str:
+            raise AssertionError("built-in scalar literal comparisons must not encode JSON")
+        with patch.dict(equal.__globals__, {"_key": no_encoding}):
+            for left, right in (("λ雪", "λ雪"), ("first", "second"), (True, False), (True, True), (None, None)):
+                self.assertEqual(equal(left, right), left == right)
+        for allowed in ([], [None, True, "λ雪"], [1, [1.0], {"value": 1}]):
+            definition = {"enum": allowed}
+            for value in values:
+                expected = key(value) in {key(item) for item in allowed}
+                try:
+                    _ADAPTER["_validate"](value, definition, definition, "fixture")
+                except ValueError:
+                    accepted = False
+                else:
+                    accepted = True
+                self.assertEqual(accepted, expected, (value, allowed))
+
+    def test_schema_type_dispatch_matches_original_rules_and_draft_oracle(self) -> None:
+        kinds = ("object", "array", "string", "integer", "boolean", "null")
+        values = _json_values()
+        class IntegerSubclass(int):
+            pass
+        class FloatSubclass(float):
+            pass
+        class StringSubclass(str):
+            __slots__ = ()
+        class ArraySubclass(list[object]):
+            pass
+        class ObjectSubclass(dict[str, object]):
+            pass
+        for value in [*values, IntegerSubclass(1), FloatSubclass(1.0), StringSubclass("s"), ArraySubclass(), ObjectSubclass()]:
+            former = {"object": isinstance(value, dict), "array": isinstance(value, list),
+                      "string": isinstance(value, str), "integer": type(value) is int or (type(value) is float and value.is_integer()),
+                      "boolean": type(value) is bool, "null": value is None}
+            for kind in (*kinds, "unsupported"):
+                self.assertEqual(_ADAPTER["_has_type"](value, kind), kind in former and former[kind], (value, kind))
+        for kind in kinds:
+            oracle = Draft202012Validator({"type": kind})
+            for value in values:
+                self.assertEqual(_ADAPTER["_has_type"](value, kind), oracle.is_valid(value), (value, kind))
 
     def test_control_replay_uses_three_complete_roots_and_distinguishes_adapter_evidence(self) -> None:
         value, searches, readings = _controls_fixture()
@@ -888,6 +966,8 @@ def cases() -> list[Case]:
             Case("raw-native-reading-framing-diagnostics-and-truncation-refuse", checks.test_raw_native_reading_headers_truncation_and_diagnostics_refuse),
             Case("native-outer-reading-framing-preserves-end-constructors-and-algebraic-suffixes", checks.test_native_outer_reading_framing_keeps_end_constructors_and_algebraic_suffixes),
             Case("stdlib-schema-reader-agrees-with-draft202012-oracle", checks.test_schema_reader_matches_draft202012_on_positive_and_corruptions),
+            Case("schema-literals-preserve-exact-canonical-json-equality", checks.test_schema_literals_preserve_exact_canonical_json_equality),
+            Case("schema-type-dispatch-matches-original-and-draft-rules", checks.test_schema_type_dispatch_matches_original_rules_and_draft_oracle),
             Case("control-replay-retains-three-roots-and-adapter-refusal-boundary", checks.test_control_replay_uses_three_complete_roots_and_distinguishes_adapter_evidence),
             Case("control-mutations-share-native-evidence-and-match-whole-copy-refusals", checks.test_control_mutations_share_untouched_evidence_and_match_whole_copy_refusals),
             Case("body-footprint-rank-order-equals-former-subsequence-predicate", checks.test_rank_order_matches_former_subsequence_predicate_exhaustively),

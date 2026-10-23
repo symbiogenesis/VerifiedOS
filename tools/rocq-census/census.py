@@ -43,6 +43,30 @@ def _key(value: object) -> str:
     return json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
 
 
+def _literal_equal(left: object, right: object) -> bool:
+    if type(left) is str and type(right) is str:
+        return left == right
+    if type(left) is bool and type(right) is bool:
+        return left is right
+    if left is None and right is None:
+        return True
+    return _key(left) == _key(right)
+
+
+def _has_type(value: object, kind: str) -> bool:
+    if kind == "object":
+        return isinstance(value, dict)
+    if kind == "array":
+        return isinstance(value, list)
+    if kind == "string":
+        return isinstance(value, str)
+    if kind == "integer":
+        return type(value) is int or (type(value) is float and value.is_integer())
+    if kind == "boolean":
+        return type(value) is bool
+    return kind == "null" and value is None
+
+
 def _schema_vocabulary(schema: dict[str, Any]) -> None:
     """Check the schema itself, including branches a particular value never uses."""
     _require(not schema.keys() - _KEYWORDS, "unsupported census schema keyword")
@@ -80,16 +104,12 @@ def _validate(value: object, schema: dict[str, Any], document: dict[str, Any], s
             passed += 1
         _require(passed == 1 if exact else passed > 0, f"{site}: no unique schema shape")
     if "const" in schema:
-        _require(_key(value) == _key(schema["const"]), f"{site}: unexpected constant")
+        _require(_literal_equal(value, schema["const"]), f"{site}: unexpected constant")
     if "enum" in schema:
-        _require(_key(value) in {_key(item) for item in schema["enum"]},
+        _require(any(_literal_equal(value, item) for item in schema["enum"]),
                  f"{site}: unsupported native shape")
     if "type" in schema:
-        kinds = {"object": isinstance(value, dict), "array": isinstance(value, list),
-                 "string": isinstance(value, str), "integer": type(value) is int or (type(value) is float and value.is_integer()),
-                 "boolean": type(value) is bool, "null": value is None}
-        _require(schema["type"] in kinds and kinds[schema["type"]],
-                 f"{site}: incorrect native value type")
+        _require(_has_type(value, schema["type"]), f"{site}: incorrect native value type")
     if isinstance(value, dict):
         _require(set(schema.get("required", [])) <= value.keys(), f"{site}: missing native member")
         properties = schema.get("properties")
