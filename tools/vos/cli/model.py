@@ -2607,6 +2607,11 @@ def cmd_freeze_emit(e: env.Environment, args: argparse.Namespace) -> int:
     hit rate is zero, which is a true statement about a machine no dictionary has been
     selected for rather than a measurement of one.
     """
+    try:
+        geometry = compose.Geometry(header=args.header, slots=args.slots, width=args.width)
+    except ValueError as exc:
+        print(f"FAIL freeze-emit: {exc}", file=sys.stderr)
+        return 1
     corpus = differential.load(e.root)
     wanted = set(args.member)
     members = [m for m in corpus.members if not wanted or m.name in wanted]
@@ -2616,7 +2621,6 @@ def cmd_freeze_emit(e: env.Environment, args: argparse.Namespace) -> int:
         return 1
 
     into = Path(args.out) if args.out else e.root / freezeschema.BUILD_DIR
-    geometry = compose.Geometry(header=args.header, slots=args.slots, width=args.width)
     sites: list[asm.Site] = []
     blob = bytearray()
     with tempfile.TemporaryDirectory() as scratch:
