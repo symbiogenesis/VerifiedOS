@@ -136,7 +136,7 @@ Three consecutive invocations of the 1,024-function row, taken after the ladder 
 
 **Whole-set re-check, over a corpus that is neither of R-13-028's two closures.** `rocqchk -silent -Q proofs "" <all 27 modules>` in one invocation: **peak 8,836,591,616 bytes**, 750.108 s wall, exit 0. The set is this repository's design corpus, which is neither the base-image TCB R-13-028 validates at release time nor a roster's package closure an install re-checks, and the row is reported for what one kernel check over 27 modules of this size costs rather than as either act.
 
-**Conditions for these two rows.** `Discharging` at both stamps; guest load average 0.10 at the first stamp and 1.00 at the last, the sibling lanes having largely quiesced by then, which is a looser condition than the compiler ladder's 2.49 to 2.72 and is stated per act rather than once. An earlier run of the same re-check, taken while a second lane's re-check was resident beside it and the guest's 16.5 GB was full, is not quoted here in any form: what was observed of it came from a current-resident sampler this report declares no predicate for, and no figure of it enters this report or any record beside it. **The 8,836,591,616-byte figure above was taken with that second re-check gone, and it is the only whole-set figure this report carries.**
+**Conditions for these two rows.** `Discharging` at both stamps; guest load average 0.10 at the first stamp and 1.00 at the last. No second whole-set re-check was resident. The load was lower than the compiler ladder's 2.49 to 2.72; conditions are stated per act.
 
 ## 5. Quantity 1 scored, twice, with neither reading chosen here
 

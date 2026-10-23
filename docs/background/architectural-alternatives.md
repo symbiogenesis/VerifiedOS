@@ -14,11 +14,13 @@ A **non-deciding** observation provides context but does not justify the disposi
 
 ## First-release messaging: refused
 
+Source comparison: 2026-09-11.
+
 [R-17-051a](../spec.md#r-17-051a) excludes SMS, MMS, RCS and a bundled Internet messenger from the first-release composition. **The deciding ground is a release-scope judgment:** accept the loss of ordinary texting, text-delivered codes, conversation/group attachments and emergency text to keep an additional remotely selected, persistent service outside the release's specification and admission surface. This is not a claim that messaging cannot be verified. The voice and data floor remains required, including the IMS session client and its proofs; messaging cannot be charged for those existing obligations or credited with their completion.
 
-**The smaller admission candidate is text-only SMS over IMS**, with inbox, outbox, payload and retry bounds fixed at composition, and no MMS, RCS or legacy-radio fallback. The source read on 2026-09-11 is [3GPP TS 24.341 v19.0.0, Release 19, October 2025](https://www.etsi.org/deliver/etsi_ts/124300_124399/124341/19.00.00_60/ts_124341v190000p.pdf), clauses 5.3.1 and 5.3.2: it carries SMS relay payloads inside SIP MESSAGE and specifies submission, reception, reports and receiver availability. It can reuse the voice client's IMS substrate, but it still owes the SMS payload grammar and sender/receiver sequencing. The local incremental price is a confined messaging service, bounded persistent queues with explicit delivery/duplicate/crash semantics, verified framing, a reference model and refinement for its sequencers, lock-state and notification policy, and a composed residency/schedule measurement. Ordinary SMS does not acquire end-to-end confidentiality from a protected radio bearer. This candidate avoids MLS, a group ratchet and RCS identity provisioning; refusing RCS alone would therefore leave a materially smaller option undecided. That smaller option is also refused on the release-scope ground above, with its usability cost accepted. No unmeasured hours, bytes or throughput savings are credited.
+**The smaller admission candidate is text-only SMS over IMS**, with inbox, outbox, payload and retry bounds fixed at composition, and no MMS, RCS or legacy-radio fallback. The source is [3GPP TS 24.341 v19.0.0, Release 19, October 2025](https://www.etsi.org/deliver/etsi_ts/124300_124399/124341/19.00.00_60/ts_124341v190000p.pdf), clauses 5.3.1 and 5.3.2: it carries SMS relay payloads inside SIP MESSAGE and specifies submission, reception, reports and receiver availability. It can reuse the voice client's IMS substrate, but it still owes the SMS payload grammar and sender/receiver sequencing. The local incremental price is a confined messaging service, bounded persistent queues with explicit delivery/duplicate/crash semantics, verified framing, a reference model and refinement for its sequencers, lock-state and notification policy, and a composed residency/schedule measurement. Ordinary SMS does not acquire end-to-end confidentiality from a protected radio bearer. This candidate avoids MLS, a group ratchet and RCS identity provisioning; refusing RCS alone would therefore leave a materially smaller option undecided. That smaller option is also refused on the release-scope ground above, with its usability cost accepted. No unmeasured hours, bytes or throughput savings are credited.
 
-**The RCS comparison is versioned**, against [Universal Profile 3.0, February 2025](https://www.gsma.com/solutions-and-impact/technologies/networks/wp-content/uploads/2025/03/RCC.71-v3.0.pdf) and [RCC.16 v1.0, February 2025](https://www.gsma.com/solutions-and-impact/technologies/networks/wp-content/uploads/2025/03/RCC.16-v1.0.pdf), read on 2026-09-11. RCC.16 adds client certificates, key-distribution services and MLS group state; its clause 5.3 selects a common suite and creates an unencrypted group when none exists. [RFC 9420, July 2023, clause 17.1](https://www.rfc-editor.org/rfc/rfc9420.html#section-17.1) requires an MLS suite using X25519, AES-128-GCM, HKDF-SHA256 and Ed25519. **Derived ground:** that profile needs an explicit act against R-05-058a's device-key choices and R-12-043a's fixed configuration, plus bounded group data, epoch control, reviewed reference models and credential custody. A suite or format parser already used elsewhere does not supply those protocol proofs. Later profile and encryption revisions are unpriced here and inherit no compatibility verdict from this reading.
+**The RCS comparison is versioned**, against [Universal Profile 3.0, February 2025](https://www.gsma.com/solutions-and-impact/technologies/networks/wp-content/uploads/2025/03/RCC.71-v3.0.pdf) and [RCC.16 v1.0, February 2025](https://www.gsma.com/solutions-and-impact/technologies/networks/wp-content/uploads/2025/03/RCC.16-v1.0.pdf). RCC.16 adds client certificates, key-distribution services and MLS group state; its clause 5.3 selects a common suite and creates an unencrypted group when none exists. [RFC 9420, July 2023, clause 17.1](https://www.rfc-editor.org/rfc/rfc9420.html#section-17.1) requires an MLS suite using X25519, AES-128-GCM, HKDF-SHA256 and Ed25519. **Derived ground:** that profile needs an explicit act against R-05-058a's device-key choices and R-12-043a's fixed configuration, plus bounded group data, epoch control, reviewed reference models and credential custody. A suite or format parser already used elsewhere does not supply those protocol proofs. Later profile and encryption revisions are unpriced here and inherit no compatibility verdict from this reading.
 
 **A provider certificate anchor is an authority decision, not automatically a second foreign computer on the die.** Its identity scope, provisioning, rotation and permitted effects would need a containment statement; the mere presence of a certificate does not establish an R-04-011 hardware exception. No such authority enters through this refusal. A future messaging amendment must enter its measurable workload, admission obligations and gate together before implementation, as R-17-051a requires; a generic secure session or a successful voice call supplies neither the service nor its admission record.
 
@@ -154,7 +156,6 @@ As a verification method, UPEC is logged in the same slot as GLIFT / SecVerilog 
 **Disposition:** no import.
 Secure speculation lowers the cost of *keeping* out-of-order speculation and blocking its transient leak; the profile's bet is to *delete* speculation together with its WCET intractability, its hidden predictor state, its classical channels, and its share of the RTL ⊑ Sail proof, and re-admitting it would sacrifice all four to recover an IPC the NaR atom (above) recovers without any of them.
 UPEC and its STT/DOLMA-style information-flow tracking are logged, with GLIFT / SecVerilog (below), as a bounded bring-up complement that enters no trust base.
-Non-normative; no spec-body change.
 
 ---
 
@@ -238,7 +239,6 @@ The proposal's one correct insight, that out-of-order execution is separable fro
 The invisible/undo/delay family is logged with SecureBOOM as bounded bring-up evidence that enters no trust base; DAE and the "deterministic time-based CPU" import nothing the decoupled vector unit and the already-banked static-scheduling atom do not; and SEAM-V's task-level decoupling, backend-local instruction supply, request-bound prefetch, and dynamic cross-packet dependency tracking are rejected with them.
 The static packet-packing lesson and Ara baseline are documented in [Inspirations & Prior Art](inspirations.md).
 The platform axiom decides it as ever (*trust is the scarce resource, engineering is free, delete rather than defend, performance is subordinated*): the admissible non-speculative levers recover the IPC without the engine.
-Non-normative; the only spec-body touch is the §15 microarchitecture cross-reference to this entry.
 
 ---
 
@@ -269,7 +269,6 @@ That criterion is a derived ground and is marked as one: it is R-05-019's frozen
 
 **Disposition:** rejected as a substrate: OISC/TTA abandon RV64 and re-mint every artifact stated against its Sail model (the EPIC disqualifier), TTA re-couples binary to microarchitecture, and neither actually shrinks the proof surface once capabilities, DMA, interrupts, and timing are modeled; the genuine parsimony atom (minimal decode, curated extensions) is already banked **inside** RISC-V (§15).
 The platform axiom decides it as ever: parsimony is spent where it shrinks the proof without forfeiting the substrate, not past the point the substrate and the proof survive.
-Non-normative; no spec-body change.
 
 ---
 
@@ -289,7 +288,6 @@ Four candidates fail:
 
 **Disposition:** decline all four amendments and keep the instruction class closed, rejecting `cm.jt`, `cm.jalt`, and the JVT mechanism at R-15-036q.
 The adopted fixed-rate fetch format that separately cleared the gate is documented in [Inspirations & Prior Art](inspirations.md), as are the composition-time code-density decisions that supersede the JVT; neither is part of this rejected set.
-Non-normative; no spec-body change.
 
 ---
 
@@ -327,15 +325,14 @@ The comparison is between a program spent in part and a program spent entirely, 
 
 **Disposition:** declined; the 64+1-bit dialect stands (R-15-007, R-15-007d).
 The standard 128-bit format is the one alternative on this page that would buy substrate back, and what it costs is stated where the dialect's ground is, at R-15-002a's bound and [performance-estimates.md](../performance/performance-estimates.md)'s CHERI row, with the dialect's own price booked at R-15-007a, R-15-007b, R-15-007c, and R-17-048a rather than argued away.
-Non-normative; no spec-body change.
 
 ---
 
 ## The fast-track vector lane past the consideration window: three carried as standing adoptions, three refused
 
-The profile's consideration window closed before a lane of fast-track vector arithmetic reached freeze, so this section is the record of reading that lane against the same gate the four amendments above fail, and its answer is not uniform.
+The fast-track vector arithmetic candidates have different outcomes under the profile's admission test.
 What makes the lane different from every candidate above is that its members are **standards-track**, so the two costs the gate weighs hardest, a custom opcode point and a re-pin obligation, are both zero: an extension that ratifies is adopted by amendment at an encoding somebody else chose, against a golden model somebody else maintains.
-That does not make them free, and it does not make them adoptable today, which is why the profile grew a third disposition rather than stretching either of the two it had ([the frozen profile](../hardware/isa-profile.md) §2.1, R-15-067k).
+That does not make them free, and it does not make them adoptable today, so the profile records them as standing adoptions ([the frozen profile](../hardware/isa-profile.md) §2.1, R-15-067k).
 
 **Three are carried as standing adoptions**, admitted on their grounds with no encoding, no Sail clause, no dictionary entry, and no timing-model row until they ratify.
 The **vector dot-product pair** `Zvldot`/`Zvbdot` passes the five-part admission test on its own construction, adding no architectural state and touching no memory, and its consequence arrives before its encoding does: a batched dot product is a term in the RVV expression the bespoke matrix extension's admission margin is measured against, which is why that denominator is now normative rather than left to whoever runs the measurement (R-15-067l, R-15-116a).
@@ -383,7 +380,6 @@ A clockless datapath has no fixed per-operation latency for the per-class/OPP ta
 
 **Disposition:** reject self-timed execution logic in the datapath under admission test 2 and the fixed-latency WCET requirement.
 The common-PLL island clocks and deterministic ratio crossings are documented in [Inspirations & Prior Art](inspirations.md).
-Non-normative; no spec-body change.
 
 ---
 
@@ -426,7 +422,6 @@ A JIT adds hidden translation state and violates W^X; interpretation retains the
 **Disposition:** reject Wasm as hardware ISA, CHERI sandbox target, and system execution substrate.
 A contained application may still embed a private interpreter, which is ordinary software rather than an architectural import; the platform now makes that the declining case, offering one verified interpreter (R-14-013a) whose adoption takes Wasm's mechanized semantics as a *guest language* while every ground above still refuses it as substrate, so the rejection and the offer are the same judgment read at two layers.
 The interface lineage actually used by the platform is documented in [Inspirations & Prior Art](inspirations.md).
-Non-normative; no spec-body change.
 
 ---
 
@@ -447,7 +442,6 @@ A concrete consumer requiring object safety reopens the comparison with safe-sou
 **Verified install-time AOT of guest content** fails at the definition: guest content is dynamic and has no install point (R-14-008f), so the AOT route exists only for content shipped through §13 admission, where it is the ordinary native path rather than a Wasm story.
 
 **Disposition:** the guest language is core Wasm under the R-14-013b pinned semantics, no threads, curated from the WasmCert lineage with SpecTec as tracked upstream; the candidate dispositions and MSWasm reopening condition above stand, and the JS declination is the one carried normatively (R-14-013c) because it bounds what the offer can ever claim to reach.
-Non-normative; the normative change is §14's.
 
 ---
 
@@ -459,8 +453,8 @@ proved interpreter, with explicit source, library, diagnostic and output
 imports. At the already-selected revision
 `df499b0cb850ff0cbc790ae26e4f87b5ef08a30b`, its
 [`wcc-self-hosting` target](https://github.com/tyfkda/xcc/blob/df499b0cb850ff0cbc790ae26e4f87b5ef08a30b/Makefile)
-builds `cc.wasm`; the [MIT notice](https://github.com/tyfkda/xcc/blob/df499b0cb850ff0cbc790ae26e4f87b5ef08a30b/LICENSE)
-was read again on 2026-10-12. This is a concrete producer candidate, not
+builds `cc.wasm`; its [MIT notice](https://github.com/tyfkda/xcc/blob/df499b0cb850ff0cbc790ae26e4f87b5ef08a30b/LICENSE)
+applies to that revision (licence inspected 2026-10-12). This is a concrete producer candidate, not
 evidence that the resident port, its dependency closure or its host imports
 already meet the contract.
 
@@ -508,7 +502,6 @@ Two systems froze an execution substrate on purpose, as this design freezes its 
 **Inferno's Dis** is the better-argued objection to the Wasm choice and is recorded as an objection rather than an import. Dis is a **memory-to-memory, three-operand** virtual machine, and it is that way deliberately: a stack machine discards the operand relationships a just-in-time compiler must then reconstruct, where a three-address encoding hands them over directly, which is why Dis could be JIT-compiled simply and safely on 1990s hardware. Read against §5, the objection lands on a premise this design does not hold: there is no JIT here at all, admission is a proof check over an immutable binary (§11, §13), and the interpreter's theorems are bought by curating WasmCert, Iris-Wasm and SpecTec rather than by choosing an encoding that is easy to compile. Dis's argument is correct and its conclusion is addressed to a design that generates code at run time.
 
 **Disposition:** no import from either. The freeze is affirmed as a method by both examples and neither supplies a mechanism the profile lacks; Nock's jets are recorded as the named failure mode a curated interpreter must not reproduce, and Dis's encoding argument is recorded as answered by the absence of run-time code generation rather than by a counter-argument about encodings.
-Non-normative; no spec-body change.
 
 ---
 
@@ -523,7 +516,6 @@ Slim binaries such as Juice were also considered and rejected because a syntax-t
 
 **Disposition:** stock or profiled ELF is declined as an admitted artifact and retained only as producer-side build interchange; Juice-style mobile code is likewise declined.
 The adopted image lineage is documented in [Inspirations & Prior Art](inspirations.md).
-Non-normative; no spec-body change is made here.
 
 ---
 
@@ -534,7 +526,6 @@ The proposal is modular proof-carrying packages: a package's image, data-initial
 **What the register decides before any measurement.** R-13-028 declines a second fixed package layer across rosters by default, names the cost it accepts for that, the merge and specialization reach of R-13-010b over the package closure, and names what reopens it, the bytes-versus-WCET comparison from the R-18-014a backend with the layer's composition and reproducibility duties included. Several readings narrow that comparison before it runs. The dictionary is a freeze-time constant (R-15-036i), so encoded bytes can be roster-invariant and the only position question is R-15-036l's: a package placed per roster takes the PC-relative forms at its own sites and pays R-15-036p's escape term there, while cross-package edges are sentries through the wiring table and pay nothing. TAL-068 admits no relocatable artifact, so the CHERI-TAL derivation stays re-bound and re-checked per roster and only the CIC correspondence theorem becomes roster-invariant, which is the half R-06-015a budgets. Outlining is intra-compartment (R-15-036o), specialization does not cross a sealed sentry, and a shared service compartment is a package with an export world, so what the merge reach loses across packages is identical-function merging and the exports no roster member imports. And R-13-001b is not touched: a contract composes no reservation ahead of its occupant.
 
 **Disposition:** deferred behind the comparison, not declined. [The package-layer comparison](../implementation/comparisons/package-layer.md) states the contract with the entry that owns each clause, the objects each side re-emits, and the adoption predicate with its evidence boundary; Q31 runs it when the backend and the composed roster exist. Until then the position-fixed image and roster-wide re-lowering stand, and no relocatable artifact, second manifest, or runtime binding is introduced under this entry.
-Non-normative; no spec-body change.
 
 ---
 
@@ -553,7 +544,6 @@ The two 2025-2026 descendants of this line make the contrast crisp rather than b
 
 **Disposition:** no import as admission evidence. Three things are taken as *by-products* rather than inputs: the design should be able to **emit** SLSA-shaped provenance from the manifest so an auditor with those expectations can consume it, since a content-addressed build already names every input that varied and the emission is free; in-toto's **artifact-rule algebra** (a step's products must match the next step's materials, over digests) is worth restating in Coq over the manifest, where it is a typed pipeline over hashes rather than a signed assertion; and Sigstore's habit of documenting what its evidence does *not* prove is the posture [absence-contract.md](../hardware/absence-contract.md) already takes.
 The transparency-log machinery underneath Rekor is a separate matter and is not declined here: it is taken up in [inspirations.md](inspirations.md), where the property it carries is one no proof produces.
-Non-normative; no spec-body change.
 
 ---
 
@@ -596,7 +586,6 @@ It is the genus over three entries already present: **CHERI-Wasm** (above) is it
 
 **Disposition:** rejected as an architecture: the safety atom is already CHERI ⋈ the WIT-derived §12 IDL (byte-granular and universal, exceeding any HLLCA's typed memory), the semantic-gap closure is the verified compiler's job (FPCC ⋈ CHERI-TAL, §5), and the language-as-ISA realizations fork the whole Sail/proof substrate (the Wasm/EPIC disqualifier) while their managed-runtime forms bring the hardware GC and microcode-path checks the admission test and §10/§11 delete.
 Nothing imports.
-Non-normative; no spec-body change.
 
 ---
 
@@ -611,7 +600,6 @@ It would create a fine-grained update and authority path where the design admits
 
 **Disposition:** reject language safety as the sole isolation mechanism, the trusted runtime/GC that carries it, and runtime live evolution.
 The source-safety, TAL, error-model, and state-spill lineage retained from these systems is documented in [Inspirations & Prior Art](inspirations.md).
-Non-normative; no spec-body change.
 
 ---
 
@@ -627,7 +615,6 @@ Six Oberon-family runtime and substrate mechanisms were evaluated and declined:
 
 **Disposition:** import none of these six mechanisms.
 The Oberon method, module-key lesson, and Active Cells/Oberon-V lineage retained by the design are documented in [Inspirations & Prior Art](inspirations.md). The quiescent-point rule was retained as a proposal and is now declined on its own entry below, so it is no longer among them.
-Non-normative; no spec-body change.
 
 ---
 
@@ -655,7 +642,6 @@ Off the abandon-substrate scale (no ISA change): a convergent-structure entry li
 
 **Disposition:** no import: the exokernel's secure multiplexing and the unikernel's specialized type-safe image are already the capability kernel (§7), the powerbox (§8, §12), and the per-app compartment (§14); the OCaml / library-OS *artifacts* carry a foreign runtime and GC the platform declines.
 The structure is convergent, the assurance is higher (the multiplexer is verified, not merely minimal), and nothing lifts.
-Non-normative; no spec-body change.
 
 ---
 
@@ -689,7 +675,6 @@ Off the abandon-substrate scale (an OS structure, no ISA change): a **convergent
 
 **Disposition:** no import as an architecture: DIFC is present as the §8/§13 flow-label / IFC machinery and the §8 non-interference theorem, carried over the capability kernel (§7) and CHERI (byte-granular, exceeding HiStar's coarse container-plus-label isolation) and **proved** in Coq (§5) rather than enforced by an unverified reference monitor; HiStar's Unix emulation is the POSIX ambient-authority surface the design deletes ([userspace-porting.md](../implementation/userspace-porting.md), §14).
 The label-centric structure is convergent, the assurance is higher (verified, byte-granular), and nothing lifts.
-Non-normative; no spec-body change.
 
 ---
 
@@ -752,7 +737,6 @@ So the accurate description is that HongMeng is almost certainly the largest-sca
 
 **Disposition:** GWV is imported as a *specification idiom*, its read-and-write-footprint shape transferring directly to a machine where a step's footprint is decided by the capabilities reachable from it, and the Workhorse/ClearP decomposition transferring as the pattern for showing that a declared composition graph over-approximates real dependence; DO-333's soundness gate, its tool-qualification duty, and its on-target-test residue are imported as disciplines and named in [inspirations.md](inspirations.md)'s Muen entry where the generator theorem lands.
 The certificates, the ACL2 and Isabelle results themselves, and certification-driven assurance as an objective are declined: the first because its own profile was withdrawn, the second under the single-prover rule of §5, and the third because the claim this design makes is a theorem about a machine model rather than a set of discharged objectives, and the two do not substitute for one another in either direction.
-Non-normative; no spec-body change.
 
 ---
 
@@ -768,7 +752,6 @@ Restoring registers, stacks, in-flight calls, and a saved capability graph confl
 The capability-system lineage itself and the typed-data persistence property taken from it are documented in [Inspirations & Prior Art](inspirations.md).
 
 **Disposition:** import no runtime bank, meter, keeper, process-resume, or capability-graph checkpoint machinery.
-Non-normative; no spec-body change is made here.
 
 ---
 
@@ -782,7 +765,6 @@ The **rings** are declined because a hierarchy is a total order on privilege, wh
 What imports is **Karger and Schell's** retrospective. Their 1974 tiger-team evaluation is where the compiler trap door was first described in print, a decade before it became famous, and it is prior art for why the install path validates the delivered artifact rather than trusting the toolchain that produced it (§11, §13). Their 2002 re-reading is the better model still, this time of *how to write an absence claim*: stack-smashing was structurally difficult on Multics for three converging reasons they name and a reader can check one at a time, the stack grew toward higher addresses so an overflow wrote away from the return address, the system was written in PL/I rather than C, and execute permission was a per-segment attribute so a data segment simply was not executable. Name the class, name the structural reasons it cannot occur, let each be checked separately: that is the shape [absence-contract.md](../hardware/absence-contract.md) is already trying to have, stated by a system evaluation from 1974 and re-stated by its own authors thirty years on.
 
 **Disposition:** no mechanism imported. The single-level store is credited as the historical precedent for the single address space, the ring hierarchy and the segment descriptor are declined on the ordering and table grounds above, and the Karger and Schell papers are imported as citations, the first for the install-path checker's ground and the second as the template for how an absence claim is written.
-Non-normative; no spec-body change.
 
 ---
 
@@ -837,7 +819,6 @@ Its safety atom is exceeded by CHERI, its identity-temporal atom is banked (or a
 **Disposition:** no import as an architecture: the object memory model's spatial safety is byte-granularly exceeded by CHERI (§1, §8) without the OID indirection; its identity-based temporal safety is already met by budgeted revocation ⋈ the load filter (§8) ⋈ CHERI-TAL linear/affine types (§5, §13) and admissible only as a transparent generation-tag plane, never the hardware object table (which is the MMU this design deleted, below, generalized per-object); and its single-level store, relocation, and GC are the orthogonal persistence the Historical capability machines entry (above) declines and the autonomous relocation / managed runtime the admission test and §10 ban.
 The elegant synthesis (object identity ⋈ capability enforcement) is *already the design*: content-addressed objects (§10) resolved to CHERI capabilities at compose and storage time by the wiring table (the content-addressed capability image entry in [Inspirations & Prior Art](inspirations.md)), TAL-typed (HLLCA, above) and explicitly, verifiably persisted (§10), the object graph resolved statically and once rather than by a runtime hardware table.
 The platform axiom decides it as ever: resolve the object model into capabilities ahead of time and delete the runtime indirection, rather than pay a per-dereference object-table tax to buy persistence and relocation the design refuses.
-Non-normative; no spec-body change.
 
 ---
 
@@ -883,7 +864,7 @@ What genuinely goes is the non-blocking part, and it is booked rather than argue
 
 **Disposition:** declined, on grounds other than ambient authority. µFork retires the historical impossibility argument and tractability is not the binding constraint: static composition mints no compartment at runtime (R-14-009), there is no write barrier to build copy-on-write on (§15, R-15-181, admission tests 2 and 3), the reference relocation it needs is banned (R-08-020, admission test 5), and the copies are uncharged in a closed capacity equation (R-08-045).
 Its four uses land on the composition graph and the origin pool, crash-only restart, compose-time wiring, and the versioned storage stack respectively, and on the performance axis it is a compression of costs this machine does not pay, so admitting it against the grounds would cost the store path its fixed latency and return nothing.
-Non-normative; the normative side is R-02-001's criterion, which decides the `fork()` clause by static composition rather than by ambient authority.
+R-02-001's criterion decides the `fork()` clause by static composition rather than by ambient authority.
 
 ---
 
@@ -919,7 +900,6 @@ Off the abandon-substrate scale: a convergent / subsumed entry: the design is an
 
 **Disposition:** no import: hardware enclaves defend against transient-execution and shared-microarchitecture channels the in-order, non-speculative, cacheless, single-address-space profile deletes (§15), and their coarse PMP realization (Keystone) is the mechanism CHERI exceeds (the drop-PMP rationale in [Inspirations & Prior Art](inspirations.md)); the attested isolated compartment and the small verified monitor are already the CHERI compartment ⋈ measured root (§9, §12, §14) and the verified kernel ⋈ RoT (§7, §9).
 The MI6/Kôika formal-HDL lineage is shared as a *verification* vehicle (§18); the enclave product is not needed.
-Non-normative; no spec-body change.
 
 ---
 
@@ -945,7 +925,6 @@ Second, and this is the most important 2026 result in the survey, **attestation 
 No rigorous published comparison with OpenTitan exists; on the available evidence OpenTitan is the more auditable choice, carrying uniform Apache 2.0 licensing against Caliptra's split specification terms, a public per-IP design-verification coverage dashboard, and RTL known to correspond to high-volume shipped silicon, and its selection stands. Three things import anyway: Caliptra's **written non-goals section**, which is a specification practice this repository already keeps and should credit; its **peer rather than hierarchical** trust model; and its explicit statement of which physical attacks are in and out of scope. Upstream implementation status is separate from the selected design: this platform's bespoke OpenTitan-class root already requires SLH-DSA at immutable ROM and ML-DSA above it (R-05-058c), without claiming those verifiers are implemented here or inherited from the upstream block. Caliptra's post-quantum endorsement support is a realization reference, not evidence of an omitted local suite decision.
 
 **Disposition:** no import of any secure world, security monitor, trust domain, realm, or on-die co-resident privileged operating system; the structure is declined at §4 rather than the vendors at §17, and the memory-encryption mechanism is declined at the entry below on the ground this one supplies from Apple's own architecture. Imported as disciplines: mechanism-not-policy for an enforcement core, the enumerated-vector pre-release adversarial review, written non-goals, and an explicit invasive-versus-non-invasive physical boundary. The R-12-015c attestation construction and implementation connection remain open proof work; the single-root fabrication question remains within §17's physical supply-chain scope. This entry credits neither as closed by its selection of a root.
-Non-normative; no spec-body change.
 
 ---
 
@@ -1014,7 +993,7 @@ A deletion qualifies as a pure simplification only if it clears all five gates:
 | **Delete indexed gather/scatter and segment load/store** | 2 | Large surface with per-element capability checks (R-15-115), but segment load/store is the AoS-to-SoA path the radio and codec kernels on the V-class need most. Deleting it moves the cost into every kernel's inner loop. |
 | **A hardware store-buffer bypass predictor**, or any dynamic ordering optimization | 3, 4 | Hidden state that survives a partition switch fails admission test 3 outright (R-15-011). The recovery gate below rejects the whole class. |
 
-**Disposition:** rejected as pure simplifications. Each deletion either costs performance, relocates its surface into software, sheds a security property, or contradicts the profile's established deletion grounds. Non-normative; no spec-body change.
+**Disposition:** rejected as pure simplifications. Each deletion either costs performance, relocates its surface into software, sheds a security property, or contradicts the profile's established deletion grounds.
 
 ---
 
@@ -1430,7 +1409,6 @@ It is admitted on no security ground whatever, and this entry exists so that the
 The security-oriented family (7T power-analysis, 8T dual-rail-precharge, 11T domino, symmetrical 8T, PMOS-reading 9T, symmetric 12T) and the cheaper periphery randomization unit are both **declined as platform mechanisms**, under R-17-058a's existing test rather than a new one.
 Re-open on the four conditions R-17-058a's test states, the same four the crypto core's masking meets (R-05-004a, R-15-053a): a probing- or leakage-model statement for the array authored as a crown-jewel specification beside the `Zkt`/`Zvkt` and probing ones, the array's data-independence theorem carried as a §5 obligation and verified on the artifact, the composition property shown to survive the macro rather than the cell, and any randomness booked against the entropy root and the §11 slot.
 Until those exist, a capacity sacrifice would buy attenuation the document cannot state and would spend the roster's stated floor to do it.
-Non-normative; no spec-body change, with one exception recorded next.
 
 **Honest residual (§17), and it is not currently named anywhere.** R-17-058a scopes the analog channel to the crypto core *in operation*, and R-17-059 scopes the memory path to invasive attack. Leakage power analysis sits in neither: it reads an array's static current while nothing is being accessed, and power mechanism 5 holds crown-jewel arrays in **RETAINED** at a reduced rail for exactly the long, quiet, locked standby interval R-15-189b says the battery spends its life in, which is unbounded integration time against a stationary target on the one machine-wide resource. The reduced retention rail raises leakage's share of total current, and the admitted leakage levers (asymmetric-Vt storage core, gate-length biasing) shape the very quantity such an attack measures. This does not change the disposition above, the class remaining physical-scope and answered by no mechanism either way, but it is a distinct exposure window from the one §17 records and it wants its own residual entry rather than being read as covered by the crypto-core one.
 
@@ -1508,7 +1486,7 @@ MRAM is the strongest non-volatile main-memory candidate, so it carries the deta
 **The steelman: the idle-power win and the SOT device progress are both real.**
 The magnetic state draws essentially no cell-retention power and needs no refresh, directly attacking the largest honest cost of the all-SRAM choice; only the decoders, sense amplifiers, ECC, encryption, fabric, and write drivers remain powered.
 The 2T SOT topology also improves on 1T STT: the read current crosses the MTJ while the write current runs through the SOT channel, separating read and write optimization, sharply reducing read disturb, and keeping the high write current out of the tunnel barrier.
-The silicon evidence is no longer merely a device promise. **"Demonstration of 128 Kb SOT-MRAM chip with 5 ns write and 15 ns read speed, high endurance over 10^10 and low ECC-on bit error rate"** (IEDM 2024, [DOI](https://doi.org/10.1109/IEDM50854.2024.10873510)) is a fabricated chip result; [Truth Memory's 8 Mb SOT-MRAM chip](https://www.mram-info.com/truth-memory-corporation-developed-worlds-first-8mb-sot-mram-chip-using-110-nm-process) (January 2026) is the array-scale mark, a 110 nm multi-bank part with redundancy and on-chip ECC on a wafer-level 200 mm flow compatible with mainstream CMOS back-end processing, reporting sub-nanosecond writes below 1 pJ/bit at write-error rates down to 10^-6, and now in pilot/early production of standalone parts (vendor press reports a first deployment in a drone flight controller, mid-2026); **"Unveiling the endurance limit of SOT-MRAM"** (Jiang et al., *Nano Research* 2026, [DOI](https://doi.org/10.26599/NR.2026.94908447)) fabricates and cycles a 2 Kb array and, after material and geometry optimization, reports endurance beyond 10^18 cycles at 125 °C.
+The silicon evidence includes a chip demonstration. **"Demonstration of 128 Kb SOT-MRAM chip with 5 ns write and 15 ns read speed, high endurance over 10^10 and low ECC-on bit error rate"** (IEDM 2024, [DOI](https://doi.org/10.1109/IEDM50854.2024.10873510)) is a fabricated chip result; [Truth Memory's 8 Mb SOT-MRAM chip](https://www.mram-info.com/truth-memory-corporation-developed-worlds-first-8mb-sot-mram-chip-using-110-nm-process) (January 2026) is the array-scale mark, a 110 nm multi-bank part with redundancy and on-chip ECC on a wafer-level 200 mm flow compatible with mainstream CMOS back-end processing, reporting sub-nanosecond writes below 1 pJ/bit at write-error rates down to 10^-6, and now in pilot/early production of standalone parts (vendor press reports a first deployment in a drone flight controller, mid-2026); **"Unveiling the endurance limit of SOT-MRAM"** (Jiang et al., *Nano Research* 2026, [DOI](https://doi.org/10.26599/NR.2026.94908447)) fabricates and cycles a 2 Kb array and, after material and geometry optimization, reports endurance beyond 10^18 cycles at 125 °C.
 The architecture-level upside also has a steelman: **"A Detailed Study of SOT-MRAM as an Alternative to DRAM Primary Memory"** (*IEEE Access* 2024, [DOI](https://doi.org/10.1109/ACCESS.2024.3352151)) projects a 74.05% power reduction, a 72.85% energy-delay-product reduction, and at most a 3.71% latency penalty for its evaluated full-main-memory systems.
 That last result is simulation, not silicon, and its own abstract says public SOT-MRAM parameters were unavailable, so it is evidence that the cross-stack case can close under a plausible parameter set, not evidence that a manufacturable array has closed it.
 CHERI tags and ECC remain compatible: an MRAM word can carry the native validity bit beside the data exactly as SRAM does, and ECC should cover the stored ciphertext and tag plane before authentication or decryption. Neither compatibility decides the substitution.
@@ -1580,7 +1558,6 @@ It remains deferred because the evidence is separated by five orders of array ca
 **Disposition:** reject the wholesale **all-CAAC-IGZO, all-SOT-MRAM single-level store** as the base, and keep bespoke volatile SRAM normative (§15).
 **Reject** large-array 2T SOT-MRAM substitution with semantic separation. The ground is not the obsolete claim that all MRAM necessarily needs wear leveling, and within the capacity class it still ranks second on the axes stated; it is that **the class has an occupant** (R-15-247, the next entry), so admitting this candidate would mean displacing an adopted class rather than filling an empty slot. The two acts carry different burdens, and the six measured triggers above are written against the lower one. The oxide gain-cell candidate reaches the same idle-power and stacking atom without non-volatility, a line cipher, or the magnetic fault surface, and its bounded power-off remanence is answered by explicit tag invalidation and pre-admission sanitization rather than by a per-boot cipher.
 FeRAM, ReRAM, and ferroelectric-FET non-volatile SRAM remain rejected as base main memory for their separate device and remanence grounds; [Kepler's embedded ferroelectric proposal](#kepler-ferroelectric-memory-a-deferred-bulk-medium-candidate) is evaluated separately as a deferred candidate, not an adoption. Removing the SSD remains a later capacity decision, not a consequence of admitting SOT working memory.
-Non-normative; no spec-body change.
 
 ---
 
@@ -1665,7 +1642,7 @@ The seven measured triggers this entry sets are **qualification gates rather tha
 
 **The published array does not yet answer the replacement question.** Its cell area is not usable density for a same-die protected macro. It does not establish native capability tags, data and tag ECC, atomic granule updates, repair, fixed worst-case service under the full refresh schedule, or the RoT-controlled authority invalidation and data sanitization R-15-247m requires. A capacitor may permit a different reset construction from the gain cell's whole-bank discharge through its write devices, but that construction needs its own bounded, verified sequence; retention and eventual decay cannot stand in for one. The cited retention figures also do not supply the hot-corner, end-of-life floor or the cold-corner remanence ceiling that set this machine's refresh and reset contracts. These are gaps in published qualification for this use, not claims that OCTRAM cannot meet them.
 
-**Disposition:** defer 1T1C IGZO as a substitute for the oxide 2T0C bulk class; it adds no third latency class and changes no current capacity figure. Reopen on a head-to-head repaired macro comparison at the same integration site, with full tags, ECC, repair and reset, reporting usable density, worst-corner read and write constants including restore and refresh conflicts, bank bandwidth and power at capacity, disturbance under adversarial access, and a fixed maintenance schedule. The 275 Mbit array gives this candidate a credible scaling advantage; the comparison must determine whether that advantage survives the protected macro and its distinct controller obligations. Non-normative; no spec-body change.
+**Disposition:** defer 1T1C IGZO as a substitute for the oxide 2T0C bulk class; it adds no third latency class and changes no current capacity figure. Reopen on a head-to-head repaired macro comparison at the same integration site, with full tags, ECC, repair and reset, reporting usable density, worst-corner read and write constants including restore and refresh conflicts, bank bandwidth and power at capacity, disturbance under adversarial access, and a fixed maintenance schedule. The 275 Mbit array gives this candidate a credible scaling advantage; the comparison must determine whether that advantage survives the protected macro and its distinct controller obligations.
 
 ---
 
@@ -1691,7 +1668,6 @@ A single medium collapses two §11 constants into one, which is the simplificati
 
 **Disposition:** decline X-SRAM as a substitute for either class, and decline the single-medium form outright.
 Should the cell prove latched, its place is R-15-159's list of static transistor-level density levers beside CFET, gate-all-around, and High-NA, which adds no runtime behavior and moves no class boundary; that placement is a qualification input under R-15-247m, not a class decision. Re-open the bulk side only against a published cell mechanism, a retention corner measured on the actual channel, a back-end-compatible integration route that is not bonding, and a repaired megabit-class macro carrying tag, ECC, and repair.
-Non-normative; no spec-body change.
 
 ---
 
@@ -1894,7 +1870,6 @@ Reject **gate-level reversibility and fully adiabatic charge recovery as the dat
 Their side-channel benefit is real and is declined as a *reason*, because the class it would improve is answered by the masked crypto core's theorems rather than by rail quietness (R-05-004a, R-17-058a), and because a logic-family leakage claim is the silicon axiom without the theorem masking pays for it with.
 Defer **resonant clock distribution on the clock network alone**, lever (4), as the one separable atom, behind the three triggers above; it is the only part of this proposal that is production-proved, architecture-neutral, and activity-independent.
 **Record that no amendment is owed for future-proofing:** R-15-157 already admits a substrate that holds identical architectural state without touching the Sail model or the refinement, so a gen-2 adiabatic realization of this ISA needs nothing added here, and the levers that *would* need an early commitment are the two rejected on their own merits.
-Non-normative; no spec-body change.
 
 ---
 
@@ -1989,7 +1964,6 @@ Reject **multi-level storage as a normative bitcell**, lever (3), on being a 1.5
 The third value's use as a NULL spacer for power-analysis resistance is declined at R-17-058a's test exactly as the adiabatic families and the security bitcells are, and is noted as non-additive with the density case in any event.
 **Record that no amendment is owed for future-proofing**, on the finding the adiabatic entry above states once: R-15-157 already admits every density-carrying realization of this ISA, so a gen-2 part may encode three levels on a wire or in a cell with nothing here moving, and the levers that *would* need an early commitment are the ones rejected on their own merits.
 The platform axiom decides it as ever (*trust is the scarce resource, engineering is free, delete rather than defend, performance is subordinated*): a 1.585× bought with a halved noise margin, a value-dependent latency, and a data-dependent static current spends three scarce axes to buy the free one.
-Non-normative; no spec-body change.
 
 ---
 
@@ -2138,7 +2112,6 @@ A computational analysis of any of the four protocols remains welcome as further
 The raise is named: conferring reference-model rows for the TLS and WireGuard client state machines, with the same refinement obligation, would extend the same narrowing at the same price.
 
 **Disposition:** the four radio reference machines take curated symbolic upstreams under R-12-043e with the R-12-043f remainder booked; the three alternatives above are declined on the grounds stated.
-Non-normative; the normative change is §12's.
 
 ---
 
@@ -2205,7 +2178,6 @@ It is logged only as a **spec-freeze-contingent gen-2 direction** (terminus of t
 The one distilled atom: a verified hardware block for a genuinely-frozen separable primitive; is **already banked as CHERI** (§1); a verified **Kôika scheduler/timer** block is admissible in principle but too small to be the proposal, and stays non-normative.
 The **RealFast RTU / Sierra** line and the TRON project's **STRON** are functional references that RTOS-in-gates is real and deterministic, **not** admissible artifacts: unverified VHDL/HDL, a dynamic-priority/semaphore shape the §15 admission test deletes, and accelerators that keep the software kernel rather than replacing it.
 STRON carries the additional weight, being a *standardized* frozen kernel API realized in silicon and still shipped as a coprocessor: the freeze premise the steelman needs is available in the historical record and did not produce whole fusion there either.
-Non-normative; no spec-body change.
 
 ---
 
@@ -2217,7 +2189,7 @@ The observation is correct and is already the stated scope of the split, not a d
 
 The saving is also the smaller half of the seam. R-13-028 already puts the deep composed proofs at release time bound into the measured-boot root, and R-13-027 keeps the toolchain an untrusted producer whose output is checked wherever it ran, the device's own build included; what remains on the install path is one artifact-local theorem per install. The stratification is by **proof scale**, and re-cutting it at the **device boundary** deletes the cheap half and pays for it with the binding.
 
-**Disposition:** declined. The CIC kernel stays on the install path and the per-install source-correspondence check is mandatory on-device, with no release-time substitute (R-05-026, R-05-027, R-06-008, R-06-010, R-13-027). Non-normative; the normative position is unchanged and no spec-body change is made by this entry.
+**Disposition:** declined. The CIC kernel stays on the install path and the per-install source-correspondence check is mandatory on-device, with no release-time substitute (R-05-026, R-05-027, R-06-008, R-06-010, R-13-027).
 
 ---
 
@@ -2232,7 +2204,6 @@ Astrée is a closed commercial analyzer whose soundness rests on a published bod
 **Frama-C** is the near miss and deserves the more careful sentence: ACSL contracts discharged by the WP plugin, with a documented Coq output path for the goals automation leaves, is architecturally the closest external tool to this project's own discipline, and it is open (LGPL). Its default lane nonetheless runs through Why3 to SMT solvers, so importing it means adopting SMT-borne results and re-homing them, with the Coq path the exception rather than the road; it is declined as a base and noted as the tool a future cross-check would most plausibly use. **Polyspace** is declined on the same ground as Astrée with less to recommend it, being proprietary and offering a four-colour classification rather than an artifact.
 
 **Disposition:** none of the three enters the trusted base. Two things import instead, and both are lists rather than tools: **Astrée's enumeration of run-time-error classes** and **Polyspace's green/red/orange/grey verdict partition** are the clearest published statements of what "absence of run-time errors" has to cover, and they are a checklist to run [absence-contract.md](../hardware/absence-contract.md) against. The pattern is worth naming once because it recurs across this document: a tool that delivers a verdict rather than a checkable artifact fails the same test whether the reason is closed source, evaluation under confidentiality, or testing in place of proof, and Astrée, Polyspace, a commercial deterministic-simulation platform, and a certification-scheme security model all fail it for that one shared reason rather than for four different ones.
-Non-normative; no spec-body change.
 
 ---
 
@@ -2245,7 +2216,6 @@ The line's frontier has moved past plain constant-time to *speculative* constant
 
 **Disposition:** decline CompCert-CT as a replacement for artifact-level CT admission and decline every compiler-pedigree-only admission route. Its CT-friendly lowering methods and negative cases remain usable in the ordinary C/IR producer under R-05-066, with final source correspondence, functional, CT, masking and resource evidence retained. This introduces no CT conjunct into the CHERI-CompCert theorem (R-05-063), and any claimed reduction in rejected artifacts or proof cost requires measurement.
 The artifact-level constant-time verification actually used, including its cost and residual, is documented in [Inspirations & Prior Art](inspirations.md).
-Non-normative; no spec-body change.
 
 ---
 
@@ -2326,7 +2296,6 @@ Jitk's reusable idea is imported instead and is already the shape of the design:
 **CompCertTSO** is declined on the plainest ground available: its entire subject is relaxed-memory concurrency over x86-TSO, and a machine with no shared mutable memory between components has no TSO problem to have. It is worth citing exactly once, as evidence that the share-nothing choice is a **proof-cost** decision and not merely a performance one, since the relaxed-memory reasoning it exists to supply is reasoning this design never has to do.
 
 **Disposition:** no import of a run-time code generator in any form, on the authority ground above and never on a claim that such a thing cannot be verified; Jitk's ahead-of-time-translation-against-a-mechanized-guest-semantics pattern is already the design's own and is credited here; Vellvm and CompCertTSO are declined as trust-base members for target-language and subject-matter reasons respectively.
-Non-normative; no spec-body change.
 
 ---
 
@@ -2339,7 +2308,7 @@ The steelman is exact: the seam this lineage deletes is the one R-05-023 pays fo
 Three atoms are banked. The **statement shape**, one theorem, application specification to ISA, trusted base equal to kernel plus machine model, is the external review benchmark the R-18-032 composition statement should be read against when the apex theorem's seams are audited. The **driver economics**, a verified performant NIC driver at single-digit person-months in a language whose theorem reaches the binary, is external calibration for the certifying-toolchain estimates, on the record even though the vehicle is declined. And **in-logic emission** is kept as vocabulary: it is the limiting shape of the R-05-023a instrument (a validation record over an emission the prover already owns is trivially discharged), worth restating if the base image's composer is ever re-homed into Coq.
 
 **Disposition:** declined for the compiler slot; CHERI-CompCert and the R-05-023a instrument stand, and CakeML, Pancake, and the Bedrock2 compiler import in no part. The three atoms above are banked as benchmark, calibration, and vocabulary, none a workstream.
-Non-normative; the normative change reviewed alongside this entry is §5's R-05-023a, recorded in the spec body rather than here.
+R-05-023a governs post-compilation validation.
 
 ---
 
@@ -2352,7 +2321,6 @@ The record carries one axis the deletion's arithmetic does not price, and this e
 The deletion stands for the additional checker, while applicable search and scheduling methods remain ordinary untrusted producer work under R-05-066. No new checker or assembly-leaf exception follows from reusing them. The second yield is one this platform buys elsewhere: R-05-026 already states every certificate at binary level, and R-05-023a names the general instrument, decompilation into logic over the pinned Sail term, of which a straight-line equivalence checker is the loop-free special case. A second, narrower validator standing beside the named instrument would be an interim with no retirement story, the shape §5's inventory discipline exists to prevent, and the throughput it would re-buy remains surrendered by the deletion's own arithmetic.
 
 **Disposition:** the deletion stands; R-05-064, R-06-026, R-18-022, and R-05-065 are unchanged. One falsifier is booked: if the R-05-023a instrument, once built, cannot close the straight-line kernel classes (field arithmetic, the codec inner loops) at tolerable proof cost, the equivalence checker is the named fallback for exactly those classes, its modern evidence the record above, and re-opening it is triggered by that measurement rather than by calendar.
-Non-normative; no spec-body change.
 
 ---
 
@@ -2382,7 +2350,6 @@ The proposal is that an untrusted constraint or pseudo-Boolean solver emits a pr
 - Identify every remaining rule the proposed route would change, including R-05-066 for a new optimizer checker, R-05-104 for any ILP integration, and the admission inventory for any new trusted ground. An external-verdict route also needs an explicit decision against R-05-016; a kernel-checked producer does not acquire that conflict by program count alone. Land the reviewed contract, acceptance predicate and implementation estimate before commissioning the work.
 
 Passing a finite-model test alone satisfies none of the missing composition or admission conditions. The work remains declined until the decision case and contract pass review; admission remains refused until their proof and rule conditions are met. This is not an unpriced open implementation task. No register amendment, new implementation cell, candidate adoption or product infeasibility claim follows from this decision.
-Non-normative; no spec-body change.
 
 ---
 
@@ -2408,7 +2375,6 @@ Every serious effort in the line either removed address translation from the cod
 The caution travels with it and is this project's own risk rather than a borrowed one: nothing in that literature proves anything about a capability *architecture* as the isolation mechanism, seL4's capabilities being software objects, so the Sail model moves from a convenience to a load-bearing artifact, and **Serval found a bug in the Sail RISC-V specification** along with two in QEMU and two in a shipping SiFive U54 core, one of the latter creating covert channels through readable performance counters. That is the argument for [differential-corpus.md](../assurance/differential-corpus.md) stated by somebody else's finding.
 
 **Disposition:** the design thesis is adopted and credited to Nickel in [inspirations.md](inspirations.md), including its six interface rules and its unwinding architecture with untrusted invariant and equivalence; Z3, Rosette, Dafny, Boogie, and their LLVM IR and ISA-interpreter encodings are declined as trust-base members under §5's single-prover rule; the finiteness discipline (a constant number of objects touched per operation, independent of state size), metadata in arrays rather than linked structures, and linked structures demoted to untrusted hints validated on use are banked as design atoms carrying no prover with them.
-Non-normative; no spec-body change.
 
 ---
 
@@ -2419,7 +2385,6 @@ R-06-014 books the two checkers' binaries as the one irreducible trusted residua
 It is deferred rather than adopted for two reasons. The machinery it rides is the R-05-023a instrument, which is unbuilt, and sequencing the upgrade ahead of the instrument inverts the dependency. And DDC plus measurement is not wrong but weaker, so the upgrade competes for scarce-axis spend only once the instrument is amortized on the records it exists for.
 
 **Disposition:** deferred behind a named trigger: when the R-05-023a instrument closes its first non-fast-path artifact, the TAL checker binary is its next subject, and R-06-014's story is restated with the theorem ahead of the diversity argument. Until then R-06-014 is unchanged.
-Non-normative; no spec-body change.
 
 ---
 
@@ -2459,10 +2424,9 @@ The corpus holds one thesis in five places without naming it, and the external r
 
 The instances: the platform Wasm engine ships as a verified extracted interpreter, the semantics and evaluator arriving with their theorems attached (R-14-013b); the Coq-native generators, Vélus, Narcissus, Fiat-Crypto, are specifications whose output is the artifact, admitted freely as proof transport (R-05-021); the RTL evidence rung runs commercial equivalence checking against SystemVerilog generated from the Sail model (R-15-090); Pydrofoil is tracked in the entry above as a golden-loop accelerator, the specification made fast enough to sit at; and hs-to-coq carries seL4's executable model in as a refinement target rather than a paraphrase. The external record is the same shape shipped: WasmRef-Isabelle running as a verified oracle inside Wasmtime's continuous integration, SpecTec making the Wasm standard's text an executable artifact, and CHERIoT-Ibex proving production silicon against RTL generated from its Sail specification.
 
-The boundary, already implicit in the five and here stated once: an executable specification may ship, or generate what ships, exactly when its generator is verified in the one prover or its output is re-checked by a named checker on the artifact; an unverified generator is the K-framework shape the guest-language entry already declines; and a lineage-independence role (R-17-048a) is never filled by anything generated from the specification it is meant to check. What naming the thesis buys is adjudication: the next executable-spec proposal is read against one stated boundary instead of rediscovering these instances one entry at a time.
+The boundary is: an executable specification may ship, or generate what ships, exactly when its generator is verified in the one prover or its output is re-checked by a named checker on the artifact; an unverified generator is the K-framework shape the guest-language entry already declines; and a lineage-independence role (R-17-048a) is never filled by anything generated from the specification it is meant to check. What naming the thesis buys is adjudication: the next executable-spec proposal is read against one stated boundary instead of rediscovering these instances one entry at a time.
 
 **Disposition:** nothing changes; the thesis and its boundary are recorded for future entries to cite.
-Non-normative; no spec-body change.
 
 ---
 
@@ -2520,7 +2484,6 @@ Off the abandon-substrate scale entirely: this is a tooling question, not an arc
 
 **Disposition:** no import as the language of record.
 The RTL of record stays Kôika/Kami for the net-new blocks, with imported cores entering as references under Sail-generated SystemVerilog plus commercial FEV (§15), because the choice turns on which HDL's semantics is mechanized in the one prover and not on which is pleasanter to write; Hardcaml and its genus are admissible only as untrusted generators or simulation cross-checks, which is the slot the existing scaffolding already fills.
-Non-normative; no spec-body change.
 
 ---
 
@@ -2550,7 +2513,6 @@ Off the abandon-substrate scale: a verification *technique*, not an architecture
 
 **Disposition:** logged as a bounded **complement**: SecVerilog-style IFT types (and GLIFT gate-level tracking) as a bring-up cross-check on the transceiver, crypto-core, and cache/NoC-partition RTL; **not** the closing axiom; the timing-sensitive non-interference obligation is closed Coq-native by the relational-Sail-logic certificate over the timing-annotated model (§5, §15), and a Z3 / typed-HDL information-flow tool is the same trust-base widening the platform books for Binsec/Rel and aiT.
 It rides the existing hyperproperty slot, so nothing new imports.
-Non-normative; no spec-body change.
 
 ---
 
@@ -2579,7 +2541,6 @@ The ecosystem's own verification push has teeth: whole opcode-set soundness proo
 Rejected on **motivation**, one level above cost: like Wasm-as-substrate, it trades for a property the Goals do not seek (third-party verifiability of a remote execution) that FPCC ⋈ attestation already exceed for the local threat model; off the ILP ranking entirely, since it is not an ILP play.
 
 **Disposition:** rejected as an execution substrate, the FPCC discipline already banks proof-carrying artifacts *statically and per-input* (stronger than a per-execution transcript), attestation already gives a remote party a reproduced account of what runs (§9), and RTL ⊑ Sail already proves the machine executes the ISA faithfully (§18); a zk verifier is admissible only as an ordinary **application-level tool** for checking a specific untrusted third-party computation, never a system execution model, and its six-order overhead is the wrong trade on the one axis the platform spends.
-Non-normative; no spec-body change.
 
 ---
 
@@ -2610,7 +2571,6 @@ The shipped deployments sit exactly there: Apple's production homomorphic PIR (L
 Rejected on **motivation**, one level above cost: with zkVM and Wasm-as-substrate, it trades the substrate for a property (confidentiality against a distrusted executor) the Goals do not seek for the local threat model, where the die boundary ⋈ isolation ⋈ at-rest AEAD already give confidentiality against the threats that *are* in scope; off the ILP ranking (not an ILP play), and paired with the zkVM entry as the two cryptographic-computing models rejected on threat-model + overhead.
 
 **Disposition:** rejected as an execution substrate, FHE/MPC protect a computation from a distrusted host, a threat model this trusted, verified personal device is not in (confidentiality here is the die boundary ⋈ the crypto-core boundary ⋈ CHERI/IFC ⋈ at-rest AEAD, §8/§10/§15, against the threats actually in scope), and their 10³–10⁶× overhead is the wrong trade on the one axis the platform spends; FHE/MPC primitives are admissible only as **application-level tools** for privacy-preserving interaction with an untrusted *remote* party, never a system execution model, the confidentiality sibling of the zkVM entry's verifiable-computation rejection.
-Non-normative; no spec-body change.
 
 ---
 
@@ -2720,7 +2680,6 @@ Its language-level instantiation is Ada's **Ravenscar profile** (IRTAW 8, 1997; 
 - **Any published work-conserving scheduler carrying an offline-time leakage proof.** This is the one result that would reopen this entry and with it the whole reservation-based family. None exists as of August 2026, and the current literature runs the other way: new scheduler side-channel attacks and leakage quantification on one side, and on the other mitigations that obtain privacy precisely by surrendering work conservation or adding pacing delay. Gong and Kiyavash argue the proof cannot exist for deterministic schedulers, but their model is a shared queueing server rather than a partitioned CPU, so the impossibility is narrower than a casual reading makes it: a gap now a decade old, neither closed nor exploited.
 
 **Disposition:** fixed-priority, dynamic-priority, and reservation-server scheduling are declined for the time-triggered, non-work-conserving cyclic executive R-07-032, R-07-036, and R-07-038 state, R-07-035 deleting the strongest verified instance of the declined class; the inner-scheduling entry below bounds how far scheduling flexibility returns inside a confidentiality label; re-openable only on the offline-time-proof trigger above. The platform axiom decides it as ever (*trust is the scarce resource, performance is subordinated*): the declined family buys back idle time, the freely-spent axis, and pays in the timing channel and the proof mass, the scarce ones.
-Non-normative; no spec-body change.
 
 ---
 
@@ -2894,4 +2853,3 @@ The proposal is to re-author [model/c_emulator/](../../model/c_emulator/), the h
 **What would reopen this is stated rather than left implicit.** If the Sail backend ever emits a stable C ABI instead of a C++ base class, the threshold fact goes and the question is a cost comparison rather than a category one; and if a harness defect ever reaches a verdict the digests do not catch, the residual above stops being held and the ground it rests on is owed again.
 
 **Disposition:** declined; [model/c_emulator/](../../model/c_emulator/) stays C++ and stays vendored, and new harness code is authored in C++ on the generated side of the seam like the commit-trace callbacks already are. Two residues carry forward: the golden loop's speed is Pydrofoil's to move, per the entry above, and the harness's own defect class is held by the corpus digests and K-85 rather than by a language.
-Non-normative; no spec-body change.

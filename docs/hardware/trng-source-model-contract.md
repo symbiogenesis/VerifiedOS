@@ -141,7 +141,7 @@ Every row has an owner and no row has a placeholder. A row whose owner is the su
 
 **No artifact fixes the health tests' false-positive rate.** It is an input to every cutoff and so to `N_detect`, and it is not the supplier's to choose alone: a rate is a statement about how often a good part halts the boot, which is a product decision. Owed at R-15-241b.
 
-**Cold-boot latency is bounded by a constant whose ceiling is proposed.** R-09-006b makes the composed boot's worst case a composition constant with the start-up budget over TM-3 as one term, so the detection term now has the counterweight this section once reported as absent; the ceiling it is read against, DP-7 of the product-gate contract, is proposed, so a submission can still satisfy every clause of §5 with a budget that fails the gate as a reading and not as a verdict until the product's owner ratifies it. Owed at DP-7's ratification.
+**Cold-boot latency is bounded by a constant whose ceiling is proposed.** R-09-006b makes the composed boot's worst case a composition constant with the start-up budget over TM-3 as one term, and the ceiling it is read against, DP-7 of the product-gate contract, is proposed, so a submission can still satisfy every clause of §5 with a budget that fails the gate as a reading and not as a verdict until the product's owner ratifies it. Owed at DP-7's ratification.
 
 ## 9. Assignment and selection acts for the owed inputs
 
