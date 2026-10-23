@@ -21,7 +21,8 @@ one admitted plan and fifteen variants each moving one declared quantity, and st
 that drifted from the file would admit a plan the file refutes or refuse the one it
 admits. The granule port is held separately, against R-15-007c's own figures the file
 states at `the_two_regimes_meet_at_the_threshold` and against every declared granule
-count of the demo plan.
+count of the demo plan. The admission CLI exposes an exact-check refusal through
+its exit status as well as its printed verdict.
 
 **The enumerator is complete over what it declares.** On a two-region toy the grid is
 counted by hand and every point is decided, pruned or admitted, with the standing point
@@ -32,11 +33,14 @@ among them.
 the bytes tracked, or the repair command is named.
 """
 
+from contextlib import redirect_stdout
 from dataclasses import replace
+from io import StringIO
 
 from tests.harness import Case, ensure
 from vos import corpus as corpus_mod
 from vos import memplan
+from vos.cli import placement
 
 # R-15-007c's two regimes as the `.v` states them at
 # `the_two_regimes_meet_at_the_threshold`: byte-exact below 128, then the coarsest power
@@ -411,6 +415,18 @@ def _the_port_agrees_with_the_proof_file_on_every_plan() -> None:
            "pool_fits reads the origin roster's first-class bytes against the budget")
 
 
+def _admission_cli_status_matches_verdict() -> None:
+    for name, refused in [(memplan.STANDING, []), *_REFUSALS.items()]:
+        output = StringIO()
+        with redirect_stdout(output):
+            code = placement.main(["admit", "--plan", name])
+        ensure(code == (1 if refused else 0),
+               f"{name}: admission exit status disagrees with its verdict: {output.getvalue()}")
+        verdict = "refused by " + ", ".join(refused) if refused else "admitted"
+        ensure(f"verdict: {verdict};" in output.getvalue(),
+               f"{name}: admission diagnostic lost its exact refusal: {output.getvalue()}")
+
+
 def _the_enumerator_is_complete_over_the_toy() -> None:
     plan = memplan.plan_of(memplan.parse(_TOY), "demo_plan")
     found = memplan.enumerate_island(plan, 0)
@@ -488,6 +504,7 @@ def cases() -> list[Case]:
              _the_granule_port_is_the_entry_s_own_figures),
         Case("the-port-agrees-with-the-proof-file-on-every-plan",
              _the_port_agrees_with_the_proof_file_on_every_plan),
+        Case("admission-cli-status-matches-verdict", _admission_cli_status_matches_verdict),
         Case("the-enumerator-is-complete-over-the-toy",
              _the_enumerator_is_complete_over_the_toy),
         Case("the-score-reads-what-a-base-can-move", _the_score_reads_what_a_base_can_move),

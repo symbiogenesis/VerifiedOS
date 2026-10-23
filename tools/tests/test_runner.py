@@ -43,12 +43,27 @@ def _selection_and_failures() -> None:
 
 
 def _load_errors() -> None:
-    for value in (None, [None]):
+    for value in (None, [], [None]):
         with patch.object(runner.importlib, "import_module",
                           return_value=SimpleNamespace(cases=lambda value=value: value)):
             ensure(isinstance(runner._load("sample"), str), "invalid cases must fail loading")
     with patch.object(runner.importlib, "import_module", side_effect=SystemExit(2)):
         ensure("SystemExit" in str(runner._load("sample")), "an import must not exit the suite")
+
+
+def _empty_modules_fail_before_selection() -> None:
+    for shard, splits in ((None, frozenset()), (Shard(1, 2), frozenset({"sample"}))):
+        with patch.object(runner.importlib, "import_module",
+                          return_value=SimpleNamespace(INDEPENDENT_CASES=True, cases=list)):
+            report = runner._run_module("sample", False, frozenset({"any"}), shard, splits)
+        ensure(report.findings == 1 and "empty" in "\n".join(report.out),
+               f"a module declaring no checks must fail before selection: {report.out}")
+    # Declared cases remain meaningful even where this invocation selects none.
+    cases = [Case("slow", lambda: None, slow=True),
+             Case("guest", lambda: None, lane="guest")]
+    report = runner._run_cases("sample", cases, False, frozenset({"any", "host"}))
+    ensure(report.findings == 0 and report.cases == 0,
+           f"slow and lane filtering may legitimately select no cases: {report.out}")
 
 
 def _captured_output() -> None:
@@ -263,6 +278,7 @@ def cases() -> list[Case]:
     return [
         Case("selection-and-failures", _selection_and_failures),
         Case("load-errors", _load_errors),
+        Case("empty-modules-fail-before-selection", _empty_modules_fail_before_selection),
         Case("captured-output", _captured_output),
         Case("spawn-isolation", _spawn_isolation),
         Case("empty-and-invalid", _empty_and_invalid),
