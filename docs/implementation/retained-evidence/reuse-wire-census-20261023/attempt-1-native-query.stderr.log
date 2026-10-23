@@ -1,0 +1,4 @@
+File "/root/build/lane-reuse-wire-20261023-census/native-metadata-1/NativeControls.v", line 4, characters 0-22:
+Error: Trying to mask the absolute name "NativeControls"!
+[masking-absolute-name,deprecated-since-8.8,deprecated,default]
+

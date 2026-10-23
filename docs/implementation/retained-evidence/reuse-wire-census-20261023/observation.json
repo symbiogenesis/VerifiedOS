@@ -1,0 +1,51 @@
+{
+  "schema": "verifiedos-native-metadata-observation/1",
+  "scope": "post-read summary of already executed candidate 3; no additional native query",
+  "root_field_counts": {
+    "CensusControls": 7,
+    "SailStdpp.MachineWordInterface": 1
+  },
+  "constructor_counts": {
+    "Anonymous": 67,
+    "App": 297,
+    "Case": 2,
+    "Const": 283,
+    "Construct": 53,
+    "Fix": 1,
+    "Global": 14,
+    "Ind": 148,
+    "Lambda": 2,
+    "LetIn": 1,
+    "MPbound": 39,
+    "MPdot": 909,
+    "MPfile": 1047,
+    "Monomorphic": 92,
+    "MoreFunctor": 1,
+    "Name": 160,
+    "NoFunctor": 11,
+    "NoInvert": 2,
+    "Polymorphic": 1,
+    "Prod": 219,
+    "Prop": 4,
+    "Rel": 253,
+    "Relevant": 321,
+    "SFBconst": 89,
+    "SFBmind": 4,
+    "SFBmodtype": 3,
+    "SFBmodule": 7,
+    "Set": 15,
+    "Sort": 30,
+    "Type": 15,
+    "Var": 2
+  },
+  "context_counts": {
+    "concrete-unqualified": 7,
+    "interface-module-type": 3,
+    "interface-functor-parameter": 1,
+    "interface-functor-result": 1
+  },
+  "acceptance": "metadata-only",
+  "native_refusal_controls": "unrun; three-check bound exhausted",
+  "implementation_connections": "unqualified",
+  "assumptions": "unaudited"
+}

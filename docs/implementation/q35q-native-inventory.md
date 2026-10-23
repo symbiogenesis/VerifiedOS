@@ -1,52 +1,117 @@
 # Native Sail support declaration inventory checkpoint
 
-Q35q remains open. The [native support inventory contract](../../tools/opam/sail-compatibility.md#native-support-inventory-prerequisite) requires the complete owned declaration census, exact assumptions and real hosted recursive-kernel join. The native module-body API replay reaches diagnostic signature and abstract-functor types at the locked prover. Complete type serialization, native classification and controls remain unqualified; this supplies no adapter or support carriage.
+Q35q remains open. The [native support inventory contract](../../tools/opam/sail-compatibility.md#native-support-inventory-prerequisite)
+requires the complete owned declaration census, exact assumptions and real hosted
+recursive-kernel join. The reusable [native metadata producer](../../tools/rocq-census/README.md)
+now emits constructor-based type and universe JSON from the locked Rocq module API.
+Its focused strict control succeeds for the actual interface and synthetic module
+shapes. Native classification, implementation connections, complete field accounting
+and refusal controls remain unqualified; no adapter or support carriage is accepted.
 
-[Native support inventory diagnosis](retained-evidence/q35q-native-20261013/manifest.json), SHA256 `b1d43d1412742df9fb8361a0dc927576552d7852a94722e8096cfcfd5f1c5ed8`, binds the diagnostic receipt, exact query sources, native stdout/stderr and upstream BSD notices. The receipt records the assigned revision, private native lane, strict compiler arguments, command exits and post-check source/tool identities. These post-check identities preserve the diagnostic inputs; they are not before/after acceptance evidence for the complete dependency population.
+## Current native producer
 
-## Native observations
+[Constructor-based native metadata control](retained-evidence/reuse-wire-census-20261023/manifest.json),
+SHA256 `e047eecc9f2b9084b8d328c1acb7a9ea3569d8ff647b05f7c03f70d8dbcb5ebe`,
+binds the three bounded candidate receipts, original executed plugin/query sources,
+raw diagnostics, exact output and derived observation. Its assigned revision is
+`a5e4ba0e3e2ab477cdde2ae8a59dd47b82a9da90`. The
+[pre-edit checkpoint](../../tools/rocq-census/checkpoint.json) fixes three candidate
+checks or twenty active minutes. The bound is exhausted; no further native attempt
+is made in this step.
 
-The paired Sail 0.20.3 archive has the [immutable source recipe's](../../tools/opam/sail-support-qualification.json) SHA-256 and receives only Q35g's immutable axiom-removal patch and Q35n's immutable strict-source syntax patch. The locked Rocq 9.3.0 switch is unchanged. All diagnostic compiler processes run from explicitly created absolute native temporary directories; compiled support objects remain in this worker's private native lane. No shared source, switch, compiler flag or project lock changes.
+The original OCaml implementation traverses `Global.lookup_module` and typed
+`Mod_declarations.mod_type` fields. It explicitly serializes native term constructors,
+quality/universe representations, declaration types, binder relevance, cast kinds,
+case annotations and return/branch binders, recursive declarations, projection
+metadata, local contexts and abstract universe binders/constraints. It retains
+structural module paths, bound-module provenance and both native user and canonical
+reference names. It uses neither `Constr.debug_print` nor opaque OCaml marshalling.
+The output is versioned `verifiedos-rocq-native-metadata/1` and explicitly marked
+`metadata-only`; no debugging text supplies elaborated-type acceptance.
 
-The first candidate check compiles the actual `Inhabited` and `TypeCasts` modules under the unchanged strict flags without diagnostics. `Print Module SailStdpp.Inhabited` returns `Module Inhabited := Struct End`, supplying native evidence that this module owns no kernel declarations. `Locate` identifies `SailStdpp.Inhabited.Inhabited` and `SailStdpp.Inhabited.inhabitant` as abbreviations. The existing [frozen Inhabited reading](retained-evidence/q35n-20261013/freeze/Inhabited.candidate.txt) supplies their `base.Inhabited` and `base.inhabitant` expansions. The hosted empty Search result alone supplied neither fact.
+The final query compiles under the unchanged strict flags with empty diagnostics.
+Its output includes the actual `SailStdpp.MachineWordInterface` signature, a synthetic
+signature, unapplied functor parameter/result, applied functor, sealed concrete result,
+empty structure and dependent case/fix/let/lambda types. The retained observation
+derives the encountered constructors from the executed JSON; it qualifies no
+unexercised constructor. Every concrete module still reports
+`implementation_connection: unqualified`. No signature field is passed to
+`Print Assumptions`, and no newly proved theorem or audited global assumption is
+claimed. `Meta`, `Evar`, rewrite fields and an unrecognized universe-level shape
+explicitly refuse in the source, but those refusal paths have no native control
+verdict. Module/global monomorphic universe constraints, module expressions/delta resolvers, inductive template/variance metadata
+and declaration typing flags also remain outside this type-metadata export.
 
-For the hosted search spelling `TypeCasts.Z_eq_dec.U`, native `Locate` returns `Constant SailStdpp.TypeCasts.Z_eq_dec.U`. This establishes that particular canonical ownership through the prover, without manufacturing a prefix. It does not establish the ownership of every other printed row. `Print Module SailStdpp.TypeCasts.ZEqdep` identifies a sealed signature and its actual `Eqdep_dec.DecidableEqDep TypeCasts.Z_eq_dec` functor application. Every resulting field still needs its own exact implementation-assumption audit; printing the signature does not discharge it.
+All three plugin builds succeed. The first query refuses its synthetic module's
+absolute-name collision; the second refuses incompatible synthetic polymorphic
+binders. The final query corrects those authored controls and exits 0. These are
+control-preparation refusals, not evidence against support declarations. Candidate
+receipts retain each executed source version. A successful metadata query supplies
+neither full-census nor proof acceptance.
 
-The second candidate check compiles the actual `MachineWordInterface` module strictly without diagnostics. Native `Print Module` identifies its nested module type, and `Print Module Type` lists its signature parameters. The first attempted field lookup then refuses:
+Each candidate independently rescans every `.vo` and `.glob` path beneath the locked
+switch's `lib/coq` and original supplied support, hashing bytes before and after and
+comparing additions, deletions and changes. All recorded maps agree. The selected
+support is copied into this worker's private native lane, and only the original
+plugin and control query are compiled. Installed dependency sources and objects are
+never compiled or rewritten. Native subprocess working directories are absolute
+system temporary directories. The installed population observation covers the
+recorded `.vo`/`.glob` cuts, not every installed file or the time between them.
+The support recipe, patches, compiler flags, common inventory guard and project lock
+remain unchanged.
 
-```text
-No object of suffix SailStdpp.MachineWordInterface.MachineWordInterface.idx
-Error: The reference SailStdpp.MachineWordInterface.MachineWordInterface.idx was not found in the current environment.
-```
+The [runner](../../tools/rocq-census/qualify.py) makes the producer reproducible using
+existing tools. Its final host-only packaging adds canonical output containment and
+identity-refusal verdicts; the retained executed runner independently records the
+native campaign. Focused helper cases cover canonical overlap, protected inputs,
+fresh outputs, membership/byte changes, identity refusal and the exact metadata-output guard, with focused Ruff and
+Linux typing checks passing. This packaging runs no additional native candidate and
+makes no native qualification claim for unexercised paths.
 
-`Print Assumptions` exits 1 for that fully qualified signature field. A module type's abstract fields are not ordinary global constants available for this lookup. Treating them as an empty owned module, dropping them, or prepending another prefix would conceal the unsupported boundary. Candidate work stops here after two checks, within the contract's three-check/twenty-active-minute bound.
+## Native provenance and earlier boundary evidence
 
-## Native module-body API candidate
+[Native support inventory diagnosis](retained-evidence/q35q-native-20261013/manifest.json),
+SHA256 `b1d43d1412742df9fb8361a0dc927576552d7852a94722e8096cfcfd5f1c5ed8`,
+binds exact module-printer, abbreviation and failed signature-field readings.
+`SailStdpp.Inhabited` owns no kernel declaration: its native body is empty and
+`Inhabited`/`inhabitant` resolve as abbreviations to `base` declarations. For
+`TypeCasts.Z_eq_dec.U`, native resolution supplies the canonical
+`SailStdpp.TypeCasts.Z_eq_dec.U` ownership. The sealed `ZEqdep` signature and its
+`Eqdep_dec.DecidableEqDep` application still need actual implementation connections
+and per-field assumption audits. An abstract interface field is not a global
+constant, and its failed `Print Assumptions` lookup cannot be treated as empty.
 
-[Native module-body API probe](retained-evidence/q35q-native-api-20261023/manifest.json), SHA256 `7f6bf881ccde03a7c69f6031fb2f87cb4f7358c3ceb20c1c7133abedecc329a6`, retains both executed plugin versions, both query versions, exact command arguments and raw diagnostics. Its assigned revision is `59f8a9e995e6ce49269ba2990c2c426407364726`. The support archive, reviewed patches, recipe, project lock, compiler launcher and recorded API source identities remain unchanged; the frozen switch exports are byte-identical. These identities do not cover the installed library objects at each candidate cut.
+[Native module-body API probe](retained-evidence/q35q-native-api-20261023/manifest.json),
+SHA256 `7f6bf881ccde03a7c69f6031fb2f87cb4f7358c3ceb20c1c7133abedecc329a6`,
+binds the original API sources, strict invocations and dependency refusal. Its
+package export identities do not establish unchanged installed library objects.
+[Restored native module-body API replay](retained-evidence/q35q-native-api-restoration-20261023/manifest.json),
+SHA256 `3191c3beae438f5d0269518de00e07fb2720a280c6d1394f81495cd569b6084f`,
+binds the passing authorized restoration replay. That replay checks an existing
+fixed object population; it does not rescan additions. The earlier diagnostic
+`Constr.debug_print` omits relevance, cast kinds and case metadata and is not the
+complete serialization. The current producer supersedes that rendering while
+retaining the unaccepted census boundary.
 
-The authored OCaml candidate compiles against the installed locked Rocq 9.3.0 libraries. Its traversal uses `Global.lookup_module` and `Mod_declarations.mod_type`, recurses through `SFBmodule` and `SFBmodtype`, reads `SFBconst.const_type` and every mutual inductive packet's `mind_user_arity` and `mind_user_lc`, and preserves `MoreFunctor`'s native bound-module identifier for its parameter and result contexts. A rewrite-rule field explicitly refuses.
-
-[Restored native module-body API replay](retained-evidence/q35q-native-api-restoration-20261023/manifest.json), SHA256 `3191c3beae438f5d0269518de00e07fb2720a280c6d1394f81495cd569b6084f`, records the integrator-authorized single restoration diagnostic using the exact already-built final plugin, query and compiler arguments. It exits 0 with empty diagnostics and unchanged before/after identities for the recorded installed `.vo`/`.glob` population and relevant candidate inputs. The receipt derives the actual interface's typed constant-row count and records the synthetic signature, inductive and constructor rows, unapplied functor parameter/result, and empty structure. This establishes native API access to types that the module printer elides; it is not complete serializer or census acceptance.
-
-The replay's fixed pre-query selection contains every `.vo` and `.glob` path enumerated beneath the locked switch's `lib/coq`, plus the compiler launcher, plugin source and binary, query, and actual interface source and object. The before/after maps compare bytes at that same recorded set; they neither establish identity at the earlier candidate cuts nor rescan for newly added paths. The retained restoration inventory and receipt bind the integrator's original-copy paths, restored hashes, removed new auxiliary files and passing import diagnostic.
-
-The first query refuses the local findlib package spelling. The second loads the corrected package and refuses `Global` access during syntax interpretation. The final plugin uses the installed API's `Mltop.declare_cache_obj_full` with `Mltop.interp_only_obj`, the documented interpretation-phase callback, and compiles successfully. Its query then refuses while loading `Stdlib.ZArith.ZArith`, before the callback runs:
-
-```text
-Compiled library Stdlib.ZArith.ZArith ... makes inconsistent assumptions over library Stdlib.Numbers.BinNums
-```
-
-The integrator identified another lane's compilation of installed dependency sources during this interval and restored the touched objects from verified same-switch copies before authorizing the single replay above. The initial third result supplies no verdict on native metadata traversal. The three-check candidate budget is exhausted; the restoration diagnostic does not reset it. No installed dependency is rebuilt or repaired by this lane. Unchanged package metadata cannot establish unchanged `.vo` bytes.
-
-The candidate's `Constr.debug_print` output is diagnostic scaffolding. The inspected locked implementation omits binder relevance, cast kind and some case metadata, so it cannot be the complete elaborated-type serialization required by the census contract. No field-label output or debugging term rendering is accepted as that serialization. The replay's positive shapes supply no complete native classification/control verdict: concrete sealed implementation connections and every specified refusal remain untested.
-
-The actual installed Rocq license and API-file notices were read before building; they state LGPL version 2.1. This trial copies no upstream implementation. Its locally authored plugin source and textual diagnostics are retained, while the linked plugin and support objects stay in the private native lane. The paired support's BSD notice accompanies the evidence.
+The paired Sail 0.20.3 archive and reviewed patches retain their existing source
+recipe. Its BSD notices remain in the retained diagnosis. The installed Rocq license
+and inspected API notices state LGPL version 2.1. The reusable source calls installed
+APIs and copies no upstream implementation; linked plugin and support objects remain
+in native storage. The original producer and control sources use Apache-2.0.
 
 ## Further owner act
 
-The [module census contract](contracts/sail-support-census.md) distinguishes module-type fields and abstract functor bodies from owned instantiated kernel declarations, requires complete native provenance and connects concrete sealed/functor-result fields to the actual implementations whose assumptions Rocq audits. Signature axioms remain interface obligations and authorize no additional global assumption. Its scope, estimate and positive/refusal controls govern the bounded extension.
+The [module census contract](contracts/sail-support-census.md) requires complete native
+provenance and classification, and connections from concrete sealed/functor-result
+fields to the actual implementations whose assumptions Rocq audits. Signature axioms
+remain interface obligations and authorize no additional global assumption. A new
+bounded step must qualify the remaining serializer shapes and refusals, complete
+native field enumeration and classification, and establish those implementation
+connections. The reusable producer is a prerequisite, not an accepted census adapter.
 
-The [signature type completeness check](q35q-signature-types.md) finds that the native printer supplies field labels without types. The retained interpretation-phase producer now establishes a native route past that printer boundary. Commission the next bounded implementation/qualification step for complete versioned term and universe serialization, signature and functor-context provenance, complete field enumeration and native refusal controls. Preserve the restored locked installed-library objects. The existing census contract commissions that producer; its API diagnostic supplies no substitute for the acceptance predicate. Keep the common inventory guard, allowed axiom contexts, source semantics, locked packages, compiler and project lock unchanged.
-
-After that prerequisite, Q35q still owes accounting for every printed row across the complete selected support closure, every owned declaration's exact assumption audit, all specified positive/refusal controls, and the real hosted recursive-kernel join. No complete assumption audit, recursive-kernel check or hosted run is performed by this diagnosis. Q35n's cold snapshot export/import and Q35b's canonical consumer remain separate joins.
+Q35q still owes accounting for every printed row across the complete selected
+support closure, every owned declaration's exact assumption audit, all specified
+positive/refusal controls and the real hosted recursive-kernel join. Q35n's cold
+snapshot export/import and Q35b's canonical consumer remain separate joins. Keep
+the common inventory guard, allowed axiom contexts, source semantics, locked packages,
+compiler and project lock unchanged.
