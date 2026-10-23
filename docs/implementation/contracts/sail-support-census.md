@@ -132,4 +132,23 @@ nonterminal, repeated or unexplained output still refuses. This is a printing
 framing correction within the remaining candidate budget; no declaration row,
 type, native resolution or common-guard check may be removed or altered.
 
+### Native lookup diagnosis
+
+The substitution correction exhausts its three candidates. Its final candidate
+completes every requested Search query and reaches the census callback, which
+raises an unhandled native `Not_found` exception before emitting JSON. All recorded
+input identities agree. This is a refused callback, with no accepted census or
+implementation connection.
+
+This owner act commissions at most three diagnostic compile/query candidates or
+thirty active minutes to identify that missing native lookup. Original context
+wrappers may label the requested root, module/field, implementation expansion,
+reference lookup, abbreviation, resolution request and resolver-export operation.
+They must preserve exceptions as explicit refusals, retain exact native paths and
+API/source identities, and emit no library body AST. Strict compilation and query
+flags, inputs, graph semantics and every acceptance predicate stay unchanged.
+Stop after the first identified missing act and return it to this owner before
+repairing or broadening the producer. Preserve the six initial and three correction
+counters; neither an exception trace nor this diagnosis supplies acceptance.
+
 The census extension adds 6 h, range 3–9, to Q35q's existing allowance: native grammar/classification 1–3 h, canonical implementation connections 1–3 h, and controls/evidence 1–3 h. The combined item is 10 h, range 5–15. This is a planning estimate for the commissioned scope; unattended hosted runtime and a further unsupported form are excluded. A retained refusal does not close Q35q.
