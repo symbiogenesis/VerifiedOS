@@ -140,9 +140,9 @@
   },
   "adapter_native_controls": {
     "original_maximum_candidate_checks": 3,
-    "maximum_candidate_checks": 6,
+    "maximum_candidate_checks": 7,
     "initial_maximum_active_minutes": 30,
-    "maximum_cumulative_active_minutes": 60,
+    "maximum_cumulative_active_minutes": 120,
     "candidate_intents": [
       {
         "ordinal": 1,
@@ -204,6 +204,61 @@
           "/root/build/lane-checklist-20261023-c/adapter-5/public-alias-resolver-diagnostic.json"
         ],
         "diagnostic_finding": "private alias resolver68e3e1d3ce5ffccc09f7fe106e83c236 exactly matches own descent/private implementation and has identity kernel effects; public flat-module implementation resolver75c4ca305c1a30c32869928013ac3a12 maps SailStdpp.State_monad.NMap.E.t to Stdlib.Structures.OrderedTypeEx.N_as_OT.t and fixes that canonical target; existing wire retains both actual native resolvers"
+      },
+      {
+        "ordinal": 6,
+        "revision": "b65d672896f3cc13883006503cc454d7d8f84b6f",
+        "owner_revision": "2e1eaf9b92342b0c1fce408f5498898a149c1506",
+        "scope": "original tiny3 native assays, complete original30 native14 graph plus78 retained readings, separate fresh3root native census plus39 fresh readings, unchanged positive and twelve full corruption validations from beginning; stop at bound",
+        "output": "/root/build/lane-checklist-20261023-c/adapter-6",
+        "control_native_output": "/root/build/lane-checklist-20261023-c/controls-6",
+        "driver_sha256_before_and_after": "3f81c3ef171adc1e97c141aaa2e45333a92be056a00c8aa1cb47271b727de003",
+        "intent_sha256": "645318caa32f4d549e88a32b4303fa104fa4d8aba2c21cc52955ede75e549781",
+        "started_utc": "2026-10-23T11:08:20.167+00:00",
+        "work_alarm_utc": "2026-10-23T11:30:39.478721+00:00",
+        "finished_utc": "2026-10-23T11:31:58.614810+00:00",
+        "deadline_utc": "2026-10-23T11:32:09.478469+00:00",
+        "maximum_active_seconds": 1429.311394952,
+        "elapsed_seconds": 1418.449280015,
+        "cumulative_active_seconds": 3578.70605735,
+        "unused_prior_allocation_seconds": 21.29394265,
+        "verdict": "refused",
+        "refusal": {
+          "type": "TimeoutError",
+          "message": "sixth-candidate active budget exhausted; final evidence window reserved"
+        },
+        "full30_graph_replay": "passed",
+        "selected_support_roots": 29,
+        "separate_control_root": "CensusControls",
+        "tiny_native_assays": "signature and Abstract refusals match manifest; hidden native0 and both exact HiddenSealed control axiom identities match",
+        "fresh3root_native": "native0; strict duplicate-free file transport, exact807 Search rows and all39 fresh native readings passed; complete positive census and positive shape/substitution witnesses passed",
+        "fresh3root_counts": {
+          "roots": 3,
+          "contexts": 41,
+          "modules": 40,
+          "fields": 833,
+          "declarations": 825,
+          "abbreviations": 3,
+          "module_descents": 33,
+          "resolvers": 1105,
+          "resolution_requests": 807,
+          "resolutions": 807
+        },
+        "control_report": null,
+        "partial_corruption_observation": "positive census and first five expected corruption refusals returned; sixth corruption duplicate-declaration interrupted during full validate_schema. No complete twelve-case report or acceptance.",
+        "identity_cut_verdicts": {
+          "sources_unchanged": true,
+          "driver_unchanged": true,
+          "raw_unchanged": true,
+          "readings_unchanged": true,
+          "original_native_inputs_unchanged": true,
+          "control_native_inputs_unchanged": true
+        },
+        "identity_cut_scope": "final receipt retains original/copy native membership and hashes, source/driver and both raw output identities; readings_unchanged covers retained78 query/stdout/stderr hashes, while each fresh39 native command separately retains source and stream hashes",
+        "peak_rss_kib": 13385848,
+        "released_rss_kib": 158932,
+        "diagnostic_observation": "no sys.setprofile was installed; only coarse entry/exit wrappers and per-reading counter. Full positive control schema113.069s, later foreign-declaration schema244.138s. Next verification driver uses original functions entirely unwrapped.",
+        "result": "complete30 graph and fresh3root positive pass; work alarm stops corruption6 at1339.315s, final cuts complete within unchanged hard deadline; all available final identities unchanged; twelve corruptions remain unqualified"
       }
     ],
     "framing_disposition_revision": "d98d1e40741b439caf440ba62469e2714bb1f478",
@@ -213,6 +268,9 @@
     "sealed_control_identity_owner_revision": "9c6e9d604c5229beea7b3d4ae01ec58b18f0e6a2",
     "sealed_control_identity_correction": "both expected axiom names match exact locked native HiddenSealed identity; authored axiom/witness source, native resolver and support allowlist unchanged; no new time or counter reset",
     "public_alias_canonicalization_owner_revision": "2e1eaf9b92342b0c1fce408f5498898a149c1506",
-    "public_alias_canonicalization_scope": "preserve private anchored resolver and require exact public module implementation resolver bridge over complete native effects; same remaining allocation and cumulative60 cap"
+    "public_alias_canonicalization_scope": "preserve private anchored resolver and require exact public module implementation resolver bridge over complete native effects; same remaining allocation and cumulative60 cap",
+    "control_only_completion_owner_revision": "b9dcb794076e3e28f4e831baad5b99dc038a88c1",
+    "control_only_bound_owner_revision": "02d5b76e8af62193a5ead7ff8be8ee8da88ebcf7",
+    "conditional_seventh_scope": "one verification-only candidate at most3600 active seconds within cumulative120-minute ceiling; exact fresh controls6 raw/Search/39 readings/provider receipt/native assays; unchanged qualify_controls positive and all12 from beginning, no partial reuse, re-emission, filtering, caching, or omitted validation; start only after parent verified revision and GO"
   }
 }
