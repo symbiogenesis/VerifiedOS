@@ -200,6 +200,15 @@ path and every kernel name occurring in fields, references, expressions, types,
 transparent-body reference domains, source/instantiated metadata and connection traces, plus every
 native `inline_of_delta None` key/level. Each native resolver is separately named
 by owner and role; unrelated domains or identity effects cannot be dropped.
+Its `root` is the actual native root, established by exactly one successful
+`has_root_delta_resolver` test over the complete enumerated native path domain;
+an absent or ambiguous root refuses. A module's exported path is not automatically
+its resolver's root. Native `map_mp` substitutions use a resolver rooted exactly
+at their destination. When that precondition fails for a target module's original
+resolver, the producer uses the public empty resolver at the destination, as the
+locked native implementation-resolution oracle does. The substitution trace names
+that exact resolver; the target module's original resolver remains separate native
+evidence. No arbitrary rerooting or domain pruning supplies this connection.
 Inline keys also receive kernel effects. Completeness is checked against that
 finite union. These effects are not a serialization of the hidden resolver object.
 The actual native resolver is used for substitutions; textual effects never replace

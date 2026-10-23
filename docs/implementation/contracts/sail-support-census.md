@@ -179,4 +179,16 @@ its owner. The unchanged strict flags, support source and dependencies, common
 guard, exact assumption contexts, adapter/control and hosted budgets, and complete
 hosted acceptance predicates continue to apply.
 
+The second realization candidate identifies the native substitution precondition
+at `State_monad.NMap.E`, an alias of `Stdlib.Structures.OrderedTypeEx.N_as_OT`.
+Its original delta resolver is not rooted at the exported alias path. Match the
+locked native implementation-resolution oracle: use that resolver only when the
+public root test succeeds, otherwise use the public empty resolver at the actual
+destination. Record the resolver actually passed to the substitution separately
+from the original target resolver. Every exported resolver root must be uniquely
+established by the native root predicate over the complete enumerated path domain;
+missing or ambiguous root evidence refuses. This corrects the existing native
+realization within its remaining budget and changes no assumption or acceptance
+predicate.
+
 The census extension adds 6 h, range 3–9, to Q35q's existing allowance: native grammar/classification 1–3 h, canonical implementation connections 1–3 h, and controls/evidence 1–3 h. The combined item is 10 h, range 5–15. This is a planning estimate for the commissioned scope; unattended hosted runtime and a further unsupported form are excluded. A retained refusal does not close Q35q.
