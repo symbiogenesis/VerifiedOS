@@ -136,10 +136,15 @@ reviewed owner act before implementation.
 
 Strict compile the minimal emitted reproducer at the unchanged locked prover
 and flags. Compare the new native elaborated readings against the frozen inputs:
-only the two new outcomes/bindings, forwarding branches and their explicitly
-reviewed proof/dependency additions may differ. Existing declarations' meanings,
-model refusals, dependency axioms and compiler acceptance policy must remain
-unchanged. Audit all new proofs' exact assumptions and kernel-check the accepted
+only the extended outcome inductive, its native-generated induction and
+elimination declarations, the two new bindings, forwarding branches and their
+explicitly reviewed proof/dependency additions may differ. Identify the generated
+declarations from the actual native inventory. Prove that the extension is
+conservative for old events: their payloads, response types, continuations and
+ordered interpretation are preserved when no tag outcome occurs. All other
+existing declarations' meanings, model refusals, dependency axioms and compiler
+acceptance policy must remain unchanged. Audit all new proofs' exact assumptions
+and kernel-check the accepted
 objects under the existing acceptance rules. Record the complete inputs and
 resolved native names. Unchanged Sail bytes must give byte-identical non-Rocq
 outputs in paired regeneration; a single baseline emission is insufficient.

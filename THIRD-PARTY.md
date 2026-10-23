@@ -392,6 +392,13 @@ under BSD-2-Clause with its adjacent `Sail-Support-LICENSE`.
 Its authored query copies no proof script. The locally inspected Rocq printer
 source is bound only by digest and is not copied or excerpted. No support source
 tree or compiled object is distributed by this evidence.
+The native API diagnosis and restored replay in
+`docs/implementation/retained-evidence/q35q-native-api-20261023/` and
+`q35q-native-api-restoration-20261023/` retain diagnostic coq-sail signature types
+under the same BSD-2-Clause terms and notices. The original OCaml query sources
+and controls follow the original-file licensing map. The locked Rocq installation's
+LGPL-2.1 license and API headers were read before building; no upstream implementation
+or linked plugin is conveyed by these bundles.
 The `q35o-20261013/` refusal bundle retains the generated tag-loop fragment and its diagnostics, with the
 exact RISC-V and CHERI model notices. The fragment keeps
 BSD-2-Clause terms; no complete emitted term is distributed by that evidence.
@@ -414,6 +421,11 @@ the same terms. The minimal `SyntaxProbe.sail` is authored Apache-2.0 source.
 The plugin is an external private qualification build; no plugin binary,
 dependency source tree or complete canonical term is distributed or installed
 as the acceptance compiler by this evidence.
+The scoped-notation continuation in
+`docs/implementation/retained-evidence/q35o-scope-20261023/` retains the same
+source-derived kinds under BSD-2-Clause with its exact `LICENSE.sail` and
+`LICENSE.model` notices. Its authored notation controls follow the original-file
+map; the private plugin and complete canonical outputs remain native and untracked.
 
 Tools used to observe, execute, or accelerate a build do not automatically license its output. Non-commercial restrictions also govern use, even where nothing is distributed.
 
