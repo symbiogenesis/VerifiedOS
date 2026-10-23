@@ -1,0 +1,88 @@
+{
+  "schema": "verifiedos-native-census-continuation/1",
+  "base_revision": "b525ad5dca6468c914a89b04b66e089584902876",
+  "contract": "docs/implementation/contracts/sail-support-census.md#census-continuation",
+  "native_lane": "/root/build/lane-checklist-20261023-c",
+  "native_budget": {
+    "maximum_candidate_checks": 6,
+    "maximum_active_minutes": 90
+  },
+  "control_budget": {
+    "maximum_candidate_checks": 3,
+    "maximum_active_minutes": 30
+  },
+  "status": "focused-api-budget-exhausted",
+  "candidate_intents": [
+    {
+      "ordinal": 1,
+      "scope": "compile original producer and query synthetic controls plus actual TypeCasts and State_monad",
+      "output": "/root/build/lane-checklist-20261023-c/census-1",
+      "result": "plugin compile refusal: unavailable Ind.to_string; query not started"
+    },
+    {
+      "ordinal": 2,
+      "scope": "native Names printers replace unavailable diagnostic to_string; same positive/actual targets",
+      "output": "/root/build/lane-checklist-20261023-c/census-2",
+      "result": "plugin compile refusal: unavailable Ind.print; query not started"
+    },
+    {
+      "ordinal": 3,
+      "scope": "complete API member review; body-identity schema939f65aa; same positive/actual targets",
+      "output": "/root/build/lane-checklist-20261023-c/census-3",
+      "result": "plugin compile refused strict exhaustiveness: impossible constructor without packet; query not started"
+    },
+    {
+      "ordinal": 4,
+      "scope": "explicit impossible-reference refusal; positive/actual census query",
+      "output": "/root/build/lane-checklist-20261023-c/census-4",
+      "result": "strict plugin build success; positive source import refused missing prebuilt stdpp.bitvector mapping; no callback"
+    },
+    {
+      "ordinal": 5,
+      "scope": "immutable complete private stdpp/bitvector mapping; positive and actual TypeCasts/State_monad roots; digest-only bodies",
+      "output": "/root/build/lane-checklist-20261023-c/census-5",
+      "result": "strict plugin build success; positive source refused deprecated Notation abbreviation under strict diagnostics; no callback"
+    },
+    {
+      "ordinal": 6,
+      "scope": "strict producer, synthetic controls and exact29 recipe-bound support; native per-root Search, bounded hash-bound request file, sole census callback with module-descents and digest-only bodies",
+      "output": "/root/build/lane-checklist-20261023-c/census-6",
+      "result": "strict plugin compile refused unexported Mod_declarations.subst_expr; no source compile, Search or census callback; protected identities unchanged"
+    }
+  ],
+  "installed_and_supplied_objects": "read-only; full path and byte identities before and after every candidate",
+  "acceptance": "none; native provenance and hosted joins separately required",
+  "focused_api_continuation": {
+    "owner_revision": "48f24b83a45ca82e57f933f50897d9b166cceac4",
+    "maximum_candidate_checks": 3,
+    "maximum_active_minutes": 30,
+    "prior_checks_preserved": 6,
+    "export_evidence": {
+      "mod_declarations_mli": "4dbdcbcb20c1a9eba0272e04d650bf4569fd66f1c60c5126afea43e074e9b55e",
+      "mod_subst_mli": "5fe71c2d7e3132e0cb1babe3e349411e8c10ddbf42300b3bfc18dc9807e9ac24"
+    },
+    "candidate_intents": [
+      {
+        "ordinal": 1,
+        "global_ordinal": 7,
+        "scope": "original MEident/MEapply trace rendering via public subst_mp; exact30 roots, native Search and sole complete census callback",
+        "output": "/root/build/lane-checklist-20261023-c/census-7",
+        "result": "strict plugin and control source compile pass; first Search filename search-00 invalid native module identifier; no callback; protected identities unchanged"
+      },
+      {
+        "ordinal": 2,
+        "global_ordinal": 8,
+        "scope": "valid Search00 native query filenames; unchanged exact30 roots/Search/file/census predicates",
+        "output": "/root/build/lane-checklist-20261023-c/census-8",
+        "result": "strict plugin/control and all30 native Search pass; independent parser refuses genuine terminal implicit-argument About notice; no callback; protected identities unchanged; elapsed15.78053913s"
+      },
+      {
+        "ordinal": 3,
+        "global_ordinal": 9,
+        "scope": "landed exact terminal Search notice parser; same original30 typed Search queries and1889 known request rows, complete native census via bounded frozen file, early native Abstract refusal",
+        "output": "/root/build/lane-checklist-20261023-c/census-9",
+        "result": "strict plugin/control and all30 native Search pass;1889 hash-bound requests; native callback exit129 uncaught Not_found before JSON; every protected and copied identity unchanged; elapsed16.0821429s"
+      }
+    ]
+  }
+}

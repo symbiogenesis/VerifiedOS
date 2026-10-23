@@ -1,0 +1,135 @@
+Current search blacklist :  is empty.
+Instr_kinds.instruction_kind: Set
+Instr_kinds.cache_op_kind: Set
+Instr_kinds.trans_kind: Set
+Instr_kinds.barrier_kind: Set
+Instr_kinds.a64_barrier_type: Set
+Instr_kinds.a64_barrier_domain: Set
+Instr_kinds.read_kind: Set
+Instr_kinds.write_kind: Set
+Instr_kinds.EnumerationType: forall _ : Type, Type
+Instr_kinds.Cache_op_D_CSW: Instr_kinds.cache_op_kind
+Instr_kinds.Cache_op_I_IALLU: Instr_kinds.cache_op_kind
+Instr_kinds.A64_barrier_LD: Instr_kinds.a64_barrier_type
+Instr_kinds.Cache_op_D_CVAC: Instr_kinds.cache_op_kind
+Instr_kinds.Cache_op_I_IALLUIS: Instr_kinds.cache_op_kind
+Instr_kinds.Cache_op_D_CISW: Instr_kinds.cache_op_kind
+Instr_kinds.Write_plain: Instr_kinds.write_kind
+Instr_kinds.Cache_op_D_ISW: Instr_kinds.cache_op_kind
+Instr_kinds.Read_X86_locked: Instr_kinds.read_kind
+Instr_kinds.A64_OuterShare: Instr_kinds.a64_barrier_domain
+Instr_kinds.Cache_op_I_IVAU: Instr_kinds.cache_op_kind
+Instr_kinds.Transaction_start: Instr_kinds.trans_kind
+Instr_kinds.Write_release: Instr_kinds.write_kind
+Instr_kinds.Cache_op_D_CIVAC: Instr_kinds.cache_op_kind
+Instr_kinds.Write_RISCV_conditional_release: Instr_kinds.write_kind
+Instr_kinds.A64_barrier_all: Instr_kinds.a64_barrier_type
+Instr_kinds.Cache_op_D_ZVA: Instr_kinds.cache_op_kind
+Instr_kinds.A64_barrier_ST: Instr_kinds.a64_barrier_type
+Instr_kinds.Cache_op_D_CVAU: Instr_kinds.cache_op_kind
+Instr_kinds.A64_FullShare: Instr_kinds.a64_barrier_domain
+Instr_kinds.Cache_op_D_IVAC: Instr_kinds.cache_op_kind
+Instr_kinds.Transaction_abort: Instr_kinds.trans_kind
+Instr_kinds.Read_stream: Instr_kinds.read_kind
+Instr_kinds.Read_ifetch: Instr_kinds.read_kind
+Instr_kinds.Write_RISCV_strong_release: Instr_kinds.write_kind
+Instr_kinds.Read_RISCV_reserved: Instr_kinds.read_kind
+Instr_kinds.Transaction_commit: Instr_kinds.trans_kind
+Instr_kinds.Read_RISCV_reserved_strong_acquire: Instr_kinds.read_kind
+Instr_kinds.Read_RISCV_strong_acquire: Instr_kinds.read_kind
+Instr_kinds.Write_conditional: Instr_kinds.write_kind
+Instr_kinds.A64_InnerShare: Instr_kinds.a64_barrier_domain
+Instr_kinds.Write_RISCV_conditional: Instr_kinds.write_kind
+Instr_kinds.Write_X86_locked: Instr_kinds.write_kind
+Instr_kinds.Read_plain: Instr_kinds.read_kind
+Instr_kinds.Read_RISCV_reserved_acquire: Instr_kinds.read_kind
+Instr_kinds.Read_RISCV_acquire: Instr_kinds.read_kind
+Instr_kinds.A64_NonShare: Instr_kinds.a64_barrier_domain
+Instr_kinds.Write_RISCV_conditional_strong_release: Instr_kinds.write_kind
+Instr_kinds.Write_exclusive_release: Instr_kinds.write_kind
+Instr_kinds.Read_acquire: Instr_kinds.read_kind
+Instr_kinds.Read_exclusive: Instr_kinds.read_kind
+Instr_kinds.Write_RISCV_release: Instr_kinds.write_kind
+Instr_kinds.Read_reserve: Instr_kinds.read_kind
+Instr_kinds.Write_exclusive: Instr_kinds.write_kind
+Instr_kinds.Read_exclusive_acquire: Instr_kinds.read_kind
+Instr_kinds.IK_mem_write: forall _ : Instr_kinds.write_kind, Instr_kinds.instruction_kind
+Instr_kinds.Barrier_RISCV_w_w: forall _ : unit, Instr_kinds.barrier_kind
+Instr_kinds.Barrier_RISCV_w_rw: forall _ : unit, Instr_kinds.barrier_kind
+Instr_kinds.IK_mem_read: forall _ : Instr_kinds.read_kind, Instr_kinds.instruction_kind
+Instr_kinds.IK_barrier: forall _ : Instr_kinds.barrier_kind, Instr_kinds.instruction_kind
+Instr_kinds.Barrier_RISCV_r_r: forall _ : unit, Instr_kinds.barrier_kind
+Instr_kinds.IK_simple: forall _ : unit, Instr_kinds.instruction_kind
+Instr_kinds.IK_trans: forall _ : Instr_kinds.trans_kind, Instr_kinds.instruction_kind
+Instr_kinds.Barrier_Isync: forall _ : unit, Instr_kinds.barrier_kind
+Instr_kinds.read_is_exclusive: forall _ : Instr_kinds.read_kind, bool
+Instr_kinds.Barrier_RISCV_tso: forall _ : unit, Instr_kinds.barrier_kind
+Instr_kinds.Barrier_Sync: forall _ : unit, Instr_kinds.barrier_kind
+Instr_kinds.Barrier_RISCV_r_w: forall _ : unit, Instr_kinds.barrier_kind
+Instr_kinds.Barrier_ISB: forall _ : unit, Instr_kinds.barrier_kind
+Instr_kinds.Barrier_RISCV_r_rw: forall _ : unit, Instr_kinds.barrier_kind
+Instr_kinds.Barrier_RISCV_rw_rw: forall _ : unit, Instr_kinds.barrier_kind
+Instr_kinds.IK_branch: forall _ : unit, Instr_kinds.instruction_kind
+Instr_kinds.Barrier_Eieio: forall _ : unit, Instr_kinds.barrier_kind
+Instr_kinds.Barrier_LwSync: forall _ : unit, Instr_kinds.barrier_kind
+Instr_kinds.Barrier_RISCV_w_r: forall _ : unit, Instr_kinds.barrier_kind
+Instr_kinds.Barrier_MIPS_SYNC: forall _ : unit, Instr_kinds.barrier_kind
+Instr_kinds.IK_cache_op: forall _ : Instr_kinds.cache_op_kind, Instr_kinds.instruction_kind
+Instr_kinds.Barrier_x86_MFENCE: forall _ : unit, Instr_kinds.barrier_kind
+Instr_kinds.Barrier_RISCV_i: forall _ : unit, Instr_kinds.barrier_kind
+Instr_kinds.Barrier_RISCV_rw_w: forall _ : unit, Instr_kinds.barrier_kind
+Instr_kinds.Barrier_RISCV_rw_r: forall _ : unit, Instr_kinds.barrier_kind
+Instr_kinds.read_kind_beq: forall (_ : Instr_kinds.read_kind) (_ : Instr_kinds.read_kind), bool
+Instr_kinds.write_kind_beq: forall (_ : Instr_kinds.write_kind) (_ : Instr_kinds.write_kind), bool
+Instr_kinds.trans_kind_beq: forall (_ : Instr_kinds.trans_kind) (_ : Instr_kinds.trans_kind), bool
+Instr_kinds.cache_op_kind_beq: forall (_ : Instr_kinds.cache_op_kind) (_ : Instr_kinds.cache_op_kind), bool
+Instr_kinds.a64_barrier_type_beq: forall (_ : Instr_kinds.a64_barrier_type) (_ : Instr_kinds.a64_barrier_type), bool
+Instr_kinds.a64_barrier_domain_beq: forall (_ : Instr_kinds.a64_barrier_domain) (_ : Instr_kinds.a64_barrier_domain), bool
+Instr_kinds.barrier_kind_beq: forall (_ : Instr_kinds.barrier_kind) (_ : Instr_kinds.barrier_kind), bool
+Instr_kinds.Build_EnumerationType: forall (A : Type) (_ : forall _ : A, nat), Instr_kinds.EnumerationType A
+Instr_kinds.toNat: forall {A : Type} {_ : Instr_kinds.EnumerationType A} (_ : A), nat
+Instr_kinds.Barrier_DMB: forall _ : prod Instr_kinds.a64_barrier_domain Instr_kinds.a64_barrier_type, Instr_kinds.barrier_kind
+Instr_kinds.Barrier_DSB: forall _ : prod Instr_kinds.a64_barrier_domain Instr_kinds.a64_barrier_type, Instr_kinds.barrier_kind
+Instr_kinds.IK_mem_rmw: forall _ : prod Instr_kinds.read_kind Instr_kinds.write_kind, Instr_kinds.instruction_kind
+Instr_kinds.cache_op_kind_eq_dec: forall x y : Instr_kinds.cache_op_kind, sumbool (@eq Instr_kinds.cache_op_kind x y) (not (@eq Instr_kinds.cache_op_kind x y))
+Instr_kinds.read_kind_eq_dec: forall x y : Instr_kinds.read_kind, sumbool (@eq Instr_kinds.read_kind x y) (not (@eq Instr_kinds.read_kind x y))
+Instr_kinds.write_kind_eq_dec: forall x y : Instr_kinds.write_kind, sumbool (@eq Instr_kinds.write_kind x y) (not (@eq Instr_kinds.write_kind x y))
+Instr_kinds.trans_kind_eq_dec: forall x y : Instr_kinds.trans_kind, sumbool (@eq Instr_kinds.trans_kind x y) (not (@eq Instr_kinds.trans_kind x y))
+Instr_kinds.a64_barrier_domain_eq_dec: forall x y : Instr_kinds.a64_barrier_domain, sumbool (@eq Instr_kinds.a64_barrier_domain x y) (not (@eq Instr_kinds.a64_barrier_domain x y))
+Instr_kinds.a64_barrier_type_eq_dec: forall x y : Instr_kinds.a64_barrier_type, sumbool (@eq Instr_kinds.a64_barrier_type x y) (not (@eq Instr_kinds.a64_barrier_type x y))
+Instr_kinds.a64_barrier_type_ind: forall (P : forall _ : Instr_kinds.a64_barrier_type, Prop) (_ : P Instr_kinds.A64_barrier_all) (_ : P Instr_kinds.A64_barrier_LD) (_ : P Instr_kinds.A64_barrier_ST) (a : Instr_kinds.a64_barrier_type), P a
+Instr_kinds.trans_kind_rec: forall (P : forall _ : Instr_kinds.trans_kind, Set) (_ : P Instr_kinds.Transaction_start) (_ : P Instr_kinds.Transaction_commit) (_ : P Instr_kinds.Transaction_abort) (t : Instr_kinds.trans_kind), P t
+Instr_kinds.trans_kind_ind: forall (P : forall _ : Instr_kinds.trans_kind, Prop) (_ : P Instr_kinds.Transaction_start) (_ : P Instr_kinds.Transaction_commit) (_ : P Instr_kinds.Transaction_abort) (t : Instr_kinds.trans_kind), P t
+Instr_kinds.a64_barrier_type_rect: forall (P : forall _ : Instr_kinds.a64_barrier_type, Type) (_ : P Instr_kinds.A64_barrier_all) (_ : P Instr_kinds.A64_barrier_LD) (_ : P Instr_kinds.A64_barrier_ST) (a : Instr_kinds.a64_barrier_type), P a
+Instr_kinds.a64_barrier_type_rec: forall (P : forall _ : Instr_kinds.a64_barrier_type, Set) (_ : P Instr_kinds.A64_barrier_all) (_ : P Instr_kinds.A64_barrier_LD) (_ : P Instr_kinds.A64_barrier_ST) (a : Instr_kinds.a64_barrier_type), P a
+Instr_kinds.trans_kind_rect: forall (P : forall _ : Instr_kinds.trans_kind, Type) (_ : P Instr_kinds.Transaction_start) (_ : P Instr_kinds.Transaction_commit) (_ : P Instr_kinds.Transaction_abort) (t : Instr_kinds.trans_kind), P t
+Instr_kinds.internal_read_kind_dec_lb: forall x : Instr_kinds.read_kind, (fun x0 : Instr_kinds.read_kind => forall (y : Instr_kinds.read_kind) (_ : @eq Instr_kinds.read_kind x0 y), @eq bool (Instr_kinds.read_kind_beq x0 y) true) x
+Instr_kinds.internal_a64_barrier_type_dec_bl: forall x : Instr_kinds.a64_barrier_type, (fun x0 : Instr_kinds.a64_barrier_type => forall (y : Instr_kinds.a64_barrier_type) (_ : @eq bool (Instr_kinds.a64_barrier_type_beq x0 y) true), @eq Instr_kinds.a64_barrier_type x0 y) x
+Instr_kinds.internal_a64_barrier_domain_dec_bl: forall x : Instr_kinds.a64_barrier_domain, (fun x0 : Instr_kinds.a64_barrier_domain => forall (y : Instr_kinds.a64_barrier_domain) (_ : @eq bool (Instr_kinds.a64_barrier_domain_beq x0 y) true), @eq Instr_kinds.a64_barrier_domain x0 y) x
+Instr_kinds.internal_write_kind_dec_lb: forall x : Instr_kinds.write_kind, (fun x0 : Instr_kinds.write_kind => forall (y : Instr_kinds.write_kind) (_ : @eq Instr_kinds.write_kind x0 y), @eq bool (Instr_kinds.write_kind_beq x0 y) true) x
+Instr_kinds.internal_trans_kind_dec_lb: forall x : Instr_kinds.trans_kind, (fun x0 : Instr_kinds.trans_kind => forall (y : Instr_kinds.trans_kind) (_ : @eq Instr_kinds.trans_kind x0 y), @eq bool (Instr_kinds.trans_kind_beq x0 y) true) x
+Instr_kinds.internal_cache_op_kind_dec_lb: forall x : Instr_kinds.cache_op_kind, (fun x0 : Instr_kinds.cache_op_kind => forall (y : Instr_kinds.cache_op_kind) (_ : @eq Instr_kinds.cache_op_kind x0 y), @eq bool (Instr_kinds.cache_op_kind_beq x0 y) true) x
+Instr_kinds.internal_cache_op_kind_dec_bl: forall x : Instr_kinds.cache_op_kind, (fun x0 : Instr_kinds.cache_op_kind => forall (y : Instr_kinds.cache_op_kind) (_ : @eq bool (Instr_kinds.cache_op_kind_beq x0 y) true), @eq Instr_kinds.cache_op_kind x0 y) x
+Instr_kinds.internal_read_kind_dec_bl: forall x : Instr_kinds.read_kind, (fun x0 : Instr_kinds.read_kind => forall (y : Instr_kinds.read_kind) (_ : @eq bool (Instr_kinds.read_kind_beq x0 y) true), @eq Instr_kinds.read_kind x0 y) x
+Instr_kinds.internal_write_kind_dec_bl: forall x : Instr_kinds.write_kind, (fun x0 : Instr_kinds.write_kind => forall (y : Instr_kinds.write_kind) (_ : @eq bool (Instr_kinds.write_kind_beq x0 y) true), @eq Instr_kinds.write_kind x0 y) x
+Instr_kinds.internal_trans_kind_dec_bl: forall x : Instr_kinds.trans_kind, (fun x0 : Instr_kinds.trans_kind => forall (y : Instr_kinds.trans_kind) (_ : @eq bool (Instr_kinds.trans_kind_beq x0 y) true), @eq Instr_kinds.trans_kind x0 y) x
+Instr_kinds.internal_a64_barrier_type_dec_lb: forall x : Instr_kinds.a64_barrier_type, (fun x0 : Instr_kinds.a64_barrier_type => forall (y : Instr_kinds.a64_barrier_type) (_ : @eq Instr_kinds.a64_barrier_type x0 y), @eq bool (Instr_kinds.a64_barrier_type_beq x0 y) true) x
+Instr_kinds.internal_a64_barrier_domain_dec_lb: forall x : Instr_kinds.a64_barrier_domain, (fun x0 : Instr_kinds.a64_barrier_domain => forall (y : Instr_kinds.a64_barrier_domain) (_ : @eq Instr_kinds.a64_barrier_domain x0 y), @eq bool (Instr_kinds.a64_barrier_domain_beq x0 y) true) x
+Instr_kinds.a64_barrier_domain_rect: forall (P : forall _ : Instr_kinds.a64_barrier_domain, Type) (_ : P Instr_kinds.A64_FullShare) (_ : P Instr_kinds.A64_InnerShare) (_ : P Instr_kinds.A64_OuterShare) (_ : P Instr_kinds.A64_NonShare) (a : Instr_kinds.a64_barrier_domain), P a
+Instr_kinds.a64_barrier_domain_rec: forall (P : forall _ : Instr_kinds.a64_barrier_domain, Set) (_ : P Instr_kinds.A64_FullShare) (_ : P Instr_kinds.A64_InnerShare) (_ : P Instr_kinds.A64_OuterShare) (_ : P Instr_kinds.A64_NonShare) (a : Instr_kinds.a64_barrier_domain), P a
+Instr_kinds.a64_barrier_domain_ind: forall (P : forall _ : Instr_kinds.a64_barrier_domain, Prop) (_ : P Instr_kinds.A64_FullShare) (_ : P Instr_kinds.A64_InnerShare) (_ : P Instr_kinds.A64_OuterShare) (_ : P Instr_kinds.A64_NonShare) (a : Instr_kinds.a64_barrier_domain), P a
+Instr_kinds.cache_op_kind_ind: forall (P : forall _ : Instr_kinds.cache_op_kind, Prop) (_ : P Instr_kinds.Cache_op_D_IVAC) (_ : P Instr_kinds.Cache_op_D_ISW) (_ : P Instr_kinds.Cache_op_D_CSW) (_ : P Instr_kinds.Cache_op_D_CISW) (_ : P Instr_kinds.Cache_op_D_ZVA) (_ : P Instr_kinds.Cache_op_D_CVAC) (_ : P Instr_kinds.Cache_op_D_CVAU) (_ : P Instr_kinds.Cache_op_D_CIVAC) (_ : P Instr_kinds.Cache_op_I_IALLUIS) (_ : P Instr_kinds.Cache_op_I_IALLU) (_ : P Instr_kinds.Cache_op_I_IVAU) (c : Instr_kinds.cache_op_kind), P c
+Instr_kinds.write_kind_rec: forall (P : forall _ : Instr_kinds.write_kind, Set) (_ : P Instr_kinds.Write_plain) (_ : P Instr_kinds.Write_conditional) (_ : P Instr_kinds.Write_release) (_ : P Instr_kinds.Write_exclusive) (_ : P Instr_kinds.Write_exclusive_release) (_ : P Instr_kinds.Write_RISCV_release) (_ : P Instr_kinds.Write_RISCV_strong_release) (_ : P Instr_kinds.Write_RISCV_conditional) (_ : P Instr_kinds.Write_RISCV_conditional_release) (_ : P Instr_kinds.Write_RISCV_conditional_strong_release) (_ : P Instr_kinds.Write_X86_locked) (w : Instr_kinds.write_kind), P w
+Instr_kinds.write_kind_ind: forall (P : forall _ : Instr_kinds.write_kind, Prop) (_ : P Instr_kinds.Write_plain) (_ : P Instr_kinds.Write_conditional) (_ : P Instr_kinds.Write_release) (_ : P Instr_kinds.Write_exclusive) (_ : P Instr_kinds.Write_exclusive_release) (_ : P Instr_kinds.Write_RISCV_release) (_ : P Instr_kinds.Write_RISCV_strong_release) (_ : P Instr_kinds.Write_RISCV_conditional) (_ : P Instr_kinds.Write_RISCV_conditional_release) (_ : P Instr_kinds.Write_RISCV_conditional_strong_release) (_ : P Instr_kinds.Write_X86_locked) (w : Instr_kinds.write_kind), P w
+Instr_kinds.cache_op_kind_rect: forall (P : forall _ : Instr_kinds.cache_op_kind, Type) (_ : P Instr_kinds.Cache_op_D_IVAC) (_ : P Instr_kinds.Cache_op_D_ISW) (_ : P Instr_kinds.Cache_op_D_CSW) (_ : P Instr_kinds.Cache_op_D_CISW) (_ : P Instr_kinds.Cache_op_D_ZVA) (_ : P Instr_kinds.Cache_op_D_CVAC) (_ : P Instr_kinds.Cache_op_D_CVAU) (_ : P Instr_kinds.Cache_op_D_CIVAC) (_ : P Instr_kinds.Cache_op_I_IALLUIS) (_ : P Instr_kinds.Cache_op_I_IALLU) (_ : P Instr_kinds.Cache_op_I_IVAU) (c : Instr_kinds.cache_op_kind), P c
+Instr_kinds.write_kind_rect: forall (P : forall _ : Instr_kinds.write_kind, Type) (_ : P Instr_kinds.Write_plain) (_ : P Instr_kinds.Write_conditional) (_ : P Instr_kinds.Write_release) (_ : P Instr_kinds.Write_exclusive) (_ : P Instr_kinds.Write_exclusive_release) (_ : P Instr_kinds.Write_RISCV_release) (_ : P Instr_kinds.Write_RISCV_strong_release) (_ : P Instr_kinds.Write_RISCV_conditional) (_ : P Instr_kinds.Write_RISCV_conditional_release) (_ : P Instr_kinds.Write_RISCV_conditional_strong_release) (_ : P Instr_kinds.Write_X86_locked) (w : Instr_kinds.write_kind), P w
+Instr_kinds.cache_op_kind_rec: forall (P : forall _ : Instr_kinds.cache_op_kind, Set) (_ : P Instr_kinds.Cache_op_D_IVAC) (_ : P Instr_kinds.Cache_op_D_ISW) (_ : P Instr_kinds.Cache_op_D_CSW) (_ : P Instr_kinds.Cache_op_D_CISW) (_ : P Instr_kinds.Cache_op_D_ZVA) (_ : P Instr_kinds.Cache_op_D_CVAC) (_ : P Instr_kinds.Cache_op_D_CVAU) (_ : P Instr_kinds.Cache_op_D_CIVAC) (_ : P Instr_kinds.Cache_op_I_IALLUIS) (_ : P Instr_kinds.Cache_op_I_IALLU) (_ : P Instr_kinds.Cache_op_I_IVAU) (c : Instr_kinds.cache_op_kind), P c
+Instr_kinds.read_kind_rect: forall (P : forall _ : Instr_kinds.read_kind, Type) (_ : P Instr_kinds.Read_plain) (_ : P Instr_kinds.Read_reserve) (_ : P Instr_kinds.Read_acquire) (_ : P Instr_kinds.Read_exclusive) (_ : P Instr_kinds.Read_exclusive_acquire) (_ : P Instr_kinds.Read_stream) (_ : P Instr_kinds.Read_RISCV_acquire) (_ : P Instr_kinds.Read_RISCV_strong_acquire) (_ : P Instr_kinds.Read_RISCV_reserved) (_ : P Instr_kinds.Read_RISCV_reserved_acquire) (_ : P Instr_kinds.Read_RISCV_reserved_strong_acquire) (_ : P Instr_kinds.Read_X86_locked) (_ : P Instr_kinds.Read_ifetch) (r : Instr_kinds.read_kind), P r
+Instr_kinds.read_kind_ind: forall (P : forall _ : Instr_kinds.read_kind, Prop) (_ : P Instr_kinds.Read_plain) (_ : P Instr_kinds.Read_reserve) (_ : P Instr_kinds.Read_acquire) (_ : P Instr_kinds.Read_exclusive) (_ : P Instr_kinds.Read_exclusive_acquire) (_ : P Instr_kinds.Read_stream) (_ : P Instr_kinds.Read_RISCV_acquire) (_ : P Instr_kinds.Read_RISCV_strong_acquire) (_ : P Instr_kinds.Read_RISCV_reserved) (_ : P Instr_kinds.Read_RISCV_reserved_acquire) (_ : P Instr_kinds.Read_RISCV_reserved_strong_acquire) (_ : P Instr_kinds.Read_X86_locked) (_ : P Instr_kinds.Read_ifetch) (r : Instr_kinds.read_kind), P r
+Instr_kinds.read_kind_rec: forall (P : forall _ : Instr_kinds.read_kind, Set) (_ : P Instr_kinds.Read_plain) (_ : P Instr_kinds.Read_reserve) (_ : P Instr_kinds.Read_acquire) (_ : P Instr_kinds.Read_exclusive) (_ : P Instr_kinds.Read_exclusive_acquire) (_ : P Instr_kinds.Read_stream) (_ : P Instr_kinds.Read_RISCV_acquire) (_ : P Instr_kinds.Read_RISCV_strong_acquire) (_ : P Instr_kinds.Read_RISCV_reserved) (_ : P Instr_kinds.Read_RISCV_reserved_acquire) (_ : P Instr_kinds.Read_RISCV_reserved_strong_acquire) (_ : P Instr_kinds.Read_X86_locked) (_ : P Instr_kinds.Read_ifetch) (r : Instr_kinds.read_kind), P r
+Instr_kinds.instruction_kind_ind: forall (P : forall _ : Instr_kinds.instruction_kind, Prop) (_ : forall b : Instr_kinds.barrier_kind, P (Instr_kinds.IK_barrier b)) (_ : forall r : Instr_kinds.read_kind, P (Instr_kinds.IK_mem_read r)) (_ : forall w : Instr_kinds.write_kind, P (Instr_kinds.IK_mem_write w)) (_ : forall p : prod Instr_kinds.read_kind Instr_kinds.write_kind, P (Instr_kinds.IK_mem_rmw p)) (_ : forall u : unit, P (Instr_kinds.IK_branch u)) (_ : forall t : Instr_kinds.trans_kind, P (Instr_kinds.IK_trans t)) (_ : forall u : unit, P (Instr_kinds.IK_simple u)) (_ : forall c : Instr_kinds.cache_op_kind, P (Instr_kinds.IK_cache_op c)) (i : Instr_kinds.instruction_kind), P i
+Instr_kinds.instruction_kind_rect: forall (P : forall _ : Instr_kinds.instruction_kind, Type) (_ : forall b : Instr_kinds.barrier_kind, P (Instr_kinds.IK_barrier b)) (_ : forall r : Instr_kinds.read_kind, P (Instr_kinds.IK_mem_read r)) (_ : forall w : Instr_kinds.write_kind, P (Instr_kinds.IK_mem_write w)) (_ : forall p : prod Instr_kinds.read_kind Instr_kinds.write_kind, P (Instr_kinds.IK_mem_rmw p)) (_ : forall u : unit, P (Instr_kinds.IK_branch u)) (_ : forall t : Instr_kinds.trans_kind, P (Instr_kinds.IK_trans t)) (_ : forall u : unit, P (Instr_kinds.IK_simple u)) (_ : forall c : Instr_kinds.cache_op_kind, P (Instr_kinds.IK_cache_op c)) (i : Instr_kinds.instruction_kind), P i
+Instr_kinds.instruction_kind_rec: forall (P : forall _ : Instr_kinds.instruction_kind, Set) (_ : forall b : Instr_kinds.barrier_kind, P (Instr_kinds.IK_barrier b)) (_ : forall r : Instr_kinds.read_kind, P (Instr_kinds.IK_mem_read r)) (_ : forall w : Instr_kinds.write_kind, P (Instr_kinds.IK_mem_write w)) (_ : forall p : prod Instr_kinds.read_kind Instr_kinds.write_kind, P (Instr_kinds.IK_mem_rmw p)) (_ : forall u : unit, P (Instr_kinds.IK_branch u)) (_ : forall t : Instr_kinds.trans_kind, P (Instr_kinds.IK_trans t)) (_ : forall u : unit, P (Instr_kinds.IK_simple u)) (_ : forall c : Instr_kinds.cache_op_kind, P (Instr_kinds.IK_cache_op c)) (i : Instr_kinds.instruction_kind), P i
+Instr_kinds.barrier_kind_rec: forall (P : forall _ : Instr_kinds.barrier_kind, Set) (_ : forall u : unit, P (Instr_kinds.Barrier_Sync u)) (_ : forall u : unit, P (Instr_kinds.Barrier_LwSync u)) (_ : forall u : unit, P (Instr_kinds.Barrier_Eieio u)) (_ : forall u : unit, P (Instr_kinds.Barrier_Isync u)) (_ : forall p : prod Instr_kinds.a64_barrier_domain Instr_kinds.a64_barrier_type, P (Instr_kinds.Barrier_DMB p)) (_ : forall p : prod Instr_kinds.a64_barrier_domain Instr_kinds.a64_barrier_type, P (Instr_kinds.Barrier_DSB p)) (_ : forall u : unit, P (Instr_kinds.Barrier_ISB u)) (_ : forall u : unit, P (Instr_kinds.Barrier_MIPS_SYNC u)) (_ : forall u : unit, P (Instr_kinds.Barrier_RISCV_rw_rw u)) (_ : forall u : unit, P (Instr_kinds.Barrier_RISCV_r_rw u)) (_ : forall u : unit, P (Instr_kinds.Barrier_RISCV_r_r u)) (_ : forall u : unit, P (Instr_kinds.Barrier_RISCV_rw_w u)) (_ : forall u : unit, P (Instr_kinds.Barrier_RISCV_w_w u)) (_ : forall u : unit, P (Instr_kinds.Barrier_RISCV_w_rw u)) (_ : forall u : unit, P (Instr_kinds.Barrier_RISCV_rw_r u)) (_ : forall u : unit, P (Instr_kinds.Barrier_RISCV_r_w u)) (_ : forall u : unit, P (Instr_kinds.Barrier_RISCV_w_r u)) (_ : forall u : unit, P (Instr_kinds.Barrier_RISCV_tso u)) (_ : forall u : unit, P (Instr_kinds.Barrier_RISCV_i u)) (_ : forall u : unit, P (Instr_kinds.Barrier_x86_MFENCE u)) (b : Instr_kinds.barrier_kind), P b
+Instr_kinds.barrier_kind_ind: forall (P : forall _ : Instr_kinds.barrier_kind, Prop) (_ : forall u : unit, P (Instr_kinds.Barrier_Sync u)) (_ : forall u : unit, P (Instr_kinds.Barrier_LwSync u)) (_ : forall u : unit, P (Instr_kinds.Barrier_Eieio u)) (_ : forall u : unit, P (Instr_kinds.Barrier_Isync u)) (_ : forall p : prod Instr_kinds.a64_barrier_domain Instr_kinds.a64_barrier_type, P (Instr_kinds.Barrier_DMB p)) (_ : forall p : prod Instr_kinds.a64_barrier_domain Instr_kinds.a64_barrier_type, P (Instr_kinds.Barrier_DSB p)) (_ : forall u : unit, P (Instr_kinds.Barrier_ISB u)) (_ : forall u : unit, P (Instr_kinds.Barrier_MIPS_SYNC u)) (_ : forall u : unit, P (Instr_kinds.Barrier_RISCV_rw_rw u)) (_ : forall u : unit, P (Instr_kinds.Barrier_RISCV_r_rw u)) (_ : forall u : unit, P (Instr_kinds.Barrier_RISCV_r_r u)) (_ : forall u : unit, P (Instr_kinds.Barrier_RISCV_rw_w u)) (_ : forall u : unit, P (Instr_kinds.Barrier_RISCV_w_w u)) (_ : forall u : unit, P (Instr_kinds.Barrier_RISCV_w_rw u)) (_ : forall u : unit, P (Instr_kinds.Barrier_RISCV_rw_r u)) (_ : forall u : unit, P (Instr_kinds.Barrier_RISCV_r_w u)) (_ : forall u : unit, P (Instr_kinds.Barrier_RISCV_w_r u)) (_ : forall u : unit, P (Instr_kinds.Barrier_RISCV_tso u)) (_ : forall u : unit, P (Instr_kinds.Barrier_RISCV_i u)) (_ : forall u : unit, P (Instr_kinds.Barrier_x86_MFENCE u)) (b : Instr_kinds.barrier_kind), P b
+Instr_kinds.barrier_kind_rect: forall (P : forall _ : Instr_kinds.barrier_kind, Type) (_ : forall u : unit, P (Instr_kinds.Barrier_Sync u)) (_ : forall u : unit, P (Instr_kinds.Barrier_LwSync u)) (_ : forall u : unit, P (Instr_kinds.Barrier_Eieio u)) (_ : forall u : unit, P (Instr_kinds.Barrier_Isync u)) (_ : forall p : prod Instr_kinds.a64_barrier_domain Instr_kinds.a64_barrier_type, P (Instr_kinds.Barrier_DMB p)) (_ : forall p : prod Instr_kinds.a64_barrier_domain Instr_kinds.a64_barrier_type, P (Instr_kinds.Barrier_DSB p)) (_ : forall u : unit, P (Instr_kinds.Barrier_ISB u)) (_ : forall u : unit, P (Instr_kinds.Barrier_MIPS_SYNC u)) (_ : forall u : unit, P (Instr_kinds.Barrier_RISCV_rw_rw u)) (_ : forall u : unit, P (Instr_kinds.Barrier_RISCV_r_rw u)) (_ : forall u : unit, P (Instr_kinds.Barrier_RISCV_r_r u)) (_ : forall u : unit, P (Instr_kinds.Barrier_RISCV_rw_w u)) (_ : forall u : unit, P (Instr_kinds.Barrier_RISCV_w_w u)) (_ : forall u : unit, P (Instr_kinds.Barrier_RISCV_w_rw u)) (_ : forall u : unit, P (Instr_kinds.Barrier_RISCV_rw_r u)) (_ : forall u : unit, P (Instr_kinds.Barrier_RISCV_r_w u)) (_ : forall u : unit, P (Instr_kinds.Barrier_RISCV_w_r u)) (_ : forall u : unit, P (Instr_kinds.Barrier_RISCV_tso u)) (_ : forall u : unit, P (Instr_kinds.Barrier_RISCV_i u)) (_ : forall u : unit, P (Instr_kinds.Barrier_x86_MFENCE u)) (b : Instr_kinds.barrier_kind), P b

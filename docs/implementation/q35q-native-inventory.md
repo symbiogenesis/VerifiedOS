@@ -8,6 +8,25 @@ Its focused strict control succeeds for the actual interface and synthetic modul
 shapes. Native classification, implementation connections, complete field accounting
 and refusal controls remain unqualified; no adapter or support carriage is accepted.
 
+## Complete census continuation
+
+[Complete native census and bounded replay evidence](retained-evidence/q35q-census-native-20261023/manifest.json),
+SHA256 `176fc8a261105e4e3afdb771b4f4f1c084e24153462b92dc24822703274b300e`,
+retains the complete census emission, exact executed sources, input identities and
+candidate refusals separately from the original metadata-only checkpoint. The
+complete raw JSON is losslessly compressed; it contains body identities and
+reference domains, never executable library body ASTs. Its native producer succeeds
+for the selected support and authored controls with unchanged recorded inputs.
+Strict duplicate-free parsing and schema validation succeed, and every planned
+native module/type reading succeeds. The first adapter replay refuses its text
+framing of an inductive constructor named `End`; the corrected framing accepts the
+retained readings. The next replay reaches its time bound inside schema validation
+and supplies no complete graph verdict. The
+[deterministic replay act](contracts/sail-support-census.md#deterministic-schema-replay)
+preserves both counters and commissions only the third bounded adapter/control
+candidate. Complete classification, exact assumptions and hosted kernel acceptance
+remain required.
+
 ## Current native producer
 
 [Constructor-based native metadata control](retained-evidence/reuse-wire-census-20261023/manifest.json),

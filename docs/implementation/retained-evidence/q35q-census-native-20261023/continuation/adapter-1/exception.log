@@ -1,0 +1,14 @@
+Traceback (most recent call last):
+  File "/mnt/c/Users/symbi/AppData/Local/Temp/vos-q35q-9edbbf2478214d1597de8d0bc0996699/offline1.py", line 76, in <module>
+    result=adapter['census'](metadata,searches,readings,expected_modules=expected)
+  File "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/checklist-20261023-c/tools/rocq-census/census.py", line 842, in census
+    return _census(metadata, searches, readings, expected_modules=expected_modules)
+  File "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/checklist-20261023-c/tools/rocq-census/census.py", line 497, in _census
+    _reading(readings[kind + ":" + name], kind, name)
+    ~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/checklist-20261023-c/tools/rocq-census/census.py", line 201, in _reading
+    _require(depth >= 0, "native module reading has an unmatched closing body")
+    ~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/checklist-20261023-c/tools/rocq-census/census.py", line 39, in _require
+    raise CensusError(message)
+<run_path>.CensusError: native module reading has an unmatched closing body

@@ -1,0 +1,69 @@
+Current search blacklist :  is empty.
+MachineWord.MachineWord.idx: Set
+MachineWord.MachineWord.idx_S: forall _ : BinNums.N, BinNums.N
+MachineWord.MachineWord.word: forall _ : BinNums.N, Set
+MachineWord.MachineWord.idx_N: forall _ : BinNums.N, BinNums.N
+MachineWord.MachineWord.N_idx: forall _ : BinNums.N, BinNums.N
+MachineWord.MachineWord.idx_mul: forall (_ : BinNums.N) (_ : BinNums.N), BinNums.N
+MachineWord.MachineWord.idx_add: forall (_ : BinNums.N) (_ : BinNums.N), BinNums.N
+MachineWord.MachineWord.Z_idx: forall _ : BinNums.Z, BinNums.N
+MachineWord.MachineWord.idx_nat: forall _ : BinNums.N, nat
+MachineWord.MachineWord.nat_idx: forall _ : nat, BinNums.N
+MachineWord.MachineWord.idx_Z: forall _ : BinNums.N, BinNums.Z
+MachineWord.MachineWord.zeros: forall n : BinNums.N, MachineWord.MachineWord.word n
+MachineWord.MachineWord.ones: forall n : BinNums.N, MachineWord.MachineWord.word n
+MachineWord.MachineWord.word_to_N: forall [n : BinNums.N] (_ : MachineWord.MachineWord.word n), BinNums.N
+MachineWord.MachineWord.N_to_word: forall n _ : BinNums.N, MachineWord.MachineWord.word n
+MachineWord.MachineWord.not: forall [n : BinNums.N] (_ : MachineWord.MachineWord.word n), MachineWord.MachineWord.word n
+MachineWord.MachineWord.reverse_endian: forall [n : BinNums.N] (_ : MachineWord.MachineWord.word n), MachineWord.MachineWord.word n
+MachineWord.MachineWord.Z_to_word: forall (n : BinNums.N) (_ : BinNums.Z), MachineWord.MachineWord.word n
+MachineWord.MachineWord.word_to_binary_string: forall [n : BinNums.N] (_ : MachineWord.MachineWord.word n), String.string
+MachineWord.MachineWord.word_to_Z: forall [n : BinNums.N] (_ : MachineWord.MachineWord.word n), BinNums.Z
+MachineWord.MachineWord.logical_shift_right: forall [n : BinNums.N] (_ : MachineWord.MachineWord.word n) (_ : BinNums.N), MachineWord.MachineWord.word n
+MachineWord.MachineWord.sign_extend: forall {m : BinNums.N} (n : BinNums.N) (_ : MachineWord.MachineWord.word m), MachineWord.MachineWord.word n
+MachineWord.MachineWord.zero_extend: forall {m : BinNums.N} (n : BinNums.N) (_ : MachineWord.MachineWord.word m), MachineWord.MachineWord.word n
+MachineWord.MachineWord.logical_shift_left: forall [n : BinNums.N] (_ : MachineWord.MachineWord.word n) (_ : BinNums.N), MachineWord.MachineWord.word n
+MachineWord.MachineWord.arith_shift_right: forall [n : BinNums.N] (_ : MachineWord.MachineWord.word n) (_ : BinNums.N), MachineWord.MachineWord.word n
+MachineWord.MachineWord.get_bit: forall [n : BinNums.N] (_ : MachineWord.MachineWord.word n) (_ : BinNums.N), bool
+MachineWord.MachineWord.mul: forall [n : BinNums.N] (_ : MachineWord.MachineWord.word n) (_ : MachineWord.MachineWord.word n), MachineWord.MachineWord.word n
+MachineWord.MachineWord.sub: forall [n : BinNums.N] (_ : MachineWord.MachineWord.word n) (_ : MachineWord.MachineWord.word n), MachineWord.MachineWord.word n
+MachineWord.MachineWord.slice: forall {m : BinNums.N} (n : BinNums.N) (_ : MachineWord.MachineWord.word m) (_ : BinNums.N), MachineWord.MachineWord.word n
+MachineWord.MachineWord.or: forall [n : BinNums.N] (_ : MachineWord.MachineWord.word n) (_ : MachineWord.MachineWord.word n), MachineWord.MachineWord.word n
+MachineWord.MachineWord.add: forall [n : BinNums.N] (_ : MachineWord.MachineWord.word n) (_ : MachineWord.MachineWord.word n), MachineWord.MachineWord.word n
+MachineWord.MachineWord.xor: forall [n : BinNums.N] (_ : MachineWord.MachineWord.word n) (_ : MachineWord.MachineWord.word n), MachineWord.MachineWord.word n
+MachineWord.MachineWord.and: forall [n : BinNums.N] (_ : MachineWord.MachineWord.word n) (_ : MachineWord.MachineWord.word n), MachineWord.MachineWord.word n
+MachineWord.MachineWord.eqb: forall [n : BinNums.N] (_ : MachineWord.MachineWord.word n) (_ : MachineWord.MachineWord.word n), bool
+MachineWord.MachineWord.word_to_bools: forall [n : BinNums.N] (_ : MachineWord.MachineWord.word n), list bool
+MachineWord.MachineWord.set_bit: forall [n : BinNums.N] (_ : MachineWord.MachineWord.word n) (_ : BinNums.N) (_ : bool), MachineWord.MachineWord.word n
+MachineWord.MachineWord.Z_idx_Z: forall n : BinNums.N, @eq BinNums.N n (MachineWord.MachineWord.Z_idx (MachineWord.MachineWord.idx_Z n))
+MachineWord.MachineWord.update_slice: forall {m n : BinNums.N} (_ : MachineWord.MachineWord.word m) (_ : BinNums.N) (_ : MachineWord.MachineWord.word n), MachineWord.MachineWord.word m
+MachineWord.MachineWord.concat: forall {m n : BinNums.N} (_ : MachineWord.MachineWord.word m) (_ : MachineWord.MachineWord.word n), MachineWord.MachineWord.word (BinNat.N.add m n)
+MachineWord.MachineWord.cast_idx: forall {T : forall _ : BinNums.N, Type} {m n : BinNums.N} (_ : T m) (_ : @eq BinNums.N m n), T n
+MachineWord.MachineWord.bools_to_word: forall l : list bool, MachineWord.MachineWord.word (MachineWord.MachineWord.nat_idx (@length bool l))
+MachineWord.MachineWord.word_split_list: forall [m n : BinNums.N] (_ : MachineWord.MachineWord.word (MachineWord.MachineWord.idx_mul m n)), list (MachineWord.MachineWord.word m)
+MachineWord.MachineWord.replicate: forall (m : nat) [n : BinNums.N] (_ : MachineWord.MachineWord.word n), MachineWord.MachineWord.word (BinNat.N.mul (BinNat.N.of_nat m) n)
+MachineWord.MachineWord.nat_idx_Z: forall n : nat, @eq BinNums.N (MachineWord.MachineWord.nat_idx n) (MachineWord.MachineWord.Z_idx (BinInt.Z.of_nat n))
+MachineWord.MachineWord.idx_N_Z_idx: forall z : BinNums.Z, @eq BinNums.N (MachineWord.MachineWord.idx_N (MachineWord.MachineWord.Z_idx z)) (BinInt.Z.to_N z)
+MachineWord.MachineWord.word_0_eq: forall w w' : MachineWord.MachineWord.word (MachineWord.MachineWord.Z_idx BinNums.Z0), @eq (MachineWord.MachineWord.word (MachineWord.MachineWord.Z_idx BinNums.Z0)) w w'
+MachineWord.MachineWord.idx_Z_idx: forall (z : BinNums.Z) (_ : BinInt.Z.ge z BinNums.Z0), @eq BinNums.Z (MachineWord.MachineWord.idx_Z (MachineWord.MachineWord.Z_idx z)) z
+MachineWord.MachineWord.cast_idx_refl: forall (n : BinNums.N) (T : forall _ : BinNums.N, Type) (x : T n) (e : @eq BinNums.N n n), @eq (T n) (@MachineWord.MachineWord.cast_idx T n n x e) x
+MachineWord.MachineWord.word_list_concat: forall [n : BinNums.N] (l : list (MachineWord.MachineWord.word n)), MachineWord.MachineWord.word (MachineWord.MachineWord.idx_mul n (MachineWord.MachineWord.nat_idx (@length (MachineWord.MachineWord.word n) l)))
+MachineWord.MachineWord.idx_Z_idx_mul: forall x y : BinNums.N, @eq BinNums.Z (MachineWord.MachineWord.idx_Z (MachineWord.MachineWord.idx_mul x y)) (BinInt.Z.mul (MachineWord.MachineWord.idx_Z x) (MachineWord.MachineWord.idx_Z y))
+MachineWord.MachineWord.eq_dec: forall [n : BinNums.N] (w v : MachineWord.MachineWord.word n), sumbool (@eq (MachineWord.MachineWord.word n) w v) (not (@eq (MachineWord.MachineWord.word n) w v))
+MachineWord.MachineWord.word_to_bools_length: forall [n : BinNums.N] (w : MachineWord.MachineWord.word n), @eq nat (@length bool (@MachineWord.MachineWord.word_to_bools n w)) (MachineWord.MachineWord.idx_nat n)
+MachineWord.MachineWord.Z_idx_S: forall (z : BinNums.Z) (_ : BinInt.Z.ge z BinNums.Z0), @eq BinNums.N (MachineWord.MachineWord.Z_idx (BinInt.Z.succ z)) (MachineWord.MachineWord.idx_S (MachineWord.MachineWord.Z_idx z))
+MachineWord.MachineWord.list_concat_base: forall n : BinNums.N, @eq BinNums.N BinNums.N0 (BinNat.N.mul n (BinNat.N.of_nat (@length (MachineWord.MachineWord.word n) (@nil (MachineWord.MachineWord.word n)))))
+MachineWord.MachineWord.testbit_word_to_N_high: forall [n : BinNums.N] (w : MachineWord.MachineWord.word n) (i : BinNums.N) (_ : BinNat.N.ge i n), @eq bool (BinNat.N.testbit (@MachineWord.MachineWord.word_to_N n w) i) false
+MachineWord.MachineWord.eqb_true_iff: forall {n : BinNums.N} (w v : MachineWord.MachineWord.word n), iff (@eq bool (@MachineWord.MachineWord.eqb n w v) true) (@eq (MachineWord.MachineWord.word n) w v)
+MachineWord.MachineWord.word_to_N_range: forall [n : BinNums.N] (w : MachineWord.MachineWord.word n), BinNat.N.lt (@MachineWord.MachineWord.word_to_N n w) (BinNat.N.pow (BinNums.Npos (BinNums.xO BinNums.xH)) (MachineWord.MachineWord.idx_N n))
+MachineWord.MachineWord.nth_error_lookup: forall {A : Type} (l : list A) (i : nat), @eq (option A) (@base.lookup nat A (list A) (@list_basics.list.list_lookup A) i l) (@List.nth_error A l i)
+MachineWord.MachineWord.N_of_digits_limit: forall l : list bool, BinNat.N.lt (Ascii.N_of_digits l) (BinNat.N.pow (BinNums.Npos (BinNums.xO BinNums.xH)) (BinNat.N.of_nat (@length bool l)))
+MachineWord.MachineWord.get_bit_eq_nat: forall [n : nat] (w v : MachineWord.MachineWord.word (MachineWord.MachineWord.nat_idx n)) (_ : forall (i : nat) (_ : lt i n), @eq bool (@MachineWord.MachineWord.get_bit (MachineWord.MachineWord.nat_idx n) w (MachineWord.MachineWord.nat_idx i)) (@MachineWord.MachineWord.get_bit (MachineWord.MachineWord.nat_idx n) v (MachineWord.MachineWord.nat_idx i))), @eq (MachineWord.MachineWord.word (MachineWord.MachineWord.nat_idx n)) w v
+MachineWord.MachineWord.list_concat_step: forall (n : BinNums.N) (l : list (MachineWord.MachineWord.word n)) (w : MachineWord.MachineWord.word n), @eq BinNums.N (BinNat.N.add n (BinNat.N.mul n (BinNat.N.of_nat (@length (MachineWord.MachineWord.word n) l)))) (BinNat.N.mul n (BinNat.N.of_nat (@length (MachineWord.MachineWord.word n) (@cons (MachineWord.MachineWord.word n) w l))))
+MachineWord.MachineWord.nth_error_N_of_digits: forall (l : list bool) (i : nat) (b : bool), iff (@eq (option bool) (@List.nth_error bool l i) (@Some bool b)) (and (@eq bool (BinNat.N.testbit (Ascii.N_of_digits l) (BinNat.N.of_nat i)) b) (lt i (@length bool l)))
+MachineWord.MachineWord.word_to_Z_range: forall [n : BinNums.N] (w : MachineWord.MachineWord.word (BinNat.N.succ n)), and (BinInt.Z.le (BinInt.Z.opp (BinInt.Z.pow (BinNums.Zpos (BinNums.xO BinNums.xH)) (MachineWord.MachineWord.idx_Z n))) (@MachineWord.MachineWord.word_to_Z (BinNat.N.succ n) w)) (BinInt.Z.lt (@MachineWord.MachineWord.word_to_Z (BinNat.N.succ n) w) (BinInt.Z.pow (BinNums.Zpos (BinNums.xO BinNums.xH)) (MachineWord.MachineWord.idx_Z n)))
+MachineWord.MachineWord.nth_error_rev: forall (A : Type) (l : list A) (i : nat) (x : A), iff (@eq (option A) (@List.nth_error A l i) (@Some A x)) (and (@eq (option A) (@List.nth_error A (@List.rev A l) (Nat.sub (Nat.sub (@length A l) i) (S O))) (@Some A x)) (lt i (@length A l)))
+MachineWord.MachineWord.word_to_bools_get_bit: forall [n : BinNums.N] (w : MachineWord.MachineWord.word n) (i : nat) (x : bool), iff (@eq (option bool) (@List.nth_error bool (@MachineWord.MachineWord.word_to_bools n w) i) (@Some bool x)) (and (@eq bool (@MachineWord.MachineWord.get_bit n w (MachineWord.MachineWord.nat_idx (Nat.sub (Nat.sub (MachineWord.MachineWord.idx_nat n) i) (S O)))) x) (lt i (MachineWord.MachineWord.idx_nat n)))
+MachineWord.MachineWord.bools_to_word_get_bit: forall (l : list bool) (i : nat) (b : bool), iff (@eq (option bool) (@List.nth_error bool l i) (@Some bool b)) (and (@eq bool (@MachineWord.MachineWord.get_bit (MachineWord.MachineWord.nat_idx (@length bool l)) (MachineWord.MachineWord.bools_to_word l) (MachineWord.MachineWord.nat_idx (Nat.sub (Nat.sub (@length bool l) i) (S O)))) b) (lt i (@length bool l)))
+MachineWord.MachineWord.bools_to_word_nth_Some: forall (l : list bool) (i : nat) (b : bool), iff (@eq (option bool) (@List.nth_error bool l i) (@Some bool b)) (and (@eq bool b (BinNat.N.testbit (@MachineWord.MachineWord.word_to_N (MachineWord.MachineWord.nat_idx (@length bool l)) (MachineWord.MachineWord.bools_to_word l)) (BinNat.N.of_nat (Nat.sub (Nat.sub (@length bool l) i) (S O))))) (lt i (@length bool l)))
+MachineWord.MachineWord.word_to_bools_nth_Some: forall [n : BinNums.N] (w : MachineWord.MachineWord.word n) (i : nat) (x : bool) (_ : gt (MachineWord.MachineWord.idx_nat n) O), iff (@eq (option bool) (@List.nth_error bool (@MachineWord.MachineWord.word_to_bools n w) i) (@Some bool x)) (and (@eq bool x (BinNat.N.testbit (@MachineWord.MachineWord.word_to_N n w) (BinNat.N.of_nat (Nat.sub (Nat.sub (MachineWord.MachineWord.idx_nat n) i) (S O))))) (lt i (MachineWord.MachineWord.idx_nat n)))

@@ -1,0 +1,1 @@
+Module State_monad.NMap.Raw.Proofs.MX.TO := Struct Definition t : Type@{OrderedType.MiniOrderedType.t.u0}. Definition eq : forall (_ : BinNums.N) (_ : BinNums.N), Prop. Definition lt : forall (_ : BinNums.N) (_ : BinNums.N), Prop. Definition le : forall (_ : BinNums.N) (_ : BinNums.N), Prop. End

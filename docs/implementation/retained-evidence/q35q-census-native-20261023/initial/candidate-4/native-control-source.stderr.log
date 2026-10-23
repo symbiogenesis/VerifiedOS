@@ -1,0 +1,5 @@
+File "/root/build/lane-checklist-20261023-c/census-4/controls/CensusControls.v", line 2, characters 0-73:
+Error: Cannot load stdpp.bitvector.definitions: no physical path bound to
+stdpp.bitvector
+
+

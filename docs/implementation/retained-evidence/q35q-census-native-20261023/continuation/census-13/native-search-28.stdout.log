@@ -1,0 +1,190 @@
+Current search blacklist :  is empty.
+Values.ChooseType: Set
+Values.RealOfChoice: forall _ : Type, Type
+Values.ChooseString: Values.ChooseType
+Values.ChooseReal: Values.ChooseType
+Values.ChooseNat: Values.ChooseType
+Values.ChooseInt: Values.ChooseType
+Values.ChooseBool: Values.ChooseType
+Values.result: forall (_ : Type) (_ : Type), Type
+Values.choose_type: forall _ : Values.ChooseType, Set
+Values.mword: forall _ : BinNums.Z, Set
+Values.pow2: forall _ : BinNums.Z, BinNums.Z
+Values.e_div: forall (_ : BinNums.Z) (_ : BinNums.Z), BinNums.Z
+Values.min_atom: forall (_ : BinNums.Z) (_ : BinNums.Z), BinNums.Z
+Values.pow: forall (_ : BinNums.Z) (_ : BinNums.Z), BinNums.Z
+Values.e_modulo: forall (_ : BinNums.Z) (_ : BinNums.Z), BinNums.Z
+Values.shr_int: forall (_ : BinNums.Z) (_ : BinNums.Z), BinNums.Z
+Values.shl_int: forall (_ : BinNums.Z) (_ : BinNums.Z), BinNums.Z
+Values.vec: forall (_ : Type) (_ : BinNums.Z), Type
+Values.max_atom: forall (_ : BinNums.Z) (_ : BinNums.Z), BinNums.Z
+Values.register_ref: forall {register : Type} {_ : forall _ : register, Type} (_ : Type), Type
+Values.CReal_inhabited: base.Inhabited ConstructiveCauchyReals.CReal
+Values.print_endline: forall _ : String.string, unit
+Values.ChooseBitvector: forall _ : BinNums.Z, Values.ChooseType
+Values.putchar: forall _ : BinNums.Z, unit
+Values.print: forall _ : String.string, unit
+Values.prerr_endline: forall _ : String.string, unit
+Values.prerr: forall _ : String.string, unit
+Values.register_accessors: forall (_ : Type) (reg_type : Type) (_ : forall _ : reg_type, Type), Type
+Values.neq: forall (_ : BinNums.Z) (_ : BinNums.Z), bool
+Values.ChooseRange: forall (_ : BinNums.Z) (_ : BinNums.Z), Values.ChooseType
+Values.internal_positive_beq: forall (_ : BinNums.positive) (_ : BinNums.positive), bool
+Values.internal_Z_beq: forall (_ : BinNums.Z) (_ : BinNums.Z), bool
+Values.ChooseType_beq: forall (_ : Values.ChooseType) (_ : Values.ChooseType), bool
+Values.neq_atom: forall (_ : BinNums.Z) (_ : BinNums.Z), bool
+Values.opt_def: forall {a : Type} (_ : a) (_ : option a), a
+Values.add_one_bool_ignore_overflow_aux: forall _ : list bool, list bool
+Values.length_mword: forall {n : BinNums.Z} (_ : Values.mword n), BinNums.Z
+Values.Err: forall {a b : Type} (_ : b), Values.result a b
+Values.add_one_bool_ignore_overflow: forall _ : list bool, list bool
+Values.mword_of_int: forall {len : BinNums.Z} (_ : BinNums.Z), Values.mword len
+Values.Ok: forall {a b : Type} (_ : a), Values.result a b
+Values.length_list: forall {A : Type} (_ : list A), BinNums.Z
+Values.choose_prop: forall (ty : Values.ChooseType) (_ : Values.choose_type ty), Prop
+Values.print_int: forall (_ : String.string) (_ : BinNums.Z), unit
+Values.unsigned_of_bools: forall _ : list bool, BinNums.Z
+Values.nat_of_bools: forall _ : list bool, nat
+Values.prerr_int: forall (_ : String.string) (_ : BinNums.Z), unit
+Values.signed_of_bools: forall _ : list bool, BinNums.Z
+Values.index_list: forall (_ : BinNums.Z) (_ : BinNums.Z) (_ : BinNums.Z), list BinNums.Z
+Values.choose_type_inhabited: forall {ty : Values.ChooseType}, base.Inhabited (Values.choose_type ty)
+Values.int_of_bools: forall (_ : bool) (_ : list bool), BinNums.Z
+Values.vector_init: forall {T : Type} (n : BinNums.Z) (_ : T), Values.vec T n
+Values.append_list: forall {A : Type} (_ : list A) (_ : list A), list A
+Values.dummy_mword: forall {n : BinNums.Z}, base.Inhabited (Values.mword n)
+Values.vec_length: forall {T : Type} {n : BinNums.Z} (_ : Values.vec T n), BinNums.Z
+Values.member_Z_list: forall (_ : BinNums.Z) (_ : list BinNums.Z), bool
+Values.mword_to_N: forall {n : BinNums.Z} (_ : Values.mword n), BinNums.N
+Values.nat_of_bools_aux: forall (_ : nat) (_ : list bool), nat
+Values.repeat: forall {a : Type} (_ : list a) (_ : BinNums.Z), list a
+Values.drop_list: forall {A : Type} (_ : BinNums.Z) (_ : list A), list A
+Values.take_list: forall {A : Type} (_ : BinNums.Z) (_ : list A), list A
+Values.repeat': forall {a : Type} (_ : list a) (_ : nat), list a
+Values.int_of_mword: forall {a : BinNums.Z} (_ : bool) (_ : Values.mword a), BinNums.Z
+Values.vec_init_fn: forall {T : Type} (n : BinNums.Z) (_ : forall _ : BinNums.Z, T), Values.vec T n
+Values.reg: forall [register : Type] [type_of_register : forall _ : register, Type] [ty : Type] (_ : @Values.register_ref register type_of_register ty), register
+Values.exts_bools: forall (_ : BinNums.Z) (_ : list bool), list bool
+Values.bit_of_bool: forall _ : bool, Values.mword (BinNums.Zpos BinNums.xH)
+Values.pad_list_nat: forall {a : Type} (_ : a) (_ : list a) (_ : nat), list a
+Values.pad_list: forall {a : Type} (_ : a) (_ : list a) (_ : BinNums.Z), list a
+Values.just_list: forall {A : Type} (_ : list (option A)), option (list A)
+Values.byte_chunks: forall {a : Type} (_ : list a), option (list (list a))
+Values.bool_of_bit: forall _ : Values.mword (BinNums.Zpos BinNums.xH), bool
+Values.update_list_inc: forall {A : Type} (_ : list A) (_ : BinNums.Z) (_ : A), list A
+Values.update_list_dec: forall {A : Type} (_ : list A) (_ : BinNums.Z) (_ : A), list A
+Values.subrange_list_dec: forall {A : Type} (_ : list A) (_ : BinNums.Z) (_ : BinNums.Z), list A
+Values.list_update: forall {A : Type} (_ : list A) (_ : nat) (_ : A), list A
+Values.bools_of_nat: forall (_ : BinNums.Z) (_ : nat), list bool
+Values.subrange_list_inc: forall {A : Type} (_ : list A) (_ : BinNums.Z) (_ : BinNums.Z), list A
+Values.ext_list: forall {a : Type} (_ : a) (_ : BinNums.Z) (_ : list a), list a
+Values.access_list_opt_dec: forall {A : Type} (_ : list A) (_ : BinNums.Z), option A
+Values.bools_of_nat_aux: forall (_ : nat) (_ : nat) (_ : list bool), list bool
+Values.map_bind: forall {A B : Type} (_ : forall _ : A, option B) (_ : option A), option B
+Values.access_list_opt_inc: forall {A : Type} (_ : list A) (_ : BinNums.Z), option A
+Values.foreach_Z_up: forall {Vars : Type} (_ : BinNums.Z) (_ : BinNums.Z) (_ : BinNums.Z) (_ : Vars) (_ : forall (_ : BinNums.Z) (_ : Vars), Vars), Vars
+Values.real_of_choice: forall {R : Type} {_ : Values.RealOfChoice R} (_ : Values.choose_type Values.ChooseReal), R
+Values.index_list': forall (_ : BinNums.Z) (_ : BinNums.Z) (_ : BinNums.Z) (_ : nat), list BinNums.Z
+Values.foreach_Z: forall {Vars : Type} (_ : BinNums.Z) (_ : BinNums.Z) (_ : BinNums.Z) (_ : Vars) (_ : forall (_ : BinNums.Z) (_ : Vars), Vars), Vars
+Values.list_init: forall {T : Type} (_ : nat) (_ : forall _ : BinNums.Z, T), list T
+Values.foreach: forall {a Vars : Type} (_ : list a) (_ : Vars) (_ : forall (_ : a) (_ : Vars), Vars), Vars
+Values.foreach_Z_down: forall {Vars : Type} (_ : BinNums.Z) (_ : BinNums.Z) (_ : BinNums.Z) (_ : Vars) (_ : forall (_ : BinNums.Z) (_ : Vars), Vars), Vars
+Values.list_of_vec: forall {A : Type} {n : BinNums.Z} (_ : Values.vec A n), list A
+Values.name: forall [register : Type] [type_of_register : forall _ : register, Type] [ty : Type] (_ : @Values.register_ref register type_of_register ty), String.string
+Values.mword_to_bools: forall {n : BinNums.Z} (_ : Values.mword n), list bool
+Values.access_list_inc: forall {A : Type} (_ : list A) {_ : base.Inhabited A} (_ : BinNums.Z), A
+Values.access_list_dec: forall {A : Type} (_ : list A) (_ : BinNums.Z) {_ : base.Inhabited A}, A
+Values.update_mword_bool_dec: forall {a : BinNums.Z} (_ : Values.mword a) (_ : BinNums.Z) (_ : bool), Values.mword a
+Values.bools_to_mword: forall l : list bool, Values.mword (@Values.length_list bool l)
+Values.vec_of_list_len: forall {A : Type} (l : list A), Values.vec A (@Values.length_list A l)
+Values.to_word_idx: forall {n : BinNums.N} (_ : MachineWord.MachineWord.word n), Values.mword (MachineWord.MachineWord.idx_Z n)
+Values.update_subrange_list_inc: forall {A : Type} (_ : list A) (_ : BinNums.Z) (_ : BinNums.Z) (_ : list A), list A
+Values.update_subrange_list_dec: forall {A : Type} (_ : list A) (_ : BinNums.Z) (_ : BinNums.Z) (_ : list A), list A
+Values.unit_comparison_lemma: iff (@eq bool true true) True
+Values.dummy_vec: forall {T : Type} {_ : base.Inhabited T} (n : BinNums.Z), base.Inhabited (Values.vec T n)
+Values.subrange_list: forall {A : Type} (_ : bool) (_ : list A) (_ : BinNums.Z) (_ : BinNums.Z), list A
+Values.update_list: forall {A : Type} (_ : bool) (_ : list A) (_ : BinNums.Z) (_ : A), list A
+Values.dummy_result: forall {a b : Type} {_ : base.Inhabited a} {_ : base.Inhabited b}, base.Inhabited (Values.result a b)
+Values.vec_access_inc: forall {T : Type} {n : BinNums.Z} (_ : Values.vec T n) (_ : BinNums.Z) {_ : base.Inhabited T}, T
+Values.vec_access_dec: forall {T : Type} {n : BinNums.Z} (_ : Values.vec T n) (_ : BinNums.Z) {_ : base.Inhabited T}, T
+Values.access_list_opt: forall {A : Type} (_ : bool) (_ : list A) (_ : BinNums.Z), option A
+Values.vec_map: forall {S T : Type} (_ : forall _ : S, T) {n : BinNums.Z} (_ : Values.vec S n), Values.vec T n
+Values.splitAt: forall {A : Type} (_ : nat) (_ : list A), prod (list A) (list A)
+Values.foreach_Z': forall {Vars : Type} (_ : BinNums.Z) (_ : BinNums.Z) (_ : BinNums.Z) (_ : nat) (_ : Vars) (_ : forall (_ : BinNums.Z) (_ : Vars), Vars), Vars
+Values.access_mword_inc: forall {m : BinNums.Z} (_ : Values.mword m) (_ : BinNums.Z), Values.mword (BinNums.Zpos BinNums.xH)
+Values.access_mword_dec: forall {m : BinNums.Z} (_ : Values.mword m) (_ : BinNums.Z), Values.mword (BinNums.Zpos BinNums.xH)
+Values.result_bind: forall {A B E : Type} (_ : forall _ : A, Values.result B E) (_ : Values.result A E), Values.result B E
+Values.just_vec: forall {A : Type} {n : BinNums.Z} (_ : Values.vec (option A) n), option (Values.vec A n)
+Values.vec_of_list: forall {A : Type} (n : BinNums.Z) (_ : list A), option (Values.vec A n)
+Values.foreach_Z_up': forall {Vars : Type} (_ : BinNums.Z) (_ : BinNums.Z) (_ : BinNums.Z) (_ : BinNums.Z) (_ : nat) (_ : Vars) (_ : forall (_ : BinNums.Z) (_ : Vars), Vars), Vars
+Values.foreach_Z_down': forall {Vars : Type} (_ : BinNums.Z) (_ : BinNums.Z) (_ : BinNums.Z) (_ : BinNums.Z) (_ : nat) (_ : Vars) (_ : forall (_ : BinNums.Z) (_ : Vars), Vars), Vars
+Values.access_list: forall {A : Type} (_ : bool) (_ : list A) (_ : BinNums.Z) {_ : base.Inhabited A}, A
+Values.Z_rem_really_nonneg: forall (a b : BinNums.Z) (_ : BinInt.Z.le BinNums.Z0 a), BinInt.Z.le BinNums.Z0 (BinInt.Z.rem a b)
+Values.update_subrange_list: forall {A : Type} (_ : bool) (_ : list A) (_ : BinNums.Z) (_ : BinNums.Z) (_ : list A), list A
+Values.nth_in_range: forall {A : Type} (n : nat) (l : list A) (_ : lt n (@length A l)), A
+Values.to_ty: forall [register : Type] [type_of_register : forall _ : register, Type] [ty : Type] (r : @Values.register_ref register type_of_register ty) (_ : type_of_register (@Values.reg register type_of_register ty r)), ty
+Values.from_ty: forall [register : Type] [type_of_register : forall _ : register, Type] [ty : Type] (r : @Values.register_ref register type_of_register ty) (_ : ty), type_of_register (@Values.reg register type_of_register ty r)
+Values.ChooseType_eq_dec: forall x y : Values.ChooseType, sumbool (@eq Values.ChooseType x y) (not (@eq Values.ChooseType x y))
+Values.vec_update_inc: forall {T : Type} {n : BinNums.Z} {_ : base.Inhabited T} (_ : Values.vec T n) (_ : BinNums.Z) (_ : T), Values.vec T n
+Values.idx_eq_dec: forall m n : MachineWord.MachineWord.idx, sumbool (@eq MachineWord.MachineWord.idx m n) (not (@eq MachineWord.MachineWord.idx m n))
+Values.access_mword: forall {a : BinNums.Z} (_ : bool) (_ : Values.mword a) (_ : BinNums.Z), Values.mword (BinNums.Zpos BinNums.xH)
+Values.vec_update_dec: forall {T : Type} {n : BinNums.Z} {_ : base.Inhabited T} (_ : Values.vec T n) (_ : BinNums.Z) (_ : T), Values.vec T n
+Values.Inhabited_sigT: forall {T : Type} {P : forall _ : T, Type} {_ : base.Inhabited T} {_ : forall t : T, base.Inhabited (P t)}, base.Inhabited (@sigT T P)
+Values.dummy_register_ref: forall {register : Type} {type_of_register : forall _ : register, Type} {Inhabited0 : base.Inhabited register}, base.Inhabited (@Values.register_ref register type_of_register (type_of_register (@TypeCasts.dummy_value register Inhabited0)))
+Values.list_init_length: forall (T : Type) (n : nat) (f : forall _ : BinNums.Z, T), @eq nat (@length T (@Values.list_init T n f)) n
+Values.Build_register_ref: forall (register : Type) (type_of_register : forall _ : register, Type) (ty : Type) (_ : String.string) (reg : register) (_ : forall _ : type_of_register reg, ty) (_ : forall _ : ty, type_of_register reg), @Values.register_ref register type_of_register ty
+Values.internal_positive_dec_lb: forall x : BinNums.positive, (fun x0 : BinNums.positive => forall (y : BinNums.positive) (_ : @eq BinNums.positive x0 y), @eq bool (Values.internal_positive_beq x0 y) true) x
+Values.internal_ChooseType_dec_bl: forall x : Values.ChooseType, (fun x0 : Values.ChooseType => forall (y : Values.ChooseType) (_ : @eq bool (Values.ChooseType_beq x0 y) true), @eq Values.ChooseType x0 y) x
+Values.update_mword_inc: forall {a : BinNums.Z} (_ : Values.mword a) (_ : BinNums.Z) (_ : Values.mword (BinNums.Zpos BinNums.xH)), MachineWord.MachineWord.word (MachineWord.MachineWord.Z_idx a)
+Values.internal_Z_dec_lb: forall x : BinNums.Z, (fun x0 : BinNums.Z => forall (y : BinNums.Z) (_ : @eq BinNums.Z x0 y), @eq bool (Values.internal_Z_beq x0 y) true) x
+Values.internal_Z_dec_bl: forall x : BinNums.Z, (fun x0 : BinNums.Z => forall (y : BinNums.Z) (_ : @eq bool (Values.internal_Z_beq x0 y) true), @eq BinNums.Z x0 y) x
+Values.internal_positive_dec_bl: forall x : BinNums.positive, (fun x0 : BinNums.positive => forall (y : BinNums.positive) (_ : @eq bool (Values.internal_positive_beq x0 y) true), @eq BinNums.positive x0 y) x
+Values.internal_ChooseType_dec_lb: forall x : Values.ChooseType, (fun x0 : Values.ChooseType => forall (y : Values.ChooseType) (_ : @eq Values.ChooseType x0 y), @eq bool (Values.ChooseType_beq x0 y) true) x
+Values.update_mword_dec: forall {a : BinNums.Z} (_ : Values.mword a) (_ : BinNums.Z) (_ : Values.mword (BinNums.Zpos BinNums.xH)), MachineWord.MachineWord.word (MachineWord.MachineWord.Z_idx a)
+Values.e_modulo_pos: forall (a b : BinNums.Z) (_ : BinInt.Z.gt b BinNums.Z0), @eq BinNums.Z (Values.e_modulo a b) (BinInt.Z.modulo a b)
+Values.e_div_pos: forall (a b : BinNums.Z) (_ : BinInt.Z.gt b BinNums.Z0), @eq BinNums.Z (Values.e_div a b) (BinInt.Z.div a b)
+Values.dodgy_vec: forall {T : Type} (n : BinNums.Z) (_ : @eq bool (BinInt.Z.geb n BinNums.Z0) false), Values.vec T n
+Values.vec_concat: forall {T : Type} {m n : BinNums.Z} {_ : base.Inhabited T} (_ : Values.vec T m) (_ : Values.vec T n), Values.vec T (BinInt.Z.add m n)
+Values.Z_geb_ge: forall n m : BinNums.Z, iff (@eq bool (BinInt.Z.geb n m) true) (BinInt.Z.ge n m)
+Values.sail_lt_ge: forall x y : BinNums.Z, iff (BinInt.Z.lt x y) (BinInt.Z.ge y (BinInt.Z.add x (BinNums.Zpos BinNums.xH)))
+Values.update_mword: forall {a : BinNums.Z} (_ : bool) (_ : Values.mword a) (_ : BinNums.Z) (_ : Values.mword (BinNums.Zpos BinNums.xH)), MachineWord.MachineWord.word (MachineWord.MachineWord.Z_idx a)
+Values.eq_vec_dec: forall {n : BinNums.Z} (x y : Values.mword n), sumbool (@eq (Values.mword n) x y) (not (@eq (Values.mword n) x y))
+Values.result_bind_pf: forall {A B E : Type} (a : Values.result A E) (_ : forall (a' : A) (_ : @eq (Values.result A E) a (@Values.Ok A E a')), Values.result B E), Values.result B E
+Values.repeat'_length: forall {a : Type} {xs : list a} {n : nat}, @eq nat (@length a (@Values.repeat' a xs n)) (Nat.mul n (@length a xs))
+Values.member_Z_list_In: forall {x : BinNums.Z} {l : list BinNums.Z}, iff (@eq bool (Values.member_Z_list x l) true) (@List.In BinNums.Z x l)
+Values.word_to_N_cast_idx: forall {m n : BinNums.N} {w : MachineWord.MachineWord.word m} {E : @eq BinNums.N m n}, @eq BinNums.N (@MachineWord.MachineWord.word_to_N n (@MachineWord.MachineWord.cast_idx MachineWord.MachineWord.word m n w E)) (@MachineWord.MachineWord.word_to_N m w)
+Values.lift_bool_exists: forall (l r : bool) (P : forall _ : bool, Prop) (_ : forall _ : @eq bool l r, @ex bool (fun x : bool => P x)), @ex bool (fun x : bool => forall _ : @eq bool l r, P x)
+Values.result_ind: forall (a b : Type) (P : forall _ : Values.result a b, Prop) (_ : forall a0 : a, P (@Values.Ok a b a0)) (_ : forall b0 : b, P (@Values.Err a b b0)) (r : Values.result a b), P r
+Values.result_rect: forall (a b : Type) (P : forall _ : Values.result a b, Type) (_ : forall a0 : a, P (@Values.Ok a b a0)) (_ : forall b0 : b, P (@Values.Err a b b0)) (r : Values.result a b), P r
+Values.result_rec: forall (a b : Type) (P : forall _ : Values.result a b, Set) (_ : forall a0 : a, P (@Values.Ok a b a0)) (_ : forall b0 : b, P (@Values.Err a b b0)) (r : Values.result a b), P r
+Values.mword_to_N_cast_Z: forall {m n : BinNums.Z} {w : Values.mword m} {E : @eq BinNums.Z m n}, @eq BinNums.N (@Values.mword_to_N n (@TypeCasts.cast_Z Values.mword m n w E)) (@Values.mword_to_N m w)
+Values.bytes_of_mword: forall [n : BinNums.Z] (_ : Values.mword (BinInt.Z.mul (BinNums.Zpos (BinNums.xO (BinNums.xO (BinNums.xO BinNums.xH)))) n)), list (Values.mword (BinNums.Zpos (BinNums.xO (BinNums.xO (BinNums.xO BinNums.xH)))))
+Values.nth_in_range_is_nth: forall (A : Type) (n : nat) (l : list A) (d : A) (H : lt n (@length A l)), @eq A (@Values.nth_in_range A n l H) (@ListDef.nth A n l d)
+Values.skipn_length: forall {A : Type} {n : nat} {l : list A} (_ : le n (@length A l)), @eq nat (@length A (@ListDef.skipn A n l)) (Nat.sub (@length A l) n)
+Values.repeat_length_list: forall {a : Type} {xs : list a} {n : BinNums.Z} (_ : BinInt.Z.ge n BinNums.Z0), @eq BinNums.Z (@Values.length_list a (@Values.repeat a xs n)) (BinInt.Z.mul n (@Values.length_list a xs))
+Values.nth_Z_nat: forall {A : Type} {n : BinNums.Z} {xs : list A} (_ : BinInt.Z.le BinNums.Z0 n) (_ : BinInt.Z.lt n (@Values.length_list A xs)), lt (BinInt.Z.to_nat n) (@length A xs)
+Values.cast_idx_eq_dep: forall (T : forall _ : BinNums.N, Type) (m n o : BinNums.N) (x : T m) (y : T n) (EQ : @eq BinNums.N n o) (_ : EqdepFacts.eq_dep BinNums.N T m x n y), EqdepFacts.eq_dep BinNums.N T m x o (@MachineWord.MachineWord.cast_idx T n o y EQ)
+Values.decode_encode_inj: forall {T : Type} (f : forall _ : T, BinNums.positive) (g : forall _ : BinNums.positive, option T) (_ : forall x : T, @eq (option T) (g (f x)) (@Some T x)) (x y : T) (_ : @eq BinNums.positive (f x) (f y)), @eq T x y
+Values.mword_of_bytes: forall bs : list (Values.mword (BinNums.Zpos (BinNums.xO (BinNums.xO (BinNums.xO BinNums.xH))))), Values.mword (BinInt.Z.mul (BinNums.Zpos (BinNums.xO (BinNums.xO (BinNums.xO BinNums.xH)))) (@Values.length_list (Values.mword (BinNums.Zpos (BinNums.xO (BinNums.xO (BinNums.xO BinNums.xH))))) bs))
+Values.repeat_length: forall {a : Type} {xs : list a} {n : BinNums.Z} (_ : BinInt.Z.ge n BinNums.Z0), @eq nat (@length a (@Values.repeat a xs n)) (Nat.mul (BinInt.Z.to_nat n) (@length a xs))
+Values.just_list_length_Z: forall {A : Type} (l : list (option A)) (l' : list A) (_ : @eq (option (list A)) (@Some (list A) l') (@Values.just_list A l)), @eq BinNums.Z (@Values.length_list (option A) l) (@Values.length_list A l')
+Values.just_list_length: forall {A : Type} (l : list (option A)) (l' : list A) (_ : @eq (option (list A)) (@Some (list A) l') (@Values.just_list A l)), @eq nat (@length (option A) l) (@length A l')
+Values.decode_encode_eq_dec: forall {T : Type} (f : forall _ : T, BinNums.positive) (g : forall _ : BinNums.positive, option T) (_ : forall x : T, @eq (option T) (g (f x)) (@Some T x)) (x y : T), sumbool (@eq T x y) (not (@eq T x y))
+Values.to_word_idx_cast: forall (n : BinNums.Z) (w : Values.mword n) (_ : BinInt.Z.gt n BinNums.Z0), @eq (Values.mword n) w (@TypeCasts.autocast Values.mword (MachineWord.MachineWord.idx_Z (MachineWord.MachineWord.Z_idx n)) n (@Values.dummy_mword n) (@Values.to_word_idx (MachineWord.MachineWord.Z_idx n) w))
+Values.vec_eq_dec: forall {T : Type} {n : BinNums.Z} (_ : forall x y : T, sumbool (@eq T x y) (not (@eq T x y))) (x y : Values.vec T n), sumbool (@eq (Values.vec T n) x y) (not (@eq (Values.vec T n) x y))
+Values.vec_init_ok: forall {T : Type} {n : BinNums.Z} {t : T} (_ : @eq bool (BinInt.Z.geb n BinNums.Z0) true), @eq nat (@length T (@Values.repeat T (@cons T t (@nil T)) n)) (BinInt.Z.to_nat n)
+Values.update_list_inc_length: forall {T : Type} {l : list T} {m : BinNums.Z} {x : T} (_ : and (BinInt.Z.le BinNums.Z0 m) (BinInt.Z.lt m (@Values.length_list T l))), @eq nat (@length T (@Values.update_list_inc T l m x)) (@length T l)
+Values.bytes_of_mword_idx: forall (n : BinNums.Z) (_ : BinInt.Z.ge n BinNums.Z0), @eq BinNums.N (MachineWord.MachineWord.Z_idx (BinInt.Z.mul (BinNums.Zpos (BinNums.xO (BinNums.xO (BinNums.xO BinNums.xH)))) n)) (MachineWord.MachineWord.idx_mul (MachineWord.MachineWord.Z_idx (BinNums.Zpos (BinNums.xO (BinNums.xO (BinNums.xO BinNums.xH))))) (MachineWord.MachineWord.Z_idx n))
+Values.ChooseType_rect: forall (P : forall _ : Values.ChooseType, Type) (_ : P Values.ChooseBool) (_ : P Values.ChooseInt) (_ : P Values.ChooseNat) (_ : P Values.ChooseReal) (_ : P Values.ChooseString) (_ : forall lo hi : BinNums.Z, P (Values.ChooseRange lo hi)) (_ : forall n : BinNums.Z, P (Values.ChooseBitvector n)) (c : Values.ChooseType), P c
+Values.ChooseType_ind: forall (P : forall _ : Values.ChooseType, Prop) (_ : P Values.ChooseBool) (_ : P Values.ChooseInt) (_ : P Values.ChooseNat) (_ : P Values.ChooseReal) (_ : P Values.ChooseString) (_ : forall lo hi : BinNums.Z, P (Values.ChooseRange lo hi)) (_ : forall n : BinNums.Z, P (Values.ChooseBitvector n)) (c : Values.ChooseType), P c
+Values.ChooseType_rec: forall (P : forall _ : Values.ChooseType, Set) (_ : P Values.ChooseBool) (_ : P Values.ChooseInt) (_ : P Values.ChooseNat) (_ : P Values.ChooseReal) (_ : P Values.ChooseString) (_ : forall lo hi : BinNums.Z, P (Values.ChooseRange lo hi)) (_ : forall n : BinNums.Z, P (Values.ChooseBitvector n)) (c : Values.ChooseType), P c
+Values.Z_idx_eq_dep: forall (T : forall _ : BinNums.N, Type) (m n : BinNums.Z) (x : T (MachineWord.MachineWord.Z_idx m)) (y : T (MachineWord.MachineWord.Z_idx n)) (_ : BinInt.Z.gt m BinNums.Z0) (_ : BinInt.Z.gt n BinNums.Z0) (_ : EqdepFacts.eq_dep MachineWord.MachineWord.idx T (MachineWord.MachineWord.Z_idx m) x (MachineWord.MachineWord.Z_idx n) y), EqdepFacts.eq_dep BinNums.Z (fun n0 : BinNums.Z => T (MachineWord.MachineWord.Z_idx n0)) m x n y
+Values.Z_rem_pow_upper_bound: forall (x x0 l : BinNums.Z) (_ : BinInt.Z.le BinNums.Z0 x) (_ : BinInt.Z.le (BinInt.Z.pow (BinNums.Zpos (BinNums.xO BinNums.xH)) l) x0) (_ : BinInt.Z.le x0 (BinInt.Z.pow (BinNums.Zpos (BinNums.xO BinNums.xH)) l)) (_ : BinInt.Z.le BinNums.Z0 l), BinInt.Z.lt (BinInt.Z.rem x x0) (BinInt.Z.pow (BinNums.Zpos (BinNums.xO BinNums.xH)) l)
+Values.result_bind_inv: forall {A B E : Type} (f : forall _ : A, Values.result B E) (a : Values.result A E) (b : B) (_ : @eq (Values.result B E) (@Values.result_bind A B E f a) (@Values.Ok B E b)), @ex A (fun a' : A => and (@eq (Values.result A E) a (@Values.Ok A E a')) (@eq (Values.result B E) (f a') (@Values.Ok B E b)))
+Values.vec_concat_subproof0: forall (T : Type) (m n : BinNums.Z) (x : list T) (_ : @eq nat (@length T x) (BinInt.Z.to_nat m)) (x0 : list T) (_ : @eq nat (@length T x0) (BinInt.Z.to_nat n)) (_ : @eq bool (andb (BinInt.Z.geb m BinNums.Z0) (BinInt.Z.geb n BinNums.Z0)) true), BinInt.Z.le BinNums.Z0 n
+Values.vec_concat_subproof: forall (T : Type) (m n : BinNums.Z) (x : list T) (_ : @eq nat (@length T x) (BinInt.Z.to_nat m)) (x0 : list T) (_ : @eq nat (@length T x0) (BinInt.Z.to_nat n)) (_ : @eq bool (andb (BinInt.Z.geb m BinNums.Z0) (BinInt.Z.geb n BinNums.Z0)) true), BinInt.Z.le BinNums.Z0 m
+Values.vec_update_inc_lemma: forall {T : Type} {n : BinNums.Z} {v : Values.vec T n} {m : BinNums.Z} {t : T} (_ : @eq bool (andb (BinInt.Z.leb BinNums.Z0 m) (BinInt.Z.ltb m n)) true), @eq nat (@length T (@Values.update_list_inc T (@projT1 (list T) (fun l : list T => @eq nat (@length T l) (BinInt.Z.to_nat n)) v) m t)) (BinInt.Z.to_nat n)
+Values.vec_update_dec_lemma: forall {T : Type} {n : BinNums.Z} {v : Values.vec T n} {m : BinNums.Z} {t : T} (_ : @eq bool (andb (BinInt.Z.leb BinNums.Z0 m) (BinInt.Z.ltb m n)) true), @eq nat (@length T (@Values.update_list_dec T (@projT1 (list T) (fun l : list T => @eq nat (@length T l) (BinInt.Z.to_nat n)) v) m t)) (BinInt.Z.to_nat n)
+Values.just_vec_obligation_1: forall (A : Type) (n : BinNums.Z) (v : Values.vec (option A) n), let filtered_var : option (list A) := @Values.just_list A (@projT1 (list (option A)) (fun l : list (option A) => @eq nat (@length (option A) l) (BinInt.Z.to_nat n)) v) in forall (v' : list A) (_ : @eq (option (list A)) (@Some (list A) v') filtered_var), @eq nat (@length A v') (BinInt.Z.to_nat n)
+Values.mword_of_bytes_idx: forall bs : list (Values.mword (BinNums.Zpos (BinNums.xO (BinNums.xO (BinNums.xO BinNums.xH))))), @eq BinNums.Z (MachineWord.MachineWord.idx_Z (MachineWord.MachineWord.idx_mul (MachineWord.MachineWord.Z_idx (BinNums.Zpos (BinNums.xO (BinNums.xO (BinNums.xO BinNums.xH))))) (MachineWord.MachineWord.nat_idx (@length (Values.mword (BinNums.Zpos (BinNums.xO (BinNums.xO (BinNums.xO BinNums.xH))))) bs)))) (BinInt.Z.mul (BinNums.Zpos (BinNums.xO (BinNums.xO (BinNums.xO BinNums.xH)))) (@Values.length_list (Values.mword (BinNums.Zpos (BinNums.xO (BinNums.xO (BinNums.xO BinNums.xH))))) bs))
+Values.vec_of_list_eq: forall {A : Type} {n : BinNums.Z} {l : list A} (pf : (fun l0 : list A => @eq nat (@length A l0) (BinInt.Z.to_nat n)) l), @eq (option (Values.vec A n)) (@Values.vec_of_list A n l) (@Some (@sigT (list A) (fun l0 : list A => @eq nat (@length A l0) (BinInt.Z.to_nat n))) (@existT (list A) (fun l0 : list A => @eq nat (@length A l0) (BinInt.Z.to_nat n)) l pf))

@@ -1,0 +1,1 @@
+Module State_lifting := Struct Definition liftState : forall (Regs : Type@{liftState.u0}) (register : Type@{liftState.u1}) (reg_type : forall _ : register, Type@{liftState.u2}) (A : Type@{liftState.u3}) (E : Type@{liftState.u4}) (_ : Values.register_accessors Regs register reg_type) (_ : @Prompt_monad.monad register reg_type A E), State_monad.monadS Regs A E. End

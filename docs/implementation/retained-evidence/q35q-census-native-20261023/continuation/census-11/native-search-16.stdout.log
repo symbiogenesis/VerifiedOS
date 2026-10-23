@@ -1,0 +1,58 @@
+Current search blacklist :  is empty.
+Operators_mwords.zeros: forall n : BinNums.Z, Values.mword n
+Operators_mwords.count_trailing_zeros: forall {N : BinNums.Z} (_ : Values.mword N), BinNums.Z
+Operators_mwords.count_leading_zeros: forall {N : BinNums.Z} (_ : Values.mword N), BinNums.Z
+Operators_mwords.uint: forall {a : BinNums.Z} (_ : Values.mword a), BinNums.Z
+Operators_mwords.sint: forall {a : BinNums.Z} (_ : Values.mword a), BinNums.Z
+Operators_mwords.get_slice_int: forall (len _ : BinNums.Z) (_ : BinNums.Z), Values.mword len
+Operators_mwords.get_slice_int': forall (len _ : BinNums.Z) (_ : BinNums.Z), Values.mword len
+Operators_mwords.not_vec: forall {n : BinNums.Z} (_ : Values.mword n), Values.mword n
+Operators_mwords.bools_of_int: forall (_ : BinNums.Z) (_ : BinNums.Z), list bool
+Operators_mwords.sub_vec_int: forall {a : BinNums.Z} (_ : Values.mword a) (_ : BinNums.Z), Values.mword a
+Operators_mwords.set_slice_int: forall (len _ : BinNums.Z) (_ : BinNums.Z) (_ : Values.mword len), BinNums.Z
+Operators_mwords.zero_extend: forall {a : BinNums.Z} (_ : Values.mword a) (n : BinNums.Z), Values.mword n
+Operators_mwords.arith_shiftr: forall {a : BinNums.Z} (_ : Values.mword a) (_ : BinNums.Z), Values.mword a
+Operators_mwords.shiftr: forall {a : BinNums.Z} (_ : Values.mword a) (_ : BinNums.Z), Values.mword a
+Operators_mwords.add_vec_int: forall {a : BinNums.Z} (_ : Values.mword a) (_ : BinNums.Z), Values.mword a
+Operators_mwords.vector_truncateLSB: forall {n : BinNums.Z} (_ : Values.mword n) (m : BinNums.Z), Values.mword m
+Operators_mwords.shiftl: forall {a : BinNums.Z} (_ : Values.mword a) (_ : BinNums.Z), Values.mword a
+Operators_mwords.sign_extend: forall {a : BinNums.Z} (_ : Values.mword a) (n : BinNums.Z), Values.mword n
+Operators_mwords.vector_truncate: forall {n : BinNums.Z} (_ : Values.mword n) (m : BinNums.Z), Values.mword m
+Operators_mwords.slice: forall {n : BinNums.Z} (_ : Values.mword n) (_ : BinNums.Z) (len : BinNums.Z), Values.mword len
+Operators_mwords.add_vec: forall {n : BinNums.Z} (_ : Values.mword n) (_ : Values.mword n), Values.mword n
+Operators_mwords.sub_vec: forall {n : BinNums.Z} (_ : Values.mword n) (_ : Values.mword n), Values.mword n
+Operators_mwords.xor_vec: forall {n : BinNums.Z} (_ : Values.mword n) (_ : Values.mword n), Values.mword n
+Operators_mwords.or_vec: forall {n : BinNums.Z} (_ : Values.mword n) (_ : Values.mword n), Values.mword n
+Operators_mwords.and_vec: forall {n : BinNums.Z} (_ : Values.mword n) (_ : Values.mword n), Values.mword n
+Operators_mwords.extz_vec: forall {a b : BinNums.Z} (_ : BinNums.Z) (_ : Values.mword a), Values.mword b
+Operators_mwords.exts_vec: forall {a b : BinNums.Z} (_ : BinNums.Z) (_ : Values.mword a), Values.mword b
+Operators_mwords.neq_vec: forall {n : BinNums.Z} (_ : Values.mword n) (_ : Values.mword n), bool
+Operators_mwords.eq_vec: forall {n : BinNums.Z} (_ : Values.mword n) (_ : Values.mword n), bool
+Operators_mwords.mults_vec: forall {n m : BinNums.Z} (_ : Values.mword n) (_ : Values.mword n), Values.mword m
+Operators_mwords.mult_vec: forall {n m : BinNums.Z} (_ : Values.mword n) (_ : Values.mword n), Values.mword m
+Operators_mwords.print_bits: forall {a : BinNums.Z} (_ : String.string) (_ : Values.mword a), unit
+Operators_mwords.prerr_bits: forall {a : BinNums.Z} (_ : String.string) (_ : Values.mword a), unit
+Operators_mwords.replicate_bits: forall {a : BinNums.Z} (_ : Values.mword a) (n : BinNums.Z), Values.mword (BinInt.Z.mul a n)
+Operators_mwords.reverse_endianness: forall {n : BinNums.Z} (_ : Values.mword n), MachineWord.MachineWord.word (MachineWord.MachineWord.Z_idx n)
+Operators_mwords.set_slice: forall (n m : BinNums.Z) (_ : Values.mword n) (_ : BinNums.Z) (_ : Values.mword m), Values.mword n
+Operators_mwords.access_vec_dec: forall {a : BinNums.Z} (_ : Values.mword a) (_ : BinNums.Z), Values.mword (BinNums.Zpos BinNums.xH)
+Operators_mwords.access_vec_inc: forall {a : BinNums.Z} (_ : Values.mword a) (_ : BinNums.Z), Values.mword (BinNums.Zpos BinNums.xH)
+Operators_mwords.concat_vec: forall {a b : BinNums.Z} (_ : Values.mword a) (_ : Values.mword b), Values.mword (BinInt.Z.add a b)
+Operators_mwords.update_vec_dec: forall {a : BinNums.Z} (_ : Values.mword a) (_ : BinNums.Z) (_ : Values.mword (BinNums.Zpos BinNums.xH)), Values.mword a
+Operators_mwords.update_vec_inc: forall {a : BinNums.Z} (_ : Values.mword a) (_ : BinNums.Z) (_ : Values.mword (BinNums.Zpos BinNums.xH)), Values.mword a
+Operators_mwords.length_list_pos: forall {A : Type} {l : list A}, BinInt.Z.le BinNums.Z0 (BinInt.Z.of_nat (@length A l))
+Operators_mwords.word_unop: forall {n : BinNums.Z} (_ : forall (n0 : BinNums.N) (_ : MachineWord.MachineWord.word n0), MachineWord.MachineWord.word n0) (_ : Values.mword n), Values.mword n
+Operators_mwords.vec_of_bits: forall l : list (Values.mword (BinNums.Zpos BinNums.xH)), Values.mword (@Values.length_list (Values.mword (BinNums.Zpos BinNums.xH)) l)
+Operators_mwords.get_slice_int_eta: forall len n lo : BinNums.Z, @eq (Values.mword len) (Operators_mwords.get_slice_int len n lo) (Operators_mwords.get_slice_int' len n lo)
+Operators_mwords.subrange_vec_inc: forall {n : BinNums.Z} (_ : Values.mword n) (m o : BinNums.Z), Values.mword (BinInt.Z.add (BinInt.Z.sub o m) (BinNums.Zpos BinNums.xH))
+Operators_mwords.subrange_vec_dec: forall {n : BinNums.Z} (_ : Values.mword n) (m o : BinNums.Z), Values.mword (BinInt.Z.add (BinInt.Z.sub m o) (BinNums.Zpos BinNums.xH))
+Operators_mwords.word_binop: forall {n : BinNums.Z} (_ : forall (n0 : BinNums.N) (_ : MachineWord.MachineWord.word n0) (_ : MachineWord.MachineWord.word n0), MachineWord.MachineWord.word n0) (_ : Values.mword n) (_ : Values.mword n), Values.mword n
+Operators_mwords.update_subrange_vec_dec: forall {n : BinNums.Z} (_ : Values.mword n) (m o : BinNums.Z) (_ : Values.mword (BinInt.Z.sub m (BinInt.Z.sub o (BinNums.Zpos BinNums.xH)))), Values.mword n
+Operators_mwords.update_subrange_vec_inc: forall {n : BinNums.Z} (_ : Values.mword n) (m o : BinNums.Z) (_ : Values.mword (BinInt.Z.sub o (BinInt.Z.sub m (BinNums.Zpos BinNums.xH)))), Values.mword n
+Operators_mwords.autocast_m: forall {rv : Type} {rt : forall _ : rv, Type} {e : Type} {m n : BinNums.Z} {T : forall _ : BinNums.Z, Type} {_ : base.Inhabited (T n)} (_ : @Prompt_monad.monad rv rt (T m) e), @Prompt_monad.monad rv rt (T n) e
+Operators_mwords.eq_vec_true_iff: forall {n : BinNums.Z} (v w : Values.mword n), iff (@eq bool (@Operators_mwords.eq_vec n v w) true) (@eq (Values.mword n) v w)
+Operators_mwords.eq_vec_false_iff: forall {n : BinNums.Z} (v w : Values.mword n), iff (@eq bool (@Operators_mwords.eq_vec n v w) false) (not (@eq (Values.mword n) v w))
+Operators_mwords.vec_of_bits_idx: forall l : list (Values.mword (BinNums.Zpos BinNums.xH)), @eq BinNums.Z (MachineWord.MachineWord.idx_Z (MachineWord.MachineWord.idx_mul (MachineWord.MachineWord.Z_idx (BinNums.Zpos BinNums.xH)) (MachineWord.MachineWord.nat_idx (@length (Values.mword (BinNums.Zpos BinNums.xH)) l)))) (@Values.length_list (Values.mword (BinNums.Zpos BinNums.xH)) l)
+Operators_mwords.uint_range: forall {a : BinNums.Z} (x : Values.mword a) (_ : BinInt.Z.ge a BinNums.Z0), and (BinInt.Z.le BinNums.Z0 (@Operators_mwords.uint a x)) (BinInt.Z.le (@Operators_mwords.uint a x) (BinInt.Z.sub (BinInt.Z.pow (BinNums.Zpos (BinNums.xO BinNums.xH)) a) (BinNums.Zpos BinNums.xH)))
+Operators_mwords.sint_range: forall {a : BinNums.Z} (x : Values.mword a) (_ : BinInt.Z.gt a BinNums.Z0), and (BinInt.Z.le (BinInt.Z.opp (BinInt.Z.pow (BinNums.Zpos (BinNums.xO BinNums.xH)) (BinInt.Z.sub a (BinNums.Zpos BinNums.xH)))) (@Operators_mwords.sint a x)) (BinInt.Z.le (@Operators_mwords.sint a x) (BinInt.Z.sub (BinInt.Z.pow (BinNums.Zpos (BinNums.xO BinNums.xH)) (BinInt.Z.sub a (BinNums.Zpos BinNums.xH))) (BinNums.Zpos BinNums.xH)))
+Operators_mwords.slice_is_ok: forall (m : BinNums.Z) (v : Values.mword m) (lo len : BinNums.Z) (_ : BinInt.Z.le BinNums.Z0 lo) (_ : BinInt.Z.lt BinNums.Z0 len) (_ : BinInt.Z.lt (BinInt.Z.add lo len) m), @eq (Values.mword len) (@Operators_mwords.slice m v lo len) (@TypeCasts.autocast Values.mword (BinInt.Z.add (BinInt.Z.sub (BinInt.Z.sub (BinInt.Z.add lo len) (BinNums.Zpos BinNums.xH)) lo) (BinNums.Zpos BinNums.xH)) len (@Values.dummy_mword len) (@Operators_mwords.subrange_vec_dec m v (BinInt.Z.sub (BinInt.Z.add lo len) (BinNums.Zpos BinNums.xH)) lo))

@@ -1,0 +1,1 @@
+Module CensusControls.Empty := Struct  End

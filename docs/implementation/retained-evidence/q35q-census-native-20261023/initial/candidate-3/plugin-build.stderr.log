@@ -1,0 +1,13 @@
+File "/root/build/lane-checklist-20261023-c/census-3/vos_rocq_census/vos_rocq_census.ml", lines 340-349, characters 2-80:
+340 | ..match packet,ctor with
+341 |   | None,None ->
+342 |     let proposed=Constant.make1 kn in
+343 |     if not (Environ.mem_constant proposed env) then refuse ("missing concrete global " ^ KerName.to_string kn);
+344 |     GlobRef.ConstRef (Constant.make kn (Environ.lookup_constant_canonical proposed env))
+345 |   | Some i,k ->
+346 |     let proposed=MutInd.make1 kn in
+347 |     if not (Environ.mem_mind proposed env) then refuse ("missing concrete inductive " ^ KerName.to_string kn);
+348 |     let m=MutInd.make kn (Environ.lookup_mind_canonical proposed env) in
+349 |     match k with None->GlobRef.IndRef(m,i)|Some k->GlobRef.ConstructRef((m,i),k)
+Error (warning 8 [partial-match]): this pattern-matching is not exhaustive.
+  Here is an example of a case that is not matched: (None, Some _)

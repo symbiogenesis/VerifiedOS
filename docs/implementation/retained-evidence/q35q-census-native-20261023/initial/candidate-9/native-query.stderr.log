@@ -1,0 +1,4 @@
+File "/root/build/lane-checklist-20261023-c/census-9/NativeControls.v", line 31, characters 0-36:
+Error: Anomaly "Uncaught exception Not_found."
+Please report at http://rocq-prover.org/bugs/.
+

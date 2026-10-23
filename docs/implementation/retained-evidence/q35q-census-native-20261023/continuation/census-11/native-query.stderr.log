@@ -1,0 +1,6 @@
+File "/root/build/lane-checklist-20261023-c/census-11/NativeControls.v", line 31, characters 0-36:
+Error:
+Anomaly
+"File "kernel/mod_subst.ml", line 216, characters 11-17: Assertion failed."
+Please report at http://rocq-prover.org/bugs/.
+

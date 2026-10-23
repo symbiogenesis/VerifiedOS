@@ -1,0 +1,22 @@
+Current search blacklist :  is empty.
+CensusControls.Sealed.answer: Set
+CensusControls.Sealed.T: Type
+CensusControls.Concrete.answer: Set
+CensusControls.Concrete.T: Set
+CensusControls.Sealed.no: CensusControls.Sealed.answer
+CensusControls.Sealed.yes: CensusControls.Sealed.answer
+CensusControls.Concrete.no: CensusControls.Concrete.answer
+CensusControls.Sealed.value: CensusControls.Sealed.T
+CensusControls.Applied.copied: CensusControls.Concrete.T
+CensusControls.HiddenSealed.witness: True
+CensusControls.HiddenAlias.witness: True
+CensusControls.HiddenImplementation.hidden_control_axiom: True
+CensusControls.HiddenImplementation.witness: True
+CensusControls.Concrete.yes: CensusControls.Concrete.answer
+CensusControls.Concrete.value: CensusControls.Concrete.T
+CensusControls.Concrete.answer_ind: forall (P : forall _ : CensusControls.Concrete.answer, Prop) (_ : P CensusControls.Concrete.yes) (_ : P CensusControls.Concrete.no) (a : CensusControls.Concrete.answer), P a
+CensusControls.Sealed.answer_ind: forall (P : forall _ : CensusControls.Sealed.answer, Prop) (_ : P CensusControls.Sealed.yes) (_ : P CensusControls.Sealed.no) (a : CensusControls.Sealed.answer), P a
+CensusControls.Sealed.answer_rect: forall (P : forall _ : CensusControls.Sealed.answer, Type) (_ : P CensusControls.Sealed.yes) (_ : P CensusControls.Sealed.no) (a : CensusControls.Sealed.answer), P a
+CensusControls.Concrete.answer_rect: forall (P : forall _ : CensusControls.Concrete.answer, Type) (_ : P CensusControls.Concrete.yes) (_ : P CensusControls.Concrete.no) (a : CensusControls.Concrete.answer), P a
+CensusControls.Concrete.answer_rec: forall (P : forall _ : CensusControls.Concrete.answer, Set) (_ : P CensusControls.Concrete.yes) (_ : P CensusControls.Concrete.no) (a : CensusControls.Concrete.answer), P a
+CensusControls.Sealed.answer_rec: forall (P : forall _ : CensusControls.Sealed.answer, Set) (_ : P CensusControls.Sealed.yes) (_ : P CensusControls.Sealed.no) (a : CensusControls.Sealed.answer), P a

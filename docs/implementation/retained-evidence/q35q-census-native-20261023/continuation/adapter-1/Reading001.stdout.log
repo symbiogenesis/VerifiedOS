@@ -1,0 +1,1 @@
+Module CensusControls.F := Functor (X:CensusControls.S) Struct Definition copied : X.T. End

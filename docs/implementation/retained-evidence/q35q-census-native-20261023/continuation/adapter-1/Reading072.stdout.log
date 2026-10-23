@@ -1,0 +1,1 @@
+Module TypeCasts.Z_eq_dec := Struct Definition U : Set. Definition eq_dec : forall x y : BinNums.Z, sumbool (@eq BinNums.Z x y) (not (@eq BinNums.Z x y)). End

@@ -1,0 +1,74 @@
+Current search blacklist :  is empty.
+String.asciiA: BinNums.N
+String.asciia: BinNums.N
+String.zero: BinNums.N
+String.concat_str: forall (_ : String.string) (_ : String.string), String.string
+String.string_append: forall (_ : String.string) (_ : String.string), String.string
+String.hex_str: forall _ : BinNums.Z, String.string
+String.dec_str: forall _ : BinNums.Z, String.string
+String.n_leading_spaces_Z: forall _ : String.string, BinNums.Z
+String.hex_str_upper: forall _ : BinNums.Z, String.string
+String.string_of_int: forall _ : BinNums.Z, String.string
+String.n_leading_spaces: forall _ : String.string, nat
+String.string_length: forall _ : String.string, BinNums.Z
+String.pos_limit: forall _ : BinNums.positive, nat
+String.string_take: forall (_ : String.string) (_ : BinNums.Z), String.string
+String.string_drop: forall (_ : String.string) (_ : BinNums.Z), String.string
+String.string_startswith: forall (_ : String.string) (_ : String.string), bool
+String.pad0: forall (_ : nat) (_ : String.string), String.string
+String.string_sub: forall (_ : String.string) (_ : BinNums.Z) (_ : BinNums.Z), String.string
+String.valid_dec_bits: forall (_ : BinNums.Z) (_ : String.string), bool
+String.valid_hex_bits: forall (_ : BinNums.Z) (_ : String.string), bool
+String.hex_char: forall _ : Ascii.ascii, option BinNums.Z
+String.maybe_int_of_string: forall _ : String.string, option BinNums.Z
+String.binary_string_of_word: forall {n : BinNums.N} (_ : MachineWord.MachineWord.word n), String.string
+String.hex_string_of_int: forall (_ : String.string) (_ : bool) (_ : BinNums.Z), String.string
+String.decimal_string_of_bits: forall {n : BinNums.Z} (_ : Values.mword n), String.string
+String.string_of_N: forall (_ : nat) (_ : BinNums.N) (_ : String.string), String.string
+String.parse_hex_bits: forall (sz : BinNums.Z) (_ : String.string), Values.mword sz
+String.string_of_bits: forall {n : BinNums.Z} (_ : Values.mword n), String.string
+String.parse_dec_bits: forall (sz : BinNums.Z) (_ : String.string), Values.mword sz
+String.maybe_int_of_prefix: forall _ : String.string, option (prod BinNums.Z BinNums.Z)
+String.parse_hex_bits_opt: forall (sz : BinNums.Z) (_ : String.string), option (Values.mword sz)
+String.parse_dec_bits_opt: forall (sz : BinNums.Z) (_ : String.string), option (Values.mword sz)
+String.hex_string_of_N: forall (_ : bool) (_ : nat) (_ : BinNums.N) (_ : String.string), String.string
+String.spc_matches_prefix: forall _ : String.string, option (prod unit BinNums.Z)
+String.opt_spc_matches_prefix: forall _ : String.string, option (prod unit BinNums.Z)
+String.more_digits: forall (_ : String.string) (_ : BinNums.Z) (_ : BinNums.Z) (_ : nat), prod BinNums.Z nat
+String.hex_bits_n_matches_prefix: forall (sz : BinNums.Z) (_ : String.string), option (prod (Values.mword sz) BinNums.Z)
+String.int_of: forall (_ : String.string) (_ : BinNums.Z) (_ : nat), option (prod BinNums.Z BinNums.Z)
+String.hex_bits_1_matches_prefix: forall _ : String.string, option (prod (Values.mword (BinNums.Zpos BinNums.xH)) BinNums.Z)
+String.hex_bits_3_matches_prefix: forall _ : String.string, option (prod (Values.mword (BinNums.Zpos (BinNums.xI BinNums.xH))) BinNums.Z)
+String.hex_bits_2_matches_prefix: forall _ : String.string, option (prod (Values.mword (BinNums.Zpos (BinNums.xO BinNums.xH))) BinNums.Z)
+String.hex_bits_7_matches_prefix: forall _ : String.string, option (prod (Values.mword (BinNums.Zpos (BinNums.xI (BinNums.xI BinNums.xH)))) BinNums.Z)
+String.hex_bits_4_matches_prefix: forall _ : String.string, option (prod (Values.mword (BinNums.Zpos (BinNums.xO (BinNums.xO BinNums.xH)))) BinNums.Z)
+String.hex_bits_15_matches_prefix: forall _ : String.string, option (prod (Values.mword (BinNums.Zpos (BinNums.xI (BinNums.xI (BinNums.xI BinNums.xH))))) BinNums.Z)
+String.hex_bits_8_matches_prefix: forall _ : String.string, option (prod (Values.mword (BinNums.Zpos (BinNums.xO (BinNums.xO (BinNums.xO BinNums.xH))))) BinNums.Z)
+String.hex_bits_5_matches_prefix: forall _ : String.string, option (prod (Values.mword (BinNums.Zpos (BinNums.xI (BinNums.xO BinNums.xH)))) BinNums.Z)
+String.hex_bits_6_matches_prefix: forall _ : String.string, option (prod (Values.mword (BinNums.Zpos (BinNums.xO (BinNums.xI BinNums.xH)))) BinNums.Z)
+String.hex_bits_31_matches_prefix: forall _ : String.string, option (prod (Values.mword (BinNums.Zpos (BinNums.xI (BinNums.xI (BinNums.xI (BinNums.xI BinNums.xH)))))) BinNums.Z)
+String.hex_bits_16_matches_prefix: forall _ : String.string, option (prod (Values.mword (BinNums.Zpos (BinNums.xO (BinNums.xO (BinNums.xO (BinNums.xO BinNums.xH)))))) BinNums.Z)
+String.hex_bits_11_matches_prefix: forall _ : String.string, option (prod (Values.mword (BinNums.Zpos (BinNums.xI (BinNums.xI (BinNums.xO BinNums.xH))))) BinNums.Z)
+String.hex_bits_12_matches_prefix: forall _ : String.string, option (prod (Values.mword (BinNums.Zpos (BinNums.xO (BinNums.xO (BinNums.xI BinNums.xH))))) BinNums.Z)
+String.hex_bits_13_matches_prefix: forall _ : String.string, option (prod (Values.mword (BinNums.Zpos (BinNums.xI (BinNums.xO (BinNums.xI BinNums.xH))))) BinNums.Z)
+String.hex_bits_14_matches_prefix: forall _ : String.string, option (prod (Values.mword (BinNums.Zpos (BinNums.xO (BinNums.xI (BinNums.xI BinNums.xH))))) BinNums.Z)
+String.hex_bits_10_matches_prefix: forall _ : String.string, option (prod (Values.mword (BinNums.Zpos (BinNums.xO (BinNums.xI (BinNums.xO BinNums.xH))))) BinNums.Z)
+String.hex_bits_9_matches_prefix: forall _ : String.string, option (prod (Values.mword (BinNums.Zpos (BinNums.xI (BinNums.xO (BinNums.xO BinNums.xH))))) BinNums.Z)
+String.hex_bits_32_matches_prefix: forall _ : String.string, option (prod (Values.mword (BinNums.Zpos (BinNums.xO (BinNums.xO (BinNums.xO (BinNums.xO (BinNums.xO BinNums.xH))))))) BinNums.Z)
+String.hex_bits_30_matches_prefix: forall _ : String.string, option (prod (Values.mword (BinNums.Zpos (BinNums.xO (BinNums.xI (BinNums.xI (BinNums.xI BinNums.xH)))))) BinNums.Z)
+String.hex_bits_21_matches_prefix: forall _ : String.string, option (prod (Values.mword (BinNums.Zpos (BinNums.xI (BinNums.xO (BinNums.xI (BinNums.xO BinNums.xH)))))) BinNums.Z)
+String.hex_bits_22_matches_prefix: forall _ : String.string, option (prod (Values.mword (BinNums.Zpos (BinNums.xO (BinNums.xI (BinNums.xI (BinNums.xO BinNums.xH)))))) BinNums.Z)
+String.hex_bits_27_matches_prefix: forall _ : String.string, option (prod (Values.mword (BinNums.Zpos (BinNums.xI (BinNums.xI (BinNums.xO (BinNums.xI BinNums.xH)))))) BinNums.Z)
+String.hex_bits_23_matches_prefix: forall _ : String.string, option (prod (Values.mword (BinNums.Zpos (BinNums.xI (BinNums.xI (BinNums.xI (BinNums.xO BinNums.xH)))))) BinNums.Z)
+String.hex_bits_29_matches_prefix: forall _ : String.string, option (prod (Values.mword (BinNums.Zpos (BinNums.xI (BinNums.xO (BinNums.xI (BinNums.xI BinNums.xH)))))) BinNums.Z)
+String.hex_bits_28_matches_prefix: forall _ : String.string, option (prod (Values.mword (BinNums.Zpos (BinNums.xO (BinNums.xO (BinNums.xI (BinNums.xI BinNums.xH)))))) BinNums.Z)
+String.hex_bits_19_matches_prefix: forall _ : String.string, option (prod (Values.mword (BinNums.Zpos (BinNums.xI (BinNums.xI (BinNums.xO (BinNums.xO BinNums.xH)))))) BinNums.Z)
+String.hex_bits_20_matches_prefix: forall _ : String.string, option (prod (Values.mword (BinNums.Zpos (BinNums.xO (BinNums.xO (BinNums.xI (BinNums.xO BinNums.xH)))))) BinNums.Z)
+String.hex_bits_24_matches_prefix: forall _ : String.string, option (prod (Values.mword (BinNums.Zpos (BinNums.xO (BinNums.xO (BinNums.xO (BinNums.xI BinNums.xH)))))) BinNums.Z)
+String.hex_bits_17_matches_prefix: forall _ : String.string, option (prod (Values.mword (BinNums.Zpos (BinNums.xI (BinNums.xO (BinNums.xO (BinNums.xO BinNums.xH)))))) BinNums.Z)
+String.hex_bits_26_matches_prefix: forall _ : String.string, option (prod (Values.mword (BinNums.Zpos (BinNums.xO (BinNums.xI (BinNums.xO (BinNums.xI BinNums.xH)))))) BinNums.Z)
+String.hex_bits_25_matches_prefix: forall _ : String.string, option (prod (Values.mword (BinNums.Zpos (BinNums.xI (BinNums.xO (BinNums.xO (BinNums.xI BinNums.xH)))))) BinNums.Z)
+String.hex_bits_18_matches_prefix: forall _ : String.string, option (prod (Values.mword (BinNums.Zpos (BinNums.xO (BinNums.xI (BinNums.xO (BinNums.xO BinNums.xH)))))) BinNums.Z)
+String.hex_bits_64_matches_prefix: forall _ : String.string, option (prod (Values.mword (BinNums.Zpos (BinNums.xO (BinNums.xO (BinNums.xO (BinNums.xO (BinNums.xO (BinNums.xO BinNums.xH)))))))) BinNums.Z)
+String.hex_bits_33_matches_prefix: forall _ : String.string, option (prod (Values.mword (BinNums.Zpos (BinNums.xI (BinNums.xO (BinNums.xO (BinNums.xO (BinNums.xO BinNums.xH))))))) BinNums.Z)
+String.hex_bits_48_matches_prefix: forall _ : String.string, option (prod (Values.mword (BinNums.Zpos (BinNums.xO (BinNums.xO (BinNums.xO (BinNums.xO (BinNums.xI BinNums.xH))))))) BinNums.Z)

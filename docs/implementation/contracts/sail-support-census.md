@@ -252,4 +252,32 @@ reading, dropped query, synthesized type or weaker implementation connection.
 Malformed headers, missing outer closure, elision and appended diagnostics still
 refuse. Implement this correction within the existing adapter/control budget.
 
+### Deterministic schema replay
+
+The second adapter candidate stops at its recorded remaining-time deadline while
+the complete schema validator is still running. It supplies no graph or control
+verdict. Its elapsed 949.096839739 seconds brings the two candidates' active total
+to 1789.568156587 seconds; 10.431843413 seconds of the original allowance remain.
+All recorded raw, source and protected-input identities agree. Retain its exact
+timeout and recursive-validator traceback with the first candidate's framing
+refusal.
+
+Validate scalar branch discriminators before recursive members, in deterministic
+order, while retaining every schema constraint. An incorrect branch must not
+recursively inspect common children before discovering its mismatched tag.
+Canonical scalar comparisons and requested-type dispatch may avoid redundant
+serialization without changing their existing decisions. No schema node, resolver
+effect, branch constraint, field, reading or native control may be omitted or
+accepted through a cache.
+
+This owner act gives the third original adapter/control candidate at most thirty
+additional active minutes, with a cumulative ceiling of sixty active minutes and
+the original maximum of three candidates. It resets neither earlier counter.
+Record intent and cumulative time before launch. Run the original small native
+signature, unsupported-form and hidden-assumption assays, replay the complete
+selected native graph, then qualify the actual three-root control census and all
+specified evidence corruptions. Stop at the first refusal or this bound. The
+unchanged two-campaign hosted allowance, strict flags, source semantics, support
+allowlist, complete schema and independent hosted acceptance remain required.
+
 The census extension adds 6 h, range 3–9, to Q35q's existing allowance: native grammar/classification 1–3 h, canonical implementation connections 1–3 h, and controls/evidence 1–3 h. The combined item is 10 h, range 5–15. This is a planning estimate for the commissioned scope; unattended hosted runtime and a further unsupported form are excluded. A retained refusal does not close Q35q.

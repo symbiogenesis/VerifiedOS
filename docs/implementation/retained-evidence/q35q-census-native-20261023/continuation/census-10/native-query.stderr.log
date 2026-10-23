@@ -1,0 +1,4 @@
+File "/root/build/lane-checklist-20261023-c/census-10/NativeControls.v", line 31, characters 0-36:
+Error:
+VOS census refused: native lookup missing at root CensusControls > visit-module module CensusControls > visit-module module CensusControls.Applied > object-field CensusControls.Applied.copied > serialize source_reference > Printer.pr_global fallback after missing Nametab.path_of_global CensusControls.F.copied
+

@@ -1,0 +1,16 @@
+Current search blacklist :  is empty.
+State.or_boolS: forall {RV E : Type} (_ : State_monad.monadS RV bool E) (_ : State_monad.monadS RV bool E), State_monad.monadS RV bool E
+State.and_boolS: forall {RV E : Type} (_ : State_monad.monadS RV bool E) (_ : State_monad.monadS RV bool E), State_monad.monadS RV bool E
+State.genlistS: forall {A RV E : Type} (_ : forall _ : nat, State_monad.monadS RV A E) (_ : nat), State_monad.monadS RV (list A) E
+State.iterS: forall {RV A E : Type} (_ : forall _ : A, State_monad.monadS RV unit E) (_ : list A), State_monad.monadS RV unit E
+State.foreach_ZS_down: forall {rv e Vars : Type} (_ : BinNums.Z) (_ : BinNums.Z) (_ : BinNums.Z) (_ : Vars) (_ : forall (_ : BinNums.Z) (_ : Vars), State_monad.monadS rv Vars e), State_monad.monadS rv Vars e
+State.foreach_ZS_up: forall {rv e Vars : Type} (_ : BinNums.Z) (_ : BinNums.Z) (_ : BinNums.Z) (_ : Vars) (_ : forall (_ : BinNums.Z) (_ : Vars), State_monad.monadS rv Vars e), State_monad.monadS rv Vars e
+State.foreachS: forall {A RV Vars E : Type} (_ : list A) (_ : Vars) (_ : forall (_ : A) (_ : Vars), State_monad.monadS RV Vars E), State_monad.monadS RV Vars E
+State.iteriS: forall {RV A E : Type} (_ : forall (_ : BinNums.Z) (_ : A), State_monad.monadS RV unit E) (_ : list A), State_monad.monadS RV unit E
+State.iterS_aux: forall {RV A E : Type} (_ : BinNums.Z) (_ : forall (_ : BinNums.Z) (_ : A), State_monad.monadS RV unit E) (_ : list A), State_monad.monadS RV unit E
+State.whileST: forall {RV Vars E : Type} (_ : Vars) (_ : forall _ : Vars, BinNums.Z) (_ : forall _ : Vars, State_monad.monadS RV bool E) (_ : forall _ : Vars, State_monad.monadS RV Vars E), State_monad.monadS RV Vars E
+State.foreach_ZS_down': forall {rv e Vars : Type} (_ : BinNums.Z) (_ : BinNums.Z) (_ : BinNums.Z) (_ : BinNums.Z) (_ : nat) (_ : Vars) (_ : forall (_ : BinNums.Z) (_ : Vars), State_monad.monadS rv Vars e), State_monad.monadS rv Vars e
+State.untilST: forall {RV Vars E : Type} (_ : Vars) (_ : forall _ : Vars, BinNums.Z) (_ : forall _ : Vars, State_monad.monadS RV bool E) (_ : forall _ : Vars, State_monad.monadS RV Vars E), State_monad.monadS RV Vars E
+State.foreach_ZS_up': forall {rv e Vars : Type} (_ : BinNums.Z) (_ : BinNums.Z) (_ : BinNums.Z) (_ : BinNums.Z) (_ : nat) (_ : Vars) (_ : forall (_ : BinNums.Z) (_ : Vars), State_monad.monadS rv Vars e), State_monad.monadS rv Vars e
+State.untilST': forall {RV Vars E : Type} (limit : BinNums.Z) (_ : Vars) (_ : forall _ : Vars, State_monad.monadS RV bool E) (_ : forall _ : Vars, State_monad.monadS RV Vars E) (_ : @Acc BinNums.Z (Zwf.Zwf BinNums.Z0) limit), State_monad.monadS RV Vars E
+State.whileST': forall {RV Vars E : Type} (limit : BinNums.Z) (_ : Vars) (_ : forall _ : Vars, State_monad.monadS RV bool E) (_ : forall _ : Vars, State_monad.monadS RV Vars E) (_ : @Acc BinNums.Z (Zwf.Zwf BinNums.Z0) limit), State_monad.monadS RV Vars E

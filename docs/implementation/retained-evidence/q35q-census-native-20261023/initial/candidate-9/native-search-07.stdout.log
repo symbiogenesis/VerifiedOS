@@ -1,0 +1,5 @@
+Current search blacklist :  is empty.
+ConcurrencyInterfaceV2.empOutcome: forall _ : Type, Prop
+ConcurrencyInterfaceV2.empOutcome_rec: forall (R : Type) (P : forall _ : ConcurrencyInterfaceV2.empOutcome R, Set) (e : ConcurrencyInterfaceV2.empOutcome R), P e
+ConcurrencyInterfaceV2.empOutcome_ind: forall (R : Type) (P : forall _ : ConcurrencyInterfaceV2.empOutcome R, Prop) (e : ConcurrencyInterfaceV2.empOutcome R), P e
+ConcurrencyInterfaceV2.empOutcome_rect: forall (R : Type) (P : forall _ : ConcurrencyInterfaceV2.empOutcome R, Type) (e : ConcurrencyInterfaceV2.empOutcome R), P e

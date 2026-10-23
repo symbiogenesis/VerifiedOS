@@ -1,0 +1,11 @@
+Current search blacklist :  is empty.
+Undefined.undefined_unit: forall {r : Type} {rt : forall _ : r, Type} {E : Type} (_ : unit), @Prompt_monad.monad r rt unit E
+Undefined.undefined_range: forall {r : Type} {rt : forall _ : r, Type} {E : Type} (_ : BinNums.Z) (_ : BinNums.Z), @Prompt_monad.monad r rt BinNums.Z E
+Undefined.undefined_string: forall {r : Type} {rt : forall _ : r, Type} {E : Type} (_ : unit), @Prompt_monad.monad r rt String.string E
+Undefined.undefined_int: forall {r : Type} {rt : forall _ : r, Type} {E : Type} (_ : unit), @Prompt_monad.monad r rt BinNums.Z E
+Undefined.undefined_nat: forall {r : Type} {rt : forall _ : r, Type} {E : Type} (_ : unit), @Prompt_monad.monad r rt BinNums.Z E
+Undefined.undefined_bool: forall {r : Type} {rt : forall _ : r, Type} {E : Type} (_ : unit), @Prompt_monad.monad r rt bool E
+Undefined.undefined_bitvector: forall {r : Type} {rt : forall _ : r, Type} {E : Type} (n : BinNums.Z), @Prompt_monad.monad r rt (Values.mword n) E
+Undefined.undefined_real: forall {r : Type} {rt : forall _ : r, Type} {E R : Type} {_ : Values.RealOfChoice R} (_ : unit), @Prompt_monad.monad r rt R E
+Undefined.undefined_list: forall {r : Type} {rt : forall _ : r, Type} {E T : Type} {_ : base.Inhabited T} (_ : T), @Prompt_monad.monad r rt (list T) E
+Undefined.undefined_vector: forall {r : Type} {rt : forall _ : r, Type} {E T : Type} (n : BinNums.Z) {_ : base.Inhabited T} (_ : T), @Prompt_monad.monad r rt (Values.vec T n) E

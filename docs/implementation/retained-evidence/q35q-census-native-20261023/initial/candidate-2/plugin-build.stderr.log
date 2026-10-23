@@ -1,0 +1,4 @@
+File "/root/build/lane-checklist-20261023-c/census-2/vos_rocq_census/vos_rocq_census.ml", line 308, characters 90-99:
+308 | | GlobRef.IndRef (m,i) -> O ["kind",S "inductive";"exported_name",S (Pp.string_of_ppcmds (Ind.print (m,i)));
+                                                                                                ^^^^^^^^^
+Error: Unbound value Ind.print

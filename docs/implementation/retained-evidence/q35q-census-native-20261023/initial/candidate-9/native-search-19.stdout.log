@@ -1,0 +1,26 @@
+Current search blacklist :  is empty.
+Real.abs_real: forall _ : Rdefinitions.RbaseSymbolsImpl.R, Rdefinitions.RbaseSymbolsImpl.R
+Real.sqrt_real: forall _ : Rdefinitions.RbaseSymbolsImpl.R, Rdefinitions.RbaseSymbolsImpl.R
+Real.neg_real: forall _ : Rdefinitions.RbaseSymbolsImpl.R, Rdefinitions.RbaseSymbolsImpl.R
+Real.sub_real: forall (_ : Rdefinitions.RbaseSymbolsImpl.R) (_ : Rdefinitions.RbaseSymbolsImpl.R), Rdefinitions.RbaseSymbolsImpl.R
+Real.mult_real: forall (_ : Rdefinitions.RbaseSymbolsImpl.R) (_ : Rdefinitions.RbaseSymbolsImpl.R), Rdefinitions.RbaseSymbolsImpl.R
+Real.div_real: forall (_ : Rdefinitions.RbaseSymbolsImpl.R) (_ : Rdefinitions.RbaseSymbolsImpl.R), Rdefinitions.RbaseSymbolsImpl.R
+Real.add_real: forall (_ : Rdefinitions.RbaseSymbolsImpl.R) (_ : Rdefinitions.RbaseSymbolsImpl.R), Rdefinitions.RbaseSymbolsImpl.R
+Real.R_inhabited: base.Inhabited Rdefinitions.RbaseSymbolsImpl.R
+Real.round_down: forall _ : Rdefinitions.RbaseSymbolsImpl.R, BinNums.Z
+Real.RealOfChoice_R: Values.RealOfChoice Rdefinitions.RbaseSymbolsImpl.R
+Real.to_real: forall _ : BinNums.Z, Rdefinitions.RbaseSymbolsImpl.R
+Real.round_up: forall _ : Rdefinitions.RbaseSymbolsImpl.R, BinNums.Z
+Real.pow_real: forall (_ : Rdefinitions.RbaseSymbolsImpl.R) (_ : BinNums.Z), Rdefinitions.RbaseSymbolsImpl.R
+Real.lt_real: forall (_ : Rdefinitions.RbaseSymbolsImpl.R) (_ : Rdefinitions.RbaseSymbolsImpl.R), bool
+Real.gt_real: forall (_ : Rdefinitions.RbaseSymbolsImpl.R) (_ : Rdefinitions.RbaseSymbolsImpl.R), bool
+Real.lteq_real: forall (_ : Rdefinitions.RbaseSymbolsImpl.R) (_ : Rdefinitions.RbaseSymbolsImpl.R), bool
+Real.gteq_real: forall (_ : Rdefinitions.RbaseSymbolsImpl.R) (_ : Rdefinitions.RbaseSymbolsImpl.R), bool
+Real.eq_real: forall (_ : Rdefinitions.RbaseSymbolsImpl.R) (_ : Rdefinitions.RbaseSymbolsImpl.R), bool
+Real.realFromFrac: forall (_ : BinNums.Z) (_ : BinNums.Z), Rdefinitions.RbaseSymbolsImpl.R
+Real.real_power: forall (_ : Rdefinitions.RbaseSymbolsImpl.R) (_ : BinNums.Z), Rdefinitions.RbaseSymbolsImpl.R
+Real.print_real: forall (_ : String.string) (_ : Rdefinitions.RbaseSymbolsImpl.R), unit
+Real.prerr_real: forall (_ : String.string) (_ : Rdefinitions.RbaseSymbolsImpl.R), unit
+Real.Decidable_eq_real: @base.RelDecision Rdefinitions.RbaseSymbolsImpl.R Rdefinitions.RbaseSymbolsImpl.R (@eq Rdefinitions.RbaseSymbolsImpl.R)
+Real.IZRdiv: forall (m n : BinNums.Z) (_ : BinInt.Z.lt BinNums.Z0 m) (_ : BinInt.Z.lt BinNums.Z0 n), Rdefinitions.Rle (Rdefinitions.IZR (BinInt.Z.div m n)) (Rdefinitions.Rdiv (Rdefinitions.IZR m) (Rdefinitions.IZR n))
+Real.round_up_div: forall (m n : BinNums.Z) (_ : BinInt.Z.lt BinNums.Z0 m) (_ : BinInt.Z.lt BinNums.Z0 n), @eq BinNums.Z (Real.round_up (Real.div_real (Real.to_real m) (Real.to_real n))) (BinInt.Z.div (BinInt.Z.sub (BinInt.Z.add m n) (BinNums.Zpos BinNums.xH)) n)

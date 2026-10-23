@@ -1,0 +1,4 @@
+File "/root/build/lane-checklist-20261023-c/census-12/NativeControls.v", line 31, characters 0-36:
+Error:
+VOS census refused: native assertion kernel/mod_subst.ml:216:11 at root SailStdpp.State_monad > visit-module module SailStdpp.State_monad > visit-module module SailStdpp.State_monad.NMap > visit-module module SailStdpp.State_monad.NMap.E > expand SailStdpp.State_monad.NMap.E > Mod_subst.map_mp Stdlib.Structures.OrderedTypeEx.N_as_OT -> SailStdpp.State_monad.NMap.E
+
