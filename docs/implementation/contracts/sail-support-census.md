@@ -198,4 +198,30 @@ argument resolver separately. Ordered native bindings and inherited substitution
 remain explicit; a nonempty substitution without an actual recorded participant
 refuses.
 
+### Complete census storage
+
+The third realization candidate is killed by the native kernel's out-of-memory
+handler before emitting JSON. Its recorded callback bound is not reached; input
+identities still agree. This refusal supplies no census acceptance.
+
+Use the realization step's remaining three candidates and remaining active-time
+budget to remove serialization duplication, preserving the complete census wire
+schema and every field, type, context, implementation connection and resolver
+effect. Original lazy JSON values and an incremental writer may serialize one
+value at a time. Serialize ordinary tables and all native inline keys before
+freezing the complete reference domain; serialize every resolver's full effects
+last. No domain pruning, summary substitution or default effect is permitted.
+
+The [census invocation contract](../../../tools/rocq-census/SCHEMA.md#invocation-and-ownership)
+adds a private output-file transport. The native producer creates that file
+exclusively, writes the complete unchanged JSON, closes it and only then emits its
+exact path, byte count and native BLAKE2b-256 identity. The caller binds that
+expected path before launch and verifies the envelope, complete file and unchanged
+bytes through reading. A killed or failed producer, partial file, missing envelope,
+identity drift or nonexclusive destination refuses. Retain the exact raw file,
+streams, invocation records and partial-output evidence. Optional bounded progress
+records may contain native phase/path/count and memory observations, never library
+body ASTs; they supply no acceptance. Source, strictness, input protection and all
+hosted and control predicates remain unchanged.
+
 The census extension adds 6 h, range 3–9, to Q35q's existing allowance: native grammar/classification 1–3 h, canonical implementation connections 1–3 h, and controls/evidence 1–3 h. The combined item is 10 h, range 5–15. This is a planning estimate for the commissioned scope; unattended hosted runtime and a further unsupported form are excluded. A retained refusal does not close Q35q.

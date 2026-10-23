@@ -27,6 +27,36 @@ the exact ordered requests derived from those rows and the producer's echoed
 `resolution_requests`. A missing, changed, oversized or unreadable file refuses;
 the runner clears the unused request variable explicitly between invocations.
 
+For a complete census, `VOS_CENSUS_OUTPUT_FILE` names a new absolute private output
+path with an existing private parent. The runner records the expected path and
+absence before launch. The producer creates it exclusively with private file
+permissions, incrementally writes the complete unchanged census JSON and closes
+it. Only then does stdout emit exactly one output envelope, with no extra keys:
+
+```json
+{"schema":"verifiedos-native-census-output/1","census_schema":"verifiedos-sail-support-census/1","path":"/absolute/private/census.json","bytes":123,"blake2b_256":"64-lowercase-hex-digits"}
+```
+
+`bytes` is a positive JSON integer; `blake2b_256` is the native BLAKE2b-256 digest
+of the complete file. The caller independently verifies exact expected path,
+regular-file identity, size, digest and complete duplicate-free JSON, checking
+unchanged identity through parsing and copying. Retained census bytes equal that
+file exactly; replay binds them to the raw envelope, recorded output environment
+and prelaunch absence. Never reinterpret a partial file or descriptor alone as
+census acceptance. Failure, truncation, overwrite, missing output, path mismatch,
+duplicate keys, digest drift and diagnostic stdout/stderr refuse. Clear the output
+variable before queries that do not emit a census. Default metadata mode preserves
+its direct JSON output; the census's direct-output mode remains available for
+small focused controls.
+
+An optional `VOS_CENSUS_PROGRESS_FILE` is a separate, bounded diagnostic output
+containing only phase, native path/count and memory observations. Its exact path
+is selected before launch; it supplies no field, identity or acceptance evidence.
+Lazy serialization must still visit all ordinary metadata and collect every
+inline key before freezing the full native reference domain. Resolver effects
+are emitted last, for every member of that domain, without a retained expanded
+effect tree or a second complete output string.
+
 `row_index` is zero-based in that root's parsed Search declarations. The request ID
 is the exact requested root, a colon and the decimal row index. Repeated spellings
 remain separate requests. Duplicate request IDs or duplicate native Search rows
