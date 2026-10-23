@@ -22,11 +22,11 @@ def main() -> int:
     prefix = args.prefix
     if any(c in str(prefix) for c in "\r\n\0"):
         parser.error("prefix must not contain line breaks or NUL bytes")
-    result = openssl.install(prefix, args.jobs)
-    values = openssl.environment(prefix)
     for path in (args.github_env, args.github_path):
         if path is not None and not path.is_absolute():
             parser.error("GitHub environment files must be absolute")
+    result = openssl.install(prefix, args.jobs)
+    values = openssl.environment(prefix)
     if args.github_env:
         with args.github_env.open("a", encoding="utf-8") as stream:
             for key, value in values.items():
