@@ -414,6 +414,22 @@ verbatim release notice at [Sail-Support-LICENSE.md](tools/rocq-census/Sail-Supp
 The original [producer](tools/rocq-census/README.md), runner and control sources
 follow the original-file map. No Rocq implementation, linked plugin or support
 object is conveyed. This metadata control supplies no complete census acceptance.
+The native census continuation also reads the locked `rocq-stdlib.9.2.0`
+installation, whose package metadata and inspected release `LICENSE` declare
+`LGPL-2.1-only`. The immutable source is
+[`stdlib-9.2.0.tar.gz`](https://github.com/coq/stdlib/releases/download/V9.2.0/stdlib-9.2.0.tar.gz),
+SHA512 `9160776b4e3097a10008a469752c1459d35298fca2b78c61fdbe023ca41085b4bb88cdc12c77f5dae1166bf6b74671f0afe415ff58f6f102bea716361d52755a`;
+the inspected license has SHA256
+`d4594b82f4d50840df6a7e9d14132a8c0a3cc05d0ac46d15310a264a1f75447e`.
+The inspected `Eqdep_dec.v` and finite-map source headers credit INRIA, CNRS and
+contributors and state LGPL version 2.1. These installed libraries remain native
+inputs. The [census wire contract](tools/rocq-census/SCHEMA.md#required-metadata-and-finite-resolver-domain)
+retains declaration metadata, native references and strong source/instantiated body
+identities; it exports no transparent implementation body AST or source text.
+Complete body encodings exist only in native memory during digest and reference
+collection. The original producer uses installed APIs and copies no library
+implementation. This continuation changes neither the licensing map nor the
+qualification status of the installed libraries.
 The `q35o-20261013/` refusal bundle retains the generated tag-loop fragment and its diagnostics, with the
 exact RISC-V and CHERI model notices. The fragment keeps
 BSD-2-Clause terms; no complete emitted term is distributed by that evidence.
