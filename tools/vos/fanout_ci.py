@@ -175,6 +175,8 @@ def validate_state(value: object) -> CIState:
                 raise CIError(f"invalid hosted evidence {key}")
         if "run_id" not in run:
             raise CIError("hosted evidence is missing its run identifier field")
+        if phase in {"accepted", "observed"} and run["run_id"] is None:
+            raise CIError("accepted or observed hosted evidence needs a run identifier")
         if run["run_id"] is not None:
             _run_id(run["run_id"])
             expected = f"https://github.com/{record['repository']}/actions/runs/{run['run_id']}"
@@ -185,7 +187,8 @@ def validate_state(value: object) -> CIState:
             raise CIError("invalid hosted job conclusions")
     if record["guest"] is not None and _object(record["guest"]).get("phase") == "accepted":
         host = _object(record["host"])
-        if (host.get("status") != "completed" or host.get("conclusion") != "success"
+        if (host.get("phase") != "observed" or host.get("status") != "completed"
+                or host.get("conclusion") != "success"
                 or host.get("jobs") != dict.fromkeys(HOST_JOBS, "success")):
             raise CIError("guest dispatch state requires passing evidence from both host platforms")
     return cast(CIState, value)
