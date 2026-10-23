@@ -2,6 +2,7 @@
 """Joined host opening, resource preservation and hostile decoded-input checks."""
 
 import json
+import sys
 import tempfile
 from contextlib import redirect_stdout
 from dataclasses import asdict, fields, replace
@@ -198,6 +199,40 @@ def _decoder_recursion_refusal() -> None:
         ensure(code == 0, "decoder refusal must preserve the inhabited valid input")
 
 
+def _large_work_report_refusal() -> None:
+    # Every input cost fits the decimal limit, while three such contributions
+    # produce one more digit. Keep the arithmetic exact and the limit unchanged.
+    limit = sys.get_int_max_str_digits()
+    amount = 10 ** (limit or 4300) - 1
+    data = _payload()
+    data["costs"] = asdict(Costs(amount, amount, 0))
+    raw = json.dumps(data).encode()
+    report = cli.inspect(raw, ROOT)
+    ensure(report["checked_route_work"] == 3 * amount,
+           "large natural costs must retain their exact routed work")
+    with tempfile.TemporaryDirectory(prefix="vos-inference-integer-") as directory:
+        path = Path(directory) / "input.json"
+        path.write_bytes(raw)
+        output = StringIO()
+        with redirect_stdout(output):
+            code = cli.main([str(path)])
+        if limit:
+            ensure(code == 2 and output.getvalue().startswith("FAIL inference-admission:")
+                   and "session_decision" not in output.getvalue(),
+                   "unrepresentable work reports must refuse without a partial admission verdict")
+        else:
+            ensure(code == 0 and json.loads(output.getvalue())["checked_route_work"] == 3 * amount,
+                   "an unrestricted interpreter must preserve representable exact work")
+        ensure(sys.get_int_max_str_digits() == limit,
+               "reporting must preserve the process-wide integer conversion limit")
+        path.write_text(json.dumps(_payload()), encoding="utf-8")
+        output = StringIO()
+        with redirect_stdout(output):
+            code = cli.main([str(path)])
+        ensure(code == 0 and json.loads(output.getvalue())["checked_route_work"] == 16,
+               "a report refusal must preserve ordinary valid admission output")
+
+
 def cases() -> list[Case]:
     return [Case("joined residency/grant boundary and preserved resources", _boundaries_and_preservation),
             Case("every ceiling field boundary retains refusal cause", _ceiling_boundaries),
@@ -206,4 +241,5 @@ def cases() -> list[Case]:
             Case("strict front door binds host inputs and rejects coercions", _front_door),
             Case("command exit codes distinguish success, refusal and malformed input", _cli_exit_codes),
             Case("over-nested route refuses cleanly beside a valid opening", _deeply_nested_input),
-            Case("decoder recursion normalizes cleanly beside a valid opening", _decoder_recursion_refusal)]
+            Case("decoder recursion normalizes cleanly beside a valid opening", _decoder_recursion_refusal),
+            Case("oversized exact work report refuses beside valid admission", _large_work_report_refusal)]

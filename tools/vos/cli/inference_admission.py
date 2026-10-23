@@ -109,8 +109,9 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     try:
         result = inspect(args.input.read_bytes(), find_root())
+        rendered = json.dumps(result, indent=2, sort_keys=True)
     except (OSError, ValueError, TypeError) as error:
         print(f"FAIL inference-admission: {error}")
         return 2
-    print(json.dumps(result, indent=2, sort_keys=True))
+    print(rendered)
     return 0 if result["session_decision"] == "admitted" and result["route_valid"] else 1
