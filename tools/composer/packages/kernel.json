@@ -4,7 +4,7 @@
   "sources": [
     {
       "path": "kernel/src/context.c",
-      "sha256": "cc21437a5b2de43182a417181ce0d9d011385b493a518d1b3350c9b95f5975d7"
+      "sha256": "422108f44dd2059ccceed92bf2f62b1dd2c2575869b410b4811e61325b1c7c10"
     },
     {
       "path": "kernel/src/copy_loan.c",

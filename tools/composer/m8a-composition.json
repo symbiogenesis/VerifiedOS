@@ -103,7 +103,7 @@
       ],
       "descriptor": {
         "path": "tools/composer/packages/kernel.json",
-        "sha256": "c2570333d347fb8200783d6d431992a7ae00fcc5a76fe6167fd9d5b3a1e2b585"
+        "sha256": "e93c759ba8ade4be6c0bb2a36039ac7cc8b451d0136fc6e2a8e53dadae716ef7"
       },
       "artifact_slot": "kernel-artifact",
       "entry": null,
