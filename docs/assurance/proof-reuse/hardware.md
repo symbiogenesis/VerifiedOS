@@ -206,8 +206,13 @@ with `-r` exposes the retained proof scripts and removes those example shortcuts
 That transformation and a successful full-proof build are not replayed here.
 U-23 must distinguish the shipped theorem's assumption report from a separately
 identified restored-proof build and audit the latter's transitive closure.
-An unused declaration of `cheat` elsewhere does not itself establish that every
-library theorem depends on it; inspect each selected consumer's actual closure.
+The script only changes `Kami/Ex/*.v`; it leaves the global `cheat` declaration
+in `CommonTactics.v`, which this example imports. The local gate rejects an
+undeclared axiom anywhere in the loaded environment, even if a restored theorem
+no longer depends on it. Qualification therefore also needs an identified patch
+removing that declaration, a rebuild that refuses remaining uses, and an audit
+of the complete loaded environment. This finding does not assert that every
+Kami library lemma depends on `cheat`.
 
 **Reuse:** permissible framework and proof-script reference for the closing CJ-RTL-SAIL route
 and reusable buffer/refinement lemmas. The example processor is not CVA6-CHERI,
@@ -596,7 +601,7 @@ qualification record. Its `machine_utils` gitlink is
 `56d2f2b6d9373f1349f8689455715f168dd86ece`. The exact dependency still has no
 license instrument in its recursive inventory; the existing
 [third-party refusal](../../../THIRD-PARTY.md#proof-and-lowering-references)
-and [upstream issue proposal 46](../../implementation/upstream-prs.md#46-logsemmachine_utils--establish-licensing-and-attribution-for-cerise-and-griotte-sources)
+and [upstream issue proposal 46](../../implementation/upstream-prs.md#46-logsemmachine_utils-establish-licensing-and-attribution-for-cerise-and-griotte-sources)
 therefore still apply before replay or incorporation. A parent's permissive
 grant is not substituted for that repository's terms. The edition's
 [opam](https://github.com/logsem/griotte/blob/eb41dda1046315f85f05e027f69684800b7f5acb/opam)

@@ -582,7 +582,7 @@ module types separately. This is a concrete code reference for the already
 owed native metadata producer, with the same prover as its consumer.
 
 **Recommendation and limits.** Use these native accessors and traversal rules
-for Q35q's existing metadata-producer scope. Preserve binder contexts,
+when scoping Q35q's missing metadata producer at its existing owner. Preserve binder contexts,
 universe information, canonical names and the distinction between abstract
 fields and concrete implementations. A metadata row supplies no concrete
 implementation-assumption verdict. The census contract still requires complete

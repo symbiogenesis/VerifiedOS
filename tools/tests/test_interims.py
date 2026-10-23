@@ -135,7 +135,10 @@ def _premise_in_declared_anchor_is_a_finding() -> None:
              "carries no authorization for deterministic production signing."),
             (interims.PLAN, _CORE, _live(interims.PLAN),
              "This module is a dependency of the RoT (§2), the object system (§6), "
-             "and the filesystem (§7).")):
+             "and the filesystem (§7)."),
+            ("docs/assurance/proof-reuse-bearing.md", "",
+             _live("docs/assurance/proof-reuse-bearing.md"),
+             "## Sources the 2026-10-23 reading added or requalified")):
         declared = {**_DECLARED, **{site: np for site, np in interims.NON_PREMISE.items()
                                     if site[0] == path}}
         found, _ = _decide({path: text}, declared=declared)
