@@ -76,6 +76,28 @@ def _newlines_survive_blanking() -> None:
            "strings, Unicode whitespace and comment newlines must retain exact offsets")
 
 
+def _line_comment_terminators() -> None:
+    # jsoncons ends // comments at either CR or LF. Checking the raw scanner also
+    # covers callers decoding bytes directly, before text-mode newline conversion.
+    for ending in ("\n", "\r", "\r\n"):
+        text = '{"a": 1, // note' + ending + '"b": 2}'
+        out = jsonc.strip_comments(text)
+        ensure(json.loads(out) == {"a": 1, "b": 2},
+               f"a {ending!r} terminator must expose the next configuration member")
+        ensure(len(out) == len(text) and ending in out,
+               "blanking a line comment must preserve its terminator and source offsets")
+
+        text = '{} // note' + ending + '42'
+        out = jsonc.strip_comments(text)
+        try:
+            json.loads(out)
+        except json.JSONDecodeError as error:
+            ensure(error.pos == text.index("42"),
+                   "data after a line comment must retain its original error offset")
+        else:
+            raise AssertionError(f"a {ending!r} line comment concealed trailing JSON data")
+
+
 def _load_reads_the_dialect() -> None:
     with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
         path = Path(td) / "c.json"
@@ -90,5 +112,6 @@ def cases() -> list[Case]:
         Case("dialect-corners", _dialect_corners),
         Case("offset-preservation", _offset_preservation),
         Case("newlines-survive-blanking", _newlines_survive_blanking),
+        Case("line-comment-terminators", _line_comment_terminators),
         Case("load-reads-the-dialect", _load_reads_the_dialect),
     ]
