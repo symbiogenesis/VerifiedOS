@@ -20,6 +20,70 @@ Q35q still requires its complete real hosted census, exact assumption audit and 
 
 ## Bounded execution and estimate
 
-Run at most three candidate checks or twenty active minutes, whichever comes first. At the first unsupported native shape, retain the exact reading and refusal, stop candidate work and return the missing act to the owner. Focused local checks are permitted; complete gates and benchmarks remain on GitHub Actions. Native processes use an absolute temporary working directory, and compiled objects remain in the assigned native lane.
+The initial metadata step exhausted its three-candidate budget. Its retained
+[checkpoint](../../../tools/rocq-census/checkpoint.json) remains metadata-only;
+the continuation below does not relabel it as census qualification.
+
+### Census continuation
+
+This owner act commissions the remaining census in three bounded steps, after
+this text and the [census schema](../../../tools/rocq-census/census-schema.json)
+are committed. The schema is a separate acceptance boundary from
+`verifiedos-rocq-native-metadata/1`.
+
+1. Complete the native producer and original implementation resolver: at most six
+   compile/query candidate checks or ninety active minutes, whichever comes first.
+   Cover the selected population's ordinary and sealed structures, aliases,
+   applied functors, formal/result signatures, inductives and abbreviations.
+   Export native types and declaration contexts, typing flags, universes and
+   quality constraints, module expressions, and implementation substitutions.
+2. Complete the support adapter and locked native positive/refusal controls: at
+   most three native candidate checks or thirty active minutes. Pure Python
+   fixture checks provide focused feedback but do not qualify native behavior.
+3. Run at most two standalone hosted support campaigns. Retain each attempted
+   run's identity and exact verdict. A failed attempt permits one correction
+   within the preceding steps' remaining budgets; it supplies no passing evidence.
+
+Native controls include the actual `TypeCasts.ZEqdep` and `State_monad.NMap`
+applications, a sealed implementation with a deliberately hidden control axiom,
+and an actual abstract-field lookup refusal. Record that control axiom only as
+expected control output; it never enters the support allowlist. The producer lane
+owns these original Gallina controls and native unsupported-form refusals. The
+adapter lane validates the emitted positive controls and applies explicit evidence
+corruptions for omitted fields/connections, foreign/ambiguous/duplicate declarations
+and unproved emptiness. Label these as adapter refusals over native-emitted data,
+separately from prover refusals and Python-only fixtures.
+
+Record candidate intent before launch, elapsed active time, exact source/input
+identities, native exits and the separate evidence verdict. Read-only API study,
+authoring and hosted queue/runtime are outside the active native-check budget.
+Stop at budget exhaustion or the first native form outside the explicitly
+commissioned coverage; retain its reading/refusal and return the missing act to
+the owner. Never weaken a guard, drop a declaration, admit an axiom, or silently
+broaden support to continue. Focused local builds and checks are permitted;
+complete gates and benchmarks remain on GitHub Actions. Native processes use an
+absolute temporary working directory, and compiled objects stay in the assigned
+native lane. Installed and supplied objects are read-only and checked before and
+after native execution.
+
+Concrete implementation provenance records both exported and implementation
+identities and the ordered substitutions connecting them. A canonical name alone
+is insufficient for a sealed field. Do not re-typecheck serialized private terms
+in the ambient environment: audit the exported concrete name through the locked
+prover's native `Print Assumptions` implementation resolution. Abstract fields
+remain obligations and never enter that query. The opaque native delta resolver
+is represented by its complete effects over every enumerated field/reference and
+native inline key; this is explicitly finite domain coverage, not serialization
+of its private representation. Unsupported effects refuse.
+
+The hosted route may record a separate `native-census-qualified.json` only after
+all selected modules, native controls, exact assumption audits and recursive
+kernel checks pass with unchanged identities. Its validator must replay the
+adapter, assumption and kernel joins against retained raw readings. This record
+can satisfy Q35q before a later snapshot export/import decision; it cannot satisfy
+Q35n's independent cold portability predicate. A missing record, failed command,
+incomplete population, unqualified implementation link or identity drift refuses
+Q35q. The final handoff still requires Host CI and dispatches every Guest CI lane
+without waiting for Guest CI.
 
 The census extension adds 6 h, range 3–9, to Q35q's existing allowance: native grammar/classification 1–3 h, canonical implementation connections 1–3 h, and controls/evidence 1–3 h. The combined item is 10 h, range 5–15. This is a planning estimate for the commissioned scope; unattended hosted runtime and a further unsupported form are excluded. A retained refusal does not close Q35q.
