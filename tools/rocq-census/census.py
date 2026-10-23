@@ -643,8 +643,10 @@ def _census(metadata: object, searches: dict[str, str], readings: dict[str, str]
         module_path = modules[field["parent_module_id"]]["native_path"]
         _require(reference["user"]["path"] == module_path
                  and reference["user"]["label"] == field["label"], "native reference escaped its owning field")
-        _require(all(link[key]["kind"] == declaration["kind"] for key in ("source_reference", "implementation_reference")),
-                 "implementation connection changed declaration kind")
+        _require(all((link[key]["kind"], link[key]["packet_index"], link[key]["constructor_index"])
+                     == (declaration["kind"], declaration["packet_index"], declaration["constructor_index"])
+                     for key in ("source_reference", "implementation_reference")),
+                 "implementation connection changed declaration kind or native indices")
         for name in ("source_field", "instantiated_field"):
             locator = link[name]
             _require(locator["namespace"] == "object" and locator["packet_index"] == declaration["packet_index"]
@@ -653,6 +655,7 @@ def _census(metadata: object, searches: dict[str, str], readings: dict[str, str]
         _require(link["instantiated_field"]["module_path"] == reference["user"]["path"]
                  and link["instantiated_field"]["label"] == field["label"]
                  and link["implementation_reference"]["user"]["path"] == reference["user"]["path"]
+                 and link["implementation_reference"]["user"]["label"] == link["instantiated_field"]["label"]
                  and link["source_field"]["module_path"] == link["source_reference"]["user"]["path"]
                  and link["source_field"]["label"] == link["source_reference"]["user"]["label"],
                  "implementation connection field endpoints differ")
@@ -682,6 +685,7 @@ def _census(metadata: object, searches: dict[str, str], readings: dict[str, str]
         alias = declaration["alias"]
         if declaration["classification"] == "alias":
             _require(alias is not None and alias["exported_reference"] == reference
+                     and alias["target_reference"] == link["implementation_reference"]
                      and alias["target_reference"]["canonical"] == reference["canonical"], "unproved native alias")
         else:
             _require(alias is None and reference["canonical_name"].startswith(owners[field["parent_module_id"]] + "."),

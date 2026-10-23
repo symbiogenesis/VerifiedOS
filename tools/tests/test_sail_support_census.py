@@ -71,6 +71,12 @@ def _reference(module: str, label: str = "x") -> dict[str, Any]:
             "canonical": copy.deepcopy(kernel), "packet_index": None, "constructor_index": None}
 
 
+def _kernel_reference(module: str, label: str = "x") -> dict[str, Any]:
+    reference = _reference(module, label)
+    del reference["exported_name"], reference["canonical_name"]
+    return reference
+
+
 def _fixture(root: str = "Root") -> tuple[dict[str, Any], dict[str, str], dict[str, str]]:
     metadata = cast("dict[str, Any]", _example(_SCHEMA["$defs"]["constant_metadata"]))
     metadata.update(type={"tag": "Sort", "sort": {"tag": "Prop"}}, body_kind="Undef",
@@ -127,8 +133,8 @@ def _constant(value: dict[str, Any], module_name: str, metadata: dict[str, Any],
     reference = _reference(module_name)
     locator = {"module_path": _path(module_name), "namespace": "object", "label": "x", "packet_index": None, "constructor_index": None}
     link = {"lookup_succeeded": True, "enclosing_descent_ids": [], "exported_reference": reference, "source_field": locator,
-            "instantiated_field": copy.deepcopy(locator), "source_reference": copy.deepcopy(reference),
-            "implementation_reference": copy.deepcopy(reference), "source_metadata": metadata, "instantiated_metadata": copy.deepcopy(metadata),
+            "instantiated_field": copy.deepcopy(locator), "source_reference": _kernel_reference(module_name),
+            "implementation_reference": _kernel_reference(module_name), "source_metadata": metadata, "instantiated_metadata": copy.deepcopy(metadata),
             "steps": [{"tag": "structure-field", "field": locator, "implementation_kind": "FullStruct", "resolver_id": module_name + ":resolver"},
                       {"tag": "direct-lookup", "reference": reference, "lookup_succeeded": True}], "audit_query_name": module_name + ".x"}
     value["fields"].append({"id": field_id, "parent_module_id": module_name, "namespace": "object", "label": "x", "kind": "constant",
@@ -210,7 +216,7 @@ def _sealed(value: dict[str, Any], root: str, label: str) -> None:
     source = copy.deepcopy(value["declarations"][0]["implementation_connection"]["source_field"])
     expression = {"tag": "MEident", "path": _path(root)}
     module["implementation"].update(kind="Algebraic", expression=expression)
-    link.update(source_field=source, source_reference=_reference(root))
+    link.update(source_field=source, source_reference=_kernel_reference(root))
     link["steps"] = [{"tag": "module-alias", "source": _path(name), "target": _path(root), "expression": expression,
                       "resolver_id": name + ":resolver"},
                      {"tag": "structure-field", "field": source, "implementation_kind": "FullStruct", "resolver_id": name + ":resolver"},
@@ -503,6 +509,39 @@ class SailSupportCensusTests(unittest.TestCase):
             with self.subTest(name=name), self.assertRaises(ValueError):
                 _ADAPTER["census"](candidate, searches, readings, expected_modules=["Root"])
 
+    def test_private_kernel_references_cannot_replace_exported_globals(self) -> None:
+        value, searches, _ = _fixture()
+        value["modules"][0]["abbreviation_ids"] = ["private-boundary-alias"]
+        value["abbreviations"].append({"id": "private-boundary-alias", "module_id": "Root", "exported_name": "Root.alias",
+                                      "native_abbreviation_path": "Root.alias", "enabled": True, "only_parsing": False,
+                                      "interpretation": {"kind": "direct-reference", "bound_variables": [],
+                                                         "target_reference": _reference("Foreign")}})
+        value, searches, readings = _finish(value, searches)
+        result = _ADAPTER["census"](value, searches, readings, expected_modules=["Root"])["Root"]
+        self.assertEqual([row["name"] for row in result["symbols"]], ["Root.x"])
+        link = result["declarations"][0]["implementation_connection"]
+        for name in ("source_reference", "implementation_reference"):
+            self.assertEqual(set(link[name]), {"kind", "user", "canonical", "packet_index", "constructor_index"})
+        self.assertEqual(result["alias_audits"][0]["audit_query_name"], "Foreign.x")
+        mutations = {
+            "source printable exported name": lambda item: item["declarations"][0]["implementation_connection"]["source_reference"].update(exported_name="Root.x"),
+            "source printable canonical name": lambda item: item["declarations"][0]["implementation_connection"]["source_reference"].update(canonical_name="Root.x"),
+            "instantiated printable name": lambda item: item["declarations"][0]["implementation_connection"]["implementation_reference"].update(exported_name="Root.x"),
+            "source packet drift": lambda item: item["declarations"][0]["implementation_connection"]["source_reference"].update(packet_index=0),
+            "instantiated constructor drift": lambda item: item["declarations"][0]["implementation_connection"]["implementation_reference"].update(constructor_index=1),
+            "source kind drift": lambda item: item["declarations"][0]["implementation_connection"]["source_reference"].update(kind="inductive"),
+            "private declaration global": lambda item: item["declarations"][0].update(native_reference=_kernel_reference("Root")),
+            "private exported connection": lambda item: item["declarations"][0]["implementation_connection"].update(exported_reference=_kernel_reference("Root")),
+            "private direct lookup": lambda item: item["declarations"][0]["implementation_connection"]["steps"][-1].update(reference=_kernel_reference("Root")),
+            "private native resolution": lambda item: item["resolutions"][0]["candidates"][0].update(reference=_kernel_reference("Root")),
+            "private abbreviation target": lambda item: item["abbreviations"][0]["interpretation"].update(target_reference=_kernel_reference("Foreign")),
+        }
+        for name, mutate in mutations.items():
+            candidate = copy.deepcopy(value)
+            mutate(candidate)
+            with self.subTest(name=name), self.assertRaises(ValueError):
+                _ADAPTER["census"](candidate, searches, readings, expected_modules=["Root"])
+
     def test_external_sealed_declaration_alias_has_supplementary_assumption_binding(self) -> None:
         value, searches, _ = _fixture()
         _sealed(value, "Root", "Alias")
@@ -513,15 +552,16 @@ class SailSupportCensusTests(unittest.TestCase):
         target = _reference("Foreign.HiddenSealed")
         reference = declaration["native_reference"]
         reference.update(canonical=copy.deepcopy(target["canonical"]), canonical_name=target["canonical_name"])
-        declaration["alias"] = {"kind": "module-alias", "exported_reference": reference, "target_reference": target,
+        declaration["alias"] = {"kind": "module-alias", "exported_reference": reference, "target_reference": _kernel_reference("Foreign.HiddenSealed"),
                                 "resolver_id": module["implementation"]["resolver_id"]}
         expression = {"tag": "MEident", "path": _path("Foreign.HiddenSealed")}
         module["implementation"]["expression"] = expression
         link = declaration["implementation_connection"]
         source = {"module_path": _path("Foreign.HiddenSealed"), "namespace": "object", "label": "x",
                   "packet_index": None, "constructor_index": None}
-        link.update(source_field=source, source_reference=target, audit_query_name=target["canonical_name"])
-        link["implementation_reference"].update(canonical=copy.deepcopy(target["canonical"]), canonical_name=target["canonical_name"])
+        link.update(source_field=source, source_reference=_kernel_reference("Foreign.HiddenSealed"), audit_query_name=target["canonical_name"])
+        link["implementation_reference"].update(canonical=copy.deepcopy(target["canonical"]))
+        declaration["alias"]["target_reference"] = copy.deepcopy(link["implementation_reference"])
         link["steps"][0].update(target=_path("Foreign.HiddenSealed"), expression=expression)
         link["steps"][1]["field"] = source
         link["steps"][2]["source"] = source
@@ -532,6 +572,11 @@ class SailSupportCensusTests(unittest.TestCase):
                                                   "exported_spelling": "Root.Alias.x", "audit_query_name": "Foreign.HiddenSealed.x",
                                                   "native_reference": reference}])
         self.assertEqual(result["alias_obligations"], [])
+        for replacement in (target, _kernel_reference("Foreign.HiddenSealed")):
+            candidate = copy.deepcopy(value)
+            candidate["declarations"][-1]["alias"]["target_reference"] = replacement
+            with self.subTest(replacement=replacement), self.assertRaises(ValueError):
+                _ADAPTER["census"](candidate, searches, readings, expected_modules=["Root"])
 
     def test_bound_interface_abbreviation_remains_an_obligation(self) -> None:
         value, searches, _ = _fixture()
@@ -573,7 +618,7 @@ class SailSupportCensusTests(unittest.TestCase):
         module["implementation"]["expression"] = expression
         source = copy.deepcopy(link["source_field"])
         source["module_path"] = _path("Foreign.F")
-        link.update(source_field=source, source_reference=_reference("Foreign.F"))
+        link.update(source_field=source, source_reference=_kernel_reference("Foreign.F"))
         structure, substitution, lookup = copy.deepcopy(link["steps"][1:])
         structure["field"], substitution["source"] = source, source
         resolver = module["implementation"]["resolver_id"]
@@ -619,7 +664,7 @@ class SailSupportCensusTests(unittest.TestCase):
         parent_link = next(row for row in value["declarations"] if row["field_id"] == "Root.Applied:x")["implementation_connection"]
         parent_source = copy.deepcopy(parent_link["source_field"])
         parent_source["module_path"] = _path("Foreign.Make")
-        parent_link.update(source_field=parent_source, source_reference=_reference("Foreign.Make"))
+        parent_link.update(source_field=parent_source, source_reference=_kernel_reference("Foreign.Make"))
         parent_link["steps"][0].update(expression=expression, target=_path("Foreign.Make"))
         parent_link["steps"][1]["field"] = parent_link["steps"][2]["source"] = parent_source
         parent_link["steps"].insert(1, {"tag": "functor-application", "parameter_identifier": identifier,
@@ -651,7 +696,7 @@ class SailSupportCensusTests(unittest.TestCase):
         raw_link = next(row for row in value["declarations"] if row["field_id"] == "Root.Applied.Raw:x")["implementation_connection"]
         raw_source_object = copy.deepcopy(raw_link["source_field"])
         raw_source_object["module_path"] = _path("Foreign.Make.Raw")
-        raw_link.update(source_field=raw_source_object, source_reference=_reference("Foreign.Make.Raw"),
+        raw_link.update(source_field=raw_source_object, source_reference=_kernel_reference("Foreign.Make.Raw"),
                         source_metadata=copy.deepcopy(raw_descent["source_module"]["signature"]["structure"]["fields"][0]["metadata"]))
         raw_link["steps"][0]["field"] = raw_source_object
         raw_link["steps"].insert(1, {"tag": "substitution", "source": raw_source_object, "target": raw_link["instantiated_field"],
@@ -699,6 +744,7 @@ def cases() -> list[Case]:
             Case("stdlib-schema-reader-agrees-with-draft202012-oracle", checks.test_schema_reader_matches_draft202012_on_positive_and_corruptions),
             Case("control-replay-retains-three-roots-and-adapter-refusal-boundary", checks.test_control_replay_uses_three_complete_roots_and_distinguishes_adapter_evidence),
             Case("body-identities-refuse-executable-asts-and-incomplete-reference-domains", checks.test_body_identity_replaces_executable_ast_and_retains_complete_reference_domain),
+            Case("private-kernel-reference-boundary-retains-exported-global-audits", checks.test_private_kernel_references_cannot_replace_exported_globals),
             Case("external-sealed-declaration-alias-keeps-supplementary-native-audit", checks.test_external_sealed_declaration_alias_has_supplementary_assumption_binding),
             Case("bound-interface-abbreviation-remains-an-obligation", checks.test_bound_interface_abbreviation_remains_an_obligation),
             Case("applied-functor-trace-preserves-native-head-and-ordered-arguments", checks.test_native_applied_functor_trace_keeps_full_expression_head_and_ordered_arguments),
