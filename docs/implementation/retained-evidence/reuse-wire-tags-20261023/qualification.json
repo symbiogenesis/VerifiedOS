@@ -1,0 +1,30 @@
+{
+  "schema": 1,
+  "status": "bounded-isolated-candidate",
+  "base_revision": "a5e4ba0e3e2ab477cdde2ae8a59dd47b82a9da90",
+  "candidate_checks": 12,
+  "wall_seconds_to_freeze": 1000.8724589347839,
+  "source_patch_sha256": "8d710a030512dfc3e5ac6447391704fc86ba0408e4f238d0424d3bdaac7f5669",
+  "support_modules_strict_each": 29,
+  "minimal_rocq_repeat_identical": true,
+  "minimal_c_repeat_identical": true,
+  "queried_new_proofs": 33,
+  "queried_new_proof_assumptions": [],
+  "kernel_scope": "rocqchk -norec on TagInterpreter and TagControls only; dependencies admitted, complete context not accepted",
+  "installed_libraries_unchanged": true,
+  "scope_limitations": [
+    "No complete native Q35q declaration census or frozen elaborated-body comparison.",
+    "No universal actual emitted metadata/physical-caller agreement theorem; finite native caller controls only.",
+    "No formal old-event conservativity theorem against the original outcome type.",
+    "No full-model paired non-Rocq regeneration, complete canonical compile, exact closure or size.",
+    "No package tests, switch update, production source carriage, cold hosted acceptance, full gate or benchmark.",
+    "Initial Sail emitted-module checks precede the complete Sail before/after interval.",
+    "Early overwritten diagnostic logs retain execution-tool summaries rather than complete raw logs."
+  ],
+  "inputs_unchanged": {
+    "model/model/core/mem_metadata.sail": true,
+    "model/model/core/phys_mem_interface.sail": true,
+    "model/model/prelude/errors.sail": true,
+    "tools/opam/sail-support-qualification.json": true
+  }
+}

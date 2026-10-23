@@ -1,39 +1,115 @@
 # Canonical memory and tag binding qualification
 
-Q35p remains open. The [retained refusal](retained-evidence/close3-q35p-20261013/refusal.json) identifies a missing granule-keyed tag operation in the canonical concurrency outcome interface. No model primitive, support definition, statement, assumption, compiler flag or lock changed.
+Q35p remains open. The isolated canonical V1 candidate resolves the actual emitted
+tag-read and tag-write calls through the concurrency outcome monad. Both untouched
+minimal emitted modules compile strictly against the amended support. The candidate
+has executable raw-key finite-map legality and native caller controls; its universal
+caller correspondence, complete frozen comparison and production-carriage joins
+remain owed.
 
-The trial reads base `bd5e0b024d1b3f80139f9b513b55f6664e17466c` in its dedicated memory lane. Its [manifest](retained-evidence/close3-q35p-20261013/manifest.json), SHA256 `db26237bdbde7915efa9f3d4ce29b3b95c595dc1008842fb34ce9f713a4f3510`, binds the reproducer, emitted readings, diagnostics, input identities and license notices. The retained Sail journal records 435.1 active seconds against twelve candidate checks or thirty minutes. Five small harness checks establish the correct outcome instantiations; two expose missing standard-prelude scaffolding, two successful emissions use the prompt interface, and the fifth emits the canonical concurrency interface. No source adapter candidate was checked or adopted. The first unsupported semantic boundary ends this trial before the numeric budget.
+[Isolated canonical tag candidate](retained-evidence/reuse-wire-tags-20261023/manifest.json),
+SHA256 `3fe661163dd4ac2c9781d2229e2a8a546306bfe87359bbecffa1f0d762aaac0d`,
+binds the immutable patch, exact commands, generated minimal modules, native readings,
+assumption queries, scoped kernel recheck, installed-path inventories and notices at
+base `a5e4ba0e3e2ab477cdde2ae8a59dd47b82a9da90`. The source archive and actual
+BSD-2-Clause license match the unchanged
+[source recipe](../../tools/opam/sail-support-qualification.json).
+The [owner contract](contracts/canonical-tag-outcomes.md) governs this amendment.
 
-## Seven binding readings
+[Executed native tag drivers](retained-evidence/reuse-wire-tags-drivers-20261023/manifest.json),
+SHA256 `04b6f1e55fc37ca623105f559be23a23c6af723a271e0adfbd49074d1680dfb6`,
+preserves the actual compile, emission and evidence drivers separately from the
+packaged replay. The unchanged reproducer and its source notices also remain bound
+by the [original memory source reading](retained-evidence/close3-q35p-20261013/manifest.json),
+SHA256 `db26237bdbde7915efa9f3d4ce29b3b95c595dc1008842fb34ce9f713a4f3510`.
 
-The [small Sail reproducer](retained-evidence/close3-q35p-20261013/bindings.sail.txt) contains the exact two model owners and their existing error definitions, with an explicit prelude and address-width scaffold. Its [main output](retained-evidence/close3-q35p-20261013/bindings.v.txt) and [types output](retained-evidence/close3-q35p-20261013/bindings_types.v.txt) retain the locked Sail's bytes. Here `M` is `ConcurrencyInterface.Defs.monad exception`, the instruction outcome monad; it is neither the prompt monad nor the sequential state monad.
+## Actual bindings and effects
 
-| Binding | Existing Sail/emulator result and caller | Emitted reading |
-| --- | --- | --- |
-| `read_mem#` | Polymorphic request token, 32/64-bit address and nonnegative byte count to data bits; the emulator's ordinary `sail_mem_read` branch calls it | `read_mem_ : ... -> M (mword (8 * n))`; its Q35f body calls the existing `internal_error` |
-| `read_mem_ifetch#` | Same result, selected by the emulator's instruction-fetch branch | `read_mem_ifetch_ : ... -> M (mword (8 * n))`; same refusal body |
-| `read_mem_exclusive#` | Same result, selected by the emulator's exclusive-read branch | `read_mem_exclusive_ : ... -> M (mword (8 * n))`; same refusal body |
-| `write_mem#` | Request token, address, positive byte count and data to success `bool`; ordinary emulator write branch | `write_mem_ : ... -> M bool`; same refusal body |
-| `write_mem_exclusive#` | Same result, exclusive emulator write branch | `write_mem_exclusive_ : ... -> M bool`; same refusal body |
-| `__read_tag` | Impure `bits(64) -> bool`, bound to `read_tag_bool`; `__ReadRAM_Meta` passes the zero-extended granule index | Its call remains `read_tag_bool ... : M bool`; no standalone tag-read binding has been qualified for this outcome monad |
-| `__write_tag` | Impure `(bits(64), bool) -> unit`, bound to `write_tag_bool`; `__WriteRAM_Meta` visits every granule from first to last | The loop requires `M unit`, while the resolved support primitive has `Prompt_monad.monad bool` |
+The [native reading](retained-evidence/reuse-wire-tags-20261023/binding-reading.txt)
+resolves the unchanged minimal reproducer's seven bindings:
 
-The [emulator read branches](retained-evidence/close3-q35p-20261013/emulator-outcome-callers.txt) and [write branches](retained-evidence/close3-q35p-20261013/emulator-write-callers.txt) identify the five low-level callers. The canonical term reaches data memory through its emitted outcomes, preserving Q35f's existing refusal bodies rather than converting those bodies to memory implementations. `write_ram` retains the successful-data-write-before-metadata order, and the metadata loop retains every overwritten granule and the model's existing width and address behavior.
+| Binding | Resolved emitted meaning |
+| --- | --- |
+| `read_mem#` | `bindings.read_mem_ : ... -> M (mword (8 * n))`; existing `internal_error` refusal |
+| `read_mem_ifetch#` | `bindings.read_mem_ifetch_ : ... -> M (mword (8 * n))`; existing refusal |
+| `read_mem_exclusive#` | `bindings.read_mem_exclusive_ : ... -> M (mword (8 * n))`; existing refusal |
+| `write_mem#` | `bindings.write_mem_ : ... -> M bool`; existing refusal |
+| `write_mem_exclusive#` | `bindings.write_mem_exclusive_ : ... -> M bool`; existing refusal |
+| `__read_tag` | `bindings_types.Defs.read_tag_bool : mword 64 -> monad E bool`; `Next (TagRead key) Ret` |
+| `__write_tag` | `bindings_types.Defs.write_tag_bool : mword 64 -> bool -> monad E unit`; `Next (TagWrite key value) Ret` |
 
-## Actual semantic boundary
+Here `M` remains `Defs.monad exception`. The semantic patch extends only the V1
+outcome type, adds these two bindings and forwards both constructors through
+`map_extra_iMon` and `try_catch`. The raw argument is already the granule key:
+no additional shift or data request occurs. No tag is encoded as an exception.
+The five emulator-memory refusal bodies and their error definitions remain emitted
+from the unchanged reproducer. Its new native absolute source path appears in the
+ordinary `__FILE__` diagnostic strings; those strings were not post-edited.
 
-The [native compile record](retained-evidence/close3-q35p-20261013/compile.json) binds its exact mappings and commands against a private copy of the paired Q35n support. The emitted types exit 0; the main exits 1 at the [original tag-write mismatch](retained-evidence/close3-q35p-20261013/bindings.compile.log). This diagnostic reproduction uses the original diagnostic settings and supplies no strict compile acceptance.
+The original [interpreter](../../tools/sail-tag-outcomes/TagInterpreter.v) uses
+`gmap Z bool`, indexed by the raw word's unsigned value. It derives default-false
+reads, exact-key insertion, same-key lookup and other-key framing from executable
+map operations. A generic frame carries every other state component. Primitive
+bridges quantify over every initial map, key, written bit, frame and continuation;
+the same fixed handler interprets old events. No handler law assumes tag agreement.
+The generic outcome algebra's unconstrained responses are restricted by this
+executable legality definition.
 
-The [outcome algebra](retained-evidence/close3-q35p-20261013/outcome-algebra.txt) carries tags within `MemRead` and `MemWrite` data requests, whose addresses name data bytes. It has no standalone granule-keyed tag-read or tag-write constructor. `Defs.monad E` uses `Interface.iMon (fun _ => E)`: [its exact definition](retained-evidence/close3-q35p-20261013/outcome-bindings.txt) shows that extra outcomes carry the model's existing exception type. Giving an exception new tag-plane meaning would require another semantic delivery.
+## Scoped checks and limits
 
-The [data outcome binding](retained-evidence/close3-q35p-20261013/data-outcomes.txt) returns `Ret (Ok None)` when a write request has `value = None`; that path performs no tag write. Replacing the model's metadata write by such a request would silently remove its effect. Supplying a dummy data value would instead add a data write. Neither preserves the model's backing tag plane or the post-success metadata order.
+Both baseline and candidate compile the explicitly selected 29-module support closure
+under the unchanged strict locked flags without diagnostics. Actual private-plugin
+emission of the unchanged minimal Sail source repeats both Rocq files byte for byte;
+both generated files, the interpreter and the controls compile strictly. Two C-target
+regenerations of that same minimal source also produce byte-identical `.c` and `.h`
+files. This is a minimal-source comparison, not paired full-model regeneration.
 
-The paired library's [state primitives](retained-evidence/close3-q35p-20261013/state-tags.txt) read an unshifted key with default `false` and write that key before returning `true`. The [emulator runtime](retained-evidence/close3-q35p-20261013/runtime-tags.txt) also reads the exact supplied key with default `false` and returns unit after a tag write. Discarding the state's always-true result preserves that state's tag effect, but supplies no conversion into the canonical outcome monad. The source reading therefore does not qualify a target adapter. The exact native definition in the refusal record governs this boundary; the raw journal is retained as recorded.
+The [native controls](../../tools/sail-tag-outcomes/TagControls.v) exercise absent,
+set and cleared tags; zero, maximum and distinct raw keys; other-state framing;
+aligned, partial and multi-granule metadata writes; ascending clears and the existing
+empty interval after fixed-width wraparound. Actual `write_ram` controls preserve
+data-before-metadata after all three `Ok` variants and no metadata after `Err ()`.
+Requested and unrequested metadata reads preserve their data ordering and read
+refusals. Forwarding covers `try_catch`, `map_extra_iMon` and early return, with a
+real caught exception distinguished from a tag event. Native controls reject an
+unconstrained read, discarded write, changed return type, dummy data event and
+missing, reordered or added tag events.
 
-## Preserved inputs and next owner act
+All 33 explicitly queried new proofs report `Closed under the global context`.
+That finite query is not a complete support declaration census. `rocqchk -norec`
+passes on the two authored objects while admitting their dependencies; its retained
+context summary is not an accepted dependency-axiom closure. No recursive whole-corpus
+kernel check, package test, full gate or benchmark ran locally.
 
-The [input identity record](retained-evidence/close3-q35p-20261013/inputs.json) matches both model owners, the error definitions, frozen profile, target and support qualification to their initial bytes. The [non-Rocq record](retained-evidence/close3-q35p-20261013/non-rocq.json) binds a successful complete baseline C++ emission and its outputs. No model source changed, so this is evidence of the preserved source surface and a single baseline emission; it claims no paired regeneration comparison.
+The checkpoint stops at twelve candidate checks, within a conservative 1,001-second
+wall interval that includes preparation and evidence work. One eager wraparound
+`vm_compute` attempt was stopped after its owned process grew to about 19 GB; the
+unchanged statement closes by lazy kernel conversion, and other computational
+controls have explicit tactic timeouts. Earlier fixed probe logs were overwritten;
+the checkpoint retains their execution-tool diagnostic summaries and final native reading logs,
+not a complete raw archive of every failed try.
 
-The [tag-outcome owner contract](contracts/canonical-tag-outcomes.md) specifies the missing delivery: standalone raw-granule-keyed read/write outcomes, their executable finite-map interpretation, forwarding through the existing outcome and exception combinators, and a bridge to the actual emitted metadata callers. Its source reading identifies the narrow V1 support scope and preserves the exact `write_ram` decision: metadata follows `Ok _`, including `Ok (Some false)`, while `Err ()` returns `false` without metadata. The inner boolean is the library's exclusive/CAS status; changing its treatment is a separate semantic decision. The contract's implementation starts only after the integrator lands it.
+Complete before/after inventories preserve all 10,904 installed proof `bin`/`lib`
+paths, including additions and deletions. The 16,140 Sail paths are unchanged over
+the later native-query and paired-C-generation interval; the initial minimal Rocq
+emissions precede that Sail inventory interval. No shared installation was rebuilt
+or repaired by this lane. The [packaged replay](../../tools/sail-tag-outcomes/README.md)
+adds canonical path-overlap and identity refusals; its four focused host controls,
+pinned Ruff and Linux/Windows typing pass. It has not been claimed as a clean native
+replay of the packaged runner.
 
-Agreement still must cover the raw granule index, default-false absent tags, every overwritten-granule clear, the existing data/metadata order and all refusals. No new assumption, weaker definition, discarded tag effect or dummy data write supplies that agreement. The owner must then join Q35o's syntax and actual-plugin identity checks, Q35b's strict whole-term compile, exact closure and compiled size, and the unchanged production-carriage predicate. Neither this refusal nor the owner contract authorizes a proof-switch change or closes Q35p.
+## Remaining acceptance
+
+The native finite caller controls do not establish the contract's universal bridge
+for every emitted metadata/physical-memory caller and continuation. Formal old-event
+conservativity against the original outcome type and the complete native frozen
+reading, including generated induction/elimination declarations and exact assumptions,
+also remain open. The retained functor-layout readings supply no substitute for that
+census and body comparison.
+
+Q35p must then join Q35o's actual-plugin and deterministic full-emission checks,
+Q35b's strict whole-term compile, exact closure and compiled size, full-model paired
+non-Rocq regeneration, and Q35n/Q35q's cold source-carriage/census qualification.
+The candidate recipe is separate from the production support recipe and proof switch.
+The integrator's Host CI and cold Guest CI handoff provide their own recorded verdicts;
+none is supplied by these isolated checks.

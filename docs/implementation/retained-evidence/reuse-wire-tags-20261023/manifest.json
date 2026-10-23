@@ -1,0 +1,210 @@
+{
+  "files": {
+    "AssumptionReading.v": {
+      "bytes": 1709,
+      "encoding": "identity",
+      "path": "AssumptionReading.v",
+      "sha256": "17453a70b481685bbe122c3c4971194b43e84b99f79e89ccce73fa42edc0f199"
+    },
+    "BindingReading.v": {
+      "bytes": 948,
+      "encoding": "identity",
+      "path": "BindingReading.v",
+      "sha256": "8287acf49528375445d2005c578d64272f7fd8925a69e6dfd7fea85f4cb7fe48"
+    },
+    "CHERI-LICENSE": {
+      "bytes": 2649,
+      "encoding": "identity",
+      "path": "CHERI-LICENSE",
+      "sha256": "f5ef0b3be793e83d91e1451a8309a9731ce4fed9b7eae84d4b2e0c13f8638feb"
+    },
+    "Model-LICENSE": {
+      "bytes": 3363,
+      "encoding": "identity",
+      "path": "Model-LICENSE",
+      "sha256": "14cfdf5bfb57ba19f57f31c4a79b3712ede0fda06b1674cb40dec393f8694185"
+    },
+    "Sail-LICENSE": {
+      "bytes": 2594,
+      "encoding": "identity",
+      "path": "Sail-LICENSE",
+      "sha256": "cc5133e58dd523cb772ac7b2c3047845b54667fe856165aef651f059ca51b2fe"
+    },
+    "Sail-Support-LICENSE": {
+      "bytes": 2716,
+      "encoding": "identity",
+      "path": "Sail-Support-LICENSE",
+      "sha256": "9e52d88fe1802beb469e538b8c026ff5e7f9413ef06cd3ce898ee3928ae24df0"
+    },
+    "assumption-targets.json": {
+      "bytes": 1229,
+      "encoding": "identity",
+      "path": "assumption-targets.json",
+      "sha256": "3bfcc75d0ecf083405685a28bf07d1c27d965002aab9e0b9180806c9cf287103"
+    },
+    "assumptions.log": {
+      "bytes": 1056,
+      "encoding": "identity",
+      "path": "assumptions.log",
+      "sha256": "4646d3feaef17b8a0fa3edd893be82657b87ef3fee61c98a069b21b1365585be"
+    },
+    "authored-kernel.log": {
+      "bytes": 2274,
+      "encoding": "identity",
+      "path": "authored-kernel.log",
+      "sha256": "3e02c1788602d9c6b3eb2fba21918a0a8a5e6c70b655b44c763f621a59190a8a"
+    },
+    "baseline-interface-reading.txt": {
+      "bytes": 3267,
+      "encoding": "identity",
+      "path": "baseline-interface-reading.txt",
+      "sha256": "161194551b5a7c684731423d10a6a915c54f851bb3d70fcacac775b47f58209e"
+    },
+    "binding-reading.txt": {
+      "bytes": 114391,
+      "encoding": "identity",
+      "path": "binding-reading.txt",
+      "sha256": "5514dc515e12683fa8944db8fb7b188e5cc545505d75f755c09f1cb77c511c6c"
+    },
+    "bindings.v.txt": {
+      "bytes": 16422,
+      "encoding": "identity",
+      "path": "bindings.v.txt",
+      "sha256": "8e8882b9a96e069750c55e3a3398e12148f7d52e96995b944986d39b9f34f6ef"
+    },
+    "bindings_types.v.txt": {
+      "bytes": 17228,
+      "encoding": "identity",
+      "path": "bindings_types.v.txt",
+      "sha256": "60fd1ba423a0ee2b6b62987abdd4bda72324b5e9dd9864b8d3b272cdeb9c2e6d"
+    },
+    "candidate-interface-reading.txt": {
+      "bytes": 3318,
+      "encoding": "identity",
+      "path": "candidate-interface-reading.txt",
+      "sha256": "ef622f871b3ad2d631264c7cc3703ee865bcd2e540a340d066cc82ef9d2398cb"
+    },
+    "canonical-tag-outcomes.patch": {
+      "bytes": 2611,
+      "encoding": "identity",
+      "path": "canonical-tag-outcomes.patch",
+      "sha256": "8d710a030512dfc3e5ac6447391704fc86ba0408e4f238d0424d3bdaac7f5669"
+    },
+    "checkpoint.json": {
+      "bytes": 16321,
+      "encoding": "identity",
+      "path": "checkpoint.json",
+      "sha256": "2cc34fdf44517d16bcaa8f12fa1db9c8008c59f9aaf268a4873c6c5d953d8943"
+    },
+    "dependency-inventory.json": {
+      "bytes": 14887,
+      "encoding": "identity",
+      "path": "dependency-inventory.json",
+      "sha256": "678c502d785fe4c31cf98a67b129db624e7c843d5614a5697d3cd4385ea4ef05"
+    },
+    "emission.json": {
+      "bytes": 1661,
+      "encoding": "identity",
+      "path": "emission.json",
+      "sha256": "50f8d6d483eb0468fdf539f503195e5a0032fc5544395b60a065986f0185a7b8"
+    },
+    "emitted-emit.log": {
+      "bytes": 5779,
+      "encoding": "identity",
+      "path": "emitted-emit.log",
+      "sha256": "f77237abea274d72ec30f432defa4cf9e7e80a2011ca02634af0256f3efd952b"
+    },
+    "installed-after.json.gz": {
+      "bytes": 1288842,
+      "encoding": "gzip",
+      "path": "installed-after.json.gz",
+      "sha256": "d3f68db5c47a92c06300667b7114cd0eaa1042ec7f7dec1b3f936fffe7f4136c",
+      "stored_bytes": 479066,
+      "stored_sha256": "1518b85ea1fc4fb4399d5621911a916614fe370df2b9d3c03f4583b44e2800cc"
+    },
+    "installed-before.json.gz": {
+      "bytes": 1288842,
+      "encoding": "gzip",
+      "path": "installed-before.json.gz",
+      "sha256": "d3f68db5c47a92c06300667b7114cd0eaa1042ec7f7dec1b3f936fffe7f4136c",
+      "stored_bytes": 479066,
+      "stored_sha256": "1518b85ea1fc4fb4399d5621911a916614fe370df2b9d3c03f4583b44e2800cc"
+    },
+    "installed-comparison.json": {
+      "bytes": 468,
+      "encoding": "identity",
+      "path": "installed-comparison.json",
+      "sha256": "bc3da674e1d21da61b1acc3658e0df48e06a16ba182c732110c269c64e8a749d"
+    },
+    "interface-reading.diff": {
+      "bytes": 5838,
+      "encoding": "identity",
+      "path": "interface-reading.diff",
+      "sha256": "e5ff24b1c1cb0b493c4046a651147ceaa03bfe59ed196167d174ce39e10b3745"
+    },
+    "native-evidence.json": {
+      "bytes": 3691,
+      "encoding": "identity",
+      "path": "native-evidence.json",
+      "sha256": "2017b0d083b172dcb45ec18108940e4ac8f5fbac471f0cfd9e13ba6b0e06ba1f"
+    },
+    "nonrocq-after.log": {
+      "bytes": 0,
+      "encoding": "identity",
+      "path": "nonrocq-after.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "nonrocq-before.log": {
+      "bytes": 0,
+      "encoding": "identity",
+      "path": "nonrocq-before.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "nonrocq-pair.json": {
+      "bytes": 1038,
+      "encoding": "identity",
+      "path": "nonrocq-pair.json",
+      "sha256": "324281fbf65988eea697fd24e245cb2f749987fbd53c9b073d90f8873e85af6c"
+    },
+    "probe-build.json": {
+      "bytes": 4183,
+      "encoding": "identity",
+      "path": "probe-build.json",
+      "sha256": "897c44db1bebced005a93d06ca4fa0c4ee8b3d8842c9247308cffbdd088483db"
+    },
+    "qualification.json": {
+      "bytes": 1604,
+      "encoding": "identity",
+      "path": "qualification.json",
+      "sha256": "135616ae39ece6db3690db676ee6d2a930495b4b98a1e933171f5252284487b0"
+    },
+    "repeat-emit.log": {
+      "bytes": 5779,
+      "encoding": "identity",
+      "path": "repeat-emit.log",
+      "sha256": "f77237abea274d72ec30f432defa4cf9e7e80a2011ca02634af0256f3efd952b"
+    },
+    "sail-installed-after.json.gz": {
+      "bytes": 2166897,
+      "encoding": "gzip",
+      "path": "sail-installed-after.json.gz",
+      "sha256": "4e62b3c84e3d93e7916a8cb2a094757feae03b245001a5d153abe56f5b9ce517",
+      "stored_bytes": 707992,
+      "stored_sha256": "da6882da7e3f8bb0670208d7295b1be4172086e0071da2986597193e11d71891"
+    },
+    "sail-installed-before.json.gz": {
+      "bytes": 2166897,
+      "encoding": "gzip",
+      "path": "sail-installed-before.json.gz",
+      "sha256": "4e62b3c84e3d93e7916a8cb2a094757feae03b245001a5d153abe56f5b9ce517",
+      "stored_bytes": 707992,
+      "stored_sha256": "da6882da7e3f8bb0670208d7295b1be4172086e0071da2986597193e11d71891"
+    },
+    "support-build.json": {
+      "bytes": 57562,
+      "encoding": "identity",
+      "path": "support-build.json",
+      "sha256": "3ddee1256cafcdaae851435fa8f91e88760395cbb766eac3f8a938be85a08459"
+    }
+  }
+}

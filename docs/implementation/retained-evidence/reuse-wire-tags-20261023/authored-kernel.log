@@ -1,0 +1,51 @@
+
+CONTEXT SUMMARY
+===============
+
+* Theory: Set is predicative
+  
+* Theory: Rewrite rules are not allowed
+  
+* Axioms:
+    Stdlib.Arith.PeanoNat.Nat.PrivateImplementsBitwiseSpec.land_spec
+    Stdlib.Arith.PeanoNat.Nat.PrivateImplementsBitwiseSpec.lor_spec
+    Stdlib.Arith.PeanoNat.Nat.PrivateImplementsBitwiseSpec.odd_bitwise
+    Corelib.ssr.ssrunder.Under_rel.Under_rel_from_rel
+    Stdlib.Arith.PeanoNat.Nat.PrivateImplementsBitwiseSpec.testbit_bitwise_2
+    Stdlib.Arith.PeanoNat.Nat.PrivateImplementsBitwiseSpec.testbit_bitwise_1
+    Stdlib.Arith.PeanoNat.Nat.PrivateImplementsBitwiseSpec.testbit_odd_0
+    Stdlib.Arith.PeanoNat.Nat.PrivateImplementsBitwiseSpec.testbit_neg_r
+    Stdlib.Arith.PeanoNat.Nat.PrivateImplementsBitwiseSpec.shiftl_spec_high
+    Stdlib.Arith.PeanoNat.Nat.PrivateImplementsBitwiseSpec.shiftl_spec_low
+    Stdlib.Arith.PeanoNat.Nat.PrivateImplementsBitwiseSpec.shiftr_spec
+    Stdlib.Arith.PeanoNat.Nat.PrivateImplementsBitwiseSpec.testbit_odd_succ
+    Corelib.ssr.ssrunder.Under_rel.over_rel
+    Stdlib.Arith.PeanoNat.Nat.PrivateImplementsBitwiseSpec.div2_double
+    Stdlib.Arith.PeanoNat.Nat.PrivateImplementsBitwiseSpec.ldiff_spec
+    Corelib.ssr.ssrunder.Under_rel.over_rel_done
+    Corelib.ssr.ssrunder.Under_rel.Under_rel
+    Stdlib.Arith.PeanoNat.Nat.PrivateImplementsBitwiseSpec.testbit_even_succ
+    Stdlib.Arith.PeanoNat.Nat.PrivateImplementsBitwiseSpec.div2_succ_double
+    Corelib.ssr.ssrunder.Under_rel.Under_relE
+    Stdlib.Arith.PeanoNat.Nat.PrivateImplementsBitwiseSpec.testbit_even_0
+    Stdlib.Arith.PeanoNat.Nat.PrivateImplementsBitwiseSpec.div2_bitwise
+    Stdlib.Arith.PeanoNat.Nat.PrivateImplementsBitwiseSpec.div2_spec
+    Corelib.ssr.ssrunder.Under_rel.under_rel_done
+    Stdlib.Arith.PeanoNat.Nat.PrivateImplementsBitwiseSpec.lxor_spec
+    Corelib.ssr.ssrunder.Under_rel.Over_rel
+  
+* Constants/Inductives relying on type-in-type: <none>
+  
+* Constants/Inductives relying on unsafe (co)fixpoints: <none>
+  
+* Inductives whose positivity is assumed: <none>
+  
+* Inductives relying on indices not mattering:
+    Corelib.Init.Datatypes.eq_true
+    TagControls.I.outcome
+    stdpp.base.TCEq
+    Stdlib.btauto.Algebra.null
+    Stdlib.Logic.EqdepFacts.eq_dep
+    Corelib.Init.Logic.eq
+    bindings_types.Interface.outcome
+  
