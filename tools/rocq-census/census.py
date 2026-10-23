@@ -177,9 +177,36 @@ def parse_search_requests(searches: dict[str, str], *, expected_modules: list[st
 
 
 def reading_targets(metadata: object) -> list[tuple[str, str]]:
-    value = validate_schema(metadata)
+    return _reading_targets(validate_schema(metadata))
+
+
+def _reading_targets(value: dict[str, Any]) -> list[tuple[str, str]]:
+    """Collect query targets only after the caller validates the complete schema."""
     return list(dict.fromkeys((module["query"]["kind"], module["query"]["target"])
                               for module in value["modules"]))
+
+
+def _module_alias(text: str) -> bool:
+    """Recognize the locked printer's path and parenthesized application suffixes."""
+    tokens: list[str] = []
+    cursor = 0
+    for match in re.finditer(r"[\w']+(?:\.[\w']+)*|[()]", text):
+        if text[cursor:match.start()].strip():
+            return False
+        tokens.append(match.group())
+        cursor = match.end()
+    if text[cursor:].strip() or not tokens:
+        return False
+    def atom(index: int) -> int:
+        if index >= len(tokens) or tokens[index] == ")":
+            return -1
+        if tokens[index] != "(":
+            return index + 1
+        index = atom(index + 1)
+        while index >= 0 and index < len(tokens) and tokens[index] != ")":
+            index = atom(index)
+        return index + 1 if index >= 0 and index < len(tokens) else -1
+    return atom(0) == len(tokens)
 
 
 def _reading(text: str, kind: str, target: str) -> None:
@@ -187,19 +214,24 @@ def _reading(text: str, kind: str, target: str) -> None:
     _require(isinstance(text, str) and bool(text.strip()), "missing complete native module reading")
     header = re.match(r"\s*Module\s+(Type\s+)?([\w']+(?:\.[\w']+)*)\s*(?=[:=(])", text)
     suffixes = {".".join(target.split(".")[index:]) for index in range(len(target.split(".")))}
-    _require(header is not None and header.group(2) in suffixes
+    if header is None:
+        raise CensusError("native module reading header differs from query")
+    _require(header.group(2) in suffixes
              and bool(header.group(1)) == (kind == "module-type"), "native module reading header differs from query")
     # Strings can contain punctuation/keywords that are not printer framing.
     framed = re.sub(r'"(?:[^"]|"")*"', '""', text)
+    _require(re.match(r"(?::=|:|=)\s*\S", framed[header.end():]) is not None,
+             "native module reading has an incomplete header")
     _require("..." not in framed and "…" not in framed and "<elided>" not in framed,
              "truncated native module reading")
     _require(re.search(r"(?m)^\s*(?:Error|Warning|Anomaly|Fatal error)\s*[:!]", framed) is None,
              "native module reading contains a diagnostic")
-    depth = 0
-    for keyword in re.findall(r"(?<![\w'])\b(?:Struct|Sig|End)\b(?![\w'])", framed):
-        depth += -1 if keyword == "End" else 1
-        _require(depth >= 0, "native module reading has an unmatched closing body")
-    _require(depth == 0, "native module reading is missing its closing body")
+    if re.search(r"(?<![\w'.])(?:Struct|Sig)(?![\w'])", framed):
+        closing = re.search(r"(?<![\w'.])End\s*(?::=\s*(.*?))?\s*$", framed, re.DOTALL)
+        if closing is None:
+            raise CensusError("native module reading is missing its outer closing body")
+        _require(closing.group(1) is None or _module_alias(closing.group(1)),
+                 "native module reading has an incomplete implementation suffix")
 
 
 def _table(value: dict[str, Any], name: str) -> dict[str, dict[str, Any]]:
@@ -307,6 +339,16 @@ def _same_native(left: object, right: object, resolvers: dict[str, dict[str, Any
     return normalize(left) == normalize(right)
 
 
+def _ordered_subset(keys: list[str], ranks: dict[str, int]) -> bool:
+    previous = -1
+    for key in keys:
+        rank = ranks.get(key)
+        if rank is None or rank <= previous:
+            return False
+        previous = rank
+    return True
+
+
 def _trace(steps: list[dict[str, Any]], source: dict[str, Any], target: dict[str, Any],
            implementation: dict[str, Any], origin: dict[str, Any], *,
            source_value: object, target_value: object, resolvers: dict[str, dict[str, Any]],
@@ -374,6 +416,9 @@ def _census(metadata: object, searches: dict[str, str], readings: dict[str, str]
             expected_modules: list[str]) -> dict[str, dict[str, Any]]:
     """Read evidence without mutating it; return guarded symbols and complete provenance."""
     value = validate_schema(metadata)
+    # The strict resolver schema contains only paths, kernel names and scalar
+    # effects. Native metadata/body checks cannot match any resolver subtree.
+    metadata_view = {key: item for key, item in value.items() if key != "resolvers"}
     _require(value["requested_roots"] == expected_modules, "native requested population differs")
     _require([root["requested"] for root in value["roots"]] == expected_modules,
              "native root population/order differs")
@@ -381,7 +426,7 @@ def _census(metadata: object, searches: dict[str, str], readings: dict[str, str]
     _require(value["resolution_requests"] == requests, "native requests differ from original Search rows")
     modules, fields, declarations, abbreviations, contexts, resolvers, descents = (
         _table(value, name) for name in ("modules", "fields", "declarations", "abbreviations", "contexts", "resolvers", "module_descents"))
-    _native_semantics(value)
+    _native_semantics(metadata_view)
     root_ids = {root["requested"]: root["module_id"] for root in value["roots"]}
     _require(len(set(root_ids.values())) == len(root_ids), "duplicate native roots")
     for root in value["roots"]:
@@ -489,7 +534,7 @@ def _census(metadata: object, searches: dict[str, str], readings: dict[str, str]
     _require(used_contexts == set(contexts), "orphan native context")
 
     # Complete raw readings are retained separately from structural provenance.
-    targets = reading_targets(value)
+    targets = _reading_targets(value)
     _require(set(readings) == {kind + ":" + name for kind, name in targets}, "missing or foreign module readings")
     for kind, name in targets:
         _require(bool(proofaudit.QUALIFIED.fullmatch(name)) or bool(re.fullmatch(r"[\w']+", name)),
@@ -536,15 +581,17 @@ def _census(metadata: object, searches: dict[str, str], readings: dict[str, str]
         _require(inputs == kernel_order, "native resolver kernel domains disagree on key order")
     if path_order is None or kernel_order is None:
         raise CensusError("missing native resolver domain order")
-    for node in _nodes(value):
+    path_ranks = {key: index for index, key in enumerate(path_order)}
+    kernel_ranks = {key: index for index, key in enumerate(kernel_order)}
+    for node in _nodes(metadata_view):
         if {"algorithm", "encoding", "digest", "module_paths", "kernel_names"} != node.keys():
             continue
         body_paths = [_key(path) for path in node["module_paths"]]
         body_kernels = [_key(kernel) for kernel in node["kernel_names"]]
-        body_path_set, body_kernel_set = set(body_paths), set(body_kernels)
-        _require(body_paths == [path for path in path_order if path in body_path_set],
+        body_path_set = set(body_paths)
+        _require(_ordered_subset(body_paths, path_ranks),
                  "native body reference paths disagree with native key order")
-        _require(body_kernels == [kernel for kernel in kernel_order if kernel in body_kernel_set],
+        _require(_ordered_subset(body_kernels, kernel_ranks),
                  "native body kernel references disagree with native key order")
         for reference in _nodes([node["module_paths"], node["kernel_names"]]):
             if reference.get("tag") in {"MPfile", "MPbound", "MPdot"}:
@@ -553,7 +600,7 @@ def _census(metadata: object, searches: dict[str, str], readings: dict[str, str]
     for module in modules.values():
         resolver = resolvers.get(module["implementation"]["resolver_id"], {})
         _require(resolver.get("owner_module_id") == module["id"], "module implementation names a foreign resolver")
-    for node in _nodes({key: item for key, item in value.items() if key != "resolvers"}):
+    for node in _nodes(metadata_view):
         if "resolver_id" in node:
             _require(node["resolver_id"] in resolvers, "missing native resolver connection")
 
