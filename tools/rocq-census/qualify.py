@@ -10,21 +10,80 @@ import datetime
 import hashlib
 import json
 import os
+import runpy
 import shutil
 import subprocess
+import sys
 import tempfile
 import time
 from pathlib import Path
+from typing import cast
 
 
 def digest(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+def require(condition: bool, message: str) -> None:
+    if not condition:
+        raise ValueError(message)
+
+
 def population(root: Path) -> dict[str, str]:
     return {str(p.relative_to(root)): digest(p)
             for p in sorted(root.rglob("*"))
             if p.is_file() and p.suffix in {".vo", ".glob"}}
+
+
+def api_population(root: Path) -> dict[str, str]:
+    """Bind installed native APIs and link/compiler inputs, including membership."""
+    extensions = {".ml", ".mli", ".cmi", ".cmx", ".cmxs", ".cma", ".cmxa", ".a", ".so"}
+    return {str(path.relative_to(root)): digest(path) for path in sorted(root.rglob("*"))
+            if path.is_file() and path.suffix in extensions}
+
+
+def source_population(root: Path) -> dict[str, str]:
+    return {str(path.relative_to(root)): digest(path) for path in sorted(root.rglob("*.v")) if path.is_file()}
+
+
+def query_inputs(out: Path) -> dict[str, str]:
+    """Exactly the copied semantic inputs, excluding the query's new output objects."""
+    found: dict[str, str] = {}
+    for name in ("support", "stdpp", "controls"):
+        root = out / name
+        for path in sorted(root.rglob("*")):
+            if path.is_file() and path.suffix in {".vo", ".glob", ".v"}:
+                found[str(path.relative_to(out))] = digest(path)
+    for path in (out / "vos_rocq_census/vos_rocq_census.cmxs", out / "vos_rocq_census/vos_rocq_census.ml", out / "NativeControls.v"):
+        if not path.is_file():
+            raise ValueError(f"missing built/copied query input: {path}")
+        found[str(path.relative_to(out))] = digest(path)
+    requests = out / "resolution-requests.json"
+    if requests.is_file():
+        found[requests.name] = digest(requests)
+    for path in sorted((*out.glob("Search*.v"), *out.glob("native-search-*.log"))):
+        found[path.name] = digest(path)
+    return found
+
+
+def request_bytes(path: Path) -> bytes:
+    if not path.is_absolute() or not path.is_file() or path.stat().st_size > 64 * 1024 * 1024:
+        raise ValueError("resolution input must be an absolute regular file at most 64 MiB")
+    data = path.read_bytes()
+    if len(data) > 64 * 1024 * 1024:
+        raise ValueError("resolution input exceeds 64 MiB")
+    return data
+
+
+def search_semantic_inputs(out: Path) -> dict[str, str]:
+    return {name: value for name, value in query_inputs(out).items()
+            if name != "resolution-requests.json" and not name.startswith(("Search", "native-search-"))}
+
+
+def no_diagnostic(out: Path, label: str, *, permit_stdout: bool = False) -> None:
+    if (out / (label + ".stderr.log")).read_bytes().strip() or (
+            not permit_stdout and (out / (label + ".stdout.log")).read_bytes().strip()):
+        raise ValueError(f"strict native command printed a diagnostic: {label}")
 
 
 def changes(before: dict[str, str], after: dict[str, str]) -> dict[str, list[str]]:
@@ -72,6 +131,20 @@ def metadata_output(stdout: bytes, targets: list[str]) -> None:
     if [root.get("requested") for root in roots] != targets:
         raise ValueError("metadata target population differs from requested targets")
 
+
+def census_output(stdout: bytes, targets: list[str], requests: list[object]) -> None:
+    """Check the invocation envelope; the independent adapter owns census acceptance."""
+    value = json.loads(stdout)
+    if not isinstance(value, dict) or value.get("schema") != "verifiedos-sail-support-census/1":
+        raise ValueError("unexpected census schema")
+    if "acceptance" in value or value.get("requested_roots") != targets:
+        raise ValueError("census target population or acceptance boundary changed")
+    if value.get("resolution_requests") != requests:
+        raise ValueError("census resolution request population changed")
+    roots = value.get("roots")
+    if not isinstance(roots, list) or any(not isinstance(root, dict) for root in roots) or [root.get("requested") for root in roots] != targets:
+        raise ValueError("census native roots differ from the requested population")
+
 def captured_bytes(value: bytes | str | None) -> bytes:
     return value.encode() if isinstance(value, str) else value or b""
 
@@ -81,6 +154,9 @@ def run_command(label: str, command: list[str], *, out: Path, work: str,
                 commands: list[dict[str, object]]) -> int:
     record: dict[str, object] = {"label": label, "argv": command, "cwd": work,
                                  "status": "pending", "process_completed": False, "exit": None}
+    sources = {argument: digest(Path(argument)) for argument in command
+               if Path(argument).suffix in {".v", ".ml"} and Path(argument).is_file()}
+    record["source_sha256_before"] = sources
     commands.append(record)
     # Persist intent before launch: an interrupted invocation cannot inherit success.
     (out / "checkpoint.json").write_text(json.dumps(receipt, indent=2) + "\n")
@@ -102,6 +178,8 @@ def run_command(label: str, command: list[str], *, out: Path, work: str,
     try:
         (out / (label + ".stdout.log")).write_bytes(process.stdout)
         (out / (label + ".stderr.log")).write_bytes(process.stderr)
+        record["source_sha256_after"] = {name: digest(Path(name)) for name in sources}
+        require(record["source_sha256_after"] == sources, f"executed native source changed: {label}")
     except OSError as error:
         record["log_error"] = str(error)
         raise
@@ -113,45 +191,116 @@ def main() -> int:
     parser.add_argument("--switch-root", required=True, type=Path)
     parser.add_argument("--out", required=True, type=Path)
     parser.add_argument("--support-source", required=True, type=Path)
+    parser.add_argument("--stdpp-source", type=Path, help="Immutable complete prebuilt stdpp/bitvector prefix directory")
     parser.add_argument("--targets", default="CensusControls,SailStdpp.MachineWordInterface")
+    parser.add_argument("--census", action="store_true", help="Emit the separate unqualified census provenance format")
+    parser.add_argument("--requests", type=Path, help="Exact ordered native Search resolution requests as JSON")
+    parser.add_argument("--search", action="store_true", help="Retain exact per-root native Search and derive ordered requests")
+    parser.add_argument("--component-receipt", type=Path, help="Exact recipe-bound selected-support component build receipt")
     args = parser.parse_args()
     switch = args.switch_root.resolve(strict=True)
     support = args.support_source.resolve(strict=True)
+    stdpp_source = args.stdpp_source.resolve(strict=True) if args.stdpp_source else None
     source = Path(__file__).resolve().parent
+    if args.search and (not args.census or args.requests is not None):
+        parser.error("--search requires --census and excludes --requests")
+    component = None
+    if args.component_receipt is not None:
+        component = json.loads(args.component_receipt.read_text(encoding="utf-8"))
+        recipe = json.loads((source.parent / "opam/sail-support-qualification.json").read_text(encoding="utf-8"))
+        expected_patches = [{"path": entry["path"], "sha256": entry["sha256"]} for entry in recipe["patches"]]
+        expected_sources = {name: digest(support / (name + ".v")) for name in recipe["support_modules"]}
+        if (not args.census or component.get("verdict") != "component-build-only"
+                or component.get("protected_unchanged") is not True
+                or Path(component.get("support_root", "")).resolve() != support
+                or component.get("archive_sha256") != recipe["source"]["sha256"]
+                or component.get("patches") != expected_patches
+                or component.get("selected_source_sha256") != expected_sources):
+            parser.error("component receipt does not bind exact selected support source recipe")
+    requests: list[object] = []
+    supplied_requests = None
+    if args.requests is not None:
+        supplied_requests = request_bytes(args.requests)
+        loaded = json.loads(supplied_requests)
+        if not args.census or not isinstance(loaded, list):
+            parser.error("--requests requires --census and a JSON array")
+        requests = cast("list[object]", loaded)
     try:
-        out = validate_output(args.out, (switch, support, source))
+        out = validate_output(args.out, (switch, support, source, *((stdpp_source,) if stdpp_source else ())))
     except ValueError as error:
         parser.error(str(error))
     out.mkdir(parents=True)
     installed = switch / "lib/coq"
     before = population(installed)
+    api_before = api_population(switch / "lib") if args.census else {}
     identity = {str(p): digest(p) for p in (source / "vos_rocq_census.ml",
                                             source / "NativeControls.v",
+                                            Path(__file__).resolve(),
                                             switch / "bin/rocq")}
+    if args.census:
+        for path in (source / "CensusControls.v", source / "census-schema.json", source / "control-spec.json"):
+            identity[str(path)] = digest(path)
+        if args.search:
+            for path in (source / "census.py", source.parent / "vos/proofaudit.py"):
+                identity[str(path)] = digest(path)
+        if args.requests is not None:
+            identity[str(args.requests.resolve(strict=True))] = digest(args.requests)
+        for name in ("ocamlfind", "ocamlopt"):
+            identity[str(switch / "bin" / name)] = digest(switch / "bin" / name)
+        if args.component_receipt is not None:
+            identity[str(args.component_receipt.resolve(strict=True))] = digest(args.component_receipt)
+            recipe_path = source.parent / "opam/sail-support-qualification.json"
+            identity[str(recipe_path)] = digest(recipe_path)
+            if component is None:
+                raise ValueError("missing component recipe")
+            for entry in component["patches"]:
+                path = source.parent.parent / entry["path"]
+                identity[str(path)] = digest(path)
     dependency_before = population(support)
+    stdpp_before = population(stdpp_source) if stdpp_source else {}
+    source_before = source_population(support) if args.census else {}
     command_records: list[dict[str, object]] = []
     receipt: dict[str, object] = {"schema": "verifiedos-native-metadata-control/1",
                "started_utc": datetime.datetime.now(datetime.UTC).isoformat(),
                "scope": "metadata-only; no proof or complete census acceptance",
                "input_sha256": identity, "installed_before": before,
+               "native_api_before": api_before,
                "support_before": dependency_before, "commands": command_records,
+               "stdpp_source": str(stdpp_source) if stdpp_source else None, "stdpp_before": stdpp_before,
+               "support_source_before": source_before, "component_recipe": component,
                "verdict": "pending", "exit": 1, "native_exit": None,
                "query_completed": False, "metadata_validated": False}
     start = time.monotonic()
     metadata_validated = False
     execution_finished = False
+    loaded_before = None
+    search_loaded_before = None
     try:
         (out / "checkpoint.json").write_text(json.dumps(receipt, indent=2) + "\n")
         shutil.copytree(support, out / "support")
+        stdpp = installed / "user-contrib/stdpp"
+        if stdpp_source:
+            stdpp = out / "stdpp"
+            shutil.copytree(stdpp_source, stdpp)
         plugin = out / "vos_rocq_census"
         plugin.mkdir()
         shutil.copy2(source / "vos_rocq_census.ml", plugin)
+        require(digest(plugin / "vos_rocq_census.ml") == identity[str(source / "vos_rocq_census.ml")],
+                "copied authored plugin source changed before compilation")
         (plugin / "META").write_text('description = "Original Q35q native metadata producer"\n'
             'requires = "rocq-runtime.vernac"\nplugin(native) = "vos_rocq_census.cmxs"\n')
         env = os.environ.copy()
         env["PATH"] = str(switch / "bin") + os.pathsep + env.get("PATH", "")
         env["OCAMLPATH"] = str(out) + os.pathsep + str(switch / "lib") + os.pathsep + env.get("OCAMLPATH", "")
         env["VOS_CENSUS_TARGETS"] = args.targets
+        if args.census:
+            env["VOS_CENSUS_MODE"] = "census"
+            env.pop("VOS_CENSUS_RESOLVE", None)
+            env.pop("VOS_CENSUS_RESOLVE_FILE", None)
+        else:
+            env.pop("VOS_CENSUS_MODE", None)
+            env.pop("VOS_CENSUS_RESOLVE", None)
+            env.pop("VOS_CENSUS_RESOLVE_FILE", None)
         with tempfile.TemporaryDirectory(prefix="vos-native-census-") as work:
             receipt["native_process_cwd"] = work
             plugin_exit = run_command("plugin-build", [str(switch / "bin/ocamlfind"), "ocamlopt", "-rectypes",
@@ -159,17 +308,83 @@ def main() -> int:
                 "-o", str(plugin / "vos_rocq_census.cmxs"), str(plugin / "vos_rocq_census.ml")],
                 out=out, work=work, env=env, receipt=receipt, commands=command_records)
             if plugin_exit == 0:
+                no_diagnostic(out, "plugin-build")
+                require(digest(plugin / "vos_rocq_census.ml") == identity[str(source / "vos_rocq_census.ml")],
+                        "copied authored plugin source changed during compilation")
                 query = out / "NativeControls.v"
-                shutil.copy2(source / "NativeControls.v", query)
+                if args.census:
+                    targets = args.targets.split(",")
+                    control_root = out / "controls"
+                    control_root.mkdir()
+                    controls = control_root / "CensusControls.v"
+                    if "CensusControls" in targets:
+                        shutil.copy2(source / "CensusControls.v", controls)
+                        control_exit = run_command("native-control-source", [str(switch / "bin/rocq"), "c", "-boot", "-R",
+                            str(installed / "theories"), "Corelib", "-Q", str(installed / "user-contrib/Stdlib"), "Stdlib",
+                            "-Q", str(stdpp), "stdpp", "-R", str(out / "support"), "SailStdpp",
+                            "-Q", str(control_root), "",
+                            "-q", "-w", "+default,-abstract-large-number", "-set", "Default Goal Selector=!", "-disallow-sprop",
+                            "-o", str(control_root / "CensusControls.vo"), str(controls)],
+                            out=out, work=work, env=env, receipt=receipt, commands=command_records)
+                        require(control_exit == 0, "native census control source did not compile")
+                        no_diagnostic(out, "native-control-source")
+                    query.write_text("".join(f"Require {target}.\n" for target in targets) +
+                                     'Declare ML Module "vos_rocq_census".\n', encoding="utf-8", newline="")
+                    if args.search:
+                        sys.path.insert(0, str(source.parent))
+                        adapter = runpy.run_path(str(source / "census.py"))
+                        proofaudit = adapter["proofaudit"]
+                        searches: dict[str, str] = {}
+                        search_loaded_before = search_semantic_inputs(out)
+                        receipt["search_loaded_before"] = search_loaded_before
+                        for index, target in enumerate(targets):
+                            search_source = out / (f"Search{index:02d}.v")
+                            search_source.write_text(proofaudit.inventory_query(target), encoding="utf-8", newline="")
+                            label = f"native-search-{index:02d}"
+                            search_exit = run_command(label, [str(switch / "bin/rocq"), "c", "-boot", "-R",
+                                str(installed / "theories"), "Corelib", "-Q", str(installed / "user-contrib/Stdlib"), "Stdlib",
+                                "-Q", str(stdpp), "stdpp", "-R", str(out / "support"), "SailStdpp",
+                                "-Q", str(control_root), "", "-q", "-w", "+default,-abstract-large-number",
+                                "-set", "Default Goal Selector=!", "-disallow-sprop", "-o",
+                                str(out / (f"Search{index:02d}.vo")), str(search_source)],
+                                out=out, work=work, env=env, receipt=receipt, commands=command_records)
+                            require(search_exit == 0, f"native Search refused: {target}")
+                            no_diagnostic(out, label, permit_stdout=True)
+                            searches[target] = (out / (label + ".stdout.log")).read_text(encoding="utf-8")
+                        search_loaded_after = search_semantic_inputs(out)
+                        receipt["search_loaded_after"] = search_loaded_after
+                        require(search_loaded_after == search_loaded_before, "copied native inputs changed during Search")
+                        requests = cast("list[object]", adapter["parse_search_requests"](searches, expected_modules=targets))
+                        receipt["search_targets"] = targets
+                        receipt["search_requests"] = len(requests)
+                    request_path = out / "resolution-requests.json"
+                    request_path.write_bytes(supplied_requests if supplied_requests is not None else
+                                             (json.dumps(requests, ensure_ascii=False) + "\n").encode("utf-8"))
+                    request_bytes(request_path)
+                    receipt["resolution_input"] = {"path": str(request_path), "sha256": digest(request_path)}
+                    env["VOS_CENSUS_RESOLVE_FILE"] = str(request_path)
+                else:
+                    shutil.copy2(source / "NativeControls.v", query)
+                if args.census:
+                    loaded_before = query_inputs(out)
+                    receipt["loaded_before"] = loaded_before
+                    require(source_population(out / "support") == source_before, "copied support source bytes differ before query")
+                    require(population(out / "support") == dependency_before, "copied support object bytes differ before query")
+                    require(not stdpp_source or population(out / "stdpp") == stdpp_before, "copied dependency object bytes differ before query")
                 native_exit = run_command("native-query", [str(switch / "bin/rocq"), "c", "-boot", "-R",
                     str(installed / "theories"), "Corelib", "-Q",
                     str(installed / "user-contrib/Stdlib"), "Stdlib", "-Q",
-                    str(installed / "user-contrib/stdpp"), "stdpp", "-R", str(out / "support"), "SailStdpp",
+                    str(stdpp), "stdpp", "-R", str(out / "support"), "SailStdpp",
+                    *(["-Q", str(out / "controls"), ""] if args.census else []),
                     "-q", "-w", "+default,-abstract-large-number", "-set", "Default Goal Selector=!",
                     "-disallow-sprop", "-o", str(out / "NativeControls.vo"), str(query)],
                     out=out, work=work, env=env, receipt=receipt, commands=command_records)
                 if native_exit == 0:
-                    metadata_output((out / "native-query.stdout.log").read_bytes(), args.targets.split(","))
+                    no_diagnostic(out, "native-query", permit_stdout=True)
+                    if args.census:
+                        census_output((out / "native-query.stdout.log").read_bytes(), args.targets.split(","), requests)
+                    else:
+                        metadata_output((out / "native-query.stdout.log").read_bytes(), args.targets.split(","))
                     metadata_validated = True
         execution_finished = True
     except (OSError, subprocess.TimeoutExpired, ValueError) as error:
@@ -185,10 +400,35 @@ def main() -> int:
             receipt["support_after"] = support_after
             receipt["support_changes"] = changes(dependency_before, support_after)
             receipt["input_sha256_after"] = {p: digest(Path(p)) for p in identity}
+            api_after = api_population(switch / "lib") if args.census else {}
+            receipt["native_api_after"] = api_after
+            receipt["native_api_changes"] = changes(api_before, api_after)
             receipt["installed_unchanged"] = not any(changes(before, installed_after).values())
             receipt["support_unchanged"] = not any(changes(dependency_before, support_after).values())
             receipt["inputs_unchanged"] = receipt["input_sha256_after"] == identity
-            identities_unchanged = all(receipt[k] for k in ("installed_unchanged", "support_unchanged", "inputs_unchanged"))
+            stdpp_after = population(stdpp_source) if stdpp_source else {}
+            receipt["stdpp_after"] = stdpp_after
+            receipt["stdpp_changes"] = changes(stdpp_before, stdpp_after)
+            receipt["stdpp_unchanged"] = stdpp_before == stdpp_after
+            source_after = source_population(support) if args.census else {}
+            receipt["support_source_after"] = source_after
+            receipt["support_source_unchanged"] = source_before == source_after
+            if loaded_before is not None:
+                loaded_after = query_inputs(out)
+                receipt["loaded_after"] = loaded_after
+                receipt["loaded_changes"] = changes(loaded_before, loaded_after)
+                receipt["loaded_unchanged"] = loaded_before == loaded_after
+            else:
+                receipt["loaded_unchanged"] = True
+                receipt["loaded_freeze"] = "query-not-reached"
+            receipt["native_api_unchanged"] = api_before == api_after
+            if search_loaded_before is not None:
+                search_loaded_after = search_semantic_inputs(out)
+                receipt["search_loaded_after"] = search_loaded_after
+                receipt["search_loaded_unchanged"] = search_loaded_before == search_loaded_after
+            else:
+                receipt["search_loaded_unchanged"] = True
+            identities_unchanged = all(receipt[k] for k in ("installed_unchanged", "support_unchanged", "inputs_unchanged", "native_api_unchanged", "stdpp_unchanged", "support_source_unchanged", "loaded_unchanged", "search_loaded_unchanged"))
         except (OSError, ValueError) as error:
             receipt["identity_refusal"] = {"error_type": type(error).__name__, "error": str(error)}
         query_record = next((record for record in command_records if record["label"] == "native-query"), {})
@@ -202,6 +442,8 @@ def main() -> int:
         code, verdict = control_verdict(native_exit, identities_unchanged,
             query_completed=query_completed, metadata_validated=metadata_validated,
             execution_finished=execution_finished)
+        if code == 0 and args.census:
+            verdict = "native-census-provenance-only"
         receipt["exit"] = code
         receipt["verdict"] = verdict
         (out / "receipt.json").write_text(json.dumps(receipt, indent=2) + "\n")
