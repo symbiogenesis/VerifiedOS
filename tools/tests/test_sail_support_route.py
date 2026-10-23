@@ -351,6 +351,67 @@ def command_intent_and_interruption() -> None:
             command = route.load(campaign.upload / "receipt.json")["commands"][-1]
             ensure(command["status"] == "interrupted" and command["exit"] is None
                    and command["process_completed"] is False, "interrupted command cannot inherit passing evidence")
+            inputs = campaign.root / "native-request-inputs"
+            inputs.mkdir()
+            source = inputs / "support-requests.json"
+            source.write_bytes(b"[]")
+            route.select_requests(campaign.environment, source=source)
+
+            def changed_request(*_args: object, **_kwargs: object) -> tuple[str, str]:
+                source.write_bytes(b"[{}]")
+                return "", ""
+
+            with patch.object(subprocess, "Popen") as launched:
+                process = launched.return_value.__enter__.return_value
+                process.returncode = 0
+                process.communicate.side_effect = changed_request
+                refuses(lambda: campaign.run("changed-request", ["fixture"], root))
+            command = route.load(campaign.upload / "receipt.json")["commands"][-1]
+            ensure(command["request_source_before"] != command["request_source_after"],
+                   "a successful process cannot hide changed request input bytes")
+
+
+def request_file_protocol() -> None:
+    with tempfile.TemporaryDirectory(prefix="vos-sail-request-files-") as directory:
+        root = Path(directory)
+        private = root / "native"
+        inputs = private / "native-request-inputs"
+        inputs.mkdir(parents=True)
+        source = inputs / "support-requests.json"
+        source.write_bytes(b"[]")
+        environment: dict[str, str] = {}
+        route.select_requests(environment, direct="[]")
+        direct = route.request_source(environment, private)
+        ensure(direct is not None and direct["kind"] == "environment", "direct control input bound")
+        route.select_requests(environment, source=source)
+        ensure("VOS_CENSUS_RESOLVE" not in environment, "file transition clears the unused direct variable")
+        original = route.request_source(environment, private)
+        ensure(original is not None and original["sha256"] == hashlib.sha256(b"[]").hexdigest(), "exact file bytes bound")
+        source.write_bytes(b"[{}]")
+        ensure(route.request_source(environment, private) != original, "request byte changes visible")
+        environment["VOS_CENSUS_RESOLVE"] = "[]"
+        refuses(lambda: route.request_source(environment, private))
+        route.select_requests(environment, direct="[]")
+        ensure("VOS_CENSUS_RESOLVE_FILE" not in environment, "unsupported-refusal transition clears the prior file variable")
+        route.select_requests(environment, source=source)
+        source.unlink()
+        refuses(lambda: route.request_source(environment, private))
+        source.mkdir()
+        refuses(lambda: route.request_source(environment, private))
+        source.rmdir()
+        with source.open("wb") as stream:
+            stream.truncate(route.MAX_REQUEST_BYTES + 1)
+        refuses(lambda: route.request_source(environment, private))
+        source.write_bytes(b"[]")
+        with patch.object(Path, "open", side_effect=PermissionError("mocked unreadable request file")):
+            refuses(lambda: route.request_source(environment, private))
+        outside = root / "outside.json"
+        outside.write_bytes(b"[]")
+        route.select_requests(environment, source=outside)
+        refuses(lambda: route.request_source(environment, private))
+        route.select_requests(environment, source=Path("relative.json"))
+        refuses(lambda: route.request_source(environment, private))
+        refuses(lambda: route.select_requests(environment, direct="[]", source=source))
 
 
 def standalone_native_replay() -> None:
@@ -410,6 +471,17 @@ def standalone_native_replay() -> None:
                 "status": "completed", "process_completed": True,
                 "strict": strict, "native_environment": {"OCAMLPATH": "/host/plugin:/host/lib:",
                     "OPAMROOT": opam["root"], "OPAMSWITCH": opam["switch"], "OPAM_SWITCH_PREFIX": opam["prefix"], **(environment or {})}}
+            selected = cast("dict[str, str]", command["native_environment"])
+            request_identity: dict[str, Any] | None = None
+            if "VOS_CENSUS_RESOLVE_FILE" in selected:
+                path = selected["VOS_CENSUS_RESOLVE_FILE"]
+                retained = artifact / path.rsplit("/", 1)[-1]
+                request_identity = {"kind": "file", "path": path, "bytes": retained.stat().st_size,
+                                    "sha256": route.receipts.digest(retained)}
+            elif "VOS_CENSUS_RESOLVE" in selected:
+                data = selected["VOS_CENSUS_RESOLVE"].encode("utf-8")
+                request_identity = {"kind": "environment", "bytes": len(data), "sha256": hashlib.sha256(data).hexdigest()}
+            command.update(request_source_before=request_identity, request_source_after=deepcopy(request_identity))
             for name, value in (("stdout", stdout), ("stderr", stderr), ("combined", stdout + stderr)):
                 (artifact / (label + "." + name + ".log")).write_text(value, encoding="utf-8")
             command["log"] = label + ".combined.log"
@@ -455,10 +527,11 @@ def standalone_native_replay() -> None:
                 "/host/support/" + module.rsplit(".", 1)[-1] + ".v"], strict=True)
         for prefix, requested in (("support", modules), ("control", targets)):
             mapping = [*support_map, *(paths["controls"] if prefix == "control" else [])]
-            metadata = {"requested_roots": requested}
             searches = {module: route.proofaudit.EMPTY_BLACKLIST + "\n" + module + ".fixture: unit\n" for module in requested}
+            resolution_requests = requests(searches, expected_modules=requested)
+            metadata = {"requested_roots": requested, "resolution_requests": resolution_requests}
             readings = {"module:" + module: "native module fixture " + module for module in requested}
-            for suffix, value in (("census", metadata), ("search", searches), ("readings", readings)):
+            for suffix, value in (("census", metadata), ("search", searches), ("readings", readings), ("requests", resolution_requests)):
                 route.write(artifact / (prefix + "-" + suffix + ".json"), value)
             classified = classify(metadata, searches, readings, expected_modules=requested)
             if prefix == "support":
@@ -481,7 +554,7 @@ def standalone_native_replay() -> None:
                     add_query("alias-assumptions-" + str(index), route.proofaudit.assumption_query(module, aliases), mapping, alias_output)
             add_query(prefix + "-native-census", "Require " + " ".join(requested) + '.\nDeclare ML Module "vos_rocq_census".\n',
                 mapping, json.dumps(metadata), environment={"VOS_CENSUS_MODE": "census", "VOS_CENSUS_TARGETS": ",".join(requested),
-                    "VOS_CENSUS_RESOLVE": json.dumps(requests(searches, expected_modules=requested))})
+                    "VOS_CENSUS_RESOLVE_FILE": "/host/native-request-inputs/" + prefix + "-requests.json"})
         for name, entry in cast("dict[str, dict[str, Any]]", spec["refusals"]).items():
             add_query("native-" + name + "-refusal", (control_source / entry["source"]).read_text(),
                 [*support_map, *paths["controls"]], stderr=entry["diagnostic"], environment=entry.get("environment"), refusal=True)
@@ -527,6 +600,8 @@ def standalone_native_replay() -> None:
                 lambda row: next(cmd for cmd in row["commands"] if cmd["label"] == "closure")["argv"].append("foreign"),
                 lambda row: next(cmd for cmd in row["commands"] if cmd["label"] == "kernel-support")["argv"].pop(),
                 lambda row: next(cmd for cmd in row["commands"] if cmd["label"] == "support-native-census")["native_environment"].update(VOS_CENSUS_TARGETS="foreign"),
+                lambda row: next(cmd for cmd in row["commands"] if cmd["label"] == "support-native-census")["request_source_after"].update(sha256="f" * 64),
+                lambda row: next(cmd for cmd in row["commands"] if cmd["label"] == "native-unsupported-refusal")["native_environment"].update(VOS_CENSUS_RESOLVE_FILE="/host/native-request-inputs/control-requests.json"),
                 lambda row: next(cmd for cmd in row["commands"] if cmd["label"] == "inventory-0").pop("query_source"),
                 lambda row: row.update(commands=[cmd for cmd in row["commands"] if cmd["label"] != "alias-assumptions-2"]),
                 lambda row: next(cmd for cmd in row["commands"] if cmd["label"] == "native-signature-refusal").update(exit=137)]
@@ -535,6 +610,17 @@ def standalone_native_replay() -> None:
                 mutation(altered)
                 route.write(target, altered)
                 refuses(lambda: route.validate_native_qualification(artifact, side, "a" * 40, run_id="1", run_attempt="2"))
+            request_file = artifact / "support-requests.json"
+            original_request = request_file.read_bytes()
+            request_file.unlink()
+            route.write(target, record)
+            refuses(lambda: route.validate_native_qualification(artifact, side, "a" * 40))
+            request_file.write_bytes(original_request + b"\n")
+            altered = deepcopy(record)
+            altered["evidence"][request_file.name] = {"sha256": route.receipts.digest(request_file), "bytes": request_file.stat().st_size}
+            route.write(target, altered)
+            refuses(lambda: route.validate_native_qualification(artifact, side, "a" * 40))
+            request_file.write_bytes(original_request)
             altered = deepcopy(record)
             alias_command = next(cmd for cmd in altered["commands"] if cmd["label"] == "alias-assumptions-2")
             alias_files = [alias_command["streams"]["stdout"]["path"], alias_command["log"], "native-alias-assumptions.json"]
@@ -588,4 +674,5 @@ def cases() -> list[Case]:
             Case("native-expected-refusal-exits", expected_native_refusal_exits),
             Case("native-hidden-alias-control-contexts", hidden_alias_control_contexts),
             Case("native-command-intent-interruption", command_intent_and_interruption),
+            Case("native-request-file-protocol", request_file_protocol),
             Case("native-standalone-replay", standalone_native_replay)]
