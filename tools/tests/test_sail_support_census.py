@@ -57,7 +57,7 @@ def _fixture(root: str = "Root") -> tuple[dict[str, Any], dict[str, str], dict[s
     value = {"schema": "verifiedos-sail-support-census/1", "producer": "rocq-9.3.0-constructor-api",
              "requested_roots": [root], "roots": [{"requested": root, "native_path": _path(root), "module_id": root}],
              "modules": [], "fields": [], "declarations": [], "abbreviations": [], "resolvers": [],
-             "contexts": [], "resolution_requests": [], "resolutions": [],
+             "contexts": [], "module_descents": [], "resolution_requests": [], "resolutions": [],
              "environment": _example(_SCHEMA["$defs"]["environment"])}
     _module(value, root, None, "concrete-root")
     _constant(value, root, metadata)
@@ -105,7 +105,7 @@ def _constant(value: dict[str, Any], module_name: str, metadata: dict[str, Any],
     context = module["signature"]["result_context_id"]
     reference = _reference(module_name)
     locator = {"module_path": _path(module_name), "namespace": "object", "label": "x", "packet_index": None, "constructor_index": None}
-    link = {"lookup_succeeded": True, "exported_reference": reference, "source_field": locator,
+    link = {"lookup_succeeded": True, "enclosing_descent_ids": [], "exported_reference": reference, "source_field": locator,
             "instantiated_field": copy.deepcopy(locator), "source_reference": copy.deepcopy(reference),
             "implementation_reference": copy.deepcopy(reference), "source_metadata": metadata, "instantiated_metadata": copy.deepcopy(metadata),
             "steps": [{"tag": "structure-field", "field": locator, "implementation_kind": "FullStruct", "resolver_id": module_name + ":resolver"},
@@ -125,6 +125,51 @@ def _finish(value: dict[str, Any], searches: dict[str, str]) -> tuple[dict[str, 
         count = len(module["signature"]["field_ids"])
         module["signature"]["field_count"] = count
         module["empty_evidence"] = "nonempty" if count else "native-alias-only" if module["abbreviation_ids"] else "native-empty"
+    if not value["module_descents"]:
+        modules = {module["id"]: module for module in value["modules"]}
+        contexts = {context["id"]: context for context in value["contexts"]}
+        fields = {field["id"]: field for field in value["fields"]}
+        def abstract(context_id: str) -> bool:
+            context = contexts[context_id]
+            return context["kind"] in {"module-type", "functor-parameter", "functor-result"} or (
+                context["parent_id"] is not None and abstract(context["parent_id"]))
+        concrete = {module["id"] for module in value["modules"] if module["kind"] == "module"
+                    and module["parent_field_id"] is not None and not abstract(module["signature"]["result_context_id"])}
+        def raw_module(module_id: str) -> dict[str, Any]:
+            module = modules[module_id]
+            native_fields = [{"label": fields[key]["label"], "namespace": fields[key]["namespace"], "kind": fields[key]["kind"],
+                              "metadata": copy.deepcopy(fields[key]["metadata"]),
+                              "module": raw_module(fields[key]["child_module_id"]) if fields[key]["child_module_id"] is not None else None}
+                             for key in module["signature"]["field_ids"]]
+            signature = {"tag": "NoFunctor", "structure": {"path": module["native_path"], "field_count": len(native_fields), "fields": native_fields}}
+            for parameter in reversed(module["signature"]["parameters"]):
+                signature = {"tag": "MoreFunctor", "parameter_identifier": parameter["identifier"],
+                             "parameter": raw_module(parameter["signature_module_id"]), "result": signature}
+            return {"path": module["native_path"], "kind": "module-type" if module["kind"] != "module" else "module",
+                    "signature": signature, "implementation": copy.deepcopy(module["implementation"])}
+        for module in value["modules"]:
+            if module["id"] not in concrete:
+                continue
+            field = fields[module["parent_field_id"]]
+            parent = modules[field["parent_module_id"]]
+            locator = {"module_path": parent["native_path"], "namespace": "module", "label": field["label"],
+                       "packet_index": None, "constructor_index": None}
+            raw = raw_module(module["id"])
+            value["module_descents"].append({"id": module["id"] + ":descent", "owner_module_id": module["id"],
+                "parent_descent_id": parent["id"] + ":descent" if parent["id"] in concrete else None,
+                "field_selection_succeeded": True, "source_field": locator, "instantiated_field": copy.deepcopy(locator),
+                "source_module": raw, "instantiated_module": copy.deepcopy(raw),
+                "steps": [{"tag": "structure-field", "field": locator, "implementation_kind": "FullStruct",
+                           "resolver_id": parent["implementation"]["resolver_id"]}]})
+        for declaration in value["declarations"]:
+            if declaration["implementation_connection"] is None:
+                continue
+            owner = fields[declaration["field_id"]]["parent_module_id"]
+            chain = []
+            while owner in concrete:
+                chain.insert(0, owner + ":descent")
+                owner = fields[modules[owner]["parent_field_id"]]["parent_module_id"]
+            declaration["implementation_connection"]["enclosing_descent_ids"] = chain
     paths, kernels = _ADAPTER["_domains"](value)
     for resolver in value["resolvers"]:
         resolver["module_effects"] = [{"input": json.loads(path), "output": json.loads(path), "is_alias": False} for path in sorted(paths)]
@@ -467,6 +512,92 @@ class SailSupportCensusTests(unittest.TestCase):
             with self.subTest(name=name), self.assertRaisesRegex(ValueError, "native (?:alias|application) trace"):
                 _ADAPTER["census"](candidate, searches, candidate_readings, expected_modules=["Root"])
 
+    def test_nested_applied_module_keeps_original_parent_substitution_and_private_metadata(self) -> None:
+        value, searches, _ = _fixture()
+        _sealed(value, "Root", "Applied")
+        _module(value, "Root.Applied.Raw", "Root.Applied", "concrete-module")
+        instance = {"qualities": [], "levels": []}
+        target_type = {"tag": "Const", "name": {key: _reference("Arguments.N", "T")[key] for key in ("user", "canonical")}, "instance": instance}
+        identifier = {"stamp": 42, "id": "X", "directory_reversed": ["Foreign"]}
+        bound_name = {"path": {"tag": "MPbound", "identifier": identifier}, "label": "T"}
+        source_type = {"tag": "Const", "name": {"user": bound_name, "canonical": copy.deepcopy(bound_name)}, "instance": instance}
+        metadata = copy.deepcopy(value["fields"][0]["metadata"])
+        metadata["type"] = target_type
+        _constant(value, "Root.Applied.Raw", metadata)
+        _module(value, "Root.Applied.Raw.Inner", "Root.Applied.Raw", "concrete-module")
+        expression = {"tag": "MEapply", "function": {"tag": "MEident", "path": _path("Foreign.Make")}, "argument": _path("Arguments.N")}
+        applied = next(module for module in value["modules"] if module["id"] == "Root.Applied")
+        applied["implementation"]["expression"] = expression
+        parent_link = next(row for row in value["declarations"] if row["field_id"] == "Root.Applied:x")["implementation_connection"]
+        parent_source = copy.deepcopy(parent_link["source_field"])
+        parent_source["module_path"] = _path("Foreign.Make")
+        parent_link.update(source_field=parent_source, source_reference=_reference("Foreign.Make"))
+        parent_link["steps"][0].update(expression=expression, target=_path("Foreign.Make"))
+        parent_link["steps"][1]["field"] = parent_link["steps"][2]["source"] = parent_source
+        parent_link["steps"].insert(1, {"tag": "functor-application", "parameter_identifier": identifier,
+                                        "argument": expression["argument"], "expression": expression, "resolver_id": "Root.Applied:resolver"})
+        value, searches, _ = _finish(value, searches)
+        raw_descent = next(row for row in value["module_descents"] if row["owner_module_id"] == "Root.Applied.Raw")
+        inner_descent = next(row for row in value["module_descents"] if row["owner_module_id"] == "Root.Applied.Raw.Inner")
+        def rebase(item: object) -> Any:  # noqa: ANN401 - recursive fixture JSON
+            if item == _path("Root.Applied.Raw"):
+                return _path("Foreign.Make.Raw")
+            if isinstance(item, dict):
+                return {key: rebase(child) for key, child in item.items()}
+            if isinstance(item, list):
+                return [rebase(child) for child in item]
+            return item
+        raw_descent["source_module"] = rebase(raw_descent["source_module"])
+        raw_descent["source_module"]["signature"]["structure"]["fields"][0]["metadata"]["type"] = source_type
+        raw_descent["source_field"]["module_path"] = _path("Foreign.Make")
+        raw_source = raw_descent["source_field"]
+        raw_descent["steps"] = [*copy.deepcopy(parent_link["steps"][:2]),
+            {"tag": "structure-field", "field": raw_source, "implementation_kind": "FullStruct", "resolver_id": "Root.Applied:resolver"},
+            {"tag": "substitution", "source": raw_source, "target": raw_descent["instantiated_field"], "resolver_id": "Root.Applied:resolver"}]
+        # The next ordinary descent selects both complete private Raw bodies.
+        inner_descent["source_module"] = rebase(inner_descent["source_module"])
+        inner_descent["source_field"]["module_path"] = _path("Foreign.Make.Raw")
+        inner_descent["steps"][0]["field"] = inner_descent["source_field"]
+        inner_descent["steps"].append({"tag": "substitution", "source": inner_descent["source_field"],
+            "target": inner_descent["instantiated_field"], "resolver_id": "Root.Applied.Raw:resolver"})
+        raw_link = next(row for row in value["declarations"] if row["field_id"] == "Root.Applied.Raw:x")["implementation_connection"]
+        raw_source_object = copy.deepcopy(raw_link["source_field"])
+        raw_source_object["module_path"] = _path("Foreign.Make.Raw")
+        raw_link.update(source_field=raw_source_object, source_reference=_reference("Foreign.Make.Raw"),
+                        source_metadata=copy.deepcopy(raw_descent["source_module"]["signature"]["structure"]["fields"][0]["metadata"]))
+        raw_link["steps"][0]["field"] = raw_source_object
+        raw_link["steps"].insert(1, {"tag": "substitution", "source": raw_source_object, "target": raw_link["instantiated_field"],
+                                    "resolver_id": "Root.Applied.Raw:resolver"})
+        value, searches, readings = _finish(value, searches)
+        result = _ADAPTER["census"](value, searches, readings, expected_modules=["Root"])["Root"]
+        self.assertEqual(len(result["module_descents"]), 3)
+        self.assertNotEqual(raw_link["source_metadata"]["type"], raw_link["instantiated_metadata"]["type"])
+        self.assertEqual(raw_link["enclosing_descent_ids"], ["Root.Applied:descent", "Root.Applied.Raw:descent"])
+        mutations = {
+            "missing parent descent": lambda item: item["module_descents"].pop(0),
+            "missing direct parent": lambda item: item["module_descents"][1].update(parent_descent_id=None),
+            "swapped enclosing chain": lambda item: item["declarations"][-1]["implementation_connection"]["enclosing_descent_ids"].reverse(),
+            "omitted enclosing parent": lambda item: item["declarations"][-1]["implementation_connection"]["enclosing_descent_ids"].pop(0),
+            "omitted aggregate substitution": lambda item: item["module_descents"][1]["steps"].pop(),
+            "swapped aggregate endpoints": lambda item: item["module_descents"][1]["steps"][-1].update(
+                source=copy.deepcopy(raw_descent["instantiated_field"]), target=copy.deepcopy(raw_descent["source_field"])),
+            "lost original metadata": lambda item: item["module_descents"][1]["source_module"]["signature"]["structure"]["fields"][0]["metadata"].update(type=target_type),
+            "wrong original inner module": lambda item: item["module_descents"][-1].update(source_module=copy.deepcopy(inner_descent["instantiated_module"])),
+            "wrong child namespace": lambda item: item["module_descents"][1]["source_field"].update(namespace="object"),
+        }
+        def substituted_as_original(item: dict[str, Any]) -> None:
+            descent = item["module_descents"][1]
+            descent["source_module"] = copy.deepcopy(descent["instantiated_module"])
+            descent["source_field"] = copy.deepcopy(descent["instantiated_field"])
+            descent["steps"][2]["field"] = descent["source_field"]
+            descent["steps"].pop()
+        mutations["substituted child as original"] = substituted_as_original
+        for name, mutate in mutations.items():
+            candidate = copy.deepcopy(value)
+            mutate(candidate)
+            with self.subTest(name=name), self.assertRaises(ValueError):
+                _ADAPTER["census"](candidate, searches, readings, expected_modules=["Root"])
+
 
 def cases() -> list[Case]:
     checks = SailSupportCensusTests()
@@ -480,4 +611,5 @@ def cases() -> list[Case]:
             Case("body-identities-refuse-executable-asts-and-incomplete-reference-domains", checks.test_body_identity_replaces_executable_ast_and_retains_complete_reference_domain),
             Case("external-sealed-declaration-alias-keeps-supplementary-native-audit", checks.test_external_sealed_declaration_alias_has_supplementary_assumption_binding),
             Case("bound-interface-abbreviation-remains-an-obligation", checks.test_bound_interface_abbreviation_remains_an_obligation),
-            Case("applied-functor-trace-preserves-native-head-and-ordered-arguments", checks.test_native_applied_functor_trace_keeps_full_expression_head_and_ordered_arguments)]
+            Case("applied-functor-trace-preserves-native-head-and-ordered-arguments", checks.test_native_applied_functor_trace_keeps_full_expression_head_and_ordered_arguments),
+            Case("nested-applied-module-preserves-original-parent-substitutions", checks.test_nested_applied_module_keeps_original_parent_substitution_and_private_metadata)]
