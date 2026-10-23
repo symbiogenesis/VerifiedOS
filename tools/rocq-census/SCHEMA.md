@@ -46,8 +46,8 @@ and prelaunch absence. Never reinterpret a partial file or descriptor alone as
 census acceptance. Failure, truncation, overwrite, missing output, path mismatch,
 duplicate keys, digest drift and diagnostic stdout/stderr refuse. Clear the output
 variable before queries that do not emit a census. Default metadata mode preserves
-its direct JSON output; the census's direct-output mode remains available for
-small focused controls.
+its direct JSON output. Census mode requires the bound output-file transport,
+including for focused controls.
 
 An optional `VOS_CENSUS_PROGRESS_FILE` is a separate, bounded diagnostic output
 containing only phase, native path/count and memory observations. Its exact path

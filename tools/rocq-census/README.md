@@ -40,6 +40,15 @@ by its absolute path, exact bytes and hash before and after the native query.
 `--component-receipt` binds an exact selected-support component build. These inputs
 do not replace hosted cold-source acceptance.
 
+Census mode writes the complete JSON to a fresh private file and emits a small
+path/size/BLAKE2b-256 envelope on stdout. The helper verifies the file identity
+before and after duplicate-free JSON parsing; native completion and the evidence
+verdict remain separate. The producer streams metadata and complete resolver
+effects to avoid retaining the expanded document and a second complete string.
+`--query-timeout-seconds` bounds only the callback, defaults to 180 and permits at
+most 1800 seconds within the active owner budget. Compilation and Search retain
+their separate bounds.
+
 The census exports complete field classifications, abstract interface obligations,
 native original/instantiated implementation metadata, nested module descents and
 ordered native substitutions. Alias evidence retains exported and canonical names;
