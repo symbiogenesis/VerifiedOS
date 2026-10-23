@@ -1,0 +1,17 @@
+import os,sys,pathlib,json,hashlib,subprocess,time
+sys.dont_write_bytecode=True
+R=pathlib.Path('/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/checklist-20261023-a'); sys.path.insert(0,str(R/'tools'))
+from vos import proofaudit
+L=pathlib.Path('/root/build/lane-checklist-20261023-a'); T=pathlib.Path('/tmp/vos-q35o-967eb3eb0a354cf0b7e48db8db978501'); os.chdir(T); P=pathlib.Path('/root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1')
+sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest(); records=[]; contexts={}
+immutable=json.loads((L/'installed-before.json').read_text()); assert immutable=={s:sha(P/s) for s in immutable}
+for mode in ['baseline','candidate']:
+    names=list(json.loads((L/('frozen-'+mode+'.json')).read_text())); symbols=[dict(name=n,type='',assumptions=[],claims=[]) for n in names]; source=T/('Assumptions'+mode+'.v'); source.write_text(proofaudit.assumption_query('riscv_extras',symbols))
+    args=[str(P/'bin/rocq'),'c','-q','-boot','-R',str(P/'lib/coq/theories'),'Corelib','-Q',str(P/'lib/coq/user-contrib/Stdlib'),'Stdlib','-Q',str(L/'stdpp'),'stdpp','-R',str(L/'support/src-stdpp'),'SailStdpp','-R',str(L/('riscv-'+mode)),'','-w','+default,-abstract-large-number','-set','Default Goal Selector=!','-disallow-sprop',str(source)]
+    start=time.monotonic(); d=subprocess.run(args,cwd=T,capture_output=True); out=L/(mode+'-assumptions.stdout'); err=L/(mode+'-assumptions.stderr'); out.write_bytes(d.stdout); err.write_bytes(d.stderr)
+    records.append(dict(mode=mode,argv=args,cwd=str(T),elapsed_seconds=time.monotonic()-start,exit=d.returncode,stdout_sha256=sha(out),stderr_sha256=sha(err))); assert d.returncode==0 and not d.stderr,(d.returncode,d.stderr)
+    proofaudit.assumptions(d.stdout.decode(),symbols); contexts[mode]={s['name']:s['assumptions'] for s in symbols}; assert all(not x for x in contexts[mode].values()); print(mode,'all',len(symbols),'closed',flush=True)
+assert contexts['baseline']==contexts['candidate']; assert immutable=={s:sha(P/s) for s in immutable}
+(L/'assumptions-receipt.json').write_text(json.dumps(dict(records=records,exact_contexts=contexts,all_closed=True,installed_sentinels_unchanged=True),indent=2)+'\n')
+(L/'installed-final.json').write_text(json.dumps({s:sha(P/s) for s in immutable},indent=2)+'\n')
+(L/'reader-identities.json').write_text(json.dumps({str(p.relative_to(R)):sha(p) for p in [R/'tools/vos/proofaudit.py',R/'tools/vos/proofreading.py']},indent=2)+'\n')

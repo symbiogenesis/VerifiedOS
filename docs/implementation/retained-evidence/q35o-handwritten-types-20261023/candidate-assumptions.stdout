@@ -1,0 +1,16 @@
+VOS_PROOF_AUDIT|riscv_extras.get_time_ns
+Closed under the global context
+VOS_PROOF_AUDIT|riscv_extras.mult_vec
+Closed under the global context
+VOS_PROOF_AUDIT|riscv_extras.mults_vec
+Closed under the global context
+VOS_PROOF_AUDIT|riscv_extras.print_string
+Closed under the global context
+VOS_PROOF_AUDIT|riscv_extras.shift_bits_left
+Closed under the global context
+VOS_PROOF_AUDIT|riscv_extras.shift_bits_right
+Closed under the global context
+VOS_PROOF_AUDIT|riscv_extras.shift_bits_right_arith
+Closed under the global context
+VOS_PROOF_AUDIT|riscv_extras.sys_enable_experimental_extensions
+Closed under the global context

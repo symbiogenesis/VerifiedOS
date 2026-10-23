@@ -1,0 +1,11 @@
+import pathlib,hashlib,json,subprocess,time,sys
+R=pathlib.Path('/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/checklist-20261023-a'); L=pathlib.Path('/root/build/lane-checklist-20261023-a'); T=pathlib.Path('/tmp/vos-q35o-967eb3eb0a354cf0b7e48db8db978501'); P=pathlib.Path('/root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1')
+script=pathlib.Path('/mnt/c/Users/symbi/AppData/Local/Temp/vos-q35o-967eb3eb0a354cf0b7e48db8db978501/reading-repeat.py')
+def identity(): return {str(p.relative_to(P)):dict(bytes=p.stat().st_size,sha256=hashlib.sha256(p.read_bytes()).hexdigest()) for p in sorted((P/'lib/coq').rglob('*')) if p.is_file() and p.suffix in ['.vo','.cmxs','.cma','.cmxa']}
+before=identity(); (L/'installed-library-before.json').write_text(json.dumps(before,indent=2)+'\n'); print('installed objects',len(before),flush=True)
+for mode in ['baseline','candidate']:
+    d=subprocess.run([sys.executable,'-u',str(script),mode],cwd=T); assert d.returncode==0
+    assert before==identity()
+(L/'installed-library-after.json').write_text(json.dumps(identity(),indent=2)+'\n')
+assert (L/'installed-library-before.json').read_bytes()==(L/'installed-library-after.json').read_bytes()
+print('all installed library objects unchanged',flush=True)

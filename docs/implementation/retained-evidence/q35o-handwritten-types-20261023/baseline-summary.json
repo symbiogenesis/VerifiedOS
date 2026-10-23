@@ -1,0 +1,17 @@
+{
+  "module": "riscv_extras",
+  "declarations": 8,
+  "printed": 8,
+  "source_sha256": "c05aef60052ccb293161c521c66c06a48c0693eaae4fca80048206445010e957",
+  "prover_sha256": "9a2a4eacf47b44c6ec582bc2b9f9cde9de11af77164e0637103fca9865efd5ac",
+  "compile_flags": [],
+  "query_flags": [
+    "-w",
+    "+default,-abstract-large-number",
+    "-set",
+    "Default Goal Selector=!",
+    "-disallow-sprop"
+  ],
+  "dependency_identity_sha256": "a8db36fa1a2d19de2c4ca3c9eeb82de19df7f7631ef8e043751ca667abcf7a31",
+  "installed_sentinels_unchanged": true
+}

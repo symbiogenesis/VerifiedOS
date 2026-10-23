@@ -1,0 +1,29 @@
+{
+  "all_identical": true,
+  "stats": {
+    "baseline": {
+      "declarations": 4273,
+      "printed": 2494,
+      "source_sha256": "0d13f8470a534c6a2af2d81b9bfbf2a5a93cfad9e39e18c49e0c65ab02636dec"
+    },
+    "candidate": {
+      "declarations": 4273,
+      "printed": 2494,
+      "source_sha256": "776bc8f9e08efa63dbb767726506de988240791e847043d5fe6322c572ab97d8"
+    }
+  },
+  "differences": [],
+  "prover_sha256": "9a2a4eacf47b44c6ec582bc2b9f9cde9de11af77164e0637103fca9865efd5ac",
+  "installed_library_objects": 747,
+  "installed_library_unchanged": true,
+  "canonical_inputs_identical": true,
+  "comparison_compile_flags": [],
+  "query_flags": [
+    "-w",
+    "+default,-abstract-large-number",
+    "-set",
+    "Default Goal Selector=!",
+    "-disallow-sprop"
+  ],
+  "scope": "Canonical types module only; no main, closure, size, hosted plugin or production verdict"
+}

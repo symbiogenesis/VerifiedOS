@@ -1,0 +1,31 @@
+import os,pathlib,shutil,json,hashlib,subprocess,time,sys
+R=pathlib.Path('/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/checklist-20261023-a')
+L=pathlib.Path('/root/build/lane-checklist-20261023-a'); L.mkdir(exist_ok=True)
+T=pathlib.Path('/tmp/vos-q35o-967eb3eb0a354cf0b7e48db8db978501'); os.chdir(T)
+P=pathlib.Path('/root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1')
+SRC=pathlib.Path('/root/build/coq-sail-eqdep-20261019-afda48ab/candidate'); SUP=L/'support'
+records=[]
+def sha(p): return hashlib.sha256(p.read_bytes()).hexdigest()
+def run(label,args):
+    t=time.monotonic(); d=subprocess.run(list(map(str,args)),cwd=T,capture_output=True)
+    out=L/(label+'.stdout'); err=L/(label+'.stderr'); out.write_bytes(d.stdout); err.write_bytes(d.stderr)
+    records.append(dict(label=label,argv=list(map(str,args)),cwd=str(T),exit=d.returncode,elapsed_seconds=time.monotonic()-t,stdout=str(out),stderr=str(err),stdout_sha256=sha(out),stderr_sha256=sha(err)))
+    (L/'types-support-receipt.json').write_text(json.dumps(records,indent=2)+'\n')
+    print(label,d.returncode,d.stderr.decode(errors='replace')[-1400:],flush=True)
+    assert d.returncode==0
+    return d
+sentinels=['lib/coq/theories/Numbers/BinNums.vo','lib/coq/theories/Numbers/BinNums.glob','lib/coq/user-contrib/Stdlib/Numbers/BinNums.vo','lib/coq/user-contrib/Stdlib/Numbers/BinNums.glob','lib/coq/user-contrib/Stdlib/Logic/EqdepFacts.vo','lib/coq/user-contrib/Stdlib/Logic/EqdepFacts.glob']
+immutable={s:sha(P/s) for s in sentinels}; (L/'installed-before.json').write_text(json.dumps(immutable,indent=2)+'\n')
+BASE=['-boot','-R',str(P/'lib/coq/theories'),'Corelib','-Q',str(P/'lib/coq/user-contrib/Stdlib'),'Stdlib','-Q',str(L/'stdpp'),'stdpp','-R',str(SUP/'src-stdpp'),'SailStdpp']
+STRICT=['-w','+default,-abstract-large-number','-set','Default Goal Selector=!','-disallow-sprop']
+selected={str(SUP/'src-stdpp'/f'{x}.v') for x in json.loads((R/'tools/opam/sail-support-qualification.json').read_text())['support_modules']}
+order=run('types-order',[P/'bin/rocq','dep','-sort',*BASE,SUP/'src-stdpp/ConcurrencyInterfaceBuiltins.v']).stdout.decode().split()
+order=[s for s in order if s in selected]; assert order and len(order)==len(set(order)) and str(SUP/'src-stdpp/ConcurrencyInterfaceBuiltins.v') in order
+for i,s in enumerate(order):
+    assert pathlib.Path(s).resolve().is_relative_to(SUP.resolve())
+    if pathlib.Path(s).with_suffix('.vo').is_file(): continue
+    d=run(f'support-types-{i:02d}',[P/'bin/rocq','c','-q',*BASE,*STRICT,s]); assert not d.stdout and not d.stderr
+    assert immutable=={s:sha(P/s) for s in sentinels}
+(L/'installed-after.json').write_text(json.dumps({s:sha(P/s) for s in sentinels},indent=2)+'\n')
+(L/'dependency-identities.json').write_text(json.dumps({str(p.relative_to(L)):dict(bytes=p.stat().st_size,sha256=sha(p)) for root in [L/'stdpp',SUP] for p in root.rglob('*') if p.is_file() and p.suffix in ['.vo','.v']},indent=2)+'\n')
+(L/'types-support-summary.json').write_text(json.dumps(dict(base_revision='a5e4ba0e3e2ab477cdde2ae8a59dd47b82a9da90',support_sources_exact=True,strict_base_closure=order,installed_sentinels_unchanged=True,patch_sha256=sha(R/'docs/implementation/retained-evidence/q35n-20261013/sail-support-strict.patch'),prover_sha256=sha(P/'bin/rocq'),gate_ran=False),indent=2)+'\n')

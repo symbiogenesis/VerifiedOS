@@ -1,0 +1,9 @@
+Current search blacklist :  is empty.
+riscv_extras.sys_enable_experimental_extensions: forall _ : unit, bool
+riscv_extras.get_time_ns: forall _ : unit, BinNums.Z
+riscv_extras.print_string: forall (_ : String.string) (_ : String.string), unit
+riscv_extras.shift_bits_right_arith: forall {a b : BinNums.Z} (_ : Values.mword a) (_ : Values.mword b), Values.mword a
+riscv_extras.shift_bits_left: forall {a b : BinNums.Z} (_ : Values.mword a) (_ : Values.mword b), Values.mword a
+riscv_extras.shift_bits_right: forall {a b : BinNums.Z} (_ : Values.mword a) (_ : Values.mword b), Values.mword a
+riscv_extras.mult_vec: forall {n : BinNums.Z} (_ : Values.mword n) (_ : Values.mword n), Values.mword (BinInt.Z.mul (BinNums.Zpos (BinNums.xO BinNums.xH)) n)
+riscv_extras.mults_vec: forall {n : BinNums.Z} (_ : Values.mword n) (_ : Values.mword n), Values.mword (BinInt.Z.mul (BinNums.Zpos (BinNums.xO BinNums.xH)) n)

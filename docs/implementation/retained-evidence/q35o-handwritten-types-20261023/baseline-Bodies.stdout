@@ -1,0 +1,36 @@
+VOS_PROOF_READING|riscv_extras.get_time_ns|print
+riscv_extras.get_time_ns = fun _ : unit => BinNums.Z0
+     : forall _ : unit, BinNums.Z
+VOS_PROOF_READING|riscv_extras.mult_vec|print
+riscv_extras.mult_vec = fun (n : BinNums.Z) (l r : Values.mword n) => @Operators_mwords.mult_vec n (BinInt.Z.mul (BinNums.Zpos (BinNums.xO BinNums.xH)) n) l r
+     : forall {n : BinNums.Z} (_ : Values.mword n) (_ : Values.mword n), Values.mword (BinInt.Z.mul (BinNums.Zpos (BinNums.xO BinNums.xH)) n)
+
+Arguments riscv_extras.mult_vec {n}%_Z_scope l r
+VOS_PROOF_READING|riscv_extras.mults_vec|print
+riscv_extras.mults_vec = fun (n : BinNums.Z) (l r : Values.mword n) => @Operators_mwords.mults_vec n (BinInt.Z.mul (BinNums.Zpos (BinNums.xO BinNums.xH)) n) l r
+     : forall {n : BinNums.Z} (_ : Values.mword n) (_ : Values.mword n), Values.mword (BinInt.Z.mul (BinNums.Zpos (BinNums.xO BinNums.xH)) n)
+
+Arguments riscv_extras.mults_vec {n}%_Z_scope l r
+VOS_PROOF_READING|riscv_extras.print_string|print
+riscv_extras.print_string = fun _ _ : String.string => tt
+     : forall (_ : String.string) (_ : String.string), unit
+
+Arguments riscv_extras.print_string (_ _)%_string_scope
+VOS_PROOF_READING|riscv_extras.shift_bits_left|print
+riscv_extras.shift_bits_left = fun (a b : BinNums.Z) (v : Values.mword a) (n : Values.mword b) => @Operators_mwords.shiftl a v (@Values.int_of_mword b false n)
+     : forall {a b : BinNums.Z} (_ : Values.mword a) (_ : Values.mword b), Values.mword a
+
+Arguments riscv_extras.shift_bits_left {a b}%_Z_scope v n
+VOS_PROOF_READING|riscv_extras.shift_bits_right|print
+riscv_extras.shift_bits_right = fun (a b : BinNums.Z) (v : Values.mword a) (n : Values.mword b) => @Operators_mwords.shiftr a v (@Values.int_of_mword b false n)
+     : forall {a b : BinNums.Z} (_ : Values.mword a) (_ : Values.mword b), Values.mword a
+
+Arguments riscv_extras.shift_bits_right {a b}%_Z_scope v n
+VOS_PROOF_READING|riscv_extras.shift_bits_right_arith|print
+riscv_extras.shift_bits_right_arith = fun (a b : BinNums.Z) (v : Values.mword a) (n : Values.mword b) => @Operators_mwords.arith_shiftr a v (@Values.int_of_mword b false n)
+     : forall {a b : BinNums.Z} (_ : Values.mword a) (_ : Values.mword b), Values.mword a
+
+Arguments riscv_extras.shift_bits_right_arith {a b}%_Z_scope v n
+VOS_PROOF_READING|riscv_extras.sys_enable_experimental_extensions|print
+riscv_extras.sys_enable_experimental_extensions = fun _ : unit => false
+     : forall _ : unit, bool

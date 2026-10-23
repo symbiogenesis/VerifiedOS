@@ -1,0 +1,29 @@
+{
+  "base_revision": "a5e4ba0e3e2ab477cdde2ae8a59dd47b82a9da90",
+  "support_sources_exact": true,
+  "strict_base_closure": [
+    "/root/build/lane-checklist-20261023-a/support/src-stdpp/Inhabited.v",
+    "/root/build/lane-checklist-20261023-a/support/src-stdpp/TypeCasts.v",
+    "/root/build/lane-checklist-20261023-a/support/src-stdpp/Instr_kinds.v",
+    "/root/build/lane-checklist-20261023-a/support/src-stdpp/MachineWordInterface.v",
+    "/root/build/lane-checklist-20261023-a/support/src-stdpp/MachineWord.v",
+    "/root/build/lane-checklist-20261023-a/support/src-stdpp/Values.v",
+    "/root/build/lane-checklist-20261023-a/support/src-stdpp/Instances.v",
+    "/root/build/lane-checklist-20261023-a/support/src-stdpp/String.v",
+    "/root/build/lane-checklist-20261023-a/support/src-stdpp/Prompt_monad.v",
+    "/root/build/lane-checklist-20261023-a/support/src-stdpp/Prompt.v",
+    "/root/build/lane-checklist-20261023-a/support/src-stdpp/Operators_mwords.v",
+    "/root/build/lane-checklist-20261023-a/support/src-stdpp/State_monad.v",
+    "/root/build/lane-checklist-20261023-a/support/src-stdpp/State.v",
+    "/root/build/lane-checklist-20261023-a/support/src-stdpp/Undefined.v",
+    "/root/build/lane-checklist-20261023-a/support/src-stdpp/Base.v",
+    "/root/build/lane-checklist-20261023-a/support/src-stdpp/GenericValue.v",
+    "/root/build/lane-checklist-20261023-a/support/src-stdpp/ConcurrencyInterfaceTypes.v",
+    "/root/build/lane-checklist-20261023-a/support/src-stdpp/ConcurrencyInterface.v",
+    "/root/build/lane-checklist-20261023-a/support/src-stdpp/ConcurrencyInterfaceBuiltins.v"
+  ],
+  "installed_sentinels_unchanged": true,
+  "patch_sha256": "cee3710ee8b21c439885190e30cf0618fe68fb3a4071dd9991c2f5db37122477",
+  "prover_sha256": "9a2a4eacf47b44c6ec582bc2b9f9cde9de11af77164e0637103fca9865efd5ac",
+  "gate_ran": false
+}

@@ -1,0 +1,66 @@
+{
+  "riscv_extras.get_time_ns": {
+    "about": "riscv_extras.get_time_ns : forall _ : unit, BinNums.Z\n\nriscv_extras.get_time_ns is not universe polymorphic\nriscv_extras.get_time_ns is transparent\nExpands to: Constant riscv_extras.get_time_ns",
+    "check": "riscv_extras.get_time_ns\n     : forall _ : unit, BinNums.Z",
+    "kind": "Constant",
+    "opacity": "transparent",
+    "print": "riscv_extras.get_time_ns = fun _ : unit => BinNums.Z0\n     : forall _ : unit, BinNums.Z",
+    "universes": "monomorphic"
+  },
+  "riscv_extras.mult_vec": {
+    "about": "riscv_extras.mult_vec : forall {n : BinNums.Z} (_ : Values.mword n) (_ : Values.mword n), Values.mword (BinInt.Z.mul (BinNums.Zpos (BinNums.xO BinNums.xH)) n)\n\nriscv_extras.mult_vec is not universe polymorphic\nArguments riscv_extras.mult_vec {n}%_Z_scope l r\nriscv_extras.mult_vec is transparent\nExpands to: Constant riscv_extras.mult_vec",
+    "check": "@riscv_extras.mult_vec\n     : forall (n : BinNums.Z) (_ : Values.mword n) (_ : Values.mword n), Values.mword (BinInt.Z.mul (BinNums.Zpos (BinNums.xO BinNums.xH)) n)",
+    "kind": "Constant",
+    "opacity": "transparent",
+    "print": "riscv_extras.mult_vec = fun (n : BinNums.Z) (l r : Values.mword n) => @Operators_mwords.mult_vec n (BinInt.Z.mul (BinNums.Zpos (BinNums.xO BinNums.xH)) n) l r\n     : forall {n : BinNums.Z} (_ : Values.mword n) (_ : Values.mword n), Values.mword (BinInt.Z.mul (BinNums.Zpos (BinNums.xO BinNums.xH)) n)\n\nArguments riscv_extras.mult_vec {n}%_Z_scope l r",
+    "universes": "monomorphic"
+  },
+  "riscv_extras.mults_vec": {
+    "about": "riscv_extras.mults_vec : forall {n : BinNums.Z} (_ : Values.mword n) (_ : Values.mword n), Values.mword (BinInt.Z.mul (BinNums.Zpos (BinNums.xO BinNums.xH)) n)\n\nriscv_extras.mults_vec is not universe polymorphic\nArguments riscv_extras.mults_vec {n}%_Z_scope l r\nriscv_extras.mults_vec is transparent\nExpands to: Constant riscv_extras.mults_vec",
+    "check": "@riscv_extras.mults_vec\n     : forall (n : BinNums.Z) (_ : Values.mword n) (_ : Values.mword n), Values.mword (BinInt.Z.mul (BinNums.Zpos (BinNums.xO BinNums.xH)) n)",
+    "kind": "Constant",
+    "opacity": "transparent",
+    "print": "riscv_extras.mults_vec = fun (n : BinNums.Z) (l r : Values.mword n) => @Operators_mwords.mults_vec n (BinInt.Z.mul (BinNums.Zpos (BinNums.xO BinNums.xH)) n) l r\n     : forall {n : BinNums.Z} (_ : Values.mword n) (_ : Values.mword n), Values.mword (BinInt.Z.mul (BinNums.Zpos (BinNums.xO BinNums.xH)) n)\n\nArguments riscv_extras.mults_vec {n}%_Z_scope l r",
+    "universes": "monomorphic"
+  },
+  "riscv_extras.print_string": {
+    "about": "riscv_extras.print_string : forall (_ : String.string) (_ : String.string), unit\n\nriscv_extras.print_string is not universe polymorphic\nArguments riscv_extras.print_string (_ _)%_string_scope\nriscv_extras.print_string is transparent\nExpands to: Constant riscv_extras.print_string",
+    "check": "riscv_extras.print_string\n     : forall (_ : String.string) (_ : String.string), unit",
+    "kind": "Constant",
+    "opacity": "transparent",
+    "print": "riscv_extras.print_string = fun _ _ : String.string => tt\n     : forall (_ : String.string) (_ : String.string), unit\n\nArguments riscv_extras.print_string (_ _)%_string_scope",
+    "universes": "monomorphic"
+  },
+  "riscv_extras.shift_bits_left": {
+    "about": "riscv_extras.shift_bits_left : forall {a b : BinNums.Z} (_ : Values.mword a) (_ : Values.mword b), Values.mword a\n\nriscv_extras.shift_bits_left is not universe polymorphic\nArguments riscv_extras.shift_bits_left {a b}%_Z_scope v n\nriscv_extras.shift_bits_left is transparent\nExpands to: Constant riscv_extras.shift_bits_left",
+    "check": "@riscv_extras.shift_bits_left\n     : forall (a b : BinNums.Z) (_ : Values.mword a) (_ : Values.mword b), Values.mword a",
+    "kind": "Constant",
+    "opacity": "transparent",
+    "print": "riscv_extras.shift_bits_left = fun (a b : BinNums.Z) (v : Values.mword a) (n : Values.mword b) => @Operators_mwords.shiftl a v (@Values.int_of_mword b false n)\n     : forall {a b : BinNums.Z} (_ : Values.mword a) (_ : Values.mword b), Values.mword a\n\nArguments riscv_extras.shift_bits_left {a b}%_Z_scope v n",
+    "universes": "monomorphic"
+  },
+  "riscv_extras.shift_bits_right": {
+    "about": "riscv_extras.shift_bits_right : forall {a b : BinNums.Z} (_ : Values.mword a) (_ : Values.mword b), Values.mword a\n\nriscv_extras.shift_bits_right is not universe polymorphic\nArguments riscv_extras.shift_bits_right {a b}%_Z_scope v n\nriscv_extras.shift_bits_right is transparent\nExpands to: Constant riscv_extras.shift_bits_right",
+    "check": "@riscv_extras.shift_bits_right\n     : forall (a b : BinNums.Z) (_ : Values.mword a) (_ : Values.mword b), Values.mword a",
+    "kind": "Constant",
+    "opacity": "transparent",
+    "print": "riscv_extras.shift_bits_right = fun (a b : BinNums.Z) (v : Values.mword a) (n : Values.mword b) => @Operators_mwords.shiftr a v (@Values.int_of_mword b false n)\n     : forall {a b : BinNums.Z} (_ : Values.mword a) (_ : Values.mword b), Values.mword a\n\nArguments riscv_extras.shift_bits_right {a b}%_Z_scope v n",
+    "universes": "monomorphic"
+  },
+  "riscv_extras.shift_bits_right_arith": {
+    "about": "riscv_extras.shift_bits_right_arith : forall {a b : BinNums.Z} (_ : Values.mword a) (_ : Values.mword b), Values.mword a\n\nriscv_extras.shift_bits_right_arith is not universe polymorphic\nArguments riscv_extras.shift_bits_right_arith {a b}%_Z_scope v n\nriscv_extras.shift_bits_right_arith is transparent\nExpands to: Constant riscv_extras.shift_bits_right_arith",
+    "check": "@riscv_extras.shift_bits_right_arith\n     : forall (a b : BinNums.Z) (_ : Values.mword a) (_ : Values.mword b), Values.mword a",
+    "kind": "Constant",
+    "opacity": "transparent",
+    "print": "riscv_extras.shift_bits_right_arith = fun (a b : BinNums.Z) (v : Values.mword a) (n : Values.mword b) => @Operators_mwords.arith_shiftr a v (@Values.int_of_mword b false n)\n     : forall {a b : BinNums.Z} (_ : Values.mword a) (_ : Values.mword b), Values.mword a\n\nArguments riscv_extras.shift_bits_right_arith {a b}%_Z_scope v n",
+    "universes": "monomorphic"
+  },
+  "riscv_extras.sys_enable_experimental_extensions": {
+    "about": "riscv_extras.sys_enable_experimental_extensions : forall _ : unit, bool\n\nriscv_extras.sys_enable_experimental_extensions is not universe polymorphic\nriscv_extras.sys_enable_experimental_extensions is transparent\nExpands to: Constant riscv_extras.sys_enable_experimental_extensions",
+    "check": "riscv_extras.sys_enable_experimental_extensions\n     : forall _ : unit, bool",
+    "kind": "Constant",
+    "opacity": "transparent",
+    "print": "riscv_extras.sys_enable_experimental_extensions = fun _ : unit => false\n     : forall _ : unit, bool",
+    "universes": "monomorphic"
+  }
+}
