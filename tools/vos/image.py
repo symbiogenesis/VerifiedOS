@@ -24,6 +24,7 @@ replacement contract.
 
 import struct
 from dataclasses import dataclass, field
+from math import gcd
 from pathlib import Path
 
 EM_RISCV = 243
@@ -117,9 +118,8 @@ def write_elf(path: Path, sections: list[Section], symbols: dict[str, tuple[str,
     blobs: list[tuple[int, bytes]] = []
     sh_offsets: list[int] = []
     for section in sections:
-        # Segment file offset and address agree modulo the page size for any
-        # loader that maps rather than copies; this one copies, and matching
-        # them anyway costs padding and buys an image other tools will load.
+        # Keep file offsets sixteen-byte aligned. The headers below declare
+        # only the alignment the section's absolute address also satisfies.
         offset = _align_up(offset, 16)
         sh_offsets.append(offset)
         blobs.append((offset, bytes(section.data)))
@@ -149,7 +149,7 @@ def write_elf(path: Path, sections: list[Section], symbols: dict[str, tuple[str,
     for section, file_offset in zip(sections, sh_offsets, strict=True):
         out += struct.pack("<IIQQQQQQ", PT_LOAD, section.p_flags, file_offset,
                            section.addr, section.addr,
-                           len(section.data), len(section.data), 16)
+                           len(section.data), len(section.data), gcd(section.addr, 16))
 
     for at, blob in blobs:
         out += b"\0" * (at - len(out))
@@ -160,7 +160,7 @@ def write_elf(path: Path, sections: list[Section], symbols: dict[str, tuple[str,
     for i, (section, file_offset) in enumerate(zip(sections, sh_offsets, strict=True)):
         out += struct.pack("<IIQQQQIIQQ", sh_names[i + 1], SHT_PROGBITS,
                            section.flags, section.addr, file_offset,
-                           len(section.data), 0, 0, 16, 0)
+                           len(section.data), 0, 0, gcd(section.addr, 16), 0)
     symtab_off, symtab_blob = tables[0]
     strtab_off, strtab_blob = tables[1]
     shstrtab_off, shstrtab_blob = tables[2]

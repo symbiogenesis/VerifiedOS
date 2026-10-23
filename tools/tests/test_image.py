@@ -65,6 +65,43 @@ def _header_arithmetic() -> None:
     ensure(e_shstrndx == 2 + 3, f"e_shstrndx is {e_shstrndx}, expected sections + 3")
 
 
+def _section_base_alignment() -> None:
+    # Composition may place instruction streams on any four-byte boundary and
+    # read-only data on byte boundaries. Headers must describe that placement
+    # truthfully even when the addresses are not multiples of sixteen.
+    with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
+        path = Path(td) / "f.elf"
+        for text_base, data_base in ((0x80000004, 0x80008003),
+                                     (0x80000008, 0x80008006),
+                                     (0x8000000c, 0x8000800a),
+                                     (0, 0x1003)):
+            sections = [image.Section(".text", text_base, bytearray(b"code"), executable=True),
+                        image.Section(".rodata", data_base, bytearray(b"data"))]
+            image.write_elf(path, sections, {}, text_base)
+            blob = path.read_bytes()
+            header = struct.unpack_from("<16sHHIQQQIHHHHHH", blob)
+            for index, section in enumerate(sections):
+                segment = struct.unpack_from("<IIQQQQQQ", blob,
+                                             header[5] + index * image.PHDR_SIZE)
+                offset, virtual, physical, size, alignment = (*segment[2:6], segment[7])
+                ensure(offset > 0 and alignment > 0 and alignment & (alignment - 1) == 0,
+                       "a segment must have a nonzero file offset and power-of-two alignment")
+                ensure(offset % alignment == virtual % alignment == physical % alignment,
+                       f"{section.name} file offset and load addresses disagree modulo p_align")
+                ensure(blob[offset:offset + size] == section.data,
+                       "segment alignment must preserve the bytes at their declared file offset")
+                section_header = struct.unpack_from("<IIQQQQIIQQ", blob,
+                                                    header[6] + (index + 1) * image.SHDR_SIZE)
+                section_alignment = section_header[8]
+                ensure(section_alignment > 0
+                       and section_header[3] % section_alignment == 0
+                       and section_header[4] % section_alignment == 0,
+                       f"{section.name} address and file offset must satisfy sh_addralign")
+            loaded = image.read_only_section(blob, ".rodata")
+            ensure(loaded.addr == data_base and loaded.data == b"data",
+                   "the physical loader must see the requested read-only bytes")
+
+
 def _symbol_in_no_section() -> None:
     with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
         text = image.Section(".text", 0x80000000, bytearray(b"\x13\x00\x00\x00"),
@@ -144,6 +181,7 @@ def cases() -> list[Case]:
     return [
         Case("golden-elf", _golden_elf),
         Case("header-arithmetic", _header_arithmetic),
+        Case("section-base-alignment", _section_base_alignment),
         Case("symbol-in-no-section", _symbol_in_no_section),
         Case("symbol-only-section-kept", _symbol_only_section_kept),
         Case("ambiguous-section-names-refused", _ambiguous_section_names_refused),
