@@ -307,18 +307,19 @@ def member_refusal(name: str) -> str | None:
 
 
 def collisions(names: Sequence[str]) -> list[str]:
-    """Members that would land on one another: two names equal but for case, which one
-    file holds on a case-insensitive filesystem, and a name that is another's directory."""
+    """Members landing on one another after extraction normalizes path separators and
+    dot components, including case aliases and a file that is another's directory."""
     found: list[str] = []
     seen: dict[str, str] = {}
-    for name in names:
-        folded = name.casefold()
+    paths = [(name, PurePosixPath(name.replace("\\", "/")).as_posix().casefold())
+             for name in names]
+    for name, folded in paths:
         if folded in seen:
             found.append(f"members {seen[folded]!r} and {name!r} name one file")
         else:
             seen[folded] = name
-    for name in names:
-        parts = PurePosixPath(name.casefold()).parts
+    for name, folded in paths:
+        parts = PurePosixPath(folded).parts
         for depth in range(1, len(parts)):
             prefix = "/".join(parts[:depth])
             if prefix in seen:

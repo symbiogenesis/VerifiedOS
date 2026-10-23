@@ -246,7 +246,13 @@ def _extraction_refuses_and_bounds() -> None:
                    f"an archive is refused whole ({fragment!r}): {found!r}")
         for members, fragment in (
                 ((_member("a.log", b"x"), _member("a.log/b.log", b"y")), "is the directory of"),
-                ((_member("A.log", b"x"), _member("a.log", b"y")), "name one file")):
+                ((_member("A.log", b"x"), _member("a.log", b"y")), "name one file"),
+                ((_member("logs/check.log", b"x"), _member("logs/./check.log", b"y")),
+                 "name one file"),
+                ((_member("logs/check.log", b"x"), _member("logs//check.log", b"y")),
+                 "name one file"),
+                ((_member("./a.log", b"x"), _member("a.log/b.log", b"y")),
+                 "is the directory of")):
             fresh = Path(scratch) / f"collide-{fragment.replace(' ', '-')}"
             found = reader.extract(_zip(*members), fresh)
             ensure(any(fragment in item for item in found) and not fresh.exists(),
@@ -268,7 +274,8 @@ def _extraction_refuses_and_bounds() -> None:
         ensure(reader.extract(b"not a zip", Path(scratch) / "z") == [
             "the artifact is not a zip archive"], "a non-archive is refused")
     ensure(reader.member_refusal("a/b.log") is None
-           and reader.member_refusal("..\\x.log") is not None,
+           and reader.member_refusal("..\\x.log") is not None
+           and bool(reader.collisions(["logs/check.log", "logs\\check.log"])),
            "a backslash path is read as the separator it names")
 
 
