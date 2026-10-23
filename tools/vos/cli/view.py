@@ -123,14 +123,17 @@ def weave(corpus: Corpus) -> tuple[list[str], int, list[str]]:
 
 
 def _output_path(root: Path, name: str | None) -> Path:
-    """Keep derived output outside the checkout's source and indexed files."""
+    """Keep derived output outside source files, including in nested checkouts."""
     base = root.resolve()
     requested = Path(name) if bool(name) else Path("out/spec-woven.md")
     path = (requested if requested.is_absolute() else base / requested).resolve()
-    if path.is_relative_to(base):
-        relative = path.relative_to(base).as_posix()
-        result = subprocess.run(["git", "-C", str(base), "check-ignore", "--quiet", "--", relative],
-                                cwd=base, env=corpus_mod._git_environment(base),
+    owners = [parent for parent in path.parents if (parent / ".git").exists()]
+    if path.is_relative_to(base) and base not in owners:
+        owners.append(base)
+    for owner in owners:
+        relative = path.relative_to(owner).as_posix()
+        result = subprocess.run(["git", "-C", str(owner), "check-ignore", "--quiet", "--", relative],
+                                cwd=owner, env=corpus_mod._git_environment(owner),
                                 capture_output=True, text=True, check=False, timeout=30)
         if result.returncode == 1:
             raise ValueError(f"output inside the repository must be ignored and untracked: {relative}")
