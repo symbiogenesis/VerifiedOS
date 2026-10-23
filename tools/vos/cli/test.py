@@ -13,7 +13,9 @@ Concurrent modules run in separate processes so environment overrides, patched
 modules and redirected streams cannot interfere with each other. Workers may be
 reused for later modules; tests still restore their temporary state. Cases inside
 a module run in order, and reports merge in sorted-module order regardless of
-scheduling. Discovering no modules is a failure: an empty suite decides nothing.
+scheduling. Discovering no modules or loading a module declaring no cases is a
+failure: an empty suite decides nothing. Lane, slow and shard selection may still
+leave a nonempty module with no cases to run in this invocation.
 Under the gate's `--summary`, each module's case count and seconds go to the file
 [vos/timings.py](../timings.py) names, never into the printed report.
 
@@ -127,6 +129,8 @@ def _load(name: str, split: bool | None = None) -> list[Case] | str:
     # this runner's to check, and a module returning the wrong thing is a finding.
     if not isinstance(found, list):
         return f"cases() returned {type(found).__name__}, not a list"
+    if not found:
+        return "cases() returned an empty list"
     narrowed: list[Case] = []
     for item in found:
         if not isinstance(item, Case):

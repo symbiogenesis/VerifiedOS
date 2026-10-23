@@ -112,7 +112,7 @@ def _admit(args: argparse.Namespace) -> int:
     print(f"verdict: {'admitted' if not refused else 'refused by ' + ', '.join(refused)}"
           f"; this is the Python port and not the proof, which stays with "
           f"{memplan.SOURCE}")
-    return 0
+    return 1 if refused else 0
 
 
 def _bases(plan: memplan.Plan, regions: tuple[int, ...]) -> str:
