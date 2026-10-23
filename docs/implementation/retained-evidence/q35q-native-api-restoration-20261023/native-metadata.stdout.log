@@ -1,0 +1,508 @@
+ROOT SailStdpp.MachineWordInterface
+STRUCTURE root SailStdpp.MachineWordInterface fields=1
+STRUCTURE root/signature SailStdpp.MachineWordInterface.MachineWordInterface fields=62
+CONSTANT root/signature SailStdpp.MachineWordInterface.MachineWordInterface.idx : Type(SailStdpp.MachineWordInterface.21)
+CONSTANT root/signature SailStdpp.MachineWordInterface.MachineWordInterface.Z_idx : (Ind(Corelib.Numbers.BinNums.Z,0) ->
+Cst((SailStdpp.MachineWordInterface.MachineWordInterface.idx)))
+CONSTANT root/signature SailStdpp.MachineWordInterface.MachineWordInterface.N_idx : (Ind(Corelib.Numbers.BinNums.N,0) ->
+Cst((SailStdpp.MachineWordInterface.MachineWordInterface.idx)))
+CONSTANT root/signature SailStdpp.MachineWordInterface.MachineWordInterface.nat_idx : (Ind(Corelib.Init.Datatypes.nat,0) ->
+Cst((SailStdpp.MachineWordInterface.MachineWordInterface.idx)))
+CONSTANT root/signature SailStdpp.MachineWordInterface.MachineWordInterface.idx_Z : (Cst((SailStdpp.MachineWordInterface.MachineWordInterface.idx)) ->
+Ind(Corelib.Numbers.BinNums.Z,0))
+CONSTANT root/signature SailStdpp.MachineWordInterface.MachineWordInterface.idx_N : (Cst((SailStdpp.MachineWordInterface.MachineWordInterface.idx)) ->
+Ind(Corelib.Numbers.BinNums.N,0))
+CONSTANT root/signature SailStdpp.MachineWordInterface.MachineWordInterface.idx_nat : (Cst((SailStdpp.MachineWordInterface.MachineWordInterface.idx)) ->
+Ind(Corelib.Init.Datatypes.nat,0))
+CONSTANT root/signature SailStdpp.MachineWordInterface.MachineWordInterface.Z_idx_Z : forall n:Cst((SailStdpp.MachineWordInterface.MachineWordInterface.idx)),
+ (Ind(Corelib.Init.Logic.eq,0)
+  Cst((SailStdpp.MachineWordInterface.MachineWordInterface.idx)) #1
+  (Cst((SailStdpp.MachineWordInterface.MachineWordInterface.Z_idx))
+   (Cst((SailStdpp.MachineWordInterface.MachineWordInterface.idx_Z)) #1)))
+CONSTANT root/signature SailStdpp.MachineWordInterface.MachineWordInterface.idx_Z_idx : forall z:Ind(Corelib.Numbers.BinNums.Z,0),
+ ((Cst((Stdlib.ZArith.BinInt.Z.ge,Corelib.BinNums.IntDef.Z.ge)) #1
+   Constr(Corelib.Numbers.BinNums.Z,0,1)) ->
+ (Ind(Corelib.Init.Logic.eq,0) Ind(Corelib.Numbers.BinNums.Z,0)
+  (Cst((SailStdpp.MachineWordInterface.MachineWordInterface.idx_Z))
+   (Cst((SailStdpp.MachineWordInterface.MachineWordInterface.Z_idx)) #2))
+  #2))
+CONSTANT root/signature SailStdpp.MachineWordInterface.MachineWordInterface.nat_idx_Z : forall n:Ind(Corelib.Init.Datatypes.nat,0),
+ (Ind(Corelib.Init.Logic.eq,0)
+  Cst((SailStdpp.MachineWordInterface.MachineWordInterface.idx))
+  (Cst((SailStdpp.MachineWordInterface.MachineWordInterface.nat_idx)) #1)
+  (Cst((SailStdpp.MachineWordInterface.MachineWordInterface.Z_idx))
+   (Cst((Stdlib.ZArith.BinInt.Z.of_nat,Corelib.BinNums.IntDef.Z.of_nat)) #1)))
+CONSTANT root/signature SailStdpp.MachineWordInterface.MachineWordInterface.idx_N_Z_idx : forall z:Ind(Corelib.Numbers.BinNums.Z,0),
+ (Ind(Corelib.Init.Logic.eq,0) Ind(Corelib.Numbers.BinNums.N,0)
+  (Cst((SailStdpp.MachineWordInterface.MachineWordInterface.idx_N))
+   (Cst((SailStdpp.MachineWordInterface.MachineWordInterface.Z_idx)) #1))
+  (Cst((Stdlib.ZArith.BinInt.Z.to_N,Stdlib.ZArith.BinIntDef.Z.to_N)) #1))
+CONSTANT root/signature SailStdpp.MachineWordInterface.MachineWordInterface.cast_idx : forall T:(Cst((SailStdpp.MachineWordInterface.MachineWordInterface.idx)) ->
+         Type(SailStdpp.MachineWordInterface.31)),
+ forall m:Cst((SailStdpp.MachineWordInterface.MachineWordInterface.idx)),
+  forall n:Cst((SailStdpp.MachineWordInterface.MachineWordInterface.idx)),
+   ((#3 #2) ->
+   ((Ind(Corelib.Init.Logic.eq,0)
+     Cst((SailStdpp.MachineWordInterface.MachineWordInterface.idx)) #3 #2) ->
+   (#5 #3)))
+CONSTANT root/signature SailStdpp.MachineWordInterface.MachineWordInterface.cast_idx_refl : forall n:Cst((SailStdpp.MachineWordInterface.MachineWordInterface.idx)),
+ forall T:forall x:Cst((SailStdpp.MachineWordInterface.MachineWordInterface.idx)),
+           Type(SailStdpp.MachineWordInterface.38),
+  forall x:(#1 #2),
+   forall e:(Ind(Corelib.Init.Logic.eq,0)
+             Cst((SailStdpp.MachineWordInterface.MachineWordInterface.idx))
+             #3 #3),
+    (Ind(Corelib.Init.Logic.eq,0) (#3 #4)
+     (Cst((SailStdpp.MachineWordInterface.MachineWordInterface.cast_idx)) #3
+      #4 #4 #2 #1)
+     #2)
+CONSTANT root/signature SailStdpp.MachineWordInterface.MachineWordInterface.idx_S : (Cst((SailStdpp.MachineWordInterface.MachineWordInterface.idx)) ->
+Cst((SailStdpp.MachineWordInterface.MachineWordInterface.idx)))
+CONSTANT root/signature SailStdpp.MachineWordInterface.MachineWordInterface.idx_add : (Cst((SailStdpp.MachineWordInterface.MachineWordInterface.idx)) ->
+(Cst((SailStdpp.MachineWordInterface.MachineWordInterface.idx)) ->
+Cst((SailStdpp.MachineWordInterface.MachineWordInterface.idx))))
+CONSTANT root/signature SailStdpp.MachineWordInterface.MachineWordInterface.idx_mul : (Cst((SailStdpp.MachineWordInterface.MachineWordInterface.idx)) ->
+(Cst((SailStdpp.MachineWordInterface.MachineWordInterface.idx)) ->
+Cst((SailStdpp.MachineWordInterface.MachineWordInterface.idx))))
+CONSTANT root/signature SailStdpp.MachineWordInterface.MachineWordInterface.Z_idx_S : forall z:Ind(Corelib.Numbers.BinNums.Z,0),
+ ((Cst((Stdlib.ZArith.BinInt.Z.ge,Corelib.BinNums.IntDef.Z.ge)) #1
+   Constr(Corelib.Numbers.BinNums.Z,0,1)) ->
+ (Ind(Corelib.Init.Logic.eq,0)
+  Cst((SailStdpp.MachineWordInterface.MachineWordInterface.idx))
+  (Cst((SailStdpp.MachineWordInterface.MachineWordInterface.Z_idx))
+   (Cst((Stdlib.ZArith.BinInt.Z.succ,Stdlib.ZArith.BinIntDef.Z.succ)) #2))
+  (Cst((SailStdpp.MachineWordInterface.MachineWordInterface.idx_S))
+   (Cst((SailStdpp.MachineWordInterface.MachineWordInterface.Z_idx)) #2))))
+CONSTANT root/signature SailStdpp.MachineWordInterface.MachineWordInterface.idx_Z_idx_mul : forall x:Cst((SailStdpp.MachineWordInterface.MachineWordInterface.idx)),
+ forall y:Cst((SailStdpp.MachineWordInterface.MachineWordInterface.idx)),
+  (Ind(Corelib.Init.Logic.eq,0) Ind(Corelib.Numbers.BinNums.Z,0)
+   (Cst((SailStdpp.MachineWordInterface.MachineWordInterface.idx_Z))
+    (Cst((SailStdpp.MachineWordInterface.MachineWordInterface.idx_mul)) #2
+     #1))
+   (Cst((Stdlib.ZArith.BinInt.Z.mul,Corelib.BinNums.IntDef.Z.mul))
+    (Cst((SailStdpp.MachineWordInterface.MachineWordInterface.idx_Z)) #2)
+    (Cst((SailStdpp.MachineWordInterface.MachineWordInterface.idx_Z)) #1)))
+CONSTANT root/signature SailStdpp.MachineWordInterface.MachineWordInterface.word : (Cst((SailStdpp.MachineWordInterface.MachineWordInterface.idx)) ->
+Type(SailStdpp.MachineWordInterface.48))
+CONSTANT root/signature SailStdpp.MachineWordInterface.MachineWordInterface.zeros : forall n:Cst((SailStdpp.MachineWordInterface.MachineWordInterface.idx)),
+ (Cst((SailStdpp.MachineWordInterface.MachineWordInterface.word)) #1)
+CONSTANT root/signature SailStdpp.MachineWordInterface.MachineWordInterface.ones : forall n:Cst((SailStdpp.MachineWordInterface.MachineWordInterface.idx)),
+ (Cst((SailStdpp.MachineWordInterface.MachineWordInterface.word)) #1)
+CONSTANT root/signature SailStdpp.MachineWordInterface.MachineWordInterface.get_bit : forall n:Cst((SailStdpp.MachineWordInterface.MachineWordInterface.idx)),
+ ((Cst((SailStdpp.MachineWordInterface.MachineWordInterface.word)) #1) ->
+ (Cst((SailStdpp.MachineWordInterface.MachineWordInterface.idx)) ->
+ Ind(Corelib.Init.Datatypes.bool,0)))
+CONSTANT root/signature SailStdpp.MachineWordInterface.MachineWordInterface.set_bit : forall n:Cst((SailStdpp.MachineWordInterface.MachineWordInterface.idx)),
+ ((Cst((SailStdpp.MachineWordInterface.MachineWordInterface.word)) #1) ->
+ (Cst((SailStdpp.MachineWordInterface.MachineWordInterface.idx)) ->
+ (Ind(Corelib.Init.Datatypes.bool,0) ->
+ (Cst((SailStdpp.MachineWordInterface.MachineWordInterface.word)) #4))))
+CONSTANT root/signature SailStdpp.MachineWordInterface.MachineWordInterface.word_0_eq : forall w:(Cst((SailStdpp.MachineWordInterface.MachineWordInterface.word))
+          (Cst((SailStdpp.MachineWordInterface.MachineWordInterface.Z_idx))
+           Constr(Corelib.Numbers.BinNums.Z,0,1))),
+ forall w':(Cst((SailStdpp.MachineWordInterface.MachineWordInterface.word))
+            (Cst((SailStdpp.MachineWordInterface.MachineWordInterface.Z_idx))
+             Constr(Corelib.Numbers.BinNums.Z,0,1))),
+  (Ind(Corelib.Init.Logic.eq,0)
+   (Cst((SailStdpp.MachineWordInterface.MachineWordInterface.word))
+    (Cst((SailStdpp.MachineWordInterface.MachineWordInterface.Z_idx))
+     Constr(Corelib.Numbers.BinNums.Z,0,1)))
+   #2 #1)
+CONSTANT root/signature SailStdpp.MachineWordInterface.MachineWordInterface.get_bit_eq_nat : forall n:Ind(Corelib.Init.Datatypes.nat,0),
+ forall w:(Cst((SailStdpp.MachineWordInterface.MachineWordInterface.word))
+           (Cst((SailStdpp.MachineWordInterface.MachineWordInterface.nat_idx))
+            #1)),
+  forall v:(Cst((SailStdpp.MachineWordInterface.MachineWordInterface.word))
+            (Cst((SailStdpp.MachineWordInterface.MachineWordInterface.nat_idx))
+             #2)),
+   (forall i:Ind(Corelib.Init.Datatypes.nat,0),
+     ((Cst((Corelib.Init.Peano.lt)) #1 #4) ->
+     (Ind(Corelib.Init.Logic.eq,0) Ind(Corelib.Init.Datatypes.bool,0)
+      (Cst((SailStdpp.MachineWordInterface.MachineWordInterface.get_bit))
+       (Cst((SailStdpp.MachineWordInterface.MachineWordInterface.nat_idx))
+        #5)
+       #4
+       (Cst((SailStdpp.MachineWordInterface.MachineWordInterface.nat_idx))
+        #2))
+      (Cst((SailStdpp.MachineWordInterface.MachineWordInterface.get_bit))
+       (Cst((SailStdpp.MachineWordInterface.MachineWordInterface.nat_idx))
+        #5)
+       #3
+       (Cst((SailStdpp.MachineWordInterface.MachineWordInterface.nat_idx))
+        #2)))) ->
+   (Ind(Corelib.Init.Logic.eq,0)
+    (Cst((SailStdpp.MachineWordInterface.MachineWordInterface.word))
+     (Cst((SailStdpp.MachineWordInterface.MachineWordInterface.nat_idx)) #4))
+    #3 #2))
+CONSTANT root/signature SailStdpp.MachineWordInterface.MachineWordInterface.word_to_bools : forall n:Cst((SailStdpp.MachineWordInterface.MachineWordInterface.idx)),
+ ((Cst((SailStdpp.MachineWordInterface.MachineWordInterface.word)) #1) ->
+ (Ind(Corelib.Init.Datatypes.list,0) Ind(Corelib.Init.Datatypes.bool,0)))
+CONSTANT root/signature SailStdpp.MachineWordInterface.MachineWordInterface.bools_to_word : forall l:(Ind(Corelib.Init.Datatypes.list,0)
+          Ind(Corelib.Init.Datatypes.bool,0)),
+ (Cst((SailStdpp.MachineWordInterface.MachineWordInterface.word))
+  (Cst((SailStdpp.MachineWordInterface.MachineWordInterface.nat_idx))
+   (Cst((Corelib.Init.Datatypes.length)) Ind(Corelib.Init.Datatypes.bool,0)
+    #1)))
+CONSTANT root/signature SailStdpp.MachineWordInterface.MachineWordInterface.word_to_Z : forall n:Cst((SailStdpp.MachineWordInterface.MachineWordInterface.idx)),
+ ((Cst((SailStdpp.MachineWordInterface.MachineWordInterface.word)) #1) ->
+ Ind(Corelib.Numbers.BinNums.Z,0))
+CONSTANT root/signature SailStdpp.MachineWordInterface.MachineWordInterface.word_to_N : forall n:Cst((SailStdpp.MachineWordInterface.MachineWordInterface.idx)),
+ ((Cst((SailStdpp.MachineWordInterface.MachineWordInterface.word)) #1) ->
+ Ind(Corelib.Numbers.BinNums.N,0))
+CONSTANT root/signature SailStdpp.MachineWordInterface.MachineWordInterface.Z_to_word : forall n:Cst((SailStdpp.MachineWordInterface.MachineWordInterface.idx)),
+ (Ind(Corelib.Numbers.BinNums.Z,0) ->
+ (Cst((SailStdpp.MachineWordInterface.MachineWordInterface.word)) #2))
+CONSTANT root/signature SailStdpp.MachineWordInterface.MachineWordInterface.N_to_word : forall n:Cst((SailStdpp.MachineWordInterface.MachineWordInterface.idx)),
+ (Ind(Corelib.Numbers.BinNums.N,0) ->
+ (Cst((SailStdpp.MachineWordInterface.MachineWordInterface.word)) #2))
+CONSTANT root/signature SailStdpp.MachineWordInterface.MachineWordInterface.word_to_N_range : forall n:Cst((SailStdpp.MachineWordInterface.MachineWordInterface.idx)),
+ forall w:(Cst((SailStdpp.MachineWordInterface.MachineWordInterface.word))
+           #1),
+  (Cst((Stdlib.NArith.BinNat.N.lt))
+   (Cst((SailStdpp.MachineWordInterface.MachineWordInterface.word_to_N)) #2
+    #1)
+   (Cst((Stdlib.NArith.BinNat.N.pow,Stdlib.NArith.BinNatDef.N.pow))
+    (Constr(Corelib.Numbers.BinNums.N,0,2)
+     (Constr(Corelib.Numbers.BinNums.positive,0,2)
+      Constr(Corelib.Numbers.BinNums.positive,0,3)))
+    (Cst((SailStdpp.MachineWordInterface.MachineWordInterface.idx_N)) #2)))
+CONSTANT root/signature SailStdpp.MachineWordInterface.MachineWordInterface.word_to_Z_range : forall n:Cst((SailStdpp.MachineWordInterface.MachineWordInterface.idx)),
+ forall w:(Cst((SailStdpp.MachineWordInterface.MachineWordInterface.word))
+           (Cst((SailStdpp.MachineWordInterface.MachineWordInterface.idx_S))
+            #1)),
+  (Ind(Corelib.Init.Logic.and,0)
+   (Cst((Stdlib.ZArith.BinInt.Z.le,Corelib.BinNums.IntDef.Z.le))
+    (Cst((Stdlib.ZArith.BinInt.Z.opp,Corelib.BinNums.IntDef.Z.opp))
+     (Cst((Stdlib.ZArith.BinInt.Z.pow,Corelib.BinNums.IntDef.Z.pow))
+      (Constr(Corelib.Numbers.BinNums.Z,0,2)
+       (Constr(Corelib.Numbers.BinNums.positive,0,2)
+        Constr(Corelib.Numbers.BinNums.positive,0,3)))
+      (Cst((SailStdpp.MachineWordInterface.MachineWordInterface.idx_Z)) #2)))
+    (Cst((SailStdpp.MachineWordInterface.MachineWordInterface.word_to_Z))
+     (Cst((SailStdpp.MachineWordInterface.MachineWordInterface.idx_S)) #2)
+     #1))
+   (Cst((Stdlib.ZArith.BinInt.Z.lt,Corelib.BinNums.IntDef.Z.lt))
+    (Cst((SailStdpp.MachineWordInterface.MachineWordInterface.word_to_Z))
+     (Cst((SailStdpp.MachineWordInterface.MachineWordInterface.idx_S)) #2)
+     #1)
+    (Cst((Stdlib.ZArith.BinInt.Z.pow,Corelib.BinNums.IntDef.Z.pow))
+     (Constr(Corelib.Numbers.BinNums.Z,0,2)
+      (Constr(Corelib.Numbers.BinNums.positive,0,2)
+       Constr(Corelib.Numbers.BinNums.positive,0,3)))
+     (Cst((SailStdpp.MachineWordInterface.MachineWordInterface.idx_Z)) #2))))
+CONSTANT root/signature SailStdpp.MachineWordInterface.MachineWordInterface.testbit_word_to_N_high : forall n:Cst((SailStdpp.MachineWordInterface.MachineWordInterface.idx)),
+ forall w:(Cst((SailStdpp.MachineWordInterface.MachineWordInterface.word))
+           #1),
+  forall i:Ind(Corelib.Numbers.BinNums.N,0),
+   ((Cst((Stdlib.NArith.BinNat.N.ge)) #1
+     (Cst((SailStdpp.MachineWordInterface.MachineWordInterface.idx_N)) #3)) ->
+   (Ind(Corelib.Init.Logic.eq,0) Ind(Corelib.Init.Datatypes.bool,0)
+    (Cst((Stdlib.NArith.BinNat.N.testbit,Stdlib.NArith.BinNatDef.N.testbit))
+     (Cst((SailStdpp.MachineWordInterface.MachineWordInterface.word_to_N)) #4
+      #3)
+     #2)
+    Constr(Corelib.Init.Datatypes.bool,0,2)))
+CONSTANT root/signature SailStdpp.MachineWordInterface.MachineWordInterface.word_to_bools_length : forall n:Cst((SailStdpp.MachineWordInterface.MachineWordInterface.idx)),
+ forall w:(Cst((SailStdpp.MachineWordInterface.MachineWordInterface.word))
+           #1),
+  (Ind(Corelib.Init.Logic.eq,0) Ind(Corelib.Init.Datatypes.nat,0)
+   (Cst((Corelib.Init.Datatypes.length)) Ind(Corelib.Init.Datatypes.bool,0)
+    (Cst((SailStdpp.MachineWordInterface.MachineWordInterface.word_to_bools))
+     #2 #1))
+   (Cst((SailStdpp.MachineWordInterface.MachineWordInterface.idx_nat)) #2))
+CONSTANT root/signature SailStdpp.MachineWordInterface.MachineWordInterface.word_to_bools_get_bit : forall n:Cst((SailStdpp.MachineWordInterface.MachineWordInterface.idx)),
+ forall w:(Cst((SailStdpp.MachineWordInterface.MachineWordInterface.word))
+           #1),
+  forall i:Ind(Corelib.Init.Datatypes.nat,0),
+   forall x:Ind(Corelib.Init.Datatypes.bool,0),
+    (Cst((Corelib.Init.Logic.iff))
+     (Ind(Corelib.Init.Logic.eq,0)
+      (Ind(Corelib.Init.Datatypes.option,0)
+       Ind(Corelib.Init.Datatypes.bool,0))
+      (Cst((Stdlib.Lists.List.nth_error)) Ind(Corelib.Init.Datatypes.bool,0)
+       (Cst((SailStdpp.MachineWordInterface.MachineWordInterface.word_to_bools))
+        #4 #3)
+       #2)
+      (Constr(Corelib.Init.Datatypes.option,0,1)
+       Ind(Corelib.Init.Datatypes.bool,0) #1))
+     (Ind(Corelib.Init.Logic.and,0)
+      (Ind(Corelib.Init.Logic.eq,0) Ind(Corelib.Init.Datatypes.bool,0)
+       (Cst((SailStdpp.MachineWordInterface.MachineWordInterface.get_bit)) #4
+        #3
+        (Cst((SailStdpp.MachineWordInterface.MachineWordInterface.nat_idx))
+         (Cst((Corelib.Init.Nat.sub))
+          (Cst((Corelib.Init.Nat.sub))
+           (Cst((SailStdpp.MachineWordInterface.MachineWordInterface.idx_nat))
+            #4)
+           #2)
+          (Constr(Corelib.Init.Datatypes.nat,0,2)
+           Constr(Corelib.Init.Datatypes.nat,0,1)))))
+       #1)
+      (Cst((Corelib.Init.Peano.lt)) #2
+       (Cst((SailStdpp.MachineWordInterface.MachineWordInterface.idx_nat))
+        #4))))
+CONSTANT root/signature SailStdpp.MachineWordInterface.MachineWordInterface.word_to_bools_nth_Some : forall n:Cst((SailStdpp.MachineWordInterface.MachineWordInterface.idx)),
+ forall w:(Cst((SailStdpp.MachineWordInterface.MachineWordInterface.word))
+           #1),
+  forall i:Ind(Corelib.Init.Datatypes.nat,0),
+   forall x:Ind(Corelib.Init.Datatypes.bool,0),
+    ((Cst((Corelib.Init.Peano.gt))
+      (Cst((SailStdpp.MachineWordInterface.MachineWordInterface.idx_nat)) #4)
+      Constr(Corelib.Init.Datatypes.nat,0,1)) ->
+    (Cst((Corelib.Init.Logic.iff))
+     (Ind(Corelib.Init.Logic.eq,0)
+      (Ind(Corelib.Init.Datatypes.option,0)
+       Ind(Corelib.Init.Datatypes.bool,0))
+      (Cst((Stdlib.Lists.List.nth_error)) Ind(Corelib.Init.Datatypes.bool,0)
+       (Cst((SailStdpp.MachineWordInterface.MachineWordInterface.word_to_bools))
+        #5 #4)
+       #3)
+      (Constr(Corelib.Init.Datatypes.option,0,1)
+       Ind(Corelib.Init.Datatypes.bool,0) #2))
+     (Ind(Corelib.Init.Logic.and,0)
+      (Ind(Corelib.Init.Logic.eq,0) Ind(Corelib.Init.Datatypes.bool,0) #2
+       (Cst((Stdlib.NArith.BinNat.N.testbit,Stdlib.NArith.BinNatDef.N.testbit))
+        (Cst((SailStdpp.MachineWordInterface.MachineWordInterface.word_to_N))
+         #5 #4)
+        (Cst((Stdlib.NArith.BinNat.N.of_nat,Stdlib.NArith.BinNatDef.N.of_nat))
+         (Cst((Corelib.Init.Nat.sub))
+          (Cst((Corelib.Init.Nat.sub))
+           (Cst((SailStdpp.MachineWordInterface.MachineWordInterface.idx_nat))
+            #5)
+           #3)
+          (Constr(Corelib.Init.Datatypes.nat,0,2)
+           Constr(Corelib.Init.Datatypes.nat,0,1))))))
+      (Cst((Corelib.Init.Peano.lt)) #3
+       (Cst((SailStdpp.MachineWordInterface.MachineWordInterface.idx_nat))
+        #5)))))
+CONSTANT root/signature SailStdpp.MachineWordInterface.MachineWordInterface.bools_to_word_get_bit : forall l:(Ind(Corelib.Init.Datatypes.list,0)
+          Ind(Corelib.Init.Datatypes.bool,0)),
+ forall i:Ind(Corelib.Init.Datatypes.nat,0),
+  forall b:Ind(Corelib.Init.Datatypes.bool,0),
+   (Cst((Corelib.Init.Logic.iff))
+    (Ind(Corelib.Init.Logic.eq,0)
+     (Ind(Corelib.Init.Datatypes.option,0)
+      Ind(Corelib.Init.Datatypes.bool,0))
+     (Cst((Stdlib.Lists.List.nth_error)) Ind(Corelib.Init.Datatypes.bool,0)
+      #3 #2)
+     (Constr(Corelib.Init.Datatypes.option,0,1)
+      Ind(Corelib.Init.Datatypes.bool,0) #1))
+    (Ind(Corelib.Init.Logic.and,0)
+     (Ind(Corelib.Init.Logic.eq,0) Ind(Corelib.Init.Datatypes.bool,0)
+      (Cst((SailStdpp.MachineWordInterface.MachineWordInterface.get_bit))
+       (Cst((SailStdpp.MachineWordInterface.MachineWordInterface.nat_idx))
+        (Cst((Corelib.Init.Datatypes.length))
+         Ind(Corelib.Init.Datatypes.bool,0) #3))
+       (Cst((SailStdpp.MachineWordInterface.MachineWordInterface.bools_to_word))
+        #3)
+       (Cst((SailStdpp.MachineWordInterface.MachineWordInterface.nat_idx))
+        (Cst((Corelib.Init.Nat.sub))
+         (Cst((Corelib.Init.Nat.sub))
+          (Cst((Corelib.Init.Datatypes.length))
+           Ind(Corelib.Init.Datatypes.bool,0) #3)
+          #2)
+         (Constr(Corelib.Init.Datatypes.nat,0,2)
+          Constr(Corelib.Init.Datatypes.nat,0,1)))))
+      #1)
+     (Cst((Corelib.Init.Peano.lt)) #2
+      (Cst((Corelib.Init.Datatypes.length))
+       Ind(Corelib.Init.Datatypes.bool,0) #3))))
+CONSTANT root/signature SailStdpp.MachineWordInterface.MachineWordInterface.bools_to_word_nth_Some : forall l:(Ind(Corelib.Init.Datatypes.list,0)
+          Ind(Corelib.Init.Datatypes.bool,0)),
+ forall i:Ind(Corelib.Init.Datatypes.nat,0),
+  forall b:Ind(Corelib.Init.Datatypes.bool,0),
+   (Cst((Corelib.Init.Logic.iff))
+    (Ind(Corelib.Init.Logic.eq,0)
+     (Ind(Corelib.Init.Datatypes.option,0)
+      Ind(Corelib.Init.Datatypes.bool,0))
+     (Cst((Stdlib.Lists.List.nth_error)) Ind(Corelib.Init.Datatypes.bool,0)
+      #3 #2)
+     (Constr(Corelib.Init.Datatypes.option,0,1)
+      Ind(Corelib.Init.Datatypes.bool,0) #1))
+    (Ind(Corelib.Init.Logic.and,0)
+     (Ind(Corelib.Init.Logic.eq,0) Ind(Corelib.Init.Datatypes.bool,0) #1
+      (Cst((Stdlib.NArith.BinNat.N.testbit,Stdlib.NArith.BinNatDef.N.testbit))
+       (Cst((SailStdpp.MachineWordInterface.MachineWordInterface.word_to_N))
+        (Cst((SailStdpp.MachineWordInterface.MachineWordInterface.nat_idx))
+         (Cst((Corelib.Init.Datatypes.length))
+          Ind(Corelib.Init.Datatypes.bool,0) #3))
+        (Cst((SailStdpp.MachineWordInterface.MachineWordInterface.bools_to_word))
+         #3))
+       (Cst((Stdlib.NArith.BinNat.N.of_nat,Stdlib.NArith.BinNatDef.N.of_nat))
+        (Cst((Corelib.Init.Nat.sub))
+         (Cst((Corelib.Init.Nat.sub))
+          (Cst((Corelib.Init.Datatypes.length))
+           Ind(Corelib.Init.Datatypes.bool,0) #3)
+          #2)
+         (Constr(Corelib.Init.Datatypes.nat,0,2)
+          Constr(Corelib.Init.Datatypes.nat,0,1))))))
+     (Cst((Corelib.Init.Peano.lt)) #2
+      (Cst((Corelib.Init.Datatypes.length))
+       Ind(Corelib.Init.Datatypes.bool,0) #3))))
+CONSTANT root/signature SailStdpp.MachineWordInterface.MachineWordInterface.slice : forall m:Cst((SailStdpp.MachineWordInterface.MachineWordInterface.idx)),
+ forall n:Cst((SailStdpp.MachineWordInterface.MachineWordInterface.idx)),
+  ((Cst((SailStdpp.MachineWordInterface.MachineWordInterface.word)) #2) ->
+  (Cst((SailStdpp.MachineWordInterface.MachineWordInterface.idx)) ->
+  (Cst((SailStdpp.MachineWordInterface.MachineWordInterface.word)) #3)))
+CONSTANT root/signature SailStdpp.MachineWordInterface.MachineWordInterface.update_slice : forall m:Cst((SailStdpp.MachineWordInterface.MachineWordInterface.idx)),
+ forall n:Cst((SailStdpp.MachineWordInterface.MachineWordInterface.idx)),
+  ((Cst((SailStdpp.MachineWordInterface.MachineWordInterface.word)) #2) ->
+  (Cst((SailStdpp.MachineWordInterface.MachineWordInterface.idx)) ->
+  ((Cst((SailStdpp.MachineWordInterface.MachineWordInterface.word)) #3) ->
+  (Cst((SailStdpp.MachineWordInterface.MachineWordInterface.word)) #5))))
+CONSTANT root/signature SailStdpp.MachineWordInterface.MachineWordInterface.zero_extend : forall m:Cst((SailStdpp.MachineWordInterface.MachineWordInterface.idx)),
+ forall n:Cst((SailStdpp.MachineWordInterface.MachineWordInterface.idx)),
+  ((Cst((SailStdpp.MachineWordInterface.MachineWordInterface.word)) #2) ->
+  (Cst((SailStdpp.MachineWordInterface.MachineWordInterface.word)) #2))
+CONSTANT root/signature SailStdpp.MachineWordInterface.MachineWordInterface.sign_extend : forall m:Cst((SailStdpp.MachineWordInterface.MachineWordInterface.idx)),
+ forall n:Cst((SailStdpp.MachineWordInterface.MachineWordInterface.idx)),
+  ((Cst((SailStdpp.MachineWordInterface.MachineWordInterface.word)) #2) ->
+  (Cst((SailStdpp.MachineWordInterface.MachineWordInterface.word)) #2))
+CONSTANT root/signature SailStdpp.MachineWordInterface.MachineWordInterface.concat : forall m:Cst((SailStdpp.MachineWordInterface.MachineWordInterface.idx)),
+ forall n:Cst((SailStdpp.MachineWordInterface.MachineWordInterface.idx)),
+  ((Cst((SailStdpp.MachineWordInterface.MachineWordInterface.word)) #2) ->
+  ((Cst((SailStdpp.MachineWordInterface.MachineWordInterface.word)) #2) ->
+  (Cst((SailStdpp.MachineWordInterface.MachineWordInterface.word))
+   (Cst((SailStdpp.MachineWordInterface.MachineWordInterface.idx_add)) #4 #3))))
+CONSTANT root/signature SailStdpp.MachineWordInterface.MachineWordInterface.and : forall n:Cst((SailStdpp.MachineWordInterface.MachineWordInterface.idx)),
+ ((Cst((SailStdpp.MachineWordInterface.MachineWordInterface.word)) #1) ->
+ ((Cst((SailStdpp.MachineWordInterface.MachineWordInterface.word)) #2) ->
+ (Cst((SailStdpp.MachineWordInterface.MachineWordInterface.word)) #3)))
+CONSTANT root/signature SailStdpp.MachineWordInterface.MachineWordInterface.or : forall n:Cst((SailStdpp.MachineWordInterface.MachineWordInterface.idx)),
+ ((Cst((SailStdpp.MachineWordInterface.MachineWordInterface.word)) #1) ->
+ ((Cst((SailStdpp.MachineWordInterface.MachineWordInterface.word)) #2) ->
+ (Cst((SailStdpp.MachineWordInterface.MachineWordInterface.word)) #3)))
+CONSTANT root/signature SailStdpp.MachineWordInterface.MachineWordInterface.xor : forall n:Cst((SailStdpp.MachineWordInterface.MachineWordInterface.idx)),
+ ((Cst((SailStdpp.MachineWordInterface.MachineWordInterface.word)) #1) ->
+ ((Cst((SailStdpp.MachineWordInterface.MachineWordInterface.word)) #2) ->
+ (Cst((SailStdpp.MachineWordInterface.MachineWordInterface.word)) #3)))
+CONSTANT root/signature SailStdpp.MachineWordInterface.MachineWordInterface.not : forall n:Cst((SailStdpp.MachineWordInterface.MachineWordInterface.idx)),
+ ((Cst((SailStdpp.MachineWordInterface.MachineWordInterface.word)) #1) ->
+ (Cst((SailStdpp.MachineWordInterface.MachineWordInterface.word)) #2))
+CONSTANT root/signature SailStdpp.MachineWordInterface.MachineWordInterface.add : forall n:Cst((SailStdpp.MachineWordInterface.MachineWordInterface.idx)),
+ ((Cst((SailStdpp.MachineWordInterface.MachineWordInterface.word)) #1) ->
+ ((Cst((SailStdpp.MachineWordInterface.MachineWordInterface.word)) #2) ->
+ (Cst((SailStdpp.MachineWordInterface.MachineWordInterface.word)) #3)))
+CONSTANT root/signature SailStdpp.MachineWordInterface.MachineWordInterface.sub : forall n:Cst((SailStdpp.MachineWordInterface.MachineWordInterface.idx)),
+ ((Cst((SailStdpp.MachineWordInterface.MachineWordInterface.word)) #1) ->
+ ((Cst((SailStdpp.MachineWordInterface.MachineWordInterface.word)) #2) ->
+ (Cst((SailStdpp.MachineWordInterface.MachineWordInterface.word)) #3)))
+CONSTANT root/signature SailStdpp.MachineWordInterface.MachineWordInterface.mul : forall n:Cst((SailStdpp.MachineWordInterface.MachineWordInterface.idx)),
+ ((Cst((SailStdpp.MachineWordInterface.MachineWordInterface.word)) #1) ->
+ ((Cst((SailStdpp.MachineWordInterface.MachineWordInterface.word)) #2) ->
+ (Cst((SailStdpp.MachineWordInterface.MachineWordInterface.word)) #3)))
+CONSTANT root/signature SailStdpp.MachineWordInterface.MachineWordInterface.logical_shift_left : forall n:Cst((SailStdpp.MachineWordInterface.MachineWordInterface.idx)),
+ ((Cst((SailStdpp.MachineWordInterface.MachineWordInterface.word)) #1) ->
+ (Cst((SailStdpp.MachineWordInterface.MachineWordInterface.idx)) ->
+ (Cst((SailStdpp.MachineWordInterface.MachineWordInterface.word)) #3)))
+CONSTANT root/signature SailStdpp.MachineWordInterface.MachineWordInterface.logical_shift_right : forall n:Cst((SailStdpp.MachineWordInterface.MachineWordInterface.idx)),
+ ((Cst((SailStdpp.MachineWordInterface.MachineWordInterface.word)) #1) ->
+ (Cst((SailStdpp.MachineWordInterface.MachineWordInterface.idx)) ->
+ (Cst((SailStdpp.MachineWordInterface.MachineWordInterface.word)) #3)))
+CONSTANT root/signature SailStdpp.MachineWordInterface.MachineWordInterface.arith_shift_right : forall n:Cst((SailStdpp.MachineWordInterface.MachineWordInterface.idx)),
+ ((Cst((SailStdpp.MachineWordInterface.MachineWordInterface.word)) #1) ->
+ (Cst((SailStdpp.MachineWordInterface.MachineWordInterface.idx)) ->
+ (Cst((SailStdpp.MachineWordInterface.MachineWordInterface.word)) #3)))
+CONSTANT root/signature SailStdpp.MachineWordInterface.MachineWordInterface.replicate : forall m:Ind(Corelib.Init.Datatypes.nat,0),
+ forall n:Cst((SailStdpp.MachineWordInterface.MachineWordInterface.idx)),
+  ((Cst((SailStdpp.MachineWordInterface.MachineWordInterface.word)) #1) ->
+  (Cst((SailStdpp.MachineWordInterface.MachineWordInterface.word))
+   (Cst((SailStdpp.MachineWordInterface.MachineWordInterface.idx_mul))
+    (Cst((SailStdpp.MachineWordInterface.MachineWordInterface.nat_idx)) #3)
+    #2)))
+CONSTANT root/signature SailStdpp.MachineWordInterface.MachineWordInterface.eqb : forall n:Cst((SailStdpp.MachineWordInterface.MachineWordInterface.idx)),
+ ((Cst((SailStdpp.MachineWordInterface.MachineWordInterface.word)) #1) ->
+ ((Cst((SailStdpp.MachineWordInterface.MachineWordInterface.word)) #2) ->
+ Ind(Corelib.Init.Datatypes.bool,0)))
+CONSTANT root/signature SailStdpp.MachineWordInterface.MachineWordInterface.eqb_true_iff : forall n:Cst((SailStdpp.MachineWordInterface.MachineWordInterface.idx)),
+ forall w:(Cst((SailStdpp.MachineWordInterface.MachineWordInterface.word))
+           #1),
+  forall v:(Cst((SailStdpp.MachineWordInterface.MachineWordInterface.word))
+            #2),
+   (Cst((Corelib.Init.Logic.iff))
+    (Ind(Corelib.Init.Logic.eq,0) Ind(Corelib.Init.Datatypes.bool,0)
+     (Cst((SailStdpp.MachineWordInterface.MachineWordInterface.eqb)) #3 #2
+      #1)
+     Constr(Corelib.Init.Datatypes.bool,0,1))
+    (Ind(Corelib.Init.Logic.eq,0)
+     (Cst((SailStdpp.MachineWordInterface.MachineWordInterface.word)) #3) #2
+     #1))
+CONSTANT root/signature SailStdpp.MachineWordInterface.MachineWordInterface.eq_dec : forall n:Cst((SailStdpp.MachineWordInterface.MachineWordInterface.idx)),
+ forall w:(Cst((SailStdpp.MachineWordInterface.MachineWordInterface.word))
+           #1),
+  forall v:(Cst((SailStdpp.MachineWordInterface.MachineWordInterface.word))
+            #2),
+   (Ind(Corelib.Init.Specif.sumbool,0)
+    (Ind(Corelib.Init.Logic.eq,0)
+     (Cst((SailStdpp.MachineWordInterface.MachineWordInterface.word)) #3) #2
+     #1)
+    (Cst((Corelib.Init.Logic.not))
+     (Ind(Corelib.Init.Logic.eq,0)
+      (Cst((SailStdpp.MachineWordInterface.MachineWordInterface.word)) #3) #2
+      #1)))
+CONSTANT root/signature SailStdpp.MachineWordInterface.MachineWordInterface.reverse_endian : forall n:Cst((SailStdpp.MachineWordInterface.MachineWordInterface.idx)),
+ ((Cst((SailStdpp.MachineWordInterface.MachineWordInterface.word)) #1) ->
+ (Cst((SailStdpp.MachineWordInterface.MachineWordInterface.word)) #2))
+CONSTANT root/signature SailStdpp.MachineWordInterface.MachineWordInterface.word_to_binary_string : forall n:Cst((SailStdpp.MachineWordInterface.MachineWordInterface.idx)),
+ ((Cst((SailStdpp.MachineWordInterface.MachineWordInterface.word)) #1) ->
+ Ind(Stdlib.Strings.String.string,0))
+CONSTANT root/signature SailStdpp.MachineWordInterface.MachineWordInterface.word_list_concat : forall n:Cst((SailStdpp.MachineWordInterface.MachineWordInterface.idx)),
+ forall l:(Ind(Corelib.Init.Datatypes.list,0)
+           (Cst((SailStdpp.MachineWordInterface.MachineWordInterface.word))
+            #1)),
+  (Cst((SailStdpp.MachineWordInterface.MachineWordInterface.word))
+   (Cst((SailStdpp.MachineWordInterface.MachineWordInterface.idx_mul)) #2
+    (Cst((SailStdpp.MachineWordInterface.MachineWordInterface.nat_idx))
+     (Cst((Corelib.Init.Datatypes.length))
+      (Cst((SailStdpp.MachineWordInterface.MachineWordInterface.word)) #2)
+      #1))))
+CONSTANT root/signature SailStdpp.MachineWordInterface.MachineWordInterface.word_split_list : forall m:Cst((SailStdpp.MachineWordInterface.MachineWordInterface.idx)),
+ forall n:Cst((SailStdpp.MachineWordInterface.MachineWordInterface.idx)),
+  ((Cst((SailStdpp.MachineWordInterface.MachineWordInterface.word))
+    (Cst((SailStdpp.MachineWordInterface.MachineWordInterface.idx_mul)) #2
+     #1)) ->
+  (Ind(Corelib.Init.Datatypes.list,0)
+   (Cst((SailStdpp.MachineWordInterface.MachineWordInterface.word)) #3)))
+ROOT NativeMetadata.NativeControls
+STRUCTURE root NativeMetadata.NativeControls fields=3
+STRUCTURE root/signature NativeMetadata.NativeControls.S fields=6
+CONSTANT root/signature NativeMetadata.NativeControls.S.T : Type(NativeMetadata.21)
+CONSTANT root/signature NativeMetadata.NativeControls.S.value : Cst((NativeMetadata.NativeControls.S.T))
+INDUCTIVE root/signature NativeMetadata.NativeControls.S.answer : Set
+CONSTRUCTOR root/signature NativeMetadata.NativeControls.S.yes : Ind(NativeMetadata.NativeControls.S.answer,0)
+CONSTRUCTOR root/signature NativeMetadata.NativeControls.S.no : Ind(NativeMetadata.NativeControls.S.answer,0)
+CONSTANT root/signature NativeMetadata.NativeControls.S.answer_rect : forall P:forall a:Ind(NativeMetadata.NativeControls.S.answer,0),
+          Type(NativeMetadata.25),
+ forall yes:(#1 Constr(NativeMetadata.NativeControls.S.answer,0,1)),
+  forall no:(#2 Constr(NativeMetadata.NativeControls.S.answer,0,2)),
+   forall a:Ind(NativeMetadata.NativeControls.S.answer,0), (#4 #1)
+CONSTANT root/signature NativeMetadata.NativeControls.S.answer_ind : forall P:forall a:Ind(NativeMetadata.NativeControls.S.answer,0), Prop,
+ forall yes:(#1 Constr(NativeMetadata.NativeControls.S.answer,0,1)),
+  forall no:(#2 Constr(NativeMetadata.NativeControls.S.answer,0,2)),
+   forall a:Ind(NativeMetadata.NativeControls.S.answer,0), (#4 #1)
+CONSTANT root/signature NativeMetadata.NativeControls.S.answer_rec : forall P:forall a:Ind(NativeMetadata.NativeControls.S.answer,0), Set,
+ forall yes:(#1 Constr(NativeMetadata.NativeControls.S.answer,0,1)),
+  forall no:(#2 Constr(NativeMetadata.NativeControls.S.answer,0,2)),
+   forall a:Ind(NativeMetadata.NativeControls.S.answer,0), (#4 #1)
+FUNCTOR_PARAMETER NativeMetadata.NativeControls.F NativeMetadata.X
+STRUCTURE root/module/parameter NativeMetadata.X fields=6
+CONSTANT root/module/parameter NativeMetadata.X.T : Type(NativeMetadata.21)
+CONSTANT root/module/parameter NativeMetadata.X.value : Cst((<NativeMetadata#X#0>.T))
+INDUCTIVE root/module/parameter NativeMetadata.X.answer : Set
+CONSTRUCTOR root/module/parameter NativeMetadata.X.yes : Ind(NativeMetadata.X.answer,0)
+CONSTRUCTOR root/module/parameter NativeMetadata.X.no : Ind(NativeMetadata.X.answer,0)
+CONSTANT root/module/parameter NativeMetadata.X.answer_rect : forall P:forall a:Ind(NativeMetadata.X.answer,0), Type(NativeMetadata.25),
+ forall yes:(#1 Constr(NativeMetadata.X.answer,0,1)),
+  forall no:(#2 Constr(NativeMetadata.X.answer,0,2)),
+   forall a:Ind(NativeMetadata.X.answer,0), (#4 #1)
+CONSTANT root/module/parameter NativeMetadata.X.answer_ind : forall P:forall a:Ind(NativeMetadata.X.answer,0), Prop,
+ forall yes:(#1 Constr(NativeMetadata.X.answer,0,1)),
+  forall no:(#2 Constr(NativeMetadata.X.answer,0,2)),
+   forall a:Ind(NativeMetadata.X.answer,0), (#4 #1)
+CONSTANT root/module/parameter NativeMetadata.X.answer_rec : forall P:forall a:Ind(NativeMetadata.X.answer,0), Set,
+ forall yes:(#1 Constr(NativeMetadata.X.answer,0,1)),
+  forall no:(#2 Constr(NativeMetadata.X.answer,0,2)),
+   forall a:Ind(NativeMetadata.X.answer,0), (#4 #1)
+STRUCTURE root/module/result NativeMetadata.NativeControls.F fields=1
+CONSTANT root/module/result NativeMetadata.NativeControls.F.copied : Cst((<NativeMetadata#X#0>.T))
+STRUCTURE root/module NativeMetadata.NativeControls.Empty fields=0

@@ -1,0 +1,5 @@
+File "/tmp/vos-triple-q35q-candidate-j2bu7b8l/NativeMetadata.v", line 13, characters 0-31:
+Error:
+Dynlink error: execution of module initializers in the shared library failed: "Anomaly: The global environment cannot be accessed during the syntactic interpretation
+phase."
+

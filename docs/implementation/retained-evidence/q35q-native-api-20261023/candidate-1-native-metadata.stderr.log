@@ -1,0 +1,9 @@
+File "/tmp/vos-triple-q35q-candidate-j2bu7b8l/NativeMetadata.v", line 13, characters 0-42:
+Error:
+Findlib error: q35q_probe:q35q_probe not found in:
+/root/build/lane-triple-20261023-census/q35q
+/root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/lib
+/root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/lib/ocaml
+/root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/lib
+
+

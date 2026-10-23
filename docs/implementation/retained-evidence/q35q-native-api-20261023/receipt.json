@@ -1,0 +1,293 @@
+{
+  "schema": "verifiedos-sail-native-metadata-probe/1",
+  "base_revision": "59f8a9e995e6ce49269ba2990c2c426407364726",
+  "outcome": "bounded-budget-exhausted-with-contaminated-third-query",
+  "candidate_checks": 3,
+  "active_seconds": 3.315786819002824,
+  "native_process_cwd": "/tmp/vos-triple-q35q-candidate-j2bu7b8l",
+  "native_lane": "/root/build/lane-triple-20261023-census/q35q",
+  "commands": [
+    {
+      "name": "patch-0",
+      "argv": [
+        "patch",
+        "-p1",
+        "-i",
+        "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/triple-20261023-census/docs/implementation/retained-evidence/root/build/lane-q35g-20261003/q35g/coq-sail-reals-eqdep.patch"
+      ],
+      "cwd": "/root/build/lane-triple-20261023-census/q35q/source/coq-sail-0.20.3",
+      "exit": 0,
+      "seconds": 0.01646488099868293
+    },
+    {
+      "name": "patch-1",
+      "argv": [
+        "patch",
+        "-p1",
+        "-i",
+        "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/triple-20261023-census/docs/implementation/retained-evidence/q35n-20261013/sail-support-strict.patch"
+      ],
+      "cwd": "/root/build/lane-triple-20261023-census/q35q/source/coq-sail-0.20.3",
+      "exit": 0,
+      "seconds": 0.01956927699939115
+    },
+    {
+      "name": "switch-before",
+      "argv": [
+        "opam",
+        "switch",
+        "export",
+        "--full",
+        "--freeze",
+        "--switch=verifiedos-rocq-9.3.0-ocaml-5.4.1",
+        "/root/build/lane-triple-20261023-census/q35q/evidence/switch-before.lock"
+      ],
+      "cwd": "/tmp/vos-triple-q35q-candidate-j2bu7b8l",
+      "exit": 0,
+      "seconds": 0.34598569499939913
+    },
+    {
+      "name": "plugin-compile",
+      "argv": [
+        "/root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/bin/ocamlfind",
+        "ocamlopt",
+        "-rectypes",
+        "-thread",
+        "-shared",
+        "-package",
+        "rocq-runtime.vernac",
+        "-o",
+        "/root/build/lane-triple-20261023-census/q35q/q35q_probe/q35q_probe.cmxs",
+        "/root/build/lane-triple-20261023-census/q35q/q35q_probe/q35q_probe.ml"
+      ],
+      "cwd": "/tmp/vos-triple-q35q-candidate-j2bu7b8l",
+      "exit": 0,
+      "seconds": 0.34882719199958956
+    },
+    {
+      "name": "strict-MachineWordInterface",
+      "argv": [
+        "/root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/bin/rocq",
+        "c",
+        "-boot",
+        "-R",
+        "/root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/lib/coq/theories",
+        "Corelib",
+        "-Q",
+        "/root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/lib/coq/user-contrib/Stdlib",
+        "Stdlib",
+        "-Q",
+        "/root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/lib/coq/user-contrib/stdpp",
+        "stdpp",
+        "-R",
+        "/root/build/lane-triple-20261023-census/q35q/source/coq-sail-0.20.3/src-stdpp",
+        "SailStdpp",
+        "-q",
+        "-w",
+        "+default,-abstract-large-number",
+        "-set",
+        "Default Goal Selector=!",
+        "-disallow-sprop",
+        "/root/build/lane-triple-20261023-census/q35q/source/coq-sail-0.20.3/src-stdpp/MachineWordInterface.v"
+      ],
+      "cwd": "/tmp/vos-triple-q35q-candidate-j2bu7b8l",
+      "exit": 0,
+      "seconds": 0.840989216001617
+    },
+    {
+      "name": "candidate-1-native-metadata",
+      "argv": [
+        "/root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/bin/rocq",
+        "c",
+        "-boot",
+        "-R",
+        "/root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/lib/coq/theories",
+        "Corelib",
+        "-Q",
+        "/root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/lib/coq/user-contrib/Stdlib",
+        "Stdlib",
+        "-Q",
+        "/root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/lib/coq/user-contrib/stdpp",
+        "stdpp",
+        "-R",
+        "/root/build/lane-triple-20261023-census/q35q/source/coq-sail-0.20.3/src-stdpp",
+        "SailStdpp",
+        "-q",
+        "-w",
+        "+default,-abstract-large-number",
+        "-set",
+        "Default Goal Selector=!",
+        "-disallow-sprop",
+        "-o",
+        "/root/build/lane-triple-20261023-census/q35q/NativeMetadata.vo",
+        "/tmp/vos-triple-q35q-candidate-j2bu7b8l/NativeMetadata.v"
+      ],
+      "cwd": "/tmp/vos-triple-q35q-candidate-j2bu7b8l",
+      "exit": 1,
+      "seconds": 0.411776318000193
+    },
+    {
+      "name": "switch-after",
+      "argv": [
+        "opam",
+        "switch",
+        "export",
+        "--full",
+        "--freeze",
+        "--switch=verifiedos-rocq-9.3.0-ocaml-5.4.1",
+        "/root/build/lane-triple-20261023-census/q35q/evidence/switch-after.lock"
+      ],
+      "cwd": "/tmp/vos-triple-q35q-candidate-j2bu7b8l",
+      "exit": 0,
+      "seconds": 0.33248260999971535
+    },
+    {
+      "name": "candidate-2-native-metadata",
+      "argv": [
+        "/root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/bin/rocq",
+        "c",
+        "-boot",
+        "-R",
+        "/root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/lib/coq/theories",
+        "Corelib",
+        "-Q",
+        "/root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/lib/coq/user-contrib/Stdlib",
+        "Stdlib",
+        "-Q",
+        "/root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/lib/coq/user-contrib/stdpp",
+        "stdpp",
+        "-R",
+        "/root/build/lane-triple-20261023-census/q35q/source/coq-sail-0.20.3/src-stdpp",
+        "SailStdpp",
+        "-q",
+        "-w",
+        "+default,-abstract-large-number",
+        "-set",
+        "Default Goal Selector=!",
+        "-disallow-sprop",
+        "-o",
+        "/root/build/lane-triple-20261023-census/q35q/NativeMetadata.vo",
+        "/tmp/vos-triple-q35q-candidate-j2bu7b8l/NativeMetadata.v"
+      ],
+      "cwd": "/tmp/vos-triple-q35q-candidate-j2bu7b8l",
+      "exit": 1,
+      "seconds": 0.555089751000196
+    },
+    {
+      "name": "plugin-compile-candidate-3",
+      "argv": [
+        "/root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/bin/ocamlfind",
+        "ocamlopt",
+        "-rectypes",
+        "-thread",
+        "-shared",
+        "-package",
+        "rocq-runtime.vernac",
+        "-o",
+        "/root/build/lane-triple-20261023-census/q35q/q35q_probe/q35q_probe.cmxs",
+        "/root/build/lane-triple-20261023-census/q35q/q35q_probe/q35q_probe.ml"
+      ],
+      "cwd": "/tmp/vos-triple-q35q-candidate-j2bu7b8l",
+      "exit": 0,
+      "seconds": 0.21101950599768315
+    },
+    {
+      "name": "candidate-3-native-metadata",
+      "argv": [
+        "/root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/bin/rocq",
+        "c",
+        "-boot",
+        "-R",
+        "/root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/lib/coq/theories",
+        "Corelib",
+        "-Q",
+        "/root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/lib/coq/user-contrib/Stdlib",
+        "Stdlib",
+        "-Q",
+        "/root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/lib/coq/user-contrib/stdpp",
+        "stdpp",
+        "-R",
+        "/root/build/lane-triple-20261023-census/q35q/source/coq-sail-0.20.3/src-stdpp",
+        "SailStdpp",
+        "-q",
+        "-w",
+        "+default,-abstract-large-number",
+        "-set",
+        "Default Goal Selector=!",
+        "-disallow-sprop",
+        "-o",
+        "/root/build/lane-triple-20261023-census/q35q/NativeMetadata.vo",
+        "/tmp/vos-triple-q35q-candidate-j2bu7b8l/NativeMetadata.v"
+      ],
+      "cwd": "/tmp/vos-triple-q35q-candidate-j2bu7b8l",
+      "exit": 1,
+      "seconds": 0.12444680300177424
+    }
+  ],
+  "input_sha256_before": {
+    "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/triple-20261023-census/tools/opam/rocq.lock": "3e70338fb77832f9e09ee8780cd10524e002420b1ca9aa5f56a15777765e1b32",
+    "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/triple-20261023-census/tools/opam/sail-support-qualification.json": "fe528488ce7e12e077eaee00555cc477325986fc9ee12d5b896e5b651f256d46",
+    "/root/build/fanout-retained/b510da045be59ec016ee/close3-20261013-q43/lane/sail.tar.gz": "1a0e226608ac84add6cd1f61a11637ea9db5e00e1551b2070945310078c9e031",
+    "/root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/bin/rocq": "9a2a4eacf47b44c6ec582bc2b9f9cde9de11af77164e0637103fca9865efd5ac",
+    "/root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/.opam-switch/sources/rocq-core.9.3.0/kernel/constr.ml": "d015faee2a95418d069ee491f01a6b9b07b85986d5cc72c20465985c65775560",
+    "/root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/.opam-switch/sources/rocq-core.9.3.0/kernel/mod_declarations.mli": "4dbdcbcb20c1a9eba0272e04d650bf4569fd66f1c60c5126afea43e074e9b55e",
+    "/root/build/lane-triple-20261023-census/q35q/source/coq-sail-0.20.3/src-stdpp/MachineWordInterface.v": "e9cf76bc0e4caf728e15341c64c8c6b7b5168f26868888b54a279a57a1c5e6d1",
+    "/root/build/lane-triple-20261023-census/q35q/q35q_probe/q35q_probe.ml": "b2cbb3520dae3b0c29f4c2bc34819642a80def92701a90e918c745473695e5b8",
+    "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/triple-20261023-census/docs/implementation/retained-evidence/root/build/lane-q35g-20261003/q35g/coq-sail-reals-eqdep.patch": "a74749c56f38127371cb748de26ffcc1d1f0bf65bbcbb8ab1d0e9c278ba202a5",
+    "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/triple-20261023-census/docs/implementation/retained-evidence/q35n-20261013/sail-support-strict.patch": "cee3710ee8b21c439885190e30cf0618fe68fb3a4071dd9991c2f5db37122477"
+  },
+  "input_sha256_after": {
+    "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/triple-20261023-census/tools/opam/rocq.lock": "3e70338fb77832f9e09ee8780cd10524e002420b1ca9aa5f56a15777765e1b32",
+    "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/triple-20261023-census/tools/opam/sail-support-qualification.json": "fe528488ce7e12e077eaee00555cc477325986fc9ee12d5b896e5b651f256d46",
+    "/root/build/fanout-retained/b510da045be59ec016ee/close3-20261013-q43/lane/sail.tar.gz": "1a0e226608ac84add6cd1f61a11637ea9db5e00e1551b2070945310078c9e031",
+    "/root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/bin/rocq": "9a2a4eacf47b44c6ec582bc2b9f9cde9de11af77164e0637103fca9865efd5ac",
+    "/root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/.opam-switch/sources/rocq-core.9.3.0/kernel/constr.ml": "d015faee2a95418d069ee491f01a6b9b07b85986d5cc72c20465985c65775560",
+    "/root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/.opam-switch/sources/rocq-core.9.3.0/kernel/mod_declarations.mli": "4dbdcbcb20c1a9eba0272e04d650bf4569fd66f1c60c5126afea43e074e9b55e",
+    "/root/build/lane-triple-20261023-census/q35q/source/coq-sail-0.20.3/src-stdpp/MachineWordInterface.v": "e9cf76bc0e4caf728e15341c64c8c6b7b5168f26868888b54a279a57a1c5e6d1",
+    "/root/build/lane-triple-20261023-census/q35q/q35q_probe/q35q_probe.ml": "00d057af3fa529afadd9ccf28904112cd7a92a8411d1d0b33ed63af531db582b",
+    "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/triple-20261023-census/docs/implementation/retained-evidence/root/build/lane-q35g-20261003/q35g/coq-sail-reals-eqdep.patch": "a74749c56f38127371cb748de26ffcc1d1f0bf65bbcbb8ab1d0e9c278ba202a5",
+    "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/triple-20261023-census/docs/implementation/retained-evidence/q35n-20261013/sail-support-strict.patch": "cee3710ee8b21c439885190e30cf0618fe68fb3a4071dd9991c2f5db37122477"
+  },
+  "switch_exports_identical": true,
+  "scope": "Bounded public native module-body API query; no complete term serialization, census, implementation connections, assumptions, recursive kernel or hosted acceptance.",
+  "candidate3_plugin_sha256": "00d057af3fa529afadd9ccf28904112cd7a92a8411d1d0b33ed63af531db582b",
+  "immutable_inputs_unchanged": true,
+  "candidate_plugin_evolved": true,
+  "candidate_sources": [
+    {
+      "candidate": 1,
+      "plugin": "candidate-1-2-q35q_probe.ml",
+      "query": "candidate-1-NativeMetadata.v",
+      "result": "findlib package spelling refused",
+      "plugin_sha256": "b2cbb3520dae3b0c29f4c2bc34819642a80def92701a90e918c745473695e5b8",
+      "query_sha256": "8168527b690c24d99da5ec76e9b26f0e5b9fcfbe2209c0fb8115a06d69add0f3"
+    },
+    {
+      "candidate": 2,
+      "plugin": "candidate-1-2-q35q_probe.ml",
+      "query": "NativeMetadata.v",
+      "result": "native Global access refused in syntax interpretation phase",
+      "plugin_sha256": "b2cbb3520dae3b0c29f4c2bc34819642a80def92701a90e918c745473695e5b8",
+      "query_sha256": "3c80933c3884d3865d63b200b0f98fb7d30c4fa7390e6ac81160f8103ba0fff6"
+    },
+    {
+      "candidate": 3,
+      "plugin": "q35q_probe.ml",
+      "query": "NativeMetadata.v",
+      "result": "contaminated installed Stdlib dependency refused before metadata callback",
+      "plugin_sha256": "00d057af3fa529afadd9ccf28904112cd7a92a8411d1d0b33ed63af531db582b",
+      "query_sha256": "3c80933c3884d3865d63b200b0f98fb7d30c4fa7390e6ac81160f8103ba0fff6"
+    }
+  ],
+  "compiled_api_candidate": true,
+  "native_typed_metadata_observed": false,
+  "first_native_dependency_refusal": "Stdlib.ZArith.ZArith makes inconsistent assumptions over Stdlib.Numbers.BinNums",
+  "dependency_identity_limit": "Installed library object identities were not recorded at each earlier candidate cut. Unchanged frozen switch export records package metadata only and cannot establish unchanged installed .vo bytes.",
+  "stop_reason": "Three-check bound reached; integrator confirmed another lane had compiled installed BinNums sources. Third query supplies no supported-shape or semantic verdict. No further native reads or compiles were attempted.",
+  "further_owner": "Integrator restores and verifies original locked installed library objects; separately authorize clean bounded replay of the interp-only candidate, then complete typed-term/universe serialization and native controls before census qualification.",
+  "active_seconds_scope": "Recorded sum of subprocess durations and extraction setup; excludes interactive API reading/design time. Candidate wall interval below includes preparation between candidate executions.",
+  "candidate_wall_interval_seconds": 60.08493161201477,
+  "candidate_budget_stop": 3,
+  "final_plugin_source_sha256": "00d057af3fa529afadd9ccf28904112cd7a92a8411d1d0b33ed63af531db582b",
+  "artifacts_remain_native": "/root/build/lane-triple-20261023-census/q35q"
+}

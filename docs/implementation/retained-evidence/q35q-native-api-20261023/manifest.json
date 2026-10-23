@@ -1,0 +1,178 @@
+{
+  "files": {
+    "META": {
+      "bytes": 119,
+      "encoding": "identity",
+      "path": "META",
+      "sha256": "37cbe479074dd346b3b9cff3a13a810f16d5e5a12c3707b7ee68119c0525e429"
+    },
+    "NativeMetadata.v": {
+      "bytes": 313,
+      "encoding": "identity",
+      "path": "NativeMetadata.v",
+      "sha256": "3c80933c3884d3865d63b200b0f98fb7d30c4fa7390e6ac81160f8103ba0fff6"
+    },
+    "Sail-Support-LICENSE": {
+      "bytes": 2716,
+      "encoding": "identity",
+      "path": "Sail-Support-LICENSE",
+      "sha256": "9e52d88fe1802beb469e538b8c026ff5e7f9413ef06cd3ce898ee3928ae24df0"
+    },
+    "candidate-1-2-q35q_probe.ml": {
+      "bytes": 1663,
+      "encoding": "identity",
+      "path": "candidate-1-2-q35q_probe.ml",
+      "sha256": "b2cbb3520dae3b0c29f4c2bc34819642a80def92701a90e918c745473695e5b8"
+    },
+    "candidate-1-NativeMetadata.v": {
+      "bytes": 324,
+      "encoding": "identity",
+      "path": "candidate-1-NativeMetadata.v",
+      "sha256": "8168527b690c24d99da5ec76e9b26f0e5b9fcfbe2209c0fb8115a06d69add0f3"
+    },
+    "candidate-1-native-metadata.stderr.log": {
+      "bytes": 352,
+      "encoding": "identity",
+      "path": "candidate-1-native-metadata.stderr.log",
+      "sha256": "8560684ebf426f5a6283c2bc9d983321fcd633bc76b593651542902788e4bf71"
+    },
+    "candidate-1-native-metadata.stdout.log": {
+      "bytes": 0,
+      "encoding": "identity",
+      "path": "candidate-1-native-metadata.stdout.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "candidate-2-native-metadata.stderr.log": {
+      "bytes": 273,
+      "encoding": "identity",
+      "path": "candidate-2-native-metadata.stderr.log",
+      "sha256": "d3be2a06cc70c47653d6eb811e90efa5b174146561cf9fbcd32c7d2bea348112"
+    },
+    "candidate-2-native-metadata.stdout.log": {
+      "bytes": 36,
+      "encoding": "identity",
+      "path": "candidate-2-native-metadata.stdout.log",
+      "sha256": "4eb6701fcef40617c954092120a4d14b0f6fbad119252ddf12b6077090b2e753"
+    },
+    "candidate-3-native-metadata.stderr.log": {
+      "bytes": 304,
+      "encoding": "identity",
+      "path": "candidate-3-native-metadata.stderr.log",
+      "sha256": "b1d5489297c958c64dd36a883f7f6fcf94443f836391471c78ec0a4e5ab1bf01"
+    },
+    "candidate-3-native-metadata.stdout.log": {
+      "bytes": 0,
+      "encoding": "identity",
+      "path": "candidate-3-native-metadata.stdout.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "patch-0.stderr.log": {
+      "bytes": 0,
+      "encoding": "identity",
+      "path": "patch-0.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "patch-0.stdout.log": {
+      "bytes": 431,
+      "encoding": "identity",
+      "path": "patch-0.stdout.log",
+      "sha256": "fbd8d982db13f2a9a0ed791d06fb60224ab3161ebc2a518ac6a7bde96eb09eac"
+    },
+    "patch-1.stderr.log": {
+      "bytes": 0,
+      "encoding": "identity",
+      "path": "patch-1.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "patch-1.stdout.log": {
+      "bytes": 530,
+      "encoding": "identity",
+      "path": "patch-1.stdout.log",
+      "sha256": "4786011e25328706add383aabdf407cf62eec3aca01fa323042f1e8e46ab9c1b"
+    },
+    "plugin-compile-candidate-3.stderr.log": {
+      "bytes": 0,
+      "encoding": "identity",
+      "path": "plugin-compile-candidate-3.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "plugin-compile-candidate-3.stdout.log": {
+      "bytes": 0,
+      "encoding": "identity",
+      "path": "plugin-compile-candidate-3.stdout.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "plugin-compile.stderr.log": {
+      "bytes": 0,
+      "encoding": "identity",
+      "path": "plugin-compile.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "plugin-compile.stdout.log": {
+      "bytes": 0,
+      "encoding": "identity",
+      "path": "plugin-compile.stdout.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "q35q_probe.ml": {
+      "bytes": 1755,
+      "encoding": "identity",
+      "path": "q35q_probe.ml",
+      "sha256": "00d057af3fa529afadd9ccf28904112cd7a92a8411d1d0b33ed63af531db582b"
+    },
+    "receipt.json": {
+      "bytes": 14010,
+      "encoding": "identity",
+      "path": "receipt.json",
+      "sha256": "eb33ac328e79806d7f9c28bb80c7f5733cf54ce5951e28b0a77df73d471199a6"
+    },
+    "strict-MachineWordInterface.stderr.log": {
+      "bytes": 0,
+      "encoding": "identity",
+      "path": "strict-MachineWordInterface.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "strict-MachineWordInterface.stdout.log": {
+      "bytes": 0,
+      "encoding": "identity",
+      "path": "strict-MachineWordInterface.stdout.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "switch-after.lock": {
+      "bytes": 35243,
+      "encoding": "identity",
+      "path": "switch-after.lock",
+      "sha256": "d824ae973ee113133642c715ddd1073269e12280fa49d305f7b4d61f58fe18f6"
+    },
+    "switch-after.stderr.log": {
+      "bytes": 45,
+      "encoding": "identity",
+      "path": "switch-after.stderr.log",
+      "sha256": "73f7d708ddfeaa846af9ef6a9759e091a31ec9c2d32a6cf62dfb0f5bf1bf1d3a"
+    },
+    "switch-after.stdout.log": {
+      "bytes": 0,
+      "encoding": "identity",
+      "path": "switch-after.stdout.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "switch-before.lock": {
+      "bytes": 35243,
+      "encoding": "identity",
+      "path": "switch-before.lock",
+      "sha256": "d824ae973ee113133642c715ddd1073269e12280fa49d305f7b4d61f58fe18f6"
+    },
+    "switch-before.stderr.log": {
+      "bytes": 45,
+      "encoding": "identity",
+      "path": "switch-before.stderr.log",
+      "sha256": "73f7d708ddfeaa846af9ef6a9759e091a31ec9c2d32a6cf62dfb0f5bf1bf1d3a"
+    },
+    "switch-before.stdout.log": {
+      "bytes": 0,
+      "encoding": "identity",
+      "path": "switch-before.stdout.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  }
+}

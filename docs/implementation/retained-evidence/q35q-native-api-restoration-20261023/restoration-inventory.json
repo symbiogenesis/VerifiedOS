@@ -1,0 +1,148 @@
+{
+  "pairs": [
+    [
+      {
+        "path": "/root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/lib/coq/theories/Numbers/BinNums.vo",
+        "resolved": "/root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/lib/coq/theories/Numbers/BinNums.vo",
+        "size": 5890,
+        "mtime_ns": 1792736174515990335,
+        "sha256": "6438d598c1fc1937ad9052cb75c7277f931f9e5932ef0fee4b18b8a50d93f0dd",
+        "symlink": false
+      },
+      {
+        "path": "/root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/lib/rocq-core/rocq.d/Numbers/BinNums.vo",
+        "resolved": "/root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/lib/rocq-core/rocq.d/Numbers/BinNums.vo",
+        "size": 6757,
+        "mtime_ns": 1790707064840555257,
+        "sha256": "4bce44aaa4ea44985c27eb4e982f61f0a5ceb638b009d8cf3a7d8ad47bd1faff",
+        "symlink": false
+      }
+    ],
+    [
+      {
+        "path": "/root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/lib/coq/theories/Numbers/BinNums.glob",
+        "resolved": "/root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/lib/coq/theories/Numbers/BinNums.glob",
+        "size": 1786,
+        "mtime_ns": 1792736174515990335,
+        "sha256": "d30c92773722e9f92c8980759d541e7b96489726e378bb8085e78c12f7f2687e",
+        "symlink": false
+      },
+      {
+        "path": "/root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/lib/rocq-core/rocq.d/Numbers/BinNums.glob",
+        "resolved": "/root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/lib/rocq-core/rocq.d/Numbers/BinNums.glob",
+        "size": 1874,
+        "mtime_ns": 1790707064840489057,
+        "sha256": "b4f42a25a1a0fb1a76e87e269d54dc693f720d0b425a0520e182e6d2b517f9d3",
+        "symlink": false
+      }
+    ],
+    [
+      {
+        "path": "/root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/lib/coq/user-contrib/Stdlib/Numbers/BinNums.vo",
+        "resolved": "/root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/lib/coq/user-contrib/Stdlib/Numbers/BinNums.vo",
+        "size": 639,
+        "mtime_ns": 1792736174643990347,
+        "sha256": "d5c4f20930cf9ecff77857f1c16fdb6ff2746b9d9ce0918f1989c271019dff9a",
+        "symlink": false
+      },
+      {
+        "path": "/root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/lib/rocq-stdlib/rocq.d/Numbers/BinNums.vo",
+        "resolved": "/root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/lib/rocq-stdlib/rocq.d/Numbers/BinNums.vo",
+        "size": 639,
+        "mtime_ns": 1790707152479021411,
+        "sha256": "40a7bd1a92984e93837bd7d16fa7c223fb1589643302cb1b4bc92d6b47529624",
+        "symlink": false
+      }
+    ],
+    [
+      {
+        "path": "/root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/lib/coq/user-contrib/Stdlib/Numbers/BinNums.glob",
+        "resolved": "/root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/lib/coq/user-contrib/Stdlib/Numbers/BinNums.glob",
+        "size": 105,
+        "mtime_ns": 1792736174643990347,
+        "sha256": "3b675681e2bc8e985798c9dbb9700ac65043185d4013b6f08cb68404918b3aff",
+        "symlink": false
+      },
+      {
+        "path": "/root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/lib/rocq-stdlib/rocq.d/Numbers/BinNums.glob",
+        "resolved": "/root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/lib/rocq-stdlib/rocq.d/Numbers/BinNums.glob",
+        "size": 105,
+        "mtime_ns": 1790707221817586730,
+        "sha256": "3b675681e2bc8e985798c9dbb9700ac65043185d4013b6f08cb68404918b3aff",
+        "symlink": false
+      }
+    ],
+    [
+      {
+        "path": "/root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/lib/coq/user-contrib/Stdlib/Logic/EqdepFacts.glob",
+        "resolved": "/root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/lib/coq/user-contrib/Stdlib/Logic/EqdepFacts.glob",
+        "size": 11940,
+        "mtime_ns": 1792736174787990361,
+        "sha256": "06f7f75d54ba7a4e05b220ea52c8d9db6457e42465a1855c74931509bb7db41e",
+        "symlink": false
+      },
+      {
+        "path": "/root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/lib/rocq-stdlib/rocq.d/Logic/EqdepFacts.glob",
+        "resolved": "/root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/lib/rocq-stdlib/rocq.d/Logic/EqdepFacts.glob",
+        "size": 62033,
+        "mtime_ns": 1790707213871021556,
+        "sha256": "bc774e64ad5344dd33dcde501c035702547534e39e826dad8962cc55be151282",
+        "symlink": false
+      }
+    ]
+  ],
+  "rocq-core_manifest": {
+    "path": "/root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/.opam-switch/install/rocq-core.changes",
+    "matches": [
+      "  \"lib/coq/theories/Numbers/BinNums.glob\" {\"F:S1874T1790707064.85\"}",
+      "  \"lib/coq/theories/Numbers/BinNums.v\" {\"F:S2865T1790707064.85\"}",
+      "  \"lib/coq/theories/Numbers/BinNums.vo\" {\"F:S6757T1790707064.85\"}",
+      "  \"lib/rocq-core/rocq.d/Numbers/BinNums.glob\" {\"F:S1874T1790707064.84\"}",
+      "  \"lib/rocq-core/rocq.d/Numbers/BinNums.v\" {\"F:S2865T1790707064.84\"}",
+      "  \"lib/rocq-core/rocq.d/Numbers/BinNums.vo\" {\"F:S6757T1790707064.84\"}"
+    ]
+  },
+  "rocq-stdlib_manifest": {
+    "path": "/root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/.opam-switch/install/rocq-stdlib.changes",
+    "matches": [
+      "  \"lib/coq/user-contrib/Stdlib/Logic/EqdepFacts.glob\"",
+      "  \"lib/coq/user-contrib/Stdlib/Logic/EqdepFacts.v\" {\"F:S15873T1790707179.09\"}",
+      "  \"lib/coq/user-contrib/Stdlib/Logic/EqdepFacts.vo\" {\"F:S40417T1790707146.4\"}",
+      "  \"lib/coq/user-contrib/Stdlib/Numbers/BinNums.glob\" {\"F:S105T1790707221.82\"}",
+      "  \"lib/coq/user-contrib/Stdlib/Numbers/BinNums.v\" {\"F:S37T1790707187.82\"}",
+      "  \"lib/coq/user-contrib/Stdlib/Numbers/BinNums.vo\" {\"F:S639T1790707152.48\"}",
+      "  \"lib/rocq-stdlib/rocq.d/Logic/EqdepFacts.glob\" {\"F:S62033T1790707213.87\"}",
+      "  \"lib/rocq-stdlib/rocq.d/Logic/EqdepFacts.v\" {\"F:S15873T1790707179.09\"}",
+      "  \"lib/rocq-stdlib/rocq.d/Logic/EqdepFacts.vo\" {\"F:S40417T1790707146.4\"}",
+      "  \"lib/rocq-stdlib/rocq.d/Numbers/BinNums.glob\" {\"F:S105T1790707221.82\"}",
+      "  \"lib/rocq-stdlib/rocq.d/Numbers/BinNums.v\" {\"F:S37T1790707187.82\"}",
+      "  \"lib/rocq-stdlib/rocq.d/Numbers/BinNums.vo\" {\"F:S639T1790707152.48\"}"
+    ]
+  },
+  "aux": [
+    {
+      "path": "/root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/lib/coq/theories/Numbers/.BinNums.aux",
+      "resolved": "/root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/lib/coq/theories/Numbers/.BinNums.aux",
+      "size": 150,
+      "mtime_ns": 1792736174515990335,
+      "sha256": "08d2ad590537363de0284fca2a1564b00f542969087817167b7f25c170a19f4d",
+      "symlink": false
+    },
+    {
+      "path": "/root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/lib/coq/user-contrib/Stdlib/Numbers/.BinNums.aux",
+      "resolved": "/root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/lib/coq/user-contrib/Stdlib/Numbers/.BinNums.aux",
+      "size": 161,
+      "mtime_ns": 1792736174643990347,
+      "sha256": "a3c42edf856932ab51152053f51a2009df4b5fc66b53f5c183b9c46faa69897e",
+      "symlink": false
+    },
+    {
+      "path": "/root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/lib/coq/user-contrib/Stdlib/Logic/.EqdepFacts.aux",
+      "resolved": "/root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/lib/coq/user-contrib/Stdlib/Logic/.EqdepFacts.aux",
+      "size": 1379,
+      "mtime_ns": 1792736174787990361,
+      "sha256": "d78d1e7b46d8f6785a1aa36f3b43798ecb17c54523c191e0f21983e051c6e356",
+      "symlink": false
+    }
+  ]
+}

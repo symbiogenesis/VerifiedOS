@@ -1,0 +1,4 @@
+File "/tmp/vos-triple-q35q-candidate-j2bu7b8l/NativeMetadata.v", line 1, characters 0-51:
+Error:
+Compiled library Stdlib.ZArith.ZArith (in file /root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/lib/coq/user-contrib/Stdlib/ZArith/ZArith.vo) makes inconsistent assumptions over library Stdlib.Numbers.BinNums
+

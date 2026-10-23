@@ -1,0 +1,56 @@
+{
+  "files": {
+    "Sail-Support-LICENSE": {
+      "bytes": 2716,
+      "encoding": "identity",
+      "path": "Sail-Support-LICENSE",
+      "sha256": "9e52d88fe1802beb469e538b8c026ff5e7f9413ef06cd3ce898ee3928ae24df0"
+    },
+    "input-identities-after.json.gz": {
+      "bytes": 251774,
+      "encoding": "gzip",
+      "path": "input-identities-after.json.gz",
+      "sha256": "da28ba85389c3a4489b971ce8dbd7e50223dcd04d7b10a04742fc295179665c4",
+      "stored_bytes": 71243,
+      "stored_sha256": "169c29b35845ceded5b86df3eb0288765895da9e71ca905909e7c923229b8267"
+    },
+    "input-identities-before.json.gz": {
+      "bytes": 251774,
+      "encoding": "gzip",
+      "path": "input-identities-before.json.gz",
+      "sha256": "da28ba85389c3a4489b971ce8dbd7e50223dcd04d7b10a04742fc295179665c4",
+      "stored_bytes": 71243,
+      "stored_sha256": "169c29b35845ceded5b86df3eb0288765895da9e71ca905909e7c923229b8267"
+    },
+    "native-metadata.stderr.log": {
+      "bytes": 0,
+      "encoding": "identity",
+      "path": "native-metadata.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "native-metadata.stdout.log": {
+      "bytes": 34765,
+      "encoding": "identity",
+      "path": "native-metadata.stdout.log",
+      "sha256": "8db3108a056caff214598c77790f645bfcb751b71ab8b83a8df600ca64dc9553"
+    },
+    "receipt.json": {
+      "bytes": 2051,
+      "encoding": "identity",
+      "path": "receipt.json",
+      "sha256": "f122c63b369e3e09b25b3f40b24ded75daeed5ed3e41c0b5ec721c23283639cf"
+    },
+    "restoration-inventory.json": {
+      "bytes": 7232,
+      "encoding": "identity",
+      "path": "restoration-inventory.json",
+      "sha256": "e57c1ec65ca9e95488fd7f91b85b09ab79a9d71a6549c2d367c00d42a336fa8a"
+    },
+    "restoration-receipt.json": {
+      "bytes": 3845,
+      "encoding": "identity",
+      "path": "restoration-receipt.json",
+      "sha256": "639a675a62559e78f5d9d539ec767e58433a9cb28ed441d97d13be0dcc8b6b34"
+    }
+  }
+}
