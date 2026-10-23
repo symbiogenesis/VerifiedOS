@@ -1,0 +1,36 @@
+[
+  {
+    "name": "nonrocq-before",
+    "argv": [
+      "/root/.opam/verifiedos-sail-0.20.3-ocaml-5.4.1/bin/sail",
+      "-c",
+      "-o",
+      "bindings",
+      "/root/build/lane-reuse-wire-20261023-tags/bindings.sail"
+    ],
+    "cwd": "/tmp/vos-tags-c-ehkzdpe4",
+    "exit": 0,
+    "seconds": 0.9961516857147217,
+    "outputs": {
+      "bindings.h": "5cc3592a99f9c14e87f100a3e4f50efbf3c96a86e14af58f55e551b50de3be64",
+      "bindings.c": "6a83fdceeca22f4d08bb37463fed7ca782045f26e32f5af0adcf155dad222801"
+    }
+  },
+  {
+    "name": "nonrocq-after",
+    "argv": [
+      "/root/.opam/verifiedos-sail-0.20.3-ocaml-5.4.1/bin/sail",
+      "-c",
+      "-o",
+      "bindings",
+      "/root/build/lane-reuse-wire-20261023-tags/bindings.sail"
+    ],
+    "cwd": "/tmp/vos-tags-c-kesyjoje",
+    "exit": 0,
+    "seconds": 0.8782172203063965,
+    "outputs": {
+      "bindings.h": "5cc3592a99f9c14e87f100a3e4f50efbf3c96a86e14af58f55e551b50de3be64",
+      "bindings.c": "6a83fdceeca22f4d08bb37463fed7ca782045f26e32f5af0adcf155dad222801"
+    }
+  }
+]

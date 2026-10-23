@@ -1,0 +1,110 @@
+[93mWarning[0m: 
+[96m/root/.opam/verifiedos-sail-0.20.3-ocaml-5.4.1/share/sail/lib/arith.sail[0m:196.0-20:
+196[96m |[0m$c_reserved fdiv_int
+   [91m |[0m[91m^------------------^[0m
+   [91m |[0m Unrecognised directive: c_reserved
+
+[93mWarning[0m: 
+[96m/root/.opam/verifiedos-sail-0.20.3-ocaml-5.4.1/share/sail/lib/arith.sail[0m:208.0-20:
+208[96m |[0m$c_reserved fmod_int
+   [91m |[0m[91m^------------------^[0m
+   [91m |[0m Unrecognised directive: c_reserved
+
+[93mWarning[0m: Invalid option
+[96m/root/.opam/verifiedos-sail-0.20.3-ocaml-5.4.1/share/sail/lib/result.sail[0m:57.0-31:
+57[96m |[0m$option -lem_extern_type result
+  [91m |[0m[91m^-----------------------------^[0m
+  [91m |[0m Invalid flag passed to $option directive
+  [91m |[0m sail: unknown option '-lem_extern_type'.
+
+[93mWarning[0m: Invalid option
+[96m/root/.opam/verifiedos-sail-0.20.3-ocaml-5.4.1/share/sail/lib/result.sail[0m:59.0-32:
+59[96m |[0m$option -lean_extern_type result
+  [91m |[0m[91m^------------------------------^[0m
+  [91m |[0m Invalid flag passed to $option directive
+  [91m |[0m sail: unknown option '-lean_extern_type'.
+
+[93mWarning[0m: Invalid option
+[96m/root/.opam/verifiedos-sail-0.20.3-ocaml-5.4.1/share/sail/lib/concurrency_interface/read_write_v1.sail[0m:55.0-39:
+55[96m |[0m$option -lem_extern_type Access_variety
+  [91m |[0m[91m^-------------------------------------^[0m
+  [91m |[0m Invalid flag passed to $option directive
+  [91m |[0m sail: unknown option '-lem_extern_type'.
+
+[93mWarning[0m: Invalid option
+[96m/root/.opam/verifiedos-sail-0.20.3-ocaml-5.4.1/share/sail/lib/concurrency_interface/read_write_v1.sail[0m:57.0-40:
+57[96m |[0m$option -lean_extern_type Access_variety
+  [91m |[0m[91m^--------------------------------------^[0m
+  [91m |[0m Invalid flag passed to $option directive
+  [91m |[0m sail: unknown option '-lean_extern_type'.
+
+[93mWarning[0m: Invalid option
+[96m/root/.opam/verifiedos-sail-0.20.3-ocaml-5.4.1/share/sail/lib/concurrency_interface/read_write_v1.sail[0m:64.0-40:
+64[96m |[0m$option -lem_extern_type Access_strength
+  [91m |[0m[91m^--------------------------------------^[0m
+  [91m |[0m Invalid flag passed to $option directive
+  [91m |[0m sail: unknown option '-lem_extern_type'.
+
+[93mWarning[0m: Invalid option
+[96m/root/.opam/verifiedos-sail-0.20.3-ocaml-5.4.1/share/sail/lib/concurrency_interface/read_write_v1.sail[0m:66.0-41:
+66[96m |[0m$option -lean_extern_type Access_strength
+  [91m |[0m[91m^---------------------------------------^[0m
+  [91m |[0m Invalid flag passed to $option directive
+  [91m |[0m sail: unknown option '-lean_extern_type'.
+
+[93mWarning[0m: Invalid option
+[96m/root/.opam/verifiedos-sail-0.20.3-ocaml-5.4.1/share/sail/lib/concurrency_interface/read_write_v1.sail[0m:73.0-45:
+73[96m |[0m$option -lem_extern_type Explicit_access_kind
+  [91m |[0m[91m^-------------------------------------------^[0m
+  [91m |[0m Invalid flag passed to $option directive
+  [91m |[0m sail: unknown option '-lem_extern_type'.
+
+[93mWarning[0m: Invalid option
+[96m/root/.opam/verifiedos-sail-0.20.3-ocaml-5.4.1/share/sail/lib/concurrency_interface/read_write_v1.sail[0m:75.0-46:
+75[96m |[0m$option -lean_extern_type Explicit_access_kind
+  [91m |[0m[91m^--------------------------------------------^[0m
+  [91m |[0m Invalid flag passed to $option directive
+  [91m |[0m sail: unknown option '-lean_extern_type'.
+
+[93mWarning[0m: Invalid option
+[96m/root/.opam/verifiedos-sail-0.20.3-ocaml-5.4.1/share/sail/lib/concurrency_interface/read_write_v1.sail[0m:81.0-36:
+81[96m |[0m$option -lem_extern_type Access_kind
+  [91m |[0m[91m^----------------------------------^[0m
+  [91m |[0m Invalid flag passed to $option directive
+  [91m |[0m sail: unknown option '-lem_extern_type'.
+
+[93mWarning[0m: Invalid option
+[96m/root/.opam/verifiedos-sail-0.20.3-ocaml-5.4.1/share/sail/lib/concurrency_interface/read_write_v1.sail[0m:83.0-37:
+83[96m |[0m$option -lean_extern_type Access_kind
+  [91m |[0m[91m^-----------------------------------^[0m
+  [91m |[0m Invalid flag passed to $option directive
+  [91m |[0m sail: unknown option '-lean_extern_type'.
+
+[93mWarning[0m: Invalid option
+[96m/root/.opam/verifiedos-sail-0.20.3-ocaml-5.4.1/share/sail/lib/concurrency_interface/read_write_v1.sail[0m:91.0-41:
+91[96m |[0m$option -lem_extern_type Mem_read_request
+  [91m |[0m[91m^---------------------------------------^[0m
+  [91m |[0m Invalid flag passed to $option directive
+  [91m |[0m sail: unknown option '-lem_extern_type'.
+
+[93mWarning[0m: Invalid option
+[96m/root/.opam/verifiedos-sail-0.20.3-ocaml-5.4.1/share/sail/lib/concurrency_interface/read_write_v1.sail[0m:93.0-42:
+93[96m |[0m$option -lean_extern_type Mem_read_request
+  [91m |[0m[91m^----------------------------------------^[0m
+  [91m |[0m Invalid flag passed to $option directive
+  [91m |[0m sail: unknown option '-lean_extern_type'.
+
+[93mWarning[0m: Invalid option
+[96m/root/.opam/verifiedos-sail-0.20.3-ocaml-5.4.1/share/sail/lib/concurrency_interface/read_write_v1.sail[0m:188.0-42:
+188[96m |[0m$option -lem_extern_type Mem_write_request
+   [91m |[0m[91m^----------------------------------------^[0m
+   [91m |[0m Invalid flag passed to $option directive
+   [91m |[0m sail: unknown option '-lem_extern_type'.
+
+[93mWarning[0m: Invalid option
+[96m/root/.opam/verifiedos-sail-0.20.3-ocaml-5.4.1/share/sail/lib/concurrency_interface/read_write_v1.sail[0m:190.0-43:
+190[96m |[0m$option -lean_extern_type Mem_write_request
+   [91m |[0m[91m^-----------------------------------------^[0m
+   [91m |[0m Invalid flag passed to $option directive
+   [91m |[0m sail: unknown option '-lean_extern_type'.
+

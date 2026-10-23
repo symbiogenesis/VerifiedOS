@@ -1,0 +1,45 @@
+--- a/src-stdpp/ConcurrencyInterface.v
++++ b/src-stdpp/ConcurrencyInterface.v
+@@ -161,6 +161,9 @@
+   | MemRead (n : N) : ReadReq.t n ->
+                       outcome (bv (8 * n) * option bool + abort)
+   | MemWrite (n : N) : WriteReq.t n -> outcome (option bool + abort)
++    (** Standalone tag-plane operations on the raw granule key. *)
++  | TagRead (key : mword 64) : outcome bool
++  | TagWrite (key : mword 64) (value : bool) : outcome unit
+     (** Declare the opcode of the current instruction when known. Used for
+         dependency computation *)
+   | InstrAnnounce (opcode : bvn) : outcome unit
+@@ -313,6 +316,8 @@
+             Next (RegWrite reg direct val)
+         | MemRead n readreq => Next (MemRead n readreq)
+         | MemWrite n writereq => Next (MemWrite n writereq)
++        | TagRead key => Next (TagRead key)
++        | TagWrite key value => Next (TagWrite key value)
+         | InstrAnnounce opcode => Next (InstrAnnounce opcode)
+         | BranchAnnounce sz pa => Next (BranchAnnounce sz pa)
+         | Barrier barrier => Next (Barrier barrier)
+--- a/src-stdpp/ConcurrencyInterfaceBuiltins.v
++++ b/src-stdpp/ConcurrencyInterfaceBuiltins.v
+@@ -10,6 +10,12 @@
+ 
+ Definition monad E := I.iMon (fun _ => E).
+ Definition returnm {A E} : A -> monad E A := I.Ret.
++
++(** Raw granule keys are not byte addresses; preserve them without rescaling. *)
++Definition read_tag_bool {E} (key : mword 64) : monad E bool :=
++  I.Next (I.TagRead key) I.Ret.
++Definition write_tag_bool {E} (key : mword 64) (value : bool) : monad E unit :=
++  I.Next (I.TagWrite key value) I.Ret.
+ 
+ Definition monadR R E := I.iMon (fun _ => (R + E)%type).
+ Definition returnR {A E} R : A -> monadR R E A := I.Ret.
+@@ -52,6 +58,8 @@
+   | I.Next (I.RegWrite reg direct regval)      f => I.Next (I.RegWrite reg direct regval) (fun t => try_catch (f t) h)
+   | I.Next (I.MemRead n req)                   f => I.Next (I.MemRead n req) (fun t => try_catch (f t) h)
+   | I.Next (I.MemWrite n req)                  f => I.Next (I.MemWrite n req) (fun t => try_catch (f t) h)
++  | I.Next (I.TagRead key)                     f => I.Next (I.TagRead key) (fun t => try_catch (f t) h)
++  | I.Next (I.TagWrite key value)              f => I.Next (I.TagWrite key value) (fun t => try_catch (f t) h)
+   | I.Next (I.InstrAnnounce opcode)            f => I.Next (I.InstrAnnounce opcode) (fun t => try_catch (f t) h)
+   | I.Next (I.BranchAnnounce sz pa)            f => I.Next (I.BranchAnnounce sz pa) (fun t => try_catch (f t) h)
+   | I.Next (I.Barrier barrier)                 f => I.Next (I.Barrier barrier) (fun t => try_catch (f t) h)

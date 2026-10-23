@@ -1,0 +1,16 @@
+{
+  "schema": "verifiedos-canonical-tag-candidate/1",
+  "status": "isolated-candidate-not-production",
+  "owner": "docs/implementation/contracts/canonical-tag-outcomes.md",
+  "base_support_recipe": "tools/opam/sail-support-qualification.json",
+  "patch": {
+    "path": "docs/implementation/retained-evidence/reuse-wire-tags-20261023/canonical-tag-outcomes.patch",
+    "sha256": "8d710a030512dfc3e5ac6447391704fc86ba0408e4f238d0424d3bdaac7f5669"
+  },
+  "syntax_plugin_sha256": "bfd722d424936648c244a2a2d42f4eca6d76a0b45fdbf439043844d5a9c28eae",
+  "syntax_plugin_source_evidence": "docs/implementation/retained-evidence/q35o-scope-20261023/manifest.json",
+  "reproducer": "docs/implementation/retained-evidence/close3-q35p-20261013/bindings.sail.txt",
+  "reproducer_sha256": "aff11682da08211dc364a767dcec579b008d1ca1603054d8e9ab71c82e0701b4",
+  "strict_support_modules": 29,
+  "dependencies": "Pass the independently built matching Q35n/Q35o stdpp+bitvector object directory; these are copied privately and are not rebuilt by this runner."
+}

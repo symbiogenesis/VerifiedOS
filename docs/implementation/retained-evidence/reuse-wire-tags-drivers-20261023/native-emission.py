@@ -1,0 +1,6 @@
+from pathlib import Path
+import os,subprocess,tempfile,json,hashlib,time
+root=Path('/root/build/lane-reuse-wire-20261023-tags');sail=Path('/root/.opam/verifiedos-sail-0.20.3-ocaml-5.4.1/bin/sail');env=os.environ.copy();env['SAIL_PLUGIN_DIR']=str(root/'plugins');env['PATH']=str(sail.parent)+':'+env['PATH'];cwd=tempfile.mkdtemp(prefix='vos-tags-emit-');rows=[]
+for lane in ['emitted','repeat']:
+ d=root/lane;d.mkdir(exist_ok=True);argv=[str(sail),'--rocq','-D','CONCURRENCY_INTERFACE','--rocq-lib-style','stdpp','--rocq-alt-modules','SailStdpp.Base SailStdpp.ConcurrencyInterfaceTypes SailStdpp.ConcurrencyInterface SailStdpp.ConcurrencyInterfaceBuiltins','--rocq-output-dir',str(d),'-o','bindings',str(root/'bindings.sail')];t=time.time();r=subprocess.run(argv,cwd=cwd,env=env,capture_output=True,text=True);(root/(lane+'-emit.log')).write_text(r.stdout+r.stderr);rows.append({'argv':argv,'cwd':cwd,'exit':r.returncode,'seconds':time.time()-t,'outputs':{p.name:hashlib.sha256(p.read_bytes()).hexdigest() for p in d.glob('bindings*.v')}});print(lane,r.returncode,rows[-1]['outputs'],r.stderr[-400:])
+(root/'emission.json').write_text(json.dumps(rows,indent=2)+'\n')

@@ -1,0 +1,50 @@
+[
+  {
+    "argv": [
+      "/root/.opam/verifiedos-sail-0.20.3-ocaml-5.4.1/bin/sail",
+      "--rocq",
+      "-D",
+      "CONCURRENCY_INTERFACE",
+      "--rocq-lib-style",
+      "stdpp",
+      "--rocq-alt-modules",
+      "SailStdpp.Base SailStdpp.ConcurrencyInterfaceTypes SailStdpp.ConcurrencyInterface SailStdpp.ConcurrencyInterfaceBuiltins",
+      "--rocq-output-dir",
+      "/root/build/lane-reuse-wire-20261023-tags/emitted",
+      "-o",
+      "bindings",
+      "/root/build/lane-reuse-wire-20261023-tags/bindings.sail"
+    ],
+    "cwd": "/tmp/vos-tags-emit-v4gycef5",
+    "exit": 0,
+    "seconds": 0.9320979118347168,
+    "outputs": {
+      "bindings.v": "8e8882b9a96e069750c55e3a3398e12148f7d52e96995b944986d39b9f34f6ef",
+      "bindings_types.v": "60fd1ba423a0ee2b6b62987abdd4bda72324b5e9dd9864b8d3b272cdeb9c2e6d"
+    }
+  },
+  {
+    "argv": [
+      "/root/.opam/verifiedos-sail-0.20.3-ocaml-5.4.1/bin/sail",
+      "--rocq",
+      "-D",
+      "CONCURRENCY_INTERFACE",
+      "--rocq-lib-style",
+      "stdpp",
+      "--rocq-alt-modules",
+      "SailStdpp.Base SailStdpp.ConcurrencyInterfaceTypes SailStdpp.ConcurrencyInterface SailStdpp.ConcurrencyInterfaceBuiltins",
+      "--rocq-output-dir",
+      "/root/build/lane-reuse-wire-20261023-tags/repeat",
+      "-o",
+      "bindings",
+      "/root/build/lane-reuse-wire-20261023-tags/bindings.sail"
+    ],
+    "cwd": "/tmp/vos-tags-emit-v4gycef5",
+    "exit": 0,
+    "seconds": 0.16738033294677734,
+    "outputs": {
+      "bindings.v": "8e8882b9a96e069750c55e3a3398e12148f7d52e96995b944986d39b9f34f6ef",
+      "bindings_types.v": "60fd1ba423a0ee2b6b62987abdd4bda72324b5e9dd9864b8d3b272cdeb9c2e6d"
+    }
+  }
+]
