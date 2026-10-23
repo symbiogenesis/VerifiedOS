@@ -137,5 +137,18 @@
     ],
     "storage_owner_revision": "f7c6ab1f94b852c30a1e2af032fd2034e966d2b6",
     "distinct_resolver_owner_revision": "4c1789c69cbe45bc128ae384a4070cb1b8b2054d"
+  },
+  "adapter_native_controls": {
+    "maximum_candidate_checks": 3,
+    "maximum_active_minutes": 30,
+    "candidate_intents": [
+      {
+        "ordinal": 1,
+        "scope": "one strict duplicate-free parse and complete schema of native14 exact30 roots;78 actual native Print Module/Type readings; unchanged full adapter graph replay without support assumptions/kernel",
+        "output": "/root/build/lane-checklist-20261023-c/adapter-1",
+        "result": "strict duplicate/schema and all78 native readings pass; full adapter refuses generic End-token counter on real FMapAVL enumeration constructor End in State_monad.NMap.Raw; source/raw/all protected inputs unchanged; elapsed840.471316848s"
+      }
+    ],
+    "framing_disposition_revision": "d98d1e40741b439caf440ba62469e2714bb1f478"
   }
 }

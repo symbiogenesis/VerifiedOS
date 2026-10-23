@@ -12,6 +12,7 @@ import json
 import os
 import runpy
 import shutil
+import stat
 import subprocess
 import sys
 import tempfile
@@ -133,16 +134,30 @@ def metadata_output(stdout: bytes, targets: list[str]) -> None:
         raise ValueError("metadata target population differs from requested targets")
 
 
+def output_stat(value: os.stat_result) -> dict[str, int]:
+    require(stat.S_ISREG(value.st_mode), "native census output is not a regular file")
+    return {"device": value.st_dev, "inode": value.st_ino, "size": value.st_size,
+            "mtime_ns": value.st_mtime_ns}
+
+
 def output_identity(path: Path) -> dict[str, object]:
-    require(path.is_absolute() and path.is_file() and not path.is_symlink(), "native census output is not a regular absolute file")
+    require(path.is_absolute(), "native census output is not an absolute file")
+    before = output_stat(path.lstat())
     sha256, blake = hashlib.sha256(), hashlib.blake2b(digest_size=32)
     size = 0
     with path.open("rb") as stream:
+        require(output_stat(os.fstat(stream.fileno())) == before,
+                "native census output changed before hashing")
         for chunk in iter(lambda: stream.read(1024 * 1024), b""):
             sha256.update(chunk)
             blake.update(chunk)
             size += len(chunk)
-    return {"path": str(path), "bytes": size, "sha256": sha256.hexdigest(), "blake2b_256": blake.hexdigest()}
+        require(output_stat(os.fstat(stream.fileno())) == before,
+                "native census output changed while hashing")
+    require(output_stat(path.lstat()) == before and size == before["size"],
+            "native census output changed after hashing")
+    return {"path": str(path), "bytes": size, "sha256": sha256.hexdigest(),
+            "blake2b_256": blake.hexdigest(), "stat": before}
 
 
 def unique_object(pairs: list[tuple[str, object]]) -> dict[str, object]:
@@ -167,7 +182,11 @@ def census_output(stdout: bytes, targets: list[str], requests: list[object], *, 
     require(envelope["bytes"] == before["bytes"] and envelope["blake2b_256"] == before["blake2b_256"],
             "native census output bytes or digest differ from envelope")
     with output.open(encoding="utf-8") as stream:
+        require(output_stat(os.fstat(stream.fileno())) == before["stat"],
+                "native census output changed before parsing")
         value = json.load(stream, object_pairs_hook=unique_object)
+        require(output_stat(os.fstat(stream.fileno())) == before["stat"],
+                "native census output changed while parsing")
     if not isinstance(value, dict) or value.get("schema") != "verifiedos-sail-support-census/1":
         raise ValueError("unexpected census schema")
     if "acceptance" in value or value.get("requested_roots") != targets:
@@ -338,20 +357,18 @@ def main() -> int:
         env["PATH"] = str(switch / "bin") + os.pathsep + env.get("PATH", "")
         env["OCAMLPATH"] = str(out) + os.pathsep + str(switch / "lib") + os.pathsep + env.get("OCAMLPATH", "")
         env["VOS_CENSUS_TARGETS"] = args.targets
+        env.pop("VOS_CENSUS_OUTPUT_FILE", None)
+        env.pop("VOS_CENSUS_PROGRESS_FILE", None)
         if args.census:
             env["VOS_CENSUS_MODE"] = "census"
             env.pop("VOS_CENSUS_RESOLVE", None)
             env.pop("VOS_CENSUS_RESOLVE_FILE", None)
             require(not output_file.exists(), "native census output already exists before callback")
-            env["VOS_CENSUS_OUTPUT_FILE"] = str(output_file)
             receipt["native_output_requested"] = {"path": str(output_file), "existed_before": False}
-            env.pop("VOS_CENSUS_PROGRESS_FILE", None)
         else:
             env.pop("VOS_CENSUS_MODE", None)
             env.pop("VOS_CENSUS_RESOLVE", None)
             env.pop("VOS_CENSUS_RESOLVE_FILE", None)
-            env.pop("VOS_CENSUS_OUTPUT_FILE", None)
-            env.pop("VOS_CENSUS_PROGRESS_FILE", None)
         with tempfile.TemporaryDirectory(prefix="vos-native-census-") as work:
             receipt["native_process_cwd"] = work
             plugin_exit = run_command("plugin-build", [str(switch / "bin/ocamlfind"), "ocamlopt", "-rectypes",
@@ -416,12 +433,15 @@ def main() -> int:
                     env["VOS_CENSUS_RESOLVE_FILE"] = str(request_path)
                 else:
                     shutil.copy2(source / "NativeControls.v", query)
+                native_env = env.copy()
                 if args.census:
                     loaded_before = query_inputs(out)
                     receipt["loaded_before"] = loaded_before
                     require(source_population(out / "support") == source_before, "copied support source bytes differ before query")
                     require(population(out / "support") == dependency_before, "copied support object bytes differ before query")
                     require(not stdpp_source or population(out / "stdpp") == stdpp_before, "copied dependency object bytes differ before query")
+                    require(not output_file.exists(), "native census output appeared before callback")
+                    native_env["VOS_CENSUS_OUTPUT_FILE"] = str(output_file)
                 native_exit = run_command("native-query", [str(switch / "bin/rocq"), "c", "-boot", "-R",
                     str(installed / "theories"), "Corelib", "-Q",
                     str(installed / "user-contrib/Stdlib"), "Stdlib", "-Q",
@@ -429,7 +449,7 @@ def main() -> int:
                     *(["-Q", str(out / "controls"), ""] if args.census else []),
                     "-q", "-w", "+default,-abstract-large-number", "-set", "Default Goal Selector=!",
                     "-disallow-sprop", "-o", str(out / "NativeControls.vo"), str(query)],
-                    out=out, work=work, env=env, receipt=receipt, commands=command_records,
+                    out=out, work=work, env=native_env, receipt=receipt, commands=command_records,
                     timeout_seconds=args.query_timeout_seconds)
                 if native_exit == 0:
                     no_diagnostic(out, "native-query", permit_stdout=True)
