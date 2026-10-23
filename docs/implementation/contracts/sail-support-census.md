@@ -241,8 +241,10 @@ strict query succeeds with empty diagnostics. Preserve that reading and the refu
 replay. This is a text-framing defect, not an unsupported native module form.
 
 Readings must match their requested native header and module/type kind, contain no
-elision or diagnostic, and retain the outer body's terminal `End` when the printer
-opens a signature or structure. Do not infer nested module balance by counting
+elision or diagnostic, and retain the outer body's closing `End` when the printer
+opens a signature or structure, followed only by the locked printer's optional
+native module-alias/application suffix. Retain that suffix in full and join the
+native implementation expression separately. Do not infer nested module balance by counting
 Gallina identifiers. Completeness of every nested module and field remains the
 constructor-based native graph's obligation, joined to the exact strict query and
 its full retained stdout. This correction permits no missing native field, changed
