@@ -1,0 +1,145 @@
+{
+  "recipe": {
+    "base_lock": {
+      "path": "tools/opam/rocq.lock",
+      "sha256": "3e70338fb77832f9e09ee8780cd10524e002420b1ca9aa5f56a15777765e1b32"
+    },
+    "dependency_source_settings": "Original locked package build settings; no strict dependency source port.",
+    "frozen_inventory": {
+      "path": "docs/implementation/retained-evidence/q35n-20261013/frozen-query-inventory.json",
+      "sha256": "0158b79df7a5d131b187abf8954c362ec04ab532d1a113a711b74fa477a12a8e"
+    },
+    "package_metadata_source_sha256": "5580097144c3599d12095104f56217f036f06fdaf9e6fbf1156483b09fa404fc",
+    "package_tests": "Original dune build -p rocq-sail-stdpp -j jobs @install @runtest, under opam --with-test; hosted only.",
+    "patches": [
+      {
+        "path": "docs/implementation/retained-evidence/root/build/lane-q35g-20261003/q35g/coq-sail-reals-eqdep.patch",
+        "sha256": "a74749c56f38127371cb748de26ffcc1d1f0bf65bbcbb8ab1d0e9c278ba202a5",
+        "stage": "axiom"
+      },
+      {
+        "path": "docs/implementation/retained-evidence/q35n-20261013/sail-support-strict.patch",
+        "sha256": "cee3710ee8b21c439885190e30cf0618fe68fb3a4071dd9991c2f5db37122477",
+        "stage": "syntax"
+      }
+    ],
+    "probes": {
+      "eqdep": {
+        "expected_axioms": [
+          "Stdlib.Logic.Eqdep.Eq_rect_eq.eq_rect_eq"
+        ],
+        "path": "docs/implementation/retained-evidence/q35n-20261013/ControlEqdep.v",
+        "sha256": "6e2bbe34571f04b9694761ed0724a4dd797e24d4225bc541b7771cbd4fcd961b"
+      },
+      "notation": {
+        "expected_axioms": [],
+        "path": "docs/implementation/retained-evidence/q35n-20261013/NotationProbe.v",
+        "sha256": "07b6ae14106429b749934e8a36c2838bd95f190df1449b8efed4ceaf1514dd33"
+      },
+      "real": {
+        "expected_axioms": [
+          "Stdlib.Logic.FunctionalExtensionality.functional_extensionality_dep",
+          "Stdlib.Reals.ClassicalDedekindReals.sig_not_dec",
+          "Stdlib.Reals.ClassicalDedekindReals.sig_forall_dec",
+          "Stdlib.Logic.Classical_Prop.classic"
+        ],
+        "path": "docs/implementation/retained-evidence/q35n-20261013/ControlReal.v",
+        "sha256": "ae02976fae523473c4ef564feb09c38b33f66937e7e2eb96f1460b9ec5d769a6"
+      },
+      "term": {
+        "expected_axioms": [],
+        "path": "docs/implementation/retained-evidence/q35n-20261013/TermProbe.v",
+        "sha256": "c28f6147793d28f20b1f8deda58e4583d3db4678cd8d67eb44f162aaf777bfce"
+      }
+    },
+    "schema": "verifiedos-sail-support-qualification/1",
+    "snapshot": "Full frozen package metadata and embedded checksum-bound patch/license bytes; independent import/rebuild and byte-identical re-export required.",
+    "source": {
+      "git_revision": "e7b914cddc032e3676eebd87a808229828013e9c",
+      "sha256": "1a0e226608ac84add6cd1f61a11637ea9db5e00e1551b2070945310078c9e031",
+      "url": "https://github.com/rems-project/coq-sail/archive/refs/tags/0.20.3.tar.gz",
+      "version": "0.20.3"
+    },
+    "source_endpoint_revision": "2986b14acd78715f8316faf098bcfe84d3395794",
+    "source_license_sha256": "9e52d88fe1802beb469e538b8c026ff5e7f9413ef06cd3ce898ee3928ae24df0",
+    "strict_flags": [
+      "-q",
+      "-w",
+      "+default,-abstract-large-number",
+      "-set",
+      "Default Goal Selector=!",
+      "-disallow-sprop"
+    ],
+    "strict_support_modules": 29,
+    "support_axioms": [
+      "Stdlib.Logic.FunctionalExtensionality.functional_extensionality_dep",
+      "Stdlib.Reals.ClassicalDedekindReals.sig_not_dec",
+      "Stdlib.Reals.ClassicalDedekindReals.sig_forall_dec",
+      "Stdlib.Logic.Classical_Prop.classic"
+    ],
+    "support_modules": [
+      "Base",
+      "ConcurrencyInterface",
+      "ConcurrencyInterfaceBuiltins",
+      "ConcurrencyInterfaceBuiltinsV2",
+      "ConcurrencyInterfaceTypes",
+      "ConcurrencyInterfaceTypesV2",
+      "ConcurrencyInterfaceV2",
+      "GenericValue",
+      "Hoare",
+      "Impl_base",
+      "Inhabited",
+      "Instances",
+      "Instr_kinds",
+      "MachineWord",
+      "MachineWordInterface",
+      "Operators_mwords",
+      "Prompt",
+      "Prompt_monad",
+      "Real",
+      "State",
+      "State_lemmas",
+      "State_lifting",
+      "State_monad",
+      "State_monad_lemmas",
+      "String",
+      "TypeCasts",
+      "Undefined",
+      "Values",
+      "Values_lemmas"
+    ]
+  },
+  "sources": {
+    "Prompt_monad.v": "b0c88092d2c61cdf2996a4e69b85aa1cef6d22c3ab69fea87bb437e458ab1a86",
+    "Prompt.v": "fcdba7cf37ce232aebbd78b0c4474fd85ea95c5fbf6ad688db9dd8025682c718",
+    "Values.v": "42d75f17e0e99822270c275a07d034963ed0f74843890f998cc3febac75fa349",
+    "State.v": "414f6bcb07b6d105b7a69164763af97227fdbf70756a8e3245b042112e0f130f",
+    "State_lemmas.v": "9fb3a695d5654b42a0b3c63c635c3b9a906a1fe8c4417b941f0d089f163ce07d",
+    "ConcurrencyInterfaceBuiltinsV2.v": "4196b6930563f84700fe65bf33185c48351f1122804ea4544a1c75130b52b20e",
+    "TypeCasts.v": "46a81e309964850ba2389d8a898ab3febd6242a22649b02716ce31763bdaa6e9",
+    "Hoare.v": "20320061e2c7da55b394e09d8b6d225b7cd332834943265fb6b8f15881890542",
+    "Instr_kinds.v": "015598c55c5609446bf9e71ebbd70a918d4118a056092a1098ea998b6813e614",
+    "Values_lemmas.v": "a1596ee4f4e48d6f917476f3b3e190f9f93df19122681ad7baa22c3383625566",
+    "State_monad.v": "1e0a6c6441d48c2698acfc8968b9c2830459995bac09345711d983302830bae4",
+    "Inhabited.v": "e1176682f45b6f6e3506a91ebd920af288fb9529f07c51bf7f3ec9bb15fe83ee",
+    "ConcurrencyInterfaceBuiltins.v": "b3f1ca845ef26e7127a636c577dba0d923982947a6a67bc7ef0e08d9d0329ef7",
+    "Instances.v": "4ad0963864aeed33b0cebd37744830b8f368bceb429181c429aeb245df811417",
+    "String.v": "483372be1a6b014c0359237dcf1316c2af9a8f42ae7d96928acea0feed987130",
+    "Undefined.v": "df1ebd5b879c1c22782b5a7c0c426ee4fbe1a445f74d94515e1c9f79c710cb72",
+    "State_lifting.v": "c8e4409e1899ba05ee98376fb5d6c81905845cef37ffb3fcc646adc42efb9562",
+    "MachineWordTest.v": "8daed44c8c908568a42eda9b8521247ca8758acbd79412d096bbcbbed83c338e",
+    "Real.v": "8459b089b3030fcf8720fb42629bb83be320ba67900f9aa7444cf9c3bf98f54b",
+    "MachineWordInterface.v": "e9cf76bc0e4caf728e15341c64c8c6b7b5168f26868888b54a279a57a1c5e6d1",
+    "ConcurrencyInterfaceTypesV2.v": "4912a82f8e12dd7858c4a3ad1598f06a45bf84cb29a886c452de4384882e8224",
+    "MachineWord.v": "a4cf00faddb7f780f00655e22d072fe4694e196f4960d9ec54d1bb4b0c5e44be",
+    "ConcurrencyInterfaceTypes.v": "3d7bcdd1233c87c43bac1cdc2aefde2a7f5c431c1584c34bf4402dc518f6dca5",
+    "Base.v": "24adf50003085eec9df60175646ac7e5de8517e329541d27973ba61830e3b970",
+    "ConcurrencyInterface.v": "a4c62a54d28c2f04f0d7a4a5d8f196d0314c09413eb067fe1ce2b5e69c0ad2dd",
+    "Operators_mwords.v": "66972519af80b00447b6f472ee1aba32bbfea8fe2f2b65bf54093459a3814991",
+    "ConcurrencyInterfaceV2.v": "92d3e9e43b7acdc34b180602aeab67ec3dcf13111952c25e1a06ce6008460963",
+    "GenericValue.v": "391f30c9ab1eaaf8a989a34fc1247285fa01fa210cc60a7bafcd77490152589d",
+    "State_monad_lemmas.v": "1e6ac29765351dfa3d8f0ff477e45ccdc8266db8c7090c93c1d6de2bb3475191",
+    "Impl_base.v": "6bbc667772aae5c0d2ef919890e4432ddaeb9f0a2505b11e6ee7012031a23828"
+  },
+  "historical_mismatch": {}
+}

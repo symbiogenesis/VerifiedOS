@@ -1,0 +1,293 @@
+default Order dec
+$include <prelude.sail>
+$include <vector_dec.sail>
+$include <string.sail>
+overload operator ^ = {concat_str}
+val zero_extend : forall 'n 'm, 'm >= 'n. (implicit('m), bits('n)) -> bits('m)
+function zero_extend(m, v) = sail_zero_extend(v, m)
+val zeros : forall 'n, 'n >= 0 . implicit('n) -> bits('n)
+function zeros(n) = sail_zeros(n)
+val to_bits_truncate : forall 'l, 'l >= 0 . (implicit('l), int) -> bits('l)
+function to_bits_truncate(l, n) = get_slice_int(l, n, 0)
+type physaddrbits_len : Int = 64
+type log2_cap_size : Int = 3
+let physaddrbits_len = sizeof(physaddrbits_len)
+let log2_cap_size = sizeof(log2_cap_size)
+type physaddrbits = bits(physaddrbits_len)
+type max_mem_access : Int = 4096
+type mem_access_width = range(1,max_mem_access)
+newtype physaddr = Physaddr : physaddrbits
+// =======================================================================================
+// This Sail RISC-V architecture model, comprising all files and
+// directories except where otherwise noted is subject the BSD
+// two-clause license in the LICENSE file.
+//
+// SPDX-License-Identifier: BSD-2-Clause
+// =======================================================================================
+
+// model-internal exceptions
+
+union exception = {
+  Error_not_implemented : string,
+  Error_internal_error  : string,
+  Error_reserved_behavior : string,
+}
+
+val not_implemented : forall ('a : Type). string -> 'a
+function not_implemented(message) = throw Error_not_implemented(message)
+
+val internal_error : forall ('a : Type). (string, int, string) -> 'a
+function internal_error(file, line, s) = throw Error_internal_error(file ^ ":" ^ dec_str(line) ^ ": " ^ s)
+
+val reserved_behavior : forall ('a : Type). string -> 'a
+function reserved_behavior(message) = throw Error_reserved_behavior(message)
+
+function string_of_exception(e : exception) -> string =
+  match e {
+    Error_not_implemented(s)   => "Not implemented error: " ^ s,
+    Error_internal_error(s)    => "Internal error: " ^ s,
+    Error_reserved_behavior(s) => "Fatal reserved behavior: " ^ s,
+  }
+
+// =======================================================================================
+// This Sail RISC-V architecture model, comprising all files and
+// directories except where otherwise noted is subject the BSD
+// two-clause license in the LICENSE file.
+//
+// The tag-plane functions below follow the CHERI-RISC-V Sail model
+// (CTSRD-CHERI/sail-cheri-riscv @ bb07488d, src/cheri_mem_metadata.sail), which is
+// subject to the BSD two-clause licence in model/LICENCE.cheri.
+//
+// SPDX-License-Identifier: BSD-2-Clause
+// =======================================================================================
+
+// The metadata every physical memory access carries is the CHERI validity
+// tag: one bit per capability-sized granule, held in a plane of its own
+// (R-15-203). It is not addressable as data, so it is metadata on the access
+// rather than a second memory the model reads.
+
+type mem_meta = bool
+
+let default_meta : mem_meta = false
+
+// The tag plane is indexed by granule, not by byte: the granule holding an
+// address is what a tag belongs to, so the index is the address with its
+// in-granule bits dropped. Every capability access is granule-aligned, and a
+// data access clears the tag of every granule it overwrites, which is what
+// makes tag clearing a property of the write path rather than an instruction
+// (R-15-007r, R-15-115a, R-15-183).
+type tagaddrbits = bits(physaddrbits_len - log2_cap_size)
+
+function addr_to_tag_addr(addr : physaddrbits) -> tagaddrbits =
+  truncateLSB(addr, physaddrbits_len - log2_cap_size)
+
+function tag_addr_to_addr(tag_addr : tagaddrbits) -> physaddrbits =
+  tag_addr @ zeros(log2_cap_size)
+
+// The tag plane's backing store. These are the Sail runtime's own tag
+// primitives, which the emulator already links; the concurrency interface
+// reaches them through internal names the model may not use, and its request
+// tag is keyed by the access address rather than by the granule, so the model
+// keys the plane itself and the interface's tag field stays unused.
+val __write_tag = impure "write_tag_bool" : (bits(64), bool) -> unit
+val __read_tag = impure "read_tag_bool" : bits(64) -> bool
+
+function __WriteRAM_Meta(addr : physaddrbits, width : mem_access_width, meta : mem_meta) -> unit = {
+  // An access may span more than one granule: a capability store is aligned
+  // and spans exactly one, while a wide data store covers as many as its
+  // width reaches and clears every one of them.
+  let first = unsigned(addr_to_tag_addr(addr));
+  let last = unsigned(addr_to_tag_addr(addr + (width - 1)));
+  foreach (i from first to last) {
+    __write_tag(to_bits_truncate(64, i), meta);
+  }
+}
+
+function __ReadRAM_Meta(addr : physaddrbits, _width : mem_access_width) -> mem_meta =
+  __read_tag(zero_extend(addr_to_tag_addr(addr)))
+
+// =======================================================================================
+// This Sail RISC-V architecture model, comprising all files and
+// directories except where otherwise noted is subject the BSD
+// two-clause license in the LICENSE file.
+//
+// SPDX-License-Identifier: BSD-2-Clause
+// =======================================================================================
+
+// These functions define the primitives for physical memory access.
+// They depend on the XLEN of the architecture.
+//
+// They also depend on the type of metadata that is read and written
+// to physical memory.  For models that do not require this metadata,
+// a unit type can be used.
+
+// The Sail library declares the emulator's memory primitives without a body
+// for every target but Isla, C, C++, OCaml and SystemVerilog, and the Rocq
+// backend would emit each as an axiom. The Rocq term reaches memory through
+// the `sail_mem_read` and `sail_mem_write` outcomes instead; the primitives'
+// only caller is the library's emulator implementation of those outcomes,
+// which that target does not instantiate but still typechecks. So for Rocq
+// alone the library's emulator-memory file is skipped and its declarations
+// are restated here, the five primitives with the model's internal error as
+// their body and the two tag primitives as the library binds them.
+$iftarget rocq
+$sail_internal
+$define _EMULATOR_MEMORY
+
+val read_mem# : forall ('a: Type) 'n 'addrsize, 'n >= 0 & 'addrsize in {32, 64}.
+    ('a, int('addrsize), bits('addrsize), int('n)) -> bits(8 * 'n)
+function read_mem#(_, _, _, _) = internal_error(__FILE__, __LINE__, "emulator memory primitive in the Rocq term")
+
+val read_mem_ifetch# : forall ('a: Type) 'n 'addrsize, 'n >= 0 & 'addrsize in {32, 64}.
+    ('a, int('addrsize), bits('addrsize), int('n)) -> bits(8 * 'n)
+function read_mem_ifetch#(_, _, _, _) = internal_error(__FILE__, __LINE__, "emulator memory primitive in the Rocq term")
+
+val read_mem_exclusive# : forall ('a: Type) 'n 'addrsize, 'n >= 0 & 'addrsize in {32, 64}.
+    ('a, int('addrsize), bits('addrsize), int('n)) -> bits(8 * 'n)
+function read_mem_exclusive#(_, _, _, _) = internal_error(__FILE__, __LINE__, "emulator memory primitive in the Rocq term")
+
+val write_mem# : forall ('a: Type) 'n 'addrsize, 'n > 0 & 'addrsize in {32, 64}.
+    ('a, int('addrsize), bits('addrsize), int('n), bits(8 * 'n)) -> bool
+function write_mem#(_, _, _, _, _) = internal_error(__FILE__, __LINE__, "emulator memory primitive in the Rocq term")
+
+val write_mem_exclusive# : forall ('a: Type) 'n 'addrsize, 'n > 0 & 'addrsize in {32, 64}.
+    ('a, int('addrsize), bits('addrsize), int('n), bits(8 * 'n)) -> bool
+function write_mem_exclusive#(_, _, _, _, _) = internal_error(__FILE__, __LINE__, "emulator memory primitive in the Rocq term")
+
+val read_tag# = impure "emulator_read_tag" : forall 'addrsize, 'addrsize in {32, 64}. (int('addrsize), bits('addrsize)) -> bool
+val write_tag# = impure "emulator_write_tag" : forall 'addrsize, 'addrsize in {32, 64}. (int('addrsize), bits('addrsize), bool) -> unit
+$endif
+
+$include <concurrency_interface.sail>
+
+enum write_kind = {
+  Write_plain,
+  // Note: Write_RISCV_release and Write_RISCV_strong_release are currently
+  // unused but removing them may break Isla, and they might be used in future
+  // by Zalasr.
+  Write_RISCV_release,
+  Write_RISCV_strong_release,
+  Write_RISCV_conditional,
+  Write_RISCV_conditional_release,
+  Write_RISCV_conditional_strong_release,
+}
+
+enum read_kind = {
+  Read_plain,
+  Read_ifetch,
+  // Note: Read_RISCV_acquire and Read_RISCV_strong_acquire are currently
+  // unused but removing them may break Isla, and they might be used in future
+  // by Zalasr.
+  Read_RISCV_acquire,
+  Read_RISCV_strong_acquire,
+  Read_RISCV_reserved,
+  Read_RISCV_reserved_acquire,
+  Read_RISCV_reserved_strong_acquire,
+}
+
+// One barrier, because the memory model admits one. Ztso is adopted normatively
+// in place of RVWMO (R-15-004), and under it the only reordering the machine
+// exhibits is store to later-load bypass through the store buffer (R-15-015), so
+// the single thing a fence can do is drain that buffer. The nine predecessor and
+// successor members upstream carries are the RVWMO lattice R-15-017 collapses to
+// `drain | nop`; `Barrier_RISCV_tso` was `fence.tso`'s, which is a no-op here by
+// the same requirement; and `Barrier_RISCV_i` has been unreachable since
+// `Zifencei` left with the c1 batch (R-15-047).
+enum barrier_kind = {
+  Barrier_RISCV_drain,
+}
+
+// Most of the above read/write_kinds are understood natively by the
+// Sail concurrency interface, except for the strong acquire release
+// variants which require an architecture specific access kind.
+struct RISCV_strong_access = {
+  variety : Access_variety,
+}
+
+// The Sail concurrency interface lets us have a physical address type
+// with additional information, provided we can supply a function that
+// converts it into a bitvector. When in RV32 mode, physaddrbits is
+// bits(34), which needs to be zero-extended to bits(64) for
+// sail_mem_write/read interface. This conversion is necessary because
+// the memory interface only supports 32-bit or 64-bit physical
+// addresses regardless of the actual physical address width.
+function physaddrbits_zero_extend(xs : physaddrbits) -> bits(64) = zero_extend(xs)
+
+instantiation sail_mem_write with
+  'pa = physaddrbits,
+  pa_bits = physaddrbits_zero_extend,
+  // We don't have a relaxed-memory translation model for RISC-V, so
+  // we just use unit as a dummy type.
+  'translation_summary = unit,
+  'arch_ak = RISCV_strong_access,
+  // Similarly to translation_summary, we don't have a defined type for external
+  // aborts, so just use unit here too
+  'abort = unit
+
+val write_ram : forall 'n, 0 < 'n <= max_mem_access. (write_kind, physaddr, int('n), bits(8 * 'n), mem_meta) -> bool
+
+function write_ram(wk, Physaddr(addr), width, data, meta) = {
+  let request : Mem_write_request('n, 64, physaddrbits, unit, RISCV_strong_access) = struct {
+    access_kind = match wk {
+      Write_plain => AK_explicit(struct { variety = AV_plain, strength = AS_normal }),
+      Write_RISCV_release => internal_error(__FILE__, __LINE__, "Write_RISCV_release is unused"),
+      Write_RISCV_strong_release => internal_error(__FILE__, __LINE__, "Write_RISCV_strong_release is unused"),
+      Write_RISCV_conditional => AK_explicit(struct { variety = AV_exclusive, strength = AS_normal }),
+      Write_RISCV_conditional_release => AK_explicit(struct { variety = AV_exclusive, strength = AS_rel_or_acq }),
+      Write_RISCV_conditional_strong_release => AK_arch(struct { variety = AV_exclusive }),
+    },
+    va = None(),
+    pa = addr,
+    translation = (),
+    size = width,
+    value = Some(data),
+    tag = None(),
+  };
+  // Write out metadata only if the value write succeeds.
+  // It is assumed for now that this write always succeeds;
+  // there is currently no return value.
+  // FIXME: We should convert the external API for all backends
+  // (not just for Lem) to consume the value along with the
+  // metadata to ensure atomicity.
+  match sail_mem_write(request) {
+    Ok(_) => {
+      __WriteRAM_Meta(addr, width, meta);
+      true
+    },
+    Err() => false,
+  }
+}
+
+val write_ram_ea : forall 'n, 0 < 'n <= max_mem_access. (write_kind, physaddr, int('n)) -> unit
+function write_ram_ea(_wk, Physaddr(_addr), _width) = ()
+
+instantiation sail_mem_read with
+  pa_bits = physaddrbits_zero_extend
+
+val read_ram : forall 'n, 0 < 'n <= max_mem_access.  (read_kind, physaddr, int('n), bool) -> (bits(8 * 'n), mem_meta)
+function read_ram(rk, Physaddr(addr), width, read_meta) = {
+  let meta = if read_meta then __ReadRAM_Meta(addr, width) else default_meta;
+  let request : Mem_read_request('n, 64, physaddrbits, unit, RISCV_strong_access) = struct {
+    access_kind = match rk {
+      Read_plain => AK_explicit(struct { variety = AV_plain, strength = AS_normal }),
+      Read_ifetch => AK_ifetch(),
+      Read_RISCV_acquire => internal_error(__FILE__, __LINE__, "Read_RISCV_acquire is unused"),
+      Read_RISCV_strong_acquire => internal_error(__FILE__, __LINE__, "Read_RISCV_strong_acquire is unused"),
+      Read_RISCV_reserved => AK_explicit(struct { variety = AV_exclusive, strength = AS_normal }),
+      Read_RISCV_reserved_acquire => AK_explicit(struct { variety = AV_exclusive, strength = AS_rel_or_acq }),
+      Read_RISCV_reserved_strong_acquire => AK_arch(struct { variety = AV_exclusive }),
+    },
+    va = None(),
+    pa = addr,
+    translation = (),
+    size = width,
+    tag = false,
+  };
+  match sail_mem_read(request) {
+    Ok((value, _)) => (value, meta),
+    Err() => exit(),
+  }
+}
+
+instantiation sail_barrier with 'barrier = barrier_kind
+

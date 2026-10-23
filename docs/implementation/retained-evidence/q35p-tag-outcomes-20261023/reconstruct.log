@@ -1,0 +1,119 @@
+patching file src-stdpp/ConcurrencyInterfaceTypes.v
+patching file src-stdpp/ConcurrencyInterfaceTypesV2.v
+can't find file to patch at input line 200
+Perhaps you used the wrong -p or --strip option?
+The text leading up to this was:
+--------------------------
+|--- a/src/GenericValue.v
+|+++ b/src/GenericValue.v
+--------------------------
+File to patch: 
+Skip this patch? [y] 
+Skipping patch.
+2 out of 2 hunks ignored
+can't find file to patch at input line 243
+Perhaps you used the wrong -p or --strip option?
+The text leading up to this was:
+--------------------------
+|--- a/src/Hoare.v
+|+++ b/src/Hoare.v
+--------------------------
+File to patch: 
+Skip this patch? [y] 
+Skipping patch.
+46 out of 46 hunks ignored
+patching file src-stdpp/Inhabited.v
+patching file src-stdpp/Instances.v
+Hunk #1 succeeded at 75 (offset 1 line).
+Hunk #2 succeeded at 187 (offset 1 line).
+Hunk #3 succeeded at 201 with fuzz 1 (offset 1 line).
+Hunk #4 succeeded at 228 (offset 2 lines).
+patching file src-stdpp/MachineWord.v
+can't find file to patch at input line 2016
+Perhaps you used the wrong -p or --strip option?
+The text leading up to this was:
+--------------------------
+|--- a/src/Operators_mwords.v
+|+++ b/src/Operators_mwords.v
+--------------------------
+File to patch: 
+Skip this patch? [y] 
+Skipping patch.
+5 out of 5 hunks ignored
+can't find file to patch at input line 2152
+Perhaps you used the wrong -p or --strip option?
+The text leading up to this was:
+--------------------------
+|--- a/src/Prompt.v
+|+++ b/src/Prompt.v
+--------------------------
+File to patch: 
+Skip this patch? [y] 
+Skipping patch.
+1 out of 1 hunk ignored
+can't find file to patch at input line 2179
+Perhaps you used the wrong -p or --strip option?
+The text leading up to this was:
+--------------------------
+|--- a/src/Prompt_monad.v
+|+++ b/src/Prompt_monad.v
+--------------------------
+File to patch: 
+Skip this patch? [y] 
+Skipping patch.
+1 out of 1 hunk ignored
+can't find file to patch at input line 2192
+Perhaps you used the wrong -p or --strip option?
+The text leading up to this was:
+--------------------------
+|--- a/src/Real.v
+|+++ b/src/Real.v
+--------------------------
+File to patch: 
+Skip this patch? [y] 
+Skipping patch.
+2 out of 2 hunks ignored
+can't find file to patch at input line 2317
+Perhaps you used the wrong -p or --strip option?
+The text leading up to this was:
+--------------------------
+|--- a/src/State_lemmas.v
+|+++ b/src/State_lemmas.v
+--------------------------
+File to patch: 
+Skip this patch? [y] 
+Skipping patch.
+37 out of 37 hunks ignored
+can't find file to patch at input line 3258
+Perhaps you used the wrong -p or --strip option?
+The text leading up to this was:
+--------------------------
+|--- a/src/State_monad_lemmas.v
+|+++ b/src/State_monad_lemmas.v
+--------------------------
+File to patch: 
+Skip this patch? [y] 
+Skipping patch.
+27 out of 27 hunks ignored
+can't find file to patch at input line 4025
+Perhaps you used the wrong -p or --strip option?
+The text leading up to this was:
+--------------------------
+|--- a/src/Values.v
+|+++ b/src/Values.v
+--------------------------
+File to patch: 
+Skip this patch? [y] 
+Skipping patch.
+27 out of 27 hunks ignored
+can't find file to patch at input line 4734
+Perhaps you used the wrong -p or --strip option?
+The text leading up to this was:
+--------------------------
+|--- a/src/Values_lemmas.v
+|+++ b/src/Values_lemmas.v
+--------------------------
+File to patch: 
+Skip this patch? [y] 
+Skipping patch.
+1 out of 1 hunk ignored

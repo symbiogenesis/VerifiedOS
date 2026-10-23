@@ -1,0 +1,12 @@
+File "/root/build/lane-checklist-20261023-b/q35p/consumer/bindings.v", line 8, characters 0-12:
+Warning: Notation "_ >>= _" was already used.
+[notation-overridden,parsing,default]
+File "/root/build/lane-checklist-20261023-b/q35p/consumer/bindings.v", line 8, characters 0-12:
+Warning: Notation "_ >> _" was already used.
+[notation-overridden,parsing,default]
+File "/root/build/lane-checklist-20261023-b/q35p/consumer/bindings.v", line 8, characters 0-12:
+Warning: Notation "_ >>$= _" was already used.
+[notation-overridden,parsing,default]
+File "/root/build/lane-checklist-20261023-b/q35p/consumer/bindings.v", line 8, characters 0-12:
+Warning: Notation "_ >>$ _" was already used.
+[notation-overridden,parsing,default]

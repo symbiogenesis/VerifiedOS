@@ -1,0 +1,4 @@
+File "/root/build/lane-checklist-20261023-b/q35p/consumer/bindings_types.v", line 129, characters 2-26:
+Error: This interactive proof is not started by the "Proof" command.
+[missing-proof-command,fragile,default]
+
