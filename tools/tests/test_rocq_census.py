@@ -159,6 +159,90 @@ class RocqCensusHarnessTests(unittest.TestCase):
         self.assertTrue(receipt["execution_finished"])
         self.assertEqual(receipt["verdict"], "native-metadata-control-only")
 
+    def test_zero_exit_native_warning_refuses_evidence(self) -> None:
+        metadata = {"schema": "verifiedos-rocq-native-metadata/1", "acceptance": "metadata-only",
+                    "roots": [{"requested": "Expected", "native_path": {}, "module": {}}]}
+        result = subprocess.CompletedProcess(["mock-query"], 0, stdout=json.dumps(metadata).encode(), stderr=b"native warning\n")
+        code, receipt, _, _ = _mock_campaign(result)
+        self.assertEqual(code, 1)
+        self.assertEqual(receipt["native_exit"], 0)
+        self.assertTrue(receipt["query_completed"])
+        self.assertFalse(receipt["metadata_validated"])
+        self.assertEqual(receipt["verdict"], "refused")
+
+    def test_loaded_input_freeze_detects_copy_and_plugin_drift(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="vos-census-loaded-") as scratch:
+            root = Path(scratch)
+            for name in ("support", "stdpp", "controls", "vos_rocq_census"):
+                (root / name).mkdir()
+            files = {"support/Example.vo": b"support", "support/Example.v": b"source",
+                     "stdpp/definitions.vo": b"dependency", "controls/CensusControls.vo": b"control",
+                     "vos_rocq_census/vos_rocq_census.cmxs": b"plugin",
+                     "vos_rocq_census/vos_rocq_census.ml": b"plugin-source", "NativeControls.v": b"query"}
+            for name, data in files.items():
+                (root / name).write_bytes(data)
+            before = _HELPERS["query_inputs"](root)
+            (root / "NativeControls.vo").write_bytes(b"expected-new-query-output")
+            self.assertEqual(before, _HELPERS["query_inputs"](root))
+            (root / "support/Example.vo").write_bytes(b"changed-copy")
+            (root / "vos_rocq_census/vos_rocq_census.cmxs").write_bytes(b"changed-plugin")
+            (root / "stdpp/added.vo").write_bytes(b"new-input")
+            (root / "controls/CensusControls.vo").unlink()
+            self.assertEqual(_HELPERS["changes"](before, _HELPERS["query_inputs"](root)), {
+                "added": [str(Path("stdpp/added.vo"))], "deleted": [str(Path("controls/CensusControls.vo"))],
+                "changed": [str(Path("support/Example.vo")), str(Path("vos_rocq_census/vos_rocq_census.cmxs"))]})
+
+    def test_census_receipt_refuses_actual_loaded_drift_with_originals_unchanged(self) -> None:
+        mutations = (("support/Expected.vo", b"changed-copy"), ("stdpp/added.vo", b"added"),
+                     ("stdpp/definitions.vo", None), ("vos_rocq_census/vos_rocq_census.cmxs", b"changed-plugin"),
+                     ("vos_rocq_census/vos_rocq_census.ml", b"changed-copied-source"),
+                     ("resolution-requests.json", b"changed-requests"))
+        for name, changed in mutations:
+            with self.subTest(name=name), tempfile.TemporaryDirectory(prefix="vos-census-drift-") as scratch:
+                root = Path(scratch)
+                switch, support, dependency, output = (root / name for name in ("switch", "support", "stdpp", "out"))
+                (switch / "bin").mkdir(parents=True)
+                (switch / "lib/coq").mkdir(parents=True)
+                for tool in ("rocq", "ocamlfind", "ocamlopt"):
+                    (switch / "bin" / tool).write_bytes(b"mock-launcher")
+                (switch / "lib/coq/installed.vo").write_bytes(b"installed")
+                support.mkdir()
+                (support / "Expected.vo").write_bytes(b"support")
+                (support / "Expected.v").write_bytes(b"support-source")
+                dependency.mkdir()
+                (dependency / "definitions.vo").write_bytes(b"dependency")
+                argv = ["rocq-census", "--switch-root", str(switch), "--support-source", str(support),
+                        "--stdpp-source", str(dependency), "--out", str(output), "--targets", "Expected", "--census"]
+                def native(command: list[str], *, output: Path = output, name: str = name,
+                           changed: bytes | None = changed, **kwargs: object) -> subprocess.CompletedProcess[bytes]:
+                    if Path(command[0]).name == "ocamlfind":
+                        (output / "vos_rocq_census/vos_rocq_census.cmxs").write_bytes(b"built-plugin")
+                        return subprocess.CompletedProcess(command, 0, stdout=b"", stderr=b"")
+                    environment = cast("dict[str, str]", kwargs["env"])
+                    self.assertNotIn("VOS_CENSUS_RESOLVE", environment)
+                    self.assertEqual(environment["VOS_CENSUS_RESOLVE_FILE"], str(output / "resolution-requests.json"))
+                    self.assertEqual(json.loads((output / "resolution-requests.json").read_text()), [])
+                    target = output / name
+                    if changed is None:
+                        target.unlink()
+                    else:
+                        target.write_bytes(changed)
+                    envelope = {"schema": "verifiedos-sail-support-census/1", "requested_roots": ["Expected"],
+                                "roots": [{"requested": "Expected"}], "resolution_requests": []}
+                    return subprocess.CompletedProcess(command, 0, stdout=json.dumps(envelope).encode(), stderr=b"")
+                with patch.object(sys, "argv", argv), redirect_stdout(StringIO()), patch("subprocess.run", side_effect=native):
+                    code = cast("Callable[[], int]", _HELPERS["main"])()
+                receipt = json.loads((output / "receipt.json").read_text())
+                self.assertEqual(code, 1)
+                self.assertEqual(receipt["native_exit"], 0)
+                self.assertTrue(receipt["metadata_validated"])
+                self.assertTrue(receipt["installed_unchanged"])
+                self.assertTrue(receipt["support_unchanged"])
+                self.assertTrue(receipt["stdpp_unchanged"])
+                self.assertTrue(receipt["inputs_unchanged"])
+                self.assertFalse(receipt["loaded_unchanged"])
+                self.assertEqual(receipt["verdict"], "identity-refused")
+
     def test_population_detects_additions_deletions_and_content_changes(self) -> None:
         with tempfile.TemporaryDirectory() as scratch:
             root = Path(scratch)
@@ -173,6 +257,49 @@ class RocqCensusHarnessTests(unittest.TestCase):
             self.assertEqual(_HELPERS["changes"](before, after), {
                 "added": ["added.vo"], "deleted": ["gone.glob"], "changed": ["keep.vo"]})
 
+    def test_search_campaign_binds_exact_rows_through_private_file(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="vos-census-search-") as scratch:
+            root = Path(scratch)
+            switch, support, output = (root / name for name in ("switch", "support", "out"))
+            (switch / "bin").mkdir(parents=True)
+            (switch / "lib/coq").mkdir(parents=True)
+            for tool in ("rocq", "ocamlfind", "ocamlopt"):
+                (switch / "bin" / tool).write_bytes(b"mock-launcher")
+            support.mkdir()
+            (support / "Expected.vo").write_bytes(b"support")
+            expected = [{"id": "Expected:0", "requested_root": "Expected", "row_index": 0,
+                         "spelling": "Expected.entry"}]
+            argv = ["rocq-census", "--switch-root", str(switch), "--support-source", str(support),
+                    "--out", str(output), "--targets", "Expected", "--census", "--search"]
+            def native(command: list[str], **kwargs: object) -> subprocess.CompletedProcess[bytes]:
+                if Path(command[0]).name == "ocamlfind":
+                    (output / "vos_rocq_census/vos_rocq_census.cmxs").write_bytes(b"built-plugin")
+                    return subprocess.CompletedProcess(command, 0, stdout=b"", stderr=b"")
+                query = Path(command[-1])
+                self.assertTrue(query.stem.isidentifier(), "Rocq query filenames must be module identifiers")
+                if query.stem.startswith("Search"):
+                    self.assertIn("Search _ inside Expected.", query.read_text())
+                    return subprocess.CompletedProcess(command, 0,
+                        stdout=b"Current search blacklist :  is empty.\nExpected.entry: nat\n", stderr=b"")
+                environment = cast("dict[str, str]", kwargs["env"])
+                self.assertNotIn("VOS_CENSUS_RESOLVE", environment)
+                request_file = Path(environment["VOS_CENSUS_RESOLVE_FILE"])
+                self.assertTrue(request_file.is_relative_to(output))
+                self.assertEqual(json.loads(request_file.read_bytes()), expected)
+                envelope = {"schema": "verifiedos-sail-support-census/1", "requested_roots": ["Expected"],
+                            "roots": [{"requested": "Expected"}], "resolution_requests": expected}
+                return subprocess.CompletedProcess(command, 0, stdout=json.dumps(envelope).encode(), stderr=b"")
+            with patch.object(sys, "argv", argv), redirect_stdout(StringIO()), patch("subprocess.run", side_effect=native):
+                code = cast("Callable[[], int]", _HELPERS["main"])()
+            receipt = json.loads((output / "receipt.json").read_text())
+            self.assertEqual(code, 0)
+            self.assertEqual(receipt["search_requests"], 1)
+            self.assertEqual(receipt["search_targets"], ["Expected"])
+            self.assertTrue(receipt["loaded_unchanged"])
+            self.assertIn("resolution-requests.json", receipt["loaded_before"])
+            self.assertIn("Search00.v", receipt["loaded_before"])
+            self.assertEqual(receipt["verdict"], "native-census-provenance-only")
+
 
 def cases() -> list[Case]:
     checks = RocqCensusHarnessTests()
@@ -180,6 +307,10 @@ def cases() -> list[Case]:
             Case("query-launch-error-cannot-inherit-plugin-success", checks.test_query_launch_error_cannot_inherit_plugin_success),
             Case("output-read-error-refuses-evidence-after-query-success", checks.test_validation_read_failure_preserves_query_exit_and_refuses_evidence),
             Case("mock-success-requires-completed-validated-query", checks.test_mock_success_requires_completed_query_and_validated_metadata),
+            Case("zero-exit-native-warning-refuses-evidence", checks.test_zero_exit_native_warning_refuses_evidence),
+            Case("actual-loaded-copies-and-plugin-drift-refuse", checks.test_loaded_input_freeze_detects_copy_and_plugin_drift),
+            Case("loaded-drift-refuses-receipt-with-originals-unchanged", checks.test_census_receipt_refuses_actual_loaded_drift_with_originals_unchanged),
+            Case("search-rows-bind-through-private-request-file", checks.test_search_campaign_binds_exact_rows_through_private_file),
             Case("metadata-output-guard-refuses-missing-duplicate-and-foreign-emissions", checks.test_output_guard_refuses_missing_duplicate_and_foreign_emissions),
             Case("canonical-output-overlap-refuses-before-creation", checks.test_canonical_overlap_refuses_before_creation),
             Case("support-and-source-inputs-are-protected", checks.test_support_and_source_are_protected),
