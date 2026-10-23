@@ -239,6 +239,9 @@ class SailSupportCensusTests(unittest.TestCase):
         result = _ADAPTER["census"](value, searches, readings, expected_modules=["Root"])["Root"]
         self.assertEqual(len(result["aliases"]), 1)
         self.assertEqual([row["name"] for row in result["symbols"]], ["Root.x"])
+        self.assertEqual(result["alias_audits"], [{"source_kind": "abbreviation", "source_id": "alias",
+                                                  "exported_spelling": "Root.AliasOnly.alias", "audit_query_name": "Foreign.x",
+                                                  "native_reference": _reference("Foreign")}])
         alias["empty_evidence"] = "native-empty"
         with self.assertRaises(ValueError):
             _ADAPTER["census"](value, searches, readings, expected_modules=["Root"])
@@ -367,6 +370,63 @@ class SailSupportCensusTests(unittest.TestCase):
             with self.subTest(name=name), self.assertRaises(ValueError):
                 _ADAPTER["census"](candidate, searches, readings, expected_modules=["Root"])
 
+    def test_external_sealed_declaration_alias_has_supplementary_assumption_binding(self) -> None:
+        value, searches, _ = _fixture()
+        _sealed(value, "Root", "Alias")
+        declaration = value["declarations"][-1]
+        field = next(row for row in value["fields"] if row["id"] == declaration["field_id"])
+        module = next(row for row in value["modules"] if row["id"] == field["parent_module_id"])
+        field["classification"] = declaration["classification"] = "alias"
+        target = _reference("Foreign.HiddenSealed")
+        reference = declaration["native_reference"]
+        reference.update(canonical=copy.deepcopy(target["canonical"]), canonical_name=target["canonical_name"])
+        declaration["alias"] = {"kind": "module-alias", "exported_reference": reference, "target_reference": target,
+                                "resolver_id": module["implementation"]["resolver_id"]}
+        expression = {"tag": "MEident", "path": _path("Foreign.HiddenSealed")}
+        module["implementation"]["expression"] = expression
+        link = declaration["implementation_connection"]
+        source = {"module_path": _path("Foreign.HiddenSealed"), "namespace": "object", "label": "x",
+                  "packet_index": None, "constructor_index": None}
+        link.update(source_field=source, source_reference=target, audit_query_name=target["canonical_name"])
+        link["implementation_reference"].update(canonical=copy.deepcopy(target["canonical"]), canonical_name=target["canonical_name"])
+        link["steps"][0].update(target=_path("Foreign.HiddenSealed"), expression=expression)
+        link["steps"][1]["field"] = source
+        link["steps"][2]["source"] = source
+        value, searches, readings = _finish(value, searches)
+        result = _ADAPTER["census"](value, searches, readings, expected_modules=["Root"])["Root"]
+        self.assertEqual([row["name"] for row in result["symbols"]], ["Root.x"])
+        self.assertEqual(result["alias_audits"], [{"source_kind": "declaration-alias", "source_id": declaration["id"],
+                                                  "exported_spelling": "Root.Alias.x", "audit_query_name": "Foreign.HiddenSealed.x",
+                                                  "native_reference": reference}])
+        self.assertEqual(result["alias_obligations"], [])
+
+    def test_bound_interface_abbreviation_remains_an_obligation(self) -> None:
+        value, searches, _ = _fixture()
+        signature = _module(value, "Root.S", "Root", "module-type", kind="module-type")
+        identifier = {"stamp": 1, "id": "X", "directory_reversed": ["Root"]}
+        bound = {"tag": "MPbound", "identifier": identifier}
+        target = _reference("X")
+        target["user"]["path"] = target["canonical"]["path"] = bound
+        abbreviation = {"id": "abstract-alias", "module_id": "Root.S", "exported_name": "Root.S.alias",
+                        "native_abbreviation_path": "Root.S.alias", "enabled": True, "only_parsing": False,
+                        "interpretation": {"kind": "direct-reference", "bound_variables": [], "target_reference": target}}
+        signature["abbreviation_ids"] = [abbreviation["id"]]
+        value["abbreviations"].append(abbreviation)
+        value, searches, readings = _finish(value, searches)
+        result = _ADAPTER["census"](value, searches, readings, expected_modules=["Root"])["Root"]
+        self.assertEqual(result["alias_audits"], [])
+        self.assertEqual(result["alias_obligations"], [{"source_kind": "abbreviation", "source_id": "abstract-alias",
+                                                       "exported_spelling": "Root.S.alias", "native_reference": target,
+                                                       "context_id": signature["context_id"]}])
+        # A concrete abbreviation cannot turn the bound target into a global query.
+        root_module = value["modules"][0]
+        concrete = copy.deepcopy(abbreviation)
+        concrete.update(id="concrete-bound", module_id="Root", exported_name="Root.bound", native_abbreviation_path="Root.bound")
+        root_module["abbreviation_ids"].append(concrete["id"])
+        value["abbreviations"].append(concrete)
+        with self.assertRaises(ValueError):
+            _ADAPTER["census"](value, searches, readings, expected_modules=["Root"])
+
 
 def cases() -> list[Case]:
     checks = SailSupportCensusTests()
@@ -377,4 +437,6 @@ def cases() -> list[Case]:
             Case("raw-native-reading-framing-diagnostics-and-truncation-refuse", checks.test_raw_native_reading_headers_truncation_and_diagnostics_refuse),
             Case("stdlib-schema-reader-agrees-with-draft202012-oracle", checks.test_schema_reader_matches_draft202012_on_positive_and_corruptions),
             Case("control-replay-retains-three-roots-and-adapter-refusal-boundary", checks.test_control_replay_uses_three_complete_roots_and_distinguishes_adapter_evidence),
-            Case("body-identities-refuse-executable-asts-and-incomplete-reference-domains", checks.test_body_identity_replaces_executable_ast_and_retains_complete_reference_domain)]
+            Case("body-identities-refuse-executable-asts-and-incomplete-reference-domains", checks.test_body_identity_replaces_executable_ast_and_retains_complete_reference_domain),
+            Case("external-sealed-declaration-alias-keeps-supplementary-native-audit", checks.test_external_sealed_declaration_alias_has_supplementary_assumption_binding),
+            Case("bound-interface-abbreviation-remains-an-obligation", checks.test_bound_interface_abbreviation_remains_an_obligation)]

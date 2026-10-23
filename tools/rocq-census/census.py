@@ -531,6 +531,8 @@ def _census(metadata: object, searches: dict[str, str], readings: dict[str, str]
             _require(reference["user"] == reference["canonical"], "native alias supplied as an owned declaration")
 
     owned: dict[str, list[dict[str, Any]]] = {root: [] for root in expected_modules}
+    alias_audits: dict[str, list[dict[str, Any]]] = {root: [] for root in expected_modules}
+    alias_obligations: dict[str, list[dict[str, Any]]] = {root: [] for root in expected_modules}
     seen_canonical: set[str] = set()
     for field in fields.values():
         ids = field["declaration_ids"]
@@ -563,17 +565,47 @@ def _census(metadata: object, searches: dict[str, str], readings: dict[str, str]
                     _require(canonical not in seen_canonical, "duplicate canonical declaration without alias provenance")
                     seen_canonical.add(canonical)
                     owned[owners[field["parent_module_id"]]].append(declaration)
+                else:
+                    _require(proofaudit.QUALIFIED.fullmatch(declaration["implementation_connection"]["audit_query_name"]) is not None,
+                             "declaration alias has no global native audit target")
+                    alias_audits[owners[field["parent_module_id"]]].append({
+                        "source_kind": "declaration-alias", "source_id": declaration["id"],
+                        "exported_spelling": declaration["exported_name"],
+                        "audit_query_name": declaration["implementation_connection"]["audit_query_name"],
+                        "native_reference": declaration["native_reference"]})
     _require(all(field["parent_module_id"] in modules for field in fields.values()), "orphan native field")
     _require(all(row["field_id"] in fields for row in declarations.values()), "orphan native declaration")
     abbreviation_paths: set[str] = set()
     for abbreviation in abbreviations.values():
         _require(abbreviation["module_id"] in modules, "foreign abbreviation")
         owner = modules[abbreviation["module_id"]]
-        _require(abbreviation["native_abbreviation_path"] == abbreviation["exported_name"]
-                 and abbreviation["exported_name"].startswith(_path(owner["native_path"]) + "."),
+        abstract = any(context["kind"] in _ABSTRACT
+                       for context in context_chain(owner["signature"]["result_context_id"]))
+        _require(abbreviation["native_abbreviation_path"] == abbreviation["exported_name"],
                  "abbreviation ownership differs from native module")
+        if not abstract:
+            _require(abbreviation["exported_name"].startswith(_path(owner["native_path"]) + "."),
+                     "concrete abbreviation escaped its native module")
         _require(abbreviation["native_abbreviation_path"] not in abbreviation_paths, "duplicate native abbreviation path")
         abbreviation_paths.add(abbreviation["native_abbreviation_path"])
+        target = abbreviation["interpretation"]["target_reference"]
+        binding = {"source_kind": "abbreviation", "source_id": abbreviation["id"],
+                   "exported_spelling": abbreviation["exported_name"], "native_reference": target}
+        root = owners[owner["id"]]
+        if abstract:
+            alias_obligations[root].append(binding | {"context_id": owner["signature"]["result_context_id"]})
+        else:
+            # A concrete alias cannot capture a bound/interface reference. Native
+            # reference strings are retained; neither a prefix nor a type is made up.
+            _path(target["user"]["path"])
+            _path(target["canonical"]["path"])
+            _require(proofaudit.QUALIFIED.fullmatch(target["canonical_name"]) is not None,
+                     "concrete abbreviation has no global native audit target")
+            if target["kind"] == "constant":
+                for side, spelling in (("user", "exported_name"), ("canonical", "canonical_name")):
+                    _require(target[spelling] == _path(target[side]["path"]) + "." + target[side]["label"],
+                             "abbreviation audit target differs from its native reference")
+            alias_audits[root].append(binding | {"audit_query_name": target["canonical_name"]})
 
     _require(len(value["resolutions"]) == len(requests), "missing native Search resolutions")
     resolved_ids: set[str] = set()
@@ -629,6 +661,7 @@ def _census(metadata: object, searches: dict[str, str], readings: dict[str, str]
                         "interfaces": [row for row in root_declarations if row["classification"] == "interface"],
                         "aliases": [row for row in root_declarations if row["classification"] == "alias"]
                                    + [row for row in value["abbreviations"] if row["module_id"] in module_ids],
+                        "alias_audits": alias_audits[root], "alias_obligations": alias_obligations[root],
                         "resolutions": [row for row in value["resolutions"] if row["root_module_id"] == root_ids[root]],
                         "readings": {module["query"]["kind"] + ":" + module["query"]["target"]:
                                      readings[module["query"]["kind"] + ":" + module["query"]["target"]]
