@@ -11,11 +11,21 @@ producer process explicitly; they never yield a successful truncated census.
 
 The runner performs each exact requested root's original Search query first. It
 supplies `VOS_CENSUS_TARGETS` as the existing comma-separated exact requested root
-names, and `VOS_CENSUS_RESOLVE` as an ordered JSON array of resolution requests:
+names. Resolution requests use exactly one of `VOS_CENSUS_RESOLVE`, carrying an
+ordered JSON array, or `VOS_CENSUS_RESOLVE_FILE`, naming an absolute regular JSON
+input file. Supplying both refuses. The file form avoids native environment-string
+size limits for the complete population; it is bounded at 64 MiB, copied into the
+private lane, and its exact bytes and path are hash-bound before launch and checked
+after execution. It contains request data only. Both forms have the same wire shape:
 
 ```json
 [{"id":"SailStdpp.TypeCasts:0","requested_root":"SailStdpp.TypeCasts","row_index":0,"spelling":"TypeCasts.Z_eq_dec.U"}]
 ```
+
+Retain the file-form bytes with the raw Search evidence. Replay checks them against
+the exact ordered requests derived from those rows and the producer's echoed
+`resolution_requests`. A missing, changed, oversized or unreadable file refuses;
+the runner clears the unused request variable explicitly between invocations.
 
 `row_index` is zero-based in that root's parsed Search declarations. The request ID
 is the exact requested root, a colon and the decimal row index. Repeated spellings
