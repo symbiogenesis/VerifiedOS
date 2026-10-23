@@ -524,34 +524,43 @@ def native_output_file_protocol() -> None:
         side = root / "side"
         (side / "tools/opam").mkdir(parents=True)
         (side / route.RECIPE).write_text('{}', encoding="utf-8")
-        with patch.dict(route.os.environ, {"TESTED_REVISION": "a" * 40, "GITHUB_SHA": "a" * 40}), \
+        with patch.dict(route.os.environ, {"TESTED_REVISION": "a" * 40, "GITHUB_SHA": "a" * 40,
+                route.OUTPUT_VARIABLE: str(source), route.PROGRESS_VARIABLE: str(source)}), \
                 patch.object(subprocess, "Popen") as launched:
             campaign = route.Campaign(root / "campaign", side, "build")
+            ensure(route.OUTPUT_VARIABLE not in campaign.environment and route.PROGRESS_VARIABLE not in campaign.environment,
+                   "campaign clears inherited output and unselected progress destinations")
             partial = campaign.root / "support-census.json"
 
             def killed(*_args: object, **_kwargs: object) -> tuple[str, str]:
                 before = route.load(campaign.upload / "receipt.json")["commands"][-1]
                 ensure(before["output_file_before"] == {"path": str(partial), "absent": True},
                        "expected output absence is persisted before the native launch")
+                ensure(route.PROGRESS_VARIABLE not in before["native_environment"], "query clears stale progress before launch")
+                campaign.environment[route.PROGRESS_VARIABLE] = str(partial)
                 partial.write_bytes(b'{"schema":')
                 return "", "killed native producer"
 
             process = launched.return_value.__enter__.return_value
             process.communicate.side_effect = killed
             process.returncode = -9
+            campaign.environment[route.PROGRESS_VARIABLE] = str(partial)
             refuses(lambda: route.query(campaign, "support-native-census", "", [], census_output=partial))
             failed = campaign.report["commands"][-1]
             ensure((campaign.upload / failed["output_partial"]).read_bytes() == b'{"schema":',
                    "failed native partial bytes remain diagnostic evidence")
-            ensure("output_file_verified" not in failed and route.OUTPUT_VARIABLE not in campaign.environment,
+            ensure("output_file_verified" not in failed and route.OUTPUT_VARIABLE not in campaign.environment
+                   and route.PROGRESS_VARIABLE not in campaign.environment,
                    "killed output supplies no verified census and output setting is cleared")
             process.communicate.side_effect = None
             process.communicate.return_value = ("", "expected refusal")
             process.returncode = 1
             campaign.environment[route.OUTPUT_VARIABLE] = str(partial)
+            campaign.environment[route.PROGRESS_VARIABLE] = str(partial)
             route.query(campaign, "native-unsupported-refusal", "", [], refusal=True)
-            ensure(route.OUTPUT_VARIABLE not in campaign.report["commands"][-1]["native_environment"],
-                   "refusal query clears an inherited census output destination")
+            ensure(not {route.OUTPUT_VARIABLE, route.PROGRESS_VARIABLE}
+                   & campaign.report["commands"][-1]["native_environment"].keys(),
+                   "refusal query clears inherited census output and progress destinations")
 
 
 def standalone_native_replay() -> None:
@@ -784,6 +793,7 @@ def standalone_native_replay() -> None:
                 lambda row: next(cmd for cmd in row["commands"] if cmd["label"] == "support-native-census")["output_file_before"].update(absent=False),
                 lambda row: next(cmd for cmd in row["commands"] if cmd["label"] == "support-native-census")["output_file_verified"].update(bytes=1),
                 lambda row: next(cmd for cmd in row["commands"] if cmd["label"] == "support-native-census")["native_environment"].pop(route.OUTPUT_VARIABLE),
+                lambda row: next(cmd for cmd in row["commands"] if cmd["label"] == "support-native-census")["native_environment"].update({route.PROGRESS_VARIABLE: "/host/progress.json"}),
                 lambda row: next(cmd for cmd in row["commands"] if cmd["label"] == "native-hidden-assumptions")["native_environment"].update({route.OUTPUT_VARIABLE: "/host/native-census-outputs/control-census.json"}),
                 lambda row: next(cmd for cmd in row["commands"] if cmd["label"] == "native-unsupported-refusal")["native_environment"].update(VOS_CENSUS_RESOLVE_FILE="/host/native-request-inputs/control-requests.json"),
                 lambda row: next(cmd for cmd in row["commands"] if cmd["label"] == "inventory-0").pop("query_source"),
