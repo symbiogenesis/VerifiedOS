@@ -151,4 +151,32 @@ Stop after the first identified missing act and return it to this owner before
 repairing or broadening the producer. Preserve the six initial and three correction
 counters; neither an exception trace nor this diagnosis supplies acceptance.
 
+### Private implementation reference realization
+
+The first diagnostic candidate identifies the missing lookup at
+`CensusControls.Applied.copied`: serializing its original generic
+`CensusControls.F.copied` asks the global name table, then a printer that consults
+the same table. That original field is not a registered global. The diagnostic
+step stops after this finding, preserving its one attempt and unchanged input
+identities.
+
+This owner act commissions at most six compile/query candidates or sixty active
+minutes to realize the existing selected native census with private structural
+references. The landed schema's `kernel_reference` carries actual native
+user/canonical kernel names, kind and packet/constructor indices without printable
+global names. Use it only for source and instantiated implementation references
+and a declaration alias's implementation target. Never synthesize a public name
+for these private fields. Exported declarations, global resolutions, abbreviation
+targets and assumption queries retain their independent registered-global lookup
+and full native global references. All original/instantiated metadata, substitutions,
+descents, complete fields and reference domains remain required.
+
+Within this bound, correct implementation errors in those already commissioned
+native structures and replay the exact selected population and controls. Record
+each intent and refusal; retain all earlier six, three and one diagnostic counters.
+An uncommissioned native form or exhausted bound stops this step and returns to
+its owner. The unchanged strict flags, support source and dependencies, common
+guard, exact assumption contexts, adapter/control and hosted budgets, and complete
+hosted acceptance predicates continue to apply.
+
 The census extension adds 6 h, range 3–9, to Q35q's existing allowance: native grammar/classification 1–3 h, canonical implementation connections 1–3 h, and controls/evidence 1–3 h. The combined item is 10 h, range 5–15. This is a planning estimate for the commissioned scope; unattended hosted runtime and a further unsupported form are excluded. A retained refusal does not close Q35q.

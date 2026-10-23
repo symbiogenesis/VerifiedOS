@@ -92,6 +92,17 @@ The independently established canonical instantiated exported global is the owne
 symbol passed to the unchanged common guard. External canonical targets require
 explicit proven alias classification and stay outside that owned list.
 
+Private implementation references are a separate `kernel_reference` shape:
+`kind`, actual native `user` and `canonical` kernel names, and applicable packet
+and constructor indices. It has no printable global names. Only connection
+`source_reference`, `implementation_reference` and declaration-alias
+`target_reference` use this shape. Generic functor fields and private originals
+need not be registered globals; their structural identities and native before/after
+metadata establish the substitution join. They receive no global lookup or
+assumption-query claim. Exported concrete references, resolution candidates and
+direct-reference abbreviations retain the full global-reference shape and their
+independent native global resolution and audit requirements.
+
 ## Concrete implementation evidence
 
 Every owned concrete declaration has a non-null `implementation_connection` and
