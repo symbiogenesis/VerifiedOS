@@ -1,0 +1,69 @@
+import os,sys,pathlib,subprocess,time,json,shutil,tempfile,hashlib,difflib
+R=pathlib.Path('/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/triple-20261023-domains')
+L=pathlib.Path('/root/build/lane-triple-20261023-domains')
+T=pathlib.Path(tempfile.mkdtemp(prefix='vos-q35o-syntax-')); os.chdir(T)
+P=pathlib.Path('/root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1')
+S=pathlib.Path('/root/.opam/verifiedos-sail-0.20.3-ocaml-5.4.1')
+SUP=L/'support-source/coq-sail-0.20.3'
+E=R/'docs/implementation/retained-evidence/close3-q35o-20261013'
+# Preserve failed setup diagnostics; no acceptance credit.
+incident=L/'accidental-compile'; incident.mkdir()
+for name in ['syntax-receipt.json','support-order.stdout','support-order.stderr','support-00.stdout','support-00.stderr','support-01.stdout','support-01.stderr','support-02.stdout','support-02.stderr','accidental-compile-files.json']:
+    shutil.copy2(L/name,incident/name)
+for name in ['restoration-inventory.json','restoration-receipt.json']:
+    shutil.copy2(pathlib.Path('/tmp/vos-root-triple-20261023-djtcxh')/name,incident/name)
+SENTINELS=['lib/coq/theories/Numbers/BinNums.vo','lib/coq/theories/Numbers/BinNums.glob','lib/coq/user-contrib/Stdlib/Numbers/BinNums.vo','lib/coq/user-contrib/Stdlib/Numbers/BinNums.glob','lib/coq/user-contrib/Stdlib/Logic/EqdepFacts.vo','lib/coq/user-contrib/Stdlib/Logic/EqdepFacts.glob']
+IMMUTABLE={s:hashlib.sha256((P/s).read_bytes()).hexdigest() for s in SENTINELS}
+assert IMMUTABLE['lib/coq/theories/Numbers/BinNums.vo']=='4bce44aaa4ea44985c27eb4e982f61f0a5ceb638b009d8cf3a7d8ad47bd1faff'
+assert IMMUTABLE['lib/coq/user-contrib/Stdlib/Numbers/BinNums.vo']=='40a7bd1a92984e93837bd7d16fa7c223fb1589643302cb1b4bc92d6b47529624'
+(L/'restored-before.json').write_text(json.dumps(IMMUTABLE,indent=2)+'\n')
+records=[]
+def sha(p):return hashlib.sha256(p.read_bytes()).hexdigest()
+def run(label,args,env=None):
+    print(label,flush=True); start=time.monotonic(); d=subprocess.run(args,cwd=T,env=env,capture_output=True)
+    out=L/(label+'.stdout'); err=L/(label+'.stderr'); out.write_bytes(d.stdout); err.write_bytes(d.stderr)
+    records.append(dict(label=label,argv=list(map(str,args)),cwd=str(T),exit=d.returncode,elapsed=time.monotonic()-start,stdout=str(out),stderr=str(err),stdout_sha256=sha(out),stderr_sha256=sha(err)))
+    (L/'qualification-receipt.json').write_text(json.dumps(records,indent=2)+'\n')
+    assert IMMUTABLE=={s:sha(P/s) for s in SENTINELS}
+    (L/'restored-after.json').write_text(json.dumps(IMMUTABLE,indent=2)+'\n')
+    if d.returncode: print(d.stderr.decode(errors='replace')[-4000:],flush=True); raise SystemExit(d.returncode)
+    return d
+D=L/'private/lib/coq/user-contrib/stdpp'
+BASE=['-boot','-R',str(P/'lib/coq/theories'),'Corelib','-Q',str(P/'lib/coq/user-contrib/Stdlib'),'Stdlib','-Q',str(D),'stdpp','-R',str(SUP/'src-stdpp'),'SailStdpp']
+STRICT=['-w','+default,-abstract-large-number','-set','Default Goal Selector=!','-disallow-sprop']
+mods=json.loads((R/'tools/opam/sail-support-qualification.json').read_text())['support_modules']
+ordered=run('support-order',[str(P/'bin/rocq'),'dep','-sort',*BASE,*[str(SUP/'src-stdpp'/f'{x}.v') for x in mods]]).stdout.decode().split()
+selected={str(SUP/'src-stdpp'/f'{x}.v') for x in mods}
+ordered=[src for src in ordered if src in selected]
+assert len(ordered)==len(selected) and set(ordered)==selected
+assert all(pathlib.Path(src).resolve().is_relative_to(SUP.resolve()) for src in ordered)
+for i,src in enumerate(ordered):run(f'support-{i:02d}',[str(P/'bin/rocq'),'c','-q',*BASE,*STRICT,src])
+B=L/'backend'; (B/'src').mkdir(parents=True)
+shutil.copytree(S/'.opam-switch/sources/sail_coq_backend.0.20.3/src/sail_coq_backend',B/'src/sail_coq_backend')
+(B/'dune-project').write_bytes((E/'backend-dune-project.txt').read_bytes())
+run('backend-prior-patch',['patch','-p1','-d',str(B),'-i',str(E/'sail-emission-syntax.patch')])
+p=B/'src/sail_coq_backend/pretty_print_coq.ml'; s=p.read_text(); old='then string "Import Defs." ^^ hardline'; assert s.count(old)==1
+new='''then separate hardline
+                 [ string "Import -(notations) Defs.";
+                   string "Declare Scope sail_concurrency_scope.";
+                   string "Notation \\\"m >>= f\\\" := (Defs.bind m f) (at level 50, left associativity) : sail_concurrency_scope.";
+                   string "Notation \\\"m >> n\\\" := (Defs.bind0 m n) (at level 50, left associativity) : sail_concurrency_scope.";
+                   string "Notation \\\"m >>$= f\\\" := (Defs.pure_early_return_bind m f) (at level 50, left associativity) : sail_concurrency_scope.";
+                   string "Notation \\\"m >>$ n\\\" := (Defs.pure_early_return_bind m (fun _ => n)) (at level 50, left associativity) : sail_concurrency_scope.";
+                   string "Open Scope sail_concurrency_scope.";
+                   empty ]'''
+p.write_text(s.replace(old,new),newline='')
+original=(S/'.opam-switch/sources/sail_coq_backend.0.20.3/src/sail_coq_backend/pretty_print_coq.ml').read_text()
+(L/'sail-emission-syntax.patch').write_text(''.join(difflib.unified_diff(original.splitlines(True),p.read_text().splitlines(True),fromfile='a/src/sail_coq_backend/pretty_print_coq.ml',tofile='b/src/sail_coq_backend/pretty_print_coq.ml')),newline='')
+run('backend-build',['opam','exec','--switch=verifiedos-sail-0.20.3-ocaml-5.4.1','--','dune','build','--root',str(B),'src/sail_coq_backend/sail_plugin_coq.cmxs'])
+(L/'plugins').mkdir(); shutil.copy2(B/'_build/default/src/sail_coq_backend/sail_plugin_coq.cmxs',L/'plugins/sail_plugin_coq.cmxs')
+probe=L/'SyntaxProbe.sail'; probe.write_bytes((E/'SyntaxProbe.sail').read_bytes())
+args=['opam','exec','--switch=verifiedos-sail-0.20.3-ocaml-5.4.1','--',str(S/'bin/sail'),'--strict-var','--strict-bitvector','--strict-exponentials','--require-version','0.20.3','--rocq','--rocq-alt-modules','SailStdpp.Base SailStdpp.ConcurrencyInterfaceTypes SailStdpp.ConcurrencyInterface SailStdpp.ConcurrencyInterfaceBuiltins']
+for mode in ['baseline','candidate','repeat']:
+    out=L/('probe-'+mode); out.mkdir(); env=dict(os.environ)
+    if mode!='baseline':env['SAIL_PLUGIN_DIR']=str(L/'plugins')
+    run(mode+'-emit',args+['--rocq-output-dir',str(out),'-o','SyntaxProbe',str(probe)],env)
+    if mode!='repeat':
+        for stem in ['SyntaxProbe_types','SyntaxProbe']:
+            run(mode+'-'+stem,[str(P/'bin/rocq'),'c','-q',*BASE,'-R',str(out),'',*(STRICT if mode=='candidate' else []),str(out/(stem+'.v'))])
+print('PROBE SUCCESS',flush=True)

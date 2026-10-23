@@ -1,0 +1,178 @@
+{
+  "task": "Q35o scoped canonical Rocq emission syntax qualification",
+  "base_revision": "59f8a9e995e6ce49269ba2990c2c426407364726",
+  "local_date": "2026-10-23 America/Chicago",
+  "source_revision": "3df54034910b31a1e00d948ee965b2e9603d68e0",
+  "private_plugin_environment": {
+    "SAIL_PLUGIN_DIR": "/root/build/lane-triple-20261023-domains/plugins"
+  },
+  "strict_support_modules": 29,
+  "minimal_frozen": {
+    "all_identical": true,
+    "stats": {
+      "baseline": {
+        "SyntaxProbe_types": {
+          "declarations": 300,
+          "printed": 236
+        },
+        "SyntaxProbe": {
+          "declarations": 47,
+          "printed": 47
+        }
+      },
+      "candidate": {
+        "SyntaxProbe_types": {
+          "declarations": 300,
+          "printed": 236
+        },
+        "SyntaxProbe": {
+          "declarations": 47,
+          "printed": 47
+        }
+      }
+    },
+    "repeat_outputs": {
+      "SyntaxProbe.v": true,
+      "SyntaxProbe_types.v": true
+    },
+    "differences": []
+  },
+  "canonical_compile": [
+    {
+      "source": "/root/build/lane-triple-20261023-domains/canonical-diagnostic/riscv_extras.v",
+      "strict": false,
+      "source_sha256": "c05aef60052ccb293161c521c66c06a48c0693eaae4fca80048206445010e957",
+      "argv": [
+        "/root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/bin/rocq",
+        "c",
+        "-q",
+        "-boot",
+        "-R",
+        "/root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/lib/coq/theories",
+        "Corelib",
+        "-Q",
+        "/root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/lib/coq/user-contrib/Stdlib",
+        "Stdlib",
+        "-Q",
+        "/root/build/lane-triple-20261023-domains/private/lib/coq/user-contrib/stdpp",
+        "stdpp",
+        "-R",
+        "/root/build/lane-triple-20261023-domains/support-source/coq-sail-0.20.3/src-stdpp",
+        "SailStdpp",
+        "-R",
+        "/root/build/lane-triple-20261023-domains/canonical-diagnostic",
+        "",
+        "-R",
+        "/root/build/lane-triple-20261023-domains/verifiedos-model/rocq",
+        "",
+        "/root/build/lane-triple-20261023-domains/canonical-diagnostic/riscv_extras.v"
+      ],
+      "cwd": "/tmp/vos-q35o-canonical-woqbc9gy",
+      "exit": 0,
+      "elapsed": 0.7376644079995458,
+      "stdout": "/root/build/lane-triple-20261023-domains/canonical-riscv_extras.stdout",
+      "stderr": "/root/build/lane-triple-20261023-domains/canonical-riscv_extras.stderr",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_sha256": "165100ef3c165ced6590f0610f6ebdb3db04697625151cf25efff2f4dda0243d"
+    },
+    {
+      "source": "/root/build/lane-triple-20261023-domains/verifiedos-model/rocq/rv64d_types.v",
+      "strict": true,
+      "source_sha256": "776bc8f9e08efa63dbb767726506de988240791e847043d5fe6322c572ab97d8",
+      "argv": [
+        "/root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/bin/rocq",
+        "c",
+        "-q",
+        "-boot",
+        "-R",
+        "/root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/lib/coq/theories",
+        "Corelib",
+        "-Q",
+        "/root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/lib/coq/user-contrib/Stdlib",
+        "Stdlib",
+        "-Q",
+        "/root/build/lane-triple-20261023-domains/private/lib/coq/user-contrib/stdpp",
+        "stdpp",
+        "-R",
+        "/root/build/lane-triple-20261023-domains/support-source/coq-sail-0.20.3/src-stdpp",
+        "SailStdpp",
+        "-R",
+        "/root/build/lane-triple-20261023-domains/canonical-diagnostic",
+        "",
+        "-R",
+        "/root/build/lane-triple-20261023-domains/verifiedos-model/rocq",
+        "",
+        "-w",
+        "+default,-abstract-large-number",
+        "-set",
+        "Default Goal Selector=!",
+        "-disallow-sprop",
+        "/root/build/lane-triple-20261023-domains/verifiedos-model/rocq/rv64d_types.v"
+      ],
+      "cwd": "/tmp/vos-q35o-canonical-woqbc9gy",
+      "exit": 0,
+      "elapsed": 13.152242677999311,
+      "stdout": "/root/build/lane-triple-20261023-domains/canonical-rv64d_types.stdout",
+      "stderr": "/root/build/lane-triple-20261023-domains/canonical-rv64d_types.stderr",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "source": "/root/build/lane-triple-20261023-domains/verifiedos-model/rocq/rv64d.v",
+      "strict": true,
+      "source_sha256": "221ee0fcdada1915f17b61fe80b4861e9105a0e11f8b070a54ca1b55f1bb289b",
+      "argv": [
+        "/root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/bin/rocq",
+        "c",
+        "-q",
+        "-boot",
+        "-R",
+        "/root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/lib/coq/theories",
+        "Corelib",
+        "-Q",
+        "/root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/lib/coq/user-contrib/Stdlib",
+        "Stdlib",
+        "-Q",
+        "/root/build/lane-triple-20261023-domains/private/lib/coq/user-contrib/stdpp",
+        "stdpp",
+        "-R",
+        "/root/build/lane-triple-20261023-domains/support-source/coq-sail-0.20.3/src-stdpp",
+        "SailStdpp",
+        "-R",
+        "/root/build/lane-triple-20261023-domains/canonical-diagnostic",
+        "",
+        "-R",
+        "/root/build/lane-triple-20261023-domains/verifiedos-model/rocq",
+        "",
+        "-w",
+        "+default,-abstract-large-number",
+        "-set",
+        "Default Goal Selector=!",
+        "-disallow-sprop",
+        "/root/build/lane-triple-20261023-domains/verifiedos-model/rocq/rv64d.v"
+      ],
+      "cwd": "/tmp/vos-q35o-canonical-woqbc9gy",
+      "exit": 1,
+      "elapsed": 1.6612976599972171,
+      "stdout": "/root/build/lane-triple-20261023-domains/canonical-rv64d.stdout",
+      "stderr": "/root/build/lane-triple-20261023-domains/canonical-rv64d.stderr",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_sha256": "9118f36b3e499566d84ff08d89c0e708cd0e60da5b34160ca302f4748eaeb3ec"
+    }
+  ],
+  "comparison_settings": "Both minimal generated sources are compared after compilation at identical original settings. Strict compile is separate; -disallow-sprop suppresses autogenerated _sind declarations, so cross-flag object inventories are not compared.",
+  "notation_controls": "All four monad notations equal their original executable expansions by reflexivity; Print Assumptions for each definition reports Closed under the global context.",
+  "stopped_at": "First untouched strict canonical main diagnostic: write_tag_bool has Prompt_monad.monad bool but M unit is required.",
+  "semantic_changes": false,
+  "post_edited_canonical_outputs": false,
+  "full_canonical_frozen_comparison": false,
+  "assumption_closure": false,
+  "recursive_kernel_acceptance": false,
+  "hosted_plugin_qualification": "not performed",
+  "strict_handwritten_extras": "not qualified; original-settings prerequisite retains two deprecated-missing-stdlib warnings",
+  "production_carriage": false,
+  "item_closed": false,
+  "active_minutes_estimate": 35,
+  "setup_incident": "An unfiltered dependency-sort diagnostic accidentally compiled two installed BinNums sources and attempted EqdepFacts; integrator restored exact same-switch duplicate installed bytes and removed three newly-created .aux files. The incident supplies no qualification evidence. The corrected qualification filters/asserts the exact 29 lane-owned sources and asserts restored sentinel hashes around every command.",
+  "installed_sentinels_unchanged": true
+}

@@ -1,0 +1,60 @@
+[
+  {
+    "argv": [
+      "/root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/bin/rocq",
+      "c",
+      "-q",
+      "-boot",
+      "-R",
+      "/root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/lib/coq/theories",
+      "Corelib",
+      "-Q",
+      "/root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/lib/coq/user-contrib/Stdlib",
+      "Stdlib",
+      "-Q",
+      "/root/build/lane-triple-20261023-domains/private/lib/coq/user-contrib/stdpp",
+      "stdpp",
+      "-R",
+      "/root/build/lane-triple-20261023-domains/support-source/coq-sail-0.20.3/src-stdpp",
+      "SailStdpp",
+      "-R",
+      "/root/build/lane-triple-20261023-domains/probe-candidate",
+      "",
+      "/root/build/lane-triple-20261023-domains/probe-candidate/SyntaxProbe_types.v"
+    ],
+    "cwd": "/tmp/vos-q35o-comparison-build-1z9d84z7",
+    "exit": 0,
+    "elapsed": 0.9044268979996559,
+    "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "argv": [
+      "/root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/bin/rocq",
+      "c",
+      "-q",
+      "-boot",
+      "-R",
+      "/root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/lib/coq/theories",
+      "Corelib",
+      "-Q",
+      "/root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/lib/coq/user-contrib/Stdlib",
+      "Stdlib",
+      "-Q",
+      "/root/build/lane-triple-20261023-domains/private/lib/coq/user-contrib/stdpp",
+      "stdpp",
+      "-R",
+      "/root/build/lane-triple-20261023-domains/support-source/coq-sail-0.20.3/src-stdpp",
+      "SailStdpp",
+      "-R",
+      "/root/build/lane-triple-20261023-domains/probe-candidate",
+      "",
+      "/root/build/lane-triple-20261023-domains/probe-candidate/SyntaxProbe.v"
+    ],
+    "cwd": "/tmp/vos-q35o-comparison-build-1z9d84z7",
+    "exit": 0,
+    "elapsed": 0.6914824510022299,
+    "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+]

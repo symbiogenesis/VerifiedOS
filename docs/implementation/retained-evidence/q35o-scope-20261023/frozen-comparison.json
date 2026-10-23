@@ -1,0 +1,30 @@
+{
+  "all_identical": true,
+  "stats": {
+    "baseline": {
+      "SyntaxProbe_types": {
+        "declarations": 300,
+        "printed": 236
+      },
+      "SyntaxProbe": {
+        "declarations": 47,
+        "printed": 47
+      }
+    },
+    "candidate": {
+      "SyntaxProbe_types": {
+        "declarations": 300,
+        "printed": 236
+      },
+      "SyntaxProbe": {
+        "declarations": 47,
+        "printed": 47
+      }
+    }
+  },
+  "repeat_outputs": {
+    "SyntaxProbe.v": true,
+    "SyntaxProbe_types.v": true
+  },
+  "differences": []
+}

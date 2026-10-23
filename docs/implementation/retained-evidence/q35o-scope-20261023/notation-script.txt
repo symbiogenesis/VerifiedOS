@@ -1,0 +1,26 @@
+import os,pathlib,tempfile,subprocess,json,time,hashlib
+L=pathlib.Path('/root/build/lane-triple-20261023-domains'); P=pathlib.Path('/root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1'); T=pathlib.Path(tempfile.mkdtemp(prefix='vos-q35o-notation-')); os.chdir(T)
+BASE=['-boot','-R',str(P/'lib/coq/theories'),'Corelib','-Q',str(P/'lib/coq/user-contrib/Stdlib'),'Stdlib','-Q',str(L/'private/lib/coq/user-contrib/stdpp'),'stdpp','-R',str(L/'support-source/coq-sail-0.20.3/src-stdpp'),'SailStdpp']; STRICT=['-w','+default,-abstract-large-number','-set','Default Goal Selector=!','-disallow-sprop']
+text='''(* SPDX-License-Identifier: Apache-2.0 *)
+Require Import SyntaxProbe_types SyntaxProbe.
+Definition bind_notation : M unit := returnM tt >>= (fun _ => returnM tt).
+Definition bind_expansion : M unit := Defs.bind (returnM tt) (fun _ => returnM tt).
+Goal bind_notation = bind_expansion. Proof. reflexivity. Qed.
+Definition bind0_notation : M unit := returnM tt >> returnM tt.
+Definition bind0_expansion : M unit := Defs.bind0 (returnM tt) (returnM tt).
+Goal bind0_notation = bind0_expansion. Proof. reflexivity. Qed.
+Definition pure_bind_notation : (unit + unit)%type := (inr tt : (unit + unit)%type) >>$= (fun (_ : unit) => inr tt).
+Definition pure_bind_expansion : (unit + unit)%type := Defs.pure_early_return_bind (inr tt) (fun (_ : unit) => inr tt).
+Goal pure_bind_notation = pure_bind_expansion. Proof. reflexivity. Qed.
+Definition pure_bind0_notation : (unit + unit)%type := (inr tt : (unit + unit)%type) >>$ (inr tt : (unit + unit)%type).
+Definition pure_bind0_expansion : (unit + unit)%type := Defs.pure_early_return_bind (inr tt) (fun _ : unit => inr tt).
+Goal pure_bind0_notation = pure_bind0_expansion. Proof. reflexivity. Qed.
+Print Assumptions bind_notation.
+Print Assumptions bind0_notation.
+Print Assumptions pure_bind_notation.
+Print Assumptions pure_bind0_notation.
+'''
+(L/'NotationProbe.v').write_text(text,newline=''); records=[]
+for mode in ['baseline','candidate']:
+    f=T/'NotationProbe.v'; local=text.replace('Require Import SyntaxProbe_types SyntaxProbe.', 'Require Import SyntaxProbe_types SyntaxProbe.\n'+('Import Defs.' if mode=='baseline' else 'Import -(notations) Defs.\nOpen Scope sail_concurrency_scope.')); f.write_text(local,newline=''); args=[str(P/'bin/rocq'),'c','-q',*BASE,'-R',str(L/('probe-'+mode)),'',*(STRICT if mode=='candidate' else []),str(f)]; start=time.monotonic(); d=subprocess.run(args,cwd=T,capture_output=True); (L/(mode+'-notation.stdout')).write_bytes(d.stdout); (L/(mode+'-notation.stderr')).write_bytes(d.stderr); records.append(dict(mode=mode,argv=args,cwd=str(T),exit=d.returncode,elapsed=time.monotonic()-start,stdout_sha256=hashlib.sha256(d.stdout).hexdigest(),stderr_sha256=hashlib.sha256(d.stderr).hexdigest())); print(mode,d.returncode,d.stdout.decode(),d.stderr.decode(),flush=True)
+    (L/'notation-receipt.json').write_text(json.dumps(records,indent=2)+'\n'); assert d.returncode==0

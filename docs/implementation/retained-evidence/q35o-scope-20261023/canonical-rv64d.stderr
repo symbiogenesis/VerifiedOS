@@ -1,0 +1,14 @@
+File "/root/build/lane-triple-20261023-domains/verifiedos-model/rocq/rv64d.v", line 7197, characters 18-69:
+Error:
+In environment
+addr : mword 64
+width : Z
+meta : bool
+first := uint (addr_to_tag_addr addr) : Z
+last := uint (addr_to_tag_addr (add_vec_int addr (width - 1))) : Z
+i : Z
+u : unit
+The term "write_tag_bool (to_bits_truncate 64 i) meta" has type
+ "Prompt_monad.monad bool ?E0"
+while it is expected to have type "M unit".
+
