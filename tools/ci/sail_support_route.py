@@ -42,6 +42,7 @@ ENVIRONMENT_BOUNDARY = "Launcher and protected native populations; distro runtim
 MAX_REQUEST_BYTES = 64 * 1024 * 1024
 REQUEST_VARIABLES = ("VOS_CENSUS_RESOLVE", "VOS_CENSUS_RESOLVE_FILE")
 OUTPUT_VARIABLE = "VOS_CENSUS_OUTPUT_FILE"
+PROGRESS_VARIABLE = "VOS_CENSUS_PROGRESS_FILE"
 OUTPUT_SCHEMA = "verifiedos-native-census-output/1"
 CENSUS_SCHEMA = "verifiedos-sail-support-census/1"
 
@@ -317,6 +318,7 @@ class Campaign:
         self.environment = dict(os.environ, OPAMROOT=str(root / "opam"), OPAMYES="1",
                                 OPAMROOTISOK="1", OPAMJOBS="2", OPAMCOLOR="never")
         self.environment.pop(OUTPUT_VARIABLE, None)
+        self.environment.pop(PROGRESS_VARIABLE, None)
         self.report: dict[str, Any] = {"schema": SCHEMA, "phase": phase, "status": "pending",
             "run_id": os.environ.get("GITHUB_RUN_ID"), "run_attempt": os.environ.get("GITHUB_RUN_ATTEMPT"),
             "revision": os.environ["TESTED_REVISION"], "dispatch_revision": os.environ["GITHUB_SHA"],
@@ -335,7 +337,7 @@ class Campaign:
             "process_completed": False, "exit": None, "strict": strict, "timed_out": False,
             "expected_refusal": refusal, "native_environment": {name: self.environment[name] for name in
                 ("OPAMROOT", "OPAMSWITCH", "OPAM_SWITCH_PREFIX", "VOS_CENSUS_MODE", "VOS_CENSUS_TARGETS",
-                 *REQUEST_VARIABLES, OUTPUT_VARIABLE, "OCAMLPATH") if name in self.environment},
+                 *REQUEST_VARIABLES, OUTPUT_VARIABLE, PROGRESS_VARIABLE, "OCAMLPATH") if name in self.environment},
             "request_source_before": request_source(self.environment, self.root), "request_source_after": None,
             "output_file_before": output_intent(self.environment, self.root), "output_file_after": None}
         self.report["commands"].append(record)
@@ -533,6 +535,7 @@ def query(campaign: Campaign, label: str, text: str, mappings: list[str], *,
           refusal: bool = False, source_name: str | None = None,
           census_output: Path | None = None) -> subprocess.CompletedProcess[str]:
     campaign.environment.pop(OUTPUT_VARIABLE, None)
+    campaign.environment.pop(PROGRESS_VARIABLE, None)
     folder = campaign.root / "native-queries"
     folder.mkdir(exist_ok=True)
     name = source_name or label.replace("-", "_").title() + ".v"
@@ -548,6 +551,7 @@ def query(campaign: Campaign, label: str, text: str, mappings: list[str], *,
                               *STRICT, str(source)]), campaign.root, refusal=refusal)
     finally:
         campaign.environment.pop(OUTPUT_VARIABLE, None)
+        campaign.environment.pop(PROGRESS_VARIABLE, None)
     campaign.report["commands"][-1].update(query_source="query-" + label + ".v",
         query_sha256=receipts.digest(source), native_source_name=source.name)
     campaign.save()
@@ -893,6 +897,8 @@ def validate_native_qualification(artifact_root: Path, side: Path, revision: str
         commands[label] = command
         streams[label] = command_streams(artifact_root, command)
         replay_request_source(command, artifact_root, PurePosixPath(opam["root"]).parent)
+        if PROGRESS_VARIABLE in command.get("native_environment", {}):
+            raise ValueError("hosted native command selected an unsupported progress destination")
         if label not in {"support-native-census", "control-native-census"} and (
                 OUTPUT_VARIABLE in command.get("native_environment", {})
                 or any(command.get(key) is not None for key in
