@@ -100,6 +100,26 @@ def _empty_and_invalid() -> None:
                 raise AssertionError("invalid --jobs must be refused")
 
 
+def _blank_filter_is_refused() -> None:
+    for only in ("", " ", "\t\n"):
+        with patch.object(runner, "_lanes", side_effect=AssertionError("tests were launched")):
+            try:
+                runner.run(only=only)
+            except ValueError as err:
+                ensure("--only" in str(err), "an invalid filter needs a clear diagnostic")
+            else:
+                raise AssertionError("a blank filter must not select the complete suite")
+        with redirect_stderr(StringIO()):
+            try:
+                runner.main(["--only", only])
+            except SystemExit as err:
+                ensure(err.code == 2, "blank --only needs a usage error")
+            else:
+                raise AssertionError("blank --only must be refused")
+    ensure(runner._module_names("test_harness") == ["test_harness"],
+           "a nonempty filter must still select its matching module")
+
+
 def _shards_execute_the_selected_modules() -> None:
     names = ["test_harness", "test_report"]
     for index, expected in enumerate(names, 1):
@@ -246,6 +266,7 @@ def cases() -> list[Case]:
         Case("captured-output", _captured_output),
         Case("spawn-isolation", _spawn_isolation),
         Case("empty-and-invalid", _empty_and_invalid),
+        Case("blank-filter-is-refused", _blank_filter_is_refused),
         Case("shards-execute-the-selected-modules", _shards_execute_the_selected_modules),
         Case("declared-modules-share-their-cases", _declared_modules_share_their_cases),
         Case("declarations-are-read-from-the-line", _declarations_are_read_from_the_line),
