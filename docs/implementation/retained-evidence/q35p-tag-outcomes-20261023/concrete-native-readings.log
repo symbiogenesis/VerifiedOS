@@ -1,0 +1,2394 @@
+Module Type
+ ConcurrencyInterface.InterfaceT =
+ Funsig (A:ConcurrencyInterface.Arch)
+   Sig
+     Definition va
+     Definition accessKind
+     Module ReadReq
+     Module WriteReq
+     Inductive outcome
+     Definition outcome_rect
+     Definition outcome_ind
+     Definition outcome_rec
+     Inductive iMon
+     Definition iMon_rect
+     Definition iMon_ind
+     Definition iMon_rec
+     Definition iMon_mret_inst
+     Definition iMon_bind
+     Definition iMon_mbind_inst
+     Definition iMon_fmap
+     Definition iMon_fmap_inst
+     Variant iSem
+     Definition isa_state
+     Definition init_state
+     Definition semantic
+     Inductive iEvent
+     Definition iEvent_rect
+     Definition iEvent_ind
+     Definition iEvent_rec
+     Definition iTrace
+     Definition pure_iTrace_aux
+     Definition pure_iTrace
+     Inductive iTrace_match
+     Definition iTrace_match_ind
+     Definition iMon_equiv
+     Definition iMonExtraMap
+     Definition map_extra_iMon
+   End
+Inductive
+outcome
+    (eOutcome : forall _ : Type@{ConcurrencyInterface.Interface.T.u0},
+                Type@{ConcurrencyInterface.Interface.T.u1})
+  : forall _ : Type@{ConcurrencyInterface.Interface.outcome.u0},
+    Type@{max(Set,ConcurrencyInterface.Arch.reg.u0,ConcurrencyInterface.Arch.reg_type.u0,ConcurrencyInterface.Arch.pa.u0,ConcurrencyInterface.Arch.arch_ak.u0,ConcurrencyInterface.Arch.translation.u0,ConcurrencyInterface.Arch.trans_start.u0,ConcurrencyInterface.Arch.trans_end.u0,ConcurrencyInterface.Arch.barrier.u0,ConcurrencyInterface.Arch.cache_op.u0,ConcurrencyInterface.Arch.tlb_op.u0,ConcurrencyInterface.Arch.fault.u0,ConcurrencyInterface.Arch.sys_reg_id.u0,ConcurrencyInterface.Interface.T.u1,ConcurrencyInterface.Interface.outcome.u1+1)} :=
+    RegRead : forall (reg : Arch.reg) (_ : option Arch.sys_reg_id),
+              Interface.outcome eOutcome (Arch.reg_type reg)
+  | RegWrite : forall (reg : Arch.reg) (_ : option Arch.sys_reg_id)
+                 (_ : Arch.reg_type reg),
+               Interface.outcome eOutcome unit
+  | MemRead : forall (n : BinNums.N) (_ : Interface.ReadReq.t n),
+              Interface.outcome eOutcome
+                (sum
+                   (prod
+                      (definitions.bv
+                         (BinNat.N.mul
+                            (BinNums.Npos
+                               (BinNums.xO
+                                  (BinNums.xO (BinNums.xO BinNums.xH))))
+                            n))
+                      (option bool))
+                   Arch.abort)
+  | MemWrite : forall (n : BinNums.N) (_ : Interface.WriteReq.t n),
+               Interface.outcome eOutcome (sum (option bool) Arch.abort)
+  | TagRead : forall
+                _ : Values.mword
+                      (BinNums.Zpos
+                         (BinNums.xO
+                            (BinNums.xO
+                               (BinNums.xO
+                                  (BinNums.xO
+                                     (BinNums.xO (BinNums.xO BinNums.xH))))))),
+              Interface.outcome eOutcome bool
+  | TagWrite : forall
+                 (_ : Values.mword
+                        (BinNums.Zpos
+                           (BinNums.xO
+                              (BinNums.xO
+                                 (BinNums.xO
+                                    (BinNums.xO
+                                       (BinNums.xO (BinNums.xO BinNums.xH))))))))
+                 (_ : bool),
+               Interface.outcome eOutcome unit
+  | InstrAnnounce : forall _ : definitions.bvn,
+                    Interface.outcome eOutcome unit
+  | BranchAnnounce : forall (sz : BinNums.Z) (_ : Values.mword sz),
+                     Interface.outcome eOutcome unit
+  | Barrier : forall _ : Arch.barrier, Interface.outcome eOutcome unit
+  | CacheOp : forall _ : Arch.cache_op, Interface.outcome eOutcome unit
+  | TlbOp : forall _ : Arch.tlb_op, Interface.outcome eOutcome unit
+  | TakeException : forall _ : Arch.fault, Interface.outcome eOutcome unit
+  | ReturnException : forall _ : Arch.pa, Interface.outcome eOutcome unit
+  | TranslationStart : forall _ : Arch.trans_start,
+                       Interface.outcome eOutcome unit
+  | TranslationEnd : forall _ : Arch.trans_end,
+                     Interface.outcome eOutcome unit
+  | ExtraOutcome : forall
+                     (A : Type@{ConcurrencyInterface.Interface.outcome.u1})
+                     (_ : eOutcome A),
+                   Interface.outcome eOutcome A
+  | GenericFail : forall _ : String.string, Interface.outcome eOutcome False
+  | CycleCount : Interface.outcome eOutcome unit
+  | GetCycleCount : Interface.outcome eOutcome BinNums.Z
+  | Choose : forall ty : Values.ChooseType,
+             Interface.outcome eOutcome (Values.choose_type ty)
+  | Discard : Interface.outcome eOutcome False
+  | Message : forall _ : String.string, Interface.outcome eOutcome unit.
+
+Arguments Interface.outcome eOutcome%_function_scope _%_type_scope
+Arguments Interface.RegRead {eOutcome}%_function_scope reg access_kind
+Arguments Interface.RegWrite {eOutcome}%_function_scope 
+  reg access_kind regval
+Arguments Interface.MemRead {eOutcome}%_function_scope n%_N_scope _
+Arguments Interface.MemWrite {eOutcome}%_function_scope n%_N_scope _
+Arguments Interface.TagRead {eOutcome}%_function_scope key
+Arguments Interface.TagWrite {eOutcome}%_function_scope key value%_bool_scope
+Arguments Interface.InstrAnnounce {eOutcome}%_function_scope opcode
+Arguments Interface.BranchAnnounce {eOutcome}%_function_scope sz%_Z_scope pa
+Arguments Interface.Barrier {eOutcome}%_function_scope _
+Arguments Interface.CacheOp {eOutcome}%_function_scope _
+Arguments Interface.TlbOp {eOutcome}%_function_scope _
+Arguments Interface.TakeException {eOutcome}%_function_scope _
+Arguments Interface.ReturnException {eOutcome}%_function_scope pa
+Arguments Interface.TranslationStart {eOutcome}%_function_scope _
+Arguments Interface.TranslationEnd {eOutcome}%_function_scope _
+Arguments Interface.ExtraOutcome {eOutcome}%_function_scope {A}%_type_scope _
+Arguments Interface.GenericFail {eOutcome}%_function_scope msg%_string_scope
+Arguments Interface.CycleCount {eOutcome}%_function_scope
+Arguments Interface.GetCycleCount {eOutcome}%_function_scope
+Arguments Interface.Choose {eOutcome}%_function_scope ty
+Arguments Interface.Discard {eOutcome}%_function_scope
+Arguments Interface.Message {eOutcome}%_function_scope _%_string_scope
+Interface.outcome_ind =
+fun
+  (eOutcome : forall _ : Type@{ConcurrencyInterface.Interface.T.u0},
+              Type@{ConcurrencyInterface.Interface.T.u1})
+  (P : forall (T : Type@{ConcurrencyInterface.Interface.outcome.u0})
+         (_ : Interface.outcome eOutcome T),
+       Prop)
+  (RegRead : forall (reg : Arch.reg) (access_kind : option Arch.sys_reg_id),
+             P (Arch.reg_type reg)
+               (@Interface.RegRead eOutcome reg access_kind))
+  (RegWrite : forall (reg : Arch.reg) (access_kind : option Arch.sys_reg_id)
+                (regval : Arch.reg_type reg),
+              P unit (@Interface.RegWrite eOutcome reg access_kind regval))
+  (MemRead : forall (n : BinNums.N) (t : Interface.ReadReq.t n),
+             P
+               (sum
+                  (prod
+                     (definitions.bv
+                        (BinNat.N.mul
+                           (BinNums.Npos
+                              (BinNums.xO
+                                 (BinNums.xO (BinNums.xO BinNums.xH))))
+                           n))
+                     (option bool))
+                  Arch.abort)
+               (@Interface.MemRead eOutcome n t))
+  (MemWrite : forall (n : BinNums.N) (t : Interface.WriteReq.t n),
+              P (sum (option bool) Arch.abort)
+                (@Interface.MemWrite eOutcome n t))
+  (TagRead : forall
+               key : Values.mword
+                       (BinNums.Zpos
+                          (BinNums.xO
+                             (BinNums.xO
+                                (BinNums.xO
+                                   (BinNums.xO
+                                      (BinNums.xO (BinNums.xO BinNums.xH))))))),
+             P bool (@Interface.TagRead eOutcome key))
+  (TagWrite : forall
+                (key : Values.mword
+                         (BinNums.Zpos
+                            (BinNums.xO
+                               (BinNums.xO
+                                  (BinNums.xO
+                                     (BinNums.xO
+                                        (BinNums.xO (BinNums.xO BinNums.xH))))))))
+                (value : bool),
+              P unit (@Interface.TagWrite eOutcome key value))
+  (InstrAnnounce : forall opcode : definitions.bvn,
+                   P unit (@Interface.InstrAnnounce eOutcome opcode))
+  (BranchAnnounce : forall (sz : BinNums.Z) (pa : Values.mword sz),
+                    P unit (@Interface.BranchAnnounce eOutcome sz pa))
+  (Barrier : forall b : Arch.barrier, P unit (@Interface.Barrier eOutcome b))
+  (CacheOp : forall c : Arch.cache_op, P unit (@Interface.CacheOp eOutcome c))
+  (TlbOp : forall t : Arch.tlb_op, P unit (@Interface.TlbOp eOutcome t))
+  (TakeException : forall f : Arch.fault,
+                   P unit (@Interface.TakeException eOutcome f))
+  (ReturnException : forall pa : Arch.pa,
+                     P unit (@Interface.ReturnException eOutcome pa))
+  (TranslationStart : forall t : Arch.trans_start,
+                      P unit (@Interface.TranslationStart eOutcome t))
+  (TranslationEnd : forall t : Arch.trans_end,
+                    P unit (@Interface.TranslationEnd eOutcome t))
+  (ExtraOutcome : forall
+                    (A : Type@{ConcurrencyInterface.Interface.outcome.u1})
+                    (e : eOutcome A),
+                  P A (@Interface.ExtraOutcome eOutcome A e))
+  (GenericFail : forall msg : String.string,
+                 P False (@Interface.GenericFail eOutcome msg))
+  (CycleCount : P unit (@Interface.CycleCount eOutcome))
+  (GetCycleCount : P BinNums.Z (@Interface.GetCycleCount eOutcome))
+  (Choose : forall ty : Values.ChooseType,
+            P (Values.choose_type ty) (@Interface.Choose eOutcome ty))
+  (Discard : P False (@Interface.Discard eOutcome))
+  (Message : forall s : String.string, P unit (@Interface.Message eOutcome s))
+  (T : Type@{ConcurrencyInterface.Interface.outcome.u0})
+  (o : Interface.outcome eOutcome T) =>
+match o as o0 in Interface.outcome _ T0 return P T0 o0 with
+| @Interface.RegRead _ reg access_kind => RegRead reg access_kind
+| @Interface.RegWrite _ reg access_kind regval =>
+    RegWrite reg access_kind regval
+| @Interface.MemRead _ n t => MemRead n t
+| @Interface.MemWrite _ n t => MemWrite n t
+| @Interface.TagRead _ key => TagRead key
+| @Interface.TagWrite _ key value => TagWrite key value
+| @Interface.InstrAnnounce _ opcode => InstrAnnounce opcode
+| @Interface.BranchAnnounce _ sz pa => BranchAnnounce sz pa
+| @Interface.Barrier _ b => Barrier b
+| @Interface.CacheOp _ c => CacheOp c
+| @Interface.TlbOp _ t => TlbOp t
+| @Interface.TakeException _ f => TakeException f
+| @Interface.ReturnException _ pa => ReturnException pa
+| @Interface.TranslationStart _ t => TranslationStart t
+| @Interface.TranslationEnd _ t => TranslationEnd t
+| @Interface.ExtraOutcome _ A e => ExtraOutcome A e
+| @Interface.GenericFail _ msg => GenericFail msg
+| @Interface.CycleCount _ => CycleCount
+| @Interface.GetCycleCount _ => GetCycleCount
+| @Interface.Choose _ ty => Choose ty
+| @Interface.Discard _ => Discard
+| @Interface.Message _ s => Message s
+end
+     : forall
+         {eOutcome : forall _ : Type@{ConcurrencyInterface.Interface.T.u0},
+                     Type@{ConcurrencyInterface.Interface.T.u1}}
+         (P : forall (T : Type@{ConcurrencyInterface.Interface.outcome.u0})
+                (_ : Interface.outcome eOutcome T),
+              Prop)
+         (_ : forall (reg : Arch.reg) (access_kind : option Arch.sys_reg_id),
+              P (Arch.reg_type reg)
+                (@Interface.RegRead eOutcome reg access_kind))
+         (_ : forall (reg : Arch.reg) (access_kind : option Arch.sys_reg_id)
+                (regval : Arch.reg_type reg),
+              P unit (@Interface.RegWrite eOutcome reg access_kind regval))
+         (_ : forall (n : BinNums.N) (t : Interface.ReadReq.t n),
+              P
+                (sum
+                   (prod
+                      (definitions.bv
+                         (BinNat.N.mul
+                            (BinNums.Npos
+                               (BinNums.xO
+                                  (BinNums.xO (BinNums.xO BinNums.xH))))
+                            n))
+                      (option bool))
+                   Arch.abort)
+                (@Interface.MemRead eOutcome n t))
+         (_ : forall (n : BinNums.N) (t : Interface.WriteReq.t n),
+              P (sum (option bool) Arch.abort)
+                (@Interface.MemWrite eOutcome n t))
+         (_ : forall
+                key : Values.mword
+                        (BinNums.Zpos
+                           (BinNums.xO
+                              (BinNums.xO
+                                 (BinNums.xO
+                                    (BinNums.xO
+                                       (BinNums.xO (BinNums.xO BinNums.xH))))))),
+              P bool (@Interface.TagRead eOutcome key))
+         (_ : forall
+                (key : Values.mword
+                         (BinNums.Zpos
+                            (BinNums.xO
+                               (BinNums.xO
+                                  (BinNums.xO
+                                     (BinNums.xO
+                                        (BinNums.xO (BinNums.xO BinNums.xH))))))))
+                (value : bool),
+              P unit (@Interface.TagWrite eOutcome key value))
+         (_ : forall opcode : definitions.bvn,
+              P unit (@Interface.InstrAnnounce eOutcome opcode))
+         (_ : forall (sz : BinNums.Z) (pa : Values.mword sz),
+              P unit (@Interface.BranchAnnounce eOutcome sz pa))
+         (_ : forall b : Arch.barrier, P unit (@Interface.Barrier eOutcome b))
+         (_ : forall c : Arch.cache_op,
+              P unit (@Interface.CacheOp eOutcome c))
+         (_ : forall t : Arch.tlb_op, P unit (@Interface.TlbOp eOutcome t))
+         (_ : forall f : Arch.fault,
+              P unit (@Interface.TakeException eOutcome f))
+         (_ : forall pa : Arch.pa,
+              P unit (@Interface.ReturnException eOutcome pa))
+         (_ : forall t : Arch.trans_start,
+              P unit (@Interface.TranslationStart eOutcome t))
+         (_ : forall t : Arch.trans_end,
+              P unit (@Interface.TranslationEnd eOutcome t))
+         (_ : forall (A : Type@{ConcurrencyInterface.Interface.outcome.u1})
+                (e : eOutcome A),
+              P A (@Interface.ExtraOutcome eOutcome A e))
+         (_ : forall msg : String.string,
+              P False (@Interface.GenericFail eOutcome msg))
+         (_ : P unit (@Interface.CycleCount eOutcome))
+         (_ : P BinNums.Z (@Interface.GetCycleCount eOutcome))
+         (_ : forall ty : Values.ChooseType,
+              P (Values.choose_type ty) (@Interface.Choose eOutcome ty))
+         (_ : P False (@Interface.Discard eOutcome))
+         (_ : forall s : String.string,
+              P unit (@Interface.Message eOutcome s))
+         (T : Type@{ConcurrencyInterface.Interface.outcome.u0})
+         (o : Interface.outcome eOutcome T),
+       P T o
+
+Arguments Interface.outcome_ind {eOutcome}%_function_scope
+  (P RegRead RegWrite MemRead MemWrite TagRead TagWrite InstrAnnounce
+   BranchAnnounce Barrier CacheOp TlbOp TakeException ReturnException
+   TranslationStart TranslationEnd ExtraOutcome GenericFail)%_function_scope
+  CycleCount GetCycleCount Choose%_function_scope 
+  Discard Message%_function_scope T%_type_scope o
+Interface.outcome_rec =
+fun
+  (eOutcome : forall _ : Type@{ConcurrencyInterface.Interface.T.u0},
+              Type@{ConcurrencyInterface.Interface.T.u1})
+  (P : forall (T : Type@{ConcurrencyInterface.Interface.outcome.u0})
+         (_ : Interface.outcome eOutcome T),
+       Set)
+  (RegRead : forall (reg : Arch.reg) (access_kind : option Arch.sys_reg_id),
+             P (Arch.reg_type reg)
+               (@Interface.RegRead eOutcome reg access_kind))
+  (RegWrite : forall (reg : Arch.reg) (access_kind : option Arch.sys_reg_id)
+                (regval : Arch.reg_type reg),
+              P unit (@Interface.RegWrite eOutcome reg access_kind regval))
+  (MemRead : forall (n : BinNums.N) (t : Interface.ReadReq.t n),
+             P
+               (sum
+                  (prod
+                     (definitions.bv
+                        (BinNat.N.mul
+                           (BinNums.Npos
+                              (BinNums.xO
+                                 (BinNums.xO (BinNums.xO BinNums.xH))))
+                           n))
+                     (option bool))
+                  Arch.abort)
+               (@Interface.MemRead eOutcome n t))
+  (MemWrite : forall (n : BinNums.N) (t : Interface.WriteReq.t n),
+              P (sum (option bool) Arch.abort)
+                (@Interface.MemWrite eOutcome n t))
+  (TagRead : forall
+               key : Values.mword
+                       (BinNums.Zpos
+                          (BinNums.xO
+                             (BinNums.xO
+                                (BinNums.xO
+                                   (BinNums.xO
+                                      (BinNums.xO (BinNums.xO BinNums.xH))))))),
+             P bool (@Interface.TagRead eOutcome key))
+  (TagWrite : forall
+                (key : Values.mword
+                         (BinNums.Zpos
+                            (BinNums.xO
+                               (BinNums.xO
+                                  (BinNums.xO
+                                     (BinNums.xO
+                                        (BinNums.xO (BinNums.xO BinNums.xH))))))))
+                (value : bool),
+              P unit (@Interface.TagWrite eOutcome key value))
+  (InstrAnnounce : forall opcode : definitions.bvn,
+                   P unit (@Interface.InstrAnnounce eOutcome opcode))
+  (BranchAnnounce : forall (sz : BinNums.Z) (pa : Values.mword sz),
+                    P unit (@Interface.BranchAnnounce eOutcome sz pa))
+  (Barrier : forall b : Arch.barrier, P unit (@Interface.Barrier eOutcome b))
+  (CacheOp : forall c : Arch.cache_op, P unit (@Interface.CacheOp eOutcome c))
+  (TlbOp : forall t : Arch.tlb_op, P unit (@Interface.TlbOp eOutcome t))
+  (TakeException : forall f : Arch.fault,
+                   P unit (@Interface.TakeException eOutcome f))
+  (ReturnException : forall pa : Arch.pa,
+                     P unit (@Interface.ReturnException eOutcome pa))
+  (TranslationStart : forall t : Arch.trans_start,
+                      P unit (@Interface.TranslationStart eOutcome t))
+  (TranslationEnd : forall t : Arch.trans_end,
+                    P unit (@Interface.TranslationEnd eOutcome t))
+  (ExtraOutcome : forall
+                    (A : Type@{ConcurrencyInterface.Interface.outcome.u1})
+                    (e : eOutcome A),
+                  P A (@Interface.ExtraOutcome eOutcome A e))
+  (GenericFail : forall msg : String.string,
+                 P False (@Interface.GenericFail eOutcome msg))
+  (CycleCount : P unit (@Interface.CycleCount eOutcome))
+  (GetCycleCount : P BinNums.Z (@Interface.GetCycleCount eOutcome))
+  (Choose : forall ty : Values.ChooseType,
+            P (Values.choose_type ty) (@Interface.Choose eOutcome ty))
+  (Discard : P False (@Interface.Discard eOutcome))
+  (Message : forall s : String.string, P unit (@Interface.Message eOutcome s))
+  (T : Type@{ConcurrencyInterface.Interface.outcome.u0})
+  (o : Interface.outcome eOutcome T) =>
+match o as o0 in Interface.outcome _ T0 return P T0 o0 with
+| @Interface.RegRead _ reg access_kind => RegRead reg access_kind
+| @Interface.RegWrite _ reg access_kind regval =>
+    RegWrite reg access_kind regval
+| @Interface.MemRead _ n t => MemRead n t
+| @Interface.MemWrite _ n t => MemWrite n t
+| @Interface.TagRead _ key => TagRead key
+| @Interface.TagWrite _ key value => TagWrite key value
+| @Interface.InstrAnnounce _ opcode => InstrAnnounce opcode
+| @Interface.BranchAnnounce _ sz pa => BranchAnnounce sz pa
+| @Interface.Barrier _ b => Barrier b
+| @Interface.CacheOp _ c => CacheOp c
+| @Interface.TlbOp _ t => TlbOp t
+| @Interface.TakeException _ f => TakeException f
+| @Interface.ReturnException _ pa => ReturnException pa
+| @Interface.TranslationStart _ t => TranslationStart t
+| @Interface.TranslationEnd _ t => TranslationEnd t
+| @Interface.ExtraOutcome _ A e => ExtraOutcome A e
+| @Interface.GenericFail _ msg => GenericFail msg
+| @Interface.CycleCount _ => CycleCount
+| @Interface.GetCycleCount _ => GetCycleCount
+| @Interface.Choose _ ty => Choose ty
+| @Interface.Discard _ => Discard
+| @Interface.Message _ s => Message s
+end
+     : forall
+         {eOutcome : forall _ : Type@{ConcurrencyInterface.Interface.T.u0},
+                     Type@{ConcurrencyInterface.Interface.T.u1}}
+         (P : forall (T : Type@{ConcurrencyInterface.Interface.outcome.u0})
+                (_ : Interface.outcome eOutcome T),
+              Set)
+         (_ : forall (reg : Arch.reg) (access_kind : option Arch.sys_reg_id),
+              P (Arch.reg_type reg)
+                (@Interface.RegRead eOutcome reg access_kind))
+         (_ : forall (reg : Arch.reg) (access_kind : option Arch.sys_reg_id)
+                (regval : Arch.reg_type reg),
+              P unit (@Interface.RegWrite eOutcome reg access_kind regval))
+         (_ : forall (n : BinNums.N) (t : Interface.ReadReq.t n),
+              P
+                (sum
+                   (prod
+                      (definitions.bv
+                         (BinNat.N.mul
+                            (BinNums.Npos
+                               (BinNums.xO
+                                  (BinNums.xO (BinNums.xO BinNums.xH))))
+                            n))
+                      (option bool))
+                   Arch.abort)
+                (@Interface.MemRead eOutcome n t))
+         (_ : forall (n : BinNums.N) (t : Interface.WriteReq.t n),
+              P (sum (option bool) Arch.abort)
+                (@Interface.MemWrite eOutcome n t))
+         (_ : forall
+                key : Values.mword
+                        (BinNums.Zpos
+                           (BinNums.xO
+                              (BinNums.xO
+                                 (BinNums.xO
+                                    (BinNums.xO
+                                       (BinNums.xO (BinNums.xO BinNums.xH))))))),
+              P bool (@Interface.TagRead eOutcome key))
+         (_ : forall
+                (key : Values.mword
+                         (BinNums.Zpos
+                            (BinNums.xO
+                               (BinNums.xO
+                                  (BinNums.xO
+                                     (BinNums.xO
+                                        (BinNums.xO (BinNums.xO BinNums.xH))))))))
+                (value : bool),
+              P unit (@Interface.TagWrite eOutcome key value))
+         (_ : forall opcode : definitions.bvn,
+              P unit (@Interface.InstrAnnounce eOutcome opcode))
+         (_ : forall (sz : BinNums.Z) (pa : Values.mword sz),
+              P unit (@Interface.BranchAnnounce eOutcome sz pa))
+         (_ : forall b : Arch.barrier, P unit (@Interface.Barrier eOutcome b))
+         (_ : forall c : Arch.cache_op,
+              P unit (@Interface.CacheOp eOutcome c))
+         (_ : forall t : Arch.tlb_op, P unit (@Interface.TlbOp eOutcome t))
+         (_ : forall f : Arch.fault,
+              P unit (@Interface.TakeException eOutcome f))
+         (_ : forall pa : Arch.pa,
+              P unit (@Interface.ReturnException eOutcome pa))
+         (_ : forall t : Arch.trans_start,
+              P unit (@Interface.TranslationStart eOutcome t))
+         (_ : forall t : Arch.trans_end,
+              P unit (@Interface.TranslationEnd eOutcome t))
+         (_ : forall (A : Type@{ConcurrencyInterface.Interface.outcome.u1})
+                (e : eOutcome A),
+              P A (@Interface.ExtraOutcome eOutcome A e))
+         (_ : forall msg : String.string,
+              P False (@Interface.GenericFail eOutcome msg))
+         (_ : P unit (@Interface.CycleCount eOutcome))
+         (_ : P BinNums.Z (@Interface.GetCycleCount eOutcome))
+         (_ : forall ty : Values.ChooseType,
+              P (Values.choose_type ty) (@Interface.Choose eOutcome ty))
+         (_ : P False (@Interface.Discard eOutcome))
+         (_ : forall s : String.string,
+              P unit (@Interface.Message eOutcome s))
+         (T : Type@{ConcurrencyInterface.Interface.outcome.u0})
+         (o : Interface.outcome eOutcome T),
+       P T o
+
+Arguments Interface.outcome_rec {eOutcome}%_function_scope
+  (P RegRead RegWrite MemRead MemWrite TagRead TagWrite InstrAnnounce
+   BranchAnnounce Barrier CacheOp TlbOp TakeException ReturnException
+   TranslationStart TranslationEnd ExtraOutcome GenericFail)%_function_scope
+  CycleCount GetCycleCount Choose%_function_scope 
+  Discard Message%_function_scope T%_type_scope o
+Interface.outcome_rect =
+fun
+  (eOutcome : forall _ : Type@{ConcurrencyInterface.Interface.T.u0},
+              Type@{ConcurrencyInterface.Interface.T.u1})
+  (P : forall (T : Type@{ConcurrencyInterface.Interface.outcome.u0})
+         (_ : Interface.outcome eOutcome T),
+       Type@{ConcurrencyInterface.Interface.outcome_rect.u0})
+  (RegRead : forall (reg : Arch.reg) (access_kind : option Arch.sys_reg_id),
+             P (Arch.reg_type reg)
+               (@Interface.RegRead eOutcome reg access_kind))
+  (RegWrite : forall (reg : Arch.reg) (access_kind : option Arch.sys_reg_id)
+                (regval : Arch.reg_type reg),
+              P unit (@Interface.RegWrite eOutcome reg access_kind regval))
+  (MemRead : forall (n : BinNums.N) (t : Interface.ReadReq.t n),
+             P
+               (sum
+                  (prod
+                     (definitions.bv
+                        (BinNat.N.mul
+                           (BinNums.Npos
+                              (BinNums.xO
+                                 (BinNums.xO (BinNums.xO BinNums.xH))))
+                           n))
+                     (option bool))
+                  Arch.abort)
+               (@Interface.MemRead eOutcome n t))
+  (MemWrite : forall (n : BinNums.N) (t : Interface.WriteReq.t n),
+              P (sum (option bool) Arch.abort)
+                (@Interface.MemWrite eOutcome n t))
+  (TagRead : forall
+               key : Values.mword
+                       (BinNums.Zpos
+                          (BinNums.xO
+                             (BinNums.xO
+                                (BinNums.xO
+                                   (BinNums.xO
+                                      (BinNums.xO (BinNums.xO BinNums.xH))))))),
+             P bool (@Interface.TagRead eOutcome key))
+  (TagWrite : forall
+                (key : Values.mword
+                         (BinNums.Zpos
+                            (BinNums.xO
+                               (BinNums.xO
+                                  (BinNums.xO
+                                     (BinNums.xO
+                                        (BinNums.xO (BinNums.xO BinNums.xH))))))))
+                (value : bool),
+              P unit (@Interface.TagWrite eOutcome key value))
+  (InstrAnnounce : forall opcode : definitions.bvn,
+                   P unit (@Interface.InstrAnnounce eOutcome opcode))
+  (BranchAnnounce : forall (sz : BinNums.Z) (pa : Values.mword sz),
+                    P unit (@Interface.BranchAnnounce eOutcome sz pa))
+  (Barrier : forall b : Arch.barrier, P unit (@Interface.Barrier eOutcome b))
+  (CacheOp : forall c : Arch.cache_op, P unit (@Interface.CacheOp eOutcome c))
+  (TlbOp : forall t : Arch.tlb_op, P unit (@Interface.TlbOp eOutcome t))
+  (TakeException : forall f : Arch.fault,
+                   P unit (@Interface.TakeException eOutcome f))
+  (ReturnException : forall pa : Arch.pa,
+                     P unit (@Interface.ReturnException eOutcome pa))
+  (TranslationStart : forall t : Arch.trans_start,
+                      P unit (@Interface.TranslationStart eOutcome t))
+  (TranslationEnd : forall t : Arch.trans_end,
+                    P unit (@Interface.TranslationEnd eOutcome t))
+  (ExtraOutcome : forall
+                    (A : Type@{ConcurrencyInterface.Interface.outcome.u1})
+                    (e : eOutcome A),
+                  P A (@Interface.ExtraOutcome eOutcome A e))
+  (GenericFail : forall msg : String.string,
+                 P False (@Interface.GenericFail eOutcome msg))
+  (CycleCount : P unit (@Interface.CycleCount eOutcome))
+  (GetCycleCount : P BinNums.Z (@Interface.GetCycleCount eOutcome))
+  (Choose : forall ty : Values.ChooseType,
+            P (Values.choose_type ty) (@Interface.Choose eOutcome ty))
+  (Discard : P False (@Interface.Discard eOutcome))
+  (Message : forall s : String.string, P unit (@Interface.Message eOutcome s))
+  (T : Type@{ConcurrencyInterface.Interface.outcome.u0})
+  (o : Interface.outcome eOutcome T) =>
+match o as o0 in Interface.outcome _ T0 return P T0 o0 with
+| @Interface.RegRead _ reg access_kind => RegRead reg access_kind
+| @Interface.RegWrite _ reg access_kind regval =>
+    RegWrite reg access_kind regval
+| @Interface.MemRead _ n t => MemRead n t
+| @Interface.MemWrite _ n t => MemWrite n t
+| @Interface.TagRead _ key => TagRead key
+| @Interface.TagWrite _ key value => TagWrite key value
+| @Interface.InstrAnnounce _ opcode => InstrAnnounce opcode
+| @Interface.BranchAnnounce _ sz pa => BranchAnnounce sz pa
+| @Interface.Barrier _ b => Barrier b
+| @Interface.CacheOp _ c => CacheOp c
+| @Interface.TlbOp _ t => TlbOp t
+| @Interface.TakeException _ f => TakeException f
+| @Interface.ReturnException _ pa => ReturnException pa
+| @Interface.TranslationStart _ t => TranslationStart t
+| @Interface.TranslationEnd _ t => TranslationEnd t
+| @Interface.ExtraOutcome _ A e => ExtraOutcome A e
+| @Interface.GenericFail _ msg => GenericFail msg
+| @Interface.CycleCount _ => CycleCount
+| @Interface.GetCycleCount _ => GetCycleCount
+| @Interface.Choose _ ty => Choose ty
+| @Interface.Discard _ => Discard
+| @Interface.Message _ s => Message s
+end
+     : forall
+         {eOutcome : forall _ : Type@{ConcurrencyInterface.Interface.T.u0},
+                     Type@{ConcurrencyInterface.Interface.T.u1}}
+         (P : forall (T : Type@{ConcurrencyInterface.Interface.outcome.u0})
+                (_ : Interface.outcome eOutcome T),
+              Type@{ConcurrencyInterface.Interface.outcome_rect.u0})
+         (_ : forall (reg : Arch.reg) (access_kind : option Arch.sys_reg_id),
+              P (Arch.reg_type reg)
+                (@Interface.RegRead eOutcome reg access_kind))
+         (_ : forall (reg : Arch.reg) (access_kind : option Arch.sys_reg_id)
+                (regval : Arch.reg_type reg),
+              P unit (@Interface.RegWrite eOutcome reg access_kind regval))
+         (_ : forall (n : BinNums.N) (t : Interface.ReadReq.t n),
+              P
+                (sum
+                   (prod
+                      (definitions.bv
+                         (BinNat.N.mul
+                            (BinNums.Npos
+                               (BinNums.xO
+                                  (BinNums.xO (BinNums.xO BinNums.xH))))
+                            n))
+                      (option bool))
+                   Arch.abort)
+                (@Interface.MemRead eOutcome n t))
+         (_ : forall (n : BinNums.N) (t : Interface.WriteReq.t n),
+              P (sum (option bool) Arch.abort)
+                (@Interface.MemWrite eOutcome n t))
+         (_ : forall
+                key : Values.mword
+                        (BinNums.Zpos
+                           (BinNums.xO
+                              (BinNums.xO
+                                 (BinNums.xO
+                                    (BinNums.xO
+                                       (BinNums.xO (BinNums.xO BinNums.xH))))))),
+              P bool (@Interface.TagRead eOutcome key))
+         (_ : forall
+                (key : Values.mword
+                         (BinNums.Zpos
+                            (BinNums.xO
+                               (BinNums.xO
+                                  (BinNums.xO
+                                     (BinNums.xO
+                                        (BinNums.xO (BinNums.xO BinNums.xH))))))))
+                (value : bool),
+              P unit (@Interface.TagWrite eOutcome key value))
+         (_ : forall opcode : definitions.bvn,
+              P unit (@Interface.InstrAnnounce eOutcome opcode))
+         (_ : forall (sz : BinNums.Z) (pa : Values.mword sz),
+              P unit (@Interface.BranchAnnounce eOutcome sz pa))
+         (_ : forall b : Arch.barrier, P unit (@Interface.Barrier eOutcome b))
+         (_ : forall c : Arch.cache_op,
+              P unit (@Interface.CacheOp eOutcome c))
+         (_ : forall t : Arch.tlb_op, P unit (@Interface.TlbOp eOutcome t))
+         (_ : forall f : Arch.fault,
+              P unit (@Interface.TakeException eOutcome f))
+         (_ : forall pa : Arch.pa,
+              P unit (@Interface.ReturnException eOutcome pa))
+         (_ : forall t : Arch.trans_start,
+              P unit (@Interface.TranslationStart eOutcome t))
+         (_ : forall t : Arch.trans_end,
+              P unit (@Interface.TranslationEnd eOutcome t))
+         (_ : forall (A : Type@{ConcurrencyInterface.Interface.outcome.u1})
+                (e : eOutcome A),
+              P A (@Interface.ExtraOutcome eOutcome A e))
+         (_ : forall msg : String.string,
+              P False (@Interface.GenericFail eOutcome msg))
+         (_ : P unit (@Interface.CycleCount eOutcome))
+         (_ : P BinNums.Z (@Interface.GetCycleCount eOutcome))
+         (_ : forall ty : Values.ChooseType,
+              P (Values.choose_type ty) (@Interface.Choose eOutcome ty))
+         (_ : P False (@Interface.Discard eOutcome))
+         (_ : forall s : String.string,
+              P unit (@Interface.Message eOutcome s))
+         (T : Type@{ConcurrencyInterface.Interface.outcome.u0})
+         (o : Interface.outcome eOutcome T),
+       P T o
+
+Arguments Interface.outcome_rect {eOutcome}%_function_scope
+  (P RegRead RegWrite MemRead MemWrite TagRead TagWrite InstrAnnounce
+   BranchAnnounce Barrier CacheOp TlbOp TakeException ReturnException
+   TranslationStart TranslationEnd ExtraOutcome GenericFail)%_function_scope
+  CycleCount GetCycleCount Choose%_function_scope 
+  Discard Message%_function_scope T%_type_scope o
+Defs.read_tag_bool =
+fun (E : Type@{ConcurrencyInterfaceBuiltins.Defs.read_tag_bool.u0})
+  (key : Values.mword
+           (BinNums.Zpos
+              (BinNums.xO
+                 (BinNums.xO
+                    (BinNums.xO
+                       (BinNums.xO (BinNums.xO (BinNums.xO BinNums.xH)))))))) =>
+@Interface.Next (fun _ : Type@{ConcurrencyInterface.Interface.T.u0} => E)
+  bool bool
+  (@Interface.TagRead
+     (fun _ : Type@{ConcurrencyInterface.Interface.T.u0} => E) key)
+  (@Interface.Ret (fun _ : Type@{ConcurrencyInterface.Interface.T.u0} => E)
+     bool)
+     : forall {E : Type@{ConcurrencyInterfaceBuiltins.Defs.read_tag_bool.u0}}
+         (_ : Values.mword
+                (BinNums.Zpos
+                   (BinNums.xO
+                      (BinNums.xO
+                         (BinNums.xO
+                            (BinNums.xO (BinNums.xO (BinNums.xO BinNums.xH)))))))),
+       Defs.monad E bool
+
+Arguments Defs.read_tag_bool {E}%_type_scope key
+Defs.write_tag_bool =
+fun (E : Type@{ConcurrencyInterfaceBuiltins.Defs.write_tag_bool.u0})
+  (key : Values.mword
+           (BinNums.Zpos
+              (BinNums.xO
+                 (BinNums.xO
+                    (BinNums.xO
+                       (BinNums.xO (BinNums.xO (BinNums.xO BinNums.xH))))))))
+  (value : bool) =>
+@Interface.Next (fun _ : Type@{ConcurrencyInterface.Interface.T.u0} => E)
+  unit unit
+  (@Interface.TagWrite
+     (fun _ : Type@{ConcurrencyInterface.Interface.T.u0} => E) key value)
+  (@Interface.Ret (fun _ : Type@{ConcurrencyInterface.Interface.T.u0} => E)
+     unit)
+     : forall
+         {E : Type@{ConcurrencyInterfaceBuiltins.Defs.write_tag_bool.u0}}
+         (_ : Values.mword
+                (BinNums.Zpos
+                   (BinNums.xO
+                      (BinNums.xO
+                         (BinNums.xO
+                            (BinNums.xO (BinNums.xO (BinNums.xO BinNums.xH))))))))
+         (_ : bool),
+       Defs.monad E unit
+
+Arguments Defs.write_tag_bool {E}%_type_scope key value%_bool_scope
+read_mem_ =
+fun (a : Type@{read_mem_.u0}) (_ : a) (addrsize : BinNums.Z)
+  (_ : Values.mword addrsize) (n : BinNums.Z) =>
+@internal_error
+  (Values.mword
+     (BinInt.Z.mul
+        (BinNums.Zpos (BinNums.xO (BinNums.xO (BinNums.xO BinNums.xH)))) n))
+  (String.String (Ascii.Ascii true true true true false true false false)
+     (String.String (Ascii.Ascii false true false false true true true false)
+        (String.String
+           (Ascii.Ascii true true true true false true true false)
+           (String.String
+              (Ascii.Ascii true true true true false true true false)
+              (String.String
+                 (Ascii.Ascii false false true false true true true false)
+                 (String.String
+                    (Ascii.Ascii true true true true false true false false)
+                    (String.String
+                       (Ascii.Ascii false true false false false true true
+                          false)
+                       (String.String
+                          (Ascii.Ascii true false true false true true true
+                             false)
+                          (String.String
+                             (Ascii.Ascii true false false true false true
+                                true false)
+                             (String.String
+                                (Ascii.Ascii false false true true false true
+                                   true false)
+                                (String.String
+                                   (Ascii.Ascii false false true false false
+                                      true true false)
+                                   (String.String
+                                      (Ascii.Ascii true true true true false
+                                         true false false)
+                                      (String.String
+                                         (Ascii.Ascii false false true true
+                                            false true true false)
+                                         (String.String
+                                            (Ascii.Ascii true false false
+                                               false false true true false)
+                                            (String.String
+                                               (Ascii.Ascii false true true
+                                                 true false true true false)
+                                               (String.String
+                                                 (Ascii.Ascii true false true
+                                                 false false true true false)
+                                                 (String.String
+                                                 (Ascii.Ascii true false true
+                                                 true false true false false)
+                                                 (String.String
+                                                 (Ascii.Ascii true true false
+                                                 false false true true false)
+                                                 (String.String
+                                                 (Ascii.Ascii false false
+                                                 false true false true true
+                                                 false)
+                                                 (String.String
+                                                 (Ascii.Ascii true false true
+                                                 false false true true false)
+                                                 (String.String (...) (...))))))))))))))))))))))
+  (BinNums.Zpos
+     (BinNums.xI
+        (BinNums.xI
+           (BinNums.xO
+              (BinNums.xI (BinNums.xO (BinNums.xO (BinNums.xO BinNums.xH))))))))
+  (String.String (Ascii.Ascii true false true false false true true false)
+     (String.String (Ascii.Ascii true false true true false true true false)
+        (String.String
+           (Ascii.Ascii true false true false true true true false)
+           (String.String
+              (Ascii.Ascii false false true true false true true false)
+              (String.String
+                 (Ascii.Ascii true false false false false true true false)
+                 (String.String
+                    (Ascii.Ascii false false true false true true true false)
+                    (String.String
+                       (Ascii.Ascii true true true true false true true false)
+                       (String.String
+                          (Ascii.Ascii false true false false true true true
+                             false)
+                          (String.String
+                             (Ascii.Ascii false false false false false true
+                                false false)
+                             (String.String
+                                (Ascii.Ascii true false true true false true
+                                   true false)
+                                (String.String
+                                   (Ascii.Ascii true false true false false
+                                      true true false)
+                                   (String.String
+                                      (Ascii.Ascii true false true true false
+                                         true true false)
+                                      (String.String
+                                         (Ascii.Ascii true true true true
+                                            false true true false)
+                                         (String.String
+                                            (Ascii.Ascii false true false
+                                               false true true true false)
+                                            (String.String
+                                               (Ascii.Ascii true false false
+                                                 true true true true false)
+                                               (String.String
+                                                 (Ascii.Ascii false false
+                                                 false false false true false
+                                                 false)
+                                                 (String.String
+                                                 (Ascii.Ascii false false
+                                                 false false true true true
+                                                 false)
+                                                 (String.String
+                                                 (Ascii.Ascii false true
+                                                 false false true true true
+                                                 false)
+                                                 (String.String
+                                                 (Ascii.Ascii true false
+                                                 false true false true true
+                                                 false)
+                                                 (String.String
+                                                 (Ascii.Ascii true false true
+                                                 true false true true false)
+                                                 (String.String (...) (...))))))))))))))))))))))
+:
+M
+  (Values.mword
+     (BinInt.Z.mul
+        (BinNums.Zpos (BinNums.xO (BinNums.xO (BinNums.xO BinNums.xH)))) n))
+     : forall {a : Type@{read_mem_.u0}} (_ : a) (addrsize : BinNums.Z)
+         (_ : Values.mword addrsize) (n : BinNums.Z),
+       M
+         (Values.mword
+            (BinInt.Z.mul
+               (BinNums.Zpos
+                  (BinNums.xO (BinNums.xO (BinNums.xO BinNums.xH))))
+               n))
+
+Arguments read_mem_ {a}%_type_scope _ addrsize%_Z_scope _ n%_Z_scope
+read_mem_ifetch_ =
+fun (a : Type@{read_mem_ifetch_.u0}) (_ : a) (addrsize : BinNums.Z)
+  (_ : Values.mword addrsize) (n : BinNums.Z) =>
+@internal_error
+  (Values.mword
+     (BinInt.Z.mul
+        (BinNums.Zpos (BinNums.xO (BinNums.xO (BinNums.xO BinNums.xH)))) n))
+  (String.String (Ascii.Ascii true true true true false true false false)
+     (String.String (Ascii.Ascii false true false false true true true false)
+        (String.String
+           (Ascii.Ascii true true true true false true true false)
+           (String.String
+              (Ascii.Ascii true true true true false true true false)
+              (String.String
+                 (Ascii.Ascii false false true false true true true false)
+                 (String.String
+                    (Ascii.Ascii true true true true false true false false)
+                    (String.String
+                       (Ascii.Ascii false true false false false true true
+                          false)
+                       (String.String
+                          (Ascii.Ascii true false true false true true true
+                             false)
+                          (String.String
+                             (Ascii.Ascii true false false true false true
+                                true false)
+                             (String.String
+                                (Ascii.Ascii false false true true false true
+                                   true false)
+                                (String.String
+                                   (Ascii.Ascii false false true false false
+                                      true true false)
+                                   (String.String
+                                      (Ascii.Ascii true true true true false
+                                         true false false)
+                                      (String.String
+                                         (Ascii.Ascii false false true true
+                                            false true true false)
+                                         (String.String
+                                            (Ascii.Ascii true false false
+                                               false false true true false)
+                                            (String.String
+                                               (Ascii.Ascii false true true
+                                                 true false true true false)
+                                               (String.String
+                                                 (Ascii.Ascii true false true
+                                                 false false true true false)
+                                                 (String.String
+                                                 (Ascii.Ascii true false true
+                                                 true false true false false)
+                                                 (String.String
+                                                 (Ascii.Ascii true true false
+                                                 false false true true false)
+                                                 (String.String
+                                                 (Ascii.Ascii false false
+                                                 false true false true true
+                                                 false)
+                                                 (String.String
+                                                 (Ascii.Ascii true false true
+                                                 false false true true false)
+                                                 (String.String (...) (...))))))))))))))))))))))
+  (BinNums.Zpos
+     (BinNums.xI
+        (BinNums.xI
+           (BinNums.xI
+              (BinNums.xI (BinNums.xO (BinNums.xO (BinNums.xO BinNums.xH))))))))
+  (String.String (Ascii.Ascii true false true false false true true false)
+     (String.String (Ascii.Ascii true false true true false true true false)
+        (String.String
+           (Ascii.Ascii true false true false true true true false)
+           (String.String
+              (Ascii.Ascii false false true true false true true false)
+              (String.String
+                 (Ascii.Ascii true false false false false true true false)
+                 (String.String
+                    (Ascii.Ascii false false true false true true true false)
+                    (String.String
+                       (Ascii.Ascii true true true true false true true false)
+                       (String.String
+                          (Ascii.Ascii false true false false true true true
+                             false)
+                          (String.String
+                             (Ascii.Ascii false false false false false true
+                                false false)
+                             (String.String
+                                (Ascii.Ascii true false true true false true
+                                   true false)
+                                (String.String
+                                   (Ascii.Ascii true false true false false
+                                      true true false)
+                                   (String.String
+                                      (Ascii.Ascii true false true true false
+                                         true true false)
+                                      (String.String
+                                         (Ascii.Ascii true true true true
+                                            false true true false)
+                                         (String.String
+                                            (Ascii.Ascii false true false
+                                               false true true true false)
+                                            (String.String
+                                               (Ascii.Ascii true false false
+                                                 true true true true false)
+                                               (String.String
+                                                 (Ascii.Ascii false false
+                                                 false false false true false
+                                                 false)
+                                                 (String.String
+                                                 (Ascii.Ascii false false
+                                                 false false true true true
+                                                 false)
+                                                 (String.String
+                                                 (Ascii.Ascii false true
+                                                 false false true true true
+                                                 false)
+                                                 (String.String
+                                                 (Ascii.Ascii true false
+                                                 false true false true true
+                                                 false)
+                                                 (String.String
+                                                 (Ascii.Ascii true false true
+                                                 true false true true false)
+                                                 (String.String (...) (...))))))))))))))))))))))
+:
+M
+  (Values.mword
+     (BinInt.Z.mul
+        (BinNums.Zpos (BinNums.xO (BinNums.xO (BinNums.xO BinNums.xH)))) n))
+     : forall {a : Type@{read_mem_ifetch_.u0}} (_ : a) 
+         (addrsize : BinNums.Z) (_ : Values.mword addrsize) 
+         (n : BinNums.Z),
+       M
+         (Values.mword
+            (BinInt.Z.mul
+               (BinNums.Zpos
+                  (BinNums.xO (BinNums.xO (BinNums.xO BinNums.xH))))
+               n))
+
+Arguments read_mem_ifetch_ {a}%_type_scope _ addrsize%_Z_scope _ n%_Z_scope
+read_mem_exclusive_ =
+fun (a : Type@{read_mem_exclusive_.u0}) (_ : a) (addrsize : BinNums.Z)
+  (_ : Values.mword addrsize) (n : BinNums.Z) =>
+@internal_error
+  (Values.mword
+     (BinInt.Z.mul
+        (BinNums.Zpos (BinNums.xO (BinNums.xO (BinNums.xO BinNums.xH)))) n))
+  (String.String (Ascii.Ascii true true true true false true false false)
+     (String.String (Ascii.Ascii false true false false true true true false)
+        (String.String
+           (Ascii.Ascii true true true true false true true false)
+           (String.String
+              (Ascii.Ascii true true true true false true true false)
+              (String.String
+                 (Ascii.Ascii false false true false true true true false)
+                 (String.String
+                    (Ascii.Ascii true true true true false true false false)
+                    (String.String
+                       (Ascii.Ascii false true false false false true true
+                          false)
+                       (String.String
+                          (Ascii.Ascii true false true false true true true
+                             false)
+                          (String.String
+                             (Ascii.Ascii true false false true false true
+                                true false)
+                             (String.String
+                                (Ascii.Ascii false false true true false true
+                                   true false)
+                                (String.String
+                                   (Ascii.Ascii false false true false false
+                                      true true false)
+                                   (String.String
+                                      (Ascii.Ascii true true true true false
+                                         true false false)
+                                      (String.String
+                                         (Ascii.Ascii false false true true
+                                            false true true false)
+                                         (String.String
+                                            (Ascii.Ascii true false false
+                                               false false true true false)
+                                            (String.String
+                                               (Ascii.Ascii false true true
+                                                 true false true true false)
+                                               (String.String
+                                                 (Ascii.Ascii true false true
+                                                 false false true true false)
+                                                 (String.String
+                                                 (Ascii.Ascii true false true
+                                                 true false true false false)
+                                                 (String.String
+                                                 (Ascii.Ascii true true false
+                                                 false false true true false)
+                                                 (String.String
+                                                 (Ascii.Ascii false false
+                                                 false true false true true
+                                                 false)
+                                                 (String.String
+                                                 (Ascii.Ascii true false true
+                                                 false false true true false)
+                                                 (String.String (...) (...))))))))))))))))))))))
+  (BinNums.Zpos
+     (BinNums.xI
+        (BinNums.xI
+           (BinNums.xO
+              (BinNums.xO (BinNums.xI (BinNums.xO (BinNums.xO BinNums.xH))))))))
+  (String.String (Ascii.Ascii true false true false false true true false)
+     (String.String (Ascii.Ascii true false true true false true true false)
+        (String.String
+           (Ascii.Ascii true false true false true true true false)
+           (String.String
+              (Ascii.Ascii false false true true false true true false)
+              (String.String
+                 (Ascii.Ascii true false false false false true true false)
+                 (String.String
+                    (Ascii.Ascii false false true false true true true false)
+                    (String.String
+                       (Ascii.Ascii true true true true false true true false)
+                       (String.String
+                          (Ascii.Ascii false true false false true true true
+                             false)
+                          (String.String
+                             (Ascii.Ascii false false false false false true
+                                false false)
+                             (String.String
+                                (Ascii.Ascii true false true true false true
+                                   true false)
+                                (String.String
+                                   (Ascii.Ascii true false true false false
+                                      true true false)
+                                   (String.String
+                                      (Ascii.Ascii true false true true false
+                                         true true false)
+                                      (String.String
+                                         (Ascii.Ascii true true true true
+                                            false true true false)
+                                         (String.String
+                                            (Ascii.Ascii false true false
+                                               false true true true false)
+                                            (String.String
+                                               (Ascii.Ascii true false false
+                                                 true true true true false)
+                                               (String.String
+                                                 (Ascii.Ascii false false
+                                                 false false false true false
+                                                 false)
+                                                 (String.String
+                                                 (Ascii.Ascii false false
+                                                 false false true true true
+                                                 false)
+                                                 (String.String
+                                                 (Ascii.Ascii false true
+                                                 false false true true true
+                                                 false)
+                                                 (String.String
+                                                 (Ascii.Ascii true false
+                                                 false true false true true
+                                                 false)
+                                                 (String.String
+                                                 (Ascii.Ascii true false true
+                                                 true false true true false)
+                                                 (String.String (...) (...))))))))))))))))))))))
+:
+M
+  (Values.mword
+     (BinInt.Z.mul
+        (BinNums.Zpos (BinNums.xO (BinNums.xO (BinNums.xO BinNums.xH)))) n))
+     : forall {a : Type@{read_mem_exclusive_.u0}} 
+         (_ : a) (addrsize : BinNums.Z) (_ : Values.mword addrsize)
+         (n : BinNums.Z),
+       M
+         (Values.mword
+            (BinInt.Z.mul
+               (BinNums.Zpos
+                  (BinNums.xO (BinNums.xO (BinNums.xO BinNums.xH))))
+               n))
+
+Arguments read_mem_exclusive_ {a}%_type_scope _ addrsize%_Z_scope 
+  _ n%_Z_scope
+write_mem_ =
+fun (a : Type@{write_mem_.u0}) (_ : a) (addrsize : BinNums.Z)
+  (_ : Values.mword addrsize) (n : BinNums.Z)
+  (_ : Values.mword
+         (BinInt.Z.mul
+            (BinNums.Zpos (BinNums.xO (BinNums.xO (BinNums.xO BinNums.xH))))
+            n)) =>
+@internal_error bool
+  (String.String (Ascii.Ascii true true true true false true false false)
+     (String.String (Ascii.Ascii false true false false true true true false)
+        (String.String
+           (Ascii.Ascii true true true true false true true false)
+           (String.String
+              (Ascii.Ascii true true true true false true true false)
+              (String.String
+                 (Ascii.Ascii false false true false true true true false)
+                 (String.String
+                    (Ascii.Ascii true true true true false true false false)
+                    (String.String
+                       (Ascii.Ascii false true false false false true true
+                          false)
+                       (String.String
+                          (Ascii.Ascii true false true false true true true
+                             false)
+                          (String.String
+                             (Ascii.Ascii true false false true false true
+                                true false)
+                             (String.String
+                                (Ascii.Ascii false false true true false true
+                                   true false)
+                                (String.String
+                                   (Ascii.Ascii false false true false false
+                                      true true false)
+                                   (String.String
+                                      (Ascii.Ascii true true true true false
+                                         true false false)
+                                      (String.String
+                                         (Ascii.Ascii false false true true
+                                            false true true false)
+                                         (String.String
+                                            (Ascii.Ascii true false false
+                                               false false true true false)
+                                            (String.String
+                                               (Ascii.Ascii false true true
+                                                 true false true true false)
+                                               (String.String
+                                                 (Ascii.Ascii true false true
+                                                 false false true true false)
+                                                 (String.String
+                                                 (Ascii.Ascii true false true
+                                                 true false true false false)
+                                                 (String.String
+                                                 (Ascii.Ascii true true false
+                                                 false false true true false)
+                                                 (String.String
+                                                 (Ascii.Ascii false false
+                                                 false true false true true
+                                                 false)
+                                                 (String.String
+                                                 (Ascii.Ascii true false true
+                                                 false false true true false)
+                                                 (String.String (...) (...))))))))))))))))))))))
+  (BinNums.Zpos
+     (BinNums.xI
+        (BinNums.xI
+           (BinNums.xI
+              (BinNums.xO (BinNums.xI (BinNums.xO (BinNums.xO BinNums.xH))))))))
+  (String.String (Ascii.Ascii true false true false false true true false)
+     (String.String (Ascii.Ascii true false true true false true true false)
+        (String.String
+           (Ascii.Ascii true false true false true true true false)
+           (String.String
+              (Ascii.Ascii false false true true false true true false)
+              (String.String
+                 (Ascii.Ascii true false false false false true true false)
+                 (String.String
+                    (Ascii.Ascii false false true false true true true false)
+                    (String.String
+                       (Ascii.Ascii true true true true false true true false)
+                       (String.String
+                          (Ascii.Ascii false true false false true true true
+                             false)
+                          (String.String
+                             (Ascii.Ascii false false false false false true
+                                false false)
+                             (String.String
+                                (Ascii.Ascii true false true true false true
+                                   true false)
+                                (String.String
+                                   (Ascii.Ascii true false true false false
+                                      true true false)
+                                   (String.String
+                                      (Ascii.Ascii true false true true false
+                                         true true false)
+                                      (String.String
+                                         (Ascii.Ascii true true true true
+                                            false true true false)
+                                         (String.String
+                                            (Ascii.Ascii false true false
+                                               false true true true false)
+                                            (String.String
+                                               (Ascii.Ascii true false false
+                                                 true true true true false)
+                                               (String.String
+                                                 (Ascii.Ascii false false
+                                                 false false false true false
+                                                 false)
+                                                 (String.String
+                                                 (Ascii.Ascii false false
+                                                 false false true true true
+                                                 false)
+                                                 (String.String
+                                                 (Ascii.Ascii false true
+                                                 false false true true true
+                                                 false)
+                                                 (String.String
+                                                 (Ascii.Ascii true false
+                                                 false true false true true
+                                                 false)
+                                                 (String.String
+                                                 (Ascii.Ascii true false true
+                                                 true false true true false)
+                                                 (String.String (...) (...))))))))))))))))))))))
+:
+M bool
+     : forall {a : Type@{write_mem_.u0}} (_ : a) (addrsize : BinNums.Z)
+         (_ : Values.mword addrsize) (n : BinNums.Z)
+         (_ : Values.mword
+                (BinInt.Z.mul
+                   (BinNums.Zpos
+                      (BinNums.xO (BinNums.xO (BinNums.xO BinNums.xH))))
+                   n)),
+       M bool
+
+Arguments write_mem_ {a}%_type_scope _ addrsize%_Z_scope _ n%_Z_scope _
+write_mem_exclusive_ =
+fun (a : Type@{write_mem_exclusive_.u0}) (_ : a) (addrsize : BinNums.Z)
+  (_ : Values.mword addrsize) (n : BinNums.Z)
+  (_ : Values.mword
+         (BinInt.Z.mul
+            (BinNums.Zpos (BinNums.xO (BinNums.xO (BinNums.xO BinNums.xH))))
+            n)) =>
+@internal_error bool
+  (String.String (Ascii.Ascii true true true true false true false false)
+     (String.String (Ascii.Ascii false true false false true true true false)
+        (String.String
+           (Ascii.Ascii true true true true false true true false)
+           (String.String
+              (Ascii.Ascii true true true true false true true false)
+              (String.String
+                 (Ascii.Ascii false false true false true true true false)
+                 (String.String
+                    (Ascii.Ascii true true true true false true false false)
+                    (String.String
+                       (Ascii.Ascii false true false false false true true
+                          false)
+                       (String.String
+                          (Ascii.Ascii true false true false true true true
+                             false)
+                          (String.String
+                             (Ascii.Ascii true false false true false true
+                                true false)
+                             (String.String
+                                (Ascii.Ascii false false true true false true
+                                   true false)
+                                (String.String
+                                   (Ascii.Ascii false false true false false
+                                      true true false)
+                                   (String.String
+                                      (Ascii.Ascii true true true true false
+                                         true false false)
+                                      (String.String
+                                         (Ascii.Ascii false false true true
+                                            false true true false)
+                                         (String.String
+                                            (Ascii.Ascii true false false
+                                               false false true true false)
+                                            (String.String
+                                               (Ascii.Ascii false true true
+                                                 true false true true false)
+                                               (String.String
+                                                 (Ascii.Ascii true false true
+                                                 false false true true false)
+                                                 (String.String
+                                                 (Ascii.Ascii true false true
+                                                 true false true false false)
+                                                 (String.String
+                                                 (Ascii.Ascii true true false
+                                                 false false true true false)
+                                                 (String.String
+                                                 (Ascii.Ascii false false
+                                                 false true false true true
+                                                 false)
+                                                 (String.String
+                                                 (Ascii.Ascii true false true
+                                                 false false true true false)
+                                                 (String.String (...) (...))))))))))))))))))))))
+  (BinNums.Zpos
+     (BinNums.xI
+        (BinNums.xI
+           (BinNums.xO
+              (BinNums.xI (BinNums.xI (BinNums.xO (BinNums.xO BinNums.xH))))))))
+  (String.String (Ascii.Ascii true false true false false true true false)
+     (String.String (Ascii.Ascii true false true true false true true false)
+        (String.String
+           (Ascii.Ascii true false true false true true true false)
+           (String.String
+              (Ascii.Ascii false false true true false true true false)
+              (String.String
+                 (Ascii.Ascii true false false false false true true false)
+                 (String.String
+                    (Ascii.Ascii false false true false true true true false)
+                    (String.String
+                       (Ascii.Ascii true true true true false true true false)
+                       (String.String
+                          (Ascii.Ascii false true false false true true true
+                             false)
+                          (String.String
+                             (Ascii.Ascii false false false false false true
+                                false false)
+                             (String.String
+                                (Ascii.Ascii true false true true false true
+                                   true false)
+                                (String.String
+                                   (Ascii.Ascii true false true false false
+                                      true true false)
+                                   (String.String
+                                      (Ascii.Ascii true false true true false
+                                         true true false)
+                                      (String.String
+                                         (Ascii.Ascii true true true true
+                                            false true true false)
+                                         (String.String
+                                            (Ascii.Ascii false true false
+                                               false true true true false)
+                                            (String.String
+                                               (Ascii.Ascii true false false
+                                                 true true true true false)
+                                               (String.String
+                                                 (Ascii.Ascii false false
+                                                 false false false true false
+                                                 false)
+                                                 (String.String
+                                                 (Ascii.Ascii false false
+                                                 false false true true true
+                                                 false)
+                                                 (String.String
+                                                 (Ascii.Ascii false true
+                                                 false false true true true
+                                                 false)
+                                                 (String.String
+                                                 (Ascii.Ascii true false
+                                                 false true false true true
+                                                 false)
+                                                 (String.String
+                                                 (Ascii.Ascii true false true
+                                                 true false true true false)
+                                                 (String.String (...) (...))))))))))))))))))))))
+:
+M bool
+     : forall {a : Type@{write_mem_exclusive_.u0}} 
+         (_ : a) (addrsize : BinNums.Z) (_ : Values.mword addrsize)
+         (n : BinNums.Z)
+         (_ : Values.mword
+                (BinInt.Z.mul
+                   (BinNums.Zpos
+                      (BinNums.xO (BinNums.xO (BinNums.xO BinNums.xH))))
+                   n)),
+       M bool
+
+Arguments write_mem_exclusive_ {a}%_type_scope _ addrsize%_Z_scope 
+  _ n%_Z_scope _
+addr_to_tag_addr =
+fun
+  addr : Values.mword
+           (BinNums.Zpos
+              (BinNums.xO
+                 (BinNums.xO
+                    (BinNums.xO
+                       (BinNums.xO (BinNums.xO (BinNums.xO BinNums.xH))))))) =>
+@Operators_mwords.vector_truncateLSB
+  (BinNums.Zpos
+     (BinNums.xO
+        (BinNums.xO
+           (BinNums.xO (BinNums.xO (BinNums.xO (BinNums.xO BinNums.xH)))))))
+  addr (BinInt.Z.sub physaddrbits_len log2_cap_size)
+     : forall
+         _ : Values.mword
+               (BinNums.Zpos
+                  (BinNums.xO
+                     (BinNums.xO
+                        (BinNums.xO
+                           (BinNums.xO (BinNums.xO (BinNums.xO BinNums.xH))))))),
+       Values.mword
+         (BinInt.Z.sub
+            (BinNums.Zpos
+               (BinNums.xO
+                  (BinNums.xO
+                     (BinNums.xO
+                        (BinNums.xO (BinNums.xO (BinNums.xO BinNums.xH)))))))
+            (BinNums.Zpos (BinNums.xI BinNums.xH)))
+
+Arguments addr_to_tag_addr addr
+__ReadRAM_Meta =
+fun
+  (addr : Values.mword
+            (BinNums.Zpos
+               (BinNums.xO
+                  (BinNums.xO
+                     (BinNums.xO
+                        (BinNums.xO (BinNums.xO (BinNums.xO BinNums.xH))))))))
+  (_ : BinNums.Z) =>
+@Defs.read_tag_bool exception
+  (@zero_extend'
+     (BinInt.Z.sub
+        (BinNums.Zpos
+           (BinNums.xO
+              (BinNums.xO
+                 (BinNums.xO
+                    (BinNums.xO (BinNums.xO (BinNums.xO BinNums.xH)))))))
+        (BinNums.Zpos (BinNums.xI BinNums.xH)))
+     (BinNums.Zpos
+        (BinNums.xO
+           (BinNums.xO
+              (BinNums.xO (BinNums.xO (BinNums.xO (BinNums.xO BinNums.xH)))))))
+     (addr_to_tag_addr addr))
+:
+M bool
+     : forall
+         (_ : Values.mword
+                (BinNums.Zpos
+                   (BinNums.xO
+                      (BinNums.xO
+                         (BinNums.xO
+                            (BinNums.xO (BinNums.xO (BinNums.xO BinNums.xH))))))))
+         (_ : BinNums.Z),
+       M bool
+
+Arguments __ReadRAM_Meta addr _width%_Z_scope
+__WriteRAM_Meta =
+fun
+  (addr : Values.mword
+            (BinNums.Zpos
+               (BinNums.xO
+                  (BinNums.xO
+                     (BinNums.xO
+                        (BinNums.xO (BinNums.xO (BinNums.xO BinNums.xH))))))))
+  (width : BinNums.Z) (meta : bool) =>
+let first : BinNums.Z :=
+  @Operators_mwords.uint
+    (BinInt.Z.sub
+       (BinNums.Zpos
+          (BinNums.xO
+             (BinNums.xO
+                (BinNums.xO (BinNums.xO (BinNums.xO (BinNums.xO BinNums.xH)))))))
+       (BinNums.Zpos (BinNums.xI BinNums.xH)))
+    (addr_to_tag_addr addr)
+  in
+let last : BinNums.Z :=
+  @Operators_mwords.uint
+    (BinInt.Z.sub
+       (BinNums.Zpos
+          (BinNums.xO
+             (BinNums.xO
+                (BinNums.xO (BinNums.xO (BinNums.xO (BinNums.xO BinNums.xH)))))))
+       (BinNums.Zpos (BinNums.xI BinNums.xH)))
+    (addr_to_tag_addr
+       (@Operators_mwords.add_vec_int
+          (BinNums.Zpos
+             (BinNums.xO
+                (BinNums.xO
+                   (BinNums.xO
+                      (BinNums.xO (BinNums.xO (BinNums.xO BinNums.xH)))))))
+          addr (BinInt.Z.sub width (BinNums.Zpos BinNums.xH))))
+  in
+@Defs.foreach_ZM_up exception unit first last (BinNums.Zpos BinNums.xH) tt
+  (fun (i : BinNums.Z) (_ : unit) =>
+   @Defs.write_tag_bool exception
+     (to_bits_truncate
+        (BinNums.Zpos
+           (BinNums.xO
+              (BinNums.xO
+                 (BinNums.xO
+                    (BinNums.xO (BinNums.xO (BinNums.xO BinNums.xH)))))))
+        i)
+     meta
+   :
+   M unit)
+     : forall
+         (_ : Values.mword
+                (BinNums.Zpos
+                   (BinNums.xO
+                      (BinNums.xO
+                         (BinNums.xO
+                            (BinNums.xO (BinNums.xO (BinNums.xO BinNums.xH))))))))
+         (_ : BinNums.Z) (_ : bool),
+       M unit
+
+Arguments __WriteRAM_Meta addr width%_Z_scope meta%_bool_scope
+write_ram =
+fun (wk : write_kind) (pat : physaddr) =>
+match
+  pat
+  return
+    (forall (width : BinNums.Z)
+       (_ : Values.mword
+              (BinInt.Z.mul
+                 (BinNums.Zpos
+                    (BinNums.xO (BinNums.xO (BinNums.xO BinNums.xH))))
+                 width))
+       (_ : bool),
+     M bool)
+with
+| Physaddr addr =>
+    fun (width : BinNums.Z)
+      (data : Values.mword
+                (BinInt.Z.mul
+                   (BinNums.Zpos
+                      (BinNums.xO (BinNums.xO (BinNums.xO BinNums.xH))))
+                   width))
+      (meta : bool) =>
+    @Defs.bind (ConcurrencyInterfaceTypes.Access_kind RISCV_strong_access)
+      bool exception
+      match
+        wk
+        return
+          Defs.monad exception
+            (ConcurrencyInterfaceTypes.Access_kind RISCV_strong_access)
+      with
+      | Write_plain =>
+          @returnM
+            (ConcurrencyInterfaceTypes.Access_kind RISCV_strong_access)
+            (@ConcurrencyInterfaceTypes.AK_explicit RISCV_strong_access
+               (ConcurrencyInterfaceTypes.Build_Explicit_access_kind
+                  ConcurrencyInterfaceTypes.AV_plain
+                  ConcurrencyInterfaceTypes.AS_normal))
+      | Write_RISCV_release =>
+          @internal_error
+            (ConcurrencyInterfaceTypes.Access_kind RISCV_strong_access)
+            (String.String
+               (Ascii.Ascii true true true true false true false false)
+               (String.String
+                  (Ascii.Ascii false true false false true true true false)
+                  (String.String
+                     (Ascii.Ascii true true true true false true true false)
+                     (String.String
+                        (Ascii.Ascii true true true true false true true
+                           false)
+                        (String.String
+                           (Ascii.Ascii false false true false true true true
+                              false)
+                           (String.String
+                              (Ascii.Ascii true true true true false true
+                                 false false)
+                              (String.String
+                                 (Ascii.Ascii false true false false false
+                                    true true false)
+                                 (String.String
+                                    (Ascii.Ascii true false true false true
+                                       true true false)
+                                    (String.String
+                                       (Ascii.Ascii true false false true
+                                          false true true false)
+                                       (String.String
+                                          (Ascii.Ascii false false true true
+                                             false true true false)
+                                          (String.String
+                                             (Ascii.Ascii false false true
+                                                false false true true false)
+                                             (String.String
+                                                (Ascii.Ascii true true true
+                                                 true false true false false)
+                                                (String.String
+                                                 (Ascii.Ascii false false
+                                                 true true false true true
+                                                 false)
+                                                 (String.String
+                                                 (Ascii.Ascii true false
+                                                 false false false true true
+                                                 false)
+                                                 (String.String
+                                                 (Ascii.Ascii false true true
+                                                 true false true true false)
+                                                 (String.String
+                                                 (Ascii.Ascii true false true
+                                                 false false true true false)
+                                                 (String.String
+                                                 (Ascii.Ascii true false true
+                                                 true false true false false)
+                                                 (String.String (...) (...)))))))))))))))))))
+            (BinNums.Zpos
+               (BinNums.xI
+                  (BinNums.xO
+                     (BinNums.xO
+                        (BinNums.xI
+                           (BinNums.xO (BinNums.xI (BinNums.xI BinNums.xH))))))))
+            (String.String
+               (Ascii.Ascii true true true false true false true false)
+               (String.String
+                  (Ascii.Ascii false true false false true true true false)
+                  (String.String
+                     (Ascii.Ascii true false false true false true true false)
+                     (String.String
+                        (Ascii.Ascii false false true false true true true
+                           false)
+                        (String.String
+                           (Ascii.Ascii true false true false false true true
+                              false)
+                           (String.String
+                              (Ascii.Ascii true true true true true false
+                                 true false)
+                              (String.String
+                                 (Ascii.Ascii false true false false true
+                                    false true false)
+                                 (String.String
+                                    (Ascii.Ascii true false false true false
+                                       false true false)
+                                    (String.String
+                                       (Ascii.Ascii true true false false
+                                          true false true false)
+                                       (String.String
+                                          (Ascii.Ascii true true false false
+                                             false false true false)
+                                          (String.String
+                                             (Ascii.Ascii false true true
+                                                false true false true false)
+                                             (String.String
+                                                (Ascii.Ascii true true true
+                                                 true true false true false)
+                                                (String.String
+                                                 (Ascii.Ascii false true
+                                                 false false true true true
+                                                 false)
+                                                 (String.String
+                                                 (Ascii.Ascii true false true
+                                                 false false true true false)
+                                                 (String.String
+                                                 (Ascii.Ascii false false
+                                                 true true false true true
+                                                 false)
+                                                 (String.String
+                                                 (Ascii.Ascii true false true
+                                                 false false true true false)
+                                                 (String.String
+                                                 (Ascii.Ascii true false
+                                                 false false false true true
+                                                 false)
+                                                 (String.String (...) (...)))))))))))))))))))
+          :
+          M (ConcurrencyInterfaceTypes.Access_kind RISCV_strong_access)
+      | Write_RISCV_strong_release =>
+          @internal_error
+            (ConcurrencyInterfaceTypes.Access_kind RISCV_strong_access)
+            (String.String
+               (Ascii.Ascii true true true true false true false false)
+               (String.String
+                  (Ascii.Ascii false true false false true true true false)
+                  (String.String
+                     (Ascii.Ascii true true true true false true true false)
+                     (String.String
+                        (Ascii.Ascii true true true true false true true
+                           false)
+                        (String.String
+                           (Ascii.Ascii false false true false true true true
+                              false)
+                           (String.String
+                              (Ascii.Ascii true true true true false true
+                                 false false)
+                              (String.String
+                                 (Ascii.Ascii false true false false false
+                                    true true false)
+                                 (String.String
+                                    (Ascii.Ascii true false true false true
+                                       true true false)
+                                    (String.String
+                                       (Ascii.Ascii true false false true
+                                          false true true false)
+                                       (String.String
+                                          (Ascii.Ascii false false true true
+                                             false true true false)
+                                          (String.String
+                                             (Ascii.Ascii false false true
+                                                false false true true false)
+                                             (String.String
+                                                (Ascii.Ascii true true true
+                                                 true false true false false)
+                                                (String.String
+                                                 (Ascii.Ascii false false
+                                                 true true false true true
+                                                 false)
+                                                 (String.String
+                                                 (Ascii.Ascii true false
+                                                 false false false true true
+                                                 false)
+                                                 (String.String
+                                                 (Ascii.Ascii false true true
+                                                 true false true true false)
+                                                 (String.String
+                                                 (Ascii.Ascii true false true
+                                                 false false true true false)
+                                                 (String.String
+                                                 (Ascii.Ascii true false true
+                                                 true false true false false)
+                                                 (String.String (...) (...)))))))))))))))))))
+            (BinNums.Zpos
+               (BinNums.xO
+                  (BinNums.xI
+                     (BinNums.xO
+                        (BinNums.xI
+                           (BinNums.xO (BinNums.xI (BinNums.xI BinNums.xH))))))))
+            (String.String
+               (Ascii.Ascii true true true false true false true false)
+               (String.String
+                  (Ascii.Ascii false true false false true true true false)
+                  (String.String
+                     (Ascii.Ascii true false false true false true true false)
+                     (String.String
+                        (Ascii.Ascii false false true false true true true
+                           false)
+                        (String.String
+                           (Ascii.Ascii true false true false false true true
+                              false)
+                           (String.String
+                              (Ascii.Ascii true true true true true false
+                                 true false)
+                              (String.String
+                                 (Ascii.Ascii false true false false true
+                                    false true false)
+                                 (String.String
+                                    (Ascii.Ascii true false false true false
+                                       false true false)
+                                    (String.String
+                                       (Ascii.Ascii true true false false
+                                          true false true false)
+                                       (String.String
+                                          (Ascii.Ascii true true false false
+                                             false false true false)
+                                          (String.String
+                                             (Ascii.Ascii false true true
+                                                false true false true false)
+                                             (String.String
+                                                (Ascii.Ascii true true true
+                                                 true true false true false)
+                                                (String.String
+                                                 (Ascii.Ascii true true false
+                                                 false true true true false)
+                                                 (String.String
+                                                 (Ascii.Ascii false false
+                                                 true false true true true
+                                                 false)
+                                                 (String.String
+                                                 (Ascii.Ascii false true
+                                                 false false true true true
+                                                 false)
+                                                 (String.String
+                                                 (Ascii.Ascii true true true
+                                                 true false true true false)
+                                                 (String.String
+                                                 (Ascii.Ascii false true true
+                                                 true false true true false)
+                                                 (String.String (...) (...)))))))))))))))))))
+          :
+          M (ConcurrencyInterfaceTypes.Access_kind RISCV_strong_access)
+      | Write_RISCV_conditional =>
+          @returnM
+            (ConcurrencyInterfaceTypes.Access_kind RISCV_strong_access)
+            (@ConcurrencyInterfaceTypes.AK_explicit RISCV_strong_access
+               (ConcurrencyInterfaceTypes.Build_Explicit_access_kind
+                  ConcurrencyInterfaceTypes.AV_exclusive
+                  ConcurrencyInterfaceTypes.AS_normal))
+      | Write_RISCV_conditional_release =>
+          @returnM
+            (ConcurrencyInterfaceTypes.Access_kind RISCV_strong_access)
+            (@ConcurrencyInterfaceTypes.AK_explicit RISCV_strong_access
+               (ConcurrencyInterfaceTypes.Build_Explicit_access_kind
+                  ConcurrencyInterfaceTypes.AV_exclusive
+                  ConcurrencyInterfaceTypes.AS_rel_or_acq))
+      | Write_RISCV_conditional_strong_release =>
+          @returnM
+            (ConcurrencyInterfaceTypes.Access_kind RISCV_strong_access)
+            (@ConcurrencyInterfaceTypes.AK_arch RISCV_strong_access
+               (Build_RISCV_strong_access
+                  ConcurrencyInterfaceTypes.AV_exclusive))
+      end
+      (fun w__2 : ConcurrencyInterfaceTypes.Access_kind RISCV_strong_access =>
+       let request :
+         ConcurrencyInterfaceTypes.Mem_write_request width
+           (BinNums.Zpos
+              (BinNums.xO
+                 (BinNums.xO
+                    (BinNums.xO
+                       (BinNums.xO (BinNums.xO (BinNums.xO BinNums.xH)))))))
+           physaddrbits unit RISCV_strong_access :=
+         ConcurrencyInterfaceTypes.Build_Mem_write_request width
+           (BinNums.Zpos
+              (BinNums.xO
+                 (BinNums.xO
+                    (BinNums.xO
+                       (BinNums.xO (BinNums.xO (BinNums.xO BinNums.xH)))))))
+           physaddrbits unit RISCV_strong_access w__2
+           (@None
+              (Values.mword
+                 (BinNums.Zpos
+                    (BinNums.xO
+                       (BinNums.xO
+                          (BinNums.xO
+                             (BinNums.xO (BinNums.xO (BinNums.xO BinNums.xH)))))))))
+           addr tt width
+           (@Some
+              (Values.mword
+                 (BinInt.Z.mul
+                    (BinNums.Zpos
+                       (BinNums.xO (BinNums.xO (BinNums.xO BinNums.xH))))
+                    width))
+              data)
+           (@None bool)
+         in
+       @Defs.bind (Values.result (option bool) Arch.abort) bool exception
+         (@Defs.sail_mem_write exception width request)
+         (fun w__3 : Values.result (option bool) unit =>
+          match w__3 return M bool with
+          | @Values.Ok _ _ _ =>
+              @Defs.bind0 bool exception (__WriteRAM_Meta addr width meta)
+                (@returnM bool true)
+          | @Values.Err _ _ u =>
+              match u return M bool with
+              | tt => @returnM bool false
+              end
+          end
+          :
+          M bool))
+end
+     : forall (_ : write_kind) (_ : physaddr) (width : BinNums.Z)
+         (_ : Values.mword
+                (BinInt.Z.mul
+                   (BinNums.Zpos
+                      (BinNums.xO (BinNums.xO (BinNums.xO BinNums.xH))))
+                   width))
+         (_ : bool),
+       M bool
+
+Arguments write_ram wk pat width%_Z_scope data meta%_bool_scope
+read_ram =
+fun (rk : read_kind) (pat : physaddr) =>
+match
+  pat
+  return
+    (forall (width : BinNums.Z) (_ : bool),
+     M
+       (prod
+          (Values.mword
+             (BinInt.Z.mul
+                (BinNums.Zpos
+                   (BinNums.xO (BinNums.xO (BinNums.xO BinNums.xH))))
+                width))
+          bool))
+with
+| Physaddr addr =>
+    fun (width : BinNums.Z) (read_meta : bool) =>
+    @Defs.bind bool
+      (prod
+         (Values.mword
+            (BinInt.Z.mul
+               (BinNums.Zpos
+                  (BinNums.xO (BinNums.xO (BinNums.xO BinNums.xH))))
+               width))
+         bool)
+      exception
+      match read_meta return M bool with
+      | true => __ReadRAM_Meta addr width : M bool
+      | false => @returnM mem_meta default_meta
+      end
+      (fun meta : bool =>
+       @Defs.bind (ConcurrencyInterfaceTypes.Access_kind RISCV_strong_access)
+         (prod
+            (Values.mword
+               (BinInt.Z.mul
+                  (BinNums.Zpos
+                     (BinNums.xO (BinNums.xO (BinNums.xO BinNums.xH))))
+                  width))
+            bool)
+         exception
+         match
+           rk
+           return
+             Defs.monad exception
+               (ConcurrencyInterfaceTypes.Access_kind RISCV_strong_access)
+         with
+         | Read_plain =>
+             @returnM
+               (ConcurrencyInterfaceTypes.Access_kind RISCV_strong_access)
+               (@ConcurrencyInterfaceTypes.AK_explicit RISCV_strong_access
+                  (ConcurrencyInterfaceTypes.Build_Explicit_access_kind
+                     ConcurrencyInterfaceTypes.AV_plain
+                     ConcurrencyInterfaceTypes.AS_normal))
+         | Read_ifetch =>
+             @returnM
+               (ConcurrencyInterfaceTypes.Access_kind RISCV_strong_access)
+               (@ConcurrencyInterfaceTypes.AK_ifetch RISCV_strong_access tt)
+         | Read_RISCV_acquire =>
+             @internal_error
+               (ConcurrencyInterfaceTypes.Access_kind RISCV_strong_access)
+               (String.String
+                  (Ascii.Ascii true true true true false true false false)
+                  (String.String
+                     (Ascii.Ascii false true false false true true true false)
+                     (String.String
+                        (Ascii.Ascii true true true true false true true
+                           false)
+                        (String.String
+                           (Ascii.Ascii true true true true false true true
+                              false)
+                           (String.String
+                              (Ascii.Ascii false false true false true true
+                                 true false)
+                              (String.String
+                                 (Ascii.Ascii true true true true false true
+                                    false false)
+                                 (String.String
+                                    (Ascii.Ascii false true false false false
+                                       true true false)
+                                    (String.String
+                                       (Ascii.Ascii true false true false
+                                          true true true false)
+                                       (String.String
+                                          (Ascii.Ascii true false false true
+                                             false true true false)
+                                          (String.String
+                                             (Ascii.Ascii false false true
+                                                true false true true false)
+                                             (String.String
+                                                (Ascii.Ascii false false true
+                                                 false false true true false)
+                                                (String.String
+                                                 (Ascii.Ascii true true true
+                                                 true false true false false)
+                                                 (String.String
+                                                 (Ascii.Ascii false false
+                                                 true true false true true
+                                                 false)
+                                                 (String.String
+                                                 (Ascii.Ascii true false
+                                                 false false false true true
+                                                 false)
+                                                 (String.String
+                                                 (Ascii.Ascii false true true
+                                                 true false true true false)
+                                                 (String.String
+                                                 (Ascii.Ascii true false true
+                                                 false false true true false)
+                                                 (String.String ... ...)))))))))))))))))
+               (BinNums.Zpos
+                  (BinNums.xO
+                     (BinNums.xI
+                        (BinNums.xO
+                           (BinNums.xO
+                              (BinNums.xI
+                                 (BinNums.xO
+                                    (BinNums.xO (BinNums.xO BinNums.xH)))))))))
+               (String.String
+                  (Ascii.Ascii false true false false true false true false)
+                  (String.String
+                     (Ascii.Ascii true false true false false true true false)
+                     (String.String
+                        (Ascii.Ascii true false false false false true true
+                           false)
+                        (String.String
+                           (Ascii.Ascii false false true false false true
+                              true false)
+                           (String.String
+                              (Ascii.Ascii true true true true true false
+                                 true false)
+                              (String.String
+                                 (Ascii.Ascii false true false false true
+                                    false true false)
+                                 (String.String
+                                    (Ascii.Ascii true false false true false
+                                       false true false)
+                                    (String.String
+                                       (Ascii.Ascii true true false false
+                                          true false true false)
+                                       (String.String
+                                          (Ascii.Ascii true true false false
+                                             false false true false)
+                                          (String.String
+                                             (Ascii.Ascii false true true
+                                                false true false true false)
+                                             (String.String
+                                                (Ascii.Ascii true true true
+                                                 true true false true false)
+                                                (String.String
+                                                 (Ascii.Ascii true false
+                                                 false false false true true
+                                                 false)
+                                                 (String.String
+                                                 (Ascii.Ascii true true false
+                                                 false false true true false)
+                                                 (String.String
+                                                 (Ascii.Ascii true false
+                                                 false false true true true
+                                                 false)
+                                                 (String.String
+                                                 (Ascii.Ascii true false true
+                                                 false true true true false)
+                                                 (String.String
+                                                 (Ascii.Ascii true false
+                                                 false true false true true
+                                                 false)
+                                                 (String.String ... ...)))))))))))))))))
+             :
+             M (ConcurrencyInterfaceTypes.Access_kind RISCV_strong_access)
+         | Read_RISCV_strong_acquire =>
+             @internal_error
+               (ConcurrencyInterfaceTypes.Access_kind RISCV_strong_access)
+               (String.String
+                  (Ascii.Ascii true true true true false true false false)
+                  (String.String
+                     (Ascii.Ascii false true false false true true true false)
+                     (String.String
+                        (Ascii.Ascii true true true true false true true
+                           false)
+                        (String.String
+                           (Ascii.Ascii true true true true false true true
+                              false)
+                           (String.String
+                              (Ascii.Ascii false false true false true true
+                                 true false)
+                              (String.String
+                                 (Ascii.Ascii true true true true false true
+                                    false false)
+                                 (String.String
+                                    (Ascii.Ascii false true false false false
+                                       true true false)
+                                    (String.String
+                                       (Ascii.Ascii true false true false
+                                          true true true false)
+                                       (String.String
+                                          (Ascii.Ascii true false false true
+                                             false true true false)
+                                          (String.String
+                                             (Ascii.Ascii false false true
+                                                true false true true false)
+                                             (String.String
+                                                (Ascii.Ascii false false true
+                                                 false false true true false)
+                                                (String.String
+                                                 (Ascii.Ascii true true true
+                                                 true false true false false)
+                                                 (String.String
+                                                 (Ascii.Ascii false false
+                                                 true true false true true
+                                                 false)
+                                                 (String.String
+                                                 (Ascii.Ascii true false
+                                                 false false false true true
+                                                 false)
+                                                 (String.String
+                                                 (Ascii.Ascii false true true
+                                                 true false true true false)
+                                                 (String.String
+                                                 (Ascii.Ascii true false true
+                                                 false false true true false)
+                                                 (String.String ... ...)))))))))))))))))
+               (BinNums.Zpos
+                  (BinNums.xI
+                     (BinNums.xI
+                        (BinNums.xO
+                           (BinNums.xO
+                              (BinNums.xI
+                                 (BinNums.xO
+                                    (BinNums.xO (BinNums.xO BinNums.xH)))))))))
+               (String.String
+                  (Ascii.Ascii false true false false true false true false)
+                  (String.String
+                     (Ascii.Ascii true false true false false true true false)
+                     (String.String
+                        (Ascii.Ascii true false false false false true true
+                           false)
+                        (String.String
+                           (Ascii.Ascii false false true false false true
+                              true false)
+                           (String.String
+                              (Ascii.Ascii true true true true true false
+                                 true false)
+                              (String.String
+                                 (Ascii.Ascii false true false false true
+                                    false true false)
+                                 (String.String
+                                    (Ascii.Ascii true false false true false
+                                       false true false)
+                                    (String.String
+                                       (Ascii.Ascii true true false false
+                                          true false true false)
+                                       (String.String
+                                          (Ascii.Ascii true true false false
+                                             false false true false)
+                                          (String.String
+                                             (Ascii.Ascii false true true
+                                                false true false true false)
+                                             (String.String
+                                                (Ascii.Ascii true true true
+                                                 true true false true false)
+                                                (String.String
+                                                 (Ascii.Ascii true true false
+                                                 false true true true false)
+                                                 (String.String
+                                                 (Ascii.Ascii false false
+                                                 true false true true true
+                                                 false)
+                                                 (String.String
+                                                 (Ascii.Ascii false true
+                                                 false false true true true
+                                                 false)
+                                                 (String.String
+                                                 (Ascii.Ascii true true true
+                                                 true false true true false)
+                                                 (String.String
+                                                 (Ascii.Ascii false true true
+                                                 true false true true false)
+                                                 (String.String ... ...)))))))))))))))))
+             :
+             M (ConcurrencyInterfaceTypes.Access_kind RISCV_strong_access)
+         | Read_RISCV_reserved =>
+             @returnM
+               (ConcurrencyInterfaceTypes.Access_kind RISCV_strong_access)
+               (@ConcurrencyInterfaceTypes.AK_explicit RISCV_strong_access
+                  (ConcurrencyInterfaceTypes.Build_Explicit_access_kind
+                     ConcurrencyInterfaceTypes.AV_exclusive
+                     ConcurrencyInterfaceTypes.AS_normal))
+         | Read_RISCV_reserved_acquire =>
+             @returnM
+               (ConcurrencyInterfaceTypes.Access_kind RISCV_strong_access)
+               (@ConcurrencyInterfaceTypes.AK_explicit RISCV_strong_access
+                  (ConcurrencyInterfaceTypes.Build_Explicit_access_kind
+                     ConcurrencyInterfaceTypes.AV_exclusive
+                     ConcurrencyInterfaceTypes.AS_rel_or_acq))
+         | Read_RISCV_reserved_strong_acquire =>
+             @returnM
+               (ConcurrencyInterfaceTypes.Access_kind RISCV_strong_access)
+               (@ConcurrencyInterfaceTypes.AK_arch RISCV_strong_access
+                  (Build_RISCV_strong_access
+                     ConcurrencyInterfaceTypes.AV_exclusive))
+         end
+         (fun
+            w__3 : ConcurrencyInterfaceTypes.Access_kind RISCV_strong_access =>
+          let request :
+            ConcurrencyInterfaceTypes.Mem_read_request width
+              (BinNums.Zpos
+                 (BinNums.xO
+                    (BinNums.xO
+                       (BinNums.xO
+                          (BinNums.xO (BinNums.xO (BinNums.xO BinNums.xH)))))))
+              physaddrbits unit RISCV_strong_access :=
+            ConcurrencyInterfaceTypes.Build_Mem_read_request width
+              (BinNums.Zpos
+                 (BinNums.xO
+                    (BinNums.xO
+                       (BinNums.xO
+                          (BinNums.xO (BinNums.xO (BinNums.xO BinNums.xH)))))))
+              physaddrbits unit RISCV_strong_access w__3
+              (@None
+                 (Values.mword
+                    (BinNums.Zpos
+                       (BinNums.xO
+                          (BinNums.xO
+                             (BinNums.xO
+                                (BinNums.xO
+                                   (BinNums.xO (BinNums.xO BinNums.xH)))))))))
+              addr tt width false
+            in
+          @Defs.bind
+            (Values.result
+               (prod
+                  (Values.mword
+                     (BinInt.Z.mul
+                        (BinNums.Zpos
+                           (BinNums.xO (BinNums.xO (BinNums.xO BinNums.xH))))
+                        width))
+                  (option bool))
+               Arch.abort)
+            (prod
+               (Values.mword
+                  (BinInt.Z.mul
+                     (BinNums.Zpos
+                        (BinNums.xO (BinNums.xO (BinNums.xO BinNums.xH))))
+                     width))
+               bool)
+            exception (@Defs.sail_mem_read exception width request)
+            (fun
+               w__4 : Values.result
+                        (prod
+                           (Values.mword
+                              (BinInt.Z.mul
+                                 (BinNums.Zpos
+                                    (BinNums.xO
+                                       (BinNums.xO (BinNums.xO BinNums.xH))))
+                                 width))
+                           (option bool))
+                        unit =>
+             match
+               w__4
+               return
+                 M
+                   (prod
+                      (Values.mword
+                         (BinInt.Z.mul
+                            (BinNums.Zpos
+                               (BinNums.xO
+                                  (BinNums.xO (BinNums.xO BinNums.xH))))
+                            width))
+                      bool)
+             with
+             | @Values.Ok _ _ p =>
+                 match
+                   p
+                   return
+                     M
+                       (prod
+                          (Values.mword
+                             (BinInt.Z.mul
+                                (BinNums.Zpos
+                                   (BinNums.xO
+                                      (BinNums.xO (BinNums.xO BinNums.xH))))
+                                width))
+                          bool)
+                 with
+                 | @pair _ _ value _ =>
+                     @returnM
+                       (prod
+                          (Values.mword
+                             (BinInt.Z.mul
+                                (BinNums.Zpos
+                                   (BinNums.xO
+                                      (BinNums.xO (BinNums.xO BinNums.xH))))
+                                width))
+                          bool)
+                       (@pair
+                          (Values.mword
+                             (BinInt.Z.mul
+                                (BinNums.Zpos
+                                   (BinNums.xO
+                                      (BinNums.xO (BinNums.xO BinNums.xH))))
+                                width))
+                          bool value meta)
+                 end
+             | @Values.Err _ _ u =>
+                 match
+                   u
+                   return
+                     M
+                       (prod
+                          (Values.mword
+                             (BinInt.Z.mul
+                                (BinNums.Zpos
+                                   (BinNums.xO
+                                      (BinNums.xO (BinNums.xO BinNums.xH))))
+                                width))
+                          bool)
+                 with
+                 | tt =>
+                     @Defs.exit
+                       (prod
+                          (Values.mword
+                             (BinInt.Z.mul
+                                (BinNums.Zpos
+                                   (BinNums.xO
+                                      (BinNums.xO (BinNums.xO BinNums.xH))))
+                                width))
+                          bool)
+                       exception tt
+                     :
+                     M
+                       (prod
+                          (Values.mword
+                             (BinInt.Z.mul
+                                (BinNums.Zpos
+                                   (BinNums.xO
+                                      (BinNums.xO (BinNums.xO BinNums.xH))))
+                                width))
+                          bool)
+                 end
+             end
+             :
+             M
+               (prod
+                  (Values.mword
+                     (BinInt.Z.mul
+                        (BinNums.Zpos
+                           (BinNums.xO (BinNums.xO (BinNums.xO BinNums.xH))))
+                        width))
+                  bool))))
+end
+     : forall (_ : read_kind) (_ : physaddr) (width : BinNums.Z) (_ : bool),
+       M
+         (prod
+            (Values.mword
+               (BinInt.Z.mul
+                  (BinNums.Zpos
+                     (BinNums.xO (BinNums.xO (BinNums.xO BinNums.xH))))
+                  width))
+            bool)
+
+Arguments read_ram rk pat width%_Z_scope read_meta%_bool_scope
+Closed under the global context
+Closed under the global context
+Closed under the global context
+Closed under the global context
+Closed under the global context
+Closed under the global context
+Closed under the global context
+Closed under the global context
+Closed under the global context
+Closed under the global context
+Closed under the global context
+Closed under the global context
+Closed under the global context
+Closed under the global context
+Closed under the global context
+Closed under the global context
+Closed under the global context
+Closed under the global context
+Closed under the global context
+Closed under the global context
+Closed under the global context
+Closed under the global context
+Closed under the global context
+Closed under the global context
+Closed under the global context
+Closed under the global context
+Closed under the global context
+Closed under the global context
+Closed under the global context
+Closed under the global context
+Closed under the global context
+Closed under the global context
+Closed under the global context
+Closed under the global context

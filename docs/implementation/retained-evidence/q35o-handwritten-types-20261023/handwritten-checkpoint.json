@@ -1,0 +1,71 @@
+{
+  "schema": 1,
+  "kind": "proof-repair-checkpoint",
+  "status": "candidate",
+  "base_commit": "a5e4ba0e3e2ab477cdde2ae8a59dd47b82a9da90",
+  "target": {
+    "name": "all eight declarations",
+    "path": "model/handwritten_support/riscv_extras.v",
+    "line": 10
+  },
+  "source_sha256": "915b983983421afcacb14a534c50f56619dd85a5bbb35097bb595c3116a9089e",
+  "frozen_statement": "Preserve every native Check, About, and transparent Print reading of riscv_extras",
+  "frozen_definition_sources": [
+    "model/handwritten_support/riscv_extras.v"
+  ],
+  "frozen_reading": {
+    "path": "/root/build/lane-checklist-20261023-a/frozen-baseline.json",
+    "sha256": "9fa2120f86ccb9031b2e5c03ad42da585bc3af7002190a6b9d53de1d577cfa6e"
+  },
+  "allowed_assumptions": [],
+  "budget": {
+    "replan_after_failures": 3,
+    "active_seconds": 1800,
+    "attempts": 12
+  },
+  "attempts": [
+    {
+      "ordinal": 1,
+      "strategy": "Qualify List and Lia imports with explicit Stdlib prefix, without changing executable definitions",
+      "source_sha256": "915b983983421afcacb14a534c50f56619dd85a5bbb35097bb595c3116a9089e",
+      "command_arguments": [
+        "/root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/bin/rocq",
+        "c",
+        "-q",
+        "-boot",
+        "-R",
+        "/root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/lib/coq/theories",
+        "Corelib",
+        "-Q",
+        "/root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/lib/coq/user-contrib/Stdlib",
+        "Stdlib",
+        "-Q",
+        "/root/build/lane-checklist-20261023-a/stdpp",
+        "stdpp",
+        "-R",
+        "/root/build/lane-checklist-20261023-a/support/src-stdpp",
+        "SailStdpp",
+        "-R",
+        "/root/build/lane-checklist-20261023-a/riscv-candidate",
+        "",
+        "-w",
+        "+default,-abstract-large-number",
+        "-set",
+        "Default Goal Selector=!",
+        "-disallow-sprop",
+        "/root/build/lane-checklist-20261023-a/riscv-candidate/riscv_extras.v"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 0.5451124149985844,
+      "diagnostic": "No diagnostic; all eight frozen readings equal; both assumption audits closed",
+      "durable_log_path": "/root/build/lane-checklist-20261023-a/candidate-reading-receipt.json"
+    }
+  ],
+  "strategy": "Qualify List and Lia imports with explicit Stdlib prefix, without changing executable definitions",
+  "rejected_strategies": [],
+  "last_diagnostic": "",
+  "next_action": "Integrator dispatches cold Guest CI; complete canonical main and hosted plugin/source joins remain owed",
+  "batch_evidence": null,
+  "refutation_evidence": null,
+  "active_elapsed_upper_bound_seconds": 407.76804518699646
+}

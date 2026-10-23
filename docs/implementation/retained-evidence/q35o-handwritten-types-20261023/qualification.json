@@ -1,0 +1,73 @@
+{
+  "base_revision": "a5e4ba0e3e2ab477cdde2ae8a59dd47b82a9da90",
+  "handwritten": {
+    "module": "riscv_extras",
+    "declarations": 8,
+    "printed": 8,
+    "source_sha256": "915b983983421afcacb14a534c50f56619dd85a5bbb35097bb595c3116a9089e",
+    "prover_sha256": "9a2a4eacf47b44c6ec582bc2b9f9cde9de11af77164e0637103fca9865efd5ac",
+    "compile_flags": [],
+    "query_flags": [
+      "-w",
+      "+default,-abstract-large-number",
+      "-set",
+      "Default Goal Selector=!",
+      "-disallow-sprop"
+    ],
+    "dependency_identity_sha256": "a8db36fa1a2d19de2c4ca3c9eeb82de19df7f7631ef8e043751ca667abcf7a31",
+    "installed_sentinels_unchanged": true,
+    "all_frozen_identical": true,
+    "strict_diagnostics": 0
+  },
+  "canonical_types": {
+    "all_identical": true,
+    "stats": {
+      "baseline": {
+        "declarations": 4273,
+        "printed": 2494,
+        "source_sha256": "0d13f8470a534c6a2af2d81b9bfbf2a5a93cfad9e39e18c49e0c65ab02636dec"
+      },
+      "candidate": {
+        "declarations": 4273,
+        "printed": 2494,
+        "source_sha256": "776bc8f9e08efa63dbb767726506de988240791e847043d5fe6322c572ab97d8"
+      }
+    },
+    "differences": [],
+    "prover_sha256": "9a2a4eacf47b44c6ec582bc2b9f9cde9de11af77164e0637103fca9865efd5ac",
+    "installed_library_objects": 747,
+    "installed_library_unchanged": true,
+    "canonical_inputs_identical": true,
+    "comparison_compile_flags": [],
+    "query_flags": [
+      "-w",
+      "+default,-abstract-large-number",
+      "-set",
+      "Default Goal Selector=!",
+      "-disallow-sprop"
+    ],
+    "scope": "Canonical types module only; no main, closure, size, hosted plugin or production verdict"
+  },
+  "handwritten_assumptions_closed": true,
+  "installed_library_before_sha256": "d6c4dd6ffc51710707f9b4ad87a669e7b9dc6e3a98cf3435a1696b591111dca5",
+  "installed_library_after_sha256": "d6c4dd6ffc51710707f9b4ad87a669e7b9dc6e3a98cf3435a1696b591111dca5",
+  "source_replay_receipt_sha256": "a846d739e22f4d3048b1141045f6ccaffe63b8c657dbeadbd15559e8a16ac335",
+  "canonical_original_generation_sha256": "5344f9f2c5b28823795abcdba4dcec63a3cdd315b293188b6e253a8f4937b8aa",
+  "canonical_scoped_generation_sha256": "5d327d10b300a244e1f0b8d357e369eca3bcda68e481c489a0a1a03aaeec4a6b",
+  "hosted_acceptance": false,
+  "canonical_main": "Not attempted in Q35o lane; Q35p owns the semantic boundary and consumer join",
+  "production_carriage": false,
+  "remaining": [
+    "Complete canonical main frozen comparison",
+    "Q35p semantic qualification",
+    "Q35q census",
+    "Hosted immutable plugin/source qualification",
+    "Q35b actual complete consumer closure and size"
+  ],
+  "not_run": [
+    "complete_host_gates",
+    "complete_guest_gates",
+    "proof_gate",
+    "benchmarks"
+  ]
+}

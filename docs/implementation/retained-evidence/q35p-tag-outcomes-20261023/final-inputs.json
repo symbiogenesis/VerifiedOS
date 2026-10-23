@@ -1,0 +1,29 @@
+{
+  "base_revision": "a5e4ba0e3e2ab477cdde2ae8a59dd47b82a9da90",
+  "recipe_sha256": "fe528488ce7e12e077eaee00555cc477325986fc9ee12d5b896e5b651f256d46",
+  "sail_lock_sha256": "ff73dba9080dfeb187f7e81cf8c310ee10a81b910d9ef96c9f9f50c6459761b4",
+  "rocq_lock_sha256": "3e70338fb77832f9e09ee8780cd10524e002420b1ca9aa5f56a15777765e1b32",
+  "archive_sha256": "1a0e226608ac84add6cd1f61a11637ea9db5e00e1551b2070945310078c9e031",
+  "patch_sha256": "eb36b21d1e440606979e2ef26a7d7fdeedf07caa3a259620db3fe544b58a7a75",
+  "tools": {
+    "/root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/bin/rocq": "9a2a4eacf47b44c6ec582bc2b9f9cde9de11af77164e0637103fca9865efd5ac",
+    "/root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/bin/rocqchk": "46aae2e2a655bec07928a94df91b028bf1eeb899b2df8d8e277d942e57ff5412",
+    "/root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/lib/rocq-runtime/rocqworker": "71cb3203e39c591aeb7734ccce29546ab5165e8e1af7aa521e3eac3f5c6e4ff8",
+    "/root/build/lane-checklist-20261023-b/q35p/plugins/sail_plugin_coq.cmxs": "bfd722d424936648c244a2a2d42f4eca6d76a0b45fdbf439043844d5a9c28eae"
+  },
+  "model_sources": {
+    "model/model/core/mem_metadata.sail": "6f6ec6b80e8ed63c0330c21926197671738a478f811dcf0ce87d33f06bfe2718",
+    "model/model/core/phys_mem_interface.sail": "ed3daca022439095926c3848618057902807f4cfedba49a4d8fee8512474cb0f",
+    "model/model/prelude/errors.sail": "2d848d05bd6b20ccfeb054d639aef4c2e03692aa1dfb5d356544e99ecae97d3a",
+    "model/config/verifiedos.json": "e2bb4968e24741fc266fd400b529faa90a7d3d3acd66e5c8bde1fc8347d22625",
+    "docs/implementation/contracts/canonical-tag-outcomes.md": "e10d2fafd2b7f0fdb08d1b6e547200ee52c069c06ee29db3377cec4dc60f8468"
+  },
+  "strict_flags": [
+    "-q",
+    "-w",
+    "+default,-abstract-large-number",
+    "-set",
+    "Default Goal Selector=!",
+    "-disallow-sprop"
+  ]
+}

@@ -7,8 +7,7 @@
 (*=======================================================================================*)
 
 Require Import SailStdpp.Base.
-Require Import List.
-Require Import Lia.
+From Stdlib Require Import List Lia.
 Import List.ListNotations.
 Open Scope Z.
 

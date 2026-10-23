@@ -1,0 +1,33 @@
+import os,sys,pathlib,json,hashlib,subprocess,time
+sys.dont_write_bytecode=True
+R=pathlib.Path('/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/checklist-20261023-a'); sys.path.insert(0,str(R/'tools'))
+from vos import proofaudit,proofreading
+L=pathlib.Path('/root/build/lane-checklist-20261023-a'); T=pathlib.Path('/tmp/vos-q35o-967eb3eb0a354cf0b7e48db8db978501'); os.chdir(T)
+P=pathlib.Path('/root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1'); mode=sys.argv[1]; C=L/('riscv-'+mode); C.mkdir(exist_ok=True); source=C/'riscv_extras.v'; assert source.is_file()
+BASE=['-boot','-R',str(P/'lib/coq/theories'),'Corelib','-Q',str(P/'lib/coq/user-contrib/Stdlib'),'Stdlib','-Q',str(L/'stdpp'),'stdpp','-R',str(L/'support/src-stdpp'),'SailStdpp','-R',str(C),'']
+STRICT=['-w','+default,-abstract-large-number','-set','Default Goal Selector=!','-disallow-sprop']; records=[]
+def sha(p): return hashlib.sha256(p.read_bytes()).hexdigest()
+immutable=json.loads((L/'installed-before.json').read_text())
+def sentinels(): assert immutable=={s:sha(P/s) for s in immutable}
+def run(label,argv):
+    sentinels(); start=time.monotonic(); d=subprocess.run(list(map(str,argv)),cwd=T,capture_output=True); out=L/(mode+'-'+label+'.stdout'); err=L/(mode+'-'+label+'.stderr'); out.write_bytes(d.stdout); err.write_bytes(d.stderr)
+    records.append(dict(label=label,argv=list(map(str,argv)),cwd=str(T),exit=d.returncode,elapsed_seconds=time.monotonic()-start,stdout=str(out),stderr=str(err),stdout_sha256=sha(out),stderr_sha256=sha(err)))
+    (L/(mode+'-reading-receipt.json')).write_text(json.dumps(records,indent=2)+'\n'); print(mode,label,d.returncode,d.stderr.decode(errors='replace')[-1000:],flush=True); sentinels(); assert d.returncode==0
+    return d
+# Same original settings on both sides for the frozen comparison.
+run('compile',[P/'bin/rocq','c','-q',*BASE,source])
+module='riscv_extras'
+def query(phase,text):
+    name=proofreading.query_module(phase,module); file=T/(name+'.v'); file.write_text(text,newline=''); d=run(phase,[P/'bin/rocq','c','-q',*BASE,*STRICT,file]); assert not d.stderr; return d.stdout.decode()
+names=[x['name'] for x in proofaudit.inventory(query('Inventory',proofaudit.inventory_query(module)),module)]
+factsname=proofreading.query_module('Facts',module); facts=proofreading.answers(query('Facts',proofreading.facts_query(module,names)),[f'{n}|{kind}' for n in names for kind in ['check','about']])
+abouts={n:proofreading.parse_about(n,proofreading.fresh_universes(facts[f'{n}|about'],factsname)) for n in names}; printed=[n for n in names if abouts[n].printed]; bodyname=proofreading.query_module('Bodies',module)
+bodies=proofreading.answers(query('Bodies',proofreading.bodies_query(module,printed)),[f'{n}|print' for n in printed])
+entries={n:proofreading.entry(proofreading.fresh_universes(facts[f'{n}|check'],factsname),abouts[n],proofreading.fresh_universes(bodies[f'{n}|print'],bodyname) if n in printed else None) for n in names}
+(L/('frozen-'+mode+'.json')).write_text(json.dumps(entries,indent=2,sort_keys=True)+'\n')
+summary=dict(module=module,declarations=len(names),printed=len(printed),source_sha256=sha(source),prover_sha256=sha(P/'bin/rocq'),compile_flags=[],query_flags=STRICT,dependency_identity_sha256=sha(L/'dependency-identities.json'),installed_sentinels_unchanged=True)
+if mode=='candidate':
+    summary['all_frozen_identical']=json.loads((L/'frozen-baseline.json').read_text())==entries; assert summary['all_frozen_identical']
+    d=run('strict-compile',[P/'bin/rocq','c','-q',*BASE,*STRICT,source]); assert not d.stdout and not d.stderr
+    summary['strict_diagnostics']=0
+(L/(mode+'-summary.json')).write_text(json.dumps(summary,indent=2)+'\n'); print(summary,flush=True)

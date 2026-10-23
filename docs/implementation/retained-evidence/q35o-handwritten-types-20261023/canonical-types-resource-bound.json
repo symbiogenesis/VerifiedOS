@@ -1,0 +1,8 @@
+{
+  "first_limit_bytes": 67108864,
+  "observed_baseline_body_bytes": 141507935,
+  "replay_limit_bytes": 268435456,
+  "all_native_queries_succeeded": true,
+  "reason": "Probe resource guard reached before parsing; integrator approved bounded replay over complete unmodified output",
+  "no_output_truncation": true
+}
