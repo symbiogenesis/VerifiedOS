@@ -48,10 +48,10 @@
       "path": "executed-source-inputs/02/census-schema.json",
       "sha256": "42dfacf97dba0f36e318d7467f8ad30fa0de00de5512b400daa3b5d2189d8308"
     },
-    "executed-source-inputs/03/SCHEMA.md": {
+    "executed-source-inputs/03/SCHEMA.md.txt": {
       "bytes": 18188,
       "encoding": "identity",
-      "path": "executed-source-inputs/03/SCHEMA.md",
+      "path": "executed-source-inputs/03/SCHEMA.md.txt",
       "sha256": "0b418e6e0606b3423404723a15c0b1a0978fff9a7e0bb679beba2ca7343ca17d"
     },
     "executed-source-inputs/04/proofaudit.py": {
