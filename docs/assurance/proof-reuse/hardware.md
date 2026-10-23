@@ -6,7 +6,9 @@ are dated 2026-09-10, except Sail's own terms and trust boundary in the
 paragraph below and HW-06's publication of record, which are read on
 2026-09-13. The code and decoder research handoff is checked on 2026-09-24.
 HW-17 through HW-19 are source-reviewed on 2026-10-12 against local revision
-`7c31019cec0b6dbf1cfb51afd6b9cdb01d701fbf`. A published mechanization is evidence about its stated
+`7c31019cec0b6dbf1cfb51afd6b9cdb01d701fbf`. The bounded hardware handoff below
+and HW-20 are source-reviewed on 2026-10-23 at local revision
+`52551efd44da5ed68af9358c0c05117ea99ec656`. A published mechanization is evidence about its stated
 machine, parameters and assumptions; it is not a proof of this repository's
 machine. No upstream proof is replayed by this research lane, and no source code
 is incorporated by this document.
@@ -36,7 +38,7 @@ completion ledger.
 | Local subject | Existing artifact and remaining connection | Candidate entries |
 | --- | --- | --- |
 | Capability encoding, R-15-007a/R-15-007b; M0.6f | The model and helper-property suite exist, but the frozen-width representation theorem, including the malformed set, remains open. | HW-01, HW-02, HW-03, HW-04 |
-| Capability safety and adversarial code, R-13-016/R-13-017, CJ-CERISE | The canonical Sail connection, universal contract and concrete memory laws remain the foundation work identified in the [foundation map](../../hardware/cheri-foundation-map.md). | HW-03, HW-04, HW-05, HW-06 |
+| Capability safety and adversarial code, R-13-016/R-13-017, CJ-CERISE | The canonical Sail connection, universal contract and concrete memory laws remain the foundation work identified in the [foundation map](../../hardware/cheri-foundation-map.md). | HW-03, HW-04, HW-05, HW-06, HW-20 |
 | Functional RTL refinement, R-01-003/R-05-019b/R-05-158, CJ-RTL-SAIL | RTL elaboration and the R1/R2 bring-up and comparison work do not establish the closing unbounded theorem. | HW-07, HW-08, HW-09, HW-10, HW-11, HW-12, HW-16 |
 | ECC, tag integrity and atomic commit, R-15-175 through R-15-181a | Modeled memory behavior and bring-up exist; the concrete SECDED/DECTED implementation, fault model, fixed latency and RTL connection remain distinct obligations. | HW-13, HW-14 |
 | NoC and bank isolation, R-15-211/R-15-222a/R-15-223/R-15-228, CJ-ISOL | The isolation model is unauthored. M0.14's latency classes and M0.16's sequencer do not supply it. [PartitionContext.v](../../../proofs/PartitionContext.v) reasons about context state, not arbitrary NoC executions. | HW-09, HW-15, HW-19; the negative findings below |
@@ -192,7 +194,22 @@ The README specifies Coq 8.12.x and separately describes Bluespec extraction.
 The actual [LICENSE](https://github.com/mit-plv/kami/blob/3f9c603aaff3ea35ca6deb880a49ac2a9e62738b/LICENSE)
 is MIT, copyright 2017 CSAIL, Massachusetts Institute of Technology.
 
-**Reuse:** strong permissible starting point for the closing CJ-RTL-SAIL route
+**Source caveat checked 2026-10-23:** at this exact edition, the body of
+`fetchDecode_refines_fetchNDecode` is commented behind `SKIP_PROOF_ON`; its
+active proof is `apply cheat`. In
+[CommonTactics.v](https://github.com/mit-plv/kami/blob/3f9c603aaff3ea35ca6deb880a49ac2a9e62738b/Kami/Lib/CommonTactics.v),
+`cheat` is declared as `Axiom cheat: forall t, t`, which can instantiate `False`.
+Thus the theorem as distributed directly uses an inconsistent proof shortcut;
+its `Qed` is not an acceptable empty-assumption witness. The upstream
+[skip_proof.sh](https://github.com/mit-plv/kami/blob/3f9c603aaff3ea35ca6deb880a49ac2a9e62738b/skip_proof.sh)
+with `-r` exposes the retained proof scripts and removes those example shortcuts.
+That transformation and a successful full-proof build are not replayed here.
+U-23 must distinguish the shipped theorem's assumption report from a separately
+identified restored-proof build and audit the latter's transitive closure.
+An unused declaration of `cheat` elsewhere does not itself establish that every
+library theorem depends on it; inspect each selected consumer's actual closure.
+
+**Reuse:** permissible framework and proof-script reference for the closing CJ-RTL-SAIL route
 and reusable buffer/refinement lemmas. The example processor is not CVA6-CHERI,
 and a theorem over Kami semantics does not cover Verilog emission, synthesis,
 the local ISA, timing or noninterference automatically. Select an actual block,
@@ -548,6 +565,90 @@ bank/tag/ring observations and failure behavior still need their local theorem.
 Reopen a narrow proof-mathematics adaptation only after source and terms qualify,
 with a fixed-schedule instantiation and explicit local observation relation.
 No local work item is removed or estimate reduced by the paper alone.
+
+## Renewed switcher source qualification
+
+### HW-20: Griotte call/return and relational compartment reasoning
+
+**Standing: existing selected prior art, newly indexed here at an immutable
+edition.** June Rousseau, Aïna Linn Georges, Jean Pichon-Pharabod and Lars
+Birkedal, [*Griotte: Verified Compartmentalisation via Capabilities*](https://arxiv.org/abs/2609.01110v1),
+September 2026 preprint. The [existing inspiration disposition](../../background/inspirations.md#griotte-qualified-switcher-proof-prior-art)
+and R-15-069 already require bounded qualification before analogous switcher
+proof authoring. Source edition `eb41dda1046315f85f05e027f69684800b7f5acb`
+(2026-10-11) supplies unary `fundamental` in
+[logrel/fundamental.v](https://github.com/logsem/griotte/blob/eb41dda1046315f85f05e027f69684800b7f5acb/theories/logrel/fundamental.v),
+`switcher_cc_specification_gen` and `switcher_ret_specification` in
+[the call](https://github.com/logsem/griotte/blob/eb41dda1046315f85f05e027f69684800b7f5acb/theories/switcher/switcher_spec_call.v)
+and [return](https://github.com/logsem/griotte/blob/eb41dda1046315f85f05e027f69684800b7f5acb/theories/switcher/switcher_spec_return.v)
+proofs. Its later binary development includes
+[`cmdc_conf_adequacy`](https://github.com/logsem/griotte/blob/eb41dda1046315f85f05e027f69684800b7f5acb/theories/case_studies_binary/confidential_cmdc/cmdc_adequacy_binary.v):
+two admissible initial memories differing in their secrets either both reach
+`Halted` or neither does. This is a precise confidentiality observation for the
+donor's example, not cycle equality, a trace theorem about device observations,
+or this platform's noninterference theorem.
+
+The actual [LICENSE](https://github.com/logsem/griotte/blob/eb41dda1046315f85f05e027f69684800b7f5acb/LICENSE)
+grants BSD-3-Clause outside `extra/`; the edition's
+[dune-project](https://github.com/logsem/griotte/blob/eb41dda1046315f85f05e027f69684800b7f5acb/dune-project)
+instead declares `expat`, an attribution/metadata discrepancy to retain in the
+qualification record. Its `machine_utils` gitlink is
+`56d2f2b6d9373f1349f8689455715f168dd86ece`. The exact dependency still has no
+license instrument in its recursive inventory; the existing
+[third-party refusal](../../../THIRD-PARTY.md#proof-and-lowering-references)
+and [upstream issue proposal 46](../../implementation/upstream-prs.md#46-logsemmachine_utils--establish-licensing-and-attribution-for-cerise-and-griotte-sources)
+therefore still apply before replay or incorporation. A parent's permissive
+grant is not substituted for that repository's terms. The edition's
+[opam](https://github.com/logsem/griotte/blob/eb41dda1046315f85f05e027f69684800b7f5acb/opam)
+pins Rocq 9.1.1, stdlib 9.0.0, Iris 4.5.0, stdpp/bitvector 1.13.0 and Equations
+1.3.1+9.1. The local lock instead has core 9.3.0 and stdlib 9.2.0; no compatible
+closure is demonstrated. The donor's
+[assumption commands](https://github.com/logsem/griotte/blob/eb41dda1046315f85f05e027f69684800b7f5acb/theories/assumptions.v)
+are commented out by default. Its README reports functional extensionality,
+`MachineParameters` encode/decode laws and case-study layout premises; reading
+that report supplies no elaborated local assumption audit.
+
+**Adaptation boundary:** retain its continuation-based relation, call/return
+contracts and adversarial examples as the starting comparison for R-15-069 and
+CJ-CERISE. The actual call specification requires `PC` to hold `WCap XSRW_`,
+combining execute, system-register access and store. The
+[local permission lattice](../../hardware/isa-profile.md#41-the-capability-format)
+forbids Store together with Execute, so this precondition has no direct local
+instance. The donor's
+[abstract words](https://github.com/logsem/griotte/blob/eb41dda1046315f85f05e027f69684800b7f5acb/theories/opsem/machine_word.v)
+and [permission products](https://github.com/logsem/griotte/blob/eb41dda1046315f85f05e027f69684800b7f5acb/theories/opsem/permissions.v)
+also are not the 64+1 encoding: 36 address bits, four otype bits, five permission
+bits and the 5/8/6-bit bounds fields. Its abstract encoding laws prove neither
+total decoding of those 19 bounds bits nor the local malformed-word and
+per-load hardware-revocation behavior. Logical-world revocation must not be
+credited as the latter. A transplant must use the admitted canonical-Sail
+connection, finite local otypes, actual sentry/ABI primitives and clear rules;
+interrupts, composition scheduling and timing remain separate joins.
+
+Once first-party terms permit qualification, compare one known-to-unknown call
+with a permitted forward/return sentry and the actual stack/register-clearing
+path. Include a failed attempt to instantiate the donor's writable executable
+PCC and a stale stack capability as discriminating examples. A semantic mismatch
+is a useful qualification result; changing the local lattice or admitting a
+second machine semantics to make the donor theorem fit is not a source import.
+No donor replay, transported theorem or local switcher completion is recorded.
+
+## 2026-10-23 bounded hardware handoff
+
+Four concrete next uses survive this renewed online source reading. They refine
+the existing inventory rather than commission unpriced implementations:
+
+| Consumer | Reuse choice and next deciding evidence | Remaining boundary |
+| --- | --- | --- |
+| M0.6f / R-15-007a representation | **Adapt HW-02's statements.** At its recorded edition, `prop_decEnc` preserves raw bits and the input tag. `prop_decEnc2` has no property marker and documents a maximum-exponent/base-bit counterexample; `prop_setbounds_monotonic` starts from root-derived bounds rather than arbitrary malformed words. Compare those distinct questions with the local 19-bit bounds decoder. | Neither root-derived monotonicity nor a raw-bit round trip characterizes every malformed local encoding. The total 32-codepoint permission lattice needs its own order law. No upstream solver result is relabeled as local evidence. |
+| U-23 / U-24 / Q22d | **Qualify Kami first, retain Kôika as the comparison.** Re-read HW-07's MIT grant, but its selected example currently uses `cheat : forall t, t`; qualify the restored proof before accepting it. HW-08's exact `compiler_correct` relates a scheduled rule cycle to interpreted circuit register outputs under an external-function interpretation and a correctness-typed optimizer. U-23's bounded build and exact assumption receipt at the current locked prover decides availability; the shipped Kami example cannot supply an empty-assumption result. | Kami's documented Coq 8.12.x and Kôika's lower-bound package constraint establish no Rocq 9.3 compatibility. Kôika's LGPL election remains unresolved. Neither theorem covers the local memory sequencer, Sail relation, textual emission or synthesis; U-24 and Q22d retain those joins. |
+| R-15-069 / CJ-CERISE switcher | **Adapt HW-20's contract and adversarial-case structure after the existing terms refusal is resolved.** Its immutable source now makes the writable executable PCC mismatch and the halting-only binary observation concrete qualification questions. | No direct theorem instance over the local permission lattice; no timing, interrupt, physical reclamation or canonical-machine result. |
+| R-15-175 / R-15-179 / R-15-181a ECC | **Reuse HW-14 through the existing OpenTitan gitlink**, full edition `10738f384903ad7f7405a452ad41d6b8da23d2bb`. The inspected Apache-2.0 assertion file assumes at most two injected errors and checks correction/detection for its 39/32 instance. Carry the assumption explicitly into any generated target. | No selected 266/256 matrix/decoder theorem, separate DECTED validity-tag theorem, higher-weight-error guarantee, atomic data/tag commit, fixed-latency or fail-stop connection follows. Instantiate and verify the actual code rather than resize an assertion and call it proved. |
+
+None of these source readings supplies the fixed, non-work-conserving NoC
+schedule or its cycle-observation theorem. HW-15 and HW-19 remain references;
+request-dependent arbitration does not replace U-03 or CJ-ISOL. No gate, proof
+suite, benchmark or donor replay ran for this document review.
 
 ## Negative findings and concrete next uses
 
