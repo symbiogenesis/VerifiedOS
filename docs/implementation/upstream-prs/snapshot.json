@@ -25,12 +25,13 @@
       "issue": null,
       "pr": "https://github.com/rems-project/sail/pull/1786",
       "benefit": "Makes cross-file model editing dependable and offers a path to retire the maintained local dependency-refresh patch.",
-      "reviewed_head": "0a2fc6ab261a9c26c63c35c9a03aadbb31527db1",
-      "review": "Handles per-document navigation, compiler-owned cache reload, watched dependencies/projects, and save/close propagation. Tests cover missing/restored dependencies, unsaved buffers, multiple projects and symlink retargeting. No actionable static defect found; no maintainer review or comments recorded.",
-      "next_action": "Upstream maintainer action/approval for CI, then review.",
+      "reviewed_head": "c29feede338c303df5a3ae8cdfb9a2acfc110376",
+      "review": "Revised after [Alasdair's review](https://github.com/rems-project/sail/pull/1786#issuecomment-6420197338). Cache invalidation evicts disk-file lookup entries while preserving old source snapshots and error locations; editor takeover searches only active entries. Dependency refresh clears checked state and navigation. Each server retains its first project and rejects another before frontend processing, avoiding cross-project frontend state reuse. Implementation and tests are separate commits.",
+      "next_action": "Await maintainer review and upstream CI approval.",
       "evidence": [
-        "Both upstream workflows are action_required; the test matrix has no executed jobs. This is an approval/action block, not an observed code failure.",
-        "The PR reports release builds and 16 selected protocol tests; those claims were not independently rerun."
+        "PR #1786 alone was rechecked at 2026-10-26 15:57:43 UTC; all other captured statuses retain the snapshot observation date.",
+        "[Reply to Alasdair](https://github.com/rems-project/sail/pull/1786#issuecomment-6420582589) records the narrowed scope and validation.",
+        "Local validation of `c29feede338c303df5a3ae8cdfb9a2acfc110376` passed: Libsail and LSP release builds, 16 focused protocol tests, one source-snapshot unit test, and OCamlformat 0.29.0. The history split preserved the tested tree exactly. Full upstream CI remains subject to maintainer approval; these focused checks supply no VerifiedOS model or proof acceptance."
       ]
     },
     {
@@ -824,27 +825,27 @@
       "workflow_runs": []
     },
     {
-      "headRefOid": "0a2fc6ab261a9c26c63c35c9a03aadbb31527db1",
+      "headRefOid": "c29feede338c303df5a3ae8cdfb9a2acfc110376",
       "isDraft": false,
       "mergedAt": null,
       "number": 1786,
       "state": "OPEN",
       "statusCheckRollup": [],
       "title": "LSP: refresh open documents after dependency changes",
-      "updatedAt": "2026-10-21T18:27:33Z",
+      "updatedAt": "2026-10-26T15:56:47Z",
       "url": "https://github.com/rems-project/sail/pull/1786",
       "workflow_runs": [
         {
           "name": "Check formatting",
           "status": "completed",
           "conclusion": "action_required",
-          "html_url": "https://github.com/rems-project/sail/actions/runs/39368651122"
+          "html_url": "https://github.com/rems-project/sail/actions/runs/40354312797"
         },
         {
           "name": "Test matrix",
           "status": "completed",
           "conclusion": "action_required",
-          "html_url": "https://github.com/rems-project/sail/actions/runs/39368651120"
+          "html_url": "https://github.com/rems-project/sail/actions/runs/40354312774"
         }
       ]
     },

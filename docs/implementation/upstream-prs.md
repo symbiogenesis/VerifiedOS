@@ -12,14 +12,14 @@ Submitted PRs: **12**; open: **7**; merged: **5**; closed without merge: **0**; 
 
 Upstream PR watches: **13**; open: **13**; merged: **0**; closed without merge: **0**.
 
-The review inspected diffs, PR descriptions, public checks and discussion. It ran no independent upstream builds or tests. An upstream merge does not establish adoption or qualification of the change in VerifiedOS. An absent check result, action-required run, or neutral result is not a passing gate.
+The review inspected diffs, PR descriptions, public checks and discussion. Build and test evidence is attributed per entry. An upstream merge does not establish adoption or qualification of the change in VerifiedOS. An absent check result, action-required run, or neutral result is not a passing gate.
 
 ## Candidate status
 
 | ID | Upstream / work item | Priority | PR | Status | Next action |
 | --- | --- | --- | --- | --- | --- |
 | 1 | `rems-project/coq-sail` — Remove unnecessary Eq_rect_eq dependence | n/a | [#14](https://github.com/rems-project/coq-sail/pull/14) | Open | Await maintainer review and upstream validation. |
-| 2 | `rems-project/sail` — Refresh LSP state after dependency edits | n/a | [#1786](https://github.com/rems-project/sail/pull/1786) | Open | Upstream maintainer action/approval for CI, then review. |
+| 2 | `rems-project/sail` — Refresh LSP state after dependency edits | n/a | [#1786](https://github.com/rems-project/sail/pull/1786) | Open | Await maintainer review and upstream CI approval. |
 | 3 | `tchajed/coq-record-update` — Support Rocq 9.3 postfix update syntax | n/a | [#68](https://github.com/tchajed/coq-record-update/pull/68) | Open | Await maintainer review; displayed build matrix passes. |
 | 4 | `rocq-prover/rocq` — Opt-in axiom-free checker exit status | n/a | [#22609](https://github.com/rocq-prover/rocq/pull/22609) | Open | Address the maintainer's unsafe-flag collection request with candidate 10 and coordinate candidate 22; exercise -axiom-free without -o across recursive, -norec, -admit and sealed-module cases. |
 | 5 | `rems-project/sail` — Expose opt-in constructor splitting for C/C++ | n/a | [#1788](https://github.com/rems-project/sail/pull/1788) | Open | Upstream maintainer action/approval for CI, then review. |
@@ -417,11 +417,11 @@ Current head: `f8ae73234befd767c60deb3068e09acd56200618`.
 
 [LSP: refresh open documents after dependency changes](https://github.com/rems-project/sail/pull/1786) — **Open**.
 
-Current head: `0a2fc6ab261a9c26c63c35c9a03aadbb31527db1`.
+Current head: `c29feede338c303df5a3ae8cdfb9a2acfc110376`.
 
 **Project benefit:** Makes cross-file model editing dependable and offers a path to retire the maintained local dependency-refresh patch.
 
-**Static review:** Handles per-document navigation, compiler-owned cache reload, watched dependencies/projects, and save/close propagation. Tests cover missing/restored dependencies, unsaved buffers, multiple projects and symlink retargeting. No actionable static defect found; no maintainer review or comments recorded.
+**Static review:** Revised after [Alasdair's review](https://github.com/rems-project/sail/pull/1786#issuecomment-6420197338). Cache invalidation evicts disk-file lookup entries while preserving old source snapshots and error locations; editor takeover searches only active entries. Dependency refresh clears checked state and navigation. Each server retains its first project and rejects another before frontend processing, avoiding cross-project frontend state reuse. Implementation and tests are separate commits.
 
 **Public checks:**
 
@@ -429,15 +429,16 @@ Current head: `0a2fc6ab261a9c26c63c35c9a03aadbb31527db1`.
 
 **Actions runs for this head:**
 
-- [Check formatting](https://github.com/rems-project/sail/actions/runs/39368651122): **action_required**.
-- [Test matrix](https://github.com/rems-project/sail/actions/runs/39368651120): **action_required**.
+- [Check formatting](https://github.com/rems-project/sail/actions/runs/40354312797): **action_required**.
+- [Test matrix](https://github.com/rems-project/sail/actions/runs/40354312774): **action_required**.
 
 **Additional evidence:**
 
-- Both upstream workflows are action_required; the test matrix has no executed jobs. This is an approval/action block, not an observed code failure.
-- The PR reports release builds and 16 selected protocol tests; those claims were not independently rerun.
+- PR #1786 alone was rechecked at 2026-10-26 15:57:43 UTC; all other captured statuses retain the snapshot observation date.
+- [Reply to Alasdair](https://github.com/rems-project/sail/pull/1786#issuecomment-6420582589) records the narrowed scope and validation.
+- Local validation of `c29feede338c303df5a3ae8cdfb9a2acfc110376` passed: Libsail and LSP release builds, 16 focused protocol tests, one source-snapshot unit test, and OCamlformat 0.29.0. The history split preserved the tested tree exactly. Full upstream CI remains subject to maintainer approval; these focused checks supply no VerifiedOS model or proof acceptance.
 
-**Next action:** Upstream maintainer action/approval for CI, then review.
+**Next action:** Await maintainer review and upstream CI approval.
 
 ### 3. tchajed/coq-record-update #68
 

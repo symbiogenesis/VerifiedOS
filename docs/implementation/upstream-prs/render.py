@@ -220,7 +220,7 @@ def render(snapshot: Snapshot) -> str:
         f"merged: **{watch_counts['merged']}**; "
         f"closed without merge: **{watch_counts['closed']}**.", "",
         "The review inspected diffs, PR descriptions, public checks and discussion. "
-        "It ran no independent upstream builds or tests. An upstream merge does not "
+        "Build and test evidence is attributed per entry. An upstream merge does not "
         "establish adoption or qualification of the change in VerifiedOS. "
         "An absent check result, action-required run, or neutral result is not a passing gate.", "",
         "## Candidate status", "",
