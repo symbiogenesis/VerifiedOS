@@ -141,20 +141,29 @@ def _launch(root: Path, member: Launch, record: Path | None = None) -> Result:
 
     `record` is the file the member is asked to write its measured parts to, named in
     its environment alone; without one, the member is given no such file, whatever
-    this process's own environment names.
+    this process's own environment names. A timeout retains captured output and the
+    last readable progress snapshot, identifying any still-running units without
+    promoting that partial record to a verdict.
     """
     argv = [sys.executable, str(root / "tools" / "run.py"), member.tool, *member.args]
     environment = {key: value for key, value in os.environ.items() if key != timings.ENV}
+    environment["PYTHONUNBUFFERED"] = "1"
     if record is not None:
         environment[timings.ENV] = str(record)
     started = time.perf_counter()
     try:
         done = subprocess.run(argv, capture_output=True, encoding="utf-8", errors="replace",
                               cwd=root, check=False, timeout=TIMEOUT, env=environment)
-    except subprocess.TimeoutExpired:
+    except subprocess.TimeoutExpired as err:
+        units = timings.read(record) if record is not None else None
+        output = (_partial_text(err.stdout) + _partial_text(err.stderr)).splitlines()
+        output.append(f"{member.name} gave no verdict within {TIMEOUT}s")
+        for unit in units or []:
+            if unit.get("status") == "running":
+                output.append(f"running at last timing snapshot: {unit.get('kind')} "
+                              f"{unit.get('name')}")
         return Result(member, NO_VERDICT,
-                      [f"{member.name} gave no verdict within {TIMEOUT}s"],
-                      time.perf_counter() - started)
+                      output, time.perf_counter() - started, units)
     except OSError as err:
         return Result(member, NO_VERDICT, [f"{member.name} could not be run: {err}"],
                       time.perf_counter() - started)
@@ -164,6 +173,11 @@ def _launch(root: Path, member: Launch, record: Path | None = None) -> Result:
     return Result(member, done.returncode, (done.stdout + done.stderr).splitlines(),
                   time.perf_counter() - started,
                   timings.read(record) if record is not None else None)
+
+
+def _partial_text(value: str | bytes | None) -> str:
+    """TimeoutExpired may retain raw bytes even when the child requested text output."""
+    return value.decode("utf-8", errors="replace") if isinstance(value, bytes) else value or ""
 
 
 def _show(rep: Reporter, result: Result) -> None:

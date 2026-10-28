@@ -4,8 +4,10 @@
 `run.py gate --summary` names one file per member in `ENV`. A member that measures its
 parts, the behavioral tests by module, the selftest by phase and case and the checker by
 fixed phase, rule group, and the generated group's blob read and rows, writes them there
-as a JSON list once it has reported, and the gate folds that list into the member's
-record as `units`. A member claims the variable as it starts, removing it from the
+as a JSON list, and the gate folds that list into the member's record as `units`.
+Long-running members may checkpoint completed and still-running units so a timeout
+retains progress; a normal completed record carries only completed units. A member
+claims the variable as it starts, removing it from the
 environment its own children inherit, so a nested run cannot write over its parent's
 file. The durations are diagnostic: they never reach a member's printed report or its
 exit code, and a member's file that cannot be written or read records nothing rather
@@ -16,6 +18,7 @@ directory like the others a run needs.
 import json
 import os
 import sys
+import tempfile
 import threading
 import time
 from collections.abc import Generator
@@ -54,11 +57,23 @@ def claim() -> Path | None:
 
 
 def write(path: Path | None, units: list[Unit]) -> None:
-    """Record `units` at `path`; nothing is recorded where none was named or writing fails."""
+    """Atomically replace a diagnostic snapshot, keeping its predecessor on failure."""
     if path is None:
         return
-    with suppress(OSError):
-        path.write_text(json.dumps(units, indent=1) + "\n", encoding="utf-8")
+    temporary: Path | None = None
+    try:
+        with tempfile.NamedTemporaryFile(mode="w", encoding="utf-8", newline="",
+                                         prefix=f".{path.name}.", suffix=".tmp",
+                                         dir=path.parent, delete=False) as stream:
+            temporary = Path(stream.name)
+            stream.write(json.dumps(units, indent=1) + "\n")
+        temporary.replace(path)
+    except OSError:
+        pass
+    finally:
+        if temporary is not None:
+            with suppress(OSError):
+                temporary.unlink(missing_ok=True)
 
 
 def read(path: Path) -> list[Unit] | None:
@@ -89,14 +104,24 @@ class Clock:
     times this process's CPU seconds as `cpu_seconds`, and, except on Windows, those of
     the child processes it waited for as `child_cpu_seconds`: they are the block's own
     only where nothing else in the process runs beside it, as in the checker.
+
+    A `snapshot` path opts into best-effort atomic progress records after a duration
+    is added or a timed span starts or finishes. Active spans carry `status: running`
+    and elapsed time at the last snapshot; `units()` still returns completed spans
+    alone. The lock serializes both measurement updates and publication so an older
+    writer cannot replace a newer snapshot after another thread finishes work.
     """
 
-    def __init__(self, cpu: bool = False, origin: float | None = None) -> None:
+    def __init__(self, cpu: bool = False, origin: float | None = None,
+                 snapshot: Path | None = None) -> None:
         self._cpu = cpu
         self._origin = time.perf_counter() if origin is None else origin
         self._origin_at = time.time() - (time.perf_counter() - self._origin)
         self._measured: list[tuple[str, str, float, float, float | None, float | None]] = []
         self._lock = threading.Lock()
+        self._snapshot = snapshot
+        self._active: dict[int, tuple[str, str, float]] = {}
+        self._next_active = 0
 
     def add(self, kind: str, name: str, seconds: float, started: float | None = None) -> None:
         """Record a duration that began at the `perf_counter` reading `started`, or,
@@ -114,26 +139,56 @@ class Clock:
     def timing(self, kind: str, name: str) -> Generator[None]:
         """Measure the block, whether it returns or raises."""
         begun = reading()
+        active: int | None = None
+        if self._snapshot is not None:
+            with self._lock:
+                active = self._next_active
+                self._next_active += 1
+                self._active[active] = (kind, name, begun.wall)
+                self._checkpoint_locked()
         try:
             yield
         finally:
-            self.span(kind, name, begun, reading())
+            ended = reading()
+            cpu = ended.cpu - begun.cpu if self._cpu else None
+            child = ended.child_cpu - begun.child_cpu if self._cpu and _CHILDREN_COUNTED else None
+            self._record(kind, name, ended.wall - begun.wall, begun.wall, cpu, child, active)
 
     def _record(self, kind: str, name: str, seconds: float, begun: float,
-                cpu: float | None, child: float | None) -> None:
+                cpu: float | None, child: float | None, active: int | None = None) -> None:
         with self._lock:
             self._measured.append((kind, name, seconds, begun - self._origin, cpu, child))
+            if active is not None:
+                self._active.pop(active)
+            self._checkpoint_locked()
+
+    def _checkpoint_locked(self) -> None:
+        """Publish one serialized snapshot while no other thread can supersede it."""
+        if self._snapshot is not None:
+            write(self._snapshot, self._units_locked(running=True))
 
     def units(self) -> list[Unit]:
+        """Completed measurements, in the same order whether checkpointing or not."""
         with self._lock:
-            measured = sorted(self._measured, key=lambda m: m[:4])
+            return self._units_locked()
+
+    def _units_locked(self, *, running: bool = False) -> list[Unit]:
+        """Render completed durations and, for snapshots, explicitly unfinished spans."""
+        measured = [(measurement, False) for measurement in self._measured]
+        if running:
+            now = time.perf_counter()
+            measured.extend(((kind, name, now - begun, begun - self._origin, None, None), True)
+                            for kind, name, begun in self._active.values())
+        measured.sort(key=lambda item: item[0][:4])
         units: list[Unit] = []
-        for kind, name, seconds, start, cpu, child in measured:
+        for (kind, name, seconds, start, cpu, child), unfinished in measured:
             unit: Unit = {"kind": kind, "name": name, "seconds": round(seconds, 3),
                           "start": round(start, 3), "at": round(self._origin_at + start, 3)}
             if cpu is not None:
                 unit["cpu_seconds"] = round(cpu, 3)
             if child is not None:
                 unit["child_cpu_seconds"] = round(child, 3)
+            if unfinished:
+                unit["status"] = "running"
             units.append(unit)
         return units

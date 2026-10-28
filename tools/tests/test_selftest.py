@@ -86,6 +86,31 @@ class _Baseline:
         pass
 
 
+def _case_progress_is_checkpointed_before_a_verdict() -> None:
+    with tempfile.TemporaryDirectory(prefix="vos-selftest-progress-") as td:
+        path = Path(td) / "units.json"
+        clock = timings.Clock(snapshot=path)
+        box = cast("selftest.Sandbox", _Baseline(0))
+        boxes: Queue[selftest.Sandbox | BaseException] = Queue()
+        boxes.put(box)
+        case: selftest.Case = ("K-01", "blocked checker", lambda _box: True)
+
+        def verdict(found: selftest.Case, _box: selftest.Sandbox) -> Verdict:
+            running = {unit["name"] for unit in timings.read(path) or []
+                       if unit.get("status") == "running"}
+            ensure(running == {"cases", "K-01: blocked checker"},
+                   "a case must be checkpointed before its checker can block")
+            return Verdict(selftest.Seeding(found[0], found[1]), KILLED, "fixture verdict")
+
+        with (patch.object(selftest, "_verdict", side_effect=verdict),
+              patch.object(selftest, "_registry_coverage", return_value=[]),
+              contextlib.redirect_stdout(io.StringIO())):
+            result = selftest._run([case], box, boxes, None, 1, False, clock, sharded=True)
+        ensure(result == 0 and timings.read(path) == clock.units()
+               and all("status" not in unit for unit in clock.units()),
+               "a completed selftest must preserve its verdict and leave no active units")
+
+
 def _repair_only_runs_beside_the_baseline() -> None:
     # --repair-only reports the repair path and the registry, not an empty population
     # as a vacuous pass, and a failing baseline still discards the repair report. Any
@@ -751,6 +776,8 @@ def _holder_seeds_refuse_absent_structural_targets() -> None:
 def cases() -> list[Case]:
     return [
         Case("shards-cover-cases-and-repair-once", _shards_cover_cases_and_repair_once),
+        Case("case-progress-is-checkpointed-before-a-verdict",
+             _case_progress_is_checkpointed_before_a_verdict),
         Case("repair-only-runs-beside-the-baseline", _repair_only_runs_beside_the_baseline),
         Case("shard-leaves-the-repair-path-to-repair-only",
              _shard_leaves_the_repair_path_to_repair_only),

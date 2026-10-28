@@ -298,6 +298,46 @@ def _launch_hands_a_member_its_timings_file() -> None:
     ensure(bare.units is None, f"a member given no file records no parts: {bare!r}")
 
 
+def _timeout_retains_partial_output_and_timing_progress() -> None:
+    """A real killed child leaves completed and active work without a passing verdict."""
+    member = next(m for m in gate.MEMBERS if m.tool == "selftest")
+    program = (
+        "import sys,time; "
+        f"sys.path.insert(0,{str(TOOLS)!r}); "
+        "from vos import timings; "
+        "clock=timings.Clock(snapshot=timings.claim()); "
+        "clock.add('phase','finished setup',0.25); "
+        "\nwith clock.timing('case','unfinished mutant'):\n"
+        " print('selected 3 cases'); sys.stderr.write('child diagnostic\\n'); time.sleep(30)\n"
+    )
+
+    with tempfile.TemporaryDirectory(prefix="vos-gate-timeout-") as td:
+        root = Path(td)
+        (root / "tools").mkdir()
+        (root / "tools/run.py").write_text(program, encoding="utf-8")
+        record = root / "units.json"
+        with patch.object(gate, "TIMEOUT", 3):
+            result = gate._launch(root, member, record)
+    ensure(result.code == gate.NO_VERDICT and result.units is not None,
+           f"an expired member must retain diagnostics without reaching a verdict: {result}")
+    ensure(result.out[:2] == ["selected 3 cases", "child diagnostic"]
+           and "selftest gave no verdict within 3s" in result.out,
+           f"captured stdout, stderr and the deadline must all survive: {result.out}")
+    by_name = {unit["name"]: unit for unit in result.units or []}
+    ensure(by_name["finished setup"]["seconds"] == 0.25
+           and "status" not in by_name["finished setup"]
+           and by_name["unfinished mutant"]["status"] == "running",
+           f"the last snapshot must separate completed and unfinished work: {result.units}")
+    ensure("running at last timing snapshot: case unfinished mutant" in result.out,
+           "the log must identify the unfinished unit beside the preserved timing snapshot")
+    rep = Reporter()
+    gate._verdict(rep, [result])
+    ensure(rep.findings == 1 and gate._verdict_data([result])["green"] is False,
+           "partial output and completed units must not make a timeout pass")
+    for value, expected in ((None, ""), ("text", "text"), (b"split \xff", "split \ufffd")):
+        ensure(gate._partial_text(value) == expected, "timeout output decoding must be loss tolerant")
+
+
 def _timings_round_trip_and_never_fail_the_run() -> None:
     with tempfile.TemporaryDirectory(prefix="vos-timings-") as td:
         path = Path(td) / "units.json"
@@ -501,6 +541,8 @@ def cases() -> list[Case]:
         Case("launch-times-success-findings-and-missing-verdicts",
              _launch_times_success_findings_and_missing_verdicts),
         Case("launch-hands-a-member-its-timings-file", _launch_hands_a_member_its_timings_file),
+        Case("timeout-retains-partial-output-and-timing-progress",
+             _timeout_retains_partial_output_and_timing_progress),
         Case("timings-round-trip-and-never-fail-the-run",
              _timings_round_trip_and_never_fail_the_run),
         Case("verdict-names-the-member-that-reported",

@@ -2804,7 +2804,8 @@ def main(argv: list[str] | None = None) -> int:
         print(f"repair path only: 0 of {len(CASES)} cases")
     # Phase and case seconds for the gate's summary, each with its start from here, never
     # printed; claimed before any child starts, so no checker run inherits the file.
-    record, clock = timings.claim(), timings.Clock()
+    record = timings.claim()
+    clock = timings.Clock(snapshot=record)
 
     # A private directory per run rather than one path every run reuses. What survives
     # between runs is the template cache, carried file by file under its own rules, so
@@ -2932,14 +2933,12 @@ def _run(selected: list[Case], baseline: Sandbox, boxes: Queue[Sandbox | BaseExc
         if isinstance(box, BaseException):
             boxes.put(box)   # every other waiting case must wake and fail too
             raise box
-        started = time.perf_counter()
-        try:
-            return _verdict(case, box)
-        finally:
-            box.reset()
-            boxes.put(box)
-            measured.add("case", f"{case[0]}: {case[1]}", time.perf_counter() - started,
-                         started)
+        with measured.timing("case", f"{case[0]}: {case[1]}"):
+            try:
+                return _verdict(case, box)
+            finally:
+                box.reset()
+                boxes.put(box)
 
     def timed_repair() -> tuple[list[str], list[str]]:
         if repair_ready is None:
