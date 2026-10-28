@@ -350,8 +350,9 @@ from typing import TYPE_CHECKING, cast
 
 from vos import corpus as corpus_mod
 from vos import pins as pins_mod
-from vos import rtl_width, toolenv
+from vos import retained, rtl_width, toolenv
 from vos.checks import generated
+from vos.checks.interims import archive_needles
 from vos.report import apart
 
 # `Context` lives in this package's __init__, which imports this module in turn.
@@ -2042,7 +2043,7 @@ def _dev_tools(ctx: Context) -> None:
                f"each of the {pinned} pins its pip constraint files carry is a held row's")
 
 
-def _sources(ctx: Context) -> Iterator[tuple[str, str, list[bool]]]:
+def _sources(ctx: Context, named: list[tuple[str, str, pins_mod.Pin]]) -> Iterator[tuple[str, str, list[bool]]]:
     """Every file this rule reads, as its lines and which of them a fence displays.
 
     **The window is the git index**, because a pin is restated wherever somebody
@@ -2098,9 +2099,27 @@ def _sources(ctx: Context) -> Iterator[tuple[str, str, list[bool]]]:
         if rel in machine:
             continue
         try:
+            if rel.startswith(corpus_mod.COMPRESSED_EVIDENCE) and rel.endswith(".gz"):
+                # Static parser inputs, not a decision from the later rule group.
+                # Sharing them keeps the archive's two absence facts in one pass.
+                blob = (ctx.root / rel).read_bytes()
+                cache = cast(retained.Cache, ctx.shared.setdefault("retained_scan", retained.Cache()))
+                try:
+                    sensitive, folded = archive_needles()
+                    facts = cache.scan(rel, blob, tuple(needle for needle, _, _ in named),
+                                       sensitive, folded)
+                except (OSError, EOFError, ValueError, zlib.error):
+                    # The legacy reader owns exact malformed-gzip and text behavior.
+                    # Failed or unsupported prescans are never cached as absences.
+                    pass
+                else:
+                    if not facts.pin_name:
+                        continue
+                text = corpus_mod.gzip_contents(blob).decode("utf-8")
+            else:
+                text = corpus_mod.scan_bytes(ctx.root, rel).decode("utf-8")
             # Preserve read_text's universal-newline behavior for these files,
             # including retained text now stored as lossless gzip evidence.
-            text = corpus_mod.scan_bytes(ctx.root, rel).decode("utf-8")
             text = text.replace("\r\n", "\n").replace("\r", "\n")
         except (OSError, UnicodeDecodeError, EOFError, ValueError, zlib.error):
             continue
@@ -2216,7 +2235,7 @@ def _restatements(ctx: Context, rows: list[pins_mod.Pin],
     site_used: set[tuple[str, str]] = set()
     held = 0
 
-    for file, text, fenced in _sources(ctx):
+    for file, text, fenced in _sources(ctx, named):
         # Attribution requires an upstream name on the id's own line. Rejecting
         # a file carrying none of the folded spellings is therefore equivalent
         # to the full scan, and avoids visiting every hex literal in large proof
