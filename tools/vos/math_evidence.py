@@ -18,7 +18,7 @@ from vos import composer, corpus
 
 MANIFEST = "docs/background/math-evidence.json"
 ARTIFACT = "docs/background/math-evidence.md"
-REQUIRED_IDS = frozenset({"dcp", "rank48", "type-fpt", "logspace103", "comparator",
+REQUIRED_IDS = frozenset({"dcp", "rank48", "eth378", "type-fpt", "logspace103", "comparator",
                           "integer109", "shortest-path", "two-stack", "composer-dictionaries"})
 STAGES = ("source inspection", "supplied replay", "independent replay", "production acceptance")
 DISPOSITIONS = ("evaluate now", "await workload", "monitor security")

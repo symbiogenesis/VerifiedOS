@@ -67,6 +67,52 @@
       ]
     },
     {
+      "id": "eth378",
+      "title": "Reported ETH refutation by deterministic bounded-width SAT",
+      "claim": "For each fixed k >= 2, the selected Lean target states exact counting and SAT decision on canonical k-CNF with n variables and L encoding bits in (L+1)^O_k(1) * 2^O_k(n*(log log n)^2/sqrt(log n)) time and polynomial all-prefix visited-tape space. This contradicts ETH and standard fixed-width SETH if established. OpenAI reports Lean verification; independent community examination is underway.",
+      "sources": [
+        {
+          "url": "https://github.com/openai/math/blob/7ef5c0cc5ca4b0e072b7a050fca09ab24bc6fa3a/lean/docs/378.md",
+          "kind": "git",
+          "identity": "7ef5c0cc5ca4b0e072b7a050fca09ab24bc6fa3a"
+        },
+        {
+          "url": "https://github.com/openai/math/blob/7ef5c0cc5ca4b0e072b7a050fca09ab24bc6fa3a/lean/ComparatorChallenges/SubexponentialSAT.lean",
+          "kind": "git",
+          "identity": "7ef5c0cc5ca4b0e072b7a050fca09ab24bc6fa3a"
+        },
+        {
+          "url": "https://github.com/openai/math/blob/7ef5c0cc5ca4b0e072b7a050fca09ab24bc6fa3a/lean/ComparatorChallenges/SubexponentialSAT.json",
+          "kind": "git",
+          "identity": "7ef5c0cc5ca4b0e072b7a050fca09ab24bc6fa3a"
+        },
+        {
+          "url": "https://github.com/openai/math/blob/7ef5c0cc5ca4b0e072b7a050fca09ab24bc6fa3a/lean/OAI/Algorithms/SubexponentialSAT/SqrtLogSpace/Final.lean",
+          "kind": "git",
+          "identity": "7ef5c0cc5ca4b0e072b7a050fca09ab24bc6fa3a"
+        }
+      ],
+      "inspected": "2026-10-27",
+      "stage": "source inspection",
+      "assumptions": [
+        "Inspected scope, canonical formula/encoding and primitive-machine definitions, comparator configuration and solution theorem reached through the configured Main module; no transitive proof build, comparator replay or measured dependency audit was performed here. The challenge placeholder is separate from the solution proof.",
+        "The comparator permits propext, Quot.sound and Classical.choice; this declared allowlist is not a measured axiom closure. The scope note's sharper October 25 manuscript bounds are separate from the selected formal target.",
+        "Clause width is fixed; constants and polynomial degrees may depend on k. Polynomial visited-tape space is not a finite target memory budget, and no practical crossover or implementation speedup is established.",
+        "The result does not settle P versus NP, independent OV/OMv conjectures, universal proof search or termination, or concrete MLWE/MSIS/hash security. Removing an ETH/SETH premise does not construct faster algorithms for every problem with a conditional lower bound."
+      ],
+      "consumer": {
+        "artifact": "docs/implementation/placement-search.md#8-research-handoff-for-future-placement-proofs",
+        "owner": "Q5b placement; U-05 schedule producer; Q34f/Q34h workload selection"
+      },
+      "disposition": "await workload",
+      "next_action": "Track independent examination and replay status at an immutable revision. For a named bounded-width SAT consumer, prove the reduction and decoded-output relation, count encoding bits and auxiliary variables, declare finite time/workspace limits and compare on CI. Reassess ETH/SETH-only barriers without claiming a faster implementation or accepting solver verdicts as certificates.",
+      "evidence": [
+        "docs/background/open-math-conjectures.md#exponential-time-hypothesis-and-strong-exponential-time-hypothesis",
+        "docs/implementation/contracts/schedule-record.md#research-handoff-for-schedule-synthesis",
+        "docs/implementation/contracts/wasm-execution.md#mathematical-research-handoff"
+      ]
+    },
+    {
       "id": "type-fpt",
       "title": "Few-type packing and scheduling",
       "claim": "Jansen and Ohnesorge v4 adds constructive fixed-parameter results for vector bin packing by item types and high-multiplicity uniform/unrelated-machine makespan and load balancing by job and machine types.",

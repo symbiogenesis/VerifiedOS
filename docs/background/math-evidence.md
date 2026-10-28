@@ -9,6 +9,7 @@ This validates metadata and finite host/reference behavior. It supplies no theor
 | [Lean Comparator maintenance route](#comparator) | source inspection | evaluate now | 2026-10-20 |
 | [Immutable composer dictionary shapes](#composer-dictionaries) | independent replay | evaluate now | 2026-10-20 |
 | [Disputed DCP attack and MLWE premise](#dcp) | source inspection | monitor security | 2026-10-20 |
+| [Reported ETH refutation by deterministic bounded-width SAT](#eth378) | source inspection | await workload | 2026-10-27 |
 | [Integer multiplication: conditional frontier and Lean artifact](#integer109) | source inspection | await workload | 2026-10-21 |
 | [Family 103 logspace derandomization formalization](#logspace103) | source inspection | await workload | 2026-10-20 |
 | [Finite 48-product matrix multiplication](#rank48) | independent replay | await workload | 2026-10-20 |
@@ -80,6 +81,32 @@ Consumer: [docs/assurance/proof-reuse/crypto.md#what-the-attack-corrections-esta
 Local evidence: [docs/assurance/proof-reuse/crypto.md#what-the-attack-corrections-establish](../assurance/proof-reuse/crypto.md#what-the-attack-corrections-establish).
 
 Next action: Acquire the exact October 8 revision and bind its bytes, compare the changed algorithm and advantage argument with the pinned refutation's register, rounding and oracle assumptions, and record a substantive disposition only after that comparison.
+
+## Reported ETH refutation by deterministic bounded-width SAT <a id="eth378"></a>
+
+For each fixed k >= 2, the selected Lean target states exact counting and SAT decision on canonical k-CNF with n variables and L encoding bits in (L+1)^O_k(1) * 2^O_k(n*(log log n)^2/sqrt(log n)) time and polynomial all-prefix visited-tape space. This contradicts ETH and standard fixed-width SETH if established. OpenAI reports Lean verification; independent community examination is underway.
+
+Evidence stage: **source inspection**. Disposition: **await workload**. Inspected: 2026-10-27.
+
+Selected sources:
+
+- [git](https://github.com/openai/math/blob/7ef5c0cc5ca4b0e072b7a050fca09ab24bc6fa3a/lean/docs/378.md); identity `7ef5c0cc5ca4b0e072b7a050fca09ab24bc6fa3a`.
+- [git](https://github.com/openai/math/blob/7ef5c0cc5ca4b0e072b7a050fca09ab24bc6fa3a/lean/ComparatorChallenges/SubexponentialSAT.lean); identity `7ef5c0cc5ca4b0e072b7a050fca09ab24bc6fa3a`.
+- [git](https://github.com/openai/math/blob/7ef5c0cc5ca4b0e072b7a050fca09ab24bc6fa3a/lean/ComparatorChallenges/SubexponentialSAT.json); identity `7ef5c0cc5ca4b0e072b7a050fca09ab24bc6fa3a`.
+- [git](https://github.com/openai/math/blob/7ef5c0cc5ca4b0e072b7a050fca09ab24bc6fa3a/lean/OAI/Algorithms/SubexponentialSAT/SqrtLogSpace/Final.lean); identity `7ef5c0cc5ca4b0e072b7a050fca09ab24bc6fa3a`.
+
+Assumptions and exclusions:
+
+- Inspected scope, canonical formula/encoding and primitive-machine definitions, comparator configuration and solution theorem reached through the configured Main module; no transitive proof build, comparator replay or measured dependency audit was performed here. The challenge placeholder is separate from the solution proof.
+- The comparator permits propext, Quot.sound and Classical.choice; this declared allowlist is not a measured axiom closure. The scope note's sharper October 25 manuscript bounds are separate from the selected formal target.
+- Clause width is fixed; constants and polynomial degrees may depend on k. Polynomial visited-tape space is not a finite target memory budget, and no practical crossover or implementation speedup is established.
+- The result does not settle P versus NP, independent OV/OMv conjectures, universal proof search or termination, or concrete MLWE/MSIS/hash security. Removing an ETH/SETH premise does not construct faster algorithms for every problem with a conditional lower bound.
+
+Consumer: [docs/implementation/placement-search.md#8-research-handoff-for-future-placement-proofs](../implementation/placement-search.md#8-research-handoff-for-future-placement-proofs). Owner: Q5b placement; U-05 schedule producer; Q34f/Q34h workload selection.
+
+Local evidence: [docs/background/open-math-conjectures.md#exponential-time-hypothesis-and-strong-exponential-time-hypothesis](open-math-conjectures.md#exponential-time-hypothesis-and-strong-exponential-time-hypothesis); [docs/implementation/contracts/schedule-record.md#research-handoff-for-schedule-synthesis](../implementation/contracts/schedule-record.md#research-handoff-for-schedule-synthesis); [docs/implementation/contracts/wasm-execution.md#mathematical-research-handoff](../implementation/contracts/wasm-execution.md#mathematical-research-handoff).
+
+Next action: Track independent examination and replay status at an immutable revision. For a named bounded-width SAT consumer, prove the reduction and decoded-output relation, count encoding bits and auxiliary variables, declare finite time/workspace limits and compare on CI. Reassess ETH/SETH-only barriers without claiming a faster implementation or accepting solver verdicts as certificates.
 
 ## Integer multiplication: conditional frontier and Lean artifact <a id="integer109"></a>
 
@@ -267,6 +294,6 @@ Sorted reference payload SHA-256: `23b690105f12b96f3ef7a997cf508a5b775e70bcaf077
 | --- | --- |
 | [proofs/HandlerGraph.v](../../proofs/HandlerGraph.v) | `2353a27a43e88f37484450335df834ba945bae2900055e94777e06189a02dfcd` |
 | [tools/vos/composer.py](../../tools/vos/composer.py) | `71b49958eb14d5bcb65e0c2217137833858b54a12241df42eeb2753d1b028dfc` |
-| [tools/vos/math_evidence.py](../../tools/vos/math_evidence.py) | `e83bfc7024df80d1a86da946eff3f2c9fd3a437fc037ec9b4718fcf3eefb3db0` |
+| [tools/vos/math_evidence.py](../../tools/vos/math_evidence.py) | `53987a977483a87d66fd7ba22c3908724018cd387744f44c2dac3b997d40c77b` |
 
 Before adopting a compact dictionary, name a real consumer, record its table shapes and access trace or justified query distribution, compare sorted arrays and generated perfect hashing, and declare finite byte/work thresholds. Construction and any randomized seed need their own bounds. Timing comparisons and benchmarks run on CI. Dynamic service indexes separately owe update, exhaustion and recovery behavior.
