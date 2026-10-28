@@ -81,6 +81,25 @@ unit of every member to the job log, one JSON line each, by member and then slow
 first, after one line naming the runner's CPU count and model, in one collapsed group
 with workflow commands stopped.
 
+Members run with unbuffered output. A member timeout retains captured stdout and
+stderr and its last readable timing snapshot while remaining a failed gate with no
+verdict. The selftest atomically checkpoints completed phases/cases and names spans
+still running at its last snapshot; their elapsed times describe that snapshot,
+not the final timeout instant. Diagnostic write failure preserves the preceding
+snapshot and never changes a gate verdict. Successful final records contain only
+completed units in their existing deterministic order.
+
+For a same-runner checker comparison, manually dispatch Host CI with a full
+`performance_base` SHA that properly precedes the tested `revision` on `main`.
+Ubuntu's unpartitioned job runs the hosted-only
+[comparison controller](ci/archive_scan_benchmark.py) after its ordinary checks.
+Baseline tool sources and current tools run in fresh interpreters against the same
+unchanged indexed checkout, twice each in alternating order. Complete diagnostics
+and decisions must agree and be clean. The `archive-scan-comparison` artifact
+records source revisions, interpreter, group timings and whole-process durations;
+ordinary push runs do not benchmark. This comparison supplies performance evidence
+alongside the required Host and Guest handoff, not a replacement for either.
+
 New commits cancel superseded runs of the same pull request. Main runs share a
 concurrency group only when their trigger and tested revision are the same:
 the dispatch's explicit revision, or the event SHA. Duplicate automatic push

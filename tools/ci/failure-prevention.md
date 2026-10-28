@@ -6,6 +6,14 @@ The [validation handoff](../../AGENTS.md#tool-execution-and-validation) and
 prepare complete inputs and improve diagnostics; they grant no model, proof,
 compiler or target acceptance of their own.
 
+Gate deadlines retain captured member output and the last readable progress
+snapshot. Selftest snapshots distinguish completed work from spans still running
+when last recorded; a timeout remains a nonpassing absence of a verdict. Atomic,
+best-effort diagnostic writes must not change gate decisions, and malformed or
+missing snapshots cannot manufacture a pass. Focused acceptance includes a real
+small child timeout, concurrent snapshot writers and failed replacement preserving
+the prior snapshot. Native-sized workload acceptance remains hosted.
+
 ## Generated behavioral checks
 
 The vector bit-count generator selects independent expected answers by an explicit

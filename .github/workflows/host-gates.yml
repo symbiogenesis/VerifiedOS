@@ -39,6 +39,10 @@ on:
         description: Optional run title text after the workflow name (empty shows the revision)
         type: string
         default: ""
+      performance_base:
+        description: Optional proper main ancestor for a hosted checker comparison
+        type: string
+        default: ""
   push:
     branches: [main]
   pull_request:
@@ -104,6 +108,7 @@ jobs:
           REQUESTED_REVISION: ${{ inputs.revision || github.sha }}
           DISPATCH_REF: ${{ github.ref }}
           DISPATCH_MAIN_SHA: ${{ github.sha }}
+          PERFORMANCE_BASE: ${{ inputs.performance_base }}
         run: |
           import os
           import re
@@ -117,6 +122,11 @@ jobs:
               raise SystemExit("Checkout does not match the requested revision")
           subprocess.run(["git", "merge-base", "--is-ancestor", revision,
                           os.environ["DISPATCH_MAIN_SHA"]], check=True)
+          base = os.environ["PERFORMANCE_BASE"]
+          if base:
+              if not re.fullmatch(r"[0-9a-f]{40}", base) or base == revision:
+                  raise SystemExit("Performance base must be a full SHA preceding the revision")
+              subprocess.run(["git", "merge-base", "--is-ancestor", base, revision], check=True)
 
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
@@ -196,6 +206,26 @@ jobs:
           path: ${{ runner.temp }}/toolchains/archives
           key: actionlint-archive-${{ steps.actionlint.outputs.identity }}
 
+      - name: Compare checker implementations on the same corpus
+        if: ${{ success() && github.event_name == 'workflow_dispatch' && inputs.performance_base != '' && matrix.platform == 'Ubuntu' && matrix.shard == 'unpartitioned' }}
+        shell: bash
+        env:
+          PERFORMANCE_BASE: ${{ inputs.performance_base }}
+          UV_PROJECT_ENVIRONMENT: out/venv-linux
+        run: |
+          uv run --project tools --locked --exact --no-python-downloads python \
+            tools/ci/archive_scan_benchmark.py --base "$PERFORMANCE_BASE" \
+            --output "$RUNNER_TEMP/archive-scan-comparison.json"
+
+      - name: Retain checker comparison
+        if: ${{ !cancelled() && steps.dispatch.outcome != 'failure' && github.event_name == 'workflow_dispatch' && inputs.performance_base != '' && matrix.platform == 'Ubuntu' && matrix.shard == 'unpartitioned' }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: archive-scan-comparison
+          path: ${{ runner.temp }}/archive-scan-comparison.json
+          if-no-files-found: error
+          retention-days: 14
+
       - name: Report gate results
         if: ${{ !cancelled() && steps.dispatch.outcome != 'failure' }}
         shell: python
@@ -263,7 +293,10 @@ jobs:
                   slowest = sorted(((u["seconds"], u["kind"], u["name"])
                                     for m in report["members"] for u in m.get("units") or []),
                                    reverse=True)[:10]
+                  running = {(u["kind"], u["name"]) for m in report["members"]
+                             for u in m.get("units") or [] if u.get("status") == "running"}
                   units = "; ".join(f"{kind} {name}: {seconds:.2f}s"
+                                    + (" (running at last snapshot)" if (kind, name) in running else "")
                                     for seconds, kind, name in slowest)
                   if units:
                       annotate("notice", "Slowest units: " + units)

@@ -102,11 +102,24 @@ against the template; a repair-only run constructs no case sandbox.
 
 Large retained proof readings use the manifest's lossless gzip representation.
 Content hashes and byte counts still bind the original reading. Repository-wide
-encoding, pin and interim scans read its expanded contents. Pin scanning skips the
-object-id search only when no upstream-name substring is present, and streams source
-texts rather than retaining the expanded corpus. Hosted gate timings record the
-bytecode and sandbox phases beside the baseline, cases and repair path; complete
-timing runs and benchmarks stay on CI.
+encoding, pin and interim scans retain their coverage of its expanded contents.
+A shared streaming prescan can establish absence of bounded upstream names and
+interim token candidates without materializing the expanded text. It consumes every
+gzip member and validates its trailer. Reuse belongs to one checker context and
+requires equal compressed bytes and matcher inputs. A candidate hit or unsupported
+text retains the existing full parser and exact diagnostics; malformed input cannot
+become a cached absence verdict. The archive remains in the audit's scope.
+
+Hosted gate timings record bytecode and sandbox phases beside the baseline, cases
+and repair path. The selftest checkpoints completed and active work so timeout
+reports preserve progress without claiming a verdict. Complete timing runs and
+benchmarks stay on CI. Host CI's optional `performance_base` dispatch input runs
+[paired checker measurements](ci/archive_scan_benchmark.py) on Ubuntu: baseline
+tools from that proper ancestor and candidate tools read the same indexed candidate
+corpus in fresh processes, with two alternating repetitions each. The retained
+artifact compares entire reports and records group and process time. It establishes
+an improvement only for its named source revisions and corpus; separate historical
+runner timings do not establish a paired speedup.
 
 The behavioral tests cover
 [source snapshots](tests/test_gallina.py),
