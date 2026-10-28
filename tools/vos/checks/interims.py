@@ -104,7 +104,7 @@ from typing import TYPE_CHECKING, cast
 
 from vos import findings as plan_mod
 from vos import pins as pins_mod
-from vos import sailbundle
+from vos import retained, sailbundle
 from vos.corpus import COMPRESSED_EVIDENCE, HEADING_RE, UNREAD_PREFIX, Document, from_text
 from vos.corpus import gzip_contents as _gzip_contents
 from vos.register import REGISTER, REQ_ID_PATTERN, REQ_TOKEN_RE
@@ -419,6 +419,12 @@ def hits(blob: bytes) -> list[tuple[int, Token]]:
     return found
 
 
+def archive_needles() -> tuple[tuple[bytes, ...], tuple[bytes, ...]]:
+    """Conservative raw candidates, shared with the earlier pin group's prescan."""
+    return (tuple(tok.needle for tok in TOKENS if not tok.folded),
+            tuple(tok.needle for tok in TOKENS if tok.folded))
+
+
 def _bounded(blob: bytes, at: int, tok: Token) -> bool:
     if at and blob[at - 1] in _ALNUM:
         return False
@@ -578,6 +584,17 @@ def scan(ctx: Context, excluded: dict[str, str], snapshots: bool = False) -> Sca
                 continue
         if rel.startswith(COMPRESSED_EVIDENCE) and rel.endswith(".gz"):
             try:
+                cache = cast(retained.Cache, ctx.shared.setdefault("retained_scan", retained.Cache()))
+                try:
+                    sensitive, folded = archive_needles()
+                    facts = cache.scan(rel, blob, (), sensitive, folded)
+                except (OSError, EOFError, ValueError, zlib.error):
+                    # Preserve the original decoder's exact refusal message and
+                    # complete positive-candidate diagnostics on every fallback.
+                    pass
+                else:
+                    if not facts.lineage:
+                        continue
                 blob = _gzip_contents(blob)
             except (OSError, EOFError, ValueError, zlib.error) as err:
                 read.undecided.append(f"{rel} is not readable gzip evidence ({err}), so "
