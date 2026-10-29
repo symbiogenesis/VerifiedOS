@@ -2,7 +2,7 @@
   "version": 1,
   "author": "symbiogenesis",
   "created_since": "2026-10-19",
-  "observed_at": "2026-10-22 22:04:00 UTC",
+  "observed_at": "2026-10-29 16:12:00 UTC",
   "items": [
     {
       "id": "1",
@@ -305,12 +305,12 @@
       "pr": null,
       "benefit": "Addresses known locked-prover defects and creates a path to retiring the specific local proof restrictions after qualified release adoption.",
       "reviewed_head": null,
-      "review": "Release-manager follow-up; no backport request or submission is recorded here. The three cofixpoint/inductive fixes and checker fix below are merged on master. Candidate 20 separately tracks the open universe-checking fix 22624, milestoned 9.3.1 at observation. Upstream release managers decide carriage; publication and VerifiedOS lock adoption remain separate acts.",
-      "next_action": "Request appropriate 9.3 carriage for fixes 22388, 22392 and 22394, discuss checker fix 22556, and track candidate 20's universe-checking fix 22624 through review/release. Qualify the chosen release before changing local restrictions.",
+      "review": "Release-manager follow-up; no backport request or submission is recorded here. The three cofixpoint/inductive fixes and checker fix below are merged on master. Candidate 20 separately tracks the merged universe-checking fix 22624, milestoned 9.3.1 at observation. Upstream release managers decide carriage; publication and VerifiedOS lock adoption remain separate acts.",
+      "next_action": "Request appropriate 9.3 carriage for fixes 22388, 22392 and 22394, discuss checker fix 22556, and track candidate 20's universe-checking fix 22624 through release/backport carriage. Qualify the chosen release before changing local restrictions.",
       "evidence": [
         "[Fix 22388](https://github.com/rocq-prover/rocq/pull/22388) corrects the environment used for cofixpoint recursive trees; [fix 22392](https://github.com/rocq-prover/rocq/pull/22392) rejects recursive calls outside the main nested-cofixpoint branch; [fix 22394](https://github.com/rocq-prover/rocq/pull/22394) repairs inductive subtyping with constructor let-ins.",
         "[Checker fix 22556](https://github.com/rocq-prover/rocq/pull/22556) addresses the separate sealed-module delta-resolver anomaly; its release adoption and VST requalification retain their existing obligations.",
-        "[Open fix 22624](https://github.com/rocq-prover/rocq/pull/22624), tracked in candidate 20, addresses the locked-version universe-checking inconsistency 22287. An open PR or assigned milestone is not a released fix.",
+        "[Merged fix 22624](https://github.com/rocq-prover/rocq/pull/22624), tracked in candidate 20, addresses the locked-version universe-checking inconsistency 22287. An upstream merge or assigned milestone does not establish released backport carriage.",
         "[The prover lock guide](../../tools/opam/README.md) owns the recorded defects, local restrictions, residual exposure and exact lock-move predicate. Acceptance requires the chosen release to carry the fixes and their regression tests, then project-specific requalification; a milestone, prepared backport or upstream merge supplies no release-adoption verdict."
       ],
       "kind": "backport",
@@ -326,7 +326,7 @@
       "benefit": "Addresses the universe-checking inconsistency already reproduced against locked Rocq 9.3.0 and the dependency-source exposure outside the authored-source lexical restriction.",
       "reviewed_head": "fef0f3b5dc8274d87b0d59001115bb09075244db",
       "review": "Existing upstream PR, not a new implementation commission. It fixes issue 22287 and includes bug_22287.v; the observed milestone is 9.3.1. The locked compiler reports the published reproducer closed under the global context, while its checker rejects that object. That one rejection does not establish absence of the defect.",
-      "next_action": "Track review and release/backport carriage with R-1; qualify the eventual release and regression before changing the prover lock or local restrictions.",
+      "next_action": "Track release/backport carriage with R-1; qualify the eventual release and regression before changing the prover lock or local restrictions.",
       "evidence": [
         "[The prover lock guide](../../tools/opam/README.md) records the locked-version reproduction, current mitigations and residual dependency exposure.",
         "[Issue 22287](https://github.com/rocq-prover/rocq/issues/22287) is the existing report; do not open a duplicate. Acceptance retains the current exact audits and requires qualified release adoption."
@@ -539,13 +539,15 @@
       "issue": "https://github.com/rocq-prover/rocq/issues/22627",
       "pr": "https://github.com/rocq-prover/rocq/pull/22628",
       "benefit": "Preserves each theorem's assumption attribution in one multi-name query, with command-local reuse of loaded bodies.",
-      "reviewed_head": "d873bdb4b93910f92a158ea0e1a72f6fd8b985ff",
-      "review": "Adds an opt-in Printing Assumptions Per Reference flag. Default combined output and single-name output are unchanged. Each name retains its own dependency walk, assumption annotations and unsafe flags; only successfully loaded constant bodies are shared within the command. Two focused static reviews found no issues. No performance improvement is measured.",
-      "next_action": "Await upstream review and CI; qualify the output parser before adopting it in VerifiedOS.",
+      "reviewed_head": "1090cfde2672cebea0f78466dc8bb3649de5c2b7",
+      "review": "Multi-reference Print Assumptions and dependency queries report each reference by default, grouping consecutive equivalent reports while preserving request order and repeated names. Single-reference output is unchanged. Grouping compares assumption identities and types, usage annotations and all theory flags. Each root retains its own dependency walk; only successfully loaded constant bodies are shared within the command. Independent static review found no issues. No performance improvement is measured.",
+      "next_action": "Await maintainer review and remaining upstream validation; qualify the output parser before adopting it in VerifiedOS.",
       "evidence": [
         "[Issue 22627](https://github.com/rocq-prover/rocq/issues/22627) contains the proposal and minimal example. The PR follows [the maintainer recommendation on closed PR 22610](https://github.com/rocq-prover/rocq/pull/22610#issuecomment-6342792902).",
-        "Local native validation passed: runtime/core build and focused PrintAssumptions, RecursiveAssumptions, PrintAllAssumptions and print-assumptions-vok regressions. These are author-run checks, not a full upstream CI verdict.",
-        "Regressions cover root order and repetition, closed roots, type dependencies, sealed implementations, section closure, opaque/dependency output, False-use annotations and unsafe-flag isolation.",
+        "The 2026-10-29 revision incorporates [SkySkimmer's review](https://github.com/rocq-prover/rocq/pull/22628#issuecomment-6472258578): the option is removed and consecutive equivalent reports share a heading. The implementation, documentation, changelog and regressions are folded into one commit.",
+        "[The author's reply](https://github.com/rocq-prover/rocq/pull/22628#issuecomment-6501982770) notifies the reviewer of the folded revision and records Linux CI success with Windows/macOS still pending at reply time.",
+        "Regressions cover grouped and distinct reports, root order and repetition, closed roots, recursive/type dependencies, sealed implementations, section variables, opaque/all dependency output, False-use annotations, unsafe-flag isolation and theory differences hidden by the printing settings.",
+        "[GitHub CI for the reviewed head](https://github.com/rocq-prover/rocq/actions/runs/40907751042) supplies the hosted build and test evidence; available verdicts are recorded in the captured public checks.",
         "[Issue 5639](https://github.com/rocq-prover/rocq/issues/5639) records repeated-query costs. [PR 22425](https://github.com/rocq-prover/rocq/pull/22425) addresses shared proof-term traversal separately; this PR does not claim to solve it."
       ],
       "proposed_on": "2026-10-22",
@@ -809,6 +811,22 @@
         "Acceptance records the responsible first party’s grant, covered revisions/files and attribution at the owning ledger, then performs the separately required compatibility, exact-assumption and consumer-theorem qualification. This tracker update files no issue, assigns no license and imports no proof source."
       ],
       "kind": "proposal"
+    },
+    {
+      "id": "47",
+      "repository": "rocq-prover/rocq",
+      "topic": "Allow named axioms with -axiom-free",
+      "issue": "https://github.com/rocq-prover/rocq/pull/22609#issuecomment-6497279752",
+      "pr": "https://github.com/rocq-prover/rocq/pull/22668",
+      "benefit": "Allows a declared axiom policy at the checker exit-status boundary while retaining the local exact assumption-set audit.",
+      "reviewed_head": "78c86c3b1ef0ebb5dd0e265544e7b4acd1c11696",
+      "review": "Adds repeatable -allow-axiom NAME to candidate 4's -axiom-free checker, matching fully qualified axiom names from -o exactly while retaining their report entries and rejecting other detected axioms or unsafe features. Static inspection found no material issue in the allowlist addition. The author reports static review and shell-syntax validation; no independent build or regression verdict is established by that report. Depends on candidate 4.",
+      "next_action": "Track candidate 4's landing and upstream review; qualify exact-name matching, sealed and non-rechecked dependency contexts, and retained unsafe-feature refusals before adoption. Keep VerifiedOS's exact assumption-set audit.",
+      "evidence": [
+        "Unknown or unused allowed names are accepted: the feature is a permissive allowlist, not an exact expected-assumption-set check.",
+        "Assumption discovery retains the parent checker's context coverage and -admit/-norec trust assumptions; the new flag does not independently establish complete discovery."
+      ],
+      "proposed_on": "2026-10-29"
     }
   ],
   "pulls": [
@@ -832,7 +850,7 @@
       "state": "OPEN",
       "statusCheckRollup": [],
       "title": "LSP: refresh open documents after dependency changes",
-      "updatedAt": "2026-10-26T15:56:47Z",
+      "updatedAt": "2026-10-26T15:57:57Z",
       "url": "https://github.com/rems-project/sail/pull/1786",
       "workflow_runs": [
         {
@@ -966,7 +984,7 @@
       ]
     },
     {
-      "headRefOid": "956ec7d95d33cca4197482edd58c40f0856e69b6",
+      "headRefOid": "d0c923cc6c7285669a27240470883ded58a2475a",
       "isDraft": false,
       "mergedAt": null,
       "number": 22609,
@@ -974,75 +992,54 @@
       "statusCheckRollup": [
         {
           "__typename": "CheckRun",
-          "completedAt": "2026-10-20T04:53:23Z",
+          "completedAt": "2026-10-29T15:49:00Z",
           "conclusion": "SUCCESS",
-          "detailsUrl": "https://github.com/rocq-prover/rocq/actions/runs/39370651738/job/118457857142",
+          "detailsUrl": "https://github.com/rocq-prover/rocq/actions/runs/40902961664/job/123549950551",
           "name": "macOS",
-          "startedAt": "2026-10-20T04:39:58Z",
+          "startedAt": "2026-10-29T15:34:40Z",
           "status": "COMPLETED",
           "workflowName": "Github CI"
         },
         {
           "__typename": "CheckRun",
-          "completedAt": "2026-10-20T05:17:45Z",
-          "conclusion": "SUCCESS",
-          "detailsUrl": "https://github.com/rocq-prover/rocq/actions/runs/39370651738/job/118457857268",
+          "completedAt": "0001-01-01T00:00:00Z",
+          "conclusion": "",
+          "detailsUrl": "https://github.com/rocq-prover/rocq/actions/runs/40902961664/job/123549950791",
           "name": "Windows",
-          "startedAt": "2026-10-20T04:39:52Z",
-          "status": "COMPLETED",
+          "startedAt": "2026-10-29T15:34:41Z",
+          "status": "IN_PROGRESS",
           "workflowName": "Github CI"
         },
         {
           "__typename": "CheckRun",
-          "completedAt": "2026-10-20T04:48:27Z",
+          "completedAt": "2026-10-29T15:41:42Z",
           "conclusion": "SUCCESS",
-          "detailsUrl": "https://github.com/rocq-prover/rocq/actions/runs/39370651738/job/118457857336",
+          "detailsUrl": "https://github.com/rocq-prover/rocq/actions/runs/40902961664/job/123549950270",
           "name": "Linux (latest OCaml)",
-          "startedAt": "2026-10-20T04:39:53Z",
+          "startedAt": "2026-10-29T15:34:40Z",
           "status": "COMPLETED",
           "workflowName": "Github CI"
         },
         {
           "__typename": "CheckRun",
-          "completedAt": "2026-10-20T04:46:22Z",
-          "conclusion": "NEUTRAL",
-          "detailsUrl": "https://gitlab.inria.fr/coq/coq/-/pipelines/1512666",
+          "completedAt": "0001-01-01T00:00:00Z",
+          "conclusion": "",
+          "detailsUrl": "https://gitlab.inria.fr/coq/coq/-/pipelines/1523268",
           "name": "GitLab CI pipeline (pull request)",
-          "startedAt": "2026-10-20T04:46:22Z",
-          "status": "COMPLETED",
+          "startedAt": "2026-10-29T15:34:55Z",
+          "status": "QUEUED",
           "workflowName": ""
-        },
-        {
-          "__typename": "StatusContext",
-          "context": "doc:init: corelib artifact",
-          "startedAt": "2026-10-20T04:41:55Z",
-          "state": "SUCCESS",
-          "targetUrl": "https://coq.gitlabpages.inria.fr/-/coq/-/jobs/8096701/artifacts/_build/default/doc/corelib/html/index.html"
-        },
-        {
-          "__typename": "StatusContext",
-          "context": "doc:ml-api:odoc: ml-api artifact",
-          "startedAt": "2026-10-20T04:41:54Z",
-          "state": "SUCCESS",
-          "targetUrl": "https://coq.gitlabpages.inria.fr/-/coq/-/jobs/8096702/artifacts/_build/default/_doc/_html/index.html"
-        },
-        {
-          "__typename": "StatusContext",
-          "context": "doc:refman: refman artifact",
-          "startedAt": "2026-10-20T04:43:19Z",
-          "state": "SUCCESS",
-          "targetUrl": "https://coq.gitlabpages.inria.fr/-/coq/-/jobs/8096699/artifacts/doc/refman-html/index.html"
         }
       ],
       "title": "checker: add opt-in -axiom-free exit status",
-      "updatedAt": "2026-10-22T16:25:37Z",
+      "updatedAt": "2026-10-29T16:01:49Z",
       "url": "https://github.com/rocq-prover/rocq/pull/22609",
       "workflow_runs": [
         {
           "name": "Github CI",
-          "status": "completed",
-          "conclusion": "success",
-          "html_url": "https://github.com/rocq-prover/rocq/actions/runs/39370651738"
+          "status": "in_progress",
+          "conclusion": null,
+          "html_url": "https://github.com/rocq-prover/rocq/actions/runs/40902961664"
         }
       ]
     },
@@ -1460,9 +1457,9 @@
     {
       "headRefOid": "fef0f3b5dc8274d87b0d59001115bb09075244db",
       "isDraft": false,
-      "mergedAt": null,
+      "mergedAt": "2026-10-23T10:10:53Z",
       "number": 22624,
-      "state": "OPEN",
+      "state": "MERGED",
       "statusCheckRollup": [
         {
           "__typename": "CheckRun",
@@ -1534,7 +1531,7 @@
         }
       ],
       "title": "Enforce consistency of env typing flags with ugraph type-in-type flag",
-      "updatedAt": "2026-10-22T17:26:45Z",
+      "updatedAt": "2026-10-23T13:26:15Z",
       "url": "https://github.com/rocq-prover/rocq/pull/22624",
       "workflow_runs": [
         {
@@ -1634,90 +1631,90 @@
       ]
     },
     {
-      "headRefOid": "ede870fe4c26ededbdb83493c565d19074553c45",
+      "headRefOid": "927530a8805d6df27aeb0dc4ceeefa3f9078013d",
       "isDraft": false,
-      "mergedAt": null,
+      "mergedAt": "2026-10-28T15:44:28Z",
       "number": 22623,
-      "state": "OPEN",
+      "state": "MERGED",
       "statusCheckRollup": [
         {
           "__typename": "CheckRun",
-          "completedAt": "2026-10-22T14:00:49Z",
+          "completedAt": "2026-10-27T15:10:06Z",
           "conclusion": "SUCCESS",
-          "detailsUrl": "https://github.com/rocq-prover/rocq/actions/runs/39788632975/job/119858893312",
+          "detailsUrl": "https://github.com/rocq-prover/rocq/actions/runs/40525826917/job/122265003158",
           "name": "macOS",
-          "startedAt": "2026-10-22T13:44:42Z",
+          "startedAt": "2026-10-27T14:55:26Z",
           "status": "COMPLETED",
           "workflowName": "Github CI"
         },
         {
           "__typename": "CheckRun",
-          "completedAt": "2026-10-22T14:19:13Z",
+          "completedAt": "2026-10-27T15:34:30Z",
           "conclusion": "SUCCESS",
-          "detailsUrl": "https://github.com/rocq-prover/rocq/actions/runs/39788632975/job/119858893069",
+          "detailsUrl": "https://github.com/rocq-prover/rocq/actions/runs/40525826917/job/122265002580",
           "name": "Windows",
-          "startedAt": "2026-10-22T13:39:32Z",
+          "startedAt": "2026-10-27T14:55:25Z",
           "status": "COMPLETED",
           "workflowName": "Github CI"
         },
         {
           "__typename": "CheckRun",
-          "completedAt": "2026-10-22T13:55:42Z",
+          "completedAt": "2026-10-27T15:03:34Z",
           "conclusion": "SUCCESS",
-          "detailsUrl": "https://github.com/rocq-prover/rocq/actions/runs/39788632975/job/119858892611",
+          "detailsUrl": "https://github.com/rocq-prover/rocq/actions/runs/40525826917/job/122265001834",
           "name": "Linux (latest OCaml)",
-          "startedAt": "2026-10-22T13:39:32Z",
+          "startedAt": "2026-10-27T14:55:24Z",
           "status": "COMPLETED",
           "workflowName": "Github CI"
         },
         {
           "__typename": "CheckRun",
-          "completedAt": "2026-10-22T15:13:53Z",
+          "completedAt": "2026-10-27T16:22:42Z",
           "conclusion": "SUCCESS",
-          "detailsUrl": "https://gitlab.inria.fr/coq/coq/-/pipelines/1515709",
+          "detailsUrl": "https://gitlab.inria.fr/coq/coq/-/pipelines/1521168",
           "name": "GitLab CI pipeline (pull request)",
-          "startedAt": "2026-10-22T15:13:53Z",
+          "startedAt": "2026-10-27T16:22:42Z",
           "status": "COMPLETED",
           "workflowName": ""
         },
         {
           "__typename": "StatusContext",
           "context": "doc:ci-refman: ci-refman artifact",
-          "startedAt": "2026-10-22T14:20:13Z",
+          "startedAt": "2026-10-27T15:41:09Z",
           "state": "SUCCESS",
-          "targetUrl": "https://coq.gitlabpages.inria.fr/-/coq/-/jobs/8123303/artifacts/_build_ci/refman/refman-html/index.html"
+          "targetUrl": "https://coq.gitlabpages.inria.fr/-/coq/-/jobs/8178792/artifacts/_build_ci/refman/refman-html/index.html"
         },
         {
           "__typename": "StatusContext",
           "context": "doc:init: corelib artifact",
-          "startedAt": "2026-10-22T13:42:57Z",
+          "startedAt": "2026-10-27T15:01:08Z",
           "state": "SUCCESS",
-          "targetUrl": "https://coq.gitlabpages.inria.fr/-/coq/-/jobs/8123211/artifacts/_build/default/doc/corelib/html/index.html"
+          "targetUrl": "https://coq.gitlabpages.inria.fr/-/coq/-/jobs/8178700/artifacts/_build/default/doc/corelib/html/index.html"
         },
         {
           "__typename": "StatusContext",
           "context": "doc:ml-api:odoc: ml-api artifact",
-          "startedAt": "2026-10-22T13:42:48Z",
+          "startedAt": "2026-10-27T15:00:35Z",
           "state": "SUCCESS",
-          "targetUrl": "https://coq.gitlabpages.inria.fr/-/coq/-/jobs/8123212/artifacts/_build/default/_doc/_html/index.html"
+          "targetUrl": "https://coq.gitlabpages.inria.fr/-/coq/-/jobs/8178701/artifacts/_build/default/_doc/_html/index.html"
         },
         {
           "__typename": "StatusContext",
           "context": "doc:refman: refman artifact",
-          "startedAt": "2026-10-22T13:44:49Z",
+          "startedAt": "2026-10-27T15:03:35Z",
           "state": "SUCCESS",
-          "targetUrl": "https://coq.gitlabpages.inria.fr/-/coq/-/jobs/8123209/artifacts/doc/refman-html/index.html"
+          "targetUrl": "https://coq.gitlabpages.inria.fr/-/coq/-/jobs/8178698/artifacts/doc/refman-html/index.html"
         }
       ],
       "title": "rocqchk accumulate axioms without \"opacify\" logic",
-      "updatedAt": "2026-10-22T14:10:55Z",
+      "updatedAt": "2026-10-29T12:44:56Z",
       "url": "https://github.com/rocq-prover/rocq/pull/22623",
       "workflow_runs": [
         {
           "name": "Github CI",
           "status": "completed",
           "conclusion": "success",
-          "html_url": "https://github.com/rocq-prover/rocq/actions/runs/39788632975"
+          "html_url": "https://github.com/rocq-prover/rocq/actions/runs/40525826917"
         }
       ]
     },
@@ -1833,9 +1830,9 @@
     {
       "headRefOid": "6dca11b316413b05728719da1d25bdbffe49aebe",
       "isDraft": false,
-      "mergedAt": null,
+      "mergedAt": "2026-10-23T16:48:17Z",
       "number": 1795,
-      "state": "OPEN",
+      "state": "MERGED",
       "statusCheckRollup": [
         {
           "__typename": "CheckRun",
@@ -1929,7 +1926,7 @@
         }
       ],
       "title": "Type check: use better unifiers for type level +, -",
-      "updatedAt": "2026-10-22T15:19:45Z",
+      "updatedAt": "2026-10-23T16:48:20Z",
       "url": "https://github.com/rems-project/sail/pull/1795",
       "workflow_runs": [
         {
@@ -2103,7 +2100,7 @@
       ]
     },
     {
-      "headRefOid": "d873bdb4b93910f92a158ea0e1a72f6fd8b985ff",
+      "headRefOid": "1090cfde2672cebea0f78466dc8bb3649de5c2b7",
       "isDraft": false,
       "mergedAt": null,
       "number": 22628,
@@ -2111,85 +2108,54 @@
       "statusCheckRollup": [
         {
           "__typename": "CheckRun",
-          "completedAt": "2026-10-22T18:41:45Z",
-          "conclusion": "SUCCESS",
-          "detailsUrl": "https://github.com/rocq-prover/rocq/actions/runs/39831332324/job/120008523650",
+          "completedAt": "0001-01-01T00:00:00Z",
+          "conclusion": "",
+          "detailsUrl": "https://github.com/rocq-prover/rocq/actions/runs/40907751042/job/123567058015",
           "name": "macOS",
-          "startedAt": "2026-10-22T18:27:19Z",
-          "status": "COMPLETED",
+          "startedAt": "2026-10-29T16:03:26Z",
+          "status": "IN_PROGRESS",
           "workflowName": "Github CI"
         },
         {
           "__typename": "CheckRun",
-          "completedAt": "2026-10-22T19:08:03Z",
-          "conclusion": "SUCCESS",
-          "detailsUrl": "https://github.com/rocq-prover/rocq/actions/runs/39831332324/job/120008524130",
+          "completedAt": "0001-01-01T00:00:00Z",
+          "conclusion": "",
+          "detailsUrl": "https://github.com/rocq-prover/rocq/actions/runs/40907751042/job/123567057595",
           "name": "Windows",
-          "startedAt": "2026-10-22T18:27:19Z",
-          "status": "COMPLETED",
+          "startedAt": "2026-10-29T16:03:27Z",
+          "status": "IN_PROGRESS",
           "workflowName": "Github CI"
         },
         {
           "__typename": "CheckRun",
-          "completedAt": "2026-10-22T18:36:22Z",
+          "completedAt": "2026-10-29T16:09:28Z",
           "conclusion": "SUCCESS",
-          "detailsUrl": "https://github.com/rocq-prover/rocq/actions/runs/39831332324/job/120008524042",
+          "detailsUrl": "https://github.com/rocq-prover/rocq/actions/runs/40907751042/job/123567057922",
           "name": "Linux (latest OCaml)",
-          "startedAt": "2026-10-22T18:27:18Z",
+          "startedAt": "2026-10-29T16:03:26Z",
           "status": "COMPLETED",
           "workflowName": "Github CI"
         },
         {
           "__typename": "CheckRun",
-          "completedAt": "2026-10-22T18:26:44Z",
-          "conclusion": "CANCELLED",
-          "detailsUrl": "https://gitlab.inria.fr/coq/coq/-/jobs/8127584",
-          "name": "bench",
-          "startedAt": "2026-10-22T18:26:44Z",
-          "status": "COMPLETED",
-          "workflowName": ""
-        },
-        {
-          "__typename": "CheckRun",
-          "completedAt": "2026-10-22T18:36:00Z",
-          "conclusion": "NEUTRAL",
-          "detailsUrl": "https://gitlab.inria.fr/coq/coq/-/pipelines/1516060",
+          "completedAt": "0001-01-01T00:00:00Z",
+          "conclusion": "",
+          "detailsUrl": "https://gitlab.inria.fr/coq/coq/-/pipelines/1523334",
           "name": "GitLab CI pipeline (pull request)",
-          "startedAt": "2026-10-22T18:36:00Z",
-          "status": "COMPLETED",
+          "startedAt": "2026-10-29T16:03:47Z",
+          "status": "QUEUED",
           "workflowName": ""
-        },
-        {
-          "__typename": "StatusContext",
-          "context": "doc:init: corelib artifact",
-          "startedAt": "2026-10-22T18:31:50Z",
-          "state": "SUCCESS",
-          "targetUrl": "https://coq.gitlabpages.inria.fr/-/coq/-/jobs/8127600/artifacts/_build/default/doc/corelib/html/index.html"
-        },
-        {
-          "__typename": "StatusContext",
-          "context": "doc:ml-api:odoc: ml-api artifact",
-          "startedAt": "2026-10-22T18:31:39Z",
-          "state": "SUCCESS",
-          "targetUrl": "https://coq.gitlabpages.inria.fr/-/coq/-/jobs/8127601/artifacts/_build/default/_doc/_html/index.html"
-        },
-        {
-          "__typename": "StatusContext",
-          "context": "doc:refman: refman artifact",
-          "startedAt": "2026-10-22T18:33:01Z",
-          "state": "SUCCESS",
-          "targetUrl": "https://coq.gitlabpages.inria.fr/-/coq/-/jobs/8127598/artifacts/doc/refman-html/index.html"
         }
       ],
       "title": "Print Assumptions: add per-reference output",
-      "updatedAt": "2026-10-22T19:00:44Z",
+      "updatedAt": "2026-10-29T16:11:08Z",
       "url": "https://github.com/rocq-prover/rocq/pull/22628",
       "workflow_runs": [
         {
           "name": "Github CI",
-          "status": "completed",
-          "conclusion": "success",
-          "html_url": "https://github.com/rocq-prover/rocq/actions/runs/39831332324"
+          "status": "in_progress",
+          "conclusion": null,
+          "html_url": "https://github.com/rocq-prover/rocq/actions/runs/40907751042"
         }
       ]
     },
@@ -2323,7 +2289,7 @@
         }
       ],
       "title": "rocqchk: fix soundness bug accepting proofs of False through forged delta aliases",
-      "updatedAt": "2026-10-19T12:31:55Z",
+      "updatedAt": "2026-10-28T15:46:48Z",
       "url": "https://github.com/rocq-prover/rocq/pull/22456",
       "workflow_runs": [
         {
@@ -3032,6 +2998,66 @@
           "status": "completed",
           "conclusion": "failure",
           "html_url": "https://github.com/WebAssembly/spec/actions/runs/32062414434"
+        }
+      ]
+    },
+    {
+      "headRefOid": "78c86c3b1ef0ebb5dd0e265544e7b4acd1c11696",
+      "isDraft": false,
+      "mergedAt": null,
+      "number": 22668,
+      "state": "OPEN",
+      "statusCheckRollup": [
+        {
+          "__typename": "CheckRun",
+          "completedAt": "2026-10-29T16:09:08Z",
+          "conclusion": "SUCCESS",
+          "detailsUrl": "https://github.com/rocq-prover/rocq/actions/runs/40905803408/job/123560396643",
+          "name": "macOS",
+          "startedAt": "2026-10-29T15:52:18Z",
+          "status": "COMPLETED",
+          "workflowName": "Github CI"
+        },
+        {
+          "__typename": "CheckRun",
+          "completedAt": "0001-01-01T00:00:00Z",
+          "conclusion": "",
+          "detailsUrl": "https://github.com/rocq-prover/rocq/actions/runs/40905803408/job/123560397055",
+          "name": "Windows",
+          "startedAt": "2026-10-29T15:52:17Z",
+          "status": "IN_PROGRESS",
+          "workflowName": "Github CI"
+        },
+        {
+          "__typename": "CheckRun",
+          "completedAt": "2026-10-29T15:58:16Z",
+          "conclusion": "SUCCESS",
+          "detailsUrl": "https://github.com/rocq-prover/rocq/actions/runs/40905803408/job/123560396855",
+          "name": "Linux (latest OCaml)",
+          "startedAt": "2026-10-29T15:52:16Z",
+          "status": "COMPLETED",
+          "workflowName": "Github CI"
+        },
+        {
+          "__typename": "CheckRun",
+          "completedAt": "0001-01-01T00:00:00Z",
+          "conclusion": "",
+          "detailsUrl": "https://gitlab.inria.fr/coq/coq/-/pipelines/1523302",
+          "name": "GitLab CI pipeline (pull request)",
+          "startedAt": "2026-10-29T15:51:50Z",
+          "status": "QUEUED",
+          "workflowName": ""
+        }
+      ],
+      "title": "checker: allow named axioms with -axiom-free",
+      "updatedAt": "2026-10-29T15:52:43Z",
+      "url": "https://github.com/rocq-prover/rocq/pull/22668",
+      "workflow_runs": [
+        {
+          "name": "Github CI",
+          "status": "in_progress",
+          "conclusion": null,
+          "html_url": "https://github.com/rocq-prover/rocq/actions/runs/40905803408"
         }
       ]
     }
