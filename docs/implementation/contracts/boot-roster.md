@@ -325,6 +325,26 @@ descriptors, target manifest validation, final image construction and independen
 derivation checks remain their consumers' joins; this checkpoint claims no
 savings or target acceptance.
 
+#### Retained firmware product selection
+
+The historical boot-chain candidate may export a stage-aware product catalog.
+Its closed record contains `schema_version`, `kind`, `binding`, `producer`,
+`compiler_provenance_status`, `products`, `production_admission` and
+`final_target_acceptance`. Each product names its roster `member`, symbolic
+`artifact_slot` and ordered `units`; each unit names its `unit` and exact
+`source` path/digest reference. The RoT product has `rom` and `runtime` units;
+the M-mode product has `mmode`. These are retained comparison stages, not one
+final artifact per runtime slot, and both acceptance fields remain false.
+
+Catalog export and selection replay the actual staged-chain validator, the
+candidate's exact historical producer and member mappings, and its transitive
+source bindings. Selection names a declared slot and unit and compares the
+consumer's actual file with that unit's bytes. An altered catalog, wrong slot or
+unit, substituted file or source drift refuses. A positive case consumes the
+real retained M-mode unit through the catalog and ordinary production
+projections. This selection neither fills other runtime slots nor bypasses
+build-record membership, distinct-file, graph, image or admission checks.
+
 ## 5. The boot record and staleness
 
 `boot compose` removes any previous record first, then writes the image, a link map of
