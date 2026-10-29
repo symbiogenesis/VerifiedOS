@@ -40,3 +40,21 @@ runner; Windows still checks the pure byte oracle. The
 independent Python byte oracle, decode independently generated blocks, and check
 malformed inputs without changing caller outputs. Compiled behavioral mutations
 must fail their specified controls; a compile failure supplies no mutation kill.
+
+[The tree-image reader](src/tree_image.c) now joins those blocks to bounded
+numeric lookup under [its read contract](tree-image.md). It checks the entire
+reachable tree before returning a value or a true miss, including key ordering,
+strict separators, child ranges, exact shared leaf depth and finite work limits.
+Retained roots can share nodes with different expected generations. Empty leaves
+and single-child branches retain the reference's local shape; repeated empty
+children remain admissible within the declared reference-visit budget. Structural
+refusal and key absence have distinct results, and refusal preserves caller
+output even when a valid query branch was already visited.
+
+The caller still authenticates and freezes each reachable block and its expected
+generation before use. This C seam supplies no authentication, update algorithm,
+refinement theorem, publication/reopen or executable compartment product.
+`python tools/run.py test --only storage_tree_image` runs its independent byte
+and routing witness on both platforms; Linux also runs the compiled map,
+retained-root and refusal campaign and executed behavioral controls. The native
+campaigns run on Host CI's Ubuntu runner.
