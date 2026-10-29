@@ -4,6 +4,7 @@
 import copy
 import importlib.util
 import json
+import tempfile
 from pathlib import Path
 from types import ModuleType
 from typing import Any
@@ -95,10 +96,12 @@ def _authored_and_watched_counts() -> None:
            "the watchlist lost its distinct classification")
     ensure("**Priority:** High." in watched and "**Priority:** Highest." in output,
            "priorities need to be visible in detail entries")
-    ensure("| Priority |" in output and "| 4 | `owner/project` — Work 4 | n/a |" in output,
+    backlog = RENDERER.render_backlog(snapshot)
+    ensure("| Priority |" in backlog
+           and "| [4](docs/implementation/upstream-prs.md#upstream-4) | `owner/project` — Work 4 | n/a |" in backlog,
            "the status table needs priorities and an explicit absent value")
-    ensure("| n/a | **TBD** | Action 4 |" in output
-           and "**TBD — issue proposal**" in output and "Backport follow-up" in output,
+    ensure("| n/a | **TBD** | Action 4 |" in backlog
+           and "**TBD — issue proposal**" in backlog and "Backport follow-up" in backlog,
            "the three forms of unsubmitted work became indistinguishable")
 
 
@@ -232,8 +235,86 @@ def _authored_discovery_still_requires_mapping() -> None:
            "discovery must remain author-bounded and refuse before refreshing captured facts")
 
 
+def _unified_backlog_preserves_links_and_evidence() -> None:
+    snapshot = _snapshot()
+    snapshot["items"][0]["next_action"] = (
+        "Use the [record](../../tools/opam/adoption.md#deferred), "
+        "[local evidence](#submitted-pr-review) and [upstream](https://example.com/x).")
+    before = "# Plan\n\n## Upstream contributions and adoption\n\n"
+    after = "\n## Other work\n\nKeep this authored text.\n"
+    source = before + RENDERER.PLAN_START + "\nold table\n" + RENDERER.PLAN_END + after
+    plan = RENDERER.render_plan(snapshot, source)
+    ensure(plan.startswith(before) and plan.endswith(after), "renderer rewrote authored plan text")
+    ensure("(tools/opam/adoption.md#deferred)" in plan
+           and "(docs/implementation/upstream-prs.md#submitted-pr-review)" in plan
+           and "(https://example.com/x)" in plan,
+           "plan links were not rebased while external destinations stayed intact")
+    ensure(plan == RENDERER.render_plan(snapshot, plan), "plan generation is not idempotent")
+    evidence = RENDERER.render(snapshot)
+    ensure("**Next action:**" not in evidence and "| Next action |" not in evidence,
+           "the evidence tracker retained a second task list")
+    ensure('<a id="upstream-1"></a>' in evidence
+           and "../../PLAN.md#upstream-contributions-and-adoption" in evidence,
+           "plan rows lost their supporting evidence or return link")
+    for item in snapshot["items"]:
+        ensure(f"| [{item['id']}]" in plan, "a captured candidate was omitted from the unified plan")
+
+
+def _plan_markers_fail_closed() -> None:
+    snapshot = _snapshot()
+    start, end = RENDERER.PLAN_START, RENDERER.PLAN_END
+    for text in ("# Plan\n", f"{start}\n{end}\n", f"\n{end}\n{start}\n",
+                 f"\n{start}\n{start}\n{end}\n", f"\n{start}\n{end}\n{end}\n",
+                 f"\n{start} extra\n{end}\n", f"\n{start}\ntext{end}\n",
+                 f"\n{start}\n{end} extra\n"):
+        try:
+            RENDERER.render_plan(snapshot, text)
+        except ValueError:
+            pass
+        else:
+            raise AssertionError("malformed or missing plan markers accepted")
+
+
+def _check_covers_both_generated_outputs() -> None:
+    snapshot = _snapshot()
+    with tempfile.TemporaryDirectory(prefix="vos-upstream-plan-test-") as directory:
+        root = Path(directory)
+        source, output, plan = root / "snapshot.json", root / "evidence.md", root / "PLAN.md"
+        source.write_text(json.dumps(snapshot), encoding="utf-8")
+        expected = RENDERER.render(snapshot)
+        expected_plan = RENDERER.render_plan(
+            snapshot, "# Plan\n\n" + RENDERER.PLAN_START + "\n" + RENDERER.PLAN_END + "\n")
+        output.write_text(expected, encoding="utf-8")
+        plan.write_text(expected_plan, encoding="utf-8")
+        with (patch.object(RENDERER, "SOURCE", source), patch.object(RENDERER, "OUTPUT", output),
+              patch.object(RENDERER, "PLAN", plan), patch("sys.argv", ["render.py", "--check"]),
+              patch.object(RENDERER, "github", side_effect=AssertionError("--check used network"))):
+            ensure(RENDERER.main() == 0, "matching outputs were refused")
+            plan.write_text(expected_plan.replace("Action 1", "stale action", 1), encoding="utf-8")
+            ensure(RENDERER.main() == 1, "a stale PLAN.md backlog escaped --check")
+            plan.write_text(expected_plan, encoding="utf-8")
+            output.write_text(expected + "stale", encoding="utf-8")
+            ensure(RENDERER.main() == 1, "a stale evidence document escaped --check")
+            plan.write_text("# Missing owner\n", encoding="utf-8")
+            ensure(RENDERER.main() == 1, "a missing marker owner escaped --check")
+
+
+def _tracked_outputs_match_snapshot() -> None:
+    snapshot = json.loads(RENDERER.SOURCE.read_text(encoding="utf-8"))
+    plan = RENDERER.PLAN.read_text(encoding="utf-8")
+    ensure(RENDERER.OUTPUT.read_text(encoding="utf-8") == RENDERER.render(snapshot),
+           "tracked upstream evidence differs from the snapshot generator")
+    ensure(plan == RENDERER.render_plan(snapshot, plan),
+           "tracked PLAN.md upstream backlog differs from the snapshot generator")
+
+
 def cases() -> list[Case]:
     return [
+        Case("tracked evidence and unified backlog match their snapshot", _tracked_outputs_match_snapshot),
+        Case("unified upstream plan retains every candidate and local evidence link",
+             _unified_backlog_preserves_links_and_evidence),
+        Case("missing, duplicate and malformed plan markers fail closed", _plan_markers_fail_closed),
+        Case("check validates both generated outputs without network", _check_covers_both_generated_outputs),
         Case("authored submissions, watches and unsubmitted work stay distinct",
              _authored_and_watched_counts),
         Case("existing version 1 snapshots retain authored classification", _old_schema_remains_valid),
