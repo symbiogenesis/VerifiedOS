@@ -1,6 +1,6 @@
 # A Verification-First Systems Language: Strategy and Research
 
-> **Execution status:** [The implementation checklist](../implementation/implementation-checklist.md#q-assessment-actions) owns assessment state; [the completion log](../implementation/completion-log.md) records its evidence. [The workflow contract's commissioning disposition](workflow-contract.md#commissioning-disposition) governs the canceled experiments and retained proposal roles used below.
+> **Execution status:** [The implementation checklist](../../PLAN.md#q-assessment-actions) owns assessment state; [the completion log](../implementation/completion-log.md) records its evidence. [The workflow contract's commissioning disposition](workflow-contract.md#commissioning-disposition) governs the canceled experiments and retained proposal roles used below.
 
 > Non-normative research and design proposal. Scheduled work belongs to the implementation checklist; this document supplies no admission rule, semantic anchor, or accepted trust assumption.
 > The [requirements register](../requirements-register.md) governs VerifiedOS; the [typed assembly language](typed-assembly-language.md) governs the certificate language.
@@ -1451,7 +1451,7 @@ No new optimizer, code generator, or language runtime is necessary for the initi
 
 #### Existing Tooling and Implementation Owners
 
-The [current spec](../spec.md#r-05-018a) selects bounded qualification, not blanket adoption. The [checklist's Q19](../implementation/implementation-checklist.md#q-assessment-actions) ran the diagnostics and selective-reuse trials, recorded in [the qualification record](../assurance/proof-tooling-qualification.md), and canceled its conditional source-level component pilot; Q2b and Q3b own the existing device and assurance work. Upstream capability is not compatibility with this checkout's exact Rocq/plugin tuple, and a package installed in a switch is not a library imported by a shipped proof. No candidate below is incorporated by this table.
+The [current spec](../spec.md#r-05-018a) selects bounded qualification, not blanket adoption. The [checklist's Q19](../../PLAN.md#q-assessment-actions) ran the diagnostics and selective-reuse trials, recorded in [the qualification record](../assurance/proof-tooling-qualification.md), and canceled its conditional source-level component pilot; Q2b and Q3b own the existing device and assurance work. Upstream capability is not compatibility with this checkout's exact Rocq/plugin tuple, and a package installed in a switch is not a library imported by a shipped proof. No candidate below is incorporated by this table.
 
 | Candidate and upstream | Owner and disposition | Useful capability and qualification boundary |
 | --- | --- | --- |
@@ -1542,7 +1542,7 @@ These are engineering judgments for deciding which experiment to fund, not measu
 A person-week or person-month means focused engineering effort, including local proof work, tests, documentation, and review preparation; it is not elapsed time for an intermittently staffed project.
 
 **They are also in a different unit from the plan's, and the two are not convertible.**
-[The implementation checklist](../implementation/implementation-checklist.md) prices every item in attended agent-session hours, keeps a separate clock for items that ran under fan-out, fits a calibration over each clock separately on the ground that no item has been measured on both, and derives every total, range and progress figure from those cells arithmetically.
+[The implementation checklist](../../PLAN.md) prices every item in attended agent-session hours, keeps a separate clock for items that ran under fan-out, fits a calibration over each clock separately on the ground that no item has been measured on both, and derives every total, range and progress figure from those cells arithmetically.
 A person-month here is neither of those clocks.
 Read the ranges below as relative costs *among the experiments in this document*, and read the plan's own cells for what any of this would cost this project.
 The estimates assume engineers already productive in Rocq and the selected program logic, stable primitive specifications, and reuse of existing libraries.
@@ -1582,7 +1582,7 @@ There is no responsible architecture-independent estimate for a complete new tar
 The optional probe budget assumes those source-level foundations already exist; it is not a budget for adding an arbitrary processor.
 An existing target-parametric verified compiler can offer reusable passes and simulation structure, but target lowering, calling convention, linking, and security preservation still need separate evidence.
 The framework does not reduce the repository's unfinished CHERI compiler obligations by relabeling them as an instance.
-The existing [implementation checklist](../implementation/implementation-checklist.md) remains the owner of scheduled work and its measured/calibrated estimates; these ranges neither replace it nor subtract claimed savings from it.
+The existing [project plan](../../PLAN.md) remains the owner of scheduled work and its measured/calibrated estimates; these ranges neither replace it nor subtract claimed savings from it.
 The graded dependent foundation is selected for expressiveness and resource reasoning. Gerty's substitution-skipping optimization remains a separate performance question: its toy-program result supplies neither a measured bottleneck here nor a justification for new speed-only verified machinery.
 
 #### Where Time Might Be Saved

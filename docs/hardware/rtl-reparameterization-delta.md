@@ -1,6 +1,6 @@
 # The RTL Re-Parameterization Delta
 
-*The per-site account of what the frozen 64+1-bit capability format requires of the imported CHERI-CVA6 datapath, which implements the ISAv8/v9 128-bit lineage. The [plan's §11](../implementation/implementation-checklist.md#11-building-an-fpga-from-it-all) says the format is **re-parameterized, not configured**, and books that under R1; this document is the enumeration that makes the R1 estimate a measurement rather than a guess.*
+*The per-site account of what the frozen 64+1-bit capability format requires of the imported CHERI-CVA6 datapath, which implements the ISAv8/v9 128-bit lineage. The [plan's §11](../../PLAN.md#11-building-an-fpga-from-it-all) says the format is **re-parameterized, not configured**, and books that under R1; this document is the enumeration that makes the R1 estimate a measurement rather than a guess.*
 
 > **Precedence.** [The Sail model](../../model/model/core/cap_format.sail) is the definition and this document is a reading of it against one importable implementation. Where the two disagree the model wins and this document is defective. [The frozen profile's §4.1](isa-profile.md#41-the-capability-format) is the prose the model implements, and R-15-007a is the obligation the narrowing owes.
 

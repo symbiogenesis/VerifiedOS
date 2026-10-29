@@ -1,6 +1,6 @@
 # Graded dependent foundation
 
-> Non-normative Q25a rule dossier. These are proposed checking interfaces and schematic derivations, not an implemented language, checked metatheory, accepted axiom or qualified binary. [Q25](../implementation/implementation-checklist.md#q-assessment-actions) owns the design gates; the [requirements register](../requirements-register.md) remains authoritative.
+> Non-normative Q25a rule dossier. These are proposed checking interfaces and schematic derivations, not an implemented language, checked metatheory, accepted axiom or qualified binary. [Q25](../../PLAN.md#q-assessment-actions) owns the design gates; the [requirements register](../requirements-register.md) remains authoritative.
 
 ## Scope and research boundary
 

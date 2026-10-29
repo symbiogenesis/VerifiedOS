@@ -1,6 +1,6 @@
 # Object-store and transactor authoring contract
 
-This fixes the authorable M5.4 contract before its recovered Gallina artifact is completed. The [checklist](../implementation-checklist.md) retains the whole implementation item. R-06-005, R-10-001, R-10-001a, R-10-009, R-10-032, R-11-001, R-11-002, R-11-005 and R-13-023b in the [register](../../requirements-register.md) own the obligations; this contract adds no architectural requirement.
+This fixes the authorable M5.4 contract before its recovered Gallina artifact is completed. The [checklist](../../../PLAN.md) retains the whole implementation item. R-06-005, R-10-001, R-10-001a, R-10-009, R-10-032, R-11-001, R-11-002, R-11-005 and R-13-023b in the [register](../../requirements-register.md) own the obligations; this contract adds no architectural requirement.
 
 The source artifact is `proofs/ObjectTransactor.v`. It uses [JournalIndex.v](../../../proofs/JournalIndex.v) for journal records, stores, filters and replay. [KeyspaceDomains.v](../../../proofs/KeyspaceDomains.v) retains the keyspace, domains and freshness-epoch semantics. The transactor changes signed image roots and never redefines that mutable-store algebra. [RotFirmware.v](../../../proofs/RotFirmware.v) and [RomVerifier.v](../../../proofs/RomVerifier.v) retain the counter and boot verifier. The transactor reads the floor; advancing or resealing a counter is not one of its effects.
 

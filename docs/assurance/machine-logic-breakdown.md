@@ -273,7 +273,7 @@ theorem against arbitrary linked code.
 ## 5. Proposed finite cells and prerequisite boundaries
 
 The following contracts support the separately adopted
-[Q35m, Q35k and Q35l checklist cells](../implementation/implementation-checklist.md#q-assessment-actions),
+[Q35m, Q35k and Q35l checklist cells](../../PLAN.md#q-assessment-actions),
 which alone own their estimates. Each starts only after its contracted prerequisites are landed;
 the foundation owner re-reads the resulting interfaces and reprices the finite
 implementation scope before dispatch if those interfaces move it. Q35d's own

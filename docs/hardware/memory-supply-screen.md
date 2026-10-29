@@ -1,6 +1,6 @@
 # Memory supply decision: public evidence screen
 
-Q6a in the [implementation checklist](../implementation/implementation-checklist.md) accepts a precise adverse or undecided supply verdict as well as a credible path. This record applies that contract to the [topology comparison](memory-topology-comparison.md), using Q4a's demand, Q5a's placement boundary and R4's physical measurands. The [requirements register](../requirements-register.md) governs every admission claim.
+Q6a in the [project plan](../../PLAN.md) accepts a precise adverse or undecided supply verdict as well as a credible path. This record applies that contract to the [topology comparison](memory-topology-comparison.md), using Q4a's demand, Q5a's placement boundary and R4's physical measurands. The [requirements register](../requirements-register.md) governs every admission claim.
 
 ## 1. Decision and spending boundary
 

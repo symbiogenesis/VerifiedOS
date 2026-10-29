@@ -1005,7 +1005,7 @@ The integrator closes the batch in this order:
    scope cannot be established. A selected-rule selftest establishes only its
    selected mutants' results.
 
-These scheduling rules do not replace the [landing tiers](../docs/implementation/implementation-checklist.md#checklist-conventions)
+These scheduling rules do not replace the [landing tiers](../PLAN.md#checklist-conventions)
 or item acceptance predicates. `seed properties` owns its checkout exclusively
 against every other reader and writer for the whole run.
 

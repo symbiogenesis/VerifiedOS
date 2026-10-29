@@ -14,7 +14,7 @@ Follow the [validation handoff](#tool-execution-and-validation): require Host CI
 | [docs/spec.md](docs/spec.md) | Design and rationale |
 | [docs/requirements-register.md](docs/requirements-register.md) | Normative obligations audited by the review gate |
 | [docs/assurance/coverage-matrix.md](docs/assurance/coverage-matrix.md) | Property-boundary coverage traced to the register |
-| [docs/implementation/implementation-checklist.md](docs/implementation/implementation-checklist.md) | Build order, acceptance predicates, estimates, and execution state |
+| [PLAN.md](PLAN.md) | Unified backlog, build order, acceptance predicates, estimates, and execution state |
 | [docs/implementation/completion-log.md](docs/implementation/completion-log.md) | Recorded landing evidence |
 | [docs/hardware/absence-contract.md](docs/hardware/absence-contract.md) | Hardware structures the audit must not find |
 | [model/](model/) | Curated Sail model |
@@ -27,12 +27,12 @@ Follow the [validation handoff](#tool-execution-and-validation): require Host CI
 
 ## Before editing a document
 
-- **Generate derived facts from their owner.** Do not hand-maintain counts, tables, lists, or line numbers determined by another artifact. Use the owning generator; `tools/check.py --fix` repairs the derived artifacts it supports and reports other disagreements. New derived views need generation and checking. See the [register preamble](docs/requirements-register.md#how-to-read-this) and [checklist conventions](docs/implementation/implementation-checklist.md#checklist-conventions).
+- **Generate derived facts from their owner.** Do not hand-maintain counts, tables, lists, or line numbers determined by another artifact. Use the owning generator; `tools/check.py --fix` repairs the derived artifacts it supports and reports other disagreements. New derived views need generation and checking. See the [register preamble](docs/requirements-register.md#how-to-read-this) and [checklist conventions](PLAN.md#checklist-conventions).
 - **Keep requirement IDs permanent and entries in prose order.** Strike retired requirements without renumbering or reusing IDs. Use a letter suffix for an insertion between existing requirements. Follow the [register's entry format](docs/requirements-register.md#how-to-read-this): acceptance criteria first, then applicable `· Fail-closed:`, `· RoT-fresh:`, and `· Trace:` lines. Fail-closed and freshness declarations determine membership in their collected sets. Prose bookmarks derive from the requirement ID; spell out only non-default prose citations.
 - **Keep each obligation decidable from its entry.** Every criterion must contribute to the decision. Delete or make testable a clause that does not; do not move required decision detail into prose to shorten the register.
 - **Re-read changed entry/prose pairs.** K-61 reports pairs whose contents changed. Use `python tools/run.py coread --show <id>`, read both sides, and then `python tools/run.py coread --bless <id>` to record agreement. Blessing requires judgment and is never an arithmetic repair.
 - **Change the register before changing coverage.** A new property or boundary requires every new property-boundary cell to be filled. See [coverage maintenance](docs/assurance/coverage-matrix.md#4-how-to-read-a-cell-and-how-to-change-one).
-- **Keep estimates and landing evidence in their assigned places.** Each estimated item has one estimate cell; a parent whose children carry the estimates has none. Let the checker repair aggregate totals and shares; item cells do not repeat a share of the grand total. Landed or struck items have one [completion-log](docs/implementation/completion-log.md) entry with the exact checklist label. A landed checklist item keeps its header, cell, one summary line, and log link; open-item notes stay in the checklist. Follow the [checklist conventions](docs/implementation/implementation-checklist.md#checklist-conventions).
+- **Keep estimates and landing evidence in their assigned places.** Each estimated item has one estimate cell; a parent whose children carry the estimates has none. Let the checker repair aggregate totals and shares; item cells do not repeat a share of the grand total. Landed or struck items have one [completion-log](docs/implementation/completion-log.md) entry with the exact checklist label. A landed checklist item keeps its header, cell, one summary line, and log link; open-item notes stay in PLAN.md. Follow the [checklist conventions](PLAN.md#checklist-conventions).
 - **Use current-state prose.** State the current decision, finding and evidence; replace superseded accounts instead of appending review, re-reading or search history. Keep a single latest review date only when freshness matters. Git owns editorial history; completion records retain required landing dates, revisions and validation evidence without a step-by-step work log. Write `n/a` for a not-applicable cell, never a blank or bare dash.
 - **Verify section references by reading their targets.** K-13 only checks that some heading carries the number. In the register, a bare `§n` names its section; follow each other document's stated convention, including the [version matrix's](docs/hardware/cheri-version-matrix.md). In README.md, use descriptive links instead of bare section numbers, keep highlights concise, and put mechanism in the inventory tables or specification.
 - **Make comparisons against sourced claims.** Remove invented opponents and unsupported slogans. Delete a framing sentence that resists two clear rewrites.
@@ -64,7 +64,7 @@ coordinate integration rather than ending with this session's work stranded.
 
 Before dispatch, follow that procedure to create or verify isolation and provide the worker's path, revision, ownership, checks and integrator. Every worker call must target its assigned checkout; outputs follow the [filesystem placement rules](tools/README.md#where-a-file-lives-and-which-lane-touches-it). Retire only integrated, batch-owned lanes under the procedure's containment and output-retention checks. Keep host-managed worktrees at their assigned locations and leave their cleanup to the host.
 
-Implementation starts only after the item's [contract and acceptance predicate](docs/implementation/implementation-checklist.md#checklist-conventions) are landed; unrelated work may proceed. Wait for necessary local builds through `run.py model wait` or `run.py rtl wait` and use the command's completion verdict.
+Implementation starts only after the item's [contract and acceptance predicate](PLAN.md#checklist-conventions) are landed; unrelated work may proceed. Wait for necessary local builds through `run.py model wait` or `run.py rtl wait` and use the command's completion verdict.
 
 **Inspect hunks before staging by path; never use `git add -A`.** Run `git status --short` and `git diff -- <path>` before staging. Investigate unexpected paths and leave another session's hunks to their owner, even inside a file you edited. The integrator owns shared instructions, arithmetic repair, and the final gate for the settled batch.
 
@@ -108,7 +108,7 @@ replay only on GitHub-hosted Actions runners. This includes `census.py`'s
 Do not launch or restart these workloads locally, in WSL or on the host, including
 profiling or diagnostic attempts through a scratch harness. Small fixture and
 focused helper tests remain allowed locally. The [census execution rule](docs/implementation/contracts/sail-support-census.md#hosted-only-execution)
-and [performance todo](tools/performance.md#native-sail-census-validation-todo)
+and [performance follow-up](PLAN.md#native-sail-census-validation)
 own the detailed scope and follow-up.
 
 For the settled batch:

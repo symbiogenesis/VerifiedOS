@@ -334,7 +334,7 @@ does not remove that deliberate-trip denial or its one-bit observation.
 The implementation owners are **Q41a · Implement environmental sensor cells and
 the RoT fail-stop boundary** and **Q41b · Qualify environmental sensor bands,
 placement and fault campaigns** in the
-[implementation checklist](../implementation/implementation-checklist.md).
+[project plan](../../PLAN.md).
 Existing owner tracks are consumers, not evidence that these new packages are
 already implemented.
 

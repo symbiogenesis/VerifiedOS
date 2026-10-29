@@ -209,7 +209,7 @@ The estimate column keeps these rules.
 * **A language-side range is over Q25a's parameterised resource interface.**
   Instantiating any of those rows at the carrier named above is `byte-instance`
   and `scoped-resources`' work and is inside no range here.
-* **The authority classes are [the checklist's own](../implementation/implementation-checklist.md#checklist-conventions)**,
+* **The authority classes are [the checklist's own](../../PLAN.md#checklist-conventions)**,
   `I` where the authority a row realizes is inside this repository and `X` where
   it is outside, and every class-X range's upper end is at least twice its lower
   end. That document's width test reads its own cells, so these rows are held to
@@ -332,7 +332,7 @@ it*, and it is not needed for the disposition below, which turns on R-05-009's
 premise rather than on R-05-021's exemption.
 
 **Q27a is the nearest precedent and it distinguishes rather than supports a flat
-refusal.** [That disposition](../implementation/implementation-checklist.md#q-assessment-actions)
+refusal.** [That disposition](../../PLAN.md#q-assessment-actions)
 applies the first and third conditions to three outside certificate checkers,
 each of which would enter the trust base as a second checker deciding a verdict
 on its own acceptance. That is the case R-05-020 governs. An untrusted

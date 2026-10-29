@@ -101,7 +101,7 @@ claim local replay of the external developments.
 These are curated source recommendations, not a replacement for the normative
 [requirements register](../requirements-register.md), the
 [crown-jewel specification inventory](crown-jewels.md), the
-[implementation checklist](../implementation/implementation-checklist.md) or the generated
+[project plan](../../PLAN.md) or the generated
 [proof ledger](../../tools/generated/proof-ledger.md). In particular, a completed
 statement artifact can prove useful properties of its definitions while its
 implementation-refinement obligation remains open. The ledger's distinction

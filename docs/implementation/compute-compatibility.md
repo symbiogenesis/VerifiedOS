@@ -4,7 +4,7 @@ Status: **standards and pilot semantic contract frozen for review; no implementa
 This companion applies R-04-001a and R-13-018a through R-13-018c of the
 [requirements register](../requirements-register.md). Those entries own the
 obligations; this document explains their application and fixes the acceptance
-boundary for [Q30](implementation-checklist.md#open-compute-qualification).
+boundary for [Q30](../../PLAN.md#open-compute-qualification).
 It adds no first-release capability to R-18-004a.
 
 The Q30a record comprises the [feature and full/embedded profile audit](compute-feature-map.md),

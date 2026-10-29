@@ -3,7 +3,7 @@
 This 2026-10-10 record qualifies the bounded
 [development contract](contracts/development-entropy-replay.md) over actual
 generated Sail calls. S6 remains open. The contract's delegated scope decision
-records why this checkpoint is useful without awarding implementation-checklist
+records why this checkpoint is useful without awarding project-plan
 completion credit.
 
 ## Retained evidence

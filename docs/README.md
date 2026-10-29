@@ -1,10 +1,11 @@
 # Documentation
 
 Use this index to find each topic's owner. The linked contracts hold the details;
-implementation state and landing evidence belong in the checklist and completion log.
+the unified backlog and execution state belong in [PLAN.md](../PLAN.md), and landing
+evidence belongs in the completion log.
 
 For a first read, start with the [project overview](../README.md), then use the
-[implementation summary](implementation/implementation-checklist.md#current-summary)
+[implementation summary](../PLAN.md#current-summary)
 to distinguish the specified system from completed artifacts. The
 [requirements register](requirements-register.md) owns obligations; the
 [specification](spec.md) explains their rationale. For independent review, follow
@@ -16,7 +17,7 @@ the [reviewer onramp](assurance/reviewer-onramp.md).
 | --- | --- |
 | [Specification](spec.md) | Design and rationale |
 | [Reviewer onramp](assurance/reviewer-onramp.md) | How to review the requirements and their evidence |
-| [Implementation checklist](implementation/implementation-checklist.md) | Build order, acceptance predicates, estimates and execution state |
+| [Project plan](../PLAN.md) | Unified backlog, build order, acceptance predicates, estimates and execution state |
 | [Completion log](implementation/completion-log.md) | Recorded landing evidence |
 | [Construction inventory](../README.md#bug-classes-removed-by-construction) | Overview by bug class |
 

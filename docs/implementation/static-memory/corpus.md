@@ -272,7 +272,7 @@ The bridge deliberately leaves the operational ledger unavailable. The exported
 plan lacks an owner and the payload, authority-completion, sweep and initialization
 endpoints this ledger needs. Its live intervals cannot be relabeled as safe-reuse
 proofs. A roster carrying memory extents, and complete demand and cost contracts,
-remain inputs owed by the [implementation plan](../implementation-checklist.md),
+remain inputs owed by the [implementation plan](../../../PLAN.md),
 including Q5b's product comparison.
 
 ## The absent extents, by inspection

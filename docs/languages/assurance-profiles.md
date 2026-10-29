@@ -1,6 +1,6 @@
 # Assurance presets and evidence policy
 
-> Non-normative Q25 policy dossier. These are proposed policy semantics, claim statuses and reporting rules, not an implemented preset, a checked metatheory or an admission authority. [Q25](../implementation/implementation-checklist.md#q-assessment-actions) owns the design gates and Q25d prices what this dossier leaves open; the [requirements register](../requirements-register.md) remains authoritative.
+> Non-normative Q25 policy dossier. These are proposed policy semantics, claim statuses and reporting rules, not an implemented preset, a checked metatheory or an admission authority. [Q25](../../PLAN.md#q-assessment-actions) owns the design gates and Q25d prices what this dossier leaves open; the [requirements register](../requirements-register.md) remains authoritative.
 
 ## Scope and the governing rule
 
@@ -10,7 +10,7 @@ The [full-language commitment](verification-strategy.md#full-language-design-com
 
 Three presets, **Safe**, **Contracted** and **Complete**, are strictness settings over one language. They are not three languages, three runtime semantics or three classes of author: a systems author may build under Safe, and an application written against the simplest library interfaces may satisfy Complete through automatic checking and previously verified libraries. Each retains every safety obligation its operations and its execution profile require. Most application authors write no theorems; the preset decides which claims the build owes, not who is trusted to write them.
 
-**The preset names are deliberately disjoint from the platform's numeric labels.** [The three assurance tiers](../spec.md#r-13-011) classify what the device admits, are decided at install over a binary and its certificate, and scope obligations by the code's position in the trust structure. A preset classifies what a build establishes about a source closure and is decided off device. A preset is therefore never an admission input, confers nothing at admission, and leaves [the refuse-uncertified-code policy](../spec.md#r-13-014) exactly where it stands. The same disjointness holds of [the plan's landing tiers](../implementation/implementation-checklist.md#checklist-conventions), which grade a reading of this repository's own documents.
+**The preset names are deliberately disjoint from the platform's numeric labels.** [The three assurance tiers](../spec.md#r-13-011) classify what the device admits, are decided at install over a binary and its certificate, and scope obligations by the code's position in the trust structure. A preset classifies what a build establishes about a source closure and is decided off device. A preset is therefore never an admission input, confers nothing at admission, and leaves [the refuse-uncertified-code policy](../spec.md#r-13-014) exactly where it stands. The same disjointness holds of [the plan's landing tiers](../../PLAN.md#checklist-conventions), which grade a reading of this repository's own documents.
 
 ## Four concerns that one strictness setting conflates
 

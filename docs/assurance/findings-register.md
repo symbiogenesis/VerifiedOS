@@ -1,6 +1,6 @@
 # Findings Register
 
-*An index of what the build has found, and not a second copy of it. The completion notes in [the completion log](../implementation/completion-log.md) and the cells of [the implementation checklist](../implementation/implementation-checklist.md) own every finding's content; this register owns its id, its type, the item that raised it, and its disposition, and owns nothing else.*
+*An index of what the build has found, and not a second copy of it. The completion notes in [the completion log](../implementation/completion-log.md) and the cells of [the implementation checklist](../../PLAN.md) own every finding's content; this register owns its id, its type, the item that raised it, and its disposition, and owns nothing else.*
 
 ## How to read this
 

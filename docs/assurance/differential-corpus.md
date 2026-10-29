@@ -8,7 +8,7 @@
 
 ## Why this document exists
 
-The [implementation checklist](../implementation/implementation-checklist.md) §10 defines the shared corpus and trace boundary. The Sail emulator executes the corpus and emits its commit traces; R2 owes the independent RTL execution and comparison through the [co-simulation harness](rtl-cosimulation-harness.md). A versioned corpus and written schema let both executors compare behavior against the same observation contract.
+The [project plan](../../PLAN.md) §10 defines the shared corpus and trace boundary. The Sail emulator executes the corpus and emits its commit traces; R2 owes the independent RTL execution and comparison through the [co-simulation harness](rtl-cosimulation-harness.md). A versioned corpus and written schema let both executors compare behavior against the same observation contract.
 
 The corpus supplies whole-program regression evidence for the curated model. Unmodified integer-addressed `riscv-tests` programs lack the tagged memory authority this purecap profile requires, so they cannot serve as its whole-program corpus. The authored members also exercise the profile's net-new and bespoke instructions, alongside their model-level properties.
 

@@ -1,6 +1,6 @@
 # Witness-policy qualification
 
-This is [Q22b's](../implementation/implementation-checklist.md#q-assessment-actions)
+This is [Q22b's](../../PLAN.md#q-assessment-actions)
 qualified interface and bounded executable model for
 [R-13-023c](../spec.md#r-13-023c). The
 [supply-chain statement](../spec.md#r-13-023a) separates witnessed public commitment

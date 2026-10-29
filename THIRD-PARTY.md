@@ -179,7 +179,7 @@ The **Use** column records repository activity:
 - **consumed:** a command under [tools/run.py](tools/run.py) opens the submodule's files.
 - **read:** a person uses the pinned source to author the artifact identified in the Standing column; no tool opens the tree.
 - **pinned to read later:** the pin reserves an edition for a future milestone.
-- **pinned for a struck milestone:** the [implementation plan](docs/implementation/implementation-checklist.md) has struck the consuming milestone; the reference is retained for possible reinstatement.
+- **pinned for a struck milestone:** the [implementation plan](PLAN.md) has struck the consuming milestone; the reference is retained for possible reinstatement.
 
 The consumed rows cover all direct tool access. No proof under [proofs/](proofs/) or build under [model/](model/) directly accesses these pins. Update the Use cell when a tool begins doing so. Commands that require an uninitialized submodule report it by name.
 
@@ -283,7 +283,7 @@ Distributing that executable would require the applicable notices, license text,
 - `model/CMakeLists.txt` uses `find_package(GMP)` by default. [The model command](tools/vos/cli/model.py) explicitly passes `-DDOWNLOAD_GMP=FALSE`, and [the Sail rig](tools/vos/sailrig.py) links `-lgmp`.
 - `DOWNLOAD_GMP=ON` fetches a source tarball using a tracked SHA256 and links the resulting static `libgmp.a`. The vendored `build_simulator.sh` defaults to this path; repository tooling does not invoke it.
 
-Both linking forms require review before binary distribution. A replaceable system library supports substitution directly; static linking requires a relinkable application form. This distribution question remains relevant to the [implementation plan](docs/implementation/implementation-checklist.md)'s reproducible bootstrap.
+Both linking forms require review before binary distribution. A replaceable system library supports substitution directly; static linking requires a relinkable application form. This distribution question remains relevant to the [implementation plan](PLAN.md)'s reproducible bootstrap.
 
 The snapshot also uses the system GNU C Library and GCC runtimes. The
 [2026-10-19 installed-instrument reading](docs/implementation/retained-evidence/dependencies-20261019/runtime-notices/audit.json),
@@ -598,7 +598,7 @@ adds a static comparator, not an admitted inference runtime or a target rate.
 
 ## Read ahead of a later milestone
 
-These reviews support future incorporation decisions in the [implementation plan](docs/implementation/implementation-checklist.md). No candidate source is vendored or fetched here. Existing RTL and cryptography references are identified in [the submodule table](#pinned-as-submodules). Review the applicable terms at the milestone that would incorporate a component.
+These reviews support future incorporation decisions in the [implementation plan](PLAN.md). No candidate source is vendored or fetched here. Existing RTL and cryptography references are identified in [the submodule table](#pinned-as-submodules). Review the applicable terms at the milestone that would incorporate a component.
 
 ### Selected implementation-source reuse
 
@@ -878,7 +878,7 @@ The wire mapping is authored locally. Neither reference has a recorded commit; t
 
 ### Non-permissive upstreams, and the calls taken on them
 
-No source from these components is tracked here. The [implementation plan](docs/implementation/implementation-checklist.md) records the following incorporation decisions:
+No source from these components is tracked here. The [implementation plan](PLAN.md) records the following incorporation decisions:
 
 | Upstream | Milestone | Terms | The call |
 | --- | --- | --- | --- |
@@ -985,7 +985,7 @@ The recorded decision declines that route because GPL-2.0-only material cannot b
 
 The later RTL route considers **Kami (MIT)** and **Kôika (LGPL-2.1)**. Authoring Coq modules that import an LGPL hardware library raises a licensing question for the design itself, beyond the external-tool cases above.
 
-Kôika's repository supplies the LGPL-2.1 text without per-file notices resolving `LGPL-2.1-only` versus `LGPL-2.1-or-later`. That scope remains unresolved. The [implementation plan](docs/implementation/implementation-checklist.md) records the required preference review when this route opens after the co-simulation gate.
+Kôika's repository supplies the LGPL-2.1 text without per-file notices resolving `LGPL-2.1-only` versus `LGPL-2.1-or-later`. That scope remains unresolved. The [implementation plan](PLAN.md) records the required preference review when this route opens after the co-simulation gate.
 
 ### Source-level C-refinement foundations
 
@@ -1144,7 +1144,7 @@ the native `memory-planner demo-tflm` owns their compile and execution check.
 
 ### Candidates whose terms decide a consumer
 
-An upstream's license is read at the milestone that would incorporate it, never at release. [COPYRIGHT.md](COPYRIGHT.md#terms-this-tree-does-not-carry) states that rule as what preserves this tree's freedom from reciprocal and non-commercial terms; this section records its other half, which candidate's terms decide which consumer and what that consumer would have to open. No reading here is performed in advance of its milestone, no row of the tables above moves, and nothing is incorporated, pinned, vendored, or fetched by this record. A terms cell states the shape of the grant and cites the artifact that read it; the reading itself stays with its owner. The last column states what remains owed even where an identifier is already known, because the identifiers this table does cite were read at branch tips and a reading at a branch tip is not a reading at a revision; the rows citing no license file at all owe a first reading rather than a re-reading. Consumers are open cells of the [implementation plan](docs/implementation/implementation-checklist.md); the certified-search rows reach theirs through the arm that plan's Q27a records, so a different arm moves their consumer and not their terms.
+An upstream's license is read at the milestone that would incorporate it, never at release. [COPYRIGHT.md](COPYRIGHT.md#terms-this-tree-does-not-carry) states that rule as what preserves this tree's freedom from reciprocal and non-commercial terms; this section records its other half, which candidate's terms decide which consumer and what that consumer would have to open. No reading here is performed in advance of its milestone, no row of the tables above moves, and nothing is incorporated, pinned, vendored, or fetched by this record. A terms cell states the shape of the grant and cites the artifact that read it; the reading itself stays with its owner. The last column states what remains owed even where an identifier is already known, because the identifiers this table does cite were read at branch tips and a reading at a branch tip is not a reading at a revision; the rows citing no license file at all owe a first reading rather than a re-reading. Consumers are open cells of the [implementation plan](PLAN.md); the certified-search rows reach theirs through the arm that plan's Q27a records, so a different arm moves their consumer and not their terms.
 
 | Candidate | Consumer it decides | Terms, and the artifact that read them | What the consumer would open |
 | --- | --- | --- | --- |
@@ -1162,4 +1162,4 @@ The three shapes below decide rather than merely exist, and each is recorded wit
 
 **An absent term is not a permissive one.** [F08](docs/assurance/proof-reuse/foundations.md#f08-lrat-and-its-two-certified-checkers-reference) reads the CADE-26 line's two checkers and finds one grant and one silence; what follows for the consumer is that the silent one is unlicensed until its authors say otherwise rather than free to take, one paper's two artifacts being two grants and the granted term reaching its sibling not at all. Nor does the `lrat_isa` checker that [the static-memory certificate integration](#optional-static-memory-research-tools) already fetches under a read MIT license supply terms for this row, that being a separate Isabelle/HOL development: this row's silence says nothing about that fetch, and that fetch says nothing about this row. The same reading holds for the CertiSuSLik backends, whose metadata declaration is not made permissive by the synthesizer's `BSD-2-Clause` license file sitting beside them in a different tree.
 
-The surveyed members left out of the table decide no consumer here and are recorded as such rather than omitted, each with the ground that disposes of it before terms are reached: [the Lean certificate checkers](docs/assurance/proof-reuse/foundations.md#f09-the-lean-certificate-checkers-unqualified-lead) on their prover, [SCIP's exact mode and its VIPR certificates](docs/assurance/proof-reuse/foundations.md#f10-scips-exact-mode-and-vipr-certificates-unqualified-lead) on having no machine-checked component at all, and [the pseudo-Boolean proof-logging results](docs/assurance/proof-reuse/foundations.md#f11-pseudo-boolean-proof-logging-in-solvers-reference) on the unverified solvers their certificates attest for. [VeriPB and CakePB](docs/assurance/proof-reuse/foundations.md#f07-veripb-and-cakepb-reference) join them on the same kind of ground rather than on terms: CakePB's prover is HOL4, which [the plan's Q27a arms](docs/implementation/implementation-checklist.md#q-assessment-actions) group with the Lean developments as failing R-05-020's first condition before any yield is weighed, and VeriPB's own elaborating checker is unverified. [Ordeal](docs/assurance/proof-reuse/foundations.md#f12-ordeal-a-certificate-checked-bit-vector-solver-reference), qualified later, joins them on its prover, its checker's soundness being a Lean theorem. No row is written for a candidate whose terms decide nothing.
+The surveyed members left out of the table decide no consumer here and are recorded as such rather than omitted, each with the ground that disposes of it before terms are reached: [the Lean certificate checkers](docs/assurance/proof-reuse/foundations.md#f09-the-lean-certificate-checkers-unqualified-lead) on their prover, [SCIP's exact mode and its VIPR certificates](docs/assurance/proof-reuse/foundations.md#f10-scips-exact-mode-and-vipr-certificates-unqualified-lead) on having no machine-checked component at all, and [the pseudo-Boolean proof-logging results](docs/assurance/proof-reuse/foundations.md#f11-pseudo-boolean-proof-logging-in-solvers-reference) on the unverified solvers their certificates attest for. [VeriPB and CakePB](docs/assurance/proof-reuse/foundations.md#f07-veripb-and-cakepb-reference) join them on the same kind of ground rather than on terms: CakePB's prover is HOL4, which [the plan's Q27a arms](PLAN.md#q-assessment-actions) group with the Lean developments as failing R-05-020's first condition before any yield is weighed, and VeriPB's own elaborating checker is unverified. [Ordeal](docs/assurance/proof-reuse/foundations.md#f12-ordeal-a-certificate-checked-bit-vector-solver-reference), qualified later, joins them on its prover, its checker's soundness being a Lean theorem. No row is written for a candidate whose terms decide nothing.

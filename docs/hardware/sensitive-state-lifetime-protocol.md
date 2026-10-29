@@ -1,6 +1,6 @@
 # Sensitive-state and key lifetime qualification protocol
 
-This protocol prepares R5a in the [implementation checklist](../implementation/implementation-checklist.md). R-15-200 in the [requirements register](../requirements-register.md) owns its qualification boundary. It shares specimen provenance and laboratory controls with the [R5 macro protocol](macro-qualification-protocol.md), while qualifying first-class macros, registers and dedicated key storage separately. No result or physical guarantee is supplied here.
+This protocol prepares R5a in the [project plan](../../PLAN.md). R-15-200 in the [requirements register](../requirements-register.md) owns its qualification boundary. It shares specimen provenance and laboratory controls with the [R5 macro protocol](macro-qualification-protocol.md), while qualifying first-class macros, registers and dedicated key storage separately. No result or physical guarantee is supplied here.
 
 ## 1. Inventory and specimen identity
 

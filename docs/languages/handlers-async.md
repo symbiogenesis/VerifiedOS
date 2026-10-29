@@ -1,6 +1,6 @@
 # Handlers and structured async lifecycle rules
 
-> Non-normative Q25b rule dossier. The [requirements register](../requirements-register.md) governs the platform; this proposal supplies no implemented language, accepted axiom, checked metatheory or admitted binary. [Q25](../implementation/implementation-checklist.md#q-assessment-actions) owns design review and subsequent implementation decisions. The [strategy's control and async commitments](verification-strategy.md#general-handlers-with-resource-safe-resumptions) fix the feature scope.
+> Non-normative Q25b rule dossier. The [requirements register](../requirements-register.md) governs the platform; this proposal supplies no implemented language, accepted axiom, checked metatheory or admitted binary. [Q25](../../PLAN.md#q-assessment-actions) owns design review and subsequent implementation decisions. The [strategy's control and async commitments](verification-strategy.md#general-handlers-with-resource-safe-resumptions) fix the feature scope.
 
 ## Boundary and shared resource interface
 

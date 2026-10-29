@@ -1,6 +1,6 @@
 # Second-class macro qualification protocol
 
-This is the protocol-authoring part of R5 in the [implementation checklist](../implementation/implementation-checklist.md). It measures the architecture and measurands owned by [R4](second-class-macro-architecture.md#5-the-measurands) against R-15-247m in the [requirements register](../requirements-register.md). It contains no measured value and grants no qualification. A missing specimen or result leaves R5 open.
+This is the protocol-authoring part of R5 in the [project plan](../../PLAN.md). It measures the architecture and measurands owned by [R4](second-class-macro-architecture.md#5-the-measurands) against R-15-247m in the [requirements register](../requirements-register.md). It contains no measured value and grants no qualification. A missing specimen or result leaves R5 open.
 
 ## 1. Inputs fixed before a campaign
 

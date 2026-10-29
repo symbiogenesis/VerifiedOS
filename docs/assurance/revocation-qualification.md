@@ -1,7 +1,7 @@
 # Revocation completion and reuse qualification
 
 The bounded host model in [revocation.py](../../tools/vos/revocation.py) qualifies
-the interface [Q22a](../implementation/implementation-checklist.md) supplies to
+the interface [Q22a](../../PLAN.md) supplies to
 M4.4 and R2. Bitmap publication prevents a stale capability from becoming usable
 on a filtered reload. Completion additionally removes resident and borrowed
 authority and establishes the proxy and device barrier. Reuse additionally

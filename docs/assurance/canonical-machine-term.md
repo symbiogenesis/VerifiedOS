@@ -1,6 +1,6 @@
 # The canonical machine term
 
-*Q35b's record in [the implementation plan](../implementation/implementation-checklist.md#q-assessment-actions), owning [the proof map's](unassigned-proof-map.md#7-the-next-slices) U-21, with Q35f's frozen-profile target and model-side axiom removals and Q35g's support-library changes. R-05-019b makes Sail's emitted Rocq definitions the canonical term shared by the machine logic and RTL refinement; R-05-019c keeps emission downstream of the reviewed model. This record owns generation identity, undeclared axioms, size and tracking. Complete compilation at the locked prover, exact assumption closure and compiled size remain open. [The opam guide](../../tools/opam/README.md) owns library carriage, and [the whole-term refusal](#9-the-whole-term-compile-refusal) owns the semantic blocker.*
+*Q35b's record in [the implementation plan](../../PLAN.md#q-assessment-actions), owning [the proof map's](unassigned-proof-map.md#7-the-next-slices) U-21, with Q35f's frozen-profile target and model-side axiom removals and Q35g's support-library changes. R-05-019b makes Sail's emitted Rocq definitions the canonical term shared by the machine logic and RTL refinement; R-05-019c keeps emission downstream of the reviewed model. This record owns generation identity, undeclared axioms, size and tracking. Complete compilation at the locked prover, exact assumption closure and compiled size remain open. [The opam guide](../../tools/opam/README.md) owns library carriage, and [the whole-term refusal](#9-the-whole-term-compile-refusal) owns the semantic blocker.*
 
 The retained evidence binds each measurement to its inputs:
 
@@ -351,7 +351,7 @@ write branch returns without a tag write. The prompt and state primitives supply
 no qualified conversion into that outcome monad. The next owner act must qualify
 a semantics-preserving tag operation or adapter before the whole-term compile
 can proceed. The existing scope in
-[the checklist](../implementation/implementation-checklist.md#q-assessment-actions)
+[the checklist](../../PLAN.md#q-assessment-actions)
 covers all five Q35f emulator-memory definitions in
 [phys_mem_interface.sail](../../model/model/core/phys_mem_interface.sail), both
 tag primitives and their emitted monads. The qualification must preserve the existing Sail

@@ -1,6 +1,6 @@
 # Compiler assembly comparison
 
-This is the assembly comparison contract for [M1.2b](../implementation-checklist.md)
+This is the assembly comparison contract for [M1.2b](../../../PLAN.md)
 and the accepted campaign recorded in [F-318](../../assurance/findings-register.md).
 It qualifies preservation of the stock RV64 assembly emitted while removing the
 scalar float bank. It does not establish the purecap backend's correctness,

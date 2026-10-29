@@ -341,7 +341,7 @@ Neither outcome is the whole-machine failure the static-allocation objection exp
 
 #### Web applications: one engine and a capability-scoped host
 
-The selected strategy is **standards-based web frontends over the same Servo-derived engine as the browser, with an optional capability-confined native backend**. Tabs, standalone app windows and views embedded in native applications differ in presentation and declared interfaces, not in engine selection. R-14-008g through R-14-008j own the contract; [Q29](implementation-checklist.md#web-application-qualification) owns the qualification work. This extends the deferred browser program, not the first-release floor.
+The selected strategy is **standards-based web frontends over the same Servo-derived engine as the browser, with an optional capability-confined native backend**. Tabs, standalone app windows and views embedded in native applications differ in presentation and declared interfaces, not in engine selection. R-14-008g through R-14-008j own the contract; [Q29](../../PLAN.md#web-application-qualification) owns the qualification work. This extends the deferred browser program, not the first-release floor.
 
 The [frozen web application pilot contract](contracts/web-application-profile.md) selects the hosted and packaged clients, identity and bridge boundaries, budgets, lifecycle/refusal corpus, numeric workflow limits and prerequisite assignments. It is the input to Q29b/Q29c, not evidence that the browser or either pilot runs.
 
@@ -551,7 +551,7 @@ Both halves of the userland gate on the same handful of net-new artifacts, so th
 Two gates order this work, not one.
 The **software gate** is the prerequisites above: nothing exists before the certifying toolchain, and nothing with a surface exists before the render substrate.
 The **hardware gate** is §18's own staging, which brings the die up class by class (C-class scalar with software rendering, then V-class, then M-class, then the FEC units), so a target cannot be *delivered* before the core class it runs on exists.
-The two gates are not the same date: the emulated system boots the whole stack at M7 of the [implementation plan](implementation-checklist.md), long before any of it is deliverable, so the class order gates delivery rather than existence.
+The two gates are not the same date: the emulated system boots the whole stack at M7 of the [implementation plan](../../PLAN.md), long before any of it is deliverable, so the class order gates delivery rather than existence.
 
 Stages, not a schedule: within a stage nothing is serialized, and each stage presupposes only the one before it.
 
@@ -586,7 +586,7 @@ Nothing here promises dates, and nothing here is a design cut: a later stage is 
 ## Deterministic simulation testing: catching what the certificate does not prove
 
 The Tier-2 admission floor (§13) certifies *memory safety*, not full behavioral correctness. CHERI enforces spatial bounds at runtime, while the certificate covers temporal safety, CFI, and the absence of runtime emission into executable memory. They do not establish object-level safety inside an interpreted guest's linear memory (R-14-013a), or that gitoxide merges correctly, Servo's interpreter event loop implements the intended behavior, or Zed orchestrates language servers correctly. The Tier-1 compositor has additional information-flow obligations for surface-to-input mediation (§12, §13).
-A **deterministic simulation testing** harness exercises behavior beyond these proofs in continuous integration. The [golden-model implementation plan](implementation-checklist.md) supplies its essential substrate: a **deterministic full-system model**.
+A **deterministic simulation testing** harness exercises behavior beyond these proofs in continuous integration. The [golden-model implementation plan](../../PLAN.md) supplies its essential substrate: a **deterministic full-system model**.
 The Sail C-backend emulator provides that substrate, and the CertiCoq→Wasm host-side reference provides a second model for fast iteration. The plan already uses **differential testing against the Sail golden model** for bring-up; simulation testing extends it with fault injection, coverage guidance, and exact replay.
 Four properties of the machine make it unusually amenable:
 

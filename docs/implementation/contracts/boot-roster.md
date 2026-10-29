@@ -3,7 +3,7 @@
 This contract fixes M7.1's executable roster, each member's entry and handoff, the
 image recipe the composition follows, the boot record that binds it, and how the
 console and event digests are defined and computed. The
-[checklist](../implementation-checklist.md) owns M7.1's acceptance; this document owns
+[checklist](../../../PLAN.md) owns M7.1's acceptance; this document owns
 the rules [the boot harness](../../../tools/vos/boot.py) applies, and the harness reads
 the roster from the table in section 2 rather than from a copy of it. `python tools/run.py
 boot` is the command.

@@ -26,7 +26,7 @@ proofs are built on and proves nothing itself.
 ## Local obligations, including completed work
 
 The [register](../../requirements-register.md), [crown jewels](../crown-jewels.md)
-and [implementation checklist](../../implementation/implementation-checklist.md) own the current
+and [project plan](../../../PLAN.md) own the current
 obligations and status. The following mapping is a research index, not a second
 completion ledger.
 

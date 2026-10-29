@@ -1,6 +1,6 @@
 # Proof-reuse bearing record
 
-*Q27b's deliverable in [the implementation plan](../implementation/implementation-checklist.md#12-build-order-milestones-and-execution-state). For qualified sources in [the proof reuse inventory](proof-reuse.md), it names a consumer and what that consumer would stop owing, or records why none is selected. It is keyed by source, where the inventory's [subject records](proof-reuse/) are keyed by obligation family and [the unassigned proof map](unassigned-proof-map.md) is keyed by obligation. The latest source qualification is dated 2026-10-23. The plan's conventions give an existing start-from no second discount and a survey no measured productivity. No row changes an estimate, and a source without a consumer does not justify opening a cell.*
+*Q27b's deliverable in [the implementation plan](../../PLAN.md#12-build-order-milestones-and-execution-state). For qualified sources in [the proof reuse inventory](proof-reuse.md), it names a consumer and what that consumer would stop owing, or records why none is selected. It is keyed by source, where the inventory's [subject records](proof-reuse/) are keyed by obligation family and [the unassigned proof map](unassigned-proof-map.md) is keyed by obligation. The latest source qualification is dated 2026-10-23. The plan's conventions give an existing start-from no second discount and a survey no measured productivity. No row changes an estimate, and a source without a consumer does not justify opening a cell.*
 
 ## How to read a row
 
@@ -9,7 +9,7 @@
 - **The third column says what the consumer would stop owing, or that nothing is removed and why.** Nothing removed is the ordinary answer and not a failure of the row: a cell that names its start-from without moving its range is what this item delivers, and a re-price is proposed only where a newly qualified source removes a named sub-obligation.
 - **A row whose consumer is `none` carries one ground**, from this set: **taken**, the bearing is already in a landed cell or a landed artifact; **refused**, the register refuses the import at a cited entry; **uncelled**, the obligation the subject record names is owned by no open cell and no slice; **unaimed**, the subject record proposes no local consumer at all; **unread**, the source's own terms are unread or absent, so no reuse may be proposed. Where more than one holds, the row names the one the subject record's own disposition rests on, and the clause may carry the other fact.
 - **Qualification alone earns no discount.** An existing start-from receives no second discount; a new source must remove a named sub-obligation before a re-price is proposed.
-- **This record does not restate the note a cell writes.** A cell's own reuse note states what that cell reuses and what work it still buys, on [the plan's conventions](../implementation/implementation-checklist.md#checklist-conventions); what lives here is the source-keyed resolution and the ground for each source that bears on nothing.
+- **This record does not restate the note a cell writes.** A cell's own reuse note states what that cell reuses and what work it still buys, on [the plan's conventions](../../PLAN.md#checklist-conventions); what lives here is the source-keyed resolution and the ground for each source that bears on nothing.
 
 <a id="which-sources-the-sweep-added-and-the-predicate-that-decides-it"></a>
 
@@ -22,7 +22,7 @@ editions, terms and theorem scope.
 
 ## Foundations: the certified-search family
 
-[Q27a](../implementation/implementation-checklist.md#12-build-order-milestones-and-execution-state) owns this family's arms and its cell states of the Rocq-side candidates that none is a start-from for any cell in the plan. The rows record which of them bears on a consumer and cite that disposition rather than re-arguing it.
+[Q27a](../../PLAN.md#12-build-order-milestones-and-execution-state) owns this family's arms and its cell states of the Rocq-side candidates that none is a start-from for any cell in the plan. The rows record which of them bears on a consumer and cite that disposition rather than re-arguing it.
 
 | Source | Consumer | What it would remove, or the ground |
 | --- | --- | --- |

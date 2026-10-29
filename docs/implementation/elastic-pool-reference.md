@@ -1,6 +1,6 @@
 # Pool and heap reference
 
-This is executable reference work toward [Q34c](implementation-checklist.md),
+This is executable reference work toward [Q34c](../../PLAN.md),
 under the existing [elastic-domain contract](contracts/elastic-domain.md).
 Q34c remains open: the finite allocator needs its universal refinement to the
 history contract, and the native service/library producer and its admission are

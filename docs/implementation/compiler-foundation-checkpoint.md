@@ -2,7 +2,7 @@
 
 The contained compiler carries the selected scalar C profile through the real
 compiler passes to capability-aware assembly and composed Sail execution.
-[M1.2g-ii, M1.2d-ii and M1.2e-ii](implementation-checklist.md) own the source,
+[M1.2g-ii, M1.2d-ii and M1.2e-ii](../../PLAN.md) own the source,
 lowering and narrowing joins. Their acceptance uses the
 [source-value contract](contracts/compiler-source-values.md),
 [kind interface](contracts/compiler-kind-interface.md),

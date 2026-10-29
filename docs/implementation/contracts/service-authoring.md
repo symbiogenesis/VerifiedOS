@@ -1,6 +1,6 @@
 # Service authoring contracts
 
-These contracts bind the host-authorable portions of M6.3b, M4.4, M6.6 through M6.8 and Q23d. The [requirements register](../../requirements-register.md) and the [implementation checklist](../implementation-checklist.md) remain normative. This document owns the interfaces and acceptance scope of the service source artifacts. It does not record an independent review, a target run, or completion of those checklist items.
+These contracts bind the host-authorable portions of M6.3b, M4.4, M6.6 through M6.8 and Q23d. The [requirements register](../../requirements-register.md) and the [project plan](../../../PLAN.md) remain normative. This document owns the interfaces and acceptance scope of the service source artifacts. It does not record an independent review, a target run, or completion of those checklist items.
 
 ## 1. Object router and credential handles
 

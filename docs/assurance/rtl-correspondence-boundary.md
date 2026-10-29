@@ -14,7 +14,7 @@ obligation. It makes R-15-092's record fillable, fills it for the two blocks tha
 at this revision, and reports what the filling could not decide.
 
 **It does not re-open the Kami election.** [The plan's
-§11](../implementation/implementation-checklist.md#11-building-an-fpga-from-it-all)
+§11](../../PLAN.md#11-building-an-fpga-from-it-all)
 and [THIRD-PARTY.md](../../THIRD-PARTY.md) keep Kami the default on licence ground and
 state the per-block election test; nothing here disturbs either. It builds no HDL
 verifier and attempts no RTL-to-Sail proof, which stay with the post-M10 refinement

@@ -1,7 +1,7 @@
 # Contained compiler port decisions
 
 Q39 owns the contained compiler's locked switch, compatibility port and acceptance
-predicate in the [implementation checklist](implementation-checklist.md). The
+predicate in the [project plan](../../PLAN.md). The
 Rocq 9.3.0 port compiles and its frozen-reading comparison passes. Complete
 kernel qualification, classification, final stability, target replay and manifest
 restaging remain open. The interrupted audits and bounded diagnostic below

@@ -2,7 +2,7 @@
 
 > **Execution status:** [The workflow contract's commissioning disposition](workflow-contract.md#commissioning-disposition) governs the canceled experiments, retained proposal roles and re-entry conditions used here.
 
-> Non-normative Q21a design record. The decision declines commissioning the present core qualification under its missing foundation and translator-admission prerequisites. The bounded design below supplies no implemented frontend, proved metatheory or production qualification. The [requirements register](../requirements-register.md) remains authoritative. [The strategy](verification-strategy.md#a-compositional-core) states the wider objective; [the implementation checklist](../implementation/implementation-checklist.md#q-assessment-actions) owns scheduling.
+> Non-normative Q21a design record. The decision declines commissioning the present core qualification under its missing foundation and translator-admission prerequisites. The bounded design below supplies no implemented frontend, proved metatheory or production qualification. The [requirements register](../requirements-register.md) remains authoritative. [The strategy](verification-strategy.md#a-compositional-core) states the wider objective; [the implementation checklist](../../PLAN.md#q-assessment-actions) owns scheduling.
 
 ## Decision and boundary
 
@@ -32,7 +32,7 @@ owns its separate full-artifact comparison.
 | [DescriptorCheck.v](../../tools/bedrock2-lowering/DescriptorCheck.v) | `Descriptor.descriptor_check`, `spec_of_descriptor_check`, `descriptor_check_br2fn_ok` | The header check reads bytes within declared length, returns a status word and preserves its byte-array footprint and frame. Its relation uses `BasicC64Semantics`; it neither copies bytes nor proves a CHERI memory rule. Request identifiers, offsets, lengths and session permissions remain validated at use. |
 | [RingContract.v](../../proofs/RingContract.v) | Generated layouts, operation declarations and status/lifecycle definitions | An extension evaluates layout constants from this owner. The core creates no competing wire enumeration or ring lifecycle. |
 | [CopyRingService.v](../../proofs/CopyRingService.v) | `svc_op_record`, `service_conjuncts`, `the_staging_buffer_holds_the_declared_payload`, `every_held_reference_is_released_at_cleanup` | These constrain declared capacity and released-reference accounting. The file supplies no byte copying, memory implementation or Ztso refinement. Private staging is a reserved independent consumer, not an implementation baseline. |
-| [Q19/Q20](../implementation/implementation-checklist.md#q-assessment-actions) | Concrete-law entry gate and initial/held-out comparison | Parser destination initialization develops the pilot; staging stays held out until interface freeze. Missing consumer implementations belong to Q2b/M7.1. Eventual-core cases are separate from that callback workflow. |
+| [Q19/Q20](../../PLAN.md#q-assessment-actions) | Concrete-law entry gate and initial/held-out comparison | Parser destination initialization develops the pilot; staging stays held out until interface freeze. Missing consumer implementations belong to Q2b/M7.1. Eventual-core cases are separate from that callback workflow. |
 
 The proposed parser-derived extension initializes its fixed private destination whole, copies each admitted input byte once into it and validates that private copy. This development contract exercises [the initialization obligation](../spec.md#r-05-124), with failure behavior specified below. It does not make the existing header check a complete decoder or make copying an atomic snapshot of a concurrently mutable source.
 
@@ -245,14 +245,9 @@ Record actual semantic inputs rather than filenames alone. Until precise depende
 
 ## Proof obligations and proposed work packages
 
-The following owner keys are proposals, not schedule IDs or proof constants. Each selected package needs a reviewed checklist cell and entry predicate before implementation dispatch. Estimates are prospective attended-work design judgments, not measured agent-session results or conversions of the strategy's person-month bands. They exclude the unbounded foundation work and therefore do not establish a complete implementation price. Keep eventual human attended work, summed agent-session wall time and machine time in separate ledgers under Q20a. The general-logic and machine connections remain [Q2c's prerequisites](../implementation/implementation-checklist.md#q-assessment-actions); its rejection supplies neither an implementation budget nor a law.
-
-| Proposed owner | Estimate | Work and acceptance boundary |
-| --- | --- | --- |
-| `core-soundness` | 160 h, range 80-240 | Define judgments/interpreter and prove substitution, phase separation, preservation, loan/exit restoration and kinded authority/effect composition for this fragment over actual supplied logic laws. Excludes concrete CHERI primitive discovery, frontend and backend. |
-| `core-frontend` | 140 h, range 80-200 | Restricted parsing/resolution, bounded flow analysis, reconstructed arithmetic, checked elaboration/SourcePackage correspondence and erasure preservation. Excludes general dependent inference, effect polymorphism, kernel, backend and editor. |
-| `core-diagnostics` | 64 h, range 40-88 | Adapt the qualified interaction path to frontend derivations, typed holes, status and invalidation; demonstrate the specified source residuals. Excludes Q19a's existing-tool qualification and a new language server. |
-| `core-repair-trial` | 48 h, range 32-64 | Author and qualify the combined fixture/negative neighbors and its concrete `PreparationOpen`/`finish` interpretation using the supplied resource laws, then measure semantic/refactor/representation replay and review. Excludes discovering those laws, a repair service and Q20's held-out staging adaptation. |
+The proposed packages and their estimates are maintained in
+[PLAN.md](../../PLAN.md#language-core-proposals). The obligation matrix below
+records the technical prerequisites and ownership boundaries for that work.
 
 | Obligation | Existing evidence or missing prerequisite | Owner |
 | --- | --- | --- |

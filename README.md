@@ -6,7 +6,7 @@ Engineering effort is treated as free and trust as the scarce resource, so secur
 
 The first release targets a [general-purpose laptop](docs/spec.md#r-18-004a). The [release scope](docs/spec.md#r-18-004) defers the browser, handset and server ensemble. The design [prefers open standards wherever its guarantees permit](docs/spec.md#r-04-001a); the [compute and graphics compatibility plan](docs/implementation/compute-compatibility.md) records the proposed OpenCL, SPIR-V and HIP surfaces and assesses Vulkan and Vulkan SC frontends over shared native execution.
 
-> This repository contains the design and an implementation in progress. The [implementation status](docs/implementation/implementation-checklist.md#current-summary) records completed artifacts and remaining work toward the full system.
+> This repository contains the design and an implementation in progress. The unified [project plan](PLAN.md) records priorities, milestones, completed artifacts and remaining work toward the full system.
 
 <details>
 <summary><strong>Contents</strong></summary>

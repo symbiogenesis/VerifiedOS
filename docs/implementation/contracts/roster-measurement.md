@@ -1,7 +1,7 @@
 # Composed-roster measurement instruments
 
 This contract fixes the host-authorable instrumentation for M7.2 and M7.3 before
-implementation. The [checklist](../implementation-checklist.md)
+implementation. The [checklist](../../../PLAN.md)
 owns their final acceptance: both still need M7.1's accepted composed roster and
 its workload captures. The instruments analyze supplied observations; they do not
 establish that a producer observed the machine completely or truthfully.

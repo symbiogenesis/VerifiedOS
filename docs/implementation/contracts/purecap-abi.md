@@ -1,8 +1,8 @@
 # Purecap ABI and primitive contract
 
-This is the ABI and primitive contract [M1.2d](../implementation-checklist.md)
+This is the ABI and primitive contract [M1.2d](../../../PLAN.md)
 implements and M3.5 and M4.4 author against, the first row of
-[the plan's sequencing table](../implementation-checklist.md#sequencing). It states
+[the plan's sequencing table](../../../PLAN.md#sequencing). It states
 the register roles over the merged file, the frame and the spill discipline over
 the plan laid out at composition, the sentry call and return sequences and the
 cross-compartment sequence, the float-typed value's route, each primitive
@@ -30,7 +30,7 @@ scalar convention from the start-from and records the remaining production join.
 each use; the start-from references are `riscV/Conventions1.v`, `Machregs.v`,
 `Asm.v`, `Asmgen.v` and `Stacklayout.v` at the pin above.
 M1.2b's partial backend deletes the float bank; its
-note in [the checklist](../implementation-checklist.md) carries what moved,
+note in [the checklist](../../../PLAN.md) carries what moved,
 and this document cites that note rather than the contained revision where the
 two differ.
 

@@ -187,7 +187,7 @@ target execution or WCET measurement.
 
 ### Separately owned adoption work
 
-The [checklist](../implementation/implementation-checklist.md) owns the estimates and
+The [checklist](../../PLAN.md) owns the estimates and
 entry conditions. All of the following remain open, after the M8a gate, and none
 is absorbed by M6.3b's credential-handle predicate:
 

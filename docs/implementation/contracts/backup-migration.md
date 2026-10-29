@@ -9,7 +9,7 @@ implementation or migration protocol theorem is accepted by this document.
 The implementation owners are Q42a (object and export/restore service), Q42b
 (trusted screens) and Q42c (migration session). Their entry and exit predicates
 are in section 8; their sole estimate cells belong in the
-[checklist](../implementation-checklist.md). M5.3d retains the verified storage
+[checklist](../../../PLAN.md). M5.3d retains the verified storage
 and user-data-instance join, the credential and consent owners retain their
 existing mechanisms, and M6.9 retains its TLS and attestation foundations.
 

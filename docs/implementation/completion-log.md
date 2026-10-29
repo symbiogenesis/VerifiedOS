@@ -1,6 +1,6 @@
 # Completion Log
 
-*Completion evidence for landed items in [the implementation checklist](implementation-checklist.md). The checklist owns the items, estimates and order; this log records their accepted outcomes and review evidence.*
+*Completion evidence for landed items in [the implementation checklist](../../PLAN.md). The checklist owns the items, estimates and order; this log records their accepted outcomes and review evidence.*
 
 ## How to read this
 

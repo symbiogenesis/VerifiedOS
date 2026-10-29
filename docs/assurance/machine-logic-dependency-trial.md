@@ -146,38 +146,9 @@ work; none is discharged by this receipt.
 
 ## Separately scoped unpriced continuation
 
-The [opam compatibility policy](../../tools/opam/README.md) permits an immutable
-source route with bounded reviewed patches at the locked versions, so a release
-publication is no longer a prerequisite for this continuation. The
-[Sail support package trial](../../tools/opam/sail-compatibility.md) demonstrates
-that route's build boundary, but qualifies no Islaris, Lithium, Katamaran,
-RecordUpdate or Equations input. Keep Rocq 9.3.0 and the current dependency
-versions; no library downgrade, warning suppression or additional assumption
-is authorized by this policy.
-
-The machine-logic foundation owner and opam carriage owner must review and price
-one source-compatibility continuation before dispatch. Its identified work is:
-
-- Resolve the namespace deprecations in the exact Islaris and Lithium sources,
-  the postfix-notation diagnostics in exact RecordUpdate and Katamaran, and the
-  source-level pinned-setting conflicts, keeping the compiler settings fixed.
-- Select the merged upstream import cleanup above, verify the absence of its
-  loaded `eq_rect_eq` axiom in the complete candidate closure, and select the
-  remaining Equations, stdpp-unstable/bitvector and isla-lang generation inputs
-  with their actual licences and exact identities. No API port depth is measured
-  by the early failures above, so deeper API work is neither asserted necessary
-  nor included in a numerical estimate.
-- Establish the frozen elaborated readings required by the
-  [proof-assistance workflow](proof-assistance.md#statement-freeze), compile both
-  complete selected closures under unchanged strict settings, enumerate their
-  exact assumptions and read their recursive kernel summaries. Any changed
-  frozen meaning returns to its owner instead of being accepted as a repair.
-- Decide carriage separately and take fresh hosted acceptance over the settled
-  inputs. Only an accepted compatible/carried result opens Q35k.
-
-This is unpriced source-compatibility work, not an extension of Q35m's bounded
-trial estimate. It authorizes no shared-switch change, framework replacement,
-semantic weakening, μSail translation or new assurance assumption.
+The continuation scope, prerequisites and review/pricing conditions are
+maintained in [PLAN.md](../../PLAN.md#machine-logic-compatibility-continuation).
+The trial result and reproduction evidence remain in this document.
 
 ## Reproduction and evidence
 

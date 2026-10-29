@@ -2,7 +2,7 @@
 
 This is the Post-M10 opening plan, prepared against the source and evidence
 currently present. It does not assert that M10 has completed. The
-[three-route ladder](../implementation/implementation-checklist.md#11-building-an-fpga-from-it-all)
+[three-route ladder](../../PLAN.md#11-building-an-fpga-from-it-all)
 and [synthesis provenance](../../rtl/synthesis-provenance.md) own the route
 decisions. R-17-039a's fallbacks apply per block. An upstream methodology, a
 configured parameter, a passing algebra test and a local whole-core refinement

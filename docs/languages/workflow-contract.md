@@ -1,11 +1,11 @@
 # The Language Workflow and Artifact Comparison Contract
 
-> Non-normative acceptance contract for Q20a of [the implementation plan](../implementation/implementation-checklist.md). It implements the bounded comparison in [the language strategy](verification-strategy.md#language-product-contract), under [the requirements register](../requirements-register.md). Where they disagree, the register wins and this document is defective.
+> Non-normative acceptance contract for Q20a of [the implementation plan](../../PLAN.md). It implements the bounded comparison in [the language strategy](verification-strategy.md#language-product-contract), under [the requirements register](../requirements-register.md). Where they disagree, the register wins and this document is defective.
 > This document fixes a trial, not its outcome. The copying implementations, qualified CHERI instance and complete artifact connections needed to open that trial are unavailable at the inspection revision below. No productivity, target performance or production-qualification result follows from authoring this contract.
 
 ## Commissioning disposition
 
-The Q19c, Q20b and Q20c execution experiments are canceled in the [implementation plan](../implementation/implementation-checklist.md). This retained protocol does not commission a trial. References to their roles below describe the frozen comparison, not active implementation owners. A new proposal must identify a concrete consumer blocked by the existing route, supply the checked foundations and usable environment, price all missing work and adopt a finite stop threshold before opening a new suffixed checklist item. Q2b/Q3b, M1, M6 and M7 retain all required backend, proof, admission and final-artifact duties; canceling the comparison neither completes nor weakens them.
+The Q19c, Q20b and Q20c execution experiments are canceled in the [implementation plan](../../PLAN.md). This retained protocol does not commission a trial. References to their roles below describe the frozen comparison, not active implementation owners. A new proposal must identify a concrete consumer blocked by the existing route, supply the checked foundations and usable environment, price all missing work and adopt a finite stop threshold before opening a new suffixed checklist item. Q2b/Q3b, M1, M6 and M7 retain all required backend, proof, admission and final-artifact duties; canceling the comparison neither completes nor weakens them.
 
 ## Clients and baseline evidence
 
@@ -29,7 +29,7 @@ Before P is adapted, Q2b records its manual baseline's operational definition, i
 
 Before S is adapted, Q19c freezes the interface, generic theorem statements, concrete instance and qualified environment, and records their hashes with its review. M7.1 may develop S's baseline independently, but S supplies no API-design feedback before that freeze. A contributor who uses S to alter the interface records it as another development client. The held-out experiment then remains unopened until Q20a is amended and independently reviewed to name a fresh real consumer, its owner, baseline and budget. It is not permissible to rename S, conceal the interaction or select a replacement after inspecting its result.
 
-The entry record names the experiment author, baseline author and a reviewer who did not author the compared implementation or expected-behavior checks. Review includes [the checklist's review conventions](../implementation/implementation-checklist.md#checklist-conventions), the frozen cases and cost ledger. Qualification of any newly incorporated upstream uses its own pinned licence and dependency notices through Q19 or the existing compiler owner; this contract incorporates no upstream code.
+The entry record names the experiment author, baseline author and a reviewer who did not author the compared implementation or expected-behavior checks. Review includes [the checklist's review conventions](../../PLAN.md#checklist-conventions), the frozen cases and cost ledger. Qualification of any newly incorporated upstream uses its own pinned licence and dependency notices through Q19 or the existing compiler owner; this contract incorporates no upstream code.
 
 ## Operational subset and observations
 

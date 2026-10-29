@@ -5,7 +5,7 @@ This is M1.2d-i's diagnostic and prerequisite handoff under the
 It identifies the source information the functional backend must retain and
 links the selected source, kind and call interfaces for implementing that path.
 It does not implement or accept purecap code. M1.2g-ii, M1.2d-ii, M1.2e-ii and M1.2f
-retain their [implementation and target joins](../implementation-checklist.md).
+retain their [implementation and target joins](../../../PLAN.md).
 The [scalar ABI](purecap-abi.md) retains its existing authority.
 
 ## 1. Measured boundary

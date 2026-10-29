@@ -129,38 +129,9 @@ The behavioral tests cover
 
 ## Native Sail census validation todo
 
-Open under [Q35q](../docs/implementation/implementation-checklist.md). Full native
-census generation, Python validation and retained-evidence replay are
-[GitHub-hosted Actions only](../docs/implementation/contracts/sail-support-census.md#hosted-only-execution).
-Target a tenfold reduction in end-to-end Python replay time without increasing
-peak memory. No such speedup has been measured; an interrupted local run supplies
-no completed baseline.
-
-- Profile parsing, schema traversal, native metadata/resolver joins, control-copy
-  cost and each corruption case on the exact hash-bound support and control
-  emissions. Record phase and end-to-end wall time, peak RSS and temporary disk
-  use, with runner image, interpreter, source revision and repetitions.
-- Investigate compiling the checked schema once per invocation, resolving schema
-  references in advance, dispatching constructor branches by their discriminators,
-  and building diagnostic paths only on failure. Preserve schema vocabulary
-  refusal, all compatible `oneOf`/`anyOf` branches and every existing constraint.
-- Reduce redundant parsing, encoding and traversal within an invocation. Preserve
-  independent artifact replay, isolated control mutations and complete per-case
-  schema/graph validation; introduce no cross-call acceptance cache or omitted
-  resolver effect. Differential fixtures must cover malformed as well as valid
-  inputs before a replacement reader is qualified.
-- Evaluate bounded hosted jobs for the control cases, joining exact source/input
-  hashes and the complete case population. Keep each job below the workflow's
-  runtime and measured memory/disk budgets; duplicating a large parsed graph across
-  concurrent workers needs its own resource measurements. Job partitioning alone
-  establishes no reduction in total validation work.
-
-Acceptance compares equivalent complete work on the same hosted runner image and
-input bytes. Preserve the full support census, positive control plus all twelve
-independently validated corruptions, exact assumptions, recursive kernel joins and
-unchanged-input checks. Record the actual speedup and resource results under this
-document's performance rules; retain any baseline gap or missed target explicitly.
-This todo changes neither Q35q's acceptance nor its candidate/campaign allowances.
+The outstanding actions and acceptance conditions are maintained in
+[PLAN.md](../PLAN.md#native-sail-census-validation), under Q35q. This document
+owns the performance measurement rules and recorded evidence.
 
 ## Recorded component measurements
 

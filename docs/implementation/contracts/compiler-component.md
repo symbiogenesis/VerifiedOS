@@ -1,7 +1,7 @@
 # Reference compiler component comparison
 
 This contract resolves M1.2f's component-route question, F-456, under the
-[reference build's lowering discipline](../implementation-checklist.md#0-the-discipline-two-languages-two-golden-models).
+[reference build's lowering discipline](../../../PLAN.md#0-the-discipline-two-languages-two-golden-models).
 It selects the existing GC-free CompCert-C route for the staged endpoint IPC
 component. The C is authored against Gallina and compiled through the contained
 purecap backend. It is not extracted from Gallina. The comparison supplies finite

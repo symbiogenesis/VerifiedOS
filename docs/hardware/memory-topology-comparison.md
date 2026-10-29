@@ -1,6 +1,6 @@
 # Memory topology comparison contract and initial screen
 
-This is Q6's authorable comparison in the [implementation checklist](../implementation/implementation-checklist.md), governed by the [requirements register](../requirements-register.md). It compares the demand in [Q4a's inference record](../performance/inference-demand.md) and the placement boundary in [Q5a](../implementation/placement-search.md), with physical quantities owned by [R4's measurands](second-class-macro-architecture.md#5-the-measurands). No candidate has a qualified supply record here, so no topology or density is admitted.
+This is Q6's authorable comparison in the [project plan](../../PLAN.md), governed by the [requirements register](../requirements-register.md). It compares the demand in [Q4a's inference record](../performance/inference-demand.md) and the placement boundary in [Q5a](../implementation/placement-search.md), with physical quantities owned by [R4's measurands](second-class-macro-architecture.md#5-the-measurands). No candidate has a qualified supply record here, so no topology or density is admitted.
 
 ## 1. Workload and early rejection
 

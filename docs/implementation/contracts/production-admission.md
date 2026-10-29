@@ -1,7 +1,7 @@
 # Production admission prerequisite handoff
 
 This is the missing-prerequisite contract for M7.1c in the
-[implementation checklist](../implementation-checklist.md). It connects existing
+[project plan](../../../PLAN.md). It connects existing
 owners without defining another certificate language or commissioning their missing
 proofs. M7.1c remains open until its executable checker and real-roster joins pass.
 

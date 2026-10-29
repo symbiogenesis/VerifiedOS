@@ -1,6 +1,6 @@
 # Fiat-Crypto emission contract
 
-This document owns M3.4c-ii's derivation recipe, destination, licensing decision and acceptance predicate under R-05-060. The [implementation checklist](implementation-checklist.md) owns item completion; the [third-party ledger](../../THIRD-PARTY.md) owns incorporated upstream records.
+This document owns M3.4c-ii's derivation recipe, destination, licensing decision and acceptance predicate under R-05-060. The [project plan](../../PLAN.md) owns item completion; the [third-party ledger](../../THIRD-PARTY.md) owns incorporated upstream records.
 
 ## Destination and license decision
 

@@ -1073,7 +1073,7 @@ Current head: `c37b5aaa9ae4ae569df9a73f04cee9fb03b11b70`.
 
 **Additional evidence:**
 
-- [Q34g’s first-release obligation](implementation-checklist.md) requires complete Core 3.0 semantics and both engine theorems; [the semantic-upstream assessment](../assurance/proof-reuse/parsers.md#other-source-leads) records that the inspected specification tree supplies no tracked Rocq proof files.
+- [Q34g’s first-release obligation](../../PLAN.md) requires complete Core 3.0 semantics and both engine theorems; [the semantic-upstream assessment](../assurance/proof-reuse/parsers.md#other-source-leads) records that the inspected specification tree supplies no tracked Rocq proof files.
 - The specification edition already cited by that assessment, 95dffb694caa11c3663203f2756dda9bf24c2021, still requires C′.RETURN to equal the frame result type before checking the body in C′. The proposed repair checks the body under the explicitly extended context.
 - Acceptance checks nested frames, explicit returns and result typing against the pinned semantic edition and complete engine proof. Upstream checks and a rule merge alone do not establish local guest confinement.
 

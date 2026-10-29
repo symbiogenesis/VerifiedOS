@@ -1,7 +1,7 @@
 # Bounded host replay authentication
 
 This is the acceptance contract for S6a in the
-[implementation checklist](../implementation-checklist.md). It adds an executable
+[project plan](../../../PLAN.md). It adds an executable
 host integrity boundary around the existing [replay body](replay-record.md).
 It is not S6's production export envelope, a device key service, image-signature
 verification, entropy sealing, source-completeness evidence or paired replay.

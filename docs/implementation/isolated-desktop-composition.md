@@ -1,7 +1,7 @@
 # Isolated desktop composition
 
 This is Q34i's bounded composition reference and delivery record. The
-[checklist's acceptance predicate](implementation-checklist.md) remains open:
+[checklist's acceptance predicate](../../PLAN.md) remains open:
 the actual first-release roster and its complete resident-byte accounting are
 not supplied. [R-14-011c and R-17-007b](../requirements-register.md) own placement
 and the observation boundary; R-18-004b owns the comparisons. No requirement,

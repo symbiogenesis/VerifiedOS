@@ -1,7 +1,7 @@
 # Scalar compiler prerequisite qualification
 
 This contract separates three independently checkable prerequisites from the
-unfinished compiler realization in [the checklist](../implementation-checklist.md).
+unfinished compiler realization in [the checklist](../../../PLAN.md).
 The [purecap ABI](purecap-abi.md), [memory plan](../../../proofs/MemoryPlan.v)
 and requirements register retain their existing authority. These tasks neither
 amend the ISA nor accept a compiler as purecap. Compiler sources, generated
@@ -160,6 +160,6 @@ The integrator owns the shared handoff and checklist updates, the settled Host C
 verdict and Guest CI dispatch with pending status on GitHub Actions, under the
 handoff above. This agreement changes no compiler
 implementation, extraction manifest or proof statement; generated requirement-reference
-fingerprints follow their owner. The [checklist](../implementation-checklist.md)
+fingerprints follow their owner. The [checklist](../../../PLAN.md)
 records implementation acceptance for M1.2g-ii, M1.2d-ii, M1.2e-ii and M1.2f;
 this agreement alone satisfies none of their implementation or target predicates.

@@ -6,7 +6,7 @@
 
 ## How to read this
 
-R-18-004a requires eight workload members to run together on one composed configuration, each at a specified quality. R-18-004c names the gate and evidence needed to evaluate each clause. Meeting that floor and every security admission rule does not by itself establish a usable product: a refusal can protect security while interrupting the user's work. Authored under Q1 of [the implementation plan](../implementation-checklist.md), this contract defines that product failure before candidates are measured. It sets **absolute** limits in user-facing units for response latency, sustained power and temperature, capacity refusals, update turnaround, and operation without the external composition service. Its workload includes transitions beyond the floor's minimum demonstrations.
+R-18-004a requires eight workload members to run together on one composed configuration, each at a specified quality. R-18-004c names the gate and evidence needed to evaluate each clause. Meeting that floor and every security admission rule does not by itself establish a usable product: a refusal can protect security while interrupting the user's work. Authored under Q1 of [the implementation plan](../../../PLAN.md), this contract defines that product failure before candidates are measured. It sets **absolute** limits in user-facing units for response latency, sustained power and temperature, capacity refusals, update turnaround, and operation without the external composition service. Its workload includes transitions beyond the floor's minimum demonstrations.
 
 Three rules govern the limits:
 

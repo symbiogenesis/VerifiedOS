@@ -207,7 +207,7 @@ The trial supplies no RTL-to-Sail refinement evidence.
 
 **Instrumentation and its work owners.** Section 4.1's frame and current scalar
 probes belong to the initial R2 attachment, priced in
-[R2's checklist cell](../implementation/implementation-checklist.md#rtl-track).
+[R2's checklist cell](../../PLAN.md#rtl-track).
 They do not wait on the revocation join. The remaining instrumentation is a
 separate proposal:
 
