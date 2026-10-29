@@ -46,9 +46,10 @@ from vos.sharding import Shard
 HEADING = "=== gate: every host gate over this tree, in one run ==="
 
 # Allow cold sandbox construction and the complete mutation and behavioral suites
-# on slower runners. A member that reaches this bound must become a finding rather
-# than a command that never returns.
-TIMEOUT = 900
+# on slower runners, including late-rule checker walks after baseline preparation.
+# Keep this inside the hosted job's outer limit. A member that reaches the bound
+# must become a finding rather than a command that never returns.
+TIMEOUT = 1200
 
 # What a member that never answered exited with. It has no code of its own, and a
 # number outside the (0, 1) the conventions define is what makes it read as the

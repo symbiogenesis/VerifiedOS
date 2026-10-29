@@ -1533,23 +1533,37 @@ def _workflow_instrument_guards() -> None:
 
 
 def _workflow_checkout_validation() -> None:
-    scripts: dict[str, str] = {}
-    for workflow in (ci.HOST, ci.GUEST):
+    scripts: dict[tuple[str, str], str] = {}
+    for workflow, job in _DISPATCH_JOBS:
+        if workflow not in (ci.HOST, ci.GUEST):
+            continue
         contents = (ROOT / ".github/workflows" / workflow).read_text(encoding="utf-8")
-        step = contents.split("      - name: Verify dispatched revision belongs to main\n", 1)[1]
-        script = step.split("        run: |\n", 1)[1].split("\n      - ", 1)[0]
-        scripts[workflow] = textwrap.dedent(script)
-    # Host CI checks a dispatch in each job taking a checkout, every copy the step whose
-    # script runs below, its condition, identifier and environment included.
-    host = (ROOT / ".github/workflows" / ci.HOST).read_text(encoding="utf-8")
-    copies = [step for block in _workflow_jobs(host).values() for step in _step_texts(block)
-              if _step_values(step, "name") == [_GUARD]]
-    ensure(len(copies) == sum(workflow == ci.HOST for workflow, _ in _DISPATCH_JOBS)
-           and len(set(copies)) == 1, f"{ci.HOST}'s jobs check a dispatch with one step")
+        checks = [step for step in _step_texts(_workflow_jobs(contents)[job])
+                  if _step_values(step, "name") == [_GUARD]]
+        ensure(len(checks) == 1, f"{workflow}'s {job} states one dispatch check")
+        step = checks[0]
+        wanted = ["          REQUESTED_REVISION: ${{ inputs.revision || github.sha }}",
+                  "          DISPATCH_REF: ${{ github.ref }}",
+                  "          DISPATCH_MAIN_SHA: ${{ github.sha }}"]
+        if workflow == ci.HOST and job == "host-gates-shard":
+            wanted.append("          PERFORMANCE_BASE: ${{ inputs.performance_base }}")
+        elif workflow == ci.GUEST:
+            wanted.append("          READING_BASE: ${{ inputs.reading_base }}")
+        ensure(_step_values(step, "id") == ["dispatch"]
+               and _step_values(step, "if") == ["${{ github.event_name == 'workflow_dispatch' }}"]
+               and _step_values(step, "shell") == ["python"]
+               and _step_values(step, "run") == ["|"]
+               and not any(_step_values(step, key)
+                           for key in ("uses", "working-directory", "continue-on-error"))
+               and sorted(_step_block(step, "env")[1:]) == sorted(wanted),
+               f"{workflow}'s {job} binds its dispatch check to the requested revision")
+        # Each job's actual script is exercised below: optional comparison inputs
+        # need not make otherwise equivalent checkout guards textually identical.
+        scripts[workflow, job] = textwrap.dedent(step.split("        run: |\n", 1)[1])
     instrument, _ = _instrument_guard_faults(
         (ROOT / ".github/workflows" / INSTRUMENT).read_text(encoding="utf-8"))
     ensure(bool(instrument), f"{INSTRUMENT}'s guard steps are read")
-    scripts.update((f"{INSTRUMENT} guard {n}", script) for n, script in enumerate(instrument))
+    scripts.update(((INSTRUMENT, f"guard {n}"), script) for n, script in enumerate(instrument))
     with sandbox_tree({"README.md": "workflow fixture\n"}) as root:
         _fixture_identity(root)
         _git(root, "commit", "--allow-empty", "-qm", "base")
@@ -1566,10 +1580,11 @@ def _workflow_checkout_validation() -> None:
         tag = _git(root, "rev-parse", "named")
 
         def guard(script: str, checkout: str, requested: str, main: str, ref: str,
-                  reading_base: str = "") -> subprocess.CompletedProcess[str]:
+                  reading_base: str = "", performance_base: str = "") -> subprocess.CompletedProcess[str]:
             _git(root, "checkout", "--detach", checkout)
             environment = dict(os.environ, REQUESTED_REVISION=requested, DISPATCH_REF=ref,
-                               DISPATCH_MAIN_SHA=main, READING_BASE=reading_base)
+                               DISPATCH_MAIN_SHA=main, READING_BASE=reading_base,
+                               PERFORMANCE_BASE=performance_base)
             return subprocess.run([sys.executable, "-c", script], cwd=root, env=environment,
                                   capture_output=True, text=True, check=False, timeout=30)
 
@@ -1580,13 +1595,13 @@ def _workflow_checkout_validation() -> None:
                  (sibling, sibling, advanced, "refs/heads/main", False),
                  (base, base, advanced, "refs/heads/work/stranded", False))
         for checkout, requested, main, ref, passes in cases:
-            for script in scripts.values():
+            for (workflow, job), script in scripts.items():
                 done = guard(script, checkout, requested, main, ref)
                 ensure((done.returncode == 0) == passes,
-                       f"workflow checkout guard gave wrong verdict: {done.stderr}")
+                       f"{workflow}'s {job} checkout guard gave wrong verdict: {done.stderr}")
         # Guest CI's reading base, when nonempty, is refused before checked-out code runs
         # unless it is a full lowercase commit that is a proper ancestor of the revision.
-        guest = scripts[ci.GUEST]
+        guest = scripts[ci.GUEST, "guest-gates"]
         for checkout, reading_base, refusal in (
                 (advanced, base, None),
                 (advanced, advanced, "other than the revision"),
@@ -1605,6 +1620,19 @@ def _workflow_checkout_validation() -> None:
                 ensure(done.returncode != 0 and refusal in done.stderr,
                        f"reading base {reading_base!r} must be refused with {refusal!r}: "
                        f"{done.stderr}")
+
+        # Only the shard job takes a performance comparison base. Its actual guard
+        # accepts a proper ancestor and refuses malformed or unrelated bases.
+        host = scripts[ci.HOST, "host-gates-shard"]
+        for checkout, performance_base, passes in (
+                (advanced, base, True), (advanced, advanced, False),
+                (advanced, base[:7], False), (advanced, "A" * 40, False),
+                (advanced, "f" * 40, False), (advanced, tree, False),
+                (advanced, sibling, False), (base, advanced, False)):
+            done = guard(host, checkout, checkout, advanced, "refs/heads/main",
+                         performance_base=performance_base)
+            ensure((done.returncode == 0) == passes,
+                   f"performance base {performance_base!r} gave wrong verdict: {done.stderr}")
 
 
 # A Host CI checkout's depth where it is not full history: one commit for push and pull
