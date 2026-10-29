@@ -90,4 +90,25 @@ through the full real roster under
 [the boot-roster contract](contracts/boot-roster.md). Native object layout
 agreement and the existing bounded scalar comparison do not discharge those joins.
 
+## Joined scalar manifest consumer
+
+The existing scalar supervisor/copy campaign also consumes the checked production
+manifest with `python tools/run.py copy-service join --generated-manifest`, using
+the command's ordinary compiler, simulator and model-receipt arguments. Its
+generated mode uses the same immutable C and JSON snapshots and target wrapper as
+the component experiment. It retains the actual copy payload, notification,
+fault and restart path rather than substituting lifecycle states for that body.
+The ordinary comparison mode retains its handwritten manifest.
+
+This consumer must bind both projections, charge their actual backoff-table
+length, compare the initialized target bytes with the independent C-layout
+account at each supervisor entry, and refuse source or snapshot drift. Its
+generated control attempts a store through the read-only manifest capability;
+the named instruction must fault without publishing a request or starting copy
+work. An initial empty publication supplies the short-backoff policy's empty
+boundary case. Preparation and host controls supply no target execution; the
+joined campaign still requires a qualified compiler and actual target traces.
+Its reset initialization and copy-only service body leave authenticated handoff,
+storage/crypto execution and full-roster acceptance open.
+
 This document uses `CC-BY-4.0` under [COPYRIGHT.md](../../COPYRIGHT.md).
