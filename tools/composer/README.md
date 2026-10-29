@@ -160,6 +160,32 @@ publication refusals. It independently checks each roster member's source/interf
 owners and refuses source drift in every inventory. Real handler declarations,
 target products, image and admission remain joins for M7.1d.
 
+### Retained boot-producer adapter
+
+`python tools/run.py composer bind-staged-boot-chain tools/composer/m8a-composition.json --output out/composer/historical-input.json`
+inspects the actual tracked boot-chain and signature manifests with their existing
+historical validator. It checks staged assembly and image bytes, current source
+and include-directory identities, recorded signature verdicts and the shared
+compiler/configuration freeze. It binds those manifests, products, sources and
+inspection helpers into a candidate using the existing composition schema.
+`composer project out/composer/historical-input.json --output out/composer/historical-projections`
+then emits the ordinary source-bound projections from that candidate.
+
+Only `rot-firmware` and `mmode-firmware` acquire the explicitly named
+`historical-boot-chain` producer, with their normal staged units bound into each
+member's source inputs. The command reports the recorded compiler's
+provenance status and `final_target_acceptance: false`; the current historical
+records lack Q39's locked qualification. The candidate preserves the roster's
+partial status and its unresolved handler, placement, derivation and storage
+slots. These retained firmware comparison products cannot stand in for the
+separate storage crypto compartment or authorize final target capture.
+Original source and staging records remain unchanged. Missing, stale or
+cross-manifest substituted identities, publication-time drift and input/output
+aliases refuse before the candidate replaces a useful prior output. The
+focused `test --only test_composition_staged` consumes the actual checked-in
+population for its positive and refusal cases; it supplies host composition
+evidence, with final compiler, image and admission joins still open.
+
 ### Placement and build bindings
 
 Image entries may be unresolved; a declared entry follows the boot contract's

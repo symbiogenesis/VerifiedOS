@@ -255,7 +255,7 @@
       ],
       "descriptor": {
         "path": "tools/composer/packages/composer.json",
-        "sha256": "acb846076ebb9e7451262351a365657dbb8bb749e62b3373a386f6953c6166b7"
+        "sha256": "f19bd9cd7a674c1f929d1aa9802e59d2c34277955c8100899d9cc43e64d421ca"
       },
       "artifact_slot": "composer-artifact",
       "entry": null,

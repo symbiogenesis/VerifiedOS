@@ -8,7 +8,7 @@ Operational entries exercise handlers; usage entries establish help alone.
 | `prepare` | `prepare python` | n/a |
 | `rocq-census` | n/a | `rocq-census --help` |
 | `boot` | `boot roster` | n/a |
-| `composer` | `composer build-record`, `composer check-build-record`, `composer check-project`, `composer compare`, `composer compose`, `composer fixture`, `composer project`, `composer promote` | n/a |
+| `composer` | `composer bind-staged-boot-chain`, `composer build-record`, `composer check-build-record`, `composer check-project`, `composer compare`, `composer compose`, `composer fixture`, `composer project`, `composer promote` | n/a |
 | `admission` | `admission check-production-record`, `admission emit-reference`, `admission production-record`, `admission record` | n/a |
 | `boot-crypto` | `boot-crypto join`, `boot-crypto verify` | n/a |
 | `memory-planner` | `memory-planner check`, `memory-planner contracts`, `memory-planner demo`, `memory-planner plan`, `memory-planner resource-proof`, `memory-planner resources`, `memory-planner solve`, `memory-planner structure-corpus`, `memory-planner verify` | n/a |
