@@ -23,7 +23,7 @@ def _fixture() -> Generator[tuple[Path, dict[str, Any]]]:
     source: dict[str, Any] = json.loads((ROOT / formats.SOURCE).read_text(encoding="utf-8"))
     paths = {formats.SOURCE, formats.CROWN, formats.REGISTER,
              "docs/assurance/unassigned-proof-map.md",
-             "docs/implementation/implementation-checklist.md"}
+             "PLAN.md"}
     for entry in source["entries"]:
         paths.update(ref.split("#", 1)[0] for ref in entry["references"])
         if entry["members_from"] is not None:

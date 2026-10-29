@@ -78,7 +78,7 @@ HEADING = "=== counts: every asserted figure against its artifact ==="
 SPEC = "docs/spec.md"
 TAL = "docs/languages/typed-assembly-language.md"
 TOOLS_README = "tools/README.md"
-PLAN = "docs/implementation/implementation-checklist.md"
+PLAN = "PLAN.md"
 # Historical landing measurements are deliberately not live repair targets.
 LOG = "docs/implementation/completion-log.md"
 

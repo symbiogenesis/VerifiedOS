@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 """The findings register, the notes' own findings blocks, and the relation between them.
 
-Three artifacts, one relation. `docs/implementation/implementation-checklist.md` carries every item
+Three artifacts, one relation. `PLAN.md` carries every item
 and, for a landed one, a single line and a link; `docs/implementation/completion-log.md` carries the
 note each landed item recorded, under a heading spelling the item's label, and a note
 records a finding under a count with its bullets beneath it or as a bullet that opens
@@ -57,7 +57,7 @@ from vos.corpus import fence_lines, slug
 from vos.report import sites
 
 REGISTER = "docs/assurance/findings-register.md"
-PLAN = "docs/implementation/implementation-checklist.md"
+PLAN = "PLAN.md"
 LOG = "docs/implementation/completion-log.md"
 
 # The closed vocabularies. A type says what a reader does with the finding and a
@@ -101,7 +101,7 @@ _SINGLE_RE = re.compile(r"^(?P<ind>[^\S\r\n]*)\* \*{0,2}Finding[,:]")
 _BULLET_RE = re.compile(r"^(?P<ind>[^\S\r\n]*)\* ")
 # A link from a landed item's summary line into the log. The link text is the
 # author's: most cells write `note` and a few `completion evidence`.
-_LOG_LINK_RE = re.compile(r"\]\(completion-log\.md#(?P<anchor>[^()\s]+)\)")
+_LOG_LINK_RE = re.compile(r"\]\(docs/implementation/completion-log\.md#(?P<anchor>[^()\s]+)\)")
 
 
 @dataclass(frozen=True)

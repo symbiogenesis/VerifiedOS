@@ -249,7 +249,7 @@ _INSTRUMENT_WORKFLOW = ".github/workflows/instrument-switches.yml"
 TY_CONF = "tools/ty.toml"
 RUFF_CONF = "tools/ruff.toml"
 
-PLAN = "docs/implementation/implementation-checklist.md"
+PLAN = "PLAN.md"
 LOG = "docs/implementation/completion-log.md"
 
 # A holder citation, in the form the landed items write it: the rule id in bold, on the

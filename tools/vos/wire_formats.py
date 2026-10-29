@@ -145,7 +145,7 @@ def load(root: Path) -> tuple[Entry, ...]:
         raise InventoryError("the inventory has no entries")
     register = _read(root, REGISTER)
     owner_text = _read(root, "docs/assurance/unassigned-proof-map.md") + _read(
-        root, "docs/implementation/implementation-checklist.md")
+        root, "PLAN.md")
     # Each proof source is read, and its comments blanked, at most once per call: the
     # references name a few sources several times, and the absence scan below reads
     # every source again.
