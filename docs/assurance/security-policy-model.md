@@ -131,17 +131,9 @@ This predicate is proposed with the specification. It has not received the indep
 2. `python tools/run.py proofs headers --file proofs/SecurityPolicyModel.v` and `python tools/run.py check` pass. Any shared-baseline disagreement is resolved before integration is accepted.
 3. `python tools/run.py seed coq --file proofs/SecurityPolicyModel.v --region live --region licensed --region witnessed --region wellformed --jobs 2` runs the complete generated population for those contract regions. Its report names killed, stillborn and surviving mutants separately. Each survivor must be repaired or individually explained with a semantic equivalence or a stated missing obligation; a compilation failure is never reported as a live kill. This focused population does not claim exhaustive mutation coverage of the whole artifact.
 4. A reviewer checks the evidence index against the actual propositions, reads each negative example and its positive counterpart, and verifies that the three requested refusals are present: invalid labelling, wider-than-consented release and an expired edge.
-5. Independent specification review resolves or explicitly retains each open item below, with inventory status reflecting the retained work. Passing tools does not satisfy this clause.
+5. Independent specification review resolves or explicitly retains each [open item in PLAN.md](../../PLAN.md#security-policy-realization-and-review), with inventory status reflecting the retained work. Passing tools does not satisfy this clause.
 
-| Remaining work | Owner and required result |
-| --- | --- |
-| Graph and object realization | Composition/kernel work: derive labels and channels from the admitted graph, bind object identities and rights to CHERI bounds, and bind the total site space to repeated external events |
-| Complete observations | R-08-027a through R-08-027c: bind the snapshot observation fields to full histories and the actual scheduler, termination and restart transitions; establish schedule-only observable progress |
-| Consent and lifecycle realization | Powerbox, trusted path and storage work: authenticated live/recorded witness production, freshness, request gating, one-shot consumption, revocation, cuts, record compatibility and unique act-instance indexing |
-| Full robust-strategy theorem | R-08-025 and R-08-022: prove the strategy/input correspondence, including permitted revoke-only actions, over the kernel and multikernel semantics |
-| Runtime arrival release | Register owner: decide the timing scope, then implement and review the selected runtime relation |
-| Unconditional apex use | Apex integration: discharge or replace extensionality premises and bind actual D to the compared executions, without `True` placeholders for other workstreams |
-| Compiler preservation | `CJ-SECOMP`: state and prove robust preservation against the reviewed isolation model |
-| Independent review | R-05-150 and R-08-028: review both artifacts at the same edition and set crown-jewel row 2's status |
-
-This artifact supplies a model to review and executable reference evidence. It leaves all listed implementation and review obligations visible.
+The remaining implementation and review obligations are maintained in
+[PLAN.md](../../PLAN.md#security-policy-realization-and-review). This artifact
+supplies the model to review, its acceptance predicate and executable reference
+evidence.

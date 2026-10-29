@@ -27,7 +27,9 @@ result; stronger implementation and proof endpoints retain their own work.
 | Which research deliverables remain? | [Static-memory research](#static-memory-research) |
 | Which tooling follow-up remains? | [Native Sail census validation](#native-sail-census-validation) |
 | Which proof and language packages are proposals or unpriced? | [Proof proposals](#proof-and-specification-proposals), [mandatory unpriced work](#mandatory-work-outside-the-priced-total), [language proposals](#language-core-proposals), [compatibility continuation](#machine-logic-compatibility-continuation) |
+| What remains before the security policy can be used by the implementation? | [Security-policy realization and review](#security-policy-realization-and-review) |
 | Which upstream actions remain? | [Contribution and adoption backlog](#upstream-contributions-and-adoption) and [adoption recommendations](#upstream-adoption-recommendations) |
+| Which hardware proof-reuse comparisons remain? | [Hardware proof reuse](#hardware-proof-reuse-follow-through) |
 
 Prioritize the compiler-to-boot path and contracts that release its consumers.
 Independent authoring starts when its own inputs and acceptance predicate are
@@ -2493,8 +2495,8 @@ This backlog tracks a research project, not an additional implementation schedul
 
 The [replayable first experiments](docs/implementation/static-memory/experiments.md)
 provide a mathematical baseline, synthetic corpus, diagnostic ledger and bounded
-placement comparison. Each checkbox applies to its stated deliverable: a reviewed
-baseline can close while its compiler implementation remains open. The unchecked
+placement comparison. Each status applies to its stated deliverable: a reviewed
+baseline can close while its compiler implementation remains open. The open
 items retain their full acceptance conditions; a witness implementation does not
 complete an item's product, proof or generality obligations.
 
@@ -2651,6 +2653,25 @@ Each item below is owed by the register and reached by no slice above. Where the
 - **The TLS implementation** for M6.9a and **the HAL implementation** for row 18, each in certifying Rust (R-05-084), and with them **R-18-014's certifying Rust compiler**, whose remaining functional adaptation and certificate obligations carry no cell. Before pricing that compiler, its requirement owner records [the shared-lowering future review](docs/background/architectural-alternatives.md#sharing-verified-lowering-before-a-second-native-compiler-future-review): backend reuse with the existing safe-Rust preservation/certificate promise, and the separate feature decision of replacing Rust-assigned consumers with a checked GC-free Gallina/C route. Every current compiler and consumer obligation remains required until a reviewed register act changes it; no saving or proof status is inferred from the comparison.
 - **The certifying-Rust certificate mode and the full Iris refinement proofs** for the kernel and the storage stack, the hardening program the post-M10 opening names.
 
+## Security-policy realization and review
+
+U-01's [authored model and proposed acceptance predicate](docs/assurance/security-policy-model.md#10-acceptance-predicate-and-remaining-work)
+remain subject to independent review. The following open work connects that model
+to the implementation and its proofs. These existing obligations retain their
+owners and acceptance boundaries; this list creates no additional priced cells
+or completion credit.
+
+| Remaining work | Owner and required result |
+| --- | --- |
+| Graph and object realization | Composition/kernel work: derive labels and channels from the admitted graph, bind object identities and rights to CHERI bounds, and bind the total site space to repeated external events |
+| Complete observations | R-08-027a through R-08-027c: bind the snapshot observation fields to full histories and the actual scheduler, termination and restart transitions; establish schedule-only observable progress |
+| Consent and lifecycle realization | Powerbox, trusted path and storage work: authenticated live/recorded witness production, freshness, request gating, one-shot consumption, revocation, cuts, record compatibility and unique act-instance indexing |
+| Full robust-strategy theorem | R-08-025 and R-08-022: prove the strategy/input correspondence, including permitted revoke-only actions, over the kernel and multikernel semantics |
+| Runtime arrival release | Register owner: decide the timing scope, then implement and review the selected runtime relation |
+| Unconditional apex use | Apex integration: discharge or replace extensionality premises and bind actual D to the compared executions, without `True` placeholders for other workstreams |
+| Compiler preservation | `CJ-SECOMP`: state and prove robust preservation against the reviewed isolation model |
+| Independent review | R-05-150 and R-08-028: review both artifacts at the same edition and set crown-jewel row 2's status |
+
 ## Language core proposals
 
 Source design and missing-law analysis remain in [the core design](docs/languages/core-design.md#proof-obligations-and-proposed-work-packages).
@@ -2683,11 +2704,11 @@ one source-compatibility continuation before dispatch. Its identified work is:
 - Resolve the namespace deprecations in the exact Islaris and Lithium sources,
   the postfix-notation diagnostics in exact RecordUpdate and Katamaran, and the
   source-level pinned-setting conflicts, keeping the compiler settings fixed.
-- Select the merged upstream import cleanup above, verify the absence of its
+- Select the [merged upstream import cleanup](docs/assurance/machine-logic-dependency-trial.md#the-programequality-imports-separate-assumption-conflict), verify the absence of its
   loaded `eq_rect_eq` axiom in the complete candidate closure, and select the
   remaining Equations, stdpp-unstable/bitvector and isla-lang generation inputs
   with their actual licences and exact identities. No API port depth is measured
-  by the early failures above, so deeper API work is neither asserted necessary
+  by the dependency trial's early failures, so deeper API work is neither asserted necessary
   nor included in a numerical estimate.
 - Establish the frozen elaborated readings required by the
   [proof-assistance workflow](docs/assurance/proof-assistance.md#statement-freeze), compile both
@@ -2700,6 +2721,28 @@ one source-compatibility continuation before dispatch. Its identified work is:
 This is unpriced source-compatibility work, not an extension of Q35m's bounded
 trial estimate. It authorizes no shared-switch change, framework replacement,
 semantic weakening, μSail translation or new assurance assumption.
+
+## Hardware proof reuse follow-through
+
+The [hardware proof inventory](docs/assurance/proof-reuse/hardware.md#negative-findings-and-concrete-next-uses)
+owns the source qualifications and gaps behind this reuse order. HW identifiers
+refer to its entries. These comparisons retain their existing implementation
+owners and do not commission an additional workstream.
+
+1. Extend the local capability-property comparison with HW-02's questions.
+2. Use HW-10's state-invariant and observation decomposition when implementing
+   RTL refinement.
+3. Use HW-17 instead of a fresh dependency analyzer where broader context work
+   needs one.
+4. Qualify HW-18 before re-authoring generic leakage composition.
+5. Use the already pinned OpenTitan assertion generator at the concrete ECC
+   milestone.
+6. Evaluate Kami/Silver Oak for a named newly authored hardware block with an
+   explicit Sail bridge.
+
+Each next use must record the actual imported files, dependency notices, theorem
+assumptions and replay command. The inventory itself changes no requirement,
+completion claim, upstream pin or proof assumption.
 
 ## Assessment follow-through
 

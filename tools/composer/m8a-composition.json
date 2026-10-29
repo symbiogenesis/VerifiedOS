@@ -4,7 +4,7 @@
   "roster": "docs/implementation/contracts/boot-roster.md",
   "configuration": {
     "path": "model/config/verifiedos.json",
-    "sha256": "e2bb4968e24741fc266fd400b529faa90a7d3d3acd66e5c8bde1fc8347d22625"
+    "sha256": "7ff6f9dec6fbe0c164d52eea4862cc2cd29fd5d73fe59f498ca6011a1b6f88c2"
   },
   "producers": [
     {

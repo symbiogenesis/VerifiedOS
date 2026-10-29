@@ -199,7 +199,7 @@
     {
       "name": "block-authority",
       "source": "block-authority.s",
-      "source_sha256": "fc832bad878cdb9926518e40af335a7a08d0339578b19700de0f19e27b01b1cf",
+      "source_sha256": "01433c14784ed8801e9dc9bdef46064c9dce0b2245d35b86f72711bcee653802",
       "image_sha256": "bda0f67559eb3f0a656e2d60cd2ca34a346d072825c9950791b3b24bda86b64a",
       "image_bytes": 54416
     },

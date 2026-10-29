@@ -676,13 +676,7 @@ prove transducer accuracy. Likewise, HW-09's AES functionality leaves the
 glitch- and transition-extended probing model and masking composition under
 R-15-053a/CJ-LEAK open.
 
-Practical reuse order is: extend the local capability-property comparison with
-HW-02's questions; use HW-10's state-invariant and observation decomposition
-when implementing RTL refinement; use HW-17 instead of a fresh dependency
-analyzer where broader context work needs one; qualify HW-18 before re-authoring
-generic leakage composition; use the already pinned OpenTitan assertion
-generator at the concrete ECC milestone; and evaluate Kami/Silver Oak for a
-named newly authored hardware block with an explicit Sail bridge. Each next
-use must record the actual imported files, dependency notices, theorem
-assumptions and replay command. This inventory itself changes no requirement,
+The practical reuse order and follow-through conditions are maintained in
+[PLAN.md](../../../PLAN.md#hardware-proof-reuse-follow-through). This inventory
+retains the source findings and transfer boundaries; it changes no requirement,
 completion claim, upstream pin or proof assumption.
