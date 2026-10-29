@@ -16,110 +16,68 @@ The review inspected diffs, PR descriptions, public checks and discussion. Build
 
 ## Candidate status
 
-| ID | Upstream / work item | Priority | PR | Status | Next action |
-| --- | --- | --- | --- | --- | --- |
-| 1 | `rems-project/coq-sail` — Remove unnecessary Eq_rect_eq dependence | n/a | [#14](https://github.com/rems-project/coq-sail/pull/14) | Open | Await maintainer review and upstream validation. |
-| 2 | `rems-project/sail` — Refresh LSP state after dependency edits | n/a | [#1786](https://github.com/rems-project/sail/pull/1786) | Open | Await maintainer review and upstream CI approval. |
-| 3 | `tchajed/coq-record-update` — Support Rocq 9.3 postfix update syntax | n/a | [#68](https://github.com/tchajed/coq-record-update/pull/68) | Open | Await maintainer review; displayed build matrix passes. |
-| 4 | `rocq-prover/rocq` — Opt-in axiom-free checker exit status | n/a | [#22609](https://github.com/rocq-prover/rocq/pull/22609) | Open | Address the maintainer's unsafe-flag collection request with candidate 10 and coordinate candidate 22; exercise -axiom-free without -o across recursive, -norec, -admit and sealed-module cases. |
-| 5 | `rems-project/sail` — Expose opt-in constructor splitting for C/C++ | n/a | [#1788](https://github.com/rems-project/sail/pull/1788) | Open | Upstream maintainer action/approval for CI, then review. |
-| 6 | `rems-project/sail` — Bulk physical-memory transfer and raw loading | n/a | [#1789](https://github.com/rems-project/sail/pull/1789) | Open | Upstream maintainer action/approval for CI, then review. |
-| 7 | `riscv/sail-riscv` — Regenerate outputs when the Sail toolchain changes | n/a | n/a | **TBD** | TBD: add compiler dependencies and a regeneration regression. |
-| 8 | `katamaran-project/katamaran` — Remove unused Program.Equality imports | n/a | [#73](https://github.com/katamaran-project/katamaran/pull/73) | Merged | Use the selected merged PR head for the separately commissioned machine-logic compatibility continuation; qualify the complete closure at locked Rocq 9.3 before carriage. |
-| 9 | `rems-project/coq-sail` — Make classical real-number dependencies optional | n/a | [Reference](https://github.com/rems-project/coq-sail/blob/e7b914cddc032e3676eebd87a808229828013e9c/src/Values.v#L73) | **TBD** | TBD: agree library API and conditional Sail-import design. |
-| 10 | `rocq-prover/rocq` — Account for sealed implementations under -norec/admission | n/a | [#22611](https://github.com/rocq-prover/rocq/pull/22611) | Merged | At qualified prover adoption, compare native admitted-root contexts with the current cover pass and retire only that redundancy; keep checked sealed-field audits. Coordinate -axiom-free integration with candidate 4. |
-| 11 | `lowRISC/cva6-cheri` — Independently configure Zbkb and Zbkx | n/a | [Reference](https://github.com/lowRISC/mocha/issues/748) | **TBD** | TBD: discuss configuration controls and decoder-matrix tests with upstream. |
-| 12 | `CHERIoT-Platform/cheri-rust` — Preserve capability tags in small-aggregate calls | n/a | [Reference](https://github.com/CHERIoT-Platform/cheri-rust/issues/271) | **TBD** | TBD: coordinate ABI rules and add Rust/Rust plus Rust/C regressions. |
-| 13 | `CHERIoT-Platform/cheri-rust` — Test capability-metadata misuse during CTFE | n/a | [Reference](https://github.com/CHERIoT-Platform/cheri-rust/issues/204) | **TBD** | TBD: add positive and rejection tests requested by upstream. |
-| 14 | `CertiRocq/certirocq` — Fix OCaml 5.2+ bootstrap Hd_val collision | n/a | [#167](https://github.com/CertiRocq/certirocq/pull/167) | Merged | Initial backport build passed; production adoption deferred at user request pending consumer checks, clean replay and complete-vector acceptance. See the [backport record](../../tools/opam/certirocq-hdval-adoption.md#deferred-qualification). |
-| 15 | `lowRISC/mocha` — Add richer optional retirement tracing | n/a | [Reference](https://github.com/lowRISC/mocha/issues/231) | **TBD** | TBD: agree generic optional tracing based on existing RVFI values. |
-| CI-1 | `CertiRocq/certirocq` — Restore the Docker CI build environment | n/a | [#168](https://github.com/CertiRocq/certirocq/pull/168) | Merged | Investigate the print_lst segfault before treating Docker validation as restored. |
-| 16 | `rems-project/coq-sail` — Represent standalone granule-keyed capability-tag operations | Highest | [Reference](https://github.com/rems-project/coq-sail/blob/e7b914cddc032e3676eebd87a808229828013e9c/src-stdpp/ConcurrencyInterface.v#L147) | **TBD** | TBD: agree standalone tag-read/write outcomes and bindings with both upstreams, in parallel with candidates 17 and 18. |
-| 17 | `rems-project/coq-sail` — Support strict Rocq 9.3 source syntax and scoped notation | Highest | [Reference](https://github.com/rems-project/coq-sail/tree/e7b914cddc032e3676eebd87a808229828013e9c) | **TBD** | TBD: prepare this compatibility PR with candidate 18 first, agree notation scope and retain the existing strict flags and semantic readings. |
-| 18 | `rems-project/sail` — Emit strict Rocq 9.3 syntax with compatible notation scope | Highest | [Reference](https://github.com/rems-project/sail/blob/8857cacf492c71b537e879a862ab5b62ba4abf81/src/sail_coq_backend/pretty_print_coq.ml) | **TBD** | TBD: prepare the coordinated backend PR with candidate 17, resolve bind-notation ownership and extend the probe to a complete generated main module. |
-| 19 | `rocq-prover/rocq` — Warn when module printing falls back to names only | n/a | [#22614](https://github.com/rocq-prover/rocq/pull/22614) | Merged | After qualified prover adoption, promote module-printing-fallback to an error in rich-print census queries. Qualify the local rocq-census producer separately under Q35q, including complete metadata coverage, implementation connections, exact assumption audits and hosted kernel evidence. |
-| R-1 | `rocq-prover/rocq` — Request regression-backed Rocq 9.3 soundness backports | Highest | [Reference](https://github.com/rocq-prover/rocq/blob/74165991678536f8f31f3c7740477ce20cfdafd4/CONTRIBUTING.md#release-management) | Backport follow-up | Request appropriate 9.3 carriage for fixes 22388, 22392 and 22394, discuss checker fix 22556, and track candidate 20's universe-checking fix 22624 through release/backport carriage. Qualify the chosen release before changing local restrictions. |
-| 20 | `rocq-prover/rocq` — Keep universe-checking flags consistent across module boundaries | Highest | [#22624](https://github.com/rocq-prover/rocq/pull/22624) | Merged (watch) | Track release/backport carriage with R-1; qualify the eventual release and regression before changing the prover lock or local restrictions. |
-| 21 | `rocq-prover/rocq` — Report unchecked sort eliminations in assumption and checker output | High | [#22294](https://github.com/rocq-prover/rocq/pull/22294) | Open (watch) | Track upstream completion; at qualified adoption extend parser and rejection fixtures for unchecked eliminations in both compiler and checker reports. |
-| 22 | `rocq-prover/rocq` — Expose assumptions reached through sealed inductive declarations | High | [#22623](https://github.com/rocq-prover/rocq/pull/22623) | Merged (watch) | Track with candidates 4 and 10; qualify changed axiom names, context parsing and recursive/admitted/sealed regressions before prover adoption. |
-| 23 | `secure-compilation/SECOMP` — Remove the unused inconsistent ec_public_first_order axiom | High | [#27](https://github.com/secure-compilation/SECOMP/pull/27) | Open (watch) | Track upstream review and take the reviewed removal through Q39's contained-source qualification and whole-environment audit. |
-| 24 | `secure-compilation/SECOMP` — Print stack-passed parameter loads and restore compiler regression coverage | High | [#31](https://github.com/secure-compilation/SECOMP/pull/31) | Open (watch) | Track upstream review; Q39 must select the applicable printer repair and replay a call reading a parameter beyond the eighth through its rebuilt contained compiler. |
-| 25 | `YosysHQ/riscv-formal` — Correct signed division and remainder model generation | High | [#61](https://github.com/YosysHQ/riscv-formal/pull/61) | Open (watch) | Coordinate with the author and maintainer on the generator revision; contribute RV32/RV64 signed, zero-divisor, overflow and word-width regression evidence instead of another equivalent patch. |
-| 26 | `YosysHQ/riscv-formal` — Correct xperm4 and xperm8 lookup scaling in the generator | High | [#51](https://github.com/YosysHQ/riscv-formal/pull/51) | Open (watch) | Help complete the generator correction, regenerate outputs and add RV32/RV64 in-range and out-of-range permutation regressions before selecting a reference-model pin. |
-| 27 | `rems-project/sail` — Prefer structural unification for type-level addition and subtraction | Medium | [#1795](https://github.com/rems-project/sail/pull/1795) | Merged (watch) | Track upstream adoption; assess the exact change during qualified Sail adoption without moving the locked compiler solely because upstream checks pass. |
-| 28 | `rems-project/sail` — Preserve caller constraints during strict-bitvector SMT specialization | High | [Reference](https://github.com/rems-project/sail/issues/1770) | **TBD** | TBD: coordinate an upstream specialization fix and regression preserving caller constraints; retain strict-bitvector checking. |
-| 29 | `rems-project/sail` — Keep termination-measure dependencies when slicing SMT properties | High | [Reference](https://github.com/rems-project/sail/issues/1771) | **TBD** | TBD: retain measure-only callees in the dependency closure and add reduced plus model-execution regressions. |
-| 30 | `katamaran-project/katamaran` — Support strict Rocq 9.3 postfix notation without changing elaboration | High | [Reference](https://github.com/katamaran-project/katamaran/blob/8b953fe8f17bb4553792c63665d368dc7f6bbd26/theories/Notations.v#L55) | **TBD — issue proposal** | TBD: open a narrowly scoped compatibility report with Q35m's diagnostic and agree a syntax/precedence repair with parsing and elaborated-reading regressions. |
-| 31 | `YosysHQ/riscv-formal` — Test REMUW zero divisors at word width | High | [Reference](https://github.com/YosysHQ/riscv-formal/blob/c992aa61fdfe0846c5ed90324c596202a1c69b76/insns/insn_remuw.v#L49-L50) | **TBD — issue proposal** | TBD: reproduce the high-half-only divisor case, coordinate with issue 30/PR 61, then report or extend their scope; fix the generator and regenerate REMUW with RV64 width and sign-extension controls. |
-| 32 | `rocq-prover/rocq` — Return per-root results for batched Print Assumptions queries | Medium | [#22628](https://github.com/rocq-prover/rocq/pull/22628) | Open | Await maintainer review and remaining upstream validation; qualify the output parser before adopting it in VerifiedOS. |
-| 33 | `riscv/sail-riscv` — Trap illegal vector-memory EMUL combinations before dependent assertions | High | [Reference](https://github.com/riscv/sail-riscv/issues/1800) | **TBD** | Reproduce the retained integer-memory cases, then coordinate a narrow legality-before-assertion repair under issue 1800 with valid controls and preserved capability fault ordering. |
-| 34 | `YosysHQ/riscv-formal` — Add generator-backed Zicond instruction models | High | n/a | **TBD — issue proposal** | Propose generator and regenerated RV32/RV64 models plus instruction-list support, and qualify them against the curated Sail clause before retiring any R2 wrapper obligation. |
-| 35 | `secure-compilation/SECOMP` — Repair inconsistent robust-security premises and the theorem join | High | [Reference](https://github.com/secure-compilation/SECOMP/issues/21) | **TBD** | Coordinate a staged repair using the actual component theorems and explicit source-context guarantees; retain nonlinkable and degenerate-context counterexamples before considering proof reuse. |
-| 36 | `secure-compilation/SECOMP` — Replace the false admitted back-translation bridge step_fix_fix | High | [Reference](https://github.com/secure-compilation/SECOMP/issues/26) | **TBD** | Agree on a semantics/proof repair covering required programs and adversarial contexts, preserve the reported counterexamples, and keep any narrower theorem restrictions explicit during U-25 qualification. |
-| 37 | `WebAssembly/spec` — Correct the Core 3.0 administrative-frame typing rule | High | [#2226](https://github.com/WebAssembly/spec/pull/2226) | Open (watch) | Track the agreed rule formulation; Q34g must qualify the selected Core 3.0 edition and its frame/return preservation cases before consuming generated semantics or proof claims. |
-| 38 | `WebAssembly/spec` — Make memory64/table64 corpus generators exercise 64-bit indices | High | [#2177](https://github.com/WebAssembly/spec/pull/2177) | Open (watch) | Track upstream landing and qualify corrected generators, emitted module widths and mixed-width negative cases in Q34g’s single fixture manifest before counting 64-bit coverage. |
-| 39 | `rocq-prover/rocq` — Reject forged delta aliases in compiled proof libraries | High | [#22456](https://github.com/rocq-prover/rocq/pull/22456) | Open (watch) | Track review and release/backport carriage with R-1; qualify constant and inductive forgeries, legitimate aliases and current proof-gate refusals before prover adoption. |
-| 40 | `mit-plv/fiat-crypto` — Prove and correct Bernstein-Yang generated contracts | High | [#2413](https://github.com/mit-plv/fiat-crypto/pull/2413) | Draft (watch) | Coordinate review of the draft and narrower overlapping repairs as one work item, resolve outstanding upstream checks, and qualify discharged contracts, assumptions and exact regenerated output before extending local emission or inversion claims. |
-| 41 | `WebAssembly/spec` — Exercise relaxed-dot intermediate i16 overflow | High | [#2228](https://github.com/WebAssembly/spec/pull/2228) | Open (watch) | Resolve the failing upstream overflow case and outstanding checks, then qualify the agreed fixtures in Q34g’s shared manifest against the generation-fixed DET choices, including a control that omits the i16 intermediate. |
-| 42 | `rems-project/sail` — Sign the data operand for SystemVerilog arithmetic right shift | High | [Reference](https://github.com/rems-project/sail/issues/1632) | **TBD** | TBD: coordinate a data-operand signedness repair under issue 1632 and add generated-SystemVerilog arithmetic-shift regressions before using that reference for formal equivalence. |
-| 43 | `WebAssembly/spec` — Specify signed zero for floating zero times finite nonzero | High | [Reference](https://github.com/WebAssembly/spec/issues/2300) | **TBD** | TBD: coordinate explicit signed-zero cases under issue 2300, keeping prose and formal rules aligned, with both operand orders, signs, f32/f64 and applicable SIMD regressions. |
-| 44 | `WebAssembly/spec` — Preserve bounds premises for SpecTec slices and update paths | High | [Reference](https://github.com/WebAssembly/spec/issues/2196) | **TBD** | TBD: coordinate the bounds repair and its backport under issues 2196/2301, tracking the related SpecTec PRs; require nested-path bounds and trap/write exclusivity before consuming generated semantics. |
-| 45 | `mit-plv/fiat-crypto` — Make archive-build import generation complete or fail explicitly | Medium | [Reference](https://github.com/mit-plv/fiat-crypto/issues/1626) | **TBD** | TBD: contribute the retained archive/index reproducer to issue 1626 and agree deterministic complete import generation or an explicit refusal when required Git metadata is absent. |
-| 46 | `logsem/machine_utils` — Establish licensing and attribution for cerise and griotte sources | High | [Reference](https://github.com/logsem/machine_utils) | **TBD — issue proposal** | TBD: open a focused license-and-attribution clarification request for the cerise/griotte revisions, then prepare a license PR only from maintainer-provided terms; retain the local replay/incorporation refusal until first-party evidence is recorded. |
-| 47 | `rocq-prover/rocq` — Allow named axioms with -axiom-free | n/a | [#22668](https://github.com/rocq-prover/rocq/pull/22668) | Open | Track candidate 4's landing and upstream review; qualify exact-name matching, sealed and non-rechecked dependency contexts, and retained unsafe-feature refusals before adoption. Keep VerifiedOS's exact assumption-set audit. |
+The unified [upstream backlog in PLAN.md](../../PLAN.md#upstream-contributions-and-adoption) owns priorities, status and next actions; this document retains the supporting review evidence.
+
 
 ## Unsubmitted candidates and follow-ups
 
-Proposed PRs remain unsubmitted until an authored PR is mapped. Backport follow-ups use the upstream release-management process. The records below identify project benefit, scope, evidence and next action; they supply no implementation or qualification verdict.
+Proposed PRs remain unsubmitted until an authored PR is mapped. Backport follow-ups use the upstream release-management process. The records below identify project benefit, scope and evidence; they supply no implementation or qualification verdict.
 
+<a id="upstream-7"></a>
 ### 7. riscv/sail-riscv — Regenerate outputs when the Sail toolchain changes
 
 **Project benefit:** Prevents stale generated C++, documentation and proof terms after compiler replacement.
 
 **Scope and readiness:** No matching authored PR found.
 
-**Next action:** TBD: add compiler dependencies and a regeneration regression.
+[Next action in PLAN.md](../../PLAN.md#upstream-contributions-and-adoption).
 
+<a id="upstream-9"></a>
 ### 9. rems-project/coq-sail — Make classical real-number dependencies optional
 
 **Project benefit:** Could remove four unused real-number axioms from non-real machine models.
 
 **Scope and readiness:** Candidate 1 removes Eqdep dependence only; it does not implement this separate real-number interface change.
 
-**Next action:** TBD: agree library API and conditional Sail-import design.
+[Next action in PLAN.md](../../PLAN.md#upstream-contributions-and-adoption).
 
+<a id="upstream-11"></a>
 ### 11. lowRISC/cva6-cheri — Independently configure Zbkb and Zbkx
 
 **Project benefit:** Addresses the F-471 coupling of retained bit-manipulation instructions to unwanted AES/SHA extensions.
 
 **Scope and readiness:** No matching authored PR found. Mocha issue 748 is related extension-configuration discussion, not this exact implementation.
 
-**Next action:** TBD: discuss configuration controls and decoder-matrix tests with upstream.
+[Next action in PLAN.md](../../PLAN.md#upstream-contributions-and-adoption).
 
+<a id="upstream-12"></a>
 ### 12. CHERIoT-Platform/cheri-rust — Preserve capability tags in small-aggregate calls
 
 **Project benefit:** Improves correctness of the selected future Rust compiler baseline across Rust/Rust and Rust/C calls.
 
 **Scope and readiness:** No matching authored PR found; the upstream issue has an existing assignee and unsettled mixed-aggregate ABI details.
 
-**Next action:** TBD: coordinate ABI rules and add Rust/Rust plus Rust/C regressions.
+[Next action in PLAN.md](../../PLAN.md#upstream-contributions-and-adoption).
 
+<a id="upstream-13"></a>
 ### 13. CHERIoT-Platform/cheri-rust — Test capability-metadata misuse during CTFE
 
 **Project benefit:** Adds safety evidence for capability padding and partial-pointer operations before target adaptation.
 
 **Scope and readiness:** No matching authored PR found.
 
-**Next action:** TBD: add positive and rejection tests requested by upstream.
+[Next action in PLAN.md](../../PLAN.md#upstream-contributions-and-adoption).
 
+<a id="upstream-15"></a>
 ### 15. lowRISC/mocha — Add richer optional retirement tracing
 
 **Project benefit:** Helps diagnose Sail/RTL divergence during scalar bring-up using operand, register and memory observations.
 
 **Scope and readiness:** No matching authored PR found.
 
-**Next action:** TBD: agree generic optional tracing based on existing RVFI values.
+[Next action in PLAN.md](../../PLAN.md#upstream-contributions-and-adoption).
 
+<a id="upstream-16"></a>
 ### 16. rems-project/coq-sail — Represent standalone granule-keyed capability-tag operations
 
 **Priority:** Highest.
@@ -133,8 +91,9 @@ Proposed PRs remain unsubmitted until an authored PR is mapped. Backport follow-
 - [Q35p's checked scope](q35p-memory-bindings.md#executable-interpretation-and-checked-scope) records the candidate and its limits; the [baseline evidence](retained-evidence/close3-q35p-20261013/manifest.json) retains the original semantic refusal.
 - Acceptance preserves raw granule keys, default-false absent tags, every overwritten-granule clear, metadata only after successful data writes and existing refusals. It then joins Q35o and Q35b for strict whole-term compilation, exact assumptions and compiled size; no new assumption or discarded tag effect supplies acceptance.
 
-**Next action:** TBD: agree standalone tag-read/write outcomes and bindings with both upstreams, in parallel with candidates 17 and 18.
+[Next action in PLAN.md](../../PLAN.md#upstream-contributions-and-adoption).
 
+<a id="upstream-17"></a>
 ### 17. rems-project/coq-sail — Support strict Rocq 9.3 source syntax and scoped notation
 
 **Priority:** Highest.
@@ -148,8 +107,9 @@ Proposed PRs remain unsubmitted until an authored PR is mapped. Backport follow-
 - [Focused strict-source result](../../tools/opam/sail-compatibility.md#focused-strict-source-result) owns the immutable patch, frozen comparisons, selected-module scope and remaining production-carriage predicate.
 - Acceptance includes upstream syntax/notation client regressions, unchanged elaborated readings and exact assumptions, complete native declaration census and hosted recursive checking. Q35n cold snapshot qualification, Q35q support qualification and Q35b consumer acceptance remain their owners' separate joins.
 
-**Next action:** TBD: prepare this compatibility PR with candidate 18 first, agree notation scope and retain the existing strict flags and semantic readings.
+[Next action in PLAN.md](../../PLAN.md#upstream-contributions-and-adoption).
 
+<a id="upstream-18"></a>
 ### 18. rems-project/sail — Emit strict Rocq 9.3 syntax with compatible notation scope
 
 **Priority:** Highest.
@@ -164,8 +124,9 @@ Proposed PRs remain unsubmitted until an authored PR is mapped. Backport follow-
 - [Sail PR 1790](https://github.com/rems-project/sail/pull/1790) merged on 2026-10-21 at 08:49:17 UTC. Its top-level monadic-value repair is separate from this strict-syntax repair; coordinate the merged change at qualified backend adoption.
 - Acceptance preserves notation expansions and executable readings, qualifies every canonical emitted declaration and the actual plugin identity, and completes strict whole-term compilation, exact closure, compiled size and hosted cold qualification under the existing owners. The minimal types result alone supplies no canonical consumer verdict.
 
-**Next action:** TBD: prepare the coordinated backend PR with candidate 17, resolve bind-notation ownership and extend the probe to a complete generated main module.
+[Next action in PLAN.md](../../PLAN.md#upstream-contributions-and-adoption).
 
+<a id="upstream-r-1"></a>
 ### R-1. rocq-prover/rocq — Request regression-backed Rocq 9.3 soundness backports
 
 **Priority:** Highest.
@@ -181,8 +142,9 @@ Proposed PRs remain unsubmitted until an authored PR is mapped. Backport follow-
 - [Merged fix 22624](https://github.com/rocq-prover/rocq/pull/22624), tracked in candidate 20, addresses the locked-version universe-checking inconsistency 22287. An upstream merge or assigned milestone does not establish released backport carriage.
 - [The prover lock guide](../../tools/opam/README.md) owns the recorded defects, local restrictions, residual exposure and exact lock-move predicate. Acceptance requires the chosen release to carry the fixes and their regression tests, then project-specific requalification; a milestone, prepared backport or upstream merge supplies no release-adoption verdict.
 
-**Next action:** Request appropriate 9.3 carriage for fixes 22388, 22392 and 22394, discuss checker fix 22556, and track candidate 20's universe-checking fix 22624 through release/backport carriage. Qualify the chosen release before changing local restrictions.
+[Next action in PLAN.md](../../PLAN.md#upstream-contributions-and-adoption).
 
+<a id="upstream-28"></a>
 ### 28. rems-project/sail — Preserve caller constraints during strict-bitvector SMT specialization
 
 **Priority:** High.
@@ -196,8 +158,9 @@ Proposed PRs remain unsubmitted until an authored PR is mapped. Backport follow-
 - [Issue 1770](https://github.com/rems-project/sail/issues/1770) owns the reproducer and current discussion. The public open inventory and targeted searches found no matching PR at review.
 - Acceptance extends the reduced regression to the model-execution call shape; a workaround disabling specialization is not the proposed correctness repair.
 
-**Next action:** TBD: coordinate an upstream specialization fix and regression preserving caller constraints; retain strict-bitvector checking.
+[Next action in PLAN.md](../../PLAN.md#upstream-contributions-and-adoption).
 
+<a id="upstream-29"></a>
 ### 29. rems-project/sail — Keep termination-measure dependencies when slicing SMT properties
 
 **Priority:** High.
@@ -211,8 +174,9 @@ Proposed PRs remain unsubmitted until an authored PR is mapped. Backport follow-
 - [Issue 1771](https://github.com/rems-project/sail/issues/1771) owns the reproducer. It remains separate from candidate 28's specialization constraints.
 - Acceptance preserves termination annotations and strict settings rather than dropping the measure to make emission succeed.
 
-**Next action:** TBD: retain measure-only callees in the dependency closure and add reduced plus model-execution regressions.
+[Next action in PLAN.md](../../PLAN.md#upstream-contributions-and-adoption).
 
+<a id="upstream-30"></a>
 ### 30. katamaran-project/katamaran — Support strict Rocq 9.3 postfix notation without changing elaboration
 
 **Priority:** High.
@@ -227,8 +191,9 @@ Proposed PRs remain unsubmitted until an authored PR is mapped. Backport follow-
 - [Notation at the selected merged PR head](https://github.com/katamaran-project/katamaran/blob/8b953fe8f17bb4553792c63665d368dc7f6bbd26/theories/Notations.v#L55) is distinct from PR 73's import cleanup. GitHub's contents API confirms the notation file has the same Git blob at that head and upstream main's inspected merge revision.
 - Acceptance preserves public types, notation expansions, executable meanings and exact assumptions; a notation repair alone does not qualify the complete Islaris/Lithium/Katamaran closure.
 
-**Next action:** TBD: open a narrowly scoped compatibility report with Q35m's diagnostic and agree a syntax/precedence repair with parsing and elaborated-reading regressions.
+[Next action in PLAN.md](../../PLAN.md#upstream-contributions-and-adoption).
 
+<a id="upstream-31"></a>
 ### 31. YosysHQ/riscv-formal — Test REMUW zero divisors at word width
 
 **Priority:** High.
@@ -242,8 +207,9 @@ Proposed PRs remain unsubmitted until an authored PR is mapped. Backport follow-
 - [Inspected model](https://github.com/YosysHQ/riscv-formal/blob/c992aa61fdfe0846c5ed90324c596202a1c69b76/insns/insn_remuw.v#L49-L50) and [generator owner](https://github.com/YosysHQ/riscv-formal/blob/c992aa61fdfe0846c5ed90324c596202a1c69b76/insns/generate.py#L1535-L1536) share the zero-test mismatch.
 - [PR 61's files](https://github.com/YosysHQ/riscv-formal/pull/61/files) leave REMUW unchanged. Acceptance covers zero and nonzero low words with nonzero high halves and final word-result sign extension; no static inference supplies an executed verdict.
 
-**Next action:** TBD: reproduce the high-half-only divisor case, coordinate with issue 30/PR 61, then report or extend their scope; fix the generator and regenerate REMUW with RV64 width and sign-extension controls.
+[Next action in PLAN.md](../../PLAN.md#upstream-contributions-and-adoption).
 
+<a id="upstream-33"></a>
 ### 33. riscv/sail-riscv — Trap illegal vector-memory EMUL combinations before dependent assertions
 
 **Priority:** High.
@@ -258,8 +224,9 @@ Proposed PRs remain unsubmitted until an authored PR is mapped. Backport follow-
 - [The upstream diagnosis in issue 1800](https://github.com/riscv/sail-riscv/issues/1800) identifies the memory assertions. [PR 1828](https://github.com/riscv/sail-riscv/pull/1828) is closed unmerged; the current upstream source still contains the assertion ordering at observation.
 - Acceptance covers lower and upper invalid EMUL combinations and adjacent valid controls for each retained form, architectural state at the trap and capability permission/fault precedence. A new upstream pin alone supplies no local model qualification.
 
-**Next action:** Reproduce the retained integer-memory cases, then coordinate a narrow legality-before-assertion repair under issue 1800 with valid controls and preserved capability fault ordering.
+[Next action in PLAN.md](../../PLAN.md#upstream-contributions-and-adoption).
 
+<a id="upstream-34"></a>
 ### 34. YosysHQ/riscv-formal — Add generator-backed Zicond instruction models
 
 **Priority:** High.
@@ -274,8 +241,9 @@ Proposed PRs remain unsubmitted until an authored PR is mapped. Backport follow-
 - [The curated Zicond execute clause](../../model/model/extensions/Zicond/zicond_insts.sail) supplies an independent comparison target. No upstream implementation or test was run for this proposal.
 - Acceptance covers both opcodes, zero/nonzero value and condition, RV64 conditions nonzero only in the upper half, rd=x0, operand/destination aliases and encoding refusal controls. Generator and generated outputs must agree. Bounded smoke evidence remains distinct from hardware refinement.
 
-**Next action:** Propose generator and regenerated RV32/RV64 models plus instruction-list support, and qualify them against the curated Sail clause before retiring any R2 wrapper obligation.
+[Next action in PLAN.md](../../PLAN.md#upstream-contributions-and-adoption).
 
+<a id="upstream-35"></a>
 ### 35. secure-compilation/SECOMP — Repair inconsistent robust-security premises and the theorem join
 
 **Priority:** High.
@@ -290,8 +258,9 @@ Proposed PRs remain unsubmitted until an authored PR is mapped. Backport follow-
 - [PR 20](https://github.com/secure-compilation/SECOMP/pull/20) is a build/theorem-maintenance change, not a soundness repair for issue 21. The ccs-main branch remains at cbef9c338d23f40db5054c9a3d6f2b3b873e9204 at observation; no independent upstream build was run.
 - Acceptance requires a checked composition over justified premises and the local arbitrary-context, observation, declassification and progress mapping. A repaired upstream statement alone does not establish CJ-SECOMP.
 
-**Next action:** Coordinate a staged repair using the actual component theorems and explicit source-context guarantees; retain nonlinkable and degenerate-context counterexamples before considering proof reuse.
+[Next action in PLAN.md](../../PLAN.md#upstream-contributions-and-adoption).
 
+<a id="upstream-36"></a>
 ### 36. secure-compilation/SECOMP — Replace the false admitted back-translation bridge step_fix_fix
 
 **Priority:** High.
@@ -306,8 +275,9 @@ Proposed PRs remain unsubmitted until an authored PR is mapped. Backport follow-
 - [PR 19](https://github.com/secure-compilation/SECOMP/pull/19) explicitly preserves theorem statements/assumptions; [PR 1](https://github.com/secure-compilation/SECOMP/pull/1) is the original unfinished back-translation work. No independent upstream build was run.
 - Acceptance retains public-pointer, public-struct-copy, signature and builtin-register counterexamples and checks the informative-trace assumptions. A scalar-only public-memory restriction cannot silently satisfy VerifiedOS’s broader robust-preservation obligation.
 
-**Next action:** Agree on a semantics/proof repair covering required programs and adversarial contexts, preserve the reported counterexamples, and keep any narrower theorem restrictions explicit during U-25 qualification.
+[Next action in PLAN.md](../../PLAN.md#upstream-contributions-and-adoption).
 
+<a id="upstream-42"></a>
 ### 42. rems-project/sail — Sign the data operand for SystemVerilog arithmetic right shift
 
 **Priority:** High.
@@ -322,8 +292,9 @@ Proposed PRs remain unsubmitted until an authored PR is mapped. Backport follow-
 - [The inspected emitter](https://github.com/rems-project/sail/blob/57fd0cef057bb90ed58208599056439edee22e60/src/sail_sv_backend/jib_sv.ml) and issue 1632 identify the misplaced signed cast. Unmentioned upstream work cannot be excluded by the targeted search.
 - Acceptance compares executed generated SV with independent Sail/C or SMT expectations for positive and negative data, zero and maximum architectural shifts, RV32/RV64 and RV64 word-result sign extension; include a negative control retaining the misplaced cast. Preserve existing shift-width handling and FEV acceptance.
 
-**Next action:** TBD: coordinate a data-operand signedness repair under issue 1632 and add generated-SystemVerilog arithmetic-shift regressions before using that reference for formal equivalence.
+[Next action in PLAN.md](../../PLAN.md#upstream-contributions-and-adoption).
 
+<a id="upstream-43"></a>
 ### 43. WebAssembly/spec — Specify signed zero for floating zero times finite nonzero
 
 **Priority:** High.
@@ -338,8 +309,9 @@ Proposed PRs remain unsubmitted until an authored PR is mapped. Backport follow-
 - [The upstream multiplication rules](https://github.com/WebAssembly/spec/blob/main/document/core/exec/numerics.rst#op-fmul) and issue 2300 identify the missing cases. Acceptance fixes the qualified semantic edition rather than silently changing the meaning of a pinned reference.
 - Acceptance covers positive/negative zero with positive/negative finite nonzero operands in both orders and widths, plus zero/zero, infinity, NaN and nonzero-underflow controls; qualify scalar rules and their fixed-SIMD consumers. No specification edit alone establishes local engine refinement.
 
-**Next action:** TBD: coordinate explicit signed-zero cases under issue 2300, keeping prose and formal rules aligned, with both operand orders, signs, f32/f64 and applicable SIMD regressions.
+[Next action in PLAN.md](../../PLAN.md#upstream-contributions-and-adoption).
 
+<a id="upstream-44"></a>
 ### 44. WebAssembly/spec — Preserve bounds premises for SpecTec slices and update paths
 
 **Priority:** High.
@@ -354,8 +326,9 @@ Proposed PRs remain unsubmitted until an authored PR is mapped. Backport follow-
 - Related open work is [Wasm-DSL/spectec PR 204](https://github.com/Wasm-DSL/spectec/pull/204) and [PR 216](https://github.com/Wasm-DSL/spectec/pull/216). [The local semantic-upstream assessment](../assurance/proof-reuse/parsers.md#other-source-leads) requires qualification of the exact generated artifact and admitted-version frontier.
 - Acceptance covers zero-length and boundary slices, out-of-bounds lengths/indices, nested update paths with bounds checked against each reached list, ordinary valid stores and exclusive trapping for invalid stores. A proposal-repository merge is not acceptance of a backport or a generated Core 3.0 theorem.
 
-**Next action:** TBD: coordinate the bounds repair and its backport under issues 2196/2301, tracking the related SpecTec PRs; require nested-path bounds and trap/write exclusivity before consuming generated semantics.
+[Next action in PLAN.md](../../PLAN.md#upstream-contributions-and-adoption).
 
+<a id="upstream-45"></a>
 ### 45. mit-plv/fiat-crypto — Make archive-build import generation complete or fail explicitly
 
 **Priority:** Medium.
@@ -370,8 +343,9 @@ Proposed PRs remain unsubmitted until an authored PR is mapped. Backport follow-
 - [The pinned script](https://github.com/mit-plv/fiat-crypto/blob/1e721c6f18c43b90922e7bc57fd64848e5cff2be/src/Util/make_tactics.sh) generates imports from tracked tactic files. The upstream issue is broader than that script; coordinate the supported archive distribution and dependency scope.
 - Acceptance compares the complete generated import roster and a real generator build from the exact Git checkout and supported source archive, with missing/partial-index refusal controls. Preserve deterministic ordering, the locked proof switch, source identities and existing emission replay checks.
 
-**Next action:** TBD: contribute the retained archive/index reproducer to issue 1626 and agree deterministic complete import generation or an explicit refusal when required Git metadata is absent.
+[Next action in PLAN.md](../../PLAN.md#upstream-contributions-and-adoption).
 
+<a id="upstream-46"></a>
 ### 46. logsem/machine_utils — Establish licensing and attribution for cerise and griotte sources
 
 **Priority:** High.
@@ -386,10 +360,11 @@ Proposed PRs remain unsubmitted until an authored PR is mapped. Backport follow-
 - Cerise and Cerisier select [machine_utils 68081522](https://github.com/logsem/machine_utils/tree/6808152216bcee011c6e6cdcf3500ff8547104f1); Griotte uses the separate [griotte branch](https://github.com/logsem/machine_utils/tree/56d2f2b6d9373f1349f8689455715f168dd86ece). [The proof-donor inventory](../assurance/proof-reuse/hardware.md#hw-05-cerise-universal-contract-and-sentry-encapsulation) retains their separate semantic and assumption joins.
 - Acceptance records the responsible first party’s grant, covered revisions/files and attribution at the owning ledger, then performs the separately required compatibility, exact-assumption and consumer-theorem qualification. This tracker update files no issue, assigns no license and imports no proof source.
 
-**Next action:** TBD: open a focused license-and-attribution clarification request for the cerise/griotte revisions, then prepare a license PR only from maintainer-provided terms; retain the local replay/incorporation refusal until first-party evidence is recorded.
+[Next action in PLAN.md](../../PLAN.md#upstream-contributions-and-adoption).
 
 ## Submitted PR review
 
+<a id="upstream-1"></a>
 ### 1. rems-project/coq-sail #14
 
 [Remove an unnecessary axiom from bitvector conversion proofs](https://github.com/rems-project/coq-sail/pull/14) — **Open**.
@@ -412,8 +387,9 @@ Current head: `f8ae73234befd767c60deb3068e09acd56200618`.
 
 - The PR reports package/full @runtest builds, recursive kernel checking, and unchanged printed theorem types; these were not independently rerun for this tracker.
 
-**Next action:** Await maintainer review and upstream validation.
+[Next action in PLAN.md](../../PLAN.md#upstream-contributions-and-adoption).
 
+<a id="upstream-2"></a>
 ### 2. rems-project/sail #1786
 
 [LSP: refresh open documents after dependency changes](https://github.com/rems-project/sail/pull/1786) — **Open**.
@@ -439,8 +415,9 @@ Current head: `c29feede338c303df5a3ae8cdfb9a2acfc110376`.
 - [Reply to Alasdair](https://github.com/rems-project/sail/pull/1786#issuecomment-6420582589) records the narrowed scope and validation.
 - Local validation of `c29feede338c303df5a3ae8cdfb9a2acfc110376` passed: Libsail and LSP release builds, 16 focused protocol tests, one source-snapshot unit test, and OCamlformat 0.29.0. The history split preserved the tested tree exactly. Full upstream CI remains subject to maintainer approval; these focused checks supply no VerifiedOS model or proof acceptance.
 
-**Next action:** Await maintainer review and upstream CI approval.
+[Next action in PLAN.md](../../PLAN.md#upstream-contributions-and-adoption).
 
+<a id="upstream-3"></a>
 ### 3. tchajed/coq-record-update #68
 
 [Support Rocq 9.3](https://github.com/tchajed/coq-record-update/pull/68) — **Open**.
@@ -468,8 +445,9 @@ Current head: `ec90000b354b979f7eb8c221884340ec42bbbc27`.
 - [Flake build](https://github.com/tchajed/coq-record-update/actions/runs/39366958834): **success**.
 - [CI](https://github.com/tchajed/coq-record-update/actions/runs/39366958809): **success**.
 
-**Next action:** Await maintainer review; displayed build matrix passes.
+[Next action in PLAN.md](../../PLAN.md#upstream-contributions-and-adoption).
 
+<a id="upstream-4"></a>
 ### 4. rocq-prover/rocq #22609
 
 [checker: add opt-in -axiom-free exit status](https://github.com/rocq-prover/rocq/pull/22609) — **Open**.
@@ -498,8 +476,9 @@ Current head: `d0c923cc6c7285669a27240470883ded58a2475a`.
 - GitLab reports a successful light pipeline through a NEUTRAL check; FULL_CI is false. It is not evidence of a full GitLab pipeline pass.
 - [Maintainer review](https://github.com/rocq-prover/rocq/pull/22609#discussion_r4337474886) requests the unsafe-flag collection change; [the author's reply](https://github.com/rocq-prover/rocq/pull/22609#discussion_r4350847776) acknowledges it.
 
-**Next action:** Address the maintainer's unsafe-flag collection request with candidate 10 and coordinate candidate 22; exercise -axiom-free without -o across recursive, -norec, -admit and sealed-module cases.
+[Next action in PLAN.md](../../PLAN.md#upstream-contributions-and-adoption).
 
+<a id="upstream-5"></a>
 ### 5. rems-project/sail #1788
 
 [C/C++: expose opt-in constructor splitting](https://github.com/rems-project/sail/pull/1788) — **Open**.
@@ -524,8 +503,9 @@ Current head: `bbd7a3f0e55419d9703f87143fabd2c12d8884c7`.
 - The upstream matrix and formatting workflows are action_required with no executed matrix jobs.
 - The PR reports C/C++ execution and sanitizer controls. Valgrind was unavailable and skipped.
 
-**Next action:** Upstream maintainer action/approval for CI, then review.
+[Next action in PLAN.md](../../PLAN.md#upstream-contributions-and-adoption).
 
+<a id="upstream-6"></a>
 ### 6. rems-project/sail #1789
 
 [runtime: add bulk memory transfers and buffer raw image loading](https://github.com/rems-project/sail/pull/1789) — **Open**.
@@ -550,8 +530,9 @@ Current head: `75116a2423ad5ea8eba121fb859ac672ac0722c5`.
 - Upstream workflows remain action_required, so the upstream matrix has no passing verdict.
 - [VerifiedOS focused runtime qualification](https://github.com/symbiogenesis/VerifiedOS/actions/runs/39372528576) passed for exact PR head 75116a2423ad5ea8eba121fb859ac672ac0722c5 using harness revision 95ba606d6f18012560ac439d4323ebab0669b52f. This is separate focused evidence, not an upstream matrix pass.
 
-**Next action:** Upstream maintainer action/approval for CI, then review.
+[Next action in PLAN.md](../../PLAN.md#upstream-contributions-and-adoption).
 
+<a id="upstream-8"></a>
 ### 8. katamaran-project/katamaran #73
 
 [Remove unused Program.Equality imports from the Iris model](https://github.com/katamaran-project/katamaran/pull/73) — **Merged**.
@@ -578,8 +559,9 @@ Merged: `2026-10-22T08:57:21Z`.
 - Merged 2026-10-22 at 48824e03a5915cc1ae375ce4fe0b86cb3da20dff. The Nix workflow and its matrix.rocq job were skipped; they supply no passing hosted evidence.
 - The deferred upstream/katamaran reference selects merged PR head 8b953fe8f17bb4553792c63665d368dc7f6bbd26, containing only this cleanup over the preceding pin. [The dependency-trial continuation](../assurance/machine-logic-dependency-trial.md#separately-scoped-unpriced-continuation) takes this upstream removal directly; historical trial inputs and qualification refusals remain unchanged.
 
-**Next action:** Use the selected merged PR head for the separately commissioned machine-logic compatibility continuation; qualify the complete closure at locked Rocq 9.3 before carriage.
+[Next action in PLAN.md](../../PLAN.md#upstream-contributions-and-adoption).
 
+<a id="upstream-10"></a>
 ### 10. rocq-prover/rocq #22611
 
 [checker: report sealed implementation assumptions with -norec](https://github.com/rocq-prover/rocq/pull/22611) — **Merged**.
@@ -614,8 +596,9 @@ Merged: `2026-10-22T12:42:15Z`.
 - [The merged checker](https://github.com/rocq-prover/rocq/blob/52b9ccf77b20272622bf580a7f15816cab567291/checker/coqchk_main.ml) enables admitted-library bookkeeping only with output_context. Candidate 4 must also enable it for axiom-free checking without -o and test the combined options.
 - GitHub CI and the displayed GitLab pipeline check pass for the final head. The separate benchmark check was canceled and supplies no passing measurement.
 
-**Next action:** At qualified prover adoption, compare native admitted-root contexts with the current cover pass and retire only that redundancy; keep checked sealed-field audits. Coordinate -axiom-free integration with candidate 4.
+[Next action in PLAN.md](../../PLAN.md#upstream-contributions-and-adoption).
 
+<a id="upstream-14"></a>
 ### 14. CertiRocq/certirocq #167
 
 [Fix bootstrap Hd_val collision with OCaml 5.2+](https://github.com/CertiRocq/certirocq/pull/167) — **Merged**.
@@ -645,8 +628,9 @@ Merged: `2026-10-20T13:15:31Z`.
 
 - [Original Docker failure](https://github.com/CertiRocq/certirocq/actions/runs/39377893256) occurs before bootstrap bridge compilation because the image lacks the required MetaRocq module. Four Nix checks pass.
 
-**Next action:** Initial backport build passed; production adoption deferred at user request pending consumer checks, clean replay and complete-vector acceptance. See the [backport record](../../tools/opam/certirocq-hdval-adoption.md#deferred-qualification).
+[Next action in PLAN.md](../../PLAN.md#upstream-contributions-and-adoption).
 
+<a id="upstream-ci-1"></a>
 ### CI-1. CertiRocq/certirocq #168
 
 [Restore the Docker CI build environment](https://github.com/CertiRocq/certirocq/pull/168) — **Merged**.
@@ -677,8 +661,9 @@ Merged: `2026-10-21T06:50:11Z`.
 - [Recorded failed Docker run](https://github.com/CertiRocq/certirocq/actions/runs/39468861002) passes dependency installation and compiler construction but fails the axioms runtime test.
 - Merged 2026-10-21 at b7138434cb8d844d3d9bc196e3db8e02308ac9eb. The merge supplies no Docker runtime-test or VerifiedOS adoption verdict.
 
-**Next action:** Investigate the print_lst segfault before treating Docker validation as restored.
+[Next action in PLAN.md](../../PLAN.md#upstream-contributions-and-adoption).
 
+<a id="upstream-19"></a>
 ### 19. rocq-prover/rocq #22614
 
 [printing: warn when module contents cannot be printed](https://github.com/rocq-prover/rocq/pull/22614) — **Merged**.
@@ -715,8 +700,9 @@ Merged: `2026-10-22T08:05:22Z`.
 - [The local rocq-census producer](../../tools/rocq-census/README.md) emits structured native type, universe and name metadata; [its checkpoint](q35q-native-inventory.md#current-native-producer) retains the bounded controls and unqualified census boundary. This original plugin and runner are not an upstream Rocq patch or an implementation of PR 22614.
 - Public authored-PR search observed 2026-10-23 07:46:04 UTC: complete all-state searches for symbiogenesis in rocq-prover/rocq, rems-project/coq-sail and rems-project/sail found no exporter PR; complete global authored searches for the exact phrase rocq-census and for census returned no results. The [Rocq authored-PR inventory](https://api.github.com/search/issues?q=repo%3Arocq-prover%2Frocq+is%3Apr+author%3Asymbiogenesis&per_page=100) includes this warning PR. Private or unindexed work is not excluded. No separate submission or new upstream proposal is established by the local tool.
 
-**Next action:** After qualified prover adoption, promote module-printing-fallback to an error in rich-print census queries. Qualify the local rocq-census producer separately under Q35q, including complete metadata coverage, implementation connections, exact assumption audits and hosted kernel evidence.
+[Next action in PLAN.md](../../PLAN.md#upstream-contributions-and-adoption).
 
+<a id="upstream-32"></a>
 ### 32. rocq-prover/rocq #22628
 
 [Print Assumptions: add per-reference output](https://github.com/rocq-prover/rocq/pull/22628) — **Open**.
@@ -749,8 +735,9 @@ Current head: `1090cfde2672cebea0f78466dc8bb3649de5c2b7`.
 - [GitHub CI for the reviewed head](https://github.com/rocq-prover/rocq/actions/runs/40907751042) supplies the hosted build and test evidence; available verdicts are recorded in the captured public checks.
 - [Issue 5639](https://github.com/rocq-prover/rocq/issues/5639) records repeated-query costs. [PR 22425](https://github.com/rocq-prover/rocq/pull/22425) addresses shared proof-term traversal separately; this PR does not claim to solve it.
 
-**Next action:** Await maintainer review and remaining upstream validation; qualify the output parser before adopting it in VerifiedOS.
+[Next action in PLAN.md](../../PLAN.md#upstream-contributions-and-adoption).
 
+<a id="upstream-47"></a>
 ### 47. rocq-prover/rocq #22668
 
 [checker: allow named axioms with -axiom-free](https://github.com/rocq-prover/rocq/pull/22668) — **Open**.
@@ -777,12 +764,13 @@ Current head: `78c86c3b1ef0ebb5dd0e265544e7b4acd1c11696`.
 - Unknown or unused allowed names are accepted: the feature is a permissive allowlist, not an exact expected-assumption-set check.
 - Assumption discovery retains the parent checker's context coverage and -admit/-norec trust assumptions; the new flag does not independently establish complete discovery.
 
-**Next action:** Track candidate 4's landing and upstream review; qualify exact-name matching, sealed and non-rechecked dependency contexts, and retained unsafe-feature refusals before adoption. Keep VerifiedOS's exact assumption-set audit.
+[Next action in PLAN.md](../../PLAN.md#upstream-contributions-and-adoption).
 
 ## Upstream PR watchlist
 
 These upstream-owned PRs are explicitly mapped for adoption or collaboration. They do not count as authored submissions.
 
+<a id="upstream-20"></a>
 ### 20. rocq-prover/rocq #22624
 
 [Enforce consistency of env typing flags with ugraph type-in-type flag](https://github.com/rocq-prover/rocq/pull/22624) — **Merged**.
@@ -817,8 +805,9 @@ Merged: `2026-10-23T10:10:53Z`.
 - [The prover lock guide](../../tools/opam/README.md) records the locked-version reproduction, current mitigations and residual dependency exposure.
 - [Issue 22287](https://github.com/rocq-prover/rocq/issues/22287) is the existing report; do not open a duplicate. Acceptance retains the current exact audits and requires qualified release adoption.
 
-**Next action:** Track release/backport carriage with R-1; qualify the eventual release and regression before changing the prover lock or local restrictions.
+[Next action in PLAN.md](../../PLAN.md#upstream-contributions-and-adoption).
 
+<a id="upstream-21"></a>
 ### 21. rocq-prover/rocq #22294
 
 [Report check_eliminations bypasses in Print Assumptions and rocqchk](https://github.com/rocq-prover/rocq/pull/22294) — **Open**.
@@ -851,8 +840,9 @@ Current head: `5afc5ba2dc575d5c7de23d94a64b3381d33d6ed2`.
 - The PR adds compiler and checker reporting plus a plugin-based regression that distinguishes disabled elimination checking from universe checking.
 - [The proof gate's context contract](../../tools/README.md#current-evidence-and-generated-documentation) owns exact unsafe-context rejection. A new report section must be understood and refused before adoption.
 
-**Next action:** Track upstream completion; at qualified adoption extend parser and rejection fixtures for unchecked eliminations in both compiler and checker reports.
+[Next action in PLAN.md](../../PLAN.md#upstream-contributions-and-adoption).
 
+<a id="upstream-22"></a>
 ### 22. rocq-prover/rocq #22623
 
 [rocqchk accumulate axioms without "opacify" logic](https://github.com/rocq-prover/rocq/pull/22623) — **Merged**.
@@ -889,8 +879,9 @@ Merged: `2026-10-28T15:44:28Z`.
 - [Issue 22618](https://github.com/rocq-prover/rocq/issues/22618) supplies the existing report and reproducer; do not duplicate it.
 - Acceptance preserves complete loaded-context rejection, concrete sealed-implementation audits and joint consistency; upstream completion alone supplies no proof-gate qualification.
 
-**Next action:** Track with candidates 4 and 10; qualify changed axiom names, context parsing and recursive/admitted/sealed regressions before prover adoption.
+[Next action in PLAN.md](../../PLAN.md#upstream-contributions-and-adoption).
 
+<a id="upstream-23"></a>
 ### 23. secure-compilation/SECOMP #27
 
 [Remove the unused axiom `ec_public_first_order`, which implies `False`](https://github.com/secure-compilation/SECOMP/pull/27) — **Open**.
@@ -916,8 +907,9 @@ Current head: `e22f4edbc252db399f52d30b02c36a30c0fc9a16`.
 - [F-522](../assurance/findings-register.md) records the unused inconsistent axiom; Q39 owns the contained-file removal and the scope of each proof receipt.
 - Acceptance replays the locked compiler build and exact assumption/kernel audits on the actual contained source; author-reported upstream builds are not independent VerifiedOS evidence.
 
-**Next action:** Track upstream review and take the reviewed removal through Q39's contained-source qualification and whole-environment audit.
+[Next action in PLAN.md](../../PLAN.md#upstream-contributions-and-adoption).
 
+<a id="upstream-24"></a>
 ### 24. secure-compilation/SECOMP #31
 
 [Restore CompCert's test suite, and fix `ccomp` on functions with parameters on the stack](https://github.com/secure-compilation/SECOMP/pull/31) — **Open**.
@@ -943,8 +935,9 @@ Current head: `6a8ae2b76b4fd85c8ed9796b3801fc049c6a5527`.
 - [F-523 and its conditional sibling F-524](../assurance/findings-register.md) distinguish ordinary stack-argument printing from interpreter/back-translation allocation.
 - [SECOMP PR 32](https://github.com/secure-compilation/SECOMP/pull/32) addresses the separate many-builtin-argument allocator failure. Reconsider it only if the contained route uses the affected interpreter/back-translation path; it is not silently included in this adoption.
 
-**Next action:** Track upstream review; Q39 must select the applicable printer repair and replay a call reading a parameter beyond the eighth through its rebuilt contained compiler.
+[Next action in PLAN.md](../../PLAN.md#upstream-contributions-and-adoption).
 
+<a id="upstream-25"></a>
 ### 25. YosysHQ/riscv-formal #61
 
 [Fix signed div/rem spec generation](https://github.com/YosysHQ/riscv-formal/pull/61) — **Open**.
@@ -970,8 +963,9 @@ Current head: `898ed0a9bb0ba175679abd2bbf1138f50b98f801`.
 - [R2's bounded smoke contract](../assurance/rtl-cosimulation-harness.md#7-the-bounded-model-checking-smoke) records F-470 and the required corrected models.
 - [Issue 30](https://github.com/YosysHQ/riscv-formal/issues/30) is the existing signed-arithmetic report. Acceptance checks the generator and regenerated output together; no current patch or upstream merge is treated as R2 qualification.
 
-**Next action:** Coordinate with the author and maintainer on the generator revision; contribute RV32/RV64 signed, zero-divisor, overflow and word-width regression evidence instead of another equivalent patch.
+[Next action in PLAN.md](../../PLAN.md#upstream-contributions-and-adoption).
 
+<a id="upstream-26"></a>
 ### 26. YosysHQ/riscv-formal #51
 
 [Fix xperm8/xperm4: lookup is scaled by element size](https://github.com/YosysHQ/riscv-formal/pull/51) — **Open**.
@@ -1001,8 +995,9 @@ Current head: `a5b5ac1a11e05ae10e1b95c1e7bef8ad29d5f5ff`.
 - [Issue 49](https://github.com/YosysHQ/riscv-formal/issues/49) and the PR discussion identify the lookup-scaling defect and generator ownership. The author points to [refactor commit df53e2a](https://github.com/YosysHQ/riscv-formal/commit/df53e2a96e638fe4ae5aa0c8df74c2005229c46f), whose new generator already contains a correction; coordinate its landing and regenerated outputs.
 - [The smoke scope](../assurance/rtl-cosimulation-harness.md#7-the-bounded-model-checking-smoke) includes Zbkx. Generator/output consistency and corrected-case checks are separate from the curated core's extension-configuration repair in candidate 11.
 
-**Next action:** Help complete the generator correction, regenerate outputs and add RV32/RV64 in-range and out-of-range permutation regressions before selecting a reference-model pin.
+[Next action in PLAN.md](../../PLAN.md#upstream-contributions-and-adoption).
 
+<a id="upstream-27"></a>
 ### 27. rems-project/sail #1795
 
 [Type check: use better unifiers for type level +, -](https://github.com/rems-project/sail/pull/1795) — **Merged**.
@@ -1039,8 +1034,9 @@ Merged: `2026-10-23T16:48:17Z`.
 - The PR's motivating example avoids solving a type variable as (n - 1) + 1 when n suffices. Its Rocq regression supplies upstream scope, not a canonical VerifiedOS consumer verdict.
 - Candidates 16 through 18 retain higher implementation priority because they address measured semantic and strict-compilation blockers.
 
-**Next action:** Track upstream adoption; assess the exact change during qualified Sail adoption without moving the locked compiler solely because upstream checks pass.
+[Next action in PLAN.md](../../PLAN.md#upstream-contributions-and-adoption).
 
+<a id="upstream-37"></a>
 ### 37. WebAssembly/spec #2226
 
 [[soundness] fix the frame rule again in instr_ok2](https://github.com/WebAssembly/spec/pull/2226) — **Open**.
@@ -1077,8 +1073,9 @@ Current head: `c37b5aaa9ae4ae569df9a73f04cee9fb03b11b70`.
 - The specification edition already cited by that assessment, 95dffb694caa11c3663203f2756dda9bf24c2021, still requires C′.RETURN to equal the frame result type before checking the body in C′. The proposed repair checks the body under the explicitly extended context.
 - Acceptance checks nested frames, explicit returns and result typing against the pinned semantic edition and complete engine proof. Upstream checks and a rule merge alone do not establish local guest confinement.
 
-**Next action:** Track the agreed rule formulation; Q34g must qualify the selected Core 3.0 edition and its frame/return preservation cases before consuming generated semantics or proof claims.
+[Next action in PLAN.md](../../PLAN.md#upstream-contributions-and-adoption).
 
+<a id="upstream-38"></a>
 ### 38. WebAssembly/spec #2177
 
 [Actually test table64 and memory64 in *64.wast files](https://github.com/WebAssembly/spec/pull/2177) — **Open**.
@@ -1105,8 +1102,9 @@ Current head: `23311d2ea4087b40a932067418d3069d97484213`.
 - The cited corpus edition, 608711107b7f1edb13efd57b7d79b49477462d36, has a table.init generator without the proposed INDEX_TYPE parameterization. The diff changes declarations, offsets and instruction operands together rather than renaming fixtures.
 - Acceptance inspects decoded feature usage and positive/invalid mixed-width cases, records generator and module identities, and filters the exact Core 3.0 scope. A newer upstream main test tree is not automatically the selected semantic edition or a local qualification verdict.
 
-**Next action:** Track upstream landing and qualify corrected generators, emitted module widths and mixed-width negative cases in Q34g’s single fixture manifest before counting 64-bit coverage.
+[Next action in PLAN.md](../../PLAN.md#upstream-contributions-and-adoption).
 
+<a id="upstream-39"></a>
 ### 39. rocq-prover/rocq #22456
 
 [rocqchk: fix soundness bug accepting proofs of False through forged delta aliases](https://github.com/rocq-prover/rocq/pull/22456) — **Open**.
@@ -1145,8 +1143,9 @@ Current head: `d8b11360301e1ea115ff9b729472ccce25d7d554`.
 - [PR 22556](https://github.com/rocq-prover/rocq/pull/22556) repairs implementation delta-resolver substitution for anomaly 22555; it does not replace this serialized-alias validation.
 - Acceptance checks digest-recomputed constant and inductive forgeries, legitimate transparent strengthening, sealed modules and recursive/admitted roots on the qualified release. No independent upstream build or forged-object execution was run for this tracker.
 
-**Next action:** Track review and release/backport carriage with R-1; qualify constant and inductive forgeries, legitimate aliases and current proof-gate refusals before prover adoption.
+[Next action in PLAN.md](../../PLAN.md#upstream-contributions-and-adoption).
 
+<a id="upstream-40"></a>
 ### 40. mit-plv/fiat-crypto #2413
 
 [Fix and prove the Bernstein-Yang word-by-word Montgomery specs (scrutineer #2522, #2523, #2524)](https://github.com/mit-plv/fiat-crypto/pull/2413) — **Open**.
@@ -1244,8 +1243,9 @@ Current head: `144ac4d1790e9d0cd6aa235a2596e97b1f6d1af2`.
 - Related narrower PRs [2402](https://github.com/mit-plv/fiat-crypto/pull/2402), [2417](https://github.com/mit-plv/fiat-crypto/pull/2417) and [2420](https://github.com/mit-plv/fiat-crypto/pull/2420) cover the same exported contracts; coordinate the chosen repair rather than commissioning duplicate patches.
 - Acceptance checks all three synthesized contracts and their exact assumptions at the locked prover, saturated n+1-limb values, signed delta bounds and inversion preconditions; rebuild the pinned generator and replay the recorded recipes. Comment repair alone supplies neither target refinement nor a complete inversion theorem.
 
-**Next action:** Coordinate review of the draft and narrower overlapping repairs as one work item, resolve outstanding upstream checks, and qualify discharged contracts, assumptions and exact regenerated output before extending local emission or inversion claims.
+[Next action in PLAN.md](../../PLAN.md#upstream-contributions-and-adoption).
 
+<a id="upstream-41"></a>
 ### 41. WebAssembly/spec #2228
 
 [test/relaxed_dot: add i16-intermediate overflow boundary cases](https://github.com/WebAssembly/spec/pull/2228) — **Open**.
@@ -1273,11 +1273,11 @@ Current head: `ce2f20c26b4f2b66c85d7cc90d0571f5b00f89b7`.
 - Acceptance exercises both relaxed-dot forms, the intermediate-overflow case, nonzero accumulators and ordinary in-range controls. Each implementation must return its selected deterministic result; a broad allowed-result set must not replace the exact DET-profile check.
 - The upstream report describes interpreter bugs that the preceding corpus missed. [The captured interpreter log](https://github.com/WebAssembly/spec/actions/runs/32062414434/job/99852679950) reports wrong return values at relaxed_dot_product.wast lines 117-126. This tracker read that failure and the fixture diff without independently executing the reproducers or assigning the discrepancy to the test or interpreter.
 
-**Next action:** Resolve the failing upstream overflow case and outstanding checks, then qualify the agreed fixtures in Q34g’s shared manifest against the generation-fixed DET choices, including a control that omits the i16 intermediate.
+[Next action in PLAN.md](../../PLAN.md#upstream-contributions-and-adoption).
 
 ## Maintenance
 
-[snapshot.json](upstream-prs/snapshot.json) owns the candidate mapping, captured GitHub facts and human review notes. Refresh public status with the configured read-only GitHub CLI queries, then regenerate and check:
+[snapshot.json](upstream-prs/snapshot.json) owns the candidate mapping, captured GitHub facts and human review notes. Refresh public status with the configured read-only GitHub CLI queries, then regenerate both this evidence document and the marked upstream backlog in root PLAN.md, and check:
 
 ```powershell
 python docs/implementation/upstream-prs/render.py --refresh

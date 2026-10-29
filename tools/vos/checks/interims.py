@@ -266,6 +266,10 @@ class NonPremise:
 # path and anchor, "" being a file read as one anchor. Each reason says what the named
 # lines' citations are; none of them cites an interim's verdict as a premise.
 NON_PREMISE: dict[tuple[str, str], NonPremise] = {
+    (PLAN, "Proof inspection and host tools"): NonPremise(
+        (FSTAR,), "a proposed SMT proof-interface experiment migrated from the upstream "
+        "survey; it admits no artifact and explicitly distinguishes foreign checking "
+        "from Rocq admission", ("Try a frozen finite obligation only if it needs this theory coverage",)),
     (REGISTER, "R-05-010"): NonPremise(
         (FSTAR, EASYCRYPT), "the prohibition keeping a contained component's "
         "foreign-prover pedigree out of the trust base",

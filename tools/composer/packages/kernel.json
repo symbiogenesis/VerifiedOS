@@ -68,14 +68,14 @@
       "id": "kernel-boundary",
       "source": {
         "path": "kernel/README.md",
-        "sha256": "576e5f89dba3d48d7d22b56fc34be772fbab01834383f2f863aa66511ce4da66"
+        "sha256": "ce3b24066b7fc745d9721ed29fdf40621489aeed6e5f5c3994e742b678ddaf4f"
       }
     },
     {
       "id": "scalar-abi",
       "source": {
         "path": "docs/implementation/contracts/purecap-abi.md",
-        "sha256": "1e4ab8e65d7fef144eafdc8664818a34e3b6dc76de17701fc791fcad4d19966a"
+        "sha256": "83616857f93a744fcc7cb4891f167705958c80a71912a2fbceca2d5c580694d4"
       }
     },
     {
