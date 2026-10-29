@@ -186,6 +186,22 @@ focused `test --only test_composition_staged` consumes the actual checked-in
 population for its positive and refusal cases; it supplies host composition
 evidence, with final compiler, image and admission joins still open.
 
+`composer export-staged-boot-products out/composer/historical-input.json --output out/composer/boot-products.json`
+replays that candidate against the actual retained population and exports its
+normal stages by member and symbolic artifact slot. The RoT slot has separate
+`rom` and `runtime` units; the M-mode slot has `mmode`. This stage-aware catalog
+does not represent the two RoT stages as one final runtime artifact.
+
+`composer check-staged-boot-product out/composer/historical-input.json --products out/composer/boot-products.json --slot mmode-firmware-artifact --unit mmode --artifact firmware/chain/target/mmode.s`
+replays the catalog and producer inspection, then binds the consumer's file to
+the selected unit's actual bytes. A separately named file with those same bytes
+is supported. A catalog substitution, wrong slot/unit, changed file or stale
+source refuses. Export also preserves an earlier catalog on an input/output alias
+or inspection refusal. The focused `test --only test_composition_products` runs
+the actual retained M-mode product through selection and ordinary production
+projections, with wrong-stage and substituted-file controls. Both acceptance
+fields remain false; unresolved runtime slots still prevent a build record.
+
 ### Placement and build bindings
 
 Image entries may be unresolved; a declared entry follows the boot contract's

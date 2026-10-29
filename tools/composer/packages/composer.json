@@ -12,7 +12,7 @@
     },
     {
       "path": "tools/vos/cli/composer.py",
-      "sha256": "af3222b105121f0251ef0a56c886b7f5fd5e871e9c7b8af6e6ace3cda6121a44"
+      "sha256": "fc8c1736f5839cfa3064fd6886ee3df113afae4d4ffb0616d1c3c09fa5d84a9b"
     },
     {
       "path": "proofs/HandlerGraph.v",
@@ -20,7 +20,7 @@
     },
     {
       "path": "tools/vos/composition_staged.py",
-      "sha256": "f8d445128858399a6a4c1a32a912f4b5f3a60b8c9a4a74ad32c01c59ffb3f6a4"
+      "sha256": "0e7861328a0407e2ee612aea3825b473270ff9c6bd8c7a3f58c6e726ccd28007"
     }
   ],
   "interfaces": [
@@ -42,7 +42,7 @@
       "id": "composition-projections",
       "source": {
         "path": "docs/implementation/contracts/boot-roster.md",
-        "sha256": "5318560ee02aef72032063da50eb617c400f551c1faf38826a0dbc960cbb20ca"
+        "sha256": "bdbfdadad79741265abd974c81929dfc879198d6c05773d9c71f49374cf84004"
       }
     }
   ],
