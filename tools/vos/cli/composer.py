@@ -89,6 +89,15 @@ def main(argv: list[str] | None = None) -> int:
     staged = commands.add_parser("bind-staged-boot-chain", help="inspect retained boot products into a historical candidate")
     staged.add_argument("source")
     staged.add_argument("--output", required=True)
+    products = commands.add_parser("export-staged-boot-products", help="export inspected normal-stage product identities")
+    products.add_argument("source")
+    products.add_argument("--output", required=True)
+    select = commands.add_parser("check-staged-boot-product", help="replay a retained product selection against actual bytes")
+    select.add_argument("source")
+    select.add_argument("--products", required=True)
+    select.add_argument("--slot", required=True)
+    select.add_argument("--unit", required=True)
+    select.add_argument("--artifact", required=True)
     check_project = commands.add_parser("check-project", help="regenerate and compare production projections")
     check_project.add_argument("source", nargs="?", default=production.EXAMPLE)
     check_project.add_argument("--output", default=production.GENERATED)
@@ -114,6 +123,16 @@ def main(argv: list[str] | None = None) -> int:
     try:
         if args.command == "bind-staged-boot-chain":
             print(json.dumps(composition_staged.bind_boot_chain(root, args.source, args.output), indent=2))
+            return 0
+        if args.command == "export-staged-boot-products":
+            record = composition_staged.export_boot_products(root, args.source, args.output)
+            print(json.dumps({"output": args.output, "products": record["products"],
+                              "production_admission": False, "final_target_acceptance": False}, indent=2))
+            return 0
+        if args.command == "check-staged-boot-product":
+            result = composition_staged.select_boot_product(
+                root, args.source, args.products, args.slot, args.unit, args.artifact)
+            print(json.dumps(result, indent=2))
             return 0
         if args.command in ("build-record", "check-build-record"):
             _build_record(root, args)
