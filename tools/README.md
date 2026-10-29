@@ -703,6 +703,10 @@ its assigned checkout and keeps the host/guest placement rules below.
 
 ## One toolchain, several checkouts
 
+For a new computer, use the [WSL migration guide](wsl-migration.md) to retain the
+old distribution and Windows compiler checkout. Check CPU architecture before
+restoring executable toolchains; historical evidence still requires revalidation.
+
 There is one WSL toolchain and there are as many checkouts as there are git worktrees, so the build trees have to be told apart. Each checkout gets a **lane**, and `run.py model lane` prints which one this is, where it builds, on which filesystem, and whether anything is building there right now.
 
 The lane is derived from the checkout rather than declared: a linked worktree's `.git` is a *file* naming its administrative directory under the primary checkout's `.git/worktrees/`, and the lane is git's own name for the worktree, which is unique within the repository by construction. The primary worktree has no lane and keeps the paths it always had; a linked one builds under `/root/build/lane-<name>/`, which is one directory holding the whole of what that lane knows, so a lane is retired by deleting it. The one tree every lane shares is the M0.4 oracle's, because it is stock upstream at a pinned commit and none of this repository's curation reaches it.
