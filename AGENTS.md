@@ -2,6 +2,8 @@
 
 Read [README.md](README.md) first for the project's purpose, design goals, and current status.
 
+[PLAN.md](PLAN.md) is the source of truth for all outstanding work.
+
 AGENTS.md owns shared agent instructions. Edit shared rules here. The linked artifacts own the detailed contracts summarized below; check them before changing the relevant area and resolve disagreements at their source.
 
 Follow the [validation handoff](#tool-execution-and-validation): require Host CI, dispatch every Guest CI lane, and finish without waiting for Guest CI.
