@@ -68,7 +68,7 @@ def _named(errors: list[str], path: str, phrase: str) -> bool:
 def _inventory_is_computed_and_complete() -> None:
     items = manifest.inventory(ROOT, manifest.registration())
     paths = {entry["path"]: entry for entry in items["files"]}
-    for rel in (manifest.GENERATOR, manifest.ARTIFACT_DOC, manifest.AGENDA,
+    for rel in (manifest.GENERATOR, manifest.ARTIFACT_DOC, manifest.AGENDA, manifest.PLAN,
                 manifest.COMMAND_MODULE, *manifest.GENERATED):
         ensure(rel in paths, f"the inventory must carry {rel}")
     bound = cli.identity(ROOT, (manifest.GENERATOR,))["sources_sha256"]
@@ -79,6 +79,9 @@ def _inventory_is_computed_and_complete() -> None:
            "every accepted action is inventoried, read from the parser")
     ensure(all(entry["replay"].endswith("--json") for entry in items["actions"]),
            "each action carries its exact replay command")
+    action = next(entry for entry in items["actions"] if entry["action"] == manifest.ACTION)
+    ensure(manifest.PLAN in action["declared_sources"],
+           "the manifest binds the root plan that owns the research tasks")
     scale = next(entry for entry in items["actions"] if entry["action"] == "scale")
     ensure("--q5-max-leaves 1" in scale["replay"], "a budgeted action states its budget")
     ensure("tools/vos/static_memory_scale.py" in scale["declared_sources"]
@@ -140,6 +143,13 @@ def _a_mention_is_not_a_link_and_the_index_is_not_a_witness() -> None:
                           "links to this document"),
                    f"displayed or parenthesized text cannot supply a link: {displayed}, {errors}")
         _place(root, experiments, original)
+        plan = (root / manifest.PLAN).read_text(encoding="utf-8")
+        _append(root, manifest.PLAN,
+                "\n[Orphan research task](docs/implementation/static-memory/orphan.md#results)\n")
+        ensure(not _named(manifest.report(root)["errors"],
+                          "docs/implementation/static-memory/orphan.md", "links to this document"),
+               "a research task's root-plan link makes its artifact reachable")
+        _place(root, manifest.PLAN, plan)
         _append(root, experiments, "\n[Orphan](orphan.md#results) says so.\n")
         _append(root, "docs/implementation/static-memory/transformations.md",
                 "\nstatic_memory_orphan.py carries the orphan experiment.\n")

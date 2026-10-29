@@ -38,6 +38,7 @@ ACTION = "manifest"
 GENERATOR = "tools/vos/static_memory_manifest.py"
 
 AGENDA = "docs/background/static-memory-research.md"
+PLAN = "PLAN.md"
 ARTIFACT_DOC = "docs/implementation/static-memory/artifact.md"
 COMMAND_MODULE = "tools/vos/cli/static_memory.py"
 # Written by `run.py check --fix` from the register and what the shipped proofs cite;
@@ -231,6 +232,7 @@ def inventory(root: Path, reg: Registration) -> Inventory:
         for rel in listing(root, kind):
             listed.setdefault(rel, kind["kind"])
     listed.setdefault(AGENDA, DOCUMENT_KIND["kind"])
+    listed.setdefault(PLAN, SOURCE_KIND)
     listed.setdefault(COMMAND_MODULE, MODULE_KIND["kind"])
     for rel in GENERATED:
         listed.setdefault(rel, GENERATED_KIND)
@@ -255,14 +257,14 @@ def of_kind(items: Inventory, kind: str) -> list[str]:
 
 
 def texts(root: Path, items: Inventory) -> dict[str, str]:
-    """The working-tree text of every inventoried document that is readable.
+    """Readable research documents and the root plan that owns their tasks.
 
     Working-tree contents against index membership, which is how `tools/check.py` reads
     the corpus: an unstaged edit already decides, and an untracked file is a finding of
     its own rather than a document this silently trusts.
     """
     result: dict[str, str] = {}
-    for rel in of_kind(items, DOCUMENT_KIND["kind"]):
+    for rel in (*of_kind(items, DOCUMENT_KIND["kind"]), PLAN):
         path = root / rel
         if path.is_file():
             result[rel] = path.read_text(encoding="utf-8")
@@ -381,7 +383,7 @@ def _document_findings(root: Path, items: Inventory, prose: dict[str, str]) -> l
     inbound: set[str] = set()
     for other, text in witnesses(prose).items():
         inbound |= links(root, other, text)
-    return [f"{rel}: no other static-memory document and not the research agenda links "
+    return [f"{rel}: no other static-memory document, research agenda or root plan links "
             "to this document"
             for rel in of_kind(items, DOCUMENT_KIND["kind"])
             if rel not in (ARTIFACT_DOC, AGENDA) and rel not in inbound]

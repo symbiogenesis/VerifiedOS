@@ -38,7 +38,7 @@ SOURCES = (
 EXPERIMENT_SOURCES: dict[str, tuple[str, ...]] = {
     "manifest": ("tools/vos/static_memory_manifest.py",
                  "tools/vos/corpus.py", "tools/vos/proofenv.py",
-                 "docs/implementation/static-memory/artifact.md"),
+                 "docs/implementation/static-memory/artifact.md", manifest.PLAN),
     "structure": ("tools/vos/static_memory_structure.py",
                   "proofs/StaticMemoryLaminar.v",
                   "docs/implementation/static-memory/structure.md"),
