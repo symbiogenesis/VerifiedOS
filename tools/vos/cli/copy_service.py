@@ -51,6 +51,8 @@ def target_parser(name: str, parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--reference", type=Path)
     if name == "join":
         parser.add_argument("--timeout", type=int, default=1800)
+        parser.add_argument("--generated-manifest", action="store_true",
+                            help="consume the checked production supervisor manifest in the scalar join")
 
 
 def cmd_partition(args: argparse.Namespace) -> int:
@@ -64,10 +66,11 @@ def cmd_partition(args: argparse.Namespace) -> int:
 
 
 def cmd_join(args: argparse.Namespace) -> int:
-    work = env.load().lane_root / "scalar-join"
+    work = env.load().lane_root / ("scalar-manifest-join" if args.generated_manifest else "scalar-join")
     with env.hold_lock(work, "the scalar supervisor and copy integration checkpoint"):
         report = scalar_join.run(find_root(), work, args.ccomp, args.ccomp_arg,
-                                 args.simulator, args.build_receipt, args.timeout)
+                                 args.simulator, args.build_receipt, args.timeout,
+                                 generated_manifest=args.generated_manifest)
     print(f"report: {work / 'report.json'}")
     print(report["limits"])
     return 0 if report["ok"] else 1

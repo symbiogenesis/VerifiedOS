@@ -194,6 +194,15 @@ provenance preflight. [The integration record](../docs/implementation/m71b-gener
 names that refusal and the remaining joins. Neither native layout agreement nor
 prepared target controls authenticate the manifest or close M7.1b.
 
+`python tools/run.py copy-service join --generated-manifest` prepares the existing
+scalar payload/notification/fault/restart campaign with that same checked immutable
+manifest. It charges the actual backoff table and observes every initialized
+manifest byte at each fresh entry, with a named read-only store-fault control.
+Focused host controls exercise the real joined source generation, byte oracle,
+snapshot refusals and locked compiler preflight; they execute no target image.
+The [joined consumer contract](../docs/implementation/m71b-generated-manifest-target.md#joined-scalar-manifest-consumer)
+retains Q39's target prerequisite, authenticated handoff and full-roster joins.
+
 ## Focused comparison
 
 `python tools/run.py supervisor check` compiles the C harness with the native C

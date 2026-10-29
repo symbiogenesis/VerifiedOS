@@ -7,6 +7,7 @@ grant slots are retired. Physical WCET, external clients and full boot remain
 outside this checkpoint.
 """
 
+import hashlib
 import json
 import subprocess
 from collections import deque
@@ -58,6 +59,36 @@ class WireTrace:
     requests: tuple[Publication, ...]
     acknowledgments: tuple[Publication, ...]
     later_reads: tuple[int, ...]
+
+
+class ManifestTrace:
+    """Account for every initialized byte and each fresh supervisor entry."""
+
+    def __init__(self, address: int, expected: bytes) -> None:
+        self.address = address
+        self.expected = expected
+        self.bytes = bytearray(len(expected))
+        self.written: set[int] = set()
+        self.entries: list[bool] = []
+        self.untagged = True
+
+    def write(self, address: int, width: int, tag: int, value: int) -> None:
+        for index in range(width):
+            offset = address + index - self.address
+            if 0 <= offset < len(self.bytes):
+                self.bytes[offset] = value >> (8 * index) & 255
+                self.written.add(offset)
+                self.untagged &= tag == 0
+
+    def exact(self) -> bool:
+        return (len(self.written) == len(self.expected) and self.untagged and
+                bytes(self.bytes) == self.expected)
+
+    def entry(self) -> None:
+        self.entries.append(self.exact())
+
+    def accepted(self) -> bool:
+        return bool(self.entries) and all(self.entries) and self.exact()
 
 
 def wire_trace(lines: Iterable[str], *, request: int, acknowledgment: int,
@@ -127,10 +158,12 @@ def table_rows(first_deadline: int, boundary: int, copy_slot: int,
 
 def source(root: Path, kernel: str, supervisor: str, copy: str,
            windows: tuple[int, int], bitmap: tuple[int, int], boundary: int,
-           service_slot: int, defect: str = "none") -> str:
+           service_slot: int, defect: str = "none", *, generated_manifest: bool = False) -> str:
     """Compose stable owner hooks; never rewrite another emitter's assembly."""
-    if defect not in ("none", "stale", "incomplete"):
+    if defect not in ("none", "stale", "incomplete", "manifest-write"):
         raise ValueError("unknown scalar join control")
+    if defect == "manifest-write" and not generated_manifest:
+        raise ValueError("manifest-write control requires the checked production manifest")
     layout = supervisor_context.layout(root)
     address, cap, call, roots = (lifecycle_target._address, lifecycle_target._cap,
                                 lifecycle_target._call, lifecycle_target._root)
@@ -236,6 +269,10 @@ def source(root: Path, kernel: str, supervisor: str, copy: str,
         f"    li x6, {layout['OP_RETIRE']}", "    bne x5, x6, scalar_join_cut_done",
         f"    ld x5, {8 * layout['ACK_NOW']}(c11)", f"    li x6, {boundary}",
         "    bltu x5, x6, supervisor_poll_return", "scalar_join_cut_done:"]
+    if generated_manifest:
+        # The production policy's short delay supplies no waiting boundary.
+        # Its initial unpublished request supplies the empty control instead.
+        publish_lines = []
     if defect == "stale":
         publish_lines += [f"    ld x5, {8 * layout['REQ_EPOCH']}(c12)", "    li x6, 1",
              "    bleu x5, x6, scalar_join_publish_current",
@@ -250,10 +287,12 @@ def source(root: Path, kernel: str, supervisor: str, copy: str,
              "scalar_join_copy_idle:", "    wfi", "    j scalar_join_copy_idle",
              "scalar_join_copy_code_end:"])
     return lifecycle_target.source(kernel, supervisor, windows, bitmap, boundary,
-        defect="incomplete" if defect == "incomplete" else "none", owned_bytes=copy_partition.OWNED_BYTES,
+        defect=defect if defect in {"incomplete", "manifest-write"} else "none",
+        owned_bytes=copy_partition.OWNED_BYTES, initial_empty=generated_manifest,
         service_text=service, init_extra="\n".join(init), after_ack="\n".join(after),
         retire_extra="\n".join(["    lc c20, 96(c31)", copy_partition.clear_span("scalar_join")]),
-        fault_handler="\n".join(fault), supervisor_publish_extra="\n".join(publish_lines),
+        fault_handler="" if defect == "manifest-write" else "\n".join(fault),
+        supervisor_publish_extra="\n".join(publish_lines),
         timer_extra="\n".join([*address(20, "service_state"), "    ld x5, 0(c20)",
                                  "    beqz x5, scalar_join_timer_supervisor", "    ld x5, 16(c20)",
                                  "    bnez x5, lifecycle_control_pass", "    j scalar_join_return_supervisor",
@@ -263,7 +302,8 @@ def source(root: Path, kernel: str, supervisor: str, copy: str,
 
 
 def observations(log: Path, symbols: dict[str, int], windows: tuple[int, int],
-                 bitmap: tuple[int, int], bound: dict[str, object], defect: str) -> dict[str, object]:
+                 bitmap: tuple[int, int], bound: dict[str, object], defect: str,
+                 expected_manifest: bytes | None = None) -> dict[str, object]:
     """One streaming pass over actual registers, wire cells and complete storage."""
     pc = previous_pc = order = 0
     registers = dict.fromkeys(range(32), (0, 0))
@@ -271,6 +311,8 @@ def observations(log: Path, symbols: dict[str, int], windows: tuple[int, int],
     acknowledgment = bytearray(256)
     tagged: set[int] = set()
     slots: dict[int, tuple[int, int]] = {}
+    manifest = (ManifestTrace(symbols["supervisor_manifest"], expected_manifest)
+                if expected_manifest is not None else None)
     entries, faults, scrubs, clears, retire_clean, releases = [], [], [], [], [], []
     bitmap_writes, old_tags, fresh_tags, copy_bases = [], [], [], []
     generations, payloads, notifications = [], [], []
@@ -294,6 +336,7 @@ def observations(log: Path, symbols: dict[str, int], windows: tuple[int, int],
     work_start = None
     work_steps = []
     ack_zero, ack_fences, empty_boundaries = [], [], []
+    initial_empty = False
     request_fences, refreshed_initial, idle_images, consumer_rows = [], [], [], []
     idle_traps = []
     refusal_order = None
@@ -307,6 +350,7 @@ def observations(log: Path, symbols: dict[str, int], windows: tuple[int, int],
     def monitor(lines: Iterable[str]) -> Iterable[str]:
         nonlocal pc, previous_pc, order, mepcc, clearing, sample, release, work_start, phase
         nonlocal no_ecall, confined, save_expected, last_trap, tenant, table, programmed_deadline, refusal_order
+        nonlocal initial_empty
         for raw in lines:
             text = raw.strip()
             if not trace.COMMIT_RE.fullmatch(text):
@@ -330,6 +374,8 @@ def observations(log: Path, symbols: dict[str, int], windows: tuple[int, int],
                     scrubs.append(all(registers[r] == (0, 0) for r in range(1, 31)))
                 if pc == symbols["supervisor_entry"]:
                     entries.append(order)
+                    if manifest is not None:
+                        manifest.entry()
                     allowed = {2, 10, 11, 12}
                     fresh_images.append(previous_pc == symbols["vos_restore_dispatch"] and
                         all(tag == int(r in allowed) and (r in allowed or r == 13 or value == 0)
@@ -391,6 +437,8 @@ def observations(log: Path, symbols: dict[str, int], windows: tuple[int, int],
                         work_steps.append(order - work_start + 44)
             elif kind == "W":
                 address, width, tag, value = fields
+                if manifest is not None:
+                    manifest.write(address, width, tag, value)
                 if address == symbols["kernel_private"] + 56:
                     release = value
                 if address == symbols["kernel_private"] + 120:
@@ -416,6 +464,9 @@ def observations(log: Path, symbols: dict[str, int], windows: tuple[int, int],
                 offset = address - symbols["acknowledgment"]
                 if offset >= 0 and offset + width <= len(acknowledgment):
                     acknowledgment[offset:offset + width] = value.to_bytes(width, "little")
+                if (address == symbols["acknowledgment"] and width == 8 and value == 0 and
+                        previous_pc == symbols["lifecycle_ack_publish"]):
+                    initial_empty = True
                 offset = address - symbols["lifecycle_owned_span"]
                 if offset >= 0 and offset + width <= len(owned):
                     owned[offset:offset + width] = value.to_bytes(width, "little")
@@ -445,6 +496,19 @@ def observations(log: Path, symbols: dict[str, int], windows: tuple[int, int],
     expected_entries = 2 if defect == "none" else 1
     reqs = [list(item.words[:6]) for item in wire.requests]
     acks = [list(item.words[:12]) for item in wire.acknowledgments]
+    if defect == "manifest-write":
+        facts = {
+            "actual_supervisor_cap_checks": bool(entries) and all(len(values) == len(entries) and
+                all(value == expected for value in values) for expected, values in checks.values()),
+            "supervisor_stores_confined": confined,
+            "no_extra_syscall": no_ecall,
+            "exact_generated_manifest_in_target": manifest is not None and manifest.accepted(),
+            "manifest_write_fault_at_named_instruction":
+                faults == [(symbols["supervisor_permission_control"], (0, 28))],
+            "fault_precedes_requests_and_copy": not reqs and not acks and not payloads and
+                not notifications and not generations and not bitmap_writes,
+        }
+        return {"ok": all(facts.values()), "facts": facts, "requests": reqs, "acknowledgments": acks}
     facts = {
         "actual_copy_payload_notification": len(payloads) == len(notifications) == expected_entries,
         "fresh_copy_generations": generations == [(0, n) for n in range(1, expected_entries + 1)],
@@ -467,21 +531,27 @@ def observations(log: Path, symbols: dict[str, int], windows: tuple[int, int],
               item["kind"] == item["expected_kind"] and item["deadline"] == item["expected_deadline"] for item in releases),
         "idle_copy_zero_authority": bool(idle_images) and all(idle_images),
         "only_supervisor_rows_consume_requests": bool(consumer_rows) and all(consumer_rows),
-        "refreshed_start_ack_does_not_redispatch": len(refreshed_initial) == 2 and
-             refreshed_initial[0][0] < cast(int, bound["padded_boundary_steps"]) <= refreshed_initial[1][0] and
-             refreshed_initial[1][1] == 2,
         "source_work_account": bool(work_steps) and max(work_steps) <= cast(int, bound["longest_path_steps"]),
         "bitmap_old_and_fresh": bitmap_writes == [7] and old_tags == [0] and fresh_tags == [1],
     }
+    if manifest is None:
+        facts["refreshed_start_ack_does_not_redispatch"] = (len(refreshed_initial) == 2 and
+            refreshed_initial[0][0] < cast(int, bound["padded_boundary_steps"]) <= refreshed_initial[1][0] and
+            refreshed_initial[1][1] == 2)
+    else:
+        facts["start_ack_does_not_redispatch"] = len(refreshed_initial) == 1
     if defect == "incomplete":
         facts["incomplete_refusal"] = len(acks) == 2 and acks[-1][0:2] == [2, 3] and phase == 2
     else:
         facts["actual_start_retire_start"] = [r[:2] for r in reqs] == [[1, 2], [2, 1], [3, 2]]
-        facts["empty_and_occupied_boundaries"] = empty_boundaries.count(2) >= 2
+        facts["empty_and_occupied_boundaries"] = (initial_empty if manifest is not None else
+                                                  empty_boundaries.count(2) >= 2)
         facts["fresh_epoch_or_stale_refusal"] = len(acks) == 3 and acks[-1][0:2] == [3, 2 if defect == "stale" else 0] and acks[-1][3] == 2
         facts["final_copy_state"] = phase == (2 if defect == "stale" else 4)
     if defect != "none":
         facts["refusal_preserves_next_idle_copy_row"] = bool(releases) and releases[-1]["idle"] is True and bool(idle_traps) and refusal_order is not None and idle_traps[-1] > refusal_order
+    if manifest is not None:
+        facts["exact_generated_manifest_in_target"] = manifest.accepted()
     return {"ok": all(facts.values()), "facts": facts, "requests": reqs, "acknowledgments": acks,
             "later_ack_reads": wire.later_reads, "release_instants": releases, "handler_steps": work_steps}
 
@@ -498,6 +568,7 @@ class TargetCase:
     bound: dict[str, object]
     instruction_limit: int
     timeout: int
+    expected_manifest: bytes | None = None
 
 
 def execute_case(case: TargetCase) -> dict[str, object]:
@@ -511,7 +582,8 @@ def execute_case(case: TargetCase) -> dict[str, object]:
     with log.open(encoding="utf-8") as output:
         tail = "".join(deque(output, maxlen=64))
     verdict, code, detail = cd.htif_verdict(tail, done.returncode)
-    observed = observations(log, case.symbols, case.windows, case.bitmap, case.bound, case.name)
+    observed = observations(log, case.symbols, case.windows, case.bitmap, case.bound, case.name,
+                            case.expected_manifest)
     result: dict[str, object] = {"name": case.name, "verdict": verdict, "code": code, "detail": detail,
         "ok": verdict == "pass" and observed["ok"] is True, "observations": observed,
         "source_sha256": receipts.digest(case.out / f"{case.name}.s"),
@@ -521,10 +593,19 @@ def execute_case(case: TargetCase) -> dict[str, object]:
 
 
 def run(root: Path, out: Path, ccomp: Path, arguments: list[str], simulator: Path,
-        build_receipt: Path, timeout: int = 1800) -> dict[str, object]:
+        build_receipt: Path, timeout: int = 1800, *,
+        generated_manifest: bool = False) -> dict[str, object]:
     out.mkdir(parents=True, exist_ok=True)
-    provenance, provenance_files = compiler_provenance.read(ccomp)
-    receipts.write(out / "report.json", {"ok": False, "status": "incomplete"})
+    receipts.write(out / "report.json", {"ok": False, "status": "incomplete",
+                                       "generated_manifest": generated_manifest})
+    try:
+        provenance, provenance_files = compiler_provenance.read(ccomp)
+    except (OSError, ValueError, TypeError) as error:
+        receipts.write(out / "report.json", {"status": "refused", "ok": False,
+            "stage": "compiler-provenance", "reason": str(error),
+            "generated_manifest": generated_manifest, "production_admission": False,
+            "milestone_acceptance": "open", "target_execution": False})
+        raise
     inputs, model = receipts.inputs(root, *INPUTS), receipts.inputs(root, "model")
     external = {"compiler": receipts.digest(ccomp), "simulator": receipts.digest(simulator),
                 "build_receipt": receipts.digest(build_receipt)}
@@ -532,9 +613,18 @@ def run(root: Path, out: Path, ccomp: Path, arguments: list[str], simulator: Pat
     kernel_restore.require_build(json.loads(build_receipt.read_text(encoding="utf-8")), external["simulator"], model)
     args = [str(ccomp), *arguments, "-fverifiedos-typed", f"-I{root / 'supervisor/include'}", f"-I{root / 'kernel/include'}"]
     unit = root / "supervisor/test/context_join.c"
+    snapshot: dict[str, bytes] = {}
+    expected_manifest = None
+    if generated_manifest:
+        unit, snapshot, expected_manifest = lifecycle_target.manifest_unit(root, out)
+    unit_bytes = unit.read_bytes() if generated_manifest else b""
     kernel = cd.compile_c([*args, "-DVOS_JOIN_KERNEL", "-DVOS_JOIN_INITIAL_EPOCH=1",
                            f"-DVOS_JOIN_OWNED_BYTES={copy_partition.OWNED_BYTES}"], unit, out / "kernel", timeout)
-    supervisor = cd.compile_c(args, unit, out / "supervisor", timeout)
+    supervisor = cd.compile_c(args, root / "supervisor/test/context_join.c", out / "supervisor", timeout)
+    if generated_manifest:
+        lifecycle_target.manifest_unchanged(root, out, snapshot)
+        if unit.read_bytes() != unit_bytes:
+            raise ValueError("generated scalar join unit changed during compilation")
     config = copy_service.configuration(root)
     (out / "copy_service_config.h").write_text(copy_service.configuration_header(config), encoding="utf-8")
     copy = cd.compile_c([str(ccomp), *arguments, "-fverifiedos-typed", f"-I{out}",
@@ -556,12 +646,16 @@ def run(root: Path, out: Path, ccomp: Path, arguments: list[str], simulator: Pat
     bound["joined_hook_steps"] = hooks
     bound["longest_path_steps"] = cast(int, bound["longest_path_steps"]) + hooks
     boundary = 1 << bound["longest_path_steps"].bit_length()
+    backoff_count = (len(json.loads(snapshot["manifest.json"])["payload"]["policy"]["backoff"])
+                     if generated_manifest else 1)
     bound.update({"padded_boundary_steps": boundary, "root": str(root), "copy_reaction_steps": copy_steps,
                   "copy_slot_steps": service_slot, "copy_counts": copy_counts,
-                  "supervisor_reaction": lifecycle_target.reaction_path(lifecycle_target.instruction_counts(supervisor.stream))})
+                  "supervisor_reaction": lifecycle_target.reaction_path(
+                      lifecycle_target.instruction_counts(supervisor.stream), backoff_count=backoff_count)})
     instruction_limit = MAX_ROWS * (boundary + max(service_slot, lifecycle_target.SLOT)) + 1048576
     windows = boot_handoff.timer_windows(root)
-    probe = asm.Assembler(source(root, kernel.stream, supervisor.stream, copy.stream, windows, (0, 1), boundary, service_slot),
+    probe = asm.Assembler(source(root, kernel.stream, supervisor.stream, copy.stream, windows, (0, 1), boundary,
+                                 service_slot, generated_manifest=generated_manifest),
                           "layout", text_base=lifecycle_target.TEXT_BASE, data_base=lifecycle_target.DATA_BASE)
     probe.assemble()
     bitmap = kernel_target.revocation_window(root, probe.symbols["grant_slots"])
@@ -575,8 +669,10 @@ def run(root: Path, out: Path, ccomp: Path, arguments: list[str], simulator: Pat
     profile_path = out / "profile.json"
     receipts.write(profile_path, profile)
     cases = []
-    for defect in ("none", "stale", "incomplete"):
-        emitted = source(root, kernel.stream, supervisor.stream, copy.stream, windows, bitmap, boundary, service_slot, defect)
+    controls = ("none", "stale", "incomplete", "manifest-write") if generated_manifest else ("none", "stale", "incomplete")
+    for defect in controls:
+        emitted = source(root, kernel.stream, supervisor.stream, copy.stream, windows, bitmap, boundary,
+                         service_slot, defect, generated_manifest=generated_manifest)
         source_path = out / f"{defect}.s"
         source_path.write_text(emitted, encoding="utf-8")
         assembler = asm.Assembler(emitted, defect, text_base=lifecycle_target.TEXT_BASE, data_base=lifecycle_target.DATA_BASE)
@@ -586,7 +682,7 @@ def run(root: Path, out: Path, ccomp: Path, arguments: list[str], simulator: Pat
         elf = out / f"{defect}.elf"
         image.write_elf(elf, sections, symbols, entry)
         cases.append(TargetCase(simulator, profile_path, out, defect, assembler.symbols,
-                                windows, bitmap, bound, instruction_limit, timeout))
+                                windows, bitmap, bound, instruction_limit, timeout, expected_manifest))
     # Assembly and all file creation above are serial. Workers receive immutable
     # source-bound inputs and own only their distinct trace/receipt paths.
     with ProcessPoolExecutor(max_workers=3) as pool:
@@ -597,10 +693,18 @@ def run(root: Path, out: Path, ccomp: Path, arguments: list[str], simulator: Pat
         "build_receipt": receipts.digest(build_receipt)}
     if not compiler_provenance.unchanged(provenance_files):
         raise ValueError("contained compiler build receipt changed during execution")
+    if generated_manifest:
+        lifecycle_target.manifest_unchanged(root, out, snapshot)
+        if unit.read_bytes() != unit_bytes:
+            raise ValueError("generated scalar join unit changed during execution")
     report = {"compiler_provenance": provenance, "compiler_receipts_sha256": provenance_files,
-            "ok": unchanged and len(results) == 3 and all(item["ok"] is True for item in results),
+            "ok": unchanged and len(results) == len(controls) and all(item["ok"] is True for item in results),
               "sources": inputs, "model_sources": model, "external": external, "compiler_inputs": private,
               "bound": bound, "results": results, "limits": LIMITS, "instruction_limit": instruction_limit,
-              "timeout_seconds_per_image": timeout, "inputs_unchanged": unchanged}
+              "timeout_seconds_per_image": timeout, "inputs_unchanged": unchanged,
+              "generated_manifest": generated_manifest, "production_admission": False,
+              "milestone_acceptance": "open",
+              "production_manifest": {name: hashlib.sha256(data).hexdigest() for name, data in snapshot.items()},
+              "expected_manifest_sha256": hashlib.sha256(expected_manifest).hexdigest() if expected_manifest is not None else None}
     receipts.write(out / "report.json", report)
     return report
