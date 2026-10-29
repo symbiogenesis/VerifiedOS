@@ -47,11 +47,11 @@ _PLAN: Final[str] = """\
 * [ ] **S1 · Discharge the owed register acts** · 12 h, range 8–16 · 1.1% · I
   * Fourteen acts the tree already reports and nothing prices.
 * [x] **M0.16 · Refresh and discharge sequencer** · 5.5 h actual · 0.5%
-  * The sequencer lands. ([note](completion-log.md#m016-refresh-and-discharge-sequencer))
+  * The sequencer lands. ([note](docs/implementation/completion-log.md#m016-refresh-and-discharge-sequencer))
 * ~~**M2.1 · Fork CHERI-QEMU and narrow compressed capabilities**~~ · struck
-  * Struck. ([note](completion-log.md#m21-fork-cheri-qemu-and-narrow-compressed-capabilities))
+  * Struck. ([note](docs/implementation/completion-log.md#m21-fork-cheri-qemu-and-narrow-compressed-capabilities))
 * [x] **Initial check/emit/FAST tooling** · 0.9 h actual · 0.1%
-  * The first tooling. ([note](completion-log.md#initial-checkemitfast-tooling))
+  * The first tooling. ([note](docs/implementation/completion-log.md#initial-checkemitfast-tooling))
 """
 
 # The log side: one entry per landed item under a heading spelling its label, a
@@ -316,7 +316,7 @@ def _landed_shapes() -> None:
 
     ensure(not shapes(_PLAN), f"the fixture keeps one line per landed item: {shapes(_PLAN)}")
 
-    link = " ([note](completion-log.md#m016-refresh-and-discharge-sequencer))"
+    link = " ([note](docs/implementation/completion-log.md#m016-refresh-and-discharge-sequencer))"
     summary = f"  * The sequencer lands.{link}\n"
     for what, edited in (
             ("a bullet nested under the summary",
@@ -334,8 +334,8 @@ def _landed_shapes() -> None:
                                  "#initial-checkemitfast-tooling"))
     ensure(len(wrong) == 1 and "m016-refresh-and-discharge-sequencer" in wrong[0],
            f"a summary linking another entry names its own: {wrong}")
-    other_text = _PLAN.replace("([note](completion-log.md#m016",
-                               "[completion evidence](completion-log.md#m016")
+    other_text = _PLAN.replace("([note](docs/implementation/completion-log.md#m016",
+                               "[completion evidence](docs/implementation/completion-log.md#m016")
     ensure(not shapes(other_text), "the link text is the author's to choose")
 
     # An open item's note is not read, and a landed parent's child items are the
@@ -347,7 +347,7 @@ def _landed_shapes() -> None:
     ensure(not shapes(_PLAN.replace(summary, parent)),
            f"an open child's note is the child's: {shapes(_PLAN.replace(summary, parent))}")
     landed_child = summary + ("  * [x] **M0.16a · A landed child** · 1 h actual\n"
-                              "    * Its line. ([note](completion-log.md#m016a))\n"
+                              "    * Its line. ([note](docs/implementation/completion-log.md#m016a))\n"
                               "      * Its note left behind.\n")
     found = shapes(_PLAN.replace(summary, landed_child))
     ensure(len(found) == 1 and "M0.16a" in found[0],

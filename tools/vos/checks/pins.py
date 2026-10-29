@@ -8,7 +8,7 @@ were read at. The row is hand-copied from the gitlink and the copy had no owner.
 
 **That copy is the one derived fact in this repository whose defect cannot be
 repaired downstream.** [AGENTS.md](../../../AGENTS.md) and [the plan's
-§12](../../../docs/implementation/implementation-checklist.md#12-build-order-milestones-and-execution-state)
+§12](../../../PLAN.md#12-build-order-milestones-and-execution-state)
 both say it: a licence is a property of the *arrival*, read at the milestone that
 would incorporate the upstream, and work built on terms that forbid the composition
 is not re-licensed by finding out later. A gitlink advanced without its row moving

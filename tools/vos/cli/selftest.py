@@ -707,7 +707,7 @@ CROWN = "docs/assurance/crown-jewels.md"
 MATRIX = "docs/assurance/coverage-matrix.md"
 PROFILE = "docs/hardware/isa-profile.md"
 PERF = "docs/performance/performance-estimates.md"
-PLAN = "docs/implementation/implementation-checklist.md"
+PLAN = "PLAN.md"
 # every landed item's note, and so every findings block, holder citation and landing
 # declaration a landed item wrote, lives here from S10b
 LOG = "docs/implementation/completion-log.md"
@@ -914,7 +914,7 @@ def _k82_entry(box: Sandbox) -> bool:
     if heading not in log:
         return False
     plan = box.read(PLAN)
-    link = " ([note](completion-log.md#m05-reconcile-the-baselines))"
+    link = " ([note](docs/implementation/completion-log.md#m05-reconcile-the-baselines))"
     if link not in plan:
         return False
     return (box.write(LOG, log.replace(heading, "", 1))
@@ -2282,15 +2282,15 @@ CASES: list[Case] = [
     # note line under the summary, and the second points a summary at another item's
     # entry, which K-12 still resolves and only this rule reads.
     ("K-113", "a landed item keeping a note line under its summary",
-     _literal(PLAN, "is M0.8c's to close. ([note](completion-log.md#s1-discharge-the-owed-"
+     _literal(PLAN, "is M0.8c's to close. ([note](docs/implementation/completion-log.md#s1-discharge-the-owed-"
                     "register-acts))\n",
-              "is M0.8c's to close. ([note](completion-log.md#s1-discharge-the-owed-"
+              "is M0.8c's to close. ([note](docs/implementation/completion-log.md#s1-discharge-the-owed-"
               "register-acts))\n    * Exit evidence left behind by the move.\n")),
 
     ("K-113", "a landed item's summary linking another item's entry",
-     _literal(PLAN, "([note](completion-log.md#s2-adopt-the-two-tier-landing-rule-and-"
+     _literal(PLAN, "([note](docs/implementation/completion-log.md#s2-adopt-the-two-tier-landing-rule-and-"
                     "hold-it-by-rule))",
-              "([note](completion-log.md#s1-discharge-the-owed-register-acts))")),
+              "([note](docs/implementation/completion-log.md#s1-discharge-the-owed-register-acts))")),
 
     # The elision table is made to claim a kind the packet meets, which fires three of
     # the rule's readings at once: the moved kind is now in both §9 tables, the kind it
