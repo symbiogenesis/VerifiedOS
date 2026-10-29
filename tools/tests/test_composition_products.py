@@ -147,6 +147,61 @@ def _catalog_alias() -> None:
         ensure((root / OUTPUT).read_bytes() == original, "catalog publication cannot overwrite its candidate")
 
 
+def _direct_reference(root: Path, source: str, field: str) -> str:
+    extra = "out/direct-input.s"
+    (root / extra).parent.mkdir(parents=True, exist_ok=True)
+    (root / extra).write_bytes(b"independent direct member input\n")
+    raw = json.loads((root / source).read_bytes())
+    member = next(entry for entry in raw["members"] if entry["id"] == "mmode-firmware")
+    if field == "sources":
+        member["sources"].append(c.reference(root, extra))
+    else:
+        member["derivation"]["source"] = c.reference(root, extra)
+    (root / source).write_bytes(composer.canonical_bytes(raw))
+    return extra
+
+
+def _direct_publication_aliases() -> None:
+    for operation in ("candidate", "catalog"):
+        for field in ("sources", "derivation"):
+            for linked in (False, True):
+                with _staged_sandbox() as root:
+                    if operation == "catalog":
+                        staged.bind_boot_chain(root, c.EXAMPLE, OUTPUT)
+                    source = c.EXAMPLE if operation == "candidate" else OUTPUT
+                    extra = _direct_reference(root, source, field)
+                    target = "out/direct-alias.s" if linked else extra
+                    if linked:
+                        os.link(root / extra, root / target)
+                    original = (root / extra).read_bytes()
+                    action = staged.bind_boot_chain if operation == "candidate" else staged.export_boot_products
+                    _refused(lambda action=action, source=source, target=target: action(root, source, target),
+                             "overwrite an input or product")
+                    ensure((root / extra).read_bytes() == original and (root / target).read_bytes() == original,
+                           "direct member and derivation alias refusals preserve consumed bytes")
+
+
+def _direct_selection_drift() -> None:
+    artifact = "out/consumer-mmode.s"
+    reference = c.reference
+    for field in ("sources", "derivation"):
+        with _staged_sandbox() as root:
+            staged.bind_boot_chain(root, c.EXAMPLE, OUTPUT)
+            extra = _direct_reference(root, OUTPUT, field)
+            staged.export_boot_products(root, OUTPUT, CATALOG)
+            (root / artifact).write_bytes((root / MMODE).read_bytes())
+
+            def drift(checkout: Path, path: str, changed: str = extra) -> dict[str, str]:
+                result = reference(checkout, path)
+                if path == artifact:
+                    target = checkout / changed
+                    target.write_bytes(target.read_bytes() + b"\n")
+                return result
+
+            with patch.object(c, "reference", drift):
+                _refused(lambda: _select(root, artifact=artifact), "stale source binding")
+
+
 def _cli_consumer() -> None:
     with _staged_sandbox() as root:
         staged.bind_boot_chain(root, c.EXAMPLE, OUTPUT)
@@ -170,4 +225,6 @@ def cases() -> list[Case]:
             Case("selection-publication-boundary-drift", _selection_drift),
             Case("stale-retained-producer-refusal", _inspection_refusals),
             Case("catalog-input-alias-refusal", _catalog_alias),
+            Case("direct-member-and-derivation-publication-alias", _direct_publication_aliases),
+            Case("direct-member-and-derivation-selection-drift", _direct_selection_drift),
             Case("public-retained-product-consumer", _cli_consumer)]

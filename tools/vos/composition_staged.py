@@ -103,14 +103,15 @@ def bind_boot_chain(root: Path, source: str, output: str) -> dict[str, object]:
                 ref = refs[f"{boot_chain.STAGED}/{unit}.s"]
                 if ref not in member["sources"]:
                     member["sources"].append(ref)
-    _publish(root, output, composer.canonical_bytes(raw), [*refs.values(), *_references(binding)])
+    _publish(root, output, composer.canonical_bytes(raw),
+             [*refs.values(), *_references(binding), *_references(raw)])
     return {"output": output, "producer": PRODUCER, "compiler_provenance_status": status,
             "products": {member: [refs[f"{boot_chain.STAGED}/{unit}.s"] for unit in units]
                          for member, units in MEMBER_UNITS},
             "production_admission": False, "final_target_acceptance": False}
 
 
-def _products(root: Path, source: str) -> dict[str, object]:
+def _products(root: Path, source: str) -> tuple[dict[str, object], list[dict[str, str]]]:
     raw, input_ref, _roster, roster_ref = production._load(root, source)
     refs, status = _retained(root)
     producer = next((item for item in raw["producers"] if item["id"] == PRODUCER), None)
@@ -130,15 +131,18 @@ def _products(root: Path, source: str) -> dict[str, object]:
             raise production.CompositionError("candidate historical member does not bind its inspected units")
         products.append({"member": member["id"], "artifact_slot": member["artifact_slot"], "units": units})
     binding = production._binding(root, raw, input_ref, roster_ref)
-    return {"schema_version": 1, "kind": "historical-boot-chain-products", "binding": binding,
-            "producer": PRODUCER, "compiler_provenance_status": status, "products": products,
-            "production_admission": False, "final_target_acceptance": False}
+    record = {"schema_version": 1, "kind": "historical-boot-chain-products", "binding": binding,
+              "producer": PRODUCER, "compiler_provenance_status": status, "products": products,
+              "production_admission": False, "final_target_acceptance": False}
+    # Binding records contain inventory/producer inputs but do not repeat every
+    # direct member or derivation reference declared by the composition itself.
+    return record, [*refs.values(), *_references(binding), *_references(raw)]
 
 
 def export_boot_products(root: Path, source: str, output: str) -> dict[str, object]:
     """Export replayable normal-stage identities for an inspected historical candidate."""
-    record = _products(root, source)
-    _publish(root, output, composer.canonical_bytes(record), _references(record))
+    record, protected = _products(root, source)
+    _publish(root, output, composer.canonical_bytes(record), protected)
     return record
 
 
@@ -146,7 +150,7 @@ def select_boot_product(root: Path, source: str, products: str, slot: str,
                         unit: str, artifact: str) -> dict[str, object]:
     """Reinspect a catalog and bind a consumer file to one exact normal boot stage."""
     catalog, catalog_ref = _manifest(root, products)
-    expected = _products(root, source)
+    expected, protected = _products(root, source)
     if composer.canonical_bytes(catalog) != composer.canonical_bytes(expected):
         raise production.CompositionError("staged boot-product catalog differs from inspected candidate")
     # Product identities come from the independently inspected population, never
@@ -165,7 +169,7 @@ def select_boot_product(root: Path, source: str, products: str, slot: str,
     actual = production.reference(root, artifact)
     if actual["sha256"] != expected_ref["sha256"]:
         raise production.CompositionError("staged boot-product consumer file differs from its selected unit")
-    for ref in [*_references(expected), catalog_ref, actual]:
+    for ref in [*protected, catalog_ref, actual]:
         production._bound(root, ref)
     return {"member": product["member"], "artifact_slot": slot, "unit": unit,
             "source": expected_ref, "artifact": actual, "catalog": catalog_ref,
