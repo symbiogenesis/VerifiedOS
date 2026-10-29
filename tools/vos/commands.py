@@ -116,7 +116,7 @@ COMMANDS: tuple[Command, ...] = (
     Command("composer", "vos.cli.composer",
             "compose the descriptor-only typed graph and report refused edges", lane="guest",
             host_ok=frozenset({"compose", "fixture", "compare", "project", "check-project", "promote",
-                               "build-record", "check-build-record"})),
+                               "build-record", "check-build-record", "bind-staged-boot-chain"})),
     Command("admission", "vos.cli.admission",
             "bind admission inputs and reference decisions to image and graph bytes", lane="guest",
             host_ok=frozenset({"record", "emit-reference", "production-record",

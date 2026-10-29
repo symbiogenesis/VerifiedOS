@@ -12,11 +12,15 @@
     },
     {
       "path": "tools/vos/cli/composer.py",
-      "sha256": "1b37789cba6655f8e0da3eadcb8631f2214e8dbe2bcb14d20c9207b3cfc4abf4"
+      "sha256": "af3222b105121f0251ef0a56c886b7f5fd5e871e9c7b8af6e6ace3cda6121a44"
     },
     {
       "path": "proofs/HandlerGraph.v",
       "sha256": "2353a27a43e88f37484450335df834ba945bae2900055e94777e06189a02dfcd"
+    },
+    {
+      "path": "tools/vos/composition_staged.py",
+      "sha256": "f8d445128858399a6a4c1a32a912f4b5f3a60b8c9a4a74ad32c01c59ffb3f6a4"
     }
   ],
   "interfaces": [

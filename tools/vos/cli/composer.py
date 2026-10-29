@@ -5,7 +5,7 @@ import argparse
 import json
 from pathlib import Path
 
-from vos import composer, corpus
+from vos import composer, composition_staged, corpus
 from vos import composition as production
 
 
@@ -86,6 +86,9 @@ def main(argv: list[str] | None = None) -> int:
     project = commands.add_parser("project", help="emit checked production composition projections")
     project.add_argument("source")
     project.add_argument("--output", required=True)
+    staged = commands.add_parser("bind-staged-boot-chain", help="inspect retained boot products into a historical candidate")
+    staged.add_argument("source")
+    staged.add_argument("--output", required=True)
     check_project = commands.add_parser("check-project", help="regenerate and compare production projections")
     check_project.add_argument("source", nargs="?", default=production.EXAMPLE)
     check_project.add_argument("--output", default=production.GENERATED)
@@ -109,6 +112,9 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     root = corpus.find_root()
     try:
+        if args.command == "bind-staged-boot-chain":
+            print(json.dumps(composition_staged.bind_boot_chain(root, args.source, args.output), indent=2))
+            return 0
         if args.command in ("build-record", "check-build-record"):
             _build_record(root, args)
             return 0

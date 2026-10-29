@@ -47,6 +47,7 @@ from vos import (
     boot,
     boot_crypto_target,
     composer,
+    composition_staged,
     kernelrun,
     memory_planner,
     rtltrace,
@@ -241,6 +242,16 @@ def _production_build_fixture(action: str, scratch: Path) -> list[str]:
     return [*args, "--record", f"{relative}/record.json"]
 
 
+def _staged_production_fixture(scratch: Path) -> list[str]:
+    _production_fixture("project", scratch)
+    shutil.copytree(_ROOT / "firmware", scratch / "firmware", dirs_exist_ok=True)
+    for relative in composition_staged.INSPECTORS:
+        destination = scratch / relative
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(_ROOT / relative, destination)
+    return [production.EXAMPLE, "--output", "out/historical-composition.json"]
+
+
 def _production_admission_fixture(action: str, scratch: Path) -> list[str]:
     """Reach each production handler with a valid, deliberately refused generation."""
     built = _production_build_fixture(f"admission-{action}", scratch)
@@ -345,6 +356,7 @@ _RUNS: dict[tuple[str, str], Argv] = {
     ("composer", "fixture"): lambda _: ["--output", "out/descriptor-fixture.json"],
     ("composer", "compare"): lambda _: [],
     ("composer", "project"): partial(_production_fixture, "project"),
+    ("composer", "bind-staged-boot-chain"): _staged_production_fixture,
     ("composer", "check-project"): partial(_production_fixture, "check-project"),
     ("composer", "build-record"): partial(_production_build_fixture, "build-record"),
     ("composer", "check-build-record"): partial(_production_build_fixture, "check-build-record"),
