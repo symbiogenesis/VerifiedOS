@@ -1,8 +1,17 @@
 # SPDX-License-Identifier: Apache-2.0
-"""Joined wire chronology must come from actual serialized target records."""
+"""Joined wire chronology and checked production-manifest consumption."""
 
-from tests.harness import Case, ensure
-from vos import scalar_join
+import json
+import tempfile
+from concurrent.futures import ThreadPoolExecutor
+from contextlib import ExitStack
+from pathlib import Path
+from types import SimpleNamespace
+from unittest.mock import patch
+
+from tests import compiler_fixture
+from tests.harness import TOOLS, Case, ensure
+from vos import scalar_join, supervisor
 
 
 def wire_publication_order() -> None:
@@ -34,6 +43,220 @@ def fixed_table() -> None:
         "fixed rows changed width, role or common boundary charge")
 
 
+def manifest_trace_bytes() -> None:
+    expected = b"\x01\x00\x00\x00\x02\x03\x00\x00"
+    observed = scalar_join.ManifestTrace(0x100, expected)
+    observed.write(0x100, 4, 0, 1)
+    observed.write(0x104, 2, 0, 0x302)
+    observed.entry()
+    ensure(not observed.accepted(), "unobserved zero initialization counted as exact target bytes")
+    observed.write(0x106, 2, 0, 0)
+    observed.entry()
+    ensure(not observed.accepted(), "later repair hid wrong bytes at the first supervisor entry")
+    complete = scalar_join.ManifestTrace(0x100, expected)
+    complete.write(0xFE, 8, 0, int.from_bytes(b"xx" + expected[:6], "little"))
+    complete.write(0x106, 2, 0, 0)
+    complete.entry()
+    ensure(complete.accepted(), "complete exact overlapping byte writes were refused")
+    complete.write(0x104, 1, 0, 9)
+    ensure(not complete.accepted(), "post-entry kernel byte substitution escaped the manifest account")
+    tagged = scalar_join.ManifestTrace(0x100, expected)
+    tagged.write(0x100, 8, 1, int.from_bytes(expected, "little"))
+    tagged.entry()
+    ensure(not tagged.accepted(), "tagged manifest data passed the scalar-layout account")
+
+
+def manifest_permission_observer() -> None:
+    """Independent serialized traces must satisfy the joined control's oracle."""
+    symbols = {name: 0x30000 + index * 8 for index, name in enumerate((
+        "supervisor_stack", "supervisor_manifest", "acknowledgment", "request",
+        "saved_clear", "restore_context", "lifecycle_timer_entry",
+        "lifecycle_trap_save_begin", "lifecycle_trap_save_end", "lifecycle_trap_scrub_end",
+        "scalar_join_copy_entry", "scalar_join_copy_idle", "vos_restore_dispatch",
+        "scalar_join_restore_image_dispatch", "k_vos_kernel_lifecycle_prepare",
+        "scalar_join_clear_begin", "scalar_join_clear_end", "k_vos_kernel_lifecycle_retire_finish",
+        "scalar_join_copy_base", "lifecycle_old_root_tag", "lifecycle_fresh_root_tag",
+        "lifecycle_padding_sample", "scalar_join_padding_sample", "kernel_private",
+        "service_state", "lifecycle_owned_span", "lifecycle_ack_publish"))}
+    symbols.update(supervisor_text_base=0x10000, supervisor_entry=0x10000,
+                   supervisor_text_end=0x20000, supervisor_permission_control=0x10100)
+    manifest = b"\x03\x00\x00\x00\x01\x00\x00\x00"
+    checks: list[tuple[int, int]] = []
+    for reg, name, extent, perm in ((20, "supervisor_text_base", 65536, 0x1CB),
+            (2, "supervisor_stack", scalar_join.lifecycle_target.STACK, 0xFE),
+            (10, "supervisor_manifest", 512, 3), (11, "acknowledgment", 256, 3),
+            (12, "request", 512, 7)):
+        for suffix, expected in (("tag", 1), ("base", symbols[name]),
+                                 ("length", extent), ("permissions", perm)):
+            label = f"supervisor_cap_{reg}_{suffix}"
+            symbols[label] = 0x11000 + len(checks) * 4
+            checks.append((symbols[label], expected))
+
+    def observed(payload: bytes, *, successful_write: bool = False,
+                 fault_pc: int = 0x10100) -> dict[str, object]:
+        lines = ["I 1 0000000000009000 00000013\n",
+                 f"W {symbols['supervisor_manifest']:X} 8 0 {int.from_bytes(payload, 'little'):X}\n",
+                 "I 2 0000000000010000 00000013\n"]
+        for index, (pc, expected) in enumerate(checks, 3):
+            lines += [f"I {index} {pc:016X} 00000013\n", f"X 5 0 {expected:016X}\n"]
+        lines.append(f"I 30 {fault_pc:016X} 00003023\n")
+        if successful_write:
+            lines.append(f"W {symbols['supervisor_manifest']:X} 8 0 3\n")
+        lines.append("T 0 28\n")
+        with tempfile.TemporaryDirectory(prefix="vos-manifest-observer-") as temporary:
+            log = Path(temporary) / "trace"
+            log.write_text("".join(lines), encoding="utf-8")
+            return scalar_join.observations(log, symbols, (0xA000, 0xA008), (0xB000, 1),
+                                            {"root": str(TOOLS.parent)}, "manifest-write", manifest)
+
+    ensure(observed(manifest)["ok"] is True, "exact readonly manifest fault trace was refused")
+    ensure(observed(b"\x04" + manifest[1:])["ok"] is False,
+           "wrong initialized bytes passed the joined manifest oracle")
+    ensure(observed(manifest, successful_write=True)["ok"] is False,
+           "successful supervisor manifest store passed the named fault control")
+    ensure(observed(manifest, fault_pc=0x10104)["ok"] is False,
+           "fault at another instruction passed as the attempted manifest store")
+
+
+def generated_pipeline(generated: bool = True, drift: str = "") -> None:
+    """Exercise real joined source generation, with synthetic target execution."""
+    with tempfile.TemporaryDirectory(prefix="vos-scalar-manifest-") as temporary:
+        fixture = Path(temporary)
+        root = TOOLS.parent
+        ccomp = compiler_fixture.create(fixture)
+        out = fixture / "joined"
+        simulator, receipt = fixture / "simulator", fixture / "model.json"
+        simulator.write_bytes(b"synthetic executor")
+        receipt.write_text("{}", encoding="utf-8")
+        snapshot = supervisor.checked_manifest(root)
+        expected = scalar_join.lifecycle_target.manifest_bytes(json.loads(snapshot["manifest.json"])["payload"])
+        compiled_roles: list[str] = []
+        emitted: list[str] = []
+        executed: list[str] = []
+
+        def compile_c(args: list[str], unit: Path, work: Path, _timeout: int) -> SimpleNamespace:
+            role = work.name
+            compiled_roles.append(role)
+            if role == "kernel":
+                ensure("-DVOS_JOIN_INITIAL_EPOCH=1" in args and
+                       f"-DVOS_JOIN_OWNED_BYTES={scalar_join.copy_partition.OWNED_BYTES}" in args,
+                       "generated mode changed the joined epoch or complete copy allocation")
+                ensure(unit == (out / "manifest-target.c" if generated else
+                                root / "supervisor/test/context_join.c"),
+                       "scalar kernel compiled the wrong manifest producer")
+                if generated:
+                    ensure((out / "manifest.c").read_bytes() == snapshot["manifest.c"],
+                           "joined compiler did not consume the immutable projection")
+                    ensure('#include "manifest.c"' in unit.read_text(encoding="utf-8"),
+                           "joined unit omitted the actual generated object")
+                    if drift in {"manifest.c", "manifest.json", "compile-unit"}:
+                        changed = unit if drift == "compile-unit" else out / drift
+                        changed.write_bytes(changed.read_bytes() + b" ")
+            elif role == "supervisor":
+                ensure(unit == root / "supervisor/test/context_join.c",
+                       "reactor compiled a replacement implementation")
+            else:
+                ensure(unit == root / "copy-service/test/target_unit.c",
+                       "joined source omitted the real copy producer")
+            return SimpleNamespace(stream=f"{role}_body:\n    ret\n", said="")
+
+        def assemble(text: str, *_args: object, **_kwargs: object) -> SimpleNamespace:
+            ensure(all(label in text for label in
+                       ("k_kernel_body:", "s_supervisor_body:", "copy_body:",
+                        "scalar_join_copy_entry:", "call k_vos_join_init", "call s_vos_join_react")),
+                   "joined source generation dropped an actual component")
+            emitted.append(text)
+            return SimpleNamespace(symbols={"grant_slots": 512, "scalar_join_copy_code": 0,
+                                             "scalar_join_copy_code_end": 16},
+                                   assemble=lambda: ([], {}, 0))
+
+        def execute(case: scalar_join.TargetCase) -> dict[str, object]:
+            ensure(case.expected_manifest == (expected if generated else None),
+                   "joined observer did not receive the independent manifest layout")
+            executed.append(case.name)
+            if drift == "execute-unit":
+                unit = out / "manifest-target.c"
+                unit.write_bytes(unit.read_bytes() + b" ")
+            return {"ok": True}
+
+        def reaction(_counts: dict[str, int], *, backoff_count: int) -> dict[str, object]:
+            ensure(backoff_count == (4 if generated else 1),
+                   "joined reaction account omitted admitted backoff entries")
+            return {"backoff_count": backoff_count}
+
+        with ExitStack() as stack:
+            replacements = [
+                (scalar_join.compiler_provenance, "find_root", lambda: fixture),
+                (scalar_join.receipts, "inputs", lambda *args: {}),
+                (scalar_join.kernel_restore, "require_build", lambda *args: None),
+                (scalar_join, "compiler_inputs", lambda *args: {}),
+                (scalar_join.cd, "compile_c", compile_c),
+                (scalar_join.lifecycle_target, "instruction_counts", lambda *args: {}),
+                (scalar_join.lifecycle_target, "longest_path", lambda *args: {"longest_path_steps": 1}),
+                (scalar_join.lifecycle_target, "reaction_path", reaction),
+                (scalar_join.asm, "Assembler", assemble),
+                (scalar_join.kernel_target, "revocation_window", lambda *args: (512, 1)),
+                (scalar_join.image, "write_elf", lambda path, *args: path.write_bytes(b"synthetic image")),
+                (scalar_join, "ProcessPoolExecutor", ThreadPoolExecutor),
+                (scalar_join, "execute_case", execute),
+            ]
+            for module, member, replacement in replacements:
+                stack.enter_context(patch.object(module, member, replacement))
+            report = scalar_join.run(root, out, ccomp, [], simulator, receipt,
+                                     generated_manifest=generated)
+        ensure(compiled_roles == ["kernel", "supervisor", "copy"], "joined compile membership changed")
+        expected_controls = ["none", "stale", "incomplete", "manifest-write"] if generated else ["none", "stale", "incomplete"]
+        ensure(sorted(executed) == sorted(expected_controls), "joined controls omitted a required path")
+        ensure(report["ok"] is True and report["production_admission"] is False and
+               report["milestone_acceptance"] == "open", "fixture execution promoted acceptance")
+        ensure(report["production_manifest"] == ({
+            name: scalar_join.receipts.digest(out / name) for name in snapshot} if generated else {}),
+            "joined receipt lost its checked projection identities")
+        if generated:
+            ensure("supervisor_permission_control:\n    sd x0, 0(c10)" in emitted[-1] and
+                   "li x6, supervisor_permission_control" in emitted[-1],
+                   "joined manifest write control lacks the actual store and named fault check")
+            ensure("    ld x5, 80(c11)\n    beqz x5, supervisor_poll_return" in emitted[0],
+                   "short-delay generated policy lost its initial empty publication")
+
+
+def generated_drift() -> None:
+    for name in ("manifest.c", "manifest.json", "compile-unit", "execute-unit"):
+        try:
+            generated_pipeline(drift=name)
+        except ValueError as error:
+            ensure("changed during" in str(error), f"wrong joined snapshot refusal: {error}")
+        else:
+            raise AssertionError(f"joined target accepted snapshot drift: {name}")
+
+
+def locked_producer_refusal() -> None:
+    with tempfile.TemporaryDirectory(prefix="vos-scalar-producer-refusal-") as temporary:
+        root = Path(temporary)
+        out = root / "out"
+        with (patch.object(scalar_join.compiler_provenance, "read",
+                           side_effect=ValueError("contained compiler toolchain does not bind the recorded lock")),
+              patch.object(scalar_join.cd, "compile_c") as compile_c):
+            try:
+                scalar_join.run(root, out, root / "ccomp", [], root / "simulator",
+                                root / "receipt", generated_manifest=True)
+            except ValueError:
+                pass
+            else:
+                raise AssertionError("generated scalar join bypassed locked compiler preflight")
+            ensure(not compile_c.called, "unqualified compiler reached target compilation")
+        report = json.loads((out / "report.json").read_bytes())
+        ensure(report["status"] == "refused" and report["stage"] == "compiler-provenance" and
+               report["target_execution"] is False and report["generated_manifest"] is True,
+               "preflight refusal invented target execution or lost the selected mode")
+
+
 def cases() -> list[Case]:
     return [Case("joined request publication and later acknowledgment chronology", wire_publication_order),
-            Case("joined fixed supervisor/copy table", fixed_table)]
+            Case("joined fixed supervisor/copy table", fixed_table),
+            Case("joined independent manifest bytes and entry snapshots", manifest_trace_bytes),
+            Case("joined serialized readonly-manifest fault and spoiled traces", manifest_permission_observer),
+            Case("production manifest reaches real joined source generation", generated_pipeline),
+            Case("ordinary scalar comparison keeps its manifest", lambda: generated_pipeline(False)),
+            Case("joined manifest compile and execution drift refuse", generated_drift),
+            Case("joined locked compiler refusal precedes target compilation", locked_producer_refusal)]
