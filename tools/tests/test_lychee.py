@@ -73,7 +73,7 @@ def _structured_verdicts() -> None:
     for code, report in invalid:
         try:
             lychee.read_result(root, code, report, "stopped")
-        except ValueError:
+        except (ValueError, TypeError):
             continue
         raise AssertionError(f"an incomplete or failed tool verdict passed: {code}, {report}")
 

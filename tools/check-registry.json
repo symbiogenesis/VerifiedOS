@@ -88,8 +88,8 @@
     {
       "id": "K-12",
       "group": "links",
-      "meaning": "every link resolves to a file, and every fragment to a bookmark or heading",
-      "ground": "cross-document hygiene; a dead link renders as working prose",
+      "meaning": "pinned offline Lychee validates local Markdown file links and heading or explicit-anchor fragments over the indexed corpus",
+      "ground": "standard link syntax and target validation; external network links are excluded, indexed gitlink roots remain valid when uninitialized, and malformed tool verdicts refuse",
       "reach": "name"
     },
     {
@@ -420,13 +420,6 @@
       "meaning": "the welded block size agrees across model and configurations, belongs to the computed candidate set, and respects the normative ceiling",
       "ground": "R-15-007q, R-15-007i, R-15-014a (vii), R-15-181a, R-15-203; the owner fields determine the destination-register ceiling and codeword constraint. Model/configuration disagreement and a mismatching normative ceiling are reported, not repaired. The constraint document presents one required candidate calculation, repaired from those owners; its remaining prose uses formulas and references. Missing source fields or calculation sites fail closed",
       "reach": "computed value"
-    },
-    {
-      "id": "K-59",
-      "group": "links",
-      "meaning": "every entry a document names in another document is carried by a heading there",
-      "ground": "the same cross-document hygiene as K-12; an entry retitled, merged or split by an edit made wholly inside the other file leaves a pointer that still resolves as a link and names nothing",
-      "reach": "pattern"
     },
     {
       "id": "K-60",
@@ -786,6 +779,11 @@
       "id": "K-38",
       "kind": "retired",
       "ground": "The mandatory markdown host gate delegates table pipe style and column counts to the locked MD055 and MD056 implementation; K-39 retains missing-separator detection."
+    },
+    {
+      "id": "K-59",
+      "kind": "retired",
+      "ground": "Direct section links are checked by the maintained ordinary-link validator."
     }
   ]
 }

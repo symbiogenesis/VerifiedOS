@@ -127,7 +127,7 @@ def run(ctx: Context) -> None:
 
     try:
         dead = lychee.findings(ctx.root, [doc.name for doc in corpus.docs], corpus.gitlinks)
-    except (OSError, ValueError, KeyError, subprocess.SubprocessError) as exc:
+    except (OSError, ValueError, TypeError, KeyError, subprocess.SubprocessError) as exc:
         dead = [f"ordinary link validation could not complete: {exc}"]
     unnumbered: dict[str, list[str]] = {}
 

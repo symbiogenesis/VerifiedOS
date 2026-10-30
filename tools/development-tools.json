@@ -2374,6 +2374,21 @@
           "key": "wcwidth"
         }
       ]
+    },
+    {
+      "id": "lychee",
+      "tool": "Lychee",
+      "subject": "the reviewed offline link-checker release",
+      "reviewed": [
+        "0.24.2"
+      ],
+      "owners": [
+        {
+          "kind": "assign",
+          "path": "tools/vos/lychee.py",
+          "key": "VERSION"
+        }
+      ]
     }
   ],
   "template": [
@@ -3042,6 +3057,15 @@
         "markdown_toolz",
         "markdown_typing_extensions",
         "markdown_wcwidth"
+      ]
+    },
+    {
+      "id": "Lychee",
+      "tool": "Lychee",
+      "license": "`MIT OR Apache-2.0`",
+      "standing": "Pinned offline local-link and fragment validation at `${lychee_0}`. The release commit `2bba271688c1abb1503097a064e6c3bc1d1b6a9b` carries [LICENSE-MIT](https://github.com/lycheeverse/lychee/blob/2bba271688c1abb1503097a064e6c3bc1d1b6a9b/LICENSE-MIT), SHA-256 `7175e5dd1db3111bbab4e5bafcab2544780452bb6ca8f347b0187446498630d1`, and [LICENSE-APACHE](https://github.com/lycheeverse/lychee/blob/2bba271688c1abb1503097a064e6c3bc1d1b6a9b/LICENSE-APACHE), SHA-256 `992df51ac0d6b07c1d7cb310dbeb60ed72b03a6a937779b273f82bdb6a757f6f`, read on 2026-10-29. The adapter verifies archive and executable hashes in the managed tool environment. No source or executable is conveyed here.",
+      "reviews": [
+        "lychee"
       ]
     }
   ]

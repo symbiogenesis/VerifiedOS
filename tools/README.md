@@ -1077,6 +1077,20 @@ the environment's executables, and explicitly gives ty that environment's Python
 The launcher's `uv run --locked --exact` refuses stale resolution before dispatch.
 Global checker shims and an unrelated activated environment cannot select different tools.
 
+Development-tool licence editions, owner references and table rows are authored in
+[development-tools.json](development-tools.json), checked against its
+[JSON Schema](development-tools.schema.json). Each row names its reviewed identities
+or an explicit disposition. K-118 compares those editions with their dependency
+owners and checks the generated region of [THIRD-PARTY.md](../THIRD-PARTY.md).
+Repair regenerates display bytes only; an owner moving beyond its recorded licence
+reading refuses repair until that reading is performed and recorded.
+
+Ordinary local links and fragments use the pinned offline
+[Lychee adapter](vos/lychee.py). It reads the indexed corpus explicitly, validates
+headings and declared anchors, and accepts a tracked submodule root without fetching
+its contents. Its archive and executable hashes are verified in the managed Python
+environment, shared by mutation subprocesses. It does not contact external links.
+
 The Python project lives in `tools/`. From the repository root, add a dependency
 with `uv add --project tools --no-sync PACKAGE`, or edit the manifest and run
 `uv lock --project tools`. After changing pins, run

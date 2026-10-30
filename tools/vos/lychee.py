@@ -119,22 +119,22 @@ def read_result(root: Path, code: int, output: str, error: str) -> list[str]:
         raise ValueError(f"Lychee exited {code}: {(error or output).strip()[:500]}")
     data = json.loads(output, object_pairs_hook=jsonutil.unique_object)
     if not isinstance(data, dict) or not isinstance(data.get("error_map"), dict):
-        raise ValueError("Lychee returned no error map")
+        raise TypeError("Lychee returned no error map")
     results: list[str] = []
     for source, entries in data["error_map"].items():
         if not isinstance(source, str) or not isinstance(entries, list):
-            raise ValueError("Lychee returned an invalid source diagnostic")
+            raise TypeError("Lychee returned an invalid source diagnostic")
         path = Path(source)
-        source = path.relative_to(root).as_posix() if path.is_relative_to(root) else source
+        label = path.relative_to(root).as_posix() if path.is_relative_to(root) else source
         for item in entries:
             if not isinstance(item, dict):
-                raise ValueError("Lychee returned an invalid link diagnostic")
+                raise TypeError("Lychee returned an invalid link diagnostic")
             status, span, url = item.get("status"), item.get("span"), item.get("url")
             if (not isinstance(status, dict) or not isinstance(status.get("text"), str)
                     or not isinstance(span, dict) or type(span.get("line")) is not int
                     or not isinstance(url, str)):
                 raise ValueError("Lychee returned an incomplete link diagnostic")
-            results.append(f"{source}:{span['line']} {url}: {status['text']}")
+            results.append(f"{label}:{span['line']} {url}: {status['text']}")
     if (type(data.get("errors")) is not int or data["errors"] != len(results)
             or (code == 0) != (not results)):
         raise ValueError("Lychee's exit status and diagnostic counts disagree")
