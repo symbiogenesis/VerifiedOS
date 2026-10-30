@@ -2564,6 +2564,64 @@ backing from a usable declared slot and completed reuse.
 
 A credible project combines programming-language semantics, algorithms, real-time systems, capability security, and compiler engineering. Its success criterion is a checked increase in useful admitted work with the costs exposed. A proof that a particular reservation is unavoidable, or that a tempting optimization breaks isolation, is also a substantive result.
 
+## Standard-tool guardrail replacements
+
+This maintenance batch removes duplicated facts and delegates ordinary syntax and
+dependency decisions to maintained tools. Implement in this order: explicit checker
+targets and locked-resolution delegation; generated rule and release views; one
+interpreter-version owner; direct references and Markdown validation. Existing
+assurance decisions, indexed-file coverage, byte preservation and licence-review
+bindings remain required. Retired rule IDs remain recorded and are never reused.
+
+- **Explicit checker targets. Start:** the typecheck wrapper's Git inventory and
+  debug-log coverage audit. **Owns:** explicit filename targets for both ty platforms
+  and Ruff, bounded for Windows command limits, with discovery-log parsing removed.
+  **Check:** the pinned tools diagnose ignored and default-excluded files, including
+  Ruff lint exclusions, and missing inputs or tool crashes refuse; existing
+  suppression and configuration policies remain enforced.
+- **Locked-resolution delegation. Start:** K-67 and the launcher's locked uv
+  bootstrap. **Owns:** removal of the duplicate manifest/lock comparison while
+  retaining exact manifest-pin policy and runtime checker-version verification.
+  **Check:** incompatible manifest/lock inputs fail through uv before dispatch;
+  supported public entry points retain that bootstrap.
+- **Generated checker registry. Start:** K-00 and K-119's textual registries.
+  **Owns:** required typed rule metadata supplying the generated registry and reach
+  memberships, permanent IDs and executable rule registration. **Check:** duplicate
+  IDs, missing implementations or metadata, invalid reach classes and stale generated
+  views refuse; mutation coverage still ranges over the executable registry.
+- **Generated development-tool releases. Start:** K-118's prose release grammar.
+  **Owns:** structured authored licence-review identities and generated release
+  views from their dependency owners. **Check:** dependency/review mismatches, missing
+  or duplicate records and stale views refuse; generation never advances a reviewed
+  version or claims a licence reading. Upstream and action provenance keep their
+  independent obligations.
+- **One interpreter-version owner. Start:** K-75's transcribed minor versions.
+  **Owns:** the project requires-python field as the owner for workflow selection,
+  checker targets, provisioning and installation guidance. **Check:** both platform
+  targets and workflows use the supported minor without silently falling back to
+  tool defaults; malformed constraints and unresolved owners refuse.
+- **Direct references and ordinary link validation. Start:** K-12, K-13 and K-59.
+  **Owns:** stable direct links replacing heuristic prose references and maintained
+  offline local-link/fragment validation over the indexed corpus. **Check:** existing
+  missing-file and fragment controls, explicit and Unicode anchors, uninitialized
+  gitlinks and source-relative paths retain coverage. K-80's licence-file membership
+  obligation remains separate; changed entry/prose pairs receive co-read judgment.
+- **Standard Markdown table validation. Start:** K-38 and K-39. **Owns:** maintained
+  table-width linting with predictable pipe syntax. **Check:** wrong-width and escaped
+  pipe controls fail correctly; K-39 continues to refuse pipe-led runs whose missing
+  separator prevents recognition as a Markdown table.
+- **Shared Markdown syntax. Start:** the corpus's handwritten fence and heading
+  recognition. **Owns:** a maintained CommonMark parser with source maps and the
+  required table extension, retaining source bytes and semantic readers. **Check:**
+  nested/container and indented code, unfinished fences, reference links, inline
+  HTML and headings preserve intended declarations and diagnostics; parsing never
+  rewrites source text.
+
+Each replacement joins through focused controls and integrated typecheck. Host CI
+must pass on Windows and Ubuntu for the published main revision; dispatch every
+Guest CI lane for that revision and finish without waiting for Guest CI. Record
+final implementation and hosted evidence here and in the batch fanout journal.
+
 ## Tool-library simplifications
 
 This maintenance batch preserves artifact formats, diagnostics and acceptance
