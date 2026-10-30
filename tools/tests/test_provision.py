@@ -43,6 +43,21 @@ from vos.report import Reporter
 _ROOT = TOOLS.parent
 
 
+def _interpreter_uses_project_minor() -> None:
+    with tempfile.TemporaryDirectory(prefix="vos-provision-python-") as name:
+        root = Path(name)
+        project = root / "tools/pyproject.toml"
+        project.parent.mkdir()
+        project.write_text('[project]\nrequires-python = ">=3.12,<3.13"\n',
+                           encoding="utf-8", newline="")
+        for minor, accepted in ((11, False), (12, True), (13, False)):
+            version = SimpleNamespace(major=3, minor=minor, micro=9)
+            with patch.object(provision, "find_root", return_value=root), \
+                    patch.object(provision, "sys", SimpleNamespace(version_info=version)):
+                ensure(provision._interpreter().present == accepted,
+                       "provisioning must follow both bounds of the manifest's supported minor")
+
+
 def _answer(present: bool, saw: str) -> provision.Found:
     """A probe that says what a case chose, so a table describes a hypothetical
     machine rather than this one."""
@@ -1354,6 +1369,7 @@ def _check_is_read_only() -> None:
 
 def cases() -> list[Case]:
     return [
+        Case("interpreter-uses-project-minor", _interpreter_uses_project_minor),
         Case("satisfied-plans-nothing", _satisfied_plans_nothing),
         Case("absent-plans-its-own-command", _absent_plans_its_own_command),
         Case("absent-without-a-command-reports-only",

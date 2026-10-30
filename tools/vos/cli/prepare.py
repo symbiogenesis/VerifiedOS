@@ -9,7 +9,7 @@ import sys
 import sysconfig
 from pathlib import Path
 
-from vos import corpus, env, toolenv
+from vos import corpus, env, pyversion, toolenv
 from vos.cli import Table, dispatch
 
 
@@ -52,7 +52,8 @@ def python_prepare(root: Path, names: list[str], *, check: bool) -> int:
     if version.stdout.strip() != f"ruff {pin}":
         raise ValueError("preparation requires the locked environment's exact Ruff edition")
     argv = [str(executable), "check", "--config", str(root / "tools" / "ruff.toml"),
-            "--select", "I", "--no-cache", "--no-respect-gitignore"]
+            "--select", "I", "--no-cache", "--no-respect-gitignore",
+            "--target-version", "py" + pyversion.supported_minor(root).replace(".", "")]
     if not check:
         argv.append("--fix")
     return subprocess.run([*argv, "--", *(str(root / path) for path in paths)],

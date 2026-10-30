@@ -46,6 +46,9 @@ def _locked_formatter() -> None:
         argv = invoke.call_args.args[0]
         ensure("--fix" not in argv and argv[-1] == str(root / "tools/run.py") and "I" in argv,
                "read-only preparation rewrote files or selected unrelated rules")
+        ensure(argv[argv.index("--target-version") + 1]
+               == "py" + prepare.pyversion.supported_minor(root).replace(".", ""),
+               "explicit-config preparation must use the manifest target")
         ensure(invoke.call_args.kwargs["cwd"] == root / "tools",
                "import classification must use the gate's Python source root")
     with patch.object(prepare.subprocess, "run", side_effect=[version, result]) as invoke:

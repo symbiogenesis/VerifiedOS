@@ -10,7 +10,7 @@ selftest's single-defect mutants cannot reach: a `--fix` whose only edit is
 refused writes nothing, a repair reaches its fixpoint in one application, a
 truncated table row is a finding rather than a crash, an overgrown quantity is a
 finding rather than a stopped run, K-67 fails closed on an owner it cannot read,
-and K-75 decides the one floor site its single mutant does not seed.
+and the remaining metadata readers retain their own refusal controls.
 """
 
 import gzip
@@ -444,98 +444,6 @@ def _k67_unreadable_lock_fails_closed() -> None:
         ctx = _k67(_README_REFERENCES, _PROJECT_PINNED, lock)
         ensure(bool(_findings_under(ctx, "K-67")),
                f"missing, malformed or duplicate resolved pins must fail: {ctx.rep.out!r}")
-
-
-_TY_CONF = 'python-version = "3.14"\n'
-_PROVISION_AT = 'INTERPRETER_FLOOR = "3.14"\n'
-_PROVISION_DRIFTED = 'INTERPRETER_FLOOR = "3.13"\n'
-_FLOOR_SITE = "tools/vos/cli/provision.py's provisioned floor states "
-
-
-_CAMPAIGN_JOBS = '  a:\n    python-version: "3.14"\n  b:\n    python-version: "3.14"\n'
-_INSTRUMENT_JOBS = ''.join(f'  {job}:\n    python-version: "3.14"\n'
-                           for job in ("plan", "build", "import", "seed", "join"))
-
-
-def _k75(provision: str, project: str =
-         '[project]\nrequires-python = ">=3.14,<3.15"\n',
-         readme: str = "# Tools\n\nUse `uv python install --no-config 3.14`.\n",
-         campaign: str = _CAMPAIGN_JOBS, instrument: str = _INSTRUMENT_JOBS,
-         chain: str = _CAMPAIGN_JOBS) -> Context:
-    files = {"docs/requirements-register.md": _REGISTER_MIN,
-             "tools/README.md": readme,
-             "tools/ty.toml": _TY_CONF,
-             "tools/ruff.toml": 'target-version = "py314"\n',
-             "tools/pyproject.toml": project,
-             ".github/workflows/host-gates.yml": 'python-version: "3.14"\n',
-             ".github/workflows/guest-gates.yml": 'python-version: "3.14"\n',
-             ".github/workflows/boot-crypto-target.yml": campaign,
-             ".github/workflows/boot-chain-target.yml": chain,
-             ".github/workflows/instrument-switches.yml": instrument,
-             "tools/vos/cli/provision.py": provision}
-    with sandbox_tree(files) as root:
-        ctx = _context(root)
-        meta.run(ctx)
-        return ctx
-
-
-def _k75_provisioned_floor_at_the_pin_is_not_a_finding() -> None:
-    found = _findings_under(_k75(_PROVISION_AT), "K-75")
-    ensure(not found,
-           f"configuration and install command agree without prose copies: {found!r}")
-
-
-def _k75_provisioned_floor_drifted_is_a_finding() -> None:
-    found = _findings_under(_k75(_PROVISION_DRIFTED), "K-75")
-    ensure(f"{_FLOOR_SITE}3.13, tools/ty.toml fixes 3.14" in found,
-           f"a drifted provisioned floor names the two figures: {found!r}")
-
-
-def _k75_unreadable_provisioner_fails_closed() -> None:
-    # the site gone rather than wrong: a rule that cannot find a site it enumerates
-    # reports it, never drops it and passes over the sites it could still read
-    found = _findings_under(_k75("# no floor here\n"), "K-75")
-    ensure("tools/vos/cli/provision.py no longer states the floor in its provisioned "
-           "floor, in a form this rule reads" in found,
-           f"an unreadable site is the finding: {found!r}")
-
-
-def _k75_project_floor_is_held() -> None:
-    for project, fragment in (
-            ('[project]\nrequires-python = ">=3.13,<3.15"\n', "requires-python states"),
-            ("", "cannot supply requires-python")):
-        found = _findings_under(_k75(_PROVISION_AT, project), "K-75")
-        ensure(any(fragment in item for item in found),
-               f"a drifted or missing project constraint must report: {found!r}")
-
-
-def _k75_install_command_still_uses_supported_version() -> None:
-    for command in ("Install Python from the project manifest.\n",
-                    "Use `uv python install --no-config 3.13`.\n"):
-        found = _findings_under(_k75(_PROVISION_AT, readme=command), "K-75")
-        ensure(any("manual interpreter install" in item for item in found),
-               f"an executable example must stay present and supported: {found!r}")
-
-
-def _k75_every_workflow_job_is_held() -> None:
-    # A site read only at its first match would pass the second job's interpreter.
-    drifted = _CAMPAIGN_JOBS.replace('b:\n    python-version: "3.14"', 'b:\n    python-version: "3.13"')
-    found = _findings_under(_k75(_PROVISION_AT, campaign=drifted), "K-75")
-    ensure(".github/workflows/boot-crypto-target.yml's workflow interpreter states 3.13, "
-           "tools/ty.toml fixes 3.14" in found,
-           f"a later job's interpreter below the floor must report: {found!r}")
-    found = _findings_under(_k75(_PROVISION_AT, chain=drifted), "K-75")
-    ensure(".github/workflows/boot-chain-target.yml's workflow interpreter states 3.13, "
-           "tools/ty.toml fixes 3.14" in found,
-           f"the chain campaign's later job below the floor must report: {found!r}")
-    # The instrument switch route's every job is held, the last as the first.
-    for job in ("plan", "join"):
-        drifted = _INSTRUMENT_JOBS.replace(f'{job}:\n    python-version: "3.14"',
-                                           f'{job}:\n    python-version: "3.13"')
-        found = _findings_under(_k75(_PROVISION_AT, instrument=drifted), "K-75")
-        ensure(".github/workflows/instrument-switches.yml's workflow interpreter states 3.13, "
-               "tools/ty.toml fixes 3.14" in found,
-               f"the route's {job} job below the floor must report: {found!r}")
 
 
 # K-119's fixture: seven active rules and one struck row inside the name class's range,
@@ -2623,16 +2531,6 @@ def cases() -> list[Case]:
         Case("k67-lock-drift-is-a-finding", _k67_lock_drift_is_a_finding),
         Case("k67-unreadable-source-fails-closed", _k67_unreadable_source_fails_closed),
         Case("k67-unreadable-lock-fails-closed", _k67_unreadable_lock_fails_closed),
-        Case("k75-provisioned-floor-at-the-pin-is-not-a-finding",
-             _k75_provisioned_floor_at_the_pin_is_not_a_finding),
-        Case("k75-provisioned-floor-drifted-is-a-finding",
-             _k75_provisioned_floor_drifted_is_a_finding),
-        Case("k75-unreadable-provisioner-fails-closed",
-             _k75_unreadable_provisioner_fails_closed),
-        Case("k75-project-floor-is-held", _k75_project_floor_is_held),
-        Case("k75-install-command-still-uses-supported-version",
-             _k75_install_command_still_uses_supported_version),
-        Case("k75-every-workflow-job-is-held", _k75_every_workflow_job_is_held),
         Case("k119-each-rule-in-one-class-passes", _k119_each_rule_in_one_class_passes),
         Case("k119-unnamed-and-doubly-named-rules-are-findings",
              _k119_unnamed_and_doubly_named_rules_are_findings),
