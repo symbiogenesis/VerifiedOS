@@ -38,6 +38,8 @@ from graphlib import CycleError, TopologicalSorter
 from pathlib import Path
 from types import MappingProxyType
 
+from vos import prooflex
+
 # What a source Requires. `From X Require Import Y` and the bare forms all land here,
 # and the names are split on whitespace because one command may Require several.
 REQUIRE = re.compile(r"^(?:From\s+(\S+)\s+)?Require(?:\s+(?:Import|Export))?\s+(.+)$")
@@ -53,7 +55,6 @@ REQUIRE = re.compile(r"^(?:From\s+(\S+)\s+)?Require(?:\s+(?:Import|Export))?\s+(
 # to Rocq's, which covers the same characters.
 SENTENCE_END = re.compile(r"(?<!(?<!\.)\.)\.(?=\s|$)")
 _SENTENCE_TOKEN = re.compile(r'"[^"]*(?:"|\Z)|' + SENTENCE_END.pattern)
-_COMMENT_TOKEN = re.compile(r'\(\*|\*\)|"')
 
 # Everything that can precede a command within its sentence, each piece with the blank
 # after it. Bullets, braces and a focusing goal selector end without a full stop, so the
@@ -124,25 +125,13 @@ def strip_comments(text: str, *, keep_offsets: bool = False) -> str:
     """
     blank = _spaces if keep_offsets else _separator
     out: list[str] = []
-    depth = start = quoted_until = 0
-    for token in _COMMENT_TOKEN.finditer(text):
-        if token.start() < quoted_until:
-            continue
-        if token.group() == '"':
-            quoted_until = text.find('"', token.end()) + 1
-            if not quoted_until:
-                break
-        elif token.group() == "(*":
-            if not depth:
-                out.append(text[start:token.start()])
-                start = token.start()
-            depth += 1
-        elif depth:
-            depth -= 1
-            if not depth:
-                out.append(blank(text, start, token.end()))
-                start = token.end()
-    out.append(blank(text, start, len(text)) if depth else text[start:])
+    start = 0
+    for region in prooflex.regions(text, strings_in_comments=True):
+        if region.kind == "comment":
+            out.append(text[start:region.start])
+            out.append(blank(text, region.start, region.end))
+            start = region.end
+    out.append(text[start:])
     return "".join(out)
 
 
