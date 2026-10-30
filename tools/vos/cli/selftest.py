@@ -1337,9 +1337,6 @@ CASES: list[Case] = [
     ("K-96", "a retained estimate presented as a calibration measurement",
      _literal(PLAN, "| M1.2b | n/a | n/a |", "| M1.2b | X-authored | 6 |")),
 
-    ("K-38", "a table row of the wrong width",
-     _literal(MATRIX, "| `B-01` | `P-1` |", "| seeded | `B-01` | `P-1` |")),
-
     ("K-39", "a run of table rows carrying no header rule",
      _seed_paragraph("| a stray row | pasted on its own |")),
 

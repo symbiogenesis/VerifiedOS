@@ -84,7 +84,7 @@ def _sharded_plan_and_failures() -> None:
     # unpartitioned run the rest, the selftest narrowed to its repair path.
     whole = [m.tool for m in gate._plan(False, True)[0]]
     rest = gate._plan(False, True, unpartitioned=True)[0]
-    ensure([m.name for m in rest] == ["check", "selftest --repair-only", "typecheck"],
+    ensure([m.name for m in rest] == ["check", "selftest --repair-only", "typecheck", "markdown"],
            f"the unpartitioned run is the checker, the repair path and typecheck: {rest!r}")
     for index in range(1, 5):
         shard = Shard(index, 4)
@@ -169,12 +169,13 @@ def _repair_verdict_comes_from_the_fresh_wave() -> None:
             ensure(rep.findings == int(remaining),
                    f"the old finding must not override the final checker: {rep.out}")
             ensure(calls[0] == "check --fix" and calls.count("check") == 1
-                   and calls.count("selftest") == 1 and calls.count("typecheck") == 1,
+                   and calls.count("selftest") == 1 and calls.count("typecheck") == 1
+                   and calls.count("markdown") == 1,
                    f"repair must precede exactly one full validation wave: {calls}")
             ensure("FAIL K-24: old arithmetic" in rep.out,
                    "the repair's original diagnostic was lost")
             if not remaining:
-                ensure(rep.out[-1] == "ok gate: all 3 host gate(s) green",
+                ensure(rep.out[-1] == f"ok gate: all {len(gate.MEMBERS)} host gate(s) green",
                        "preparation must not inflate the count of successful final gates")
 
     scenario(remaining=False)
@@ -394,9 +395,9 @@ def _timings_round_trip_and_never_fail_the_run() -> None:
 
 
 def _verdict_names_the_member_that_reported() -> None:
-    results = [gate.Result(gate.MEMBERS[0], 0, ["ok whatever: fine"]),
-               gate.Result(gate.MEMBERS[1], 1, ["FAIL K-99: 1 thing"]),
-               gate.Result(gate.MEMBERS[2], 0, ["ok whatever: fine"])]
+    results = [gate.Result(member, 1 if member.tool == "selftest" else 0,
+                           ["FAIL K-99: 1 thing"] if member.tool == "selftest"
+                           else ["ok whatever: fine"]) for member in gate.MEMBERS]
     rep = Reporter()
     gate._verdict(rep, results)
     ensure(rep.findings == 1, f"one member reported, so one finding, got {rep.findings}")
@@ -415,7 +416,8 @@ def _summary_names_every_member_and_its_code() -> None:
     is the one a reader most needs separated out, a member that crashed being a broken
     tool rather than a tree with something wrong in it.
     """
-    codes = {"check": 0, "selftest": 1, "typecheck": gate.NO_VERDICT, "test": 0}
+    codes = {member.tool: 0 for member in (*gate.MEMBERS, gate.TESTS)}
+    codes.update({"selftest": 1, "typecheck": gate.NO_VERDICT})
     measured: list[timings.Unit] = [{"kind": "module", "name": "test_a", "cases": 2,
                                      "seconds": 0.5}]
     records: list[Path | None] = []

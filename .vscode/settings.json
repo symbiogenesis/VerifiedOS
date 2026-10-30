@@ -1,3 +1,9 @@
 {
-    "cmake.sourceDirectory": "${workspaceFolder}/model"
+    "cmake.sourceDirectory": "${workspaceFolder}/model",
+    "json.schemas": [
+        {
+            "fileMatch": ["/tools/development-tools.json"],
+            "url": "./tools/development-tools.schema.json"
+        }
+    ]
 }

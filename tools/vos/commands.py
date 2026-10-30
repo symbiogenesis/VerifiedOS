@@ -62,6 +62,8 @@ COMMANDS: tuple[Command, ...] = (
             "every rule the checker carries, against its own mutant"),
     Command("typecheck", "vos.cli.typecheck",
             "the tools' own Python, under two pinned checkers"),
+    Command("markdown", "vos.cli.markdown",
+            "standard Markdown table syntax over indexed authored documents"),
     Command("prepare", "vos.cli.prepare",
             "format selected changed files with locked tools, without builds",
             lane="guest", host_ok=frozenset({"python"})),

@@ -1,10 +1,10 @@
 # SPDX-License-Identifier: Apache-2.0
 """Validate the checkout with one host-gate verdict.
 
-The default runs the checker, selftest and typecheck read-only, each in its own
-process. `--check` is the same read-only run, named for a caller that wants no
+The default runs the checker, selftest, typecheck and Markdown linter read-only,
+each in its own process. `--check` is the same read-only run, named for a caller that wants no
 ambiguity with `--fix`. `--fix` repairs derived facts alone, then runs a fresh
-read-only checker alongside the selftest and typecheck.
+read-only checker alongside the other host gates.
 Repair findings describe the old tree; only the final wave decides the repaired tree.
 A repair without a verdict stops before that wave.
 
@@ -13,8 +13,8 @@ tools' behavioral tests; those stay optional to keep document checks small and a
 recursive test launches. Exit 0 means every final gate passed, 1 otherwise.
 
 `--shard INDEX/TOTAL` runs one partition of the selftest's cases and, with `--tests`, of
-the tests, and nothing else. `--unpartitioned` runs the rest: the checker, typecheck and
-the selftest's repair path; the tests have no unpartitioned part. Every shard of one
+the tests, and nothing else. `--unpartitioned` runs the remaining members and the
+selftest's repair path; the tests have no unpartitioned part. Every shard of one
 count and that run, each with the same `--tests`, together are the read-only wave.
 
 `--summary` writes the same verdict as data. The prose below says which member to read
@@ -87,6 +87,7 @@ MEMBERS: tuple[Launch, ...] = (
     Launch("check", (), "every derived fact against the artifact that owns it"),
     Launch("selftest", (), "every rule the checker carries, against its mutant"),
     Launch("typecheck", (), "the tools' own Python, under two pinned checkers"),
+    Launch("markdown", (), "standard table syntax, once outside semantic mutation replay"),
 )
 
 # The member `--tests` adds, named here rather than spelled at its call site so that

@@ -723,6 +723,8 @@ The work that is undelegatable, the work that unblocks a lane, and the instrumen
 
 **S subtotal:** 173.8 h · 4% · 137.8 h complete · open range 22–50 h.
 
+<a id="q-assessment-actions"></a>
+
 ### Q · Assessment actions
 
 The actions a reading of this design puts to the plan, carried as open items so that each is priced, sequenced and closed here rather than in a list beside it. [The critique's product assessment](docs/background/critique.md#the-two-theses) raises the first ten; the rest come from readings of the register against the outside world, and the provenance changes nothing about how an item is carried. Optional comparison items close by taking an arm, which may reject the candidate. Contract qualification can instead be an explicit input to an existing build item: Q22a supplies M4.4's revocation interface and may run beside compiler and firmware work. The individual dispatch clauses govern these dependencies; qualification of an interface does not claim its implementation or full proof. The later witness, attestation and physical claims wait for their own named evidence and are outside the M8a roster. Three readings sort the set. **Use more of the instruments already selected before selecting more.** Connecting a small generated implementation to the actual target, measuring a useful workload and checking the static resource assignment independently are the acts most likely to reduce effort without weakening the security architecture. **For capacity, start with less data and better placement, and change the physical topology only for a large physical gain.** Public immutable weights are the narrowest useful external-store experiment; more-transistor SRAM buys stability and voltage margin and not density; more matrix throughput does not lift a weight-bandwidth ceiling. **No figure in [the performance estimates](docs/performance/performance-estimates.md) rises because an item here is accepted.** Some of the repairs make those estimates less optimistic, and only a measured change against the current assumed baseline is credited, never a feature the estimates already assume.
@@ -1480,6 +1482,8 @@ Curated Sail model (§1) → single-core RV64IMV+CHERI emulator; ISA tests green
   * The fetch path's instruction-length decision is deleted with the 16-bit decode surface, and the harness restore defect does not reproduce. ([note](docs/implementation/completion-log.md#m020-close-the-fetch-paths-instruction-length-decision-and-the-harnesss-restore-idiom))
 
 **M0 subtotal:** 121.1 h · 3% · 116.1 h complete · open range 3–7 h.
+
+<a id="m1-toolchain-spine-incl-the-cheri-compcert-prerequisite"></a>
 
 ### M1 · Toolchain spine (incl. the CHERI-CompCert prerequisite)
 
@@ -2607,8 +2611,9 @@ bindings remain required. Retired rule IDs remain recorded and are never reused.
   gitlinks and source-relative paths retain coverage. K-80's licence-file membership
   obligation remains separate; changed entry/prose pairs receive co-read judgment.
 - **Standard Markdown table validation. Start:** K-38 and K-39. **Owns:** maintained
-  table-width linting with predictable pipe syntax. **Check:** wrong-width and escaped
-  pipe controls fail correctly; K-39 continues to refuse pipe-led runs whose missing
+  table-width linting with predictable pipe syntax in one mandatory host-wave member,
+  outside semantic-rule mutation replay. **Check:** wrong-width and escaped pipe
+  controls fail correctly; K-39 continues to refuse pipe-led runs whose missing
   separator prevents recognition as a Markdown table.
 - **Shared Markdown syntax. Start:** the corpus's handwritten fence and heading
   recognition. **Owns:** a maintained CommonMark parser with source maps and the

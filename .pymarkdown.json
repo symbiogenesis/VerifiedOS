@@ -1,0 +1,10 @@
+{
+  "extensions": {
+    "markdown-tables": {"enabled": true},
+    "linter-pragmas": {"enabled": false}
+  },
+  "plugins": {
+    "md055": {"enabled": true, "style": "leading_and_trailing"},
+    "md056": {"enabled": true}
+  }
+}
