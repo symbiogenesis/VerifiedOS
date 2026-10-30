@@ -23,7 +23,8 @@
 # `# ruff: file-ignore[...]` comment, a `# ruff: disable[...]` or `# ruff: enable[...]`
 # range comment, or isort's `skip_file`, `off` or `on` action comment.
 
-target-version = "py314"
+# Editors infer the target from pyproject.toml's requires-python. The gate and
+# preparation pass that value explicitly because --config disables inference.
 line-length = 100          # E501 is not selected; this only sizes the few rules that read it
 
 # ruff otherwise skips whatever a `.gitignore`, `.ignore`, `.git/info/exclude` or

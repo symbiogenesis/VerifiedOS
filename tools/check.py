@@ -36,9 +36,9 @@ render succeeds, and for every tracked file, the license mark its kind owes:
     glyphs     the characters    encoding damage, in every tracked file
     marks      the provenance    every markable file opens with the declared SPDX identifier
 
-Last, the tool checks itself the same way: every check carries a K-nn rule id,
-tools/check-rules.md registers each id with its claim and its ground, and the floors
-and meta groups hold the reach and the registry in agreement in both directions.
+Last, required metadata binds every K-nn rule to its executable group and generates
+tools/check-rules.md. The driver holds each clean group's actual verdicts against
+its declarations, and the meta group checks generated views against that owner.
 
 Run with --fix to rewrite the asserted counts, the compounded product, the coverage
 matrix's standing column, and the checklist's totals and shares from their artifacts.
@@ -70,8 +70,8 @@ from pathlib import Path
 # the path first. Every import below this line is deliberately not at the top.
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
+from vos import checkregistry, timings, toolenv
 from vos import corpus as corpus_mod
-from vos import timings, toolenv
 
 if __name__ == "__main__":
     code = toolenv.bootstrap(corpus_mod.find_root(), ["check", *sys.argv[1:]])
@@ -116,12 +116,25 @@ def run(root: Path, fix: bool = False, through: str | None = None,
         art = read_artifacts(corpus)
     ctx = Context(root=root, corpus=corpus, reg=reg, art=art, rep=Reporter(), fix=fix,
                   clock=measured)
+    try:
+        ctx.registry = checkregistry.read(root)
+        groups = ctx.registry.bind((group.__name__.rpartition(".")[2], group.run)
+                                   for group in GROUPS)
+    except (OSError, ValueError, TypeError, AttributeError) as exc:
+        ctx.rep.report("K-00", "invalid executable rule registry:", [str(exc)])
+        return ctx.rep
     decided = re.compile(rf"\s*(?:ok|FAIL) {re.escape(through)}:") if bool(through) else None
     skipped = 0
-    for index, group in enumerate(GROUPS):
+    for index, group in enumerate(groups):
         start = len(ctx.rep.out)
-        with measured.timing("group", group.__name__.rpartition(".")[2]):
+        ctx.group_start = len(ctx.rep.decisions)
+        ctx.group_findings = ctx.rep.findings
+        with measured.timing("group", group.name):
             group.run(ctx)
+        if group.name != "meta":
+            ctx.registry_faults += checkregistry.verdict_faults(
+                group.rules, ctx.rep.decisions[ctx.group_start:],
+                clean=ctx.rep.findings == ctx.group_findings)
         if decided is not None and any(decided.match(line) for line in ctx.rep.out[start:]):
             skipped = len(GROUPS) - index - 1
             break

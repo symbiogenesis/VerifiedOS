@@ -222,6 +222,7 @@ EXCLUDED: dict[str, str] = {
     "tools/vos/cli/selftest.py": _CHECKER,
     "tools/tests/": _CHECKER,
     "tools/check-rules.md": _CHECKER,
+    "tools/check-registry.json": _CHECKER,
 }
 
 # The one exclusion narrower than a path: the pin entry of a machine-written environment

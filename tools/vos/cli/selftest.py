@@ -69,8 +69,8 @@ from pathlib import Path
 from queue import Queue
 from typing import cast
 
+from vos import checkregistry, memplan, proofcites, proofheaders, proofs, sharding, timings
 from vos import corpus as corpus_mod
-from vos import memplan, proofcites, proofheaders, proofs, sharding, timings
 from vos.checks import Context, generated, headers
 from vos.checks.ledger import ARTIFACT as PROOF_LEDGER
 from vos.coread import LEDGER
@@ -1084,6 +1084,15 @@ CASES: list[Case] = [
     ("K-00", "a registered rule with its registry row retitled out of the table",
      _literal(RULES, "| K-41 | glyphs", "| K-xx | glyphs")),
 
+    ("K-00", "two authored metadata records claiming the same permanent ID",
+     _literal(checkregistry.SOURCE, '"id": "K-01"', '"id": "K-00"')),
+
+    ("K-00", "a rule assigned a reach class the registry does not carry",
+     _literal(checkregistry.SOURCE, '"reach": "total"', '"reach": "marker"')),
+
+    ("K-00", "a metadata group with no executable callback",
+     _literal(checkregistry.SOURCE, '"group": "traces"', '"group": "missing"')),
+
     ("K-01", "a trace's derived bookmark renamed in the prose",
      _literal(SPEC, '<a id="r-01-001">', '<a id="moved-away">')),
 
@@ -1667,47 +1676,6 @@ CASES: list[Case] = [
                   lambda m: m.group().replace(f"| {m[1]} |",
                       "| not authored |" if m[1] == "authored" else "| authored |"))),
 
-    # The settings express one target in different dialects. Narrative references
-    # may omit the version; executable configuration must still agree.
-    ("K-75", "a checker settings file at an interpreter floor the other does not fix",
-     _literal("tools/ruff.toml", 'target-version = "py314"',
-              'target-version = "py313"')),
-    # The floor the gate actually runs on, which is the copy that decides whether a
-    # green run says anything: a workflow an interpreter below the floor would admit
-    # constructs the tools are written to refuse.
-    ("K-75", "a host workflow interpreter below the floor ty.toml fixes",
-     _literal(".github/workflows/host-gates.yml", 'python-version: "3.14"',
-              'python-version: "3.13"')),
-    ("K-75", "a guest workflow interpreter below the floor ty.toml fixes",
-     _literal(".github/workflows/guest-gates.yml", 'python-version: "3.14"',
-              'python-version: "3.13"')),
-    # The campaign installs the interpreter in each of its jobs, so the second job's
-    # copy is seeded too: a rule reading only the first site in a file passes it.
-    ("K-75", "a campaign workflow's first interpreter below the floor ty.toml fixes",
-     _literal(".github/workflows/boot-crypto-target.yml", 'python-version: "3.14"',
-              'python-version: "3.13"')),
-    ("K-75", "a campaign workflow's later interpreter below the floor ty.toml fixes",
-     _first_match(".github/workflows/boot-crypto-target.yml",
-                  r'(python-version: "3\.14".*)python-version: "3\.14"',
-                  lambda m: m[1] + 'python-version: "3.13"', flags=re.DOTALL)),
-    # The chain campaign installs the interpreter in each of its five jobs; its last
-    # job's copy, the join's, is the one a first-match reading would pass.
-    ("K-75", "the chain campaign workflow's last interpreter below the floor ty.toml fixes",
-     _first_match(".github/workflows/boot-chain-target.yml",
-                  r'(.*)python-version: "3\.14"',
-                  lambda m: m[1] + 'python-version: "3.13"', flags=re.DOTALL)),
-    # The instrument switch route installs the interpreter in each of its five jobs, so
-    # each job's copy is seeded on its own, found within that job's block.
-    *(("K-75", f"the instrument switch route's {job} job interpreter below the floor "
-       "ty.toml fixes",
-       _first_match(".github/workflows/instrument-switches.yml",
-                    rf'(^  {job}:\n(?:(?!^  [\w-]+:\n).)*?)python-version: "3\.14"',
-                    lambda m: m[1] + 'python-version: "3.13"', flags=re.MULTILINE | re.DOTALL))
-      for job in ("plan", "build", "import", "seed", "join")),
-    ("K-75", "a project admitting an interpreter below the typing target",
-     _literal("tools/pyproject.toml", 'requires-python = ">=3.14,<3.15"',
-              'requires-python = ">=3.13,<3.15"')),
-
     # The configuration is moved rather than the record, because that is the direction
     # no reader of one file can see: the record goes on naming the parameter that takes
     # the predictor and the build it names has stopped taking it, which is a claim that
@@ -2123,125 +2091,6 @@ CASES: list[Case] = [
 
     ("K-84", "a current claim relying on a retired rule",
      _literal(PLAN, "K-86 checks this span floor", "**K-102** checks this span floor")),
-
-    # A class list that stopped growing, which is the direction the defect arrives from:
-    # a rule is registered and the list that should name it is left as it was. The id
-    # dropped is the head of the total class's list, a rule no other case moves, so the
-    # registry and the code go on agreeing and only this rule reads the list at all.
-    ("K-119", "a registered rule dropped from its reach class's list",
-     _literal(RULES, "That is what K-00, K-38,", "That is what K-38,")),
-
-    # The other direction, which the case above does not reach: with the two-class
-    # finding deleted that mutant is still killed, so a rule narrowed to unplaced rules
-    # would pass its own selftest while a rule named under two classes left its reach
-    # undecidable from the page. The same rule is written into the name class's list
-    # as well, so every id still resolves and only the exactly-one reading can see it.
-    ("K-119", "a registered rule named under a second reach class",
-     _literal(RULES, "which is what K-01 through K-17,",
-              "which is what K-00, K-01 through K-17,")),
-
-    # A fifth class opened in other words than the four use. It carries no membership
-    # sentence, so an opener read only as `found by` or `a` before the bold name passes
-    # it over and the text sits unnoticed inside the pattern class's region.
-    ("K-119", "a fifth reach class opened in words the four do not use",
-     _literal(RULES, "Where the set is **total**,",
-              "Where the set is located by **marker**, nothing is read. "
-              "Where the set is **total**,")),
-
-    # The lead with no class in bold before a full stop or the line's end, which opens
-    # nothing and is otherwise read as part of the class before it.
-    ("K-119", "a 'Where the set is' sentence naming no class",
-     _literal(RULES, "Where the set is **total**,",
-              "Where the set is located by a marker, nothing is read. "
-              "Where the set is **total**,")),
-
-    # The same fifth class opened mid-sentence, its lead in lower case. It carries no
-    # membership sentence either, so a lead read in one letter case alone passes it over
-    # as part of the pattern class's text.
-    ("K-119", "a fifth reach class opened mid-sentence in lower case",
-     _literal(RULES, "Where the set is **total**,",
-              "Past them, where the set is located by **marker**, nothing is read. "
-              "Where the set is **total**,")),
-
-    # The same fifth class with its lead set in underscore italics, which opens nothing.
-    # A lead found only at a word boundary does not see it, the underscore counting as a
-    # word character, so the text sits unnoticed inside the pattern class's region.
-    ("K-119", "a fifth reach class whose lead is set in underscore italics",
-     _literal(RULES, "Where the set is **total**,",
-              "_Where the set is_ located by **marker**, nothing is read. "
-              "Where the set is **total**,")),
-
-    # The same again with its lead wrapped across a line, which opens nothing either. A
-    # lead found only with single spaces between its words does not see it.
-    ("K-119", "a fifth reach class whose lead is wrapped across a line",
-     _literal(RULES, "Where the set is **total**,",
-              "Where the set\nis located by **marker**, nothing is read. "
-              "Where the set is **total**,")),
-
-    # The total class's name with a stray `*` past its closing pair, outside the form
-    # the page states. An opener holding only the other three sides of the two pairs
-    # reads it as the total class as before, so the section reads as agreeing with the
-    # registry while its lead stands in a form the rule says it does not take.
-    ("K-119", "a reach class whose bold name is trailed by a third '*'",
-     _literal(RULES, "Where the set is **total**,", "Where the set is **total***,")),
-
-    # A membership sentence ahead of the first class, which no class's region reaches.
-    # The rule it names is still placed once by its own class, so the section reads as
-    # agreeing with the registry and only a reading of the stretch before the first
-    # class sees a class introduced there in other words.
-    ("K-119", "a membership sentence ahead of the first reach class",
-     _literal(RULES, "and there are four answers.",
-              "and there are four answers, which is what K-26 are.")),
-
-    # The same sentence with `that` in lower case, written mid-sentence. A membership
-    # sentence read in one capitalization of each word alone passes it over, so the
-    # section reads as agreeing with the registry just as above.
-    ("K-119", "a lower-case 'that is what' membership sentence ahead of the first class",
-     _literal(RULES, "and there are four answers.",
-              "and there are four answers; that is what K-26 are.")),
-
-    # A membership sentence between a class's lead and its bold name. The class still
-    # opens, so a region read from past the name alone passes over the sentence and the
-    # rule it names stays placed once by its own class, the section reading as agreeing
-    # with the registry while the total class names a second list.
-    ("K-119", "a membership sentence between a class's lead and its name",
-     _literal(RULES, "Where the set is **total**,",
-              "Where the set is made of rules which is what K-26 are, and **total**,")),
-
-    # A membership sentence set in underscore italics ahead of the first class. A reading
-    # that takes the strict form alone passes it over, the underscore standing where its
-    # word boundary should, so the section reads as agreeing with the registry while it
-    # names a list no class reads.
-    ("K-119", "a membership sentence in underscore italics ahead of the first class",
-     _literal(RULES, "and there are four answers.",
-              "and there are four answers, _which is what K-26 are_.")),
-
-    # A membership sentence ahead of the first class again, its first id struck through,
-    # the registry's own markup for an id. A finder crossing only whitespace, emphasis, a
-    # backtick or a bracket on the way to the id passes it over, so the section reads as
-    # agreeing with the registry while it names a list no class reads.
-    ("K-119", "a membership sentence whose first id is struck through",
-     _literal(RULES, "and there are four answers.",
-              "and there are four answers, which is what ~~K-26~~ are.")),
-
-    # The same inside the pattern class's region, its list in a code span. The class
-    # still reads its own sentence, so a reading that takes the strict form alone finds
-    # exactly one there and passes this second list over.
-    ("K-119", "a membership sentence listing its rule in a code span",
-     _literal(RULES, "Where the set is **total**,",
-              "The marker rules, which is what `K-26` are, come next. "
-              "Where the set is **total**,")),
-    # The strict membership grammar rejects these candidates. The wider finder must
-    # still report each list rather than passing its malformed opening off as prose.
-    ("K-119", "a membership sentence with markup between its opening words",
-     _literal(RULES, "and there are four answers.",
-              "and there are four answers, which **is** what K-26 are.")),
-    ("K-119", "a membership sentence with an entity between its opening words",
-     _literal(RULES, "and there are four answers.",
-              "and there are four answers, which&nbsp;is what K-26 are.")),
-    ("K-119", "a membership sentence with a full stop before its first rule",
-     _literal(RULES, "and there are four answers.",
-              "and there are four answers, which is what. K-26 are.")),
 
     # Seeded on the plan's side, which is the direction the defect arrives from: a
     # completion note is edited far more often than the index over it. The word alone
@@ -3263,7 +3112,7 @@ def _registry_coverage(box: Sandbox) -> list[str]:
     what is held about that reach, and the two are checked against each other for the
     same reason the meta group checks the registry against the code."""
     print("--- coverage of the registry ---")
-    registered = re.findall(r"(?m)^\| (K-\d{2,3}) \|", box.read(RULES))
+    registered = sorted(checkregistry.read(box.path).identifiers)
     covered = {rule for rule, _, _ in CASES}
     gaps = [f"{r} is registered, has no case here, and is not declared unseedable"
             for r in registered if r not in covered and r not in UNSEEDABLE]

@@ -350,11 +350,7 @@ def _ty_settings_admitted() -> None:
                              'strict-equality-semantics = true\n'
                              'strict-generic-narrowing = true\n',
                  _ADMITTED + '\n[analysis]\nstrict-literal-narrowing = true\n',
-                 _ADMITTED + '\n[analysis]\n',
-                 # python-version's value is K-75's to hold, so this gate admits the
-                 # key whatever it says, and its absence.
-                 _ALL_ERROR + _ENV + 'python-version = "3.14"\n' + _SRC,
-                 _ALL_ERROR + _ENV + 'python-version = "3.12"\n' + _SRC):
+                 _ADMITTED + '\n[analysis]\n'):
         ensure(_settings(text) == [], f"an admissible ty.toml was refused: {text!r}")
 
 
@@ -450,10 +446,11 @@ def _ty_settings_refuse_environment() -> None:
     for line, key in (('typeshed = "stubs"\n', "typeshed 'stubs'"),
                       ('root = ["src"]\n', "root ['src']"),
                       ('python = ".venv"\n', "python '.venv'"),
-                      ('future-setting = 1\n', "future-setting 1")):
+                      ('future-setting = 1\n', "future-setting 1"),
+                      ('python-version = "3.12"\n', "python-version '3.12'")):
         found = _settings(_ALL_ERROR + _ENV + line + _SRC)
         ensure(len(found) == 1 and f"[environment] carries {key};" in found[0]
-               and "admits only extra-paths, python-platform, python-version" in found[0]
+               and "admits only extra-paths, python-platform" in found[0]
                and "a key the gate has not read is refused with them" in found[0],
                f"an [environment] key outside the admitted ones must be refused: {found!r}")
     # The two held values are held exactly: another platform, an added or a missing
@@ -468,7 +465,7 @@ def _ty_settings_refuse_environment() -> None:
             ('\n[environment]\npython-platform = "linux"\nextra-paths = []\n',
              "sets extra-paths to [];"),
             ('\n[environment]\nextra-paths = ["."]\n', "carries no python-platform;"),
-            ('\n[environment]\npython-version = "3.14"\n',
+            ('\n[environment]\n',
              "carries no python-platform, carries no extra-paths;"),
             ('\n[environment]\npython-platform = "win32"\nextra-paths = ["stubs"]\n',
              "sets python-platform to 'win32', sets extra-paths to ['stubs'];"),
@@ -571,7 +568,8 @@ def _ty_runs_every_platform() -> None:
                and run.label == f"type error(s) under python-platform {platform}:"
                and run.who == f"ty under python-platform {platform}",
                f"the {platform} pass must name its platform: {run!r}")
-        ensure(run.targets == {"kept.py"} and "." not in run.args,
+        ensure(run.targets == {"kept.py"} and "." not in run.args
+               and run.args[run.args.index("--python-version") + 1] == typecheck.PYTHON_VERSION,
                f"the {platform} pass must name its indexed input files: {run!r}")
         ensure(run.unset == {"TY_LOG", "TY_LOG_PROFILE"},
                f"the {platform} pass must be made without TY_LOG and TY_LOG_PROFILE: {run!r}")

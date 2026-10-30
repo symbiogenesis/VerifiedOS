@@ -46,12 +46,12 @@ what the setting takes away:
                    suppress diagnostics, for the files it matches
     [analysis]     a key outside the ones that suppress nothing, which refuses
                    `allowed-unresolved-imports` and `replace-imports-with-any`
-    [environment]  a key other than `python-version`, `python-platform` and
-                   `extra-paths`, or either of the last two at a value other than
+    [environment]  a key other than `python-platform` and `extra-paths`, or either
+                   at a value other than
                    `"linux"` and `["."]`, since the platform decides which branches
                    an editor's ty checks and `python`, `root`, `typeshed` or another
-                   search path changes where it resolves imports; K-75 holds
-                   `python-version`
+                   search path changes where it resolves imports; the project
+                   manifest owns the target version
     [src]          a table other than exactly `exclude = ["**/__pycache__/**"]` and
                    `respect-ignore-files = false`, since an `include`, a further
                    `exclude`, `exclude-scripts` or honoring ignore files takes
@@ -127,10 +127,12 @@ from pathlib import Path
 from typing import NamedTuple
 
 from vos import corpus as corpus_mod
-from vos import toolenv
+from vos import pyversion, toolenv
 from vos.report import Reporter
 
-_PINS = toolenv.checker_pins(Path(__file__).resolve().parents[3])
+_PROJECT_ROOT = Path(__file__).resolve().parents[3]
+_PINS = toolenv.checker_pins(_PROJECT_ROOT)
+PYTHON_VERSION = pyversion.supported_minor(_PROJECT_ROOT)
 TY_VERSION = _PINS["ty"]
 RUFF_VERSION = _PINS["ruff"]
 
@@ -164,10 +166,10 @@ TY_ANALYSIS_KEYS = frozenset({"respect-type-ignore-comments", "strict-equality-s
 # resolving every import. ty's other three keys each move a resolution: `python`
 # another environment's packages for an editor, the gate's `--python` overriding it,
 # `root` the first-party modules, and `typeshed` the standard library. A key the gate
-# has not read is refused with them. `python-version` is admitted and K-75 holds its
-# value.
+# has not read is refused with them. The target version is inferred from the
+# project manifest in editors and passed explicitly by the gate.
 TY_ENVIRONMENT = {"python-platform": "linux", "extra-paths": ["."]}
-TY_ENVIRONMENT_KEYS = frozenset({"python-version", *TY_ENVIRONMENT})
+TY_ENVIRONMENT_KEYS = frozenset(TY_ENVIRONMENT)
 
 # The platforms the gate types the tools under, one ty run each, named on its
 # command line. Neither alone reaches every branch, so the gate runs both: the first
@@ -209,7 +211,7 @@ RUFF_PER_FILE = ("per-file-ignores", "extend-per-file-ignores")
 # switches rules gated on a newer version off for the files a pattern matches, and
 # a key the gate has not read may do as much.
 RUFF_KEYS = frozenset({
-    "target-version", "line-length", "respect-gitignore", "lint",
+    "line-length", "respect-gitignore", "lint",
     "lint.select", "lint.ignore", "lint.allowed-confusables",
     "lint.flake8-annotations", "lint.flake8-annotations.suppress-none-returning",
     "lint.flake8-annotations.suppress-dummy-args",
@@ -450,8 +452,7 @@ def _ty_settings(config: Path) -> list[str]:
     what they say, and an override restating `all = "error"` and an empty
     suppression list are refused too.
 
-    Not held here: the value of `python-version`, which K-75 holds against the
-    project's interpreter constraint; `[terminal]`, whose `output-format` the gate's
+    Not held here: `[terminal]`, whose `output-format` the gate's
     own flag overrides and whose `error-on-warning` cannot clear a warning the gate
     reads from the output; and a top-level table or key, or a `[terminal]` key, that
     ty does not accept, which ty refuses as an invalid `ty.toml`, exiting 2 before it
@@ -605,7 +606,8 @@ def _run_ty(rep: Reporter, root: Path, tracked: frozenset[str] | None) -> None:
     _run_checker(
         rep, "ty", TY_VERSION,
         [Pass(["check", "--config-file", str(tools / "ty.toml"), "--error", "all",
-               "--python", sys.executable, "--python-platform", platform,
+               "--python", sys.executable, "--python-version", PYTHON_VERSION,
+               "--python-platform", platform,
                "--output-format", "concise", "--color", "never"],
               f"ty under python-platform {platform}",
               f"type error(s) under python-platform {platform}:",
@@ -720,6 +722,7 @@ def _run_ruff(rep: Reporter, root: Path, tracked: frozenset[str] | None) -> None
         rep, "ruff", RUFF_VERSION,
         [Pass(["check", "--config", str(tools / "ruff.toml"), "--no-cache",
                "--no-respect-gitignore", "--no-force-exclude",
+               "--target-version", "py" + PYTHON_VERSION.replace(".", ""),
                "--output-format", "concise", "--no-fix"],
               "ruff", "lint finding(s):",
               f"every function is annotated and ruff {RUFF_VERSION} is clean{held}",
