@@ -2678,6 +2678,40 @@ maintenance content, and cover duplicate keys, strict integer lengths and offlin
 schema-reference refusals. The `guardrails-declarative-20261030-final` fanout journal
 owns revision-bound Host CI evidence and every Guest CI lane's dispatch.
 
+## Parser and declaration guardrail consolidation
+
+This maintenance batch removes handwritten syntax and data-shape readers in favor
+of the already locked PyYAML and JSON Schema implementations. It changes no model,
+proof, compiler, dependency release or acceptance boundary. Implementation starts
+from these contracts; the integrator reads the settled changes at Tier A.
+
+- **YAML pin owners. Start:** the workflow-key census in `vos/checks/pins.py`
+  and the hook repository/revision reader in `vos/devtools.py`. **Owns:** one
+  non-constructing YAML node reader, with source marks, shared by both consumers;
+  make the existing reviewed PyYAML release an explicit runtime dependency.
+  **Check:** malformed documents, duplicate or non-scalar mapping keys, aliases,
+  merge keys and nonstandard tags refuse. Actual mapping entries determine the
+  population, so comments and scalar bodies cannot masquerade as keys. Preserve
+  full-commit and release identities, reviewed licence links, hook repository
+  membership, exact source-line pin policy and frozen revision metadata. Existing
+  negative controls retain their refusals; add scalar-decoy and ambiguous-input
+  controls. No YAML constructors execute repository content.
+- **Register and format declarations. Start:** structural checks in
+  `vos/device_registers.py` and `vos/wire_formats.py`. **Owns:** authored JSON
+  Schemas shared by runtime validation and editor associations. **Check:** retain
+  exact keys, schema versions, integer-only ranges, names, text and list shapes,
+  enum membership and conditional shapes. Duplicate JSON keys refuse. Keep source
+  fingerprints, coverage joins, bit-layout relationships, live requirements,
+  owner and symbol references, path containment and descriptor-absence checks in
+  their semantic readers. Focused malformed-input controls and comparisons must
+  establish byte-identical generated Gallina, RTL and inventory documents.
+
+Focused behavioral controls and integrated typecheck provide local feedback.
+Require Host CI on Windows and Ubuntu and dispatch every Guest CI lane for the
+published revision, finishing without waiting for Guest CI. The batch's fanout
+journal records the tested revision and hosted evidence; no performance claim or
+milestone completion credit is taken.
+
 ## Tool-library simplifications
 
 This maintenance batch preserves artifact formats, diagnostics and acceptance
