@@ -12,11 +12,10 @@ from dataclasses import replace
 from pathlib import Path
 from typing import Any, cast
 
-from jsonschema import Draft202012Validator, validators
-
 from vos import boot, composer, source_bindings
 from vos import image as elf_image
 from vos.jsonutil import unique_object
+from vos.schema import strict_integer_validator
 
 SCHEMA = "tools/composer/composition.schema.json"
 PACKAGE_SCHEMA = "tools/composer/package.schema.json"
@@ -62,10 +61,6 @@ def _decode_json(path: Path, data: bytes) -> object:
         raise CompositionError(f"cannot read {path}: {error}") from error
 
 
-def _is_integer(checker: object, value: object) -> bool:
-    return type(value) is int
-
-
 def _package(root: Path, member: dict[str, Any]) -> dict[str, Any] | None:
     """Bind a source-owned package inventory; unresolved handlers remain explicit.
 
@@ -85,9 +80,7 @@ def _package(root: Path, member: dict[str, Any]) -> dict[str, Any] | None:
     schema = _json(_path(root, PACKAGE_SCHEMA))
     if not isinstance(schema, dict):
         raise CompositionError("package schema must be an object")
-    checker = Draft202012Validator.TYPE_CHECKER.redefine("integer", _is_integer)
-    validator = validators.extend(Draft202012Validator, type_checker=checker)
-    errors = list(validator(schema).iter_errors(value))
+    errors = list(strict_integer_validator(schema).iter_errors(value))
     if errors or type(value["schema_version"]) is not int:
         detail = f"{errors[0].json_path}: {errors[0].message}" if errors else "expected an integer version"
         raise CompositionError(f"{member['id']}: package descriptor schema: {detail}")
@@ -206,9 +199,7 @@ def _load(root: Path, source: str) -> tuple[dict[str, Any], dict[str, str], boot
     raw = _decode_json(path, data)
     # JSON Schema accepts integral floats as integers. The typed graph and C
     # manifest require actual integer values, without coercing declared bytes.
-    checker = Draft202012Validator.TYPE_CHECKER.redefine("integer", _is_integer)
-    validator = validators.extend(Draft202012Validator, type_checker=checker)
-    errors = list(validator(schema).iter_errors(raw))
+    errors = list(strict_integer_validator(schema).iter_errors(raw))
     if errors:
         raise CompositionError(f"composition schema: {errors[0].json_path}: {errors[0].message}")
     raw = cast("dict[str, Any]", raw)

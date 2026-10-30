@@ -4,7 +4,7 @@
   "sources": [
     {
       "path": "tools/vos/source_bindings.py",
-      "sha256": "5cb3a2da62836ecc87903f17333aa79dee1a4d657d4753150678eb82c1f402ca"
+      "sha256": "3122510d806319175668242c48b8a360067879d55511a9f70496f4e50083dbbe"
     },
     {
       "path": "tools/vos/jsonutil.py",
@@ -32,7 +32,11 @@
     },
     {
       "path": "tools/vos/composition.py",
-      "sha256": "86e18fd2d62afe352660534d537ea3d162f9a619c354ab75a8ed6623dc9ae90f"
+      "sha256": "e223f16478f1479d148bd487f90f72e99916f7e810269a1b30831cde253ac9aa"
+    },
+    {
+      "path": "tools/vos/schema.py",
+      "sha256": "c5237c6226420d841576408b5981bfefac22e6543e80a8df8cdd7b9f0358363d"
     },
     {
       "path": "tools/vos/cli/composer.py",
