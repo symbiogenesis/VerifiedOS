@@ -26,12 +26,14 @@ import hashlib
 import json
 import re
 from collections import Counter
-from contextlib import redirect_stdout
-from io import StringIO
+from collections.abc import Callable
 from pathlib import Path
 from typing import Any, TypedDict
 
 from vos import corpus, memplan
+
+type DigestSources = Callable[[Path, tuple[str, ...]], dict[str, str]]
+type Replay = Callable[[list[str]], tuple[int, Any]]
 
 VERSION = "static-memory-manifest-v1"
 ACTION = "manifest"
@@ -171,16 +173,11 @@ def choices(parser: argparse.ArgumentParser) -> tuple[str, ...]:
     raise ValueError("the static-memory parser declares no positional action choices")
 
 
-def registration() -> Registration:
-    """The command's actions and declared sources.
-
-    Imported here rather than at the top of the module because the command imports this
-    module: the deferred import is what keeps that one direction a cycle-free edge.
-    """
-    from vos.cli import static_memory as command  # noqa: PLC0415  (the command imports this module)
-    return {"choices": choices(command.parser()),
-            "shared_sources": tuple(command.SOURCES),
-            "per_action": dict(command.EXPERIMENT_SOURCES)}
+def registration(parser: argparse.ArgumentParser, shared_sources: tuple[str, ...],
+                 per_action: dict[str, tuple[str, ...]]) -> Registration:
+    """Snapshot the actual parser's accepted actions and command-owned source sets."""
+    return {"choices": choices(parser), "shared_sources": tuple(shared_sources),
+            "per_action": dict(per_action)}
 
 
 def declared(reg: Registration, action: str) -> list[str]:
@@ -210,21 +207,7 @@ def topic(rel: str, kind: Kind) -> str:
     return name[len(kind["prefix"]):len(name) - len(kind["suffix"])].lstrip("_-")
 
 
-def digests(root: Path, names: tuple[str, ...]) -> dict[str, str]:
-    """Hash the inventory's bytes through the command's own `identity`.
-
-    One hashing convention for the whole artifact: the digest a manifest entry carries
-    is the digest the action receipts carry for the same file, because it is the same
-    function that produced both.
-    """
-    from vos.cli import static_memory as command  # noqa: PLC0415  (the command imports this module)
-    if not names:
-        return {}
-    bound = command.identity(root, names)["sources_sha256"]
-    return {str(name): str(digest) for name, digest in bound.items()}
-
-
-def inventory(root: Path, reg: Registration) -> Inventory:
+def inventory(root: Path, reg: Registration, digest_sources: DigestSources) -> Inventory:
     """Every file and action of the artifact, with its bytes and index membership."""
     indexed = corpus.load(root).indexed
     listed: dict[str, str] = {}
@@ -241,7 +224,7 @@ def inventory(root: Path, reg: Registration) -> Inventory:
             listed.setdefault(rel, SOURCE_KIND)
 
     present = tuple(rel for rel in sorted(listed) if (root / rel).is_file())
-    bound = digests(root, present)
+    bound = digest_sources(root, present) if present else {}
     files = [FileEntry(kind=listed[rel], path=rel, sha256=bound.get(rel),
                        present=rel in present, tracked=rel in indexed)
              for rel in sorted(listed)]
@@ -460,15 +443,6 @@ def _digest(value: object) -> str:
     return hashlib.sha256(encoded.encode("utf-8")).hexdigest()
 
 
-def _run(argv: list[str]) -> tuple[int, Any]:
-    """Run one action in this process and return its exit status and receipt."""
-    from vos.cli import static_memory as command  # noqa: PLC0415  (the command imports this module)
-    stream = StringIO()
-    with redirect_stdout(stream):
-        code = command.main(argv)
-    return code, json.loads(stream.getvalue())
-
-
 def _research_shape_errors(receipt: dict[str, Any], action: str) -> list[str]:
     """Read the research envelope and case containers, not their result semantics."""
     errors: list[str] = []
@@ -488,7 +462,7 @@ def _research_shape_errors(receipt: dict[str, Any], action: str) -> list[str]:
     return errors
 
 
-def replay_action(action: str) -> ReplayEntry:
+def replay_action(action: str, reg: Registration, run: Replay) -> ReplayEntry:
     """Replay one action at its smallest budget and record what it answered.
 
     A refusal is a result and never an abort: an action whose receipt cannot be read at
@@ -498,7 +472,7 @@ def replay_action(action: str) -> ReplayEntry:
     entry = ReplayEntry(action=action, argv=argv, exit_code=2, schema="n/a", scope="n/a",
                         errors=[], receipt_sha256="n/a")
     try:
-        code, receipt = _run(argv)
+        code, receipt = run(argv)
     except (SystemExit, OSError, ValueError, TypeError, KeyError, RuntimeError) as error:
         entry["errors"] = [f"replay raised {type(error).__name__}: {error}"]
         return entry
@@ -509,7 +483,7 @@ def replay_action(action: str) -> ReplayEntry:
         return entry
     entry["schema"] = str(receipt.get("schema", "n/a"))
     if entry["schema"] == "static-memory-experiment-v1":
-        if action not in registration()["per_action"] or receipt.get("action") != action:
+        if action not in reg["per_action"] or receipt.get("action") != action:
             entry["errors"].append("the experiment receipt must name the replayed experiment action")
         experiment = receipt.get("experiment")
         if not isinstance(experiment, dict):
@@ -537,18 +511,18 @@ def replay_action(action: str) -> ReplayEntry:
     return entry
 
 
-def replays(reg: Registration) -> list[ReplayEntry]:
+def replays(reg: Registration, run: Replay) -> list[ReplayEntry]:
     """Replay every accepted action but this one, which would replay itself."""
-    return [replay_action(action) for action in sorted(reg["choices"]) if action != ACTION]
+    return [replay_action(action, reg, run) for action in sorted(reg["choices"]) if action != ACTION]
 
 
-def report(root: Path, *, replay: bool = False) -> dict[str, Any]:
+def report(root: Path, reg: Registration, *, digest_sources: DigestSources,
+           run: Replay, replay: bool = False) -> dict[str, Any]:
     """The manifest receipt: the inventory, its completeness and any replayed verdicts."""
-    reg = registration()
-    items = inventory(root, reg)
+    items = inventory(root, reg, digest_sources)
     prose = texts(root, items)
     rows = classification(root)
-    ran = replays(reg) if replay else []
+    ran = replays(reg, run) if replay else []
     errors = (_index_findings(items) + _module_findings(items, reg, prose)
               + _document_findings(root, items, prose) + _test_findings(root, items)
               + _proof_findings(root, items) + _classification_findings(items, rows)
