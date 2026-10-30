@@ -734,6 +734,10 @@ A build is not the only holder of state, and every holder refuses a concurrent r
 
 A lane standing up for the first time is seeded from the primary worktree's tree rather than built cold, which is what makes a lane cheap enough to be worth having. What is copied is the downloaded riscv-tests, only as a copy that matches the manifest configure wrote when it verified the download ([THIRD-PARTY.md](../THIRD-PARTY.md#fetched-at-build-time)), and the Sail SMT memo caches a lane keeps, the build tree's two, the build's and its property test's, and those of the typecheck and `smt` loops, and a cache is **copied and never shared**: see `vos/cli/model.py`'s `_seed_smt_cache` for what two writers of one memo cache do to each other. Every command that can stand a tree up seeds it before it configures one, `build`, `emit` and `bundle`, so which command a lane is opened with does not decide what that lane pays.
 
+[vos/model_corpus.py](vos/model_corpus.py) owns the downloaded corpus's release
+and digest readers, manifest verification, input selection and verified copying.
+The model command selects donors and records build evidence using that library.
+
 ## Where a file lives, and which lane touches it
 
 **A file sits on the side of the OS boundary whose tools read it most; explicit evidence exports and tracked generated artifacts may land in the checkout.** WSL mounts each Windows drive into the guest under `/mnt/<drive>` and shows the guest's own disk to Windows as `\\wsl.localhost\<distribution>`, and either direction works at a cost paid per file rather than per byte. [Microsoft's guidance](https://learn.microsoft.com/en-us/windows/wsl/filesystems#file-storage-and-performance-across-file-systems) is to keep a project on the filesystem of the command line that works on it, and this repository is worked on from both: the host edits and checks the documents, and the guest builds the model, elaborates the RTL and runs the provers. So the layout is a split, every loop here keeps it, and `run.py model lane` prints each of a lane's paths beside the filesystem under it.

@@ -30,7 +30,8 @@ def _session(*, limit: int = 12, seconds: int = 1800) -> Generator[tuple[Path, P
     files = {"docs/requirements-register.md": "# R-15-001\n",
              "docs/hardware/isa-profile.md": "frozen ISA\n",
              "model/config/verifiedos.json": "{}\n",
-             "model/model/a.sail": "function example() = 0\n"}
+             "model/model/a.sail": "function example() = 0\n",
+             "tools/vos/model_corpus.py": "# corpus implementation\n"}
     selected = {"binaries": {"python": "1" * 64}, "library_root": None, "libraries": {}}
     with (sandbox_tree(files) as root, patch.object(sailassist, "_git", return_value="a" * 40),
           patch.object(sailassist, "toolchain", return_value=selected)):
@@ -220,16 +221,19 @@ def _clock_pause_and_exhaustion() -> None:
 def _frozen_and_changed_inputs() -> None:
     original = sailassist.process
 
-    def drifting(argv: list[str], cwd: Path, logs: Path, timeout: float) -> dict[str, Any]:
-        result = original([sys.executable, "-c", "pass"], cwd, logs, timeout)
-        (cwd / "model/model/a.sail").write_bytes(b"function example() = 1\n")
-        return result
+    for relative in ("model/model/a.sail", "tools/vos/model_corpus.py"):
+        def drifting(argv: list[str], cwd: Path, logs: Path, timeout: float) -> dict[str, Any]:
+            result = original([sys.executable, "-c", "pass"], cwd, logs, timeout)
+            (cwd / relative).write_bytes(b"# changed during compiler execution\n")
+            return result
+
+        with _session() as (root, directory, logs):
+            with patch.object(sailassist, "process", side_effect=drifting):
+                result, code = sailassist.typecheck(root, directory, logs, "racing edit", 10)
+            ensure(code == 1 and result["checkpoint"]["attempts"][-1]["outcome"] == "inputs_changed",
+                   f"exit zero cannot accept a changed source: {relative}")
 
     with _session() as (root, directory, logs):
-        with patch.object(sailassist, "process", side_effect=drifting):
-            result, code = sailassist.typecheck(root, directory, logs, "racing edit", 10)
-        ensure(code == 1 and result["checkpoint"]["attempts"][-1]["outcome"] == "inputs_changed",
-               "exit zero cannot accept a changing input set")
         (root / "docs/hardware/isa-profile.md").write_bytes(b"weakened\n")
         with patch.object(sailassist, "process") as launch:
             try:
