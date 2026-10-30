@@ -1208,7 +1208,8 @@ def _shared_libraries(work: Path, objects: list[str]) -> dict[str, str] | None:
         found = _LOADED.search(line.strip())
         if found is not None:
             path = str(found.group(1))
-            libraries[path] = receipts.digest(Path(path))
+            if path not in libraries:
+                libraries[path] = receipts.digest(Path(path))
     return libraries or None
 
 
