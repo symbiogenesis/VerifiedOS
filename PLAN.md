@@ -2917,6 +2917,39 @@ redistribution from reduced total validation work. Dispatch every Guest CI lane
 for the same revision and finish without waiting for its verdict. No checker,
 proof, model, cache-acceptance or test-selection change belongs to this task.
 
+## Guardrail performance optimization
+
+**Start:** the [tool performance contract](tools/performance.md), the existing
+checker, mutation, repair, Markdown and proof-evidence contracts, and the native
+census follow-up below. **Owns:** candidate-region pin scanning and shared retained
+archive facts; immutable Markdown, proof-source and generated-owner parsing;
+linear census joins and invocation-local compiled schema checks; bounded Markdown
+batching; independent repair scheduling and worker budgets; and deduplicated
+shared-library reads within each proof-context snapshot. No dependency upgrade,
+persistent acceptance cache, native producer change or proof repair belongs to
+this maintenance batch.
+
+**Check:** compare complete decisions and ordered diagnostics on identical valid
+and malformed inputs, including edits between calls, Unicode and newline
+boundaries, late archive corruption, duplicate/orphan census rows, every compatible
+schema branch, worker failures and independent sandbox state. Keep every mutation,
+all five repair assertions, the complete census positive and twelve corruption
+controls, exact assumptions, both freshness snapshots and recursive joint kernel
+checks. Focused helper tests may run locally; complete suites, native-sized census
+replay and all measurements run only on GitHub Actions. Paired hosted comparisons
+record input/source identities, repetitions, worker counts, component and whole-run
+time, peak memory and failures. Adopt only equivalent candidates with repeatable
+improvement and no material whole-run regression; retain rejected or inconclusive
+comparisons explicitly. **Join:** passing Host CI on both platforms and every Guest
+CI lane dispatched for the settled revision, without waiting for Guest CI.
+
+**Execute:** use dedicated checker, census and runner worktrees against this landed
+predicate. Prefer eliminating duplicate scans and quadratic joins before adding
+concurrency. Scheduling changes retain complete populations and stable reporting;
+skip an option whose resources or measured benefit do not justify adoption.
+Existing Q35q and Q43 qualification boundaries and candidate/campaign allowances
+remain unchanged. Record measured dispositions in the performance owner.
+
 ## Native Sail census validation
 
 Open under [Q35q](PLAN.md). Full native
