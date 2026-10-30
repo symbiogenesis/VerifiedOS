@@ -2670,6 +2670,13 @@ The integrator reads the settled change at Tier A, runs focused behavioral
 controls and typecheck, requires Host CI on Windows and Ubuntu, and dispatches
 every Guest CI lane for the published revision without waiting for Guest CI.
 
+These replacements are implemented. Configuration and maintenance-data readers
+share authored schemas with editor support; the review binding replaces K-97.
+Focused controls preserve predecessor configuration decisions and generated
+maintenance content, and cover duplicate keys, strict integer lengths and offline
+schema-reference refusals. The `guardrails-declarative-20261030` fanout journal
+owns revision-bound Host CI evidence and every Guest CI lane's dispatch.
+
 ## Tool-library simplifications
 
 This maintenance batch preserves artifact formats, diagnostics and acceptance

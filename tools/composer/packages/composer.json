@@ -52,7 +52,7 @@
     },
     {
       "path": "tools/vos/schema.py",
-      "sha256": "c5237c6226420d841576408b5981bfefac22e6543e80a8df8cdd7b9f0358363d"
+      "sha256": "c7984bf2e1f20bfce16366e54e5a72d1ac0d6a3b11a9a16a48807135afa9c901"
     },
     {
       "path": "tools/vos/cli/composer.py",
