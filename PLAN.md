@@ -2696,6 +2696,20 @@ from these contracts; the integrator reads the settled changes at Tier A.
   membership, exact source-line pin policy and frozen revision metadata. Existing
   negative controls retain their refusals; add scalar-decoy and ambiguous-input
   controls. No YAML constructors execute repository content.
+- **Generated action review rows. Start:** K-115's separate parsing of action
+  licence rows and links in the generated development-tools table. **Owns:**
+  structured action repository, reviewed commit and release, and nonempty licence
+  paths in the existing development-tools declaration schema. Generate the review
+  sentence and pinned licence URLs from those identities; K-118 compares every
+  parsed workflow reference with the declarations in both directions. Retire
+  K-115 permanently after moving its substantive refusals to K-118. **Check:**
+  unknown, unused, missing, ambiguous or unpinned actions and changed reviewed
+  identities remain findings. Generated-row tampering fails the existing view
+  comparison, and licence URL revisions cannot diverge from the reviewed commit
+  by construction. Retain exact source-line pin policy and nonempty workflow and
+  action populations. Source declarations cannot add independent action URLs in
+  free prose. Focused controls cover owner changes, stale views and malformed
+  action declarations without reparsing the generated Markdown.
 - **Register and format declarations. Start:** structural checks in
   `vos/device_registers.py` and `vos/wire_formats.py`. **Owns:** authored JSON
   Schemas shared by runtime validation and editor associations. **Check:** retain
