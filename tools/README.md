@@ -1627,6 +1627,21 @@ Each of these is a rule the next tool added is expected to keep.
   shape and nesting policies remain with that reader. The
   [consolidation acceptance](../PLAN.md#shared-json-duplicate-key-rejection)
   preserves those boundaries and the readers' diagnostics.
+  Memory-planner commands obtain their duplicate-field diagnostic from
+  [vos/memory_planner_json.py](vos/memory_planner_json.py); shared reader policy
+  belongs in the library rather than another command module.
+- **Publication shares a mechanism, with policy at its caller.**
+  [vos/atomic.py](vos/atomic.py) owns sibling temporary files, replacement after
+  successful writes and failure cleanup. Writers choose containment, parent
+  creation, serialization, synchronization and exception handling explicitly.
+  Whole-file SHA-256 readers reuse [vos/receipts.py](vos/receipts.py)'s `digest`;
+  hashes of parsed snapshots and structured values retain their own policies.
+- **Source-binding views have one declared owner.**
+  [vos/source_bindings.py](vos/source_bindings.py) declares the composer and
+  admission source sets used by package inventories, composition inputs and
+  receipt manifests. Change that declaration and regenerate its owned fields
+  through `check --fix`; K-88 checks the derived views with the existing generated
+  artifacts. Keep authored package and composition decisions outside those fields.
 - **Every function is annotated, and every table is typed.** Not for documentation: a table of callbacks nothing types is a table where a member with the wrong shape is found by running the corpus rather than by reading the module, `dialect.KINDS` and `asm.PSEUDOS` being the two largest here. A dispatch family gets a `Protocol`, a configuration row gets a `TypedDict`, and a `list`, `dict` or `re.Match` written bare gets its parameter.
 - **An id pattern admits the letter suffix.** Every id family here can take one, because a thing inserted between two others is suffixed rather than renumbered, so `A-\d+` does not merely read imprecisely, it narrows its input silently and in two directions that mask each other: the parse side undercounts, and a claim repaired from that parse is then *written* wrong under `--fix`, which is worse than a copied figure because the rule vouches for it; while on the name side a token under a trailing `(?![\w-])` boundary does not match the suffixed id at all, so a citation of one that does not exist is skipped rather than reported unknown. Audit the parse side and the name side together, since fixing either alone leaves the other blind.
 - **An invariant is stated where it is relied on.** A reader entitled to a value because two branches above ruled out the alternatives says so, rather than leaving a `None` to be subscripted at the point the tool is reporting the finding it exists to report.
