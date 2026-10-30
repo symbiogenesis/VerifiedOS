@@ -55,7 +55,8 @@ MAX_QUERY_BYTES = 64 * 1024 * 1024
 # changes what this report can say.
 EXPORTER_FILES: tuple[str, ...] = (
     "tools/vos/cic_corpus.py", "tools/vos/cli/cic_corpus.py",
-    "tools/vos/proofaudit.py", "tools/vos/proofs.py", "tools/vos/cli/proofs.py",
+    "tools/vos/proofaudit.py", "tools/vos/proofs.py", "tools/vos/prooflex.py",
+    "tools/vos/cli/proofs.py",
 )
 
 REPLAY: tuple[str, ...] = (
