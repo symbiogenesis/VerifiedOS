@@ -2624,6 +2624,24 @@ and aliases before any write. The integration batch
 `tools-maintenance-20261029` records exact-revision hosted evidence in its fanout
 journal; Guest CI is dispatched without waiting for its verdict.
 
+## Compiler differential library boundary
+
+The compiler differential harness is shared by the firmware, kernel and service
+target instruments. Its reusable implementation belongs in `vos/compiler_diff.py`;
+`vos/cli/compiler_diff.py` owns argument parsing, command orchestration and output.
+Library consumers import the implementation directly rather than loading a command
+module. This maintenance change preserves compilation, assembly, generated programs,
+HTIF and trace decisions, output encodings and diagnostic text.
+
+**Start:** the existing differential driver and its behavioral controls.
+**Owns:** the library/CLI split, direct consumer imports and complete source bindings
+for the extracted implementation. **Check:** focused compiler-driver and affected
+consumer controls, including fresh-process library imports that load no `vos.cli`
+module, unchanged CLI help/dispatch and source-binding coverage, plus typecheck.
+**Join:** Host CI on Windows and Ubuntu and dispatch of every Guest CI lane for
+the settled revision, without waiting for Guest CI. No new compiler, model or proof
+acceptance claim follows from moving this implementation.
+
 ## Host CI scheduling
 
 Host CI's mutation-test partitions allocate more runners to the measured Ubuntu
