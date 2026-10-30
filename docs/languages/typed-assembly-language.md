@@ -12,7 +12,7 @@
 > **How to read it.**
 > Sections 1 to 15 are normative. Every obligation is a numbered `TAL-` requirement; the prose around them is rationale and binds nothing.
 > Appendices A to D are not: they record where the design comes from, what it cites, the artifact landscape on a stated date, and the order in which the normative content must be settled.
-> A reference of the form §n names a section *of this document*; references to other documents are links.
+> Section citations link directly to their owning document.
 >
 > **The name is provisional.**
 > *Typed Assembly Language* is descriptive rather than chosen.
@@ -31,28 +31,28 @@ Three commitments distinguish this language from that lineage.
 
 - **The check is certificate-directed dataflow validation, not proof checking.**
   The checker decides a fixed set of attributes over an already-typed control-flow graph. The derivation supplies the abstract state at every join, so certificate consumption requires neither fixpoint computation nor reduction of open terms.
-  A producer may use any fixpoint analysis to compute those annotations; the no-fixpoint property is one of consumption alone (§12).
-  This is a claim about the *kind* of checker specified: the complexity contract (§10.3) and the audit figure (§10.6) follow from that classification rather than standing as independent targets.
+  A producer may use any fixpoint analysis to compute those annotations; the no-fixpoint property is one of consumption alone ([§12](#12-producers)).
+  This is a claim about the *kind* of checker specified: the complexity contract ([§10.3](#103-the-complexity-contract)) and the audit figure ([§10.6](#106-the-audit-figure)) follow from that classification rather than standing as independent targets.
 - **The theory is frozen, and freezing it is the mechanism.**
-  A line budget does not constrain an unspecified theory. What the checker must decide is fixed in §7, and the cost of deciding it follows.
+  A line budget does not constrain an unspecified theory. What the checker must decide is fixed in [§7](#7-the-frozen-theory), and the cost of deciding it follows.
 - **The target's own guarantees are a parameter, not an assumption.**
-  A machine profile declares which machine-enforced invariants the derivation may *cite* instead of re-proving (§5).
+  A machine profile declares which machine-enforced invariants the derivation may *cite* instead of re-proving ([§5](#5-the-parameter-the-machine-profile)).
 
 **TAL-001** IS: The admission check is a total, deterministic decision procedure over an installed artifact and a certificate, returning accept or reject.
 · Accept: the checker returns exactly one verdict on every input, including malformed ones; two runs over identical inputs return identical verdicts and identical rejection sites.
-· Trace: §10.4, §10.2
+· Trace: [§10.4](#104-acceptance-and-rejection), [§10.2](#102-the-algorithm)
 
 **TAL-002** IS: The check is per-install, decidable, syntactically terminating, and local: every rule mentions one instruction, one edge, or one declared record, and no rule quantifies over executions.
-· Accept: every rule in §8.4, §8.5, and §8.6 has premises drawn from a bounded neighbourhood fixed by the rule, and termination follows from the traversal order in §10.2 without a well-foundedness argument about types.
-· Trace: §8.4, §10.2
+· Accept: every rule in [§8.4](#84-judgments), [§8.5](#85-attributes-transfer-and-joins), and [§8.6](#86-deletions-guard-records-and-rooted-mutability) has premises drawn from a bounded neighbourhood fixed by the rule, and termination follows from the traversal order in [§10.2](#102-the-algorithm) without a well-foundedness argument about types.
+· Trace: [§8.4](#84-judgments), [§10.2](#102-the-algorithm)
 
 **TAL-003** MUST NOT: The checker is not a proof checker and may not acquire the capability to become one: it performs no unification, no constraint solving, no search, and no reduction of open terms.
-· Accept: the shipped checker contains no solver, no normalizer, and no backtracking; every decision is a table lookup, a structural comparison, or bounded-width arithmetic over closed numerals (§7.6).
-· Trace: §7.1, §10.3
+· Accept: the shipped checker contains no solver, no normalizer, and no backtracking; every decision is a table lookup, a structural comparison, or bounded-width arithmetic over closed numerals ([§7.6](#76-the-one-permitted-computation)).
+· Trace: [§7.1](#71-the-absences), [§10.3](#103-the-complexity-contract)
 
 **TAL-004** IS: Obligations that do not fit the frozen theory are not carried by this language; they descend to the consumer's proof kernel as release-time proof terms.
-· Accept: §4.5's deep tier appears in no profile's route table, and every amendment rejected under §7.5 is recorded as descending rather than as lost.
-· Trace: §4.5, §7.5
+· Accept: [§4.5](#45-the-deep-tier-stays-out)'s deep tier appears in no profile's route table, and every amendment rejected under [§7.5](#75-the-amendment-rule) is recorded as descending rather than as lost.
+· Trace: [§4.5](#45-the-deep-tier-stays-out), [§7.5](#75-the-amendment-rule)
 
 ---
 
@@ -62,15 +62,15 @@ Three commitments distinguish this language from that lineage.
 
 **TAL-005** IS: Every obligation of this document is a numbered requirement of the form `**TAL-nnn** MUST | MUST NOT | IS:` followed by one `· Accept:` acceptance criterion and one `· Trace:` line naming the formal rules or sections that carry it.
 · Accept: no normative obligation appears in unnumbered prose; every numbered requirement carries both tail lines.
-· Trace: §2.2
+· Trace: [§2.2](#22-roles)
 
 **TAL-006** IS: Requirement identifiers are permanent and independent of section numbering. A retired requirement is struck in place and its identifier is never reused.
 · Accept: no identifier names two statements across versions; renumbering a section renumbers no requirement.
-· Trace: §2.3
+· Trace: [§2.3](#23-versioning-and-precedence)
 
 **TAL-007** IS: `MUST` and `MUST NOT` state obligations on an implementation, a profile, or a certificate. `IS` states a definitional fact of the language that other requirements cite rather than restate.
 · Accept: no `IS` entry imposes an obligation that no `MUST` entry also states, and no list is enumerated in two places.
-· Trace: §4.1
+· Trace: [§4.1](#41-the-menu)
 
 ### 2.2 Roles
 
@@ -78,21 +78,21 @@ The specification names five roles, and every requirement binds one of them.
 
 | Role | What it is | What binds it |
 | --- | --- | --- |
-| **Producer** | Whatever emits an artifact and its certificate | §12 |
-| **Consumer** | Whatever runs the checker and decides admission policy | §5.5, §11.2 |
-| **Checker** | The shipped admission program | §10 |
-| **Profile** | The machine parameter: semantics, cited set, rule table, limits, ledger | §5 |
-| **Certificate** | The producer-supplied derivation and its bindings | §8 |
+| **Producer** | Whatever emits an artifact and its certificate | [§12](#12-producers) |
+| **Consumer** | Whatever runs the checker and decides admission policy | [§5.5](#55-the-assumption-ledger), [§11.2](#112-the-ledger-it-consumes) |
+| **Checker** | The shipped admission program | [§10](#10-the-checker) |
+| **Profile** | The machine parameter: semantics, cited set, rule table, limits, ledger | [§5](#5-the-parameter-the-machine-profile) |
+| **Certificate** | The producer-supplied derivation and its bindings | [§8](#8-the-formal-core) |
 
 ### 2.3 Versioning and precedence
 
 **TAL-008** MUST: A certificate names the version of this specification and the version of the profile it was produced against, and a checker rejects a certificate naming a version it does not implement.
-· Accept: version fields are mandatory in the certificate header (§8.1); no checker accepts an unpinned or unknown version.
-· Trace: §8.1, §9.4
+· Accept: version fields are mandatory in the certificate header ([§8.1](#81-the-certificate)); no checker accepts an unpinned or unknown version.
+· Trace: [§8.1](#81-the-certificate), [§9.4](#94-versions)
 
 **TAL-009** MUST: An amendment to this document, to a profile, or to a rule table is a version bump that invalidates no prior verdict and revalidates no prior artifact: a consumer that bumps a version re-checks every artifact it admits under the new version.
 · Accept: verdicts record the version pair they were produced under; no verdict is carried across a bump.
-· Trace: §7.5, §9.4
+· Trace: [§7.5](#75-the-amendment-rule), [§9.4](#94-versions)
 
 ---
 
@@ -102,24 +102,24 @@ The terms below are load-bearing in the soundness statement, so each is fixed he
 
 **TAL-010** IS: The definitions of this section are the meanings every other section uses.
 · Accept: no requirement elsewhere redefines a term defined here.
-· Trace: §3
+· Trace: [§3](#3-definitions)
 
-- **Artifact.** The installed bytes: the code-and-rodata image, its data initializer, its layout, its entry-point set, and the immutable tables the profile names. Admission is over the artifact, never over an assembly listing or an intermediate representation (§9.3).
-- **Certificate.** The producer-supplied record binding a typing derivation to one artifact (§8.1).
+- **Artifact.** The installed bytes: the code-and-rodata image, its data initializer, its layout, its entry-point set, and the immutable tables the profile names. Admission is over the artifact, never over an assembly listing or an intermediate representation ([§9.3](#93-what-is-not-an-admissible-input)).
+- **Certificate.** The producer-supplied record binding a typing derivation to one artifact ([§8.1](#81-the-certificate)).
 - **Derivation.** The typing content of a certificate: types, block entry states, guard records, loop and call structure, and citations.
-- **Facet.** An atomic obligation, the unit that carries exactly one discharge route (§4.2).
-- **Route.** How a facet is discharged: cited, attributed, or inserted (§5.2).
-- **Move.** What the checker does about a facet: cite an invariant, evaluate an attribute, or confirm a deletion (§10.1).
-- **Well-typed.** The checker accepts the artifact and certificate under a profile. *Safe* is not a synonym: an artifact is safe with respect to the facets its profile routes and the ledger it consumes, and nothing else (§11.5).
+- **Facet.** An atomic obligation, the unit that carries exactly one discharge route ([§4.2](#42-the-facets)).
+- **Route.** How a facet is discharged: cited, attributed, or inserted ([§5.2](#52-the-three-routes)).
+- **Move.** What the checker does about a facet: cite an invariant, evaluate an attribute, or confirm a deletion ([§10.1](#101-the-three-moves)).
+- **Well-typed.** The checker accepts the artifact and certificate under a profile. *Safe* is not a synonym: an artifact is safe with respect to the facets its profile routes and the ledger it consumes, and nothing else ([§11.5](#115-what-soundness-does-not-say)).
 - **Memory safety.** Two facets, never one. *Spatial*: every memory access lies within the bounds and permissions of the authority it derives from. *Temporal*: no access uses authority over a storage object outside that object's lifetime.
 - **Control-flow integrity.** Two facets. *Run-time*: every control transfer targets authority the profile declares executable and lands at a valid entry. *Callee set*: every realized target of an indirect transfer is in the finite set the derivation declares at that site.
 - **Constant-time.** Non-interference of a declared leakage model from secret-labeled inputs: no secret-labeled value reaches a branch condition, a memory address, or an operand of a variable-latency operation. The obligation is relative to the profile's declared leakage model and nothing stronger.
 - **Local (of a rule).** Its premises mention only the instruction being typed, the states the certificate records for that instruction's block and its successors, and the records the certificate declares for that site.
-- **Structured (of code).** Its control-flow graph is reducible, every back edge names a header the certificate declares, and every loop carries a trip bound (§8.5).
+- **Structured (of code).** Its control-flow graph is reducible, every back edge names a header the certificate declares, and every loop carries a trip bound ([§8.5](#85-attributes-transfer-and-joins)).
 - **Open-world (of a guarantee).** It holds against arbitrary co-resident code, subject only to the machine premises its ledger names.
 - **Address-space-closed.** It holds while every instruction stream with authority over the same objects is admitted under this language.
 - **Image-local.** It is a property of the admitted bytes alone and is unaffected by what else executes.
-- **Premise.** A statement the checker validates the form of and does not decide, exposed in the verdict (§5.5, §8.7).
+- **Premise.** A statement the checker validates the form of and does not decide, exposed in the verdict ([§5.5](#55-the-assumption-ledger), [§8.7](#87-declared-premises)).
 
 ---
 
@@ -144,8 +144,8 @@ This document says what is expressible and decidable; the consumer's own specifi
 10. Secret-taint constant-time behavior.
 11. Worst-case execution cost.
 
-· Accept: no other section of this document enumerates the menu; §4.2 partitions it and cites this entry.
-· Trace: §4.2
+· Accept: no other section of this document enumerates the menu; [§4.2](#42-the-facets) partitions it and cites this entry.
+· Trace: [§4.2](#42-the-facets)
 
 VerifiedOS requires the whole menu, canonically enumerated at R-05-029 of its register, and its lower assurance tier scopes a stated subset of the same list rather than a list of its own.
 
@@ -174,16 +174,16 @@ The menu rows are the user-facing grouping, not the unit of routing, because a p
 | `cost.wcet` | 11 | Every entry point's execution cost is at most the derivation's declared bound under the profile's cost model. |
 | `cost.space` | 11 | Every entry point's peak stack depth is at most the derivation's declared bound under the profile's cost model. |
 
-· Accept: sixteen facets, each naming one of the menu rows; the profile matrix (§6) has one line per facet per profile and no line for a row.
-· Trace: §6.2, §6.3
+· Accept: sixteen facets, each naming one of the menu rows; the profile matrix ([§6](#6-the-profile-matrix)) has one line per facet per profile and no line for a row.
+· Trace: [§6.2](#62-cheri-rv64), [§6.3](#63-bare-rv64)
 
 **TAL-013** MUST: A profile declares exactly one route for every facet of every row its consumer selects. A row is never routed; its facets are.
-· Accept: a profile whose route table has a row-level entry, a missing facet, or two entries for one facet is inadmissible under §5.8.
-· Trace: §5.2, §5.8
+· Accept: a profile whose route table has a row-level entry, a missing facet, or two entries for one facet is inadmissible under [§5.8](#58-profiles-are-frozen-and-versioned-like-the-theory).
+· Trace: [§5.2](#52-the-three-routes), [§5.8](#58-profiles-are-frozen-and-versioned-like-the-theory)
 
 **TAL-014** MUST: Facets are the unit of amendment as well as of routing. Splitting a facet, merging two facets, or adding one is a version bump under TAL-009 and requires every profile to restate its routes for the affected facets.
 · Accept: no profile is carried across a facet change without restating the affected rows of its matrix.
-· Trace: §7.5
+· Trace: [§7.5](#75-the-amendment-rule)
 
 ### 4.3 Two obligations that need explanation
 
@@ -191,27 +191,27 @@ The literature usually treats these two as proof obligations rather than as type
 
 - **Constant-time** is a 2-safety hyperproperty, which a type system cannot state in general, but the CT-Wasm result makes it a **taint-typing** obligation for structured code: the type system forbids a secret-labeled value from reaching a branch condition, a memory address, or a variable-latency operation.
   Only the genuinely unstructured residual descends to a relational proof.
-  The guarantee is relative to the profile's declared leakage model rather than absolute, and it does not survive a lowering the type system never sees, which is why the obligation is stated over final code rather than over a source or intermediate form (§14).
+  The guarantee is relative to the profile's declared leakage model rather than absolute, and it does not survive a lowering the type system never sees, which is why the obligation is stated over final code rather than over a source or intermediate form ([§14](#14-what-this-is-not)).
 - **Worst-case cost** is a quantitative property, but for structured code it is a max-path sum over the certificate's declared loop nest (Shaw's timing schema), carried as a cost attribute rather than produced by a separate analyzer.
-  The sum is sound only given the declared trip and depth bounds of §8.7 and a machine cost model in which per-instruction costs compose: caches, pipelines, speculation, interrupts, and shared resources each falsify that composition, so a profile that neither deletes nor bounds them owes an interference premise in its ledger (§5.5) rather than silence.
+  The sum is sound only given the declared trip and depth bounds of [§8.7](#87-declared-premises) and a machine cost model in which per-instruction costs compose: caches, pipelines, speculation, interrupts, and shared resources each falsify that composition, so a profile that neither deletes nor bounds them owes an interference premise in its ledger ([§5.5](#55-the-assumption-ledger)) rather than silence.
   **Peak space rides the same derivation as a second weight vector, and the reason it can is worth stating rather than assuming.** In general, peak space is not the algebra time is: time sums along a path and maxes across alternatives, while peak space maxes across sequential phases where storage is reused and sums only over simultaneously-live regions. Here the two coincide because the frame lifetimes are strictly nested, a frame being live exactly for its call's duration, so the family is laminar and the schema's shape carries over unchanged: sum down the nesting, max across alternatives.
-  **The one rule that differs is the loop rule, and it differs in the direction that matters.** Where TAL-052 has a loop contribute its body cost multiplied by its declared trip bound, space takes the body's peak **once**: iterations reuse the frame rather than accumulating it, and multiplying there would be unsound in the safe direction but so loose as to be useless. Recursion goes the other way and both vectors agree: each activation's frame coexists with its caller's, so a component with a TAL-053 recursion-depth premise multiplies by that premise for space exactly as for time. The space vector inherits every side condition the cost vector already owes, the declared trip and depth bounds of §8.7, the declared call order of TAL-053, and the acyclicity of TAL-052's residual graph, and adds none.
+  **The one rule that differs is the loop rule, and it differs in the direction that matters.** Where TAL-052 has a loop contribute its body cost multiplied by its declared trip bound, space takes the body's peak **once**: iterations reuse the frame rather than accumulating it, and multiplying there would be unsound in the safe direction but so loose as to be useless. Recursion goes the other way and both vectors agree: each activation's frame coexists with its caller's, so a component with a TAL-053 recursion-depth premise multiplies by that premise for space exactly as for time. The space vector inherits every side condition the cost vector already owes, the declared trip and depth bounds of [§8.7](#87-declared-premises), the declared call order of TAL-053, and the acyclicity of TAL-052's residual graph, and adds none.
 
 ### 4.4 What the language does not admit as evidence
 
 **TAL-015** MUST NOT: No facet is discharged by a path-feasibility fact, an infeasible-path exclusion, or any other input whose only effect is to tighten an already-sound result.
-· Accept: no rule in §8 consumes a path fact; the cost attribute reads trip bounds and call-depth bounds and nothing else. This is the language-level form of the consumer-side no-tightening rule at R-05-105.
-· Trace: §8.7, §10.3
+· Accept: no rule in [§8](#8-the-formal-core) consumes a path fact; the cost attribute reads trip bounds and call-depth bounds and nothing else. This is the language-level form of the consumer-side no-tightening rule at R-05-105.
+· Trace: [§8.7](#87-declared-premises), [§10.3](#103-the-complexity-contract)
 
 **TAL-016** MUST NOT: No facet is discharged by producer identity, by a signature over the artifact, by a build record, or by any property of the pipeline that produced it. A consumer may run a second check at install over evidence of its own, and that check is the consumer's act: it discharges no facet and is no input to this one.
 · Accept: the checker reads the artifact, the certificate, and the profile, and nothing else; removing every producer attestation changes no verdict. For the VerifiedOS instantiation the second act is the proof kernel checking the artifact-local source-correspondence theorem on the device, beside this check and before wiring (R-13-027); removing it changes no verdict here either.
-· Trace: §12
+· Trace: [§12](#12-producers)
 
 ### 4.5 The deep tier stays out
 
 **TAL-017** IS: No profile routes functional refinement, whole-system non-interference, cryptographic reduction security, linearizability, or liveness. These are outside the decidable type system and remain proof obligations for a consumer's proof kernel.
 · Accept: no route table names them; each appears in the consumer's release-time obligation set.
-· Trace: §4.4, §7.5
+· Trace: [§4.4](#44-what-the-language-does-not-admit-as-evidence), [§7.5](#75-the-amendment-rule)
 
 ### 4.6 The hard cases are named in advance
 
@@ -221,7 +221,7 @@ A small move-II checker therefore does not imply a small implementation or proof
 
 The constant-time facet also needs an explicit boundary for public verification results.
 The grammar has no declassification form: no rule lowers `sec` to `pub`. An ordinary comparison over a secret, such as a MAC tag, therefore produces a `sec` verdict under TAL-054 and cannot control a branch.
-A profile may instead declare a verdict-producing primitive whose rule-table result is `pub`. Consumer premise C3 of the ledger (§6.2) justifies that label through the consumer's cryptographic argument; the language itself supplies no such justification.
+A profile may instead declare a verdict-producing primitive whose rule-table result is `pub`. Consumer premise C3 of the ledger ([§6.2](#62-cheri-rv64)) justifies that label through the consumer's cryptographic argument; the language itself supplies no such justification.
 For `cheri-rv64` that form is the masked datapath's verify operation (R-05-004a); an ordinary compare over a secret tag stays `sec` and rejects at the branch that reads it.
 
 ---
@@ -231,69 +231,69 @@ For `cheri-rv64` that form is the masked datapath's verify operation (R-05-004a)
 ### 5.1 What a profile contains
 
 **TAL-018** MUST: A profile supplies all nine parts: machine semantics, decode function, cited invariant set, per-facet route table, instruction rule table, resource limits, leakage model, cost model, and assumption ledger.
-· Accept: a profile missing any part is inadmissible under §5.8; §5.6 fixes the schema.
-· Trace: §5.6, §5.8
+· Accept: a profile missing any part is inadmissible under [§5.8](#58-profiles-are-frozen-and-versioned-like-the-theory); [§5.6](#56-the-profile-schema) fixes the schema.
+· Trace: [§5.6](#56-the-profile-schema), [§5.8](#58-profiles-are-frozen-and-versioned-like-the-theory)
 
 | Part | What it fixes | Consumed by |
 | --- | --- | --- |
-| Machine semantics | The transition relation the soundness theorem is stated over | §11 |
-| Decode function | Bytes to instructions, as a function of image content and position | §9.2 |
-| Cited invariant set | The machine theorems a derivation may cite | §10.1 move I |
-| Route table | One route per facet | §5.2 |
-| Instruction rule table | The typing rule for each decoded instruction form | §8.4 |
-| Resource limits | The declared maxima the checker enforces before evaluating | §8.9 |
-| Leakage model | What an adversary observes, for `ct.taint` | §3, §6 |
-| Cost model | Per-instruction latencies and the interference premise | §4.3, §8.5 |
-| Assumption ledger | Every premise the guarantee rests on, classified | §5.5 |
+| Machine semantics | The transition relation the soundness theorem is stated over | [§11](#11-soundness) |
+| Decode function | Bytes to instructions, as a function of image content and position | [§9.2](#92-decode-binding) |
+| Cited invariant set | The machine theorems a derivation may cite | [§10.1](#101-the-three-moves) move I |
+| Route table | One route per facet | [§5.2](#52-the-three-routes) |
+| Instruction rule table | The typing rule for each decoded instruction form | [§8.4](#84-judgments) |
+| Resource limits | The declared maxima the checker enforces before evaluating | [§8.9](#89-resource-limits-and-malformed-input) |
+| Leakage model | What an adversary observes, for `ct.taint` | [§3](#3-definitions), [§6](#6-the-profile-matrix) |
+| Cost model | Per-instruction latencies and the interference premise | [§4.3](#43-two-obligations-that-need-explanation), [§8.5](#85-attributes-transfer-and-joins) |
+| Assumption ledger | Every premise the guarantee rests on, classified | [§5.5](#55-the-assumption-ledger) |
 
 ### 5.2 The three routes
 
 | Route | Meaning | Check-time cost | Run-time cost |
 | --- | --- | --- | --- |
 | **Cited** | The machine enforces the facet. The derivation records the invariant it relies on, and the checker validates the citation. | One citation-record inspection per reliance site, constant per site. | None added by this language. The machine's own checks execute. |
-| **Attributed** | The type system decides the facet statically, as an attribute (move II) or as a deletion (move III). | Bounded work per instruction and per edge (§10.3). | None. |
+| **Attributed** | The type system decides the facet statically, as an attribute (move II) or as a deletion (move III). | Bounded work per instruction and per edge ([§10.3](#103-the-complexity-contract)). | None. |
 | **Inserted** | The producer emits an ordinary run-time check, and the checker requires a certificate-supplied guard record proving that check reaches every access it guards. | Guard-record validation, one attribute among the others. | The check executes on every guarded access. |
 
 The route order is intentional. A cited facet adds no software enforcement; an attributed facet is decided once at admission; an inserted facet is paid on every execution.
 
-**TAL-019** IS: Route and move are different axes. Cited is discharged by move I. Attributed is discharged by move II or move III. Inserted is discharged by move II over a guard record (§8.6), plus a run-time check that the machine executes.
-· Accept: the matrix in §6 carries a route column and a move column, and every line's pair is one of the four combinations named here.
-· Trace: §10.1, §8.6
+**TAL-019** IS: Route and move are different axes. Cited is discharged by move I. Attributed is discharged by move II or move III. Inserted is discharged by move II over a guard record ([§8.6](#86-deletions-guard-records-and-rooted-mutability)), plus a run-time check that the machine executes.
+· Accept: the matrix in [§6](#6-the-profile-matrix) carries a route column and a move column, and every line's pair is one of the four combinations named here.
+· Trace: [§10.1](#101-the-three-moves), [§8.6](#86-deletions-guard-records-and-rooted-mutability)
 
 **TAL-020** MUST NOT: There is no fourth route and no fourth move. A facet a profile can route in none of the three ways is not carried by that profile, and the profile is inadmissible until the facet is dropped from its consumer's selection or the profile is amended.
 · Accept: no profile's matrix carries a route or move outside the two fixed vocabularies.
-· Trace: §5.8
+· Trace: [§5.8](#58-profiles-are-frozen-and-versioned-like-the-theory)
 
 ### 5.3 What each route requires of a profile
 
 **TAL-021** MUST: For every cited facet, the profile names an invariant that is a theorem of its machine semantics, states the instruction classes and machine states over which the theorem holds, and names its exceptions explicitly rather than quantifying over the whole machine.
-· Accept: each cited invariant has a proof obligation in §11.3 and an applicability class the checker tests each reliance site against.
-· Trace: §11.3, §10.2
+· Accept: each cited invariant has a proof obligation in [§11.3](#113-what-a-profile-must-discharge) and an applicability class the checker tests each reliance site against.
+· Trace: [§11.3](#113-what-a-profile-must-discharge), [§10.2](#102-the-algorithm)
 
 **TAL-022** MUST: For every inserted facet, the profile fixes the instruction pattern of the check, the failure transfer the check performs, and the guard-record form the derivation must supply.
 · Accept: the checker recognizes the pattern structurally; a guarded access whose guard token is absent from its block's validated entry state is rejected.
-· Trace: §8.6, §10.5
+· Trace: [§8.6](#86-deletions-guard-records-and-rooted-mutability), [§10.5](#105-run-time-failure-behavior)
 
 **TAL-023** MUST: For every attributed facet, the profile's rule table assigns a transfer rule to every decoded instruction form the artifact may contain, including the forms the language forbids, which the table maps to rejection.
 · Accept: the rule table is total over the decode function's image; an instruction form with no rule is a profile defect, not a permissive default.
-· Trace: §8.4, §10.2
+· Trace: [§8.4](#84-judgments), [§10.2](#102-the-algorithm)
 
 ### 5.4 Guarantee scope is per facet
 
 A cited facet holds against *arbitrary co-resident code*, because the machine checks every access regardless of who issued it.
 An attributed or inserted facet holds only while every instruction stream with authority over the same objects is admitted. No amount of type-system work closes that gap: it is the difference between a machine that checks and a machine that was persuaded.
 
-**TAL-024** IS: Guarantee scope is a per-facet property with three values: `open-world`, `address-space-closed`, and `image-local` (§3).
+**TAL-024** IS: Guarantee scope is a per-facet property with three values: `open-world`, `address-space-closed`, and `image-local` ([§3](#3-definitions)).
 · Accept: every line of every profile matrix carries a scope value; no profile states a single scope for itself.
-· Trace: §6.2, §6.3
+· Trace: [§6.2](#62-cheri-rv64), [§6.3](#63-bare-rv64)
 
 **TAL-025** IS: A profile's composed guarantee is the conjunction of its per-facet guarantees, and is therefore mixed-scope whenever its facets are.
-· Accept: §6.2's summary states the composed scope as a partition of facets by scope, not as one word.
-· Trace: §6.2
+· Accept: [§6.2](#62-cheri-rv64)'s summary states the composed scope as a partition of facets by scope, not as one word.
+· Trace: [§6.2](#62-cheri-rv64)
 
 **TAL-026** MUST: A consumer that admits code under any facet whose scope is `address-space-closed` supplies the closure premise as consumer premise C1 of the profile's ledger, or supplies an isolation mechanism outside this language.
 · Accept: the ledger names the premise, and the verdict exposes it; a consumer running unverified native code with authority over the same objects has not discharged it.
-· Trace: §5.5, §11.2
+· Trace: [§5.5](#55-the-assumption-ledger), [§11.2](#112-the-ledger-it-consumes)
 
 ### 5.5 The assumption ledger
 
@@ -301,23 +301,23 @@ An attributed or inserted facet holds only while every instruction stream with a
 
 | Class | Meaning | Discharged by |
 | --- | --- | --- |
-| **M** | A theorem of the machine semantics | The profile's soundness instantiation (§11.3) |
+| **M** | A theorem of the machine semantics | The profile's soundness instantiation ([§11.3](#113-what-a-profile-must-discharge)) |
 | **L** | A theorem of the loader and initial-state model | The profile's instantiation, against a stated loader model |
 | **C** | A premise the consumer supplies | The consumer, outside this language |
 | **S** | Correspondence between the semantics and the silicon | Nothing here; it is an assumption and is named as one |
 | **O** | An operational condition on how the artifact is run | The consumer's deployment |
-| **P** | A premise the certificate declares (§8.7) | The consumer's release-time proofs, per its own policy |
+| **P** | A premise the certificate declares ([§8.7](#87-declared-premises)) | The consumer's release-time proofs, per its own policy |
 
 · Accept: every ledger entry has a class, a statement, and a discharge owner; no entry is unclassified, and no requirement elsewhere calls an S or O entry discharged.
-· Trace: §11.2, §11.3
+· Trace: [§11.2](#112-the-ledger-it-consumes), [§11.3](#113-what-a-profile-must-discharge)
 
-**TAL-028** MUST: The soundness statement of §11.1 names the ledger it consumes, and the checker's verdict reproduces the ledger entries of the profile it ran plus the premises the certificate declared.
+**TAL-028** MUST: The soundness statement of [§11.1](#111-the-statement) names the ledger it consumes, and the checker's verdict reproduces the ledger entries of the profile it ran plus the premises the certificate declared.
 · Accept: a verdict without a ledger is malformed; a consumer can read the whole assumption set off one accepted verdict.
-· Trace: §10.4, §11.1
+· Trace: [§10.4](#104-acceptance-and-rejection), [§11.1](#111-the-statement)
 
 ### 5.6 The profile schema
 
-A profile is data, not prose. The narrative descriptions of §6 are generated from it.
+A profile is data, not prose. The narrative descriptions of [§6](#6-the-profile-matrix) are generated from it.
 
 ```
 profile        ::= id version semantics decode cited routes rules limits leakage cost ledger
@@ -331,25 +331,25 @@ cost           ::= (instruction-form latency)* interference-premise
 ```
 
 **TAL-029** MUST: A profile is published in this schema, and its narrative form is derived from it rather than written beside it.
-· Accept: the matrix in §6 and the profile data agree line for line, mechanically.
-· Trace: §6.1
+· Accept: the matrix in [§6](#6-the-profile-matrix) and the profile data agree line for line, mechanically.
+· Trace: [§6.1](#61-how-to-read-it)
 
 ### 5.7 The route that is refused
 
 Spatial safety by **index refinement** (dependent or singleton types over lengths, the DTAL and Xanadu line) is not an admissible fourth route, because deciding it requires arithmetic constraint solving over open terms.
-That would violate §7.1's absence (2) directly, turn the checker from an attribute evaluator into a solver, and falsify the classification §1 rests on.
+That would violate [§7.1](#71-the-absences)'s absence (2) directly, turn the checker from an attribute evaluator into a solver, and falsify the classification [§1](#1-what-the-language-is) rests on.
 
 **TAL-030** MUST NOT: No profile routes a facet to index refinement, constraint entailment, or any discipline whose decision procedure reasons about open terms, however bounded.
 · Accept: no rule table premise mentions a constraint, an entailment, or a solver call.
-· Trace: §7.1, §7.5
+· Trace: [§7.1](#71-the-absences), [§7.5](#75-the-amendment-rule)
 
 The refusal stands even though a bounded form exists. Wasm-precheck [GFB24] places an indexed-type discipline inside a linear-pass validator with no SMT solver; this language still declines it, because even restricted constraint entailment decides propositions over open terms. The distinction is checker kind, not solver size.
 
 ### 5.8 Profiles are frozen and versioned like the theory
 
 **TAL-031** MUST: A profile is admitted only on a shown demonstration that every facet has exactly one route, that each cited invariant is a theorem of the machine semantics rather than a claim about an implementation, that each inserted check has a stated placement rule the guard-record validator can confirm, that its rule table is total, and that its ledger is complete.
-· Accept: five demonstrations exist per profile, and the conformance suite of §13 runs against it.
-· Trace: §13, §11.3
+· Accept: five demonstrations exist per profile, and the conformance suite of [§13](#13-conformance-and-adversarial-suites) runs against it.
+· Trace: [§13](#13-conformance-and-adversarial-suites), [§11.3](#113-what-a-profile-must-discharge)
 
 ---
 
@@ -361,7 +361,7 @@ Each profile has two tables over the same sixteen facets: what the checker consu
 
 **TAL-032** IS: This document specifies two profiles, `cheri-rv64` and `bare-rv64`. They differ only in routing: every facet cited by `cheri-rv64` moves to a lower route under `bare-rv64`, and no other line changes.
 · Accept: the two matrices differ exactly on the lines whose `cheri-rv64` route is Cited.
-· Trace: §6.2, §6.3
+· Trace: [§6.2](#62-cheri-rv64), [§6.3](#63-bare-rv64)
 
 ### 6.2 `cheri-rv64`
 
@@ -425,7 +425,7 @@ The profile VerifiedOS pins. Bounds, tags, monotone derivation, and sealed entry
 | C1 | C | Every instruction stream with authority over the same objects is admitted under this language |
 | C2 | C | The declared leakage model covers the microarchitecture's observable channels |
 | C3 | C | Every rule-table form the profile labels as a public verdict over secret operands yields a value the consumer's cryptographic argument makes public |
-| P | P | The trip, depth, and operand-range bounds the certificate declares (§8.7) |
+| P | P | The trip, depth, and operand-range bounds the certificate declares ([§8.7](#87-declared-premises)) |
 
 **The qualifications a citing profile must state.**
 A citation is a theorem about the machine, and an unsound citation invalidates everything that depends on it.
@@ -480,7 +480,7 @@ The profile with no capability hardware. It cites no invariant, so move I is emp
 
 **The fat-pointer representation is not a route.** A bounds pair carried as an ordinary aggregate is how the inserted check obtains the bounds it compares against; the discharge is still the check that executes, and `repr.conform` fixes the layout the check reads.
 
-**What a bare profile does not recover.** Every open-world line of §6.2 becomes address-space-closed here. A consumer that runs unverified native code beside admitted code under `bare-rv64` gets no guarantee from those facets at all, which is why TAL-026 makes the closure premise explicit.
+**What a bare profile does not recover.** Every open-world line of [§6.2](#62-cheri-rv64) becomes address-space-closed here. A consumer that runs unverified native code beside admitted code under `bare-rv64` gets no guarantee from those facets at all, which is why TAL-026 makes the closure premise explicit.
 
 ---
 
@@ -499,11 +499,11 @@ This document fixes and closes the type theory. The absences below make checking
 3. **No universes and no universe polymorphism.**
    There is one sort of types, with no cumulativity, universe-constraint graph, or acyclicity solver.
 4. **No user-extensible inductive definitions.**
-   The type constructors are the fixed, closed vocabulary of §8.2. The checker performs no positivity check, guard check, or eliminator generation. The vocabulary grows only by amendment to this document, never at install time.
+   The type constructors are the fixed, closed vocabulary of [§8.2](#82-types). The checker performs no positivity check, guard check, or eliminator generation. The vocabulary grows only by amendment to this document, never at install time.
 
-**TAL-033** MUST: The absences in §7.1 hold of every profile, every rule table, and every amendment.
+**TAL-033** MUST: The absences in [§7.1](#71-the-absences) hold of every profile, every rule table, and every amendment.
 · Accept: no rule anywhere in this document or in a profile's rule table requires higher-rank instantiation, conversion, a universe constraint, or a user-supplied former.
-· Trace: §8.2, §7.5
+· Trace: [§8.2](#82-types), [§7.5](#75-the-amendment-rule)
 
 **Why they are load-bearing.** A term checker for a full calculus of inductive constructions spends its tens of thousands of lines on four hard structures: universe constraints, conversion, positivity, and the guard condition. Absences (2), (3), and (4) delete exactly those four, and absence (1) removes the instantiation and inference problems higher-rank polymorphism would reintroduce. What remains is not a small dependent-type checker but a different kind of program: an attribute evaluator over an already-typed control-flow graph.
 
@@ -514,17 +514,17 @@ This document fixes and closes the type theory. The absences below make checking
 | Kind | Carrier | Bound on representation | Bound on operations |
 | --- | --- | --- | --- |
 | **Profile-fixed** | A finite set fixed by this document or by the profile, independent of the artifact | A constant | Constant time per node |
-| **Certificate-bounded** | A finitely represented family whose size is bounded by a declared limit of §8.9 | The declared limit | Stated per operation, in terms of that limit |
+| **Certificate-bounded** | A finitely represented family whose size is bounded by a declared limit of [§8.9](#89-resource-limits-and-malformed-input) | The declared limit | Stated per operation, in terms of that limit |
 
-· Accept: each attribute in §8.5 names its kind, its carrier, and, if certificate-bounded, the limit that bounds it and the complexity of its join and transfer.
-· Trace: §8.5, §8.9
+· Accept: each attribute in [§8.5](#85-attributes-transfer-and-joins) names its kind, its carrier, and, if certificate-bounded, the limit that bounds it and the complexity of its join and transfer.
+· Trace: [§8.5](#85-attributes-transfer-and-joins), [§8.9](#89-resource-limits-and-malformed-input)
 
 Profile-fixed carriers: the initialization flag (a two-point meet-semilattice), the taint label (a two-point join lattice), the grades (a fixed five-point set), the leakage class of an instruction.
-Certificate-bounded carriers: the callee set (bounded by the declared maximum cardinality), the linear context (bounded by the declared maximum live-slot count), the guard-token set (bounded by the declared maximum), the cost numeral (bounded-width, saturating, §7.6), the type term itself (bounded depth and size).
+Certificate-bounded carriers: the callee set (bounded by the declared maximum cardinality), the linear context (bounded by the declared maximum live-slot count), the guard-token set (bounded by the declared maximum), the cost numeral (bounded-width, saturating, [§7.6](#76-the-one-permitted-computation)), the type term itself (bounded depth and size).
 
 **TAL-035** MUST: A certificate-bounded carrier's limit is checked before any attribute is evaluated, and exceeding it is a rejection rather than a slow path.
-· Accept: §10.2 phase 1 rejects on limit violation; no attribute evaluator contains an unbounded loop or an unbounded allocation.
-· Trace: §10.2, §10.3
+· Accept: [§10.2](#102-the-algorithm) phase 1 rejects on limit violation; no attribute evaluator contains an unbounded loop or an unbounded allocation.
+· Trace: [§10.2](#102-the-algorithm), [§10.3](#103-the-complexity-contract)
 
 ### 7.3 Every rider fits the theory
 
@@ -536,36 +536,36 @@ The representation and provenance rules add no former and no grade: they are the
 The three riders on values that are not capabilities add no axis either.
 *Use-once* is the linear grade the context-splitting side condition already runs.
 *Must-erase* uses the `era` grade on that same axis. Like relevance, it denies weakening, but only a rule-table erasing operation consumes an `era` value. Every other use rebinds the value with its grade intact, and every copy retains the grade. Spilling a secret and then dropping it is therefore a type error at the drop. The same context-splitting side condition checks this discipline through the `verdict.relevance` route.
-A *dimension* is a phantom parameter of the integer former (§8.2). The certificate declares its name but no definition or inhabitant; the checker compares it by syntactic type equality under absence (2), and code generation erases it.
+A *dimension* is a phantom parameter of the integer former ([§8.2](#82-types)). The certificate declares its name but no definition or inhabitant; the checker compares it by syntactic type equality under absence (2), and code generation erases it.
 
 ### 7.4 What the vocabulary contains
 
-The closed vocabulary is the grammar of §8.2 and nothing beside it: a former absent from that grammar exists for no profile, and no profile may extend it.
+The closed vocabulary is the grammar of [§8.2](#82-types) and nothing beside it: a former absent from that grammar exists for no profile, and no profile may extend it.
 
 **TAL-036** MUST NOT: A profile adds no type former, no grade, and no label. A profile chooses routes, rules, limits, models, and a ledger, and nothing else.
 · Accept: two profiles' rule tables range over the same type grammar; a profile-local former is a specification defect.
-· Trace: §8.2, §5.6
+· Trace: [§8.2](#82-types), [§5.6](#56-the-profile-schema)
 
 ### 7.5 The amendment rule
 
-**TAL-037** MUST: A proposed attribute is admitted only after a demonstration of all six properties: (1) its carrier is profile-fixed or certificate-bounded under §7.2, with a stated representation bound; (2) every operation on it, transfer and join alike, has a stated complexity in terms of that bound; (3) it is decided without reduction of open terms and preserves syntactic type equality; (4) it duplicates no existing grade or label axis; (5) it has a local, syntax-directed rule; (6) it comes with a soundness lemma against the machine semantics of at least one profile and with the negative tests of §13.
+**TAL-037** MUST: A proposed attribute is admitted only after a demonstration of all six properties: (1) its carrier is profile-fixed or certificate-bounded under [§7.2](#72-attribute-domains), with a stated representation bound; (2) every operation on it, transfer and join alike, has a stated complexity in terms of that bound; (3) it is decided without reduction of open terms and preserves syntactic type equality; (4) it duplicates no existing grade or label axis; (5) it has a local, syntax-directed rule; (6) it comes with a soundness lemma against the machine semantics of at least one profile and with the negative tests of [§13](#13-conformance-and-adversarial-suites).
 · Accept: each attribute's amendment record carries six shown arguments; a record carrying only algebraic shape and locality is incomplete. This strengthens the three-part criterion the consumer register states at R-05-132, and does not weaken it.
-· Trace: §7.2, §13
+· Trace: [§7.2](#72-attribute-domains), [§13](#13-conformance-and-adversarial-suites)
 
 **TAL-038** IS: A feature that fails the amendment rule is not lost: it descends to the consumer's proof kernel as a release-time proof term, at the price of ceasing to be per-install checkable.
 · Accept: the rejected feature appears in the consumer's release-time obligation set, not in the attribute set.
-· Trace: §4.5
+· Trace: [§4.5](#45-the-deep-tier-stays-out)
 
 ### 7.6 The one permitted computation
 
-**TAL-039** IS: The only computation the checker performs is bounded-width arithmetic over closed numerals: cost sums and comparisons along a max-path, and overflow range side conditions at arithmetic rules, the operand bounds those conditions compare being immediates, widths, and the range premises of §8.7. Each is decided in constant time per node.
+**TAL-039** IS: The only computation the checker performs is bounded-width arithmetic over closed numerals: cost sums and comparisons along a max-path, and overflow range side conditions at arithmetic rules, the operand bounds those conditions compare being immediates, widths, and the range premises of [§8.7](#87-declared-premises). Each is decided in constant time per node.
 · Accept: no rule reduces an open term; every numeral in a certificate is closed and within the declared width; an arithmetic site whose side condition has no closed operand bound and no declared range premise rejects.
 · Accept: the rule table fixes each arithmetic expression and its operators; the certificate supplies numeral operands, never an expression or constraint language. An operand is a literal, a decoded width or immediate, a previously computed closed attribute, or a permitted premise's closed bound. Cost expressions use bounded addition, multiplication and maximum; range rules evaluate their fixed bounded endpoint operations and comparisons on these operands. There are no unknown integer variables, quantifiers, user functions, satisfiability queries or symbolic width expressions. The pinned profile fixes a finite maximum numeral width, checked before evaluation; constant time per node is relative to that fixed maximum, not to an arbitrary binary-encoded width supplied by an artifact. Qualification refuses an open operand, an injected constraint expression and a width above that maximum.
-· Trace: §8.5
+· Trace: [§8.5](#85-attributes-transfer-and-joins)
 
 **TAL-040** MUST: Cost arithmetic saturates rather than wraps, and saturation is a rejection: an addition or a multiplication that would exceed the declared width fails admission at that site.
 · Accept: the cost carrier is the declared-width naturals with a top element that no accepted certificate reaches; a certificate whose cost overflows is rejected with the site named.
-· Trace: §8.5, §10.4
+· Trace: [§8.5](#85-attributes-transfer-and-joins), [§10.4](#104-acceptance-and-rejection)
 
 This is evaluation of fixed rules on closed data, not an arithmetic decision procedure over unknowns. Multiplication of two such numerals does not introduce Hilbert's tenth problem. Complexity claims about [first-order Presburger arithmetic](https://upload.wikimedia.org/wikipedia/commons/0/03/Super-exponential_Complexity_of_Presburger_Arithmetic_by_Fischer_and_Rabin_%281974%29_-_MIT-LCS-TM-043.pdf) concern a quantified formula language absent here; results for [quantified bit-vectors with binary-encoded widths](https://arxiv.org/abs/1612.01263) also depend on quantification and encoding and cannot be transferred to this grammar. A richer side-condition language requires TAL-037's amendment review, not a solver added behind a rule.
 
@@ -575,13 +575,13 @@ Soundness does not promise admission of every semantically safe binary. The froz
 
 **TAL-041** IS: A certifying compiler may be written in, and reason with, whatever theory it likes. Only the shipped derivation must be checkable in this one.
 · Accept: no admission rule constrains producer-side theory.
-· Trace: §12
+· Trace: [§12](#12-producers)
 
 ---
 
 ## 8. The formal core
 
-This section is the language proper. The prose of §1 to §7 is its index.
+This section is the language proper. The prose of [§1](#1-what-the-language-is) to [§7](#7-the-frozen-theory) is its index.
 
 ### 8.1 The certificate
 
@@ -607,7 +607,7 @@ premises    ::= (premise-id class statement numeral evidence-tag)*
 
 **TAL-042** MUST: A certificate carries all fifteen parts. A missing, duplicated, or out-of-order part is malformed and rejected before any typing rule runs.
 · Accept: the parse is a single forward pass over a canonical encoding; no part is optional and no default is supplied.
-· Trace: §8.8, §10.2
+· Trace: [§8.8](#88-canonical-serialization), [§10.2](#102-the-algorithm)
 
 ### 8.2 Types
 
@@ -632,25 +632,25 @@ G   ::= { r1 : t1 g1 l1 , ... }                   register-file type
 
 **TAL-043** IS: This grammar is the whole type vocabulary. Type equality is alpha-equivalence over these terms, decided structurally; two dimension names are equal exactly when they are the same name.
 · Accept: the checker's equality routine is one structural comparison with no conversion case; a dimension name has no definition for it to unfold.
-· Trace: §7.1
+· Trace: [§7.1](#71-the-absences)
 
 **TAL-044** MUST: Every type in a certificate is well-formed: bounds and permissions are drawn from the profile's declared sets, aggregate layouts match the profile's layout rules, existential and universal binders are closed under the declared depth limit, every dimension name a type mentions is declared in the type declarations, and no type variable is free at a block entry state.
 · Accept: well-formedness is decided in one pass over the type declarations before any block is visited.
-· Trace: §10.2
+· Trace: [§10.2](#102-the-algorithm)
 
 ### 8.3 The decoded image and the control-flow graph
 
 **TAL-045** MUST: The checker decodes the artifact itself, using the profile's decode function, and does not read an instruction stream the certificate supplies.
 · Accept: removing every instruction field from the certificate changes no verdict; the certificate supplies types and structure, never code. For the VerifiedOS instantiation the decode function is the slot-indexed function of R-15-036b.
-· Trace: §9.2
+· Trace: [§9.2](#92-decode-binding)
 
 **TAL-046** MUST: The certificate's block table partitions the decoded instructions of every executable extent exactly: every decoded instruction belongs to exactly one block, blocks do not overlap, and every declared entry point is the first instruction of some block.
 · Accept: a coverage pass over the block table detects any gap, overlap, or misaligned entry, and rejects.
-· Trace: §10.2
+· Trace: [§10.2](#102-the-algorithm)
 
 **TAL-047** MUST: The edge table is exact: for every instruction that transfers control, the successors the profile's rule table assigns to that instruction form are precisely the declared edges of its block, and an indirect transfer's edges are precisely its declared callee set.
 · Accept: the checker recomputes each block's successor kinds from its final instruction and compares; a missing or extra edge rejects.
-· Trace: §8.5
+· Trace: [§8.5](#85-attributes-transfer-and-joins)
 
 ### 8.4 Judgments
 
@@ -668,7 +668,7 @@ S' <= S                        state refinement, componentwise (§8.5)
 
 **TAL-048** IS: The transfer judgment is supplied per instruction form by the profile's rule table; this document fixes the judgment's shape, its state components, and the refinement relation, and the profile fixes the rules.
 · Accept: every rule in a rule table has the shape above, premises drawn from the instruction's own operands, the profile's declared sets, and the certificate's records for that site.
-· Trace: §5.3, §8.5
+· Trace: [§5.3](#53-what-each-route-requires-of-a-profile), [§8.5](#85-attributes-transfer-and-joins)
 
 A representative rule shape, which every rule table instantiates rather than extends:
 
@@ -681,7 +681,7 @@ load:     G(rs) = ptr b p k init      read in p      offset within b      G' = G
           (G, L, T, K, N, c) |- load rd, rs, off => (G', L', T', K, N, c')
 ```
 
-The clauses of a rule are exactly the attributes of §8.5, one clause each; a rule with a clause outside that set is a profile defect.
+The clauses of a rule are exactly the attributes of [§8.5](#85-attributes-transfer-and-joins), one clause each; a rule with a clause outside that set is a profile defect.
 
 ### 8.5 Attributes, transfer, and joins
 
@@ -696,58 +696,58 @@ The clauses of a rule are exactly the attributes of §8.5, one clause each; a ru
 | Callee constraint N | Certificate-bounded (callee-set limit) | Union, then containment in the declared set | Linear in the limit |
 | Cost numeral c | Certificate-bounded (declared width) | Maximum, saturating | Constant |
 
-· Accept: no attribute exists outside this table; adding one is an amendment under §7.5.
-· Trace: §7.2, §7.5
+· Accept: no attribute exists outside this table; adding one is an amendment under [§7.5](#75-the-amendment-rule).
+· Trace: [§7.2](#72-attribute-domains), [§7.5](#75-the-amendment-rule)
 
 **TAL-050** IS: State refinement `S' <= S` is the componentwise order of the table: types equal up to the initialization meet, linear contexts equal, taint pointwise below, guard sets superset, callee constraint subset, cost below.
 · Accept: refinement is decided in one pass over the state, with no search.
-· Trace: §10.3
+· Trace: [§10.3](#103-the-complexity-contract)
 
 **TAL-051** MUST: The checker validates, for every edge, that the exit state the certificate records for the source refines the entry state the certificate records for the target. It computes no entry state and iterates to no fixpoint.
 · Accept: every edge is visited exactly once; a certificate whose entry state is unjustified by some predecessor is rejected at that edge, with the edge named.
-· Trace: §10.2, §10.3
+· Trace: [§10.2](#102-the-algorithm), [§10.3](#103-the-complexity-contract)
 
 **TAL-052** MUST: Cost is not evaluated as a dataflow attribute over cycles. It is evaluated over the certificate's declared loop nest: back edges are removed, the residual graph is required to be acyclic in the declared block order, and a loop contributes its body cost multiplied by its declared trip bound to its parent.
 · Accept: the loop table is validated locally (each back edge's target is its declared header; each header's parent is an enclosing loop; nesting depth is within the declared limit) and the cost of each region is computed in one pass over blocks in the declared order.
-· Trace: §8.7, §10.2
+· Trace: [§8.7](#87-declared-premises), [§10.2](#102-the-algorithm)
 
 **TAL-053** MUST: Interprocedural cost and stack depth rest on a declared call order: every call site's callees have strictly lower rank than the caller, so the call graph induced by the declared callee sets is acyclic, or the certificate declares a recursion-depth premise for the component that is not.
 · Accept: rank comparison is one integer test per call site; a cyclic component with no declared depth premise is rejected.
-· Trace: §8.7
+· Trace: [§8.7](#87-declared-premises)
 
 **TAL-053a** MUST: Peak stack depth is evaluated as a second weight vector over the same certificate structure as cost, under the same declared call order and loop nest. The two vectors differ in exactly one rule: a loop contributes its body cost multiplied by its declared trip bound and its body's **peak depth taken once**, iterations reusing the frame rather than accumulating it; a component with a declared recursion-depth premise multiplies by that premise in both vectors.
 · Accept: one additional closed numeral per block and per call site, summed and compared along the same max-path TAL-039 already decides in constant time per node; no new side condition, no new declared structure, no second traversal.
-· Trace: §4.3, §8.7
+· Trace: [§4.3](#43-two-obligations-that-need-explanation), [§8.7](#87-declared-premises)
 
 **TAL-053b** MUST NOT: The `cost.space` facet ranges over frame storage on the derivation's own call structure and over nothing else. Static data placement, pool capacity, and the physical layout of the admitted image are not typed by this language and are not discharged by this facet.
 · Accept: a profile that routes `cost.space` and thereby claims a whole-image footprint bound is inadmissible; the image-level claim is the composition's capacity equation over declared per-component bounds, a separate artifact taking this facet's output as an input.
-· Trace: §6.2
+· Trace: [§6.2](#62-cheri-rv64)
 
 **TAL-054** MUST: The taint rule rejects any secret-labeled value that reaches a branch condition, a memory address operand, or an operand the profile's leakage model classes as variable-latency.
-· Accept: the three sink classes are declared per instruction form in the rule table; a secret-labeled operand at any of them rejects, with the site named. No rule lowers a label: the verdict-producing forms consumer premise C3 names (§4.6) are the one place a `pub` result stands over a `sec` operand.
-· Trace: §5.1
+· Accept: the three sink classes are declared per instruction form in the rule table; a secret-labeled operand at any of them rejects, with the site named. No rule lowers a label: the verdict-producing forms consumer premise C3 names ([§4.6](#46-the-hard-cases-are-named-in-advance)) are the one place a `pub` result stands over a `sec` operand.
+· Trace: [§5.1](#51-what-a-profile-contains)
 
 ### 8.6 Deletions, guard records, and rooted mutability
 
 **TAL-055** IS: Move III decides five absences by inspection: no integer-to-pointer construction, no type punning, no variadic arity, no unbounded recursive former, and no implicit conversion.
 · Accept: each is a structural test on a decoded instruction form or on a declared type; none requires a state.
-· Trace: §10.1
+· Trace: [§10.1](#101-the-three-moves)
 
 **TAL-056** MUST: The inserted route is validated through the guard-token attribute, not through a dominance computation. A guard site adds its token to K; a join intersects; a guarded access is well-typed only if its token is in the validated entry state of its block and the recorded guard record names that access and the profile's declared check pattern.
 · Accept: no dominator tree is built and no ancestor query is performed; the dominance fact is a consequence of the intersection join over validated entry states.
-· Trace: §8.5, §11.3
+· Trace: [§8.5](#85-attributes-transfer-and-joins), [§11.3](#113-what-a-profile-must-discharge)
 
 **TAL-057** MUST: The run-time behavior of an inserted check on failure is the profile's declared failure state, and the soundness statement is conditioned on it: an execution either satisfies the facet or is in that state.
 · Accept: the failure transfer is part of the declared check pattern; a check that falls through on failure does not match the pattern and rejects.
-· Trace: §10.5, §11.1
+· Trace: [§10.5](#105-run-time-failure-behavior), [§11.1](#111-the-statement)
 
 **TAL-058** MUST: `ambient.static-authority` is decided by an image scan over the declared static extents: on a citing profile no tagged datum may appear in any static extent, and on a non-citing profile no static datum of pointer type may hold an address outside the declared root table.
 · Accept: the scan visits every byte of every declared static extent once, and the extent table is checked to cover the image's data regions exactly.
-· Trace: §10.2
+· Trace: [§10.2](#102-the-algorithm)
 
 **TAL-059** MUST: `ambient.rooted-mutability` is decided as a whole-image predicate, not by the static scan alone. The certificate enumerates every mutable root and every initial capability, and records for every store site a provenance chain whose head is one of those roots or a parameter of the enclosing code type and whose steps are the monotone derivations `prov.integrity` already validates.
 · Accept: the chain records are inspected in one pass with no state and no fixpoint, which is why this facet stays a move-III deletion rather than becoming a second attribute; a writable extent absent from the root table rejects; a store whose chain is missing, mis-headed, or contains a step that is not a validated derivation rejects; a module-level mutable static, a lazily initialized static, a thread-local, or a hidden singleton is exactly the case this rejects, and the tag scan alone does not decide it. This is the binding form of the consumer-side statement at R-05-089 and R-05-086, and it keeps the move assignment of R-05-039.
-· Trace: §4.2, §10.2
+· Trace: [§4.2](#42-the-facets), [§10.2](#102-the-algorithm)
 
 ### 8.7 Declared premises
 
@@ -755,35 +755,35 @@ Some facets need a number the checker cannot infer and must not guess: a trip bo
 
 **TAL-060** IS: A declared premise is a certificate record carrying a class, a statement, a closed numeral, and an evidence tag naming the consumer-side obligation that discharges it. The checker validates the record's form and that the profile permits its class, and treats the numeral as given.
 · Accept: premises are the only certificate content the checker does not decide, and each appears in the verdict.
-· Trace: §10.4, §5.5
+· Trace: [§10.4](#104-acceptance-and-rejection), [§5.5](#55-the-assumption-ledger)
 
 **TAL-061** MUST: The only permitted premise classes are trip bounds, recursion-depth bounds, and operand range bounds at arithmetic sites. No other premise class exists, and in particular no premise asserts a path, a feasibility, an aliasing fact, or a safety property beyond the numeral it states.
 · Accept: a certificate declaring any other class is rejected; the checker's premise vocabulary is closed. A range premise is one closed numeral per operand that the site's overflow side condition (TAL-039) compares like any other, read by that rule alone and by no attribute; for the VerifiedOS instantiation its evidence tag names R-05-146's release-time obligation in the proof kernel.
-· Trace: §4.4
+· Trace: [§4.4](#44-what-the-language-does-not-admit-as-evidence)
 
 **TAL-062** MUST: A structurally inferable bound is inferred, never declared. A premise whose statement the checker could decide from the loop's own instruction sequence, or from operand bounds that are already closed numerals at the site, is a rejection, not a shortcut.
 · Accept: the rule table marks the structural loop forms; a premise at such a loop, or a range premise where the operand bounds are closed, rejects. For the VerifiedOS instantiation the discharge of a non-structural bound is R-05-107's Coq obligation against source.
-· Trace: §4.4
+· Trace: [§4.4](#44-what-the-language-does-not-admit-as-evidence)
 
 ### 8.8 Canonical serialization
 
 **TAL-063** MUST: The certificate has exactly one accepted byte encoding for each derivation: fields in the declared order, integers in the declared minimal form, sets in the declared sort order, no unknown fields, no trailing bytes.
 · Accept: the checker re-serializes what it parsed and compares, or parses with a canonicality-checking reader; a non-canonical encoding rejects.
-· Trace: §9.1
+· Trace: [§9.1](#91-the-commitment)
 
 **TAL-064** MUST NOT: The parser follows no offset, resolves no reference by search, and interprets no length it has not bounds-checked against the certificate's own size.
 · Accept: parsing is a single forward pass with a bounded working set.
-· Trace: §10.3
+· Trace: [§10.3](#103-the-complexity-contract)
 
 ### 8.9 Resource limits and malformed input
 
 **TAL-065** MUST: A profile declares a maximum for each of: callee-set cardinality, live linear slots per state, guard tokens per image, type-term depth, type-term size, numeral width, loop-nest depth, block count, edge count, static-extent count, root count, provenance-chain length, and certificate size.
-· Accept: thirteen limits, each a numeral in the profile, each checked in phase 1 of §10.2.
-· Trace: §10.2
+· Accept: thirteen limits, each a numeral in the profile, each checked in phase 1 of [§10.2](#102-the-algorithm).
+· Trace: [§10.2](#102-the-algorithm)
 
 **TAL-066** MUST: Every malformed input is rejected, never accepted and never diverged on: a parse failure, a limit violation, a non-canonical encoding, a binding mismatch, an unknown version, an undecodable byte in an executable extent, or a rule-table gap.
-· Accept: the checker terminates on every input by construction of §10.2's traversal, and its rejection carries the first failing rule identifier and site.
-· Trace: §10.4
+· Accept: the checker terminates on every input by construction of [§10.2](#102-the-algorithm)'s traversal, and its rejection carries the first failing rule identifier and site.
+· Trace: [§10.4](#104-acceptance-and-rejection)
 
 ---
 
@@ -795,33 +795,33 @@ A derivation about bytes that are not the installed bytes proves nothing about w
 
 **TAL-067** MUST: The certificate commits to all eight: the content hash of the code-and-rodata image, the layout (base address and extent map), the entry-point set, the content hash of the data initializer, the content hashes of the immutable tables the profile names, the capability-wiring or relocation table's hash, the decoder identity and version, and the profile identity and version.
 · Accept: all eight fields are present in the binding part; the checker recomputes each hash over the installed bytes and rejects on any mismatch before decoding.
-· Trace: §8.1, §10.2
+· Trace: [§8.1](#81-the-certificate), [§10.2](#102-the-algorithm)
 
 **TAL-068** MUST: Admission is over the post-link, post-layout, post-encoding installed artifact. No pre-layout, relocatable, or symbolically addressed form is an admissible input.
 · Accept: the checker requires a concrete layout and refuses a certificate whose binding names unresolved addresses. For the VerifiedOS instantiation the artifact is the content-addressed capability image of R-13-003, and the wiring table of R-13-006 is the relocation state the binding covers.
-· Trace: §3
+· Trace: [§3](#3-definitions)
 
 ### 9.2 Decode binding
 
 **TAL-069** MUST: The decoder is named by identity and version in the binding, and a checker whose decode function differs from the named one rejects rather than proceeding.
 · Accept: decoder identity is compared before decoding; a mismatch is a rejection with the named decoder reported.
-· Trace: §8.3
+· Trace: [§8.3](#83-the-decoded-image-and-the-control-flow-graph)
 
 **TAL-070** MUST: Decode is a function of image content and position alone, so that entering an executable extent at any declared entry yields the same instruction sequence a linear decode of that extent yields from that position.
 · Accept: the profile states this as a theorem of its decode function; a profile whose encoding permits mid-instruction reinterpretation owes an additional reachable-entry argument, and states it in its ledger.
-· Trace: §5.1
+· Trace: [§5.1](#51-what-a-profile-contains)
 
 ### 9.3 What is not an admissible input
 
 **TAL-071** MUST NOT: An assembly listing, an object file, an intermediate representation, a debug record, or any producer-side artifact other than the certificate participates in admission.
 · Accept: the checker's input is the artifact, the certificate, and the profile; a checker that reads a fourth input is non-conforming.
-· Trace: §4.4
+· Trace: [§4.4](#44-what-the-language-does-not-admit-as-evidence)
 
 ### 9.4 Versions
 
 **TAL-072** MUST: The verdict records the specification version, profile version, decoder version, and the artifact's content hash, and a consumer treats a verdict for a different tuple as no verdict.
 · Accept: verdicts are keyed by the tuple; a version bump invalidates the key rather than the artifact.
-· Trace: §2.3
+· Trace: [§2.3](#23-versioning-and-precedence)
 
 ---
 
@@ -836,8 +836,8 @@ A derivation about bytes that are not the installed bytes proves nothing about w
 | **III. Confirm a deletion** | Checks that constructs which would make the static account lie are absent. | These are one-pass inspections of absences over the decoded image and the derivation. |
 
 **TAL-073** MUST: The checker has exactly these three moves and no fourth mechanism. The inserted route is move II over a guard record plus a run-time check the machine executes; it is not a fourth move.
-· Accept: every line of every profile matrix names a move from this table; the shipped checker's structure is the six phases of §10.2 and nothing else. This is the language-level form of the consumer-side statement at R-05-036.
-· Trace: §5.2, §8.6
+· Accept: every line of every profile matrix names a move from this table; the shipped checker's structure is the six phases of [§10.2](#102-the-algorithm) and nothing else. This is the language-level form of the consumer-side statement at R-05-036.
+· Trace: [§5.2](#52-the-three-routes), [§8.6](#86-deletions-guard-records-and-rooted-mutability)
 
 Move I is empty for a profile that cites no invariants. In that precise sense a bare target is more expensive than a capability target: the facets remain, and move to lower routes.
 
@@ -849,51 +849,51 @@ The word *attribute* is Knuth's, and the analogy is deliberately partial: an att
 
 | Phase | What it does | Traversals |
 | --- | --- | --- |
-| 0. Bind | Recompute the eight commitments of §9.1 over the installed bytes; compare versions | One pass over the artifact's bytes |
-| 1. Parse and limit | Parse the certificate canonically; check the thirteen limits of §8.9 | One forward pass over the certificate |
+| 0. Bind | Recompute the eight commitments of [§9.1](#91-the-commitment) over the installed bytes; compare versions | One pass over the artifact's bytes |
+| 1. Parse and limit | Parse the certificate canonically; check the thirteen limits of [§8.9](#89-resource-limits-and-malformed-input) | One forward pass over the certificate |
 | 2. Decode and structure | Decode every executable extent; check the block partition, the edge table, the loop nest, the call order, and the static-extent cover | One pass over decoded instructions, one over the tables |
 | 3. Deletions (move III) | The five absences, the static-authority scan, the root table's cover, and the provenance chains | One pass over decoded instructions, one over static extents, one over the chain records |
 | 4. Citations (move I) | Each reliance site against the profile's cited set and applicability class | One pass over the citation table |
 | 5. Attributes (move II) | Per block in declared order: apply transfers, validate every out-edge's refinement, accumulate cost over the loop nest | One pass over instructions, one over edges |
 
 · Accept: six phases, each with the traversal count stated; no phase revisits a block, and no phase iterates to convergence.
-· Trace: §10.3
+· Trace: [§10.3](#103-the-complexity-contract)
 
 ### 10.3 The complexity contract
 
 **TAL-075** MUST: Total work is linear in the size of the decoded image plus the size of the certificate, with per-instruction and per-edge work bounded by the profile's declared limits: `O(|I| * (d + s + p) + |E| * (s + k + n) + |C|)`, where `|I|` is decoded instructions, `|E|` edges, `|C|` certificate bytes, `d` the type-depth limit, `s` the live-slot limit, `p` the provenance-chain-length limit, `k` the guard-token limit, and `n` the callee-set limit.
-· Accept: the bound is stated per phase in §10.2 and is demonstrated for the shipped implementation; no operation's cost depends on a quantity the limits do not bound.
-· Trace: §8.9, §10.2
+· Accept: the bound is stated per phase in [§10.2](#102-the-algorithm) and is demonstrated for the shipped implementation; no operation's cost depends on a quantity the limits do not bound.
+· Trace: [§8.9](#89-resource-limits-and-malformed-input), [§10.2](#102-the-algorithm)
 
 **TAL-076** MUST: Peak working memory is bounded by the size of one block's state plus the certificate's index structures: `O(s + k + n + d + |B|)`, where `|B|` is the block count. The checker holds no per-instruction state after the block containing it is validated.
 · Accept: a streaming implementation exists; memory does not grow with path count or with the number of edges validated.
-· Trace: §10.2
+· Trace: [§10.2](#102-the-algorithm)
 
 **TAL-077** MUST NOT: No phase performs a fixpoint iteration, a dominator computation, an ancestor query, a transitive-closure computation, or a search over paths.
 · Accept: all five are absent from the implementation; the guard-token attribute replaces dominance, and the declared call order replaces reachability over the call graph.
-· Trace: §8.6, §8.5
+· Trace: [§8.6](#86-deletions-guard-records-and-rooted-mutability), [§8.5](#85-attributes-transfer-and-joins)
 
 ### 10.4 Acceptance and rejection
 
 **TAL-078** IS: Acceptance is the conjunction of the six phases. The verdict is `accept(artifact-hash, spec-version, profile-version, decoder-version, ledger, premises)` or `reject(rule-id, site)`.
 · Accept: an accepting verdict names every premise and ledger entry it consumed; a rejecting verdict names one requirement and one site.
-· Trace: §5.5, §9.4
+· Trace: [§5.5](#55-the-assumption-ledger), [§9.4](#94-versions)
 
 **TAL-079** MUST: Rejection is total and silent about repair: the checker offers no partial admission, no warning tier, and no override.
 · Accept: the verdict is binary; no configuration admits an artifact that fails a rule.
-· Trace: §10.4
+· Trace: [§10.4](#104-acceptance-and-rejection)
 
 ### 10.5 Run-time failure behavior
 
-**TAL-080** MUST: A profile declares one failure state, reached by a machine trap for cited facets and by the inserted check's failure transfer for inserted facets, and the soundness statement is conditioned on it (§11.1).
+**TAL-080** MUST: A profile declares one failure state, reached by a machine trap for cited facets and by the inserted check's failure transfer for inserted facets, and the soundness statement is conditioned on it ([§11.1](#111-the-statement)).
 · Accept: one declared failure state per profile; every failure path in every matrix line names it.
-· Trace: §11.1, §8.6
+· Trace: [§11.1](#111-the-statement), [§8.6](#86-deletions-guard-records-and-rooted-mutability)
 
 ### 10.6 The audit figure
 
-**TAL-081** IS: The claim about the checker's size is the category: decidable, syntax-directed, and table-driven, with the contract of §10.3 as its content. The line count is an audit figure reported under one counting rule and budgeted by no figure in this document: it counts every line of shipped source a verdict depends on, the canonical parser (§8.8), the binding check with the hash function it computes the eight commitments of §9.1 with, the decoder (§9.2), the move-III scans, the citation check, and the attribute evaluator; it excludes the frozen vocabulary, the rule table, and the decode dictionary, each data fixed by this document or the profile and each reported by row count as a figure of its own beside the line count, and it excludes a consumer's proof kernel and the metatheory.
-· Accept: the line figure is reported with its exclusions stated and the row counts of the three tables beside it; a table entry is a lookup, so moving a decision from code into a table moves it between the two figures and changes neither the category nor the contract, and an entry the checker must interpret by search, solving, or reduction fails §10.3 and therefore fails the claim whatever the figures read. A consumer that states a budget states it against this counting rule.
-· Trace: §10.3
+**TAL-081** IS: The claim about the checker's size is the category: decidable, syntax-directed, and table-driven, with the contract of [§10.3](#103-the-complexity-contract) as its content. The line count is an audit figure reported under one counting rule and budgeted by no figure in this document: it counts every line of shipped source a verdict depends on, the canonical parser ([§8.8](#88-canonical-serialization)), the binding check with the hash function it computes the eight commitments of [§9.1](#91-the-commitment) with, the decoder ([§9.2](#92-decode-binding)), the move-III scans, the citation check, and the attribute evaluator; it excludes the frozen vocabulary, the rule table, and the decode dictionary, each data fixed by this document or the profile and each reported by row count as a figure of its own beside the line count, and it excludes a consumer's proof kernel and the metatheory.
+· Accept: the line figure is reported with its exclusions stated and the row counts of the three tables beside it; a table entry is a lookup, so moving a decision from code into a table moves it between the two figures and changes neither the category nor the contract, and an entry the checker must interpret by search, solving, or reduction fails [§10.3](#103-the-complexity-contract) and therefore fails the claim whatever the figures read. A consumer that states a budget states it against this counting rule.
+· Trace: [§10.3](#103-the-complexity-contract)
 
 ---
 
@@ -903,27 +903,27 @@ The word *attribute* is Knuth's, and the analogy is deliberately partial: an att
 
 **TAL-082** IS: The metatheorem is *well-typed implies safe*, stated per profile: for every artifact and certificate the checker accepts under profile P, every execution of that artifact from a state satisfying P's loader and operational ledger entries either satisfies every facet P routes, or is in P's declared failure state.
 · Accept: the statement quantifies over executions of the decoded artifact under P's machine semantics; the failure-state disjunct is present; the facet set is the profile's route table and not a prose list.
-· Trace: §6, §10.5
+· Trace: [§6](#6-the-profile-matrix), [§10.5](#105-run-time-failure-behavior)
 
 **TAL-083** MUST: The theorem is parameterized over the profile and its ledger, and no instantiation may quietly strengthen the conclusion beyond the facets its route table carries.
 · Accept: the mechanized statement takes the ledger as a hypothesis record; each conjunct of the conclusion traces to one matrix line.
-· Trace: §5.5
+· Trace: [§5.5](#55-the-assumption-ledger)
 
 ### 11.2 The ledger it consumes
 
 **TAL-084** IS: The theorem discharges M and L entries and assumes C, S, O, and P entries. A profile that presents an S or O entry as discharged is defective.
 · Accept: the mechanized statement's hypotheses are exactly the C, S, O, and P entries of the profile's ledger; its proof obligations are exactly the M and L entries.
-· Trace: §5.5
+· Trace: [§5.5](#55-the-assumption-ledger)
 
 ### 11.3 What a profile must discharge
 
 **TAL-085** MUST: A profile's instantiation supplies, for each cited invariant, a theorem of its own machine semantics with the stated applicability and exceptions; for each inserted check, a lemma that the guard-token attribute implies the check executes before every guarded access on every path; and for each attributed facet, the soundness lemma its matrix line names.
 · Accept: every matrix line's lemma name resolves to a proved statement in that profile's development; a lemma citing an invariant absent from the semantics is a defect that invalidates the instantiation.
-· Trace: §6.2, §6.3
+· Trace: [§6.2](#62-cheri-rv64), [§6.3](#63-bare-rv64)
 
 **TAL-086** IS: The core carries every proof obligation that does not mention the machine, so a second profile does not reopen the whole development; it discharges every machine-dependent case of its own, which is not free.
 · Accept: the development is factored into a machine-independent core and per-profile instantiations, and the factoring is visible in the proof structure.
-· Trace: §11.1
+· Trace: [§11.1](#111-the-statement)
 
 ### 11.4 The trusted base
 
@@ -933,7 +933,7 @@ The claim worth making is that this list is small, fixed, separately reviewable,
 
 **TAL-087** MUST: The trusted base is enumerated as the profile's ledger plus the checker implementation plus the metatheorem, and a consumer can read it off an accepted verdict.
 · Accept: the verdict's ledger plus two named artifacts is the whole base; no element of the base is discoverable only from prose.
-· Trace: §10.4
+· Trace: [§10.4](#104-acceptance-and-rejection)
 
 ### 11.5 What soundness does not say
 
@@ -941,7 +941,7 @@ A mis-stated typing rule admits an unsafe binary that type-checks perfectly, exa
 
 **TAL-088** IS: The theorem says nothing about facets a profile does not route, about properties outside the menu, about the artifact's functional behavior, or about executions from a state violating the ledger's L and O entries.
 · Accept: no consumer document claims a guarantee that no matrix line carries.
-· Trace: §4.5
+· Trace: [§4.5](#45-the-deep-tier-stays-out)
 
 ---
 
@@ -949,14 +949,14 @@ A mis-stated typing rule admits an unsafe binary that type-checks perfectly, exa
 
 **TAL-089** IS: Admission depends on the derivation, never on producer identity: any producer of a well-typed binary is admissible by definition, and a consumer's reference compiler is a reference rather than a gate.
 · Accept: the checker reads no producer attestation (TAL-016).
-· Trace: §4.4
+· Trace: [§4.4](#44-what-the-language-does-not-admit-as-evidence)
 
 **A producer may be built on an existing unverified toolchain, and should be.**
 The practical shape is **hinted mirroring**: the untrusted compiler records hints through lowering, and a replayer reconstructs the derivation the checker re-validates. This requires a replayer beside an arbitrary producer, not a whole-compiler preservation proof, so an LLVM backend is a reasonable implementation path.
 
 **TAL-090** IS: The replayer is untrusted. It produces evidence the checker revalidates in full, so a replayer defect yields a rejected artifact or a derivation the checker still validates on its own terms, never an unsound admission.
-· Accept: the replayer appears in no consumer's trusted base (§11.4); removing it and hand-writing a certificate changes no admission rule.
-· Trace: §11.4
+· Accept: the replayer appears in no consumer's trusted base ([§11.4](#114-the-trusted-base)); removing it and hand-writing a certificate changes no admission rule.
+· Trace: [§11.4](#114-the-trusted-base)
 
 **This does not make guarantees independent of the source language.**
 A compiler intermediate representation carries none of the facts the derivation asserts: ownership, lifetime, exclusivity, initialization, taint, dimension, and callee sets come from the *source* type system, not from the lowering. Downstream tooling cannot preserve a fact the source never established.
@@ -964,17 +964,17 @@ A compiler intermediate representation carries none of the facts the derivation 
 **TAL-091** IS: A source language is admissible on one of exactly three grounds:
 
 1. **It establishes the facts itself** (an ownership discipline, a synchronous dataflow language, a proof assistant's term language, or verified C with its own proofs), in which case the producer preserves them and the derivation is cheap.
-2. **It accepts insertion**, in which case the producer emits run-time checks and the checker requires the guard records of §8.6: the guarantee holds, and it is paid for on every execution.
+2. **It accepts insertion**, in which case the producer emits run-time checks and the checker requires the guard records of [§8.6](#86-deletions-guard-records-and-rooted-mutability): the guarantee holds, and it is paid for on every execution.
 3. **It ships a source-level proof** elaborated into a semantics the consumer already reviews, *and* transports the proved fact to final code.
 
 · Accept: a language satisfying none of the three is not admitted, and choosing a different backend does not change that result.
-· Trace: §12
+· Trace: [§12](#12-producers)
 
-**TAL-092** MUST: Ground 3 is not a bypass of the artifact-level rule. A source-level proof yields admission only when the producer either emits a derivation whose local premises the checker validates for the affected facets, or reduces the fact to a declared premise of a class §8.7 permits. A proved source fact with no transport to final code discharges nothing.
+**TAL-092** MUST: Ground 3 is not a bypass of the artifact-level rule. A source-level proof yields admission only when the producer either emits a derivation whose local premises the checker validates for the affected facets, or reduces the fact to a declared premise of a class [§8.7](#87-declared-premises) permits. A proved source fact with no transport to final code discharges nothing.
 · Accept: no artifact is admitted with a facet unrouted or a route unsupported by certificate evidence, whatever exists at source.
-· Trace: §8.7, §5.2
+· Trace: [§8.7](#87-declared-premises), [§5.2](#52-the-three-routes)
 
-This is §5.2's route table seen from the other end: when the environment does not supply an invariant, the language demands evidence or a check, whether the environment that failed to supply it was the hardware or the source language.
+This is [§5.2](#52-the-three-routes)'s route table seen from the other end: when the environment does not supply an invariant, the language demands evidence or a check, whether the environment that failed to supply it was the hardware or the source language.
 
 ---
 
@@ -982,7 +982,7 @@ This is §5.2's route table seen from the other end: when the environment does n
 
 **TAL-093** MUST: Every requirement of this document with an operational acceptance criterion has at least one positive and one negative test in the language conformance suite, and a checker is conforming only against the whole suite.
 · Accept: the suite indexes tests by requirement identifier; an unindexed requirement is a suite defect.
-· Trace: §2.1
+· Trace: [§2.1](#21-requirements)
 
 **TAL-094** MUST: The adversarial suite includes at least these thirteen classes, each with an artifact that a defective checker would accept:
 
@@ -1000,12 +1000,12 @@ This is §5.2's route table seen from the other end: when the environment does n
 12. A certificate whose bytes are canonical but whose image hash names a different artifact.
 13. An executable extent with a byte sequence the decode function rejects, and one whose block partition leaves a gap.
 
-· Accept: thirteen classes, each with at least one artifact per profile; the suite runs in every profile admission under §5.8.
-· Trace: §5.8
+· Accept: thirteen classes, each with at least one artifact per profile; the suite runs in every profile admission under [§5.8](#58-profiles-are-frozen-and-versioned-like-the-theory).
+· Trace: [§5.8](#58-profiles-are-frozen-and-versioned-like-the-theory)
 
 **TAL-095** MUST: A profile ships its own conformance suite: one artifact per matrix line exercising the routed discharge, and one negative artifact per cited invariant exercising its stated exceptions.
 · Accept: the per-profile suite covers all sixteen facets and every cited invariant.
-· Trace: §6
+· Trace: [§6](#6-the-profile-matrix)
 
 ---
 
@@ -1014,7 +1014,7 @@ This is §5.2's route table seen from the other end: when the environment does n
 - **Not an isolation mechanism.** Its guarantees apply to admitted code. A system that also runs other code needs hardware isolation or a supervisor; under a profile with no cited facets that requirement is mandatory (TAL-026).
 - **Not an intermediate representation.** It types final machine code against a machine semantics, so a target needs an ISA semantics of the quality of a Sail model before it can have a profile at all.
 - **Not a proof system.** The deep tier stays with a proof kernel (TAL-017), and every proposal to move an obligation inward is decided by the amendment rule (TAL-037) rather than by appetite.
-- **Not a safety claim about a source language.** It carries facts; it does not manufacture them (§12).
+- **Not a safety claim about a source language.** It carries facts; it does not manufacture them ([§12](#12-producers)).
 - **Not a guarantee of what it does not route.** A facet no profile routes is not covered by anything here (TAL-088).
 
 ---
@@ -1036,29 +1036,29 @@ These benefits do not reduce the proof and implementation work or shorten the fi
 
 ## Appendix A. Where the design comes from (non-normative)
 
-This appendix is rationale. It binds nothing, and a change in the literature's status is not an amendment to §1 to §15. Citation keys resolve in Appendix B. Broader system lineage lives in [inspirations.md](../background/inspirations.md).
+This appendix is rationale. It binds nothing, and a change in the literature's status is not an amendment to [§1](#1-what-the-language-is) to [§15](#15-status). Citation keys resolve in Appendix B. Broader system lineage lives in [inspirations.md](../background/inspirations.md).
 
-**Typed assembly language.** [MWCG99], [TALx86], [Crary03] supply polymorphic code-pointer types, register-file preconditions, stack polymorphism, initialization tracking, typed indirect jumps, and producer-supplied derivations, which is most of §8.2's vocabulary. This document has to cross two boundaries in that lineage: TALx86 checked annotated assembly rather than independently decoded bytes, which §9 answers, and foundational TAL separates abstract-machine soundness from the correspondence with a concrete architecture, which §5 and §11 make a profile's obligation.
+**Typed assembly language.** [MWCG99], [TALx86], [Crary03] supply polymorphic code-pointer types, register-file preconditions, stack polymorphism, initialization tracking, typed indirect jumps, and producer-supplied derivations, which is most of [§8.2](#82-types)'s vocabulary. This document has to cross two boundaries in that lineage: TALx86 checked annotated assembly rather than independently decoded bytes, which [§9](#9-binding-the-certificate-to-the-installed-artifact) answers, and foundational TAL separates abstract-machine soundness from the correspondence with a concrete architecture, which [§5](#5-the-parameter-the-machine-profile) and [§11](#11-soundness) make a profile's obligation.
 
-**Proof-carrying code.** [Necula97], [Appel01], [Hamid02]. The line already covers binary machine code from an untrusted producer checked against a consumer-defined policy; the foundational account states decoding, machine semantics, and the safety predicate from first principles; and the syntactic account factors a certificate into a typing derivation plus a reusable soundness proof, which is this document's split between §4 and §11.
+**Proof-carrying code.** [Necula97], [Appel01], [Hamid02]. The line already covers binary machine code from an untrusted producer checked against a consumer-defined policy; the foundational account states decoding, machine semantics, and the safety predicate from first principles; and the syntactic account factors a certificate into a typing derivation plus a reusable soundness proof, which is this document's split between [§4](#4-the-obligation-menu-and-its-facets) and [§11](#11-soundness).
 
-**Certificate-directed checking.** [Rose03], [KleinNipkow]. This is the closest precedent for §1's architecture and the reason the no-fixpoint property is stated of consumption rather than of the pipeline. Stack maps carry the abstract state at each merge, reducing verification from dataflow solving to checking local transfer constraints, which is §8.5 with a smaller attribute set. The counter-experiment is on the record too: [VeriWasm] re-derived the safety of compiled native code by analysis rather than by certificate and could not keep pace with the compiler, the analyzer-rot failure mode a shipped derivation does not have.
+**Certificate-directed checking.** [Rose03], [KleinNipkow]. This is the closest precedent for [§1](#1-what-the-language-is)'s architecture and the reason the no-fixpoint property is stated of consumption rather than of the pipeline. Stack maps carry the abstract state at each merge, reducing verification from dataflow solving to checking local transfer constraints, which is [§8.5](#85-attributes-transfer-and-joins) with a smaller attribute set. The counter-experiment is on the record too: [VeriWasm] re-derived the safety of compiled native code by analysis rather than by certificate and could not keep pace with the compiler, the analyzer-rot failure mode a shipped derivation does not have.
 
-**Typed admission in production.** [Move], [WasmCallRef]. A publish-time verifier for linear resources, definite initialization, and a borrow discipline, and a load-time-checked typed callee set, are production precedent for most of §4.2's attribute classes; taint alone has none. Both are fixpoint analyzers rather than certificate consumers, and [MoveBug]'s unreachable-code soundness defect is the concrete argument for a checker small enough to verify.
+**Typed admission in production.** [Move], [WasmCallRef]. A publish-time verifier for linear resources, definite initialization, and a borrow discipline, and a load-time-checked typed callee set, are production precedent for most of [§4.2](#42-the-facets)'s attribute classes; taint alone has none. Both are fixpoint analyzers rather than certificate consumers, and [MoveBug]'s unreachable-code soundness defect is the concrete argument for a checker small enough to verify.
 
-**Final machine code.** [RockSalt], [Islaris], [SailISA], [MorelloCerise]. A decoded binary image checked against a machine model proved sound in a proof assistant, binary machine code reasoned about against full Sail-derived semantics, and encapsulation proved for a shipped capability machine against its authoritative semantics: together the precedent for the seam §9 stands on.
+**Final machine code.** [RockSalt], [Islaris], [SailISA], [MorelloCerise]. A decoded binary image checked against a machine model proved sound in a proof assistant, binary machine code reasoned about against full Sail-derived semantics, and encapsulation proved for a shipped capability machine against its authoritative semantics: together the precedent for the seam [§9](#9-binding-the-certificate-to-the-installed-artifact) stands on.
 
-**Capability machines.** [CHERIISA], [CHERISail], [Nienhuis20]. These are what a citing profile cites: tagged capabilities, bounds, permissions, sealing, provenance validity, and guarded monotone derivation, with the published qualifications §6.2 requires a profile to state rather than gloss.
+**Capability machines.** [CHERIISA], [CHERISail], [Nienhuis20]. These are what a citing profile cites: tagged capabilities, bounds, permissions, sealing, provenance validity, and guarded monotone derivation, with the published qualifications [§6.2](#62-cheri-rv64) requires a profile to state rather than gloss.
 
 **Capability-machine logics and universal contracts.** [Cerise], [Katamaran], [Morello]. This is the road the field took instead of typed assembly: a program logic whose logical relation gives arbitrary code a universal contract, which is the mechanized form of what a citing profile cites, and defense in depth beneath a checker or metatheorem error. Each is idealized or in another prover, and none yields a per-binary certificate; the distance between a universal contract over all code and a derivation about this binary is exactly the language.
 
 **Linear control and ownership.** [StkTokens], [CapCalc], [AliasTypes], [RustBelt]. StkTokens is the direct precedent for a linear capability discipline proving well-bracketed control flow and stack encapsulation. It does not establish general heap temporal safety on ordinary capability hardware, which is why `mem.temporal` owes an allocator-and-reuse theorem of its own.
 
-**Constant-time typing.** [CTWasm], [Barthe14], [Almeida16], [SecSep], [Jasmin]. CT-Wasm is the direct precedent for the taint route, mechanized through semantics, checker, and soundness together, with a guarantee relative to an explicit leakage model. A taint-typed assembly language for cryptographic code, with annotations inferred by a producer and re-checked over final assembly, carries exactly this obligation and no other; the structured-leakage line transports constant-time and cost facts together through compilation as proved leakage transformers, the nearest mechanized metatheory to hold §4.3's two boundary cases in one frame.
+**Constant-time typing.** [CTWasm], [Barthe14], [Almeida16], [SecSep], [Jasmin]. CT-Wasm is the direct precedent for the taint route, mechanized through semantics, checker, and soundness together, with a guarantee relative to an explicit leakage model. A taint-typed assembly language for cryptographic code, with annotations inferred by a producer and re-checked over final assembly, carries exactly this obligation and no other; the structured-leakage line transports constant-time and cost facts together through compilation as proved leakage transformers, the nearest mechanized metatheory to hold [§4.3](#43-two-obligations-that-need-explanation)'s two boundary cases in one frame.
 
-**Cost certificates.** [Shaw89], [LiMalik95], [Carbonneaux17], [MRG], [CerCo], [CraryWeirich00]. These support compositional timing annotations and independently checked resource bounds under exactly the side conditions §4.3 states. The certificate form has one shipped ancestor and one typed one, both defunct, so the attribute's precedent is method rather than code.
+**Cost certificates.** [Shaw89], [LiMalik95], [Carbonneaux17], [MRG], [CerCo], [CraryWeirich00]. These support compositional timing annotations and independently checked resource bounds under exactly the side conditions [§4.3](#43-two-obligations-that-need-explanation) states. The certificate form has one shipped ancestor and one typed one, both defunct, so the attribute's precedent is method rather than code.
 
-**Certifying compilation.** [NeculaLee98], [Crellvm], [CompCert]. Crellvm is the closest match to §12's hinted mirroring, over selected intermediate-representation optimizations rather than native code generation, so it supports the architecture without completing it.
+**Certifying compilation.** [NeculaLee98], [Crellvm], [CompCert]. Crellvm is the closest match to [§12](#12-producers)'s hinted mirroring, over selected intermediate-representation optimizations rather than native code generation, so it supports the architecture without completing it.
 
 **The combination is the novel part.** Not typed assembly language, not proof-carrying code, not capability typing, not taint typing, and not resource certificates, each of which is someone else's result. The combination is a fixed, non-extensible certificate language carrying all of them at once, assigning every facet an explicit cited, attributed, or inserted discharge against a versioned machine profile, and checking final decoded machine code without invoking a general proof kernel at install time. That is a claim about the arrangement, and the part a reviewer should attack first.
 
@@ -1119,11 +1119,11 @@ Keys are document-local and stable across versions of this document; they assert
 
 **As of 2026-08-19.** Everything in this appendix is a claim about the state of external artifacts on that date. It is evidence for schedule and start-from decisions, not a premise of any requirement, and it goes stale without amending anything.
 
-**What the founding lineage leaves to inherit: nothing executable.** The TALx86 toolset survives as a 2002 all-rights-reserved download; the Twelf mechanization of foundational TAL and Princeton's LTAL checker were never publicly released; the Necula-line certifying compilers died closed-source. Appendix A's first two groups therefore contribute design and metatheory only, with the foundational-PCC trusted-base accounting (a sub-thousand-line C checker over a fixed logic signature) the closest published relative of §10.6's counting rule.
+**What the founding lineage leaves to inherit: nothing executable.** The TALx86 toolset survives as a 2002 all-rights-reserved download; the Twelf mechanization of foundational TAL and Princeton's LTAL checker were never publicly released; the Necula-line certifying compilers died closed-source. Appendix A's first two groups therefore contribute design and metatheory only, with the foundational-PCC trusted-base accounting (a sub-thousand-line C checker over a fixed logic signature) the closest published relative of [§10.6](#106-the-audit-figure)'s counting rule.
 
 **What a `cheri-rv64` instantiation stands on today.** The CHERI-RISC-V Sail model's generated Coq is the one existing route to theorems over the real ISA, and no published development has yet proved anything over it, so the profile instantiation is a first rather than a repetition. Katamaran is an actively developed contract verifier over a Sail-like embedding with a capability-machine case study, the natural engine for per-instruction lemmas and cited-invariant premises; its Sail-to-μSail backend is now where the project's investment sits, and it began ingesting the CHERIoT Sail model in April 2026, not yet working, the first motion toward a contract over a real capability Sail model rather than an idealized one. WasmCert-Coq is a maintained skeleton for a checker verified sound and complete against its type system, though for a bytecode rather than a native instruction set, and its published account left end-to-end work unfinished. The Isla-trace route of Islaris and Morello-Cerise is the current means of taming a full model, and Morello-Cerise prices it: the fundamental theorem over the full Morello model cost about six person-months and 6.5k lines of Rocq, atop several prior person-years of T-CHERI and Isla infrastructure, sequential-only, with a hand-checked Isabelle-to-Rocq seam the paper itself flags. Sail 0.20 implemented the language's own core stepwise semantics in Rocq, the interpreter's and constant-folder's semantics rather than the theorem backend, a step toward the emitted definitions and the language agreeing on one mechanized account. CT-Wasm's extracted verified checker is the taint attribute's port target, its artifact pinned to a 2017 Isabelle.
 
-**Deployment and revival evidence for the certificate architecture.** The JVM's split verifier (stack-map frames, mandatory since class-file version 51) is this architecture in production at large scale, its type-checking core a few thousand lines over a richer vocabulary than §8.2's. Klein and Nipkow's account is re-checked against every Isabelle release in the Archive of Formal Proofs. CertrBPF (CAV 2022) is a Coq-verified admission checker extracted to C and shipped in an embedded operating system. BCF (SOSP 2025) has the Linux eBPF verifier accept load-time certificates proved in user space and checked by a small kernel-side checker.
+**Deployment and revival evidence for the certificate architecture.** The JVM's split verifier (stack-map frames, mandatory since class-file version 51) is this architecture in production at large scale, its type-checking core a few thousand lines over a richer vocabulary than [§8.2](#82-types)'s. Klein and Nipkow's account is re-checked against every Isabelle release in the Archive of Formal Proofs. CertrBPF (CAV 2022) is a Coq-verified admission checker extracted to C and shipped in an embedded operating system. BCF (SOSP 2025) has the Linux eBPF verifier accept load-time certificates proved in user space and checked by a small kernel-side checker.
 
 **Adjacent active lines.** Universal contracts and secure calling conventions on CHERI-RISC-V, taint-typed assembly for cryptographic code, and now attestation contracts (Cerisier, PLDI 2026, still on the idealized machine) each cover one slice of the menu; none is the assembly language.
 A fourth slice arrives from outside the program-logic line entirely: a symbolic memory model for a CHERI-enabled idealized assembly language, mechanized and proven OX-sound in the compositional-symbolic-execution lineage, with UX soundness and the tool integration booked by its own authors as future work. It is a memory model rather than a type system, and it is stated over an idealized machine rather than over the pinned Sail term, so it joins the list on the same footing as the three above: one slice, and not the assembly language.
@@ -1134,10 +1134,10 @@ A fourth slice arrives from outside the program-logic line entirely: a symbolic 
 
 The order in which the normative content above must be settled, and the order any future amendment should follow, because each step changes the theorem the next one must prove:
 
-1. Routing granularity and per-facet guarantee scope (§4.2, §5.4).
-2. How inserted checks map to the moves (§5.2, §8.6).
-3. The profile matrix and the assumption ledger (§6, §5.5).
-4. Certificate-to-artifact binding and the checker's formal input (§9, §8).
-5. The checker algorithm and its complexity contract (§10.2, §10.3).
-6. The typing rules and the soundness theorem (§8.4, §11).
-7. The conformance suites (§13), and only then an implementation.
+1. Routing granularity and per-facet guarantee scope ([§4.2](#42-the-facets), [§5.4](#54-guarantee-scope-is-per-facet)).
+2. How inserted checks map to the moves ([§5.2](#52-the-three-routes), [§8.6](#86-deletions-guard-records-and-rooted-mutability)).
+3. The profile matrix and the assumption ledger ([§6](#6-the-profile-matrix), [§5.5](#55-the-assumption-ledger)).
+4. Certificate-to-artifact binding and the checker's formal input ([§9](#9-binding-the-certificate-to-the-installed-artifact), [§8](#8-the-formal-core)).
+5. The checker algorithm and its complexity contract ([§10.2](#102-the-algorithm), [§10.3](#103-the-complexity-contract)).
+6. The typing rules and the soundness theorem ([§8.4](#84-judgments), [§11](#11-soundness)).
+7. The conformance suites ([§13](#13-conformance-and-adversarial-suites)), and only then an implementation.

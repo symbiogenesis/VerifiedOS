@@ -9,7 +9,7 @@ The gap is not hypothetical and was not reasoned about: a normative `## 20.` see
 the prose, extracted by nothing, leaves a run green. Every other rule looks past it. The
 traces group decides bookmarks, and an unextracted section declares none; the coread
 group decides pairs, and an unextracted section is in no pair; the links group decides
-that a `§n` a sentence names is numbered by some heading, which this one is. A whole
+ordinary links, and an unreferenced section has none. A whole
 section of obligations can enter the specification and the tool will say that every
 derived fact agrees with its artifact.
 

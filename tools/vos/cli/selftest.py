@@ -1135,9 +1135,6 @@ CASES: list[Case] = [
     ("K-12", "a link pointing at a file the repository does not carry",
      _literal("README.md", "](docs/", "](docs/not-a-")),
 
-    ("K-13", "a section number no heading carries",
-     _seed_paragraph(f"This is settled at {SEC}99.7.")),
-
     ("K-14", "a bearing requirement its view stops carrying", _k14),
 
     ("K-15", "a matrix cell moved off its own pair, leaving a gap and a duplicate",

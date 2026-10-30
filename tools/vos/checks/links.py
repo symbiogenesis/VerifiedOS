@@ -3,8 +3,7 @@
 
 The licence-text check separately requires that redistributed terms belong to the
 Git index. A file existing on disk does not establish that this repository ships
-it. Numbered prose references remain under their temporary compatibility check
-until direct section links replace them.
+it.
 """
 
 import re
@@ -24,7 +23,6 @@ if TYPE_CHECKING:
 
 HEADING = "=== links: every cross-reference against what it points at ==="
 
-_SECTION_REF_RE = re.compile(r"§(\d+(?:\.\d+)*)")
 # The two tables of THIRD-PARTY.md whose last column names where a component's terms
 # arrive. The other tables on that page are deliberately out of reach: the submodule
 # table names terms without naming a file this tree carries, and the read-ahead tables
@@ -129,28 +127,8 @@ def run(ctx: Context) -> None:
         dead = lychee.findings(ctx.root, [doc.name for doc in corpus.docs], corpus.gitlinks)
     except (OSError, ValueError, TypeError, KeyError, subprocess.SubprocessError) as exc:
         dead = [f"ordinary link validation could not complete: {exc}"]
-    unnumbered: dict[str, list[str]] = {}
-
-    # a link that resolves and a §n.m a heading carries are the overwhelming cases and
-    # report nothing, so each is judged before its line is looked up; only a would-be
-    # finding pays for the line, and one a fence displays is dropped there as text
-    for doc in corpus.docs:
-        for m in _SECTION_REF_RE.finditer(doc.raw):
-            number = m.group(1)
-            if number in corpus.numbered or doc.is_fenced(m.start()):
-                continue
-            unnumbered.setdefault(number, []).append(f"{doc.name}:{doc.at(m.start())}")
-
     rep.report("K-12", "dead link(s):", dead,
                "every link resolves to a file, and every fragment to a bookmark or heading")
-
-    findings = []
-    for number, where in unnumbered.items():
-        shown = (", ".join(where[:4]) + f", and {len(where) - 4} more"
-                 if len(where) > 4 else ", ".join(where))
-        findings.append(f"§{number} is named {len(where)} time(s) and numbered nowhere: {shown}")
-    rep.report("K-13", "section reference(s) naming no numbered heading:", findings,
-               "every §n.m names a heading some document carries")
 
     # The membership is the index and not the filesystem, which is the whole of what
     # separates this from K-12: a licence file present but untracked is one this

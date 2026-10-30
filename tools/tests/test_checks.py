@@ -1250,7 +1250,7 @@ def _wasm_scalar_fixture() -> str:
     return (
         "# Performance\n\n"
         "| General scalar | **−45% to −70%** | fixture |\n"
-        "| Core µarch | Prepared Wasm scalar execution (§14) | Substituted | "
+        "| Core µarch | Prepared Wasm scalar execution ([§14](../spec.md#14-userland)) | Substituted | "
         "**−1% to −2%** | fixture | notes |\n"
         "| Wasm scalar execution, unchanged Core 3.0 modules (conditional target) | "
         "**−1% to −2%** | fixture |\n\n"

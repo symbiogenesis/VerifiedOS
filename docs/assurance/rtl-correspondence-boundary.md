@@ -23,13 +23,13 @@ owner.
 ## 1. Why the worked examples are not Kami blocks
 
 No route-(a) block exists yet; its audit is owned by [the absence contract's
-§8](../hardware/absence-contract.md#8-running-it-on-day-one). The plan's §11 owes
+§8](../hardware/absence-contract.md#8-running-it-on-day-one). The plan's [§11](../../PLAN.md#11-building-an-fpga-from-it-all) owes
 nothing on that route before the co-simulation gate.
 
 So the representative blocks are chosen from what exists, and both are authored or
 generated SystemVerilog standing where a route-(a) theorem will stand. Example A's
 evidence is route-(c)-shaped, differential agreement with the golden model in the plan's
-§11 sense; example B's reaches no route of that ladder at all. That reading is
+[§11](../../PLAN.md#11-building-an-fpga-from-it-all) sense; example B's reaches no route of that ladder at all. That reading is
 not new here: [the provenance record's
 §4a](../../rtl/synthesis-provenance.md#4a-the-tag-fabrics-route-recorded-so-it-is-not-derived-twice)
 already took it for the tag fabric, ruling that R-15-092's *authored* is a statement
@@ -75,11 +75,11 @@ unlabelled blank is exactly the seam going quiet.
 | --- | --- |
 | Block | [`rtl/vos_cheri_pkg.sv`](../../rtl/vos_cheri_pkg.sv), the frozen capability format and its algebra |
 | Source semantics | `model/model/core/cap_format.sail` and `model/model/core/cap_common.sail`, with `model/model/core/xlen.sail` fixing the register width the address field sits in. The files the vector generator compiles against are declared in [the tool](../../tools/vos/cli/rtl.py); rule K-79 holds the package's declared parameters against the first three on the host |
-| Theorem endpoint | `n/a, not yet`. No proof object relates this package to those files. Route (a) is the owner and the plan's §11 opens it after the co-simulation gate |
+| Theorem endpoint | `n/a, not yet`. No proof object relates this package to those files. Route (a) is the owner and the plan's [§11](../../PLAN.md#11-building-an-fpga-from-it-all) opens it after the co-simulation gate |
 | Emitter identity and revision | `n/a, by route`. [The RTL tree's §2](../../rtl/README.md) lists this file authored, not generated. It was transcribed from the Sail source by hand |
 | Emitted bytes | `n/a, by route`, on the same ground. There is no generator output to hold the tracked bytes against, which is why the transcription itself is the seam |
 | Synthesis input | `n/a, not yet`. Nothing in the design instantiates the package and no elaboration of a core reaches it, as [the RTL tree's §3](../../rtl/README.md) records, so no synthesis input exists to identify. R1's curated datapath owes the first one |
-| Tier reached | Evidence tier, the ceiling R-01-002b sets for the unit this block would sit in rather than a reading taken over the block itself; §7 reports that no rung of R-18-010 admits a package, which is why the rung list is empty rather than short. The crosscheck is neither rvfi, nor Sail-generated SystemVerilog under commercial FEV, nor an Isla obligation, nor a Coq refinement. The claim riding it is agreement with the model's own answers over the vectors that ran |
+| Tier reached | Evidence tier, the ceiling R-01-002b sets for the unit this block would sit in rather than a reading taken over the block itself; [§7](#7-what-this-document-could-not-decide) reports that no rung of R-18-010 admits a package, which is why the rung list is empty rather than short. The crosscheck is neither rvfi, nor Sail-generated SystemVerilog under commercial FEV, nor an Isla obligation, nor a Coq refinement. The claim riding it is agreement with the model's own answers over the vectors that ran |
 
 **What the evidence is.** `python tools/run.py rtl crosscheck` compiles the model with a
 generator that calls its capability functions and prints what they return, builds this
@@ -93,7 +93,7 @@ register and the RTL tree both already say. It is also not independent of an aut
 choice: the vectors are the model's own, but the harness is written in this repository
 and decides which functions each vector kind drives. Five functions are named by no
 vector, which [the RTL tree's §3](../../rtl/README.md) records by name. The coverage of
-the slice is therefore an authored choice, and §5 below measures what that costs.
+the slice is therefore an authored choice, and [§5](#5-the-perturbation-experiment) below measures what that costs.
 
 ## 4. Worked example B: the generated address map
 
@@ -109,7 +109,7 @@ names.
 | Emitter identity and revision | [`tools/vos/socmap.py`](../../tools/vos/socmap.py), at this checkout's revision. It is tracked here rather than pinned upstream, so its identity is the tracked source and it carries no external revision |
 | Emitted bytes | Held by rule K-88 as byte identity against what that emitter writes from the composition, decided on the host at every landing. Cited rather than transcribed: a digest copied into this document would be a derived fact with no owner |
 | Synthesis input | `n/a, not yet`. The SoC top does not exist and neither half of it is authored, which [the RTL tree's §4](../../rtl/README.md) books with its two reasons |
-| Tier reached | Evidence tier, the same ceiling on the same ground as example A's and for the same reason §7 reports, and below example A on R-01-002b's own two-list test: the rung list is likewise empty, and the claim riding it is weaker, being byte identity with a generator's output rather than agreement with the model's answers |
+| Tier reached | Evidence tier, the same ceiling on the same ground as example A's and for the same reason [§7](#7-what-this-document-could-not-decide) reports, and below example A on R-01-002b's own two-list test: the rung list is likewise empty, and the claim riding it is weaker, being byte identity with a generator's output rather than agreement with the model's answers |
 
 **What K-88 decides and what it does not.** It decides that these bytes are what the
 emitter writes from the composition, which makes the map a faithful transcription of its
@@ -131,7 +131,7 @@ so the verdict below is read per axis rather than once.** The answers replayed a
 model's own and cross as text with no adapter between the two implementations, which
 [the RTL tree's §3](../../rtl/README.md) records, so on the answer axis nothing authored
 here stands between the package and what it is held to. The function selection is
-authored here, as §3 concedes, so on the coverage axis the slice is not independent, and
+authored here, as [§3](#3-worked-example-a-the-authored-capability-package) concedes, so on the coverage axis the slice is not independent, and
 the fourth trial is what that costs. A rejection below therefore establishes the
 predicate's first disjunct for the limb it reached and establishes nothing about a limb
 no vector drives.
@@ -208,9 +208,9 @@ evidence implies for a block authored today and carries no second copy of the re
 
 **The three rows agree on the finding and that is the point.** No candidate's circuit
 theorem covers its own emitter, so on this boundary the election is not decided by
-emission evidence, and the licence ground the plan's §11 states is untouched by anything
+emission evidence, and the licence ground the plan's [§11](../../PLAN.md#11-building-an-fpga-from-it-all) states is untouched by anything
 here. What each row changes is the size of the seam a block leaves, not whether it leaves
-one, and the record of §2 is what keeps that size written down.
+one, and the record of [§2](#2-the-record-a-block-owes) is what keeps that size written down.
 
 ## 7. What this document could not decide
 
@@ -222,11 +222,11 @@ one, and the record of §2 is what keeps that size written down.
 - **The register states no tier below evidence tier.** R-01-002a admits two tiers and
   R-01-002b decides between them by two lists, the rungs admitted and the claims riding
   them. So the acceptance predicate's *lower evidence tier* is read here as a shorter
-  rung list and a weaker claim, which is what §3 and §4 record, rather than as a third
+  rung list and a weaker claim, which is what [§3](#3-worked-example-a-the-authored-capability-package) and [§4](#4-worked-example-b-the-generated-address-map) record, rather than as a third
   tier this document would be inventing. If a sub-tier is wanted, that is a register act.
 - **R-18-010's rungs are stated per core.** Both worked examples are packages rather than
   cores, and no rung of that ladder admits a package, which is why both rung lists are
   empty rather than short. Extending the ladder to non-core blocks, or ruling that it
   deliberately does not reach them, is the register's to decide.
-- **No theorem endpoint is owed to the address map by any artifact.** §4's second row
+- **No theorem endpoint is owed to the address map by any artifact.** [§4](#4-worked-example-b-the-generated-address-map)'s second row
   names the relation and no owner. Assigning one is the plan's act, not this document's.

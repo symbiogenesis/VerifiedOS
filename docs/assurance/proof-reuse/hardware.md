@@ -550,7 +550,7 @@ Kurze, František Farka and Sebastian Ertel, [*NoC-Out: A Formally-verified
 Network-on-Chip Library for Rule-based Hardware Designs*](https://arxiv.org/abs/2608.24478).
 The [paper](https://arxiv.org/pdf/2608.24478) describes a Rocq/Kôika generator
 for parameterized torus networks, refinement and delivery/liveness proofs, plus
-Read-After-Write semantics and modular proof machinery. Its §5.2 arbiter selects
+Read-After-Write semantics and modular proof machinery. Its [§5.2](https://arxiv.org/pdf/2608.24478) arbiter selects
 among live requests using a priority pointer that advances after selection.
 Axiom 5 requires immediate handling of arriving packets at every output. The
 paper states that an artifact exists, but this reading does not qualify an
