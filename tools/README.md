@@ -1098,7 +1098,11 @@ Ordinary local links and fragments use the pinned offline
 [Lychee adapter](vos/lychee.py). It reads the indexed corpus explicitly, validates
 headings and declared anchors, and accepts a tracked submodule root without fetching
 its contents. Its archive and executable hashes are verified in the managed Python
-environment, shared by mutation subprocesses. It does not contact external links.
+environment, shared by mutation subprocesses. Cold installation has one process
+owner through archive extraction and executable publication; waiting consumers
+recheck the pinned executable after acquiring the installation lock.
+Corrupt cached bytes remain a finding.
+It does not contact external links.
 
 The Python project lives in `tools/`. From the repository root, add a dependency
 with `uv add --project tools --no-sync PACKAGE`, or edit the manifest and run

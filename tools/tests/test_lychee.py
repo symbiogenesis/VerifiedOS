@@ -12,6 +12,8 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
+from filelock import Timeout
+
 from tests.harness import Case, ensure
 from vos import lychee
 
@@ -47,7 +49,10 @@ def download(url, target, expected):
     original(url, target, expected)
 lychee.receipts.download = download
 if mode == "timeout":
-    lychee.INSTALL_TIMEOUT = 0.1
+    original_lock = lychee.FileLock
+    def impatient_lock(*args, **kwargs):
+        return original_lock(*args, **(kwargs | {"timeout": 0.1}))
+    lychee.FileLock = impatient_lock
 (root / ("ready-" + mode)).write_text("ready")
 print(lychee.executable(), flush=True)
 '''
@@ -134,7 +139,7 @@ def _installation_wait_refuses_at_budget() -> None:
             try:
                 with _installer(root, "timeout") as second:
                     error = _finish(second, success=False)
-                ensure(b"timed out waiting for Lychee installation ownership" in error,
+                ensure(b"Timeout:" in error and b".install.lock" in error,
                        "lock contention did not produce a bounded refusal")
                 ensure(not target.exists(), "a timed-out waiter published an executable")
             finally:
@@ -155,6 +160,54 @@ def _corrupt_archive_is_not_replaced() -> None:
                "a corrupt archive was not refused by its recorded hash")
         ensure(not target.exists() and archive.read_bytes() == b"substituted archive",
                "the refusal replaced corrupt cached bytes or published an executable")
+
+
+def _installation_lock_policy() -> None:
+    with tempfile.TemporaryDirectory(prefix="vos-lychee-policy-") as temporary:
+        root = Path(temporary)
+        target = _installation_fixture(root)
+        target.parent.mkdir(parents=True)
+        target.write_bytes(_FIXTURE_EXECUTABLE)
+        config = json.loads((root / "asset.json").read_text())
+        asset = lychee.Asset("fixture-windows-msvc", config["archive"], config["executable"])
+        factory = Mock(wraps=lychee.FileLock)
+        with (patch.object(lychee, "sys", SimpleNamespace(prefix=str(root / "environment"),
+                                                         base_prefix="other", platform=sys.platform)),
+              patch.object(lychee, "asset_for", return_value=asset),
+              patch.object(lychee, "FileLock", factory)):
+            ensure(lychee.executable() == target, "verified reuse selected another executable")
+        factory.assert_called_once_with(target.parent / ".install.lock", timeout=180,
+                                        fallback_to_soft=False, preserve_lock_file=True)
+
+
+def _native_retirement_lock_compatibility() -> None:
+    if sys.platform != "linux":
+        return
+    import fcntl
+
+    with tempfile.TemporaryDirectory(prefix="vos-lychee-native-lock-") as temporary:
+        path = Path(temporary) / ".install.lock"
+        with (lychee.FileLock(path, timeout=0.1, fallback_to_soft=False, preserve_lock_file=True),
+              path.open("a+b") as stream):
+            try:
+                fcntl.flock(stream.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+            except BlockingIOError:
+                pass
+            else:
+                raise AssertionError("native retirement ignored an active installer lock")
+        ensure(path.is_file(), "release removed the stable installation lock pathname")
+        with path.open("a+b") as stream:
+            fcntl.flock(stream.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+            blocked = False
+            try:
+                with lychee.FileLock(path, timeout=0.1, fallback_to_soft=False,
+                                     preserve_lock_file=True):
+                    pass
+            except Timeout:
+                blocked = True
+            finally:
+                fcntl.flock(stream.fileno(), fcntl.LOCK_UN)
+            ensure(blocked, "installation bypassed native retirement's lock")
 
 
 def _ordinary_links() -> None:
@@ -257,4 +310,7 @@ def cases() -> list[Case]:
             Case("independent cold installers share one verified publication", _shared_cold_install),
             Case("failed and interrupted installers release ownership", _failed_install_releases_ownership),
             Case("installation contention has a bounded refusal", _installation_wait_refuses_at_budget),
-            Case("corrupt archives refuse without replacement", _corrupt_archive_is_not_replaced)]
+            Case("corrupt archives refuse without replacement", _corrupt_archive_is_not_replaced),
+            Case("installation requires hard OS locks and a stable lock pathname", _installation_lock_policy),
+            Case("native retirement and installation contend on the same lock",
+                 _native_retirement_lock_compatibility)]
