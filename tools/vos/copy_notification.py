@@ -21,6 +21,7 @@ from vos import compiler_diff as cd
 from vos.boot_target import compiler_inputs
 
 INPUTS = ("copy-service", "interfaces/ring-reference.json", "interfaces/device-registers.json",
+          "interfaces/device-registers.schema.json",
           "tools/vos/ring.py", "tools/vos/schema.py",
           "tools/vos/copy_notification.py", "tools/vos/copy_service.py", "tools/vos/copy_target.py",
           "tools/vos/cli/copy_service.py", "tools/vos/device_registers.py", "tools/generated",

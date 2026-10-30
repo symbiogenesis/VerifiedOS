@@ -3,7 +3,9 @@
 
 import hashlib
 import json
+from copy import deepcopy
 from functools import cache
+from pathlib import Path
 from typing import Any
 
 from tests.harness import Case, ensure, sandbox_tree
@@ -14,7 +16,8 @@ from vos import device_registers as regs
 @cache
 def _fixture() -> dict[str, str]:
     root = corpus.find_root()
-    paths = (regs.DECLARATION, socmap.COMPOSITION, sailbundle.BUNDLE, regs.PLATFORM,
+    paths = (regs.DECLARATION, regs.SCHEMA, *regs.ARTIFACTS,
+             socmap.COMPOSITION, sailbundle.BUNDLE, regs.PLATFORM,
              "model/model/sys/rot.sail", "model/model/sys/block_device.sail")
     return {relative: (root / relative).read_text(encoding="utf-8") for relative in paths}
 
@@ -45,8 +48,8 @@ def _current_layout_and_shift_mutant() -> None:
         artifacts = regs.generated(root)
         for relative, text in artifacts.items():
             path = root / relative
-            path.parent.mkdir(parents=True, exist_ok=True)
-            path.write_text(text, encoding="utf-8", newline="")
+            ensure(path.read_bytes() == text.encode("utf-8"),
+                   f"schema migration changed generated {relative}")
         ensure(not regs.check(root), "fresh emission must agree")
         path = root / regs.RTL_ARTIFACT
         original = path.read_text(encoding="utf-8")
@@ -96,7 +99,7 @@ def _invalid_layouts_refuse() -> None:
             expected = "base-relative source binding must have offset zero"
         elif defect == "unbound":
             register["bindings"] = []
-            expected = "no register model correspondence"
+            expected = ".bindings"
         else:
             register["bindings"][0]["contains"] = "// only a comment"
             expected = "model binding contains no source tokens"
@@ -131,9 +134,68 @@ def _source_drift_refuses() -> None:
     _refused(tree, "declared layout does not match trng_load")
 
 
+def _declaration_schema_refusals() -> None:
+    original = json.loads(_fixture()[regs.DECLARATION])
+    mutations: list[object] = [None, [], dict(original, schema=True),
+                               dict(original, schema=1.0), dict(original, extra="unread")]
+    for key in original:
+        missing = deepcopy(original)
+        del missing[key]
+        mutations.append(missing)
+    register = ("harness", "htif", "registers", 0)
+    field = (*register, "fields", 0)
+    binding = (*field, "bindings", 0)
+    changes: list[tuple[tuple[str | int, ...], object]] = [
+        (("harness",), {}), (("platform", "Upper"), original["harness"]["htif"]),
+        (("harness", "htif", "kind"), "unknown"),
+        (("harness", "htif", "rationale"), "\t"),
+        (("harness", "htif", "registers"), []),
+        ((*register, "name"), "name\n"), ((*register, "name"), "Upper"),
+        ((*register, "offset"), True), ((*register, "offset"), 0.0),
+        ((*register, "offset"), -8), ((*register, "offset"), 1),
+        ((*register, "access"), "unknown"), ((*register, "repeat"), " "),
+        ((*register, "fields"), []), ((*register, "access"), "command"),
+        ((*register, "views"), None), ((*register, "extra"), "unread"),
+        ((*field, "name"), "name\n"), ((*field, "lsb"), -1),
+        ((*field, "lsb"), False), ((*field, "lsb"), 0.0),
+        ((*field, "width"), 0), ((*field, "width"), True),
+        ((*field, "width"), 1.0), ((*field, "extra"), "unread"),
+        ((*binding, "kind"), "unknown"), ((*binding, "contains"), " "),
+        ((*binding, "symbol"), None), ((*binding, "extra"), "unread"),
+    ]
+    for keys, value in changes:
+        changed = deepcopy(original)
+        node = changed
+        for key in keys[:-1]:
+            node = node[key]
+        node[keys[-1]] = value
+        mutations.append(changed)
+    with sandbox_tree(_fixture()) as root:
+        for mutation in mutations:
+            (root / regs.DECLARATION).write_text(json.dumps(mutation), encoding="utf-8")
+            try:
+                regs.read(root)
+            except regs.RegisterError as error:
+                ensure(Path(regs.SCHEMA).name in str(error), f"shape refusal bypassed schema: {error}")
+            else:
+                raise AssertionError(f"accepted malformed declaration: {mutation!r}")
+
+
+def _missing_or_malformed_schema_refuses() -> None:
+    tree = dict(_fixture())
+    del tree[regs.SCHEMA]
+    _refused(tree, "cannot read a valid schema")
+    for invalid in ('{"type": 17}', '{"type": "object", "type": "object"}',
+                    '{"$ref": "https://example.invalid/unfetched.json"}'):
+        tree[regs.SCHEMA] = invalid
+        _refused(tree, "cannot read a valid schema")
+
+
 def cases() -> list[Case]:
     return [Case("current-layout-and-shift-mutant", _current_layout_and_shift_mutant),
             Case("omitted-field-loses-review", _omitted_field_loses_review),
             Case("invalid-layouts-refuse", _invalid_layouts_refuse),
             Case("new-aperture-and-duplicate-key-refuse", _new_aperture_and_duplicate_key_refuse),
-            Case("source-drift-refuses", _source_drift_refuses)]
+            Case("source-drift-refuses", _source_drift_refuses),
+            Case("declaration-schema-refusals", _declaration_schema_refusals),
+            Case("missing-or-malformed-schema-refuses", _missing_or_malformed_schema_refuses)]

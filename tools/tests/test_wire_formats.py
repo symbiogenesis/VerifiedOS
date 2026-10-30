@@ -9,6 +9,7 @@ import json
 import tempfile
 from collections.abc import Callable, Generator
 from contextlib import contextmanager
+from copy import deepcopy
 from pathlib import Path
 from typing import Any
 
@@ -21,7 +22,7 @@ ROOT = Path(__file__).resolve().parents[2]
 @contextmanager
 def _fixture() -> Generator[tuple[Path, dict[str, Any]]]:
     source: dict[str, Any] = json.loads((ROOT / formats.SOURCE).read_text(encoding="utf-8"))
-    paths = {formats.SOURCE, formats.CROWN, formats.REGISTER,
+    paths = {formats.SOURCE, formats.SCHEMA, formats.CROWN, formats.REGISTER,
              "docs/assurance/unassigned-proof-map.md",
              "PLAN.md"}
     for entry in source["entries"]:
@@ -81,7 +82,7 @@ def _missing_class() -> None:
 def _blank_owner() -> None:
     def change(source: dict[str, Any]) -> None:
         source["entries"][0]["owner"] = ""
-    _mutated(change, "nonempty single-line text")
+    _mutated(change, ".owner")
 
 
 def _unknown_owner() -> None:
@@ -99,7 +100,7 @@ def _ordinary_prose_is_not_an_owner() -> None:
 def _forged_descriptor() -> None:
     def change(source: dict[str, Any]) -> None:
         source["entries"][0]["descriptor"] = "proved"
-    _mutated(change, "cannot credit a Narcissus descriptor")
+    _mutated(change, ".descriptor")
 
 
 def _missing_symbol() -> None:
@@ -212,6 +213,47 @@ def _missing_idl_mapping() -> None:
     _mutated(change, "IDL wire-format mapping is unrepresented")
 
 
+def _declaration_schema_refusals() -> None:
+    with _fixture() as (root, original):
+        mutations: list[object] = [None, [], dict(original, schema=True),
+                                   dict(original, schema=1.0), dict(original, extra="unread")]
+        for key in original:
+            missing = deepcopy(original)
+            del missing[key]
+            mutations.append(missing)
+        for field, value in (("id", "name\n"), ("id", "Upper"), ("name", " "),
+                             ("classes", ["rrc", "rrc"]), ("classes", None),
+                             ("requirements", []), ("requirements", ["R-05-042\n"]),
+                             ("requirements", ["R-05-042", "R-05-042"]),
+                             ("owner", "line\nbreak"), ("canonicity", "bad|pipe"),
+                             ("evidence", True), ("references", [1]),
+                             ("references", ["proofs/ModuleFormats.v"] * 2),
+                             ("transcription", "unknown"), ("members_from", {}),
+                             ("members_from", {"path": "a", "heading": "b", "until": "c", "extra": 1}),
+                             ("extra", "unread")):
+            changed = deepcopy(original)
+            changed["entries"][0][field] = value
+            mutations.append(changed)
+        for mutation in mutations:
+            (root / formats.SOURCE).write_text(json.dumps(mutation), encoding="utf-8")
+            _refused(root, Path(formats.SCHEMA).name)
+        _write(root, original)
+        data = (root / formats.SOURCE).read_text(encoding="utf-8")
+        (root / formats.SOURCE).write_text(data.replace('"schema": 1', '"schema": 1, "schema": 1', 1),
+                                          encoding="utf-8")
+        _refused(root, "duplicate JSON key")
+
+
+def _missing_or_malformed_schema_refuses() -> None:
+    with _fixture() as (root, _):
+        (root / formats.SCHEMA).unlink()
+        _refused(root, "cannot read a valid schema")
+        for invalid in ('{"type": 17}', '{"type": "object", "type": "object"}',
+                        '{"$ref": "https://example.invalid/unfetched.json"}'):
+            (root / formats.SCHEMA).write_text(invalid, encoding="utf-8")
+            _refused(root, "cannot read a valid schema")
+
+
 def cases() -> list[Case]:
     return [Case("reviewed inventory reproduces", _reviewed_inventory),
             Case("row 10 class cannot disappear", _missing_class),
@@ -231,4 +273,6 @@ def cases() -> list[Case]:
             Case("NAS flag remains explicit", _nas_exception_cannot_disappear),
             Case("duplicate entry refuses", _duplicate_entry),
             Case("unsafe reference refuses", _unsafe_reference),
-            Case("IDL mapping cannot disappear", _missing_idl_mapping)]
+            Case("IDL mapping cannot disappear", _missing_idl_mapping),
+            Case("declaration schema refuses malformed inputs", _declaration_schema_refusals),
+            Case("missing or malformed schema refuses", _missing_or_malformed_schema_refuses)]
