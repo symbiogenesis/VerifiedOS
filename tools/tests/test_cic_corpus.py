@@ -8,7 +8,11 @@ satisfy it: a non-dependent `match` beside a dependent one, a single `fix` besid
 mutual block, a closure with a transparent member beside one without.
 """
 
+import subprocess
+import tempfile
 from collections.abc import Callable
+from pathlib import Path
+from unittest.mock import patch
 
 from tests.harness import Case, ensure
 from vos import cic_corpus
@@ -372,6 +376,29 @@ def _marker_goals_open_with_proof() -> None:
                f"a generated marker goal opened without Proof: {query!r}")
 
 
+def _lexer_changes_invalidate_exporter_identity() -> None:
+    with tempfile.TemporaryDirectory(prefix="vos-cic-exporter-") as temporary:
+        root = Path(temporary)
+        for name in cic_cli.EXPORTER_FILES:
+            target = root / name
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_bytes(b"unchanged exporter input")
+        compiler = root / "rocq"
+        compiler.write_bytes(b"unchanged prover")
+        lexer = root / "tools/vos/prooflex.py"
+        lexer.write_bytes(b"first lexer")
+        version = subprocess.CompletedProcess([str(compiler)], 0, stdout="test prover")
+        with (patch.object(cic_cli.env, "rocq_command", return_value=[str(compiler)]),
+              patch.object(cic_cli.subprocess, "run", return_value=version)):
+            before = cic_cli._exporter(root)
+            lexer.write_bytes(b"changed lexer")
+            after = cic_cli._exporter(root)
+        ensure(before != after, "a changed proof lexer must invalidate the exporter identity")
+        ensure({key: value for key, value in before.items() if key != "files"}
+               == {key: value for key, value in after.items() if key != "files"},
+               "the source substitution must leave prover identity unchanged")
+
+
 def cases() -> list[Case]:
     return [
         Case("dependencies-read-both-entry-shapes", _dependencies_read_both_entry_shapes),
@@ -390,4 +417,6 @@ def cases() -> list[Case]:
              _source_reading_reads_a_flag_before_a_brace_as_the_braces),
         Case("closure-names-split-by-ownership", _closure_names_split_by_ownership),
         Case("marker-goals-open-with-proof", _marker_goals_open_with_proof),
+        Case("lexer-changes-invalidate-exporter-identity",
+             _lexer_changes_invalidate_exporter_identity),
     ]
