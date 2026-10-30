@@ -71,6 +71,16 @@ handoff below.
 
 ## Validation handoff
 
+Focused native comparison tools and extraction campaigns that stage one of the
+refactored modules must also stage and compile its local dependency closure in
+dependency order. This includes composer, supervisor, copy-service, Wasm oracle
+and crypto campaign consumers. A shared staging helper owns that traversal;
+comparison receipts bind every staged proof input and reject changed source or
+staged bytes. Existing result fields, toolchain choices and comparison scopes
+remain compatible. Focused fixture tests cover dependency order, shared inputs,
+cycles, unknown entry points and changed inputs without running a prover. Source
+inventories include the staging helper wherever their producer imports it.
+
 Review the integrated diff for preserved statements, definitions, assumptions
 and non-vacuity evidence. Record focused compilation scope and verdicts; they
 are not hosted acceptance. Run the ordinary source and derived-artifact checks
