@@ -20,11 +20,13 @@ from pathlib import Path
 from typing import IO
 
 TOOLS = Path(__file__).resolve().parents[1]
-PYTHON_VERSION = tomllib.loads((TOOLS / "ty.toml").read_text(encoding="utf-8"))[
-    "environment"]["python-version"]
+sys.path.insert(0, str(TOOLS))
+
+from vos.pyversion import supported_minor  # noqa: E402 (stdlib-only bootstrap metadata)
+
+PYTHON_VERSION = supported_minor(TOOLS.parent)
 if f"{sys.version_info.major}.{sys.version_info.minor}" != PYTHON_VERSION:
     raise SystemExit(f"guest bootstrap requires Python {PYTHON_VERSION}; found {platform.python_version()}")
-sys.path.insert(0, str(TOOLS))
 
 from vos import (  # noqa: E402  (standalone bootstrap precedes the locked environment)
     cli,

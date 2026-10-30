@@ -1676,47 +1676,6 @@ CASES: list[Case] = [
                   lambda m: m.group().replace(f"| {m[1]} |",
                       "| not authored |" if m[1] == "authored" else "| authored |"))),
 
-    # The settings express one target in different dialects. Narrative references
-    # may omit the version; executable configuration must still agree.
-    ("K-75", "a checker settings file at an interpreter floor the other does not fix",
-     _literal("tools/ruff.toml", 'target-version = "py314"',
-              'target-version = "py313"')),
-    # The floor the gate actually runs on, which is the copy that decides whether a
-    # green run says anything: a workflow an interpreter below the floor would admit
-    # constructs the tools are written to refuse.
-    ("K-75", "a host workflow interpreter below the floor ty.toml fixes",
-     _literal(".github/workflows/host-gates.yml", 'python-version: "3.14"',
-              'python-version: "3.13"')),
-    ("K-75", "a guest workflow interpreter below the floor ty.toml fixes",
-     _literal(".github/workflows/guest-gates.yml", 'python-version: "3.14"',
-              'python-version: "3.13"')),
-    # The campaign installs the interpreter in each of its jobs, so the second job's
-    # copy is seeded too: a rule reading only the first site in a file passes it.
-    ("K-75", "a campaign workflow's first interpreter below the floor ty.toml fixes",
-     _literal(".github/workflows/boot-crypto-target.yml", 'python-version: "3.14"',
-              'python-version: "3.13"')),
-    ("K-75", "a campaign workflow's later interpreter below the floor ty.toml fixes",
-     _first_match(".github/workflows/boot-crypto-target.yml",
-                  r'(python-version: "3\.14".*)python-version: "3\.14"',
-                  lambda m: m[1] + 'python-version: "3.13"', flags=re.DOTALL)),
-    # The chain campaign installs the interpreter in each of its five jobs; its last
-    # job's copy, the join's, is the one a first-match reading would pass.
-    ("K-75", "the chain campaign workflow's last interpreter below the floor ty.toml fixes",
-     _first_match(".github/workflows/boot-chain-target.yml",
-                  r'(.*)python-version: "3\.14"',
-                  lambda m: m[1] + 'python-version: "3.13"', flags=re.DOTALL)),
-    # The instrument switch route installs the interpreter in each of its five jobs, so
-    # each job's copy is seeded on its own, found within that job's block.
-    *(("K-75", f"the instrument switch route's {job} job interpreter below the floor "
-       "ty.toml fixes",
-       _first_match(".github/workflows/instrument-switches.yml",
-                    rf'(^  {job}:\n(?:(?!^  [\w-]+:\n).)*?)python-version: "3\.14"',
-                    lambda m: m[1] + 'python-version: "3.13"', flags=re.MULTILINE | re.DOTALL))
-      for job in ("plan", "build", "import", "seed", "join")),
-    ("K-75", "a project admitting an interpreter below the typing target",
-     _literal("tools/pyproject.toml", 'requires-python = ">=3.14,<3.15"',
-              'requires-python = ">=3.13,<3.15"')),
-
     # The configuration is moved rather than the record, because that is the direction
     # no reader of one file can see: the record goes on naming the parameter that takes
     # the predictor and the build it names has stopped taking it, which is a claim that

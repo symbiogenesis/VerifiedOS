@@ -17,7 +17,7 @@
 # runs the curated model's pre-commit hooks on Ubuntu beside them.
 # Every shard, both unpartitioned jobs and the hooks must pass.
 # uv installs locked dependencies into a checkout-local environment;
-# only downloads are cached. K-67 checks dependency pins; K-75 checks the Python floor.
+# only downloads are cached. uv validates the lock; the manifest selects Python.
 #
 # Per-member JSON in runner.temp supplies failure annotations, the job summary and a
 # collapsed log group listing every measured unit. Reporting is diagnostic; the gate
@@ -127,7 +127,7 @@ jobs:
 
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
-          python-version: "3.14"
+          python-version-file: tools/pyproject.toml
 
       - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
         with:
@@ -373,7 +373,7 @@ jobs:
 
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
-          python-version: "3.14"
+          python-version-file: tools/pyproject.toml
 
       - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
         with:

@@ -379,98 +379,6 @@ def _counts_unreadable_prerequisite_owner_is_not_repaired() -> None:
                f"unresolved claims must not be repaired to zero: {ctx.fixed!r}")
 
 
-_TY_CONF = 'python-version = "3.14"\n'
-_PROVISION_AT = 'INTERPRETER_FLOOR = "3.14"\n'
-_PROVISION_DRIFTED = 'INTERPRETER_FLOOR = "3.13"\n'
-_FLOOR_SITE = "tools/vos/cli/provision.py's provisioned floor states "
-
-
-_CAMPAIGN_JOBS = '  a:\n    python-version: "3.14"\n  b:\n    python-version: "3.14"\n'
-_INSTRUMENT_JOBS = ''.join(f'  {job}:\n    python-version: "3.14"\n'
-                           for job in ("plan", "build", "import", "seed", "join"))
-
-
-def _k75(provision: str, project: str =
-         '[project]\nrequires-python = ">=3.14,<3.15"\n',
-         readme: str = "# Tools\n\nUse `uv python install --no-config 3.14`.\n",
-         campaign: str = _CAMPAIGN_JOBS, instrument: str = _INSTRUMENT_JOBS,
-         chain: str = _CAMPAIGN_JOBS) -> Context:
-    files = {"docs/requirements-register.md": _REGISTER_MIN,
-             "tools/README.md": readme,
-             "tools/ty.toml": _TY_CONF,
-             "tools/ruff.toml": 'target-version = "py314"\n',
-             "tools/pyproject.toml": project,
-             ".github/workflows/host-gates.yml": 'python-version: "3.14"\n',
-             ".github/workflows/guest-gates.yml": 'python-version: "3.14"\n',
-             ".github/workflows/boot-crypto-target.yml": campaign,
-             ".github/workflows/boot-chain-target.yml": chain,
-             ".github/workflows/instrument-switches.yml": instrument,
-             "tools/vos/cli/provision.py": provision}
-    with sandbox_tree(files) as root:
-        ctx = _context(root)
-        meta.run(ctx)
-        return ctx
-
-
-def _k75_provisioned_floor_at_the_pin_is_not_a_finding() -> None:
-    found = _findings_under(_k75(_PROVISION_AT), "K-75")
-    ensure(not found,
-           f"configuration and install command agree without prose copies: {found!r}")
-
-
-def _k75_provisioned_floor_drifted_is_a_finding() -> None:
-    found = _findings_under(_k75(_PROVISION_DRIFTED), "K-75")
-    ensure(f"{_FLOOR_SITE}3.13, tools/ty.toml fixes 3.14" in found,
-           f"a drifted provisioned floor names the two figures: {found!r}")
-
-
-def _k75_unreadable_provisioner_fails_closed() -> None:
-    # the site gone rather than wrong: a rule that cannot find a site it enumerates
-    # reports it, never drops it and passes over the sites it could still read
-    found = _findings_under(_k75("# no floor here\n"), "K-75")
-    ensure("tools/vos/cli/provision.py no longer states the floor in its provisioned "
-           "floor, in a form this rule reads" in found,
-           f"an unreadable site is the finding: {found!r}")
-
-
-def _k75_project_floor_is_held() -> None:
-    for project, fragment in (
-            ('[project]\nrequires-python = ">=3.13,<3.15"\n', "requires-python states"),
-            ("", "cannot supply requires-python")):
-        found = _findings_under(_k75(_PROVISION_AT, project), "K-75")
-        ensure(any(fragment in item for item in found),
-               f"a drifted or missing project constraint must report: {found!r}")
-
-
-def _k75_install_command_still_uses_supported_version() -> None:
-    for command in ("Install Python from the project manifest.\n",
-                    "Use `uv python install --no-config 3.13`.\n"):
-        found = _findings_under(_k75(_PROVISION_AT, readme=command), "K-75")
-        ensure(any("manual interpreter install" in item for item in found),
-               f"an executable example must stay present and supported: {found!r}")
-
-
-def _k75_every_workflow_job_is_held() -> None:
-    # A site read only at its first match would pass the second job's interpreter.
-    drifted = _CAMPAIGN_JOBS.replace('b:\n    python-version: "3.14"', 'b:\n    python-version: "3.13"')
-    found = _findings_under(_k75(_PROVISION_AT, campaign=drifted), "K-75")
-    ensure(".github/workflows/boot-crypto-target.yml's workflow interpreter states 3.13, "
-           "tools/ty.toml fixes 3.14" in found,
-           f"a later job's interpreter below the floor must report: {found!r}")
-    found = _findings_under(_k75(_PROVISION_AT, chain=drifted), "K-75")
-    ensure(".github/workflows/boot-chain-target.yml's workflow interpreter states 3.13, "
-           "tools/ty.toml fixes 3.14" in found,
-           f"the chain campaign's later job below the floor must report: {found!r}")
-    # The instrument switch route's every job is held, the last as the first.
-    for job in ("plan", "join"):
-        drifted = _INSTRUMENT_JOBS.replace(f'{job}:\n    python-version: "3.14"',
-                                           f'{job}:\n    python-version: "3.13"')
-        found = _findings_under(_k75(_PROVISION_AT, instrument=drifted), "K-75")
-        ensure(".github/workflows/instrument-switches.yml's workflow interpreter states 3.13, "
-               "tools/ty.toml fixes 3.14" in found,
-               f"the route's {job} job below the floor must report: {found!r}")
-
-
 def _k97_reviewed_pin_is_required_without_prose_copies() -> None:
     source = 'VERILATOR_PIN = "9.999"\n'
     record = ("# Components\n\n| Tool | License | Standing |\n| --- | --- | --- |\n"
@@ -2197,16 +2105,6 @@ def cases() -> list[Case]:
              _counts_removed_prerequisite_is_a_finding),
         Case("counts-unreadable-prerequisite-owner-is-not-repaired",
              _counts_unreadable_prerequisite_owner_is_not_repaired),
-        Case("k75-provisioned-floor-at-the-pin-is-not-a-finding",
-             _k75_provisioned_floor_at_the_pin_is_not_a_finding),
-        Case("k75-provisioned-floor-drifted-is-a-finding",
-             _k75_provisioned_floor_drifted_is_a_finding),
-        Case("k75-unreadable-provisioner-fails-closed",
-             _k75_unreadable_provisioner_fails_closed),
-        Case("k75-project-floor-is-held", _k75_project_floor_is_held),
-        Case("k75-install-command-still-uses-supported-version",
-             _k75_install_command_still_uses_supported_version),
-        Case("k75-every-workflow-job-is-held", _k75_every_workflow_job_is_held),
         Case("k97-reviewed-pin-is-required-without-prose-copies",
              _k97_reviewed_pin_is_required_without_prose_copies),
         Case("k115-agreement-and-sub-actions-pass", _k115_agreement_and_sub_actions_pass),

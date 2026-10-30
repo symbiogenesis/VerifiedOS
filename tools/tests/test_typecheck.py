@@ -17,19 +17,10 @@ The run cases hold one pin probe for a checker's passes, one ty pass per platfor
 linux and then win32, with the real ty showing the win32 pass reaching a branch the
 linux pass cannot, a user-level configuration or a set `PYTHONPATH` reported
 beside the run, and the real ruff keeping a module an ignore file matches.
-The coverage cases hold the floor under both checkers: the log read out of stderr
-and the files it names, each tracked module a run's log does not name reported
-under its checker and a crash not held to it, the real ruff and ty each reporting a
-module a default exclusion or a ruff.toml exclusion drops, the real ty reaching every
-module and writing no profile with `TY_LOG` and `TY_LOG_PROFILE` set, a ruff.toml
-per-file suppression, `extend` or any key outside the committed file's, a file-level
-`noqa` directive naming anything but N999 alone, and a range, `file-ignore` or isort
-`skip_file` or `off` comment each refused, the real ruff showing the floor alone passes
-a `per-file-ignores` entry, a `per-file-target-version` entry, a file-level directive, a
-range, a `file-ignore` and a `skip_file` comment, the real ruff reaching with
-`# ruff: ignore[...]` exactly the lines the gate's reading of it says, the index read
-for the tracked modules, and each live-tree run giving a verdict and reaching every
-module the tree tracks, a missing or another installed checker refused. The import
+The input cases hold explicit filenames across bounded command batches and the
+real checkers diagnosing ignored and default-excluded modules, including Ruff's
+lint exclusions. Missing filenames and failed batches refuse; existing settings
+and suppression policies remain independent of input selection. The import
 cases hold the scan beside the checkers: an import of a module ruff.toml bans at
 module level refused outside a function body, in a class body, a module-level block or
 the main guard, or behind an `if` reading a `platform` other than `sys.platform`,
@@ -359,11 +350,7 @@ def _ty_settings_admitted() -> None:
                              'strict-equality-semantics = true\n'
                              'strict-generic-narrowing = true\n',
                  _ADMITTED + '\n[analysis]\nstrict-literal-narrowing = true\n',
-                 _ADMITTED + '\n[analysis]\n',
-                 # python-version's value is K-75's to hold, so this gate admits the
-                 # key whatever it says, and its absence.
-                 _ALL_ERROR + _ENV + 'python-version = "3.14"\n' + _SRC,
-                 _ALL_ERROR + _ENV + 'python-version = "3.12"\n' + _SRC):
+                 _ADMITTED + '\n[analysis]\n'):
         ensure(_settings(text) == [], f"an admissible ty.toml was refused: {text!r}")
 
 
@@ -459,10 +446,11 @@ def _ty_settings_refuse_environment() -> None:
     for line, key in (('typeshed = "stubs"\n', "typeshed 'stubs'"),
                       ('root = ["src"]\n', "root ['src']"),
                       ('python = ".venv"\n', "python '.venv'"),
-                      ('future-setting = 1\n', "future-setting 1")):
+                      ('future-setting = 1\n', "future-setting 1"),
+                      ('python-version = "3.12"\n', "python-version '3.12'")):
         found = _settings(_ALL_ERROR + _ENV + line + _SRC)
         ensure(len(found) == 1 and f"[environment] carries {key};" in found[0]
-               and "admits only extra-paths, python-platform, python-version" in found[0]
+               and "admits only extra-paths, python-platform" in found[0]
                and "a key the gate has not read is refused with them" in found[0],
                f"an [environment] key outside the admitted ones must be refused: {found!r}")
     # The two held values are held exactly: another platform, an added or a missing
@@ -477,7 +465,7 @@ def _ty_settings_refuse_environment() -> None:
             ('\n[environment]\npython-platform = "linux"\nextra-paths = []\n',
              "sets extra-paths to [];"),
             ('\n[environment]\nextra-paths = ["."]\n', "carries no python-platform;"),
-            ('\n[environment]\npython-version = "3.14"\n',
+            ('\n[environment]\n',
              "carries no python-platform, carries no extra-paths;"),
             ('\n[environment]\npython-platform = "win32"\nextra-paths = ["stubs"]\n',
              "sets python-platform to 'win32', sets extra-paths to ['stubs'];"),
@@ -566,10 +554,8 @@ def _ty_runs_every_platform() -> None:
                 patch.object(typecheck, "_run_checker") as unheld:
             os.environ.pop("PYTHONPATH", None)
             typecheck._run_ty(Reporter(), root, None)
-    # With no tracked modules to hold a run to, no pass logs or is held.
-    ensure(all(run.coverage is None and not set(typecheck.TY_VERBOSE) & set(run.args)
-               for run in _passes(unheld)),
-           f"a pass held to nothing must not turn its log on: {_passes(unheld)!r}")
+    ensure(all(run.targets is None for run in _passes(unheld)),
+           f"an unspecified inventory remains unspecified: {_passes(unheld)!r}")
     passes = _passes(checker)
     platforms = [run.args[run.args.index("--python-platform") + 1] for run in passes]
     ensure(platforms == ["linux", "win32"],
@@ -582,12 +568,9 @@ def _ty_runs_every_platform() -> None:
                and run.label == f"type error(s) under python-platform {platform}:"
                and run.who == f"ty under python-platform {platform}",
                f"the {platform} pass must name its platform: {run!r}")
-        # Each pass turns its log on and is held to the tracked modules, and is made
-        # without the variables that would replace its log filter or write a profile.
-        ensure(run.coverage == typecheck.Coverage(typecheck.TY_LOG, typecheck.TY_CHECKED,
-                                                  frozenset({"kept.py"}))
-               and run.args[-1 - len(typecheck.TY_VERBOSE):-1] == typecheck.TY_VERBOSE,
-               f"the {platform} pass must log what it checks and be held to it: {run!r}")
+        ensure(run.targets == {"kept.py"} and "." not in run.args
+               and run.args[run.args.index("--python-version") + 1] == typecheck.PYTHON_VERSION,
+               f"the {platform} pass must name its indexed input files: {run!r}")
         ensure(run.unset == {"TY_LOG", "TY_LOG_PROFILE"},
                f"the {platform} pass must be made without TY_LOG and TY_LOG_PROFILE: {run!r}")
 
@@ -775,115 +758,55 @@ def _pythonpath_reported_beside_the_run() -> None:
                                     "ran at error")
 
 
-def _read_log_separates_the_log() -> None:
-    # Each checker's log below warning level leaves stderr, its checked-file lines
-    # naming files relative to the run's directory, an absolute or a relative path
-    # alike; a file outside the directory stays absolute. ty's slow-file line names a
-    # file too but is not the checked-file line. A warning and anything that is not
-    # the log stay for the parse and a crash's message.
-    with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
-        cwd = Path(td)
-        outside = cwd.parent / "outside.py"
-        ty_stderr = "\n".join([
-            "2026-09-29 23:26:43.6945617 DEBUG Version: 0.0.84 (8dd9a7f7f 2026-09-24)",
-            f"2026-09-29 23:26:43.7106384 DEBUG Checking file '{cwd / 'vos' / 'a.py'}'",
-            f"2026-09-29 23:26:43.7106392 DEBUG Checking file '{cwd / 'b.pyi'}'",
-            "2026-09-29 23:26:43.7106393 DEBUG Checking file 'tests/c.py'",
-            f"2026-09-29 23:26:43.7106394 DEBUG Checking file '{outside}'",
-            f"2026-09-29 23:26:07.4495777 INFO Checking file `{cwd / 'slow.py'}` took more "
-            "than 100ms (100.4931ms)",
-            "2026-09-29 23:26:43.73598 WARN a warning the checker gives",
-            "thread 'main' panicked at src/main.rs",
-        ])
-        kept, checked = typecheck._read_log(
-            ty_stderr, typecheck.Coverage(typecheck.TY_LOG, typecheck.TY_CHECKED,
-                                          frozenset()), cwd)
-        ensure(checked == {"vos/a.py", "b.pyi", "tests/c.py", outside.as_posix()},
-               f"ty's log named {checked!r}")
-        ensure(kept.splitlines() == ["2026-09-29 23:26:43.73598 WARN a warning the checker "
-                                     "gives", "thread 'main' panicked at src/main.rs"],
-               f"ty's stderr kept {kept!r}")
-        head = "[2026-09-29][23:29:35]"
-        ruff_stderr = "\n".join([
-            f"{head}[ruff::resolve][DEBUG] Using user-specified configuration file at: x",
-            f'{head}[ruff_workspace::resolver][DEBUG] Included path via `include`: '
-            f'"{cwd / "skipped.py"}"',
-            f"{head}[ruff::diagnostics][DEBUG] Checking: {cwd / 'vos' / 'a.py'}",
-            f"{head}[ruff::diagnostics][DEBUG] Checking: {cwd / 'ruff.toml'}",
-            f"{head}[ruff::commands::check][DEBUG] Checked 2 files in: 22.7095ms",
-            f"{head}[ruff_workspace::pyproject][WARN] a warning the checker gives",
-            "error: Failed to parse ruff.toml",
-        ])
-        kept, checked = typecheck._read_log(
-            ruff_stderr, typecheck.Coverage(typecheck.RUFF_LOG, typecheck.RUFF_CHECKED,
-                                            frozenset()), cwd)
-        ensure(checked == {"vos/a.py", "ruff.toml"}, f"ruff's log named {checked!r}")
-        ensure(kept.splitlines() == [f"{head}[ruff_workspace::pyproject][WARN] a warning the "
-                                     "checker gives", "error: Failed to parse ruff.toml"],
-               f"ruff's stderr kept {kept!r}")
+def _explicit_commands_are_bounded() -> None:
+    targets = frozenset({"dist/a.py", "two words.py", "long-" + "x" * 45 + ".py",
+                         "unicode-\U0001f642.py", "nested/stub.pyi"})
+    exe, args = "C:/tools/checker.exe", ["check", "--no-force-exclude"]
+    with patch.object(typecheck, "COMMAND_LIMIT", 125):
+        commands = list(typecheck._target_commands(exe, args, targets))
+    base = [exe, *args, "--"]
+    ensure(len(commands) > 1 and all(command[:len(base)] == base for command in commands),
+           f"every bounded batch retains the executable, options and option terminator: {commands!r}")
+    ensure([name for command in commands for name in command[len(base):]] == sorted(targets)
+           and all(len(subprocess.list2cmdline(command).encode("utf-16-le")) <= 250
+                   for command in commands),
+           f"every filename appears once and Windows' quoted UTF-16 limit holds: {commands!r}")
+    for bad in (frozenset(), frozenset({"x" * typecheck.COMMAND_LIMIT})):
+        try:
+            list(typecheck._target_commands(exe, args, bad))
+        except ValueError:
+            pass
+        else:
+            ensure(False, "empty inputs and unrepresentable command arguments must refuse")
 
 
-def _cover_reports_what_the_log_missed() -> None:
-    # Each tracked module the log does not name is one finding under the checker, in
-    # order; a file the log names that the index does not track is held to nothing.
-    run, coverage = _stub_pass(), typecheck.Coverage(
-        typecheck.RUFF_LOG, typecheck.RUFF_CHECKED, frozenset({"a.py", "b.py", "c.pyi"}))
-    short = Reporter()
-    typecheck._cover(short, "stub", run, coverage, {"a.py", "ruff.toml"})
-    ensure(short.findings == 2 and short.out == [
-        f"FAIL stub: 2 tracked module(s) {_STUB_NAME} did not check:",
-        "       b.py", "       c.pyi"], f"the shortfall reported as {short.out!r}")
-    whole = Reporter()
-    typecheck._cover(whole, "stub", run, coverage, {"a.py", "b.py", "c.pyi", "extra.py"})
-    ensure(whole.findings == 0 and whole.out == [],
-           f"a run reaching every tracked module must add nothing: {whole.out!r}")
-    # A log naming nothing says so first, since a changed log shape reads that way,
-    # and the sample cap does not lower the count.
-    many = typecheck.Coverage(typecheck.RUFF_LOG, typecheck.RUFF_CHECKED,
-                              frozenset(f"m{n:02}.py" for n in range(typecheck.PER_RULE + 3)))
-    silent = Reporter()
-    typecheck._cover(silent, "stub", run, many, set())
-    ensure(silent.findings == typecheck.PER_RULE + 3
-           and "logged no checked file" in silent.out[1]
-           and silent.out[-1] == "       ... and 3 more",
-           f"a log naming nothing must be reported as such: {silent.out!r}")
-
-
-def _logging_stub_body(exit_code: int, logged: str, extra: str = "") -> str:
-    """A stub whose run logs, in ruff's shape, each file in `logged` as checked in its
-    working directory, then prints `extra` to stderr and exits `exit_code`."""
-    head = "[2026-09-29][23:29:35]"
-    lines = f">&2 echo {head}[ruff::resolve][DEBUG] a log line naming no file\r\n"
-    lines += "".join(f">&2 echo {head}[ruff::diagnostics][DEBUG] Checking: %CD%\\{name}\r\n"
-                     for name in logged.split())
-    if extra:
-        lines += f">&2 echo {extra}\r\n"
-    return (f'@echo off\r\nif "%~1"=="--version" (\r\necho {_STUB_NAME} {_STUB_PIN}\r\n'
-            f"exit /b 0\r\n)\r\n{lines}exit /b {exit_code}\r\n")
-
-
-def _coverage_read_from_the_run() -> None:
-    # The unified runner reads a pass's log out of the run it made: a tracked module
-    # the log leaves out is a finding beside the clean verdict, one it names is not,
-    # and a crash is reported with its own message, never the log, and is not held to
-    # the floor, having already been reported as not clearing what it never reached.
-    held = _stub_pass()._replace(coverage=typecheck.Coverage(
-        typecheck.RUFF_LOG, typecheck.RUFF_CHECKED, frozenset({"kept.py", "lost.py"})))
-    short = _run_stub_checker(_logging_stub_body(0, "kept.py"), _STUB_PIN, [held])
-    ensure(short.findings == 1 and short.out == [
-        f"ok {_STUB_NAME}: clean",
-        f"FAIL {_STUB_NAME}: 1 tracked module(s) {_STUB_NAME} did not check:",
-        "       lost.py"], f"the run's shortfall reported as {short.out!r}")
-    whole = _run_stub_checker(_logging_stub_body(0, "kept.py lost.py"), _STUB_PIN, [held])
-    ensure(whole.findings == 0 and whole.out == [f"ok {_STUB_NAME}: clean"],
-           f"a run logging every tracked module must pass: {whole.out!r}")
-    crashed = _run_stub_checker(_logging_stub_body(5, "kept.py", "the checker panicked"),
-                                _STUB_PIN, [held])
-    joined = "\n".join(crashed.out)
-    ensure(crashed.findings == 1
-           and f"{_STUB_NAME} exited 5: the checker panicked" in joined
-           and "did not check" not in joined,
-           f"a crash must quote its own message and not be held to the floor: {crashed.out!r}")
+def _batches_share_one_verdict() -> None:
+    rep = Reporter()
+    run = _stub_pass()._replace(targets=frozenset({"a.py", "b.py"}))
+    commands = [["stub", "a.py"], ["stub", "b.py"]]
+    outcomes = [subprocess.CompletedProcess(commands[0], 1,
+                                           "a.py:1:1: ANN001 first\n", ""),
+                subprocess.CompletedProcess(commands[1], 1,
+                                           "b.py:1:1: ANN001 second\n", "")]
+    with patch.object(typecheck, "_target_commands", return_value=iter(commands)), \
+            patch.object(typecheck.subprocess, "run", side_effect=outcomes), \
+            patch.object(Path, "is_file", return_value=True):
+        typecheck._run_pass(rep, "stub", "stub", run, Path.cwd(), False,
+                            typecheck._parse_ruff)
+    ensure(rep.findings == 2 and sum(line.startswith("FAIL stub:") for line in rep.out) == 1
+           and "       ANN001: 2" in rep.out,
+           f"batch findings form one combined verdict: {rep.out!r}")
+    crashed = Reporter()
+    outcomes[1] = subprocess.CompletedProcess(commands[1], 5, "", "checker panicked")
+    with patch.object(typecheck, "_target_commands", return_value=iter(commands)), \
+            patch.object(typecheck.subprocess, "run", side_effect=outcomes), \
+            patch.object(Path, "is_file", return_value=True):
+        typecheck._run_pass(crashed, "stub", "stub", run, Path.cwd(), False,
+                            typecheck._parse_ruff)
+    ensure(crashed.findings == 2 and any("exited 5" in line for line in crashed.out)
+           and any("first" in line for line in crashed.out)
+           and not any(line.startswith("ok ") for line in crashed.out),
+           f"a failed batch refuses the pass beside findings from another: {crashed.out!r}")
 
 
 def _module_tree(tools: Path, modules: list[str]) -> None:
@@ -894,62 +817,68 @@ def _module_tree(tools: Path, modules: list[str]) -> None:
         path.write_text("count: int = 1\n", encoding="utf-8", newline="")
 
 
-def _ruff_coverage_floor() -> None:
-    # The real ruff under ruff.toml settings that each take a tracked module out of
-    # the lint with nothing reported: a directory ruff skips by default, an
-    # extend-exclude, a lint.exclude, which `--show-files` still lists, and an exclude,
-    # which replaces the defaults and so brings the default-skipped module back. Each
-    # exclusion key is refused as one the gate has not read, and beside that refusal
-    # each module dropped is a finding under ruff; the ones every setting leaves are not.
+def _ruff_explicit_targets_bypass_exclusions() -> None:
     modules = ["kept.py", "stub.pyi", "dist/mod.py", "extended.py", "linted.py",
                "replaced.py"]
-    for config, refused, missing in (
+    for config, refused in (
             ('extend-exclude = ["extended.py"]\n[lint]\nselect = ["ANN"]\n'
-             'exclude = ["linted.py"]\n', 2, ["dist/mod.py", "extended.py", "linted.py"]),
-            ('exclude = ["replaced.py"]\n[lint]\nselect = ["ANN"]\n', 1, ["replaced.py"])):
+             'exclude = ["linted.py"]\n', 2),
+            ('exclude = ["replaced.py"]\nforce-exclude = true\n'
+             '[lint]\nselect = ["ANN"]\n', 2)):
         rep = Reporter()
         with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
             root = Path(td)
             _module_tree(root / "tools", modules)
+            for module in modules:
+                (root / "tools" / module).write_text("def f(x):\n    return x\n",
+                                                     encoding="utf-8", newline="")
             (root / "tools" / "ruff.toml").write_text(config, encoding="utf-8", newline="")
+            (root / "tools" / ".ignore").write_text("kept.py\n", encoding="utf-8", newline="")
             typecheck._run_ruff(rep, root, frozenset(modules))
-        ensure(rep.findings == refused + len(missing)
-               and rep.out[0] == f"FAIL ruff: {refused} ruff.toml setting(s) the gate refuses:"
-               and rep.out[1 + refused].startswith("ok ruff:")
-               and rep.out[2 + refused:] == [f"FAIL ruff: {len(missing)} tracked module(s) "
-                                             "ruff did not check:",
-                                             *(f"       {m}" for m in missing)],
-               f"ruff must report each module {config!r} drops: {rep.out!r}")
-    with patch.object(typecheck, "_run_checker") as unheld:
-        typecheck._run_ruff(Reporter(), Path.cwd(), None)
-    ensure(all(run.coverage is None and not set(typecheck.RUFF_VERBOSE) & set(run.args)
-               for run in cast("list[typecheck.Pass]", unheld.call_args.args[3])),
-           "a ruff pass held to nothing must not turn its log on")
+        joined = "\n".join(rep.out).replace("\\", "/")
+        ensure(rep.findings == refused + 2 * len(modules)
+               and all(module + ":1:" in joined for module in modules),
+               f"explicit filenames must bypass discovery and lint exclusions: {rep.out!r}")
 
 
-def _ty_coverage_floor() -> None:
-    # The real ty, under the ty.toml the gate admits, over modules in two directories
-    # ty skips by default: each platform's run reports both under ty, and not the
-    # modules beside them.
+def _ty_explicit_targets_bypass_exclusions() -> None:
     modules = ["kept.py", "stub.pyi", "dist/mod.py", "node_modules/mod.py"]
     rep = Reporter()
     with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
         root = Path(td)
         _module_tree(root / "tools", modules)
+        for module in modules:
+            (root / "tools" / module).write_text('count: int = "one"\n',
+                                                 encoding="utf-8", newline="")
         (root / "tools" / "ty.toml").write_text(_ADMITTED, encoding="utf-8", newline="")
+        (root / "tools" / ".ignore").write_text("kept.py\n", encoding="utf-8", newline="")
         with patch.dict(os.environ), \
                 patch.object(typecheck, "_user_config", return_value=None):
             os.environ.pop("PYTHONPATH", None)
             typecheck._run_ty(rep, root, frozenset(modules))
-    for platform in typecheck.TY_PLATFORMS:
-        header = (f"FAIL ty: 2 tracked module(s) ty under python-platform {platform} did "
-                  "not check:")
-        ensure(header in rep.out
-               and rep.out[rep.out.index(header) + 1:rep.out.index(header) + 3]
-               == ["       dist/mod.py", "       node_modules/mod.py"],
-               f"the {platform} run must report each default-skipped module: {rep.out!r}")
-    ensure(rep.findings == 2 * len(typecheck.TY_PLATFORMS),
-           f"only the skipped modules may be findings: {rep.out!r}")
+    joined = "\n".join(rep.out).replace("\\", "/")
+    ensure(rep.findings == len(modules) * len(typecheck.TY_PLATFORMS)
+           and all(joined.count(module + ":1:") == len(typecheck.TY_PLATFORMS)
+                   for module in modules),
+           f"both platforms must diagnose every explicit file: {rep.out!r}")
+
+
+def _missing_explicit_inputs_refuse() -> None:
+    for checker in (typecheck._run_ty, typecheck._run_ruff):
+        rep = Reporter()
+        with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
+            root = Path(td)
+            tools = root / "tools"
+            tools.mkdir()
+            (tools / "ty.toml").write_text(_ADMITTED, encoding="utf-8", newline="")
+            (tools / "ruff.toml").write_text('[lint]\nselect = ["ANN"]\n',
+                                             encoding="utf-8", newline="")
+            with patch.dict(os.environ), \
+                    patch.object(typecheck, "_user_config", return_value=None):
+                os.environ.pop("PYTHONPATH", None)
+                checker(rep, root, frozenset({"missing.py"}))
+        ensure(rep.findings > 0 and not any(line.startswith("ok ") for line in rep.out),
+               f"an explicit file that disappears must refuse: {rep.out!r}")
 
 
 def _ruff_settings(text: str | None) -> list[str]:
@@ -989,7 +918,7 @@ def _ruff_settings_refuse_per_file_suppressions() -> None:
              "sets extend-per-file-ignores to {'x.py': ['ANN']};")):
         found = _ruff_settings(text)
         ensure(len(found) == 1 and expected in found[0]
-               and "since ruff's log names a file whose rules are off as checked" in found[0],
+               and "explicit filenames cannot restore disabled rules" in found[0],
                f"a per-file suppression must be one finding: {found!r}")
     extended = _ruff_settings('extend = "other.toml"\n' + lint)
     ensure(len(extended) == 1 and "sets extend to 'other.toml';" in extended[0],
@@ -1219,38 +1148,20 @@ def _suppressions_reported_beside_the_run() -> None:
 
 
 def _ty_log_variables_removed() -> None:
-    # The real ty with TY_LOG and TY_LOG_PROFILE set in the gate's environment. ty takes
-    # TY_LOG ahead of -vv, so a run inheriting TY_LOG=info logs no checked file and every
-    # tracked module reads as unchecked, which the control shows by running with the
-    # removal switched off; the gate's own runs reach every module and leave no profile.
     modules = ["kept.py", "sub/stub.pyi"]
-    for removed in (True, False):
-        rep = Reporter()
-        with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
-            root = Path(td)
-            _module_tree(root / "tools", modules)
-            (root / "tools" / "ty.toml").write_text(_ADMITTED, encoding="utf-8", newline="")
-            with patch.dict(os.environ, {"TY_LOG": "info", "TY_LOG_PROFILE": "1"}), \
-                    patch.object(typecheck, "_user_config", return_value=None), \
-                    patch.object(typecheck, "TY_UNSET",
-                                 typecheck.TY_UNSET if removed else frozenset()):
-                os.environ.pop("PYTHONPATH", None)
-                typecheck._run_ty(rep, root, frozenset(modules))
-            profiled = sorted(path.name for path in (root / "tools").iterdir()
-                              if path.name not in {"ty.toml", "kept.py", "sub"})
-        unchecked = [line for line in rep.out if "did not check" in line]
-        if removed:
-            ensure(rep.findings == 0 and not unchecked and not profiled
-                   and rep.out == [f"ok ty: every expression reachable under python-platform "
-                                   f"{platform} typechecks under ty {typecheck.TY_VERSION}, "
-                                   "all rules at error" for platform in typecheck.TY_PLATFORMS],
-                   f"a run under TY_LOG must still reach every module: {rep.out!r} {profiled!r}")
-        else:
-            ensure(len(unchecked) == len(typecheck.TY_PLATFORMS)
-                   and rep.findings == len(modules) * len(typecheck.TY_PLATFORMS)
-                   and profiled == ["tracing.folded"],
-                   f"the control must show TY_LOG hiding the log and TY_LOG_PROFILE "
-                   f"writing a profile: {rep.out!r} {profiled!r}")
+    rep = Reporter()
+    with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
+        root = Path(td)
+        _module_tree(root / "tools", modules)
+        (root / "tools" / "ty.toml").write_text(_ADMITTED, encoding="utf-8", newline="")
+        with patch.dict(os.environ, {"TY_LOG": "info", "TY_LOG_PROFILE": "1"}), \
+                patch.object(typecheck, "_user_config", return_value=None):
+            os.environ.pop("PYTHONPATH", None)
+            typecheck._run_ty(rep, root, frozenset(modules))
+        profiled = sorted(path.name for path in (root / "tools").iterdir()
+                          if path.name not in {"ty.toml", "kept.py", "sub"})
+    ensure(rep.findings == 0 and not profiled,
+           f"logging variables must not create incidental profile output: {rep.out!r} {profiled!r}")
 
 
 # A ruff.toml banning two modules at module level, one of them dotted.
@@ -1851,11 +1762,11 @@ def cases() -> list[Case]:
         Case("user-config-located", _user_config_located),
         Case("user-config-reported-beside-the-run", _user_config_reported_beside_the_run),
         Case("pythonpath-reported-beside-the-run", _pythonpath_reported_beside_the_run),
-        Case("read-log-separates-the-log", _read_log_separates_the_log),
-        Case("cover-reports-what-the-log-missed", _cover_reports_what_the_log_missed),
-        Case("coverage-read-from-the-run", _coverage_read_from_the_run, lane="host"),
-        Case("ruff-coverage-floor", _ruff_coverage_floor),
-        Case("ty-coverage-floor", _ty_coverage_floor),
+        Case("explicit-commands-are-bounded", _explicit_commands_are_bounded),
+        Case("batches-share-one-verdict", _batches_share_one_verdict),
+        Case("ruff-explicit-targets-bypass-exclusions", _ruff_explicit_targets_bypass_exclusions),
+        Case("ty-explicit-targets-bypass-exclusions", _ty_explicit_targets_bypass_exclusions),
+        Case("missing-explicit-inputs-refuse", _missing_explicit_inputs_refuse),
         Case("ruff-settings-refuse-per-file-suppressions",
              _ruff_settings_refuse_per_file_suppressions),
         Case("file-suppressions-refused", _file_suppressions_refused),

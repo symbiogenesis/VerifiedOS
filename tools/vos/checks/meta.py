@@ -10,29 +10,6 @@ collected by the driver. Correct claims and classifications remain review judgme
 The locked uv bootstrap validates dependency resolution before dispatch. Runtime
 checker pins come from the same project manifest and remain exact.
 
-K-75 is that rule one figure over, on the version the tools are *written* to rather
-than the versions they run. The interpreter floor decides what the two checkers admit
-and what this directory's Python may say, and it is written as a setting in ty's
-dialect and in ruff's, shown in the manual install command, and restated as a literal
-the provisioner probes the running interpreter against and as the version each CI
-workflow's jobs install; ty.toml's is the source because it is the environment an
-editor's language server and this gate both resolve against, and the only site that
-writes the figure bare. The sites are enumerated rather than counted here, because the count is `_FLOOR_SITES`' to
-state. The two dialects are why the rule is worth having rather than obvious: `3.14`
-and `py314` are one figure in two spellings, so a bump applied to one of them does not
-read as a disagreement with the other. Narrative prose links to the supported version
-instead of copying it. The provisioner explicitly restates the floor, while
-tools/pyproject.toml constrains the interpreter used for dependency resolution.
-Both are held against ty's target.
-
-The window is the enumerated sites rather than a directory: the
-`python-version` settings of host CI, guest CI, the boot signature target campaign and
-the instrument switch route sit outside `tools/` and select the interpreters their jobs
-run on. Each workflow is one site whose every match is held, so no job's setting escapes
-the comparison; a job that installs no interpreter states none and is not read.
-Historical measurements retain the interpreter versions used for those runs and are
-outside this current setup check.
-
 K-84 is the third direction on the same registry and the one that faces outward. K-00
 holds the registry against the checks and the selftest holds it against the mutants,
 and nothing held a rule id *cited* outside the registry to naming a rule at all. K-11
@@ -78,7 +55,7 @@ or `freeze-report.py` as a subprocess. Both are quantified over every source und
 `tools/` that the index carries and the quarantine does not, so a file added tomorrow
 is inside the rule the day it is staged and a module added to the quarantine is
 protected the day it lands: neither side is a list anybody maintains. Fail-closed in
-both readings, on K-75's own ground: a quarantine carrying no module and a
+both readings: a quarantine carrying no module and a
 window carrying no source are each a finding, never a pass over nothing. It owes the
 floors group no member count for the same reason those two do not, its own reading
 being the floor: an empty roster or an empty window reports here, on the day it
@@ -153,8 +130,6 @@ declares of every pattern here.
 """
 
 import re
-import tomllib
-from collections.abc import Callable
 from typing import TYPE_CHECKING
 
 from vos import checkregistry, figures, toolenv
@@ -172,18 +147,9 @@ HEADING = "=== meta: the rule registry against the checks carried ==="
 RULES = "tools/check-rules.md"
 Q_RULES = "tools/quarantine/check-rules.md"
 
-README = "tools/README.md"
-PROJECT = toolenv.PROJECT
 PROVISION = "tools/vos/cli/provision.py"
 
-_HOST_WORKFLOW = ".github/workflows/host-gates.yml"
-_GUEST_WORKFLOW = ".github/workflows/guest-gates.yml"
-_CAMPAIGN_WORKFLOW = ".github/workflows/boot-crypto-target.yml"
-_CHAIN_WORKFLOW = ".github/workflows/boot-chain-target.yml"
-_INSTRUMENT_WORKFLOW = ".github/workflows/instrument-switches.yml"
 
-TY_CONF = "tools/ty.toml"
-RUFF_CONF = "tools/ruff.toml"
 
 PLAN = "PLAN.md"
 LOG = "docs/implementation/completion-log.md"
@@ -232,7 +198,6 @@ _Q_PATH_RE = re.compile(
 _Q_PATH_EXEMPT = ("tools/vos/checks/meta.py", "tools/vos/cli/selftest.py")
 
 # The interpreter floor, as the type checker's own environment fixes it.
-_FLOOR_SRC_RE = re.compile(r'(?m)^python-version = "([^"\r\n]*)"')
 
 # A repository path an owner cell names, and the same path with the symbol that cell
 # calls that artifact's own. The symbol run admits an `and` chain because a row names two
@@ -255,39 +220,6 @@ _OWNER_CMD_RE = re.compile(r"run\.py ([a-z][\w-]*)")
 # files in the mutation sandbox, so a token read there would pass on the host and fail
 # every baseline; those rows are held at the path alone.
 _SYMBOL_TREE = "tools/"
-
-
-def _plain(floor: str) -> str:
-    """The floor as ty.toml and the installer spell it."""
-    return floor
-
-
-def _packed(floor: str) -> str:
-    """ruff's own spelling, the same figure with its separator dropped."""
-    return "py" + floor.replace(".", "")
-
-
-# The floor's sites, each with the file it is in, the pattern that reads it, and how
-# that site spells the figure. Every match of a pattern and every group it captures is
-# held, because a workflow with several jobs installs the interpreter once per job.
-_FLOOR_SITES: list[tuple[str, str, re.Pattern[str], Callable[[str], str]]] = [
-    ("target version", RUFF_CONF,
-     re.compile(r'(?m)^target-version = "([^"\r\n]*)"'), _packed),
-    ("manual interpreter install", README,
-     re.compile(r"`uv python install --no-config ([^`\s]+)`"), _plain),
-    ("provisioned floor", PROVISION,
-     re.compile(r'(?m)^INTERPRETER_FLOOR = "([^"\r\n]*)"'), _plain),
-    ("workflow interpreter", _HOST_WORKFLOW,
-     re.compile(r'(?m)^\s*python-version: "([^"\r\n]*)"'), _plain),
-    ("workflow interpreter", _GUEST_WORKFLOW,
-     re.compile(r'(?m)^\s*python-version: "([^"\r\n]*)"'), _plain),
-    ("workflow interpreter", _CAMPAIGN_WORKFLOW,
-     re.compile(r'(?m)^\s*python-version: "([^"\r\n]*)"'), _plain),
-    ("workflow interpreter", _CHAIN_WORKFLOW,
-     re.compile(r'(?m)^\s*python-version: "([^"\r\n]*)"'), _plain),
-    ("workflow interpreter", _INSTRUMENT_WORKFLOW,
-     re.compile(r'(?m)^\s*python-version: "([^"\r\n]*)"'), _plain),
-]
 
 
 def run(ctx: Context) -> None:
@@ -429,66 +361,6 @@ def _source(ctx: Context, rel: str) -> str:
         return (ctx.root / rel).read_text(encoding="utf-8")
     except (OSError, UnicodeDecodeError):
         return ""
-
-
-def _floor(ctx: Context) -> None:
-    """K-75: every site stating the interpreter floor states the one ty.toml fixes.
-
-    Fail-closed on both owner readings. The source either parses in the form it
-    is written in today or is a finding, so a reworded setting cannot take the
-    comparison down and leave the rule green; and a site whose pattern no longer matches
-    is a finding rather than a site quietly dropped from the enumeration.
-
-    The comparison uses each site's spelling: ruff packs the version into one token
-    of its own dialect instead of writing it the way ty.toml does.
-    """
-    rep = ctx.rep
-    findings: list[str] = []
-
-    stated = _FLOOR_SRC_RE.search(_source(ctx, TY_CONF))
-    if stated is None:
-        findings.append(f"{TY_CONF} no longer states python-version in a form this rule "
-                        "reads, so there is no floor to hold the rest against")
-
-    doc = ctx.corpus.get(README)
-    if doc is None:
-        findings.append(f"{README} is not in the repository")
-
-    # Both guards above have to have passed before a site can be read: without the
-    # source there is nothing to compare a site to, and without the README every site
-    # that document carries is missing for a reason that is not its own.
-    floor = stated.group(1) if stated else ""
-    if not findings and doc is not None:
-        try:
-            required = tomllib.loads(_source(ctx, PROJECT))["project"]["requires-python"]
-            major, minor = floor.split(".")
-            want = f">={floor},<{major}.{int(minor) + 1}"
-            if required != want:
-                findings.append(f"{PROJECT}'s requires-python states {required!r}, "
-                                f"{TY_CONF} requires {want}")
-        except (ValueError, TypeError, KeyError) as err:
-            findings.append(f"{PROJECT} cannot supply requires-python: {err}")
-        # one read per file the table names, the README's coming from the corpus the
-        # run already holds rather than from a second trip to disk
-        text: dict[str, str] = {README: doc.raw}
-        for _, file, _, _ in _FLOOR_SITES:
-            if file not in text:
-                text[file] = _source(ctx, file)
-
-        for label, file, pattern, spell in _FLOOR_SITES:
-            want = spell(floor)
-            hits = list(pattern.finditer(text[file]))
-            if not hits:
-                findings.append(f"{file} no longer states the floor in its {label}, in a "
-                                "form this rule reads")
-                continue
-            findings += [f"{file}'s {label} states {found}, {TY_CONF} fixes {want}"
-                         for hit in hits for found in hit.groups() if found != want]
-
-    rep.report("K-75", "interpreter floor site(s) disagreeing with the version ty.toml "
-               "fixes:", findings,
-               f"the {figures.words(len(_FLOOR_SITES))} sites that restate "
-               f"the interpreter floor spell ty.toml's {floor}")
 
 
 def _quarantined_rules(ctx: Context) -> set[str]:

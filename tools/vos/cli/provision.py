@@ -13,9 +13,8 @@ there.
 
 **It reads its facts rather than restating them.** Every version, switch name and pin
 below is imported from the module or the document that fixes it, so this file is a
-table of *rows* and not a second copy of the tree's pins. The one figure written here
-as a literal is the interpreter floor; K-75 holds this explicit restatement against
-`tools/ty.toml`. Python packages are synchronized from tools/uv.lock before dispatch,
+table of *rows* and not a second copy of the tree's pins. The interpreter target is
+read from tools/pyproject.toml. Python packages are synchronized from tools/uv.lock before dispatch,
 so their rows probe the settled environment and carry no separate install recipes.
 
 **Native rather than containerized, which is what makes it arch-agnostic.** I8's
@@ -95,13 +94,10 @@ from functools import partial
 from importlib import metadata
 from pathlib import Path
 
-from vos import cli, compiler_component, env, gallina, opam_client
+from vos import cli, compiler_component, env, gallina, opam_client, pyversion
 from vos.cli import quickchick, rtl, typecheck
 from vos.corpus import find_root
 from vos.report import Reporter
-
-# K-75 holds this probe's floor against the checker targets and project requirement.
-INTERPRETER_FLOOR = "3.14"
 
 # The bound a probe must answer within. Every one of these is a version query or a
 # directory listing, so a run that reaches this is hung rather than slow, and a hung
@@ -268,24 +264,11 @@ def _release(text: str) -> str:
     return words[0] if words else ""
 
 
-def _floor() -> tuple[int, ...]:
-    return tuple(int(part) for part in INTERPRETER_FLOOR.split("."))
-
-
 def _interpreter() -> Found:
-    """The running interpreter against the floor this directory is written to.
-
-    At or above rather than equal: the floor is what the two checkers admit and what
-    every module here may say, and a later interpreter satisfies both. The host and the
-    guest are held at one version by decision rather than by this probe, which is
-    [tools/README.md](../../README.md)'s sentence and not a fact a machine can enforce.
-    """
-    want = _floor()
-    # named rather than sliced off `sys.version_info`, whose tail carries a release
-    # level that is a string: a slice of it is not a tuple of numbers to compare
+    """The running interpreter against the single minor the project supports."""
+    want = tuple(int(part) for part in pyversion.supported_minor(find_root()).split("."))
     running = (sys.version_info.major, sys.version_info.minor, sys.version_info.micro)
-    return Found(running[:len(want)] >= want,
-                 ".".join(str(part) for part in running))
+    return Found(running[:2] == want, ".".join(str(part) for part in running))
 
 
 def _on_path(name: str) -> Found:
@@ -964,7 +947,7 @@ def _outputs_on_the_guest() -> Found:
 FACTS: tuple[Fact, ...] = (
     Fact("the interpreter floor", GATE,
          "every command here, on both lanes",
-         "tools/ty.toml, whose python-version this file restates under K-75",
+         "tools/pyproject.toml project.requires-python, read through tools/vos/pyversion.py",
          _interpreter),
     Fact("uv", GATE,
             "run.py's locked Python environment",
