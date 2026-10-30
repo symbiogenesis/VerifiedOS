@@ -1101,6 +1101,8 @@ its contents. Its archive and executable hashes are verified in the managed Pyth
 environment, shared by mutation subprocesses. Cold installation has one process
 owner through archive extraction and executable publication; waiting consumers
 recheck the pinned executable after acquiring the installation lock.
+The lock path stays present, and unsupported native locking refuses, preserving
+the retirement tool's ability to exclude a live producer.
 Corrupt cached bytes remain a finding.
 It does not contact external links.
 
