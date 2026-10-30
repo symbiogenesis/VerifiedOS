@@ -378,6 +378,7 @@ proof or package is incorporated or conveyed from either repository by them.
 The [selected-wheel licence readings](docs/implementation/evidence/markdown-tool-license-readings-20261029.json) record the exact packages, releases, wheel hashes and licence-text hashes reviewed on 2026-10-29 for CommonMark parsing and standard Markdown table linting. The selected markdown-it-py and PyMarkdown distributions and their new dependency closure are host development tools. Their MIT, BSD three-clause, Apache and Python Software Foundation grants permit this use; their notices remain in their installed distributions. Dependencies are fetched through the locked Python environment. No source, wheel or compiled library of these packages is conveyed here, and none enters the verified system or a proof assumption.
 
 ### Development tools, contained by use
+<!-- generated:development-tools -->
 
 **Rocq Stdlib.** [MemoryPlan.v](proofs/MemoryPlan.v) references separately installed `PeanoNat.Nat` theorems. The reviewed V9.2.0 edition is `8dd155bc10529814202f8f4c643e5ae6c2c88fa6`. Its [LICENSE](https://github.com/rocq-prover/stdlib/blob/8dd155bc10529814202f8f4c643e5ae6c2c88fa6/LICENSE) and [PeanoNat header](https://github.com/rocq-prover/stdlib/blob/8dd155bc10529814202f8f4c643e5ae6c2c88fa6/theories/Arith/PeanoNat.v) state LGPL version 2.1 and credit the Rocq Development Team, INRIA, CNRS, contributors, and Evgeny Makarov. The proof-switch lock fixes the installed version. Project adapters copy no upstream proof scripts, and neither Stdlib nor compiled proof objects are distributed here. Distribution of the library or a combined artifact would require review of the LGPL source, notice, and modification or relinking obligations. [The reuse record](docs/assurance/proof-reuse/foundations.md#f01-rocq-stdlib-arithmetic-integrated-by-reference) identifies theorem references and transitive assumptions.
 
@@ -567,6 +568,7 @@ No repository tool invokes the oracle switch's `ccomp` or `clightgen`. The `ccom
 
 The narrowed `cheri-compressed-cap` library remains separable from the QEMU integration. It is derived from the library's own upstream under BSD-2-Clause and currently resides beside the fork in the unpublished repository. No local tool builds or checks it. Its current location is a development choice; the recorded license permits later incorporation independently of QEMU.
 
+<!-- /generated:development-tools -->
 #### Inference benchmark dependencies
 
 The llama.cpp review on 2026-09-05 covers commit `427291b5b34cd914a31b3fd3b61a68f6184f4b9f`, build tag `b10816`, reporting `0.4.0-dev`. The `v0.4.0` release is the distinct commit `5266f24da75dc449bd56cbed7addb9c8e4a6a73e`. The root MIT license credits the ggml authors, copyright 2023-2026, and also governs `ggml/`.
