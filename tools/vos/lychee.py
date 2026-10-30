@@ -66,7 +66,8 @@ def executable() -> Path:
     asset = asset_for(sys.platform, platform.machine())
     home = Path(sys.prefix) / f"lychee-{VERSION}"
     home.mkdir(parents=True, exist_ok=True)
-    with FileLock(home / ".install.lock", timeout=180):
+    with FileLock(home / ".install.lock", timeout=180,
+                  fallback_to_soft=False, preserve_lock_file=True):
         return _install(home, asset)
 
 

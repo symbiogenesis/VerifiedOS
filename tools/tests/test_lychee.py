@@ -13,6 +13,8 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
+from filelock import Timeout
+
 from tests.harness import TOOLS, Case, ensure
 from vos import lychee
 
@@ -93,11 +95,15 @@ def _cached_executable_identity() -> None:
         asset = lychee.Asset("x86_64-pc-windows-msvc", "0" * 64,
                              hashlib.sha256(target.read_bytes()).hexdigest())
         download = Mock()
+        factory = Mock(wraps=lychee.FileLock)
         with (patch.object(lychee, "sys", SimpleNamespace(prefix=str(root),
                                                          base_prefix="other", platform="win32")),
               patch.object(lychee, "asset_for", return_value=asset),
+              patch.object(lychee, "FileLock", factory),
               patch.object(lychee.receipts, "download", download)):
             ensure(lychee.executable() == target, "verified cached bytes must be reused")
+            factory.assert_called_once_with(home / ".install.lock", timeout=180,
+                                            fallback_to_soft=False, preserve_lock_file=True)
             target.write_bytes(b"substituted executable")
             try:
                 lychee.executable()
@@ -143,20 +149,30 @@ def download(url, target, expected):
     (root / f'download-{os.getpid()}').write_text(url, encoding='utf-8')
     if lychee.receipts.digest(source) != expected:
         raise AssertionError('fixture archive differs from its pin')
+    if sys.argv[5] == 'hold':
+        print('holding', flush=True)
+        if input() != 'release':
+            raise AssertionError('missing owner release')
     # Hold the cold path open while the other ready processes enter it.
     time.sleep(0.25)
     with atomic_path(target) as pending:
         pending.write_bytes(source.read_bytes())
 
 lychee.receipts.atomic_path = counted_publication
-lychee.receipts.download = download
+if sys.argv[5] != 'cached':
+    lychee.receipts.download = download
+if sys.argv[5] == 'timeout':
+    original_lock = lychee.FileLock
+    def impatient_lock(*args, **kwargs):
+        return original_lock(*args, **(kwargs | {'timeout': 0.1}))
+    lychee.FileLock = impatient_lock
 print('ready', flush=True)
 if input() != 'start':
     raise AssertionError('missing simultaneous start')
 try:
     target = lychee.executable()
 except ValueError as exc:
-    if sys.argv[5] != 'failure':
+    if sys.argv[5] not in ('failure', 'cached'):
         raise
     print(json.dumps({'error': str(exc)}), flush=True)
     # Remain alive: recovery must not depend on process exit releasing the lock.
@@ -257,6 +273,102 @@ def _failed_install_releases_lock() -> None:
                "one refused release and one recovery must publish only the verified executable")
 
 
+def _bounded_installation_wait() -> None:
+    with tempfile.TemporaryDirectory(prefix="vos-lychee-wait-") as directory:
+        root = Path(directory)
+        payload = b"reviewed fixture executable"
+        digest = hashlib.sha256(payload).hexdigest()
+        source = _installer_archive(root, payload, "release.zip")
+        target = root / "cache" / f"lychee-{lychee.VERSION}" / "lychee.exe"
+        with _installer(root, source, digest, "hold") as owner:
+            _start_installer(owner)
+            if owner.stdout is None or owner.stdin is None:
+                raise AssertionError("installer fixture requires command and result pipes")
+            ensure(owner.stdout.readline() == "holding\n", "the provider never acquired its lock")
+            with _installer(root, source, digest, "timeout") as waiter:
+                _start_installer(waiter)
+                _, error = waiter.communicate(timeout=20)
+                ensure(waiter.returncode != 0 and "Timeout:" in error and ".install.lock" in error,
+                       f"contention must refuse within its budget: {error}")
+            ensure(not target.exists(), "a timed-out waiter published an executable")
+            owner.stdin.write("release\n")
+            owner.stdin.flush()
+            _installed(owner, target, digest)
+
+
+def _terminated_installer_releases_lock() -> None:
+    with tempfile.TemporaryDirectory(prefix="vos-lychee-termination-") as directory:
+        root = Path(directory)
+        payload = b"reviewed fixture executable"
+        digest = hashlib.sha256(payload).hexdigest()
+        source = _installer_archive(root, payload, "release.zip")
+        target = root / "cache" / f"lychee-{lychee.VERSION}" / "lychee.exe"
+        with _installer(root, source, digest, "hold") as owner:
+            _start_installer(owner)
+            if owner.stdout is None:
+                raise AssertionError("installer fixture requires a result pipe")
+            ensure(owner.stdout.readline() == "holding\n", "the provider never acquired its lock")
+            owner.kill()
+            owner.communicate(timeout=20)
+        ensure(not target.exists(), "a terminated provider published an executable")
+        with _installer(root, source, digest) as recovered:
+            _start_installer(recovered)
+            _installed(recovered, target, digest)
+        ensure(target.read_bytes() == payload, "the OS did not release terminated ownership")
+
+
+def _corrupt_cached_archive_refuses() -> None:
+    with tempfile.TemporaryDirectory(prefix="vos-lychee-corrupt-") as directory:
+        root = Path(directory)
+        payload = b"reviewed fixture executable"
+        digest = hashlib.sha256(payload).hexdigest()
+        source = _installer_archive(root, payload, "release.zip")
+        home = root / "cache" / f"lychee-{lychee.VERSION}"
+        home.mkdir(parents=True)
+        archive = home / "lychee-x86_64-pc-windows-msvc.zip"
+        archive.write_bytes(b"substituted archive")
+        with _installer(root, source, digest, "cached") as failed:
+            _start_installer(failed)
+            if failed.stdout is None:
+                raise AssertionError("installer fixture requires a result pipe")
+            refusal = json.loads(failed.stdout.readline())
+            ensure("cached download SHA256 does not match" in refusal.get("error", ""),
+                   f"corrupt cache bytes must refuse before download or publication: {refusal}")
+        ensure(archive.read_bytes() == b"substituted archive"
+               and not (home / "lychee.exe").exists(),
+               "the refusal replaced cached bytes or published an executable")
+
+
+def _native_retirement_lock_compatibility() -> None:
+    if sys.platform != "linux":
+        return
+    import fcntl
+
+    with tempfile.TemporaryDirectory(prefix="vos-lychee-native-lock-") as directory:
+        path = Path(directory) / ".install.lock"
+        with (lychee.FileLock(path, timeout=0.1, fallback_to_soft=False, preserve_lock_file=True),
+              path.open("a+b") as stream):
+            try:
+                fcntl.flock(stream.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+            except BlockingIOError:
+                pass
+            else:
+                raise AssertionError("native retirement ignored an active installer lock")
+        ensure(path.is_file(), "release removed the stable installation lock pathname")
+        with path.open("a+b") as stream:
+            fcntl.flock(stream.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+            blocked = False
+            try:
+                with lychee.FileLock(path, timeout=0.1, fallback_to_soft=False,
+                                     preserve_lock_file=True):
+                    pass
+            except Timeout:
+                blocked = True
+            finally:
+                fcntl.flock(stream.fileno(), fcntl.LOCK_UN)
+            ensure(blocked, "installation bypassed native retirement's lock")
+
+
 def cases() -> list[Case]:
     return [Case("relative/reference/HTML/Unicode links and offline boundaries", _ordinary_links),
             Case("uninitialized gitlinks exempt only the tracked root", _gitlink_roots),
@@ -265,4 +377,9 @@ def cases() -> list[Case]:
             Case("cached executable bytes retain their reviewed identity", _cached_executable_identity),
             Case("simultaneous cold processes install one verified executable", _concurrent_cold_install),
             Case("failed installation releases the cache for another live process",
-                 _failed_install_releases_lock)]
+                 _failed_install_releases_lock),
+            Case("installation contention has a bounded refusal", _bounded_installation_wait),
+            Case("terminated installation releases OS ownership", _terminated_installer_releases_lock),
+            Case("corrupt cached archives refuse without replacement", _corrupt_cached_archive_refuses),
+            Case("native retirement and installation contend on the same lock",
+                 _native_retirement_lock_compatibility)]
