@@ -812,6 +812,28 @@ class SailSupportCensusTests(unittest.TestCase):
             value, _, _ = _fixture()
             validate(value)
 
+    def test_compiled_schema_defers_malformed_unused_children_to_original_reader(self) -> None:
+        validate = _ADAPTER["_validate"]
+        original = _ADAPTER["_recursive_validate"]
+
+        def outcome(reader: Callable[..., None], value: object,
+                    schema: dict[str, Any]) -> tuple[type[Exception], str] | None:
+            try:
+                reader(value, schema, schema, "fixture")
+            except (AttributeError, TypeError, ValueError) as error:
+                return type(error), str(error)
+            return None
+
+        for child in ([], None, 1, "not-schema"):
+            definitions = [{"items": child}, {"properties": {"unused": child}}]
+            definitions.extend({"items": {keyword: child}} for keyword in ("oneOf", "anyOf"))
+            for schema in definitions:
+                with self.subTest(schema=schema):
+                    self.assertIsNone(outcome(original, "ok", schema))
+                    self.assertIsNone(outcome(validate, "ok", schema))
+                    for value in ([{}], {"unused": "value"}):
+                        self.assertEqual(outcome(validate, value, schema), outcome(original, value, schema))
+
     def test_linear_population_joins_keep_refusals_and_search_type_fallback_lazy(self) -> None:
         census = _ADAPTER["census"]
         value, searches, readings = _fixture()
@@ -1322,6 +1344,7 @@ def cases() -> list[Case]:
             Case("schema-discriminators-preserve-full-branch-constraints-and-draft-verdicts", checks.test_schema_discriminator_rejection_preserves_all_branch_constraints_and_draft_verdicts),
             Case("control-replay-retains-three-roots-and-adapter-refusal-boundary", checks.test_control_replay_uses_three_complete_roots_and_distinguishes_adapter_evidence),
             Case("compiled-schema-keeps-diagnostics-and-independent-invocations", checks.test_compiled_schema_keeps_failure_locations_and_reads_edits_between_calls),
+            Case("compiled-schema-preserves-malformed-unused-subtree-behavior", checks.test_compiled_schema_defers_malformed_unused_children_to_original_reader),
             Case("linear-population-joins-keep-refusals-and-lazy-search-types", checks.test_linear_population_joins_keep_refusals_and_search_type_fallback_lazy),
             Case("direct-native-comparison-keeps-complete-resolver-effects", checks.test_direct_native_comparison_matches_normalization_and_complete_resolver_effects),
             Case("control-mutations-share-native-evidence-and-match-whole-copy-refusals", checks.test_control_mutations_share_untouched_evidence_and_match_whole_copy_refusals),

@@ -31,6 +31,23 @@ revision; the retained record does not measure its replacement. The complete
 runner again preserves reports and byte assertions, with a repeatable proof-header
 improvement and a smaller Markdown difference.
 
+The [candidate-line comparison](https://github.com/symbiogenesis/VerifiedOS/actions/runs/41117791545)
+retains its [checker](41117791545-checker.json),
+[runner](41117791545-runner.json) and
+[proof-context](41117791545-proof-identity.json) records. The native candidate-line
+matcher alone also fails the complete checker runtime target, with equal reports
+and the retained memory reduction. It supplies no accepted scanner speed factor.
+
+The [possessive-ID and ASCII-glyph comparison](https://github.com/symbiogenesis/VerifiedOS/actions/runs/41118735840)
+retains its [checker](41118735840-checker.json),
+[runner](41118735840-runner.json) and
+[proof-context](41118735840-proof-identity.json) records. These changes reduce the
+earlier overhead but leave a smaller complete checker slowdown; runtime acceptance
+remains open. Reports, source-byte assertions and native cache controls pass. The
+separate profiler trace covers the locked launcher waiting for its child, so it
+supplies no call-cost evidence for the checker. The revised diagnostic route
+profiles the benchmark worker directly.
+
 The [initial attempt](https://github.com/symbiogenesis/VerifiedOS/actions/runs/41108543698)
 retains [partial runner evidence](41108543698-runner.json) and its
 [proof-context record](41108543698-proof-identity.json). Baseline source placement

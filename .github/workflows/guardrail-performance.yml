@@ -17,6 +17,10 @@ on:
         description: Include native census replay (requires complete retained control inputs)
         type: boolean
         default: false
+      profile_only:
+        description: Capture checker call costs only, without paired timing or other comparisons
+        type: boolean
+        default: false
 permissions:
   contents: read
 concurrency:
@@ -35,7 +39,9 @@ jobs:
       matrix:
         scope: [checker, runner, proof-identity, census]
         exclude:
-          - scope: ${{ inputs.census && 'none' || 'census' }}
+          - scope: ${{ inputs.census && !inputs.profile_only && 'none' || 'census' }}
+          - scope: ${{ inputs.profile_only && 'runner' || 'none' }}
+          - scope: ${{ inputs.profile_only && 'proof-identity' || 'none' }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -106,7 +112,7 @@ jobs:
           python3 tools/ci/bootstrap_guest.py --root "$HOME/verifiedos-guest" \
             --toolchain rocq --install-system --github-env "$GITHUB_ENV" --github-path "$GITHUB_PATH"
       - name: Compare complete checker reports
-        if: ${{ matrix.scope == 'checker' }}
+        if: ${{ matrix.scope == 'checker' && !inputs.profile_only }}
         timeout-minutes: 60
         shell: bash
         env:
@@ -116,8 +122,18 @@ jobs:
           uv run --project tools --locked --exact --no-python-downloads python \
             tools/ci/archive_scan_benchmark.py --base "$PERFORMANCE_BASE" \
             --output "$RUNNER_TEMP/performance/checker.json"
+      - name: Capture checker call costs separately
+        if: ${{ matrix.scope == 'checker' }}
+        timeout-minutes: 60
+        shell: bash
+        env:
+          UV_PROJECT_ENVIRONMENT: out/venv-linux
+        run: |
+          mkdir -p "$RUNNER_TEMP/performance"
           uv run --project tools --locked --exact --no-python-downloads python \
-            -m cProfile -o "$RUNNER_TEMP/performance/checker.prof" tools/check.py
+            -m cProfile -o "$RUNNER_TEMP/performance/checker.prof" \
+            tools/ci/archive_scan_benchmark.py --worker-tools "$PWD/tools" --root "$PWD" \
+            --output "$RUNNER_TEMP/performance/profiled-checker.json"
       - name: Compare complete Markdown and repair work
         if: ${{ matrix.scope == 'runner' }}
         timeout-minutes: 120

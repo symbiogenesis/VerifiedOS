@@ -153,8 +153,8 @@ omit unused inline expansion; count readers reuse masks only when their line
 representations agree. Proof-source facts are content-keyed within a context while
 each consumer still acquires current source bytes.
 
-Streaming presence and candidate-line boundaries use one compiled literal at a time, with the complete
-literal prefix before its Unicode boundary assertions. This avoids Python visits
+Streaming presence and candidate-line boundaries use one compiled literal at a
+time, with the complete literal prefix before its Unicode boundary assertions. This avoids Python visits
 to unbounded substrings such as a project name inside a longer identifier.
 Rejected window-edge matches resume with overlap, and malformed or unsupported
 text retains the complete parser. The boundary oracle and chunk tests retain the
@@ -168,9 +168,11 @@ byte; overlap windows and generic ASCII needles retain their complete checks.
 The census validator resolves its schema plan once per call, retains every
 compatible union branch and constructs diagnostic paths on failure. Reverse indexes
 replace repeated population joins; declaration fallback serialization is lazy.
-Native-effect comparisons retain all resolver effects. The original three-root
-native control emission is unavailable on this machine pending migration from the
-old machine. The [replay descriptor](ci/census-benchmark-inputs.json) records that
+Native-effect comparisons retain all resolver effects. Unusual supplied schemas
+retain the original interpreter, including its decisions about whether a malformed
+constraint is visited for the actual value. The original three-root native control
+emission is unavailable on this machine pending migration from the old machine.
+The [replay descriptor](ci/census-benchmark-inputs.json) records that
 gap explicitly. Missing input cannot yield completed comparison evidence. Q35q's
 complete native census, independent positive and corruption controls, assumptions
 and kernel acceptance remain open under their existing contracts.
@@ -194,6 +196,8 @@ Checker and proof-context RSS figures describe their worker process, not the sum
 of its descendants or the full kernel check's residency.
 After the unprofiled checker pairs, a separate candidate-only profiler run retains
 diagnostic call costs. Its overhead supplies no baseline/candidate timing evidence.
+The diagnostic-only input selects that worker without the paired comparisons;
+it supplies no performance or checker-acceptance verdict.
 
 The [retained comparison evidence](../docs/performance/tool-benchmarks-2026-10-30/README.md)
 records the completed runner improvement, proof-context timing limits and rejected

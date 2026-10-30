@@ -126,13 +126,17 @@ def _compile_schema(schema: dict[str, Any], document: dict[str, Any]) -> _Shape:
     shapes: dict[int, _Shape] = {}
 
     def compile_node(node: dict[str, Any]) -> _Shape:
+        if type(node) is not dict:
+            raise _UncompiledSchemaError
         if id(node) in shapes:
             return shapes[id(node)]
         required = node.get("required", [])
         properties = node.get("properties", {})
-        if (type(node) is not dict or not isinstance(required, list)
+        if (not isinstance(required, list)
                 or any(type(name) is not str for name in required)
-                or type(properties) is not dict or any(type(name) is not str for name in properties)):
+                or type(properties) is not dict or any(type(name) is not str for name in properties)
+                or any(type(child) is not dict for child in properties.values())
+                or any(keyword in node and type(node[keyword]) is not list for keyword in ("oneOf", "anyOf"))):
             raise _UncompiledSchemaError
         result = shapes[id(node)] = _Shape(node)
         if "$ref" in node:
