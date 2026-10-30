@@ -10,12 +10,12 @@ from vos import corpus, devtools
 
 
 def _data() -> dict[str, object]:
-    return {"schema": 2, "reviews": [{"id": "demo", "tool": "Demo", "subject": "release",
+    return {"schema": 2, "reviews": [{"id": "verilator", "tool": "Verilator", "subject": "release",
                                       "reviewed": ["1.2.3"], "owners": [
                                           {"kind": "uv", "path": "tools/uv.lock", "key": "demo"}]}],
-            "rows": [{"id": "Demo", "tool": "Demo", "license": "MIT",
-                      "standing": "Reviewed ${demo_0}, licence evidence stays authored.",
-                      "reviews": ["demo"]}],
+            "rows": [{"id": "Verilator", "tool": "Verilator", "license": "MIT",
+                      "standing": "Reviewed ${verilator_0}, licence evidence stays authored.",
+                      "reviews": ["verilator"]}],
             "template": ["", "${development_tools_table}", "", ""]}
 
 
@@ -24,7 +24,7 @@ def _files(data: dict[str, object] | None = None) -> dict[str, str]:
     body = "\n".join(cast("list[str]", selected["template"]))
     body = body.replace("${development_tools_table}", "| Tool | License | Standing |\n"
                         "| --- | --- | --- |\n"
-                        "| Demo | MIT | Reviewed 1.2.3, licence evidence stays authored. |")
+                        "| Verilator | MIT | Reviewed 1.2.3, licence evidence stays authored. |")
     return {devtools.DATA: json.dumps(selected),
             devtools.SCHEMA: (TOOLS / "development-tools.schema.json").read_text(encoding="utf-8"),
             devtools.RECORD: ("# Licences\n\n" + devtools.HEADING + "\n" + devtools.BEGIN + "\n"
@@ -218,6 +218,50 @@ def _fixed_owner_descriptors_cannot_name_ignored_fields() -> None:
                 raise AssertionError(f"an ignored owner path or key was accepted: {owner!r}")
 
 
+def _verilator_review_binding_preserves_retired_rule_refusals() -> None:
+    data = _data()
+    reviews = cast("list[dict[str, object]]", data["reviews"])
+    reviews[0]["owners"] = [{"kind": "assign", "path": "tools/vos/cli/rtl.py",
+                              "key": "VERILATOR_PIN"}]
+    files = {**_files(data), "tools/vos/cli/rtl.py": 'VERILATOR_PIN = "1.2.3"\n'}
+    expected, faults = _inspect(files)
+    ensure(expected == files[devtools.RECORD] and not faults,
+           f"the reviewed assignment and generated row must agree: {faults!r}")
+    for source in ('VERILATOR_PIN = "2.0.0"\n', "",
+                   'VERILATOR_PIN = "1.2.3"\nVERILATOR_PIN = "1.2.3"\n'):
+        _expected, faults = _inspect({**files, "tools/vos/cli/rtl.py": source})
+        ensure(bool(faults), f"a changed, absent or ambiguous assignment passed: {source!r}")
+    _expected, faults = _inspect({path: content for path, content in files.items()
+                                 if path != "tools/vos/cli/rtl.py"})
+    ensure(bool(faults), "a missing indexed Verilator owner must refuse")
+    moved_review = copy.deepcopy(data)
+    cast("list[dict[str, object]]", moved_review["reviews"])[0]["reviewed"] = ["2.0.0"]
+    _expected, faults = _inspect({**files, devtools.DATA: json.dumps(moved_review)})
+    ensure(bool(faults), "a changed review must still match the enforced source release")
+    moved = files[devtools.RECORD].replace("Reviewed 1.2.3", "Reviewed 2.0.0")
+    expected, faults = _inspect({**files, devtools.RECORD: moved})
+    ensure(expected == files[devtools.RECORD] and not faults,
+           "the displayed edition is regenerated from its authored review")
+    for fields in (("rows",), ("reviews",), ("rows", "reviews")):
+        removed = copy.deepcopy(data)
+        for field in fields:
+            removed[field] = []
+        # Keep unrelated data so a missing Verilator row cannot pass by satisfying
+        # the general nonempty-list constraint with another tool's review.
+        cast("list[dict[str, object]]", removed["reviews"]).append(
+            {"id": "unrelated", "tool": "Other", "subject": "release", "reviewed": ["1.2.3"],
+             "owners": [{"kind": "uv", "path": "tools/uv.lock", "key": "demo"}]})
+        cast("list[dict[str, object]]", removed["rows"]).append(
+            {"id": "Other", "tool": "Other", "license": "MIT", "standing": "${unrelated_0}",
+             "reviews": ["unrelated"]})
+        expected, faults = _inspect({**files, devtools.DATA: json.dumps(removed)})
+        ensure(expected is None and bool(faults),
+               f"removing the Verilator row or review must refuse: {fields!r}")
+        if fields == ("rows", "reviews"):
+            ensure("$.rows" in faults[0] and "does not contain" in faults[0],
+                   f"the mandatory row schema must catch joint removal: {faults!r}")
+
+
 def _shipped_review_view_and_owners_agree() -> None:
     root = TOOLS.parent
     text = (root / devtools.RECORD).read_text(encoding="utf-8")
@@ -237,4 +281,6 @@ def cases() -> list[Case]:
             Case("rows-require-explicit-owners-or-dispositions", _rows_require_explicit_owners_or_dispositions),
             Case("fixed-owner-descriptors-cannot-name-ignored-fields",
                  _fixed_owner_descriptors_cannot_name_ignored_fields),
+            Case("verilator-review-binding-preserves-retired-rule-refusals",
+                 _verilator_review_binding_preserves_retired_rule_refusals),
             Case("shipped-review-view-and-owners-agree", _shipped_review_view_and_owners_agree)]

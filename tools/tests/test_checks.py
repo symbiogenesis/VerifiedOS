@@ -379,26 +379,6 @@ def _counts_unreadable_prerequisite_owner_is_not_repaired() -> None:
                f"unresolved claims must not be repaired to zero: {ctx.fixed!r}")
 
 
-def _k97_reviewed_pin_is_required_without_prose_copies() -> None:
-    source = 'VERILATOR_PIN = "9.999"\n'
-    record = ("# Components\n\n| Tool | License | Standing |\n| --- | --- | --- |\n"
-              "| Verilator | example terms | pinned at **9.999**. |\n")
-    for owner, reviewed, accepted in (
-            (source, record, True),
-            (source, record.replace("9.999", "9.998"), False),
-            ("", record, False),
-            (source, "# Components\n", False),
-            (source, "", False)):
-        with sandbox_tree({"docs/requirements-register.md": _REGISTER_MIN,
-                           pins.VERILATOR_SRC: owner, "THIRD-PARTY.md": reviewed}) as root:
-            ctx = _context(root, fix=True)
-            pins._version_pin(ctx)
-            found = _findings_under(ctx, "K-97")
-            ensure(bool(found) != accepted,
-                   f"only an exact reviewed row and pin can pass: {ctx.rep.out!r}")
-            ensure(not ctx.fixed, "a version edit cannot manufacture a licence review")
-
-
 _K115_SHA = "0123456789abcdef0123456789abcdef01234567"
 _K115_RECORD = (
     "# Components\n\n### Development tools, contained by use\n\n"
@@ -1365,8 +1345,6 @@ def cases() -> list[Case]:
              _counts_removed_prerequisite_is_a_finding),
         Case("counts-unreadable-prerequisite-owner-is-not-repaired",
              _counts_unreadable_prerequisite_owner_is_not_repaired),
-        Case("k97-reviewed-pin-is-required-without-prose-copies",
-             _k97_reviewed_pin_is_required_without_prose_copies),
         Case("k115-agreement-and-sub-actions-pass", _k115_agreement_and_sub_actions_pass),
         Case("k115-moved-or-movable-references-fail", _k115_moved_or_movable_references_fail),
         Case("k115-moved-reference-is-quoted-apart-from-its-row",
