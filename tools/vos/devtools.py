@@ -11,7 +11,9 @@ from string import Template
 from typing import Any, cast
 
 from jsonschema.exceptions import SchemaError
+from yaml.nodes import MappingNode, ScalarNode, SequenceNode
 
+from vos import yamlutil
 from vos.jsonutil import unique_object
 from vos.pyversion import supported_minor
 from vos.schema import strict_integer_validator
@@ -259,9 +261,6 @@ def _utf8(encoding: str) -> bool:
         return False
 
 
-_YAML_BREAK_RE = re.compile(r"\r\n|[\r\n\x85\u2028\u2029]")
-
-
 _HOOK_REPO_RE = re.compile(r"^[ \t]*-[ \t]+(?P<key>repo):[ \t]*(?P<url>.*?)[ \t]*$")
 
 
@@ -271,19 +270,32 @@ _HOOK_REV_LINE_RE = re.compile(
     r"""(?:[ \t]+#[ \t]*frozen:[ \t]*(?P<frozen>\S+))?[ \t]*""")
 
 
-_HOOK_REV_KEY_RE = re.compile(r"""^(?P<indent>[ \t]*)(?P<q>["']?)rev(?P=q)(?=[ \t]*:)""")
-
-
-_HOOK_KEY_RE = re.compile(
-    r"""(?:(?<=[\s{,\[\ufeff])|^)"""
-    r"""(?:(?:(?P<q>["']?)re(?:po|v)(?P=q)|"[^"]*\\[^"]*"|\*[^\s,\[\]{}]+|<<)(?=[ \t]*:)|!)"""
-    r"""|^[ \t\ufeff]*(?:\?|(?:[-?:][ \t]+)+\?(?=[ \t]|$))|(?<=[{,\[])[ \t]*\?|^\ufeff?%""")
-
-
 _FULL_COMMIT_RE = re.compile(r"[0-9a-f]{40}")
 
 
 _HOOK_META = "meta"
+
+
+def _hook_entries(text: str) -> list[tuple[str, MappingNode]]:
+    """Actual hook entries, with canonical repository source lines retained as policy."""
+    root = yamlutil.read(text)
+    repos = yamlutil.fields(root).get("repos") if isinstance(root, MappingNode) else None
+    if not isinstance(repos, SequenceNode):
+        raise TypeError("the hook configuration needs a repos sequence")
+    lines = yamlutil.lines(text)
+    entries: list[tuple[str, MappingNode]] = []
+    for entry in repos.value:
+        if not isinstance(entry, MappingNode):
+            raise TypeError("each hook repository must be a mapping")
+        repo = yamlutil.fields(entry).get("repo")
+        if not isinstance(repo, ScalarNode) or not repo.value:
+            raise ValueError("each hook repository needs a nonempty repo string")
+        source = _HOOK_REPO_RE.fullmatch(lines[yamlutil.start(repo).line])
+        if source is None or source.group("url").strip("\"'") != repo.value:
+            raise ValueError(f"line {yamlutil.start(repo).line + 1}: write the repository "
+                             "as a block `- repo:` line")
+        entries.append((repo.value, entry))
+    return entries
 
 
 class OwnerError(Exception):
@@ -320,6 +332,7 @@ class Owners:
         self._opam: dict[str, dict[str, list[str]]] = {}
         self._pips: dict[str, list[tuple[int, str, re.Match[str] | None]]] = {}
         self._pins: dict[str, dict[str, list[str]]] = {}
+        self._hook_configs: dict[str, list[tuple[str, MappingNode]]] = {}
 
     def _fault(self, key: str, message: str) -> OwnerError:
         self.faults.setdefault(key, message)
@@ -486,96 +499,45 @@ class Owners:
         raise self._fault(owner.label(), f"{owner.label()} is of the unknown kind "
                           f"{owner.kind!r}")
 
-    def _hook_rev(self, owner: Owner) -> tuple[str, str]:
-        """The rev a hook configuration pins for the repository `owner.key` names, and
-        the release its `# frozen:` comment states (empty without one).
+    def _hooks(self, path: str) -> list[tuple[str, MappingNode]]:
+        if path not in self._hook_configs:
+            try:
+                self._hook_configs[path] = _hook_entries(self._text(path))
+            except (TypeError, ValueError) as error:
+                raise self._fault(path, f"{path} cannot supply its hook repositories: "
+                                  f"{error}") from None
+        return self._hook_configs[path]
 
-        The file is read as the lines pre-commit's own `autoupdate` rewrites, split as
-        the census splits it at every line break YAML reads, a next-line, line or
-        paragraph separator included: a repository entry runs from its block `- repo:`
-        line to the next, and its rev is every `rev` key opening a line at the column of
-        the entry's `repo` key, the one place YAML reads the entry's own. A repository
-        stated other than once, an entry whose rev is stated other than once, or a rev
-        in a shape `_HOOK_REV_LINE_RE` does not read whole, fixes nothing and is a fault.
-        """
-        named: list[list[str]] = []
-        revs: list[str] | None = None
-        column = -1
-        for line in _YAML_BREAK_RE.split(self._text(owner.path)):
-            entry = _HOOK_REPO_RE.match(line)
-            if entry is not None:
-                revs = None
-                if entry.group("url").strip("'\"") == owner.key:
-                    fresh: list[str] = []
-                    column, revs = entry.start("key"), fresh
-                    named.append(fresh)
-                continue
-            key = _HOOK_REV_KEY_RE.match(line)
-            if revs is not None and key is not None and key.end("indent") == column:
-                revs.append(line)
+    def _hook_rev(self, owner: Owner) -> tuple[str, str]:
+        """Read the actual entry's revision, preserving the frozen source-line policy."""
+        named = [entry for repo, entry in self._hooks(owner.path) if repo == owner.key]
         if len(named) != 1:
             raise self._fault(owner.label(), f"{owner.label()}'s repository is stated "
                               f"{len(named)} times, so it fixes no one revision")
-        if len(named[0]) != 1:
-            raise self._fault(owner.label(), f"{owner.label()} states its rev "
-                              f"{len(named[0])} times, so it fixes no one revision")
-        read = _HOOK_REV_LINE_RE.fullmatch(named[0][0])
-        if read is None:
-            stated = named[0][0].strip(" \t")
-            raise self._fault(owner.label(), f"{owner.label()} states its rev as `{stated}`, "
-                              "which is not `rev: <value>` with at most its `# frozen:` tag, "
-                              "so it fixes no one revision")
+        values = yamlutil.fields(named[0])
+        repo, rev = values["repo"], values.get("rev")
+        lines = yamlutil.lines(self._text(owner.path))
+        repo_line = _HOOK_REPO_RE.fullmatch(lines[yamlutil.start(repo).line])
+        read = (_HOOK_REV_LINE_RE.fullmatch(lines[yamlutil.start(rev).line])
+                if isinstance(rev, ScalarNode) else None)
+        if (read is None or repo_line is None or read.start("key") != repo_line.start("key")
+                or not isinstance(rev, ScalarNode) or read.group("rev") != rev.value):
+            raise self._fault(owner.label(), f"{owner.label()} needs one `rev: <value>` line "
+                              "at its repo key's column, carrying at most its `# frozen:` tag")
         return str(read.group("rev")), str(read.group("frozen") or "")
 
 
 def _hook_census(owners: Owners, reviews: tuple[Review, ...], findings: list[str]) -> int:
-    """K-118's census of the hook configuration, returning how many repository entries
-    it read: each, read at its line, is pre-commit's own `meta` hooks or a repository a
-    held row names.
-
-    A row holds its entry's rev to the full commit and the `# frozen:` release it states,
-    so an entry no row names is the one finding naming it, with its rev when that is not
-    a full commit carrying the tag it was frozen at. A `local` entry runs an entry on
-    `PATH` or in this repository and installs its additional dependencies from a
-    registry, which no row reviews and no rev pins, so it is a finding as well.
-    """
+    """Every parsed repository is meta or a reviewed remote; local hooks refuse."""
     try:
-        text = owners._text(HOOK_CONFIG)
+        entries = owners._hooks(HOOK_CONFIG)
     except OwnerError:
         return 0
     named = {owner.key for review in reviews for owner in review.owners
              if owner.kind in ("pre-commit", "pre-commit-rev") and owner.path == HOOK_CONFIG}
-    entries = 0
-    # The column of the last entry's `repo` key, where its rev key is read and nowhere
-    # else: a deeper or shallower `rev`, one in a block scalar's text among them, is the
-    # census's to report rather than the entry's rev.
-    column = -1
-    for number, line in enumerate(_YAML_BREAK_RE.split(text), start=1):
-        # Every line is read, a comment's included, as K-115 reads the workflows: a line
-        # opening with `#` may continue a quoted scalar opened earlier, which can close
-        # there and leave the line carrying an entry's keys, and a `#` after a no-break
-        # or ideographic space, which YAML reads as content, opens no comment at all.
-        where = f"{HOOK_CONFIG}:{number}"
-        entry = _HOOK_REPO_RE.match(line)
-        if entry is not None:
-            column = entry.start("key")
-        rev = _HOOK_REV_LINE_RE.fullmatch(line)
-        taken = (column if entry is not None or (rev is not None and rev.start("key") == column)
-                 else -1)
-        if any(key.start() != taken for key in _HOOK_KEY_RE.finditer(line)):
-            findings.append(f"{where} states a hook repository's `repo` or `rev` key in a "
-                            "form K-118 does not read; write each entry as a block `- repo:` "
-                            "line and a `rev:` line at its `repo` key's column, carrying at "
-                            "most its `# frozen:` tag, so it is held against its row")
-        if entry is None:
-            continue
-        entries += 1
-        url = entry.group("url").strip("'\"")
+    for url, entry in entries:
+        where = f"{HOOK_CONFIG}:{yamlutil.start(entry).line + 1}"
         if url == _HOOK_META or url in named:
-            continue
-        if not url:
-            findings.append(f"{where} opens a hook repository entry with no URL on its line, "
-                            "where K-118 reads it")
             continue
         if url == "local":
             findings.append(f"{where} is a local hook repository, whose hooks run an entry on "
@@ -592,7 +554,8 @@ def _hook_census(owners: Owners, reviews: tuple[Review, ...], findings: list[str
         findings.append(f"{where} runs hooks from {url}, which no development-tools row K-118 "
                         f"holds names, so nobody read the terms of the code it installs"
                         f"{unpinned}")
-    return entries
+    return len(entries)
+
 
 def _pip_census(owners: Owners, reviews: tuple[Review, ...], findings: list[str]) -> int:
     """K-118's census of the hook step's pip constraint files, returning how many pins it
