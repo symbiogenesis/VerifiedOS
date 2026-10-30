@@ -1,0 +1,36 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "type": "object",
+  "additionalProperties": false,
+  "title": "Reviewed Ruff configuration policy",
+  "properties": {
+    "line-length": {},
+    "respect-gitignore": {},
+    "lint": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "select": {},
+        "ignore": {},
+        "allowed-confusables": {},
+        "flake8-annotations": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "suppress-none-returning": {},
+            "suppress-dummy-args": {},
+            "allow-star-arg-any": {},
+            "mypy-init-return": {}
+          }
+        },
+        "flake8-tidy-imports": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "banned-module-level-imports": {}
+          }
+        }
+      }
+    }
+  }
+}
