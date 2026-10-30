@@ -15,11 +15,12 @@ import shutil
 import subprocess
 import sys
 import time
+from collections.abc import Callable
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from vos import asm, env, gallina, image, receipts, trace
+from vos import asm, env, gallina, image, proof_staging, receipts, trace
 from vos import compiler_component as cc
 from vos import compiler_diff as cd
 
@@ -45,6 +46,17 @@ def require(test: bool, why: str) -> None:
         raise ValueError(why)
 
 
+def compile_reference(root: Path, work: Path, before: dict[str, str],
+                      compile_source: Callable[[Path], None]) -> proof_staging.Staged:
+    """Compile every local import before the IPC root, retaining exact input bytes."""
+    staged = proof_staging.stage(root, work, ("EndpointIPC.v",))
+    require(staged.inputs == before, "proof inputs changed before staging")
+    for source in staged.sources:
+        compile_source(source)
+    staged.validate(root)
+    return staged
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     for name in ("compiler", "compiler-config", "model-snapshot", "out"):
@@ -54,6 +66,8 @@ def main() -> int:
                         help="candidate frozen opam export; defaults to the declared oracle snapshot")
     args = parser.parse_args()
     root = Path(__file__).resolve().parents[2]
+    proof_entries = ("EndpointIPC.v",)
+    proof_inputs = proof_staging.inputs(root, proof_entries)
     oracle_snapshot = (args.oracle_snapshot or root / SNAPSHOT).resolve()
     out = Path(args.out).resolve()
     require(sys.platform != "win32" and out.is_relative_to(Path("/root/build"))
@@ -87,6 +101,7 @@ def main() -> int:
         "tools/wasm-oracle/node.sh", "tools/vos/compiler_component.py", "tools/vos/compiler_diff.py",
         "tools/generated/dialect-table.json", "docs/implementation/contracts/compiler-component.md")]
     selected.append(oracle_snapshot)
+    selected += [root / name for name in proof_inputs]
     selected += sorted((root / "tools/vos").rglob("*.py"))
     sources = {str(path): sha(path) for path in selected}
     compiler = Path(args.compiler).resolve()
@@ -161,11 +176,11 @@ def main() -> int:
                  else "candidate oracle switch, matching the selected frozen snapshot"})
     gallina_source = (root / "tools/wasm-oracle/ipc_oracle.v").read_text(encoding="utf-8")
     c_source = (root / "tools/wasm-oracle/ipc_oracle.c").read_text(encoding="utf-8")
-    endpoint = (root / "proofs/EndpointIPC.v").read_bytes()
     observed_g, observed_c, ids = cc.wrappers(gallina_source, c_source)
     save(out / "population.json", ids)
     observations: dict[str, tuple[cc.Observation, cc.Observation]] = {}
     rows: list[dict[str, object]] = []
+    proof_stages: list[proof_staging.Staged] = []
     for mutant in (False, True):
         label = "mask-mutant" if mutant else "positive"
         stage = out / label
@@ -175,12 +190,18 @@ def main() -> int:
             require(g.count("(upto 31).") == 1 and c.count("upto(31, masks)") == 1,
                     "semantic mutation site missing or ambiguous")
             g, c = g.replace("(upto 31).", "(upto 32)."), c.replace("upto(31, masks)", "upto(32, masks)")
-        (stage / "EndpointIPC.v").write_bytes(endpoint)
+        def compile_source(proof: Path, label: str = label, stage: Path = stage) -> None:
+            execute(label + "-" + proof.stem,
+                    ["opam", "exec", "--switch=" + args.switch, "--", str(coqc), proof.name], stage)
+
+        staged = compile_reference(root, stage, proof_inputs, compile_source)
+        proof_stages.append(staged)
         (stage / "ipc_oracle.v").write_text(g, encoding="utf-8", newline="\n")
         source = stage / "ipc_vector.c"
         source.write_text(c, encoding="utf-8", newline="\n")
-        for stem in ("EndpointIPC", "ipc_oracle"):
-            execute(label + "-" + stem, ["opam", "exec", "--switch=" + args.switch, "--", str(coqc), stem + ".v"], stage)
+        execute(label + "-ipc_oracle",
+                ["opam", "exec", "--switch=" + args.switch, "--", str(coqc), "ipc_oracle.v"], stage)
+        staged.validate(root)
         wasm = stage / "ipc_oracle.ipc_checks.wasm"
         require(wasm.is_file() and wasm.stat().st_size > 0, "Wasm compiler emitted no current module")
         host = execute(label + "-wasm", [str(node), "--stack-size=10000000", str(root / "tools/wasm-oracle/run_vector.mjs"),
@@ -254,6 +275,10 @@ def main() -> int:
         else:
             raise ValueError(f"coordinate control survived: {i+1}")
     require(all(sha(Path(path)) == digest for path, digest in sources.items()), "source changed during comparison")
+    for staged in proof_stages:
+        staged.validate(root)
+    require(proof_staging.inputs(root, proof_entries) == proof_inputs,
+            "proof dependency membership changed during comparison")
     require(all(sha(Path(path)) == digest for path, digest in tool_ids.items()), "tool changed during comparison")
     require(library_manifest() == libraries, "oracle library content or membership changed during comparison")
     require(installed_metadata.read_bytes() == installed_metadata_bytes,
@@ -267,7 +292,8 @@ def main() -> int:
     require({str(path) for path in (root / "tools/vos").rglob("*.py")} <= set(sources),
             "tool source membership changed during comparison")
     save(out / "result.json", {"schema": "verifiedos-reference-component-comparison-v1", "passed": True,
-        "sources": sources, "tools": tool_ids, "producer_identity_sha256": sha(producer / "identity.json"),
+        "sources": sources, "proof_inputs": proof_inputs, "tools": tool_ids,
+        "producer_identity_sha256": sha(producer / "identity.json"),
         "population_sha256": sha(out / "population.json"), "rows": rows, "cross_controls": cross_controls,
         "coordinate_controls": len(ids), "model_source_identity": model["identity"],
         "model_receipt_sha256": model_receipt_sha256,

@@ -12,8 +12,13 @@ import hashlib
 import json
 import re
 import subprocess
+import sys
 import time
 from pathlib import Path
+
+sys.dont_write_bytecode = True
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "tools"))
+from vos import extracted_proofs, proof_staging  # noqa: E402
 
 
 def digest(path):
@@ -30,14 +35,11 @@ def main():
     if not work.is_relative_to(Path("/root/build")):
         parser.error("--work must be a fresh directory under /root/build")
     repo = Path(__file__).resolve().parents[2]
-    sources = {name: repo / "proofs" / name
-               for name in ("RingContract.v", "CopyRingService.v")}
-    original = {name: source.read_bytes() for name, source in sources.items()}
     work.mkdir(parents=True, exist_ok=False)
     staged = work / "proofs"
-    staged.mkdir()
-    for name, data in original.items():
-        (staged / name).write_bytes(data)
+    selected = proof_staging.stage(repo, staged, ("CopyRingService.v",))
+    sources = {path.name: repo / "proofs" / path.name for path in selected.sources}
+    original = {name: source.read_bytes() for name, source in sources.items()}
     config = work / "_RocqProject"
     config.write_text('-Q proofs ""\n')
     switch = args.switch.resolve()
@@ -54,6 +56,7 @@ def main():
         "schema": 1,
         "purpose": "Q19a candidate rejection, not proof acceptance",
         "experiment_sha256": digest(Path(__file__)),
+        "staging_inputs": extracted_proofs.implementation_inputs(repo),
         "source_sha256": {name: digest(path) for name, path in sources.items()},
         "tool_sha256": {str(path): digest(path) for path in
                         (rocq, renderer, switch / "bin" / "vsrocqtop")},
@@ -100,6 +103,10 @@ def main():
         run("candidate-packages", ["opam", "list", "--root=" + str(switch.parent),
                                    "--switch=" + switch.name,
                                    "--installed", "--short", "--columns=name,version"], True)
+        for source in selected.sources:
+            if source.name not in ("RingContract.v", "CopyRingService.v"):
+                run("baseline-support-" + source.stem,
+                    [rocq, "c", "-q", "-Q", "proofs", "", source], True)
         compile_dependency("baseline-import")
         cold = render("cold")
         warm = render("warm")
@@ -145,6 +152,9 @@ def main():
         dependency.write_bytes(original["RingContract.v"])
         report["repository_sources_unchanged"] = all(
             path.read_bytes() == original[name] for name, path in sources.items())
+        if extracted_proofs.implementation_inputs(repo) != report["staging_inputs"]:
+            raise ValueError("staging implementation changed during the experiment")
+        selected.validate(repo)
         save()
     if not report["repository_sources_unchanged"]:
         raise RuntimeError("repository sources changed during the experiment")

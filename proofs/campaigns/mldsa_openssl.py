@@ -68,10 +68,7 @@ def main() -> int:
     receipt = json.loads((baseline / "receipt.json").read_text())
     if not receipt["passed"]:
         raise ValueError("passing baseline required")
-    for module in ("PqArith", "Keccak", "MlDsa"):
-        source = campaign.ROOT / "proofs" / (module + ".v")
-        if receipt["bindings"][str(source.relative_to(campaign.ROOT))] != campaign.sha(source.read_bytes()):
-            raise ValueError("baseline source drift")
+    campaign.validate_baseline(baseline, receipt["bindings"])
     if receipt["bindings"]["dsa.exe"] != campaign.sha((baseline / "dsa.exe").read_bytes()):
         raise ValueError("baseline executable drift")
     identity = oracle.record(work)
@@ -135,6 +132,7 @@ def main() -> int:
         print(index, comparisons, flush=True)
     if oracle.identity() != identity:
         raise ValueError("OpenSSL source build changed during the campaign")
+    campaign.validate_baseline(baseline, receipt["bindings"])
     report = {"oracle": f"OpenSSL {oracle.VERSION} default provider", "openssl": identity,
               "gallina_bindings": receipt["bindings"],
               "harness_sha256": campaign.sha(Path(__file__).read_bytes()), "cases": results,

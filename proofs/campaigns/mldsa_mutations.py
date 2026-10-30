@@ -52,14 +52,7 @@ def main() -> int:
     receipt = json.loads((baseline / "receipt.json").read_text())
     if not receipt["passed"] or receipt["bindings"]["proofs/MlDsa.v"] != campaign.sha(source.encode()):
         raise ValueError("a passing baseline for the identical source is required")
-    for module in ("PqArith", "Keccak", "MlDsa"):
-        source_path = campaign.ROOT / "proofs" / (module + ".v")
-        key = str(source_path.relative_to(campaign.ROOT))
-        if receipt["bindings"][key] != campaign.sha(source_path.read_bytes()):
-            raise ValueError(f"baseline source drift: {module}")
-        object_key = module + ".vo"
-        if object_key not in receipt["bindings"] or receipt["bindings"][object_key] != campaign.sha((baseline / object_key).read_bytes()):
-            raise ValueError(f"baseline object drift or missing identity: {module}")
+    campaign.validate_baseline(baseline, receipt["bindings"])
     vectors = {}
     for op in ("keyGen", "sigGen"):
         doc, _ = campaign.source(baseline, op)
@@ -98,7 +91,9 @@ def main() -> int:
         record["seconds"] = round(time.monotonic() - start, 3)
         results.append(record)
         print(name, record["outcome"], flush=True)
+    campaign.validate_baseline(baseline, receipt["bindings"])
     report = {"baseline_source_sha256": campaign.sha(source.encode()),
+              "baseline_bindings": receipt["bindings"],
               "source_revision": campaign.REVISION, "selected": len(results),
               "killed": sum(r["outcome"] == "killed" for r in results),
               "stillborn": sum(r["outcome"] == "stillborn" for r in results),

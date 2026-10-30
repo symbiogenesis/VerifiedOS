@@ -11,7 +11,7 @@ from pathlib import Path
 from types import ModuleType
 from typing import Any
 
-from vos import acvp, boot_handoff, openssl, receipts
+from vos import acvp, boot_handoff, extracted_proofs, openssl, proof_staging, receipts
 
 # The ACVP identities are acvp.py's; these names keep the receipts' fields and readers.
 # Every ACVP download goes through `official`, so acvp.py's refusal of an unpinned
@@ -28,7 +28,8 @@ SOURCE_FILES = ("firmware/crypto/keccak.c", "firmware/crypto/slh256s.c",
 EVIDENCE_FILES = (*SOURCE_FILES, "tools/vos/boot_crypto.py", "tools/vos/cli/boot_crypto.py",
     "tools/vos/boot_handoff.py", "tools/vos/acvp.py", "tools/vos/receipts.py", "tools/vos/env.py",
     "tools/vos/proofenv.py", "tools/vos/openssl.py", "proofs/campaigns/mldsa_vectors.py", "proofs/MlDsa.v",
-    "proofs/PqArith.v", "proofs/Keccak.v", "firmware/crypto/fixtures.json")
+    "proofs/PqArith.v", "proofs/Keccak.v", "firmware/crypto/fixtures.json",
+    *extracted_proofs.IMPLEMENTATION)
 
 
 @dataclass(frozen=True)
@@ -317,7 +318,9 @@ def boot_cases(root: Path, binary: Path, work: Path) -> list[dict[str, object]]:
 
 
 def input_snapshot(root: Path) -> dict[str, str]:
-    return receipts.snapshot(root, [root / name for name in EVIDENCE_FILES])
+    return (receipts.snapshot(root, [root / name for name in EVIDENCE_FILES])
+            | extracted_proofs.implementation_inputs(root)
+            | proof_staging.inputs(root, ("MlDsa.v",)))
 
 
 def require_unchanged(root: Path, before: dict[str, str]) -> None:
