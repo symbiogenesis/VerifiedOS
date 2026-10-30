@@ -2179,6 +2179,201 @@
           "key": "coq-compcert"
         }
       ]
+    },
+    {
+      "id": "markdown_application_file_scanner",
+      "tool": "application-file-scanner",
+      "subject": "the reviewed Markdown-tool dependency release",
+      "reviewed": [
+        "0.6.4"
+      ],
+      "owners": [
+        {
+          "kind": "uv",
+          "path": "tools/uv.lock",
+          "key": "application-file-scanner"
+        }
+      ]
+    },
+    {
+      "id": "markdown_application_properties",
+      "tool": "application-properties",
+      "subject": "the reviewed Markdown-tool dependency release",
+      "reviewed": [
+        "0.9.3"
+      ],
+      "owners": [
+        {
+          "kind": "uv",
+          "path": "tools/uv.lock",
+          "key": "application-properties"
+        }
+      ]
+    },
+    {
+      "id": "markdown_columnar",
+      "tool": "columnar",
+      "subject": "the reviewed Markdown-tool dependency release",
+      "reviewed": [
+        "1.4.1"
+      ],
+      "owners": [
+        {
+          "kind": "uv",
+          "path": "tools/uv.lock",
+          "key": "columnar"
+        }
+      ]
+    },
+    {
+      "id": "markdown_markdown_it_py",
+      "tool": "markdown-it-py",
+      "subject": "the reviewed Markdown-tool dependency release",
+      "reviewed": [
+        "4.2.0"
+      ],
+      "owners": [
+        {
+          "kind": "uv",
+          "path": "tools/uv.lock",
+          "key": "markdown-it-py"
+        }
+      ]
+    },
+    {
+      "id": "markdown_mdurl",
+      "tool": "mdurl",
+      "subject": "the reviewed Markdown-tool dependency release",
+      "reviewed": [
+        "0.1.2"
+      ],
+      "owners": [
+        {
+          "kind": "uv",
+          "path": "tools/uv.lock",
+          "key": "mdurl"
+        }
+      ]
+    },
+    {
+      "id": "markdown_py_walk",
+      "tool": "py-walk",
+      "subject": "the reviewed Markdown-tool dependency release",
+      "reviewed": [
+        "0.3.3"
+      ],
+      "owners": [
+        {
+          "kind": "uv",
+          "path": "tools/uv.lock",
+          "key": "py-walk"
+        }
+      ]
+    },
+    {
+      "id": "markdown_pyjson5",
+      "tool": "pyjson5",
+      "subject": "the reviewed Markdown-tool dependency release",
+      "reviewed": [
+        "2.0.1"
+      ],
+      "owners": [
+        {
+          "kind": "uv",
+          "path": "tools/uv.lock",
+          "key": "pyjson5"
+        }
+      ]
+    },
+    {
+      "id": "markdown_pymarkdownlnt",
+      "tool": "pymarkdownlnt",
+      "subject": "the reviewed Markdown-tool dependency release",
+      "reviewed": [
+        "0.9.41"
+      ],
+      "owners": [
+        {
+          "kind": "uv",
+          "path": "tools/uv.lock",
+          "key": "pymarkdownlnt"
+        }
+      ]
+    },
+    {
+      "id": "markdown_sly",
+      "tool": "sly",
+      "subject": "the reviewed Markdown-tool dependency release",
+      "reviewed": [
+        "0.5"
+      ],
+      "owners": [
+        {
+          "kind": "uv",
+          "path": "tools/uv.lock",
+          "key": "sly"
+        }
+      ]
+    },
+    {
+      "id": "markdown_tomli",
+      "tool": "tomli",
+      "subject": "the reviewed Markdown-tool dependency release",
+      "reviewed": [
+        "2.5.0"
+      ],
+      "owners": [
+        {
+          "kind": "uv",
+          "path": "tools/uv.lock",
+          "key": "tomli"
+        }
+      ]
+    },
+    {
+      "id": "markdown_toolz",
+      "tool": "toolz",
+      "subject": "the reviewed Markdown-tool dependency release",
+      "reviewed": [
+        "1.2.0"
+      ],
+      "owners": [
+        {
+          "kind": "uv",
+          "path": "tools/uv.lock",
+          "key": "toolz"
+        }
+      ]
+    },
+    {
+      "id": "markdown_typing_extensions",
+      "tool": "typing-extensions",
+      "subject": "the reviewed Markdown-tool dependency release",
+      "reviewed": [
+        "4.16.0"
+      ],
+      "owners": [
+        {
+          "kind": "uv",
+          "path": "tools/uv.lock",
+          "key": "typing-extensions"
+        }
+      ]
+    },
+    {
+      "id": "markdown_wcwidth",
+      "tool": "wcwidth",
+      "subject": "the reviewed Markdown-tool dependency release",
+      "reviewed": [
+        "0.9.4"
+      ],
+      "owners": [
+        {
+          "kind": "uv",
+          "path": "tools/uv.lock",
+          "key": "wcwidth"
+        }
+      ]
     }
   ],
   "template": [
@@ -2346,6 +2541,7 @@
     "| Menhir | Generator `GPL-2.0-only`; `MenhirLib`, `MenhirSdk`, `MenhirCST` and `MenhirGLR` `LGPL-2.0-only WITH OCaml-LGPL-linking-exception` | Parser generator installed in the Sail, QuickChick, CertiRocq and contained compiler snapshots at ${menhir_113_0}, each installing all five packages. The `LICENSE` that release installs, SHA-256 `9c97527b92b577647880abd2a5eaf5bf0f3b3df1bd09d9f93fc4e103eb1d30d5`, puts the generator under GPL version 2, its runtime libraries and SDK under the Library General Public License version 2 with the static-linking exception, and its separately packaged Rocq library `coq-menhirlib`, which the CertiRocq snapshot installs for CompCert, as the private Q35e `vst2` qualification switch does ([its record](tools/opam/c-refinement-qualification-switches.md)), under `LGPL-3.0-or-later`. Q39 builds the contained compiler's parser from that release and reads its vendored Rocq runtime terms in the [license receipt](docs/implementation/evidence/q39-20261010-license-readings.json); the source and compiled parser stay contained. Neither the generator nor a parser it produced is distributed here. |",
     "| std++ | `BSD-3-Clause` | A root of [the proof snapshot](tools/opam/rocq.lock) at ${std_114_0}. Its `LICENSE` at the `stdpp-${std_115_0}` tag, SHA-256 `bc4fe79f9b7f78bc6e4e61e1f7c430b1e413b82de4aacb9355ade5e43bad2a69`, is the reading the Sail Rocq support library paragraph above records. No source or compiled object is distributed here. |",
     "| Sail compiler and its C runtime | `BSD-2-Clause`; `lib/cJSON.c` and `lib/cJSON.h` are `MIT` | The model's acceptance compiler, ${sail_compiler_and_its_c_runtime_116_0} in [the Sail snapshot](tools/opam/sail.lock), translates the curated model, and `model/sail_runtime/` compiles the release's `lib/` C runtime into `sail_riscv_sim` beside [GMP](#gmp-linked-into-the-golden-emulator). The tag's [LICENSE](https://github.com/rems-project/sail/blob/3df54034910b31a1e00d948ee965b2e9603d68e0/LICENSE), SHA-256 `cc5133e58dd523cb772ac7b2c3047845b54667fe856165aef651f059ca51b2fe` and installed by the switch, applies BSD-2-Clause outside the exceptions `THIRD_PARTY_FILES.md`, blob `1ea68db8d98a171ec3b126c1376524ba8692a006`, lists. The compiled runtime files carry Sail's BSD-2-Clause header except the two cJSON files, MIT, copyright 2009-2017 Dave Gamble and cJSON contributors, with `lib/CJSON_LICENSE`. Model snapshot artifacts convey the compiled runtime with its BSD-2-Clause and cJSON MIT notices beside the GMP and system-runtime notices. No Sail compiler binary or source tree is conveyed. |",
+    "| Markdown validation libraries | MIT, BSD-3-Clause, MIT OR Apache-2.0 and PSF-2.0 | Locked host documentation dependencies: `application-file-scanner` `${markdown_application_file_scanner_0}`, `application-properties` `${markdown_application_properties_0}`, `columnar` `${markdown_columnar_0}`, `markdown-it-py` `${markdown_markdown_it_py_0}`, `mdurl` `${markdown_mdurl_0}`, `py-walk` `${markdown_py_walk_0}`, `pyjson5` `${markdown_pyjson5_0}`, `pymarkdownlnt` `${markdown_pymarkdownlnt_0}`, `sly` `${markdown_sly_0}`, `tomli` `${markdown_tomli_0}`, `toolz` `${markdown_toolz_0}`, `typing-extensions` `${markdown_typing_extensions_0}`, `wcwidth` `${markdown_wcwidth_0}`. The [selected-wheel licence reading](docs/implementation/evidence/markdown-tool-license-readings-20261029.json) records the reviewed wheel and licence-text hashes. No source, wheel or compiled library is conveyed here. |",
     "",
     "**Verilator is pinned to the reviewed release in the table above.** [The RTL command](tools/vos/cli/rtl.py) owns the enforced pin; `run.py rtl install` installs it from a release archive verified against a recorded SHA-256. It uses a versioned project prefix and leaves the distribution executable installed. The RTL tools reject other versions. Inventory measurements use this release's JSON output and expanded instance counts; earlier XML counts are not interchangeable. This repository distributes neither Verilator nor a binary built from it, and the recorded review does not apply its license to the inspected RTL or reported netlist.",
     "",
