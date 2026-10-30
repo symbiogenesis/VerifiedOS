@@ -128,6 +128,7 @@
    ========================================================================= *)
 
 From Stdlib Require Import List Lia PeanoNat.
+Require Import IndexedUpdates.
 Import ListNotations.
 
 (* An equality closed by one evaluation. `vm_compute. reflexivity.` evaluates
@@ -433,15 +434,9 @@ Proof. intros. unfold phase1_upto. rewrite seq_S, fold_left_app. reflexivity. Qe
 Lemma phase1_mem : forall xs k j,
   mem (phase1_upto xs k) j = if j <? k then emitted_map (nth j xs 0) else nth j xs 0.
 Proof.
-  intros xs k. induction k as [| k IH]; intro j.
-  - reflexivity.
-  - rewrite phase1_upto_S, map_sum_step_mem, !IH.
-    destruct (Nat.eqb_spec j k) as [-> | Hne].
-    + destruct (Nat.ltb_spec0 k k) as [Hkk | _]; [exfalso; lia |].
-      destruct (Nat.ltb_spec0 k (S k)) as [_ | Hks]; [reflexivity | exfalso; lia].
-    + destruct (Nat.ltb_spec0 j k) as [Hjk | Hjk];
-        destruct (Nat.ltb_spec0 j (S k)) as [Hjs | Hjs];
-        try reflexivity; exfalso; lia.
+  intros xs k j.
+  exact (fold_prefix_updates InPlaceState nat mem map_sum_step
+           (fun _ => emitted_map) map_sum_step_mem (entry xs) k j).
 Qed.
 
 (* The accumulator after k steps is the fold over the mapped values read
@@ -460,15 +455,9 @@ Qed.
 Lemma phase2_mem : forall c (m : nat -> nat) k j,
   fold_left (xor_step c) (seq 0 k) m j = if j <? k then Nat.lxor (m j) c else m j.
 Proof.
-  intros c m k. induction k as [| k IH]; intro j.
-  - reflexivity.
-  - rewrite seq_S, fold_left_app, fold_left_single, xor_step_at, !IH, Nat.add_0_l.
-    destruct (Nat.eqb_spec j k) as [-> | Hne].
-    + destruct (Nat.ltb_spec0 k k) as [Hkk | _]; [exfalso; lia |].
-      destruct (Nat.ltb_spec0 k (S k)) as [_ | Hks]; [reflexivity | exfalso; lia].
-    + destruct (Nat.ltb_spec0 j k) as [Hjk | Hjk];
-        destruct (Nat.ltb_spec0 j (S k)) as [Hjs | Hjs];
-        try reflexivity; exfalso; lia.
+  intros c m k j.
+  exact (fold_prefix_updates (nat -> nat) nat (fun state => state) (xor_step c)
+           (fun _ value => Nat.lxor value c) (xor_step_at c) m k j).
 Qed.
 
 (* Reading a list back through its indices in order is the list. *)

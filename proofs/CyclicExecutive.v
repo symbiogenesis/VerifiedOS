@@ -118,6 +118,7 @@
 
 Require Import PartitionContext.
 Require Import BoundaryCost.
+Require ProofSupport.
 
 (* -------------------------------------------------------------------------
    The composition: every schedule quantity the register leaves to
@@ -164,6 +165,46 @@ Arguments slot_bound {T} _.
 Arguments slot_period {T} _.
 Arguments slot_tenant {T} _.
 
+(* Admission depends only on this projection, so changes of tenancy are erased
+   by the geometric view. The original Slot and SameGeometry interfaces remain
+   available to clients that also need the tenant. *)
+Record SlotGeometry : Type := {
+  geometry_width : nat;
+  geometry_offset : nat;
+  geometry_bound : nat;
+  geometry_period : nat
+}.
+
+Definition witness_SlotGeometry : SlotGeometry :=
+  {| geometry_width := 0; geometry_offset := 0;
+     geometry_bound := 0; geometry_period := 0 |}.
+
+Definition slot_geometry {T : Type} (s : Slot T) : SlotGeometry :=
+  {| geometry_width := slot_width s; geometry_offset := slot_offset s;
+     geometry_bound := slot_bound s; geometry_period := slot_period s |}.
+
+Fixpoint slot_geometries {T : Type} (slots : list (Slot T)) : list SlotGeometry :=
+  match slots with
+  | nil => nil
+  | cons s rest => cons (slot_geometry s) (slot_geometries rest)
+  end.
+
+Lemma slot_geometry_equal : forall (T : Type) (s t : Slot T),
+  slot_width s = slot_width t -> slot_offset s = slot_offset t ->
+  slot_bound s = slot_bound t -> slot_period s = slot_period t ->
+  slot_geometry s = slot_geometry t.
+Proof.
+  intros T s t Hw Ho Hb Hp. unfold slot_geometry.
+  rewrite Hw, Ho, Hb, Hp. reflexivity.
+Qed.
+
+Lemma slot_geometries_app : forall (T : Type) (left right : list (Slot T)),
+  slot_geometries (app left right) = app (slot_geometries left) (slot_geometries right).
+Proof.
+  intros T left right. induction left as [|s rest IH]; simpl; [reflexivity|].
+  rewrite IH. reflexivity.
+Qed.
+
 (* R-11-022's shape, as a shape (reading 4). *)
 Record Band (T : Type) : Type := {
   band_focus : Slot T;
@@ -196,20 +237,24 @@ Definition frame_slots {T : Type} (f : Frame T) : list (Slot T) :=
   app (reserved_band f) (band_slots (discretionary_band f)).
 
 (* -------------------------------------------------------------------------
-   List helpers, defined here rather than imported: the prelude carries the
-   list type and not the library over it, and importing a module to save
-   four lines would put its assumptions inside the R-05-163 gate's reach
-   for no gain.
+   Local names preserve the schedule's API over the shared constructive
+   collection definitions. Their dependency remains inside the assumption
+   audit, like the schedule's other imports.
    ------------------------------------------------------------------------- *)
 
-Fixpoint all_of {A : Type} (p : A -> bool) (l : list A) : bool :=
-  match l with
-  | nil => true
-  | cons x r => andb (p x) (all_of p r)
-  end.
+Definition all_of {A : Type} (p : A -> bool) (l : list A) : bool :=
+  @ProofSupport.all_of A p l.
 
-Fixpoint count_of {A : Type} (l : list A) : nat :=
-  match l with nil => 0 | cons _ r => S (count_of r) end.
+Definition count_of {A : Type} (l : list A) : nat :=
+  @ProofSupport.count_of A l.
+
+Lemma all_of_slot_geometries : forall (T : Type) (p : SlotGeometry -> bool)
+    (slots : list (Slot T)),
+  all_of (fun s => p (slot_geometry s)) slots = all_of p (slot_geometries slots).
+Proof.
+  intros T p slots. induction slots as [|s rest IH]; simpl; [reflexivity|].
+  rewrite IH. reflexivity.
+Qed.
 
 Fixpoint total_width {T : Type} (l : list (Slot T)) : nat :=
   match l with nil => 0 | cons s r => slot_width s + total_width r end.
@@ -225,6 +270,17 @@ Definition slot_fits (c : Composition) (mf : nat) (s : Slot (Tenant c)) : bool :
     (andb (Nat.leb (slot_offset s + slot_width s) mf)
        (andb (Nat.leb (slot_bound s + boundary_cost c.(machine) c.(boundary_inputs)) (slot_width s))
              (c.(harmonic) (slot_period s) mf))).
+
+Definition geometry_fits (c : Composition) (mf : nat) (g : SlotGeometry) : bool :=
+  andb (boundary_nonempty c.(boundary_inputs))
+    (andb (Nat.leb (geometry_offset g + geometry_width g) mf)
+       (andb (Nat.leb (geometry_bound g + boundary_cost c.(machine) c.(boundary_inputs))
+                     (geometry_width g))
+             (c.(harmonic) (geometry_period g) mf))).
+
+Lemma slot_fits_view : forall c mf s,
+  slot_fits c mf s = geometry_fits c mf (slot_geometry s).
+Proof. reflexivity. Qed.
 
 Theorem accepted_slot_has_full_boundary : forall c mf s,
   slot_fits c mf s = true ->
@@ -272,9 +328,63 @@ Fixpoint pairwise_disjoint {T : Type} (l : list (Slot T)) : bool :=
   | cons s r => andb (disjoint_from s r) (pairwise_disjoint r)
   end.
 
+Definition geometry_disjoint (s t : SlotGeometry) : bool :=
+  orb (Nat.leb (geometry_offset s + geometry_width s) (geometry_offset t))
+      (Nat.leb (geometry_offset t + geometry_width t) (geometry_offset s)).
+
+Fixpoint geometry_disjoint_from (s : SlotGeometry) (slots : list SlotGeometry) : bool :=
+  match slots with
+  | nil => true
+  | cons t rest => andb (geometry_disjoint s t) (geometry_disjoint_from s rest)
+  end.
+
+Fixpoint geometries_disjoint (slots : list SlotGeometry) : bool :=
+  match slots with
+  | nil => true
+  | cons s rest => andb (geometry_disjoint_from s rest) (geometries_disjoint rest)
+  end.
+
+Lemma disjoint_from_view : forall (T : Type) (s : Slot T) (slots : list (Slot T)),
+  disjoint_from s slots = geometry_disjoint_from (slot_geometry s) (slot_geometries slots).
+Proof.
+  intros T s slots. induction slots as [|t rest IH]; simpl; [reflexivity|].
+  rewrite IH. reflexivity.
+Qed.
+
+Lemma pairwise_disjoint_view : forall (T : Type) (slots : list (Slot T)),
+  pairwise_disjoint slots = geometries_disjoint (slot_geometries slots).
+Proof.
+  intros T slots. induction slots as [|s rest IH]; simpl; [reflexivity|].
+  rewrite disjoint_from_view, IH. reflexivity.
+Qed.
+
+Lemma geometry_disjoint_from_ext : forall (s t : SlotGeometry) slots,
+  geometry_width s = geometry_width t -> geometry_offset s = geometry_offset t ->
+  geometry_disjoint_from s slots = geometry_disjoint_from t slots.
+Proof.
+  intros s t slots Hw Ho. induction slots as [|u rest IH]; simpl; [reflexivity|].
+  unfold geometry_disjoint. rewrite Hw, Ho, IH. reflexivity.
+Qed.
+
 Definition admits (c : Composition) (f : Frame (Tenant c)) : bool :=
   andb (all_of (slot_fits c (major_frame f)) (frame_slots f))
        (pairwise_disjoint (frame_slots f)).
+
+Definition geometry_admits (c : Composition) (mf : nat)
+    (slots : list SlotGeometry) : bool :=
+  andb (all_of (geometry_fits c mf) slots) (geometries_disjoint slots).
+
+Lemma admits_view : forall c f,
+  admits c f = geometry_admits c (major_frame f) (slot_geometries (frame_slots f)).
+Proof.
+  intros c f. unfold admits, geometry_admits. rewrite pairwise_disjoint_view.
+  change (andb (all_of (fun s => geometry_fits c (major_frame f) (slot_geometry s))
+                      (frame_slots f))
+               (geometries_disjoint (slot_geometries (frame_slots f))) =
+          andb (all_of (geometry_fits c (major_frame f)) (slot_geometries (frame_slots f)))
+               (geometries_disjoint (slot_geometries (frame_slots f)))).
+  rewrite all_of_slot_geometries. reflexivity.
+Qed.
 
 Theorem empty_cases_refuse_every_frame : forall c f,
   residency_cases c.(boundary_inputs) = nil -> admits c f = false.
@@ -306,12 +416,36 @@ Inductive SameGeometry {T : Type} : list (Slot T) -> list (Slot T) -> Prop :=
     SameGeometry l1 l2 ->
     SameGeometry (cons s l1) (cons t l2).
 
+Lemma same_geometry_view : forall (T : Type) (left right : list (Slot T)),
+  SameGeometry left right -> slot_geometries left = slot_geometries right.
+Proof.
+  intros T left right H. induction H as [|s t left right Hw Ho Hb Hp Hrest IH].
+  - reflexivity.
+  - simpl. rewrite (slot_geometry_equal T s t Hw Ho Hb Hp), IH. reflexivity.
+Qed.
+
+Lemma same_geometry_of_view : forall (T : Type) (left right : list (Slot T)),
+  slot_geometries left = slot_geometries right -> SameGeometry left right.
+Proof.
+  intros T left. induction left as [|s rest IH]; intros [|t tail] H;
+    try discriminate H.
+  - apply SG_nil.
+  - pose proof (f_equal (fun slots =>
+        match slots with nil => witness_SlotGeometry | cons g _ => g end) H) as Hslot.
+    pose proof (f_equal (fun slots =>
+        match slots with nil => nil | cons _ tail => tail end) H) as Htail.
+    apply SG_cons.
+    + exact (f_equal geometry_width Hslot).
+    + exact (f_equal geometry_offset Hslot).
+    + exact (f_equal geometry_bound Hslot).
+    + exact (f_equal geometry_period Hslot).
+    + exact (IH tail Htail).
+Qed.
+
 Lemma same_geometry_refl :
   forall (T : Type) (l : list (Slot T)), SameGeometry l l.
 Proof.
-  intros T l. induction l as [ | s r IH ].
-  - apply SG_nil.
-  - apply SG_cons; try reflexivity. exact IH.
+  intros T l. apply same_geometry_of_view. reflexivity.
 Qed.
 
 Lemma same_geometry_app :
@@ -320,9 +454,9 @@ Lemma same_geometry_app :
     SameGeometry (app a1 b1) (app a2 b2).
 Proof.
   intros T a1 a2 b1 b2 Ha Hb2.
-  induction Ha as [ | s t l1 l2 Hw Ho Hb Hp Hrest IH ].
-  - exact Hb2.
-  - simpl. apply SG_cons; assumption.
+  apply same_geometry_of_view. repeat rewrite slot_geometries_app.
+  rewrite (same_geometry_view T a1 a2 Ha), (same_geometry_view T b1 b2 Hb2).
+  reflexivity.
 Qed.
 
 (* R-11-023's own act: the kernel permutes the slot-to-tenant map, the
@@ -400,8 +534,8 @@ Lemma slot_fits_same_geometry :
     slot_bound s = slot_bound t -> slot_period s = slot_period t ->
     slot_fits c mf s = slot_fits c mf t.
 Proof.
-  intros c mf s t Hw Ho Hb Hp. unfold slot_fits.
-  rewrite Hw, Ho, Hb, Hp. reflexivity.
+  intros c mf s t Hw Ho Hb Hp. repeat rewrite slot_fits_view.
+  rewrite (slot_geometry_equal (Tenant c) s t Hw Ho Hb Hp). reflexivity.
 Qed.
 
 Lemma all_of_fits_same_geometry :
@@ -410,9 +544,10 @@ Lemma all_of_fits_same_geometry :
     all_of (slot_fits c mf) l1 = all_of (slot_fits c mf) l2.
 Proof.
   intros c mf l1 l2 H.
-  induction H as [ | s t r1 r2 Hw Ho Hb Hp Hrest IH ].
-  - reflexivity.
-  - simpl. rewrite (slot_fits_same_geometry c mf s t Hw Ho Hb Hp), IH. reflexivity.
+  change (all_of (fun s => geometry_fits c mf (slot_geometry s)) l1 =
+          all_of (fun s => geometry_fits c mf (slot_geometry s)) l2).
+  repeat rewrite all_of_slot_geometries.
+  rewrite (same_geometry_view (Tenant c) l1 l2 H). reflexivity.
 Qed.
 
 Lemma disjoint_from_same_geometry :
@@ -420,20 +555,17 @@ Lemma disjoint_from_same_geometry :
     slot_width s = slot_width t -> slot_offset s = slot_offset t ->
     SameGeometry l1 l2 -> disjoint_from s l1 = disjoint_from t l2.
 Proof.
-  intros T s t l1 l2 Hw Ho H.
-  induction H as [ | u v r1 r2 Hw2 Ho2 Hb2 Hp2 Hrest IH ].
-  - reflexivity.
-  - simpl. unfold disjoint. rewrite Hw, Ho, Hw2, Ho2, IH. reflexivity.
+  intros T s t l1 l2 Hw Ho H. repeat rewrite disjoint_from_view.
+  rewrite (same_geometry_view T l1 l2 H).
+  apply geometry_disjoint_from_ext; assumption.
 Qed.
 
 Lemma pairwise_disjoint_same_geometry :
   forall (T : Type) (l1 l2 : list (Slot T)),
     SameGeometry l1 l2 -> pairwise_disjoint l1 = pairwise_disjoint l2.
 Proof.
-  intros T l1 l2 H.
-  induction H as [ | s t r1 r2 Hw Ho Hb Hp Hrest IH ].
-  - reflexivity.
-  - simpl. rewrite (disjoint_from_same_geometry T s t r1 r2 Hw Ho Hrest), IH. reflexivity.
+  intros T l1 l2 H. repeat rewrite pairwise_disjoint_view.
+  rewrite (same_geometry_view T l1 l2 H). reflexivity.
 Qed.
 
 (* S1 (R-11-023 and its criterion). Two frames of one geometry receive one
@@ -442,10 +574,8 @@ Qed.
 Theorem admission_is_occupancy_blind :
   forall c : Composition, OccupancyBlind c (admits c).
 Proof.
-  intros c f g Hmf Hgeo. unfold admits.
-  rewrite Hmf, (all_of_fits_same_geometry c (major_frame g) _ _ Hgeo),
-    (pairwise_disjoint_same_geometry (Tenant c) _ _ Hgeo).
-  reflexivity.
+  intros c f g Hmf Hgeo. repeat rewrite admits_view.
+  rewrite Hmf, (same_geometry_view (Tenant c) _ _ Hgeo). reflexivity.
 Qed.
 
 (* S1b: R-11-023's act itself. The compositor's focus rebinding, and every

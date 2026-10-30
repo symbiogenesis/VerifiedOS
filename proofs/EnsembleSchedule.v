@@ -203,35 +203,26 @@
    ========================================================================= *)
 
 Require Import CyclicExecutive.
+Require ProofSupport.
 
 (* -------------------------------------------------------------------------
-   Boolean and arithmetic facts the prelude carries the types but not the
-   library for, on CyclicExecutive.v's own ground: importing a module to
-   save a dozen lines would put its assumptions inside the R-05-163 gate's
-   reach for no gain.
+   Local compatibility names reuse the shared constructive Boolean and
+   arithmetic facts. Schedule-specific arithmetic remains beside its clients.
    ------------------------------------------------------------------------- *)
 
 Lemma andb_split : forall a b : bool, andb a b = true -> a = true /\ b = true.
-Proof.
-  intros a b H. destruct a, b; try discriminate H; split; reflexivity.
-Qed.
+Proof. exact ProofSupport.andb_split. Qed.
 
 Lemma andb_pair_swap :
   forall a b c d : bool, andb (andb a b) (andb c d) = andb (andb a c) (andb b d).
 Proof. intros a b c d. destruct a, b, c, d; reflexivity. Qed.
 
 Lemma leb_refl : forall a : nat, Nat.leb a a = true.
-Proof. induction a as [ | a IH ]; simpl; [ reflexivity | exact IH ]. Qed.
+Proof. exact ProofSupport.nat_leb_refl. Qed.
 
 Lemma leb_trans :
   forall a b c : nat, Nat.leb a b = true -> Nat.leb b c = true -> Nat.leb a c = true.
-Proof.
-  induction a as [ | a IH ]; intros b c Hab Hbc.
-  - reflexivity.
-  - destruct b as [ | b ]; [ discriminate Hab | ].
-    destruct c as [ | c ]; [ discriminate Hbc | ].
-    exact (IH b c Hab Hbc).
-Qed.
+Proof. exact ProofSupport.nat_leb_trans. Qed.
 
 Lemma leb_add_r : forall a b : nat, Nat.leb a (a + b) = true.
 Proof. induction a as [ | a IH ]; intros b; [ reflexivity | simpl; apply IH ]. Qed.
@@ -251,11 +242,7 @@ Proof.
 Qed.
 
 Lemma eqb_eq : forall a b : nat, Nat.eqb a b = true -> a = b.
-Proof.
-  induction a as [ | a IH ]; intros [ | b ] H; try discriminate H.
-  - reflexivity.
-  - rewrite (IH b H). reflexivity.
-Qed.
+Proof. exact ProofSupport.nat_eqb_true. Qed.
 
 Lemma plus_zero_r : forall a : nat, a + 0 = a.
 Proof. induction a as [ | a IH ]; [ reflexivity | simpl; rewrite IH; reflexivity ]. Qed.
@@ -283,6 +270,18 @@ Fixpoint nth_of {A : Type} (l : list A) (n : nat) : option A :=
                 end
   end.
 
+Lemma nth_of_slot_geometries : forall (T : Type) (slots : list (Slot T)) k,
+  nth_of (slot_geometries slots) k =
+    match nth_of slots k with
+    | None => None
+    | Some s => Some (slot_geometry s)
+    end.
+Proof.
+  intros T slots. induction slots as [|s rest IH]; intro k.
+  - reflexivity.
+  - destruct k as [|k]; [reflexivity | exact (IH k)].
+Qed.
+
 Lemma all_of_cons :
   forall (A : Type) (p : A -> bool) (x : A) (l : list A),
     all_of p (cons x l) = andb (p x) (all_of p l).
@@ -305,10 +304,7 @@ Lemma all_of_weaken :
     (forall x : A, p x = true -> q x = true) ->
     all_of p l = true -> all_of q l = true.
 Proof.
-  intros A p q l Himp. induction l as [ | y r IH ]; intros Hall.
-  - reflexivity.
-  - simpl in Hall. destruct (andb_split _ _ Hall) as [ Hy Hr ].
-    simpl. rewrite (Himp y Hy). exact (IH Hr).
+  exact ProofSupport.all_of_mono.
 Qed.
 
 (* -------------------------------------------------------------------------
@@ -535,6 +531,10 @@ Definition link_ok {T : Type} (e : Emission T) (scope : GuardScope)
 Definition slot_clear_of {T : Type} (a w ph : nat) (s : Slot T) : bool :=
   orb (Nat.leb (a + w) (ph + slot_offset s))
       (Nat.leb (ph + slot_offset s + slot_width s) a).
+
+Definition geometry_clear_of (a w ph : nat) (g : SlotGeometry) : bool :=
+  orb (Nat.leb (a + w) (ph + geometry_offset g))
+      (Nat.leb (ph + geometry_offset g + geometry_width g) a).
 
 Definition core_admits_the_leap {T : Type} (lp : Leap) (f : Frame T) : bool :=
   andb (Nat.leb (phase_offset f) (leap_instant lp))
@@ -763,9 +763,8 @@ Proof. reflexivity. Qed.
 Lemma same_geometry_sym :
   forall (T : Type) (l1 l2 : list (Slot T)), SameGeometry l1 l2 -> SameGeometry l2 l1.
 Proof.
-  intros T l1 l2 H. induction H as [ | s t r1 r2 Hw Ho Hb Hp Hrest IH ].
-  - apply SG_nil.
-  - apply SG_cons; try (symmetry; assumption). exact IH.
+  intros T l1 l2 H. apply same_geometry_of_view.
+  symmetry. exact (same_geometry_view T l1 l2 H).
 Qed.
 
 Lemma same_geometry_clear :
@@ -774,10 +773,10 @@ Lemma same_geometry_clear :
     all_of (@slot_clear_of T a w ph) l1 = all_of (@slot_clear_of T a w ph) l2.
 Proof.
   intros T a w ph l1 l2 H.
-  induction H as [ | s u r1 r2 Hw Ho Hb Hp Hrest IH ].
-  - reflexivity.
-  - repeat rewrite all_of_cons. rewrite IH. unfold slot_clear_of.
-    rewrite Hw. rewrite Ho. reflexivity.
+  change (all_of (fun s => geometry_clear_of a w ph (slot_geometry s)) l1 =
+          all_of (fun s => geometry_clear_of a w ph (slot_geometry s)) l2).
+  repeat rewrite all_of_slot_geometries.
+  rewrite (same_geometry_view T l1 l2 H). reflexivity.
 Qed.
 
 Lemma same_geometry_nth_some :
@@ -789,12 +788,16 @@ Lemma same_geometry_nth_some :
                          /\ slot_offset u = slot_offset s
                          /\ slot_width u = slot_width s.
 Proof.
-  intros T l1 l2 H. induction H as [ | x y r1 r2 Hw Ho Hb Hp Hrest IH ]; intros k s Hk.
-  - discriminate Hk.
-  - destruct k as [ | k ].
-    + simpl in Hk. injection Hk as Hk. rewrite <- Hk.
-      exists y. split; [ reflexivity | split; symmetry; assumption ].
-    + exact (IH k s Hk).
+  intros T l1 l2 H k s Hk.
+  pose proof (f_equal (fun slots => nth_of slots k)
+                (same_geometry_view T l1 l2 H)) as Hviews.
+  repeat rewrite nth_of_slot_geometries in Hviews. rewrite Hk in Hviews.
+  destruct (nth_of l2 k) as [u|] eqn:Hu; [|discriminate Hviews].
+  pose proof (f_equal (fun item =>
+      match item with None => 0 | Some g => geometry_offset g end) Hviews) as Ho.
+  pose proof (f_equal (fun item =>
+      match item with None => 0 | Some g => geometry_width g end) Hviews) as Hw.
+  exists u. split; [reflexivity|]. split; symmetry; assumption.
 Qed.
 
 Lemma same_geometry_nth_none :
@@ -802,9 +805,11 @@ Lemma same_geometry_nth_none :
     SameGeometry l1 l2 ->
     forall k : nat, nth_of l1 k = None -> nth_of l2 k = None.
 Proof.
-  intros T l1 l2 H. induction H as [ | x y r1 r2 Hw Ho Hb Hp Hrest IH ]; intros k Hk.
-  - reflexivity.
-  - destruct k as [ | k ]; [ discriminate Hk | exact (IH k Hk) ].
+  intros T l1 l2 H k Hk.
+  pose proof (f_equal (fun slots => nth_of slots k)
+                (same_geometry_view T l1 l2 H)) as Hviews.
+  repeat rewrite nth_of_slot_geometries in Hviews. rewrite Hk in Hviews.
+  destruct (nth_of l2 k); [discriminate Hviews|reflexivity].
 Qed.
 
 Lemma nth_of_retenant_cores :
