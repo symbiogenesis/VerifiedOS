@@ -33,7 +33,7 @@
    (*| BEGIN derived: cited entries |*)
    Owner: docs/requirements-register.md
    Requirements: R-05-004a R-05-058a R-05-059
-   SHA256: db4682e3eb8fcd86f3d5da4b0ca956c05f5af3143057a2d00e383773411edae3
+   SHA256: 8eb3e5e629a8fcd415727eb4a07db2b2d9c704971474e27b96c4408d9ded5a78
    (*| END derived |*)
    ========================================================================= *)
 From Stdlib Require Import ZArith List Bool Arith Lia.
