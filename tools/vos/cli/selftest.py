@@ -2731,10 +2731,16 @@ def _header_require(condition: bool, message: str) -> None:
         raise ValueError(message)
 
 
-def _header_context(root: Path, *, fix: bool = False) -> Context:
-    corpus = corpus_mod.load(root)
-    return Context(root=root, corpus=corpus, reg=read_register(corpus),
-                   art=read_artifacts(corpus), rep=Reporter(), fix=fix)
+def _header_context(root: Path, *, fix: bool = False, snapshot: Context | None = None) -> Context:
+    """Separate decisions over explicit unchanged owner bytes, never a path cache."""
+    if snapshot is None:
+        corpus = corpus_mod.load(root)
+        reg, art = read_register(corpus), read_artifacts(corpus)
+    else:
+        if snapshot.root != root:
+            raise ValueError("proof-header snapshot belongs to a different root")
+        corpus, reg, art = snapshot.corpus, snapshot.reg, snapshot.art
+    return Context(root=root, corpus=corpus, reg=reg, art=art, rep=Reporter(), fix=fix)
 
 
 def _stale_header_manifest(text: str, rel: str) -> str:
@@ -2753,7 +2759,8 @@ def _proof_header_repair(box: Sandbox) -> int:
     # The index decides membership; fixture size and proof names follow the corpus.
     # Private copies include the generated ring, which repair must leave untouched.
     root = box.path
-    source_corpus = corpus_mod.load(root)
+    baseline = _header_context(root)
+    source_corpus = baseline.corpus
     rels = sorted(rel for rel in source_corpus.tracked if proofcites.is_source(rel))
     authored = set(rels) - proofheaders.EXCLUDED
     _header_require(bool(authored), "an empty proof corpus cannot witness header preservation")
@@ -2772,7 +2779,6 @@ def _proof_header_repair(box: Sandbox) -> int:
                   for rel in rels}
     row = next(row for row in generated.GENERATED if row.path == memplan.ARTIFACT)
 
-    baseline = _header_context(root)
     changed, faults = proofheaders.plan(root, baseline.reg, rels)
     _header_require(not changed and not faults,
                     f"the indexed proof corpus needs repair before mutation: "
@@ -2817,8 +2823,11 @@ def _proof_header_repair(box: Sandbox) -> int:
                             usedforsecurity=False).hexdigest()
     _header_require(exported["header"]["source_md5"] == source_md5,
                     "the dependent export does not bind the repaired source bytes")
+    # Neither check below publishes a write. Share the explicitly repaired snapshot
+    # while keeping their reports, shared analysis and pending repairs independent.
+    repaired_snapshot = _header_context(root)
     for fix in (False, True):
-        after = _header_context(root, fix=fix)
+        after = _header_context(root, fix=fix, snapshot=repaired_snapshot)
         reading = generated._host_row(after, row, None)
         headers.run(after)
         _header_require(not reading.findings and after.rep.findings == 0,
@@ -2826,6 +2835,8 @@ def _proof_header_repair(box: Sandbox) -> int:
                         f"{reading.findings}, {after.rep.out}")
         _header_require(not after.fixed,
                         f"the converged corpus queued another repair: {sorted(after.fixed)}")
+        _header_require(all((root / rel).read_bytes() == data for rel, data in original.items()),
+                        "the converged checks changed the repaired snapshot's source bytes")
     return len(authored)
 
 
