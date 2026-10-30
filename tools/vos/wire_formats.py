@@ -12,11 +12,14 @@ import json
 import re
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 from vos import proofs
+from vos.jsonutil import unique_object
+from vos.schema import validate
 
 SOURCE = "interfaces/wire-formats.json"
+SCHEMA = "interfaces/wire-formats.schema.json"
 ARTIFACT = "docs/assurance/wire-format-inventory.md"
 CROWN = "docs/assurance/crown-jewels.md"
 REGISTER = "docs/requirements-register.md"
@@ -25,8 +28,6 @@ REQUIRED_CLASSES = frozenset({
     "document", "pack", "manifest", "x509", "module-manifest",
     "module-certificate", "module-endorsement", "module-message", "ensemble",
 })
-_ID = re.compile(r"[a-z][a-z0-9-]*\Z")
-_REQUIREMENT = re.compile(r"R-\d+-\d+[a-z]*\Z")
 _NARCISSUS = re.compile(r"\b(?:Narcissus|CorrectDecoder|CorrectEncoder)\b")
 
 
@@ -48,25 +49,10 @@ class Entry:
     members: tuple[str, ...]
 
 
-def _object(raw: object, keys: set[str], where: str) -> dict[str, Any]:
-    if not isinstance(raw, dict) or set(raw) != keys:
-        raise InventoryError(f"{where}: expected exactly {sorted(keys)}")
-    return raw
-
-
 def _text(raw: object, where: str) -> str:
     if not isinstance(raw, str) or not raw.strip() or any(c in raw for c in "\r\n|"):
         raise InventoryError(f"{where}: expected nonempty single-line text without pipes")
     return raw
-
-
-def _strings(raw: object, where: str, *, empty: bool = False) -> tuple[str, ...]:
-    if not isinstance(raw, list) or (not raw and not empty):
-        raise InventoryError(f"{where}: expected a {'possibly empty ' if empty else ''}list")
-    result = tuple(_text(item, where) for item in raw)
-    if len(set(result)) != len(result):
-        raise InventoryError(f"{where}: duplicate members")
-    return result
 
 
 def _file(root: Path, relative: str) -> Path:
@@ -86,13 +72,10 @@ def _read(root: Path, relative: str) -> str:
         raise InventoryError(f"cannot read {relative}: {exc}") from exc
 
 
-def _table_members(root: Path, raw: object) -> tuple[str, ...]:
-    if raw is None:
+def _table_members(root: Path, table: dict[str, str] | None) -> tuple[str, ...]:
+    if table is None:
         return ()
-    table = _object(raw, {"path", "heading", "until"}, "member table")
-    path = _text(table["path"], "member table path")
-    heading = _text(table["heading"], "member table heading")
-    until = _text(table["until"], "member table end")
+    path, heading, until = table["path"], table["heading"], table["until"]
     source = _read(root, path)
     if source.count(heading) != 1:
         raise InventoryError(f"{path}: member-table heading changed")
@@ -120,12 +103,11 @@ def _table_members(root: Path, raw: object) -> tuple[str, ...]:
 def load(root: Path) -> tuple[Entry, ...]:
     """Validate the source, live member tables and the current descriptor absence."""
     try:
-        raw = json.loads(_read(root, SOURCE))
+        raw: object = json.loads(_read(root, SOURCE), object_pairs_hook=unique_object)
+        validate(root / SCHEMA, raw)
     except ValueError as exc:
         raise InventoryError(f"{SOURCE}: {exc}") from exc
-    data = _object(raw, {"schema", "reviewed_row10_sha256", "classes", "entries"}, SOURCE)
-    if type(data["schema"]) is not int or data["schema"] != 1:
-        raise InventoryError("unsupported wire-format inventory schema")
+    data = cast(dict[str, Any], raw)
     row10 = [line for line in _read(root, CROWN).splitlines() if line.startswith("| 10 |")]
     if len(row10) != 1:
         raise InventoryError("crown-jewel row 10 is missing or duplicated")
@@ -136,13 +118,11 @@ def load(root: Path) -> tuple[Entry, ...]:
     if data["reviewed_row10_sha256"] != digest:
         raise InventoryError("row 10 membership changed: review coverage before regenerating")
     classes = data["classes"]
-    if not isinstance(classes, dict) or set(classes) != REQUIRED_CLASSES:
+    if set(classes) != REQUIRED_CLASSES:
         raise InventoryError("row 10 member-class coverage set changed or is incomplete")
     for key, phrase in classes.items():
-        if _text(phrase, key) not in specification:
+        if phrase not in specification:
             raise InventoryError(f"class {key}: source phrase absent from row 10")
-    if not isinstance(data["entries"], list) or not data["entries"]:
-        raise InventoryError("the inventory has no entries")
     register = _read(root, REGISTER)
     owner_text = _read(root, "docs/assurance/unassigned-proof-map.md") + _read(
         root, "PLAN.md")
@@ -165,30 +145,24 @@ def load(root: Path) -> tuple[Entry, ...]:
     entries: list[Entry] = []
     seen: set[str] = set()
     covered: set[str] = set()
-    for item in data["entries"]:
-        entry = _object(item, {
-            "id", "name", "classes", "requirements", "owner", "descriptor",
-            "transcription", "canonicity", "evidence", "references", "members_from",
-        }, "format entry")
-        key = _text(entry["id"], "entry id")
-        if not _ID.fullmatch(key) or key in seen:
-            raise InventoryError(f"invalid or duplicate entry id: {key}")
+    for entry in data["entries"]:
+        key = entry["id"]
+        if key in seen:
+            raise InventoryError(f"duplicate entry id: {key}")
         seen.add(key)
-        if entry["descriptor"] != "absent":
-            raise InventoryError(f"{key}: schema 1 cannot credit a Narcissus descriptor")
-        memberships = _strings(entry["classes"], key, empty=True)
+        memberships = tuple(entry["classes"])
         if set(memberships) - REQUIRED_CLASSES:
             raise InventoryError(f"{key}: unknown member class")
         covered.update(memberships)
-        requirements = _strings(entry["requirements"], key)
+        requirements = tuple(entry["requirements"])
         for requirement in requirements:
-            if not _REQUIREMENT.fullmatch(requirement) or f"**{requirement}**" not in register:
+            if f"**{requirement}**" not in register:
                 raise InventoryError(f"{key}: unknown requirement {requirement}")
-        owner = _text(entry["owner"], key)
+        owner = entry["owner"]
         if owner != "none" and (not re.fullmatch(r"(?:U-\d+[a-z]*|[A-Z]\d+(?:\.\d+)*[a-z]*)", owner)
                                 or f"**{owner} ·" not in owner_text):
             raise InventoryError(f"{key}: owner {owner} is not a landed work item")
-        references = _strings(entry["references"], key, empty=True)
+        references = tuple(entry["references"])
         for reference in references:
             path, separator, symbol = reference.partition("#")
             text_of(path)
@@ -196,14 +170,12 @@ def load(root: Path) -> tuple[Entry, ...]:
                         r"\b(?:Definition|Fixpoint|Record|Inductive|Theorem|Lemma)\s+"
                         + re.escape(symbol) + r"\b", code_of(path))):
                 raise InventoryError(f"{key}: missing proof symbol {reference}")
-        transcription = _text(entry["transcription"], key)
-        if transcription not in {"none authored", "NAS grammar required", "reference codec only"}:
-            raise InventoryError(f"{key}: unsupported hand-transcription flag")
+        transcription = entry["transcription"]
         if (transcription == "NAS grammar required") != ("nas" in memberships):
             raise InventoryError(f"{key}: NAS exception must be explicitly and exclusively flagged")
-        entries.append(Entry(key, _text(entry["name"], key), memberships, requirements,
-                             owner, transcription, _text(entry["canonicity"], key),
-                             _text(entry["evidence"], key), references,
+        entries.append(Entry(key, entry["name"], memberships, requirements,
+                             owner, transcription, entry["canonicity"],
+                             entry["evidence"], references,
                              _table_members(root, entry["members_from"])))
     if REQUIRED_CLASSES - covered:
         raise InventoryError(f"unrepresented row 10 classes: {sorted(REQUIRED_CLASSES - covered)}")

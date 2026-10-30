@@ -13,18 +13,19 @@ import json
 import re
 from dataclasses import dataclass
 from pathlib import Path
-from typing import cast
+from typing import Any, cast
 
 from vos import jsonc, sailbundle, socmap
 from vos.jsonc import Json
 from vos.jsonutil import unique_object
+from vos.schema import validate
 
 DECLARATION = "interfaces/device-registers.json"
+SCHEMA = "interfaces/device-registers.schema.json"
 PROOF_ARTIFACT = "proofs/DeviceRegisters.v"
 RTL_ARTIFACT = "rtl/generated/device_registers_pkg.sv"
 PLATFORM = "model/model/sys/platform.sail"
 ARTIFACTS = (PROOF_ARTIFACT, RTL_ARTIFACT)
-_IDENT = re.compile(r"[a-z][a-z0-9_]*\Z")
 _COMMENT = re.compile(r'"(?:\\.|[^"\\])*"|//[^\n]*|/\*.*?\*/', re.DOTALL)
 
 
@@ -57,36 +58,6 @@ def _object(value: Json, where: str) -> dict[str, Json]:
     if not isinstance(value, dict):
         raise RegisterError(f"{where}: expected an object")
     return value
-
-
-def _array(value: Json, where: str) -> list[Json]:
-    if not isinstance(value, list):
-        raise RegisterError(f"{where}: expected an array")
-    return value
-
-
-def _text(value: Json, where: str) -> str:
-    if not isinstance(value, str) or not value.strip():
-        raise RegisterError(f"{where}: expected nonempty text")
-    return value
-
-
-def _number(value: Json, where: str) -> int:
-    if isinstance(value, bool) or not isinstance(value, int) or value < 0:
-        raise RegisterError(f"{where}: expected a nonnegative integer")
-    return value
-
-
-def _keys(node: dict[str, Json], allowed: set[str], where: str) -> None:
-    if set(node) != allowed:
-        raise RegisterError(f"{where}: expected keys {sorted(allowed)}, found {sorted(node)}")
-
-
-def _name(value: Json, where: str) -> str:
-    name = _text(value, where)
-    if _IDENT.fullmatch(name) is None:
-        raise RegisterError(f"{where}: invalid portable identifier {name!r}")
-    return name
 
 
 def _pairs(pairs: list[tuple[str, Json]]) -> dict[str, Json]:
@@ -144,20 +115,17 @@ def _function(bundle: sailbundle.Bundle, name: str) -> str:
     return clauses[0][1]
 
 
-def _binding(node: Json, bundle: sailbundle.Bundle, substitutions: dict[str, str], where: str) -> None:
-    binding = _object(node, where)
-    _keys(binding, {"kind", "symbol", "contains"}, where)
-    symbol = _text(binding["symbol"], where)
+def _binding(binding: dict[str, Any], bundle: sailbundle.Bundle,
+             substitutions: dict[str, str], where: str) -> None:
+    symbol = binding["symbol"]
     kind = binding["kind"]
     if kind == "function":
         source = _function(bundle, symbol)
     elif kind == "let":
         source = bundle.let_text(symbol)
-    elif kind == "type":
+    else:  # The schema admits exactly function, let and type bindings.
         source = bundle.type_text(symbol)
-    else:
-        raise RegisterError(f"{where}: unsupported binding kind {kind!r}")
-    template = _text(binding["contains"], where)
+    template = binding["contains"]
     for key, value in substitutions.items():
         template = template.replace("${" + key + "}", value)
     if "${" in template:
@@ -172,15 +140,13 @@ def _binding(node: Json, bundle: sailbundle.Bundle, substitutions: dict[str, str
         raise RegisterError(f"{where}: declared layout does not match {symbol}: {template}")
 
 
-def _fields(raw: Json, bundle: sailbundle.Bundle, where: str, *, views: bool) -> tuple[Field, ...]:
+def _fields(raw: list[dict[str, Any]], bundle: sailbundle.Bundle,
+            where: str, *, views: bool) -> tuple[Field, ...]:
     result: list[Field] = []
     occupied = 0
-    for value in _array(raw, where):
-        node = _object(value, where)
-        _keys(node, {"name", "lsb", "width", "bindings"}, where)
-        field = Field(_name(node["name"], where), _number(node["lsb"], where),
-                      _number(node["width"], where))
-        if field.width == 0 or field.lsb + field.width > 64:
+    for node in raw:
+        field = Field(node["name"], node["lsb"], node["width"])
+        if field.lsb + field.width > 64:
             raise RegisterError(f"{where}.{field.name}: field outside the 64-bit word")
         if any(previous.name == field.name for previous in result):
             raise RegisterError(f"{where}.{field.name}: field declared twice")
@@ -191,11 +157,8 @@ def _fields(raw: Json, bundle: sailbundle.Bundle, where: str, *, views: bool) ->
         substitutions = {"lsb": str(field.lsb), "width": str(field.width),
                          "high": str(field.lsb + field.width - 1),
                          "mask64": f"0x{mask:016x}"}
-        bindings = _array(node["bindings"], where)
-        if not bindings:
-            raise RegisterError(f"{where}.{field.name}: no model correspondence")
-        templates = " ".join(_text(_object(binding, where).get("contains"), where)
-                             for binding in bindings)
+        bindings = node["bindings"]
+        templates = " ".join(binding["contains"] for binding in bindings)
         if "${lsb}" not in templates and "${mask64}" not in templates and field.lsb != 0:
             raise RegisterError(f"{where}.{field.name}: an unshifted source field must start at bit zero")
         if not any(marker in templates for marker in ("${width}", "${high}", "${mask64}")) and field.width != 1:
@@ -209,12 +172,13 @@ def _fields(raw: Json, bundle: sailbundle.Bundle, where: str, *, views: bool) ->
 def read(root: Path, bundle: sailbundle.Bundle | None = None) -> Layout:
     """Read the declaration and refuse missing devices, coverage, or correspondence."""
     try:
-        raw = cast(Json, json.loads((root / DECLARATION).read_text(encoding="utf-8"),
-                                    object_pairs_hook=_pairs))
-        top = _object(raw, DECLARATION)
-        _keys(top, {"schema", "platform", "harness", "reviewed_functions", "reviewed_layout_sha256"}, DECLARATION)
-        if type(top["schema"]) is not int or top["schema"] != 1:
-            raise RegisterError("unsupported register-description schema")
+        raw: object = json.loads((root / DECLARATION).read_text(encoding="utf-8"),
+                                 object_pairs_hook=_pairs)
+        try:
+            validate(root / SCHEMA, raw)
+        except ValueError as error:
+            raise RegisterError(str(error)) from error
+        top = cast(dict[str, Any], raw)
         if bundle is None:
             bundle = sailbundle.load(root)
         if bundle is None:
@@ -226,7 +190,7 @@ def read(root: Path, bundle: sailbundle.Bundle | None = None) -> Layout:
             current = hashlib.md5((root / path).read_bytes(), usedforsecurity=False).hexdigest()
             if owners.get(path) != current:
                 raise RegisterError(f"{path}: model bundle is stale; regenerate before checking layouts")
-        review = _object(top["reviewed_functions"], "reviewed_functions")
+        review = top["reviewed_functions"]
         platform = (root / PLATFORM).read_text(encoding="utf-8")
         # Names are not reparsed as Sail definitions: this scan closes the reviewed
         # function roster; their bodies come only from the established bundle reader.
@@ -243,39 +207,23 @@ def read(root: Path, bundle: sailbundle.Bundle | None = None) -> Layout:
         composed = _object(composition.get("platform"), "composition.platform")
         apertures = {key for key, node in composed.items() if isinstance(node, dict)
                      and isinstance(node.get("supported"), bool) and type(node.get("base")) is int}
-        declarations = _object(top["platform"], "platform")
+        declarations = top["platform"]
         if set(declarations) != apertures:
             raise RegisterError(f"device coverage differs: missing {sorted(apertures - set(declarations))}; "
                                 f"extra {sorted(set(declarations) - apertures)}")
-        harness = _object(top["harness"], "harness")
-        if set(harness) != {"htif"}:
-            raise RegisterError("harness must describe exactly the model's HTIF port")
+        harness = top["harness"]
         if top["reviewed_layout_sha256"] != coverage_fingerprint(declarations, harness):
             raise RegisterError("declaration changed: review complete field coverage against the modeled readers")
         result: list[Device] = []
-        for key, value in (*declarations.items(), *harness.items()):
-            _name(key, "device")
-            node = _object(value, key)
-            _keys(node, {"kind", "rationale", "registers"}, key)
-            kind = _text(node["kind"], key)
-            if kind not in {"registers", "refused", "memory", "external"}:
-                raise RegisterError(f"{key}: unknown device kind")
+        for key, node in (*declarations.items(), *harness.items()):
+            kind = node["kind"]
             registers: list[Register] = []
-            for raw_register in _array(node["registers"], key):
-                reg = _object(raw_register, key)
-                _keys(reg, {"name", "offset", "access", "repeat", "bindings", "fields", "views"}, key)
-                name = _name(reg["name"], key)
-                offset = _number(reg["offset"], name)
-                access = _text(reg["access"], name)
-                if access not in {"ro", "wo", "rw", "command"} or offset % 8:
-                    raise RegisterError(f"{key}.{name}: invalid access or unaligned register")
+            for reg in node["registers"]:
+                name, offset, access = reg["name"], reg["offset"], reg["access"]
                 if any(old.name == name or old.offset == offset for old in registers):
                     raise RegisterError(f"{key}.{name}: duplicate register name or offset")
-                bindings = _array(reg["bindings"], name)
-                if not bindings:
-                    raise RegisterError(f"{key}.{name}: no register model correspondence")
-                templates = " ".join(_text(_object(binding, name).get("contains"), name)
-                                     for binding in bindings)
+                bindings = reg["bindings"]
+                templates = " ".join(binding["contains"] for binding in bindings)
                 if "${offset" not in templates and offset != 0:
                     raise RegisterError(f"{key}.{name}: a base-relative source binding must have offset zero")
                 for binding in bindings:
@@ -283,17 +231,13 @@ def read(root: Path, bundle: sailbundle.Bundle | None = None) -> Layout:
                                                "offset_hex3": f"0x{offset:03x}"}, name)
                 fields = _fields(reg["fields"], bundle, f"{key}.{name}", views=False)
                 views = _fields(reg["views"], bundle, f"{key}.{name}.views", views=True)
-                if bool(fields) == (access == "command") or (access == "command" and views):
-                    raise RegisterError(f"{key}.{name}: only argument-free commands have no fields")
                 declared_mask = sum(field.mask << field.lsb for field in fields)
                 if any((view.mask << view.lsb) & ~declared_mask for view in views):
                     raise RegisterError(f"{key}.{name}: view extends outside declared fields")
                 if {field.name for field in fields} & {field.name for field in views}:
                     raise RegisterError(f"{key}.{name}: field and view names collide")
-                registers.append(Register(name, offset, access, _text(reg["repeat"], name), fields, views))
-            if bool(registers) != (kind == "registers"):
-                raise RegisterError(f"{key}: device kind disagrees with register presence")
-            result.append(Device(key, kind, _text(node["rationale"], key), tuple(registers)))
+                registers.append(Register(name, offset, access, reg["repeat"], fields, views))
+            result.append(Device(key, kind, node["rationale"], tuple(registers)))
         layout = Layout(tuple(result))
         names = [name for name, _field in layout.fields]
         if not names or len(set(names)) != len(names):

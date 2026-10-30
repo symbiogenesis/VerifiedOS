@@ -2,6 +2,14 @@
     "cmake.sourceDirectory": "${workspaceFolder}/model",
     "json.schemas": [
         {
+            "fileMatch": ["/interfaces/device-registers.json"],
+            "url": "./interfaces/device-registers.schema.json"
+        },
+        {
+            "fileMatch": ["/interfaces/wire-formats.json"],
+            "url": "./interfaces/wire-formats.schema.json"
+        },
+        {
             "fileMatch": ["/tools/development-tools.json"],
             "url": "./tools/development-tools.schema.json"
         },

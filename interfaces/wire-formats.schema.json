@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Reviewed wire-format inventory declarations",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "reviewed_row10_sha256", "classes", "entries"],
+  "properties": {
+    "schema": {"type": "integer", "const": 1},
+    "reviewed_row10_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}(?![\\s\\S])"},
+    "classes": {"type": "object", "additionalProperties": {"$ref": "#/$defs/text"}},
+    "entries": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/entry"}}
+  },
+  "$defs": {
+    "text": {
+      "type": "string",
+      "allOf": [{"pattern": "\\S"}, {"pattern": "^[^\\r\\n|]*(?![\\s\\S])"}]
+    },
+    "strings": {"type": "array", "uniqueItems": true, "items": {"$ref": "#/$defs/text"}},
+    "entry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "name", "classes", "requirements", "owner", "descriptor", "transcription", "canonicity", "evidence", "references", "members_from"],
+      "properties": {
+        "id": {"type": "string", "pattern": "^[a-z][a-z0-9-]*(?![\\s\\S])"},
+        "name": {"$ref": "#/$defs/text"},
+        "classes": {"$ref": "#/$defs/strings"},
+        "requirements": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"type": "string", "pattern": "^R-\\d+-\\d+[a-z]*(?![\\s\\S])"}
+        },
+        "owner": {"$ref": "#/$defs/text"},
+        "descriptor": {"const": "absent"},
+        "transcription": {"enum": ["none authored", "NAS grammar required", "reference codec only"]},
+        "canonicity": {"$ref": "#/$defs/text"},
+        "evidence": {"$ref": "#/$defs/text"},
+        "references": {"$ref": "#/$defs/strings"},
+        "members_from": {"oneOf": [{"type": "null"}, {"$ref": "#/$defs/member_table"}]}
+      }
+    },
+    "member_table": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "heading", "until"],
+      "properties": {
+        "path": {"$ref": "#/$defs/text"},
+        "heading": {"$ref": "#/$defs/text"},
+        "until": {"$ref": "#/$defs/text"}
+      }
+    }
+  }
+}
