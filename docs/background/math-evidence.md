@@ -47,7 +47,7 @@ Evidence stage: **independent replay**. Disposition: **evaluate now**. Inspected
 Selected sources:
 
 - [tools/vos/composer.py](../../tools/vos/composer.py); identity `199093c62f8cb3ac5d385bb0a074811661df4a66aaa3328fab439f252de022e0`.
-- [proofs/HandlerGraph.v](../../proofs/HandlerGraph.v); identity `2353a27a43e88f37484450335df834ba945bae2900055e94777e06189a02dfcd`.
+- [proofs/HandlerGraph.v](../../proofs/HandlerGraph.v); identity `f6780f1934ff0a4e80ee4cec1df0dc98dd6a2e709067404c9e3305b90e746f27`.
 
 Assumptions and exclusions:
 
@@ -300,7 +300,7 @@ Sorted reference payload SHA-256: `23b690105f12b96f3ef7a997cf508a5b775e70bcaf077
 | [tools/vos/proofs.py](../../tools/vos/proofs.py) | `fb53cdb3b596ee5918c6c4111c1f247f157e6ec0ae5dd8a1b4cbf244ca3e8e8c` |
 | [tools/vos/prooflex.py](../../tools/vos/prooflex.py) | `d3cc29a77d0f9b214afeaa4bb7b54a8ffefac77e04bc7881ff5d25f237731913` |
 | [tools/vos/composer.py](../../tools/vos/composer.py) | `199093c62f8cb3ac5d385bb0a074811661df4a66aaa3328fab439f252de022e0` |
-| [proofs/HandlerGraph.v](../../proofs/HandlerGraph.v) | `2353a27a43e88f37484450335df834ba945bae2900055e94777e06189a02dfcd` |
+| [proofs/HandlerGraph.v](../../proofs/HandlerGraph.v) | `f6780f1934ff0a4e80ee4cec1df0dc98dd6a2e709067404c9e3305b90e746f27` |
 | [tools/vos/math_evidence.py](../../tools/vos/math_evidence.py) | `03470df2ecb081d31c94895714038514855075b19a2bae7e1c242dd550dfc566` |
 
 Before adopting a compact dictionary, name a real consumer, record its table shapes and access trace or justified query distribution, compare sorted arrays and generated perfect hashing, and declare finite byte/work thresholds. Construction and any randomized seed need their own bounds. Timing comparisons and benchmarks run on CI. Dynamic service indexes separately owe update, exhaustion and recovery behavior.

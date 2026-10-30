@@ -36,7 +36,7 @@
     },
     {
       "path": "proofs/AdmissionPath.v",
-      "sha256": "acb3d68026bfd38df2a4fed05efabbea6eea4929e370d112b28929c437ffd539"
+      "sha256": "a68f14ad86ee7a7eb5c37d6b90c1b6be163f1d5161e27a6f6aeeff2c215a6f87"
     },
     {
       "path": "tools/vos/admission_production.py",

@@ -36,7 +36,7 @@
     },
     {
       "path": "proofs/HandlerGraph.v",
-      "sha256": "2353a27a43e88f37484450335df834ba945bae2900055e94777e06189a02dfcd"
+      "sha256": "f6780f1934ff0a4e80ee4cec1df0dc98dd6a2e709067404c9e3305b90e746f27"
     },
     {
       "path": "tools/vos/composition.py",
