@@ -83,7 +83,7 @@ def _baseline_imports_share_repository_owners() -> None:
     # A tiny fake implementation exercises four worker launches, not a benchmark
     # of the repository checker or any native-sized retained evidence.
     files = {
-        ".gitignore": "/out/\n",
+        ".gitignore": "/out/\n__pycache__/\n",
         "docs/requirements-register.md": "owner marker\n",
         "owned.txt": "the common owner\n",
         "tools/check.py": (
@@ -103,12 +103,15 @@ def _baseline_imports_share_repository_owners() -> None:
     }
     with sandbox_tree(files) as root:
         command = ["git", "-C", str(root), "-c", "user.name=Fixture",
-                   "-c", "user.email=fixture@example.invalid", "commit", "-qm"]
-        subprocess.run([*command, "baseline"], check=True)
+                   "-c", "user.email=fixture@example.invalid", "commit", "--quiet"]
+        subprocess.run([*command, "-m", "baseline"], check=True)
         base = subprocess.check_output(["git", "-C", str(root), "rev-parse", "HEAD"], text=True).strip()
-        subprocess.run([*command, "--allow-empty", "candidate"], check=True)
+        subprocess.run([*command, "--allow-empty", "-m", "candidate"], check=True)
         output = root / "out/result.json"
-        benchmark.compare(root, base, output, 2)
+        # Simulate the hosted boundary only for this isolated tiny fake checker;
+        # no repository checker or retained native input is reachable here.
+        with patch.dict(os.environ, {"GITHUB_ACTIONS": "true"}):
+            benchmark.compare(root, base, output, 2)
         result = json.loads(output.read_text(encoding="utf-8"))
         ensure(result["report_identical"] and all(len(rows) == 2 for rows in result["samples"].values()),
                "archived baseline imports must resolve the same repository owners in every worker")
