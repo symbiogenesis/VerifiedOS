@@ -1,0 +1,74 @@
+{
+  "baseline_revision": "b00b601d3e3f432a41a0f451f826d0bc8c12b751",
+  "candidate_revision": "c3e06963260635dac2100bb63e5721b7069fdec2",
+  "corpus_revision": "c3e06963260635dac2100bb63e5721b7069fdec2",
+  "indexed_inputs_sha256": "3f5341f51f202cc92dd2f07bae92bf0583ee6d1380fdf099a42aaa6c75064689",
+  "python": "3.14.9 (main, Oct 21 2026, 14:48:41) [GCC 15.2.0]",
+  "platform": "Linux-7.0.0-1017-azure-x86_64-with-glibc2.43",
+  "workers": 1,
+  "repetitions": 2,
+  "command": [
+    "tools/ci/runner_benchmark.py",
+    "--base",
+    "b00b601d3e3f432a41a0f451f826d0bc8c12b751",
+    "--output",
+    "/home/runner/work/_temp/performance/runner.json"
+  ],
+  "scope": {
+    "markdown": "complete indexed Markdown command and ordered report",
+    "proof_headers": "complete indexed proof-header repair sweep in private full-corpus sandboxes; exact source and template bytes preserved"
+  },
+  "report_identical": false,
+  "byte_assertions_identical": false,
+  "failure": "CalledProcessError: Command '['/home/runner/work/VerifiedOS/VerifiedOS/tools/out/venv-linux/bin/python', '/home/runner/work/VerifiedOS/VerifiedOS/tools/ci/runner_benchmark.py', '--worker-tools', '/tmp/vos-runner-comparison-annbr8ua/baseline/tools', '--root', '/home/runner/work/VerifiedOS/VerifiedOS', '--kind', 'proof_headers', '--output', '/tmp/vos-runner-comparison-annbr8ua/proof_headers-baseline-0.json']' returned non-zero exit status 1.",
+  "median_component_seconds": {
+    "baseline": {
+      "markdown": 138.411796853,
+      "proof_headers": null
+    },
+    "candidate": {
+      "markdown": 130.519652736,
+      "proof_headers": null
+    }
+  },
+  "samples": {
+    "baseline": {
+      "markdown": [
+        {
+          "component_seconds": 138.411796853,
+          "setup_seconds": 0.4756346869999959,
+          "cpu_seconds": 138.853830711,
+          "peak_rss_kb": 115196.0,
+          "temporary_apparent_bytes": 0,
+          "findings": 0,
+          "report": [
+            "=== markdown: standard table syntax ===",
+            "ok markdown: the pinned MD055 and MD056 checks accept every indexed table"
+          ],
+          "bytes_unchanged": true,
+          "process_seconds": 139.039161058
+        }
+      ],
+      "proof_headers": []
+    },
+    "candidate": {
+      "markdown": [
+        {
+          "component_seconds": 130.519652736,
+          "setup_seconds": 0.09186491699995258,
+          "cpu_seconds": 130.579173636,
+          "peak_rss_kb": 113244.0,
+          "temporary_apparent_bytes": 0,
+          "findings": 0,
+          "report": [
+            "=== markdown: standard table syntax ===",
+            "ok markdown: the pinned MD055 and MD056 checks accept every indexed table"
+          ],
+          "bytes_unchanged": true,
+          "process_seconds": 130.71910944099994
+        }
+      ],
+      "proof_headers": []
+    }
+  }
+}

@@ -145,14 +145,15 @@ Its retained-archive pass shares glyph, pin and lineage facts while consuming al
 gzip members and their integrity checks. Unsupported Unicode and long unfinished
 lines retain the complete pin reader without discarding valid glyph and lineage
 facts. A bounded streaming name check can still establish pin absence on huge
-lines without expanding their full text. Literal substring searches collect candidate regions; ID-free lines do not
-enter the upstream-attribution parser. Archive work moves between groups, so compare the
+lines without expanding their full text. Literal searches with native boundary
+assertions collect candidate regions; ID-free lines do not enter the
+upstream-attribution parser. Archive work moves between groups, so compare the
 complete checker as well as individual group times. Markdown structural readers
 omit unused inline expansion; count readers reuse masks only when their line
 representations agree. Proof-source facts are content-keyed within a context while
 each consumer still acquires current source bytes.
 
-Streaming name boundaries use one compiled literal at a time, with the complete
+Streaming presence and candidate-line boundaries use one compiled literal at a time, with the complete
 literal prefix before its Unicode boundary assertions. This avoids Python visits
 to unbounded substrings such as a project name inside a longer identifier.
 Rejected window-edge matches resume with overlap, and malformed or unsupported
@@ -186,6 +187,12 @@ explicit selection requiring complete retained inputs. These jobs supply no Host
 or Guest CI verdict and do not replace either workflow's handoff.
 Checker and proof-context RSS figures describe their worker process, not the sum
 of its descendants or the full kernel check's residency.
+
+The [retained comparison evidence](../docs/performance/tool-benchmarks-2026-10-30/README.md)
+records the completed runner improvement, proof-context timing limits and rejected
+checker runtime comparisons. A memory reduction alone does not satisfy the
+complete checker runtime predicate. Later scanner revisions require their own
+paired measurement; the earlier records do not establish their speed.
 
 Additional shard changes, duration-based case ordering and new concurrent repair
 sandboxes are not selected: they add scheduling state or concurrent corpus copies

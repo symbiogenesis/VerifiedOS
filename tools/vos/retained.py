@@ -40,15 +40,6 @@ class _Entry:
     facts: Facts
 
 
-def _name_patterns(names: tuple[str, ...]) -> tuple[tuple[str, re.Pattern[str]], ...]:
-    """Keep each full literal prefix before checking its Unicode boundaries."""
-    patterns = []
-    for name in names:
-        literal = re.escape(name)
-        patterns.append((name, re.compile(literal + r"(?<![\w-]" + literal + r")(?!\w)")))
-    return tuple(patterns)
-
-
 def _bounded_name(text: str, patterns: tuple[tuple[str, re.Pattern[str]], ...], *, first: bool, final: bool) -> bool:
     """A candidate with the original pin parser's asymmetric name boundaries."""
     low = text.lower()
@@ -97,7 +88,7 @@ def prescan(blob: bytes, names: tuple[str, ...], sensitive: tuple[bytes, ...],
     if any(not name.isascii() or name != name.lower() or not name
            or "\n" in name or "\r" in name for name in names):
         raise UnsupportedScanError("pin spellings require the complete Unicode reader")
-    name_patterns = _name_patterns(names)
+    name_patterns = pins.name_patterns(names)
     decoder = io.IncrementalNewlineDecoder(codecs.getincrementaldecoder("utf-8")(), True)
     text_tail = ""
     name_tail = ""
@@ -145,7 +136,8 @@ def prescan(blob: bytes, names: tuple[str, ...], sensitive: tuple[bytes, ...],
                             parts.clear()
                             text_tail = ""
                         else:
-                            for index, start, finish in pins.candidate_lines(complete, names, lowered=low):
+                            for index, start, finish in pins.candidate_lines(complete, names, lowered=low,
+                                                                           patterns=name_patterns):
                                 pin_name = True  # candidate_lines establishes the exact name boundary.
                                 line = complete[start:finish]
                                 if pins.ID_RE.search(line) is None:

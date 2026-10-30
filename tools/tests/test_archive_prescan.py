@@ -20,7 +20,7 @@ def _names() -> list[tuple[str, str, pins.Pin]]:
 
 def _compiled_boundaries_match_the_literal_oracle() -> None:
     names = ("core", "core/core", "with.dot", "a+b")
-    patterns = retained._name_patterns(names)
+    patterns = pins.name_patterns(names)
 
     def reference(text: str, first: bool, final: bool) -> bool:
         low = text.lower()
@@ -46,6 +46,17 @@ def _compiled_boundaries_match_the_literal_oracle() -> None:
         for first, final in product((False, True), repeat=2):
             ensure(retained._bounded_name(text, patterns, first=first, final=final)
                    == reference(text, first, final), "overlapping names or dense false prefixes lost a candidate")
+    lines = [before + name + after for before, after, name in product(boundaries, boundaries, names)
+             if "\n" not in before + after]
+    lines.extend(("core_helper " * 200, "core/core/core ", "with.dot_ with.dot ", "a+b a+b"))
+    text = "\n".join(lines)
+    expected = [index for index, line in enumerate(lines) if reference(line, True, True)]
+    for prepared in (None, patterns):
+        actual = list(pins.candidate_lines(text, names, patterns=prepared))
+        ensure([index for index, _, _ in actual] == expected,
+               "candidate-line boundaries differ from the literal oracle")
+        ensure(all(text[start:end] == lines[index] for index, start, end in actual),
+               "candidate-line offsets changed at Unicode or overlapping names")
 
 
 def _pin_boundaries_and_chunks() -> None:

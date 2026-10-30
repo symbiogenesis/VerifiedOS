@@ -263,7 +263,14 @@ def scan_text(file: str, text: str, named: list[tuple[str, str, Pin]]) -> Iterat
     yield from _scan_ids(file, text, named)
 
 
-def candidate_lines(text: str, names: tuple[str, ...], *, lowered: str | None = None
+def name_patterns(names: tuple[str, ...]) -> tuple[tuple[str, re.Pattern[str]], ...]:
+    """Search full literals in C before applying the original name boundaries."""
+    return tuple((name, re.compile(re.escape(name) + r"(?<![\w-]" + re.escape(name) + r")(?!\w)"))
+                 for name in names)
+
+
+def candidate_lines(text: str, names: tuple[str, ...], *, lowered: str | None = None,
+                    patterns: tuple[tuple[str, re.Pattern[str]], ...] | None = None
                     ) -> Iterator[tuple[int, int, int]]:
     """Potential name-bearing lines, preserving original offsets and line indices.
 
@@ -279,22 +286,17 @@ def candidate_lines(text: str, names: tuple[str, ...], *, lowered: str | None = 
     if not any(name in low for name in names):
         return
     spans: set[tuple[int, int]] = set()
-    for name in names:
-        at = low.find(name)
-        while at >= 0:
-            stop = at + len(name)
-            before = low[at - 1] if at else " "
-            after = low[stop] if stop < len(low) else " "
-            if (not (before.isalnum() or before in "_-")
-                    and not (after.isalnum() or after == "_")):
-                start = text.rfind("\n", 0, at) + 1
-                end = text.find("\n", stop)
-                spans.add((start, end if end >= 0 else len(text)))
-                if end < 0:
-                    break
-                at = low.find(name, end + 1)
-            else:
-                at = low.find(name, at + 1)
+    for name, pattern in name_patterns(names) if patterns is None else patterns:
+        if name not in low:
+            continue
+        match = pattern.search(low)
+        while match is not None:
+            start = text.rfind("\n", 0, match.start()) + 1
+            end = text.find("\n", match.end())
+            spans.add((start, end if end >= 0 else len(text)))
+            if end < 0:
+                break
+            match = pattern.search(low, end + 1)
     cursor = index = 0
     for start, end in sorted(spans):
         index += text.count("\n", cursor, start)
