@@ -952,6 +952,32 @@ def _the_sealed_reading_runs_one_framed_query() -> None:
             ensure(bool(fault) and not readings, "an answer missing a name was accepted")
 
 
+def _shared_library_snapshot() -> None:
+    """Repeated ldd rows share a read, while independent snapshots read new bytes."""
+    loaded = ("/native/rocq:\n\tlibc.so.6 => /lib/libc.so.6 (0x1234)\n"
+              "/native/plugin.cmxs:\n\tlibc.so.6 => /lib/libc.so.6 (0x5678)\n"
+              "\t/lib/ld.so (0x9abc)\n")
+    result = subprocess.CompletedProcess(["ldd"], 0, stdout=loaded, stderr="")
+    with patch.object(gate.subprocess, "run", return_value=result), \
+            patch.object(gate.receipts, "digest", side_effect=["first", "loader", "other", "loader"]) as digest:
+        first = gate._shared_libraries(Path(), ["rocq", "plugin.cmxs"])
+        second = gate._shared_libraries(Path(), ["rocq", "plugin.cmxs"])
+        ensure(first == {"/lib/libc.so.6": "first", "/lib/ld.so": "loader"}
+               and second == {"/lib/libc.so.6": "other", "/lib/ld.so": "loader"},
+               "library contents must be reread by each independent context snapshot")
+        ensure([call.args[0] for call in digest.call_args_list]
+               == [Path("/lib/libc.so.6"), Path("/lib/ld.so")] * 2,
+               "every distinct loaded path must be read exactly once per snapshot")
+    with patch.object(gate.subprocess, "run", return_value=result), \
+            patch.object(gate.receipts, "digest", side_effect=OSError("unreadable library")):
+        try:
+            gate._shared_libraries(Path(), ["rocq"])
+        except OSError:
+            pass
+        else:
+            raise AssertionError("an unreadable loaded library became a reusable identity")
+
+
 def _context_hashes_library_bytes() -> None:
     with tempfile.TemporaryDirectory(prefix="vos-proof-context-") as temporary:
         work = Path(temporary)
@@ -1310,6 +1336,7 @@ def cases() -> list[Case]:
             Case("kernel-reading-covers-checked-sealed-fields",
                  _the_compilers_reading_covers_checked_sealed_fields),
             Case("sealed-reading-runs-one-framed-query", _the_sealed_reading_runs_one_framed_query),
+            Case("shared-library-snapshot", _shared_library_snapshot),
             Case("proof-cache-library-identities", _context_hashes_library_bytes, lane="guest"),
             Case("proof-workspace-lock-follows-a-move", _the_lock_follows_a_moved_workspace,
                  lane="guest"),
