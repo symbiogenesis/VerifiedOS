@@ -132,7 +132,7 @@ declares of every pattern here.
 import re
 from typing import TYPE_CHECKING
 
-from vos import checkregistry, figures, toolenv
+from vos import checkregistry
 from vos import commands as command_table
 from vos.cli import provision
 
