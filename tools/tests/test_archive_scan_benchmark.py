@@ -12,7 +12,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from ci import archive_scan_benchmark as benchmark
-from tests.harness import Case, ensure
+from tests.harness import Case, ensure, sandbox_tree
 
 
 def _base_refusals() -> None:
@@ -79,7 +79,43 @@ def _worker_uses_explicit_corpus() -> None:
                "implementation location must not replace the explicit input corpus")
 
 
+def _baseline_imports_share_repository_owners() -> None:
+    # A tiny fake implementation exercises four worker launches, not a benchmark
+    # of the repository checker or any native-sized retained evidence.
+    files = {
+        ".gitignore": "/out/\n",
+        "docs/requirements-register.md": "owner marker\n",
+        "owned.txt": "the common owner\n",
+        "tools/check.py": (
+            "from types import SimpleNamespace\nfrom vos.fixture import ROOT\n"
+            "def run(root, clock):\n"
+            "    if root != ROOT: raise ValueError('different owner root')\n"
+            "    return SimpleNamespace(findings=0,out=[(ROOT/'owned.txt').read_text()])\n"),
+        "tools/vos/__init__.py": "",
+        "tools/vos/fixture.py": (
+            "from pathlib import Path\n"
+            "ROOT=next(p for p in Path(__file__).resolve().parents "
+            "if (p/'.git').exists() and (p/'docs/requirements-register.md').exists())\n"),
+        "tools/vos/timings.py": (
+            "class Clock:\n"
+            "    def __init__(self, **kwargs): pass\n"
+            "    def units(self): return []\n"),
+    }
+    with sandbox_tree(files) as root:
+        command = ["git", "-C", str(root), "-c", "user.name=Fixture",
+                   "-c", "user.email=fixture@example.invalid", "commit", "-qm"]
+        subprocess.run([*command, "baseline"], check=True)
+        base = subprocess.check_output(["git", "-C", str(root), "rev-parse", "HEAD"], text=True).strip()
+        subprocess.run([*command, "--allow-empty", "candidate"], check=True)
+        output = root / "out/result.json"
+        benchmark.compare(root, base, output, 2)
+        result = json.loads(output.read_text(encoding="utf-8"))
+        ensure(result["report_identical"] and all(len(rows) == 2 for rows in result["samples"].values()),
+               "archived baseline imports must resolve the same repository owners in every worker")
+
+
 def cases() -> list[Case]:
     return [Case("base-refusals", _base_refusals),
             Case("hosted-only", _hosted_only),
-            Case("explicit-corpus", _worker_uses_explicit_corpus)]
+            Case("explicit-corpus", _worker_uses_explicit_corpus),
+            Case("baseline-imports-share-owners", _baseline_imports_share_repository_owners)]
