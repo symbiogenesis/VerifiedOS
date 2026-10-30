@@ -398,42 +398,27 @@
    (*| END derived |*)
    ========================================================================= *)
 
+Require ProofSupport.
+
 Require Import CyclicExecutive.
 From Stdlib Require Arith.PeanoNat.
 
 (* -------------------------------------------------------------------------
-   List and boolean helpers, defined here rather than imported: the prelude
-   carries the list type and not the library over it, and importing a
-   module to save a dozen lines would put its assumptions inside the
-   R-05-163 gate's reach for no gain. `all_of` and `count_of` come from the
-   required artifact and are not restated.
+   Shared collection implementations and compatibility lemmas live in
+   ProofSupport. Numeric and domain-specific helpers remain local.
    ------------------------------------------------------------------------- *)
 
-Fixpoint any_of {A : Type} (p : A -> bool) (l : list A) : bool :=
-  match l with
-  | nil => false
-  | cons x r => orb (p x) (any_of p r)
-  end.
+Definition any_of {A : Type} (p : A -> bool) (l : list A) : bool := @ProofSupport.any_of A p l.
 
-Fixpoint map_over {A B : Type} (f : A -> B) (l : list A) : list B :=
-  match l with nil => nil | cons x r => cons (f x) (map_over f r) end.
+Definition map_over {A B : Type} (f : A -> B) (l : list A) : list B := @ProofSupport.map_over A B f l.
 
-Fixpoint filter_of {A : Type} (p : A -> bool) (l : list A) : list A :=
-  match l with
-  | nil => nil
-  | cons x r => if p x then cons x (filter_of p r) else filter_of p r
-  end.
+Definition filter_of {A : Type} (p : A -> bool) (l : list A) : list A := @ProofSupport.filter_of A p l.
 
 (* 0 through n-1, in that order: the index set the roster and the
    generators below range over. *)
-Fixpoint upto (n : nat) : list nat :=
-  match n with
-  | 0 => nil
-  | S k => app (upto k) (cons k nil)
-  end.
+Definition upto (n : nat) : list nat := @ProofSupport.upto n.
 
-Definition before_last (n : nat) : nat :=
-  match n with 0 => 0 | S k => k end.
+Definition before_last (n : nat) : nat := @ProofSupport.before_last n.
 
 (* The nth member of a list, or the declared fallback past its end. What
    the fallback is for is reading a per-region declaration at an index the
@@ -454,21 +439,17 @@ Fixpoint occurrences (u : nat) (l : list nat) : nat :=
 
 (* Implication as a boolean, written out rather than taken from a library
    for the reason above. *)
-Definition only_if (a b : bool) : bool := orb (negb a) b.
+Definition only_if (a b : bool) : bool := @ProofSupport.only_if a b.
 
 Lemma andb_split : forall a b : bool, andb a b = true -> a = true /\ b = true.
-Proof.
-  intros a b H. destruct a; destruct b; try discriminate H; split; reflexivity.
-Qed.
+Proof. exact ProofSupport.andb_split. Qed.
 
 Lemma andb_join : forall a b : bool, a = true -> b = true -> andb a b = true.
-Proof. intros a b Ha Hb. rewrite Ha. rewrite Hb. reflexivity. Qed.
+Proof. exact ProofSupport.andb_join. Qed.
 
 Lemma only_if_elim :
   forall a b : bool, only_if a b = true -> a = true -> b = true.
-Proof.
-  intros a b H Ha. rewrite Ha in H. exact H.
-Qed.
+Proof. exact ProofSupport.only_if_elim. Qed.
 
 (* And the other direction, which is what a completeness proof needs: a
    boolean implication holds wherever the implication does. *)
@@ -490,23 +471,12 @@ Qed.
 Lemma all_of_app :
   forall (A : Type) (p : A -> bool) (l r : list A),
     all_of p (app l r) = true -> all_of p l = true /\ all_of p r = true.
-Proof.
-  intros A p l r. induction l as [ | x s IH ]; intros H.
-  - split; [ reflexivity | exact H ].
-  - simpl in H. destruct (andb_split _ _ H) as [ Hx Hs ].
-    destruct (IH Hs) as [ Hl Hr ]. split; [ | exact Hr ].
-    simpl. apply andb_join; [ exact Hx | exact Hl ].
-Qed.
+Proof. exact ProofSupport.all_of_app. Qed.
 
 Lemma all_of_app_join :
   forall (A : Type) (p : A -> bool) (l r : list A),
     all_of p l = true -> all_of p r = true -> all_of p (app l r) = true.
-Proof.
-  intros A p l r. induction l as [ | x s IH ]; intros Hl Hr.
-  - exact Hr.
-  - simpl in Hl. destruct (andb_split _ _ Hl) as [ Hx Hs ].
-    simpl. apply andb_join; [ exact Hx | exact (IH Hs Hr) ].
-Qed.
+Proof. exact ProofSupport.all_of_app_join. Qed.
 
 Lemma any_of_app_true :
   forall (A : Type) (p : A -> bool) (l r : list A),
@@ -2762,31 +2732,14 @@ Qed.
 (* Transpose the adjacent pair at n. Over the class vector this is two
    regions swapping classes, which is the placement error R-15-247j names;
    over the placement list it is a reordering no entry forbids (reading 6). *)
-Fixpoint swap_at {A : Type} (n : nat) (l : list A) : list A :=
-  match n, l with
-  | 0, cons a (cons b r) => cons b (cons a r)
-  | 0, _ => l
-  | S k, cons a r => cons a (swap_at k r)
-  | S _, nil => nil
-  end.
+Definition swap_at {A : Type} (n : nat) (l : list A) : list A := @ProofSupport.swap_at A n l.
 
 (* Delete the entry at n: over the placement list, a region of the roster
    no line item claims. *)
-Fixpoint drop_at {A : Type} (n : nat) (l : list A) : list A :=
-  match n, l with
-  | 0, cons _ r => r
-  | 0, nil => nil
-  | S k, cons a r => cons a (drop_at k r)
-  | S _, nil => nil
-  end.
+Definition drop_at {A : Type} (n : nat) (l : list A) : list A := @ProofSupport.drop_at A n l.
 
 (* Place one region a second time: two line items claiming one region. *)
-Fixpoint insert_at {A : Type} (n : nat) (x : A) (l : list A) : list A :=
-  match n, l with
-  | 0, _ => cons x l
-  | S k, cons a r => cons a (insert_at k x r)
-  | S _, nil => cons x nil
-  end.
+Definition insert_at {A : Type} (n : nat) (x : A) (l : list A) : list A := @ProofSupport.insert_at A n x l.
 
 Definition transpositions {A : Type} (l : list A) : list (list A) :=
   map_over (fun n => swap_at n l) (upto (before_last (count_of l))).

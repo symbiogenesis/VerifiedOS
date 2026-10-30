@@ -1,7 +1,15 @@
 (* SPDX-License-Identifier: Apache-2.0 *)
-(* Shared constructive collections and sequence laws. This module imports only
+(* =========================================================================
+   ProofSupport.v
+
+   Shared constructive collections and sequence laws. This module imports only
    the Rocq prelude. Clients retain their public names as convertible aliases;
-   distinct enumeration and out-of-range policies remain explicit. *)
+   distinct enumeration and out-of-range policies remain explicit.
+
+   R-05-163's assumption audit covers the shared laws. Concrete boundary
+   examples preserve the inhabitation and refusal evidence of R-05-165 and
+   R-05-166 without adding a domain-specific assumption.
+   ========================================================================= *)
 
 Open Scope list_scope.
 
@@ -88,7 +96,7 @@ Definition bool_eqb (a b : bool) : bool :=
   end.
 
 Definition is_some {A : Type} (o : option A) : bool :=
-  if o is Some _ then true else false.
+  match o with None => false | Some _ => true end.
 
 Definition map_option {A B : Type} (f : A -> B) (o : option A) : option B :=
   match o with None => None | Some x => Some (f x) end.

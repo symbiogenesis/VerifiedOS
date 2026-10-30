@@ -36,10 +36,9 @@
    file's original ASR checker remains the stricter seal-erased predicate; it
    cannot qualify exported switcher sentries on its own.
 
-   No Require. Nothing beyond the Coq prelude is reachable, so Classical
+   Only the shared prelude-only support is required, so Classical
    and FunctionalExtensionality are unavailable and every state equality
-   below is stated pointwise for that reason. A Require naming a sibling
-   artifact would be admissible and there is none to name: PartitionContext
+   below is stated pointwise for that reason. Domain-specific sibling artifacts remain independent: PartitionContext
    .v speaks about the partition switch, which is R-07-015's obligation on
    the resident kernel and not on the firmware, and ApexTheorem.v's
    init_realizes_topology is a Prop field of a record this file does not
@@ -194,11 +193,11 @@
    ========================================================================= *)
 
 (* -------------------------------------------------------------------------
-   Booleans and lists, defined here rather than imported: the prelude
-   carries the list type and not the library over it, and importing a module
-   to save a page would put its assumptions inside the R-05-163 gate's reach
-   for no gain.
+   Shared collection implementations and compatibility lemmas live in
+   ProofSupport. Numeric and domain-specific helpers remain local.
    ------------------------------------------------------------------------- *)
+
+Require ProofSupport.
 
 Definition bool_eqb (a b : bool) : bool := if a then b else negb b.
 
@@ -209,10 +208,10 @@ Lemma bool_eqb_sound : forall a b : bool, bool_eqb a b = true -> a = b.
 Proof. intros [ | ] [ | ] H; try discriminate H; reflexivity. Qed.
 
 Lemma andb_split : forall a b : bool, andb a b = true -> a = true /\ b = true.
-Proof. intros [ | ] [ | ] H; try discriminate H; split; reflexivity. Qed.
+Proof. exact ProofSupport.andb_split. Qed.
 
 Lemma andb_join : forall a b : bool, a = true -> b = true -> andb a b = true.
-Proof. intros a b Ha Hb. rewrite Ha. rewrite Hb. reflexivity. Qed.
+Proof. exact ProofSupport.andb_join. Qed.
 
 Lemma orb_split : forall a b : bool, orb a b = true -> a = true \/ b = true.
 Proof.
@@ -235,68 +234,32 @@ Proof. intros [ | ] [ | ] H; try reflexivity. discriminate (H eq_refl). Qed.
 Lemma andb_absorb : forall a b : bool, (a = true -> b = true) -> andb a b = a.
 Proof. intros [ | ] [ | ] H; try reflexivity. discriminate (H eq_refl). Qed.
 
-Fixpoint all_of {A : Type} (p : A -> bool) (l : list A) : bool :=
-  match l with
-  | nil => true
-  | cons x r => andb (p x) (all_of p r)
-  end.
+Definition all_of {A : Type} (p : A -> bool) (l : list A) : bool := @ProofSupport.all_of A p l.
 
-Fixpoint any_of {A : Type} (p : A -> bool) (l : list A) : bool :=
-  match l with
-  | nil => false
-  | cons x r => orb (p x) (any_of p r)
-  end.
+Definition any_of {A : Type} (p : A -> bool) (l : list A) : bool := @ProofSupport.any_of A p l.
 
-Fixpoint count_of {A : Type} (l : list A) : nat :=
-  match l with nil => 0 | cons _ r => S (count_of r) end.
+Definition count_of {A : Type} (l : list A) : nat := @ProofSupport.count_of A l.
 
-Fixpoint map_over {A B : Type} (f : A -> B) (l : list A) : list B :=
-  match l with nil => nil | cons x r => cons (f x) (map_over f r) end.
+Definition map_over {A B : Type} (f : A -> B) (l : list A) : list B := @ProofSupport.map_over A B f l.
 
-Fixpoint filter_of {A : Type} (p : A -> bool) (l : list A) : list A :=
-  match l with
-  | nil => nil
-  | cons x r => if p x then cons x (filter_of p r) else filter_of p r
-  end.
+Definition filter_of {A : Type} (p : A -> bool) (l : list A) : list A := @ProofSupport.filter_of A p l.
 
 (* 0 through n-1, in that order: the index set the plan generators range
    over. *)
-Fixpoint upto (n : nat) : list nat :=
-  match n with
-  | 0 => nil
-  | S k => app (upto k) (cons k nil)
-  end.
+Definition upto (n : nat) : list nat := @ProofSupport.upto n.
 
 (* Delete the member at n: an edge the plan carries and the installer does
    not. *)
-Fixpoint drop_at {A : Type} (n : nat) (l : list A) : list A :=
-  match n, l with
-  | 0, cons _ r => r
-  | 0, nil => nil
-  | S k, cons a r => cons a (drop_at k r)
-  | S _, nil => nil
-  end.
+Definition drop_at {A : Type} (n : nat) (l : list A) : list A := @ProofSupport.drop_at A n l.
 
 (* Insert x at n: an edge the installer carries and the plan does not. *)
-Fixpoint insert_at {A : Type} (n : nat) (x : A) (l : list A) : list A :=
-  match n, l with
-  | 0, _ => cons x l
-  | S k, cons a r => cons a (insert_at k x r)
-  | S _, nil => cons x nil
-  end.
+Definition insert_at {A : Type} (n : nat) (x : A) (l : list A) : list A := @ProofSupport.insert_at A n x l.
 
 Lemma all_of_mono :
   forall (A : Type) (p q : A -> bool) (l : list A),
     (forall x : A, p x = true -> q x = true) ->
     all_of p l = true -> all_of q l = true.
-Proof.
-  intros A p q l Himp. induction l as [ | x r IH ]; intros H.
-  - reflexivity.
-  - simpl in H. destruct (andb_split (p x) (all_of p r) H) as [ Hx Hr ].
-    simpl. apply andb_join.
-    + exact (Himp x Hx).
-    + exact (IH Hr).
-Qed.
+Proof. exact ProofSupport.all_of_mono. Qed.
 
 Lemma all_of_of_forall :
   forall (A : Type) (q : A -> bool) (l : list A),

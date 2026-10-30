@@ -369,6 +369,8 @@
    (*| END derived |*)
    ========================================================================= *)
 
+Require ProofSupport.
+
 Require Import JournalIndex.
 
 (* -------------------------------------------------------------------------
@@ -401,11 +403,7 @@ Definition opt_eqb (a b : option nat) : bool :=
 Lemma opt_eqb_refl : forall a : option nat, opt_eqb a a = true.
 Proof. intros a. destruct a as [ x | ]; [ exact (nat_eqb_refl x) | reflexivity ]. Qed.
 
-Fixpoint filter_of {A : Type} (p : A -> bool) (l : list A) : list A :=
-  match l with
-  | nil => nil
-  | cons x r => if p x then cons x (filter_of p r) else filter_of p r
-  end.
+Definition filter_of {A : Type} (p : A -> bool) (l : list A) : list A := @ProofSupport.filter_of A p l.
 
 (* Every prefix of a list, from the empty one to the whole: the crash-point
    generator of JournalIndex.v taken off `Rec` so that a delta stream and a
@@ -458,11 +456,7 @@ Qed.
 
 Lemma all_of_filter :
   forall (A : Type) (p : A -> bool) (l : list A), all_of p (filter_of p l) = true.
-Proof.
-  intros A p l. induction l as [ | x r IH ].
-  - reflexivity.
-  - simpl. destruct (p x) eqn:E; [ simpl; rewrite E; exact IH | exact IH ].
-Qed.
+Proof. exact ProofSupport.all_of_filter. Qed.
 
 Lemma filter_of_app :
   forall (A : Type) (p : A -> bool) (l r : list A),

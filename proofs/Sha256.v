@@ -37,7 +37,7 @@
    reference carries no distribution of any kind. So nothing here is a
    shipped primitive under R-05-059.
 
-   No Require. Nothing beyond the Rocq prelude is reachable, so there is no
+   Only the shared prelude-only support is required, so there is no
    Z, no N, no String and no List library: `map`, `nth`, `firstn`, `skipn`,
    `seq`, `rev`, `repeat`, `fold_left`, `filter` and `concat` are authored
    below in the idiom Keccak.v and AesGcm.v author theirs in. An assumption
@@ -242,6 +242,8 @@
    (*| END derived |*)
    ========================================================================= *)
 
+Require ProofSupport.
+
 Open Scope list_scope.
 
 (* An equality closed by one evaluation. `vm_compute. reflexivity.` evaluates
@@ -252,8 +254,8 @@ Local Ltac vm_reflexivity :=
   intros; lazymatch goal with |- _ = ?b => vm_cast_no_check (@eq_refl _ b) end.
 
 (* -------------------------------------------------------------------------
-   List helpers, authored rather than imported: the prelude carries the list
-   type and not the library over it.
+   Shared collection implementations and compatibility lemmas live in
+   ProofSupport. Numeric and domain-specific helpers remain local.
    ------------------------------------------------------------------------- *)
 
 Fixpoint map_over {A B : Type} (f : A -> B) (l : list A) : list B :=
@@ -262,57 +264,36 @@ Fixpoint map_over {A B : Type} (f : A -> B) (l : list A) : list B :=
 Fixpoint length_of {A : Type} (l : list A) : nat :=
   match l with nil => 0 | _ :: r => S (length_of r) end.
 
-Fixpoint take_of {A : Type} (n : nat) (l : list A) : list A :=
-  match n with
-  | 0 => nil
-  | S k => match l with nil => nil | x :: r => x :: take_of k r end
-  end.
+Definition take_of {A : Type} (n : nat) (l : list A) : list A := @ProofSupport.take_of A n l.
 
-Fixpoint drop_of {A : Type} (n : nat) (l : list A) : list A :=
-  match n with
-  | 0 => l
-  | S k => match l with nil => nil | _ :: r => drop_of k r end
-  end.
+Definition drop_of {A : Type} (n : nat) (l : list A) : list A := @ProofSupport.drop_of A n l.
 
-Fixpoint nth_of {A : Type} (n : nat) (l : list A) (d : A) : A :=
-  match l with
-  | nil => d
-  | x :: r => match n with 0 => x | S k => nth_of k r d end
-  end.
+Definition nth_of {A : Type} (n : nat) (l : list A) (d : A) : A := @ProofSupport.nth_of A n l d.
 
 (* The one out-of-range answer this file relies on, named once so that it is
    a decision rather than a default repeated at twenty sites. *)
 Definition bit_at (l : list bool) (i : nat) : bool := nth_of i l false.
 
-Fixpoint rev_onto {A : Type} (l acc : list A) : list A :=
-  match l with nil => acc | x :: r => rev_onto r (x :: acc) end.
+Definition rev_onto {A : Type} (l acc : list A) : list A := @ProofSupport.rev_onto A l acc.
 
 Definition rev_of {A : Type} (l : list A) : list A := rev_onto l nil.
 
-Fixpoint repeat_of {A : Type} (n : nat) (x : A) : list A :=
-  match n with 0 => nil | S k => x :: repeat_of k x end.
+Definition repeat_of {A : Type} (n : nat) (x : A) : list A := @ProofSupport.repeat_of A n x.
 
 (* start through start + count - 1, built by a downward count rather than by
    appending one element at a time, an append per element being quadratic. *)
-Fixpoint up_from (start count : nat) : list nat :=
-  match count with 0 => nil | S k => start :: up_from (S start) k end.
+Definition up_from (start count : nat) : list nat := @ProofSupport.up_from start count.
 
 Definition upto (n : nat) : list nat := up_from 0 n.
 
-Fixpoint fold_over {A B : Type} (f : B -> A -> B) (acc : B) (l : list A) : B :=
-  match l with nil => acc | x :: r => fold_over f (f acc x) r end.
+Definition fold_over {A B : Type} (f : B -> A -> B) (acc : B) (l : list A) : B := @ProofSupport.fold_over A B f acc l.
 
-Fixpoint concat_of {A : Type} (l : list (list A)) : list A :=
-  match l with nil => nil | x :: r => x ++ concat_of r end.
+Definition concat_of {A : Type} (l : list (list A)) : list A := @ProofSupport.concat_of A l.
 
 Fixpoint all_of {A : Type} (p : A -> bool) (l : list A) : bool :=
   match l with nil => true | x :: r => andb (p x) (all_of p r) end.
 
-Fixpoint count_where {A : Type} (p : A -> bool) (l : list A) : nat :=
-  match l with
-  | nil => 0
-  | x :: r => if p x then S (count_where p r) else count_where p r
-  end.
+Definition count_where {A : Type} (p : A -> bool) (l : list A) : nat := @ProofSupport.count_where A p l.
 
 Fixpoint zip_with {A B C : Type} (f : A -> B -> C) (a : list A) (b : list B) : list C :=
   match a with

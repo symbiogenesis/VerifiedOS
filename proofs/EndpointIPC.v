@@ -68,7 +68,7 @@
    the citation of the entry that places it, and an index would put those
    citations on numbers.
 
-   No Require. Nothing beyond the Rocq prelude is reachable, so Classical
+   Only the shared prelude-only support is required, so Classical
    and FunctionalExtensionality are unavailable and every equality below is
    stated pointwise or over a decidable boolean for that reason. A Require
    naming a sibling artifact would be admissible, and there is none to
@@ -358,53 +358,34 @@
    ========================================================================= *)
 
 (* -------------------------------------------------------------------------
-   List, boolean and numeric helpers, defined here rather than imported:
-   the prelude carries the list type and not the library over it, and
-   importing a module to save a few dozen lines would put its assumptions
-   inside the R-05-163 gate's reach for no gain.
+   Shared collection implementations and compatibility lemmas live in
+   ProofSupport. Numeric and domain-specific helpers remain local.
    ------------------------------------------------------------------------- *)
 
-Fixpoint all_of {A : Type} (p : A -> bool) (l : list A) : bool :=
-  match l with
-  | nil => true
-  | cons x r => andb (p x) (all_of p r)
-  end.
+Require ProofSupport.
 
-Fixpoint any_of {A : Type} (p : A -> bool) (l : list A) : bool :=
-  match l with
-  | nil => false
-  | cons x r => orb (p x) (any_of p r)
-  end.
+Definition all_of {A : Type} (p : A -> bool) (l : list A) : bool := @ProofSupport.all_of A p l.
 
-Fixpoint count_of {A : Type} (l : list A) : nat :=
-  match l with nil => 0 | cons _ r => S (count_of r) end.
+Definition any_of {A : Type} (p : A -> bool) (l : list A) : bool := @ProofSupport.any_of A p l.
 
-Fixpoint map_over {A B : Type} (f : A -> B) (l : list A) : list B :=
-  match l with nil => nil | cons x r => cons (f x) (map_over f r) end.
+Definition count_of {A : Type} (l : list A) : nat := @ProofSupport.count_of A l.
 
-Fixpoint filter_of {A : Type} (p : A -> bool) (l : list A) : list A :=
-  match l with
-  | nil => nil
-  | cons x r => if p x then cons x (filter_of p r) else filter_of p r
-  end.
+Definition map_over {A B : Type} (f : A -> B) (l : list A) : list B := @ProofSupport.map_over A B f l.
+
+Definition filter_of {A : Type} (p : A -> bool) (l : list A) : list A := @ProofSupport.filter_of A p l.
 
 Definition head_or {A : Type} (l : list A) (d : A) : A :=
   match l with nil => d | cons x _ => x end.
 
 (* 0 through n-1, in that order: the index set the generators below range
    over. *)
-Fixpoint upto (n : nat) : list nat :=
-  match n with
-  | 0 => nil
-  | S k => app (upto k) (cons k nil)
-  end.
+Definition upto (n : nat) : list nat := @ProofSupport.upto n.
 
-Definition before_last (n : nat) : nat :=
-  match n with 0 => 0 | S k => k end.
+Definition before_last (n : nat) : nat := @ProofSupport.before_last n.
 
 (* Implication as a boolean, written out rather than taken from a library
    for the reason above. *)
-Definition only_if (a b : bool) : bool := orb (negb a) b.
+Definition only_if (a b : bool) : bool := @ProofSupport.only_if a b.
 
 (* Agreement of two booleans, which is what a pointwise equality of two
    bit maps is checked with below. *)
@@ -427,46 +408,31 @@ Fixpoint two_pow (n : nat) : nat :=
   match n with 0 => 1 | S k => two_pow k + two_pow k end.
 
 Lemma andb_split : forall a b : bool, andb a b = true -> a = true /\ b = true.
-Proof.
-  intros a b H. destruct a, b; try discriminate H. split; reflexivity.
-Qed.
+Proof. exact ProofSupport.andb_split. Qed.
 
 Lemma andb_join : forall a b : bool, a = true -> b = true -> andb a b = true.
-Proof. intros a b Ha Hb. rewrite Ha. rewrite Hb. reflexivity. Qed.
+Proof. exact ProofSupport.andb_join. Qed.
 
 Lemma only_if_elim :
   forall a b : bool, only_if a b = true -> a = true -> b = true.
-Proof.
-  intros a b H Ha. rewrite Ha in H. exact H.
-Qed.
+Proof. exact ProofSupport.only_if_elim. Qed.
 
 Lemma nat_eqb_refl : forall n : nat, Nat.eqb n n = true.
-Proof. intros n. induction n as [ | k IH ]; [ reflexivity | exact IH ]. Qed.
+Proof. exact ProofSupport.nat_eqb_refl. Qed.
 
 Lemma nat_eqb_true : forall a b : nat, Nat.eqb a b = true -> a = b.
-Proof.
-  intros a. induction a as [ | x IH ]; intros b H; destruct b as [ | y ];
-    try discriminate H.
-  - reflexivity.
-  - rewrite (IH y H). reflexivity.
-Qed.
+Proof. exact ProofSupport.nat_eqb_true. Qed.
 
 Lemma nat_leb_refl : forall n : nat, Nat.leb n n = true.
-Proof. intros n. induction n as [ | k IH ]; [ reflexivity | exact IH ]. Qed.
+Proof. exact ProofSupport.nat_leb_refl. Qed.
 
 Lemma nat_leb_succ : forall n : nat, Nat.leb n (S n) = true.
-Proof. intros n. induction n as [ | k IH ]; [ reflexivity | exact IH ]. Qed.
+Proof. exact ProofSupport.nat_leb_succ. Qed.
 
 Lemma all_of_app :
   forall (A : Type) (p : A -> bool) (l r : list A),
     all_of p (app l r) = true -> all_of p l = true /\ all_of p r = true.
-Proof.
-  intros A p l r. induction l as [ | x s IH ]; intros H.
-  - split; [ reflexivity | exact H ].
-  - simpl in H. destruct (andb_split _ _ H) as [ Hx Hs ].
-    destruct (IH Hs) as [ Hl Hr ]. split; [ | exact Hr ].
-    simpl. apply andb_join; [ exact Hx | exact Hl ].
-Qed.
+Proof. exact ProofSupport.all_of_app. Qed.
 
 Lemma all_of_app_intro :
   forall (A : Type) (p : A -> bool) (l r : list A),

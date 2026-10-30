@@ -340,39 +340,24 @@
    (*| END derived |*)
    ========================================================================= *)
 
+Require ProofSupport.
+
 Require Import RingContract.
 
 (* -------------------------------------------------------------------------
-   List and boolean helpers, defined here rather than imported: the prelude
-   carries the list type and not the library over it, and importing a module
-   to save a dozen lines would put its assumptions inside the R-05-163
-   gate's reach for no gain. Every name below is this file's own; none
-   shadows one RingContract.v exports.
+   Shared collection implementations and compatibility lemmas live in
+   ProofSupport. Numeric and domain-specific helpers remain local.
    ------------------------------------------------------------------------- *)
 
-Fixpoint all_of {A : Type} (p : A -> bool) (l : list A) : bool :=
-  match l with
-  | nil => true
-  | cons x r => andb (p x) (all_of p r)
-  end.
+Definition all_of {A : Type} (p : A -> bool) (l : list A) : bool := @ProofSupport.all_of A p l.
 
-Fixpoint any_of {A : Type} (p : A -> bool) (l : list A) : bool :=
-  match l with
-  | nil => false
-  | cons x r => orb (p x) (any_of p r)
-  end.
+Definition any_of {A : Type} (p : A -> bool) (l : list A) : bool := @ProofSupport.any_of A p l.
 
-Fixpoint count_of {A : Type} (l : list A) : nat :=
-  match l with nil => 0 | cons _ r => S (count_of r) end.
+Definition count_of {A : Type} (l : list A) : nat := @ProofSupport.count_of A l.
 
-Fixpoint map_over {A B : Type} (f : A -> B) (l : list A) : list B :=
-  match l with nil => nil | cons x r => cons (f x) (map_over f r) end.
+Definition map_over {A B : Type} (f : A -> B) (l : list A) : list B := @ProofSupport.map_over A B f l.
 
-Fixpoint filter_of {A : Type} (p : A -> bool) (l : list A) : list A :=
-  match l with
-  | nil => nil
-  | cons x r => if p x then cons x (filter_of p r) else filter_of p r
-  end.
+Definition filter_of {A : Type} (p : A -> bool) (l : list A) : list A := @ProofSupport.filter_of A p l.
 
 Fixpoint append_of {A : Type} (l m : list A) : list A :=
   match l with nil => m | cons x r => cons x (append_of r m) end.
@@ -412,7 +397,7 @@ Fixpoint drop_at {A : Type} (n : nat) (l : list A) (filler : A) : list A :=
 
 (* The last index a bound of n admits, which is where the overflow answer
    puts its final delta before the marker (gap e). *)
-Definition before_last (n : nat) : nat := match n with 0 => 0 | S k => k end.
+Definition before_last (n : nat) : nat := @ProofSupport.before_last n.
 
 Fixpoint nat_list_eqb (l m : list nat) : bool :=
   match l, m with
@@ -428,13 +413,13 @@ Fixpoint nat_list_eqb (l m : list nat) : bool :=
    ------------------------------------------------------------------------- *)
 
 Lemma andb_split : forall a b : bool, andb a b = true -> a = true /\ b = true.
-Proof. destruct a, b; intros H; try discriminate H; split; reflexivity. Qed.
+Proof. exact ProofSupport.andb_split. Qed.
 
 Lemma nat_eqb_refl : forall n : nat, Nat.eqb n n = true.
-Proof. induction n as [| k IH]; simpl; [ reflexivity | exact IH ]. Qed.
+Proof. exact ProofSupport.nat_eqb_refl. Qed.
 
 Lemma nat_leb_refl : forall n : nat, Nat.leb n n = true.
-Proof. induction n as [| k IH]; simpl; [ reflexivity | exact IH ]. Qed.
+Proof. exact ProofSupport.nat_leb_refl. Qed.
 
 Lemma leb_succ_right : forall a b : nat, Nat.leb a b = true -> Nat.leb a (S b) = true.
 Proof.

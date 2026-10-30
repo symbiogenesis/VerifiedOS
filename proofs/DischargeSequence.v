@@ -83,10 +83,9 @@
         figure against are the product owner's, proposed until ratified,
         and this file ratifies nothing about any of them.
 
-   No Require. Nothing beyond the Rocq prelude is reachable, so Classical
+   Only the shared prelude-only support is required, so Classical
    and FunctionalExtensionality are unavailable and every state equality
-   below is stated pointwise for that reason. A Require naming a sibling
-   artifact would be admissible, and there is none to name. PartitionContext
+   below is stated pointwise for that reason. Domain-specific sibling artifacts remain independent. PartitionContext
    .v's switch_cost is R-15-220's platform cost; BoundaryCost.v combines it
    with context and residency for R-11-009's full boundary in R-11-006's
    interval arithmetic, where this file's dwell is
@@ -314,6 +313,8 @@
    Parameter prints as an assumption and fails the R-05-163 gate.
    ------------------------------------------------------------------------- *)
 
+Require ProofSupport.
+
 Record Machine : Type := {
 
   (* --- R-15-247h's requester classes, held in reset while the sequencer
@@ -362,49 +363,28 @@ Record Machine : Type := {
 }.
 
 (* -------------------------------------------------------------------------
-   List helpers, defined here rather than imported: the prelude carries the
-   list type and not the library over it, and importing a module to save a
-   few dozen lines would put its assumptions inside the R-05-163 gate's
-   reach for no gain.
+   Shared collection implementations and compatibility lemmas live in
+   ProofSupport. Numeric and domain-specific helpers remain local.
    ------------------------------------------------------------------------- *)
 
-Fixpoint all_of {A : Type} (p : A -> bool) (l : list A) : bool :=
-  match l with
-  | nil => true
-  | cons x r => andb (p x) (all_of p r)
-  end.
+Definition all_of {A : Type} (p : A -> bool) (l : list A) : bool := @ProofSupport.all_of A p l.
 
-Fixpoint any_of {A : Type} (p : A -> bool) (l : list A) : bool :=
-  match l with
-  | nil => false
-  | cons x r => orb (p x) (any_of p r)
-  end.
+Definition any_of {A : Type} (p : A -> bool) (l : list A) : bool := @ProofSupport.any_of A p l.
 
-Fixpoint count_of {A : Type} (l : list A) : nat :=
-  match l with nil => 0 | cons _ r => S (count_of r) end.
+Definition count_of {A : Type} (l : list A) : nat := @ProofSupport.count_of A l.
 
-Fixpoint map_over {A B : Type} (f : A -> B) (l : list A) : list B :=
-  match l with nil => nil | cons x r => cons (f x) (map_over f r) end.
+Definition map_over {A B : Type} (f : A -> B) (l : list A) : list B := @ProofSupport.map_over A B f l.
 
-Fixpoint filter_of {A : Type} (p : A -> bool) (l : list A) : list A :=
-  match l with
-  | nil => nil
-  | cons x r => if p x then cons x (filter_of p r) else filter_of p r
-  end.
+Definition filter_of {A : Type} (p : A -> bool) (l : list A) : list A := @ProofSupport.filter_of A p l.
 
 Fixpoint flatten {A : Type} (ls : list (list A)) : list A :=
   match ls with nil => nil | cons l r => app l (flatten r) end.
 
 (* 0 through n-1, in that order: the phase indices of a machine with n
    phases, and the index set the generators below range over. *)
-Fixpoint upto (n : nat) : list nat :=
-  match n with
-  | 0 => nil
-  | S k => app (upto k) (cons k nil)
-  end.
+Definition upto (n : nat) : list nat := @ProofSupport.upto n.
 
-Definition before_last (n : nat) : nat :=
-  match n with 0 => 0 | S k => k end.
+Definition before_last (n : nat) : nat := @ProofSupport.before_last n.
 
 (* Consecutive pairs of a list, in order. *)
 Fixpoint adjacent_pairs {A : Type} (l : list A) : list (A * A) :=
@@ -432,13 +412,10 @@ Fixpoint nodup_nat (l : list nat) : bool :=
    ------------------------------------------------------------------------- *)
 
 Lemma andb_split : forall a b : bool, andb a b = true -> a = true /\ b = true.
-Proof.
-  intros a b H. destruct a; destruct b; simpl in H;
-    try discriminate H; split; reflexivity.
-Qed.
+Proof. exact ProofSupport.andb_split. Qed.
 
 Lemma andb_join : forall a b : bool, a = true -> b = true -> andb a b = true.
-Proof. intros a b Ha Hb. rewrite Ha. rewrite Hb. reflexivity. Qed.
+Proof. exact ProofSupport.andb_join. Qed.
 
 Lemma orb_split : forall a b : bool, orb a b = false -> a = false /\ b = false.
 Proof.
@@ -453,14 +430,7 @@ Lemma all_of_mono :
   forall (A : Type) (p q : A -> bool) (l : list A),
     (forall x : A, p x = true -> q x = true) ->
     all_of p l = true -> all_of q l = true.
-Proof.
-  intros A p q l Himp. induction l as [ | x r IH ]; intros H.
-  - reflexivity.
-  - simpl in H. destruct (andb_split (p x) (all_of p r) H) as [ Hx Hr ].
-    simpl. apply andb_join.
-    + exact (Himp x Hx).
-    + exact (IH Hr).
-Qed.
+Proof. exact ProofSupport.all_of_mono. Qed.
 
 Lemma all_of_true : forall (A : Type) (l : list A), all_of (fun _ => true) l = true.
 Proof.
@@ -506,7 +476,7 @@ Proof.
 Qed.
 
 Lemma nat_eqb_refl : forall n : nat, Nat.eqb n n = true.
-Proof. induction n as [ | k IH ]; simpl; [reflexivity | exact IH]. Qed.
+Proof. exact ProofSupport.nat_eqb_refl. Qed.
 
 Lemma nat_eqb_true : forall i j : nat, Nat.eqb i j = true -> i = j.
 Proof.
@@ -1117,22 +1087,10 @@ Qed.
 
 (* Transpose the adjacent pair at n: the natural wrong move on an ordered
    sequence, and one weakening per adjacent position. *)
-Fixpoint swap_at {A : Type} (n : nat) (l : list A) : list A :=
-  match n, l with
-  | 0, cons a (cons b r) => cons b (cons a r)
-  | 0, _ => l
-  | S k, cons a r => cons a (swap_at k r)
-  | S _, nil => nil
-  end.
+Definition swap_at {A : Type} (n : nat) (l : list A) : list A := @ProofSupport.swap_at A n l.
 
 (* Delete the step at n: a step omitted rather than reordered. *)
-Fixpoint drop_at {A : Type} (n : nat) (l : list A) : list A :=
-  match n, l with
-  | 0, cons _ r => r
-  | 0, nil => nil
-  | S k, cons a r => cons a (drop_at k r)
-  | S _, nil => nil
-  end.
+Definition drop_at {A : Type} (n : nat) (l : list A) : list A := @ProofSupport.drop_at A n l.
 
 (* Re-enter the table at the suffix beginning at n. R-15-198's Accept makes
    mode transitions, standby entry and exit, and deep-sleep wake

@@ -331,6 +331,8 @@
    (*| END derived |*)
    ========================================================================= *)
 
+Require ProofSupport.
+
 Require Import RingContract.
 
 (* An equality closed by one evaluation. `vm_compute. reflexivity.` evaluates
@@ -341,48 +343,26 @@ Local Ltac vm_reflexivity :=
   intros; lazymatch goal with |- _ = ?b => vm_cast_no_check (@eq_refl _ b) end.
 
 (* -------------------------------------------------------------------------
-   List, boolean and arithmetic helpers, defined here rather than imported:
-   the prelude carries the list type and not the library over it, and
-   RingContract carries `agree` and `eqb_reflexive` and nothing else, so those
-   two are used at its spelling and the rest are authored. Importing a module
-   to save a page would put its assumptions inside the R-05-163 gate's reach
-   for no gain.
+   Shared collection implementations and compatibility lemmas live in
+   ProofSupport. Numeric and domain-specific helpers remain local.
    ------------------------------------------------------------------------- *)
 
-Fixpoint all_of {A : Type} (p : A -> bool) (l : list A) : bool :=
-  match l with
-  | nil => true
-  | cons x r => andb (p x) (all_of p r)
-  end.
+Definition all_of {A : Type} (p : A -> bool) (l : list A) : bool := @ProofSupport.all_of A p l.
 
-Fixpoint any_of {A : Type} (p : A -> bool) (l : list A) : bool :=
-  match l with
-  | nil => false
-  | cons x r => orb (p x) (any_of p r)
-  end.
+Definition any_of {A : Type} (p : A -> bool) (l : list A) : bool := @ProofSupport.any_of A p l.
 
-Fixpoint count_of {A : Type} (l : list A) : nat :=
-  match l with nil => 0 | cons _ r => S (count_of r) end.
+Definition count_of {A : Type} (l : list A) : nat := @ProofSupport.count_of A l.
 
 Fixpoint sum_of (l : list nat) : nat :=
   match l with nil => 0 | cons x r => x + sum_of r end.
 
-Fixpoint map_over {A B : Type} (f : A -> B) (l : list A) : list B :=
-  match l with nil => nil | cons x r => cons (f x) (map_over f r) end.
+Definition map_over {A B : Type} (f : A -> B) (l : list A) : list B := @ProofSupport.map_over A B f l.
 
-Fixpoint filter_of {A : Type} (p : A -> bool) (l : list A) : list A :=
-  match l with
-  | nil => nil
-  | cons x r => if p x then cons x (filter_of p r) else filter_of p r
-  end.
+Definition filter_of {A : Type} (p : A -> bool) (l : list A) : list A := @ProofSupport.filter_of A p l.
 
 (* 0 through n-1, in that order: the index set every generated family ranges
    over. *)
-Fixpoint upto (n : nat) : list nat :=
-  match n with
-  | 0 => nil
-  | S k => app (upto k) (cons k nil)
-  end.
+Definition upto (n : nat) : list nat := @ProofSupport.upto n.
 
 (* The nth member of a list, or the declared fallback past its end. Reading 9
    is what this is for. *)
@@ -395,21 +375,9 @@ Fixpoint at_member {A : Type} (l : list A) (n : nat) (dflt : A) : A :=
 (* Transpose the adjacent pair at n, delete the member at n, re-enter at the
    suffix beginning at n, and bind one member a second time at n. The four
    generators of the chain families (R-05-166). *)
-Fixpoint swap_at {A : Type} (n : nat) (l : list A) : list A :=
-  match n, l with
-  | 0, cons a (cons b r) => cons b (cons a r)
-  | 0, _ => l
-  | S k, cons a r => cons a (swap_at k r)
-  | S _, nil => nil
-  end.
+Definition swap_at {A : Type} (n : nat) (l : list A) : list A := @ProofSupport.swap_at A n l.
 
-Fixpoint drop_at {A : Type} (n : nat) (l : list A) : list A :=
-  match n, l with
-  | 0, cons _ r => r
-  | 0, nil => nil
-  | S k, cons a r => cons a (drop_at k r)
-  | S _, nil => nil
-  end.
+Definition drop_at {A : Type} (n : nat) (l : list A) : list A := @ProofSupport.drop_at A n l.
 
 Fixpoint suffix_at {A : Type} (n : nat) (l : list A) : list A :=
   match n, l with
@@ -418,12 +386,7 @@ Fixpoint suffix_at {A : Type} (n : nat) (l : list A) : list A :=
   | S _, nil => nil
   end.
 
-Fixpoint insert_at {A : Type} (n : nat) (x : A) (l : list A) : list A :=
-  match n, l with
-  | 0, _ => cons x l
-  | S k, cons a r => cons a (insert_at k x r)
-  | S _, nil => cons x nil
-  end.
+Definition insert_at {A : Type} (n : nat) (x : A) (l : list A) : list A := @ProofSupport.insert_at A n x l.
 
 (* How many times a member occurs, the index of its first occurrence, and the
    index of its last, each answering the list's own length where it does not
@@ -455,15 +418,13 @@ Fixpoint last_at {A : Type} (eq : A -> A -> bool) (x : A) (l : list A) : nat :=
 Definition svc_least (a b : nat) : nat := if Nat.leb a b then a else b.
 
 Lemma andb_split : forall a b : bool, andb a b = true -> a = true /\ b = true.
-Proof.
-  intros a b H. destruct a; destruct b; try discriminate H; split; reflexivity.
-Qed.
+Proof. exact ProofSupport.andb_split. Qed.
 
 Lemma andb_join : forall a b : bool, a = true -> b = true -> andb a b = true.
-Proof. intros a b Ha Hb. rewrite Ha, Hb. reflexivity. Qed.
+Proof. exact ProofSupport.andb_join. Qed.
 
 Lemma nat_leb_refl : forall n : nat, Nat.leb n n = true.
-Proof. induction n as [| k IH]; simpl; [ reflexivity | exact IH ]. Qed.
+Proof. exact ProofSupport.nat_leb_refl. Qed.
 
 Lemma nat_leb_succ_r : forall a b : nat, Nat.leb a b = true -> Nat.leb a (S b) = true.
 Proof.

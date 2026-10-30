@@ -75,14 +75,13 @@
    derivation, and a composer that turns a roster into a generation or into
    nothing.
 
-   No Require. Nothing beyond the Rocq prelude is reachable, so Classical and
+   Only the shared prelude-only support is required, so Classical and
    FunctionalExtensionality are unavailable and every equality below is stated
-   pointwise or over a decidable boolean for that reason. A Require naming a
-   sibling artifact in proofs/ would be admissible, and there is none to name:
+   pointwise or over a decidable boolean for that reason. Domain-specific sibling artifacts remain independent:
    SupervisionTree.v's roster is R-10-026's signed generation read at bring-up
    rather than at composition, MModeFirmware.v's build-time check is a
    property of the booted machine, and neither meets a package, a derivation
-   or a verdict. A Require here would be a citation rather than a dependency.
+   or a verdict. Such an import would be a citation rather than a dependency.
 
    Readings of the register this statement takes, each a reviewable judgment
    rather than a neutral transcription:
@@ -349,66 +348,39 @@
    ========================================================================= *)
 
 (* -------------------------------------------------------------------------
-   List and boolean helpers, defined here rather than imported: the prelude
-   carries the list type and not the library over it, and importing a module
-   to save a dozen lines would put its assumptions inside the R-05-163 gate's
-   reach for no gain.
+   Collection helpers share ProofSupport's prelude-only implementations.
+   Local names remain convertible aliases, preserving the client interface.
    ------------------------------------------------------------------------- *)
 
-Fixpoint all_of {A : Type} (p : A -> bool) (l : list A) : bool :=
-  match l with
-  | nil => true
-  | cons x r => andb (p x) (all_of p r)
-  end.
+Require ProofSupport.
 
-Fixpoint any_of {A : Type} (p : A -> bool) (l : list A) : bool :=
-  match l with
-  | nil => false
-  | cons x r => orb (p x) (any_of p r)
-  end.
+Definition all_of {A : Type} (p : A -> bool) (l : list A) : bool := @ProofSupport.all_of A p l.
 
-Fixpoint count_of {A : Type} (l : list A) : nat :=
-  match l with nil => 0 | cons _ r => S (count_of r) end.
+Definition any_of {A : Type} (p : A -> bool) (l : list A) : bool := @ProofSupport.any_of A p l.
 
-Fixpoint map_over {A B : Type} (f : A -> B) (l : list A) : list B :=
-  match l with nil => nil | cons x r => cons (f x) (map_over f r) end.
+Definition count_of {A : Type} (l : list A) : nat := @ProofSupport.count_of A l.
 
-Fixpoint filter_of {A : Type} (p : A -> bool) (l : list A) : list A :=
-  match l with
-  | nil => nil
-  | cons x r => if p x then cons x (filter_of p r) else filter_of p r
-  end.
+Definition map_over {A B : Type} (f : A -> B) (l : list A) : list B := @ProofSupport.map_over A B f l.
+
+Definition filter_of {A : Type} (p : A -> bool) (l : list A) : list A := @ProofSupport.filter_of A p l.
 
 (* 0 through n-1, in that order: the index set every generated family below
    ranges over. *)
-Fixpoint upto (n : nat) : list nat :=
-  match n with
-  | 0 => nil
-  | S k => app (upto k) (cons k nil)
-  end.
+Definition upto (n : nat) : list nat := @ProofSupport.upto n.
 
-Definition before_last (n : nat) : nat :=
-  match n with 0 => 0 | S k => k end.
+Definition before_last (n : nat) : nat := @ProofSupport.before_last n.
 
 (* Implication as a boolean, written out rather than taken from a library for
    the reason above. *)
-Definition only_if (a b : bool) : bool := orb (negb a) b.
+Definition only_if (a b : bool) : bool := @ProofSupport.only_if a b.
 
-Definition bool_eqb (a b : bool) : bool :=
-  match a, b with
-  | true, true => true
-  | false, false => true
-  | _, _ => false
-  end.
+Definition bool_eqb (a b : bool) : bool := @ProofSupport.bool_eqb a b.
 
-Definition is_some {A : Type} (o : option A) : bool :=
-  if o is Some _ then true else false.
+Definition is_some {A : Type} (o : option A) : bool := @ProofSupport.is_some A o.
 
-Definition map_option {A B : Type} (f : A -> B) (o : option A) : option B :=
-  match o with None => None | Some x => Some (f x) end.
+Definition map_option {A B : Type} (f : A -> B) (o : option A) : option B := @ProofSupport.map_option A B f o.
 
-Definition mem_nat (i : nat) (l : list nat) : bool :=
-  any_of (fun j => Nat.eqb i j) l.
+Definition mem_nat (i : nat) (l : list nat) : bool := @ProofSupport.mem_nat i l.
 
 Fixpoint nat_list_eqb (l r : list nat) : bool :=
   match l, r with
@@ -425,160 +397,83 @@ Fixpoint nat_list_eqb (l r : list nat) : bool :=
    ------------------------------------------------------------------------- *)
 
 (* Transpose the adjacent pair at n. *)
-Fixpoint swap_at {A : Type} (n : nat) (l : list A) : list A :=
-  match n, l with
-  | 0, cons a (cons b r) => cons b (cons a r)
-  | 0, _ => l
-  | S k, cons a r => cons a (swap_at k r)
-  | S _, nil => nil
-  end.
+Definition swap_at {A : Type} (n : nat) (l : list A) : list A := @ProofSupport.swap_at A n l.
 
 (* Delete the member at n. *)
-Fixpoint drop_at {A : Type} (n : nat) (l : list A) : list A :=
-  match n, l with
-  | 0, cons _ r => r
-  | 0, nil => nil
-  | S k, cons a r => cons a (drop_at k r)
-  | S _, nil => nil
-  end.
+Definition drop_at {A : Type} (n : nat) (l : list A) : list A := @ProofSupport.drop_at A n l.
 
 (* Insert x at n. *)
-Fixpoint insert_at {A : Type} (n : nat) (x : A) (l : list A) : list A :=
-  match n, l with
-  | 0, _ => cons x l
-  | S k, cons a r => cons a (insert_at k x r)
-  | S _, nil => cons x nil
-  end.
+Definition insert_at {A : Type} (n : nat) (x : A) (l : list A) : list A := @ProofSupport.insert_at A n x l.
 
 (* Repeat the member at n, which is the insertion whose inserted value the
    list already carries. *)
-Fixpoint dup_at {A : Type} (n : nat) (l : list A) : list A :=
-  match n, l with
-  | 0, cons x r => cons x (cons x r)
-  | 0, nil => nil
-  | S k, cons x r => cons x (dup_at k r)
-  | S _, nil => nil
-  end.
+Definition dup_at {A : Type} (n : nat) (l : list A) : list A := @ProofSupport.dup_at A n l.
 
 (* Rewrite the member at n through f, which is how a family corrupts one site
    of a derivation without touching the rest of it. *)
-Fixpoint patch_at {A : Type} (f : A -> A) (n : nat) (l : list A) : list A :=
-  match n, l with
-  | 0, cons x r => cons (f x) r
-  | 0, nil => nil
-  | S k, cons x r => cons x (patch_at f k r)
-  | S _, nil => nil
-  end.
+Definition patch_at {A : Type} (f : A -> A) (n : nat) (l : list A) : list A := @ProofSupport.patch_at A f n l.
 
 (* -------------------------------------------------------------------------
    The small lemmas the prelude does not carry.
    ------------------------------------------------------------------------- *)
 
 Lemma andb_split : forall a b : bool, andb a b = true -> a = true /\ b = true.
-Proof.
-  intros a b H. destruct a; destruct b; simpl in H;
-    try discriminate H; split; reflexivity.
-Qed.
+Proof. exact ProofSupport.andb_split. Qed.
 
 Lemma andb_join : forall a b : bool, a = true -> b = true -> andb a b = true.
-Proof. intros a b Ha Hb. rewrite Ha. rewrite Hb. reflexivity. Qed.
+Proof. exact ProofSupport.andb_join. Qed.
 
 Lemma only_if_elim :
   forall a b : bool, only_if a b = true -> a = true -> b = true.
-Proof.
-  intros a b H Ha. rewrite Ha in H. exact H.
-Qed.
+Proof. exact ProofSupport.only_if_elim. Qed.
 
 Lemma nat_eqb_refl : forall n : nat, Nat.eqb n n = true.
-Proof. intros n. induction n as [ | k IH ]. - reflexivity. - simpl. exact IH. Qed.
+Proof. exact ProofSupport.nat_eqb_refl. Qed.
 
 Lemma nat_eqb_true : forall a b : nat, Nat.eqb a b = true -> a = b.
-Proof.
-  intros a. induction a as [ | x IH ]; intros b H.
-  - destruct b as [ | y ]; [ reflexivity | discriminate H ].
-  - destruct b as [ | y ]; [ discriminate H | ].
-    simpl in H. rewrite (IH y H). reflexivity.
-Qed.
+Proof. exact ProofSupport.nat_eqb_true. Qed.
 
 Lemma nat_leb_refl : forall n : nat, Nat.leb n n = true.
-Proof. intros n. induction n as [ | k IH ]. - reflexivity. - simpl. exact IH. Qed.
+Proof. exact ProofSupport.nat_leb_refl. Qed.
 
 Lemma nat_leb_succ : forall n : nat, Nat.leb n (S n) = true.
-Proof. intros n. induction n as [ | k IH ]. - reflexivity. - simpl. exact IH. Qed.
+Proof. exact ProofSupport.nat_leb_succ. Qed.
 
 Lemma nat_leb_trans :
   forall a b c : nat, Nat.leb a b = true -> Nat.leb b c = true -> Nat.leb a c = true.
-Proof.
-  intros a. induction a as [ | x IH ]; intros b c Hab Hbc.
-  - reflexivity.
-  - destruct b as [ | y ]; [ discriminate Hab | ].
-    destruct c as [ | z ]; [ discriminate Hbc | ].
-    simpl in Hab. simpl in Hbc. simpl. exact (IH y z Hab Hbc).
-Qed.
+Proof. exact ProofSupport.nat_leb_trans. Qed.
 
 Lemma all_of_app :
   forall (A : Type) (p : A -> bool) (l r : list A),
     all_of p (app l r) = true -> all_of p l = true /\ all_of p r = true.
-Proof.
-  intros A p l r. induction l as [ | x s IH ]; intros H.
-  - split; [ reflexivity | exact H ].
-  - simpl in H. destruct (andb_split _ _ H) as [ Hx Hs ].
-    destruct (IH Hs) as [ Hl Hr ]. split; [ | exact Hr ].
-    simpl. apply andb_join; [ exact Hx | exact Hl ].
-Qed.
+Proof. exact ProofSupport.all_of_app. Qed.
 
 Lemma all_of_app_join :
   forall (A : Type) (p : A -> bool) (l r : list A),
     all_of p l = true -> all_of p r = true -> all_of p (app l r) = true.
-Proof.
-  intros A p l r. induction l as [ | x s IH ]; intros Hl Hr.
-  - exact Hr.
-  - simpl in Hl. destruct (andb_split _ _ Hl) as [ Hx Hs ].
-    simpl. apply andb_join; [ exact Hx | exact (IH Hs Hr) ].
-Qed.
+Proof. exact ProofSupport.all_of_app_join. Qed.
 
 Lemma all_of_mono :
   forall (A : Type) (p q : A -> bool) (l : list A),
     (forall x : A, p x = true -> q x = true) ->
     all_of p l = true -> all_of q l = true.
-Proof.
-  intros A p q l Himp. induction l as [ | x r IH ]; intros H.
-  - reflexivity.
-  - simpl in H. destruct (andb_split _ _ H) as [ Hx Hr ].
-    simpl. apply andb_join; [ exact (Himp x Hx) | exact (IH Hr) ].
-Qed.
+Proof. exact ProofSupport.all_of_mono. Qed.
 
 Lemma all_of_filter :
   forall (A : Type) (p : A -> bool) (l : list A), all_of p (filter_of p l) = true.
-Proof.
-  intros A p l. induction l as [ | x r IH ].
-  - reflexivity.
-  - simpl. destruct (p x) eqn:E.
-    + simpl. rewrite E. exact IH.
-    + exact IH.
-Qed.
+Proof. exact ProofSupport.all_of_filter. Qed.
 
 Lemma filter_of_within :
   forall (A : Type) (p q : A -> bool) (l : list A),
     all_of q l = true -> all_of q (filter_of p l) = true.
-Proof.
-  intros A p q l. induction l as [ | x r IH ]; intros H.
-  - reflexivity.
-  - simpl in H. destruct (andb_split _ _ H) as [ Hx Hr ].
-    simpl. destruct (p x).
-    + simpl. apply andb_join; [ exact Hx | exact (IH Hr) ].
-    + exact (IH Hr).
-Qed.
+Proof. exact ProofSupport.filter_of_within. Qed.
 
 Lemma mem_nat_cons :
   forall (i j : nat) (l : list nat), mem_nat i l = true -> mem_nat i (cons j l) = true.
-Proof.
-  intros i j l H. unfold mem_nat. simpl. unfold mem_nat in H. rewrite H.
-  destruct (Nat.eqb i j); reflexivity.
-Qed.
+Proof. exact ProofSupport.mem_nat_cons. Qed.
 
 Lemma mem_nat_here : forall (i : nat) (l : list nat), mem_nat i (cons i l) = true.
-Proof. intros i l. unfold mem_nat. simpl. rewrite (nat_eqb_refl i). reflexivity. Qed.
+Proof. exact ProofSupport.mem_nat_here. Qed.
 
 (* The helpers' own floors, so that the day one of them stops deciding is the
    day it says so. Each is a base case no check below reaches. *)
@@ -2713,72 +2608,36 @@ Local Ltac induct_on_the_position n l :=
 Lemma all_of_insert :
   forall (A : Type) (q : A -> bool) (x : A) (l : list A) (n : nat),
     all_of q (insert_at n x l) = andb (q x) (all_of q l).
-Proof.
-  intros A q x l n. revert l. induction n as [ | k IH ]; intros l.
-  - reflexivity.
-  - destruct l as [ | y s ].
-    + simpl. destruct (q x); reflexivity.
-    + simpl. rewrite (IH s). destruct (q y); destruct (q x); reflexivity.
-Qed.
+Proof. exact ProofSupport.all_of_insert. Qed.
 
 Lemma all_of_drop :
   forall (A : Type) (q : A -> bool) (l : list A) (n : nat),
     all_of q l = true -> all_of q (drop_at n l) = true.
-Proof.
-  intros A q l n. revert l. induction n as [ | k IH ]; intros l H.
-  - destruct l as [ | y s ]; [ reflexivity | ].
-    simpl in H. destruct (andb_split _ _ H) as [ _ Hs ]. exact Hs.
-  - destruct l as [ | y s ]; [ reflexivity | ].
-    simpl in H. destruct (andb_split _ _ H) as [ Hy Hs ].
-    simpl. apply andb_join; [ exact Hy | exact (IH s Hs) ].
-Qed.
+Proof. exact ProofSupport.all_of_drop. Qed.
 
 Lemma all_of_swap :
   forall (A : Type) (p : A -> bool) (l : list A) (n : nat),
     all_of p (swap_at n l) = all_of p l.
-Proof.
-  intros A p l n. induct_on_the_position n l.
-  - destruct s as [ | b t ]; [ reflexivity | ].
-    simpl. destruct (p a); destruct (p b); reflexivity.
-  - destruct l as [ | a s ]; [ reflexivity | ].
-    step_by_IH IH s.
-Qed.
+Proof. exact ProofSupport.all_of_swap. Qed.
 
 Lemma all_of_dup :
   forall (A : Type) (p : A -> bool) (l : list A) (n : nat),
     all_of p (dup_at n l) = all_of p l.
-Proof.
-  intros A p l n. induct_on_the_position n l.
-  - simpl. destruct (p a); reflexivity.
-  - destruct l as [ | a s ]; [ reflexivity | ].
-    step_by_IH IH s.
-Qed.
+Proof. exact ProofSupport.all_of_dup. Qed.
 
 Lemma count_of_insert :
   forall (A : Type) (x : A) (l : list A) (n : nat),
     count_of (insert_at n x l) = S (count_of l).
-Proof.
-  intros A x l n. revert l. induction n as [ | k IH ]; intros l.
-  - reflexivity.
-  - destruct l as [ | y s ]; [ reflexivity | ]. step_by_IH IH s.
-Qed.
+Proof. exact ProofSupport.count_of_insert. Qed.
 
 Lemma count_of_swap :
   forall (A : Type) (l : list A) (n : nat), count_of (swap_at n l) = count_of l.
-Proof.
-  intros A l n. induct_on_the_position n l.
-  - destruct s as [ | b t ]; reflexivity.
-  - destruct l as [ | a s ]; [ reflexivity | ]. step_by_IH IH s.
-Qed.
+Proof. exact ProofSupport.count_of_swap. Qed.
 
 Lemma count_of_drop :
   forall (A : Type) (l : list A) (n : nat),
     Nat.leb (count_of (drop_at n l)) (count_of l) = true.
-Proof.
-  intros A l n. induct_on_the_position n l.
-  - simpl. exact (nat_leb_succ (count_of s)).
-  - destruct l as [ | a s ]; [ reflexivity | ]. simpl. exact (IH s).
-Qed.
+Proof. exact ProofSupport.count_of_drop. Qed.
 
 (* Insertion of a refused package costs the generation, wherever it goes. This
    is *a rejection is total* as a family fact, and total at the generation:

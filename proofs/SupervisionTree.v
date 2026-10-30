@@ -48,10 +48,9 @@
    is asserted to be Rupicola-compilable and the CompCert-C/VST route stays
    the default.
 
-   No Require. Nothing beyond the Rocq prelude is reachable, so Classical
+   Only the shared prelude-only support is required, so Classical
    and FunctionalExtensionality are unavailable and every equality below is
-   stated pointwise or over a decidable boolean for that reason. A Require
-   naming a sibling artifact would be admissible, and there is none to name:
+   stated pointwise or over a decidable boolean for that reason. Domain-specific sibling artifacts remain independent:
    PartitionContext.v's switch cost is R-15-220's constant inside R-11-006's
    interval arithmetic, CyclicExecutive.v's admission algebra is a frame's,
    and DischargeSequence.v's dwell is R-15-247g's mode-transition constant.
@@ -236,46 +235,27 @@
    ========================================================================= *)
 
 (* -------------------------------------------------------------------------
-   List and boolean helpers, defined here rather than imported: the prelude
-   carries the list type and not the library over it, and importing a module
-   to save a dozen lines would put its assumptions inside the R-05-163
-   gate's reach for no gain.
+   Shared collection implementations and compatibility lemmas live in
+   ProofSupport. Numeric and domain-specific helpers remain local.
    ------------------------------------------------------------------------- *)
 
-Fixpoint all_of {A : Type} (p : A -> bool) (l : list A) : bool :=
-  match l with
-  | nil => true
-  | cons x r => andb (p x) (all_of p r)
-  end.
+Require ProofSupport.
 
-Fixpoint any_of {A : Type} (p : A -> bool) (l : list A) : bool :=
-  match l with
-  | nil => false
-  | cons x r => orb (p x) (any_of p r)
-  end.
+Definition all_of {A : Type} (p : A -> bool) (l : list A) : bool := @ProofSupport.all_of A p l.
 
-Fixpoint count_of {A : Type} (l : list A) : nat :=
-  match l with nil => 0 | cons _ r => S (count_of r) end.
+Definition any_of {A : Type} (p : A -> bool) (l : list A) : bool := @ProofSupport.any_of A p l.
 
-Fixpoint map_over {A B : Type} (f : A -> B) (l : list A) : list B :=
-  match l with nil => nil | cons x r => cons (f x) (map_over f r) end.
+Definition count_of {A : Type} (l : list A) : nat := @ProofSupport.count_of A l.
 
-Fixpoint filter_of {A : Type} (p : A -> bool) (l : list A) : list A :=
-  match l with
-  | nil => nil
-  | cons x r => if p x then cons x (filter_of p r) else filter_of p r
-  end.
+Definition map_over {A B : Type} (f : A -> B) (l : list A) : list B := @ProofSupport.map_over A B f l.
+
+Definition filter_of {A : Type} (p : A -> bool) (l : list A) : list A := @ProofSupport.filter_of A p l.
 
 (* 0 through n-1, in that order: the index set the roster and the generators
    below range over. *)
-Fixpoint upto (n : nat) : list nat :=
-  match n with
-  | 0 => nil
-  | S k => app (upto k) (cons k nil)
-  end.
+Definition upto (n : nat) : list nat := @ProofSupport.upto n.
 
-Definition before_last (n : nat) : nat :=
-  match n with 0 => 0 | S k => k end.
+Definition before_last (n : nat) : nat := @ProofSupport.before_last n.
 
 (* The nth member of a list, or the declared fallback past its end. This is
    what makes the backoff a declared schedule rather than a formula
@@ -289,22 +269,17 @@ Fixpoint at_index (l : list nat) (n : nat) (dflt : nat) : nat :=
 
 (* Implication as a boolean, written out rather than taken from a library
    for the reason above. *)
-Definition only_if (a b : bool) : bool := orb (negb a) b.
+Definition only_if (a b : bool) : bool := @ProofSupport.only_if a b.
 
 Lemma andb_split : forall a b : bool, andb a b = true -> a = true /\ b = true.
-Proof.
-  intros a b H. destruct a; [ | discriminate H ].
-  split; [ reflexivity | exact H ].
-Qed.
+Proof. exact ProofSupport.andb_split. Qed.
 
 Lemma andb_join : forall a b : bool, a = true -> b = true -> andb a b = true.
-Proof. intros a b Ha Hb. rewrite Ha. exact Hb. Qed.
+Proof. exact ProofSupport.andb_join. Qed.
 
 Lemma only_if_elim :
   forall a b : bool, only_if a b = true -> a = true -> b = true.
-Proof.
-  intros a b H Ha. rewrite Ha in H. exact H.
-Qed.
+Proof. exact ProofSupport.only_if_elim. Qed.
 
 Lemma all_of_true : forall (A : Type) (l : list A), all_of (fun _ => true) l = true.
 Proof.
@@ -312,7 +287,7 @@ Proof.
 Qed.
 
 Lemma nat_leb_refl : forall n : nat, Nat.leb n n = true.
-Proof. intros n. induction n as [ | k IH ]; [ reflexivity | exact IH ]. Qed.
+Proof. exact ProofSupport.nat_leb_refl. Qed.
 
 (* Whatever holds of every declared step and of the fallback holds of the
    delay at every attempt: the lemma R-16-007's bounded downtime rests on,
@@ -626,13 +601,7 @@ Qed.
 Lemma all_of_app :
   forall (A : Type) (p : A -> bool) (l r : list A),
     all_of p (app l r) = true -> all_of p l = true /\ all_of p r = true.
-Proof.
-  intros A p l r. induction l as [ | x s IH ]; intros H.
-  - split; [ reflexivity | exact H ].
-  - simpl in H. destruct (andb_split _ _ H) as [ Hx Hs ].
-    destruct (IH Hs) as [ Hl Hr ].
-    split; [ exact (andb_join _ _ Hx Hl) | exact Hr ].
-Qed.
+Proof. exact ProofSupport.all_of_app. Qed.
 
 Lemma leb_split : forall v k : nat, Nat.leb v k = true -> Nat.ltb v k = true \/ v = k.
 Proof.
