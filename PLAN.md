@@ -2572,7 +2572,7 @@ A credible project combines programming-language semantics, algorithms, real-tim
 
 Retire an implementation only when its replacement preserves the complete input
 population, observable decisions and refusal behavior. Shared commands may keep
-distinct acceptance obligations. This maintenance batch adds no dependency,
+distinct acceptance obligations. The capability-vector consolidation adds no dependency,
 prover upgrade, performance claim or milestone completion credit.
 
 - **Capability-vector generation. Status: implemented.** Typed probe declarations
@@ -2583,13 +2583,15 @@ prover upgrade, performance claim or milestone completion credit.
   establishes identical complete ordered vector data against the immutable
   pre-migration generator, including exhaustive domains and deliberate corners.
   The temporary qualification workflow and helper are retired into that evidence
-  bundle. The `retire-tools-20261030` journal owns final-revision Host CI and every
+  bundle. The `retire-tools-20261030-final` journal owns final-revision Host CI and every
   Guest CI lane's dispatch; the independent RTL consumer retains its hosted
   acceptance boundary. No performance improvement is claimed.
 - **Concurrent link-validator installation. Start:** the Windows first-install
   publication refusal in Host CI run `41009280688`. **Owns:** one installer per
   managed environment while the checker and behavioral tests start concurrently,
-  with cache revalidation after acquiring the installation lock. Keep verified
+  with cache revalidation after acquiring the installation lock. Retain a stable
+  lock-file identity and require an operating-system lock that native retirement
+  can also acquire; an unsupported hard-lock backend refuses. Keep verified
   reuse, archive and executable hashes, atomic publication and corrupt-cache
   refusals. **Check:** independent processes sharing a cold fixture install once;
   a failed installer releases ownership and publishes no executable; malformed

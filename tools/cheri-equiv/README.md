@@ -61,6 +61,6 @@ run identity. The report owns source revisions, tool identities, populations and
 digests. The helper and workflow are historical reproduction inputs at their
 recorded candidate revision; the active tool suite retains neither.
 
-The `retire-tools-20261030` fanout journal owns final-revision Host CI and Guest
+The `retire-tools-20261030-final` fanout journal owns final-revision Host CI and Guest
 CI dispatch evidence. The separate hosted RTL crosscheck keeps its independent
 acceptance boundary.
