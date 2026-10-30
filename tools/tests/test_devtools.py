@@ -6,22 +6,25 @@ import json
 from typing import cast
 
 from tests.harness import TOOLS, Case, ensure, sandbox_tree
-from vos import devtools
+from vos import corpus, devtools
 
 
 def _data() -> dict[str, object]:
-    return {"schema": 1, "reviews": [{"id": "demo", "tool": "Demo", "subject": "release",
+    return {"schema": 2, "reviews": [{"id": "demo", "tool": "Demo", "subject": "release",
                                       "reviewed": ["1.2.3"], "owners": [
                                           {"kind": "uv", "path": "tools/uv.lock", "key": "demo"}]}],
-            "template": ["", "| Tool | License | Standing |", "| --- | --- | --- |",
-                         "| Demo | MIT | Reviewed ${demo_0}, licence evidence stays authored. |",
-                         "", ""]}
+            "rows": [{"id": "Demo", "tool": "Demo", "license": "MIT",
+                      "standing": "Reviewed ${demo_0}, licence evidence stays authored.",
+                      "reviews": ["demo"]}],
+            "template": ["", "${development_tools_table}", "", ""]}
 
 
 def _files(data: dict[str, object] | None = None) -> dict[str, str]:
     selected = _data() if data is None else data
     body = "\n".join(cast("list[str]", selected["template"]))
-    body = body.replace("${demo_0}", "1.2.3")
+    body = body.replace("${development_tools_table}", "| Tool | License | Standing |\n"
+                        "| --- | --- | --- |\n"
+                        "| Demo | MIT | Reviewed 1.2.3, licence evidence stays authored. |")
     return {devtools.DATA: json.dumps(selected),
             devtools.SCHEMA: (TOOLS / "development-tools.schema.json").read_text(encoding="utf-8"),
             devtools.RECORD: ("# Licences\n\n" + devtools.HEADING + "\n" + devtools.BEGIN + "\n"
@@ -59,7 +62,7 @@ def _identity_and_generated_bytes_are_independent() -> None:
 
 def _shape_and_template_membership_fail_closed() -> None:
     base = _data()
-    bad: list[dict[str, object]] = [{**base, "schema": 2}, {**base, "reviews": []},
+    bad: list[dict[str, object]] = [{**base, "schema": 3}, {**base, "reviews": []},
                                   {**base, "unknown": True}]
     for field, value in (("owners", []), ("reviewed", []), ("tool", ""),
                          ("reviewed", ["1.2.3", "1.2.3"])):
@@ -76,7 +79,7 @@ def _shape_and_template_membership_fail_closed() -> None:
         expected, faults = _inspect(_files(data))
         ensure(expected is None and bool(faults), f"malformed review/template passed: {data!r}")
     files = _files()
-    duplicate_key = files[devtools.DATA].replace('"schema": 1', '"schema": 1, "schema": 1')
+    duplicate_key = files[devtools.DATA].replace('"schema": 2', '"schema": 2, "schema": 2')
     expected, faults = _inspect({**files, devtools.DATA: duplicate_key})
     ensure(expected is None and bool(faults) and "duplicate JSON key" in faults[0],
            "duplicate source fields are refused before validation")
@@ -161,6 +164,68 @@ def _view_preserves_unrelated_document_bytes() -> None:
            "generation may replace only its marked body")
 
 
+def _rows_require_explicit_owners_or_dispositions() -> None:
+    base = _data()
+    damaged: list[dict[str, object]] = [
+        {**base, "template": ["", extra, "${development_tools_table}", ""]}
+        for extra in ("| Rogue | MIT | Unreviewed 9.9.9. |", "  | Rogue | MIT | Unreviewed. |",
+                      "prefix ${development_tools_table}")]
+    for key, value in (("reviews", []), ("reviews", ["unreviewed"]),
+                       ("standing", "Unreviewed 9.9.9."),
+                       ("tool", "Demo\n| Rogue | MIT | Unreviewed. |"),
+                       ("license", "MIT | BSD-3-Clause"),
+                       ("disposition", "A second conflicting treatment.")):
+        changed = copy.deepcopy(base)
+        cast("list[dict[str, object]]", changed["rows"])[0][key] = value
+        damaged.append(changed)
+    for key in ("reviews", "id", "license", "standing"):
+        changed = copy.deepcopy(base)
+        del cast("list[dict[str, object]]", changed["rows"])[0][key]
+        damaged.append(changed)
+    changed = copy.deepcopy(base)
+    rows = cast("list[dict[str, object]]", changed["rows"])
+    rows.append(copy.deepcopy(rows[0]))
+    damaged.append(changed)
+    changed = copy.deepcopy(base)
+    cast("list[dict[str, object]]", changed["rows"]).append(
+        {"id": "Rogue", "tool": "Rogue", "license": "MIT", "standing": "Unreviewed 9.9.9."})
+    damaged.append(changed)
+    for data in damaged:
+        expected, faults = _inspect(_files(data))
+        ensure(expected is None and bool(faults), f"unowned or malformed table input passed: {data!r}")
+    declared = copy.deepcopy(base)
+    cast("list[dict[str, object]]", declared["rows"]).append(
+        {"id": "Measured", "tool": "Measured", "license": "MIT", "standing": "Measured at 9.9.9.",
+         "disposition": "Historical measurement; no current dependency pin is claimed."})
+    expected, faults = _inspect(_files(declared))
+    ensure(not faults and expected is not None and "| Measured | MIT | Measured at 9.9.9. |" in expected,
+           f"an explicit existing-style disposition remains allowed: {faults!r}")
+
+
+def _fixed_owner_descriptors_cannot_name_ignored_fields() -> None:
+    files = {"tools/opam/x.lock": 'installed: ["demo.1.2.3"]\n',
+             "tools/pyproject.toml": '[tool.uv]\nrequired-version = "==1.2.3"\n'}
+    with sandbox_tree(files) as root:
+        for owner in (devtools.Owner("opam-any", "elsewhere/", "demo"),
+                      devtools.Owner("opam-every", "tools/opam/unread/", "demo"),
+                      devtools.Owner("uv-required", "tools/pyproject.toml", "ignored.field")):
+            reader = devtools.Owners(root, frozenset(files))
+            try:
+                reader.releases(owner)
+            except devtools.OwnerError:
+                ensure(bool(reader.faults), "invalid owner descriptors must retain a refusal")
+            else:
+                raise AssertionError(f"an ignored owner path or key was accepted: {owner!r}")
+
+
+def _shipped_review_view_and_owners_agree() -> None:
+    root = TOOLS.parent
+    text = (root / devtools.RECORD).read_text(encoding="utf-8")
+    expected, faults = devtools.inspect(root, frozenset(corpus.read_index(root).files), text)
+    ensure(expected == text and not faults,
+           f"the structured migration must preserve all current review evidence: {faults!r}")
+
+
 def cases() -> list[Case]:
     return [Case("identity-and-generated-bytes-are-independent",
                  _identity_and_generated_bytes_are_independent),
@@ -168,4 +233,8 @@ def cases() -> list[Case]:
             Case("markers-and-missing-sources-fail-closed", _markers_and_missing_sources_fail_closed),
             Case("owner-readers-cover-every-supported-identity", _owner_readers_cover_every_supported_identity),
             Case("hook-and-pip-inventory-still-require-reviews", _hook_and_pip_inventory_still_require_reviews),
-            Case("view-preserves-unrelated-document-bytes", _view_preserves_unrelated_document_bytes)]
+            Case("view-preserves-unrelated-document-bytes", _view_preserves_unrelated_document_bytes),
+            Case("rows-require-explicit-owners-or-dispositions", _rows_require_explicit_owners_or_dispositions),
+            Case("fixed-owner-descriptors-cannot-name-ignored-fields",
+                 _fixed_owner_descriptors_cannot_name_ignored_fields),
+            Case("shipped-review-view-and-owners-agree", _shipped_review_view_and_owners_agree)]

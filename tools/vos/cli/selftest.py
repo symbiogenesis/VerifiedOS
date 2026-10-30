@@ -1807,7 +1807,7 @@ CASES: list[Case] = [
     ("K-118", "a hand-edited generated development-tool view",
      _first_match(THIRD_PARTY, r"filelock `(\d[^`]*)`", lambda m: f"filelock `{m[1]}.1`")),
     ("K-118", "an unsupported authored development-tool review schema",
-     _literal("tools/development-tools.json", '"schema": 1', '"schema": 2')),
+     _literal("tools/development-tools.json", '"schema": 2', '"schema": 3')),
     ("K-118", "an authored review identity missing from the template",
      _first_match("tools/development-tools.json", r'"id": "([^"]+)"',
                   lambda m: f'"id": "{m[1]}_missing"')),
