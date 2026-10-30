@@ -62,8 +62,11 @@ records constructed or modified by callers.
 parameters as JSON. Repeat `--value X` to evaluate checked inputs.
 `--assembly` emits a straight-line RV64 fragment only at width 64. Its input
 and result are signed integers in `x10`; scratch registers `x5`, `x6` and `x7`
-are clobbered. It touches no memory, capability, stack or control-transfer
-state. Constant materialization uses the existing assembler's `li` expansion.
+are clobbered. The caller reserves those registers as integer temporaries;
+integer writes also destroy any capability tags they previously held in the
+merged register file. The fragment accesses no memory and uses no capability,
+stack or control-transfer instruction. Constant materialization uses the
+existing assembler's `li` expansion.
 Nontrivial variants use signed `mulh` and an arithmetic shift of its result.
 Comparisons produce integer bits; no dividend-dependent branch or lookup is
 permitted. Register and instruction choices are fixed by the divisor.

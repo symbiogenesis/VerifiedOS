@@ -144,6 +144,26 @@ Python checker is authored here and interprets the input language as rational
 data. Only input identities and the resulting check report are retained. This
 use supplies no imported proof or production arithmetic implementation.
 
+### Constant floor-division reference
+
+The host [constant floor-division reference](docs/implementation/contracts/constant-floor-division.md)
+adapts the parameter-selection and arithmetic algorithms from Ben Joffe's
+[fastdiv](https://github.com/benjoffe/fastdiv/tree/608fda7a6ea7322a55b9fb848be5ab252a341194)
+revision `608fda7a6ea7322a55b9fb848be5ab252a341194`, described in
+[the article](https://www.benjoffe.com/fast-floordiv).
+The selected revision's `LICENSE`, `algorithms/benjoffe.hpp` and
+`algorithms/trivial.hpp` were read on 2026-10-30. Its MIT grant permits
+adaptation and sublicensing with the copyright and permission notice retained.
+The exact [license and notice](tools/fast-floordiv/LICENSE.md), SHA-256
+`370ed53c2e927354f1a8b08662dc57c0967eab290d83cf8207a492434e21ba24`,
+accompanies the adapted Python implementation. Authored integration, validation
+and modifications use Apache-2.0; upstream portions retain MIT terms.
+
+The tracked adaptation is developer tooling, distributed with this repository.
+No upstream C++ headers, benchmark suite, binary or proof is incorporated.
+RV64 output is an experimental arithmetic fragment; compiler admission,
+source-to-byte correctness and target performance remain M1.3's obligations.
+
 ## Pinned as submodules
 
 The Git index contains a gitlink for each component below, with no source files beneath it. Initializing a submodule obtains its code from the upstream under that component's terms.

@@ -69,6 +69,8 @@ COMMANDS: tuple[Command, ...] = (
             lane="guest", host_ok=frozenset({"python"})),
     Command("test", "vos.cli.test",
             "the tools' own behavioral tests"),
+    Command("floor-div", "vos.cli.floor_div",
+            "plan checked constant signed floor division and emit RV64 arithmetic candidates"),
     Command("worktree", "vos.cli.worktree",
             "create and verify isolated checkouts with a provider-neutral root"),
     Command("fanout", "vos.cli.fanout",
