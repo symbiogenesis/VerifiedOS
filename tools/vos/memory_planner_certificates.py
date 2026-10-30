@@ -441,7 +441,7 @@ def _process(command: list[str], directory: Path, log: str, *, timeout: int,
 
 def _source_identity(root: Path) -> dict[str, str]:
     names = ("tools/vos/memory_planner.py", "tools/vos/memory_planner_certificates.py",
-             "tools/vos/cli/memory_planner.py", "tools/vos/jsonutil.py",
+             "tools/vos/memory_planner_json.py", "tools/vos/jsonutil.py",
              "tools/vos/cli/memory_planner_certificates.py",
              "tools/memory-planner/certificates/checker_main.cpp")
     return {name: _sha((root / name).read_bytes()) for name in names}

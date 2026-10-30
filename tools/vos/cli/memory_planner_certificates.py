@@ -9,8 +9,8 @@ from pathlib import Path
 
 from vos import memory_planner as planner
 from vos import memory_planner_certificates as certificates
-from vos.cli.memory_planner import unique_object
 from vos.corpus import find_root
+from vos.memory_planner_json import unique_object
 
 
 def _finite_float(value: str) -> float:
