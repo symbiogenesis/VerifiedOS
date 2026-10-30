@@ -1,17 +1,20 @@
 # SPDX-License-Identifier: Apache-2.0
 """Joined wire chronology and checked production-manifest consumption."""
 
+import io
 import json
 import tempfile
+from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import ExitStack
 from pathlib import Path
 from types import SimpleNamespace
+from typing import Self, override
 from unittest.mock import patch
 
 from tests import compiler_fixture
 from tests.harness import TOOLS, Case, ensure
-from vos import scalar_join, supervisor
+from vos import boot, scalar_join, supervisor
 
 
 def wire_publication_order() -> None:
@@ -251,6 +254,109 @@ def locked_producer_refusal() -> None:
                "preflight refusal invented target execution or lost the selected mode")
 
 
+def joined_boot_observer() -> None:
+    """Exercise the real streaming boot observer and joined receipt on scripted processes."""
+    for scenario in ("normal", "stale", "incomplete", "manifest-write", "unexpected-copy",
+                     "missing-copy", "wrong-order", "console-mismatch", "htif-failure",
+                     "process-failure", "timeout", "missing-exit", "lifecycle-failure",
+                     "late-failure"):
+        _joined_boot_case(scenario)
+
+
+def _joined_boot_case(scenario: str) -> None:
+    with tempfile.TemporaryDirectory(prefix="vos-scalar-boot-") as temporary:
+        out = Path(temporary)
+        name = "manifest-write" if scenario == "unexpected-copy" else (
+            scenario if scenario in {"stale", "incomplete", "manifest-write"} else "none")
+        (out / f"{name}.elf").write_bytes(b"scripted image")
+        (out / f"{name}.s").write_bytes(b"scripted compiled-source placeholder")
+        entries = [0x1000, 0x2000, 0x3000]
+        if scenario in {"missing-copy", "manifest-write"}:
+            entries.pop()
+        if scenario == "wrong-order":
+            entries[:2] = reversed(entries[:2])
+        lines = [f"I {index} {pc:016X} 00000013\n" for index, pc in enumerate(entries)]
+        lines += ["T 0 28\n", "W 0000000000004000 8 0 0101000000000041\n", "SUCCESS\n"]
+        if scenario != "missing-exit":
+            # The final commit record deliberately has no newline. Both the
+            # boot projector and the retained lifecycle reader must see it.
+            lines.append("W 0000000000004000 8 0 " +
+                         ("0000000000000003" if scenario == "htif-failure" else "0000000000000001"))
+        if scenario == "late-failure":
+            lines[-1] += "\n"
+            lines.append("FAILURE: 3 (0x3)")
+        text = "".join(lines)
+        killed: list[bool] = []
+
+        class Stream(io.StringIO):
+            @override
+            def read(self, size: int | None = -1) -> str:
+                raise AssertionError("boot observer must stream rather than read the trace whole")
+
+            @override
+            def readlines(self, hint: int = -1) -> list[str]:
+                raise AssertionError("boot observer must stream rather than collect trace lines")
+
+        class Process:
+            def __init__(self, argv: list[str], **kwargs: object) -> None:
+                ensure(kwargs["cwd"] == out, "joined simulator lost its assigned lane directory")
+                Path(argv[argv.index("--terminal-log") + 1]).write_bytes(
+                    b"B" if scenario == "console-mismatch" else b"A")
+                self.stdout = Stream(text)
+
+            def __enter__(self) -> Self:
+                return self
+
+            def __exit__(self, *_args: object) -> None:
+                ensure(self.stdout.tell() == len(text), "boot observer omitted the final trace line")
+
+            def wait(self) -> int:
+                return -9 if killed else (1 if scenario == "process-failure" else 0)
+
+            def kill(self) -> None:
+                killed.append(True)
+
+        class Timer:
+            def __init__(self, _interval: float, callback: Callable[[], None]) -> None:
+                self.callback = callback
+
+            def start(self) -> None:
+                if scenario == "timeout":
+                    self.callback()
+
+            def cancel(self) -> None:
+                pass
+
+        def lifecycle(log: Path, *_args: object) -> dict[str, object]:
+            with log.open(encoding="utf-8") as retained:
+                ensure(list(retained) == lines,
+                       "lifecycle observer did not receive every streamed byte and final line")
+            return {"ok": scenario != "lifecycle-failure"}
+
+        case = scalar_join.TargetCase(out / "simulator", out / "profile", out, name,
+            {"_start": 0x1000, "supervisor_entry": 0x2000,
+             "scalar_join_copy_entry": 0x3000, "tohost": 0x4000},
+            (0, 0), (0, 0), {}, 100, 10)
+        with (patch.object(boot.subprocess, "Popen", Process),
+              patch.object(boot.threading, "Timer", Timer),
+              patch.object(scalar_join, "observations", lifecycle)):
+            result = scalar_join.execute_case(case)
+        passed = scenario in {"normal", "stale", "incomplete", "manifest-write"}
+        ensure(result["ok"] is passed, f"joined boot result changed for {scenario}: {result}")
+        observed = result["boot_observation"]
+        ensure(isinstance(observed, dict), "joined receipt omitted boot observations")
+        if not isinstance(observed, dict):
+            return
+        ensure(observed["production_admission"] is False and observed["milestone_acceptance"] == "open",
+               "scripted observer test promoted a bounded checkpoint to full boot acceptance")
+        ensure(observed["event_sha256"] == scalar_join.receipts.digest(out / f"{name}.events") and
+               observed["console_sha256"] == scalar_join.receipts.digest(out / f"{name}.console"),
+               "joined receipt does not bind retained events and console bytes")
+        ensure(observed["timed_out"] is (scenario == "timeout"), "timeout status was lost")
+        if scenario == "lifecycle-failure":
+            ensure(observed["findings"] == [], "lifecycle refusal was replaced by boot failure")
+
+
 def cases() -> list[Case]:
     return [Case("joined request publication and later acknowledgment chronology", wire_publication_order),
             Case("joined fixed supervisor/copy table", fixed_table),
@@ -259,4 +365,5 @@ def cases() -> list[Case]:
             Case("production manifest reaches real joined source generation", generated_pipeline),
             Case("ordinary scalar comparison keeps its manifest", lambda: generated_pipeline(False)),
             Case("joined manifest compile and execution drift refuse", generated_drift),
-            Case("joined locked compiler refusal precedes target compilation", locked_producer_refusal)]
+            Case("joined locked compiler refusal precedes target compilation", locked_producer_refusal),
+            Case("joined real boot observer streams target output and retains refusals", joined_boot_observer)]

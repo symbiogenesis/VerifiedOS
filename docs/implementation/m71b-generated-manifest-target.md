@@ -111,4 +111,30 @@ joined campaign still requires a qualified compiler and actual target traces.
 Its reset initialization and copy-only service body leave authenticated handoff,
 storage/crypto execution and full-roster acceptance open.
 
+## Shared boot observations for the scalar join
+
+The scalar campaign runs each prepared image through the existing
+[boot observer](../../tools/vos/boot.py). It streams the commit trace into the
+case's retained trace file while projecting kernel, supervisor and copy-service
+entries, traps, HTIF writes and exit. The separate lifecycle observer then reads
+that same retained trace. Each case retains its console and event-log bytes and
+records their digests, commit fingerprint, traced-step count, process result,
+timeout state and boot findings beside the lifecycle verdict.
+
+Ordinary, stale-grant and incomplete-completion cases require first entry in
+kernel, supervisor and copy-service order. The read-only manifest-store control
+requires kernel and supervisor entry; an unexpected copy-service entry remains
+visible and refuses that control. Either observer's refusal withholds the case's
+passing result. A timeout retains its partial trace and timeout finding even if
+the process printed success before it was stopped.
+
+Focused host controls use scripted processes through the actual streaming boot
+observer, including an unterminated final commit record, console disagreement,
+wrong or missing entries, exit disagreement, process failure and timeout. They
+also check that the lifecycle reader receives the complete retained trace.
+These controls supply host integration evidence only. Actual target execution
+with the Q39-qualified compiler, authenticated handoff, storage/crypto and the
+full roster remain open. The bounded reset composition supplies no production
+admission or accepted full-roster measurement identity.
+
 This document uses `CC-BY-4.0` under [COPYRIGHT.md](../../COPYRIGHT.md).

@@ -9,7 +9,6 @@ outside this checkpoint.
 
 import hashlib
 import json
-import subprocess
 from collections import deque
 from collections.abc import Iterable
 from concurrent.futures import ProcessPoolExecutor
@@ -19,6 +18,7 @@ from typing import cast
 
 from vos import (
     asm,
+    boot,
     boot_handoff,
     compiler_provenance,
     copy_notification,
@@ -42,7 +42,7 @@ from vos.cli import compiler_diff as cd
 LIMITS = ("Explicit reset composition; persistent private copy allocation, separate small retired "
           "grant slots. No external clients, physical WCET, full boot roster or ring bitmap claim.")
 INPUTS = (*lifecycle_target.INPUTS, *copy_partition.INPUTS, "tools/vos/scalar_join.py",
-          "tools/vos/supervisor_context.py")
+          "tools/vos/supervisor_context.py", "tools/vos/boot.py")
 MAX_ROWS = 24  # At most12 supervisor stages, each with its fixed copy row.
 
 
@@ -575,19 +575,40 @@ def execute_case(case: TargetCase) -> dict[str, object]:
     """Independent process, image, log and observer; no shared writes."""
     elf = case.out / f"{case.name}.elf"
     log = case.out / f"{case.name}.trace"
-    with log.open("w", encoding="utf-8") as output:
-        done = subprocess.run([str(case.simulator), "--config", str(case.profile), "--trace-commit",
-                               "--inst-limit", str(case.instruction_limit), str(elf)], cwd=case.out,
-                              stdout=output, stderr=subprocess.STDOUT, timeout=case.timeout, check=False)
-    with log.open(encoding="utf-8") as output:
-        tail = "".join(deque(output, maxlen=64))
-    verdict, code, detail = cd.htif_verdict(tail, done.returncode)
+    console = case.out / f"{case.name}.console"
+    members = [{"id": member, "entry": f"{case.symbols[label]:#x}"} for member, label in (
+        ("kernel", "_start"), ("supervisor", "supervisor_entry"),
+        ("copy-service", "scalar_join_copy_entry"))]
+    # The read-only manifest control stops at its named supervisor store. Keep
+    # all entries visible to the projector so an unexpected copy call still fails.
+    expected_members = members[:2] if case.name == "manifest-write" else members
+    record: dict[str, object] = {"members": expected_members}
+    observation = boot.boot_image(
+        [str(case.simulator), "--config", str(case.profile), "--trace-commit",
+         "--terminal-log", str(console), "--inst-limit", str(case.instruction_limit), str(elf)],
+        console, boot.entries_of({"members": members}), case.symbols["tohost"],
+        case.timeout, log, cwd=case.out)
+    projection = observation.projection
+    events = case.out / f"{case.name}.events"
+    events.write_bytes(projection.event_log())
+    boot_findings = boot.run_findings(observation, record)
+    with log.open(encoding="utf-8") as retained:
+        tail = "".join(deque(retained, maxlen=64))
+    verdict, code, detail = cd.htif_verdict(tail, observation.returncode)
     observed = observations(log, case.symbols, case.windows, case.bitmap, case.bound, case.name,
                             case.expected_manifest)
     result: dict[str, object] = {"name": case.name, "verdict": verdict, "code": code, "detail": detail,
-        "ok": verdict == "pass" and observed["ok"] is True, "observations": observed,
+        "ok": not boot_findings and verdict == "pass" and observed["ok"] is True,
+        "observations": observed,
         "source_sha256": receipts.digest(case.out / f"{case.name}.s"),
-        "image_sha256": receipts.digest(elf), "trace_sha256": receipts.digest(log)}
+        "image_sha256": receipts.digest(elf), "trace_sha256": receipts.digest(log),
+        "boot_observation": {**boot.expected_block(observation, receipts.digest(elf)),
+            "members": expected_members, "records": projection.records,
+            "returncode": observation.returncode, "timed_out": observation.timed_out,
+            "wall_seconds": observation.wall_seconds, "htif_exit": projection.htif_exit,
+            "emulator_verdict": projection.verdict, "findings": boot_findings,
+            "production_admission": False, "milestone_acceptance": "open",
+            "scope": "bounded scalar checkpoint; reset initialization, no authenticated full-roster boot"}}
     receipts.write(case.out / f"{case.name}.json", result)
     return result
 
