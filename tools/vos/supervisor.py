@@ -7,7 +7,6 @@ generates inputs and syntax; it does not compute the reference answers. This is
 focused differential evidence, not proof-gate or target acceptance.
 """
 
-import hashlib
 import itertools
 import json
 import shutil
@@ -18,6 +17,7 @@ from pathlib import Path
 from typing import Final
 
 from vos import composition, env, gallina
+from vos.receipts import digest as _digest
 
 DETECTORS: Final = (
     "PoolLow", "PoolExhausted", "OldestWaiterPastBound", "QuarantineBacklogPastBound",
@@ -162,10 +162,6 @@ def build_host(source: Path, binary: Path, compiler: str) -> subprocess.Complete
     return built
 
 
-def _digest(path: Path) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest()
-
-
 def check(root: Path, work: Path) -> tuple[int, list[str]]:
     """Run one focused native/reference comparison, retaining artifacts in its lane."""
     work.mkdir(parents=True, exist_ok=True)
@@ -186,6 +182,8 @@ def check(root: Path, work: Path) -> tuple[int, list[str]]:
         return 1, [f"FAIL supervisor manifest: {error}", WAITS]
     identities = [root / "proofs" / "SupervisionTree.v",
                   root / "tools" / "vos" / "supervisor.py",
+                  *(root / "tools" / "vos" / name for name in
+                    ("receipts.py", "proofenv.py", "atomic.py")),
                   root / "supervisor" / "include" / "vos_supervisor.h",
                   root / "supervisor" / "include" / "vos_supervisor_effects.h",
                   root / composition.EXAMPLE,

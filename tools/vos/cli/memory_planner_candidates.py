@@ -70,6 +70,7 @@ def _run(args: argparse.Namespace, root: Path, output: Path) -> tuple[dict[str, 
         result["sources_sha256"] = {name: candidates.digest(root / name) for name in
                                     (candidates.PIN_PATH, candidates.BRIDGE_PATH,
                                      "tools/vos/memory_planner_candidates.py", "tools/vos/memory_planner.py",
+                                     "tools/vos/receipts.py", "tools/vos/proofenv.py", "tools/vos/atomic.py",
                                      "tools/vos/cli/memory_planner_candidates.py")}
         if held:
             output.mkdir(parents=True, exist_ok=True)

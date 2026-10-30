@@ -1,7 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 """One private, source-built OpenSSL oracle and the identity every consumer reads."""
 
-import hashlib
 import json
 import os
 import platform
@@ -15,6 +14,7 @@ from pathlib import Path
 from typing import Any
 
 from vos import receipts
+from vos.receipts import digest as _sha
 
 VERSION = "3.5.9"
 REVISION = "45e844fa2a14ec92d146bd8f5778ac130b6625fb"
@@ -32,10 +32,6 @@ def pin() -> dict[str, str]:
     return {"version": VERSION, "revision": REVISION, "url": URL,
             "archive_sha256": ARCHIVE_SHA256, "license_sha256": LICENSE_SHA256,
             "license": "Apache-2.0"}
-
-
-def _sha(path: Path) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
 def root() -> Path:

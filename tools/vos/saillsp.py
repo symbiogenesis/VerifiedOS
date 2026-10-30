@@ -18,13 +18,10 @@ from pathlib import Path
 from typing import Any
 
 from vos import env
+from vos.receipts import digest as sha256
 
 NOTICE = "Experimental live feedback; the locked batch compiler and existing model gates remain authoritative."
 LOCK = "tools/sail-lsp/sources.lock.json"
-
-
-def sha256(path: Path) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
 def _write_json(path: Path, value: object) -> None:
@@ -39,6 +36,7 @@ def home(e: env.Environment) -> Path:
 def lock_identity(root: Path) -> str:
     digest = hashlib.sha256()
     for relative in (LOCK, "tools/opam/sail.lock", "tools/vos/saillsp.py",
+                     "tools/vos/receipts.py", "tools/vos/proofenv.py", "tools/vos/atomic.py",
                      "tools/sail-lsp/dependency-refresh.patch"):
         digest.update(relative.encode())
         digest.update((root / relative).read_bytes())

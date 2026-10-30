@@ -467,6 +467,7 @@ def _native() -> None:
                                               "model/model/unit_tests/test_rot.sail", "model/model/CMakeLists.txt",
                                               "model/c_emulator/riscv_platform_if.h", "model/c_emulator/riscv_platform_if.cpp",
                                               "model/test/unit_tests/entropy_capture.cpp", "tools/vos/replay_record.py",
+                                              "tools/vos/receipts.py", "tools/vos/proofenv.py", "tools/vos/atomic.py",
                                               "tools/vos/jsonutil.py",
                                               "tools/vos/replay_envelope.py", "tools/opam/sail.lock")}}
     (work / "receipt.json").write_text(json.dumps(receipt, indent=2) + "\n", encoding="utf-8", newline="")
