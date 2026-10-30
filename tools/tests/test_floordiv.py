@@ -6,11 +6,12 @@ from collections.abc import Callable
 from contextlib import redirect_stdout
 from dataclasses import replace
 from io import StringIO
+from typing import override
 
 from tests.harness import Case, ensure
 from vos import asm
 from vos.cli import floor_div as cli
-from vos.floordiv import assembly, evaluate, plan, validate
+from vos.floordiv import Plan, assembly, evaluate, plan, validate
 
 _MASK = (1 << 64) - 1
 
@@ -188,6 +189,19 @@ def _assembly_samples() -> None:
 
 
 def _invalid_and_mutants() -> None:
+    class ForgedPlan(Plan):
+        @override
+        def __eq__(self, other: object) -> bool:
+            return True
+
+        @override
+        def __hash__(self) -> int:
+            return 0
+
+    forged = ForgedPlan(64, 3, "sign-selected", 0, 64)
+    _raises(TypeError, lambda: validate(forged), "exactly a Plan")
+    _raises(TypeError, lambda: evaluate(forged, 3), "exactly a Plan")
+    _raises(TypeError, lambda: assembly(forged), "exactly a Plan")
     for width in (0, 7, 128, True):
         _raises(ValueError, lambda width=width: plan(width, 1), "width")
     for divisor in (0, -129, 128, True):

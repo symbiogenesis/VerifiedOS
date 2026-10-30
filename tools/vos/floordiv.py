@@ -106,8 +106,8 @@ def plan(width: int, divisor: int) -> Plan:
 
 def validate(parameters: Plan) -> None:
     """Refuse caller-constructed parameter changes before arithmetic or emission."""
-    if not isinstance(parameters, Plan):
-        raise TypeError("parameters must be a Plan")
+    if type(parameters) is not Plan:
+        raise TypeError("parameters must be exactly a Plan")
     if (type(parameters.multiplier) is not int or type(parameters.shift) is not int
             or type(parameters.mode) is not str
             or parameters != plan(parameters.width, parameters.divisor)):
