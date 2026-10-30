@@ -203,6 +203,12 @@ def _sparse_pin_candidates_preserve_all_sites() -> None:
 
 def _glyph_candidates_cover_chunks_and_share_facts() -> None:
     markers = tuple(mark.encode() for mark in glyphs.MOJIBAKE_MARKS)
+    for needles, raw, expected in ((markers, b"ASCII source", False),
+                                   ((b"damage",), b"ASCII damage", True),
+                                   ((b"",), b"ASCII source", True)):
+        for size in (1, 3, 256):
+            facts = retained.prescan(gzip.compress(raw), (), (), (), glyphs=needles, chunk_size=size)
+            ensure(facts.glyph is expected, "ASCII glyph shortcut changed a generic needle's result")
     for mark in glyphs.MOJIBAKE_MARKS:
         raw = ("prefix " + mark + " suffix").encode()
         for size in (1, 2, 3, 7):

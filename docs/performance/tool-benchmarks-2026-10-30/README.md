@@ -21,12 +21,15 @@ proof identities matched and native cache controls passed. The small proof-conte
 timing differences do not establish a repeatable speed factor.
 
 The [boundary-matcher comparison](https://github.com/symbiogenesis/VerifiedOS/actions/runs/41113896269)
-retains its [checker](41113896269-checker.json) and
+retains its [checker](41113896269-checker.json),
+[runner](41113896269-runner.json) and
 [proof-context](41113896269-proof-identity.json) records. Moving the streaming
 presence predicate into native matching preserved outputs and the memory benefit,
 but did not improve complete checker time. This scanner runtime result is also
 rejected. Candidate-line collection still used the Python boundary loop in that
-revision; the retained record does not measure its replacement.
+revision; the retained record does not measure its replacement. The complete
+runner again preserves reports and byte assertions, with a repeatable proof-header
+improvement and a smaller Markdown difference.
 
 The [initial attempt](https://github.com/symbiogenesis/VerifiedOS/actions/runs/41108543698)
 retains [partial runner evidence](41108543698-runner.json) and its

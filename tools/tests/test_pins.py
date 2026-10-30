@@ -265,16 +265,24 @@ def _a_file_that_is_not_there() -> None:
 
 def _id_boundaries_match_reference() -> None:
     reference = re.compile(r"(?<![0-9A-Za-z_])([0-9a-f]{7,40})(?![\w-])")
-    edges = ("", " ", "\n", "\r\n", "`", "-", "_", "g", "F", "0", "é", "中")
-    tokens = ["a" * size for size in (6, 7, 8, 39, 40, 41, 64)]
+    edges = ("", " ", "\n", "\r\n", "`", "-", "_", "g", "F", "0", "é", "中", "\u0301")
+    tokens = ["a" * size for size in (*range(6, 43), 64, 80)]
     tokens += ["1234567", "0xabcdef0", "ABCDEF01", "abc1234-1234abc"]
     for before in edges:
         for token in tokens:
             for after in edges:
                 text = before + token + after
-                expected = [(m.span(), m.group(1)) for m in reference.finditer(text)]
-                actual = [(m.span(), m.group(1)) for m in pins.ID_RE.finditer(text)]
-                ensure(actual == expected, f"id boundaries changed for {text!r}")
+                for start, end in ((0, len(text)), (len(before), len(before) + len(token)),
+                                   (1, len(text) - 1), (0, min(8, len(text)))):
+                    expected = [(m.span(), m.group(0), m.span(1), m.group(1))
+                                for m in reference.finditer(text, start, end)]
+                    actual = [(m.span(), m.group(0), m.span(1), m.group(1))
+                              for m in pins.ID_RE.finditer(text, start, end)]
+                    ensure(actual == expected, f"id boundaries changed for {text!r} at {start}:{end}")
+    text = "prefix " + " core ".join(tokens) + " suffix"
+    ensure([(m.span(), m.group(1)) for m in pins.ID_RE.finditer(text)]
+           == [(m.span(), m.group(1)) for m in reference.finditer(text)],
+           "possessive repeat changed the order of multiple valid IDs")
 
 
 def _offset_sites_keep_line_boundaries() -> None:

@@ -97,6 +97,7 @@ def prescan(blob: bytes, names: tuple[str, ...], sensitive: tuple[bytes, ...],
     sparse_supported = True
     byte_tail = b""
     byte_overlap = max((len(needle) for needle in (*sensitive, *folded, *glyphs)), default=1) - 1
+    glyphs_require_nonascii = all(not needle.isascii() for needle in glyphs)
     pin_name = lineage = glyph = False
     line_base = kept_lines = 0
     parts: list[str] = []
@@ -111,7 +112,7 @@ def prescan(blob: bytes, names: tuple[str, ...], sensitive: tuple[bytes, ...],
                     low = window.lower()
                     lineage = (any(needle in window for needle in sensitive)
                                or any(needle in low for needle in folded))
-                if glyphs and not glyph:
+                if glyphs and not glyph and not (glyphs_require_nonascii and window.isascii()):
                     glyph = any(needle in window for needle in glyphs)
                 byte_tail = window[-byte_overlap:] if byte_overlap else b""
             if unsupported is None and names:

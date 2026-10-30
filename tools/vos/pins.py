@@ -58,7 +58,9 @@ COLUMNS = ("Submodule", "Upstream", "Pin")
 # regex engine a leading character class to skip to instead of trying a lookbehind
 # at every character. The two-character lookbehind still checks the preceding
 # character, and the captured token and its boundaries are unchanged.
-ID_RE = re.compile(r"([0-9a-f](?<![0-9A-Za-z_][0-9a-f])[0-9a-f]{6,39})(?![\w-])")
+# A shorter retry can only leave another hex word character before the right
+# boundary, so it cannot succeed. The possessive repeat removes those retries.
+ID_RE = re.compile(r"([0-9a-f](?<![0-9A-Za-z_][0-9a-f])[0-9a-f]{6,39}+)(?![\w-])")
 
 _BACKTICKED_RE = re.compile(r"`([^`]+)`")
 _ROW_RE = re.compile(r"^\|(.*)\|\s*$")

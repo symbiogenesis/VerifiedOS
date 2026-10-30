@@ -159,6 +159,11 @@ to unbounded substrings such as a project name inside a longer identifier.
 Rejected window-edge matches resume with overlap, and malformed or unsupported
 text retains the complete parser. The boundary oracle and chunk tests retain the
 original `isalnum` and underscore/hyphen predicates.
+The pin-ID repeat is possessive: backing off a consumed hexadecimal character can
+only put another word character before the refusing right boundary. Its frozen
+greedy oracle compares full matches, captures and bounded searches. ASCII stream
+windows skip glyph searches only when every requested needle needs a non-ASCII
+byte; overlap windows and generic ASCII needles retain their complete checks.
 
 The census validator resolves its schema plan once per call, retains every
 compatible union branch and constructs diagnostic paths on failure. Reverse indexes
@@ -187,6 +192,8 @@ explicit selection requiring complete retained inputs. These jobs supply no Host
 or Guest CI verdict and do not replace either workflow's handoff.
 Checker and proof-context RSS figures describe their worker process, not the sum
 of its descendants or the full kernel check's residency.
+After the unprofiled checker pairs, a separate candidate-only profiler run retains
+diagnostic call costs. Its overhead supplies no baseline/candidate timing evidence.
 
 The [retained comparison evidence](../docs/performance/tool-benchmarks-2026-10-30/README.md)
 records the completed runner improvement, proof-context timing limits and rejected

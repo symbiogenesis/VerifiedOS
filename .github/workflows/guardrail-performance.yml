@@ -116,6 +116,8 @@ jobs:
           uv run --project tools --locked --exact --no-python-downloads python \
             tools/ci/archive_scan_benchmark.py --base "$PERFORMANCE_BASE" \
             --output "$RUNNER_TEMP/performance/checker.json"
+          uv run --project tools --locked --exact --no-python-downloads python \
+            -m cProfile -o "$RUNNER_TEMP/performance/checker.prof" tools/check.py
       - name: Compare complete Markdown and repair work
         if: ${{ matrix.scope == 'runner' }}
         timeout-minutes: 120
