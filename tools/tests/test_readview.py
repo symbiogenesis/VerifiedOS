@@ -19,7 +19,7 @@ from pathlib import Path
 from tests.harness import TOOLS, Case, cli_argv, ensure, sandbox_tree
 
 _SOURCES = ("tools/vos/cli/__init__.py", "tools/vos/cli/view.py",
-            "tools/vos/__init__.py", "tools/vos/coread.py",
+            "tools/vos/__init__.py", "tools/vos/coread.py", "tools/vos/atomic.py",
             "tools/vos/corpus.py", "tools/vos/proofenv.py", "tools/vos/register.py")
 
 # Three entries: one plain, one whose bookmark the prose repeats under a -2 suffix,

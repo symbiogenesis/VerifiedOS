@@ -29,7 +29,7 @@ from tests.harness import TOOLS, Case, cli_argv, ensure, sandbox_tree
 
 # The live sources the sandbox copy of the tool runs on, relative to the root.
 _SOURCES = ("tools/vos/cli/__init__.py", "tools/vos/cli/coread.py",
-            "tools/vos/__init__.py", "tools/vos/coread.py",
+            "tools/vos/__init__.py", "tools/vos/coread.py", "tools/vos/atomic.py",
             "tools/vos/corpus.py", "tools/vos/proofenv.py", "tools/vos/register.py")
 
 # Three entries in the register's own shape: body line, criterion, conferral on the
