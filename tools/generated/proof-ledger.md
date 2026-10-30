@@ -198,9 +198,11 @@ being a finding of the rules that read them rather than a row of this table.
 | R-05-163 | proofs/CopyRingService.v | n/a | cited |
 | R-05-163 | proofs/CredentialHandles.v | n/a | cited |
 | R-05-163 | proofs/CryptoLists.v | n/a | cited |
+| R-05-163 | proofs/CyclicExecutive.v | n/a | cited |
 | R-05-163 | proofs/DischargeSequence.v | n/a | cited |
 | R-05-163 | proofs/ElasticDomain.v | n/a | cited |
 | R-05-163 | proofs/EndpointIPC.v | n/a | cited |
+| R-05-163 | proofs/EnsembleSchedule.v | n/a | cited |
 | R-05-163 | proofs/ExecutableIndex.v | n/a | cited |
 | R-05-163 | proofs/HandlerGraph.v | n/a | cited |
 | R-05-163 | proofs/HmacDrbg.v | n/a | cited |
