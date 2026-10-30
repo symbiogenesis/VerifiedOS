@@ -2674,7 +2674,7 @@ These replacements are implemented. Configuration and maintenance-data readers
 share authored schemas with editor support; the review binding replaces K-97.
 Focused controls preserve predecessor configuration decisions and generated
 maintenance content, and cover duplicate keys, strict integer lengths and offline
-schema-reference refusals. The `guardrails-declarative-20261030` fanout journal
+schema-reference refusals. The `guardrails-declarative-20261030-final` fanout journal
 owns revision-bound Host CI evidence and every Guest CI lane's dispatch.
 
 ## Tool-library simplifications
