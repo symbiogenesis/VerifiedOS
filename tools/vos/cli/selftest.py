@@ -1684,7 +1684,7 @@ CASES: list[Case] = [
      _first_match(".github/workflows/host-gates.yml",
                   r"(?m)^(\s*- uses: [^@\s]+)@[0-9a-f]{40} # (v\d+)\.\d+\.\d+$",
                   lambda m: f"{m[1]}@{m[2]}")),
-    ("K-118", "a workflow action whose parsed value continues beyond its pinned source line",
+    ("K-118", "a workflow action with invalid continuation after its pinned source-line comment",
      _first_match(".github/workflows/host-gates.yml",
                   r"(?m)^([ \t]*)- uses: [^@\s]+@[0-9a-f]{40} # v\d+\.\d+\.\d+\n",
                   lambda m: f"{m[0]}{m[1]}    continuation\n")),

@@ -338,7 +338,7 @@ def _workflow_actions_keep_review_identity_and_population() -> None:
         (source.replace("v1.2.3", "v1.2.4"), "reviewed"),
         (source.replace(sha + " # v1.2.3", "v1"), "full commit"),
         (source.replace(" # v1.2.3", ""), "full commit"),
-        (source + "      continuation\n", "parsed action reference"),
+        (source + "      continuation\n", "invalid YAML"),
         (source.replace("example/action", "other/action"), "no structured action review"),
         (source.replace("uses:", '"u\\x73es":'), "bare block"),
         (source + "  - {uses: other/action@v1}\n", "bare block"),
