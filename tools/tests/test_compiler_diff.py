@@ -15,6 +15,7 @@ and the oracle's switch are exercised by hand and quoted in the completion note.
 
 import json
 import re
+import subprocess
 import sys
 import tempfile
 from contextlib import redirect_stderr, redirect_stdout
@@ -26,7 +27,8 @@ from unittest.mock import patch
 from tests import compiler_fixture
 from tests.harness import Case, ensure
 from vos import asm, compiler_provenance, env, trace
-from vos.cli import compiler_diff as cd
+from vos import compiler_diff as cd
+from vos.cli import compiler_diff as command
 from vos.cli.model import verified_build
 from vos.jsonc import Json
 
@@ -787,7 +789,7 @@ def _component_encoding_and_comparator() -> None:
 def _run_cli(argv: list[str]) -> tuple[int, str, str]:
     out, err = StringIO(), StringIO()
     with redirect_stdout(out), redirect_stderr(err):
-        code = cd.main(argv)
+        code = command.main(argv)
     return code, out.getvalue(), err.getvalue()
 
 
@@ -1119,8 +1121,49 @@ def _compiler_identity_stays_bound_until_publication() -> None:
                            f"{route} wrote component records after {change} drift")
 
 
+def _library_imports_without_command_layer() -> None:
+    script = """
+import sys
+from vos import compiler_diff
+loaded = sorted(name for name in sys.modules if name == 'vos.cli' or name.startswith('vos.cli.'))
+if loaded:
+    raise RuntimeError(f'engine import loaded command modules: {loaded}')
+if compiler_diff.__name__ != 'vos.compiler_diff':
+    raise RuntimeError('wrong compiler differential implementation owner')
+"""
+    done = subprocess.run([sys.executable, "-c", script],
+                          cwd=Path(cd.__file__).resolve().parents[1],
+                          capture_output=True, text=True, check=False, timeout=60)
+    ensure(done.returncode == 0, f"fresh engine import crossed the CLI boundary: {done.stderr}")
+
+
+def _command_boundary_and_source_bindings() -> None:
+    ensure(command.cd is cd, "command dispatch did not use the reusable engine")
+    ensure(tuple(command.TABLE) == ("program", "component", "generate"),
+           "compiler differential subcommands changed")
+    for name, expected in (("program", "--expect-refusal"), ("component", "--host-record"),
+                           ("generate", "--seed")):
+        out = StringIO()
+        with redirect_stdout(out):
+            try:
+                command.main([name, "--help"])
+            except SystemExit as error:
+                ensure(error.code == 0, f"{name} help failed: {error}")
+            else:
+                raise AssertionError(f"{name} help did not stop before dispatch")
+        ensure(f"run.py compiler-diff {name}" in out.getvalue() and expected in out.getvalue(),
+               f"{name} help lost its public arguments: {out.getvalue()}")
+    root = Path(cd.__file__).resolve().parents[2]
+    sources = command._sources(root)
+    for name in ("tools/vos/compiler_diff.py", "tools/vos/cli/compiler_diff.py"):
+        ensure(sources.get(name) == cd._sha256((root / name).read_bytes()),
+               f"campaign evidence omitted the current implementation owner: {name}")
+
+
 def cases() -> list[Case]:
     return [
+        Case("library-imports-without-command-layer", _library_imports_without_command_layer),
+        Case("command-boundary-and-source-bindings", _command_boundary_and_source_bindings),
         Case("generator-is-deterministic", _generator_is_deterministic),
         Case("perturbed-twins-move-one-check", _perturbed_twins_move_one_check),
         Case("scan-names-what-the-dialect-refuses", _scan_names_what_the_dialect_refuses),

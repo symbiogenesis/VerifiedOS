@@ -19,6 +19,7 @@ from typing import Any
 from vos import (
     asm,
     boot_handoff,
+    compiler_diff,
     compiler_provenance,
     dialect,
     image,
@@ -31,7 +32,6 @@ from vos import (
     supervisor,
     trace,
 )
-from vos.cli import compiler_diff
 
 TEXT_BASE = 0x80200000
 DATA_BASE = 0x80008000
@@ -43,7 +43,7 @@ INPUTS = ("supervisor/include", "supervisor/src", "supervisor/test/context_join.
           "tools/vos/kernel_effects.py", "tools/vos/kernel_restore.py",
           "tools/vos/kernel_target.py", "tools/vos/kernelrun.py", "tools/vos/trace.py",
           "tools/vos/boot_handoff.py", "tools/vos/jsonc.py", "tools/vos/receipts.py",
-          "tools/vos/cli/compiler_diff.py", "tools/vos/supervisor.py")
+          "tools/vos/compiler_diff.py", "tools/vos/supervisor.py")
 
 
 def manifest_bytes(payload: dict[str, Any]) -> bytes:
@@ -801,7 +801,7 @@ def run(root: Path, ccomp: Path, config: Path, simulator: Path,
               "external": external, "model_sources": model, "bound": bound,
               "profile": {"path": str(profile_path), "sha256": receipts.digest(profile_path)},
               "reaction_bound": reaction, "cases": cases,
-              "kernel": compiler_diff._compiled_json(kernel), "supervisor": compiler_diff._compiled_json(supervisor_component),
+              "kernel": compiler_diff.compiled_json(kernel), "supervisor": compiler_diff.compiled_json(supervisor_component),
               "production_manifest": {name: hashlib.sha256(data).hexdigest() for name, data in snapshot.items()},
               "production_admission": False, "generated_manifest": generated_manifest,
               "expected_manifest_sha256": hashlib.sha256(expected_manifest).hexdigest() if bool(expected_manifest) else None,

@@ -17,13 +17,13 @@ from vos import (
     receipts,
     trace,
 )
+from vos import compiler_diff as cd
 from vos.boot_target import compiler_inputs
-from vos.cli import compiler_diff as cd
 
 INPUTS = ("copy-service", "interfaces/ring-reference.json", "interfaces/device-registers.json",
           "tools/vos/copy_notification.py", "tools/vos/copy_service.py", "tools/vos/copy_target.py",
           "tools/vos/cli/copy_service.py", "tools/vos/device_registers.py", "tools/generated",
-          "tools/vos/cli/compiler_diff.py", "tools/vos/asm.py", "tools/vos/image.py",
+          "tools/vos/compiler_diff.py", "tools/vos/asm.py", "tools/vos/image.py",
           "tools/vos/jsonutil.py")
 
 

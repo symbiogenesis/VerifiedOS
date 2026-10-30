@@ -17,6 +17,7 @@ from pathlib import Path
 from vos import (
     asm,
     boot_handoff,
+    compiler_diff,
     compiler_provenance,
     dialect,
     kernel_restore,
@@ -25,7 +26,6 @@ from vos import (
     receipts,
     trace,
 )
-from vos.cli import compiler_diff
 
 
 def emit_save(prefix: str = "vos_trap", offset: int = 0) -> str:
@@ -357,7 +357,7 @@ def protected_run(root: Path, ccomp: Path, config: Path, runner: Path,
              "model": simulator, "model_receipt": build_receipt}
     external = {name: receipts.digest(path) for name, path in paths.items()}
     sources = receipts.inputs(root, "tools/vos/kernel_effects.py", "tools/vos/asm.py",
-        "tools/vos/dialect.py", "tools/vos/image.py", "tools/vos/cli/compiler_diff.py")
+        "tools/vos/dialect.py", "tools/vos/image.py", "tools/vos/compiler_diff.py")
     model = receipts.inputs(root, "model")
     kernel_restore.require_build(json.loads(build_receipt.read_text(encoding="utf-8")),
                                  external["model"], model)
@@ -402,7 +402,7 @@ def protected_run(root: Path, ccomp: Path, config: Path, runner: Path,
     observed = protected_observations(records, assembler.symbols)
     unchanged = (external == {name: receipts.digest(path) for name, path in paths.items()}
         and sources == receipts.inputs(root, "tools/vos/kernel_effects.py", "tools/vos/asm.py",
-            "tools/vos/dialect.py", "tools/vos/image.py", "tools/vos/cli/compiler_diff.py")
+            "tools/vos/dialect.py", "tools/vos/image.py", "tools/vos/compiler_diff.py")
         and model == receipts.inputs(root, "model"))
     artifacts = {str(path.relative_to(out)): receipts.digest(path)
                  for path in out.rglob("*") if path.is_file() and

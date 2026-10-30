@@ -15,6 +15,7 @@ from pathlib import Path
 from vos import (
     asm,
     boot_handoff,
+    compiler_diff,
     compiler_provenance,
     jsonc,
     kernel_restore,
@@ -24,7 +25,6 @@ from vos import (
 )
 from vos.boot_signing import SlhSigner
 from vos.boot_target import compiler_inputs
-from vos.cli import compiler_diff
 
 COMPOSITION = 7
 PARTITIONS = 2

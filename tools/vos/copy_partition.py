@@ -26,8 +26,8 @@ from vos import (
     receipts,
     trace,
 )
+from vos import compiler_diff as cd
 from vos.boot_target import compiler_inputs
-from vos.cli import compiler_diff as cd
 
 PREFIX = "vos_copy_partition"
 OWNED_BYTES = copy_target.RING_BYTES

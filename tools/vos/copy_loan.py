@@ -31,7 +31,7 @@ from vos import (
     receipts,
     trace,
 )
-from vos.cli import compiler_diff as cd
+from vos import compiler_diff as cd
 
 
 @dataclass(frozen=True)
@@ -296,7 +296,7 @@ def run(root: Path, ccomp: Path, config: Path, simulator: Path, build_receipt: P
     inputs = ("kernel/include/vos_copy_loan.h", "kernel/src/copy_loan.c", "kernel/test/copy_loan_target.c",
               "kernel/include/vos_effects.h", "kernel/include/vos_platform.h", "kernel/include/vos_kernel.h",
               "supervisor/include", "tools/vos/copy_loan.py", "tools/vos/asm.py", "tools/vos/image.py",
-              "tools/vos/cli/compiler_diff.py", "tools/vos/kernel_restore.py", "tools/vos/kernelrun.py",
+              "tools/vos/compiler_diff.py", "tools/vos/kernel_restore.py", "tools/vos/kernelrun.py",
               "tools/vos/dialect.py", "tools/vos/jsonc.py", "tools/vos/trace.py", "tools/vos/receipts.py",
               "tools/generated/dialect-table.json", "model")
     sources = receipts.inputs(root, *inputs)

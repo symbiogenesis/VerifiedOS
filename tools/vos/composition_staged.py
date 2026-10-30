@@ -16,7 +16,7 @@ PRODUCER = "historical-boot-chain"
 MEMBER_UNITS = (("rot-firmware", ("rom", "runtime")), ("mmode-firmware", ("mmode",)))
 INSPECTORS = ("tools/vos/composition_staged.py", "tools/vos/boot_chain.py",
               "tools/vos/boot_crypto_target.py", "tools/vos/boot_handoff.py",
-              "tools/vos/compiler_provenance.py", "tools/vos/cli/compiler_diff.py",
+              "tools/vos/compiler_provenance.py", "tools/vos/compiler_diff.py",
               "tools/generated/dialect-table.json", handoff.CONTRACT, handoff.ROT_CONFIG,
               boot_crypto_target.LOCK)
 
