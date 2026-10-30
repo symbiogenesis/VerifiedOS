@@ -1,0 +1,50 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "VerifiedOS unpopulated calibration classes",
+  "type": "object",
+  "required": ["schema", "status", "requirements", "device_tree", "classes"],
+  "additionalProperties": false,
+  "properties": {
+    "schema": {"type": "integer", "const": 1},
+    "status": {"const": "unpopulated"},
+    "requirements": {"const": ["R-15-126", "R-15-127", "R-15-128", "R-17-062"]},
+    "device_tree": {
+      "type": "object",
+      "required": ["property", "encoding", "length", "absence"],
+      "additionalProperties": false,
+      "properties": {
+        "property": {"const": "verifiedos,calibration-manifest-sha256"},
+        "encoding": {"const": "bytes"},
+        "length": {"type": "integer", "const": 32},
+        "absence": {"const": "calibration-not-qualified"}
+      }
+    },
+    "classes": {
+      "type": "array",
+      "minItems": 4,
+      "maxItems": 4,
+      "items": {"$ref": "#/$defs/class"},
+      "allOf": [
+        {"contains": {"properties": {"id": {"const": "emission-trim"}}}, "maxContains": 1},
+        {"contains": {"properties": {"id": {"const": "emission-limit"}}}, "maxContains": 1},
+        {"contains": {"properties": {"id": {"const": "sram-assist"}}}, "maxContains": 1},
+        {"contains": {"properties": {"id": {"const": "sensor-trim"}}}, "maxContains": 1}
+      ]
+    }
+  },
+  "$defs": {
+    "text": {"type": "string", "pattern": "\\S"},
+    "class": {
+      "type": "object",
+      "required": ["id", "ceiling_owner", "qualification_owner", "containment", "required_evidence"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {"$ref": "#/$defs/text"},
+        "ceiling_owner": {"type": "string", "pattern": "^R-\\d{2}-\\d{3}[a-z]*$", "not": {"pattern": "\\n"}},
+        "qualification_owner": {"const": "R5"},
+        "containment": {"$ref": "#/$defs/text"},
+        "required_evidence": {"$ref": "#/$defs/text"}
+      }
+    }
+  }
+}

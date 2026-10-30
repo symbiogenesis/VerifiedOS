@@ -4,6 +4,26 @@
         {
             "fileMatch": ["/tools/development-tools.json"],
             "url": "./tools/development-tools.schema.json"
+        },
+        {
+            "fileMatch": ["/tools/check-registry.json"],
+            "url": "./tools/check-registry.schema.json"
+        },
+        {
+            "fileMatch": ["/docs/implementation/work-order.json"],
+            "url": "./docs/implementation/work-order.schema.json"
+        },
+        {
+            "fileMatch": ["/interfaces/calibration-schema.json"],
+            "url": "./interfaces/calibration-owner.schema.json"
+        },
+        {
+            "fileMatch": ["/tools/composer/packages/*.json"],
+            "url": "./tools/composer/package.schema.json"
+        },
+        {
+            "fileMatch": ["/tools/composer/m8a-composition.json"],
+            "url": "./tools/composer/composition.schema.json"
         }
     ]
 }

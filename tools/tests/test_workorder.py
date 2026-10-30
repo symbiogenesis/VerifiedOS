@@ -4,7 +4,7 @@
 import copy
 import json
 
-from tests.harness import Case, ensure, sandbox_tree
+from tests.harness import TOOLS, Case, ensure, sandbox_tree
 from tests.test_estimate_cells import REGISTER, _context, _summary_values
 from vos import workorder
 from vos.checks import estimates
@@ -29,6 +29,7 @@ def _owner() -> dict[str, object]:
 
 def _files(owner: object) -> dict[str, str]:
     return {"docs/requirements-register.md": REGISTER,
+            workorder.SCHEMA: (TOOLS.parent / workorder.SCHEMA).read_text(encoding="utf-8"),
             workorder.OWNER: json.dumps(owner), "proofs/input.v": "(* input *)\n",
             "docs/missing.md": "# Unpriced obligations\n"}
 
@@ -70,7 +71,32 @@ def _membership_fails_closed() -> None:
 
 def _malformed_owner_never_supplies_a_verdict() -> None:
     owner = _owner()
-    bad = [dict(owner, version=True), dict(owner, unpriced=[]), dict(owner, dispatch=[])]
+    bad: list[object] = [None, [], dict(owner, version=True), dict(owner, version=1.0),
+                         dict(owner, unpriced=[]), dict(owner, dispatch=[]),
+                         dict(owner, extra="unread"), dict(owner, dispatch={})]
+    for key in owner:
+        missing = copy.deepcopy(owner)
+        del missing[key]
+        bad.append(missing)
+    for field, value in (("m8a", ["B", "B"]), ("m8a", [False]), ("option", [" "]),
+                         ("option", ["has|pipe"]), ("option", ["two\nlines"]),
+                         ("option", ["two\rlines"]), ("option", "D"), ("extra", [])):
+        changed = json.loads(json.dumps(owner))
+        changed["buckets"][field] = value
+        bad.append(changed)
+    for field, value in (("item", False), ("start", ["A", "A"]), ("artifacts", [None]),
+                         ("unmet", ["\t"]), ("join", {}), ("extra", "unread")):
+        changed = json.loads(json.dumps(owner))
+        changed["dispatch"][0][field] = value
+        bad.append(changed)
+    for field, value in (("item", []), ("output", ""), ("output", "has|pipe"),
+                         ("output", "two\nlines"), ("extra", "unread")):
+        changed = json.loads(json.dumps(owner))
+        changed["dispatch"][0]["join"][0][field] = value
+        bad.append(changed)
+    changed = json.loads(json.dumps(owner))
+    changed["dispatch"][0].update(start=[], artifacts=[], unmet=[])
+    bad.append(changed)
     duplicate = json.dumps(owner).replace('"version": 1', '"version": 1, "version": 1')
     for candidate in bad:
         with sandbox_tree(_files(candidate)) as root:
@@ -79,6 +105,20 @@ def _malformed_owner_never_supplies_a_verdict() -> None:
     with sandbox_tree(files) as root:
         ensure(any("duplicate JSON" in f for f in workorder.read(root, LEAVES).findings),
                "duplicate JSON keys cannot silently replace the chosen disposition")
+
+
+def _schema_inputs_fail_closed() -> None:
+    for contents in (None, "{", '{"type":"not-a-type"}',
+                     '{"type":"object","type":"object"}'):
+        files = _files(_owner())
+        if contents is None:
+            del files[workorder.SCHEMA]
+        else:
+            files[workorder.SCHEMA] = contents
+        with sandbox_tree(files) as root:
+            findings = workorder.read(root, LEAVES).findings
+            ensure(bool(findings) and any("work-order.schema.json" in f for f in findings),
+                   "an invalid schema cannot supply a work-order verdict")
 
 
 def _view_repair_is_bounded_and_reaches_fixpoint() -> None:
@@ -128,6 +168,7 @@ def cases() -> list[Case]:
         Case("readiness-distinguishes-authoring-and-join", _readiness_distinguishes_authoring_and_join),
         Case("membership-fails-closed", _membership_fails_closed),
         Case("malformed-owner-never-supplies-a-verdict", _malformed_owner_never_supplies_a_verdict),
+        Case("schema-inputs-fail-closed", _schema_inputs_fail_closed),
         Case("view-repair-is-bounded-and-reaches-fixpoint", _view_repair_is_bounded_and_reaches_fixpoint),
         Case("summary-migration-requires-all-new-owners", _summary_migration_requires_all_new_owners),
     ]

@@ -1,0 +1,51 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "VerifiedOS work order",
+  "type": "object",
+  "required": ["version", "buckets", "dispatch", "unpriced"],
+  "additionalProperties": false,
+  "properties": {
+    "version": {"type": "integer", "const": 1},
+    "buckets": {
+      "type": "object",
+      "required": ["m8a", "m8b", "committed", "conditional", "option"],
+      "additionalProperties": false,
+      "properties": {
+        "m8a": {"$ref": "#/$defs/strings"},
+        "m8b": {"$ref": "#/$defs/strings"},
+        "committed": {"$ref": "#/$defs/strings"},
+        "conditional": {"$ref": "#/$defs/strings"},
+        "option": {"$ref": "#/$defs/strings"}
+      }
+    },
+    "dispatch": {"type": "array", "items": {"$ref": "#/$defs/dispatch"}},
+    "unpriced": {"$ref": "#/$defs/strings", "minItems": 1}
+  },
+  "$defs": {
+    "text": {"type": "string", "pattern": "\\S", "not": {"pattern": "[|\\r\\n]"}},
+    "strings": {"type": "array", "items": {"$ref": "#/$defs/text"}, "uniqueItems": true},
+    "join": {
+      "type": "object",
+      "required": ["item", "output"],
+      "additionalProperties": false,
+      "properties": {"item": {"type": "string"}, "output": {"$ref": "#/$defs/text"}}
+    },
+    "dispatch": {
+      "type": "object",
+      "required": ["item", "start", "artifacts", "unmet", "join"],
+      "additionalProperties": false,
+      "properties": {
+        "item": {"type": "string"},
+        "start": {"$ref": "#/$defs/strings"},
+        "artifacts": {"$ref": "#/$defs/strings"},
+        "unmet": {"$ref": "#/$defs/strings"},
+        "join": {"type": "array", "items": {"$ref": "#/$defs/join"}}
+      },
+      "anyOf": [
+        {"properties": {"start": {"minItems": 1}}},
+        {"properties": {"artifacts": {"minItems": 1}}},
+        {"properties": {"unmet": {"minItems": 1}}}
+      ]
+    }
+  }
+}

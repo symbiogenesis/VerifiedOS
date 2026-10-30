@@ -9,7 +9,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 import check
-from tests.harness import Case, ensure, sandbox_tree
+from tests.harness import TOOLS, Case, ensure, sandbox_tree
 from vos import checkregistry
 from vos import corpus as corpus_mod
 from vos.checks import Context, meta
@@ -38,6 +38,7 @@ def _owner() -> dict[str, object]:
 
 def _files(owner: object) -> dict[str, str]:
     return {checkregistry.SOURCE: json.dumps(owner),
+            checkregistry.SCHEMA: (TOOLS.parent / checkregistry.SCHEMA).read_text(encoding="utf-8"),
             checkregistry.DOCUMENT: _TEMPLATE,
             "docs/requirements-register.md": "# Register\n"}
 
@@ -50,7 +51,7 @@ def _context(root: Path) -> Context:
 
 def _required_metadata_refuses_malformed_owners() -> None:
     good = _owner()
-    damaged: list[object] = [None, {}, {**good, "version": True},
+    damaged: list[object] = [None, {}, {**good, "version": True}, {**good, "version": 1.0},
                              {**good, "rules": []}, {**good, "extra": "unread"}]
     for key, value in (("reach", "marker"), ("group", ""), ("meaning", ""),
                        ("id", "bad"), ("extra", "unread")):
@@ -79,6 +80,23 @@ def _required_metadata_refuses_malformed_owners() -> None:
             ensure("duplicate JSON key" in str(exc), "duplicate keys must fail before schema reading")
         else:
             raise AssertionError("duplicate JSON members were accepted")
+
+
+def _schema_inputs_fail_closed() -> None:
+    for contents in (None, "{", '{"type":"not-a-type"}',
+                     '{"type":"object","type":"object"}'):
+        files = _files(_owner())
+        if contents is None:
+            del files[checkregistry.SCHEMA]
+        else:
+            files[checkregistry.SCHEMA] = contents
+        with sandbox_tree(files) as root:
+            try:
+                checkregistry.read(root)
+            except ValueError as error:
+                ensure("check-registry.schema.json" in str(error), "schema findings name their owner")
+            else:
+                raise AssertionError("an invalid schema supplied a rule-registry verdict")
 
 
 def _nothing(ctx: Context) -> None:
@@ -241,6 +259,7 @@ def _driver_checks_actual_callback_verdicts() -> None:
 def cases() -> list[Case]:
     return [
         Case("required-metadata-refuses-malformed-owners", _required_metadata_refuses_malformed_owners),
+        Case("schema-inputs-fail-closed", _schema_inputs_fail_closed),
         Case("callbacks-and-metadata-are-total", _callbacks_and_metadata_are_total),
         Case("generated-regions-preserve-authored-bytes", _generated_regions_preserve_authored_bytes),
         Case("region-layouts-refuse-before-any-repair", _region_layouts_refuse_before_any_repair),
