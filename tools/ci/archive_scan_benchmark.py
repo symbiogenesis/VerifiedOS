@@ -24,6 +24,7 @@ class Sample(TypedDict):
     findings: int
     report: list[str]
     process_seconds: NotRequired[float]
+    peak_rss_kib: NotRequired[int | None]
 
 
 def validate_base(root: Path, base: str) -> str:
@@ -54,8 +55,14 @@ def worker(root: Path, tools: Path, output: Path) -> None:
     started = time.perf_counter()
     report = checker.run(root, clock=clock)
     elapsed = time.perf_counter() - started
+    peak_rss: int | None = None
+    if sys.platform == "linux":
+        import resource
+
+        peak_rss = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
     output.write_text(json.dumps({"wall_seconds": elapsed, "units": clock.units(),
-                                  "findings": report.findings, "report": report.out},
+                                  "findings": report.findings, "report": report.out,
+                                  "peak_rss_kib": peak_rss},
                                  indent=2) + "\n", encoding="utf-8")
 
 
