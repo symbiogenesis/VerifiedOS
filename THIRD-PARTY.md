@@ -144,7 +144,7 @@ Python checker is authored here and interprets the input language as rational
 data. Only input identities and the resulting check report are retained. This
 use supplies no imported proof or production arithmetic implementation.
 
-### Constant floor-division reference
+## Constant floor-division reference
 
 The host [constant floor-division reference](docs/implementation/contracts/constant-floor-division.md)
 adapts the parameter-selection and arithmetic algorithms from Ben Joffe's

@@ -60,6 +60,16 @@ records constructed or modified by callers.
 
 `python tools/run.py floor-div --width W --divisor D` prints the selected
 parameters as JSON. Repeat `--value X` to evaluate checked inputs.
+
+```console
+python tools/run.py floor-div --width 64 --divisor 86400 --value -1 --value -86400
+python tools/run.py floor-div --width 64 --divisor 86400 --assembly
+```
+
+The Python interface is `vos.floordiv.plan(width, divisor)`, followed by
+`evaluate(parameters, value)` or `assembly(parameters)`. Its immutable `Plan`
+records are checked against the canonical qualified selection on consumption.
+
 `--assembly` emits a straight-line RV64 fragment only at width 64. Its input
 and result are signed integers in `x10`; scratch registers `x5`, `x6` and `x7`
 are clobbered. The caller reserves those registers as integer temporaries;
