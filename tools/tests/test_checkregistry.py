@@ -2,14 +2,20 @@
 """Rule metadata binds executable callbacks and generates its readable views."""
 
 import json
+import subprocess
 from collections.abc import Callable
 from dataclasses import dataclass
+from pathlib import Path
 from unittest.mock import patch
 
 import check
 from tests.harness import Case, ensure, sandbox_tree
 from vos import checkregistry
+from vos import corpus as corpus_mod
 from vos.checks import Context, meta
+from vos.cli import selftest
+from vos.register import read_artifacts, read_register
+from vos.report import Reporter
 
 INDEPENDENT_CASES = True
 
@@ -34,6 +40,12 @@ def _files(owner: object) -> dict[str, str]:
     return {checkregistry.SOURCE: json.dumps(owner),
             checkregistry.DOCUMENT: _TEMPLATE,
             "docs/requirements-register.md": "# Register\n"}
+
+
+def _context(root: Path) -> Context:
+    corpus = corpus_mod.load(root)
+    return Context(root, corpus, read_register(corpus), read_artifacts(corpus),
+                   Reporter(), fix=True, registry=checkregistry.read(root))
 
 
 def _required_metadata_refuses_malformed_owners() -> None:
@@ -119,6 +131,66 @@ def _generated_regions_preserve_authored_bytes() -> None:
                 raise AssertionError("malformed generated-region markers were accepted")
 
 
+def _region_layouts_refuse_before_any_repair() -> None:
+    begin, end = checkregistry.TABLE_BEGIN, checkregistry.TABLE_END
+    reach_begin, reach_end = checkregistry.REACH_BEGIN, checkregistry.REACH_END
+    # Every marker occurs once in these arrangements: individual region counts
+    # cannot detect the crossed, nested or reversed relationship between them.
+    for markers in ((begin, reach_begin, end, reach_end),
+                    (begin, reach_begin, reach_end, end),
+                    (reach_begin, begin, end, reach_end),
+                    (reach_begin, reach_end, begin, end)):
+        broken = "\n".join(markers) + "\n"
+        files = {**_files(_owner()), checkregistry.DOCUMENT: broken}
+        with sandbox_tree(files) as root:
+            context = _context(root)
+            meta._registry(context)
+            ensure(context.rep.findings > 0 and not context.fixed,
+                   f"ambiguous generated regions must refuse before repair: {markers}")
+            ensure((root / checkregistry.DOCUMENT).read_text(encoding="utf-8") == broken,
+                   "a refused render must preserve its original source")
+
+
+def _suffixed_ids_keep_identity_in_views_and_holder_readers() -> None:
+    owner = _owner()
+    owner = json.loads(json.dumps(owner))
+    owner["rules"][1]["id"] = "K-01a"
+    owner["inactive"][0]["id"] = "K-40a"
+    files = {**_files(owner), meta.PLAN: "# Plan\n\nLanded: Tier B under **K-01a**.\n",
+             meta.LOG: "# Evidence\n\nLanded: Tier B under **K-40a**.\n",
+             meta.Q_RULES: "# Deferred\n\n| K-58a | deferred | meaning | ground |\n",
+             "docs/current.md": "# Current\n\nA fact held by **K-58a**.\n"}
+    with sandbox_tree(files) as root:
+        registry = checkregistry.read(root)
+        rendered = checkregistry.render(registry, _TEMPLATE)
+        ensure("| K-01a | fixture |" in rendered and "| ~~K-40a~~ | retired |" in rendered,
+               "active and retired suffixed IDs must retain their exact identities")
+        (root / checkregistry.DOCUMENT).write_text(rendered, encoding="utf-8", newline="")
+        context = _context(root)
+        deferred = meta._quarantined_rules(context)
+        ensure(deferred == {"K-58a"}, "deferred registry readers must retain suffixes")
+        meta._landings(context, set(registry.identifiers) | deferred)
+        ensure(context.rep.findings == 0,
+               f"valid suffixed holders and historical retirements must resolve: {context.rep.out}")
+        (root / "docs/current.md").write_text("# Current\n\nHeld by **K-40a**.\n",
+                                             encoding="utf-8", newline="")
+        context = _context(root)
+        meta._landings(context, set(registry.identifiers) | deferred)
+        ensure(context.rep.findings > 0 and any("K-40a" in line for line in context.rep.out),
+               "a retired suffixed holder must still refuse current claims")
+
+
+def _sandbox_failure_ids_require_the_whole_colon_delimited_id() -> None:
+    output = ("FAIL K-12a: 1 finding\nFAIL K-12: 1 finding\n"
+              "FAIL K-12ab: invalid suffix\nFAIL K-1234: invalid width\n"
+              "FAIL K-12 trailing text\n    FAIL K-12a: repeated finding\n")
+    result = subprocess.CompletedProcess([], 1, stdout=output, stderr="")
+    with sandbox_tree({}) as root, patch.object(selftest.subprocess, "run", return_value=result):
+        code, _out, failed = selftest.Sandbox(root, root).check()
+    ensure(code == 1 and failed == ["K-12", "K-12a"],
+           f"failure extraction must preserve suffixes without reading ID prefixes: {failed!r}")
+
+
 def _verdict_inventory_preserves_prerequisite_failures() -> None:
     rule = checkregistry.Rule("K-01", "fixture", "meaning", "ground", checkregistry.Reach.NAME)
     ensure(checkregistry.verdict_faults((rule,), ("K-01", "K-01"), clean=True) == [],
@@ -171,6 +243,11 @@ def cases() -> list[Case]:
         Case("required-metadata-refuses-malformed-owners", _required_metadata_refuses_malformed_owners),
         Case("callbacks-and-metadata-are-total", _callbacks_and_metadata_are_total),
         Case("generated-regions-preserve-authored-bytes", _generated_regions_preserve_authored_bytes),
+        Case("region-layouts-refuse-before-any-repair", _region_layouts_refuse_before_any_repair),
+        Case("suffixed-ids-keep-identity-in-views-and-holder-readers",
+             _suffixed_ids_keep_identity_in_views_and_holder_readers),
+        Case("sandbox-failure-ids-require-the-whole-colon-delimited-id",
+             _sandbox_failure_ids_require_the_whole_colon_delimited_id),
         Case("verdict-inventory-preserves-prerequisite-failures",
              _verdict_inventory_preserves_prerequisite_failures),
         Case("driver-checks-actual-callback-verdicts", _driver_checks_actual_callback_verdicts),

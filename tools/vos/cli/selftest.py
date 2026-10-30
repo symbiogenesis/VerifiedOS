@@ -215,7 +215,7 @@ class Sandbox:
         out: list[str] = [*(proc.stdout or "").splitlines(),
                           *(proc.stderr or "").splitlines()]
         failed: list[str] = sorted({m.group(1) for line in out
-                                    if (m := re.match(r"\s*FAIL (K-\d{2,3})", line))})
+                                    if (m := re.match(rf"\s*FAIL ({checkregistry.ID_PATTERN}):", line))})
         return proc.returncode, out, failed
 
 
@@ -875,7 +875,7 @@ def _k84_unregistered_holder(box: Sandbox) -> bool:
     """
     text = box.read(LOG)
     doc = corpus_mod.from_text(text, LOG)
-    for holder in re.finditer(r"\*\*(K-\d{2,3})\*\*", text):
+    for holder in re.finditer(rf"\*\*({checkregistry.ID_PATTERN})\*\*", text):
         if not doc.is_fenced(holder.start()) and holder.group(1) != "K-64":
             return box.write(LOG, text[:holder.start(1)] + "K-64" + text[holder.end(1):])
     return False
@@ -894,7 +894,7 @@ def _k84(box: Sandbox) -> bool:
         r"(?m)^(?P<lead>[^\S\r\n]*(?:\*+ )?Landed: Tier B)\b(?P<rest>[^\r\n]*)", text)
     for declaration in declarations:
         if (not doc.is_fenced(declaration.start())
-                and re.search(r"\*\*K-\d{2,3}\*\*", declaration.group("rest"))):
+                and re.search(rf"\*\*{checkregistry.ID_PATTERN}\*\*", declaration.group("rest"))):
             return box.write(LOG, replace_span(text, declaration, declaration.group("lead") + "."))
     return False
 

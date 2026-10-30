@@ -62,6 +62,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from quarantine import banks, freeze
 from quarantine.checks import GROUPS, Context
 from tests.harness import Case
+from vos import checkregistry
 from vos import corpus as corpus_mod
 from vos.corpus import Corpus
 from vos.register import Artifacts, Register, read_artifacts, read_register
@@ -81,10 +82,10 @@ CHECKS = HERE / "checks"
 # these groups reason about the landing loop's rules by name, K-70 holding the freeze
 # delta and K-73 the freshness enumeration among them, so a scan for every id would
 # demand a row here for rules this directory does not carry.
-REPORTED_RE = re.compile(r'rep\.report\(\s*"(K-\d{2,3})"')
-RULE_ID_RE = re.compile(r"\bK-\d{2,3}\b")
-REGISTRY_ROW_RE = re.compile(r"(?m)^\| (K-\d{2,3}) \|")
-FAILED_RE = re.compile(r"^FAIL (K-\d{2,3}):")
+REPORTED_RE = re.compile(rf'rep\.report\(\s*"({checkregistry.ID_PATTERN})"')
+RULE_ID_RE = re.compile(rf"(?<![\w-]){checkregistry.ID_PATTERN}(?![\w-])")
+REGISTRY_ROW_RE = re.compile(rf"(?m)^\| ({checkregistry.ID_PATTERN}) \|")
+FAILED_RE = re.compile(rf"^FAIL ({checkregistry.ID_PATTERN}):")
 
 # The enumerations the two groups read and no figure counts, each named by what it is
 # rather than by where it is read, exactly as the floors group names its own. They left

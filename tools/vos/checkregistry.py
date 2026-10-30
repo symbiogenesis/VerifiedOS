@@ -150,8 +150,21 @@ def _replace(raw: str, begin: str, end: str, generated: str) -> str:
     return before + begin + newline + body + newline + end + after
 
 
+def _regions(raw: str) -> None:
+    """Both generated regions are unique, disjoint, and in their declared order."""
+    markers = (TABLE_BEGIN, TABLE_END, REACH_BEGIN, REACH_END)
+    positions: list[int] = []
+    for marker in markers:
+        if raw.count(marker) != 1:
+            raise ValueError(f"{DOCUMENT} requires exactly one {marker}")
+        positions.append(raw.index(marker))
+    if positions != sorted(positions):
+        raise ValueError(f"{DOCUMENT} has nested, crossed or out-of-order generated regions")
+
+
 def render(registry: Registry, raw: str) -> str:
     """Generate only the registry table and reach memberships; prose stays authored."""
+    _regions(raw)
     rows = {rule.ident: f"| {rule.ident} | {rule.group} | {rule.meaning} | {rule.ground} |"
             for rule in registry.rules}
     rows.update({row.ident: f"| ~~{row.ident}~~ | {row.kind} | n/a | {row.ground} |"
@@ -163,8 +176,10 @@ def render(registry: Registry, raw: str) -> str:
                        *(f"| {kind} | " + ", ".join(sorted(
                            (rule.ident for rule in registry.rules if rule.reach == kind),
                            key=_key)) + " |" for kind in Reach)])
-    return _replace(_replace(raw, TABLE_BEGIN, TABLE_END, table),
-                    REACH_BEGIN, REACH_END, reach)
+    rendered = _replace(_replace(raw, TABLE_BEGIN, TABLE_END, table),
+                        REACH_BEGIN, REACH_END, reach)
+    _regions(rendered)
+    return rendered
 
 
 def verdict_faults(rules: Iterable[Rule], reported: Iterable[str], *, clean: bool) -> list[str]:
