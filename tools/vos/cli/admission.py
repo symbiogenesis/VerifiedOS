@@ -12,7 +12,7 @@ import sys
 from pathlib import Path
 from typing import cast
 
-from vos import admission, admission_production, boot, corpus, env, source_bindings
+from vos import admission, admission_production, boot, corpus, env, proof_staging, source_bindings
 
 
 def _compare(root: Path) -> int:
@@ -23,15 +23,18 @@ def _compare(root: Path) -> int:
     folder.mkdir(parents=True, exist_ok=True)
     logs.mkdir(parents=True, exist_ok=True)
     (folder / "comparison.json").unlink(missing_ok=True)
-    owners = source_bindings.sources("admission-comparison")
+    proof_inputs = proof_staging.inputs(root, ("AdmissionPath.v",))
+    owners = tuple(dict.fromkeys((*source_bindings.sources("admission-comparison"),
+                                 *proof_staging.IMPLEMENTATION_SOURCES, *proof_inputs)))
     before = {name: admission.digest((root / name).read_bytes()) for name in owners}
     reference = admission.read_reference(root)
-    (folder / "AdmissionPath.v").write_bytes((root / admission.SOURCE).read_bytes())
+    staged = proof_staging.stage(root, folder, ("AdmissionPath.v",))
     (folder / "AdmissionComparison.v").write_text(admission.comparison_source(reference),
                                                  encoding="utf-8", newline="\n")
     commands = []
-    for name in ("AdmissionPath.v", "AdmissionComparison.v"):
-        command = [*env.rocq_command(), "-q", "-Q", str(folder), "", str(folder / name)]
+    for source in (*staged.sources, folder / "AdmissionComparison.v"):
+        name = source.name
+        command = [*env.rocq_command(), "-q", "-Q", str(folder), "", str(source)]
         completed = subprocess.run(command, cwd=folder, capture_output=True, text=True,
                                    encoding="utf-8", check=False, timeout=180)
         (logs / (name + ".log")).write_text(completed.stdout + completed.stderr,
@@ -40,6 +43,7 @@ def _compare(root: Path) -> int:
         if completed.returncode:
             print(f"FAIL admission compare: {name}; see {logs / (name + '.log')}")
             return 1
+    staged.validate(root)
     after = {name: admission.digest((root / name).read_bytes()) for name in owners}
     if before != after or admission.digest((folder / "AdmissionPath.v").read_bytes()) != before[admission.SOURCE]:
         print("FAIL admission compare: inputs changed during comparison")

@@ -10,16 +10,16 @@ evidence. Admission and real package descriptor production are separate joins.
 import hashlib
 import json
 import re
-import shutil
 import subprocess
 import sys
 from dataclasses import asdict, dataclass, fields, replace
 from pathlib import Path
 from typing import Any
 
-from vos import env
+from vos import env, proof_staging
 from vos.jsonutil import unique_object
 from vos.proofs import strip_comments
+from vos.receipts import digest
 
 REFERENCE = "proofs/HandlerGraph.v"
 
@@ -453,17 +453,18 @@ def prove_reference(root: Path) -> dict[str, object]:
     result_path = work / "result.json"
     result_path.unlink(missing_ok=True)
     source = work / "HandlerGraph.v"
-    shutil.copyfile(root / REFERENCE, source)
     producer = root / "tools/vos/composer.py"
-    producer_digest = hashlib.sha256(producer.read_bytes()).hexdigest()
+    producer_digest = digest(producer)
+    producer_inputs = {name: digest(root / name) for name in proof_staging.IMPLEMENTATION_SOURCES}
+    staged = proof_staging.stage(root, work, ("HandlerGraph.v",))
     program = reference_program(root)
     comparison = work / "ComposerComparison.v"
     comparison.write_text(program, encoding="utf-8", newline="")
     logs = env.log_root() / env.lane_of(root) / "composer-reference"
     logs.mkdir(parents=True, exist_ok=True)
-    commands = ([*env.rocq_command(), "-q", "-Q", str(work), "", str(source)],
-                [*env.rocq_command(), "-q", "-Q", str(work), "", str(comparison)],
-                [*env.rocqchk_command(), "-silent", "-Q", str(work), "", "ComposerComparison"])
+    commands = [[*env.rocq_command(), "-q", "-Q", str(work), "", str(artifact)]
+                for artifact in (*staged.sources, comparison)]
+    commands.append([*env.rocqchk_command(), "-silent", "-Q", str(work), "", "ComposerComparison"])
     log_paths: list[str] = []
     for index, command in enumerate(commands):
         done = subprocess.run(command, cwd=work, capture_output=True, text=True,
@@ -473,13 +474,16 @@ def prove_reference(root: Path) -> dict[str, object]:
         log_paths.append(str(path))
         if done.returncode:
             raise ComposerError(f"reference phase {index} exited {done.returncode}: {path}")
-    if (source.read_bytes() != (root / REFERENCE).read_bytes()
-            or producer_digest != hashlib.sha256(producer.read_bytes()).hexdigest()
+    staged.validate(root)
+    if (producer_digest != digest(producer)
+            or producer_inputs != {name: digest(root / name) for name in producer_inputs}
             or program != reference_program(root)):
         raise ComposerError("reference comparison inputs changed during the run")
     result: dict[str, object] = {
         "scope": "finite-compiled-reference-comparison", "passed": True,
         "reference_sha256": hashlib.sha256(source.read_bytes()).hexdigest(),
+        "proof_inputs_sha256": staged.inputs,
+        "staging_inputs_sha256": producer_inputs,
         "producer_sha256": producer_digest,
         "program_sha256": hashlib.sha256(program.encode("utf-8")).hexdigest(),
         "program": str(comparison), "logs": log_paths}

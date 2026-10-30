@@ -3,14 +3,13 @@
 
 import itertools
 import json
-import shutil
 import subprocess
 import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Final
 
-from vos import env, gallina
+from vos import env, gallina, proof_staging
 from vos import ring as ring_owner
 from vos.jsonutil import unique_object
 from vos.receipts import digest as _digest
@@ -179,7 +178,9 @@ def check(root: Path, work: Path) -> tuple[int, list[str]]:
     compiler, found = c_compiler(), gallina.prover(env.ROCQ_SWITCH)
     if compiler is None or found is None:
         return 1, [f"FAIL requires C compiler and locked switch {env.ROCQ_SWITCH}", WAITS]
-    identities = [root / "proofs" / name for name in ("RingContract.v", "CopyRingService.v")]
+    proof_inputs = proof_staging.inputs(root, ("RingContract.v", "CopyRingService.v"))
+    identities = [root / name for name in proof_inputs]
+    identities += [root / name for name in proof_staging.IMPLEMENTATION_SOURCES]
     identities += [root / "copy-service" / name for name in SOURCES]
     identities += [root / "tools" / "vos" / "copy_service.py", root / "interfaces" / "ring-reference.json"]
     identities += [root / "tools" / "vos" / "ring.py",
@@ -219,12 +220,10 @@ def check(root: Path, work: Path) -> tuple[int, list[str]]:
         scratch = Path(directory)
         (scratch / "proofs").mkdir()
         (scratch / "harness").mkdir()
-        references = [scratch / "proofs" / name for name in ("RingContract.v", "CopyRingService.v")]
-        for path in references:
-            shutil.copyfile(root / "proofs" / path.name, path)
+        staged = proof_staging.stage(root, scratch / "proofs", ("RingContract.v", "CopyRingService.v"))
         harness = scratch / "harness" / "CopyServiceComparison.v"
         harness.write_text(source, encoding="utf-8")
-        for artifact in [*references, harness]:
+        for artifact in (*staged.sources, harness):
             compiled = gallina.compile_one(found, scratch, artifact, timeout=600)
             (logs / f"{artifact.stem}.log").write_text(compiled.stdout + compiled.stderr, encoding="utf-8")
             if compiled.returncode:
@@ -240,6 +239,10 @@ def check(root: Path, work: Path) -> tuple[int, list[str]]:
         (logs / "negative.log").write_text(refused.stdout + refused.stderr, encoding="utf-8")
         if refused.returncode == 0 or "Unable to unify" not in refused.stderr:
             return 1, ["FAIL reference negative control was not a comparison refusal", refused.stderr, WAITS]
+        try:
+            staged.validate(root)
+        except (ValueError, OSError) as error:
+            return 1, [f"FAIL copy-service proof inputs: {error}", WAITS]
     if before != {p.relative_to(root).as_posix(): _digest(p) for p in identities} or tools_before != {p: _digest(Path(p)) for p in tools_before}:
         return 1, ["FAIL source/tool bytes changed during comparison", WAITS]
     report = {"schema": 1, "comparison": "passed", "milestone_acceptance": "open",

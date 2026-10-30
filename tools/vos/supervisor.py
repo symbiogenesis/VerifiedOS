@@ -16,7 +16,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Final
 
-from vos import composition, env, gallina
+from vos import composition, env, gallina, proof_staging
 from vos.receipts import digest as _digest
 
 DETECTORS: Final = (
@@ -180,7 +180,9 @@ def check(root: Path, work: Path) -> tuple[int, list[str]]:
         manifest_before = checked_manifest(root)
     except (ValueError, OSError) as error:
         return 1, [f"FAIL supervisor manifest: {error}", WAITS]
-    identities = [root / "proofs" / "SupervisionTree.v",
+    proof_inputs = proof_staging.inputs(root, ("SupervisionTree.v",))
+    identities = [*(root / name for name in proof_inputs),
+                  *(root / name for name in proof_staging.IMPLEMENTATION_SOURCES),
                   root / "tools" / "vos" / "supervisor.py",
                   *(root / "tools" / "vos" / name for name in
                     ("receipts.py", "proofenv.py", "atomic.py")),
@@ -227,18 +229,21 @@ def check(root: Path, work: Path) -> tuple[int, list[str]]:
         scratch = Path(temporary)
         (scratch / "proofs").mkdir()
         (scratch / "harness").mkdir()
-        reference = scratch / "proofs" / "SupervisionTree.v"
-        shutil.copyfile(root / "proofs" / "SupervisionTree.v", reference)
+        staged = proof_staging.stage(root, scratch / "proofs", ("SupervisionTree.v",))
         harness = scratch / "harness" / "SupervisorComparison.v"
         harness.write_text(source, encoding="utf-8", newline="")
         shutil.copyfile(harness, work / harness.name)
-        for artifact in (reference, harness):
+        for artifact in (*staged.sources, harness):
             compiled = gallina.compile_one(found, scratch, artifact)
             (logs / f"{artifact.stem}.log").write_text(
                 compiled.stdout + compiled.stderr, encoding="utf-8", newline="")
             if compiled.returncode:
                 return 1, [f"FAIL locked Gallina comparison at {artifact.name}",
                            compiled.stderr, WAITS]
+        try:
+            staged.validate(root)
+        except (ValueError, OSError) as error:
+            return 1, [f"FAIL supervisor proof inputs: {error}", WAITS]
     try:
         manifest_after = checked_manifest(root)
     except (ValueError, OSError) as error:
