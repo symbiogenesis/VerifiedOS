@@ -361,7 +361,7 @@
         {
           "url": "tools/vos/composer.py",
           "kind": "local-sha256",
-          "identity": "199093c62f8cb3ac5d385bb0a074811661df4a66aaa3328fab439f252de022e0"
+          "identity": "b96169f76319dd55c7597462472257830370fe9c86c44236ae3379efe34bcd3e"
         },
         {
           "url": "proofs/HandlerGraph.v",

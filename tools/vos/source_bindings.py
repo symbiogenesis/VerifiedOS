@@ -12,6 +12,7 @@ import json
 from pathlib import Path
 from typing import Any, Final
 
+from vos import proof_staging
 from vos.jsonutil import unique_object
 from vos.receipts import atomic_path, digest
 
@@ -23,9 +24,8 @@ PACKAGE_FILES: Final[dict[str, str]] = {
 # A dependency is declared once, at the narrowest common group. Ordered expansion
 # keeps source manifests deterministic while removing repeated members at joins.
 GROUPS: Final[dict[str, tuple[str, ...]]] = {
-    "shared": (OWNER, "tools/vos/jsonutil.py", "tools/vos/receipts.py",
-               "tools/vos/proofenv.py", "tools/vos/atomic.py",
-               "tools/vos/proofs.py", "tools/vos/prooflex.py", "proofs/ProofSupport.v"),
+    "shared": (OWNER, "tools/vos/jsonutil.py", *proof_staging.IMPLEMENTATION_SOURCES,
+               "proofs/ProofSupport.v"),
     "composer-reference": ("@shared", "tools/vos/composer.py", "proofs/HandlerGraph.v"),
     "admission-reference": ("@shared", "tools/vos/admission.py", "proofs/AdmissionPath.v"),
     "composer-package": ("@composer-reference", "tools/vos/composition.py", "tools/vos/schema.py",

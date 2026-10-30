@@ -46,7 +46,7 @@ Evidence stage: **independent replay**. Disposition: **evaluate now**. Inspected
 
 Selected sources:
 
-- [tools/vos/composer.py](../../tools/vos/composer.py); identity `199093c62f8cb3ac5d385bb0a074811661df4a66aaa3328fab439f252de022e0`.
+- [tools/vos/composer.py](../../tools/vos/composer.py); identity `b96169f76319dd55c7597462472257830370fe9c86c44236ae3379efe34bcd3e`.
 - [proofs/HandlerGraph.v](../../proofs/HandlerGraph.v); identity `7bbb0de40e8e485e2797155515dd0c0d00f808e8b5254bbbc9f54c95ef18b4a2`.
 
 Assumptions and exclusions:
@@ -292,15 +292,16 @@ Sorted reference payload SHA-256: `23b690105f12b96f3ef7a997cf508a5b775e70bcaf077
 
 | Bound input or implementation | SHA-256 |
 | --- | --- |
-| [tools/vos/source_bindings.py](../../tools/vos/source_bindings.py) | `12cb4fdbaaf7b9ff8934afd3dc3add4b2cf53c5bbb6f3f6f614c5d73ffb28ea0` |
+| [tools/vos/source_bindings.py](../../tools/vos/source_bindings.py) | `7c96e6be48f46004e0a6d5bc045a8845be701ca934f4f96e5f1285a56cc7a058` |
 | [tools/vos/jsonutil.py](../../tools/vos/jsonutil.py) | `651b6cf84e7e3d3af970df71a286b5c700eea9b2b1b88f2db7dd44f572bfd8e5` |
+| [tools/vos/proof_staging.py](../../tools/vos/proof_staging.py) | `ab0615ff765fa486883a2f9846bc7660efe7ef225d562dfe5a0a800addf8d32c` |
+| [tools/vos/proofs.py](../../tools/vos/proofs.py) | `fb53cdb3b596ee5918c6c4111c1f247f157e6ec0ae5dd8a1b4cbf244ca3e8e8c` |
+| [tools/vos/prooflex.py](../../tools/vos/prooflex.py) | `d3cc29a77d0f9b214afeaa4bb7b54a8ffefac77e04bc7881ff5d25f237731913` |
 | [tools/vos/receipts.py](../../tools/vos/receipts.py) | `25bbf0b0288363f3b1fe9b0eff3616839dce7d61720814fe2f350f1fbba8d822` |
 | [tools/vos/proofenv.py](../../tools/vos/proofenv.py) | `cc6c5beca2aaefc1761e3b7748bdca52816d093f836ecdac9a879b79fa4d0513` |
 | [tools/vos/atomic.py](../../tools/vos/atomic.py) | `384e706e945f8cead1e1b3791f916f6e7f8783a7497c17dd3a551a765e670471` |
-| [tools/vos/proofs.py](../../tools/vos/proofs.py) | `fb53cdb3b596ee5918c6c4111c1f247f157e6ec0ae5dd8a1b4cbf244ca3e8e8c` |
-| [tools/vos/prooflex.py](../../tools/vos/prooflex.py) | `d3cc29a77d0f9b214afeaa4bb7b54a8ffefac77e04bc7881ff5d25f237731913` |
 | [proofs/ProofSupport.v](../../proofs/ProofSupport.v) | `85a363223eba34912eb1fa2999a5e272e969ae547ffcec0e218874d902d15713` |
-| [tools/vos/composer.py](../../tools/vos/composer.py) | `199093c62f8cb3ac5d385bb0a074811661df4a66aaa3328fab439f252de022e0` |
+| [tools/vos/composer.py](../../tools/vos/composer.py) | `b96169f76319dd55c7597462472257830370fe9c86c44236ae3379efe34bcd3e` |
 | [proofs/HandlerGraph.v](../../proofs/HandlerGraph.v) | `7bbb0de40e8e485e2797155515dd0c0d00f808e8b5254bbbc9f54c95ef18b4a2` |
 | [tools/vos/math_evidence.py](../../tools/vos/math_evidence.py) | `03470df2ecb081d31c94895714038514855075b19a2bae7e1c242dd550dfc566` |
 

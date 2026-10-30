@@ -4,11 +4,23 @@
   "sources": [
     {
       "path": "tools/vos/source_bindings.py",
-      "sha256": "12cb4fdbaaf7b9ff8934afd3dc3add4b2cf53c5bbb6f3f6f614c5d73ffb28ea0"
+      "sha256": "7c96e6be48f46004e0a6d5bc045a8845be701ca934f4f96e5f1285a56cc7a058"
     },
     {
       "path": "tools/vos/jsonutil.py",
       "sha256": "651b6cf84e7e3d3af970df71a286b5c700eea9b2b1b88f2db7dd44f572bfd8e5"
+    },
+    {
+      "path": "tools/vos/proof_staging.py",
+      "sha256": "ab0615ff765fa486883a2f9846bc7660efe7ef225d562dfe5a0a800addf8d32c"
+    },
+    {
+      "path": "tools/vos/proofs.py",
+      "sha256": "fb53cdb3b596ee5918c6c4111c1f247f157e6ec0ae5dd8a1b4cbf244ca3e8e8c"
+    },
+    {
+      "path": "tools/vos/prooflex.py",
+      "sha256": "d3cc29a77d0f9b214afeaa4bb7b54a8ffefac77e04bc7881ff5d25f237731913"
     },
     {
       "path": "tools/vos/receipts.py",
@@ -23,20 +35,12 @@
       "sha256": "384e706e945f8cead1e1b3791f916f6e7f8783a7497c17dd3a551a765e670471"
     },
     {
-      "path": "tools/vos/proofs.py",
-      "sha256": "fb53cdb3b596ee5918c6c4111c1f247f157e6ec0ae5dd8a1b4cbf244ca3e8e8c"
-    },
-    {
-      "path": "tools/vos/prooflex.py",
-      "sha256": "d3cc29a77d0f9b214afeaa4bb7b54a8ffefac77e04bc7881ff5d25f237731913"
-    },
-    {
       "path": "proofs/ProofSupport.v",
       "sha256": "85a363223eba34912eb1fa2999a5e272e969ae547ffcec0e218874d902d15713"
     },
     {
       "path": "tools/vos/composer.py",
-      "sha256": "199093c62f8cb3ac5d385bb0a074811661df4a66aaa3328fab439f252de022e0"
+      "sha256": "b96169f76319dd55c7597462472257830370fe9c86c44236ae3379efe34bcd3e"
     },
     {
       "path": "proofs/HandlerGraph.v",
