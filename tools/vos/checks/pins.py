@@ -658,7 +658,7 @@ def _restatements(ctx: Context, rows: list[pins_mod.Pin],
     named = pins_mod.spellings(rows)
     try:
         matcher = literalsearch.compile_names(tuple(needle for needle, _, _ in named))
-    except literalsearch.LegacyRequired:
+    except literalsearch.LegacyRequiredError:
         matcher = None
     table = {(pins_mod.RECORD, pin.line) for pin in rows}
     used: set[str] = set()

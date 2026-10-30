@@ -251,7 +251,7 @@ def scan_text(file: str, text: str, named: list[tuple[str, str, Pin]], *,
         if matcher is None or matcher.names != names:
             try:
                 matcher = literalsearch.compile_names(names)
-            except literalsearch.LegacyRequired:
+            except literalsearch.LegacyRequiredError:
                 matcher = None
         for index, start, end in candidate_lines(text, names, lowered=low, matcher=matcher):
             if ID_RE.search(text, start, end) is None:

@@ -10,7 +10,7 @@ MAX_NAME_LENGTH = 64
 MAX_CHARACTERS = 4096
 
 
-class LegacyRequired(ValueError):
+class LegacyRequiredError(ValueError):
     """The unchanged literal scan or complete parser must handle this input."""
 
 
@@ -57,7 +57,7 @@ def expression(root: Node, terminal: bytes, *, left_name_boundary: bool = False)
 def _lowered(text: str) -> str:
     low = text.lower()
     if len(low) != len(text):
-        raise LegacyRequired("lowercase changes source offsets")
+        raise LegacyRequiredError("lowercase changes source offsets")
     return low
 
 
@@ -83,7 +83,7 @@ class CandidateTrie:
         """
         low = _lowered(text) if lowered is None else lowered
         if len(low) != len(text):
-            raise LegacyRequired("lowercase changes source offsets")
+            raise LegacyRequiredError("lowercase changes source offsets")
         match = self.complete.search(low)
         cursor = index = 0
         while match is not None:
@@ -106,15 +106,15 @@ def compile_names(names: tuple[str, ...]) -> CandidateTrie:
     acceptance result is created, and the original attribution list is untouched.
     """
     if type(names) is not tuple or not names or len(names) > MAX_NAMES:
-        raise LegacyRequired("empty or excessive name population")
+        raise LegacyRequiredError("empty or excessive name population")
     total = 0
     for name in names:
         if (type(name) is not str or not name or len(name) > MAX_NAME_LENGTH or not name.isascii()
                 or name != name.lower() or "\n" in name or "\r" in name):
-            raise LegacyRequired("literal needs the complete legacy reader")
+            raise LegacyRequiredError("literal needs the complete legacy reader")
         total += len(name)
         if total > MAX_CHARACTERS:
-            raise LegacyRequired("excessive aggregate literal size")
+            raise LegacyRequiredError("excessive aggregate literal size")
     root = build(tuple(name.encode("ascii") for name in names))
     try:
         complete = re.compile(expression(root, b"(?!\\w)", left_name_boundary=True).decode("ascii"))
@@ -122,7 +122,7 @@ def compile_names(names: tuple[str, ...]) -> CandidateTrie:
         # alternative to fall back to a valid shorter literal at the SAME start.
         known_right = re.compile(expression(root, b"(?=\\W)", left_name_boundary=True).decode("ascii"))
     except (RecursionError, re.PatternError, OverflowError) as error:
-        raise LegacyRequired("native trie compilation requires legacy use") from error
+        raise LegacyRequiredError("native trie compilation requires legacy use") from error
     return CandidateTrie(names, complete, known_right)
 
 
@@ -139,21 +139,21 @@ class ByteTrie:
 def compile_literals(literals: tuple[bytes, ...]) -> ByteTrie:
     """Compile exact bytes, or require the unchanged any(needle in window) scan."""
     if type(literals) is not tuple or len(literals) > MAX_NAMES:
-        raise LegacyRequired("excessive literal population")
+        raise LegacyRequiredError("excessive literal population")
     if not literals:
         return ByteTrie(literals, None)
     total = 0
     for literal in literals:
         if type(literal) is not bytes or not literal or len(literal) > MAX_NAME_LENGTH:
-            raise LegacyRequired("empty, excessive or unsupported byte literal")
+            raise LegacyRequiredError("empty, excessive or unsupported byte literal")
         total += len(literal)
         if total > MAX_CHARACTERS:
-            raise LegacyRequired("excessive aggregate literal size")
+            raise LegacyRequiredError("excessive aggregate literal size")
     root = build(literals)
     try:
         pattern = re.compile(expression(root, b""))
     except (RecursionError, re.PatternError, OverflowError) as error:
-        raise LegacyRequired("native byte trie compilation requires legacy use") from error
+        raise LegacyRequiredError("native byte trie compilation requires legacy use") from error
     return ByteTrie(literals, pattern)
 
 

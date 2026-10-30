@@ -46,7 +46,7 @@ def _bounded_name(text: str, patterns: tuple[tuple[str, re.Pattern[str]], ...], 
     if matcher is not None and matcher.names == tuple(name for name, _ in patterns):
         try:
             return matcher.present(text, first=first, final=final)
-        except literalsearch.LegacyRequired as error:
+        except literalsearch.LegacyRequiredError as error:
             raise UnsupportedScanError(str(error)) from error
     low = text.lower()
     # The old parser indexes its lowered string with original-string positions.
@@ -97,11 +97,11 @@ def prescan(blob: bytes, names: tuple[str, ...], sensitive: tuple[bytes, ...],
     name_patterns = pins.name_patterns(names)
     try:
         name_matcher = literalsearch.compile_names(names)
-    except literalsearch.LegacyRequired:
+    except literalsearch.LegacyRequiredError:
         name_matcher = None
     try:
         lineage_matcher = literalsearch.compile_bytes(sensitive, folded)
-    except literalsearch.LegacyRequired:
+    except literalsearch.LegacyRequiredError:
         lineage_matcher = None
     decoder = io.IncrementalNewlineDecoder(codecs.getincrementaldecoder("utf-8")(), True)
     text_tail = ""

@@ -94,14 +94,14 @@ def _byte_tries_and_unsupported_shapes_keep_the_literal_oracle() -> None:
                   ("x",) * 257, ("x" * 32,) * 129):
         try:
             literalsearch.compile_names(names)
-        except literalsearch.LegacyRequired:
+        except literalsearch.LegacyRequiredError:
             pass
         else:
             raise AssertionError("unsupported name set silently entered the optimized matcher")
     for literals in ((b"",), (b"x" * 65,), (b"x",) * 257, (b"x" * 32,) * 129):
         try:
             literalsearch.compile_bytes(literals, ())
-        except literalsearch.LegacyRequired:
+        except literalsearch.LegacyRequiredError:
             ensure(retained.prescan(gzip.compress(b"x"), (), literals, ()).lineage
                    == any(needle in b"x" for needle in literals), "byte fallback changed an unsupported literal")
         else:
@@ -111,13 +111,13 @@ def _byte_tries_and_unsupported_shapes_keep_the_literal_oracle() -> None:
                       lambda: literalsearch.compile_bytes((b"core",), ())):
             try:
                 build()
-            except literalsearch.LegacyRequired:
+            except literalsearch.LegacyRequiredError:
                 pass
             else:
                 raise AssertionError("compilation failure became an absence verdict")
     broken = gzip.compress(b"core 123abcd\nRaw\n") + gzip.compress(b"tail")[:-3]
-    with patch.object(literalsearch, "compile_names", side_effect=literalsearch.LegacyRequired("fixture")), \
-            patch.object(literalsearch, "compile_bytes", side_effect=literalsearch.LegacyRequired("fixture")):
+    with patch.object(literalsearch, "compile_names", side_effect=literalsearch.LegacyRequiredError("fixture")), \
+            patch.object(literalsearch, "compile_bytes", side_effect=literalsearch.LegacyRequiredError("fixture")):
         try:
             retained.prescan(broken, ("core",), (b"Raw",), (), chunk_size=3)
         except (OSError, EOFError, ValueError):
