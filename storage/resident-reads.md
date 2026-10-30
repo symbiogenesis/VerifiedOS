@@ -47,6 +47,52 @@ containment, sweep, zeroization completion or physical reuse. Crash invalidates
 reservations and grants while retaining monotonic request counters; retained bytes
 never recreate an old reservation.
 
+## Scalar retirement adapter
+
+[The scalar adapter](src/resident_scalar.c) specializes the accepted
+[kernel producer](../kernel/include/vos_effects.h) to the finite resident
+holder/window shape. Its [private attempt record](include/vos_resident_scalar.h)
+binds the current kernel epoch, the exact composition-declared closed victim
+set and every configured holder slot, including slots with pending transfers.
+An uncovered slot or stale initial epoch refuses before effects. Declared
+kernel clearing regions must be disjoint from the retained owner and attempt.
+These pointer checks do not establish the composition's complete machine
+holder/base inventory or authentic capability bounds.
+
+Prepare closes admission and cancels every reservation and transfer using the
+existing resident owner, then obtains the actual kernel's one-use publication
+ticket. A producer refusal leaves occupied bytes unchanged in closed quarantine
+and never waits for holder acknowledgment. Finish checks the unchanged closed
+owner and current epoch, consumes the actual publication ticket, invokes
+`vos_kernel_retire`, and requires its semantic completion and exact successor
+epoch. Attempt failure is sticky, including a partial teardown that advanced
+the kernel epoch without complete architectural observations. Late transfers,
+changed resident identity and replayed finish calls cannot advance the attempt.
+The adapter has no read entry, so repeated reads introduce no attempt stores.
+
+Even successful semantic completion leaves backing occupied and unchanged in
+quarantine. It does not clear the old revocation masks, replenish roots or
+authorize `vos_resident_retire`'s reuse seam. Post-barrier sweep, complete
+sanitization and reuse evidence remain with their machine owners under the
+[retirement qualification order](../docs/implementation/contracts/workflow-formal.md#concrete-retirement-adapters-and-qualification-order).
+Actual bitmap publication/readback, resident-register scrub, exclusive dispatch
+and complete composition ownership remain the scalar producer's trusted target
+prerequisites; this source adapter manufactures none of them.
+
+`python tools/run.py test --only test_resident_scalar --jobs 1` registers the
+native campaign for Linux, including Host CI's Ubuntu runner. It links the real
+kernel, supervisor and resident sources, exercises both root kinds with
+independent pending readers and a failed holder, and checks actual clearing of
+declared private bytes and saved capability slots. The existing architectural
+observation seam is mocked. Refusals cover incomplete holder coverage, stale
+epochs, aliasing clearing regions, active copy work, an open victim set, missing
+publication or scrub, owner drift and late completion. Compiled defects omit
+coverage, epoch binding, cancellation or semantic completion, change the
+retained binding, or release backing on semantic completion; each must fail
+its intended oracle after compiling. This source-level campaign supplies no
+target correspondence, cryptographic verification, complete writer trace or
+safe-reuse proof.
+
 `python tools/run.py test --only test_resident_reads_c --jobs 1` compiles the native
 fixture and every defect before executing it. The pristine fixture exercises both
 root kinds, independent holders, finite repeated/empty reads, current rights,
