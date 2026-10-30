@@ -174,6 +174,8 @@ context jobs record equal outputs, elapsed time and peak memory; the proof job
 also runs the existing bounded native cache controls. Native census replay is an
 explicit selection requiring complete retained inputs. These jobs supply no Host
 or Guest CI verdict and do not replace either workflow's handoff.
+Checker and proof-context RSS figures describe their worker process, not the sum
+of its descendants or the full kernel check's residency.
 
 Additional shard changes, duration-based case ordering and new concurrent repair
 sandboxes are not selected: they add scheduling state or concurrent corpus copies
