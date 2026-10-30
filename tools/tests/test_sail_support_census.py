@@ -645,23 +645,23 @@ class SailSupportCensusTests(unittest.TestCase):
     def test_schema_discriminator_traversal_is_deterministic_and_bounds_recursive_calls(self) -> None:
         validate = _ADAPTER["validate_schema"]
         namespace = validate.__globals__
-        original = namespace["_validate"]
+        original = namespace["_visit"]
         observed: list[str] = []
         root_members: set[int] = set()
         root_order: list[str] = []
         bound = 16 * 19
-        def counted(value: object, schema: dict[str, Any], document: dict[str, Any], site: str) -> None:
-            observed.append(site)
-            if site.count(".") == 1 and id(schema) in root_members:
-                root_order.append(site)
+        def counted(value: object, shape: Any, path: list[str | int], site: str) -> None:
+            location = site + "".join(f"[{part}]" if isinstance(part, int) else "." + part for part in path)
+            observed.append(location)
+            if location.count(".") == 1 and id(shape.schema) in root_members:
+                root_order.append(location)
             self.assertLessEqual(len(observed), bound, "wrong constructor recursively revisits shared children")
-            original(value, schema, document, site)
-        with patch.dict(namespace, {"_validate": counted}):
+            original(value, shape, path, site)
+        with patch.dict(namespace, {"_visit": counted}):
             validate(_recursive_value(18), schema=_recursive_schema())
         self.assertGreater(len(observed), 18, "compatible constructors must validate their descendants")
         definition, value = _recursive_schema(), _recursive_value(3)
-        expected = ["census.mode", "census.tag", "census.a_child", "census.alpha", "census.zeta",
-                    "census.mode", "census.tag"]
+        expected = ["census.mode", "census.tag", "census.a_child", "census.alpha", "census.zeta"]
         # Every property insertion order, including reverse-built input objects,
         # must yield this same trace despite hash-dependent set iteration.
         for order, reverse in product(permutations(definition["$defs"]["node"]["oneOf"][0]["properties"]), (False, True)):
@@ -673,7 +673,7 @@ class SailSupportCensusTests(unittest.TestCase):
             item = dict(reversed(list(value.items()))) if reverse else dict(value)
             observed.clear()
             root_order.clear()
-            with patch.dict(namespace, {"_validate": counted}):
+            with patch.dict(namespace, {"_visit": counted}):
                 validate(item, schema=candidate)
             self.assertEqual(root_order, expected)
 
@@ -706,20 +706,20 @@ class SailSupportCensusTests(unittest.TestCase):
                 self.assertEqual(accepted, index == 0)
         validate = _ADAPTER["validate_schema"]
         namespace = validate.__globals__
-        original = namespace["_validate"]
+        original = namespace["_visit"]
         observed: list[str] = []
-        def trace(value: object, schema: dict[str, Any], document: dict[str, Any], site: str) -> None:
-            observed.append(site)
-            original(value, schema, document, site)
+        def trace(value: object, shape: Any, path: list[str | int], site: str) -> None:
+            observed.append(site + "".join(f"[{part}]" if isinstance(part, int) else "." + part for part in path))
+            original(value, shape, path, site)
         branch = {**definition["$defs"]["node"]["oneOf"][0], "$defs": definition["$defs"]}
         incompatible = _recursive_value(2)  # B at the root; this branch requires A.
-        with patch.dict(namespace, {"_validate": trace}), self.assertRaisesRegex(ValueError, "unexpected constant"):
+        with patch.dict(namespace, {"_visit": trace}), self.assertRaisesRegex(ValueError, "unexpected constant"):
             validate(incompatible, schema=branch)
         self.assertEqual(observed, ["census", "census.mode", "census.tag"])
         compatible = _recursive_value(1)
         compatible["a_child"]["payload"] = ""
         observed.clear()
-        with patch.dict(namespace, {"_validate": trace}), self.assertRaises(ValueError):
+        with patch.dict(namespace, {"_visit": trace}), self.assertRaises(ValueError):
             validate(compatible, schema=branch)
         self.assertIn("census.a_child.payload", observed)
         for keyword in ("oneOf", "anyOf"):
@@ -727,7 +727,7 @@ class SailSupportCensusTests(unittest.TestCase):
             first, _, leaf = candidate["$defs"]["node"].pop("oneOf")
             candidate["$defs"]["node"][keyword] = [first, copy.deepcopy(first), leaf]
             observed.clear()
-            with patch.dict(namespace, {"_validate": trace}):
+            with patch.dict(namespace, {"_visit": trace}):
                 try:
                     validate(_recursive_value(1), schema=candidate)
                 except ValueError:
@@ -763,6 +763,116 @@ class SailSupportCensusTests(unittest.TestCase):
         incomplete, raw, printed = _controls_fixture(hidden_alias=False)
         with self.assertRaisesRegex(ValueError, "positive-control population is incomplete"):
             _ADAPTER["qualify_controls"](incomplete, raw, printed)
+
+    def test_compiled_schema_keeps_failure_locations_and_reads_edits_between_calls(self) -> None:
+        validate = _ADAPTER["validate_schema"]
+        definition = {"type": "object", "properties": {
+            "array": {"type": "array", "items": {"type": "integer"}},
+            "word": {"type": "string", "minLength": 1}}, "required": ["array", "word"], "additionalProperties": False}
+        for value, reason in (({}, "census: missing native member"),
+                              ({"array": [], "word": "a", "extra": 0}, "census: unexpected native member"),
+                              ({"array": [0, True], "word": ""}, "census.array[1]: incorrect native value type"),
+                              ({"array": [0], "word": ""}, "census.word: empty native string")):
+            with self.subTest(reason=reason), self.assertRaises(ValueError) as refusal:
+                validate(value, schema=definition)
+            self.assertEqual(str(refusal.exception), reason)
+        value = {"array": [0], "word": "a"}
+        validate(value, schema=definition)
+        # The same schema object is edited between calls; no plan or verdict may
+        # outlive the invocation that compiled it, including after a failed call.
+        definition["properties"]["word"]["minLength"] = 2
+        with self.assertRaisesRegex(ValueError, "census.word: empty native string"):
+            validate(value, schema=definition)
+        definition["properties"]["word"]["minLength"] = 1
+        validate(value, schema=definition)
+        for keyword in ("oneOf", "anyOf"):
+            branch = {"type": "object", "required": ["word"], "properties": {"word": {"const": "a"}}}
+            validate({"word": "a"}, schema={"$defs": {}, keyword: [
+                {"$ref": "#/$defs/missing"}, branch]})
+            # A failing branch descends into an array; its mutable diagnostic
+            # stack must be unwound before the next branch or sibling is read.
+            validate({"word": "a"}, schema={keyword: [
+                {"type": "object", "properties": {"word": {"type": "array"}}}, branch]})
+            for malformed in ({"properties": {"mode": {"enum": 1}, "word": {"const": "wrong"}}},
+                              {"properties": {"word": {"const": "wrong"}}, "required": None}):
+                with self.assertRaisesRegex(ValueError, "unsupported or excessively nested census/schema"):
+                    validate({"mode": "native", "word": "a"}, schema={keyword: [malformed, {"type": "object"}]})
+            # A reference below an unused array constraint must not fail during
+            # compilation when the actual value never visits that constraint.
+            validate("a", schema={keyword: [{"type": "array", "items": {"$ref": "#/$defs/missing"}}, {"const": "a"}]})
+        mixed = {"properties": {0: {"type": "integer"}, "word": {"type": "string"}}}
+        validate("unused object constraints", schema=mixed)
+        with self.assertRaisesRegex(ValueError, "unsupported or excessively nested census/schema"):
+            validate({0: 1, "word": "a"}, schema=mixed)
+        with patch.dict(validate.__globals__, {"_recursive_validate": lambda *_: self.fail("the checked schema must compile")}):
+            value, _, _ = _fixture()
+            validate(value)
+
+    def test_linear_population_joins_keep_refusals_and_search_type_fallback_lazy(self) -> None:
+        census = _ADAPTER["census"]
+        value, searches, readings = _fixture()
+        original = copy.deepcopy(value)
+        key = census.__globals__["_key"]
+        typ = value["declarations"][0]["type"]
+        def no_unused_fallback(item: object) -> str:
+            self.assertIsNot(item, typ, "a present Search type must avoid constructor-JSON fallback encoding")
+            return key(item)
+        with patch.dict(census.__globals__, {"_key": no_unused_fallback}):
+            self.assertEqual(census(value, searches, readings, expected_modules=["Root"])["Root"]["symbols"][0]["type"], "Prop")
+        self.assertEqual(value, original)
+        for table, member, reason in (("fields", "parent_module_id", "native field population differs from its owner"),
+                                      ("declarations", "field_id", "incomplete native declaration population")):
+            value[table][0][member] = "Foreign"
+            with self.subTest(table=table), self.assertRaises(ValueError) as refusal:
+                census(value, searches, readings, expected_modules=["Root"])
+            self.assertEqual(str(refusal.exception), reason)
+            value[table][0][member] = original[table][0][member]
+            census(value, searches, readings, expected_modules=["Root"])
+        for table in ("fields", "declarations", "modules"):
+            value[table].append(copy.deepcopy(value[table][0]))
+            with self.subTest(table=table), self.assertRaisesRegex(ValueError, "duplicate " + table + " ID"):
+                census(value, searches, readings, expected_modules=["Root"])
+            value[table].pop()
+        # Every metadata resolver reference is checked before comparisons can
+        # short-circuit on an earlier scalar mismatch. Exercise both views.
+        for metadata_name in ("source_metadata", "instantiated_metadata"):
+            candidate = copy.deepcopy(original)
+            connection = candidate["declarations"][0]["implementation_connection"]
+            connection[metadata_name]["inline_code"] = not connection[metadata_name]["inline_code"]
+            connection["steps"][0]["resolver_id"] = "missing"
+            with patch.dict(census.__globals__, {"_same_native": lambda *_: self.fail("resolver validation must precede comparison")}):
+                with self.assertRaises(ValueError) as refusal:
+                    census(candidate, searches, readings, expected_modules=["Root"])
+            self.assertEqual(str(refusal.exception), "missing native resolver connection")
+
+    def test_direct_native_comparison_matches_normalization_and_complete_resolver_effects(self) -> None:
+        value, _, _ = _fixture()
+        first = value["resolvers"][0]
+        second = copy.deepcopy(first)
+        second.update(id="other", owner_module_id="different", role="implementation")
+        resolvers = {first["id"]: first, second["id"]: second}
+        left = {"nested": [{"resolver_id": first["id"]}, {"value": 1}]}
+        right = {"nested": [{"resolver_id": second["id"]}, {"value": 1}]}
+        def normalize(item: object) -> object:
+            if isinstance(item, list):
+                return [normalize(child) for child in item]
+            if isinstance(item, dict):
+                return {name: {key: resolvers[child][key] for key in (
+                    "root", "module_effects", "kernel_effects", "inline_keys")} if name == "resolver_id"
+                        else normalize(child) for name, child in item.items()}
+            return item
+        compare = _ADAPTER["_same_native"]
+        self.assertTrue(compare(left, right, resolvers))
+        for member in ("root", "module_effects", "kernel_effects", "inline_keys"):
+            retained = second[member]
+            second[member] = None
+            self.assertFalse(compare(left, right, resolvers), member)
+            self.assertEqual(compare(left, right, resolvers), normalize(left) == normalize(right))
+            second[member] = retained
+            self.assertTrue(compare(left, right, resolvers), "no comparison verdict may survive an edited call")
+        variants = [left, right, {}, [], None, True, 1, 1.0, {"nested": []}, {"nested": [1, 2]}]
+        for a, b in product(variants, repeat=2):
+            self.assertEqual(compare(a, b, resolvers), normalize(a) == normalize(b))
 
     def test_control_mutations_share_untouched_evidence_and_match_whole_copy_refusals(self) -> None:
         value, searches, readings = _controls_fixture()
@@ -1207,6 +1317,9 @@ def cases() -> list[Case]:
             Case("schema-discriminators-precede-recursion-in-deterministic-bounded-traversal", checks.test_schema_discriminator_traversal_is_deterministic_and_bounds_recursive_calls),
             Case("schema-discriminators-preserve-full-branch-constraints-and-draft-verdicts", checks.test_schema_discriminator_rejection_preserves_all_branch_constraints_and_draft_verdicts),
             Case("control-replay-retains-three-roots-and-adapter-refusal-boundary", checks.test_control_replay_uses_three_complete_roots_and_distinguishes_adapter_evidence),
+            Case("compiled-schema-keeps-diagnostics-and-independent-invocations", checks.test_compiled_schema_keeps_failure_locations_and_reads_edits_between_calls),
+            Case("linear-population-joins-keep-refusals-and-lazy-search-types", checks.test_linear_population_joins_keep_refusals_and_search_type_fallback_lazy),
+            Case("direct-native-comparison-keeps-complete-resolver-effects", checks.test_direct_native_comparison_matches_normalization_and_complete_resolver_effects),
             Case("control-mutations-share-native-evidence-and-match-whole-copy-refusals", checks.test_control_mutations_share_untouched_evidence_and_match_whole_copy_refusals),
             Case("body-footprint-rank-order-equals-former-subsequence-predicate", checks.test_rank_order_matches_former_subsequence_predicate_exhaustively),
             Case("metadata-walks-skip-only-schema-valid-resolver-effects", checks.test_metadata_walks_skip_resolver_effects_after_full_schema_validation),

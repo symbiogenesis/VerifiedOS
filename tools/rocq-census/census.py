@@ -87,18 +87,185 @@ def _schema_vocabulary(schema: dict[str, Any]) -> None:
 
 
 def _validate(value: object, schema: dict[str, Any], document: dict[str, Any], site: str) -> None:
+    """Validate a caller-supplied subtree through an invocation-local plan."""
+    try:
+        shape = _compile_schema(schema, document)
+    except _UncompiledSchema:
+        # Only canonical checked schemas take the compiled route. Preserve the
+        # recursive reader's precise traversal/error behavior for unusual caller
+        # supplied schemas, including constraints on an unvisited value kind.
+        _recursive_validate(value, schema, document, site)
+    else:
+        _visit(value, shape, [], site)
+
+
+class _UncompiledSchema(Exception):
+    """The schema needs the unchanged recursive constraint interpreter."""
+
+
+class _Shape:
+    """One schema node, shared only inside a single complete validation."""
+
+    def __init__(self, schema: dict[str, Any]) -> None:
+        self.schema = schema
+        self.reference: _Shape | None = None
+        self.alternatives: tuple[tuple[bool, tuple[_Shape, ...]], ...] = ()
+        self.members: tuple[tuple[str, _Shape], ...] = ()
+        self.required = frozenset(schema.get("required", ()))
+        self.allowed: frozenset[str] | None = None
+        self.items: _Shape | None = None
+        self.discriminators: tuple[tuple[str, dict[str, Any]], ...] = ()
+
+
+def _compile_schema(schema: dict[str, Any], document: dict[str, Any]) -> _Shape:
+    """Resolve recursive nodes and property order once, without caching a verdict.
+
+    Malformed or unresolved supplied schema nodes fall back to the recursive
+    interpreter, which decides whether the actual value ever visits that node.
+    """
+    shapes: dict[int, _Shape] = {}
+
+    def compile_node(node: dict[str, Any]) -> _Shape:
+        if id(node) in shapes:
+            return shapes[id(node)]
+        required = node.get("required", [])
+        properties = node.get("properties", {})
+        if (type(node) is not dict or not isinstance(required, list)
+                or any(type(name) is not str for name in required)
+                or type(properties) is not dict or any(type(name) is not str for name in properties)):
+            raise _UncompiledSchema
+        result = shapes[id(node)] = _Shape(node)
+        if "$ref" in node:
+            reference = node["$ref"]
+            try:
+                if reference.startswith("#/$defs/") and reference[8:] in document["$defs"]:
+                    result.reference = compile_node(document["$defs"][reference[8:]])
+                else:
+                    raise _UncompiledSchema
+            except (KeyError, TypeError, AttributeError) as error:
+                raise _UncompiledSchema from error
+        result.alternatives = tuple((exact, tuple(compile_node(branch) for branch in node[keyword]))
+                                    for keyword, exact in (("oneOf", True), ("anyOf", False)) if keyword in node)
+        if "properties" in node:
+            properties = node["properties"]
+            names = sorted(properties, key=lambda name: (
+                "const" not in properties[name] and "enum" not in properties[name], name))
+            result.allowed = frozenset(properties)
+            result.members = tuple((name, compile_node(properties[name])) for name in names)
+            candidates = tuple((name, properties[name]) for name in names
+                               if "const" in properties[name] or "enum" in properties[name])
+            if (not node.keys() - {"type", "properties", "required", "additionalProperties", "title", "description"}
+                    and all(
+                        not constraint.keys() - {"const", "enum", "type", "title", "description"}
+                        and ("const" not in constraint or type(constraint["const"]) in {str, bool, type(None)})
+                        and ("enum" not in constraint or isinstance(constraint["enum"], list)
+                             and all(type(item) in {str, bool, type(None)} for item in constraint["enum"]))
+                        for _, constraint in candidates)):
+                result.discriminators = candidates
+        if "items" in node:
+            result.items = compile_node(node["items"])
+        return result
+
+    return compile_node(schema)
+
+
+def _failure(path: list[str | int], site: str, message: str) -> None:
+    location = site + "".join(f"[{part}]" if isinstance(part, int) else "." + part for part in path)
+    raise CensusError(location + ": " + message)
+
+
+def _compatible(value: object, shape: _Shape) -> bool:
+    """Discard only union branches contradicted by a scalar property constraint."""
+    if not isinstance(value, dict):
+        return True
+    if any(name in value and type(value[name]) not in {str, bool, type(None)} for name, _ in shape.discriminators):
+        return True
+    for name, constraint in shape.discriminators:
+        if name not in value:
+            continue
+        if "const" in constraint and not _literal_equal(value[name], constraint["const"]):
+            return False
+        if "enum" in constraint and not any(_literal_equal(value[name], item) for item in constraint["enum"]):
+            return False
+    return True
+
+
+def _visit(value: object, shape: _Shape, path: list[str | int], site: str) -> None:
+    schema = shape.schema
+    if "$ref" in schema:
+        assert shape.reference is not None
+        _visit(value, shape.reference, path, site)
+    for exact, branches in shape.alternatives:
+        passed = 0
+        for branch in branches:
+            if not _compatible(value, branch):
+                continue
+            try:
+                _visit(value, branch, path, site)
+            except CensusError:
+                continue
+            passed += 1
+        if not (passed == 1 if exact else passed > 0):
+            _failure(path, site, "no unique schema shape")
+    if "const" in schema and not _literal_equal(value, schema["const"]):
+        _failure(path, site, "unexpected constant")
+    if "enum" in schema and not any(_literal_equal(value, item) for item in schema["enum"]):
+        _failure(path, site, "unsupported native shape")
+    if "type" in schema and not _has_type(value, schema["type"]):
+        _failure(path, site, "incorrect native value type")
+    if isinstance(value, dict):
+        if not shape.required <= value.keys():
+            _failure(path, site, "missing native member")
+        if shape.allowed is not None:
+            if schema.get("additionalProperties") is False and value.keys() - shape.allowed:
+                _failure(path, site, "unexpected native member")
+            for name, member in shape.members:
+                if name in value:
+                    path.append(name)
+                    try:
+                        _visit(value[name], member, path, site)
+                    finally:
+                        path.pop()
+    if isinstance(value, list):
+        if len(value) < schema.get("minItems", 0):
+            _failure(path, site, "incomplete native array")
+        if "maxItems" in schema and len(value) > schema["maxItems"]:
+            _failure(path, site, "ambiguous native array")
+        if schema.get("uniqueItems") and len({_key(item) for item in value}) != len(value):
+            _failure(path, site, "duplicate native member")
+        if shape.items is not None:
+            for index, item in enumerate(value):
+                path.append(index)
+                try:
+                    _visit(item, shape.items, path, site)
+                finally:
+                    path.pop()
+    if isinstance(value, str):
+        if len(value) < schema.get("minLength", 0):
+            _failure(path, site, "empty native string")
+        if "pattern" in schema and re.search(schema["pattern"], value) is None:
+            _failure(path, site, "invalid native string encoding")
+    if type(value) in {int, float}:
+        if "minimum" in schema and not value >= schema["minimum"]:
+            _failure(path, site, "invalid native index")
+        if "maximum" in schema and not value <= schema["maximum"]:
+            _failure(path, site, "invalid native index")
+
+
+def _recursive_validate(value: object, schema: dict[str, Any], document: dict[str, Any], site: str) -> None:
+    """Original interpreter for supplied schemas outside the compiled shape."""
     if "$ref" in schema:
         reference = schema["$ref"]
         _require(reference.startswith("#/$defs/") and reference[8:] in document["$defs"],
                  "unsupported census schema reference")
-        _validate(value, document["$defs"][reference[8:]], document, site)
+        _recursive_validate(value, document["$defs"][reference[8:]], document, site)
     for keyword, exact in (("oneOf", True), ("anyOf", False)):
         if keyword not in schema:
             continue
         passed = 0
         for branch in schema[keyword]:
             try:
-                _validate(value, branch, document, site)
+                _recursive_validate(value, branch, document, site)
             except CensusError:
                 continue
             passed += 1
@@ -106,8 +273,7 @@ def _validate(value: object, schema: dict[str, Any], document: dict[str, Any], s
     if "const" in schema:
         _require(_literal_equal(value, schema["const"]), f"{site}: unexpected constant")
     if "enum" in schema:
-        _require(any(_literal_equal(value, item) for item in schema["enum"]),
-                 f"{site}: unsupported native shape")
+        _require(any(_literal_equal(value, item) for item in schema["enum"]), f"{site}: unsupported native shape")
     if "type" in schema:
         _require(_has_type(value, schema["type"]), f"{site}: incorrect native value type")
     if isinstance(value, dict):
@@ -116,22 +282,18 @@ def _validate(value: object, schema: dict[str, Any], document: dict[str, Any], s
         if properties is not None:
             if schema.get("additionalProperties") is False:
                 _require(not value.keys() - properties.keys(), f"{site}: unexpected native member")
-            # Reject a mismatched constructor before traversing its shared
-            # recursive members. All compatible members still validate, with
-            # lexical order within each group independent of dictionary hashes.
             names = sorted(value.keys() & properties.keys(), key=lambda name: (
                 "const" not in properties[name] and "enum" not in properties[name], name))
             for name in names:
-                _validate(value[name], properties[name], document, site + "." + name)
+                _recursive_validate(value[name], properties[name], document, site + "." + name)
     if isinstance(value, list):
         _require(len(value) >= schema.get("minItems", 0), f"{site}: incomplete native array")
-        _require("maxItems" not in schema or len(value) <= schema["maxItems"],
-                 f"{site}: ambiguous native array")
+        _require("maxItems" not in schema or len(value) <= schema["maxItems"], f"{site}: ambiguous native array")
         if schema.get("uniqueItems"):
             _require(len({_key(item) for item in value}) == len(value), f"{site}: duplicate native member")
         if "items" in schema:
             for index, item in enumerate(value):
-                _validate(item, schema["items"], document, f"{site}[{index}]")
+                _recursive_validate(item, schema["items"], document, f"{site}[{index}]")
     if isinstance(value, str):
         _require(len(value) >= schema.get("minLength", 0), f"{site}: empty native string")
         if "pattern" in schema:
@@ -347,21 +509,36 @@ def _native_semantics(value: dict[str, Any]) -> None:
 
 
 def _same_native(left: object, right: object, resolvers: dict[str, dict[str, Any]]) -> bool:
-    """Different resolver IDs may name the same complete native finite effects."""
-    def normalize(value: object) -> object:
-        if isinstance(value, list):
-            return [normalize(item) for item in value]
-        if isinstance(value, dict):
-            result = {}
-            for key, item in value.items():
+    """Compare validated metadata by complete native finite resolver effects.
+
+    The census's complete schema and resolver-membership scans precede every
+    caller, so a short-circuit comparison cannot hide a malformed reference.
+    """
+    compared: dict[tuple[str, str], bool] = {}
+
+    def equal(first: object, second: object) -> bool:
+        if isinstance(first, list):
+            return isinstance(second, list) and len(first) == len(second) and all(
+                equal(a, b) for a, b in zip(first, second, strict=True))
+        if isinstance(first, dict):
+            if not isinstance(second, dict) or first.keys() != second.keys():
+                return False
+            for key, item in first.items():
                 if key == "resolver_id":
-                    resolver = resolvers[item]
-                    result[key] = {name: resolver[name] for name in ("root", "module_effects", "kernel_effects", "inline_keys")}
-                else:
-                    result[key] = normalize(item)
-            return result
-        return value
-    return normalize(left) == normalize(right)
+                    other = second[key]
+                    pair = item, other
+                    if pair not in compared:
+                        a, b = resolvers[item], resolvers[other]
+                        compared[pair] = all(a[name] == b[name] for name in (
+                            "root", "module_effects", "kernel_effects", "inline_keys"))
+                    if not compared[pair]:
+                        return False
+                elif not equal(item, second[key]):
+                    return False
+            return True
+        return first == second
+
+    return equal(left, right)
 
 
 def _ordered_subset(keys: list[str], ranks: dict[str, int]) -> bool:
@@ -452,6 +629,15 @@ def _census(metadata: object, searches: dict[str, str], readings: dict[str, str]
     modules, fields, declarations, abbreviations, contexts, resolvers, descents = (
         _table(value, name) for name in ("modules", "fields", "declarations", "abbreviations", "contexts", "resolvers", "module_descents"))
     _native_semantics(metadata_view)
+    fields_by_module: dict[str, set[str]] = {}
+    declarations_by_field: dict[str, set[str]] = {}
+    abbreviations_by_module: dict[str, set[str]] = {}
+    for identifier, field in fields.items():
+        fields_by_module.setdefault(field["parent_module_id"], set()).add(identifier)
+    for identifier, declaration in declarations.items():
+        declarations_by_field.setdefault(declaration["field_id"], set()).add(identifier)
+    for identifier, abbreviation in abbreviations.items():
+        abbreviations_by_module.setdefault(abbreviation["module_id"], set()).add(identifier)
     root_ids = {root["requested"]: root["module_id"] for root in value["roots"]}
     _require(len(set(root_ids.values())) == len(root_ids), "duplicate native roots")
     for root in value["roots"]:
@@ -489,7 +675,7 @@ def _census(metadata: object, searches: dict[str, str], readings: dict[str, str]
         signature = module["signature"]
         ids = signature["field_ids"]
         _require(signature["field_count"] == len(ids), "omitted native module field")
-        _require(set(ids) == {key for key, field in fields.items() if field["parent_module_id"] == identifier},
+        _require(set(ids) == fields_by_module.get(identifier, set()),
                  "native field population differs from its owner")
         namespace_labels: set[tuple[str, str]] = set()
         _require(module["context_id"] in contexts and signature["result_context_id"] in contexts,
@@ -544,7 +730,7 @@ def _census(metadata: object, searches: dict[str, str], readings: dict[str, str]
                 visit(field["child_module_id"], root, active | {identifier})
             else:
                 _require(field["metadata"]["kind"] == field["kind"], "field metadata differs from native kind")
-        aliases = [row["id"] for row in value["abbreviations"] if row["module_id"] == identifier]
+        aliases = abbreviations_by_module.get(identifier, set())
         _require(set(module["abbreviation_ids"]) == set(aliases), "incomplete native abbreviation population")
         expected_empty = "nonempty" if ids else "native-alias-only" if aliases else "native-empty"
         _require(module["empty_evidence"] == expected_empty, "unproved empty native module")
@@ -783,7 +969,7 @@ def _census(metadata: object, searches: dict[str, str], readings: dict[str, str]
     seen_canonical: set[str] = set()
     for field in fields.values():
         ids = field["declaration_ids"]
-        _require(set(ids) == {key for key, declaration in declarations.items() if declaration["field_id"] == field["id"]},
+        _require(set(ids) == declarations_by_field.get(field["id"], set()),
                  "incomplete native declaration population")
         if field["kind"] in {"module", "module-type"}:
             continue
@@ -897,12 +1083,14 @@ def _census(metadata: object, searches: dict[str, str], readings: dict[str, str]
         # retains an explicitly identified constructor representation of its type.
         guard_text = proofaudit.EMPTY_BLACKLIST + "\n" + "".join(
             declaration["native_reference"]["canonical_name"] + ": "
-            + search_types.get(declaration["id"], "native-constructor-json " + _key(declaration["type"])) + "\n"
+            + (search_types[declaration["id"]] if declaration["id"] in search_types
+               else "native-constructor-json " + _key(declaration["type"])) + "\n"
             for declaration in owned[root])
         symbols = proofaudit.inventory(guard_text, root)
         module_ids = {identifier for identifier, owner in owners.items() if owner == root}
         root_fields = [row for row in value["fields"] if row["parent_module_id"] in module_ids]
-        root_declarations = [row for row in value["declarations"] if row["field_id"] in {field["id"] for field in root_fields}]
+        root_field_ids = {field["id"] for field in root_fields}
+        root_declarations = [row for row in value["declarations"] if row["field_id"] in root_field_ids]
         search_rows, search_footer = _search_evidence(searches[root])
         result[root] = {"symbols": symbols, "raw_search": searches[root], "search_rows": search_rows,
                         "search_footer": search_footer,
