@@ -91,6 +91,10 @@ def prescan(blob: bytes, names: tuple[str, ...], sensitive: tuple[bytes, ...],
         raise UnsupportedScanError("pin spellings require the complete Unicode reader")
     decoder = io.IncrementalNewlineDecoder(codecs.getincrementaldecoder("utf-8")(), True)
     text_tail = ""
+    name_tail = ""
+    name_overlap = max((len(name) for name in names), default=0) + 1
+    decoded_chars = 0
+    sparse_supported = True
     byte_tail = b""
     byte_overlap = max((len(needle) for needle in (*sensitive, *folded, *glyphs)), default=1) - 1
     pin_name = lineage = glyph = False
@@ -113,20 +117,34 @@ def prescan(blob: bytes, names: tuple[str, ...], sensitive: tuple[bytes, ...],
             if unsupported is None and names:
                 try:
                     addition = decoder.decode(chunk, final=final)
-                    text = text_tail + addition
-                    end = len(text) if final else text.rfind("\n") + 1
-                    complete, text_tail = text[:end], text[end:]
-                    low = _streamable(complete, text_tail)
-                    for index, start, finish in pins.candidate_lines(complete, names, lowered=low):
-                        line = complete[start:finish]
-                        if _bounded_name(line, names, first=True, final=True):
-                            pin_name = True
-                            if pins.ID_RE.search(line) is None:
-                                continue
-                            at = line_base + index
-                            parts.extend(("\n" * (at - kept_lines), line, "\n"))
-                            kept_lines = at + 1
-                    line_base += complete.count("\n")
+                    if not pin_name:
+                        window_text = name_tail + addition
+                        pin_name = _bounded_name(window_text, names,
+                                                 first=decoded_chars == len(name_tail), final=final)
+                        name_tail = window_text[-name_overlap:]
+                    decoded_chars += len(addition)
+                    if sparse_supported:
+                        text = text_tail + addition
+                        end = len(text) if final else text.rfind("\n") + 1
+                        complete, text_tail = text[:end], text[end:]
+                        try:
+                            low = _streamable(complete, text_tail)
+                        except UnsupportedScanError:
+                            # A huge line disables sparse text, not the bounded
+                            # streaming proof that every pin spelling is absent.
+                            sparse_supported = False
+                            parts.clear()
+                            text_tail = ""
+                        else:
+                            for index, start, finish in pins.candidate_lines(complete, names, lowered=low):
+                                pin_name = True  # candidate_lines establishes the exact name boundary.
+                                line = complete[start:finish]
+                                if pins.ID_RE.search(line) is None:
+                                    continue
+                                at = line_base + index
+                                parts.extend(("\n" * (at - kept_lines), line, "\n"))
+                                kept_lines = at + 1
+                            line_base += complete.count("\n")
                 except (UnicodeDecodeError, UnsupportedScanError) as err:
                     # Still consume the entire stream: a late gzip error must not
                     # disappear behind an earlier unsupported text representation.
@@ -139,7 +157,7 @@ def prescan(blob: bytes, names: tuple[str, ...], sensitive: tuple[bytes, ...],
     # or unsupported text representation must not cause every consumer to inflate
     # the same archive again, nor may it authorize a cached pin absence.
     return Facts(pin_name or unsupported is not None, lineage,
-                 "".join(parts) if names and unsupported is None else None,
+                 "".join(parts) if names and unsupported is None and sparse_supported else None,
                  glyph if glyphs else None)
 
 

@@ -142,6 +142,14 @@ def _sparse_pin_candidates_preserve_all_sites() -> None:
     ensure(facts.pin_name and facts.pin_text is None and not facts.lineage
            and facts.glyph is False,
            "huge pin lines must preserve independently complete glyph and lineage facts")
+    ordinary = b"core_helper " * 100000
+    facts = retained.prescan(gzip.compress(ordinary), names, (), (), glyphs=(b"damage",))
+    ensure(not facts.pin_name and facts.pin_text is None and facts.glyph is False,
+           "huge lines without a bounded spelling must retain complete streaming absence")
+    late_name = ordinary + b" core 123abcd"
+    facts = retained.prescan(gzip.compress(late_name), names, (), ())
+    ensure(facts.pin_name and facts.pin_text is None,
+           "a name after sparse fallback must still require the complete pin parser")
     broken = gzip.compress(b"a" * (1024 * 1024 + 1)) + gzip.compress(b"tail")[:-3]
     try:
         retained.prescan(broken, names, (), ())
