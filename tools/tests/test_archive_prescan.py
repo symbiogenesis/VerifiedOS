@@ -2,6 +2,7 @@
 """Small archive fixtures prove absence optimization preserves audit boundaries."""
 
 import gzip
+from itertools import product
 from unittest.mock import patch
 
 from tests.harness import Case, ensure, sandbox_tree
@@ -15,6 +16,36 @@ from vos.report import Reporter
 def _names() -> list[tuple[str, str, pins.Pin]]:
     return pins.spellings([pins.Pin("upstream/core", "example/core", "123abcd", 1),
                            pins.Pin("upstream/nested-core", "other/nested-core", "456abcd", 2)])
+
+
+def _compiled_boundaries_match_the_literal_oracle() -> None:
+    names = ("core", "core/core", "with.dot", "a+b")
+    patterns = retained._name_patterns(names)
+
+    def reference(text: str, first: bool, final: bool) -> bool:
+        low = text.lower()
+        for name in names:
+            at = low.find(name)
+            while at >= 0:
+                end = at + len(name)
+                before = low[at - 1] if at else " "
+                after = low[end] if end < len(low) else " "
+                if ((at or first) and (end < len(low) or final)
+                        and not (before.isalnum() or before in "_-")
+                        and not (after.isalnum() or after == "_")):
+                    return True
+                at = low.find(name, at + 1)
+        return False
+
+    boundaries = ["", " ", "_", "-", "/", ".", "a", "7", "é", "中", "\u0661", "Ⅳ", "²", "\u0301", "\n"]
+    for before, after, name, first, final in product(boundaries, boundaries, names, (False, True), (False, True)):
+        text = before + name + after
+        ensure(retained._bounded_name(text, patterns, first=first, final=final)
+               == reference(text, first, final), "compiled name boundaries differ from the literal oracle")
+    for text in ("core/core/core ", "core_helper " * 200 + "core ", "a+b a+b", "with.dot_ with.dot "):
+        for first, final in product((False, True), repeat=2):
+            ensure(retained._bounded_name(text, patterns, first=first, final=final)
+                   == reference(text, first, final), "overlapping names or dense false prefixes lost a candidate")
 
 
 def _pin_boundaries_and_chunks() -> None:
@@ -231,7 +262,8 @@ def _checks_preserve_results_and_refresh_bytes() -> None:
 
 
 def cases() -> list[Case]:
-    return [Case("pin-boundaries-and-chunks", _pin_boundaries_and_chunks),
+    return [Case("compiled-boundaries-match-literal-oracle", _compiled_boundaries_match_the_literal_oracle),
+            Case("pin-boundaries-and-chunks", _pin_boundaries_and_chunks),
             Case("lineage-candidates-across-chunks", _lineage_candidates_across_chunks),
             Case("members-headers-and-corruption", _members_headers_and_corruption),
             Case("unicode-fallback-is-not-absence", _unicode_fallback_is_not_absence),

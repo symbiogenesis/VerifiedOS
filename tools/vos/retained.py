@@ -10,6 +10,7 @@ and is bound to the actual immutable compressed bytes and matcher inputs.
 import codecs
 import gzip
 import io
+import re
 from dataclasses import dataclass
 
 from vos import pins
@@ -39,7 +40,16 @@ class _Entry:
     facts: Facts
 
 
-def _bounded_name(text: str, names: tuple[str, ...], *, first: bool, final: bool) -> bool:
+def _name_patterns(names: tuple[str, ...]) -> tuple[tuple[str, re.Pattern[str]], ...]:
+    """Keep each full literal prefix before checking its Unicode boundaries."""
+    patterns = []
+    for name in names:
+        literal = re.escape(name)
+        patterns.append((name, re.compile(literal + r"(?<![\w-]" + literal + r")(?!\w)")))
+    return tuple(patterns)
+
+
+def _bounded_name(text: str, patterns: tuple[tuple[str, re.Pattern[str]], ...], *, first: bool, final: bool) -> bool:
     """A candidate with the original pin parser's asymmetric name boundaries."""
     low = text.lower()
     # The old parser indexes its lowered string with original-string positions.
@@ -47,17 +57,15 @@ def _bounded_name(text: str, names: tuple[str, ...], *, first: bool, final: bool
     # changes length; do not silently reinterpret a Unicode source's offsets.
     if len(low) != len(text):
         raise UnsupportedScanError("Unicode lowercase changes source offsets")
-    for needle in names:
-        at = low.find(needle)
-        while at >= 0:
-            end = at + len(needle)
-            if (at or first) and (end < len(low) or final):
-                before = low[at - 1] if at else " "
-                after = low[end] if end < len(low) else " "
-                if (not (before.isalnum() or before in "_-")
-                        and not (after.isalnum() or after == "_")):
-                    return True
-            at = low.find(needle, at + 1)
+    for name, pattern in patterns:
+        if name not in low:
+            continue
+        match = pattern.search(low)
+        while match is not None:
+            if (match.start() or first) and (match.end() < len(low) or final):
+                return True
+            # A rejected window-edge hit must not hide an overlapping later hit.
+            match = pattern.search(low, match.start() + 1)
     return False
 
 
@@ -89,6 +97,7 @@ def prescan(blob: bytes, names: tuple[str, ...], sensitive: tuple[bytes, ...],
     if any(not name.isascii() or name != name.lower() or not name
            or "\n" in name or "\r" in name for name in names):
         raise UnsupportedScanError("pin spellings require the complete Unicode reader")
+    name_patterns = _name_patterns(names)
     decoder = io.IncrementalNewlineDecoder(codecs.getincrementaldecoder("utf-8")(), True)
     text_tail = ""
     name_tail = ""
@@ -119,7 +128,7 @@ def prescan(blob: bytes, names: tuple[str, ...], sensitive: tuple[bytes, ...],
                     addition = decoder.decode(chunk, final=final)
                     if not pin_name:
                         window_text = name_tail + addition
-                        pin_name = _bounded_name(window_text, names,
+                        pin_name = _bounded_name(window_text, name_patterns,
                                                  first=decoded_chars == len(name_tail), final=final)
                         name_tail = window_text[-name_overlap:]
                     decoded_chars += len(addition)

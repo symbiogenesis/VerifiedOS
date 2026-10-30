@@ -152,6 +152,13 @@ omit unused inline expansion; count readers reuse masks only when their line
 representations agree. Proof-source facts are content-keyed within a context while
 each consumer still acquires current source bytes.
 
+Streaming name boundaries use one compiled literal at a time, with the complete
+literal prefix before its Unicode boundary assertions. This avoids Python visits
+to unbounded substrings such as a project name inside a longer identifier.
+Rejected window-edge matches resume with overlap, and malformed or unsupported
+text retains the complete parser. The boundary oracle and chunk tests retain the
+original `isalnum` and underscore/hyphen predicates.
+
 The census validator resolves its schema plan once per call, retains every
 compatible union branch and constructs diagnostic paths on failure. Reverse indexes
 replace repeated population joins; declaration fallback serialization is lazy.
