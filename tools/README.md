@@ -364,8 +364,14 @@ mode change, physical completion and architectural visibility require separate
 evidence. The [preparation contract](../docs/implementation/phase-service/prerequisite-contract.md)
 connects this analysis to schedule extraction and workload cost arithmetic.
 
-`compiler-diff` is M1.2f's driver, and what it does not decide is stated with what it
-does. At the program level it runs the `ccomp` its command line names, which
+`compiler-diff` is M1.2f's driver. Its shared
+[library](vos/compiler_diff.py) owns compilation, assembly, generated programs and
+run comparisons; firmware, kernel and service instruments import that library.
+The [command adapter](vos/cli/compiler_diff.py) owns arguments, orchestration and
+report publication. Source inventories bind the implementation each caller uses.
+
+What the driver does not decide is stated with what it does. At the program level
+it runs the `ccomp` its command line names, which
 stays outside every checkout under M1.1a's containment. It preprocesses C once with
 `-E` beside the original source, preserving relative transitive includes, then
 passes the exact retained `.i` bytes to `-S` in a fresh directory. Incoming `.i`
