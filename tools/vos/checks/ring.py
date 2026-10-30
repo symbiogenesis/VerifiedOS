@@ -65,7 +65,7 @@ disagree the repair is to the emitter, on the same terms as any derived view tha
 disagrees with the entry it derives from. Nothing here is rewritten under `--fix`
 accordingly: which side moved is the fact worth having, exactly as it is one rule up.
 
-**Fail-closed at every reading**, on K-67's and K-75's ground, which is why this rule
+**Fail-closed at every reading**, on K-75's ground, which is why this rule
 owes the floors group no member of its own: an absent profile, an IDL-023 whose rungs
 this rule cannot read, a §4.2 carrying no row table, an IDL-053 it cannot find, and a
 definition absent from the emitted text are each a finding rather than a comparison made

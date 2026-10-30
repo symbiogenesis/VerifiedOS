@@ -7,9 +7,8 @@ verdicts of each clean group against its declarations. This group checks the gen
 documentation against that same owner, and reports definition or execution findings
 collected by the driver. Correct claims and classifications remain review judgments.
 
-K-67 holds the resolved lockfile against tools/pyproject.toml's checker pins.
-The runtime reads the same manifest. Missing, malformed and duplicate declarations
-are findings, so an unreadable side cannot silently remove the comparison.
+The locked uv bootstrap validates dependency resolution before dispatch. Runtime
+checker pins come from the same project manifest and remain exact.
 
 K-75 is that rule one figure over, on the version the tools are *written* to rather
 than the versions they run. The interpreter floor decides what the two checkers admit
@@ -26,7 +25,7 @@ instead of copying it. The provisioner explicitly restates the floor, while
 tools/pyproject.toml constrains the interpreter used for dependency resolution.
 Both are held against ty's target.
 
-The window is the enumerated sites rather than a directory, as K-67's is: the
+The window is the enumerated sites rather than a directory: the
 `python-version` settings of host CI, guest CI, the boot signature target campaign and
 the instrument switch route sit outside `tools/` and select the interpreters their jobs
 run on. Each workflow is one site whose every match is held, so no job's setting escapes
@@ -79,7 +78,7 @@ or `freeze-report.py` as a subprocess. Both are quantified over every source und
 `tools/` that the index carries and the quarantine does not, so a file added tomorrow
 is inside the rule the day it is staged and a module added to the quarantine is
 protected the day it lands: neither side is a list anybody maintains. Fail-closed in
-both readings, on K-67's and K-75's own ground: a quarantine carrying no module and a
+both readings, on K-75's own ground: a quarantine carrying no module and a
 window carrying no source are each a finding, never a pass over nothing. It owes the
 floors group no member count for the same reason those two do not, its own reading
 being the floor: an empty roster or an empty window reports here, on the day it
@@ -175,7 +174,6 @@ Q_RULES = "tools/quarantine/check-rules.md"
 
 README = "tools/README.md"
 PROJECT = toolenv.PROJECT
-LOCK = toolenv.LOCK
 PROVISION = "tools/vos/cli/provision.py"
 
 _HOST_WORKFLOW = ".github/workflows/host-gates.yml"
@@ -433,41 +431,10 @@ def _source(ctx: Context, rel: str) -> str:
         return ""
 
 
-def _pins(ctx: Context) -> None:
-    """K-67: the lockfile agrees with the runtime's manifest reader."""
-    rep = ctx.rep
-    findings: list[str] = []
-    pins: dict[str, str] = {}
-    try:
-        pins = toolenv.checker_pins(ctx.root)
-    except (OSError, ValueError, TypeError, KeyError) as err:
-        findings.append(f"{PROJECT} cannot supply exact ty and ruff pins: {err}")
-    if pins:
-        try:
-            packages = tomllib.loads(_source(ctx, LOCK))["package"]
-            if not isinstance(packages, list) or not all(
-                    isinstance(package, dict) for package in packages):
-                findings.append(f"{LOCK}'s package must be an array of tables")
-            else:
-                for name, want in pins.items():
-                    versions = [package.get("version") for package in packages
-                                if package.get("name") == name]
-                    if versions != [want]:
-                        findings.append(f"{LOCK}'s {name} versions are {versions!r}, "
-                                        f"{PROJECT} pins {want}")
-        except (ValueError, TypeError, KeyError) as err:
-            findings.append(f"{LOCK} cannot supply resolved checker pins: {err}")
-
-    rep.report("K-67", f"pin site(s) disagreeing with the versions {PROJECT} "
-               "fixes:", findings,
-               f"the lockfile states ty {pins.get('ty')} and "
-               f"ruff {pins.get('ruff')}, the versions {PROJECT} fixes")
-
-
 def _floor(ctx: Context) -> None:
     """K-75: every site stating the interpreter floor states the one ty.toml fixes.
 
-    Fail-closed in the same two places K-67 is. The source either parses in the form it
+    Fail-closed on both owner readings. The source either parses in the form it
     is written in today or is a finding, so a reworded setting cannot take the
     comparison down and leave the rule green; and a site whose pattern no longer matches
     is a finding rather than a site quietly dropped from the enumeration.
@@ -649,7 +616,7 @@ def _quarantine(ctx: Context) -> None:
     what makes this catch the import somebody adds next year rather than the ones that
     are absent today.
 
-    Fail-closed twice over, on K-67's and K-75's ground. A quarantine this rule finds
+    Fail-closed twice over, on K-75's ground. A quarantine this rule finds
     empty holds nothing out of anything, and a window it finds empty is the same failure
     from the other end; each is a finding rather than a green line over an empty walk.
     """

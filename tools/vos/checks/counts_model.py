@@ -178,7 +178,7 @@ def excluded_forms(ctx: Context) -> None:
     is spelled by the surface and no marked constructor is decoded by it*, never *every
     exclusion is honoured*.
 
-    **Fail-closed on the artifact**, on K-67's and K-75's ground: the bundle is the
+    **Fail-closed on the artifact**, on K-75's ground: the bundle is the
     whole of this rule's model side, so a run whose generated group could not settle one
     is a finding here rather than a comparison the encoder table is left to make alone.
     """

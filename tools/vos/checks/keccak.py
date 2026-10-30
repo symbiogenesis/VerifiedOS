@@ -34,7 +34,7 @@ rule that names two paths reads them itself. Membership is by name accordingly, 
 pairs of named constants held in this module, so nothing about the pair can quietly
 narrow by a document being edited.
 
-Fail-closed in five places on K-67's and K-75's ground. A file the index does not carry is
+Fail-closed in five places on K-75's ground. A file the index does not carry is
 outside this checker's corpus and every claim about it is vacuous; a file the working tree
 does not carry has no bytes to read; a literal or an `Example` this module cannot locate by
 name, or finds only under a `Fail` or a `Succeed` that keeps nothing it states, is a

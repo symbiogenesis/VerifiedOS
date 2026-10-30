@@ -1590,10 +1590,6 @@ CASES: list[Case] = [
     ("K-66", "a form the profile excludes and the model still decodes",
      _literal(PROFILE, "Sail: `AMOCAS`", "Sail: `AMO`")),
 
-    ("K-67", "a resolved checker pin drifted from the manifest",
-     _literal("tools/uv.lock", 'name = "ruff"\nversion = "0.17.1"',
-              'name = "ruff"\nversion = "0.16.8"')),
-
     # One site of a fact two pairs state is reworded while its siblings stand, which
     # is the drift K-61 cannot see: the edited pair blesses on its own two sides and
     # the other pair's copy stays green. K-61 fires on the edited entry too, which is

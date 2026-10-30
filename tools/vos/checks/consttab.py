@@ -70,7 +70,7 @@ nothing about a pair can quietly narrow under an edit to either file, and the ru
 the floors group no member count on the ground K-83, K-97 and K-101 each state: a site
 that has stopped matching reports here, on the day it stops.
 
-Fail-closed in seven places on K-67's and K-75's ground. A file the index does not carry
+Fail-closed in seven places on K-75's ground. A file the index does not carry
 is outside this checker's corpus and every claim about it is vacuous; a file the index
 carries and the working tree does not has no bytes to read; a statement this module
 cannot locate by name on either side, or finds only under a `Fail` or a `Succeed` that
