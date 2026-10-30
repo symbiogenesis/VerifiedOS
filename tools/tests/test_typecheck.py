@@ -402,7 +402,8 @@ def _ty_settings_fail_closed() -> None:
 
 def _schema_owner_failures_reported_beside_the_run() -> None:
     for policy, config in (("ty", _ADMITTED), ("ruff", '[lint]\nselect = ["ANN"]\n')):
-        for contents in (None, "{", '{"type":"unknown"}'):
+        for contents in (None, "{", '{"type":"unknown"}',
+                         '{"$ref":"#/$defs/missing"}'):
             with tempfile.TemporaryDirectory(prefix="vos-test-") as directory:
                 root = Path(directory)
                 tools = root / "tools"

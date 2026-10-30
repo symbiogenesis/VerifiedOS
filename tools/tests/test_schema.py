@@ -70,6 +70,7 @@ def _authored_schema() -> None:
     with tempfile.TemporaryDirectory(prefix="vos-schema-") as directory:
         path = Path(directory) / "policy.schema.json"
         path.write_text(json.dumps({
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
             "type": "object", "required": ["count"], "additionalProperties": False,
             "properties": {"count": {"type": "integer"}}}), encoding="utf-8")
         validate(path, {"count": 1})
@@ -83,7 +84,9 @@ def _authored_schema() -> None:
             else:
                 raise AssertionError(f"authored schema admitted {value!r}")
         for contents in (None, "{", '{"type":"object","type":"array"}',
-                         '{"type":"unknown"}', "null", "[]", "\ufffd"):
+                         '{"type":"unknown"}', "null", "[]", "\ufffd",
+                         '{"$ref":"#/$defs/missing"}',
+                         '{"$ref":"https://example.invalid/unavailable.schema.json"}'):
             if contents is None:
                 path.unlink()
             else:
@@ -95,6 +98,18 @@ def _authored_schema() -> None:
                        f"malformed owner diagnostic lost context: {error}")
             else:
                 raise AssertionError(f"schema owner did not refuse {contents!r}")
+        path.write_text('false', encoding="utf-8")
+        try:
+            validate(path, {})
+        except ValueError as error:
+            ensure("$: False schema" in str(error)
+                   and "cannot read a valid schema" not in str(error),
+                   f"a false schema must produce an ordinary data finding: {error}")
+        else:
+            raise AssertionError("a false schema admitted data")
+        path.write_text('{"$defs":{"count":{"type":"integer"}},'
+                        '"$ref":"#/$defs/count"}', encoding="utf-8")
+        validate(path, 1)
 
 
 def cases() -> list[Case]:
