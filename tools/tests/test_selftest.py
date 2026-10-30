@@ -22,7 +22,7 @@ from unittest.mock import patch
 import check
 from tests.harness import Case, ensure, sandbox_tree
 from tests.test_checks import _REGISTER_MIN, _context, _findings_under
-from vos import corpus, timings
+from vos import checkregistry, corpus, timings
 from vos.checks import Context, meta
 from vos.cli import selftest
 from vos.seeded import KILLED, SURVIVED, UNSEEDED, Verdict
@@ -625,7 +625,13 @@ def _checker_stops_after_the_rules_group() -> None:
                                    ["seeded"] if rule == "K-02" else [], "held")
         return SimpleNamespace(__name__=f"vos.checks.{name}", run=run)
 
-    groups = [group("first", "K-01"), group("second", "K-02", "K-03"), group("third", "K-04")]
+    declared = (("first", ("K-01",)), ("second", ("K-02", "K-03")),
+                ("meta", ("K-00", "K-04")))
+    groups = [group(name, *rules) for name, rules in declared]
+    registry = checkregistry.Registry(tuple(
+        checkregistry.Rule(rule, name, "Fixture decision.", "Fixture contract.",
+                           checkregistry.Reach.TOTAL)
+        for name, rules in declared for rule in rules), ())
     expectations = {
         "K-01": (["first"], ["ok K-01: held",
                              "stopped after the group deciding K-01; "
@@ -634,10 +640,12 @@ def _checker_stops_after_the_rules_group() -> None:
                                        "stopped after the group deciding K-03; "
                                        "the 1 later group(s) decided nothing.",
                                        "1 finding(s)."]),
-        "K-04": (["first", "second", "third"], ["ok K-04: held", "1 finding(s)."]),
-        "K-99": (["first", "second", "third"], ["ok K-04: held", "1 finding(s)."]),
+        "K-04": (["first", "second", "meta"], ["ok K-04: held", "1 finding(s)."]),
+        "K-99": (["first", "second", "meta"], ["ok K-04: held", "1 finding(s)."]),
     }
-    with patch.object(check, "GROUPS", groups), patch.object(check.corpus_mod, "load"), \
+    with patch.object(check, "GROUPS", groups), \
+            patch.object(checkregistry, "read", return_value=registry), \
+            patch.object(check.corpus_mod, "load"), \
             patch.object(check, "read_register"), patch.object(check, "read_artifacts"):
         for through, (expected, tail) in expectations.items():
             ran.clear()

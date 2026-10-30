@@ -125,21 +125,26 @@ def _claim_intervals_and_diagnostic_order() -> None:
                 "another call rebuilds offsets and claim intervals from repaired text")
 
 
-def _count_scan_refuses_unsupported_fences() -> None:
+def _count_scan_masks_commonmark_code_after_repairs() -> None:
     with sandbox_tree({counts.REGISTER: _REGISTER, _CRITIQUE: "No live counts.\n"}) as root:
         ctx = _context(root)
-        ctx.fixed[_CRITIQUE] = "No live counts.\n> ```text\n"
-        try:
-            counts.unheld_counts(ctx)
-        except ValueError as exc:
-            ensure(str(exc) == "line 2: unsupported container or indented fence; "
-                   "use a top-level fence with at most three leading spaces",
-                   "an unsupported fence keeps its exact diagnostic even without a candidate")
-        else:
-            ensure(False, "absence of count candidates cannot bypass the fence grammar")
-        ctx.fixed[_CRITIQUE] = "17 crown-jewel specifications.\n"
-        ensure(len(counts.unheld_counts(ctx)) == 1,
-               "a failed parse does not cache a successful or failed later verdict")
+        examples = ("> ```text\n> 91 crown-jewel specifications.\n> ```\n\n"
+                    "- Example:\n\n  ```text\n  92 crown-jewel specifications.\n  ```\n\n"
+                    "Indented example:\n\n    93 crown-jewel specifications.\n\n")
+        ctx.fixed[_CRITIQUE] = examples
+        ensure(not counts.unheld_counts(ctx),
+               "quoted, list-contained and indented code counts are examples, not assertions")
+        for prefix, count in (("", 17), ("Repaired introduction.\n\n", 119)):
+            before = prefix + examples
+            line = before.count("\n") + 1
+            ctx.fixed[_CRITIQUE] = before + f"{count} crown-jewel specifications.\n"
+            ensure(counts.unheld_counts(ctx) == [
+                f"{_CRITIQUE}:{line} states '{count}' "
+                "where no claim holds it, for crown-jewel inventory"],
+                "each scan masks code and detects the live count at its current repaired offset")
+        ctx.fixed[_CRITIQUE] = examples
+        ensure(not counts.unheld_counts(ctx),
+               "removing the live count clears the finding without retaining an old verdict")
 
 
 def _canonical_references_need_no_count() -> None:
@@ -231,7 +236,8 @@ def cases() -> list[Case]:
         Case("registered-claim-offsets-follow-repairs", _registered_claim_offsets_follow_repairs),
         Case("subject-scan-preserves-count-grammar", _subject_scan_preserves_count_grammar),
         Case("claim-intervals-and-diagnostic-order", _claim_intervals_and_diagnostic_order),
-        Case("count-scan-refuses-unsupported-fences", _count_scan_refuses_unsupported_fences),
+        Case("count-scan-masks-commonmark-code-after-repairs",
+             _count_scan_masks_commonmark_code_after_repairs),
         Case("canonical-references-need-no-count", _canonical_references_need_no_count),
         Case("missing-owner-and-valid-zero-buckets", _missing_owner_and_valid_zero_buckets),
         Case("owner-policy-is-total", _owner_policy_is_total),
