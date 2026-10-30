@@ -8,7 +8,7 @@ from dataclasses import asdict
 from pathlib import Path
 
 from vos import corpus
-from vos.cli import ring as ring_owner
+from vos import ring as ring_owner
 from vos.ring_measurement import SCOPE, analyze
 
 
@@ -37,7 +37,7 @@ def main(argv: list[str] | None = None) -> int:
         sources = {name: hashlib.sha256((root / name).read_bytes()).hexdigest()
                    for name in ("tools/vos/ring_measurement.py", "tools/vos/jsonutil.py",
                                 "tools/vos/cli/ring_measurement.py",
-                                "tools/vos/cli/ring.py", "docs/implementation/contracts/roster-measurement.md")}
+                                "tools/vos/ring.py", "tools/vos/schema.py", "docs/implementation/contracts/roster-measurement.md")}
         report["sources_sha256"] = sources
         inputs: dict[str, bytes] = {}
         read_errors: list[OSError] = []

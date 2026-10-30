@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 """The ring emitter's two owners, and K-89's fail-closed reading of them.
 
-`vos/cli/ring.py` is the only tool in this directory whose output a rule holds byte
+`vos/ring.py` is the only tool in this directory whose output a rule holds byte
 for byte, so what is worth pinning here is not the bytes, which K-89 already decides,
 but the four claims the emitter makes about *where they came from*.
 
@@ -26,15 +26,18 @@ alike, and a test injects an unexpected emitter failure to exercise that last ar
 """
 
 import json
+import subprocess
+import sys
 from collections.abc import Callable
+from pathlib import Path
 from typing import Any
 from unittest.mock import patch
 
 from tests.harness import Case, ensure, sandbox_tree
 from vos import corpus as corpus_mod
+from vos import ring
 from vos.checks import Context
 from vos.checks import ring as rule
-from vos.cli import ring
 from vos.jsonc import Json
 from vos.register import Register, read_artifacts
 from vos.report import Reporter
@@ -209,6 +212,25 @@ def _the_rule_reports_rather_than_crashes() -> None:
     ensure("TypeError" in said,
            f"the finding must name the unexpected exception, and so "
            f"must come from the arm past RingError; got:\n{said}")
+
+
+def _library_import_boundary() -> None:
+    done = subprocess.run(
+        [sys.executable, "-c",
+         "import sys; import vos.ring; print('jsonschema' in sys.modules); "
+         "import vos.copy_service; import vos.ring_measurement; "
+         "print('vos.cli.ring' in sys.modules)"],
+        cwd=Path(__file__).resolve().parents[1], capture_output=True, text=True,
+        check=False, timeout=30)
+    ensure(done.returncode == 0, f"fresh ring library import failed: {done.stderr}")
+    ensure(done.stdout.splitlines() == ["False", "False"],
+           "ring libraries loaded the ring command or eagerly loaded JSON Schema")
+
+
+def _emitted_bytes_match_the_tracked_artifact() -> None:
+    root = corpus_mod.find_root()
+    ensure(ring.emit(root).encode("utf-8") == (root / ring.ARTIFACT).read_bytes(),
+           "library extraction changed generated ring artifact bytes")
 
 
 def _declaration_refuses_wrong_types() -> None:
@@ -480,6 +502,8 @@ def _each_world_past_the_first_takes_a_scope_of_its_own() -> None:
 
 def cases() -> list[Case]:
     return [
+        Case("library-import-boundary", _library_import_boundary),
+        Case("emitted-bytes-match-the-tracked-artifact", _emitted_bytes_match_the_tracked_artifact),
         Case("the-lost-wakeup-exclusion-is-a-property-a-rule-can-fail",
              _the_lost_wakeup_exclusion_is_a_property_a_rule_can_fail),
         Case("the-dma-clauses-are-properties-a-declaration-can-fail",

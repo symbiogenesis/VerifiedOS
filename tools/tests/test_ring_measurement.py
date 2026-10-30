@@ -15,7 +15,7 @@ from unittest.mock import patch
 
 from tests.harness import Case, ensure, sandbox_tree
 from vos import corpus
-from vos.cli import ring as ring_owner
+from vos import ring as ring_owner
 from vos.cli import ring_measurement as cli
 from vos.ring_measurement import COST_FIELDS, REQUEST_BOUNDS, Analysis, analyze
 
@@ -562,7 +562,7 @@ def _cli_evidence() -> None:
                     ensure(report["milestone_acceptance"] == "open", "no target acceptance")
                     if exit_code != 2:
                         ensure(report["capture_sha256"] == _hash(capture_path.read_bytes()), "byte identity")
-                        ensure(len(report["sources_sha256"]) == 5
+                        ensure(len(report["sources_sha256"]) == 6
                                and "tools/vos/jsonutil.py" in report["sources_sha256"],
                                "source and contract identities")
         with redirect_stdout(StringIO()):
@@ -572,7 +572,7 @@ def _cli_evidence() -> None:
 
 def _cli_refusal_evidence() -> None:
     source_names = ("tools/vos/ring_measurement.py", "tools/vos/jsonutil.py",
-                    "tools/vos/cli/ring_measurement.py", "tools/vos/cli/ring.py",
+                    "tools/vos/cli/ring_measurement.py", "tools/vos/ring.py", "tools/vos/schema.py",
                     "docs/implementation/contracts/roster-measurement.md")
     checkout = corpus.find_root()
     source_hashes = {name: _hash((checkout / name).read_bytes()) for name in source_names}
@@ -627,7 +627,7 @@ def _cli_refusal_evidence() -> None:
 def _cli_missing_input_evidence() -> None:
     checkout = corpus.find_root()
     source_names = ("tools/vos/ring_measurement.py", "tools/vos/jsonutil.py",
-                    "tools/vos/cli/ring_measurement.py", "tools/vos/cli/ring.py",
+                    "tools/vos/cli/ring_measurement.py", "tools/vos/ring.py", "tools/vos/schema.py",
                     "docs/implementation/contracts/roster-measurement.md")
     sources = {name: (checkout / name).read_bytes() for name in source_names}
     capture, expected = _fixture()
@@ -784,7 +784,7 @@ def _cli_large_integer_refusal() -> None:
                            and report["capture_sha256"] == _hash(raw)
                            and report["expected_identity_sha256"] == _hash(_blob(expected))
                            and report["declaration_sha256"] == capture["declaration_sha256"]
-                           and len(report["sources_sha256"]) == 5
+                           and len(report["sources_sha256"]) == 6
                            and report["milestone_acceptance"] == "open",
                            "both outcomes preserve input and implementation identities")
                     if refused:
