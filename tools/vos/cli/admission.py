@@ -12,7 +12,7 @@ import sys
 from pathlib import Path
 from typing import cast
 
-from vos import admission, admission_production, boot, corpus, env
+from vos import admission, admission_production, boot, corpus, env, source_bindings
 
 
 def _compare(root: Path) -> int:
@@ -23,7 +23,7 @@ def _compare(root: Path) -> int:
     folder.mkdir(parents=True, exist_ok=True)
     logs.mkdir(parents=True, exist_ok=True)
     (folder / "comparison.json").unlink(missing_ok=True)
-    owners = (admission.SOURCE, admission.CHECKER, "tools/vos/cli/admission.py", "tools/vos/jsonutil.py")
+    owners = source_bindings.sources("admission-comparison")
     before = {name: admission.digest((root / name).read_bytes()) for name in owners}
     reference = admission.read_reference(root)
     (folder / "AdmissionPath.v").write_bytes((root / admission.SOURCE).read_bytes())

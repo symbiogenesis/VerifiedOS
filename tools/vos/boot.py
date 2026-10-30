@@ -42,7 +42,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Final, TextIO, cast
 
-from vos import jsonutil
+from vos import jsonutil, source_bindings
+from vos.receipts import digest as digest_file
 
 from . import admission, asm, composer, image, jsonc, trace
 
@@ -499,10 +500,6 @@ def digest_bytes(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
 
 
-def digest_file(path: Path) -> str:
-    return digest_bytes(path.read_bytes())
-
-
 def check_membership(recipe: Recipe, roster: Roster) -> None:
     """Duplicated, unknown, misplaced, non-executable and missing members, and the order."""
     known = roster.by_id()
@@ -777,8 +774,8 @@ def compose(root: Path, recipe: Recipe, out: Path) -> dict[str, object]:
     inputs = ([recipe.path, recipe.roster, recipe.configuration]
               + [m.source for m in recipe.members] + producing_inputs(root))
     if recipe.composer is not None and recipe.admission is not None:
-        inputs += [recipe.composer.source, recipe.admission, "tools/vos/composer.py",
-                   "tools/vos/admission.py", "proofs/AdmissionPath.v"]
+        inputs += [recipe.composer.source, recipe.admission,
+                   *source_bindings.sources("boot-composition")]
         if admission_record is not None:
             inputs += [cast("str", member["artifact"])
                        for member in cast("list[dict[str, object]]", admission_record["members"])]

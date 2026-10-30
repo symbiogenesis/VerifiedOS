@@ -14,7 +14,7 @@ from typing import Any, cast
 
 from jsonschema import Draft202012Validator, validators
 
-from vos import boot, composer
+from vos import boot, composer, source_bindings
 from vos import image as elf_image
 from vos.jsonutil import unique_object
 
@@ -22,9 +22,7 @@ SCHEMA = "tools/composer/composition.schema.json"
 PACKAGE_SCHEMA = "tools/composer/package.schema.json"
 EXAMPLE = "tools/composer/m8a-composition.json"
 GENERATED = "tools/composer/generated"
-PRODUCERS = ("tools/vos/composition.py", "tools/vos/composer.py", "tools/vos/boot.py", "tools/vos/image.py",
-             "tools/vos/jsonutil.py", SCHEMA,
-             PACKAGE_SCHEMA)
+PRODUCERS = source_bindings.sources("projection")
 OUTPUTS = ("manifest.json", "manifest.c", "graph-input.json", "recipe-members.json",
            "admission-request.json")
 
