@@ -148,8 +148,9 @@ def compare(root: Path, base: str, output: Path, repetitions: int) -> None:
         variant: {kind: [] for kind in ("markdown", "proof_headers")}
         for variant in ("baseline", "candidate")}
     failure = ""
+    (root / "out").mkdir(exist_ok=True)
     try:
-        with tempfile.TemporaryDirectory(prefix="vos-runner-comparison-") as temporary:
+        with tempfile.TemporaryDirectory(prefix="vos-runner-comparison-", dir=root / "out") as temporary:
             scratch = Path(temporary)
             archive = scratch / "tools.tar"
             subprocess.run(["git", "-C", str(root), "archive", "--format=tar", "-o", str(archive),

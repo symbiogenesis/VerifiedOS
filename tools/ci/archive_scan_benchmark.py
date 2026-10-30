@@ -74,7 +74,11 @@ def compare(root: Path, base: str, output: Path, repetitions: int) -> None:
     if subprocess.check_output(["git", "-C", str(root), "status", "--porcelain"], text=True):
         raise ValueError("benchmark requires a clean indexed checkout")
     samples: dict[str, list[Sample]] = {"baseline": [], "candidate": []}
-    with tempfile.TemporaryDirectory(prefix="vos-archive-comparison-") as temporary:
+    # Baseline modules resolve repository-owned data from their __file__ ancestry.
+    # Keep their sources below the real ignored output root so those imports find
+    # the same corpus as the explicit checker argument, without patching a reader.
+    (root / "out").mkdir(exist_ok=True)
+    with tempfile.TemporaryDirectory(prefix="vos-archive-comparison-", dir=root / "out") as temporary:
         scratch = Path(temporary)
         archive = scratch / "tools.tar"
         subprocess.run(["git", "-C", str(root), "archive", "--format=tar", "-o", str(archive),

@@ -78,7 +78,8 @@ def compare(root: Path, base: str, output: Path) -> None:
         pending.replace(output)
 
     checkpoint("measuring")
-    with tempfile.TemporaryDirectory(prefix="vos-proof-identity-") as temporary:
+    (root / "out").mkdir(exist_ok=True)
+    with tempfile.TemporaryDirectory(prefix="vos-proof-identity-", dir=root / "out") as temporary:
         scratch = Path(temporary)
         archive = scratch / "tools.tar"
         subprocess.run(["git", "-C", str(root), "archive", "--format=tar", "-o", str(archive),
