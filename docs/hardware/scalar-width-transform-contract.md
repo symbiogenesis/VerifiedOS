@@ -136,7 +136,7 @@ scoreboard entry, and the two `csr_regfile.sv` readers of its `int_mode` read th
 constant. This is a behavioural tie-off and not the delta's structural deletion:
 `id_stage.sv`'s mode register still resets and updates as state no decoder reads,
 every `use_ddc` assignment stays, and so does the `DDC` register, so the
-deletions the delta's §2.2 and §2.3 rows describe for the mode pipeline and
+deletions the delta's [§2.2](rtl-reparameterization-delta.md#22-the-width-identity-outside-the-package) and [§2.3](rtl-reparameterization-delta.md#23-permissions-object-type-and-mode-in-the-functional-units) rows describe for the mode pipeline and
 `use_ddc` are owed with the decoder's curation and the `DDC` register's with the
 CSR seam.
 
@@ -196,7 +196,7 @@ carries `clr_load_global` and `clr_load_mutable` in the place of the levels pair
 each read through the format package's permission accessors, and the load unit
 narrows a tagged result's expanded permissions through `set_cap_perms`, over the
 tag it keeps and never over data. The revocation filter the same clause applies
-first is behaviour the datapath does not have (delta §2.5, item 5).
+first is behaviour the datapath does not have (delta [§2.5](rtl-reparameterization-delta.md#25-behaviour-the-frozen-format-requires-and-the-imported-tree-does-not-have), item 5).
 
 **Storing authority is checked by traps and never by a tag clear.** The model's
 `cap_access_checks` faults a store of a tagged capability without

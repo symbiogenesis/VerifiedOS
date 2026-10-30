@@ -57,7 +57,7 @@ The switch is separate from the proof gate and from other projects' environments
 
 Run the native setup from the repository root. If an import fails after its switch is created, rerun the import command without repeating creation; it resumes the partial installation.
 
-`demo.v` is the M1.5 smoke program in the oracle's intended shape: a pure Gallina computation checked against a known answer *inside* Gallina (the §4 crypto module's KAT pattern), so only one boolean crosses the Wasm boundary. `run_demo.mjs` decodes it per the upstream value representation (nullary constructors are odd-tagged unboxed scalars). The `--stack-size` flag matches the upstream harness: the generated code recurses deeply and overflows V8's default stack.
+`demo.v` is the M1.5 smoke program in the oracle's intended shape: a pure Gallina computation checked against a known answer *inside* Gallina (the [§4](../../PLAN.md#4-verified-crypto-core-coq) crypto module's KAT pattern), so only one boolean crosses the Wasm boundary. `run_demo.mjs` decodes it per the upstream value representation (nullary constructors are odd-tagged unboxed scalars). The `--stack-size` flag matches the upstream harness: the generated code recurses deeply and overflows V8's default stack.
 
 ## Staging a repository source: `ipc_oracle.v` (M4.3)
 

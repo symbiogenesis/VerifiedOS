@@ -1,6 +1,6 @@
 # Atomic Requirements Register
 
-*Normative. This register, not the prose, is the artifact the §5 independent-specification-review release gate audits. [spec.md](spec.md) is its rationale and commentary.*
+*Normative. This register, not the prose, is the artifact the [§5](#5-languages--verification) independent-specification-review release gate audits. [spec.md](spec.md) is its rationale and commentary.*
 
 **Status: complete. All normative sections are extracted.** Until coverage is complete the review gate cannot be claimed as met; see [Coverage](#coverage).
 
@@ -20,7 +20,7 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 
 **Keep everything needed to decide an obligation in its entry.** Some criteria need substantial detail: R-04-010a applies a classification rule to a roster, R-15-108 covers a parameter set, and R-15-007q evaluates alternatives. Length alone is no defect. A clause that contributes nothing to the decision must be deleted or made testable; moving it to the prose does not repair it. The register is what the gate audits (R-05-152), and derived views cannot add obligations or override it (R-15-001a). [spec.md](spec.md) supplies explanatory material, such as worked derivations and extended arguments, that a reviewer does not need to decide the criterion.
 
-**Entries declare their own membership in the fail-closed and freshness sets.** A `· Fail-closed:` line adds its entry to the §17 fail-closed seam register (R-17-030r); a `· RoT-fresh:` line adds it to the §10 freshness enumeration (R-10-013a). The checker compares each collected set with those declarations in both directions: an uncollected declaration or an undeclared member is a finding (R-17-016). This detects disagreement, but cannot establish that every relevant entry declares membership. Deciding whether an obligation fails closed or needs freshness still requires judgment. To prompt that review, `tools/check.py` scans for related vocabulary and requires each match either to declare membership or to explain why it does not belong.
+**Entries declare their own membership in the fail-closed and freshness sets.** A `· Fail-closed:` line adds its entry to the [§17](#17-residual-risks) fail-closed seam register (R-17-030r); a `· RoT-fresh:` line adds it to the [§10](#10-storage--state) freshness enumeration (R-10-013a). The checker compares each collected set with those declarations in both directions: an uncollected declaration or an undeclared member is a finding (R-17-016). This detects disagreement, but cannot establish that every relevant entry declares membership. Deciding whether an obligation fails closed or needs freshness still requires judgment. To prompt that review, `tools/check.py` scans for related vocabulary and requires each match either to declare membership or to explain why it does not belong.
 
 **Prose references are derived from requirement IDs.** Each trace names the crown-jewel specs its requirement constrains. Its prose reference defaults to the corresponding `<a id="r-ss-nnn">` bookmark, which stays with the text when it moves. Write an explicit prose citation only for a departure from that default: a second occurrence (suffix `-2`), another requirement's bookmark, or a note after the citation. An explicit citation also names the section containing its bookmark. `tools/check.py` checks these references and reports redundant citations that merely repeat the default (R-05-151a).
 
@@ -30,46 +30,46 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 
 **IDs are permanent.** A retired requirement keeps its number and is struck, never reused. Renumbering breaks every review record that cites it.
 
-**Order is the specification's, not the numbering's.** Entries appear in the order of the prose they extract, so a requirement added after its neighbours sits where its obligation belongs and not where its number would put it: §18.5 runs 031, 032, 034, 035, 036, 037, 033. A letter-suffixed ID (`R-05-022a`) is an obligation inserted between two existing ones; it is a full entry and is counted as one.
+**Order is the specification's, not the numbering's.** Entries appear in the order of the prose they extract, so a requirement added after its neighbours sits where its obligation belongs and not where its number would put it: [§18.5](#185-the-capstone) runs 031, 032, 034, 035, 036, 037, 033. A letter-suffixed ID (`R-05-022a`) is an obligation inserted between two existing ones; it is a full entry and is counted as one.
 
 ### Crown-jewel specs referenced
 
 | ID | Spec |
 | --- | --- |
-| `CJ-T` | The apex theorem T: whole-system robust non-interference modulo declassification, on silicon (§5) |
-| `CJ-SAIL` | The CHERI-RISC-V Sail model: ISA semantics, incl. its timing and leakage annotations (§15) |
-| `CJ-RTL-SAIL` | RTL ⊑ Sail, functional and hyperproperty halves (§15, §18) |
-| `CJ-TAL-SOUND` | CHERI-TAL soundness metatheorem: well-typed ⇒ safe and data-race-free over the Sail model (§5) |
-| `CJ-ADMIT-IMPL` | Admission-checker implementation refinement: each shipped checker decides its judgment and no other, within its declared resource contract (§6) |
-| `CJ-CT-SOUND` | Constant-time type-soundness metatheorem over the §15 leakage model (§5) |
-| `CJ-LEAK` | The leakage statements: the `Zkt`/`Zvkt` architectural model and the crypto core's probing model (§15) |
-| `CJ-WCET` | The timing-annotated Sail model and the derived per-(class, operating-point) bounds (§5, §11, §15) |
-| `CJ-COMPCERT` | CHERI-CompCert correctness (§5, §6) |
-| `CJ-SECOMP` | Robust preservation of compartment isolation by the verified compiler (§5) |
-| `CJ-KERNEL` | Kernel functional refinement: the authored static separation kernel proved in Coq (§7) |
-| `CJ-NI` | Explicit-flow non-interference over the capability topology (§8) |
-| `CJ-CERISE` | The Cerise universal contract (§13) |
-| `CJ-MEMPLAN` | §7's static whole-program slot plan and its live-range colouring |
-| `CJ-ELASTIC` | The elastic-domain contract: the envelope, the dispatch rule and its share bound, the pool service's disjointness, zeroization and reuse gate, and the heap library's per-allocation narrowing (§7, §8) |
-| `CJ-CRYPTO-SPEC` | Each primitive's abstract functional specification (§5) |
-| `CJ-REDUCTION` | The IND-CCA / EUF-CMA reductions (§5) |
-| `CJ-FORMAT` | The Narcissus format descriptors (§5, §12) |
-| `CJ-VELUS` | Vélus correctness and the Lustre control programs (§5, §12) |
-| `CJ-HAL` | The verified HAL's hardware contracts and DMA/descriptor postconditions (§5, §12) |
-| `CJ-IDL` | The §12 IDL wire-format mapping |
-| `CJ-DEVTREE` | The RoT-attested devicetree (§9) |
-| `CJ-ISOL` | The formal isolation semantics of the §15 partitioning hardware |
-| `CJ-WASM` | The pinned Wasm guest semantics the platform interpreter's theorems are stated against (§14) |
-| `CJ-WASM-SOUND` | Platform-interpreter soundness and robust guest confinement over the pinned guest semantics (§14) |
-| `CJ-ATTEST` | The attestation-session reference model, including appraisal, freshness, authenticated key ownership and compromise assumptions (§12) |
-| `CJ-WITNESS` | The witness-policy reference model, including quorum faults, persistent history, recovery and trust transitions (§13) |
-| `CJ-PKI` | The X.509 chain-validation policy reference model: the judgment deciding which presented certificate chain authenticates a TLS peer (§12) |
+| `CJ-T` | The apex theorem T: whole-system robust non-interference modulo declassification, on silicon ([§5](#5-languages--verification)) |
+| `CJ-SAIL` | The CHERI-RISC-V Sail model: ISA semantics, incl. its timing and leakage annotations ([§15](#15-hardware-platform)) |
+| `CJ-RTL-SAIL` | RTL ⊑ Sail, functional and hyperproperty halves ([§15](#15-hardware-platform), [§18](#18-realization)) |
+| `CJ-TAL-SOUND` | CHERI-TAL soundness metatheorem: well-typed ⇒ safe and data-race-free over the Sail model ([§5](#5-languages--verification)) |
+| `CJ-ADMIT-IMPL` | Admission-checker implementation refinement: each shipped checker decides its judgment and no other, within its declared resource contract ([§6](#6-trusted-computing-base)) |
+| `CJ-CT-SOUND` | Constant-time type-soundness metatheorem over the [§15](#15-hardware-platform) leakage model ([§5](#5-languages--verification)) |
+| `CJ-LEAK` | The leakage statements: the `Zkt`/`Zvkt` architectural model and the crypto core's probing model ([§15](#15-hardware-platform)) |
+| `CJ-WCET` | The timing-annotated Sail model and the derived per-(class, operating-point) bounds ([§5](#5-languages--verification), [§11](#11-updates), [§15](#15-hardware-platform)) |
+| `CJ-COMPCERT` | CHERI-CompCert correctness ([§5](#5-languages--verification), [§6](#6-trusted-computing-base)) |
+| `CJ-SECOMP` | Robust preservation of compartment isolation by the verified compiler ([§5](#5-languages--verification)) |
+| `CJ-KERNEL` | Kernel functional refinement: the authored static separation kernel proved in Coq ([§7](#7-kernel)) |
+| `CJ-NI` | Explicit-flow non-interference over the capability topology ([§8](#8-authority-model)) |
+| `CJ-CERISE` | The Cerise universal contract ([§13](#13-packaging--supply-chain)) |
+| `CJ-MEMPLAN` | [§7](#7-kernel)'s static whole-program slot plan and its live-range colouring |
+| `CJ-ELASTIC` | The elastic-domain contract: the envelope, the dispatch rule and its share bound, the pool service's disjointness, zeroization and reuse gate, and the heap library's per-allocation narrowing ([§7](#7-kernel), [§8](#8-authority-model)) |
+| `CJ-CRYPTO-SPEC` | Each primitive's abstract functional specification ([§5](#5-languages--verification)) |
+| `CJ-REDUCTION` | The IND-CCA / EUF-CMA reductions ([§5](#5-languages--verification)) |
+| `CJ-FORMAT` | The Narcissus format descriptors ([§5](#5-languages--verification), [§12](#12-system-servers)) |
+| `CJ-VELUS` | Vélus correctness and the Lustre control programs ([§5](#5-languages--verification), [§12](#12-system-servers)) |
+| `CJ-HAL` | The verified HAL's hardware contracts and DMA/descriptor postconditions ([§5](#5-languages--verification), [§12](#12-system-servers)) |
+| `CJ-IDL` | The [§12](#12-system-servers) IDL wire-format mapping |
+| `CJ-DEVTREE` | The RoT-attested devicetree ([§9](#9-boot--root-of-trust)) |
+| `CJ-ISOL` | The formal isolation semantics of the [§15](#15-hardware-platform) partitioning hardware |
+| `CJ-WASM` | The pinned Wasm guest semantics the platform interpreter's theorems are stated against ([§14](#14-userland)) |
+| `CJ-WASM-SOUND` | Platform-interpreter soundness and robust guest confinement over the pinned guest semantics ([§14](#14-userland)) |
+| `CJ-ATTEST` | The attestation-session reference model, including appraisal, freshness, authenticated key ownership and compromise assumptions ([§12](#12-system-servers)) |
+| `CJ-WITNESS` | The witness-policy reference model, including quorum faults, persistent history, recovery and trust transitions ([§13](#13-packaging--supply-chain)) |
+| `CJ-PKI` | The X.509 chain-validation policy reference model: the judgment deciding which presented certificate chain authenticates a TLS peer ([§12](#12-system-servers)) |
 
 ---
 
 ## §1. Goals
 
-*§1 is a register of ends rather than obligations. Its entries are therefore mostly `IS`, the obligations that serve each goal being other sections' entries. A goal that names parts decides part by part, and its criterion says which entry answers each. A goal that names one predicate and no parts has its operative form in a single entry elsewhere, so the strongest criterion available is the naming of that entry, and this section states it as a naming rather than dressing it as a test. A naming is not a test and still fails: naming nothing, naming an entry that does not carry the goal, claiming the goal here above the tier that entry stands at (R-01-002b), or keeping a second copy of what the named entry states, which is the failure that drifts. A goal whose operative entry is retired without the naming moving is a spec defect in the same sense R-05-153 defines.*
+*[§1](#1-goals) is a register of ends rather than obligations. Its entries are therefore mostly `IS`, the obligations that serve each goal being other sections' entries. A goal that names parts decides part by part, and its criterion says which entry answers each. A goal that names one predicate and no parts has its operative form in a single entry elsewhere, so the strongest criterion available is the naming of that entry, and this section states it as a naming rather than dressing it as a test. A naming is not a test and still fails: naming nothing, naming an entry that does not carry the goal, claiming the goal here above the tier that entry stands at (R-01-002b), or keeping a second copy of what the named entry states, which is the failure that drifts. A goal whose operative entry is retired without the naming moving is a spec defect in the same sense R-05-153 defines.*
 
 **R-01-001** IS: G1: minimal attack surface.
 · Accept: discharged by R-04-001, the goal's operative form, which states the test once with its decision procedure; this entry carries no second copy to drift.
@@ -83,7 +83,7 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Accept: each tier is identified by its vehicles rather than by adjective, so which tier a core stands at is read off the artifacts admitted for that core; the rungs R-18-010 stages split at the unbounded one, everything below it evidence and the Kami/Kôika Coq refinement alone theorem, with Isla's obligations on the evidence side and the netlist audit beside the rungs as R-18-012's own gate rather than among them. The interval is the hardware premise's alone and buys the software premise none: the TAL producer and the on-device checker are hard prerequisites with no trusted-toolchain fallback (R-18-020), every certificate comes from that pipeline wherever it runs, the toolchain being resident software whose output is admitted and never trusted (R-13-027, R-02-008), and no capability-degraded interim exists (R-18-002), so no composition ships a unit against a reduced software tier while that pipeline is built, and a unit at evidence tier on its hardware premise still admits nothing its certifier has not certified.
 · Trace: CJ-T, CJ-RTL-SAIL, CJ-CERISE
 
-**R-01-002b** MUST: A unit built before R-18-010's unbounded rung is admitted for its cores asserts G2 at evidence tier and no higher, as does every §3 defended entry answered by CHERI containment (R-03-006). The tier rises per core when that core's unbounded refinement is admitted, never at an intermediate rung, under the retirement discipline R-05-022 imposes on every interim non-Coq anchor.
+**R-01-002b** MUST: A unit built before R-18-010's unbounded rung is admitted for its cores asserts G2 at evidence tier and no higher, as does every [§3](#3-threat-model) defended entry answered by CHERI containment (R-03-006). The tier rises per core when that core's unbounded refinement is admitted, never at an intermediate rung, under the retirement discipline R-05-022 imposes on every interim non-Coq anchor.
 · Accept: decided by inspecting two lists rather than by judgment, the rungs admitted for that core and the claims riding them (R-05-022a's shape). An attestation, datasheet, or conformance claim that asserts G2 without the tier it stands at is a review-gate finding, as is a tier raised on an intermediate rung.
 · Trace: CJ-T, CJ-RTL-SAIL
 
@@ -96,7 +96,7 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Trace: CJ-DEVTREE
 
 **R-01-005** IS: G5: reliability through fault isolation, crash-only components, and health-gated recovery.
-· Accept: decided mechanism by mechanism against the entries that carry them: fault isolation and crash-only restart by R-16-001, which contains any driver or server crash without implicating the kernel; the escalation recovery runs on by R-16-005's two watchdog tiers, bounded against abuse by R-16-007; and the health gate itself by R-11-002's automatic health-gated path, which is §11's rather than §16's. A mechanism this goal lists that no entry carries is the finding.
+· Accept: decided mechanism by mechanism against the entries that carry them: fault isolation and crash-only restart by R-16-001, which contains any driver or server crash without implicating the kernel; the escalation recovery runs on by R-16-005's two watchdog tiers, bounded against abuse by R-16-007; and the health gate itself by R-11-002's automatic health-gated path, which is [§11](#11-updates)'s rather than [§16](#16-reliability)'s. A mechanism this goal lists that no entry carries is the finding.
 · Trace: CJ-KERNEL
 
 **R-01-006** IS: Performance is subordinate to security and pessimism is free by axiom; this is the tie-break the no-tightening rule and the design-space exploration both invoke.
@@ -145,7 +145,7 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Accept: each is absent from the profile and the model.
 · Trace: CJ-SAIL
 
-**R-02-007** MUST NOT: Proprietary firmware black boxes, named exhaustively in the §12 topology table, are excluded by platform mandate and not mitigated.
+**R-02-007** MUST NOT: Proprietary firmware black boxes, named exhaustively in the [§12](#12-system-servers) topology table, are excluded by platform mandate and not mitigated.
 · Accept: the exclusion list is the topology table's fourth class (R-12-004).
 · Trace: CJ-CERISE
 
@@ -169,12 +169,12 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Accept: decided disposition by disposition: the continuous shell with its treated apertures is R-15-153's and stays continuous across the antenna feed by R-15-154; the interference and fault-injection coverage, with the fixed-latency ECC and fail-stop path catching what still lands, is R-15-155's; the refusal to shield single-event upsets, with the in-logic detection, correction, and containment answering them instead, is R-15-156's; and the hardened realization graded to the deployment is R-15-157's, a process and RTL property leaving the Sail model unchanged. A disposition this entry carries that none of those entries answers fails it, and an injected fault discharged by citing the shield's attenuation is refused by R-16-008a rather than admitted here.
 · Trace: CJ-T
 
-**R-03-004** IS: The residual set is enumerated: timing channels beyond the transient-execution and DVFS classes; specification errors; the proof-tool trust base; protocol-level security above the scheme level (the composed session security of TLS 1.3 and WireGuard, which the §5 crypto assurance does not reach, and for the four radio protocols the R-12-043f remainder of that layer, the analyzed models' faithfulness to the prose standards and the symbolic abstraction, their session security being machine-checked upstream per R-12-043e); invasive physical attack; malicious silicon fabrication; and carrier or certification-body acceptance of an open cellular stack.
-· Accept: each maps to a §17 entry: the protocol-level entry to R-17-049, which is the exclusion R-05-078 states and the largest scope boundary the word *hyper-secure* crosses, its radio share narrowed to the R-12-043f remainder and its TLS and WireGuard share unnarrowed.
+**R-03-004** IS: The residual set is enumerated: timing channels beyond the transient-execution and DVFS classes; specification errors; the proof-tool trust base; protocol-level security above the scheme level (the composed session security of TLS 1.3 and WireGuard, which the [§5](#5-languages--verification) crypto assurance does not reach, and for the four radio protocols the R-12-043f remainder of that layer, the analyzed models' faithfulness to the prose standards and the symbolic abstraction, their session security being machine-checked upstream per R-12-043e); invasive physical attack; malicious silicon fabrication; and carrier or certification-body acceptance of an open cellular stack.
+· Accept: each maps to a [§17](#17-residual-risks) entry: the protocol-level entry to R-17-049, which is the exclusion R-05-078 states and the largest scope boundary the word *hyper-secure* crosses, its radio share narrowed to the R-12-043f remainder and its TLS and WireGuard share unnarrowed.
 · Trace: CJ-T
 
-**R-03-005** IS: Invasive physical attack is the only way to reach main memory at all, main memory being on-die, so delidding and probing is the entry price; the line is what scopes the memory path in §15, and drawing it elsewhere would make every on-die interface a defended one.
-· Accept: decided as R-03-004's residuals are, by opening the §17 entry this one maps to: R-17-059 carries the line as load-bearing rather than conservative, which holds only while the §15 memory path carries no defence-in-depth layer beneath the package boundary. A memory-path entry that put one there would not repair this criterion but falsify it, the line ceasing to be load-bearing.
+**R-03-005** IS: Invasive physical attack is the only way to reach main memory at all, main memory being on-die, so delidding and probing is the entry price; the line is what scopes the memory path in [§15](#15-hardware-platform), and drawing it elsewhere would make every on-die interface a defended one.
+· Accept: decided as R-03-004's residuals are, by opening the [§17](#17-residual-risks) entry this one maps to: R-17-059 carries the line as load-bearing rather than conservative, which holds only while the [§15](#15-hardware-platform) memory path carries no defence-in-depth layer beneath the package boundary. A memory-path entry that put one there would not repair this criterion but falsify it, the line ceasing to be load-bearing.
 · Trace: CJ-T
 
 **R-03-006** MUST: The defended set enumerates scope, not strength: each entry is asserted at the discharge tier of the mechanism answering it (R-01-002a), so the entries answered by CHERI containment carry R-01-002b's tier until the RTL ⊑ Sail ladder reaches its unbounded rung.
@@ -182,11 +182,11 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Trace: CJ-T, CJ-CERISE
 
 **R-03-007** MUST: An adversary whose objective is to make the device stop is in scope, and the threat model states the disposition in both directions rather than omitting the objective: denial attempted *through* a boundary is defended, discharged by the `P-5` row of every boundary the coverage matrix enumerates, with forced-sweep denial priced to the aggressor (R-08-008) and reset-loop abuse bounded to downtime (R-16-007).
-· Accept: the defended half is decidable against the matrix rather than against this sentence, every `P-5` cell being present and resting on a requirement per R-17-001b; a §3 that obliges availability at every boundary while declining to say whether a denial adversary is in scope at all is the defect this closes.
+· Accept: the defended half is decidable against the matrix rather than against this sentence, every `P-5` cell being present and resting on a requirement per R-17-001b; a [§3](#3-threat-model) that obliges availability at every boundary while declining to say whether a denial adversary is in scope at all is the defect this closes.
 · Trace: CJ-T
 
 **R-03-008** IS: Denial achieved by provoking the platform's own refusals is residual, and is residual as a *composition* rather than as any single mechanism: thermal trip, watchdog reset, containment of an attacked surface, admission refusal, the sealed cutoffs, the emergency path's coverage floor, and every fault detector's answer to detection are each individually correct and individually an availability cost, and their conjunction is the fail-closed seam register (R-17-030a).
-· Accept: this residual maps to a §17 entry as R-03-004's do, and the entry it maps to is a register rather than a single item (R-17-030a), because the object being booked is the conjunction; membership is conferred member by member under R-17-030r, `tools/check.py` failing on a conferral no seam collects and on a seam no requirement confers, and a member the conferral misses is what the R-17-030t vocabulary scan exists to catch.
+· Accept: this residual maps to a [§17](#17-residual-risks) entry as R-03-004's do, and the entry it maps to is a register rather than a single item (R-17-030a), because the object being booked is the conjunction; membership is conferred member by member under R-17-030r, `tools/check.py` failing on a conferral no seam collects and on a seam no requirement confers, and a member the conferral misses is what the R-17-030t vocabulary scan exists to catch.
 · Trace: CJ-T
 
 **R-03-009** IS: Neither list claims a device-level availability guarantee. The invariant held across every fail-closed path is that none of them costs confidentiality, integrity, or authority, a refusal always being the safe direction; the platform does not promise that the device stays up, and the places where it deliberately may not are enumerated rather than left to be assembled.
@@ -243,7 +243,7 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Trace: CJ-CERISE
 
 **R-04-010a** MUST: The sorting question R-04-010 asks of any block that is not a core of the one computer is **what fixes its next step**, and the block is matter exactly when three conditions hold together: its transition relation is welded in RTL over no writable program store; every operand it consumes and every schedule it runs to is handed to it by core-issued software under explicit capability operands, so it masters nothing of its own; and it runs to a bound this composition states, carrying no autonomous behaviour in R-15-010's fifth test's sense and accumulating no state across the operations it is handed. Outside the qualified inference-peripheral category R-04-010b states, a block failing any one of the three answers *what next* out of a program, out of a mastership, or out of a private history, is a foreign computer, and does not go on the die or the board.
-· Accept: the instrument is R-12-004's four-class table read as a sorting rule rather than as an inventory, so a block reaches the matter tier by these conditions and by nothing else, and a candidate met for the first time is decided against them rather than against whichever admitted block it resembles. The conditions decide the standing dispositions as they already stand, and one they reversed would defeat them. Matter: the link-layer turnaround sequencer, a timer and a state machine carrying no writable program, whose buffer, channel word, and event schedule the control plane loads before the event, and whose latency is one more fixed entry in the timing-annotated model (R-15-122, R-15-123); the FEC decoders, fixed-geometry arithmetic under a deterministic iteration bound with every byte core-issued, whose channel-code parameters are declared configuration a composition supplies and never a program the block holds (R-15-118, R-15-119, R-15-119a); the USB-PD contract sequencer, a bounded state machine over the CC-line messages with its negotiated limits latched by the RoT and no data lane to master (R-12-066, R-15-151); and R-05-004a's masked crypto datapath, a welded transition relation over no writable program store whose every operand and schedule the crypto core issues under explicit capability operands, running to a stated bound with no state across the operations it is handed, which is what sorts it here rather than into R-15-243's excluded fixed-function accelerator class; and the ensemble link endpoint (R-15-228c), two streaming engines with their encoder and decoder stages and a slot timer over no writable program store, launching and landing at the instants a table core-issued software loaded, its code and every schedule parameter declared configuration the composition supplies, bounded per slot and accumulating nothing across slots but an equalization frozen per link epoch on R-15-137's terms, so that a frame the wire delivers is reacted to and never decided on, exactly as the PD sequencer steps on a message a foreign device sent. Foreign computers: the GPU, for a command processor, a firmware image, and a data-dependent warp scheduler (R-15-115, R-15-239); the firmware-driven NPU, for a control core, a mutable firmware image with its own update path, and DMA mastership, its throughput taken instead by an ISA-visible matrix extension holding none of the three (R-15-116, R-15-118); the FullMAC radio, for the whole link layer as firmware on a hidden core (R-15-123); and the external roaming hardware authenticator, for its own microcontroller running a vendor's firmware (R-12-020). Size is not the axis, so the two readings that would make the boundary a continuum are what the conditions are drawn against: **reacting is not deciding**, the PD sequencer stepping on a message a foreign device sent under a relation this composition welded, which is why the first condition is over the program store and never over input dependence; and **holding no program is not enough**, the autonomous bitstream engine holding none and being excluded on the second condition alone (R-15-238b) as the display's dimming feedback loop is on the third (R-15-236e). What these conditions do not decide is a block admitted as a core of the one computer, which R-04-009 and the §6 trusted base decide instead: the RoT holds a program, and the program is this composition's own, open, reproducible, and measured (R-15-241).
+· Accept: the instrument is R-12-004's four-class table read as a sorting rule rather than as an inventory, so a block reaches the matter tier by these conditions and by nothing else, and a candidate met for the first time is decided against them rather than against whichever admitted block it resembles. The conditions decide the standing dispositions as they already stand, and one they reversed would defeat them. Matter: the link-layer turnaround sequencer, a timer and a state machine carrying no writable program, whose buffer, channel word, and event schedule the control plane loads before the event, and whose latency is one more fixed entry in the timing-annotated model (R-15-122, R-15-123); the FEC decoders, fixed-geometry arithmetic under a deterministic iteration bound with every byte core-issued, whose channel-code parameters are declared configuration a composition supplies and never a program the block holds (R-15-118, R-15-119, R-15-119a); the USB-PD contract sequencer, a bounded state machine over the CC-line messages with its negotiated limits latched by the RoT and no data lane to master (R-12-066, R-15-151); and R-05-004a's masked crypto datapath, a welded transition relation over no writable program store whose every operand and schedule the crypto core issues under explicit capability operands, running to a stated bound with no state across the operations it is handed, which is what sorts it here rather than into R-15-243's excluded fixed-function accelerator class; and the ensemble link endpoint (R-15-228c), two streaming engines with their encoder and decoder stages and a slot timer over no writable program store, launching and landing at the instants a table core-issued software loaded, its code and every schedule parameter declared configuration the composition supplies, bounded per slot and accumulating nothing across slots but an equalization frozen per link epoch on R-15-137's terms, so that a frame the wire delivers is reacted to and never decided on, exactly as the PD sequencer steps on a message a foreign device sent. Foreign computers: the GPU, for a command processor, a firmware image, and a data-dependent warp scheduler (R-15-115, R-15-239); the firmware-driven NPU, for a control core, a mutable firmware image with its own update path, and DMA mastership, its throughput taken instead by an ISA-visible matrix extension holding none of the three (R-15-116, R-15-118); the FullMAC radio, for the whole link layer as firmware on a hidden core (R-15-123); and the external roaming hardware authenticator, for its own microcontroller running a vendor's firmware (R-12-020). Size is not the axis, so the two readings that would make the boundary a continuum are what the conditions are drawn against: **reacting is not deciding**, the PD sequencer stepping on a message a foreign device sent under a relation this composition welded, which is why the first condition is over the program store and never over input dependence; and **holding no program is not enough**, the autonomous bitstream engine holding none and being excluded on the second condition alone (R-15-238b) as the display's dimming feedback loop is on the third (R-15-236e). What these conditions do not decide is a block admitted as a core of the one computer, which R-04-009 and the [§6](#6-trusted-computing-base) trusted base decide instead: the RoT holds a program, and the program is this composition's own, open, reproducible, and measured (R-15-241).
 · Accept: R-04-010b is a separate admission category, not a claim that session-retaining hardware meets this entry's no-state condition; all ordinary matter and all existing exclusions keep this test.
 · Trace: CJ-CERISE, CJ-SAIL
 
@@ -268,10 +268,10 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 ### 5.1 Trust, language, and compilation boundary
 
 **R-05-001** MUST: The whole TCB is written in verified C and compiled by CHERI-CompCert under Coq.
-· Accept: every object in the §6 TCB inventory appears in the CompCert build manifest with its correctness certificate; the set of TCB objects built by any other compiler is empty.
+· Accept: every object in the [§6](#6-trusted-computing-base) TCB inventory appears in the CompCert build manifest with its correctness certificate; the set of TCB objects built by any other compiler is empty.
 · Trace: CJ-COMPCERT
 
-**R-05-002** MUST: The §6 admission checker is inside the TCB and is subject to R-05-001 without exemption.
+**R-05-002** MUST: The [§6](#6-trusted-computing-base) admission checker is inside the TCB and is subject to R-05-001 without exemption.
 · Accept: the checker appears in both the TCB inventory and the CompCert build manifest.
 · Trace: CJ-COMPCERT
 
@@ -279,12 +279,12 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Accept: (TCB inventory) ∩ (checker-admitted artifact set) = ∅.
 · Trace: CJ-COMPCERT
 
-**R-05-004** MUST: The crypto core's constant-time property is verified on the artifact against the §15 leakage model.
+**R-05-004** MUST: The crypto core's constant-time property is verified on the artifact against the [§15](#15-hardware-platform) leakage model.
 · Accept: each crypto binary carries artifact-level CT evidence (taint-typing derivation or relational proof term); no CT claim in the crypto core cites compiler preservation as its ground.
 · Trace: CJ-CT-SOUND, CJ-LEAK
 
-**R-05-004a** MUST: The crypto core's secret-handling datapath is masked: every operation over secret material runs as a *d*-th-order sharing, and its *d*-probing security and its composition property (the guarantee holds of the composed implementation, never gadget by gadget) are machine-checked and verified on the artifact against the §15 probing-model statement (R-15-053a), as R-05-004 already verifies constant time against the architectural one.
-· Accept: each masked binary carries artifact-level probing evidence naming its sharing order and composition notion; no probing claim cites compiler preservation or a measured trace set as its ground; and the per-operation masking randomness is delivered through the R-15-241 verified DRBG expanding the root, never a bare LFSR, whose output cancellation voids a probing proof, so the uniform-fresh-randomness premise of every masking theorem rests on the DRBG's computational security, a named assumption beside the hardness conjectures, with the expansion rate entered in the crypto core's §11 slot budget and the draws in the nondeterminism record like every draw.
+**R-05-004a** MUST: The crypto core's secret-handling datapath is masked: every operation over secret material runs as a *d*-th-order sharing, and its *d*-probing security and its composition property (the guarantee holds of the composed implementation, never gadget by gadget) are machine-checked and verified on the artifact against the [§15](#15-hardware-platform) probing-model statement (R-15-053a), as R-05-004 already verifies constant time against the architectural one.
+· Accept: each masked binary carries artifact-level probing evidence naming its sharing order and composition notion; no probing claim cites compiler preservation or a measured trace set as its ground; and the per-operation masking randomness is delivered through the R-15-241 verified DRBG expanding the root, never a bare LFSR, whose output cancellation voids a probing proof, so the uniform-fresh-randomness premise of every masking theorem rests on the DRBG's computational security, a named assumption beside the hardness conjectures, with the expansion rate entered in the crypto core's [§11](#11-updates) slot budget and the draws in the nondeterminism record like every draw.
 · Accept: signing on the masked datapath uses the hedged (randomized) ML-DSA variant, the deterministic variant being materially harder to mask; the secret-handling datapath is a **dedicated masked datapath** at parametric sharing order *d* of the HPC/DOM gadget lineage, sized to the statement rather than to a lane array, so no R-15-055 vector-crypto instruction and no plain-RVV lane carries a secret-labeled operand and an admitted binary presenting one fails admission at R-05-070's fourth rejection site rather than carrying a residual, this entry citing that rejection rather than stating a second permitted-operation list beside it; the datapath's sharing order and its width are frozen microarchitectural parameters R-15-108 selects and this entry values neither, the shape R-15-119a licenses; **original authorship rather than curation** attaches to what no prover carries, the probing-model statement, the composition theorem, and R-17-058d's reduction theorem, the datapath itself being a transcription of a published parametric-order lineage; and the datapath carries the R-17-058d ineffective-fault countermeasure on permutation building blocks by construction, so no candidate order or width is evaluated with its redundancy retrofitted.
 · Trace: CJ-LEAK, CJ-CRYPTO-SPEC
 
@@ -297,7 +297,7 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Trace: CJ-COMPCERT
 
 **R-05-007** IS: Contained data-plane code is Rust by default; contained control-plane code is Coq-verified Lustre compiled by Vélus.
-· Accept: each §12 server's control-plane logic is a Lustre node set; its data-plane logic is Rust.
+· Accept: each [§12](#12-system-servers) server's control-plane logic is a Lustre node set; its data-plane logic is Rust.
 · Trace: CJ-VELUS
 
 **R-05-008** MUST NOT: Admission never gates on the source language or producer identity of a binary.
@@ -382,7 +382,7 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Accept: the trust-base inventory holds exactly one artifact per anchor, and every theorem citing an anchor resolves to that artifact rather than to a per-consumer copy of it.
 · Trace: CJ-SAIL, CJ-T
 
-**R-05-019b** MUST: The Sail model enters the development as the Coq definitions Sail's own backend emits, and both the §13 Iris-over-Sail program logic and the §15 RTL ⊑ Sail refinement quantify over that one term.
+**R-05-019b** MUST: The Sail model enters the development as the Coq definitions Sail's own backend emits, and both the [§13](#13-packaging--supply-chain) Iris-over-Sail program logic and the [§15](#15-hardware-platform) RTL ⊑ Sail refinement quantify over that one term.
 · Accept: the binary-against-Sail obligations and the hardware refinement resolve to the same Coq definitions; neither tower carries its own transcription of the ISA model.
 · Trace: CJ-SAIL, CJ-RTL-SAIL
 
@@ -403,7 +403,7 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Trace: CJ-T
 
 **R-05-022a** MUST: An interim whose consumer set grows without its destination advancing is a review-gate finding, not a silent extension.
-· Accept: the *shrinking-interim* claim of §17 is measurable against the consumer lists rather than asserted, and the lists are held closed: `tools/check.py` fails on a citation of either interim's lineage, in a tracked file outside the exclusions the check declares, each with the reason it admits nothing, that is neither an entered consumer nor declared with its reason to cite no premise, and on an entered consumer citing nothing of its interim; whether a declared reason holds is read at the review gate.
+· Accept: the *shrinking-interim* claim of [§17](#17-residual-risks) is measurable against the consumer lists rather than asserted, and the lists are held closed: `tools/check.py` fails on a citation of either interim's lineage, in a tracked file outside the exclusions the check declares, each with the reason it admits nothing, that is neither an entered consumer nor declared with its reason to cite no premise, and on an entered consumer citing nothing of its interim; whether a declared reason holds is read at the review gate.
 · Trace: CJ-T
 
 ### 5.5 Compilation guarantees
@@ -412,7 +412,7 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Accept: every trusted image has a validation record covering each post-CompCert step.
 · Trace: CJ-SAIL, CJ-COMPCERT
 
-**R-05-023a** MUST: The R-05-023 validation record is produced by decompilation into logic over the pinned Sail term and checked by the CIC kernel as a refinement theorem in the §13 program logic, never by a solver-trusted validator.
+**R-05-023a** MUST: The R-05-023 validation record is produced by decompilation into logic over the pinned Sail term and checked by the CIC kernel as a refinement theorem in the [§13](#13-packaging--supply-chain) program logic, never by a solver-trusted validator.
 · Accept: the record's checker is the proof kernel over the R-05-019b Sail definitions and the R-13-017 logic; no SMT solver or second checker enters the trust base for any post-CompCert step; and the R-07-050 fast-path proof and the validation records are theorems of one logic.
 · Trace: CJ-SAIL, CJ-COMPCERT
 
@@ -441,7 +441,7 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Trace: CJ-TAL-SOUND
 
 **R-05-028** MUST NOT: No trusted verification-condition generator exists; on the proof-carrying-code path the axioms are the proof kernel, the machine model, and the spec statements.
-· Accept: the three classes are what PCC rests on; the platform's full axiom set is enumerated once in §6 (R-06-011) and is larger, adding the TAL type-checker, its soundness metatheorem, and the bootstrap root. This bullet no longer claims to state the whole set.
+· Accept: the three classes are what PCC rests on; the platform's full axiom set is enumerated once in [§6](#6-trusted-computing-base) (R-06-011) and is larger, adding the TAL type-checker, its soundness metatheorem, and the bootstrap root. This bullet no longer claims to state the whole set.
 · Trace: CJ-T, CJ-SAIL
 
 **R-05-029** IS: The type-level obligations are exactly: memory safety, definite initialization, data-race freedom, control-flow integrity, no-runtime-codegen, ABI/type conformance, examined verdicts, absent ambient state, representation-and-provenance conformance, constant-time, and WCET. This list is canonical: every other section cites it rather than restating it, and control-flow integrity carries both halves: the runtime *legal-here* the sentries enforce and its compose-time callee-set enumeration, which is the static shadow of the same fact and not an additional obligation.
@@ -469,7 +469,7 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Trace: CJ-COMPCERT
 
 **R-05-035** IS: Every instruction has exactly one decoding, anchored to the fixed slot grid of a bundle-aligned fetch unit and independent of where decoding started, so binary-level proofs discharge no overlapping-stream interpretation and no reachable-entry-point argument.
-· Accept: the §15 profile excludes the C extension (R-15-036) and encodes code in the fixed-rate dictionary format (R-15-036a); the TAL's decode relation is a function of bundle contents and slot index (R-15-036b).
+· Accept: the [§15](#15-hardware-platform) profile excludes the C extension (R-15-036) and encodes code in the fixed-rate dictionary format (R-15-036a); the TAL's decode relation is a function of bundle contents and slot index (R-15-036b).
 · Trace: CJ-SAIL · [§5](spec.md#r-05-035); constrains R-15-*
 
 ### 5.7 The three checker moves
@@ -513,7 +513,7 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Trace: CJ-FORMAT
 
 **R-05-045** IS: EverParse is admissible as an untrusted differential oracle.
-· Accept: its use appears only in the §18 test pipeline, never in the trust base.
+· Accept: its use appears only in the [§18](#18-realization) test pipeline, never in the trust base.
 · Trace: CJ-FORMAT
 
 **R-05-046** IS: Each format descriptor is a crown-jewel spec: the parser proof is against the descriptor, not against the 3GPP or IEEE text.
@@ -521,7 +521,7 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Trace: CJ-FORMAT
 
 **R-05-047** MUST: Memory safety of a parser holds unconditionally regardless of descriptor fidelity: a mis-transcribed grammar yields a semantic defect, never a memory-safety one.
-· Accept: copy-once structure, `#![forbid(unsafe_code)]`, CHERI bounds, and §12/§13 compartment containment are each independently established for every parser.
+· Accept: copy-once structure, `#![forbid(unsafe_code)]`, CHERI bounds, and [§12](#12-system-servers)/[§13](#13-packaging--supply-chain) compartment containment are each independently established for every parser.
 · Trace: CJ-TAL-SOUND, CJ-CERISE
 
 **R-05-048** MUST: NR RRC descriptors are compiled from the published machine-readable ASN.1 (3GPP TS 38.331) by a verified ASN.1 (X.691 UPER) → Narcissus front end, not hand-written.
@@ -537,7 +537,7 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Trace: CJ-FORMAT
 
 **R-05-051** MUST: Differential oracles (asn1scc, asn1c, Wireshark dissectors, srsRAN/OpenAirInterface decoders) cross-check every derived parser on captured and fuzzed corpora and enter no trust base.
-· Accept: a §18 corpus result exists per descriptor; no oracle appears in the trust-base inventory.
+· Accept: a [§18](#18-realization) corpus result exists per descriptor; no oracle appears in the trust-base inventory.
 · Trace: CJ-FORMAT
 
 **R-05-051a** MUST: Every format descriptor whose encoding is ever an input to a signature, a hash used as a name, a content address, a cache key, or an equality test carries a machine-checked **canonicity** theorem beside its Narcissus correctness pair: decode is injective on the admissible byte strings, so re-encoding a decoded input returns that input unchanged and no value has a second admissible encoding.
@@ -549,12 +549,12 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Trace: CJ-FORMAT
 
 **R-05-051c** MUST NOT: No signature, content address, cache key, or equality decision is taken over an encoding whose descriptor carries no R-05-051a theorem; a format that cannot carry one is refused that role rather than used with a stated caveat.
-· Accept: the set of identity-consuming sites resting on a descriptor without the theorem is empty, each site (the §13 pack reader R-13-009 and typed manifest R-13-003, the §10 content address R-10-005a, the §12 deterministic-reuse key R-12-024d) naming the descriptor it depends on rather than assuming one.
+· Accept: the set of identity-consuming sites resting on a descriptor without the theorem is empty, each site (the [§13](#13-packaging--supply-chain) pack reader R-13-009 and typed manifest R-13-003, the [§10](#10-storage--state) content address R-10-005a, the [§12](#12-system-servers) deterministic-reuse key R-12-024d) naming the descriptor it depends on rather than assuming one.
 · Trace: CJ-FORMAT
 
 ### 5.9 Verified synchronous control planes
 
-**R-05-052** MUST: The control-plane logic of §12 servers (supervision trees, protocol state machines, and mode/timing sequencing) is written in Lustre and compiled by Vélus.
+**R-05-052** MUST: The control-plane logic of [§12](#12-system-servers) servers (supervision trees, protocol state machines, and mode/timing sequencing) is written in Lustre and compiled by Vélus.
 · Accept: each server's control plane is a Lustre node set; no control-plane logic is hand-written Rust or C.
 · Trace: CJ-VELUS
 
@@ -562,15 +562,15 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Accept: a single composed theorem covers Lustre source to CHERI machine code; no unproved gap sits between the two compilers.
 · Trace: CJ-VELUS, CJ-COMPCERT
 
-**R-05-054** IS: Control-tier WCET falls out of compilation (a Lustre node is a loop-free, statically-sized reaction) and does not consume the §5 syntax-directed cost annotation.
+**R-05-054** IS: Control-tier WCET falls out of compilation (a Lustre node is a loop-free, statically-sized reaction) and does not consume the [§5](#5-languages--verification) syntax-directed cost annotation.
 · Accept: no control-plane node carries a max-path cost attribute.
 · Trace: CJ-WCET, CJ-VELUS
 
 **R-05-055** MUST: Vélus's clock calculus rejects instantaneous cycles and fixes evaluation order, so the control tier exhibits no schedule-dependent behaviour.
-· Accept: compilation fails on any instantaneous cycle; §15 admission-test-3 (*no hidden state survives a partition switch*) is discharged by construction for this tier.
+· Accept: compilation fails on any instantaneous cycle; [§15](#15-hardware-platform) admission-test-3 (*no hidden state survives a partition switch*) is discharged by construction for this tier.
 · Trace: CJ-VELUS, CJ-NI
 
-**R-05-056** IS: Control-tier state is statically allocated, making the §13 temporal-safety certificate trivial for this tier.
+**R-05-056** IS: Control-tier state is statically allocated, making the [§13](#13-packaging--supply-chain) temporal-safety certificate trivial for this tier.
 · Accept: no control-plane node allocates at runtime.
 · Trace: CJ-VELUS
 
@@ -581,14 +581,14 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 ### 5.10 Crypto
 
 **R-05-058** IS: Post-quantum primitives are the default: ML-KEM for key establishment, ML-DSA for signatures.
-· Accept: no protocol in §12 negotiates a classical-only key establishment as its primary path.
+· Accept: no protocol in [§12](#12-system-servers) negotiates a classical-only key establishment as its primary path.
 · Trace: CJ-CRYPTO-SPEC
 
 **R-05-058a** MUST: The suite is frozen by parameter set rather than by family name, so R-12-043a's composition-fixed ciphersuite is read at category strength: the platform's own choices are Category 5 throughout, ML-KEM-1024, ML-DSA-87, and SLH-DSA-SHAKE-256s. Where an external wire profile the platform must speak fixes its own parameters the platform takes them rather than minting a dialect no peer implements, which is how the hybrid TLS group's ML-KEM-768 enters, and that exception reaches the wire and never the device's own long-lived keys.
-· Accept: every §12 protocol configuration and every §9 and §10 signing role names its parameter set rather than its family, and no unqualified family name appears in an admissible configuration; the external-profile exception is taken per protocol against the standard that fixes it rather than granted generally.
+· Accept: every [§12](#12-system-servers) protocol configuration and every [§9](#9-boot--root-of-trust) and [§10](#10-storage--state) signing role names its parameter set rather than its family, and no unqualified family name appears in an admissible configuration; the external-profile exception is taken per protocol against the standard that fixes it rather than granted generally.
 · Trace: CJ-CRYPTO-SPEC, CJ-VELUS
 
-**R-05-058b** MUST: Hybrid key establishment pins one named combiner construction and inherits that construction's proof, a KEM combiner's security being specific to the KEMs and to the transform inside them rather than generic. ML-KEM alone does not achieve the malicious-key binding properties, so a protocol requiring the session key to determine the ciphertext and the public key that produced it takes that binding from the combiner or from explicit transcript binding, never from the bare KEM, and its §12 formal model states which.
+**R-05-058b** MUST: Hybrid key establishment pins one named combiner construction and inherits that construction's proof, a KEM combiner's security being specific to the KEMs and to the transform inside them rather than generic. ML-KEM alone does not achieve the malicious-key binding properties, so a protocol requiring the session key to determine the ciphertext and the public key that produced it takes that binding from the combiner or from explicit transcript binding, never from the bare KEM, and its [§12](#12-system-servers) formal model states which.
 · Accept: the frozen configuration names the construction and its specification rather than describing a concatenation of shared secrets; each analyzed protocol model records whether it depends on key-to-ciphertext or key-to-public-key binding and where that binding comes from, and no model assumes one of the bare KEM.
 · Trace: CJ-CRYPTO-SPEC, CJ-VELUS
 
@@ -616,8 +616,8 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Accept: the CHERI-CompCert theorem statement contains no CT conjunct, and no artifact cites one.
 · Trace: CJ-COMPCERT, CJ-CT-SOUND
 
-**R-05-064** MUST NOT: The CryptOpt-style route (untrusted superoptimizer plus a net-new Coq-verified assembly↔Fiat-Crypto equivalence checker) is deleted, not deferred. What goes with it is a net-new Coq equivalence-checker development, the checker-admitted-artifacts TCB category, and a §18 workstream, at the price of hand-assembly-grade ECC throughput. This list is canonical: every other section that observes the absence cites it rather than restating it.
-· Accept: §18 carries no such workstream and the checker inventory contains no equivalence checker; the consequence list is stated once, so R-06-026 and R-18-022 cannot come to disagree with it.
+**R-05-064** MUST NOT: The CryptOpt-style route (untrusted superoptimizer plus a net-new Coq-verified assembly↔Fiat-Crypto equivalence checker) is deleted, not deferred. What goes with it is a net-new Coq equivalence-checker development, the checker-admitted-artifacts TCB category, and a [§18](#18-realization) workstream, at the price of hand-assembly-grade ECC throughput. This list is canonical: every other section that observes the absence cites it rather than restating it.
+· Accept: [§18](#18-realization) carries no such workstream and the checker inventory contains no equivalence checker; the consequence list is stated once, so R-06-026 and R-18-022 cannot come to disagree with it.
 · Trace: CJ-CRYPTO-SPEC · [§5](spec.md#r-05-064), [§5](spec.md#r-05-064-2)
 
 **R-05-064a** MUST: The recovery R-05-064's deletion leaves reachable is representational and stays inside the verified compiler: where a modulus admits an unsaturated (reduced-radix) representation that is the emitted form, its lazy carries being ordinary C and its straight-line shape keeping R-05-067's constant-time structural, and where a protocol supplies independent field operations (batch verification, multi-scalar multiplication, independent ladder operations) they are batched across vector lanes as ordinary RVV code. A modulus admitting no such representation, RSA and the general Montgomery case, keeps the carry chain and keeps R-05-064's accepted cost.
@@ -646,10 +646,10 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Trace: CJ-CT-SOUND
 
 **R-05-070** MUST: The CT type system rejects any secret-labeled value reaching a branch condition, a memory address, a variable-latency operation outside the `Zkt`/`Zvkt` list, or a cryptographic datapath other than R-05-004a's masked one.
-· Accept: the typing rules enumerate the four rejection sites; the permitted-operation list is exactly the `Zkt`/`Zvkt` set from §15 less the R-15-055 vector-crypto instructions, whose fixed latency the architectural model admits and whose analog exposure R-05-004a answers elsewhere, plus the masked datapath's own surface; the fourth site is decided on the same type-level taint attribute as the other three (R-05-062, R-13-020), so a secret operand on `vaesem` or `vghsh` is inadmissible rather than a graded exposure.
+· Accept: the typing rules enumerate the four rejection sites; the permitted-operation list is exactly the `Zkt`/`Zvkt` set from [§15](#15-hardware-platform) less the R-15-055 vector-crypto instructions, whose fixed latency the architectural model admits and whose analog exposure R-05-004a answers elsewhere, plus the masked datapath's own surface; the fourth site is decided on the same type-level taint attribute as the other three (R-05-062, R-13-020), so a secret operand on `vaesem` or `vghsh` is inadmissible rather than a graded exposure.
 · Trace: CJ-CT-SOUND, CJ-LEAK
 
-**R-05-071** MUST: The constant-time type-soundness metatheorem (CT-Wasm lineage) is restated in Coq over the §15 leakage model and joins the CHERI-TAL soundness proof.
+**R-05-071** MUST: The constant-time type-soundness metatheorem (CT-Wasm lineage) is restated in Coq over the [§15](#15-hardware-platform) leakage model and joins the CHERI-TAL soundness proof.
 · Accept: one Coq theorem; the TAL soundness statement includes the CT case.
 · Trace: CJ-CT-SOUND, CJ-TAL-SOUND
 
@@ -662,7 +662,7 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Trace: CJ-CT-SOUND
 
 **R-05-074** IS: The CT obligation is scoped to secret-touching compartments, and the scope is defined by the *label on the material* rather than its channel of arrival: a compartment is secret-touching if it holds secret-labeled material however obtained: over an IDL confidentiality channel, through a capability-bounded DMA window or an RoT-latched re-delegated front end, or from a local entropy draw.
-· Accept: the population includes the PIN and biometric paths §13's Tier-1 row names first, and it is exactly the population replay's entropy substitution is sound over (R-16-018). Narrower than the whole app population, wider than the IDL channel set.
+· Accept: the population includes the PIN and biometric paths [§13](#13-packaging--supply-chain)'s Tier-1 row names first, and it is exactly the population replay's entropy substitution is sound over (R-16-018). Narrower than the whole app population, wider than the IDL channel set.
 · Trace: CJ-IDL, CJ-CT-SOUND
 
 **R-05-075** MUST: Reduction-level security (IND-CCA for KEMs, EUF-CMA for signatures) is proved Coq-native in SSProve/FCF.
@@ -674,7 +674,7 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Trace: CJ-CRYPTO-SPEC, CJ-REDUCTION
 
 **R-05-077** IS: The reduction isolates and names its computational conjectures and idealized-model premises, as indexed by R-17-049 and R-17-049f, and cannot discharge them. Concrete parameter estimates carry their separate R-17-049e premises only where the claim consumes them.
-· Accept: each consumed premise appears in the R-05-162a class and §17 entry that governs it, with the selected game and assumption formulation explicit, not as an established theorem.
+· Accept: each consumed premise appears in the R-05-162a class and [§17](#17-residual-risks) entry that governs it, with the selected game and assumption formulation explicit, not as an established theorem.
 · Trace: CJ-REDUCTION
 
 **R-05-077a** IS: The three layers carry a precondition on the entropy root rather than a conclusion about it: a reduction is stated over uniformly drawn keys, nonces, and blinding factors, and constant-time verification constrains a draw's observable behaviour and never its distribution, so a predictable root breaks IND-CCA and EUF-CMA while all three layers verify unchanged.
@@ -682,7 +682,7 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Trace: CJ-REDUCTION, CJ-CRYPTO-SPEC
 
 **R-05-078** MUST NOT: Protocol-level composition (TLS 1.3, WireGuard, the cellular AKA composition) is not claimed by the crypto layers.
-· Accept: no crown-jewel theorem statement mentions a composed session-security property; the §3 Defended/Residual split records the exclusion.
+· Accept: no crown-jewel theorem statement mentions a composed session-security property; the [§3](#3-threat-model) Defended/Residual split records the exclusion.
 · Trace: CJ-REDUCTION
 
 ### 5.11 Contained Rust and the verified HAL
@@ -737,7 +737,7 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Accept: a one-pass scan of the image finds no tagged datum in the static data section; a set tag there is a type error.
 · Trace: CJ-CERISE, CJ-TAL-SOUND
 
-**R-05-090** IS: Rust discharges the rule by `#![forbid(unsafe_code)]` plus a deny on interior-mutable statics and `thread_local!`; Lustre/Vélus discharges it by construction; the §12 IDL passes authority explicitly.
+**R-05-090** IS: Rust discharges the rule by `#![forbid(unsafe_code)]` plus a deny on interior-mutable statics and `thread_local!`; Lustre/Vélus discharges it by construction; the [§12](#12-system-servers) IDL passes authority explicitly.
 · Accept: each language path has a stated discharge; none relies on the source lint alone (R-05-089 is the binding check).
 · Trace: CJ-VELUS, CJ-IDL
 
@@ -745,8 +745,8 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Accept: the boot substrate's Tier-0 proof includes the obligation; it is not assumed to inherit the type-level rule.
 · Trace: CJ-KERNEL
 
-**R-05-092** IS: The rule forbids *re-manufacturing* a global and says nothing about *over-injecting* one: a component handed broad authority at construction and threading it everywhere is well-typed and over-privileged, and that residual is booked in §17.
-· Accept: the §17 residual entry exists; no register requirement claims least-authority as a consequence of R-05-086.
+**R-05-092** IS: The rule forbids *re-manufacturing* a global and says nothing about *over-injecting* one: a component handed broad authority at construction and threading it everywhere is well-typed and over-privileged, and that residual is booked in [§17](#17-residual-risks).
+· Accept: the [§17](#17-residual-risks) residual entry exists; no register requirement claims least-authority as a consequence of R-05-086.
 · Trace: CJ-CERISE · [§5](spec.md#r-05-092), [§17](spec.md#r-05-092-2)
 
 ### 5.13 Certifying userspace compilation
@@ -790,7 +790,7 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Trace: CJ-TAL-SOUND
 
 **R-05-100** MUST NOT: There are no exceptions, no stack unwinding, and no `longjmp`: a typed absence in the TAL rather than a convention.
-· Accept: the TAL has no unwinding construct; a failing compartment takes the §16 crash-only fail-stop and supervisor restart.
+· Accept: the TAL has no unwinding construct; a failing compartment takes the [§16](#16-reliability) crash-only fail-stop and supervisor restart.
 · Trace: CJ-TAL-SOUND
 
 **R-05-101** IS: Relevance grading adds no runtime check, no silicon, no new semantic anchor, and no new crown jewel; it strengthens the statement of the CHERI-TAL soundness metatheorem.
@@ -808,7 +808,7 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Trace: CJ-WCET, CJ-RTL-SAIL
 
 **R-05-104** MUST NOT: The Implicit Path Enumeration Technique and its LP solver are deleted, not retargeted.
-· Accept: no ILP machinery exists in the toolchain or in §18.
+· Accept: no ILP machinery exists in the toolchain or in [§18](#18-realization).
 · Trace: CJ-WCET
 
 **R-05-105** MUST NOT: Standing no-tightening rule: any verified tool that exists only to tighten an already-sound bound is inadmissible; the trivial sound bound is taken.
@@ -832,11 +832,11 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Trace: CJ-WCET
 
 **R-05-110** MUST NOT: MBPTA/EVT is inadmissible as the bound.
-· Accept: no measurement-based statistic appears as a WCET input to §11 admission.
+· Accept: no measurement-based statistic appears as a WCET input to [§11](#11-updates) admission.
 · Trace: CJ-WCET
 
-**R-05-111** MUST: The standalone Coq-verified WCET estimator is retired from the §18 workstream list.
-· Accept: §18 carries no such deliverable.
+**R-05-111** MUST: The standalone Coq-verified WCET estimator is retired from the [§18](#18-realization) workstream list.
+· Accept: [§18](#18-realization) carries no such deliverable.
 · Trace: CJ-WCET
 
 ### 5.16 Indirect control transfer and the typed callee set
@@ -865,12 +865,12 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Accept: the tighter per-site cost is recorded as a byproduct; the no-tightening rule (R-05-105) governs it.
 · Trace: CJ-MEMPLAN, CJ-WCET
 
-**R-05-117** IS: Scope is per compartment: cross-compartment sentry edges stay outside the typed set and are governed by the manifest's import/export tables and the §12 IDL.
+**R-05-117** IS: Scope is per compartment: cross-compartment sentry edges stay outside the typed set and are governed by the manifest's import/export tables and the [§12](#12-system-servers) IDL.
 · Accept: no whole-program typing obligation exists; the system call graph is the composition of per-compartment graphs with manifest edges.
 · Trace: CJ-IDL
 
 **R-05-118** MUST: A compiler that cannot enumerate a site's callee set refuses the binary rather than under-declaring it.
-· Accept: the failure mode is refusal; the completeness residual is booked in §17.
+· Accept: the failure mode is refusal; the completeness residual is booked in [§17](#17-residual-risks).
 · Trace: CJ-TAL-SOUND
 
 ### 5.17 Definite initialization
@@ -880,14 +880,14 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Trace: CJ-TAL-SOUND, CJ-MEMPLAN
 
 **R-05-120** MUST NOT: No hardware Write-before-Read metadata plane exists.
-· Accept: the §15 memory subsystem carries no initialization-tag plane, no associated DECTED coverage, no Sail invariant, and no RTL ⊑ Sail obligation for one.
+· Accept: the [§15](#15-hardware-platform) memory subsystem carries no initialization-tag plane, no associated DECTED coverage, no Sail invariant, and no RTL ⊑ Sail obligation for one.
 · Trace: CJ-RTL-SAIL · [§5](spec.md#r-05-120), [§5](spec.md#r-05-120-2)
 
 **R-05-121** IS: The attribute domain is the two-point lattice *uninitialized* ⊑ *initialized*, met at control-flow merges: a store sets its slot's flag, a load's typing premise is that the flag is set, and a merge takes the meet.
 · Accept: the rule is local and syntax-directed; the domain is finite; no open-term reduction occurs.
 · Trace: CJ-TAL-SOUND
 
-**R-05-122** IS: Each slot's *uninitialized* point is §7's plan's own allocation point, not a runtime event.
+**R-05-122** IS: Each slot's *uninitialized* point is [§7](#7-kernel)'s plan's own allocation point, not a runtime event.
 · Accept: initialization is exactly as static as the slot plan.
 · Trace: CJ-MEMPLAN
 
@@ -895,7 +895,7 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Accept: every device-fill path terminates in a HAL primitive whose contract establishes *initialized*.
 · Trace: CJ-HAL
 
-**R-05-124** MUST: Initialization state crossing a compartment edge rides the §12 IDL message type and the manifest's import/export tables, with copy-once parsers writing their fixed destination buffers whole.
+**R-05-124** MUST: Initialization state crossing a compartment edge rides the [§12](#12-system-servers) IDL message type and the manifest's import/export tables, with copy-once parsers writing their fixed destination buffers whole.
 · Accept: no delegated buffer arrives without a declared initialization state.
 · Trace: CJ-IDL, CJ-FORMAT
 
@@ -904,20 +904,20 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Trace: CJ-TAL-SOUND
 
 **R-05-126** MUST: Memory is eager-zeroized at allocation, so an unwritten slot reads a deterministic zero rather than residue.
-· Accept: the §7 zeroize discipline covers every slot; `Zicboz` (`cbo.zero`) is in the §15 profile.
+· Accept: the [§7](#7-kernel) zeroize discipline covers every slot; `Zicboz` (`cbo.zero`) is in the [§15](#15-hardware-platform) profile.
 · Trace: CJ-MEMPLAN, CJ-SAIL · [§15](spec.md#r-05-126); constrains R-15-*
 
 ### 5.18 Use-once, must-erase, and dimension: three re-uses of the existing grades
 
 **R-05-126a** IS: Three obligations ride the grades the CHERI-TAL already carries rather than new axes: a nonce is use-once (the linear grade), a secret is must-erase (the relevance grade), and a quantity carries its dimension (a phantom parameter under syntactic type equality).
-· Accept: each is shown against R-05-132 clause 2 as a new use of an existing grade or of type equality; no grade or label axis is added, and each is decided at admission by the §6 type-checker.
+· Accept: each is shown against R-05-132 clause 2 as a new use of an existing grade or of type equality; no grade or label axis is added, and each is decided at admission by the [§6](#6-trusted-computing-base) type-checker.
 · Trace: CJ-TAL-SOUND
 
 **R-05-126b** MUST: A nonce-typed value carries the linear grade: it is consumed by the operation that seals under it, and cannot be duplicated, stored for later, or reached twice.
 · Accept: contraction is denied on nonce-typed values, so a binary that reaches one twice fails to type-check and is refused at admission.
 · Trace: CJ-TAL-SOUND, CJ-CRYPTO-SPEC
 
-**R-05-126c** MUST: A restored checkpoint and a re-derived key each force a fresh draw, the linear obligation carrying the two cases rather than the §10 exclusion list being read.
+**R-05-126c** MUST: A restored checkpoint and a re-derived key each force a fresh draw, the linear obligation carrying the two cases rather than the [§10](#10-storage--state) exclusion list being read.
 · Accept: no admitted path reaches a nonce that a checkpoint restore or a key re-derivation reinstated.
 · Trace: CJ-TAL-SOUND, CJ-CRYPTO-SPEC
 
@@ -933,16 +933,16 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Accept: the parameter is inhabited by no term, adds no runtime representation, is a name the certificate declares and defines nothing by, and is decided by the same structural comparison R-05-129 fixes.
 · Trace: CJ-TAL-SOUND
 
-**R-05-126g** MUST: The monotonic scheduler counter and the disciplined wall-clock view are distinct dimensions, as are cycles and microseconds, bytes and elements, and a slot index and a slot width; the §11 admission arithmetic consumes the dimensioned types.
-· Accept: a §11 budget, frame, or deadline computation mixing two dimensions fails to type-check rather than yielding an unsound admission.
+**R-05-126g** MUST: The monotonic scheduler counter and the disciplined wall-clock view are distinct dimensions, as are cycles and microseconds, bytes and elements, and a slot index and a slot width; the [§11](#11-updates) admission arithmetic consumes the dimensioned types.
+· Accept: a [§11](#11-updates) budget, frame, or deadline computation mixing two dimensions fails to type-check rather than yielding an unsound admission.
 · Trace: CJ-WCET, CJ-TAL-SOUND
 
 **R-05-126h** IS: The cost of the three is one further narrowing of the admitted library set: no runtime check, no silicon, no new semantic anchor, no new grade axis, and no new crown jewel, each adding one rule to the CHERI-TAL and one case to its soundness metatheorem.
-· Accept: no §15 mechanism, Sail surface, or crown-jewel target is added; the three are shown to fit the frozen theory exactly as its other riders are.
+· Accept: no [§15](#15-hardware-platform) mechanism, Sail surface, or crown-jewel target is added; the three are shown to fit the frozen theory exactly as its other riders are.
 · Trace: CJ-TAL-SOUND · [§5](spec.md#r-05-126h), [§5](spec.md#r-05-126h-2)
 
 **R-05-126i** IS: A grade binds the label, never the judgment that assigned it: a value never typed as a nonce, a secret never labeled one, or a quantity given the wrong dimension is admitted with the obligation discharged and the property absent.
-· Accept: the residual is booked in §17 as the wrong-label case, the same shape as the mislabeled-secret residual of the constant-time discipline; what the three delete is the unenforced-obligation class.
+· Accept: the residual is booked in [§17](#17-residual-risks) as the wrong-label case, the same shape as the mislabeled-secret residual of the constant-time discipline; what the three delete is the unenforced-obligation class.
 · Trace: CJ-TAL-SOUND
 
 ### 5.19 The frozen checker theory, and the language it lives in
@@ -992,11 +992,11 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Trace: CJ-TAL-SOUND
 
 **R-05-135c** MUST: This platform's profile is `cheri-rv64`, which cites spatial memory safety, no-runtime-codegen, and the run-time half of control-flow integrity as architectural. No obligation of R-05-029 is discharged here by inserted run-time checks.
-· Accept: every cited invariant is a theorem of the §15 Sail model rather than a claim about an implementation, and no admitted derivation carries an inserted-check discharge.
+· Accept: every cited invariant is a theorem of the [§15](#15-hardware-platform) Sail model rather than a claim about an implementation, and no admitted derivation carries an inserted-check discharge.
 · Trace: CJ-TAL-SOUND, CJ-CERISE, CJ-SAIL
 
 **R-05-135d** IS: Factoring the language out relocates the work rather than reducing it, and substitutes a version seam for an amendment process: a theory frozen in this corpus is frozen by its own review gate, and a theory frozen in a dependency is frozen by R-05-135b's pin.
-· Accept: the residual is booked in §17 as the dependency seam, and no §18 deliverable is reduced by the factoring.
+· Accept: the residual is booked in [§17](#17-residual-risks) as the dependency seam, and no [§18](#18-realization) deliverable is reduced by the factoring.
 · Trace: CJ-TAL-SOUND
 
 ### 5.20 Representation and provenance: five deletions
@@ -1025,7 +1025,7 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Accept: no code type has non-fixed arity.
 · Trace: CJ-TAL-SOUND
 
-**R-05-142** IS: Runtime format-string interpretation dies structurally with the variadic mechanism; the §16 bounded labeled crash record and the §12 diagnostics carry structured typed fields instead.
+**R-05-142** IS: Runtime format-string interpretation dies structurally with the variadic mechanism; the [§16](#16-reliability) bounded labeled crash record and the [§12](#12-system-servers) diagnostics carry structured typed fields instead.
 · Accept: no runtime format interpreter exists in any image.
 · Trace: CJ-TAL-SOUND
 
@@ -1041,7 +1041,7 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Accept: no arithmetic operation traps; no operation wraps implicitly; each arithmetic rule carries its range side condition.
 · Trace: CJ-TAL-SOUND · [§5](spec.md#r-05-145), [§5](spec.md#r-05-145-2)
 
-**R-05-146** MUST: Overflow side conditions are decided in the §6 checker wherever the operands' bounds are closed numerals, and descend to the CIC proof kernel as a release-time obligation wherever a bound depends on a runtime value.
+**R-05-146** MUST: Overflow side conditions are decided in the [§6](#6-trusted-computing-base) checker wherever the operands' bounds are closed numerals, and descend to the CIC proof kernel as a release-time obligation wherever a bound depends on a runtime value.
 · Accept: each arithmetic site has one of the two dispositions recorded; none is waived.
 · Trace: CJ-TAL-SOUND
 
@@ -1087,8 +1087,8 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Accept: each such claim appears in [Extraction defects](#extraction-defects) with a disposition; none is carried as unregistered prose.
 · Trace: CJ-T
 
-**R-05-154** MUST: Maintaining the register and its traceability to the Coq specifications and the Sail model is a §18 workstream.
-· Accept: §18 lists it as a deliverable with an owner, R-18-034.
+**R-05-154** MUST: Maintaining the register and its traceability to the Coq specifications and the Sail model is a [§18](#18-realization) workstream.
+· Accept: [§18](#18-realization) lists it as a deliverable with an owner, R-18-034.
 · Trace: CJ-T, CJ-SAIL
 
 **R-05-155** MUST: The foundational-C separation-logic specifications (kernel, storage, HAL) are made runtime-testable in concrete execution under the Fulminate discipline for CN.
@@ -1109,8 +1109,8 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Accept: both provisos are discharged or refuted where the policy model is authored; if either fails, the surface nonleakage reading is the claim and this entry is amended rather than quietly kept.
 · Trace: CJ-T, CJ-NI
 
-**R-05-157** IS: T is the formal reading of *hyper-secure* (§1) and of G2; *on the fabricated die* is what makes it a statement about the machine rather than the model.
-· Accept: §1's and §3's claims cite T; no stronger informal claim appears anywhere in the specification.
+**R-05-157** IS: T is the formal reading of *hyper-secure* ([§1](#1-goals)) and of G2; *on the fabricated die* is what makes it a statement about the machine rather than the model.
+· Accept: [§1](#1-goals)'s and [§3](#3-threat-model)'s claims cite T; no stronger informal claim appears anywhere in the specification.
 · Trace: CJ-T
 
 **R-05-158** MUST: T is discharged by transporting it down the refinement tower and closing the property seams across it, in the one Iris-over-Sail program logic.
@@ -1122,7 +1122,7 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Trace: CJ-CERISE, CJ-TAL-SOUND
 
 **R-05-160** IS: The seam lemmas are exactly nine: NI ⋈ timing; WCET ⋈ isolation; CT ⋈ RTL ⊑ Sail; CHERI-TAL ⋈ Sail; AE ⋈ non-interference; liveness ⋈ schedulability; consent ⋈ declassification; crypto ⋈ hardness; attestation ⋈ capability safety.
-· Accept: each appears as a §17 residual and as a lemma obligation; the list is closed by amendment to this register.
+· Accept: each appears as a [§17](#17-residual-risks) residual and as a lemma obligation; the list is closed by amendment to this register.
 · Trace: CJ-T
 
 **R-05-161** MUST: The composition meta-lemma states that the four invariants and the seam lemmas, transported through the refinement tower, entail T, and carries its own coverage obligation: no attacker-observable channel, authorized flow, timing leak, liveness stall, or admitted binary escapes their union, and each seam's conclusion is stated in the vocabulary of the next's premise.
@@ -1134,11 +1134,11 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Trace: CJ-T, CJ-KERNEL
 
 **R-05-162** MUST: T's boundary is stated rather than hidden: it holds modulo *D* and relative to *Ax*, the computational-security conjectures, idealized cryptographic models and concrete attack-estimate premises, the die-matches-RTL fabrication gap, specification faithfulness, human consent correctness, and invasive physical attack.
-· Accept: each boundary element is a §17 residual; everything outside *D* and *Ax* is inside T.
+· Accept: each boundary element is a [§17](#17-residual-risks) residual; everything outside *D* and *Ax* is inside T.
 · Trace: CJ-T
 
 **R-05-162a** MUST: The *Ax* ledger is indexed by claim class rather than held as one undifferentiated conjunction: each element is a machine axiom (die-matches-RTL, specification faithfulness, invasive physical attack), a computational-security conjecture (including concrete hash properties), an idealized-model premise (including ROM, QROM and ideal permutations), a concrete attack-estimate premise, or a human premise (consent correctness); T is relative to the whole conjunction, and a companion theorem stated over the same vocabulary cites only the classes it consumes, so what any one claim rests on is answerable per claim rather than as everything at once.
-· Accept: the R-18-031 ledger records each element's class, consuming claim, exact game or model and §17 residual, and the apex statement carries the classes as separate constituents whose conjunction is *Ax*; a theorem stated relative to a class it does not consume is a review-gate finding. Concrete security estimates cite R-17-049e separately from their reduction's computational conjectures and R-17-049f model premises. Hash assumptions name the property and construction consumed rather than a generic hash-security flag.
+· Accept: the R-18-031 ledger records each element's class, consuming claim, exact game or model and [§17](#17-residual-risks) residual, and the apex statement carries the classes as separate constituents whose conjunction is *Ax*; a theorem stated relative to a class it does not consume is a review-gate finding. Concrete security estimates cite R-17-049e separately from their reduction's computational conjectures and R-17-049f model premises. Hash assumptions name the property and construction consumed rather than a generic hash-security flag.
 · Accept: the review accounts for theorem hypotheses, model parameters and executable definitions as well as the R-05-163 kernel-assumption report: an ideal oracle represented inside the logic need introduce no global axiom, so an empty `Print Assumptions` result does not discharge its relation to the concrete hash.
 · Trace: CJ-T
 
@@ -1157,7 +1157,7 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Trace: CJ-T
 
 **R-05-166** MUST: Every shipped theorem carries a non-vacuity witness: a machine-checked inhabitation witness for its hypotheses, plus, where it is a refinement or a policy statement, a distinguishing instance its specification rejects.
-· Accept: the half of this that is decidable runs in the same build gate as R-05-163: every record a shipped artifact's theorems quantify over is inhabited, in that artifact or in one it Requires, by a closed top-level definition named `witness_<Record>` and ascribed at that record, so the prover decides inhabitation by type-checking the ascription and the gate decides only that the constant is present; it refuses an artifact that quantifies over a record it does not so inhabit, and counts those witnesses beside its constants. A construction recognised by pattern rather than by type, a constructor named or a record literal opened anywhere in the artifact's text, is not admitted: either can stand inside a hypothesis or inside an instance the artifact exists to refute, so neither establishes an inhabitant, and a criterion that accepts one decides less than this entry requires. Vacuity is not decidable in general, so the rest is per-theorem and constructive rather than a further checker: that a witness satisfies the hypotheses of the theorem it inhabits, and that a distinguishing instance is one the specification rejects rather than one that merely differs, are judgements discharged in the artifact and read at the §5 review gate, and their residue is booked under R-17-016 rather than claimed here. The reference composition serves as the inhabitation witness wherever one exists.
+· Accept: the half of this that is decidable runs in the same build gate as R-05-163: every record a shipped artifact's theorems quantify over is inhabited, in that artifact or in one it Requires, by a closed top-level definition named `witness_<Record>` and ascribed at that record, so the prover decides inhabitation by type-checking the ascription and the gate decides only that the constant is present; it refuses an artifact that quantifies over a record it does not so inhabit, and counts those witnesses beside its constants. A construction recognised by pattern rather than by type, a constructor named or a record literal opened anywhere in the artifact's text, is not admitted: either can stand inside a hypothesis or inside an instance the artifact exists to refute, so neither establishes an inhabitant, and a criterion that accepts one decides less than this entry requires. Vacuity is not decidable in general, so the rest is per-theorem and constructive rather than a further checker: that a witness satisfies the hypotheses of the theorem it inhabits, and that a distinguishing instance is one the specification rejects rather than one that merely differs, are judgements discharged in the artifact and read at the [§5](#5-languages--verification) review gate, and their residue is booked under R-17-016 rather than claimed here. The reference composition serves as the inhabitation witness wherever one exists.
 · Trace: CJ-T
 
 **R-05-167** IS: R-05-163 and R-05-166 are preconditions on every claim the specification discharges by a machine-checked theorem, T included, rather than properties standing beside them.
@@ -1229,7 +1229,7 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Trace: CJ-COMPCERT
 
 **R-06-014** IS: The one irreducible residual is the bootstrap: the checkers are the admitters no admission certificate can cover, and they co-bootstrap with the CompCert that compiles them, so their binaries' trust rests on reproducible build plus DDC plus RoT measurement into the boot chain: the De Bruijn root, named as an axiom rather than hidden.
-· Accept: the axiom is stated in §6 and §17. The bootstrap's diversity scope covers every tool that can alter its inputs, intermediate executables or final checker bytes, including assemblers, linkers, archive tools, strippers and image constructors. Release evidence inventories their source and binary identities, dependencies and build ancestry, and supplies an independently established build path for each; rebuilding a shared seed with itself does not establish diversity. It also names the trusted execution environments, input acquisition and comparer, with the grounds for trusting them and any shared ancestry. DDC compares the final checker bytes after all transformations, binding the result to the bytes measured by the RoT. Matching outputs with an unevidenced shared binary-touching utility do not satisfy this criterion. DDC supplies conditional source correspondence, not proof of benign source or elimination of the named bootstrap assumptions.
+· Accept: the axiom is stated in [§6](#6-trusted-computing-base) and [§17](#17-residual-risks). The bootstrap's diversity scope covers every tool that can alter its inputs, intermediate executables or final checker bytes, including assemblers, linkers, archive tools, strippers and image constructors. Release evidence inventories their source and binary identities, dependencies and build ancestry, and supplies an independently established build path for each; rebuilding a shared seed with itself does not establish diversity. It also names the trusted execution environments, input acquisition and comparer, with the grounds for trusting them and any shared ancestry. DDC compares the final checker bytes after all transformations, binding the result to the bytes measured by the RoT. Matching outputs with an unevidenced shared binary-touching utility do not satisfy this criterion. DDC supplies conditional source correspondence, not proof of benign source or elimination of the named bootstrap assumptions.
 · Trace: CJ-T
 
 **R-06-015** IS: The toolchain is untrusted evidence-producing machinery: a compromised compiler cannot mint a valid proof of a property its output lacks, so at worst it emits a binary genuinely satisfying the spec, confining trojans to spec slack.
@@ -1246,7 +1246,7 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Trace: CJ-CERISE, CJ-NI
 
 **R-06-015c** IS: TCB membership means no admission certificate covers the component's binary (R-06-014), never that the machine exempts it. The checkers execute under the universal contract every admitted compartment does: CHERI bounds, the store-and-execute exclusion, the sentry discipline on entry and return, and crash-only restart under the sentinel.
-· Accept: the checker compartments appear in the §8 capability topology and the §16 supervision policy on the same terms as any other partition, with no exemption recorded for either; a checker that faults or overruns costs an install and moves no other partition's slot boundary, the frame being non-work-conserving (R-07-036, R-13-014).
+· Accept: the checker compartments appear in the [§8](#8-authority-model) capability topology and the [§16](#16-reliability) supervision policy on the same terms as any other partition, with no exemption recorded for either; a checker that faults or overruns costs an install and moves no other partition's slot boundary, the frame being non-work-conserving (R-07-036, R-13-014).
 · Trace: CJ-CERISE
 
 **R-06-015d** MUST: Each shipped checker carries a machine-checked refinement against the judgment it claims to decide, `CJ-ADMIT-IMPL`: the TAL evaluator accepts an artifact and certificate exactly where the pinned language's rule table does, and the CIC kernel exactly where MetaCoq's Gallina checker does, each within the resource contract R-06-015a states.
@@ -1260,11 +1260,11 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Trace: CJ-NI
 
 **R-06-017** MUST: Their load-bearing correctness obligation is exactly two clauses: mint only on witnessed consent, and bound the mint to the named object.
-· Accept: both clauses are proved; the §8 non-interference theorem's *user-authorized* flows rest on them.
+· Accept: both clauses are proved; the [§8](#8-authority-model) non-interference theorem's *user-authorized* flows rest on them.
 · Trace: CJ-NI
 
 **R-06-018** IS: Their failure cannot be contained by CHERI the way an in-model memory fault can, a wrongful declassification being a legitimate capability operation; blast radius is minimized by attenuation, the powerbox holding only the authority from which grants are attenuated.
-· Accept: the consent TCB is named in §6 rather than hidden in userland, and booked in §17.
+· Accept: the consent TCB is named in [§6](#6-trusted-computing-base) rather than hidden in userland, and booked in [§17](#17-residual-risks).
 · Trace: CJ-NI, CJ-CERISE
 
 **R-06-019** MUST NOT: The touch driver stays outside the trusted set: the consent path takes RoT-latched ownership of the input front-end for the prompt's duration rather than trusting the compartment that normally holds it.
@@ -1274,7 +1274,7 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 ### 6.4 Stated non-members
 
 **R-06-020** IS: The verified HAL is a contained, non-TCB artifact: it is proven, but verification is not TCB membership, and its failure is bounded by CHERI, capability-checked DMA, and capability confinement like any other compartment.
-· Accept: it is listed in §6 only to state explicitly that it does not join the TCB.
+· Accept: it is listed in [§6](#6-trusted-computing-base) only to state explicitly that it does not join the TCB.
 · Trace: CJ-HAL
 
 **R-06-021** IS: The entire radio stack (PHY, L2/L3, and key management) is contained compartments and none of it is TCB.
@@ -1296,14 +1296,14 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 ### 6.5 Required but untrusted build artifacts
 
 **R-06-024** MUST: Four artifacts are hard prerequisites and all are untrusted evidence-producing machinery: (1) CompCert with a CHERI-RISC-V backend satisfying the secure-compilation criterion; (2) a certifying Rust→RV64+CHERI compiler emitting per-binary memory-safety certificates; (3) a WCET cost-annotation pass in the certifying toolchain; (4) constant-time verification for every secret-touching binary.
-· Accept: each appears in §18 as an in-scope workstream and in no consumer-side TCB inventory.
+· Accept: each appears in [§18](#18-realization) as an in-scope workstream and in no consumer-side TCB inventory.
 · Trace: CJ-COMPCERT, CJ-WCET, CJ-CT-SOUND
 
 **R-06-025** IS: Artifact (1) does not exist yet and the platform is purecap-only, so nothing boots without it.
 · Accept: the dependency is stated as blocking rather than aspirational.
 · Trace: CJ-COMPCERT
 
-**R-06-026** MUST NOT: A fifth entry, the CryptOpt-style verified translation-validation toolchain for the crypto core's field arithmetic, is deleted rather than deferred and is named in §6 so its absence is legible.
+**R-06-026** MUST NOT: A fifth entry, the CryptOpt-style verified translation-validation toolchain for the crypto core's field arithmetic, is deleted rather than deferred and is named in [§6](#6-trusted-computing-base) so its absence is legible.
 · Accept: the TCB inventory carries no checker-admitted-artifacts category and the required-but-untrusted build-artifact list has four entries rather than five (R-06-004, R-06-024); what the deletion costs is read off R-05-064 rather than enumerated here.
 · Trace: CJ-CRYPTO-SPEC
 
@@ -1321,7 +1321,7 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Accept: the line count is measured against the shipped source; CertiKOS supplies the proof method, not the kernel.
 · Trace: CJ-KERNEL
 
-**R-07-002** MUST NOT: There is no untyped memory and no retype: zero kernel allocation after boot holds by the absence of any allocation primitive in the ABI rather than by delegation from userland, and kernel objects are placed by the §8 composition-time static memory plan.
+**R-07-002** MUST NOT: There is no untyped memory and no retype: zero kernel allocation after boot holds by the absence of any allocation primitive in the ABI rather than by delegation from userland, and kernel objects are placed by the [§8](#8-authority-model) composition-time static memory plan.
 · Accept: no allocator and no allocation primitive exist in the kernel; the allocator bug classes are absent rather than bounded, and kernel-object slot disjointness is decided by the same on-device type-check side condition as every other object (R-08-014).
 · Trace: CJ-KERNEL
 
@@ -1403,7 +1403,7 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Accept: residue is impossible rather than cleared; the register set is enumerated and argued closed, and a register outside the restore set is a proof failure.
 · Trace: CJ-KERNEL, CJ-ISOL
 
-**R-07-016** IS: That totality is the obligation that replaces register-file membership in the `fence.t` flush set, which §15 declines under *verify rather than hedge*.
+**R-07-016** IS: That totality is the obligation that replaces register-file membership in the `fence.t` flush set, which [§15](#15-hardware-platform) declines under *verify rather than hedge*.
 · Accept: the guarantee is stated once, where the kernel proof discharges it, rather than twice (R-15-214).
 · Trace: CJ-ISOL
 
@@ -1450,11 +1450,11 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Accept: what is fixed is the composed topology and the confidentiality-label lattice.
 · Trace: CJ-NI, CJ-KERNEL
 
-**R-07-026** IS: The one sanctioned runtime authority transfer is the powerbox declassification, which extends the *live* edge set at a single verified point without minting a new privilege class or a new label; the §12 supervision tree's restart re-grant only re-instantiates edges the manifest already fixed.
+**R-07-026** IS: The one sanctioned runtime authority transfer is the powerbox declassification, which extends the *live* edge set at a single verified point without minting a new privilege class or a new label; the [§12](#12-system-servers) supervision tree's restart re-grant only re-instantiates edges the manifest already fixed.
 · Accept: neither operation adds a node or a label to the composed graph.
 · Trace: CJ-NI
 
-**R-07-027** MUST: The §12 IDL worlds and interfaces lower to a capDL-class capability-distribution spec: kernel-object-granular over endpoints, notifications, and partition contexts, re-homed to Coq, extended so cap edges carry CHERI-bounds grants, and stripped of the VSpace, page-table, and frame-mapping object classes together with the untyped and CNode classes R-07-002 and R-07-002b delete.
+**R-07-027** MUST: The [§12](#12-system-servers) IDL worlds and interfaces lower to a capDL-class capability-distribution spec: kernel-object-granular over endpoints, notifications, and partition contexts, re-homed to Coq, extended so cap edges carry CHERI-bounds grants, and stripped of the VSpace, page-table, and frame-mapping object classes together with the untyped and CNode classes R-07-002 and R-07-002b delete.
 · Accept: the spec is a Coq artifact, not a documentation format, and its object classes are exactly those R-07-027a closes.
 · Trace: CJ-IDL, CJ-KERNEL
 
@@ -1489,7 +1489,7 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Trace: CJ-KERNEL
 
 **R-07-031** IS: The kernel ABI is the capability primitives alone: under a dozen invocations, formally specified and frozen with the proof; kernel messages are registers plus capability slots, never typed structured data.
-· Accept: rich interfaces live one layer up in §12.
+· Accept: rich interfaces live one layer up in [§12](#12-system-servers).
 · Trace: CJ-KERNEL, CJ-IDL
 
 **R-07-031a** MUST NOT: The kernel ABI carries no retype, no capability-space, and no derivation-tree invocation; the surface the frozen ABI specifies and the proof covers is the endpoint, notification, partition-context, and revocation set alone.
@@ -1521,7 +1521,7 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Trace: CJ-WCET
 
 **R-07-035** MUST NOT: seL4's MCS machinery is deleted: scheduling contexts, budget and period capabilities, passive-server donation, and timeout faults.
-· Accept: §11 schedulability collapses from response-time analysis to the interval-arithmetic check R-11-006 states.
+· Accept: [§11](#11-updates) schedulability collapses from response-time analysis to the interval-arithmetic check R-11-006 states.
 · Trace: CJ-WCET
 
 **R-07-036** MUST: Across confidentiality boundaries the schedule is non-work-conserving: an idle slot stays idle rather than yielding, so no slack ever crosses a partition boundary.
@@ -1530,12 +1530,12 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Trace: CJ-NI, CJ-ISOL
 
 **R-07-037** IS: Because the frame divides rather than shares, tenant population is a first-class schedule parameter: a tenant's capacity *is* its slot width (a tenant being a sole compartment, one R-07-037b same-label group, or one R-07-037e elastic domain), and the number of tenants on one core's wheel is a composition constant with a hard ceiling rather than a soft degradation curve.
-· Accept: §11 makes population its own schedule axis (a proved rung ladder, distinct from the global mode transition and deliberately not rare), and §17 books what the division costs and what the rung index leaks.
+· Accept: [§11](#11-updates) makes population its own schedule axis (a proved rung ladder, distinct from the global mode transition and deliberately not rare), and [§17](#17-residual-risks) books what the division costs and what the rung index leaks.
 · Accept: an elastic domain is one tenant however many members it runs, so launching or closing one of its members moves no rung and no other tenant's width; what the domain's members share among themselves is R-07-037g's, and the division this entry states stops at the domain's edge exactly as it stops at a same-label group's.
 · Trace: CJ-WCET, CJ-NI
 
 **R-07-037a** MUST: A partition's internal concurrency model is run-to-completion over syntactic poll sites: a compartment is one cooperative reaction that runs from poll site to poll site, with no blocking call, no internal thread, no intra-partition preemption, and no inner scheduler, so nothing but the boundary timer ever takes the core from a running partition.
-· Accept: the rule is normative on every server and application author rather than inferred from a WCET argument: it is because compartments are structured this way that the remaining trap points are syntactic and R-07-043 loses the preemption term, and the §5/§12 plane split already compiles to the shape (R-05-054, R-12-002). *No blocking call* holds of the endpoint pair by R-07-029a's construction: a receive posts and returns, a send transfers or refuses, and the peer a transfer needs is the receive it posted before yielding, never a partition the kernel holds until the other arrives.
+· Accept: the rule is normative on every server and application author rather than inferred from a WCET argument: it is because compartments are structured this way that the remaining trap points are syntactic and R-07-043 loses the preemption term, and the [§5](#5-languages--verification)/[§12](#12-system-servers) plane split already compiles to the shape (R-05-054, R-12-002). *No blocking call* holds of the endpoint pair by R-07-029a's construction: a receive posts and returns, a send transfers or refuses, and the peer a transfer needs is the receive it posted before yielding, never a partition the kernel holds until the other arrives.
 · Trace: CJ-WCET, CJ-KERNEL
 
 **R-07-037b** MUST: The tenant of a discretionary slot is a confidentiality label, not a compartment: a slot may be assigned at composition to an ordered set of same-label partitions dispatched by a composition-fixed rotation over their syntactic poll sites, a member's poll-site yield being a synchronous kernel invocation that advances the rotation in fixed order and wraps while slot time remains. The rotation holds no priority, no budget, no inner timer, and no runtime decision, and the intra-slot step swaps register and partition context and omits fence.t, eager zeroize, and OPP relock (every flow those constants cut is internal to one label; all three return at the slot boundary). Group membership, order, and cadences are composition constants so a tenant launches, suspends, and permutes whole, and the reserved band takes no part, a hard task keeping sole tenancy.
@@ -1604,7 +1604,7 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Accept: a bounded obligation (*is the mask window short enough?*) is traded for an absence checked structurally (R-15-070).
 · Trace: CJ-SAIL
 
-**R-07-042** IS: Worst-case device service latency is a schedule corollary, not an interrupt property: an event waits at most its owning server's slot period plus its in-slot handling WCET, and §11 sizes each device's poll cadence or sporadic slot to its deadline.
+**R-07-042** IS: Worst-case device service latency is a schedule corollary, not an interrupt property: an event waits at most its owning server's slot period plus its in-slot handling WCET, and [§11](#11-updates) sizes each device's poll cadence or sporadic slot to its deadline.
 · Accept: the rule holds without exception.
 · Trace: CJ-WCET
 
@@ -1613,7 +1613,7 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Trace: CJ-WCET
 
 **R-07-044** MUST: Per-partition interrupt-file pending bits are statically identity-partitioned or swapped at the switch, in the switch budget, so no interrupt state is hidden or shared across a partition boundary.
-· Accept: §15 admission test 3 is satisfied for interrupt state; there are no enable bits left to swap.
+· Accept: [§15](#15-hardware-platform) admission test 3 is satisfied for interrupt state; there are no enable bits left to swap.
 · Trace: CJ-ISOL
 
 **R-07-045** IS: All interrupts are MSIs and wired level interrupts do not exist: the RoT watchdog's *bark* is an ordinary MSI into the sentinel's interrupt file, and only the *bite* and the RoT's reset and power-sequencing lines are non-MSI signals: resets, not interrupts, unmaskable by construction.
@@ -1624,7 +1624,7 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Accept: the bark's purpose is to reach a core that is alive but wedged, which polling by definition cannot.
 · Trace: CJ-DEVTREE
 
-**R-07-047** IS: This is the one place the delivery deletion genuinely costs response time, and it is booked in §17 rather than absorbed.
+**R-07-047** IS: This is the one place the delivery deletion genuinely costs response time, and it is booked in [§17](#17-residual-risks) rather than absorbed.
 · Accept: the residual entry exists.
 · Trace: CJ-WCET
 
@@ -1634,8 +1634,8 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Accept: the guarantee is the tag and bounds check itself; no encryption avalanche is credited, the memory path carrying none.
 · Trace: CJ-CERISE
 
-**R-07-049** IS: The purecap cost is that the proof runs over CHERI-C semantics, so the residual is the capability-widened CompCert memory model and this kernel's refinement over it rather than the CHERI-C semantics itself; kernel pointers double in width, and the kernel depends on the §6 CHERI backend.
-· Accept: the residual is booked in §17 as a narrower spec-gap surface than a from-scratch mechanization.
+**R-07-049** IS: The purecap cost is that the proof runs over CHERI-C semantics, so the residual is the capability-widened CompCert memory model and this kernel's refinement over it rather than the CHERI-C semantics itself; kernel pointers double in width, and the kernel depends on the [§6](#6-trusted-computing-base) CHERI backend.
+· Accept: the residual is booked in [§17](#17-residual-risks) as a narrower spec-gap surface than a from-scratch mechanization.
 · Trace: CJ-COMPCERT
 
 **R-07-050** MUST: The trap, context-switch, and IPC fast path is verified directly at binary level against the Sail model in the one Iris-over-Sail program logic, not through the CHERI-C → CompCert-memory-model refinement.
@@ -1647,7 +1647,7 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Trace: CJ-COMPCERT
 
 **R-07-052** MUST: Single address space: the kernel drops seL4's VSpace, page-table, and frame-mapping object classes entirely, and CHERI bounds are the sole in-core spatial isolation.
-· Accept: the map/unmap invocations, the page-table walk, `satp` switching, and TLB-shootdown paths and their proofs are gone rather than verified; frames become capability-bounded physical ranges fixed by the §8 composition-time memory plan.
+· Accept: the map/unmap invocations, the page-table walk, `satp` switching, and TLB-shootdown paths and their proofs are gone rather than verified; frames become capability-bounded physical ranges fixed by the [§8](#8-authority-model) composition-time memory plan.
 · Trace: CJ-KERNEL, CJ-CERISE
 
 ---
@@ -1660,7 +1660,7 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Accept: no authority is reachable except through a held capability.
 · Trace: CJ-CERISE
 
-**R-08-002** IS: The layer rule is completed by §5's language rule deleting ambient *state*, because a language free to re-manufacture a global above the OS and hardware layers reintroduces the unaccounted authority path both deleted.
+**R-08-002** IS: The layer rule is completed by [§5](#5-languages--verification)'s language rule deleting ambient *state*, because a language free to re-manufacture a global above the OS and hardware layers reintroduces the unaccounted authority path both deleted.
 · Accept: R-05-086 is the discharge; the grading disciplines that reason over a typing context can see all authority.
 · Trace: CJ-TAL-SOUND
 
@@ -1671,7 +1671,7 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 ### 8.2 Revocation
 
 **R-08-004** MUST: The kernel layer provides object capabilities with first-class revocation through one protocol: bitmap publication, the R-08-006 containment barrier, a monotone kernel epoch, the per-load filter, and budgeted reclamation sweep. There is no capability derivation tree. Time-to-containment is a composition-bounded constant, including the distributed case, where capabilities delegated over cross-core grant edges revoke through a verified bounded-round protocol of local publication and barrier completion, with proxy notification and acknowledgement along those same static edges.
-· Accept: the bound includes every local, proxy, outstanding-call and device term of R-08-006 and R-15-208, is stated per composition and enters the §11 schedule; exactly one revocation protocol appears in the kernel spec and its proof.
+· Accept: the bound includes every local, proxy, outstanding-call and device term of R-08-006 and R-15-208, is stated per composition and enters the [§11](#11-updates) schedule; exactly one revocation protocol appears in the kernel spec and its proof.
 · Trace: CJ-CERISE, CJ-WCET
 
 **R-08-004a** MUST: Subtree revocation is retained and is a grant-layer property rather than a capability-format one. Cross-domain authority that must be independently revocable is delegated as a sealed grant handle and not as a bare capability: the kernel mints a grant slot in a kernel-owned grant table, stores the underlying capability in it, and hands the delegate a capability bounded to that slot and sealed with a composition-fixed otype (R-07-002b). Retiring the delegation sets the R-08-005a revocation bit for the *slot's* granule, not the object's.
@@ -1694,7 +1694,7 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Accept: the load check is deterministic and architectural, with the fixed added island-local bitmap-read term R-08-005a prices and no added NoC or memory-controller transaction. A register-held capability cannot be declared revoked merely because this load rule exists.
 · Trace: CJ-CERISE, CJ-LEAK
 
-**R-08-005a** MUST: The load filter is backed by a dedicated ECC-protected revocation bitmap over a composition-fixed union of 64-byte-aligned revocable main-memory intervals, with one architectural revocation bit per 8-byte capability granule: `0` is live and `1` is revoked. The union is partitioned by island: each island holds one island-local array carrying the bits of its own intervals alone, read by the loads that island issues and by no other. For covered intervals *I*, the payload is exactly Σ|*I*|/64 bytes summed over the islands; the static memory plan charges that payload, its ECC bits, and macro periphery against the §15 SRAM capacity budget, and admission rejects a composition that does not fit. The interval map and each island's resulting bitmap size are attested-devicetree constants; ordinary compartments cannot address any bitmap, and only the owning island's kernel revocation path may update it.
+**R-08-005a** MUST: The load filter is backed by a dedicated ECC-protected revocation bitmap over a composition-fixed union of 64-byte-aligned revocable main-memory intervals, with one architectural revocation bit per 8-byte capability granule: `0` is live and `1` is revoked. The union is partitioned by island: each island holds one island-local array carrying the bits of its own intervals alone, read by the loads that island issues and by no other. For covered intervals *I*, the payload is exactly Σ|*I*|/64 bytes summed over the islands; the static memory plan charges that payload, its ECC bits, and macro periphery against the [§15](#15-hardware-platform) SRAM capacity budget, and admission rejects a composition that does not fit. The interval map and each island's resulting bitmap size are attested-devicetree constants; ordinary compartments cannot address any bitmap, and only the owning island's kernel revocation path may update it.
 · Accept: this is the CHERIoT non-MMU realization, not RVY `Svyrg`: the loaded capability's base selects the bit and a set bit clears its tag before architectural writeback. RVY's four-bit PTE state machine has no PTE in which to live here and is not silently compressed into one bit; epoch, sweep, and quarantine state remain in their separately specified protocol, while this array carries only the load-time live/revoked predicate. The covered union includes the R-08-004a grant table, whose per-slot bits carry the subtree case.
 · Accept: the bit read is a second, dependent access and is priced as one: the base is a field of the value the load returns, so the bit sits at an address the data/tag return decides rather than beside the granule being read. The array is reached inside the island with no NoC or memory-controller request, and it is read in a per-core slot fixed at composition, the read completing at the padded worst case of one slot rotation and never early, so every tagged capability load carries one fixed added term, a constant of the island's core count and of nothing another core does, and a base outside the island's covered intervals takes the same term with a constant live result. That term is inside the single fixed latency R-08-005b states, and the timing-annotated model carries it in the tagged capability load's class.
 · Accept: restricting the union to the loading island loses no revocation: across islands there is no shared mutable memory (R-15-223), the shared ring region's windows are composition-fixed (R-15-223a) and outside the covered union, and a capability delegated over a cross-island grant edge revokes through the proxy protocol R-08-004 states, whose proxy slot sits in the delegate island's own grant table and so under that island's own array. An array keyed by base and shared by every island would be a path between islands R-15-223 and R-17-003b say does not exist.
@@ -1709,7 +1709,7 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Accept: the complete publication, scheduled barrier, bounded-call cancellation, proxy and device bound is derived per composition and charged to its existing admitted slots. No wait depends on untrusted cooperation, no sweep quantum is added to a partition-switch cost, and no containment term depends on sweep progress or the measured teardown rate. The incremental sweep remains reclamation; physical reuse additionally requires R-08-007a.
 · Trace: CJ-CERISE, CJ-WCET
 
-**R-08-007** MUST: The sweep runs as an incremental, preemptible kernel task in its own §11-admitted background slot class, per core, sized at composition, never in another partition's time. It is a kernel reaction and not a thread (R-07-020): the table dispatches it into its slot by the switch's own `mret`, so it runs off the trap path, and *preemptible* means exactly that the boundary timer takes it as it takes a partition, nothing saved, the group in flight discarded, and the next quantum resuming from the cursor the last completed group advanced.
+**R-08-007** MUST: The sweep runs as an incremental, preemptible kernel task in its own [§11](#11-updates)-admitted background slot class, per core, sized at composition, never in another partition's time. It is a kernel reaction and not a thread (R-07-020): the table dispatches it into its slot by the switch's own `mret`, so it runs off the trap path, and *preemptible* means exactly that the boundary timer takes it as it takes a partition, nothing saved, the group in flight discarded, and the next quantum resuming from the cursor the last completed group advanced.
 · Accept: its completion latency is a derived per-domain constant: the domain's capability-bearing footprint over the per-frame sweep quantum; a cut costs the pass one group, re-issued at the next quantum, `creclaim` being idempotent over a group (R-15-007s).
 · Trace: CJ-WCET
 
@@ -1726,8 +1726,8 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Accept: a compartment's churn cannot perturb a hard task or borrow another owner's slots or backing. The holder map determines scan coverage, including permitted copies outside the retiring object's interval; admission charges that complete coverage rather than assuming object size equals swept footprint. Bounded backlog delays the requester's reuse, and exhaustion takes the declared refusal action. Retraction is the trigger whose submitter need not hold the grant, so R-08-043f prices it separately.
 · Trace: CJ-WCET, CJ-ISOL
 
-**R-08-008a** IS: The sweep's economics rest on a rate no artifact has measured, and the expectation below is the fixed tier's. That static composition holds kernel-mediated teardown, and with it the quarantine interval and the sweep work the R-08-007 background slot class is sized for, to a small share of the machine's memory traffic is what R-08-010's compiled heap, §10's GC-free storage and §16's crash-only explicit state are expected to buy, and it is carried as an expectation: no entry here states the rate, and the first artifact able to take it is the measured composed roster R-15-100b's static-code-overlay trigger already reads.
-· Accept: three clauses decide it, and it is met when all three hold. (1) The expectation is booked with its owner and its scope rather than absorbed into a guarantee, R-08-004c's shape applied to a rate instead of to a cost: it is stated as a premise at every site that argues from it, including the temporal-trade objection of [Evaluated Architectural Alternatives](background/architectural-alternatives.md), so a corpus sentence reading the rate as settled is a review-gate finding. (2) No bound reads the rate. Containment is R-08-006's completed barrier and waits on no sweep pass, and the answers to a higher rate are a wider R-08-007 slot class, a longer R-08-007a interval against a larger composition-sized quarantine pool, and a composition that does not fit at admission, each of them a slot or a byte R-08-045 already charges at composition; an entry making a §11 bound or a time-to-containment constant a function of the rate fails this clause. (3) The rate is not R-15-100b's A-16 trigger, which reads the cost of the load filter and the sweep rather than the traffic feeding them, so a measurement is an input to that judgment and neither fires it nor disturbs R-15-035.
+**R-08-008a** IS: The sweep's economics rest on a rate no artifact has measured, and the expectation below is the fixed tier's. That static composition holds kernel-mediated teardown, and with it the quarantine interval and the sweep work the R-08-007 background slot class is sized for, to a small share of the machine's memory traffic is what R-08-010's compiled heap, [§10](#10-storage--state)'s GC-free storage and [§16](#16-reliability)'s crash-only explicit state are expected to buy, and it is carried as an expectation: no entry here states the rate, and the first artifact able to take it is the measured composed roster R-15-100b's static-code-overlay trigger already reads.
+· Accept: three clauses decide it, and it is met when all three hold. (1) The expectation is booked with its owner and its scope rather than absorbed into a guarantee, R-08-004c's shape applied to a rate instead of to a cost: it is stated as a premise at every site that argues from it, including the temporal-trade objection of [Evaluated Architectural Alternatives](background/architectural-alternatives.md), so a corpus sentence reading the rate as settled is a review-gate finding. (2) No bound reads the rate. Containment is R-08-006's completed barrier and waits on no sweep pass, and the answers to a higher rate are a wider R-08-007 slot class, a longer R-08-007a interval against a larger composition-sized quarantine pool, and a composition that does not fit at admission, each of them a slot or a byte R-08-045 already charges at composition; an entry making a [§11](#11-updates) bound or a time-to-containment constant a function of the rate fails this clause. (3) The rate is not R-15-100b's A-16 trigger, which reads the cost of the load filter and the sweep rather than the traffic feeding them, so a measurement is an input to that judgment and neither fires it nor disturbs R-15-035.
 · Trace: CJ-WCET, CJ-MEMPLAN
 
 **R-08-009** MUST NOT: The autonomous background engines a CHERI microcontroller ships for this purpose (CHERIoT-Ibex TBRE revocation-sweep and STKZ stack-zeroing) are declined as autonomous memory-touching walkers under admission test 5; only the deterministic load filter is imported and the sweep stays software.
@@ -1752,7 +1752,7 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Accept: the degrees of freedom a span-minimal colouring leaves over are recorded as spent on those three terms under a fixed tie-break rather than on an arbitrary one; with no cache on the die the plan is the machine's only placement mechanism, so an unspent degree of freedom is latency nothing else recovers. A gain reported on the first term is a gain on the span, the peak being an input to the search and not an output of it, so a search over bases reporting a smaller peak has reported a defect in itself. The three terms read over both R-15-247 classes, the plan assigning each region its class before it colours (R-15-247, R-15-247j); on the second class the spread does a third job beside the two here, being the unit the R-15-247g refresh and discharge phase schedule is written over.
 · Trace: CJ-MEMPLAN, CJ-WCET · [§8](spec.md#r-08-012a), [§15](spec.md#r-08-012a-2)
 
-**R-08-012b** MUST: Reach frequency is decided from artifacts the build already carries (the typed callee graph, the typed control-flow graph and its loop nesting, the §11 declared loop bounds, and the manifest's declared region types) under a fixed tie-break, with no PGO corpus, sampled frequency, learned weight, or runtime feedback.
+**R-08-012b** MUST: Reach frequency is decided from artifacts the build already carries (the typed callee graph, the typed control-flow graph and its loop nesting, the [§11](#11-updates) declared loop bounds, and the manifest's declared region types) under a fixed tie-break, with no PGO corpus, sampled frequency, learned weight, or runtime feedback.
 · Accept: two builds of one source closure yield an identical placement map, so the map is reproducible and attestable and the plan is not a reactive feedback loop rebuilt in the toolchain; the discipline is R-10-034's, applied to data.
 · Trace: CJ-MEMPLAN, CJ-DEVTREE · [§8](spec.md#r-08-012b), [§10](spec.md#r-08-012b-2)
 
@@ -1760,16 +1760,16 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Accept: an out-of-island placement has no capability derivation rather than a new admission test to fail; consistent with R-07-006, R-15-226, R-15-228, and R-15-228a.
 · Trace: CJ-MEMPLAN, CJ-ISOL
 
-**R-08-012d** MUST: Locality is a constrained objective, admissible only where no island's reserved span and no admitted §11 bound is worse than in the plan it replaces, and it adds no admission test, no checker, no proof term, and no WCET input.
+**R-08-012d** MUST: Locality is a constrained objective, admissible only where no island's reserved span and no admitted [§11](#11-updates) bound is worse than in the plan it replaces, and it adds no admission test, no checker, no proof term, and no WCET input.
 · Accept: R-08-014's interference side-condition, R-08-016's single pass, and R-11-015's derivation from the placed image are each unchanged; where the timing-annotated model prices two arrays alike the gain is on the average and the bound does not move, and where it prices them apart the derived bound improves.
 · Trace: CJ-MEMPLAN, CJ-WCET, CJ-TAL-SOUND
 
-**R-08-012e** MUST: The plan's fourth lexicographic term, after reserved span and locality, is domain concentration: minimizing, per global mode, the number of distinct gating domains (macros and tiers) an island's live set occupies, and emitting that per-mode occupancy map over gating domains for §15 to read as the mode's power vector.
+**R-08-012e** MUST: The plan's fourth lexicographic term, after reserved span and locality, is domain concentration: minimizing, per global mode, the number of distinct gating domains (macros and tiers) an island's live set occupies, and emitting that per-mode occupancy map over gating domains for [§15](#15-hardware-platform) to read as the mode's power vector.
 · Accept: the map is a projection of the slot assignment and the bank/macro/tier→island map the plan already consumes (R-15-228a), so it is a reporting step and not a new analysis; a domain holding one live object cannot be collapsed, which is what makes the count the thing R-15-189a spends.
 · Trace: CJ-MEMPLAN, CJ-WCET
 
 **R-08-012f** MUST: Domain concentration is a constrained objective under R-08-012d's rule exactly as locality is, and it is a build-step objective only: it stands in genuine tension with R-08-012a's bank spreading, and the runtime relocation pass that would be its dynamic form is declined with the rest of the reactive family (R-15-189h).
-· Accept: no island's reserved span and no admitted §11 bound is worse than in the plan concentration replaces, and the modes where it wins are the low-duty and standby modes where the leakage term dominates; compaction stays a build step, no relocation mechanism existing at runtime (R-08-020).
+· Accept: no island's reserved span and no admitted [§11](#11-updates) bound is worse than in the plan concentration replaces, and the modes where it wins are the low-duty and standby modes where the leakage term dominates; compaction stays a build step, no relocation mechanism existing at runtime (R-08-020).
 · Trace: CJ-MEMPLAN, CJ-WCET
 
 **R-08-013** IS: Offline is the whole game, and each result it rests on is read in the model its authors state it over: online allocation carries Robson's Θ(log n) worst case, the offline problem is NP-hard in general and constant-factor approximable, and for a laminar family of live ranges in one arena under a common alignment, the arena's origin and every extent being multiples of it and every multiple of it a legal base, with no object fixed to a base in advance and no further placement constraint, the stack construction runs in time polynomial in the binary length of its input and reserves exactly R-08-012's charged peak, which is where offline planning is exactly optimal. Those premises are the claim: a region discipline supplies nested scopes and not laminar reservation intervals, and where live ranges cross, where the objects share no such alignment, or where a base is fixed in advance, this construction supplies no equality guarantee and the complexity of exact placement over this machine's own inputs is open. All of it is paid in build-time compute.
@@ -1794,7 +1794,7 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Accept: each slot enters its live range uninitialized, eager-zeroize makes that state a deterministic zero, and the definite-initialization attribute decides that no load precedes a store within the range.
 · Trace: CJ-TAL-SOUND, CJ-MEMPLAN
 
-**R-08-017** IS: Memory-admissible ⟺ time-admissible: the peak-memory bound and the WCET bound are read off the same static facts, so the memory admission test is the space projection of the §11 schedulability certificate, not a second test.
+**R-08-017** IS: Memory-admissible ⟺ time-admissible: the peak-memory bound and the WCET bound are read off the same static facts, so the memory admission test is the space projection of the [§11](#11-updates) schedulability certificate, not a second test.
 · Accept: one static-boundedness certificate, two resources.
 · Accept: the equivalence is realized rather than merely asserted: the two bounds are two weight vectors over one CHERI-TAL derivation (TAL-053a), differing in the loop rule alone, so the space projection is a second numeral on the structure the timing certificate already carries and not a second analysis over a second structure.
 · Accept: it holds of every fixed-tier partition and of an elastic domain's envelope, whose slots and pool extents are composition constants, and never of an elastic member, whose time and heap are runtime shares of that envelope (R-07-037h, R-08-047a); a claim of this equivalence for a member is a finding.
@@ -1821,7 +1821,7 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Trace: CJ-MEMPLAN
 
 **R-08-019a** IS: Contents is the second residue statics cannot see, named beside occupancy: two pools whose entries converge on equal values at run time are indistinguishable at composition from two pools holding unrelated data.
-· Accept: capacity-only, not isolation: each copy is bounded, tagged, labeled, swept, and revoked as its owner's other bytes are, so no §8 authority or §13 flow claim moves. Booked here rather than §17 on R-08-019's own ground, and R-08-018c catches only the duplication a static relation exposes.
+· Accept: capacity-only, not isolation: each copy is bounded, tagged, labeled, swept, and revoked as its owner's other bytes are, so no [§8](#8-authority-model) authority or [§13](#13-packaging--supply-chain) flow claim moves. Booked here rather than [§17](#17-residual-risks) on R-08-019's own ground, and R-08-018c catches only the duplication a static relation exposes.
 · Trace: CJ-MEMPLAN
 
 **R-08-019b** IS: For any structure whose obligation is to distinguish *k* reachable configurations, log₂ *k* bits is a floor no implementation is below, provable by fooling-set argument over the observation relation R-13-001 fixes; the revocation sidecar (R-08-005a) and bounded-pool occupancy (R-08-046) each meet their floor exactly, a bitmap over a fixed universe being information-theoretically optimal where a free list is not.
@@ -1894,7 +1894,7 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Trace: CJ-NI
 
 **R-08-022** MUST: The kernel's Coq proof is extended to a non-interference theorem over that fixed graph, over the multikernel composition, the purecap CHERI-C semantics, and the powerbox's robust declassification, and it is a *fresh* proof rather than an inherited one.
-· Accept: what carries over from seL4-NI is the method of stating and discharging NI over a capability graph, not the proof's maturity; the freshness is booked in §17.
+· Accept: what carries over from seL4-NI is the method of stating and discharging NI over a capability graph, not the proof's maturity; the freshness is booked in [§17](#17-residual-risks).
 · Trace: CJ-NI
 
 **R-08-023** IS: The theorem is about the existing structure, not a new mechanism.
@@ -1913,7 +1913,7 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Accept: user-authorized flow is inside the theorem: neither near-vacuously admitted nor left outside it.
 · Trace: CJ-NI, CJ-CERISE
 
-**R-08-027** IS: The theorem covers explicit information flow; the timing side is closed separately by the formal isolation semantics of the §15 partitioning hardware, the two designed to compose into one partition-level guarantee.
+**R-08-027** IS: The theorem covers explicit information flow; the timing side is closed separately by the formal isolation semantics of the [§15](#15-hardware-platform) partitioning hardware, the two designed to compose into one partition-level guarantee.
 · Accept: the seam is the NI ⋈ timing lemma (R-05-160).
 · Trace: CJ-NI, CJ-ISOL
 
@@ -1948,7 +1948,7 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Trace: CJ-NI
 
 **R-08-031a** MUST NOT: Statistical clock degradation (jitter added to a counter read) is inadmissible on the same ground MTE and MBPTA/EVT are: it is recoverable by averaging over repeated reads, a statistic rather than a theorem.
-· Accept: no admitted mechanism degrades a timing value probabilistically; the residual an untrusted compartment retains is the already-booked §11 population-rung channel (R-17-007), not a new exposure.
+· Accept: no admitted mechanism degrades a timing value probabilistically; the residual an untrusted compartment retains is the already-booked [§11](#11-updates) population-rung channel (R-17-007), not a new exposure.
 · Trace: CJ-NI
 
 **R-08-032** MUST: Interrupt-send is authority: an interrupt is a store to an interrupt file, so *who may interrupt whom* is a write capability in the static capability topology rather than a separate routing table. Interrupt-receive is a load from state the partition already owns and needs no separate authority.
@@ -1982,7 +1982,7 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Trace: CJ-NI, CJ-CERISE, CJ-DEVTREE
 
 **R-08-036c** MUST: The clipboard instance of R-08-036 uses R-08-037's one-shot scope: its capability authorizes one bounded delivery of the designated snapshot to the designated destination's receive buffer through the powerbox's existing endpoint, with no standing authority over future clipboard contents.
-· Accept: the verified delivery transition checks the recipient and receive-buffer capability, consumes the grant before publishing bytes, and rejects a repeated or substituted invocation, so one-shot counts mediated deliveries rather than CPU loads through an unrestricted pointer. Completion, cancellation, trusted expiry, lock or either endpoint's teardown retires the transfer through the existing revocation and zeroization protocol before its slots are reused. A delivered copy belongs to the recipient's authority and cannot be made unread by revoking the transfer. No consent record or R-08-037f persistent-store slot is consumed; the snapshot, grant, bounded copy and trusted rendering costs remain in the existing components' R-08-046 storage and §11 execution budgets, and no clipboard server or consent-TCB member is added.
+· Accept: the verified delivery transition checks the recipient and receive-buffer capability, consumes the grant before publishing bytes, and rejects a repeated or substituted invocation, so one-shot counts mediated deliveries rather than CPU loads through an unrestricted pointer. Completion, cancellation, trusted expiry, lock or either endpoint's teardown retires the transfer through the existing revocation and zeroization protocol before its slots are reused. A delivered copy belongs to the recipient's authority and cannot be made unread by revoking the transfer. No consent record or R-08-037f persistent-store slot is consumed; the snapshot, grant, bounded copy and trusted rendering costs remain in the existing components' R-08-046 storage and [§11](#11-updates) execution budgets, and no clipboard server or consent-TCB member is added.
 · Trace: CJ-NI, CJ-CERISE, CJ-MEMPLAN, CJ-WCET
 
 **R-08-037** IS: A grant carries a temporal scope (one-shot, valid for a single use; while-active, bounded by a trusted-expiring lease; or persistent, valid across the app's own sessions and across the power cycle on the R-08-037a consent record) enforced by the same first-class revocation, so *only this time* and *while using the app* are the capability model expressing itself, not a separate permission subsystem.
@@ -2040,7 +2040,7 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Trace: CJ-NI
 
 **R-08-043** IS: What is given up is booked: while-active remains strictly weaker than one-shot, because the ceiling is a bound on exposure, not its absence.
-· Accept: the §17 residual entry exists.
+· Accept: the [§17](#17-residual-risks) residual entry exists.
 · Trace: CJ-NI
 
 **R-08-043a** MUST: User-initiated retraction is a fourth revocation trigger beside grant expiry, session close, and restart, retiring a grant on the one mechanism: the kernel sets the R-08-005a revocation bit for the grant slot's granule and the per-load filter kills every stored copy of the handle at its next load; retraction completes only at R-08-006's register, loan, proxy and device barrier.
@@ -2094,7 +2094,7 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Trace: CJ-DEVTREE
 
 **R-09-005** MUST: The pre-kernel reader is not a parser: the boot payload is a flat measured image behind a fixed-layout, length-bounded header (offset, length, hash), verified by SLH-DSA signature under R-05-058c, checked against the monotonic anti-rollback floor, and measured before any byte of it executes.
-· Accept: no interpreted container grammar and no followed offsets; a corrupt field fails the hash or signature check rather than steering a reader. The content-addressed store, the pack format, and the §13 verified reader come up only after the kernel and the FTL server, and stage zero never touches them.
+· Accept: no interpreted container grammar and no followed offsets; a corrupt field fails the hash or signature check rather than steering a reader. The content-addressed store, the pack format, and the [§13](#13-packaging--supply-chain) verified reader come up only after the kernel and the FTL server, and stage zero never touches them.
 · Trace: CJ-FORMAT, CJ-DEVTREE
 
 **R-09-005a** IS: The hash-only root's cost is a signature of tens of kilobytes, carried as one more declared field of the fixed-layout header and absorbed by a reserved NAND block, and a verification of thousands of Keccak permutations run as plain 64-bit integer code, the RoT being the vectorless S-class with no vector permutation instruction to reach (R-15-059).
@@ -2106,7 +2106,7 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Trace: CJ-DEVTREE
 
 **R-09-006a** MUST: The RoT's start-up entropy health tests (R-15-241b) complete before the first draw any measured stage can make, their verdict is measured into the chain, and on failure the RoT derives no key, unseals no material, completes no attestation quote, and the boot is refused, the machine halting in a stated failure state rather than booting to a usable device on a weak root.
-· Accept: the failure is a §16 fault class and not a boot-counting event, so the automatic A/B revert (R-09-028) is not its response and consumes no attempt, which is what separates this stop from the revert path.
+· Accept: the failure is a [§16](#16-reliability) fault class and not a boot-counting event, so the automatic A/B revert (R-09-028) is not its response and consumes no attempt, which is what separates this stop from the revert path.
 · Fail-closed: a failed start-up health test halts the boot in a stated failure state (R-17-030o); the cost is the device, against booting on a weak root as the alternative.
 · Trace: CJ-DEVTREE, CJ-CRYPTO-SPEC
 
@@ -2304,7 +2304,7 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Trace: CJ-T
 
 **R-10-004** IS: The VeriBetrFS B^ε buffered-update refinement is the incumbent L1 design, selected for message-log batching's potential NAND-endurance gain and re-proved in Coq/Iris. A plain CoW B+ tree over the same L0 journal is the candidate with fewer index-refinement obligations, not an automatically selected replacement.
-· Accept: the index comparison fixes its required endurance, useful capacity, latency and proof-scope criteria before measuring either candidate, under one journal, recovery policy, bounded workload and storage-device contract. It reports NAND write amplification, reserved buffer bytes, worst-case query and flush work, and the recovery/refinement obligations of each; amortized throughput alone establishes no §11 bound. Select the B+ fallback only if it meets the composition's required endurance, capacity and timing with a demonstrably smaller proof obligation; retain B^ε only with its own criteria met, and reject a composition for which neither fits. A different index requires a register decision, not an attribution change in the prior-art document.
+· Accept: the index comparison fixes its required endurance, useful capacity, latency and proof-scope criteria before measuring either candidate, under one journal, recovery policy, bounded workload and storage-device contract. It reports NAND write amplification, reserved buffer bytes, worst-case query and flush work, and the recovery/refinement obligations of each; amortized throughput alone establishes no [§11](#11-updates) bound. Select the B+ fallback only if it meets the composition's required endurance, capacity and timing with a demonstrably smaller proof obligation; retain B^ε only with its own criteria met, and reject a composition for which neither fits. A different index requires a register decision, not an attribution change in the prior-art document.
 · Accept: the B^ε design is re-proved in Coq/Iris and supplies no non-Coq proof anchor; bcachefs's internally logged B+ nodes are separate prior art for filesystem organization, not evidence that this buffered-update refinement is already proved.
 · Trace: CJ-T
 
@@ -2324,8 +2324,8 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Accept: the subscription has a composition-time result and queue bound; a subscription is volatile and does not survive a crash, so recovery re-establishes it by rescan, and index and objects are never observed mismatched.
 · Trace: CJ-T, CJ-WCET, CJ-NI
 
-**R-10-006** MUST: RefFS's machine-checked deadlock- and livelock-freedom (the MoLi dynamically-layered-definite-releases discipline) is a precondition for §11 temporal admission of any task that calls a shared storage server.
-· Accept: a deadlocked or livelocked server is unbounded blocking no WCET bound survives; system-wide deadlock-freedom is the concurrent complement to §13's per-handler termination obligation.
+**R-10-006** MUST: RefFS's machine-checked deadlock- and livelock-freedom (the MoLi dynamically-layered-definite-releases discipline) is a precondition for [§11](#11-updates) temporal admission of any task that calls a shared storage server.
+· Accept: a deadlocked or livelocked server is unbounded blocking no WCET bound survives; system-wide deadlock-freedom is the concurrent complement to [§13](#13-packaging--supply-chain)'s per-handler termination obligation.
 · Trace: CJ-WCET
 
 **R-10-006a** MUST: Storage supplies a retained-read path for an admitted, bounded resident byte window of one immutable object version. Within a live reservation, successful authorized reads cause no write to lifetime, pin/reference-count, replacement-recency or hit-count metadata common to read sessions, including writes performed by the storage owner on their behalf. Admission, renewal and retirement are explicit bounded events, never hidden per-read reacquisition.
@@ -2381,7 +2381,7 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Trace: CJ-DEVTREE
 
 **R-10-013c** MUST: The crypto core computes one root over the version of every `Fresh` region and the RoT advances a reserved counter and seals that root once per sealed epoch, never once per data commit; a `Fresh` write is acknowledged when its epoch seals, and an epoch that does not seal loses its writes rather than presenting them as fresh.
-· Accept: the epoch root is a crypto-core operation beside seal/open and the keyed dedup digest, so the class widens an existing TCB interface and adds no trusted component and no §12 compartment; what the counter spends is set by the epoch rate and not by the write rate, which is the objection R-10-011 raises against sealing the volume root.
+· Accept: the epoch root is a crypto-core operation beside seal/open and the keyed dedup digest, so the class widens an existing TCB interface and adds no trusted component and no [§12](#12-system-servers) compartment; what the counter spends is set by the epoch rate and not by the write rate, which is the objection R-10-011 raises against sealing the volume root.
 · RoT-fresh: the durable-state freshness-epoch root (R-10-013), advancing once per sealed epoch.
 · Trace: CJ-CRYPTO-SPEC, CJ-DEVTREE
 
@@ -2428,7 +2428,7 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Trace: CJ-NI
 
 **R-10-019** IS: The exclusion is scoped to *filesystem* compression and does not reach a single-owner, build-time-compressed signed image expanded once on the install or load path: one compressor, one trust domain, no runtime state, the decompressor below the integrity line, its expanded bytes hash-verified against the signed root.
-· Accept: expansion is a bounded §11 task, never per read.
+· Accept: expansion is a bounded [§11](#11-updates) task, never per read.
 · Trace: CJ-WCET, CJ-DEVTREE
 
 **R-10-020** IS: Build-time compression buys *stored* bytes, never *resident* ones: every live byte is a capability-delegated byte of one class or the other with no swap, no overcommit, and no demand paging.
@@ -2457,7 +2457,7 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Accept: carrying both would double the constant-time crown jewel and the filesystem-cipher Sail surface for no security gain.
 · Trace: CJ-LEAK, CJ-CRYPTO-SPEC
 
-**R-10-025** IS: The verifiable-encryption claim is a composition: the §5 three-layer crypto proof joined with the L3 data-noninterference theorem, *(the AE scheme is IND-CCA/INT-CTXT) ⋈ (the filesystem leaks nothing across domains)*, at the primitive's functional spec, itself a crown-jewel spec.
+**R-10-025** IS: The verifiable-encryption claim is a composition: the [§5](#5-languages--verification) three-layer crypto proof joined with the L3 data-noninterference theorem, *(the AE scheme is IND-CCA/INT-CTXT) ⋈ (the filesystem leaks nothing across domains)*, at the primitive's functional spec, itself a crown-jewel spec.
 · Accept: this is the AE ⋈ non-interference seam lemma (R-05-160).
 · Trace: CJ-REDUCTION, CJ-NI
 
@@ -2602,7 +2602,7 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Accept: one artifact yields all three.
 · Trace: CJ-WCET
 
-**R-11-008** MUST: Two standing reservations are part of every admitted schedule rather than implied: the display-scanout reservation (its static TDM NoC slice, framebuffer bank binding, and line-period deadline) and the §8 revocation sweep's background slot class.
+**R-11-008** MUST: Two standing reservations are part of every admitted schedule rather than implied: the display-scanout reservation (its static TDM NoC slice, framebuffer bank binding, and line-period deadline) and the [§8](#8-authority-model) revocation sweep's background slot class.
 · Accept: neither the always-on display nor the containment machinery is an unbudgeted interference term.
 · Trace: CJ-WCET, CJ-ISOL
 
@@ -2706,7 +2706,7 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 
 **R-11-023** MUST: (4) Which tenant occupies which slot is a permutation, not a schedule: slot widths and offsets are fixed by the rung, and the compositor requests a focus rebinding at a major-frame boundary which the kernel enacts by permuting the slot→tenant map (a tenant being a sole compartment or one R-07-037b same-label group, permuted whole).
 · Accept: every admission property is invariant under the permutation, the interval arithmetic quantifying over the four quantities the check declares and never over occupants: slot widths, slot offsets, each task's period (R-11-006), and the switch-duty ratio R-11-009 requires counted explicitly. The enumeration is four rather than two because *never occupants* is the load-bearing half and a narrower list would put it over a check neither R-11-006 nor R-11-009 states: an invariance proved over widths and offsets alone leaves the period and the duty ratio free to read a tenant, which is the one thing the permutation must not do.
-· Accept: the untrusted compositor steers responsiveness without touching the admitted schedule, the same shape §8 gives its focus judgment.
+· Accept: the untrusted compositor steers responsiveness without touching the admitted schedule, the same shape [§8](#8-authority-model) gives its focus judgment.
 · Accept: an R-07-037e elastic domain is one tenant here and is permuted whole; which member inside it holds focus is R-07-037i's request, enacted at a dispatch point and separate from this permutation, so a focus change inside the domain moves no slot and a permutation moves the domain's slots without selecting a member.
 · Trace: CJ-WCET, CJ-NI
 
@@ -2715,7 +2715,7 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Trace: CJ-WCET
 
 **R-11-025** IS: (6) It is still not load-following: the rung index is a function of the count of live discretionary tenants, moving only on an explicit user-originated lifecycle event and never on utilization, queue depth, or any compartment's computation.
-· Accept: what is given up is the *rarity*, not the *non-reactivity*, and the residual channel that buys is booked in §17.
+· Accept: what is given up is the *rarity*, not the *non-reactivity*, and the residual channel that buys is booked in [§17](#17-residual-risks).
 · Trace: CJ-NI
 
 **R-11-026** MUST: (7) The top rung is a hard ceiling: past it a new tenant receives no slot rather than a thinner one, and the owning population manager suspends a live tenant to retained state to make room.
@@ -2813,7 +2813,7 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Trace: CJ-IDL, CJ-WCET
 
 **R-12-099** MUST: Every ring and descriptor is bound to a session generation that changes before any reuse across peer restart, device reset, or revocation: new submissions are refused, DMA capabilities are revoked or quiesce under the session's declared bound, no old-generation descriptor is accepted, indices and the notification word are reinitialized before the new generation is live, and no operation is replayed implicitly, retry being an interface-level policy that, where it claims idempotence, names the operation subset, the stable request identity, the deduplication retention bound, and the duplicate-effect proof.
-· Accept: restart tests show stale descriptors refused and old capabilities dead; an uncorrectable ring-memory ECC error, an impossible ownership transition, a generation mismatch after acceptance, or DMA missing its quiescence bound fail-stops the session or server under the §16 supervision policy.
+· Accept: restart tests show stale descriptors refused and old capabilities dead; an uncorrectable ring-memory ECC error, an impossible ownership transition, a generation mismatch after acceptance, or DMA missing its quiescence bound fail-stops the session or server under the [§16](#16-reliability) supervision policy.
 · Trace: CJ-HAL, CJ-CERISE, CJ-WCET
 
 **R-12-100** MUST: Zero-copy DMA executes only through a session-table capability whose permissions match the descriptor's declared direction, the complete extent validated before the transfer starts and never reinterpreted after; scatter/gather exists only as a bounded list with a fixed maximum segment count, each segment checked independently and the WCET charged at the maximum where the constant-time policy requires that treatment; no capability is retained past terminal completion.
@@ -2913,11 +2913,11 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 
 ### 12.5 Storage servers
 
-**R-12-023** IS: The filesystem is the §10 four-layer verified stack, verified but wholly non-TCB and contained like any server, serving both the system-image and user-data subvolumes.
+**R-12-023** IS: The filesystem is the [§10](#10-storage--state) four-layer verified stack, verified but wholly non-TCB and contained like any server, serving both the system-image and user-data subvolumes.
 · Accept: a filesystem fault costs availability or a caught corruption, never a silent integrity breach.
 · Trace: CJ-DEVTREE
 
-**R-12-024** IS: Below the §10 integrity line the availability-only block services are ordinary `#![forbid(unsafe_code)]` Rust Tier-1 compartments; a bug or compromise costs availability, never integrity or confidentiality.
+**R-12-024** IS: Below the [§10](#10-storage--state) integrity line the availability-only block services are ordinary `#![forbid(unsafe_code)]` Rust Tier-1 compartments; a bug or compromise costs availability, never integrity or confidentiality.
 · Accept: the AEAD/Merkle-DAG layer catches corruption.
 · Trace: CJ-CRYPTO-SPEC
 
@@ -2941,7 +2941,7 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Accept: the nonvolatile analog of SRAM scrubbing (R-15-177).
 · Trace: CJ-SAIL
 
-**R-12-030** MUST: All of this stays fixed-function hardware and safe-Rust management, never controller firmware, and the device ECC composes with rather than replaces the §10 integrity layer above it.
+**R-12-030** MUST: All of this stays fixed-function hardware and safe-Rust management, never controller firmware, and the device ECC composes with rather than replaces the [§10](#10-storage--state) integrity layer above it.
 · Accept: a NAND failure is always a caught corruption or an availability event, never a silent integrity breach; corrected-error rates and uncorrectable events feed the sentinel.
 · Trace: CJ-CERISE, CJ-CRYPTO-SPEC
 
@@ -2955,8 +2955,8 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Accept: the graph is a typed signed configuration object carried by the generation root and admitted on the ordinary install path (R-13-001, R-13-002), and an intent naming no admitted edge fails closed.
 · Trace: CJ-IDL, CJ-DEVTREE, CJ-NI
 
-**R-12-024c** MUST: One-shot translation and streaming media use the same static typed graph: streaming binds a composition-time template from pre-composed node and bounded-ring pools, with every node's WCET, memory, labels, and device reservation admitted under §11 before it may be bound, at release time for base-image nodes and at install time for package-supplied ones.
-· Accept: runtime binding creates no code, compartment, edge type, or unbounded queue; outputs enter the caller's confidentiality domain as ordinary §10 typed objects in one metadata/index transaction.
+**R-12-024c** MUST: One-shot translation and streaming media use the same static typed graph: streaming binds a composition-time template from pre-composed node and bounded-ring pools, with every node's WCET, memory, labels, and device reservation admitted under [§11](#11-updates) before it may be bound, at release time for base-image nodes and at install time for package-supplied ones.
+· Accept: runtime binding creates no code, compartment, edge type, or unbounded queue; outputs enter the caller's confidentiality domain as ordinary [§10](#10-storage--state) typed objects in one metadata/index transaction.
 · Trace: CJ-WCET, CJ-NI, CJ-IDL, CJ-T
 
 **R-12-024d** MUST: Deterministic translation reuse is confined to one confidentiality domain and keyed by the input's content address (the per-domain keyed digest for user data), admitted translator package identity and version, declared parameters, and output content type.
@@ -2967,7 +2967,7 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Accept: a compromised router cannot reach a namespace no live session delegated to it, read an object it holds no read capability for, or launch a handler with authority absent from that handler's manifest.
 · Trace: CJ-NI, CJ-CERISE
 
-**R-12-024f** MUST: Every content format a translator or media node parses is attacker-facing wire: it carries a §5 Narcissus copy-once verified parser and is enumerated in the wire-format inventory.
+**R-12-024f** MUST: Every content format a translator or media node parses is attacker-facing wire: it carries a [§5](#5-languages--verification) Narcissus copy-once verified parser and is enumerated in the wire-format inventory.
 · Accept: the image, media, font, archive, and document formats the graph admits appear in the R-05-042 inventory on the same terms as the radio and USB grammars.
 · Trace: CJ-FORMAT
 
@@ -2977,12 +2977,12 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Accept: each compartment's attacker-facing wire parsing is held to the Narcissus discipline and its memory safety to the binary-level certificate.
 · Trace: CJ-FORMAT, CJ-TAL-SOUND
 
-**R-12-032** IS: For TLS 1.3 the trust-base-uniform target is a Rust-native hax-verified TLS in the Bertie lineage, with miTLS the more mature F\*/Z3 option; either way the protocol proof is *bonus* over the memory-safety floor and never trust base, and the crypto binds to the §5 verified core.
+**R-12-032** IS: For TLS 1.3 the trust-base-uniform target is a Rust-native hax-verified TLS in the Bertie lineage, with miTLS the more mature F\*/Z3 option; either way the protocol proof is *bonus* over the memory-safety floor and never trust base, and the crypto binds to the [§5](#5-languages--verification) verified core.
 · Accept: no protocol proof enters the trust base (R-05-010, R-05-078).
 · Trace: CJ-REDUCTION
 
-**R-12-032a** MUST: Every TLS peer the platform authenticates by certificate (the browser's hosted content, the resolver's DNS-over-TLS upstream, NTS key establishment and §13 fetches among them) is authenticated by X.509 chain validation held to the handshake's own two disciplines: the DER certificate and chain grammar is an R-05-042 wire format with its own Narcissus descriptor, and the validator is a contained compartment separate from the record layer whose start-from is Rust-native in the Verdict lineage, its Verus proofs bonus over the memory-safety floor and never trust base; the validation policy that validator is checked against, path construction, signature acceptance through the §5 verified core, validity against authenticated time, name constraints and host-name matching over a trust-anchor set, is a crown-jewel spec, because no one true specification of chain validity exists and a verified validator against the wrong policy is a correct proof of the wrong property.
-· Accept: the wire-format inventory carries the X.509 DER certificate and chain descriptors; the crown-jewel inventory carries the policy as one row, curated from RFC 5280 and the published Verdict policy models and subject to R-05-150 review; a session is authenticated only by a chain that policy validates, and in R-09-014's time-unknown state no chain validates; the trust-anchor set is content of the validator's admitted image, changed only by the §13 successor-generation path, and no anchor enters from a peer, from hosted content or from a runtime channel; no validator proof enters the trust base (R-05-010, R-05-078).
+**R-12-032a** MUST: Every TLS peer the platform authenticates by certificate (the browser's hosted content, the resolver's DNS-over-TLS upstream, NTS key establishment and [§13](#13-packaging--supply-chain) fetches among them) is authenticated by X.509 chain validation held to the handshake's own two disciplines: the DER certificate and chain grammar is an R-05-042 wire format with its own Narcissus descriptor, and the validator is a contained compartment separate from the record layer whose start-from is Rust-native in the Verdict lineage, its Verus proofs bonus over the memory-safety floor and never trust base; the validation policy that validator is checked against, path construction, signature acceptance through the [§5](#5-languages--verification) verified core, validity against authenticated time, name constraints and host-name matching over a trust-anchor set, is a crown-jewel spec, because no one true specification of chain validity exists and a verified validator against the wrong policy is a correct proof of the wrong property.
+· Accept: the wire-format inventory carries the X.509 DER certificate and chain descriptors; the crown-jewel inventory carries the policy as one row, curated from RFC 5280 and the published Verdict policy models and subject to R-05-150 review; a session is authenticated only by a chain that policy validates, and in R-09-014's time-unknown state no chain validates; the trust-anchor set is content of the validator's admitted image, changed only by the [§13](#13-packaging--supply-chain) successor-generation path, and no anchor enters from a peer, from hosted content or from a runtime channel; no validator proof enters the trust base (R-05-010, R-05-078).
 · Trace: CJ-PKI, CJ-FORMAT
 
 **R-12-033** MUST: Where no Coq-native verified peer exists, mature verified artifacts in other provers serve as differential-test oracles that enter no trust base: IRONSIDES for the resolver, and SPARK-verified TCP with Huginn-TCP conformance for smoltcp.
@@ -3002,12 +3002,12 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Trace: CJ-WCET
 
 **R-12-037** MUST: Secure PTP runs in the most defensive profile the standard allows: the authentication TLV on every message, its key established through the platform's own NTS key establishment rather than manual pre-shared secrets, time-receiver-only, accepting no management or reconfiguration messages, and its framing held to the Narcissus discipline.
-· Accept: no verified PTP peer exists, so it rides parser-plus-crypto discipline alone; the residual delay and path-asymmetry surface is booked in §17.
+· Accept: no verified PTP peer exists, so it rides parser-plus-crypto discipline alone; the residual delay and path-asymmetry surface is booked in [§17](#17-residual-risks).
 · Trace: CJ-FORMAT, CJ-CRYPTO-SPEC
 
 ### 12.8 Radio stack
 
-**R-12-038** MUST: The radio is software-defined as ordinary contained compartments with no baseband processor anywhere: PHY servers run statically pinned on the radio V-class cores with the FEC units, and HARQ/subframe deadlines are §11-admitted hard tasks.
+**R-12-038** MUST: The radio is software-defined as ordinary contained compartments with no baseband processor anywhere: PHY servers run statically pinned on the radio V-class cores with the FEC units, and HARQ/subframe deadlines are [§11](#11-updates)-admitted hard tasks.
 · Accept: cellular and Wi-Fi PHYs are separate compartments; GNSS (receive-only) is a third.
 · Trace: CJ-CERISE, CJ-WCET
 
@@ -3051,7 +3051,7 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Accept: each of inventory rows 19–22 names its upstream analysis lineage with the pinned artifact recorded as the row is authored; the transcription's correspondence to the analyzed model enters the R-05-150 review as a formal-to-formal comparison, clause against clause, rather than a reading of prose; a reference model authored from the prose standard where an analyzed model exists is a review-gate finding; a procedure no published analysis covers is transcribed from the standard under R-05-050's hand-transcription posture and named as such in the row.
 · Trace: CJ-VELUS
 
-**R-12-043f** IS: The composition's remainder is three named parts, none claimed closed: the analyzed model's faithfulness to the prose standard, an R-17-016b-class agreement gap on a protocol rather than a format, permanent because the upstream is prose and capping every implementer identically; the symbolic abstraction, the analysis treating the §5 primitives as ideal so that its guarantee composes with the scheme-level reductions by assumption rather than by a computational-soundness theorem; and the analyses' provers, which stand outside the one-prover discipline, so each imported statement is producer-side evidence entering no trust base and no Ax class, never a platform theorem.
+**R-12-043f** IS: The composition's remainder is three named parts, none claimed closed: the analyzed model's faithfulness to the prose standard, an R-17-016b-class agreement gap on a protocol rather than a format, permanent because the upstream is prose and capping every implementer identically; the symbolic abstraction, the analysis treating the [§5](#5-languages--verification) primitives as ideal so that its guarantee composes with the scheme-level reductions by assumption rather than by a computational-soundness theorem; and the analyses' provers, which stand outside the one-prover discipline, so each imported statement is producer-side evidence entering no trust base and no Ax class, never a platform theorem.
 · Accept: the three parts stay booked; no requirement claims composed session security as a platform theorem or cites an imported analysis inside Ax; the analyses' conformance to their standards-body feedback loops and their published attack findings are producer-side evidence in R-17-016b's stance, and no requirement claims the agreement gap closed.
 · Trace: CJ-VELUS
 
@@ -3082,7 +3082,7 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Trace: CJ-NI, CJ-DEVTREE
 
 **R-12-050** IS: Because emergency registration attaches on the IMEI with no subscription secret, the mode needs no eUICC and works identically at Before First Unlock, after a duress crypto-erase, or with no eUICC provisioned; on call end the compartment is torn down and eager-zeroized.
-· Accept: no state carries into normal operation; the 5G/6G coverage limit is booked in §15 and §17.
+· Accept: no state carries into normal operation; the 5G/6G coverage limit is booked in [§15](#15-hardware-platform) and [§17](#17-residual-risks).
 · Fail-closed: emergency service exists only inside 5G-SA or 6G coverage (R-17-030g); outside it the cost is the call itself.
 · Trace: CJ-CERISE
 
@@ -3099,7 +3099,7 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Trace: CJ-DEVTREE
 
 **R-12-054** MUST: The sealed physical cutoffs still dominate and are not overridden: a thrown microphone switch yields a connected but mute emergency call, and a thrown radio switch yields none at all.
-· Accept: a software path able to re-enable a sealed cutoff for emergencies is a software path able to re-enable it; the direction is booked in §17.
+· Accept: a software path able to re-enable a sealed cutoff for emergencies is a software path able to re-enable it; the direction is booked in [§17](#17-residual-risks).
 · Fail-closed: a thrown cutoff is not overridden, emergency calling included (R-17-030f); the cost is the sensor or radio the user sealed.
 · Trace: CJ-T
 
@@ -3174,11 +3174,11 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Trace: CJ-ISOL
 
 **R-12-071** IS: On the confidentiality ledger the event-driven change is neutral-to-positive: the island partition restores the constant-from-outside property, and emitting only changes shrinks the exposed data, leaving a worst-case-bandwidth reservation as the sole residual, a power-margin cost, not a confidentiality one.
-· Accept: an event-streaming DMA holds a bounded capability that honours the §8 revocation sweep like any other transfer.
+· Accept: an event-streaming DMA holds a bounded capability that honours the [§8](#8-authority-model) revocation sweep like any other transfer.
 · Trace: CJ-NI, CJ-CERISE
 
-**R-12-072** IS: The raw-AFE silicon and its host-side DSP are a net-new co-design, and the continuous host-cycle and report-latency budget each consumes is a §11 scheduled task: the honest cost of dissolving the firmware the doctrine deletes.
-· Accept: the §17 entry exists (R-15-142).
+**R-12-072** IS: The raw-AFE silicon and its host-side DSP are a net-new co-design, and the continuous host-cycle and report-latency budget each consumes is a [§11](#11-updates) scheduled task: the honest cost of dissolving the firmware the doctrine deletes.
+· Accept: the [§17](#17-residual-risks) entry exists (R-15-142).
 · Trace: CJ-WCET
 
 ### 12.13 Service manager
@@ -3199,7 +3199,7 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Trace: CJ-VELUS
 
 **R-12-088** MUST: Capacity intervention triggers on resource-specific forward-progress signals (remaining pool members, oldest-waiter age, quarantined-but-not-reusable count, failed bindings per fixed window, completion age of teardown, zeroization, checkpoint, and sweep work, ring occupancy where the occupancy label permits, repeated restart or eviction counts), each with a fixed sampling cadence, a public threshold, a bounded reaction time, and a declared observer label; no aggregate utilization or PSI-class stall-time metric exists or is consumed.
-· Accept: each signal's detection latency and reaction slot are admitted under §11; collection performs no scan proportional to the number of compartments and alters no other partition's schedule.
+· Accept: each signal's detection latency and reaction slot are admitted under [§11](#11-updates); collection performs no scan proportional to the number of compartments and alters no other partition's schedule.
 · Trace: CJ-VELUS, CJ-WCET
 
 **R-12-089** MUST: Every dynamically occupiable tenant and pool member carries one composition-fixed criticality class (non-sacrificable, suspendable, checkpoint-and-terminable, restartable without checkpoint, or discardable) plus any all-or-nothing dependency group and the ordered action ladder permitted for that group, and runtime focus selects among candidates only inside an equivalence class whose sacrifice policy is identical and whose selection observation is already permitted.
@@ -3268,7 +3268,7 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 ### 12.15 Inference and telemetry
 
 **R-12-085** IS: The inference server is an optional Tier-1 compartment exposing quantized-inference sessions over rings, with weights de-quantized and any microscaling block-scale applied in software on the M-class vector unit.
-· Accept: models are content-addressed store objects; per-session memory is capability-delegated and zeroized on teardown. A model is **data** and never code and never a compartment, so R-12-084b's shape governs it: the server's slot, worker set, and pools are fixed at composition against a declared ceiling whose terms here are the resident bytes, the context length, the quantization formats, the expert count and top-k (R-15-171), the KV footprint per token, and the R-15-247p bank grant that sets the admitted token rate; a model inside the ceiling runs in the admitted slot and one above it is answered when the session opens. That ceiling is also where the static plan's two prices land on one roster member at once: the exclusivity tax R-15-172 concedes, the server's pools sized to their peak and never pooled, and the token rate R-15-247p fixes as a composition-time constant of the bank grant rather than a performance property of the machine, so the inference server pays the conceded waste and the constant rate together, and a model inside the ceiling is charged both rather than excused either. What the model owes is a canonical shape descriptor and not a proof: an R-05-051a canonicity theorem over an R-05-051b schema-bounded non-recursive Narcissus format, so the descriptor's parser is verified while the model stays untrusted data, on the R-15-238d containment footing and R-05-018's untrusted-finder posture. Proof-carrying weights are a category error, weights not executing and the executing code being the server's GEMM and attention kernels, which carry their obligations whichever weights they read. The server is optional in general and required by the first release's composition, R-18-004a(vii) being a member of a floor no member trades against, so what changes is that one composition may not omit it and not that the mechanism becomes mandatory. A session's prompts, context, and outputs carry their client's §8 confidentiality label and no §5 secret label: the server's ring interface types declare none (R-12-011), so the server is not a secret-touching compartment (R-05-074), R-05-070 does not reach its expert routing, its sampling, or its KV-cache addressing, and that scoping is what lets R-15-171 admit routing that selects expert addresses at all. A client holding secret-labeled material therefore has no typed channel on which to hand it to the server, whose kernels carry no constant-time proof (R-13-020); what the scoping leaves is a data dependence the schedule confines to the server's own slots and banks, whose escape is the near-field signature R-17-058e books over the user-derived fraction of bulk memory.
+· Accept: models are content-addressed store objects; per-session memory is capability-delegated and zeroized on teardown. A model is **data** and never code and never a compartment, so R-12-084b's shape governs it: the server's slot, worker set, and pools are fixed at composition against a declared ceiling whose terms here are the resident bytes, the context length, the quantization formats, the expert count and top-k (R-15-171), the KV footprint per token, and the R-15-247p bank grant that sets the admitted token rate; a model inside the ceiling runs in the admitted slot and one above it is answered when the session opens. That ceiling is also where the static plan's two prices land on one roster member at once: the exclusivity tax R-15-172 concedes, the server's pools sized to their peak and never pooled, and the token rate R-15-247p fixes as a composition-time constant of the bank grant rather than a performance property of the machine, so the inference server pays the conceded waste and the constant rate together, and a model inside the ceiling is charged both rather than excused either. What the model owes is a canonical shape descriptor and not a proof: an R-05-051a canonicity theorem over an R-05-051b schema-bounded non-recursive Narcissus format, so the descriptor's parser is verified while the model stays untrusted data, on the R-15-238d containment footing and R-05-018's untrusted-finder posture. Proof-carrying weights are a category error, weights not executing and the executing code being the server's GEMM and attention kernels, which carry their obligations whichever weights they read. The server is optional in general and required by the first release's composition, R-18-004a(vii) being a member of a floor no member trades against, so what changes is that one composition may not omit it and not that the mechanism becomes mandatory. A session's prompts, context, and outputs carry their client's [§8](#8-authority-model) confidentiality label and no [§5](#5-languages--verification) secret label: the server's ring interface types declare none (R-12-011), so the server is not a secret-touching compartment (R-05-074), R-05-070 does not reach its expert routing, its sampling, or its KV-cache addressing, and that scoping is what lets R-15-171 admit routing that selects expert addresses at all. A client holding secret-labeled material therefore has no typed channel on which to hand it to the server, whose kernels carry no constant-time proof (R-13-020); what the scoping leaves is a data dependence the schedule confines to the server's own slots and banks, whose escape is the near-field signature R-17-058e books over the user-derived fraction of bulk memory.
 · Trace: CJ-CERISE
 
 **R-12-085a** MUST: An autonomous agent is an ordinary contained compartment with a manifest, in no trusted set and holding no ambient authority: every capability it exercises arrives as a powerbox grant with an explicit temporal scope, witnessed on the trusted consent path.
@@ -3280,8 +3280,8 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Fail-closed: a call naming an interface the manifest does not carry is refused before any consent prompt (R-17-030w); the cost is the action the agent asked for, against a manifest a user can widen under fatigue as the alternative.
 · Trace: CJ-CERISE
 
-**R-12-085c** MUST: The agent's peer wire is the §12 typed IDL over a ring, started by the service manager and held to the §5 Narcissus discipline; there is no `fork`/`exec`, and running a command is a capability-delegated compartment.
-· Accept: the wire appears in the §5 wire-format inventory, and no process-spawn primitive is reachable from an agent compartment.
+**R-12-085c** MUST: The agent's peer wire is the [§12](#12-system-servers) typed IDL over a ring, started by the service manager and held to the [§5](#5-languages--verification) Narcissus discipline; there is no `fork`/`exec`, and running a command is a capability-delegated compartment.
+· Accept: the wire appears in the [§5](#5-languages--verification) wire-format inventory, and no process-spawn primitive is reachable from an agent compartment.
 · Trace: CJ-IDL, CJ-FORMAT
 
 **R-12-085d** IS: Inference is served by the optional software inference server, by R-12-085f's qualified-module broker, or by a remote endpoint through the network compartment; the agent, not the model, is the principal that holds authority.
@@ -3289,7 +3289,7 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Trace: CJ-CERISE
 
 **R-12-085e** MUST NOT: No agent mints native code into a running generation: an agent that edits source drives the device's or another party's toolchain (R-13-027) as one more client; native output enters through successor-generation admission, while a Wasm application bundle may enter through R-14-013e's runtime validation and interpretation.
-· Accept: the agent compartment holds no executable-memory authority and no authority over the toolchain beyond a consent-granted ring to it (R-12-085b); native artifacts it causes are admitted under §13, Wasm bundles under R-14-013e, with neither path reading agent provenance. The consent act signing a native composition is the holder's on the trusted path, never the agent's (R-13-027b); an agent cannot make a guest import or grant exceed its host's composed authority.
+· Accept: the agent compartment holds no executable-memory authority and no authority over the toolchain beyond a consent-granted ring to it (R-12-085b); native artifacts it causes are admitted under [§13](#13-packaging--supply-chain), Wasm bundles under R-14-013e, with neither path reading agent provenance. The consent act signing a native composition is the holder's on the trusted path, never the agent's (R-13-027b); an agent cannot make a guest import or grant exceed its host's composed authority.
 · Trace: CJ-TAL-SOUND
 
 **R-12-085f** IS: An optional Tier-1 module broker serves R-04-010b's immutable inference module through an already composed typed ring and R-15-228f's socket; no module is enabled for inference until its complete design, implementation and physical qualification artifacts have been admitted.
@@ -3316,7 +3316,7 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 
 **R-12-085j** MUST: A module inference route requires a live powerbox grant naming the requesting agent or application, exact authenticated unit key and design/model identity, permitted input objects or source, result destination, operation and temporal scope; missing, expired, revoked or mismatched authority refuses the transfer.
 · Accept: the trusted consent path renders only host-validated identity and scope. The capability remains with the host principal and broker, never the model or its session (R-12-085d); no module message can request a wider grant or manufacture a consent response. A different unit or design inherits no grant, and reconnection requires fresh authentication and re-evaluation of any standing grant. Grant review and retraction use R-08-043c's projection.
-· Accept: inference content keeps its client's confidentiality label and carries no §5 secret label, as on R-12-085's software path. Authorization creates no secret-input channel and removes no label. Revocation stops future transfers; erasing already disclosed data depends on R-12-085k's implementation and never on the revocation itself.
+· Accept: inference content keeps its client's confidentiality label and carries no [§5](#5-languages--verification) secret label, as on R-12-085's software path. Authorization creates no secret-input channel and removes no label. Revocation stops future transfers; erasing already disclosed data depends on R-12-085k's implementation and never on the revocation itself.
 · Fail-closed: grant failure disables application delivery through that route; no automatic software or remote fallback broadens the authorized destination (R-17-030za).
 · Trace: CJ-NI, CJ-CERISE, CJ-HAL
 
@@ -3359,7 +3359,7 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Trace: CJ-DEVTREE, CJ-CERISE
 
 **R-13-001b** MUST NOT: There are no pre-proved empty **native** compartment slots: no reservation is composed and admitted ahead of the native code that would occupy it, and no native package binds into one. A precomposed interpreter host contains its admitted engine and fixed manifest; a later Wasm guest is bounded input data under R-14-013e, not an occupant supplying native code or authority.
-· Accept: such a reservation would have to carry banks in the per-mode occupancy map (R-08-012a, R-08-012e), a schedule slot with a WCET and a switch-duty ratio (R-11-006, R-11-009), a standing NoC reservation (R-11-008), and a share of the initial distribution (R-07-019), each sized for an occupant that does not exist yet, which is worst-case sizing plus a dynamic allocator wearing static syntax; and the whole-image dead and duplication passes read the composed roster (R-13-010a, R-13-010b), so an empty slot is precisely what they cannot see into. The composition-time template of R-12-024c is not this and survives unchanged: it binds nodes already composed and already admitted under §11, creating no compartment, no edge type, and no reservation.
+· Accept: such a reservation would have to carry banks in the per-mode occupancy map (R-08-012a, R-08-012e), a schedule slot with a WCET and a switch-duty ratio (R-11-006, R-11-009), a standing NoC reservation (R-11-008), and a share of the initial distribution (R-07-019), each sized for an occupant that does not exist yet, which is worst-case sizing plus a dynamic allocator wearing static syntax; and the whole-image dead and duplication passes read the composed roster (R-13-010a, R-13-010b), so an empty slot is precisely what they cannot see into. The composition-time template of R-12-024c is not this and survives unchanged: it binds nodes already composed and already admitted under [§11](#11-updates), creating no compartment, no edge type, and no reservation.
 · Trace: CJ-MEMPLAN, CJ-WCET
 
 **R-13-001c** MUST: The composer that turns a roster into a generation is an untrusted producer, and **where it runs is the holder's choice and no part of the trust argument**: the whole-image passes emit new bytes and must emit the CHERI-TAL derivation and source-correspondence theorem covering them (R-13-010a, R-13-010b), which is the certifying toolchain, and that toolchain is resident software the device can run itself (R-13-027); the device names the roster it wants, composes it locally or fetches the objects it lacks (R-13-008), and admits the result through the ordinary checks (R-06-008, R-11-005).
@@ -3374,7 +3374,7 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Accept: the installation path executes no package-supplied code.
 · Trace: CJ-CERISE
 
-**R-13-003** IS: The admitted artifact is a content-addressed capability image, not an ELF-style executable container: a set of content-addressed objects named by a small typed manifest: the immutable code-and-rodata image, a separate writable data-initializer, the exact source closure, the CHERI-TAL typing derivation and source-correspondence theorem, the capability-wiring table, and the capability manifest with its §12 interface descriptor.
+**R-13-003** IS: The admitted artifact is a content-addressed capability image, not an ELF-style executable container: a set of content-addressed objects named by a small typed manifest: the immutable code-and-rodata image, a separate writable data-initializer, the exact source closure, the CHERI-TAL typing derivation and source-correspondence theorem, the capability-wiring table, and the capability manifest with its [§12](#12-system-servers) interface descriptor.
 · Accept: all parts are present; no interpreted, offset-linked container grammar is parsed on-device.
 · Trace: CJ-TAL-SOUND, CJ-FORMAT
 
@@ -3395,7 +3395,7 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Trace: CJ-DEVTREE
 
 **R-13-008** IS: Transfer between systems is a set difference: a content-aware copy or fetch writes and moves only the objects the destination lacks, each verified by hash on arrival, and the have/want exchange stays within a confidentiality domain.
-· Accept: it is therefore not a cross-domain membership oracle, the transfer-time form of the §10 rule that dedup never crosses a domain.
+· Accept: it is therefore not a cross-domain membership oracle, the transfer-time form of the [§10](#10-storage--state) rule that dedup never crosses a domain.
 · Trace: CJ-NI
 
 **R-13-009** MUST: The on-device pack decoder is a Narcissus copy-once verified reader over a fixed-layout, schema-bounded format (header, flat hash-indexed object table, blob region) with every object independently hash-verified, so a corrupt index fails a hash check rather than driving a parser.
@@ -3414,15 +3414,15 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Accept: authority is unchanged, each compartment still receiving only its declared sentry entries and a shared object conferring execute authority over the object and never over another holder's state; the source-correspondence theorem and CHERI-TAL derivation cover the **merged** image, and construction is rejected if a merge changes a rooted symbol, capability edge, interface, or proof obligation; the outlining and tail-merging half of this pass has its owner, its intra-compartment scope, its profitability rule, and its two-axis measurement at R-15-036o and R-15-036p.
 · Trace: CJ-FORMAT, CJ-TAL-SOUND, CJ-MEMPLAN
 
-**R-13-010c** MUST NOT: Relocations, symbols, debug data, unwind metadata, and ELF-style container structure never occupy execution SRAM, and neither do source closures, derivations, or proof artifacts, which are resident in the authenticated store (§10) and consumed at admission rather than at run time.
+**R-13-010c** MUST NOT: Relocations, symbols, debug data, unwind metadata, and ELF-style container structure never occupy execution SRAM, and neither do source closures, derivations, or proof artifacts, which are resident in the authenticated store ([§10](#10-storage--state)) and consumed at admission rather than at run time.
 · Accept: the resident image is code-and-rodata plus the capability-wiring table's product, nothing else; the largest single footprint reduction in R-13-010b is this removal rather than a merge.
 · Trace: CJ-FORMAT, CJ-MEMPLAN · [§13](spec.md#r-13-010b)
 
 **R-13-010d** MUST NOT: Link-time specialization may not specialize on a confidential value.
-· Accept: the §15 dictionary encoding makes a specialized image's encoded length a function of what it was specialized on, so this is a scope condition of R-15-036g rather than a style preference; R-15-202's key containment and §13's admission rules already keep secrets out of images, and this states the consequence for the specialization pass.
+· Accept: the [§15](#15-hardware-platform) dictionary encoding makes a specialized image's encoded length a function of what it was specialized on, so this is a scope condition of R-15-036g rather than a style preference; R-15-202's key containment and [§13](#13-packaging--supply-chain)'s admission rules already keep secrets out of images, and this states the consequence for the specialization pass.
 · Trace: CJ-NI, CJ-LEAK · [§13](spec.md#r-13-010b)
 
-**R-13-010e** IS: The duplication pass is **partly substitutive** with the §15 dictionary encoding rather than additive, each recurring sequence it removes also removing instances the dictionary would have covered.
+**R-13-010e** IS: The duplication pass is **partly substitutive** with the [§15](#15-hardware-platform) dictionary encoding rather than additive, each recurring sequence it removes also removing instances the dictionary would have covered.
 · Accept: the two are measured composed and never multiplied, and this pass is ordered **first**, a dictionary selected against an unmerged image being selected against the wrong histogram (R-15-036i).
 · Trace: CJ-MEMPLAN, CJ-FORMAT · [§13](spec.md#r-13-010b)
 
@@ -3477,7 +3477,7 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Trace: CJ-HAL, CJ-TAL-SOUND
 
 **R-13-020** MUST: Any app receiving secret-labeled material carries the binary-level constant-time obligation; apps that touch no secrets carry no CT proof.
-· Accept: the secret-touching set is derived from the label on the material, never from its channel of arrival (R-05-074), so it includes the §12 IDL-labeled flows and equally the non-IDL arrival channels R-05-074 enumerates.
+· Accept: the secret-touching set is derived from the label on the material, never from its channel of arrival (R-05-074), so it includes the [§12](#12-system-servers) IDL-labeled flows and equally the non-IDL arrival channels R-05-074 enumerates.
 · Trace: CJ-CT-SOUND, CJ-IDL
 
 ### 13.3 Trust boundaries and supply chain
@@ -3578,11 +3578,11 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Trace: CJ-CERISE, CJ-TAL-SOUND
 
 **R-14-005** IS: Native apps and interpreter hosts are unverified *for application functional correctness*, contained, and each a least-authority domain wired at compose time; their native logic is memory-safe by construction, though not by default functionally proven. Interpreted guest logic has R-14-013a's explicitly narrower guarantee.
-· Accept: native logic uses safe Rust by default, or any language whose binary carries the §13 memory-safety certificate. A claim of guest object-level safety, constant-time behavior, or source-to-bundle correspondence requires checked evidence for that exact guest and property; Wasm validation, a source-language name or the host's native certificate alone establishes none of them.
+· Accept: native logic uses safe Rust by default, or any language whose binary carries the [§13](#13-packaging--supply-chain) memory-safety certificate. A claim of guest object-level safety, constant-time behavior, or source-to-bundle correspondence requires checked evidence for that exact guest and property; Wasm validation, a source-language name or the host's native certificate alone establishes none of them.
 · Trace: CJ-TAL-SOUND
 
 **R-14-006** MUST: Intra-app library compartmentalization covers the authority dimension the memory-safety certificate does not: an app may partition itself into library compartments, each a node in the machine-checked component graph carrying its own least-authority sub-manifest, with cross-compartment calls mediated by the same seal/switch primitives that separate whole apps.
-· Accept: no new mechanism, and the intra-app graph is fixed at build time, so it neither mints dynamic privilege nor escapes the §8 theorem.
+· Accept: no new mechanism, and the intra-app graph is fixed at build time, so it neither mints dynamic privilege nor escapes the [§8](#8-authority-model) theorem.
 · Trace: CJ-CERISE, CJ-NI
 
 **R-14-007** MUST: Sub-compartmentalization is required where the authority gap bites: any dependency parsing attacker-controlled input, and any third-party library handed capabilities beyond pure compute.
@@ -3590,7 +3590,7 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Trace: CJ-CERISE
 
 **R-14-007a** MUST: Above the R-14-007 floor, discretionary label count is the budgeted composition-time quantity and compartment count inside one label is not: the frame is non-work-conserving across confidentiality boundaries (R-07-036), so every live discretionary label is a divisor of the discretionary band and an idle one burns a slot no mechanism reclaims (R-17-004, R-17-006), while same-label compartments share one slot under the R-07-037b rotation and spend group cadence (R-11-006b) rather than slots.
-· Accept: the composition records its discretionary label count as a capacity decision against the §11 population rung (R-11-021); one tenant doing batched work is preferred to several waiting ones, and deep sets are held as retained state (R-14-011) rather than as live tenants. The lever recovers no scored row: the wall is a capacity statement rather than a percentage, so what the budget decides is where a composition sits against it.
+· Accept: the composition records its discretionary label count as a capacity decision against the [§11](#11-updates) population rung (R-11-021); one tenant doing batched work is preferred to several waiting ones, and deep sets are held as retained state (R-14-011) rather than as live tenants. The lever recovers no scored row: the wall is a capacity statement rather than a percentage, so what the budget decides is where a composition sits against it.
 · Trace: CJ-CERISE, CJ-WCET
 
 **R-14-007b** MUST NOT: No compartment boundary R-14-007 requires is merged to shrink the divisor.
@@ -3605,28 +3605,28 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Accept: no code generation happens at run time anywhere on the path, the selection being a producer's act and every body admitted image code, so W^X (R-14-002, R-14-004) holds by construction rather than by interpreter policy, and it holds identically where the producer was this device (R-13-027a). The admitted threaded form is **indirect**, its IR carrying op-codes a jump table resolves at dispatch, so no interpreter IR slot holds a code pointer a run-time write produced; an image whose interpreter IR slot holds a code capability rather than an op-code fails this, which is read off the IR encoding. The direct-threaded form is deferred rather than excluded, and not on W^X, whose reach it stays inside structurally, the IR being data that fills no executable bank at run time (R-15-047) and spends none of R-14-008b's footprint budget as executable code: what it wants is a typing R-05-113's subset check can draw a premise from, and the CHERI-TAL types a register file at block entry with no former relating a memory slot to the type a load produces from it, so the sentry mechanism R-05-112 already contemplates has nothing to give a slot inside a buffer the interpreter writes. It is admitted once that former exists and carries its soundness obligation, and the footprint trade is decided against R-14-008b at that point rather than assumed.
 · Trace: CJ-CERISE
 
-**R-14-008b** MUST: Superinstruction-set membership is a size-constrained selection against the corpus, bounded by the §15 SRAM capacity budget and the §7/§8 static memory plan, because each member costs its own interpreter body and buys dispatch reduction with image footprint.
+**R-14-008b** MUST: Superinstruction-set membership is a size-constrained selection against the corpus, bounded by the [§15](#15-hardware-platform) SRAM capacity budget and the [§7](#7-kernel)/[§8](#8-authority-model) static memory plan, because each member costs its own interpreter body and buys dispatch reduction with image footprint.
 · Accept: the frozen set is recorded as a constrained-objective selection whose footprint is charged against that budget; no set is admitted on the ground that it is data rather than generated code, which is a property W^X does not bound.
 · Trace: CJ-MEMPLAN
 
-**R-14-008c** IS: An inline cache is compartment-private data under CHERI bounds inside one origin compartment, not microarchitecture: it crosses no confidentiality boundary, no §15 admission test applies to it, and the timing variance it introduces sits inside a discretionary slot whose width the §11 rung fixes, so it cannot move time between compartments; what it forfeits is intra-compartment timing determinism, which is not promised.
-· Accept: the §8 non-interference statement is unchanged, and no cache state is shared between origin compartments or consulted across a partition switch.
+**R-14-008c** IS: An inline cache is compartment-private data under CHERI bounds inside one origin compartment, not microarchitecture: it crosses no confidentiality boundary, no [§15](#15-hardware-platform) admission test applies to it, and the timing variance it introduces sits inside a discretionary slot whose width the [§11](#11-updates) rung fixes, so it cannot move time between compartments; what it forfeits is intra-compartment timing determinism, which is not promised.
+· Accept: the [§8](#8-authority-model) non-interference statement is unchanged, and no cache state is shared between origin compartments or consulted across a partition switch.
 · Trace: CJ-NI, CJ-WCET
 
 **R-14-008d** MUST: The inline-cache path carries a producer-side differential-testing obligation, test262 and the Wasm specification suite run against the same interpreter with caches disabled, discharged as engineering hygiene and never as a trust argument.
 · Accept: the differential runs are off-device and no admission decision cites them; the residual is reliability rather than confidentiality, nothing on the device deciding Tier-2 functional correctness (R-14-005).
 · Trace: CJ-TAL-SOUND
 
-**R-14-008e** MUST: The browser's own chrome and built-in libraries are not downloaded content and are native image code admitted through the §13 path rather than interpreted; the certifying toolchain (R-05-021, §18) carries no JavaScript compiler, so what an upstream engine writes as privileged or self-hosted JS is authored natively here and never compiled from JS.
+**R-14-008e** MUST: The browser's own chrome and built-in libraries are not downloaded content and are native image code admitted through the [§13](#13-packaging--supply-chain) path rather than interpreted; the certifying toolchain (R-05-021, [§18](#18-realization)) carries no JavaScript compiler, so what an upstream engine writes as privileged or self-hosted JS is authored natively here and never compiled from JS.
 · Accept: no privileged browser implementation or built-in library runs as JavaScript. Packaged HTML/CSS/JS/Wasm under R-14-008h is untrusted guest data, never browser implementation code, and its JS/Wasm remains interpreted even when the package is installed.
 · Trace: CJ-CERISE
 
-**R-14-008f** IS: There is no AOT route for web JS and Wasm, whether fetched or packaged: Wasm is no system execution target (R-14-013) and the certifying toolchain carries no JavaScript compiler (R-14-008e). A source-level native reimplementation or backend admitted through §13 avoids interpretation only for the work it implements natively; installing a web frontend does not convert it to native code.
+**R-14-008f** IS: There is no AOT route for web JS and Wasm, whether fetched or packaged: Wasm is no system execution target (R-14-013) and the certifying toolchain carries no JavaScript compiler (R-14-008e). A source-level native reimplementation or backend admitted through [§13](#13-packaging--supply-chain) avoids interpretation only for the work it implements natively; installing a web frontend does not convert it to native code.
 · Accept: [performance-estimates.md](performance/performance-estimates.md) retains the interpreter cost for fetched and packaged JS/Wasm; any native acceleration claim identifies the native work, its admission artifacts and the remaining frontend and communication cost. Packaging alone earns no interpreter speedup.
 · Trace: CJ-TAL-SOUND
 
-**R-14-008g** MUST: Browser tabs, standalone web applications and embedded web views use one generation-selected browser-engine codebase and admitted runtime artifact set, including the R-14-013c Wasm engine. Embedding is a capability-scoped interface to the same runtime, not an additional engine or a foreign-framework binary interface. Executable sharing follows §13 composition; mutable DOM, JS, cache, storage and worker state is private to the R-14-009 binding.
-· Accept: the composed closure identifies the same engine artifacts for all three surfaces and no per-app engine fork, Node.js runtime, foreign binary shim or runtime dynamic loader. Two apps displaying the same origin in distinct app profiles share neither mutable state nor grants implicitly. The engine and embedding implementation meet their §13 admission obligations; sharing code supplies no browser functional-correctness claim.
+**R-14-008g** MUST: Browser tabs, standalone web applications and embedded web views use one generation-selected browser-engine codebase and admitted runtime artifact set, including the R-14-013c Wasm engine. Embedding is a capability-scoped interface to the same runtime, not an additional engine or a foreign-framework binary interface. Executable sharing follows [§13](#13-packaging--supply-chain) composition; mutable DOM, JS, cache, storage and worker state is private to the R-14-009 binding.
+· Accept: the composed closure identifies the same engine artifacts for all three surfaces and no per-app engine fork, Node.js runtime, foreign binary shim or runtime dynamic loader. Two apps displaying the same origin in distinct app profiles share neither mutable state nor grants implicitly. The engine and embedding implementation meet their [§13](#13-packaging--supply-chain) admission obligations; sharing code supplies no browser functional-correctness claim.
 · Trace: CJ-CERISE, CJ-NI
 
 **R-14-008h** MUST: Web applications have two content profiles. A hosted profile loads HTTPS web content under ordinary origin containment, including bounded offline caches; its shell registration confers no custom native bridge. A packaged profile binds a stable app identity and a separate package origin to a signed, content-addressed closure of HTML/CSS/JS/Wasm guest assets and an optional separately admitted native backend. Package content has no execute authority and remains subject to R-14-008a. Engine, package assets, backend, authority ceiling and handler registration change only through the successor-generation installation path (R-13-001a, R-12-024b).
@@ -3642,14 +3642,14 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Trace: CJ-MEMPLAN, CJ-WCET, CJ-NI
 
 **R-14-009** MUST: Origins come from a composition-fixed pool of *P* identical origin compartments (one manifest, one static memory plan) differing only in their app/profile and origin binding, because static composition admits no compartment minted at runtime. A binding separates browser-profile state from each installed app's private profile; all surfaces and workers consume that pool under R-14-008j, and no app profile expands a member's manifest ceiling.
-· Accept: opening a tab binds a free pool member and raises the §11 population rung; closing one is an ordinary kernel-mediated session teardown whose authority is contained at R-08-006's barrier completion. Rebinding waits for the member's resource-specific Reusable predicate, including R-08-007a's quarantine gate, required zeroization and device completion; bitmap publication alone releases no member.
+· Accept: opening a tab binds a free pool member and raises the [§11](#11-updates) population rung; closing one is an ordinary kernel-mediated session teardown whose authority is contained at R-08-006's barrier completion. Rebinding waits for the member's resource-specific Reusable predicate, including R-08-007a's quarantine gate, required zeroization and device completion; bitmap publication alone releases no member.
 · Trace: CJ-CERISE, CJ-MEMPLAN
 
 **R-14-010** MUST: Past the origin-pool ceiling, the browser selects a permitted victim among its own origins under R-14-014 and can bind the new origin only after the old member becomes Reusable; frozen-resident suspension alone does not release its backing.
 · Accept: hibernation or declared discard establishes R-14-011a's applicable lifecycle result and R-14-009's complete reuse gate before rebinding. Protected origins, unavailable checkpoint space and missed completion deadlines take the manifest's bounded outcome, including refusal when no permitted member is reusable. Browser policy chooses which tab is slow and never changes the admitted slot widths, authority boundary or quarantine gate.
 · Trace: CJ-WCET, CJ-NI, CJ-CERISE, CJ-MEMPLAN
 
-**R-14-011** IS: Deep tab sets are retained state, not concurrent computation; the honest form of that statement, with numbers, is §17's population wall.
+**R-14-011** IS: Deep tab sets are retained state, not concurrent computation; the honest form of that statement, with numbers, is [§17](#17-residual-risks)'s population wall.
 · Accept: consistent with R-17-002.
 · Trace: CJ-WCET
 
@@ -3685,7 +3685,7 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Accept: every native compartment is admitted as RV64+CHERI rather than Wasm, no WASI runtime supplies ambient authority or native code loading, and the sole guest execution route is pure interpretation under R-14-013a and R-14-013e (R-05-085).
 · Trace: CJ-TAL-SOUND
 
-**R-14-013a** MUST: The platform ships exactly one pure-interpreter Wasm engine as a §13 library compartment any application may bind for untrusted dynamic content, including R-14-013e's elastic application hosts: no JIT or runtime emission into executable memory, guest state inside the embedding's CHERI-bounded memory plan, the guest reaching its host only through host functions the embedding's manifest names, and the engine carrying machine-checked soundness (the executable interpreter refines the pinned guest semantics, R-14-013b) and robust guest confinement (an adversarial module influences its host and peers only through its declared imports and exports).
+**R-14-013a** MUST: The platform ships exactly one pure-interpreter Wasm engine as a [§13](#13-packaging--supply-chain) library compartment any application may bind for untrusted dynamic content, including R-14-013e's elastic application hosts: no JIT or runtime emission into executable memory, guest state inside the embedding's CHERI-bounded memory plan, the guest reaching its host only through host functions the embedding's manifest names, and the engine carrying machine-checked soundness (the executable interpreter refines the pinned guest semantics, R-14-013b) and robust guest confinement (an adversarial module influences its host and peers only through its declared imports and exports).
 · Accept: one Wasm interpreter artifact exists in the platform image; both theorems check against the pinned semantics at build; binding the engine grants an embedding no authority beyond its own manifest, and a hostile guest module reaches nothing its embedding did not import to it. What the embedding exposes to its guest, guest-observable timing inside the embedding's own slot, and object-level spatial and temporal safety within a guest's linear memory are excluded from the default claim. The boundary cases include adjacent-object overflow and stale-pointer reuse that core Wasm permits while confining the guest to its arena. A concrete consumer requiring stronger internal protection reopens comparison of safe-source compilation, finer module separation and MSWasm-shaped handles; any selected extension must account for its mechanized subset, compiler, host-call lifetime rules, metadata, memory and WCET costs before the pinned dialect changes.
 · Trace: CJ-WASM, CJ-WASM-SOUND
 
@@ -3730,7 +3730,7 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Accept: fusion selects only composition-admitted handler bodies and preserves operand aliasing, guest branch results, numeric semantics, trap order and preceding observable effects. Every handler and fused sequence has a checked native poll/call bound; fusion never erases a required poll. Bounds-check removal requires a proof of the exact successful guest range and trapping behavior, including address arithmetic overflow, current memory length and segmented accesses; a CHERI fault or spare backing capacity cannot substitute for a guest bounds check. Cached memory, table and import facts are invalidated or re-established after every mutation, growth, host call, suspension or lifecycle transition that can invalidate them. Fast and slow paths preserve the same guest results, traps and authority.
 · Accept: when selected, a finite composition-selected library of whole-loop handlers may interpret recognized typed loop forms with operands and trip counts as data, eliminating per-element guest dispatch. The same interpreter refinement proves recognition and execution, including aliasing, zero/overflowing counts, intermediate traps and effects; a failed recognition or guard uses ordinary interpretation before any fast-path effect. Handler code and recognition patterns are fixed image artifacts charged to the code budget, never generated from guest bytes. Long handlers poll internally through private resumable state; mutable facts are re-established on resume. No native compilation of an arbitrary guest loop is admitted.
 · Accept: an optional untrusted Wasm-to-Wasm producer may specialize a guest language interpreter or preinitialize a closed guest program during Build, with bounded resources and declared input authority. Its output is ordinary guest bytes subject to full closure validation and fresh activation; no native code, host capabilities, live handles or secret-bearing host snapshot is accepted. On-device preinitialization uses the already admitted pure interpreter with no new executable-memory path and no live application grants. This is distinct from Prepare, which executes no guest code. Producer correctness is not trusted for confinement and supplies no source correspondence claim without R-14-005's artifact-specific evidence; no new verified optimizer or equivalence checker is justified solely by this performance path.
-· Accept: reusable validation or decoded-IR results bind the exact bundle closure, pinned semantics, validator/interpreter artifact, host/import ABI and resource profile; only a host-owned immutable result established by the verified path may be reused. Mutable persisted cache bytes are revalidated or reconstructed, never trusted by key alone. Grants, bindings and available capacity are checked anew at each activation, and cached IR remains data. Separate native builds of app source keep §13's source-correspondence, admission and successor-boot obligations.
+· Accept: reusable validation or decoded-IR results bind the exact bundle closure, pinned semantics, validator/interpreter artifact, host/import ABI and resource profile; only a host-owned immutable result established by the verified path may be reused. Mutable persisted cache bytes are revalidated or reconstructed, never trusted by key alone. Grants, bindings and available capacity are checked anew at each activation, and cached IR remains data. Separate native builds of app source keep [§13](#13-packaging--supply-chain)'s source-correspondence, admission and successor-boot obligations.
 · Accept: reusable IR additionally binds its format and handler-set identity. Mutable caches and instance metadata are binding-private; reusable immutable guest data never crosses confidentiality labels. Function/IR storage has a bounded release and reclamation protocol covering live frames, continuations and outstanding calls; lifetime-stable storage is not an unbounded append-only store. Retirement and cache eviction cannot leave a reachable stale reference or lend a successor activation old grants.
 · Accept: Q34f qualifies the minimal app-development path on a versioned workload fixed before measuring: cold and repeated launch, launch to first useful response, edit through changed response, cancellation and replacement, with the declared concurrent desktop load. Repeated baseline launches may reconstruct decoded records; they require no cache or reuse optimization. Report build, validation, preparation, retirement, grant wait, execution and bridge costs separately; account for immutable shared code once and per-instance mutable, transition and quarantine peaks in full. Compare the available engine and an admitted native implementation of the same selected work with identical authority and results, including all frontend and service costs. A reboot-free run alone establishes neither interactive performance nor native parity; the product gate records measured values and any unratified limits explicitly.
 · Accept: post-MVP qualification separates each selected decode/layout, accumulator/fusion, register-resident, cache/reuse, SIMD/vector acceleration, service-batching, placement, whole-loop or specialization effect on identical work against the minimal configuration of the same proved engine. It reports regressions, executed native instructions, dispatches, memory traffic, admitted code/data size and maximum poll interval. An unselected option's `n/a` disposition is reported without building it. Report selected handler coverage, residual interpretation, collector work and all preparation/bridge costs, with the same workload and grants for native comparisons. Host interpreter rankings supply no target speedup, absent predictor/cache structures supply no credit, and a SIMD opcode is charged for its complete target lowering rather than assumed to be one native instruction. No speculative memory access, weakening of the pinned numeric profile, skipped validation or new executable-memory path is an optimization option.
@@ -3751,7 +3751,7 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Trace: CJ-SAIL
 
 **R-15-001a** MUST: The frozen profile exists as a single enumeration in one artifact, [isa-profile.md](hardware/isa-profile.md), rather than as an emergent property of the requirements that constrain it. The profile it enumerates is a crown-jewel spec: CHERI-CompCert, Cerise, and the CHERI-TAL are each proved against it, so a wrong profile is a correct proof about the wrong machine. The artifact is a *derived view*: it states no obligation of its own, cites the governing requirement for every row, and is defective, never authoritative, where it disagrees with this register.
-· Accept: the artifact exists and its agreement with the register is *mechanically* checked in both directions: every ID it cites resolves, and every requirement in a profile-bearing subsection (§15.1, §15.3–§15.12) is carried by it. `tools/check.py` is that check and exits non-zero on either finding. The reverse direction is the one that earns its keep: a hand-maintained extraction silently drops rows, which is what makes a set stated in two places drift. The check tests *citation*, not *fidelity*: a row whose prose contradicts the requirement it cites is a review-gate finding against this entry.
+· Accept: the artifact exists and its agreement with the register is *mechanically* checked in both directions: every ID it cites resolves, and every requirement in a profile-bearing subsection ([§15.1](#151-isa-baseline), [§15.3](#153-memory-model)–[§15.12](#1512-implementation-timing-contracts)) is carried by it. `tools/check.py` is that check and exits non-zero on either finding. The reverse direction is the one that earns its keep: a hand-maintained extraction silently drops rows, which is what makes a set stated in two places drift. The check tests *citation*, not *fidelity*: a row whose prose contradicts the requirement it cites is a review-gate finding against this entry.
 · Trace: CJ-SAIL
 
 **R-15-001b** MUST: The surviving CSR bank is enumerated in that same view as the deletions are: register by register, each row citing the requirement that admits or excludes it. The enumeration closes the CSR address space (an address absent from the table is unallocated and traps under R-15-014, by that rule and not a second mechanism), so the "every CSR a partition can name" that the total restore quantifies over (R-07-015, R-15-214) is a list a reviewer can open.
@@ -3781,7 +3781,7 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 **R-15-002d** MUST NOT: No region of the physical address map is both a device region and executable: every region whose `mem_type` is `IOMemory` carries `executable` clear, and no composition of this platform, and no amendment to a composed map, gives one of them execute.
 · Accept: an emptiness check taken where the map is authored: no region of any composition under `model/config/` declares `IOMemory` together with `executable` set, the CMake template there included, and the SoC map package the RTL reads carries the same per-region bits, being generated from the composition rather than authored beside it. That the compositions agree with one another on the region list is `tools/check.py`'s already and decides only that they agree; what this entry decides is the value they agree on, in each of them and in the template. A composition declaring an executable device region is a composition failure of the kind R-15-002b already states for a region that does not fit inside the space, and never a trap the machine takes at its first fetch.
 · Accept: the model decides the access and this entry decides the declaration, and neither stands in for the other. `pmaCheck` (`model/model/sys/mem.sail`) reads the region's `executable` attribute on an instruction fetch and returns an access fault where it is clear, and an address inside no declared region is the same fault, `matching_pma_region` returning nothing, so for any map satisfying this entry the fetch path is closed by the model already; what the entry adds is that a map which does not satisfy it is never composed. The obligation runs one way and only one: a main-memory region that is not executable stays declarable, that being the shape of the admitted datapath scratchpad (R-15-165, R-15-167) whose executable form is the question R-18-009 leaves open, so a check reporting one of those is deciding something this entry does not state.
-· Accept: it is not R-14-003 or R-14-004 restated and neither implies it. Those quantify over capability authority, execute authority being derived at install time over the read-only extents of the content-addressed image alone, and the per-page no-execute bit R-14-003 names as subsumed is a translation-structure attribute a platform with no MMU (R-15-002) does not carry. This quantifies over an attribute of the composed map that the fetch check reads whether or not any capability over the region exists, so the two are met separately, and a composition meeting §14's wiring rule while declaring an executable device region fails this one.
+· Accept: it is not R-14-003 or R-14-004 restated and neither implies it. Those quantify over capability authority, execute authority being derived at install time over the read-only extents of the content-addressed image alone, and the per-page no-execute bit R-14-003 names as subsumed is a translation-structure attribute a platform with no MMU (R-15-002) does not carry. This quantifies over an attribute of the composed map that the fetch check reads whether or not any capability over the region exists, so the two are met separately, and a composition meeting [§14](#14-userland)'s wiring rule while declaring an executable device region fails this one.
 · Trace: CJ-SAIL, CJ-DEVTREE
 
 **R-15-003** IS: There is a single privilege mode (Machine only). Privilege is a CHERI permission on the PCC (access-system-registers), not a ring.
@@ -3805,7 +3805,7 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Trace: CJ-SAIL
 
 **R-15-007a** MUST: What the narrowing owes is a **representation-correctness proof**: encode/decode round-trip over the frozen field widths, field-extraction lemmas, and derivation of the represented base and top from the address, exponent, and two mantissas, each stated over the parameterized Sail capability functions. The proof states decode as a **total function** over the 19-bit bounds encoding (5-bit exponent, 8-bit base mantissa, 6-bit top mantissa) and **characterizes the malformed set at these widths**: which triples derive a represented top below their represented base is a property of the bounds algorithm at these mantissas and is established here rather than inherited.
-· Accept: monotonicity, provenance, and non-forgeability are **inherited**, being statements about the algebra rather than the bit layout, and the algebra is preserved exactly (R-15-007b names the sole exception); a proof obligation restating any of the three from scratch is evidence the change went past representation, and is a review-gate finding (R-18-034) rather than extra work. The encoding is accordingly authored rather than curated work on the Sail model, landing on the arrow R-17-039 names as the least built. The malformed-set clause is the one part of capability integrity still owed, the other two being discharged structurally: no reserved-field legality check, R-15-007 spending all 64 bits with none to police, and no legal-permissions invariant for tagged capabilities, R-15-007b's enumeration being total over its field where a one-bit-per-permission encoding validates 90 of 512. Bounds remain, the reachable malformed set being a function of the mantissa widths the narrowing changes. A malformed capability is a legal held value faulting at its next dereference rather than a trap at construction, the side R-15-007h puts every failed derivation on, so it owes no CHERI cause code and no `mtval` case (R-15-073a). There is no optional half: fault behaviour is a proof obligation and a §15 schedule term, so every integrity check the format carries is architectural, on the ground R-08-005 gives for the per-load tag check.
+· Accept: monotonicity, provenance, and non-forgeability are **inherited**, being statements about the algebra rather than the bit layout, and the algebra is preserved exactly (R-15-007b names the sole exception); a proof obligation restating any of the three from scratch is evidence the change went past representation, and is a review-gate finding (R-18-034) rather than extra work. The encoding is accordingly authored rather than curated work on the Sail model, landing on the arrow R-17-039 names as the least built. The malformed-set clause is the one part of capability integrity still owed, the other two being discharged structurally: no reserved-field legality check, R-15-007 spending all 64 bits with none to police, and no legal-permissions invariant for tagged capabilities, R-15-007b's enumeration being total over its field where a one-bit-per-permission encoding validates 90 of 512. Bounds remain, the reachable malformed set being a function of the mantissa widths the narrowing changes. A malformed capability is a legal held value faulting at its next dereference rather than a trap at construction, the side R-15-007h puts every failed derivation on, so it owes no CHERI cause code and no `mtval` case (R-15-073a). There is no optional half: fault behaviour is a proof obligation and a [§15](#15-hardware-platform) schedule term, so every integrity check the format carries is architectural, on the ground R-08-005 gives for the per-load tag check.
 · Accept: **the containment property carries its domain, and the domain is a requested top at or below 2^36.** Above it the derived region does not contain the requested one, the decoded top having wrapped below its own base, so a proof stating containment unconditionally would be stating something false of the algebra. This is a property of the bounds algorithm at these mantissas and is established here in the same act that characterizes the malformed set, rather than being inherited: three independent implementations agree on it line for line, the curated Sail model, the narrowed C library, and the authored SystemVerilog package, so it is the algebra's and not any one implementation's. It is unreachable with a tag, `CSetBounds` clearing the tag on precisely the test that fails there, which is why it costs a stated domain rather than a repair; the format's own property harness owes that edge as a case, and a proof obligation restating containment without the domain is a review-gate finding under R-18-034.
 · Trace: CJ-SAIL, CJ-CERISE, CJ-RTL-SAIL
 
@@ -3830,7 +3830,7 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Trace: CJ-SAIL, CJ-DEVTREE
 
 **R-15-007e** IS: The frozen profile carries a **capability indexed load and store** in custom opcode space (`cld rd, cs1[rs2 << imm]` and its store form): bounds and permissions are checked on the authorizing capability at base plus scaled index and the access is performed there, with **no intermediate capability materialized** at any point.
-· Accept: it is admitted on code size rather than cycles, the offset-then-dereference pair it replaces being fused already (R-15-031b), so it collects the four bytes of image and fetch bandwidth a fused pair still occupies, against the absent I-cache (R-15-164), the 33-43% no-C penalty (R-15-036), and the §15 SRAM capacity budget; it is the highest-frequency dereference sequence a purecap target emits, carries full Sail semantics, and is frozen with the proof like every other encoding the profile allocates (R-15-014). Its recorded re-pin target is **partial**: the address-formation half has a standards-track form in an extension this profile adopts, while the fusion of check-at-base-plus-index with the access, which is the whole of the instruction, stays bespoke with the dialect (R-15-007d, R-17-048a); which upstream instruction that is, and what a re-pin would and would not recover, is carried by [cheri-version-matrix.md](hardware/cheri-version-matrix.md).
+· Accept: it is admitted on code size rather than cycles, the offset-then-dereference pair it replaces being fused already (R-15-031b), so it collects the four bytes of image and fetch bandwidth a fused pair still occupies, against the absent I-cache (R-15-164), the 33-43% no-C penalty (R-15-036), and the [§15](#15-hardware-platform) SRAM capacity budget; it is the highest-frequency dereference sequence a purecap target emits, carries full Sail semantics, and is frozen with the proof like every other encoding the profile allocates (R-15-014). Its recorded re-pin target is **partial**: the address-formation half has a standards-track form in an extension this profile adopts, while the fusion of check-at-base-plus-index with the access, which is the whole of the instruction, stays bespoke with the dialect (R-15-007d, R-17-048a); which upstream instruction that is, and what a re-pin would and would not recover, is carried by [cheri-version-matrix.md](hardware/cheri-version-matrix.md).
 · Trace: CJ-SAIL, CJ-CERISE
 
 **R-15-007f** IS: The instruction takes capability semantics **off** the dereference path rather than adding them: `cincoffset` may produce a capability outside the representable region, a case the Sail model, the CHERI-TAL soundness metatheorem, and the Cerise universal contract each carry, and a single indexed access never constructs that intermediate.
@@ -3842,7 +3842,7 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Trace: CJ-SAIL
 
 **R-15-007h** IS: Non-monotonic capability modification **clears the validity tag**; it does not raise an exception. A derivation that would widen bounds or add permissions yields an untagged result, so a failed derivation is a data result faulting at its next dereference rather than a control-flow event.
-· Accept: this states which side of ISAv9's Morello-derived rule R-15-007's "instruction semantics unchanged" lands on, and the profile is committed to it already: R-15-007e and R-15-007f turn entirely on `cincoffset` producing a capability outside the representable region as a *carried* result rather than a trap. Nothing is owed to the trap path: no CHERI cause code, no `mtval` case (R-15-073a), and no control-flow term from a failed derivation in a §15 WCET entry. The tag clear is inherited semantics stated, not a divergence, so R-15-007a's representation-correctness proof is unaffected.
+· Accept: this states which side of ISAv9's Morello-derived rule R-15-007's "instruction semantics unchanged" lands on, and the profile is committed to it already: R-15-007e and R-15-007f turn entirely on `cincoffset` producing a capability outside the representable region as a *carried* result rather than a trap. Nothing is owed to the trap path: no CHERI cause code, no `mtval` case (R-15-073a), and no control-flow term from a failed derivation in a [§15](#15-hardware-platform) WCET entry. The tag clear is inherited semantics stated, not a divergence, so R-15-007a's representation-correctness proof is unaffected.
 · Trace: CJ-SAIL, CJ-CERISE
 
 **R-15-007i** IS: The architectural register file is **merged**: one file of 32 registers of 64+1 bits, each holding a capability with its validity tag, an integer operand being that register's **64 data bits** read as an integer, of which the low 36 are the capability's address field. No separate capability register bank exists and no instruction moves a value between banks. An integer write clears the validity tag, so reading a register as an integer and writing that integer back is the identity on the value and destroys the authority.
@@ -3867,21 +3867,21 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Trace: CJ-CERISE, CJ-SAIL, CJ-TAL-SOUND
 
 **R-15-007m** MUST NOT: A **capability subset test** (`CTestSubset` in ISAv8/v9, `YSS` in RVY's base ISA) is not admitted: no instruction computes at runtime whether one capability's bounds and permissions are contained in another's. A capability that does not authorize an access made through it faults at that access under R-15-007h, and the containment relation the instruction would test is fixed at composition, not reconstructed on the call path.
-· Accept: **both upstream consumers are absent, and the second decides it.** The first, a collector's pointer-inside-object test, has neither a collector nor an online allocator to run it (R-08-010). The second, argument validation at a domain boundary, is answered a phase earlier: the local/global discipline bounds a delegated buffer's **lifetime** on the store path (R-04-004, R-15-074), while its **extent and rights** are fixed by the §12 IDL message type and the manifest's import/export tables (R-05-124, R-05-117) over the composition-fixed initial distribution (R-07-019), with R-05-096b's join rejecting overlapping grants, so an edge admitting less than a caller hands across is a composition-time join failure and not a runtime branch. What remains at runtime is a question about **one** capability, answered by `cgetlen` and `cgetperm` against a composition-time constant, the enclosing-capability case being closed by R-05-149a's indices against one exact-bounded base. Nor is it inherited under R-15-007j, which runs over *narrowed* fields where the permission field is re-encoded as R-15-007b's lattice, so the instruction would be **bespoke** rather than an ISAv9 case at narrowed widths. The absence is a **recorded divergence rather than an omission**, carried by [cheri-version-matrix.md](hardware/cheri-version-matrix.md) and dispositioned by R-17-048a.
+· Accept: **both upstream consumers are absent, and the second decides it.** The first, a collector's pointer-inside-object test, has neither a collector nor an online allocator to run it (R-08-010). The second, argument validation at a domain boundary, is answered a phase earlier: the local/global discipline bounds a delegated buffer's **lifetime** on the store path (R-04-004, R-15-074), while its **extent and rights** are fixed by the [§12](#12-system-servers) IDL message type and the manifest's import/export tables (R-05-124, R-05-117) over the composition-fixed initial distribution (R-07-019), with R-05-096b's join rejecting overlapping grants, so an edge admitting less than a caller hands across is a composition-time join failure and not a runtime branch. What remains at runtime is a question about **one** capability, answered by `cgetlen` and `cgetperm` against a composition-time constant, the enclosing-capability case being closed by R-05-149a's indices against one exact-bounded base. Nor is it inherited under R-15-007j, which runs over *narrowed* fields where the permission field is re-encoded as R-15-007b's lattice, so the instruction would be **bespoke** rather than an ISAv9 case at narrowed widths. The absence is a **recorded divergence rather than an omission**, carried by [cheri-version-matrix.md](hardware/cheri-version-matrix.md) and dispositioned by R-17-048a.
 · Trace: CJ-SAIL, CJ-IDL
 
 **R-15-007q** IS: A **tag-group load** is admitted: `cloadtags` (ISAv8's `CLoadTags`, carried by ISAv9) returns the validity tags of a naturally aligned group of granules in an integer register without loading the granules. Its consumer is the R-08-007 sweep. Two things the pin leaves open are fixed here: the group is the CBO block `cbo.zero` allocates (R-15-182), not the implementation-defined cache line upstream ties it to, and the tags are reported **as stored** rather than as the R-08-005 load filter would return them.
-· Accept: **the ground is issue and not memory traffic, R-15-203 being why**: native tag bits are read in parallel with the data, so a tag-only read buys no bank cycle, and what it buys is the sweep's quantum, the sweep being the only reclamation mechanism left once the revocation colour (R-08-004b) and the TBRE engine (R-08-009) are declined. The saving is bounded and stated as bounded, the group size where a group's tags are all clear and one instruction where they are all set, and it reduces the derived constant of R-08-007 and the quarantine and §11 background slot budget downstream of it (R-08-007a), never the containment bound, whose R-08-006 barrier waits on no sweep progress. Neither fixed parameter is residue R-15-007j could close, an implementation-defined group size being a variable loop bound in a §11 term (R-15-014) and the load filter having no reading available to an instruction that loads no capability (R-08-005a).
+· Accept: **the ground is issue and not memory traffic, R-15-203 being why**: native tag bits are read in parallel with the data, so a tag-only read buys no bank cycle, and what it buys is the sweep's quantum, the sweep being the only reclamation mechanism left once the revocation colour (R-08-004b) and the TBRE engine (R-08-009) are declined. The saving is bounded and stated as bounded, the group size where a group's tags are all clear and one instruction where they are all set, and it reduces the derived constant of R-08-007 and the quarantine and [§11](#11-updates) background slot budget downstream of it (R-08-007a), never the containment bound, whose R-08-006 barrier waits on no sweep progress. Neither fixed parameter is residue R-15-007j could close, an implementation-defined group size being a variable loop bound in a [§11](#11-updates) term (R-15-014) and the load filter having no reading available to an instruction that loads no capability (R-08-005a).
 · Accept: **the welded group has a ceiling and the destination register is what sets it**: the whole group's tags come back in one integer register, so the group is at most 64 granules and the block at most **512 bytes**, over the 64 data bits R-15-007i reads as an integer and the 64-bit granule R-15-203 fixes. A wider block has nowhere to return its group, so it is refused where the parameter is declared rather than at the instruction, and `creclaim` takes the same ceiling from the same register (R-15-007s), the weld making the two one parameter and not two. The bound is not a value: the floor is one ECC codeword, no sub-granule write existing at the array (R-15-181, R-15-181a, R-15-182), and which width between the two ends is taken is R-15-014a (vii)'s second act, scored against both class geometries rather than read off either end.
 · Accept: it clears the five admission tests (R-15-010): one Sail clause over architectural state (1); a latency independent of the tags returned, so no implementation may end early on an empty group, which puts it on the R-15-053 list (2, R-15-011); no state surviving a partition switch, so nothing joins the R-15-214 flush set (3); no authority minted, the result being an integer and the same lattice element a tag-preserving capability load requires authorizing it (4); and nothing autonomous (5). It takes a dialect encoding and contends for none of the custom opcode space R-15-007e, R-15-067a, R-15-067e, and R-15-069a compete for, which is why it is not conditioned on the R-15-014a measured freeze.
 · Trace: CJ-CERISE, CJ-SAIL, CJ-WCET
 
 **R-15-007r** MUST NOT: A **bulk tag clear** (`CClearTags` in ISAv8/v9) is not admitted, and no instruction clears the validity tags of a granule group while leaving the group's data standing.
-· Accept: **it is not the sweep's write side, though it reads as it.** The R-08-007 sweep clears the tag of a capability whose base falls under a set R-08-005a revocation bit and leaves its neighbours standing, a per-granule conditional clear a group-wide unconditional one cannot express, and what the sweep uses it already has, tag clearing here being a property of the **write path** (R-15-115a, R-15-183, R-15-204). The residue is *tags cleared where the data must survive*, and the zeroize discipline empties it rather than narrowing it: where a region is reclaimed the data is dead and goes with the tags under `cbo.zero` (R-15-182, R-15-060) or the array-wide form of the same pass (R-15-189j), and leaving data in place while dropping its tags is the outcome the §7 eager zeroize and the disclosure half of Write-before-Read exist to prevent (R-05-126). This is R-15-061's decline in the other half of the same family, the write path here having already done the work.
+· Accept: **it is not the sweep's write side, though it reads as it.** The R-08-007 sweep clears the tag of a capability whose base falls under a set R-08-005a revocation bit and leaves its neighbours standing, a per-granule conditional clear a group-wide unconditional one cannot express, and what the sweep uses it already has, tag clearing here being a property of the **write path** (R-15-115a, R-15-183, R-15-204). The residue is *tags cleared where the data must survive*, and the zeroize discipline empties it rather than narrowing it: where a region is reclaimed the data is dead and goes with the tags under `cbo.zero` (R-15-182, R-15-060) or the array-wide form of the same pass (R-15-189j), and leaving data in place while dropping its tags is the outcome the [§7](#7-kernel) eager zeroize and the disclosure half of Write-before-Read exist to prevent (R-05-126). This is R-15-061's decline in the other half of the same family, the write path here having already done the work.
 · Trace: CJ-SAIL, CJ-MEMPLAN
 
 **R-15-007s** IS: A **block revocation reclaim** is admitted: `creclaim` performs, over one naturally aligned granule group (the CBO block of R-15-007q and R-15-182), the per-granule conditional clear the R-08-007 sweep exists to apply: each stored capability whose base falls under a set R-08-005a revocation bit has its validity tag cleared in place, by R-08-005b's defined revoked case applied without materializing the value, and the instruction returns the group's tags as they stand after the pass. A granule whose bit is clear is untouched bit for bit, and no data is written, so R-15-007r's exclusion is undisturbed: this is the per-granule conditional form that entry records the unconditional clear cannot express.
-· Accept: the ground is the derived constant R-15-007q names, made shorter rather than merely cheaper to walk: the sweep's pass time is the post-barrier component of R-08-007a's quarantine, so one instruction per group in place of a capability load per tagged granule shortens the pass by roughly the group width, and the quarantine interval, the composition-sized quarantine pool (R-08-008), and the §11 background slot budget shrink with it; capacity and admission headroom, never the containment bound, whose R-08-006 barrier waits on no sweep progress.
+· Accept: the ground is the derived constant R-15-007q names, made shorter rather than merely cheaper to walk: the sweep's pass time is the post-barrier component of R-08-007a's quarantine, so one instruction per group in place of a capability load per tagged granule shortens the pass by roughly the group width, and the quarantine interval, the composition-sized quarantine pool (R-08-008), and the [§11](#11-updates) background slot budget shrink with it; capacity and admission headroom, never the containment bound, whose R-08-006 barrier waits on no sweep progress.
 · Accept: it clears the five admission tests (R-15-010): one Sail clause composing the model's defined cases, the load's revoked result and the group read (1); one fixed latency independent of the tags found, the revocation bits set, and the clears performed, every granule taking its cycle, on the R-15-053 list (2, R-15-011); no state surviving a partition switch (3); no authority minted, the result an integer and the instruction able only to destroy (4); no autonomous continuation past the group boundary, the next group being the sweep task's next instruction (5). It requires the lattice element a tag-preserving capability load requires over the group and takes a dialect encoding beside `cloadtags`, contending for no custom opcode space and no image budget.
 · Trace: CJ-CERISE, CJ-SAIL, CJ-WCET
 
@@ -3900,7 +3900,7 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Accept: each admitted feature carries five recorded dispositions, each naming which enumerated discharge form it takes; the case law of the event-driven sensor readout (R-12-070) and the frozen 1000BASE-T canceller (R-15-137) is now statute rather than precedent.
 · Trace: CJ-SAIL, CJ-LEAK
 
-**R-15-010a** IS: The five parts are not five criteria of their own: each is a commitment this register already carries, restated as a question asked of a candidate feature. Part (1) is the frozen enumeration of semantic anchors (R-05-019), Sail being the ISA's, so a feature that is not Sail-expressible has no semantics for any proof above it to relate. Part (2) is the `Zkt`/`Zvkt` leakage model (R-15-053) with the flow discipline that discharges anything off that list (R-05-070). Part (3) is temporal isolation and its single-structure flush set (R-15-211, R-15-213). Part (4) is capabilities as the sole authority (R-08-001). Part (5) is §11's admission over static WCET (R-11-006), which no engine issuing memory traffic outside a task's own bound can enter, the Sv39 walker deleted rather than exempted being the standing instance (R-15-002, R-15-038). The test is therefore a decision procedure over commitments taken elsewhere and states no obligation of its own, so a disposition reading *fails admission test N* is part N's commitment reaching that candidate and settling it, which is a consequence of the commitment rather than independent evidence for it. Its standing is the standing of what it enumerates and no more.
+**R-15-010a** IS: The five parts are not five criteria of their own: each is a commitment this register already carries, restated as a question asked of a candidate feature. Part (1) is the frozen enumeration of semantic anchors (R-05-019), Sail being the ISA's, so a feature that is not Sail-expressible has no semantics for any proof above it to relate. Part (2) is the `Zkt`/`Zvkt` leakage model (R-15-053) with the flow discipline that discharges anything off that list (R-05-070). Part (3) is temporal isolation and its single-structure flush set (R-15-211, R-15-213). Part (4) is capabilities as the sole authority (R-08-001). Part (5) is [§11](#11-updates)'s admission over static WCET (R-11-006), which no engine issuing memory traffic outside a task's own bound can enter, the Sv39 walker deleted rather than exempted being the standing instance (R-15-002, R-15-038). The test is therefore a decision procedure over commitments taken elsewhere and states no obligation of its own, so a disposition reading *fails admission test N* is part N's commitment reaching that candidate and settling it, which is a consequence of the commitment rather than independent evidence for it. Its standing is the standing of what it enumerates and no more.
 · Accept: each of the five parts names the commitment it restates, and a citation of the test by ordinal claims that commitment and nothing further, which is where a reader disputing a disposition takes the dispute. A part this entry maps to no commitment, and a feature admitted on the test while the commitment one of its parts restates is unmet, are each review-gate findings.
 · Trace: CJ-SAIL
 
@@ -3951,7 +3951,7 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Accept: no grant spans a fabric-rate register block and a divided-clock endpoint (R-12-046), so no compartment's MMIO is priced at a worst case it does not incur. The rule narrows an authority grant inside the sole origin of device authority (R-05-138), from which the verified HAL derives rather than fabricates: no mechanism, interface, or ordering rule changes and no proof obligation moves, R-15-015b pricing each store exactly as before. What is removed is the reachability that created the term, not the margin on it.
 · Trace: CJ-CERISE, CJ-WCET
 
-**R-15-015d** MUST: The R-15-015c split is taken only where the slow endpoint's worst case dominates the compartment's §11 bound, never merely because two endpoints differ, because a driver compartment in its own label is one more tenant dividing the non-work-conserving frame (R-07-036) and one more slot against the population wall (R-17-004, R-17-006), and even a same-label split is one more member whose cadence the shared slot's rotation must fit (R-07-037b, R-11-006b).
+**R-15-015d** MUST: The R-15-015c split is taken only where the slow endpoint's worst case dominates the compartment's [§11](#11-updates) bound, never merely because two endpoints differ, because a driver compartment in its own label is one more tenant dividing the non-work-conserving frame (R-07-036) and one more slot against the population wall (R-17-004, R-17-006), and even a same-label split is one more member whose cadence the shared slot's rotation must fit (R-07-037b, R-11-006b).
 · Accept: a split that meaningfully shortens no slot is not admitted; where the slow endpoint does dominate, the split is taken, a slot width set by a divided card clock being the larger loss. This is the same trade R-14-007a states from the label-count side, and the two are arbitrated together rather than as independent preferences.
 · Trace: CJ-WCET
 
@@ -3963,8 +3963,8 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Accept: the Sail model and Isla litmus oracle carry `drain | nop`, not the 256-case predecessor/successor lattice or separate `fm` semantics; all legal standard encodings remain accepted, the canonical ring algorithm contains no fence, and no cache-management instruction accompanies it.
 · Trace: CJ-SAIL
 
-**R-15-018** IS: Sequential consistency was evaluated and rejected on four platform-specific grounds, none of which carries a hart-count or issue-width term: single-copy memory (R-15-087) makes the deviation from SC local to each hart's own store buffer rather than coherence-borne, so there is no traffic term for hart count to scale, and wider issue deepens the buffer each load must wait out. SC is named in §18 as a question worth revisiting, not as a pending change.
-· Accept: Ztso is the specified model; the §18 entry is a question, not a deliverable. The rejection is stated over the platform, not over a configuration of it, and ground (4)'s saving is the single store→later-load relaxation that single-copy memory leaves: one clause of the ordering relation, not the memory model.
+**R-15-018** IS: Sequential consistency was evaluated and rejected on four platform-specific grounds, none of which carries a hart-count or issue-width term: single-copy memory (R-15-087) makes the deviation from SC local to each hart's own store buffer rather than coherence-borne, so there is no traffic term for hart count to scale, and wider issue deepens the buffer each load must wait out. SC is named in [§18](#18-realization) as a question worth revisiting, not as a pending change.
+· Accept: Ztso is the specified model; the [§18](#18-realization) entry is a question, not a deliverable. The rejection is stated over the platform, not over a configuration of it, and ground (4)'s saving is the single store→later-load relaxation that single-copy memory leaves: one clause of the ordering relation, not the memory model.
 · Trace: CJ-SAIL · [§15](spec.md#r-15-018), [§15](spec.md#r-15-018-2)
 
 ### 15.4 Control-flow prediction
@@ -4008,11 +4008,11 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Trace: CJ-SAIL
 
 **R-15-028** IS: `Zabha`'s justification is lowering-admissibility, not traffic volume: with `Zalrsc` and `Zacas` both deleted, sub-word atomic RMW has no admissible lowering (a wider aligned access would race on adjacent bytes; a lock-based `libatomic` call is forbidden).
-· Accept: the justification does not depend on consumer count; the claimed consumers are exactly those §13 permits: atomic state that is constructor-injected or reachable only from a handed reference.
+· Accept: the justification does not depend on consumer count; the claimed consumers are exactly those [§13](#13-packaging--supply-chain) permits: atomic state that is constructor-injected or reachable only from a handed reference.
 · Trace: CJ-SAIL, CJ-CERISE
 
 **R-15-029** IS: `Zaamo` covers the atomic traffic that remains above a share-nothing kernel and an SPSC data plane, the dominant consumer being `Arc`'s strong and weak counts in contained Rust.
-· Accept: narrowing the profile below `Zaamo` would delete `Arc` and the shared-ownership vocabulary §14's porting story rests on; that is recorded as the ground for retention.
+· Accept: narrowing the profile below `Zaamo` would delete `Arc` and the shared-ownership vocabulary [§14](#14-userland)'s porting story rests on; that is recorded as the ground for retention.
 · Trace: CJ-SAIL
 
 **R-15-030** MUST: No retry loop of any kind contributes to any task's WCET bound: neither an LR/SC spurious-failure retry nor a CAS compare-fail retry exists.
@@ -4025,7 +4025,7 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Accept: the fused set is enumerated and frozen with the proof. The dependent-ALU-chain class is **narrowed and not deleted** by R-15-067a on the same terms R-15-031b records for the capability pair: the shift-and-mask sequence stays legal, stays emitted where the field specifiers are not compile-time constants, and stays in the frozen set.
 · Trace: CJ-SAIL
 
-**R-15-031a** MUST: The frozen set's membership is selected against the instruction mix this profile emits (purecap-only, no C, no scalar `F`/`D`), as a composition-time parameter of the §15 design-space exploration, and is not inherited from the general RISC-V fusion literature.
+**R-15-031a** MUST: The frozen set's membership is selected against the instruction mix this profile emits (purecap-only, no C, no scalar `F`/`D`), as a composition-time parameter of the [§15](#15-hardware-platform) design-space exploration, and is not inherited from the general RISC-V fusion literature.
 · Accept: the frozen set is a recorded selection against a measured mix; no pair is carried solely because a conventional RV64GC target would fuse it.
 · Trace: CJ-SAIL
 
@@ -4034,7 +4034,7 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Trace: CJ-SAIL, CJ-WCET
 
 **R-15-031c** IS: Widening the set toward capability arithmetic adds no admission-test case, no `fence.t` flush-set member, and no obligation beyond R-15-034: each added pair is admitted by the R-15-032 disposition and the R-15-033 transparency argument unchanged, and tightens rather than loosens every bound it appears in.
-· Accept: membership is bounded by decoder area and the §15 proof-simplicity term, never by a safety, timing, or schedulability limit.
+· Accept: membership is bounded by decoder area and the [§15](#15-hardware-platform) proof-simplicity term, never by a safety, timing, or schedulability limit.
 · Trace: CJ-RTL-SAIL, CJ-WCET
 
 **R-15-032** IS: Fusion is a combinational function of the static instruction encoding, holds no state surviving a partition switch, mints no authority, and runs no walker, so it passes all five admission tests.
@@ -4051,9 +4051,9 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 
 ### 15.7 ISA exclusions
 
-**R-15-035** MUST NOT: The initialization-tag plane (Mon CHÉRI-derived Write-before-Read as a second metadata plane) is excluded; the property is carried by the §5 definite-initialization attribute.
+**R-15-035** MUST NOT: The initialization-tag plane (Mon CHÉRI-derived Write-before-Read as a second metadata plane) is excluded; the property is carried by the [§5](#5-languages--verification) definite-initialization attribute.
 · Accept: one tag plane exists in the SRAM word, not two (R-15-165); the deletion recovers one bit per granule, its DECTED coverage, a Sail invariant, an RTL ⊑ Sail obligation, and a DSE parameter.
-· Accept: the plane's three functions each carry a disposition here rather than in the commentary, which is what the decline owes under R-15-013a: uninitialized *pointers* are covered by the validity tag the word already carries, prior-tenant *disclosure* by the eager zeroize at the partition boundary, and use of uninitialized *data* by §5's definite-initialization attribute with the verified HAL and TCB proofs beside it. What the plane alone would still catch is a certifier or metatheorem error, which is the formally-verified-primary failure R-15-013 declines a hedge against, so the enumeration closes rather than leaving a member silent.
+· Accept: the plane's three functions each carry a disposition here rather than in the commentary, which is what the decline owes under R-15-013a: uninitialized *pointers* are covered by the validity tag the word already carries, prior-tenant *disclosure* by the eager zeroize at the partition boundary, and use of uninitialized *data* by [§5](#5-languages--verification)'s definite-initialization attribute with the verified HAL and TCB proofs beside it. What the plane alone would still catch is a certifier or metatheorem error, which is the formally-verified-primary failure R-15-013 declines a hedge against, so the enumeration closes rather than leaving a member silent.
 · Trace: CJ-RTL-SAIL, CJ-TAL-SOUND
 
 **R-15-036** MUST NOT: The C (compressed) extension is excluded, and a restricted `VerifiedOS-C` profile with it; the code-size cost is no longer accepted but recovered by the dictionary encoding (R-15-036a), which is denser and deletes the ambiguity rather than mitigating it.
@@ -4076,23 +4076,23 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Accept: the amendment class recorded as closed in [Evaluated Architectural Alternatives](background/architectural-alternatives.md) reopens for this item and resolves in favour, on the gate as written.
 · Trace: CJ-SAIL, CJ-FORMAT
 
-**R-15-036e** IS: Fetch timing is fixed per bundle: same latency, a fixed maximum instruction count, flat SRAM, no I-cache, no predictor, no decompression table, no data-dependent term. What changes in §11's inputs is a unit, a block's fetch cost becoming its bundle count rather than its instruction count.
+**R-15-036e** IS: Fetch timing is fixed per bundle: same latency, a fixed maximum instruction count, flat SRAM, no I-cache, no predictor, no decompression table, no data-dependent term. What changes in [§11](#11-updates)'s inputs is a unit, a block's fetch cost becoming its bundle count rather than its instruction count.
 · Accept: bundle count is a static property of the frozen encoding of a frozen image; no new WCET mechanism or variance term appears.
 · Trace: CJ-WCET
 
 **R-15-036f** MUST: Constant-time balancing of secret-dependent arms is an obligation over **encoded bundle count**, not instruction count, two arms of equal instruction count being able to differ in escape density.
-· Accept: discharged statically at composition, the encoding being deterministic and the layout frozen; a new case for the §5 constant-time checker, not a new mechanism, and no runtime behavior varies.
+· Accept: discharged statically at composition, the encoding being deterministic and the layout frozen; a new case for the [§5](#5-languages--verification) constant-time checker, not a new mechanism, and no runtime behavior varies.
 · Trace: CJ-CT-SOUND, CJ-NI
 
 **R-15-036g** MUST: The encoding's scope is exactly the immutable, freeze-committed code object and reaches no data, heap, stack, IPC buffer, filesystem extent, or memory-path granule; no compressor exists on any runtime path, the encoder being a composition-time transform and the resident artifact a hardware decoder in the fetch stage; and no secret may be a compile-time or composition-time input to an encoded image, so link-time specialization MUST NOT specialize on a confidential value.
-· Accept: the compress-then-encrypt ratio oracle (R-10-018) needs attacker-influenced plaintext, a secret in the same compression context, and an observable re-provokable length, and none of the three exists here: a decoder consumes a length rather than producing one, W^X with no runtime codegen (§14) leaves no path to create a compressor, and the encoded image's hash is already public in the reference integrity manifest (§9, §10). R-10-018 and R-15-199 stand unchanged; R-15-202's key containment becomes load-bearing for this requirement.
+· Accept: the compress-then-encrypt ratio oracle (R-10-018) needs attacker-influenced plaintext, a secret in the same compression context, and an observable re-provokable length, and none of the three exists here: a decoder consumes a length rather than producing one, W^X with no runtime codegen ([§14](#14-userland)) leaves no path to create a compressor, and the encoded image's hash is already public in the reference integrity manifest ([§9](#9-boot--root-of-trust), [§10](#10-storage--state)). R-10-018 and R-15-199 stand unchanged; R-15-202's key containment becomes load-bearing for this requirement.
 · Trace: CJ-NI, CJ-LEAK, CJ-CRYPTO-SPEC
 
 **R-15-036h** IS: The density claim is a model with a measured input: for slot width *w*, *k* slots and an *h*-bit header per bundle, and dictionary hit rate *p*, an instruction occupies one slot on a hit and two on a miss, so encoded size per instruction is (*w* + *h*/*k*)·*p* + (2*w* + 2*h*/*k*)·(1 − *p*), i.e. (*w* + *h*/*k*)·(2 − *p*) bits, which at the reference instantiation is 36.6 − 18.3*p*. This term charges an instruction for the slots it occupies and not for the slots escape packing strands, which R-15-036j books; with that term the encoding is 60% to 70% of the canonical stream at hit rates of 0.95 down to 0.80, against the 70–75% RVC would give.
 · Accept: *p* is measured against the release roster's composed image (R-15-036i), stratified by operand class per R-15-036k, and the dictionary is selected from that measurement, never quoted from the general code-compression literature; the quoted percentage range is the packing-corrected one and not the bare slot model's, and it is quoted for that roster and not for a closure composed after the freeze.
 · Trace: CJ-FORMAT, CJ-MEMPLAN
 
-**R-15-036i** IS: Two costs are booked. The §10/§13 duplication-removal levers are **partly substitutive** with the encoding and are ordered first, as R-13-010e states. The dictionary is a **permanent freeze-time commitment** of the same class as the capability format (R-15-007d): every stored executable object is in this encoding, so a later change invalidates stored code wholesale rather than costing a recompile. It is selected once, against the **release roster's** composed image, and every closure composed after the freeze (R-13-001a) is encoded against that one selection, so the density model is a claim about the roster measured and a later closure's hit rate is taken against a dictionary it did not select.
+**R-15-036i** IS: Two costs are booked. The [§10](#10-storage--state)/[§13](#13-packaging--supply-chain) duplication-removal levers are **partly substitutive** with the encoding and are ordered first, as R-13-010e states. The dictionary is a **permanent freeze-time commitment** of the same class as the capability format (R-15-007d): every stored executable object is in this encoding, so a later change invalidates stored code wholesale rather than costing a recompile. It is selected once, against the **release roster's** composed image, and every closure composed after the freeze (R-13-001a) is encoded against that one selection, so the density model is a claim about the roster measured and a later closure's hit rate is taken against a dictionary it did not select.
 · Accept: selection happens after the stripping levers land and against the release roster's composed image, the artifact [the freeze measurement contract](implementation/contracts/freeze-measurement.md) names as its corpus; the realized size is chosen with headroom and unallocated indices trap under R-15-014; R-15-036h's figures are quoted for the release roster and for no later one, and R-15-036k's policy for the site-varying class is what decides how far a later closure's *p* falls, an index spent on a form recurring across the roster serving later code where one spent on a single-use entry serves that site alone.
 · Trace: CJ-MEMPLAN, CJ-FORMAT
 
@@ -4223,7 +4223,7 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Trace: CJ-SAIL
 
 **R-15-050** MUST NOT: `Ssqosid` / CBQRI-shaped memory-bandwidth partitioning is excluded: bandwidth is not a quantity this platform allocates at runtime.
-· Accept: no `srmcfg` CSR, no RCID/MCID request tagging, no allocation or monitoring registers; each island's ceiling is read off the TDM NoC slot schedule and the bank/macro/tier binding by the §11 admission proof.
+· Accept: no `srmcfg` CSR, no RCID/MCID request tagging, no allocation or monitoring registers; each island's ceiling is read off the TDM NoC slot schedule and the bank/macro/tier binding by the [§11](#11-updates) admission proof.
 · Trace: CJ-ISOL, CJ-WCET
 
 **R-15-051** IS: Removing the monitoring counters is part of the exclusion, because per-`MCID` bandwidth-usage counters are a cross-partition activity oracle.
@@ -4299,7 +4299,7 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Accept: a C-class per-permutation cost and register-pressure figure exists at LMUL=8. This is a budget entry, not an admission entry: the admission test (R-15-010) is indifferent to register pressure, so no admission verdict turns on it.
 · Trace: CJ-WCET
 
-**R-15-060** IS: `Zicboz` (cbo.zero) is adopted, making the §7 eager-zeroize discipline nearly free per aligned block and carrying the disclosure half of Write-before-Read without any per-load check.
+**R-15-060** IS: `Zicboz` (cbo.zero) is adopted, making the [§7](#7-kernel) eager-zeroize discipline nearly free per aligned block and carrying the disclosure half of Write-before-Read without any per-load check.
 · Accept: an unwritten slot reads a deterministic zero rather than residue.
 · Trace: CJ-MEMPLAN
 
@@ -4316,7 +4316,7 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Trace: CJ-SAIL
 
 **R-15-064** IS: AIA/IMSIC is adopted capability-read with static routing: an MSI is a store to an interrupt file, so interrupt-send authority is a write capability in the static capability topology rather than a side table.
-· Accept: no PLIC exists; interrupt authority appears in the §7/§8 topology.
+· Accept: no PLIC exists; interrupt authority appears in the [§7](#7-kernel)/[§8](#8-authority-model) topology.
 · Trace: CJ-CERISE
 
 **R-15-065** MUST NOT: Only the machine-level interrupt files exist, and of those only the pending array: the supervisor and guest/VS machinery, and the delivery-enable, threshold, and top-pending-selection machinery, are dead Sail surface and are excluded.
@@ -4340,7 +4340,7 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Trace: CJ-SAIL
 
 **R-15-067b** IS: It is admitted on **code size** rather than on cycles, and re-derived from the mix this profile emits rather than from the general RISC-V literature: the extract collapses a shift-and-mask pair into one instruction and the insert collapses the four-to-six-instruction mask-materialize, clear, shift, and merge sequence into one.
-· Accept: the two largest bodies of generated code on the machine are bitfield access in a loop, so the lowering is not a peephole: the bit-aligned wire formats, where Narcissus derives the encoder as well as the decoder from one format description and so gives the insert form a first-class consumer (R-05-042, R-05-048, R-12-040), and the generated MMIO register accessors, which are the whole device-driver surface (R-05-083). The bytes are spent against the absent I-cache (R-15-164), the 33-43% no-C penalty (R-15-036), and the §15 SRAM capacity budget. A cycle term survives on the insert form, whose dependent chain is longer than adjacent-pair fusion collapses; it is not what admits the instruction and is not scored.
+· Accept: the two largest bodies of generated code on the machine are bitfield access in a loop, so the lowering is not a peephole: the bit-aligned wire formats, where Narcissus derives the encoder as well as the decoder from one format description and so gives the insert form a first-class consumer (R-05-042, R-05-048, R-12-040), and the generated MMIO register accessors, which are the whole device-driver surface (R-05-083). The bytes are spent against the absent I-cache (R-15-164), the 33-43% no-C penalty (R-15-036), and the [§15](#15-hardware-platform) SRAM capacity budget. A cycle term survives on the insert form, whose dependent chain is longer than adjacent-pair fusion collapses; it is not what admits the instruction and is not scored.
 · Trace: CJ-SAIL, CJ-FORMAT
 
 **R-15-067c** IS: It clears the admission test as the adopted bit-manipulation extensions do, and adds nothing structural: no architectural state, no `fence.t` flush-set member, no admission-test case, and no mutable microarchitectural structure the absence contract would newly police.
@@ -4348,7 +4348,7 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Trace: CJ-SAIL, CJ-WCET
 
 **R-15-067d** MUST: The field-specifier form, whether the insert form is carried, and whether the pair is carried at all are re-derived at the freeze from actual generated output on at least the UPER RRC and IEI/TLV descriptors and the generated register accessors, by the discipline R-15-031a states for fusion-set membership, and recorded with the freeze (R-15-014).
-· Accept: the instruction is admitted on an image-size delta, which is a claim about emitted code rather than about the literature, so the measurement is what decides it: a measured delta immaterial against the §15 capacity budget drops the instruction at the freeze rather than carrying it into the frozen profile on the argument alone. Whether the two 6-bit immediates earn their encoding bits, or a register-specified field suffices, is that same recorded selection.
+· Accept: the instruction is admitted on an image-size delta, which is a claim about emitted code rather than about the literature, so the measurement is what decides it: a measured delta immaterial against the [§15](#15-hardware-platform) capacity budget drops the instruction at the freeze rather than carrying it into the frozen profile on the argument alone. Whether the two 6-bit immediates earn their encoding bits, or a register-specified field suffices, is that same recorded selection.
 · Trace: CJ-SAIL
 
 **R-15-067e** IS: The one **further code-size candidate** the freeze's single measured act (R-15-014a) weighs is named rather than left open: a `csetbounds` taking a large immediate length, in CHERIoT's form. It is carried as a candidate and not as a commitment, decided by that measurement against R-15-036p's outlined corpus, and the expected outcome is that it is dropped.
@@ -4363,7 +4363,7 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Accept: deterministic in architectural state (R-15-010 test 1); one latency independent of the state, the frequency pair, and the number of renormalization shifts performed, which puts it on the R-15-053 list with one entry in the timing-annotated model (R-15-095) and **deletes** a data-dependent-timing site rather than adding one, the software loop's shift count and refill frequency being functions of the coded bits inside a compartment whose input is attacker-authored wire (R-12-084a); holding no state across a partition switch, the coder state being an ordinary register and no bitstream register file existing, so nothing joins the R-15-214 flush set (test 3); minting no authority (test 4); and ending at the step it names, the next symbol being the decoder's own next instruction (test 5), which is the line that separates it from the autonomous bitstream engine R-15-238b refuses.
 · Trace: CJ-SAIL, CJ-WCET, CJ-LEAK
 
-**R-15-067h** MUST: Its carriage is decided at the freeze by the same single measured act as the byte instruments (R-15-014a), on the cycle axis: the decoder's worst-case cycles per frame over the conformance corpus (R-15-238d), taken from the timing-annotated model and set against the §11 slot the media server is admitted at and the ceiling that slot declares (R-15-238c, R-12-084b).
+**R-15-067h** MUST: Its carriage is decided at the freeze by the same single measured act as the byte instruments (R-15-014a), on the cycle axis: the decoder's worst-case cycles per frame over the conformance corpus (R-15-238d), taken from the timing-annotated model and set against the [§11](#11-updates) slot the media server is admitted at and the ceiling that slot declares (R-15-238c, R-12-084b).
 · Accept: an instrument that does not move that bound is dropped at the freeze rather than carried into the frozen profile on the argument alone, on the terms R-15-067d holds `bfext` to; it contends for the same custom opcode space as R-15-007e and R-15-067a; carriage costs a review-gate rerun (R-18-034), one Sail clause, and one instruction-selection rule per production backend (R-18-014a); being bespoke it records no standards-track re-pin target, no entropy-coding instruction existing on the RISC-V track, and the obligation opens if one ratifies.
 · Trace: CJ-SAIL, CJ-WCET
 
@@ -4376,7 +4376,7 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Trace: CJ-SAIL, CJ-CERISE
 
 **R-15-067k** IS: A third disposition stands beside *adopted* and *excluded*, and it is named here so that an extension admitted on its grounds but **not yet ratified** has somewhere to be recorded that is neither: a **standing adoption**, which carries the admission argument and carries nothing else. The profile allocates no encoding, no Sail clause, no dictionary entry, no timing-model row and no `Zkt`-list membership for a standing adoption, so it costs exactly what an exclusion costs today; at ratification it enters by amendment and reruns the review gate (R-18-034), and at abandonment it is struck the way any candidate is.
-· Accept: the disposition is decidable by inspection of the profile's own artifacts rather than by adjective, a standing adoption being an extension named in the profile with an empty row on every surface a curator implements from: absent from §2's adopted table, absent from the model's decode surface, and absent from the corpus assembler's encoder table. It is **not** a deferral of the admission judgment, which is why it is a disposition and not a to-do: the admission test (R-15-010) is discharged in the entry that records it, and what ratification supplies is the encoding and the upstream Sail semantics rather than the argument. It is not R-15-014a's second act either, nothing about it waiting on a measurement of generated output.
+· Accept: the disposition is decidable by inspection of the profile's own artifacts rather than by adjective, a standing adoption being an extension named in the profile with an empty row on every surface a curator implements from: absent from [§2](hardware/isa-profile.md#2-adopted-extensions)'s adopted table, absent from the model's decode surface, and absent from the corpus assembler's encoder table. It is **not** a deferral of the admission judgment, which is why it is a disposition and not a to-do: the admission test (R-15-010) is discharged in the entry that records it, and what ratification supplies is the encoding and the upstream Sail semantics rather than the argument. It is not R-15-014a's second act either, nothing about it waiting on a measurement of generated output.
 · Accept: the reason to record one rather than stay silent is that **the baseline moves**. performance-estimates.md scores every figure against a conventional application-class part of the same generation, so an extension this profile declines and that comparator ratifies is a debit against a moving baseline rather than a foregone gain, and an unrecorded decline is a debit nobody books. A standing adoption is therefore reviewed at each re-pin act rather than at the freeze alone.
 · Accept: **the exits are three and not two: ratification, abandonment, and material reshaping**, a reshaping being any upstream revision that changes what the admission test was discharged over. The third is here because the first two leave a live hole this profile has already met: an unratified extension can be re-shaped out of its own admission argument with no gate firing, `Zvzip`'s v0.2 replacing a v0.1 that let its count-changing forms read and write against twice `vl` while every disposition beside it stood green. Reviewing at each re-pin act is not the same instrument, nothing making a reshape *trigger* a re-pin, so without this clause the review happens when somebody re-pins for an unrelated reason and the disposition is decidable by inspection of an argument that may no longer describe the extension. A reshaping re-runs R-15-010's test and the entry is amended or struck on the result, which is the same act ratification triggers and costs no more.
 · Trace: CJ-SAIL
@@ -4395,7 +4395,7 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 
 **R-15-067n** IS: The **integer vector absolute difference** is a standing adoption under R-15-067k: the per-element absolute difference the sum-of-absolute-differences kernel is made of, at fixed latency over the vector register file, adding no architectural state and touching no memory.
 · Accept: it clears the admission test on R-15-067l's reading, and its consumer is the encoder side of the media pipeline, which R-15-067f's range-coder step does not reach: `rcstep` is aimed at the decoder's entropy stage, and motion estimation is the encoder's cost.
-· Accept: **what it moves is a declared ceiling and not a multiplier**, which is the currency this entry is scored in and the reason it is admitted at capacity rather than at throughput. Motion estimation already vectorizes (performance-estimates.md's encode row), and what sets that row's figure is the search space together with the serial mode-decision and rate-control layer above it, neither of which an absolute difference touches. The gain is therefore admitted resolution and rate at the same §11 slot under R-15-238c's declared ceiling and R-12-084b's session refusal, and an amendment scoring it as a percentage on the encode row is a finding.
+· Accept: **what it moves is a declared ceiling and not a multiplier**, which is the currency this entry is scored in and the reason it is admitted at capacity rather than at throughput. Motion estimation already vectorizes (performance-estimates.md's encode row), and what sets that row's figure is the search space together with the serial mode-decision and rate-control layer above it, neither of which an absolute difference touches. The gain is therefore admitted resolution and rate at the same [§11](#11-updates) slot under R-15-238c's declared ceiling and R-12-084b's session refusal, and an amendment scoring it as a percentage on the encode row is a finding.
 · Trace: CJ-SAIL, CJ-WCET
 
 **R-15-067o** IS: `Zibi` (branch with an immediate operand) is **named and dropped**, on the reasoning R-15-067e states for the `csetbounds` immediate rather than on a fresh argument. The cycle it would collect is already collected by the frozen fusion set's compare-and-branch pair (R-15-031), and the byte it would collect is halved by the dictionary encoding for R-15-036m's reason: a site-invariant `li` is one dictionary entry reused at every site, so the pair is already two slots and the immediate form collects one 16-bit slot per site.
@@ -4422,11 +4422,11 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Accept: it carries full Sail semantics and is frozen with the profile like every other encoding it allocates (R-15-014); it reuses the **S-type field layout unchanged**, the sixteen mask bits and the half selector packing into the fields a store already carries, so the decoder gains one opcode and no instruction format and no destination register is named, the mask naming the destinations; the `x0` bit has the effect every other write to `x0` has, which is none; custom opcode space is uncontended, no C extension competing for 32-bit encodings (R-15-036).
 · Trace: CJ-SAIL, CJ-ISOL
 
-**R-15-069b** IS: It is admitted on **cycles** where R-15-007e and R-15-067a are admitted on bytes: the dictionary encoding is a byte instrument, so the clears are already site-invariant dictionary slots (R-15-036k) and the image cost is collected before any instruction is added, while the issue cost is not, two dozen slots still issuing on the platform's only inter-compartment path (R-04-004) in code §11 charges to every cross-compartment call. What it removes it removes from the **bound** and not from the mean, the clear being unconditional.
+**R-15-069b** IS: It is admitted on **cycles** where R-15-007e and R-15-067a are admitted on bytes: the dictionary encoding is a byte instrument, so the clears are already site-invariant dictionary slots (R-15-036k) and the image cost is collected before any instruction is added, while the issue cost is not, two dozen slots still issuing on the platform's only inter-compartment path (R-04-004) in code [§11](#11-updates) charges to every cross-compartment call. What it removes it removes from the **bound** and not from the mean, the clear being unconditional.
 · Accept: deterministic in architectural state (R-15-010 test 1) at a latency independent of operand values and of the mask's population, which puts it on the R-15-053 list (R-15-095); holding no state across a partition switch (test 3, so nothing joins the R-15-214 flush set); minting no authority (test 4), it being the one instruction that can only destroy authority; running no walker (test 5). It adds one instruction-selection rule in the switcher's emitter (R-18-014a) and nothing structural, being a masked synchronous clear on the clear line a flop-based file already carries for reset. Its recorded re-pin target is **`ZcheriSanitary`**, research-stage today; ISAv9's deletion of `CClearRegs` is not inherited, being a fact about the split register file rather than about the need.
 · Trace: CJ-SAIL, CJ-WCET, CJ-ISOL
 
-**R-15-069c** MUST NOT: The CHERIoT stack high-water-mark CSRs `mshwm`/`mshwmb` are excluded, and on the currency rather than on the mechanism: they buy a switch that zeroizes only the stack the callee touched, which is a saving in the **mean**, and the switcher's cost enters the §11 budget as a worst case that a callee using the whole of the stack its capability bounds already attains.
+**R-15-069c** MUST NOT: The CHERIoT stack high-water-mark CSRs `mshwm`/`mshwmb` are excluded, and on the currency rather than on the mechanism: they buy a switch that zeroizes only the stack the callee touched, which is a saving in the **mean**, and the switcher's cost enters the [§11](#11-updates) budget as a worst case that a callee using the whole of the stack its capability bounds already attains.
 · Accept: spending the saving rather than padding it makes the switch's latency a function of the callee's call-graph depth, a cross-domain timing channel of the class R-07-014 deletes lazy vector-unit switching for, with the caller both observer and protected party. The cost side is two CSRs against the closed table R-15-001b enumerates (R-15-014), two more locations the total restore must name (R-07-015), and an architectural write on the store path surviving into the next compartment unless something clears it. The eager zeroize is unchanged and already cheap at fixed latency (R-15-060, R-15-182); the STKZ engine, the other half of the same upstream optimization, is refused separately under admission test 5 (R-08-009).
 · Trace: CJ-NI, CJ-WCET
 
@@ -4439,7 +4439,7 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Trace: CJ-SAIL, CJ-WCET, CJ-NI
 
 **R-15-070** MUST NOT: Interrupt-state sentries (`enabled`/`disabled`/`inherit`) are excluded, the one CHERIoT capability feature the profile declines: with asynchronous interrupt delivery deleted, the three sentry types collapse to the one plain sealed entry.
-· Accept: Sail loses the variant otype space and the interrupt-state capture-and-restore semantics; RTL loses the interrupt-state field, decode, and auto-restore path; the CHERI-TAL loses the interrupt-state index on sentry types; §8/§11 lose the bounded interrupt-disabled-window allow-list.
+· Accept: Sail loses the variant otype space and the interrupt-state capture-and-restore semantics; RTL loses the interrupt-state field, decode, and auto-restore path; the CHERI-TAL loses the interrupt-state index on sentry types; [§8](#8-authority-model)/[§11](#11-updates) lose the bounded interrupt-disabled-window allow-list.
 · Trace: CJ-SAIL, CJ-TAL-SOUND
 
 **R-15-071** IS: The forward/backward-edge sentry split is the platform's coarse-grained CFI: a return capability may target only a return site, so a forged or replayed return address traps.
@@ -4481,7 +4481,7 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Accept: no PMP region registers exist; the three roles a locked-PMP backstop would serve (immutable text/W^X, per-core physical-partition bound, crown-jewel secret fencing) each map onto a named CHERI or crypto-core mechanism.
 · Trace: CJ-CERISE
 
-**R-15-076** IS: The CHERI-disjoint failure domain PMP uniquely offered is deliberately forgone; the hedge is CHERI's own formal verification, and the concentration is booked honestly in §17.
+**R-15-076** IS: The CHERI-disjoint failure domain PMP uniquely offered is deliberately forgone; the hedge is CHERI's own formal verification, and the concentration is booked honestly in [§17](#17-residual-risks).
 · Accept: the residual is the RTL ⊑ Sail arrow plus a Coq-native restatement of reachable-capability monotonicity over the CHERI-RISC-V Sail model.
 · Trace: CJ-CERISE, CJ-RTL-SAIL
 
@@ -4584,7 +4584,7 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Trace: CJ-WCET, CJ-RTL-SAIL
 
 **R-15-097** IS: Honest scope: no RTL ⊑ Sail artifact exists today for a full application-class core, let alone the heterogeneous topology; this is the least-built layer of the entire stack.
-· Accept: §18 stages it per class; §17 books the residuals; below this arrow, fabricated silicon versus verified RTL remains the fab residual.
+· Accept: [§18](#18-realization) stages it per class; [§17](#17-residual-risks) books the residuals; below this arrow, fabricated silicon versus verified RTL remains the fab residual.
 · Trace: CJ-RTL-SAIL
 
 ### 15.14 The microarchitectural absence contract
@@ -4638,21 +4638,21 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Accept: the temporal fence's residual scope collapses to pipeline drain, which is class (d) of R-15-217's four-class map, *stream-determined pipeline state*, rather than an unmapped remainder.
 · Trace: CJ-ISOL
 
-**R-15-107** IS: The absence contract is a distinct §18 bring-up gate and a named §17 residual: the one obligation class whose imported-core half closes on audit rather than on proof.
-· Accept: both entries exist (R-18-012 is the §18 gate and R-17-040 the §17 residual) and both are recorded in the absence-contract register's disposition (R-15-100a).
+**R-15-107** IS: The absence contract is a distinct [§18](#18-realization) bring-up gate and a named [§17](#17-residual-risks) residual: the one obligation class whose imported-core half closes on audit rather than on proof.
+· Accept: both entries exist (R-18-012 is the [§18](#18-realization) gate and R-17-040 the [§17](#17-residual-risks) residual) and both are recorded in the absence-contract register's disposition (R-15-100a).
 · Trace: CJ-RTL-SAIL
 
 ### 15.15 Parameter selection
 
 **R-15-108** MUST: The frozen microarchitectural parameters are selected by a composition-time, pre-silicon design-space exploration whose utility function carries proof simplicity as a first-class term alongside performance, area, power, and WCET.
-· Accept: the parameter set is VLEN per class, core count per class, issue width and pipeline depth, the **per-cycle memory-issue width** beside them, the **per-class bank count** (R-15-247p), the **bank/macro/tier-to-island assignment** (R-15-228, which R-15-228a fixes as an input to the §8 plan and never an output of it), scratchpad sizes, the CBO block size, the FEC decoders' realization geometry on the classes carrying them (R-15-119a), and the TDM-NoC schedule; there is no cache, way-colouring, or integrity-tree parameter to choose. The count and the assignment are **two parameters and not one under two names**: an assignment distributes objects and arrays across the banks a map already grants, so it presupposes a set of banks rather than fixing how many exist, which is why R-15-228a can make the map an input to the plan while R-15-247p still admits the count against the three quantities that entry names. Neither is scoped to one class: the second class is not SRAM (R-15-247n) and its banks are whole-bound to islands exactly as the first class's are (R-15-247p), which is why the assignment carries no medium in its name here or in the three entries that own it. The memory-issue width is **not the issue width under another name and not the schedule's injection width under another name**, and the second is what makes it a parameter rather than a reading: an issue width fixes how many operations the datapath presents each cycle and fixes nothing about how many of them may reach memory, a class presenting two issue slots over one path to the arbiter being an ordinary realization of R-15-015's in-order issue plus FIFO rather than a corner; and the requests the TDM-NoC schedule grants a hart per slot are what the fabric supplies where this width is what the hart can present, so folding the two into one parameter would satisfy every comparison between them by construction and decide in the naming what R-11-017's artifact is emitted to be checked against. It is admitted as a **width and never as a share of the issue width**, that share being this width over that one and so a derived fact this criterion would otherwise hand-maintain, and it is bounded above by the issue width of the class carrying it, so a candidate declaring more memory issue than issue is inadmissible rather than a Pareto point. It is weighed on R-15-108a's axis beside core count and issue width, each request path spending the same capped planar tier (R-15-170) in wires to the fabric and in ports at the bank serialization point R-15-087 fixes, and no value of it is stated here, which is the shape R-15-119a already names for the bank count and the welded block size. The block size is one parameter for `cbo.zero`, `cloadtags`, `creclaim`, and `cbo.scrub` together (R-15-007q welds the group to the block), so no block instruction's width is tunable alone, and what enters R-15-014a's enumerated final-freeze delta at item (vii) is that one welded parameter rather than four instruction widths, scored against a first-class SRAM macro geometry and a second-class deck row and page geometry together.
+· Accept: the parameter set is VLEN per class, core count per class, issue width and pipeline depth, the **per-cycle memory-issue width** beside them, the **per-class bank count** (R-15-247p), the **bank/macro/tier-to-island assignment** (R-15-228, which R-15-228a fixes as an input to the [§8](#8-authority-model) plan and never an output of it), scratchpad sizes, the CBO block size, the FEC decoders' realization geometry on the classes carrying them (R-15-119a), and the TDM-NoC schedule; there is no cache, way-colouring, or integrity-tree parameter to choose. The count and the assignment are **two parameters and not one under two names**: an assignment distributes objects and arrays across the banks a map already grants, so it presupposes a set of banks rather than fixing how many exist, which is why R-15-228a can make the map an input to the plan while R-15-247p still admits the count against the three quantities that entry names. Neither is scoped to one class: the second class is not SRAM (R-15-247n) and its banks are whole-bound to islands exactly as the first class's are (R-15-247p), which is why the assignment carries no medium in its name here or in the three entries that own it. The memory-issue width is **not the issue width under another name and not the schedule's injection width under another name**, and the second is what makes it a parameter rather than a reading: an issue width fixes how many operations the datapath presents each cycle and fixes nothing about how many of them may reach memory, a class presenting two issue slots over one path to the arbiter being an ordinary realization of R-15-015's in-order issue plus FIFO rather than a corner; and the requests the TDM-NoC schedule grants a hart per slot are what the fabric supplies where this width is what the hart can present, so folding the two into one parameter would satisfy every comparison between them by construction and decide in the naming what R-11-017's artifact is emitted to be checked against. It is admitted as a **width and never as a share of the issue width**, that share being this width over that one and so a derived fact this criterion would otherwise hand-maintain, and it is bounded above by the issue width of the class carrying it, so a candidate declaring more memory issue than issue is inadmissible rather than a Pareto point. It is weighed on R-15-108a's axis beside core count and issue width, each request path spending the same capped planar tier (R-15-170) in wires to the fabric and in ports at the bank serialization point R-15-087 fixes, and no value of it is stated here, which is the shape R-15-119a already names for the bank count and the welded block size. The block size is one parameter for `cbo.zero`, `cloadtags`, `creclaim`, and `cbo.scrub` together (R-15-007q welds the group to the block), so no block instruction's width is tunable alone, and what enters R-15-014a's enumerated final-freeze delta at item (vii) is that one welded parameter rather than four instruction widths, scored against a first-class SRAM macro geometry and a second-class deck row and page geometry together.
 · Trace: CJ-RTL-SAIL
 
 **R-15-108a** IS: Core count per class is searched rather than inherited because the High-NA half field prices it: the ~400 mm² usable planar boundary (R-15-170) caps the host logic tier absolutely with no second host logic die or die-to-die fabric link (R-15-111, R-15-173), capacity escapes that cap vertically while logic does not, and in the single-tier case (R-15-173a) the cores share the one planar tier with the array itself, so a core's area is capacity forgone directly. Core count and issue width therefore spend the same fixed, non-stackable area and are weighed as one explicit Pareto axis.
 · Accept: the weighing is asymmetric by construction: the profile's in-order single/dual issue caps a wider core's return, while each added C-class core is a whole partition-switch budget deleted for a server the switch-duty rule pins (R-11-011, R-15-114) and one more core against the population wall's divisor (R-17-004); a fewer-but-wider candidate, worth more per core to the profile-matched fusion set (R-15-031a), is surfaced as a Pareto point exactly as R-15-110 surfaces a faster-but-harder-to-prove one, never resolved by the width-first convention of machines with a chiplet escape and no switch cost to delete. The axis is weighed against a stated first-class capacity floor rather than against capacity forgone in the abstract, R-18-004b fixing the array side and the logic tier's residual at both ends of R-15-170's density band.
 · Trace: CJ-RTL-SAIL, CJ-WCET
 
-**R-15-109** MUST: The admission test and the §8 non-interference / §11 WCET obligations are hard constraints on the search, not objectives. What this entry fixes is the **classification and not the membership**: a hard constraint belonging to one parameter rather than to every candidate is carried by the entry that admits that parameter and prunes there exactly as these do, so this list is not an inventory of the search's hard constraints and a constraint absent from it is not an objective by omission.
+**R-15-109** MUST: The admission test and the [§8](#8-authority-model) non-interference / [§11](#11-updates) WCET obligations are hard constraints on the search, not objectives. What this entry fixes is the **classification and not the membership**: a hard constraint belonging to one parameter rather than to every candidate is carried by the entry that admits that parameter and prunes there exactly as these do, so this list is not an inventory of the search's hard constraints and a constraint absent from it is not an objective by omission.
 · Accept: every candidate satisfies them to be admissible; the search optimizes strictly within the proven-safe envelope and widens no trust base. What is named here is what binds every candidate whatever parameter moved, and a parameter's own constraint binds no less for being stated where the parameter is admitted, which is how R-15-119a forecloses ranging over a code parameter TS 38.212 has already fixed by citing this entry rather than by adding that parameter here. Pricing an infeasible point rather than pruning it is one defect wherever the constraint lives, and a list grown here one report at a time would restate constraints rather than impose them.
 · Trace: CJ-NI, CJ-WCET
 
@@ -4677,11 +4677,11 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Trace: CJ-WCET
 
 **R-15-113** IS: The core classes are C-class (control and application, VLEN=256), V-class (long-vector, VLEN=4096, 8 lanes, with a radio-pinned pair), M-class (systolic GEMM plus VLEN=1024 and a software-managed scratchpad), S-class (scalar sentinel), and the RoT (OpenTitan-class scalar RV64+CHERI in its own clock/power island). Counts are composition parameters, not architecture.
-· Accept: every other section names a class and refers here; disjointness is machine-checked as in §7.
+· Accept: every other section names a class and refers here; disjointness is machine-checked as in [§7](#7-kernel).
 · Trace: CJ-SAIL, CJ-KERNEL
 
 **R-15-114** IS: Pinning is an admission outcome, not a favour granted per device: membership in the pinned class is decided by the R-11-011 switch-duty rule, stated once there rather than restated here.
-· Accept: the radio-pinned V-class pair and the S-class sentinel are the current members of that class; any further server failing the §11 switch-duty inequality takes a core of its class by the same rule.
+· Accept: the radio-pinned V-class pair and the S-class sentinel are the current members of that class; any further server failing the [§11](#11-updates) switch-duty inequality takes a core of its class by the same rule.
 · Trace: CJ-WCET
 
 **R-15-115** MUST NOT: V-class is vector, not fixed-function graphics and not SIMT: no rasterizer, no texture units, no ROPs, no command processor, and no hardware warp scheduler.
@@ -4733,7 +4733,7 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Trace: CJ-LEAK, CJ-WCET
 
 **R-15-120** IS: The RoT is integrated on-die; the cost is concentration (one mask set carries the RoT and everything it measures).
-· Accept: the residual is booked in §17.
+· Accept: the residual is booked in [§17](#17-residual-risks).
 · Trace: CJ-DEVTREE
 
 ### 15.17 Radio subsystem
@@ -4743,7 +4743,7 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Trace: CJ-CERISE
 
 **R-15-122** IS: One fixed-function link-layer timing sequencer is admitted for the sub-slot turnaround (BLE `T_IFS`, 802.11 SIFS, 802.15.4 turnaround): a hardware packet-end event starts a fixed timer that drives the RX/TX switch and gates a software-prepared buffer at the deadline.
-· Accept: the buffer, channel/frequency word, and event schedule are loaded by the §12 control plane before the event, so the block makes no protocol decision; it carries no instruction fetch, no writable program, and no firmware.
+· Accept: the buffer, channel/frequency word, and event schedule are loaded by the [§12](#12-system-servers) control plane before the event, so the block makes no protocol decision; it carries no instruction fetch, no writable program, and no firmware.
 · Trace: CJ-SAIL
 
 **R-15-123** IS: This is the split-MAC/SoftMAC partition: the turnaround in fixed hardware, the link layer and everything above it in software; the distinction from a Bluetooth/Wi-Fi controller is the no-foreign-computers line.
@@ -4779,15 +4779,15 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Trace: CJ-SAIL
 
 **R-15-131** IS: Emergency calling rides the generation floor rather than breaching it: E911/E112 is placed over 5G-standalone (and 6G) emergency registration, and a legacy emergency-only receiver is declined because that hardware would reopen the downgrade surface.
-· Accept: where only legacy or 5G-non-standalone coverage offers an emergency path, the call cannot be placed, the coverage-for-security trade booked in §17.
+· Accept: where only legacy or 5G-non-standalone coverage offers an emergency path, the call cannot be placed, the coverage-for-security trade booked in [§17](#17-residual-risks).
 · Trace: CJ-SAIL
 
 **R-15-132** MUST NOT: No persistent link-layer identifier exists in hardware: the die carries no factory-burned MAC or OUI.
 · Accept: every link-layer address (Wi-Fi, Bluetooth, wired) is a fresh draw from the RoT TRNG through the verified DRBG, with locally-administered and unicast bits forced, never derived from a stored secret or a software PRNG.
 · Trace: CJ-DEVTREE
 
-**R-15-133** IS: The §12 network compartment chooses only *when* to rotate; MAC randomization is privacy by construction, tied to the entropy root rather than to a disable-able setting.
-· Accept: the drawn address is recorded in the §16 replay nondeterminism record, in the public class.
+**R-15-133** IS: The [§12](#12-system-servers) network compartment chooses only *when* to rotate; MAC randomization is privacy by construction, tied to the entropy root rather than to a disable-able setting.
+· Accept: the drawn address is recorded in the [§16](#16-reliability) replay nondeterminism record, in the public class.
 · Trace: CJ-NI
 
 **R-15-134** IS: Capacity honesty: two radio-pinned V-cores plus FEC units give LTE-class throughput via reduced-bandwidth NR; the scaling axis is core count, never a firmware processor.
@@ -4796,11 +4796,11 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 
 ### 15.18 Wired link
 
-**R-15-135** IS: The wired NIC is split-MAC applied to copper: the line interface is an analog front end, the MAC and above is a §12 host compartment, and the DSP is ordinary long-vector code on the same V-class datapath and FEC units the radio PHY uses.
+**R-15-135** IS: The wired NIC is split-MAC applied to copper: the line interface is an analog front end, the MAC and above is a [§12](#12-system-servers) host compartment, and the DSP is ordinary long-vector code on the same V-class datapath and FEC units the radio PHY uses.
 · Accept: no Ethernet controller firmware exists; the IEEE-1588 timestamp unit and adjustable clock sit in the block as fixed-function matter.
 · Trace: CJ-CERISE
 
-**R-15-136** IS: 100BASE-TX dissolves completely: the PCS is host software on an ordinary core at a poll cadence the §11 ring-depth amortization covers, with no fixed-function block beyond the front end.
+**R-15-136** IS: 100BASE-TX dissolves completely: the PCS is host software on an ordinary core at a poll cadence the [§11](#11-updates) ring-depth amortization covers, with no fixed-function block beyond the front end.
 · Accept: no PCS hardware exists for 100BASE-TX.
 · Trace: CJ-WCET
 
@@ -4809,17 +4809,17 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Trace: CJ-ISOL
 
 **R-15-138** IS: The stated cost of frozen coefficients is that marginal cable plant re-trains on a link bounce instead of adapting through it: a link-availability cost, not an integrity one.
-· Accept: the residual is booked in §16/§17.
+· Accept: the residual is booked in [§16](#16-reliability)/[§17](#17-residual-risks).
 · Trace: CJ-ISOL
 
-**R-15-139** MUST NOT: 10GBASE-T and above are declined and booked in §17 rather than left an unimplemented gap.
+**R-15-139** MUST NOT: 10GBASE-T and above are declined and booked in [§17](#17-residual-risks) rather than left an unimplemented gap.
 · Accept: no LDPC-plus-Tomlinson-Harashima datapath exists for a wired port.
 · Trace: CJ-SAIL
 
 ### 15.19 Sensor and transducer front-ends
 
 **R-15-140** MUST: Every sensor is a register-slave AFE: no per-sensor DSP core and no sensor firmware. Capacitive-touch, audio, image, IMU/motion, and fingerprint/biometric front-ends are fixed analog-front-end plus scan-, sample-, or event-sequencer blocks with capability-gated MMIO configuration and capability-bounded DMA windows.
-· Accept: every programmable signal-processing stage is dissolved onto V-class cores in the device's §12 compartment; the AFE's fixed-function conditioning adds no writable state.
+· Accept: every programmable signal-processing stage is dissolved onto V-class cores in the device's [§12](#12-system-servers) compartment; the AFE's fixed-function conditioning adds no writable state.
 · Trace: CJ-CERISE
 
 **R-15-141** IS: Readout is fixed-cadence by default but may be event-driven (a fixed-function threshold comparator, or temporal-contrast pixels), with the data-dependent event timing confined to the owning island's static NoC/memory partition so no cross-island channel opens.
@@ -4827,7 +4827,7 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Trace: CJ-ISOL, CJ-NI
 
 **R-15-142** IS: Raw-AFE silicon and its host-side DSP are a net-new co-design, booked as the honest cost of the firmware the profile deletes.
-· Accept: the §17 entry exists.
+· Accept: the [§17](#17-residual-risks) entry exists.
 · Trace: CJ-RTL-SAIL
 
 **R-15-143** MUST: A front-end's capability-bounded DMA window and its configuration MMIO are one indivisible ownership, granted and revoked together.
@@ -4918,12 +4918,12 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Trace: CJ-DEVTREE
 
 **R-15-163** IS: Three consequences of sequential 3D are normative: static body bias is a logic-tier lever only; the shared thermal budget caps upper-tier device quality and tightens sustained-power headroom; and that budget makes the vertical lever conditional on a materials result rather than graded by effort, a 6T cell being complementary while the back-end-survivable oxide semiconductors that reach array-grade device metrics are n-type.
-· Accept: the first two are carried in the §16 thermal posture and the leakage story; the third is carried as the two-case exposure in R-15-173 and the discrete manufacturing risk in R-18-008.
+· Accept: the first two are carried in the [§16](#16-reliability) thermal posture and the leakage story; the third is carried as the two-case exposure in R-15-173 and the discrete manufacturing risk in R-18-008.
 · Accept: the materials state the condition names is **demonstrated but not industrialized**, not absent, and the requirement is stated against that reading rather than against an empty literature. Four families exist at the back-end budget, enumerated with their figures under this entry's prose bookmark: classical p-type oxides (mobility and off-state anti-correlated, complementary circuits stopping at single 6T cells), Se-alloyed tellurium suboxide (10⁶–10⁷ on/off at ~15 cm²/V·s below 250 °C, single-group, swing and bias-stress drift still failing a cell's figures), complementary 2D channels (300 mm at a 50 nm pitch, p-contacts one and a half to two orders behind the n-side, sponsors' roadmaps in the 2030s), and low-temperature silicon (full CMOS at 400 °C meeting industrial figures of merit, three-tier nanomembranes to working 6T cells at hundreds of transistors per tier). What none supplies is an SRAM array's device budget: the n-type-only side has crossed to a 275-megabit array while no complementary pair exceeds the single cell, and every industrial back-end-transistor program is architected n-type-only, so the pull that industrializes back-end devices exerts none on this condition. The gate is therefore real, its ground is device quality, scale, and industrial pull, and the routes that could close it are unowned rather than merely pending.
 · Trace: CJ-RTL-SAIL
 
 **R-15-163a** IS: The n-type limit binds the complementary cell rather than every back-end macro: a two-transistor magnetic cell selects and reads through n-type devices alone, so a back-end memory of that shape is not gated by the p-type result the SRAM tier waits on.
-· Accept: it bears on the §10 freshness lever (R-10-013f) and does not reopen this one, whose argument is 6T bit density and which the observation does not touch.
+· Accept: it bears on the [§10](#10-storage--state) freshness lever (R-10-013f) and does not reopen this one, whose argument is 6T bit density and which the observation does not touch.
 · Trace: CJ-DEVTREE
 
 **R-15-164** MUST NOT: There are no hardware caches: no L1, no L2, no last-level cache, and no cache-coherence protocol.
@@ -4956,7 +4956,7 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Trace: CJ-DEVTREE
 
 **R-15-171** MUST: The roster is fit to the budget explicitly, and a workload that does not fit is refused at admission, not paged: there is no swap and no overcommit anywhere, every host-resident byte being a capability-delegated byte of one class or the other.
-· Accept: the budget is stated over both R-15-247 classes, the scalar working set and every cycle-critical array against the first and bulk by volume against the second, so the model class a form factor serves follows its bulk capacity rather than its SRAM; browser origins take a composition-sized budget with crash-only eviction. The prohibition is over residency the plan did not place and never over movement: suspension to retained state (R-11-026, R-14-010) and a pool owner's declared shedding action (R-12-090) empty and later refill a slot the plan already placed, at an admitted quiescent point and through capabilities the owner already holds, so R-15-189b's slot assignment stays the complete and final statement it is; the audit separating the two asks whether any fault, trap, or kernel path can make a byte resident that the plan did not place, and none may. A mixture-of-experts model is admitted only with every expert resident and top-k fixed, which makes residency a declared ceiling term and work per token a constant regardless of which experts route; routed fetch across the storage boundary is refused, an input-dependent fill schedule being both a timing channel and an unbounded §11 term. For the first release the roster is R-18-004d's demonstration set and the budget is R-18-004b's per-class comparison.
+· Accept: the budget is stated over both R-15-247 classes, the scalar working set and every cycle-critical array against the first and bulk by volume against the second, so the model class a form factor serves follows its bulk capacity rather than its SRAM; browser origins take a composition-sized budget with crash-only eviction. The prohibition is over residency the plan did not place and never over movement: suspension to retained state (R-11-026, R-14-010) and a pool owner's declared shedding action (R-12-090) empty and later refill a slot the plan already placed, at an admitted quiescent point and through capabilities the owner already holds, so R-15-189b's slot assignment stays the complete and final statement it is; the audit separating the two asks whether any fault, trap, or kernel path can make a byte resident that the plan did not place, and none may. A mixture-of-experts model is admitted only with every expert resident and top-k fixed, which makes residency a declared ceiling term and work per token a constant regardless of which experts route; routed fetch across the storage boundary is refused, an input-dependent fill schedule being both a timing channel and an unbounded [§11](#11-updates) term. For the first release the roster is R-18-004d's demonstration set and the budget is R-18-004b's per-class comparison.
 · Accept: This host-residency budget covers software inference and every module broker buffer. Module constants and private state instead owe R-15-228j and extend no host address space; R-18-004a remains satisfiable without the optional device.
 · Fail-closed: a workload that does not fit the budget is refused at admission (R-17-030q); the cost is delivery of that workload.
 · Trace: CJ-MEMPLAN
@@ -4982,13 +4982,13 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Accept: fixed-rate encodings chosen at composition time remain admissible as compartment-local data representations.
 · Trace: CJ-NI, CJ-WCET
 
-**R-15-247** MUST: Main memory is **two static latency classes** under one placement discipline: bespoke volatile 6T SRAM for the scalar working set and every cycle-critical array, and oxide-semiconductor 2T0C decks for bulk. Both are assigned at composition by the same static memory plan that already assigns banks (R-08-012a), and each enters §11 as one fixed latency constant. There is no cache, no migration, no tiering, no wake-on-access, and no runtime promotion between them, so a second class is a second constant and not a hierarchy (R-15-164).
+**R-15-247** MUST: Main memory is **two static latency classes** under one placement discipline: bespoke volatile 6T SRAM for the scalar working set and every cycle-critical array, and oxide-semiconductor 2T0C decks for bulk. Both are assigned at composition by the same static memory plan that already assigns banks (R-08-012a), and each enters [§11](#11-updates) as one fixed latency constant. There is no cache, no migration, no tiering, no wake-on-access, and no runtime promotion between them, so a second class is a second constant and not a hierarchy (R-15-164).
 · Accept: the class boundary is decided once, at composition, by the memory plan; no instruction, no fault, and no power transition moves a region across it.
 · Accept: the class is normative ahead of R-15-247m's qualification, and the ground for adopting it there is structural rather than array evidence, recorded as a judgment and not presented as a derivation: adopting the class deletes the second roster the tier-count grading would otherwise demand (R-18-030a), the grading itself standing unresolved for the first class (R-15-173a), so the specification carrying the class has one roster to show closing rather than two, which is a decision about specification size taken as one; what qualification then supplies is every per-class constant, R-15-247m admitting no density figure as an architectural input ahead of its measurement, so a macro that falls short at qualification moves the capacity the plan places and never the boundary it places against.
 · Trace: CJ-MEMPLAN, CJ-WCET
 
 **R-15-247a** MUST: Validity tags are native to each class's own array at granule alignment, one plane per class, read and written in parallel with the data, with no sidecar in a foreign medium and no tag table (R-15-203).
-· Accept: three grounds, and the area one is the weakest. One validity bit per 64-bit granule is 15.6 MB per GB of data and about 47–70 MB of SRAM per GB once the tag plane carries its own DECTED code, so a 40 GB bulk tier's foreign sidecar would consume 188–560% of a 0.5–1 GB first class, more than the whole of the class in precisely the case the bulk class exists to serve; native tags cost 1.5625% plus that code, some 4.7–7.0% of the bulk array, which is the tag plane's share of the codeword at its normative and at its fallback width and is R-15-181a's figure rather than this entry's. Atomicity is the second: data, tag validity, and both ECC planes must commit together at the granule (R-15-247b), which is materially harder across two media with different write timings, the same reason R-15-203 puts tags in the row rather than in a table. The cost model is the third: R-15-007q admits `cloadtags` on the ground that native tags are read in parallel with the data, so the saving is issue and not traffic, and a foreign sidecar would give one instruction two cost models and a §11 term that is no longer one constant.
+· Accept: three grounds, and the area one is the weakest. One validity bit per 64-bit granule is 15.6 MB per GB of data and about 47–70 MB of SRAM per GB once the tag plane carries its own DECTED code, so a 40 GB bulk tier's foreign sidecar would consume 188–560% of a 0.5–1 GB first class, more than the whole of the class in precisely the case the bulk class exists to serve; native tags cost 1.5625% plus that code, some 4.7–7.0% of the bulk array, which is the tag plane's share of the codeword at its normative and at its fallback width and is R-15-181a's figure rather than this entry's. Atomicity is the second: data, tag validity, and both ECC planes must commit together at the granule (R-15-247b), which is materially harder across two media with different write timings, the same reason R-15-203 puts tags in the row rather than in a table. The cost model is the third: R-15-007q admits `cloadtags` on the ground that native tags are read in parallel with the data, so the saving is issue and not traffic, and a foreign sidecar would give one instruction two cost models and a [§11](#11-updates) term that is no longer one constant.
 · Trace: CJ-CERISE, CJ-MEMPLAN
 
 **R-15-247b** MUST: Data, tag validity, and both ECC planes commit atomically at the granule on the second class exactly as on the first (R-15-181): a refresh or discharge write that does not commit is a **fail-stop sentinel event**, never a granule left half-written or a tag left standing over data it no longer describes.
@@ -5012,24 +5012,24 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Trace: CJ-DEVTREE, CJ-MEMPLAN
 
 **R-15-247f** MUST: Discharge completion is a fixed worst-corner dwell followed by a single read of a **fail-stop** completion indication, with no poll-until-done loop, no retry, and no discharge-speed-dependent timing on either the success or the timeout path.
-· Accept: a poll would make transition time a function of temperature, charge state, and what the bank held; the dwell is a data-independent constant in the §11 mode-transition budget (R-15-247g).
-· Accept: **the read is per phase**, one dwell and one read for each of R-15-247g's staggered phases, and *single* is single per phase rather than per transition or per bank. The phase is the unit because it is the unit that has a completion fact: R-15-247g fixes the phases and their bank membership at composition, so a phase either drained the banks it names or did not. Per transition is refused on a machine-checked construction, [DischargeSequence.v](../proofs/DischargeSequence.v) exhibiting a per-domain reader that confirms exactly where a per-bank reader refuses, so it admits a domain one of whose phases reached nothing. Per bank is sound and is refused on cost: it multiplies the §11 term by the composed bank count, 4,096 on the second class as composed, to distinguish partiality the phase already localizes.
+· Accept: a poll would make transition time a function of temperature, charge state, and what the bank held; the dwell is a data-independent constant in the [§11](#11-updates) mode-transition budget (R-15-247g).
+· Accept: **the read is per phase**, one dwell and one read for each of R-15-247g's staggered phases, and *single* is single per phase rather than per transition or per bank. The phase is the unit because it is the unit that has a completion fact: R-15-247g fixes the phases and their bank membership at composition, so a phase either drained the banks it names or did not. Per transition is refused on a machine-checked construction, [DischargeSequence.v](../proofs/DischargeSequence.v) exhibiting a per-domain reader that confirms exactly where a per-bank reader refuses, so it admits a domain one of whose phases reached nothing. Per bank is sound and is refused on cost: it multiplies the [§11](#11-updates) term by the composed bank count, 4,096 on the second class as composed, to distinguish partiality the phase already localizes.
 · Accept: **the latch sits in the always-on root-of-trust power domain**, and that is load-bearing rather than incidental: R-15-247q relocates the discharge onto the mode-exit path, which is the path that collapses the rail the domain being discharged sits on, so a latch inside that domain is lost with the rail it exists to report on. The RoT is the platform's only always-on management processor and already the sole sequencer of R-15-198's power and reset table, so the latch has an owner without a new mechanism, and R-15-247g's dwell constant is read by the same sequencer that set it.
 · Fail-closed: a negative reading stops the transition rather than repeating it (R-17-030n).
 · Trace: CJ-WCET, CJ-DEVTREE
 
-**R-15-247g** MUST: Bank discharge and refresh phases are fixed and staggered by the composition-time schedule, with the simultaneous-activation set admitted against the same voltage-droop, thermal-coupling, and power-signature limits R-15-189i provisions the delivery network against, and the whole entering §11 as a mode-transition dwell constant.
+**R-15-247g** MUST: Bank discharge and refresh phases are fixed and staggered by the composition-time schedule, with the simultaneous-activation set admitted against the same voltage-droop, thermal-coupling, and power-signature limits R-15-189i provisions the delivery network against, and the whole entering [§11](#11-updates) as a mode-transition dwell constant.
 · Accept: total refresh energy is fixed by cell count, so what banking buys is the instantaneous current profile: finer banking lowers peak di/dt at the same average throughput, which converts a peak-current ceiling into a schedule the composition already owns. Droop is a rate limit on concurrent bank activation and is never conflated with an energy budget in the admission arithmetic.
 · Trace: CJ-WCET, CJ-ISOL
 
-**R-15-247h** MUST NOT: No instruction is added for discharge, refresh, second-class tag maintenance, or class migration. The mechanism is §12 matter, one fixed-function register slave with no instruction fetch and no firmware, and its two phases run under two conditions: **discharge** is sequenced by the RoT while every application core, DMA engine, and capability-bearing fabric initiator that can address the domain is held in reset, and **refresh** is the same slave's **fixed share of each second-class bank's composition-time TDM schedule**, taken on ON and RETAINED domains alike (R-15-247k) at the cadence the hot-corner floor R-15-247m measures sets. No refresh rides an instruction and none rides a core: `cbo.scrub` (R-15-177a) remains the ECC verify-and-correct scrub, restores no charge, and is not the refresh under another name.
-· Accept: R-15-010 test 5 admits both phases on the ground that refused the Sv39 walker, Itanium's RSE, the TBRE engine, and the STKZ engine: neither is autonomous in the sense the test refuses, the discharge firing only on an RoT-sequenced transition and the refresh advancing only with the schedule's own slot counter, both decisionless and data-independent, and neither reading a runtime measure (R-15-247r). TBRE was refused for a walker whose traffic followed what it read and contended with execution for the array; the refresh share reads nothing and contends with nothing, a bank in its refresh slot being granted to no requester exactly as a bank in another island's slot is, so it enters every access's §11 term as the constant the bank schedule already is and never as an interference term, and its issue stream is the slave's and not a core's. There is no instruction stream in flight across a discharge to carry an opcode, so no opcode is spent. `cbo.zero` is undisturbed: R-15-182's eager zeroize remains the granule and block mechanism during execution, and discharge is whole-bank and only across a power transition.
+**R-15-247h** MUST NOT: No instruction is added for discharge, refresh, second-class tag maintenance, or class migration. The mechanism is [§12](#12-system-servers) matter, one fixed-function register slave with no instruction fetch and no firmware, and its two phases run under two conditions: **discharge** is sequenced by the RoT while every application core, DMA engine, and capability-bearing fabric initiator that can address the domain is held in reset, and **refresh** is the same slave's **fixed share of each second-class bank's composition-time TDM schedule**, taken on ON and RETAINED domains alike (R-15-247k) at the cadence the hot-corner floor R-15-247m measures sets. No refresh rides an instruction and none rides a core: `cbo.scrub` (R-15-177a) remains the ECC verify-and-correct scrub, restores no charge, and is not the refresh under another name.
+· Accept: R-15-010 test 5 admits both phases on the ground that refused the Sv39 walker, Itanium's RSE, the TBRE engine, and the STKZ engine: neither is autonomous in the sense the test refuses, the discharge firing only on an RoT-sequenced transition and the refresh advancing only with the schedule's own slot counter, both decisionless and data-independent, and neither reading a runtime measure (R-15-247r). TBRE was refused for a walker whose traffic followed what it read and contended with execution for the array; the refresh share reads nothing and contends with nothing, a bank in its refresh slot being granted to no requester exactly as a bank in another island's slot is, so it enters every access's [§11](#11-updates) term as the constant the bank schedule already is and never as an interference term, and its issue stream is the slave's and not a core's. There is no instruction stream in flight across a discharge to carry an opcode, so no opcode is spent. `cbo.zero` is undisturbed: R-15-182's eager zeroize remains the granule and block mechanism during execution, and discharge is whole-bank and only across a power transition.
 · Accept: **a software refresh loop is refused on arithmetic and not on taste.** Its issue count is the class's capacity over the block width and its rate the inverse of the floor R-15-247m measures at the hot corner, so it is a background term that grows with the capacity the class is bought for and shrinks with the corner the qualification returns, where a background slot is sized once at composition and a slot sized against a room-temperature figure is a slot that loses data at the trip temperature. The share is instead the arithmetic [the bank-count contract](hardware/bank-count-dse-contract.md) computes per candidate, refresh phases times phase cycles against the deadline the floor sets, and a candidate whose sweep does not fit inside the floor is refused there rather than made up by a core.
 · Accept: **the reset hold is scoped to the requesters that can address the domain being discharged**, and is not die-wide. Die-wide and R-15-190 cannot both hold as written: that entry keeps exactly one island live across standby with R-15-192 running paging reception on it as an admitted hard task, and R-15-190a admits a bulk domain taken OFF at the same transition, so a die-wide hold would delete an admitted hard task at every standby exit. Scoping is the narrower reading that leaves both entries standing and still discharges the obligation, since the property the hold exists to establish is that nothing observes a partially sanitized domain and an initiator that cannot address that domain observes nothing. The roster is a composition constant read from the same map R-15-228 fixes, so what is held is decidable at composition rather than at the transition.
 · Trace: CJ-SAIL, CJ-ISOL
 
-**R-15-247j** MUST: The static memory plan places all §11 hard-task code and all hot code on the first class; second-class code placement carries an admission-visible WCET delta computed against that class's fetch constant.
-· Accept: with R-15-164 deleting every cache, fetch latency is unamortized and enters WCET directly, which is the same quantity R-15-036's dictionary encoding and R-15-031b's fused dereference are spent to protect; the delta is an input to §11 admission rather than a report about it.
+**R-15-247j** MUST: The static memory plan places all [§11](#11-updates) hard-task code and all hot code on the first class; second-class code placement carries an admission-visible WCET delta computed against that class's fetch constant.
+· Accept: with R-15-164 deleting every cache, fetch latency is unamortized and enters WCET directly, which is the same quantity R-15-036's dictionary encoding and R-15-031b's fused dereference are spent to protect; the delta is an input to [§11](#11-updates) admission rather than a report about it.
 · Trace: CJ-WCET, CJ-MEMPLAN
 
 **R-15-247k** MUST: RETAINED for a second-class domain is **maintenance-accessible and requester-inaccessible**: the refresh sequencer reaches it on the composition-fixed cadence, taking the same share of the bank schedule it takes on an ON domain (R-15-247h), nothing else does, and its rail is set by refresh-write margin rather than by latch hold margin, a different and generally higher floor.
@@ -5044,7 +5044,7 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Accept: the distinction is load-bearing rather than terminological, a latch needing two pFETs and the absence of any pFET being what dissolves R-15-173a's grading; the class's dynamism is the capacity being bought.
 · Trace: CJ-DEVTREE
 
-**R-15-247p** MUST: Bank granularity on the second class is admitted against three quantities jointly, the island bandwidth ceiling §11 consumes, the read energy per bit that bitline capacitance sets, and the R-15-247g simultaneous-activation envelope, with the droop envelope a **hard admission constraint**, the island bandwidth ceiling an objective above the floor R-18-004b states and a hard constraint below it, and the read energy per bit an objective; the per-class bank count is in R-15-014a's frozen parameter set. Banks are whole-bound to islands: no address interleaving crosses an island boundary, no bank is dynamically allocated, stolen, or donated, and no bank count varies with occupancy or load.
+**R-15-247p** MUST: Bank granularity on the second class is admitted against three quantities jointly, the island bandwidth ceiling [§11](#11-updates) consumes, the read energy per bit that bitline capacitance sets, and the R-15-247g simultaneous-activation envelope, with the droop envelope a **hard admission constraint**, the island bandwidth ceiling an objective above the floor R-18-004b states and a hard constraint below it, and the read energy per bit an objective; the per-class bank count is in R-15-014a's frozen parameter set. Banks are whole-bound to islands: no address interleaving crosses an island boundary, no bank is dynamically allocated, stolen, or donated, and no bank count varies with occupancy or load.
 · Accept: bank size sets bitline capacitance and so read energy per bit, while more periphery per bit costs array efficiency and so capacity, which is two objectives on one knob and a real optimum; R-15-050's exclusion of the bandwidth regulator stands undisturbed, an island's ceiling being fixed by the TDM schedule and the bank binding, and a bank scheduler would contradict the second. Token rate is therefore a composition-time constant of the bank grant a server is given, not a performance property of the machine.
 · Accept: the floor is a demand R-18-004b states and not a ceiling this entry computes, the ceiling itself remaining an output of the count under search with a per-bank width and a TDM slot share the memory plan may not supply (R-15-228a), so what the floor adds is the comparison the grant is scored against and not an operand the ceiling lacked.
 · Trace: CJ-ISOL, CJ-WCET
@@ -5053,7 +5053,7 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Accept: it relocates the dwell rather than adding one, a domain discharged on the way out needing no clear on the way back in, and it narrows the R-17-058f exposure from every domain ever written to those ON or RETAINED at the instant of power loss; it does not close that residual, the adversary cutting power while the machine runs.
 · Trace: CJ-DEVTREE
 
-**R-15-247r** MUST NOT: No power-domain rail state, refresh cadence, or discharge schedule is a function of origin eviction, tab count, the §11 population rung, pool occupancy, access counts, idle timers, or any other runtime measure. Rail state remains a function of the mode index alone (R-15-189m).
+**R-15-247r** MUST NOT: No power-domain rail state, refresh cadence, or discharge schedule is a function of origin eviction, tab count, the [§11](#11-updates) population rung, pool occupancy, access counts, idle timers, or any other runtime measure. Rail state remains a function of the mode index alone (R-15-189m).
 · Accept: R-15-189m's disclosure argument rests on the mode index already being a declared, RoT-attested public event; the population rung carries no such declaration, so gating on it would publish tab count in supply current. R-14-010's (*P*+1)-th-tab case is the concrete temptation and is named here so the declined feedback loop cannot return under a different name.
 · Trace: CJ-NI, CJ-ISOL
 
@@ -5078,7 +5078,7 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Accept: interleaving is present on every array, scrubbing on every ON domain by the R-15-177a task, and RETAINED domains are governed by R-15-189k.
 · Trace: CJ-SAIL
 
-**R-15-177a** MUST: The scrubber R-15-177 mandates is a scheduled kernel task issuing `cbo.scrub`, the synchronous verify-and-correct CBO block operation: every codeword in one naturally aligned block is read through the ECC check, any correctably erroneous codeword is rewritten corrected, data and tag plane alike, correction telemetry goes to the sentinel, and a detected-but-uncorrectable error in either plane is a fail-stop, at one fixed per-block latency whether anything was corrected or not. Address progression stays in software: the task runs in its own §11-admitted background slot class per R-08-007's pattern at a composition-time cadence, and the R-15-189k exit-path sweep is the same instruction over the domain, priced in the transition budget. Like the sweep it is a kernel reaction the table dispatches and not a thread (R-07-020): the boundary timer cuts a quantum with nothing to save, and the next quantum re-issues the block the cut discarded.
+**R-15-177a** MUST: The scrubber R-15-177 mandates is a scheduled kernel task issuing `cbo.scrub`, the synchronous verify-and-correct CBO block operation: every codeword in one naturally aligned block is read through the ECC check, any correctably erroneous codeword is rewritten corrected, data and tag plane alike, correction telemetry goes to the sentinel, and a detected-but-uncorrectable error in either plane is a fail-stop, at one fixed per-block latency whether anything was corrected or not. Address progression stays in software: the task runs in its own [§11](#11-updates)-admitted background slot class per R-08-007's pattern at a composition-time cadence, and the R-15-189k exit-path sweep is the same instruction over the domain, priced in the transition budget. Like the sweep it is a kernel reaction the table dispatches and not a thread (R-07-020): the boundary timer cuts a quantum with nothing to save, and the next quantum re-issues the block the cut discarded.
 · Accept: the instruction is the R-15-181 read-modify-write stage minus the merge, a case added to a verified path rather than a second datapath; corrected and uncorrected blocks take the same cycles (R-15-179) and the latency is one entry in the timing-annotated model; no autonomous scrub walker exists for R-15-010 test 5 to refuse, the agent being the schedule rather than an engine; and the instruction is idempotent over a block, so a cut quantum costs the cadence one block and nothing else.
 · Trace: CJ-SAIL, CJ-WCET
 
@@ -5133,7 +5133,7 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Accept: slot boundaries do not move; an idle core emits no shared-fabric traffic, so gating is cross-partition invisible.
 · Trace: CJ-WCET, CJ-ISOL
 
-**R-15-188** MUST: Each partition's operating point is selected by the §11 admission proof and is a composition-time constant, switched only at partition boundaries and there by reprogramming the island's divider ratio and rail set-point from the composed assignment (R-15-195), never by retuning a PLL; shared resources (NoC, memory controller, main memory) never scale.
+**R-15-188** MUST: Each partition's operating point is selected by the [§11](#11-updates) admission proof and is a composition-time constant, switched only at partition boundaries and there by reprogramming the island's divider ratio and rail set-point from the composed assignment (R-15-195), never by retuning a PLL; shared resources (NoC, memory controller, main memory) never scale.
 · Accept: data-independent, so Hertzbleed has no carrier: the divider and rail inputs are the composed OPP assignment alone, and no load, activity, or temperature reading reaches them (A-12 of the absence contract); expect 2–3 coarse OPPs per class, floored by ECC/CHERI-tag integrity margin at low voltage.
 · Trace: CJ-WCET, CJ-LEAK
 
@@ -5171,7 +5171,7 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Trace: CJ-NI, CJ-LEAK
 
 **R-15-189i** MUST: Rail collapse and restore are RoT-sequenced with fixed dwell times in a fixed staggered ramp order, both composition-time constants, and inrush is bounded by provisioning the power delivery network for the worst-case simultaneous-on set read off the power vectors.
-· Accept: no current-sensing soft-start loop exists; per-domain transition latency is a data-independent modeled constant folded into the §11 mode-transition budget, adding a term to that budget and no variability to any partition's WCET.
+· Accept: no current-sensing soft-start loop exists; per-domain transition latency is a data-independent modeled constant folded into the [§11](#11-updates) mode-transition budget, adding a term to that budget and no variability to any partition's WCET.
 · Trace: CJ-WCET, CJ-NI
 
 **R-15-189j** MUST: Every OFF→ON transition begins with an unconditional array clear (zero data, cleared validity tags, regenerated SECDED and DECTED codewords for both planes) at a fixed per-domain latency, completed before the domain is admitted to the mode.
@@ -5183,12 +5183,12 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Fail-closed: a rail that does not discharge latches a fail-stop rather than completing the transition, composed at R-17-030n with the rest of the detector class; the cost is the mode transition and, with it, the availability of the mode being entered.
 · Trace: CJ-ISOL, CJ-CERISE
 
-**R-15-189k** MUST: Background scrubbing runs on ON domains only, so the retention voltage floor is set by DECTED tag-plane margin at the worst characterized corner, and any mode holding a domain RETAINED longer than the §16 accumulation bound must schedule a periodic ON scrub interval or perform a full verify-and-correct sweep on the exit path before admission.
+**R-15-189k** MUST: Background scrubbing runs on ON domains only, so the retention voltage floor is set by DECTED tag-plane margin at the worst characterized corner, and any mode holding a domain RETAINED longer than the [§16](#16-reliability) accumulation bound must schedule a periodic ON scrub interval or perform a full verify-and-correct sweep on the exit path before admission.
 · Accept: all three are composition-time constants, none a timer firing on an observed error rate; in standby the DRX period is the scrub period, the live island's bank returning to ON at every paging occasion.
 · Trace: CJ-SAIL, CJ-WCET · [§15](spec.md#r-15-189k), [§15](spec.md#r-15-189k-2)
 
 **R-15-189l** IS: Leakage is proportional to powered bitcell count, so island exclusivity becomes a capacity tax and not a leakage tax, a deployment pays leakage for the roster it composed rather than the capacity fabricated, and standby leaks in proportion to the retained tens of megabytes rather than the fabricated gigabytes.
-· Accept: retention runs roughly an order of magnitude below active-voltage idle per bit and collapse one to two further orders below retention; absolute figures are per-process characterization inputs to the §11 and §16 budgets, the structure of the saving being what is normative; collapsed tiers also relieve sequential 3D's shared heat path and sustained-power headroom.
+· Accept: retention runs roughly an order of magnitude below active-voltage idle per bit and collapse one to two further orders below retention; absolute figures are per-process characterization inputs to the [§11](#11-updates) and [§16](#16-reliability) budgets, the structure of the saving being what is normative; collapsed tiers also relieve sequential 3D's shared heat path and sustained-power headroom.
 · Trace: CJ-DEVTREE, CJ-ISOL · [§15](spec.md#r-15-189l), [§15](spec.md#r-15-189l-2)
 
 **R-15-189m** IS: A domain's power state is a function of the mode index alone, and the mode index is already a declared, RoT-attested, log₂(#modes)-bit public event, so an adversary observing the **rail** learns the mode and nothing about any partition's data, access pattern, or occupancy. The claim is stated of the rail and not of a domain's total supply current: a second-class domain under R-15-247's periodic whole-array refresh puts stored Hamming weight into that current continuously, which R-17-058e books as a residual of its own.
@@ -5213,7 +5213,7 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Accept: the retained bank plus the TDM slice joining island to bank is the whole of it.
 · Trace: CJ-ISOL
 
-**R-15-192** MUST: The live island does not resume: it runs idle-mode DRX paging reception as a §11-admitted periodic hard task (period = the network's DRX cycle, deadline = the paging occasion), so no resume path outside the measured chain is created.
+**R-15-192** MUST: The live island does not resume: it runs idle-mode DRX paging reception as a [§11](#11-updates)-admitted periodic hard task (period = the network's DRX cycle, deadline = the paging occasion), so no resume path outside the measured chain is created.
 · Accept: deep-slept islands re-measure on wake; a page that escalates to a connection wakes the application islands through the boot-chain-variant path.
 · Trace: CJ-WCET, CJ-DEVTREE
 
@@ -5233,7 +5233,7 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Trace: CJ-WCET, CJ-SAIL
 
 **R-15-196** IS: The genuinely asynchronous boundaries are exactly three, each terminated and none modeled as fixed-latency: the RoT's independent slow clock, the external interface clocks, and reset itself.
-· Accept: every theorem touching the RoT path uses one-sided bounds only; external interface clocks terminate in a bounded FIFO behind the capability-checked DMA window, contributing only a line-rate bound to the §11 bandwidth reservation; reset is synchronized per domain at its boundary. An ensemble link's recovered line clock is one of the external interface clocks and terminates as they do, the count of three unmoved (R-15-196a).
+· Accept: every theorem touching the RoT path uses one-sided bounds only; external interface clocks terminate in a bounded FIFO behind the capability-checked DMA window, contributing only a line-rate bound to the [§11](#11-updates) bandwidth reservation; reset is synchronized per domain at its boundary. An ensemble link's recovered line clock is one of the external interface clocks and terminates as they do, the count of three unmoved (R-15-196a).
 · Trace: CJ-WCET, CJ-ISOL
 
 **R-15-196a** MUST: Each member of an ensemble keeps its own clock spine (R-15-195) and an ensemble link's recovered line clock is one of R-15-196's external interface clocks, terminating in the endpoint's bounded FIFO behind its capability-bounded window with the fabric side on the island clock, so no modeled path crosses between two members' clocks and no fixed-latency claim holds at cycle cadence across a link; what holds is slot cadence, and alignment across members is a **scheduled leap and never a loop**: the ensemble's members form a composition-fixed leader tree carried in every attested devicetree, a member's endpoint on its leader link exposes a one-sided arrival-phase reading the landing of the leader link's frame in the slot its table names for the leap updates, consumed only after the crypto core has verified that frame's tag in its own slot (R-15-228e), a slot whose frame failed its tag yielding no leap, and at the leap slot its tables name (R-11-017a), a kernel-owned idle slot between rotations that belongs to no partition and that the executive reserves on every core of the member at the same absolute instant, the follower steps its own platform-wide origin (R-11-014a) by at most the composition's skew bound, so every table stated against that origin, the executive, the TDM NoC schedule, the window grants, and the link slot tables, moves together and nothing stated relative to the origin moves at all. The origin is one **frame-origin register** in the clock spine (R-15-195) that every core's boundary handler reads as its common zero when it programs `mtimecmp` for the next table instant (R-07-040), as the memory controller's TDM arbiter and each window's grant do (R-15-208), loaded by the reset table (R-15-198), leaving `mtime` the free-running counter R-09-015 keeps it, and stepped by exactly one kernel instance, the boot core's (R-09-006), under a capability the composition grants to it alone, in the leap slot and at no other instant; that register, which a single machine loads once and never writes, and its one write path are the only structure an ensemble adds to a machine's timing, so no partition's slot straddles the step and R-07-007's three cross-core mechanisms gain no fourth, the step being one kernel's capability-checked store to a spine register every core reads as a constant. Every receive slot of a link table carries a guard band at least the skew bound plus the link's latency bound, the bound being derived from the declared oscillator tolerance of both members and the leap cadence and never asserted, and the leap is a measured step and not a decision: which slot leaps, from which link's reading, and by at most how much are composition constants, and only the magnitude is read, from a physical quantity no partition's data reaches and no unverified frame steers.
@@ -5262,7 +5262,7 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Accept: part qualification records the actual first-class macros, registers and key-storage construction under abrupt power loss, cooling, supply discharge, retained power states and the declared service-life corners, alongside the second-class measurements. The record identifies all sensitive plaintext and key copies, expanded keys and derivation state, and distinguishes a completed erase construction from remanence characterization. A missing record or an erase claim resting on the medium's name fails qualification; measured decay characterizes the physical residual and supplies no sanitization guarantee (R-15-247c). Authority remanence on the second class is discharged by the confirmed exit-path construction (R-15-247d, R-15-247e, R-15-247q), not by volatility. No relative key-versus-data lifetime is asserted without this complete record (R-17-059a).
 · Trace: CJ-T
 
-**R-15-201** IS: The integrity and anti-replay tree is declined on two further grounds of its own: its node buffer would be a cache by this section's own test (failing test 3 and reintroducing the WCET-pessimism term), and its log-depth walk with a hit-or-miss distribution is exactly the term §11 must otherwise bound pessimistically on every access.
+**R-15-201** IS: The integrity and anti-replay tree is declined on two further grounds of its own: its node buffer would be a cache by this section's own test (failing test 3 and reintroducing the WCET-pessimism term), and its log-depth walk with a hit-or-miss distribution is exactly the term [§11](#11-updates) must otherwise bound pessimistically on every access.
 · Accept: the adversary it names can equally read the on-die root register the guarantee rests on.
 · Trace: CJ-WCET, CJ-ISOL
 
@@ -5294,8 +5294,8 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Accept: no device class falls outside the two shapes.
 · Trace: CJ-CERISE
 
-**R-15-208** MUST: In-flight-DMA revocation is an obligation with one mechanism, bounded per-window re-authorization against the revocation bitmap: an autonomous streaming engine's delegated window capability is held in a fabric-side window register at the owning island's memory controller, and at the start of each TDM grant of that window the controller reads the revocation bit at the window capability's base from the island's R-08-005a array in its own slot, and no request of that grant issues when the bit is set; a core-issued mover's operand capability undergoes the ordinary architectural capability checks, not a fictitious capability reload at issue, and its transfer is one bounded transaction inside the core's slot. R-08-006's barrier stops further issue under retired register-held authority and waits for already accepted transfers to complete, so no such operand or transfer survives containment. Time-to-containment for a device-held capability is therefore a composition constant derived from the schedule artifact and from nothing else: the bitmap-publication step of R-08-006, plus at most one rotation of the window's TDM schedule until the next grant re-authorizes, plus one granted slot for the requests already accepted in the grant in progress, which R-15-208a's completion boundary lands. That constant is the device term of R-08-004's bound, and its worst case enters the §11 budget.
-· Accept: the constant is derived from the attested schedule's rotation period and slot width and never from device behaviour, and the §11 admission proof derives it per composition; no window stays authorized across a grant boundary without the bit read; and no revocation-epoch comparison exists on the request path, an epoch advance on any teardown reaching a device window only through its bit.
+**R-15-208** MUST: In-flight-DMA revocation is an obligation with one mechanism, bounded per-window re-authorization against the revocation bitmap: an autonomous streaming engine's delegated window capability is held in a fabric-side window register at the owning island's memory controller, and at the start of each TDM grant of that window the controller reads the revocation bit at the window capability's base from the island's R-08-005a array in its own slot, and no request of that grant issues when the bit is set; a core-issued mover's operand capability undergoes the ordinary architectural capability checks, not a fictitious capability reload at issue, and its transfer is one bounded transaction inside the core's slot. R-08-006's barrier stops further issue under retired register-held authority and waits for already accepted transfers to complete, so no such operand or transfer survives containment. Time-to-containment for a device-held capability is therefore a composition constant derived from the schedule artifact and from nothing else: the bitmap-publication step of R-08-006, plus at most one rotation of the window's TDM schedule until the next grant re-authorizes, plus one granted slot for the requests already accepted in the grant in progress, which R-15-208a's completion boundary lands. That constant is the device term of R-08-004's bound, and its worst case enters the [§11](#11-updates) budget.
+· Accept: the constant is derived from the attested schedule's rotation period and slot width and never from device behaviour, and the [§11](#11-updates) admission proof derives it per composition; no window stays authorized across a grant boundary without the bit read; and no revocation-epoch comparison exists on the request path, an epoch advance on any teardown reaching a device window only through its bit.
 · Trace: CJ-CERISE, CJ-WCET
 
 **R-15-208a** MUST: DMA completion is an RTL-enforced ownership boundary: it cannot become visible until issue has stopped, all accepted writes have reached SRAM, and the delegated window is closed or re-authorized away from the device; no request under the old transfer capability may issue afterward.
@@ -5303,10 +5303,10 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Trace: CJ-RTL-SAIL, CJ-HAL
 
 **R-15-209** MUST: The interconnect is a capability- and tag-carrying fabric: it propagates capabilities, tags, and revocation state to the DMA blocks, while non-capability transducer writes clear tags by construction.
-· Accept: this is new Sail-model and RTL ⊑ Sail surface, booked in §18.
+· Accept: this is new Sail-model and RTL ⊑ Sail surface, booked in [§18](#18-realization).
 · Trace: CJ-RTL-SAIL
 
-**R-15-210** IS: The deletion is sound only because the device model is already curated register-slave / transducer / on-die RTL, with no foreign bus-master issuing raw physical addresses; the residual (no IOMMU-disjoint backstop) is booked in §17.
+**R-15-210** IS: The deletion is sound only because the device model is already curated register-slave / transducer / on-die RTL, with no foreign bus-master issuing raw physical addresses; the residual (no IOMMU-disjoint backstop) is booked in [§17](#17-residual-risks).
 · Accept: both the precondition and the residual are recorded.
 · Trace: CJ-CERISE
 
@@ -5328,7 +5328,7 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Accept: the flush set carries no register-file entry, R-07-015's totality standing in its place, which is the guarantee R-07-016 states once rather than twice.
 · Trace: CJ-KERNEL, CJ-ISOL
 
-**R-15-215** MUST: Nothing else joins the flush set, each would-be member being already absent or covered elsewhere: no predictor, no reservation, no prefetcher, no TLB or walk cache, no cache of any kind, no scalar-FP or rounding-mode state, the register files by total restore, and the vector/matrix and scratchpad state by the §7 eager zeroize.
+**R-15-215** MUST: Nothing else joins the flush set, each would-be member being already absent or covered elsewhere: no predictor, no reservation, no prefetcher, no TLB or walk cache, no cache of any kind, no scalar-FP or rounding-mode state, the register files by total restore, and the vector/matrix and scratchpad state by the [§7](#7-kernel) eager zeroize.
 · Accept: each is a distinct named mechanism, not the fence's job. With the V/M save deleted (R-07-014a) the last two converge: both are discharged by what the switch *writes* before the successor's first instruction, neither by a snapshot carried across, so R-15-217's class (a) has one sub-case rather than two.
 · Trace: CJ-ISOL
 
@@ -5349,14 +5349,14 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Trace: CJ-NI, CJ-WCET
 
 **R-15-220** MUST: Partition-switch cost is three terms, not four: the `fence.t` padded constant (which *is* the store-buffer drain, counted once), eager vector/matrix zeroize (one `vmclear` pass, R-07-014c; zeroize only, the switch saves nothing, R-07-014a), and OPP relock where operating points differ.
-· Accept: listing the fence and the drain separately would inflate every switch bound feeding §11 by a full drain.
+· Accept: listing the fence and the drain separately would inflate every switch bound feeding [§11](#11-updates) by a full drain.
 · Trace: CJ-WCET · [§15](spec.md#r-15-220), [§15](spec.md#r-15-220-2)
 
 **R-15-220a** IS: R-15-220's three are the **platform** terms, the costs the hardware imposes on a boundary crossing, and the switch budget is those three plus the context term: R-07-015's total register and CSR restore, and R-07-044's pending-bit swap on the arm of that entry's disjunction where a swap exists rather than a static identity partition. The context term is one term and not two, both halves being writes the switch performs into the successor's architectural state over a set fixed at composition.
-· Accept: this is stated here rather than by amending R-15-220 because the two are different quantities with different owners and different behaviour under the design's own parameters. The platform terms are per core class and are constants of the timing-annotated model (R-15-053); the context term is a function of the composed CSR bank and the interrupt-file partition, so it moves with a composition where the three do not. Amending R-15-220 to four terms would move every entry that consumes *the partition-switch constant* (R-07-034, R-11-009, R-11-024, R-11-027) and the four §15 entries that argue from three, to state a fact none of them is wrong about.
-· Accept: the arithmetic is unchanged and only its attribution moves, so no §11 admission figure is re-derived by this entry: R-07-044 already places the swap *in the switch budget* and R-07-015 already obliges the restore, and what was missing was a sentence saying which budget line they are. An entry reading R-15-220's three as the whole budget is reading a platform figure as a switch figure, which is the defect this entry names; R-18-009's *three-term switch budget* is one such reading and is corrected at its own site.
+· Accept: this is stated here rather than by amending R-15-220 because the two are different quantities with different owners and different behaviour under the design's own parameters. The platform terms are per core class and are constants of the timing-annotated model (R-15-053); the context term is a function of the composed CSR bank and the interrupt-file partition, so it moves with a composition where the three do not. Amending R-15-220 to four terms would move every entry that consumes *the partition-switch constant* (R-07-034, R-11-009, R-11-024, R-11-027) and the four [§15](#15-hardware-platform) entries that argue from three, to state a fact none of them is wrong about.
+· Accept: the arithmetic is unchanged and only its attribution moves, so no [§11](#11-updates) admission figure is re-derived by this entry: R-07-044 already places the swap *in the switch budget* and R-07-015 already obliges the restore, and what was missing was a sentence saying which budget line they are. An entry reading R-15-220's three as the whole budget is reading a platform figure as a switch figure, which is the defect this entry names; R-18-009's *three-term switch budget* is one such reading and is corrected at its own site.
 · Accept: R-07-037b's intra-slot rotation performs strictly fewer of R-15-220's three and the whole of the context term, which is what makes the rotation cheaper than a switch without making it a different kind of act; that relation is stated at R-07-037b and is not restated here.
-· Accept: **the budget is monotone in each term separately**, so a composition that raises any one of the four raises the admitted switch cost and lowers no other term, and the terms compose by addition and by nothing else. That clause is here because separating the terms is otherwise a widening over a join nothing pins: mutation over [CyclicExecutive.v](../proofs/CyclicExecutive.v) reports that the shipped statements accept the switch cost composing with the table-load cost by subtraction, on every one of 1,152 generated vectors, so *how these quantities combine* is a property the current theorems do not constrain and a fourth term stated beside three would inherit that freedom. Monotonicity is the weakest statement that closes it, it is decidable per term against the timing-annotated model rather than against a schedule, and it is what a later refinement of the §11 arithmetic is checked against.
+· Accept: **the budget is monotone in each term separately**, so a composition that raises any one of the four raises the admitted switch cost and lowers no other term, and the terms compose by addition and by nothing else. That clause is here because separating the terms is otherwise a widening over a join nothing pins: mutation over [CyclicExecutive.v](../proofs/CyclicExecutive.v) reports that the shipped statements accept the switch cost composing with the table-load cost by subtraction, on every one of 1,152 generated vectors, so *how these quantities combine* is a property the current theorems do not constrain and a fourth term stated beside three would inherit that freedom. Monotonicity is the weakest statement that closes it, it is decidable per term against the timing-annotated model rather than against a schedule, and it is what a later refinement of the [§11](#11-updates) arithmetic is checked against.
 · Trace: CJ-WCET, CJ-KERNEL
 
 **R-15-221** IS: The flush-set statement is itself a crown-jewel spec, now over one structure rather than two.
@@ -5369,8 +5369,8 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Accept: no cache-coherence protocol and no coherence directory exist within or across islands; which domains an island hosts is a composition constant of the attested devicetree, and an island hosting a high-assurance domain hosts no other.
 · Trace: CJ-ISOL
 
-**R-15-222a** MUST: Where an island hosts more than one domain concurrently, its shared structures are slotted per core at composition: the memory controller's per-island arbitration is sub-divided into a fixed per-core rotation at every bank the island owns, the island's NoC injection slots are assigned per core, and each slot is sized to the longest single transaction a bank serves (R-15-087's atomic RMW), so no transaction spans a slot and no core's access waits on another core's. The rotation runs whether or not a core issues, so a core's memory and fabric latency is a function of the schedule and of its own addresses and never of a peer core's activity, and each core's bandwidth quantizes to its slots and feeds §11 admission as R-15-228's island ceiling does. A domain reaches the array only through the cores it is composed onto, so per-core slotting is per-domain slotting.
-· Accept: no arbitration decision inside a shared island depends on another core's requests, decided against the isolation model's non-interference statement once it is authored and stated until then (R-17-003c); the rotation and its slot widths are entries of the attested schedule artifact the §11 proof emits, non-work-conserving in R-07-036's sense; and a composition placing two domains on the cores of one island with no per-core rotation is refused at admission.
+**R-15-222a** MUST: Where an island hosts more than one domain concurrently, its shared structures are slotted per core at composition: the memory controller's per-island arbitration is sub-divided into a fixed per-core rotation at every bank the island owns, the island's NoC injection slots are assigned per core, and each slot is sized to the longest single transaction a bank serves (R-15-087's atomic RMW), so no transaction spans a slot and no core's access waits on another core's. The rotation runs whether or not a core issues, so a core's memory and fabric latency is a function of the schedule and of its own addresses and never of a peer core's activity, and each core's bandwidth quantizes to its slots and feeds [§11](#11-updates) admission as R-15-228's island ceiling does. A domain reaches the array only through the cores it is composed onto, so per-core slotting is per-domain slotting.
+· Accept: no arbitration decision inside a shared island depends on another core's requests, decided against the isolation model's non-interference statement once it is authored and stated until then (R-17-003c); the rotation and its slot widths are entries of the attested schedule artifact the [§11](#11-updates) proof emits, non-work-conserving in R-07-036's sense; and a composition placing two domains on the cores of one island with no per-core rotation is refused at admission.
 · Trace: CJ-ISOL, CJ-NI, CJ-WCET
 
 **R-15-223** MUST: Across islands there is no shared mutable memory at all: cross-island communication is only through designated ring windows in a shared SRAM region, whose release/acquire edges are made visible by Ztso plus R-15-015a without a fence.
@@ -5385,7 +5385,7 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Accept: the on-die power-delivery droop coupling a shared-die radio would leave is deleted on one die rather than by a second package.
 · Trace: CJ-ISOL
 
-**R-15-225** MUST: The NoC uses TDM arbitration with formal semantics, its schedule emitted by the §11 admission proof, and its non-interference is part of the Sail-level isolation model. Best-effort QoS is not admissible.
+**R-15-225** MUST: The NoC uses TDM arbitration with formal semantics, its schedule emitted by the [§11](#11-updates) admission proof, and its non-interference is part of the Sail-level isolation model. Best-effort QoS is not admissible.
 · Accept: no arbitration decision depends on another domain's activity.
 · Trace: CJ-ISOL, CJ-NI
 
@@ -5402,10 +5402,10 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Trace: CJ-ISOL
 
 **R-15-228** MUST: The memory controller enforces the binding, its per-island arbitration carries TDM-NoC-class non-interference semantics in the Sail model, and the bank/macro/tier→island map lands in the attested static devicetree as a crown-jewel spec.
-· Accept: each island's bandwidth ceiling quantizes to its assigned banks or macros and feeds §11 admission.
+· Accept: each island's bandwidth ceiling quantizes to its assigned banks or macros and feeds [§11](#11-updates) admission.
 · Trace: CJ-ISOL, CJ-DEVTREE
 
-**R-15-228a** MUST: The bank/macro/tier→island map is an input to the §8 static memory plan and never an output of it: the plan distributes an island's own objects across the arrays the map already grants it, altering no binding, no arbitration, and no ceiling.
+**R-15-228a** MUST: The bank/macro/tier→island map is an input to the [§8](#8-authority-model) static memory plan and never an output of it: the plan distributes an island's own objects across the arrays the map already grants it, altering no binding, no arbitration, and no ceiling.
 · Accept: the attested devicetree map is identical before and after placement; consistent with R-08-012c.
 · Trace: CJ-ISOL, CJ-DEVTREE
 
@@ -5461,12 +5461,12 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Accept: they are allowlisted peripherals, not accelerators.
 · Trace: CJ-CERISE
 
-**R-15-230** MUST: The §11 admission proof emits, with every mode schedule, the scanout engine's static TDM NoC slice, its framebuffer bank-group binding, and a line-buffer FIFO sized to the TDM service interval, so underrun cannot arise from contention by construction.
+**R-15-230** MUST: The [§11](#11-updates) admission proof emits, with every mode schedule, the scanout engine's static TDM NoC slice, its framebuffer bank-group binding, and a line-buffer FIFO sized to the TDM service interval, so underrun cannot arise from contention by construction.
 · Accept: the line period is the deadline and the FIFO depth the proved jitter bound; the framebuffer is ordinary main memory read through the same ECC-only path, with no cryptographic term on the scanned line.
 · Trace: CJ-WCET
 
-**R-15-231** MUST: Display underrun is a §16 sentinel fault class, not a load outcome: affected lines blank visibly as the presentation of a caught fail-stop, never a silent display of unauthenticated bytes.
-· Accept: recovery is the ordinary §16 restart of the display path.
+**R-15-231** MUST: Display underrun is a [§16](#16-reliability) sentinel fault class, not a load outcome: affected lines blank visibly as the presentation of a caught fail-stop, never a silent display of unauthenticated bytes.
+· Accept: recovery is the ordinary [§16](#16-reliability) restart of the display path.
 · Fail-closed: an underrun blanks the affected lines (R-17-030p); the cost is what the display was showing, a consent prompt included.
 · Trace: CJ-ISOL
 
@@ -5479,7 +5479,7 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Trace: CJ-CERISE
 
 **R-15-234** MUST: EDID is accepted only up to a tight, composition-time block cap sized to the 128–512-byte range real displays span, not the format's 32 KB maximum, and is parsed copy-once by the schema-bounded Narcissus decoder; anything beyond the cap is rejected.
-· Accept: the cap is a composition constant; the parser is a §5 Narcissus artifact.
+· Accept: the cap is a composition constant; the parser is a [§5](#5-languages--verification) Narcissus artifact.
 · Trace: CJ-FORMAT
 
 **R-15-235** MUST: Enabling an external monitor is a powerbox-mediated act gated on user consent; multi-stream daisy-chaining, HDCP, DP++ dual-mode, and any Thunderbolt or USB4 tunnel stay excluded.
@@ -5534,7 +5534,7 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Accept: **no verified equivalence checker is minted to close that gap**, the CHERI-aware checker admitting search-derived or hand-written kernels being the artifact R-05-064 deleted and R-05-065 forbids re-minting; codec kernels are ordinary verified-compiler output and any search or model assistance in producing them is oracle and never checker (R-05-016).
 · Trace: CJ-TAL-SOUND, CJ-FORMAT
 
-**R-15-238e** MUST NOT: No protected media path exists and none is admissible: a hardware-enforced content path is memory its owner may not inspect and a decoder attested to a third party rather than to its owner, which is the enclave inversion R-15-245 refuses and the transparency §9 rests on.
+**R-15-238e** MUST NOT: No protected media path exists and none is admissible: a hardware-enforced content path is memory its owner may not inspect and a decoder attested to a third party rather than to its owner, which is the enclave inversion R-15-245 refuses and the transparency [§9](#9-boot--root-of-trust) rests on.
 · Accept: the consequence is booked as a product ceiling in R-17-053a rather than as an unimplemented feature.
 · Trace: CJ-NI, CJ-CERISE
 
@@ -5545,7 +5545,7 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 ### 15.30 Watchdog, entropy, and anti-features
 
 **R-15-240** MUST: There is exactly one hardware watchdog and it is non-deletable: the RoT's always-on timer (bark/bite) on an independent slow clock, a failure domain disjoint from the cores, the main clock tree, and the scheduler.
-· Accept: it is windowed (early pets fault as well as late) with bounds from the §11 schedule theorem; pets are RoT-nonce challenge-responses from a single capability holder; no external watchdog ICs and no PMIC watchdogs exist.
+· Accept: it is windowed (early pets fault as well as late) with bounds from the [§11](#11-updates) schedule theorem; pets are RoT-nonce challenge-responses from a single capability holder; no external watchdog ICs and no PMIC watchdogs exist.
 · Trace: CJ-DEVTREE
 
 **R-15-241** MUST: The host TRNG is in the RoT and the host verified DRBG in the crypto core; because a draw is internal and no input trace captures it, every draw is accounted for in the deterministic-replay nondeterminism record, under the two-class rule R-16-016 and R-16-017 state.
@@ -5556,7 +5556,7 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Accept: R-15-241b through R-15-241e are the obligations this entry quantifies over; a predictable root is a stated failure of theirs rather than a case the register leaves to the crypto core.
 · Trace: CJ-CRYPTO-SPEC, CJ-DEVTREE
 
-**R-15-241b** MUST: The noise source runs start-up health tests over a fixed sample budget before its first output leaves the RoT and continuous on-line tests thereafter, sized against the source's stochastic model, and the sole failure action is fail-stop: the root latches a failure state reported as a §16 fault class.
+**R-15-241b** MUST: The noise source runs start-up health tests over a fixed sample budget before its first output leaves the RoT and continuous on-line tests thereafter, sized against the source's stochastic model, and the sole failure action is fail-stop: the root latches a failure state reported as a [§16](#16-reliability) fault class.
 · Accept: no reduced-rate, best-effort, or last-known-good output path exists in hardware or firmware, so a detected failure cannot become an undetected one by degrading.
 · Fail-closed: a failed health test latches the noise source off with no degraded path (R-17-030o); the cost is every operation needing fresh randomness.
 · Trace: CJ-DEVTREE
@@ -5586,7 +5586,7 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Trace: CJ-SAIL
 
 **R-15-244** MUST NOT: Analog compute-in-memory (memristor/RRAM/PCM crossbars) is excluded: no deterministic ISA semantics to Sail-model, non-volatile analog weights add persistent plaintext custody requiring their own erase construction, and it presents the richest possible data-dependent power channel with a reactive calibration loop.
-· Accept: admissible only as deterministic binary ReRAM/PCM storage below the §10 integrity line, or as a supplementary entropy source into the RoT conditioner (not adopted).
+· Accept: admissible only as deterministic binary ReRAM/PCM storage below the [§10](#10-storage--state) integrity line, or as a supplementary entropy source into the RoT conditioner (not adopted).
 · Trace: CJ-SAIL, CJ-LEAK
 
 **R-15-245** MUST NOT: SGX-class enclaves, ASLR, shadow stacks, and CFI/landing-pads are excluded: their threat model inverts this design, or they are obviated by proof plus CHERI and fight reproducibility and schedulability.
@@ -5632,7 +5632,7 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Trace: CJ-DEVTREE
 
 **R-16-006** IS: The bark's notice window is one slot, not trap latency, for the reason R-07-046 states: the bark is read in the boundary-timer handler rather than delivered.
-· Accept: the surgical tier is slot-granular and the sub-slot response is the bite alone, a deliberate narrowing of the escalation ladder's top rung, booked in §17 rather than absorbed (R-07-047).
+· Accept: the surgical tier is slot-granular and the sub-slot response is the bite alone, a deliberate narrowing of the escalation ladder's top rung, booked in [§17](#17-residual-risks) rather than absorbed (R-07-047).
 · Trace: CJ-WCET
 
 **R-16-007** MUST: Reset-loop abuse is bounded by boot counting into a minimal recovery state, so the worst case is bounded downtime, not permanent DoS; thermal fail-stop rides the same transactional safety.
@@ -5640,7 +5640,7 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Trace: CJ-DEVTREE
 
 **R-16-008** IS: Rollback is both automatic and user-driven, and the user-driven path adds recovery reach without adding trusted surface: the UI only stages, while the A/B transactor and RoT enforce the signed-root check, the anti-rollback floor, and the credential gate.
-· Accept: the trust split is specified once, in §11 (R-11-002).
+· Accept: the trust split is specified once, in [§11](#11-updates) (R-11-002).
 · Trace: CJ-DEVTREE
 
 ### 16.3 Injected faults
@@ -5681,25 +5681,25 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 ### 16.4 Time-to-remediation
 
 **R-16-009** MUST: Time-to-remediation is a first-class property budgeted separately from time-to-full-fix: a live remote exploit is answered at detection latency, the sentinel triggering an attested transition that revokes the compromised compartment's capabilities, withdraws its rings, and fails its surface closed.
-· Accept: this needs no new proof, because narrowing authority is monotone and cannot violate a safety theorem; the §6 checker still gates any replacement code.
+· Accept: this needs no new proof, because narrowing authority is monotone and cannot violate a safety theorem; the [§6](#6-trusted-computing-base) checker still gates any replacement code.
 · Fail-closed: containment withdraws the compromised compartment's authority and runs the surface degraded until remediation (R-17-030d); the cost is that surface's duty cycle.
 · Trace: CJ-CERISE, CJ-NI
 
-**R-16-010** IS: Containment latency is therefore the §8 bounded-revocation constant, budgeted like detection latency, while the full proof-carrying fix follows off the critical path.
+**R-16-010** IS: Containment latency is therefore the [§8](#8-authority-model) bounded-revocation constant, budgeted like detection latency, while the full proof-carrying fix follows off the critical path.
 · Accept: the fast path degrades capability under proof and the slow path restores it with proof; neither ships unproven code.
 · Trace: CJ-CERISE
 
 ### 16.5 Diagnosis by deterministic replay
 
 **R-16-011** MUST: Deterministic builds give deterministic failure reproduction, and diagnostics are capability-scoped; schedule-fixed frequencies, fixed-latency divide/FPU and atomic RMW, static-only control-flow prediction, and Ztso ordering extend determinism to timing-sensitive failure reproduction.
-· Accept: each enabling property is a §15 mandate.
+· Accept: each enabling property is a [§15](#15-hardware-platform) mandate.
 · Trace: CJ-WCET, CJ-SAIL
 
 **R-16-012** MUST NOT: No ambient verbose logging mode exists: an unlabeled sink capturing data-dependent runtime state would be a cross-boundary channel the non-interference theorem forbids and a forensic surface on a seized device. R-16-021's labeled, capability-scoped, lifecycle-gated sink is not one of those and is not prohibited here.
 · Accept: capability use *is* declassification, so an ambient log has no lawful form; the absence check ranges over unlabeled sinks, R-16-021's gated form being lawful under that same test.
 · Trace: CJ-NI
 
-**R-16-013** MUST: A fault raises a bounded, authenticated crash record through the sentinel telemetry monitor: fault class, faulting capability and program counter, compartment identity, the ECC or tag-trap cause, and a sealed input trace, schema-bounded like any §5 wire format, never free-form text.
+**R-16-013** MUST: A fault raises a bounded, authenticated crash record through the sentinel telemetry monitor: fault class, faulting capability and program counter, compartment identity, the ECC or tag-trap cause, and a sealed input trace, schema-bounded like any [§5](#5-languages--verification) wire format, never free-form text.
 · Accept: the record's schema is a Narcissus descriptor.
 · Trace: CJ-FORMAT
 
@@ -5736,7 +5736,7 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Accept: the gate is the same one debug and trace receive (R-15-078).
 · Trace: CJ-NI
 
-**R-16-022** IS: A crash record leaving the device carries the sealed trace against the reproducible base image's signed root without a secret payload. It supports fault reproduction within R-16-019's scope without disclosing user data. A draw-dependent fault cannot be reproduced from the exported record alone; this limit is recorded in §17.
+**R-16-022** IS: A crash record leaving the device carries the sealed trace against the reproducible base image's signed root without a secret payload. It supports fault reproduction within R-16-019's scope without disclosing user data. A draw-dependent fault cannot be reproduced from the exported record alone; this limit is recorded in [§17](#17-residual-risks).
 · Accept: the two-class entropy record is what keeps this true.
 · Trace: CJ-NI
 
@@ -5770,15 +5770,15 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 
 ## §17. Residual Risks
 
-*§17 is a register of ceilings rather than obligations. Its entries are therefore mostly `IS`: each states a residual that must remain **stated**, and its acceptance criterion is that the residual is booked with its owner and scope rather than absorbed into a guarantee. A §17 entry silently dropped from a future revision is a spec defect in the same sense R-05-153 defines.*
+*[§17](#17-residual-risks) is a register of ceilings rather than obligations. Its entries are therefore mostly `IS`: each states a residual that must remain **stated**, and its acceptance criterion is that the residual is booked with its owner and scope rather than absorbed into a guarantee. A [§17](#17-residual-risks) entry silently dropped from a future revision is a spec defect in the same sense R-05-153 defines.*
 
 ### 17.1 The index
 
 **R-17-001** IS: Residuals are grouped by trust source in an index table: proof gap (deferred, not assumed), spec gap (crown jewels), physical/fab gap, human consent, cryptographic premises (computational conjectures, idealized models and concrete estimates), and commercial acceptance.
-· Accept: every §17 entry belongs to exactly one group, and every group's listed residuals have entries below.
+· Accept: every [§17](#17-residual-risks) entry belongs to exactly one group, and every group's listed residuals have entries below.
 · Trace: CJ-T
 
-**R-17-001a** MUST: Coverage is claimed top down rather than by enumerated archetype: every boundary this specification names carries, against every property in the coverage vocabulary, either a requirement that discharges it or a §17 residual that books it. A boundary-and-property pair carrying neither is a spec defect in the sense R-05-153 defines, not an omission left for a reader to notice, and the reader-facing inventory of removed bug classes is a summary of this argument rather than the argument itself.
+**R-17-001a** MUST: Coverage is claimed top down rather than by enumerated archetype: every boundary this specification names carries, against every property in the coverage vocabulary, either a requirement that discharges it or a [§17](#17-residual-risks) residual that books it. A boundary-and-property pair carrying neither is a spec defect in the sense R-05-153 defines, not an omission left for a reader to notice, and the reader-facing inventory of removed bug classes is a summary of this argument rather than the argument itself.
 · Accept: the boundaries and the properties are each enumerated exactly once, in the artifact R-17-001b requires and not in the prose that quantifies over them; every pair drawn from the two enumerations appears there exactly once; and every pair cites at least one live entry of this register. `tools/check.py` decides all three, so an uncovered pair is a failing check rather than a finding somebody has to make.
 · Trace: CJ-T
 
@@ -5813,7 +5813,7 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Trace: CJ-ISOL, CJ-NI
 
 **R-17-004** IS: The population wall: a non-work-conserving frame divides rather than shares, so discretionary capacity is divided among live tenants and no scheduling work recovers the difference; the division stops at the label (R-07-037b), so what the wall counts is confidentiality labels, each browser origin being its own.
-· Accept: the §11 population rungs change the *shape* of the division, not the fact of it.
+· Accept: the [§11](#11-updates) population rungs change the *shape* of the division, not the fact of it.
 · Trace: CJ-WCET
 
 **R-17-005** IS: Cost (1): background share collapses as roughly 1/n and the absolute numbers are small: on the reference instantiation a background origin at the 32-rung holds on the order of one percent of one core, around four percent at the 8-rung. The foreground is fast and the background very nearly stopped.
@@ -5838,23 +5838,23 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Accept: R-17-004's wall reaches the laptop's desktop only through tenants outside the general domain, each isolated domain among them, the general domain being one tenant (R-07-037); inside it the background runs at the share its weight earns rather than at R-17-005's, which is a different shape and not a better or worse one, and the performance companion states the two separately. Two in-label costs are booked here as well: the idle tail the boundary rule leaves at the end of each domain slot (R-11-006c), which R-17-006's *nothing needs reclaiming* does not reach, and the dispatch outcome's refinement of a member's view of time below its slot cadence, which reveals sibling activity and nothing outside the label.
 · Trace: CJ-NI, CJ-ELASTIC, CJ-WCET
 
-**R-17-008** IS: The product-level statement belongs beside the §1 throughput trade rather than behind it, and it holds per machine: on one machine a core's discretionary frame carries a small number of live tenants at a time and holds the rest as retained state (R-14-011), and an ensemble (R-02-003a) carries more only by adding machines, each dividing its own frames, never by sharing a frame, a slot, or a memory across an ensemble link.
+**R-17-008** IS: The product-level statement belongs beside the [§1](#1-goals) throughput trade rather than behind it, and it holds per machine: on one machine a core's discretionary frame carries a small number of live tenants at a time and holds the rest as retained state (R-14-011), and an ensemble (R-02-003a) carries more only by adding machines, each dividing its own frames, never by sharing a frame, a slot, or a memory across an ensemble link.
 · Accept: the statement appears in the goals-adjacent material at the scope where it holds, per machine, and no goals-adjacent text implies that a server's capacity is a share of one frame, that any member's frame is relieved by a peer's, or names the design by a count of what runs on it.
 · Accept: an elastic domain is one tenant of the frame however many members it runs (R-07-037), so the statement counts it once, and goals-adjacent text naming how many desktop applications the laptop runs states the domain's declared pool and share bound as its ground rather than a count of tenants.
 · Trace: CJ-WCET
 
-**R-17-008a** IS: **No timing figure this design produces can be checked on a shipped part by any instrument outside a composition, and none at finer than slot cadence from inside one.** The two deletions that compose to it are separately correct: the architectural performance counters exist in no lifecycle state and the Debug Module and its trace are fuse-gated off in production (R-15-077, R-15-078), and the per-domain bandwidth-usage counters were removed with the allocation mechanism as cross-partition activity oracles (R-15-050, R-15-051). Every timing figure the freeze contract and the performance companion carry is therefore taken on the timing-annotated Sail model, on generated code, or on simulated RTL, and a part exposes a timing quantity only to software the composition authorizes: R-08-031 grants the time service's nanosecond read to a capability-authorized client and coarse time by default, so a compartment holding that grant measures its own throughput against the slot clock, at slot cadence and at a precision set by how many slots the measurement spans, and never a peer's. A §11 constant a fielded unit fails to meet is not silent either, the slot-boundary timer restarting the partition that overran (R-07-040) and the sentinel consuming the slot-overrun fault (R-12-086). What the design makes unmeasurable is the margin, how far inside its budget a partition finishes, which no fault records and no counter reads; what it makes unaskable is any question about a partition other than the asker. The residual is scoped to timing and capacity: the fault path is instrumented by R-16-013's schema-bounded crash record and reproduced by R-17-015's deterministic replay, so field *diagnosis* is answered and field *performance* is answered only by a compartment measuring itself.
+**R-17-008a** IS: **No timing figure this design produces can be checked on a shipped part by any instrument outside a composition, and none at finer than slot cadence from inside one.** The two deletions that compose to it are separately correct: the architectural performance counters exist in no lifecycle state and the Debug Module and its trace are fuse-gated off in production (R-15-077, R-15-078), and the per-domain bandwidth-usage counters were removed with the allocation mechanism as cross-partition activity oracles (R-15-050, R-15-051). Every timing figure the freeze contract and the performance companion carry is therefore taken on the timing-annotated Sail model, on generated code, or on simulated RTL, and a part exposes a timing quantity only to software the composition authorizes: R-08-031 grants the time service's nanosecond read to a capability-authorized client and coarse time by default, so a compartment holding that grant measures its own throughput against the slot clock, at slot cadence and at a precision set by how many slots the measurement spans, and never a peer's. A [§11](#11-updates) constant a fielded unit fails to meet is not silent either, the slot-boundary timer restarting the partition that overran (R-07-040) and the sentinel consuming the slot-overrun fault (R-12-086). What the design makes unmeasurable is the margin, how far inside its budget a partition finishes, which no fault records and no counter reads; what it makes unaskable is any question about a partition other than the asker. The residual is scoped to timing and capacity: the fault path is instrumented by R-16-013's schema-bounded crash record and reproduced by R-17-015's deterministic replay, so field *diagnosis* is answered and field *performance* is answered only by a compartment measuring itself.
 · Accept: no requirement, derived view, or estimate claims a figure measured on a production part by an instrument this register deletes, and every timing figure states the artifact it was taken from rather than being quoted bare, which is the freeze report's existing discipline read as a rule about where else it holds; a compartment's own slot-cadence measurement under an R-08-031 grant is one such artifact and no exception to R-15-077, reading no counter to make it. The entry is not closed by adding a counter: a construction offered to close the margin or the cross-partition half passes R-15-050 and R-15-051's own test or is refused, and the two shapes that could pass are named so a later proposal is read against them rather than invented, a one-time bring-up instrument fused out at the production transition beside the Debug Module (R-15-078), and an RoT-attested aggregate published with a stated information budget. Neither is adopted by this entry, and no requirement elsewhere reads this residual as licensing an exception to those two exclusions.
 · Trace: CJ-WCET, CJ-NI
 
 ### 17.3 Consent
 
-**R-17-009** IS: For system-fixed flows the §8 theorem is absolute non-interference; for user-authorized flows it is non-interference *modulo* robust, delimited declassification, and that qualifier is where the ceiling sits.
+**R-17-009** IS: For system-fixed flows the [§8](#8-authority-model) theorem is absolute non-interference; for user-authorized flows it is non-interference *modulo* robust, delimited declassification, and that qualifier is where the ceiling sits.
 · Accept: the release is delimited and robust, so the dominant real-world path is inside the proof rather than near-vacuously admitted or left outside it.
 · Trace: CJ-NI
 
 **R-17-009a** IS: The consent ⋈ declassification seam takes one further premise rather than a tenth lemma: with R-08-037a the delimited-release bound depends on the integrity and freshness of the consent-record store where before it depended on the consent path alone, so a stale store is a wrongful declassification by replay and the theorem is only as sound as the epoch seal beneath it.
-· Accept: R-05-160's nine lemmas are unchanged, the premise being discharged by R-10-013e, a mechanism §10 already carries and proves; what is booked is that the bound now reaches into §10, which is a seam to name rather than a residual to accept.
+· Accept: R-05-160's nine lemmas are unchanged, the premise being discharged by R-10-013e, a mechanism [§10](#10-storage--state) already carries and proves; what is booked is that the bound now reaches into [§10](#10-storage--state), which is a seam to name rather than a residual to accept.
 · Trace: CJ-NI, CJ-DEVTREE
 
 **R-17-010** IS: Cost (1): the consent TCB genuinely grows: the powerbox, the trusted-path agent, and the RoT secure-attention indicator are small and verified but genuinely trusted, against the delete-rather-than-defend grain, accepted for want of a way to gate authority-crossing consent without some trusted mediator.
@@ -5877,11 +5877,11 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Accept: no claim elsewhere in the specification implies otherwise.
 · Trace: CJ-NI
 
-**R-17-013e** IS: Cost (3), the abuse-resistance half, open rather than irreducible: a correctly-rendered, genuinely-attested prompt can be issued often enough, or shaped well enough, that a competent user authorizes what they would refuse on reflection, and no mechanism in the design addresses it, the only rate-limiter guarding unlock attempts (R-09-018, R-12-017), never grants. It stays open because the candidate mechanisms (grant rate-limiting, consent-pattern anomaly detection, habituation heuristics) are policy oracles with no specification to prove them against, added to the one path §6 keeps smallest, deciding by heuristic on the user's behalf what the design elsewhere refuses to decide without a theorem.
+**R-17-013e** IS: Cost (3), the abuse-resistance half, open rather than irreducible: a correctly-rendered, genuinely-attested prompt can be issued often enough, or shaped well enough, that a competent user authorizes what they would refuse on reflection, and no mechanism in the design addresses it, the only rate-limiter guarding unlock attempts (R-09-018, R-12-017), never grants. It stays open because the candidate mechanisms (grant rate-limiting, consent-pattern anomaly detection, habituation heuristics) are policy oracles with no specification to prove them against, added to the one path [§6](#6-trusted-computing-base) keeps smallest, deciding by heuristic on the user's behalf what the design elsewhere refuses to decide without a theorem.
 · Accept: the ceiling's two halves carry distinct entries; no claim elsewhere in the specification cites the prompt's unspoofability as bounding this half; and no mechanism is claimed to close it.
 · Trace: CJ-NI
 
-**R-17-013a** IS: The autonomous-agent residual: the §12 posture bounds what an agent may hold, and two costs remain that belong to the residual rather than to the mechanism.
+**R-17-013a** IS: The autonomous-agent residual: the [§12](#12-system-servers) posture bounds what an agent may hold, and two costs remain that belong to the residual rather than to the mechanism.
 · Accept: both are enumerated below, and neither is claimed to be closed.
 · Trace: CJ-NI
 
@@ -5928,7 +5928,7 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Trace: CJ-T
 
 **R-17-016a** MUST: The crown-jewel inventory exists as a single enumerated artifact, [crown-jewels.md](assurance/crown-jewels.md), carrying one row per crown-jewel specification with its `CJ-` trace target, the requirements that constrain it, and its authored/partial/not-authored status. It is a *derived view* in R-15-001a's sense.
-· Accept: the artifact exists; every requirement asserting crown-jewel status for a specification is cited by it; and every `CJ-` target in the trace-target table above is accounted for, each either as a specification row or as a theorem target whose premise is a specification row. `tools/check.py` checks all three conditions. The inventory is the §5 review gate's subject (R-05-150) and the specification workstream's work list, its status column the countable form of R-01-003's as-existing position.
+· Accept: the artifact exists; every requirement asserting crown-jewel status for a specification is cited by it; and every `CJ-` target in the trace-target table above is accounted for, each either as a specification row or as a theorem target whose premise is a specification row. `tools/check.py` checks all three conditions. The inventory is the [§5](#5-languages--verification) review gate's subject (R-05-150) and the specification workstream's work list, its status column the countable form of R-01-003's as-existing position.
 · Trace: CJ-T
 
 **R-17-016b** IS: Agreement gap: a verified decoder establishes this platform's descriptor language, and canonicity (R-05-051a) gives each value one admissible encoding. Neither alone establishes agreement with an independent peer whose accepted language, decoded meanings, configuration or implementation correspondence is unavailable. This is an evidence and scope limit, not a general impossibility of proving equivalence.
@@ -5953,7 +5953,7 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Accept: discharged by R-15-191 and R-15-199.
 · Trace: CJ-ISOL
 
-**R-17-021** IS: Seam: **scanout ⋈ the TDM fabric**, a standing admitted reservation, underrun a §16 fault class, the scanned line crossing no cryptographic stage.
+**R-17-021** IS: Seam: **scanout ⋈ the TDM fabric**, a standing admitted reservation, underrun a [§16](#16-reliability) fault class, the scanned line crossing no cryptographic stage.
 · Accept: discharged by R-11-008, R-15-230, and R-16-004.
 · Trace: CJ-WCET
 
@@ -6048,11 +6048,11 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Trace: CJ-WCET
 
 **R-17-030l** IS: Composed, the members above describe a device an adversary able to provoke faults, thermal events, or crash-restart loops can degrade or silence, whose refusals are individually correct and jointly a life-safety case: a user cannot place an emergency call because the platform fail-stopped, or is outside the only coverage its emergency path admits, or has a sealed switch closed that no software may reopen.
-· Accept: three distinct causes for one outcome, which booking the members separately hides; each is retained on its own terms, and what changes is that the composition is stated where the claim is read (R-03-008) rather than assembled by a reader from §12, §15, §16, and three entries here. No mechanism is proposed against it, every candidate being the wrong trade in this design's own currency: a software override deletes the property the cutoff exists for, a legacy emergency fallback reintroduces the attach surface R-12-041 removed from the silicon, and continuing through a thermal event reopens the channel R-15-193 deleted.
+· Accept: three distinct causes for one outcome, which booking the members separately hides; each is retained on its own terms, and what changes is that the composition is stated where the claim is read (R-03-008) rather than assembled by a reader from [§12](#12-system-servers), [§15](#15-hardware-platform), [§16](#16-reliability), and three entries here. No mechanism is proposed against it, every candidate being the wrong trade in this design's own currency: a software override deletes the property the cutoff exists for, a legacy emergency fallback reintroduces the attach surface R-12-041 removed from the silicon, and continuing through a thermal event reopens the channel R-15-193 deleted.
 · Trace: CJ-T
 
 **R-17-030m** MUST: The degraded-subset *rate* is budgeted, not only the individual window: entries into containment are recorded as an attested, countable event class rather than absorbed as containment succeeding, so repeated forcing is observable in a quantity the per-incident budget does not carry.
-· Accept: R-16-009 budgets one window and R-17-035 books its cost, and neither expresses windows per unit time; without this, an attacker holding a surface degraded indefinitely is reported by the platform as a mechanism working correctly, once per window, forever. The record is a §16 event class and adds no trusted component, the sentinel already driving the attested transition it counts.
+· Accept: R-16-009 budgets one window and R-17-035 books its cost, and neither expresses windows per unit time; without this, an attacker holding a surface degraded indefinitely is reported by the platform as a mechanism working correctly, once per window, forever. The record is a [§16](#16-reliability) event class and adds no trusted component, the sentinel already driving the attested transition it counts.
 · Trace: CJ-DEVTREE, CJ-WCET
 
 **R-17-030n** IS: Fail-closed seam **detector trip ⋈ continued operation**: every fault detector answers detection by stopping, an uncorrectable ECC event and a tag-integrity failure being fail-stop sentinel events (R-15-179, R-15-204, R-16-008b), a control-flow signature mismatch on the three protected sequences raising the same class (R-16-008c), a divergence on the sentinel's lockstepped pair latching a fail-stop to the RoT (R-16-008d), an environmental sensor's trip on a supply, clock, timing margin or light excursion latching the same class at the RoT (R-16-008g), residual synchronizer failure landing in the same place (R-15-197), an access decoding to a domain the running mode leaves off landing in the same class rather than a floating read, a stall, or a wake (R-15-189g), a gating domain whose rail fails its discharge confirmation at a mode transition latching the same class rather than completing the transition (R-15-189n), a second-class granule whose refresh or discharge write does not commit raising the same class rather than leaving a tag over data it no longer describes (R-15-247b) and a negative reading of the discharge completion indication stopping the transition rather than repeating it (R-15-247f), and a trap taken while the trap path is live latching it rather than vectoring a second time onto a context it has already destroyed (R-15-073c).
@@ -6218,7 +6218,7 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Accept: booked as a specification-scrutiny residual rather than a mechanism residual, nothing joining the trusted set; bounded by the authored artifact being a smaller oracle than the one it replaces, and offset by the retirement of the CDT revocation refinement the kernel-design disposition named as the route's early kill switch.
 · Trace: CJ-KERNEL
 
-**R-17-046** IS: The proof trust base is the §6 axiom inventory (R-06-011) together with the interim non-Coq anchors (R-05-022), held here as a residual rather than restated: what this entry adds is the disposition, that the interims are explicitly shrinking rather than open-endedly tolerated.
+**R-17-046** IS: The proof trust base is the [§6](#6-trusted-computing-base) axiom inventory (R-06-011) together with the interim non-Coq anchors (R-05-022), held here as a residual rather than restated: what this entry adds is the disposition, that the interims are explicitly shrinking rather than open-endedly tolerated.
 · Accept: both lists are read off R-06-011 and R-05-022, so neither is enumerated twice and a change to either has one place to be made. The Coq-native crypto path adds no new prover, so an interim's surface is its consumer list, shrinking as consumers migrate onto the destination, and the interim itself retires under R-05-022's rule (R-05-022a); the checkers' own binaries keep their named bootstrap as the De Bruijn root (R-06-014).
 · Trace: CJ-T
 
@@ -6256,7 +6256,7 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Accept: the plan assesses harvest-now-decrypt-later exposure under the hybrid key-establishment construction's actual assumptions, and distinguishes re-encryption of still-controlled stored copies from ciphertext or traffic already captured by an adversary. A later generation cannot recover confidentiality of captured material after its protecting assumptions fail, and a physical rollback floor supplies neither secrecy nor a way to repair an immutable verifier. The policy adds no wall-clock expiry, runtime negotiation or automatic weakening of admission.
 · Trace: CJ-REDUCTION, CJ-CRYPTO-SPEC
 
-**R-17-049b** IS: The hedge's response to a broken assumption is a generation and not a negotiation, R-12-043a leaving no fallback path to select, so migration is a signed update through §10 rather than a choice an attacker can steer; and the hedge covers key establishment only, a signature carrying no second scheme concatenated beside it, so signature-side diversity is taken across roles under R-05-058c rather than within one.
+**R-17-049b** IS: The hedge's response to a broken assumption is a generation and not a negotiation, R-12-043a leaving no fallback path to select, so migration is a signed update through [§10](#10-storage--state) rather than a choice an attacker can steer; and the hedge covers key establishment only, a signature carrying no second scheme concatenated beside it, so signature-side diversity is taken across roles under R-05-058c rather than within one.
 · Accept: the cost is booked as time-to-migrate rather than as agility the platform declines to have, which is why R-12-043a's absence of negotiation is a property and not a gap; no requirement claims a hybrid signature, and the two roles the diversity is stated over are the ROM-verified and the re-signable.
 · Trace: CJ-REDUCTION, CJ-CRYPTO-SPEC
 
@@ -6277,7 +6277,7 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Trace: CJ-DEVTREE
 
 **R-17-051** IS: The 5G/6G-only generation floor narrows deployability, and emergency calling inherits it and narrows further: emergency reach equals the reach of 5G-SA/6G networks carrying IMS emergency over VoNR, a set lagging SA radio coverage itself since EPS fallback is excluded, a coverage-for-security trade extended to E911/E112 by decision rather than by silence.
-· Accept: the trade is stated in §15, §12, and here.
+· Accept: the trade is stated in [§15](#15-hardware-platform), [§12](#12-system-servers), and here.
 · Trace: CJ-SAIL · [§17](spec.md#r-17-051), [§17](spec.md#r-17-051-2)
 
 **R-17-051a** MUST NOT: The first-release composed system admits no SMS, MMS, RCS or bundled Internet messaging service. This release-scope refusal forfeits ordinary texting, text-delivered verification codes, messaging conversations and their group or attachment exchange, and text-to-emergency service. It makes no claim that general networking or ordinary files cannot carry a user's message.
@@ -6298,7 +6298,7 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Accept: discharged by R-15-137 through R-15-139; the ensemble link (R-15-228b) is not a wired port of this entry, carrying no Ethernet PCS, no autonegotiation, and no canceller, its code bought once per link of a server rather than for one port of a handset (R-15-228e).
 · Trace: CJ-ISOL
 
-**R-17-053a** IS: The media ceiling books three costs of deleting the codec block: decode capacity is a declared ceiling refused above rather than an open capability (R-15-238c); energy per frame stays a multiple of a fixed-function block's, on the axis §2 subordinates, and the range-coder instrument buys cycles and bound tightness rather than joules (R-15-067g); and no protected media path exists or is admissible (R-15-238e), so the content tiers requiring one are unreachable rather than unimplemented.
+**R-17-053a** IS: The media ceiling books three costs of deleting the codec block: decode capacity is a declared ceiling refused above rather than an open capability (R-15-238c); energy per frame stays a multiple of a fixed-function block's, on the axis [§2](#2-non-goals) subordinates, and the range-coder instrument buys cycles and bound tightness rather than joules (R-15-067g); and no protected media path exists or is admissible (R-15-238e), so the content tiers requiring one are unreachable rather than unimplemented.
 · Accept: the first two are stated in [performance-estimates.md](performance/performance-estimates.md)'s media rows and the third is a product ceiling this design accepts rather than a gap it intends to close.
 · Trace: CJ-NI, CJ-WCET
 
@@ -6332,7 +6332,7 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Accept: each names the mechanism that narrows it, if any, and the scope line that bounds it; a completed orderly erase is not evidence that abrupt power loss erases either class.
 · Trace: CJ-T
 
-**R-17-058a** IS: The crypto core's analog channel is answered by a masked implementation and bounded by an axiom rather than closed: the secret-handling datapath is the dedicated masked datapath (R-05-004a) with *d*-probing and composition theorems verified on the artifact against the probing-model statement (R-15-053a), the R-15-055 vector units carrying no secret-labeled operand (R-05-070) and so contributing no term to this residual, while every constant-time obligation (R-05-004, R-05-062) remains stated against the architectural §15 leakage model (`Zkt`/`Zvkt`, R-15-053), which covers instruction latency and emitted addresses and not instantaneous power draw or near-field electromagnetic emission. The construction is four obligations together: the masked datapath and its artifact-level theorems (R-05-004a), the conferred probing statement (R-15-053a), and the per-operation randomness booked against the entropy root (R-15-241) and the crypto core's slot; what this entry books is the axiom the four rest on. The probing model is an assumption about the silicon in the R-06-011 sense, so the residual is the model rather than the class: its faithfulness to the die, a delay imbalance, coupling, or layout effect it does not carry, collection beyond its order, the conversion of order into measurement cost, which runs through per-share noise a deterministic all-SRAM core supplies little of and which narrowing the datapath worsens rather than answers, a wide unit's algorithmic noise being what the narrowing forgoes, the activation term the narrowing creates, the masked datapath's activity separating secret-bearing work from the core's public work where a shared unit was surrounded by it, narrow because the composition-time data-independent TDM slot schedule (R-07-032, R-11-006) already makes *when* public, and the uniform-fresh-randomness premise, discharged by the R-15-241 DRBG's computational security (R-05-004a) rather than by the entropy root's rate. The shield cans and enclosure (R-15-153) and the RoT's own clock/power island (R-15-113) attenuate and separate; neither bounds what a measurement yields, and no claim rests on either.
+**R-17-058a** IS: The crypto core's analog channel is answered by a masked implementation and bounded by an axiom rather than closed: the secret-handling datapath is the dedicated masked datapath (R-05-004a) with *d*-probing and composition theorems verified on the artifact against the probing-model statement (R-15-053a), the R-15-055 vector units carrying no secret-labeled operand (R-05-070) and so contributing no term to this residual, while every constant-time obligation (R-05-004, R-05-062) remains stated against the architectural [§15](#15-hardware-platform) leakage model (`Zkt`/`Zvkt`, R-15-053), which covers instruction latency and emitted addresses and not instantaneous power draw or near-field electromagnetic emission. The construction is four obligations together: the masked datapath and its artifact-level theorems (R-05-004a), the conferred probing statement (R-15-053a), and the per-operation randomness booked against the entropy root (R-15-241) and the crypto core's slot; what this entry books is the axiom the four rest on. The probing model is an assumption about the silicon in the R-06-011 sense, so the residual is the model rather than the class: its faithfulness to the die, a delay imbalance, coupling, or layout effect it does not carry, collection beyond its order, the conversion of order into measurement cost, which runs through per-share noise a deterministic all-SRAM core supplies little of and which narrowing the datapath worsens rather than answers, a wide unit's algorithmic noise being what the narrowing forgoes, the activation term the narrowing creates, the masked datapath's activity separating secret-bearing work from the core's public work where a shared unit was surrounded by it, narrow because the composition-time data-independent TDM slot schedule (R-07-032, R-11-006) already makes *when* public, and the uniform-fresh-randomness premise, discharged by the R-15-241 DRBG's computational security (R-05-004a) rather than by the entropy root's rate. The shield cans and enclosure (R-15-153) and the RoT's own clock/power island (R-15-113) attenuate and separate; neither bounds what a measurement yields, and no claim rests on either.
 · Accept: every analog side-channel claim names R-15-053a as its model and the sharing order it holds at; no claim is quoted against an adversary outside the model; and a claim resting on the enclosure is a spec defect in the R-05-153 sense.
 · Trace: CJ-LEAK
 
@@ -6439,7 +6439,7 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 ### 17.10 The boundary of an optimality claim
 
 **R-17-066** IS: Every floor this design proves is relative to a specification it wrote: R-08-019b holds for *its* revocation specification and R-08-019c under *its* three constraints, and neither says a differently factored specification could not need less.
-· Accept: it is not a proof gap in §17's usual sense, since nothing is deferred and nothing is assumed; it is stated rather than absorbed because the reading it refuses, that a proved floor establishes the design choice above it, is exactly the inference the honest-ceiling posture exists to deny.
+· Accept: it is not a proof gap in [§17](#17-residual-risks)'s usual sense, since nothing is deferred and nothing is assumed; it is stated rather than absorbed because the reading it refuses, that a proved floor establishes the design choice above it, is exactly the inference the honest-ceiling posture exists to deny.
 · Trace: CJ-MEMPLAN
 
 ---
@@ -6464,7 +6464,7 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Accept: no scheduled task whose completion requires running a system image precedes the functional certifying core; a reviewer checks the schedule for such a task rather than for a workstream ordering. The priority-zero deliverable is scoped to the *functional* core, the CHERI-CompCert backend (R-18-014) and the TAL producer plus on-device checker (R-18-020), and explicitly excludes the WCET cost-annotation extension of that same toolchain (R-18-024), which R-18-025 gates behind the timing-annotated Sail model.
 · Trace: CJ-COMPCERT, CJ-TAL-SOUND
 
-**R-18-003a** MUST: The frozen instruction-set profile (§15) is the root of the schedule rather than the toolchain: the toolchain, the Sail model, and the CompCert backend all target it, so freezing it precedes all three.
+**R-18-003a** MUST: The frozen instruction-set profile ([§15](#15-hardware-platform)) is the root of the schedule rather than the toolchain: the toolchain, the Sail model, and the CompCert backend all target it, so freezing it precedes all three.
 · Accept: the act with no build prerequisite is the **provisional** freeze, R-15-014a splitting the freeze in two and R-18-003c gating the measured act; R-18-006 already makes it part of the platform definition from first bring-up, and R-18-014's re-homing of SECOMP2CHERI has no target until it lands.
 · Trace: CJ-SAIL, CJ-COMPCERT
 
@@ -6472,7 +6472,7 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Accept: each of the five is stated elsewhere in the specification as available immediately, and none has a prerequisite that is itself unbuilt; three of the five attack the two least-built layers (R-17-039, R-17-064). A day-one deliverable found to have an unbuilt prerequisite is a review-gate finding against this requirement.
 · Trace: CJ-T, CJ-RTL-SAIL
 
-**R-18-003c** MUST: The final freeze (R-15-014a) gates on three artifacts and on nothing else: the functional core of the CHERI-CompCert backend (R-18-014) with its outlining and tail-merging pass landed (R-15-036o), R-15-036p ordering that measurement first; a composed image over the roster taken after the §10 and §13 duplication-removal levers land (R-15-036i), against which *p* is measured stratified by operand class (R-15-036k); and the corpora R-15-067d fixes by name, the UPER RRC and IEI/TLV descriptors and the generated register accessors. No other workstream waits on it, every consumer of the profile targeting the provisional act, which is the schedule root R-18-003a names.
+**R-18-003c** MUST: The final freeze (R-15-014a) gates on three artifacts and on nothing else: the functional core of the CHERI-CompCert backend (R-18-014) with its outlining and tail-merging pass landed (R-15-036o), R-15-036p ordering that measurement first; a composed image over the roster taken after the [§10](#10-storage--state) and [§13](#13-packaging--supply-chain) duplication-removal levers land (R-15-036i), against which *p* is measured stratified by operand class (R-15-036k); and the corpora R-15-067d fixes by name, the UPER RRC and IEI/TLV descriptors and the generated register accessors. No other workstream waits on it, every consumer of the profile targeting the provisional act, which is the schedule root R-18-003a names.
 · Accept: the resulting order is acyclic, the provisional freeze and its Sail curation preceding the backend, the backend and the stripping levers preceding the corpus, and the corpus preceding the final freeze and the proof taken with it. Images built under the provisional baseline are measurement artifacts, neither deployed nor stored, so no item in R-15-014a's delta invalidates a shipped object; and no proof is taken with the provisional profile (R-15-014), so Coq and Sail work authored between the acts is re-checked against a closed delta rather than re-authored. A gating artifact absent from this list is a finding against this requirement, exactly as an unbuilt prerequisite is one against R-18-003b.
 · Trace: CJ-SAIL, CJ-COMPCERT
 
@@ -6481,7 +6481,7 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Accept: the browser's deferral is not a design cut, its no-JIT per-origin design remaining in the specification, and on a laptop it is the largest product forfeit R-17-053b books; its origins keep one label each when the port lands (R-14-011c), so the port adds tenants beside the desktop's elastic domain rather than reshaping it.
 · Trace: CJ-T
 
-**R-18-004a** MUST: The first release is a **general-purpose laptop**, and *laptop* is a floor of eight named workload members carried together on one composed configuration and decided at R-18-008a's worse branch, each stated at a quality a candidate can miss: (i) **call**, a two-way audio call over IP carried for sixty minutes over 802.11 inside a (iii)-class secure session, its media transport the one configuration R-12-043a fixes for it, with no missed deadline among the capture, playback and jitter-buffer hard tasks §11 admits at their audio buffer periods (R-11-006a), its network, crypto and audio path in the fixed tier (R-07-037f); (ii) **data**, at least 100 Mbit/s down and 25 Mbit/s up over 802.11, every protocol state machine above the fixed-function turnaround running as host software inside the radio-pinned pair's and the FEC units' admitted slots (R-15-113, R-15-224, R-15-123, R-12-039, R-12-040), the throughput scaling by core count and never by a firmware processor (R-12-038); (iii) **secure session**, a post-quantum TLS 1.3 session established within 300 ms device-side and a classical handshake carrying an RSA certificate-chain verification within 900 ms, that being the case R-05-064a leaves R-05-064's accepted cost standing on; (iv) **camera**, a 1080p30 webcam stream from the raw-Bayer register slave through the V-class software ISP (R-12-067) to encoded frames sent over (i)'s session, carried for the sixty minutes of (i) and concurrently with it with no dropped frame, which is the outgoing half of a video call; (v) **media**, one 1080p60 eight-bit stream decoded to the panel for thirty minutes concurrently with the audio path and the compositor, with no dropped frame and no session turned away inside the declared ceiling, that ceiling being at least 1080p60 and 2160p30 (R-15-238c, R-12-084b); (vi) **desktop**, an elastic domain (R-07-037e) carrying at least eight concurrently live members launched and closed at runtime from the installed set with no generation change (R-07-037i), its second-class pool at least 1 GB of payload (R-08-047a), R-11-006c's derived focus dispatch bound at most 16.7 ms at every admissible load that entry defines, and the demonstration set's reference interactive member's input-to-response at most 66.7 ms with every other live member using its full request at every dispatch and a toolchain build among them (R-13-027a), both absolute bounds that do not move with the refresh rate the composition declares; (vii) **inference**, a three-billion-parameter four-bit dense model wholly resident on the second class generating at least five tokens per second sustained over a declared context of at least 8,192 tokens, the rate being the admitted token rate the bank grant fixes (R-12-085, R-15-247p) and the context being floored here because the composition otherwise declares the denominator, the inference service placed in the fixed tier so that the rate holds at every load of the desktop's domain; (viii) **content**, the formats the release opens including at least one still-image, one audio, one video-container, one font, and one document format named in R-18-004d's set, each reaching a verified copy-once Narcissus parser through the signed handler graph (R-12-024b) and each enumerated in the R-05-042 wire-format inventory (R-12-024f) against a descriptor the crown-jewel inventory carries (R-05-046), with no format the release opens standing outside that enumeration.
+**R-18-004a** MUST: The first release is a **general-purpose laptop**, and *laptop* is a floor of eight named workload members carried together on one composed configuration and decided at R-18-008a's worse branch, each stated at a quality a candidate can miss: (i) **call**, a two-way audio call over IP carried for sixty minutes over 802.11 inside a (iii)-class secure session, its media transport the one configuration R-12-043a fixes for it, with no missed deadline among the capture, playback and jitter-buffer hard tasks [§11](#11-updates) admits at their audio buffer periods (R-11-006a), its network, crypto and audio path in the fixed tier (R-07-037f); (ii) **data**, at least 100 Mbit/s down and 25 Mbit/s up over 802.11, every protocol state machine above the fixed-function turnaround running as host software inside the radio-pinned pair's and the FEC units' admitted slots (R-15-113, R-15-224, R-15-123, R-12-039, R-12-040), the throughput scaling by core count and never by a firmware processor (R-12-038); (iii) **secure session**, a post-quantum TLS 1.3 session established within 300 ms device-side and a classical handshake carrying an RSA certificate-chain verification within 900 ms, that being the case R-05-064a leaves R-05-064's accepted cost standing on; (iv) **camera**, a 1080p30 webcam stream from the raw-Bayer register slave through the V-class software ISP (R-12-067) to encoded frames sent over (i)'s session, carried for the sixty minutes of (i) and concurrently with it with no dropped frame, which is the outgoing half of a video call; (v) **media**, one 1080p60 eight-bit stream decoded to the panel for thirty minutes concurrently with the audio path and the compositor, with no dropped frame and no session turned away inside the declared ceiling, that ceiling being at least 1080p60 and 2160p30 (R-15-238c, R-12-084b); (vi) **desktop**, an elastic domain (R-07-037e) carrying at least eight concurrently live members launched and closed at runtime from the installed set with no generation change (R-07-037i), its second-class pool at least 1 GB of payload (R-08-047a), R-11-006c's derived focus dispatch bound at most 16.7 ms at every admissible load that entry defines, and the demonstration set's reference interactive member's input-to-response at most 66.7 ms with every other live member using its full request at every dispatch and a toolchain build among them (R-13-027a), both absolute bounds that do not move with the refresh rate the composition declares; (vii) **inference**, a three-billion-parameter four-bit dense model wholly resident on the second class generating at least five tokens per second sustained over a declared context of at least 8,192 tokens, the rate being the admitted token rate the bank grant fixes (R-12-085, R-15-247p) and the context being floored here because the composition otherwise declares the denominator, the inference service placed in the fixed tier so that the rate holds at every load of the desktop's domain; (viii) **content**, the formats the release opens including at least one still-image, one audio, one video-container, one font, and one document format named in R-18-004d's set, each reaching a verified copy-once Narcissus parser through the signed handler graph (R-12-024b) and each enumerated in the R-05-042 wire-format inventory (R-12-024f) against a descriptor the crown-jewel inventory carries (R-05-046), with no format the release opens standing outside that enumeration.
 · Accept: the floor is met when all eight hold on one composed configuration and failed when any one misses, no member trading against another. A member carrying no quantity a candidate can miss is a review-gate finding against this requirement exactly as an unbuilt prerequisite is one against R-18-003b, and a workload absent from the eight is not floor by omission.
 · Accept: no member is met over a mechanism this register deletes, so (v) may not be met with a codec block (R-15-238), (vi) with variable refresh (R-15-236c), with a frame yielding idle slack across a confidentiality boundary (R-07-036), with a pool borrowing fixed-tier memory (R-08-047c), or with an inner timer preempting a member (R-07-037g), (vii) with routed expert fetch across the storage boundary (R-15-171), or (viii) with content sniffing or runtime handler registration (R-12-024b). No member's pass condition requires the browser, whose deferral R-18-004 fixes, and none requires a cellular radio, eUICC, Bluetooth link or emergency path, which R-02-003b scopes to the handset.
 · Accept: (vi)'s two bounds are decided at different gates and neither stands for the other: the dispatch bound is derived by R-11-006c's arithmetic over declared constants and can fail at composition, while the input-to-response time includes the reference member's own code, which admission does not bound (R-07-037h), and is measured on the demonstration set under R-18-004c. The population ladder R-11-021 fixes stays the instrument for tenants outside the domain and is no clause of this member.
@@ -6531,7 +6531,7 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Trace: CJ-DEVTREE
 
 **R-18-008a** IS: That risk is discrete, not gradual, and the plan is written against its worse branch: tier count is gated on complementary devices at the back-end thermal budget reaching array-grade quality and manufacturable scale, which they either do (tier count is then an ordinary yield-and-cost question) or do not (the machine is one planar tier at order 0.5–1 GB permanently, not as a first step). The branch point is that threshold and not the existence of a laboratory device, several of which are on record (R-15-163).
-· Accept: a manufacturing dependency in both branches and a proof obligation in neither, so the §17 frontier is unmoved; what moves is R-18-030, which plans the multi-tier envelope as upside and must show the roster closing on the single tier.
+· Accept: a manufacturing dependency in both branches and a proof obligation in neither, so the [§17](#17-residual-risks) frontier is unmoved; what moves is R-18-030, which plans the multi-tier envelope as upside and must show the roster closing on the single tier.
 · Trace: CJ-DEVTREE
 
 **R-18-009** IS: Two memory-path questions are named as open and explicitly *not* specified: a statically-placed instruction scratchpad, narrowed to pinned single-tenant cores (whose remaining motivation is port contention alone; on a slotted core it is excluded outright, per-tenant partitioning dividing its capacity by the rung and a switch-time refill adding a code-fill term neither R-15-220's three platform terms nor R-15-220a's context term carries), and sequential consistency in place of Ztso (whose reach is narrower than it looks: `fence.t` and the `A` extension both survive it).
@@ -6570,36 +6570,36 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Accept: the first re-homes SECOMP2CHERI and completes its robust-preservation theorem rather than authoring a capability backend fresh; the second is genuinely net-new and explicitly in scope.
 · Trace: CJ-COMPCERT, CJ-SECOMP
 
-**R-18-014a** MUST: Backend completeness is part of the two already-required compiler deliverables, not a separate performance workstream: every production lowering for a vector-bearing core class provides ordinary latency-aware scheduling, RVV autovectorization and SLP, legal register-arm `Zicond` if-conversion and its capability arm on the R-15-054a conditional move wherever the selected value is a capability, fusion-aware selection and adjacency preservation for the frozen §15 pair set, and selection of the frozen §15 capability indexed load and store (R-15-007e) and bitfield extract and insert (R-15-067a) wherever the addressing or field-access pattern matches; every production link enables the standard CHERI/RISC-V address-materialization and direct-call relaxations supported by the frozen profile where their standard preconditions hold. Completeness is that list of lowerings together with the R-05-023b primitive surface beside it, every member of the first selected by pattern out of ordinary source and every member of the second named, so a backend carrying each lowering here and no primitive is short of the duty rather than done with it.
+**R-18-014a** MUST: Backend completeness is part of the two already-required compiler deliverables, not a separate performance workstream: every production lowering for a vector-bearing core class provides ordinary latency-aware scheduling, RVV autovectorization and SLP, legal register-arm `Zicond` if-conversion and its capability arm on the R-15-054a conditional move wherever the selected value is a capability, fusion-aware selection and adjacency preservation for the frozen [§15](#15-hardware-platform) pair set, and selection of the frozen [§15](#15-hardware-platform) capability indexed load and store (R-15-007e) and bitfield extract and insert (R-15-067a) wherever the addressing or field-access pattern matches; every production link enables the standard CHERI/RISC-V address-materialization and direct-call relaxations supported by the frozen profile where their standard preconditions hold. Completeness is that list of lowerings together with the R-05-023b primitive surface beside it, every member of the first selected by pattern out of ordinary source and every member of the second named, so a backend carrying each lowering here and no primitive is short of the duty rather than done with it.
 · Accept: backend tests contain one positive generated-code case for each lowering facility and a fusion-conflict case showing that a pair is broken only when the same block's static Sail cost is strictly lower; linker tests contain positive and blocked-precondition cases for each enabled standard relaxation, introduce no private relaxation semantics, and translation-validate the post-relaxation linked image against Sail under R-05-023; backend tests also carry one positive case per primitive emitting the encoding the profile's row states and one negative case rejecting a name no row carries; the work plan names no separate optimizer, analyzer, profile pipeline, search tool, verified artifact, or workstream for these duties.
 · Trace: CJ-COMPCERT, CJ-TAL-SOUND, CJ-WCET
 
-**R-18-014b** MUST: The link-time step that already emits the static slot assignment implements the R-08-012a lexicographic objective from the R-08-012b profile-free inputs, with a determinism test (one source closure, two builds, one identical placement map) and a non-regression test (no island's reserved span and no admitted §11 bound worse than under a span-only plan).
+**R-18-014b** MUST: The link-time step that already emits the static slot assignment implements the R-08-012a lexicographic objective from the R-08-012b profile-free inputs, with a determinism test (one source closure, two builds, one identical placement map) and a non-regression test (no island's reserved span and no admitted [§11](#11-updates) bound worse than under a span-only plan).
 · Accept: the work plan names no separate placement tool, profile pipeline, optimizer, or workstream, and no consumer-side checker is added: the placed image is validated by the same TAL interference check and the same R-05-023 translation validation as before.
 · Trace: CJ-COMPCERT, CJ-MEMPLAN, CJ-WCET
 
-**R-18-014c** MUST: Bound-directed lowering belongs to the same two compiler deliverables: where two lowerings are architecturally equivalent and both fit the §15 image budget, the backend emits the one whose R-18-024 cost annotation yields the smaller bound even where its expected-case cost is worse (expected-case cost is the tie-break, never the criterion), and it takes the legal transformations that replace a data-dependent trip count with a statically declared one or hoist variable-trip-count control flow out of a bounded region, so that R-11-015's loop-bound discharge succeeds syntactically rather than through its manual escape hatch. The R-18-014a `Zicond` if-conversion duty is the first instance of this rule, not a separate facility.
-· Accept: backend tests contain a case where the bound-directed and average-directed choices differ and the emitted code is the bound-directed one, a loop-bound case discharging syntactically where the untransformed form needed the escape hatch, and a non-regression case in which no admitted §11 bound is worse and no island's image share exceeds its §15 budget; the work plan names no separate optimizer, analyzer, profile pipeline, search tool, or workstream for the duty, and no consumer-side machinery is added, admission still deciding against the bound re-derived from the shipped binary (R-11-015a).
+**R-18-014c** MUST: Bound-directed lowering belongs to the same two compiler deliverables: where two lowerings are architecturally equivalent and both fit the [§15](#15-hardware-platform) image budget, the backend emits the one whose R-18-024 cost annotation yields the smaller bound even where its expected-case cost is worse (expected-case cost is the tie-break, never the criterion), and it takes the legal transformations that replace a data-dependent trip count with a statically declared one or hoist variable-trip-count control flow out of a bounded region, so that R-11-015's loop-bound discharge succeeds syntactically rather than through its manual escape hatch. The R-18-014a `Zicond` if-conversion duty is the first instance of this rule, not a separate facility.
+· Accept: backend tests contain a case where the bound-directed and average-directed choices differ and the emitted code is the bound-directed one, a loop-bound case discharging syntactically where the untransformed form needed the escape hatch, and a non-regression case in which no admitted [§11](#11-updates) bound is worse and no island's image share exceeds its [§15](#15-hardware-platform) budget; the work plan names no separate optimizer, analyzer, profile pipeline, search tool, or workstream for the duty, and no consumer-side machinery is added, admission still deciding against the bound re-derived from the shipped binary (R-11-015a).
 · Trace: CJ-WCET, CJ-COMPCERT, CJ-TAL-SOUND
 
-**R-18-014d** MUST NOT: Image size is a constraint on that choice and not a term in it: a bound-directed lowering that would displace another admitted component from the §15 capacity budget is inadmissible however much it tightens.
-· Accept: the same arbitration R-18-014b's non-regression test states on the data side; until the timing-annotated Sail model lands for a core class the rule runs against the bring-up measured table exactly as sound §11 admission does (R-18-025).
+**R-18-014d** MUST NOT: Image size is a constraint on that choice and not a term in it: a bound-directed lowering that would displace another admitted component from the [§15](#15-hardware-platform) capacity budget is inadmissible however much it tightens.
+· Accept: the same arbitration R-18-014b's non-regression test states on the data side; until the timing-annotated Sail model lands for a core class the rule runs against the bring-up measured table exactly as sound [§11](#11-updates) admission does (R-18-025).
 · Trace: CJ-WCET, CJ-COMPCERT
 
 **R-18-014e** MUST: The link step performs size-constrained LTO with selective inlining, loop unrolling, and superblock formation on measured hot paths as baseline completeness of the required toolchain: the transforms delete call/return pairs whose returns no return-address stack predicts (R-15-023), cut static branch density, and widen the straight-line window the R-18-014a scheduler fills and the vectorizer sees.
-· Accept: each site is admitted by the R-18-014d constraint taken in encoded form, growth charged in whole bundles (R-15-036e) against the dictionary hit rate the image was sized to (R-15-036i), the block's static Sail cost and §11 bound no worse (R-18-014c), and the image fitting without displacing an admitted component; selectivity is one decision with R-15-036o's outlining and tail merging under R-15-036p's bytes-and-cycles measurement, so the size-growing and size-shrinking directions cannot claim the same code twice.
+· Accept: each site is admitted by the R-18-014d constraint taken in encoded form, growth charged in whole bundles (R-15-036e) against the dictionary hit rate the image was sized to (R-15-036i), the block's static Sail cost and [§11](#11-updates) bound no worse (R-18-014c), and the image fitting without displacing an admitted component; selectivity is one decision with R-15-036o's outlining and tail merging under R-15-036p's bytes-and-cycles measurement, so the size-growing and size-shrinking directions cannot claim the same code twice.
 · Trace: CJ-COMPCERT, CJ-WCET, CJ-FORMAT
 
 **R-18-014f** MUST NOT: Advanced modulo scheduling and software pipelining are not promoted to backend completeness: with no rotating register file and no predication the transform needs modulo variable expansion's multiplicative code growth and reorders across the fusion pairs R-18-014a requires preserved, so the conformance path of both required compilers carries no size-growing, adjacency-breaking transform.
-· Accept: the applied form is a per-loop measured trade on the RVV kernels, admitted under R-18-014e's encoded-form size constraint, breaking a fusion pair only where the block's static Sail cost strictly improves (R-18-014a), hoisting loads statically with no prefetch hint, and consuming the loop bounds §11 already mandates as WCET inputs (R-11-015) rather than funding its own analysis; proof surface is zero either way, the output re-certified regardless of how it was scheduled.
+· Accept: the applied form is a per-loop measured trade on the RVV kernels, admitted under R-18-014e's encoded-form size constraint, breaking a fusion pair only where the block's static Sail cost strictly improves (R-18-014a), hoisting loads statically with no prefetch hint, and consuming the loop bounds [§11](#11-updates) already mandates as WCET inputs (R-11-015) rather than funding its own analysis; proof surface is zero either way, the output re-certified regardless of how it was scheduled.
 · Trace: CJ-COMPCERT, CJ-WCET, CJ-FORMAT
 
 **R-18-014g** MUST: The profitability test of the R-18-014a autovectorization duty is the R-18-024 cost annotation and never a mean-latency model: an off-list indexed or runtime-strided vector access (R-15-085a) enters that annotation at its fully-conflicted bound (R-15-085b), so the backend reaches the on-list unit-stride, segment, and whole-register forms by layout and loop shape wherever a legal restructuring exists, and vectorizes through an off-list access only where the fully-conflicted price still yields a smaller bound than the scalar form. The shape preference and R-08-012a's field-partitioning term are one decision, as R-11-015b makes frame packing and bound-directed lowering one.
-· Accept: backend tests contain a case where the mean-directed and bound-directed vectorization choices differ and the emitted code is the bound-directed one, a case where a legal restructuring converts an off-list access into a segment access and is taken, and a case where none exists and the fully-conflicted price refuses vectorization; an emitted off-list access carries R-15-085a's discharged secret-freedom proof wherever its element addresses are secret-reachable, the price being the second gate on that form and never the first; no admitted §11 bound is worse than the scalar form's, and the work plan names no separate optimizer, analyzer, profile pipeline, search tool, or workstream for the duty.
+· Accept: backend tests contain a case where the mean-directed and bound-directed vectorization choices differ and the emitted code is the bound-directed one, a case where a legal restructuring converts an off-list access into a segment access and is taken, and a case where none exists and the fully-conflicted price refuses vectorization; an emitted off-list access carries R-15-085a's discharged secret-freedom proof wherever its element addresses are secret-reachable, the price being the second gate on that form and never the first; no admitted [§11](#11-updates) bound is worse than the scalar form's, and the work plan names no separate optimizer, analyzer, profile pipeline, search tool, or workstream for the duty.
 · Trace: CJ-WCET, CJ-COMPCERT, CJ-MEMPLAN
 
 **R-18-014h** MUST: R-18-014c's rule takes a vector arm: where a condition varies element to element inside a vectorizable region the emitted form is mask predication rather than scalarization, R-15-085's mask-independent timing making the predicated form's bound its expected cost where the scalarized form's is a per-element worst arm plus a mispredict R-15-023 prices at full pipeline latency; where the condition is uniform over the region the scalar branch around the vector block stands.
-· Accept: backend tests contain an element-varying case lowered to masks, a uniform case left as a scalar branch, and a non-regression case in which no admitted §11 bound is worse; the duty adds no facility, being the rule R-18-014a's `Zicond` if-conversion already instances at the scalar arm.
+· Accept: backend tests contain an element-varying case lowered to masks, a uniform case left as a scalar branch, and a non-regression case in which no admitted [§11](#11-updates) bound is worse; the duty adds no facility, being the rule R-18-014a's `Zicond` if-conversion already instances at the scalar arm.
 · Trace: CJ-WCET, CJ-COMPCERT
 
 **R-18-014i** MUST: Scalar floating point is a VL=1 vector operation whose operand the R-15-040 soft-float-register convention leaves in an integer register, so a dependent scalar-float chain is lowered with its intermediates resident in vector registers and its integer-register moves taken at the chain's boundaries rather than per operation, and independent scalar-float work is batched to VL greater than one under the R-18-014a SLP duty.
@@ -6618,7 +6618,7 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Accept: the certifier is a small replayer plus an untrusted producer rather than a whole-compiler preservation megaproof, the concrete reason the preservation theorem sits off the trust path.
 · Trace: CJ-TAL-SOUND
 
-**R-18-018** IS: The toolchain sub-deliverables are enumerated: (a) the lowering emitting the TAL derivation, with its preservation statement a completeness property backfilled as assurance against Radium; (b) the CHERI-TAL and its soundness metatheorem, its type theory frozen to the §5 budget so the line budget and metatheorem size are consequences rather than targets; (c) integration with the on-device checker and oracle-compressed proof shipping; (d) the manual-proof escape hatch for HAL-adjacent `unsafe`, foundationally grounded via VerusBelt, plus a gate refusing app `unsafe` outside it.
+**R-18-018** IS: The toolchain sub-deliverables are enumerated: (a) the lowering emitting the TAL derivation, with its preservation statement a completeness property backfilled as assurance against Radium; (b) the CHERI-TAL and its soundness metatheorem, its type theory frozen to the [§5](#5-languages--verification) budget so the line budget and metatheorem size are consequences rather than targets; (c) integration with the on-device checker and oracle-compressed proof shipping; (d) the manual-proof escape hatch for HAL-adjacent `unsafe`, foundationally grounded via VerusBelt, plus a gate refusing app `unsafe` outside it.
 · Accept: all four appear in the workstream list.
 · Trace: CJ-TAL-SOUND, CJ-HAL
 
@@ -6638,7 +6638,7 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Trace: CJ-REDUCTION, CJ-CT-SOUND
 
 **R-18-022** MUST NOT: The fourth candidate deliverable, the CryptOpt-style translation-validation toolchain, is deleted rather than deferred, because its whole yield is speed on an already-sound path.
-· Accept: §18 carries three crypto deliverables rather than four (R-18-021), and this is the fourth's absence; what the deletion costs is read off R-05-064 rather than enumerated here.
+· Accept: [§18](#18-realization) carries three crypto deliverables rather than four (R-18-021), and this is the fourth's absence; what the deletion costs is read off R-05-064 rather than enumerated here.
 · Trace: CJ-CRYPTO-SPEC
 
 **R-18-023** IS: The formosa-crypto ML-KEM effort is the existence proof for what remains, so the reduction and composition deliverables are a Coq-native restatement of finished work rather than a from-scratch research program; an EasyCrypt reduction is admissible interim assurance exactly as libcrux/HACL\* is.
@@ -6649,7 +6649,7 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Accept: the standalone Coq-verified IPET estimator is retired as a workstream.
 · Trace: CJ-WCET
 
-**R-18-025** IS: WCET staging is gated behind the timing-annotated Sail model and thus per-class RTL bring-up, degrading gracefully: there is no *sound* §11 admission until the timing-annotated model lands for the core class, but the deriver is a cost-annotation pass rather than a separate verified estimator.
+**R-18-025** IS: WCET staging is gated behind the timing-annotated Sail model and thus per-class RTL bring-up, degrading gracefully: there is no *sound* [§11](#11-updates) admission until the timing-annotated model lands for the core class, but the deriver is a cost-annotation pass rather than a separate verified estimator.
 · Accept: aiT and Heptane stay unverified out-of-band cross-checks that flag a wrong timing annotation, never the bound.
 · Trace: CJ-WCET, CJ-RTL-SAIL
 
@@ -6687,8 +6687,8 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Accept: CompCert ⋈ CertiKOS layered refinement, DeepSpec, and seL4's own integration are the methodological anchors; none is at this scope, which is why the linking theorem is the deepest outstanding proof.
 · Trace: CJ-T
 
-**R-18-034** MUST: The atomic-requirements register is a §18 workstream with a named owner, not a by-product: extraction of every normative obligation with its acceptance criterion and its trace, plus traceability forward to the Coq specifications and the Sail model as those land, revved with every amendment to the specification and gating each release alongside the proofs.
-· Accept: §18 lists it as a deliverable with an owner. Like the composition theorem's statement it is engineering-free and available now, ahead of the artifacts it will trace to, which is why it is a day-one deliverable under R-18-003b(iv). This discharges R-05-154.
+**R-18-034** MUST: The atomic-requirements register is a [§18](#18-realization) workstream with a named owner, not a by-product: extraction of every normative obligation with its acceptance criterion and its trace, plus traceability forward to the Coq specifications and the Sail model as those land, revved with every amendment to the specification and gating each release alongside the proofs.
+· Accept: [§18](#18-realization) lists it as a deliverable with an owner. Like the composition theorem's statement it is engineering-free and available now, ahead of the artifacts it will trace to, which is why it is a day-one deliverable under R-18-003b(iv). This discharges R-05-154.
 · Trace: CJ-T, CJ-SAIL
 
 **R-18-035** IS: The register's standing output is the extraction-defect list, which is the review gate's agenda rather than an appendix to it: an obligation with no requirement is unreviewed, and a requirement with no acceptance criterion is a spec defect by R-05-153's own rule.
@@ -6734,7 +6734,7 @@ The table below records the extracted normative sections and their entry counts,
 | **§17 Residual Risks** | **extracted** | **157** |
 | **§18 Realization** | **extracted** | **59** |
 
-§19 is non-normative and yields no requirements.
+[§19](spec.md#19-evaluated-architectural-alternatives-non-normative) is non-normative and yields no requirements.
 
 ## Extraction defects
 

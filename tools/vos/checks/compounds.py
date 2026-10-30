@@ -164,7 +164,7 @@ BY_CRITERION_RE = re.compile(
 # itself and so is not in this table: it is the thing being held.
 GOVERNS: list[tuple[str, str]] = [
     ("R-15-247", "the scalar working set and every cycle-critical array"),
-    ("R-15-247j", "all §11 hard-task code and all hot code on the first class"),
+    ("R-15-247j", "all [§11](#11-updates) hard-task code and all hot code on the first class"),
     ("R-14-015", "Bulk arena backing uses the **second class** by default and the "
                  "interpreter body is **first-class**"),
     ("R-14-015", "every extent and pool draw keeps its composition-fixed memory "
@@ -293,7 +293,7 @@ def _band(ctx: Context) -> None:
             continue
         if SHAPE_RE.match(figure):
             continue
-        label = re.sub(r"\s*\(§.*$", "", cells[2].strip())
+        label = re.sub(r"\s*\(\[?§.*$", "", cells[2].strip())
         misshapen.append(f"{label}: '{figure}'")
     rep.report("K-30", "figure cell(s) outside the column's declared shape:", misshapen,
                "every figure is a range over its scope, or n/a")
@@ -487,7 +487,7 @@ WASM_SCALAR_HEADER = (
     "| Reference penalty better / worse (%) | Incremental gain better / worse |\n"
     "| --- | --- |")
 WASM_SCALAR_SITES = (
-    re.compile(r"(?m)^(\| Core µarch \| Prepared Wasm scalar execution \(§14\) \| "
+    re.compile(r"(?m)^(\| Core µarch \| Prepared Wasm scalar execution \(\[§14\]\(\.\./spec\.md#14-userland\)\) \| "
                r"Substituted \| )\*\*[^|\n]+\*\*( \| [^\n]+)$"),
     re.compile(r"(?m)^(\| Wasm scalar execution, unchanged Core 3\.0 modules "
                r"\(conditional target\) \| )\*\*[^|\n]+\*\*( \| [^\n]+)$"),

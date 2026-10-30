@@ -29,10 +29,10 @@ So what is missing is not a mechanism. It is the content of a claim the mechanis
 A submission is five statements. They are the five the register's own obligations consume, and a submission short of any one is read by nothing here.
 
 1. **The physical mechanism of each source**, named as a mechanism rather than as a block: what the noise is, in what device, and what the sampling of it is. R-15-241e mandates at least two mechanisms and not two instances, so this statement is what decides whether the floor is met at all.
-2. **The min-entropy per sample of each source**, as a lower bound, with the corner and the service life the bound holds over, and with the method and the dataset that produced it. R-15-241c's criterion wants *a stated number backed by the model, reviewable and disputable as such*, which is a claim about the number's provenance and not only about its value. A per-sample bound is summed over the budget at §4, so this statement also carries what licenses the sum: that the source's samples are independent across the budget, or the bound on what a dependent source accumulates over it. No entry asks for that; §4's derivation does, and this document says so rather than letting the sum read as the register's.
+2. **The min-entropy per sample of each source**, as a lower bound, with the corner and the service life the bound holds over, and with the method and the dataset that produced it. R-15-241c's criterion wants *a stated number backed by the model, reviewable and disputable as such*, which is a claim about the number's provenance and not only about its value. A per-sample bound is summed over the budget at [§4](#4-the-derivation-to-the-start-up-sample-budget), so this statement also carries what licenses the sum: that the source's samples are independent across the budget, or the bound on what a dependent source accumulates over it. No entry asks for that; [§4](#4-the-derivation-to-the-start-up-sample-budget)'s derivation does, and this document says so rather than letting the sum read as the register's.
 3. **The conditioning assumption**: which vetted non-keyed cryptographic function, at what input and output widths, and the claimed input entropy rate against the full-entropy output rate R-15-241c requires. The conditioner is the one place raw output stops, so the assumption is what carries a per-sample bound across to the DRBG's seed.
 4. **The independence claim across the mechanisms**, stated as the common-mode couplings it excludes and not as an assertion of independence. Two sources sharing a supply rail, a clock, a substrate or a thermal environment can fail together, and R-15-241e's whole content is that no single failure silently repairs or silently corrupts the root's output.
-5. **The health tests' detection scope**: which tests, at what parameters, detecting which failure at what probability and after how many samples. The class is fixed by the prose carrying R-15-241b's bookmark, the repetition-count and adaptive-proportion class, *sized against the source's stochastic model rather than to a default*. Its parameters are not fixed anywhere, which §8 reports.
+5. **The health tests' detection scope**: which tests, at what parameters, detecting which failure at what probability and after how many samples. The class is fixed by the prose carrying R-15-241b's bookmark, the repetition-count and adaptive-proportion class, *sized against the source's stochastic model rather than to a default*. Its parameters are not fixed anywhere, which [§8](#8-what-this-document-reports-rather-than-settles) reports.
 
 ## 3. The schema a submission is checked against
 
@@ -43,8 +43,8 @@ One row per statement the submission makes or constraint it is checked against. 
 | TM-1 | how many independent noise sources feed the one conditioner, at least two | R-15-241e, `config_is_valid` | stated | n/a |
 | TM-2 | the physical mechanism of each source | R-15-241e, and TM-7's argument | owed | the selected TRNG's silicon supplier |
 | TM-3 | each source's sampling rate | the boot delay R-09-006a's ordering imposes | owed | the supplier |
-| TM-4 | min-entropy per sample per source, as a lower bound | R-15-241c, and §4's second term | owed | the supplier's characterization on a fabricated part |
-| TM-4a | that one source's samples are independent across the budget, or the bound on the entropy a dependent source accumulates over the budget's samples | §4's second term, and the review's clause 7 | owed | the supplier's model |
+| TM-4 | min-entropy per sample per source, as a lower bound | R-15-241c, and [§4](#4-the-derivation-to-the-start-up-sample-budget)'s second term | owed | the supplier's characterization on a fabricated part |
+| TM-4a | that one source's samples are independent across the budget, or the bound on the entropy a dependent source accumulates over the budget's samples | [§4](#4-the-derivation-to-the-start-up-sample-budget)'s second term, and the review's clause 7 | owed | the supplier's model |
 | TM-5 | the method and the dataset that produced TM-4 | the review's clause 4 | owed | the supplier |
 | TM-6 | the corner and the service life TM-4 holds over | the review's clause 4 | owed | the supplier |
 | TM-7 | the independence argument across TM-2's mechanisms, as the common-mode couplings it excludes | R-15-241e | owed | the supplier |
@@ -52,8 +52,8 @@ One row per statement the submission makes or constraint it is checked against. 
 | TM-9 | the claimed input entropy rate at the conditioner and the full-entropy output rate | R-15-241c | owed | the supplier for the figure, R-15-241c for the obligation to state it |
 | TM-10 | the health tests, with each test's window and cutoff | R-15-241b, and the prose carrying its bookmark | owed | the supplier's model for the cutoffs |
 | TM-11 | the health tests' false-positive rate | the review's clause 6 | owed | a register act at R-15-241b, which fixes no rate |
-| TM-12 | the detection target: which failure, at what probability, after how many samples | R-15-241b, and §4's first term | owed | the supplier's model, against R-15-241b's *sized against* |
-| TM-13 | the start-up sample budget | R-15-241b, R-09-006a, `plat_rot_startup_samples` | owed | §4's derivation over TM-4, TM-9, TM-10, TM-11 and TM-12, none of which exists |
+| TM-12 | the detection target: which failure, at what probability, after how many samples | R-15-241b, and [§4](#4-the-derivation-to-the-start-up-sample-budget)'s first term | owed | the supplier's model, against R-15-241b's *sized against* |
+| TM-13 | the start-up sample budget | R-15-241b, R-09-006a, `plat_rot_startup_samples` | owed | [§4](#4-the-derivation-to-the-start-up-sample-budget)'s derivation over TM-4, TM-9, TM-10, TM-11 and TM-12, none of which exists |
 | TM-14 | that the budget is at least one sample | `config_is_valid` | stated | n/a |
 
 All but two rows are `owed`, and the two that are `stated` are a floor and a floor. Neither is a value: the model refuses a composition below them and carries no opinion above them, which is exactly the distinction a submission is for.
@@ -76,25 +76,25 @@ N  >=  max( N_detect(tests, cutoffs, alpha, beta, target) ,  ceil( L_seed / (k *
 | `H_min` | the min-entropy one sample of one source carries; the expression adds it over both | TM-4; TM-7 and TM-4a license the two additions |
 | `L_seed` | the DRBG's seed length in bits | R-15-241d, and [HmacDrbg.v](../../proofs/HmacDrbg.v)'s own gap (a) |
 
-**The second term's form rests on three claims, and every one of them is owed.** It adds twice before it maps: `k * H_min` adds across the sources, which is TM-7's cross-source independence and nothing else, and requiring `N` such samples adds across one source's own samples, which is TM-4a and is the claim no register entry asks for. It then carries the sum to seed bits directly, which is the map a conditioner absorbing at its input width and claiming full entropy at its output width admits, and a conditioner with a different absorption discipline changes it, which is TM-8. So what is written here is the form under one conditioning assumption and two independence assumptions, none of the three fixed, and fixing TM-8 alone would not fix it. The case this matters in is not exotic: a memoryful or drifting source can satisfy every other row of §3 and every other clause of §5 and leave clause 7 accepting a budget that under-seeds the DRBG, which is R-15-241a's case exactly, every proof holding and the drawn value predictable.
+**The second term's form rests on three claims, and every one of them is owed.** It adds twice before it maps: `k * H_min` adds across the sources, which is TM-7's cross-source independence and nothing else, and requiring `N` such samples adds across one source's own samples, which is TM-4a and is the claim no register entry asks for. It then carries the sum to seed bits directly, which is the map a conditioner absorbing at its input width and claiming full entropy at its output width admits, and a conditioner with a different absorption discipline changes it, which is TM-8. So what is written here is the form under one conditioning assumption and two independence assumptions, none of the three fixed, and fixing TM-8 alone would not fix it. The case this matters in is not exotic: a memoryful or drifting source can satisfy every other row of [§3](#3-the-schema-a-submission-is-checked-against) and every other clause of [§5](#5-the-acceptance-review) and leave clause 7 accepting a budget that under-seeds the DRBG, which is R-15-241a's case exactly, every proof holding and the drawn value predictable.
 
 **No symbol on the right but `k` is available at any candidate today**, so the expression is not evaluable and no budget is admitted. `N_detect`, `alpha`, `beta` and `target` wait on TM-10 through TM-12; `H_min` waits on TM-4, which waits on a fabricated part; `L_seed` waits on R-15-241d, which says *stated* and states none. Only `k` has a value, and what it has is a floor.
 
-**The counterweight is R-09-006b.** The detection term rises with the budget, and what pushes the other way is the composed boot's worst-case latency, a composition constant R-09-006b states with the budget over TM-3's sampling rate as one of its terms, read by the product gate against DP-7, its cold-boot ceiling, which is proposed and binds nothing until ratified; and R-15-198a runs the tests concurrently with the clock-spine lock, the memory-controller bring-up and every image-derived fill, so what the budget adds to that constant is its excess over those steps and not its whole. Inside this repository the only hard ceiling remains `range(0, 65535)` on `plat_rot_startup_samples`, which the schema emission turns into a conformance refusal rather than a decision, so a budget of 65535 and a budget of 65536 are told apart by a representation and not by an argument until DP-7 is ratified. §8 reports what the ceiling's status leaves open.
+**The counterweight is R-09-006b.** The detection term rises with the budget, and what pushes the other way is the composed boot's worst-case latency, a composition constant R-09-006b states with the budget over TM-3's sampling rate as one of its terms, read by the product gate against DP-7, its cold-boot ceiling, which is proposed and binds nothing until ratified; and R-15-198a runs the tests concurrently with the clock-spine lock, the memory-controller bring-up and every image-derived fill, so what the budget adds to that constant is its excess over those steps and not its whole. Inside this repository the only hard ceiling remains `range(0, 65535)` on `plat_rot_startup_samples`, which the schema emission turns into a conformance refusal rather than a decision, so a budget of 65535 and a budget of 65536 are told apart by a representation and not by an argument until DP-7 is ratified. [§8](#8-what-this-document-reports-rather-than-settles) reports what the ceiling's status leaves open.
 
-**The shipped compositions declare `platform.trng.startup_samples`, and the figure is not repeated here.** [config.json.in](../../model/config/config.json.in) says at that key that nothing there is a measurement and that the model holds the shape alone; no rule holds a second copy of it, so this document points at the key and never restates the value. No symbol above is filled from it, no clause of §5 reads it, and a submission arriving at the declared value is one candidate with no standing the others lack. A report that took it for the answer is TS-1's refusal and one that filled `H_min` back out of it is TS-3's.
+**The shipped compositions declare `platform.trng.startup_samples`, and the figure is not repeated here.** [config.json.in](../../model/config/config.json.in) says at that key that nothing there is a measurement and that the model holds the shape alone; no rule holds a second copy of it, so this document points at the key and never restates the value. No symbol above is filled from it, no clause of [§5](#5-the-acceptance-review) reads it, and a submission arriving at the declared value is one candidate with no standing the others lack. A report that took it for the answer is TS-1's refusal and one that filled `H_min` back out of it is TS-3's.
 
 ## 5. The acceptance review
 
 Nine clauses. Each is decidable by reading a submission against an artifact named beside it, or it records its refusal and names what owes it.
 
-1. **Schema conformance.** Every row of §3 carries a statement, and the two `stated` rows agree with the artifacts that state them. Decidable today, against §3.
+1. **Schema conformance.** Every row of [§3](#3-the-schema-a-submission-is-checked-against) carries a statement, and the two `stated` rows agree with the artifacts that state them. Decidable today, against [§3](#3-the-schema-a-submission-is-checked-against).
 2. **The source floor is met by mechanisms and not by instances.** TM-2 names at least two distinct physical mechanisms and TM-1 agrees with the composition `config_is_valid` accepts. Decidable today, against R-15-241e and [validate_config.sail](../../model/model/postlude/validate_config.sail).
 3. **Independence is argued rather than asserted.** TM-7 names each common-mode coupling it excludes and gives the ground for excluding it. Decidable today as a reading and never by a checker; the review records the reviewer and the couplings read, because a coupling nobody named is the failure mode this clause exists for.
 4. **The entropy claim is a measurement with its provenance.** TM-4 is a lower bound taken by the method of TM-5 on the dataset of TM-5, at the corner and the service life of TM-6, on a fabricated part. **Not evaluable today**: no part exists and no TRNG is selected. R-15-247m's refusal of a density figure ahead of a repaired macro is the precedent this clause reads itself under, one axis over.
 5. **The conditioner is the one the register names.** **Not writable today.** R-15-241c says *vetted* and names no function, so there is no identity to check TM-8 against. Owed at R-15-241c, or at the crypto-core item that implements the conditioner. The tree holds a Keccak transcription ([Keccak.v](../../proofs/Keccak.v), [keccak_p1600.sail](../../model/model/extensions/keccak/keccak_p1600.sail)) that would be a candidate for such an act; this document does not choose it, choosing it being the act and not the review.
 6. **The health tests are the adopted class, sized to this submission.** TM-10 is the repetition-count and adaptive-proportion class and its cutoffs are computed from TM-4 rather than taken from a default. Decidable today against the prose carrying R-15-241b's bookmark. **Its second half is not writable**: TM-11's false-positive rate is the input a cutoff is computed from and nothing in this repository fixes one. Owed at R-15-241b.
-7. **The budget satisfies both terms.** §4's expression holds at the submitted `N`, under the premises the second term adds under: TM-4a read at clause 1, TM-7 at clause 3, TM-8 at clause 5, so a submission that passes the arithmetic while failing one of those three fails here rather than passing. **Not evaluable today**: every symbol but `k` is owed.
+7. **The budget satisfies both terms.** [§4](#4-the-derivation-to-the-start-up-sample-budget)'s expression holds at the submitted `N`, under the premises the second term adds under: TM-4a read at clause 1, TM-7 at clause 3, TM-8 at clause 5, so a submission that passes the arithmetic while failing one of those three fails here rather than passing. **Not evaluable today**: every symbol but `k` is owed.
 8. **The budget is representable.** `N` lies in `range(0, 65535)` and is not zero. Decidable today, and it is a schema-conformance check and never an argument that the budget is right.
 9. **The budget is affordable.** `N` divided by TM-3's sampling rate, over the sources the composition declares, enters the cold-boot constant R-09-006b states as one term, and that constant fits DP-7 of [the product-gate contract](../implementation/contracts/product-gate.md). **Not evaluable today**: TM-3 is owed to the supplier, and DP-7 is proposed, so a reading against it is a reading and not a verdict. Owed at TM-3 and at DP-7's ratification.
 
@@ -104,9 +104,9 @@ Nine clauses. Each is decidable by reading a submission against an artifact name
 
 | Id | The refusal |
 | --- | --- |
-| TS-1 | a budget reported as decided while any symbol of §4 is owed |
+| TS-1 | a budget reported as decided while any symbol of [§4](#4-the-derivation-to-the-start-up-sample-budget) is owed |
 | TS-2 | a budget or a health-test cutoff sized to a standard's default rather than to the submitted model, which the prose carrying R-15-241b's bookmark refuses by name |
-| TS-3 | an entropy figure filled from an order-of-magnitude estimate, from a simulation of an unfabricated part, or from the composition's placeholder, which §4 points at and never reads |
+| TS-3 | an entropy figure filled from an order-of-magnitude estimate, from a simulation of an unfabricated part, or from the composition's placeholder, which [§4](#4-the-derivation-to-the-start-up-sample-budget) points at and never reads |
 | TS-4 | an independence claim across mechanisms that names no common-mode coupling, so that what it excludes is unstated and cannot be disputed |
 | TS-5 | a budget above 65535, which the model's own type turns into a schema-conformance refusal rather than a decision, and which is therefore a defect in the submission and not an argument against the type |
 | TS-6 | a submission on a single physical mechanism, or a second source that is a second instance of the first mechanism, which meets TM-1's count while failing R-15-241e's floor |
@@ -122,7 +122,7 @@ Nine clauses. Each is decidable by reading a submission against an artifact name
 | the identity of the selected TRNG | the programme, at the item that selects it | no artifact in this tree selects one; the RoT's functional-reference RTL is a digital block and not a source |
 | TM-2, the physical mechanisms | the supplier | [rot.sail](../../model/model/sys/rot.sail) states outright that which mechanism a source is has no architectural content, so the model holds no opinion and this document acquires none |
 | TM-4, TM-5 and TM-6, the entropy bound with its method, dataset, corner and life | the supplier's characterization on a fabricated part | a pre-silicon entropy figure is the same act R-15-247m refuses for density |
-| TM-4a, the across-sample independence claim | the supplier's model | no entry asks for it: R-15-241e's independence is across mechanisms, and §4's second term adds over one source's samples without it |
+| TM-4a, the across-sample independence claim | the supplier's model | no entry asks for it: R-15-241e's independence is across mechanisms, and [§4](#4-the-derivation-to-the-start-up-sample-budget)'s second term adds over one source's samples without it |
 | TM-7, the independence argument | the supplier | R-15-241e's criterion rests on it entirely and no artifact here can supply it |
 | TM-8, the conditioner's identity and widths | a register act at R-15-241c, or the crypto-core item implementing it | R-15-241c says *vetted* and names no function |
 | TM-9, the input and output entropy rates | the supplier for the figure; R-15-241c for the obligation | the entry requires a stated number backed by the model and there is no model |
@@ -130,10 +130,10 @@ Nine clauses. Each is decidable by reading a submission against an artifact name
 | TM-11, the false-positive rate | a register act at R-15-241b | nothing in this repository fixes one |
 | TM-12, the detection target | the supplier's model, against R-15-241b | the entry states the tests and no parameter |
 | TM-3, the sampling rate | the supplier | the review's clause 9 turns a budget into a boot delay through it |
-| `L_seed`, the DRBG's seed length | R-15-241d | already booked there by [HmacDrbg.v](../../proofs/HmacDrbg.v)'s gaps (a) and (b); §4 consumes it and this row cites that booking rather than raising it again |
-| a bound on cold-boot latency | R-09-006b for the constant; the product's owner for DP-7's ratification in [the product-gate contract](../implementation/contracts/product-gate.md) | the constant is a register obligation and the ceiling a proposed parameter; §4 states how the budget enters the constant |
+| `L_seed`, the DRBG's seed length | R-15-241d | already booked there by [HmacDrbg.v](../../proofs/HmacDrbg.v)'s gaps (a) and (b); [§4](#4-the-derivation-to-the-start-up-sample-budget) consumes it and this row cites that booking rather than raising it again |
+| a bound on cold-boot latency | R-09-006b for the constant; the product's owner for DP-7's ratification in [the product-gate contract](../implementation/contracts/product-gate.md) | the constant is a register obligation and the ceiling a proposed parameter; [§4](#4-the-derivation-to-the-start-up-sample-budget) states how the budget enters the constant |
 
-Every row has an owner and no row has a placeholder. A row whose owner is the supplier is one this repository cannot close by any act of its own, which is what makes the selection of a TRNG the gate on the whole of §5 rather than one clause of it.
+Every row has an owner and no row has a placeholder. A row whose owner is the supplier is one this repository cannot close by any act of its own, which is what makes the selection of a TRNG the gate on the whole of [§5](#5-the-acceptance-review) rather than one clause of it.
 
 ## 8. What this document reports rather than settles
 
@@ -141,16 +141,16 @@ Every row has an owner and no row has a placeholder. A row whose owner is the su
 
 **No artifact fixes the health tests' false-positive rate.** It is an input to every cutoff and so to `N_detect`, and it is not the supplier's to choose alone: a rate is a statement about how often a good part halts the boot, which is a product decision. Owed at R-15-241b.
 
-**Cold-boot latency is bounded by a constant whose ceiling is proposed.** R-09-006b makes the composed boot's worst case a composition constant with the start-up budget over TM-3 as one term, and the ceiling it is read against, DP-7 of the product-gate contract, is proposed, so a submission can still satisfy every clause of §5 with a budget that fails the gate as a reading and not as a verdict until the product's owner ratifies it. Owed at DP-7's ratification.
+**Cold-boot latency is bounded by a constant whose ceiling is proposed.** R-09-006b makes the composed boot's worst case a composition constant with the start-up budget over TM-3 as one term, and the ceiling it is read against, DP-7 of the product-gate contract, is proposed, so a submission can still satisfy every clause of [§5](#5-the-acceptance-review) with a budget that fails the gate as a reading and not as a verdict until the product's owner ratifies it. Owed at DP-7's ratification.
 
 ## 9. Assignment and selection acts for the owed inputs
 
-The following assigns the thirteen input groups in §7 to decisions. Roles name
+The following assigns the thirteen input groups in [§7](#7-the-inputs-nothing-here-supplies-and-who-owes-each) to decisions. Roles name
 the accountable owner; the eventual selection record must identify its human
 owner, supplier, part revision and evidence revision. No part is selected here,
 no source model is submitted, and no acceptance clause is evaluated by assigning
 the work. The programme's silicon lead owns obtaining the supplier deliverables;
-the independent assurance reviewer owns their acceptance under §5.
+the independent assurance reviewer owns their acceptance under [§5](#5-the-acceptance-review).
 
 | Input group | Accountable owner | Act that supplies or selects it |
 | --- | --- | --- |
@@ -168,7 +168,7 @@ the independent assurance reviewer owns their acceptance under §5.
 | `L_seed` | Programme cryptographic architecture owner | Land DRBG seed length and strength/reseed discipline at R-15-241d and its crypto-core contract before evaluating the seeding term. |
 | Cold-boot latency bound | Programme product owner | Ratify DP-7 in the product-gate contract, including corner and operating-point scope; evaluate clause 9 against R-09-006b's constant read against it. |
 
-After these acts and the extraction qualification in §10, the source-model owner computes TM-13 from the accepted inputs,
+After these acts and the extraction qualification in [§10](#10-two-source-extraction-qualification), the source-model owner computes TM-13 from the accepted inputs,
 records the calculation and representation check, and submits all nine clauses
 for independent review. Failure of any required premise leaves the budget owed;
 the configured emulation budget supplies none of the missing evidence.
@@ -280,8 +280,8 @@ is `epsilon`-close to `U_m`, then a fixed conditioner `C` produces an output
 `delta_C` from `C(U_m)` to the target uniform seed, giving total error at most
 `epsilon + delta_C`. A cryptographic claim is recorded as such, with its own
 advantage and model; hashing cannot silently turn this into a statistical claim.
-TM-9 and the §4 seed-budget calculation must be recomputed for the selected chain,
-including extraction's output loss. The simple raw-entropy sum in §4 cannot be
+TM-9 and the [§4](#4-the-derivation-to-the-start-up-sample-budget) seed-budget calculation must be recomputed for the selected chain,
+including extraction's output loss. The simple raw-entropy sum in [§4](#4-the-derivation-to-the-start-up-sample-budget) cannot be
 used as its output-rate formula.
 
 ### Finite composition and parameter proof contract
