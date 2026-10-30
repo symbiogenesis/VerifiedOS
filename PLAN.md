@@ -2562,6 +2562,23 @@ backing from a usable declared slot and completed reuse.
 
 A credible project combines programming-language semantics, algorithms, real-time systems, capability security, and compiler engineering. Its success criterion is a checked increase in useful admitted work with the costs exposed. A proof that a particular reservation is unavoidable, or that a tempting optimization breaks isolation, is also a substantive result.
 
+## CI scheduling maintenance
+
+Rebalance Host CI's mutation-test partitions toward the measured Ubuntu
+bottleneck, within the existing hosted concurrency budget. The workflow owns the
+platform counts. Keep every mutation and behavioral case, both unpartitioned
+jobs, model hooks, workflow analysis and both aggregate verdicts mandatory.
+Preserve pristine baselines, isolated mutant processes, repair checks, deadlines
+and the Guest CI handoff.
+
+Acceptance requires the focused workflow, sharding and runner controls, static
+analysis, and passing Host CI on the settled revision. Compare completed hosted
+job and mutation-phase timings with recent runs, record revisions and input scope
+under [the performance contract](tools/performance.md), and distinguish workload
+redistribution from reduced total validation work. Dispatch every Guest CI lane
+for the same revision and finish without waiting for its verdict. No checker,
+proof, model, cache-acceptance or test-selection change belongs to this task.
+
 ## Native Sail census validation
 
 Open under [Q35q](PLAN.md). Full native
