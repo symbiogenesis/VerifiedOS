@@ -1,19 +1,11 @@
 # SPDX-License-Identifier: Apache-2.0
 """meta: the rule registry against the checks this package carries, both directions.
 
-tools/check-rules.md enumerates what the checker checks, one row per rule, each
-stating what passing means and on what ground, so the review gate can price the
-tool's reach by reading a table instead of this source. The closure is the same shape
-as every conferral the register uses: registry and code are two artifacts, and their
-agreement is held mechanically in both directions, a K- id here with no registry row
-and a registry row no check carries.
-
-The scan is static, over the sources of `vos.checks` alone, so a check a repair branch
-or an early return skips at runtime still counts as carried. It is deliberately not
-the whole of `tools/`: the mutation selftest names every rule too, and scanning it
-would make this agreement trivially true and stop deciding anything. What no scan
-decides is whether a registered claim is the right claim, which is the same residue
-every conferral declares.
+The authored check-registry.json supplies required rule metadata, including its
+population's reach class. The driver binds every group to its callback and holds the
+verdicts of each clean group against its declarations. This group checks the generated
+documentation against that same owner, and reports definition or execution findings
+collected by the driver. Correct claims and classifications remain review judgments.
 
 K-67 holds the resolved lockfile against tools/pyproject.toml's checker pins.
 The runtime reads the same manifest. Missing, malformed and duplicate declarations
@@ -159,67 +151,15 @@ narrows *without* emptying, a single owner cell reworded off the `path's SYMBOL`
 dropping its symbol with the gate green, which is the residue `tools/check-rules.md`
 declares of every pattern here.
 
-K-119 holds the registry against the section of `tools/check-rules.md` that prices it.
-That section sorts the rules into four reach classes, found by name, a computed value,
-found by pattern and total, and states that every rule the registry carries is named
-under exactly one of them. A class list is prose, so a rule registered without being
-added to one leaves the section describing less than the table while every other gate
-stays green, and a rule named under two leaves a reader unable to say which reach it has.
-
-**The rules it decides about are the registry's own rows**, the set K-00 reads, so a row
-is inside it the day it is written; the classes are read off the page, each at the
-`Where the set is` opening it, matched in any letter case, and named by the first `**`
-bold phrase after it, past a plain space and whatever words or italics then stand short
-of a full stop or the line's end, any `.` counting as a full stop; that phrase must be
-in `**` bold with no third `*` beside either pair and spell one of the four names
-exactly, and the class's rules are read from one membership sentence standing anywhere
-from that lead to the next class's lead, or to the section's end after the last class:
-`which is what` or `that is what`, with only the first letter of the first word in
-either case, single-spaced with plain spaces on one line apart from any underscore, a
-plain list of ids, then `are`. The four class names are fixed here rather than read,
-so a class retitled away and a fifth class opened that way are each a finding rather
-than a class this rule stops or never starts reading, and so is a `Where the set is`
-anywhere in the section, one wrapped across a line, spaced apart or set in underscore
-italics included, that opens no class in that form. So is any
-`which is what` or `that is what` the reading does not take in the section, in any
-letter case, with gaps between the words and before the first rule id crossing
-whitespace, punctuation (a `.` included), Markdown marks, complete `<...>` HTML tags
-and semicolon-terminated named or decimal or hexadecimal numeric entities. Ordinary
-letters and digits outside those tags and entities stop a gap, so a membership
-sentence in other words, `which is exactly what`, or one with an ordinary word before
-its first id, is read as prose, which is the residue. The crossing is lexical, so
-incomplete tags or entities and Markdown link destinations containing ordinary words
-still stop a gap. Complete tags and entities are delimiters; their names never supply
-an opening word. An underscore, a line break, extra spacing, capitals, marks among
-the words or around the ids, and tags or entities
-are found and, outside the plain sentence form, reported. What that reading does not
-reach is a class introduced in some other sentence form: it is read as part of the
-class before it, or as part of no class ahead of the first, and is caught only where it
-carries a membership sentence of its own, that sentence then being a class's second, one standing
-ahead of every class, or one in a form the reading does not take. A list is decided
-whole by a grammar of ids, `K-a through K-b` ranges, commas and `and`, and a range
-expands over the active rows whose numbers it spans, so a struck row inside one is
-skipped rather than placed.
-
-**Fail-closed at every reading.** A missing section, a `Where the set is` that opens no
-class, a membership sentence in a form the reading does not take or ahead of the first
-class, a class with no membership sentence or with two, a list carrying a word the
-grammar does not know, a range that runs backwards or ends on an id the registry does
-not carry as an active rule, an id a class names that is struck, quarantined or never
-registered, and a class naming no registered rule are each findings, so the floor is
-inside the rule for the reason K-84's is. What it does not decide is whether a rule
-sits in the class its row and code fit, which is a reading.
 """
 
 import re
 import tomllib
 from collections.abc import Callable
-from itertools import pairwise
-from pathlib import Path
 from typing import TYPE_CHECKING
 
+from vos import checkregistry, figures, toolenv
 from vos import commands as command_table
-from vos import figures, toolenv
 from vos.cli import provision
 
 # `Context` lives in this package's __init__, which imports this module in turn.
@@ -232,8 +172,6 @@ HEADING = "=== meta: the rule registry against the checks carried ==="
 
 RULES = "tools/check-rules.md"
 Q_RULES = "tools/quarantine/check-rules.md"
-RULE_ID_RE = re.compile(r"\bK-\d{2,3}\b")
-REGISTRY_ROW_RE = re.compile(r"^\| (K-\d{2,3}) \|")
 
 README = "tools/README.md"
 PROJECT = toolenv.PROJECT
@@ -263,69 +201,6 @@ _HOLDER_RE = re.compile(r"\*\*(K-\d{2,3})\*\*")
 # which is what makes a mistyped declaration a finding instead of a line nothing reads.
 _LANDED_RE = re.compile(r"[^\S\r\n]*(?:\*+ )?Landed:")
 _TIER_RE = re.compile(r"[^\S\r\n]*(?:\*+ )?Landed: Tier (?P<tier>[AB])\b(?P<rest>.*)")
-
-# K-119's reading of the reach section. A class opens with `Where the set is`, in any
-# letter case so that a lead written mid-sentence is read too, and is named by the first
-# `**` bold phrase after it, past a plain space and whatever words or italics then stand,
-# short of a full stop or the line's end: any `.` ends the lead's reach, one inside a
-# code span or a link included. The phrase is in `**` bold with no third `*` beside
-# either pair, so a name in bold italics or trailed by a stray `*` opens nothing, and
-# every `Where the set is` in the section has to open a class. The lookahead past the
-# closing pair holds that side; the phrase's own characters and the crossing before it
-# already refuse a `*` against the other three. The four class names are fixed here
-# rather than read off the page and the bold phrase is compared with them exactly, the
-# lead alone being matched in any letter case, so a class retitled away, a fifth class
-# opened that way, and a `Where the set is` naming no class are each a finding rather
-# than a class this rule silently stops or never starts reading. The opener takes the
-# lead's four words single-spaced with plain spaces, no word character before them and a
-# plain space after them; the lead-finder is wider, any whitespace between the words, a
-# line break included, and only a letter or digit beside them refused, so a lead wrapped
-# across a line, spaced apart, set in underscore italics or followed by markup or
-# punctuation is found and, opening nothing, is a finding rather than text read as part
-# of the class before it.
-REACH_HEADING = "## What a passing run does not decide"
-REACH_CLASSES = ("name", "computed value", "pattern", "total")
-_CLASS_LEAD_RE = re.compile(
-    r"(?<![^\W_])Where\s+the\s+set\s+is(?![^\W_])", re.IGNORECASE)
-_CLASS_OPEN_RE = re.compile(
-    r"\bWhere the set is (?:[^*.\r\n]|\*(?!\*))*?\*\*([^*\r\n]+)\*\*(?!\*)", re.IGNORECASE)
-
-# A class's membership sentence: `which is what` or `that is what`, with only the first
-# letter of the first word in either case, so that one opening a sentence and one
-# written mid-sentence are both read, the list, then `are`. The capture admits only the
-# characters a list is spelled in, so a sentence that merely discusses a rule is not
-# read as a list; what it captures is then decided whole by the grammar below, so a word
-# the grammar does not know is a finding rather than a list cut short at it. Ids admit
-# the letter suffix, so a suffixed id is named and resolved rather than making the
-# sentence unreadable. The finder is wider, the three words in any letter case with
-# gaps between them and before the first id crossing whitespace, punctuation (a `.`
-# included), Markdown marks, complete `<...>` HTML tags and semicolon-terminated named
-# or decimal or hexadecimal numeric entities. Only a letter or digit before the first
-# word is refused, and ordinary letters or digits outside tags and entities stop every
-# gap. An underscore, a line break, extra spacing, capitals, marks among the words or
-# around the ids, and tags or entities are found and, outside the plain sentence form,
-# reported rather than a list the section names and nothing reads. Prose such as
-# `which is what separates` reaches a word before any id and is not found; a membership
-# sentence in other words, `which is exactly what`, or one with an ordinary word before
-# its first id, is read as prose, which is the residue. Tags and entities are crossed
-# lexically, not rendered: incomplete tags and entities and Markdown link destinations
-# containing ordinary words still stop a gap. Complete tags and entities are consumed
-# atomically before punctuation, and the gaps are possessive, so a failed suffix cannot
-# split a delimiter into exponentially many equivalent readings or read its tag name
-# as one of the opening words.
-_MEMBERS_RE = re.compile(r"\b(?:[Ww]hich|[Tt]hat) is what (K-[\w ,-]*?) are\b")
-_MEMBERS_GAP = r"(?><[^<>]*>|&(?:#[0-9]+|#x[0-9a-f]+|[a-z][a-z0-9]*);|[^\w]|_)"
-_MEMBERS_FIND_RE = re.compile(
-    rf"(?<![^\W_])(?:which|that){_MEMBERS_GAP}++is{_MEMBERS_GAP}++what"
-    rf"{_MEMBERS_GAP}*+K-\d", re.IGNORECASE)
-_CLASS_ID = r"K-\d{2,3}[a-z]?"
-_CLASS_ITEM = rf"{_CLASS_ID}(?: through {_CLASS_ID})?"
-_CLASS_ITEM_RE = re.compile(rf"({_CLASS_ID})(?: through ({_CLASS_ID}))?")
-_CLASS_LIST_RE = re.compile(rf"{_CLASS_ITEM}(?:(?:, and |, | and ){_CLASS_ITEM})*")
-
-# A struck registry row, retired or never allocated: an id the registry carries and no
-# run reports, so a class naming one is placing a rule that decides nothing.
-_STRUCK_ROW_RE = re.compile(rf"^\| ~~({_CLASS_ID})~~ \|")
 
 # The two trees K-83 stands between, and the kind of file it reads in each.
 TOOLS_TREE = "tools/"
@@ -417,60 +292,52 @@ _FLOOR_SITES: list[tuple[str, str, re.Pattern[str], Callable[[str], str]]] = [
 ]
 
 
-def carried_rules() -> set[str]:
-    """Every rule id the checks package names."""
-    found: set[str] = set()
-    for source in sorted(Path(__file__).parent.glob("*.py")):
-        found.update(RULE_ID_RE.findall(source.read_text(encoding="utf-8")))
-    return found
-
-
 def run(ctx: Context) -> None:
     rep = ctx.rep
     rep.line(HEADING)
-
-    doc = ctx.corpus.get(RULES)
-    # every rule the registry carries, hoisted out of the K-00 block below because K-84
-    # holds citations against the same set: an absent registry leaves it empty, which is
-    # the fail-closed reading both rules want rather than a comparison against nothing
-    seen: set[str] = set()
-    if doc is None:
-        rep.report("K-00", "missing artifact:", [f"{RULES} is not in the repository"])
-    else:
-        in_code = carried_rules()
-
-        registered: list[str] = []
-        for line in doc.lines:
-            m = REGISTRY_ROW_RE.match(line)
-            if m:
-                registered.append(m.group(1))
-
-        seen: set[str] = set()
-        findings: list[str] = []
-        for rule in registered:
-            if rule in seen:
-                findings.append(f"{rule} has more than one registry row")
-            seen.add(rule)
-        findings += [f"{r} is registered and no check here carries it"
-                     for r in registered if r not in in_code]
-        findings += [f"{r} is carried here and has no registry row"
-                     for r in sorted(in_code) if r not in seen]
-
-        rep.report("K-00", "rule id(s) the registry and the checks disagree on:", findings,
-                   f"the registry's {len(seen)} rules and the checks agree, both directions")
-
-    _classes(ctx, seen)
-    _pins(ctx)
-    _floor(ctx)
-    # A holder citation resolves against either registry, because a quarantined rule
-    # still holds what the landing created; what quarantine moved is which loop runs it
-    # and never whether it holds. Reading the landing loop's registry alone would report
-    # every landing held by a quarantined rule as naming nothing, which is a finding
-    # against the landing for an act taken two items away from it.
+    if ctx.registry is None:
+        try:
+            ctx.registry = checkregistry.read(ctx.root)
+        except (OSError, ValueError, TypeError) as exc:
+            ctx.registry_faults.append(str(exc))
+    seen = set(ctx.registry.identifiers) if ctx.registry is not None else set()
     _landings(ctx, seen | _quarantined_rules(ctx))
     _quarantine(ctx)
     _lane(ctx)
+    _registry(ctx)
     rep.line()
+
+
+def _registry(ctx: Context) -> None:
+    """K-00: generated views and actual group verdicts share one typed owner."""
+    findings = list(ctx.registry_faults)
+    if checkregistry.SOURCE not in ctx.corpus.tracked:
+        findings.append(f"{checkregistry.SOURCE} is not tracked")
+    doc = ctx.corpus.get(RULES)
+    if doc is None:
+        findings.append(f"{RULES} is not in the repository")
+    elif ctx.registry is not None:
+        try:
+            rendered = checkregistry.render(ctx.registry, doc.raw)
+        except ValueError as exc:
+            findings.append(str(exc))
+        else:
+            if rendered != doc.raw:
+                if ctx.fix:
+                    ctx.fixed[RULES] = rendered
+                    ctx.rep.line(f"fixed: {RULES} from its rule metadata")
+                else:
+                    findings.append(f"{RULES} has stale generated registry or reach views")
+    if ctx.registry is not None:
+        # This is the final verdict in the final group. It checks all prior group
+        # reports plus this group's other rules, before reporting itself.
+        rules = [r for r in ctx.registry.rules if r.group == "meta" and r.ident != "K-00"]
+        findings += checkregistry.verdict_faults(
+            rules, ctx.rep.decisions[ctx.group_start:],
+            clean=ctx.rep.findings == ctx.group_findings)
+    ctx.rep.report("K-00", "invalid rule definitions, verdicts or generated views:", findings,
+                   "typed rule metadata binds the executable groups, every clean group "
+                   "decides its declared rules, and generated registry views agree")
 
 
 def _lane(ctx: Context) -> None:
@@ -747,213 +614,6 @@ def _landings(ctx: Context, registered: set[str]) -> None:
                f"historical retired rules, and each of the {declared} landing declarations "
                "in the plan and the completion log states a tier and, at Tier B, the "
                "rule holding what it created")
-
-
-def _rule_key(rule: str) -> tuple[int, str]:
-    """A rule id's place in the numbering, a letter suffix ordering it after its number.
-
-    Every id reaching here matched `_CLASS_ID` or `REGISTRY_ROW_RE`, both of which fix
-    the digits and at most one lower-case letter after them, so the split cannot fail.
-    """
-    digits = rule[2:].rstrip("abcdefghijklmnopqrstuvwxyz")
-    return int(digits), rule[2 + len(digits):]
-
-
-def _class_members(listed: str, registered: set[str], struck: set[str],
-                   quarantined: set[str]) -> tuple[list[str], list[str]]:
-    """One class's list, expanded: the registered rules it names, and what it names wrongly.
-
-    The list has already matched the whole grammar, so every item is an id or a range.
-    A range expands over the registered rules whose numbers it spans, which is what lets
-    a struck row sit inside one without being placed; its two ends have to be registered
-    themselves, so a range cannot quietly reach past the rules it was written over.
-    """
-    members: list[str] = []
-    wrong: list[str] = []
-
-    def unplaceable(rule: str, role: str) -> str | None:
-        if rule in registered:
-            return None
-        if rule in struck:
-            why = "which the registry carries struck, so no run reports it"
-        elif rule in quarantined:
-            why = "which the quarantine's registry carries and its own gate runs"
-        else:
-            why = "which the registry does not carry"
-        return f"{role} {rule}, {why}"
-
-    for m in _CLASS_ITEM_RE.finditer(listed):
-        first, last = m.group(1), m.group(2)
-        if last is None:
-            problem = unplaceable(first, "names")
-            if bool(problem):
-                wrong.append(problem)
-            else:
-                members.append(first)
-            continue
-        ends = [p for p in (unplaceable(first, "opens a range at"),
-                            unplaceable(last, "closes a range at")) if bool(p)]
-        if ends:
-            wrong += ends
-            continue
-        lo, hi = _rule_key(first), _rule_key(last)
-        if lo >= hi:
-            wrong.append(f"names the range {first} through {last}, which runs backwards "
-                         "or spans one rule")
-            continue
-        members += sorted((r for r in registered if lo <= _rule_key(r) <= hi),
-                          key=_rule_key)
-    return members, wrong
-
-
-def _classes(ctx: Context, registered: set[str]) -> None:
-    """K-119: every registered rule is named under exactly one reach class.
-
-    The rules decided about are the registry's own rows, so nothing narrows them; the
-    classes are read off the reach section, and every way that reading can fail is a
-    finding rather than a class read as empty. A class that could not be read is not
-    followed by a finding for every rule it would have placed, because the unreadable
-    class is already the finding and the rest would restate it once per member.
-    """
-    rep = ctx.rep
-    findings: list[str] = []
-    doc = ctx.corpus.get(RULES)
-    placed: dict[str, list[str]] = {rule: [] for rule in registered}
-    sizes: dict[str, int] = {}
-    unread = False
-
-    if doc is None:
-        findings.append(f"{RULES} is not in the repository, so there is no reach class "
-                        "to read")
-    elif not registered:
-        findings.append(f"{RULES} registers no rule this run can read, so no class "
-                        "membership is held against anything")
-    else:
-        struck = {m.group(1) for _, m in doc.unfenced("| ~~K-", _STRUCK_ROW_RE)}
-        quarantined = _quarantined_rules(ctx)
-        top = next((i for i, line in enumerate(doc.lines)
-                    if line == REACH_HEADING and not doc.fenced[i]), None)
-        if top is None:
-            findings.append(f"{RULES} carries no '{REACH_HEADING}' section, so no rule "
-                            "can be placed in a reach class")
-            unread = True
-        else:
-            bottom = next((i for i in range(top + 1, len(doc.lines))
-                           if doc.lines[i].startswith("## ") and not doc.fenced[i]),
-                          len(doc.lines))
-            lo = doc.starts[top]
-            hi = doc.starts[bottom] if bottom < len(doc.lines) else len(doc.raw)
-            opens = [m for m in _CLASS_OPEN_RE.finditer(doc.raw, lo, hi)
-                     if not doc.is_fenced(m.start())]
-            # A lead that opens no class leaves what it introduces read as part of the
-            # class before it, so it is reported rather than passed over.
-            starts = {m.start() for m in opens}
-            findings += [f"{RULES}:{doc.at(m.start())} states 'Where the set is' in a form "
-                         "that opens no reach class this rule reads: the four words "
-                         "single-spaced with plain spaces on one line, with no underscore "
-                         "before the first and a plain space after the last, then the "
-                         "class in `**` bold with no third `*` beside either pair before "
-                         "a full stop or the line's end"
-                         for m in _CLASS_LEAD_RE.finditer(doc.raw, lo, hi)
-                         if m.start() not in starts and not doc.is_fenced(m.start())]
-            # The membership sentences each region reads: the stretch ahead of the first
-            # class, then each class from its lead to the next one's or the section's end.
-            cuts = [lo, *(m.start() for m in opens), hi]
-            regions = [[c for c in _MEMBERS_RE.finditer(doc.raw, a, b)
-                        if not doc.is_fenced(c.start())] for a, b in pairwise(cuts)]
-            # A membership sentence in a form no region reads leaves the rules it names
-            # unread while its class reads as complete, so it is reported. One lying
-            # inside a sentence a region read is a word of that list, which the grammar
-            # below already decides, so it is not reported a second time. Prose naming a
-            # rule past `is what` is found the same way and cannot be told from one, so
-            # the finding states what it found and both ways out of it.
-            spans = [c.span() for clauses in regions for c in clauses]
-            missed = [c for c in _MEMBERS_FIND_RE.finditer(doc.raw, lo, hi)
-                      if not doc.is_fenced(c.start())
-                      and not any(a <= c.start() < b for a, b in spans)]
-            findings += [f"{RULES}:{doc.at(c.start())} states 'which is what' or 'that is "
-                         "what' before a rule id, which this rule reads as a membership "
-                         "sentence and cannot take: either rewrite it as one ('which is "
-                         "what' or 'that is what', with only the first letter of the first "
-                         "word in either case, single-spaced with plain spaces on one line "
-                         "apart from any underscore, a plain list of ids, then 'are') or "
-                         "reword the prose so no id follows 'is what'"
-                         for c in missed]
-            if missed:
-                unread = True
-            # No class's region reaches back past the first opener, so a membership
-            # sentence ahead of it belongs to a class no reading sees.
-            ahead = regions[0]
-            findings += [f"{RULES}:{doc.at(c.start())} states a membership sentence ahead "
-                         "of the first reach class, so no class reads it" for c in ahead]
-            if ahead:
-                unread = True
-            seen_classes: set[str] = set()
-            for k, m in enumerate(opens):
-                name = m.group(1)
-                where = f"{RULES}:{doc.at(m.start())}"
-                if name not in REACH_CLASSES:
-                    findings.append(f"{where} opens a reach class '**{name}**' that is not "
-                                    f"one of the {figures.words(len(REACH_CLASSES))} this "
-                                    "rule reads, so the rules it names are placed nowhere")
-                    unread = True
-                    continue
-                if name in seen_classes:
-                    findings.append(f"{where} opens the '{name}' class a second time")
-                    unread = True
-                    continue
-                seen_classes.add(name)
-                # The region runs from this lead to the next, or to the section's end
-                # after the last, so a membership sentence standing between the lead and
-                # the bold name is this class's own and counted with the rest rather than
-                # falling between two regions.
-                clauses = regions[k + 1]
-                if len(clauses) != 1:
-                    findings.append(
-                        f"{where}: the '{name}' class states "
-                        f"{'no' if not clauses else figures.words(len(clauses))} "
-                        "membership sentence(s) this rule reads, where it needs exactly "
-                        "one: 'which is what' or 'that is what', with only the first "
-                        "letter of the first word in either case, its rules, then 'are'")
-                    unread = True
-                    continue
-                listed = clauses[0].group(1)
-                if not _CLASS_LIST_RE.fullmatch(listed):
-                    findings.append(f"{RULES}:{doc.at(clauses[0].start())}: the '{name}' "
-                                    f"class lists '{listed}', which is not a list of rule "
-                                    "ids and ranges this rule reads")
-                    unread = True
-                    continue
-                members, wrong = _class_members(listed, registered, struck, quarantined)
-                findings += [f"the '{name}' class {problem}" for problem in wrong]
-                if not members:
-                    findings.append(f"the '{name}' class names no rule the registry "
-                                    "carries")
-                for rule in sorted(set(members), key=_rule_key):
-                    if members.count(rule) > 1:
-                        findings.append(f"the '{name}' class names {rule} more than once")
-                    placed[rule].append(name)
-                sizes[name] = len(set(members))
-            for name in REACH_CLASSES:
-                if name not in seen_classes:
-                    findings.append(f"{RULES} opens no '{name}' class in a form this rule "
-                                    "reads: 'Where the set is', then the class in `**` "
-                                    "bold with no third `*` beside either pair")
-                    unread = True
-
-    for rule in sorted(placed, key=_rule_key):
-        classes = placed[rule]
-        if len(classes) > 1:
-            findings.append(f"{rule} is named under {figures.words(len(classes))} reach "
-                            f"classes, {' and '.join(classes)}, where the page says one")
-        elif not classes and not unread and doc is not None:
-            findings.append(f"{rule} is registered and named under no reach class")
-
-    rep.report("K-119", "finding(s) in how the reach classes place the registry's rules:",
-               findings,
-               f"each of the registry's {len(registered)} rules is named under exactly one "
-               f"of the {figures.words(len(REACH_CLASSES))} reach classes ("
-               + ", ".join(f"{name} {sizes.get(name, 0)}" for name in REACH_CLASSES) + ")")
 
 
 def _at(text: str, offset: int) -> int:

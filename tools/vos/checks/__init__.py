@@ -38,6 +38,8 @@ from vos.report import Reporter
 # The view table belongs to the views group, which this module imports below. Same
 # guard as every group uses for `Context`, in the other direction.
 if TYPE_CHECKING:
+    from vos.checkregistry import Registry
+
     from .views import View
 
 
@@ -60,6 +62,10 @@ class Context:
     # The run's clock, for a group that measures its own parts. Diagnostic only: a
     # context built without the run's measures into a clock nothing reads.
     clock: timings.Clock = field(default_factory=timings.Clock)
+    registry: Registry | None = None
+    registry_faults: list[str] = field(default_factory=list)
+    group_start: int = 0
+    group_findings: int = 0
 
     # file -> its rewritten text, held until the run ends so that a later group reads
     # what an earlier one repaired rather than the text on disk
