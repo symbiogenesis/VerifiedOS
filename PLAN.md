@@ -2562,6 +2562,21 @@ backing from a usable declared slot and completed reuse.
 
 A credible project combines programming-language semantics, algorithms, real-time systems, capability security, and compiler engineering. Its success criterion is a checked increase in useful admitted work with the costs exposed. A proof that a particular reservation is unavoidable, or that a tempting optimization breaks isolation, is also a substantive result.
 
+## Shared JSON duplicate-key rejection
+
+Consolidate the tool readers' duplicate-key checks in
+[`vos/jsonutil.py`](tools/vos/jsonutil.py). Each reader retains its current numeric,
+encoding, shape and nesting policies, domain exception type and diagnostic text.
+The shared hook preserves member order and rejects the first repeated key at any
+object depth; callers may supply their own duplicate-error factory. Keep source
+identity manifests complete when readers gain the shared dependency.
+
+Acceptance requires focused controls for ordered objects, nested and escaped
+duplicate keys, caller-specific errors and the affected readers, plus typecheck.
+Require Host CI on Windows and Ubuntu and dispatch every Guest CI lane for the
+settled revision without waiting for Guest CI. This maintenance change claims no
+new parser semantics or performance result.
+
 ## Host CI scheduling
 
 Host CI's mutation-test partitions allocate more runners to the measured Ubuntu
