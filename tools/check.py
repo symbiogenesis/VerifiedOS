@@ -36,9 +36,9 @@ render succeeds, and for every tracked file, the license mark its kind owes:
     glyphs     the characters    encoding damage, in every tracked file
     marks      the provenance    every markable file opens with the declared SPDX identifier
 
-Last, the tool checks itself the same way: every check carries a K-nn rule id,
-tools/check-rules.md registers each id with its claim and its ground, and the floors
-and meta groups hold the reach and the registry in agreement in both directions.
+Last, required metadata binds every K-nn rule to its executable group and generates
+tools/check-rules.md. The driver holds each clean group's actual verdicts against
+its declarations, and the meta group checks generated views against that owner.
 
 Run with --fix to rewrite the asserted counts, the compounded product, the coverage
 matrix's standing column, and the checklist's totals and shares from their artifacts.
@@ -120,7 +120,7 @@ def run(root: Path, fix: bool = False, through: str | None = None,
         ctx.registry = checkregistry.read(root)
         groups = ctx.registry.bind((group.__name__.rpartition(".")[2], group.run)
                                    for group in GROUPS)
-    except (OSError, ValueError, TypeError) as exc:
+    except (OSError, ValueError, TypeError, AttributeError) as exc:
         ctx.rep.report("K-00", "invalid executable rule registry:", [str(exc)])
         return ctx.rep
     decided = re.compile(rf"\s*(?:ok|FAIL) {re.escape(through)}:") if bool(through) else None
