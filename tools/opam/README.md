@@ -156,6 +156,10 @@ neither change. Their [tracker entries](../../docs/implementation/upstream-prs.m
 record the merge revisions and public checks. A qualified prover-lock move must
 precede relying on these improvements in production.
 
+The [conditional context-pass retirement](../../PLAN.md#coverage-preserving-tooling-retirement)
+is tracked in the project plan. The current lock and extra pass remain required
+until the comparison and hosted acceptance below pass.
+
 PR 22611 records sealed implementation dependencies while collecting context
 output from admitted libraries under `-norec` or `-admit`; admitted terms remain
 unchecked. At adoption, compare those native contexts against the proof gate's

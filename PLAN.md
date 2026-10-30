@@ -2577,10 +2577,11 @@ prover upgrade, performance claim or milestone completion credit.
 
 - **Capability-vector generation. Start:** the handwritten
   `tools/cheri-equiv/gen_vectors.sail`, the generic `vos/oracle.py` emitter and
-  `rtl vectors`/`rtl crosscheck`. **Owns:** declarative coverage of the complete
-  existing RTL vector campaign through the shared oracle machinery, followed by
-  removal of the handwritten generator and its duplicate formatting, random
-  generation and sweep plumbing. Preserve every ordered data line, field width,
+  `rtl vectors`/`rtl crosscheck`. **Owns:** typed declarations of the RTL probes'
+  signatures and printed fields through the shared oracle emitter, followed by
+  removal of the monolithic generator and its duplicate formatting, random
+  generation and probe-printing code. Keep domain-specific helpers and the exact
+  sweep schedule as authored Sail input. Preserve every ordered data line, field width,
   seed transition, exhaustive bounds and permission domain, and deliberate
   narrowing, movement and malformed-input corner. Keep the independently
   authored SystemVerilog consumer. **Check:** focused generator and RTL controls
@@ -2609,62 +2610,24 @@ own qualification and end-to-end measurements justify a change of default.
 
 ## Standard-tool guardrail replacements
 
-This maintenance batch removes duplicated facts and delegates ordinary syntax and
-dependency decisions to maintained tools. Implement in this order: explicit checker
-targets and locked-resolution delegation; generated rule and release views; one
-interpreter-version owner; direct references and Markdown validation. Existing
-assurance decisions, indexed-file coverage, byte preservation and licence-review
-bindings remain required. Retired rule IDs remain recorded and are never reused.
+The implementations are landed. The typecheck wrapper passes explicit indexed
+filenames to the locked tools; uv owns locked-resolution consistency; authored
+registry and release identities generate their views; and `requires-python` owns
+interpreter selection. Maintained Markdown parsing, table lint and offline link
+validation replace the corresponding handwritten syntax and reference machinery.
+The [generated rule reference](tools/check-rules.md) and
+[tool guide](tools/README.md#checking-the-tools-themselves) describe the current
+owners and retained refusals. Permanent retired IDs remain in the registry.
 
-- **Explicit checker targets. Start:** the typecheck wrapper's Git inventory and
-  debug-log coverage audit. **Owns:** explicit filename targets for both ty platforms
-  and Ruff, bounded for Windows command limits, with discovery-log parsing removed.
-  **Check:** the pinned tools diagnose ignored and default-excluded files, including
-  Ruff lint exclusions, and missing inputs or tool crashes refuse; existing
-  suppression and configuration policies remain enforced.
-- **Locked-resolution delegation. Start:** K-67 and the launcher's locked uv
-  bootstrap. **Owns:** removal of the duplicate manifest/lock comparison while
-  retaining exact manifest-pin policy and runtime checker-version verification.
-  **Check:** incompatible manifest/lock inputs fail through uv before dispatch;
-  supported public entry points retain that bootstrap.
-- **Generated checker registry. Start:** K-00 and K-119's textual registries.
-  **Owns:** required typed rule metadata supplying the generated registry and reach
-  memberships, permanent IDs and executable rule registration. **Check:** duplicate
-  IDs, missing implementations or metadata, invalid reach classes and stale generated
-  views refuse; mutation coverage still ranges over the executable registry.
-- **Generated development-tool releases. Start:** K-118's prose release grammar.
-  **Owns:** structured authored licence-review identities and generated release
-  views from their dependency owners. **Check:** dependency/review mismatches, missing
-  or duplicate records and stale views refuse; generation never advances a reviewed
-  version or claims a licence reading. Upstream and action provenance keep their
-  independent obligations.
-- **One interpreter-version owner. Start:** K-75's transcribed minor versions.
-  **Owns:** the project requires-python field as the owner for workflow selection,
-  checker targets, provisioning and installation guidance. **Check:** both platform
-  targets and workflows use the supported minor without silently falling back to
-  tool defaults; malformed constraints and unresolved owners refuse.
-- **Direct references and ordinary link validation. Start:** K-12, K-13 and K-59.
-  **Owns:** stable direct links replacing heuristic prose references and maintained
-  offline local-link/fragment validation over the indexed corpus. **Check:** existing
-  missing-file and fragment controls, explicit and Unicode anchors, uninitialized
-  gitlinks and source-relative paths retain coverage. K-80's licence-file membership
-  obligation remains separate; changed entry/prose pairs receive co-read judgment.
-- **Standard Markdown table validation. Start:** K-38 and K-39. **Owns:** maintained
-  table-width linting with predictable pipe syntax in one mandatory host-wave member,
-  outside semantic-rule mutation replay. **Check:** wrong-width and escaped pipe
-  controls fail correctly; K-39 continues to refuse pipe-led runs whose missing
-  separator prevents recognition as a Markdown table.
-- **Shared Markdown syntax. Start:** the corpus's handwritten fence and heading
-  recognition. **Owns:** a maintained CommonMark parser with source maps and the
-  required table extension, retaining source bytes and semantic readers. **Check:**
-  nested/container and indented code, unfinished fences, reference links, inline
-  HTML and headings preserve intended declarations and diagnostics; parsing never
-  rewrites source text.
+Independent obligations remain active: annotation coverage and type analysis,
+licence-review bindings, semantic document consistency and detection of pipe-led
+runs without a table separator. Generation does not authorize a new reviewed
+dependency version or bless a requirement/prose reading.
 
-Each replacement joins through focused controls and integrated typecheck. Host CI
-must pass on Windows and Ubuntu for the published main revision; dispatch every
-Guest CI lane for that revision and finish without waiting for Guest CI. Record
-final implementation and hosted evidence here and in the batch fanout journal.
+The `guardrails-20261030-repair` fanout journal owns the predecessor batch's
+revision-bound hosted evidence. Each later settled
+batch still requires Host CI on Windows and Ubuntu and dispatch of every Guest
+CI lane for its own revision, without waiting for Guest CI.
 
 ## Tool-library simplifications
 
