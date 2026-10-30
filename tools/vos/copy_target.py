@@ -15,6 +15,7 @@ from vos.boot_target import compiler_inputs
 
 RING_BYTES = 524288
 INPUTS = ("copy-service", "interfaces/ring-reference.json", "tools/vos/copy_service.py",
+          "tools/vos/ring.py", "tools/vos/schema.py",
           "tools/vos/copy_target.py", "tools/vos/cli/copy_service.py",
           "tools/vos/compiler_diff.py", "tools/vos/asm.py", "tools/vos/image.py",
           "tools/generated/dialect-table.json", "tools/vos/jsonutil.py")

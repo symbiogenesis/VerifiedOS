@@ -18,7 +18,7 @@ moved in the declaration, and a token typed into the artifact by hand are one fi
 each, at the gate the edit lands at.
 
 **Why the generator rather than a second parse.** The emitter lives in
-[vos/cli/ring.py](../cli/ring.py) and this rule imports it. Writing a checker-side
+[vos/ring.py](../ring.py) and this rule imports it. Writing a checker-side
 re-derivation would be the two-copies-of-one-parse defect these tools exist to catch,
 in the tools, and it would decide agreement between two things this repository wrote
 rather than between the artifact and its owners.
@@ -29,7 +29,7 @@ vacuous; an artifact absent from the working tree has no bytes to read; and a ge
 that raises is an owner that no longer carries what the emitter reads out of it, which
 is this rule's finding rather than this rule's crash. The third is caught on the
 emitter's own refusal *and* on every other exception, because those are one fact
-arriving twice: the emitter names in [vos/cli/ring.py](../cli/ring.py) every key it
+arriving twice: the emitter names in [vos/ring.py](../ring.py) every key it
 reads and refuses on each, and an owner shaped in a way none of those guards reaches
 would otherwise leave the whole run dead rather than one rule red.
 
@@ -87,7 +87,7 @@ import re
 from typing import TYPE_CHECKING
 
 from vos import figures
-from vos.cli import ring as emitter
+from vos import ring as emitter
 
 # `Context` lives in this package's __init__, which imports this module in turn.
 if TYPE_CHECKING:

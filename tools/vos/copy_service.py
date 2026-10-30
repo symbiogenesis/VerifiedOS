@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import Final
 
 from vos import env, gallina
-from vos.cli import ring as ring_owner
+from vos import ring as ring_owner
 from vos.jsonutil import unique_object
 from vos.receipts import digest as _digest
 from vos.supervisor import c_compiler
@@ -182,7 +182,8 @@ def check(root: Path, work: Path) -> tuple[int, list[str]]:
     identities = [root / "proofs" / name for name in ("RingContract.v", "CopyRingService.v")]
     identities += [root / "copy-service" / name for name in SOURCES]
     identities += [root / "tools" / "vos" / "copy_service.py", root / "interfaces" / "ring-reference.json"]
-    identities += [root / "tools" / "vos" / "cli" / "ring.py",
+    identities += [root / "tools" / "vos" / "ring.py",
+                   root / "tools" / "vos" / "schema.py",
                    root / "tools" / "vos" / "jsonutil.py"]
     identities += [root / "tools" / "vos" / name for name in
                    ("receipts.py", "proofenv.py", "atomic.py")]

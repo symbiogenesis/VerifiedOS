@@ -14,7 +14,7 @@ from itertools import pairwise
 from pathlib import Path
 from typing import cast
 
-from vos.cli import ring as ring_owner
+from vos import ring as ring_owner
 from vos.jsonc import Json
 from vos.jsonutil import unique_object
 
