@@ -95,6 +95,55 @@ def tool(name: str) -> dict[str, str]:
     return {"path": binary, "sha256": receipts.digest(Path(binary)), "version": version}
 
 
+def qualify(report: dict[str, object], work: Path, revision: str,
+            control_results: dict[str, bool], log: list[str]) -> None:
+    if not all(control_results.values()):
+        raise ValueError("comparison controls failed")
+    sources: dict[str, str] = {}
+    for source in rtl_vectors.SOURCES:
+        current = (ROOT / source).read_bytes()
+        if current != git("show", f"{revision}:{source}"):
+            raise ValueError(f"model source changed from baseline: {source}")
+        sources[source] = hashlib.sha256(current).hexdigest()
+    report["model_sources_sha256"] = sources
+    report["candidate_sources_sha256"] = {
+        source: receipts.digest(ROOT / source) for source in
+        ("tools/vos/oracle.py", "tools/vos/rtl_vectors.py", rtl_vectors.CAMPAIGN,
+         "tools/vos/sailrig.py", "tools/vos/cli/rtl.py", "tools/vos/env.py",
+         "tools/opam/sail.lock", "tools/z3-requirements.txt", "tools/ci/rtl_vector_migration.py")}
+    report["tools"] = {name: tool(name) for name in ("sail", "cc", "z3")}
+    sail = shutil.which("sail")
+    if sail is None:
+        raise ValueError("Sail vanished after identification")
+    library = sailrig.sail_lib(sail)
+    report["sail_runtime_sha256"] = {name: receipts.digest(library / name)
+                                    for name in sailrig.RUNTIME}
+    baseline_source = work / "baseline" / "generator.sail"
+    baseline_source.parent.mkdir(parents=True, exist_ok=True)
+    baseline_source.write_bytes(git("show", f"{revision}:{BASELINE}"))
+    candidate_source = work / "candidate" / "generator.sail"
+    candidate_source.parent.mkdir(parents=True, exist_ok=True)
+    candidate_source.write_text(rtl_vectors.harness(ROOT), encoding="utf-8", newline="\n")
+    report["baseline_generator_sha256"] = receipts.digest(baseline_source)
+    report["candidate_generator_sha256"] = receipts.digest(candidate_source)
+    vectors: list[Path] = []
+    for source in (baseline_source, candidate_source):
+        binary = sailrig.build([*(ROOT / path for path in rtl_vectors.SOURCES), source],
+                               source.parent, log)
+        target = source.parent / "vectors.txt"
+        if binary is None or not sailrig.emit(binary, target, log):
+            raise ValueError(f"generation failed for {source}")
+        vectors.append(target)
+    comparison = compare_data(*vectors)
+    report["comparison"] = comparison
+    report["equal"] = comparison["equal"]
+    if not report["equal"]:
+        raise ValueError("complete ordered data differ")
+    if sources != {source: receipts.digest(ROOT / source) for source in rtl_vectors.SOURCES}:
+        raise ValueError("model source bytes changed during comparison")
+    report["status"] = "passed"
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--baseline-revision", required=True)
@@ -115,51 +164,7 @@ def main() -> int:
     args.report.parent.mkdir(parents=True, exist_ok=True)
     log: list[str] = []
     try:
-        if not all(control_results.values()):
-            raise ValueError("comparison controls failed")
-        sources: dict[str, str] = {}
-        for source in rtl_vectors.SOURCES:
-            current = (ROOT / source).read_bytes()
-            if current != git("show", f"{revision}:{source}"):
-                raise ValueError(f"model source changed from baseline: {source}")
-            sources[source] = hashlib.sha256(current).hexdigest()
-        report["model_sources_sha256"] = sources
-        report["candidate_sources_sha256"] = {
-            source: receipts.digest(ROOT / source) for source in
-            ("tools/vos/oracle.py", "tools/vos/rtl_vectors.py", rtl_vectors.CAMPAIGN,
-             "tools/vos/sailrig.py", "tools/vos/cli/rtl.py", "tools/vos/env.py",
-             "tools/opam/sail.lock", "tools/z3-requirements.txt", "tools/ci/rtl_vector_migration.py")}
-        report["tools"] = {name: tool(name) for name in ("sail", "cc", "z3")}
-        sail = shutil.which("sail")
-        if sail is None:
-            raise ValueError("Sail vanished after identification")
-        library = sailrig.sail_lib(sail)
-        report["sail_runtime_sha256"] = {name: receipts.digest(library / name)
-                                        for name in sailrig.RUNTIME}
-        baseline_source = work / "baseline" / "generator.sail"
-        baseline_source.parent.mkdir(parents=True, exist_ok=True)
-        baseline_source.write_bytes(git("show", f"{revision}:{BASELINE}"))
-        candidate_source = work / "candidate" / "generator.sail"
-        candidate_source.parent.mkdir(parents=True, exist_ok=True)
-        candidate_source.write_text(rtl_vectors.harness(ROOT), encoding="utf-8", newline="\n")
-        report["baseline_generator_sha256"] = receipts.digest(baseline_source)
-        report["candidate_generator_sha256"] = receipts.digest(candidate_source)
-        vectors: list[Path] = []
-        for source in (baseline_source, candidate_source):
-            binary = sailrig.build([*(ROOT / path for path in rtl_vectors.SOURCES), source],
-                                   source.parent, log)
-            target = source.parent / "vectors.txt"
-            if binary is None or not sailrig.emit(binary, target, log):
-                raise ValueError(f"generation failed for {source}")
-            vectors.append(target)
-        comparison = compare_data(*vectors)
-        report["comparison"] = comparison
-        report["equal"] = comparison["equal"]
-        if not report["equal"]:
-            raise ValueError("complete ordered data differ")
-        if sources != {source: receipts.digest(ROOT / source) for source in rtl_vectors.SOURCES}:
-            raise ValueError("model source bytes changed during comparison")
-        report["status"] = "passed"
+        qualify(report, work, revision, control_results, log)
     except (OSError, ValueError, subprocess.SubprocessError) as error:
         report.update({"status": "failed", "error": str(error)})
     finally:
