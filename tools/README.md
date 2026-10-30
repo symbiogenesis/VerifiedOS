@@ -1089,6 +1089,10 @@ the locked PyYAML release to compose source nodes without constructing objects.
 YAML owns collection structure, keys and source marks; duplicate keys, aliases,
 merge keys and nonstandard tags refuse. Pin and licence-review relationships stay
 with their consumers. Comments and scalar bodies supply no mapping entries.
+Structured action reviews in [development-tools.json](development-tools.json)
+generate each review sentence and licence URL from the same repository and commit.
+K-118 checks workflow membership and reviewed identities; K-115's separate parsers
+for generated Markdown and licence URLs are retired.
 
 The ring emitter uses a cached JSON Schema validator to check declaration shapes
 before exposing typed records; fields outside the emitter's scope remain intact.

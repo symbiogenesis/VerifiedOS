@@ -111,14 +111,7 @@ read at all. That is the same residue every group here declares: the id is check
 for agreement, and what somebody found when they opened the licence file at it is a
 person's to know.
 
-K-118 binds development-tool licence reviews to their declared dependency owners
-and generates their displayed editions. The Verilator review uses the shared
-assignment owner to read `VERILATOR_PIN` from [vos/cli/rtl.py](../cli/rtl.py).
-Its schema requires the reviewed row; changed or unreadable assignments and
-unreviewed editions refuse repair. Historical measurements and upstream tools'
-own pins remain outside that current-release binding.
-
-K-116 is the third kind: **a commit a tool consumes rather than a sentence restates.**
+K-116 holds **a commit a tool consumes rather than a sentence restates.**
 The width-transform registry binds the imported core's gitlink it was derived through,
 and K-81 does not read that binding, the registry's `"pin"` naming no upstream on its
 line. `rtl_width.stage` compares it with the populated imported core only when a guest
@@ -139,8 +132,10 @@ that own installed releases. The development-tools section is generated from tho
 identities and its authored Markdown template. A changed dependency refuses before
 repair; regeneration can reproduce an existing reading but never advance it. The
 shared library also retains the hook-repository and pip-constraint censuses, so new
-code installed by those routes still requires a review record. Licence evidence and
-all prose outside the generated section retain their own owners.
+code installed by those routes still requires a review record. Structured action
+reviews generate pinned licence URLs and are held against every parsed workflow
+reference in both directions. Licence evidence and all prose outside the generated
+section retain their own owners.
 
 """
 

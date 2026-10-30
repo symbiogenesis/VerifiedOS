@@ -460,6 +460,7 @@ _K88_BLOCK = "\n".join(
 _K88_MODEL = ("let blkdev_max_bytes : int(8192) = 8192\n"
               "let blkdev_max_block_bytes : int(4096) = 4096\n")
 _K88_OWNERS = {device_regs.BLOCK: _K88_BLOCK, device_regs.BLOCK_MODEL: _K88_MODEL}
+_K88_STAMP_FIXTURE = "0123456789abcdef0123456789abcdef01234567"
 # The Mocha owners, used only to emit the fixture package: the checks below run in a
 # tree without them, as the host does.
 _K88_UART_OWNERS = {
@@ -506,7 +507,7 @@ def _k88_device_register_moved_gitlink_is_quoted_apart_from_its_stamp() -> None:
     # The stamp off its gitlink is quoted beside it at twelve digits, or as far as the
     # two must run to differ, so a gitlink sharing the stamp's first twelve digits and
     # differing in its last prints two distinct ids.
-    mocha = "0123456789abcdef0123456789abcdef01234567"
+    mocha = _K88_STAMP_FIXTURE
     files = {**_K88_OWNERS, device_regs.ARTIFACT: _k88_device_header(mocha)}
     last = f"{mocha[:-1]}8"
     middle = f"{mocha[:19]}f{mocha[20:]}"

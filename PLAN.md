@@ -2726,6 +2726,14 @@ published revision, finishing without waiting for Guest CI. The batch's fanout
 journal records the tested revision and hosted evidence; no performance claim or
 milestone completion credit is taken.
 
+The shared YAML node reader now supplies workflow and hook populations. Structured
+action reviews generate their pinned licence links and K-118 holds the workflow
+join; K-115 is permanently inactive. Device-register and wire-format declarations
+share their authored schemas with editor validation. Semantic joins remain in the
+readers, and the generated Gallina, RTL and format inventory retain their bytes.
+The `simplify-guardrails-20261030-final` fanout journal owns Host CI evidence and
+every Guest CI lane's dispatch for the settled revision.
+
 ## Tool-library simplifications
 
 This maintenance batch preserves artifact formats, diagnostics and acceptance
