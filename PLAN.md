@@ -2676,8 +2676,10 @@ retains tolerant unfinished-input handling and recognizes strings inside comment
 navigation ignores quotes inside comments and refuses unmatched endings and
 unfinished regions. Those policies remain distinct at the adapters. Focused
 differential fixtures and live proof-source readings preserve both consumers'
-outputs. The `simplify-tools-20261029` fanout journal records the integrated hosted
-handoff; Guest CI includes a comparison against the batch's starting revision.
+outputs. Hosted completion requires Host CI on the settled revision and a Guest
+dispatch for that revision. An existing dispatch with matching inputs is reused.
+The frozen-lexer and proof-command comparisons provide the source-reading
+equivalence evidence.
 
 ## Shared JSON duplicate-key rejection
 
