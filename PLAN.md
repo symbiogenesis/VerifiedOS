@@ -2702,6 +2702,11 @@ Ubuntu and dispatch of every Guest CI lane for the settled revision, without
 waiting for Guest CI. This refactor changes no model bytes, corpus format or
 model-acceptance requirement.
 
+The corpus library and direct consumers are implemented. Existing integrity
+controls and the independent-import control pass in focused Windows runs;
+the Sail assistance drift control also refuses changes to the extracted source.
+Integrated typecheck and repository checks pass. Hosted acceptance remains open.
+
 ## Shared JSON duplicate-key rejection
 
 The tool readers share the duplicate-key check in

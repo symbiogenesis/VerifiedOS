@@ -222,7 +222,8 @@ def _frozen_and_changed_inputs() -> None:
     original = sailassist.process
 
     for relative in ("model/model/a.sail", "tools/vos/model_corpus.py"):
-        def drifting(argv: list[str], cwd: Path, logs: Path, timeout: float) -> dict[str, Any]:
+        def drifting(argv: list[str], cwd: Path, logs: Path, timeout: float,
+                     *, relative: str = relative) -> dict[str, Any]:
             result = original([sys.executable, "-c", "pass"], cwd, logs, timeout)
             (cwd / relative).write_bytes(b"# changed during compiler execution\n")
             return result

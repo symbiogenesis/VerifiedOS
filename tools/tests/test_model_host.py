@@ -937,6 +937,8 @@ def _copy_regular_file() -> None:
         source.chmod(0o640)
         os.utime(source, ns=(1_000_000_000, 2_000_000_000))
         verified = model_corpus._regular_digest(source)
+        if verified is None:
+            raise AssertionError("the regular source fixture must verify")
         model_corpus._copy_regular_file(source, copied, verified)
         was, now = source.stat(), copied.stat()
         ensure(copied.read_bytes() == source.read_bytes()
@@ -949,6 +951,8 @@ def _copy_regular_file() -> None:
         grown = root / "rv64ui-p-grown"
         grown.write_bytes(source.read_bytes())
         grown_verified = model_corpus._regular_digest(grown)
+        if grown_verified is None:
+            raise AssertionError("the regular growth fixture must verify")
         with grown.open("ab") as stream:
             stream.write(b"!")
         for path, held in ((twin, verified), (grown, grown_verified)):
@@ -961,6 +965,8 @@ def _copy_regular_file() -> None:
         device, kept = root / "rv64ui-p-device", root / "device-copy"
         device.write_bytes(b"")
         blank = model_corpus._regular_digest(device)
+        if blank is None:
+            raise AssertionError("the device fixture must verify before substitution")
         with patch.object(model_corpus, "os", _os_with_a_device(lambda path: path == str(device))):
             said = _refused(partial(model_corpus._copy_regular_file, device, kept, blank))
         ensure(f"{device} is not a regular file" in said,
@@ -1017,6 +1023,8 @@ def _copy_regular_file_reads_no_further_than_verified() -> None:
         source = root / "rv64ui-p-add"
         source.write_bytes(b"\x7fELF")
         verified = model_corpus._regular_digest(source)
+        if verified is None:
+            raise AssertionError("the regular source fixture must verify before growth")
         with source.open("ab") as stream:
             stream.write(bytes(1 << 16))
         counts: list[int] = []
@@ -1060,6 +1068,8 @@ def _copy_regular_file_refuses_a_fifo_and_a_link() -> None:
         os.mkfifo(fifo)
         (root / "regular").write_bytes(b"\x7fELF")
         verified = model_corpus._regular_digest(root / "regular")
+        if verified is None:
+            raise AssertionError("the regular link target fixture must verify")
         link.symlink_to(root / "regular")
         for source in (fifo, link):
             kept = root / f"{source.name}-copy"
@@ -1151,7 +1161,7 @@ def _seed_refuses_an_entry_replaced_during_the_copy() -> None:
         entry = _extracted(donor, {"rv64ui-p-add": b"\x7fELF"}) / "rv64ui-p-add"
         copy = model_corpus._copy_regular_file
 
-        def replacing(source: Path, destination: Path, verified: object) -> None:
+        def replacing(source: Path, destination: Path, verified: model_corpus._Hashed) -> None:
             if source == entry:
                 entry.unlink()
                 os.mkfifo(entry)
@@ -1180,7 +1190,7 @@ def _listing_hashes_only_regular_descriptors() -> None:
         suite = _extracted(Path(td), {"rv64ui-p-add": b"\x7fELF"})
         entry = suite / "rv64ui-p-add"
         with patch.object(model_corpus, "os", _os_with_a_device(lambda path: path == str(entry))):
-            listed = cast("bytes", model_corpus.corpus_listing(suite, _CORPUS_DIGEST))
+            listed = model_corpus.corpus_listing(suite, _CORPUS_DIGEST)
             said = _refused(partial(model_corpus.verify_test_corpus, suite, _CORPUS_DIGEST))
         ensure(b"\nunhashed rv64ui-p-add\n" in listed,
                f"the entry is listed unhashed, got {listed!r}")
