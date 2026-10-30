@@ -373,6 +373,10 @@ dependency downgrade or substitute qualification. Q34h's future guest-producer
 review reads xcc `df499b0cb850ff0cbc790ae26e4f87b5ef08a30b`, whose own instrument states MIT. These are advisory API/build-target readings only; no source,
 proof or package is incorporated or conveyed from either repository by them.
 
+### Markdown validation libraries
+
+The [selected-wheel licence readings](docs/implementation/evidence/markdown-tool-license-readings-20261029.json) record the exact packages, releases, wheel hashes and licence-text hashes reviewed on 2026-10-29 for CommonMark parsing and standard Markdown table linting. The selected markdown-it-py and PyMarkdown distributions and their new dependency closure are host development tools. Their MIT, BSD three-clause, Apache and Python Software Foundation grants permit this use; their notices remain in their installed distributions. Dependencies are fetched through the locked Python environment. No source, wheel or compiled library of these packages is conveyed here, and none enters the verified system or a proof assumption.
+
 ### Development tools, contained by use
 <!-- generated:development-tools -->
 

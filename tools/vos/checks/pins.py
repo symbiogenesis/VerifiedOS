@@ -128,9 +128,9 @@ references link to this reviewed row or the command instead of repeating its ver
 A pin stale in the record is the same defect K-81 exists for one column over: the
 row's terms were read at an edition, and a reader installing what the row states runs
 a lane the tools refuse. K-81 reads abbreviated object ids rather than version numbers;
-K-67 holds the checker dependencies and does not cover this elaborator.
+The locked dependency bootstrap validates checker dependencies separately.
 
-**The sites are enumerated in code and read fail-closed**, on K-67's and K-75's ground,
+**The sites are enumerated in code and read fail-closed**, on K-75's ground,
 which is why this rule owes the floors group no member: a site whose pattern no longer
 matches is a finding here, on the day it stops matching, rather than a set that has
 quietly gone to zero one group later. The window is the enumeration and not a scan, and
@@ -602,7 +602,7 @@ def _bindings(ctx: Context) -> None:
 def _version_pin(ctx: Context) -> None:
     """K-97: every site stating the elaborator's version states the one rtl.py fixes.
 
-    Fail-closed at every reading, on K-67's and K-75's ground. The constant either
+    Fail-closed at every reading, on K-75's ground. The constant either
     parses in the form it is written in today or there is no owner to hold anything
     against; a document the corpus does not carry is a finding rather than a site
     silently dropped; and a site whose pattern no longer matches, or has come to match

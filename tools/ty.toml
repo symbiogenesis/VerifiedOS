@@ -19,13 +19,13 @@
 # its `analysis` can suppress diagnostics for the files it matches; an `[analysis]`
 # key outside the ones `vos/cli/typecheck.py` admits as suppressing nothing, which
 # refuses `allowed-unresolved-imports` and `replace-imports-with-any`; an
-# `[environment]` key other than `python-version`, `python-platform` and
-# `extra-paths`, or either of the last two at a value other than the one below,
+# `[environment]` key other than `python-platform` and `extra-paths`, or either
+# at a value other than the one below,
 # because the platform decides which branches an editor's ty checks and `python`,
 # `root`, `typeshed` or another search path moves where it resolves imports; and a
 # `[src]` table other than exactly the one below, because an `include`, a further
 # `exclude`, `exclude-scripts` or honoring ignore files takes files out of the run.
-# K-75 holds `python-version`. ty also merges a user-level `ty.toml` beneath this
+# The project manifest owns the target version. ty also merges a user-level `ty.toml` beneath this
 # file, even beside `--config-file`, and the gate reports one that exists; it
 # searches the directories a `PYTHONPATH` names just after `extra-paths`, and the
 # gate reports that variable when it is set.
@@ -35,7 +35,8 @@
 all = "error"
 
 [environment]
-python-version = "3.14"
+# Infer the target version from pyproject.toml's requires-python in editors.
+# The gate passes the same derived value explicitly.
 
 # The tools are one lane but not one platform: `check.py` and its groups run on the
 # Windows host, while the build, model and proof commands run in WSL and call

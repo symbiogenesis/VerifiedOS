@@ -24,6 +24,7 @@ class Reporter:
     def __init__(self) -> None:
         self.findings = 0
         self.out: list[str] = []
+        self.decisions: list[str] = []
 
     def line(self, text: str = "") -> None:
         self.out.append(text)
@@ -44,6 +45,7 @@ class Reporter:
         smaller once it is over. Everywhere else the lines are the findings one for
         one and the default is what the docstring above promises.
         """
+        self.decisions.append(rule)
         found = [str(i) for i in items if i]
         if found:
             total = len(found) if count is None else count

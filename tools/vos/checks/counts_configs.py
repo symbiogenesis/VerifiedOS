@@ -295,7 +295,7 @@ def aperture_placements(ctx: Context) -> None:
     side is located by the row form the whole-map list is written in, which is a list
     and is precisely what that hop is there to hold.
 
-    Fail-closed on the reading, on K-67's and K-75's ground: an absent file, a
+    Fail-closed on the reading, on K-75's ground: an absent file, a
     `platform_config.sail` that yields no aperture at all, and a validator whose
     whole-map list matches no row are each a finding rather than a comparison made
     against nothing, and the aperture count is a member of the floors group's
@@ -405,7 +405,7 @@ def excluded_by_name_keys(ctx: Context) -> None:
     about, and it is deliberately narrow: an excluded name the registry does not gate is
     outside the rule rather than passing it, that being K-66's subject.
 
-    Fail-closed on the reading, on K-67's and K-75's ground: an absent profile, a §6 that
+    Fail-closed on the reading, on K-75's ground: an absent profile, a §6 that
     yields no by-name row, and a registry that yields no gated extension are each a
     finding rather than a comparison made against nothing.
     """
@@ -513,7 +513,7 @@ def device_region_executability(ctx: Context) -> None:
     composition's decision, and a rule that flipped one would be deciding what machine a
     file describes.
 
-    Fail-closed on the reading, on K-67's and K-75's ground: a composition stating no
+    Fail-closed on the reading, on K-75's ground: a composition stating no
     readable `memory.regions`, a region declaring no attributes, a region whose memory
     type is neither of the two kinds a region is or whose `executable` is not a boolean,
     an absent template, a template carrying no region in the form this rule reads, a

@@ -16,14 +16,12 @@ One group is larger than one module, and the split is inside the group rather th
 second entry below: `counts` is entered at `counts.py`, which holds its claim table
 and its run, and its families are the `counts_*.py` modules beside it, which nothing
 outside that group imports. A rule belongs to the group whose heading reports it and
-not to the file carrying it, which is what `check-rules.md` registers; the meta
-group's scan reads every module in this directory, so a rule id in one of those
-files is carried exactly as one in a group module is.
+not to the file carrying it. The authored check-registry.json binds each rule to
+that group, and the driver compares the group's executed verdicts with its metadata.
 
-Adding a rule is three edits and no more: the check, its row and its reach class in
-`check-rules.md`, and its mutant in `vos/cli/selftest.py`. The meta group holds the
-first two in agreement and the selftest holds the third, so none of them can be
-forgotten quietly.
+Adding a rule means implementing its check, declaring its required metadata and
+reach class, regenerating check-rules.md, and supplying its mutant in
+vos/cli/selftest.py. The meta group and selftest hold those obligations together.
 """
 
 from dataclasses import dataclass, field
@@ -38,6 +36,8 @@ from vos.report import Reporter
 # The view table belongs to the views group, which this module imports below. Same
 # guard as every group uses for `Context`, in the other direction.
 if TYPE_CHECKING:
+    from vos.checkregistry import Registry
+
     from .views import View
 
 
@@ -60,6 +60,10 @@ class Context:
     # The run's clock, for a group that measures its own parts. Diagnostic only: a
     # context built without the run's measures into a clock nothing reads.
     clock: timings.Clock = field(default_factory=timings.Clock)
+    registry: Registry | None = None
+    registry_faults: list[str] = field(default_factory=list)
+    group_start: int = 0
+    group_findings: int = 0
 
     # file -> its rewritten text, held until the run ends so that a later group reads
     # what an earlier one repaired rather than the text on disk
