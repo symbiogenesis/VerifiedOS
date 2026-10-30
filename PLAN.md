@@ -2586,6 +2586,15 @@ prover upgrade, performance claim or milestone completion credit.
   bundle. The `retire-tools-20261030` journal owns final-revision Host CI and every
   Guest CI lane's dispatch; the independent RTL consumer retains its hosted
   acceptance boundary. No performance improvement is claimed.
+- **Concurrent link-validator installation. Start:** the Windows first-install
+  publication refusal in Host CI run `41009280688`. **Owns:** one installer per
+  managed environment while the checker and behavioral tests start concurrently,
+  with cache revalidation after acquiring the installation lock. Keep verified
+  reuse, archive and executable hashes, atomic publication and corrupt-cache
+  refusals. **Check:** independent processes sharing a cold fixture install once;
+  a failed installer releases ownership and publishes no executable; malformed
+  and substituted cache bytes still refuse. Focused controls and typecheck join
+  through passing Host CI on both platforms and every Guest CI lane's dispatch.
 - **Rocq context workaround. Status: conditional. Start:** a qualified prover-lock
   move carrying the merged checker fix described by the
   [opam adoption contract](tools/opam/README.md#merged-checker-and-printer-improvements).
