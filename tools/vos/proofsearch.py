@@ -19,7 +19,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Literal, TypedDict
 
-from vos import proofcites
+from vos import proofcites, prooflex
 from vos.register import REQ_TOKEN_RE
 
 type Status = Literal["complete", "admitted", "aborted", "incomplete", "definition"]
@@ -98,40 +98,21 @@ def _masked(text: str) -> str:
     Outer quotes keep an unfinished command's final string in its source span;
     doubled quotes inside a string are masked with the rest of its contents.
     """
-    chars = list(text)
-    pos, depth = 0, 0
-    quoted = False
-    while pos < len(text):
-        pair = text[pos:pos + 2]
-        size = 1
-        hidden = depth > 0 or quoted
-        if depth:
-            if pair == "(*":
-                depth += 1
-                size = 2
-            elif pair == "*)":
-                depth -= 1
-                size = 2
-        elif quoted:
-            if pair == '""':
-                size = 2
-            elif text[pos] == '"':
-                quoted, hidden = False, False
-        elif pair == "(*":
-            depth = 1
-            size, hidden = 2, True
-        elif pair == "*)":
-            raise ValueError(f"line {proofcites.line_at(text, pos)}: unmatched comment ending")
-        elif text[pos] == '"':
-            quoted, hidden = True, False
-        if hidden:
-            for index in range(pos, pos + size):
-                if chars[index] not in "\r\n":
-                    chars[index] = " "
-        pos += size
-    if depth or quoted:
-        raise ValueError("unterminated " + ("comment" if depth else "string"))
-    return "".join(chars)
+    out: list[str] = []
+    start = 0
+    for region in prooflex.regions(text, strings_in_comments=False):
+        if region.kind == "unmatched-end":
+            raise ValueError(f"line {proofcites.line_at(text, region.start)}: "
+                             "unmatched comment ending")
+        if not region.closed:
+            raise ValueError("unterminated " + region.kind)
+        opened = region.start + (region.kind == "string")
+        ended = region.end - (region.kind == "string")
+        out.append(text[start:opened])
+        out.append("".join(char if char in "\r\n" else " " for char in text[opened:ended]))
+        start = ended
+    out.append(text[start:])
+    return "".join(out)
 
 
 def _sentences(code: str) -> list[_Sentence]:
