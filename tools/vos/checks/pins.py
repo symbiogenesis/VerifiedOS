@@ -544,6 +544,11 @@ def _sources(ctx: Context, named: list[tuple[str, str, pins_mod.Pin]]) -> Iterat
             text = text.replace("\r\n", "\n").replace("\r", "\n")
         except (OSError, UnicodeDecodeError, EOFError, ValueError, zlib.error):
             continue
+        lowered = text.lower()
+        candidate = any(needle in lowered for needle, _, _ in named)
+        del lowered
+        if not candidate:
+            continue
         yield rel, text, []
 
 
