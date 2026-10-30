@@ -2579,6 +2579,37 @@ Hosted acceptance requires Host CI on Windows and Ubuntu and dispatch of every
 Guest CI lane for the settled revision without waiting for Guest CI. This
 maintenance change claims no new parser semantics or performance result.
 
+## Shared tool publication and source identities
+
+This maintenance batch has three independently checkable outputs. It changes no
+admission criterion, evidence authority or artifact format.
+
+- **Atomic publication. Start:** the existing ledger, contained-compiler and timing
+  writers. **Owns:** one sibling-temporary replacement mechanism with cleanup on
+  failure; callers keep containment checks, serialization, parent creation,
+  synchronization and exception policies explicit. **Check:** focused success,
+  failed-write and failed-replace controls preserve predecessor bytes and clean
+  temporary files; ledger no-op, compiler containment/fsync and timing diagnostic
+  refusal behavior remain covered. **Join:** integrated typecheck, Host CI on both
+  platforms and dispatch of every Guest CI lane.
+- **Source-binding inventories. Start:** the composer and admission source lists
+  in package inventories, composition inputs and receipt manifests. **Owns:** one
+  declared source-set owner and derived consumer views, including the declaration
+  and shared dependencies in bound identities. **Check:** focused consumer and
+  source-substitution controls demonstrate complete bindings and deterministic
+  views; regenerate affected tracked artifacts through their owners. **Join:**
+  integrated typecheck and the same hosted validation handoff.
+- **File digests. Start:** `vos.receipts.digest` and equivalent whole-file SHA-256
+  readers. **Owns:** reuse of that implementation while retaining domain wrappers,
+  errors and distinct byte/string/structured hashing policies. **Check:** focused
+  affected-module controls cover digest equality and unreadable-input behavior;
+  source manifests bind new runtime dependencies. **Join:** integrated typecheck
+  and the same hosted validation handoff.
+
+The integrator owns shared documentation and generated repair. Workers return
+committed implementations and focused evidence from dedicated worktrees. Guest CI
+is dispatched for the settled published revision without waiting for its verdict.
+
 ## Host CI scheduling
 
 Host CI's mutation-test partitions allocate more runners to the measured Ubuntu
