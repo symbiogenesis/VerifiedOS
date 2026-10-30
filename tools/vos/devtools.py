@@ -33,7 +33,8 @@ TABLE = "development_tools_table"
 WORKFLOWS = ".github/workflows/"
 _USES_RE = re.compile(r"^[ \t]*(?:-[ \t]+)?(?P<key>uses):[ \t]*(.*?)[ \t]*$")
 _ACTION_REF_RE = re.compile(
-    r"([A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+)(?:/[^@\s]+)?@([0-9a-f]{40}) # (v\d+\.\d+\.\d+)")
+    r"(?P<reference>(?P<repository>[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+)(?:/[^@\s]+)?@"
+    r"(?P<commit>[0-9a-f]{40})) # (?P<release>v\d+\.\d+\.\d+)")
 
 
 @dataclass(frozen=True)
@@ -233,7 +234,7 @@ def _action_census(owners: Owners, actions: tuple[Action, ...], findings: list[s
             continue
         source_lines = yamlutil.lines(source)
         for mapping in yamlutil.mappings(tree):
-            for key, _value in mapping.value:
+            for key, value in mapping.value:
                 if key.value != "uses":
                     continue
                 references += 1
@@ -250,7 +251,13 @@ def _action_census(owners: Owners, actions: tuple[Action, ...], findings: list[s
                                     "owner/repo[/path]@<full commit> # vX.Y.Z")
                     unread = True
                     continue
-                repository, commit, release = pin.groups()
+                if (not isinstance(value, ScalarNode) or value.value != pin.group("reference")
+                        or yamlutil.start(value).line != mark.line or value.end_mark is None
+                        or value.end_mark.line != mark.line):
+                    findings.append(f"{where}: parsed action reference must equal its single-line pin")
+                    unread = True
+                    continue
+                repository, commit, release = pin.group("repository", "commit", "release")
                 used.add(repository)
                 if repository not in reviewed:
                     findings.append(f"{where}: runs {repository} with no structured action review")

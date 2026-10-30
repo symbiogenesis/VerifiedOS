@@ -1684,6 +1684,10 @@ CASES: list[Case] = [
      _first_match(".github/workflows/host-gates.yml",
                   r"(?m)^(\s*- uses: [^@\s]+)@[0-9a-f]{40} # (v\d+)\.\d+\.\d+$",
                   lambda m: f"{m[1]}@{m[2]}")),
+    ("K-118", "a workflow action whose parsed value continues beyond its pinned source line",
+     _first_match(".github/workflows/host-gates.yml",
+                  r"(?m)^([ \t]*)- uses: [^@\s]+@[0-9a-f]{40} # v\d+\.\d+\.\d+\n",
+                  lambda m: f"{m[0]}{m[1]}    continuation\n")),
     # Composed YAML keys retain the admitted source-line shape, even when another
     # workflow also runs the same action.
     ("K-118", "a workflow action stated in a shape the reading does not parse",
