@@ -5,11 +5,12 @@
   "required": [
     "schema",
     "reviews",
-    "template"
+    "template",
+    "rows"
   ],
   "properties": {
     "schema": {
-      "const": 1,
+      "const": 2,
       "type": "integer"
     },
     "template": {
@@ -24,6 +25,13 @@
       "minItems": 1,
       "items": {
         "$ref": "#/$defs/review"
+      }
+    },
+    "rows": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/row"
       }
     }
   },
@@ -104,6 +112,79 @@
           "minLength": 1
         }
       }
+    },
+    "row": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "tool",
+        "license",
+        "standing"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "tool": {
+          "type": "string",
+          "minLength": 1,
+          "not": {
+            "pattern": "[\\r\\n|]"
+          }
+        },
+        "license": {
+          "type": "string",
+          "minLength": 1,
+          "not": {
+            "pattern": "[\\r\\n|]"
+          }
+        },
+        "standing": {
+          "type": "string",
+          "minLength": 1,
+          "not": {
+            "pattern": "[\\r\\n|]"
+          }
+        },
+        "reviews": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "disposition": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "\\S"
+        }
+      },
+      "oneOf": [
+        {
+          "required": [
+            "reviews"
+          ],
+          "not": {
+            "required": [
+              "disposition"
+            ]
+          }
+        },
+        {
+          "required": [
+            "disposition"
+          ],
+          "not": {
+            "required": [
+              "reviews"
+            ]
+          }
+        }
+      ]
     }
   }
 }

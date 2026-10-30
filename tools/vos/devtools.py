@@ -26,6 +26,7 @@ SNAPSHOTS = "tools/opam/"
 HOOK_CONFIG = "model/.pre-commit-config.yaml"
 HOOK_CONSTRAINTS = "tools/ci/model-hooks-constraints.txt"
 HOOK_BUILD_CONSTRAINTS = "tools/ci/model-hooks-build-constraints.txt"
+TABLE = "development_tools_table"
 
 
 @dataclass(frozen=True)
@@ -40,8 +41,21 @@ class Review:
 
 
 @dataclass(frozen=True)
+class Row:
+    """A reviewed component's cells, or an explicit decision owned elsewhere."""
+
+    id: str
+    tool: str
+    license: str
+    standing: str
+    reviews: tuple[str, ...]
+    disposition: str
+
+
+@dataclass(frozen=True)
 class Document:
     reviews: tuple[Review, ...]
+    rows: tuple[Row, ...]
     template: Template
 
 
@@ -64,22 +78,53 @@ def read(root: Path, indexed: frozenset[str]) -> Document:
     names = [review.id for review in reviews]
     if len(names) != len(set(names)):
         raise ValueError("review identities must be unique")
-    template = Template("\n".join(decoded["template"]))
-    if not template.is_valid():
-        raise ValueError("the development-tool template has an invalid placeholder")
+    rows = tuple(Row(row["id"], row["tool"], row["license"], row["standing"],
+                     tuple(row.get("reviews", [])), row.get("disposition", ""))
+                 for row in decoded["rows"])
+    if len({row.id for row in rows}) != len(rows):
+        raise ValueError("development-tool row identities must be unique")
+    lines = decoded["template"]
+    template = Template("\n".join(lines))
+    table_uses = sum(1 for match in Template.pattern.finditer(template.template)
+                     if (match.group("named") or match.group("braced")) == TABLE)
+    if lines.count("${" + TABLE + "}") != 1 or table_uses != 1:
+        raise ValueError("the template needs one standalone development-tool table placeholder")
+    if any(line.lstrip().startswith("|") for line in lines):
+        raise ValueError("literal table rows are forbidden; declare each tool in rows")
     wanted = {f"{review.id}_{index}" for review in reviews
               for index, _ in enumerate(review.reviewed)}
-    used = set(template.get_identifiers())
+    keys = {f"{review.id}_{index}": review.id for review in reviews
+            for index, _ in enumerate(review.reviewed)}
+    used = _identifiers(template.template)
+    for row in rows:
+        row_keys = set().union(*(_identifiers(cell) for cell in (
+            row.tool, row.license, row.standing)))
+        referenced = {keys[key] for key in row_keys if key in keys}
+        if row_keys - keys.keys() or referenced != set(row.reviews):
+            raise ValueError(f"{row.id}'s declared reviews must cover exactly its cell placeholders")
+        used.update(row_keys)
+    wanted.add(TABLE)
     if wanted != used:
         raise ValueError(f"template/review identities differ: missing {sorted(wanted - used)}, "
                          f"unknown {sorted(used - wanted)}")
-    return Document(reviews, template)
+    return Document(reviews, rows, template)
+
+
+def _identifiers(text: str) -> set[str]:
+    template = Template(text)
+    if not template.is_valid():
+        raise ValueError("the development-tool template has an invalid placeholder")
+    return set(template.get_identifiers())
 
 
 def render(document: Document) -> str:
     """Render only authored reviewed values, never the dependency owner's new value."""
     values = {f"{review.id}_{index}": value for review in document.reviews
               for index, value in enumerate(review.reviewed)}
+    table = ["| Tool | License | Standing |", "| --- | --- | --- |"]
+    table.extend("| " + " | ".join(Template(cell).substitute(values) for cell in (
+        row.tool, row.license, row.standing)) + " |" for row in document.rows)
+    values[TABLE] = "\n".join(table)
     return document.template.substitute(values)
 
 
@@ -388,6 +433,8 @@ class Owners:
         if owner.kind == "opam-pin":
             return self._one(owner, self._snapshot_pins(owner.path).get(owner.key, []))
         if owner.kind in ("opam-every", "opam-any"):
+            if owner.path != SNAPSHOTS:
+                raise self._fault(owner.label(), f"snapshot inventories must use {SNAPSHOTS}")
             found: set[str] = set()
             for path in self._snapshots():
                 versions = self._snapshot(path).get(owner.key, [])
@@ -398,6 +445,8 @@ class Owners:
                                   f"{owner.key}")
             return frozenset(found)
         if owner.kind == "uv-required":
+            if owner.key != "tool.uv.required-version":
+                raise self._fault(owner.label(), "uv release owners must use tool.uv.required-version")
             try:
                 required: object = tomllib.loads(self._text(owner.path))["tool"]["uv"][
                     "required-version"]
