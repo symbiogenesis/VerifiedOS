@@ -2681,6 +2681,27 @@ dispatch for that revision. An existing dispatch with matching inputs is reused.
 The frozen-lexer and proof-command comparisons provide the source-reading
 equivalence evidence.
 
+## Model test-corpus library boundary
+
+The downloaded RISC-V test corpus has one integrity boundary: the model's declared
+release and tarball digests, manifest rendering and verification, snapshot-based
+input selection, and copying only files that verified. These operations belong
+together in `vos/model_corpus.py`; `vos/cli/model.py` retains build receipts,
+donor selection, command orchestration and reporting. Consumers import the library
+directly rather than obtaining corpus operations from the model command.
+
+**Start:** the existing corpus implementation and its fixture controls.
+**Owns:** the library boundary and direct consumer imports, preserving manifest
+bytes, pin parsing, diagnostics, bounded manifest reads, non-regular-file refusals,
+verified snapshot selection and donor-change detection. Source identities bind the
+extracted implementation wherever they bind its consumers. **Check:** existing
+focused corpus, model-host, build-guard and modular-consumer controls, plus a fresh
+process proving that importing the corpus library loads no `vos.cli` module;
+typecheck and unchanged command help/dispatch. **Join:** Host CI on Windows and
+Ubuntu and dispatch of every Guest CI lane for the settled revision, without
+waiting for Guest CI. This refactor changes no model bytes, corpus format or
+model-acceptance requirement.
+
 ## Shared JSON duplicate-key rejection
 
 The tool readers share the duplicate-key check in
