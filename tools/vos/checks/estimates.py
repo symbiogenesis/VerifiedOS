@@ -568,17 +568,6 @@ def run(ctx: Context) -> None:
                f"all {len(items)} items carry a cell in the declared shape, and every one "
                "is under a subtotal")
 
-    # an open item's midpoint is the mean of its range, so the range is the only figure
-    # in the cell anybody wrote; a completed item's actual has no range to disagree
-    # with. Under a repair the cell rewrite below carries the correction, so the
-    # mismatch is reported only where nothing is going to correct it.
-    if not ctx.fix:
-        rep.report("K-35", "open item(s) whose midpoint is not the mean of its range:",
-                   [f"{i.label}: {format_hours(i.stated)} h against a {format_hours(i.lo)}–"
-                    f"{format_hours(i.hi)} range, whose mean is {format_hours(i.hours)} h"
-                    for i in items if not i.done and i.stated != i.hours],
-                   "every open midpoint is the mean of its own range")
-
     # the width test the authority class has always implied and never stated. The class is a
     # prior on a range, and a prior nothing measures the range against decides nothing, so the
     # floor is a span: a class-X range's upper end is at least twice its lower end, which is
@@ -769,4 +758,13 @@ def run(ctx: Context) -> None:
                f"fits over {len(all_pairs)} of the record's {len(record)} rows and the "
                f"agent-parallel series over {len(ppairs)} of its own record's "
                f"{len(precord)}, and the generated calibration results agree")
+
+    # Repair mode decides the pending repaired view, including a refused rewrite,
+    # so every clean run supplies a K-35 verdict without vouching for stale cells.
+    midpoint_items = _parse(ctx.text(PLAN))[0] if ctx.fix else items
+    rep.report("K-35", "open item(s) whose midpoint is not the mean of its range:",
+               [f"{i.label}: {format_hours(i.stated)} h against a {format_hours(i.lo)}–"
+                f"{format_hours(i.hi)} range, whose mean is {format_hours(i.hours)} h"
+                for i in midpoint_items if not i.done and i.stated != i.hours],
+               "every open midpoint is the mean of its own range")
     rep.line()

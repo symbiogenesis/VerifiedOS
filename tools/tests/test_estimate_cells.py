@@ -47,10 +47,16 @@ def _legacy_cells_migrate_once() -> None:
                 "* [x] **C** · 6 h retained estimate, actual n/a · agent-parallel\n"
                 "**S subtotal:** 12 h · 100% · 9 h complete · open range 2–4 h.\n")
     with sandbox_tree(_files(plan)) as root:
+        stale = _context(root)
+        estimates.run(stale)
+        ensure(any(line.startswith("FAIL K-35:") for line in stale.rep.out),
+               "read-only checking must refuse a stale midpoint")
         ctx = _context(root, fix=True)
         estimates.run(ctx)
         ensure(ctx.fixed.get(PLAN) == expected,
                f"migration must remove only shares and repair the midpoint: {ctx.fixed!r}")
+        ensure(any(line.startswith("ok K-35:") for line in ctx.rep.out),
+               "repair mode must decide the repaired midpoint for the rule registry")
     with sandbox_tree(_files(expected)) as root:
         ctx = _context(root, fix=True)
         estimates.run(ctx)
