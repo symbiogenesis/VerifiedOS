@@ -153,12 +153,17 @@ omit unused inline expansion; count readers reuse masks only when their line
 representations agree. Proof-source facts are content-keyed within a context while
 each consumer still acquires current source bytes.
 
-Streaming presence and candidate-line boundaries use one compiled literal at a
-time, with the complete literal prefix before its Unicode boundary assertions. This avoids Python visits
-to unbounded substrings such as a project name inside a longer identifier.
-Rejected window-edge matches resume with overlap, and malformed or unsupported
-text retains the complete parser. The boundary oracle and chunk tests retain the
-original `isalnum` and underscore/hyphen predicates.
+Streaming presence and candidate-line searches use one bounded literal trie per
+invocation. A first literal character precedes each left-boundary assertion;
+right-boundary constraints sit at terminal nodes so a shorter name at the same
+start remains visible when a longer name reaches an unknown window edge. The
+existing parser still decides every ID and its attribution. Programs are bound to
+the actual name tuple, and unsupported inputs retain the legacy scan. The boundary
+oracle and chunk tests retain the original `isalnum` and underscore/hyphen rules.
+Separate byte tries search raw and ASCII-folded lineage candidates without
+repeating a whole-window search for each literal. Folding remains `bytes.lower()`;
+empty or unsupported literals retain the original `any()` path. Matcher programs
+are local to an invocation and carry no source verdict or persistent cache.
 The pin-ID repeat is possessive: backing off a consumed hexadecimal character can
 only put another word character before the refusing right boundary. Its frozen
 greedy oracle compares full matches, captures and bounded searches. ASCII stream

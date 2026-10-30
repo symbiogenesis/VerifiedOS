@@ -30,6 +30,7 @@ import re
 from collections.abc import Iterator
 from dataclasses import dataclass, field
 
+from . import literalsearch
 from .corpus import fence_lines
 
 RECORD = "THIRD-PARTY.md"
@@ -224,7 +225,8 @@ def scan(file: str, lines: list[str], named: list[tuple[str, str, Pin]]) -> Iter
     return scan_text(file, "\n".join(lines), named)
 
 
-def scan_text(file: str, text: str, named: list[tuple[str, str, Pin]]) -> Iterator[Site]:
+def scan_text(file: str, text: str, named: list[tuple[str, str, Pin]], *,
+              matcher: literalsearch.CandidateTrie | None = None) -> Iterator[Site]:
     """Every restatement the lines carry, in the order they read.
 
     Literal upstream names propose candidate lines before the id grammar runs.
@@ -245,8 +247,13 @@ def scan_text(file: str, text: str, named: list[tuple[str, str, Pin]]) -> Iterat
     # retain its whole-text implementation for that representation.
     low = text.lower()
     if len(low) == len(text) and all("\n" not in name for name, _, _ in named):
-        for index, start, end in candidate_lines(text, tuple(n for n, _, _ in named),
-                                                 lowered=low):
+        names = tuple(n for n, _, _ in named)
+        if matcher is None or matcher.names != names:
+            try:
+                matcher = literalsearch.compile_names(names)
+            except literalsearch.LegacyRequired:
+                matcher = None
+        for index, start, end in candidate_lines(text, names, lowered=low, matcher=matcher):
             if ID_RE.search(text, start, end) is None:
                 continue
             marks = _named(text[start:end].removesuffix("\r"), named)
@@ -272,7 +279,8 @@ def name_patterns(names: tuple[str, ...]) -> tuple[tuple[str, re.Pattern[str]], 
 
 
 def candidate_lines(text: str, names: tuple[str, ...], *, lowered: str | None = None,
-                    patterns: tuple[tuple[str, re.Pattern[str]], ...] | None = None
+                    patterns: tuple[tuple[str, re.Pattern[str]], ...] | None = None,
+                    matcher: literalsearch.CandidateTrie | None = None
                     ) -> Iterator[tuple[int, int, int]]:
     """Potential name-bearing lines, preserving original offsets and line indices.
 
@@ -285,6 +293,9 @@ def candidate_lines(text: str, names: tuple[str, ...], *, lowered: str | None = 
     low = text.lower() if lowered is None else lowered
     if len(low) != len(text):
         raise ValueError("Unicode lowercase changes source offsets")
+    if matcher is not None and matcher.names == names:
+        yield from matcher.lines(text, lowered=low)
+        return
     if not any(name in low for name in names):
         return
     spans: set[tuple[int, int]] = set()

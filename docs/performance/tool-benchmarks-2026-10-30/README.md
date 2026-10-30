@@ -48,6 +48,14 @@ separate profiler trace covers the locked launcher waiting for its child, so it
 supplies no call-cost evidence for the checker. The revised diagnostic route
 profiles the benchmark worker directly.
 
+The [direct-worker diagnostic](https://github.com/symbiogenesis/VerifiedOS/actions/runs/41121547760)
+retains its complete [structured profile and worker report](41121547760-profile.json),
+including original artifact hashes. It profiles the actual checker and reports
+no findings. Repeated per-name and per-lineage absence searches dominate its call
+costs; native regex execution is small by comparison. Profiling overhead supplies
+no paired speedup evidence. The bounded name and byte tries replace those repeated
+searches; their complete comparison remains separate from this diagnostic.
+
 The [initial attempt](https://github.com/symbiogenesis/VerifiedOS/actions/runs/41108543698)
 retains [partial runner evidence](41108543698-runner.json) and its
 [proof-context record](41108543698-proof-identity.json). Baseline source placement

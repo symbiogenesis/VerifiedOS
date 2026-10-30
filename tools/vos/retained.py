@@ -13,7 +13,7 @@ import io
 import re
 from dataclasses import dataclass
 
-from vos import pins
+from vos import literalsearch, pins
 
 
 class UnsupportedScanError(ValueError):
@@ -40,8 +40,14 @@ class _Entry:
     facts: Facts
 
 
-def _bounded_name(text: str, patterns: tuple[tuple[str, re.Pattern[str]], ...], *, first: bool, final: bool) -> bool:
+def _bounded_name(text: str, patterns: tuple[tuple[str, re.Pattern[str]], ...], *, first: bool, final: bool,
+                  matcher: literalsearch.CandidateTrie | None = None) -> bool:
     """A candidate with the original pin parser's asymmetric name boundaries."""
+    if matcher is not None and matcher.names == tuple(name for name, _ in patterns):
+        try:
+            return matcher.present(text, first=first, final=final)
+        except literalsearch.LegacyRequired as error:
+            raise UnsupportedScanError(str(error)) from error
     low = text.lower()
     # The old parser indexes its lowered string with original-string positions.
     # Preserve that behavior through its original implementation when lowering
@@ -89,6 +95,14 @@ def prescan(blob: bytes, names: tuple[str, ...], sensitive: tuple[bytes, ...],
            or "\n" in name or "\r" in name for name in names):
         raise UnsupportedScanError("pin spellings require the complete Unicode reader")
     name_patterns = pins.name_patterns(names)
+    try:
+        name_matcher = literalsearch.compile_names(names)
+    except literalsearch.LegacyRequired:
+        name_matcher = None
+    try:
+        lineage_matcher = literalsearch.compile_bytes(sensitive, folded)
+    except literalsearch.LegacyRequired:
+        lineage_matcher = None
     decoder = io.IncrementalNewlineDecoder(codecs.getincrementaldecoder("utf-8")(), True)
     text_tail = ""
     name_tail = ""
@@ -109,9 +123,12 @@ def prescan(blob: bytes, names: tuple[str, ...], sensitive: tuple[bytes, ...],
             if not lineage or (glyphs and not glyph):
                 window = byte_tail + chunk
                 if not lineage:
-                    low = window.lower()
-                    lineage = (any(needle in window for needle in sensitive)
-                               or any(needle in low for needle in folded))
+                    if lineage_matcher is not None:
+                        lineage = lineage_matcher.present(window)
+                    else:
+                        low = window.lower()
+                        lineage = (any(needle in window for needle in sensitive)
+                                   or any(needle in low for needle in folded))
                 if glyphs and not glyph and not (glyphs_require_nonascii and window.isascii()):
                     glyph = any(needle in window for needle in glyphs)
                 byte_tail = window[-byte_overlap:] if byte_overlap else b""
@@ -121,7 +138,8 @@ def prescan(blob: bytes, names: tuple[str, ...], sensitive: tuple[bytes, ...],
                     if not pin_name:
                         window_text = name_tail + addition
                         pin_name = _bounded_name(window_text, name_patterns,
-                                                 first=decoded_chars == len(name_tail), final=final)
+                                                 first=decoded_chars == len(name_tail), final=final,
+                                                 matcher=name_matcher)
                         name_tail = window_text[-name_overlap:]
                     decoded_chars += len(addition)
                     if sparse_supported:
@@ -138,7 +156,8 @@ def prescan(blob: bytes, names: tuple[str, ...], sensitive: tuple[bytes, ...],
                             text_tail = ""
                         else:
                             for index, start, finish in pins.candidate_lines(complete, names, lowered=low,
-                                                                           patterns=name_patterns):
+                                                                           patterns=name_patterns,
+                                                                           matcher=name_matcher):
                                 pin_name = True  # candidate_lines establishes the exact name boundary.
                                 line = complete[start:finish]
                                 if pins.ID_RE.search(line) is None:

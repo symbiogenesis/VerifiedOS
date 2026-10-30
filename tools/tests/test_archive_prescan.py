@@ -6,7 +6,7 @@ from itertools import product
 from unittest.mock import patch
 
 from tests.harness import Case, ensure, sandbox_tree
-from vos import corpus, pins, retained
+from vos import corpus, literalsearch, pins, retained
 from vos.checks import Context, glyphs, interims
 from vos.checks import pins as pin_checks
 from vos.register import REGISTER, read_artifacts, read_register
@@ -21,6 +21,7 @@ def _names() -> list[tuple[str, str, pins.Pin]]:
 def _compiled_boundaries_match_the_literal_oracle() -> None:
     names = ("core", "core/core", "with.dot", "a+b")
     patterns = pins.name_patterns(names)
+    matcher = literalsearch.compile_names(names)
 
     def reference(text: str, first: bool, final: bool) -> bool:
         low = text.lower()
@@ -40,23 +41,89 @@ def _compiled_boundaries_match_the_literal_oracle() -> None:
     boundaries = ["", " ", "_", "-", "/", ".", "a", "7", "é", "中", "\u0661", "Ⅳ", "²", "\u0301", "\n"]
     for before, after, name, first, final in product(boundaries, boundaries, names, (False, True), (False, True)):
         text = before + name + after
-        ensure(retained._bounded_name(text, patterns, first=first, final=final)
-               == reference(text, first, final), "compiled name boundaries differ from the literal oracle")
+        for prepared in (None, matcher):
+            ensure(retained._bounded_name(text, patterns, first=first, final=final, matcher=prepared)
+                   == reference(text, first, final), "compiled name boundaries differ from the literal oracle")
     for text in ("core/core/core ", "core_helper " * 200 + "core ", "a+b a+b", "with.dot_ with.dot "):
         for first, final in product((False, True), repeat=2):
-            ensure(retained._bounded_name(text, patterns, first=first, final=final)
-                   == reference(text, first, final), "overlapping names or dense false prefixes lost a candidate")
+            for prepared in (None, matcher):
+                ensure(retained._bounded_name(text, patterns, first=first, final=final, matcher=prepared)
+                       == reference(text, first, final), "overlapping names or dense false prefixes lost a candidate")
     lines = [before + name + after for before, after, name in product(boundaries, boundaries, names)
              if "\n" not in before + after]
     lines.extend(("core_helper " * 200, "core/core/core ", "with.dot_ with.dot ", "a+b a+b"))
     text = "\n".join(lines)
     expected = [index for index, line in enumerate(lines) if reference(line, True, True)]
-    for prepared in (None, patterns):
-        actual = list(pins.candidate_lines(text, names, patterns=prepared))
+    for prepared in (None, matcher):
+        actual = list(pins.candidate_lines(text, names, patterns=patterns, matcher=prepared))
         ensure([index for index, _, _ in actual] == expected,
                "candidate-line boundaries differ from the literal oracle")
         ensure(all(text[start:end] == lines[index] for index, start, end in actual),
                "candidate-line offsets changed at Unicode or overlapping names")
+    # A longer literal at an unknown right edge must not hide a valid shorter
+    # literal at the same start. The terminal constraint belongs inside the trie.
+    ensure(matcher.present("core/core", first=True, final=False),
+           "unknown window edge hid the shorter same-start name")
+    stale = literalsearch.compile_names(("unrelated",))
+    ensure(retained._bounded_name("core", patterns, first=True, final=True, matcher=stale),
+           "a compiled matcher for different names hid a current spelling")
+    ensure(list(pins.candidate_lines("core 123abcd", names, matcher=stale)) == [(0, 0, 12)],
+           "a stale candidate program hid a current source line")
+    named = _names()
+    ensure(list(pins.scan_text("fixture", "core 123abcd", named, matcher=stale))
+           == list(pins._scan_ids("fixture", "core 123abcd", named)),
+           "an attribution call reused a program for different names")
+
+
+def _byte_tries_and_unsupported_shapes_keep_the_literal_oracle() -> None:
+    datasets: list[tuple[tuple[bytes, ...], tuple[bytes, ...]]] = [
+        ((), ()), ((b"Raw", b"R+", b"\x00\xff"), (b"fold", b"FOLD", b"with.dot")),
+        (tuple(bytes((value,)) for value in (0, 10, 127, 128, 255)), (b"long/word",))]
+    samples = [b"", b"ordinary ASCII", b"Raw FOLD", b"rAw fold", b"R+ with.dot", b"\x00\xff",
+               bytes(range(256)), b"long/word", b"before Ra", b"w FOLD after"]
+    for raw, folded in datasets:
+        sensitive = tuple(raw)
+        matcher = literalsearch.compile_bytes(sensitive, folded)
+        for sample in samples:
+            expected = any(needle in sample for needle in sensitive) or any(needle in sample.lower() for needle in folded)
+            ensure(matcher.present(sample) == expected, "byte trie differs from the exact raw/folded oracle")
+            for size in (1, 3, 17):
+                facts = retained.prescan(gzip.compress(sample), (), sensitive, folded, chunk_size=size)
+                ensure(facts.lineage == expected, "byte trie lost a cross-chunk or non-ASCII literal")
+    for names in ((), ("",), ("CORE",), ("é",), ("core\nother",), ("x" * 65,),
+                  ("x",) * 257, ("x" * 32,) * 129):
+        try:
+            literalsearch.compile_names(names)
+        except literalsearch.LegacyRequired:
+            pass
+        else:
+            raise AssertionError("unsupported name set silently entered the optimized matcher")
+    for literals in ((b"",), (b"x" * 65,), (b"x",) * 257, (b"x" * 32,) * 129):
+        try:
+            literalsearch.compile_bytes(literals, ())
+        except literalsearch.LegacyRequired:
+            ensure(retained.prescan(gzip.compress(b"x"), (), literals, ()).lineage
+                   == any(needle in b"x" for needle in literals), "byte fallback changed an unsupported literal")
+        else:
+            raise AssertionError("unsupported byte set silently entered the optimized matcher")
+    with patch.object(literalsearch.re, "compile", side_effect=RecursionError("fixture")):
+        for build in (lambda: literalsearch.compile_names(("core",)),
+                      lambda: literalsearch.compile_bytes((b"core",), ())):
+            try:
+                build()
+            except literalsearch.LegacyRequired:
+                pass
+            else:
+                raise AssertionError("compilation failure became an absence verdict")
+    broken = gzip.compress(b"core 123abcd\nRaw\n") + gzip.compress(b"tail")[:-3]
+    with patch.object(literalsearch, "compile_names", side_effect=literalsearch.LegacyRequired("fixture")), \
+            patch.object(literalsearch, "compile_bytes", side_effect=literalsearch.LegacyRequired("fixture")):
+        try:
+            retained.prescan(broken, ("core",), (b"Raw",), (), chunk_size=3)
+        except (OSError, EOFError, ValueError):
+            pass
+        else:
+            raise AssertionError("matcher fallback hid corruption in a later gzip member")
 
 
 def _pin_boundaries_and_chunks() -> None:
@@ -280,6 +347,7 @@ def _checks_preserve_results_and_refresh_bytes() -> None:
 
 def cases() -> list[Case]:
     return [Case("compiled-boundaries-match-literal-oracle", _compiled_boundaries_match_the_literal_oracle),
+            Case("byte-tries-and-unsupported-shapes-keep-literal-oracle", _byte_tries_and_unsupported_shapes_keep_the_literal_oracle),
             Case("pin-boundaries-and-chunks", _pin_boundaries_and_chunks),
             Case("lineage-candidates-across-chunks", _lineage_candidates_across_chunks),
             Case("members-headers-and-corruption", _members_headers_and_corruption),

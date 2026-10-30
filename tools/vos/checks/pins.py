@@ -144,7 +144,7 @@ from collections.abc import Callable, Iterator
 from typing import TYPE_CHECKING, cast
 
 from vos import corpus as corpus_mod
-from vos import devtools, retained, rtl_width
+from vos import devtools, literalsearch, retained, rtl_width
 from vos import pins as pins_mod
 from vos.checks import generated
 from vos.checks.interims import archive_needles
@@ -656,6 +656,10 @@ def _restatements(ctx: Context, rows: list[pins_mod.Pin],
     text and names nothing.
     """
     named = pins_mod.spellings(rows)
+    try:
+        matcher = literalsearch.compile_names(tuple(needle for needle, _, _ in named))
+    except literalsearch.LegacyRequired:
+        matcher = None
     table = {(pins_mod.RECORD, pin.line) for pin in rows}
     used: set[str] = set()
     site_used: set[tuple[str, str]] = set()
@@ -664,7 +668,7 @@ def _restatements(ctx: Context, rows: list[pins_mod.Pin],
     for file, text, fenced in _sources(ctx, named):
         # scan_text proposes name-bearing line regions before applying the exact
         # attribution grammar; no whole-file id scan is needed for absent names.
-        for site in pins_mod.scan_text(file, text, named):
+        for site in pins_mod.scan_text(file, text, named, matcher=matcher):
             if fenced and fenced[site.index]:
                 continue
             if site.ident in RESIDUE:
