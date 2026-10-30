@@ -400,6 +400,31 @@ def _ty_settings_fail_closed() -> None:
                        'future-setting = true\n' + _ADMITTED])
 
 
+def _schema_owner_failures_reported_beside_the_run() -> None:
+    for policy, config in (("ty", _ADMITTED), ("ruff", '[lint]\nselect = ["ANN"]\n')):
+        for contents in (None, "{", '{"type":"unknown"}'):
+            with tempfile.TemporaryDirectory(prefix="vos-test-") as directory:
+                root = Path(directory)
+                tools = root / "tools"
+                tools.mkdir()
+                (tools / f"{policy}.toml").write_text(config, encoding="utf-8")
+                schema = tools / f"{policy}-config.schema.json"
+                if contents is not None:
+                    schema.write_text(contents, encoding="utf-8")
+                rep = Reporter()
+                with patch.object(typecheck, "_PROJECT_ROOT", root), \
+                        patch.object(typecheck, "_run_checker") as checker, \
+                        patch.object(typecheck, "_user_config", return_value=None), \
+                        patch.dict(os.environ):
+                    os.environ.pop("PYTHONPATH", None)
+                    run = typecheck._run_ty if policy == "ty" else typecheck._run_ruff
+                    run(rep, root, None)
+                ensure(checker.call_count == 1 and rep.findings == 1
+                       and f"{policy}.toml" in "\n".join(rep.out)
+                       and str(schema) in "\n".join(rep.out),
+                       f"an unusable schema must refuse beside the checker: {rep.out!r}")
+
+
 def _passes(checker: MagicMock) -> list[typecheck.Pass]:
     """The passes the patched `_run_checker` was given, one per platform."""
     passes = cast("list[typecheck.Pass]", checker.call_args.args[3])
@@ -1598,6 +1623,8 @@ def cases() -> list[Case]:
         Case("ty-settings-refuse-environment", _ty_settings_refuse_environment),
         Case("ty-settings-refuse-src", _ty_settings_refuse_src),
         Case("ty-settings-fail-closed", _ty_settings_fail_closed),
+        Case("schema-owner-failures-reported-beside-the-run",
+             _schema_owner_failures_reported_beside_the_run),
         Case("ty-runs-every-platform", _ty_runs_every_platform),
         Case("win32-pass-types-host-branches", _win32_pass_types_host_branches),
         Case("ruff-checks-ignored-modules", _ruff_checks_ignored_modules),
