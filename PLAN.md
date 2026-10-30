@@ -2643,9 +2643,11 @@ semantic cross-artifact decisions retain their existing owners.
   `vos/cli/typecheck.py`. **Owns:** authored schemas for the admitted ty and Ruff
   configuration shapes, validated after TOML decoding by the existing strict
   JSON Schema implementation. **Check:** preserve every admitted and refused
-  setting, required exact-value table, unknown-key refusal, malformed-input
+  reviewed setting, required exact-value table, unknown-key refusal, malformed-input
   refusal and report-beside-checker behavior. Diagnostic wording may use standard
-  schema messages with configuration paths. Keep suppression scanning, explicit
+  schema messages with configuration paths and group findings by violated schema
+  predicate. Close unreviewed top-level ty keys, including diagnostic baselines,
+  rather than allowing future tool-valid settings to suppress diagnostics. Keep suppression scanning, explicit
   indexed targets, both platform passes and platform-import checks active.
 - **Maintenance data shapes. Start:** work-order and calibration readers and the
   embedded checker-registry schema. **Owns:** authored schemas and editor
