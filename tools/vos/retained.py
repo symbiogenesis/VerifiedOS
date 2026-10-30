@@ -24,7 +24,7 @@ class Facts:
     pin_name: bool
     lineage: bool
     # Sparse source retains every candidate line at its original line number.
-    # None means this scan was not asked to collect pin candidates.
+    # None means unrequested or unsupported pin text, never a pin absence verdict.
     pin_text: str | None = None
     glyph: bool | None = None
 
@@ -121,6 +121,8 @@ def prescan(blob: bytes, names: tuple[str, ...], sensitive: tuple[bytes, ...],
                         line = complete[start:finish]
                         if _bounded_name(line, names, first=True, final=True):
                             pin_name = True
+                            if pins.ID_RE.search(line) is None:
+                                continue
                             at = line_base + index
                             parts.extend(("\n" * (at - kept_lines), line, "\n"))
                             kept_lines = at + 1
@@ -129,11 +131,15 @@ def prescan(blob: bytes, names: tuple[str, ...], sensitive: tuple[bytes, ...],
                     # Still consume the entire stream: a late gzip error must not
                     # disappear behind an earlier unsupported text representation.
                     unsupported = err
+                    parts.clear()
+                    text_tail = ""
             if final:
                 break
-    if unsupported is not None:
-        raise UnsupportedScanError(str(unsupported)) from unsupported
-    return Facts(pin_name, lineage, "".join(parts) if names else None,
+    # Pin parsing can fall back independently of complete byte-level facts. A huge
+    # or unsupported text representation must not cause every consumer to inflate
+    # the same archive again, nor may it authorize a cached pin absence.
+    return Facts(pin_name or unsupported is not None, lineage,
+                 "".join(parts) if names and unsupported is None else None,
                  glyph if glyphs else None)
 
 

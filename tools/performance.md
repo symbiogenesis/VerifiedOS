@@ -143,7 +143,9 @@ factor or native qualification verdict.
 The checker collects possible upstream-name line regions before scanning pin IDs.
 Its retained-archive pass shares glyph, pin and lineage facts while consuming all
 gzip members and their integrity checks. Unsupported Unicode and long unfinished
-lines retain the complete reader. Archive work moves between groups, so compare the
+lines retain the complete pin reader without discarding valid glyph and lineage
+facts. Literal substring searches collect candidate regions; ID-free lines do not
+enter the upstream-attribution parser. Archive work moves between groups, so compare the
 complete checker as well as individual group times. Markdown structural readers
 omit unused inline expansion; count readers reuse masks only when their line
 representations agree. Proof-source facts are content-keyed within a context while

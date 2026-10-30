@@ -74,9 +74,9 @@ class CensusBenchmarkTests(unittest.TestCase):
                             _BENCHMARK["value_digest"]({"second": "b", "first": "a"}))
         with self.assertRaisesRegex(ValueError, "duplicate native JSON key"):
             json.loads('{"key":0,"key":1}', object_pairs_hook=_BENCHMARK["unique"])
-        with tempfile.TemporaryDirectory(prefix="vos-census-path-fixture-") as temporary:
-            with self.assertRaisesRegex(ValueError, "escapes"):
-                _BENCHMARK["relative"](Path(temporary), "../elsewhere")
+        with (tempfile.TemporaryDirectory(prefix="vos-census-path-fixture-") as temporary,
+              self.assertRaisesRegex(ValueError, "escapes")):
+            _BENCHMARK["relative"](Path(temporary), "../elsewhere")
         with patch.dict("os.environ", {"GITHUB_ACTIONS": "false"}), patch("sys.argv", ["census_benchmark.py", "--output", "unused"]):
             with self.assertRaises(SystemExit) as refusal:
                 _BENCHMARK["main"]()

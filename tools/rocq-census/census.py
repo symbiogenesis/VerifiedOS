@@ -90,7 +90,7 @@ def _validate(value: object, schema: dict[str, Any], document: dict[str, Any], s
     """Validate a caller-supplied subtree through an invocation-local plan."""
     try:
         shape = _compile_schema(schema, document)
-    except _UncompiledSchema:
+    except _UncompiledSchemaError:
         # Only canonical checked schemas take the compiled route. Preserve the
         # recursive reader's precise traversal/error behavior for unusual caller
         # supplied schemas, including constraints on an unvisited value kind.
@@ -99,7 +99,7 @@ def _validate(value: object, schema: dict[str, Any], document: dict[str, Any], s
         _visit(value, shape, [], site)
 
 
-class _UncompiledSchema(Exception):
+class _UncompiledSchemaError(Exception):
     """The schema needs the unchanged recursive constraint interpreter."""
 
 
@@ -133,7 +133,7 @@ def _compile_schema(schema: dict[str, Any], document: dict[str, Any]) -> _Shape:
         if (type(node) is not dict or not isinstance(required, list)
                 or any(type(name) is not str for name in required)
                 or type(properties) is not dict or any(type(name) is not str for name in properties)):
-            raise _UncompiledSchema
+            raise _UncompiledSchemaError
         result = shapes[id(node)] = _Shape(node)
         if "$ref" in node:
             reference = node["$ref"]
@@ -141,9 +141,9 @@ def _compile_schema(schema: dict[str, Any], document: dict[str, Any]) -> _Shape:
                 if reference.startswith("#/$defs/") and reference[8:] in document["$defs"]:
                     result.reference = compile_node(document["$defs"][reference[8:]])
                 else:
-                    raise _UncompiledSchema
+                    raise _UncompiledSchemaError
             except (KeyError, TypeError, AttributeError) as error:
-                raise _UncompiledSchema from error
+                raise _UncompiledSchemaError from error
         result.alternatives = tuple((exact, tuple(compile_node(branch) for branch in node[keyword]))
                                     for keyword, exact in (("oneOf", True), ("anyOf", False)) if keyword in node)
         if "properties" in node:
@@ -158,8 +158,8 @@ def _compile_schema(schema: dict[str, Any], document: dict[str, Any]) -> _Shape:
                     and all(
                         not constraint.keys() - {"const", "enum", "type", "title", "description"}
                         and ("const" not in constraint or type(constraint["const"]) in {str, bool, type(None)})
-                        and ("enum" not in constraint or isinstance(constraint["enum"], list)
-                             and all(type(item) in {str, bool, type(None)} for item in constraint["enum"]))
+                        and ("enum" not in constraint or (isinstance(constraint["enum"], list)
+                             and all(type(item) in {str, bool, type(None)} for item in constraint["enum"])))
                         for _, constraint in candidates)):
                 result.discriminators = candidates
         if "items" in node:
@@ -193,8 +193,10 @@ def _compatible(value: object, shape: _Shape) -> bool:
 def _visit(value: object, shape: _Shape, path: list[str | int], site: str) -> None:
     schema = shape.schema
     if "$ref" in schema:
-        assert shape.reference is not None
-        _visit(value, shape.reference, path, site)
+        reference = shape.reference
+        if reference is None:
+            raise CensusError("unsupported census schema reference")
+        _visit(value, reference, path, site)
     for exact, branches in shape.alternatives:
         passed = 0
         for branch in branches:

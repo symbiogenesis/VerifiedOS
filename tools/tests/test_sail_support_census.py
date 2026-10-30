@@ -5,10 +5,10 @@ import copy
 import json
 import runpy
 import unittest
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from itertools import permutations, product
 from pathlib import Path
-from typing import Any, cast, override
+from typing import Any, Protocol, cast, override
 from unittest.mock import patch
 
 from jsonschema import Draft202012Validator
@@ -19,6 +19,10 @@ from vos import proofaudit
 _DIRECTORY = Path(__file__).resolve().parents[1] / "rocq-census"
 _ADAPTER = runpy.run_path(str(_DIRECTORY / "census.py"))
 _SCHEMA = json.loads((_DIRECTORY / "census-schema.json").read_text(encoding="utf-8"))
+
+
+class _SchemaShape(Protocol):
+    schema: dict[str, Any]
 
 # Exact terminal line retained from candidate8 native-search-23.stdout.log.
 # Rows below use fixture types; this records printer framing, not native qualification.
@@ -650,7 +654,7 @@ class SailSupportCensusTests(unittest.TestCase):
         root_members: set[int] = set()
         root_order: list[str] = []
         bound = 16 * 19
-        def counted(value: object, shape: Any, path: list[str | int], site: str) -> None:
+        def counted(value: object, shape: _SchemaShape, path: list[str | int], site: str) -> None:
             location = site + "".join(f"[{part}]" if isinstance(part, int) else "." + part for part in path)
             observed.append(location)
             if location.count(".") == 1 and id(shape.schema) in root_members:
@@ -708,7 +712,7 @@ class SailSupportCensusTests(unittest.TestCase):
         namespace = validate.__globals__
         original = namespace["_visit"]
         observed: list[str] = []
-        def trace(value: object, shape: Any, path: list[str | int], site: str) -> None:
+        def trace(value: object, shape: _SchemaShape, path: list[str | int], site: str) -> None:
             observed.append(site + "".join(f"[{part}]" if isinstance(part, int) else "." + part for part in path))
             original(value, shape, path, site)
         branch = {**definition["$defs"]["node"]["oneOf"][0], "$defs": definition["$defs"]}
@@ -812,7 +816,7 @@ class SailSupportCensusTests(unittest.TestCase):
         census = _ADAPTER["census"]
         value, searches, readings = _fixture()
         original = copy.deepcopy(value)
-        key = census.__globals__["_key"]
+        key = cast(Callable[[object], str], census.__globals__["_key"])
         typ = value["declarations"][0]["type"]
         def no_unused_fallback(item: object) -> str:
             self.assertIsNot(item, typ, "a present Search type must avoid constructor-JSON fallback encoding")
@@ -840,9 +844,9 @@ class SailSupportCensusTests(unittest.TestCase):
             connection = candidate["declarations"][0]["implementation_connection"]
             connection[metadata_name]["inline_code"] = not connection[metadata_name]["inline_code"]
             connection["steps"][0]["resolver_id"] = "missing"
-            with patch.dict(census.__globals__, {"_same_native": lambda *_: self.fail("resolver validation must precede comparison")}):
-                with self.assertRaises(ValueError) as refusal:
-                    census(candidate, searches, readings, expected_modules=["Root"])
+            with (patch.dict(census.__globals__, {"_same_native": lambda *_: self.fail("resolver validation must precede comparison")}),
+                  self.assertRaises(ValueError) as refusal):
+                census(candidate, searches, readings, expected_modules=["Root"])
             self.assertEqual(str(refusal.exception), "missing native resolver connection")
 
     def test_direct_native_comparison_matches_normalization_and_complete_resolver_effects(self) -> None:

@@ -245,6 +245,8 @@ def scan_text(file: str, text: str, named: list[tuple[str, str, Pin]]) -> Iterat
     if len(low) == len(text) and all("\n" not in name for name, _, _ in named):
         for index, start, end in candidate_lines(text, tuple(n for n, _, _ in named),
                                                  lowered=low):
+            if ID_RE.search(text, start, end) is None:
+                continue
             marks = _named(text[start:end].removesuffix("\r"), named)
             if not marks:
                 continue
@@ -274,18 +276,30 @@ def candidate_lines(text: str, names: tuple[str, ...], *, lowered: str | None = 
     low = text.lower() if lowered is None else lowered
     if len(low) != len(text):
         raise ValueError("Unicode lowercase changes source offsets")
-    pattern = re.compile("|".join(re.escape(name) for name in names))
+    if not any(name in low for name in names):
+        return
+    spans: set[tuple[int, int]] = set()
+    for name in names:
+        at = low.find(name)
+        while at >= 0:
+            stop = at + len(name)
+            before = low[at - 1] if at else " "
+            after = low[stop] if stop < len(low) else " "
+            if (not (before.isalnum() or before in "_-")
+                    and not (after.isalnum() or after == "_")):
+                start = text.rfind("\n", 0, at) + 1
+                end = text.find("\n", stop)
+                spans.add((start, end if end >= 0 else len(text)))
+                if end < 0:
+                    break
+                at = low.find(name, end + 1)
+            else:
+                at = low.find(name, at + 1)
     cursor = index = 0
-    while match := pattern.search(low, cursor):
-        start = max(cursor, text.rfind("\n", cursor, match.start()) + 1)
+    for start, end in sorted(spans):
         index += text.count("\n", cursor, start)
-        end = text.find("\n", match.end())
-        if end < 0:
-            yield index, start, len(text)
-            break
         yield index, start, end
-        index += 1
-        cursor = end + 1
+        cursor = start
 
 
 def _scan_ids(file: str, text: str, named: list[tuple[str, str, Pin]]) -> Iterator[Site]:

@@ -71,8 +71,11 @@ def _members_headers_and_corruption() -> None:
 
 def _unicode_fallback_is_not_absence() -> None:
     for raw, names in (("İ no matching name".encode(), ("core",)),
-                       (b"invalid \xff text", ("core",)),
-                       ("Σ text".encode(), ("\u03c3",))):
+                       (b"invalid \xff text", ("core",))):
+        facts = retained.prescan(gzip.compress(raw), names, (), (), chunk_size=2)
+        ensure(facts.pin_name and facts.pin_text is None,
+               "unsupported Unicode must require the complete pin parser, never absence")
+    for raw, names in (("Σ text".encode(), ("\u03c3",)),):
         try:
             retained.prescan(gzip.compress(raw), names, (), (), chunk_size=2)
         except retained.UnsupportedScanError:
@@ -131,18 +134,21 @@ def _sparse_pin_candidates_preserve_all_sites() -> None:
                        f"sparse source lost sites at chunk {size}, newline {newline!r}")
     for text in ("core 123abcd\ninvalid \xff".encode("latin-1"),
                  "core 123abcd\nİ text".encode()):
-        try:
-            retained.prescan(gzip.compress(text), names, (), (), chunk_size=3)
-        except retained.UnsupportedScanError:
-            pass
-        else:
-            raise AssertionError("late unsupported text must retain the complete reader")
+        facts = retained.prescan(gzip.compress(text), names, (), (), chunk_size=3)
+        ensure(facts.pin_name and facts.pin_text is None,
+               "late unsupported text must retain the complete pin reader")
+    facts = retained.prescan(gzip.compress(b"core " + b"a" * (1024 * 1024 + 1)), names,
+                             (b"HACL",), (), glyphs=(b"damage",))
+    ensure(facts.pin_name and facts.pin_text is None and not facts.lineage
+           and facts.glyph is False,
+           "huge pin lines must preserve independently complete glyph and lineage facts")
+    broken = gzip.compress(b"a" * (1024 * 1024 + 1)) + gzip.compress(b"tail")[:-3]
     try:
-        retained.prescan(gzip.compress(b"core " + b"a" * (1024 * 1024 + 1)), names, (), ())
-    except retained.UnsupportedScanError:
+        retained.prescan(broken, names, (), ())
+    except (OSError, EOFError, ValueError):
         pass
     else:
-        raise AssertionError("enormous partial lines must use the complete reader")
+        raise AssertionError("pin fallback must still refuse a corrupt later gzip member")
 
 
 def _glyph_candidates_cover_chunks_and_share_facts() -> None:

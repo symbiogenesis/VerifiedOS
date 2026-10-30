@@ -304,6 +304,9 @@ def _candidate_regions_match_the_original_offset_scan() -> None:
              "İ core 123abcd", "core İ 123abcd", "é core 123abcd",
              "core " + "a" * 41, "core " + "a" * 40, "core-123abcd",
              "upstream/nested-core 456abcd", "CORE 123abcd", "", "core " * 30 + "123abcd"]
+    lines.extend(["core_helper core2 core_ -core core中 " * 12,
+                  "core_helper 123abcd " * 12 + "nested-core 456abcd",
+                  "core " * 80, "core " * 80 + "123abcd"])
     for newline in ("\n", "\r\n", "\r"):
         for ending in ("", newline):
             for text in (newline.join(lines) + ending, *(line + ending for line in lines)):

@@ -21,9 +21,23 @@ import tarfile
 import tempfile
 import time
 from pathlib import Path
-from typing import Any
+from typing import Any, Protocol, cast
 
 _CONTROLS = ["CensusControls", "SailStdpp.TypeCasts", "SailStdpp.State_monad"]
+
+
+class SchemaReader(Protocol):
+    def __call__(self, value: object, *, schema: dict[str, Any] | None = None) -> dict[str, Any]: ...
+
+
+class CensusReader(Protocol):
+    def __call__(self, metadata: object, searches: dict[str, str], readings: dict[str, str], *,
+                 expected_modules: list[str]) -> dict[str, dict[str, Any]]: ...
+
+
+def require(condition: bool, message: str) -> None:
+    if not condition:
+        raise ValueError(message)
 
 
 def digest(path: Path) -> str:
@@ -158,8 +172,8 @@ def worker(tools: Path, prepared: Path, output: Path) -> int:
     module = tools / "rocq-census/census.py"
     adapter = runpy.run_path(str(module))
     namespace = adapter["census"].__globals__
-    schema = namespace["validate_schema"]
-    replay = namespace["census"]
+    schema_reader = cast(SchemaReader, namespace["validate_schema"])
+    replay = cast(CensusReader, namespace["census"])
     inputs = json.loads(prepared.read_text(encoding="utf-8"))
     report: dict[str, Any] = {"status": "running", "phase": "start", "units": [], "decisions": {},
                               "prepared_sha256": digest(prepared), "peak_rss_kib": peak_rss(), "workers": 1}
@@ -169,18 +183,19 @@ def worker(tools: Path, prepared: Path, output: Path) -> int:
         write(output, report)
         print(phase, flush=True)
 
-    def timed_schema(*args: Any, **kwargs: Any) -> Any:
+    def timed_schema(value: object, *, schema: dict[str, Any] | None = None) -> dict[str, Any]:
         begin = time.perf_counter()
         try:
-            return schema(*args, **kwargs)
+            return schema_reader(value, schema=schema)
         finally:
             report["units"].append({"kind": "schema", "seconds": time.perf_counter() - begin})
 
-    def timed_census(*args: Any, **kwargs: Any) -> Any:
+    def timed_census(metadata: object, searches: dict[str, str], readings: dict[str, str], *,
+                     expected_modules: list[str]) -> dict[str, dict[str, Any]]:
         checkpoint("census-" + str(sum(unit["kind"] == "census" for unit in report["units"]) + 1))
         begin = time.perf_counter()
         try:
-            return replay(*args, **kwargs)
+            return replay(metadata, searches, readings, expected_modules=expected_modules)
         finally:
             report["units"].append({"kind": "census", "seconds": time.perf_counter() - begin})
             checkpoint("census-completed")
@@ -193,8 +208,7 @@ def worker(tools: Path, prepared: Path, output: Path) -> int:
                 continue
             checkpoint(name + "-parse")
             raw = Path(dataset["raw"])
-            if digest(raw) != dataset["raw_sha256"]:
-                raise ValueError("raw evidence changed before replay")
+            require(digest(raw) == dataset["raw_sha256"], "raw evidence changed before replay")
             begin = time.perf_counter()
             with raw.open(encoding="utf-8") as stream:
                 metadata = json.load(stream, object_pairs_hook=unique)
@@ -203,19 +217,17 @@ def worker(tools: Path, prepared: Path, output: Path) -> int:
                 result = timed_census(metadata, dataset["searches"], dataset["readings"], expected_modules=dataset["roots"])
             else:
                 result = adapter["qualify_controls"](metadata, dataset["searches"], dataset["readings"])
-                if len(result["refusals"]) != 12 or len(result["positive"]) != 8:
-                    raise ValueError("incomplete independent native control population")
+                require(len(result["refusals"]) == 12 and len(result["positive"]) == 8,
+                        "incomplete independent native control population")
             report["decisions"][name] = value_digest(result)
             del result, metadata
             gc.collect()
-            if digest(raw) != dataset["raw_sha256"]:
-                raise ValueError("raw evidence changed during replay")
+            require(digest(raw) == dataset["raw_sha256"], "raw evidence changed during replay")
             checkpoint(name + "-finished")
-        if digest(prepared) != report["prepared_sha256"]:
-            raise ValueError("prepared inputs changed during replay")
+        require(digest(prepared) == report["prepared_sha256"], "prepared inputs changed during replay")
         expected_calls = 14 if inputs.get("controls") else 1
-        if any(sum(unit["kind"] == kind for unit in report["units"]) != expected_calls for kind in ("census", "schema")):
-            raise ValueError("each complete independent census must retain its full schema validation")
+        require(all(sum(unit["kind"] == kind for unit in report["units"]) == expected_calls for kind in ("census", "schema")),
+                "each complete independent census must retain its full schema validation")
         report["status"] = "complete" if inputs.get("controls") else "support-only-diagnostic"
     except BaseException as error:
         report.update(status="refused", refusal={"type": type(error).__name__, "message": str(error)})
@@ -244,6 +256,7 @@ def compare(root: Path, base: str, descriptor: Path, output: Path, timeout: int)
                               "python": sys.version, "platform": platform.platform(), "samples": {"baseline": [], "candidate": []},
                               "descriptor_sha256": digest(descriptor), "unavailable": specification.get("unavailable")}
     write(output, report)
+    complete = False
     try:
         with tempfile.TemporaryDirectory(prefix="vos-census-comparison-") as temporary:
             scratch = Path(temporary)
@@ -276,23 +289,22 @@ def compare(root: Path, base: str, descriptor: Path, output: Path, timeout: int)
                     measurement = json.loads(sample.read_text(encoding="utf-8"))
                     measurement["process_seconds"] = time.perf_counter() - begin
                     report["samples"][variant].append(measurement)
-                    if result.returncode or measurement["status"] == "refused":
-                        raise ValueError("complete replay refused; retain child checkpoint and diagnostic")
+                    require(not result.returncode and measurement["status"] != "refused",
+                            "complete replay refused; retain child checkpoint and diagnostic")
                     if reference is None:
                         reference = measurement["decisions"]
-                    if reference != measurement["decisions"]:
-                        raise ValueError("baseline/candidate complete decisions or ordered diagnostics differ")
+                    require(reference == measurement["decisions"],
+                            "baseline/candidate complete decisions or ordered diagnostics differ")
                     write(output, report)
             for dataset in datasets.values():
                 for name, expected in dataset["input_hashes"].items():
-                    if digest(root / name) != expected:
-                        raise ValueError("retained indexed inputs changed during comparison")
-            if digest(descriptor) != report["descriptor_sha256"]:
-                raise ValueError("input selection changed during comparison")
-            if (subprocess.check_output(["git", "-C", str(root), "rev-parse", "HEAD"], text=True).strip() != revision
-                    or subprocess.check_output(["git", "-C", str(root), "status", "--porcelain"], text=True)):
-                raise ValueError("indexed source revision changed during comparison")
-            report.update(status="complete" if datasets.get("controls") else "incomplete-control-evidence",
+                    require(digest(root / name) == expected, "retained indexed inputs changed during comparison")
+            require(digest(descriptor) == report["descriptor_sha256"], "input selection changed during comparison")
+            require(subprocess.check_output(["git", "-C", str(root), "rev-parse", "HEAD"], text=True).strip() == revision
+                    and not subprocess.check_output(["git", "-C", str(root), "status", "--porcelain"], text=True),
+                    "indexed source revision changed during comparison")
+            complete = bool(datasets.get("controls"))
+            report.update(status="complete" if complete else "incomplete-control-evidence",
                           decisions_identical=True, median_seconds={variant: statistics.median(
                               row["process_seconds"] for row in values) for variant, values in report["samples"].items()})
     except BaseException as error:
@@ -301,7 +313,7 @@ def compare(root: Path, base: str, descriptor: Path, output: Path, timeout: int)
         return 1
     report.pop("active", None)
     write(output, report)
-    return 0 if report["status"] == "complete" else 1
+    return 0 if complete else 1
 
 
 def main() -> int:
