@@ -20,6 +20,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import IO, Never
 
+from vos.receipts import digest
 from vos.replay_envelope import EnvelopeLimits, create, verify
 from vos.replay_record import (
     Binding,
@@ -211,10 +212,8 @@ def _artifacts(expected: Binding, executable: Path, configuration: Path) -> None
     try:
         if not executable.is_file() or not configuration.is_file():
             _fail("native artifacts are unavailable")
-        with executable.open("rb") as stream:
-            root = hashlib.file_digest(stream, "sha256").hexdigest()
-        with configuration.open("rb") as stream:
-            composition = hashlib.file_digest(stream, "sha256").hexdigest()
+        root = digest(executable)
+        composition = digest(configuration)
     except (OSError, ValueError):
         raise ReplayRuntimeError("native artifacts are unavailable") from None
     if (root, composition) != (expected.base_image_root, expected.composition):

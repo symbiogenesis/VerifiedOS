@@ -26,16 +26,13 @@ from urllib.request import urlopen
 
 from vos import env, rust_toolchain
 from vos import memory_planner as planner
+from vos.receipts import digest
 
 MAX_OBJECTS = 4096
 MAX_TOTAL_SIZE = (1 << 31) - 1
 PIN_PATH = "tools/memory-planner/idealloc.json"
 PIN_SCHEMA = "vos-idealloc-pin-v4"
 BRIDGE_PATH = "tools/memory-planner/idealloc/bridge.rs"
-
-
-def digest(path: Path) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
 def supported(instance: planner.Instance) -> planner.Instance:

@@ -57,9 +57,18 @@ def _environment(root: Path) -> env.Environment:
 
 def _provenance() -> None:
     files = {saillsp.LOCK: "{}", "tools/opam/sail.lock": 'installed: ["ocaml.5.4.1"]',
+             "tools/vos/receipts.py": "digest", "tools/vos/proofenv.py": "environment",
+             "tools/vos/atomic.py": "publication",
              "tools/vos/saillsp.py": "recipe", "tools/sail-lsp/dependency-refresh.patch": "patch"}
     with sandbox_tree(files) as root:
         environment = _environment(root)
+        identity = saillsp.lock_identity(root)
+        for name in ("tools/vos/receipts.py", "tools/vos/proofenv.py", "tools/vos/atomic.py"):
+            owner = root / name
+            owner.write_text(files[name] + "changed", encoding="utf-8")
+            ensure(saillsp.lock_identity(root) != identity,
+                   "a changed shared digest dependency retained an installation identity")
+            owner.write_text(files[name], encoding="utf-8")
         ensure(saillsp.status(environment)["installed"] is False, "absence must be explicit")
         location = saillsp.home(environment)
         binary = location / "prefix/bin/sail_lsp"
@@ -163,6 +172,8 @@ _BUILD_SPECS = [{"name": "lsp", "directory": "lsp-1", "license_file": "LICENSE"}
                 {"name": "sail", "directory": "sail-1", "license_file": "LICENSE"}]
 _BUILD_RECIPE = {saillsp.LOCK: json.dumps({"sources": _BUILD_SPECS}),
                  "tools/opam/sail.lock": 'installed: ["ocaml.5.4.1"]',
+                 "tools/vos/receipts.py": "digest", "tools/vos/proofenv.py": "environment",
+                 "tools/vos/atomic.py": "publication",
                  "tools/vos/saillsp.py": "recipe", "tools/sail-lsp/dependency-refresh.patch": "patch"}
 
 

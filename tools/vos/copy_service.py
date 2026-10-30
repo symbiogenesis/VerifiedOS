@@ -1,7 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 """Finite C/reference comparison for M7.1e; no target or refinement verdict."""
 
-import hashlib
 import itertools
 import json
 import shutil
@@ -14,6 +13,7 @@ from typing import Final
 from vos import env, gallina
 from vos.cli import ring as ring_owner
 from vos.jsonutil import unique_object
+from vos.receipts import digest as _digest
 from vos.supervisor import c_compiler
 
 CFLAGS: Final = ("-std=c11", "-O1", "-Wall", "-Wextra", "-Werror", "-pedantic")
@@ -170,10 +170,6 @@ def build_host(root: Path, work: Path, compiler: str) -> subprocess.CompletedPro
                           capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=60, check=False)
 
 
-def _digest(path: Path) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest()
-
-
 def check(root: Path, work: Path) -> tuple[int, list[str]]:
     work.mkdir(parents=True, exist_ok=True)
     logs = env.log_root() / env.lane_of(root) / "copy-service"
@@ -188,6 +184,8 @@ def check(root: Path, work: Path) -> tuple[int, list[str]]:
     identities += [root / "tools" / "vos" / "copy_service.py", root / "interfaces" / "ring-reference.json"]
     identities += [root / "tools" / "vos" / "cli" / "ring.py",
                    root / "tools" / "vos" / "jsonutil.py"]
+    identities += [root / "tools" / "vos" / name for name in
+                   ("receipts.py", "proofenv.py", "atomic.py")]
     before = {p.relative_to(root).as_posix(): _digest(p) for p in identities}
     tools_before = {p: _digest(Path(p)) for p in (compiler, found.argv[0])}
     # Snapshot every owner before reading configuration or generating cases, so

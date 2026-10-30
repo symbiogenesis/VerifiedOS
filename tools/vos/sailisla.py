@@ -25,6 +25,7 @@ from pathlib import Path
 from typing import Literal, TypedDict, cast
 
 from vos import env, oracle, rust_toolchain, sailrig
+from vos.receipts import digest as sha
 
 ASSETS = Path("tools/sail-isla")
 NOTICE = ("Finite advisory differential campaign, not a proof. Scope: perms_expand "
@@ -109,16 +110,14 @@ class IslaError(ValueError):
     """A prerequisite, generation or replay failure with no partial verdict."""
 
 
-def sha(path: Path) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest()
-
-
 def asset_digest(root: Path) -> str:
     """Every tracked build input: this tool's assets, the baseline lock, the shared
     Rust pin and the recipes that read them."""
     paths = sorted(p for p in (root / ASSETS).rglob("*") if p.is_file())
     paths += [root / "tools/opam/sail.lock", root / rust_toolchain.PATH, Path(__file__),
-              Path(rust_toolchain.__file__)]
+              Path(rust_toolchain.__file__),
+              *(root / "tools" / "vos" / name for name in
+                ("receipts.py", "proofenv.py", "atomic.py"))]
     digest = hashlib.sha256()
     for path in paths:
         digest.update(path.relative_to(root).as_posix().encode())
