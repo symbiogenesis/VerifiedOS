@@ -23,7 +23,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from vos import differential, env, receipts, trace
+from vos import differential, env, model_corpus, receipts, trace
 from vos.cli import model
 
 LLVM_VERSION = "21.1.8"
@@ -475,7 +475,7 @@ def _qualify_locked(e: env.Environment, count: int, root: Path,
     stages.append(_measure("configure", ["cmake", "-S", str(e.model), "-B", str(build), "-GNinja",
                   "-DCMAKE_BUILD_TYPE=RelWithDebInfo", "-DDOWNLOAD_GMP=FALSE",
                   "-DENABLE_RISCV_TESTS=TRUE", *e.compilers, *e.ccache,
-                  f"-DTEST_DOWNLOAD_VERSION={model.test_corpus_version(e.model)}",
+                  f"-DTEST_DOWNLOAD_VERSION={model_corpus.test_corpus_version(e.model)}",
                   f"-DCMAKE_PROJECT_INCLUDE={recipe}", f"-DVOS_MODULAR_DIR={generated}",
                   f"-DVOS_MODULAR_COUNT={count}"], e.root, logs, env.git_env(e.root)))
     # The one new support input has prescribed bytes. Bind configuration and
