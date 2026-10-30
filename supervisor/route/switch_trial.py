@@ -58,7 +58,8 @@ FROZEN = (
     "supervisor/src/supervisor.c", "supervisor/src/effects.c", "supervisor/src/manifest.c",
     "supervisor/test/host.c", "supervisor/test/effects.c", "proofs/SupervisionTree.v",
     "tools/vos/supervisor.py", "tools/vos/cli/supervisor.py",
-    "tools/vos/cli/compiler_diff.py", "tools/vos/asm.py", "tools/vos/image.py",
+    "tools/vos/compiler_diff.py", "tools/vos/cli/compiler_diff.py",
+    "tools/vos/asm.py", "tools/vos/image.py",
     "tools/generated/dialect-table.json", "docs/assurance/differential-corpus.md",
     "docs/implementation/contracts/purecap-abi.md", "model/model/core/cap_common.sail",
     "kernel/src/context.c", "kernel/include/vos_kernel.h",
@@ -726,7 +727,7 @@ class Checks:
     def typed_compile(self, key: str, evidence: Json) -> list[str]:
         # compile_c is compiler-diff program's own front half, a frozen input.
         sys.path.insert(0, str(self.t.wt / "tools"))
-        compiler_diff = importlib.import_module("vos.cli.compiler_diff")
+        compiler_diff = importlib.import_module("vos.compiler_diff")
         source = self.products[f"{key}_rw"]
         fresh = self.subdir(f"compile/{key}")
         ccomp = [str(self.t.ccomp), "-conf", str(self.t.config), "-fverifiedos-typed"]

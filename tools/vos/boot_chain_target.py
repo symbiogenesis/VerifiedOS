@@ -39,7 +39,7 @@ from vos import (
     receipts,
 )
 from vos import boot_handoff as bh
-from vos.cli import compiler_diff as cd
+from vos import compiler_diff as cd
 
 # The instruction limit of each run kind but the control, whose limit is section 9.10's
 # `chain.control_inst_limit`. Each is far above what its run retires, so a run that

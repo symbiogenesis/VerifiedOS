@@ -42,7 +42,7 @@ from typing import Any, cast
 
 from vos import boot_crypto_target, compiler_provenance, config, jsonc, receipts
 from vos import boot_handoff as bh
-from vos.cli import compiler_diff as cd
+from vos import compiler_diff as cd
 
 STAGED = "firmware/chain/target"
 MANIFEST = f"{STAGED}/manifest.json"

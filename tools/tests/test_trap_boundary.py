@@ -9,7 +9,7 @@ from pathlib import Path
 
 from tests.harness import Case, ensure
 from vos import asm, env, jsonc, trace
-from vos.cli import compiler_diff as cd
+from vos import compiler_diff as cd
 from vos.cli.model import verified_build
 
 

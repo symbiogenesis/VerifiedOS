@@ -10,13 +10,13 @@ from pathlib import Path
 from typing import cast
 
 from vos import asm, compiler_provenance, copy_service, image, kernel_restore, receipts, trace
+from vos import compiler_diff as cd
 from vos.boot_target import compiler_inputs
-from vos.cli import compiler_diff as cd
 
 RING_BYTES = 524288
 INPUTS = ("copy-service", "interfaces/ring-reference.json", "tools/vos/copy_service.py",
           "tools/vos/copy_target.py", "tools/vos/cli/copy_service.py",
-          "tools/vos/cli/compiler_diff.py", "tools/vos/asm.py", "tools/vos/image.py",
+          "tools/vos/compiler_diff.py", "tools/vos/asm.py", "tools/vos/image.py",
           "tools/generated/dialect-table.json", "tools/vos/jsonutil.py")
 
 

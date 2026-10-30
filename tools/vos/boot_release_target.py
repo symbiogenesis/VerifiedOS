@@ -11,7 +11,7 @@ from pathlib import Path
 
 from vos import asm, boot_crypto_target, boot_target, config, image, kernel_restore, receipts
 from vos import boot_handoff as bh
-from vos.cli import compiler_diff as cd
+from vos import compiler_diff as cd
 
 SOURCE = "firmware/harness/rot_release_target.c"
 METADATA_BYTES = 128

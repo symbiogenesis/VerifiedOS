@@ -53,7 +53,7 @@ def report_retains_locked_tools(generated: bool = False, drift: str = "") -> Non
                 (target.kernel_restore, "require_build", lambda *args: None),
                 (target.compiler_diff, "compile_c", compile_checked),
                 (target.supervisor, "checked_manifest", lambda *args: snapshot),
-                (target.compiler_diff, "_compiled_json", lambda *args: {}),
+                (target.compiler_diff, "compiled_json", lambda *args: {}),
                 (target, "instruction_counts", lambda *args: {}),
                 (target, "longest_path", lambda *args: {"padded_boundary_steps": 1}),
                 (target, "reaction_path", account),

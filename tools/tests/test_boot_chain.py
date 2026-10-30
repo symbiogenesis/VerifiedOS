@@ -27,9 +27,9 @@ from vos import boot_chain as bc
 from vos import boot_chain_target as target
 from vos import boot_crypto_target, compiler_provenance, receipts
 from vos import boot_handoff as bh
+from vos import compiler_diff as cd
 from vos.checks import generated
 from vos.cli import boot_handoff as cli
-from vos.cli import compiler_diff as cd
 
 ROOT = TOOLS.parent
 WORKFLOW = ROOT / ".github/workflows/boot-chain-target.yml"

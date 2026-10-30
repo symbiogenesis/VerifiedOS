@@ -36,7 +36,7 @@ from typing import Final
 
 from vos import asm, boot_target, image
 from vos import boot_handoff as bh
-from vos.cli import compiler_diff as cd
+from vos import compiler_diff as cd
 
 MMODE_SOURCE: Final = "firmware/chain/mmode.c"
 MMODE_ENTRY: Final = "firmware/chain/mmode_entry.s"

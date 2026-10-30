@@ -36,8 +36,8 @@ from vos import (
     supervisor_context,
     trace,
 )
+from vos import compiler_diff as cd
 from vos.boot_target import compiler_inputs
-from vos.cli import compiler_diff as cd
 
 LIMITS = ("Explicit reset composition; persistent private copy allocation, separate small retired "
           "grant slots. No external clients, physical WCET, full boot roster or ring bitmap claim.")

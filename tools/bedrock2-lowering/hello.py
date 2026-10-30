@@ -24,6 +24,7 @@ sys.path.insert(0, str(ROOT / "tools"))
 
 from vos import (  # noqa: E402
     asm,
+    compiler_diff,
     compiler_provenance,
     differential,
     image,
@@ -31,7 +32,6 @@ from vos import (  # noqa: E402
     simulator_build,
     trace,
 )
-from vos.cli import compiler_diff  # noqa: E402
 from vos.jsonc import Json  # noqa: E402
 
 regenerate = importlib.import_module("bedrock2-lowering.regenerate")
@@ -247,7 +247,7 @@ def native(args: argparse.Namespace) -> int:
     config.write_bytes(Path(args.config).read_bytes())
     compiled = compiler_diff.compile_c(
         [str(ccomp), "-conf", str(config), "-fverifiedos-typed"], source, stage / "compiled")
-    json_write(stage / "compile.json", compiler_diff._compiled_json(compiled))
+    json_write(stage / "compile.json", compiler_diff.compiled_json(compiled))
     if compiled.exit_code or compiled.stream is None:
         raise ValueError(f"compiler refused client: {compiled.said}")
     # This client must contain only its two functions. Undefined calls cannot

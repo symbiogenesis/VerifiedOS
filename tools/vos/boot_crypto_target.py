@@ -11,7 +11,7 @@ from pathlib import Path, PurePosixPath
 from typing import Any, cast
 
 from vos import asm, boot_crypto, boot_handoff, boot_target, image, kernel_restore, receipts
-from vos.cli import compiler_diff as cd
+from vos import compiler_diff as cd
 from vos.compiler_provenance import LOCK
 from vos.compiler_provenance import inspect as inspect_provenance
 from vos.compiler_provenance import portable as portable_provenance

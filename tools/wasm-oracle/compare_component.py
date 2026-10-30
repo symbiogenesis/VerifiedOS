@@ -21,7 +21,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from vos import asm, env, gallina, image, receipts, trace
 from vos import compiler_component as cc
-from vos.cli import compiler_diff as cd
+from vos import compiler_diff as cd
 
 # The switch the Wasm side compiles in by default, the oracle's declared one, and the
 # Rocq release its prover must report. K-117 reads both here.
@@ -84,7 +84,7 @@ def main() -> int:
     selected = [root / name for name in (
         "proofs/EndpointIPC.v", "tools/wasm-oracle/ipc_oracle.v", "tools/wasm-oracle/ipc_oracle.c",
         "tools/wasm-oracle/compare_component.py", "tools/wasm-oracle/run_vector.mjs",
-        "tools/wasm-oracle/node.sh", "tools/vos/compiler_component.py", "tools/vos/cli/compiler_diff.py",
+        "tools/wasm-oracle/node.sh", "tools/vos/compiler_component.py", "tools/vos/compiler_diff.py",
         "tools/generated/dialect-table.json", "docs/implementation/contracts/compiler-component.md")]
     selected.append(oracle_snapshot)
     selected += sorted((root / "tools/vos").rglob("*.py"))
@@ -187,7 +187,7 @@ def main() -> int:
                                          str(wasm), str(out / "population.json")], stage)
         host_observation = cc.decode(host.stdout, ids)
         compiled = cd.compile_c([str(compiler), "-conf", str(config), "-fverifiedos-typed"], source, stage / "compiled")
-        save(stage / "compile.json", cd._compiled_json(compiled))
+        save(stage / "compile.json", cd.compiled_json(compiled))
         require(compiled.stream is not None and compiled.exit_code == 0, "component C lowering failed: " + compiled.said)
         if compiled.stream is None:
             raise ValueError("missing compiler stream")

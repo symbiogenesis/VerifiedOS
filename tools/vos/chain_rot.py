@@ -42,7 +42,7 @@ from pathlib import Path
 
 from vos import asm, boot_target, config, image
 from vos import boot_handoff as bh
-from vos.cli import compiler_diff as cd
+from vos import compiler_diff as cd
 
 ROM_SOURCE = "firmware/chain/rom.c"
 RUNTIME_SOURCE = "firmware/chain/runtime.c"

@@ -23,7 +23,7 @@ from pathlib import Path
 from typing import TypedDict
 
 from vos import asm, dialect, image, kernelrun, receipts, trace
-from vos.cli.compiler_diff import htif_verdict
+from vos.compiler_diff import htif_verdict
 
 REGISTER_COUNT = kernelrun.REGISTER_COUNT
 SLOT_BYTES = 8  # isa-profile.md: merged registers carry 64 data bits plus a tag.
@@ -273,7 +273,7 @@ def run(root: Path, simulator: Path, out: Path, timeout: int, build_receipt: Pat
     profile = root / "model/config/verifiedos.json"
     input_paths = (
         "tools/vos/kernel_restore.py", "tools/vos/kernelrun.py", "tools/vos/asm.py",
-        "tools/vos/image.py", "tools/vos/trace.py", "tools/vos/cli/compiler_diff.py",
+        "tools/vos/image.py", "tools/vos/trace.py", "tools/vos/compiler_diff.py",
         "tools/vos/cli/kernel.py", "tools/vos/dialect.py", "tools/generated/dialect-table.json",
         "docs/implementation/contracts/purecap-abi.md", "docs/hardware/isa-profile.md")
     sources = receipts.inputs(root, *input_paths)
