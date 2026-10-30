@@ -9,7 +9,7 @@ python tools/run.py phase-service --contract docs/implementation/phase-service/c
 ```
 
 The existing `result` object is unchanged. The additional `completion` object
-comes from [phase_completion.py](../../../../tools/vos/phase_completion.py).
+comes from [phase_completion.py](../../../tools/vos/phase_completion.py).
 Without `--completion`, command behavior remains acceptance-only. Completion
 requires `--contract`; the fixed default regression assessment remains unchanged.
 The command exits zero only when both requested analyses close, one on a
@@ -45,7 +45,7 @@ both accept immediately, yet complete in cycles two and one respectively. A
 three-cycle frame containing those two issues followed by silence closes the
 acceptance predicate and refutes completion order. Equal completion cycles and
 independent-hart versions are checked companions in the
-[behavioral tests](../../../../tools/tests/test_phase_completion.py).
+[behavioral tests](../../../tools/tests/test_phase_completion.py).
 
 ## Drain and reported scope
 

@@ -104,8 +104,11 @@ incorporation reading; it is not an MIT election.
 
 **Fit and disposition.** Strong Rocq-native foundations for finite permission
 lattices, live-range colouring, linear ECC and finite-field crypto. See the
-Infotheo ECC entry in [hardware](hardware.md) and the arithmetic entries in
-[crypto](crypto.md). Algebraic or graph theorems need an encoding relation to
+Infotheo [ECC entry](hardware.md#hw-13-infotheo-hamming-and-linear-error-correcting-code-proofs)
+and the [Fiat-Crypto](crypto.md#fiat-crypto-arithmetic-and-serialization),
+[CoqCryptoLine](crypto.md#coqcryptoline-arithmetic-verification) and
+[s2n-bignum](crypto.md#s2n-bignum-machine-code-arithmetic) arithmetic entries.
+Algebraic or graph theorems need an encoding relation to
 the local permissions, intervals and bit layout. The Four Colour theorem is
 about planar graphs and gives no general allocator-colouring theorem.
 No MathComp dependency or global automation is added to the current proofs.

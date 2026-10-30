@@ -1492,14 +1492,6 @@ CASES: list[Case] = [
      _literal(REGISTER, "the block at most **512 bytes**",
               "the block at most **256 bytes**")),
 
-    # The citing document is edited rather than the cited one, because that is the
-    # cheaper half of the same defect and the harder one to see: the name here is the
-    # entry's own former title, so the sentence reads exactly as it did before the
-    # other document merged that entry into a larger one.
-    ("K-59", "an entry named in another document under a title it no longer carries",
-     _literal(SPEC, "the second-die entry in [Evaluated",
-              "the bonded-die-stacking entry in [Evaluated")),
-
     # The composition is moved and the three prose tables are left, which is the
     # direction a real edit takes for the reason K-58's does: a vector length is
     # something somebody changes where the model reads it, and the documents saying

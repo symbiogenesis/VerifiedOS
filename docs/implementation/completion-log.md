@@ -14,11 +14,15 @@ Evidence links resolve to [retained verbatim records](retained-evidence/README.m
 
 ## S · Serial-path decisions and program instruments
 
+<a id="s1-discharge-the-owed-register-acts"></a>
+
 ### S1 · Discharge the owed register acts
 
 The register and profile decisions unblock kernel semantics, capability-bounds containment, test-exit policy, IDL ownership, SoC scope, single-instance bring-up and static measured boot. The matrix instruction decision remains with M0.8c and requires R-15-116's measured margin. Entry/prose agreement is recorded in the co-read ledger.
 
   * Landed: Tier A.
+
+<a id="s2-adopt-the-two-tier-landing-rule-and-hold-it-by-rule"></a>
 
 ### S2 · Adopt the two-tier landing rule and hold it by rule
 
@@ -26,9 +30,13 @@ K-84 checks that holder citations name registered rules and that Tier-B declarat
 
   * Landed: Tier A.
 
+<a id="s3-delete-the-dormant-backends-and-inert-vendored-surface-initialize-the-gitlinks"></a>
+
 ### S3 · Delete the dormant backends and inert vendored surface; initialize the gitlinks
 
 Removed dormant Lean, Lem, Isabelle and HOL4 targets and unused imported support while preserving Rocq, SMT, live test downloads and build dependencies. Initialized the imported cores reached by R1b/R1c; absent OpenTitan still blocked elaboration. Model build, tests, profile sweep, corpus, proof audit and host checks passed; affected owner claims were repaired.
+
+<a id="s4-measure-sail-emulator-throughput-against-the-m2-gate"></a>
 
 ### S4 · Measure Sail emulator throughput against the M2 gate
 
@@ -45,6 +53,8 @@ Measured twelve integer/capability-loop runs at model revision `d359483-dirty`: 
 
   * Landed: Tier A.
 
+<a id="s6a-authenticate-bounded-host-replay-artifacts"></a>
+
 ### S6a · Authenticate bounded host replay artifacts
 
 The [host replay envelope](contracts/host-replay-envelope.md), landed before implementation at `f555b70b`, authenticates exact bounded replay bytes and independently supplied capture/trace identities before decoding. At `7dfb1cfa`, all eleven focused cases, typecheck and Ruff passed; integrator review checked authentication ordering and the independent wire oracle. The integrated host wave remained required.
@@ -53,17 +63,23 @@ Landed: Tier A. This accepts a development host instrument only. Production
 sealing, device export authority, source completeness, signed-image trust and
 paired machine replay remain open under S6, whose operational estimate is unchanged.
 
+<a id="s7-reconnaissance-passes-on-r1b-m44-m62-and-m23"></a>
+
 ### S7 · Reconnaissance passes on R1b, M4.4, M6.2 and M2.3
 
 The source/licence review rules out CHERI-seL4 kernel incorporation under this tree's terms and reprices clean implementation owners. CVA6 review separates configuration from authored cache removal and identifies the second store-holding structure and literal drain-bound dependencies. Kami's permissive terms were confirmed; Kôika's only/or-later status remained undecided. A cache-free elaboration measurement still requires R1b's replacement work.
 
   * Landed: Tier A.
 
+<a id="s8-extract-and-index-the-findings-register"></a>
+
 ### S8 · Extract and index the findings register
 
 Extracted [the findings register](../assurance/findings-register.md). K-82 holds counted findings and their index total in both directions; prose-only findings retain a manual reading boundary. Checker, mutation/repair tests, tools tests and typechecks passed. Admission-input and capability-exponent gaps were reported to their owners.
 
   * Landed: Tier A.
+
+<a id="s9-make-the-lane-host-portable-and-retire-s14s-first-blocker"></a>
 
 ### S9 · Make the lane host-portable, and retire S14's first blocker
 
@@ -83,15 +99,21 @@ Extracted [the findings register](../assurance/findings-register.md). K-82 holds
 
   * Landed: Tier A. Tier B's fourth condition is met in more than part and still not in whole: K-75 holds the one figure this act restated and K-24 the counts any document states about its table, while the two facts the act *created*, the distribution-package set and the z3 acquisition route, are held by nothing, and a full read is owed for the rest. Inventing a rule to hold a package list would be worse than saying so, I12's and S13b's precedent.
 
+<a id="s10-shard-the-hot-files-for-ten-lane-operation"></a>
+
 ### S10 · Shard the hot files for ten-lane operation
 
 Both child items landed; their evidence follows.
+
+<a id="s10a-shard-countspy-by-rule-family"></a>
 
 #### S10a · Shard `counts.py` by rule family
 
 Split counts rules into sibling modules while retaining the claim table and run order. Definitions/functions matched the pre-shard implementation apart from intended comments/indentation; registry and selftest cases were unchanged. Host checks, mutation selftests, tools tests, typechecks and idempotent repair passed. Pre-existing dead-claim suppression under repair was left unchanged.
 
   * Landed: Tier B, held by **K-00**, which carries every one of the fifteen ids across the shard in both directions.
+
+<a id="s10b-move-the-per-item-completion-notes-to-the-completion-log"></a>
 
 #### S10b · Move the per-item completion notes to the completion log
 
@@ -103,6 +125,8 @@ Moved landing notes into this log and kept completed checklist cells, summaries 
     * **The fragment links inside the moved notes named two headings of the checklist**: the build-loop instruments section, which this file carries and the links now resolve inside, and the calibration record, which it does not and whose link was rewritten to point back at the checklist.
 
   * Landed: Tier A. It rewrites the checklist's conventions and its summary, retitles this item, and edits the findings register's preamble, so it is read whole; **K-82** holds the entry set this landing created and **K-12** the links, which is more of Tier B's fourth condition than most landings meet, and the read is still owed for the conventions.
+
+<a id="s11-join-the-testrig-ecosystem-over-rvfi-dii"></a>
 
 ### S11 · Join the TestRIG ecosystem over RVFI-DII
 
@@ -119,11 +143,15 @@ Moved landing notes into this log and kept completed checklist cells, summaries 
 
   * Landed: Tier A.
 
+<a id="s12-read-pin-and-dispose-the-six-unnamed-start-froms"></a>
+
 ### S12 · Read, pin and dispose the six unnamed start-froms
 
 Read and pinned permissive Rupicola, Katamaran, Sail-to-μSail, Cerise/Cerisier and capability-property sources; [THIRD-PARTY.md](../../THIRD-PARTY.md) owns their terms/dispositions. Pin consistency, host checks, mutation coverage, tools tests and typechecks passed. Plain RISC-V Bedrock2 supplies no purecap backend. The NTT deposit still needs a terms reading under the recorded rule; the translation seam has no register-owned terms obligation.
 
   * Landed: Tier A.
+
+<a id="s13a-the-three-instruments"></a>
 
 #### S13a · The three instruments
 
@@ -136,6 +164,8 @@ Added standing [oracle](../../tools/vos/cli/oracle.py), [seed](../../tools/vos/c
 
   * Landed: Tier A.
 
+<a id="s13b-absorb-the-checkers-selftest-into-the-mutation-engine"></a>
+
 #### S13b · Absorb the checker's selftest into the mutation engine
 
 Unified [mutation verdicts/reporting](../../tools/vos/seeded.py), keeping an unapplied authored seed (a failure) distinct from a non-compiling generated mutant (no oracle verdict). Case table and registry were unchanged. Host checks, mutation comparison, repair path, tools tests and typechecks passed. Narrowed selftests name cases not run.
@@ -145,6 +175,8 @@ Unified [mutation verdicts/reporting](../../tools/vos/seeded.py), keeping an una
     * **This item's own stated blocker does not survive inspection.** An appended case sits at the end of a 570-line data region and the run loop is 170 lines below its close, far outside the three lines of context a merge reads; the region came through this act byte-identical, so a concurrent append had nothing to conflict with.
 
   * Landed: Tier A. Tier B's fourth condition is a rule holding whatever fact the landing created, and this act moves no rule id and creates no fact any K- rule reads, so K-84 has nothing to hold.
+
+<a id="s14-unattended-ci-on-whichever-host-runs-it"></a>
 
 ### S14 · Unattended CI on whichever host runs it
 
@@ -161,6 +193,8 @@ Declined the then-unexercisable workflow after a stripped-host probe found missi
 
 Related findings: F-197d.
 
+<a id="s15-generate-the-derived-artifacts-from-their-owners"></a>
+
 ### S15 · Generate the derived artifacts from their owners
 
 Tracked the model-generated bundle and replaced live Sail parsers with artifact readers. K-88 checks tracked bytes/source digests on the host; guest regeneration decides emitter equality. Mnemonic enumeration is a safe ceiling, not an exact census. Host checks, mutation/repair tests, typechecks and guest bundle comparison passed. The bundle generates neither prose nor RTL restatements.
@@ -175,15 +209,21 @@ Tracked the model-generated bundle and replaced live Sail parsers with artifact 
 
   * Landed: Tier A. The generated artifact and its owner record are held by **K-88**, but K-66's direction is a changed claim about what a registered rule decides, not a repair to it, and a changed normative claim is a full read.
 
+<a id="s16-quarantine-the-instruments-whose-decisions-are-deferred"></a>
+
 ### S16 · Quarantine the instruments whose decisions are deferred
 
 Moved deferred freeze/bank-count instruments into [quarantine](../../tools/quarantine/README.md), retaining contracts and separate gates. K-83 forbids landing-loop imports/path references into it. Host and quarantine checks, mutations and behavioral tests passed. Freeze inputs remained deferred and no bank candidate was admitted. Release requires the consumers/qualified data named by the owner.
 
   * Landed: Tier A.
 
+<a id="s17-re-read-the-standing-adoptions-against-the-ratified-extension-list"></a>
+
 ### S17 · Re-read the standing adoptions against the ratified extension list
 
 The dated source review kept all five proposed extension adoptions active and unratified, updating [the profile](../hardware/isa-profile.md). Host checks, mutation selftests and typechecks passed without register/co-read change. R-15-067p's scalar premise and R-15-067k's review-trigger vocabulary required owner amendments; this survey admitted no instructions.
+
+<a id="s18-author-the-acceptance-predicates-five-open-items-owe"></a>
 
 ### S18 · Author the acceptance predicates five open items owe
 
@@ -202,6 +242,8 @@ Authored independent acceptance predicates for M1.7, M4.4, M5.3, M6.3b and M6.5b
 
   * Landed: Tier A. Every cell this item writes is a claim about what a later gate must measure and no rule reads a predicate cell, so nothing holds what the landing created, which is why none of the three chain items becomes Tier-B admissible, and a full read is owed. The owed acts it reports are the register's, the model's and the plan's, none a rule this act could have written.
 
+<a id="s19-re-fit-the-calibration-across-both-execution-modes"></a>
+
 ### S19 · Re-fit the calibration across both execution modes
 
 Kept attended/agent-parallel calibration separate because their actuals measure different quantities without a conversion. Recorded earliest/taken-price bases, excluded moved-scope pairs and changed no midpoint. Host checks, mutation selftests, crossed-record tests and typechecks passed. Small pools and unrecorded parallel pass counts limit interpretation.
@@ -217,6 +259,8 @@ Calibration: no original estimate was recorded; excluded from the fit.
     * **The parallel actual is a sum over passes and nothing records how many.** The convention defines the figure as the summed wall-clock of an item's authoring, verification and repair passes, and no cell states its pass count, so two items reading 7.5 h may be one pass or four.
 
   * Landed: Tier A. The ruling is a decision item and the `n/a` convention is a new normative claim about the record, so the mechanical conditions do not reach it however green the gates are.
+
+<a id="s20-repair-the-claims-a-later-act-falsified-across-the-plan-and-the-findings-register"></a>
 
 ### S20 · Repair the claims a later act falsified, across the plan and the findings register
 
@@ -235,6 +279,8 @@ Calibration: no original estimate was recorded; excluded from the fit.
     * **The truth of a prose sentence is the one thing no rule in the registry is about, and this sweep measures what that costs.** Every one of the 31 repairs here landed on a tree where `check.py` exits 0, and ten of them are figures, so the gap is not confined to judgment sentences.
 
   * Landed: Tier A. Nothing holds what this item created: what it repaired is the truth of prose sentences, which no rule in [the registry](../../tools/check-rules.md) is about, so Tier B's fourth condition has nothing to name and a full read is what the rest is owed.
+
+<a id="s21-repair-the-stale-claims-the-tools-own-documents-carry"></a>
 
 ### S21 · Repair the stale claims the tools' own documents carry
 
@@ -258,6 +304,8 @@ Calibration: no original estimate was recorded; excluded from the fit.
 
 Related findings: F-198d.
 
+<a id="s22-re-read-the-model-tree-and-the-corpus-against-the-documents-over-them"></a>
+
 ### S22 · Re-read the model tree and the corpus against the documents over them
 
 Repaired corpus accounting, register conventions, test headers, encoder coverage and reviewer CI descriptions. Model build, tests and corpus passed with unchanged trace digests; the generated bundle was refreshed. Typechecks and non-arithmetic rules passed; derived arithmetic remained red, so no complete mutation verdict is claimed.
@@ -277,6 +325,8 @@ Calibration: no original estimate was recorded; excluded from the fit.
 
 Related findings: F-198a, F-181.
 
+<a id="s23-repair-the-stale-claims-the-recent-landings-left-in-the-proofs-the-plan-and-the-crown-jewels"></a>
+
 ### S23 · Repair the stale claims the recent landings left in the proofs, the plan and the crown jewels
 
 Corrected hash-separation descriptions, completed roster and AES-GCM crown-jewel status. Host checks, mutation selftests, tools tests, typechecks and proof audit passed without added assumptions. Crown-jewel discharge status and stale CI dispositions were reported separately; the allegedly missing probing-model plan owner was verified false.
@@ -291,6 +341,8 @@ Corrected hash-separation descriptions, completed roster and AES-GCM crown-jewel
 
   * Landed: Tier A. It edits [crown-jewels.md](../assurance/crown-jewels.md), so it re-enters the R-05-150 review, and nothing holds what it created: every fix is a sentence, and no rule in [the registry](../../tools/check-rules.md) decides whether a sentence is true, the ground of the item and of its three predecessors. The one rule that moves is the proof gate over [Keccak.v](../../proofs/Keccak.v), whose comment this repairs, and it holds compilation and the assumption set, not the comment's truth.
 
+<a id="s24-repair-the-stale-claims-the-deep-proof-file-audit-found"></a>
+
 ### S24 · Repair the stale claims the deep proof-file audit found
 
 Deep-read remaining large proof files and repaired stale comments without changing terms. Host checks, mutation selftests, tools tests, typechecks and proof audit passed; edited-file constants and empty assumptions were unchanged.
@@ -303,6 +355,8 @@ Deep-read remaining large proof files and repaired stale comments without changi
     * **A symbol named without its prefix, wrong at authoring.** CopyRingService.v's header named `shared_cell` where the symbol is `is_shared_cell`.
 
   * Landed: Tier A. Every fix is a sentence in a proof-file comment and no rule decides whether a sentence is true, so it cannot be Tier B and a full read is owed, as for its four predecessors. The one rule that moves is the proof gate over the four edited files, which holds their compilation and assumption sets, not their comments' truth.
+
+<a id="s25-repair-the-stale-claims-the-final-proof-file-audit-found-and-carry-s1s-answers-back-to-the-m42-cluster"></a>
 
 ### S25 · Repair the stale claims the final proof-file audit found, and carry S1's answers back to the M4.2 cluster
 
@@ -320,6 +374,8 @@ Repaired proof comments and carried S1's kernel answers into the M4.2 cluster. H
 
   * Landed: Tier A. Every fix is a sentence in a proof-file comment or a plan cell and no rule decides whether a sentence is true, so it cannot be Tier B and a full read is owed, as for its four predecessors. The rules that move are the proof gate over the five edited files, which holds their compilation and assumption sets, not their comments' truth, and the checker's arithmetic over the plan.
 
+<a id="s26-close-the-critiques-work-list-where-the-documents-already-answer-it"></a>
+
 ### S26 · Close the critique's work list where the documents already answer it
 
 Closed critique actions already answered by register/spec decisions, recording co-read agreement. The oracle/tool baseline takes periodic human review at re-pin. Integrated checks passed. Critique items 10 and 37 stayed open for qualified composition/schedule evidence and backend-generated measurement; no physical qualification was conferred.
@@ -333,6 +389,8 @@ Closed critique actions already answered by register/spec decisions, recording c
 
   * Landed: Tier A. Every edit is a register or spec sentence and every one moves a co-read pair, so no rule holds what the landing created and a full read is owed.
 
+<a id="s27-carry-the-single-planar-tier-budget-to-every-site-that-restates-it"></a>
+
 ### S27 · Carry the single-planar-tier budget to every site that restates it
 
 Aligned capacity restatements with R-15-173a's single-planar-tier budget of order 0.5–1 GB. Changed pairs were read/blessed and anchored replacements/source searches verified the sites. Capacity still depends on qualified macro density, metadata and logic area; findings retain process and derivation gaps.
@@ -342,6 +400,8 @@ Aligned capacity restatements with R-15-173a's single-planar-tier budget of orde
     * **Two derivations of the same quantity disagree by a third and nothing holds them together.** The inspirations tree derives about 2.6 MB/mm² usable per full-reticle tier, which is 54.7% of its own raw macro figure, where R-15-170's band read with R-15-181a's metadata above the payload gives 27.7 to 46.2 Mb/mm² of payload.
 
   * Landed: Tier A. It edits the register, so it re-enters the R-05-150 review, and nothing holds what it created: what it repaired is the truth of sentences, which every rule in [the registry](../../tools/check-rules.md) is explicitly not about.
+
+<a id="s28-state-that-no-device-region-is-executable-and-hold-it-at-the-map"></a>
 
 ### S28 · State that no device region is executable, and hold it at the map
 
@@ -353,6 +413,8 @@ Specified non-executable device regions and added K-101 to check declared values
 
   * Landed: Tier A. It adds a register entry and edits the profile, so it re-enters the R-05-150 review and owes the full read, and the co-read pair it created is blessed on a reading of both sides, not on the arithmetic passing.
 
+<a id="s29-discharge-a-decline-against-every-function-the-structure-performed-not-the-one-it-is-filed-under"></a>
+
 ### S29 · Discharge a decline against every function the structure performed, not the one it is filed under
 
 Extended the decline criterion to every function a removed structure performed, carrying fetch-permission and initialization-tag dispositions into owner entries. Roster review, host checks, mutation selftests, typechecks and co-reads passed. Function-enumeration completeness remains a judgment.
@@ -362,6 +424,8 @@ Extended the decline criterion to every function a removed structure performed, 
     * **The obligation R-15-013a states is not bounded from outside, and nothing decides when an enumeration is complete.** A reviewer can always name one more function a structure performed in its origin architecture, so the criterion decides that a named function carries a disposition and never that the naming has finished.
 
   * Landed: Tier A. It adds a register entry, edits two more and the absence contract, and creates a new normative claim, so it owes the full read.
+
+<a id="s30-hold-the-summarys-completed-roster-against-the-items-it-names"></a>
 
 ### S30 · Hold the summary's completed roster against the items it names
 
@@ -373,6 +437,8 @@ Added K-102 to check completed-roster membership against checklist items while p
 
   * Landed: Tier B under **K-102**, which holds the fact this landing created, with **K-00** holding the registry against the checks and the selftest's own coverage check holding the case against the row. No register, profile, crown-jewel, absence-contract or coverage-matrix edit is made, no co-read pair moves, and the checker is green with every mutant killed.
 
+<a id="s31-supply-independent-specification-and-tooling-prerequisites"></a>
+
 ### S31 · Supply independent specification and tooling prerequisites
 
 Accepted schedule, register-accessor, wire-format and calibration prerequisites under [the landed map](../assurance/unassigned-proof-map.md). At `9100fd96`, native proof audit passed compilation, symbol/assumption enumeration and kernel recheck; RTL lint and focused host checks passed. Final Windows/Ubuntu Host CI belongs to the published revision. No target execution, physical qualification, ownership theorem, Narcissus derivation or mode transition was accepted. Incomplete per-item author/review/integration intervals leave every child at retained estimate, actual n/a.
@@ -381,11 +447,15 @@ Landed: Tier A. This is the integrator's full read of the four artifacts, the cr
 
 The integrated proof audit at implementation revision `9100fd96` passed compilation, complete symbol and assumption enumeration and kernel recheck. Later edits touch documentation, generated review wording and a host selftest seed, not proof-gate inputs. The native receipt is `/root/build/proof-gate/proofs/proof-evidence.json`; its portable snapshot is retained locally at [`out/evidence/prereq-proof-evidence.json`](retained-evidence/out/evidence/prereq-proof-evidence.json). The pre-existing local modification of the tracked portable receipt is preserved byte for byte. Integrated Verilator lint passed on the complete standalone RTL set. Focused host evidence covers the prerequisite validators, checker behavior, K-26 and K-88 mutation checks and idempotent repair. The required final Windows and Ubuntu Host CI verdict is attached to the published landing revision, not inferred from these focused runs.
 
+<a id="s31a-extend-the-shared-schedule-record"></a>
+
 #### S31a · Extend the shared schedule record
 
 [ScheduleRecord.v](../../proofs/ScheduleRecord.v) adds R-11-017 outputs, symbolic per-mode admission and target re-entry reservation while preserving frames. Executable checks and accepted/refused instances exercise the record. Integrated native audit accepted 131 file constants without added assumptions. Symbolic inputs establish no qualified timing. Original estimate: 12 h, range 8–16; actual n/a because complete per-item intervals were not captured.
 
 Landed: Tier A, including the complete record/requirement read and the explicit distinction between symbolic inputs and qualified timing evidence.
+
+<a id="s31b-generate-device-register-field-accessors"></a>
 
 #### S31b · Generate device-register field accessors
 
@@ -395,11 +465,15 @@ Landed: Tier A, including the full modeled-field inventory read. **K-88** holds 
 
 Exit evidence: the integrated native gate enumerates 221 constants in `DeviceRegisters.v` and accepts the accessor equalities with no added assumptions; integrated RTL lint accepts the generated package. Behavioral checks reject stale generated constants, source/layout changes, omitted fields, new apertures and malformed bindings. The K-88 artifact-shift mutants are detected. A separate changed Gallina shift is refused at compilation as not convertible; that refusal is not counted as a killed executable mutant. The lane log is [`/root/logs/lane-prereq-registers-20260921-device-registers.log`](retained-evidence/root/logs/lane-prereq-registers-20260921-device-registers.log).
 
+<a id="s31c-inventory-attacker-facing-wire-formats"></a>
+
 #### S31c · Inventory attacker-facing wire formats
 
 [The wire-format inventory](../assurance/wire-format-inventory.md) records families, descriptor status, ownership and canonicity, separating reference codecs from unavailable Narcissus descriptors. Focused tests/K-88 reject malformed families, owners/symbols, stale views and descriptor promotion. A family row admits no parser. Original estimate: 8 h, range 5–11; actual n/a because the author interval omits full review/integration.
 
 Landed: Tier A, including the inventory's correspondence to the crown-jewel member classes and the limitation that no parser is admitted by a family row. **K-88** holds the generated view and its source checks.
+
+<a id="s31d-state-calibration-field-classes-and-the-digest-binding"></a>
 
 #### S31d · State calibration field classes and the digest binding
 
@@ -408,6 +482,8 @@ Landed: Tier A, including the inventory's correspondence to the crown-jewel memb
 Landed: Tier A, including the requirement/field-class read and independent review. **K-88** holds the generated schema view and validator; schema validation establishes no physical containment or authenticity.
 
 ## Q · Assessment actions
+
+<a id="q1-establish-the-baseline-and-its-rejection-gates"></a>
 
 ### Q1 · Establish the baseline and its rejection gates
 
@@ -422,6 +498,8 @@ Separated headline claims/comparators and authored [the product-gate contract](c
     * **No register entry states an input-to-response bound across a change of focus.** R-11-023 names the change of focus, a rebinding the compositor requests and the kernel enacts at a major-frame boundary by permuting the slot→tenant map; R-07-031b's Accept lists it among the transitions enacted at that boundary, R-11-006 fits the slots to the major frame, and R-17-007 adds only that the permutation timestamps the change to the unfocused.
 
   * Landed: Tier A. No rule in [the registry](../../tools/check-rules.md) reads the new contract, the limits it states are a new claim class held by nothing mechanical, and a headline split is a judgment about which row owns which figure, so the mechanical conditions Tier B is admitted on are not met and saying so is cheaper than a rule that would hold a table of proposed values.
+
+<a id="q2a-demonstrate-the-lowering-route-host-only-on-a-wire-parser"></a>
 
 #### Q2a · Demonstrate the lowering route host-only on a wire parser
 
@@ -441,6 +519,8 @@ Demonstrated one host-only descriptor check's assumption-free Gallina-to-Bedrock
 
   * Landed: Tier A.
 
+<a id="q2c-scope-and-assign-the-cheri-primitive-and-representation-foundation"></a>
+
 #### Q2c · Scope and assign the CHERI primitive and representation foundation
 
 [The foundation map](../hardware/cheri-foundation-map.md) rejects commissioning missing common CHERI logic/representation at available scope/price. Independent/integrated review preserves R-13-016's translation-agreement duty and concrete laws required by a pilot. Integrated document checks, mutations and typechecks supply no primitive implementation or target proof. Closing review differs from original estimate scope and is excluded from calibration.
@@ -448,6 +528,8 @@ Demonstrated one host-only descriptor check's assumption-free Gallina-to-Bedrock
 Landed: Tier A. Independent and integrator reads accept the reasoned rejection,
 its required-route correction and preserved implementation obligations. The
 checker cannot decide theorem adequacy or affordability.
+
+<a id="q3a-connect-the-capability-helper-property-suite-to-the-narrowed-model"></a>
 
 ### Q3a · Connect the capability-helper property suite to the narrowed model
 
@@ -464,6 +546,8 @@ Transcribed the capability properties for the narrowed model because the pin can
     * **A derived count carried into a note was never any tree's answer, and the half a reader spot-checks agreed.** The lane's report quoted K-63 as resolving 1,689 citations across 98 files.
 
   * Landed: Tier A. The landing edits a licence position (a vendored row, a retained notice, a pin's Use cell), which is the full read whatever else it carries; it also makes a new claim about the format's properties that no rule holds, K-88 holding the bundle and K-80 and K-81 the licence paths and the pin id but nothing holding the census or the verdicts.
+
+<a id="q4a-measure-host-side-inference-demand-and-state-the-target-traffic-budget"></a>
 
 #### Q4a · Measure host-side inference demand and state the target traffic budget
 
@@ -485,6 +569,8 @@ Transcribed the capability properties for the narrowed model because the pin can
 
   * Landed: Tier A.
 
+<a id="q5a-export-the-placement-problem-and-search-it-over-the-standing-plan"></a>
+
 #### Q5a · Export the placement problem and search it over the standing plan
 
 Exported [MemoryPlan](../../proofs/MemoryPlan.v) witnesses and searched a declared finite base-placement set. Python checks mirror Gallina definitions; results admit no image and change no witness. Export/check/search and host validation passed at `2957352`. Owner, bank and separate reservation/timing fields are absent; footprint is independent of bases and improvement is over demo values. Q5b owns the composed-workload comparison.
@@ -500,6 +586,8 @@ Exported [MemoryPlan](../../proofs/MemoryPlan.v) witnesses and searched a declar
     * **The comparison on admitted workload is Q5b's and owed behind Q1 and a composed roster.** No admitted-workload comparison is taken and no composed roster exists to compare on: the plan's figures are witness values carrying no composition claim, R-18-004d's demonstration set is unauthored, R-18-004b's per-class resident bytes are summed by a whole-program plan that does not yet exist, and the absolute limits are Q1's to state.
 
   * Landed: Tier A.
+
+<a id="q6a-decide-a-credible-memory-supply-path"></a>
 
 #### Q6a · Decide a credible memory supply path
 
@@ -521,6 +609,8 @@ No elapsed actual or measured physical progress is inferred from that weight.
 
   * Landed: Tier A.
 
+<a id="q11-bound-the-reach-of-a-run-ahead-fetch-or-record-that-it-is-unbounded"></a>
+
 ### Q11 · Bound the reach of a run-ahead fetch, or record that it is unbounded
 
 R-15-104a bounds complete run-ahead transfers against current PCC/executable regions before issue, with stale-authority handling and drain/timing duties. Optional suppression raises no early architectural exception. Changed pairs were read/blessed and complete host validation covered the settled documents. No independent depth cap, fence-cost bound or boot implementation was accepted.
@@ -530,11 +620,15 @@ claimed.
 
 Related findings: F-318.
 
+<a id="q12-re-derive-the-inference-floor-against-a-ternary-weight-format-and-state-its-prompt-processing-term"></a>
+
 ### Q12 · Re-derive the inference floor against a ternary weight format and state its prompt-processing term
 
 [The ternary record](../performance/ternary-static-demand.md) verifies publisher identity/static demand at `cd244c4869a2fbcb6b46c695060ab292e5bc8589`: 2.251451 tensor bits/parameter and 11.699/8.868 GB/s with declared caches, both above the 8 GB/s minimum. These are not target throughput. [The prompt decision](../performance/prompt-processing-term.md) refuses an unsupported threshold; Q1/Q4b own quality/target measurements. Review and malformed-cache tests passed without supply-floor change.
 
 Landed: Tier A. The review checks measurement predicates, publisher identity, floor arithmetic and the refusal against the item's entry contract; a generated-record equality check cannot decide those claims.
+
+<a id="q13-pin-the-bring-up-wasm-interpreter-and-re-read-its-ranking-against-the-absent-predictors"></a>
 
 ### Q13 · Pin the bring-up Wasm interpreter and re-read its ranking against the absent predictors
 
@@ -542,11 +636,15 @@ Pinned the unverified interim to wasmi v2.0.0 with [terms/use](../../THIRD-PARTY
 
 Landed: Tier A. No rule holds what this item created: the verdict table, the pin's survive-curation split and the threading choice are prose no checker reads, and the two register acts are decisions inside existing Accept clauses rather than a new held fact, so Tier B is unavailable here on K-88's own reading. The porting guide's own restatements of upstream feature-set facts are read at the pin and dated there rather than held by a rule.
 
+<a id="q14-reach-the-third-matrix-track-and-record-what-already-answers-in-memory-compute"></a>
+
 ### Q14 · Reach the third matrix track, and record what already answers in-memory compute
 
 [The comparison](../background/architectural-alternatives.md#x86-acearm-sme-architectural-state-not-imported) records AME/IME/VME constraints and digital/analog in-memory-compute dispositions, correcting gain-cell attribution and M0.8c inventory claims. Focused/integrated document checks passed. No matrix track, instruction surface, pin or physical array was admitted.
 
 Landed: Tier A. The integration read accepts the bounded comparison and citation correction; no matrix surface or pin is admitted.
+
+<a id="q15-weigh-the-contactless-proximity-surface-and-take-an-arm-on-each-of-its-four-uses"></a>
 
 ### Q15 · Weigh the contactless proximity surface and take an arm on each of its four uses
 
@@ -554,11 +652,15 @@ R-17-051b refuses first-release proximity-coupled radio, card emulation and paym
 
 Landed: Tier A. The co-read ledger moved, one checker disposition row was added so that the refusal vocabulary raises its candidate rather than being worded around it, and no named rule holds the fact this item created.
 
+<a id="q16-decide-whether-the-first-release-carries-messaging"></a>
+
 ### Q16 · Decide whether the first release carries messaging
 
 R-17-051a refuses SMS/MMS/RCS and bundled Internet messaging while preserving generic bytes and voice/IMS duties. [The alternatives](../background/architectural-alternatives.md#first-release-messaging-refused) record text-only SMS costs and usability losses. Document validation/paired review passed. This is a roster decision without model, proof or device execution.
 
 Landed: Tier A. The register/prose read covers R-12-041, R-12-042, R-17-051a and R-18-004, including a messaging-service counterexample, generic-byte exceptions and the preserved voice obligation. Future messaging requires the register amendment and composed acceptance the new entry states.
+
+<a id="q17-name-the-display-protocol-decline-at-its-target-and-rule-the-clipboards-grantable-class"></a>
 
 ### Q17 · Name the display-protocol decline at its target and rule the clipboard's grantable class
 
@@ -566,17 +668,23 @@ Specified the display typed-IDL/delegation boundary and clipboard ordinary-objec
 
 Landed: Tier A. This closes the document decision, with implementation and usability evidence still owed by the existing component owners.
 
+<a id="q18-bind-proof-headers-to-requirement-references-without-copying-normative-text"></a>
+
 ### Q18 · Bind proof headers to requirement references without copying normative text
 
 Confirmed the existing writer/K-108/K-109 citation/fingerprint contract. Focused tests/selected mutants passed; corruption across authored manifests was repaired with original proof/export bytes restored and second pass a no-op. Citation sets/Gallina statements were unchanged. Closing validation over existing implementation supplies no comparable original-effort actual.
 
 Landed: Tier A. The existing holder rules decide manifest equality and exclusion; the attended read also checks the unchanged authored meaning. Final batch evidence is recorded with Q11.
 
+<a id="q19-qualify-existing-proof-tooling-and-one-reusable-component"></a>
+
 ### Q19 · Qualify existing proof tooling and one reusable component
 
 Closed bounded tooling decisions and canceled the uncommissioned generic trial. Child outcomes distinguish rejected qualification from canceled execution; mandatory compiler/admission/assurance duties retain owners.
 
 Landed: Tier A.
+
+<a id="q19a-qualify-source-oriented-proof-diagnostics-and-rendered-review"></a>
 
 #### Q19a · Qualify source-oriented proof diagnostics and rendered review
 
@@ -590,11 +698,15 @@ The successful run's receipt is [`/root/build/q19a-closeout-20260916-b/receipt.j
 
 The integration validation record is [`out/q19a-closeout-20260916/validation.json`](retained-evidence/out/q19a-closeout-20260916/validation.json): base revision above, the replay script and the three changed documents as the uncommitted scope, `python tools/run.py proofs` over unchanged proof inputs, and `python tools/run.py --fix --tests --summary out/q19a-closeout-20260916/host-gate.json` over the settled batch. The receipts carry the verdicts. Target execution is not claimed.
 
+<a id="q19b-qualify-selective-libraries-and-replayable-automation"></a>
+
 #### Q19b · Qualify selective libraries and replayable automation
 
 [Selective-library trials](../assurance/proof-tooling-qualification.md) retained handwritten helpers after Stdlib, Equations and standalone sauto comparisons. CopyRing statements/empty assumptions were preserved; clients replayed and concrete/transport trials passed without global UIP. Incorporation was declined and the locked environment unchanged. The 2.2 h is a conservative overlapping upper bound over shared intervals, excluded from calibration. Q19a provides no presentation environment.
 
 Landed: Tier A.
+
+<a id="q19c-test-one-generic-bounded-component-over-proved-cheri-primitives"></a>
 
 #### Q19c · Test one generic bounded component over proved CHERI primitives
 
@@ -602,11 +714,15 @@ Canceled before execution on 2026-09-26: concrete laws/machine connection were u
 
 Landed: Tier A. This is a scope disposition, not successful execution of the canceled trial.
 
+<a id="q20-test-the-combined-language-and-production-artifact-goal"></a>
+
 ### Q20 · Test the combined language and production-artifact goal
 
 Retained the reviewed contract and canceled uncommissioned workflow/promotion trials. Mandatory producer duties remain; no experiment is recorded as executed.
 
 Landed: Tier A.
+
+<a id="q20a-author-the-combined-acceptance-and-benchmark-contract"></a>
 
 #### Q20a · Author the combined acceptance and benchmark contract
 
@@ -614,11 +730,15 @@ Landed: Tier A.
 
 Landed: Tier A. The independent read covers the intended outputs, every exit, negative-case obligations, semantic invalidation and full-cost comparison; mechanical document checks cannot decide those contracts, and no Tier-B holder is claimed. The absence of copying baselines is an explicit trial-entry condition, per Q20a's permission to prepare its contract before those implementations exist.
 
+<a id="q20b-compare-one-integrated-source-and-proof-workflow-on-a-held-out-client"></a>
+
 ##### Q20b · Compare one integrated source and proof workflow on a held-out client
 
 Canceled before execution on 2026-09-26: no qualified presentation environment/generic instance released the trial. Former 14 h, range 8–20 estimate removed without execution credit. Mandatory duties remain; re-entry needs Q19c's conditions and a new suffixed ID.
 
 Landed: Tier A. This is a scope disposition, not successful execution of the canceled trial.
+
+<a id="q20c-join-the-optimized-artifact-to-its-evidence-and-measure-production-promotion"></a>
 
 #### Q20c · Join the optimized artifact to its evidence and measure production promotion
 
@@ -626,12 +746,16 @@ Canceled before execution on 2026-09-26: workflow/production-evidence prerequisi
 
 Landed: Tier A. This is a scope disposition, not successful execution of the canceled trial.
 
+<a id="q21-scope-the-unified-language-core-and-compiler-route-comparison"></a>
+
 ### Q21 · Scope the unified language core and compiler-route comparison
 
 Children decline core qualification/paired compiler commissioning, retaining contracts/reopening evidence. Q2c's foundation rejection and Q20a protocol stay the common boundary. Existing compiler duties, parser waypoint and checked-law gate are unchanged; the parent has no estimate/actual.
 
 Landed: Tier A. The integrated read distinguishes a commissioning decision from
 an implemented trial or production theorem.
+
+<a id="q21a-specify-the-core-design-and-its-qualification-contract"></a>
 
 #### Q21a · Specify the core design and its qualification contract
 
@@ -641,6 +765,8 @@ Landed: Tier A. The reasoned rejection closes this decision while preserving
 its conditional contract and reopening evidence. No metatheory, frontend
 implementation or executed qualification case is claimed.
 
+<a id="q21b-price-the-compiler-alternatives-and-define-their-artifact-trial"></a>
+
 #### Q21b · Price the compiler alternatives and define their artifact trial
 
 [The route contract](../languages/compiler-route-contract.md) rejects commissioning without full-endpoint price for contextual foundation, direct producer and maintenance. Independent/integrated review preserves equivalent endpoints/evidence and mandatory duties. Closing review is excluded from calibration; paired budget is conditional/unbooked. Neither route receives a feasibility, performance or production-theorem verdict.
@@ -648,6 +774,8 @@ implementation or executed qualification case is claimed.
 Landed: Tier A. The read accepts this commissioning rejection and reopening
 contract. It establishes no performance comparison, route infeasibility, licence
 grant or production theorem.
+
+<a id="q22a-qualify-revocation-completion-and-reuse"></a>
 
 ### Q22a · Qualify revocation completion and reuse
 
@@ -664,6 +792,8 @@ Landed: Tier A. The attended read covers the source/model relation, the admissio
 and scheduling premises and the bounded result's limits; behavioral tests do not
 become a universal temporal-safety theorem.
 
+<a id="q22b-qualify-the-witness-policy-and-its-transitions"></a>
+
 ### Q22b · Qualify the witness policy and its transitions
 
 The [qualification](../assurance/witness-policy-qualification.md) fixes the witness policy's fault, authentication, persistence and recovery assumptions. Continuous replacement needs terminal closure under the old policy and acceptance by the new one; authenticated rebootstrap starts a fresh trust scope. Availability and separately valid selective histories remain distinct.
@@ -679,6 +809,8 @@ Focused tests pass at `720ab3dcbaca85c795b3e2b2abe774c377b9d7ff`; the integrated
 Landed: Tier A. The read accepts the bounded model, counterexamples and downstream
 assignments. CJ-WITNESS's machine-checked model and theorem remain open at M5.5.
 
+<a id="q22c-bind-attestation-to-the-application-session"></a>
+
 ### Q22c · Bind attestation to the application session
 
 The [qualification](../assurance/session-binding-qualification.md) binds completed TLS handshakes to application sessions through an exporter derived from the protected key-owning context. Appraisal includes freshness, origin, role, measured state and unit policy; its connection-owned lifecycle refuses repeated authentication and reconstructed appraisers.
@@ -692,6 +824,8 @@ Focused tests pass at `4cda1c21f32c3e02cdc8114bc9bd5dfaeb493f20`; the integrated
 
 Landed: Tier A. This accepts a bounded qualification and its remaining owners;
 CJ-ATTEST's formal model, theorem and implementation connection remain open.
+
+<a id="q22d-qualify-the-generated-rtl-correspondence-boundary"></a>
 
 ### Q22d · Qualify the generated RTL correspondence boundary
 
@@ -729,6 +863,8 @@ Landed: Tier A. No checker rule was added and no checker artifact is created, so
 nothing here is held by a rule of this landing's own making; the qualification adds no
 obligation and the two register acts it names are reported, not taken.
 
+<a id="q22f-compare-the-storage-index-under-one-contract"></a>
+
 ### Q22f · Compare the storage index under one contract
 
 The [comparison](comparisons/storage-index.md), frozen at `38cebaa`, tests buffered Bε and CoW B+ candidates under shared capacity, redo, snapshot, device/RAM and persistence accounting. At `130b58c`, independent map replay, exhaustive small-key streams, crash/recovery cases, focused behavior tests and type checks pass. Q14 records integrated validation and shared effort.
@@ -736,6 +872,8 @@ The [comparison](comparisons/storage-index.md), frozen at `38cebaa`, tests buffe
 The singleton endurance sweep rejects both arms at four programs, admits only the buffered arm at five and both at six; larger transactions admit both. Bε remains provisional because B+ misses the central singleton envelope. This finite fixture chooses no general production index or recovery policy. Integrity, ownership and reservations are assumptions; target costs, geometry, batching, multilevel behavior and refinement remain M5.3 inputs.
 
 Landed: Tier A. Behavioral checks hold the executable comparison; the finite experiment supplies no general index selection.
+
+<a id="q22g-price-the-unassigned-proof-and-specification-work"></a>
 
 ### Q22g · Price the unassigned proof and specification work
 
@@ -751,6 +889,8 @@ Source `ca05743df9a568cb728caf15312d31703ea0c405` and correction `e694a548e0c315
 
 Landed: Tier A. The accepted artifact is the dependency and cost map with proposed scopes; implementation remains with the named owners.
 
+<a id="q23a-decide-the-ensemble-instantiation-and-wire-it-into-the-register"></a>
+
 ### Q23a · Decide the ensemble instantiation and wire it into the register
 
 The register adopts an ensemble of whole single-die machines with separate memory, address spaces, roots of trust and generations. Links are network boundaries with scheduled authenticated frames, mutually appraised sessions and composition-fixed replay/alignment state. The act reconciles single-die obligations, adds B-10 coverage and A-18–A-21 absences, and records the composed isolation, attestation and non-interference residuals.
@@ -765,6 +905,8 @@ Calibration: no original estimate was recorded; excluded from the fit. Recorded 
   * Finding: **The ensemble entries both denied a shared mask set and required copies of one mask set.** Members are distinct physical dies with separate packages, memory and unit identities, each realizing the same mask-set design.
 
 Landed: Tier A. The register/prose read covers every new entry and every amended one, the four absence rows and the seven B-10 cells, including a peer-on-another-unit counterexample at R-12-015d, a routed-fetch-across-a-link counterexample at R-15-171a, the circular-digest case R-13-001d's identity avoids and the unbounded-drift case R-15-196a's leap answers. Independent review at `6ed2b5b` identifies the second to fourth findings' defects; the corrected pairs and coverage cells pass a focused reread before the integrated host gate.
+
+<a id="q23b-author-the-ensemble-link-contract"></a>
 
 ### Q23b · Author the ensemble link contract
 
@@ -782,6 +924,8 @@ At source `cc321b0` and repair `be28779`, focused document checks pass; corpus-m
 
 Landed: Tier A. The item creates a contract whose content no rule in the registry holds: the gates decide id, link, section and glyph resolution and the crown-jewel row's membership, not what it says about frames, registers or R-04-010a's conditions, so the fourth Tier-B condition, a named rule holding a fact the landing created, is unmet and a green `check.py` is not a reading of the text. Independent review at `cc321b0` identifies an epoch register deciding against §5.3's own falsifying column, a §4.2 paragraph declaring closed the gap it had reported two clauses earlier, a frame-size carrier naming the wrong artifact, and five sentences claiming more than their evidence establishes; the repair at `be28779` deletes the epoch register in favour of the equalization freeze's own validity, sorts §4's rows by the authority their carrier rests on, moves the frame size to the attested schedule artifact, and rewrites the five sentences to what their entries decide. Q23c through Q23g remain open and no ensemble is composed.
 
+<a id="q23e-compute-ensemble-traffic-and-frame-demand"></a>
+
 ### Q23e · Compute ensemble traffic and frame demand
 
 [The traffic report](../performance/ensemble-sharding-traffic.md), [instrument](../performance/ensemble-sharding-traffic/shard.py) and [data](../performance/ensemble-sharding-traffic/traffic.json) supply a reproducible static calculation. They measure neither crypto throughput nor an admitted token rate. Q23h owns measured crypto costs and composition admission, consuming Q23d, Q23g and M6.8.
@@ -798,6 +942,8 @@ Accounting: the retained 0.9 h is this calculation's actual, excluding preceding
 
 Landed: Tier A. No rule in [the rule registry](../../tools/check-rules.md) holds any fact this landing created: the traffic tables, the exchange counts and the restatement of inference-demand's 12.46 GB/s are all unheld, and a rule over a derived traffic table would hold one script's output against the same script's accounting of it, the pattern S14 and I15 both declined. No rule is added: that costs three edits and a mutant for a table no other document wants.
 
+<a id="q24a-author-the-immutable-module-contract"></a>
+
 ### Q24a · Author the immutable module contract
 
 [The immutable module contract](../hardware/immutable-module-contract.md) specifies the external confidentiality boundary, finite operations, seven-state lifecycle, private-state dispositions and separate arbitrary-card/honest-card claims. The endpoint accepts no host address, capability or DMA request; host destinations come from its outstanding-operation state.
@@ -811,6 +957,8 @@ At authoring `5afea3b` and repairs `7affae9`/`057ec35`, requirement references a
 Landed: Tier A. The read accepts the boundary, the grammar's exhaustiveness at its drafting-property standing, and the claim-scope separation. Every theorem the claim table names stays open at Q24c through Q24f, and the crown-jewel row stays `partial` on its remaining specification parts.
 
 WHY TIER A AND NOT TIER B: the checker is not green at this head (K-24's six counts are outstanding for the integrator), the act edits crown-jewels.md prose, and no rule in the registry holds the fact this landing created, so there is nothing to name in a "Tier B under" line.
+
+<a id="q23c-author-the-ensemble-link-session-reference-model"></a>
 
 ### Q23c · Author the ensemble link session reference model
 
@@ -838,6 +986,8 @@ Accounting: 0.6 h agent-parallel actual, excluding preceding survey.
 Landed: Tier A. This accepts a bounded symbolic qualification and its remaining owners;
 CJ-ATTEST's formal model, theorem and implementation connection remain open.
 
+<a id="q23f-state-the-composed-non-interference-obligation-beside-t"></a>
+
 ### Q23f · State the composed non-interference obligation beside T
 
 [ComposedNonInterference.v](../../proofs/ComposedNonInterference.v) states the ensemble target beside [T](../../proofs/ApexTheorem.v), leaving T's vocabulary and closed seam list unchanged. Machine-checked counterexamples show that per-member T and the named link predicates do not imply composition, and that an unsatisfiable session premise can admit the leaking instance vacuously. The target bounds graph-permitted adversaries and treats both endpoints as one wire boundary.
@@ -853,6 +1003,8 @@ Accounting: 0.7 h agent-parallel actual, excluding preceding survey and unrelate
 
 Landed: Tier A. No rule holds what this item created: K-109 binds the file's generated header to its requirement owners, K-103 its citations, K-105 its annotations and K-108 its derived region, and `run.py proofs` compiles it and audits its assumptions, but none of them reads what the target *says*, so Tier B's fourth condition has nothing honest to name. Its first condition is unmet besides, `tools/check.py` being red on K-106's generated ledger until the repair path runs. The note books two open register acts, which is a full read's subject in any case.
 
+<a id="q25-design-the-full-graded-dependent-language-and-its-control-and-mutation-rules"></a>
+
 ### Q25 · Design the full graded dependent language and its control and mutation rules
 
 The [full-language commitments](../languages/verification-strategy.md#full-language-design-commitments), [assurance presets](../languages/assurance-profiles.md) and [composition review](../languages/full-language-review.md) are completed design and qualification planning, covered by Q25a–Q25d. They join graded dependent typing, handlers, structured async/cancellation and guarded mutation.
@@ -860,6 +1012,8 @@ The [full-language commitments](../languages/verification-strategy.md#full-langu
 Frontend commissioning remains blocked by the interpretation commitment and register acts. The bounded-pool amendment, concrete CHERI laws, metatheory, frontend/backend and target qualification remain with their owners. No executed language or production binary is supplied. Children own evidence and actuals; this parent duplicates no estimate or effort, and settled integration supplies host validation.
 
 Landed: Tier A. The combined design and its recorded acceptance boundaries are read together, including the decisions that keep dependent implementation unopened.
+
+<a id="q25a-specify-the-graded-dependent-foundation"></a>
 
 #### Q25a · Specify the graded dependent foundation
 
@@ -874,6 +1028,8 @@ At `6d0ee4e`, focused checks pass; integration reads the dossier against the str
 
 Landed: Tier A. The full read accepts the rule dossier and its explicitly named
 missing laws at Q25a's design predicate. It opens no frontend implementation.
+
+<a id="q25b-specify-handlers-and-structured-async-lifecycles"></a>
 
 #### Q25b · Specify handlers and structured async lifecycles
 
@@ -893,6 +1049,8 @@ Authoring `9503081` and independent review `1faa273` receive integration correct
 Landed: Tier A. The full and independent reads accept the lifecycle design after
 the bound and checkpoint-order corrections, with all target laws still explicit.
 
+<a id="q25c-specify-interior-mutability-and-interference-guardrails"></a>
+
 #### Q25c · Specify interior mutability and interference guardrails
 
 The [cell dossier](../languages/interior-mutability.md) specifies local/dynamic-borrow interfaces, invariant access, capture/sharing, publication, quiescence and source exits. `CountCell` conserves `AddOnce` allowances through one AMO commit; capability storage remains private. Functional, race, progress and leakage claims retain separate premises and missing `MUT-*` laws.
@@ -907,6 +1065,8 @@ At `1f2d633`, focused checks pass; independent review and integration correct fr
 Landed: Tier A. The full and independent reads accept the interfaces, counter
 protocol and qualification cases with their unmechanized obligations preserved.
 
+<a id="q25d-review-the-combined-calculus-and-price-its-implementation"></a>
+
 #### Q25d · Review the combined calculus and price its implementation
 
 The [composition dossier](../languages/full-language-review.md) joins the common client, refusal cases and laws over the named byte-and-capability carrier. It supplies reviewed ownership, conditional prices and acceptance predicates for the design debts, frontend and qualification increments, retaining unpriced foundation work. It constructs no carrier inhabitant or checked metatheory.
@@ -916,6 +1076,8 @@ Admission is arm-dependent. A calculus interpreted by elaboration into an existi
 Authoring `4f10fab` and repair `2468545` pass focused document checks after independent review corrects the admission reading and owner joins. Accounting: 0.9 h agent-parallel actual, excluding preceding survey and unrelated stalls. Q2c's foundation commissioning and U-22's breakdown remain prerequisites; no executed language or qualified binary is claimed.
 
 Landed: Tier A. The review states new claims about which admission arm the combined calculus takes and what its implementation still owes, so it took a full attended read rather than a spot read of its findings.
+
+<a id="q26-price-the-resident-toolchain-against-the-floors-own-comparisons"></a>
 
 ### Q26 · Price the resident toolchain against the floor's own comparisons
 
@@ -948,6 +1110,8 @@ Accounting: 4.6 h agent-parallel actual is a lower bound because the initial aut
 
 Landed: Tier A. The report states new claims about whether R-18-004e closes on the floors R-18-004b declares, which is a decision for the register's owner and the class the conventions send to a full attended read. No checker rule was added and none holds what this landing created: nothing in [the checker](../../tools/vos/checks/) reads this report's figures against its own JSON artifacts, which is the state [the inference demand](../performance/inference-demand.md) is already in, so the fourth Tier-B condition is unmet and a green wave is not a reading of the report.
 
+<a id="q27-settle-the-certified-search-question-and-record-what-a-qualified-source-survey-supplies"></a>
+
 ### Q27 · Settle the certified-search question and record what a qualified-source survey supplies
 
 The integrated disposition accepts inconclusive placement-search diagnostics and declines new certificate machinery on present evidence. Reopening requires a concrete composition case and reviewed acceptance contract. The source-bearing audit adds missing consumer notes while incorporating no source or proof and changing no estimates. Children own actuals; this parent duplicates no effort.
@@ -958,6 +1122,8 @@ Retained evidence: [`out/critique-20260914/phase-service.json`](retained-evidenc
 
 Landed: Tier A. The integrated read checks the decision against the current
 register and the source-to-consumer assignments against their actual cells.
+
+<a id="q27a-take-the-certified-search-disposition-and-record-its-arms"></a>
 
 #### Q27a · Take the certified-search disposition and record its arms
 
@@ -977,6 +1143,8 @@ New shipped certificate checkers remain refused by the existing yield, checker-i
 
 Landed: Tier A. The act produces non-normative prose disposing of rules the register already carries, creating no declaration whose members a rule would count; K-12, K-13 and K-40 hold the entry's citations and its form, and no checker rule was added.
 
+<a id="q27b-record-which-existing-cell-each-newly-qualified-source-bears-on"></a>
+
 #### Q27b · Record which existing cell each newly qualified source bears on
 
 The [bearing record](../assurance/proof-reuse-bearing.md) maps newly qualified sources to an existing consumer or a named refusal/non-consumer ground. SYS-REFINEDPROSA, Cogent/Dargent, Peregrine and Diaframe reach M4.4, U-10, M6.2b-i and Q19c. Qualification removes no priced sub-obligation, so estimates do not change; uncelled obligations remain in [the proof map](../assurance/unassigned-proof-map.md).
@@ -989,6 +1157,8 @@ The added-source partition is a revision-bound measurement, not a permanent prop
     * **R-05-119 and R-05-121 are already booked through their trace lines.** They belong to CHERI-TAL soundness in the proof map; the record therefore identifies an unpriced obligation rather than an omitted one.
 
 Landed: Tier A. The record states which open cell each newly qualified source bears on, a new claim per source rather than a derived figure another artifact owns, so it took a full attended read. K-12 holds only that its citations resolve and no rule reaches what it asserts about bearing, so the fourth Tier-B condition is unmet and no checker rule is added or owed.
+
+<a id="q27c-record-which-candidates-terms-decide-which-consumer"></a>
 
 #### Q27c · Record which candidate's terms decide which consumer
 
@@ -1007,6 +1177,8 @@ Landed: Tier A. The record states new claims about which upstream's terms reach
 which open cell, so it took a full attended read, not a spot read of its
 findings.
 
+<a id="q28a-bind-one-cryptographic-claim-to-its-concrete-premise-dossier"></a>
+
 #### Q28a · Bind one cryptographic claim to its concrete premise dossier
 
 The [AES-GCM dossier](../assurance/aes-gcm-premise-dossier.md) binds one storage-authentication consumer to its selected ideal-permutation theorem, symbolic loss, key/nonce limits and exact correspondence boundary. It records claim invalidation and a creation-based stored-secret horizon; other consumers remain outside this pilot. No upstream code or proof is imported.
@@ -1018,6 +1190,8 @@ Accounting: original estimate 14 h, range 8–20; retained planning estimate, ac
 Landed: Tier A. The full read accepts the premise dossier's bounded scope;
 it grants no numerical cryptographic margin or release admission.
 
+<a id="q29a-freeze-the-web-application-profile-and-qualification-contract"></a>
+
 #### Q29a · Freeze the web application profile and qualification contract
 
 The [web profile](contracts/web-application-profile.md) freezes `vos-web-pilot/1`, its two pilots, identity/lifecycle/resource boundaries and paired success/refusal cases before implementation. Review preserves navigation freshness, borrow/reuse gates and pool outcomes, separating native operation cost, target time and compatibility claims.
@@ -1028,6 +1202,8 @@ Accounting: original estimate 12 h, range 8–16; retained planning estimate, ac
 
 Landed: Tier A. The full read accepts a bounded qualification contract and its
 opening assignments; it confers no browser implementation or admission proof.
+
+<a id="q30a-freeze-the-standards-feature-map-and-compute-semantic-contract"></a>
 
 #### Q30a · Freeze the standards feature map and compute semantic contract
 
@@ -1041,6 +1217,8 @@ Landed: Tier A. The accepted artifact is a reviewed contract and source audit;
 admitted execution, runtime resource evidence and standards conformance remain
 the open implementation and qualification owners' obligations.
 
+<a id="q32a-formalize-app-lifecycle-and-workflow-transition-admission"></a>
+
 #### Q32a · Formalize app lifecycle and workflow transition admission
 
 [WorkflowProfiles.v](../../proofs/WorkflowProfiles.v) and [its contract](contracts/workflow-formal.md) formalize two abstract apps with finite arenas and settings. Ownership, resource bounds, transition peaks and conditional non-resurrection are proved; checkpoint/crash, grants, restore and release have explicit outcomes and complete reuse conditions.
@@ -1051,6 +1229,8 @@ Accounting: original estimate 24 h, range 12–36; 0.6 h agent-parallel actual, 
 
 Landed: Tier A. This accepts the finite formalization and its explicit refinement
 interfaces, not the open operational pilot or measured reclamation economics.
+
+<a id="q34a-author-the-elastic-domain-contract"></a>
 
 #### Q34a · Author the elastic-domain contract
 
@@ -1067,6 +1247,8 @@ Accounting: original estimate 12 h, range 8–16; 2.4 h agent-parallel actual, e
     * **Which members are live for the share bound is unstated.** The bound is taken over every enumerated member, each accruing entitlement only while it competes. Standing: a register question, recorded as the reading taken.
 
 Landed: Tier A. No checker rule was added, and none holds what this item created. The proof gate's compile, exact assumption audit, witness scan and kernel recheck hold the artifact's decisions, and R-05-150's review holds its agreement with the register. The fourth Tier-B condition is therefore unmet.
+
+<a id="q35a-record-the-verified-c-routes-blockers-and-assign-the-authored-c"></a>
 
 #### Q35a · Record the verified-C route's blockers and assign the authored C
 
@@ -1086,6 +1268,8 @@ Calibration: no original estimate was recorded; excluded from the fit. Recorded 
 
 Landed: Tier A. The full read covers the six findings against their register entries and the readings' verifier verdicts, the commissioned cells' predicates after the adversarial review's repairs, the proof map's commissioning lines and the work-order dispositions. No checker rule was added; K-12, K-40 and K-82 hold the entry's links, glyphs and finding count, and none holds its readings.
 
+<a id="q35c-state-the-logic-routes-reviewed-breakdown"></a>
+
 #### Q35c · State the logic route's reviewed breakdown
 
 [The breakdown](../assurance/machine-logic-breakdown.md) states U-22's route, exact producer/semantic interfaces and the first checkable increments of R-13-017's four theories. It keeps the mandated Katamaran route; alternatives need a register amendment. Q35m's dependency trial and Q35k/Q35l's conditional increments are accepted separate cells; full agreement and remaining logic establishment stay unpriced and must be scoped first.
@@ -1099,6 +1283,8 @@ Calibration: original estimate 16 h, range 9–23; retained estimate, actual n/a
 Retained evidence: [receipt](retained-evidence/root/build/lane-q35c-20261010-logic/q35c/receipt.json), SHA-256 `92c7b48adbae2925f6d13ee8d9e257711c0936f460d72b6dc3dbd7962e2b9905`.
 
 Landed: Tier A. The integrator read the whole route, selected theorem statements, producer/semantic boundaries, receipt and refusal evidence, and the first increments and consumer joins. The foundation ledger and proof map carry the accepted breakdown; third-party readings stay at their exact pins. Worker focused document checks and authored whitespace checks passed. [Initial Host CI](https://github.com/symbiogenesis/VerifiedOS/actions/runs/38034381487) refused retained copies without external native-path citations; the record now links their exact bytes and hashes, and the focused retained-evidence regression passes. The refreshed settled hosted handoff is recorded by fanout.
+
+<a id="q35e-qualify-a-source-level-c-refinement-foundation-at-the-locked-prover"></a>
 
 #### Q35e · Qualify a source-level C-refinement foundation at the locked prover
 
@@ -1123,6 +1309,8 @@ Calibration: original estimate 14 h, range 8–20, class X; 3.6 h agent-parallel
   * **Every foundation's theorem is about an input an unverified front end produced, over a C semantics the contained compiler does not consume.** Open: Q35j and the review gate's F-464 act. F-495.
 
 Landed: Tier A. The integrator's read covers the ten findings against their register entries, the proposed amendment's three names and types against the retained summaries and the pinned sources, the refusal of VST against R-06-012, R-10-008 and R-18-026, both receipts for upstream content (which they carry by path, hash, line number and matched token only), the predicates and ranges of Q35h to Q35j, and the proof map's two rows. No checker rule was added; K-12, K-82 and the retained-evidence test hold the entry's links, finding count and receipt hashes, and none holds its readings.
+
+<a id="q35f-remove-the-canonical-terms-model-side-axioms-and-bind-its-target-to-the-frozen-profile"></a>
 
 #### Q35f · Remove the canonical term's model-side axioms and bind its target to the frozen profile
 
@@ -1154,6 +1342,8 @@ Retained evidence: [`/root/build/lane-q35f-axioms-20261002/q35f/quotrem/QuotRem.
 
   No checker rule was added, and nothing in the checker holds the term's axiom list (F-735). `test_model_rocq`, `test_oracle` and `test_retained_evidence` hold the command, the differential's specification and the retained copies.
 
+<a id="q35g-remove-the-support-librarys-stdlib-axioms-from-the-canonical-terms-closure"></a>
+
 #### Q35g · Remove the support library's Stdlib axioms from the canonical term's closure
 
 [The canonical-term record](../assurance/canonical-machine-term.md#the-support-library-change) owns retained support-library/backend changes that remove F-481's five Stdlib axioms from a no-`Real` import closure. Probes and positive controls at locked Rocq 9.3.0 confirm no axioms without `Real`, the four real-number axioms with it and `eq_rect_eq` when explicitly imported. All 30 stdpp modules compile; independent review reproduces the changes and controls. BBV modules remain uncompiled.
@@ -1171,6 +1361,8 @@ Retained evidence: [The canonical-term record](../assurance/canonical-machine-te
 
 Landed: Tier A. The integrator's read covers both diffs against the cell's **Owns**, the user's upstream direction and the generality argument; the probe and its controls against the cell's first **Check**; the owner's act that moved the second **Check** to Q35b's owed compile; the record's routes against the opam guide's rule; the licensing map's and THIRD-PARTY.md's rows for the retained diffs and licence; and the findings against the register. No checker rule was added; K-12, K-82 and the retained-evidence test hold the entry's links, finding count and retained copies, and nothing in the checker holds the probe's axiom lists.
 
+<a id="q35h-reduce-and-report-the-kernel-checkers-anomaly-on-vsts-floyd-closure"></a>
+
 #### Q35h · Reduce and report the kernel checker's anomaly on VST's Floyd closure
 
 [The anomaly record](../assurance/checker-resolver-anomaly.md) and [standalone reproduction](../../tools/checker-reproductions/resolver-roots/README.md) reduce VST's recursive-checker failure without copying VST source or weakening its proof. Released 9.1.1/9.2.0/9.3.0 binaries and tested master reproduce the resolver-roots anomaly and related alias-typed-field failure, while one-construct controls pass. Receipts retain commands, binaries, sources and verdicts; no switch or upstream source changes.
@@ -1186,6 +1378,8 @@ Calibration: original estimate 6 h, range 3–9, class X; 2.2 h agent-parallel a
 Retained evidence: [The record](../assurance/checker-resolver-anomaly.md) reduces F-486, the anomaly `rocqchk` raises on VST 2.17's `floyd/SeparationLogicAsLogicSoundness.v`, to a standalone reproduction under [tools/checker-reproductions/resolver-roots/](../../tools/checker-reproductions/resolver-roots/README.md) that copies no VST source. It reads every released checker binary the guest holds and rocq master against the reproduction, reads upstream's sources, release line and tracker, files the report, and reads what the gate could obtain around the anomaly by checker flags, by admission and by a change to VST's own sources. It moves no register entry. Its receipt [`/root/build/lane-q35h-20261003/receipts/q35h-record.json`](retained-evidence/root/build/lane-q35h-20261003/receipts/q35h-record.json), SHA-256 `eef79158189f73d514a58d13e66f5217c6ecca93ed61428b6e2bd9dd56e03a33`; [`/root/logs/q35h-review-20261003-rereview-census.log`](retained-evidence/root/logs/q35h-review-20261003-rereview-census.log); [`/root/build/integrator-20261003/rocq-master-probe2.sh`](retained-evidence/root/build/integrator-20261003/rocq-master-probe2.sh); [`/root/logs/integrator-20261003-rocq-master2.log`](retained-evidence/root/logs/integrator-20261003-rocq-master2.log).
 
 Landed: Tier A. The integrator's read covers the reduction table against the receipt's forty-two runs and seven checker identities and the census's seven more; the 9.3 line's backports against the clone; master's verdicts against its retained log; the filed report against the text the user approved and the user's upstream direction; the bounded admission's 282 names against Q35e's 380 and F-487's 204; the source-side route's twelve seals; and the two findings against the register. No checker rule was added; K-12, K-52 and the retained-evidence test hold the entry's links, the reproduction's licence marks and the retained copies, and none holds the readings.
+
+<a id="q35i-decide-the-gates-reading-of-alias-sealed-and-functor-sealed-module-fields"></a>
 
 #### Q35i · Decide the gate's reading of alias-sealed and functor-sealed module fields
 
@@ -1204,6 +1398,8 @@ Retained evidence: [`/root/build/lane-q35i-20261003/reduce/receipt.json`](retain
 
 Landed: Tier A. The integrator's read covers the rule against the cited checker lines and the review's nested probes, the cover's code and its soundness argument against the item's criterion, the tests and the twelve mutant results, the receipt and log against the readings stated here, and the three findings against their register entries. No checker rule was added; K-12, K-82 and the retained-evidence test hold the entry's links, finding count and the retained copies, and none holds its readings.
 
+<a id="q35j-state-the-bridge-from-a-source-level-foundations-c-semantics-to-the-contained-compilers-clight"></a>
+
 #### Q35j · State the bridge from a source-level foundation's C semantics to the contained compiler's Clight
 
 [The bridge record](../assurance/c-semantics-bridge.md) and [Bridge.v](../../tools/c-semantics-bridge/Bridge.v) state a forward simulation between imported stock VST 2.17/Clight 3.17 and contained compartment/capability-widened Clight at `1cd36c710967e89db21da08f237ffca78843b883`. Statement, inhabited register-only witness and reached capability-assignment refutation compile privately at Coq 8.20.1; unchanged contained source refuses Rocq 9.3.0 and 9.2.0.
@@ -1213,6 +1409,8 @@ Acceptance closes only the statement, with producer, same-source, structural-cor
 Calibration: original estimate 16 h, range 9–23, class X; retained planning estimate, actual n/a. Initial reading/acquisition intervals are missing; build durations do not measure complete authoring/review/integration, so calibration is excluded.
 
 Landed: Tier A. The integrator read the statement against both imported interfaces, the explicit frontend and architecture premises, the inhabited witness and reached refusal, the proof plan and anchor argument, and the private compilation evidence. This acceptance closes the statement item only. Host CI and cold Guest CI supply the settled batch's validation handoff; a pending guest verdict supplies no proof acceptance.
+
+<a id="q35m-trial-the-machine-logic-dependencies-at-the-locked-prover"></a>
 
 #### Q35m · Trial the machine-logic dependencies at the locked prover
 
@@ -1227,6 +1425,8 @@ Calibration: original estimate 8 h, range 4–12, class X; retained planning est
 Retained evidence: [`/root/build/lane-solve-20261010-c/q35m/evidence/receipt.json`](retained-evidence/root/build/lane-solve-20261010-c/q35m/evidence/receipt.json), SHA-256 `42f49806a6d30b0e4c0ec04fe0a5770907cf15b7abd1221516ef42609bc326dd`.
 
 Landed: Tier A. The integrator read the frozen source/interface choices and licences, strict diagnostic refusals, separately scoped Iris and equality probes, explicit unavailable closure fields, preserved switch exports, runner and retained evidence, and the continuation against the permitted refusal endpoint. Focused retained-evidence tests, lint and both type-check platforms pass. Host CI and cold Guest CI supply the settled batch's validation handoff; the guest verdict remains pending until supplied externally.
+
+<a id="q36-upgrade-the-proof-switch-to-rocq-930"></a>
 
 ### Q36 · Upgrade the proof switch to Rocq 9.3.0
 
@@ -1246,6 +1446,8 @@ Calibration: original estimate 6.5 h, range 4–9, class X; actual 1.6 h, attend
 
 Landed: Tier A. The read covers the lock and its export, the counterexample readings, both proof runs' inventories and the empty assumption audit, the kernel-summary parse against the pinned checker's sources, the exporter comparison and its named difference, the restated statements against the grep, and the four findings against their register entries and the qualification record they route to. No checker rule was added; K-12, K-82 and K-96 hold the entry's links, finding count and calibration row, and none holds its readings.
 
+<a id="q37-upgrade-the-sail-switch-to-sail-0203"></a>
+
 ### Q37 · Upgrade the Sail switch to Sail 0.20.3
 
 The Sail switch and [sail.lock](../../tools/opam/sail.lock) move to Sail 0.20.3 with OCaml 5.4.1. The switch export equals the lock, no package is pinned, and Sail/support-library licence readings are unchanged. Comparisons use the same sources at base `3184b0ed` on 2026-09-29.
@@ -1264,6 +1466,8 @@ Calibration: original estimate 7 h, range 4–10, class X; re-priced 7.5 h, rang
 
 Landed: Tier A. The read covers the lock and its export, the release-archive reading, the three output comparisons and each named difference, the configure binding and the compiler-file class with their cases and mutants, the canonical-term record's restated identity against the emissions, the support library's re-read, the restated statements against the grep, and the four findings against their register entries. No checker rule was added; K-12, K-82, K-88 and K-96 hold the entry's links, finding count, regenerated bundle and calibration row, and none holds its readings.
 
+<a id="q38-modernize-and-harden-the-proof-corpus-at-rocq-930"></a>
+
 ### Q38 · Modernize and harden the proof corpus at Rocq 9.3.0
 
 Q38a–Q38l hardened proof-source readers, qualified instrument switches, adopted Rocq 9.3 syntax and reduced proof-checking cost. Their entries below own evidence and estimates; the parent has no estimate or actual.
@@ -1281,6 +1485,8 @@ Landed: Tier A. The parent's closing decides that its finish line held and its a
 * the cell's move.
 
 No checker rule was added. K-12, K-82 and K-113 hold the entry's links, its presence for the landed parent and the cell's one summary line. None of them holds the entry's readings.
+
+<a id="q38a-close-the-gates-rocq-93-setting-gaps-and-its-prefix-blind-spots"></a>
 
 #### Q38a · Close the gate's Rocq 9.3 setting gaps and its prefix blind spots
 
@@ -1302,6 +1508,8 @@ Calibration: original estimate 3 h, range 2–4, class I; actual 2.2 h, agent-pa
 
 Landed: Tier A. The integrator's read covers the whole diff of the two gate modules against the cell, the review's ten findings and the repair's dispositions, the ratified widening of the prefixes, and the five findings routed to Q38d. No checker rule was added; K-12, K-82 and K-96 hold the entry's links, finding count and calibration row, and none holds the readings, which the host tests hold.
 
+<a id="q38b-make-the-proof-source-readers-outside-the-gate-refuse-what-they-cannot-read"></a>
+
 #### Q38b · Make the proof-source readers outside the gate refuse what they cannot read
 
 The apex, memplan, mutate, consttab and CIC corpus readers read decorated declarations or refuse unsupported shapes by name. Completed-record values and `Fail`/`Succeed` follow each reader's contract. The memory-plan reader still cannot read an inline `build_plan` application or alias; F-515 routes missing exported values to Q5b.
@@ -1321,6 +1529,8 @@ At `fea51b48` and integrated `d54ff530`, focused reader/consumer tests, type che
 Calibration: original estimate 5 h, range 3–7, class I; actual 3.3 h, agent-parallel. Hosted validation is outside it.
 
 Landed: Tier A. The integrator's read covers the whole diff of the five readers against the cell, the review's findings with their reproductions, and the repair's dispositions. It also covers the one knowingly unread shape, which F-515 routes to Q5b, and the four findings routed to Q38d. K-42, K-43, K-44, K-88 and K-107 hold these readers' outputs over the live tree. The host tests hold each reader's reading or refusal of each form.
+
+<a id="q38c-read-the-whole-corpuss-elaborated-meaning-for-comparison"></a>
 
 #### Q38c · Read the whole corpus's elaborated meaning for comparison
 
@@ -1342,6 +1552,8 @@ The review's remaining nit, holding the gate's workspace lock during a default-r
 Calibration: original estimate 8 h, range 5–11, class I; actual 3.7 h, agent-parallel. Hosted validation is outside it.
 
 Landed: Tier A. The integrator's read covers the command's and the reading's whole code against the cell, and the review's findings with the repair's dispositions. It checked that the default route's binding matches what the gate's receipt records: `.vo` outputs and top-level `.v` inputs under `proofs/`. It also covers the documentation rows it added. No checker rule holds the reading; the host tests and native controls hold it.
+
+<a id="q38d-close-the-lexical-bypasses-the-q38a-and-q38b-reviews-routed"></a>
 
 #### Q38d · Close the lexical bypasses the Q38a and Q38b reviews routed
 
@@ -1374,6 +1586,8 @@ Calibration: original estimate 6.5 h, range 4–9, class I; actual 6.6 h, agent-
 
 Landed: Tier A. The integrator's read covers both rounds' whole diffs against the cell: the shared lexer and its refusals, the decoration grammar and every reader that now composes it, the keyword tables, the tests and cases, and both reviews' findings with their repairs' dispositions. It also covers the round-1 publication and this integration's merge and consumer comparison. Every consumer of the shared lexer reads the live tree as it did, and each finding the cell names is closed by a reading the host tests hold.
 
+<a id="q38e-compile-the-stdlib-only-gallina-instruments-in-the-proof-switch"></a>
+
 #### Q38e · Compile the Stdlib-only Gallina instruments in the proof switch
 
 Stdlib-only `quickchick vectors`, `quickchick freeze`, `kernel vectors` and enumerative `seed coq` compile in the proof switch. `quickchick properties` compiles only its harness closure. **K-117** derives instrument switches/source reach from their owners and refuses newer syntax in sources compiled by older provers.
@@ -1393,6 +1607,8 @@ K-117 deliberately over-refuses three older-compatible `&` forms absent from the
 Calibration: original estimate 6 h, range 4–8, class I; actual 3.4 h, agent-parallel. Hosted validation is outside it.
 
 Landed: Tier A. The integrator's read covers the whole diff against the cell: the switch move, the narrowed closure, K-117's module, registry row, selftest cases and tests, the restatements, the review's findings with the repair's dispositions, and the merge's resolution and repair. K-117 holds what the instruments older than Rocq 9.3.0 compile, and the host tests hold the switch each instrument asks for.
+
+<a id="q38f-run-the-property-harness-at-rocq-930"></a>
 
 #### Q38f · Run the property harness at Rocq 9.3.0
 
@@ -1434,6 +1650,8 @@ Calibration: original estimate 10 h, range 7–13, class I; re-priced 11.5 h, ra
 
 Landed: Tier A. The lock guide's amendment admitting commit pins is a new normative claim. The integrator's read covers the whole diff against the cell: the recipe, the lock bytes against the run's artifact, the walks, seed and journalling, the scoring under the owner's ruling, the conditional commits as replayed and the seed.py hunk they leave out, the restated guides, rows and tests, each review's findings with its repair's dispositions, the route's repairs, and every artifact of the four runs against their receipts and `report.json`.
 
+<a id="q38g-settle-the-switch-the-wasm-oracle-keeps"></a>
+
 #### Q38g · Settle the switch the Wasm oracle keeps
 
 [certirocq.lock](../../tools/opam/certirocq.lock) declares unpatched CertiRocq 0.9.1+9.1 over Rocq 9.1.1 with OCaml 4.14.4. The local-built switch export equals the snapshot. A fresh-root import installed the same closure; setting its compiler invariant restored a byte-identical re-export.
@@ -1463,6 +1681,8 @@ Checks ran once locally under the user's 2026-10-01 ruling; no hosted runner bui
 Calibration: original estimate 5 h, range 2.5–7.5, class I; actual 4.5 h, agent-parallel. The suspended candidate build and hosted validation are outside it.
 
 Landed: Tier A. The item declares a new project switch and tracks its lock, which THIRD-PARTY.md, K-117, K-118, `provision` and `compare_component.py` read, and its Check rests on measured guest runs rather than a rule. The integrator's read covers the whole diff against the cell: the lock bytes, the restated guides, the licence rows and their census, the registry rows, `compare_component.py`'s release and scope readings and their tests, the review's findings with the repair's dispositions, and both merges' resolutions.
+
+<a id="q38h-write-the-proof-sources-in-rocq-93s-syntax"></a>
 
 #### Q38h · Write the proof sources in Rocq 9.3's syntax
 
@@ -1499,6 +1719,8 @@ Calibration: original estimate 15 h, range 10–20, class I; re-priced 19 h, ran
 
 Landed: Tier A. Its Guest CI input and step and its `fanout` option are new normative claims. The integrator's read covers the whole diff against the cell: the narrowed compile, K-117's row and the `test_instruments` case; the dispatch check, the reading step, the report and `fanout`'s option, with their tests and restated contracts; the guard and limit repairs; every rewrite against its clause and the rulings above; each unwritten rewrite and left-whole source against its reason and the final grep; the host readings and mutant populations against the base; each review's findings with its repair's dispositions; and each covering run's comparison and digests against its log. No checker rule was added. K-12, K-82, K-96 and K-117 hold the entry's links, its finding count, its calibration row and the instruments' reach, and none holds its readings.
 
+<a id="q38i-make-the-proofs-cheaper-to-compile-and-recheck-without-moving-a-statement"></a>
+
 #### Q38i · Make the proofs cheaper to compile and recheck without moving a statement
 
 Shared evaluated literals, single-evaluation VM casts and two tactic-context clears reduce checking cost. Against base `59cc31c3`, candidate `c559db3c` cut whole-corpus retired instructions 28.56% for compilation and 39.04% for kernel recheck. Every kernel summary was byte-identical; elaborated comparison names only the 14 added literals and their lemmas. No existing statement, transparent body, opacity or assumption moved.
@@ -1523,6 +1745,8 @@ Calibration: original estimate 10 h, range 7–13, class I; actual 5.3 h, agent-
 
 Landed: Tier A. The integrator's read covers the whole diff against the cell: every rewritten proof against the clause's shape, the literals and their lemmas, the clears, the reading comparison, the gate run, the reader invariants and the figures. It also covers the review's findings with their corrections, and the integration's prose repair. The narrowings this note names leave the cast and literal clauses partly met. Each is a finding with its disposition, and nothing here claims the cell's unnarrowed Owns. No statement, body, opacity or assumption moved.
 
+<a id="q38j-schedule-the-proof-gate-by-dependency-and-size-its-kernel-workers-from-measured-peaks"></a>
+
 #### Q38j · Schedule the proof gate by dependency and size its kernel workers from measured peaks
 
 The proof gate schedules compile/audit work when dependencies finish, prioritizing the longest dependent chain. Unreadable dependencies retain the wave schedule; failed dependencies block consumers and remove stale objects. Each run logs its spans replayed under the prior schedule. The 10 GiB kernel budget rests on repeated runner peaks; a 16 GB runner admits one kernel/four compile workers. F-581's proposed literals buy no second kernel worker.
@@ -1542,6 +1766,8 @@ Calibration: original estimate 5 h, range 3.5–6.5, class I; actual 0.8 h, agen
 
 Landed: Tier A. The integrator's read covers the whole diff against the cell: the schedule and its fallback to waves, the timing lines and the replay, env.py's peaks, margin, worker counts and F-581's arithmetic, the restated statements, the tests, the review's findings with the repair's dispositions, and the two Guest CI runs and the receipt comparison. The schedule holds the wave schedule's verdicts and receipt fields with a shorter compile phase in both runs, and the budget holds every recorded peak.
 
+<a id="q38k-refuse-coinductive-definitions-while-the-locked-kernel-lacks-the-cofixpoint-guard-fixes"></a>
+
 #### Q38k · Refuse coinductive definitions while the locked kernel lacks the cofixpoint guard fixes
 
 The gate refuses authored coinductive forms and notation declarations that could hide them before compilation while Rocq 9.3.0 lacks #22386/#22389 fixes. The same lexer protects machine-bound tacticals, and `proof-reading` repeats all source refusals. The [lock guide](../../tools/opam/README.md) owns retirement/residue through dependency sources, definitions, notations, tactics/hints and dependency-declared tokens.
@@ -1559,6 +1785,8 @@ Native guarded probes established refused spellings; no inconsistency reproducer
 Calibration: original estimate 3 h, range 2–4, class I; actual 2.2 h, agent-parallel, excluding the overnight suspension and hosted validation.
 
 Landed: Tier A. The integrator's read covers the whole diff against the cell: the refusal and its call site, the lexer model and the hiding-declaration reading, the tests and their cases, the lock guide's restated sentences, the review's findings with the repair's dispositions, and the integration's two repairs. The refusal holds every coinductive form an authored source writes or lets a declared token hide, the host tests hold each spelling the locked compiler was probed to accept, and the lock guide holds the residue and the retirement condition.
+
+<a id="q38l-build-and-check-the-quickchick-switch-on-github-hosted-runners"></a>
 
 #### Q38l · Build and check the QuickChick switch on GitHub-hosted runners
 
@@ -1592,6 +1820,8 @@ Calibration: original estimate 9.5 h, range 7–12, class I; actual 4.8 h, agent
 
 Landed: Tier A. The route's contract is a new normative claim. The integrator's read covers the whole diff against the cell: the workflow and its guards, the plan, staging and join module, `bootstrap_instrument.py`, `instrument-ci` and their tests, K-75's sites and mutants, the route's contract and the restated guides and rows, both reviews' findings with their repairs' dispositions, the merges' resolutions, and every artifact of the seven runs against the receipts and `report.json`.
 
+<a id="q40-re-derive-the-fiat-crypto-field-headers-with-the-generator-checked-by-the-locked-kernel"></a>
+
 ### Q40 · Re-derive the Fiat-Crypto field headers with the generator checked by the locked kernel
 
 The [emission record](fiat-crypto-emission.md) binds the upstream pin, nested archives/licences, cold generator build under the locked kernel and reproducible field headers. Option A succeeded. Raw arithmetic bytes match the prior emission; only provenance wrappers move. No arithmetic byte was manually edited.
@@ -1607,6 +1837,8 @@ pin scopes. The worker independently reviewed the shared license record and its
 historical-manifest wording was corrected. Kernel-checked generator proofs do
 not establish a proof of printed C, target refinement, timing or curve security.
 
+<a id="q41-specify-the-environmental-fault-sensors-and-plan-their-characterization"></a>
+
 ### Q41 · Specify the environmental fault sensors and plan their characterization
 
 [The environmental sensor contract](../hardware/environmental-fault-sensors.md) specifies supply-window, clock, replica/canary timing and direct optical families, a total instance map, immutable field ownership and one fail-stop boundary. Q41a owns implementation; Q41b owns process characterization. The contract adds no ISA/model state and preserves protected-model limits.
@@ -1621,6 +1853,8 @@ Calibration: original estimate 14 h, range 8–20; retained estimate, actual n/a
 
 Landed: Tier A. The integrator read the entire contract, source-family and coverage limits, inventory/field ownership, fail-stop and no-architectural-state clauses, campaign controls and both implementation predicates. The process qualification remains open; the settled hosted handoff is recorded by fanout.
 
+<a id="q42-author-the-backup-and-device-migration-contract"></a>
+
 ### Q42 · Author the backup and device-migration contract
 
 [The backup and migration contract](contracts/backup-migration.md) maps all requirement criteria to acceptance cases. Export reaches only recursively rollbackable DataOnly state; Fresh regions, keys and credential/sealed authority remain excluded. Restore authenticates/plans the whole object before writes, stages beside old state and publishes atomically. Fresh initialization/counters prevent authority revival.
@@ -1633,43 +1867,63 @@ Landed: Tier A. The integrator read the whole contract against its requirement c
 
 ## M0 · Hardware reference
 
+<a id="m01-pin-upstream-models"></a>
+
 ### M0.1 · Pin upstream models
 
   * `sail-riscv` was pinned at `beaf4499` and `sail-cheri-riscv` at `bb07488d`, with vendoring baseline `8f91355e`. Applicable upstream fixes were carried into the curated model; excluded extensions and deleted targets were declined.
 
   * Finding: the CHERI tree embeds older `sail-riscv` commit `b748a82`; reconciliation therefore requires a semantic transplant, not configuration of one shared base.
 
+<a id="m02-stand-up-the-sail-toolchain"></a>
+
 ### M0.2 · Stand up the Sail toolchain
 
   * Established the Sail 0.20.2 environment on WSL Ubuntu 26.04 with OCaml 5.4.0, opam 2.5.0 and z3 5.1.0. Typechecking agreed across the three tested solver versions; the Sail emitter version was pinned for fidelity.
+
+<a id="m03-build-stock-sail-riscv-baseline"></a>
 
 ### M0.3 · Build stock `sail-riscv` baseline
 
   * Built the stock `sail_riscv_sim` baseline out of tree; 664/664 tests passed.
 
+<a id="m04-build-stock-sail-cheri-riscv-baseline"></a>
+
 ### M0.4 · Build stock `sail-cheri-riscv` baseline
 
   * Built `cheri_riscv_sim_RV64` against embedded `sail-riscv` commit `b748a82`; 229/229 bundled RV64 tests passed. This baseline supplied the capability-semantics oracle.
+
+<a id="m05-reconcile-the-baselines"></a>
 
 ### M0.5 · Reconcile the baselines
 
   * Selected modern `sail-riscv` as the base and transplanted the CTSRD capability layer. Later reconciliations carried applicable fixes while retaining the frozen ISA and locked toolchain. The curated model passed strict typechecking and its documentation bundle was regenerated. [THIRD-PARTY.md](../../THIRD-PARTY.md) owns the reviewed upstream references.
 
+<a id="m06a-stand-up-the-curated-tree"></a>
+
 ### M0.6a · Stand up the curated tree
 
   * Vendored the curated `model/` tree byte-identically from `8f91355e` with LF preserved. The out-of-tree build and all 664 tests passed.
+
+<a id="m06b-measure-configuration-level-curation"></a>
 
 ### M0.6b · Measure configuration-level curation
 
   * Captured configuration-supported profile rows in `verifiedos.json`. The adopted-family run passed 132/134 tests; the other two were expected profile refusals. Configuration identified the remaining source-removal work and did not replace it.
 
+<a id="m06c-remove-excluded-source-surface"></a>
+
 ### M0.6c · Remove excluded source surface
 
   * Removed excluded source surface in the four batches below, updating configuration, registries and test membership together.
 
+<a id="c1-leaf-extensions"></a>
+
 #### c1 · Leaf extensions
 
   * Removed unentangled excluded modules and their obsolete hooks. The build and 352/352 tests passed; generated and profile configuration keys agreed.
+
+<a id="c2-entangled-extensions"></a>
 
 #### c2 · Entangled extensions
 
@@ -1679,6 +1933,8 @@ Landed: Tier A. The integrator read the whole contract against its requirement c
     * Fixed-width fetch is a *deletion of gating* **and** of the 16-bit path, this batch taking the first half and M0.20 the second: ILEN=32 makes a word whose low two bits are not `11` an unallocated 32-bit encoding, not a shorter instruction, so the parcel check goes with `C_ILLEGAL` and the compressed decode mapping it was the only user of, and nothing is left load-bearing with no clause behind it.
     * The alignment relaxation lives in four places, `fetch`, `rvfi_fetch`, `jump_to`, and the `xepc` legalization pair, and only the first two are visible from the extension registry.
     * The Lean emulator's handwritten register initializer was already stale from c1, writing `stimecmp` which went with `Sstc`; the typechecker cannot see it because that target is dormant. It and the two `SAIL_MODULES` lists naming deleted modules are corrected here.
+
+<a id="c3-privilege-and-translation-batch"></a>
 
 #### c3 · Privilege and translation batch
 
@@ -1690,6 +1946,8 @@ Landed: Tier A. The integrator read the whole contract against its requirement c
     * Two tests hang rather than fail and so cannot be left to a ctest timeout: `rv32si-p-dirty` and `rv64si-p-dirty`, whose handlers wait on a page-table A/D update that never comes with S off, the behaviour c2 booked as a profile refusal now appearing where it blocks.
     * `pagesize_bits` survives the walker: PMA regions must still be 4 KiB-aligned so that no PMA property changes inside one access, so the constant is renamed `pma_granule_bits`, not deleted.
 
+<a id="c4-vector-fork"></a>
+
 #### c4 · Vector fork
 
   * Removed scalar floating-point state and `vstart`, retaining vector floating point with integer scalar operands and static RNE rounding. The build, schema checks and 261/261 tests passed. Partial vector writes were subsequently settled by M0.6e.
@@ -1699,6 +1957,8 @@ Landed: Tier A. The integrator read the whole contract against its requirement c
     * **`fflags` has no destination and two comparisons still read it**: 44 accrual sites go, and the softfloat interface's flag half is discarded except at `fp_gt`/`fp_ge`, where the invalid-operation flag *is* the result, a quiet comparison answering false on a NaN.
     * **The scalar files were carrying the vector unit's classification predicates**, 33 `f_is_*_{H,S,D}` plus `negate_{H,S,D}`, and the float library's width-generic `float_is_*` are the same tests, so each three-way dispatch collapses to one line and the negate to a sign-bit flip; only `canonical_NaN` and three flag constructors moved, to [float_classify.sail](../../model/model/core/float_classify.sail).
     * **The `vstart` cut deleted an implementation-compatibility hack**: the four scalar-move instructions computed an LMUL-based element count only to match the bound other implementations chose for the `vstart` check, so the count, the LMUL read and the question go together; the whole-register load and store lose their partial-register prologue and the vector-crypto element-group start collapses to zero.
+
+<a id="m06d-close-the-csr-bank"></a>
 
 ### M0.6d · Close the CSR bank
 
@@ -1710,9 +1970,13 @@ Landed: Tier A. The integrator read the whole contract against its requirement c
     * The external-interrupt bit was the sole reason `mip` read one value into `rd` and another into its own read-modify-write, so its deletion collapses `doCSR`'s two-value split into one and takes the platform-interrupt OR, the `XipReadType` enum, and `read_mip` with it.
     * Two enumerations follow the one-reachable-value rule c3 applied to `Privilege`: `InterruptType` keeps `I_M_Timer` alone, and `breakpoint_cause` goes entirely, `ebreak` being the only breakpoint source once the trigger module is deleted, which also removes a non-injective mapping whose two arms both encoded cause 3.
 
+<a id="m06e-transplant-cheri-capability-semantics"></a>
+
 ### M0.6e · Transplant CHERI capability semantics
 
   * Transplanted the capability algebra, merged registers, tagged memory, PCC/sentries, trap capabilities and checked accesses in the five batches below.
+
+<a id="e1-fix-xlen-at-64"></a>
 
 #### e1 · Fix XLEN at 64
 
@@ -1724,6 +1988,8 @@ Landed: Tier A. The integrator read the whole contract against its requirement c
     * **`in32BitMode` was already unreachable and the enumeration under it nearly so**: the one-reachable-value rule c3 applied to `Privilege` arrives here from the configuration, not from a deleted mode.
     * **The RV32 half of the corpus was never evidence for this profile**, exercising a base the profile does not have, so its removal costs no coverage and every excluded RV64 row is still excluded for the reason it was.
 
+<a id="e2-port-the-capability-format-and-algebra"></a>
+
 #### e2 · Port the capability format and algebra
 
   * Ported the capability encoding and CHERI Concentrate algebra into [cap_format.sail](../../model/model/core/cap_format.sail) and [cap_common.sail](../../model/model/core/cap_common.sail), retaining the upstream BSD licence. The build, 150 tests and eight capability properties passed.
@@ -1732,11 +1998,15 @@ Landed: Tier A. The integrator read the whole contract against its requirement c
     * **The relocation guards are dead at the source and are not carried across.** `have_cheri_relocation` is a constant `false` upstream and both the PCC and DDC relocation paths hang off it, so the port folds them out instead of transplanting unreachable branches into a model with no DDC to relocate.
     * **The tag plane needs no new machinery.**
 
+<a id="e3-merge-the-register-file-and-stand-up-the-tag-plane"></a>
+
 #### e3 · Merge the register file and stand up the tag plane
 
   * Merged integer/capability register views and installed a granule-keyed tag plane; integer writes clear authority. The build, 150 tests and four additional register/tag properties passed.
 
   * Finding: **the granule keying is the model's to do.**
+
+<a id="e4-port-the-checks-pcc-and-sentries-and-the-trap-capabilities"></a>
 
 #### e4 · Port the checks, PCC and sentries, and the trap capabilities
 
@@ -1745,6 +2015,8 @@ Landed: Tier A. The integrator read the whole contract against its requirement c
   * Two findings.
     * **The transplant cannot delete DDC on its own schedule.** Hybrid mode and DDC therefore stay until M0.6f, which also sets that item's exit criterion: after the cut `riscv-tests` is not a corpus this machine can run, and the batch is gated on purecap test programs (M0.12) instead.
     * **Trap raising belongs in the postlude.** Checks read PCC in `core`, while trap raising calls the later-compiled exception machinery in `sys`. The three `ext_handle_*_error` hooks and two privilege-failure hooks therefore move to `postlude/cap_traps.sail`, where both are first in scope.
+
+<a id="e5-port-the-instruction-surface-and-stand-up-the-differential-harness"></a>
 
 #### e5 · Port the instruction surface and stand up the differential harness
 
@@ -1755,6 +2027,8 @@ Landed: Tier A. The integrator read the whole contract against its requirement c
     * **`lc` collides with `cbo.zero`.** The destination separates them here; the frozen dialect re-encodes this anyway (R-15-007), so the freeze owes a decision, not a repair.
     * **The two executors neither start at the same instruction nor report a register write at the same width.**
     * **`riscv-tests` cannot reach agreement past its own prologue, a fact about the corpus, not the transplant.**
+
+<a id="m06f-re-parameterize-to-641-bits"></a>
 
 ### M0.6f · Re-parameterize to 64+1 bits
 
@@ -1767,6 +2041,8 @@ Landed: Tier A. The integrator read the whole contract against its requirement c
     * **The corpus goes with DDC, entirely, not family by family.**
     * **Membership is by enumeration, which reaches four instructions and one otype decision this item's own list does not name.** The same rule freezes the object-type space: three of sixteen codepoints are reserved, the unsealed one and **two** sentry edges, R-15-071's forward/backward split being a reservation in that space, not a later amendment to it.
 
+<a id="m06g-add-profile-rows-absent-upstream"></a>
+
 ### M0.6g · Add profile rows absent upstream
 
   * Added conditional moves, revocation filtering/bitmap, `fence.t`, indexed capability accesses, `cclear` and machine-level AIA pending state. The build, 43 properties and 15-member differential corpus passed.
@@ -1777,6 +2053,8 @@ Landed: Tier A. The integrator read the whole contract against its requirement c
     * **`fence.t`'s Sail content is the enumeration, not the barrier**: the flush set is one structure and this model has no store buffer, so the file carries why every other structure is absent from the set. Its reserved fields trap where `fence`'s are ignored, this instruction having no future extension to reserve them for.
     * **The generated test-matrix configurations are a second declaration of the platform**: two new keys broke the build at schema conformance on `rv64d_*.json`, not on the profile's own configuration; a key added to one and not to [config.json.in](../../model/config/config.json.in) is a build failure, not a divergence found later.
     * **The model's own harness runs under the generated *max* configuration, not the profile's**, so a property reading a configured policy is about the wrong machine: that a misaligned indexed load faults is the profile's answer, not that configuration's, which defers misalignment to the PMA. Profile-conditional behaviour belongs in the corpus.
+
+<a id="m06h-add-the-three-bespoke-block-instructions"></a>
 
 ### M0.6h · Add the three bespoke block instructions
 
@@ -1790,6 +2068,8 @@ Landed: Tier A. The integrator read the whole contract against its requirement c
     * **What the scrub *is* in an architectural model is the tag-preserving pass, visible only against the write path.** Hence a block operation of its own, not a load-and-store loop; [platform-scrub.s](../../corpus/platform-scrub.s) checks it by doing both to the same block.
     * **`creclaim`'s clear lands in memory where the load filter's lands in a delivered value**, the reclamation half and the containment half of one protocol: clearing a revocation bit puts the object back in service for the filter and does not for `creclaim`, the tag being gone from the granule, not from a value (R-08-007a).
 
+<a id="m07-model-ztso-and-static-only-prediction"></a>
+
 ### M0.7 · Model Ztso and static-only prediction
 
   * Fixed the model to Ztso and static-only prediction, with Ztso named in the attested devicetree. The build, 56 properties and 20-member differential corpus passed.
@@ -1800,6 +2080,8 @@ Landed: Tier A. The integrator read the whole contract against its requirement c
     * **The drain condition reads the I and O bits directly as one mask per side, not as an arm of a 256-case lattice, which lets `is_fiom_active` go.**
     * **One enumeration member had been dead since c1 and nothing said so**, a defect class the narrowing removes rather than the one it found: `Barrier_RISCV_i` lost its only constructor site when `Zifencei` was excluded, and an enum member with no site is not an error in Sail.
     * **Static-only prediction adds no Sail at all; the model gains a citation.**
+
+<a id="m08a-the-core-roster-and-the-class-table"></a>
 
 #### M0.8a · The core roster and the class table
 
@@ -1814,6 +2096,8 @@ Landed: Tier A. The integrator read the whole contract against its requirement c
     * **A devicetree source is a grammar, not a rendering, and `dtc` is what says so.**
     * **The tree outgrew the region it is written into and nothing said so, because the bound was on a path no ordinary run takes.** Three things follow: the ROM region is sized for the tree it holds, not left at upstream's spike-bare 4 KiB default, which no one budgeted, and the region's extent is the composition's to state; the per-class core count comes back *out* of the tree, a count beside a roster being one fact written twice in one attested artifact; and `model.py devicetree` now generates, compiles, and hands the blob to the emulator's own bound, not a second copy of it.
 
+<a id="m08b-v-class-long-vector-datapath-and-per-element-capability-checks"></a>
+
 #### M0.8b · V-class long-vector datapath and per-element capability checks
 
   * Exercised the V-class configuration at VLEN=4096 and added masked-off element checks. The build, 68 properties and 23-member differential corpus passed, with the existing datapath and encodings retained.
@@ -1826,6 +2110,8 @@ Landed: Tier A. The integrator read the whole contract against its requirement c
     * **The extension-context dirty fired once per element and put the geometry into the commit trace.**
     * **`vlseg<nf>e<eew>ff.v` was a vector operation that was neither all nor nothing, and the register has since answered it: the form is excluded.** Its defined result on a fault past the first element was to trim `vl` and retire rather than raise, which R-15-039a's all-or-nothing rule does not admit.
     * **The assembler's vector rows needed one operand that is spelled by being absent.**
+
+<a id="m08d-fec-and-keccak-units"></a>
 
 #### M0.8d · FEC and Keccak units
 
@@ -1841,6 +2127,8 @@ Landed: Tier A. The integrator read the whole contract against its requirement c
     * **A property that saves a list register and restores it by assigning the saved binding does not restore it, and only the harness's per-property reset hides that.**
     * **The refusal set is one-directional, because the symmetric one would have refused every composition in this tree.**
 
+<a id="m09-add-documented-timing-annotations"></a>
+
 ### M0.9 · Add documented timing annotations
 
   * Authored the operation-class timing table in [timing.sail](../../model/model/core/timing.sail) and configuration checks; **K-63** validates model requirement citations. The build, model properties, corpus and seeded refusals passed. The model executes no cycles: this item supplies timing declarations, not measured latency qualification.
@@ -1853,6 +2141,8 @@ Landed: Tier A. The integrator read the whole contract against its requirement c
     * **The membership rule this item set out to owe cannot be written without becoming the defect it would catch.** 11 register entries say an operation is one entry in the timing-annotated model, and holding that set against the table needs a mapping from each entry's prose to a class member, a third copy of the correspondence; a body-pattern selection returns two of the 11, the register stating one obligation in five wordings.
     * **The gap nobody had named is that the model's own citations reached no rule at all.**
 
+<a id="m010-generate-and-freeze-the-c-class-golden-emulator"></a>
+
 ### M0.10 · Generate and freeze the C-class golden emulator
 
   * Generated and froze the C-class executable ISA reference at `abcc685` under Sail 0.20.2. Its revision identity, 62 model properties and 21-member corpus passed validation.
@@ -1863,9 +2153,13 @@ Landed: Tier A. The integrator read the whole contract against its requirement c
     * **The stamp is set at configure time and the working tree decides it.** `reference` prints the dirty marker rather than refusing it, a gate that failed on an edited tree being a gate that gets turned off; it refuses an **unknown** revision, the state this item closed.
     * **`--version` still reports upstream's release number, and that is right.** 0.13.1 is a true fact about the lineage this tree was curated from, and the model's own identity is the revision `--build-info` carries beside it.
 
+<a id="m011-define-the-profile-freeze-measurement-contract"></a>
+
 ### M0.11 · Define the profile-freeze measurement contract
 
   * Authored the [profile-freeze measurement contract](contracts/freeze-measurement.md), including corpus, composition recipe, decisions, thresholds, provenance and report predicates. It requires measured encoded bytes, dictionary reselection per variant and a closing pass at the admitted configuration; measurement execution belongs to its consumers.
+
+<a id="m012-version-the-differential-corpus-and-capability-trace-schema"></a>
 
 ### M0.12 · Version the differential corpus and capability trace schema
 
@@ -1874,6 +2168,8 @@ Landed: Tier A. The integrator read the whole contract against its requirement c
   * Two findings.
     * **A fetch of an instruction wholly inside PCC's bounds raised a length violation**, which `cap-control`'s bounded sentry entry found on its first run. The profile excludes `C` and fixes ILEN at 32, so `min_instruction_bytes` is four; it does not adopt `Ziccif`, so a fetch still splits into two 16-bit granules; and the per-granule bounds check asked for a whole instruction from the *second* granule, two bytes past the instruction.
     * **The store-side root arrives in the link register**: reset hands `c1` the root data capability and `c1` is `ra`, so a program that calls overwrites its own authority. Every corpus member therefore opens by moving it to `c8`, and §3's composed initial distribution is where that stops being the program's problem.
+
+<a id="m013-two-geometry-cbo-block-size-constraint"></a>
 
 ### M0.13 · Two-geometry CBO block-size constraint
 
@@ -1886,6 +2182,8 @@ Landed: Tier A. The integrator read the whole contract against its requirement c
     * **Holding the number meant letting one rule read the model, which the selftest's sandbox had made impossible.**
     * **Two of the four sites had no assertion behind them.**
 
+<a id="m014-two-latency-classes-in-the-sail-model"></a>
+
 ### M0.14 · Two latency classes in the Sail model
 
   * Added both fixed-latency memory classes to the Sail platform and attested devicetree, with configuration refusals. The model build, properties and corpus passed; physical qualification remains separate.
@@ -1897,6 +2195,8 @@ Landed: Tier A. The integrator read the whole contract against its requirement c
     * **A placeholder nothing distinguishes from a measurement becomes an input, so the qualification state is attested.**
     * **The corpus member is a set of claims that nothing is observable, which is what makes it worth running.**
 
+<a id="m015-capacity-placement-and-bank-checks-in-register-tooling"></a>
+
 ### M0.15 · Capacity, placement, and bank checks in register tooling
 
   * Added tag-plane arithmetic, capacity/bank declarations and complete two-class placement checks. **K-54**, **K-55** and **K-56** hold their respective owners; checker mutations and typechecking passed. The bandwidth comparison remained unavailable without its producer operands.
@@ -1907,6 +2207,8 @@ Landed: Tier A. The integrator read the whole contract against its requirement c
     * **The tag plane is one field read five ways, so it is one rule.**
     * **`compounds` stopped being about one document; only the group's name survived the widening.**
     * **The placement is held total over the charge, not over its own words.**
+
+<a id="m016-refresh-and-discharge-sequencer-in-the-sail-platform-model"></a>
 
 ### M0.16 · Refresh and discharge sequencer in the Sail platform model
 
@@ -1920,6 +2222,8 @@ Landed: Tier A. The integrator read the whole contract against its requirement c
     * **The fail-stop's negative reading has no source in a valid composition.** The model holds the **shape**: read once after a fixed worst-corner dwell with no poll and no retry, over a real architectural latch, not a fault-injection register. A machine that can leave charge behind joins that read as a case, not a mechanism.
     * **One validator arm was dead the moment it was written, and running the seeded refusals found it.** `config_is_valid` short-circuits and the class record's own check refuses a zero bank count first, so a second message saying the same thing is a branch no configuration reaches; that arm has to be the arithmetic's precondition, an early return, not a refusal.
 
+<a id="m017-per-class-bank-count-dse-with-droop-as-a-hard-constraint"></a>
+
 ### M0.17 · Per-class bank-count DSE with droop as a hard constraint
 
   * Authored the [bank-count exploration contract](../hardware/bank-count-dse-contract.md) and symbolic report. **K-58** holds its declared point and qualification bindings. Eight of eleven candidates passed shape constraints; none was admitted because required physical coefficients were missing.
@@ -1932,6 +2236,8 @@ Landed: Tier A. The integrator read the whole contract against its requirement c
     * **Holding the number meant one more model file inside the checker's reach, and the carve-out moved to where it can be seen.**
     * **R-15-108's parameter list was short the per-class bank count; that question is now answered.**
 
+<a id="m018-retire-the-first-party-test-harness"></a>
+
 ### M0.18 · Retire the first-party test harness
 
   * Retired the first-party test harness and its redistributable dependency surface, retaining the generated and differential validation routes.
@@ -1940,6 +2246,8 @@ Landed: Tier A. The integrator read the whole contract against its requirement c
     * **The RV32 half was broken at build, not dormant, and no gate could see it because the option is off.** Half the harness depended on a file no rule produces, so `-DFIRST_PARTY_TESTS=ON` failed at `configure`, not at a test, and the XLEN loop was removed here, not upstream.
     * **The deletion costs the checker a sixth of what it reads, and its subject does not move.**
     * **`model/.github/` stayed byte-identical to its pin here and I8's enumeration grew by one, and S3 has since answered it: the tree is deleted.**
+
+<a id="m019-land-the-vector-fp-forks-decided-residue-and-name-zvfbfmin-in-the-model"></a>
 
 ### M0.19 · Land the vector-FP fork's decided residue and name `Zvfbfmin` in the model
 
@@ -1954,6 +2262,8 @@ Landed: Tier A. The integrator read the whole contract against its requirement c
     * **M0.6c's c4 carried the same claim and its own bullet already refuted it**, *the vector unit keeps every floating-point form it had* standing beside *three encodings the freeze can reclaim rather than a curation batch's call*; this item is that reclamation for two of the three, and c4's sentence is repaired where it stands.
     * **`Zicclsm` is `Zbc`'s unrecorded sibling.** R-15-048a excludes it by name, `Ext_Zicclsm` sits in the isa-string roster with its key false in all three shipped files, so its exclusion is likewise a key, not a shape of the model, and it has no instruction file of its own to record the disposition in.
     * **Nothing left with the two clauses, each candidate checked against its callers by name.**
+
+<a id="m020-close-the-fetch-paths-instruction-length-decision-and-the-harnesss-restore-idiom"></a>
 
 ### M0.20 · Close the fetch path's instruction-length decision and the harness's restore idiom
 
@@ -1977,17 +2287,23 @@ Calibration: no original estimate was recorded; excluded from the fit.
 
 ## M1 · Toolchain spine (incl. the CHERI-CompCert prerequisite)
 
+<a id="m11-locate-and-pin-secomp2cheri"></a>
+
 ### M1.1 · Locate and pin SECOMP2CHERI
 
 `upstream/SECOMP` is pinned at `5c20b839`, the SECOMP2CHERI/CCS artifact carrying CompCert 3.17. The [licence record](../../THIRD-PARTY.md) binds the pin's non-commercial core terms; the gitlink conveys no source files.
 
 The compartment front/middle end is a reference, with unfinished top-level integration and admitted stacking work. Its CHERI backend is incomplete, unverified and unintegrated, with ISAv8-lineage assumptions that differ from the frozen purecap profile. M1.2 owns measured usability and the backend decision; the stated upstream tool requirements alone supply no build evidence.
 
+<a id="m11a-decide-the-compiler-provenance-fork"></a>
+
 ### M1.1a · Decide the compiler-provenance fork
 
 The compiler remains a contained build-time producer and is never redistributed. This reversible choice preserves [COPYRIGHT.md](../../COPYRIGHT.md)'s distribution map but forfeits a third party rebuilding the image from source and leaves the bootstrap/validation-instrument claim dependent on it. Obtain-terms and route-around alternatives remain open; reassessment is tied to whether third-party rebuilding becomes load-bearing at M1.2's midpoint.
 
 The [pin licence reading](../../THIRD-PARTY.md) places the verified/backend passes outside the dual-licensed subset; stock CompCert retains the same restriction. CompCert terms and SECOMP contributions require distinct authority if both are acquired. VST's non-dual-licensed concurrency tree can reintroduce the restriction, so its opam distribution is the accepted acquisition route. Containment was re-weighed after the incomplete/vacuous CHERI backend measurement and retained; no terms were inferred from lineage.
+
+<a id="m11b-decide-the-backends-start-from"></a>
 
 ### M1.1b · Decide the backend's start-from
 
@@ -1996,6 +2312,8 @@ M1.2 authors the purecap backend over stock CompCert RISC-V; `upstream/SECOMP` r
 This technical decision preserves M1.1a's containment restriction. Deferred robust-preservation work must join SECOMP's front/middle end to the authored backend; its compartment recomposition, blame and back-translation remain potential inputs. The measured width edit in the rejected tree supplies evidence rather than a transferred patch.
 
   * Landed: Tier A.
+
+<a id="m12a-re-baseline-the-delta-against-stock-compcerts-risc-v-backend"></a>
 
 #### M1.2a · Re-baseline the delta against stock CompCert's RISC-V backend
 
@@ -2016,6 +2334,8 @@ No compiler source was authored or incorporated. Every axis was traced to its ow
     * **Start-from size is not work cost.** The measurement changes the estimate's standing without supplying a new midpoint.
 
   * Landed: Tier A.
+
+<a id="m12b-author-the-capability-type-the-merged-register-file-and-the-width"></a>
 
 #### M1.2b · Author the capability type, the merged register file and the width
 
@@ -2039,6 +2359,8 @@ Calibration: original midpoint 6 h, range 4–8, class X; retained planning weig
 
 Landed: Tier A. The technical acceptance and unavailable-actual accounting are reviewed judgments. The settled integration batch supplies the host validation; no repository rule replays the historical contained compiler campaign.
 
+<a id="m12g-author-the-capability-value-carrier-and-the-tagged-memval-in-common"></a>
+
 #### M1.2g · Author the capability value carrier and the tagged memval in common/
 
 The contained capability carrier and tagged block-memory representation satisfy the selected scalar scope through [inhabited logical-memory qualification](#m12g-i-exercise-inhabited-capability-memory-semantics) and [source-value and emitted-memory integration](#m12g-ii-integrate-capability-values-with-source-operations-and-emitted-memory-traffic). Their actual source operations, typed memory injection and physical byte/tag effects join the [integrated backend comparison](#m12f-close-the-acceptance-loop-both-ends).
@@ -2050,6 +2372,8 @@ The retained source/memory receipt SHA256 `0b996e6cb93cbb97b9baa343dd077554a1d3f
 Q39 retains the locked rebuild, complete environment qualification and interrupted-candidate decisions. The child entries own their detailed evidence, actuals and retained planning weights.
 
 Landed: Tier A, by the integrator's full read and independent review of the child predicates, retained source/memory evidence, integrated backend join and audit limits at `56b0f672`. The settled documentation batch supplies the required public hosted handoff.
+
+<a id="m12g-i-exercise-inhabited-capability-memory-semantics"></a>
 
 ##### M1.2g-i · Exercise inhabited capability-memory semantics
 
@@ -2066,6 +2390,8 @@ Recorded actual: 0.7 h agent-parallel, including integrated review; initial scou
 Landed: Tier A, by the integrator's full read of generated propositions, access
 proofs, inherited assumptions, destructive controls, receipts and scope limits.
 
+<a id="m12g-ii-integrate-capability-values-with-source-operations-and-emitted-memory-traffic"></a>
+
 ##### M1.2g-ii · Integrate capability values with source operations and emitted memory traffic
 
 The contained scalar compiler implements the [source-value contract](contracts/compiler-source-values.md) through source operations, typed memory injection, byte/tag effects and emitted traffic. Object, code and nominal-grant identities remain bound to supplied/derived capabilities. Recursive checking passes the owned propositions and exact inherited APIs, with no new axiom or admission.
@@ -2080,6 +2406,8 @@ Calibration: original midpoint 7.5 h, range 4–11; retained planning weight, cu
 
 Landed: Tier A, with final hosted validation pending at publication, by the integrator's full read of the source and memory relations, actual compiler path, decisive controls, inherited assumptions, source/build bindings and acceptance limits. Validation uses hosted Windows and Ubuntu Host CI and the hosted Guest CI model, proof and RTL sweep; compiler-specific checks stay separate because their sources are contained. The public model and proof evidence is shared with M1.2d-ii.
 
+<a id="m12c-author-the-permission-lattice-and-the-otype-space"></a>
+
 #### M1.2c · Author the permission lattice and the otype space
 
 Permission expansion/narrowing, the object-type space and sentry-role lemmas agree with their [Sail owners](../../model/model/core/cap_common.sail) at contained `5ef8b929cea56f941aad514a072d87dc064d9759`. Fresh vectors cover every permission codepoint, mask and object type. Focused kernel recheck and closed assumption audits pass with unchanged admit census. A combined build checks registered modules, extracts interfaces and links `ccomp`; integer smoke succeeds and scalar FP refuses.
@@ -2089,6 +2417,8 @@ This accepts helper authoring with M1.2b's representation prerequisite, not inst
 Calibration: historical midpoint 7 h, range 4–10, class X; retained estimate, cumulative actual n/a. No historical work interval is recoverable; this review/build duration supplies no measured actual or calibration pair.
 
 Landed: Tier A. The helper acceptance is read against its model owners, and the settled integration batch supplies the host validation. No new contained compiler replay is claimed.
+
+<a id="m12d-author-the-frame-layout-and-the-calling-convention-against-the-slot-plan"></a>
 
 #### M1.2d · Author the frame layout and the calling convention against the slot plan
 
@@ -2104,6 +2434,8 @@ Installed-writable-authority, machine-correspondence and return-copy-confinement
 
 Landed: Tier A, by the integrator's full read and independent review of the ABI and kind contracts, child landing evidence, retained target and recursive proof receipts, integrated acceptance and remaining owners at `56b0f672`. The settled documentation batch supplies the required public hosted handoff.
 
+<a id="m12d-i-locate-lost-capability-kinds-and-state-the-lowering-prerequisites"></a>
+
 ##### M1.2d-i · Locate lost capability kinds and state the lowering prerequisites
 
 The [kind handoff](contracts/compiler-kind-handoff.md) satisfies the [diagnostic predicate](contracts/compiler-prerequisites.md). Contained `f5a55d4cfa84b311a425d0c354e8a8439a3d33a6` retains the source/tool/configuration-bound campaign under `test/verifiedos-m12d/`, using compiler source `cd1d3adbea95b9d7e1a25d335c4dd48e22435a6d`.
@@ -2116,6 +2448,8 @@ Recorded actual: 0.4 h agent-parallel, including integrated review; initial scou
 
 Landed: Tier A, by a full read of the diagnostic, retained outputs, refusal
 checks and handoff against their acceptance contract.
+
+<a id="m12d-ii-realize-typed-frame-call-and-primitive-lowering"></a>
 
 ##### M1.2d-ii · Realize typed frame, call and primitive lowering
 
@@ -2139,6 +2473,8 @@ Calibration: original midpoint 7.5 h, range 5–10; retained planning weight, cu
 
 Landed: Tier A, with final hosted validation pending at publication, by the integrator's full read of typed lowering, source and primitive boundaries, final target observations, sealed-authority graph, return/cleanup proofs and their explicit premises.
 
+<a id="m12e-land-the-exactly-representable-narrowing-side-condition"></a>
+
 #### M1.2e · Land the exactly-representable narrowing side condition
 
 [M1.2e-i's total plan-relative decision](#m12e-i-check-plan-relative-narrowing-requests) and [M1.2e-ii's mandatory emitter/provenance checks](#m12e-ii-enforce-plan-provenance-at-every-emitted-narrowing) close the selected scalar reference narrowing contract. [M1.2f's integrated acceptance](#m12f-close-the-acceptance-loop-both-ends) supplies the complete nonempty final-image census and actual-local operand join, including refusal of a statically valid request displaced from its declared local. The compiler-positive, Handle-positive and integrated kernel receipts bind matching narrowing decision, provenance and layout-audit sources.
@@ -2146,6 +2482,8 @@ Landed: Tier A, with final hosted validation pending at publication, by the inte
 The integrated kernel receipt SHA256 `878ddd52bd79f50e2e84c785f92b3f2678787c4ef1f75d403785f116c92849d2` reports successful compilation and recursive checking with unchanged inputs; its bound proof receipt is SHA256 `83d5a3ab8a46ff93709163a2c43ad4ed9317ce65ffaa70c75c04617b787cfe9b`. The child entries own their detailed evidence and planning weights; M1.2f records the settled compiler campaign. Acceptance establishes exact-image census, checked operands and rooted ancestry at that finite boundary. Universal compiler/Sail preservation and production completeness retain their existing owners. R-15-007k remains the normative owner, with `CRAM`, `CRRL` and `CSetBoundsExact` unadmitted.
 
 Landed: Tier A, by the integrator's full read and independent review of the child predicates, retained receipts, matching source bindings and integrated narrowing join at `56b0f672`. The settled documentation batch supplies the required public hosted handoff.
+
+<a id="m12e-i-check-plan-relative-narrowing-requests"></a>
 
 ##### M1.2e-i · Check plan-relative narrowing requests
 
@@ -2159,6 +2497,8 @@ Recorded actual: 0.6 h agent-parallel, including independent and integration rev
 
 Landed: Tier A, by full integrator and independent reads of the proof, generator,
 source bindings and limitations against the qualification predicate.
+
+<a id="m12e-ii-enforce-plan-provenance-at-every-emitted-narrowing"></a>
 
 ##### M1.2e-ii · Enforce plan provenance at every emitted narrowing
 
@@ -2175,6 +2515,8 @@ Retained: [`/root/build/lane-unblock-20260921-narrowing/handle-profile-kernel-1/
 Calibration: original midpoint 3.5 h, range 2–5; retained planning weight, cumulative actual n/a for unrecoverable interrupted/shared intervals.
 
 Landed: Tier A, with final hosted validation pending at publication, by full integrator review of the plan-relative decision, source/build provenance, exhaustive final-byte census, runtime operand equations, root/derivation ancestry, decisive controls and finite scope.
+
+<a id="m12f-close-the-acceptance-loop-both-ends"></a>
 
 #### M1.2f · Close the acceptance loop, both ends
 
@@ -2193,6 +2535,8 @@ Retained: [`/root/build/lane-backend-accept-20260925/campaign-kernel-integrated/
 Calibration: retained estimate 7 h, original range 4–10; actual n/a. Historical authoring, recovery and review intervals cannot be reconstructed; no measured calibration pair exists.
 
 Landed: Tier A. The component-route ruling, concrete source correspondence, compiler fixes and final-artifact joins receive full review; source compilation and a green host gate alone do not decide those claims.
+
+<a id="m14-extend-the-in-tree-assembler-and-composer-to-the-emitted-mix"></a>
 
 ### M1.4′ · Extend the in-tree assembler and composer to the emitted mix
 
@@ -2223,11 +2567,15 @@ The findings retain configuration-union/site-ID ownership gaps, explicitly refus
 
   * Landed: Tier B under **K-88**, which holds the generated table byte-for-byte against the generator that writes it, running that generator at the gate and not trusting the index. The rule id this item was priced against stays unspent and is not named here, on S14's own ground: [check-rules.md](../../tools/check-rules.md) registers a rule when a check carries it, so an id written in a document and registered nowhere is a citation no reader can resolve. Extending the generated table with a `host` lane is one edit where a rule of its own would have been three and a mutant, and the rule that already exists is the one whose subject this extends.
 
+<a id="m15-run-the-certicoq-to-wasm-oracle"></a>
+
 ### M1.5 · Run the CertiCoq-to-Wasm oracle
 
 The [Wasm oracle](../../tools/wasm-oracle/) runs Gallina `demo.v` through released CertiRocq 0.9.1+9.1 and stock Node, returning `true`. The release replaces the prior source pin/compatibility patch and carries the Wasm backend; this refresh is qualified only by the same demo round trip. Its Rocq 9.1.1 dependency is separate from the contained compiler's Coq 8.20.1 environment.
 
 The native switch package/dependency closure was exercised. The container recipe's amd64 base/repository configuration was not tested on the arm64 host. Environment effects were addressed through repository-scoped WSL keepalive and the required proxy trust root. The later WSL Containers GA review kept that route declined: checkout filesystem placement, proxy trust and native hosted toolchain coverage remain the deciding boundaries. [The tool guide](../../tools/README.md#the-lane-as-a-fact-list-and-what-no-provisioner-reaches) owns that posture.
+
+<a id="m16-stand-up-gc-free-lowering-routes"></a>
 
 ### M1.6 · Stand up GC-free lowering routes
 
@@ -2251,6 +2599,8 @@ The isolated toolchain installs with its own compiler after the `ocaml-system` a
 
   * Landed: Tier A.
 
+<a id="m17-boot-purecap-gallina-hello-world-on-the-m0-emulator"></a>
+
 ### M1.7 · Boot purecap Gallina hello-world on the M0 emulator
 
 The [maintained hello recipe](../../tools/bedrock2-lowering/HELLO.md) derives Gallina through Rupicola to Bedrock2, checks closed assumptions/kernel acceptance, and compiles emitted C plus the client with the accepted purecap backend. Its theorem ends at Bedrock2; printer/compiler/source-to-binary refinement is not claimed. No external runtime/helper body enters distributed assembly.
@@ -2264,6 +2614,8 @@ Calibration: original estimate 9 h, range 6–12; retained estimate, actual n/a.
 Landed: Tier A. Review read the generated client, derivation boundary, slot
 ownership and exact corpus predicate. Host CI and both Guest CI lanes are the
 settled batch's validation handoff; a pending Guest CI run supplies no verdict.
+
+<a id="m18a-the-instrument-its-two-renderings-its-gate-and-the-checker-rule"></a>
 
 #### M1.8a · The instrument, its two renderings, its gate, and the checker rule
 
@@ -2285,6 +2637,8 @@ Geometry break-even arithmetic directs later measurements but supplies no observ
     * **Document floors do not detect a removed rule comparison.** Relation-size floors and separate mutants protect both joins.
     * **Checker ownership follows the index.** Shared parsing must use `Context.text`, not an off-corpus file left on disk.
     * **No declared CI predicate checks S6 re-selection inside each variant.** The record exposes it; adding the predicate belongs to the contract.
+
+<a id="m19-two-class-static-memory-plan-and-placement-wcet-delta"></a>
 
 ### M1.9 · Two-class static memory plan and placement WCET delta
 
@@ -2311,6 +2665,8 @@ No lowering/emulator execution or whole-system verification is claimed. Composit
 
 ## M2 · Fast emulator, struck
 
+<a id="m21-fork-cheri-qemu-and-narrow-compressed-capabilities"></a>
+
 ### M2.1 · Fork CHERI-QEMU and narrow compressed capabilities
 
 The separately contained format/library experiment pins compressed-cap `78a34ba5` and CHERI-QEMU `d0bb921c` (QEMU 7.0.0). Its 64+1-bit instantiation agrees with 21,546 Sail-generated vectors and all format properties; the narrowed library passes its complete existing suite. This tree retains gitlinks, not the experiment's source or locally measured artifacts.
@@ -2321,19 +2677,27 @@ The library implements the profile's explicit exponent, enumerated permission la
 
   * **Finding, about the algebra rather than either implementation: `setCapBounds`'s containment property holds over a domain that nothing states.** The domain is a requested top at or below 2^36; above it the decoded top wraps below its own base, so the derived region does not contain the requested one. The model does the same and the cross-check agrees, so it is no divergence, and it is unreachable with a tag: `CSetBounds` clears the tag on precisely the test that fails there. Owed: **R-15-007a's representation-correctness proof states the condition** rather than carrying containment unconditionally, and the format's `$[test]` harness reaches that edge. Reported, not closed: no register entry governs this item.
 
+<a id="m22-implement-the-frozen-decode-surface-and-bespoke-machine"></a>
+
 ### M2.2 · Implement the frozen decode surface and bespoke machine
 
 * Struck in the checklist; no landing note was recorded.
 
+<a id="m23-add-vlen4096-rvv-matrix-and-fec-datapaths"></a>
+
 ### M2.3 · Add VLEN=4096 RVV, matrix, and FEC datapaths
 
 * Struck in the checklist; no landing note was recorded.
+
+<a id="m24-reach-corpus-lockstep-with-m0-and-boot-m1-hello-world"></a>
 
 ### M2.4 · Reach corpus lockstep with M0 and boot M1 hello-world
 
 * Struck in the checklist; no landing note was recorded.
 
 ## M3 · Boot chain
+
+<a id="m31-add-rot-configuration-and-peripherals-to-the-curated-sail-tree"></a>
 
 ### M3.1 · Add RoT configuration and peripherals to the curated Sail tree
 
@@ -2349,6 +2713,8 @@ Added RoT lifecycle/fuse, entropy, counter and watchdog register slaves plus a s
     * **The attested tree's device windows ride R-15-002b, not R-09-007**, and the memory sequencer's node was already in that position.
     * **The model stops at the gate, and R-15-078 says so.** *The Sail model carries the gate rather than a model of the debugger* is that entry's criterion, so what is here is the predicate its RTL refinement obligation quantifies over, `no DM transaction reaches the fabric in the production state`.
 
+<a id="m32-specify-rot-firmware-in-gallina"></a>
+
 ### M3.2 · Specify RoT firmware in Gallina
 
 [RotFirmware.v](../../proofs/RotFirmware.v) specifies measured boot, lifecycle, entropy failure, attestation and debug liveness, with inhabited parameters and discriminating alternative constructions. Native audit accepted 476 file constants with empty assumptions; host checks passed. The 244 mutation detections came entirely from prover refusal: vector and QuickChick harnesses reached none of this file. This accepts a specification, not executable firmware; M3.5 owns realization and target joins.
@@ -2361,6 +2727,8 @@ Added RoT lifecycle/fuse, entropy, counter and watchdog register slaves plus a s
     * **Whether R-09-025's *this set* is four terms or five is unfixed, and this file takes a side.** The MUST has attestation cover the chain and the discipline both; the criterion says *the quote's vector*, which is not the quote, and *this set*, which can name the four terms the colon introduces.
 
   * Landed: Tier A.
+
+<a id="m33-specify-m-mode-firmware-in-gallina"></a>
 
 ### M3.3 · Specify M-mode firmware in Gallina
 
@@ -2375,6 +2743,8 @@ Added RoT lifecycle/fuse, entropy, counter and watchdog register slaves plus a s
     * **R-05-091's Tier-0 proof has no owner.** The entry puts the no-ambient-state obligation on the firmware as ordinary Tier-0 proof over its statically planned state; no artifact here is that proof and no item authors one.
 
   * Landed: Tier A.
+
+<a id="m34a-the-cryptography-licence-reads-and-sha-3-in-gallina"></a>
 
 #### M3.4a · The cryptography licence reads, and SHA-3 in Gallina
 
@@ -2398,11 +2768,15 @@ Read the crypto/oracle licences at their pinned sources and authored [Keccak.v](
 
 Related findings: F-187.
 
+<a id="m34c-the-rest-of-the-classical-suite-and-the-fiat-crypto-generator-run"></a>
+
 #### M3.4c · The rest of the classical suite, and the Fiat-Crypto generator run
 
 The aggregate classical-reference/emission scope is covered by M3.4c-i and M3.4c-ii; AES-GCM belongs to M3.4d. Children retain their evidence and costs, with no duplicate parent actual. The signature artifact supplies no executable SLH-DSA verifier. Target refinement/timing remain consumer work, while assembled interface, Wasm validation and F-205g hash binding stay open. F-205d's suite disagreement still requires register disposition.
 
 Landed: Tier A.
+
+<a id="m34c-i-sha-256-hmac-drbg-sha-256-and-the-boot-verifiers-signature-statement-in-gallina"></a>
 
 #### M3.4c-i · SHA-256, HMAC-DRBG-SHA-256 and the boot verifier's signature statement in Gallina
 
@@ -2415,11 +2789,15 @@ Landed: Tier A.
     * **A thirty-two-bit shift probe spelled as one `nat` literal is a unary numeral the evaluator materializes before it shifts.** That reading took the guest VM down twice before the cause was found.
     * **The proof gate's runtime now exceeds the default command timeout an agent session applies to a foreground command, and its failure under a kill is silent.** The gate reports 5,180 constants over 21 files where it reported 4,656 over 18, and a killed run prints neither a `FAIL:` line nor a rocq diagnostic, so it reads as a proof defect.
 
+<a id="m34c-ii-the-fiat-crypto-generator-run-and-its-tracked-emission"></a>
+
 #### M3.4c-ii · The Fiat-Crypto generator run and its tracked emission
 
 [The emission record](fiat-crypto-emission.md) binds the Fiat-Crypto pin, reviewed nested licences, successful build/generator identity and two incorporated 32-bit 25519/P256 headers. Independent execution of the same generator reproduced every raw/wrapped byte; this was not an independent toolchain build. Both interfaces compiled and 6,786 results agreed with an integer oracle; focused source/mutation checks passed. Unexercised helpers, complete protocols, target refinement, constant time and WCET remain outside acceptance. The 2.4 h cost is a conservative overlapping upper bound, excluded from calibration.
 
 Landed: Tier A.
+
+<a id="m34d-the-aead-in-gallina"></a>
 
 #### M3.4d · The AEAD in Gallina
 
@@ -2445,6 +2823,8 @@ Calibration: no original estimate was recorded; excluded from the fit.
 
 Related findings: F-205d.
 
+<a id="m35-reach-the-machine-mode-kernel-through-measured-boot"></a>
+
 ### M3.5 · Reach the machine-mode kernel through measured boot
 
 M3.5a accepts the host release predicate and M3.5b the finite target chain. The final target campaign releases through the RoT, measured M-mode bytes and kernel verifier under [the boot-handoff contract](contracts/boot-handoff.md#9-the-target-chain). Child records own their tested revisions, receipts, retained estimates and limits; no earlier partial checkpoint substitutes for the final chain evidence.
@@ -2454,6 +2834,8 @@ Landed: Tier A.
 Retained evidence: [`/root/build/lane-bootchain-20260927/boot-release-target/report.json`](retained-evidence/root/build/lane-bootchain-20260927/boot-release-target/report.json).
 
 Related findings: F-443, F-434, F-435, F-436, F-437, F-438, F-439, F-440, F-441, F-442, F-394.
+
+<a id="m35a-bind-real-signatures-to-the-measured-host-release"></a>
 
 #### M3.5a · Bind real signatures to the measured host release
 
@@ -2466,6 +2848,8 @@ failure handling and capability producer. The settled batch retains the Host CI
 requirement and both Guest CI lanes; a pending guest run is not counted as passed.
 
 Retained evidence: [`/root/build/critical-fanout-20260926/boot-final/report.json`](retained-evidence/root/build/critical-fanout-20260926/boot-final/report.json) (SHA-256 `b7fe77239e81f8c3e896674af35936e1f0a15654c03875052a8f134a5b4fc889`).
+
+<a id="m35b-lower-and-compose-the-remaining-measured-boot-chain"></a>
 
 #### M3.5b · Lower and compose the remaining measured boot chain
 
@@ -2484,6 +2868,8 @@ Retained evidence: [`out/boot-chain-target/37103959681/report.json`](retained-ev
 
 Related findings: F-738, F-745, F-721, F-722, F-746, F-756, F-758, F-762, F-766, F-770, F-771, F-772, F-773.
 
+<a id="m36a-state-and-refute-the-ordered-sequence"></a>
+
 #### M3.6a · State and refute the ordered sequence
 
 [DischargeSequence.v](../../proofs/DischargeSequence.v) states reset hold, tag discharge, worst-corner dwell, single completion read, fail-stop and sanitization order. Inhabited parameters and generated alternatives discriminate those obligations. Native audit accepted 76 file constants without assumptions; seeded weakenings and host checks passed. It is a statement artifact without device execution; the register subsequently answered the five reported decisions.
@@ -2499,25 +2885,35 @@ Related findings: F-738, F-745, F-721, F-722, F-746, F-756, F-758, F-762, F-766,
 
 ## M4 · Kernel
 
+<a id="m34b-ml-kem-and-ml-dsa-in-gallina"></a>
+
 #### M3.4b · ML-KEM and ML-DSA in Gallina
 
 [The functional reference](../assurance/pq-reference-contract.md) supplies PqArith transforms/codec inverses, ML-KEM-1024 and ML-DSA-87. Native audits and kernel rechecks accepted their closed statements; official/hash/refusal campaigns, generated signatures and independent OpenSSL comparisons passed. Twenty-one compile-valid semantic mutants were detected with no survivor or stillborn. [ML-KEM](../../proofs/campaigns/MLKEM-README.md) and [ML-DSA](../../proofs/campaigns/mldsa-reference.md) own pins, hashes and replay limits. No general multiplication correspondence, security reduction, universal failure bound, binary constant time, masking, production entropy, target refinement or Wasm integration is accepted. The 5.1 h overlapping session bound is excluded from calibration.
 
 Landed: Tier A.
 
+<a id="m41-decide-revocation-sweep-quanta"></a>
+
 ### M4.1 · Decide revocation sweep quanta
 
 Declined quiescent-point sweep restructuring and retained R-08-007's incremental/preemptible background-slot discipline. [The alternatives record](../background/architectural-alternatives.md) owns grounds and reopening evidence: bitmap revocation is not reachability tracing and this design claims no mutator-overlap property for the proposed rule to discharge. Decision review/checker passed without a register/co-read change.
 
+<a id="m41a-decide-the-kernel-specification-provenance-fork"></a>
+
 ### M4.1a · Decide the kernel-specification provenance fork
 
 Chose an authored kernel specification derived from this repository's design. Reviewed seL4 spec/proof objects are GPL-2.0-only and were not translated or incorporated; [THIRD-PARTY.md](../../THIRD-PARTY.md) records object-level terms and declined arms. The decision preserves clean specification ownership rather than importing incompatible derivative content.
+
+<a id="m41b-decide-the-kernel-c-provenance-fork"></a>
 
 ### M4.1b · Decide the kernel-C provenance fork
 
 Chose authored kernel C against the local Gallina specification. S7's file-level licence read rules out incorporating CHERI-seL4/CHERI-Microkit kernel sources under this tree's terms. [THIRD-PARTY.md](../../THIRD-PARTY.md) records the refused source and alternatives; implementation forfeits the maintained-code start-from. This is a provenance decision, not completed C implementation.
 
   * Landed: Tier A.
+
+<a id="m42a-the-partition-context-the-switch-and-the-cyclic-executive-schedule"></a>
 
 #### M4.2a · The partition context, the switch, and the cyclic-executive schedule
 
@@ -2532,6 +2928,8 @@ Chose authored kernel C against the local Gallina specification. S7's file-level
     * **R-15-220 fixes partition-switch cost at three terms and names neither the total restore nor R-07-044's pending swap among them.** Its terms are `fence.t`, one `vmclear` pass and OPP relock, and R-18-009 treats those as the whole of it.
     * **The surviving object count is five in the prose and three or four in the register, and nothing enumerates the five.** [The spec](../spec.md) and [the inspirations](../background/inspirations.md) each speak of five surviving classes without naming them and disagree on what happens to them; R-07-027 enumerates three, R-07-031a names four ABI groups one of which is not an object, and R-08-004d puts the grant table outside the restored classes, while R-07-020's criterion quantifies over an *object inventory* nothing enumerates.
     * **The rule registry has a gap at K-64 that nothing records and no rule can see.** [The registry](../../tools/check-rules.md) runs K-63 straight to K-65 with no struck row and no retirement note, and the id occurs nowhere else in the tree.
+
+<a id="m42b-endpoint-and-notification-ipc-and-the-surviving-object-inventory"></a>
 
 #### M4.2b · Endpoint and notification IPC, and the surviving object inventory
 
@@ -2550,11 +2948,15 @@ Chose authored kernel C against the local Gallina specification. S7's file-level
 
   * Landed: Tier A.
 
+<a id="m43-exercise-capability-lifecycle-ipc-and-slot-faults-through-wasm"></a>
+
 ### M4.3 · Exercise capability lifecycle, IPC, and slot faults through Wasm
 
 Added generated IPC vectors/properties and the first real repository client staged through CertiRocq to Wasm. The oracle passed 84 checks and its deliberate wrong-source control failed; 31 property sets and the generated vectors passed. Twelve decider mutations were stillborn at prover compilation, so the Wasm oracle measures compiled-pipeline agreement rather than additional decider-defect coverage. The statement artifact's separate 274 live mutants were detected.
 
   * Landed: Tier A.
+
+<a id="m44a-execute-the-bounded-scalar-kernel-composition"></a>
 
 #### M4.4a · Execute the bounded scalar kernel composition
 
@@ -2569,6 +2971,8 @@ the settled batch's hosted handoff; pending guest evidence is not a pass.
 
 Retained evidence: [`/root/build/critical-fanout-20260926/kernel-final/report.json`](retained-evidence/root/build/critical-fanout-20260926/kernel-final/report.json) (SHA-256 `48ef22ca4918dfc5bf0e5be5acaa0d5e70ee9a6e318c0d58cf97e420c1c93a3e`).
 
+<a id="m44b-i-bind-scalar-restart-and-service-effects"></a>
+
 ##### M4.4b-i · Bind scalar restart and service effects
 
 [The scalar integration](contracts/boot-roster.md#2a-scalar-integration-and-producer-joins) joins the real non-ASR supervisor, lifecycle consumer and copy service. The three-case target aggregate passed on code c8a7234e63b44252a8fd43f990b589c452585336 and source/model manifests remained current at 6daf827225308987fbc885ef1196e6c3f3cca028. Restart, stale grant and incomplete completion controls check actual release timing, clearing and saved-context retirement. The holder set has no external loans and zero joined protected-call depth; supplemental depth-two/private-loan fixtures do not extend it. Instruction-tick source bounds establish no physical WCET. M7.1 owns authenticated boot/full roster, M4.4b-ii group/elastic and general pending/CSR duties, and M4.4b-iii V/M restoration. Original estimate 4 h, range 2.6–5.4, actual n/a because component/review/integration intervals were inseparable.
@@ -2579,6 +2983,8 @@ Retained evidence: [`/root/build/critical-fanout-20260926/kernel-final/report.js
 Retained evidence: [`/root/build/scalar-join/report.json`](retained-evidence/root/build/scalar-join/report.json) (SHA-256 `dc203e82975804680726910504d08e46d0e56f834e07b0a656b349cd2c1f7b0b`); [`/root/build/fanout-20260926-integrated/kernel-effects-settled/report.json`](retained-evidence/root/build/fanout-20260926-integrated/kernel-effects-settled/report.json) (SHA-256 `f76726e2814a1a9fe5a2f104dd62cc659ad012d761e8821d7d7f14a0ec92895d`); [`/root/build/lane-scalar-effects-20260926/kernel-protected-final/report.json`](retained-evidence/root/build/lane-scalar-effects-20260926/kernel-protected-final/report.json) (SHA-256 `530b6c06ac0676bba84612e09725dff6b0ea7349214789658d073f8322ec4e0a`); [`/root/build/fanout-20260926-integrated/copy-loan-final/report.json`](retained-evidence/root/build/fanout-20260926-integrated/copy-loan-final/report.json) (SHA-256 `b45634083b3a73aabec0fb6fa59bbf11b522f6320168cc91600cdcc3bbf9c308`); [`/root/build/supervisor-target/report.json`](retained-evidence/root/build/supervisor-target/report.json) (SHA-256 `0ada634502d5d22c38bc5ab20a9656b75945b5836df6ee99ff78092bbd5d7c8e`); [`/root/build/fanout-20260926-integrated/lifecycle-refusals/report.json`](retained-evidence/root/build/fanout-20260926-integrated/lifecycle-refusals/report.json) (SHA-256 `c8a12f36e182fa54ccfa34d9c5f1bbfa770ed8021171137a0313dc19099f8b60`).
 
 ## M5 · Storage and objects
+
+<a id="m51-specify-l0-recovery-and-the-l1-abstract-index"></a>
 
 ### M5.1 · Specify L0 recovery and the L1 abstract index
 
@@ -2595,6 +3001,8 @@ Retained evidence: [`/root/build/scalar-join/report.json`](retained-evidence/roo
     * **Every composition magnitude is a field**, the demo instantiating each with a witness value that carries no claim.
 
   * Landed: Tier A.
+
+<a id="m52-specify-l2-semantics-and-l3-confidentiality"></a>
 
 ### M5.2 · Specify L2 semantics and L3 confidentiality
 
@@ -2613,17 +3021,23 @@ Retained evidence: [`/root/build/scalar-join/report.json`](retained-evidence/roo
 
   * Landed: Tier A.
 
+<a id="m53a-generate-and-execute-block-device-payload-families"></a>
+
 ### M5.3a · Generate and execute block-device payload families
 
 [The payload campaign](../../model/test/unit_tests/block_payload.cpp) runs the generated Sail model under the landed contract. At d9489c76, generated pattern/write/read/staging families compare the entire allocated medium and returned bytes; a deliberate wrong byte fails. Canonical model build/wait and integrator review passed; combined receipts are recorded with M5.3c. Host-image persistence and authentication remain M5.3d's work.
 
 Landed: Tier A.
 
+<a id="m53b-execute-every-block-device-reset-boundary"></a>
+
 ### M5.3b · Execute every block-device reset boundary
 
 [The reset campaign](../../model/test/unit_tests/block_reset.cpp) derives boundaries/buffers from model owners and exercises 516 resets plus stale responses, tears, corruption, priority and complete volatile cleanup. Both deliberate controls fail their intended comparisons. Canonical build/wait and focused campaign/control tests passed at 9b17f499. This covers explicit modeled reset, not process-exit persistence; M5.3d retains that join.
 
 Landed: Tier A.
+
+<a id="m53c-exercise-block-device-capability-refusals-through-htif"></a>
 
 ### M5.3c · Exercise block-device capability refusals through HTIF
 
@@ -2632,6 +3046,8 @@ Landed: Tier A.
 Landed: Tier A.
 
 Retained evidence: [`out/evidence/block-authority-compose-baseline.json`](retained-evidence/out/evidence/block-authority-compose-baseline.json); [`out/evidence/block-integration-validation.json`](retained-evidence/out/evidence/block-integration-validation.json); [`out/evidence/block-integration-host.json`](retained-evidence/out/evidence/block-integration-host.json); [`/root/logs/model-build-block-integration-20260919.json`](retained-evidence/root/logs/model-build-block-integration-20260919.json).
+
+<a id="m55-prove-witness-policy-continuity"></a>
 
 ### M5.5 · Prove witness-policy continuity
 
@@ -2646,11 +3062,15 @@ Landed: Tier A. The read accepts the actual reference model and quantified theor
 
 ## M6 · Userland spine
 
+<a id="m60a-decide-the-control-plane-compiler-provenance"></a>
+
 ### M6.0a · Decide the control-plane compiler provenance
 
 The control-plane route uses Vélus as a contained build-time producer under its separately read Inria non-commercial grant. [THIRD-PARTY.md](../../THIRD-PARTY.md) owns the licence reading, including use restrictions, reciprocal distribution and termination. CompCert's grant does not extend to Vélus.
 
 This route supports the proof of concept and requires new terms for changed commercial use. Obtaining separate terms and authoring the control plane directly in Gallina remain untaken alternatives; the latter forfeits Lustre's structural WCET, determinism and causality argument.
+
+<a id="m60b-author-the-typed-idl-profile"></a>
 
 ### M6.0b · Author the typed IDL profile
 
@@ -2688,6 +3108,8 @@ The repair's focused document/checker, mutation, type and tool evidence passes. 
 
   * Landed: Tier A.
 
+<a id="m61a-the-supervision-tree-as-a-gallina-state-machine"></a>
+
 #### M6.1a · The supervision tree as a Gallina state machine
 
 [SupervisionTree.v](../../proofs/SupervisionTree.v) states the finite reference supervisor, roster bring-up, grant/revocation distinctions, detector/action isolation, class policy and bounded reaction/backoff rules. Composition values remain parameters. Generated and isolated refutations make each obligation observable, including threshold and zero-width hysteresis boundaries.
@@ -2705,6 +3127,8 @@ Proof compilation, exact zero-assumption readings, host checks and the complete 
 
   * Landed: Tier A.
 
+<a id="m61b-i-decide-the-supervisor-target-route"></a>
+
 ##### M6.1b-i · Decide the supervisor target route
 
 The [bounded trial](../../supervisor/route/README.md) selects the existing C producer for M8a. Its [source-bound result](../../supervisor/route/result.json) binds Vélus `27ba860c2624ba232816591290c6c119b9ead88a`, CompCert `22c33b91d42c7df986c97b13b6cd630866a56494`, licences, toolchain and products. The real node compiles in Vélus, but the accepted purecap frontend refuses its printed parameter alignment. No target assembly, image or comparison verdict exists; this refuses the tested exchange, not every Vélus route.
@@ -2716,6 +3140,8 @@ Accounting: original midpoint 1.5 h, range 1–2; retained planning estimate, ac
 * Landed: Tier A. The integration review reads the failed predicate, emitted
   interface, provenance and unchanged downstream obligations. Hosted validation
   follows the batch handoff; component evidence does not assert a guest-gate verdict.
+
+<a id="m61b-iii-normalize-the-vélus-clight-exchange-and-repeat-its-bounded-exchange-trial"></a>
 
 ##### M6.1b-iii · Normalize the Vélus Clight exchange and repeat its bounded exchange trial
 
@@ -2735,6 +3161,8 @@ Calibration: original estimate 2.5 h, range 1.5–3.5, class X; retained plannin
 Retained evidence: [`/root/build/lane-m61biii-fix-20260928/equiv/equivalence.json`](retained-evidence/root/build/lane-m61biii-fix-20260928/equiv/equivalence.json).
 
 * Landed: Tier A. The integrator's read covers the normalizer's enumerated positions and refusals against the cell, the token comparison's independence from the normalizer, the result's first failed predicate, its retained evidence and its `post_trial` amendments, the tool repair's equivalence record, the five findings against the register, and M6.1b-iv's cell, which takes the rewrite route and leaves the contained compiler unchanged. No checker rule was added; `test_supervisor_route` and `test_retained_evidence` hold the tools and the retained copies.
+
+<a id="m61b-iv-rewrite-the-exchanges-clight-switch-and-repeat-the-bounded-target-legs"></a>
 
 ##### M6.1b-iv · Rewrite the exchange's Clight `switch` and repeat the bounded target legs
 
@@ -2764,6 +3192,8 @@ Retained evidence: [source-bound result](../../supervisor/route/switch-result.js
 
   No checker rule was added; `test_supervisor_switch` and `test_retained_evidence` hold the tools and the retained copies.
 
+<a id="m62a-specify-the-composition-time-admission-path"></a>
+
 #### M6.2a · Specify the composition-time admission path
 
 [AdmissionPath.v](../../proofs/AdmissionPath.v) specifies generation-wide composition admission for the golden-model roster, thin discharge records, tier obligations, move routing and ordered refusal phases. Refuting machines independently expose wrong evidence moves, phase order, partial generations and uncovered shared-service output.
@@ -2782,6 +3212,8 @@ Compilation, zero-assumption readings, host checks and the complete seeded popul
 
   * Landed: Tier A.
 
+<a id="m62b-i-qualify-the-bounded-checker-and-its-refinement-contract"></a>
+
 #### M6.2b-i · Qualify the bounded checker and its refinement contract
 
 The [CIC qualification](../assurance/cic-checker-qualification.md) refuses MetaRocq `7d4f2fddb0e6b1ef03050999bce281237e2828f6` as an already usable admitted checker. Licence/configuration probes execute, but the actual SafeChecker entry lacks checked guard correctness, preservation/normalization and abstract-environment foundations plus a bounded wire reader. Import scanning is not a transitive assumption audit; no serialized-proof campaign is accepted.
@@ -2791,6 +3223,8 @@ M6.2b-0 owns the separately priced real-corpus partial-checker/metatheory qualif
 Accounting: the recorded 2.4 h is a conservative non-exclusive upper bound counting the shared four-trial qualification and enclosing batch review whole. Overlapping bounds are not independently spent hours; calibration is n/a. The recovery report retains settled revision-bound gate receipts.
 
 Landed: Tier A.
+
+<a id="m63a-specify-the-package-composer-and-typed-graph"></a>
 
 #### M6.3a · Specify the package composer and typed graph
 
@@ -2817,6 +3251,8 @@ Compilation, zero-assumption readings, host checks and the complete seeded popul
 
   * Landed: Tier A.
 
+<a id="m64-author-the-ring-contract-schema-and-generate-the-reference-bindings"></a>
+
 ### M6.4 · Author the ring-contract schema and generate the reference bindings
 
 [The reference declaration](../../interfaces/ring-reference.json) owns ring constants and operation records; [the generator](../../tools/vos/cli/ring.py) reads register-owned status/lifecycle/cancellation enumerations and emits [RingContract.v](../../proofs/RingContract.v). K-89 holds byte identity. The schema belongs to [the IDL profile](../languages/idl-profile.md); later K-99 holds its encoding binding.
@@ -2842,6 +3278,8 @@ This supplies Gallina reference bindings and admission arithmetic, not an instan
     * **What the sample does not reach is what the register states no relation over.** The four survivors are none of them a defect in the statements: a flow label, which nothing can constrain while the lattice has no owner anywhere; the count of an operation's marked scalars, which nothing bounds above while the receiver-validation declaration has no vocabulary; the count of a cancellable operation's declared cancellation points, which R-12-097 requires to exist and bounds in no direction; and a derived count the emitter writes, which the prover cannot reach and **K-89** does, a hand-edited count no longer being what `run.py ring emit` writes.
 
   * Landed: Tier A.
+
+<a id="m65a-specify-the-copy-based-service"></a>
 
 #### M6.5a · Specify the copy-based service
 
@@ -2871,6 +3309,8 @@ This is specification completion only. M7.1 owns target copy/notification behavi
 
 ## M7 · Full emulated system
 
+<a id="m71e-realize-the-copy-based-service"></a>
+
 #### M7.1e · Realize the copy-based service
 
 The [bounded C copy service](../../copy-service/README.md) passes the final joint scalar aggregate on 2026-09-27, bound by [M4.4b-i's record](#m44b-i-bind-scalar-restart-and-service-effects) to accepted code `c8a7234e63b44252a8fd43f990b589c452585336`. Typed C, declaration-generated offsets and the actual fenced/atomic notification adapter realize the finite [CopyRingService](../../proofs/CopyRingService.v)/[RingContract](../../proofs/RingContract.v) reference.
@@ -2887,6 +3327,8 @@ Retained evidence: [`/root/build/copy-target/report.json`](retained-evidence/roo
   SHA256 `96a83208d1bdf2f6c35503ceee0d350383c34cf6913fd917f85e768c68a08c0b`; [`/root/build/scalar-join/report.json`](retained-evidence/root/build/scalar-join/report.json).
 
 Landed: Tier A.
+
+<a id="m71f-realize-the-boot-verifiers-executable-crypto"></a>
 
 #### M7.1f · Realize the boot verifier's executable crypto
 
@@ -2912,6 +3354,8 @@ Retained evidence: [`/root/build/lane-bootcrypto-20260927/host-common-final/repo
 
 ## RTL track
 
+<a id="r1a-the-capability-formats-algebra-and-the-cross-check-that-decides-it"></a>
+
 #### R1a · The capability format's algebra, and the cross-check that decides it
 
 [The authored capability package](../../rtl/vos_cheri_pkg.sv) implements the model's bounds/representation algebra and transformations, excluding architecture-removed instructions/datapaths. [The cross-check](../../tools/vos/cli/rtl.py) compares model-produced text directly with Verilator output, without a shared type adapter.
@@ -2925,6 +3369,8 @@ All 658,659 vectors agree, including exhaustive decode and permission-mask domai
     * **The provenance record owes no row for this work, on the record's own grammar.** A binding is a list of settings on [the configuration package](../../rtl/vos_c_class_config_pkg.sv) or `n/a` with a stated ground, both readings being about a structure the build does *not* contain.
     * **A hand-maintained count in that record was wrong as written.**
     * **The checker stated a width of its own, in the module whose preamble says it states none.** K-57's ceiling was `granule * 64` with a comment saying the 64 was XLEN, in a file that reads every other figure out of the artifact that owns it.
+
+<a id="r1c-i-write-the-mmio-windows-into-the-composition"></a>
 
 #### R1c-i · Write the MMIO windows into the composition
 
@@ -2955,6 +3401,8 @@ Model build/targeted behavior, profile refusal sweep, corpus, generated DTB/sche
 
   * Landed: Tier B under **K-94**.
 
+<a id="r4-second-class-macro-architecture-specification"></a>
+
 ### R4 · Second-class macro architecture specification
 
 [The macro architecture view](../hardware/second-class-macro-architecture.md) states second-class organization, interfaces, maintenance, measurands, refusals and sourced device readings. It supplies shape only: density, latency, retention, geometry and other values remain pending. The bank-within-deck choice is declared with grounds and forfeited cross-deck amortization, not made normative by this derived view.
@@ -2973,6 +3421,8 @@ At `28e1897`, document references, type checks and focused tool evidence pass. K
 
 ## Post-M10 hardening
 
+<a id="post-m10-publish-opening-hardening-obligations"></a>
+
 ### Post-M10 · Publish opening hardening obligations
 
 [The opening plan](../assurance/hardening-opening-obligations.md) instantiates all five fallback positions per core/block, distinguishing scalar adaptation, imported cores, authored devices and unqualified blocks. It states proof/reduction interfaces and premises, and separates FPGA rehearsal from first-silicon fault/leakage characterization. No finite differential or capability-format check is promoted to functional equivalence, physical bound or hardening theorem.
@@ -2989,13 +3439,19 @@ Landed: Tier A. The read accepts an opening plan with explicit implementation an
 
   * No note was recorded at this item's landing.
 
+<a id="i0-standardize-the-tools-on-one-language"></a>
+
 ### I0 · Standardize the tools on one language
 
   * Consolidated tools in Python on one interpreter, with shared parses in one package.
 
+<a id="i1-move-sources-to-wsl-ext4-and-uncap-local-parallelism"></a>
+
 ### I1 · Move sources to WSL ext4 and uncap local parallelism
 
   * Struck the WSL ext4 migration: measurements did not justify the move, and the remaining machine-setting clauses were outside repository control.
+
+<a id="i2-use-one-shared-content-keyed-smt-memo-cache"></a>
 
 ### I2 · Use one shared content-keyed SMT memo cache
 
@@ -3003,9 +3459,13 @@ Landed: Tier A. The read accepts an opening plan with explicit implementation an
 
   * Finding, closed by I7 rather than by this item: the shared cache I2 proposed already existed for the typecheck loop, `/root/build/verifiedos-typecheck-smt-cache` being one file every checkout wrote, live across four concurrent lanes. It is per lane now.
 
+<a id="i3-benchmark-a-current-z3-binary-on-a-cold-emission"></a>
+
 ### I3 · Benchmark a current z3 binary on a cold emission
 
   * Retained pinned z3 5.1.0: cold emission averaged about 214.6 s against distribution z3 4.13.3's 280.5 s, with byte-identical generated output. All four cold runs and three warm anchors succeeded, without crossing solver cache boundaries.
+
+<a id="i4-add-shared-ccache-then-emit-only-when-generated-output-changes"></a>
 
 ### I4 · Add shared ccache, then emit only when generated output changes
 
@@ -3013,13 +3473,19 @@ Landed: Tier A. The read accepts an opening plan with explicit implementation an
 
   * **Finding: the shared `CCACHE_DIR` does not reach across build trees, and the claim that it did was wrong.** ccache hashes the command line along with the source, so the fast tree, differing by `-g`, and a second worktree, differing by every `-I`, share no entry with it: a lane's first 367-unit build against a cache holding 939 entries took 367 misses and no hits. [tools/vos/env.py](../../tools/vos/env.py) now records what the cache does and does not reach.
 
+<a id="i5-benchmark-generated-tu-flags-clang-versus-gcc-and-mold"></a>
+
 ### I5 · Benchmark generated-TU flags, clang versus gcc, and mold
 
   * At the same canonical flags, clang compiled the generated unit in 38.7 s against gcc's 81.8 s; I10 owns adoption. Kept canonical debug flags and declined mold's roughly half-second saving. All eighteen compiles and nine links succeeded.
 
+<a id="i6-benchmark-the-same-sail-0202-binary-built-with-flambda"></a>
+
 ### I6 · Benchmark the same Sail 0.20.2 binary built with flambda
 
   * Declined a second flambda Sail switch: median emission improved from 34.4 s to 33.8 s, with byte-identical output, insufficient to justify maintaining another switch. The trial switch was retired.
+
+<a id="i7-run-canonical-builds-in-the-background-and-standardize-worktree-lanes"></a>
 
 ### I7 · Run canonical builds in the background and standardize worktree lanes
 
@@ -3029,25 +3495,35 @@ Landed: Tier A. The read accepts an opening plan with explicit implementation an
 
   * **Finding, closed here: two ways of standing a lane up reached no seeder, and the second was made by the fix above.** `emit` configures a tree that does not exist yet, and it is the loop the memo cache is worth most to, being the emission [I3](#build-loop-instruments) prices cold at ~3.6 min against ~36 s warm; a lane opened with `emit` rather than `build` paid that. Both seed through one `_seed_cache_file` now, which keeps a target that already exists and copies nothing when the donor is the target, so the primary worktree is not a special case for any caller.
 
+<a id="i8-optionally-move-quick-checks-to-push-ci-and-canonical-tests-to-nightly-ci"></a>
+
 ### I8 · Optionally move quick checks to push CI and canonical tests to nightly CI
 
   * Declined moving the then-local edit checks to push/nightly CI on the recorded cost comparison. This historical decision describes those landing inputs; current hosted validation follows the repository's current rules.
 
   * **Finding: this tree carried CI workflow files, their being inert was what kept them green, and S3 has since answered it by deleting them.** Two of `ci.yml`'s own lines showed why that was load-bearing: its ninja line named `generated_smt_rv32d`, a target that does not exist since the prover-backend loop reduced to the RV64 arm, and its cmake line passed `-DFIRST_PARTY_TESTS`, an option no `CMakeLists.txt` declares since M0.18.
 
+<a id="i9-hold-the-co-stated-facts-and-derive-the-reading-view"></a>
+
 ### I9 · Hold the co-stated facts and derive the reading view
 
   * Added owner-derived counts and checks for co-stated facts, and generated the register reading view. Checker mutations, repairs, co-reads and tool tests passed.
 
+<a id="i10-flip-the-model-builds-compiler-to-clang"></a>
+
 ### I10 · Flip the model build's compiler to clang
 
   * Adopted clang for model builds when available, with the default compiler as fallback. The new build and all twenty-four differential members passed with unchanged trace digests.
+
+<a id="i11-hold-the-upstream-pins-against-the-gitlinks-that-own-them"></a>
 
 ### I11 · Hold the upstream pins against the gitlinks that own them
 
   * Added **K-81** to bind licence-record pins and restated sites to the Git index in both directions, including unpopulated gitlinks. Parser tests and checker mutations passed.
 
   * **Finding, fixed here: the mutation sandbox's index carried no gitlink at all.** That cost nothing while no rule read one; a rule that does would have reported every pin as owned by nothing and failed the baseline, which reports as a red tree rather than as a bad mutant.
+
+<a id="i12-give-the-tools-one-entry-point-and-the-lane-to-the-tool"></a>
 
 ### I12 · Give the tools one entry point, and the lane to the tool
 
@@ -3060,6 +3536,8 @@ Landed: Tier A. The read accepts an opening plan with explicit implementation an
     * **K-83's path mutant became unseeded when its target `sys.path` preamble was deleted in the move to a package module.** It now targets the surviving entry-point preamble. A looser match could have mutated another construct and reported an irrelevant kill.
     * **The documents cite tool paths 180 times and only one of those paths is cited normatively**, the measurement that decided the `check.py` exception above.
     * **The tool surface is obligation rather than fat.** What makes the directory large is the number of cross-artifact facts somebody decided to hold, so the lever that shrinks it is S15's, generating what is transcribed, not a search for unused code.
+
+<a id="i13-close-the-three-tool-defects-the-plan-reported-and-did-not-close"></a>
 
 ### I13 · Close the three tool defects the plan reported and did not close
 
@@ -3076,6 +3554,8 @@ Landed: Tier A. The read accepts an opening plan with explicit implementation an
     * **A host-lane reading that skips the toolchain preparations skipped them only on the lane that cannot take them.**
     * **An owner-level case cannot test a defect in its caller.**
 
+<a id="i14-make-a-seeded-run-survive-its-own-lane-and-absorb-the-loop-that-kept-its-own-accounting"></a>
+
 ### I14 · Make a seeded run survive its own lane, and absorb the loop that kept its own accounting
 
   * Added keepalive leases and per-verdict journals, compiled affected proof dependency closures and unified verdict accounting. Tool regressions and checker mutations passed; the journal retains decided verdicts after an interrupted run.
@@ -3087,6 +3567,8 @@ Landed: Tier A. The read accepts an opening plan with explicit implementation an
     * **A run's stated scope counted what it picked, not what it decided.** For two of the three oracles those are the same number; the one that writes into the checkout, the `$[test]` loop, stops when it cannot verify its own restore, so the closing line, which a completion note copies, would have stated a run larger than the verdicts printed under it.
     * **Eight relative links inside the tools' own docstrings resolve to nothing, seven of them naming an executable the one-entry-point move retired**, and no rule reads a link written in Python prose. Repaired under `tools/`; the same retired name stands in three shipped proof headers and is left, reported and not closed, a comment edit there costing a guest run of the proof gate this item does not take.
     * **A baseline that would not stand up discarded the prover's account of why it would not.**
+
+<a id="i15-hold-the-facts-the-plan-reports-as-held-by-nothing"></a>
 
 ### I15 · Hold the facts the plan reports as held by nothing
 
@@ -3105,6 +3587,8 @@ Calibration: no original estimate was recorded; excluded from the fit.
     * **A rule declared fail-closed at each reading was fail-closed at one of three.** F-218d.
     * **A declared residue gave a ground that did not describe the tree.**
 
+<a id="i16-put-an-authored-source-in-the-imported-build-and-partition-the-elaboration-diff"></a>
+
 ### I16 · Put an authored source in the imported build, and partition the elaboration diff
 
   * Added authored RTL source substitutions and attribution of elaboration differences, without copying sources into upstream repositories. Real-manifest composition and behavioral tests passed; no replacement row or curated-core elaboration was accepted by this item.
@@ -3118,6 +3602,8 @@ Calibration: no original estimate was recorded; excluded from the fit.
     * **The attribution is by direct declaration and is therefore incomplete by construction.**
     * **A row whose two sides are both packages is visible to no member of the partition, and the row R1b's re-pointing would declare is one.**
     * **The end-to-end elaboration evidence is owed and cannot be taken in any checkout of this repository today.** The elaboration puts the primitive packages of the gitlink `opentitan` at the head of the imported core's file list and refuses by name on it; S3 left it uninitialized because nothing open reached it, and reaching it is a clone this item does not take, not a command.
+
+<a id="i17-name-the-host-gate-member-that-went-red-without-a-login"></a>
 
 ### I17 · Name the host gate member that went red, without a login
 
