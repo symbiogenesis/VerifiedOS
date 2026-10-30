@@ -9,9 +9,16 @@ It invokes no prover and confers no compilation or proof verdict.
 import re
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Final
 
 from vos import proofs
 from vos.receipts import atomic_path, digest
+
+IMPLEMENTATION_SOURCES: Final = (
+    "tools/vos/proof_staging.py", "tools/vos/proofs.py", "tools/vos/prooflex.py",
+    "tools/vos/receipts.py", "tools/vos/proofenv.py", "tools/vos/atomic.py",
+)
+_COMPILED: Final = frozenset({".vo", ".vos", ".vok", ".vio"})
 
 
 class StagingError(ValueError):
@@ -83,6 +90,15 @@ def stage(root: Path, destination: Path, entries: tuple[str, ...]) -> Staged:
     if destination.is_relative_to(root / "proofs"):
         raise StagingError("proof staging must not overwrite the source directory")
     destination.mkdir(parents=True, exist_ok=True)
+    names = {source.stem for source in sources}
+    changed = any(not (destination / source.name).is_file()
+                  or (destination / source.name).read_bytes() != source.read_bytes()
+                  for source in sources)
+    # A changed dependency invalidates its clients too. Unchanged selected
+    # products may be reused only under the caller's toolchain-bound receipt.
+    for product in destination.iterdir():
+        if product.suffix in _COMPILED and (changed or product.stem not in names):
+            product.unlink()
     staged: list[Path] = []
     expected: list[tuple[str, str]] = []
     for source in sources:

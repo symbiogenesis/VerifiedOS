@@ -93,8 +93,30 @@ def _changed_closure() -> None:
         _refused(lambda: staged.validate(root), "dependency closure changed")
 
 
+def _compiled_products() -> None:
+    with tempfile.TemporaryDirectory() as temporary:
+        root = Path(temporary)
+        _write(root, "Shared.v", "Definition value := 1.\n")
+        _write(root, "Root.v", "Require Shared.\n")
+        destination = root / "stage"
+        proof_staging.stage(root, destination, ("Root.v",))
+        root_object = destination / "Root.vo"
+        shared_object = destination / "Shared.vo"
+        root_object.write_bytes(b"cached root")
+        shared_object.write_bytes(b"cached dependency")
+        stale = destination / "Removed.vo"
+        stale.write_bytes(b"stale unselected module")
+        proof_staging.stage(root, destination, ("Root.v",))
+        ensure(root_object.is_file() and shared_object.is_file(), "unchanged cache was discarded")
+        ensure(not stale.exists(), "unselected stale module could still satisfy a Require")
+        _write(root, "Shared.v", "Definition value := 2.\n")
+        proof_staging.stage(root, destination, ("Root.v",))
+        ensure(not root_object.exists() and not shared_object.exists(),
+               "changed dependency left stale compiled products")
+
+
 def cases() -> list[Case]:
     return [Case("closure-order-shared-input", _closure_and_order),
             Case("entry-refusals", _entry_refusals), Case("cycles", _cycles),
             Case("changed-source", _changed_sources), Case("changed-stage", _changed_stage),
-            Case("changed-closure", _changed_closure)]
+            Case("changed-closure", _changed_closure), Case("compiled-products", _compiled_products)]
