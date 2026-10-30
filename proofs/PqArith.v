@@ -49,6 +49,7 @@
    (*| END derived |*)
    ========================================================================= *)
 From Stdlib Require Import ZArith List Arith Lia.
+Require CryptoLists.
 
 Open Scope Z_scope.
 
@@ -72,6 +73,37 @@ Definition coeff (a : list Z) (i : nat) : Z := nth i a 0.
 
 Definition poly_eqb (a b : list Z) : bool :=
   Nat.eqb (length a) (length b) && forallb (fun p => Z.eqb (fst p) (snd p)) (combine a b).
+
+Lemma poly_eqb_refl : forall a, poly_eqb a a = true.
+Proof.
+  intro a. unfold poly_eqb. rewrite Nat.eqb_refl. simpl.
+  induction a as [|x xs IH]; [reflexivity|]. simpl. rewrite Z.eqb_refl, IH. reflexivity.
+Qed.
+
+Lemma poly_eqb_sound : forall a b, poly_eqb a b = true -> a = b.
+Proof.
+  intros a b H. unfold poly_eqb in H. apply andb_prop in H.
+  destruct H as [Hlen Hall]. apply Nat.eqb_eq in Hlen.
+  revert b Hlen Hall. induction a as [|x xs IH];
+    intros [|y ys] Hlen Hall; simpl in Hlen; try discriminate Hlen.
+  - reflexivity.
+  - cbn [combine forallb fst snd] in Hall. apply andb_prop in Hall.
+    destruct Hall as [Hxy Htail]. apply Z.eqb_eq in Hxy. subst y.
+    f_equal. apply IH; [lia|exact Htail].
+Qed.
+
+Lemma poly_eqb_spec : forall a b, poly_eqb a b = true <-> a = b.
+Proof.
+  intros a b. split; [apply poly_eqb_sound|]. intros ->. apply poly_eqb_refl.
+Qed.
+
+Lemma poly_eqb_false_spec : forall a b, poly_eqb a b = false <-> a <> b.
+Proof.
+  intros a b. split.
+  - intros H E. subst b. rewrite poly_eqb_refl in H. discriminate H.
+  - intros H. destruct (poly_eqb a b) eqn:E; [|reflexivity].
+    apply poly_eqb_sound in E. contradiction.
+Qed.
 
 (* The fuel is the caller's bound on how many chunks there can be, the
    recursion being on the chunk count rather than on the list, which `skipn`
@@ -387,6 +419,481 @@ Definition compression_error (q : Z) (d : nat) (x : Z) : Z :=
 Definition truncation_error (q : Z) (d : nat) (x : Z) : Z :=
   Z.abs (centred q (decompress q d (compress_truncating q d x) - x)).
 
+(* General laws precede the concrete certificates and finite regressions. *)
+
+(* -------------------------------------------------------------------------
+   The butterfly, over an arbitrary modulus, an arbitrary root and arbitrary
+   coefficients. These scalar laws feed the list-level inversion proof below.
+   ------------------------------------------------------------------------- *)
+
+Lemma the_butterfly_sum_recovers_twice_the_low_half :
+  forall q nu a0 a1 : Z,
+    addmod q (addmod q a0 (mulmod q nu a1)) (submod q a0 (mulmod q nu a1))
+    = (2 * a0) mod q.
+Proof.
+  intros q nu a0 a1. unfold addmod, submod, mulmod.
+  rewrite <- Zplus_mod. f_equal. ring.
+Qed.
+
+Lemma the_butterfly_difference_recovers_twice_the_scaled_high_half :
+  forall q nu a0 a1 : Z,
+    submod q (addmod q a0 (mulmod q nu a1)) (submod q a0 (mulmod q nu a1))
+    = (2 * (nu * a1)) mod q.
+Proof.
+  intros q nu a0 a1. unfold addmod, submod, mulmod.
+  rewrite <- Zminus_mod.
+  replace (a0 + (nu * a1) mod q - (a0 - (nu * a1) mod q))
+    with (2 * ((nu * a1) mod q)) by ring.
+  rewrite Zmult_mod_idemp_r. reflexivity.
+Qed.
+
+(*| discharges: R-05-165 |*)
+Theorem the_butterfly_is_invertible_at_an_arbitrary_root :
+  forall q nu nuinv a0 a1 : Z,
+    (nu * nuinv) mod q = 1 mod q ->
+    mulmod q nuinv
+      (submod q (addmod q a0 (mulmod q nu a1)) (submod q a0 (mulmod q nu a1)))
+    = (2 * a1) mod q.
+Proof.
+  intros q nu nuinv a0 a1 H.
+  rewrite the_butterfly_difference_recovers_twice_the_scaled_high_half.
+  unfold mulmod.
+  rewrite Zmult_mod_idemp_r.
+  replace (nuinv * (2 * (nu * a1))) with (nu * nuinv * (2 * a1)) by ring.
+  rewrite Zmult_mod. rewrite H. rewrite <- Zmult_mod.
+  replace (1 * (2 * a1)) with (2 * a1) by ring.
+  reflexivity.
+Qed.
+
+(* -------------------------------------------------------------------------
+   R-05-166's decidable half: the one record this file's statements range
+   over, inhabited by a closed definition ascribed at it.
+   ------------------------------------------------------------------------- *)
+
+Definition witness_Ring : Ring := mlkem_ring.
+
+(* General inversion. The finite certificate checks only roots, never an
+   input polynomial. The theorem below quantifies over every coefficient. *)
+Fixpoint inverse_roots (q psi split : Z) (layers : nat) (e : Z) : bool :=
+  match layers with
+  | O => true
+  | S k =>
+      Z.eqb (mulmod q (pow_mod q psi (e / 2))
+                       (pow_mod q psi (2 * split - e / 2))) (1 mod q)
+      && inverse_roots q psi split k (e / 2)
+      && inverse_roots q psi split k (e / 2 + split)
+  end.
+
+Definition reduced_poly (q : Z) (a : list Z) : Prop :=
+  Forall (fun x => x mod q = x) a.
+
+Lemma vscale_length : forall q c a, length (vscale q c a) = length a.
+Proof. intros. unfold vscale. apply length_map. Qed.
+
+Lemma vadd_length : forall q a b, length a = length b ->
+  length (vadd q a b) = length a.
+Proof.
+  intros q a b H. unfold vadd. rewrite length_map, length_combine, H.
+  apply Nat.min_id.
+Qed.
+
+Lemma vsub_length : forall q a b, length a = length b ->
+  length (vsub q a b) = length a.
+Proof.
+  intros q a b H. unfold vsub. rewrite length_map, length_combine, H.
+  apply Nat.min_id.
+Qed.
+
+Lemma vadd_reduced : forall q a b, reduced_poly q (vadd q a b).
+Proof.
+  intros. unfold reduced_poly, vadd. apply Forall_forall.
+  intros x H. apply in_map_iff in H. destruct H as [[u v] [<- H]].
+  simpl. unfold addmod. apply Zmod_mod.
+Qed.
+
+Lemma vsub_reduced : forall q a b, reduced_poly q (vsub q a b).
+Proof.
+  intros. unfold reduced_poly, vsub. apply Forall_forall.
+  intros x H. apply in_map_iff in H. destruct H as [[u v] [<- H]].
+  simpl. unfold submod. apply Zmod_mod.
+Qed.
+
+Lemma vscale_one : forall q a, reduced_poly q a -> vscale q 1 a = a.
+Proof.
+  intros q a H. unfold vscale. induction H as [|x l H H0 IHForall]; simpl; auto.
+  f_equal; auto. unfold mulmod. rewrite Z.mul_1_l. exact H.
+Qed.
+
+Lemma scaled_butterfly_low_scalar : forall q c nu a b,
+  addmod q (mulmod q c (addmod q a (mulmod q nu b)))
+           (mulmod q c (submod q a (mulmod q nu b))) = mulmod q (2*c) a.
+Proof.
+  intros q c nu a b. unfold addmod, submod, mulmod.
+  repeat rewrite Zmult_mod_idemp_r. rewrite <- Zplus_mod.
+  f_equal. ring.
+Qed.
+
+Lemma scaled_butterfly_high_scalar : forall q c nu nui a b,
+  (nu * nui) mod q = 1 mod q ->
+  mulmod q nui
+    (submod q (mulmod q c (addmod q a (mulmod q nu b)))
+              (mulmod q c (submod q a (mulmod q nu b)))) = mulmod q (2*c) b.
+Proof.
+  intros q c nu nui a b Hu. unfold addmod, submod, mulmod.
+  rewrite <- Zminus_mod. repeat rewrite Zmult_mod_idemp_r.
+  rewrite Z.mul_sub_distr_l, Zminus_mod.
+  repeat rewrite Z.mul_assoc. repeat rewrite Zmult_mod_idemp_r.
+  rewrite <- Zminus_mod.
+  replace (nui * c * (a + (nu * b) mod q) - nui * c * (a - (nu * b) mod q))
+    with ((2*c*nui) * ((nu*b) mod q)) by ring.
+  rewrite Zmult_mod_idemp_r.
+  replace (2*c*nui*(nu*b)) with ((nu*nui)*(2*c*b)) by ring.
+  rewrite Zmult_mod, Hu, <- Zmult_mod, Z.mul_1_l. reflexivity.
+Qed.
+
+Lemma scaled_butterfly_low : forall q c nu a b,
+  length a = length b ->
+  vadd q (vscale q c (vadd q a (vscale q nu b)))
+         (vscale q c (vsub q a (vscale q nu b))) = vscale q (2*c) a.
+Proof.
+  intros q c nu a b H.
+  apply (CryptoLists.lift_map_left Z Z Z
+    (fun a b => vadd q (vscale q c (vadd q a (vscale q nu b)))
+                      (vscale q c (vsub q a (vscale q nu b))))
+    (mulmod q (2*c))).
+  - reflexivity.
+  - intros x xs y ys. cbn [vadd vsub vscale map combine fst snd].
+    rewrite scaled_butterfly_low_scalar. reflexivity.
+  - exact H.
+Qed.
+
+Lemma scaled_butterfly_high : forall q c nu nui a b,
+  (nu * nui) mod q = 1 mod q -> length a = length b ->
+  vscale q nui
+    (vsub q (vscale q c (vadd q a (vscale q nu b)))
+            (vscale q c (vsub q a (vscale q nu b)))) = vscale q (2*c) b.
+Proof.
+  intros q c nu nui a b Hu H.
+  apply (CryptoLists.lift_map_right Z Z Z
+    (fun a b => vscale q nui
+      (vsub q (vscale q c (vadd q a (vscale q nu b)))
+              (vscale q c (vsub q a (vscale q nu b)))))
+    (mulmod q (2*c))).
+  - reflexivity.
+  - intros x xs y ys. cbn [vadd vsub vscale map combine fst snd].
+    rewrite (scaled_butterfly_high_scalar q c nu nui x y Hu). reflexivity.
+  - exact H.
+Qed.
+
+(* A transform node divides one even-length input into equally sized
+   children. Keep this structural arithmetic outside the inverse algebra. *)
+Lemma balanced_halves : forall (A : Type) (a : list A) k leaf,
+  length a = (2 ^ S k * leaf)%nat ->
+  (length a / 2 = 2 ^ k * leaf)%nat /\
+  length (firstn (length a / 2) a) = (2 ^ k * leaf)%nat /\
+  length (skipn (length a / 2) a) = (2 ^ k * leaf)%nat.
+Proof.
+  intros A a k leaf H.
+  assert (Hm : (length a / 2 = 2 ^ k * leaf)%nat).
+  { rewrite H, Nat.pow_succ_r'.
+    replace (2 * 2 ^ k * leaf)%nat with ((2 ^ k * leaf) * 2)%nat by nia.
+    apply Nat.div_mul. lia. }
+  split; [exact Hm|]. split.
+  - rewrite length_firstn, Hm. apply Nat.min_l. simpl in H. lia.
+  - rewrite length_skipn, Hm. simpl in H. lia.
+Qed.
+
+Lemma equal_halves_reassemble : forall (A : Type) (lo hi : list A),
+  length lo = length hi ->
+  firstn (length (lo ++ hi) / 2) (lo ++ hi) = lo /\
+  skipn (length (lo ++ hi) / 2) (lo ++ hi) = hi.
+Proof.
+  intros A lo hi H.
+  assert (Hm : (length (lo ++ hi) / 2 = length lo)%nat).
+  { rewrite length_app, <- H.
+    replace (length lo + length lo)%nat with (length lo * 2)%nat by lia.
+    rewrite Nat.div_mul; lia. }
+  rewrite Hm. split.
+  - rewrite firstn_app, firstn_all, Nat.sub_diag. simpl. apply app_nil_r.
+  - rewrite skipn_app, skipn_all, Nat.sub_diag. reflexivity.
+Qed.
+
+Lemma ntt_length_general : forall q psi split layers e a leaf,
+  length a = (2 ^ layers * leaf)%nat ->
+  length (ntt_go q psi split layers e a) = length a.
+Proof.
+  intros q psi split layers. induction layers as [|k IH]; intros e a leaf H;
+    [reflexivity|].
+  destruct (balanced_halves Z a k leaf H) as [Hm [Hlo Hhi]].
+  cbn [ntt_go]. rewrite length_app.
+  rewrite (IH _ _ leaf), (IH _ _ leaf).
+  - rewrite vadd_length, vsub_length, Hlo; try (rewrite vscale_length, Hlo, Hhi; reflexivity).
+    simpl in H. lia.
+  - rewrite vsub_length, Hlo; [reflexivity|rewrite vscale_length, Hlo, Hhi; reflexivity].
+  - rewrite vadd_length, Hlo; [reflexivity|rewrite vscale_length, Hlo, Hhi; reflexivity].
+Qed.
+
+Local Opaque pow_mod.
+
+Theorem ntt_inverse_unscaled : forall q psi split layers e a leaf,
+  length a = (2 ^ layers * leaf)%nat -> reduced_poly q a ->
+  inverse_roots q psi split layers e = true ->
+  intt_go q psi split layers e (ntt_go q psi split layers e a)
+    = vscale q (2 ^ Z.of_nat layers) a.
+Proof.
+  intros q psi split layers. induction layers as [|k IH]; intros e a leaf H Hr Hu.
+  - simpl. symmetry. apply vscale_one. exact Hr.
+  - cbn [inverse_roots] in Hu. apply andb_prop in Hu.
+    destruct Hu as [Hu Hh]. apply andb_prop in Hu.
+    destruct Hu as [Hu Hl]. apply Z.eqb_eq in Hu.
+    destruct (balanced_halves Z a k leaf H) as [Hm [Hlo Hhi]].
+    set (lo := firstn (length a / 2) a).
+    set (hi := skipn (length a / 2) a).
+    change (length lo = (2 ^ k * leaf)%nat) in Hlo.
+    change (length hi = (2 ^ k * leaf)%nat) in Hhi.
+    set (t := vscale q (pow_mod q psi (e/2)) hi).
+    assert (Ht : length t = length lo) by (unfold t; rewrite vscale_length, Hlo, Hhi; reflexivity).
+    assert (Ha : length (vadd q lo t) = (2 ^ k * leaf)%nat)
+      by (rewrite vadd_length, Hlo; congruence).
+    assert (Hb : length (vsub q lo t) = (2 ^ k * leaf)%nat)
+      by (rewrite vsub_length, Hlo; congruence).
+    cbn [ntt_go]. fold lo hi t.
+    cbn [intt_go].
+    assert (Hchildren :
+      length (ntt_go q psi split k (e/2) (vadd q lo t)) =
+      length (ntt_go q psi split k (e/2 + split) (vsub q lo t))).
+    { rewrite (ntt_length_general q psi split k _ _ leaf Ha),
+        (ntt_length_general q psi split k _ _ leaf Hb), Ha, Hb. reflexivity. }
+    destruct (equal_halves_reassemble Z
+      (ntt_go q psi split k (e/2) (vadd q lo t))
+      (ntt_go q psi split k (e/2 + split) (vsub q lo t)) Hchildren)
+      as [Hfirst Hskip].
+    rewrite Hfirst, Hskip.
+    rewrite (IH _ _ leaf Ha (vadd_reduced q lo t) Hl),
+      (IH _ _ leaf Hb (vsub_reduced q lo t) Hh).
+    unfold t.
+    rewrite (scaled_butterfly_low q (2 ^ Z.of_nat k) (pow_mod q psi (e/2)) lo hi
+      (eq_trans Hlo (eq_sym Hhi))).
+    rewrite (scaled_butterfly_high q (2 ^ Z.of_nat k) (pow_mod q psi (e/2))
+      (pow_mod q psi (2*split-e/2)) lo hi Hu (eq_trans Hlo (eq_sym Hhi))).
+    unfold lo, hi. unfold vscale. rewrite <- map_app, firstn_skipn.
+    rewrite Nat2Z.inj_succ, Z.pow_succ_r; [reflexivity|lia].
+Qed.
+
+Local Transparent pow_mod.
+
+Lemma vscale_compose : forall q u v a,
+  vscale q u (vscale q v a) = vscale q (u*v) a.
+Proof.
+  intros q u v a. induction a as [|a a0 IHa]; unfold vscale in *; cbn [map].
+  - reflexivity.
+  - rewrite IHa. f_equal. unfold mulmod.
+    rewrite Zmult_mod_idemp_r, Z.mul_assoc. reflexivity.
+Qed.
+
+Lemma vscale_unit : forall q c a,
+  c mod q = 1 mod q -> reduced_poly q a -> vscale q c a = a.
+Proof.
+  intros q c a Hc Ha. unfold vscale. induction Ha as [|x l H Ha IHHa]; cbn [map]; auto.
+  rewrite IHHa. f_equal. unfold mulmod.
+  rewrite Zmult_mod, Hc, <- Zmult_mod, Z.mul_1_l. exact H.
+Qed.
+
+Theorem ntt_roundtrip_general : forall r a leaf,
+  length a = (2 ^ ring_layers r * leaf)%nat ->
+  reduced_poly (ring_modulus r) a ->
+  inverse_roots (ring_modulus r) (ring_root r) (ring_split r)
+                (ring_layers r) (ring_split r) = true ->
+  (ring_inv_scale r * 2 ^ Z.of_nat (ring_layers r)) mod ring_modulus r
+    = 1 mod ring_modulus r ->
+  intt r (ntt r a) = a.
+Proof.
+  intros r a leaf H Hr Hu Hs. unfold intt, ntt, ring_top_exponent.
+  rewrite (ntt_inverse_unscaled _ _ _ _ _ _ leaf H Hr Hu), vscale_compose.
+  apply vscale_unit; assumption.
+Qed.
+
+(* General bit and chunk codec laws. Encoding width and whole-byte alignment
+   are explicit; out-of-domain integers are not silently called canonical. *)
+Lemma bit_range_div2 : forall n x start,
+  0 <= start ->
+  map (Z.testbit x) (z_range n (start + 1)) =
+  map (Z.testbit (x/2)) (z_range n start).
+Proof.
+  induction n as [|n IHn]; intros x start H; cbn [z_range map]; [reflexivity|].
+  f_equal.
+  - replace (start+1) with (Z.succ start) by lia.
+    symmetry. apply Z.div2_bits. exact H.
+  - apply IHn. lia.
+Qed.
+
+Lemma bits_le_succ : forall n x,
+  bits_le (S n) x = Z.testbit x 0 :: bits_le n (x/2).
+Proof.
+  intros n x. unfold bits_le, indices. cbn [z_range map]. f_equal.
+  change (map (Z.testbit x) (z_range n (0+1)) = map (Z.testbit (x/2)) (z_range n 0)).
+  apply bit_range_div2. lia.
+Qed.
+
+Lemma bits_value_bound : forall bs,
+  0 <= bits_value bs < 2 ^ Z.of_nat (length bs).
+Proof.
+  induction bs as [|b bs IH]; cbn [bits_value length].
+  - lia.
+  - rewrite Nat2Z.inj_succ, Z.pow_succ_r by lia.
+    destruct b; nia.
+Qed.
+
+Theorem bits_value_of_bits_le : forall n x,
+  0 <= x < 2 ^ Z.of_nat n -> bits_value (bits_le n x) = x.
+Proof.
+  induction n as [|n IHn]; intros x H.
+  - cbn in H. assert (x=0) by lia. subst. reflexivity.
+  - rewrite bits_le_succ. cbn [bits_value]. rewrite IHn.
+    + replace (if Z.testbit x 0 then 1 else 0) with (Z.b2z (Z.testbit x 0))
+        by (destruct (Z.testbit x 0); reflexivity).
+      rewrite Z.bit0_mod. Z.to_euclidean_division_equations. lia.
+    + rewrite Nat2Z.inj_succ, Z.pow_succ_r in H by lia.
+      Z.to_euclidean_division_equations. lia.
+Qed.
+
+Theorem bits_le_of_bits_value : forall bs,
+  bits_le (length bs) (bits_value bs) = bs.
+Proof.
+  induction bs as [|b bs IH]; [reflexivity|].
+  cbn [length bits_value]. rewrite bits_le_succ.
+  replace (if b then 1 else 0) with (Z.b2z b) by (destruct b; reflexivity).
+  rewrite Z.add_b2z_double_bit0.
+  assert (Hdiv : (Z.b2z b + 2 * bits_value bs) / 2 = bits_value bs).
+  { destruct b; cbn [Z.b2z]; Z.to_euclidean_division_equations; lia. }
+  rewrite Hdiv, IH. reflexivity.
+Qed.
+
+Lemma bits_le_length : forall n x, length (bits_le n x) = n.
+Proof. induction n as [|n IHn]; intros; [reflexivity|]. rewrite bits_le_succ. simpl. rewrite IHn. reflexivity. Qed.
+
+Lemma chunk_of_exact : forall {A} fuel width (chunks : list (list A)),
+  (0 < width)%nat -> (length chunks <= fuel)%nat ->
+  Forall (fun xs => length xs = width) chunks ->
+  chunk_of fuel width (concat chunks) = chunks.
+Proof.
+  intros A fuel width chunks Hw. revert fuel.
+  induction chunks as [|xs chunks IH]; intros [|fuel] Hf Hall; cbn [chunk_of concat];
+    try reflexivity; try (simpl in Hf; lia).
+  inversion Hall as [|? ? Hxs Hrest].
+  destruct xs as [|y xs]; [simpl in Hxs; lia|].
+  change (firstn width ((y :: xs) ++ concat chunks) ::
+    chunk_of fuel width (skipn width ((y :: xs) ++ concat chunks)) = (y :: xs) :: chunks).
+  rewrite <- Hxs, firstn_app, firstn_all, Nat.sub_diag, skipn_app, skipn_all, Nat.sub_diag.
+  cbn [firstn skipn app]. rewrite app_nil_r. f_equal. rewrite Hxs.
+  apply IH; [simpl in Hf; lia|exact Hrest].
+Qed.
+
+Lemma chunk_of_concat : forall {A} fuel width (xs : list A),
+  (0 < width)%nat -> (length xs <= fuel * width)%nat ->
+  concat (chunk_of fuel width xs) = xs.
+Proof.
+  intros A fuel. induction fuel as [|fuel IHfuel]; intros width xs Hw Hlen.
+  - destruct xs; [reflexivity|simpl in Hlen; lia].
+  - destruct xs as [|x xs]; [reflexivity|].
+    change (firstn width (x :: xs) ++ concat (chunk_of fuel width (skipn width (x :: xs))) = x :: xs).
+    rewrite IHfuel; [apply firstn_skipn|exact Hw|]. rewrite length_skipn.
+    cbn [length] in *. simpl in Hlen. nia.
+Qed.
+
+Lemma chunk_of_lengths : forall {A} fuel width (xs : list A),
+  (0 < width)%nat -> (length xs mod width = 0)%nat ->
+  Forall (fun part => length part = width) (chunk_of fuel width xs).
+Proof.
+  intros A fuel. induction fuel as [|fuel IHfuel]; intros width xs Hw Hmod; [constructor|].
+  destruct xs as [|x xs]; [constructor|].
+  assert (Hle : (width <= length (x :: xs))%nat).
+  { destruct (Nat.lt_ge_cases (length (x :: xs)) width); [rewrite Nat.mod_small in Hmod by lia; simpl in Hmod; lia|lia]. }
+  change (Forall (fun part => length part = width)
+    (firstn width (x :: xs) :: chunk_of fuel width (skipn width (x :: xs)))).
+  constructor.
+  - rewrite length_firstn. apply Nat.min_l. exact Hle.
+  - apply IHfuel; [exact Hw|]. rewrite length_skipn.
+    pose proof (Nat.div_mod_eq (length (x :: xs)) width) as Hd.
+    rewrite Hmod in Hd. replace (length (x :: xs) - width)%nat
+      with ((length (x :: xs) / width - 1) * width)%nat by nia.
+    apply Nat.Div0.mod_mul.
+Qed.
+
+Lemma bit_codec_chunks : forall width chunks,
+  Forall (fun bs => length bs = width) chunks ->
+  map (bits_le width) (map bits_value chunks) = chunks.
+Proof.
+  intros width chunks H. induction H as [|x l H H0 IHForall]; cbn [map]; [reflexivity|].
+  f_equal; [rewrite <- H; apply bits_le_of_bits_value|exact IHForall].
+Qed.
+
+Lemma concat_bits_length : forall width xs,
+  length (concat (map (bits_le width) xs)) = (length xs * width)%nat.
+Proof.
+  intros width xs. induction xs as [|a xs IHxs]; cbn [map concat length]; [reflexivity|].
+  rewrite length_app, bits_le_length, IHxs. lia.
+Qed.
+
+Theorem byte_codec_roundtrip : forall width xs,
+  (0 < width)%nat -> ((length xs * width) mod 8 = 0)%nat ->
+  Forall (fun x => 0 <= x < 2 ^ Z.of_nat width) xs ->
+  byte_decode width (byte_encode width xs) = xs.
+Proof.
+  intros width xs Hw Halign Hbounds. unfold byte_decode, byte_encode.
+  rewrite bit_codec_chunks.
+  2: { apply chunk_of_lengths; [lia|rewrite concat_bits_length; exact Halign]. }
+  rewrite chunk_of_concat.
+  2: lia.
+  2: { rewrite concat_bits_length. nia. }
+  rewrite chunk_of_exact.
+  - clear Halign. induction Hbounds as [|x l H Hbounds IHHbounds]; cbn [map]; [reflexivity|].
+    rewrite bits_value_of_bits_le by exact H. rewrite IHHbounds. reflexivity.
+  - exact Hw.
+  - rewrite length_map.
+    (* Each coefficient requires width bits, and each output byte carries 8. *)
+    assert (Htotal : length (concat (map (bits_le width) xs)) =
+      (length (chunk_of (length xs * width) 8 (concat (map (bits_le width) xs))) * 8)%nat).
+    { rewrite <- (chunk_of_concat (length xs * width) 8 (concat (map (bits_le width) xs))) at 1;
+        [|lia|rewrite concat_bits_length; nia].
+      pose proof (chunk_of_lengths (length xs * width) 8
+        (concat (map (bits_le width) xs)) (ltac:(lia)) (ltac:(rewrite concat_bits_length; exact Halign))) as Hparts.
+      induction Hparts as [|x l H Hparts IHHparts]; cbn [concat length]; [reflexivity|]. rewrite length_app, H, IHHparts. lia. }
+    rewrite concat_bits_length in Htotal. rewrite length_map. nia.
+  - apply Forall_forall. intros bs Hbs. apply in_map_iff in Hbs.
+    destruct Hbs as [x [<- Hx]]. apply bits_le_length.
+Qed.
+
+
+(* Selected ring certificates and their universal instantiations. *)
+
+Example both_selected_rings_have_inverse_roots :
+  inverse_roots 3329 17 128 7 128 = true /\
+  inverse_roots 8380417 1753 256 8 256 = true.
+Proof. vm_compute. split; reflexivity. Qed.
+
+Theorem mlkem_ntt_roundtrip : forall a,
+  length a = 256%nat -> reduced_poly 3329 a ->
+  intt mlkem_ring (ntt mlkem_ring a) = a.
+Proof.
+  intros a H Hr. apply (ntt_roundtrip_general mlkem_ring a 2).
+  - exact H.
+  - exact Hr.
+  - exact (proj1 both_selected_rings_have_inverse_roots).
+  - vm_compute. reflexivity.
+Qed.
+
+Theorem mldsa_ntt_roundtrip : forall a,
+  length a = 256%nat -> reduced_poly 8380417 a ->
+  intt mldsa_ring (ntt mldsa_ring a) = a.
+Proof.
+  intros a H Hr. apply (ntt_roundtrip_general mldsa_ring a 1).
+  - exact H.
+  - exact Hr.
+  - exact (proj2 both_selected_rings_have_inverse_roots).
+  - vm_compute. reflexivity.
+Qed.
+
 (* -------------------------------------------------------------------------
    Probe polynomials. Every check that runs a transform runs it at these and
    at nothing else, so they are pinned by their own contents below rather
@@ -461,55 +968,6 @@ Definition mlkem_ring_with_a_wrong_inverse_scale : Ring :=
 Example a_scaling_that_does_not_invert_the_layer_count_is_refused :
   ring_wf mlkem_ring_with_a_wrong_inverse_scale = false.
 Proof. vm_reflexivity. Qed.
-
-
-(* -------------------------------------------------------------------------
-   The butterfly, over an arbitrary modulus, an arbitrary root and arbitrary
-   coefficients. This is the algebra the whole transform is L layers of, and
-   it is the one statement here that is not a conversion at chosen inputs.
-   ------------------------------------------------------------------------- *)
-
-Lemma the_butterfly_sum_recovers_twice_the_low_half :
-  forall q nu a0 a1 : Z,
-    addmod q (addmod q a0 (mulmod q nu a1)) (submod q a0 (mulmod q nu a1))
-    = (2 * a0) mod q.
-Proof.
-  intros q nu a0 a1. unfold addmod, submod, mulmod.
-  rewrite <- Zplus_mod. f_equal. ring.
-Qed.
-
-Lemma the_butterfly_difference_recovers_twice_the_scaled_high_half :
-  forall q nu a0 a1 : Z,
-    submod q (addmod q a0 (mulmod q nu a1)) (submod q a0 (mulmod q nu a1))
-    = (2 * (nu * a1)) mod q.
-Proof.
-  intros q nu a0 a1. unfold addmod, submod, mulmod.
-  rewrite <- Zminus_mod.
-  replace (a0 + (nu * a1) mod q - (a0 - (nu * a1) mod q))
-    with (2 * ((nu * a1) mod q)) by ring.
-  rewrite Zmult_mod_idemp_r. reflexivity.
-Qed.
-
-(*| discharges: R-05-165 |*)
-Theorem the_butterfly_is_invertible_at_an_arbitrary_root :
-  forall q nu nuinv a0 a1 : Z,
-    (nu * nuinv) mod q = 1 mod q ->
-    mulmod q nuinv
-      (submod q (addmod q a0 (mulmod q nu a1)) (submod q a0 (mulmod q nu a1)))
-    = (2 * a1) mod q.
-Proof.
-  intros q nu nuinv a0 a1 H.
-  rewrite the_butterfly_difference_recovers_twice_the_scaled_high_half.
-  unfold mulmod.
-  rewrite Zmult_mod_idemp_r.
-  replace (nuinv * (2 * (nu * a1))) with (nu * nuinv * (2 * a1)) by ring.
-  rewrite Zmult_mod. rewrite H. rewrite <- Zmult_mod.
-  replace (1 * (2 * a1)) with (2 * a1) by ring.
-  reflexivity.
-Qed.
-
-(* General list-level inverse theorems and ring instantiations are proved
-   below. The following finite examples remain executable regressions. *)
 
 
 (* -------------------------------------------------------------------------
@@ -1051,383 +1509,6 @@ Proof. vm_reflexivity. Qed.
 Example the_residue_enumeration_is_the_whole_modulus :
   length (residues 3329) = 3329%nat.
 Proof. vm_reflexivity. Qed.
-
-
-(* -------------------------------------------------------------------------
-   R-05-166's decidable half: the one record this file's statements range
-   over, inhabited by a closed definition ascribed at it.
-   ------------------------------------------------------------------------- *)
-
-Definition witness_Ring : Ring := mlkem_ring.
-
-(* General inversion. The finite certificate checks only roots, never an
-   input polynomial. The theorem below quantifies over every coefficient. *)
-Fixpoint inverse_roots (q psi split : Z) (layers : nat) (e : Z) : bool :=
-  match layers with
-  | O => true
-  | S k =>
-      Z.eqb (mulmod q (pow_mod q psi (e / 2))
-                       (pow_mod q psi (2 * split - e / 2))) (1 mod q)
-      && inverse_roots q psi split k (e / 2)
-      && inverse_roots q psi split k (e / 2 + split)
-  end.
-
-Definition reduced_poly (q : Z) (a : list Z) : Prop :=
-  Forall (fun x => x mod q = x) a.
-
-Lemma vscale_length : forall q c a, length (vscale q c a) = length a.
-Proof. intros. unfold vscale. apply length_map. Qed.
-
-Lemma vadd_length : forall q a b, length a = length b ->
-  length (vadd q a b) = length a.
-Proof.
-  intros q a b H. unfold vadd. rewrite length_map, length_combine, H.
-  apply Nat.min_id.
-Qed.
-
-Lemma vsub_length : forall q a b, length a = length b ->
-  length (vsub q a b) = length a.
-Proof.
-  intros q a b H. unfold vsub. rewrite length_map, length_combine, H.
-  apply Nat.min_id.
-Qed.
-
-Lemma vadd_reduced : forall q a b, reduced_poly q (vadd q a b).
-Proof.
-  intros. unfold reduced_poly, vadd. apply Forall_forall.
-  intros x H. apply in_map_iff in H. destruct H as [[u v] [<- H]].
-  simpl. unfold addmod. apply Zmod_mod.
-Qed.
-
-Lemma vsub_reduced : forall q a b, reduced_poly q (vsub q a b).
-Proof.
-  intros. unfold reduced_poly, vsub. apply Forall_forall.
-  intros x H. apply in_map_iff in H. destruct H as [[u v] [<- H]].
-  simpl. unfold submod. apply Zmod_mod.
-Qed.
-
-Lemma vscale_one : forall q a, reduced_poly q a -> vscale q 1 a = a.
-Proof.
-  intros q a H. unfold vscale. induction H as [|x l H H0 IHForall]; simpl; auto.
-  f_equal; auto. unfold mulmod. rewrite Z.mul_1_l. exact H.
-Qed.
-
-Lemma scaled_butterfly_low : forall q c nu a b,
-  length a = length b ->
-  vadd q (vscale q c (vadd q a (vscale q nu b)))
-         (vscale q c (vsub q a (vscale q nu b))) = vscale q (2*c) a.
-Proof.
-  intros q c nu a. induction a as [|a ar IH]; intros [|b br] H;
-    simpl in H; try discriminate; [reflexivity|].
-  unfold vadd, vsub, vscale in *. cbn [map combine fst snd].
-  f_equal; [|apply IH; lia]. unfold addmod, submod, mulmod.
-  repeat rewrite Zmult_mod_idemp_r. rewrite <- Zplus_mod.
-  f_equal. ring.
-Qed.
-
-Lemma scaled_butterfly_high : forall q c nu nui a b,
-  (nu * nui) mod q = 1 mod q -> length a = length b ->
-  vscale q nui
-    (vsub q (vscale q c (vadd q a (vscale q nu b)))
-            (vscale q c (vsub q a (vscale q nu b)))) = vscale q (2*c) b.
-Proof.
-  intros q c nu nui a. induction a as [|a ar IH]; intros [|b br] Hu H;
-    simpl in H; try discriminate; [reflexivity|].
-  unfold vadd, vsub, vscale in *. cbn [map combine fst snd].
-  f_equal; [|apply IH; [exact Hu|lia]]. unfold addmod, submod, mulmod.
-  rewrite <- Zminus_mod. repeat rewrite Zmult_mod_idemp_r.
-  rewrite Z.mul_sub_distr_l, Zminus_mod.
-  repeat rewrite Z.mul_assoc. repeat rewrite Zmult_mod_idemp_r.
-  rewrite <- Zminus_mod.
-  replace (nui * c * (a + (nu * b) mod q) - nui * c * (a - (nu * b) mod q))
-    with ((2*c*nui) * ((nu*b) mod q)) by ring.
-  rewrite Zmult_mod_idemp_r.
-  replace (2*c*nui*(nu*b)) with ((nu*nui)*(2*c*b)) by ring.
-  rewrite Zmult_mod, Hu, <- Zmult_mod, Z.mul_1_l. reflexivity.
-Qed.
-
-Lemma ntt_length_general : forall q psi split layers e a leaf,
-  length a = (2 ^ layers * leaf)%nat ->
-  length (ntt_go q psi split layers e a) = length a.
-Proof.
-  intros q psi split layers. induction layers as [|k IH]; intros e a leaf H;
-    [reflexivity|].
-  assert (Hm : (length a / 2 = 2 ^ k * leaf)%nat).
-  { rewrite H, Nat.pow_succ_r'.
-    replace (2 * 2 ^ k * leaf)%nat with ((2 ^ k * leaf) * 2)%nat by nia.
-    apply Nat.div_mul. lia. }
-  assert (Hlo : length (firstn (length a / 2) a) = (2 ^ k * leaf)%nat).
-  { rewrite length_firstn, Hm. apply Nat.min_l. simpl in H. lia. }
-  assert (Hhi : length (skipn (length a / 2) a) = (2 ^ k * leaf)%nat).
-  { rewrite length_skipn, Hm. simpl in H. lia. }
-  cbn [ntt_go]. rewrite length_app.
-  rewrite (IH _ _ leaf), (IH _ _ leaf).
-  - rewrite vadd_length, vsub_length, Hlo; try (rewrite vscale_length, Hlo, Hhi; reflexivity).
-    simpl in H. lia.
-  - rewrite vsub_length, Hlo; [reflexivity|rewrite vscale_length, Hlo, Hhi; reflexivity].
-  - rewrite vadd_length, Hlo; [reflexivity|rewrite vscale_length, Hlo, Hhi; reflexivity].
-Qed.
-
-Local Opaque pow_mod.
-
-Theorem ntt_inverse_unscaled : forall q psi split layers e a leaf,
-  length a = (2 ^ layers * leaf)%nat -> reduced_poly q a ->
-  inverse_roots q psi split layers e = true ->
-  intt_go q psi split layers e (ntt_go q psi split layers e a)
-    = vscale q (2 ^ Z.of_nat layers) a.
-Proof.
-  intros q psi split layers. induction layers as [|k IH]; intros e a leaf H Hr Hu.
-  - simpl. symmetry. apply vscale_one. exact Hr.
-  - cbn [inverse_roots] in Hu. apply andb_prop in Hu.
-    destruct Hu as [Hu Hh]. apply andb_prop in Hu.
-    destruct Hu as [Hu Hl]. apply Z.eqb_eq in Hu.
-    assert (Hm : (length a / 2 = 2 ^ k * leaf)%nat).
-    { rewrite H, Nat.pow_succ_r'.
-      replace (2 * 2 ^ k * leaf)%nat with ((2 ^ k * leaf) * 2)%nat by nia.
-      apply Nat.div_mul. lia. }
-    set (lo := firstn (length a / 2) a).
-    set (hi := skipn (length a / 2) a).
-    assert (Hlo : length lo = (2 ^ k * leaf)%nat).
-    { unfold lo. rewrite length_firstn, Hm. apply Nat.min_l. simpl in H. lia. }
-    assert (Hhi : length hi = (2 ^ k * leaf)%nat).
-    { unfold hi. rewrite length_skipn, Hm. simpl in H. lia. }
-    set (t := vscale q (pow_mod q psi (e/2)) hi).
-    assert (Ht : length t = length lo) by (unfold t; rewrite vscale_length, Hlo, Hhi; reflexivity).
-    assert (Ha : length (vadd q lo t) = (2 ^ k * leaf)%nat)
-      by (rewrite vadd_length, Hlo; congruence).
-    assert (Hb : length (vsub q lo t) = (2 ^ k * leaf)%nat)
-      by (rewrite vsub_length, Hlo; congruence).
-    cbn [ntt_go]. fold lo hi t.
-    cbn [intt_go].
-    rewrite length_app, (ntt_length_general q psi split k _ _ leaf Ha),
-      (ntt_length_general q psi split k _ _ leaf Hb), Ha, Hb.
-    replace ((2 ^ k * leaf + 2 ^ k * leaf) / 2)%nat with (2 ^ k * leaf)%nat
-      by (replace (2 ^ k * leaf + 2 ^ k * leaf)%nat with ((2 ^ k * leaf)*2)%nat by lia;
-          rewrite Nat.div_mul; lia).
-    rewrite <- Ha, <- (ntt_length_general q psi split k (e/2) _ leaf Ha).
-    rewrite firstn_app, firstn_all, Nat.sub_diag. cbn [firstn].
-    rewrite app_nil_r, skipn_app, skipn_all, Nat.sub_diag. cbn [skipn app].
-    rewrite (IH _ _ leaf Ha (vadd_reduced q lo t) Hl),
-      (IH _ _ leaf Hb (vsub_reduced q lo t) Hh).
-    unfold t.
-    rewrite (scaled_butterfly_low q (2 ^ Z.of_nat k) (pow_mod q psi (e/2)) lo hi
-      (eq_trans Hlo (eq_sym Hhi))).
-    rewrite (scaled_butterfly_high q (2 ^ Z.of_nat k) (pow_mod q psi (e/2))
-      (pow_mod q psi (2*split-e/2)) lo hi Hu (eq_trans Hlo (eq_sym Hhi))).
-    unfold lo, hi. unfold vscale. rewrite <- map_app, firstn_skipn.
-    rewrite Nat2Z.inj_succ, Z.pow_succ_r; [reflexivity|lia].
-Qed.
-
-Local Transparent pow_mod.
-
-Lemma vscale_compose : forall q u v a,
-  vscale q u (vscale q v a) = vscale q (u*v) a.
-Proof.
-  intros q u v a. induction a as [|a a0 IHa]; unfold vscale in *; cbn [map].
-  - reflexivity.
-  - rewrite IHa. f_equal. unfold mulmod.
-    rewrite Zmult_mod_idemp_r, Z.mul_assoc. reflexivity.
-Qed.
-
-Lemma vscale_unit : forall q c a,
-  c mod q = 1 mod q -> reduced_poly q a -> vscale q c a = a.
-Proof.
-  intros q c a Hc Ha. unfold vscale. induction Ha as [|x l H Ha IHHa]; cbn [map]; auto.
-  rewrite IHHa. f_equal. unfold mulmod.
-  rewrite Zmult_mod, Hc, <- Zmult_mod, Z.mul_1_l. exact H.
-Qed.
-
-Theorem ntt_roundtrip_general : forall r a leaf,
-  length a = (2 ^ ring_layers r * leaf)%nat ->
-  reduced_poly (ring_modulus r) a ->
-  inverse_roots (ring_modulus r) (ring_root r) (ring_split r)
-                (ring_layers r) (ring_split r) = true ->
-  (ring_inv_scale r * 2 ^ Z.of_nat (ring_layers r)) mod ring_modulus r
-    = 1 mod ring_modulus r ->
-  intt r (ntt r a) = a.
-Proof.
-  intros r a leaf H Hr Hu Hs. unfold intt, ntt, ring_top_exponent.
-  rewrite (ntt_inverse_unscaled _ _ _ _ _ _ leaf H Hr Hu), vscale_compose.
-  apply vscale_unit; assumption.
-Qed.
-
-Example both_selected_rings_have_inverse_roots :
-  inverse_roots 3329 17 128 7 128 = true /\
-  inverse_roots 8380417 1753 256 8 256 = true.
-Proof. vm_compute. split; reflexivity. Qed.
-
-Theorem mlkem_ntt_roundtrip : forall a,
-  length a = 256%nat -> reduced_poly 3329 a ->
-  intt mlkem_ring (ntt mlkem_ring a) = a.
-Proof.
-  intros a H Hr. apply (ntt_roundtrip_general mlkem_ring a 2).
-  - exact H.
-  - exact Hr.
-  - exact (proj1 both_selected_rings_have_inverse_roots).
-  - vm_compute. reflexivity.
-Qed.
-
-Theorem mldsa_ntt_roundtrip : forall a,
-  length a = 256%nat -> reduced_poly 8380417 a ->
-  intt mldsa_ring (ntt mldsa_ring a) = a.
-Proof.
-  intros a H Hr. apply (ntt_roundtrip_general mldsa_ring a 1).
-  - exact H.
-  - exact Hr.
-  - exact (proj2 both_selected_rings_have_inverse_roots).
-  - vm_compute. reflexivity.
-Qed.
-
-(* General bit and chunk codec laws. Encoding width and whole-byte alignment
-   are explicit; out-of-domain integers are not silently called canonical. *)
-Lemma bit_range_div2 : forall n x start,
-  0 <= start ->
-  map (Z.testbit x) (z_range n (start + 1)) =
-  map (Z.testbit (x/2)) (z_range n start).
-Proof.
-  induction n as [|n IHn]; intros x start H; cbn [z_range map]; [reflexivity|].
-  f_equal.
-  - replace (start+1) with (Z.succ start) by lia.
-    symmetry. apply Z.div2_bits. exact H.
-  - apply IHn. lia.
-Qed.
-
-Lemma bits_le_succ : forall n x,
-  bits_le (S n) x = Z.testbit x 0 :: bits_le n (x/2).
-Proof.
-  intros n x. unfold bits_le, indices. cbn [z_range map]. f_equal.
-  change (map (Z.testbit x) (z_range n (0+1)) = map (Z.testbit (x/2)) (z_range n 0)).
-  apply bit_range_div2. lia.
-Qed.
-
-Lemma bits_value_bound : forall bs,
-  0 <= bits_value bs < 2 ^ Z.of_nat (length bs).
-Proof.
-  induction bs as [|b bs IH]; cbn [bits_value length].
-  - lia.
-  - rewrite Nat2Z.inj_succ, Z.pow_succ_r by lia.
-    destruct b; nia.
-Qed.
-
-Theorem bits_value_of_bits_le : forall n x,
-  0 <= x < 2 ^ Z.of_nat n -> bits_value (bits_le n x) = x.
-Proof.
-  induction n as [|n IHn]; intros x H.
-  - cbn in H. assert (x=0) by lia. subst. reflexivity.
-  - rewrite bits_le_succ. cbn [bits_value]. rewrite IHn.
-    + replace (if Z.testbit x 0 then 1 else 0) with (Z.b2z (Z.testbit x 0))
-        by (destruct (Z.testbit x 0); reflexivity).
-      rewrite Z.bit0_mod. Z.to_euclidean_division_equations. lia.
-    + rewrite Nat2Z.inj_succ, Z.pow_succ_r in H by lia.
-      Z.to_euclidean_division_equations. lia.
-Qed.
-
-Theorem bits_le_of_bits_value : forall bs,
-  bits_le (length bs) (bits_value bs) = bs.
-Proof.
-  induction bs as [|b bs IH]; [reflexivity|].
-  cbn [length bits_value]. rewrite bits_le_succ.
-  replace (if b then 1 else 0) with (Z.b2z b) by (destruct b; reflexivity).
-  rewrite Z.add_b2z_double_bit0.
-  assert (Hdiv : (Z.b2z b + 2 * bits_value bs) / 2 = bits_value bs).
-  { destruct b; cbn [Z.b2z]; Z.to_euclidean_division_equations; lia. }
-  rewrite Hdiv, IH. reflexivity.
-Qed.
-
-Lemma bits_le_length : forall n x, length (bits_le n x) = n.
-Proof. induction n as [|n IHn]; intros; [reflexivity|]. rewrite bits_le_succ. simpl. rewrite IHn. reflexivity. Qed.
-
-Lemma chunk_of_exact : forall {A} fuel width (chunks : list (list A)),
-  (0 < width)%nat -> (length chunks <= fuel)%nat ->
-  Forall (fun xs => length xs = width) chunks ->
-  chunk_of fuel width (concat chunks) = chunks.
-Proof.
-  intros A fuel width chunks Hw. revert fuel.
-  induction chunks as [|xs chunks IH]; intros [|fuel] Hf Hall; cbn [chunk_of concat];
-    try reflexivity; try (simpl in Hf; lia).
-  inversion Hall as [|? ? Hxs Hrest].
-  destruct xs as [|y xs]; [simpl in Hxs; lia|].
-  change (firstn width ((y :: xs) ++ concat chunks) ::
-    chunk_of fuel width (skipn width ((y :: xs) ++ concat chunks)) = (y :: xs) :: chunks).
-  rewrite <- Hxs, firstn_app, firstn_all, Nat.sub_diag, skipn_app, skipn_all, Nat.sub_diag.
-  cbn [firstn skipn app]. rewrite app_nil_r. f_equal. rewrite Hxs.
-  apply IH; [simpl in Hf; lia|exact Hrest].
-Qed.
-
-Lemma chunk_of_concat : forall {A} fuel width (xs : list A),
-  (0 < width)%nat -> (length xs <= fuel * width)%nat ->
-  concat (chunk_of fuel width xs) = xs.
-Proof.
-  intros A fuel. induction fuel as [|fuel IHfuel]; intros width xs Hw Hlen.
-  - destruct xs; [reflexivity|simpl in Hlen; lia].
-  - destruct xs as [|x xs]; [reflexivity|].
-    change (firstn width (x :: xs) ++ concat (chunk_of fuel width (skipn width (x :: xs))) = x :: xs).
-    rewrite IHfuel; [apply firstn_skipn|exact Hw|]. rewrite length_skipn.
-    cbn [length] in *. simpl in Hlen. nia.
-Qed.
-
-Lemma chunk_of_lengths : forall {A} fuel width (xs : list A),
-  (0 < width)%nat -> (length xs mod width = 0)%nat ->
-  Forall (fun part => length part = width) (chunk_of fuel width xs).
-Proof.
-  intros A fuel. induction fuel as [|fuel IHfuel]; intros width xs Hw Hmod; [constructor|].
-  destruct xs as [|x xs]; [constructor|].
-  assert (Hle : (width <= length (x :: xs))%nat).
-  { destruct (Nat.lt_ge_cases (length (x :: xs)) width); [rewrite Nat.mod_small in Hmod by lia; simpl in Hmod; lia|lia]. }
-  change (Forall (fun part => length part = width)
-    (firstn width (x :: xs) :: chunk_of fuel width (skipn width (x :: xs)))).
-  constructor.
-  - rewrite length_firstn. apply Nat.min_l. exact Hle.
-  - apply IHfuel; [exact Hw|]. rewrite length_skipn.
-    pose proof (Nat.div_mod_eq (length (x :: xs)) width) as Hd.
-    rewrite Hmod in Hd. replace (length (x :: xs) - width)%nat
-      with ((length (x :: xs) / width - 1) * width)%nat by nia.
-    apply Nat.Div0.mod_mul.
-Qed.
-
-Lemma bit_codec_chunks : forall width chunks,
-  Forall (fun bs => length bs = width) chunks ->
-  map (bits_le width) (map bits_value chunks) = chunks.
-Proof.
-  intros width chunks H. induction H as [|x l H H0 IHForall]; cbn [map]; [reflexivity|].
-  f_equal; [rewrite <- H; apply bits_le_of_bits_value|exact IHForall].
-Qed.
-
-Lemma concat_bits_length : forall width xs,
-  length (concat (map (bits_le width) xs)) = (length xs * width)%nat.
-Proof.
-  intros width xs. induction xs as [|a xs IHxs]; cbn [map concat length]; [reflexivity|].
-  rewrite length_app, bits_le_length, IHxs. lia.
-Qed.
-
-Theorem byte_codec_roundtrip : forall width xs,
-  (0 < width)%nat -> ((length xs * width) mod 8 = 0)%nat ->
-  Forall (fun x => 0 <= x < 2 ^ Z.of_nat width) xs ->
-  byte_decode width (byte_encode width xs) = xs.
-Proof.
-  intros width xs Hw Halign Hbounds. unfold byte_decode, byte_encode.
-  rewrite bit_codec_chunks.
-  2: { apply chunk_of_lengths; [lia|rewrite concat_bits_length; exact Halign]. }
-  rewrite chunk_of_concat.
-  2: lia.
-  2: { rewrite concat_bits_length. nia. }
-  rewrite chunk_of_exact.
-  - clear Halign. induction Hbounds as [|x l H Hbounds IHHbounds]; cbn [map]; [reflexivity|].
-    rewrite bits_value_of_bits_le by exact H. rewrite IHHbounds. reflexivity.
-  - exact Hw.
-  - rewrite length_map.
-    (* Each coefficient requires width bits, and each output byte carries 8. *)
-    assert (Htotal : length (concat (map (bits_le width) xs)) =
-      (length (chunk_of (length xs * width) 8 (concat (map (bits_le width) xs))) * 8)%nat).
-    { rewrite <- (chunk_of_concat (length xs * width) 8 (concat (map (bits_le width) xs))) at 1;
-        [|lia|rewrite concat_bits_length; nia].
-      pose proof (chunk_of_lengths (length xs * width) 8
-        (concat (map (bits_le width) xs)) (ltac:(lia)) (ltac:(rewrite concat_bits_length; exact Halign))) as Hparts.
-      induction Hparts as [|x l H Hparts IHHparts]; cbn [concat length]; [reflexivity|]. rewrite length_app, H, IHHparts. lia. }
-    rewrite concat_bits_length in Htotal. rewrite length_map. nia.
-  - apply Forall_forall. intros bs Hbs. apply in_map_iff in Hbs.
-    destruct Hbs as [x [<- Hx]]. apply bits_le_length.
-Qed.
 
 
 (* R-05-163 and R-05-164: `run.py proofs` audits the complete native inventory. *)

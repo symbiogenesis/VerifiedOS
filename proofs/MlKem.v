@@ -365,6 +365,28 @@ Theorem the_rejection_value_is_returned_where_re_encryption_does_not :
     kem_decaps p o dk c = kem_j o (dk_reject p dk ++ c).
 Proof. intros p o dk c H. unfold kem_decaps, decaps_rejection. rewrite H. reflexivity. Qed.
 
+(* Semantic interfaces expose ciphertext equality while the executable
+   branch and its original Boolean interface remain unchanged. *)
+Corollary reencryption_equality_returns_the_shared_secret :
+  forall (p : Params) (o : Oracles) (dk c : list Z),
+    decaps_reencryption p o dk c = c ->
+    kem_decaps p o dk c = fst (decaps_pair p o dk c).
+Proof.
+  intros p o dk c H.
+  apply the_shared_secret_is_returned_exactly_where_re_encryption_reproduces_it.
+  apply (proj2 (poly_eqb_spec _ _)). exact H.
+Qed.
+
+Corollary reencryption_inequality_returns_the_rejection_value :
+  forall (p : Params) (o : Oracles) (dk c : list Z),
+    decaps_reencryption p o dk c <> c ->
+    kem_decaps p o dk c = kem_j o (dk_reject p dk ++ c).
+Proof.
+  intros p o dk c H.
+  apply the_rejection_value_is_returned_where_re_encryption_does_not.
+  apply (proj2 (poly_eqb_false_spec _ _)). exact H.
+Qed.
+
 (* The implicit-rejection value reads the rejection seed and the ciphertext
    and nothing else, so two decapsulation keys that agree there and fail
    answer the same value however their secret vectors differ. That is the
