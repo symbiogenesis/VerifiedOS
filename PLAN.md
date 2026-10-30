@@ -2564,6 +2564,39 @@ backing from a usable declared slot and completed reuse.
 
 A credible project combines programming-language semantics, algorithms, real-time systems, capability security, and compiler engineering. Its success criterion is a checked increase in useful admitted work with the costs exposed. A proof that a particular reservation is unavoidable, or that a tempting optimization breaks isolation, is also a substantive result.
 
+## Tool-library simplifications
+
+This maintenance batch preserves artifact formats, diagnostics and acceptance
+boundaries. Implementation starts from these contracts; each output joins through
+integrated typecheck, Host CI on Windows and Ubuntu, and dispatch of every Guest
+CI lane for the settled revision without waiting for Guest CI.
+
+- **Ring library extraction. Start:** the declaration reader and emitter in
+  `vos/cli/ring.py`. **Owns:** a library module for shared declarations, types,
+  register parsing and emission; the CLI retains command dispatch and publication.
+  **Check:** existing ring and consumer controls preserve emitted bytes and
+  refusals, and library imports do not load the ring command. Source identities
+  include the moved implementation and its dependencies.
+- **Strict-integer JSON Schema validation. Start:** composition and ring validator
+  construction. **Owns:** one Draft 2020-12 validator mechanism whose integer
+  policy accepts Python integers and refuses booleans and floats, with lazy
+  dependency loading retained for ring consumers. **Check:** focused generated
+  scalar cases cover nested integers, booleans, integral floats and fractional
+  floats; callers retain schema checking, error ordering and domain diagnostics.
+- **Static-memory inventory decoupling. Start:** manifest registration, digest and
+  replay imports from its command. **Owns:** explicit library inputs and callbacks
+  wired by the command, preserving discovery from actual command registration.
+  **Check:** inventory and replay controls retain action coverage, receipt hashes,
+  malformed-receipt refusals and replay budgets; importing the manifest does not
+  import its CLI.
+- **Shared proof-source lexing exploration. Start:** overlapping proof-source
+  comment and string scanners. **Owns:** qualify nested comments, doubled quotes,
+  positions and malformed-input policies before sharing compatible mechanics;
+  retain each caller's refusal or tolerant behavior explicitly. **Check:** focused
+  differential fixtures cover valid and malformed text and unchanged live-source
+  readings. Consolidate only the qualified overlap; record any incompatible
+  scanner policy and remaining boundary here.
+
 ## Shared JSON duplicate-key rejection
 
 The tool readers share the duplicate-key check in
