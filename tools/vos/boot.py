@@ -1107,7 +1107,8 @@ def _tee(stream: Iterable[str], sink: TextIO) -> Iterator[str]:
 
 
 def boot_image(argv: list[str], console_path: Path, entries: dict[int, str], tohost: int,
-               timeout: float, trace_path: Path | None = None) -> Observation:
+               timeout: float, trace_path: Path | None = None, *,
+               cwd: Path | None = None) -> Observation:
     """Run one image and project its output as it streams past.
 
     `argv` is the whole emulator command line, the console file among its arguments.
@@ -1117,7 +1118,7 @@ def boot_image(argv: list[str], console_path: Path, entries: dict[int, str], toh
     started = time.monotonic()
     fired = threading.Event()
     with subprocess.Popen(argv, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True,
-                          encoding="utf-8", errors="replace") as proc:
+                          encoding="utf-8", errors="replace", cwd=cwd) as proc:
         def kill() -> None:
             fired.set()
             proc.kill()
