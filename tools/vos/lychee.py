@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 """Pinned ordinary Markdown link validation; project assurance stays at its caller."""
 
+import errno
 import json
 import os
 import platform
@@ -8,14 +9,19 @@ import re
 import subprocess
 import sys
 import tarfile
+import time
 import zipfile
+from collections.abc import Generator
+from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
+from typing import BinaryIO
 
 from vos import jsonutil, receipts
 
 VERSION = "0.24.2"
 BASE = f"https://github.com/lycheeverse/lychee/releases/download/lychee-v{VERSION}"
+INSTALL_TIMEOUT = 180.0
 
 
 @dataclass(frozen=True)
@@ -57,17 +63,53 @@ def asset_for(system: str, machine: str) -> Asset:
     raise ValueError(f"Lychee has no reviewed executable for {system}/{machine}")
 
 
-def executable() -> Path:
-    """Keep pinned bytes in the managed environment shared by mutant processes."""
-    if sys.prefix == sys.base_prefix:
-        raise ValueError("Lychee requires the project's managed Python environment")
-    asset = asset_for(sys.platform, platform.machine())
-    home = Path(sys.prefix) / f"lychee-{VERSION}"
-    target = home / asset.executable
+def _lock(stream: BinaryIO, *, release: bool = False) -> None:
+    stream.seek(0)
+    if sys.platform == "win32":
+        import msvcrt
+
+        msvcrt.locking(stream.fileno(), msvcrt.LK_UNLCK if release else msvcrt.LK_NBLCK, 1)
+    else:
+        import fcntl
+
+        fcntl.flock(stream.fileno(), fcntl.LOCK_UN if release else fcntl.LOCK_EX | fcntl.LOCK_NB)
+
+
+@contextmanager
+def _installation_lock(home: Path) -> Generator[None]:
+    """Serialize cold installation; the OS releases ownership after process exit."""
+    home.mkdir(parents=True, exist_ok=True)
+    with (home / ".install.lock").open("a+b") as stream:
+        if stream.tell() == 0:
+            stream.write(b"0")
+            stream.flush()
+        deadline = time.monotonic() + INSTALL_TIMEOUT
+        while True:
+            try:
+                _lock(stream)
+            except OSError as error:
+                if error.errno not in {errno.EACCES, errno.EAGAIN, errno.EDEADLK}:
+                    raise
+                if time.monotonic() >= deadline:
+                    raise TimeoutError("timed out waiting for Lychee installation ownership") from error
+                time.sleep(0.1)
+            else:
+                break
+        try:
+            yield
+        finally:
+            _lock(stream, release=True)
+
+
+def _verified(target: Path, asset: Asset) -> bool:
     if target.exists():
         if receipts.digest(target) != asset.executable_hash:
             raise ValueError(f"{target}: installed Lychee executable hash differs from its pin")
-        return target
+        return True
+    return False
+
+
+def _install(home: Path, target: Path, asset: Asset) -> None:
     extension = "zip" if asset.windows else "tar.gz"
     archive = home / f"lychee-{asset.target}.{extension}"
     receipts.download(f"{BASE}/{archive.name}", archive, asset.archive_hash)
@@ -88,6 +130,20 @@ def executable() -> Path:
             raise ValueError(f"{archive}: extracted Lychee executable hash differs from its pin")
         if not asset.windows:
             pending.chmod(0o755)
+
+
+def executable() -> Path:
+    """Keep pinned bytes in the managed environment shared by mutant processes."""
+    if sys.prefix == sys.base_prefix:
+        raise ValueError("Lychee requires the project's managed Python environment")
+    asset = asset_for(sys.platform, platform.machine())
+    home = Path(sys.prefix) / f"lychee-{VERSION}"
+    target = home / asset.executable
+    if _verified(target, asset):
+        return target
+    with _installation_lock(home):
+        if not _verified(target, asset):
+            _install(home, target, asset)
     return target
 
 

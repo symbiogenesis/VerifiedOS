@@ -3,13 +3,158 @@
 
 import hashlib
 import json
+import subprocess
+import sys
 import tempfile
+import time
+import zipfile
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
 from tests.harness import Case, ensure
 from vos import lychee
+
+_TOOLS = Path(__file__).resolve().parents[1]
+_FIXTURE_EXECUTABLE = b"reviewed fixture executable"
+_INSTALL_WORKER = r'''
+import json, sys, time
+from pathlib import Path
+from types import SimpleNamespace
+sys.path.insert(0, sys.argv[1])
+from vos import lychee
+root, mode = Path(sys.argv[2]), sys.argv[3]
+config = json.loads((root / "asset.json").read_text())
+asset = lychee.Asset("fixture-windows-msvc", config["archive"], config["executable"])
+native_platform = sys.platform
+lychee.sys = SimpleNamespace(prefix=str(root / "environment"), base_prefix="other",
+                            platform=native_platform)
+lychee.asset_for = lambda system, machine: asset
+lychee.BASE = (root / "release").as_uri()
+original = lychee.receipts.download
+def download(url, target, expected):
+    with (root / "downloads").open("a", encoding="utf-8") as output:
+        output.write("download\n")
+    if mode == "fail":
+        raise ValueError("fixture provider failed")
+    if mode == "hold":
+        (root / "entered").write_text("ready")
+        deadline = time.monotonic() + 10
+        while not (root / "release-owner").exists():
+            if time.monotonic() >= deadline:
+                raise TimeoutError("fixture owner was not released")
+            time.sleep(0.02)
+    original(url, target, expected)
+lychee.receipts.download = download
+if mode == "timeout":
+    lychee.INSTALL_TIMEOUT = 0.1
+(root / ("ready-" + mode)).write_text("ready")
+print(lychee.executable(), flush=True)
+'''
+
+
+def _installation_fixture(root: Path) -> Path:
+    release = root / "release"
+    release.mkdir()
+    archive = release / "lychee-fixture-windows-msvc.zip"
+    with zipfile.ZipFile(archive, "w") as bundle:
+        bundle.writestr("lychee-fixture-windows-msvc/lychee.exe", _FIXTURE_EXECUTABLE)
+    (root / "asset.json").write_text(json.dumps({
+        "archive": hashlib.sha256(archive.read_bytes()).hexdigest(),
+        "executable": hashlib.sha256(_FIXTURE_EXECUTABLE).hexdigest(),
+    }), encoding="utf-8")
+    return root / "environment" / f"lychee-{lychee.VERSION}" / "lychee.exe"
+
+
+def _installer(root: Path, mode: str) -> subprocess.Popen[bytes]:
+    return subprocess.Popen([sys.executable, "-c", _INSTALL_WORKER, str(_TOOLS), str(root), mode],
+                            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+
+def _wait_for(path: Path) -> None:
+    deadline = time.monotonic() + 10
+    while not path.exists():
+        if time.monotonic() >= deadline:
+            raise AssertionError(f"installer fixture did not reach {path.name}")
+        time.sleep(0.02)
+
+
+def _finish(process: subprocess.Popen[bytes], *, success: bool) -> bytes:
+    _, error = process.communicate(timeout=15)
+    ensure((process.returncode == 0) is success,
+           f"installer exit {process.returncode}: {error.decode('utf-8', 'replace')}")
+    return error
+
+
+def _shared_cold_install() -> None:
+    with tempfile.TemporaryDirectory(prefix="vos-lychee-install-") as temporary:
+        root = Path(temporary)
+        target = _installation_fixture(root)
+        with _installer(root, "hold") as first:
+            _wait_for(root / "entered")
+            with _installer(root, "normal") as second:
+                try:
+                    _wait_for(root / "ready-normal")
+                    time.sleep(0.2)
+                    ensure(second.poll() is None,
+                           "a second cold installer bypassed the existing owner")
+                finally:
+                    (root / "release-owner").write_text("release", encoding="utf-8")
+                _finish(first, success=True)
+                _finish(second, success=True)
+        ensure(target.read_bytes() == _FIXTURE_EXECUTABLE,
+               "the shared installation published different executable bytes")
+        ensure((root / "downloads").read_text().splitlines() == ["download"],
+               "the waiting installer did not recheck the published executable")
+
+
+def _failed_install_releases_ownership() -> None:
+    for mode in ("fail", "hold"):
+        with tempfile.TemporaryDirectory(prefix="vos-lychee-release-") as temporary:
+            root = Path(temporary)
+            target = _installation_fixture(root)
+            with _installer(root, mode) as first:
+                if mode == "hold":
+                    _wait_for(root / "entered")
+                    first.terminate()
+                _finish(first, success=False)
+            ensure(not target.exists(), "a failed installer published an executable")
+            with _installer(root, "normal") as second:
+                _finish(second, success=True)
+            ensure(target.read_bytes() == _FIXTURE_EXECUTABLE,
+                   "installation could not resume after its owner stopped")
+
+
+def _installation_wait_refuses_at_budget() -> None:
+    with tempfile.TemporaryDirectory(prefix="vos-lychee-wait-") as temporary:
+        root = Path(temporary)
+        target = _installation_fixture(root)
+        with _installer(root, "hold") as first:
+            _wait_for(root / "entered")
+            try:
+                with _installer(root, "timeout") as second:
+                    error = _finish(second, success=False)
+                ensure(b"timed out waiting for Lychee installation ownership" in error,
+                       "lock contention did not produce a bounded refusal")
+                ensure(not target.exists(), "a timed-out waiter published an executable")
+            finally:
+                (root / "release-owner").write_text("release", encoding="utf-8")
+            _finish(first, success=True)
+
+
+def _corrupt_archive_is_not_replaced() -> None:
+    with tempfile.TemporaryDirectory(prefix="vos-lychee-corrupt-") as temporary:
+        root = Path(temporary)
+        target = _installation_fixture(root)
+        target.parent.mkdir(parents=True)
+        archive = target.parent / "lychee-fixture-windows-msvc.zip"
+        archive.write_bytes(b"substituted archive")
+        with _installer(root, "normal") as process:
+            error = _finish(process, success=False)
+        ensure(b"cached download SHA256 does not match" in error,
+               "a corrupt archive was not refused by its recorded hash")
+        ensure(not target.exists() and archive.read_bytes() == b"substituted archive",
+               "the refusal replaced corrupt cached bytes or published an executable")
 
 
 def _ordinary_links() -> None:
@@ -108,4 +253,8 @@ def cases() -> list[Case]:
             Case("uninitialized gitlinks exempt only the tracked root", _gitlink_roots),
             Case("explicit hidden inputs ignore ambient exclusions", _explicit_inputs_ignore_ambient_policy),
             Case("tool crashes and malformed verdicts refuse", _structured_verdicts),
-            Case("cached executable bytes retain their reviewed identity", _cached_executable_identity)]
+            Case("cached executable bytes retain their reviewed identity", _cached_executable_identity),
+            Case("independent cold installers share one verified publication", _shared_cold_install),
+            Case("failed and interrupted installers release ownership", _failed_install_releases_ownership),
+            Case("installation contention has a bounded refusal", _installation_wait_refuses_at_budget),
+            Case("corrupt archives refuse without replacement", _corrupt_archive_is_not_replaced)]
