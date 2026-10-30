@@ -27,11 +27,12 @@ def _record(root: Path) -> dict[str, object]:
     return production.make_record(root, composition.EXAMPLE, PROJECTIONS, BUILD, IMAGE, GRAPH)
 
 
-def _refused(fn: Callable[[], object], phrase: str) -> None:
+def _refused(fn: Callable[[], object], phrase: str | tuple[str, ...]) -> None:
     try:
         fn()
     except (production.ProductionAdmissionError, composition.CompositionError) as error:
-        ensure(phrase in str(error), f"wrong refusal: {error}")
+        phrases = (phrase,) if isinstance(phrase, str) else phrase
+        ensure(any(item in str(error) for item in phrases), f"wrong refusal: {error}")
         return
     raise AssertionError(f"missing refusal: {phrase}")
 
@@ -174,7 +175,9 @@ def _stale_joins() -> None:
             result = _record(root)
             path = root / relative
             path.write_bytes(path.read_bytes() + b"\n")
-            phrase = "stale source" if relative == "tools/vos/jsonutil.py" else "differs"
+            # A checker shared with composition may refuse at its earlier source
+            # or projection binding; a receipt-only checker changes the replay.
+            phrase = ("stale source", "stale projection", "differs")
             _refused(lambda result=result: production.validate_record(root, result), phrase)
 
 

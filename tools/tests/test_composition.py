@@ -30,6 +30,10 @@ def _write(root: Path, raw: dict[str, Any]) -> None:
 def _rebind_inventory_source(root: Path, raw: dict[str, Any], source: str) -> None:
     """Explicitly refresh every inventory declaring a deliberately changed owner."""
     ref = c.reference(root, source)
+    for owner in (*raw["producers"], *raw["members"]):
+        for item in owner["sources"]:
+            if item["path"] == source:
+                item.update(ref)
     for member in raw["members"]:
         if member["descriptor"] is None:
             continue

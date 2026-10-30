@@ -11,12 +11,32 @@
       "id": "offline-reference-composer",
       "sources": [
         {
-          "path": "tools/vos/composer.py",
-          "sha256": "199093c62f8cb3ac5d385bb0a074811661df4a66aaa3328fab439f252de022e0"
+          "path": "tools/vos/source_bindings.py",
+          "sha256": "92a238dffb3f6a49e5abe66cae082159aa5c0dfc06e10a9424000b95840695e7"
         },
         {
           "path": "tools/vos/jsonutil.py",
           "sha256": "651b6cf84e7e3d3af970df71a286b5c700eea9b2b1b88f2db7dd44f572bfd8e5"
+        },
+        {
+          "path": "tools/vos/receipts.py",
+          "sha256": "25bbf0b0288363f3b1fe9b0eff3616839dce7d61720814fe2f350f1fbba8d822"
+        },
+        {
+          "path": "tools/vos/proofenv.py",
+          "sha256": "cc6c5beca2aaefc1761e3b7748bdca52816d093f836ecdac9a879b79fa4d0513"
+        },
+        {
+          "path": "tools/vos/atomic.py",
+          "sha256": "384e706e945f8cead1e1b3791f916f6e7f8783a7497c17dd3a551a765e670471"
+        },
+        {
+          "path": "tools/vos/composer.py",
+          "sha256": "199093c62f8cb3ac5d385bb0a074811661df4a66aaa3328fab439f252de022e0"
+        },
+        {
+          "path": "proofs/HandlerGraph.v",
+          "sha256": "2353a27a43e88f37484450335df834ba945bae2900055e94777e06189a02dfcd"
         }
       ]
     },
@@ -24,12 +44,32 @@
       "id": "offline-reference-admission",
       "sources": [
         {
-          "path": "tools/vos/admission.py",
-          "sha256": "70e6b9014fb3d2efaf8fcbc3130b7356617b2fe9e4da0303b024c67e1e68fc70"
+          "path": "tools/vos/source_bindings.py",
+          "sha256": "92a238dffb3f6a49e5abe66cae082159aa5c0dfc06e10a9424000b95840695e7"
         },
         {
           "path": "tools/vos/jsonutil.py",
           "sha256": "651b6cf84e7e3d3af970df71a286b5c700eea9b2b1b88f2db7dd44f572bfd8e5"
+        },
+        {
+          "path": "tools/vos/receipts.py",
+          "sha256": "25bbf0b0288363f3b1fe9b0eff3616839dce7d61720814fe2f350f1fbba8d822"
+        },
+        {
+          "path": "tools/vos/proofenv.py",
+          "sha256": "cc6c5beca2aaefc1761e3b7748bdca52816d093f836ecdac9a879b79fa4d0513"
+        },
+        {
+          "path": "tools/vos/atomic.py",
+          "sha256": "384e706e945f8cead1e1b3791f916f6e7f8783a7497c17dd3a551a765e670471"
+        },
+        {
+          "path": "tools/vos/admission.py",
+          "sha256": "70e6b9014fb3d2efaf8fcbc3130b7356617b2fe9e4da0303b024c67e1e68fc70"
+        },
+        {
+          "path": "proofs/AdmissionPath.v",
+          "sha256": "acb3d68026bfd38df2a4fed05efabbea6eea4929e370d112b28929c437ffd539"
         }
       ]
     }
@@ -253,21 +293,49 @@
       "producer": "offline-reference-composer",
       "sources": [
         {
-          "path": "proofs/HandlerGraph.v",
-          "sha256": "2353a27a43e88f37484450335df834ba945bae2900055e94777e06189a02dfcd"
+          "path": "tools/vos/source_bindings.py",
+          "sha256": "92a238dffb3f6a49e5abe66cae082159aa5c0dfc06e10a9424000b95840695e7"
+        },
+        {
+          "path": "tools/vos/jsonutil.py",
+          "sha256": "651b6cf84e7e3d3af970df71a286b5c700eea9b2b1b88f2db7dd44f572bfd8e5"
+        },
+        {
+          "path": "tools/vos/receipts.py",
+          "sha256": "25bbf0b0288363f3b1fe9b0eff3616839dce7d61720814fe2f350f1fbba8d822"
+        },
+        {
+          "path": "tools/vos/proofenv.py",
+          "sha256": "cc6c5beca2aaefc1761e3b7748bdca52816d093f836ecdac9a879b79fa4d0513"
+        },
+        {
+          "path": "tools/vos/atomic.py",
+          "sha256": "384e706e945f8cead1e1b3791f916f6e7f8783a7497c17dd3a551a765e670471"
         },
         {
           "path": "tools/vos/composer.py",
           "sha256": "199093c62f8cb3ac5d385bb0a074811661df4a66aaa3328fab439f252de022e0"
         },
         {
-          "path": "tools/vos/jsonutil.py",
-          "sha256": "651b6cf84e7e3d3af970df71a286b5c700eea9b2b1b88f2db7dd44f572bfd8e5"
+          "path": "proofs/HandlerGraph.v",
+          "sha256": "2353a27a43e88f37484450335df834ba945bae2900055e94777e06189a02dfcd"
+        },
+        {
+          "path": "tools/vos/composition.py",
+          "sha256": "86e18fd2d62afe352660534d537ea3d162f9a619c354ab75a8ed6623dc9ae90f"
+        },
+        {
+          "path": "tools/vos/cli/composer.py",
+          "sha256": "2d2c497aadd2e58d99ef84037420c27634636be534f4efda5834caa8039f75cf"
+        },
+        {
+          "path": "tools/vos/composition_staged.py",
+          "sha256": "0e7861328a0407e2ee612aea3825b473270ff9c6bd8c7a3f58c6e726ccd28007"
         }
       ],
       "descriptor": {
         "path": "tools/composer/packages/composer.json",
-        "sha256": "22ed587b6331b8835f596d4abdc7090f83fac0ceb89ff19b0ac91c1783d4fada"
+        "sha256": "2d5c6ac4add02cb8b442d27f597fed4c99f877fb6002c082c44bd2b1a3b8e697"
       },
       "artifact_slot": "composer-artifact",
       "entry": null,
@@ -285,21 +353,45 @@
       "producer": "offline-reference-admission",
       "sources": [
         {
-          "path": "proofs/AdmissionPath.v",
-          "sha256": "acb3d68026bfd38df2a4fed05efabbea6eea4929e370d112b28929c437ffd539"
+          "path": "tools/vos/source_bindings.py",
+          "sha256": "92a238dffb3f6a49e5abe66cae082159aa5c0dfc06e10a9424000b95840695e7"
+        },
+        {
+          "path": "tools/vos/jsonutil.py",
+          "sha256": "651b6cf84e7e3d3af970df71a286b5c700eea9b2b1b88f2db7dd44f572bfd8e5"
+        },
+        {
+          "path": "tools/vos/receipts.py",
+          "sha256": "25bbf0b0288363f3b1fe9b0eff3616839dce7d61720814fe2f350f1fbba8d822"
+        },
+        {
+          "path": "tools/vos/proofenv.py",
+          "sha256": "cc6c5beca2aaefc1761e3b7748bdca52816d093f836ecdac9a879b79fa4d0513"
+        },
+        {
+          "path": "tools/vos/atomic.py",
+          "sha256": "384e706e945f8cead1e1b3791f916f6e7f8783a7497c17dd3a551a765e670471"
         },
         {
           "path": "tools/vos/admission.py",
           "sha256": "70e6b9014fb3d2efaf8fcbc3130b7356617b2fe9e4da0303b024c67e1e68fc70"
         },
         {
-          "path": "tools/vos/jsonutil.py",
-          "sha256": "651b6cf84e7e3d3af970df71a286b5c700eea9b2b1b88f2db7dd44f572bfd8e5"
+          "path": "proofs/AdmissionPath.v",
+          "sha256": "acb3d68026bfd38df2a4fed05efabbea6eea4929e370d112b28929c437ffd539"
+        },
+        {
+          "path": "tools/vos/admission_production.py",
+          "sha256": "e44a35b6856f119d345dabda4adf2a517e873f550b04c45d59348cdcbb235442"
+        },
+        {
+          "path": "tools/vos/cli/admission.py",
+          "sha256": "63ea4f47113b41c924a5a8c0c998e574533d59f7f25ec0ae1835a7bf66bf614d"
         }
       ],
       "descriptor": {
         "path": "tools/composer/packages/admission.json",
-        "sha256": "cb408332792de343140bb0a7067b850dc7c6413df78bd72c78e0eefbe17cb860"
+        "sha256": "22407d7ccdefc4dce0e3cd05c04f23d0e80509b393afe15558f95b72db33bb44"
       },
       "artifact_slot": "admission-artifact",
       "entry": null,

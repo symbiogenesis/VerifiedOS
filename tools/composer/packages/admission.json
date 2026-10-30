@@ -3,24 +3,40 @@
   "package_id": "admission",
   "sources": [
     {
+      "path": "tools/vos/source_bindings.py",
+      "sha256": "92a238dffb3f6a49e5abe66cae082159aa5c0dfc06e10a9424000b95840695e7"
+    },
+    {
+      "path": "tools/vos/jsonutil.py",
+      "sha256": "651b6cf84e7e3d3af970df71a286b5c700eea9b2b1b88f2db7dd44f572bfd8e5"
+    },
+    {
+      "path": "tools/vos/receipts.py",
+      "sha256": "25bbf0b0288363f3b1fe9b0eff3616839dce7d61720814fe2f350f1fbba8d822"
+    },
+    {
+      "path": "tools/vos/proofenv.py",
+      "sha256": "cc6c5beca2aaefc1761e3b7748bdca52816d093f836ecdac9a879b79fa4d0513"
+    },
+    {
+      "path": "tools/vos/atomic.py",
+      "sha256": "384e706e945f8cead1e1b3791f916f6e7f8783a7497c17dd3a551a765e670471"
+    },
+    {
       "path": "tools/vos/admission.py",
       "sha256": "70e6b9014fb3d2efaf8fcbc3130b7356617b2fe9e4da0303b024c67e1e68fc70"
-    },
-    {
-      "path": "tools/vos/admission_production.py",
-      "sha256": "d0cf6f7bff0b2afb83fe2b3409565c5c7d16ed1b6290a891288c832de1b49014"
-    },
-    {
-      "path": "tools/vos/cli/admission.py",
-      "sha256": "28b746382706a8868518645e051dfc9d2641b4418327ea33247d0dbadfd3a683"
     },
     {
       "path": "proofs/AdmissionPath.v",
       "sha256": "acb3d68026bfd38df2a4fed05efabbea6eea4929e370d112b28929c437ffd539"
     },
     {
-      "path": "tools/vos/jsonutil.py",
-      "sha256": "651b6cf84e7e3d3af970df71a286b5c700eea9b2b1b88f2db7dd44f572bfd8e5"
+      "path": "tools/vos/admission_production.py",
+      "sha256": "e44a35b6856f119d345dabda4adf2a517e873f550b04c45d59348cdcbb235442"
+    },
+    {
+      "path": "tools/vos/cli/admission.py",
+      "sha256": "63ea4f47113b41c924a5a8c0c998e574533d59f7f25ec0ae1835a7bf66bf614d"
     }
   ],
   "interfaces": [

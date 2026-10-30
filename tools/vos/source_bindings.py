@@ -69,13 +69,21 @@ def sources(view: str) -> tuple[str, ...]:
 
 def references(root: Path, view: str) -> list[dict[str, str]]:
     """Bind the current bytes of a declared view; missing members are errors."""
-    return [{"path": name, "sha256": digest(root / name)} for name in sources(view)]
+    return [{"path": name, "sha256": digest(_path(root, name))} for name in sources(view)]
+
+
+def _path(root: Path, relative: str) -> Path:
+    selected = (root / relative).resolve()
+    if (Path(relative).is_absolute() or "\\" in relative or ".." in Path(relative).parts
+            or not selected.is_relative_to(root.resolve())):
+        raise ValueError(f"source-binding path must stay relative to the checkout: {relative}")
+    return selected
 
 
 def _read(root: Path, relative: str) -> dict[str, Any]:
-    raw = json.loads((root / relative).read_bytes(), object_pairs_hook=unique_object)
+    raw = json.loads(_path(root, relative).read_bytes(), object_pairs_hook=unique_object)
     if not isinstance(raw, dict):
-        raise TypeError(f"source-binding input must be an object: {relative}")
+        raise ValueError(f"source-binding input must be an object: {relative}")
     return raw
 
 
@@ -88,6 +96,11 @@ def render(root: Path, relative: str) -> str:
             raise ValueError(f"source-binding package identity disagrees: {relative}")
         raw["sources"] = references(root, f"{package}-package")
     elif relative == COMPOSITION:
+        for field in ("producers", "members"):
+            items = raw.get(field)
+            if not isinstance(items, list) or any(
+                    not isinstance(item, dict) or not isinstance(item.get("id"), str) for item in items):
+                raise ValueError(f"source-binding {field} must be an array of identified objects")
         for producer, view in PRODUCER_VIEWS.items():
             matches = [item for item in raw["producers"] if item["id"] == producer]
             if len(matches) != 1:
@@ -99,7 +112,8 @@ def render(root: Path, relative: str) -> str:
                 raise ValueError(f"source-binding member must occur once: {package}")
             # Bind the generated package bytes, including its authored interfaces.
             # Do not repair an independently selected descriptor into another file.
-            if matches[0]["descriptor"]["path"] != path:
+            descriptor = matches[0].get("descriptor")
+            if not isinstance(descriptor, dict) or descriptor.get("path") != path:
                 raise ValueError(f"source-binding package path disagrees: {package}")
             matches[0]["sources"] = references(root, f"{package}-package")
             matches[0]["descriptor"]["sha256"] = hashlib.sha256(render(root, path).encode("utf-8")).hexdigest()
@@ -108,14 +122,30 @@ def render(root: Path, relative: str) -> str:
     return json.dumps(raw, indent=2, ensure_ascii=False, allow_nan=False) + "\n"
 
 
+def _destinations(root: Path) -> dict[str, Path]:
+    """Preflight every output against containment, peers and bound source inputs."""
+    destinations: dict[str, Path] = {}
+    views = [*(f"{package}-package" for package in PACKAGE_FILES), *PRODUCER_VIEWS.values()]
+    inputs = {_path(root, name) for view in views for name in sources(view)}
+    for name in (*PACKAGE_FILES.values(), COMPOSITION):
+        selected = _path(root, name)
+        peers = [*destinations.values(), *inputs]
+        if any(selected == peer or (selected.exists() and peer.exists() and selected.samefile(peer))
+               for peer in peers):
+            raise ValueError(f"source-binding destination aliases another output or bound source: {name}")
+        destinations[name] = selected
+    return destinations
+
+
 def emit(root: Path) -> dict[str, str]:
     """Compute every declared view before publishing the fixed inventory paths.
 
     Each file is replaced atomically; the set is not a filesystem transaction.
     Projection generation follows this command and checks the complete binding.
     """
-    outputs = {name: render(root, name) for name in (*PACKAGE_FILES.values(), COMPOSITION)}
+    destinations = _destinations(root)
+    outputs = {name: render(root, name) for name in destinations}
     for name, text in outputs.items():
-        with atomic_path(root / name) as pending:
+        with atomic_path(destinations[name]) as pending:
             pending.write_text(text, encoding="utf-8", newline="")
-    return {name: digest(root / name) for name in outputs}
+    return {name: digest(path) for name, path in destinations.items()}

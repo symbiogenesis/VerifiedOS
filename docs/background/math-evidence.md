@@ -292,9 +292,13 @@ Sorted reference payload SHA-256: `23b690105f12b96f3ef7a997cf508a5b775e70bcaf077
 
 | Bound input or implementation | SHA-256 |
 | --- | --- |
-| [proofs/HandlerGraph.v](../../proofs/HandlerGraph.v) | `2353a27a43e88f37484450335df834ba945bae2900055e94777e06189a02dfcd` |
-| [tools/vos/composer.py](../../tools/vos/composer.py) | `199093c62f8cb3ac5d385bb0a074811661df4a66aaa3328fab439f252de022e0` |
-| [tools/vos/math_evidence.py](../../tools/vos/math_evidence.py) | `01b531ad7b5110fd26cda0af8c4d23d54af5b3e3df9529ea2dbf57c90252319b` |
+| [tools/vos/source_bindings.py](../../tools/vos/source_bindings.py) | `92a238dffb3f6a49e5abe66cae082159aa5c0dfc06e10a9424000b95840695e7` |
 | [tools/vos/jsonutil.py](../../tools/vos/jsonutil.py) | `651b6cf84e7e3d3af970df71a286b5c700eea9b2b1b88f2db7dd44f572bfd8e5` |
+| [tools/vos/receipts.py](../../tools/vos/receipts.py) | `25bbf0b0288363f3b1fe9b0eff3616839dce7d61720814fe2f350f1fbba8d822` |
+| [tools/vos/proofenv.py](../../tools/vos/proofenv.py) | `cc6c5beca2aaefc1761e3b7748bdca52816d093f836ecdac9a879b79fa4d0513` |
+| [tools/vos/atomic.py](../../tools/vos/atomic.py) | `384e706e945f8cead1e1b3791f916f6e7f8783a7497c17dd3a551a765e670471` |
+| [tools/vos/composer.py](../../tools/vos/composer.py) | `199093c62f8cb3ac5d385bb0a074811661df4a66aaa3328fab439f252de022e0` |
+| [proofs/HandlerGraph.v](../../proofs/HandlerGraph.v) | `2353a27a43e88f37484450335df834ba945bae2900055e94777e06189a02dfcd` |
+| [tools/vos/math_evidence.py](../../tools/vos/math_evidence.py) | `03470df2ecb081d31c94895714038514855075b19a2bae7e1c242dd550dfc566` |
 
 Before adopting a compact dictionary, name a real consumer, record its table shapes and access trace or justified query distribution, compare sorted arrays and generated perfect hashing, and declare finite byte/work thresholds. Construction and any randomized seed need their own bounds. Timing comparisons and benchmarks run on CI. Dynamic service indexes separately owe update, exhaustion and recovery behavior.

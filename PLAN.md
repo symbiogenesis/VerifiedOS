@@ -2614,9 +2614,13 @@ admission criterion, evidence authority or artifact format.
   certificate command does not load the planner command. **Join:** integrated
   typecheck and the same hosted validation handoff.
 
-The integrator owns shared documentation and generated repair. Workers return
-committed implementations and focused evidence from dedicated worktrees. Guest CI
-is dispatched for the settled published revision without waiting for its verdict.
+The shared publication mechanism, declared source views, digest reuse and library
+parsing policy are implemented. Focused controls cover caller-specific publication
+and parsing behavior, digest errors, source propagation and inventory refusal before
+publication. Inventory destinations are resolved and checked together for escapes
+and aliases before any write. The integration batch
+`tools-maintenance-20261029` records exact-revision hosted evidence in its fanout
+journal; Guest CI is dispatched without waiting for its verdict.
 
 ## Host CI scheduling
 

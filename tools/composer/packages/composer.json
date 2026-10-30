@@ -3,28 +3,44 @@
   "package_id": "composer",
   "sources": [
     {
+      "path": "tools/vos/source_bindings.py",
+      "sha256": "92a238dffb3f6a49e5abe66cae082159aa5c0dfc06e10a9424000b95840695e7"
+    },
+    {
+      "path": "tools/vos/jsonutil.py",
+      "sha256": "651b6cf84e7e3d3af970df71a286b5c700eea9b2b1b88f2db7dd44f572bfd8e5"
+    },
+    {
+      "path": "tools/vos/receipts.py",
+      "sha256": "25bbf0b0288363f3b1fe9b0eff3616839dce7d61720814fe2f350f1fbba8d822"
+    },
+    {
+      "path": "tools/vos/proofenv.py",
+      "sha256": "cc6c5beca2aaefc1761e3b7748bdca52816d093f836ecdac9a879b79fa4d0513"
+    },
+    {
+      "path": "tools/vos/atomic.py",
+      "sha256": "384e706e945f8cead1e1b3791f916f6e7f8783a7497c17dd3a551a765e670471"
+    },
+    {
       "path": "tools/vos/composer.py",
       "sha256": "199093c62f8cb3ac5d385bb0a074811661df4a66aaa3328fab439f252de022e0"
-    },
-    {
-      "path": "tools/vos/composition.py",
-      "sha256": "67e8d2d39e2203a88c6668df983dba6662810f23fe3f79776891b2cf0137b75a"
-    },
-    {
-      "path": "tools/vos/cli/composer.py",
-      "sha256": "fc8c1736f5839cfa3064fd6886ee3df113afae4d4ffb0616d1c3c09fa5d84a9b"
     },
     {
       "path": "proofs/HandlerGraph.v",
       "sha256": "2353a27a43e88f37484450335df834ba945bae2900055e94777e06189a02dfcd"
     },
     {
-      "path": "tools/vos/composition_staged.py",
-      "sha256": "0e7861328a0407e2ee612aea3825b473270ff9c6bd8c7a3f58c6e726ccd28007"
+      "path": "tools/vos/composition.py",
+      "sha256": "86e18fd2d62afe352660534d537ea3d162f9a619c354ab75a8ed6623dc9ae90f"
     },
     {
-      "path": "tools/vos/jsonutil.py",
-      "sha256": "651b6cf84e7e3d3af970df71a286b5c700eea9b2b1b88f2db7dd44f572bfd8e5"
+      "path": "tools/vos/cli/composer.py",
+      "sha256": "2d2c497aadd2e58d99ef84037420c27634636be534f4efda5834caa8039f75cf"
+    },
+    {
+      "path": "tools/vos/composition_staged.py",
+      "sha256": "0e7861328a0407e2ee612aea3825b473270ff9c6bd8c7a3f58c6e726ccd28007"
     }
   ],
   "interfaces": [

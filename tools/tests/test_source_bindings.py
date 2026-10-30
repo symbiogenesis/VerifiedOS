@@ -5,7 +5,8 @@ import json
 import shutil
 import tempfile
 from collections.abc import Callable, Generator
-from contextlib import contextmanager
+from contextlib import contextmanager, redirect_stdout
+from io import StringIO
 from pathlib import Path
 from unittest.mock import patch
 
@@ -13,6 +14,7 @@ from tests.harness import Case, ensure
 from vos import admission_production, composition
 from vos import source_bindings as bindings
 from vos.checks import generated
+from vos.cli import composer as cli
 from vos.receipts import digest
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -131,7 +133,78 @@ def _declaration_refusals() -> None:
         _refused(lambda: bindings.render(root, bindings.COMPOSITION), "producer must occur once")
 
 
+def _malformed_inputs() -> None:
+    with _fixture() as root:
+        path = root / bindings.COMPOSITION
+        original = path.read_bytes()
+        packages = {name: (root / name).read_bytes() for name in bindings.PACKAGE_FILES.values()}
+        for raw_root in (None, [], 1):
+            path.write_text(json.dumps(raw_root), encoding="utf-8")
+            _refused(lambda: bindings.emit(root), "input must be an object")
+        for field in ("producers", "members"):
+            for replacement in (None, {}, ["bad"], [{}], [{"id": 1}]):
+                raw = json.loads(original)
+                raw[field] = replacement
+                path.write_text(json.dumps(raw), encoding="utf-8")
+                _refused(lambda: bindings.emit(root), f"{field} must be an array of identified objects")
+            raw = json.loads(original)
+            del raw[field]
+            path.write_text(json.dumps(raw), encoding="utf-8")
+            output = StringIO()
+            with patch.object(cli.corpus, "find_root", return_value=root), redirect_stdout(output):
+                code = cli.main(["bind-sources"])
+            ensure(code == 1 and output.getvalue().startswith("FAIL composer:"),
+                   "malformed inventory inputs must return a named command refusal")
+        for descriptor in (None, [], {}, {"path": "other.json"}):
+            raw = json.loads(original)
+            member = next(item for item in raw["members"] if item["id"] == "composer")
+            member["descriptor"] = descriptor
+            path.write_text(json.dumps(raw), encoding="utf-8")
+            before = path.read_bytes()
+            _refused(lambda: bindings.emit(root), "package path disagrees")
+            ensure(path.read_bytes() == before, "refusal overwrote malformed authored input")
+        ensure(all((root / name).read_bytes() == data for name, data in packages.items()),
+               "a later malformed input must preserve every earlier output")
+
+
+def _destination_preflight() -> None:
+    with _fixture() as root:
+        before = {name: (root / name).read_bytes()
+                  for name in (*bindings.PACKAGE_FILES.values(), bindings.COMPOSITION)}
+        with patch.dict(bindings.PACKAGE_FILES, admission=bindings.PACKAGE_FILES["composer"]):
+            _refused(lambda: bindings.emit(root), "aliases another output or bound source")
+        with patch.dict(bindings.GROUPS, shared=(*bindings.GROUPS["shared"], bindings.PACKAGE_FILES["composer"])):
+            _refused(lambda: bindings.emit(root), "aliases another output or bound source")
+        with patch.object(bindings, "COMPOSITION", "../outside.json"):
+            _refused(lambda: bindings.emit(root), "must stay relative to the checkout")
+        ensure(all((root / name).read_bytes() == data for name, data in before.items()),
+               "destination refusal must precede every publication")
+
+
+def _linked_destinations() -> None:
+    with _fixture() as root, tempfile.TemporaryDirectory(prefix="vos-binding-outside-") as directory:
+        outside = Path(directory)
+        path = root / bindings.COMPOSITION
+        data = path.read_bytes()
+        target = outside / "composition.json"
+        target.write_bytes(data)
+        path.unlink()
+        path.symlink_to(target)
+        packages = {name: (root / name).read_bytes() for name in bindings.PACKAGE_FILES.values()}
+        _refused(lambda: bindings.emit(root), "must stay relative to the checkout")
+        redirect = root / "redirect"
+        redirect.symlink_to(outside, target_is_directory=True)
+        with patch.object(bindings, "COMPOSITION", "redirect/composition.json"):
+            _refused(lambda: bindings.emit(root), "must stay relative to the checkout")
+        ensure(target.read_bytes() == data, "linked publication changed outside bytes")
+        ensure(all((root / name).read_bytes() == value for name, value in packages.items()),
+               "an escaping later destination must preserve all earlier outputs")
+
+
 def cases() -> list[Case]:
     return [Case("declared-consumer-views", _views), Case("generated-source-fields", _generation),
             Case("shared-dependency-propagation", _shared_dependency),
-            Case("source-declaration-refusals", _declaration_refusals)]
+            Case("source-declaration-refusals", _declaration_refusals),
+            Case("malformed inputs preserve outputs", _malformed_inputs),
+            Case("all destinations preflight before publication", _destination_preflight),
+            Case("linked destinations preserve checkout and outside bytes", _linked_destinations, lane="guest")]

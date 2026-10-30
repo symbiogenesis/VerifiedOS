@@ -139,6 +139,9 @@ itself. `run.py composer bind-sources` regenerates those package and production-
 fields; then `run.py composer project tools/composer/m8a-composition.json --output
 tools/composer/generated` regenerates the projections. K-88 checks the derived
 fields while preserving authored interfaces, handlers and composition choices.
+The inventory writer checks every resolved destination before publishing, refusing
+escapes, aliases and malformed inputs without replacing earlier outputs. Each file
+is published atomically; the output set is not a filesystem transaction.
 Their source digests identify the actual checkout bytes. The storage
 and crypto-core
 sources remain statements: the boot verifier's C is not a storage-crypto compartment.
