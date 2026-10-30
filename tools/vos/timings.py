@@ -18,13 +18,14 @@ directory like the others a run needs.
 import json
 import os
 import sys
-import tempfile
 import threading
 import time
 from collections.abc import Generator
-from contextlib import contextmanager, suppress
+from contextlib import contextmanager
 from pathlib import Path
 from typing import NamedTuple
+
+from vos.atomic import atomic_path
 
 ENV = "VOS_GATE_TIMINGS"
 
@@ -60,20 +61,12 @@ def write(path: Path | None, units: list[Unit]) -> None:
     """Atomically replace a diagnostic snapshot, keeping its predecessor on failure."""
     if path is None:
         return
-    temporary: Path | None = None
     try:
-        with tempfile.NamedTemporaryFile(mode="w", encoding="utf-8", newline="",
-                                         prefix=f".{path.name}.", suffix=".tmp",
-                                         dir=path.parent, delete=False) as stream:
-            temporary = Path(stream.name)
+        with (atomic_path(path) as pending,
+              pending.open("w", encoding="utf-8", newline="") as stream):
             stream.write(json.dumps(units, indent=1) + "\n")
-        temporary.replace(path)
     except OSError:
         pass
-    finally:
-        if temporary is not None:
-            with suppress(OSError):
-                temporary.unlink(missing_ok=True)
 
 
 def read(path: Path) -> list[Unit] | None:

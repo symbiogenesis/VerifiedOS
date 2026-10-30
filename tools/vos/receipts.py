@@ -10,12 +10,12 @@ import json
 import os
 import shutil
 import subprocess
-import tempfile
 from collections.abc import Generator, Iterable
 from contextlib import contextmanager
 from pathlib import Path
 
 from vos import proofenv
+from vos.atomic import atomic_path as _atomic_path
 
 
 def digest(path: Path) -> str:
@@ -28,12 +28,8 @@ def digest(path: Path) -> str:
 def atomic_path(path: Path) -> Generator[Path]:
     """Publish only on successful exit; callers close all handles before returning."""
     path.parent.mkdir(parents=True, exist_ok=True)
-    with tempfile.NamedTemporaryFile(dir=path.parent, prefix=f".{path.name}.",
-                                     suffix=".tmp", delete_on_close=False) as stream:
-        stream.close()  # Windows must release the handle before replace.
-        pending = Path(stream.name)
+    with _atomic_path(path) as pending:
         yield pending
-        pending.replace(path)
 
 
 def download(url: str, target: Path, expected: str) -> None:

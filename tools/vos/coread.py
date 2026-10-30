@@ -50,11 +50,10 @@ prose, a commit dirties a median of four spans.
 import contextlib
 import hashlib
 import json
-import os
 import re
-import tempfile
 from pathlib import Path
 
+from .atomic import atomic_path
 from .corpus import ANCHOR_RE, PROSE, Corpus
 from .register import REQ_ID_PATTERN, Register
 
@@ -230,12 +229,6 @@ def write_ledger(root: Path, rows: dict[str, tuple[str, str]]) -> None:
     with contextlib.suppress(OSError):
         if path.read_bytes() == text.encode("utf-8"):
             return
-    fd, staged = tempfile.mkstemp(dir=path.parent, prefix=path.name + ".")
-    try:
-        with os.fdopen(fd, "w", encoding="utf-8", newline="\n") as f:
-            f.write(text)
-        Path(staged).replace(path)
-    except BaseException:
-        with contextlib.suppress(OSError):
-            Path(staged).unlink()
-        raise
+    with (atomic_path(path) as pending,
+          pending.open("w", encoding="utf-8", newline="\n") as stream):
+        stream.write(text)

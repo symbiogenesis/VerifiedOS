@@ -21,7 +21,9 @@ from pathlib import Path
 from typing import Any
 
 from vos import env
+from vos.atomic import atomic_path
 from vos.jsonutil import finite_float, unique_object
+from vos.receipts import digest
 
 PROTOCOL = "verifiedos-contained-compiler-build/1"
 INDEX_PROTOCOL = "verifiedos-contained-compiler-index/2"
@@ -29,11 +31,6 @@ LEGACY_INDEX_PROTOCOL = "verifiedos-contained-compiler-index/1"
 MAX_JSON = 4 * 1024 * 1024
 SHA256 = re.compile(r"[0-9a-f]{64}")
 REVISION = re.compile(r"[0-9a-f]{40}")
-
-
-def digest(path: Path) -> str:
-    with path.open("rb") as stream:
-        return hashlib.file_digest(stream, "sha256").hexdigest()
 
 
 def read_json(path: Path) -> dict[str, Any]:
@@ -66,21 +63,11 @@ def contained(path: Path, root: Path, *, equal: bool = False) -> Path:
 def _atomic(path: Path, value: dict[str, Any]) -> None:
     contained(path, path.parent)
     data = json.dumps(value, sort_keys=True, ensure_ascii=True, allow_nan=False, indent=2) + "\n"
-    with tempfile.NamedTemporaryFile(mode="w", encoding="utf-8", newline="\n",
-                                     prefix=".compiler-build-", dir=path.parent,
-                                     delete=False) as stream:
-        temporary = Path(stream.name)
-        try:
-            stream.write(data)
-            stream.flush()
-            os.fsync(stream.fileno())
-        except BaseException:
-            temporary.unlink(missing_ok=True)
-            raise
-    try:
-        temporary.replace(path)
-    finally:
-        temporary.unlink(missing_ok=True)
+    with (atomic_path(path) as pending,
+          pending.open("w", encoding="utf-8", newline="\n") as stream):
+        stream.write(data)
+        stream.flush()
+        os.fsync(stream.fileno())
 
 
 def _import_fromlist(node: ast.Call) -> list[str]:
