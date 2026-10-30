@@ -68,15 +68,10 @@
    kind, a node class or a status set written here would be this file
    inventing an enumeration the register left open.
 
-   No Require. Nothing beyond the Rocq prelude is reachable, so Classical
-   and FunctionalExtensionality are unavailable and every equality below is
-   stated pointwise or over a decidable boolean for that reason: a medium
-   and a store are functions, and two of them are compared block by block
-   rather than as functions. A Require naming a sibling artifact would be
-   admissible, and there is none to name: PartitionContext.v's switch cost,
-   CyclicExecutive.v's admission algebra, DischargeSequence.v's dwell and
-   SupervisionTree.v's supervisor quantities are all schedule and authority
-   magnitudes, and none of them meets a block, a record or a key.
+   LastEvent and ProofSupport supply shared prelude-only trace and collection
+   laws. Classical and FunctionalExtensionality remain outside the closure: a medium
+   and a store are functions, and equalities are stated block by block or
+   over decidable booleans rather than as equalities between functions.
 
    Readings of the register this statement takes, each a reviewable
    judgment rather than a neutral transcription:
@@ -289,43 +284,35 @@
    (*| END derived |*)
    ========================================================================= *)
 
+Require Import LastEvent.
+Require Import ProofSupport.
+
 (* -------------------------------------------------------------------------
-   List and boolean helpers, defined here rather than imported: the prelude
-   carries the list type and not the library over it, and importing a module
-   to save a hundred lines would put its assumptions inside the R-05-163
-   gate's reach for no gain.
+   Public helper names remain as aliases to the shared prelude foundation.
+   Specialized operations keep their application-specific policies here.
    ------------------------------------------------------------------------- *)
 
-Fixpoint all_of {A : Type} (p : A -> bool) (l : list A) : bool :=
-  match l with
-  | nil => true
-  | cons x r => andb (p x) (all_of p r)
-  end.
+Definition all_of {A : Type} (p : A -> bool) (l : list A) : bool :=
+  ProofSupport.all_of p l.
 
-Fixpoint any_of {A : Type} (p : A -> bool) (l : list A) : bool :=
-  match l with
-  | nil => false
-  | cons x r => orb (p x) (any_of p r)
-  end.
+Definition any_of {A : Type} (p : A -> bool) (l : list A) : bool :=
+  ProofSupport.any_of p l.
 
-Fixpoint count_of {A : Type} (l : list A) : nat :=
-  match l with nil => 0 | cons _ r => S (count_of r) end.
+Definition count_of {A : Type} (l : list A) : nat :=
+  ProofSupport.count_of l.
 
-Fixpoint map_over {A B : Type} (f : A -> B) (l : list A) : list B :=
-  match l with nil => nil | cons x r => cons (f x) (map_over f r) end.
+Definition map_over {A B : Type} (f : A -> B) (l : list A) : list B :=
+  ProofSupport.map_over f l.
 
-Fixpoint concat_of {A : Type} (ls : list (list A)) : list A :=
-  match ls with nil => nil | cons x r => app x (concat_of r) end.
+Definition concat_of {A : Type} (ls : list (list A)) : list A :=
+  ProofSupport.concat_of ls.
 
 (* 0 through n-1, in that order: the index set every generator below walks. *)
-Fixpoint upto (n : nat) : list nat :=
-  match n with
-  | 0 => nil
-  | S k => app (upto k) (cons k nil)
-  end.
+Definition upto (n : nat) : list nat :=
+  ProofSupport.upto n.
 
 Definition before_last (n : nat) : nat :=
-  match n with 0 => 0 | S k => k end.
+  ProofSupport.before_last n.
 
 Fixpoint take {A : Type} (n : nat) (l : list A) : list A :=
   match n, l with
@@ -366,36 +353,30 @@ Fixpoint nth_or (l : list nat) (n : nat) (dflt : nat) : nat :=
 
 (* Implication as a boolean, written out rather than taken from a library
    for the reason above. *)
-Definition only_if (a b : bool) : bool := orb (negb a) b.
+Definition only_if (a b : bool) : bool :=
+  ProofSupport.only_if a b.
 
 Lemma andb_split : forall a b : bool, andb a b = true -> a = true /\ b = true.
-Proof. intros a b H. destruct a; [ exact (conj eq_refl H) | discriminate H ]. Qed.
+Proof. exact ProofSupport.andb_split. Qed.
 
 Lemma andb_join : forall a b : bool, a = true -> b = true -> andb a b = true.
-Proof. intros a b Ha Hb. rewrite Ha. rewrite Hb. reflexivity. Qed.
+Proof. exact ProofSupport.andb_join. Qed.
 
 Lemma orb_split : forall a b : bool, orb a b = false -> a = false /\ b = false.
 Proof. intros a b H. destruct a; [ discriminate H | exact (conj eq_refl H) ]. Qed.
 
 Lemma only_if_elim :
   forall a b : bool, only_if a b = true -> a = true -> b = true.
-Proof.
-  intros a b H Ha. rewrite Ha in H. exact H.
-Qed.
+Proof. exact ProofSupport.only_if_elim. Qed.
 
 Lemma nat_eqb_refl : forall n : nat, Nat.eqb n n = true.
-Proof. intros n. induction n as [ | k IH ]; [ reflexivity | exact IH ]. Qed.
+Proof. exact ProofSupport.nat_eqb_refl. Qed.
 
 Lemma nat_eqb_true : forall a b : nat, Nat.eqb a b = true -> a = b.
-Proof.
-  intros a. induction a as [ | x IH ]; intros b H.
-  - destruct b as [ | y ]; [ reflexivity | discriminate H ].
-  - destruct b as [ | y ]; [ discriminate H | ].
-    rewrite (IH y H). reflexivity.
-Qed.
+Proof. exact ProofSupport.nat_eqb_true. Qed.
 
 Lemma nat_leb_refl : forall n : nat, Nat.leb n n = true.
-Proof. intros n. induction n as [ | k IH ]; [ reflexivity | exact IH ]. Qed.
+Proof. exact ProofSupport.nat_leb_refl. Qed.
 
 Lemma nat_leb_total : forall a b : nat, orb (Nat.leb a b) (Nat.leb b a) = true.
 Proof.
@@ -406,13 +387,7 @@ Qed.
 
 Lemma nat_leb_trans :
   forall a b c : nat, Nat.leb a b = true -> Nat.leb b c = true -> Nat.leb a c = true.
-Proof.
-  intros a. induction a as [ | x IH ]; intros b c H1 H2.
-  - reflexivity.
-  - destruct b as [ | y ]; [ discriminate H1 | ].
-    destruct c as [ | z ]; [ discriminate H2 | ].
-    exact (IH y z H1 H2).
-Qed.
+Proof. exact ProofSupport.nat_leb_trans. Qed.
 
 Lemma nat_leb_antisym :
   forall a b : nat, Nat.leb a b = true -> Nat.leb b a = true -> Nat.eqb a b = true.
@@ -454,12 +429,7 @@ Lemma all_of_mono :
   forall (A : Type) (p q : A -> bool) (l : list A),
     (forall x : A, p x = true -> q x = true) ->
     all_of p l = true -> all_of q l = true.
-Proof.
-  intros A p q l H. induction l as [ | x r IH ]; intros Hl.
-  - reflexivity.
-  - simpl in Hl. destruct (andb_split _ _ Hl) as [ Hx Hr ].
-    simpl. rewrite (H x Hx). exact (IH Hr).
-Qed.
+Proof. exact ProofSupport.all_of_mono. Qed.
 
 (* Membership is written as a decidable search rather than as `In`, so that
    every hypothesis below computes and no propositional membership relation
@@ -800,14 +770,13 @@ Definition sieve_recover : Recovery := recover_under sieve.
 (* Which committed record of the prefix wrote a block last, or nothing. The
    *last* is what makes the journal's order load-bearing rather than
    decorative, and the transposition family below is what shows it. *)
-Fixpoint last_write (p : list Rec) (cm : nat -> bool) (b : nat) : option nat :=
-  match p with
-  | nil => None
-  | cons r t =>
-      if last_write t cm b is Some v then Some v
-      else if andb (Nat.eqb (rec_block r) b) (cm (rec_txn r))
-           then Some (rec_value r) else None
-  end.
+Definition committed_write_event (cm : nat -> bool) (b : nat) (r : Rec)
+  : option nat :=
+  if andb (Nat.eqb (rec_block r) b) (cm (rec_txn r))
+  then Some (rec_value r) else None.
+
+Definition last_write (p : list Rec) (cm : nat -> bool) (b : nat) : option nat :=
+  last_matching (committed_write_event cm b) p.
 
 Definition writes_committed (p : list Rec) (cm : nat -> bool) (b : nat) : bool :=
   any_of (fun r => andb (Nat.eqb (rec_block r) b) (cm (rec_txn r))) p.
@@ -881,11 +850,12 @@ Lemma last_write_none :
 Proof.
   intros p. induction p as [ | r t IH ]; intros cm b H.
   - reflexivity.
-  - simpl in H. destruct (last_write t cm b) eqn:E; [ discriminate H | ].
+  - apply last_matching_none_cons in H. destruct H as [Hr Ht].
     unfold writes_committed. simpl.
+    unfold committed_write_event in Hr.
     destruct (andb (Nat.eqb (rec_block r) b) (cm (rec_txn r))) eqn:Ea.
-    + discriminate H.
-    + simpl. exact (IH cm b E).
+    + discriminate Hr.
+    + simpl. exact (IH cm b Ht).
 Qed.
 
 Lemma apply_all_last :
@@ -1369,11 +1339,7 @@ Lemma last_write_app :
   forall (p q : list Rec) (cm : nat -> bool) (b : nat),
     last_write (app p q) cm b
     = (if last_write q cm b is Some v then Some v else last_write p cm b).
-Proof.
-  intros p. induction p as [ | r t IH ]; intros q cm b.
-  - simpl. destruct (last_write q cm b); reflexivity.
-  - simpl. rewrite (IH q cm b). destruct (last_write q cm b); reflexivity.
-Qed.
+Proof. intros p q cm b. apply last_matching_app. Qed.
 
 Lemma commits_app :
   forall (p q : list Rec) (t : nat),
@@ -1481,21 +1447,11 @@ Proof.
     reflexivity.
 Qed.
 
-Fixpoint swap_at {A : Type} (n : nat) (l : list A) : list A :=
-  match n, l with
-  | 0, cons a (cons b r) => cons b (cons a r)
-  | 0, _ => l
-  | S k, cons a r => cons a (swap_at k r)
-  | S _, nil => nil
-  end.
+Definition swap_at {A : Type} (n : nat) (l : list A) : list A :=
+  ProofSupport.swap_at n l.
 
-Fixpoint drop_at {A : Type} (n : nat) (l : list A) : list A :=
-  match n, l with
-  | 0, cons _ r => r
-  | 0, nil => nil
-  | S k, cons a r => cons a (drop_at k r)
-  | S _, nil => nil
-  end.
+Definition drop_at {A : Type} (n : nat) (l : list A) : list A :=
+  ProofSupport.drop_at n l.
 
 Fixpoint suffix_at {A : Type} (n : nat) (l : list A) : list A :=
   match n, l with
@@ -1504,12 +1460,8 @@ Fixpoint suffix_at {A : Type} (n : nat) (l : list A) : list A :=
   | S _, nil => nil
   end.
 
-Fixpoint insert_at {A : Type} (n : nat) (x : A) (l : list A) : list A :=
-  match n, l with
-  | 0, _ => cons x l
-  | S k, cons a r => cons a (insert_at k x r)
-  | S _, nil => cons x nil
-  end.
+Definition insert_at {A : Type} (n : nat) (x : A) (l : list A) : list A :=
+  ProofSupport.insert_at n x l.
 
 (* Two recoveries agree when they agree block by block over the declared
    address space, which is how a function equality is stated where
