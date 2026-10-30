@@ -9,6 +9,8 @@ import argparse
 import hashlib
 import json
 import subprocess
+from contextlib import redirect_stdout
+from io import StringIO
 from pathlib import Path
 from time import perf_counter
 from typing import Any
@@ -70,6 +72,11 @@ EXPERIMENT_SOURCES: dict[str, tuple[str, ...]] = {
 }
 
 
+def digests(root: Path, names: tuple[str, ...]) -> dict[str, str]:
+    """Hash the same source bytes for experiment identities and inventory entries."""
+    return {name: hashlib.sha256((root / name).read_bytes()).hexdigest() for name in names}
+
+
 def identity(root: Path, names: tuple[str, ...]) -> dict[str, Any]:
     """Bind the actual source bytes; a Git revision alone misses local changes."""
     revision = subprocess.run(
@@ -81,10 +88,7 @@ def identity(root: Path, names: tuple[str, ...]) -> dict[str, Any]:
     return {
         "revision": revision,
         "working_tree_dirty": bool(status),
-        "sources_sha256": {
-            name: hashlib.sha256((root / name).read_bytes()).hexdigest()
-            for name in names
-        },
+        "sources_sha256": digests(root, names),
     }
 
 
@@ -113,11 +117,25 @@ def parser() -> argparse.ArgumentParser:
     return result
 
 
+def registration() -> manifest.Registration:
+    """Supply the inventory with the command's actual parser and source declarations."""
+    return manifest.registration(parser(), SOURCES, EXPERIMENT_SOURCES)
+
+
+def replay(argv: list[str]) -> tuple[int, Any]:
+    """Execute one command action and decode its exact printed receipt."""
+    stream = StringIO()
+    with redirect_stdout(stream):
+        code = main(argv)
+    return code, json.loads(stream.getvalue())
+
+
 def experiment(args: argparse.Namespace, root: Path) -> int:
     """Keep new research receipts separate from ordinary supplied-plan checking."""
     receipt = identity(root, (*SOURCES, *EXPERIMENT_SOURCES[args.action]))
     if args.action == "manifest":
-        result = manifest.report(root, replay=args.replay)
+        result = manifest.report(root, registration(), digest_sources=digests,
+                                 run=replay, replay=args.replay)
     elif args.action == "structure":
         result = structure.report(receipt["revision"])
     elif args.action == "transform":
