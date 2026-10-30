@@ -2581,7 +2581,7 @@ maintenance change claims no new parser semantics or performance result.
 
 ## Shared tool publication and source identities
 
-This maintenance batch has three independently checkable outputs. It changes no
+This maintenance batch has four independently checkable outputs. It changes no
 admission criterion, evidence authority or artifact format.
 
 - **Atomic publication. Start:** the existing ledger, contained-compiler and timing
@@ -2605,6 +2605,14 @@ admission criterion, evidence authority or artifact format.
   affected-module controls cover digest equality and unreadable-input behavior;
   source manifests bind new runtime dependencies. **Join:** integrated typecheck
   and the same hosted validation handoff.
+- **Memory-planner parsing policy. Start:** the duplicate-field hook shared by the
+  planner and certificate commands through a CLI import. **Owns:** a library-level
+  policy helper consumed by both commands, retaining duplicate diagnostics and each
+  reader's numeric policy; source identities include the helper. **Check:** focused
+  ordered-object, nested/escaped duplicate and reader controls, including the
+  certificate reader's non-finite-number refusals, plus a fresh import proving the
+  certificate command does not load the planner command. **Join:** integrated
+  typecheck and the same hosted validation handoff.
 
 The integrator owns shared documentation and generated repair. Workers return
 committed implementations and focused evidence from dedicated worktrees. Guest CI
