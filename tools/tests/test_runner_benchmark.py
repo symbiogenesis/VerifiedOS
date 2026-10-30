@@ -93,6 +93,7 @@ def _failed_comparison_retains_a_refusal_record() -> None:
         output = root / "report.json"
         with (patch.object(runner.subprocess, "check_output", side_effect=["f" * 40, ""]),
               patch.object(runner.subprocess, "run"), patch.object(runner.tarfile, "open"),
+              patch.object(runner.platform, "platform", return_value="fixture-platform"),
               patch.object(runner, "_identity", return_value="scope"),
               patch.object(runner, "_measure", side_effect=RuntimeError("worker failed")),
               redirect_stdout(io.StringIO())):
