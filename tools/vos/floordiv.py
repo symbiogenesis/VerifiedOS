@@ -66,10 +66,11 @@ def _search(width: int, divisor: int, upward: bool) -> tuple[int, int] | None:
 
 
 @cache
-def _planned(width: int, divisor: int) -> Plan:
+def _planned(width: int, divisor: int) -> tuple[Mode, int, int]:
+    """Cache scalar parameters, never a caller-visible mutable-at-runtime record."""
     magnitude = abs(divisor)
     if magnitude & (magnitude - 1) == 0:
-        return Plan(width, divisor, "power-of-two", 0, magnitude.bit_length() - 1)
+        return "power-of-two", 0, magnitude.bit_length() - 1
     upward = _search(width, divisor, True)
     downward = _search(width, divisor, False)
     sign = -1 if divisor < 0 else 1
@@ -79,9 +80,9 @@ def _planned(width: int, divisor: int) -> Plan:
                           and upward[1] != width):
         if downward is None:
             raise ValueError("missing downward candidate")
-        return Plan(width, divisor, "round-down", sign * downward[0], downward[1])
+        return "round-down", sign * downward[0], downward[1]
     if downward is None or (upward[1] == width and downward[1] != width):
-        return Plan(width, divisor, "round-up", sign * upward[0], upward[1])
+        return "round-up", sign * upward[0], upward[1]
     shift = max(upward[1], downward[1])
     if (_candidate(width, divisor, True, shift) is None
             or _candidate(width, divisor, False, shift) is None):
@@ -90,7 +91,7 @@ def _planned(width: int, divisor: int) -> Plan:
     low, high = _limits(width)
     if not low <= multiplier - 1 <= multiplier <= high:
         raise ValueError("sign-selected multipliers do not fit the signed word")
-    return Plan(width, divisor, "sign-selected", multiplier, shift)
+    return "sign-selected", multiplier, shift
 
 
 def plan(width: int, divisor: int) -> Plan:
@@ -99,7 +100,8 @@ def plan(width: int, divisor: int) -> Plan:
     _word(divisor, low, high, "divisor")
     if divisor == 0:
         raise ValueError("divisor must be nonzero")
-    return _planned(width, divisor)
+    mode, multiplier, shift = _planned(width, divisor)
+    return Plan(width, divisor, mode, multiplier, shift)
 
 
 def validate(parameters: Plan) -> None:

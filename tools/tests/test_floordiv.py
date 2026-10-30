@@ -207,6 +207,18 @@ def _invalid_and_mutants() -> None:
                 "width" if mutant.width is True else "canonical")
     for value in (-(1 << 63) - 1, 1 << 63, True):
         _raises(ValueError, lambda value=value: evaluate(original, value), "dividend")
+    # Frozen records can still be changed with object.__setattr__; they must
+    # neither become their own validation oracle nor contaminate later plans.
+    damaged = plan(64, 3)
+    object.__setattr__(damaged, "multiplier", damaged.multiplier + 1)
+    _raises(ValueError, lambda: validate(damaged), "canonical")
+    _raises(ValueError, lambda: evaluate(damaged, 3), "canonical")
+    _raises(ValueError, lambda: assembly(damaged), "canonical")
+    fresh = plan(64, 3)
+    ensure(fresh == original and fresh is not original and fresh is not damaged,
+           "caller mutation contaminated a later plan")
+    ensure(evaluate(fresh, -3) == -1 and _execute(_encoded(assembly(fresh)), -3) == -1,
+           "fresh arithmetic did not recover after caller mutation")
     _raises(ValueError, lambda: assembly(plan(8, 3)), "width 64")
     _raises(ValueError, lambda: assembly(plan(64, -1)), "overflow contract")
     _raises(OverflowError, lambda: evaluate(plan(64, -1), -(1 << 63)), "INT_MIN")
