@@ -177,7 +177,7 @@ COSTATED: list[tuple[str, list[tuple[str, str]]]] = [
         ("R-16-008f", "The three R-16-008c sequences"),
         ("R-17-058c", "the three R-16-008c sequences"),
         (SPEC, "the three protected sequences carry their detection as a theorem"),
-        (SPEC, "The three §16 protected sequences"),
+        (SPEC, "The three [§16](#16-reliability) protected sequences"),
     ]),
     ("the admission test's numbered discharges, cited by test ordinal elsewhere", [
         ("R-15-010", "(1) deterministic architectural semantics"),
@@ -196,7 +196,7 @@ COSTATED: list[tuple[str, list[tuple[str, str]]]] = [
         (SPEC, "the apparatus that answers them is deleted rather than tuned"),
         (SPEC, "deleting the RFM and PRAC apparatus rather than tuning it"),
         ("R-17-058", "only as the per-class residual R-15-184 states"),
-        (SPEC, "only as the narrowed per-class residual §15 states"),
+        (SPEC, "only as the narrowed per-class residual [§15](#15-hardware-platform) states"),
     ]),
     ("the admissible power mechanisms, cited by ordinal elsewhere", [
         ("R-15-186", "race-to-idle with in-slot gating; static per-partition "

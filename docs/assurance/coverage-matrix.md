@@ -10,7 +10,7 @@ R-17-001a claims coverage top down rather than by enumerated attack archetype: e
 
 The enumerations below define the boundaries and properties, and the matrix carries every pair.
 
-The point of the shape is what it makes mechanical. `tools/check.py` decides that both enumerations are stated once, that every pair appears exactly once, that no cell rests on nothing, and that a cell reporting its remainder as booked in §17 cites §17; it also computes each cell's standing from the inventory and writes it under `--fix`, so that a cell whose construction is claimed and whose specifications do not exist says so in a column nobody maintains. An uncovered boundary is therefore a failing check rather than a critique somebody had to write, which is the whole difference between a coverage argument and a long list.
+The point of the shape is what it makes mechanical. `tools/check.py` decides that both enumerations are stated once, that every pair appears exactly once, that no cell rests on nothing, and that a cell reporting its remainder as booked in [§17](../requirements-register.md#17-residual-risks) cites [§17](../requirements-register.md#17-residual-risks); it also computes each cell's standing from the inventory and writes it under `--fix`, so that a cell whose construction is claimed and whose specifications do not exist says so in a column nobody maintains. An uncovered boundary is therefore a failing check rather than a critique somebody had to write, which is the whole difference between a coverage argument and a long list.
 
 **Derived does not mean generated.** Every obligation a cell rests on is the register's and this document adds none, which is what *derived* means here and is why the register wins where the two disagree. What the register does not carry is the pairing: an entry states its obligation and traces the crown jewel it constrains, and no entry declares a boundary or a property, so which pairs a requirement lands on is decided here and nowhere else. A cell's construction then says what several entries carry *together* and where the join stops, which is a statement no single entry makes, and a discharge mode naming more than one construction is the visible form of it. That is also what bounds the cost of the shape: a requirement added to the register adds no cell, and only a new boundary or a new property adds any, on the terms [the last section](#4-how-to-read-a-cell-and-how-to-change-one) sets out. One column is generated outright and is the exception that proves the rule: a cell's standing is the inventory's status of the crown-jewel specifications its cited requirements constrain, so it is decided by the register's traces and the inventory's rows and by nothing written here.
 
@@ -20,18 +20,18 @@ A boundary is a place where something crosses between parties that do not fully 
 
 | Id | Boundary | Where the specification names it |
 | --- | --- | --- |
-| `B-01` | The instruction set and its microarchitectural absences | §15 |
-| `B-02` | Binary admission | §5, §13 |
-| `B-03` | The inter-process interface | §12 |
-| `B-04` | The device edge | §12, §15 |
-| `B-05` | Storage at rest | §10 |
-| `B-06` | The radio and network wire | §12 |
-| `B-07` | The human consent path | §6, §8, §12 |
-| `B-08` | Time and freshness | §9, §11 |
-| `B-09` | The supply chain from source through binary to mask | §13, §17, §18 |
-| `B-10` | The ensemble link | §2, §12, §13, §15 |
-| `B-11` | The optional immutable inference module | §4, §12, §15, §17 |
-| `B-12` | The elastic domain's envelope, between its members and between the domain and the fixed tier | §7, §8, §11, §14 |
+| `B-01` | The instruction set and its microarchitectural absences | [§15](../requirements-register.md#15-hardware-platform) |
+| `B-02` | Binary admission | [§5](../requirements-register.md#5-languages--verification), [§13](../requirements-register.md#13-packaging--supply-chain) |
+| `B-03` | The inter-process interface | [§12](../requirements-register.md#12-system-servers) |
+| `B-04` | The device edge | [§12](../requirements-register.md#12-system-servers), [§15](../requirements-register.md#15-hardware-platform) |
+| `B-05` | Storage at rest | [§10](../requirements-register.md#10-storage--state) |
+| `B-06` | The radio and network wire | [§12](../requirements-register.md#12-system-servers) |
+| `B-07` | The human consent path | [§6](../requirements-register.md#6-trusted-computing-base), [§8](../requirements-register.md#8-authority-model), [§12](../requirements-register.md#12-system-servers) |
+| `B-08` | Time and freshness | [§9](../requirements-register.md#9-boot--root-of-trust), [§11](../requirements-register.md#11-updates) |
+| `B-09` | The supply chain from source through binary to mask | [§13](../requirements-register.md#13-packaging--supply-chain), [§17](../requirements-register.md#17-residual-risks), [§18](../requirements-register.md#18-realization) |
+| `B-10` | The ensemble link | [§2](#2-the-properties), [§12](../requirements-register.md#12-system-servers), [§13](../requirements-register.md#13-packaging--supply-chain), [§15](../requirements-register.md#15-hardware-platform) |
+| `B-11` | The optional immutable inference module | [§4](#4-how-to-read-a-cell-and-how-to-change-one), [§12](../requirements-register.md#12-system-servers), [§15](../requirements-register.md#15-hardware-platform), [§17](../requirements-register.md#17-residual-risks) |
+| `B-12` | The elastic domain's envelope, between its members and between the domain and the fixed tier | [§7](../requirements-register.md#7-kernel), [§8](../requirements-register.md#8-authority-model), [§11](../requirements-register.md#11-updates), [§14](../requirements-register.md#14-userland) |
 
 ## 2. The properties
 
@@ -49,7 +49,7 @@ A property is what a boundary must hold, stated as a property and never as an at
 
 ## 3. The matrix
 
-Each row records the construction in this design's own mechanisms, its discharge mode, and the requirements that carry it. The modes are the [inventory](../../README.md#bug-classes-removed-by-construction)'s, two of them under fuller names here (its *enforced* and *rejected*): **absent** where the class has no vehicle to exist in, **hardware-enforced** where matter decides it, **admission-rejected** where a gate refuses what would violate it, **proved** where a machine-checked theorem carries it, **detected** where the fault is not prevented but cannot pass silently and its consequence is bounded, **transferred** where the obligation is real and is met by a named party other than the platform, and **residual** where §17 books the remainder rather than a construction closing it. The mode says what the construction claims; the **standing** beside the citations says whether the specifications it would be discharged against exist yet, in the inventory's own three words, and it is `tools/check.py`'s to write.
+Each row records the construction in this design's own mechanisms, its discharge mode, and the requirements that carry it. The modes are the [inventory](../../README.md#bug-classes-removed-by-construction)'s, two of them under fuller names here (its *enforced* and *rejected*): **absent** where the class has no vehicle to exist in, **hardware-enforced** where matter decides it, **admission-rejected** where a gate refuses what would violate it, **proved** where a machine-checked theorem carries it, **detected** where the fault is not prevented but cannot pass silently and its consequence is bounded, **transferred** where the obligation is real and is met by a named party other than the platform, and **residual** where [§17](../requirements-register.md#17-residual-risks) books the remainder rather than a construction closing it. The mode says what the construction claims; the **standing** beside the citations says whether the specifications it would be discharged against exist yet, in the inventory's own three words, and it is `tools/check.py`'s to write.
 
 | Boundary | Property | Construction | Mode | Requirements | Standing |
 | --- | --- | --- | --- | --- | --- |
@@ -86,7 +86,7 @@ Each row records the construction in this design's own mechanisms, its discharge
 | `B-05` | `P-3` | Volume keys are sealed to the root of trust and to measured state, and are resident only after first unlock | hardware-enforced | R-09-017, R-10-032 | partial |
 | `B-05` | `P-4` | The monotonic counter is spent only on low-rate security-critical state, so the bulk mutable volume is deliberately not freshness-protected and a physical adversary can roll it back to an authenticated earlier state. The class whose staleness is a security event rather than a lost edit is not left in that surrender: it is declared `Fresh`, carried by an epoch root the counter seals once per epoch rather than once per commit, admitted at composition against the counter's rated endurance, and refused rather than returned when it does not verify | hardware-enforced / admission-rejected / residual | R-10-011, R-10-013, R-10-013b, R-10-013c, R-10-013d, R-10-013e, R-17-043 | partial |
 | `B-05` | `P-5` | Deadlock and livelock freedom require the journal crash refinement; unauthenticated recovery evidence can deny the affected store under the declared corruption/refusal boundary. Admitted repeated resident reads add no common lifetime or replacement-metadata writes; bounded retention, outstanding work and retirement charge the capacity and service cost, with lawful exhaustion refusal or fallback. | proved / residual | R-10-002, R-10-002a, R-10-006, R-17-030zb, R-10-006a, R-10-006b, R-17-030zf | partial |
-| `B-05` | `P-6` | Filesystem compression is out of scope, deleting the compression oracle, and deduplication never crosses a confidentiality domain. The one encoding that is compressed, the §15 instruction format, is outside this boundary by requirement rather than by reading: it is composition-time only, reaches no stored extent, leaves no compressor on any runtime path, and takes no secret as an input | absent | R-10-016, R-10-018, R-15-036g | partial |
+| `B-05` | `P-6` | Filesystem compression is out of scope, deleting the compression oracle, and deduplication never crosses a confidentiality domain. The one encoding that is compressed, the [§15](../requirements-register.md#15-hardware-platform) instruction format, is outside this boundary by requirement rather than by reading: it is composition-time only, reaches no stored extent, leaves no compressor on any runtime path, and takes no secret as an input | absent | R-10-016, R-10-018, R-15-036g | partial |
 | `B-05` | `P-7` | For user data the content address is a per-domain keyed digest, deterministic within a domain and incomparable across domains, and for a system-image object it is the store's own content hash, each taken over an encoding a canonicity theorem makes unique | proved | R-05-051c, R-10-005a, R-10-015, R-10-017 | partial |
 | `B-06` | `P-1` | Session keys live in crypto-core-backed compartments, and a null or broken cipher is rejected rather than negotiated. Session claims retain their selected games, model premises and parameter evidence, with recorded traffic included in the stored-secret qualification | proved / residual | R-12-042, R-12-044, R-17-049, R-17-049e, R-17-049f, R-17-049g | partial |
 | `B-06` | `P-2` | Every attacker-facing wire format is parsed by a verified copy-once parser stated against a descriptor that is itself a reviewed specification | proved | R-05-042, R-05-046, R-12-040 | partial |
@@ -142,7 +142,7 @@ Each row records the construction in this design's own mechanisms, its discharge
 
 A cell says how this design carries one property at one boundary, and points at the register for the obligation itself. It is not a summary of everything the requirements say; it is the shortest statement that makes the pair decidable.
 
-A **residual** cell is not an empty cell. It records that the remainder is booked in §17 with an owner and a scope, which is the honest discharge for a pair no construction closes. What the matrix forbids is the third case, a pair with neither.
+A **residual** cell is not an empty cell. It records that the remainder is booked in [§17](../requirements-register.md#17-residual-risks) with an owner and a scope, which is the honest discharge for a pair no construction closes. What the matrix forbids is the third case, a pair with neither.
 
 A **detected** cell and a **transferred** cell are the two ways a pair is carried without being closed here, and both are read wrong if read as the first four modes. Detected says the fault reaches the boundary and cannot cross it silently, so what the cell bounds is the consequence and not the fault. Transferred says the obligation crosses to the party the cell names, so what the cell states is where it went; a transferred cell whose text names no party is defective on its face.
 

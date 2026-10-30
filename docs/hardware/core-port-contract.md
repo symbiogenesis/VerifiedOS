@@ -89,7 +89,7 @@ At the core's boundary the memory side is AXI4 with the atomic-operation
 extension (`NOC_TYPE_AXI4_ATOP`): 64-bit address and data, four-bit IDs and one
 user bit. The AW and AR user fields are driven zero; the W and R user bit of each
 64-bit beat is the capability tag of that beat's granule. At the collapsed
-granule one beat carries exactly one capability and one tag (delta §2.4). The
+granule one beat carries exactly one capability and one tag (delta [§2.4](rtl-reparameterization-delta.md#24-the-tag-plane-and-the-bus-user-bits)). The
 tag controller or the top's memory holds the tag beside the word; nothing on this
 port carries a tag for a partial word.
 

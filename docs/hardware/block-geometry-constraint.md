@@ -10,7 +10,7 @@ The **welded block size** is the naturally aligned granule group that `cbo.zero`
 
 That sentence is the whole reason this document exists rather than a number. A value satisfying only the SRAM macro forecloses the second class **silently**: nothing in the model, the configuration, or any report would say that the deck geometry had never been consulted, because the parameter would be sitting there looking decided. So the instrument's output is a matrix of intervals, and its refusals are aimed at the ways an answer can look complete while resting on one geometry.
 
-This is not a second freeze-measurement instrument. [The freeze-measurement contract](../implementation/contracts/freeze-measurement.md) records in its own §10 that this item and the per-class bank count are re-derived from realized macro geometry rather than from a composed image, so no corpus, no composition recipe, and no byte threshold reaches them, and a freeze report quoting either from that instrument is a finding against it. This document therefore carries none of that machinery, and acquiring any of it would make it the thing that contract already refuses.
+This is not a second freeze-measurement instrument. [The freeze-measurement contract](../implementation/contracts/freeze-measurement.md) records in its own [§10](../implementation/contracts/freeze-measurement.md#10-what-this-contract-does-not-decide-and-what-it-owes-elsewhere) that this item and the per-class bank count are re-derived from realized macro geometry rather than from a composed image, so no corpus, no composition recipe, and no byte threshold reaches them, and a freeze report quoting either from that instrument is a finding against it. This document therefore carries none of that machinery, and acquiring any of it would make it the thing that contract already refuses.
 
 ## 1. Where the parameter lives
 
@@ -83,7 +83,7 @@ One row per first-class macro geometry candidate, one column per second-class de
 | BG-2 | an interval whose binding constraint is a first-class row alone, which is the silent foreclosure R-15-014a (vii) exists to prevent |
 | BG-3 | a second-class geometry or density figure used as an input while its qualification state is false, which is M0.14's own finding applied to this axis |
 | BG-4 | a candidate outside the C1 to C6 set, which is a search defect rather than a choice |
-| BG-5 | a freeze report reaching this item from the freeze-measurement instrument, which that contract's §10 already makes a finding against itself |
+| BG-5 | a freeze report reaching this item from the freeze-measurement instrument, which that contract's [§10](../implementation/contracts/freeze-measurement.md#10-what-this-contract-does-not-decide-and-what-it-owes-elsewhere) already makes a finding against itself |
 
 ## 7. What this document is not
 
