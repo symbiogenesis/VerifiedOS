@@ -133,6 +133,56 @@ The outstanding actions and acceptance conditions are maintained in
 [PLAN.md](../PLAN.md#native-sail-census-validation), under Q35q. This document
 owns the performance measurement rules and recorded evidence.
 
+## October 30 guardrail algorithms
+
+The [maintenance scope](../PLAN.md#guardrail-performance-optimization) preserves
+the existing decisions while reducing repeated work. Candidate publication to Host
+CI may precede measurements; an algorithmic improvement supplies no measured speed
+factor or native qualification verdict.
+
+The checker collects possible upstream-name line regions before scanning pin IDs.
+Its retained-archive pass shares glyph, pin and lineage facts while consuming all
+gzip members and their integrity checks. Unsupported Unicode and long unfinished
+lines retain the complete reader. Archive work moves between groups, so compare the
+complete checker as well as individual group times. Markdown structural readers
+omit unused inline expansion; count readers reuse masks only when their line
+representations agree. Proof-source facts are content-keyed within a context while
+each consumer still acquires current source bytes.
+
+The census validator resolves its schema plan once per call, retains every
+compatible union branch and constructs diagnostic paths on failure. Reverse indexes
+replace repeated population joins; declaration fallback serialization is lazy.
+Native-effect comparisons retain all resolver effects. The original three-root
+native control emission is unavailable on this machine pending migration from the
+old machine. The [replay descriptor](ci/census-benchmark-inputs.json) records that
+gap explicitly. Missing input cannot yield completed comparison evidence. Q35q's
+complete native census, independent positive and corruption controls, assumptions
+and kernel acceptance remain open under their existing contracts.
+
+Markdown table validation batches an exact private snapshot of indexed documents
+through the pinned linter. Discovery must equal the selected file population;
+unsupported configuration, carriage returns and unfamiliar diagnostics retain the
+per-string route. Proof-header repair shares parsed facts only at unchanged cuts,
+with separate reports and actual-byte assertions. All five full repair checks
+remain. Proof-context snapshots hash each distinct loaded library path once and
+read it afresh at the next snapshot.
+
+The [hosted comparison workflow](../.github/workflows/guardrail-performance.yml)
+compares baseline and candidate tools against the same indexed corpus in fresh
+processes, with alternating repetitions. Its checker, runner and installed proof
+context jobs record equal outputs, elapsed time and peak memory; the proof job
+also runs the existing bounded native cache controls. Native census replay is an
+explicit selection requiring complete retained inputs. These jobs supply no Host
+or Guest CI verdict and do not replace either workflow's handoff.
+
+Additional shard changes, duration-based case ordering and new concurrent repair
+sandboxes are not selected: they add scheduling state or concurrent corpus copies
+without established equivalent-work benefit. Gate-wide pool changes likewise need
+measured resource evidence. Generated-owner authentication retains its independent
+live reads; sharing those decisions would need another freshness mechanism.
+Canonical native-key memoization is not selected without a memory comparison on
+the already large native graph. No persistent acceptance cache is added.
+
 ## October 29 Host CI scheduling
 
 The [scheduling contract](../PLAN.md#host-ci-scheduling) keeps the existing test
