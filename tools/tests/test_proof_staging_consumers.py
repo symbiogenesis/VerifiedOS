@@ -12,6 +12,8 @@ from tests.harness import Case, ensure
 from vos import composer, proof_staging
 from vos.cli import admission as admission_cli
 
+_GUEST_TEMP_ROOTS = (Path("/") / "tmp", Path("/") / "var" / "tmp")
+
 
 def _fixture(temporary: str, entry: str) -> tuple[Path, Path]:
     directory = Path(temporary)
@@ -35,7 +37,17 @@ def _composer_dependencies() -> None:
             commands.append(command)
             return subprocess.CompletedProcess(command, 0, "", "")
 
+        original_is_relative_to = Path.is_relative_to
+
+        def persistent_fixture(path: Path, other: Path) -> bool:
+            # This adapter uses fake compilers in a temporary fixture. Model its
+            # storage as persistent while retaining source-containment checks.
+            if other in _GUEST_TEMP_ROOTS:
+                return False
+            return original_is_relative_to(path, other)
+
         with ExitStack() as patches:
+            patches.enter_context(patch.object(Path, "is_relative_to", persistent_fixture))
             patches.enter_context(patch.object(composer.sys, "platform", "linux"))
             patches.enter_context(patch.object(composer.env, "lane_of", return_value="fixture"))
             patches.enter_context(patch.object(composer.env, "lane_root", return_value=native))
@@ -51,6 +63,34 @@ def _composer_dependencies() -> None:
                "composer did not compile the dependency before its reference")
         ensure(result["proof_inputs_sha256"] == proof_staging.inputs(root, ("HandlerGraph.v",)),
                "composer receipt omitted a staged dependency")
+
+
+def _composer_refuses_volatile_storage() -> None:
+    with tempfile.TemporaryDirectory() as temporary:
+        root, _native = _fixture(temporary, "HandlerGraph.v")
+        original_is_relative_to = Path.is_relative_to
+
+        def absolute_guest_roots(path: Path, other: Path) -> bool:
+            # Resolve the guest's absolute anchors on the Windows host too.
+            if other in _GUEST_TEMP_ROOTS:
+                other = other.resolve()
+            return original_is_relative_to(path, other)
+
+        with ExitStack() as patches:
+            patches.enter_context(patch.object(Path, "is_relative_to", absolute_guest_roots))
+            patches.enter_context(patch.object(composer.sys, "platform", "linux"))
+            patches.enter_context(patch.object(composer.env, "lane_of", return_value="fixture"))
+            patches.enter_context(patch.object(composer.env, "lane_root",
+                                              return_value=_GUEST_TEMP_ROOTS[0] / "proof-staging-fixture"))
+            patches.enter_context(patch.object(composer.env, "filesystem", return_value="ext4"))
+            patches.enter_context(patch.object(composer.subprocess, "run",
+                                              side_effect=AssertionError("compiler must not run")))
+            try:
+                composer.prove_reference(root)
+            except composer.ComposerError as error:
+                ensure("persistent native lane storage" in str(error), str(error))
+            else:
+                ensure(False, "temporary storage was admitted for native compilation")
 
 
 def _admission_dependencies() -> None:
@@ -86,4 +126,5 @@ def _admission_dependencies() -> None:
 
 def cases() -> list[Case]:
     return [Case("composer-dependencies", _composer_dependencies),
+            Case("composer-volatile-storage", _composer_refuses_volatile_storage),
             Case("admission-dependencies", _admission_dependencies)]

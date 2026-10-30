@@ -14,7 +14,7 @@ import tempfile
 from pathlib import Path
 
 from tests.harness import TOOLS, Case, ensure
-from vos import gallina
+from vos import gallina, proof_staging
 from vos import kernelrun as k
 from vos.cli import kernel as cli_kernel
 
@@ -227,8 +227,8 @@ def the_harness_closure_is_its_requires_only() -> None:
         harness = work / "harness" / cli_kernel.HARNESS
         names = [p.stem for wave in gallina.closure(work, harness) for p in wave]
     ensure(names[-1] == "KernelVectors", f"the harness is not last: {names}")
-    ensure(set(names) == {"PartitionContext", "BoundaryCost", "CyclicExecutive",
-                          "KernelInstance", "Probe", "KernelVectors"},
+    expected = {Path(name).stem for name in proof_staging.inputs(root, ("KernelInstance.v",))}
+    ensure(set(names) == expected | {"Probe", "KernelVectors"},
            f"closure {names}")
 
 
