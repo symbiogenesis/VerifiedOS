@@ -1,38 +1,9 @@
 # SPDX-License-Identifier: Apache-2.0
-"""The type gate's own seams: the parses, the version probe, the crash contract, and
-the gate's reading of ty.toml.
+"""The type gate's bounded execution, structured policy and coverage controls.
 
-`typecheck.py` runs two pinned checkers and reduces their output to one verdict per
-tool. What is held here is everything that can be decided without the real checkers:
-both concise-line parses against canned output, the per-rule summary's ordering and
-truncation, and, through a stub executable, the unified runner's wave-1 contract
-that a returncode outside (0, 1) is reported as a checker error even when findings
-parsed, because a checker that died partway has not cleared the files it never
-reached. The ty.toml cases hold the settings the gate refuses: a `[rules]` table
-other than exactly `all = "error"`, an `[[overrides]]` entry carrying any key but
-`include` and `exclude`, an `[analysis]` key outside the ones that suppress nothing,
-an `[environment]` key other than the three it admits or either held value changed,
-a `[src]` table other than exactly the committed one, and a file it cannot read.
-The run cases hold one pin probe for a checker's passes, one ty pass per platform,
-linux and then win32, with the real ty showing the win32 pass reaching a branch the
-linux pass cannot, a user-level configuration or a set `PYTHONPATH` reported
-beside the run, and the real ruff keeping a module an ignore file matches.
-The input cases hold explicit filenames across bounded command batches and the
-real checkers diagnosing ignored and default-excluded modules, including Ruff's
-lint exclusions. Missing filenames and failed batches refuse; existing settings
-and suppression policies remain independent of input selection. The import
-cases hold the scan beside the checkers: an import of a module ruff.toml bans at
-module level refused outside a function body, in a class body, a module-level block or
-the main guard, or behind an `if` reading a `platform` other than `sys.platform`,
-reading `sys.platform` other than by comparing it with string literals, or comparing it
-so that both platforms take the branch, at any depth beneath another, and admitted in a
-function body or where such a comparison keeps a platform from it; on each lane, one
-the running platform reaches refused where the interpreter cannot find its module; a
-ruff.toml or module the scan cannot read refused, the whole run carrying the scan's
-refusal, and the real ruff leaving open what the scan refuses; and the list itself
-covering, on each lane, every standard-library module the running interpreter cannot
-import that the gate's ty resolves under both platforms, the probe finding them naming
-the module a failure wants only where that module did not load.
+Configuration fixtures preserve reviewed acceptance and refusal cases while
+schemas own shape decisions and diagnostic wording. The remaining controls hold
+explicit filename coverage, suppression scope and platform-import behavior.
 """
 
 import json
@@ -41,7 +12,6 @@ import subprocess
 import sys
 import sysconfig
 import tempfile
-import tomllib
 from pathlib import Path
 from types import SimpleNamespace
 from typing import cast
@@ -327,17 +297,17 @@ _ADMITTED = _ALL_ERROR + _HELD
 
 
 def _settings(text: str | None) -> list[str]:
-    """`_ty_settings` over a ty.toml holding `text`, or over none at all."""
+    """`_settings` over a ty.toml holding `text`, or over none at all."""
     with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
         config = Path(td) / "ty.toml"
         if text is not None:
             config.write_text(text, encoding="utf-8", newline="")
-        return typecheck._ty_settings(config)
+        return typecheck._settings(config)
 
 
 def _ty_settings_admitted() -> None:
-    ensure(typecheck._ty_settings(_TY_TOML) == [],
-           f"the committed ty.toml must pass its own gate: {typecheck._ty_settings(_TY_TOML)!r}")
+    ensure(typecheck._settings(_TY_TOML) == [],
+           f"the committed ty.toml must pass its own gate: {typecheck._settings(_TY_TOML)!r}")
     for text in (_ADMITTED,
                  # An override that only selects files does nothing to them.
                  _ADMITTED + '\n[[overrides]]\ninclude = ["tests/**"]\n',
@@ -354,168 +324,80 @@ def _ty_settings_admitted() -> None:
         ensure(_settings(text) == [], f"an admissible ty.toml was refused: {text!r}")
 
 
+def _refused_settings(fixtures: list[str | None], policy: str = "ty") -> None:
+    for text in fixtures:
+        found = _settings(text) if policy == "ty" else _ruff_settings(text)
+        ensure(bool(found) and all(f"{policy}.toml" in line for line in found),
+               f"the {policy} policy admitted a refused setting: {text!r}; {found!r}")
+
+
 def _ty_settings_refuse_rules() -> None:
-    # The table is held exactly: a lowered `all`, an entry beside it, and no table are
-    # each one finding, even the entry that restates what `all` already says.
-    for text, expected in (
-            ('[rules]\nall = "warn"\n' + _HELD, "sets [rules] to {'all': 'warn'}"),
-            (_ALL_ERROR + 'unresolved-import = "ignore"\n' + _HELD,
-             "'unresolved-import': 'ignore'"),
-            (_ALL_ERROR + 'unresolved-import = "error"\n' + _HELD,
-             "'unresolved-import': 'error'"),
-            (_HELD, "carries no [rules] table")):
-        found = _settings(text)
-        ensure(len(found) == 1 and expected in found[0]
-               and "exactly {'all': 'error'}" in found[0],
-               f"a [rules] table other than all = error must be one finding: {found!r}")
+    _refused_settings([_HELD, '[rules]\nall = "warn"\n' + _HELD,
+                       *(_ALL_ERROR + f'unresolved-import = "{severity}"\n' + _HELD
+                         for severity in ("ignore", "error"))])
 
 
 def _ty_settings_refuse_overrides() -> None:
-    carrying = ('\n[[overrides]]\ninclude = ["vos/**"]\n'
-                '\n[[overrides]]\ninclude = ["tests/**"]\n'
-                '\n[overrides.rules]\nunresolved-import = "ignore"\n')
-    found = _settings(_ADMITTED + carrying)
-    ensure(len(found) == 1 and "[[overrides]] entry 2" in found[0]
-           and "unresolved-import" in found[0] and "tests/**" in found[0]
-           and "can lower --error all" in found[0],
-           f"an override carrying rules must be named by its entry: {found!r}")
-    # The gate holds the shape, not the severity: an override carrying rules is
-    # refused even when every rule it names stays at error.
-    raised = _settings(_ADMITTED + '\n[[overrides]]\ninclude = ["x/**"]\n'
-                       '\n[overrides.rules]\nall = "error"\n')
-    ensure(len(raised) == 1 and "entry 1" in raised[0],
-           f"any override carrying rules must be refused: {raised!r}")
-    # An override's analysis suppresses diagnostics that no severity restores, and a
-    # key the gate has not admitted is refused beside the two it knows.
-    for table, key in (('\n[overrides.analysis]\nallowed-unresolved-imports = ["x.**"]\n',
-                        "allowed-unresolved-imports"),
-                       ('\n[overrides.analysis]\nreplace-imports-with-any = ["x.**"]\n',
-                        "replace-imports-with-any"),
-                       ('\n[overrides.analysis]\nstrict-generic-narrowing = true\n',
-                        "strict-generic-narrowing"),
-                       ('future-setting = 1\n', "future-setting")):
-        carried = _settings(_ADMITTED + '\n[[overrides]]\ninclude = ["x/**"]\n' + table)
-        ensure(len(carried) == 1 and "entry 1" in carried[0] and key in carried[0]
-               and "only include and exclude" in carried[0],
-               f"an override carrying {key} must be refused: {carried!r}")
-    # One entry carrying both is one finding naming both.
-    two = _settings(_ADMITTED + '\n[[overrides]]\ninclude = ["x/**"]\n'
-                    '\n[overrides.rules]\nall = "error"\n'
-                    '\n[overrides.analysis]\nallowed-unresolved-imports = ["x.**"]\n')
-    ensure(len(two) == 1 and "carries analysis" in two[0] and "rules {" in two[0],
-           f"an entry carrying rules and analysis must be one finding: {two!r}")
-    for text in ('overrides = "tests"\n' + _ADMITTED,
-                 _ADMITTED + '\n[overrides]\ninclude = ["tests/**"]\n'):
-        shaped = _settings(text)
-        ensure(len(shaped) == 1 and "must be an array of tables" in shaped[0],
-               f"an overrides value of another shape must be refused: {shaped!r}")
-    both = _settings('[rules]\nall = "warn"\n' + _HELD + carrying)
-    ensure(len(both) == 2, f"each refused half must be its own finding: {both!r}")
+    first = '\n[[overrides]]\ninclude = ["vos/**"]\n'
+    second = '\n[[overrides]]\ninclude = ["tests/**"]\n'
+    rules = '\n[overrides.rules]\nunresolved-import = "ignore"\n'
+    _refused_settings([
+        _ADMITTED + first + second + rules,
+        _ADMITTED + first + '\n[overrides.rules]\nall = "error"\n',
+        *(_ADMITTED + first + f'\n[overrides.analysis]\n{key} = {value}\n'
+          for key, value in (("allowed-unresolved-imports", '["x.**"]'),
+                             ("replace-imports-with-any", '["x.**"]'),
+                             ("strict-generic-narrowing", "true"))),
+        _ADMITTED + first + 'future-setting = 1\n',
+        _ADMITTED + first + '\n[overrides.rules]\nall = "error"\n'
+                  '\n[overrides.analysis]\nallowed-unresolved-imports = ["x.**"]\n',
+        'overrides = "tests"\n' + _ADMITTED,
+        _ADMITTED + '\n[overrides]\ninclude = ["tests/**"]\n',
+        '[rules]\nall = "warn"\n' + _HELD + first + second + rules])
 
 
 def _ty_settings_refuse_analysis() -> None:
-    # The two tree-wide suppressions are refused whatever they list, the empty list
-    # included, and so is a key the gate has not admitted.
-    for table, key in (('allowed-unresolved-imports = ["x.**"]\n',
-                        "allowed-unresolved-imports ['x.**']"),
-                       ('allowed-unresolved-imports = []\n', "allowed-unresolved-imports []"),
-                       ('replace-imports-with-any = ["x.**"]\n',
-                        "replace-imports-with-any ['x.**']"),
-                       ('future-setting = true\n', "future-setting True")):
-        found = _settings(_ADMITTED + '\n[analysis]\n' + table)
-        ensure(len(found) == 1 and f"[analysis] carries {key}" in found[0]
-               and "strict-generic-narrowing" in found[0],
-               f"an [analysis] key outside the admitted ones must be refused: {found!r}")
-    # Several refused keys in the table are one finding, and an admitted key beside
-    # them is not named.
-    several = _settings(_ADMITTED + '\n[analysis]\nstrict-equality-semantics = true\n'
-                        'replace-imports-with-any = ["y"]\n'
-                        'allowed-unresolved-imports = ["x"]\n')
-    ensure(len(several) == 1
-           and "carries allowed-unresolved-imports ['x'], replace-imports-with-any ['y'];"
-           in several[0],
-           f"one [analysis] table must be one finding naming each refused key: {several!r}")
-    shaped = _settings('analysis = "none"\n' + _ADMITTED)
-    ensure(len(shaped) == 1 and "analysis must be a table" in shaped[0],
-           f"an analysis value of another shape must be refused: {shaped!r}")
+    _refused_settings([
+        *(_ADMITTED + '\n[analysis]\n' + line + '\n' for line in (
+            'allowed-unresolved-imports = ["x.**"]', 'allowed-unresolved-imports = []',
+            'replace-imports-with-any = ["x.**"]', 'future-setting = true')),
+        _ADMITTED + '\n[analysis]\nstrict-equality-semantics = true\n'
+                  'replace-imports-with-any = ["y"]\nallowed-unresolved-imports = ["x"]\n',
+        'analysis = "none"\n' + _ADMITTED])
 
 
 def _ty_settings_refuse_environment() -> None:
-    # Each key that moves where ty resolves imports is refused whatever it says, and
-    # so is a key the gate has not read.
-    for line, key in (('typeshed = "stubs"\n', "typeshed 'stubs'"),
-                      ('root = ["src"]\n', "root ['src']"),
-                      ('python = ".venv"\n', "python '.venv'"),
-                      ('future-setting = 1\n', "future-setting 1"),
-                      ('python-version = "3.12"\n', "python-version '3.12'")):
-        found = _settings(_ALL_ERROR + _ENV + line + _SRC)
-        ensure(len(found) == 1 and f"[environment] carries {key};" in found[0]
-               and "admits only extra-paths, python-platform" in found[0]
-               and "a key the gate has not read is refused with them" in found[0],
-               f"an [environment] key outside the admitted ones must be refused: {found!r}")
-    # The two held values are held exactly: another platform, an added or a missing
-    # search path, and an absent key are each named, and one table is one finding.
-    for text, expected in (
-            ('\n[environment]\npython-platform = "win32"\nextra-paths = ["."]\n',
-             "sets python-platform to 'win32';"),
-            ('\n[environment]\npython-platform = "all"\nextra-paths = ["."]\n',
-             "sets python-platform to 'all';"),
-            ('\n[environment]\npython-platform = "linux"\nextra-paths = [".", "stubs"]\n',
-             "sets extra-paths to ['.', 'stubs'];"),
-            ('\n[environment]\npython-platform = "linux"\nextra-paths = []\n',
-             "sets extra-paths to [];"),
-            ('\n[environment]\nextra-paths = ["."]\n', "carries no python-platform;"),
-            ('\n[environment]\n',
-             "carries no python-platform, carries no extra-paths;"),
-            ('\n[environment]\npython-platform = "win32"\nextra-paths = ["stubs"]\n',
-             "sets python-platform to 'win32', sets extra-paths to ['stubs'];"),
-            ('', "carries no [environment] table;")):
-        found = _settings(_ALL_ERROR + text + _SRC)
-        ensure(len(found) == 1 and expected in found[0]
-               and "python-platform to 'linux' and extra-paths to ['.']" in found[0],
-               f"an [environment] value other than the held one must be refused: {found!r}")
-    # A refused key and a changed value are two findings; another shape is one.
-    two = _settings(_ALL_ERROR + '\n[environment]\npython-platform = "win32"\n'
-                    'extra-paths = ["."]\ntypeshed = "stubs"\n' + _SRC)
-    ensure(len(two) == 2, f"a refused key beside a changed value must be two findings: {two!r}")
-    shaped = _settings('environment = "linux"\n' + _ALL_ERROR + _SRC)
-    ensure(len(shaped) == 1 and "environment must be a table" in shaped[0],
-           f"an environment value of another shape must be refused: {shaped!r}")
+    _refused_settings([
+        *(_ALL_ERROR + _ENV + line + '\n' + _SRC for line in (
+            'typeshed = "stubs"', 'root = ["src"]', 'python = ".venv"',
+            'future-setting = 1', 'python-version = "3.12"')),
+        *(_ALL_ERROR + '\n[environment]\n' + body + _SRC for body in (
+            'python-platform = "win32"\nextra-paths = ["."]\n',
+            'python-platform = "all"\nextra-paths = ["."]\n',
+            'python-platform = "linux"\nextra-paths = [".", "stubs"]\n',
+            'python-platform = "linux"\nextra-paths = []\n', 'extra-paths = ["."]\n', '',
+            'python-platform = "win32"\nextra-paths = ["stubs"]\n',
+            'python-platform = "win32"\nextra-paths = ["."]\ntypeshed = "stubs"\n')),
+        _ALL_ERROR + _SRC, 'environment = "linux"\n' + _ALL_ERROR + _SRC])
 
 
 def _ty_settings_refuse_src() -> None:
-    # The table is held exactly: each way of taking files out of the run, a changed
-    # glob, and no table at all are each one finding. Ignore files are honored unless
-    # the table says otherwise, so a table that is silent on them is refused with one
-    # that honors them.
     head = _ALL_ERROR + _ENV
-    ignore = 'respect-ignore-files = false\n'
-    for text, expected in (
-            (head, "carries no [src] table"),
-            (head + '\n[src]\nexclude = ["**/__pycache__/**", "vos/**"]\n' + ignore,
-             "'vos/**'"),
-            (head + '\n[src]\nexclude = ["vos/**"]\n' + ignore, "'vos/**'"),
-            (head + _SRC + 'include = ["tests"]\n', "'include': ['tests']"),
-            (head + _SRC + 'exclude-scripts = true\n', "'exclude-scripts': True"),
-            (head + '\n[src]\nexclude = ["**/__pycache__/**"]\n'
-                    'respect-ignore-files = true\n', "'respect-ignore-files': True"),
-            (head + '\n[src]\nexclude = ["**/__pycache__/**"]\n',
-             "sets [src] to {'exclude': ['**/__pycache__/**']}"),
-            (head + '\n[src]\n' + ignore, "sets [src] to {'respect-ignore-files'"),
-            (head + '\n[src]\n', "sets [src] to {}")):
-        found = _settings(text)
-        ensure(len(found) == 1 and expected in found[0]
-               and "exactly {'exclude': ['**/__pycache__/**'], 'respect-ignore-files': "
-                   "False}" in found[0]
-               and "honoring ignore files" in found[0],
-               f"a [src] table other than the committed one must be one finding: {found!r}")
+    _refused_settings([
+        head, head + '\n[src]\n',
+        *(head + '\n[src]\nexclude = ' + exclude + '\nrespect-ignore-files = false\n'
+          for exclude in ('["**/__pycache__/**", "vos/**"]', '["vos/**"]')),
+        *(head + _SRC + line + '\n' for line in (
+            'include = ["tests"]', 'exclude-scripts = true')),
+        head + '\n[src]\nexclude = ["**/__pycache__/**"]\nrespect-ignore-files = true\n',
+        head + '\n[src]\nexclude = ["**/__pycache__/**"]\n',
+        head + '\n[src]\nrespect-ignore-files = false\n'])
 
 
 def _ty_settings_fail_closed() -> None:
-    for text in (None, "[rules\nall = \"error\"\n"):
-        found = _settings(text)
-        ensure(len(found) == 1 and "cannot be read" in found[0],
-               f"an absent or malformed ty.toml must be a finding: {found!r}")
+    _refused_settings([None, '[rules\nall = "error"\n',
+                       'baseline = "baseline.json"\n' + _ADMITTED,
+                       'future-setting = true\n' + _ADMITTED])
 
 
 def _passes(checker: MagicMock) -> list[typecheck.Pass]:
@@ -537,8 +419,8 @@ def _ty_runs_every_platform() -> None:
     # One ty pass per platform, linux and then win32, each naming its platform on the
     # command line, in its verdict and in its failures, with every other argument
     # the same; the first is the platform ty.toml holds for an editor.
-    ensure(typecheck.TY_PLATFORMS[0] == typecheck.TY_ENVIRONMENT["python-platform"],
-           "the gate's first platform must be the one ty.toml holds for an editor")
+    ensure(typecheck.TY_PLATFORMS == ("linux", "win32"),
+           "the gate must retain its Linux and Windows platform passes")
     rep = Reporter()
     with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
         root = Path(td)
@@ -882,72 +764,33 @@ def _missing_explicit_inputs_refuse() -> None:
 
 
 def _ruff_settings(text: str | None) -> list[str]:
-    """`_ruff_settings` over a ruff.toml holding `text`, or over none at all."""
+    """`_settings` over a ruff.toml holding `text`, or over none at all."""
     with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
         config = Path(td) / "ruff.toml"
         if text is not None:
             config.write_text(text, encoding="utf-8", newline="")
-        return typecheck._ruff_settings(config)
+        return typecheck._settings(config)
 
 
 def _ruff_settings_refuse_per_file_suppressions() -> None:
-    # Each key that switches rules off for the files a pattern matches is refused in
-    # [lint] and at the top level, as a table or inline, empty or not, and so is an
-    # extend, which merges a file the gate does not read; one key is one finding.
     committed = Path(typecheck.__file__).resolve().parents[2] / "ruff.toml"
-    ensure(typecheck._ruff_settings(committed) == [],
-           f"the committed ruff.toml must pass: {typecheck._ruff_settings(committed)!r}")
-    # The keys the gate admits are exactly the ones the committed file carries.
-    carried = {path for path, _ in typecheck._ruff_keys(
-        tomllib.loads(committed.read_text(encoding="utf-8")), "")}
-    ensure(carried == typecheck.RUFF_KEYS,
-           f"RUFF_KEYS must be the committed ruff.toml's keys: "
-           f"{sorted(carried ^ typecheck.RUFF_KEYS)!r}")
+    ensure(typecheck._settings(committed) == [], "the committed Ruff settings must pass")
     lint = '[lint]\nselect = ["ANN"]\n'
-    ensure(_ruff_settings(lint) == [], "a ruff.toml without per-file suppressions must pass")
-    for text, expected in (
-            (lint + 'per-file-ignores = {"x.py" = ["ALL"]}\n',
-             "sets lint.per-file-ignores to {'x.py': ['ALL']};"),
-            (lint + '[lint.per-file-ignores]\n"x.py" = ["ANN"]\n',
-             "sets lint.per-file-ignores to {'x.py': ['ANN']};"),
-            (lint + 'extend-per-file-ignores = {}\n',
-             "sets lint.extend-per-file-ignores to {};"),
-            ('per-file-ignores = {"x.py" = ["ANN"]}\n' + lint,
-             "sets per-file-ignores to {'x.py': ['ANN']};"),
-            ('extend-per-file-ignores = {"x.py" = ["ANN"]}\n' + lint,
-             "sets extend-per-file-ignores to {'x.py': ['ANN']};")):
-        found = _ruff_settings(text)
-        ensure(len(found) == 1 and expected in found[0]
-               and "explicit filenames cannot restore disabled rules" in found[0],
-               f"a per-file suppression must be one finding: {found!r}")
-    extended = _ruff_settings('extend = "other.toml"\n' + lint)
-    ensure(len(extended) == 1 and "sets extend to 'other.toml';" in extended[0],
-           f"an extend must be refused: {extended!r}")
-    both = _ruff_settings('per-file-ignores = {}\n' + lint + 'per-file-ignores = {}\n')
-    ensure(len(both) == 2, f"each table's key must be its own finding: {both!r}")
-    # Any other key the gate has not read is refused at any depth of the tables it
-    # admits, one finding per key and one for a table it does not admit: the per-file
-    # target version, which switches version-gated rules off for the files it matches,
-    # an exclusion, and a key the gate has never seen.
-    for text, expected in (
-            ('per-file-target-version = {"x.py" = "py37"}\n' + lint,
-             "sets per-file-target-version to {'x.py': 'py37'}, a key the gate has not read;"),
-            ('exclude = ["x.py"]\n' + lint, "sets exclude to ['x.py'], a key"),
-            ('future-setting = 1\n' + lint, "sets future-setting to 1, a key"),
-            (lint + 'future-setting = 1\n', "sets lint.future-setting to 1, a key"),
-            (lint + '[lint.flake8-annotations]\nignore-fully-untyped = true\n',
-             "sets lint.flake8-annotations.ignore-fully-untyped to True, a key"),
-            (lint + '[lint.isort]\nforce-single-line = true\nknown-first-party = ["vos"]\n',
-             "sets lint.isort to {'force-single-line': True, 'known-first-party': ['vos']}, "
-             "a key")):
-        found = _ruff_settings(text)
-        ensure(len(found) == 1 and expected in found[0]
-               and "it admits only the keys in RUFF_KEYS" in found[0],
-               f"a key the gate has not read must be one finding: {found!r}")
-    for text in (None, "[lint\n"):
-        unread = _ruff_settings(text)
-        ensure(len(unread) == 1 and "cannot be read" in unread[0],
-               f"an absent or malformed ruff.toml must be a finding: {unread!r}")
+    ensure(_ruff_settings(lint) == [], "a reviewed Ruff subset must pass")
+    _refused_settings([
+        *(lint + line + '\n' for line in (
+            'per-file-ignores = {"x.py" = ["ALL"]}',
+            '[lint.per-file-ignores]\n"x.py" = ["ANN"]',
+            'extend-per-file-ignores = {}', 'future-setting = 1',
+            '[lint.flake8-annotations]\nignore-fully-untyped = true',
+            '[lint.isort]\nforce-single-line = true\nknown-first-party = ["vos"]')),
+        *(line + '\n' + lint for line in (
+            'per-file-ignores = {"x.py" = ["ANN"]}',
+            'extend-per-file-ignores = {"x.py" = ["ANN"]}', 'extend = "other.toml"',
+            'per-file-target-version = {"x.py" = "py37"}',
+            'exclude = ["x.py"]', 'future-setting = 1')),
+        'per-file-ignores = {}\n' + lint + 'per-file-ignores = {}\n',
+        None, "[lint\n"], policy="ruff")
 
 
 def _file_suppressions_refused() -> None:

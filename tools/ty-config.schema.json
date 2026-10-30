@@ -1,0 +1,62 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "type": "object",
+  "additionalProperties": false,
+  "title": "Reviewed ty configuration policy",
+  "required": [
+    "rules",
+    "src",
+    "environment"
+  ],
+  "properties": {
+    "rules": {
+      "enum": [
+        {
+          "all": "error"
+        }
+      ]
+    },
+    "src": {
+      "enum": [
+        {
+          "exclude": [
+            "**/__pycache__/**"
+          ],
+          "respect-ignore-files": false
+        }
+      ]
+    },
+    "environment": {
+      "enum": [
+        {
+          "python-platform": "linux",
+          "extra-paths": [
+            "."
+          ]
+        }
+      ]
+    },
+    "analysis": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "respect-type-ignore-comments": {},
+        "strict-equality-semantics": {},
+        "strict-literal-narrowing": {},
+        "strict-generic-narrowing": {}
+      }
+    },
+    "overrides": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "include": {},
+          "exclude": {}
+        }
+      }
+    },
+    "terminal": {}
+  }
+}

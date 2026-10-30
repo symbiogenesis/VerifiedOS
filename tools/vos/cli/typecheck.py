@@ -1,111 +1,10 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: Apache-2.0
-"""Hold this directory's own Python to the discipline it holds the documents to.
+"""Run the locked Python linters over every indexed tool source.
 
-`check.py` checks the documents against each other. Nothing checked the tool that
-does the checking, and the tools are the one artifact in this repository with no
-proof, no model, and no reviewer but the person who wrote them. This is that gate.
-
-It runs two checkers, because one of them cannot do the whole job:
-
-    ty     the types      every expression reachable under python-platform linux,
-                          and every one reachable under win32, against the types
-                          it can infer
-    ruff   the coverage   every function, against whether it is annotated at all
-
-The split is not a preference. ty infers aggressively and reports what it can prove
-wrong, which means a wholly unannotated function is not a finding to it: there is
-nothing to contradict. That is exactly the shape the defect takes here. The gap was
-172 unannotated parameters when this gate was written, and all but a handful sat in
-the two newest modules, where a dispatch table held callbacks whose signatures
-nothing checked. ruff's `ANN` group is what closes it, so ruff is here for one group
-and stays for the correctness rules it carries besides.
-
-Both are pinned, for the reason Rocq and z3 are pinned: a checker that changes
-underneath the tree changes what the tree is allowed to say without anyone
-deciding it. A version other than the pinned one is a finding, not a warning.
-
-ty runs once per platform, because it reports nothing in a branch the platform
-makes unreachable and the tools run on the Windows host as well as in the Linux
-guest. Under linux it types the guest's POSIX-only code; under win32 it types the
-branches only the host takes, and holds every call typeshed declares absent on
-Windows behind a `sys.platform` check. Each run is its own verdict.
-
-Every rule ty carries runs at error, including the ones it ships as warnings or
-switched off. `ty.toml` states that in its `[rules]` table, and it and `ruff.toml`
-hold the rest of the settings, so an editor's language server decides what this
-decides. The gate also passes ty `--error all`, which overrides the `[rules]`
-table, and `--python-platform`, which overrides the platform an editor reads from
-`[environment]`, and it reads `ty.toml` itself. Each of these is a ty finding,
-because an editor reads the file without the flags or because a flag cannot restore
-what the setting takes away:
-
-    [rules]        a table other than exactly `all = "error"`
-    [[overrides]]  an entry carrying any key but `include` and `exclude`: its
-                   `rules` can lower the flag's severities, and its `analysis` can
-                   suppress diagnostics, for the files it matches
-    [analysis]     a key outside the ones that suppress nothing, which refuses
-                   `allowed-unresolved-imports` and `replace-imports-with-any`
-    [environment]  a key other than `python-platform` and `extra-paths`, or either
-                   at a value other than
-                   `"linux"` and `["."]`, since the platform decides which branches
-                   an editor's ty checks and `python`, `root`, `typeshed` or another
-                   search path changes where it resolves imports; the project
-                   manifest owns the target version
-    [src]          a table other than exactly `exclude = ["**/__pycache__/**"]` and
-                   `respect-ignore-files = false`, since an `include`, a further
-                   `exclude`, `exclude-scripts` or honoring ignore files takes
-                   files out of the run
-
-A user-level ty configuration is a ty finding too: ty merges it beneath `ty.toml`
-even beside `--config-file`, so a setting `ty.toml` leaves out would come from it.
-So is a set `PYTHONPATH`, whose directories ty searches just after `extra-paths` and
-ahead of the standard library, which is what `typeshed` and a further `extra-paths`
-entry are refused for.
-
-Each checker receives the Git index's Python filenames explicitly. Explicit targets
-bypass discovery exclusions; Ruff also receives --no-force-exclude. Commands are
-bounded for Windows command-line limits, with one combined verdict per platform.
-The gate removes TY_LOG and TY_LOG_PROFILE so incidental logging and profile output
-cannot alter its diagnostics or write into the tools directory.
-
-Explicit targets cannot restore disabled rules, so the gate refuses suppressions
-reaching past a line as a ruff finding: a `per-file-ignores` or `extend-per-file-ignores` key in `ruff.toml`, in `[lint]` or at
-the top level; an `extend` key, which merges another file's settings beneath it; any
-other key outside the ones the gate has read, which are the ones `ruff.toml` carries,
-since a top-level `per-file-target-version` also switches rules off for the files a
-pattern matches and a key the gate has not read may do as much; a comment anywhere in
-a tracked module carrying ruff's file-level suppression, `# ruff: noqa` or
-`# flake8: noqa`, unless it names N999 and no other rule, since ruff reports N999
-against the file's name rather than a line of it; and one carrying
-`# ruff: file-ignore[...]`, a `# ruff: disable[...]` or `# ruff: enable[...]` range
-comment, whose `disable` with no matching `enable` runs to the end of its block, or
-isort's `skip_file`, `off` or `on` action comment. `# ruff: ignore[...]` on a line of
-its own reaches the one logical line beneath it, a multi-line one whole, or, inside
-brackets, the one line of code beneath it, past blank and comment lines. That code line
-includes the lines a backslash or a multi-line string joins to it. A comment ending a
-line reaches that same code line alone; it is not refused.
-
-`ruff.toml` lists the modules the interpreter lacks on one platform that ty resolves on
-both, and ruff's TID253 refuses an import of one only where it is unnested at module
-level; with the module listed, PLC0415 no longer reports it in a class body. So the
-gate reads the same list and holds an import of a listed module in any tracked module
-anywhere outside a function body, in a class body or a module-level block alike, to
-the platforms, of linux and win32, that reach it. An enclosing `if` that compares
-`sys.platform` with string literals, by `==` or `!=` with one, by `in` or `not in` with
-a tuple, list or set of them, or through `startswith`, alone, under `not` or joined by
-`and` or `or`, sends its body the platforms on which its test holds and its `else` the
-rest; every other block, an `if` reading `sys.platform` any other way among them,
-passes on the platforms that reach it. An import both platforms reach is refused,
-naming the nearest enclosing test reading `sys.platform`. That holds that no listed
-module is imported on both platforms, not which one has it, so on each of the two an
-import the running platform reaches is refused as well where the interpreter cannot
-find the top-level module it names, as Windows cannot find `fcntl`. A submodule of a
-package the interpreter finds, such as `asyncio.unix_events` on Windows, and a module
-it finds but cannot import, such as `pty` there, are not caught this way.
-
-Exit 0 clean, 1 on any finding. It may be run from anywhere: the repository root is
-found from this file, never from the working directory.
+Both ty platform passes and Ruff receive explicit filenames. Authored JSON
+Schemas hold the reviewed configuration policy; the wrapper retains bounded
+execution, diagnostic summaries, suppression and platform-import checks.
 """
 
 import argparse
@@ -129,6 +28,7 @@ from typing import NamedTuple
 from vos import corpus as corpus_mod
 from vos import pyversion, toolenv
 from vos.report import Reporter
+from vos.schema import validate
 
 _PROJECT_ROOT = Path(__file__).resolve().parents[3]
 _PINS = toolenv.checker_pins(_PROJECT_ROOT)
@@ -136,44 +36,7 @@ PYTHON_VERSION = pyversion.supported_minor(_PROJECT_ROOT)
 TY_VERSION = _PINS["ty"]
 RUFF_VERSION = _PINS["ruff"]
 
-# The one `[rules]` table ty.toml may carry: every rule at error, and nothing else.
-TY_RULES = {"all": "error"}
-
-# The one `[src]` table ty.toml may carry. `include`, a further `exclude` glob and
-# `exclude-scripts` each take files out of the run, where no severity reaches them,
-# and so does `respect-ignore-files`, which defaults to true: a `.gitignore`,
-# `.ignore`, `.git/info/exclude` or global gitignore pattern matching a tracked
-# module would otherwise drop it.
-TY_SRC = {"exclude": ["**/__pycache__/**"], "respect-ignore-files": False}
-
-# The keys an `[[overrides]]` entry may carry: which files it matches, and nothing
-# it does to them. ty also accepts `rules`, which can lower `--error all` for those
-# files, and `analysis`, which can suppress their diagnostics under it.
-TY_OVERRIDE_KEYS = frozenset({"include", "exclude"})
-
-# The `[analysis]` settings that suppress no diagnostic the defaults report. ty's
-# other two, `allowed-unresolved-imports` and `replace-imports-with-any`, suppress
-# diagnostics for the modules they match under `--error all`, and a key the gate has
-# not read is refused with them. `strict-literal-narrowing` is ty's alias for
-# `strict-equality-semantics`.
-TY_ANALYSIS_KEYS = frozenset({"respect-type-ignore-comments", "strict-equality-semantics",
-                              "strict-literal-narrowing", "strict-generic-narrowing"})
-
-# The `[environment]` values the gate holds, and the keys it admits beside them. ty
-# reports nothing in a branch `python-platform` makes unreachable, so the platform
-# decides which `sys.platform` branches an editor's ty server checks at all, the
-# gate's `--python-platform` overriding it, and an `extra-paths` entry comes first in
-# resolving every import. ty's other three keys each move a resolution: `python`
-# another environment's packages for an editor, the gate's `--python` overriding it,
-# `root` the first-party modules, and `typeshed` the standard library. A key the gate
-# has not read is refused with them. The target version is inferred from the
-# project manifest in editors and passed explicitly by the gate.
-TY_ENVIRONMENT = {"python-platform": "linux", "extra-paths": ["."]}
-TY_ENVIRONMENT_KEYS = frozenset(TY_ENVIRONMENT)
-
-# The platforms the gate types the tools under, one ty run each, named on its
-# command line. Neither alone reaches every branch, so the gate runs both: the first
-# is the one `TY_ENVIRONMENT` holds for an editor, and the second is the host's.
+# Both platforms must be typed: each can make different branches unreachable.
 TY_PLATFORMS = ("linux", "win32")
 
 # How many findings of one rule are printed before the rest are counted. A run that
@@ -199,26 +62,6 @@ MODULE_SUFFIXES = (".py", ".pyi")
 # Where `ruff.toml` lists the modules TID253 refuses an unnested module-level import of,
 # the list the gate holds every import outside a function body to.
 BANNED = ("lint", "flake8-tidy-imports", "banned-module-level-imports")
-
-# The `ruff.toml` keys that switch rules off for the files a pattern matches, which ruff
-# reads in `[lint]` and, deprecated, at the top level. Explicit filenames cannot
-# restore rules those settings disable.
-RUFF_PER_FILE = ("per-file-ignores", "extend-per-file-ignores")
-
-# The `ruff.toml` keys the gate has read, as dotted paths: the ones the committed file
-# carries and the tables holding them. Any other key is refused, as a key ty.toml's held
-# tables carry beyond the ones the gate admits is: a top-level `per-file-target-version`
-# switches rules gated on a newer version off for the files a pattern matches, and
-# a key the gate has not read may do as much.
-RUFF_KEYS = frozenset({
-    "line-length", "respect-gitignore", "lint",
-    "lint.select", "lint.ignore", "lint.allowed-confusables",
-    "lint.flake8-annotations", "lint.flake8-annotations.suppress-none-returning",
-    "lint.flake8-annotations.suppress-dummy-args",
-    "lint.flake8-annotations.allow-star-arg-any",
-    "lint.flake8-annotations.mypy-init-return",
-    "lint.flake8-tidy-imports", "lint.flake8-tidy-imports.banned-module-level-imports",
-})
 
 # A comment ruff reads as a file-level suppression, matched as ruff's lexer matches it:
 # `ruff` or `flake8`, a colon and `noqa` in any case, after any `#` in the comment. It
@@ -438,96 +281,14 @@ def _run_pass(rep: Reporter, name: str, exe: str, run: Pass, cwd: Path,
         _summarize(rep, name, run.label, findings, run.ok)
 
 
-def _ty_settings(config: Path) -> list[str]:
-    """The `ty.toml` settings the gate refuses, as findings.
-
-    What is held, and nothing else: `[rules]` is exactly `TY_RULES` and `[src]`
-    exactly `TY_SRC`; `[analysis]` carries only `TY_ANALYSIS_KEYS` and each
-    `[[overrides]]` entry only `TY_OVERRIDE_KEYS`; `[environment]` carries only
-    `TY_ENVIRONMENT_KEYS`, with the two names `TY_ENVIRONMENT` gives at exactly its
-    values. `--error all` overrides the `[rules]` table, so the gate's own run cannot
-    see a lowered entry there; an editor's language server reads the table without
-    the flag, which is why the table is held exactly rather than by what it means.
-    The flag does not reach the rest, so the keys are held by shape rather than by
-    what they say, and an override restating `all = "error"` and an empty
-    suppression list are refused too.
-
-    Not held here: `[terminal]`, whose `output-format` the gate's
-    own flag overrides and whose `error-on-warning` cannot clear a warning the gate
-    reads from the output; and a top-level table or key, or a `[terminal]` key, that
-    ty does not accept, which ty refuses as an invalid `ty.toml`, exiting 2 before it
-    checks anything, and the gate's run reports as a checker error. A key ty does not
-    accept inside `[rules]`, `[src]`, `[analysis]`, `[environment]` or an
-    `[[overrides]]` entry is refused here as well, being outside what each admits.
-
-    Fail-closed: a file that cannot be read or parsed, an `overrides` value that is
-    not an array of tables, or an `analysis` or `environment` value that is not a
-    table is a finding, never a pass, and a key the gate has not admitted is
-    refused, never assumed harmless.
-    """
-    name = f"tools/{config.name}"
+def _settings(config: Path) -> list[str]:
+    """Decode TOML and apply its authored policy, retaining refusal beside linting."""
     try:
         settings = tomllib.loads(config.read_text(encoding="utf-8"))
-    except (OSError, UnicodeDecodeError, tomllib.TOMLDecodeError) as err:
-        return [f"{name} cannot be read: {err}"]
-
-    findings: list[str] = []
-    rules = settings.get("rules")
-    if rules != TY_RULES:
-        found = "carries no [rules] table" if rules is None else f"sets [rules] to {rules!r}"
-        findings.append(f"{name} {found}; the gate holds it to exactly {TY_RULES!r}, "
-                        "the table an editor's ty server reads without --error all")
-    src = settings.get("src")
-    if src != TY_SRC:
-        found = "carries no [src] table" if src is None else f"sets [src] to {src!r}"
-        findings.append(f"{name} {found}; the gate holds it to exactly {TY_SRC!r}, "
-                        "because an include, a further exclude, exclude-scripts or "
-                        "honoring ignore files takes files out of the run")
-    analysis = settings.get("analysis", {})
-    if not isinstance(analysis, dict):
-        findings.append(f"{name}'s analysis must be a table, found {analysis!r}")
-    elif refused := sorted(set(analysis) - TY_ANALYSIS_KEYS):
-        findings.append(
-            f"{name}'s [analysis] carries "
-            + ", ".join(f"{key} {analysis[key]!r}" for key in refused)
-            + f"; the gate admits only {', '.join(sorted(TY_ANALYSIS_KEYS))}, "
-            "the settings that suppress no diagnostic the defaults report")
-    held = " and ".join(f"{key} to {value!r}" for key, value in TY_ENVIRONMENT.items())
-    why = ("because the platform decides which sys.platform branches an editor's ty "
-           "checks and extra-paths comes first in resolving every import")
-    environment = settings.get("environment")
-    if environment is None:
-        findings.append(f"{name} carries no [environment] table; the gate holds {held}, {why}")
-    elif not isinstance(environment, dict):
-        findings.append(f"{name}'s environment must be a table, found {environment!r}")
-    else:
-        if refused := sorted(set(environment) - TY_ENVIRONMENT_KEYS):
-            findings.append(
-                f"{name}'s [environment] carries "
-                + ", ".join(f"{key} {environment[key]!r}" for key in refused)
-                + f"; the gate admits only {', '.join(sorted(TY_ENVIRONMENT_KEYS))}, "
-                "because python, root and typeshed each move where ty resolves imports, "
-                "and a key the gate has not read is refused with them")
-        if changed := [key for key, want in TY_ENVIRONMENT.items()
-                       if environment.get(key) != want]:
-            findings.append(
-                f"{name}'s [environment] "
-                + ", ".join(f"sets {key} to {environment[key]!r}" if key in environment
-                            else f"carries no {key}" for key in changed)
-                + f"; the gate holds {held}, {why}")
-    overrides = settings.get("overrides", [])
-    if not isinstance(overrides, list) or not all(isinstance(o, dict) for o in overrides):
-        findings.append(f"{name}'s overrides must be an array of tables, found {overrides!r}")
-        return findings
-    for index, entry in enumerate(overrides, start=1):
-        if carried := sorted(set(entry) - TY_OVERRIDE_KEYS):
-            findings.append(
-                f"{name}'s [[overrides]] entry {index} (include {entry.get('include')!r}) "
-                "carries " + ", ".join(f"{key} {entry[key]!r}" for key in carried)
-                + "; an entry may carry only include and exclude, because its rules can "
-                "lower --error all and its analysis can suppress diagnostics for the "
-                "files it matches")
-    return findings
+        validate(_PROJECT_ROOT / "tools" / f"{config.stem}-config.schema.json", settings)
+    except (OSError, ValueError) as error:
+        return [f"tools/{config.name} cannot be read under its policy: {error}"]
+    return []
 
 
 def _user_config() -> Path | None:
@@ -591,7 +352,7 @@ def _run_ty(rep: Reporter, root: Path, tracked: frozenset[str] | None) -> None:
     instead, since neither of its variables changes what ty checks or reports."""
     tools = root / "tools"
     held = ", all rules at error"
-    if refused := _ty_settings(tools / "ty.toml"):
+    if refused := _settings(tools / "ty.toml"):
         rep.report("ty", "ty.toml setting(s) the gate refuses:", refused)
         held = " under the settings refused above"
     if (user := _user_config()) is not None:
@@ -615,52 +376,6 @@ def _run_ty(rep: Reporter, root: Path, tracked: frozenset[str] | None) -> None:
               f"under ty {TY_VERSION}{held}", tracked, TY_UNSET)
          for platform in TY_PLATFORMS],
         tools, with_stderr=True, parse=_parse_ty)
-
-
-def _ruff_settings(config: Path) -> list[str]:
-    """The `ruff.toml` settings the gate refuses, as findings, one per key in the file's
-    order: a `RUFF_PER_FILE` key in `[lint]` or at the top level; an `extend` key, which
-    merges the settings of a file the gate does not read beneath this one's; and any
-    other key outside `RUFF_KEYS`, at any depth of the tables `RUFF_KEYS` admits. Each is
-    refused whatever it says, an empty table included, as ty.toml's `[src]` is held by
-    shape, and a table outside `RUFF_KEYS` is one finding, not one per key in it.
-
-    Fail-closed: a file that cannot be read or parsed is a finding, and a key the gate has
-    not read is refused, never assumed harmless. A value whose shape ruff does not accept
-    for its key, such as a `lint` that is not a table, is ruff's to refuse, which it does
-    as an invalid configuration before it checks anything, and the gate's run reports as
-    a checker error."""
-    name = f"tools/{config.name}"
-    try:
-        settings = tomllib.loads(config.read_text(encoding="utf-8"))
-    except (OSError, UnicodeDecodeError, tomllib.TOMLDecodeError) as err:
-        return [f"{name} cannot be read: {err}"]
-    per_file = {f"{prefix}{key}" for prefix in ("", "lint.") for key in RUFF_PER_FILE}
-    findings: list[str] = []
-    for path, value in _ruff_keys(settings, ""):
-        if path in per_file:
-            findings.append(f"{name} sets {path} to {value!r}; a rule switched off for the "
-                            "files a pattern matches is refused; explicit filenames cannot "
-                            "restore disabled rules")
-        elif path == "extend":
-            findings.append(f"{name} sets extend to {value!r}; the gate reads only this "
-                            "file, and extend merges another file's settings beneath it")
-        elif path not in RUFF_KEYS:
-            findings.append(f"{name} sets {path} to {value!r}, a key the gate has not read; "
-                            "it admits only the keys in RUFF_KEYS, since a key such as "
-                            "per-file-target-version switches rules off even for explicit "
-                            "filenames")
-    return findings
-
-
-def _ruff_keys(table: dict[str, object], prefix: str) -> Iterator[tuple[str, object]]:
-    """Each key in `table`, as a dotted path under `prefix` with its value, in the file's
-    order, each key of a table `RUFF_KEYS` admits followed by the keys beneath it."""
-    for key, value in table.items():
-        path = prefix + key
-        yield path, value
-        if path in RUFF_KEYS and isinstance(value, dict):
-            yield from _ruff_keys(value, path + ".")
 
 
 def _file_suppressions(tools: Path, tracked: frozenset[str]) -> list[str]:
@@ -711,7 +426,7 @@ def _run_ruff(rep: Reporter, root: Path, tracked: frozenset[str] | None) -> None
     """Lint explicit indexed filenames, retaining configuration and suppression policy."""
     tools = root / "tools"
     held = ""
-    if refused := _ruff_settings(tools / "ruff.toml"):
+    if refused := _settings(tools / "ruff.toml"):
         rep.report("ruff", "ruff.toml setting(s) the gate refuses:", refused)
         held = " under the suppressions refused above"
     if tracked is not None and (suppressed := _file_suppressions(tools, tracked)):

@@ -1,35 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
-# The type checker's settings, held here rather than passed on a command line so
-# that an editor's language server (`ty server`) decides exactly what
-# `run.py typecheck` (`vos/cli/typecheck.py`) decides. A rule enforced in one and
-# not the other is a rule that gets switched off, so there is one file and both
-# read it. ty discovers this file from its working directory upward and anchors
-# its relative paths at `tools/`, so an editor reads it with `tools/` open as a
-# workspace folder; the repository root carries no ty configuration.
-#
-# `[rules]` sets every rule ty carries to error, including the ones it ships as
-# warnings or off by default. That is deliberate and it is what a pinned version
-# buys: the alternative is a list of opt-ins that silently stops growing the day
-# ty adds a rule nobody transcribed. The gate also passes `--error all`, which
-# overrides this table, and `--python-platform` once for each platform it types,
-# which overrides the one below, and it reports these shapes of this file as ty
-# findings: a `[rules]` table other than exactly `all = "error"`, because an editor
-# reads the table without the flag; an `[[overrides]]` entry carrying any key but
-# `include` and `exclude`, because its `rules` can lower the flag's severities and
-# its `analysis` can suppress diagnostics for the files it matches; an `[analysis]`
-# key outside the ones `vos/cli/typecheck.py` admits as suppressing nothing, which
-# refuses `allowed-unresolved-imports` and `replace-imports-with-any`; an
-# `[environment]` key other than `python-platform` and `extra-paths`, or either
-# at a value other than the one below,
-# because the platform decides which branches an editor's ty checks and `python`,
-# `root`, `typeshed` or another search path moves where it resolves imports; and a
-# `[src]` table other than exactly the one below, because an `include`, a further
-# `exclude`, `exclude-scripts` or honoring ignore files takes files out of the run.
-# The project manifest owns the target version. ty also merges a user-level `ty.toml` beneath this
-# file, even beside `--config-file`, and the gate reports one that exists; it
-# searches the directories a `PYTHONPATH` names just after `extra-paths`, and the
-# gate reports that variable when it is set.
-# `tools/README.md` records the pin.
+#:schema ./ty-config.schema.json
+# Editors and CI share this configuration; its schema holds the reviewed policy.
 
 [rules]
 all = "error"

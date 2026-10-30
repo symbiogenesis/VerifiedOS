@@ -1,30 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
-# The lint half of the gate, and the half that enforces annotation coverage.
-#
-# ty is the type checker, but it has no rule requiring a function to *be*
-# annotated: it infers what it can and stays quiet about what it cannot, so a
-# wholly unannotated function is invisible to it rather than a finding. That gap is
-# the one this file closes, and it is why the gate runs two tools instead of one.
-# The `ANN` group is the reason ruff is here; everything else selected below is a
-# correctness rule that happened to be in reach once it was.
-#
-# The rule set is ruff's, not this directory's. A finding under a selected rule is
-# fixed in the code, because the rules below are the ones the wider Python world
-# already agrees on: PEP 8 import placement and naming, PEP 448 unpacking, pathlib
-# over os.path, absolute imports over reaching into a parent package. Three rules
-# are refused, each named on its own and each for a reason that would hold in any
-# project, not for a local preference; a single site that has to differ says so with
-# a `# noqa: RULE` and a comment, which is auditable in a way a switched-off group
-# is not. For the same reason `vos/cli/typecheck.py` refuses a `per-file-ignores`,
-# `extend-per-file-ignores` or `extend` key in this file, and any key outside its
-# `RUFF_KEYS`, the keys this file carries, so a key added here is read there first; a
-# file-level `# ruff: noqa` or `# flake8: noqa` comment unless it names N999 alone,
-# which ruff reports against the file's name rather than a line of it; and a
-# `# ruff: file-ignore[...]` comment, a `# ruff: disable[...]` or `# ruff: enable[...]`
-# range comment, or isort's `skip_file`, `off` or `on` action comment.
+#:schema ./ruff-config.schema.json
+# Editors and CI share this configuration; its schema holds the reviewed policy.
 
-# Editors infer the target from pyproject.toml's requires-python. The gate and
-# preparation pass that value explicitly because --config disables inference.
 line-length = 100          # E501 is not selected; this only sizes the few rules that read it
 
 # ruff otherwise skips whatever a `.gitignore`, `.ignore`, `.git/info/exclude` or
