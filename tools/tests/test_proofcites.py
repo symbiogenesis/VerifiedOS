@@ -21,6 +21,7 @@ with the shared lexer's keyword tables and decoration grammar, the proof gate's 
 """
 
 from pathlib import Path
+from unittest.mock import patch
 
 from tests.harness import Case, ensure, sandbox_tree
 from vos import corpus as corpus_mod
@@ -63,6 +64,27 @@ def _no_region_is_read_whole() -> None:
            f"a file carrying no marker carries no region and no fault: {region!r}")
     ensure(proofcites.ids(text) == ["R-01-001", "R-02-002"],
            f"and every citation in it is read: {proofcites.ids(text)!r}")
+
+
+def _parse_cache_binds_complete_source_and_retains_faults() -> None:
+    cache = proofcites.ParseCache()
+    first = "(* R-01-001 *)\n"
+    second = first.replace("001", "002")
+    malformed = first + BEGIN + "\nR-03-003\n"
+    with patch.object(proofcites, "derived", wraps=proofcites.derived) as parse:
+        ensure(cache.ids(first) == tuple(proofcites.ids(first, proofcites.Derived())),
+               "the cached lexical reading must equal the uncached citation reader")
+        ensure(cache.region(first) == proofcites.Derived() and cache.ids(first) == ("R-01-001",),
+               "repeated immutable text must retain its complete lexical reading")
+        ensure(parse.call_count == 1, "delimiter parsing is shared within one invocation")
+        ensure(cache.ids(second) == ("R-01-002",), "same-size edits must change citation facts")
+        ensure(bool(cache.region(malformed).faults) and not cache.region(malformed).spans,
+               "a repeated malformed parse must retain its faults and exclude nothing")
+        ensure(cache.ids(malformed) == ("R-01-001", "R-03-003"),
+               "cached malformed delimiters cannot hide their source citations")
+        ensure(parse.call_count == 3, "new text needs one new parse, including malformed text")
+    fresh = proofcites.ParseCache()
+    ensure(fresh.ids(second) == cache.ids(second), "a new invocation reads its own source facts")
 
 
 def _a_well_formed_region_is_skipped() -> None:
@@ -364,6 +386,7 @@ def _compact_manifests_are_strict() -> None:
 
 def cases() -> list[Case]:
     return [
+        Case("parse-cache-binds-complete-source-and-retains-faults", _parse_cache_binds_complete_source_and_retains_faults),
         Case("no-region-is-read-whole", _no_region_is_read_whole),
         Case("well-formed-region-is-skipped", _a_well_formed_region_is_skipped),
         Case("transcribed-ids-are-no-citation", _the_self_feeding_ids_are_not_citations),

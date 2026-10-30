@@ -64,7 +64,10 @@ def _markdown() -> MarkdownIt:
     # environment. Resolve third-party parser code only when a document is read.
     from markdown_it import MarkdownIt  # noqa: PLC0415
 
-    return MarkdownIt("commonmark", {"html": True}).enable("table")
+    # Structural readers need block maps and the unexpanded inline token's
+    # content, never its children. Keep the same block grammar and normalization;
+    # omitting inline expansion avoids parsing every document's links twice.
+    return MarkdownIt("commonmark", {"html": True}).enable("table").disable("inline")
 
 
 def _syntax(lines: list[str]) -> tuple[list[bool], list[tuple[int, str]]]:

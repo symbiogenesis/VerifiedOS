@@ -462,7 +462,7 @@ def _dev_tools(ctx: Context) -> None:
 
 
 def _sources(ctx: Context, named: list[tuple[str, str, pins_mod.Pin]]) -> Iterator[tuple[str, str, list[bool]]]:
-    """Every file this rule reads, as its lines and which of them a fence displays.
+    """Indexed source and exact pin-candidate lines, with their fence masks.
 
     **The window is the git index**, because a pin is restated wherever somebody
     argues from one and a list of places to look would be a membership nobody
@@ -519,7 +519,7 @@ def _sources(ctx: Context, named: list[tuple[str, str, pins_mod.Pin]]) -> Iterat
         try:
             if rel.startswith(corpus_mod.COMPRESSED_EVIDENCE) and rel.endswith(".gz"):
                 # Static parser inputs, not a decision from the later rule group.
-                # Sharing them keeps the archive's two absence facts in one pass.
+                # Sharing them keeps the archive's candidate facts in one pass.
                 blob = (ctx.root / rel).read_bytes()
                 cache = cast(retained.Cache, ctx.shared.setdefault("retained_scan", retained.Cache()))
                 try:
@@ -532,6 +532,9 @@ def _sources(ctx: Context, named: list[tuple[str, str, pins_mod.Pin]]) -> Iterat
                     pass
                 else:
                     if not facts.pin_name:
+                        continue
+                    if facts.pin_text is not None:
+                        yield rel, facts.pin_text, []
                         continue
                 text = corpus_mod.gzip_contents(blob).decode("utf-8")
             else:
@@ -654,14 +657,8 @@ def _restatements(ctx: Context, rows: list[pins_mod.Pin],
     held = 0
 
     for file, text, fenced in _sources(ctx, named):
-        # Attribution requires an upstream name on the id's own line. Rejecting
-        # a file carrying none of the folded spellings is therefore equivalent
-        # to the full scan, and avoids visiting every hex literal in large proof
-        # dumps. A substring here is only a candidate; scan_text still decides
-        # name boundaries, overlaps, line ownership and id boundaries.
-        low = text.lower()
-        if not any(needle in low for needle, _, _ in named):
-            continue
+        # scan_text proposes name-bearing line regions before applying the exact
+        # attribution grammar; no whole-file id scan is needed for absent names.
         for site in pins_mod.scan_text(file, text, named):
             if fenced and fenced[site.index]:
                 continue

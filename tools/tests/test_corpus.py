@@ -132,6 +132,37 @@ def _markdown_source_maps_preserve_raw_offsets() -> None:
            "a heading source map and a raw character offset must identify the same line")
 
 
+def _structural_parse_matches_complete_markdown() -> None:
+    from markdown_it import MarkdownIt  # noqa: PLC0415
+
+    complete = MarkdownIt("commonmark", {"html": True}).enable("table")
+    samples = ["", "# [link](target) *emphasis* `code` &amp; ###\n",
+               "heading [ref]\n===\n\n[ref]: /target\n",
+               "> 1. ~~~text\n>    # hidden\n>    ~~~\n\n> ## visible\n",
+               "| column |\n| --- |\n| [link](target) |\n\n# visible\n",
+               "<div>\n# hidden\n</div>\n\n# visible\n",
+               "before\n\n    # hidden\n\n## visible\n",
+               "- ## heading\n\n  ```\n  # hidden\n  ```\n",
+               "# broken [link](\n\n~~~\n# unclosed example\n",
+               "# \x00 Unicode é [a][a]\n\n[a]: target\n"]
+    for sample in samples:
+        for newline in ("\n", "\r\n"):
+            text = sample.replace("\n", newline)
+            doc = _doc(text)
+            normalized = "\n".join(line.removesuffix("\r") for line in doc.lines)
+            tokens = complete.parse(normalized)
+            masks = [False] * len(doc.lines)
+            headings: list[tuple[int, str]] = []
+            for index, token in enumerate(tokens):
+                if token.type in {"fence", "code_block"} and token.map is not None:
+                    start, end = token.map
+                    masks[start:end] = [True] * (end - start)
+                elif token.type == "heading_open" and token.map is not None:
+                    headings.append((token.map[0], tokens[index + 1].content))
+            ensure(doc.fenced == masks and doc.headings == headings,
+                   f"block-only parsing changed complete-parser structural facts: {text!r}")
+
+
 def _launcher_import_does_not_require_parser() -> None:
     code = "import sys; sys.path.insert(0, sys.argv[1]); from vos import corpus; corpus.find_root()"
     done = subprocess.run([sys.executable, "-S", "-c", code, str(TOOLS)],
@@ -432,6 +463,7 @@ def cases() -> list[Case]:
         Case("code-regions-do-not-declare-anchors-or-ids", _code_regions_do_not_declare_anchors_or_ids),
         Case("headings-follow-markdown-structure", _headings_follow_markdown_structure),
         Case("markdown-source-maps-preserve-raw-offsets", _markdown_source_maps_preserve_raw_offsets),
+        Case("structural-parse-matches-complete-markdown", _structural_parse_matches_complete_markdown),
         Case("launcher-import-does-not-require-parser", _launcher_import_does_not_require_parser),
         Case("fenced-register-entries-are-examples", _fenced_register_entries_are_examples),
         Case("fence-unclosed-runs-to-eof", _fence_unclosed_runs_to_eof),

@@ -29,10 +29,12 @@ very damage this module reports into the file that reports it.
 import re
 import zlib
 from collections.abc import Iterable, Iterator
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
-from vos import corpus
+from vos import corpus, pins, retained
 from vos.report import sites
+
+from .interims import archive_needles
 
 # `Context` lives in this package's __init__, which imports this module in turn.
 # Guarded, so the annotation below costs no import at run time: under PEP 649 an
@@ -108,13 +110,31 @@ def _texts(ctx: Context) -> Iterator[tuple[str, str]]:
     here, and a file that will not decode as UTF-8 is skipped: it is not text, so
     the fault below is not a thing that could be said about it.
     """
+    names: tuple[str, ...] | None = None
+    sensitive, folded = archive_needles()
+    glyph_needles = tuple(mark.encode("utf-8") for mark in MOJIBAKE_MARKS)
     for rel in ctx.corpus.tracked:
         doc = ctx.corpus.get(rel)
         if doc is not None:
             yield rel, doc.raw
             continue
         try:
-            blob = corpus.scan_bytes(ctx.corpus.root, rel)
+            if rel.startswith(corpus.COMPRESSED_EVIDENCE) and rel.endswith(".gz"):
+                blob = (ctx.root / rel).read_bytes()
+                if names is None:
+                    names = tuple(needle for needle, _, _ in
+                                  pins.spellings(pins.read_record(ctx.text(pins.RECORD)).rows))
+                cache = cast(retained.Cache, ctx.shared.setdefault("retained_scan", retained.Cache()))
+                try:
+                    facts = cache.scan(rel, blob, names, sensitive, folded, glyphs=glyph_needles)
+                except (OSError, EOFError, ValueError, zlib.error):
+                    pass
+                else:
+                    if facts.glyph is False:
+                        continue
+                blob = corpus.gzip_contents(blob)
+            else:
+                blob = corpus.scan_bytes(ctx.corpus.root, rel)
             # Every damage marker is non-ASCII. This also avoids allocating a
             # decoded copy of a large, undamaged ASCII proof reading.
             if blob.isascii():

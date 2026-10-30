@@ -264,7 +264,7 @@ def run(ctx: Context) -> None:
     rels = [rel for rel in ctx.corpus.tracked if proofcites.is_source(rel)]
     pairs, _ = proofcites.read(ctx.root, rels)
     claimed, findings = proofcites.claims(pairs)
-    cites = proofcites.citations(pairs)
+    cites = {rel: set(ctx.proof_reading.ids(text)) for rel, text in pairs}
 
     if len(pairs) < len(rels):
         # the per-file reason is K-103's, and repeating it here would price one

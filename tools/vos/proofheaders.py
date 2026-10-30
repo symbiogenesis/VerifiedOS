@@ -73,13 +73,13 @@ def show(text: str, reg: Register) -> str:
     return f"# Cited requirements\n\nSource: [{REGISTER}]({REGISTER})\n\n{bodies}\n"
 
 
-def render(text: str, reg: Register) -> str:
+def render(text: str, reg: Register, *, cache: proofcites.ParseCache | None = None) -> str:
     """The artifact with one current manifest, leaving all authored bytes in place."""
     header = _HEADER.match(text)
     end = _HEADER_END.search(text)
     if header is None or end is None:
         raise HeaderError("no ruled opening header follows the licence comment")
-    region = proofcites.derived(text)
+    region = cache.region(text) if cache is not None else proofcites.derived(text)
     if region.faults:
         raise HeaderError("; ".join(region.faults))
     if len(region.spans) > 1:
@@ -104,7 +104,8 @@ def render(text: str, reg: Register) -> str:
 
 
 def plan(root: Path, reg: Register,
-         rels: list[str] | None = None) -> tuple[dict[str, str], list[str]]:
+         rels: list[str] | None = None, *,
+         cache: proofcites.ParseCache | None = None) -> tuple[dict[str, str], list[str]]:
     """Changed texts and refusals, with no writes; callers decide when to publish.
 
     A gate supplies its index-derived paths. The CLI defaults to the working tree,
@@ -118,7 +119,7 @@ def plan(root: Path, reg: Register,
             continue
         try:
             text = (root / rel).read_bytes().decode("utf-8")
-            generated = render(text, reg)
+            generated = render(text, reg, cache=cache)
         except (OSError, UnicodeDecodeError, HeaderError) as exc:
             faults.append(f"{rel}: {exc}")
             continue

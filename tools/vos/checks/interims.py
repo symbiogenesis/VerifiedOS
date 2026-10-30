@@ -610,8 +610,10 @@ def scan(ctx: Context, excluded: dict[str, str], snapshots: bool = False) -> Sca
         if doc is not None:
             read.anchors[rel] = set(anchors)
         passed: set[int] = set()
+        previous = index = 0
         for at, tok in hits(blob):
-            index = blob.count(b"\n", 0, at)
+            index += blob.count(b"\n", previous, at)
+            previous = at
             start = blob.rfind(b"\n", 0, at) + 1
             end = blob.find(b"\n", at)
             line = blob[start:end if end >= 0 else len(blob)]

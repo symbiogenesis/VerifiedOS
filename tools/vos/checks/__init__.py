@@ -28,7 +28,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from vos import timings
+from vos import proofcites, timings
 from vos.corpus import Corpus
 from vos.register import Artifacts, Register
 from vos.report import Reporter
@@ -77,6 +77,7 @@ class Context:
     # `Any` is the honest type here and not a shortcut: the values are lists of four
     # different record types, and narrowing happens at each reader.
     shared: dict[str, Any] = field(default_factory=dict)
+    proof_reading: proofcites.ParseCache = field(default_factory=proofcites.ParseCache)
 
     def text(self, name: str) -> str:
         """A document's text as the run currently holds it, repaired or not."""

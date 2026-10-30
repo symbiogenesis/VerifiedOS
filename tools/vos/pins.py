@@ -225,8 +225,8 @@ def scan(file: str, lines: list[str], named: list[tuple[str, str, Pin]]) -> Iter
 def scan_text(file: str, text: str, named: list[tuple[str, str, Pin]]) -> Iterator[Site]:
     """Every restatement the lines carry, in the order they read.
 
-    A line is skipped whole unless it carries an id, which is what keeps this off the
-    ninety-nine lines in a hundred that state no commit at all. Whether a line is
+    Literal upstream names propose candidate lines before the id grammar runs.
+    Whether a line is
     *displayed* rather than read is the caller's, because only the caller knows
     whether the file is Markdown at all and, where it is, the corpus already holds
     the fence mask over it; recomputing one here would be a second answer to a
@@ -237,6 +237,59 @@ def scan_text(file: str, text: str, named: list[tuple[str, str, Pin]]) -> Iterat
     its pin with one hyphen and no space, and a rule reading from the name's end
     would take the id as part of the name.
     """
+    # A name-bearing line is the only place an id can be attributed. Searching
+    # literal names first avoids running the id grammar over large proof terms.
+    # Unicode lowercase expansion changes the old parser's offset convention;
+    # retain its whole-text implementation for that representation.
+    low = text.lower()
+    if len(low) == len(text) and all("\n" not in name for name, _, _ in named):
+        for index, start, end in candidate_lines(text, tuple(n for n, _, _ in named),
+                                                 lowered=low):
+            marks = _named(text[start:end].removesuffix("\r"), named)
+            if not marks:
+                continue
+            cursor = 0
+            for match in ID_RE.finditer(text, start, end):
+                offset = match.start() - start
+                while cursor < len(marks) and marks[cursor][0] < offset:
+                    cursor += 1
+                if cursor:
+                    _, spelling, pin = marks[cursor - 1]
+                    yield Site(file, index + 1, index, offset, match.end() - start,
+                               match.group(1), spelling, pin)
+        return
+    yield from _scan_ids(file, text, named)
+
+
+def candidate_lines(text: str, names: tuple[str, ...], *, lowered: str | None = None
+                    ) -> Iterator[tuple[int, int, int]]:
+    """Potential name-bearing lines, preserving original offsets and line indices.
+
+    Substrings only propose candidates. The existing name and id grammars still
+    decide every site. Skip directly to the next line after a hit, rather than
+    walking every line or every occurrence of a repeated name in Python.
+    """
+    if not names:
+        return
+    low = text.lower() if lowered is None else lowered
+    if len(low) != len(text):
+        raise ValueError("Unicode lowercase changes source offsets")
+    pattern = re.compile("|".join(re.escape(name) for name in names))
+    cursor = index = 0
+    while match := pattern.search(low, cursor):
+        start = max(cursor, text.rfind("\n", cursor, match.start()) + 1)
+        index += text.count("\n", cursor, start)
+        end = text.find("\n", match.end())
+        if end < 0:
+            yield index, start, len(text)
+            break
+        yield index, start, end
+        index += 1
+        cursor = end + 1
+
+
+def _scan_ids(file: str, text: str, named: list[tuple[str, str, Pin]]) -> Iterator[Site]:
+    """The original offset scan, including its Unicode lowercase convention."""
     # Only lines carrying an id need a name scan or a line number. Both cursors
     # move forward: newline counting never rescans a prefix, and matching another
     # id on the same line reuses its names without allocating a filtered list.

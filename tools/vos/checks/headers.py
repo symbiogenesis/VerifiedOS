@@ -26,7 +26,7 @@ def run(ctx: Context) -> None:
         reg = read_register(corpus)
     rels = [rel for rel in ctx.corpus.tracked
             if proofcites.is_source(rel) and rel not in proofheaders.EXCLUDED]
-    changed, faults = proofheaders.plan(ctx.root, reg, rels)
+    changed, faults = proofheaders.plan(ctx.root, reg, rels, cache=ctx.proof_reading)
     if not rels:
         faults.append("the index carries no proof header for this rule to check")
     if ctx.fix:

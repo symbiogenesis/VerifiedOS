@@ -262,7 +262,8 @@ class _CountText:
     held_ends: list[int]
 
     @classmethod
-    def read(cls, file: str, raw: str) -> _CountText:
+    def read(cls, file: str, raw: str,
+             document: corpus_mod.Document | None = None) -> _CountText:
         # The same matches K-24 resolves, proposed by each pattern's literal phrase.
         spans = sorted(m.span() for f, _, _, pattern in CLAIMS if f == file
                        for m in figures.find_all(pattern, raw))
@@ -273,8 +274,14 @@ class _CountText:
         for _, finish in spans:
             end = max(end, finish)
             held_ends.append(end)
-        return cls(raw, corpus_mod.fence_lines(raw.splitlines()),
-                   [0, *(m.end() for m in re.finditer("\n", raw))],
+        lines = raw.splitlines()
+        # splitlines recognizes separators the corpus's raw-offset API does not.
+        # Reuse only exactly equal representations, including after a repair.
+        shared = document is not None and document.raw == raw and document.lines == lines
+        fenced = document.fenced if shared else corpus_mod.fence_lines(lines)
+        starts = (document.starts if shared else
+                  [0, *(m.end() for m in re.finditer("\n", raw))])
+        return cls(raw, fenced, starts,
                    [start for start, _ in spans], held_ends)
 
     def holds(self, start: int, finish: int) -> bool:
@@ -325,7 +332,7 @@ def unheld_counts(ctx: Context) -> list[str]:
             raw = ctx.text(file)
             if not raw:
                 continue
-            documents[file] = _CountText.read(file, raw)
+            documents[file] = _CountText.read(file, raw, ctx.corpus.get(file))
         document = documents[file]
         raw = document.raw
         # The introduction is deliberately a bounded scope, not a keyword search
