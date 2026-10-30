@@ -93,13 +93,6 @@
       "reach": "name"
     },
     {
-      "id": "K-13",
-      "group": "links",
-      "meaning": "every section number a sentence names is carried by some heading",
-      "ground": "the same hygiene, for the reference Markdown cannot break visibly",
-      "reach": "name"
-    },
-    {
       "id": "K-14",
       "group": "views",
       "meaning": "every requirement a view must carry is carried",
@@ -784,6 +777,11 @@
       "id": "K-59",
       "kind": "retired",
       "ground": "Direct section links are checked by the maintained ordinary-link validator."
+    },
+    {
+      "id": "K-13",
+      "kind": "retired",
+      "ground": "Direct section links are checked by the maintained ordinary-link validator; matching an unqualified number anywhere in the corpus supplied no destination assurance."
     }
   ]
 }
