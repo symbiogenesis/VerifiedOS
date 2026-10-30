@@ -133,6 +133,35 @@ The outstanding actions and acceptance conditions are maintained in
 [PLAN.md](../PLAN.md#native-sail-census-validation), under Q35q. This document
 owns the performance measurement rules and recorded evidence.
 
+## October 29 Host CI scheduling
+
+The [scheduling contract](../PLAN.md#host-ci-scheduling) keeps the existing test
+population and acceptance checks while redistributing Ubuntu's mutation cases
+over more runners. Windows's partitioning is unchanged. The workflow's matrix
+owns the current counts; this change reduces the work assigned to each Ubuntu
+runner and does not reduce total validation work.
+
+Recent successful Host CI runs established the scheduling bottleneck:
+
+| Baseline run | Tested revision | Longest gate step |
+| --- | --- | --- |
+| [40957610618](https://github.com/symbiogenesis/VerifiedOS/actions/runs/40957610618) | `ea919d9da6b29c7185ff588ad6008068fe32818e` | 978 s |
+| [40953563369](https://github.com/symbiogenesis/VerifiedOS/actions/runs/40953563369) | `47e6afe5535ba868ea8d7f5dec5c2f73798cce87` | 1,041 s |
+| [40935682020](https://github.com/symbiogenesis/VerifiedOS/actions/runs/40935682020) | `67bce3a2972189f24c60096a8f13e3be2961c72e` | 1,032 s |
+| [40928723699](https://github.com/symbiogenesis/VerifiedOS/actions/runs/40928723699) | `d1617e1c50b9afcf1ef8b97e7bdfb8e455722647` | 963 s |
+| [40914345900](https://github.com/symbiogenesis/VerifiedOS/actions/runs/40914345900) | `754f90f3550044d8c2cef6af9f189a2a7ac26256` | 1,114 s |
+
+Each maximum belonged to an Ubuntu mutation-test shard. In the first listed run,
+Ubuntu selftest members took 673.27–977.36 s while behavioral-test members took
+28.10–50.15 s. Its unpartitioned Ubuntu checker spent 90.583 s in the pin group,
+against 7.287 s in glyphs and 3.886 s in generated artifacts. These measurements
+come from the normal hosted commands on their declared runner images and Python
+3.14, using the automatic worker budgets. Each row is one run, on its own revision
+and corpus. They identify the bottleneck but supply no paired speedup measurement
+or claim of reduced checker cost. The integration handoff records the candidate's
+revision, Host CI verdict and Guest CI dispatch; subsequent normal hosted timings
+can show whether the scheduling change improves the critical path.
+
 ## Recorded component measurements
 
 The September 19, 2026 measurements use Python 3.14.7 on Windows ARM64 and
