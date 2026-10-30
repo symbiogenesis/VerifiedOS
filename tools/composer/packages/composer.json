@@ -40,7 +40,7 @@
     },
     {
       "path": "tools/vos/composition_staged.py",
-      "sha256": "0e7861328a0407e2ee612aea3825b473270ff9c6bd8c7a3f58c6e726ccd28007"
+      "sha256": "06afd66d2bfbd9e041796ba7589d77e6f50ebf6691c7e9409ad643015c30054f"
     }
   ],
   "interfaces": [
