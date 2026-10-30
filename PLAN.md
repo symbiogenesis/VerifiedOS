@@ -2632,6 +2632,41 @@ revision-bound hosted evidence. Each later settled
 batch still requires Host CI on Windows and Ubuntu and dispatch of every Guest
 CI lane for its own revision, without waiting for Guest CI.
 
+### Declarative guardrail follow-through
+
+This maintenance batch moves structural policy into standard JSON Schema and
+reuses existing dependency bindings. It introduces no dependency or toolchain
+upgrade. Runtime validation and editor associations consume the same schemas;
+semantic cross-artifact decisions retain their existing owners.
+
+- **Typechecker configuration policy. Start:** the settings validators in
+  `vos/cli/typecheck.py`. **Owns:** authored schemas for the admitted ty and Ruff
+  configuration shapes, validated after TOML decoding by the existing strict
+  JSON Schema implementation. **Check:** preserve every admitted and refused
+  setting, required exact-value table, unknown-key refusal, malformed-input
+  refusal and report-beside-checker behavior. Diagnostic wording may use standard
+  schema messages with configuration paths. Keep suppression scanning, explicit
+  indexed targets, both platform passes and platform-import checks active.
+- **Maintenance data shapes. Start:** work-order and calibration readers and the
+  embedded checker-registry schema. **Owns:** authored schemas and editor
+  associations; remove handwritten structural validators where the schemas
+  decide the same predicate. **Check:** preserve version and strict-integer
+  refusals, exact keys, nonempty text, list uniqueness and class membership;
+  retain duplicate-JSON-key rejection and every semantic leaf, join, containment,
+  live-requirement and field-owner check. The generated artifacts remain byte
+  identical. Focused negative controls cover malformed and missing schemas.
+- **Reviewed Verilator binding. Start:** K-97 and the existing development-tool
+  `assign` owner. **Owns:** a structured licence-review identity bound to
+  `rtl.py`'s `VERILATOR_PIN`, a generated version in its documentation, and
+  retirement of K-97 into the permanent inactive registry. **Check:** K-118
+  refuses changed source or review identities, absent or ambiguous source
+  assignments and stale generated documentation; moving a release still requires
+  its licence reading. Retain historical holder citations and the current pin.
+
+The integrator reads the settled change at Tier A, runs focused behavioral
+controls and typecheck, requires Host CI on Windows and Ubuntu, and dispatches
+every Guest CI lane for the published revision without waiting for Guest CI.
+
 ## Tool-library simplifications
 
 This maintenance batch preserves artifact formats, diagnostics and acceptance
