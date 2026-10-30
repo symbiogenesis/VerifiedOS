@@ -3,6 +3,8 @@
    the Rocq prelude. Clients retain their public names as convertible aliases;
    distinct enumeration and out-of-range policies remain explicit. *)
 
+Open Scope list_scope.
+
 
 Fixpoint all_of {A : Type} (p : A -> bool) (l : list A) : bool :=
   match l with
@@ -350,10 +352,16 @@ Proof.
 Qed.
 
 Example edits_past_the_end :
-  swap_at 5 (cons 1 (cons 2 nil)) = cons 1 (cons 2 nil) /  drop_at 5 (cons 1 (cons 2 nil)) = cons 1 (cons 2 nil) /  insert_at 5 9 (cons 1 (cons 2 nil)) = cons 1 (cons 2 (cons 9 nil)) /  dup_at 5 (cons 1 (cons 2 nil)) = cons 1 (cons 2 nil).
+  swap_at 5 (cons 1 (cons 2 nil)) = cons 1 (cons 2 nil) /\
+  drop_at 5 (cons 1 (cons 2 nil)) = cons 1 (cons 2 nil) /\
+  insert_at 5 9 (cons 1 (cons 2 nil)) = cons 1 (cons 2 (cons 9 nil)) /\
+  dup_at 5 (cons 1 (cons 2 nil)) = cons 1 (cons 2 nil).
 Proof. repeat split. Qed.
 
 Example edits_at_the_front :
-  swap_at 0 (cons 1 (cons 2 nil)) = cons 2 (cons 1 nil) /  drop_at 0 (cons 1 (cons 2 nil)) = cons 2 nil /  insert_at 0 9 (cons 1 nil) = cons 9 (cons 1 nil) /  dup_at 0 (cons 1 nil) = cons 1 (cons 1 nil).
+  swap_at 0 (cons 1 (cons 2 nil)) = cons 2 (cons 1 nil) /\
+  drop_at 0 (cons 1 (cons 2 nil)) = cons 2 nil /\
+  insert_at 0 9 (cons 1 nil) = cons 9 (cons 1 nil) /\
+  dup_at 0 (cons 1 nil) = cons 1 (cons 1 nil).
 Proof. repeat split. Qed.
 
