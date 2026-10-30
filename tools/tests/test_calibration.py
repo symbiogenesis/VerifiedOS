@@ -49,6 +49,9 @@ class CalibrationTests(unittest.TestCase):
         duplicate = copy.deepcopy(original)
         duplicate["classes"][1] = duplicate["classes"][0]
         mutations.append(duplicate)
+        unknown = copy.deepcopy(original)
+        unknown["classes"].append({**unknown["classes"][0], "id": "unknown"})
+        mutations.append(unknown)
         populated = copy.deepcopy(original)
         populated["status"] = "qualified"
         mutations.append(populated)
@@ -73,6 +76,9 @@ class CalibrationTests(unittest.TestCase):
         with sandbox_tree(_files(original)) as root:
             self.assertEqual(calibration.load(root), original)
             self.assertEqual(calibration.emit(root), calibration.emit(ROOT))
+            reordered = {**original, "classes": list(reversed(original["classes"]))}
+            (root / calibration.SOURCE).write_text(json.dumps(reordered), encoding="utf-8")
+            self.assertEqual(calibration.load(root), reordered)
             for mutation in mutations:
                 (root / calibration.SOURCE).write_text(json.dumps(mutation), encoding="utf-8")
                 with self.assertRaises(ValueError):

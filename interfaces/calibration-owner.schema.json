@@ -21,14 +21,12 @@
     },
     "classes": {
       "type": "array",
-      "minItems": 4,
-      "maxItems": 4,
-      "items": {"$ref": "#/$defs/class"},
+      "unevaluatedItems": false,
       "allOf": [
-        {"contains": {"properties": {"id": {"const": "emission-trim"}}}, "maxContains": 1},
-        {"contains": {"properties": {"id": {"const": "emission-limit"}}}, "maxContains": 1},
-        {"contains": {"properties": {"id": {"const": "sram-assist"}}}, "maxContains": 1},
-        {"contains": {"properties": {"id": {"const": "sensor-trim"}}}, "maxContains": 1}
+        {"contains": {"$ref": "#/$defs/class", "properties": {"id": {"const": "emission-trim"}}}, "maxContains": 1},
+        {"contains": {"$ref": "#/$defs/class", "properties": {"id": {"const": "emission-limit"}}}, "maxContains": 1},
+        {"contains": {"$ref": "#/$defs/class", "properties": {"id": {"const": "sram-assist"}}}, "maxContains": 1},
+        {"contains": {"$ref": "#/$defs/class", "properties": {"id": {"const": "sensor-trim"}}}, "maxContains": 1}
       ]
     }
   },
