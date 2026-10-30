@@ -61,20 +61,40 @@ Run the native setup from the repository root. If an import fails after its swit
 
 ## Staging a repository source: `ipc_oracle.v` (M4.3)
 
-`ipc_oracle.v` is the first repository Gallina source put through this loop rather than a smoke program: a battery of checks over [proofs/EndpointIPC.v](../../proofs/EndpointIPC.v)'s decision procedures, folded into one boolean the same way `demo.v` folds one. It needs that file beside it under its own name, because `Require Import EndpointIPC` resolves off the working directory, and the proof gate's `.vo` is built in a different switch and is not reusable here.
+`ipc_oracle.v` checks [proofs/EndpointIPC.v](../../proofs/EndpointIPC.v)'s decision
+procedures, folded into one boolean the same way `demo.v` folds one. Its local
+imports are staged and compiled in dependency order with the repository's
+[supported Python](../pyproject.toml). The proof gate's `.vo` files belong to a
+different switch and cannot serve this oracle.
 
-```console
-$ mkdir -p /root/build/lane-<name>/wasm && cd /root/build/lane-<name>/wasm
-$ cp <repo>/proofs/EndpointIPC.v <repo>/tools/wasm-oracle/ipc_oracle.v \
-     <repo>/tools/wasm-oracle/run_demo.mjs <repo>/tools/wasm-oracle/node.sh .
-$ eval $(opam env --switch=verifiedos-certirocq-0.9.1-ocaml-4.14.4 --set-switch)
-$ rocq c EndpointIPC.v && rocq c ipc_oracle.v
-     = 84
-     : nat
-     = true
-     : bool
-$ sh node.sh --stack-size=10000000 run_demo.mjs ipc_oracle.ipc_oracle.wasm
-true
+```bash
+repo=/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/NAME
+work=/root/build/lane-NAME/wasm
+mkdir -p "$work"
+cp "$repo/tools/wasm-oracle/ipc_oracle.v" "$repo/tools/wasm-oracle/run_demo.mjs" \
+   "$repo/tools/wasm-oracle/node.sh" "$work/"
+eval "$(opam env --switch=verifiedos-certirocq-0.9.1-ocaml-4.14.4 --set-switch)"
+export repo work
+python3 - <<'PY'
+import os
+import subprocess
+import sys
+from pathlib import Path
+
+repo = Path(os.environ["repo"])
+work = Path(os.environ["work"])
+sys.path.insert(0, str(repo / "tools"))
+from vos import proof_staging
+
+staged = proof_staging.stage(repo, work, ("EndpointIPC.v",))
+for source in staged.sources:
+    subprocess.run(["rocq", "c", "-q", "-Q", str(work), "", str(source)],
+                   cwd=work, check=True)
+subprocess.run(["rocq", "c", "ipc_oracle.v"], cwd=work, check=True)
+staged.validate(repo)
+PY
+cd "$work"
+sh node.sh --stack-size=10000000 run_demo.mjs ipc_oracle.ipc_oracle.wasm
 ```
 
 The two `Compute` lines are the check count and the answer *inside* the kernel, so a run reports the same verdict twice, once by conversion and once through the compiled pipeline, and a disagreement between them is the finding this staging exists to produce. **A green line is only worth having if a red one is reachable**, so the run is repeated over a source seeded to answer `false`: `sed 's/(upto 31)./(upto 32)./' ipc_oracle.v` widens one mask family past the one mask that is the frozen surface, and the emitted module prints `false` and exits non-zero. No `run.py` command reaches any of this, which is what the [checklist's conventions](../../PLAN.md) mean by the label naming a validator the entry point does not carry.

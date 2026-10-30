@@ -10,15 +10,33 @@ lane_root=/root/build/lane-NAME
 build="$lane_root/scratch/pq-reference"
 opam_bin=/root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/bin
 export PATH="$opam_bin:$PATH"
-mkdir -p "$build/proofs"
-cp "$repo/proofs/PqArith.v" "$repo/proofs/Keccak.v" "$repo/proofs/MlKem.v" "$build/proofs/"
-cd "$build"
-rocq c -q -Q proofs '' proofs/PqArith.v
-rocq c -q -Q proofs '' proofs/Keccak.v
-rocq c -q -Q proofs '' proofs/MlKem.v
+export repo build
+python3 - <<'PY'
+import os
+import subprocess
+import sys
+from pathlib import Path
+
+repo = Path(os.environ["repo"])
+build = Path(os.environ["build"])
+sys.path.insert(0, str(repo / "tools"))
+from vos import proof_staging
+
+staged = proof_staging.stage(repo, build / "proofs", ("MlKem.v", "Keccak.v"))
+for source in staged.sources:
+    subprocess.run(["rocq", "c", "-q", "-Q", str(build / "proofs"), "", str(source)],
+                   cwd=build, check=True)
+staged.validate(repo)
+PY
 ```
 
-Compilation must succeed before proceeding. The campaign checks that source bytes match the staged modules, and records both source and `.vo` hashes. Native inventory, assumption closure, required record witnesses and `rocqchk` remain the separate proof gate's responsibility; a passing executable comparison does not establish any of them.
+Compilation must succeed before proceeding. The shared staging helper derives
+the local import closure and compilation order from the source index, including
+the collection and crypto support modules. The campaign checks that source bytes
+match every staged dependency and records both source and `.vo` hashes. Native
+inventory, assumption closure, required record witnesses and `rocqchk` remain the
+separate proof gate's responsibility; a passing executable comparison does not
+establish any of those properties.
 
 Run every official ML-KEM-1024 group, additional positive decapsulations, hash boundary checks and generated malformed-seed checks:
 
