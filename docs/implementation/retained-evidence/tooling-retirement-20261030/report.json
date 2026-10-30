@@ -1,0 +1,105 @@
+{
+  "baseline_revision": "891d3ebe596bf1121ac4053cc680109d9a4688ea",
+  "candidate_revision": "f31f3b0092f251b70d32589c449739531f5fb02d",
+  "controls": {
+    "comment_change": true,
+    "altered": true,
+    "truncated": true,
+    "reordered": true,
+    "whitespace": true
+  },
+  "scope": "complete ordered capability-vector data; no performance claim",
+  "model_sources_sha256": {
+    "model/model/prelude/prelude.sail": "657d3c0bb36979ad4d747da619cabcc430061e8b6668c658549d76db69965ab2",
+    "model/model/prelude/errors.sail": "2d848d05bd6b20ccfeb054d639aef4c2e03692aa1dfb5d356544e99ecae97d3a",
+    "model/model/core/xlen.sail": "8c164c3c26d2cd5983a50bf6eeefa38f3a2abda58b79354ec0fb42f60958126a",
+    "model/model/core/cap_format.sail": "15bdd637318720551243d0f7a94d60e57870abe4bca6d5c5b099c3e24d92766a",
+    "model/model/core/cap_common.sail": "26c179273e4ca3001d3fd92fbe7643a6e94a2a136c76fa89256516971437c773"
+  },
+  "candidate_sources_sha256": {
+    "tools/vos/oracle.py": "dbe83cf5dde052981b99d76d9ed1bbb7d2767e569ed9c13c825253cc3547b57f",
+    "tools/vos/rtl_vectors.py": "776ba22bc53394b97c0ba621d31e9c9837eab447b64f106deaf2d5b6956a65c4",
+    "tools/cheri-equiv/campaign.sail": "277a6d77fe187312f89c29fd5f394e7e6a7e6c5263b8ad06897bcc0c785a6e34",
+    "tools/vos/sailrig.py": "9f337a11c495e129c165e49627fa13c5f77e9cf54c21babfc3116bcd8f6f0e1c",
+    "tools/vos/cli/rtl.py": "3b57cf2dbf1812e2bb639a097dfe93ced80ed05986a4f30f4d57d0bace0f0b31",
+    "tools/vos/env.py": "ab2603375703852e98d0b4e3201aaa6fd1567c465ea970d45fc57a73256dd8e2",
+    "tools/opam/sail.lock": "ff73dba9080dfeb187f7e81cf8c310ee10a81b910d9ef96c9f9f50c6459761b4",
+    "tools/z3-requirements.txt": "9e5638a9e17dcfe0a4c4da59aaaf6730a688d341a23be0c79ac15d25090e80ed",
+    "tools/ci/rtl_vector_migration.py": "e79a6b3ea8fc82b039cfc88fd48b24d1011d4020f69686c446546bfd52f0475e"
+  },
+  "tools": {
+    "sail": {
+      "path": "/home/runner/verifiedos-guest/opam/verifiedos-sail-0.20.3-ocaml-5.4.1/bin/sail",
+      "sha256": "e19c140088eaada9f8f5c6ec3da96b8511715c1b81e0b31ae334e6b223076b44",
+      "version": "Sail 0.20.3 (sail @ opam-v2.6.1 0.20.3)"
+    },
+    "cc": {
+      "path": "/usr/bin/cc",
+      "sha256": "864711037b900acdb7a449cf48d912cefa935b527fb60c767ccb956779e66136",
+      "version": "cc (Ubuntu 15.2.0-16ubuntu1) 15.2.0\nCopyright (C) 2025 Free Software Foundation, Inc.\nThis is free software; see the source for copying conditions.  There is NO\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE."
+    },
+    "z3": {
+      "path": "/home/runner/verifiedos-guest/z3/bin/z3",
+      "sha256": "29f796d291ae2dfca032b69c6f76c5b70be19078ccb52ab3cb6ec9a8600004a4",
+      "version": "Z3 version 5.3.1 - 64 bit"
+    }
+  },
+  "sail_runtime_sha256": {
+    "sail.c": "883e6ee43bc4bdb016b3a16a02c27f2bca0f9a184e92731e6178c787507c8b23",
+    "rts.c": "8ccb5e2a178694adc5d92c826eef29dd648b3241ced30e4cd8822d2fc6b912c3",
+    "elf.c": "5a33f360b52d9ba6719e3ffd182b7ef6500310dabbf1d8f626aa448a581f9af0",
+    "sail_failure.c": "65550d3c8037a09cdfe06a813159465076512582605627c69b269fdcb57e86cf",
+    "cJSON.c": "b70b6565aa85d1fcb3e6470f42e5e9b664ec057a2b166dbb1cc6ba2db40c4f85",
+    "sail_config.c": "50351bd6ab3e6ad819883dc8b63e92a88474c3278d204f46a2f72a57e5142e1c"
+  },
+  "baseline_generator_sha256": "e617eb839f0f0505f31486c5883b201a51fda1a6ecd751aa703a343845d4d253",
+  "candidate_generator_sha256": "94dd573ea9df2177b75b3bd0ff8ed8be3dccddc163d3cfaefe2119939d5e0a73",
+  "comparison": {
+    "equal": true,
+    "mismatches": 0,
+    "first_mismatches": [],
+    "baseline": {
+      "data_sha256": "a77f8994621d4ff8c6318fce2162d1adee9c0a8607d31fbbc04028c74d69b02b",
+      "data_bytes": 63030025,
+      "vectors": 658659,
+      "kinds": {
+        "ac": 2000,
+        "dec": 540672,
+        "frc": 16000,
+        "ib": 16000,
+        "io": 16000,
+        "it": 2000,
+        "mb": 2000,
+        "pe": 32,
+        "pn": 4096,
+        "sa": 16000,
+        "sb": 27347,
+        "sl": 512,
+        "so": 16000
+      }
+    },
+    "candidate": {
+      "data_sha256": "a77f8994621d4ff8c6318fce2162d1adee9c0a8607d31fbbc04028c74d69b02b",
+      "data_bytes": 63030025,
+      "vectors": 658659,
+      "kinds": {
+        "ac": 2000,
+        "dec": 540672,
+        "frc": 16000,
+        "ib": 16000,
+        "io": 16000,
+        "it": 2000,
+        "mb": 2000,
+        "pe": 32,
+        "pn": 4096,
+        "sa": 16000,
+        "sb": 27347,
+        "sl": 512,
+        "so": 16000
+      }
+    }
+  },
+  "equal": true,
+  "status": "passed",
+  "log": []
+}

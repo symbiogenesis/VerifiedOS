@@ -23,6 +23,10 @@ as fixed-width lowercase fields. The SystemVerilog consumer parses and reformats
 the inputs before computing its answer, so a misparse can cause a disagreement.
 An unknown vector kind refuses the comparison.
 
+Decode records derive their tag from the decoded bounds: malformed encodings are
+untagged. This preserves the model's tagged-length precondition while exercising
+the complete encoding domain, including representations unreachable with a tag.
+
 The generic [capability oracle spec](../oracle-specs/capformat.json) retains its
 own input population. Shared emission does not make that sampled population a
 replacement for this campaign's exhaustive domains and deliberate corners.
@@ -41,3 +45,22 @@ consumer under the [Guest CI contract](../ci/README.md). The
 owns remaining acceptance and the conditional prover-workaround retirement.
 This consolidation supplies no new model/RTL equivalence theorem or measured
 performance improvement.
+
+## Migration evidence
+
+The [hosted comparison](https://github.com/symbiogenesis/VerifiedOS/actions/runs/41008675464)
+passed on 2026-10-30. Both generators compiled against the same unchanged model
+source bytes and produced identical complete ordered data streams. The comparison
+controls detected altered, truncated, reordered and whitespace-changed data while
+allowing commentary changes.
+
+[Hosted migration comparison](../../docs/implementation/retained-evidence/tooling-retirement-20261030/manifest.json),
+SHA256 `d46b1664cb90fa170bd87c967bdb29013b3bdf7a37dddb1f8080b7ac5b7adebf`,
+binds the verbatim report, comparison helper, temporary workflow, output log and
+run identity. The report owns source revisions, tool identities, populations and
+digests. The helper and workflow are historical reproduction inputs at their
+recorded candidate revision; the active tool suite retains neither.
+
+The `retire-tools-20261030` fanout journal owns final-revision Host CI and Guest
+CI dispatch evidence. The separate hosted RTL crosscheck keeps its independent
+acceptance boundary.

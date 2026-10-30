@@ -1,0 +1,34 @@
+{
+  "files": {
+    "comparison.log": {
+      "bytes": 4680,
+      "encoding": "identity",
+      "path": "comparison.log",
+      "sha256": "6bfac009d5424286d23f59472520b95519695cc63690ed50f34226b7ce8b3c67"
+    },
+    "comparison.py": {
+      "bytes": 8277,
+      "encoding": "identity",
+      "path": "comparison.py",
+      "sha256": "e79a6b3ea8fc82b039cfc88fd48b24d1011d4020f69686c446546bfd52f0475e"
+    },
+    "report.json": {
+      "bytes": 4517,
+      "encoding": "identity",
+      "path": "report.json",
+      "sha256": "3a15c830ddfea6efebf67960f385acdacb33a9e547bce960227ea783acdb55a6"
+    },
+    "run.json": {
+      "bytes": 280,
+      "encoding": "identity",
+      "path": "run.json",
+      "sha256": "80f1b2449563affc9fdc974403d98bdd97d915a7951021cc5e7f398b481c870c"
+    },
+    "workflow.yml": {
+      "bytes": 4389,
+      "encoding": "identity",
+      "path": "workflow.yml",
+      "sha256": "9060a8addb53255f4ffb358d5c211c5e9e9299eb0e1570583e80747d19fd4aee"
+    }
+  }
+}

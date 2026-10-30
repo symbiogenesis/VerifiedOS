@@ -2575,24 +2575,17 @@ population, observable decisions and refusal behavior. Shared commands may keep
 distinct acceptance obligations. This maintenance batch adds no dependency,
 prover upgrade, performance claim or milestone completion credit.
 
-- **Capability-vector generation. Start:** the handwritten
-  `tools/cheri-equiv/gen_vectors.sail`, the generic `vos/oracle.py` emitter and
-  `rtl vectors`/`rtl crosscheck`. **Owns:** typed declarations of the RTL probes'
-  signatures and printed fields through the shared oracle emitter, followed by
-  removal of the monolithic generator and its duplicate formatting, random
-  generation and probe-printing code. Keep domain-specific helpers and the exact
-  sweep schedule as authored Sail input. Preserve every ordered data line, field width,
-  seed transition, exhaustive bounds and permission domain, and deliberate
-  narrowing, movement and malformed-input corner. Keep the independently
-  authored SystemVerilog consumer. **Check:** focused generator and RTL controls
-  cover deterministic emission, complete domain accounting, malformed declarations
-  and generation failures. Compare all ordered vector data with the pre-migration
-  generator from an immutable revision, retaining source identities, per-kind
-  populations and whole-stream digests. Hosted RTL acceptance runs the migrated
-  vectors against the existing consumer. A sampled spec cannot replace an
-  exhaustive campaign. **Join:** integrated typecheck, Host CI on Windows and
-  Ubuntu, and dispatch of every Guest CI lane without waiting for its verdict.
-  Record any separate comparison verdict and deferred acceptance explicitly.
+- **Capability-vector generation. Status: implemented.** Typed probe declarations
+  use the shared oracle emitter for formatting, random generation and printing;
+  domain-specific helpers and the exact ordered sweeps remain authored Sail input.
+  The monolithic generator is retired. Focused controls and integrated typecheck
+  pass. The [retained hosted comparison](tools/cheri-equiv/README.md#migration-evidence)
+  establishes identical complete ordered vector data against the immutable
+  pre-migration generator, including exhaustive domains and deliberate corners.
+  The temporary qualification workflow and helper are retired into that evidence
+  bundle. The `retire-tools-20261030` journal owns final-revision Host CI and every
+  Guest CI lane's dispatch; the independent RTL consumer retains its hosted
+  acceptance boundary. No performance improvement is claimed.
 - **Rocq context workaround. Status: conditional. Start:** a qualified prover-lock
   move carrying the merged checker fix described by the
   [opam adoption contract](tools/opam/README.md#merged-checker-and-printer-improvements).
