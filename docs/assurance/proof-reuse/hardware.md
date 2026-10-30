@@ -596,7 +596,7 @@ qualification record. Its `machine_utils` gitlink is
 `56d2f2b6d9373f1349f8689455715f168dd86ece`. The exact dependency still has no
 license instrument in its recursive inventory; the existing
 [third-party refusal](../../../THIRD-PARTY.md#proof-and-lowering-references)
-and [upstream issue proposal 46](../../implementation/upstream-prs.md#46-logsemmachine_utils-establish-licensing-and-attribution-for-cerise-and-griotte-sources)
+and [upstream issue proposal 46](../../implementation/upstream-prs.md#46-logsemmachine_utils--establish-licensing-and-attribution-for-cerise-and-griotte-sources)
 therefore still apply before replay or incorporation. A parent's permissive
 grant is not substituted for that repository's terms. The edition's
 [opam](https://github.com/logsem/griotte/blob/eb41dda1046315f85f05e027f69684800b7f5acb/opam)
