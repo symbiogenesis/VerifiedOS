@@ -1108,8 +1108,10 @@ reading refuses repair until that reading is performed and recorded.
 The [checker registry](check-registry.schema.json),
 [work-order data](../docs/implementation/work-order.schema.json) and calibration
 [owner](../interfaces/calibration-owner.schema.json) and
-[field declarations](../interfaces/calibration-field.schema.json) also have
-authored schemas. Their readers validate structure through [vos/schema.py](vos/schema.py),
+[field declarations](../interfaces/calibration-field.schema.json),
+[device-register declarations](../interfaces/device-registers.schema.json) and
+[wire-format inventory](../interfaces/wire-formats.schema.json) also have authored
+schemas. Their readers validate structure through [vos/schema.py](vos/schema.py),
 then decide semantic relationships against live owners. VS Code's
 [schema associations](../.vscode/settings.json) use those same files. Duplicate
 JSON keys remain errors. Calibration digest lengths require actual integers;
