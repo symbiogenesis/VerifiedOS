@@ -3,33 +3,26 @@
 
 import re
 from collections.abc import Iterator
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 if TYPE_CHECKING:
     from yaml.error import Mark
     from yaml.nodes import MappingNode, Node
 
-_BREAK = re.compile(r"\r\n|[\r\n\x85\u2028\u2029]")
-_TAGS = frozenset(f"tag:yaml.org,2002:{kind}" for kind in ("str", "map", "seq"))
+_BREAK: re.Pattern[str] = re.compile(r"\r\n|[\r\n\x85\u2028\u2029]")
 
 
 def lines(text: str) -> list[str]:
     """Source lines under the parser's YAML line-break convention."""
-    return _BREAK.split(text)
+    return cast("list[str]", _BREAK.split(text))
 
 
 def start(node: Node) -> Mark:
     """Require the source position a consumer uses for diagnostics and policy."""
-    if node.start_mark is None:
+    mark = node.start_mark
+    if mark is None:
         raise ValueError("YAML node has no source start")
-    return node.start_mark
-
-
-def end(node: Node) -> Mark:
-    """Require the source position following a node's original spelling."""
-    if node.end_mark is None:
-        raise ValueError("YAML node has no source end")
-    return node.end_mark
+    return cast("Mark", mark)
 
 
 def fields(node: MappingNode) -> dict[str, Node]:
@@ -60,13 +53,13 @@ def read(text: str) -> Node:
     from yaml.nodes import MappingNode, SequenceNode  # noqa: PLC0415
 
     try:
-        from yaml import CBaseLoader as NodeLoader  # noqa: PLC0415
+        from yaml.cyaml import CBaseLoader as NodeLoader  # noqa: PLC0415
     except ImportError:
         from yaml import BaseLoader as NodeLoader  # noqa: PLC0415
 
     try:
-        root = compose(text, Loader=NodeLoader)
-    except YAMLError as error:
+        root = cast("Node | None", compose(text, Loader=NodeLoader))
+    except (YAMLError, RecursionError) as error:
         raise ValueError(f"invalid YAML: {error}") from error
     if root is None:
         raise ValueError("empty YAML document")
@@ -78,13 +71,17 @@ def read(text: str) -> Node:
         if id(node) in seen:
             raise ValueError(f"{where}: YAML aliases and cycles are not admitted")
         seen.add(id(node))
-        if node.tag not in _TAGS:
-            raise ValueError(f"{where}: YAML tag {node.tag!r} is not admitted")
         if isinstance(node, MappingNode):
+            kind = "map"
             fields(node)
             pending.extend(child for pair in node.value for child in pair)
         elif isinstance(node, SequenceNode):
+            kind = "seq"
             pending.extend(node.value)
+        else:
+            kind = "str"
+        if node.tag != f"tag:yaml.org,2002:{kind}":
+            raise ValueError(f"{where}: YAML tag {node.tag!r} is not admitted for {kind}")
     return root
 
 

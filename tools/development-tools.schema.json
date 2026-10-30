@@ -6,7 +6,8 @@
     "schema",
     "reviews",
     "template",
-    "rows"
+    "rows",
+    "actions"
   ],
   "properties": {
     "schema": {
@@ -54,6 +55,13 @@
           }
         },
         "$comment": "The enforced RTL release must keep its licence-review row even when other tools remain; this preserves the missing-row refusal formerly owned by K-97."
+      }
+    },
+    "actions": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/action"
       }
     }
   },
@@ -207,6 +215,69 @@
           }
         }
       ]
+    },
+    "action": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "repository",
+        "release",
+        "commit",
+        "license",
+        "licence_paths",
+        "description",
+        "attribution",
+        "notice"
+      ],
+      "properties": {
+        "repository": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+(?![\\s\\S])",
+          "not": {
+            "pattern": "(^|/)\\.{1,2}(/|$)"
+          }
+        },
+        "release": {
+          "type": "string",
+          "pattern": "^v\\d+\\.\\d+\\.\\d+(?![\\s\\S])"
+        },
+        "commit": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}(?![\\s\\S])"
+        },
+        "license": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9 .-]+(?![\\s\\S])"
+        },
+        "licence_paths": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^(?:[A-Za-z0-9_.-]+/)*[A-Za-z0-9_.-]+(?![\\s\\S])",
+            "not": {
+              "pattern": "(^|/)\\.{1,2}(/|$)"
+            }
+          }
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9 ,.';()\\-]+(?![\\s\\S])"
+        },
+        "notice": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9 ,.';()\\-]+(?![\\s\\S])"
+        },
+        "attribution": {
+          "type": "string",
+          "minLength": 0,
+          "pattern": "^[A-Za-z0-9 ,.';()\\-]*(?![\\s\\S])"
+        }
+      }
     }
   }
 }

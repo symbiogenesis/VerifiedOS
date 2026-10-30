@@ -11,7 +11,8 @@ def _keys_and_source_marks() -> None:
     source = ('on: yes\nsteps:\n  - "u\\x73es": example/action\n'
               '    run: |\n      uses: text\n# uses: comment\n')
     root = yamlutil.read(source)
-    ensure(isinstance(root, MappingNode), "the root must retain its mapping shape")
+    if not isinstance(root, MappingNode):
+        raise TypeError("the root must retain its mapping shape")
     fields = yamlutil.fields(root)
     ensure(list(fields) == ["on", "steps"], "plain YAML keys must stay text")
     ensure(isinstance(fields["on"], ScalarNode) and fields["on"].value == "yes",
@@ -39,6 +40,9 @@ def _ambiguous_or_malformed_documents_refuse() -> None:
         ("a: !unknown value\n", "tag '!unknown'"),
         ("a: !!python/object/apply:builtins.eval ['1 + 1']\n", "tag"),
         ("a: !!int 10\n", "tag"),
+        ("a: !!map scalar\n", "not admitted for str"),
+        ("a: !!str {}\n", "not admitted for map"),
+        ("a: !!str []\n", "not admitted for seq"),
     ):
         try:
             yamlutil.read(source)

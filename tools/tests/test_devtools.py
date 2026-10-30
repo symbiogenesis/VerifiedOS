@@ -16,7 +16,11 @@ def _data() -> dict[str, object]:
             "rows": [{"id": "Verilator", "tool": "Verilator", "license": "MIT",
                       "standing": "Reviewed ${verilator_0}, licence evidence stays authored.",
                       "reviews": ["verilator"]}],
-            "template": ["", "${development_tools_table}", "", ""]}
+            "template": ["", "${development_tools_table}", "", ""],
+            "actions": [{"repository": "example/action", "release": "v1.2.3",
+                         "commit": "a" * 40, "license": "MIT", "licence_paths": ["LICENSE"],
+                         "description": "Runs fixtures.", "attribution": "",
+                         "notice": "No source redistributed."}]}
 
 
 def _files(data: dict[str, object] | None = None) -> dict[str, str]:
@@ -24,11 +28,15 @@ def _files(data: dict[str, object] | None = None) -> dict[str, str]:
     body = "\n".join(cast("list[str]", selected["template"]))
     body = body.replace("${development_tools_table}", "| Tool | License | Standing |\n"
                         "| --- | --- | --- |\n"
-                        "| Verilator | MIT | Reviewed 1.2.3, licence evidence stays authored. |")
+                        "| Verilator | MIT | Reviewed 1.2.3, licence evidence stays authored. |\n"
+                        "| example/action | `MIT` | Runs fixtures. The reviewed v1.2.3 "
+                        "revision `" + "a" * 40 + "` has an [MIT LICENSE](https://github.com/"
+                        "example/action/blob/" + "a" * 40 + "/LICENSE). No source redistributed. |")
     return {devtools.DATA: json.dumps(selected),
             devtools.SCHEMA: (TOOLS / "development-tools.schema.json").read_text(encoding="utf-8"),
             devtools.RECORD: ("# Licences\n\n" + devtools.HEADING + "\n" + devtools.BEGIN + "\n"
                              + body + devtools.END + "\n#### Other\n\nUntouched 9.9.9.\n"),
+            ".github/workflows/a.yml": "steps:\n  - uses: example/action@" + "a" * 40 + " # v1.2.3\n",
             "tools/uv.lock": '[[package]]\nname = "demo"\nversion = "1.2.3"\n',
             devtools.HOOK_CONFIG: "repos: []\n", devtools.HOOK_CONSTRAINTS: "# no pin\n",
             devtools.HOOK_BUILD_CONSTRAINTS: "# no pin\n"}
@@ -317,6 +325,82 @@ def _shipped_review_view_and_owners_agree() -> None:
            f"the structured migration must preserve all current review evidence: {faults!r}")
 
 
+def _workflow_actions_keep_review_identity_and_population() -> None:
+    files = _files()
+    workflow = ".github/workflows/a.yml"
+    source = files[workflow]
+    sha = "a" * 40
+    _expected, faults = _inspect({**files, workflow: source + source.split("steps:\n")[1].replace(
+        "example/action@", "example/action/restore@")})
+    ensure(not faults, f"sub-actions share their repository review: {faults!r}")
+    for changed, reason in (
+        (source.replace(sha, "a" * 39 + "b"), "a changed identity needs a licence reading"),
+        (source.replace("v1.2.3", "v1.2.4"), "reviewed"),
+        (source.replace(sha + " # v1.2.3", "v1"), "full commit"),
+        (source.replace(" # v1.2.3", ""), "full commit"),
+        (source.replace("example/action", "other/action"), "no structured action review"),
+        (source.replace("uses:", '"u\\x73es":'), "bare block"),
+        (source + "  - {uses: other/action@v1}\n", "bare block"),
+        (source + "  - uses: other/action@v1\n    uses: other/action@v2\n", "duplicate YAML key"),
+        (source + "  - &a {run: harmless}\n  - *a\n", "aliases and cycles"),
+        ("jobs: {}\n", "states an action reference"),
+        ("jobs: [", "invalid YAML"),
+    ):
+        _expected, faults = _inspect({**files, workflow: changed})
+        ensure(any(reason in fault for fault in faults),
+               f"changed or ambiguous workflow must refuse ({reason}): {faults!r}")
+    _expected, faults = _inspect({path: value for path, value in files.items() if path != workflow})
+    ensure(any("carries no workflow" in fault for fault in faults), "no workflow must refuse")
+    data = _data()
+    extra = copy.deepcopy(cast("list[dict[str, object]]", data["actions"])[0])
+    extra["repository"] = "unused/action"
+    cast("list[dict[str, object]]", data["actions"]).append(extra)
+    _expected, faults = _inspect({**files, devtools.DATA: json.dumps(data)})
+    ensure(any("unused/action has a review but no workflow runs it" in fault for fault in faults),
+           f"unused action reviews must refuse: {faults!r}")
+    _expected, faults = _inspect({**files, workflow: source + "  # uses: other/action@v1\n"
+                                + "  - run: |\n      uses: other/action@v1\n"})
+    ensure(not faults, f"comments and command scalar bodies declare no actions: {faults!r}")
+
+
+def _action_declarations_generate_pinned_terms_without_independent_urls() -> None:
+    files = _files()
+    for field, value in (
+        ("repository", ""), ("repository", "example/action/path"),
+        ("repository", "../action"), ("repository", "example/.."),
+        ("commit", "a" * 39), ("release", "main"),
+        ("licence_paths", []), ("licence_paths", ["/"]),
+        ("licence_paths", ["../LICENSE"]), ("licence_paths", ["dir/../LICENSE"]),
+        ("licence_paths", ["LICENSE?raw=1"]), ("licence_paths", ["LICENSE#part"]), ("licence_paths", ["LICENSE\n"]),
+        ("licence_paths", ["LICENSE", "LICENSE"]),
+    ):
+        data = _data()
+        cast("list[dict[str, object]]", data["actions"])[0][field] = value
+        expected, faults = _inspect({**files, devtools.DATA: json.dumps(data)})
+        ensure(expected is None and bool(faults), f"malformed action field passed: {field}={value!r}")
+    for field in ("repository", "commit", "release", "license", "description", "attribution", "notice"):
+        data = _data()
+        action = cast("list[dict[str, str]]", data["actions"])[0]
+        action[field] += "\n"
+        expected, faults = _inspect({**files, devtools.DATA: json.dumps(data)})
+        ensure(expected is None and bool(faults), f"terminal newline passed: {field}")
+    for field in ("license", "description", "attribution", "notice"):
+        for url in ("https://github.com/example/action/tree/main", "www.github.com/example/action",
+                    "[terms](https://github.com/other/repo)", '<a href="https://example.com">x</a>'):
+            data = _data()
+            cast("list[dict[str, object]]", data["actions"])[0][field] = url
+            expected, faults = _inspect({**files, devtools.DATA: json.dumps(data)})
+            ensure(expected is None and bool(faults), f"independent action URL passed: {field}")
+    actions = cast("list[object]", _data()["actions"])
+    for value in ([], [actions[0], actions[0]]):
+        expected, faults = _inspect({**files, devtools.DATA: json.dumps({**_data(), "actions": value})})
+        ensure(expected is None and bool(faults), "missing or duplicate action identities must refuse")
+    expected, faults = _inspect({**files, devtools.RECORD: files[devtools.RECORD].replace(
+        "/blob/" + "a" * 40 + "/LICENSE", "/blob/main/LICENSE")})
+    ensure(expected == files[devtools.RECORD] and not faults,
+           "stale generated licence URLs are restored from the single reviewed identity")
+
+
 def cases() -> list[Case]:
     return [Case("identity-and-generated-bytes-are-independent",
                  _identity_and_generated_bytes_are_independent),
@@ -331,4 +415,8 @@ def cases() -> list[Case]:
                  _fixed_owner_descriptors_cannot_name_ignored_fields),
             Case("verilator-review-binding-preserves-retired-rule-refusals",
                  _verilator_review_binding_preserves_retired_rule_refusals),
+            Case("workflow-actions-keep-review-identity-and-population",
+                 _workflow_actions_keep_review_identity_and_population),
+            Case("action-declarations-generate-pinned-terms-without-independent-urls",
+                 _action_declarations_generate_pinned_terms_without_independent_urls),
             Case("shipped-review-view-and-owners-agree", _shipped_review_view_and_owners_agree)]

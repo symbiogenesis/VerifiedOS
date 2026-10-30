@@ -16,6 +16,7 @@ from yaml.nodes import MappingNode, ScalarNode, SequenceNode
 from vos import yamlutil
 from vos.jsonutil import unique_object
 from vos.pyversion import supported_minor
+from vos.report import apart
 from vos.schema import strict_integer_validator
 
 DATA = "tools/development-tools.json"
@@ -29,6 +30,10 @@ HOOK_CONFIG = "model/.pre-commit-config.yaml"
 HOOK_CONSTRAINTS = "tools/ci/model-hooks-constraints.txt"
 HOOK_BUILD_CONSTRAINTS = "tools/ci/model-hooks-build-constraints.txt"
 TABLE = "development_tools_table"
+WORKFLOWS = ".github/workflows/"
+_USES_RE = re.compile(r"^[ \t]*(?:-[ \t]+)?(?P<key>uses):[ \t]*(.*?)[ \t]*$")
+_ACTION_REF_RE = re.compile(
+    r"([A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+)(?:/[^@\s]+)?@([0-9a-f]{40}) # (v\d+\.\d+\.\d+)")
 
 
 @dataclass(frozen=True)
@@ -59,6 +64,30 @@ class Document:
     reviews: tuple[Review, ...]
     rows: tuple[Row, ...]
     template: Template
+    actions: tuple[Action, ...]
+
+
+@dataclass(frozen=True)
+class Action:
+    """One reviewed identity generates both the action's row and its licence URLs."""
+
+    repository: str
+    release: str
+    commit: str
+    license: str
+    licence_paths: tuple[str, ...]
+    description: str
+    attribution: str
+    notice: str
+
+    def row(self) -> str:
+        links = ", ".join(f"[{self.license} {path.rsplit('/', 1)[-1]}]"
+                          f"(https://github.com/{self.repository}/blob/{self.commit}/{path})"
+                          for path in self.licence_paths)
+        attribution = f", {self.attribution}" if self.attribution else ""
+        return (f"| {self.repository} | `{self.license}` | {self.description} The reviewed "
+                f"{self.release} revision `{self.commit}` has an {links}{attribution}. "
+                f"{self.notice} |")
 
 
 def read(root: Path, indexed: frozenset[str]) -> Document:
@@ -109,7 +138,16 @@ def read(root: Path, indexed: frozenset[str]) -> Document:
     if wanted != used:
         raise ValueError(f"template/review identities differ: missing {sorted(wanted - used)}, "
                          f"unknown {sorted(used - wanted)}")
-    return Document(reviews, rows, template)
+    actions = tuple(Action(action["repository"], action["release"], action["commit"],
+                           action["license"], tuple(action["licence_paths"]),
+                           action["description"], action["attribution"], action["notice"])
+                    for action in decoded["actions"])
+    repositories = [action.repository for action in actions]
+    if len(repositories) != len(set(repositories)):
+        raise ValueError("action repository identities must be unique")
+    if set(repositories) & {row.tool for row in rows}:
+        raise ValueError("action repositories must use structured actions, never separate rows")
+    return Document(reviews, rows, template, actions)
 
 
 def _identifiers(text: str) -> set[str]:
@@ -126,6 +164,7 @@ def render(document: Document) -> str:
     table = ["| Tool | License | Standing |", "| --- | --- | --- |"]
     table.extend("| " + " | ".join(Template(cell).substitute(values) for cell in (
         row.tool, row.license, row.standing)) + " |" for row in document.rows)
+    table.extend(action.row() for action in document.actions)
     values[TABLE] = "\n".join(table)
     return document.template.substitute(values)
 
@@ -164,8 +203,69 @@ def inspect(root: Path, indexed: frozenset[str], text: str) -> tuple[str | None,
                             "a changed edition needs a licence reading, never an automatic update")
     _hook_census(owners, document.reviews, findings)
     _pip_census(owners, document.reviews, findings)
+    _action_census(owners, document.actions, findings)
     findings.extend(owners.faults.values())
     return expected, findings
+
+
+def _action_census(owners: Owners, actions: tuple[Action, ...], findings: list[str]) -> None:
+    """Every real workflow reference matches a review, and every review is used."""
+    reviewed = {action.repository: action for action in actions}
+    files = sorted(path for path in owners.indexed
+                   if path.startswith(WORKFLOWS) and path.endswith((".yml", ".yaml")))
+    if not files:
+        findings.append(f"the index carries no workflow under {WORKFLOWS}")
+        return
+    used: set[str] = set()
+    references = 0
+    unread = False
+    for path in files:
+        try:
+            source = owners._text(path)
+        except OwnerError:
+            unread = True
+            continue
+        try:
+            tree = yamlutil.read(source)
+        except ValueError as error:
+            findings.append(f"{path}: cannot read action references: {error}")
+            unread = True
+            continue
+        source_lines = yamlutil.lines(source)
+        for mapping in yamlutil.mappings(tree):
+            for key, _value in mapping.value:
+                if key.value != "uses":
+                    continue
+                references += 1
+                mark = yamlutil.start(key)
+                where = f"{path}:{mark.line + 1}"
+                line = _USES_RE.fullmatch(source_lines[mark.line])
+                if line is None or line.start("key") != mark.column:
+                    findings.append(f"{where}: action reference needs a bare block `uses:` key")
+                    unread = True
+                    continue
+                pin = _ACTION_REF_RE.fullmatch(line.group(2))
+                if pin is None:
+                    findings.append(f"{where}: action reference must be "
+                                    "owner/repo[/path]@<full commit> # vX.Y.Z")
+                    unread = True
+                    continue
+                repository, commit, release = pin.groups()
+                used.add(repository)
+                if repository not in reviewed:
+                    findings.append(f"{where}: runs {repository} with no structured action review")
+                    continue
+                action = reviewed[repository]
+                if (commit, release) != (action.commit, action.release):
+                    ran, wanted = apart(commit, action.commit)
+                    findings.append(f"{where}: runs {repository} at {ran} ({release}); "
+                                    f"reviewed {wanted} ({action.release}); "
+                                    "a changed identity needs a licence reading")
+    if not references and not unread:
+        findings.append(f"no workflow under {WORKFLOWS} states an action reference")
+    if references and not unread:
+        findings.extend(f"{repository} has a review but no workflow runs it"
+                        for repository in reviewed if repository not in used)
 
 
 @dataclass(frozen=True)

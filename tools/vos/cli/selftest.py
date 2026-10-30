@@ -1674,116 +1674,44 @@ CASES: list[Case] = [
     # A workflow's action moves to a commit its row never reviewed, which is what a
     # bump without a licence read leaves. The first pinned line is found by its shape
     # and its last digit changed, so the case survives every reviewed bump.
-    ("K-115", "a workflow action at a commit its reviewed row does not state",
+    ("K-118", "a workflow action at a commit its reviewed row does not state",
      _first_match(".github/workflows/host-gates.yml",
                   r"(?m)^(\s*- uses: [^@\s]+@[0-9a-f]{39})([0-9a-f])",
                   lambda m: m[1] + ("1" if m[2] == "0" else "0"))),
     # The same line returned to a movable tag: the row still states a reviewed commit,
     # and nothing fixes the code the tag names on the next run.
-    ("K-115", "a workflow action referenced by a tag that can move",
+    ("K-118", "a workflow action referenced by a tag that can move",
      _first_match(".github/workflows/host-gates.yml",
                   r"(?m)^(\s*- uses: [^@\s]+)@[0-9a-f]{40} # (v\d+)\.\d+\.\d+$",
                   lambda m: f"{m[1]}@{m[2]}")),
-    # The same line under a quoted key, which GitHub runs exactly as the bare one and the
-    # block reading does not take: the action is run elsewhere too, so only the census of
-    # `uses` keys stops the rule reporting agreement about a line it never read.
-    ("K-115", "a workflow action stated in a shape the reading does not parse",
+    # Composed YAML keys retain the admitted source-line shape, even when another
+    # workflow also runs the same action.
+    ("K-118", "a workflow action stated in a shape the reading does not parse",
      _first_match(".github/workflows/host-gates.yml",
                   r"(?m)^(\s*- )uses:( [^@\s]+@[0-9a-f]{40} # v\d+\.\d+\.\d+)$",
                   lambda m: f'{m[1]}"uses":{m[2]}')),
-    # The same line as an explicit key carrying a comment, the key on one line and the
-    # reference on the next: YAML reads the step unchanged, and only a census counting
-    # every explicit-key indicator, whatever follows it, sees the reference at all.
-    ("K-115", "a workflow action stated as an explicit key with a trailing comment",
+    # Explicit and flow keys are real keys that violate the source-line policy.
+    ("K-118", "a workflow action stated as an explicit key with a trailing comment",
      _first_match(".github/workflows/host-gates.yml",
                   r"(?m)^([ \t]*)- uses:( [^@\s]+@[0-9a-f]{40} # v\d+\.\d+\.\d+)$",
                   lambda m: f"{m[1]}- ? uses # the action\n{m[1]}  :{m[2]}")),
-    # A step before that line runs the same action from a flow mapping whose explicit key
-    # stands flush against its `?`: PyYAML reads every `?` inside a flow collection as a
-    # key's indicator, so the workflow gains a step that runs the action, and only a
-    # census counting a flow `?` whatever follows it sees the step. The step is added
-    # rather than the line rewritten, a flow mapping being unable to take the `with:`
-    # block under that line, and a workflow YAML refuses would test nothing.
-    ("K-115", "a workflow action stated as a flow mapping's unspaced explicit key",
+    ("K-118", "a workflow action stated as a flow mapping's unspaced explicit key",
      _first_match(".github/workflows/host-gates.yml",
                   r"(?m)^([ \t]*)- uses: ([^@\s]+@[0-9a-f]{40})( # v\d+\.\d+\.\d+)$",
                   lambda m: f"{m[1]}- {{?uses: {m[2]}}}{m[3]}\n{m[0]}")),
-    # A step before that line runs the same action from a flow mapping whose `uses` key
-    # follows a quoted name continued onto a line opening with `#`: that line is the
-    # scalar's text rather than a comment, so the workflow gains a step that runs the
-    # action, and only a census reading every line, a comment's included, counts the key.
-    ("K-115", "a workflow action stated after a quoted scalar's line opening with #",
+    ("K-118", "a workflow action stated after a quoted scalar's line opening with #",
      _first_match(".github/workflows/host-gates.yml",
                   r"(?m)^([ \t]*)- uses: ([^@\s]+@[0-9a-f]{40})( # v\d+\.\d+\.\d+)$",
                   lambda m: f'{m[1]}- {{name: "the action\n{m[1]}  # pinned", '
                             f"uses: {m[2]}}}{m[3]}\n{m[0]}")),
     # The record's side: a row renamed away from the action it reviews leaves both a
     # workflow running code with no row and a row reviewing code nothing runs.
-    ("K-115", "an action row that names no action a workflow runs",
+    ("K-118", "an action row that names no action a workflow runs",
      _literal(THIRD_PARTY, "| actions/download-artifact |", "| actions/download-artifacts |")),
-    # A row's licence link moved off the commit the row reviewed, its last digit changed
-    # so the case survives every reviewed bump: the reviewed revision and every workflow
-    # still agree, and only a rule holding the link to that revision sees the terms
-    # linked at another edition.
-    ("K-115", "an action row linking its licence at a commit other than the one it reviewed",
+    # Generated licence links are compared as bytes, never reparsed as Markdown.
+    ("K-118", "an action row linking its licence at a commit other than the one it reviewed",
      _first_match(THIRD_PARTY, r"(github\.com/actions/checkout/blob/[0-9a-f]{39})([0-9a-f])",
                   lambda m: m[1] + ("1" if m[2] == "0" else "0"))),
-    # The same row gaining a second link to its licence on GitHub's raw-content host,
-    # which serves the same file, at a commit its last digit moved off the reviewed one.
-    # The row still links its terms at the reviewed commit, so only a reading taking the
-    # raw host holds the second link.
-    ("K-115", "an action row linking its licence through another host at another commit",
-     _first_match(THIRD_PARTY, r"(https://github\.com/(actions/checkout)/blob/"
-                               r"([0-9a-f]{39})([0-9a-f])/LICENSE)\)",
-                  lambda m: f"{m[1]}) and [a copy](https://raw.githubusercontent.com/{m[2]}/"
-                            f"{m[3]}{'1' if m[4] == '0' else '0'}/LICENSE)")),
-    # The same row gaining a link to its action's tree at a branch, no path following the
-    # branch. The reviewed link still agrees, so only a reading that ends the revision at
-    # the link's end, and not only at a following `/`, holds the branch.
-    ("K-115", "an action row linking its action's tree at a branch",
-     _first_match(THIRD_PARTY, r"(\[MIT LICENSE\]\(https://github\.com/(actions/checkout)/"
-                               r"blob/[0-9a-f]{40}/LICENSE\))",
-                  lambda m: f"{m[1]} in [its tree](https://github.com/{m[2]}/tree/main)")),
-    # The same row gaining a link to its action's tree at the reviewed commit followed by
-    # `_` in its Markdown destination, which GFM keeps, so the link names a ref other
-    # than the commit, one a branch may carry. The reviewed link still agrees, so only a
-    # reading that runs a destination's revision to the bracket closing it, rather than
-    # stripping trailing punctuation from it as from a bare link, holds the other ref.
-    ("K-115", "an action row linking its action's tree at the reviewed commit plus `_`",
-     _first_match(THIRD_PARTY, r"(\[MIT LICENSE\]\(https://github\.com/(actions/checkout)/"
-                               r"blob/([0-9a-f]{40})/LICENSE\))",
-                  lambda m: f"{m[1]} in [its tree](https://github.com/{m[2]}/tree/{m[3]}_)")),
-    # Each new link spelling keeps the reviewed licence link, so only reading the
-    # additional reference detects the unreviewed edition.
-    ("K-115", "an unreviewed autolink directly after a bare reviewed licence link",
-     _first_match(THIRD_PARTY, r"(\[MIT LICENSE\]\(https://github\.com/(actions/checkout)/"
-                               r"blob/([0-9a-f]{40})/LICENSE\))",
-                  lambda m: f"{m[1]} https://github.com/{m[2]}/blob/{m[3]}/LICENSE"
-                            f"<https://github.com/{m[2]}/tree/main>")),
-    ("K-115", "an unreviewed action tree in a scheme-less www autolink",
-     _first_match(THIRD_PARTY, r"(\[MIT LICENSE\]\(https://github\.com/(actions/checkout)/"
-                               r"blob/[0-9a-f]{40}/LICENSE\))",
-                  lambda m: f"{m[1]} www.github.com/{m[2]}/tree/main")),
-    ("K-115", "an HTML attribute retaining a trailing underscore in its revision",
-     _first_match(THIRD_PARTY, r"(\[MIT LICENSE\]\(https://github\.com/(actions/checkout)/"
-                               r"blob/([0-9a-f]{40})/LICENSE\))",
-                  lambda m: f'{m[1]} <a href="https://github.com/{m[2]}/tree/{m[3]}_">'
-                            "tree</a>")),
-    # The row's licence link narrowed to its action's tree at the reviewed commit, no path
-    # following the commit: the link still names the reviewed revision and every
-    # workflow agrees, so only a reading that tells a view naming a file from one naming
-    # none sees a row that no longer links its terms.
-    ("K-115", "an action row linking its action's tree at the reviewed commit and no file",
-     _first_match(THIRD_PARTY, r"\[MIT LICENSE\]\(https://github\.com/(actions/checkout)/"
-                               r"blob/([0-9a-f]{40})/LICENSE\)",
-                  lambda m: f"[MIT LICENSE](https://github.com/{m[1]}/tree/{m[2]})")),
-    # The row's licence link dropped, its text kept: the row still states its reviewed
-    # revision and every workflow agrees with it, and only a rule requiring the link
-    # sees a row that no longer says where its terms were read.
-    ("K-115", "an action row linking no licence of its action",
-     _first_match(THIRD_PARTY, r"\[(MIT LICENSE)\]\(https://github\.com/actions/checkout/"
-                               r"blob/[0-9a-f]{40}/LICENSE\)",
-                  lambda m: m[1])),
     # A gitlink moved with an artifact derived through it left behind, seeded as the
     # recorded commit's first digit changed so the index, the licence record and every
     # restating sentence still agree. The registry's line names no upstream, so K-81

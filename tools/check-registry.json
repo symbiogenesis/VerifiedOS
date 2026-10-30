@@ -562,13 +562,6 @@
       "reach": "name"
     },
     {
-      "id": "K-115",
-      "group": "pins",
-      "meaning": "every `uses` key in a tracked workflow is a block `uses:` line reading `owner/repo[/path]@<full commit> # vX.Y.Z` at the commit and release its action's [THIRD-PARTY.md](../THIRD-PARTY.md) development-tools row reviewed, every action row is run by some workflow and links a file of its action's own repository, and every link an action row makes to such a file, a `blob`, `tree`, `blame` or `raw` path on github.com, `www.` or not, including scheme-less `www.github.com` autolinks, or a path on raw.githubusercontent.com, its owner and name in any case, names the commit the row reviewed, the revision ending at a `/`, `?` or `#`, where the link opens a Markdown destination at a blank or the `)` closing it, where it opens an angle-bracketed destination or an autolink at a blank or the `>` closing it, where it opens an HTML attribute value at its matching quote, or at the next blank or `>` when unquoted, retaining punctuation, and in a bare link alone also before a run of `.`, `,`, `:`, `;`, `!`, `*`, `_`, `~`, backticks, quotes or pipes standing just before the link's close at a blank, `)`, `]`, `<`, `>` or the row's end, and a view naming no path after its revision, or only slashes (and, outside HTML attribute values, such a closing run), is held to that commit but links no file",
-      "ground": "F-198b's action-reference class, on the licence-review ground: a tag moves under a reviewed row without any file here changing, so only a full commit makes the row's reading the code that runs. The row's licence link names the edition its terms were read at, so a link at another commit, a tag or a branch is a finding, and so is a row linking no file of its action's repository, a view naming no path, such as the tree at the reviewed commit, agreeing without linking one. Punctuation closing a bare link ends it rather than belonging to it, as GFM strips it there, so a link at the reviewed commit ending a sentence agrees and a tag keeps its interior dots. A destination or an autolink keeps every character up to the bracket closing it, as GFM does, so the reviewed commit followed there by `_`, a quote or a bracket that does not close the link, any of which a ref name may hold, names another ref and is a finding, and one followed by a full stop, which no ref name ends with, is a finding too, which errs closed; an HTML attribute value keeps its punctuation through the matching quote or unquoted close, and a blank, which no ref name holds, ends the revision in other forms. Another link into that repository, its front page, a commit's or a release's, is not read. Missing workflows, references, records, headings or action rows, a tool stated by two rows and a row stating its revision other than once fail closed. The workflow analyzers' rows are K-118's. The reading takes one shape, and a census splits each workflow at every YAML line break and reports each line, a comment's included, carrying a key the reading did not take: a bare or quoted `uses` key followed by its `:`, a double-quoted key holding an escape, an alias used as a key, or an explicit-key `?` indicator, whatever the last three spell. PyYAML reads every `?` inside a flow collection as a key's indicator and a line does not say whether it stands in one, so a `?` opening its line after indentation alone or following `{`, `,` or `[` is counted whatever follows it, and one after a block indicator and a blank only before a blank. So a reference GitHub runs in another shape is a finding rather than code the rule reported agreement about unread; while one stands, a row is not also reported as run by nothing. A flow mapping's key whose `:` stands on a later line, which the YAML 1.2.2 grammar admits and PyYAML refuses, is not counted. The comment's release is held against the row, not against the upstream's tag, which zizmor's online audits can ask GitHub. Report-only: moving a row's commit would claim a licence review of an unread revision",
-      "reach": "name"
-    },
-    {
       "id": "K-116",
       "group": "pins",
       "meaning": "every tool-consumed RTL binding outside the generated table, the width-transform registry's source pin, is the whole commit the index carries for its gitlink",
@@ -578,8 +571,8 @@
     {
       "id": "K-118",
       "group": "pins",
-      "meaning": "every authored development-tool review identity matches its dependency owners and its generated THIRD-PARTY.md view",
-      "ground": "Structured tools/development-tools.json and its JSON Schema own reviewed editions and the source template. Missing, malformed, duplicate or unused review identities and ambiguous markers fail closed. Owner drift requires a licence reading and blocks repair; generation never advances an authored review. Hook-repository and pip-constraint censuses remain total. Ordinary generated-view drift is repairable only when review bindings are valid.",
+      "meaning": "every authored development-tool and action review identity matches its dependency owners or workflow references and its generated THIRD-PARTY.md view",
+      "ground": "Structured tools/development-tools.json and its JSON Schema own reviewed identities and the source template. Missing, malformed, duplicate or unused identities and ambiguous markers fail closed. Action repository, commit, release and licence paths generate pinned licence URLs; independent action URLs cannot be authored in prose. Parsed workflow references match action reviews in both directions, with nonempty populations and exact source-line pin policy. Owner drift requires a licence reading and blocks repair; generation never advances an authored review. Hook-repository and pip-constraint censuses remain total. Ordinary generated-view drift is repairable only when review bindings are valid.",
       "reach": "computed value"
     },
     {
@@ -780,6 +773,11 @@
       "id": "K-97",
       "kind": "retired",
       "ground": "K-118 binds the structured Verilator licence review to VERILATOR_PIN through the shared assignment owner and generates the displayed version; JSON Schema requires its reviewed row."
+    },
+    {
+      "id": "K-115",
+      "kind": "retired",
+      "ground": "K-118 compares every parsed workflow action reference with structured reviews in both directions and generates each review sentence and licence URL from the same repository, commit, release and licence-path declaration. The separate generated-Markdown and URL parsers are retired."
     }
   ]
 }
