@@ -408,6 +408,15 @@ def _independent_identity_and_raw_bytes() -> None:
            "the independent descriptor preserves all four identities")
 
 
+def _source_hashes() -> dict[str, str]:
+    checkout = Path(__file__).resolve().parents[2]
+    return {
+        name: sha256((checkout / name).read_bytes()).hexdigest()
+        for name in ("tools/vos/allocation_churn.py", "tools/vos/cli/allocation_churn.py",
+                     "tools/vos/jsonutil.py", "docs/implementation/contracts/roster-measurement.md")
+    }
+
+
 def _cli_verdicts() -> None:
     with TemporaryDirectory(prefix="vos-churn-") as directory:
         root = Path(directory).resolve()
@@ -424,7 +433,7 @@ def _cli_verdicts() -> None:
             report = json.loads(output.getvalue())
             ensure(actual == code and report["milestone_acceptance"] == "open",
                    "CLI distinguishes observations within and beyond budgets")
-            ensure(len(report["sources_sha256"]) == 3
+            ensure(report["sources_sha256"] == _source_hashes()
                    and report["identity"]["capture_sha256"] == sha256(raw).hexdigest(),
                    "report binds capture and implementation inputs")
         capture_path.write_bytes(raw + b"\n")
@@ -437,12 +446,7 @@ def _cli_verdicts() -> None:
 
 
 def _cli_refusal_evidence() -> None:
-    checkout = Path(__file__).resolve().parents[2]
-    source_hashes = {
-        name: sha256((checkout / name).read_bytes()).hexdigest()
-        for name in ("tools/vos/allocation_churn.py", "tools/vos/cli/allocation_churn.py",
-                     "docs/implementation/contracts/roster-measurement.md")
-    }
+    source_hashes = _source_hashes()
     with TemporaryDirectory(prefix="vos-churn-refusal-evidence-") as directory:
         root = Path(directory).resolve()
         capture_path, expected_path = root / "capture.json", root / "expected.json"
@@ -564,7 +568,7 @@ def _cli_large_integer_refusal() -> None:
                     report = json.loads(rendered)
                     ensure(report["scope"] == SCOPE and report["milestone_acceptance"] == "open"
                            and report["identity"] == asdict(expected)
-                           and len(report["sources_sha256"]) == 3,
+                           and report["sources_sha256"] == _source_hashes(),
                            "both report outcomes preserve the input and implementation identities")
                     if refused:
                         ensure("exact measurement report" in report["error"]

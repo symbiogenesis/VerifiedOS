@@ -22,7 +22,8 @@ SCHEMA = "tools/composer/composition.schema.json"
 PACKAGE_SCHEMA = "tools/composer/package.schema.json"
 EXAMPLE = "tools/composer/m8a-composition.json"
 GENERATED = "tools/composer/generated"
-PRODUCERS = ("tools/vos/composition.py", "tools/vos/composer.py", "tools/vos/boot.py", "tools/vos/image.py", SCHEMA,
+PRODUCERS = ("tools/vos/composition.py", "tools/vos/composer.py", "tools/vos/boot.py", "tools/vos/image.py",
+             "tools/vos/jsonutil.py", SCHEMA,
              PACKAGE_SCHEMA)
 OUTPUTS = ("manifest.json", "manifest.c", "graph-input.json", "recipe-members.json",
            "admission-request.json")

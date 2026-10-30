@@ -23,7 +23,7 @@ def _attached_recipe(root: Path) -> str:
     raw["composer"] = {"source": source, "address": "0x80003000"}
     (root / "proofs").mkdir(exist_ok=True)
     (root / "tools" / "vos").mkdir(exist_ok=True)
-    for relative in (admission.SOURCE, admission.CHECKER, "tools/vos/composer.py"):
+    for relative in (admission.SOURCE, admission.CHECKER, "tools/vos/composer.py", "tools/vos/jsonutil.py"):
         shutil.copyfile(ROOT / relative, root / relative)
     reference = admission.read_reference(root)
     members = cast("list[dict[str, object]]", raw["members"])

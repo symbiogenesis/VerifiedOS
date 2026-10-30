@@ -2564,18 +2564,20 @@ A credible project combines programming-language semantics, algorithms, real-tim
 
 ## Shared JSON duplicate-key rejection
 
-Consolidate the tool readers' duplicate-key checks in
-[`vos/jsonutil.py`](tools/vos/jsonutil.py). Each reader retains its current numeric,
+The tool readers share the duplicate-key check in
+[`vos/jsonutil.py`](tools/vos/jsonutil.py). Each reader retains its numeric,
 encoding, shape and nesting policies, domain exception type and diagnostic text.
 The shared hook preserves member order and rejects the first repeated key at any
-object depth; callers may supply their own duplicate-error factory. Keep source
-identity manifests complete when readers gain the shared dependency.
+object depth; callers may supply their own duplicate-error factory. Source
+identity manifests include the shared dependency, and affected composition and
+research artifacts are regenerated from their owners.
 
-Acceptance requires focused controls for ordered objects, nested and escaped
-duplicate keys, caller-specific errors and the affected readers, plus typecheck.
-Require Host CI on Windows and Ubuntu and dispatch every Guest CI lane for the
-settled revision without waiting for Guest CI. This maintenance change claims no
-new parser semantics or performance result.
+Focused controls pass for ordered objects, nested and escaped duplicate keys,
+caller-specific errors and the affected readers, along with typecheck. The pinned
+finite rational-identity replay passes with both corruption controls refused.
+Hosted acceptance requires Host CI on Windows and Ubuntu and dispatch of every
+Guest CI lane for the settled revision without waiting for Guest CI. This
+maintenance change claims no new parser semantics or performance result.
 
 ## Host CI scheduling
 

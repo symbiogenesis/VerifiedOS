@@ -42,6 +42,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Final, TextIO, cast
 
+from vos import jsonutil
+
 from . import admission, asm, composer, image, jsonc, trace
 
 CONTRACT: Final[str] = "docs/implementation/contracts/boot-roster.md"
@@ -212,12 +214,7 @@ def _text(value: object, where: str) -> str:
 
 
 def _no_duplicate_keys(pairs: list[tuple[str, object]]) -> dict[str, object]:
-    out: dict[str, object] = {}
-    for key, value in pairs:
-        if key in out:
-            raise RecipeError(f"duplicate JSON key {key!r}")
-        out[key] = value
-    return out
+    return jsonutil.unique_object(pairs, duplicate_error=lambda key: RecipeError(f"duplicate JSON key {key!r}"))
 
 
 def _json(data: bytes, where: str) -> object:
@@ -631,7 +628,7 @@ def producing_inputs(root: Path) -> list[str]:
     """
     resolved = root.resolve()
     out: list[str] = []
-    for module_file in (asm.__file__, image.__file__, __file__):
+    for module_file in (asm.__file__, image.__file__, __file__, jsonutil.__file__):
         path = Path(module_file).resolve()
         out.append(path.relative_to(resolved).as_posix() if path.is_relative_to(resolved)
                    else str(path))

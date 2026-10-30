@@ -12,15 +12,11 @@ from vos.corpus import find_root
 from vos.inference_contract import Ceiling, Costs, Shape, natural
 from vos.inference_grant import KvPlacement, per_token_bytes
 from vos.inference_residency import checked_routed_work
+from vos.jsonutil import unique_object
 
 
 def _unique(pairs: list[tuple[str, object]]) -> dict[str, object]:
-    result: dict[str, object] = {}
-    for key, value in pairs:
-        if key in result:
-            raise ValueError(f"duplicate input field: {key}")
-        result[key] = value
-    return result
+    return unique_object(pairs, duplicate_error=lambda key: ValueError(f"duplicate input field: {key}"))
 
 
 def _object(value: object, names: set[str], label: str) -> dict[str, object]:
@@ -83,7 +79,8 @@ def inspect(raw: bytes, root: Path) -> dict[str, object]:
     work = checked_routed_work(shape, costs, residency, route) if step.refusal is None else None
     owners = ("proofs/InferenceAdmission.v", "tools/vos/inference_contract.py",
               "tools/vos/inference_residency.py", "tools/vos/inference_grant.py",
-              "tools/vos/inference_admission.py", "tools/vos/cli/inference_admission.py")
+              "tools/vos/inference_admission.py", "tools/vos/cli/inference_admission.py",
+              "tools/vos/jsonutil.py")
     return {"schema_version": 1, "scope": "finite host reference with symbolic composition inputs",
             "production_admission": False,
             "input_sha256": hashlib.sha256(raw).hexdigest(),

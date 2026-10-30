@@ -17,7 +17,7 @@ RING_BYTES = 524288
 INPUTS = ("copy-service", "interfaces/ring-reference.json", "tools/vos/copy_service.py",
           "tools/vos/copy_target.py", "tools/vos/cli/copy_service.py",
           "tools/vos/cli/compiler_diff.py", "tools/vos/asm.py", "tools/vos/image.py",
-          "tools/generated/dialect-table.json")
+          "tools/generated/dialect-table.json", "tools/vos/jsonutil.py")
 
 
 def wakeup_litmus(fenced: bool) -> tuple[int, list[tuple[str, ...]]]:

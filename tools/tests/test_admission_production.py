@@ -174,7 +174,8 @@ def _stale_joins() -> None:
             result = _record(root)
             path = root / relative
             path.write_bytes(path.read_bytes() + b"\n")
-            _refused(lambda result=result: production.validate_record(root, result), "differs")
+            phrase = "stale source" if relative == "tools/vos/jsonutil.py" else "differs"
+            _refused(lambda result=result: production.validate_record(root, result), phrase)
 
 
 def _publication_and_cli() -> None:

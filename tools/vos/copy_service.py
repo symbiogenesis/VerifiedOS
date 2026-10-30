@@ -13,6 +13,7 @@ from typing import Final
 
 from vos import env, gallina
 from vos.cli import ring as ring_owner
+from vos.jsonutil import unique_object
 from vos.supervisor import c_compiler
 
 CFLAGS: Final = ("-std=c11", "-O1", "-Wall", "-Wextra", "-Werror", "-pedantic")
@@ -45,12 +46,7 @@ class Comparison:
 
 
 def _unique(pairs: list[tuple[str, object]]) -> dict[str, object]:
-    result: dict[str, object] = {}
-    for key, value in pairs:
-        if key in result:
-            raise ValueError(f"duplicate declaration key: {key}")
-        result[key] = value
-    return result
+    return unique_object(pairs, duplicate_error=lambda key: ValueError(f"duplicate declaration key: {key}"))
 
 
 def configuration(root: Path) -> Config:
@@ -190,7 +186,8 @@ def check(root: Path, work: Path) -> tuple[int, list[str]]:
     identities = [root / "proofs" / name for name in ("RingContract.v", "CopyRingService.v")]
     identities += [root / "copy-service" / name for name in SOURCES]
     identities += [root / "tools" / "vos" / "copy_service.py", root / "interfaces" / "ring-reference.json"]
-    identities += [root / "tools" / "vos" / "cli" / "ring.py"]
+    identities += [root / "tools" / "vos" / "cli" / "ring.py",
+                   root / "tools" / "vos" / "jsonutil.py"]
     before = {p.relative_to(root).as_posix(): _digest(p) for p in identities}
     tools_before = {p: _digest(Path(p)) for p in (compiler, found.argv[0])}
     # Snapshot every owner before reading configuration or generating cases, so

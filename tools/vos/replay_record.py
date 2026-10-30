@@ -13,6 +13,7 @@ from dataclasses import dataclass
 from typing import cast
 
 from vos.jsonc import Json
+from vos.jsonutil import unique_object
 from vos.trace import COMMIT_RE
 
 SCHEMA = "replay-record-v1"
@@ -87,12 +88,7 @@ def _object(value: Json, keys: set[str]) -> dict[str, Json]:
 
 
 def _pairs(pairs: list[tuple[str, Json]]) -> dict[str, Json]:
-    result: dict[str, Json] = {}
-    for key, value in pairs:
-        if key in result:
-            raise RecordError("duplicate JSON key")
-        result[key] = value
-    return result
+    return unique_object(pairs, duplicate_error=lambda _key: RecordError("duplicate JSON key"))
 
 
 def _noninteger(_value: str) -> None:

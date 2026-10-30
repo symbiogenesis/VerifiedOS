@@ -12,7 +12,7 @@ from typing import Any, TypedDict, cast
 from vos import boot, composer, composition
 from vos.jsonutil import unique_object
 
-CHECKERS = ("tools/vos/admission_production.py", "tools/vos/cli/admission.py")
+CHECKERS = ("tools/vos/admission_production.py", "tools/vos/cli/admission.py", "tools/vos/jsonutil.py")
 SCOPE = "production-admission-refusal"
 
 

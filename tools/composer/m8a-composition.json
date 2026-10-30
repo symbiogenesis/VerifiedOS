@@ -12,7 +12,11 @@
       "sources": [
         {
           "path": "tools/vos/composer.py",
-          "sha256": "71b49958eb14d5bcb65e0c2217137833858b54a12241df42eeb2753d1b028dfc"
+          "sha256": "199093c62f8cb3ac5d385bb0a074811661df4a66aaa3328fab439f252de022e0"
+        },
+        {
+          "path": "tools/vos/jsonutil.py",
+          "sha256": "651b6cf84e7e3d3af970df71a286b5c700eea9b2b1b88f2db7dd44f572bfd8e5"
         }
       ]
     },
@@ -21,7 +25,11 @@
       "sources": [
         {
           "path": "tools/vos/admission.py",
-          "sha256": "d7ab6be61f72f62daa3493c4affbfbb20de4492e2a76ddf14967c5ef7623cdbb"
+          "sha256": "70e6b9014fb3d2efaf8fcbc3130b7356617b2fe9e4da0303b024c67e1e68fc70"
+        },
+        {
+          "path": "tools/vos/jsonutil.py",
+          "sha256": "651b6cf84e7e3d3af970df71a286b5c700eea9b2b1b88f2db7dd44f572bfd8e5"
         }
       ]
     }
@@ -250,12 +258,16 @@
         },
         {
           "path": "tools/vos/composer.py",
-          "sha256": "71b49958eb14d5bcb65e0c2217137833858b54a12241df42eeb2753d1b028dfc"
+          "sha256": "199093c62f8cb3ac5d385bb0a074811661df4a66aaa3328fab439f252de022e0"
+        },
+        {
+          "path": "tools/vos/jsonutil.py",
+          "sha256": "651b6cf84e7e3d3af970df71a286b5c700eea9b2b1b88f2db7dd44f572bfd8e5"
         }
       ],
       "descriptor": {
         "path": "tools/composer/packages/composer.json",
-        "sha256": "27de3485ee3089f1448741048cd62781b1f946e5ee764600aaeaacdaafae1b33"
+        "sha256": "22ed587b6331b8835f596d4abdc7090f83fac0ceb89ff19b0ac91c1783d4fada"
       },
       "artifact_slot": "composer-artifact",
       "entry": null,
@@ -278,12 +290,16 @@
         },
         {
           "path": "tools/vos/admission.py",
-          "sha256": "d7ab6be61f72f62daa3493c4affbfbb20de4492e2a76ddf14967c5ef7623cdbb"
+          "sha256": "70e6b9014fb3d2efaf8fcbc3130b7356617b2fe9e4da0303b024c67e1e68fc70"
+        },
+        {
+          "path": "tools/vos/jsonutil.py",
+          "sha256": "651b6cf84e7e3d3af970df71a286b5c700eea9b2b1b88f2db7dd44f572bfd8e5"
         }
       ],
       "descriptor": {
         "path": "tools/composer/packages/admission.json",
-        "sha256": "c58f69a5aadeb6f38073063dc2301ffbfb0f2566d648448b21cb0f69ba407125"
+        "sha256": "cb408332792de343140bb0a7067b850dc7c6413df78bd72c78e0eefbe17cb860"
       },
       "artifact_slot": "admission-artifact",
       "entry": null,

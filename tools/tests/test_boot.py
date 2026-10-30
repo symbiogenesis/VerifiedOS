@@ -342,7 +342,8 @@ def _roster_identity() -> None:
         ensure(identity is None and withheld is not None and needle in withheld,
                f"{edit}: the identity is withheld with its reason: {withheld}")
     produced = boot.producing_inputs(ROOT)
-    ensure(produced == ["tools/vos/asm.py", "tools/vos/image.py", "tools/vos/boot.py"],
+    ensure(produced == ["tools/vos/asm.py", "tools/vos/image.py", "tools/vos/boot.py",
+                        "tools/vos/jsonutil.py"],
            f"the producing modules are bound as revision inputs: {produced}")
     with _scratch() as root:
         outside = boot.producing_inputs(root)

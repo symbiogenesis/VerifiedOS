@@ -4,11 +4,11 @@
   "sources": [
     {
       "path": "tools/vos/composer.py",
-      "sha256": "71b49958eb14d5bcb65e0c2217137833858b54a12241df42eeb2753d1b028dfc"
+      "sha256": "199093c62f8cb3ac5d385bb0a074811661df4a66aaa3328fab439f252de022e0"
     },
     {
       "path": "tools/vos/composition.py",
-      "sha256": "8a7c27e6e930973300a1517a010e5502dbb137a4b6a511b86c3dc190e19959f9"
+      "sha256": "67e8d2d39e2203a88c6668df983dba6662810f23fe3f79776891b2cf0137b75a"
     },
     {
       "path": "tools/vos/cli/composer.py",
@@ -21,6 +21,10 @@
     {
       "path": "tools/vos/composition_staged.py",
       "sha256": "0e7861328a0407e2ee612aea3825b473270ff9c6bd8c7a3f58c6e726ccd28007"
+    },
+    {
+      "path": "tools/vos/jsonutil.py",
+      "sha256": "651b6cf84e7e3d3af970df71a286b5c700eea9b2b1b88f2db7dd44f572bfd8e5"
     }
   ],
   "interfaces": [

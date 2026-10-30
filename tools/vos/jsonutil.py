@@ -2,13 +2,17 @@
 """Shared JSON decoder hooks; each caller chooses its numeric and shape policy."""
 
 import math
+from collections.abc import Callable
 
 
-def unique_object[T](pairs: list[tuple[str, T]]) -> dict[str, T]:
-    """Keep member order and reject the first repeated key, at any object depth."""
+def unique_object[T](pairs: list[tuple[str, T]], *,
+                     duplicate_error: Callable[[str], Exception] | None = None) -> dict[str, T]:
+    """Keep member order and reject repeats, with the caller's diagnostic if supplied."""
     result: dict[str, T] = {}
     for key, value in pairs:
         if key in result:
+            if duplicate_error is not None:
+                raise duplicate_error(key)
             raise ValueError(f"duplicate JSON key: {key}")
         result[key] = value
     return result

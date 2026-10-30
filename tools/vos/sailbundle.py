@@ -58,6 +58,7 @@ from pathlib import Path
 from typing import Any, override
 
 from vos import env, rocqterm
+from vos.jsonutil import unique_object
 
 BUNDLE_NAME = "sail_riscv_model.json"
 
@@ -738,12 +739,7 @@ def canonicalize_library(data: bytes, library: Path) -> bytes:
 
 
 def _json_object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
-    out: dict[str, Any] = {}
-    for key, value in pairs:
-        if key in out:
-            raise BundleError(f"duplicate JSON object key {key!r}")
-        out[key] = value
-    return out
+    return unique_object(pairs, duplicate_error=lambda key: BundleError(f"duplicate JSON object key {key!r}"))
 
 
 def _json_constant(value: str) -> None:

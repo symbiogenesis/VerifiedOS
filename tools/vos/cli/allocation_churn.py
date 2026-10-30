@@ -23,6 +23,7 @@ def main(argv: list[str] | None = None) -> int:
         report["sources_sha256"] = {
             name: sha256((root / name).read_bytes()).hexdigest()
             for name in ("tools/vos/allocation_churn.py", "tools/vos/cli/allocation_churn.py",
+                         "tools/vos/jsonutil.py",
                          "docs/implementation/contracts/roster-measurement.md")
         }
         inputs: dict[str, bytes] = {}

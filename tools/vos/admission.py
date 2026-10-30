@@ -12,6 +12,8 @@ from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import TYPE_CHECKING, cast
 
+from vos.jsonutil import unique_object
+
 from . import proofs
 
 if TYPE_CHECKING:
@@ -231,12 +233,7 @@ def _path(root: Path, value: object) -> Path:
 
 
 def _pairs(pairs: list[tuple[str, object]]) -> dict[str, object]:
-    result: dict[str, object] = {}
-    for key, value in pairs:
-        if key in result:
-            raise AdmissionError(f"duplicate JSON key {key!r}")
-        result[key] = value
-    return result
+    return unique_object(pairs, duplicate_error=lambda key: AdmissionError(f"duplicate JSON key {key!r}"))
 
 
 def _parse(data: bytes) -> dict[str, object]:

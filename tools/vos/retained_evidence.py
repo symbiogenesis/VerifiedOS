@@ -23,6 +23,7 @@ from typing import cast
 from urllib.parse import quote, unquote
 
 from vos import receipts
+from vos.jsonutil import unique_object
 
 EVIDENCE = "docs/implementation/retained-evidence"
 # A label describes the record; the resolved indexed target and hash identify it.
@@ -57,12 +58,7 @@ def _bindings(value: object) -> Iterator[tuple[str, str]]:
 
 def _manifest_object(pairs: list[tuple[str, object]]) -> dict[str, object]:
     """A retained map may not conceal a member beneath a duplicate JSON key."""
-    result: dict[str, object] = {}
-    for key, value in pairs:
-        if key in result:
-            raise ValueError(f"duplicate manifest key {key!r}")
-        result[key] = value
-    return result
+    return unique_object(pairs, duplicate_error=lambda key: ValueError(f"duplicate manifest key {key!r}"))
 
 
 def _manifest_files(blob: bytes) -> dict[str, object]:

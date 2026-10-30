@@ -9,23 +9,16 @@ from fractions import Fraction
 from pathlib import Path
 from typing import Any
 
+from vos.jsonutil import unique_object
+
 PIN = "tools/matrix-identity/plinopt.json"
 REPORT = "docs/background/rank48-replay.json"
-SOURCES = ("tools/vos/matrix_identity.py", "tools/vos/cli/matrix_identity.py")
+SOURCES = ("tools/vos/matrix_identity.py", "tools/vos/cli/matrix_identity.py", "tools/vos/jsonutil.py")
 LIMIT = 1024 * 1024
 
 
 def sha(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
-
-
-def unique_object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
-    value: dict[str, Any] = {}
-    for key, member in pairs:
-        if key in value:
-            raise ValueError(f"duplicate JSON key: {key}")
-        value[key] = member
-    return value
 
 
 def matrix(text: str) -> list[list[Fraction]]:

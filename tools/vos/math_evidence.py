@@ -15,6 +15,7 @@ from typing import Any
 from urllib.parse import urlsplit
 
 from vos import composer, corpus
+from vos.jsonutil import unique_object
 
 MANIFEST = "docs/background/math-evidence.json"
 ARTIFACT = "docs/background/math-evidence.md"
@@ -22,7 +23,8 @@ REQUIRED_IDS = frozenset({"dcp", "rank48", "eth378", "type-fpt", "logspace103", 
                           "integer109", "shortest-path", "two-stack", "composer-dictionaries"})
 STAGES = ("source inspection", "supplied replay", "independent replay", "production acceptance")
 DISPOSITIONS = ("evaluate now", "await workload", "monitor security")
-SHAPE_SOURCES = (composer.REFERENCE, "tools/vos/composer.py", "tools/vos/math_evidence.py")
+SHAPE_SOURCES = (composer.REFERENCE, "tools/vos/composer.py", "tools/vos/math_evidence.py",
+                 "tools/vos/jsonutil.py")
 
 
 class EvidenceError(ValueError):
@@ -49,12 +51,7 @@ def _array(raw: object, where: str) -> list[Any]:
 
 
 def _unique_object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
-    result: dict[str, Any] = {}
-    for key, value in pairs:
-        if key in result:
-            raise EvidenceError(f"duplicate JSON key: {key}")
-        result[key] = value
-    return result
+    return unique_object(pairs, duplicate_error=lambda key: EvidenceError(f"duplicate JSON key: {key}"))
 
 
 def _local(root: Path, target: object, where: str) -> str:

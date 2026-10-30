@@ -18,6 +18,7 @@ from pathlib import Path
 from typing import Any
 
 from vos import env
+from vos.jsonutil import unique_object
 from vos.proofs import strip_comments
 
 REFERENCE = "proofs/HandlerGraph.v"
@@ -153,12 +154,7 @@ def parse_document(value: object) -> CompositionInput:
 
 
 def _unique_object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
-    result: dict[str, Any] = {}
-    for key, value in pairs:
-        if key in result:
-            raise ComposerError(f"duplicate JSON key: {key}")
-        result[key] = value
-    return result
+    return unique_object(pairs, duplicate_error=lambda key: ComposerError(f"duplicate JSON key: {key}"))
 
 
 def load_document(root: Path, relative: str) -> CompositionInput:

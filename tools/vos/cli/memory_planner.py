@@ -8,7 +8,7 @@ from functools import partial
 from pathlib import Path
 from typing import Any
 
-from vos import env
+from vos import env, jsonutil
 from vos import memory_planner as planner
 from vos import memory_planner_adapters as adapters
 from vos import memory_planner_contracts as contracts
@@ -42,12 +42,7 @@ def parser() -> argparse.ArgumentParser:
 
 
 def unique_object(pairs: list[tuple[str, object]]) -> dict[str, object]:
-    result: dict[str, object] = {}
-    for key, value in pairs:
-        if key in result:
-            raise ValueError(f"duplicate JSON field: {key}")
-        result[key] = value
-    return result
+    return jsonutil.unique_object(pairs, duplicate_error=lambda key: ValueError(f"duplicate JSON field: {key}"))
 
 
 def read_json(path: Path, inputs: dict[str, str]) -> object:
@@ -63,7 +58,7 @@ def source_identity(root: Path) -> dict[str, str]:
              "tools/vos/cli/memory_planner.py", "proofs/MemoryPlannerContracts.v",
              "proofs/MemoryPlannerResources.v", "tools/vos/memory_planner_structure.py",
              "tools/vos/static_memory_structure.py", "tools/vos/static_memory.py",
-             "tools/vos/memory_planner_candidates.py")
+             "tools/vos/memory_planner_candidates.py", "tools/vos/jsonutil.py")
     return {name: hashlib.sha256((root / name).read_bytes()).hexdigest() for name in names}
 
 

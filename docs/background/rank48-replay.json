@@ -1,7 +1,8 @@
 {
   "checker_sha256": {
     "tools/vos/cli/matrix_identity.py": "e19d975d85dacf1091acdede5d14e7f7d8dfee96fd39303f1810a5911bfd1655",
-    "tools/vos/matrix_identity.py": "9c57280ce46ab17ec4809b46bb0a30b97ed3bfe95afa4751fc116f6b3cd2aa12"
+    "tools/vos/jsonutil.py": "651b6cf84e7e3d3af970df71a286b5c700eea9b2b1b88f2db7dd44f572bfd8e5",
+    "tools/vos/matrix_identity.py": "0fe358c23d46e473122b1211ab56ae5d1e5cb88856c70cb29ea731a0b1e1dafd"
   },
   "inputs_sha256": {
     "L.slp": "b021b1d260e9b01e6970c1c704684aa8d5fb7fb3d9ab7ac23e361786b129c49d",

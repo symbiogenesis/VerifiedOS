@@ -14,6 +14,7 @@ from hashlib import sha256
 from typing import Never, cast
 
 from vos.jsonc import Json
+from vos.jsonutil import unique_object
 
 SCOPE = "host capture analysis; target acceptance pending"
 IDENTITY_KEYS = {"roster_revision", "image_sha256", "composition_sha256"}
@@ -53,12 +54,7 @@ class Quantum:
 
 
 def _pairs(pairs: list[tuple[str, Json]]) -> dict[str, Json]:
-    result: dict[str, Json] = {}
-    for key, value in pairs:
-        if key in result:
-            raise ValueError(f"duplicate JSON key: {key!r}")
-        result[key] = value
-    return result
+    return unique_object(pairs, duplicate_error=lambda key: ValueError(f"duplicate JSON key: {key!r}"))
 
 
 def _noninteger(_value: str) -> Never:
