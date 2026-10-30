@@ -94,6 +94,7 @@ from vos import (
     env,
     provenance,
     receipts,
+    rtl_vectors,
     rtl_width,
     sailrig,
     socmap,
@@ -222,7 +223,6 @@ SUBSTITUTIONS: tuple[Substitution, ...] = (
 # model's own functions, and the harness is SystemVerilog because it has to call the
 # package's; neither is a translation of the other and the only thing they share is
 # the line format each states in its own header.
-GENERATOR = "tools/cheri-equiv/gen_vectors.sail"
 HARNESS = "tools/cheri-equiv/vos_cheri_vectors_tb.sv"
 HARNESS_TOP = "vos_cheri_vectors_tb"
 
@@ -231,13 +231,7 @@ HARNESS_TOP = "vos_cheri_vectors_tb"
 # the capability format and its algebra alone: pulling the whole model in would
 # compile the decode surface, the CSR file and the memory interface to print a bounds
 # decode, and would make this loop fail for reasons that are not about the format.
-MODEL_SOURCES: tuple[str, ...] = (
-    "model/model/prelude/prelude.sail",
-    "model/model/prelude/errors.sail",
-    "model/model/core/xlen.sail",
-    "model/model/core/cap_format.sail",
-    "model/model/core/cap_common.sail",
-)
+MODEL_SOURCES = rtl_vectors.SOURCES
 
 # The two texts a run compares, in the lane's own working directory. Their names are
 # fixed rather than passed, because the harness has to open them from inside
@@ -551,7 +545,13 @@ def cmd_vectors(args: argparse.Namespace) -> int:
     work = _equiv_dir(e)
     out: list[str] = []
 
-    sources = [root / s for s in (*MODEL_SOURCES, GENERATOR)]
+    generator = work / "gen_vectors.sail"
+    try:
+        generator.write_text(rtl_vectors.harness(root), encoding="utf-8", newline="\n")
+    except (OSError, ValueError) as error:
+        print(f"FAIL capability vector generation: {error}")
+        return 1
+    sources = [root / s for s in MODEL_SOURCES] + [generator]
     binary = sailrig.build(sources, work, out)
     if binary is None:
         print("\n".join(out))

@@ -1,18 +1,14 @@
 # SPDX-License-Identifier: Apache-2.0
 """The model-as-oracle vector generator: a domain description in, a Sail harness out.
 
-This repository has proved the model-as-oracle technique twice and thrown the rig
-away both times. M2.1 emitted 21,546 vectors from the model itself and held a C
-instantiation to every line; R1a emitted 658,659 over thirteen kinds and held the
-authored SystemVerilog to every line. Both rigs were the same three parts: a list of
-model sources, a hand-written Sail file that picks inputs and prints answers, and a
-text comparison. Only the middle part was ever specific to the question being asked,
-and only a small fraction of *it* was: [tools/cheri-equiv/gen_vectors.sail](
-../cheri-equiv/gen_vectors.sail) is 522 lines of which the per-function part is a
-dozen, the rest being formatters, an LFSR, loop nests and a line discipline that any
-second rig would have written again.
+Model-as-oracle campaigns share three parts: a list of model sources, Sail that
+picks inputs and prints answers, and a text comparison. This module owns the
+formatters, shift register and probe printing. Simple JSON specs also use its
+domain loops. The RTL campaign supplies typed printing declarations and retains
+its domain-specific helpers and ordered sweep schedule separately, so sharing
+mechanics does not replace an exhaustive campaign with a sampled one.
 
-So this module owns those, and a **spec** owns the dozen. A spec is a JSON file under
+Simple campaigns declare their questions in a JSON spec under
 [tools/oracle-specs/](../oracle-specs/) naming the model sources to compile, and one
 or more *probes*: a line kind, the parameters a probe takes and how the domain walks
 them, the Sail that calls the model with them, and the expressions to print. What
@@ -195,6 +191,23 @@ class Show:
 
     expr: str
     show: str
+
+
+@dataclass(frozen=True)
+class Printer:
+    """One model call and its wire fields, independent of input scheduling.
+
+    Argument types and input expressions are explicit because some campaigns
+    derive a printed tag from a decoded value, or interleave several calls for
+    one selected input. No schedule or second random generator belongs here.
+    """
+
+    kind: str
+    arguments: tuple[tuple[str, str], ...]
+    inputs: tuple[Show, ...]
+    body: tuple[str, ...]
+    shows: tuple[Show, ...]
+    what: str = ""
 
 
 @dataclass(frozen=True)
@@ -495,20 +508,60 @@ def _probe_sail(probe: Probe) -> str:
 
 
 def _probe_fn(probe: Probe) -> str:
-    args = ", ".join(f"{p.name} : bits({p.width})" for p in probe.params)
-    pieces = [f'"{probe.kind}"']
-    for param in probe.params:
+    return _printer_function(Printer(
+        kind=probe.kind,
+        arguments=tuple((p.name, f"bits({p.width})") for p in probe.params),
+        inputs=tuple(Show(p.name, p.show) for p in probe.params),
+        body=probe.body, shows=probe.shows, what=probe.what))
+
+
+def printer_functions(printers: tuple[Printer, ...]) -> str:
+    """Emit the shared formatters, shift register and typed probe functions.
+
+    Authored schedules use this same printer as the JSON harness. Malformed
+    declarations refuse before a partial harness is returned.
+    """
+    if not printers:
+        raise SpecError("a campaign with no printers would print nothing")
+    seen: set[str] = set()
+    widths: list[int] = []
+    for printer in printers:
+        if not KIND.fullmatch(printer.kind) or printer.kind in seen:
+            raise SpecError(f"invalid or repeated printer kind: {printer.kind!r}")
+        seen.add(printer.kind)
+        names = [name for name, _ in printer.arguments]
+        if (len(set(names)) != len(names)
+                or any(not IDENT.fullmatch(name) or name in RESERVED for name in names)
+                or any(not typ.strip() for _, typ in printer.arguments)):
+            raise SpecError(f"{printer.kind}: invalid printer arguments")
+        if not printer.shows:
+            raise SpecError(f"{printer.kind}: a printer must carry an answer")
+        for field in (*printer.inputs, *printer.shows):
+            if not field.expr.strip():
+                raise SpecError(f"{printer.kind}: an empty printed expression")
+            width = _nibbles("campaign", printer.kind, field.show)
+            widths.append(width)
+        for statement in printer.body:
+            _statement("campaign", printer.kind, statement)
+    return "\n".join([_formatters(max(widths, default=1)),
+                      *(_printer_function(printer) for printer in printers)])
+
+
+def _printer_function(printer: Printer) -> str:
+    args = ", ".join(f"{name} : {typ}" for name, typ in printer.arguments)
+    pieces = [f'"{printer.kind}"']
+    for field in printer.inputs:
         pieces.append('" "')
-        pieces.append(_fmt(param.show, param.name))
+        pieces.append(_fmt(field.show, field.expr))
     pieces.append('" ->"')
-    for show in probe.shows:
+    for show in printer.shows:
         pieces.append('" "')
         pieces.append(_fmt(show.show, show.expr))
     printed = "\n    ^ ".join(pieces)
-    statements = [*probe.body, f"print_endline(\n    {printed}\n  )"]
+    statements = [*printer.body, f"print_endline(\n    {printed}\n  )"]
     joined = ";\n  ".join(statements)
-    head = f"// {probe.what}" if probe.what else f"// the `{probe.kind}` vectors"
-    return f"{head}\nfunction probe_{probe.kind}({args}) -> unit = {{\n  {joined}\n}}"
+    head = f"// {printer.what}" if printer.what else f"// the `{printer.kind}` vectors"
+    return f"{head}\nfunction probe_{printer.kind}({args}) -> unit = {{\n  {joined}\n}}"
 
 
 def _tables(probe: Probe) -> list[str]:

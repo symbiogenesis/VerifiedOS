@@ -1,90 +1,12 @@
 // SPDX-License-Identifier: Apache-2.0
 //
-// The model's own answers about the capability format, printed as text.
-//
-// This is the model side of the cross-check `tools/run.py rtl crosscheck` runs, and
-// the method is M2.1's rather than a new one: compile the curated model's own
-// `prelude`, `core/xlen.sail`, `core/cap_format.sail` and `core/cap_common.sail`
-// together with this generator, call those functions, print what they return, and
-// require the other implementation to reproduce every line. The vectors cross as
-// text, so no adapter sits between the two implementations and neither is
-// compiled against the other's types.
-//
-// Nothing here decides anything. It picks inputs and formats answers; every value
-// on the right of an arrow is the model's, and a line this file cannot print is a
-// line the cross-check does not reach.
-//
-// **The line format.** One vector per line, `<kind> <inputs> -> <outputs>`, every
-// field lowercase hex with no prefix and a width fixed by the field's own bit
-// width, so that a reproducing implementation holding each field in a variable of
-// that width prints the same digits with a bare `%x`. Blank lines and lines
-// opening with `#` are commentary. The kinds:
-//
-//   dec <tag> <bits>                 the decode, the re-encode, the bounds, the
-//                                    length and the malformed predicate
-//   sb  <bits> <base> <top>          the narrowing `csetbounds` performs
-//   sa  <tag> <bits> <addr>          the address setter and its checked form
-//   so  <tag> <bits> <offset>        the offset setter and its checked form
-//   io  <tag> <bits> <delta>         the increment form
-//   frc <bits> <inc>                 the fast representability check
-//   ib  <bits> <addr> <size>         the bounds check
-//   pe  <code>                       the permission expansion, and the twelve
-//                                    accessors that index what it returns
-//   pn  <mask>                       the largest admitted set inside a mask
-//   sl  <bits> <otype>               sealing, the reserved types and the sentry edges
-//   mb  <tag> <bits>                 the null transform across the memory interface
-//   it  <value>                      an integer read as a capability
-//   ac  <bits>                       the accessors over the decoded bounds
-//
-// **Why the tag on a `dec` line is derived rather than chosen.** `getCapLength`
-// asserts that a tagged capability has its top at or above its base, and the
-// sweep below walks the whole 19-bit bounds encoding, most of whose members are
-// reachable only untagged. So each `dec` vector is emitted tagged exactly when
-// its own decode is well formed, which keeps the assertion true, exercises the
-// tag through decode, and puts the malformed encodings on the untagged side where
-// the architecture already puts them.
-
-// *****************************************************************
-// Formatting. Fixed width, lowercase, no prefix, and stated per width rather
-// than derived, so that the digits a field occupies are a property of the field
-// and not of the value in it.
-
-function nib(n : bits(4)) -> string = match n {
-  0x0 => "0", 0x1 => "1", 0x2 => "2", 0x3 => "3",
-  0x4 => "4", 0x5 => "5", 0x6 => "6", 0x7 => "7",
-  0x8 => "8", 0x9 => "9", 0xa => "a", 0xb => "b",
-  0xc => "c", 0xd => "d", 0xe => "e", 0xf => "f",
-}
-
-function h1(x : bits(4)) -> string = nib(x)
-
-function h2(x : bits(8)) -> string = nib(x[7 .. 4]) ^ nib(x[3 .. 0])
-
-function h3(x : bits(12)) -> string = h1(x[11 .. 8]) ^ h2(x[7 .. 0])
-
-function h9(x : bits(36)) -> string =
-  h1(x[35 .. 32]) ^ h2(x[31 .. 24]) ^ h2(x[23 .. 16]) ^ h2(x[15 .. 8]) ^ h2(x[7 .. 0])
-
-function h10(x : bits(37)) -> string = h1(zero_extend(x[36 .. 36])) ^ h9(x[35 .. 0])
-
-function h16(x : bits(64)) -> string =
-  h2(x[63 .. 56]) ^ h2(x[55 .. 48]) ^ h2(x[47 .. 40]) ^ h2(x[39 .. 32])
-  ^ h2(x[31 .. 24]) ^ h2(x[23 .. 16]) ^ h2(x[15 .. 8]) ^ h2(x[7 .. 0])
-
-function b1(b : bool) -> string = if b then "1" else "0"
+// The capability campaign's domain-specific helpers and exact ordered sweeps.
+// vos/rtl_vectors.py declares the questions. vos/oracle.py supplies printing,
+// fixed-width formatting and the shift register between these two sections.
+// Keep the schedule and seed transitions: they select the exhaustive domains,
+// deliberate corners and interleaved records consumed by the RTL harness.
 
 function b2v(b : bool) -> bits(1) = if b then 0b1 else 0b0
-
-// *****************************************************************
-// Input selection. A maximal-length 36-bit shift register, so that the address
-// dimension of a sweep varies without the sweep growing a fourth nested loop and
-// without anything here holding a table of addresses it would then be quantifying
-// over. The polynomial is x^36 + x^25 + 1.
-
-function lfsr36(s : bits(36)) -> bits(36) = {
-  let fb : bits(1) = s[35 .. 35] ^ s[24 .. 24];
-  (s << 1) | zero_extend(fb)
-}
 
 // The addresses a decode is worth taking at deliberately rather than at random:
 // the two ends of the field, the two ends of the implemented space, and the
@@ -124,96 +46,6 @@ function edge_t(i : int) -> bits(6) = match i {
   _ => 0b010101,
 }
 
-// *****************************************************************
-// The vectors.
-
-function emit_dec(c : CapBits) -> unit = {
-  let probe = capBitsToCapability(false, c);
-  let (base, top) = getCapBoundsBits(probe);
-  let mal : bool = unsigned(top) < unsigned(0b0 @ base);
-  let t : bool = not(mal);
-  let cap = capBitsToCapability(t, c);
-  let len = getCapLength(cap);
-  print_endline(
-    "dec " ^ b1(t) ^ " " ^ h16(c) ^ " ->"
-    ^ " " ^ h2(zero_extend(cap.perms))
-    ^ " " ^ h1(cap.otype)
-    ^ " " ^ b1(cap.normalized)
-    ^ " " ^ h2(zero_extend(cap.E))
-    ^ " " ^ h2(cap.B)
-    ^ " " ^ h2(cap.T)
-    ^ " " ^ h9(cap.address)
-    ^ " " ^ h16(capToBits(cap))
-    ^ " " ^ h9(base)
-    ^ " " ^ h10(top)
-    ^ " " ^ h10(to_bits_truncate(cap_len_width, len))
-    ^ " " ^ b1(mal)
-  )
-}
-
-function emit_sb(c : CapBits, base : CapAddrBits, top : CapLenBits) -> unit = {
-  let cap = capBitsToCapability(false, c);
-  let (exact, out) = setCapBounds(cap, base, top);
-  let (dbase, dtop) = getCapBoundsBits(out);
-  let len = getCapLength(out);
-  print_endline(
-    "sb " ^ h16(c) ^ " " ^ h9(base) ^ " " ^ h10(top) ^ " ->"
-    ^ " " ^ b1(exact)
-    ^ " " ^ b1(out.normalized)
-    ^ " " ^ h2(zero_extend(out.E))
-    ^ " " ^ h2(out.B)
-    ^ " " ^ h2(out.T)
-    ^ " " ^ h9(out.address)
-    ^ " " ^ h9(dbase)
-    ^ " " ^ h10(dtop)
-    ^ " " ^ h10(to_bits_truncate(cap_len_width, len))
-  )
-}
-
-function emit_sa(t : bool, c : CapBits, addr : xlenbits) -> unit = {
-  let cap = capBitsToCapability(t, c);
-  let (rep, moved) = setCapAddr(cap, addr);
-  let checked = setCapAddrChecked(cap, addr);
-  print_endline(
-    "sa " ^ b1(t) ^ " " ^ h16(c) ^ " " ^ h16(addr) ^ " -> "
-    ^ b1(rep) ^ " " ^ h9(moved.address) ^ " " ^ b1(checked.tag)
-  )
-}
-
-function emit_so(t : bool, c : CapBits, offset : xlenbits) -> unit = {
-  let cap = capBitsToCapability(t, c);
-  let (rep, moved) = setCapOffset(cap, offset);
-  let checked = setCapOffsetChecked(cap, offset);
-  print_endline(
-    "so " ^ b1(t) ^ " " ^ h16(c) ^ " " ^ h16(offset) ^ " -> "
-    ^ b1(rep) ^ " " ^ h9(moved.address) ^ " " ^ b1(checked.tag)
-  )
-}
-
-function emit_io(t : bool, c : CapBits, delta : xlenbits) -> unit = {
-  let cap = capBitsToCapability(t, c);
-  let (rep, moved) = incCapOffset(cap, delta);
-  print_endline(
-    "io " ^ b1(t) ^ " " ^ h16(c) ^ " " ^ h16(delta) ^ " -> "
-    ^ b1(rep) ^ " " ^ h9(moved.address)
-  )
-}
-
-function emit_frc(c : CapBits, i : CapAddrBits) -> unit = {
-  let cap = capBitsToCapability(false, c);
-  print_endline(
-    "frc " ^ h16(c) ^ " " ^ h9(i) ^ " -> " ^ b1(fastRepCheck(cap, i))
-  )
-}
-
-function emit_ib(c : CapBits, addr : xlenbits, size : CapLenBits) -> unit = {
-  let cap = capBitsToCapability(false, c);
-  print_endline(
-    "ib " ^ h16(c) ^ " " ^ h16(addr) ^ " " ^ h10(size) ^ " -> "
-    ^ b1(inCapBounds(cap, addr, unsigned(size)))
-  )
-}
-
 // The twelve accessors, assembled into the bitmap they index. Emitting them beside
 // `perms_expand`'s own answer is what holds the two against each other: an accessor
 // reading the wrong position and an expansion row with the wrong bit are the same
@@ -226,65 +58,7 @@ function accessor_bitmap(cap : Capability) -> CapPermsBits =
   @ b2v(cap_load_cap(cap)) @ b2v(cap_permit_store(cap))
   @ b2v(cap_permit_load(cap)) @ b2v(cap_global(cap))
 
-function emit_pe(code : CapPermsCode) -> unit = {
-  let cap = { null_cap with perms = code };
-  print_endline(
-    "pe " ^ h2(zero_extend(code)) ^ " -> "
-    ^ h3(perms_expand(code)) ^ " " ^ h3(accessor_bitmap(cap))
-  )
-}
-
-function emit_pn(want : CapPermsBits) -> unit = {
-  let code = perms_narrow(want);
-  print_endline(
-    "pn " ^ h3(want) ^ " -> " ^ h2(zero_extend(code)) ^ " " ^ h3(perms_expand(code))
-  )
-}
-
-function emit_sl(c : CapBits, otyp : CapOTypeBits) -> unit = {
-  let cap = capBitsToCapability(true, c);
-  let sealed = sealCap(cap, otyp);
-  print_endline(
-    "sl " ^ h16(c) ^ " " ^ h1(otyp) ^ " -> "
-    ^ b1(isCapSealed(sealed)) ^ " " ^ b1(hasReservedOType(sealed))
-    ^ " " ^ b1(isSentry(sealed))
-    ^ " " ^ h16(capToBits(sealed)) ^ " " ^ h16(capToBits(unsealCap(sealed)))
-  )
-}
-
-function emit_mb(t : bool, c : CapBits) -> unit = {
-  let cap = capBitsToCapability(t, c);
-  let mem = capToMemBits(cap);
-  let back = memBitsToCapability(t, mem);
-  print_endline(
-    "mb " ^ b1(t) ^ " " ^ h16(c) ^ " -> "
-    ^ h16(mem) ^ " " ^ b1(back.tag) ^ " " ^ h16(capToBits(back))
-  )
-}
-
-function emit_it(v : xlenbits) -> unit = {
-  let cap = int_to_cap(v);
-  print_endline(
-    "it " ^ h16(v) ^ " -> "
-    ^ b1(cap.tag) ^ " " ^ h16(capToBits(cap)) ^ " " ^ h9(cap.address)
-  )
-}
-
-function emit_ac(c : CapBits) -> unit = {
-  let cap = capBitsToCapability(false, c);
-  print_endline(
-    "ac " ^ h16(c) ^ " -> "
-    ^ h9(to_bits_truncate(cap_addr_width, getCapCursor(cap)))
-    ^ " " ^ h16(capAddrBits(cap))
-    ^ " " ^ h16(getCapBaseBits(cap))
-    ^ " " ^ h10(getCapTopBits(cap))
-    ^ " " ^ h16(getCapOffsetBits(cap))
-    ^ " " ^ h16(cap_to_integer_pc(cap))
-  )
-}
-
-// *****************************************************************
-// The sweeps.
+// The ordered sweeps.
 
 // Every one of the 2^19 bounds encodings, each at its own address. The exponent
 // field, the base mantissa and the stored top mantissa are walked exhaustively,
@@ -305,7 +79,7 @@ function sweep_decode_total() -> unit = {
           T       = to_bits_truncate(cap_mantissa_width - 2, tt),
           address = seed,
         };
-        emit_dec(encCapToBits(enc))
+        probe_dec(encCapToBits(enc))
       }
     }
   }
@@ -327,7 +101,7 @@ function sweep_decode_edges() -> unit = {
             T       = edge_t(ti),
             address = edge_addr(ai),
           };
-          emit_dec(encCapToBits(enc))
+          probe_dec(encCapToBits(enc))
         }
       }
     }
@@ -386,7 +160,7 @@ function sweep_setbounds() -> unit = {
     foreach (j from 0 to 7) {
       let base = sb_base(j, k);
       let top : CapLenBits = (0b0 @ base) + to_bits_truncate(cap_len_width, pow2(k));
-      emit_sb(c0, base, top)
+      probe_sb(c0, base, top)
     }
   };
   // Across the byte-exact threshold, which the frozen widths put at 128 bytes,
@@ -395,7 +169,7 @@ function sweep_setbounds() -> unit = {
     let base = thr_base(j);
     foreach (len from 0 to 400) {
       let top : CapLenBits = (0b0 @ base) + to_bits_truncate(cap_len_width, len);
-      emit_sb(c0, base, top)
+      probe_sb(c0, base, top)
     }
   };
   // A spread of magnitudes at pseudo-random bases, so that the exponent choice,
@@ -408,7 +182,7 @@ function sweep_setbounds() -> unit = {
     seed = lfsr36(seed);
     let sh = unsigned(seed[4 .. 0]);
     let len : CapLenBits = (0b0 @ seed) >> sh;
-    emit_sb(c0, base, (0b0 @ base) + len)
+    probe_sb(c0, base, (0b0 @ base) + len)
   };
   // The domain nothing states: a requested top above 2^cap_addr_width, and a
   // requested top below its own base. The containment property holds at or below
@@ -423,12 +197,12 @@ function sweep_setbounds() -> unit = {
     let base : CapAddrBits = seed;
     seed = lfsr36(seed);
     let top : CapLenBits = seed[0 .. 0] @ seed;
-    emit_sb(c0, base, top)
+    probe_sb(c0, base, top)
   };
   // The same domain at its own corners, where the exponent choice sees a length
   // that wrapped rather than a length.
   foreach (j from 0 to 7) {
-    emit_sb(c0, wrap_base(j), wrap_top(j))
+    probe_sb(c0, wrap_base(j), wrap_top(j))
   };
   // The exponent-increment branch's own corner, and it is narrow enough that a
   // sweep off entropy alone does not reach it: the branch fires with **neither**
@@ -447,7 +221,7 @@ function sweep_setbounds() -> unit = {
       let base : CapAddrBits = to_bits_truncate(cap_addr_width, m * pow2(k));
       foreach (n from 0 to 7) {
         let top : CapLenBits = to_bits_truncate(cap_len_width, n * pow2(k));
-        emit_sb(c0, base, top)
+        probe_sb(c0, base, top)
       }
     }
   }
@@ -502,18 +276,18 @@ function sweep_moves() -> unit = {
     let tagged : bool = (i % 2) == 0;
     foreach (j from 0 to 7) {
       let a = move_target(j, dbase, dtop, seed);
-      emit_sa(tagged, c, a);
-      emit_so(tagged, c, a);
-      emit_io(tagged, c, a)
+      probe_sa(tagged, c, a);
+      probe_so(tagged, c, a);
+      probe_io(tagged, c, a)
     };
     foreach (j from 0 to 7) {
-      emit_frc(c, rep_target(j, unsigned(cap.E), seed))
+      probe_frc(c, rep_target(j, unsigned(cap.E), seed))
     };
     foreach (j from 0 to 7) {
       let a = move_target(j, dbase, dtop, seed);
       let sz : CapLenBits = if (j % 2) == 0 then zeros()
                             else to_bits_truncate(cap_len_width, 1 + (j * 7));
-      emit_ib(c, a, sz)
+      probe_ib(c, a, sz)
     }
   }
 }
@@ -527,20 +301,20 @@ function sweep_lattice() -> unit = {
   // Every permission codepoint, against its own expansion and against the twelve
   // accessors that index it.
   foreach (i from 0 to 31) {
-    emit_pe(to_bits_truncate(cap_perms_code_width, i))
+    probe_pe(to_bits_truncate(cap_perms_code_width, i))
   };
   // And `perms_narrow` over **every** mask the expanded bitmap can take, which is
   // the whole of the domain `candperm` hands it: the search is a 32-way
   // largest-admitted-subset over a 12-bit input, so exhaustive is 4096 lines.
   foreach (i from 0 to 4095) {
-    emit_pn(to_bits_truncate(cap_perms_width, i))
+    probe_pn(to_bits_truncate(cap_perms_width, i))
   };
   var seed : bits(36) = 0x0c0ffee12;
   foreach (i from 0 to 31) {
     seed = lfsr36(seed);
     let c : CapBits = seed[27 .. 0] @ seed;
     foreach (j from 0 to 15) {
-      emit_sl(c, to_bits_truncate(cap_otype_width, j))
+      probe_sl(c, to_bits_truncate(cap_otype_width, j))
     }
   };
   foreach (i from 0 to 1999) {
@@ -548,14 +322,14 @@ function sweep_lattice() -> unit = {
     let hi : bits(36) = seed;
     seed = lfsr36(seed);
     let v : bits(64) = hi[27 .. 0] @ seed;
-    emit_mb((i % 2) == 0, v);
-    emit_it(v);
-    emit_ac(v)
+    probe_mb((i % 2) == 0, v);
+    probe_it(v);
+    probe_ac(v)
   }
 }
 
 function main() -> unit = {
-  print_endline("# vectors emitted by tools/cheri-equiv/gen_vectors.sail against");
+  print_endline("# vectors emitted by tools/run.py rtl vectors against");
   print_endline("# the curated model's core/cap_format.sail and core/cap_common.sail");
   print_endline("# fields are lowercase hex, width fixed by the field's bit width");
   sweep_decode_total();
