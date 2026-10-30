@@ -2681,6 +2681,17 @@ dispatch for that revision. An existing dispatch with matching inputs is reused.
 The frozen-lexer and proof-command comparisons provide the source-reading
 equivalence evidence.
 
+## Proof structure maintenance
+
+The [proof structure contract](docs/implementation/contracts/proof-structure.md)
+commissions the shared proof foundation, semantic checker interfaces, named
+conditions, geometry projection, trace replay, sequence edits, scalar lifting,
+NTT shape lemmas, independent updates and dependency-ordered crypto sources.
+Implementation starts from this landed contract. Its acceptance preserves the
+existing theorem meanings, executable behavior, assumption boundary and
+non-vacuity evidence. Host CI must pass on the published revision; every Guest CI
+lane is dispatched cold for that revision, with its proof verdict left pending.
+
 ## Model test-corpus library boundary
 
 The downloaded RISC-V test corpus has one integrity boundary: the model's declared
