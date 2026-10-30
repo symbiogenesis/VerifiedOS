@@ -22,6 +22,7 @@ and is stated once, in its own module beside the code that decides it.
 import re
 import tempfile
 from pathlib import Path
+from unittest.mock import patch
 
 from tests.harness import Case, ensure
 from vos import pins
@@ -295,6 +296,27 @@ def _offset_sites_keep_line_boundaries() -> None:
     ensure(not list(pins.scan_text("f", "", named)), "empty text must have no sites")
 
 
+def _candidate_regions_match_the_original_offset_scan() -> None:
+    named = pins.spellings(_rows())
+    lines = ["ordinary 123abcd", "core", "123abcd", "core 123abcd",
+             "-core 123abcd", "core_ 123abcd", "écore 123abcd", "core中 123abcd",
+             "core 123abcd nested-core 456abcd", "123abcd core 456abcd",
+             "İ core 123abcd", "core İ 123abcd", "é core 123abcd",
+             "core " + "a" * 41, "core " + "a" * 40, "core-123abcd",
+             "upstream/nested-core 456abcd", "CORE 123abcd", "", "core " * 30 + "123abcd"]
+    for newline in ("\n", "\r\n", "\r"):
+        for ending in ("", newline):
+            for text in (newline.join(lines) + ending, *(line + ending for line in lines)):
+                expected = list(pins._scan_ids("fixture", text, named))
+                actual = list(pins.scan_text("fixture", text, named))
+                ensure(actual == expected,
+                       f"candidate regions changed complete sites for {text!r}: {actual!r}")
+    ascii_text = "only 123abcd\ncore 456abcd\ncore 123abcd\ntrailing"
+    with patch.object(pins, "_scan_ids", side_effect=AssertionError("unexpected fallback")):
+        ensure(len(list(pins.scan_text("fixture", ascii_text, named))) == 2,
+               "ordinary sources must use candidate regions")
+
+
 def cases() -> list[Case]:
     return [
         Case("reads-its-own-table", _reads_its_own_table),
@@ -312,4 +334,5 @@ def cases() -> list[Case]:
         Case("a-file-that-is-not-there", _a_file_that_is_not_there),
         Case("id-boundaries-match-reference", _id_boundaries_match_reference),
         Case("offset-sites-keep-line-boundaries", _offset_sites_keep_line_boundaries),
+        Case("candidate-regions-match-original-offset-scan", _candidate_regions_match_the_original_offset_scan),
     ]

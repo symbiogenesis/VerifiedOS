@@ -277,6 +277,29 @@ def cited_within(text: str, span: tuple[int, int]) -> list[str]:
     return cast("list[str]", REQ_TOKEN_RE.findall(text, span[0], span[1]))
 
 
+class ParseCache:
+    """One invocation's lexical facts, keyed by immutable source text.
+
+    Readers still acquire their current bytes and own their membership and read
+    failures. Repeated text shares delimiter and citation scans; a same-size edit
+    is a different input, and malformed delimiters retain their original faults.
+    """
+
+    def __init__(self) -> None:
+        self._regions: dict[str, Derived] = {}
+        self._ids: dict[str, tuple[str, ...]] = {}
+
+    def region(self, text: str) -> Derived:
+        if text not in self._regions:
+            self._regions[text] = derived(text)
+        return self._regions[text]
+
+    def ids(self, text: str) -> tuple[str, ...]:
+        if text not in self._ids:
+            self._ids[text] = tuple(ids(text, self.region(text)))
+        return self._ids[text]
+
+
 def _void(decorated: str) -> str | None:
     """The control flag keeping nothing, `Fail` or `Succeed`, among a run of decorations."""
     found, _ = decorations(decorated)

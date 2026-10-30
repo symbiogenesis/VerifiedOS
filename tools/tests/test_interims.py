@@ -268,6 +268,27 @@ def _compressed_evidence_is_read_or_refused() -> None:
                f"compressed contents must be read or undecided, never hidden: {wanted!r}, {found!r}")
 
 
+def _line_locations_match_complete_prefix_accounting() -> None:
+    name = "kernel/fixture.c"
+    raw = b"prefix\r\nHACL* F*/Z3 Hacl_\r\n\r\nEasyCrypt\ninvalid \xff HACL*\nF*"
+    tree = {REGISTER: _register(_EMPTY), interims.PLAN: _PLAN, interims.LOG: _LOG,
+            interims.RECORD: _RECORD, name: "placeholder"}
+    with sandbox_tree(tree) as root:
+        (root / name).write_bytes(raw)
+        actual = [citation for citation in interims.scan(_context(root), {}).citations
+                  if citation.path == name]
+    expected: list[interims.Citation] = []
+    for at, token in interims.hits(raw):
+        start = raw.rfind(b"\n", 0, at) + 1
+        end = raw.find(b"\n", at)
+        line = raw[start:end if end >= 0 else len(raw)].decode("utf-8", errors="replace").rstrip("\r")
+        expected.append(interims.Citation(name, raw.count(b"\n", 0, at) + 1, "",
+                        raw[at:at + len(token.needle)].decode("utf-8", errors="replace"),
+                        token.interim, line))
+    ensure(actual == expected,
+           "advancing offsets must retain every ordered token, source line and replacement decode")
+
+
 def _listed_consumer_citing_nothing_is_a_finding() -> None:
     accept = (_BOOKS + "F\\*/Z3's consumers are M9.9 and `kernel/src/mlkem.c`; "
               "EasyCrypt's consumers are R-05-022 and `proofs/Absent.v`.")
@@ -344,6 +365,7 @@ def _token_table_reads_every_name() -> None:
 
 def cases() -> list[Case]:
     return [
+        Case("line-locations-match-complete-prefix-accounting", _line_locations_match_complete_prefix_accounting),
         Case("empty-form-holds", _empty_form_holds),
         Case("compressed-evidence-is-read-or-refused", _compressed_evidence_is_read_or_refused),
         Case("non-empty-form-is-read-and-resolved", _non_empty_form_is_read_and_resolved),

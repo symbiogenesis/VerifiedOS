@@ -6,7 +6,7 @@ from unittest.mock import patch
 
 from tests.harness import Case, ensure, sandbox_tree
 from vos import corpus, pins, retained
-from vos.checks import Context, interims
+from vos.checks import Context, glyphs, interims
 from vos.checks import pins as pin_checks
 from vos.register import REGISTER, read_artifacts, read_register
 from vos.report import Reporter
@@ -109,6 +109,80 @@ def _cache_requires_actual_bytes_and_matchers() -> None:
     ensure("broken" not in cache._entries, "failures must not enter the facts cache")
 
 
+def _sparse_pin_candidates_preserve_all_sites() -> None:
+    named = _names()
+    names = tuple(needle for needle, _, _ in named)
+    samples = ["core\n123abcd\n", "header core\n" + "ordinary abcdef0\n" * 25,
+               "ordinary\ncore 123abcd nested-core 456abcd\n\nCORE-123abcd\n",
+               "core_ 123abcd\n-core 123abcd\nécore 123abcd\ncore中 123abcd\n",
+               "é core 123abcd\ncore 123abcd 456abcd\ntrailing core 123abcd"]
+    for sample in samples:
+        for newline in ("\n", "\r\n", "\r"):
+            text = sample.replace("\n", newline)
+            normalized = text.replace("\r\n", "\n").replace("\r", "\n")
+            expected = list(pins._scan_ids("fixture", normalized, named))
+            blob = gzip.compress(text.encode())
+            for size in (1, 2, 7, 31, 256 * 1024):
+                facts = retained.prescan(blob, names, (), (), chunk_size=size)
+                if facts.pin_text is None:
+                    raise AssertionError("requested candidates must be explicit")
+                actual = list(pins.scan_text("fixture", facts.pin_text, named))
+                ensure(actual == expected,
+                       f"sparse source lost sites at chunk {size}, newline {newline!r}")
+    for text in ("core 123abcd\ninvalid \xff".encode("latin-1"),
+                 "core 123abcd\nİ text".encode()):
+        try:
+            retained.prescan(gzip.compress(text), names, (), (), chunk_size=3)
+        except retained.UnsupportedScanError:
+            pass
+        else:
+            raise AssertionError("late unsupported text must retain the complete reader")
+    try:
+        retained.prescan(gzip.compress(b"core " + b"a" * (1024 * 1024 + 1)), names, (), ())
+    except retained.UnsupportedScanError:
+        pass
+    else:
+        raise AssertionError("enormous partial lines must use the complete reader")
+
+
+def _glyph_candidates_cover_chunks_and_share_facts() -> None:
+    markers = tuple(mark.encode() for mark in glyphs.MOJIBAKE_MARKS)
+    for mark in glyphs.MOJIBAKE_MARKS:
+        raw = ("prefix " + mark + " suffix").encode()
+        for size in (1, 2, 3, 7):
+            facts = retained.prescan(gzip.compress(raw), (), (), (), glyphs=markers,
+                                     chunk_size=size)
+            ensure(facts.glyph is True, "a glyph marker may cross any chunk boundary")
+    evidence = corpus.COMPRESSED_EVIDENCE + "fixture.txt.gz"
+    record = ("# Third party\n\n## Pinned as submodules\n\n"
+              "| Submodule | Upstream | Pin |\n| --- | --- | --- |\n"
+              "| `upstream/core` | `example/core` | `123abcd` |\n"
+              "| `upstream/nested-core` | `other/nested-core` | `456abcd` |\n")
+    tree = {"README.md": "# Fixture\n", REGISTER: "# Register\n", pins.RECORD: record,
+            evidence: "placeholder"}
+    with sandbox_tree(tree) as root:
+        found = corpus.load(root)
+        ctx = Context(root, found, read_register(found), read_artifacts(found), Reporter())
+        named = pins.spellings(pins.read_record(record).rows)
+        for text in ("ordinary text\n", "core 123abcd\nHACL*\n",
+                     "core 123abcd\n" + chr(0xFFFD) + "\n"):
+            (root / evidence).write_bytes(gzip.compress(text.encode()))
+            with patch.object(retained.Cache, "scan", side_effect=retained.UnsupportedScanError):
+                expected = list(glyphs._texts(ctx))
+            with patch.object(retained, "prescan", wraps=retained.prescan) as scan:
+                actual = list(glyphs._texts(ctx))
+                list(pin_checks._sources(ctx, named))
+                interims.scan(ctx, {})
+                ensure(scan.call_count == 1, "three consumers must share one immutable scan")
+            expected_damage = [(rel, glyphs._lines_carrying(raw, (m.start() for m in
+                                glyphs.MOJIBAKE_RE.finditer(raw)))) for rel, raw in expected]
+            actual_damage = [(rel, glyphs._lines_carrying(raw, (m.start() for m in
+                              glyphs.MOJIBAKE_RE.finditer(raw)))) for rel, raw in actual]
+            ensure([(rel, lines) for rel, lines in actual_damage if lines]
+                   == [(rel, lines) for rel, lines in expected_damage if lines],
+                   "shared glyph candidate facts must preserve all exact damage locations")
+
+
 def _checks_preserve_results_and_refresh_bytes() -> None:
     evidence = corpus.COMPRESSED_EVIDENCE + "fixture.txt.gz"
     named = _names()
@@ -133,7 +207,7 @@ def _checks_preserve_results_and_refresh_bytes() -> None:
             actual_pins = list(pin_checks._sources(ctx, named))
             actual_interims = interims.scan(ctx, {})
             # Absence sources may be omitted only when their full pin parse has
-            # no restatement; positive sources remain complete original strings.
+            # no restatement; sparse positive sources preserve every complete site.
             def sites(sources: list[tuple[str, str, list[bool]]]) -> list[pins.Site]:
                 return [site for file, text, _ in sources
                         for site in pins.scan_text(file, text, named)]
@@ -148,4 +222,6 @@ def cases() -> list[Case]:
             Case("members-headers-and-corruption", _members_headers_and_corruption),
             Case("unicode-fallback-is-not-absence", _unicode_fallback_is_not_absence),
             Case("cache-requires-actual-bytes-and-matchers", _cache_requires_actual_bytes_and_matchers),
+            Case("sparse-pin-candidates-preserve-all-sites", _sparse_pin_candidates_preserve_all_sites),
+            Case("glyph-candidates-cover-chunks-and-share-facts", _glyph_candidates_cover_chunks_and_share_facts),
             Case("checks-preserve-results-and-refresh-bytes", _checks_preserve_results_and_refresh_bytes)]

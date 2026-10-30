@@ -71,6 +71,24 @@ def _generation_preserves_citations_and_code() -> None:
            "the second regeneration did not reach a byte-for-byte fixpoint")
 
 
+def _shared_parse_preserves_header_bytes_and_failures() -> None:
+    cache = proofcites.ParseCache()
+    for source in (_SOURCE, _SOURCE.replace("\n", "\r\n"),
+                   _SOURCE.replace("R-01-001", "R-02-001")):
+        cache.ids(source)
+        expected = proofheaders.render(source, _register())
+        ensure(proofheaders.render(source, _register(), cache=cache) == expected,
+               "header generation must preserve exact bytes when lexical facts are shared")
+    bad = _SOURCE.replace("R-01-001", "R-99-999")
+    cache.ids(bad)
+    try:
+        proofheaders.render(bad, _register(), cache=cache)
+    except proofheaders.HeaderError as error:
+        ensure("R-99-999" in str(error), "a changed same-size citation must still refuse")
+    else:
+        raise AssertionError("cached parsing authorized a stale header citation")
+
+
 def _a_changed_entry_rewrites_only_its_region() -> None:
     reg = _register()
     first = proofheaders.render(_SOURCE, reg)
@@ -225,6 +243,7 @@ def _memory_plan_header_repair_updates_its_export_once() -> None:
 
 def cases() -> list[Case]:
     return [
+        Case("shared-parse-preserves-header-bytes-and-failures", _shared_parse_preserves_header_bytes_and_failures),
         Case("generation preserves citations and code", _generation_preserves_citations_and_code),
         Case("a changed entry rewrites only its region", _a_changed_entry_rewrites_only_its_region),
         Case("canonical selection and fingerprint scope", _canonical_selection_and_fingerprint_scope),

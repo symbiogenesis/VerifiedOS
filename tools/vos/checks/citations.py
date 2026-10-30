@@ -80,7 +80,7 @@ def run(ctx: Context) -> None:
     # instead, in the terms that rule reads, since what is missing there is not the same
     # thing twice.
     pairs, faults = proofcites.read(ctx.root, rels)
-    read = [(rel, text, proofcites.derived(text)) for rel, text in pairs]
+    read = [(rel, text, ctx.proof_reading.region(text)) for rel, text in pairs]
 
     _cited(ctx, rels, read, faults)
     _regions(ctx, rels, read, faults)
@@ -102,8 +102,8 @@ def _cited(ctx: Context, rels: list[str], read: list[Artifact],
 
     total = 0
     distinct: set[str] = set()
-    for rel, text, region in read:
-        cited = proofcites.ids(text, region)
+    for rel, text, _region in read:
+        cited = ctx.proof_reading.ids(text)
         total += len(cited)
         distinct |= set(cited)
         findings += [f"{rel} cites {ident}, which names no live requirement: the "
@@ -220,7 +220,7 @@ def _regions(ctx: Context, rels: list[str], read: list[Artifact],
         findings += [f"{rel}: {fault}" for fault in region.faults]
         if not region.spans:
             continue
-        cited = set(proofcites.ids(text, region))
+        cited = set(ctx.proof_reading.ids(text))
         for span in region.spans:
             allowed = cited if _manifest(text[span[0]:span[1]]) else _transcribable(reg, cited)
             regions += 1

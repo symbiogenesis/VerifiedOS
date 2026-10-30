@@ -31,6 +31,25 @@ def _source_counts() -> dict[str, int]:
     return quantities
 
 
+def _count_masks_share_only_equal_representations() -> None:
+    for text in ("# Heading\n```\n13 requirements\n```\n", "# Heading\r\ntext\r\n",
+                 "# Heading\ntext\u2028more\n", "# Heading\rtext\n"):
+        doc = corpus_mod.from_text(text, "fixture.md")
+        legacy = counts._CountText.read("fixture.md", text)
+        actual = counts._CountText.read("fixture.md", text, doc)
+        ensure(actual == legacy, "shared masks must retain legacy separators and offsets")
+        if doc.lines == text.splitlines():
+            ensure(actual.fenced is doc.fenced and actual.lines is doc.starts,
+                   "equal immutable representations must share existing structure")
+    first = "```\n13 requirements\n```\n"
+    second = "---\n13 requirements\n---\n"
+    ensure(len(first) == len(second), "fixture edits preserve size")
+    old = corpus_mod.from_text(first, "fixture.md")
+    ensure(counts._CountText.read("fixture.md", second, old)
+           == counts._CountText.read("fixture.md", second),
+           "same-size repairs must not reuse the original document mask")
+
+
 def _growth_does_not_reclassify_counts() -> None:
     files = {
         counts.REGISTER: _REGISTER,
@@ -231,6 +250,7 @@ def _historical_evidence_is_not_live_repair_input() -> None:
 
 def cases() -> list[Case]:
     return [
+        Case("count-masks-share-only-equal-representations", _count_masks_share_only_equal_representations),
         Case("growth-does-not-reclassify-counts", _growth_does_not_reclassify_counts),
         Case("scopes-and-count-tokens", _scopes_and_count_tokens),
         Case("registered-claim-offsets-follow-repairs", _registered_claim_offsets_follow_repairs),
