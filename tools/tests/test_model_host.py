@@ -48,7 +48,7 @@ from typing import IO, Self, cast
 from unittest.mock import Mock, patch
 
 from tests.harness import TOOLS, Case, ensure
-from vos import differential, env
+from vos import differential, env, model_corpus
 from vos.cli import evidence
 
 
@@ -331,8 +331,23 @@ def _extracted(tree: Path, files: dict[str, bytes], digest: str = _CORPUS_DIGEST
     for name, data in files.items():
         (suite / name).parent.mkdir(parents=True, exist_ok=True)
         (suite / name).write_bytes(data)
-    _MODEL.corpus_manifest(suite).write_bytes(_MODEL.corpus_listing(suite, digest))
+    model_corpus.corpus_manifest(suite).write_bytes(model_corpus.corpus_listing(suite, digest))
     return suite
+
+
+def _corpus_library_imports_without_command_layer() -> None:
+    script = """
+import sys
+from vos import model_corpus
+loaded = sorted(name for name in sys.modules if name == 'vos.cli' or name.startswith('vos.cli.'))
+if loaded:
+    raise RuntimeError(f'corpus import loaded command modules: {loaded}')
+if model_corpus.__name__ != 'vos.model_corpus':
+    raise RuntimeError('wrong test-corpus implementation owner')
+"""
+    done = subprocess.run([sys.executable, "-c", script], cwd=TOOLS,
+                          capture_output=True, text=True, check=False, timeout=60)
+    ensure(done.returncode == 0, f"fresh corpus library import crossed the CLI boundary: {done.stderr}")
 
 
 def _corpus_listing_format() -> None:
@@ -353,9 +368,9 @@ def _corpus_listing_format() -> None:
 
         want = (f"tarball riscv-tests.tar.gz sha256 {_CORPUS_DIGEST}\n"
                 + line("a-b") + line("a.c") + line("a/b") + line("a0")).encode()
-        got = _MODEL.corpus_listing(suite, _CORPUS_DIGEST)
+        got = model_corpus.corpus_listing(suite, _CORPUS_DIGEST)
         ensure(got == want, f"the listing's bytes are the stated format, got {got!r}")
-        ensure(_MODEL.corpus_manifest(suite) == Path(td) / "riscv-tests.manifest",
+        ensure(model_corpus.corpus_manifest(suite) == Path(td) / "riscv-tests.manifest",
                "the manifest sits beside the suite, where no suite glob reaches it")
 
 
@@ -367,7 +382,7 @@ def _corpus_digests() -> None:
         vector = f'set(TEST_DOWNLOAD_SHA256_{_RELEASE}_riscv-vector-tests-v64x64 "{"0" * 64}")\n'
         other = f'set(TEST_DOWNLOAD_SHA256_2020-01-01_riscv-tests "{"1" * 64}")\n'
         declaration.write_text(valid + vector + other, encoding="utf-8", newline="")
-        got = _MODEL.test_corpus_digests(model_root, _RELEASE)
+        got = model_corpus.test_corpus_digests(model_root, _RELEASE)
         ensure(got == {"riscv-tests": _CORPUS_DIGEST, "riscv-vector-tests-v64x64": "0" * 64},
                f"every tarball of the release and no other release's, got {got}")
         repeated = valid + f'set(TEST_DOWNLOAD_SHA256_{_RELEASE}_riscv-tests "{"2" * 64}")\n'
@@ -376,7 +391,7 @@ def _corpus_digests() -> None:
         for text in (repeated, short, upper):
             declaration.write_text(text, encoding="utf-8", newline="")
             try:
-                _MODEL.test_corpus_digests(model_root, _RELEASE)
+                model_corpus.test_corpus_digests(model_root, _RELEASE)
             except ValueError:
                 continue
             raise AssertionError(f"a repeated or malformed digest must be refused: {text!r}")
@@ -385,11 +400,11 @@ def _corpus_digests() -> None:
 def _verify_test_corpus() -> None:
     with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
         suite = _extracted(Path(td), {"rv64ui-p-add": b"\x7fELF", "rv64ui-p-add.dump": b"d"})
-        _MODEL.verify_test_corpus(suite, _CORPUS_DIGEST)
+        model_corpus.verify_test_corpus(suite, _CORPUS_DIGEST)
 
         def refused(why: str, digest: str = _CORPUS_DIGEST) -> None:
             try:
-                _MODEL.verify_test_corpus(suite, digest)
+                model_corpus.verify_test_corpus(suite, digest)
             except ValueError as err:
                 ensure(why in str(err), f"the refusal names {why!r}, got {err}")
             else:
@@ -405,8 +420,8 @@ def _verify_test_corpus() -> None:
         (suite / "rv64ui-p-add.dump").unlink()
         refused("disagrees")
         (suite / "rv64ui-p-add.dump").write_bytes(b"d")
-        _MODEL.verify_test_corpus(suite, _CORPUS_DIGEST)
-        _MODEL.corpus_manifest(suite).unlink()
+        model_corpus.verify_test_corpus(suite, _CORPUS_DIGEST)
+        model_corpus.corpus_manifest(suite).unlink()
         refused("has no riscv-tests.manifest")
 
         # a link is never hashed through, even under a manifest crafted to list it
@@ -414,8 +429,8 @@ def _verify_test_corpus() -> None:
             (suite / "rv64ui-p-link").symlink_to(suite / "rv64ui-p-add")
         except OSError:
             return  # a Windows host without the symlink privilege; Linux runs it
-        _MODEL.corpus_manifest(suite).write_bytes(
-            _MODEL.corpus_listing(suite, _CORPUS_DIGEST))
+        model_corpus.corpus_manifest(suite).write_bytes(
+            model_corpus.corpus_listing(suite, _CORPUS_DIGEST))
         refused("non-regular")
 
 
@@ -427,8 +442,8 @@ def _verified_inputs_are_the_suites_top_level_programs() -> None:
     with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
         suite = _extracted(Path(td), {"rv64ui-p-add": b"\x7fELF", "rv64ui-p-add.dump": b"d",
                                       "rv64ui-p-dir/rv64ui-p-nested": b"\x7fELF n"})
-        verified = _MODEL.verify_test_corpus(suite, _CORPUS_DIGEST)
-        chosen = _MODEL._verified_inputs(verified, "rv64ui-p-*")
+        verified = model_corpus.verify_test_corpus(suite, _CORPUS_DIGEST)
+        chosen = model_corpus.verified_inputs(verified, "rv64ui-p-*")
     ensure(chosen == {suite / "rv64ui-p-add": hashlib.sha256(b"\x7fELF").hexdigest()},
            f"only the top-level program is an input, got {chosen}")
 
@@ -448,7 +463,7 @@ def _seed_test_data() -> None:
         suite = target / "test" / _RELEASE / "riscv-tests"
         ensure((suite / "rv64ui-p-add").read_bytes() == b"\x7fELF",
                f"the verified suite is copied into the cold tree, got {err.getvalue()!r}")
-        _MODEL.verify_test_corpus(suite, _CORPUS_DIGEST)
+        model_corpus.verify_test_corpus(suite, _CORPUS_DIGEST)
         ensure(not (target / "test/2020-01-01").exists(),
                "another release's suite is not seeded")
         ensure(sorted(p.name for p in suite.parent.iterdir())
@@ -501,14 +516,14 @@ def _seed_test_data_refuses_unverified() -> None:
         suite = target / "test" / _RELEASE / "riscv-tests"
         ensure((suite / "rv64ui-p-add").read_bytes() == b"\x7fELF good",
                "the first donor that verifies seeds the suite")
-        _MODEL.verify_test_corpus(suite, _CORPUS_DIGEST)
+        model_corpus.verify_test_corpus(suite, _CORPUS_DIGEST)
 
 
 @contextmanager
 def _copies_spied() -> Generator[Mock]:
     """`_copy_regular_file` as it is, with the calls the seeding makes of it recorded."""
-    with patch.object(_MODEL, "_copy_regular_file",
-                      wraps=_MODEL._copy_regular_file) as copied:
+    with patch.object(model_corpus, "_copy_regular_file",
+                      wraps=model_corpus._copy_regular_file) as copied:
         yield copied
 
 
@@ -516,7 +531,7 @@ def _seeded_without_copying(donor: Path, model_root: Path) -> None:
     """Seed from `donor`, which holds an entry that is not a regular file under a
     manifest crafted to list it, and hold that nothing is copied or seeded; then seed
     from a clean donor, the positive control, whose one file is copied."""
-    ensure(_MODEL.corpus_manifest(donor / "test" / _RELEASE / "riscv-tests").is_file(),
+    ensure(model_corpus.corpus_manifest(donor / "test" / _RELEASE / "riscv-tests").is_file(),
            "precondition: the donor's manifest stands, so only the entry's kind decides "
            "the refusal")
     target = donor.parent / f"target-{donor.name}"
@@ -572,7 +587,7 @@ def _seed_refuses_a_fifo_donor() -> None:
         donor = root / "fifo"
         suite = _extracted(donor, {"rv64ui-p-add": b"\x7fELF"})
         os.mkfifo(suite / "rv64ui-p-fifo")
-        _MODEL.corpus_manifest(suite).write_bytes(_MODEL.corpus_listing(suite, _CORPUS_DIGEST))
+        model_corpus.corpus_manifest(suite).write_bytes(model_corpus.corpus_listing(suite, _CORPUS_DIGEST))
         _seeded_without_copying(donor, model_root)
 
 
@@ -614,7 +629,7 @@ def _manifest_refused(donor: Path, model_root: Path,
     """Seed from `donor`, whose manifest is not a regular file, and hold that the seeding
     returns, names the donor and the manifest's kind, copies no file, and seeds
     nothing."""
-    manifest = _MODEL.corpus_manifest(donor / "test" / _RELEASE / "riscv-tests")
+    manifest = model_corpus.corpus_manifest(donor / "test" / _RELEASE / "riscv-tests")
     target = donor.parent / f"target-{donor.name}"
     with _copies_spied() as copied, redirect_stderr(io.StringIO()) as err:
         _returns(lambda: _MODEL._seed_test_data([donor], target, model_root), unblock)
@@ -679,22 +694,22 @@ def _open_regular_asks_the_name_first() -> None:
         for kind, shift, why in ((stat.S_IFCHR, 0, "a device is refused unopened"),
                                  (stat.S_IFREG, 1, "another file is refused once opened")):
             opened.clear()
-            with patch.object(_MODEL, "os", answering(kind, shift)):
-                fd = _MODEL._open_regular(path)
+            with patch.object(model_corpus, "os", answering(kind, shift)):
+                fd = model_corpus._open_regular(path)
             if fd is not None:
                 os.close(fd)
             ensure(fd is None and opened == ([] if kind == stat.S_IFCHR else [str(path)]),
                    f"{why}, got {fd} after opening {opened}")
         opened.clear()
-        with patch.object(_MODEL, "os", answering(stat.S_IFREG)):
-            fd = _MODEL._open_regular(path)
+        with patch.object(model_corpus, "os", answering(stat.S_IFREG)):
+            fd = model_corpus._open_regular(path)
         ensure(fd is not None and opened == [str(path)],
                f"control: the file the name reported opens, got {fd} after {opened}")
         with os.fdopen(cast("int", fd), "rb") as stream:
             ensure(stream.read() == b"\x7fELF", "and reads as it is")
         for name in ("O_NONBLOCK", "O_NOFOLLOW", "O_NOCTTY", "O_BINARY"):
             flag = getattr(os, name, 0)
-            ensure(_MODEL._REGULAR_ONLY & flag == flag,
+            ensure(model_corpus._REGULAR_ONLY & flag == flag,
                    f"{name} rides every corpus open on a platform that defines it")
 
 
@@ -733,8 +748,8 @@ def _open_regular_refuses_what_the_name_answered_as_a_file() -> None:
 
         def opened(path: Path) -> int | None:
             held: list[int | None] = []
-            with patch.object(_MODEL, "os", _os_answering_regular()):
-                _returns(lambda: held.append(_MODEL._open_regular(path)),
+            with patch.object(model_corpus, "os", _os_answering_regular()):
+                _returns(lambda: held.append(model_corpus._open_regular(path)),
                          partial(_end_of_file, fifo))
             return held[0]
 
@@ -758,8 +773,8 @@ def _seed_refuses_a_device_manifest() -> None:
         model_root = _corpus_model(root)
         donor = root / "device-manifest"
         _extracted(donor, {"rv64ui-p-add": b"\x7fELF"})
-        device = _os_with_a_device(lambda path: path.endswith(_MODEL.CORPUS_MANIFEST_SUFFIX))
-        with patch.object(_MODEL, "os", device):
+        device = _os_with_a_device(lambda path: path.endswith(model_corpus.CORPUS_MANIFEST_SUFFIX))
+        with patch.object(model_corpus, "os", device):
             _manifest_refused(donor, model_root)
         target = root / "target-control"
         with _copies_spied() as copied:
@@ -779,7 +794,7 @@ def _seed_refuses_a_fifo_manifest() -> None:
         root = Path(td)
         model_root = _corpus_model(root)
         donor = root / "fifo-manifest"
-        manifest = _MODEL.corpus_manifest(_extracted(donor, {"rv64ui-p-add": b"\x7fELF"}))
+        manifest = model_corpus.corpus_manifest(_extracted(donor, {"rv64ui-p-add": b"\x7fELF"}))
         manifest.unlink()
         os.mkfifo(manifest)
         _manifest_refused(donor, model_root, partial(_end_of_file, manifest))
@@ -799,7 +814,7 @@ def _seed_refuses_a_manifest_linked_to_a_fifo() -> None:
         root = Path(td)
         model_root = _corpus_model(root)
         donor = root / "linked-manifest"
-        manifest = _MODEL.corpus_manifest(_extracted(donor, {"rv64ui-p-add": b"\x7fELF"}))
+        manifest = model_corpus.corpus_manifest(_extracted(donor, {"rv64ui-p-add": b"\x7fELF"}))
         fifo = root / "target-fifo"
         os.mkfifo(fifo)
         manifest.unlink()
@@ -808,7 +823,7 @@ def _seed_refuses_a_manifest_linked_to_a_fifo() -> None:
 
 
 # `verify_test_corpus` over the suite and digest it is given, in a child whose address
-# space is held to a gibibyte once model.py is imported, printing the refusal. A read of
+# space is held to a gibibyte once the corpus library is imported, printing the refusal. A read of
 # more than that fails with `MemoryError` there whatever the kernel's overcommit policy,
 # where a process allowed to overcommit would map the whole read and be killed for the
 # memory it touched. `resource` is POSIX-only, and the child runs only on a guest lane.
@@ -817,13 +832,13 @@ import resource
 import sys
 from pathlib import Path
 
-from vos.cli import model
+from vos import model_corpus
 
 _, hard = resource.getrlimit(resource.RLIMIT_AS)
 limit = 1 << 30 if hard == resource.RLIM_INFINITY else min(1 << 30, hard)
 resource.setrlimit(resource.RLIMIT_AS, (limit, hard))
 try:
-    model.verify_test_corpus(Path(sys.argv[1]), sys.argv[2])
+    model_corpus.verify_test_corpus(Path(sys.argv[1]), sys.argv[2])
 except ValueError as err:
     print(err)
 else:
@@ -845,7 +860,7 @@ def _verify_refuses_a_sparse_manifest() -> None:
                              "runs in the guest")
     with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
         suite = _extracted(Path(td), {"rv64ui-p-add": b"\x7fELF"})
-        os.truncate(_MODEL.corpus_manifest(suite), 1 << 40)
+        os.truncate(model_corpus.corpus_manifest(suite), 1 << 40)
         done = subprocess.run([sys.executable, "-c", _BOUNDED_VERIFY, str(suite),
                                _CORPUS_DIGEST],
                               capture_output=True, encoding="utf-8", errors="replace",
@@ -865,9 +880,9 @@ def _verify_reads_no_file_until_the_paths_agree() -> None:
         suite = _extracted(Path(td), {"rv64ui-p-add": b"\x7fELF", "rv64ui-p-sub": b"\x7fELF"})
 
         def refused_unread(*where: str) -> None:
-            with patch.object(_MODEL, "_regular_digest",
-                              wraps=_MODEL._regular_digest) as hashed:
-                said = _refused(partial(_MODEL.verify_test_corpus, suite, _CORPUS_DIGEST))
+            with patch.object(model_corpus, "_regular_digest",
+                              wraps=model_corpus._regular_digest) as hashed:
+                said = _refused(partial(model_corpus.verify_test_corpus, suite, _CORPUS_DIGEST))
             ensure("disagrees" in said and all(part in said for part in where)
                    and not hashed.called,
                    f"the suite disagrees ({where}) before a file is read, got {said!r} "
@@ -882,8 +897,8 @@ def _verify_reads_no_file_until_the_paths_agree() -> None:
         gone.unlink()
         refused_unread("at line 3: the manifest has '", ", read no further, and the tree '<end>'")
         gone.write_bytes(b"\x7fELF")
-        with patch.object(_MODEL, "_regular_digest", wraps=_MODEL._regular_digest) as hashed:
-            _MODEL.verify_test_corpus(suite, _CORPUS_DIGEST)
+        with patch.object(model_corpus, "_regular_digest", wraps=model_corpus._regular_digest) as hashed:
+            model_corpus.verify_test_corpus(suite, _CORPUS_DIGEST)
         ensure(sorted(Path(read.args[0]).name for read in hashed.call_args_list)
                == ["rv64ui-p-add", "rv64ui-p-sub"],
                f"control: each file of the sealed suite is read once, got "
@@ -921,8 +936,8 @@ def _copy_regular_file() -> None:
         source.write_bytes(b"\x7fELF\r\n\x1a after")
         source.chmod(0o640)
         os.utime(source, ns=(1_000_000_000, 2_000_000_000))
-        verified = _MODEL._regular_digest(source)
-        _MODEL._copy_regular_file(source, copied, verified)
+        verified = model_corpus._regular_digest(source)
+        model_corpus._copy_regular_file(source, copied, verified)
         was, now = source.stat(), copied.stat()
         ensure(copied.read_bytes() == source.read_bytes()
                and stat.S_IMODE(now.st_mode) == stat.S_IMODE(was.st_mode)
@@ -933,21 +948,21 @@ def _copy_regular_file() -> None:
         twin.write_bytes(source.read_bytes())
         grown = root / "rv64ui-p-grown"
         grown.write_bytes(source.read_bytes())
-        grown_verified = _MODEL._regular_digest(grown)
+        grown_verified = model_corpus._regular_digest(grown)
         with grown.open("ab") as stream:
             stream.write(b"!")
         for path, held in ((twin, verified), (grown, grown_verified)):
             kept = root / f"{path.name}-copy"
-            said = _refused(partial(_MODEL._copy_regular_file, path, kept, held))
+            said = _refused(partial(model_corpus._copy_regular_file, path, kept, held))
             ensure(f"{path} is not the file that verified" in said,
                    f"the refusal names {path.name}, got {said!r}")
             ensure(not kept.exists(), f"and nothing is written for {path.name}")
 
         device, kept = root / "rv64ui-p-device", root / "device-copy"
         device.write_bytes(b"")
-        blank = _MODEL._regular_digest(device)
-        with patch.object(_MODEL, "os", _os_with_a_device(lambda path: path == str(device))):
-            said = _refused(partial(_MODEL._copy_regular_file, device, kept, blank))
+        blank = model_corpus._regular_digest(device)
+        with patch.object(model_corpus, "os", _os_with_a_device(lambda path: path == str(device))):
+            said = _refused(partial(model_corpus._copy_regular_file, device, kept, blank))
         ensure(f"{device} is not a regular file" in said,
                f"the refusal names the source, got {said!r}")
         ensure(not kept.exists(), "and nothing is written for it")
@@ -960,8 +975,8 @@ def _copy_regular_file() -> None:
         sources = {Path(call.args[0]) for call in copy.call_args_list}
         ensure(sources == {suite / "rv64ui-p-add"},
                f"the entry is copied through it, got {sources}")
-        seeded = _MODEL.corpus_manifest(root / "target" / "test" / _RELEASE / "riscv-tests")
-        ensure(seeded.read_bytes() == _MODEL.corpus_manifest(suite).read_bytes(),
+        seeded = model_corpus.corpus_manifest(root / "target" / "test" / _RELEASE / "riscv-tests")
+        ensure(seeded.read_bytes() == model_corpus.corpus_manifest(suite).read_bytes(),
                "and the manifest that verified is written beside it")
 
 
@@ -1001,7 +1016,7 @@ def _copy_regular_file_reads_no_further_than_verified() -> None:
         root = Path(td)
         source = root / "rv64ui-p-add"
         source.write_bytes(b"\x7fELF")
-        verified = _MODEL._regular_digest(source)
+        verified = model_corpus._regular_digest(source)
         with source.open("ab") as stream:
             stream.write(bytes(1 << 16))
         counts: list[int] = []
@@ -1019,11 +1034,11 @@ def _copy_regular_file_reads_no_further_than_verified() -> None:
                                    "st_mtime_ns": found.st_mtime_ns})
 
         grown = SimpleNamespace(**{**vars(os), "fdopen": fdopen, "fstat": fstat})
-        for chunk in (_MODEL._COPY_CHUNK, verified.size):
+        for chunk in (model_corpus._COPY_CHUNK, verified.size):
             counts.clear()
             kept = root / f"copy-{chunk}"
-            with patch.object(_MODEL, "os", grown), patch.object(_MODEL, "_COPY_CHUNK", chunk):
-                said = _refused(partial(_MODEL._copy_regular_file, source, kept, verified))
+            with patch.object(model_corpus, "os", grown), patch.object(model_corpus, "_COPY_CHUNK", chunk):
+                said = _refused(partial(model_corpus._copy_regular_file, source, kept, verified))
             ensure(f"{source} is longer than the 4 bytes that verified" in said,
                    f"the refusal names the source in {chunk}-byte reads, got {said!r}")
             ensure(sum(counts) == verified.size + 1,
@@ -1044,11 +1059,11 @@ def _copy_regular_file_refuses_a_fifo_and_a_link() -> None:
         fifo, link = root / "rv64ui-p-fifo", root / "rv64ui-p-link"
         os.mkfifo(fifo)
         (root / "regular").write_bytes(b"\x7fELF")
-        verified = _MODEL._regular_digest(root / "regular")
+        verified = model_corpus._regular_digest(root / "regular")
         link.symlink_to(root / "regular")
         for source in (fifo, link):
             kept = root / f"{source.name}-copy"
-            said = _refused(partial(_MODEL._copy_regular_file, source, kept, verified),
+            said = _refused(partial(model_corpus._copy_regular_file, source, kept, verified),
                             partial(_end_of_file, fifo))
             ensure(f"{source} is not a regular file" in said,
                    f"the refusal names the source, got {said!r}")
@@ -1060,7 +1075,7 @@ def _changed_after_verifying(change: Callable[[], object]) -> Generator[None]:
     """`verify_test_corpus` as it is, except that `change` runs once the first suite it
     is asked about has verified, which is the window between a verification and its
     reader that no check by name closes."""
-    verify = _MODEL.verify_test_corpus
+    verify = model_corpus.verify_test_corpus
     pending = [change]
 
     def verified_then_changed(suite: Path, digest: str) -> object:
@@ -1069,7 +1084,7 @@ def _changed_after_verifying(change: Callable[[], object]) -> Generator[None]:
             pending.pop()()
         return found
 
-    with patch.object(_MODEL, "verify_test_corpus", verified_then_changed):
+    with patch.object(model_corpus, "verify_test_corpus", verified_then_changed):
         yield
 
 
@@ -1100,7 +1115,7 @@ def _seed_copies_only_what_verified() -> None:
             entry.write_bytes(sealed["rv64ui-p-add"])
 
         def lengthened(suite: Path) -> None:
-            manifest = _MODEL.corpus_manifest(suite)
+            manifest = model_corpus.corpus_manifest(suite)
             manifest.write_bytes(manifest.read_bytes() + bytes(1 << 16))
 
         copy, said = seeded("clean", lambda suite: None)
@@ -1110,10 +1125,10 @@ def _seed_copies_only_what_verified() -> None:
             b"\x7fELF late"))
         ensure(said == "" and sorted(p.name for p in copy.iterdir()) == ["rv64ui-p-add"],
                f"an entry added once the donor verified is not copied, got {said!r}")
-        _MODEL.verify_test_corpus(copy, _CORPUS_DIGEST)
+        model_corpus.verify_test_corpus(copy, _CORPUS_DIGEST)
         copy, said = seeded("lengthened", lengthened)
-        ensure(said == "" and _MODEL.corpus_manifest(copy).read_bytes()
-               == _MODEL.corpus_listing(copy, _CORPUS_DIGEST),
+        ensure(said == "" and model_corpus.corpus_manifest(copy).read_bytes()
+               == model_corpus.corpus_listing(copy, _CORPUS_DIGEST),
                f"the copy's manifest is the one that verified, got {said!r}")
         copy, said = seeded("displaced", displaced)
         entry = root / "displaced" / "test" / _RELEASE / "riscv-tests" / "rv64ui-p-add"
@@ -1134,7 +1149,7 @@ def _seed_refuses_an_entry_replaced_during_the_copy() -> None:
         model_root = _corpus_model(root)
         donor = root / "replaced"
         entry = _extracted(donor, {"rv64ui-p-add": b"\x7fELF"}) / "rv64ui-p-add"
-        copy = _MODEL._copy_regular_file
+        copy = model_corpus._copy_regular_file
 
         def replacing(source: Path, destination: Path, verified: object) -> None:
             if source == entry:
@@ -1143,7 +1158,7 @@ def _seed_refuses_an_entry_replaced_during_the_copy() -> None:
             copy(source, destination, verified)
 
         target = root / "target"
-        with (patch.object(_MODEL, "_copy_regular_file", replacing),
+        with (patch.object(model_corpus, "_copy_regular_file", replacing),
               redirect_stderr(io.StringIO()) as err):
             _returns(lambda: _MODEL._seed_test_data([donor], target, model_root),
                      partial(_end_of_file, entry))
@@ -1164,13 +1179,13 @@ def _listing_hashes_only_regular_descriptors() -> None:
     with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
         suite = _extracted(Path(td), {"rv64ui-p-add": b"\x7fELF"})
         entry = suite / "rv64ui-p-add"
-        with patch.object(_MODEL, "os", _os_with_a_device(lambda path: path == str(entry))):
-            listed = cast("bytes", _MODEL.corpus_listing(suite, _CORPUS_DIGEST))
-            said = _refused(partial(_MODEL.verify_test_corpus, suite, _CORPUS_DIGEST))
+        with patch.object(model_corpus, "os", _os_with_a_device(lambda path: path == str(entry))):
+            listed = cast("bytes", model_corpus.corpus_listing(suite, _CORPUS_DIGEST))
+            said = _refused(partial(model_corpus.verify_test_corpus, suite, _CORPUS_DIGEST))
         ensure(b"\nunhashed rv64ui-p-add\n" in listed,
                f"the entry is listed unhashed, got {listed!r}")
         ensure("non-regular" in said, f"and the suite is refused, got {said!r}")
-        _MODEL.verify_test_corpus(suite, _CORPUS_DIGEST)
+        model_corpus.verify_test_corpus(suite, _CORPUS_DIGEST)
 
 
 def _listing_refuses_a_fifo_its_check_by_name_missed() -> None:
@@ -1195,7 +1210,7 @@ def _listing_refuses_a_fifo_its_check_by_name_missed() -> None:
             return self == fifo or real(self, follow_symlinks=follow_symlinks)
 
         with patch.object(Path, "is_file", is_file):
-            said = _refused(partial(_MODEL.verify_test_corpus, suite, _CORPUS_DIGEST),
+            said = _refused(partial(model_corpus.verify_test_corpus, suite, _CORPUS_DIGEST),
                             partial(_end_of_file, fifo))
         ensure("non-regular" in said, f"the suite is refused, got {said!r}")
 
@@ -1237,7 +1252,7 @@ def _receipt_records_what_verified() -> None:
         late = elf.with_name("rv64ui-p-late")
         add_late = partial(late.write_bytes, b"\x7fELF late")
         with _changed_after_verifying(add_late):
-            selected = _MODEL.sweep_inputs(build, model_root)
+            selected = model_corpus.sweep_inputs(build, model_root)
         ensure(selected == [elf], f"an ELF added once the suite verified is not swept, "
                                   f"got {selected}")
         late.unlink()
@@ -1246,10 +1261,10 @@ def _receipt_records_what_verified() -> None:
 
             def change() -> None:
                 add_late()
-                later.enter_context(patch.object(_MODEL, "os", device))
+                later.enter_context(patch.object(model_corpus, "os", device))
 
-            with (patch.object(_MODEL, "_regular_digest",
-                               wraps=_MODEL._regular_digest) as hashed,
+            with (patch.object(model_corpus, "_regular_digest",
+                               wraps=model_corpus._regular_digest) as hashed,
                   _changed_after_verifying(change)):
                 recorded = _MODEL.build_artifacts(build, model_root)
         ensure(recorded == _built_receipt(),
@@ -1773,7 +1788,7 @@ def _cmake_suite_listing() -> None:
         clean = {"rv64ui-p-add": b"\x7fELF", "a0": b"zero", "a/b": b"nested",
                  "a.c": b"dot", "a-b": b"dash", "k[1]": b"bracketed", "with space": b"sp"}
         suite = _suite_of(work / "clean", clean)
-        ensure(_cmake_listing(work, suite) == _MODEL.corpus_listing(suite, _CORPUS_DIGEST),
+        ensure(_cmake_listing(work, suite) == model_corpus.corpus_listing(suite, _CORPUS_DIGEST),
                "cmake lists a clean suite in the bytes corpus_listing renders")
 
         def hashed(data: bytes, name: str) -> str:
@@ -1800,7 +1815,7 @@ def _cmake_suite_listing() -> None:
         absent = (work / "nowhere" / "riscv-tests.tar.gz").as_uri()
         for name, files, kept in (("kept", clean, True), ("removed", _SPLIT, False)):
             suite = _suite_of(work / name, files)
-            manifest = _MODEL.corpus_manifest(suite)
+            manifest = model_corpus.corpus_manifest(suite)
             manifest.write_bytes(_cmake_listing(work, suite))
             done = _cmake(work, f'download_riscv_tests("{suite.parent}" "riscv-tests" '
                                 f'"{absent}")\n')
@@ -1829,10 +1844,10 @@ def _cmake_suite_listing() -> None:
             done = _cmake(work, f'download_riscv_tests("{work / name}" "riscv-tests" '
                                 f'"{tarball.as_uri()}")\n', digest)
             said = " ".join(done.stderr.split())
-            manifest = _MODEL.corpus_manifest(work / name / "riscv-tests")
+            manifest = model_corpus.corpus_manifest(work / name / "riscv-tests")
             if extracts:
                 ensure(done.returncode == 0 and manifest.read_bytes()
-                       == _MODEL.corpus_listing(work / name / "riscv-tests", digest),
+                       == model_corpus.corpus_listing(work / name / "riscv-tests", digest),
                        f"a verified tarball's suite is recorded as corpus_listing renders "
                        f"it, got {done.returncode} and {said[-400:]!r}")
             else:
@@ -2105,6 +2120,8 @@ def cases() -> list[Case]:
         Case("seed-smt-cache", _seed_smt_cache),
         Case("property-test-keeps-its-own-memo", _property_test_keeps_its_own_memo),
         Case("seed-cache-file", _seed_cache_file),
+        Case("corpus-library-imports-without-command-layer",
+             _corpus_library_imports_without_command_layer),
         Case("corpus-listing-format", _corpus_listing_format),
         Case("corpus-digests", _corpus_digests),
         Case("verify-test-corpus", _verify_test_corpus),

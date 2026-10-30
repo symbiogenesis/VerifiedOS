@@ -14,7 +14,7 @@ from typing import cast
 from unittest.mock import Mock, call, patch
 
 from tests.harness import Case, ensure, sandbox_tree
-from vos import env, receipts
+from vos import env, model_corpus, receipts
 from vos.cli import model
 
 
@@ -39,7 +39,7 @@ def _corpus_fixture(e: env.Environment) -> Path:
 
 def _seal(suite: Path) -> None:
     """Write the manifest configure leaves beside a suite it extracted, as it stands."""
-    model.corpus_manifest(suite).write_bytes(model.corpus_listing(suite, _CORPUS_DIGEST))
+    model_corpus.corpus_manifest(suite).write_bytes(model_corpus.corpus_listing(suite, _CORPUS_DIGEST))
 
 
 def _solver_failure() -> None:
@@ -804,7 +804,7 @@ def _warm_test_corpus() -> None:
             stale = e.build_dir / "test" / version / "riscv-tests/rv64ui-p-add"
             stale.parent.mkdir(parents=True)
             stale.write_bytes(b"different release")
-        ensure(model.sweep_inputs(e.build_dir, e.model) == [current],
+        ensure(model_corpus.sweep_inputs(e.build_dir, e.model) == [current],
                "sweep must select the declaration, regardless of donor cache sort order")
         _vouched_oracle(e)
         args = argparse.Namespace(elf=[], corpus=True, limit=1, timeout=1)
@@ -820,7 +820,7 @@ def _warm_test_corpus() -> None:
         current.unlink()
         current.parent.rmdir()
         try:
-            model.sweep_inputs(e.build_dir, e.model)
+            model_corpus.sweep_inputs(e.build_dir, e.model)
         except ValueError as err:
             ensure("2031-02-03" in str(err), "missing corpus must name its required release")
         else:
@@ -844,13 +844,13 @@ def _unverified_corpus_is_refused() -> None:
         elf = suite / "rv64ui-p-add"
         elf.write_bytes(b"program")
         _seal(suite)
-        ensure(model.sweep_inputs(e.build_dir, e.model) == [elf],
+        ensure(model_corpus.sweep_inputs(e.build_dir, e.model) == [elf],
                "precondition: the sealed suite is read")
         fake = SimpleNamespace(run=Mock(side_effect=AssertionError("ran an unverified suite")),
                                TimeoutExpired=subprocess.TimeoutExpired)
         trace = argparse.Namespace(elf=[], corpus=True, limit=1, timeout=1)
         for change, why in ((lambda: elf.write_bytes(b"changed"), "disagrees"),
-                            (lambda: model.corpus_manifest(suite).unlink(),
+                            (lambda: model_corpus.corpus_manifest(suite).unlink(),
                              "has no riscv-tests.manifest")):
             change()
             with (patch.object(model, "subprocess", fake),
@@ -874,7 +874,7 @@ def _invalid_test_corpus_pin() -> None:
         for text in ("", valid + valid, malformed, valid + malformed):
             declaration.write_text(text, encoding="utf-8")
             try:
-                model.test_corpus_version(e.model)
+                model_corpus.test_corpus_version(e.model)
             except ValueError:
                 pass
             else:
