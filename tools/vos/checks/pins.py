@@ -158,31 +158,14 @@ file under `.github/workflows/`, and each reading fails closed: no workflow, no
 `uses:` line at all, a record without its development-tools heading or with no action
 row under it, and a row stating its reviewed revision other than exactly once or
 linking no file of its action's repository are each a finding rather than an
-agreement over nothing. That is why it owes the floors group no member. **The reading
-takes one shape and a census holds it to the rest**: a reference is read only as a
-block mapping's bare `uses:` key opening its line, alone or after a sequence dash,
-while YAML also lets that key be quoted, tagged, anchored, written in a flow collection,
-spelled with an escape, reached through an alias or opened by an explicit `?`
-indicator. So the census splits each file at every YAML line break, 1.1's included,
-and on every line counts a `uses` key, bare or quoted, followed by its `:`; a
-double-quoted key holding an escape and an alias used as a key, whatever
-they spell; and every explicit-key `?` indicator, whatever key it opens. A comment's
-line is read too, since a line opening with `#` may continue a quoted scalar and a `#`
-after a no-break space, which YAML reads as content, opens no comment at all.
-PyYAML reads every `?` inside a flow collection as a key's indicator, whatever
-follows it, and a line does not say whether it stands in one, so a `?` opening its line
-after indentation alone or following `{`, `,` or `[` is counted whatever follows it,
-while one after a block indicator and a blank is counted only before a blank, as a
-block key's indicator is. A line carrying any of them other than the key the reading
-took is one finding naming that line; otherwise a reference in another shape would run
-code the rule reported agreement about without having read it. The census errs toward
-a finding, counting a key or a `?` inside a comment or a scalar's text, and an
-escaped, alias or explicit key that names something else. The one shape it does not
-count is a flow mapping's key whose `:` stands on a later line, which the YAML 1.2.2
-grammar admits and PyYAML refuses. While a reference stands unread, a row is not also
-reported as run by nothing, the unread line being what may run it. What it does not
-decide is whether the commit is the release the comment names; the row's reviewer read
-that, and zizmor's online audits are the instrument that asks GitHub.
+agreement over nothing. That is why it owes the floors group no member.
+The shared PyYAML composer identifies actual mapping keys, including quoted,
+escaped, tagged and explicit keys. Each `uses` key must retain the admitted source
+line shape and version comment. Comments and scalar bodies name no keys.
+Malformed YAML, duplicate or compound keys, aliases, merges and non-text tags
+refuse before comparison. While a reference stands unread, a row is not also
+reported as run by nothing. The row's reviewer decides whether the pinned commit
+is the release its comment names; zizmor's online audits can ask GitHub.
 **Reported and never repaired**, on the licence-review ground: moving a row's
 commit would claim a licence reading nobody took.
 
@@ -218,7 +201,7 @@ from collections.abc import Callable, Iterator
 from typing import TYPE_CHECKING, cast
 
 from vos import corpus as corpus_mod
-from vos import devtools, retained, rtl_width
+from vos import devtools, retained, rtl_width, yamlutil
 from vos import pins as pins_mod
 from vos.checks import generated
 from vos.checks.interims import archive_needles
@@ -239,24 +222,6 @@ TOOLS_HEADING = "### Development tools, contained by use"
 # The one shape a reference is read in: a block mapping's bare `uses:` key opening its
 # line, alone or after a sequence dash, with the reference the rest of the line.
 _USES_RE = re.compile(r"^[ \t]*(?:-[ \t]+)?(?P<key>uses):[ \t]*(.*?)[ \t]*$")
-# Every key on a line that can be `uses`, wider than the reading on purpose: a `uses`
-# key, bare or quoted, followed by its `:`; a double-quoted key holding an escape and
-# an alias used as a key, whatever they spell; and every explicit-key `?` indicator,
-# whatever key it opens. Each key stands after a blank, a flow indicator or the line's
-# start, so a tag or an anchor before the key does not hide it. A `?` is counted where
-# PyYAML may read one: after a block indicator and a blank only when a blank or the
-# line's end follows, as a block key's indicator is, since a `?` flush against what
-# follows it there opens a plain scalar, and one in a flow collection there is a parse
-# error; and opening its line after indentation alone or following `{`, `,` or `[`
-# whatever follows it, since such a line may stand in a flow collection, where PyYAML
-# reads every `?` as a key's. A key it finds that the reading did not take is a finding
-# rather than a reference nobody held against the record.
-_USES_KEY_RE = re.compile(
-    r"""(?:(?<=[\s{,\[])|^)"""
-    r"""(?:(?P<q>["']?)uses(?P=q)|"[^"]*\\[^"]*"|\*[^\s,\[\]{}]+)(?=[ \t]*:)"""
-    r"""|^[ \t]*(?:\?|(?:[-?:][ \t]+)+\?(?=[ \t]|$))|(?<=[{,\[])[ \t]*\?""")
-# The line breaks YAML reads, 1.1's included, so a line here is a line to the parser.
-_YAML_BREAK_RE = re.compile(r"\r\n|[\r\n\x85\u2028\u2029]")
 _PINNED_USE_RE = re.compile(
     r"([A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+)(?:/[^@\s]+)?@([0-9a-f]{40}) # (v\d+\.\d+\.\d+)")
 _ACTION_ROW_RE = re.compile(r"^\| ([A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+) \|")
@@ -700,46 +665,48 @@ def _workflow_pins(ctx: Context) -> None:
             findings.append(f"{rel} cannot be read as text, so its action references are "
                             "unread")
             continue
-        for number, text_line in enumerate(_YAML_BREAK_RE.split(source), start=1):
-            where = f"{rel}:{number}"
-            # The reading's shape never takes a comment line, `#` being no `uses` key.
-            m = _USES_RE.match(text_line)
-            # The census: a line carrying any key the reading did not take is one
-            # finding, so a reference in a shape the reading does not parse is a finding
-            # rather than one the rule reports agreement about without having read it.
-            # It reads every line, a comment's included: a line opening with `#` may
-            # continue a quoted scalar, and a `#` after a no-break space, which YAML
-            # reads as content rather than a blank, opens no comment at all.
-            taken = m.start("key") if m else -1
-            if any(key.start() != taken for key in _USES_KEY_RE.finditer(text_line)):
-                unread += 1
-                findings.append(f"{where} states an action reference in a form K-115 "
-                                "does not read; write it as a block `uses:` key, alone "
-                                "or after a sequence dash, so it is held against the "
-                                "reviewed row")
-            if m is None:
-                continue
-            references += 1
-            pinned = _PINNED_USE_RE.fullmatch(m.group(2))
-            if pinned is None:
-                findings.append(f"{where} uses `{m.group(2)}`, which is not "
-                                "owner/repo[/path]@<full commit> # vX.Y.Z; a tag or branch "
-                                "can move under the reviewed row")
-                continue
-            action, sha, version = pinned.groups()
-            used.add(action)
-            if action not in actions:
-                findings.append(f"{where} runs {action}, which {record}'s development-tools "
-                                "table has no row for, so nobody read the terms of the code "
-                                "it runs")
-                continue
-            want_version, want_sha, row = actions[action]
-            if want_sha and (sha, version) != (want_sha, want_version):
-                ran, reviewed = apart(sha, want_sha)
-                findings.append(
-                    f"{where} runs {action} at {ran} ({version}), {row} reviewed "
-                    f"{reviewed} ({want_version}); the row's terms were read at the "
-                    "revision it states, so the edit is a person's")
+        try:
+            tree = yamlutil.read(source)
+        except ValueError as error:
+            unread += 1
+            findings.append(f"{rel}: cannot read action references: {error}")
+            continue
+        source_lines = yamlutil.lines(source)
+        for mapping in yamlutil.mappings(tree):
+            for key, _value in mapping.value:
+                if key.value != "uses":
+                    continue
+                number = yamlutil.start(key).line + 1
+                where = f"{rel}:{number}"
+                m = _USES_RE.match(source_lines[number - 1])
+                if m is None or m.start("key") != yamlutil.start(key).column:
+                    unread += 1
+                    findings.append(f"{where} states an action reference in a form K-115 "
+                                    "does not read; write it as a block `uses:` key, alone "
+                                    "or after a sequence dash, so it is held against the "
+                                    "reviewed row")
+                    continue
+                references += 1
+                pinned = _PINNED_USE_RE.fullmatch(m.group(2))
+                if pinned is None:
+                    findings.append(f"{where} uses `{m.group(2)}`, which is not "
+                                    "owner/repo[/path]@<full commit> # vX.Y.Z; a tag or branch "
+                                    "can move under the reviewed row")
+                    continue
+                action, sha, version = pinned.groups()
+                used.add(action)
+                if action not in actions:
+                    findings.append(f"{where} runs {action}, which {record}'s development-tools "
+                                    "table has no row for, so nobody read the terms of the code "
+                                    "it runs")
+                    continue
+                want_version, want_sha, row = actions[action]
+                if want_sha and (sha, version) != (want_sha, want_version):
+                    ran, reviewed = apart(sha, want_sha)
+                    findings.append(
+                        f"{where} runs {action} at {ran} ({version}), {row} reviewed "
+                        f"{reviewed} ({want_version}); the row's terms were read at the "
+                        "revision it states, so the edit is a person's")
     if files and not references and not unread:
         findings.append(f"no workflow under {WORKFLOWS} states an action reference, so the "
                         "rows would be held against nothing")

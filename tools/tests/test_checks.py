@@ -715,10 +715,9 @@ _K115_UNREAD = "states an action reference in a form K-115 does not read"
 
 
 def _k115_every_uses_key_is_read_or_reported() -> None:
-    # YAML gives the step a `uses` key in each shape below and the block reading takes
-    # none of them. Each stands beside the agreeing block lines, so a census that missed
-    # it would leave the rule reporting agreement over an action with no row or a commit
-    # nobody reviewed. The second item is the shape's line offset the finding names.
+    # Actual YAML keys in other source shapes must refuse beside otherwise agreeing
+    # actions. Aliases and malformed documents refuse at composition; other keys name
+    # their original source line. The second item is that line's offset.
     shapes = (("  - {{name: step, uses: {ref}}}\n", 0),
               ("  - {{uses: {ref}, with: {{a: b}}}}\n", 0),
               ('  - "uses": {ref} # v1.2.3\n', 0),
@@ -731,7 +730,7 @@ def _k115_every_uses_key_is_read_or_reported() -> None:
               ("  - ? uses # c\n    : {ref} # v1.2.3\n", 0),
               ("  - ? !!str uses\n    : {ref} # v1.2.3\n", 0),
               ("  - ? &k uses\n    : {ref} # v1.2.3\n", 0),
-              ("  - ?\n      uses\n    : {ref} # v1.2.3\n", 0),
+              ("  - ?\n      uses\n    : {ref} # v1.2.3\n", 1),
               # an alias of a `uses` scalar anchored elsewhere, used as the key: the
               # finding is the alias's line, not the anchor's
               ("  - name: step\n    id: &k uses\n    *k : {ref} # v1.2.3\n", 2),
@@ -763,8 +762,9 @@ def _k115_every_uses_key_is_read_or_reported() -> None:
     for shape, offset in shapes:
         for ref in refs:
             found = _k115({".github/workflows/a.yml": _K115_WORKFLOW + shape.format(ref=ref)})
-            ensure(len(found) == 1 and f"a.yml:{4 + offset} {_K115_UNREAD}" in found[0],
-                   f"an unread shape is one finding at its line ({shape!r}, {ref}): {found!r}")
+            refused = (f"a.yml:{4 + offset} {_K115_UNREAD}", "cannot read action references")
+            ensure(len(found) == 1 and any(reason in found[0] for reason in refused),
+                   f"an unread shape must refuse ({shape!r}, {ref}): {found!r}")
     # A carriage return alone breaks a YAML line, so an explicit key after one opens a
     # line to the parser and is counted there.
     found = _k115({".github/workflows/a.yml": _K115_WORKFLOW
@@ -778,19 +778,16 @@ def _k115_every_uses_key_is_read_or_reported() -> None:
            f"an unread sole reference is one finding: {found!r}")
 
 
-def _k115_census_counts_the_read_key_once() -> None:
-    # The controls: a key the reading took is not counted again, a flow mapping whose
-    # `uses:` opens its own line is read and held, and neither a comment's prose nor a
-    # word ending in the key's letters is a key.
+def _k115_parser_reads_real_keys_once() -> None:
+    # Actual keys are read once. Comments, quoted command text and block-scalar
+    # bodies may contain any key spelling without declaring an action.
     control = (_K115_WORKFLOW + "  # every step uses a reviewed action\n"
-               "  - run: echo reuses: nothing\n")
+               "  - run: 'echo reuses: nothing'\n"
+               "  - run: |\n      uses: other/action@v1\n")
     found = _k115({".github/workflows/a.yml": control})
     ensure(not found, f"prose and other words are not keys: {found!r}")
-    # A comment line is read like any other, so a key's shape in one is counted, as one
-    # in a trailing comment is: the census errs toward a finding.
     found = _k115({".github/workflows/a.yml": _K115_WORKFLOW + "  # - {uses: other/action@v1}\n"})
-    ensure(len(found) == 1 and f"a.yml:4 {_K115_UNREAD}" in found[0],
-           f"a key's shape in a comment line is counted: {found!r}")
+    ensure(not found, f"comments declare no action references: {found!r}")
     # After a block indicator, a `?` flush against what follows opens a plain scalar,
     # `?uses`, which PyYAML reads as no `uses` key.
     found = _k115({".github/workflows/a.yml": _K115_WORKFLOW
@@ -1363,7 +1360,7 @@ def cases() -> list[Case]:
         Case("k115-leaves-the-analyzer-rows-to-k118", _k115_leaves_the_analyzer_rows_to_k118),
         Case("k115-unreadable-readings-fail-closed", _k115_unreadable_readings_fail_closed),
         Case("k115-every-uses-key-is-read-or-reported", _k115_every_uses_key_is_read_or_reported),
-        Case("k115-census-counts-the-read-key-once", _k115_census_counts_the_read_key_once),
+        Case("k115-parser-reads-real-keys-once", _k115_parser_reads_real_keys_once),
         Case("k81-historical-residue-is-scoped", _k81_historical_residue_is_scoped),
         Case("k81-unused-historical-residue-fails", _k81_unused_historical_residue_fails),
         Case("k81-historical-residue-cannot-exempt-table",
