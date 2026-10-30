@@ -198,47 +198,35 @@
 
 Require Import PartitionContext.
 Require Import CyclicExecutive.
+Require Import LastEvent.
+Require Import ProofSupport.
 
 (* -------------------------------------------------------------------------
-   List and boolean helpers the prelude does not carry and the two Requires
-   do not already define. `all_of`, `count_of` and the list type come from
-   CyclicExecutive.v, and are used rather than shadowed: a helper written
-   twice is one fact stated twice.
+   Public helper names use the shared prelude foundation. `all_of` and
+   `count_of` retain CyclicExecutive.v's exported names.
    ------------------------------------------------------------------------- *)
 
-Fixpoint any_of {A : Type} (p : A -> bool) (l : list A) : bool :=
-  match l with
-  | nil => false
-  | cons x r => orb (p x) (any_of p r)
-  end.
+Definition any_of {A : Type} (p : A -> bool) (l : list A) : bool :=
+  ProofSupport.any_of p l.
 
-Fixpoint filter_of {A : Type} (p : A -> bool) (l : list A) : list A :=
-  match l with
-  | nil => nil
-  | cons x r => if p x then cons x (filter_of p r) else filter_of p r
-  end.
+Definition filter_of {A : Type} (p : A -> bool) (l : list A) : list A :=
+  ProofSupport.filter_of p l.
 
-Fixpoint map_over {A B : Type} (f : A -> B) (l : list A) : list B :=
-  match l with nil => nil | cons x r => cons (f x) (map_over f r) end.
+Definition map_over {A B : Type} (f : A -> B) (l : list A) : list B :=
+  ProofSupport.map_over f l.
 
 (* 0 through n-1, in that order. *)
-Fixpoint upto (n : nat) : list nat :=
-  match n with
-  | 0 => nil
-  | S k => app (upto k) (cons k nil)
-  end.
+Definition upto (n : nat) : list nat :=
+  ProofSupport.upto n.
 
 Definition tally {A : Type} (p : A -> bool) (l : list A) : nat :=
   count_of (filter_of p l).
 
-Definition only_if (a b : bool) : bool := orb (negb a) b.
+Definition only_if (a b : bool) : bool :=
+  ProofSupport.only_if a b.
 
 Definition bool_eqb (a b : bool) : bool :=
-  match a, b with
-  | true, true => true
-  | false, false => true
-  | _, _ => false
-  end.
+  ProofSupport.bool_eqb a b.
 
 Fixpoint pairwise {A : Type} (p : A -> A -> bool) (l : list A) : bool :=
   match l with
@@ -247,21 +235,18 @@ Fixpoint pairwise {A : Type} (p : A -> A -> bool) (l : list A) : bool :=
   end.
 
 (* -------------------------------------------------------------------------
-   The small lemmas, proved here rather than imported for the reason
-   PartitionContext.v gives of `lt_add_pos`: the stdlib modules carrying them
-   are outside the prelude, and adding zero axioms is the point of the gate.
+   Shared compatibility lemmas delegate to ProofSupport; specialized facts
+   remain local. The dependency closure still uses only the prelude.
    ------------------------------------------------------------------------- *)
 
 Lemma andb_split : forall a b : bool, andb a b = true -> a = true /\ b = true.
-Proof.
-  intros a b H. destruct a; destruct b; try discriminate H; split; reflexivity.
-Qed.
+Proof. exact ProofSupport.andb_split. Qed.
 
 Lemma andb_join : forall a b : bool, a = true -> b = true -> andb a b = true.
-Proof. intros a b Ha Hb. rewrite Ha. rewrite Hb. reflexivity. Qed.
+Proof. exact ProofSupport.andb_join. Qed.
 
 Lemma only_if_elim : forall a b : bool, only_if a b = true -> a = true -> b = true.
-Proof. intros a b H Ha. rewrite Ha in H. exact H. Qed.
+Proof. exact ProofSupport.only_if_elim. Qed.
 
 Lemma bool_eqb_sound : forall a b : bool, bool_eqb a b = true -> a = b.
 Proof. intros a b H. destruct a; destruct b; try discriminate H; reflexivity. Qed.
@@ -628,25 +613,80 @@ Proof.
   intros p g H. exact (all_of_filter_upto p nonzero register_count g H).
 Qed.
 
-Fixpoint last_reg_write {W Cs Sr : Type} (g : nat)
-    (l : list (TraceRecord W Cs Sr)) : option (bool * W) :=
-  match l with
-  | nil => None
-  | cons (RecX h t v) r =>
-      if last_reg_write g r is Some found then Some found
-      else if Nat.eqb h g then Some (t, v) else None
-  | cons _ r => last_reg_write g r
+(* Application projections keep the tagged register and CSR interpretations
+   explicit; the tail-first trace traversal belongs to LastEvent. *)
+Definition register_event {W Cs Sr : Type} (g : nat)
+    (event : TraceRecord W Cs Sr) : option (bool * W) :=
+  match event with
+  | RecX h t v => if Nat.eqb h g then Some (t, v) else None
+  | _ => None
   end.
 
-Fixpoint last_csr_write {W Cs Sr : Type} (eqb : Cs -> Cs -> bool) (c : Cs)
-    (l : list (TraceRecord W Cs Sr)) : option W :=
-  match l with
-  | nil => None
-  | cons (RecC d v) r =>
-      if last_csr_write eqb c r is Some found then Some found
-      else if eqb c d then Some v else None
-  | cons _ r => last_csr_write eqb c r
+Definition csr_event {W Cs Sr : Type} (eqb : Cs -> Cs -> bool) (c : Cs)
+    (event : TraceRecord W Cs Sr) : option W :=
+  match event with
+  | RecC d v => if eqb c d then Some v else None
+  | _ => None
   end.
+
+Definition last_reg_write {W Cs Sr : Type} (g : nat)
+    (l : list (TraceRecord W Cs Sr)) : option (bool * W) :=
+  last_matching (register_event g) l.
+
+Definition last_csr_write {W Cs Sr : Type} (eqb : Cs -> Cs -> bool) (c : Cs)
+    (l : list (TraceRecord W Cs Sr)) : option W :=
+  last_matching (csr_event eqb c) l.
+
+(* These equations retain the former traversals' exact treatment of every
+   record kind, including skipping effects unrelated to the queried name. *)
+Lemma last_reg_write_cons :
+  forall (W Cs Sr : Type) (g : nat) (event : TraceRecord W Cs Sr)
+         (rest : list (TraceRecord W Cs Sr)),
+    last_reg_write g (cons event rest) =
+    match event with
+    | RecX h t v =>
+        if last_reg_write g rest is Some found then Some found
+        else if Nat.eqb h g then Some (t, v) else None
+    | _ => last_reg_write g rest
+    end.
+Proof.
+  intros W Cs Sr g event rest. destruct event; unfold last_reg_write; simpl;
+    destruct (last_matching (register_event g) rest); reflexivity.
+Qed.
+
+Lemma last_csr_write_cons :
+  forall (W Cs Sr : Type) (eqb : Cs -> Cs -> bool) (c : Cs)
+         (event : TraceRecord W Cs Sr) (rest : list (TraceRecord W Cs Sr)),
+    last_csr_write eqb c (cons event rest) =
+    match event with
+    | RecC d v =>
+        if last_csr_write eqb c rest is Some found then Some found
+        else if eqb c d then Some v else None
+    | _ => last_csr_write eqb c rest
+    end.
+Proof.
+  intros W Cs Sr eqb c event rest. destruct event; unfold last_csr_write; simpl;
+    destruct (last_matching (csr_event eqb c) rest); reflexivity.
+Qed.
+
+Lemma last_reg_write_app :
+  forall (W Cs Sr : Type) (g : nat) (before after : list (TraceRecord W Cs Sr)),
+    last_reg_write g (app before after) =
+    match last_reg_write g after with
+    | Some value => Some value
+    | None => last_reg_write g before
+    end.
+Proof. intros. apply last_matching_app. Qed.
+
+Lemma last_csr_write_app :
+  forall (W Cs Sr : Type) (eqb : Cs -> Cs -> bool) (c : Cs)
+         (before after : list (TraceRecord W Cs Sr)),
+    last_csr_write eqb c (app before after) =
+    match last_csr_write eqb c after with
+    | Some value => Some value
+    | None => last_csr_write eqb c before
+    end.
+Proof. intros. apply last_matching_app. Qed.
 
 (* Section 5.1's two dispositions, consumed from PartitionContext.v's fields
    rather than restated: restored where the bank restores, written to zero
@@ -699,6 +739,26 @@ Definition replay (k : Kernel) (pre : Context (kmachine k)) (b : Trace k)
     (fun g => if last_reg_write g b is Some (t, v) then (v, t) else ctx_reg pre g)
     (fun c => if last_csr_write k.(csr_eqb) c b is Some v then v else ctx_csr pre c)
     (ctx_pending pre).
+
+(* A suffix without a write to the observed name is a frame for replay.
+   These are pointwise facts: no function-extensionality premise is needed. *)
+Lemma replay_register_ignores_unwritten_suffix :
+  forall (k : Kernel) (pre : Context (kmachine k)) (before after : Trace k) (g : nat),
+    last_reg_write g after = None ->
+    ctx_reg (replay k pre (app before after)) g = ctx_reg (replay k pre before) g.
+Proof.
+  intros k pre before after g H. unfold replay. simpl.
+  rewrite last_reg_write_app, H. reflexivity.
+Qed.
+
+Lemma replay_csr_ignores_unwritten_suffix :
+  forall (k : Kernel) (pre : Context (kmachine k)) (before after : Trace k) (c : kcsr k),
+    last_csr_write k.(csr_eqb) c after = None ->
+    ctx_csr (replay k pre (app before after)) c = ctx_csr (replay k pre before) c.
+Proof.
+  intros k pre before after c H. unfold replay. simpl.
+  rewrite last_csr_write_app, H. reflexivity.
+Qed.
 
 (* The burst as a step relation of PartitionContext.v's own kind, which is
    what lets the run's enumeration be compared against that file's

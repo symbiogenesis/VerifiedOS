@@ -118,15 +118,10 @@
    those files carries a handler-graph edge, a media template, a node or
    ring pool, or a parsed format.
 
-   No Require. Nothing beyond the Rocq prelude is reachable, so Classical and
-   FunctionalExtensionality are unavailable and every equality below is
-   stated pointwise or over a decidable boolean for that reason. A Require
-   naming a sibling artifact would be admissible and there is none to name:
-   the three neighbours above meet this file's subject nowhere, so a Require
-   here would be a citation rather than a dependency. There is a second
-   reason and it is a cost rather than a principle: `run.py seed coq`
-   recompiles every source under proofs/ for every mutant it stages, so a
-   Require is paid once per member of the seeded population.
+   ProofSupport supplies the shared prelude-only collection laws. Classical
+   and FunctionalExtensionality remain outside the dependency closure, and
+   equality is stated pointwise or over decidable booleans. The domain
+   interfaces above remain separate: they carry no handler edge or template.
 
    Readings of the register this statement takes, each a reviewable judgment
    rather than a neutral transcription:
@@ -400,50 +395,38 @@
    (*| END derived |*)
    ========================================================================= *)
 
+Require Import ProofSupport.
+
 (* -------------------------------------------------------------------------
-   List and boolean helpers, defined here rather than imported: the prelude
-   carries the list type and not the library over it, and importing a module
-   to save a dozen lines would put its assumptions inside the R-05-163 gate's
-   reach for no gain.
+   Public helper names remain as aliases to the shared prelude foundation.
+   Specialized operations keep their application-specific policies here.
    ------------------------------------------------------------------------- *)
 
-Fixpoint all_of {A : Type} (p : A -> bool) (l : list A) : bool :=
-  match l with
-  | nil => true
-  | cons x r => andb (p x) (all_of p r)
-  end.
+Definition all_of {A : Type} (p : A -> bool) (l : list A) : bool :=
+  ProofSupport.all_of p l.
 
-Fixpoint any_of {A : Type} (p : A -> bool) (l : list A) : bool :=
-  match l with
-  | nil => false
-  | cons x r => orb (p x) (any_of p r)
-  end.
+Definition any_of {A : Type} (p : A -> bool) (l : list A) : bool :=
+  ProofSupport.any_of p l.
 
-Fixpoint count_of {A : Type} (l : list A) : nat :=
-  match l with nil => 0 | cons _ r => S (count_of r) end.
+Definition count_of {A : Type} (l : list A) : nat :=
+  ProofSupport.count_of l.
 
-Fixpoint map_over {A B : Type} (f : A -> B) (l : list A) : list B :=
-  match l with nil => nil | cons x r => cons (f x) (map_over f r) end.
+Definition map_over {A B : Type} (f : A -> B) (l : list A) : list B :=
+  ProofSupport.map_over f l.
 
-Fixpoint filter_of {A : Type} (p : A -> bool) (l : list A) : list A :=
-  match l with
-  | nil => nil
-  | cons x r => if p x then cons x (filter_of p r) else filter_of p r
-  end.
+Definition filter_of {A : Type} (p : A -> bool) (l : list A) : list A :=
+  ProofSupport.filter_of p l.
 
-Fixpoint concat_of {A : Type} (l : list (list A)) : list A :=
-  match l with nil => nil | cons x r => app x (concat_of r) end.
+Definition concat_of {A : Type} (l : list (list A)) : list A :=
+  ProofSupport.concat_of l.
 
 (* 0 through n-1, in that order: the index set every generated family below
    ranges over. *)
-Fixpoint upto (n : nat) : list nat :=
-  match n with
-  | 0 => nil
-  | S k => app (upto k) (cons k nil)
-  end.
+Definition upto (n : nat) : list nat :=
+  ProofSupport.upto n.
 
 Definition before_last (n : nat) : nat :=
-  match n with 0 => 0 | S k => k end.
+  ProofSupport.before_last n.
 
 (* The nth member of a list, or the declared fallback past its end. Reading 9
    is what this is for: every generated family below is a list of
@@ -471,21 +454,11 @@ Fixpoint remove_nat (x : nat) (l : list nat) : list nat :=
 (* Transpose the adjacent pair at n, delete the member at n, re-enter at the
    suffix beginning at n, and bind one member a second time at n. The four
    generators of the template families (R-05-166). *)
-Fixpoint swap_at {A : Type} (n : nat) (l : list A) : list A :=
-  match n, l with
-  | 0, cons a (cons b r) => cons b (cons a r)
-  | 0, _ => l
-  | S k, cons a r => cons a (swap_at k r)
-  | S _, nil => nil
-  end.
+Definition swap_at {A : Type} (n : nat) (l : list A) : list A :=
+  ProofSupport.swap_at n l.
 
-Fixpoint drop_at {A : Type} (n : nat) (l : list A) : list A :=
-  match n, l with
-  | 0, cons _ r => r
-  | 0, nil => nil
-  | S k, cons a r => cons a (drop_at k r)
-  | S _, nil => nil
-  end.
+Definition drop_at {A : Type} (n : nat) (l : list A) : list A :=
+  ProofSupport.drop_at n l.
 
 Fixpoint suffix_at {A : Type} (n : nat) (l : list A) : list A :=
   match n, l with
@@ -494,12 +467,8 @@ Fixpoint suffix_at {A : Type} (n : nat) (l : list A) : list A :=
   | S _, nil => nil
   end.
 
-Fixpoint insert_at {A : Type} (n : nat) (x : A) (l : list A) : list A :=
-  match n, l with
-  | 0, _ => cons x l
-  | S k, cons a r => cons a (insert_at k x r)
-  | S _, nil => cons x nil
-  end.
+Definition insert_at {A : Type} (n : nat) (x : A) (l : list A) : list A :=
+  ProofSupport.insert_at n x l.
 
 (* The first member satisfying a predicate, or none. The selection below is
    this and nothing else, which is what lets a selector's obligations be read
@@ -521,22 +490,19 @@ Fixpoint find_last_of {A : Type} (p : A -> bool) (l : list A) : option A :=
   end.
 
 Definition is_some {A : Type} (o : option A) : bool :=
-  if o is Some _ then true else false.
+  ProofSupport.is_some o.
 
 Lemma andb_split : forall a b : bool, andb a b = true -> a = true /\ b = true.
-Proof.
-  intros a b H. destruct a; destruct b; simpl in H;
-    try discriminate H; split; reflexivity.
-Qed.
+Proof. exact ProofSupport.andb_split. Qed.
 
 Lemma andb_join : forall a b : bool, a = true -> b = true -> andb a b = true.
-Proof. intros a b Ha Hb. rewrite Ha. rewrite Hb. reflexivity. Qed.
+Proof. exact ProofSupport.andb_join. Qed.
 
 Lemma nat_leb_refl : forall n : nat, Nat.leb n n = true.
-Proof. intros n. induction n as [ | k IH ]; [ reflexivity | exact IH ]. Qed.
+Proof. exact ProofSupport.nat_leb_refl. Qed.
 
 Lemma nat_eqb_refl : forall n : nat, Nat.eqb n n = true.
-Proof. intros n. induction n as [ | k IH ]; [ reflexivity | exact IH ]. Qed.
+Proof. exact ProofSupport.nat_eqb_refl. Qed.
 
 Lemma leb_trans :
   forall a b c : nat,
@@ -555,12 +521,7 @@ Lemma all_of_mono :
   forall (A : Type) (p q : A -> bool) (l : list A),
     (forall x : A, p x = true -> q x = true) ->
     all_of p l = true -> all_of q l = true.
-Proof.
-  intros A p q l Himp. induction l as [ | x r IH ]; intros H.
-  - reflexivity.
-  - simpl in H. destruct (andb_split _ _ H) as [ Hx Hr ].
-    simpl. apply andb_join; [ exact (Himp x Hx) | exact (IH Hr) ].
-Qed.
+Proof. exact ProofSupport.all_of_mono. Qed.
 
 Lemma all_of_filter_self :
   forall (A : Type) (p : A -> bool) (l : list A),
@@ -587,12 +548,7 @@ Qed.
 Lemma all_of_app_join :
   forall (A : Type) (p : A -> bool) (l r : list A),
     all_of p l = true -> all_of p r = true -> all_of p (app l r) = true.
-Proof.
-  intros A p l r. induction l as [ | x s IH ]; intros Hl Hr.
-  - exact Hr.
-  - simpl in Hl. destruct (andb_split _ _ Hl) as [ Hx Hs ].
-    simpl. apply andb_join; [ exact Hx | exact (IH Hs Hr) ].
-Qed.
+Proof. exact ProofSupport.all_of_app_join. Qed.
 
 (* Everything is a member of the list it came from: what makes a graph whose
    node set is the roster closed without any further hypothesis. *)
@@ -1252,6 +1208,19 @@ Proof. intros m s. split; [ reflexivity | split; reflexivity ]. Qed.
    twelve are decided from both sides and neither family is authored.
    ========================================================================= *)
 
+(* Conditions have stable semantic names. They project from the executable
+   list, whose existing order remains the drop-one campaigns' interface. *)
+Inductive EdgeCondition : Type :=
+| EOwnerOnRoster | ETargetOnRoster | EPositiveLimit | EDeclaredIntent
+| EDeclaredInput | EDeclaredOutput | EDeclaredWorld | EInventoriedFormat
+| EVerifiedParser | EManifestBounds | EPositiveRing | EBoundedRing.
+
+Definition all_edge_conditions : list EdgeCondition :=
+  cons EOwnerOnRoster (cons ETargetOnRoster (cons EPositiveLimit
+  (cons EDeclaredIntent (cons EDeclaredInput (cons EDeclaredOutput
+  (cons EDeclaredWorld (cons EInventoriedFormat (cons EVerifiedParser
+  (cons EManifestBounds (cons EPositiveRing (cons EBoundedRing nil))))))))))).
+
 Definition edge_conjuncts (m : Machine) (r : list nat) : list (Edge -> bool) :=
   (* 0, 1: R-12-024b's finite closed graph. Both endpoints are nodes, and the
      node set is the composed roster and nothing else. Gap d is what conjunct
@@ -1288,6 +1257,27 @@ Definition edge_conjuncts (m : Machine) (r : list nat) : list (Edge -> bool) :=
   (cons (fun e => Nat.leb e.(edge_ring) m.(ring_depth_ceiling))
    nil))))))))))).
 
+(* The executable list above is the sole owner of the predicates. Numeric
+   positions remain private to this compatibility map and the campaigns. *)
+Definition edge_condition_index (condition : EdgeCondition) : nat :=
+  match condition with
+  | EOwnerOnRoster => 0 | ETargetOnRoster => 1 | EPositiveLimit => 2
+  | EDeclaredIntent => 3 | EDeclaredInput => 4 | EDeclaredOutput => 5
+  | EDeclaredWorld => 6 | EInventoriedFormat => 7 | EVerifiedParser => 8
+  | EManifestBounds => 9 | EPositiveRing => 10 | EBoundedRing => 11
+  end.
+
+Definition edge_condition (m : Machine) (r : list nat)
+    (condition : EdgeCondition) (e : Edge) : bool :=
+  at_member (edge_conjuncts m r) (edge_condition_index condition) (fun _ => false) e.
+
+Lemma all_edge_conditions_complete : forall condition : EdgeCondition,
+  ProofSupport.Member condition all_edge_conditions.
+Proof.
+  intro condition. destruct condition; simpl;
+    repeat first [left; reflexivity | right].
+Qed.
+
 Definition admissible_edge (m : Machine) (r : list nat) (e : Edge) : bool :=
   all_of (fun p => p e) (edge_conjuncts m r).
 
@@ -1300,109 +1290,74 @@ Example there_are_twelve_conjuncts :
   forall (m : Machine) (r : list nat), count_of (edge_conjuncts m r) = 12.
 Proof. intros m r. reflexivity. Qed.
 
-(* The opening the eight conjunct readings below share: introduce the
-   machine, the roster, the edge and its admission `H`, and unfold `H` into
-   its twelve conjuncts. *)
-Local Ltac read_the_conjuncts :=
-  intros m r e H; unfold admissible_edge, edge_conjuncts in H; simpl in H.
+(* The mathematical interface quantifies over named conditions. Boolean
+   decomposition occurs once at this boundary; clients name the fact needed. *)
+Definition EdgeConditionsHold (m : Machine) (r : list nat) (e : Edge) : Prop :=
+  forall condition : EdgeCondition, edge_condition m r condition e = true.
 
-(* The first six conjuncts of the conjunction `H` set aside, its remainder
-   named `H6`: where every reading of a conjunct past the sixth starts, here
-   and over the weakened filters and the template below. `H` is a parameter
-   because an Ltac definition must bind every hypothesis name it reads. *)
-Local Ltac drop_six_conjuncts H :=
-  destruct (andb_split _ _ H) as [ _ H1 ]; destruct (andb_split _ _ H1) as [ _ H2 ];
-  destruct (andb_split _ _ H2) as [ _ H3 ]; destruct (andb_split _ _ H3) as [ _ H4 ];
-  destruct (andb_split _ _ H4) as [ _ H5 ]; destruct (andb_split _ _ H5) as [ _ H6 ].
+Lemma admissible_edge_condition : forall m r e,
+  admissible_edge m r e = true -> EdgeConditionsHold m r e.
+Proof.
+  intros m r e H condition.
+  change (ProofSupport.all_of (fun c => edge_condition m r c e)
+             all_edge_conditions = true) in H.
+  exact (ProofSupport.all_of_member EdgeCondition _ _ condition H
+           (all_edge_conditions_complete condition)).
+Qed.
 
-(* The conjuncts every closure and attenuation theorem below reads back out
-   of the conjunction, one small lemma each rather than a `simpl` inside each
-   theorem. *)
+Lemma admissible_edge_spec : forall m r e,
+  admissible_edge m r e = true <-> EdgeConditionsHold m r e.
+Proof.
+  intros m r e. split.
+  - apply admissible_edge_condition.
+  - intro H.
+    change (ProofSupport.all_of (fun c => edge_condition m r c e)
+               all_edge_conditions = true).
+    apply ProofSupport.all_of_intro. intros condition _. exact (H condition).
+Qed.
+
 Lemma admissible_owner_on_roster :
   forall (m : Machine) (r : list nat) (e : Edge),
     admissible_edge m r e = true -> mem_nat e.(edge_owner) r = true.
-Proof.
-  read_the_conjuncts.
-  destruct (andb_split _ _ H) as [ H0 _ ]. exact H0.
-Qed.
+Proof. intros m r e H. exact (admissible_edge_condition m r e H EOwnerOnRoster). Qed.
 
 Lemma admissible_target_on_roster :
   forall (m : Machine) (r : list nat) (e : Edge),
     admissible_edge m r e = true -> mem_nat e.(edge_target) r = true.
-Proof.
-  read_the_conjuncts.
-  destruct (andb_split _ _ H) as [ _ H1 ].
-  destruct (andb_split _ _ H1) as [ H2 _ ]. exact H2.
-Qed.
+Proof. intros m r e H. exact (admissible_edge_condition m r e H ETargetOnRoster). Qed.
 
 Lemma admissible_declares_a_limit :
   forall (m : Machine) (r : list nat) (e : Edge),
     admissible_edge m r e = true -> Nat.ltb 0 e.(edge_limit) = true.
-Proof.
-  read_the_conjuncts.
-  destruct (andb_split _ _ H) as [ _ H1 ].
-  destruct (andb_split _ _ H1) as [ _ H2 ].
-  destruct (andb_split _ _ H2) as [ H3 _ ]. exact H3.
-Qed.
+Proof. intros m r e H. exact (admissible_edge_condition m r e H EPositiveLimit). Qed.
 
 Lemma admissible_world_is_declared :
   forall (m : Machine) (r : list nat) (e : Edge),
     admissible_edge m r e = true ->
     Nat.ltb e.(edge_world) m.(world_count) = true.
-Proof.
-  read_the_conjuncts.
-  drop_six_conjuncts H.
-  destruct (andb_split _ _ H6) as [ H7 _ ]. exact H7.
-Qed.
+Proof. intros m r e H. exact (admissible_edge_condition m r e H EDeclaredWorld). Qed.
 
 Lemma admissible_format_is_inventoried :
   forall (m : Machine) (r : list nat) (e : Edge),
     admissible_edge m r e = true -> m.(in_inventory) e.(edge_format) = true.
-Proof.
-  read_the_conjuncts.
-  drop_six_conjuncts H.
-  destruct (andb_split _ _ H6) as [ _ H7 ].
-  destruct (andb_split _ _ H7) as [ H8 _ ]. exact H8.
-Qed.
+Proof. intros m r e H. exact (admissible_edge_condition m r e H EInventoriedFormat). Qed.
 
 Lemma admissible_format_has_a_verified_parser :
   forall (m : Machine) (r : list nat) (e : Edge),
     admissible_edge m r e = true -> m.(verified_parser) e.(edge_format) = true.
-Proof.
-  read_the_conjuncts.
-  drop_six_conjuncts H.
-  destruct (andb_split _ _ H6) as [ _ H7 ].
-  destruct (andb_split _ _ H7) as [ _ H8 ].
-  destruct (andb_split _ _ H8) as [ H9 _ ]. exact H9.
-Qed.
+Proof. intros m r e H. exact (admissible_edge_condition m r e H EVerifiedParser). Qed.
 
 Lemma admissible_bounds_inside_the_manifest :
   forall (m : Machine) (r : list nat) (e : Edge),
     admissible_edge m r e = true ->
     Nat.leb e.(edge_bounds) (m.(descriptor) e.(edge_owner)).(desc_manifest) = true.
-Proof.
-  read_the_conjuncts.
-  drop_six_conjuncts H.
-  destruct (andb_split _ _ H6) as [ _ H7 ].
-  destruct (andb_split _ _ H7) as [ _ H8 ].
-  destruct (andb_split _ _ H8) as [ _ H9 ].
-  destruct (andb_split _ _ H9) as [ H10 _ ]. exact H10.
-Qed.
+Proof. intros m r e H. exact (admissible_edge_condition m r e H EManifestBounds). Qed.
 
 Lemma admissible_ring_is_inside_the_ceiling :
   forall (m : Machine) (r : list nat) (e : Edge),
     admissible_edge m r e = true ->
     Nat.leb e.(edge_ring) m.(ring_depth_ceiling) = true.
-Proof.
-  read_the_conjuncts.
-  drop_six_conjuncts H.
-  destruct (andb_split _ _ H6) as [ _ H7 ].
-  destruct (andb_split _ _ H7) as [ _ H8 ].
-  destruct (andb_split _ _ H8) as [ _ H9 ].
-  destruct (andb_split _ _ H9) as [ _ H10 ].
-  destruct (andb_split _ _ H10) as [ _ H11 ].
-  destruct (andb_split _ _ H11) as [ H12 _ ]. exact H12.
-Qed.
+Proof. intros m r e H. exact (admissible_edge_condition m r e H EBoundedRing). Qed.
 
 (* =========================================================================
    The composer (R-12-024b, R-13-002).
@@ -1658,8 +1613,10 @@ Lemma class_exempt_owner_on_roster :
 Proof.
   intros m r k e H. unfold admits_class_exempt in H.
   destruct (class_eqb (m.(format_class) e.(edge_format)) k).
-  - unfold edge_conjuncts in H. simpl in H.
-    destruct (andb_split _ _ H) as [ H0 _ ]. exact H0.
+  - change (ProofSupport.all_of (fun c => edge_condition m r c e)
+               (drop_at 7 (drop_at 8 all_edge_conditions)) = true) in H.
+    apply (ProofSupport.all_of_member EdgeCondition _ _ EOwnerOnRoster H).
+    simpl. repeat first [left; reflexivity | right].
   - exact (admissible_owner_on_roster m r e H).
 Qed.
 
@@ -1669,9 +1626,10 @@ Lemma class_exempt_target_on_roster :
 Proof.
   intros m r k e H. unfold admits_class_exempt in H.
   destruct (class_eqb (m.(format_class) e.(edge_format)) k).
-  - unfold edge_conjuncts in H. simpl in H.
-    destruct (andb_split _ _ H) as [ _ H1 ].
-    destruct (andb_split _ _ H1) as [ H2 _ ]. exact H2.
+  - change (ProofSupport.all_of (fun c => edge_condition m r c e)
+               (drop_at 7 (drop_at 8 all_edge_conditions)) = true) in H.
+    apply (ProofSupport.all_of_member EdgeCondition _ _ ETargetOnRoster H).
+    simpl. repeat first [left; reflexivity | right].
   - exact (admissible_target_on_roster m r e H).
 Qed.
 
@@ -2114,11 +2072,11 @@ Lemma dropping_the_world_keeps_the_manifest :
     all_of (fun p => p e) (drop_at 6 (edge_conjuncts m r)) = true ->
     Nat.leb e.(edge_bounds) (m.(descriptor) e.(edge_owner)).(desc_manifest) = true.
 Proof.
-  intros m r e H. unfold edge_conjuncts in H. simpl in H.
-  drop_six_conjuncts H.
-  destruct (andb_split _ _ H6) as [ _ H7 ].
-  destruct (andb_split _ _ H7) as [ _ H8 ].
-  destruct (andb_split _ _ H8) as [ H9 _ ]. exact H9.
+  intros m r e H.
+  change (ProofSupport.all_of (fun c => edge_condition m r c e)
+             (drop_at 6 all_edge_conditions) = true) in H.
+  apply (ProofSupport.all_of_member EdgeCondition _ _ EManifestBounds H).
+  simpl. repeat first [left; reflexivity | right].
 Qed.
 
 Lemma dropping_the_manifest_keeps_the_world :
@@ -2126,9 +2084,11 @@ Lemma dropping_the_manifest_keeps_the_world :
     all_of (fun p => p e) (drop_at 9 (edge_conjuncts m r)) = true ->
     Nat.ltb e.(edge_world) m.(world_count) = true.
 Proof.
-  intros m r e H. unfold edge_conjuncts in H. simpl in H.
-  drop_six_conjuncts H.
-  destruct (andb_split _ _ H6) as [ H7 _ ]. exact H7.
+  intros m r e H.
+  change (ProofSupport.all_of (fun c => edge_condition m r c e)
+             (drop_at 9 all_edge_conditions) = true) in H.
+  apply (ProofSupport.all_of_member EdgeCondition _ _ EDeclaredWorld H).
+  simpl. repeat first [left; reflexivity | right].
 Qed.
 
 Theorem the_worldless_composer_keeps_the_manifest_clause :
@@ -2694,6 +2654,15 @@ Fixpoint labels_joined (m : Machine) (t : list Stage) : bool :=
       end
   end.
 
+Inductive TemplateCondition : Type :=
+| TTypedChain | TMatchingEnds | TComposedNodes | TAdmittedNodes
+| TPositiveRings | TBoundedRings | TDeclaredFlows.
+
+Definition all_template_conditions : list TemplateCondition :=
+  cons TTypedChain (cons TMatchingEnds (cons TComposedNodes
+    (cons TAdmittedNodes (cons TPositiveRings (cons TBoundedRings
+      (cons TDeclaredFlows nil)))))).
+
 Definition template_conjuncts (m : Machine) : list (list Stage -> bool) :=
   (* 0, 1: R-12-013a's bounded input and output types, along the chain and at
      its two declared ends (O17). *)
@@ -2711,6 +2680,24 @@ Definition template_conjuncts (m : Machine) : list (list Stage -> bool) :=
   (* 6: R-08-021's flow condition over the chain (O19). *)
   (cons (labels_joined m) nil)))))).
 
+Definition template_condition_index (condition : TemplateCondition) : nat :=
+  match condition with
+  | TTypedChain => 0 | TMatchingEnds => 1 | TComposedNodes => 2
+  | TAdmittedNodes => 3 | TPositiveRings => 4 | TBoundedRings => 5
+  | TDeclaredFlows => 6
+  end.
+
+Definition template_condition (m : Machine) (condition : TemplateCondition)
+    (t : list Stage) : bool :=
+  at_member (template_conjuncts m) (template_condition_index condition) (fun _ => false) t.
+
+Lemma all_template_conditions_complete : forall condition : TemplateCondition,
+  ProofSupport.Member condition all_template_conditions.
+Proof.
+  intro condition. destruct condition; simpl;
+    repeat first [left; reflexivity | right].
+Qed.
+
 Definition template_ok (m : Machine) (t : list Stage) : bool :=
   all_of (fun p => p t) (template_conjuncts m).
 
@@ -2721,18 +2708,37 @@ Example there_are_seven_template_conjuncts :
   forall m : Machine, count_of (template_conjuncts m) = 7.
 Proof. intros m. reflexivity. Qed.
 
+Definition TemplateConditionsHold (m : Machine) (t : list Stage) : Prop :=
+  forall condition : TemplateCondition, template_condition m condition t = true.
+
+Lemma template_ok_condition : forall m t,
+  template_ok m t = true -> TemplateConditionsHold m t.
+Proof.
+  intros m t H condition.
+  change (ProofSupport.all_of (fun c => template_condition m c t)
+             all_template_conditions = true) in H.
+  exact (ProofSupport.all_of_member TemplateCondition _ _ condition H
+           (all_template_conditions_complete condition)).
+Qed.
+
+Lemma template_ok_spec : forall m t,
+  template_ok m t = true <-> TemplateConditionsHold m t.
+Proof.
+  intros m t. split.
+  - apply template_ok_condition.
+  - intro H.
+    change (ProofSupport.all_of (fun c => template_condition m c t)
+               all_template_conditions = true).
+    apply ProofSupport.all_of_intro. intros condition _. exact (H condition).
+Qed.
+
 (* O17 (R-12-013a): a well-formed template is a typed chain between its two
    declared ends, stated of an arbitrary machine and an arbitrary chain. *)
 (*| discharges: R-12-013a |*)
 Theorem a_well_formed_template_is_a_typed_chain :
   forall (m : Machine) (t : list Stage),
     template_ok m t = true -> chain_typed t = true /\ ends_match m t = true.
-Proof.
-  intros m t H. unfold template_ok, template_conjuncts in H. simpl in H.
-  destruct (andb_split _ _ H) as [ H0 H1' ].
-  destruct (andb_split _ _ H1') as [ H1 _ ].
-  exact (conj H0 H1).
-Qed.
+Proof. intros m t H. exact (conj (template_ok_condition m t H TTypedChain) (template_ok_condition m t H TMatchingEnds)). Qed.
 
 (* O15 (R-13-001b with R-12-024c): every node a template names is already
    composed and already admitted, so the template is not a pre-proved empty
@@ -2743,14 +2749,7 @@ Theorem a_well_formed_template_binds_composed_admitted_nodes :
     template_ok m t = true ->
     all_of (fun s => mem_nat s.(stage_node) m.(roster)) t = true
     /\ all_of (fun s => spec_may_bind m s.(stage_node)) t = true.
-Proof.
-  intros m t H. unfold template_ok, template_conjuncts in H. simpl in H.
-  destruct (andb_split _ _ H) as [ _ H1 ].
-  destruct (andb_split _ _ H1) as [ _ H2 ].
-  destruct (andb_split _ _ H2) as [ H3 H4' ].
-  destruct (andb_split _ _ H4') as [ H4 _ ].
-  exact (conj H3 H4).
-Qed.
+Proof. intros m t H. exact (conj (template_ok_condition m t H TComposedNodes) (template_ok_condition m t H TAdmittedNodes)). Qed.
 
 (* O18 (R-12-005 with R-12-024c): every ring a template declares has a
    nonzero depth inside the ceiling the composition sized. *)
@@ -2760,16 +2759,7 @@ Theorem a_well_formed_template_declares_bounded_rings :
     template_ok m t = true ->
     all_of (fun s => Nat.ltb 0 s.(stage_ring)) t = true
     /\ all_of (fun s => Nat.leb s.(stage_ring) m.(ring_depth_ceiling)) t = true.
-Proof.
-  intros m t H. unfold template_ok, template_conjuncts in H. simpl in H.
-  destruct (andb_split _ _ H) as [ _ H1 ].
-  destruct (andb_split _ _ H1) as [ _ H2 ].
-  destruct (andb_split _ _ H2) as [ _ H3 ].
-  destruct (andb_split _ _ H3) as [ _ H4 ].
-  destruct (andb_split _ _ H4) as [ H5 H6' ].
-  destruct (andb_split _ _ H6') as [ H6 _ ].
-  exact (conj H5 H6).
-Qed.
+Proof. intros m t H. exact (conj (template_ok_condition m t H TPositiveRings) (template_ok_condition m t H TBoundedRings)). Qed.
 
 (* O19 (R-08-021 applied): every join of a bound template is between two
    nodes at one level, or the composition declared the channel. *)
@@ -2777,12 +2767,7 @@ Qed.
 Theorem a_well_formed_template_crosses_no_undeclared_label :
   forall (m : Machine) (t : list Stage),
     template_ok m t = true -> labels_joined m t = true.
-Proof.
-  intros m t H. unfold template_ok, template_conjuncts in H. simpl in H.
-  drop_six_conjuncts H.
-  destruct (andb_split _ _ H6) as [ H7 _ ].
-  exact H7.
-Qed.
+Proof. intros m t H. exact (template_ok_condition m t H TDeclaredFlows). Qed.
 
 (* The four generated families over a chain (R-05-166), which is this item's
    answer to the generate-rather-than-author clause: a transposition, a
