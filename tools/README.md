@@ -1084,6 +1084,12 @@ The exact checker pins live in [pyproject.toml](pyproject.toml)'s development
 group. JSON Schema validation, CommonMark parsing and Markdown table linting use
 runtime dependencies in the same project, and
 [uv.lock](uv.lock) fixes the complete resolution for both operating systems.
+Workflow and hook pin readers share [vos/yamlutil.py](vos/yamlutil.py), which uses
+the locked PyYAML release to compose source nodes without constructing objects.
+YAML owns collection structure, keys and source marks; duplicate keys, aliases,
+merge keys and nonstandard tags refuse. Pin and licence-review relationships stay
+with their consumers. Comments and scalar bodies supply no mapping entries.
+
 The ring emitter uses a cached JSON Schema validator to check declaration shapes
 before exposing typed records; fields outside the emitter's scope remain intact.
 [run.py typecheck](vos/cli/typecheck.py) reads the pins from the manifest, runs only

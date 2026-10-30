@@ -3,7 +3,7 @@
 name = "verifiedos-tools"
 version = "0"
 requires-python = ">=3.14,<3.15"
-dependencies = ["filelock==4.2.0", "jsonschema", "markdown-it-py==4.2.0", "pymarkdownlnt==0.9.41"]
+dependencies = ["filelock==4.2.0", "jsonschema", "markdown-it-py==4.2.0", "pymarkdownlnt==0.9.41", "PyYAML==6.0.3"]
 
 [dependency-groups]
 dev = ["ty==0.0.89", "ruff==0.17.1"]
