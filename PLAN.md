@@ -25,7 +25,7 @@ result; stronger implementation and proof endpoints retain their own work.
 | Which tasks, owners and acceptance predicates are commissioned? | [Build order and execution state](#12-build-order-milestones-and-execution-state) |
 | What could change the delivery order? | [Sequencing risks](#risks-to-the-sequencing) |
 | Which research deliverables remain? | [Static-memory research](#static-memory-research) |
-| Which tooling follow-up remains? | [Native Sail census validation](#native-sail-census-validation) |
+| Which tooling follow-up remains? | [Coverage-preserving retirement](#coverage-preserving-tooling-retirement) and [native Sail census validation](#native-sail-census-validation) |
 | Which proof and language packages are proposals or unpriced? | [Proof proposals](#proof-and-specification-proposals), [mandatory unpriced work](#mandatory-work-outside-the-priced-total), [language proposals](#language-core-proposals), [compatibility continuation](#machine-logic-compatibility-continuation) |
 | What remains before the security policy can be used by the implementation? | [Security-policy realization and review](#security-policy-realization-and-review) |
 | Which upstream actions remain? | [Contribution and adoption backlog](#upstream-contributions-and-adoption) and [adoption recommendations](#upstream-adoption-recommendations) |
@@ -2567,6 +2567,45 @@ backing from a usable declared slot and completed reuse.
   - **Status: complete.** Validate the [local research inventory and registered-action replay](docs/implementation/static-memory/artifact.md#local-artifact-disposition), including indexed sources, completeness, classification, document reachability and malformed-receipt rejection. Intentional refusals and incomplete searches retain their diagnostic scope; external publication, review, implementation refinements and product comparison remain open.
 
 A credible project combines programming-language semantics, algorithms, real-time systems, capability security, and compiler engineering. Its success criterion is a checked increase in useful admitted work with the costs exposed. A proof that a particular reservation is unavoidable, or that a tempting optimization breaks isolation, is also a substantive result.
+
+## Coverage-preserving tooling retirement
+
+Retire an implementation only when its replacement preserves the complete input
+population, observable decisions and refusal behavior. Shared commands may keep
+distinct acceptance obligations. This maintenance batch adds no dependency,
+prover upgrade, performance claim or milestone completion credit.
+
+- **Capability-vector generation. Start:** the handwritten
+  `tools/cheri-equiv/gen_vectors.sail`, the generic `vos/oracle.py` emitter and
+  `rtl vectors`/`rtl crosscheck`. **Owns:** declarative coverage of the complete
+  existing RTL vector campaign through the shared oracle machinery, followed by
+  removal of the handwritten generator and its duplicate formatting, random
+  generation and sweep plumbing. Preserve every ordered data line, field width,
+  seed transition, exhaustive bounds and permission domain, and deliberate
+  narrowing, movement and malformed-input corner. Keep the independently
+  authored SystemVerilog consumer. **Check:** focused generator and RTL controls
+  cover deterministic emission, complete domain accounting, malformed declarations
+  and generation failures. Compare all ordered vector data with the pre-migration
+  generator from an immutable revision, retaining source identities, per-kind
+  populations and whole-stream digests. Hosted RTL acceptance runs the migrated
+  vectors against the existing consumer. A sampled spec cannot replace an
+  exhaustive campaign. **Join:** integrated typecheck, Host CI on Windows and
+  Ubuntu, and dispatch of every Guest CI lane without waiting for its verdict.
+  Record any separate comparison verdict and deferred acceptance explicitly.
+- **Rocq context workaround. Status: conditional. Start:** a qualified prover-lock
+  move carrying the merged checker fix described by the
+  [opam adoption contract](tools/opam/README.md#merged-checker-and-printer-improvements).
+  **Owns:** comparison of native admitted-library context output with the current
+  extra admitted-root cover pass, then removal of that pass when equivalent.
+  **Check:** genuine hidden axioms, admission accounting and existing negative
+  controls retain their decisions; sealed-field queries, complete census and
+  recursive kernel checking retain their separate obligations. The current
+  production prover and workaround stay in place until qualification passes.
+
+The [performance contract](tools/performance.md) owns equivalent-work measurements.
+Prioritize measured mutation-test and census-replay costs through their existing
+owners. Optional model-build and live-session tools remain optional until their
+own qualification and end-to-end measurements justify a change of default.
 
 ## Standard-tool guardrail replacements
 
