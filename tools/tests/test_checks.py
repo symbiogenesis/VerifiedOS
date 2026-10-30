@@ -18,7 +18,7 @@ import json
 from pathlib import Path
 from unittest.mock import patch
 
-from tests.harness import Case, ensure, sandbox_tree
+from tests.harness import TOOLS, Case, ensure, sandbox_tree
 from vos import corpus as corpus_mod
 from vos import device_regs, rtl_width, sailbundle, workorder
 from vos.checks import Context, bindings, compounds, counts, estimates, generated, meta, pins
@@ -50,6 +50,7 @@ def _work_files(plan: str, m8a: tuple[str, ...] = (),
         "unpriced": ["docs/requirements-register.md"],
     }
     return {"docs/requirements-register.md": _REGISTER_MIN, PLAN: plan,
+            workorder.SCHEMA: (TOOLS.parent / workorder.SCHEMA).read_text(encoding="utf-8"),
             workorder.OWNER: json.dumps(owner)}
 
 

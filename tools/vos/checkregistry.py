@@ -2,6 +2,7 @@
 """One authored rule registry, bound to callbacks and rendered as documentation."""
 
 import json
+import re
 from collections.abc import Callable, Iterable
 from dataclasses import dataclass
 from enum import StrEnum
@@ -9,12 +10,13 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from vos.jsonutil import unique_object
-from vos.schema import strict_integer_validator
+from vos.schema import validate
 
 if TYPE_CHECKING:
     from vos.checks import Context
 
 SOURCE = "tools/check-registry.json"
+SCHEMA = "tools/check-registry.schema.json"
 DOCUMENT = "tools/check-rules.md"
 TABLE_BEGIN = "<!-- BEGIN GENERATED CHECK REGISTRY -->"
 TABLE_END = "<!-- END GENERATED CHECK REGISTRY -->"
@@ -93,41 +95,18 @@ class Registry:
                      for name, run in callbacks.items())
 
 
-_TEXT: dict[str, object] = {"type": "string", "minLength": 1, "pattern": r"\S"}
-_SCHEMA: dict[str, object] = {
-    "type": "object", "required": ["version", "rules", "inactive"],
-    "additionalProperties": False,
-    "properties": {
-        "version": {"const": 1, "type": "integer"},
-        "rules": {"type": "array", "minItems": 1, "items": {
-            "type": "object", "required": ["id", "group", "meaning", "ground", "reach"],
-            "additionalProperties": False,
-            "properties": {"id": {"type": "string", "pattern": rf"^{ID_PATTERN}$"},
-                           "group": {"type": "string", "pattern": r"^[a-z][a-z0-9_]*$"},
-                           "meaning": _TEXT, "ground": _TEXT,
-                           "reach": {"enum": [str(reach) for reach in Reach]}}}},
-        "inactive": {"type": "array", "items": {
-            "type": "object", "required": ["id", "kind", "ground"],
-            "additionalProperties": False,
-            "properties": {"id": {"type": "string", "pattern": rf"^{ID_PATTERN}$"},
-                           "kind": {"enum": ["retired", "n/a"]}, "ground": _TEXT}}},
-    },
-}
-
-
 def read(root: Path) -> Registry:
     """Decode required typed records; unknown fields and repeated IDs are refused."""
     raw = json.loads((root / SOURCE).read_text(encoding="utf-8"), object_pairs_hook=unique_object)
-    validator = strict_integer_validator(_SCHEMA)
-    errors = sorted(validator.iter_errors(raw), key=lambda err: str(list(err.path)))
-    if errors:
-        raise ValueError(f"{SOURCE}: {errors[0].message}")
+    validate(root / SCHEMA, raw)
     rules = tuple(Rule(row["id"], row["group"], row["meaning"], row["ground"],
                        Reach(row["reach"])) for row in raw["rules"])
     inactive = tuple(Inactive(row["id"], row["kind"], row["ground"])
                      for row in raw["inactive"])
     seen: set[str] = set()
     for record in (*rules, *inactive):
+        if re.fullmatch(ID_PATTERN, record.ident) is None:
+            raise ValueError(f"invalid rule ID: {record.ident}")
         if record.ident in seen:
             raise ValueError(f"duplicate rule ID: {record.ident}")
         seen.add(record.ident)

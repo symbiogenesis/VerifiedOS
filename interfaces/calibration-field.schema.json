@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "VerifiedOS proposed calibration field",
+  "description": "The owner declaration supplies the class domain and each class's live ceiling owner.",
+  "type": "object",
+  "required": ["name", "class", "ceiling_owner"],
+  "additionalProperties": false,
+  "properties": {
+    "name": {"type": "string", "pattern": "^[a-z][a-z0-9_-]*$", "not": {"pattern": "\\n"}},
+    "class": {"type": "string"},
+    "ceiling_owner": {"type": "string"}
+  }
+}

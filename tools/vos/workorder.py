@@ -10,11 +10,13 @@ conditions remain explicit unmet predicates until their owner discharges them.
 import json
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import cast
+from typing import TypedDict, cast
 
 from vos.jsonutil import unique_object
+from vos.schema import validate
 
 OWNER = "docs/implementation/work-order.json"
+SCHEMA = "docs/implementation/work-order.schema.json"
 BUCKETS = ("m8a", "m8b", "committed", "conditional", "option")
 START = "<!-- work-order:start -->"
 END = "<!-- work-order:end -->"
@@ -32,21 +34,24 @@ class WorkOrder:
         return "\n".join([HEADER, RULE, *(f"| {a} | {b} | {c} |" for a, b, c in self.rows)])
 
 
-def _object(value: object, keys: set[str], where: str) -> dict[str, object]:
-    if not isinstance(value, dict) or set(value) != keys:
-        raise ValueError(f"{where}: requires exactly {', '.join(sorted(keys))}")
-    return cast(dict[str, object], value)
+class Join(TypedDict):
+    item: str
+    output: str
 
 
-def _strings(value: object, where: str) -> list[str]:
-    if not isinstance(value, list) or any(
-            not isinstance(v, str) or not v.strip() or any(c in v for c in "|\r\n")
-            for v in value):
-        raise ValueError(f"{where}: requires a list of nonempty single-line strings")
-    values = cast(list[str], value)
-    if len(values) != len(set(values)):
-        raise ValueError(f"{where}: duplicate entry")
-    return values
+class Dispatch(TypedDict):
+    item: str
+    start: list[str]
+    artifacts: list[str]
+    unmet: list[str]
+    join: list[Join]
+
+
+class Declaration(TypedDict):
+    version: int
+    buckets: dict[str, list[str]]
+    dispatch: list[Dispatch]
+    unpriced: list[str]
 
 
 def _read(root: Path, leaves: dict[str, bool]) -> WorkOrder:
@@ -54,10 +59,8 @@ def _read(root: Path, leaves: dict[str, bool]) -> WorkOrder:
     result = WorkOrder()
     raw: object = json.loads((root / OWNER).read_text(encoding="utf-8"),
                              object_pairs_hook=unique_object)
-    owner = _object(raw, {"version", "buckets", "dispatch", "unpriced"}, OWNER)
-    if type(owner["version"]) is not int or owner["version"] != 1:
-        raise ValueError(f"{OWNER}: unsupported version")
-    buckets = _object(owner["buckets"], set(BUCKETS), "buckets")
+    validate(root / SCHEMA, raw)
+    owner = cast(Declaration, raw)
 
     def resolve(key: str) -> str:
         candidates = [label for label in leaves
@@ -74,7 +77,7 @@ def _read(root: Path, leaves: dict[str, bool]) -> WorkOrder:
 
     assigned: set[str] = set()
     for bucket in BUCKETS:
-        labels = [resolve(key) for key in _strings(buckets[bucket], bucket)]
+        labels = [resolve(key) for key in owner["buckets"][bucket]]
         for label in labels:
             if label in assigned:
                 raise ValueError(f"{label}: assigned to multiple buckets")
@@ -83,46 +86,26 @@ def _read(root: Path, leaves: dict[str, bool]) -> WorkOrder:
     missing = sorted(label for label, done in leaves.items() if not done and label not in assigned)
     if missing:
         raise ValueError("unclassified open priced leaves: " + "; ".join(missing))
-    unpriced = _strings(owner["unpriced"], "unpriced")
-    if not unpriced:
-        raise ValueError("unpriced: requires the named obligation owner")
-    for path in unpriced:
+    for path in owner["unpriced"]:
         if not artifact(path):
             raise ValueError(f"unpriced owner is missing: {path}")
-    dispatch = owner["dispatch"]
-    if not isinstance(dispatch, list):
-        raise TypeError("dispatch: requires a list")
     seen: set[str] = set()
-    for entry in dispatch:
-        row = _object(entry, {"item", "start", "artifacts", "unmet", "join"}, "dispatch row")
+    for row in owner["dispatch"]:
         key = row["item"]
-        if not isinstance(key, str):
-            raise TypeError("dispatch item must be a string")
         label = resolve(key)
         if label in seen or label not in result.buckets["m8a"]:
             raise ValueError(f"{key}: duplicate or non-M8a dispatch row")
         seen.add(label)
-        starts = [resolve(k) for k in _strings(row["start"], f"{key} start")]
+        starts = [resolve(k) for k in row["start"]]
         if label in starts:
             raise ValueError(f"{key}: a leaf cannot require its own completion to start")
-        paths = _strings(row["artifacts"], f"{key} artifacts")
-        unmet = _strings(row["unmet"], f"{key} unmet")
-        if not starts and not paths and not unmet:
-            raise ValueError(f"{key}: no authoring input or explicit missing predicate")
         blockers = [s.partition(" · ")[0] for s in starts if not leaves[s]]
-        blockers += [p for p in paths if not artifact(p)]
-        blockers += unmet
-        joins = row["join"]
-        if not isinstance(joins, list):
-            raise TypeError(f"{key} join: requires a list")
+        blockers += [p for p in row["artifacts"] if not artifact(p)]
+        blockers += row["unmet"]
         pending: list[str] = []
         joined: set[str] = set()
-        for link in joins:
-            join = _object(link, {"item", "output"}, f"{key} join")
+        for join in row["join"]:
             producer, output = join["item"], join["output"]
-            if not isinstance(producer, str) or not isinstance(output, str) or not output.strip() \
-                    or any(c in output for c in "|\r\n"):
-                raise ValueError(f"{key} join: requires an item and a single-line output")
             dependency = resolve(producer)
             if dependency == label or dependency in joined:
                 raise ValueError(f"{key}: self or repeated join")
