@@ -131,7 +131,15 @@ name its own package.
 sources and named interface owners separately from `HandlerGraph.Descriptor`.
 The [production input](m8a-composition.json) names every real roster member's
 [source-owned inventory](packages/); those files own the component and interface
-source lists. Their source digests identify the actual checkout bytes. The storage
+source lists, except the composer and admission `sources` fields, which derive from
+the ordered groups in [source_bindings.py](../vos/source_bindings.py). The same
+declaration derives their production-input source sets, projection producers and
+admission receipt inventories, including shared dependencies and the declaration
+itself. `run.py composer bind-sources` regenerates those package and production-input
+fields; then `run.py composer project tools/composer/m8a-composition.json --output
+tools/composer/generated` regenerates the projections. K-88 checks the derived
+fields while preserving authored interfaces, handlers and composition choices.
+Their source digests identify the actual checkout bytes. The storage
 and crypto-core
 sources remain statements: the boot verifier's C is not a storage-crypto compartment.
 None of these inventories carries a target product, producer qualification,

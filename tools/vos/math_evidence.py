@@ -14,8 +14,9 @@ from pathlib import Path, PurePosixPath
 from typing import Any
 from urllib.parse import urlsplit
 
-from vos import composer, corpus
+from vos import composer, corpus, source_bindings
 from vos.jsonutil import unique_object
+from vos.receipts import digest
 
 MANIFEST = "docs/background/math-evidence.json"
 ARTIFACT = "docs/background/math-evidence.md"
@@ -23,8 +24,7 @@ REQUIRED_IDS = frozenset({"dcp", "rank48", "eth378", "type-fpt", "logspace103", 
                           "integer109", "shortest-path", "two-stack", "composer-dictionaries"})
 STAGES = ("source inspection", "supplied replay", "independent replay", "production acceptance")
 DISPOSITIONS = ("evaluate now", "await workload", "monitor security")
-SHAPE_SOURCES = (composer.REFERENCE, "tools/vos/composer.py", "tools/vos/math_evidence.py",
-                 "tools/vos/jsonutil.py")
+SHAPE_SOURCES = source_bindings.sources("math-shapes")
 
 
 class EvidenceError(ValueError):
@@ -92,7 +92,7 @@ def _source(root: Path, raw: object, where: str) -> dict[str, str]:
         _local(root, url, where)
         if parsed.fragment or re.fullmatch(r"[0-9a-f]{64}", identity) is None:
             raise EvidenceError(f"{where}: local source requires a SHA-256 file identity")
-        if hashlib.sha256((root / url).read_bytes()).hexdigest() != identity:
+        if digest(root / url) != identity:
             raise EvidenceError(f"{where}: stale local source identity {url}")
     elif kind == "git":
         if (parsed.scheme != "https" or parsed.hostname != "github.com"
@@ -240,7 +240,7 @@ def shape_report(root: Path) -> dict[str, Any]:
         raise EvidenceError(f"composer source comparison failed: {comparison['failures']}")
     result = dictionary_report(composer.reference_fixture(root))
     result["sources_sha256"] = {
-        name: hashlib.sha256((root / name).read_bytes()).hexdigest() for name in SHAPE_SOURCES}
+        name: digest(root / name) for name in SHAPE_SOURCES}
     result["fixture_sha256"] = hashlib.sha256(composer.canonical_bytes(
         composer.document(composer.reference_fixture(root)))).hexdigest()
     return result

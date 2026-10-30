@@ -9,7 +9,7 @@ from typing import cast
 
 from tests.harness import Case, ensure
 from tests.test_boot import ROOT, _compose, _recipe_raw, _refused, _scratch, _write
-from vos import admission, boot, composer
+from vos import admission, boot, composer, source_bindings
 
 
 def _attached_recipe(root: Path) -> str:
@@ -23,7 +23,7 @@ def _attached_recipe(root: Path) -> str:
     raw["composer"] = {"source": source, "address": "0x80003000"}
     (root / "proofs").mkdir(exist_ok=True)
     (root / "tools" / "vos").mkdir(exist_ok=True)
-    for relative in (admission.SOURCE, admission.CHECKER, "tools/vos/composer.py", "tools/vos/jsonutil.py"):
+    for relative in source_bindings.sources("boot-composition"):
         shutil.copyfile(ROOT / relative, root / relative)
     reference = admission.read_reference(root)
     members = cast("list[dict[str, object]]", raw["members"])

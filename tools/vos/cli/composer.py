@@ -5,7 +5,7 @@ import argparse
 import json
 from pathlib import Path
 
-from vos import composer, composition_staged, corpus
+from vos import composer, composition_staged, corpus, source_bindings
 from vos import composition as production
 
 
@@ -83,6 +83,7 @@ def main(argv: list[str] | None = None) -> int:
     emit.add_argument("--output", required=True)
     fixture = commands.add_parser("fixture", help="emit the reference's synthetic descriptor document")
     fixture.add_argument("--output", required=True)
+    commands.add_parser("bind-sources", help="regenerate declared composer/admission source inventories")
     project = commands.add_parser("project", help="emit checked production composition projections")
     project.add_argument("source")
     project.add_argument("--output", required=True)
@@ -121,6 +122,9 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     root = corpus.find_root()
     try:
+        if args.command == "bind-sources":
+            print(json.dumps({"source_bindings": source_bindings.emit(root)}, indent=2))
+            return 0
         if args.command == "bind-staged-boot-chain":
             print(json.dumps(composition_staged.bind_boot_chain(root, args.source, args.output), indent=2))
             return 0

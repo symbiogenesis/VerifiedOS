@@ -144,6 +144,7 @@ from vos import (
     memplan,
     sailbundle,
     socmap,
+    source_bindings,
     supervisor_context,
     vector_bitcount,
     wire_formats,
@@ -474,6 +475,17 @@ def _composition_emit(name: str) -> Emitter:
     return emit
 
 
+def _source_bindings_emit(relative: str) -> Emitter:
+    """Regenerate the explicitly owned source fields in authored declarations."""
+    def emit(root: Path, bundle: sailbundle.Bundle | None) -> str:
+        del bundle
+        try:
+            return source_bindings.render(root, relative)
+        except (OSError, TypeError) as error:
+            raise ValueError(f"source-binding input cannot be read: {error}") from error
+    return emit
+
+
 @dataclass(frozen=True)
 class Row:
     """One generated artifact: what it is, what writes it, and what it is written from.
@@ -545,6 +557,10 @@ GENERATED: tuple[Row, ...] = (
         generator="run.py matrix-identity replay --fetch", lane="external",
         owners="the six pinned external PLinOpt inputs and independent checker identities",
         checker="run.py matrix-identity replay --fetch", inspect=_rank48_row),
+    *(Row(path=relative, generator="run.py composer bind-sources", lane="host",
+          owners="the declared composer/admission source views and the artifact's other authored fields",
+          checker="this gate", emit=_source_bindings_emit(relative))
+      for relative in (*source_bindings.PACKAGE_FILES.values(), source_bindings.COMPOSITION)),
     *(Row(path=f"{composition.GENERATED}/{name}",
           generator="run.py composer project tools/composer/m8a-composition.json --output tools/composer/generated",
           lane="host", owners="the typed composition input, real roster and bound source/producer bytes",

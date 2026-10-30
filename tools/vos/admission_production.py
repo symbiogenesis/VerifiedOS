@@ -9,10 +9,10 @@ import json
 from pathlib import Path
 from typing import Any, TypedDict, cast
 
-from vos import boot, composer, composition
+from vos import boot, composer, composition, source_bindings
 from vos.jsonutil import unique_object
 
-CHECKERS = ("tools/vos/admission_production.py", "tools/vos/cli/admission.py", "tools/vos/jsonutil.py")
+CHECKERS = source_bindings.sources("admission-production")
 SCOPE = "production-admission-refusal"
 
 

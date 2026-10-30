@@ -52,6 +52,7 @@ from vos import (
     memory_planner,
     rtltrace,
     rvfi,
+    source_bindings,
     vector_bitcount,
 )
 from vos import composition as production
@@ -171,6 +172,17 @@ def _composition_fixture(scratch: Path) -> list[str]:
     composition = composer.reference_fixture(_ROOT)
     (scratch / "descriptors.json").write_bytes(composer.canonical_bytes(composer.document(composition)))
     return ["descriptors.json", "--output", "out/graph.json"]
+
+
+def _source_binding_fixture(scratch: Path) -> list[str]:
+    """The fixed-path inventory writer receives a complete private source tree."""
+    paths = {name for view in source_bindings.GROUPS for name in source_bindings.sources(view)}
+    paths.update((*source_bindings.PACKAGE_FILES.values(), source_bindings.COMPOSITION))
+    for relative in paths:
+        destination = scratch / relative
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(_ROOT / relative, destination)
+    return []
 
 
 def _production_fixture(action: str, scratch: Path) -> list[str]:
@@ -354,6 +366,7 @@ _RUNS: dict[tuple[str, str], Argv] = {
     ("boot", "roster"): lambda _: [],
     ("composer", "compose"): _composition_fixture,
     ("composer", "fixture"): lambda _: ["--output", "out/descriptor-fixture.json"],
+    ("composer", "bind-sources"): _source_binding_fixture,
     ("composer", "compare"): lambda _: [],
     ("composer", "project"): partial(_production_fixture, "project"),
     ("composer", "bind-staged-boot-chain"): _staged_production_fixture,
