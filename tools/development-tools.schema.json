@@ -32,6 +32,28 @@
       "minItems": 1,
       "items": {
         "$ref": "#/$defs/row"
+      },
+      "contains": {
+        "type": "object",
+        "required": [
+          "id",
+          "tool",
+          "reviews"
+        ],
+        "properties": {
+          "id": {
+            "const": "Verilator"
+          },
+          "tool": {
+            "const": "Verilator"
+          },
+          "reviews": {
+            "contains": {
+              "const": "verilator"
+            }
+          }
+        },
+        "$comment": "The enforced RTL release must keep its licence-review row even when other tools remain; this preserves the missing-row refusal formerly owned by K-97."
       }
     }
   },

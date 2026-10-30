@@ -2,6 +2,21 @@
   "schema": 2,
   "reviews": [
     {
+      "id": "verilator",
+      "tool": "Verilator",
+      "subject": "the enforced RTL tool release",
+      "reviewed": [
+        "5.052"
+      ],
+      "owners": [
+        {
+          "kind": "assign",
+          "path": "tools/vos/cli/rtl.py",
+          "key": "VERILATOR_PIN"
+        }
+      ]
+    },
+    {
       "id": "node_js_1",
       "tool": "Node.js",
       "subject": "the reviewed release",
@@ -2544,8 +2559,10 @@
       "id": "Verilator",
       "tool": "Verilator",
       "license": "`LGPL-3.0-only OR Artistic-2.0`, at the recipient's option",
-      "standing": "Elaborates and simulates RTL, pinned at **5.052**.",
-      "disposition": "K-97 holds it against rtl.py's VERILATOR_PIN"
+      "standing": "Elaborates and simulates RTL, pinned at **${verilator_0}**.",
+      "reviews": [
+        "verilator"
+      ]
     },
     {
       "id": "Node.js",
