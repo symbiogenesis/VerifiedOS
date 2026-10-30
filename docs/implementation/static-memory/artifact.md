@@ -13,9 +13,10 @@ been published, reviewed outside this repository or measured on a product.
 
 The inventory of those parts is computed rather than written down.
 [static_memory_manifest.py](../../../tools/vos/static_memory_manifest.py) globs the modules,
-tests, documents and proofs, reads the accepted actions and their declared source sets
-from the command's own parser, hashes each file through the same `identity` function the
-experiment receipts use, and reports each file's membership in the git index. A module,
+tests, documents and proofs. The command supplies its parser registration and declared
+source sets explicitly, along with the digest function shared with experiment identities
+and the replay callback. The manifest hashes each file through that supplied function
+and reports each file's membership in the git index. A module,
 document or proof a later experiment adds is inventoried the day it lands, without an
 edit to this document or to that module.
 

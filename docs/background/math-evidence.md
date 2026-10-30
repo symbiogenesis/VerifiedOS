@@ -292,11 +292,13 @@ Sorted reference payload SHA-256: `23b690105f12b96f3ef7a997cf508a5b775e70bcaf077
 
 | Bound input or implementation | SHA-256 |
 | --- | --- |
-| [tools/vos/source_bindings.py](../../tools/vos/source_bindings.py) | `5cb3a2da62836ecc87903f17333aa79dee1a4d657d4753150678eb82c1f402ca` |
+| [tools/vos/source_bindings.py](../../tools/vos/source_bindings.py) | `91406085e2e5aaf8285ee2f432ad6228ecb62e67aa37d7fccfd092515ad31bb4` |
 | [tools/vos/jsonutil.py](../../tools/vos/jsonutil.py) | `651b6cf84e7e3d3af970df71a286b5c700eea9b2b1b88f2db7dd44f572bfd8e5` |
 | [tools/vos/receipts.py](../../tools/vos/receipts.py) | `25bbf0b0288363f3b1fe9b0eff3616839dce7d61720814fe2f350f1fbba8d822` |
 | [tools/vos/proofenv.py](../../tools/vos/proofenv.py) | `cc6c5beca2aaefc1761e3b7748bdca52816d093f836ecdac9a879b79fa4d0513` |
 | [tools/vos/atomic.py](../../tools/vos/atomic.py) | `384e706e945f8cead1e1b3791f916f6e7f8783a7497c17dd3a551a765e670471` |
+| [tools/vos/proofs.py](../../tools/vos/proofs.py) | `fb53cdb3b596ee5918c6c4111c1f247f157e6ec0ae5dd8a1b4cbf244ca3e8e8c` |
+| [tools/vos/prooflex.py](../../tools/vos/prooflex.py) | `d3cc29a77d0f9b214afeaa4bb7b54a8ffefac77e04bc7881ff5d25f237731913` |
 | [tools/vos/composer.py](../../tools/vos/composer.py) | `199093c62f8cb3ac5d385bb0a074811661df4a66aaa3328fab439f252de022e0` |
 | [proofs/HandlerGraph.v](../../proofs/HandlerGraph.v) | `2353a27a43e88f37484450335df834ba945bae2900055e94777e06189a02dfcd` |
 | [tools/vos/math_evidence.py](../../tools/vos/math_evidence.py) | `03470df2ecb081d31c94895714038514855075b19a2bae7e1c242dd550dfc566` |

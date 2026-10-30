@@ -2597,6 +2597,20 @@ CI lane for the settled revision without waiting for Guest CI.
   readings. Consolidate only the qualified overlap; record any incompatible
   scanner policy and remaining boundary here.
 
+The ring parser and emitter now live in `vos/ring.py`; library consumers import
+that module directly. Composition and ring declarations share the lazy validator
+in `vos/schema.py`, and source inventories bind both new dependencies where used.
+The static-memory command supplies registration, digest and replay dependencies
+explicitly to its manifest library.
+
+`vos/prooflex.py` shares comment and string region traversal. The proof reader
+retains tolerant unfinished-input handling and recognizes strings inside comments;
+navigation ignores quotes inside comments and refuses unmatched endings and
+unfinished regions. Those policies remain distinct at the adapters. Focused
+differential fixtures and live proof-source readings preserve both consumers'
+outputs. The `simplify-tools-20261029` fanout journal records the integrated hosted
+handoff; Guest CI includes a comparison against the batch's starting revision.
+
 ## Shared JSON duplicate-key rejection
 
 The tool readers share the duplicate-key check in

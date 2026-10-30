@@ -12,7 +12,7 @@
       "sources": [
         {
           "path": "tools/vos/source_bindings.py",
-          "sha256": "3122510d806319175668242c48b8a360067879d55511a9f70496f4e50083dbbe"
+          "sha256": "91406085e2e5aaf8285ee2f432ad6228ecb62e67aa37d7fccfd092515ad31bb4"
         },
         {
           "path": "tools/vos/jsonutil.py",
@@ -29,6 +29,14 @@
         {
           "path": "tools/vos/atomic.py",
           "sha256": "384e706e945f8cead1e1b3791f916f6e7f8783a7497c17dd3a551a765e670471"
+        },
+        {
+          "path": "tools/vos/proofs.py",
+          "sha256": "fb53cdb3b596ee5918c6c4111c1f247f157e6ec0ae5dd8a1b4cbf244ca3e8e8c"
+        },
+        {
+          "path": "tools/vos/prooflex.py",
+          "sha256": "d3cc29a77d0f9b214afeaa4bb7b54a8ffefac77e04bc7881ff5d25f237731913"
         },
         {
           "path": "tools/vos/composer.py",
@@ -45,7 +53,7 @@
       "sources": [
         {
           "path": "tools/vos/source_bindings.py",
-          "sha256": "3122510d806319175668242c48b8a360067879d55511a9f70496f4e50083dbbe"
+          "sha256": "91406085e2e5aaf8285ee2f432ad6228ecb62e67aa37d7fccfd092515ad31bb4"
         },
         {
           "path": "tools/vos/jsonutil.py",
@@ -62,6 +70,14 @@
         {
           "path": "tools/vos/atomic.py",
           "sha256": "384e706e945f8cead1e1b3791f916f6e7f8783a7497c17dd3a551a765e670471"
+        },
+        {
+          "path": "tools/vos/proofs.py",
+          "sha256": "fb53cdb3b596ee5918c6c4111c1f247f157e6ec0ae5dd8a1b4cbf244ca3e8e8c"
+        },
+        {
+          "path": "tools/vos/prooflex.py",
+          "sha256": "d3cc29a77d0f9b214afeaa4bb7b54a8ffefac77e04bc7881ff5d25f237731913"
         },
         {
           "path": "tools/vos/admission.py",
@@ -294,7 +310,7 @@
       "sources": [
         {
           "path": "tools/vos/source_bindings.py",
-          "sha256": "3122510d806319175668242c48b8a360067879d55511a9f70496f4e50083dbbe"
+          "sha256": "91406085e2e5aaf8285ee2f432ad6228ecb62e67aa37d7fccfd092515ad31bb4"
         },
         {
           "path": "tools/vos/jsonutil.py",
@@ -311,6 +327,14 @@
         {
           "path": "tools/vos/atomic.py",
           "sha256": "384e706e945f8cead1e1b3791f916f6e7f8783a7497c17dd3a551a765e670471"
+        },
+        {
+          "path": "tools/vos/proofs.py",
+          "sha256": "fb53cdb3b596ee5918c6c4111c1f247f157e6ec0ae5dd8a1b4cbf244ca3e8e8c"
+        },
+        {
+          "path": "tools/vos/prooflex.py",
+          "sha256": "d3cc29a77d0f9b214afeaa4bb7b54a8ffefac77e04bc7881ff5d25f237731913"
         },
         {
           "path": "tools/vos/composer.py",
@@ -339,7 +363,7 @@
       ],
       "descriptor": {
         "path": "tools/composer/packages/composer.json",
-        "sha256": "a9f4f4f652875dda8ff5522e5782a0d20ba7def619532ba571a34ab90ce79a80"
+        "sha256": "7c5bf10dd416b285ba3f3e1c9554f88d08301cfd3ea17b94d28a15f6cbd10e38"
       },
       "artifact_slot": "composer-artifact",
       "entry": null,
@@ -358,7 +382,7 @@
       "sources": [
         {
           "path": "tools/vos/source_bindings.py",
-          "sha256": "3122510d806319175668242c48b8a360067879d55511a9f70496f4e50083dbbe"
+          "sha256": "91406085e2e5aaf8285ee2f432ad6228ecb62e67aa37d7fccfd092515ad31bb4"
         },
         {
           "path": "tools/vos/jsonutil.py",
@@ -375,6 +399,14 @@
         {
           "path": "tools/vos/atomic.py",
           "sha256": "384e706e945f8cead1e1b3791f916f6e7f8783a7497c17dd3a551a765e670471"
+        },
+        {
+          "path": "tools/vos/proofs.py",
+          "sha256": "fb53cdb3b596ee5918c6c4111c1f247f157e6ec0ae5dd8a1b4cbf244ca3e8e8c"
+        },
+        {
+          "path": "tools/vos/prooflex.py",
+          "sha256": "d3cc29a77d0f9b214afeaa4bb7b54a8ffefac77e04bc7881ff5d25f237731913"
         },
         {
           "path": "tools/vos/admission.py",
@@ -395,7 +427,7 @@
       ],
       "descriptor": {
         "path": "tools/composer/packages/admission.json",
-        "sha256": "61bebb5c0583e91d9f638106197c5019c5ab7cf13287d1513fee5d64709fa1bd"
+        "sha256": "db1b73461f3675f405c9c3d3bf0cd77ec109648bc7d2281fe17c1aeaf83a1283"
       },
       "artifact_slot": "admission-artifact",
       "entry": null,
