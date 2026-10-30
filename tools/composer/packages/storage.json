@@ -8,7 +8,7 @@
     },
     {
       "path": "proofs/JournalIndex.v",
-      "sha256": "2bc317754743a5accaa1d7819b7f86330454f1da9bcbfd42a64a5de561a2c0d1"
+      "sha256": "87fdca8ba034590a4d5688893eac34c2da9e7122b0a859bfb3f609017f764ee7"
     },
     {
       "path": "proofs/StorageRecovery.v",
@@ -16,7 +16,7 @@
     },
     {
       "path": "proofs/KeyspaceDomains.v",
-      "sha256": "2881a6402b004c4fae7420dc987b668fb9646043f6f31584043d23a4d0a41c1c"
+      "sha256": "db453b08e89b06eaf6eec5e37393a48a8fe1ded8410730d7f2229ee52044b3a2"
     }
   ],
   "interfaces": [

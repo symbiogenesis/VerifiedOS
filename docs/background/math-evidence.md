@@ -7,7 +7,7 @@ This validates metadata and finite host/reference behavior. It supplies no theor
 | Topic | Evidence stage | Disposition | Inspected |
 | --- | --- | --- | --- |
 | [Lean Comparator maintenance route](#comparator) | source inspection | evaluate now | 2026-10-20 |
-| [Immutable composer dictionary shapes](#composer-dictionaries) | independent replay | evaluate now | 2026-10-20 |
+| [Immutable composer dictionary shapes](#composer-dictionaries) | independent replay | evaluate now | 2026-10-30 |
 | [Disputed DCP attack and MLWE premise](#dcp) | source inspection | monitor security | 2026-10-20 |
 | [Reported ETH refutation by deterministic bounded-width SAT](#eth378) | source inspection | await workload | 2026-10-27 |
 | [Integer multiplication: conditional frontier and Lean artifact](#integer109) | source inspection | await workload | 2026-10-21 |
@@ -42,12 +42,12 @@ Next action: Use the supported core route when a new external Lean evaluation is
 
 The existing host/reference composer supplies a finite synthetic package-ID-to-descriptor-index map. The generated report binds the fixture and implementation, compares an exact packed linear map with a sorted-array lookup baseline and records absent-key behavior without timing.
 
-Evidence stage: **independent replay**. Disposition: **evaluate now**. Inspected: 2026-10-20.
+Evidence stage: **independent replay**. Disposition: **evaluate now**. Inspected: 2026-10-30.
 
 Selected sources:
 
 - [tools/vos/composer.py](../../tools/vos/composer.py); identity `199093c62f8cb3ac5d385bb0a074811661df4a66aaa3328fab439f252de022e0`.
-- [proofs/HandlerGraph.v](../../proofs/HandlerGraph.v); identity `f6780f1934ff0a4e80ee4cec1df0dc98dd6a2e709067404c9e3305b90e746f27`.
+- [proofs/HandlerGraph.v](../../proofs/HandlerGraph.v); identity `7bbb0de40e8e485e2797155515dd0c0d00f808e8b5254bbbc9f54c95ef18b4a2`.
 
 Assumptions and exclusions:
 
@@ -292,15 +292,16 @@ Sorted reference payload SHA-256: `23b690105f12b96f3ef7a997cf508a5b775e70bcaf077
 
 | Bound input or implementation | SHA-256 |
 | --- | --- |
-| [tools/vos/source_bindings.py](../../tools/vos/source_bindings.py) | `91406085e2e5aaf8285ee2f432ad6228ecb62e67aa37d7fccfd092515ad31bb4` |
+| [tools/vos/source_bindings.py](../../tools/vos/source_bindings.py) | `12cb4fdbaaf7b9ff8934afd3dc3add4b2cf53c5bbb6f3f6f614c5d73ffb28ea0` |
 | [tools/vos/jsonutil.py](../../tools/vos/jsonutil.py) | `651b6cf84e7e3d3af970df71a286b5c700eea9b2b1b88f2db7dd44f572bfd8e5` |
 | [tools/vos/receipts.py](../../tools/vos/receipts.py) | `25bbf0b0288363f3b1fe9b0eff3616839dce7d61720814fe2f350f1fbba8d822` |
 | [tools/vos/proofenv.py](../../tools/vos/proofenv.py) | `cc6c5beca2aaefc1761e3b7748bdca52816d093f836ecdac9a879b79fa4d0513` |
 | [tools/vos/atomic.py](../../tools/vos/atomic.py) | `384e706e945f8cead1e1b3791f916f6e7f8783a7497c17dd3a551a765e670471` |
 | [tools/vos/proofs.py](../../tools/vos/proofs.py) | `fb53cdb3b596ee5918c6c4111c1f247f157e6ec0ae5dd8a1b4cbf244ca3e8e8c` |
 | [tools/vos/prooflex.py](../../tools/vos/prooflex.py) | `d3cc29a77d0f9b214afeaa4bb7b54a8ffefac77e04bc7881ff5d25f237731913` |
+| [proofs/ProofSupport.v](../../proofs/ProofSupport.v) | `85a363223eba34912eb1fa2999a5e272e969ae547ffcec0e218874d902d15713` |
 | [tools/vos/composer.py](../../tools/vos/composer.py) | `199093c62f8cb3ac5d385bb0a074811661df4a66aaa3328fab439f252de022e0` |
-| [proofs/HandlerGraph.v](../../proofs/HandlerGraph.v) | `f6780f1934ff0a4e80ee4cec1df0dc98dd6a2e709067404c9e3305b90e746f27` |
+| [proofs/HandlerGraph.v](../../proofs/HandlerGraph.v) | `7bbb0de40e8e485e2797155515dd0c0d00f808e8b5254bbbc9f54c95ef18b4a2` |
 | [tools/vos/math_evidence.py](../../tools/vos/math_evidence.py) | `03470df2ecb081d31c94895714038514855075b19a2bae7e1c242dd550dfc566` |
 
 Before adopting a compact dictionary, name a real consumer, record its table shapes and access trace or justified query distribution, compare sorted arrays and generated perfect hashing, and declare finite byte/work thresholds. Construction and any randomized seed need their own bounds. Timing comparisons and benchmarks run on CI. Dynamic service indexes separately owe update, exhaustion and recovery behavior.

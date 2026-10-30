@@ -118,6 +118,7 @@
 
 Require Import PartitionContext.
 Require Import BoundaryCost.
+(* R-05-163 audits this artifact and its shared constructive dependencies. *)
 Require ProofSupport.
 
 (* -------------------------------------------------------------------------

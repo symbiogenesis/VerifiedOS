@@ -12,7 +12,7 @@
       "sources": [
         {
           "path": "tools/vos/source_bindings.py",
-          "sha256": "91406085e2e5aaf8285ee2f432ad6228ecb62e67aa37d7fccfd092515ad31bb4"
+          "sha256": "12cb4fdbaaf7b9ff8934afd3dc3add4b2cf53c5bbb6f3f6f614c5d73ffb28ea0"
         },
         {
           "path": "tools/vos/jsonutil.py",
@@ -39,12 +39,16 @@
           "sha256": "d3cc29a77d0f9b214afeaa4bb7b54a8ffefac77e04bc7881ff5d25f237731913"
         },
         {
+          "path": "proofs/ProofSupport.v",
+          "sha256": "85a363223eba34912eb1fa2999a5e272e969ae547ffcec0e218874d902d15713"
+        },
+        {
           "path": "tools/vos/composer.py",
           "sha256": "199093c62f8cb3ac5d385bb0a074811661df4a66aaa3328fab439f252de022e0"
         },
         {
           "path": "proofs/HandlerGraph.v",
-          "sha256": "f6780f1934ff0a4e80ee4cec1df0dc98dd6a2e709067404c9e3305b90e746f27"
+          "sha256": "7bbb0de40e8e485e2797155515dd0c0d00f808e8b5254bbbc9f54c95ef18b4a2"
         }
       ]
     },
@@ -53,7 +57,7 @@
       "sources": [
         {
           "path": "tools/vos/source_bindings.py",
-          "sha256": "91406085e2e5aaf8285ee2f432ad6228ecb62e67aa37d7fccfd092515ad31bb4"
+          "sha256": "12cb4fdbaaf7b9ff8934afd3dc3add4b2cf53c5bbb6f3f6f614c5d73ffb28ea0"
         },
         {
           "path": "tools/vos/jsonutil.py",
@@ -80,12 +84,16 @@
           "sha256": "d3cc29a77d0f9b214afeaa4bb7b54a8ffefac77e04bc7881ff5d25f237731913"
         },
         {
+          "path": "proofs/ProofSupport.v",
+          "sha256": "85a363223eba34912eb1fa2999a5e272e969ae547ffcec0e218874d902d15713"
+        },
+        {
           "path": "tools/vos/admission.py",
           "sha256": "70e6b9014fb3d2efaf8fcbc3130b7356617b2fe9e4da0303b024c67e1e68fc70"
         },
         {
           "path": "proofs/AdmissionPath.v",
-          "sha256": "a68f14ad86ee7a7eb5c37d6b90c1b6be163f1d5161e27a6f6aeeff2c215a6f87"
+          "sha256": "6a311e44dbc34b28357c0e73df3c06197a5e929b2f0a72b6e1730a30a4799931"
         }
       ]
     }
@@ -98,7 +106,7 @@
       "sources": [
         {
           "path": "proofs/RotFirmware.v",
-          "sha256": "c8b289916992fc82c6a5683c49d7c46762425779c5e71c63d9af9c6fbf0603fc"
+          "sha256": "05968f1ae56134a71d3890b580b111487aa7e4bd37ad416327bc7a243b5ecc9a"
         },
         {
           "path": "proofs/RomVerifier.v",
@@ -106,7 +114,7 @@
         },
         {
           "path": "proofs/Keccak.v",
-          "sha256": "231f8a2e9cc3f022e3647ef04d17a2e56fbb2b54ea7bcb10ae76d5caf52f4592"
+          "sha256": "240258e2567cfef5f422a23db2c50fd7f173bab8ec0b276194c198d7b22dd226"
         }
       ],
       "descriptor": {
@@ -130,7 +138,7 @@
       "sources": [
         {
           "path": "proofs/MModeFirmware.v",
-          "sha256": "9e4f93790feb8709b506fcca022d39b4a61dad9bef7d3d36ad753419bce0e1a5"
+          "sha256": "ec257d2f9ba7085839e6be4261e0dca397a9b87df90ef9bc8f8369a647e97b2b"
         }
       ],
       "descriptor": {
@@ -154,7 +162,7 @@
       "sources": [
         {
           "path": "proofs/KernelInstance.v",
-          "sha256": "7a6fc7315d12cc99b8b635895b28e4473c9b8a4f9294c6cc05cfb2a88da39402"
+          "sha256": "9d3425c627927396fd1b283900b5b908ab9ff9d80532c766f0aa8bcce699954b"
         },
         {
           "path": "proofs/PartitionContext.v",
@@ -162,7 +170,7 @@
         },
         {
           "path": "proofs/CyclicExecutive.v",
-          "sha256": "c6246b6a5828de333a08f1140ff63003c5722d54ec88d5a9dd3ab60cff96c3b0"
+          "sha256": "8e028862ae297ad7107dfc92ed0f9c93d039afb9a0a156f80c2c6a5aecba1d26"
         }
       ],
       "descriptor": {
@@ -186,7 +194,7 @@
       "sources": [
         {
           "path": "proofs/SupervisionTree.v",
-          "sha256": "2a876b1f78885e5bb96e9b1f05c410a73a00bca714b1d18198e73e024b2ee51f"
+          "sha256": "e95647b680db45ac0d2e2a426312411de266881304968e380b4171bc59876fa4"
         },
         {
           "path": "supervisor/src/manifest.c",
@@ -214,15 +222,15 @@
       "sources": [
         {
           "path": "proofs/Keccak.v",
-          "sha256": "231f8a2e9cc3f022e3647ef04d17a2e56fbb2b54ea7bcb10ae76d5caf52f4592"
+          "sha256": "240258e2567cfef5f422a23db2c50fd7f173bab8ec0b276194c198d7b22dd226"
         },
         {
           "path": "proofs/Sha256.v",
-          "sha256": "5a65c982f1953592436059c2fcf68e4bea3bb851197e7cb419c60842d11455d5"
+          "sha256": "651f68a00973e37b230a439cb8b82bc39c8d588ef3e39b9a3524993517fac710"
         },
         {
           "path": "proofs/AesGcm.v",
-          "sha256": "b2e72c0e614eb2cd7161309fdfe8bd8488a3165a3c5a4cf31b902eb31bb294e7"
+          "sha256": "f87f6a64672ff45c40394dbc9153dc85c7c07481aed4ab9d83e9033e32f81e95"
         },
         {
           "path": "proofs/MlDsa.v",
@@ -231,7 +239,7 @@
       ],
       "descriptor": {
         "path": "tools/composer/packages/crypto-core.json",
-        "sha256": "a901a6febc633b77e1d45018d04893e0b9b45a98c71df1a24c6511f0c91353e8"
+        "sha256": "d8767e5594771c59d0be038a965ec0096a0dd12c38c9d0e23a6d03c51e3e232d"
       },
       "artifact_slot": "crypto-core-artifact",
       "entry": null,
@@ -254,7 +262,7 @@
         },
         {
           "path": "proofs/JournalIndex.v",
-          "sha256": "2bc317754743a5accaa1d7819b7f86330454f1da9bcbfd42a64a5de561a2c0d1"
+          "sha256": "87fdca8ba034590a4d5688893eac34c2da9e7122b0a859bfb3f609017f764ee7"
         },
         {
           "path": "proofs/StorageRecovery.v",
@@ -263,7 +271,7 @@
       ],
       "descriptor": {
         "path": "tools/composer/packages/storage.json",
-        "sha256": "66c5c3b5f059eb4d1d575b6942a092818b32c996398fcf4b5373e5279fd83afe"
+        "sha256": "79d567138c15eadc951056f0a7e6cf6ae7dfce1c7a15be9bb45daf28976bb7f5"
       },
       "artifact_slot": "storage-artifact",
       "entry": null,
@@ -282,7 +290,7 @@
       "sources": [
         {
           "path": "proofs/CopyRingService.v",
-          "sha256": "40101f039df85e39143d14527b4ec970c2eebeeaa381e59aa8bd803319f1b2fa"
+          "sha256": "b4dee7096b64cae6b8dd5ebf3722aa67e812c20aea42ebb676de3d855f69c65f"
         },
         {
           "path": "proofs/RingContract.v",
@@ -310,7 +318,7 @@
       "sources": [
         {
           "path": "tools/vos/source_bindings.py",
-          "sha256": "91406085e2e5aaf8285ee2f432ad6228ecb62e67aa37d7fccfd092515ad31bb4"
+          "sha256": "12cb4fdbaaf7b9ff8934afd3dc3add4b2cf53c5bbb6f3f6f614c5d73ffb28ea0"
         },
         {
           "path": "tools/vos/jsonutil.py",
@@ -337,12 +345,16 @@
           "sha256": "d3cc29a77d0f9b214afeaa4bb7b54a8ffefac77e04bc7881ff5d25f237731913"
         },
         {
+          "path": "proofs/ProofSupport.v",
+          "sha256": "85a363223eba34912eb1fa2999a5e272e969ae547ffcec0e218874d902d15713"
+        },
+        {
           "path": "tools/vos/composer.py",
           "sha256": "199093c62f8cb3ac5d385bb0a074811661df4a66aaa3328fab439f252de022e0"
         },
         {
           "path": "proofs/HandlerGraph.v",
-          "sha256": "f6780f1934ff0a4e80ee4cec1df0dc98dd6a2e709067404c9e3305b90e746f27"
+          "sha256": "7bbb0de40e8e485e2797155515dd0c0d00f808e8b5254bbbc9f54c95ef18b4a2"
         },
         {
           "path": "tools/vos/composition.py",
@@ -363,7 +375,7 @@
       ],
       "descriptor": {
         "path": "tools/composer/packages/composer.json",
-        "sha256": "5523e46d39203501d5b464061a3e9e59d62892d2143b37ccb2714304ccd25bb9"
+        "sha256": "9cf5ae0177df207e15c0b80ed305201ac806bdbe54e01ff4c5d55fbb17fc9eb1"
       },
       "artifact_slot": "composer-artifact",
       "entry": null,
@@ -382,7 +394,7 @@
       "sources": [
         {
           "path": "tools/vos/source_bindings.py",
-          "sha256": "91406085e2e5aaf8285ee2f432ad6228ecb62e67aa37d7fccfd092515ad31bb4"
+          "sha256": "12cb4fdbaaf7b9ff8934afd3dc3add4b2cf53c5bbb6f3f6f614c5d73ffb28ea0"
         },
         {
           "path": "tools/vos/jsonutil.py",
@@ -409,12 +421,16 @@
           "sha256": "d3cc29a77d0f9b214afeaa4bb7b54a8ffefac77e04bc7881ff5d25f237731913"
         },
         {
+          "path": "proofs/ProofSupport.v",
+          "sha256": "85a363223eba34912eb1fa2999a5e272e969ae547ffcec0e218874d902d15713"
+        },
+        {
           "path": "tools/vos/admission.py",
           "sha256": "70e6b9014fb3d2efaf8fcbc3130b7356617b2fe9e4da0303b024c67e1e68fc70"
         },
         {
           "path": "proofs/AdmissionPath.v",
-          "sha256": "a68f14ad86ee7a7eb5c37d6b90c1b6be163f1d5161e27a6f6aeeff2c215a6f87"
+          "sha256": "6a311e44dbc34b28357c0e73df3c06197a5e929b2f0a72b6e1730a30a4799931"
         },
         {
           "path": "tools/vos/admission_production.py",
@@ -427,7 +443,7 @@
       ],
       "descriptor": {
         "path": "tools/composer/packages/admission.json",
-        "sha256": "fd4fb733616da4d0b35a3ad7e636a041bc9970ceb036fff10b79c7ee3f425485"
+        "sha256": "9f62d7ca91c51b9202941e2fca9f95b20e6ce6f64083cda266aab5450ecc0ba5"
       },
       "artifact_slot": "admission-artifact",
       "entry": null,

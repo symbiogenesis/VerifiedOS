@@ -1,6 +1,17 @@
 (* SPDX-License-Identifier: Apache-2.0 *)
-(* Pointwise semantics for a fold of independent indexed updates.  The state
-   may carry additional data; only the selected memory view is constrained. *)
+(* =========================================================================
+   IndexedUpdates.v
+
+   Pointwise semantics for a fold of independent indexed updates. The state
+   may carry additional data; only the selected memory view is constrained.
+   R-05-163 audits these generic laws, which the service equivalence proofs
+   instantiate under R-08-011 and R-08-014's reservation and separation scope.
+   (*| BEGIN derived: cited entries |*)
+   Owner: docs/requirements-register.md
+   Requirements: R-05-163 R-08-011 R-08-014
+   SHA256: bc2379bae58b761b29586b5743242fb28d624d994b0427364bdf579282840dab
+   (*| END derived |*)
+   ========================================================================= *)
 
 From Stdlib Require Import List Bool PeanoNat Lia.
 Import ListNotations.

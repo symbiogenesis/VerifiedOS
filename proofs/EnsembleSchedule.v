@@ -203,6 +203,7 @@
    ========================================================================= *)
 
 Require Import CyclicExecutive.
+(* R-05-163 audits this artifact and its shared constructive dependencies. *)
 Require ProofSupport.
 
 (* -------------------------------------------------------------------------

@@ -1,6 +1,17 @@
 (* SPDX-License-Identifier: Apache-2.0 *)
-(* Equal-length lifting for the executable crypto references. The functions
-   remain total on unequal lists: zip_with stops at the shorter input. *)
+(* =========================================================================
+   CryptoLists.v
+
+   Equal-length lifting for the executable crypto references. The functions
+   remain total on unequal lists: zip_with stops at the shorter input.
+   R-05-163 audits the shared laws; the concrete unequal-length examples
+   retain the boundary evidence required by R-05-165 and R-05-166.
+   (*| BEGIN derived: cited entries |*)
+   Owner: docs/requirements-register.md
+   Requirements: R-05-163 R-05-165 R-05-166
+   SHA256: 4c631348347cb256d8d909843632bc4849e204c51521af8b014dbaabd4d358c9
+   (*| END derived |*)
+   ========================================================================= *)
 
 Require ProofSupport.
 

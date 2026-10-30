@@ -4,7 +4,7 @@
   "sources": [
     {
       "path": "tools/vos/source_bindings.py",
-      "sha256": "91406085e2e5aaf8285ee2f432ad6228ecb62e67aa37d7fccfd092515ad31bb4"
+      "sha256": "12cb4fdbaaf7b9ff8934afd3dc3add4b2cf53c5bbb6f3f6f614c5d73ffb28ea0"
     },
     {
       "path": "tools/vos/jsonutil.py",
@@ -31,12 +31,16 @@
       "sha256": "d3cc29a77d0f9b214afeaa4bb7b54a8ffefac77e04bc7881ff5d25f237731913"
     },
     {
+      "path": "proofs/ProofSupport.v",
+      "sha256": "85a363223eba34912eb1fa2999a5e272e969ae547ffcec0e218874d902d15713"
+    },
+    {
       "path": "tools/vos/admission.py",
       "sha256": "70e6b9014fb3d2efaf8fcbc3130b7356617b2fe9e4da0303b024c67e1e68fc70"
     },
     {
       "path": "proofs/AdmissionPath.v",
-      "sha256": "a68f14ad86ee7a7eb5c37d6b90c1b6be163f1d5161e27a6f6aeeff2c215a6f87"
+      "sha256": "6a311e44dbc34b28357c0e73df3c06197a5e929b2f0a72b6e1730a30a4799931"
     },
     {
       "path": "tools/vos/admission_production.py",

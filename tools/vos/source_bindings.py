@@ -25,7 +25,7 @@ PACKAGE_FILES: Final[dict[str, str]] = {
 GROUPS: Final[dict[str, tuple[str, ...]]] = {
     "shared": (OWNER, "tools/vos/jsonutil.py", "tools/vos/receipts.py",
                "tools/vos/proofenv.py", "tools/vos/atomic.py",
-               "tools/vos/proofs.py", "tools/vos/prooflex.py"),
+               "tools/vos/proofs.py", "tools/vos/prooflex.py", "proofs/ProofSupport.v"),
     "composer-reference": ("@shared", "tools/vos/composer.py", "proofs/HandlerGraph.v"),
     "admission-reference": ("@shared", "tools/vos/admission.py", "proofs/AdmissionPath.v"),
     "composer-package": ("@composer-reference", "tools/vos/composition.py", "tools/vos/schema.py",

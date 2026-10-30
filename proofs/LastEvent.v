@@ -7,6 +7,11 @@
    This prelude-only support is subject to R-05-163's assumption audit. The
    concrete examples for R-05-165 and R-05-166 distinguish the final selected
    event from the first and distinguish an absent event from a present one.
+   (*| BEGIN derived: cited entries |*)
+   Owner: docs/requirements-register.md
+   Requirements: R-05-163 R-05-165 R-05-166
+   SHA256: 4c631348347cb256d8d909843632bc4849e204c51521af8b014dbaabd4d358c9
+   (*| END derived |*)
    ========================================================================= *)
 
 Fixpoint last_matching {Event Value : Type} (select : Event -> option Value)

@@ -197,19 +197,20 @@ being a finding of the rules that read them rather than a row of this table.
 | R-05-163 | proofs/ComposedNonInterference.v | n/a | cited |
 | R-05-163 | proofs/CopyRingService.v | n/a | cited |
 | R-05-163 | proofs/CredentialHandles.v | n/a | cited |
-| R-05-163 | proofs/CyclicExecutive.v | n/a | cited |
+| R-05-163 | proofs/CryptoLists.v | n/a | cited |
 | R-05-163 | proofs/DischargeSequence.v | n/a | cited |
 | R-05-163 | proofs/ElasticDomain.v | n/a | cited |
 | R-05-163 | proofs/EndpointIPC.v | n/a | cited |
-| R-05-163 | proofs/EnsembleSchedule.v | n/a | cited |
 | R-05-163 | proofs/ExecutableIndex.v | n/a | cited |
 | R-05-163 | proofs/HandlerGraph.v | n/a | cited |
 | R-05-163 | proofs/HmacDrbg.v | n/a | cited |
+| R-05-163 | proofs/IndexedUpdates.v | n/a | cited |
 | R-05-163 | proofs/InferenceAdmission.v | n/a | cited |
 | R-05-163 | proofs/JournalIndex.v | n/a | cited |
 | R-05-163 | proofs/Keccak.v | n/a | cited |
 | R-05-163 | proofs/KernelInstance.v | n/a | cited |
 | R-05-163 | proofs/KeyspaceDomains.v | n/a | cited |
+| R-05-163 | proofs/LastEvent.v | n/a | cited |
 | R-05-163 | proofs/MModeFirmware.v | n/a | cited |
 | R-05-163 | proofs/MemoryPlan.v | n/a | cited |
 | R-05-163 | proofs/MemoryPlannerCertificates.v | n/a | cited |
@@ -221,6 +222,7 @@ being a finding of the rules that read them rather than a row of this table.
 | R-05-163 | proofs/PartitionContext.v | n/a | cited |
 | R-05-163 | proofs/PqArith.v | n/a | cited |
 | R-05-163 | proofs/ProbingModel.v | n/a | cited |
+| R-05-163 | proofs/ProofSupport.v | n/a | cited |
 | R-05-163 | proofs/ResetTable.v | n/a | cited |
 | R-05-163 | proofs/RomVerifier.v | n/a | cited |
 | R-05-163 | proofs/RotFirmware.v | n/a | cited |
@@ -278,6 +280,7 @@ being a finding of the rules that read them rather than a row of this table.
 | R-05-165 | proofs/ComposedNonInterference.v | composition_is_carried_by_no_per_member_theorem | claimed |
 | R-05-165 | proofs/ComposedNonInterference.v | endpoint_labels_decide_something | claimed |
 | R-05-165 | proofs/CopyRingService.v | n/a | cited |
+| R-05-165 | proofs/CryptoLists.v | n/a | cited |
 | R-05-165 | proofs/CyclicExecutive.v | n/a | cited |
 | R-05-165 | proofs/DischargeSequence.v | n/a | cited |
 | R-05-165 | proofs/ElasticDomain.v | n/a | cited |
@@ -291,6 +294,7 @@ being a finding of the rules that read them rather than a row of this table.
 | R-05-165 | proofs/Keccak.v | n/a | cited |
 | R-05-165 | proofs/KernelInstance.v | n/a | cited |
 | R-05-165 | proofs/KeyspaceDomains.v | n/a | cited |
+| R-05-165 | proofs/LastEvent.v | n/a | cited |
 | R-05-165 | proofs/MModeFirmware.v | n/a | cited |
 | R-05-165 | proofs/MemoryPlan.v | n/a | cited |
 | R-05-165 | proofs/MemoryPlannerCertificates.v | n/a | cited |
@@ -308,6 +312,7 @@ being a finding of the rules that read them rather than a row of this table.
 | R-05-165 | proofs/PqArith.v | the_butterfly_is_invertible_at_an_arbitrary_root | claimed |
 | R-05-165 | proofs/ProbingModel.v | a_degenerate_equality_test_hides_every_difference | claimed |
 | R-05-165 | proofs/ProbingModel.v | the_constant_gadget_satisfies_all_three_notions | claimed |
+| R-05-165 | proofs/ProofSupport.v | n/a | cited |
 | R-05-165 | proofs/ResetTable.v | n/a | cited |
 | R-05-165 | proofs/RomVerifier.v | n/a | cited |
 | R-05-165 | proofs/RotFirmware.v | n/a | cited |
@@ -361,6 +366,7 @@ being a finding of the rules that read them rather than a row of this table.
 | R-05-166 | proofs/ComposedNonInterference.v | endpoint_labels_decide_something | claimed |
 | R-05-166 | proofs/CopyRingService.v | n/a | cited |
 | R-05-166 | proofs/CredentialHandles.v | n/a | cited |
+| R-05-166 | proofs/CryptoLists.v | n/a | cited |
 | R-05-166 | proofs/CyclicExecutive.v | n/a | cited |
 | R-05-166 | proofs/DischargeSequence.v | n/a | cited |
 | R-05-166 | proofs/ElasticDomain.v | n/a | cited |
@@ -374,6 +380,7 @@ being a finding of the rules that read them rather than a row of this table.
 | R-05-166 | proofs/Keccak.v | n/a | cited |
 | R-05-166 | proofs/KernelInstance.v | n/a | cited |
 | R-05-166 | proofs/KeyspaceDomains.v | n/a | cited |
+| R-05-166 | proofs/LastEvent.v | n/a | cited |
 | R-05-166 | proofs/MModeFirmware.v | n/a | cited |
 | R-05-166 | proofs/MemoryPlan.v | n/a | cited |
 | R-05-166 | proofs/MemoryPlannerCertificates.v | n/a | cited |
@@ -389,6 +396,7 @@ being a finding of the rules that read them rather than a row of this table.
 | R-05-166 | proofs/ProbingModel.v | the_soundness_law_refuses_a_degenerate_equality_test | claimed |
 | R-05-166 | proofs/ProbingModel.v | dependence_yields_a_simulator | claimed |
 | R-05-166 | proofs/ProbingModel.v | copy_gadget_refutes_sni | claimed |
+| R-05-166 | proofs/ProofSupport.v | n/a | cited |
 | R-05-166 | proofs/ResetTable.v | n/a | cited |
 | R-05-166 | proofs/RomVerifier.v | n/a | cited |
 | R-05-166 | proofs/RotFirmware.v | n/a | cited |
@@ -650,6 +658,7 @@ being a finding of the rules that read them rather than a row of this table.
 | R-08-007a | proofs/MemoryPlannerContracts.v | n/a | cited |
 | R-08-007a | proofs/MemoryPlannerResources.v | n/a | cited |
 | R-08-008 | proofs/EndpointIPC.v | n/a | cited |
+| R-08-011 | proofs/IndexedUpdates.v | n/a | cited |
 | R-08-011 | proofs/MModeFirmware.v | n/a | cited |
 | R-08-011 | proofs/MemoryPlan.v | n/a | cited |
 | R-08-011 | proofs/StaticMemoryLaminar.v | n/a | cited |
@@ -660,6 +669,7 @@ being a finding of the rules that read them rather than a row of this table.
 | R-08-012d | proofs/MemoryPlannerCertificates.v | n/a | cited |
 | R-08-012d | proofs/MemoryPlannerContracts.v | n/a | cited |
 | R-08-013 | proofs/StaticMemoryLaminar.v | n/a | cited |
+| R-08-014 | proofs/IndexedUpdates.v | n/a | cited |
 | R-08-014 | proofs/MemoryPlan.v | n/a | cited |
 | R-08-014 | proofs/MemoryPlannerCertificates.v | n/a | cited |
 | R-08-014 | proofs/MemoryPlannerContracts.v | n/a | cited |

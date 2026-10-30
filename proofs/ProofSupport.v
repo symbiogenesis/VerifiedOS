@@ -9,6 +9,11 @@
    R-05-163's assumption audit covers the shared laws. Concrete boundary
    examples preserve the inhabitation and refusal evidence of R-05-165 and
    R-05-166 without adding a domain-specific assumption.
+   (*| BEGIN derived: cited entries |*)
+   Owner: docs/requirements-register.md
+   Requirements: R-05-163 R-05-165 R-05-166
+   SHA256: 4c631348347cb256d8d909843632bc4849e204c51521af8b014dbaabd4d358c9
+   (*| END derived |*)
    ========================================================================= *)
 
 Open Scope list_scope.

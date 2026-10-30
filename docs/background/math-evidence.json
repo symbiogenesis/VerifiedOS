@@ -366,10 +366,10 @@
         {
           "url": "proofs/HandlerGraph.v",
           "kind": "local-sha256",
-          "identity": "f6780f1934ff0a4e80ee4cec1df0dc98dd6a2e709067404c9e3305b90e746f27"
+          "identity": "7bbb0de40e8e485e2797155515dd0c0d00f808e8b5254bbbc9f54c95ef18b4a2"
         }
       ],
-      "inspected": "2026-10-20",
+      "inspected": "2026-10-30",
       "stage": "independent replay",
       "assumptions": [
         "Independent replay here means the finite host map and explicit query workload, not a replay of the Gallina theorem or a production dictionary implementation.",
