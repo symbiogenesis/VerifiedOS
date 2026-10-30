@@ -1,9 +1,13 @@
 # SPDX-License-Identifier: Apache-2.0
 """Lazy JSON Schema validation with Python integers and caller-owned schemas."""
 
+import json
 from collections.abc import Mapping
 from functools import cache
+from pathlib import Path
 from typing import TYPE_CHECKING, Any
+
+from vos.jsonutil import unique_object
 
 if TYPE_CHECKING:
     from jsonschema.protocols import Validator
@@ -34,3 +38,23 @@ def strict_integer_validator(schema: Mapping[str, Any] | bool, *,
     if check_schema:
         validator.check_schema(schema)
     return validator(schema)
+
+
+def validate(schema_path: Path, value: object) -> None:
+    """Validate against an authored schema; unreadable or invalid owners refuse.
+
+    Dependencies remain lazy for readers that only import this module. Every
+    finding names its schema and the JSON path within the supplied value.
+    """
+    from jsonschema.exceptions import SchemaError  # noqa: PLC0415
+
+    try:
+        schema = json.loads(schema_path.read_text(encoding="utf-8"),
+                            object_pairs_hook=unique_object)
+        validator = strict_integer_validator(schema, check_schema=True)
+    except (OSError, ValueError, SchemaError) as error:
+        raise ValueError(f"{schema_path}: cannot read a valid schema: {error}") from error
+    errors = sorted(validator.iter_errors(value), key=lambda error: error.json_path)
+    if errors:
+        raise ValueError(f"{schema_path}: " + "; ".join(
+            f"{error.json_path}: {error.message}" for error in errors))
