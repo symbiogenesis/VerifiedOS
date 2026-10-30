@@ -10,12 +10,11 @@
 # fanout fills with the commit subject, or else with the checked-out revision.
 #
 # Shards partition mutation cases and behavioral test modules, and the cases of each
-# test module declaring them independent: four on Ubuntu and eight on Windows, whose
-# CPU-bound shards run the same work more slowly. Beside them, one unpartitioned job per
-# platform runs what no shard holds, the checker, typecheck and mutation repair path,
-# and Ubuntu's analyzes the workflows with zizmor and actionlint. The model-hooks job
-# runs the curated model's pre-commit hooks on Ubuntu beside them. Those 15 jobs run at
-# once, and Guest CI's three lanes make 18, under the Free plan's 20 concurrent jobs.
+# test module declaring them independent. The matrix below fixes each platform's
+# partition count and runner image. Beside them, one unpartitioned job per platform
+# runs what no shard holds, the checker, typecheck and mutation repair path, and
+# Ubuntu's analyzes the workflows with zizmor and actionlint. The model-hooks job
+# runs the curated model's pre-commit hooks on Ubuntu beside them.
 # Every shard, both unpartitioned jobs and the hooks must pass.
 # uv installs locked dependencies into a checkout-local environment;
 # only downloads are cached. K-67 checks dependency pins; K-75 checks the Python floor.
@@ -73,8 +72,6 @@ jobs:
         platform: [Ubuntu, Windows]
         shard: [1, 2, 3, 4, 5, 6, 7, 8]
         exclude:
-          - {platform: Ubuntu, shard: 5}
-          - {platform: Ubuntu, shard: 6}
           - {platform: Ubuntu, shard: 7}
           - {platform: Ubuntu, shard: 8}
         # Each of the first two includes adds its platform's image label and partition
@@ -84,7 +81,7 @@ jobs:
         # adds a combination of its own, spelled in full with the label its platform's
         # shards take: that platform's unpartitioned job, which takes no partition count.
         include:
-          - {platform: Ubuntu, runner: ubuntu-26.04, shards: 4}
+          - {platform: Ubuntu, runner: ubuntu-26.04, shards: 6}
           - {platform: Windows, runner: windows-2025-vs2026, shards: 8}
           - {platform: Ubuntu, shard: unpartitioned, runner: ubuntu-26.04}
           - {platform: Windows, shard: unpartitioned, runner: windows-2025-vs2026}

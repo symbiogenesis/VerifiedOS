@@ -104,9 +104,9 @@ New commits cancel superseded runs of the same pull request. Main runs share a
 concurrency group only when their trigger and tested revision are the same:
 the dispatch's explicit revision, or the event SHA. Duplicate automatic push
 runs cancel redundant work; manual dispatches keep their own trigger group;
-different revisions of `main` keep separate runs. Ubuntu runs four independent
-shards and Windows eight, because a shard's members are CPU-bound and run the same work more slowly on the Windows
-runner. Mutation cases and sorted behavioral test modules are partitioned by
+different revisions of `main` keep separate runs. The
+[workflow's matrix](../.github/workflows/host-gates.yml) fixes each platform's
+partition count and runner image. Mutation cases and sorted behavioral test modules are partitioned by
 position within each OS, with every item assigned once. A test module that declares
 `INDEPENDENT_CASES = True`, stating that its cases share no state and that its case
 list has the same order on every run, keeps its position, so no other module changes
@@ -1027,7 +1027,7 @@ A bare `run.py` first validates the shared instructions and restores a missing
 import, then runs `check`, `selftest` and `typecheck` in parallel. Their reports are collected in a fixed order
 and produce one exit code. `--tests` adds the behavioral suite; `--check --tests`
 is the same complete validation without tracked writes. CI partitions that work
-with `--shard INDEX/TOTAL`, four shards on Ubuntu and eight on Windows, runs the rest
+with `--shard INDEX/TOTAL` using the workflow's platform-specific counts, runs the rest
 with `--unpartitioned` in a job of its own on each OS, and requires every one of those
 jobs. `--rule` and `--only` cannot narrow a shard, and a
 partition count larger than its mutation or module population is refused.
