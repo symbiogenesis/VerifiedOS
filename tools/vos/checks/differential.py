@@ -178,7 +178,7 @@ def run(ctx: Context) -> None:
 def _schema(ctx: Context, declared: int | None) -> None:
     """K-71: the manifest's trace_schema is the version the document's §4 heading states.
 
-    Fail-closed on the reading itself, in the shape K-67 uses over the tools' own
+    Fail-closed on the reading itself, in the shape used for the tools' own
     pins: the manifest's field and the heading either answer in the form written
     today or are findings, so a reworded heading takes the comparison down loudly
     instead of leaving the rule green over a version nothing states.

@@ -300,7 +300,7 @@ def _ledger(ctx: Context, place: dict[str, int], cites: dict[str, set[str]],
             claimed: dict[str, list[proofcites.Claim]]) -> None:
     """K-106: the generated ledger is the join, and `--fix` writes it.
 
-    Fail-closed in two places, on K-67's and K-75's ground and on the generated group's.
+    Fail-closed in two places, on K-75's ground and on the generated group's.
     An artifact this checkout does not carry as a tracked document is one nothing decided
     about it means anything, so it is a finding before its bytes are read; the corpus is
     what answers that, and it answers the same way for a file the index never carried, one

@@ -99,7 +99,7 @@ needs no toolchain at all. What makes the split honest is that the host's half o
 guest row is not vacuous either: it catches the hand edit and it catches the stale
 artifact, which are the two ways a generated file goes wrong in practice.
 
-## Fail-closed, on K-67's and K-75's ground
+## Fail-closed, on K-75's ground
 
 Three states are findings rather than passes, each named where it is met: an empty
 table, because a rule quantified over nothing reports agreement about nothing; a row
@@ -731,7 +731,7 @@ def _host_row(ctx: Context, row: Row, bundle: sailbundle.Bundle | None) -> Readi
     the bytes in the working tree are the bytes the generator writes, or they are a
     finding and `--fix` replaces them.
 
-    Fail-closed on the input, on K-67's and K-75's ground: a row whose generator cannot
+    Fail-closed on the input, on K-75's ground: a row whose generator cannot
     read what it is a function of decides nothing about the artifact and says so here
     rather than passing over it. The emitter raising is what says that, so a row that
     needs the bundle and a row that needs only a configuration fail the same way and
