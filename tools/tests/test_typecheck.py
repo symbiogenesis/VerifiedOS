@@ -728,11 +728,11 @@ def _module_tree(tools: Path, modules: list[str]) -> None:
 def _ruff_explicit_targets_bypass_exclusions() -> None:
     modules = ["kept.py", "stub.pyi", "dist/mod.py", "extended.py", "linted.py",
                "replaced.py"]
-    for config, refused in (
-            ('extend-exclude = ["extended.py"]\n[lint]\nselect = ["ANN"]\n'
-             'exclude = ["linted.py"]\n', 2),
-            ('exclude = ["replaced.py"]\nforce-exclude = true\n'
-             '[lint]\nselect = ["ANN"]\n', 2)):
+    for config in (
+            'extend-exclude = ["extended.py"]\n[lint]\nselect = ["ANN"]\n'
+            'exclude = ["linted.py"]\n',
+            'exclude = ["replaced.py"]\nforce-exclude = true\n'
+            '[lint]\nselect = ["ANN"]\n'):
         rep = Reporter()
         with tempfile.TemporaryDirectory(prefix="vos-test-") as td:
             root = Path(td)
@@ -744,8 +744,12 @@ def _ruff_explicit_targets_bypass_exclusions() -> None:
             (root / "tools" / ".ignore").write_text("kept.py\n", encoding="utf-8", newline="")
             typecheck._run_ruff(rep, root, frozenset(modules))
         joined = "\n".join(rep.out).replace("\\", "/")
-        ensure(rep.findings == refused + 2 * len(modules)
-               and all(module + ":1:" in joined for module in modules),
+        ensure(any(line.startswith("FAIL ruff: ")
+                   and line.endswith("ruff.toml setting(s) the gate refuses:")
+                   for line in rep.out)
+               and f"FAIL ruff: {2 * len(modules)} lint finding(s):" in rep.out
+               and all(f"{rule}: {len(modules)}" in joined for rule in ("ANN001", "ANN201"))
+               and all(joined.count(module + ":1:") == 2 for module in modules),
                f"explicit filenames must bypass discovery and lint exclusions: {rep.out!r}")
 
 
