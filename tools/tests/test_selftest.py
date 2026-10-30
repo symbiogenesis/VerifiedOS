@@ -781,6 +781,37 @@ def _holder_seeds_refuse_absent_structural_targets() -> None:
                    "a missing target must remain an unchanged, explicitly unseeded mutant")
 
 
+def _repair_snapshots_share_only_unchanged_inputs() -> None:
+    with sandbox_tree({selftest.REGISTER: _REGISTER_MIN, "fixture.md": "old"}) as root:
+        original = selftest._header_context(root)
+        with patch.object(selftest.corpus_mod, "load", side_effect=AssertionError("unexpected read")):
+            plain = selftest._header_context(root, snapshot=original)
+            fixing = selftest._header_context(root, fix=True, snapshot=original)
+        ensure(plain.corpus is original.corpus and fixing.reg is original.reg
+               and fixing.art is original.art and fixing.fix and not plain.fix,
+               "explicit immutable facts must be shared across distinct repair decisions")
+        fixing.fixed["fixture.md"] = "repair"
+        fixing.shared["state"] = "private"
+        fixing.rep.report("fixture", "fault", ["private finding"])
+        ensure(not plain.fixed and not plain.shared and not plain.rep.findings
+               and not original.fixed and not original.rep.findings,
+               "shared input snapshots must not share decisions or queued writes")
+        path = root / "fixture.md"
+        before = path.stat()
+        path.write_text("new", encoding="utf-8", newline="")
+        os.utime(path, ns=(before.st_atime_ns, before.st_mtime_ns))
+        current = selftest._header_context(root)
+        ensure(current.corpus.by_name["fixture.md"].raw == "new"
+               and original.corpus.by_name["fixture.md"].raw == "old",
+               "a new snapshot must read edits even when size and timestamp are unchanged")
+        try:
+            selftest._header_context(root / "other", snapshot=original)
+        except ValueError:
+            pass
+        else:
+            raise AssertionError("a snapshot must not be reused for another corpus root")
+
+
 def cases() -> list[Case]:
     return [
         Case("shards-cover-cases-and-repair-once", _shards_cover_cases_and_repair_once),
@@ -799,6 +830,7 @@ def cases() -> list[Case]:
              _bytecode_preparation_does_not_turn_unused_syntax_into_a_finding),
         Case("checker-stops-after-the-rules-group", _checker_stops_after_the_rules_group),
         Case("case-verdict-reruns-only-survivors", _case_verdict_reruns_only_survivors),
+        Case("repair-snapshots-share-only-unchanged-inputs", _repair_snapshots_share_only_unchanged_inputs),
         Case("holder-seeds-survive-changed-completion-prose", _holder_seeds_survive_changed_completion_prose),
         Case("holder-seeds-refuse-absent-structural-targets", _holder_seeds_refuse_absent_structural_targets),
         Case("refresh-index-without-changing-snapshot", _refresh_index_without_changing_snapshot),
