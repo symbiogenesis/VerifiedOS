@@ -134,8 +134,7 @@ def _premise_in_declared_anchor_is_a_finding() -> None:
             (_MLDSA, "", _live(_MLDSA),
              "carries no authorization for deterministic production signing."),
             (interims.PLAN, _CORE, _live(interims.PLAN),
-             "This module is a dependency of the RoT (§2), the object system (§6), "
-             "and the filesystem (§7)."),
+             f"## {_CORE}\n"),
             ("docs/assurance/proof-reuse-bearing.md", "",
              _live("docs/assurance/proof-reuse-bearing.md"),
              "## Implementation interfaces and edition boundaries")):
