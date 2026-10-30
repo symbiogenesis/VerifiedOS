@@ -158,7 +158,7 @@ LOG = "docs/implementation/completion-log.md"
 # sentence saying what that rule holds. Bold is the whole of what separates a claim
 # from prose about the checker, which is why the plan's conventions state the form
 # rather than leaving the typography to be inferred.
-_HOLDER_RE = re.compile(r"\*\*(K-\d{2,3})\*\*")
+_HOLDER_RE = re.compile(rf"\*\*({checkregistry.ID_PATTERN})\*\*")
 
 # A landing declaration, line-anchored so that a sentence mentioning one is not read as
 # making one. The first pattern finds the line at all and the second decides its form,
@@ -375,7 +375,8 @@ def _quarantined_rules(ctx: Context) -> set[str]:
     doc = ctx.corpus.get(Q_RULES)
     if doc is None:
         return set()
-    return {m.group(1) for m in re.finditer(r"(?m)^\|\s*(K-\d+)\s*\|", doc.raw)}
+    return {m.group(1) for m in re.finditer(
+        rf"(?m)^\|\s*({checkregistry.ID_PATTERN})\s*\|", doc.raw)}
 
 
 def _landings(ctx: Context, registered: set[str]) -> None:
@@ -402,7 +403,7 @@ def _landings(ctx: Context, registered: set[str]) -> None:
     findings: list[str] = []
     registry = ctx.corpus.get(RULES)
     retired = ({m.group(1) for _, m in registry.unfenced(
-        "| ~~K-", re.compile(r"^\| ~~(K-\d{2,3})~~ \| retired \|"))}
+        "| ~~K-", re.compile(rf"^\| ~~({checkregistry.ID_PATTERN})~~ \| retired \|"))}
         if registry is not None else set())
 
     if not registered:
