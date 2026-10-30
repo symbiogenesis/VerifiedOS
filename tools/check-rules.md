@@ -30,7 +30,7 @@ Struck IDs are never reused. Rows in the `retired` group identify former checks;
 | K-10 | names | the register declares each requirement id exactly once | R-05-152 |
 | K-11 | names | every R-, CJ-, A-, B- and P- id used names one its declarer holds | R-05-152 |
 | K-12 | links | pinned offline Lychee validates local Markdown file links and heading or explicit-anchor fragments over the indexed corpus | standard link syntax and target validation; external network links are excluded, indexed gitlink roots remain valid when uninitialized, and malformed tool verdicts refuse |
-| K-13 | links | every section number a sentence names is carried by some heading | the same hygiene, for the reference Markdown cannot break visibly |
+| ~~K-13~~ | retired | n/a | Direct section links are checked by the maintained ordinary-link validator; matching an unqualified number anywhere in the corpus supplied no destination assurance. |
 | K-14 | views | every requirement a view must carry is carried | R-15-001a, R-15-100a, R-17-016a, R-18-034 |
 | K-15 | views | the coverage matrix carries every boundary-by-property pair exactly once | R-17-001b |
 | K-16 | views | every coverage-matrix cell cites a requirement | R-17-001b |
@@ -142,7 +142,7 @@ It is not a specification of the checks' algorithms, which stay in the source wh
 <!-- BEGIN GENERATED CHECK REACH -->
 | Reach class | Rules |
 | --- | --- |
-| name | K-01, K-02, K-03, K-04, K-05, K-06, K-07, K-08, K-09, K-10, K-11, K-12, K-13, K-14, K-15, K-16, K-17, K-18, K-19, K-20, K-21, K-22, K-27, K-29, K-31, K-42, K-43, K-44, K-48, K-49, K-50, K-62, K-63, K-66, K-70, K-72, K-74, K-76, K-80, K-81, K-82, K-85, K-103, K-105, K-110, K-115, K-116 |
+| name | K-01, K-02, K-03, K-04, K-05, K-06, K-07, K-08, K-09, K-10, K-11, K-12, K-14, K-15, K-16, K-17, K-18, K-19, K-20, K-21, K-22, K-27, K-29, K-31, K-42, K-43, K-44, K-48, K-49, K-50, K-62, K-63, K-66, K-70, K-72, K-74, K-76, K-80, K-81, K-82, K-85, K-103, K-105, K-110, K-115, K-116 |
 | computed value | K-24, K-28, K-32, K-33, K-35, K-36, K-37, K-51, K-54, K-57, K-60, K-61, K-65, K-69, K-71, K-79, K-86, K-89, K-95, K-96, K-97, K-99, K-104, K-106, K-109, K-111, K-112, K-118 |
 | pattern | K-23, K-25, K-26, K-30, K-34, K-45, K-46, K-47, K-55, K-56, K-68, K-73, K-78, K-84, K-87, K-94, K-108, K-113, K-114, K-117 |
 | total | K-00, K-39, K-41, K-52, K-53, K-83, K-88, K-91, K-100, K-101, K-107 |

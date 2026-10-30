@@ -52,7 +52,6 @@ def scan_bytes(root: Path, rel: str) -> bytes:
 # comes from the shared CommonMark parser, without serializing its tokens to disk.
 ANCHOR_RE = re.compile(r'<a id="([^"]+)"')
 HEADING_RE = re.compile(r"#{1,6}[ \t]+([^\r\n]+)")
-NUMBERED_RE = re.compile(r"^§?(\d+(?:\.\d+)*)[.:) ]")
 
 _TAG_RE = re.compile(r"<[^>]+>")
 _PUNCT_RE = re.compile(r"[^\w\s-]")
@@ -287,17 +286,10 @@ class Corpus:
         # commits rather than blobs. Neither can supply an indexed file.
         self.indexed = frozenset(tracked if indexed is None else indexed)
 
-        # A fragment resolves to a bookmark or to a heading's slug, and Markdown makes
-        # no distinction between them, so this is one set per file. The numbering is
-        # shared across documents (§5.2 is the register's subsection and the profile's
-        # CSR section), so the numbered headings are one set for the repository.
-        self.numbered: set[str] = set()
+        # Semantic citations use each file's own heading and bookmark targets.
         for d in docs:
             for _, heading in d.headings:
                 d.targets.add(slug(heading))
-                num = NUMBERED_RE.match(heading)
-                if num:
-                    self.numbered.add(num.group(1))
 
         # Every bookmark: where it is declared, how often, and the prose §n it sits in.
         # A bookmark may be cited more than once from the prose only by taking a -2/-3

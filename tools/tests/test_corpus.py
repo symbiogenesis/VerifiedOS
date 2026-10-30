@@ -115,8 +115,8 @@ def _headings_follow_markdown_structure() -> None:
                f"token source maps and heading contents must agree: {doc.headings!r}")
         ensure(doc.targets == {"setext-title", "5-quoted", "list-heading", "linkedref"},
                f"generic targets use actual Markdown headings and existing slug policy: {doc.targets!r}")
-        ensure("5" in corpus.numbered and "html-text" not in doc.targets,
-               "rendered headings supply numbering; text in an HTML block does not")
+        ensure("html-text" not in doc.targets,
+               "text in an HTML block does not declare a heading target")
 
 
 def _markdown_source_maps_preserve_raw_offsets() -> None:
@@ -164,14 +164,13 @@ def _slug_shape() -> None:
     ensure(slug("A  B") == "a-b", "a whitespace run hyphenates once")
 
 
-def _targets_and_numbered() -> None:
+def _heading_and_bookmark_targets() -> None:
     text = '# Title\n\n## 5. Things\n\nBody. <a id="r-05-001"></a>\n'
     with sandbox_tree({"docs/x.md": text}) as root:
         corpus = corpus_mod.load(root)
         doc = corpus.by_name["docs/x.md"]
         ensure("5-things" in doc.targets, "a heading's slug is a link target")
         ensure("r-05-001" in doc.targets, "a declared anchor is a link target")
-        ensure("5" in corpus.numbered, "a numbered heading feeds the shared numbering")
 
 
 def _line_of_bisect() -> None:
@@ -437,7 +436,7 @@ def cases() -> list[Case]:
         Case("fenced-register-entries-are-examples", _fenced_register_entries_are_examples),
         Case("fence-unclosed-runs-to-eof", _fence_unclosed_runs_to_eof),
         Case("slug-shape", _slug_shape),
-        Case("targets-and-numbered", _targets_and_numbered),
+        Case("heading-and-bookmark-targets", _heading_and_bookmark_targets),
         Case("line-of-bisect", _line_of_bisect),
         Case("unfenced-walk", _unfenced_walk),
         Case("merge-conflict-one-document", _merge_conflict_one_document),
