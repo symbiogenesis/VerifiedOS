@@ -1,0 +1,2376 @@
+{
+  "schema": 1,
+  "reviews": [
+    {
+      "id": "node_js_1",
+      "tool": "Node.js",
+      "subject": "the reviewed release",
+      "reviewed": [
+        "26.12.0"
+      ],
+      "owners": [
+        {
+          "kind": "shell",
+          "path": "tools/wasm-oracle/node.sh",
+          "key": "node_version"
+        }
+      ]
+    },
+    {
+      "id": "pre_commit_2",
+      "tool": "pre-commit",
+      "subject": "the reviewed release",
+      "reviewed": [
+        "4.7.0"
+      ],
+      "owners": [
+        {
+          "kind": "uv",
+          "path": "tools/uv.lock",
+          "key": "pre-commit"
+        }
+      ]
+    },
+    {
+      "id": "zizmor_3",
+      "tool": "zizmor",
+      "subject": "the reviewed release and its licence tag",
+      "reviewed": [
+        "1.31.1"
+      ],
+      "owners": [
+        {
+          "kind": "uv",
+          "path": "tools/uv.lock",
+          "key": "zizmor"
+        }
+      ]
+    },
+    {
+      "id": "actionlint_4",
+      "tool": "actionlint",
+      "subject": "the reviewed release and its licence tag",
+      "reviewed": [
+        "1.7.12"
+      ],
+      "owners": [
+        {
+          "kind": "shell",
+          "path": "tools/ci/actionlint.sh",
+          "key": "actionlint_version"
+        }
+      ]
+    },
+    {
+      "id": "opam_5",
+      "tool": "opam",
+      "subject": "the reviewed release",
+      "reviewed": [
+        "2.6.1"
+      ],
+      "owners": [
+        {
+          "kind": "assign",
+          "path": "tools/vos/opam_client.py",
+          "key": "OPAM_VERSION"
+        }
+      ]
+    },
+    {
+      "id": "z3_6",
+      "tool": "Z3",
+      "subject": "the reviewed release and its licence tag",
+      "reviewed": [
+        "5.3.1"
+      ],
+      "owners": [
+        {
+          "kind": "assign",
+          "path": "tools/vos/env.py",
+          "key": "Z3_VERSION"
+        }
+      ]
+    },
+    {
+      "id": "quickchick_7",
+      "tool": "QuickChick",
+      "subject": "the pinned commit",
+      "reviewed": [
+        "3d4d6c0e9f72172a9f0b26db61c5496ec8e0f568"
+      ],
+      "owners": [
+        {
+          "kind": "opam-pin",
+          "path": "tools/opam/quickchick.lock",
+          "key": "coq-quickchick"
+        }
+      ]
+    },
+    {
+      "id": "coq_simple_io_8",
+      "tool": "coq-simple-io",
+      "subject": "the pinned commit",
+      "reviewed": [
+        "d035c0a85f0bde4ad56c31a9fa9ef3cb5e8d0f18"
+      ],
+      "owners": [
+        {
+          "kind": "opam-pin",
+          "path": "tools/opam/quickchick.lock",
+          "key": "coq-simple-io"
+        }
+      ]
+    },
+    {
+      "id": "coq_ext_lib_9",
+      "tool": "coq-ext-lib",
+      "subject": "the released version",
+      "reviewed": [
+        "0.13.2"
+      ],
+      "owners": [
+        {
+          "kind": "opam",
+          "path": "tools/opam/quickchick.lock",
+          "key": "coq-ext-lib"
+        }
+      ]
+    },
+    {
+      "id": "rupicola_bedrock2_and_the_bedrock2__10",
+      "tool": "Rupicola, Bedrock2, and the Bedrock2 compiler",
+      "subject": "Rupicola's release",
+      "reviewed": [
+        "0.0.11"
+      ],
+      "owners": [
+        {
+          "kind": "opam",
+          "path": "tools/opam/rupicola.lock",
+          "key": "coq-rupicola"
+        }
+      ]
+    },
+    {
+      "id": "rupicola_bedrock2_and_the_bedrock2__11",
+      "tool": "Rupicola, Bedrock2, and the Bedrock2 compiler",
+      "subject": "Bedrock2's and its compiler's release",
+      "reviewed": [
+        "0.0.9"
+      ],
+      "owners": [
+        {
+          "kind": "opam",
+          "path": "tools/opam/rupicola.lock",
+          "key": "coq-bedrock2"
+        },
+        {
+          "kind": "opam",
+          "path": "tools/opam/rupicola.lock",
+          "key": "coq-bedrock2-compiler"
+        }
+      ]
+    },
+    {
+      "id": "coqutil_12",
+      "tool": "coqutil",
+      "subject": "the switch's release",
+      "reviewed": [
+        "0.0.7"
+      ],
+      "owners": [
+        {
+          "kind": "opam",
+          "path": "tools/opam/rupicola.lock",
+          "key": "coq-coqutil"
+        }
+      ]
+    },
+    {
+      "id": "riscv_coq_13",
+      "tool": "riscv-coq",
+      "subject": "the switch's release",
+      "reviewed": [
+        "0.0.6"
+      ],
+      "owners": [
+        {
+          "kind": "opam",
+          "path": "tools/opam/rupicola.lock",
+          "key": "coq-riscv"
+        }
+      ]
+    },
+    {
+      "id": "compcert_in_the_oracle_s_switch_14",
+      "tool": "CompCert, in the oracle's switch",
+      "subject": "the CertiRocq snapshot's release",
+      "reviewed": [
+        "3.18"
+      ],
+      "owners": [
+        {
+          "kind": "opam",
+          "path": "tools/opam/certirocq.lock",
+          "key": "coq-compcert"
+        }
+      ]
+    },
+    {
+      "id": "certirocq_15",
+      "tool": "CertiRocq",
+      "subject": "the CertiRocq snapshot's release",
+      "reviewed": [
+        "0.9.1+9.1"
+      ],
+      "owners": [
+        {
+          "kind": "opam",
+          "path": "tools/opam/certirocq.lock",
+          "key": "rocq-certirocq"
+        },
+        {
+          "kind": "assign",
+          "path": "tools/vos/gallina.py",
+          "key": "CERTIROCQ_VERSION"
+        }
+      ]
+    },
+    {
+      "id": "metarocq_16",
+      "tool": "MetaRocq",
+      "subject": "the CertiRocq snapshot's release",
+      "reviewed": [
+        "1.5.1+9.1"
+      ],
+      "owners": [
+        {
+          "kind": "opam",
+          "path": "tools/opam/certirocq.lock",
+          "key": "rocq-metarocq-utils"
+        },
+        {
+          "kind": "opam",
+          "path": "tools/opam/certirocq.lock",
+          "key": "rocq-metarocq-common"
+        },
+        {
+          "kind": "opam",
+          "path": "tools/opam/certirocq.lock",
+          "key": "rocq-metarocq-template"
+        },
+        {
+          "kind": "opam",
+          "path": "tools/opam/certirocq.lock",
+          "key": "rocq-metarocq-pcuic"
+        },
+        {
+          "kind": "opam",
+          "path": "tools/opam/certirocq.lock",
+          "key": "rocq-metarocq-template-pcuic"
+        },
+        {
+          "kind": "opam",
+          "path": "tools/opam/certirocq.lock",
+          "key": "rocq-metarocq-safechecker"
+        },
+        {
+          "kind": "opam",
+          "path": "tools/opam/certirocq.lock",
+          "key": "rocq-metarocq-safechecker-plugin"
+        },
+        {
+          "kind": "opam",
+          "path": "tools/opam/certirocq.lock",
+          "key": "rocq-metarocq-erasure"
+        },
+        {
+          "kind": "opam",
+          "path": "tools/opam/certirocq.lock",
+          "key": "rocq-metarocq-erasure-plugin"
+        }
+      ]
+    },
+    {
+      "id": "wasmcert_coq_17",
+      "tool": "WasmCert-Coq",
+      "subject": "the CertiRocq snapshot's release",
+      "reviewed": [
+        "2.2.0"
+      ],
+      "owners": [
+        {
+          "kind": "opam",
+          "path": "tools/opam/certirocq.lock",
+          "key": "coq-wasm"
+        }
+      ]
+    },
+    {
+      "id": "equations_18",
+      "tool": "Equations",
+      "subject": "the CertiRocq snapshot's release",
+      "reviewed": [
+        "1.3.1+9.1"
+      ],
+      "owners": [
+        {
+          "kind": "opam",
+          "path": "tools/opam/certirocq.lock",
+          "key": "rocq-equations"
+        }
+      ]
+    },
+    {
+      "id": "the_certirocq_snapshot_s_rocq_libra_19",
+      "tool": "The CertiRocq snapshot's Rocq libraries",
+      "subject": "coq-ext-lib's release in the CertiRocq snapshot",
+      "reviewed": [
+        "0.13.2"
+      ],
+      "owners": [
+        {
+          "kind": "opam",
+          "path": "tools/opam/certirocq.lock",
+          "key": "coq-ext-lib"
+        }
+      ]
+    },
+    {
+      "id": "the_certirocq_snapshot_s_rocq_libra_20",
+      "tool": "The CertiRocq snapshot's Rocq libraries",
+      "subject": "Flocq's release in the CertiRocq snapshot",
+      "reviewed": [
+        "4.2.2"
+      ],
+      "owners": [
+        {
+          "kind": "opam",
+          "path": "tools/opam/certirocq.lock",
+          "key": "coq-flocq"
+        }
+      ]
+    },
+    {
+      "id": "the_certirocq_snapshot_s_rocq_libra_21",
+      "tool": "The CertiRocq snapshot's Rocq libraries",
+      "subject": "Mathematical Components's release in the CertiRocq snapshot",
+      "reviewed": [
+        "2.4.0"
+      ],
+      "owners": [
+        {
+          "kind": "opam",
+          "path": "tools/opam/certirocq.lock",
+          "key": "rocq-mathcomp-ssreflect"
+        },
+        {
+          "kind": "opam",
+          "path": "tools/opam/certirocq.lock",
+          "key": "coq-mathcomp-ssreflect"
+        }
+      ]
+    },
+    {
+      "id": "the_certirocq_snapshot_s_rocq_libra_22",
+      "tool": "The CertiRocq snapshot's Rocq libraries",
+      "subject": "Hierarchy Builder's release in the CertiRocq snapshot",
+      "reviewed": [
+        "1.10.3"
+      ],
+      "owners": [
+        {
+          "kind": "opam",
+          "path": "tools/opam/certirocq.lock",
+          "key": "rocq-hierarchy-builder"
+        }
+      ]
+    },
+    {
+      "id": "the_certirocq_snapshot_s_rocq_libra_23",
+      "tool": "The CertiRocq snapshot's Rocq libraries",
+      "subject": "Rocq-Elpi's release in the CertiRocq snapshot",
+      "reviewed": [
+        "3.5.1"
+      ],
+      "owners": [
+        {
+          "kind": "opam",
+          "path": "tools/opam/certirocq.lock",
+          "key": "rocq-elpi"
+        }
+      ]
+    },
+    {
+      "id": "the_certirocq_snapshot_s_rocq_libra_24",
+      "tool": "The CertiRocq snapshot's Rocq libraries",
+      "subject": "parseque's release in the CertiRocq snapshot",
+      "reviewed": [
+        "0.2.2"
+      ],
+      "owners": [
+        {
+          "kind": "opam",
+          "path": "tools/opam/certirocq.lock",
+          "key": "coq-parseque"
+        }
+      ]
+    },
+    {
+      "id": "the_certirocq_snapshot_s_rocq_libra_25",
+      "tool": "The CertiRocq snapshot's Rocq libraries",
+      "subject": "Rocq Stdlib's release in the CertiRocq snapshot",
+      "reviewed": [
+        "9.0.0"
+      ],
+      "owners": [
+        {
+          "kind": "opam",
+          "path": "tools/opam/certirocq.lock",
+          "key": "rocq-stdlib"
+        },
+        {
+          "kind": "opam",
+          "path": "tools/opam/certirocq.lock",
+          "key": "coq-stdlib"
+        }
+      ]
+    },
+    {
+      "id": "the_certirocq_snapshot_s_rocq_libra_26",
+      "tool": "The CertiRocq snapshot's Rocq libraries",
+      "subject": "coq's release in the CertiRocq snapshot",
+      "reviewed": [
+        "9.1.1"
+      ],
+      "owners": [
+        {
+          "kind": "opam",
+          "path": "tools/opam/certirocq.lock",
+          "key": "coq"
+        }
+      ]
+    },
+    {
+      "id": "the_certirocq_snapshot_s_rocq_libra_27",
+      "tool": "The CertiRocq snapshot's Rocq libraries",
+      "subject": "coq-core's release in the CertiRocq snapshot",
+      "reviewed": [
+        "9.1.1"
+      ],
+      "owners": [
+        {
+          "kind": "opam",
+          "path": "tools/opam/certirocq.lock",
+          "key": "coq-core"
+        }
+      ]
+    },
+    {
+      "id": "the_certirocq_snapshot_s_rocq_libra_28",
+      "tool": "The CertiRocq snapshot's Rocq libraries",
+      "subject": "coqide-server's release in the CertiRocq snapshot",
+      "reviewed": [
+        "9.1.1"
+      ],
+      "owners": [
+        {
+          "kind": "opam",
+          "path": "tools/opam/certirocq.lock",
+          "key": "coqide-server"
+        }
+      ]
+    },
+    {
+      "id": "the_certirocq_snapshot_s_ocaml_libr_29",
+      "tool": "The CertiRocq snapshot's OCaml libraries and tools",
+      "subject": "ocamlfind's release in the CertiRocq snapshot",
+      "reviewed": [
+        "1.9.8"
+      ],
+      "owners": [
+        {
+          "kind": "opam",
+          "path": "tools/opam/certirocq.lock",
+          "key": "ocamlfind"
+        }
+      ]
+    },
+    {
+      "id": "the_certirocq_snapshot_s_ocaml_libr_30",
+      "tool": "The CertiRocq snapshot's OCaml libraries and tools",
+      "subject": "csexp's release in the CertiRocq snapshot",
+      "reviewed": [
+        "1.5.2"
+      ],
+      "owners": [
+        {
+          "kind": "opam",
+          "path": "tools/opam/certirocq.lock",
+          "key": "csexp"
+        }
+      ]
+    },
+    {
+      "id": "the_certirocq_snapshot_s_ocaml_libr_31",
+      "tool": "The CertiRocq snapshot's OCaml libraries and tools",
+      "subject": "dune-configurator's release in the CertiRocq snapshot",
+      "reviewed": [
+        "3.23.1"
+      ],
+      "owners": [
+        {
+          "kind": "opam",
+          "path": "tools/opam/certirocq.lock",
+          "key": "dune-configurator"
+        }
+      ]
+    },
+    {
+      "id": "the_certirocq_snapshot_s_ocaml_libr_32",
+      "tool": "The CertiRocq snapshot's OCaml libraries and tools",
+      "subject": "ppx_deriving's release in the CertiRocq snapshot",
+      "reviewed": [
+        "6.0.3"
+      ],
+      "owners": [
+        {
+          "kind": "opam",
+          "path": "tools/opam/certirocq.lock",
+          "key": "ppx_deriving"
+        }
+      ]
+    },
+    {
+      "id": "the_certirocq_snapshot_s_ocaml_libr_33",
+      "tool": "The CertiRocq snapshot's OCaml libraries and tools",
+      "subject": "ppxlib's release in the CertiRocq snapshot",
+      "reviewed": [
+        "0.35.0"
+      ],
+      "owners": [
+        {
+          "kind": "opam",
+          "path": "tools/opam/certirocq.lock",
+          "key": "ppxlib"
+        }
+      ]
+    },
+    {
+      "id": "the_certirocq_snapshot_s_ocaml_libr_34",
+      "tool": "The CertiRocq snapshot's OCaml libraries and tools",
+      "subject": "base's release in the CertiRocq snapshot",
+      "reviewed": [
+        "v0.16.5"
+      ],
+      "owners": [
+        {
+          "kind": "opam",
+          "path": "tools/opam/certirocq.lock",
+          "key": "base"
+        }
+      ]
+    },
+    {
+      "id": "the_certirocq_snapshot_s_ocaml_libr_35",
+      "tool": "The CertiRocq snapshot's OCaml libraries and tools",
+      "subject": "stdio's release in the CertiRocq snapshot",
+      "reviewed": [
+        "v0.16.0"
+      ],
+      "owners": [
+        {
+          "kind": "opam",
+          "path": "tools/opam/certirocq.lock",
+          "key": "stdio"
+        }
+      ]
+    },
+    {
+      "id": "the_certirocq_snapshot_s_ocaml_libr_36",
+      "tool": "The CertiRocq snapshot's OCaml libraries and tools",
+      "subject": "sexplib0's release in the CertiRocq snapshot",
+      "reviewed": [
+        "v0.16.0"
+      ],
+      "owners": [
+        {
+          "kind": "opam",
+          "path": "tools/opam/certirocq.lock",
+          "key": "sexplib0"
+        }
+      ]
+    },
+    {
+      "id": "the_certirocq_snapshot_s_ocaml_libr_37",
+      "tool": "The CertiRocq snapshot's OCaml libraries and tools",
+      "subject": "ppx_optcomp's release in the CertiRocq snapshot",
+      "reviewed": [
+        "v0.16.0"
+      ],
+      "owners": [
+        {
+          "kind": "opam",
+          "path": "tools/opam/certirocq.lock",
+          "key": "ppx_optcomp"
+        }
+      ]
+    },
+    {
+      "id": "the_certirocq_snapshot_s_ocaml_libr_38",
+      "tool": "The CertiRocq snapshot's OCaml libraries and tools",
+      "subject": "ocaml-compiler-libs's release in the CertiRocq snapshot",
+      "reviewed": [
+        "v0.12.4"
+      ],
+      "owners": [
+        {
+          "kind": "opam",
+          "path": "tools/opam/certirocq.lock",
+          "key": "ocaml-compiler-libs"
+        }
+      ]
+    },
+    {
+      "id": "the_certirocq_snapshot_s_ocaml_libr_39",
+      "tool": "The CertiRocq snapshot's OCaml libraries and tools",
+      "subject": "astring's release in the CertiRocq snapshot",
+      "reviewed": [
+        "0.8.5"
+      ],
+      "owners": [
+        {
+          "kind": "opam",
+          "path": "tools/opam/certirocq.lock",
+          "key": "astring"
+        }
+      ]
+    },
+    {
+      "id": "the_certirocq_snapshot_s_ocaml_libr_40",
+      "tool": "The CertiRocq snapshot's OCaml libraries and tools",
+      "subject": "fmt's release in the CertiRocq snapshot",
+      "reviewed": [
+        "0.11.0"
+      ],
+      "owners": [
+        {
+          "kind": "opam",
+          "path": "tools/opam/certirocq.lock",
+          "key": "fmt"
+        }
+      ]
+    },
+    {
+      "id": "the_certirocq_snapshot_s_ocaml_libr_41",
+      "tool": "The CertiRocq snapshot's OCaml libraries and tools",
+      "subject": "logs's release in the CertiRocq snapshot",
+      "reviewed": [
+        "0.10.0"
+      ],
+      "owners": [
+        {
+          "kind": "opam",
+          "path": "tools/opam/certirocq.lock",
+          "key": "logs"
+        }
+      ]
+    },
+    {
+      "id": "the_certirocq_snapshot_s_ocaml_libr_42",
+      "tool": "The CertiRocq snapshot's OCaml libraries and tools",
+      "subject": "cmdliner's release in the CertiRocq snapshot",
+      "reviewed": [
+        "2.1.1"
+      ],
+      "owners": [
+        {
+          "kind": "opam",
+          "path": "tools/opam/certirocq.lock",
+          "key": "cmdliner"
+        }
+      ]
+    },
+    {
+      "id": "the_certirocq_snapshot_s_ocaml_libr_43",
+      "tool": "The CertiRocq snapshot's OCaml libraries and tools",
+      "subject": "topkg's release in the CertiRocq snapshot",
+      "reviewed": [
+        "1.1.1"
+      ],
+      "owners": [
+        {
+          "kind": "opam",
+          "path": "tools/opam/certirocq.lock",
+          "key": "topkg"
+        }
+      ]
+    },
+    {
+      "id": "the_certirocq_snapshot_s_ocaml_libr_44",
+      "tool": "The CertiRocq snapshot's OCaml libraries and tools",
+      "subject": "mdx's release in the CertiRocq snapshot",
+      "reviewed": [
+        "2.7.0"
+      ],
+      "owners": [
+        {
+          "kind": "opam",
+          "path": "tools/opam/certirocq.lock",
+          "key": "mdx"
+        }
+      ]
+    },
+    {
+      "id": "the_certirocq_snapshot_s_ocaml_libr_45",
+      "tool": "The CertiRocq snapshot's OCaml libraries and tools",
+      "subject": "ocaml-version's release in the CertiRocq snapshot",
+      "reviewed": [
+        "4.1.4"
+      ],
+      "owners": [
+        {
+          "kind": "opam",
+          "path": "tools/opam/certirocq.lock",
+          "key": "ocaml-version"
+        }
+      ]
+    },
+    {
+      "id": "the_certirocq_snapshot_s_ocaml_libr_46",
+      "tool": "The CertiRocq snapshot's OCaml libraries and tools",
+      "subject": "atdts's release in the CertiRocq snapshot",
+      "reviewed": [
+        "4.2.0"
+      ],
+      "owners": [
+        {
+          "kind": "opam",
+          "path": "tools/opam/certirocq.lock",
+          "key": "atd"
+        },
+        {
+          "kind": "opam",
+          "path": "tools/opam/certirocq.lock",
+          "key": "atdgen"
+        },
+        {
+          "kind": "opam",
+          "path": "tools/opam/certirocq.lock",
+          "key": "atdgen-runtime"
+        },
+        {
+          "kind": "opam",
+          "path": "tools/opam/certirocq.lock",
+          "key": "atdts"
+        }
+      ]
+    },
+    {
+      "id": "the_certirocq_snapshot_s_ocaml_libr_47",
+      "tool": "The CertiRocq snapshot's OCaml libraries and tools",
+      "subject": "biniou's release in the CertiRocq snapshot",
+      "reviewed": [
+        "1.2.2"
+      ],
+      "owners": [
+        {
+          "kind": "opam",
+          "path": "tools/opam/certirocq.lock",
+          "key": "biniou"
+        }
+      ]
+    },
+    {
+      "id": "the_certirocq_snapshot_s_ocaml_libr_48",
+      "tool": "The CertiRocq snapshot's OCaml libraries and tools",
+      "subject": "easy-format's release in the CertiRocq snapshot",
+      "reviewed": [
+        "1.3.4"
+      ],
+      "owners": [
+        {
+          "kind": "opam",
+          "path": "tools/opam/certirocq.lock",
+          "key": "easy-format"
+        }
+      ]
+    },
+    {
+      "id": "the_certirocq_snapshot_s_ocaml_libr_49",
+      "tool": "The CertiRocq snapshot's OCaml libraries and tools",
+      "subject": "cppo's release in the CertiRocq snapshot",
+      "reviewed": [
+        "1.8.0"
+      ],
+      "owners": [
+        {
+          "kind": "opam",
+          "path": "tools/opam/certirocq.lock",
+          "key": "cppo"
+        }
+      ]
+    },
+    {
+      "id": "the_certirocq_snapshot_s_ocaml_libr_50",
+      "tool": "The CertiRocq snapshot's OCaml libraries and tools",
+      "subject": "yojson's release in the CertiRocq snapshot",
+      "reviewed": [
+        "3.0.0"
+      ],
+      "owners": [
+        {
+          "kind": "opam",
+          "path": "tools/opam/certirocq.lock",
+          "key": "yojson"
+        }
+      ]
+    },
+    {
+      "id": "the_certirocq_snapshot_s_ocaml_libr_51",
+      "tool": "The CertiRocq snapshot's OCaml libraries and tools",
+      "subject": "result's release in the CertiRocq snapshot",
+      "reviewed": [
+        "1.5"
+      ],
+      "owners": [
+        {
+          "kind": "opam",
+          "path": "tools/opam/certirocq.lock",
+          "key": "result"
+        }
+      ]
+    },
+    {
+      "id": "the_certirocq_snapshot_s_ocaml_libr_52",
+      "tool": "The CertiRocq snapshot's OCaml libraries and tools",
+      "subject": "ppx_derivers's release in the CertiRocq snapshot",
+      "reviewed": [
+        "1.2.1"
+      ],
+      "owners": [
+        {
+          "kind": "opam",
+          "path": "tools/opam/certirocq.lock",
+          "key": "ppx_derivers"
+        }
+      ]
+    },
+    {
+      "id": "the_certirocq_snapshot_s_ocaml_libr_53",
+      "tool": "The CertiRocq snapshot's OCaml libraries and tools",
+      "subject": "linenoise's release in the CertiRocq snapshot",
+      "reviewed": [
+        "1.5.1"
+      ],
+      "owners": [
+        {
+          "kind": "opam",
+          "path": "tools/opam/certirocq.lock",
+          "key": "linenoise"
+        }
+      ]
+    },
+    {
+      "id": "the_certirocq_snapshot_s_ocaml_libr_54",
+      "tool": "The CertiRocq snapshot's OCaml libraries and tools",
+      "subject": "elpi's release in the CertiRocq snapshot",
+      "reviewed": [
+        "3.7.3"
+      ],
+      "owners": [
+        {
+          "kind": "opam",
+          "path": "tools/opam/certirocq.lock",
+          "key": "elpi"
+        }
+      ]
+    },
+    {
+      "id": "the_certirocq_snapshot_s_ocaml_libr_55",
+      "tool": "The CertiRocq snapshot's OCaml libraries and tools",
+      "subject": "re's release in the CertiRocq snapshot",
+      "reviewed": [
+        "1.14.0"
+      ],
+      "owners": [
+        {
+          "kind": "opam",
+          "path": "tools/opam/certirocq.lock",
+          "key": "re"
+        }
+      ]
+    },
+    {
+      "id": "the_certirocq_snapshot_s_ocaml_libr_56",
+      "tool": "The CertiRocq snapshot's OCaml libraries and tools",
+      "subject": "camlp-streams's release in the CertiRocq snapshot",
+      "reviewed": [
+        "5.0.1"
+      ],
+      "owners": [
+        {
+          "kind": "opam",
+          "path": "tools/opam/certirocq.lock",
+          "key": "camlp-streams"
+        }
+      ]
+    },
+    {
+      "id": "the_certirocq_snapshot_s_ocaml_libr_57",
+      "tool": "The CertiRocq snapshot's OCaml libraries and tools",
+      "subject": "stdlib-shims's release in the CertiRocq snapshot",
+      "reviewed": [
+        "0.3.0"
+      ],
+      "owners": [
+        {
+          "kind": "opam",
+          "path": "tools/opam/certirocq.lock",
+          "key": "stdlib-shims"
+        }
+      ]
+    },
+    {
+      "id": "the_certirocq_snapshot_s_ocaml_libr_58",
+      "tool": "The CertiRocq snapshot's OCaml libraries and tools",
+      "subject": "ocamlbuild's release in the CertiRocq snapshot",
+      "reviewed": [
+        "0.16.1"
+      ],
+      "owners": [
+        {
+          "kind": "opam",
+          "path": "tools/opam/certirocq.lock",
+          "key": "ocamlbuild"
+        }
+      ]
+    },
+    {
+      "id": "the_certirocq_snapshot_s_ocaml_libr_59",
+      "tool": "The CertiRocq snapshot's OCaml libraries and tools",
+      "subject": "wasm's release in the CertiRocq snapshot",
+      "reviewed": [
+        "2.0.2"
+      ],
+      "owners": [
+        {
+          "kind": "opam",
+          "path": "tools/opam/certirocq.lock",
+          "key": "wasm"
+        }
+      ]
+    },
+    {
+      "id": "uv_60",
+      "tool": "uv",
+      "subject": "the reviewed release",
+      "reviewed": [
+        "0.13.1"
+      ],
+      "owners": [
+        {
+          "kind": "uv-required",
+          "path": "tools/pyproject.toml",
+          "key": "tool.uv.required-version"
+        }
+      ]
+    },
+    {
+      "id": "ruff_61",
+      "tool": "ruff",
+      "subject": "the reviewed release",
+      "reviewed": [
+        "0.17.1"
+      ],
+      "owners": [
+        {
+          "kind": "uv",
+          "path": "tools/uv.lock",
+          "key": "ruff"
+        }
+      ]
+    },
+    {
+      "id": "ty_62",
+      "tool": "ty",
+      "subject": "the reviewed release",
+      "reviewed": [
+        "0.0.89"
+      ],
+      "owners": [
+        {
+          "kind": "uv",
+          "path": "tools/uv.lock",
+          "key": "ty"
+        }
+      ]
+    },
+    {
+      "id": "cpython_63",
+      "tool": "CPython",
+      "subject": "the interpreter series",
+      "reviewed": [
+        "3.14"
+      ],
+      "owners": [
+        {
+          "kind": "python",
+          "path": "tools/pyproject.toml",
+          "key": "project.requires-python"
+        }
+      ]
+    },
+    {
+      "id": "cpython_64",
+      "tool": "CPython",
+      "subject": "the admitted series",
+      "reviewed": [
+        "3.14"
+      ],
+      "owners": [
+        {
+          "kind": "python",
+          "path": "tools/pyproject.toml",
+          "key": "project.requires-python"
+        }
+      ]
+    },
+    {
+      "id": "cpython_65",
+      "tool": "CPython",
+      "subject": "the reviewed tag's series",
+      "reviewed": [
+        "3.14"
+      ],
+      "owners": [
+        {
+          "kind": "python",
+          "path": "tools/pyproject.toml",
+          "key": "project.requires-python"
+        }
+      ]
+    },
+    {
+      "id": "jsonschema_with_attrs_referencing_r_66",
+      "tool": "jsonschema, with `attrs`, `referencing`, `rpds-py` and `jsonschema-specifications`",
+      "subject": "jsonschema's locked release",
+      "reviewed": [
+        "4.26.0"
+      ],
+      "owners": [
+        {
+          "kind": "uv",
+          "path": "tools/uv.lock",
+          "key": "jsonschema"
+        }
+      ]
+    },
+    {
+      "id": "jsonschema_with_attrs_referencing_r_67",
+      "tool": "jsonschema, with `attrs`, `referencing`, `rpds-py` and `jsonschema-specifications`",
+      "subject": "attrs's locked release",
+      "reviewed": [
+        "26.1.0"
+      ],
+      "owners": [
+        {
+          "kind": "uv",
+          "path": "tools/uv.lock",
+          "key": "attrs"
+        }
+      ]
+    },
+    {
+      "id": "jsonschema_with_attrs_referencing_r_68",
+      "tool": "jsonschema, with `attrs`, `referencing`, `rpds-py` and `jsonschema-specifications`",
+      "subject": "referencing's locked release",
+      "reviewed": [
+        "0.37.0"
+      ],
+      "owners": [
+        {
+          "kind": "uv",
+          "path": "tools/uv.lock",
+          "key": "referencing"
+        }
+      ]
+    },
+    {
+      "id": "jsonschema_with_attrs_referencing_r_69",
+      "tool": "jsonschema, with `attrs`, `referencing`, `rpds-py` and `jsonschema-specifications`",
+      "subject": "jsonschema-specifications's locked release",
+      "reviewed": [
+        "2025.9.1"
+      ],
+      "owners": [
+        {
+          "kind": "uv",
+          "path": "tools/uv.lock",
+          "key": "jsonschema-specifications"
+        }
+      ]
+    },
+    {
+      "id": "jsonschema_with_attrs_referencing_r_70",
+      "tool": "jsonschema, with `attrs`, `referencing`, `rpds-py` and `jsonschema-specifications`",
+      "subject": "rpds-py's locked release",
+      "reviewed": [
+        "2026.9.1"
+      ],
+      "owners": [
+        {
+          "kind": "uv",
+          "path": "tools/uv.lock",
+          "key": "rpds-py"
+        }
+      ]
+    },
+    {
+      "id": "pre_commit_s_dependencies_71",
+      "tool": "pre-commit's dependencies",
+      "subject": "cfgv's locked release",
+      "reviewed": [
+        "3.5.0"
+      ],
+      "owners": [
+        {
+          "kind": "uv",
+          "path": "tools/uv.lock",
+          "key": "cfgv"
+        }
+      ]
+    },
+    {
+      "id": "pre_commit_s_dependencies_72",
+      "tool": "pre-commit's dependencies",
+      "subject": "identify's locked release",
+      "reviewed": [
+        "2.6.20"
+      ],
+      "owners": [
+        {
+          "kind": "uv",
+          "path": "tools/uv.lock",
+          "key": "identify"
+        }
+      ]
+    },
+    {
+      "id": "pre_commit_s_dependencies_73",
+      "tool": "pre-commit's dependencies",
+      "subject": "nodeenv's locked release",
+      "reviewed": [
+        "1.11.0"
+      ],
+      "owners": [
+        {
+          "kind": "uv",
+          "path": "tools/uv.lock",
+          "key": "nodeenv"
+        }
+      ]
+    },
+    {
+      "id": "pre_commit_s_dependencies_74",
+      "tool": "pre-commit's dependencies",
+      "subject": "PyYAML's locked release",
+      "reviewed": [
+        "6.0.3"
+      ],
+      "owners": [
+        {
+          "kind": "uv",
+          "path": "tools/uv.lock",
+          "key": "pyyaml"
+        }
+      ]
+    },
+    {
+      "id": "pre_commit_s_dependencies_75",
+      "tool": "pre-commit's dependencies",
+      "subject": "virtualenv's locked release",
+      "reviewed": [
+        "21.14.8"
+      ],
+      "owners": [
+        {
+          "kind": "uv",
+          "path": "tools/uv.lock",
+          "key": "virtualenv"
+        }
+      ]
+    },
+    {
+      "id": "pre_commit_s_dependencies_76",
+      "tool": "pre-commit's dependencies",
+      "subject": "distlib's locked release",
+      "reviewed": [
+        "0.4.4"
+      ],
+      "owners": [
+        {
+          "kind": "uv",
+          "path": "tools/uv.lock",
+          "key": "distlib"
+        }
+      ]
+    },
+    {
+      "id": "pre_commit_s_dependencies_77",
+      "tool": "pre-commit's dependencies",
+      "subject": "filelock's locked release",
+      "reviewed": [
+        "4.2.0"
+      ],
+      "owners": [
+        {
+          "kind": "uv",
+          "path": "tools/uv.lock",
+          "key": "filelock"
+        }
+      ]
+    },
+    {
+      "id": "pre_commit_s_dependencies_78",
+      "tool": "pre-commit's dependencies",
+      "subject": "platformdirs's locked release",
+      "reviewed": [
+        "4.13.3"
+      ],
+      "owners": [
+        {
+          "kind": "uv",
+          "path": "tools/uv.lock",
+          "key": "platformdirs"
+        }
+      ]
+    },
+    {
+      "id": "pre_commit_s_dependencies_79",
+      "tool": "pre-commit's dependencies",
+      "subject": "python-discovery's locked release",
+      "reviewed": [
+        "1.6.3"
+      ],
+      "owners": [
+        {
+          "kind": "uv",
+          "path": "tools/uv.lock",
+          "key": "python-discovery"
+        }
+      ]
+    },
+    {
+      "id": "pre_commit_s_dependencies_80",
+      "tool": "pre-commit's dependencies",
+      "subject": "packaging's locked release",
+      "reviewed": [
+        "26.3"
+      ],
+      "owners": [
+        {
+          "kind": "uv",
+          "path": "tools/uv.lock",
+          "key": "packaging"
+        }
+      ]
+    },
+    {
+      "id": "pre_commit_hooks_81",
+      "tool": "pre-commit-hooks",
+      "subject": "the reviewed release",
+      "reviewed": [
+        "6.0.0"
+      ],
+      "owners": [
+        {
+          "kind": "pre-commit",
+          "path": "model/.pre-commit-config.yaml",
+          "key": "https://github.com/pre-commit/pre-commit-hooks"
+        }
+      ]
+    },
+    {
+      "id": "pre_commit_hooks_82",
+      "tool": "pre-commit-hooks",
+      "subject": "the reviewed commit",
+      "reviewed": [
+        "3e8a8703264a2f4a69428a0aa4dcb512790b2c8c"
+      ],
+      "owners": [
+        {
+          "kind": "pre-commit-rev",
+          "path": "model/.pre-commit-config.yaml",
+          "key": "https://github.com/pre-commit/pre-commit-hooks"
+        }
+      ]
+    },
+    {
+      "id": "clang_format_83",
+      "tool": "clang-format",
+      "subject": "the reviewed release",
+      "reviewed": [
+        "23.1.3"
+      ],
+      "owners": [
+        {
+          "kind": "pre-commit",
+          "path": "model/.pre-commit-config.yaml",
+          "key": "https://github.com/pre-commit/mirrors-clang-format"
+        },
+        {
+          "kind": "pip",
+          "path": "tools/ci/model-hooks-constraints.txt",
+          "key": "clang-format"
+        }
+      ]
+    },
+    {
+      "id": "clang_format_84",
+      "tool": "clang-format",
+      "subject": "the reviewed commit",
+      "reviewed": [
+        "98ad4ddb9c057de2f5b9e93e44e6db959807d68c"
+      ],
+      "owners": [
+        {
+          "kind": "pre-commit-rev",
+          "path": "model/.pre-commit-config.yaml",
+          "key": "https://github.com/pre-commit/mirrors-clang-format"
+        }
+      ]
+    },
+    {
+      "id": "lucas_c_pre_commit_hooks_85",
+      "tool": "Lucas-C pre-commit-hooks",
+      "subject": "the reviewed release",
+      "reviewed": [
+        "1.5.6"
+      ],
+      "owners": [
+        {
+          "kind": "pre-commit",
+          "path": "model/.pre-commit-config.yaml",
+          "key": "https://github.com/Lucas-C/pre-commit-hooks"
+        }
+      ]
+    },
+    {
+      "id": "lucas_c_pre_commit_hooks_86",
+      "tool": "Lucas-C pre-commit-hooks",
+      "subject": "the reviewed commit",
+      "reviewed": [
+        "ad1b27d73581aa16cca06fc4a0761fc563ffe8e8"
+      ],
+      "owners": [
+        {
+          "kind": "pre-commit-rev",
+          "path": "model/.pre-commit-config.yaml",
+          "key": "https://github.com/Lucas-C/pre-commit-hooks"
+        }
+      ]
+    },
+    {
+      "id": "prettier_87",
+      "tool": "prettier",
+      "subject": "the reviewed release",
+      "reviewed": [
+        "3.9.10"
+      ],
+      "owners": [
+        {
+          "kind": "pre-commit",
+          "path": "model/.pre-commit-config.yaml",
+          "key": "https://github.com/rbubley/mirrors-prettier"
+        }
+      ]
+    },
+    {
+      "id": "prettier_88",
+      "tool": "prettier",
+      "subject": "the reviewed commit",
+      "reviewed": [
+        "331f33fa4dfbcbca7c3da3620c137fde0faab273"
+      ],
+      "owners": [
+        {
+          "kind": "pre-commit-rev",
+          "path": "model/.pre-commit-config.yaml",
+          "key": "https://github.com/rbubley/mirrors-prettier"
+        }
+      ]
+    },
+    {
+      "id": "codespell_89",
+      "tool": "codespell",
+      "subject": "the reviewed release",
+      "reviewed": [
+        "2.4.3"
+      ],
+      "owners": [
+        {
+          "kind": "pre-commit",
+          "path": "model/.pre-commit-config.yaml",
+          "key": "https://github.com/codespell-project/codespell"
+        }
+      ]
+    },
+    {
+      "id": "codespell_90",
+      "tool": "codespell",
+      "subject": "the reviewed commit",
+      "reviewed": [
+        "57b21406f092110c18776e39b0bda50d37c945c8"
+      ],
+      "owners": [
+        {
+          "kind": "pre-commit-rev",
+          "path": "model/.pre-commit-config.yaml",
+          "key": "https://github.com/codespell-project/codespell"
+        }
+      ]
+    },
+    {
+      "id": "markdown_link_check_91",
+      "tool": "markdown-link-check",
+      "subject": "the reviewed release",
+      "reviewed": [
+        "3.15.0"
+      ],
+      "owners": [
+        {
+          "kind": "pre-commit",
+          "path": "model/.pre-commit-config.yaml",
+          "key": "https://github.com/tcort/markdown-link-check"
+        }
+      ]
+    },
+    {
+      "id": "markdown_link_check_92",
+      "tool": "markdown-link-check",
+      "subject": "the reviewed commit",
+      "reviewed": [
+        "275c27c5035a5b4a656fe0e21a4c1403c118c767"
+      ],
+      "owners": [
+        {
+          "kind": "pre-commit-rev",
+          "path": "model/.pre-commit-config.yaml",
+          "key": "https://github.com/tcort/markdown-link-check"
+        }
+      ]
+    },
+    {
+      "id": "the_model_hooks_pypi_dependencies_93",
+      "tool": "The model hooks' PyPI dependencies",
+      "subject": "ruamel.yaml's pinned release",
+      "reviewed": [
+        "0.19.1"
+      ],
+      "owners": [
+        {
+          "kind": "pip",
+          "path": "tools/ci/model-hooks-constraints.txt",
+          "key": "ruamel.yaml"
+        }
+      ]
+    },
+    {
+      "id": "the_model_hooks_pypi_dependencies_94",
+      "tool": "The model hooks' PyPI dependencies",
+      "subject": "rapidfuzz's pinned release",
+      "reviewed": [
+        "3.14.6"
+      ],
+      "owners": [
+        {
+          "kind": "pip",
+          "path": "tools/ci/model-hooks-constraints.txt",
+          "key": "rapidfuzz"
+        }
+      ]
+    },
+    {
+      "id": "the_model_hooks_pypi_dependencies_95",
+      "tool": "The model hooks' PyPI dependencies",
+      "subject": "setuptools's pinned release",
+      "reviewed": [
+        "84.0.0"
+      ],
+      "owners": [
+        {
+          "kind": "pip",
+          "path": "tools/ci/model-hooks-build-constraints.txt",
+          "key": "setuptools"
+        }
+      ]
+    },
+    {
+      "id": "the_model_hooks_pypi_dependencies_96",
+      "tool": "The model hooks' PyPI dependencies",
+      "subject": "setuptools-scm's pinned release",
+      "reviewed": [
+        "10.3.4"
+      ],
+      "owners": [
+        {
+          "kind": "pip",
+          "path": "tools/ci/model-hooks-build-constraints.txt",
+          "key": "setuptools-scm"
+        }
+      ]
+    },
+    {
+      "id": "the_model_hooks_pypi_dependencies_97",
+      "tool": "The model hooks' PyPI dependencies",
+      "subject": "setuptools-scm's tag read",
+      "reviewed": [
+        "10.3.4"
+      ],
+      "owners": [
+        {
+          "kind": "pip",
+          "path": "tools/ci/model-hooks-build-constraints.txt",
+          "key": "setuptools-scm"
+        }
+      ]
+    },
+    {
+      "id": "the_model_hooks_pypi_dependencies_98",
+      "tool": "The model hooks' PyPI dependencies",
+      "subject": "vcs-versioning's pinned release",
+      "reviewed": [
+        "2.6.0"
+      ],
+      "owners": [
+        {
+          "kind": "pip",
+          "path": "tools/ci/model-hooks-build-constraints.txt",
+          "key": "vcs-versioning"
+        }
+      ]
+    },
+    {
+      "id": "the_model_hooks_pypi_dependencies_99",
+      "tool": "The model hooks' PyPI dependencies",
+      "subject": "vcs-versioning's tag read",
+      "reviewed": [
+        "2.6.0"
+      ],
+      "owners": [
+        {
+          "kind": "pip",
+          "path": "tools/ci/model-hooks-build-constraints.txt",
+          "key": "vcs-versioning"
+        }
+      ]
+    },
+    {
+      "id": "the_model_hooks_pypi_dependencies_100",
+      "tool": "The model hooks' PyPI dependencies",
+      "subject": "packaging's pinned release",
+      "reviewed": [
+        "26.3"
+      ],
+      "owners": [
+        {
+          "kind": "pip",
+          "path": "tools/ci/model-hooks-build-constraints.txt",
+          "key": "packaging"
+        }
+      ]
+    },
+    {
+      "id": "rocq_prover_rocq_core_rocq_runtime__101",
+      "tool": "Rocq prover: `rocq-core`, `rocq-runtime` and `rocqchk`",
+      "subject": "the proof, QuickChick and contained compiler switches' edition",
+      "reviewed": [
+        "9.3.0"
+      ],
+      "owners": [
+        {
+          "kind": "opam",
+          "path": "tools/opam/rocq.lock",
+          "key": "rocq-core"
+        },
+        {
+          "kind": "opam",
+          "path": "tools/opam/rocq.lock",
+          "key": "rocq-runtime"
+        },
+        {
+          "kind": "opam",
+          "path": "tools/opam/quickchick.lock",
+          "key": "rocq-core"
+        },
+        {
+          "kind": "opam",
+          "path": "tools/opam/quickchick.lock",
+          "key": "rocq-runtime"
+        },
+        {
+          "kind": "opam",
+          "path": "tools/opam/contained-compiler.lock",
+          "key": "rocq-core"
+        },
+        {
+          "kind": "opam",
+          "path": "tools/opam/contained-compiler.lock",
+          "key": "rocq-runtime"
+        }
+      ]
+    },
+    {
+      "id": "rocq_prover_rocq_core_rocq_runtime__102",
+      "tool": "Rocq prover: `rocq-core`, `rocq-runtime` and `rocqchk`",
+      "subject": "the lowering switch's edition",
+      "reviewed": [
+        "9.2.0"
+      ],
+      "owners": [
+        {
+          "kind": "opam",
+          "path": "tools/opam/rupicola.lock",
+          "key": "rocq-core"
+        },
+        {
+          "kind": "opam",
+          "path": "tools/opam/rupicola.lock",
+          "key": "rocq-runtime"
+        }
+      ]
+    },
+    {
+      "id": "rocq_prover_rocq_core_rocq_runtime__103",
+      "tool": "Rocq prover: `rocq-core`, `rocq-runtime` and `rocqchk`",
+      "subject": "the oracle switch's edition",
+      "reviewed": [
+        "9.1.1"
+      ],
+      "owners": [
+        {
+          "kind": "opam",
+          "path": "tools/opam/certirocq.lock",
+          "key": "rocq-core"
+        },
+        {
+          "kind": "opam",
+          "path": "tools/opam/certirocq.lock",
+          "key": "rocq-runtime"
+        },
+        {
+          "kind": "assign",
+          "path": "tools/vos/gallina.py",
+          "key": "ORACLE_ROCQ_VERSION"
+        }
+      ]
+    },
+    {
+      "id": "rocq_prover_rocq_core_rocq_runtime__104",
+      "tool": "Rocq prover: `rocq-core`, `rocq-runtime` and `rocqchk`",
+      "subject": "the tags read",
+      "reviewed": [
+        "9.1.1",
+        "9.2.0",
+        "9.3.0"
+      ],
+      "owners": [
+        {
+          "kind": "opam-any",
+          "path": "tools/opam/",
+          "key": "rocq-core"
+        },
+        {
+          "kind": "assign",
+          "path": "tools/vos/gallina.py",
+          "key": "ORACLE_ROCQ_VERSION"
+        }
+      ]
+    },
+    {
+      "id": "ocaml_compiler_105",
+      "tool": "OCaml compiler",
+      "subject": "the 5.4.1 snapshots' compiler",
+      "reviewed": [
+        "5.4.1"
+      ],
+      "owners": [
+        {
+          "kind": "opam",
+          "path": "tools/opam/sail.lock",
+          "key": "ocaml-base-compiler"
+        },
+        {
+          "kind": "opam",
+          "path": "tools/opam/rocq.lock",
+          "key": "ocaml-base-compiler"
+        },
+        {
+          "kind": "opam",
+          "path": "tools/opam/quickchick.lock",
+          "key": "ocaml-base-compiler"
+        },
+        {
+          "kind": "opam",
+          "path": "tools/opam/rupicola.lock",
+          "key": "ocaml-base-compiler"
+        }
+      ]
+    },
+    {
+      "id": "ocaml_compiler_106",
+      "tool": "OCaml compiler",
+      "subject": "the oracle switch's compiler",
+      "reviewed": [
+        "4.14.4"
+      ],
+      "owners": [
+        {
+          "kind": "assign",
+          "path": "tools/vos/gallina.py",
+          "key": "ORACLE_OCAML_VERSION"
+        },
+        {
+          "kind": "opam",
+          "path": "tools/opam/certirocq.lock",
+          "key": "ocaml-base-compiler"
+        }
+      ]
+    },
+    {
+      "id": "ocaml_compiler_107",
+      "tool": "OCaml compiler",
+      "subject": "the contained compiler switch's compiler",
+      "reviewed": [
+        "4.14.4"
+      ],
+      "owners": [
+        {
+          "kind": "opam",
+          "path": "tools/opam/contained-compiler.lock",
+          "key": "ocaml-base-compiler"
+        }
+      ]
+    },
+    {
+      "id": "ocaml_compiler_108",
+      "tool": "OCaml compiler",
+      "subject": "the tags read",
+      "reviewed": [
+        "4.14.4",
+        "5.4.1"
+      ],
+      "owners": [
+        {
+          "kind": "opam",
+          "path": "tools/opam/sail.lock",
+          "key": "ocaml-base-compiler"
+        },
+        {
+          "kind": "opam",
+          "path": "tools/opam/rocq.lock",
+          "key": "ocaml-base-compiler"
+        },
+        {
+          "kind": "opam",
+          "path": "tools/opam/quickchick.lock",
+          "key": "ocaml-base-compiler"
+        },
+        {
+          "kind": "opam",
+          "path": "tools/opam/rupicola.lock",
+          "key": "ocaml-base-compiler"
+        },
+        {
+          "kind": "opam",
+          "path": "tools/opam/certirocq.lock",
+          "key": "ocaml-base-compiler"
+        },
+        {
+          "kind": "assign",
+          "path": "tools/vos/gallina.py",
+          "key": "ORACLE_OCAML_VERSION"
+        }
+      ]
+    },
+    {
+      "id": "dune_109",
+      "tool": "dune",
+      "subject": "the Sail and proof snapshots' release",
+      "reviewed": [
+        "3.24.2"
+      ],
+      "owners": [
+        {
+          "kind": "opam",
+          "path": "tools/opam/sail.lock",
+          "key": "dune"
+        },
+        {
+          "kind": "opam",
+          "path": "tools/opam/rocq.lock",
+          "key": "dune"
+        }
+      ]
+    },
+    {
+      "id": "dune_110",
+      "tool": "dune",
+      "subject": "the tags read",
+      "reviewed": [
+        "3.23.1",
+        "3.24.2"
+      ],
+      "owners": [
+        {
+          "kind": "opam-any",
+          "path": "tools/opam/",
+          "key": "dune"
+        }
+      ]
+    },
+    {
+      "id": "zarith_111",
+      "tool": "Zarith",
+      "subject": "the release in every switch",
+      "reviewed": [
+        "1.14"
+      ],
+      "owners": [
+        {
+          "kind": "opam-every",
+          "path": "tools/opam/",
+          "key": "zarith"
+        }
+      ]
+    },
+    {
+      "id": "zarith_112",
+      "tool": "Zarith",
+      "subject": "the tag read",
+      "reviewed": [
+        "1.14"
+      ],
+      "owners": [
+        {
+          "kind": "opam-every",
+          "path": "tools/opam/",
+          "key": "zarith"
+        }
+      ]
+    },
+    {
+      "id": "menhir_113",
+      "tool": "Menhir",
+      "subject": "the Sail, QuickChick, CertiRocq and contained compiler snapshots' release",
+      "reviewed": [
+        "20260209"
+      ],
+      "owners": [
+        {
+          "kind": "opam",
+          "path": "tools/opam/sail.lock",
+          "key": "menhir"
+        },
+        {
+          "kind": "opam",
+          "path": "tools/opam/sail.lock",
+          "key": "menhirLib"
+        },
+        {
+          "kind": "opam",
+          "path": "tools/opam/sail.lock",
+          "key": "menhirSdk"
+        },
+        {
+          "kind": "opam",
+          "path": "tools/opam/sail.lock",
+          "key": "menhirCST"
+        },
+        {
+          "kind": "opam",
+          "path": "tools/opam/sail.lock",
+          "key": "menhirGLR"
+        },
+        {
+          "kind": "opam",
+          "path": "tools/opam/quickchick.lock",
+          "key": "menhir"
+        },
+        {
+          "kind": "opam",
+          "path": "tools/opam/quickchick.lock",
+          "key": "menhirLib"
+        },
+        {
+          "kind": "opam",
+          "path": "tools/opam/quickchick.lock",
+          "key": "menhirSdk"
+        },
+        {
+          "kind": "opam",
+          "path": "tools/opam/quickchick.lock",
+          "key": "menhirCST"
+        },
+        {
+          "kind": "opam",
+          "path": "tools/opam/quickchick.lock",
+          "key": "menhirGLR"
+        },
+        {
+          "kind": "opam",
+          "path": "tools/opam/certirocq.lock",
+          "key": "menhir"
+        },
+        {
+          "kind": "opam",
+          "path": "tools/opam/certirocq.lock",
+          "key": "menhirLib"
+        },
+        {
+          "kind": "opam",
+          "path": "tools/opam/certirocq.lock",
+          "key": "menhirSdk"
+        },
+        {
+          "kind": "opam",
+          "path": "tools/opam/certirocq.lock",
+          "key": "menhirCST"
+        },
+        {
+          "kind": "opam",
+          "path": "tools/opam/certirocq.lock",
+          "key": "menhirGLR"
+        },
+        {
+          "kind": "opam",
+          "path": "tools/opam/contained-compiler.lock",
+          "key": "menhir"
+        },
+        {
+          "kind": "opam",
+          "path": "tools/opam/contained-compiler.lock",
+          "key": "menhirLib"
+        },
+        {
+          "kind": "opam",
+          "path": "tools/opam/contained-compiler.lock",
+          "key": "menhirSdk"
+        },
+        {
+          "kind": "opam",
+          "path": "tools/opam/contained-compiler.lock",
+          "key": "menhirCST"
+        },
+        {
+          "kind": "opam",
+          "path": "tools/opam/contained-compiler.lock",
+          "key": "menhirGLR"
+        }
+      ]
+    },
+    {
+      "id": "std_114",
+      "tool": "std++",
+      "subject": "the proof snapshot's release",
+      "reviewed": [
+        "1.13.0"
+      ],
+      "owners": [
+        {
+          "kind": "opam",
+          "path": "tools/opam/rocq.lock",
+          "key": "rocq-stdpp"
+        }
+      ]
+    },
+    {
+      "id": "std_115",
+      "tool": "std++",
+      "subject": "the tag read",
+      "reviewed": [
+        "1.13.0"
+      ],
+      "owners": [
+        {
+          "kind": "opam",
+          "path": "tools/opam/rocq.lock",
+          "key": "rocq-stdpp"
+        }
+      ]
+    },
+    {
+      "id": "sail_compiler_and_its_c_runtime_116",
+      "tool": "Sail compiler and its C runtime",
+      "subject": "the Sail snapshot's release",
+      "reviewed": [
+        "0.20.3"
+      ],
+      "owners": [
+        {
+          "kind": "opam",
+          "path": "tools/opam/sail.lock",
+          "key": "sail"
+        }
+      ]
+    },
+    {
+      "id": "the_section_s_paragraphs_117",
+      "tool": "the section's paragraphs",
+      "subject": "Rocq Stdlib's reviewed edition",
+      "reviewed": [
+        "9.2.0"
+      ],
+      "owners": [
+        {
+          "kind": "opam",
+          "path": "tools/opam/rocq.lock",
+          "key": "rocq-stdlib"
+        }
+      ]
+    },
+    {
+      "id": "the_section_s_paragraphs_118",
+      "tool": "the section's paragraphs",
+      "subject": "native census Stdlib source archive",
+      "reviewed": [
+        "9.2.0"
+      ],
+      "owners": [
+        {
+          "kind": "opam",
+          "path": "tools/opam/rocq.lock",
+          "key": "rocq-stdlib"
+        }
+      ]
+    },
+    {
+      "id": "the_section_s_paragraphs_119",
+      "tool": "the section's paragraphs",
+      "subject": "Sail Rocq support library's reviewed release",
+      "reviewed": [
+        "0.20.3"
+      ],
+      "owners": [
+        {
+          "kind": "opam",
+          "path": "tools/opam/sail.lock",
+          "key": "sail"
+        }
+      ]
+    },
+    {
+      "id": "the_section_s_paragraphs_120",
+      "tool": "the section's paragraphs",
+      "subject": "Sail Rocq support library's licence tag",
+      "reviewed": [
+        "0.20.3"
+      ],
+      "owners": [
+        {
+          "kind": "opam",
+          "path": "tools/opam/sail.lock",
+          "key": "sail"
+        }
+      ]
+    },
+    {
+      "id": "the_section_s_paragraphs_121",
+      "tool": "the section's paragraphs",
+      "subject": "ExtLib's reviewed release",
+      "reviewed": [
+        "0.13.2"
+      ],
+      "owners": [
+        {
+          "kind": "opam",
+          "path": "tools/opam/quickchick.lock",
+          "key": "coq-ext-lib"
+        }
+      ]
+    },
+    {
+      "id": "the_section_s_paragraphs_122",
+      "tool": "the section's paragraphs",
+      "subject": "ExtLib's licence release",
+      "reviewed": [
+        "0.13.2"
+      ],
+      "owners": [
+        {
+          "kind": "opam",
+          "path": "tools/opam/quickchick.lock",
+          "key": "coq-ext-lib"
+        }
+      ]
+    },
+    {
+      "id": "the_section_s_paragraphs_123",
+      "tool": "the section's paragraphs",
+      "subject": "riscv-coq's release",
+      "reviewed": [
+        "0.0.6"
+      ],
+      "owners": [
+        {
+          "kind": "opam",
+          "path": "tools/opam/rupicola.lock",
+          "key": "coq-riscv"
+        }
+      ]
+    },
+    {
+      "id": "the_section_s_paragraphs_124",
+      "tool": "the section's paragraphs",
+      "subject": "lowering snapshot's compiler",
+      "reviewed": [
+        "5.4.1"
+      ],
+      "owners": [
+        {
+          "kind": "opam",
+          "path": "tools/opam/rupicola.lock",
+          "key": "ocaml-base-compiler"
+        }
+      ]
+    },
+    {
+      "id": "the_section_s_paragraphs_125",
+      "tool": "the section's paragraphs",
+      "subject": "lowering snapshot's prover",
+      "reviewed": [
+        "9.2.0"
+      ],
+      "owners": [
+        {
+          "kind": "opam",
+          "path": "tools/opam/rupicola.lock",
+          "key": "rocq-core"
+        }
+      ]
+    },
+    {
+      "id": "the_section_s_paragraphs_126",
+      "tool": "the section's paragraphs",
+      "subject": "CompCert's release in the oracle snapshot",
+      "reviewed": [
+        "3.18"
+      ],
+      "owners": [
+        {
+          "kind": "opam",
+          "path": "tools/opam/certirocq.lock",
+          "key": "coq-compcert"
+        }
+      ]
+    },
+    {
+      "id": "the_section_s_paragraphs_127",
+      "tool": "the section's paragraphs",
+      "subject": "CompCert's reviewed licence release",
+      "reviewed": [
+        "3.18"
+      ],
+      "owners": [
+        {
+          "kind": "opam",
+          "path": "tools/opam/certirocq.lock",
+          "key": "coq-compcert"
+        }
+      ]
+    }
+  ],
+  "template": [
+    "",
+    "**Rocq Stdlib.** [MemoryPlan.v](proofs/MemoryPlan.v) references separately installed `PeanoNat.Nat` theorems. The reviewed V${the_section_s_paragraphs_117_0} edition is `8dd155bc10529814202f8f4c643e5ae6c2c88fa6`. Its [LICENSE](https://github.com/rocq-prover/stdlib/blob/8dd155bc10529814202f8f4c643e5ae6c2c88fa6/LICENSE) and [PeanoNat header](https://github.com/rocq-prover/stdlib/blob/8dd155bc10529814202f8f4c643e5ae6c2c88fa6/theories/Arith/PeanoNat.v) state LGPL version 2.1 and credit the Rocq Development Team, INRIA, CNRS, contributors, and Evgeny Makarov. The proof-switch lock fixes the installed version. Project adapters copy no upstream proof scripts, and neither Stdlib nor compiled proof objects are distributed here. Distribution of the library or a combined artifact would require review of the LGPL source, notice, and modification or relinking obligations. [The reuse record](docs/assurance/proof-reuse/foundations.md#f01-rocq-stdlib-arithmetic-integrated-by-reference) identifies theorem references and transitive assumptions.",
+    "",
+    "**Sail's Rocq support library.** [The model's Rocq support file](model/handwritten_support/riscv_extras.v) and the Rocq definitions Sail emits from the model require `rocq-sail-stdpp`, which `rems-project/coq-sail` publishes paired with Sail releases, each release conflicting with every Sail but its own version. The reviewed release is ${the_section_s_paragraphs_119_0}, the one paired with the locked Sail: the tag `${the_section_s_paragraphs_119_0}`, fetched as [its release archive](https://github.com/rems-project/coq-sail/archive/refs/tags/${the_section_s_paragraphs_119_0}.tar.gz) under the opam checksum. Its [LICENSE](https://github.com/rems-project/coq-sail/blob/${the_section_s_paragraphs_120_0}/LICENSE), SHA-256 `9e52d88fe1802beb469e538b8c026ff5e7f9413ef06cd3ce898ee3928ae24df0`, states BSD-2-Clause and credits the Sail authors. The package's dependency `rocq-stdpp-bitvector` 1.13.0 is the std++ tag `stdpp-1.13.0`, whose [LICENSE](https://github.com/rocq-iris/stdpp/blob/stdpp-1.13.0/LICENSE), SHA-256 `bc4fe79f9b7f78bc6e4e61e1f7c430b1e413b82de4aacb9355ade5e43bad2a69`, states BSD-3-Clause and credits the std++ developers and contributors. [The canonical-term record](docs/assurance/canonical-machine-term.md) reads both sources for the assumptions they load. Neither is installed in a project switch: [the opam guide](tools/opam/README.md) owns their return to the proof switch, and no compiled object from either is tracked or distributed here. The source-derived evidence retained under BSD-2-Clause is Q35g's diff and Q35n's explicitly mapped records below, each with the exact release notice, as [the licensing map](COPYRIGHT.md#the-map) states.",
+    "",
+    "Q35n additionally retains a syntax-only diff, printed declaration readings and",
+    "verbatim package metadata from that exact coq-sail release under BSD-2-Clause,",
+    "with its unchanged notice in",
+    "`docs/implementation/retained-evidence/q35n-20261013/Sail-Support-LICENSE`.",
+    "The standalone hosted qualification route distributes metadata receipts and a",
+    "full frozen snapshot containing the two reviewed BSD-2-Clause patches and that",
+    "notice. It distributes no dependency source tree or compiled library object.",
+    "Its authored probes and qualification controller follow the original-file map.",
+    "The project proof-switch lock remains unchanged until actual consumer acceptance.",
+    "Q35q retains printed module and signature provenance from the same reviewed",
+    "coq-sail release, with its exact BSD-2-Clause notice in",
+    "`docs/implementation/retained-evidence/q35q-native-20261013/Sail-Support-LICENSE`. Its authored lookup queries copy no upstream proof script;",
+    "no support source tree or compiled object is distributed.",
+    "The signature type completeness evidence in",
+    "`docs/implementation/retained-evidence/close3-q35q-20261013/` retains additional",
+    "printed module/signature declarations from the same immutable coq-sail release,",
+    "under BSD-2-Clause with its adjacent `Sail-Support-LICENSE`.",
+    "Its authored query copies no proof script. The locally inspected Rocq printer",
+    "source is bound only by digest and is not copied or excerpted. No support source",
+    "tree or compiled object is distributed by this evidence.",
+    "The native API diagnosis and restored replay in",
+    "`docs/implementation/retained-evidence/q35q-native-api-20261023/` and",
+    "`docs/implementation/retained-evidence/q35q-native-api-restoration-20261023/`",
+    "retain diagnostic coq-sail signature types",
+    "under the same BSD-2-Clause terms and notices. The original OCaml query sources",
+    "and controls follow the original-file licensing map. The locked Rocq installation's",
+    "LGPL-2.1 license and API headers were read before building; no upstream implementation",
+    "or linked plugin is conveyed by these bundles.",
+    "The constructor-based metadata in",
+    "`docs/implementation/retained-evidence/reuse-wire-census-20261023/attempt-3-native-query.stdout.log.gz`",
+    "retains coq-sail declaration types under those same BSD-2-Clause terms, with the",
+    "verbatim release notice at [Sail-Support-LICENSE.md](tools/rocq-census/Sail-Support-LICENSE.md).",
+    "The original [producer](tools/rocq-census/README.md), runner and control sources",
+    "follow the original-file map. No Rocq implementation, linked plugin or support",
+    "object is conveyed. This metadata control supplies no complete census acceptance.",
+    "The native census continuation also reads the locked Stdlib installation,",
+    "whose package metadata and inspected release `LICENSE` declare",
+    "`LGPL-2.1-only`. The immutable source is",
+    "[the exact Stdlib release archive](https://github.com/coq/stdlib/releases/download/V${the_section_s_paragraphs_118_0}/stdlib-${the_section_s_paragraphs_118_0}.tar.gz),",
+    "SHA512 `9160776b4e3097a10008a469752c1459d35298fca2b78c61fdbe023ca41085b4bb88cdc12c77f5dae1166bf6b74671f0afe415ff58f6f102bea716361d52755a`;",
+    "the inspected license has SHA256",
+    "`d4594b82f4d50840df6a7e9d14132a8c0a3cc05d0ac46d15310a264a1f75447e`.",
+    "The inspected `Eqdep_dec.v` and finite-map source headers credit INRIA, CNRS and",
+    "contributors and carry those same LGPL terms. These installed libraries remain native",
+    "inputs. The [census wire contract](tools/rocq-census/SCHEMA.md#required-metadata-and-finite-resolver-domain)",
+    "retains declaration metadata, native references and strong source/instantiated body",
+    "identities; it exports no transparent implementation body AST or source text.",
+    "Complete body encodings exist only in native memory during digest and reference",
+    "collection. The original producer uses installed APIs and copies no library",
+    "implementation. This continuation changes neither the licensing map nor the",
+    "qualification status of the installed libraries.",
+    "The `q35o-20261013/` refusal bundle retains the generated tag-loop fragment and its diagnostics, with the",
+    "exact RISC-V and CHERI model notices. The fragment keeps",
+    "BSD-2-Clause terms; no complete emitted term is distributed by that evidence.",
+    "Q35p retains the model-derived minimal memory/tag reproducer and its generated",
+    "outputs, paired coq-sail interface excerpts, and locked Sail library/runtime",
+    "excerpts in `docs/implementation/retained-evidence/close3-q35p-20261013/`.",
+    "The selected model, CHERI, locked Sail and paired support notices are",
+    "retained beside those BSD-2-Clause excerpts.",
+    "Authored reproducer scaffolding uses the same terms. The licensing map names",
+    "each source-derived file; no complete canonical term, dependency source tree or",
+    "compiled object is distributed.",
+    "The bounded tag-outcome construction in",
+    "`docs/implementation/retained-evidence/q35p-tag-outcomes-20261023/` retains a",
+    "semantic diff and native declaration readings from the same exact coq-sail",
+    "release, plus the unchanged model-derived minimal reproducer and its generated",
+    "outputs. The BSD-2-Clause support, model, CHERI and Sail notices accompany those",
+    "source-derived members. Fresh authored law and query sources follow the",
+    "original-file map. The construction distributes no complete dependency tree,",
+    "compiled object or full canonical term and changes no shared switch or lock.",
+    "Q35o's compatibility evidence in",
+    "`docs/implementation/retained-evidence/close3-q35o-20261013/` retains a private",
+    "syntax-only diff to the locked Sail's `src/sail_coq_backend/pretty_print_coq.ml` at",
+    "`3df54034910b31a1e00d948ee965b2e9603d68e0`, printed generated declarations and",
+    "an imports-only canonical fragment. The selected file's own BSD-2-Clause header",
+    "and release notice were read before incorporation; `LICENSE.sail` and",
+    "`LICENSE.model` preserve the exact notices. Authored backend modifications use",
+    "the same terms. The minimal `SyntaxProbe.sail` is authored Apache-2.0 source.",
+    "The plugin is an external private qualification build; no plugin binary,",
+    "dependency source tree or complete canonical term is distributed or installed",
+    "as the acceptance compiler by this evidence.",
+    "The scoped-notation continuation in",
+    "`docs/implementation/retained-evidence/q35o-scope-20261023/` retains the same",
+    "source-derived kinds under BSD-2-Clause with its exact `LICENSE.sail` and",
+    "`LICENSE.model` notices. Its authored notation controls follow the original-file",
+    "map; the private plugin and complete canonical outputs remain native and untracked.",
+    "The [isolated V1 tag candidate](tools/sail-tag-outcomes/README.md) distributes a",
+    "diff to the same reviewed coq-sail release, printed interface readings and unchanged",
+    "model-derived reproducer outputs in",
+    "`docs/implementation/retained-evidence/reuse-wire-tags-20261023/`. These files retain",
+    "BSD-2-Clause terms and the exact support, model, CHERI and Sail notices beside them;",
+    "authored changes to the support use those terms. Its original finite-map interpreter,",
+    "controls and replay helper follow the original-file map. Strict private compilation",
+    "and bounded caller proofs do not install the candidate, change the production",
+    "support recipe, or qualify its complete assumption and canonical-consumer joins.",
+    "",
+    "The handwritten-support and canonical-types qualification in",
+    "`docs/implementation/retained-evidence/q35o-handwritten-types-20261023/` retains",
+    "model-derived support sources and native elaborated declaration readings under",
+    "BSD-2-Clause, with exact model, CHERI and CHERI verification notices. Its",
+    "`LICENSE.sail` is the Sail compiler notice; `LICENSE.support` separately records",
+    "coq-sail's paired support notice. Authored maintenance scripts follow the",
+    "original-file map. Complete generated canonical source and native objects",
+    "remain untracked.",
+    "",
+    "Tools used to observe, execute, or accelerate a build do not automatically license its output. Non-commercial restrictions also govern use, even where nothing is distributed.",
+    "",
+    "| Tool | License | Standing |",
+    "| --- | --- | --- |",
+    "| CHERI-QEMU fork | `GPL-2.0`, with file-specific terms below | Unpublished fast emulator for a struck milestone. Nothing here runs, embeds, links, or distributes it. |",
+    "| Verilator | `LGPL-3.0-only OR Artistic-2.0`, at the recipient's option | Elaborates and simulates RTL, pinned at **5.052**. |",
+    "| Node.js | `MIT`, with dependency notices in the upstream `LICENSE` | Runs the host-side Wasm oracle. [The runtime helper](tools/wasm-oracle/node.sh) pins its release, verifies the official archive hash, and installs it under a versioned project prefix. The `LICENSE` was read at the pinned release's `v${node_js_1_0}` tag, blob `fc7b8c7d2111e12c10dca5b54e8ded99f6bf1d56`, and is read again when the pin moves. |",
+    "| pre-commit | `MIT` | Runs the model's hooks, which Host CI's model-hooks job runs over `model/`, all but markdown-link-check. [tools/pyproject.toml](tools/pyproject.toml) pins the runner; [tools/uv.lock](tools/uv.lock) records dependencies. The reviewed `v${pre_commit_2_0}` tag's `LICENSE`, blob `4a071fc533d4fd07dbe81e1e8f0f0998b17220be`, credits the pre-commit dev team, Anthony Sottile and Ken Struys, copyright 2014. No runner source is redistributed here. |",
+    "| astral-sh/setup-uv | `MIT` | Host and guest CI, the boot signature target campaign and the instrument switch route download and run the action to install uv and cache its downloads; the campaign and the route read Guest CI's cache and save none. The reviewed v10.3.0 revision `1c37ad07a6a961277cf70c0d37d6f313000f5884` has an [MIT LICENSE](https://github.com/astral-sh/setup-uv/blob/1c37ad07a6a961277cf70c0d37d6f313000f5884/LICENSE). No action source or bundled dependency is redistributed here. |",
+    "| actions/checkout | `MIT` | Host and guest CI, the boot signature target campaign and the instrument switch route fetch the checkout. The reviewed v7.0.1 revision `3d3c42e5aac5ba805825da76410c181273ba90b1` has an [MIT LICENSE](https://github.com/actions/checkout/blob/3d3c42e5aac5ba805825da76410c181273ba90b1/LICENSE), crediting GitHub and contributors. No action source or bundled dependency is redistributed here. |",
+    "| actions/setup-python | `MIT` | Host and guest CI, the boot signature target campaign and the instrument switch route install the Python interpreter. The reviewed v7.0.0 revision `5fda3b95a4ea91299a34e894583c3862153e4b97` has an [MIT LICENSE](https://github.com/actions/setup-python/blob/5fda3b95a4ea91299a34e894583c3862153e4b97/LICENSE), crediting GitHub and contributors. No action source or bundled dependency is redistributed here. |",
+    "| actions/upload-artifact | `MIT` | Guest CI, the boot signature target campaign and the instrument switch route retain logs and receipts, the route also its build's switch export, a text lock. The reviewed v7.0.2 revision `cf430e030ddbb5b0abf93d22962f4752f3646cd9` has an [MIT LICENSE](https://github.com/actions/upload-artifact/blob/cf430e030ddbb5b0abf93d22962f4752f3646cd9/LICENSE), crediting GitHub and contributors. Neither action code nor compiled third-party tools are uploaded as project evidence. |",
+    "| actions/download-artifact | `MIT` | The boot signature target campaign collects its interface receipts from the same run before joining them, and the instrument switch route collects its build's export and its jobs' receipts from the same run. The reviewed v8.0.2 revision `9000827ccba6bdab643e8b6fd33ac0654aef8333` has an [MIT LICENSE](https://github.com/actions/download-artifact/blob/9000827ccba6bdab643e8b6fd33ac0654aef8333/LICENSE), crediting GitHub and contributors. No action source or bundled dependency is redistributed here. |",
+    "| actions/cache | `MIT` | Guest CI caches source downloads, installed toolchains, validated proof candidates and the model lane's Sail memo and compiler cache through the same revision's `restore` and `save` actions. The boot signature target campaign only restores the model lane's toolchains and memo. The reviewed v6.1.0 revision `55cc8345863c7cc4c66a329aec7e433d2d1c52a9` has an [MIT LICENSE](https://github.com/actions/cache/blob/55cc8345863c7cc4c66a329aec7e433d2d1c52a9/LICENSE), crediting GitHub and contributors. No action source or bundled dependency is redistributed here. |",
+    "| GitHub CLI | `MIT` | The runner-supplied `gh` reads guest workflow history to skip unchanged successful revisions. The reviewed [v2.101.0 LICENSE](https://github.com/cli/cli/blob/v2.101.0/LICENSE), blob `b6a58a9572cbd7e4550f8205a9c4fd199cd442f2`, credits GitHub; the installed version follows the runner image, so a later image's release is compared against that blob. No CLI source or executable is redistributed here. |",
+    "| zizmor | `MIT` | Host CI audits the workflows' security offline. [tools/pyproject.toml](tools/pyproject.toml)'s `workflows` group pins it and [tools/uv.lock](tools/uv.lock) records its wheel hashes. The reviewed **${zizmor_3_0}** release's [LICENSE](https://github.com/zizmorcore/zizmor/blob/v${zizmor_3_0}/LICENSE), blob `491f2b2c09f25968b9554948aa7f9b33708aa23a` and SHA-256 `a6fd1bd18da7cec8284639d5b0d351b90934317be1b9f9ea94a077621c6f35af`, is MIT and credits William Woodruff; the wheel's metadata states `License: MIT` and carries the same file. Its bundled CycloneDX SBOM states each statically linked Rust crate's terms, every one permissive or offering a permissive election. No zizmor source or executable is redistributed here. |",
+    "| actionlint | `MIT` | Host CI checks workflow syntax, expressions and contexts. [actionlint.sh](tools/ci/actionlint.sh) downloads the official Linux release archive, verifies the SHA-256 it pins from the release's checksum file, and installs it under a versioned prefix. The reviewed **${actionlint_4_0}** release's [LICENSE.txt](https://github.com/rhysd/actionlint/blob/v${actionlint_4_0}/LICENSE.txt), blob `69292aedc9113498e83d72e48d38894f9a2a2eb6` and SHA-256 `03a26b06d224380a02bf100e05fff3b2dfc71b14d4e2fa685ec9963a87563c22`, is MIT and credits rhysd. No actionlint source or executable is redistributed here. |",
+    "| opam | `LGPL-2.1-only` with the upstream linking exception | [The client's owner](tools/vos/opam_client.py) fixes the reviewed release and each architecture's SHA-256. [Guest bootstrap](tools/ci/README.md) downloads that client checksum-verified and imports the project switch snapshots, and `run.py provision` holds a developer's client to it; `run.py provision --install-opam` installs the same checksum-verified client ahead of the distribution's where no client is on `PATH`, under the conditions `run.py provision` states. The reviewed ${opam_5_0} revision `75dcc63610a5b20551437683742a7c90836b7b5b` states its terms in [LICENSE](https://github.com/ocaml/opam/blob/75dcc63610a5b20551437683742a7c90836b7b5b/LICENSE). On 2026-10-19 the release's `.sig` for each reviewed Linux asset verified as a good signature by the opam dev team's key, primary fingerprint `92C5 26AE 50DF 3947 0EB2 911B ED4C F1CA 67CB AA92`, read from `https://opam.ocaml.org/opam-dev-pubkey.pgp` at SHA-256 `d6f2efcb9d76fb490db8dd955f5f87d18907cf1b5c286c6c47cb1c1363bf5cb7`; bootstrap itself checks only the reviewed hash. The client and installed switches stay in the build environment; this repository distributes neither. |",
+    "| Z3 | `MIT` | Sail's solver, installed at the pin in [env.py](tools/vos/env.py). The reviewed [${z3_6_0} LICENSE.txt](https://github.com/Z3Prover/z3/blob/z3-${z3_6_0}/LICENSE.txt), SHA-256 `e617cad2ab9347e3129c2b171e87909332174e17961c5c3412d0799469111337` and read on 2026-10-19, states MIT and credits Microsoft; the released `z3-solver` wheel's own metadata states `License: MIT License` and carries no licence file. Guest bootstrap and `run.py provision` install only the wheels whose SHA-256 values [the solver's requirements](tools/z3-requirements.txt) record, never a build from source, into a private prefix; no solver source or binary is distributed here. |",
+    "| QuickChick | `MIT` | Gallina input generator in a dedicated switch, built from the commit `${quickchick_7_0}`, which no release yet carries. |",
+    "| coq-simple-io | `MIT` | QuickChick's IO library, in its switch, built from the commit `${coq_simple_io_8_0}`, which no release yet carries. |",
+    "| coq-ext-lib | `BSD-2-Clause` | The library of definitions QuickChick and `coq-simple-io` build on, in their switch, at released version **${coq_ext_lib_9_0}**. |",
+    "| Rupicola, Bedrock2, and the Bedrock2 compiler | `MIT` | Gallina lowering: Rupicola **${rupicola_bedrock2_and_the_bedrock2__10_0}**, Bedrock2 and its compiler **${rupicola_bedrock2_and_the_bedrock2__11_0}**. [tools/bedrock2-lowering/](tools/bedrock2-lowering/) tracks the local sources, driver, output digest, and size; emitted C remains external. |",
+    "| coqutil | `MIT` | Bedrock2 dependency, version **${coqutil_12_0}**. |",
+    "| riscv-coq | `BSD-3-Clause` | Bedrock2 compiler's target ISA specification, version **${riscv_coq_13_0}**. |",
+    "| CompCert, in the oracle's switch | INRIA Non-Commercial License Agreement, with [licensed subsets](#compcert-and-secomp) | CertiRocq dependency, version **${compcert_in_the_oracle_s_switch_14_0}** in [the CertiRocq snapshot](tools/opam/certirocq.lock). No tool here invokes this switch's compiler. |",
+    "| CertiRocq | `MIT`; CompCert's printer `plugin/static/camlrocq.ml` `GPL-2.0-or-later`, and its `cplugin/` copy and the six other printers `LGPL-2.1-or-later`, each also under the INRIA Non-Commercial License Agreement; two `theories/ExtractionVanilla/` files and `benchmarks/lib/Makefile` `LGPL-2.1-only`; `runtime/values.h` and `runtime/config.h` `LGPL-2.1-only WITH OCaml-LGPL-linking-exception`; `libraries/CpdtTactics.v` `CC-BY-NC-ND-3.0`; `benchmarks/lib/SqlQueries3.v` under no licence | Compiles Gallina to Wasm for [the host-side oracle](tools/wasm-oracle/README.md), version **${certirocq_15_0}** in [the CertiRocq snapshot](tools/opam/certirocq.lock), its native `certirocqc` bootstrap included. The release archive is verified by opam under SHA-512 `9ef925f78e399c6d8a6bf8f78023157786eccc59ea4673c06a09317cb391310e95d29b8d47e0524d99b09753c7436fcf05954ec74c247dff959fc7193ea87d5f`: `LICENSE.md`, blob `33d6cb99c38a204a45ff78e7a60b30dc6247a69c`, is MIT and credits Abhishek Anand, Andrew Appel, Greg Morrisett, Zoe Paraskevopoulou, Randy Pollack, Olivier Savary Belanger, Matthieu Sozeau, Yannick Forster, Anvay Grover, Joomy Korkut, John Li and Matthew Weaver, 2018 to 2020, and covers every file that states no other terms. The printers and `CpdtTactics.v` are read in their own paragraphs below. `theories/ExtractionVanilla/VanillaExtrOCamlFloats.v` and `VanillaExtrOCamlInt63.v`, headed copyright INRIA, CNRS and contributors to the Coq Proof Assistant under the LGPL, are compiled and installed as `CertiRocq.extraction_vanilla`, and their extraction directives shape the OCaml the vanilla plugin is built from, a plugin the package builds and installs and no oracle run loads; the oracle's `certirocq_plugin.cmxs` is extracted through Stdlib's own directives. `runtime/values.h` and `runtime/config.h`, OCaml runtime headers copyright INRIA, are installed under `CertiRocq/Plugin/runtime/` and included by the runtime's C sources, among them `get_ordinal.c`, whose object both plugins link, and by the native bootstrap's C files. `benchmarks/lib/Makefile` is Rocq's generated makefile, headed copyright INRIA, CNRS and contributors under the LGPL. `benchmarks/lib/SqlQueries3.v`, from the DataCert Library, copyright 2016 Véronique Benzaken and Évelyne Contejean, says it \"is NOT open-source, and is NOT licensed for redistribution\" and grants permission \"only to the CertiRocq project for the use of this program as a benchmark in measuring CertiRocq performance\". No package target enters `benchmarks/`, whose `_CoqProject` does not list `SqlQueries3.v`, so neither file is built or installed; each build downloads and unpacks the archive carrying both, and the tracked tree copies nothing from it. No compiler, plugin, `.vo` or `.wasm` is distributed here. |",
+    "| MetaRocq | `MIT`; `utils/theories/bytestring.v` `LGPL-2.1-only` with BedRock Systems' exception for use over network, whose text the archive does not carry; `utils/theories/LibHypsNaming.v` the LGPL version 3, naming no later version; `utils/theories/MR_ExtrOCamlInt63.v` and `MR_ExtrOCamlNatInt.v` `LGPL-2.1-only`; `utils/theories/canonicaltries/CanonicalTries.v` `BSD-3-Clause` | CertiRocq's erasure and safe checker: nine packages at version **${metarocq_16_0}** in [the CertiRocq snapshot](tools/opam/certirocq.lock), all built from one release archive, verified under opam's SHA-512 `d4040f296d30f54163fc55db3930c7dffb62cc3bc3857ff404ceed5a97721d8c86c2323c91ac164e12f83f71ff67ecf4979f3cebb97d4a25b587a54c48494fc2`. Its `LICENSE`, blob `8a259f02fecd62f7a3b32152d27acc60e1492464`, is MIT, credits Gregory Malecha, Abhishek Anand, Matthieu Sozeau, Simon Boulier, Nicolas Tabareau, Cyril Cohen, Danil Annenkov, Yannick Forster and Théo Winterhalter, 2014 to 2020, and covers every file that states no other terms. `bytestring.v`, copyright 2020 BedRock Systems, Inc., all rights reserved, states `SPDX-License-Identifier: LGPL-2.1 WITH BedRock Exception for use over network, see repository root for details`, while the archive's root carries only the MIT `LICENSE`; it is compiled and installed as `MetaRocq.Utils.bytestring`, and its extraction is packed into MetaRocq's `metarocq_template_plugin.cmxs` and CertiRocq's `certirocq_plugin.cmxs`, which every oracle run loads, and into the vanilla plugin. `LibHypsNaming.v`, Pierre Courtieu's hypothesis-naming tactics, \"Distributed under the terms of the LGPL-v3 license\", is compiled and installed, and MetaRocq's PCUIC theories require it. `MR_ExtrOCamlInt63.v`, headed copyright INRIA, CNRS and contributors to the Rocq Proof Assistant under the LGPL, is compiled and installed, and `MR_ExtrOCamlNatInt.v`, under the same header, is not built. `CanonicalTries.v`, by Andrew W. Appel and Xavier Leroy, copyright Andrew W. Appel and Inria, is compiled and installed. Nothing is distributed here. |",
+    "| WasmCert-Coq | `MIT`; `src/Parray/` `LGPL-2.1-only` | The WebAssembly semantics CertiRocq's Wasm backend is proved against, `coq-wasm` version **${wasmcert_coq_17_0}** in [the CertiRocq snapshot](tools/opam/certirocq.lock), from the release archive opam verified by its SHA-256 `52396234b60ee7d02fe283b4bef32dbce9c682ab8bc97258fe0e2bb5ec5fc574`. `LICENSE.txt`, blob `54a37bcd41fdee72f0168279397dff700abea8c4`, is MIT and credits Martin Bodin, Philippa Gardner, Jean Pichon, Xiaojia Rao and Conrad Watt, 2019 to 2024; `src/Parray/LICENSE.LGPL`, Rocq's own LGPL text, blob `27950e8d20578abb2b348618feb28f0426638820`, covers the persistent-array OCaml sources in that directory. Only those four sources, headed copyright INRIA, CNRS and contributors under the LGPL and compiled with the package, state other terms. Nothing is distributed here. |",
+    "| Equations | `LGPL-2.1-only`; `doc/qsymbols.sty` `GPL-2.0-or-later` | CertiRocq's dependency, `rocq-equations` version **${equations_18_0}** in [the CertiRocq snapshot](tools/opam/certirocq.lock), from the release archive opam verified by its SHA-512 `d44a039c8b57c7d4a2ba8163f826bcbe43d7b480da8dcd6277370941bedc21c5de3d63b2d1a7e2a51ec4c407afb5cb2b79470dc32efddbd20c30bc834fea50a1`, whose `LICENSE` is Rocq's LGPL text, blob `27950e8d20578abb2b348618feb28f0426638820`, as its opam metadata declares. Only documentation sources no package target builds state other terms: `doc/qsymbols.sty`, copyright 1994 Kristoffer H. Rose, under the GPL version 2 or later, and `doc/myplainnat.bst`, a BibTeX style copyright Patrick W. Daly, which states none. Nothing is distributed here. |",
+    "| The CertiRocq snapshot's Rocq libraries | coq-ext-lib `BSD-2-Clause`; Flocq `LGPL-3.0-or-later`, its build tool `tools/remake.cpp` `GPL-3.0-or-later`; Mathematical Components `CECILL-B`; Hierarchy Builder and parseque `MIT`; Rocq-Elpi `LGPL-2.1-or-later`; Rocq Stdlib `LGPL-2.1-only` | The Rocq libraries CertiRocq, CompCert and WasmCert-Coq require, as [the CertiRocq snapshot](tools/opam/certirocq.lock) fixes them. The verified release archives contain the following license instruments: coq-ext-lib `${the_certirocq_snapshot_s_rocq_libra_19_0}` `LICENSE`, blob `3ac855e52eec1323cd2d311404683abd3176466d`, BSD-2-Clause, copyright 2013 Gregory M. Malecha; Flocq `${the_certirocq_snapshot_s_rocq_libra_20_0}` `COPYING`, blob `65c5ca88a67c30becee01c5a8816d964b03862f9`, the LGPL text its metadata declares `LGPL-3.0-or-later`, by Sylvie Boldo and Guillaume Melquiond; Mathematical Components `${the_certirocq_snapshot_s_rocq_libra_21_0}`, installed as `rocq-mathcomp-ssreflect` and its `coq-mathcomp-ssreflect` compatibility package, `CeCILL-B`, blob `fe29f5c9ac64edba531209330d4ab9dcc6bc5920`, which `etc/NOTICE` applies to its Microsoft Corporation and Inria copyright; Hierarchy Builder `${the_certirocq_snapshot_s_rocq_libra_22_0}` `LICENSE`, blob `969d061e8ba2e38d69391910b1ef0d4869ff18d1`, MIT, its `AUTHORS.md` crediting Cyril Cohen, Pierre Roux, Kazuhiko Sakaguchi and Enrico Tassi, 2020; Rocq-Elpi `${the_certirocq_snapshot_s_rocq_libra_23_0}` `LICENSE`, blob `19e307187ac8b9abc086be686dc81b0f09523ef1`, the LGPL text its metadata declares `LGPL-2.1-or-later`; parseque `${the_certirocq_snapshot_s_rocq_libra_24_0}` `LICENSE`, blob `a746dcacf52937a09c3999fc8bfeb152015bfeca`, MIT, copyright 2017 G. Allais; and Rocq Stdlib `${the_certirocq_snapshot_s_rocq_libra_25_0}`, installed as `rocq-stdlib` and its `coq-stdlib` compatibility package, Rocq's LGPL text, blob `27950e8d20578abb2b348618feb28f0426638820`. Of the files the packages build, run or install, only Flocq's `tools/remake.cpp`, Guillaume Melquiond's Remake, states other terms, the GPL version 3 or later: Flocq's `configure` compiles it into the `remake` that builds and installs Flocq, and it is not installed. Mathematical Components' `algebra/interval_inference.v`, `CeCILL-C`, and Stdlib's `doc/` and `dev/` files under MIT and BSD terms are not built, since the snapshot builds Mathematical Components' `ssreflect/` alone and Stdlib's build enters `theories/` alone. Rocq's compatibility packages coq-core `${the_certirocq_snapshot_s_rocq_libra_27_0}` and coqide-server `${the_certirocq_snapshot_s_rocq_libra_28_0}` come from the archive the Rocq prover's row reads, while coq `${the_certirocq_snapshot_s_rocq_libra_26_0}` and `coq-stdlib` are metadata packages whose opam files name no archive. Nothing is distributed here. |",
+    "| The CertiRocq snapshot's OCaml libraries and tools | `MIT`, `ISC` or `BSD-3-Clause`; elpi `LGPL-2.1-or-later`; re `LGPL-2.1-or-later WITH OCaml-LGPL-linking-exception`; camlp-streams and stdlib-shims `LGPL-2.1-only WITH OCaml-LGPL-linking-exception`; ocamlbuild `LGPL-2.0-or-later WITH OCaml-LGPL-linking-exception`; wasm `Apache-2.0`; within what they build, ppxlib's `astlib/` and `ast/` and elpi's `ptmap.ml` `LGPL-2.1-only WITH OCaml-LGPL-linking-exception`, base's `map.ml`, `set.ml` and `random.mli` `Apache-2.0`, two elpi modules `LGPL-2.0-only`, re's `str.ml` the Library GPL with a linking exception, linenoise's C sources `BSD-2-Clause`, mdx's `vendor/odoc-parser/` `ISC`, ocamlbuild's manual-page header `QPL-1.0` and yojson's `mucppo.ml` `CC0-1.0` | What [the CertiRocq snapshot's](tools/opam/certirocq.lock) packages build with or link into their plugins and executables. The verified release archives contain the following license instruments. MIT: ocamlfind `${the_certirocq_snapshot_s_ocaml_libr_29_0}` `LICENSE`, blob `5d2bcbe3fc7d4ae3eb4b2c82893de962d6907fd2`, copyright 1999 Gerd Stolpmann; csexp `${the_certirocq_snapshot_s_ocaml_libr_30_0}` and dune-configurator `${the_certirocq_snapshot_s_ocaml_libr_31_0}`, each dune's `LICENSE.md`, blob `06829595d1f3dc0433b2d5562b264ffb780d2197`; ppx_deriving `${the_certirocq_snapshot_s_ocaml_libr_32_0}` `LICENSE.txt`, blob `de1fd29e9bbc307474a221aabd1e0402d2e2afc2`, copyright 2014 to 2016 whitequark; ppxlib `${the_certirocq_snapshot_s_ocaml_libr_33_0}` `LICENSE.md`, blob `b96242c18c2000871edad8d45c60e62cd71802da`; and Jane Street's base `${the_certirocq_snapshot_s_ocaml_libr_34_0}` and stdio `${the_certirocq_snapshot_s_ocaml_libr_35_0}`, each `LICENSE.md` blob `8002922f859648f9c8ee0baa8c8da07674221b3b`, sexplib0 `${the_certirocq_snapshot_s_ocaml_libr_36_0}`, blob `8c3a411b9f726a972e12440048392b7f07ae7934`, ppx_optcomp `${the_certirocq_snapshot_s_ocaml_libr_37_0}`, blob `e74598f14d4c54668bf3e88e399cabd9ef712899`, and ocaml-compiler-libs `${the_certirocq_snapshot_s_ocaml_libr_38_0}`, blob `9fb91ae2591d9cf7db6362e6af6a9d3a29c44925`. ISC: astring `${the_certirocq_snapshot_s_ocaml_libr_39_0}`, blob `f0feec0de939fe575d74d957cfdebfd4e3b7b577`, fmt `${the_certirocq_snapshot_s_ocaml_libr_40_0}`, blob `52fe16df4b85758287eb58541a2db2f5fb639a7b`, logs `${the_certirocq_snapshot_s_ocaml_libr_41_0}`, blob `469ab50d592457f7bc3b2ebbb555be92826dba74`, and cmdliner `${the_certirocq_snapshot_s_ocaml_libr_42_0}`, blob `c4cd256d5c6577c192948c7ca79ad5dd23f73d36`, each `LICENSE.md` crediting its programmers; topkg `${the_certirocq_snapshot_s_ocaml_libr_43_0}`, blob `1ccbd7214396c14bf70f0dc6d6bba5d6563409d5`, copyright 2016 Daniel C. Bünzli; mdx `${the_certirocq_snapshot_s_ocaml_libr_44_0}`, blob `d9fbd61e30fdf2a7d9ac9c9b93519fa240fdb642`, copyright 2018 Thomas Gazagnaire; and ocaml-version `${the_certirocq_snapshot_s_ocaml_libr_45_0}`, blob `152b3ebb0324e80c30c831899a4562d2097ab37f`. BSD-3-Clause: atd, atdgen, atdgen-runtime and atdts `${the_certirocq_snapshot_s_ocaml_libr_46_0}`, one archive's `LICENSE.md`, blob `af2619edcc58dad8d5704857ac24746a952239ef`, copyright 2010 MyLife and other contributors; biniou `${the_certirocq_snapshot_s_ocaml_libr_47_0}`, blob `152fad5f00c07ba4c5717e344908e314298ee528`, easy-format `${the_certirocq_snapshot_s_ocaml_libr_48_0}`, blob `53115474d99302cd6c11a79f0a7c980da3f44523`, cppo `${the_certirocq_snapshot_s_ocaml_libr_49_0}`, blob `c701b0ba3c08344032381dd9822116e3851102ea`, and yojson `${the_certirocq_snapshot_s_ocaml_libr_50_0}`, blob `d69444a309af1781d3381ebda4a50b91d95be122`, each crediting Martin Jambon; result `${the_certirocq_snapshot_s_ocaml_libr_51_0}`, blob `42d16a99029c465cb1ff77d48453ee8018a81d09`, Jane Street; ppx_derivers `${the_certirocq_snapshot_s_ocaml_libr_52_0}`, blob `ce0100a52e4b3bafb27a7076450c8f3b8a52ae90`, Jérémie Dimino; and linenoise `${the_certirocq_snapshot_s_ocaml_libr_53_0}`, whose archive carries no licence file, its opam metadata declaring `BSD-3-clause` and its README calling it BSD licensed. LGPL: elpi `${the_certirocq_snapshot_s_ocaml_libr_54_0}` `LICENSE`, blob `dbb80566d72b700dc60d7143e737a416cb50d069`, its `AUTHORS.md` crediting its authors from 2014; re `${the_certirocq_snapshot_s_ocaml_libr_55_0}` `LICENSE.md`, blob `e02bf8af15b5f718f6a536b2ad68251d4ff90ea3`; camlp-streams `${the_certirocq_snapshot_s_ocaml_libr_56_0}` `LICENSE`, blob `ea4ed156258d6175bfc4a3e23bcf78d76b4bba0e`, copyright INRIA; stdlib-shims `${the_certirocq_snapshot_s_ocaml_libr_57_0}`, OCaml's own `LICENSE`, blob `3666ebe155665210b1d8478e788aa3f3e327d39e`; and ocamlbuild `${the_certirocq_snapshot_s_ocaml_libr_58_0}` `LICENSE`, blob `7a3f7bfae6065b28ee8d1f05e4920ea4ccc2fae0`. Apache-2.0: wasm `${the_certirocq_snapshot_s_ocaml_libr_59_0}`, the WebAssembly reference interpreter WasmCert-Coq builds on, from a `WebAssembly/spec` archive whose root `LICENSE`, blob `de2cac6927a57f41f7096c1ef8989d3b882429c9`, puts `interpreter/` and `test/` under the Apache License that `interpreter/LICENSE`, blob `8f71f43fee3f78649d238238cbde51e6d7055c82`, carries, `document/` under the W3C Software and Document licence and `papers/` under `CC-BY-4.0`. The files the packages build, run or install that state terms other than their package's are these. ppxlib's `astlib/` and `ast/`, 21 files from OCaml Migrate Parsetree and the OCaml compiler, copyright INRIA, are under the LGPL with the special exception on linking. base's `src/map.ml`, `src/set.ml` and `src/random.mli`, copyright 1996 INRIA, are under the Apache License and point to a `THIRD-PARTY.txt` the archive does not carry. elpi's `src/runtime/ptmap.ml` and `.mli`, Jean-Christophe Filliâtre's Patricia-tree maps, are under the LGPL with the special exception on linking, and two modules inside files elpi heads with its own LGPL are under the Library GPL version 2: the `Trie` of `src/runtime/discrimination_tree.ml`, copyright 2000 Jean-Christophe Filliâtre, and the `Array` of `src/runtime/bl.ml`, taken from OCaml-bazaar. re's `lib/str.ml` and `.mli`, copyright 1996 INRIA, state the GNU Library General Public License with a linking exception and no version. linenoise's `src/linenoise_src.c` and `.h`, copyright Salvatore Sanfilippo and Pieter Noordhuis, carry the two-clause BSD text. mdx compiles its `vendor/odoc-parser/`, whose own ISC `LICENSE` credits Thomas Refis, Leo White and David Sheets. ocamlbuild's `man/ocamlbuild.header.1`, copyright 2007 INRIA under the Q Public License, heads the `ocamlbuild.1` manual page the package installs. yojson compiles and runs `lib/mucppo/mucppo.ml`, copyright Marek Kubica and released under CC0, to preprocess its sources. Files no package target builds state other terms too: some of astring's and logs' test programs are in the public domain, and cmdliner's test examples and blueprints are `CC0-1.0`; ocamlbuild's `test/` scripts are under the Q Public License and its `manual/` is `CC0-1.0`; ocamlfind's `findlib-ppc.patch` and `tools/make-package-macosx` are under the Q Public License; and in the WebAssembly spec archive, of which wasm builds `interpreter/` alone, `test/harness/` and `test/js-api/` carry the W3C's test-suite and BSD terms, V8's BSD terms and, in `testharnessreport.js`, `MPL-2.0`, and `document/util/htmldiff.pl` is MIT. The four `conf-` packages probe the system, and `ocaml`, `ocaml-config`, `ocaml-options-vanilla` and the three `base-` packages package the compiler the OCaml compiler row reads; their opam metadata names no archive, so none carries source. Nothing is redistributed here. |",
+    "| `ccache` | `GPL-3.0-or-later` | Build accelerator. |",
+    "| llama.cpp and `llama-bench` | `MIT`, with dependency terms below | External benchmark for [the inference-demand report](docs/performance/inference-demand.md), commit `427291b5`, build tag **b10816**. No gitlink, distributed artifact, or admitted runtime. |",
+    "| uv | `MIT OR Apache-2.0`, at the recipient's option | Resolves [tools/uv.lock](tools/uv.lock) and runs every `run.py` command's Python environment; `tool.uv.required-version` in [tools/pyproject.toml](tools/pyproject.toml) fixes the release. The reviewed `${uv_60_0}` tag's `LICENSE-MIT`, blob `014835144877ea9c926d027ece3e1a26290cf481`, and `LICENSE-APACHE`, blob `261eeb9e9f8b2b4b0d119366dda99c6fd7d35c64`, carry the two offers, copyright 2025 Astral Software Inc. No uv source or executable is redistributed here. |",
+    "| ruff | `MIT` | Checks the tools in the `typecheck` gate, at the release the `dev` group of [tools/pyproject.toml](tools/pyproject.toml) pins. The reviewed `${ruff_61_0}` tag's `LICENSE`, blob `655a0c76fc5539b2f8e63b673741a5fd0e0c5799`, is MIT, copyright 2022 Charles Marsh, followed by the MIT notices of the projects parts of it derive from. No ruff source or executable is redistributed here. |",
+    "| ty | `MIT`; embedded typeshed stubs `Apache-2.0` with MIT parts | Type-checks the tools in the same gate, at the `dev` group's pin. The reviewed `${ty_62_0}` tag of `astral-sh/ty` has an MIT `LICENSE`, blob `014835144877ea9c926d027ece3e1a26290cf481`, copyright 2025 Astral Software Inc. The binary embeds typeshed's stubs from that tag's `ruff` submodule at `5fd85180`, whose `crates/ty_vendored/vendor/typeshed/LICENSE`, blob `13264487581f82433dadf18a99613a7d215fd448`, is Apache-2.0 with MIT-licensed parts. No ty source or executable is redistributed here. |",
+    "| CPython ${cpython_63_0} | `PSF-2.0`, with the historical terms its `LICENSE` carries | Runs every tool: `requires-python` admits ${cpython_64_0} alone and `python-downloads = \"never\"` makes uv use an installed interpreter, the distribution's in the guest and `actions/setup-python`'s in CI. The reviewed `v${cpython_65_0}.8` tag's `LICENSE`, blob `20cf39097c68baa17cc566b64e76d34ebf034044`, licenses Python under the PSF License Version 2, beside the BeOpen, CNRI and CWI agreements for its earlier releases, offers documentation code under `0BSD` as well, and leaves incorporated software under its own terms. No interpreter or library is redistributed here. |",
+    "| jsonschema, with `attrs`, `referencing`, `rpds-py` and `jsonschema-specifications` | `MIT` | The tools' one runtime dependency and its closure, validating JSON documents against their schemas; [tools/uv.lock](tools/uv.lock) fixes the releases. The locked releases carry these license instruments: jsonschema `v${jsonschema_with_attrs_referencing_r_66_0}` `COPYING`, blob `af9cfbdb134f42e5205ecbad597421d778826481`, copyright 2013 Julian Berman; attrs `${jsonschema_with_attrs_referencing_r_67_0}` `LICENSE`, blob `2bd6453d255e19b973f19b128596a8b6dd65b2c3`, copyright 2015 Hynek Schlawack and the attrs contributors; referencing `v${jsonschema_with_attrs_referencing_r_68_0}` and jsonschema-specifications `v${jsonschema_with_attrs_referencing_r_69_0}` `COPYING`, both blob `a9f853e43069b8e3f8a156a4af2b1198a004230d`, copyright 2022 Julian Berman; rpds-py `v${jsonschema_with_attrs_referencing_r_70_0}` `LICENSE`, blob `9a3970a75793bcf642507d42ffafaf2986e84075`, copyright 2023 Julian Berman. No package source is redistributed here. |",
+    "| pre-commit's dependencies | `MIT`; nodeenv `BSD-3-Clause`; distlib `PSF-2.0`; packaging `Apache-2.0 OR BSD-2-Clause` | The optional `model` group's closure, which [tools/uv.lock](tools/uv.lock) fixes. The locked wheels and release tags carry these license instruments: cfgv `v${pre_commit_s_dependencies_71_0}` `LICENSE`, blob `b7af5ef213084fe100c5bb755659ef68c14dae5b`, copyright 2018 Anthony Sottile; identify `v${pre_commit_s_dependencies_72_0}` `LICENSE`, blob `0ecc5db911dadf39c600843c4646aa2b5c3a0ed7`, copyright 2017 Chris Kuehl and Anthony Sottile; nodeenv `${pre_commit_s_dependencies_73_0}` `LICENSE`, blob `a087c8d694a12d9f113ab83e2eeb7adbfa1353cd`, copyright 2011 Eugene Kalinin; PyYAML `${pre_commit_s_dependencies_74_0}` `LICENSE`, blob `2f1b8e15e5627d92f0521605c9870bc8e5505cb4`, copyright Ingy döt Net and Kirill Simonov; virtualenv `${pre_commit_s_dependencies_75_0}` `LICENSE`, blob `99598eb01766f838b130ff04c02103c1418215e1`, and `THIRD-PARTY-NOTICES.md`, blob `b50c4f479ce24d15182d24a281572cd55e0c41bc`, which leaves its embedded pip and setuptools wheels under their own licenses, including those of the packages each vendors; distlib `${pre_commit_s_dependencies_76_0}` `LICENSE.txt`, blob `c31ac56d772f7061c8b42f0ee96063b7a94a4859`, the PSF License Version 2 with Python's historical agreements; filelock `${pre_commit_s_dependencies_77_0}` `LICENSE`, blob `291919c0b6f41d014767f6c877af9f7595fcff99`, copyright 2025 Bernát Gábor and contributors; platformdirs `${pre_commit_s_dependencies_78_0}` `LICENSE`, blob `f35fed9191b1142ddaada8a96de4a9461c5d796c`, crediting the platformdirs developers; python-discovery `${pre_commit_s_dependencies_79_0}` `LICENSE`, blob `364982344fbd94d55705e1f27a9a87abaa255333`, the MIT grant with no copyright line; and packaging `${pre_commit_s_dependencies_80_0}` `LICENSE`, blob `6f62d44e4ef733c0e713afcd2371fed7f2b3de67`, offering `LICENSE.APACHE`, blob `f433b1a53f5b830a205fd2df78e2b34974656c7b`, or `LICENSE.BSD`, blob `42ce7b75c92fb01a3f6ed17eea363f756b7da582`. nodeenv installs Node.js for pre-commit's Node hooks under Node's own terms. Nothing is redistributed here. |",
+    "| pre-commit-hooks | `MIT` | Six of the model's hooks: trailing whitespace, final newlines, YAML syntax, added large files and the two shebang checks. [model/.pre-commit-config.yaml](model/.pre-commit-config.yaml) pins each hook repository by commit. The reviewed `v${pre_commit_hooks_81_0}` revision `${pre_commit_hooks_82_0}` has `LICENSE`, blob `4a071fc533d4fd07dbe81e1e8f0f0998b17220be`, crediting the pre-commit dev team, Anthony Sottile and Ken Struys, copyright 2014. pre-commit installs the `ruamel.yaml` it requires from PyPI at the release [tools/ci/model-hooks-constraints.txt](tools/ci/model-hooks-constraints.txt) fixes, by version and not by hash, and pip builds the hook package with the setuptools [tools/ci/model-hooks-build-constraints.txt](tools/ci/model-hooks-build-constraints.txt) fixes by hash. No hook source is redistributed here. |",
+    "| clang-format | `Apache-2.0 WITH LLVM-exception`; the hook mirror `MIT` | The model's C and C++ formatter, reading the `.clang-format` the model carries from upstream, at the reviewed release. The reviewed `v${clang_format_83_0}` revision `${clang_format_84_0}` of `pre-commit/mirrors-clang-format` has `LICENSE`, blob `1962eadb1dc3e282938003e2900440c057a74ed6`, copyright 2021 Anthony Sottile, and installs PyPI's `clang-format` wheel of the same release, which [tools/ci/model-hooks-constraints.txt](tools/ci/model-hooks-constraints.txt) also fixes, by version and not by hash; pip builds the mirror's placeholder package with the setuptools [tools/ci/model-hooks-build-constraints.txt](tools/ci/model-hooks-build-constraints.txt) fixes by hash. The wheel's metadata declares the Apache License and carries its LLVM exception and legacy NCSA notices in `LICENSE.md`, SHA-256 `73ba74dfaa520b49a401b5d21459a8523a146f3b7518a833eea5efa85130bf68`, beside the packaging's `COPYING.md`, SHA-256 `272ff22ee13e20e82c16b0d2c03bcefbc00800e3f09ae03bce52e2a367ddfaa1`, crediting Dominic Kempf, Heidelberg University and contributors, 2021; the executable is LLVM's. No hook source or executable is redistributed here. |",
+    "| Lucas-C pre-commit-hooks | `MIT` | The model's `forbid-tabs` hook. The reviewed `v${lucas_c_pre_commit_hooks_85_0}` revision `${lucas_c_pre_commit_hooks_86_0}` of `Lucas-C/pre-commit-hooks` has `LICENSE`, blob `d91c83da8c59bce67506e253a535bc44a27ef8fb`, copyright 2019 Lucas Cimon. pre-commit installs the `rapidfuzz` it requires from PyPI at the release [tools/ci/model-hooks-constraints.txt](tools/ci/model-hooks-constraints.txt) fixes, by version and not by hash, and pip builds the hook package with the setuptools [tools/ci/model-hooks-build-constraints.txt](tools/ci/model-hooks-build-constraints.txt) fixes by hash. No hook source is redistributed here. |",
+    "| prettier | `MIT`; bundled code under the terms its notices list | The model's JSON, Markdown and YAML formatter. The reviewed `v${prettier_87_0}` revision `${prettier_88_0}` of `rbubley/mirrors-prettier` has `LICENSE`, blob `d86d9ea06347dbd79c04079484155ea94fa2c3ed`, copyright 2014 Anthony Sottile, and installs npm's `prettier` of the same release. That package declares MIT; its `LICENSE`, SHA-256 `b0f2417199889f1c0d28ec4e0244eacf1a15de5819d61f641dd7d8f45153ac9c`, credits James Long and contributors, and its `THIRD-PARTY-NOTICES.md`, SHA-256 `3f58498bc5cc36173c44f33a33e2f7b30a2771274edf84bd75b8dc2d7a741dfd`, puts the bundled code under MIT, ISC, BSD-3-Clause, Apache-2.0, BSD-2-Clause and BlueOak-1.0.0 terms. pre-commit runs it on the Node.js and npm on `PATH` when both are there, and otherwise on a Node.js nodeenv downloads. The package declares no dependency, and npm checks it against the registry's integrity hash, which nothing here fixes, as nothing here fixes the Node.js or npm that install it. Nothing is redistributed here. |",
+    "| codespell | `GPL-2.0-only` | The model's spelling check, reading [model/.codespellrc](model/.codespellrc). The reviewed `v${codespell_89_0}` revision `${codespell_90_0}` of `codespell-project/codespell` has `COPYING`, blob `d159169d1050894d3ea3b98e1c965c4058208fe1`, the GNU General Public License version 2, and its `pyproject.toml` declares `GPL-2.0-only` and no runtime dependency. pip builds it with the setuptools, setuptools-scm, vcs-versioning and packaging [tools/ci/model-hooks-build-constraints.txt](tools/ci/model-hooks-build-constraints.txt) fixes by hash. It is run and never linked; no codespell source is redistributed here. |",
+    "| markdown-link-check | `ISC` | The model's link check, reading [model/.markdown-link-check.config](model/.markdown-link-check.config). The reviewed `v${markdown_link_check_91_0}` revision `${markdown_link_check_92_0}` of `tcort/markdown-link-check` has `LICENSE.md`, blob `cc427a30dbef0cdd9b93bf2d0b4435cb9e91d133`, copyright 2016-2024 Thomas Cort. pre-commit installs its npm dependencies from version ranges nothing here locks. No hook source is redistributed here. |",
+    "| The model hooks' PyPI dependencies | `MIT`; setuptools vendors code under `Apache-2.0`, `Apache-2.0 OR BSD-2-Clause`, the LGPL version 3, `MPL-2.0` and `BSD-3-Clause` | What pip downloads from PyPI into the model's Python hook environments when Host CI's Model hooks step runs, or a local run given that step's variables. [tools/ci/model-hooks-constraints.txt](tools/ci/model-hooks-constraints.txt) fixes the ruamel.yaml pre-commit-hooks requires and the rapidfuzz Lucas-C's hooks require, and [tools/ci/model-hooks-build-constraints.txt](tools/ci/model-hooks-build-constraints.txt) fixes by hash the build backends: setuptools for every hook package, and setuptools-scm, vcs-versioning and packaging for codespell's. The pinned wheels' license files are byte-identical to their sdists' and, where a blob is given, to the release tags': ruamel.yaml `${the_model_hooks_pypi_dependencies_93_0}` `LICENSE`, SHA-256 `3e7632bb0dc1150f15f8161f5eec48dec8a99aaa1dfc9e8f63c02931e0fba7f8`, copyright 2014-2026 Anthon van der Neut, Ruamel bvba, its source on SourceForge with no Git tag to read; rapidfuzz `v${the_model_hooks_pypi_dependencies_94_0}` `LICENSE`, blob `42c23b2103346d5439dd72582ed6d4a0d8d7b27b`, SHA-256 `f34ccdffdff56fc417785915eedf18601d5479755df3c472b2c754c29802d683`, copyright 2020-present Max Bachmann and 2011 Adam Cohen, the only license file its compiled wheel carries; setuptools `v${the_model_hooks_pypi_dependencies_95_0}` `LICENSE`, blob `1bb5a44356f00884a71ceeefd24ded6caaba2418`, SHA-256 `86da0f01aeae46348a3c3d465195dc1ceccde79f79e87769a64b8da04b2a4741`, the MIT grant with no copyright line, its wheel vendoring importlib_metadata under `Apache-2.0`, packaging under `Apache-2.0 OR BSD-2-Clause`, autocommand under the LGPL version 3 text, jaraco.context, jaraco.functools, jaraco.text, more-itertools, platformdirs, tomli, wheel, zipp and backports.tarfile under `MIT`, and validate-pyproject's generated validator and schemas under `MPL-2.0` with fastjsonschema's code under `BSD-3-Clause`, each with the license file or notice the wheel carries; setuptools-scm `${the_model_hooks_pypi_dependencies_96_0}` `setuptools-scm/LICENSE` at the `setuptools-scm-v${the_model_hooks_pypi_dependencies_97_0}` tag, blob `89de354795ec7a7cdab07c091029653d3618540d`, the MIT grant with no copyright line; vcs-versioning `${the_model_hooks_pypi_dependencies_98_0}` `vcs-versioning/LICENSE.txt` at the `vcs-versioning-v${the_model_hooks_pypi_dependencies_99_0}` tag, blob `5b48e3b8f55287d4d216e35cae477f42003bf61a`, copyright 2023-present Ronny Pfannschmidt; and packaging `${the_model_hooks_pypi_dependencies_100_0}`, whose reading is pre-commit's dependencies row's. They run only in those throwaway environments, and nothing is redistributed here. |",
+    "| Rocq prover: `rocq-core`, `rocq-runtime` and `rocqchk` | `LGPL-2.1-only`; the reference manual's material is under the Open Publication License | Compiles and rechecks every proof. [The opam guide](tools/opam/README.md) records the editions: ${rocq_prover_rocq_core_rocq_runtime__101_0} in the proof, QuickChick and contained compiler switches, ${rocq_prover_rocq_core_rocq_runtime__102_0} in the lowering switch, and ${rocq_prover_rocq_core_rocq_runtime__103_0} in the CertiRocq oracle switch. `LICENSE`, blob `27950e8d20578abb2b348618feb28f0426638820`, SHA-256 `d4594b82f4d50840df6a7e9d14132a8c0a3cc05d0ac46d15310a264a1f75447e`, the LGPL version 2.1 text, and `CREDITS`, blob `4f1071612d5b8de3099fa65487da6df223ee2854`, which puts all files but the reference manual's material under that license, are byte-identical at the `V${rocq_prover_rocq_core_rocq_runtime__104_2}`, `V${rocq_prover_rocq_core_rocq_runtime__104_1}` and `V${rocq_prover_rocq_core_rocq_runtime__104_0}` tags; every one of those switches installs that `LICENSE`, and opam metadata declares `LGPL-2.1-only`. Neither the prover nor a compiled proof object is distributed here; distributing either needs the LGPL review Stdlib's paragraph above describes. |",
+    "| OCaml compiler | `LGPL-2.1` with the OCaml static-linking exception | Builds every switch: ${ocaml_compiler_105_0} in the Sail, proof, QuickChick and lowering snapshots and ${ocaml_compiler_106_0} in the CertiRocq oracle switch and ${ocaml_compiler_107_0} in the contained compiler switch. `LICENSE`, blob `3666ebe155665210b1d8478e788aa3f3e327d39e`, SHA-256 `65f47d3bf5a921011ac7fa30f23d54f9dffbe7683921eeb116d5ce8dc26ff0c1`, byte-identical at the `${ocaml_compiler_108_1}` and `${ocaml_compiler_108_0}` tags; the latter archive is verified by opam under SHA-256 `71415c000ebfce604defafaa584ab5ed10ad81ff180897db4e6fea8dac6e4b0d`. The license installed by each switch puts the files marked \"Copyright INRIA\" under LGPL version 2.1, with an exception permitting a linked executable under terms of the linker's choice; source headers name version 2.1, and opam metadata declares `LGPL-2.1-or-later WITH OCaml-LGPL-linking-exception`. The [Q39 license receipt](docs/implementation/evidence/q39-20261010-license-readings.json) binds the selected archive instruments. No compiler, runtime or executable built with it is distributed here. |",
+    "| dune | `MIT` | Builds the OCaml and Rocq packages the switches install, ${dune_109_0} in the Sail and proof snapshots and older releases in the other switches. `LICENSE.md`, blob `06829595d1f3dc0433b2d5562b264ffb780d2197`, copyright 2016 Jane Street Group, LLC, is byte-identical at the `${dune_110_1}` and `${dune_110_0}` tags. Nothing is redistributed here. |",
+    "| Zarith | `LGPL-2.0-only WITH OCaml-LGPL-linking-exception` | Arbitrary-precision integers for Sail and Rocq, ${zarith_111_0} in every switch. The `release-${zarith_112_0}` tag's `LICENSE`, blob `604c2ba6906ab51585fc13b6f633b529bc01fb92`, puts the library under the GNU Library General Public License version 2 with the same static-linking exception, as its opam metadata declares; it links [GMP](#gmp-linked-into-the-golden-emulator). Nothing is redistributed here. |",
+    "| Menhir | Generator `GPL-2.0-only`; `MenhirLib`, `MenhirSdk`, `MenhirCST` and `MenhirGLR` `LGPL-2.0-only WITH OCaml-LGPL-linking-exception` | Parser generator installed in the Sail, QuickChick, CertiRocq and contained compiler snapshots at ${menhir_113_0}, each installing all five packages. The `LICENSE` that release installs, SHA-256 `9c97527b92b577647880abd2a5eaf5bf0f3b3df1bd09d9f93fc4e103eb1d30d5`, puts the generator under GPL version 2, its runtime libraries and SDK under the Library General Public License version 2 with the static-linking exception, and its separately packaged Rocq library `coq-menhirlib`, which the CertiRocq snapshot installs for CompCert, as the private Q35e `vst2` qualification switch does ([its record](tools/opam/c-refinement-qualification-switches.md)), under `LGPL-3.0-or-later`. Q39 builds the contained compiler's parser from that release and reads its vendored Rocq runtime terms in the [license receipt](docs/implementation/evidence/q39-20261010-license-readings.json); the source and compiled parser stay contained. Neither the generator nor a parser it produced is distributed here. |",
+    "| std++ | `BSD-3-Clause` | A root of [the proof snapshot](tools/opam/rocq.lock) at ${std_114_0}. Its `LICENSE` at the `stdpp-${std_115_0}` tag, SHA-256 `bc4fe79f9b7f78bc6e4e61e1f7c430b1e413b82de4aacb9355ade5e43bad2a69`, is the reading the Sail Rocq support library paragraph above records. No source or compiled object is distributed here. |",
+    "| Sail compiler and its C runtime | `BSD-2-Clause`; `lib/cJSON.c` and `lib/cJSON.h` are `MIT` | The model's acceptance compiler, ${sail_compiler_and_its_c_runtime_116_0} in [the Sail snapshot](tools/opam/sail.lock), translates the curated model, and `model/sail_runtime/` compiles the release's `lib/` C runtime into `sail_riscv_sim` beside [GMP](#gmp-linked-into-the-golden-emulator). The tag's [LICENSE](https://github.com/rems-project/sail/blob/3df54034910b31a1e00d948ee965b2e9603d68e0/LICENSE), SHA-256 `cc5133e58dd523cb772ac7b2c3047845b54667fe856165aef651f059ca51b2fe` and installed by the switch, applies BSD-2-Clause outside the exceptions `THIRD_PARTY_FILES.md`, blob `1ea68db8d98a171ec3b126c1376524ba8692a006`, lists. The compiled runtime files carry Sail's BSD-2-Clause header except the two cJSON files, MIT, copyright 2009-2017 Dave Gamble and cJSON contributors, with `lib/CJSON_LICENSE`. Model snapshot artifacts convey the compiled runtime with its BSD-2-Clause and cJSON MIT notices beside the GMP and system-runtime notices. No Sail compiler binary or source tree is conveyed. |",
+    "",
+    "**Verilator is pinned to the reviewed release in the table above.** [The RTL command](tools/vos/cli/rtl.py) owns the enforced pin; `run.py rtl install` installs it from a release archive verified against a recorded SHA-256. It uses a versioned project prefix and leaves the distribution executable installed. The RTL tools reject other versions. Inventory measurements use this release's JSON output and expanded instance counts; earlier XML counts are not interchangeable. This repository distributes neither Verilator nor a binary built from it, and the recorded review does not apply its license to the inspected RTL or reported netlist.",
+    "",
+    "**Each GitHub Action runs at the revision its row reviewed.** Every workflow `uses:` line names the action's full commit with its release in a comment: a floating tag, or a release tag outside GitHub's immutable releases, can move under a reviewed row, and a full commit cannot. K-115 holds each line's commit and release against the action's row above, and K-118 holds each workflow analyzer row's release and licence tag against the lock or script that installs it. A new action or release needs its license read and its row written before a workflow runs it.",
+    "",
+    "**QuickChick.** No release of QuickChick or `coq-simple-io` installs beside the proof switch's Rocq, so [the QuickChick command](tools/vos/cli/quickchick.py)'s `RECIPE` builds each from an upstream commit, under [the opam guide's](tools/opam/README.md) rule for commit pins, which names each commit's reason and the release that retires it. [The QuickChick snapshot](tools/opam/quickchick.lock), a hosted run's export of that recipe once the randomized half's checks passed on it, is what provisioning imports. QuickChick's and `coq-simple-io`'s licences were read at their pinned commits on 2026-09-30; released `coq-ext-lib` ${the_section_s_paragraphs_121_0}'s licence was read on 2026-10-06. QuickChick's `LICENSE`, blob `5d159d5fc2fee360ec9381bc8dcef0e8f4c94ae7` and SHA-256 `6010f188d0030246256c850749c34754b1014a5171316173258530d515965031`, is the MIT License and credits Maxime Dénès, Catalin Hritcu, Leonidas Lampropoulos and Zoe Paraskevopoulou, copyright 2014. `coq-simple-io`'s `LICENSE`, blob `931983b2d74323c26bd1f38f8f6ee376923ff794` and SHA-256 `1b4f292e1d0dd5bc383a146f9234f382f8bf7533b56d26af0ed37046d07fd69d`, is the MIT grant, copyright 2018-2022 Li-yao Xia and Yishuai Li. `coq-ext-lib`'s [${the_section_s_paragraphs_122_0} LICENSE](https://github.com/rocq-community/coq-ext-lib/blob/dd32f1c56f41d699ed2ffd4193a876c87fc44926/LICENSE), blob `3ac855e52eec1323cd2d311404683abd3176466d` and SHA-256 `0b29ddb1e8bcd044cc74aaa8f6de8502f687013ebbc9a7dc788d1c726fb9e5c6`, is the BSD 2-Clause License, copyright 2013 Gregory M. Malecha. The opam metadata at each selected source declares the same terms. No source of the three, nor anything compiled from them, is distributed here.",
+    "",
+    "**Lowering stack.** Rupicola, Bedrock2, its compiler, and coqutil use MIT at their respective `LICENSE` files. `coq-riscv.${the_section_s_paragraphs_123_0}` uses BSD-3-Clause in `LICENSE.txt`, copyright 2017-2018 MIT, where MIT names the institution. [The lowering snapshot](tools/opam/rupicola.lock) fixes OCaml ${the_section_s_paragraphs_124_0}, Rocq ${the_section_s_paragraphs_125_0}, and the compatibility packages. No `run.py` command invokes this stack. [regenerate.py](tools/bedrock2-lowering/regenerate.py) is run manually; [DIGESTS.md](tools/bedrock2-lowering/DIGESTS.md) records its output digest and size. Emitted C includes Bedrock2's load-and-store preamble and stays outside the repository.",
+    "",
+    "**CompCert in the oracle switch.** CertiRocq's released metadata requires `coq-compcert >= 3.17`; [the CertiRocq snapshot](tools/opam/certirocq.lock) installs ${the_section_s_paragraphs_126_0} from the official `AbsInt/CompCert` archive, including `ccomp`, `clightgen`, and Rocq libraries. The reviewed ${the_section_s_paragraphs_127_0} `LICENSE`, blob `54b36ed7433fa5dff6479550725677343c8e9d50`, from the archive opam verified by its SHA-256 `564b312b3ed3162f02605f0108feb555bd28fe7a80b97ea269c546bcc60c1cf0`, is byte-identical to 3.17. Proof and QuickChick switches contain no CompCert.",
+    "",
+    "Opam supplies the download URL and archive hash; this repository records package versions only. No compiler source, `.wasm`, `.vo`, or vector output from that switch is tracked. The recorded use is a research and evaluation oracle; commercial use requires the separate agreement identified below.",
+    "",
+    "No repository tool invokes the oracle switch's `ccomp` or `clightgen`. The `ccomp` path supplied manually to the lowering driver instead identifies the separate SECOMP compiler measured by the implementation plan. CertiRocq imports CompCert's dual-licensed `lib/`, `common/`, `export/`, selected `cfrontend/` files, and architecture `Archi.v`; its Wasm backend uses `lib/`, `common/`, and `Archi.v`. These offer `LGPL-2.1-or-later`. The installed backends, driver, and binaries outside that subset remain unused here.",
+    "",
+    "**CertiRocq's CompCert printers.** CertiRocq's release archive, verified under opam's SHA-512 `9ef925f78e399c6d8a6bf8f78023157786eccc59ea4673c06a09317cb391310e95d29b8d47e0524d99b09753c7436fcf05954ec74c247dff959fc7193ea87d5f`, carries four CompCert files twice. `plugin/static/` and `cplugin/static/` each hold `camlrocq.ml`, `printAST.ml`, `printClight.ml` and `printCsyntax.ml`, every one headed copyright INRIA and distributed under a GNU licence and also under the INRIA Non-Commercial License Agreement. The GNU licence is `GPL-2.0-or-later` for `plugin/static/camlrocq.ml`, SHA-256 `403664815f214acd90b82467e73e62c2dd5b297fb5bb0c8eec11f8cbcc565be9`, and `LGPL-2.1-or-later` for its `cplugin/` copy and the six other files; `printClight.ml`, SHA-256 `22b91692ee57463479989352beccc15b007c20a1d0634737db953847d6d94f0d`, is the same in both. `plugin/_CoqProject` compiles the `plugin/` copies into `certirocq_plugin.cmxs`, the ML module that `From CertiRocq.Plugin Require Import CertiRocq` loads, so every oracle run executes them, and `cplugin/_CoqProject` compiles the other copies into the vanilla plugin; CertiRocq's package installs both. Each file's GNU option governs that use, as the LGPL option does CompCert's dual-licensed subset. Nothing built from them is distributed here.",
+    "",
+    "**CertiRocq's `CpdtTactics.v`.** The same archive carries `libraries/CpdtTactics.v`, SHA-256 `6c7a48ae27bb8ccf9ed0d7dcf00eb7c48115e07bb888dbd5ab66e66ba81ccddf`, Adam Chlipala's tactics from *Certified Programming with Dependent Types*, copyright 2008 to 2012, under `CC-BY-NC-ND-3.0`. CertiRocq's build compiles it, and CertiRocq's package installs its source and its `.vo` as `CertiRocq.Libraries.CpdtTactics`. Proofs in CertiRocq's `LambdaBoxLocal`, `LambdaANF` and `Libraries` theories use its tactics; no module the oracle's `CertiRocq.Plugin` requires loads it, and tactics leave nothing in the extracted plugin. The tracked tree copies and modifies nothing from it, and nothing built from it is distributed here.",
+    "",
+    "**The oracle's switch is built only on the local machine.** The native or the container recipe builds it there, and no CertiRocq build runs on a hosted runner. The CompCert printers are settled: under their GNU options, running them carries no condition, and nothing built from them is distributed. CompCert's files outside the dual-licensed subset, which the switch builds and installs, are used under the agreement's grant for educational, research or evaluation purposes and never \"in connection with any activities which purpose is to procure a commercial gain to you or others\" (sections 2 and 3), which is the research and evaluation use recorded above. `CpdtTactics.v`'s `CC-BY-NC-ND-3.0` grants reproduction, inclusion in a collection and distribution, with \"such modifications as are technically necessary to exercise the rights in other media and formats\" (section 3). It forbids any exercise of those rights \"primarily intended for or directed toward commercial advantage or private monetary compensation\" (section 4(b)), and grants no right to make an Adaptation, a form in which the work is \"recast, transformed, or adapted\". Its text does not say which of those a compilation to `.vo` is. The project accepts local builds of the switch, each of which reproduces the file and compiles it, for research use with nothing from it distributed.",
+    "",
+    "**QEMU and the capability library.** QEMU's root `LICENSE` releases the emulator under GPL version 2. Untagged source permits version 2 or later; contributions to `bsd-user/`, `linux-user/`, `hw/vfio/`, and `hw/xen/xen_pt*` are version 2 only. The Tiny Code Generator is mostly BSD or MIT, with other terms on some parts. Any reinstated emulator route must retain its separate distribution policy.",
+    "",
+    "The narrowed `cheri-compressed-cap` library remains separable from the QEMU integration. It is derived from the library's own upstream under BSD-2-Clause and currently resides beside the fork in the unpublished repository. No local tool builds or checks it. Its current location is a development choice; the recorded license permits later incorporation independently of QEMU.",
+    "",
+    ""
+  ]
+}
