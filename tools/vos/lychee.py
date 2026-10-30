@@ -12,6 +12,8 @@ import zipfile
 from dataclasses import dataclass
 from pathlib import Path
 
+from filelock import FileLock
+
 from vos import jsonutil, receipts
 
 VERSION = "0.24.2"
@@ -63,6 +65,13 @@ def executable() -> Path:
         raise ValueError("Lychee requires the project's managed Python environment")
     asset = asset_for(sys.platform, platform.machine())
     home = Path(sys.prefix) / f"lychee-{VERSION}"
+    home.mkdir(parents=True, exist_ok=True)
+    with FileLock(home / ".install.lock", timeout=180):
+        return _install(home, asset)
+
+
+def _install(home: Path, asset: Asset) -> Path:
+    """Verify, download and publish under the shared environment's installation lock."""
     target = home / asset.executable
     if target.exists():
         if receipts.digest(target) != asset.executable_hash:
