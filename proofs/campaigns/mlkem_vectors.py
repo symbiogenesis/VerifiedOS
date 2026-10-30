@@ -4,7 +4,7 @@
 
 Run in the lane's native WSL build directory, with --repo naming the source
 checkout and --build naming an existing native directory containing proofs/
-and matching compiled PqArith, Keccak and MlKem modules. Generated OCaml and
+and the matching compiled local dependency closure for MlKem. Generated OCaml and
 downloaded vector data stay in that native build directory; tools/vos/acvp.py
 pins the revision and every fetched file's SHA-256. This campaign tests an
 extracted executable; it does not prove extraction or compiler correctness and
@@ -26,7 +26,9 @@ import time
 
 sys.dont_write_bytecode = True
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "tools"))
-from vos import acvp  # noqa: E402
+from vos import acvp, extracted_proofs, proof_staging  # noqa: E402
+
+PROOF_ENTRIES = ("MlKem.v",)
 
 
 def digest(path: Path) -> str:
@@ -58,13 +60,9 @@ def main() -> int:
     for source, target in [("mlkem_extract.v.in", "ExtractMlKem.v"),
                            ("mlkem_driver.ml.in", "mlkem_driver.ml")]:
         shutil.copyfile(recipes / source, build / target)
-    inputs = {}
-    for name in ["PqArith", "Keccak", "MlKem"]:
-        source = repo / "proofs" / f"{name}.v"
-        staged = build / "proofs" / f"{name}.v"
-        if digest(source) != digest(staged) or not staged.with_suffix(".vo").exists():
-            raise ValueError(f"missing same-source compiled module: {name}")
-        inputs[name] = {"source_sha256": digest(source), "vo_sha256": digest(staged.with_suffix(".vo"))}
+    proof_inputs = proof_staging.inputs(repo, PROOF_ENTRIES)
+    producer_inputs = extracted_proofs.implementation_inputs(repo)
+    inputs = extracted_proofs.compiled_inputs(repo, build / "proofs", PROOF_ENTRIES)
     commands = [
         [str(args.opam_bin / "rocq"), "c", "-q", "-Q", "proofs", "", "ExtractMlKem.v"],
         [str(args.opam_bin / "ocamlfind"), "ocamlopt", "-package", "zarith", "-linkpkg",
@@ -153,9 +151,14 @@ def main() -> int:
                 process.terminate()
                 process.wait(timeout=10)
             selector.close()
+    extracted_proofs.require_inputs(repo, build / "proofs", PROOF_ENTRIES, inputs)
+    extracted_proofs.require_unchanged(repo, PROOF_ENTRIES, proof_inputs)
+    if extracted_proofs.implementation_inputs(repo) != producer_inputs:
+        raise ValueError("extraction producer changed during campaign")
     receipt = {"pass": not failure and process.returncode == 0, "failure": failure,
                "process_exit": process.returncode, "elapsed_seconds": time.monotonic() - start,
                "limit_per_group": args.limit, "provenance": provenance, "inputs": inputs,
+               "producer_inputs": producer_inputs,
                "extracted_ml_sha256": digest(build / "mlkem_reference.ml"),
                "executable_sha256": digest(build / "mlkem_vectors"),
                "commands": commands, "checks": rows,

@@ -35,7 +35,7 @@ def main() -> int:
     os.environ["PATH"] = str(args.opam_bin) + os.pathsep + os.environ.get("PATH", "")
     sys.dont_write_bytecode = True
     sys.path.insert(0, str(args.repo / "tools"))
-    from vos import acvp
+    from vos import acvp, extracted_proofs, proof_staging
     from vos.mutate import COQ, OPERATORS, Operator, mutants, regions
 
     extra = (
@@ -61,6 +61,12 @@ def main() -> int:
         "PqArith": "same-source native theorem/example compilation after definition-prefix preflight",
         "ProbingModel": "same-source native theorem/example compilation after definition-prefix preflight",
         "MlKem": "definitions-only extracted Gallina against pinned official ML-KEM-1024 vectors"}}
+    proof_entries = tuple(name + ".v" for name in selections)
+    baseline_inputs = extracted_proofs.compiled_inputs(args.repo, args.baseline / "proofs", proof_entries)
+    producer_inputs = extracted_proofs.implementation_inputs(args.repo)
+    report["baseline_inputs"] = baseline_inputs
+    report["producer_inputs"] = producer_inputs
+    report["inputs_current"] = False
 
     def run(work: Path, command: list[str], label: str) -> int:
         with (work / (label + ".log")).open("w") as stream:
@@ -85,10 +91,12 @@ def main() -> int:
             entries.append(row)
             work = args.build / f"{name}-{number}"
             (work / "proofs").mkdir(parents=True, exist_ok=True)
-            for dep in ["PqArith", "Keccak"]:
-                if name != dep:
-                    for suffix in [".v", ".vo"]:
-                        shutil.copyfile(args.baseline / "proofs" / (dep + suffix), work / "proofs" / (dep + suffix))
+            staged = proof_staging.stage(args.repo, work / "proofs", (name + ".v",))
+            staged.validate(args.repo)
+            for dep in staged.sources:
+                if dep.stem != name:
+                    shutil.copyfile(args.baseline / "proofs" / dep.with_suffix(".vo").name,
+                                    dep.with_suffix(".vo"))
             region = next(r for r in regions(changed, COQ) if r.name == definition and r.keyword in
                           ("Definition", "Fixpoint", "Record", "Inductive"))
             (work / "Preflight.v").write_text(changed[:region.end], encoding="utf-8")
@@ -160,6 +168,11 @@ def main() -> int:
                             row["verdict"] = "timeout"
             print(name, definition, row["verdict"], flush=True)
             (args.build / "mutation-receipt.json").write_text(json.dumps(report, indent=2), encoding="utf-8")
+    extracted_proofs.require_inputs(args.repo, args.baseline / "proofs", proof_entries, baseline_inputs)
+    if extracted_proofs.implementation_inputs(args.repo) != producer_inputs:
+        raise ValueError("mutation producer changed during campaign")
+    report["inputs_current"] = True
+    (args.build / "mutation-receipt.json").write_text(json.dumps(report, indent=2), encoding="utf-8")
     return 0 if all(m["verdict"] in ("proof-killed", "vector-killed", "stillborn")
                     for f in report["files"].values() for m in f["mutants"]) else 1
 

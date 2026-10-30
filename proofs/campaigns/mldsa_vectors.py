@@ -25,10 +25,11 @@ import time
 sys.dont_write_bytecode = True
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "tools"))
-from vos import acvp, env, gallina  # noqa: E402
+from vos import acvp, env, extracted_proofs, gallina, proof_staging  # noqa: E402
 
 REVISION = acvp.REVISION
 OPERATIONS = ("keyGen", "sigGen", "sigVer")
+PROOF_ENTRIES = ("MlDsa.v",)
 EXTRACTION = '''From Stdlib Require Import Extraction.
 From Stdlib.extraction Require Import ExtrOcamlBasic ExtrOcamlNatInt ExtrOcamlZBigInt.
 Require Import MlDsa.
@@ -112,26 +113,26 @@ def checked(cmd: list[str], work: Path, log: str) -> str:
 
 def build(work: Path) -> dict[str, str]:
     os.environ.update(gallina.switch_env(env.ROCQ_SWITCH))
+    producer_inputs = extracted_proofs.implementation_inputs(ROOT)
+    campaign_input = sha(Path(__file__).read_bytes())
+    staged = proof_staging.stage(ROOT, work, PROOF_ENTRIES)
     bindings = {}
-    for module in ("PqArith", "Keccak", "MlDsa"):
-        source = ROOT / "proofs" / (module + ".v")
-        data = source.read_bytes()
-        target = work / source.name
-        changed = not target.exists() or target.read_bytes() != data
-        if changed:
-            target.write_bytes(data)
+    for target in staged.sources:
+        module = target.stem
+        data = target.read_bytes()
         compiled = target.with_suffix(".vo")
         stamp = work / (module + ".compiled.json")
         identity = {"source": sha(data), "object": sha(compiled.read_bytes()) if compiled.exists() else None,
                     "dependencies": {key: value for key, value in bindings.items() if key.endswith(".vo")}}
         cached = json.loads(stamp.read_text()) if stamp.exists() else None
-        if changed or cached != identity or identity["object"] is None:
+        if cached != identity or identity["object"] is None:
             checked(env.rocq_command() + ["-Q", str(work), "", str(target)],
                     work, module + ".compile.log")
             identity["object"] = sha(compiled.read_bytes())
             stamp.write_text(json.dumps(identity) + "\n")
-        bindings[str(source.relative_to(ROOT))] = sha(data)
+        bindings["proofs/" + target.name] = sha(data)
         bindings[module + ".vo"] = sha(compiled.read_bytes())
+    staged.validate(ROOT)
     (work / "ExtractDsa.v").write_text(EXTRACTION)
     checked(env.rocq_command() + ["-Q", str(work), "", str(work / "ExtractDsa.v")],
             work, "extraction.log")
@@ -140,8 +141,20 @@ def build(work: Path) -> dict[str, str]:
              "mldsa.mli", "mldsa.ml", "driver.ml", "-o", "dsa.exe"], work, "link.log")
     for name in ("ExtractDsa.v", "mldsa.ml", "mldsa.mli", "driver.ml", "dsa.exe"):
         bindings[name] = sha((work / name).read_bytes())
-    bindings["proofs/campaigns/mldsa_vectors.py"] = sha(Path(__file__).read_bytes())
+    if (extracted_proofs.implementation_inputs(ROOT) != producer_inputs
+            or sha(Path(__file__).read_bytes()) != campaign_input):
+        raise ValueError("extraction producer changed while building")
+    bindings["proofs/campaigns/mldsa_vectors.py"] = campaign_input
+    bindings.update(extracted_proofs.compiled_bindings(ROOT, work, PROOF_ENTRIES))
+    staged.validate(ROOT)
     return bindings
+
+
+def validate_baseline(work: Path, bindings: dict[str, str]) -> None:
+    """Check the complete extracted proof closure and its campaign producer."""
+    extracted_proofs.require_bindings(ROOT, work, PROOF_ENTRIES, bindings)
+    if bindings.get("proofs/campaigns/mldsa_vectors.py") != sha(Path(__file__).read_bytes()):
+        raise ValueError("extraction campaign source changed")
 
 
 def fetched(relative: str, dest: Path) -> tuple[bytes, dict]:
@@ -295,6 +308,7 @@ def main() -> int:
     toolchain = {"rocq": checked(env.rocq_command() + ["--version"], work, "rocq-version.log").strip(),
                  "ocaml": checked(["ocamlopt", "-version"], work, "ocaml-version.log").strip(),
                  "zarith": checked(["ocamlfind", "query", "-format", "%v", "zarith"], work, "zarith-version.log").strip()}
+    validate_baseline(work, bindings)
     receipt = {"source_revision": REVISION, "notice": notice, "sources": identities,
                "bindings": bindings, "toolchain": toolchain,
                "started_unix": started, "finished_unix": time.time(),

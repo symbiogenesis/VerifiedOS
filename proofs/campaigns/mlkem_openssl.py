@@ -21,6 +21,7 @@ from pathlib import Path
 sys.dont_write_bytecode = True
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "tools"))
 
+from vos import extracted_proofs
 from vos import openssl as oracle
 
 
@@ -44,9 +45,10 @@ def main() -> int:
         raise ValueError("positive case count and assigned native lane required")
     args.build.mkdir(parents=True, exist_ok=True)
     previous = json.loads((args.reference / "mlkem-vector-receipt.json").read_text())
-    for name, identity in previous["inputs"].items():
-        if sha(args.repo / "proofs" / (name + ".v")) != identity["source_sha256"]:
-            raise ValueError("source differs from extracted campaign: " + name)
+    extracted_proofs.require_inputs(args.repo, args.reference / "proofs", ("MlKem.v",), previous["inputs"])
+    producer_inputs = extracted_proofs.implementation_inputs(args.repo)
+    if previous.get("producer_inputs") != producer_inputs:
+        raise ValueError("extraction producer differs from vector receipt")
     executable = args.reference / "mlkem_vectors"
     if sha(executable) != previous["executable_sha256"]:
         raise ValueError("executable differs from vector receipt")
@@ -142,8 +144,12 @@ def main() -> int:
         selector.close()
     if oracle.identity() != identity:
         failure = "OpenSSL source build changed during the campaign"
+    extracted_proofs.require_inputs(args.repo, args.reference / "proofs", ("MlKem.v",), previous["inputs"])
+    if extracted_proofs.implementation_inputs(args.repo) != producer_inputs:
+        raise ValueError("extraction producer changed during comparison")
     receipt = {"pass": not failure and process.returncode == 0, "failure": failure, "checks": rows,
                "commands": commands, "reference_exit": process.returncode, "inputs": previous["inputs"],
+               "producer_inputs": producer_inputs,
                "reference_executable_sha256": sha(executable), "openssl": identity,
                "cases": args.cases, "elapsed_seconds": time.monotonic() - start,
                "scope": "Independent private source-built OpenSSL execution, default provider, generated test seeds; no proof of native oracle, extraction or compiler"}
