@@ -292,7 +292,7 @@ Sorted reference payload SHA-256: `23b690105f12b96f3ef7a997cf508a5b775e70bcaf077
 
 | Bound input or implementation | SHA-256 |
 | --- | --- |
-| [tools/vos/source_bindings.py](../../tools/vos/source_bindings.py) | `92a238dffb3f6a49e5abe66cae082159aa5c0dfc06e10a9424000b95840695e7` |
+| [tools/vos/source_bindings.py](../../tools/vos/source_bindings.py) | `5cb3a2da62836ecc87903f17333aa79dee1a4d657d4753150678eb82c1f402ca` |
 | [tools/vos/jsonutil.py](../../tools/vos/jsonutil.py) | `651b6cf84e7e3d3af970df71a286b5c700eea9b2b1b88f2db7dd44f572bfd8e5` |
 | [tools/vos/receipts.py](../../tools/vos/receipts.py) | `25bbf0b0288363f3b1fe9b0eff3616839dce7d61720814fe2f350f1fbba8d822` |
 | [tools/vos/proofenv.py](../../tools/vos/proofenv.py) | `cc6c5beca2aaefc1761e3b7748bdca52816d093f836ecdac9a879b79fa4d0513` |

@@ -12,7 +12,7 @@
       "sources": [
         {
           "path": "tools/vos/source_bindings.py",
-          "sha256": "92a238dffb3f6a49e5abe66cae082159aa5c0dfc06e10a9424000b95840695e7"
+          "sha256": "5cb3a2da62836ecc87903f17333aa79dee1a4d657d4753150678eb82c1f402ca"
         },
         {
           "path": "tools/vos/jsonutil.py",
@@ -45,7 +45,7 @@
       "sources": [
         {
           "path": "tools/vos/source_bindings.py",
-          "sha256": "92a238dffb3f6a49e5abe66cae082159aa5c0dfc06e10a9424000b95840695e7"
+          "sha256": "5cb3a2da62836ecc87903f17333aa79dee1a4d657d4753150678eb82c1f402ca"
         },
         {
           "path": "tools/vos/jsonutil.py",
@@ -294,7 +294,7 @@
       "sources": [
         {
           "path": "tools/vos/source_bindings.py",
-          "sha256": "92a238dffb3f6a49e5abe66cae082159aa5c0dfc06e10a9424000b95840695e7"
+          "sha256": "5cb3a2da62836ecc87903f17333aa79dee1a4d657d4753150678eb82c1f402ca"
         },
         {
           "path": "tools/vos/jsonutil.py",
@@ -335,7 +335,7 @@
       ],
       "descriptor": {
         "path": "tools/composer/packages/composer.json",
-        "sha256": "2d5c6ac4add02cb8b442d27f597fed4c99f877fb6002c082c44bd2b1a3b8e697"
+        "sha256": "80db121fb6affbde832dd39e9908d237b6d7662dc494b7477279acde5d1be839"
       },
       "artifact_slot": "composer-artifact",
       "entry": null,
@@ -354,7 +354,7 @@
       "sources": [
         {
           "path": "tools/vos/source_bindings.py",
-          "sha256": "92a238dffb3f6a49e5abe66cae082159aa5c0dfc06e10a9424000b95840695e7"
+          "sha256": "5cb3a2da62836ecc87903f17333aa79dee1a4d657d4753150678eb82c1f402ca"
         },
         {
           "path": "tools/vos/jsonutil.py",
@@ -391,7 +391,7 @@
       ],
       "descriptor": {
         "path": "tools/composer/packages/admission.json",
-        "sha256": "22407d7ccdefc4dce0e3cd05c04f23d0e80509b393afe15558f95b72db33bb44"
+        "sha256": "ee823f2eeba75a24961d409616f07914d2955b5f1138048cc767dc24e0446947"
       },
       "artifact_slot": "admission-artifact",
       "entry": null,

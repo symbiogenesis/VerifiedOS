@@ -4,7 +4,7 @@
   "sources": [
     {
       "path": "tools/vos/source_bindings.py",
-      "sha256": "92a238dffb3f6a49e5abe66cae082159aa5c0dfc06e10a9424000b95840695e7"
+      "sha256": "5cb3a2da62836ecc87903f17333aa79dee1a4d657d4753150678eb82c1f402ca"
     },
     {
       "path": "tools/vos/jsonutil.py",

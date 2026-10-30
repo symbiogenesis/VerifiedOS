@@ -45,18 +45,22 @@ PRODUCER_VIEWS: Final[dict[str, str]] = {
     "offline-reference-admission": "admission-reference"}
 
 
+class SourceBindingError(ValueError):
+    """A declared inventory cannot be generated or published at its boundary."""
+
+
 def sources(view: str) -> tuple[str, ...]:
     """Expand one declared view, refusing unknown or recursive declarations."""
     found: dict[str, None] = {}
 
     def visit(name: str, active: tuple[str, ...]) -> None:
         if name in active:
-            raise ValueError(f"recursive source-binding group: {name}")
+            raise SourceBindingError(f"recursive source-binding group: {name}")
         if name not in GROUPS:
-            raise ValueError(f"unknown source-binding group: {name}")
+            raise SourceBindingError(f"unknown source-binding group: {name}")
         members = GROUPS[name]
         if not members or len(members) != len(set(members)):
-            raise ValueError(f"empty or repeated source-binding group members: {name}")
+            raise SourceBindingError(f"empty or repeated source-binding group members: {name}")
         for member in members:
             if member.startswith("@"):
                 visit(member[1:], (*active, name))
@@ -76,14 +80,14 @@ def _path(root: Path, relative: str) -> Path:
     selected = (root / relative).resolve()
     if (Path(relative).is_absolute() or "\\" in relative or ".." in Path(relative).parts
             or not selected.is_relative_to(root.resolve())):
-        raise ValueError(f"source-binding path must stay relative to the checkout: {relative}")
+        raise SourceBindingError(f"source-binding path must stay relative to the checkout: {relative}")
     return selected
 
 
 def _read(root: Path, relative: str) -> dict[str, Any]:
     raw = json.loads(_path(root, relative).read_bytes(), object_pairs_hook=unique_object)
     if not isinstance(raw, dict):
-        raise ValueError(f"source-binding input must be an object: {relative}")
+        raise SourceBindingError(f"source-binding input must be an object: {relative}")
     return raw
 
 
@@ -93,32 +97,32 @@ def render(root: Path, relative: str) -> str:
     package = next((name for name, path in PACKAGE_FILES.items() if path == relative), None)
     if package is not None:
         if raw.get("package_id") != package:
-            raise ValueError(f"source-binding package identity disagrees: {relative}")
+            raise SourceBindingError(f"source-binding package identity disagrees: {relative}")
         raw["sources"] = references(root, f"{package}-package")
     elif relative == COMPOSITION:
         for field in ("producers", "members"):
             items = raw.get(field)
             if not isinstance(items, list) or any(
                     not isinstance(item, dict) or not isinstance(item.get("id"), str) for item in items):
-                raise ValueError(f"source-binding {field} must be an array of identified objects")
+                raise SourceBindingError(f"source-binding {field} must be an array of identified objects")
         for producer, view in PRODUCER_VIEWS.items():
             matches = [item for item in raw["producers"] if item["id"] == producer]
             if len(matches) != 1:
-                raise ValueError(f"source-binding producer must occur once: {producer}")
+                raise SourceBindingError(f"source-binding producer must occur once: {producer}")
             matches[0]["sources"] = references(root, view)
         for package, path in PACKAGE_FILES.items():
             matches = [item for item in raw["members"] if item["id"] == package]
             if len(matches) != 1:
-                raise ValueError(f"source-binding member must occur once: {package}")
+                raise SourceBindingError(f"source-binding member must occur once: {package}")
             # Bind the generated package bytes, including its authored interfaces.
             # Do not repair an independently selected descriptor into another file.
             descriptor = matches[0].get("descriptor")
             if not isinstance(descriptor, dict) or descriptor.get("path") != path:
-                raise ValueError(f"source-binding package path disagrees: {package}")
+                raise SourceBindingError(f"source-binding package path disagrees: {package}")
             matches[0]["sources"] = references(root, f"{package}-package")
             matches[0]["descriptor"]["sha256"] = hashlib.sha256(render(root, path).encode("utf-8")).hexdigest()
     else:
-        raise ValueError(f"no declared source-binding artifact: {relative}")
+        raise SourceBindingError(f"no declared source-binding artifact: {relative}")
     return json.dumps(raw, indent=2, ensure_ascii=False, allow_nan=False) + "\n"
 
 
@@ -132,7 +136,7 @@ def _destinations(root: Path) -> dict[str, Path]:
         peers = [*destinations.values(), *inputs]
         if any(selected == peer or (selected.exists() and peer.exists() and selected.samefile(peer))
                for peer in peers):
-            raise ValueError(f"source-binding destination aliases another output or bound source: {name}")
+            raise SourceBindingError(f"source-binding destination aliases another output or bound source: {name}")
         destinations[name] = selected
     return destinations
 
