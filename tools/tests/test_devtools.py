@@ -157,6 +157,53 @@ def _hook_and_pip_inventory_still_require_reviews() -> None:
         ensure(bool(faults), f"a pin without a reviewed owner passed: {pin!r}")
 
 
+def _hook_yaml_population_and_source_policy() -> None:
+    commit = "a" * 40
+    url = "https://github.com/example/hooks"
+    canonical = f"repos:\n  - repo: {url}\n    rev: {commit} # frozen: v1.2.3\n"
+    # Comments and scalar bodies describe keys without adding repository entries.
+    decoy = ("description: |\n  - repo: unreviewed\n    rev: unsafe\n"
+             "# - repo: local\n")
+    for text in (canonical, decoy + canonical,
+                 canonical.replace(url, f'"{url}"'), canonical.replace(url, f"'{url}'")):
+        with sandbox_tree({devtools.HOOK_CONFIG: text}) as root:
+            reader = devtools.Owners(root, frozenset({devtools.HOOK_CONFIG}))
+            ensure(reader.releases(devtools.Owner("pre-commit", devtools.HOOK_CONFIG, url))
+                   == {"1.2.3"}, "real keys must retain their frozen release")
+            ensure(reader.releases(devtools.Owner("pre-commit-rev", devtools.HOOK_CONFIG, url))
+                   == {commit}, "quoted repository values must retain the reviewed commit")
+    rejected = [
+        canonical.replace(f"    rev: {commit}", f'    "rev": {commit}'),
+        canonical.replace(f"    rev: {commit}", f"    rev: &pin {commit}"),
+        canonical.replace("    rev:", "    details: |\n      rev:"),
+        canonical.replace("    rev:", "    hooks:\n      - rev:"),
+        canonical.replace("# frozen: v1.2.3", "# frozen: v1.2.3 # unrelated"),
+        canonical.replace("    rev:", "    rev: |\n      "),
+        canonical + f"  - repo: {url}\n    rev: {commit} # frozen: v1.2.3\n",
+        canonical.replace("    rev:", "    rev: discarded\n    rev:"),
+        canonical + "repos: []\n",
+        f"repos: [{{repo: {url}, rev: {commit}}}]\n",
+        f"repos:\n  - &repo {{repo: {url}, rev: {commit}}}\n  - *repo\n",
+        canonical.replace("    rev:", "    <<: {rev: unsafe}\n    rev:"),
+        canonical.replace("    rev:", "    rev: !unreviewed"),
+        "repos: [\n", "repos: {}\n", "repos: [not-a-mapping]\n", "repos: [{}]\n",
+    ]
+    for text in rejected:
+        with sandbox_tree({devtools.HOOK_CONFIG: text}) as root:
+            reader = devtools.Owners(root, frozenset({devtools.HOOK_CONFIG}))
+            try:
+                reader.releases(devtools.Owner("pre-commit-rev", devtools.HOOK_CONFIG, url))
+            except devtools.OwnerError:
+                ensure(bool(reader.faults), "a YAML/source-policy refusal needs a diagnostic")
+            else:
+                raise AssertionError(f"an ambiguous or noncanonical hook pin passed: {text!r}")
+    # Meta has no external revision; key-like scalar text remains only text.
+    files = _files()
+    text = decoy + "repos:\n  - repo: meta\n    hooks: [{id: check-useless-excludes}]\n"
+    _expected, faults = _inspect({**files, devtools.HOOK_CONFIG: text})
+    ensure(not faults, f"scalar/comment decoys must not become unreviewed repositories: {faults!r}")
+
+
 def _view_preserves_unrelated_document_bytes() -> None:
     before = "outside\r\n" + devtools.HEADING + "\n" + devtools.BEGIN + "\n"
     after = devtools.END + "\nother\r\n"
@@ -277,6 +324,7 @@ def cases() -> list[Case]:
             Case("markers-and-missing-sources-fail-closed", _markers_and_missing_sources_fail_closed),
             Case("owner-readers-cover-every-supported-identity", _owner_readers_cover_every_supported_identity),
             Case("hook-and-pip-inventory-still-require-reviews", _hook_and_pip_inventory_still_require_reviews),
+            Case("hook-yaml-population-and-source-policy", _hook_yaml_population_and_source_policy),
             Case("view-preserves-unrelated-document-bytes", _view_preserves_unrelated_document_bytes),
             Case("rows-require-explicit-owners-or-dispositions", _rows_require_explicit_owners_or_dispositions),
             Case("fixed-owner-descriptors-cannot-name-ignored-fields",
