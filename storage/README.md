@@ -58,3 +58,19 @@ refinement theorem, publication/reopen or executable compartment product.
 and routing witness on both platforms; Linux also runs the compiled map,
 retained-root and refusal campaign and executed behavioral controls. The native
 campaigns run on Host CI's Ubuntu runner.
+
+[The numeric copy-on-write updater](src/tree_update.c) adds insertion,
+replacement and leaf, internal and root splits under
+[its candidate-update contract](tree-update.md). It fully admits the retained
+tree before appending, checks the candidate tree before returning its root, and
+preserves every byte and expected generation in the prior allocated prefix.
+Arena exhaustion, depth or visit limits and invalid input refuse without
+publishing a root. Failed appends may occupy the unused suffix until its next
+attempt. The caller still owns authentication, stable inputs and actual
+publication. Deletion, minimum occupancy, index refinement, durable nonce and
+checkpoint ordering, persistent reopen and target integration remain open.
+
+`python tools/run.py test --only storage_tree_update` checks an independent
+full-width byte boundary on both platforms. Linux additionally compares
+generated insertions and replacements with independent maps and retained roots,
+exercises split/resource refusals and executes compiled behavioral controls.
