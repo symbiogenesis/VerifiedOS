@@ -448,10 +448,11 @@ correct, so every report carries `milestone_acceptance: open`.
 The following directories are inputs rather than commands. [generated/](generated/) is the one this repository does not author: it holds the model's own machine-readable bundle of itself, emitted by Sail and tracked so that the host lane can read the model without one, its supplemental complete source identity generated from the Sail project's own listing, the encoder table [`run.py check --fix`](check.py) writes from that bundle and the shipped configurations, and the memory plan's placement problem the same repair writes from [the plan's proof file](../proofs/MemoryPlan.v). K-88 holds each against what its generator writes, and they are decided differently: the table's and the plan export's generators run at this gate, so their bytes are compared outright, where the bundle's needs Sail and is held against the git index and the owner record the artifact itself carries until `run.py model bundle --check` runs in the guest. It is under `tools/` rather than under `model/` because `model/` is `-text` in [.gitattributes](../.gitattributes) and vendored byte-identically from its upstream pin, and a generated artifact there would break both properties at once. The [Fiat inclusion headers and manifest](generated/fiat-crypto/) are additional guest-generated inputs. K-88 checks their indexed source pin, exact recipes, emitter owner and raw/wrapped hashes without running Fiat. Native reproduction and independent integer-vector commands are documented in the [emission record](../docs/implementation/fiat-crypto-emission.md); these commands consume an explicitly identified external generator and do not install it. [oracle-specs/](oracle-specs/) is
 one JSON file per oracle: the sources to compile, and per line kind the parameters,
 the domain that walks them, the Sail that calls the model, and what to print.
-[cheri-equiv/](cheri-equiv/) is the cross-check's two halves, a Sail generator that
-calls the model's capability functions and a SystemVerilog testbench that replays what
-it printed; neither is a translation of the other and the only thing they share is the
-line format each states in its own header. [quickchick/](quickchick/) is the Gallina
+[cheri-equiv/](cheri-equiv/README.md) holds the capability campaign's authored Sail
+schedule and its independent SystemVerilog consumer. Typed probe declarations use
+the shared oracle emitter for formatting, random generation and printing; the
+consumer computes each answer from the model's printed inputs. The campaign guide
+owns its source boundaries and migration evidence. [quickchick/](quickchick/) is the Gallina
 harnesses. [wasm-oracle/](wasm-oracle/) is the container the CertiCoq → Wasm oracle is
 built and run in, and [its own README](wasm-oracle/README.md) states what it pins.
 [bedrock2-lowering/](bedrock2-lowering/) is the Gallina-to-C lowering loop Q2a stood up
@@ -1049,6 +1050,14 @@ The selftest copies the working tree into its sandboxes, so mutations finish bef
 it starts. Each sandbox runs the generated-artifact checks too: a generator's cost
 is multiplied by the mutant population. Keep generators small and measure them
 before adding work to every gate run.
+
+Tooling consolidation preserves each consumer's complete input population and
+acceptance decisions. The [retirement plan](../PLAN.md#coverage-preserving-tooling-retirement)
+tracks qualified replacements and conditional workarounds. Shared generation and
+parsing belong in libraries; the independent model/RTL comparison, assumption
+audit, recursive kernel check and checker mutation controls retain their own
+verdicts. Optional integrations earn a change of default through their existing
+qualification and equivalent-work measurements.
 
 Holder-citation and landing-declaration mutants select their targets by document
 structure, so completion prose can change without maintaining test literals.

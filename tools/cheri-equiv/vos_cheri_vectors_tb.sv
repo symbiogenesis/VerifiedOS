@@ -2,7 +2,7 @@
 //
 // The SystemVerilog side of the capability-format cross-check.
 //
-// It reads the vectors `tools/cheri-equiv/gen_vectors.sail` emitted from the
+// It reads the vectors `tools/run.py rtl vectors` emitted from the
 // curated Sail model, computes each answer with `rtl/vos_cheri_pkg`, and writes
 // the line back out. Agreement is then a plain text comparison of two files, and
 // nothing translates between the two implementations: this reads the same digits

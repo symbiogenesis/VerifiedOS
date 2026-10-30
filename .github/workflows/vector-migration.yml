@@ -1,0 +1,113 @@
+# SPDX-License-Identifier: Apache-2.0
+# Temporary focused correctness qualification. Retain its report and helper, then
+# remove this workflow; final acceptance still uses Host CI and every Guest lane.
+name: vector-migration
+run-name: vector-migration:${{ inputs.revision }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      revision:
+        description: Full candidate commit SHA already on main
+        type: string
+        required: true
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  compare:
+    runs-on: ubuntu-26.04
+    timeout-minutes: 150
+    env:
+      PYTHONUTF8: "1"
+      PYTHONUNBUFFERED: "1"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.revision }}
+          fetch-depth: 0
+          persist-credentials: false
+          submodules: false
+
+      - name: Verify candidate belongs to main
+        id: dispatch
+        shell: python
+        env:
+          REQUESTED_REVISION: ${{ inputs.revision }}
+          DISPATCH_REF: ${{ github.ref }}
+          DISPATCH_MAIN_SHA: ${{ github.sha }}
+        run: |
+          import os
+          import re
+          import subprocess
+          revision = os.environ["REQUESTED_REVISION"]
+          if os.environ["DISPATCH_REF"] != "refs/heads/main" or not re.fullmatch(r"[0-9a-f]{40}", revision):
+              raise SystemExit("Use main and a full lowercase commit SHA")
+          actual = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+          if actual != revision:
+              raise SystemExit("Checkout differs from requested revision")
+          subprocess.run(["git", "merge-base", "--is-ancestor", revision,
+                          os.environ["DISPATCH_MAIN_SHA"]], check=True)
+
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version-file: tools/pyproject.toml
+
+      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+        with:
+          version-file: tools/pyproject.toml
+          enable-cache: false
+
+      - name: Identify existing model toolchain recipe
+        id: recipe
+        run: |
+          identity=$(python3 tools/ci/bootstrap_guest.py --print-recipe-identity \
+            --toolchain sail --toolchain rtl)
+          [[ "$identity" =~ ^[0-9a-f]{64}$ ]]
+          echo "identity=$identity" >> "$GITHUB_OUTPUT"
+          echo "image=${ImageOS:-unknown}-${ImageVersion:-unknown}" >> "$GITHUB_OUTPUT"
+
+      - name: Restore installed model toolchains
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ~/verifiedos-guest/.verifiedos-guest-root
+            ~/verifiedos-guest/opam
+            !~/verifiedos-guest/opam/download-cache
+            !~/verifiedos-guest/opam/log
+            ~/verifiedos-guest/build/toolchains
+          key: guest-toolchains-v1-model-${{ runner.os }}-${{ runner.arch }}-${{ steps.recipe.outputs.image }}-${{ steps.recipe.outputs.identity }}
+
+      - name: Bootstrap the existing toolchain selection
+        timeout-minutes: 120
+        run: |
+          python3 tools/ci/bootstrap_guest.py --root "$HOME/verifiedos-guest" \
+            --install-system --toolchain sail --toolchain rtl \
+            --github-env "$GITHUB_ENV" --github-path "$GITHUB_PATH" \
+            2>&1 | tee "$RUNNER_TEMP/vector-bootstrap.log"
+
+      - name: Compare complete ordered vector streams
+        timeout-minutes: 20
+        run: |
+          uv run --project tools --locked --exact python tools/ci/rtl_vector_migration.py \
+            --baseline-revision 891d3ebe596bf1121ac4053cc680109d9a4688ea \
+            --report "$VOS_LOG_DIR/vector-migration.json" \
+            2>&1 | tee "$RUNNER_TEMP/vector-comparison.log"
+
+      - name: Retain focused qualification outputs
+        if: ${{ !cancelled() && steps.dispatch.outcome == 'success' }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: vector-migration-${{ inputs.revision }}
+          path: |
+            ~/verifiedos-guest/logs/vector-migration.json
+            ${{ runner.temp }}/vector-bootstrap.log
+            ${{ runner.temp }}/vector-comparison.log
+            tools/ci/rtl_vector_migration.py
+          if-no-files-found: error
+          retention-days: 14
