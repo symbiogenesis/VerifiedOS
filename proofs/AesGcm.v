@@ -49,12 +49,9 @@
    comparison is the *binary's* obligation under R-05-062, taken at the
    artifact and not at this text.
 
-   No Require. Nothing beyond the Rocq prelude is reachable, so `map`, `nth`,
-   `firstn`, `skipn`, `seq`, `rev`, `repeat`, `fold_left` and `concat` are
-   authored below in the idiom Keccak.v and DischargeSequence.v author theirs
-   in. An assumption reachable through an import is an assumption inside the
-   R-05-163 gate's reach, which is what that rule buys and what a convenience
-   import would spend.
+   The shared ProofSupport and CryptoLists modules use only the Rocq prelude.
+   The list operations below retain the same total representation and the native
+   R-05-163 audit follows that support's assumptions as well as this file's.
 
    The representation, and the one place it deliberately disagrees with
    Keccak.v. No register entry fixes any of this, so all four are readings of
@@ -251,6 +248,7 @@
    (*| END derived |*)
    ========================================================================= *)
 
+Require ProofSupport CryptoLists.
 Open Scope list_scope.
 
 (* An equality closed by one evaluation. `vm_compute. reflexivity.` evaluates
@@ -261,74 +259,46 @@ Local Ltac vm_reflexivity :=
   intros; lazymatch goal with |- _ = ?b => vm_cast_no_check (@eq_refl _ b) end.
 
 (* -------------------------------------------------------------------------
-   List helpers, authored rather than imported: the prelude carries the list
-   type and not the library over it.
+   List helpers retain their public names as aliases of the shared prelude
+   support; the primitive references use no Stdlib list library.
    ------------------------------------------------------------------------- *)
 
-Fixpoint map_over {A B : Type} (f : A -> B) (l : list A) : list B :=
-  match l with nil => nil | x :: r => f x :: map_over f r end.
+Definition map_over {A B : Type} : (A -> B) -> list A -> list B := @ProofSupport.map_over A B.
 
-Fixpoint length_of {A : Type} (l : list A) : nat :=
-  match l with nil => 0 | _ :: r => S (length_of r) end.
+Definition length_of {A : Type} : list A -> nat := @ProofSupport.length_of A.
 
-Fixpoint take_of {A : Type} (n : nat) (l : list A) : list A :=
-  match n with
-  | 0 => nil
-  | S k => match l with nil => nil | x :: r => x :: take_of k r end
-  end.
+Definition take_of {A : Type} : nat -> list A -> list A := @ProofSupport.take_of A.
 
-Fixpoint drop_of {A : Type} (n : nat) (l : list A) : list A :=
-  match n with
-  | 0 => l
-  | S k => match l with nil => nil | _ :: r => drop_of k r end
-  end.
+Definition drop_of {A : Type} : nat -> list A -> list A := @ProofSupport.drop_of A.
 
-Fixpoint nth_of {A : Type} (n : nat) (l : list A) (d : A) : A :=
-  match l with
-  | nil => d
-  | x :: r => match n with 0 => x | S k => nth_of k r d end
-  end.
+Definition nth_of {A : Type} : nat -> list A -> A -> A := @ProofSupport.nth_of A.
 
 (* The one out-of-range answer this file relies on, named once so that it is a
    decision rather than a default repeated at twenty sites, and pinned by an
    Example below rather than left unreachable. *)
 Definition bit_at (l : list bool) (i : nat) : bool := nth_of i l false.
 
-Fixpoint rev_onto {A : Type} (l acc : list A) : list A :=
-  match l with nil => acc | x :: r => rev_onto r (x :: acc) end.
+Definition rev_onto {A : Type} : list A -> list A -> list A := @ProofSupport.rev_onto A.
 
 Definition rev_of {A : Type} (l : list A) : list A := rev_onto l nil.
 
-Fixpoint repeat_of {A : Type} (n : nat) (x : A) : list A :=
-  match n with 0 => nil | S k => x :: repeat_of k x end.
+Definition repeat_of {A : Type} : nat -> A -> list A := @ProofSupport.repeat_of A.
 
 (* start through start + count - 1, built by a downward count rather than by
    appending one element at a time, an append per element being quadratic. *)
-Fixpoint up_from (start count : nat) : list nat :=
-  match count with 0 => nil | S k => start :: up_from (S start) k end.
+Definition up_from : nat -> nat -> list nat := ProofSupport.up_from.
 
 Definition upto (n : nat) : list nat := up_from 0 n.
 
-Fixpoint fold_over {A B : Type} (f : B -> A -> B) (acc : B) (l : list A) : B :=
-  match l with nil => acc | x :: r => fold_over f (f acc x) r end.
+Definition fold_over {A B : Type} : (B -> A -> B) -> B -> list A -> B := @ProofSupport.fold_over A B.
 
-Fixpoint concat_of {A : Type} (l : list (list A)) : list A :=
-  match l with nil => nil | x :: r => x ++ concat_of r end.
+Definition concat_of {A : Type} : list (list A) -> list A := @ProofSupport.concat_of A.
 
-Fixpoint all_of {A : Type} (p : A -> bool) (l : list A) : bool :=
-  match l with nil => true | x :: r => andb (p x) (all_of p r) end.
+Definition all_of {A : Type} : (A -> bool) -> list A -> bool := @ProofSupport.all_of A.
 
-Fixpoint count_where {A : Type} (p : A -> bool) (l : list A) : nat :=
-  match l with
-  | nil => 0
-  | x :: r => if p x then S (count_where p r) else count_where p r
-  end.
+Definition count_where {A : Type} : (A -> bool) -> list A -> nat := @ProofSupport.count_where A.
 
-Fixpoint keep_where {A : Type} (p : A -> bool) (l : list A) : list A :=
-  match l with
-  | nil => nil
-  | x :: r => if p x then x :: keep_where p r else keep_where p r
-  end.
+Definition keep_where {A : Type} : (A -> bool) -> list A -> list A := @ProofSupport.filter_of A.
 
 (* The fuel argument is the caller's bound on how many chunks there can be, the
    recursion being on the chunk count rather than on the list, which `drop_of`
@@ -379,11 +349,7 @@ Definition block_bits : nat := block_bytes * byte_bits.
 Definition zero_byte : byte := repeat_of byte_bits false.
 Definition zero_block : block := repeat_of block_bits false.
 
-Fixpoint bxor (a b : list bool) : list bool :=
-  match a with
-  | nil => nil
-  | x :: xs => match b with nil => nil | y :: ys => xorb x y :: bxor xs ys end
-  end.
+Definition bxor : list bool -> list bool -> list bool := CryptoLists.zip_with xorb.
 
 Definition bits_of_byte (v : nat) : byte := bits_be_of byte_bits v.
 
@@ -1183,13 +1149,11 @@ Proof. vm_reflexivity. Qed.
 
 (* AddRoundKey is an involution in the round key, over arbitrary bits. *)
 Lemma xorb_cancels : forall x y : bool, xorb (xorb x y) y = x.
-Proof. destruct x, y; reflexivity. Qed.
+Proof. exact CryptoLists.xorb_cancels. Qed.
 
 Lemma bxor_cancels : forall a k : list bool, length_of a = length_of k -> bxor (bxor a k) k = a.
 Proof.
-  induction a as [|x a IH]; intros [|y k] H; try discriminate H.
-  - reflexivity.
-  - simpl in H. injection H as H. simpl. rewrite xorb_cancels, (IH k H). reflexivity.
+  exact CryptoLists.xor_involution.
 Qed.
 
 Lemma eqb_nat_eq : forall m n : nat, Nat.eqb m n = true -> m = n.
