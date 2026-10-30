@@ -1098,6 +1098,22 @@ owners and checks the generated region of [THIRD-PARTY.md](../THIRD-PARTY.md).
 Repair regenerates display bytes only; an owner moving beyond its recorded licence
 reading refuses repair until that reading is performed and recorded.
 
+The [checker registry](check-registry.schema.json),
+[work-order data](../docs/implementation/work-order.schema.json) and calibration
+[owner](../interfaces/calibration-owner.schema.json) and
+[field declarations](../interfaces/calibration-field.schema.json) also have
+authored schemas. Their readers validate structure through [vos/schema.py](vos/schema.py),
+then decide semantic relationships against live owners. VS Code's
+[schema associations](../.vscode/settings.json) use those same files. Duplicate
+JSON keys remain errors. Calibration digest lengths require actual integers;
+integral floats and booleans cannot stand in for byte counts. Generated views
+remain products of their existing owners.
+
+Verilator's reviewed release uses the same structured `assign` binding as other
+source-literal tool versions. K-118 checks that binding and its generated
+documentation; K-97's separate row parser is retired. A missing review or owner,
+an ambiguous assignment and stale display bytes remain findings.
+
 Ordinary local links and fragments use the pinned offline
 [Lychee adapter](vos/lychee.py). It reads the indexed corpus explicitly, validates
 headings and declared anchors, and accepts a tracked submodule root without fetching
@@ -1235,47 +1251,33 @@ must be one `<name>==<release>` pin with at most its `--hash=sha256:` digests: a
 option such as `-c`, `-r` or `--index-url`, a marker, extras or a URL is a finding at
 its line, and a file declaring an encoding other than UTF-8 is unread.
 
-[ty.toml](ty.toml)'s `[rules]` table sets `all = "error"`, which escalates every rule ty
-carries, including the ones it ships as warnings or switched off, and that is deliberate:
-the alternative is a list of opt-ins that silently stops growing the day ty adds a rule
-nobody transcribed. The gate also passes `--error all`, which overrides the `[rules]`
-table, and `--python-platform` once for each platform it types, which overrides
-ty.toml's, and [run.py typecheck](vos/cli/typecheck.py) holds ty.toml itself. Each of
-these is a ty finding: a `[rules]` table other than exactly `all = "error"`, because
-an editor's ty server reads that table without the flag; an `[[overrides]]` entry
-carrying any key but `include` and `exclude`, because its `rules` can lower the flag's
-severities and its `analysis` can suppress diagnostics for the files it matches; an
-`[analysis]` key outside the ones the gate admits as suppressing nothing, which
-refuses `allowed-unresolved-imports` and `replace-imports-with-any`; an
-`[environment]` key other than `python-platform` and
-`extra-paths`, or `python-platform` other than `"linux"` or `extra-paths` other than
-`["."]`, because the platform decides which `sys.platform` branches an editor's ty
-checks and `python`, `root`, `typeshed` or another search path moves where it
-resolves imports; and a `[src]`
-table other than exactly `exclude = ["**/__pycache__/**"]` and
-`respect-ignore-files = false`, because an `include`, a further `exclude`,
-`exclude-scripts` or honoring ignore files takes files out of the run: ty honors
-`.gitignore`, `.ignore`, `.git/info/exclude` and the global gitignore by default,
-so a pattern in one of them matching a tracked module would drop it. An unreadable
-ty.toml is a finding too, and so is a user-level ty configuration: ty merges
+[ty.toml](ty.toml) enables every ty rule at error. Its admitted tables, exact
+values and keys are declared in [the configuration schema](ty-config.schema.json);
+[Ruff's schema](ruff-config.schema.json) declares its admitted settings. The
+[typecheck command](vos/cli/typecheck.py) decodes TOML and delegates structural
+policy to [the shared strict JSON Schema validator](vos/schema.py). Missing,
+malformed or policy-violating configuration and schema files are findings. The
+schemas refuse per-file suppression settings and changes to ty's required
+coverage and import-resolution tables, including unreviewed top-level ty keys
+and diagnostic baselines. Schema findings
+carry configuration paths and remain visible beside each tool's verdict.
+
+Both TOML files carry a local schema directive for editors supporting
+[Taplo's schema directives](https://taplo.tamasfe.dev/configuration/directives.html).
+Their schemas use the vocabulary those editors support, so the same policy can
+report mistakes while editing. The gate still supplies `--error all` and checks
+both platforms explicitly. A user-level ty configuration is a finding: ty merges
 `%APPDATA%\ty\ty.toml` on Windows, or `$XDG_CONFIG_HOME/ty/ty.toml` (by default
 `~/.config/ty/ty.toml`) on Linux and macOS, beneath ty.toml even when the gate names
 ty.toml with `--config-file`, so a setting ty.toml leaves out would come from it. The
 gate reports such a file rather than steering ty away from it, and reports a set
 `PYTHONPATH` rather than removing it: ty searches each directory it names just after
 `extra-paths` and ahead of the standard library, and an editor's ty server inherits
-the variable as the gate's run does. What ruff is *not*
-asked is in [ruff.toml](ruff.toml): the excluded rules, each named on its own line and
-each for a reason that would hold in any project, and no group switched off to spare this
-code a rewrite. A single site that has to differ carries a `# noqa` naming its rule and
-the sentence saying why; the `PGH` group refuses a blanket `# noqa` or `# type: ignore`.
-A suppression reaching past a line, or a setting that may be one, is a ruff finding: a
-`per-file-ignores` or `extend-per-file-ignores` key in ruff.toml, in `[lint]` or at the
-top level; an `extend` key, which merges another file's settings beneath ruff.toml's;
-any other key outside the ones the gate has read, which are the ones ruff.toml carries,
-since a top-level `per-file-target-version` also switches rules off for the files a
-pattern matches and a key the gate has not read may do as much; a comment anywhere in
-a tracked module carrying ruff's file-level suppression, `# ruff: noqa` or
+the variable as the gate's run does. Excluded Ruff rules remain named and explained
+in [ruff.toml](ruff.toml). A single site that has to differ carries a `# noqa`
+naming its rule and explaining why; `PGH` refuses blanket `# noqa` and
+`# type: ignore` comments. The command also refuses source suppressions reaching
+past a line: a comment carrying Ruff's file-level `# ruff: noqa` or
 `# flake8: noqa`, unless it names N999 and no other rule, since ruff reports N999
 against the file's name rather than a line of it; and a comment carrying
 `# ruff: file-ignore[...]`, a `# ruff: disable[...]` or `# ruff: enable[...]` range,

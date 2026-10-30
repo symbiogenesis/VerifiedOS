@@ -67,7 +67,7 @@ Membership is taken off the corpus's own tracked list rather than a `git cat-fil
 path, so the files cost no subprocess in the green case, and the index is consulted only
 to word a failure. Membership is by name accordingly, the rows held in this module, so
 nothing about a pair can quietly narrow under an edit to either file, and the rule owes
-the floors group no member count on the ground K-83, K-97 and K-101 each state: a site
+the floors group no member count on the ground K-83 and K-101 each state: a site
 that has stopped matching reports here, on the day it stops.
 
 Fail-closed in seven places on K-75's ground. A file the index does not carry
