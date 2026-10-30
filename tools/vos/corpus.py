@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 """Every document in the repository, read once.
 
-A fenced block is shown as text, so an anchor inside one is not a bookmark, a link
+A code block is shown as text, so an anchor inside one is not a bookmark, a link
 inside one is not a link, and an id inside one names nothing: the register's own
 entry template cites `#r-ss-nnn`, which must not read as a dangling trace. Every
 check that reads whole documents reads them through here, so the rule is stated
@@ -20,9 +20,14 @@ import re
 import subprocess
 from collections.abc import Iterable, Iterator
 from dataclasses import dataclass, field
+from functools import cache
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from vos import proofenv
+
+if TYPE_CHECKING:
+    from markdown_it import MarkdownIt
 
 # Retained text may have a lossless compressed representation. Scanners read its
 # original bytes so a storage change does not hide a citation or encoding defect.
@@ -43,17 +48,8 @@ def scan_bytes(root: Path, rel: str) -> bytes:
         return gzip_contents(blob)
     return blob
 
-# The line-anchored patterns here are matched against one line rather than scanned
-# across the whole text with `(?m)^`. The two decide the same lines, but a multiline
-# scan costs the engine an attempt at every line start of a three-megabyte corpus,
-# where a line walk rejects on a substring test first and enters the engine only for
-# the few lines that survive it: measured over this corpus each such scan fell from
-# about twenty milliseconds to under three, and a run performs several of them.
-#
-# [^\S\r\n] is \s minus the line breaks, which on a single line is the same class.
-FENCE_RE = re.compile(r" {0,3}(`{3,}|~{3,})([^\r\n]*)$")
-_CONTAINER_FENCE_RE = re.compile(
-    r"[ \t]*(?:(?:>[ \t]*|(?:[-+*]|[0-9]{1,9}[.)])[ \t]+)[ \t]*)*(`{3,}|~{3,})")
+# Semantic readers retain their prescribed line forms. General Markdown structure
+# comes from the shared CommonMark parser, without serializing its tokens to disk.
 ANCHOR_RE = re.compile(r'<a id="([^"]+)"')
 HEADING_RE = re.compile(r"#{1,6}[ \t]+([^\r\n]+)")
 NUMBERED_RE = re.compile(r"^§?(\d+(?:\.\d+)*)[.:) ]")
@@ -63,36 +59,40 @@ _PUNCT_RE = re.compile(r"[^\w\s-]")
 _SPACE_RE = re.compile(r"\s+")
 
 
-def fence_lines(lines: list[str]) -> list[bool]:
-    """Mark top-level CommonMark fenced blocks, including their delimiters.
+@cache
+def _markdown() -> MarkdownIt:
+    # The launcher imports corpus to find its root before entering the locked
+    # environment. Resolve third-party parser code only when a document is read.
+    from markdown_it import MarkdownIt  # noqa: PLC0415
 
-    A closer uses the opening character, at least its length, and whitespace only
-    after it. Four spaces introduce indented code, not a top-level fence. Backtick
-    info strings cannot contain backticks. An unclosed block extends to EOF.
-    Container and deeply indented fence forms are refused: interpreting them needs
-    a block parser, and treating an unsupported form as prose would count examples
-    as declarations. The corpus uses top-level fences, with at most three spaces.
-    """
+    return MarkdownIt("commonmark", {"html": True}).enable("table")
+
+
+def _syntax(lines: list[str]) -> tuple[list[bool], list[tuple[int, str]]]:
+    """Read code regions and headings from maintained token source maps."""
     fenced = [False] * len(lines)
-    character = ""
-    width = 0
-    for i, line in enumerate(lines):
-        if "```" not in line and "~~~" not in line:
-            fenced[i] = bool(character)
+    headings: list[tuple[int, str]] = []
+    tokens = _markdown().parse("\n".join(line.removesuffix("\r") for line in lines))
+    for index, token in enumerate(tokens):
+        if token.type not in {"fence", "code_block", "heading_open"}:
             continue
-        marker = FENCE_RE.fullmatch(line.removesuffix("\r"))
-        if character:
-            fenced[i] = True
-            if (marker and marker[1][0] == character and len(marker[1]) >= width
-                    and not marker[2].strip(" \t")):
-                character = ""
-        elif marker and not (marker[1][0] == "`" and "`" in marker[2]):
-            fenced[i] = True
-            character, width = marker[1][0], len(marker[1])
-        elif marker is None and _CONTAINER_FENCE_RE.match(line):
-            raise ValueError(f"line {i + 1}: unsupported container or indented fence; "
-                             "use a top-level fence with at most three leading spaces")
-    return fenced
+        if token.map is None:
+            raise ValueError(f"Markdown {token.type} token has no source map")
+        start, end = token.map
+        if not 0 <= start < end <= len(lines):
+            raise ValueError(f"Markdown {token.type} token has an invalid source map")
+        if token.type in {"fence", "code_block"}:
+            fenced[start:end] = [True] * (end - start)
+        else:
+            if index + 1 == len(tokens) or tokens[index + 1].type != "inline":
+                raise ValueError("Markdown heading has no inline content token")
+            headings.append((start, tokens[index + 1].content))
+    return fenced, headings
+
+
+def fence_lines(lines: list[str]) -> list[bool]:
+    """Mask fenced, container and indented code, retaining the historical API name."""
+    return _syntax(lines)[0]
 
 
 def slug(heading: str) -> str:
@@ -111,6 +111,7 @@ class Document:
     starts: list[int]
     fenced: list[bool]
     targets: set[str] = field(default_factory=set)
+    headings: list[tuple[int, str]] = field(default_factory=list)
 
     def line_of(self, offset: int) -> int:
         """The 0-based line containing a raw-text offset."""
@@ -125,7 +126,7 @@ class Document:
 
     def unfenced(self, lead: str,
                  pattern: re.Pattern[str]) -> Iterator[tuple[int, re.Match[str]]]:
-        """Every line-anchored match a fence does not display, as its line and its match.
+        """Every line-anchored match outside code, as its line and its match.
 
         The line's index comes back with it because the walk already knows it: where a
         caller wants the raw offset instead it is `starts[index]`, and the binary search
@@ -171,10 +172,11 @@ def from_text(raw: str, name: str) -> Document:
     lines = [p.removesuffix("\r") for p in body]
 
     try:
-        fenced = fence_lines(lines)
+        fenced, headings = _syntax(lines)
     except ValueError as exc:
         raise RuntimeError(f"{name}: {exc}") from exc
-    return Document(name=name, raw=raw, lines=lines, starts=starts, fenced=fenced)
+    return Document(name=name, raw=raw, lines=lines, starts=starts, fenced=fenced,
+                    headings=headings)
 
 
 PROSE = "docs/spec.md"
@@ -291,8 +293,7 @@ class Corpus:
         # CSR section), so the numbered headings are one set for the repository.
         self.numbered: set[str] = set()
         for d in docs:
-            for _, m in d.unfenced("#", HEADING_RE):
-                heading = m.group(1)
+            for _, heading in d.headings:
                 d.targets.add(slug(heading))
                 num = NUMBERED_RE.match(heading)
                 if num:
@@ -305,7 +306,7 @@ class Corpus:
         # repeat is a fault, and the link check needs the whole set, not the prose's.
         self.anchor_count: dict[str, int] = {}   # prose bookmark -> how often declared
         self.anchor_sec: dict[str, str | None] = {}  # prose bookmark -> the §n it sits in
-        self.buried: list[str] = []              # anchors a fence displays instead of declaring
+        self.buried: list[str] = []              # anchors code displays instead of declaring
         self.declared_twice: list[str] = []
         for d in docs:
             self._read_anchors(d)
@@ -325,7 +326,7 @@ class Corpus:
             ident = m.group(1)
             if d.fenced[i]:
                 self.buried.append(
-                    f"{d.name}:{i + 1} buries #{ident} in a fenced block, "
+                    f"{d.name}:{i + 1} buries #{ident} in a code block, "
                     "where it is text and not a bookmark"
                 )
                 continue

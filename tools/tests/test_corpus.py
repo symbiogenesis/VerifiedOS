@@ -71,15 +71,73 @@ def _fence_delimiter_semantics() -> None:
         ensure(actual == expected, f"fences in {text!r}: {actual}, wanted {expected}")
 
 
-def _unsupported_fences_fail_closed() -> None:
-    for opening in ("    ```", "\t```", "> ```", "- ~~~", "1. ```"):
-        try:
-            _doc(opening + "\n# example\n")
-        except RuntimeError as exc:
-            ensure("docs/x.md: line 1: unsupported" in str(exc),
-                   f"unsupported syntax must identify the document and line: {exc}")
-            continue
-        raise AssertionError(f"unsupported container fence was read as prose: {opening!r}")
+def _container_and_indented_code_are_examples() -> None:
+    for text, expected in (
+            ("    ```\n    # hidden\n# visible\n", [True, True, False]),
+            ("\t```\n\t# hidden\n# visible\n", [True, True, False]),
+            ("> ```\n> # hidden\n> ```\n# visible\n", [True, True, True, False]),
+            ("- ~~~\n  # hidden\n  ~~~\n# visible\n", [True, True, True, False]),
+            ("1. ```\n   # hidden\n   ```\n# visible\n", [True, True, True, False]),
+            ("before\n\n    # hidden\n\n# visible\n", [False, False, True, False, False])):
+        doc = _doc(text)
+        ensure(doc.fenced == expected,
+               f"CommonMark code regions in {text!r}: {doc.fenced}, wanted {expected}")
+        ensure(doc.headings == [(len(expected) - 1, "visible")],
+               f"code examples must not declare headings: {doc.headings!r}")
+        ensure(corpus_mod.fence_lines(doc.lines) == doc.fenced,
+               "the standalone fence API must share the document's syntax")
+
+
+def _code_regions_do_not_declare_anchors_or_ids() -> None:
+    text = ('## §1. Goals\n\n    **R-01-001** MUST: example\n'
+            '    · Accept: example\n    · Trace: CJ-T\n'
+            '    <a id="hidden"></a>\n\n'
+            '> ~~~\n> <a id="quoted-example"></a>\n> ~~~\n\n'
+            '**R-01-002** MUST: real\n· Accept: real\n· Trace: CJ-T\n'
+            '<a id="visible"></a>\n')
+    doc = _doc(text, REGISTER)
+    corpus = corpus_mod.Corpus(Path(), [doc], {}, [REGISTER])
+    register = read_register(corpus)
+    ensure(register.ids == ["R-01-002"], "code examples cannot become normative obligations")
+    ensure(doc.targets == {"1-goals", "visible"},
+           f"displayed anchors cannot become reference targets: {doc.targets!r}")
+    ensure(len(corpus.buried) == 2, "both indented and container code anchors remain reported")
+
+
+def _headings_follow_markdown_structure() -> None:
+    text = ('Setext title\n===\n\n> ## 5. Quoted ###\n\n- ### List heading\n\n'
+            '<div>\n# HTML text\n</div>\n\n## [Linked][ref]\n\n[ref]: target.md\n')
+    with sandbox_tree({"docs/x.md": text}) as root:
+        corpus = corpus_mod.load(root)
+        doc = corpus.by_name["docs/x.md"]
+        ensure(doc.headings == [(0, "Setext title"), (3, "5. Quoted"),
+                                (5, "List heading"), (11, "[Linked][ref]")],
+               f"token source maps and heading contents must agree: {doc.headings!r}")
+        ensure(doc.targets == {"setext-title", "5-quoted", "list-heading", "linkedref"},
+               f"generic targets use actual Markdown headings and existing slug policy: {doc.targets!r}")
+        ensure("5" in corpus.numbered and "html-text" not in doc.targets,
+               "rendered headings supply numbering; text in an HTML block does not")
+
+
+def _markdown_source_maps_preserve_raw_offsets() -> None:
+    text = '> ~~~\r\n> example\r\n> ~~~\r\n\r\n## Visible ###\r\n'
+    doc = _doc(text)
+    ensure(doc.raw == text, "parsing must never normalize source bytes")
+    ensure(doc.starts == [0, 7, 18, 25, 27, 43],
+           f"offsets retain each CRLF byte: {doc.starts!r}")
+    ensure(doc.fenced == [True, True, True, False, False]
+           and doc.headings == [(4, "Visible")],
+           "normalized parser line maps must address the original source lines")
+    ensure(doc.at(text.index("Visible")) == 5,
+           "a heading source map and a raw character offset must identify the same line")
+
+
+def _launcher_import_does_not_require_parser() -> None:
+    code = "import sys; sys.path.insert(0, sys.argv[1]); from vos import corpus; corpus.find_root()"
+    done = subprocess.run([sys.executable, "-S", "-c", code, str(TOOLS)],
+                          capture_output=True, text=True, check=False, timeout=30)
+    ensure(done.returncode == 0,
+           f"root discovery must run before third-party dependencies are available: {done.stderr}")
 
 
 def _fenced_register_entries_are_examples() -> None:
@@ -371,7 +429,11 @@ def cases() -> list[Case]:
         Case("fence-toggles", _fence_toggles),
         Case("fence-indented-marker-toggles", _fence_indented_marker_toggles),
         Case("fence-delimiter-semantics", _fence_delimiter_semantics),
-        Case("unsupported-fences-fail-closed", _unsupported_fences_fail_closed),
+        Case("container-and-indented-code-are-examples", _container_and_indented_code_are_examples),
+        Case("code-regions-do-not-declare-anchors-or-ids", _code_regions_do_not_declare_anchors_or_ids),
+        Case("headings-follow-markdown-structure", _headings_follow_markdown_structure),
+        Case("markdown-source-maps-preserve-raw-offsets", _markdown_source_maps_preserve_raw_offsets),
+        Case("launcher-import-does-not-require-parser", _launcher_import_does_not_require_parser),
         Case("fenced-register-entries-are-examples", _fenced_register_entries_are_examples),
         Case("fence-unclosed-runs-to-eof", _fence_unclosed_runs_to_eof),
         Case("slug-shape", _slug_shape),
