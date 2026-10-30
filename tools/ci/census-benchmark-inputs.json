@@ -1,0 +1,11 @@
+{
+  "schema": "verifiedos-census-benchmark-inputs/1",
+  "support": {
+    "manifest": "docs/implementation/retained-evidence/q35q-census-native-20261023/manifest.json",
+    "raw": "continuation/census-14/native-census.json.gz",
+    "provider": "continuation/census-14",
+    "readings": "continuation/adapter-1"
+  },
+  "controls": null,
+  "unavailable": "The independently emitted three-root control census and readings from adapter candidates six/seven are not present in tracked retained evidence. Support replay supplies no complete performance acceptance, native qualification, assumption audit or kernel verdict."
+}
