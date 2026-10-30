@@ -2523,7 +2523,7 @@
     "",
     "**Verilator is pinned to the reviewed release in the table above.** [The RTL command](tools/vos/cli/rtl.py) owns the enforced pin; `run.py rtl install` installs it from a release archive verified against a recorded SHA-256. It uses a versioned project prefix and leaves the distribution executable installed. The RTL tools reject other versions. Inventory measurements use this release's JSON output and expanded instance counts; earlier XML counts are not interchangeable. This repository distributes neither Verilator nor a binary built from it, and the recorded review does not apply its license to the inspected RTL or reported netlist.",
     "",
-    "**Each GitHub Action runs at the revision its row reviewed.** Every workflow `uses:` line names the action's full commit with its release in a comment: a floating tag, or a release tag outside GitHub's immutable releases, can move under a reviewed row, and a full commit cannot. K-115 holds each line's commit and release against the action's row above, and K-118 holds each workflow analyzer row's release and licence tag against the lock or script that installs it. A new action or release needs its license read and its row written before a workflow runs it.",
+    "**Each GitHub Action runs at the revision its row reviewed.** Every workflow `uses:` line names the action's full commit with its release in a comment: a floating tag, or a release tag outside GitHub's immutable releases, can move under a reviewed row, and a full commit cannot. K-118 compares each reference with its structured action review and generates the row and licence URL from that identity. It also holds workflow analyzer rows to the locks or scripts that install them. A new action or release needs its license read and its reviewed identity declared before a workflow runs it.",
     "",
     "**QuickChick.** No release of QuickChick or `coq-simple-io` installs beside the proof switch's Rocq, so [the QuickChick command](tools/vos/cli/quickchick.py)'s `RECIPE` builds each from an upstream commit, under [the opam guide's](tools/opam/README.md) rule for commit pins, which names each commit's reason and the release that retires it. [The QuickChick snapshot](tools/opam/quickchick.lock), a hosted run's export of that recipe once the randomized half's checks passed on it, is what provisioning imports. QuickChick's and `coq-simple-io`'s licences were read at their pinned commits on 2026-09-30; released `coq-ext-lib` ${the_section_s_paragraphs_121_0}'s licence was read on 2026-10-06. QuickChick's `LICENSE`, blob `5d159d5fc2fee360ec9381bc8dcef0e8f4c94ae7` and SHA-256 `6010f188d0030246256c850749c34754b1014a5171316173258530d515965031`, is the MIT License and credits Maxime Dénès, Catalin Hritcu, Leonidas Lampropoulos and Zoe Paraskevopoulou, copyright 2014. `coq-simple-io`'s `LICENSE`, blob `931983b2d74323c26bd1f38f8f6ee376923ff794` and SHA-256 `1b4f292e1d0dd5bc383a146f9234f382f8bf7533b56d26af0ed37046d07fd69d`, is the MIT grant, copyright 2018-2022 Li-yao Xia and Yishuai Li. `coq-ext-lib`'s [${the_section_s_paragraphs_122_0} LICENSE](https://github.com/rocq-community/coq-ext-lib/blob/dd32f1c56f41d699ed2ffd4193a876c87fc44926/LICENSE), blob `3ac855e52eec1323cd2d311404683abd3176466d` and SHA-256 `0b29ddb1e8bcd044cc74aaa8f6de8502f687013ebbc9a7dc788d1c726fb9e5c6`, is the BSD 2-Clause License, copyright 2013 Gregory M. Malecha. The opam metadata at each selected source declares the same terms. No source of the three, nor anything compiled from them, is distributed here.",
     "",
@@ -2581,48 +2581,6 @@
       "reviews": [
         "pre_commit_2"
       ]
-    },
-    {
-      "id": "astral-sh/setup-uv",
-      "tool": "astral-sh/setup-uv",
-      "license": "`MIT`",
-      "standing": "Host and guest CI, the boot signature target campaign and the instrument switch route download and run the action to install uv and cache its downloads; the campaign and the route read Guest CI's cache and save none. The reviewed v10.3.0 revision `1c37ad07a6a961277cf70c0d37d6f313000f5884` has an [MIT LICENSE](https://github.com/astral-sh/setup-uv/blob/1c37ad07a6a961277cf70c0d37d6f313000f5884/LICENSE). No action source or bundled dependency is redistributed here.",
-      "disposition": "K-115 holds its release and commit against the workflows"
-    },
-    {
-      "id": "actions/checkout",
-      "tool": "actions/checkout",
-      "license": "`MIT`",
-      "standing": "Host and guest CI, the boot signature target campaign and the instrument switch route fetch the checkout. The reviewed v7.0.1 revision `3d3c42e5aac5ba805825da76410c181273ba90b1` has an [MIT LICENSE](https://github.com/actions/checkout/blob/3d3c42e5aac5ba805825da76410c181273ba90b1/LICENSE), crediting GitHub and contributors. No action source or bundled dependency is redistributed here.",
-      "disposition": "K-115 holds its release and commit against the workflows"
-    },
-    {
-      "id": "actions/setup-python",
-      "tool": "actions/setup-python",
-      "license": "`MIT`",
-      "standing": "Host and guest CI, the boot signature target campaign and the instrument switch route install the Python interpreter. The reviewed v7.0.0 revision `5fda3b95a4ea91299a34e894583c3862153e4b97` has an [MIT LICENSE](https://github.com/actions/setup-python/blob/5fda3b95a4ea91299a34e894583c3862153e4b97/LICENSE), crediting GitHub and contributors. No action source or bundled dependency is redistributed here.",
-      "disposition": "K-115 holds its release and commit against the workflows"
-    },
-    {
-      "id": "actions/upload-artifact",
-      "tool": "actions/upload-artifact",
-      "license": "`MIT`",
-      "standing": "Guest CI, the boot signature target campaign and the instrument switch route retain logs and receipts, the route also its build's switch export, a text lock. The reviewed v7.0.2 revision `cf430e030ddbb5b0abf93d22962f4752f3646cd9` has an [MIT LICENSE](https://github.com/actions/upload-artifact/blob/cf430e030ddbb5b0abf93d22962f4752f3646cd9/LICENSE), crediting GitHub and contributors. Neither action code nor compiled third-party tools are uploaded as project evidence.",
-      "disposition": "K-115 holds its release and commit against the workflows"
-    },
-    {
-      "id": "actions/download-artifact",
-      "tool": "actions/download-artifact",
-      "license": "`MIT`",
-      "standing": "The boot signature target campaign collects its interface receipts from the same run before joining them, and the instrument switch route collects its build's export and its jobs' receipts from the same run. The reviewed v8.0.2 revision `9000827ccba6bdab643e8b6fd33ac0654aef8333` has an [MIT LICENSE](https://github.com/actions/download-artifact/blob/9000827ccba6bdab643e8b6fd33ac0654aef8333/LICENSE), crediting GitHub and contributors. No action source or bundled dependency is redistributed here.",
-      "disposition": "K-115 holds its release and commit against the workflows"
-    },
-    {
-      "id": "actions/cache",
-      "tool": "actions/cache",
-      "license": "`MIT`",
-      "standing": "Guest CI caches source downloads, installed toolchains, validated proof candidates and the model lane's Sail memo and compiler cache through the same revision's `restore` and `save` actions. The boot signature target campaign only restores the model lane's toolchains and memo. The reviewed v6.1.0 revision `55cc8345863c7cc4c66a329aec7e433d2d1c52a9` has an [MIT LICENSE](https://github.com/actions/cache/blob/55cc8345863c7cc4c66a329aec7e433d2d1c52a9/LICENSE), crediting GitHub and contributors. No action source or bundled dependency is redistributed here.",
-      "disposition": "K-115 holds its release and commit against the workflows"
     },
     {
       "id": "GitHub CLI",
@@ -3084,6 +3042,80 @@
       "reviews": [
         "lychee"
       ]
+    }
+  ],
+  "actions": [
+    {
+      "repository": "astral-sh/setup-uv",
+      "release": "v10.3.0",
+      "commit": "1c37ad07a6a961277cf70c0d37d6f313000f5884",
+      "license": "MIT",
+      "licence_paths": [
+        "LICENSE"
+      ],
+      "description": "Host and guest CI, the boot signature target campaign and the instrument switch route download and run the action to install uv and cache its downloads; the campaign and the route read Guest CI's cache and save none.",
+      "attribution": "",
+      "notice": "No action source or bundled dependency is redistributed here."
+    },
+    {
+      "repository": "actions/checkout",
+      "release": "v7.0.1",
+      "commit": "3d3c42e5aac5ba805825da76410c181273ba90b1",
+      "license": "MIT",
+      "licence_paths": [
+        "LICENSE"
+      ],
+      "description": "Host and guest CI, the boot signature target campaign and the instrument switch route fetch the checkout.",
+      "attribution": "crediting GitHub and contributors",
+      "notice": "No action source or bundled dependency is redistributed here."
+    },
+    {
+      "repository": "actions/setup-python",
+      "release": "v7.0.0",
+      "commit": "5fda3b95a4ea91299a34e894583c3862153e4b97",
+      "license": "MIT",
+      "licence_paths": [
+        "LICENSE"
+      ],
+      "description": "Host and guest CI, the boot signature target campaign and the instrument switch route install the Python interpreter.",
+      "attribution": "crediting GitHub and contributors",
+      "notice": "No action source or bundled dependency is redistributed here."
+    },
+    {
+      "repository": "actions/upload-artifact",
+      "release": "v7.0.2",
+      "commit": "cf430e030ddbb5b0abf93d22962f4752f3646cd9",
+      "license": "MIT",
+      "licence_paths": [
+        "LICENSE"
+      ],
+      "description": "Guest CI, the boot signature target campaign and the instrument switch route retain logs and receipts, the route also its build's switch export, a text lock.",
+      "attribution": "crediting GitHub and contributors",
+      "notice": "Neither action code nor compiled third-party tools are uploaded as project evidence."
+    },
+    {
+      "repository": "actions/download-artifact",
+      "release": "v8.0.2",
+      "commit": "9000827ccba6bdab643e8b6fd33ac0654aef8333",
+      "license": "MIT",
+      "licence_paths": [
+        "LICENSE"
+      ],
+      "description": "The boot signature target campaign collects its interface receipts from the same run before joining them, and the instrument switch route collects its build's export and its jobs' receipts from the same run.",
+      "attribution": "crediting GitHub and contributors",
+      "notice": "No action source or bundled dependency is redistributed here."
+    },
+    {
+      "repository": "actions/cache",
+      "release": "v6.1.0",
+      "commit": "55cc8345863c7cc4c66a329aec7e433d2d1c52a9",
+      "license": "MIT",
+      "licence_paths": [
+        "LICENSE"
+      ],
+      "description": "Guest CI caches source downloads, installed toolchains, validated proof candidates and the model lane's Sail memo and compiler cache through the same revision's restore and save actions. The boot signature target campaign only restores the model lane's toolchains and memo.",
+      "attribution": "crediting GitHub and contributors",
+      "notice": "No action source or bundled dependency is redistributed here."
     }
   ]
 }

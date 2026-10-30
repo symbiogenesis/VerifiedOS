@@ -118,74 +118,6 @@ Its schema requires the reviewed row; changed or unreadable assignments and
 unreviewed editions refuse repair. Historical measurements and upstream tools'
 own pins remain outside that current-release binding.
 
-K-115 is the same agreement one step further out, **for the code the hosted workflows
-run**. A workflow's `uses:` line names another repository's code and the job token it
-runs with, and the record's development-tools table carries one row per action
-stating the release and the full commit its terms were read at. A tag moves under that
-row without any file here changing, so the rule first holds each line to the one form
-that cannot move, `owner/repo[/path]@<40 hex digits> # vX.Y.Z`, and then holds its
-commit and release to the action's own row. The row's licence link names the edition
-its terms were read at, so the row links a file of the action's own repository, a
-`blob`, `tree`, `blame` or `raw` path on github.com, a scheme-less `www.github.com`
-autolink included, or a path on raw.githubusercontent.com, its owner and name in any
-case, and every such link is held
-to name the reviewed commit, never another commit, a tag or a branch that could move
-under it. A `/`, `?` or `#` ends the revision. A Markdown link's destination,
-angle-bracketed or not, and an autolink keep every other character up to the bracket
-closing them, as GFM does, so where the link opens one of them its revision runs to a
-blank, which no ref name holds, or to that bracket, a destination's `)` or an angle
-bracket's `>`: the reviewed commit followed there by `_`, a quote or a bracket that
-does not close the link, any of which a ref name may hold, names another ref and is a
-finding, and one followed by a full stop, which no ref name ends with, is a finding
-too, which errs closed. An HTML attribute keeps its value through the matching quote,
-or through the next blank or `>` when unquoted, without stripping punctuation. Only a
-bare link, from whose end GFM strips trailing punctuation, also ends before a run of
-sentence punctuation or Markdown delimiters,
-`.`, `,`, `:`, `;`, `!`, `*`, `_`, `~`, a backtick, a quote or a pipe, standing just
-before its close at a blank, `<`, `)`, `]`, `>` or the row's end, so a bare link ending a
-sentence is read at its revision and a tag keeps its interior dots. A view naming no
-path after its revision, or only slashes, as the tree at a commit does, is held to the
-reviewed commit too but links no file. Outside an HTML attribute, a path made only of
-slashes and a closing run of that punctuation also names no file, so it does not stand
-for the licence link. Membership is total
-in both directions: a line naming an action with no row runs code whose terms nobody
-read, and a row naming an action no workflow runs is a review of nothing. The two
-workflow analyzers Host CI runs are installed from a lock and a script rather than
-named by a workflow line, so K-118 holds their rows with the rest of the section's.
-
-**The window is the git index's workflow directory**, every tracked `.yml` or `.yaml`
-file under `.github/workflows/`, and each reading fails closed: no workflow, no
-`uses:` line at all, a record without its development-tools heading or with no action
-row under it, and a row stating its reviewed revision other than exactly once or
-linking no file of its action's repository are each a finding rather than an
-agreement over nothing. That is why it owes the floors group no member. **The reading
-takes one shape and a census holds it to the rest**: a reference is read only as a
-block mapping's bare `uses:` key opening its line, alone or after a sequence dash,
-while YAML also lets that key be quoted, tagged, anchored, written in a flow collection,
-spelled with an escape, reached through an alias or opened by an explicit `?`
-indicator. So the census splits each file at every YAML line break, 1.1's included,
-and on every line counts a `uses` key, bare or quoted, followed by its `:`; a
-double-quoted key holding an escape and an alias used as a key, whatever
-they spell; and every explicit-key `?` indicator, whatever key it opens. A comment's
-line is read too, since a line opening with `#` may continue a quoted scalar and a `#`
-after a no-break space, which YAML reads as content, opens no comment at all.
-PyYAML reads every `?` inside a flow collection as a key's indicator, whatever
-follows it, and a line does not say whether it stands in one, so a `?` opening its line
-after indentation alone or following `{`, `,` or `[` is counted whatever follows it,
-while one after a block indicator and a blank is counted only before a blank, as a
-block key's indicator is. A line carrying any of them other than the key the reading
-took is one finding naming that line; otherwise a reference in another shape would run
-code the rule reported agreement about without having read it. The census errs toward
-a finding, counting a key or a `?` inside a comment or a scalar's text, and an
-escaped, alias or explicit key that names something else. The one shape it does not
-count is a flow mapping's key whose `:` stands on a later line, which the YAML 1.2.2
-grammar admits and PyYAML refuses. While a reference stands unread, a row is not also
-reported as run by nothing, the unread line being what may run it. What it does not
-decide is whether the commit is the release the comment names; the row's reviewer read
-that, and zizmor's online audits are the instrument that asks GitHub.
-**Reported and never repaired**, on the licence-review ground: moving a row's
-commit would claim a licence reading nobody took.
-
 K-116 is the third kind: **a commit a tool consumes rather than a sentence restates.**
 The width-transform registry binds the imported core's gitlink it was derived through,
 and K-81 does not read that binding, the registry's `"pin"` naming no upstream on its
@@ -212,7 +144,6 @@ all prose outside the generated section retain their own owners.
 
 """
 
-import re
 import zlib
 from collections.abc import Callable, Iterator
 from typing import TYPE_CHECKING, cast
@@ -231,36 +162,6 @@ if TYPE_CHECKING:
     from . import Context
 
 HEADING = "=== pins: every upstream pin against the artifact that owns it ==="
-
-# K-115's readings. The workflows are the index's own files under this directory; the
-# record's rows are the development-tools table's, one per action named `owner/repo`.
-WORKFLOWS = ".github/workflows/"
-TOOLS_HEADING = "### Development tools, contained by use"
-# The one shape a reference is read in: a block mapping's bare `uses:` key opening its
-# line, alone or after a sequence dash, with the reference the rest of the line.
-_USES_RE = re.compile(r"^[ \t]*(?:-[ \t]+)?(?P<key>uses):[ \t]*(.*?)[ \t]*$")
-# Every key on a line that can be `uses`, wider than the reading on purpose: a `uses`
-# key, bare or quoted, followed by its `:`; a double-quoted key holding an escape and
-# an alias used as a key, whatever they spell; and every explicit-key `?` indicator,
-# whatever key it opens. Each key stands after a blank, a flow indicator or the line's
-# start, so a tag or an anchor before the key does not hide it. A `?` is counted where
-# PyYAML may read one: after a block indicator and a blank only when a blank or the
-# line's end follows, as a block key's indicator is, since a `?` flush against what
-# follows it there opens a plain scalar, and one in a flow collection there is a parse
-# error; and opening its line after indentation alone or following `{`, `,` or `[`
-# whatever follows it, since such a line may stand in a flow collection, where PyYAML
-# reads every `?` as a key's. A key it finds that the reading did not take is a finding
-# rather than a reference nobody held against the record.
-_USES_KEY_RE = re.compile(
-    r"""(?:(?<=[\s{,\[])|^)"""
-    r"""(?:(?P<q>["']?)uses(?P=q)|"[^"]*\\[^"]*"|\*[^\s,\[\]{}]+)(?=[ \t]*:)"""
-    r"""|^[ \t]*(?:\?|(?:[-?:][ \t]+)+\?(?=[ \t]|$))|(?<=[{,\[])[ \t]*\?""")
-# The line breaks YAML reads, 1.1's included, so a line here is a line to the parser.
-_YAML_BREAK_RE = re.compile(r"\r\n|[\r\n\x85\u2028\u2029]")
-_PINNED_USE_RE = re.compile(
-    r"([A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+)(?:/[^@\s]+)?@([0-9a-f]{40}) # (v\d+\.\d+\.\d+)")
-_ACTION_ROW_RE = re.compile(r"^\| ([A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+) \|")
-_REVIEWED_ACTION_RE = re.compile(r"reviewed (v\d+\.\d+\.\d+) revision `([0-9a-f]{40})`")
 
 # Every id this repository writes beside an upstream's name that is not that
 # upstream's pin, with what it actually is. Each one is a reading trap on its face:
@@ -516,7 +417,6 @@ def run(ctx: Context) -> None:
     rep = ctx.rep
     rep.line(HEADING)
     _pins(ctx)
-    _workflow_pins(ctx)
     _dev_tools(ctx)
     _bindings(ctx)
     rep.line()
@@ -549,211 +449,6 @@ def _bindings(ctx: Context) -> None:
                    "they were derived through:", findings,
                    f"the {len(BINDINGS)} tool-consumed RTL binding(s) record the commits "
                    "the index carries for their gitlinks")
-
-
-def _tool_rows(text: str, findings: list[str]) -> dict[str, tuple[int, str]]:
-    """The development-tools table's rows, keyed by their tool cell, with line numbers.
-
-    Read from the record's own heading to the next heading, so a row of another
-    table is never taken for this one's; a tool stated by two rows is a finding, the
-    record then disagreeing with itself about which terms were read.
-    """
-    found = re.search(rf"(?m)^{re.escape(TOOLS_HEADING)}[^\S\r\n]*$", text)
-    if found is None:
-        findings.append(f"{pins_mod.RECORD} carries no `{TOOLS_HEADING}` heading, so no "
-                        "reviewed row can be read")
-        return {}
-    base = text.count("\n", 0, found.start()) + 1
-    rows: dict[str, tuple[int, str]] = {}
-    for offset, raw in enumerate(text[found.start():].split("\n")[1:], start=1):
-        line = raw.removesuffix("\r")
-        if line.startswith("#"):
-            break
-        cells = line.split("|")
-        if not line.startswith("| ") or len(cells) < 3:
-            continue
-        tool = cells[1].strip()
-        if tool in rows:
-            findings.append(f"{pins_mod.RECORD}:{base + offset} is a second row for {tool}, "
-                            "and a pin stated twice is one the page can disagree with "
-                            "itself about")
-            continue
-        rows[tool] = (base + offset, line)
-    return rows
-
-
-# What closes a link in a row: a blank, a bracket closing Markdown's link or autolink
-# syntax, or the row's end. A run of sentence punctuation or Markdown delimiters
-# standing just before that close ends a bare link rather than belonging to it, and
-# GFM strips it there; a destination, angle autolink or HTML attribute keeps it.
-_LINK_CLOSE = r"(?:[\s<)\]>]|$)"
-_LINK_TRAIL = r".,:;!*_~`'\"|"
-# What a revision runs through where its link opens a Markdown destination, and where
-# it opens an angle-bracketed destination or an autolink: every character but the
-# view's separators, a blank, which no ref name holds, and the bracket closing it.
-_DEST_REVISION = r"[^/#?\s)]+"
-_ANGLE_REVISION = r"[^/#?\s>]+"
-# An attribute value ends at its matching quote, or at a blank or `>` when unquoted.
-_ATTR_REVISION = r"(?(quote)[^/#?]+?(?=[/#?]|(?P=quote))|[^/#?\s>]+)"
-_ATTR_PATH = r"(?(quote)[^#?]*?(?=[#?]|(?P=quote))|[^\s>#?]*)"
-
-
-def _licence_links(tool: str) -> re.Pattern[str]:
-    """Every view of the action's own repository at a revision, and the file it names.
-
-    A `blob`, `tree`, `blame` or `raw` path on github.com, `www.` or not, or a path on
-    raw.githubusercontent.com, with the scheme, host, owner and name in any case,
-    including a scheme-less `www.github.com` autolink. Its `rev` group is the revision
-    named and its `path` group the path after it, absent or empty when none follows,
-    or carrying only slashes in an attribute value naming no file. The revision is the
-    segment after the view, and a `/`, `?` or `#` ends it. Where the link opens a
-    Markdown destination, after `](` and any blanks, the revision runs on to a blank or
-    the `)` closing the destination, and where it opens an angle-bracketed destination
-    or an autolink, to a blank or the `>` closing it, since GFM keeps every character
-    before those: the reviewed commit followed there by `_` names another ref, and one
-    followed by a full stop, which no ref name ends with, is read with it too and so
-    errs closed. An HTML attribute value keeps every character through its matching
-    quote, or through the next blank or `>` when unquoted. Only a bare link also ends
-    before a run of `_LINK_TRAIL`'s punctuation standing just before its close, as GFM
-    strips trailing punctuation from a bare autolink, so one ending a sentence or
-    wrapped in a code span is read at its revision, and a tag keeps its interior dots.
-    Outside an attribute, the path ends at a `?` or `#`, or before a run of slashes and
-    that punctuation standing just before the close, so a path made only of slashes
-    and closing punctuation names no file. An attribute's path keeps its punctuation
-    through the same close as its revision, unless a `?` or `#` ends it, and only
-    slashes still name no file. Any other link into the repository, its front page, a
-    commit's or a release's, links no file and is not read.
-    """
-    name = re.escape(tool)
-    return re.compile(r"(?:(?P<angle>\]\(\s*<|<)|(?P<dest>\]\(\s*)"
-                      r"|(?P<attribute>[^\s\"'<>/=]+\s*=\s*(?P<quote>[\"'])?))?"
-                      rf"(?:(?i:(?:https?://(?:www\.)?|www\.)github\.com/{name})"
-                      r"/(?:blob|tree|blame|raw)"
-                      rf"|(?i:https?://raw\.githubusercontent\.com/{name}))"
-                      rf"/(?P<rev>(?(attribute){_ATTR_REVISION}|(?(angle){_ANGLE_REVISION}"
-                      rf"|(?(dest){_DEST_REVISION}"
-                      rf"|[^/\s<)\]>#?]+?(?=[/#?]|[{_LINK_TRAIL}]*{_LINK_CLOSE})))))"
-                      rf"(?:/(?P<path>(?(attribute){_ATTR_PATH}"
-                      rf"|[^\s<)\]>#?]*?(?=[#?]|[/{_LINK_TRAIL}]*{_LINK_CLOSE}))))?")
-
-
-def _workflow_pins(ctx: Context) -> None:
-    """K-115: every action a workflow runs is the commit and release its row reviewed.
-
-    Fail-closed at every reading, on the licence-review ground; the module's account
-    of K-115 explains what each missing reading would otherwise let pass.
-    """
-    rep = ctx.rep
-    record = pins_mod.RECORD
-    findings: list[str] = []
-    text = ctx.text(record)
-    if not text:
-        findings.append(f"{record} is not in the repository, so no reviewed row can be read")
-    rows = _tool_rows(text, findings) if text else {}
-
-    # action -> (release, commit, where the row stands); an unreadable row keeps its
-    # key with empty values, so the lines naming it are not also reported as rowless
-    actions: dict[str, tuple[str, str, str]] = {}
-    for tool, (line, row) in rows.items():
-        if not _ACTION_ROW_RE.match(row):
-            continue
-        where = f"{record}:{line}"
-        stated = _REVIEWED_ACTION_RE.findall(row)
-        if len(stated) != 1:
-            findings.append(f"{where} states {tool}'s reviewed release and revision "
-                            f"{len(stated)} times; exactly one `reviewed vX.Y.Z revision "
-                            "`<full commit>`` is read")
-            actions[tool] = ("", "", where)
-            continue
-        release, commit = stated[0]
-        actions[tool] = (release, commit, where)
-        # The row's licence link names the edition its terms were read at, so the row
-        # links a file of the action's own repository, and every view of that repository
-        # at a revision, a file's or not, names the reviewed commit rather than another
-        # commit, a tag or a branch. A view naming no file states a revision and no terms.
-        links = [(m["rev"], m["path"] or "") for m in _licence_links(tool).finditer(row)]
-        if not any(path.strip("/") for _, path in links):
-            findings.append(f"{where} links no licence of {tool} at the reviewed commit; "
-                            "the link names the edition the terms were read at")
-        for ref, _ in links:
-            if ref != commit:
-                linked, reviewed = apart(ref, commit)
-                findings.append(f"{where} links {tool}'s licence at {linked}, the row "
-                                f"reviewed {reviewed}; the link names the edition the "
-                                "terms were read at, so the edit is a person's")
-    if rows and not actions:
-        findings.append(f"{record}'s development-tools table carries no action row, so the "
-                        "workflows would be held against nothing")
-
-    files = sorted(rel for rel in ctx.corpus.tracked
-                   if rel.startswith(WORKFLOWS) and rel.endswith((".yml", ".yaml")))
-    if not files:
-        findings.append(f"the index carries no workflow under {WORKFLOWS}, so no action "
-                        "reference is read")
-    used: set[str] = set()
-    references = 0
-    unread = 0
-    for rel in files:
-        try:
-            source = (ctx.root / rel).read_text(encoding="utf-8")
-        except (OSError, UnicodeDecodeError):
-            findings.append(f"{rel} cannot be read as text, so its action references are "
-                            "unread")
-            continue
-        for number, text_line in enumerate(_YAML_BREAK_RE.split(source), start=1):
-            where = f"{rel}:{number}"
-            # The reading's shape never takes a comment line, `#` being no `uses` key.
-            m = _USES_RE.match(text_line)
-            # The census: a line carrying any key the reading did not take is one
-            # finding, so a reference in a shape the reading does not parse is a finding
-            # rather than one the rule reports agreement about without having read it.
-            # It reads every line, a comment's included: a line opening with `#` may
-            # continue a quoted scalar, and a `#` after a no-break space, which YAML
-            # reads as content rather than a blank, opens no comment at all.
-            taken = m.start("key") if m else -1
-            if any(key.start() != taken for key in _USES_KEY_RE.finditer(text_line)):
-                unread += 1
-                findings.append(f"{where} states an action reference in a form K-115 "
-                                "does not read; write it as a block `uses:` key, alone "
-                                "or after a sequence dash, so it is held against the "
-                                "reviewed row")
-            if m is None:
-                continue
-            references += 1
-            pinned = _PINNED_USE_RE.fullmatch(m.group(2))
-            if pinned is None:
-                findings.append(f"{where} uses `{m.group(2)}`, which is not "
-                                "owner/repo[/path]@<full commit> # vX.Y.Z; a tag or branch "
-                                "can move under the reviewed row")
-                continue
-            action, sha, version = pinned.groups()
-            used.add(action)
-            if action not in actions:
-                findings.append(f"{where} runs {action}, which {record}'s development-tools "
-                                "table has no row for, so nobody read the terms of the code "
-                                "it runs")
-                continue
-            want_version, want_sha, row = actions[action]
-            if want_sha and (sha, version) != (want_sha, want_version):
-                ran, reviewed = apart(sha, want_sha)
-                findings.append(
-                    f"{where} runs {action} at {ran} ({version}), {row} reviewed "
-                    f"{reviewed} ({want_version}); the row's terms were read at the "
-                    "revision it states, so the edit is a person's")
-    if files and not references and not unread:
-        findings.append(f"no workflow under {WORKFLOWS} states an action reference, so the "
-                        "rows would be held against nothing")
-    # A row is held to being run only when every reference was read: an unread one may
-    # be what runs it, and that site is already the finding a person acts on.
-    if references and not unread:
-        findings += [f"{where} reviews {action}, which no workflow runs; a row reviewing "
-                     "nothing is a licence record for no code"
-                     for action, (_, _, where) in actions.items() if action not in used]
-
-    rep.report("K-115", "workflow action pin(s) the reviewed record does not state:",
-               findings,
-               f"the {references} action references in {len(files)} workflows state the "
-               f"commits and releases their {len(actions)} reviewed rows record")
 
 
 def _dev_tools(ctx: Context) -> None:
