@@ -99,8 +99,8 @@
       "pr": null,
       "benefit": "Prevents stale generated C++, documentation and proof terms after compiler replacement.",
       "reviewed_head": null,
-      "review": "No matching authored PR found.",
-      "next_action": "TBD: add compiler dependencies and a regeneration regression.",
+      "review": "The local [generation graph](../../model/cmake/sail_toolchain.cmake) binds generator contents and protects failed emissions with completion stamps. The [small native controls](../../tools/tests/test_cmake_generation.py) exercise preserved timestamps, unchanged-input reuse and failure recovery in hosted Linux. Package the portable change after that qualification; no upstream PR is authored.",
+      "next_action": "TBD: package the local content-fingerprint and regeneration controls for upstream review after hosted qualification.",
       "evidence": []
     },
     {

@@ -472,7 +472,7 @@ def _qualify_locked(e: env.Environment, count: int, root: Path,
     verify_manifest(manifest)
     verify_dependency_closure(build_dependencies(e.build_dir, compiler), manifest,
                               e.build_dir, e.build_dir)
-    prepared = model.model_dependencies.prepare(e.model, build, offline=e.model_offline)
+    prepared = model._prepared_options(e, build)
     stages.append(_measure("configure", model.configure_command(e, build, [*prepared,
                   f"-DCMAKE_PROJECT_INCLUDE={recipe}", f"-DVOS_MODULAR_DIR={generated}",
                   f"-DVOS_MODULAR_COUNT={count}"]), e.root, logs, env.git_env(e.root)))

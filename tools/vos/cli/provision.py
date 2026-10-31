@@ -276,16 +276,23 @@ def _on_path(name: str) -> Found:
     return Found(where is not None, where or f"no {name} on PATH")
 
 
+def _cmake_minimum(owner: Path) -> str:
+    versions = list(re.finditer(r"(?m)^cmake_minimum_required\(VERSION ([0-9]+(?:\.[0-9]+){1,2})\)$",
+                                owner.read_text(encoding="utf-8")))
+    if len(versions) != 1:
+        raise ValueError("expected one literal cmake_minimum_required VERSION")
+    version = versions[0].group(1)
+    if not isinstance(version, str):
+        raise TypeError("CMake minimum version must be text")
+    return version
+
+
 def _cmake() -> Found:
     """Read the model's supported floor instead of accepting any installed CMake."""
     owner = Path(__file__).resolve().parents[3] / "model/CMakeLists.txt"
     try:
-        versions = re.findall(r"(?m)^cmake_minimum_required\(VERSION ([0-9]+(?:\.[0-9]+){1,2})\)$",
-                              owner.read_text(encoding="utf-8"))
-        if len(versions) != 1:
-            raise ValueError("expected one literal cmake_minimum_required VERSION")
-        minimum = versions[0]
-    except (OSError, ValueError) as err:
+        minimum = _cmake_minimum(owner)
+    except (OSError, ValueError, TypeError) as err:
         return Found(False, f"cannot read CMake floor from {owner}: {err}", repairable=False)
     executable = shutil.which("cmake")
     if executable is None:

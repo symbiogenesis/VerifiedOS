@@ -55,6 +55,7 @@ def fixture(root: Path) -> tuple[Path, Path, dict[str, Any]]:
     record = {"schema": dependency.SCHEMA, "profile": dependency.PROFILE, "passed": True,
               "exit_code": 0, "inputs_unchanged": True, "profile_validation_exit": 0,
               "identity": {"model_inputs": _inputs(root), "source_root": str(model),
+                           "generator_inputs": {"fixture": True},
                            "profile_sha256": receipts.digest(model / "config/verifiedos.json"),
                            "tools": tools}, "stages": stages,
               "build_root": str(build),
@@ -78,6 +79,7 @@ def consumer_refusals() -> None:
         root = Path(name)
         simulator, path, original = fixture(root)
         with (patch.object(receipts, "inputs", side_effect=_inputs),
+              patch.object(dependency.rocqterm, "generator_identity", return_value={"fixture": True}),
               patch.object(dependency.native_build, "verify")):
             receipts.write(path, original)
             ensure(dependency.read(root, simulator, path)["passed"] is True,
@@ -94,6 +96,9 @@ def consumer_refusals() -> None:
                 record = copy.deepcopy(original)
                 record["native_inputs"] = value
                 mutants.append(record)
+            record = copy.deepcopy(original)
+            record["identity"]["generator_inputs"] = {"changed": True}
+            mutants.append(record)
             for role in ("sail", "cmake", "cxx"):
                 for field in (None, "sha256", "reported_version", "executable"):
                     record = copy.deepcopy(original)
@@ -185,9 +190,11 @@ def producer_checks() -> None:
                                                    "--build" in argv else 0)
 
             with (patch.object(receipts, "inputs", side_effect=_inputs),
+                  patch.object(dependency.rocqterm, "generator_identity", return_value={"fixture": True}),
                   patch.object(dependency, "_tools", side_effect=tool_reads),
                   patch("vos.cli.model.configure_command", return_value=configured),
-                  patch.object(dependency.model_dependencies, "prepare", return_value=[]),
+                  patch("vos.cli.model._generator_identity", return_value={}),
+                  patch("vos.cli.model.model_dependencies.prepare", return_value=[]),
                   patch.object(dependency.native_build, "configured", return_value={}),
                   patch.object(dependency.native_build, "capture", return_value={"fixture": True}),
                   patch.object(dependency.native_build, "validate"),

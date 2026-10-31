@@ -132,6 +132,15 @@ class Toolchain(TypedDict):
     plugin_directories: NotRequired[list[str]]
 
 
+class GeneratorIdentity(TypedDict):
+    """Installed library contents and the native loader's ordered plugin selection."""
+
+    library_root: str
+    library: Manifest
+    loaded_plugins: list[Tool]
+    plugin_directories: list[str]
+
+
 def output_dir(tree: Path) -> Path:
     """Where the target writes the term in a build tree."""
     return tree / OUTPUT_DIR
@@ -302,6 +311,28 @@ def selected_plugin(share: Path) -> Path:
         raise TermError(f"Sail's selected directories contain {len(candidates)} Rocq "
                         "plugin candidates; exactly one existing native plugin is required")
     return candidates[0].resolve()
+
+
+def generator_identity(sail: str) -> GeneratorIdentity:
+    """Bind installed generator inputs when reusing ordinary model evidence."""
+    share = Path(_output([sail, "--dir"]).strip())
+    if not share.is_absolute():
+        raise TermError("sail --dir must name an absolute library directory")
+    library = share / "lib"
+    files: dict[str, str] = {}
+    for path in library.rglob("*"):
+        if path.is_dir():
+            if path.is_symlink():
+                raise TermError(f"unsupported linked Sail library directory: {path}")
+            continue
+        if not path.is_file():
+            raise TermError(f"Sail library input is not a regular file: {path}")
+        files[path.relative_to(library).as_posix()] = receipts.digest(path)
+    if not any(name.endswith(".sail") for name in files):
+        raise TermError(f"no Sail library files under {library}")
+    return {"library_root": str(library.resolve()), "library": manifest(files),
+            "loaded_plugins": [_tool(str(path), "") for path in loaded_plugins(share)],
+            "plugin_directories": [str(path.resolve()) for path in plugin_directories(share)]}
 
 
 def toolchain(sail: str, z3: str) -> Toolchain:

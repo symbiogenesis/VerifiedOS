@@ -150,6 +150,12 @@ def _population_changes() -> None:
         ensure(fixture.count() == 3, "removed plugin did not invalidate generation")
         fixture.emit()
         ensure(fixture.count() == 3, "stable changed population regenerated again")
+        fixture.run([fixture.cmake, "-S", str(fixture.root), "-B", str(fixture.build),
+                     "-DVOS_SAIL_LOADER_IDENTITY=changed-order"])
+        fixture.emit()
+        ensure(fixture.count() == 4, "changed loader identity did not invalidate generation")
+        fixture.emit()
+        ensure(fixture.count() == 4, "stable loader identity regenerated again")
 
 
 def _failed_emission() -> None:

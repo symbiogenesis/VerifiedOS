@@ -28,7 +28,7 @@ Proposed PRs remain unsubmitted until an authored PR is mapped. Backport follow-
 
 **Project benefit:** Prevents stale generated C++, documentation and proof terms after compiler replacement.
 
-**Scope and readiness:** No matching authored PR found.
+**Scope and readiness:** The local [generation graph](../../model/cmake/sail_toolchain.cmake) binds generator contents and protects failed emissions with completion stamps. The [small native controls](../../tools/tests/test_cmake_generation.py) exercise preserved timestamps, unchanged-input reuse and failure recovery in hosted Linux. Package the portable change after that qualification; no upstream PR is authored.
 
 [Next action in PLAN.md](../../PLAN.md#upstream-contributions-and-adoption).
 

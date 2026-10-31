@@ -220,7 +220,8 @@ def _proof_publication_keeps_build_identity() -> None:
         _pin(root, model.ORACLE_SRC, _ORACLE_PIN)
         _git(root, "commit", "-qm", "fixture")
         e = _environment(root)
-        with patch.object(receipts, "executables", return_value={"sail": "compiler bytes"}):
+        with (patch.object(receipts, "executables", return_value={"sail": "compiler bytes"}),
+              patch.object(model, "_generator_identity", return_value={"fixture": True})):
             before = model.build_identity(e)
             receipt = root / "proofs/proof-evidence.json"
             receipt.write_text("new receipt\n", encoding="utf-8")
@@ -254,7 +255,8 @@ def _identity_binds_only_opened_gitlinks() -> None:
         _pin(root, "upstream/llvm-project", "2" * 40)
         _git(root, "commit", "-qm", "fixture")
         e = _environment(root)
-        with patch.object(receipts, "executables", return_value={"sail": "compiler bytes"}):
+        with (patch.object(receipts, "executables", return_value={"sail": "compiler bytes"}),
+              patch.object(model, "_generator_identity", return_value={"fixture": True})):
             before = model.build_identity(e)
             inputs = cast("dict[str, str]", before["inputs"])
             ensure(inputs.get(model.ORACLE_SRC) == f"gitlink:{_ORACLE_PIN}"

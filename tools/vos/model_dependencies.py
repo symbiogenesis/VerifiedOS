@@ -285,15 +285,13 @@ def _ordinary_directory(path: Path, *, create: bool) -> None:
             raise ValueError(f"{directory}: dependency directory must not redirect through a link")
 
 
-def _materialize(archive: Path, dependency: Dependency, target: Path, *, offline: bool) -> None:
+def _materialize(archive: Path, dependency: Dependency, target: Path) -> None:
     _ordinary_directory(target.parent, create=False)
     with _authenticated_archive(archive, dependency) as (bundle, archive_sha256):
         population = _population(bundle, dependency)
         if target.exists() or target.is_symlink():
             _verify(target, population, archive_sha256)
             return
-        if offline:
-            raise ValueError(f"{target}: dependency source is missing in offline mode")
         _ordinary_directory(target.parent, create=True)
         with tempfile.TemporaryDirectory(prefix=".model-dependency-", dir=target.parent) as name:
             staging = Path(name)
@@ -309,7 +307,7 @@ def _materialize(archive: Path, dependency: Dependency, target: Path, *, offline
             # A temporary name must not change the tarball-name line.
             manifest.write_bytes(_manifest(target, population, archive_sha256))
             staged.rename(target)
-            manifest.rename(model_corpus.corpus_manifest(target))
+            manifest.replace(model_corpus.corpus_manifest(target))
             _verify(target, population, archive_sha256)
 
 
@@ -342,7 +340,10 @@ def prepare(model_root: Path, build_dir: Path, *, offline: bool = False,
             target = (home / "sources" / f"{dependency.name}-{dependency.digest}"
                       if dependency.source_root else build_dir / "test" /
                       model_corpus.test_corpus_version(model_root) / dependency.name)
-            _materialize(archive, dependency, target, offline=offline)
+            try:
+                _materialize(archive, dependency, target)
+            except tarfile.TarError as err:
+                raise ValueError(f"{archive}: malformed authenticated archive: {err}") from err
             if dependency.source_root:
                 arguments.append(f"-DFETCHCONTENT_SOURCE_DIR_{dependency.name.upper()}={target}")
     return arguments

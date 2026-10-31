@@ -139,6 +139,13 @@ def build_inputs(root: Path, *extra: str) -> dict[str, str]:
     return manifest
 
 
+def _generator_identity() -> rocqterm.GeneratorIdentity:
+    sail = shutil.which("sail")
+    if sail is None:
+        raise ValueError("the selected Sail generator is missing")
+    return rocqterm.generator_identity(sail)
+
+
 def build_identity(e: env.Environment) -> dict[str, object]:
     """The source closure, selected tools and build options of a model run."""
     if e.model.resolve() != (e.root / "model").resolve():
@@ -157,6 +164,7 @@ def build_identity(e: env.Environment) -> dict[str, object]:
         "tools": receipts.executables("sail", "z3", "cmake", "ctest", "ninja",
                                       *(compilers or ["cc", "c++"])),
         "compiler_options": e.compilers, "cache_options": e.ccache,
+        "generator_inputs": _generator_identity(),
         "model_revision": version.stdout.strip(),
     }
 
@@ -279,10 +287,19 @@ def configure_command(e: env.Environment, build_dir: Path,
     ]
 
 
+def _prepared_options(e: env.Environment, build_dir: Path) -> list[str]:
+    """Keep ordered loader selection in the graph as well as in the receipt."""
+    options = model_dependencies.prepare(e.model, build_dir, offline=e.model_offline,
+                                         cache_root=e.lane_root / "model-dependencies")
+    identity = json.dumps(_generator_identity(), sort_keys=True, separators=(",", ":"))
+    digest = hashlib.sha256(identity.encode("utf-8")).hexdigest()
+    return [*options, f"-DVOS_SAIL_LOADER_IDENTITY={digest}"]
+
+
 def _configure(e: env.Environment, build_dir: Path,
                extra: list[str] | None = None, out: IO[str] | None = None) -> int:
     try:
-        prepared = model_dependencies.prepare(e.model, build_dir, offline=e.model_offline)
+        prepared = _prepared_options(e, build_dir)
         argv = configure_command(e, build_dir, [*(extra or []), *prepared])
     except (OSError, ValueError, RuntimeError) as err:
         print(f"model preparation refused: {err}", file=out or sys.stderr)
@@ -296,7 +313,8 @@ def cmd_dependencies(e: env.Environment, args: argparse.Namespace) -> int:
     directory = e.fast_build_dir if args.fast else e.build_dir
     lock = env.build_lock(directory)
     try:
-        flags = model_dependencies.prepare(e.model, directory, offline=e.model_offline)
+        flags = model_dependencies.prepare(e.model, directory, offline=e.model_offline,
+                                            cache_root=e.lane_root / "model-dependencies")
     except (OSError, ValueError, RuntimeError) as err:
         print(f"model preparation refused: {err}", file=sys.stderr)
         return 1
@@ -876,8 +894,10 @@ def _native_start(e: env.Environment, directory: Path,
 
 
 def _native_finish(e: env.Environment, directory: Path,
-                   before: native_build.Manifest) -> native_build.Manifest:
+                   before: native_build.Manifest | None) -> native_build.Manifest:
     """Bind the used native closure and reject inputs changed during the build."""
+    if before is None:
+        raise ValueError("no native input identity was captured before the build")
     native_build.validate(before)
     result = native_build.capture(directory, e.model)
     native_build.validate(before)
@@ -975,8 +995,6 @@ def _build_locked(e: env.Environment, build_dir: Path, log: Path,
         # receipt records rather than an exception that ends the run before one is
         # written.
         try:
-            if native_before is None:
-                raise ValueError("no native input identity was captured before the build")
             native_inputs = _native_finish(e, build_dir, native_before)
             receipts.write(build_dir / native_build.STAMP, native_inputs)
             artifacts = build_artifacts(build_dir, e.model)

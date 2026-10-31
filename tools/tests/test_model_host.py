@@ -1906,6 +1906,7 @@ def _record(name, argv, report_to=None, **kw):
 
 env.stage = _record
 model.model_dependencies.prepare = lambda *args, **kw: []
+model._generator_identity = lambda: {}
 root = Path(sys.argv[1])
 sail = sys.argv[2] or None
 model.shutil.which = lambda name: sail if name == "sail" else None
@@ -2005,6 +2006,8 @@ from vos.cli import model
 
 stages = []
 env.stage = lambda name, argv, report_to=None, **kw: stages.append(name) or 0
+model.model_dependencies.prepare = lambda *args, **kw: []
+model._generator_identity = lambda: {}
 env.build_lock = lambda build_dir: None
 model._seed_tree = lambda e, build_dir: None
 model._require = lambda binary, how: None

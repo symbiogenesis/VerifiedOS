@@ -110,10 +110,20 @@ def _round_trip() -> None:
                "not every source dependency has a verified override")
         pinned = model_corpus.pinned_suite(build, model)
         ensure("rv64ui-p-add" in pinned.files, "acquired test suite does not use the corpus owner")
+        source = Path(next(argument.split("=", 1)[1] for argument in arguments
+                           if argument.startswith("-DFETCHCONTENT_SOURCE_DIR_CLI11=")))
+        source.rename(Path(name) / "previous-derived-source")
+        fresh = build.parent / "focused" / "build"
+        with patch.object(dependencies, "_download", side_effect=AssertionError("offline fetched")):
+            ensure(dependencies.prepare(model, fresh, offline=True,
+                                         cache_root=build.parent / "model-dependencies") == arguments,
+                   "fresh offline outputs must materialize from the shared authenticated cache")
+        ensure(source.is_dir() and "rv64ui-p-add" in model_corpus.pinned_suite(fresh, model).files,
+               "offline preparation must recreate absent derived trees without fetching")
 
 
 def _offline_refusals() -> None:
-    for defect in ("archive-missing", "archive-changed", "source-missing", "source-changed",
+    for defect in ("archive-missing", "archive-changed", "source-changed",
                    "coordinated-manifest", "extra-file", "extra-directory", "suite-changed"):
         with tempfile.TemporaryDirectory(prefix="vos-offline-dependency-") as name:
             root = Path(name)
@@ -127,8 +137,6 @@ def _offline_refusals() -> None:
                 archive.unlink()
             elif defect == "archive-changed":
                 archive.write_bytes(b"not the pinned archive")
-            elif defect == "source-missing":
-                shutil.rmtree(source)
             elif defect in {"source-changed", "coordinated-manifest"}:
                 before = header.stat()
                 header.write_bytes(b"substituted source\n")

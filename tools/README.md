@@ -886,6 +886,9 @@ selects the iterate tree. Ordinary configure-based model commands perform the
 same preparation automatically. `--offline` on `build`, `emit`, `rocq`, `simulator`
 or `dependencies`, or `VOS_MODEL_OFFLINE=1`, requires inputs already available;
 `VOS_MODEL_OFFLINE=0` permits acquisition and any other value refuses.
+Build profiles and fresh focused outputs share the lane's authenticated archive
+cache. Offline preparation can materialize absent derived trees from those archives;
+it refuses a missing archive or an existing tree whose contents changed.
 
 [The acquisition helper](vos/model_dependencies.py) reads URLs and archive hashes
 from the existing model declarations, verifies archive bytes and compares each
@@ -902,6 +905,10 @@ enforce OS-level network isolation on arbitrary upstream build code.
 Sail executable, installed library and plugin population and selected solver at
 build time. A changed identity invalidates generated outputs even when input
 timestamps are preserved; an unchanged identity preserves incremental reuse.
+The Python configure recipe also binds the native plugin enumeration order into
+that identity and rechecks installed generator inputs when consuming receipts.
+Standalone CMake checks the sorted file population; accepted model evidence uses
+the Python recipe's stronger loader binding.
 Completion stamps are published only after successful generation. The canonical
 Rocq command additionally forces a new emission for its run-specific receipt.
 

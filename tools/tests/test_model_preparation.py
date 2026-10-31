@@ -4,13 +4,14 @@
 import argparse
 import io
 import json
+import os
 import tempfile
 from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
 from unittest.mock import patch
 
 from tests.harness import Case, ensure
-from vos import env
+from vos import env, rocqterm
 from vos.cli import model, provision
 
 
@@ -26,17 +27,21 @@ def _acquisition_precedes_configuration() -> None:
         flags = ["-DVOS_MODEL_OFFLINE=ON", "-DFETCHCONTENT_FULLY_DISCONNECTED=ON"]
 
         def prepare(*_: object, **kw: object) -> list[str]:
-            ensure(kw == {"offline": True}, "offline policy must reach acquisition")
+            ensure(kw == {"offline": True, "cache_root": e.lane_root / "model-dependencies"},
+                   "offline policy and shared lane cache must reach acquisition")
             events.append("prepare")
             return flags
 
         def configure(_e: env.Environment, _tree: Path,
                       options: list[str] | None = None) -> list[str]:
-            ensure(options == ["-DLOCAL=1", *flags], "verified inputs follow local build options")
+            ensure(options is not None and options[:-1] == ["-DLOCAL=1", *flags]
+                   and options[-1].startswith("-DVOS_SAIL_LOADER_IDENTITY="),
+                   "verified inputs and ordered generator identity follow local options")
             events.append("configure")
             return ["cmake", "fixture"]
 
         with (patch.object(model.model_dependencies, "prepare", side_effect=prepare),
+              patch.object(model, "_generator_identity", return_value={}),
               patch.object(model, "configure_command", side_effect=configure),
               patch.object(model.env, "git_env", return_value={}),
               patch.object(model.env, "stage", return_value=0) as stage):
@@ -107,8 +112,47 @@ def _cmake_floor() -> None:
         ensure(provision._cmake().present, "a version satisfying the owning floor must pass")
 
 
+def _installed_generator_drift() -> None:
+    with tempfile.TemporaryDirectory(prefix="vos-generator-identity-") as directory:
+        root = Path(directory)
+        share = root / "share/sail"
+        library = share / "lib"
+        plugins = root / "share/libsail/plugins"
+        library.mkdir(parents=True)
+        plugins.mkdir(parents=True)
+        files = [library / "corelib.sail", library / "runtime.c", plugins / "backend.cmxs"]
+        for path in files:
+            path.write_bytes(b"original")
+        with (patch.dict(rocqterm.os.environ, {}, clear=True),
+              patch.object(rocqterm, "_output", return_value=str(share))):
+            original = rocqterm.generator_identity("fixture-sail")
+            for path in files:
+                metadata = path.stat()
+                path.write_bytes(b"replaced")
+                os.utime(path, ns=(metadata.st_atime_ns, metadata.st_mtime_ns))
+                ensure(rocqterm.generator_identity("fixture-sail") != original,
+                       f"generator receipt reuse must reject changed {path.name} bytes")
+                path.write_bytes(b"original")
+            extra = library / "new.sail"
+            extra.write_bytes(b"new owner")
+            ensure(rocqterm.generator_identity("fixture-sail") != original,
+                   "generator receipt reuse must bind installed membership")
+            second = plugins / "second.cmxs"
+            second.write_bytes(b"another backend")
+            with patch.object(rocqterm, "loaded_plugins", return_value=[files[-1], second]):
+                first_order = rocqterm.generator_identity("fixture-sail")
+            with patch.object(rocqterm, "loaded_plugins", return_value=[second, files[-1]]):
+                second_order = rocqterm.generator_identity("fixture-sail")
+            with (patch.object(model.model_dependencies, "prepare", return_value=[]),
+                  patch.object(model, "_generator_identity", side_effect=[first_order, second_order])):
+                e = _environment(root)
+                ensure(model._prepared_options(e, e.build_dir) != model._prepared_options(e, e.build_dir),
+                       "same-byte plugin reordering must change the configured generator identity")
+
+
 def cases() -> list[Case]:
     return [Case("verified acquisition gates configuration", _acquisition_precedes_configuration),
             Case("offline environment and CLI selection", _offline_selection),
             Case("native input drift refuses complete build evidence", _native_refusal_is_not_success),
-            Case("CMake provisioning reads the supported floor", _cmake_floor)]
+            Case("CMake provisioning reads the supported floor", _cmake_floor),
+            Case("receipt reuse binds installed generator contents", _installed_generator_drift)]

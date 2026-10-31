@@ -7,6 +7,7 @@ function(sail_add_toolchain_identity)
         COMMAND "${CMAKE_COMMAND}"
             "-DSAIL_BIN=${SAIL_BIN}"
             "-DSAIL_LIBRARY_DIR=${sail_dir}"
+            "-DSAIL_LOADER_IDENTITY=${VOS_SAIL_LOADER_IDENTITY}"
             "-DSAIL_IDENTITY_STAMP=${CMAKE_BINARY_DIR}/sail_toolchain.sha256"
             -P "${CMAKE_CURRENT_FUNCTION_LIST_DIR}/sail_toolchain_identity.cmake"
         BYPRODUCTS "${CMAKE_BINARY_DIR}/sail_toolchain.sha256"

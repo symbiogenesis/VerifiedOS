@@ -10,7 +10,7 @@ import time
 from pathlib import Path
 from typing import cast
 
-from vos import config, env, model_dependencies, native_build, receipts
+from vos import config, env, native_build, receipts, rocqterm
 from vos.jsonc import Json
 
 SCHEMA = "verifiedos-focused-simulator-build/2"
@@ -56,9 +56,12 @@ def _identity(e: env.Environment) -> dict[str, Json]:
     model_inputs = dict[str, Json](receipts.inputs(e.root, "model"))
     compiler_options: list[Json] = list(e.compilers)
     cache_options: list[Json] = list(e.ccache)
+    tools = _tools(e)
+    generator = rocqterm.generator_identity(str(_mapping(tools["sail"])["executable"]))
     return {"model_inputs": model_inputs,
             "source_root": str(e.model.resolve()),
-            "profile_sha256": receipts.digest(e.profile), "tools": _tools(e),
+            "profile_sha256": receipts.digest(e.profile), "tools": tools,
+            "generator_inputs": cast("Json", generator),
             "compiler_options": compiler_options,
             "cache_options": cache_options}
 
@@ -183,11 +186,15 @@ def read(root: Path, simulator: Path, path: Path) -> dict[str, Json]:
         selected = _mapping(configured[role])
         if _cache_value(cache, str(selected["cache_entry"])) != selected["executable"]:
             raise ValueError("focused simulator producer facts disagree with the frozen CMake cache")
+    if identity.get("generator_inputs") != rocqterm.generator_identity(
+            str(_mapping(tools["sail"])["executable"])):
+        raise ValueError("focused simulator generator library or plugin identity changed")
     if artifacts.get(ARTIFACT) != receipts.digest(simulator):
         raise ValueError("focused simulator differs from the recorded build artifact")
-    if not isinstance(record.get("native_inputs"), dict) or not record["native_inputs"]:
+    native_inputs = record.get("native_inputs")
+    if not isinstance(native_inputs, dict) or len(native_inputs) == 0:
         raise ValueError("focused simulator lacks its native input closure")
-    native_build.verify(record["native_inputs"], directory, root / "model")
+    native_build.verify(native_inputs, directory, root / "model")
     return record
 
 
@@ -209,7 +216,7 @@ def build(e: env.Environment, out: Path) -> int:
     passed = True
     lock = env.build_lock(directory)
     try:
-        prepared = model_dependencies.prepare(e.model, directory, offline=e.model_offline)
+        prepared = model._prepared_options(e, directory)
         commands = {"configure": [cmake, *model.configure_command(e, directory, prepared)[1:]],
                     "target-build": [cmake, "--build", str(directory), "-j", str(e.jobs),
                                      "--target", TARGET]}
