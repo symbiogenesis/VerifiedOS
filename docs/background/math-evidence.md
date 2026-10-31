@@ -300,7 +300,7 @@ Sorted reference payload SHA-256: `23b690105f12b96f3ef7a997cf508a5b775e70bcaf077
 | [tools/vos/receipts.py](../../tools/vos/receipts.py) | `25bbf0b0288363f3b1fe9b0eff3616839dce7d61720814fe2f350f1fbba8d822` |
 | [tools/vos/proofenv.py](../../tools/vos/proofenv.py) | `cc6c5beca2aaefc1761e3b7748bdca52816d093f836ecdac9a879b79fa4d0513` |
 | [tools/vos/atomic.py](../../tools/vos/atomic.py) | `384e706e945f8cead1e1b3791f916f6e7f8783a7497c17dd3a551a765e670471` |
-| [proofs/ProofSupport.v](../../proofs/ProofSupport.v) | `85a363223eba34912eb1fa2999a5e272e969ae547ffcec0e218874d902d15713` |
+| [proofs/ProofSupport.v](../../proofs/ProofSupport.v) | `21fefa8c275f9a6ee41299d2d59b971974a8f89453cb8749bbec0d7d13e86a22` |
 | [tools/vos/composer.py](../../tools/vos/composer.py) | `b96169f76319dd55c7597462472257830370fe9c86c44236ae3379efe34bcd3e` |
 | [proofs/HandlerGraph.v](../../proofs/HandlerGraph.v) | `7bbb0de40e8e485e2797155515dd0c0d00f808e8b5254bbbc9f54c95ef18b4a2` |
 | [tools/vos/math_evidence.py](../../tools/vos/math_evidence.py) | `03470df2ecb081d31c94895714038514855075b19a2bae7e1c242dd550dfc566` |

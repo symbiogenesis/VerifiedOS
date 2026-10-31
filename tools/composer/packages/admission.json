@@ -36,7 +36,7 @@
     },
     {
       "path": "proofs/ProofSupport.v",
-      "sha256": "85a363223eba34912eb1fa2999a5e272e969ae547ffcec0e218874d902d15713"
+      "sha256": "21fefa8c275f9a6ee41299d2d59b971974a8f89453cb8749bbec0d7d13e86a22"
     },
     {
       "path": "tools/vos/admission.py",
@@ -44,7 +44,7 @@
     },
     {
       "path": "proofs/AdmissionPath.v",
-      "sha256": "6a311e44dbc34b28357c0e73df3c06197a5e929b2f0a72b6e1730a30a4799931"
+      "sha256": "bb360305f5a29b2bbfdc2b7f92a2f96821431d73609251ccb27ee5633049a81f"
     },
     {
       "path": "tools/vos/admission_production.py",

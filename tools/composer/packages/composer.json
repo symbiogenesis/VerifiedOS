@@ -36,7 +36,7 @@
     },
     {
       "path": "proofs/ProofSupport.v",
-      "sha256": "85a363223eba34912eb1fa2999a5e272e969ae547ffcec0e218874d902d15713"
+      "sha256": "21fefa8c275f9a6ee41299d2d59b971974a8f89453cb8749bbec0d7d13e86a22"
     },
     {
       "path": "tools/vos/composer.py",
