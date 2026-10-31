@@ -3002,6 +3002,16 @@ their acceptance conditions.
   identities and retire this repair batch's owned worktrees. The user's CI
   monitoring handoff permits finishing without waiting on hosted verdicts.
 
+The CMake control normalizes wrapped diagnostic whitespace and checks stamp
+invalidation independently. The native fixture also uses the production compiler
+selection. The proof candidate changes only opaque tactic bodies: it avoids eager
+reduction of shared wrappers and uses fresh hypothesis names. Source comparison
+preserves every byte outside those bodies. The pinned prover is unavailable
+locally, so printed elaborated-type/universe comparison and proof acceptance
+remain outstanding; the cold Guest run supplies the kernel and assumption verdict.
+The `cmake-ci-20261031` handoff retains the source-review checkpoint and validation
+identities without treating lexical closure as proof acceptance.
+
 ## C modernization
 
 Modernize active authored C within the selected compiler and proof interfaces.
