@@ -2690,7 +2690,7 @@ Lemma with_op_frame : forall s o r,
   svc_charges_at_the_maximum (with_op s o r) = svc_charges_at_the_maximum s /\
   svc_identity (with_op s o r) = svc_identity s /\
   (forall t, svc_live (with_op s o r) t = svc_live s t).
-Proof. intros. repeat split; reflexivity. Qed.
+Proof. intros. repeat split; intros; reflexivity. Qed.
 
 Definition spoil_op (s : Service) (o : op)
                     (f : svc_op_record -> nat -> svc_op_record) (n : nat) : Service :=

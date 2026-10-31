@@ -2800,11 +2800,13 @@ The contract's [further proof interfaces](docs/implementation/contracts/proof-st
 commission a second tranche: B-tree operation cases, named service and seeding
 conditions, codec composition, finite-roster completeness, compositional equality,
 support-local probability, crypto permutation laws, ordered admission verdicts,
-remaining shared laws and named service updates. Implementation is open. Preserve
-existing theorem meanings, assumption sets, executable behavior and refusal
-evidence; compare the hosted readings with the tranche's named base and report
-proof-cost measurements separately from source simplification. Hosted acceptance
-uses cold Guest CI and does not wait for its verdict.
+remaining shared laws and named service updates. The source refactors are
+implemented and existing clients consume their interfaces. Source review retains
+existing theorem types, assumption declarations, executable behavior and refusal
+evidence; native compilation, elaborated-reading comparison and proof-cost
+measurements remain pending hosted evidence. Hosted acceptance uses cold Guest CI
+with the tranche's named base and does not wait for its verdict. A source comparison
+does not establish native proof acceptance or a performance result.
 
 ## Model test-corpus library boundary
 
