@@ -518,10 +518,7 @@ Qed.
 Lemma all_of_map :
   forall (A B : Type) (p : B -> bool) (f : A -> B) (l : list A),
     all_of p (map_over f l) = all_of (fun x => p (f x)) l.
-Proof.
-  intros A B p f l. induction l as [ | x r IH ];
-    [ reflexivity | simpl; rewrite IH; reflexivity ].
-Qed.
+Proof. exact ProofSupport.all_of_map. Qed.
 
 Lemma app_assoc_of :
   forall (A : Type) (a b c : list A), app (app a b) c = app a (app b c).
@@ -533,10 +530,7 @@ Qed.
 Lemma map_over_app :
   forall (A B : Type) (f : A -> B) (l r : list A),
     map_over f (app l r) = app (map_over f l) (map_over f r).
-Proof.
-  intros A B f l. induction l as [ | x s IH ]; intros r;
-    [ reflexivity | simpl; rewrite IH; reflexivity ].
-Qed.
+Proof. exact ProofSupport.map_over_app. Qed.
 
 Lemma concat_of_app :
   forall (A : Type) (l r : list (list A)),
@@ -3278,6 +3272,18 @@ Fixpoint pairs_eqb (a b : list (prod nat nat)) : bool :=
   | _, _ => false
   end.
 
+Lemma pairs_eqb_spec : forall a b : list (prod nat nat),
+  pairs_eqb a b = true <-> a = b.
+Proof.
+  exact (ProofSupport.list_eqb_spec (prod nat nat)
+    (ProofSupport.pair_eqb Nat.eqb Nat.eqb)
+    (ProofSupport.pair_eqb_sound nat nat Nat.eqb Nat.eqb nat_eqb_true nat_eqb_true)
+    (ProofSupport.pair_eqb_refl nat nat Nat.eqb Nat.eqb nat_eqb_refl nat_eqb_refl)).
+Qed.
+
+Lemma pairs_eqb_refl : forall a : list (prod nat nat), pairs_eqb a a = true.
+Proof. intros a. apply (proj2 (pairs_eqb_spec a a)). reflexivity. Qed.
+
 Definition demo_index (l : list (prod nat nat)) : list (prod nat nat) :=
   ins_all nat_keys l nil.
 
@@ -3298,7 +3304,7 @@ Example the_index_answers_the_keys_it_was_given :
   /\ look nat_keys 9 (demo_index demo_entries) = None
   /\ pairs_eqb (demo_index demo_entries) (demo_index demo_entries) = true
   /\ pairs_eqb (demo_index demo_entries) nil = false :=
-  conj eq_refl (conj eq_refl (conj eq_refl eq_refl)).
+  conj eq_refl (conj eq_refl (conj (pairs_eqb_refl (demo_index demo_entries)) eq_refl)).
 
 (* The four generators over an arbitrary key list, which is where generated
    inputs beat authored cases: a key order is exactly what a person

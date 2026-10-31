@@ -255,14 +255,10 @@ Lemma bool_eqb_holds : forall a : bool, bool_eqb a a = true.
 Proof. intros a. destruct a; reflexivity. Qed.
 
 Lemma nat_eqb_sound : forall a b : nat, Nat.eqb a b = true -> a = b.
-Proof.
-  intros a. induction a as [ | x IH ]; intros b H.
-  - destruct b as [ | y ]; [ reflexivity | discriminate H ].
-  - destruct b as [ | y ]; [ discriminate H | rewrite (IH y H); reflexivity ].
-Qed.
+Proof. exact ProofSupport.nat_eqb_true. Qed.
 
 Lemma nat_eqb_holds : forall n : nat, Nat.eqb n n = true.
-Proof. intros n. induction n as [ | k IH ]; [ reflexivity | exact IH ]. Qed.
+Proof. exact ProofSupport.nat_eqb_refl. Qed.
 
 Lemma leb_cases :
   forall g k : nat, Nat.leb g k = true -> g = k \/ Nat.leb (S g) k = true.
@@ -276,20 +272,12 @@ Qed.
 Lemma all_of_app :
   forall (A : Type) (p : A -> bool) (l r : list A),
     all_of p (app l r) = andb (all_of p l) (all_of p r).
-Proof.
-  intros A p l. induction l as [ | x s IH ]; intros r.
-  - reflexivity.
-  - simpl. rewrite IH. destruct (p x); reflexivity.
-Qed.
+Proof. exact ProofSupport.all_of_app_eq. Qed.
 
 Lemma filter_of_app :
   forall (A : Type) (q : A -> bool) (l r : list A),
     filter_of q (app l r) = app (filter_of q l) (filter_of q r).
-Proof.
-  intros A q l. induction l as [ | x s IH ]; intros r.
-  - reflexivity.
-  - simpl. destruct (q x); rewrite IH; reflexivity.
-Qed.
+Proof. exact ProofSupport.filter_of_app. Qed.
 
 Lemma all_of_ext :
   forall (A : Type) (p q : A -> bool) (l : list A),
@@ -314,14 +302,7 @@ Lemma all_of_member :
     (forall a b : A, eqb a b = true -> a = b) ->
     forall (p : A -> bool) (l : list A) (c : A),
       all_of p l = true -> any_of (fun d => eqb c d) l = true -> p c = true.
-Proof.
-  intros A eqb sound p l. induction l as [ | x r IH ]; intros c Hall Hany.
-  - discriminate Hany.
-  - simpl in Hall. destruct (andb_split _ _ Hall) as [ Hx Hr ].
-    simpl in Hany. destruct (eqb c x) eqn:E.
-    + rewrite (sound c x E). exact Hx.
-    + exact (IH c Hr Hany).
-Qed.
+Proof. exact ProofSupport.all_of_eqb_member. Qed.
 
 Lemma all_of_filter_upto :
   forall (p q : nat -> bool) (n g : nat),
@@ -1036,11 +1017,7 @@ Definition filtered_full_burst (k : Kernel) (bm : k.(Base) -> bool)
 Lemma all_of_map :
   forall (A B : Type) (p : B -> bool) (f : A -> B) (l : list A),
     all_of p (map_over f l) = all_of (fun x => p (f x)) l.
-Proof.
-  intros A B p f l. induction l as [ | x r IH ].
-  - reflexivity.
-  - simpl. rewrite IH. reflexivity.
-Qed.
+Proof. exact ProofSupport.all_of_map. Qed.
 
 Lemma only_if_filtered :
   forall t b : bool, only_if (andb t (negb b)) (negb b) = true.

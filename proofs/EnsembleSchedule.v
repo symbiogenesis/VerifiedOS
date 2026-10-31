@@ -226,30 +226,22 @@ Lemma leb_trans :
 Proof. exact ProofSupport.nat_leb_trans. Qed.
 
 Lemma leb_add_r : forall a b : nat, Nat.leb a (a + b) = true.
-Proof. induction a as [ | a IH ]; intros b; [ reflexivity | simpl; apply IH ]. Qed.
+Proof. exact ProofSupport.nat_leb_add_r. Qed.
 
 Lemma max_left : forall a b : nat, Nat.leb a (Nat.max a b) = true.
-Proof.
-  induction a as [ | a IH ]; intros b.
-  - reflexivity.
-  - destruct b as [ | b ]; simpl; [ apply leb_refl | apply IH ].
-Qed.
+Proof. exact ProofSupport.nat_max_left. Qed.
 
 Lemma max_right : forall a b : nat, Nat.leb b (Nat.max a b) = true.
-Proof.
-  induction a as [ | a IH ]; intros b.
-  - simpl. apply leb_refl.
-  - destruct b as [ | b ]; simpl; [ reflexivity | apply IH ].
-Qed.
+Proof. exact ProofSupport.nat_max_right. Qed.
 
 Lemma eqb_eq : forall a b : nat, Nat.eqb a b = true -> a = b.
 Proof. exact ProofSupport.nat_eqb_true. Qed.
 
 Lemma plus_zero_r : forall a : nat, a + 0 = a.
-Proof. induction a as [ | a IH ]; [ reflexivity | simpl; rewrite IH; reflexivity ]. Qed.
+Proof. exact ProofSupport.nat_add_zero. Qed.
 
 Lemma plus_succ_r : forall a b : nat, a + S b = S (a + b).
-Proof. induction a as [ | a IH ]; intros b; [ reflexivity | simpl; rewrite IH; reflexivity ]. Qed.
+Proof. exact ProofSupport.nat_add_succ. Qed.
 
 (* -------------------------------------------------------------------------
    List helpers beside CyclicExecutive.v's own `all_of`, which this file

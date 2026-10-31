@@ -150,6 +150,26 @@ Fixpoint count_where {A : Type} (p : A -> bool) (l : list A) : nat :=
 
 Definition length_of {A : Type} (l : list A) : nat := count_of l.
 
+(* These comparisons expose their element laws separately: soundness needs
+   sound elements, and reflexivity needs only reflexive elements. *)
+Fixpoint list_eqb {A : Type} (eqb : A -> A -> bool) (l r : list A) : bool :=
+  match l, r with
+  | nil, nil => true
+  | cons x xs, cons y ys => andb (eqb x y) (list_eqb eqb xs ys)
+  | _, _ => false
+  end.
+
+Definition option_eqb {A : Type} (eqb : A -> A -> bool) (a b : option A) : bool :=
+  match a, b with
+  | None, None => true
+  | Some x, Some y => eqb x y
+  | _, _ => false
+  end.
+
+Definition pair_eqb {A B : Type} (eq_a : A -> A -> bool) (eq_b : B -> B -> bool)
+    (a b : prod A B) : bool :=
+  andb (eq_a (fst a) (fst b)) (eq_b (snd a) (snd b)).
+
 Lemma andb_split : forall a b : bool, andb a b = true -> a = true /\ b = true.
 Proof.
   intros a b H. destruct a; destruct b; simpl in H;
@@ -190,6 +210,64 @@ Proof.
   - destruct b as [ | y ]; [ discriminate Hab | ].
     destruct c as [ | z ]; [ discriminate Hbc | ].
     simpl in Hab. simpl in Hbc. simpl. exact (IH y z Hab Hbc).
+Qed.
+
+Lemma nat_add_zero : forall a : nat, a + 0 = a.
+Proof. induction a as [|a IH]; simpl; [reflexivity | rewrite IH; reflexivity]. Qed.
+
+Lemma nat_add_succ : forall a b : nat, a + S b = S (a + b).
+Proof. induction a as [|a IH]; intros b; simpl; [reflexivity | rewrite IH; reflexivity]. Qed.
+
+Lemma nat_add_comm : forall a b : nat, a + b = b + a.
+Proof.
+  induction a as [|a IH]; intros b; simpl.
+  - rewrite nat_add_zero. reflexivity.
+  - rewrite IH, nat_add_succ. reflexivity.
+Qed.
+
+Lemma nat_leb_add_left : forall k a b : nat,
+  Nat.leb a b = true -> Nat.leb (k + a) (k + b) = true.
+Proof. induction k as [|k IH]; intros a b H; simpl; [exact H | apply IH; exact H]. Qed.
+
+Lemma nat_leb_add_mono : forall a b c d : nat,
+  Nat.leb a b = true -> Nat.leb c d = true -> Nat.leb (a + c) (b + d) = true.
+Proof.
+  intros a b c d Hab Hcd. apply (nat_leb_trans (a + c) (a + d) (b + d)).
+  - apply nat_leb_add_left. exact Hcd.
+  - rewrite (nat_add_comm a d), (nat_add_comm b d).
+    apply nat_leb_add_left. exact Hab.
+Qed.
+
+Lemma nat_leb_add_r : forall a b : nat, Nat.leb a (a + b) = true.
+Proof. induction a as [|a IH]; intros b; [reflexivity | simpl; apply IH]. Qed.
+
+Lemma nat_max_left : forall a b : nat, Nat.leb a (Nat.max a b) = true.
+Proof.
+  induction a as [|a IH]; intros b; [reflexivity |].
+  destruct b; simpl; [apply nat_leb_refl | apply IH].
+Qed.
+
+Lemma nat_max_right : forall a b : nat, Nat.leb b (Nat.max a b) = true.
+Proof.
+  induction a as [|a IH]; intros b; simpl; [apply nat_leb_refl |].
+  destruct b; simpl; [reflexivity | apply IH].
+Qed.
+
+Lemma nat_max_upper : forall a b c : nat,
+  Nat.leb a c = true -> Nat.leb b c = true -> Nat.leb (Nat.max a b) c = true.
+Proof.
+  induction a as [|a IH]; intros b c Ha Hb; simpl; [exact Hb |].
+  destruct c; [discriminate Ha |]. destruct b; simpl; [exact Ha |].
+  apply IH; assumption.
+Qed.
+
+Lemma nat_sub_padding : forall elapsed bound : nat,
+  Nat.leb elapsed bound = true -> elapsed + (bound - elapsed) = bound.
+Proof.
+  induction elapsed as [|elapsed IH]; intros bound H.
+  - destruct bound; reflexivity.
+  - destruct bound as [|bound]; [discriminate H |]. simpl in *.
+    rewrite (IH bound H). reflexivity.
 Qed.
 
 Lemma all_of_app :
@@ -288,6 +366,186 @@ Proof.
   - exact (all_of_intro A p l).
 Qed.
 
+(* A roster's completeness is distinct from its length and from its order. *)
+Definition CompleteRoster {A : Type} (l : list A) : Prop :=
+  forall x : A, Member x l.
+
+Lemma all_of_complete_roster : forall (A : Type) (l : list A),
+  CompleteRoster l -> forall p : A -> bool,
+    all_of p l = true <-> forall x : A, p x = true.
+Proof.
+  intros A l complete p. split.
+  - intros H x. exact (all_of_member A p l x H (complete x)).
+  - intros H. apply all_of_intro. intros x _. exact (H x).
+Qed.
+
+Lemma any_eqb_member : forall (A : Type) (eqb : A -> A -> bool),
+  (forall x y : A, eqb x y = true -> x = y) ->
+  forall (x : A) (l : list A), any_of (eqb x) l = true -> Member x l.
+Proof.
+  intros A eqb sound x l. induction l as [|y r IH]; intros H.
+  - discriminate H.
+  - simpl in H. destruct (eqb x y) eqn:E.
+    + left. exact (sound x y E).
+    + right. exact (IH H).
+Qed.
+
+Lemma member_any_eqb : forall (A : Type) (eqb : A -> A -> bool),
+  (forall x : A, eqb x x = true) ->
+  forall (x : A) (l : list A), Member x l -> any_of (eqb x) l = true.
+Proof.
+  intros A eqb refl x l. induction l as [|y r IH]; intros H.
+  - contradiction H.
+  - simpl. destruct H as [E | H].
+    + rewrite E, refl. reflexivity.
+    + rewrite (IH H). destruct (eqb x y); reflexivity.
+Qed.
+
+Lemma all_of_eqb_member : forall (A : Type) (eqb : A -> A -> bool),
+  (forall x y : A, eqb x y = true -> x = y) ->
+  forall (p : A -> bool) (l : list A) (x : A),
+    all_of p l = true -> any_of (eqb x) l = true -> p x = true.
+Proof.
+  intros A eqb sound p l x Hall Hmem.
+  exact (all_of_member A p l x Hall (any_eqb_member A eqb sound x l Hmem)).
+Qed.
+
+Lemma all_of_complete_roster_eqb : forall (A : Type) (eqb : A -> A -> bool),
+  (forall x y : A, eqb x y = true -> x = y) ->
+  forall l : list A, (forall x : A, any_of (eqb x) l = true) ->
+  forall p : A -> bool, all_of p l = true <-> forall x : A, p x = true.
+Proof.
+  intros A eqb sound l complete p. apply all_of_complete_roster.
+  intros x. exact (any_eqb_member A eqb sound x l (complete x)).
+Qed.
+
+Lemma all_of_app_eq : forall (A : Type) (p : A -> bool) (l r : list A),
+  all_of p (app l r) = andb (all_of p l) (all_of p r).
+Proof.
+  intros A p l. induction l as [|x s IH]; intros r.
+  - reflexivity.
+  - simpl. rewrite IH. destruct (p x); reflexivity.
+Qed.
+
+Lemma all_of_map : forall (A B : Type) (p : B -> bool) (f : A -> B) (l : list A),
+  all_of p (map_over f l) = all_of (fun x => p (f x)) l.
+Proof.
+  intros A B p f l. induction l as [|x r IH];
+    [reflexivity | simpl; rewrite IH; reflexivity].
+Qed.
+
+Lemma count_of_app : forall (A : Type) (l r : list A),
+  count_of (app l r) = Nat.add (count_of l) (count_of r).
+Proof.
+  intros A l r. induction l as [|x s IH];
+    [reflexivity | simpl; rewrite IH; reflexivity].
+Qed.
+
+Lemma count_of_map : forall (A B : Type) (f : A -> B) (l : list A),
+  count_of (map_over f l) = count_of l.
+Proof.
+  intros A B f l. induction l as [|x r IH];
+    [reflexivity | simpl; rewrite IH; reflexivity].
+Qed.
+
+Lemma map_over_app : forall (A B : Type) (f : A -> B) (l r : list A),
+  map_over f (app l r) = app (map_over f l) (map_over f r).
+Proof.
+  intros A B f l. induction l as [|x s IH]; intros r;
+    [reflexivity | simpl; rewrite IH; reflexivity].
+Qed.
+
+Lemma filter_of_app : forall (A : Type) (p : A -> bool) (l r : list A),
+  filter_of p (app l r) = app (filter_of p l) (filter_of p r).
+Proof.
+  intros A p l. induction l as [|x s IH]; intros r.
+  - reflexivity.
+  - simpl. destruct (p x); rewrite IH; reflexivity.
+Qed.
+
+Lemma list_eqb_refl : forall (A : Type) (eqb : A -> A -> bool),
+  (forall x : A, eqb x x = true) -> forall l : list A, list_eqb eqb l l = true.
+Proof.
+  intros A eqb refl l. induction l as [|x r IH]; [reflexivity |].
+  simpl. rewrite (refl x), IH. reflexivity.
+Qed.
+
+Lemma list_eqb_sound : forall (A : Type) (eqb : A -> A -> bool),
+  (forall x y : A, eqb x y = true -> x = y) ->
+  forall l r : list A, list_eqb eqb l r = true -> l = r.
+Proof.
+  intros A eqb sound l. induction l as [|x xs IH]; intros r H.
+  - destruct r; [reflexivity | discriminate H].
+  - destruct r as [|y ys]; [discriminate H |].
+    simpl in H. destruct (andb_split _ _ H) as [Hxy Hrest].
+    rewrite (sound x y Hxy), (IH ys Hrest). reflexivity.
+Qed.
+
+Lemma list_eqb_spec : forall (A : Type) (eqb : A -> A -> bool),
+  (forall x y : A, eqb x y = true -> x = y) ->
+  (forall x : A, eqb x x = true) ->
+  forall l r : list A, list_eqb eqb l r = true <-> l = r.
+Proof.
+  intros A eqb sound refl l r. split.
+  - exact (list_eqb_sound A eqb sound l r).
+  - intros E. rewrite E. exact (list_eqb_refl A eqb refl r).
+Qed.
+
+Lemma option_eqb_refl : forall (A : Type) (eqb : A -> A -> bool),
+  (forall x : A, eqb x x = true) -> forall a : option A, option_eqb eqb a a = true.
+Proof. intros A eqb refl [x|]; [exact (refl x) | reflexivity]. Qed.
+
+Lemma option_eqb_sound : forall (A : Type) (eqb : A -> A -> bool),
+  (forall x y : A, eqb x y = true -> x = y) ->
+  forall a b : option A, option_eqb eqb a b = true -> a = b.
+Proof.
+  intros A eqb sound [x|] [y|] H; try discriminate H; [|reflexivity].
+  simpl in H. rewrite (sound x y H). reflexivity.
+Qed.
+
+Lemma option_eqb_spec : forall (A : Type) (eqb : A -> A -> bool),
+  (forall x y : A, eqb x y = true -> x = y) ->
+  (forall x : A, eqb x x = true) ->
+  forall a b : option A, option_eqb eqb a b = true <-> a = b.
+Proof.
+  intros A eqb sound refl a b. split.
+  - exact (option_eqb_sound A eqb sound a b).
+  - intros E. rewrite E. exact (option_eqb_refl A eqb refl b).
+Qed.
+
+Lemma pair_eqb_refl : forall (A B : Type)
+    (eq_a : A -> A -> bool) (eq_b : B -> B -> bool),
+  (forall x : A, eq_a x x = true) -> (forall y : B, eq_b y y = true) ->
+  forall p : prod A B, pair_eqb eq_a eq_b p p = true.
+Proof.
+  intros A B eq_a eq_b refl_a refl_b [x y]. unfold pair_eqb. simpl.
+  rewrite (refl_a x), (refl_b y). reflexivity.
+Qed.
+
+Lemma pair_eqb_sound : forall (A B : Type)
+    (eq_a : A -> A -> bool) (eq_b : B -> B -> bool),
+  (forall x y : A, eq_a x y = true -> x = y) ->
+  (forall x y : B, eq_b x y = true -> x = y) ->
+  forall p q : prod A B, pair_eqb eq_a eq_b p q = true -> p = q.
+Proof.
+  intros A B eq_a eq_b sound_a sound_b [x y] [u v] H.
+  unfold pair_eqb in H. simpl in H.
+  destruct (andb_split _ _ H) as [Ha Hb].
+  rewrite (sound_a x u Ha), (sound_b y v Hb). reflexivity.
+Qed.
+
+Lemma pair_eqb_spec : forall (A B : Type)
+    (eq_a : A -> A -> bool) (eq_b : B -> B -> bool),
+  (forall x y : A, eq_a x y = true -> x = y) ->
+  (forall x y : B, eq_b x y = true -> x = y) ->
+  (forall x : A, eq_a x x = true) -> (forall y : B, eq_b y y = true) ->
+  forall p q : prod A B, pair_eqb eq_a eq_b p q = true <-> p = q.
+Proof.
+  intros A B eq_a eq_b sound_a sound_b refl_a refl_b p q. split.
+  - exact (pair_eqb_sound A B eq_a eq_b sound_a sound_b p q).
+  - intros E. rewrite E. exact (pair_eqb_refl A B eq_a eq_b refl_a refl_b q).
+Qed.
+
 Local Ltac step_by_IH IH s := simpl; rewrite (IH s); reflexivity.
 Local Ltac induct_on_the_position n l :=
   revert l; induction n as [|k IH]; intros l;
@@ -363,6 +621,12 @@ Proof.
   - simpl. exact (nat_leb_succ (count_of s)).
   - destruct l as [ | a s ]; [ reflexivity | ]. simpl. exact (IH s).
 Qed.
+
+Example equality_comparisons_refuse_different_shapes_and_fields :
+  list_eqb Nat.eqb (cons 1 nil) nil = false /\
+  option_eqb Nat.eqb (Some 1) None = false /\
+  pair_eqb Nat.eqb Nat.eqb (pair 1 2) (pair 1 3) = false.
+Proof. repeat split. Qed.
 
 Example edits_past_the_end :
   swap_at 5 (cons 1 (cons 2 nil)) = cons 1 (cons 2 nil) /\

@@ -508,15 +508,7 @@ Lemma all_of_member :
     (forall x y : A, eqb x y = true -> x = y) ->
     forall (p : A -> bool) (l : list A) (x : A),
       all_of p l = true -> member eqb x l = true -> p x = true.
-Proof.
-  intros A eqb sound p l. induction l as [ | y r IH ]; intros x Hall Hmem.
-  - discriminate Hmem.
-  - simpl in Hall. destruct (andb_split _ _ Hall) as [ Hy Hr ].
-    unfold member in Hmem. simpl in Hmem.
-    destruct (eqb x y) eqn:E.
-    + rewrite (sound x y E). exact Hy.
-    + exact (IH x Hr Hmem).
-Qed.
+Proof. exact ProofSupport.all_of_eqb_member. Qed.
 
 Lemma nat_ltb_irrefl : forall n : nat, Nat.ltb n n = false.
 Proof. intros n. induction n as [ | k IH ]. - reflexivity. - simpl. exact IH. Qed.
@@ -1026,24 +1018,24 @@ Lemma all_of_stages :
   forall (p : Stage -> bool) (s : Stage), all_of p all_stages = true -> p s = true.
 Proof.
   intros p s H.
-  exact (all_of_member Stage stage_eqb stage_eqb_sound p all_stages s H
-           (every_stage_is_in_the_roster s)).
+  exact (proj1 (ProofSupport.all_of_complete_roster_eqb Stage stage_eqb
+    stage_eqb_sound all_stages every_stage_is_in_the_roster p) H s).
 Qed.
 
 Lemma all_of_items :
   forall (p : Item -> bool) (i : Item), all_of p all_items = true -> p i = true.
 Proof.
   intros p i H.
-  exact (all_of_member Item item_eqb item_eqb_sound p all_items i H
-           (every_item_is_in_the_roster i)).
+  exact (proj1 (ProofSupport.all_of_complete_roster_eqb Item item_eqb
+    item_eqb_sound all_items every_item_is_in_the_roster p) H i).
 Qed.
 
 Lemma all_of_fields :
   forall (p : Field -> bool) (f : Field), all_of p all_fields = true -> p f = true.
 Proof.
   intros p f H.
-  exact (all_of_member Field field_eqb field_eqb_sound p all_fields f H
-           (every_field_is_in_the_roster f)).
+  exact (proj1 (ProofSupport.all_of_complete_roster_eqb Field field_eqb
+    field_eqb_sound all_fields every_field_is_in_the_roster p) H f).
 Qed.
 
 Lemma all_of_counters :
@@ -1051,8 +1043,8 @@ Lemma all_of_counters :
     all_of p all_counters = true -> p c = true.
 Proof.
   intros p c H.
-  exact (all_of_member Counter counter_eqb counter_eqb_sound p all_counters c H
-           (every_counter_is_in_the_roster c)).
+  exact (proj1 (ProofSupport.all_of_complete_roster_eqb Counter counter_eqb
+    counter_eqb_sound all_counters every_counter_is_in_the_roster p) H c).
 Qed.
 
 (* =========================================================================

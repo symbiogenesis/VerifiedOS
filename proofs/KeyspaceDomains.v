@@ -400,8 +400,13 @@ Definition opt_eqb (a b : option nat) : bool :=
   | _, _ => false
   end.
 
+Lemma opt_eqb_spec : forall a b : option nat, opt_eqb a b = true <-> a = b.
+Proof.
+  exact (ProofSupport.option_eqb_spec nat Nat.eqb nat_eqb_true nat_eqb_refl).
+Qed.
+
 Lemma opt_eqb_refl : forall a : option nat, opt_eqb a a = true.
-Proof. intros a. destruct a as [ x | ]; [ exact (nat_eqb_refl x) | reflexivity ]. Qed.
+Proof. intros a. apply (proj2 (opt_eqb_spec a a)). reflexivity. Qed.
 
 Definition filter_of {A : Type} (p : A -> bool) (l : list A) : list A := @ProofSupport.filter_of A p l.
 
@@ -461,11 +466,7 @@ Proof. exact ProofSupport.all_of_filter. Qed.
 Lemma filter_of_app :
   forall (A : Type) (p : A -> bool) (l r : list A),
     filter_of p (app l r) = app (filter_of p l) (filter_of p r).
-Proof.
-  intros A p l. induction l as [ | x s IH ]; intros r.
-  - reflexivity.
-  - simpl. destruct (p x); [ simpl; rewrite IH; reflexivity | exact (IH r) ].
-Qed.
+Proof. exact ProofSupport.filter_of_app. Qed.
 
 Lemma filter_of_none :
   forall (A : Type) (p : A -> bool) (l : list A),
@@ -576,19 +577,10 @@ Fixpoint lex_eqb (a b : list nat) : bool :=
   end.
 
 Lemma lex_eqb_refl : forall a : list nat, lex_eqb a a = true.
-Proof.
-  intros a. induction a as [ | x r IH ];
-    [ reflexivity | simpl; rewrite nat_eqb_refl; exact IH ].
-Qed.
+Proof. exact (ProofSupport.list_eqb_refl nat Nat.eqb nat_eqb_refl). Qed.
 
 Lemma lex_eqb_true : forall a b : list nat, lex_eqb a b = true -> a = b.
-Proof.
-  intros a. induction a as [ | x r IH ]; intros b H.
-  - destruct b; [ reflexivity | discriminate H ].
-  - destruct b as [ | y s ]; [ discriminate H | ].
-    simpl in H. destruct (andb_split _ _ H) as [ A B ].
-    rewrite (nat_eqb_true x y A). rewrite (IH s B). reflexivity.
-Qed.
+Proof. exact (ProofSupport.list_eqb_sound nat Nat.eqb nat_eqb_true). Qed.
 
 Lemma lex_leb_cons_elim :
   forall (x y : nat) (r s : list nat),
