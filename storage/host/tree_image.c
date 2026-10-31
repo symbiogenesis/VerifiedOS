@@ -20,12 +20,11 @@ static uint8_t bytes[HOST_NODE_LIMIT * HOST_BLOCK_LIMIT];
 static int number(const char *text, uint64_t *out)
 {
     char *end;
-    unsigned long long value;
     if (*text < '0' || *text > '9') {
         return 0;
     }
     errno = 0;
-    value = strtoull(text, &end, 10);
+    const unsigned long long value = strtoull(text, &end, 10);
     if (errno != 0 || *end != '\0') {
         return 0;
     }
@@ -40,8 +39,6 @@ int main(int argc, char **argv)
     uint64_t arguments[8];
     uint64_t generations[HOST_NODE_LIMIT];
     uint64_t value = UINT64_MAX - 17u;
-    uint32_t i;
-    int result;
 #ifdef _WIN32
     if (_setmode(_fileno(stdin), _O_BINARY) == -1) {
         return 3;
@@ -50,7 +47,7 @@ int main(int argc, char **argv)
     if (argc < 9) {
         return 3;
     }
-    for (i = 0u; i < 8u; ++i) {
+    for (uint32_t i = 0u; i < 8u; ++i) {
         if (!number(argv[i + 1u], &arguments[i])) {
             return 3;
         }
@@ -61,7 +58,7 @@ int main(int argc, char **argv)
         argc != 9 + (int)arguments[1]) {
         return 3;
     }
-    for (i = 0u; i < arguments[1]; ++i) {
+    for (uint32_t i = 0u; i < arguments[1]; ++i) {
         if (!number(argv[i + 9u], &generations[i])) {
             return 3;
         }
@@ -79,7 +76,7 @@ int main(int argc, char **argv)
     limits.height = (uint32_t)arguments[4];
     limits.depth_limit = (uint32_t)arguments[5];
     limits.visit_limit = (uint32_t)arguments[6];
-    result = vos_tree_lookup(&image, &limits, arguments[3], arguments[7], &value);
+    const int result = vos_tree_lookup(&image, &limits, arguments[3], arguments[7], &value);
     if (result == VOS_TREE_REFUSED) {
         return value == UINT64_MAX - 17u ? 2 : 4;
     }

@@ -27,7 +27,6 @@ static int walk_node(struct tree_walk *walk, uint64_t id, uint32_t height,
                      struct key_range range, int selected)
 {
     struct vos_node node;
-    uint32_t i;
     uint32_t route = 0u;
     struct key_range separators = range;
     const struct vos_tree_image *image = walk->image;
@@ -44,7 +43,7 @@ static int walk_node(struct tree_walk *walk, uint64_t id, uint32_t height,
         if (height != 0u) {
             return 0;
         }
-        for (i = 0u; i < node.count; ++i) {
+        for (uint32_t i = 0u; i < node.count; ++i) {
             if ((i != 0u && node.keys[i - 1u] >= node.keys[i]) ||
                 !within(range, node.keys[i], 0)) {
                 return 0;
@@ -59,7 +58,7 @@ static int walk_node(struct tree_walk *walk, uint64_t id, uint32_t height,
     if (height == 0u) {
         return 0;
     }
-    for (i = 0u; i + 1u < node.count; ++i) {
+    for (uint32_t i = 0u; i + 1u < node.count; ++i) {
         if (!within(separators, node.keys[i], 1)) {
             return 0;
         }
@@ -69,7 +68,7 @@ static int walk_node(struct tree_walk *walk, uint64_t id, uint32_t height,
     while (route + 1u < node.count && node.keys[route] <= walk->key) {
         ++route;
     }
-    for (i = 0u; i < node.count; ++i) {
+    for (uint32_t i = 0u; i < node.count; ++i) {
         struct key_range child = range;
         if (i != 0u) {
             child.lower = node.keys[i - 1u];

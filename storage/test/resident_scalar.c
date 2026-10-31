@@ -24,7 +24,7 @@ struct fixture {
 static int verify(void *opaque, const struct vos_resident_identity *identity,
                   const uint8_t *bytes, size_t length)
 {
-    struct fixture *f = opaque;
+    const struct fixture *f = opaque;
     return identity->kind == f->identity.kind && length == sizeof(f->bytes) &&
            memcmp(bytes, f->bytes, length) == 0;
 }
@@ -32,24 +32,23 @@ static int verify(void *opaque, const struct vos_resident_identity *identity,
 static int setup(struct fixture *f, uint32_t kind)
 {
     struct vos_supervisor_execution execution;
-    uint32_t i;
     memset(f, 0, sizeof(*f));
     f->identity.owner = 7; f->identity.domain = 11; f->identity.object = 19;
     f->identity.version = 1; f->identity.generation = 1; f->identity.kind = kind;
-    for (i = 0; i < sizeof(f->identity.root); ++i)
+    for (uint32_t i = 0; i < sizeof(f->identity.root); ++i)
         f->identity.root[i] = (uint8_t)(31U + i);
-    for (i = 0; i < sizeof(f->bytes); ++i) f->bytes[i] = (uint8_t)(3U * i + 1U);
+    for (uint32_t i = 0; i < sizeof(f->bytes); ++i) f->bytes[i] = (uint8_t)(3U * i + 1U);
     if (!vos_resident_init(&f->owner, 1, 1, 15, 0, 0) ||
         !vos_resident_publish(&f->owner, &f->identity, f->bytes, sizeof(f->bytes)))
         return 0;
-    for (i = 0; i < VOS_RESIDENT_HOLDERS; ++i)
+    for (uint32_t i = 0; i < VOS_RESIDENT_HOLDERS; ++i)
         if (!vos_resident_admit(&f->owner, i, 11, &f->identity, i * 8, 16, 0, 12,
                                 &f->handles[i]) ||
             !vos_resident_begin(&f->owner, &f->handles[i], 11, 0, 16, 1,
                                 &f->sequences[i]))
             return 0;
     if (!vos_kernel_effect_init(&f->kernel, &vos_m8a_supervisor_manifest, 7)) return 0;
-    for (i = 0; i < f->kernel.manifest.units; ++i) {
+    for (uint32_t i = 0; i < f->kernel.manifest.units; ++i) {
         f->roots[i].value = 100 + i; f->roots[i].tag = 1;
         f->masks[i] = UINT64_C(1) << i;
         if (!vos_kernel_own(&f->kernel, i, f->owned[i], sizeof(f->owned[i]),
@@ -61,7 +60,7 @@ static int setup(struct fixture *f, uint32_t kind)
                                 &f->kernel, &execution) != VOS_SUPERVISOR_EXECUTED)
         return 0;
     memset(f->owned, 0x5a, sizeof(f->owned));
-    for (i = 0; i < f->kernel.manifest.units; ++i) {
+    for (uint32_t i = 0; i < f->kernel.manifest.units; ++i) {
         f->caps[i][0] = f->roots[i]; f->caps[i][1] = f->roots[i];
         f->kernel.unit[i].saved[31] = f->roots[i];
         f->kernel.unit[i].frames[1][31] = f->roots[i];
@@ -74,11 +73,10 @@ static int setup(struct fixture *f, uint32_t kind)
 
 static int quarantined(const struct fixture *f)
 {
-    uint32_t i;
     if (!f->owner.common.occupied || f->owner.common.accepting ||
         memcmp(f->owner.common.bytes, f->bytes, sizeof(f->bytes)) != 0)
         return 0;
-    for (i = 0; i < VOS_RESIDENT_HOLDERS; ++i)
+    for (uint32_t i = 0; i < VOS_RESIDENT_HOLDERS; ++i)
         if (f->owner.common.reservation[i].live || f->owner.pending[i].active)
             return 0;
     return 1;
@@ -89,14 +87,12 @@ static int successful(uint32_t kind)
     struct fixture f;
     uint8_t output[64];
     size_t length = 999;
-    uint32_t i, n;
-    uint64_t mask;
     REQUIRE(setup(&f, kind), "setup success");
     /* A failed holder supplies no acknowledgment; the fixed kernel-owned
      * holder inventory still contains its saved and ordinary capabilities. */
     f.kernel.unit[1].running = 0;
     memset(&f.handles[0], 0, sizeof(f.handles[0]));
-    mask = vos_resident_scalar_prepare(&f.attempt, &f.owner, &f.kernel, &f.binding);
+    const uint64_t mask = vos_resident_scalar_prepare(&f.attempt, &f.owner, &f.kernel, &f.binding);
     REQUIRE(mask == 7 && quarantined(&f), "complete holder cancellation before publication");
     REQUIRE(!vos_resident_complete(&f.owner, &f.handles[1], 11, f.sequences[1], 1,
                                    verify, &f, output, sizeof(output), &length) &&
@@ -112,8 +108,8 @@ static int successful(uint32_t kind)
     REQUIRE(quarantined(&f), "semantic completion retains backing quarantine");
     REQUIRE(!f.kernel.started && f.kernel.needs_replenish == 7 &&
             !f.kernel.retirement_pending, "kernel fresh-replacement obligation");
-    for (i = 0; i < f.kernel.manifest.units; ++i) {
-        for (n = 0; n < sizeof(f.owned[i]); ++n)
+    for (uint32_t i = 0; i < f.kernel.manifest.units; ++i) {
+        for (uint32_t n = 0; n < sizeof(f.owned[i]); ++n)
             REQUIRE(f.owned[i][n] == 0, "actual kernel-owned bytes cleared");
         REQUIRE(!f.caps[i][0].tag && !f.caps[i][1].tag &&
                 !f.kernel.unit[i].saved[31].tag && !f.kernel.unit[i].frames[1][31].tag,
@@ -196,8 +192,7 @@ static int controls(uint32_t kind)
 
 int main(void)
 {
-    uint32_t kind;
-    for (kind = VOS_RESIDENT_SYSTEM; kind <= VOS_RESIDENT_USER; ++kind)
+    for (uint32_t kind = VOS_RESIDENT_SYSTEM; kind <= VOS_RESIDENT_USER; ++kind)
         if (successful(kind) || controls(kind)) return 1;
     fprintf(stderr, "ok resident scalar actual producer, quarantine and one-attempt controls\n");
     return 0;

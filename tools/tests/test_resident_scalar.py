@@ -22,8 +22,8 @@ def _variants(source: str) -> list[tuple[str, str, str]]:
     return [
         ("pristine", source, ""),
         ("uncovered-holder", changed(
-            "for (i = 0; i < VOS_RESIDENT_HOLDERS; ++i) {",
-            "for (i = 0; i + 1 < VOS_RESIDENT_HOLDERS; ++i) {"),
+            "for (uint32_t i = 0; i < VOS_RESIDENT_HOLDERS; ++i) {",
+            "for (uint32_t i = 0; i + 1 < VOS_RESIDENT_HOLDERS; ++i) {"),
             "uncovered second holder refuses before effects"),
         ("stale-epoch", changed("b->epoch != k->epoch || b->epoch == UINT64_MAX ||",
             "b->epoch == UINT64_MAX ||"), "stale attempt epoch refuses before effects"),

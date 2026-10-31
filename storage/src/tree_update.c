@@ -41,13 +41,11 @@ static int publish(struct update *update, uint32_t kind, uint32_t count,
 {
     struct vos_node left = {0};
     struct vos_node right = {0};
-    uint32_t i;
-    uint32_t cut;
     left.kind = kind;
     left.count = count;
     result->split = 0;
     if (count <= update->arena->geometry.fan) {
-        for (i = 0u; i < count; ++i) {
+        for (uint32_t i = 0u; i < count; ++i) {
             left.values[i] = values[i];
             if (kind == VOS_NODE_LEAF || i + 1u < count) {
                 left.keys[i] = keys[i];
@@ -55,17 +53,17 @@ static int publish(struct update *update, uint32_t kind, uint32_t count,
         }
         return allocate(update, &left, &result->left);
     }
-    cut = count / 2u;
+    const uint32_t cut = count / 2u;
     left.count = cut;
     right.kind = kind;
     right.count = count - cut;
-    for (i = 0u; i < cut; ++i) {
+    for (uint32_t i = 0u; i < cut; ++i) {
         left.values[i] = values[i];
         if (kind == VOS_NODE_LEAF || i + 1u < cut) {
             left.keys[i] = keys[i];
         }
     }
-    for (i = 0u; i < right.count; ++i) {
+    for (uint32_t i = 0u; i < right.count; ++i) {
         right.values[i] = values[cut + i];
         if (kind == VOS_NODE_LEAF || i + 1u < right.count) {
             right.keys[i] = keys[cut + i];
@@ -84,9 +82,7 @@ static int insert_node(struct update *update, uint64_t id, uint32_t height,
     struct grown child;
     uint64_t keys[VOS_NODE_MAX_FAN + 1u];
     uint64_t values[VOS_NODE_MAX_FAN + 1u];
-    uint32_t i;
     uint32_t route = 0u;
-    uint32_t count;
     const struct vos_tree_image *input = &update->input;
     if (id >= input->geometry.arena_nodes ||
         !vos_node_decode(&input->geometry, id, input->generations[(size_t)id],
@@ -94,7 +90,7 @@ static int insert_node(struct update *update, uint64_t id, uint32_t height,
                          input->geometry.block_bytes, &node)) {
         return 0;
     }
-    count = node.count;
+    uint32_t count = node.count;
     if (node.kind == VOS_NODE_LEAF) {
         if (height != 0u) {
             return 0;
@@ -102,19 +98,19 @@ static int insert_node(struct update *update, uint64_t id, uint32_t height,
         while (route < count && node.keys[route] < update->key) {
             ++route;
         }
-        for (i = 0u; i < route; ++i) {
+        for (uint32_t i = 0u; i < route; ++i) {
             keys[i] = node.keys[i];
             values[i] = node.values[i];
         }
         keys[route] = update->key;
         values[route] = update->value;
         if (route < count && node.keys[route] == update->key) {
-            for (i = route + 1u; i < count; ++i) {
+            for (uint32_t i = route + 1u; i < count; ++i) {
                 keys[i] = node.keys[i];
                 values[i] = node.values[i];
             }
         } else {
-            for (i = route; i < count; ++i) {
+            for (uint32_t i = route; i < count; ++i) {
                 keys[i + 1u] = node.keys[i];
                 values[i + 1u] = node.values[i];
             }
@@ -131,7 +127,7 @@ static int insert_node(struct update *update, uint64_t id, uint32_t height,
     if (!insert_node(update, node.values[route], height - 1u, &child)) {
         return 0;
     }
-    for (i = 0u; i < route; ++i) {
+    for (uint32_t i = 0u; i < route; ++i) {
         values[i] = node.values[i];
         keys[i] = node.keys[i];
     }
@@ -139,13 +135,13 @@ static int insert_node(struct update *update, uint64_t id, uint32_t height,
     if (child.split) {
         keys[route] = child.separator;
         values[route + 1u] = child.right;
-        for (i = route; i + 1u < count; ++i) {
+        for (uint32_t i = route; i + 1u < count; ++i) {
             keys[i + 1u] = node.keys[i];
             values[i + 2u] = node.values[i + 1u];
         }
         ++count;
     } else {
-        for (i = route; i + 1u < count; ++i) {
+        for (uint32_t i = route; i + 1u < count; ++i) {
             keys[i] = node.keys[i];
             values[i + 1u] = node.values[i + 1u];
         }

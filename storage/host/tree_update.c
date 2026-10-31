@@ -19,12 +19,11 @@ static uint64_t retained_generations[HOST_NODE_LIMIT];
 static int number(const char *text, uint64_t *out)
 {
     char *end;
-    unsigned long long value;
     if (*text < '0' || *text > '9') {
         return 0;
     }
     errno = 0;
-    value = strtoull(text, &end, 10);
+    const unsigned long long value = strtoull(text, &end, 10);
     if (errno != 0 || *end != '\0') {
         return 0;
     }
@@ -36,15 +35,14 @@ int main(int argc, char **argv)
 {
     struct vos_tree_arena arena;
     struct vos_tree_limits limits;
-    struct vos_tree_update_result result = {UINT64_MAX, UINT64_MAX, UINT32_MAX};
+    struct vos_tree_update_result result = {
+        .root = UINT64_MAX, .used = UINT64_MAX, .height = UINT32_MAX,
+    };
     uint64_t arguments[12];
-    uint32_t i;
-    int accepted;
-    size_t retained_length;
     if (argc < 13) {
         return 3;
     }
-    for (i = 0u; i < 12u; ++i) {
+    for (uint32_t i = 0u; i < 12u; ++i) {
         if (!number(argv[i + 1u], &arguments[i])) {
             return 3;
         }
@@ -55,7 +53,7 @@ int main(int argc, char **argv)
         argc != 13 + (int)arguments[1]) {
         return 3;
     }
-    for (i = 0u; i < arguments[1]; ++i) {
+    for (uint32_t i = 0u; i < arguments[1]; ++i) {
         if (!number(argv[i + 13u], &generations[i])) {
             return 3;
         }
@@ -71,13 +69,13 @@ int main(int argc, char **argv)
     if (ferror(stdin) || (arena.length == sizeof bytes && fgetc(stdin) != EOF)) {
         return 3;
     }
-    retained_length = (size_t)arena.used * arena.geometry.block_bytes;
+    const size_t retained_length = (size_t)arena.used * arena.geometry.block_bytes;
     memcpy(retained, bytes, arena.length);
     memcpy(retained_generations, generations, sizeof generations);
     limits.height = (uint32_t)arguments[5];
     limits.depth_limit = (uint32_t)arguments[6];
     limits.visit_limit = (uint32_t)arguments[7];
-    accepted = vos_tree_insert(&arena, &limits, arguments[4], arguments[8],
+    const int accepted = vos_tree_insert(&arena, &limits, arguments[4], arguments[8],
                                arguments[9], arguments[10], &result);
     if (memcmp(retained, bytes, retained_length) != 0 ||
         memcmp(retained_generations, generations, (size_t)arena.used * sizeof(uint64_t)) != 0) {
@@ -94,7 +92,7 @@ int main(int argc, char **argv)
     }
     printf("{\"root\":%" PRIu64 ",\"used\":%" PRIu64 ",\"height\":%" PRIu32 ",\"generations\":[",
            result.root, result.used, result.height);
-    for (i = 0u; i < arena.geometry.arena_nodes; ++i) {
+    for (uint32_t i = 0u; i < arena.geometry.arena_nodes; ++i) {
         printf("%s%" PRIu64, i == 0u ? "" : ",", generations[i]);
     }
     printf("]}\n");

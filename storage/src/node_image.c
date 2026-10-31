@@ -14,7 +14,6 @@ static int geometry_ok(const struct vos_node_geometry *geometry, size_t length)
 static int shape_ok(const struct vos_node_geometry *geometry,
                     const struct vos_node *node)
 {
-    uint32_t i;
     if (node->node_id >= geometry->arena_nodes || node->count > geometry->fan) {
         return 0;
     }
@@ -24,7 +23,7 @@ static int shape_ok(const struct vos_node_geometry *geometry,
     if (node->kind != VOS_NODE_BRANCH || node->count == 0u) {
         return 0;
     }
-    for (i = 0u; i < node->count; ++i) {
+    for (uint32_t i = 0u; i < node->count; ++i) {
         if (node->values[i] >= geometry->arena_nodes) {
             return 0;
         }
@@ -34,17 +33,15 @@ static int shape_ok(const struct vos_node_geometry *geometry,
 
 static void put_integer(uint8_t *output, uint64_t value, uint32_t width)
 {
-    uint32_t i;
-    for (i = 0u; i < width; ++i) {
+    for (uint32_t i = 0u; i < width; ++i) {
         output[i] = (uint8_t)(value >> (8u * i));
     }
 }
 
 static uint64_t get_integer(const uint8_t *bytes, uint32_t width)
 {
-    uint32_t i;
     uint64_t result = 0u;
-    for (i = 0u; i < width; ++i) {
+    for (uint32_t i = 0u; i < width; ++i) {
         result |= (uint64_t)bytes[i] << (8u * i);
     }
     return result;
@@ -54,13 +51,11 @@ int vos_node_encode(const struct vos_node_geometry *geometry,
                     const struct vos_node *node, uint8_t *output, size_t length)
 {
     size_t at = VOS_NODE_HEADER_BYTES;
-    size_t padding;
-    uint32_t i;
     if (!geometry_ok(geometry, length) || node == NULL || output == NULL ||
         !shape_ok(geometry, node)) {
         return 0;
     }
-    for (i = 0u; i < 8u; ++i) {
+    for (uint32_t i = 0u; i < 8u; ++i) {
         output[i] = magic[i];
     }
     put_integer(output + 8u, node->kind, 4u);
@@ -68,22 +63,22 @@ int vos_node_encode(const struct vos_node_geometry *geometry,
     put_integer(output + 16u, node->node_id, 8u);
     put_integer(output + 24u, node->generation, 8u);
     if (node->kind == VOS_NODE_LEAF) {
-        for (i = 0u; i < node->count; ++i) {
+        for (uint32_t i = 0u; i < node->count; ++i) {
             put_integer(output + at, node->keys[i], 8u);
             put_integer(output + at + 8u, node->values[i], 8u);
             at += 16u;
         }
     } else {
-        for (i = 0u; i + 1u < node->count; ++i) {
+        for (uint32_t i = 0u; i + 1u < node->count; ++i) {
             put_integer(output + at, node->keys[i], 8u);
             at += 8u;
         }
-        for (i = 0u; i < node->count; ++i) {
+        for (uint32_t i = 0u; i < node->count; ++i) {
             put_integer(output + at, node->values[i], 8u);
             at += 8u;
         }
     }
-    for (padding = at; padding < length; ++padding) {
+    for (size_t padding = at; padding < length; ++padding) {
         output[padding] = 0u;
     }
     return 1;
@@ -95,12 +90,10 @@ int vos_node_decode(const struct vos_node_geometry *geometry,
 {
     struct vos_node decoded = {0};
     size_t at = VOS_NODE_HEADER_BYTES;
-    size_t padding;
-    uint32_t i;
     if (!geometry_ok(geometry, length) || bytes == NULL || output == NULL) {
         return 0;
     }
-    for (i = 0u; i < 8u; ++i) {
+    for (uint32_t i = 0u; i < 8u; ++i) {
         if (bytes[i] != magic[i]) {
             return 0;
         }
@@ -117,17 +110,17 @@ int vos_node_decode(const struct vos_node_geometry *geometry,
         return 0;
     }
     if (decoded.kind == VOS_NODE_LEAF) {
-        for (i = 0u; i < decoded.count; ++i) {
+        for (uint32_t i = 0u; i < decoded.count; ++i) {
             decoded.keys[i] = get_integer(bytes + at, 8u);
             decoded.values[i] = get_integer(bytes + at + 8u, 8u);
             at += 16u;
         }
     } else {
-        for (i = 0u; i + 1u < decoded.count; ++i) {
+        for (uint32_t i = 0u; i + 1u < decoded.count; ++i) {
             decoded.keys[i] = get_integer(bytes + at, 8u);
             at += 8u;
         }
-        for (i = 0u; i < decoded.count; ++i) {
+        for (uint32_t i = 0u; i < decoded.count; ++i) {
             decoded.values[i] = get_integer(bytes + at, 8u);
             at += 8u;
         }
@@ -135,7 +128,7 @@ int vos_node_decode(const struct vos_node_geometry *geometry,
     if (!shape_ok(geometry, &decoded)) {
         return 0;
     }
-    for (padding = at; padding < length; ++padding) {
+    for (size_t padding = at; padding < length; ++padding) {
         if (bytes[padding] != 0u) {
             return 0;
         }
