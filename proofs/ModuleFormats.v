@@ -869,12 +869,21 @@ Definition read_certificate (f : FormatBounds) (bs : list nat) : option Certific
     end
   else None.
 
-(*| discharges: R-05-051a |*)
-Theorem certificate_parse_of_serialize : forall f c enc,
-  format_wf f = true -> write_certificate f c = Some enc ->
-  read_certificate f enc = Some c.
+(* Certificate correctness composes the five field codecs once. The suffix
+   remains explicit until the complete-input container decides whether to admit it. *)
+Lemma write_certificate_fields : forall f c enc,
+  write_certificate f c = Some enc ->
+  exists subject checker profile evidence entries,
+    write_manifest_body f (certificate_subject c) = Some subject /\
+    write_numeral f (certificate_checker c) = Some checker /\
+    write_numeral f (certificate_profile c) = Some profile /\
+    write_blob f (evidence_bytes_max f) (certificate_evidence c) = Some evidence /\
+    write_entries f (assumption_entries_max f) (certificate_assumptions c) = Some entries /\
+    Nat.leb (S (count (certificate_body subject checker profile evidence entries)))
+            (container_bytes_max f) = true /\
+    enc = certificate_tag f :: certificate_body subject checker profile evidence entries.
 Proof.
-  intros f c enc Hwf Hw. unfold write_certificate in Hw.
+  intros f c enc H. unfold write_certificate in H.
   destruct (write_manifest_body f (certificate_subject c)) as [subject|] eqn:E1;
     [|discriminate].
   destruct (write_numeral f (certificate_checker c)) as [checker|] eqn:E2;
@@ -887,20 +896,70 @@ Proof.
     as [entries|] eqn:E5; [|discriminate].
   destruct (Nat.leb (S (count (certificate_body subject checker profile evidence entries)))
                     (container_bytes_max f)) eqn:EB; [|discriminate].
-  injection Hw as Hw. rewrite <- Hw.
-  unfold read_certificate. rewrite count_cons. rewrite EB. rewrite eqb_self.
-  unfold certificate_body.
+  injection H as H. exists subject, checker, profile, evidence, entries.
+  repeat split; try assumption. symmetry. exact H.
+Qed.
+
+Lemma write_certificate_from_fields : forall f c subject checker profile evidence entries,
+  write_manifest_body f (certificate_subject c) = Some subject ->
+  write_numeral f (certificate_checker c) = Some checker ->
+  write_numeral f (certificate_profile c) = Some profile ->
+  write_blob f (evidence_bytes_max f) (certificate_evidence c) = Some evidence ->
+  write_entries f (assumption_entries_max f) (certificate_assumptions c) = Some entries ->
+  Nat.leb (S (count (certificate_body subject checker profile evidence entries)))
+          (container_bytes_max f) = true ->
+  write_certificate f c =
+    Some (certificate_tag f :: certificate_body subject checker profile evidence entries).
+Proof.
+  intros f c subject checker profile evidence entries E1 E2 E3 E4 E5 EB.
+  unfold write_certificate. rewrite E1, E2, E3, E4, E5, EB. reflexivity.
+Qed.
+
+Lemma read_certificate_from_fields : forall f c subject checker profile evidence entries back,
+  format_wf f = true ->
+  write_manifest_body f (certificate_subject c) = Some subject ->
+  write_numeral f (certificate_checker c) = Some checker ->
+  write_numeral f (certificate_profile c) = Some profile ->
+  write_blob f (evidence_bytes_max f) (certificate_evidence c) = Some evidence ->
+  write_entries f (assumption_entries_max f) (certificate_assumptions c) = Some entries ->
+  read_certificate f
+    (certificate_tag f :: (certificate_body subject checker profile evidence entries ++ back)) =
+    if Nat.leb (S (count (certificate_body subject checker profile evidence entries ++ back)))
+               (container_bytes_max f)
+    then match back with nil => Some c | _ :: _ => None end else None.
+Proof.
+  intros f c subject checker profile evidence entries back Hwf E1 E2 E3 E4 E5.
+  unfold read_certificate. rewrite count_cons.
+  destruct (Nat.leb
+    (S (count (certificate_body subject checker profile evidence entries ++ back)))
+    (container_bytes_max f)); [|reflexivity].
+  rewrite eqb_self. unfold certificate_body. repeat rewrite <- app_assoc.
   rewrite (read_write_manifest_body f (certificate_subject c) subject
-             (checker ++ profile ++ evidence ++ entries) Hwf E1).
+             (checker ++ profile ++ evidence ++ entries ++ back) Hwf E1).
   rewrite (read_write_numeral f (certificate_checker c) checker
-             (profile ++ evidence ++ entries) Hwf E2).
+             (profile ++ evidence ++ entries ++ back) Hwf E2).
   rewrite (read_write_numeral f (certificate_profile c) profile
-             (evidence ++ entries) Hwf E3).
+             (evidence ++ entries ++ back) Hwf E3).
   rewrite (read_write_blob f (evidence_bytes_max f) (certificate_evidence c)
-             evidence entries Hwf E4).
-  pose proof (read_write_entries f (assumption_entries_max f)
-                (certificate_assumptions c) entries nil Hwf E5) as H5.
-  rewrite app_nil_r in H5. rewrite H5. destruct c. reflexivity.
+             evidence (entries ++ back) Hwf E4).
+  rewrite (read_write_entries f (assumption_entries_max f)
+             (certificate_assumptions c) entries back Hwf E5).
+  destruct back as [|x rest]; [destruct c |]; reflexivity.
+Qed.
+
+(*| discharges: R-05-051a |*)
+Theorem certificate_parse_of_serialize : forall f c enc,
+  format_wf f = true -> write_certificate f c = Some enc ->
+  read_certificate f enc = Some c.
+Proof.
+  intros f c enc Hwf Hw.
+  destruct (write_certificate_fields f c enc Hw)
+    as [subject [checker [profile [evidence [entries
+         [E1 [E2 [E3 [E4 [E5 [EB He]]]]]]]]]]].
+  subst enc.
+  pose proof (read_certificate_from_fields f c subject checker profile evidence entries
+                nil Hwf E1 E2 E3 E4 E5) as Hr.
+  repeat rewrite app_nil_r in Hr. rewrite Hr, EB. reflexivity.
 Qed.
 
 (*| discharges: R-05-051a, R-05-051b |*)
@@ -932,11 +991,13 @@ Proof.
   assert (Hrest : rest = certificate_body e1 e2 e3 e4 e5).
   { unfold certificate_body. rewrite Hb1. rewrite Hb2. rewrite Hb3. rewrite Hb4.
     rewrite Hb5. reflexivity. }
-  unfold write_certificate. rewrite <- H.
-  cbn [certificate_subject certificate_checker certificate_profile
-       certificate_evidence certificate_assumptions].
-  rewrite Hw1. rewrite Hw2. rewrite Hw3. rewrite Hw4. rewrite Hw5.
-  rewrite count_cons in EB. rewrite Hrest in EB. rewrite EB.
+  rewrite count_cons in EB. rewrite Hrest in EB.
+  rewrite <- H.
+  rewrite (write_certificate_from_fields f
+    {| certificate_subject := subj; certificate_checker := chk;
+       certificate_profile := prof; certificate_evidence := ev;
+       certificate_assumptions := asm |}
+    e1 e2 e3 e4 e5 Hw1 Hw2 Hw3 Hw4 Hw5 EB).
   rewrite <- Hrest. rewrite (eqb_equal tag (certificate_tag f) ET). reflexivity.
 Qed.
 
@@ -966,36 +1027,17 @@ Theorem certificate_refuses_trailing_bytes : forall f c enc extra,
   format_wf f = true -> write_certificate f c = Some enc -> extra <> nil ->
   read_certificate f (enc ++ extra) = None.
 Proof.
-  intros f c enc extra Hwf Hw Hx. unfold write_certificate in Hw.
-  destruct (write_manifest_body f (certificate_subject c)) as [subject|] eqn:E1;
-    [|discriminate].
-  destruct (write_numeral f (certificate_checker c)) as [checker|] eqn:E2;
-    [|discriminate].
-  destruct (write_numeral f (certificate_profile c)) as [profile|] eqn:E3;
-    [|discriminate].
-  destruct (write_blob f (evidence_bytes_max f) (certificate_evidence c))
-    as [evidence|] eqn:E4; [|discriminate].
-  destruct (write_entries f (assumption_entries_max f) (certificate_assumptions c))
-    as [entries|] eqn:E5; [|discriminate].
-  destruct (Nat.leb (S (count (certificate_body subject checker profile evidence entries)))
-                    (container_bytes_max f)) eqn:EB; [|discriminate].
-  injection Hw as Hw. rewrite <- Hw. cbn [app]. unfold read_certificate.
-  destruct (Nat.leb (count (certificate_tag f ::
-              (certificate_body subject checker profile evidence entries ++ extra)))
-              (container_bytes_max f)) eqn:EC; [|reflexivity].
-  rewrite eqb_self. unfold certificate_body.
-  repeat rewrite <- app_assoc.
-  rewrite (read_write_manifest_body f (certificate_subject c) subject
-             (checker ++ profile ++ evidence ++ entries ++ extra) Hwf E1).
-  rewrite (read_write_numeral f (certificate_checker c) checker
-             (profile ++ evidence ++ entries ++ extra) Hwf E2).
-  rewrite (read_write_numeral f (certificate_profile c) profile
-             (evidence ++ entries ++ extra) Hwf E3).
-  rewrite (read_write_blob f (evidence_bytes_max f) (certificate_evidence c)
-             evidence (entries ++ extra) Hwf E4).
-  rewrite (read_write_entries f (assumption_entries_max f)
-             (certificate_assumptions c) entries extra Hwf E5).
-  destruct extra as [|x t]; [exfalso; apply Hx; reflexivity | reflexivity].
+  intros f c enc extra Hwf Hw Hx.
+  destruct (write_certificate_fields f c enc Hw)
+    as [subject [checker [profile [evidence [entries
+         [E1 [E2 [E3 [E4 [E5 [EB He]]]]]]]]]]].
+  subst enc. cbn [app].
+  rewrite (read_certificate_from_fields f c subject checker profile evidence entries
+             extra Hwf E1 E2 E3 E4 E5).
+  destruct (Nat.leb
+    (S (count (certificate_body subject checker profile evidence entries ++ extra)))
+    (container_bytes_max f)); [|reflexivity].
+  destruct extra as [|x rest]; [exfalso; apply Hx; reflexivity | reflexivity].
 Qed.
 
 (* -------------------------------------------------------------------------

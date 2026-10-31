@@ -2475,6 +2475,74 @@ Definition service_conjuncts : list (Service -> bool) :=
   (cons (fun s => svc_charges_at_the_maximum s)
    nil)))))))))))).
 
+(* The authored predicate list keeps its exact order and fallback behavior.
+   Named conditions give semantic clients one checked correspondence to it. *)
+Inductive ServiceCondition : Set :=
+  | CompletionCapacityCondition
+  | RequestCapacityCondition
+  | BatchCapacityCondition
+  | SegmentCapacityCondition
+  | StagingCapacityCondition
+  | CleanupBoundCondition
+  | CleanupReferencesCondition
+  | DeclaredCostsCondition
+  | LatencyAccountingCondition
+  | ProgressBoundCondition
+  | IdentifierLivenessCondition
+  | BinaryNotificationCondition
+  | MaximumChargingCondition.
+
+Definition service_conditions : list ServiceCondition :=
+  cons CompletionCapacityCondition
+  (cons RequestCapacityCondition
+  (cons BatchCapacityCondition
+  (cons SegmentCapacityCondition
+  (cons StagingCapacityCondition
+  (cons CleanupBoundCondition
+  (cons CleanupReferencesCondition
+  (cons DeclaredCostsCondition
+  (cons LatencyAccountingCondition
+  (cons ProgressBoundCondition
+  (cons IdentifierLivenessCondition
+  (cons BinaryNotificationCondition
+  (cons MaximumChargingCondition
+   nil)))))))))))).
+
+Definition service_condition_index (c : ServiceCondition) : nat :=
+  match c with
+  | CompletionCapacityCondition => 0
+  | RequestCapacityCondition => 1
+  | BatchCapacityCondition => 2
+  | SegmentCapacityCondition => 3
+  | StagingCapacityCondition => 4
+  | CleanupBoundCondition => 5
+  | CleanupReferencesCondition => 6
+  | DeclaredCostsCondition => 7
+  | LatencyAccountingCondition => 8
+  | ProgressBoundCondition => 9
+  | IdentifierLivenessCondition => 10
+  | BinaryNotificationCondition => 11
+  | MaximumChargingCondition => 12
+  end.
+
+Definition service_condition (c : ServiceCondition) : Service -> bool :=
+  at_member service_conjuncts (service_condition_index c) (fun _ => false).
+
+Lemma service_conditions_complete : ProofSupport.CompleteRoster service_conditions.
+Proof.
+  intro c. destruct c;
+    cbn [service_conditions ProofSupport.CompleteRoster ProofSupport.Member];
+    repeat (first [left; reflexivity | right]).
+Qed.
+
+Lemma service_conjuncts_by_name :
+  service_conjuncts = map_over service_condition service_conditions.
+Proof. reflexivity. Qed.
+
+Lemma service_condition_indices :
+  map_over service_condition_index service_conditions = upto 13.
+Proof. reflexivity. Qed.
+
 Definition admissible_service (s : Service) : bool :=
   all_of (fun p => p s) service_conjuncts.
 
@@ -2483,6 +2551,24 @@ Definition service_broken (s : Service) : nat :=
 
 Definition declared_without (k : nat) (s : Service) : bool :=
   all_of (fun p => p s) (drop_at k service_conjuncts).
+
+Lemma admissible_service_conditions : forall s : Service,
+  admissible_service s = true <-> forall c : ServiceCondition, service_condition c s = true.
+Proof.
+  intro s. unfold admissible_service. rewrite service_conjuncts_by_name.
+  rewrite (ProofSupport.all_of_map ServiceCondition (Service -> bool)
+             (fun p => p s) service_condition service_conditions).
+  exact (ProofSupport.all_of_complete_roster ServiceCondition service_conditions
+           service_conditions_complete (fun c => service_condition c s)).
+Qed.
+
+Lemma admitted_service_condition : forall s c,
+  admissible_service s = true -> service_condition c s = true.
+Proof. intros s c H. exact (proj1 (admissible_service_conditions s) H c). Qed.
+
+Theorem an_admitted_service_charges_at_the_declared_maximum : forall s,
+  admissible_service s = true -> svc_charges_at_the_maximum s = true.
+Proof. intros s H. exact (admitted_service_condition s MaximumChargingCondition H). Qed.
 
 Example there_are_thirteen_service_conjuncts :
   count_of service_conjuncts = 13.
@@ -2533,101 +2619,90 @@ Definition writing_not_live (t : slot_state) : bool :=
   if t is state_Writing then false else demo_live t.
 
 Definition with_caps (s : Service) (c : svc_capacities) : Service :=
-  mk_service c (svc_per_op s) (svc_live s) (svc_reset s) (svc_counter s)
-             (svc_cadence s) (svc_accounting s) (svc_charges_at_the_maximum s)
-             (svc_identity s).
+  {| s with svc_caps := c |}.
 
 Definition with_op (s : Service) (o : op) (r : svc_op_record) : Service :=
-  mk_service (svc_caps s) (fun x => if op_eqb x o then r else svc_per_op s x)
-             (svc_live s) (svc_reset s) (svc_counter s) (svc_cadence s)
-             (svc_accounting s) (svc_charges_at_the_maximum s) (svc_identity s).
+  {| s with svc_per_op := (fun x => if op_eqb x o then r else svc_per_op s x) |}.
 
 Definition with_live (s : Service) (f : slot_state -> bool) : Service :=
-  mk_service (svc_caps s) (svc_per_op s) f (svc_reset s) (svc_counter s)
-             (svc_cadence s) (svc_accounting s) (svc_charges_at_the_maximum s)
-             (svc_identity s).
+  {| s with svc_live := f |}.
 
 Definition with_reset (s : Service) (r : reset_owner) : Service :=
-  mk_service (svc_caps s) (svc_per_op s) (svc_live s) r (svc_counter s)
-             (svc_cadence s) (svc_accounting s) (svc_charges_at_the_maximum s)
-             (svc_identity s).
+  {| s with svc_reset := r |}.
 
 Definition with_counter (s : Service) (c : bool) : Service :=
-  mk_service (svc_caps s) (svc_per_op s) (svc_live s) (svc_reset s) c
-             (svc_cadence s) (svc_accounting s) (svc_charges_at_the_maximum s)
-             (svc_identity s).
+  {| s with svc_counter := c |}.
 
 Definition with_cadence (s : Service) (n : nat) : Service :=
-  mk_service (svc_caps s) (svc_per_op s) (svc_live s) (svc_reset s) (svc_counter s)
-             n (svc_accounting s) (svc_charges_at_the_maximum s) (svc_identity s).
+  {| s with svc_cadence := n |}.
 
 Definition with_charging (s : Service) (c : bool) : Service :=
-  mk_service (svc_caps s) (svc_per_op s) (svc_live s) (svc_reset s) (svc_counter s)
-             (svc_cadence s) (svc_accounting s) c (svc_identity s).
+  {| s with svc_charges_at_the_maximum := c |}.
 
 Definition set_accepted_slack (c : svc_capacities) (n : nat) : svc_capacities :=
-  mk_svc_capacities (cap_accepted c) n (cap_ring_slack c) (cap_batch c)
-                    (cap_batch_slack c).
+  {| c with cap_accepted_slack := n |}.
 
 Definition set_ring_slack (c : svc_capacities) (n : nat) : svc_capacities :=
-  mk_svc_capacities (cap_accepted c) (cap_accepted_slack c) n (cap_batch c)
-                    (cap_batch_slack c).
+  {| c with cap_ring_slack := n |}.
 
 Definition set_batch_slack (c : svc_capacities) (n : nat) : svc_capacities :=
-  mk_svc_capacities (cap_accepted c) (cap_accepted_slack c) (cap_ring_slack c)
-                    (cap_batch c) n.
+  {| c with cap_batch_slack := n |}.
 
 Definition set_segment_slack (r : svc_op_record) (n : nat) : svc_op_record :=
-  mk_svc_op_record (so_segments r) n (so_staging r) (so_staging_slack r)
-                   (so_cleanup r) (so_cleanup_slack r) (so_released r)
-                   (so_validation r) (so_service r) (so_publication r)
-                   (so_latency r) (so_progress_slack r) (so_progress_bound r).
+  {| r with so_segment_slack := n |}.
 
 Definition set_staging_slack (r : svc_op_record) (n : nat) : svc_op_record :=
-  mk_svc_op_record (so_segments r) (so_segment_slack r) (so_staging r) n
-                   (so_cleanup r) (so_cleanup_slack r) (so_released r)
-                   (so_validation r) (so_service r) (so_publication r)
-                   (so_latency r) (so_progress_slack r) (so_progress_bound r).
+  {| r with so_staging_slack := n |}.
 
 Definition set_cleanup_slack (r : svc_op_record) (n : nat) : svc_op_record :=
-  mk_svc_op_record (so_segments r) (so_segment_slack r) (so_staging r)
-                   (so_staging_slack r) (so_cleanup r) n (so_released r)
-                   (so_validation r) (so_service r) (so_publication r)
-                   (so_latency r) (so_progress_slack r) (so_progress_bound r).
+  {| r with so_cleanup_slack := n |}.
 
 Definition set_released (r : svc_op_record) (n : nat) : svc_op_record :=
-  mk_svc_op_record (so_segments r) (so_segment_slack r) (so_staging r)
-                   (so_staging_slack r) (so_cleanup r) (so_cleanup_slack r) n
-                   (so_validation r) (so_service r) (so_publication r)
-                   (so_latency r) (so_progress_slack r) (so_progress_bound r).
+  {| r with so_released := n |}.
 
 Definition set_validation (r : svc_op_record) (n : nat) : svc_op_record :=
-  mk_svc_op_record (so_segments r) (so_segment_slack r) (so_staging r)
-                   (so_staging_slack r) (so_cleanup r) (so_cleanup_slack r)
-                   (so_released r) n (so_service r) (so_publication r)
-                   (so_latency r) (so_progress_slack r) (so_progress_bound r).
+  {| r with so_validation := n |}.
 
 Definition set_service (r : svc_op_record) (n : nat) : svc_op_record :=
-  mk_svc_op_record (so_segments r) (so_segment_slack r) (so_staging r)
-                   (so_staging_slack r) (so_cleanup r) (so_cleanup_slack r)
-                   (so_released r) (so_validation r) n (so_publication r)
-                   (so_latency r) (so_progress_slack r) (so_progress_bound r).
+  {| r with so_service := n |}.
 
 Definition set_publication (r : svc_op_record) (n : nat) : svc_op_record :=
-  mk_svc_op_record (so_segments r) (so_segment_slack r) (so_staging r)
-                   (so_staging_slack r) (so_cleanup r) (so_cleanup_slack r)
-                   (so_released r) (so_validation r) (so_service r) n
-                   (so_latency r) (so_progress_slack r) (so_progress_bound r).
+  {| r with so_publication := n |}.
 
 Definition set_progress_slack (r : svc_op_record) (n : nat) : svc_op_record :=
-  mk_svc_op_record (so_segments r) (so_segment_slack r) (so_staging r)
-                   (so_staging_slack r) (so_cleanup r) (so_cleanup_slack r)
-                   (so_released r) (so_validation r) (so_service r)
-                   (so_publication r) (so_latency r) n (so_progress_bound r).
+  {| r with so_progress_slack := n |}.
+
+(* Projection laws expose both the selected operation and the unchanged frame.
+   No equality between functions or extensionality axiom is needed. *)
+Lemma with_op_hit : forall s o r, svc_per_op (with_op s o r) o = r.
+Proof. intros s o r. cbn [with_op]. rewrite op_eqb_refl. reflexivity. Qed.
+
+Lemma with_op_miss : forall s o r x,
+  op_eqb x o = false -> svc_per_op (with_op s o r) x = svc_per_op s x.
+Proof. intros s o r x H. cbn [with_op]. rewrite H. reflexivity. Qed.
+
+Lemma with_op_frame : forall s o r,
+  svc_caps (with_op s o r) = svc_caps s /\
+  svc_reset (with_op s o r) = svc_reset s /\
+  svc_counter (with_op s o r) = svc_counter s /\
+  svc_cadence (with_op s o r) = svc_cadence s /\
+  svc_accounting (with_op s o r) = svc_accounting s /\
+  svc_charges_at_the_maximum (with_op s o r) = svc_charges_at_the_maximum s /\
+  svc_identity (with_op s o r) = svc_identity s /\
+  (forall t, svc_live (with_op s o r) t = svc_live s t).
+Proof. intros. repeat split; reflexivity. Qed.
 
 Definition spoil_op (s : Service) (o : op)
                     (f : svc_op_record -> nat -> svc_op_record) (n : nat) : Service :=
   with_op s o (f (svc_per_op s o) n).
+
+Lemma spoil_op_hit : forall s o f n,
+  svc_per_op (spoil_op s o f n) o = f (svc_per_op s o) n.
+Proof. intros. apply with_op_hit. Qed.
+
+Lemma spoil_op_miss : forall s o f n x,
+  op_eqb x o = false -> svc_per_op (spoil_op s o f n) x = svc_per_op s x.
+Proof. intros. apply with_op_miss. assumption. Qed.
 
 (* Thirteen spoilings, one per conjunct, each moving one declared field to the
    value on that conjunct's own boundary. *)
@@ -2649,6 +2724,30 @@ Definition spoiled_at (k : nat) : Service :=
   | _ => with_charging demo_service false
   end.
 
+Definition spoiled_condition (c : ServiceCondition) : Service :=
+  spoiled_at (service_condition_index c).
+
+Lemma a_named_spoiling_breaks_its_condition : forall c,
+  service_condition c (spoiled_condition c) = false.
+Proof. intro c. destruct c; vm_reflexivity. Qed.
+
+Lemma a_named_spoiling_breaks_exactly_one_condition : forall c,
+  Nat.eqb (service_broken (spoiled_condition c)) 1 = true.
+Proof. intro c. destruct c; vm_reflexivity. Qed.
+
+Lemma a_named_spoiling_is_refused : forall c,
+  admissible_service (spoiled_condition c) = false.
+Proof.
+  intro c. destruct (admissible_service (spoiled_condition c)) eqn:H;
+    [|reflexivity].
+  pose proof (admitted_service_condition (spoiled_condition c) c H) as HC.
+  rewrite a_named_spoiling_breaks_its_condition in HC. discriminate HC.
+Qed.
+
+Lemma a_named_dropped_condition_admits_its_spoiling : forall c,
+  declared_without (service_condition_index c) (spoiled_condition c) = true.
+Proof. intro c. destruct c; vm_reflexivity. Qed.
+
 Definition demo_read_record : svc_op_record := demo_op_record op_read_extent.
 
 (* Section 6's own rule, of an arbitrary declaration rather than of a witness:
@@ -2669,18 +2768,40 @@ Proof. vm_reflexivity. Qed.
 
 Theorem every_spoiling_breaks_exactly_one_conjunct :
   all_of (fun k => Nat.eqb (service_broken (spoiled_at k)) 1) (upto 13) = true.
-Proof. vm_reflexivity. Qed.
+Proof.
+  rewrite <- service_condition_indices.
+  rewrite (ProofSupport.all_of_map ServiceCondition nat _
+             service_condition_index service_conditions).
+  apply (proj2 (ProofSupport.all_of_complete_roster ServiceCondition service_conditions
+                  service_conditions_complete _)).
+  exact a_named_spoiling_breaks_exactly_one_condition.
+Qed.
 
 Theorem no_spoiled_service_is_admitted :
   all_of (fun k => negb (admissible_service (spoiled_at k))) (upto 13) = true.
-Proof. vm_reflexivity. Qed.
+Proof.
+  rewrite <- service_condition_indices.
+  rewrite (ProofSupport.all_of_map ServiceCondition nat _
+             service_condition_index service_conditions).
+  apply (proj2 (ProofSupport.all_of_complete_roster ServiceCondition service_conditions
+                  service_conditions_complete _)).
+  intro c. change (negb (admissible_service (spoiled_condition c)) = true).
+  rewrite (a_named_spoiling_is_refused c). reflexivity.
+Qed.
 
 (* And from the filter side: each dropped conjunct admits exactly the service
    it stopped checking, which is what makes a conjunct's presence decide
    something rather than merely be present. *)
 Theorem every_dropped_conjunct_admits_the_service_it_stopped_checking :
   all_of (fun k => declared_without k (spoiled_at k)) (upto 13) = true.
-Proof. vm_reflexivity. Qed.
+Proof.
+  rewrite <- service_condition_indices.
+  rewrite (ProofSupport.all_of_map ServiceCondition nat _
+             service_condition_index service_conditions).
+  apply (proj2 (ProofSupport.all_of_complete_roster ServiceCondition service_conditions
+                  service_conditions_complete _)).
+  exact a_named_dropped_condition_admits_its_spoiling.
+Qed.
 
 Theorem no_dropped_conjunct_admits_another_spoiling :
   all_of (fun k =>
