@@ -10,6 +10,7 @@ from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
 from unittest.mock import patch
 
+from ci import instrument_route
 from ci import runner_benchmark as runner
 from tests.harness import Case, ensure, sandbox_tree
 
@@ -109,8 +110,50 @@ def _failed_comparison_retains_a_refusal_record() -> None:
                "a failed comparison must retain its reason without passing evidence")
 
 
+def _worker_records_tree_residency_without_running_a_benchmark() -> None:
+    sample: runner.Sample = {
+        "component_seconds": 1.0, "setup_seconds": 0.0, "cpu_seconds": 0.0,
+        "peak_rss_kb": 7.0, "temporary_apparent_bytes": 0,
+        "findings": 0, "report": ["fixture"], "bytes_unchanged": True,
+    }
+    with tempfile.TemporaryDirectory(prefix="vos-runner-sampler-fixture-") as temporary:
+        root = Path(temporary)
+        output = root / "result.json"
+        with (patch.object(runner.sys, "platform", "linux"),
+              patch.object(runner.os, "getpid", return_value=1),
+              patch.object(instrument_route, "_tree", side_effect=[{1, 2, 3}, {1}]),
+              patch.object(instrument_route, "_rss_kb", side_effect=lambda pid: pid * 10),
+              patch.object(runner, "_work", return_value=sample)):
+            runner.worker(root, runner.Path(__file__).resolve().parents[1], "markdown", output)
+        found = json.loads(output.read_text(encoding="utf-8"))
+        ensure(found["peak_tree_rss_kb"] == 60 and found["peak_descendant_processes"] == 2
+               and found["tree_samples"] == 2 and found["peak_rss_kb"] == 7,
+               f"sampled tree residency must stay distinct from process high-water RSS: {found}")
+
+
+def _worker_stops_sampler_on_work_failure() -> None:
+    with tempfile.TemporaryDirectory(prefix="vos-runner-sampler-failure-") as temporary:
+        root = Path(temporary)
+        output = root / "result.json"
+        with (patch.object(runner.sys, "platform", "linux"),
+              patch.object(instrument_route, "_tree", return_value=set()),
+              patch.object(runner, "_work", side_effect=ValueError("fixture work failure")),
+              patch.object(instrument_route.Sampler, "start") as start,
+              patch.object(instrument_route.Sampler, "stop") as stop):
+            try:
+                runner.worker(root, runner.Path(__file__).resolve().parents[1], "markdown", output)
+            except ValueError:
+                pass
+            else:
+                raise AssertionError("failed measured work must retain its failure")
+        ensure(start.call_count == stop.call_count == 1 and not output.exists(),
+               "work failure must stop sampling and publish no completed sample")
+
+
 def cases() -> list[Case]:
     return [Case("runner comparison is hosted only", _hosted_only),
             Case("runner comparison hashes current indexed bytes", _identity_reads_current_bytes),
             Case("runner pairs alternate and refuse changed results", _paired_order_and_failed_equivalence),
-            Case("runner comparison retains failed evidence", _failed_comparison_retains_a_refusal_record)]
+            Case("runner comparison retains failed evidence", _failed_comparison_retains_a_refusal_record),
+            Case("runner worker samples descendant RSS on fixture readings", _worker_records_tree_residency_without_running_a_benchmark),
+            Case("runner worker stops sampler when measured work fails", _worker_stops_sampler_on_work_failure)]
