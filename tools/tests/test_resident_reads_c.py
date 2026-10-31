@@ -42,9 +42,9 @@ def _variants(source: str) -> list[tuple[str, str, str]]:
             "!r.active || ((void)sequence, 0) || r.token != h->token ||"), "stale completion"),
         ("counter-overrun", changed("o->pending[holder].active || o->sequence[holder] >= o->common.limit",
             "o->pending[holder].active"), "counter exhaustion"),
-        ("premature-zero", changed("PUT(o, VOS_RESIDENT_COMMON, o->common.accepting, 0U);\n    for (holder",
+        ("premature-zero", changed("PUT(o, VOS_RESIDENT_COMMON, o->common.accepting, 0U);\n    for (uint32_t holder",
             "PUT(o, VOS_RESIDENT_COMMON, o->common.bytes[0], 0U);\n"
-            "    PUT(o, VOS_RESIDENT_COMMON, o->common.accepting, 0U);\n    for (holder"),
+            "    PUT(o, VOS_RESIDENT_COMMON, o->common.accepting, 0U);\n    for (uint32_t holder"),
             "quarantined unchanged backing"),
     ]
 

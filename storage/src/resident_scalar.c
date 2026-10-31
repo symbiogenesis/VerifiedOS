@@ -24,7 +24,6 @@ static int binding_ok(const struct vos_resident_scalar_retirement *a,
                       const struct vos_kernel_effect_state *k,
                       const struct vos_resident_scalar_binding *b)
 {
-    uint32_t i;
     if (a == 0 || o == 0 || k == 0 || b == 0 ||
         overlap(a, sizeof(*a), o, sizeof(*o)) ||
         overlap(k, sizeof(*k), o, sizeof(*o)) ||
@@ -35,7 +34,7 @@ static int binding_ok(const struct vos_resident_scalar_retirement *a,
         b->epoch != k->epoch || b->epoch == UINT64_MAX ||
         b->members == 0 || b->members != k->manifest.restart_members)
         return 0;
-    for (i = 0; i < VOS_RESIDENT_HOLDERS; ++i) {
+    for (uint32_t i = 0; i < VOS_RESIDENT_HOLDERS; ++i) {
         /* COVERAGE: even an inactive slot can contain an old pending transfer. */
         if (b->holder_units[i] >= k->manifest.units ||
             (b->members & (1U << b->holder_units[i])) == 0)
@@ -43,7 +42,7 @@ static int binding_ok(const struct vos_resident_scalar_retirement *a,
     }
     /* Teardown of declared unit storage must not overwrite retained backing or
      * the one-attempt record before a separate reuse/sweep argument exists. */
-    for (i = 0; i < k->manifest.units; ++i) {
+    for (uint32_t i = 0; i < k->manifest.units; ++i) {
         const struct vos_kernel_unit *u = &k->unit[i];
         /* vos_kernel_own already admitted these private bounds. */
         if (!outside(a, o, u->owned_bytes, u->owned_length) ||
@@ -63,11 +62,10 @@ uint64_t vos_resident_scalar_prepare(struct vos_resident_scalar_retirement *a,
                                     struct vos_kernel_effect_state *k,
                                     const struct vos_resident_scalar_binding *binding)
 {
-    struct vos_resident_scalar_binding b;
     if (a == 0 || a->phase != VOS_RESIDENT_SCALAR_IDLE ||
         !binding_ok(a, o, k, binding))
         return 0;
-    b = *binding;
+    const struct vos_resident_scalar_binding b = *binding;
     a->phase = VOS_RESIDENT_SCALAR_REFUSED;
     a->owner = o; a->kernel = k; a->epoch = b.epoch; a->members = b.members;
     /* Existing owner code closes every holder/request before touching bytes.
@@ -86,18 +84,16 @@ int vos_resident_scalar_finish(struct vos_resident_scalar_retirement *a,
                                uint64_t observed)
 {
     struct vos_completion completion;
-    struct vos_resident_owner *o;
-    struct vos_kernel_effect_state *k;
-    uint32_t i;
     if (a == 0 || a->phase != VOS_RESIDENT_SCALAR_PREPARED) return 0;
     a->phase = VOS_RESIDENT_SCALAR_REFUSED;
-    o = a->owner; k = a->kernel;
+    struct vos_resident_owner *o = a->owner;
+    struct vos_kernel_effect_state *k = a->kernel;
     if (k->epoch != a->epoch || !o->common.occupied || o->common.accepting ||
         memcmp(&o->common, &a->closed, sizeof(a->closed)) != 0 ||
         memcmp(o->pending, a->pending, sizeof(a->pending)) != 0 ||
         memcmp(o->sequence, a->sequence, sizeof(a->sequence)) != 0)
         return 0;
-    for (i = 0; i < VOS_RESIDENT_HOLDERS; ++i)
+    for (uint32_t i = 0; i < VOS_RESIDENT_HOLDERS; ++i)
         if (o->common.reservation[i].live || o->pending[i].active) return 0;
     if (!vos_kernel_publication(k, a->epoch, a->mask, observed) ||
         !vos_kernel_retire(k, a->members, &completion) ||
