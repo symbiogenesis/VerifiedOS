@@ -126,7 +126,7 @@ def _ascii_and_unicode_programs_keep_all_offset_boundaries() -> None:
     # Exercise every offset, including interiors of words and names containing
     # separators. A shorter same-start spelling must survive unknown EOF edges.
     samples = ["", "ordinary", "core/core", "foo/bar foo-bar foo+", "-core core-", "core_core",
-               "xxcore core", "écore core中", "²core coreⅣ", "中-core/core é k", "K core",
+               "xxcore core", "écore core中", "²core coreⅣ", "中-core/core é k", "\u212a core",
                "foo+core/core", "foo-bar/core foo/bar-core", "\x00core\nfoo\r\ncore/core"]
     samples.extend("".join(chars) for chars in product(("a", "-", "/", " ", "é"), repeat=3))
     for sample in samples:
@@ -148,7 +148,7 @@ def _ascii_and_unicode_programs_keep_all_offset_boundaries() -> None:
                    "lowercase or streaming window edges changed a presence decision")
     # Program selection is decided from the complete lowered window. Kelvin's
     # length-preserving lower is ASCII; expanding lowercase retains the refusal.
-    ensure(matcher.present("K", first=True, final=True), "length-preserving lowercase lost an ASCII name")
+    ensure(matcher.present("\u212a", first=True, final=True), "length-preserving lowercase lost an ASCII name")
     for sample in ("İcore", "coreİ", "core İ"):
         try:
             matcher.present(sample, first=True, final=True)
