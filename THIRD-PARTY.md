@@ -1137,6 +1137,34 @@ and its verbatim notice have an explicit BSD-2-Clause entry in the
 | Rust 1.99.1 and SHA2 | Rust core license texts (`COPYRIGHT`, `LICENSE-APACHE`, `LICENSE-MIT`), read in the 1.99.1 component archives on 2026-10-19, and sha2 0.8.2 license texts; MIT OR Apache-2.0. Cargo's `LICENSE-THIRD-PARTY` in the same archives lists the terms of libraries linked into the Cargo binary, including OpenSSL, libgit2 (GPL-2.0 with its linking exception), libssh2 and libcurl; they govern that tool binary, not its build outputs. The rustc archives, whose notice files are byte-identical for both targets, were read on 2026-10-19. The compiler links the LLVM 23.1 library the archive ships (`lib/libLLVM.so.23.1-rust-1.99.1-stable`), which `share/doc/rust/COPYRIGHT.html` (SHA-256 `d518ae2d76bc7a1f0cbf0069b8deafb56efc39c2614cab74a859ef0b467f8373`) lists as Apache-2.0 WITH LLVM-exception AND NCSA; that governs the compiler binary. `share/doc/rust/COPYRIGHT-library.html` (SHA-256 `5647be074c8edf7339fd863055923a8fc80bc5610a8d4661ec3b767b9d392c27`) gives the standard library's terms, Apache-2.0 OR MIT with Unicode-3.0 and BSD-2-Clause file exceptions, and the notices of the out-of-tree crates used to build it; the standard-library parts linked into a build output carry those notices | Optional lane-local Rust build tool, installed from the component archives the [shared Rust pin](tools/rust-toolchain.json) fixes for these tools and the [idealloc candidate build](#optional-static-memory-research-tools), and authored-driver dependency. Locked transitive Cargo sources remain native build inputs, not tracked source or normal host-gate prerequisites. Distribution of a resulting executable must retain the applicable dependency notices, including those `COPYRIGHT-library.html` lists for the standard-library parts linked into it. |
 | LLVM libclang 21.1.8 | Installed `libclang1-21` 21.1.8-6ubuntu1 copyright and [release license](https://github.com/llvm/llvm-project/blob/2078da43e25a4623cab2d0d60decddf709aaea28/LICENSE.TXT); Apache-2.0 WITH LLVM-exception with its separately licensed third-party/legacy notices | Optional system-provided compiler AST API called through standard-library ctypes, separate from the compiler-development gitlink. No LLVM source or binary is redistributed in this tree. Exact selected tool/library bytes enter the qualification receipt. |
 
+The 2026-10-31 [Rocq refresh candidate](tools/opam/README.md#rocq-dependency-refresh)
+uses QuickChick
+[`52721655`](https://github.com/QuickChick/QuickChick/blob/527216554f31bfa526ae5395d64aa4de5beaf437/LICENSE)
+and simple-io
+[`5c70625a`](https://github.com/Lysxia/rocq-simple-io/blob/5c70625af00af6182817e490d93247cdefbed2e1/LICENSE).
+Both selected MIT instruments were read and remain byte-identical to the
+qualified sources: their SHA-256 values are respectively
+`6010f188d0030246256c850749c34754b1014a5171316173258530d515965031`
+and `1b4f292e1d0dd5bc383a146f9234f382f8bf7533b56d26af0ed37046d07fd69d`.
+The reviewed source changes introduce no separate file notices. These remain
+contained test instruments; their source and compiled outputs are not conveyed
+here. The development-tool rows above continue to describe the qualified lock.
+
+The same review read the checksum-verified release archives for candidate
+`ocaml_intrinsics_kernel.v0.17.3` and `ocaml-version.4.1.5`. Their archive
+SHA-256 values are respectively
+`2a967316c51b0f3fec37f42f43b362d87d9ae536ce98e0e921a65c8bbc83cd85`
+and `9837e9a1f80f6597e023e3dd65b4dc0bf8f11452070c0e6b3d03eec75e77dc85`;
+each also matches its published opam SHA-512. The former's `LICENSE.md`
+is MIT, copyright 2020–2024 Jane Street Group, LLC, SHA-256
+`1a28723500e43570896146ec235d4b11f70987ab4ef665a273b60207ebc73eea`.
+The latter's `LICENSE.md` is ISC, crediting the individual source-header
+authors, SHA-256
+`ff39345135a4aa7cf87c00045bd0929131e1ebbfe7e1a8f35d3c79bdb3c5fed8`.
+Their intended use is in the private QuickChick and CertiRocq build closures;
+no upstream source or executable is distributed. These readings permit the
+candidate uses and supply no build or snapshot-adoption verdict.
+
 QuickChick's ppxlib 0.39.0 source archive was read on 2026-10-19, before
 adopting the actual hosted export. Its MIT root grant and the OCaml-derived AST
 files' LGPL-2.1 linking-exception notices are identified in the
