@@ -94,10 +94,10 @@ def oracle_candidate_build(ocaml: str) -> tuple[tuple[str, ...], ...]:
 
 
 # The switch QuickChick's commit-pinned recipe builds, tools/vos/cli/quickchick.py's
-# RECIPE, at Rocq 9.3.0, beside which no QuickChick, coq-simple-io or coq-ext-lib
-# release installs. QUICKCHICK_SWITCH below names this same switch, since the tracked
-# lock is this recipe's export, so a recipe moved ahead of that lock is built and
-# checked in a root that does not already hold that switch. A literal rather than
+# RECIPE, at Rocq 9.3.0, beside which no QuickChick or coq-simple-io release installs.
+# QUICKCHICK_SWITCH below uses the same switch name for the qualified snapshot.
+# A candidate recipe moved ahead of that lock is built and checked in a separate
+# private root; quickchick.py holds each mode to its own source. A literal rather than
 # `env.ROCQ_VERSION`, because a move of the proof switch's lock does not move this one.
 QUICKCHICK_RECIPE_ROCQ_VERSION = "9.3.0"
 QUICKCHICK_RECIPE_SWITCH = (f"verifiedos-quickchick-{QUICKCHICK_RECIPE_ROCQ_VERSION}"
@@ -105,8 +105,8 @@ QUICKCHICK_RECIPE_SWITCH = (f"verifiedos-quickchick-{QUICKCHICK_RECIPE_ROCQ_VERS
 
 # QuickChick's switch, the one provisioning imports tools/opam/quickchick.lock into:
 # that lock is the export of a hosted run that built the recipe's switch and passed the
-# randomized half's checks on it, so the two are one switch at one release, and neither
-# is the CertiRocq switch's.
+# randomized half's checks on it. The candidate shares its prover and switch name,
+# while its source pins may advance independently. Neither is CertiRocq's switch.
 QUICKCHICK_ROCQ_VERSION = QUICKCHICK_RECIPE_ROCQ_VERSION
 QUICKCHICK_SWITCH = QUICKCHICK_RECIPE_SWITCH
 

@@ -473,7 +473,7 @@ These figures sum the full priced reference-build, assessment and named hardenin
 | Completed scope h | 864.9 |
 | Complete by estimate % | 18.7 |
 | Remaining h | 3,748.5 |
-| Committed remaining h | 2,302.5 |
+| Committed remaining h | 2,306.5 |
 | Open class I h | 785.5 |
 | Open class X h | 2,963 |
 | Retained completion estimate h | 261.5 |
@@ -481,7 +481,7 @@ These figures sum the full priced reference-build, assessment and named hardenin
 | Calibrated total h | 5,630.1 |
 | Committed M8a open h | 74 |
 | Committed M8b open h | 105.5 |
-| Other committed open h | 2,123 |
+| Other committed open h | 2,127 |
 | Conditional open h | 1,028 |
 | Unfunded option open h | 414 |
 | Committed M8a open class X h | 0 |
@@ -1337,6 +1337,7 @@ These trials add no prerequisite to the current M7.1 realization route. A failed
   * **Estimate basis:** bounded reference and safety/traffic proofs 3–6 h; retained-read source and lifecycle controls 3–6 h; independent review and target trace join 2–4 h. Reuse the existing IDL, ownership, revocation and authentication interfaces. This cell buys the new read-window work; M5.3d retains persistent storage/crypto/index integration and M5.4 retains transactor work. Q44 joins M5.3d's real storage/authentication producer and target trace, including the selected representation's reserved-memory cost; the two items coqualify on one settled executable revision without requiring either milestone already complete. M5.4 is a later consumer and does not gate Q44 or M8a.
 
 * [ ] **Q45 · Qualify the Rocq dependency refresh** · 4 h, range 2–6 · X
+  * **Local preparation checkpoint:** the candidate QuickChick/simple-io commits and intrinsics v0.17.3 are selected independently of the qualified snapshot. Focused Gallina, seed/seeded and provisioning controls pass, including crossed-source refusals before staging; typechecking and Ruff pass. Selected license readings and the remaining CertiRocq ocaml-version candidate are recorded in the [refresh contract](tools/opam/README.md#rocq-dependency-refresh). No native switch build, hosted qualification or production lock adoption has run; this checkpoint leaves the item open.
   * **Dispatch. Start:** the [refresh contract](tools/opam/README.md#rocq-dependency-refresh) and existing qualified snapshots. **Owns:** independent qualified/candidate QuickChick source checks, the immutable QuickChick/simple-io recipe refresh with intrinsics v0.17.3, and the isolated CertiRocq ocaml-version 4.1.5 trial. **Check:** crossed-source refusals before staging, fresh hosted recipe build/properties/import and seeded comparison, the polymorphic extraction control, and the contract's native CertiRocq consumer, exact-assumption, recursive-kernel and complete-vector checks before actual exported locks replace their baselines. **Join:** unchanged production package bounds and source semantics; Host CI and every Guest CI lane on the settled revision. Local-only commits defer hosted acceptance and supply no replacement-snapshot qualification.
   * **Estimate basis:** candidate source/recipe separation and focused controls 1–3 h; native consumer checks, hosted acceptance review and actual export adoption 1–3 h. Unattended build runtime is excluded.
 
