@@ -196,6 +196,7 @@ _CAPTURED_GITLINKS: dict[str, str] = {
     "930feb298af5bf7d9aa0baeaa21732ff84a2f066": "cheriot-ibex",
     "755c7eaa8f67328cbe1f1ab9080b70afb1772e84": "libjade",
     "78a34ba5cdb853ba601a292bcdd4a780e6ae9c64": "cheri-compressed-cap",
+    "504c2987452f87fe44bce9b9f12e19d6e051761f": "hacl-star",
     "e6946985c9165b3270eae457c0fae887cd7b7b76": "fiat-crypto",
 }
 _CAPTURING_RECEIPTS: dict[str, str] = {
@@ -225,23 +226,48 @@ SITE_RESIDUE: dict[tuple[str, str], str] = {
         "not the vasn source gitlink",
     **{("docs/implementation/upstream-merged-review.md", ident): reason
        for ident, reason in {
+           "cd3f185e3a40cd402632d78a2bc213d62ae6f753":
+               "the original vector-length change reviewed for adoption, "
+               "not the later sail-riscv reference gitlink",
            "94139d1b7413cdbe517a80dcdb8b365b2189af0e":
                "the upstream segment-store correction compared with the curated model, "
                "not the current sail-riscv reference gitlink",
            "35d5ebc383ac20ad0b918a5fd30db11047ca2805":
-               "the newer Mocha AXI observation candidate, not the selected Mocha gitlink",
+               "the Mocha AXI observation change, not the later selected Mocha gitlink",
            "7a654caed0e1121e9ad405038ea40f9a0840a49d":
-               "the newer Mocha AXI ordering correction, not the selected Mocha gitlink",
+               "the Mocha AXI ordering correction, not the later selected Mocha gitlink",
            "4f8ce828fcacd6f392cb4f9be9046d46ce4bec07":
                "the concurrency-interface v2 candidate reviewed for a future port, "
                "not the current sail-riscv reference gitlink",
            "3229c62ba0c424a0f6346d622907238c94885bb2":
-               "the newer Katamaran universal-contract method reference, "
-               "not the selected compatibility-trial gitlink",
+               "the Katamaran universal-contract method change, "
+               "not the later selected reference gitlink",
            "56fede178c18d18ea3cda56c33217f8c718157d0":
-               "the newer Rust pointer-simplification correction proposed for comparison, "
-               "not the selected compiler-reference gitlink",
+               "the Rust pointer-simplification correction proposed for comparison, "
+               "not the later selected compiler-reference gitlink",
        }.items()},
+    **{(file, "8b953fe8f17bb4553792c63665d368dc7f6bbd26"):
+       "the merged Katamaran PR 73 edition used for its notation comparison, "
+       "not the later selected reference gitlink"
+       for file in (
+           "PLAN.md",
+           "docs/implementation/upstream-prs.md",
+           "docs/implementation/upstream-prs/snapshot.json",
+       )},
+    **{("docs/implementation/retained-evidence/submodules-20261031/hardware.json", ident):
+       f"the previous {name} edition in its exact upstream comparison URL, "
+       "not the newly selected reference gitlink"
+       for ident, name in {
+           "f9bacf5d6a9d91b1dc00cfd2228c88fc17eae93c": "Mocha",
+           "c974f0c64e73c97e6b61bae1ea67a25a62ed1e5f": "tag-controller",
+           "10738f384903ad7f7405a452ad41d6b8da23d2bb": "OpenTitan",
+           "1b29dae8866e6c0f0a3cd9dead53a77b4f45e357": "Ibex",
+           "531ca2ec439fe3fa89bd6f60ae8f256bc0b9b241": "CHERIoT-Ibex",
+       }.items()},
+    ("docs/implementation/retained-evidence/submodules-20261031/model.json",
+     "c3b7ecff27c1a6e8ed058d5aca362df1e2f63311"):
+        "the rejected Perennial branch tip lacking the selected PoWER interface, "
+        "not the retained source gitlink",
     **{(file, ident):
        f"the Katamaran PR's GitHub Actions {kind} identifier, not a commit"
        for file in (
@@ -378,10 +404,10 @@ SITE_RESIDUE: dict[tuple[str, str], str] = {
     ("docs/assurance/proof-reuse/languages.md", "14537282"):
         "the numeral of the archived SECOMP artifact's Zenodo record, "
         "not an object id",
-    ("THIRD-PARTY.md", "6614c9be"):
+    ("THIRD-PARTY.md", "675963fc"):
         "the LLVM dependency selected by CHERIoT Rust's own gitlink, "
         "not the independent upstream LLVM tooling pin",
-    ("docs/assurance/proof-reuse/languages.md", "6614c9be42d691e7fb0ccd1f9dd8dee74de4f733"):
+    ("docs/assurance/proof-reuse/languages.md", "675963fce3ae380774038a7e001ad33f63c8dcdd"):
         "the LLVM dependency selected by the source-qualified CHERIoT Rust fork, "
         "not the independent upstream LLVM tooling pin",
     ("THIRD-PARTY.md", "36676697"):

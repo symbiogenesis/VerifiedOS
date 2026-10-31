@@ -45,7 +45,8 @@ native assumption/kernel audit remain prerequisites for any proof import.
 
 ## Cryptography: functional results and public event traces
 
-[`upstream/s2n-bignum`](../../upstream/s2n-bignum) supplies the comparisons below. The [reference refresh receipt](retained-evidence/submodules-20261031/software.json) verifies that the selected NTT and Keccak source files and `SOUNDNESS.md` are byte-identical to the qualified source reading. The changed shared proof infrastructure has not been replayed here.
+[`upstream/s2n-bignum`](../../upstream/s2n-bignum) supplies the comparisons below.
+The [reference refresh receipt](retained-evidence/submodules-20261031/software.json) verifies that the selected NTT and Keccak source files and `SOUNDNESS.md` are byte-identical to the preceding source reading. The changed shared proof infrastructure has not been replayed here.
 
 | Source and statements | Existing consumer and next comparison |
 | --- | --- |
