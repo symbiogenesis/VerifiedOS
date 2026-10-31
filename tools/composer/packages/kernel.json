@@ -4,7 +4,7 @@
   "sources": [
     {
       "path": "kernel/src/context.c",
-      "sha256": "422108f44dd2059ccceed92bf2f62b1dd2c2575869b410b4811e61325b1c7c10"
+      "sha256": "ba655480c0a01c7ff2bb4310cc7a576e3bc23671afbadb0802688a83115fdb9c"
     },
     {
       "path": "kernel/src/copy_loan.c",
@@ -12,23 +12,23 @@
     },
     {
       "path": "kernel/src/effects.c",
-      "sha256": "899f48a638699894c36d8b8a9a5341b52faad592ced1cb0d8655f1fc2cdf4359"
+      "sha256": "8cfeb35fe1618e6f4a21180342e9c236f5bc10bd5367fa3a2b8e75d896508249"
     },
     {
       "path": "kernel/src/executive.c",
-      "sha256": "56aaaf7ae9b9ada1e17a2966663b74f2e51c1b5d8c3e7ff98fbb2ff5f953d97f"
+      "sha256": "5e9c28002b189dad1e7637ce891cce18c471e1d45e2e9b0439cb32c3b899daae"
     },
     {
       "path": "kernel/src/handoff.c",
-      "sha256": "9278a79d0d05c2aa838bf8090e1bf567630b5bc013dc2202f9af0e765be4d760"
+      "sha256": "0c862b6e9622acff90784a4a24539ccd8ed4425c054d0c858ae260199763f196"
     },
     {
       "path": "kernel/src/lifecycle.c",
-      "sha256": "7d6123ddebb250a871aa2ffe93bf0f67bbeadb286e8e61efdba14c499d6039f0"
+      "sha256": "0e131822a6427e95e5eebda95586992129494b1c03e5d28d93aced9b49d50af5"
     },
     {
       "path": "kernel/src/partition.c",
-      "sha256": "1aa12614aa994022e81902c33b273f147333710b56d1c01349f41ee43dae2168"
+      "sha256": "bf5e746432b19fbc77ea5a6998ff3570fcbe7d33d79b2c1dbd4ac7c926bbb344"
     },
     {
       "path": "kernel/src/target.c",

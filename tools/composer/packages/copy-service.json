@@ -4,7 +4,7 @@
   "sources": [
     {
       "path": "copy-service/src/copy_service.c",
-      "sha256": "611340096b04a6dbb1be503657af24926465823dc3216163c9f9660c75f4bb92"
+      "sha256": "2997ffebcfa67f0bdb10f37470464bbb06750e2a66d3a5b764620132cbb9d85d"
     },
     {
       "path": "copy-service/src/atomic_target.s",

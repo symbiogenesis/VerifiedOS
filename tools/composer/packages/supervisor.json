@@ -4,11 +4,11 @@
   "sources": [
     {
       "path": "supervisor/src/supervisor.c",
-      "sha256": "98b3c2fc154d2992ea3994f3cf99b6ab29ad2c7e9c434743debb58522a4e2dfd"
+      "sha256": "a571613c4b13de70b2b513658446b19a5f15884eb305fc06584b35f06e877d66"
     },
     {
       "path": "supervisor/src/context.c",
-      "sha256": "100fb0ac5292491871b7c6942e1b5ec114007473b5032b20e8bda9fffe88f3f0"
+      "sha256": "3bd1d2cf74cd4af8ec1b5c1258eba36a18a30bf015660f0a8491caa92758c62b"
     },
     {
       "path": "supervisor/include/vos_supervisor.h",

@@ -2970,6 +2970,17 @@ compiler accepting a feature alone does not establish target support.
   [the validation handoff](AGENTS.md#tool-execution-and-validation). Record any
   acceptance checks outside those workflows explicitly.
 
+The [language profile](docs/implementation/c-language-profile.md) distinguishes
+C17 host compilation from the contained target's admitted CompCert-C subset.
+Kernel, supervisor, copy-service and storage locals use narrower scopes and
+initialized immutable snapshots; host records use named fields where helpful.
+Host builds enable strict prototype warnings. Existing mutation anchors follow
+the changed declarations. Frozen firmware, the source-bound IPC oracle and
+retained execution snapshots keep their bytes. The `c-modern-20261031` fanout
+journal owns the hosted handoff; private target recompilation and component
+re-execution remain deferred because the contained compiler is unavailable on
+the current machine. This pass supplies no fresh target-execution verdict.
+
 ## Compiler differential library boundary
 
 The compiler differential harness is shared by the firmware, kernel and service

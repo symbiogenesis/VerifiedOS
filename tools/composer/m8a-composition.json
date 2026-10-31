@@ -183,7 +183,7 @@
       ],
       "descriptor": {
         "path": "tools/composer/packages/kernel.json",
-        "sha256": "736c07be2c992a9f728e1956a9504d295790848aeb190c52f9290fa024d5663d"
+        "sha256": "5308849a56583c743ea466be533b4efa2a3d32f946b50b8d2f35b8b4245a782d"
       },
       "artifact_slot": "kernel-artifact",
       "entry": null,
@@ -211,7 +211,7 @@
       ],
       "descriptor": {
         "path": "tools/composer/packages/supervisor.json",
-        "sha256": "2165b00c21b20aecff157be57a3452b0d45f91060330f25928f163e1cbe87afd"
+        "sha256": "e9344f0a5038d700db5d9435ebb2ebcc39862074953a8d7c23f5b9dbf04c202c"
       },
       "artifact_slot": "supervisor-artifact",
       "entry": null,
@@ -307,7 +307,7 @@
       ],
       "descriptor": {
         "path": "tools/composer/packages/copy-service.json",
-        "sha256": "6edf847297aa75b2976d329d438ad0162ae022c6d4bf1f61ed455fd140e80d11"
+        "sha256": "78c1f45c5f19abe5529e98b2ceb8e210d852d3e05b37d95b46f9432a0f531638"
       },
       "artifact_slot": "copy-service-artifact",
       "entry": null,
