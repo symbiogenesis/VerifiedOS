@@ -1,0 +1,317 @@
+{
+  "schema": 1,
+  "read_date": "2026-10-31",
+  "scope": "Exact configured hardware branch heads and source/license identities. Only gitlinks, authored source bindings, and this audit record are conveyed; nested submodule revisions remain selected by their parent. No compiled or proof acceptance is claimed.",
+  "submodules": [
+    {
+      "path": "upstream/mocha",
+      "upstream": "https://github.com/lowRISC/mocha",
+      "branch": "main",
+      "previous_revision": "f9bacf5d6a9d91b1dc00cfd2228c88fc17eae93c",
+      "selected_revision": "6c85882513bb12711cdcbea69a1a7eb065a37f1a",
+      "changed": true,
+      "ancestry": "ahead",
+      "commits": 21,
+      "comparison_url": "https://github.com/lowRISC/mocha/compare/f9bacf5d6a9d91b1dc00cfd2228c88fc17eae93c...6c85882513bb12711cdcbea69a1a7eb065a37f1a",
+      "license_files": [
+        {
+          "path": "REUSE.toml",
+          "sha256": "8c8f3c92ee69630e014e2ac43ad4c56166183c2b9bf5aabf92e06c03afc7c80d",
+          "previous_sha256": "8c8f3c92ee69630e014e2ac43ad4c56166183c2b9bf5aabf92e06c03afc7c80d",
+          "unchanged": true,
+          "url": "https://github.com/lowRISC/mocha/blob/6c85882513bb12711cdcbea69a1a7eb065a37f1a/REUSE.toml"
+        },
+        {
+          "path": "hw/vendor/REUSE.toml",
+          "sha256": "3282e585e74692c4849dc7b4f78cbff816a6baf8c4d3b46cc437fff208f1c48b",
+          "previous_sha256": "3282e585e74692c4849dc7b4f78cbff816a6baf8c4d3b46cc437fff208f1c48b",
+          "unchanged": true,
+          "url": "https://github.com/lowRISC/mocha/blob/6c85882513bb12711cdcbea69a1a7eb065a37f1a/hw/vendor/REUSE.toml"
+        },
+        {
+          "path": "LICENSES/Apache-2.0.txt",
+          "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+          "previous_sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+          "unchanged": true,
+          "url": "https://github.com/lowRISC/mocha/blob/6c85882513bb12711cdcbea69a1a7eb065a37f1a/LICENSES/Apache-2.0.txt"
+        },
+        {
+          "path": "LICENSES/BSD-3-Clause.txt",
+          "sha256": "5a93d5831e1297ab10fe643e1a631e83be392896da14ee2951285a79012df69d",
+          "previous_sha256": "5a93d5831e1297ab10fe643e1a631e83be392896da14ee2951285a79012df69d",
+          "unchanged": true,
+          "url": "https://github.com/lowRISC/mocha/blob/6c85882513bb12711cdcbea69a1a7eb065a37f1a/LICENSES/BSD-3-Clause.txt"
+        },
+        {
+          "path": "LICENSES/CC-BY-SA-4.0.txt",
+          "sha256": "cde7883b9050a1104f4ac19a1572aafd6e5d7323b68351aaf51fbf4beba54966",
+          "previous_sha256": "cde7883b9050a1104f4ac19a1572aafd6e5d7323b68351aaf51fbf4beba54966",
+          "unchanged": true,
+          "url": "https://github.com/lowRISC/mocha/blob/6c85882513bb12711cdcbea69a1a7eb065a37f1a/LICENSES/CC-BY-SA-4.0.txt"
+        },
+        {
+          "path": "LICENSES/MIT.txt",
+          "sha256": "b05785f9f18e6716bab63424b11454513b9943a222595b70411009202fc592b5",
+          "previous_sha256": "b05785f9f18e6716bab63424b11454513b9943a222595b70411009202fc592b5",
+          "unchanged": true,
+          "url": "https://github.com/lowRISC/mocha/blob/6c85882513bb12711cdcbea69a1a7eb065a37f1a/LICENSES/MIT.txt"
+        },
+        {
+          "path": "LICENSES/SHL-0.51.txt",
+          "sha256": "3a8703a66bc3ac9a0c001549499b2528b01bc0e5a12c6fd968f7551e5b320448",
+          "previous_sha256": "3a8703a66bc3ac9a0c001549499b2528b01bc0e5a12c6fd968f7551e5b320448",
+          "unchanged": true,
+          "url": "https://github.com/lowRISC/mocha/blob/6c85882513bb12711cdcbea69a1a7eb065a37f1a/LICENSES/SHL-0.51.txt"
+        },
+        {
+          "path": "LICENSES/SHL-2.0.txt",
+          "sha256": "0d4bb5faca4b9bb1b22a56369bc7f3380a8ee5a2d228f0ebcd2fe95d8b10a62f",
+          "previous_sha256": "0d4bb5faca4b9bb1b22a56369bc7f3380a8ee5a2d228f0ebcd2fe95d8b10a62f",
+          "unchanged": true,
+          "url": "https://github.com/lowRISC/mocha/blob/6c85882513bb12711cdcbea69a1a7eb065a37f1a/LICENSES/SHL-2.0.txt"
+        },
+        {
+          "path": "LICENSES/SHL-2.1.txt",
+          "sha256": "6fa7fc99563ae8b86d910c33820be9af08052b7c527bd61d5661b0c2cbd623e9",
+          "previous_sha256": "6fa7fc99563ae8b86d910c33820be9af08052b7c527bd61d5661b0c2cbd623e9",
+          "unchanged": true,
+          "url": "https://github.com/lowRISC/mocha/blob/6c85882513bb12711cdcbea69a1a7eb065a37f1a/LICENSES/SHL-2.1.txt"
+        }
+      ],
+      "consumed_trees": [
+        {
+          "path": "hw/vendor/lowrisc_ip/ip/uart",
+          "git_tree": "a1d2caef091cbfeb2d9acaa808e134ba2e21bc5d",
+          "unchanged": true
+        },
+        {
+          "path": "hw/vendor/lowrisc_ip/ip/prim",
+          "git_tree": "15c02bf0d34fb1ff47c8f8787534bffb8f744224",
+          "unchanged": true
+        },
+        {
+          "path": "hw/vendor/lowrisc_ip/ip/prim_generic",
+          "git_tree": "e9718403df0b58456f9b817af49ff2dbe3180992",
+          "unchanged": true
+        }
+      ],
+      "consumed_files": [
+        {
+          "path": "hw/vendor/lowrisc_ip/ip/uart/rtl/uart_reg_pkg.sv",
+          "sha256": "106f8da3d41f8cfe585a58e91c251e23e76c81d25956cb751f61644023dfa01b",
+          "previous_sha256": "106f8da3d41f8cfe585a58e91c251e23e76c81d25956cb751f61644023dfa01b",
+          "unchanged": true,
+          "url": "https://github.com/lowRISC/mocha/blob/6c85882513bb12711cdcbea69a1a7eb065a37f1a/hw/vendor/lowrisc_ip/ip/uart/rtl/uart_reg_pkg.sv"
+        },
+        {
+          "path": "hw/vendor/lowrisc_ip/ip/uart/data/uart.hjson",
+          "sha256": "4960f3f5bac47c62cccaf928dafc1c6c3dc0cf823da6cdf07b46b51e413394bc",
+          "previous_sha256": "4960f3f5bac47c62cccaf928dafc1c6c3dc0cf823da6cdf07b46b51e413394bc",
+          "unchanged": true,
+          "url": "https://github.com/lowRISC/mocha/blob/6c85882513bb12711cdcbea69a1a7eb065a37f1a/hw/vendor/lowrisc_ip/ip/uart/data/uart.hjson"
+        }
+      ],
+      "disposition": "Update gitlink and regenerate UART register package from the populated checkout. Consumed UART and primitive trees are byte-identical. Changes affect AXI DV agents, documentation, FPGA SPI constraints and testbench integration."
+    },
+    {
+      "path": "upstream/cva6-cheri",
+      "upstream": "https://github.com/lowRISC/cva6-cheri",
+      "branch": "mocha",
+      "previous_revision": "0c7b3adf3458012210a0612efba72058c1dbd84b",
+      "selected_revision": "0c7b3adf3458012210a0612efba72058c1dbd84b",
+      "changed": false,
+      "disposition": "Already at configured branch head; width-transformation bindings retain the same selected source."
+    },
+    {
+      "path": "upstream/axi-cheri-tagcontroller",
+      "upstream": "https://github.com/Capabilities-Limited/axi_cheri_tagcontroller",
+      "branch": "main",
+      "previous_revision": "c974f0c64e73c97e6b61bae1ea67a25a62ed1e5f",
+      "selected_revision": "adffef3267a1ffc9b9715fb33b5e7f863416d787",
+      "changed": true,
+      "ancestry": "ahead",
+      "commits": 3,
+      "comparison_url": "https://github.com/Capabilities-Limited/axi_cheri_tagcontroller/compare/c974f0c64e73c97e6b61bae1ea67a25a62ed1e5f...adffef3267a1ffc9b9715fb33b5e7f863416d787",
+      "license_files": [
+        {
+          "path": "LICENSE",
+          "sha256": "8632e4ec6001a712686e34f7955879a65d249b43b95b253f29a348f32804487a",
+          "previous_sha256": "8632e4ec6001a712686e34f7955879a65d249b43b95b253f29a348f32804487a",
+          "unchanged": true,
+          "url": "https://github.com/Capabilities-Limited/axi_cheri_tagcontroller/blob/adffef3267a1ffc9b9715fb33b5e7f863416d787/LICENSE"
+        }
+      ],
+      "disposition": "Standalone reference-only update. Preserve CVA6-selected nested tag-controller source and its historical measurements."
+    },
+    {
+      "path": "upstream/opentitan",
+      "upstream": "https://github.com/lowRISC/opentitan",
+      "branch": "master",
+      "previous_revision": "10738f384903ad7f7405a452ad41d6b8da23d2bb",
+      "selected_revision": "41049e9deb40e0602cd5272c40398be380ae2637",
+      "changed": true,
+      "ancestry": "ahead",
+      "commits": 261,
+      "comparison_url": "https://github.com/lowRISC/opentitan/compare/10738f384903ad7f7405a452ad41d6b8da23d2bb...41049e9deb40e0602cd5272c40398be380ae2637",
+      "license_files": [
+        {
+          "path": "LICENSE",
+          "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+          "previous_sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+          "unchanged": true,
+          "url": "https://github.com/lowRISC/opentitan/blob/41049e9deb40e0602cd5272c40398be380ae2637/LICENSE"
+        },
+        {
+          "path": "NOTICE",
+          "sha256": "62f0dcbe98a3959e7514b48f939750491de8e3848b47831e8e560af3b8c04d62",
+          "previous_sha256": "ef05d5dfb3baa6af69aab949ef01a0db4f79b974e090fa3c6ebdbc02b253dc21",
+          "unchanged": false,
+          "url": "https://github.com/lowRISC/opentitan/blob/41049e9deb40e0602cd5272c40398be380ae2637/NOTICE"
+        }
+      ],
+      "reviewed_files": [
+        {
+          "path": "LICENSE",
+          "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+          "previous_sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+          "unchanged": true,
+          "url": "https://github.com/lowRISC/opentitan/blob/41049e9deb40e0602cd5272c40398be380ae2637/LICENSE"
+        },
+        {
+          "path": "hw/ip/prim/fpv/vip/prim_secded_39_32_assert_fpv.sv",
+          "sha256": "88abf956639d3ba7ff67d3cd1ea7e17255bd4e2091a630688630185ed5d9ed75",
+          "previous_sha256": "32d1c13dc133cd34c871f913a90ace9139e381982b27bd654832e03b610955fa",
+          "unchanged": false,
+          "url": "https://github.com/lowRISC/opentitan/blob/41049e9deb40e0602cd5272c40398be380ae2637/hw/ip/prim/fpv/vip/prim_secded_39_32_assert_fpv.sv"
+        },
+        {
+          "path": "hw/top_earlgrey/ip/ast/README.md",
+          "sha256": "b77e6f7fda5f076acb6d4487da2686c7d8d957079e4691a75d11765203fcc214",
+          "previous_sha256": "b77e6f7fda5f076acb6d4487da2686c7d8d957079e4691a75d11765203fcc214",
+          "unchanged": true,
+          "url": "https://github.com/lowRISC/opentitan/blob/41049e9deb40e0602cd5272c40398be380ae2637/hw/top_earlgrey/ip/ast/README.md"
+        },
+        {
+          "path": "hw/top_earlgrey/ip/ast/rtl/ast.sv",
+          "sha256": "4d83b1901bbcd4e809de167597d4f69cad69744f0429d425331e24a58dbb53e5",
+          "previous_sha256": "4d83b1901bbcd4e809de167597d4f69cad69744f0429d425331e24a58dbb53e5",
+          "unchanged": true,
+          "url": "https://github.com/lowRISC/opentitan/blob/41049e9deb40e0602cd5272c40398be380ae2637/hw/top_earlgrey/ip/ast/rtl/ast.sv"
+        },
+        {
+          "path": "hw/top_earlgrey/ip/ast/rtl/ast_part_secondary.sv",
+          "sha256": "9aa86dad61b2535faab360f32f3af1e079d768928feb456ae5bfcb34dedf3fee",
+          "previous_sha256": "9aa86dad61b2535faab360f32f3af1e079d768928feb456ae5bfcb34dedf3fee",
+          "unchanged": true,
+          "url": "https://github.com/lowRISC/opentitan/blob/41049e9deb40e0602cd5272c40398be380ae2637/hw/top_earlgrey/ip/ast/rtl/ast_part_secondary.sv"
+        },
+        {
+          "path": "hw/top_earlgrey/ip/sensor_ctrl/doc/theory_of_operation.md",
+          "sha256": "a7a6f18b367818ab97b06ac639eb97e1bbc0f210f4242f9d034b712c12c45b7a",
+          "previous_sha256": "a7a6f18b367818ab97b06ac639eb97e1bbc0f210f4242f9d034b712c12c45b7a",
+          "unchanged": true,
+          "url": "https://github.com/lowRISC/opentitan/blob/41049e9deb40e0602cd5272c40398be380ae2637/hw/top_earlgrey/ip/sensor_ctrl/doc/theory_of_operation.md"
+        },
+        {
+          "path": "hw/top_earlgrey/ip/sensor_ctrl/rtl/sensor_ctrl.sv",
+          "sha256": "b473653c531332c983a2d900c8bbc866683172801332ceb88ea9a2d3f1740efd",
+          "previous_sha256": "b473653c531332c983a2d900c8bbc866683172801332ceb88ea9a2d3f1740efd",
+          "unchanged": true,
+          "url": "https://github.com/lowRISC/opentitan/blob/41049e9deb40e0602cd5272c40398be380ae2637/hw/top_earlgrey/ip/sensor_ctrl/rtl/sensor_ctrl.sv"
+        },
+        {
+          "path": "hw/top_earlgrey/ip_autogen/alert_handler/doc/theory_of_operation.md",
+          "sha256": "9738bbe5b5bcfd8084634eb9c370c8481d65892940587ce2ab009ac6e22c1962",
+          "previous_sha256": "dabc2e70f6f9151cbbe8a4c53bff9ed4c68757cfb9c2777d5d16c25ae3bab8b1",
+          "unchanged": false,
+          "url": "https://github.com/lowRISC/opentitan/blob/41049e9deb40e0602cd5272c40398be380ae2637/hw/top_earlgrey/ip_autogen/alert_handler/doc/theory_of_operation.md"
+        },
+        {
+          "path": "hw/top_earlgrey/ip_autogen/alert_handler/rtl/alert_handler.sv",
+          "sha256": "4e59d692605d308d9d98df25a38bcdf5748cbec30782e6261ac98ae49d5911f6",
+          "previous_sha256": "4e59d692605d308d9d98df25a38bcdf5748cbec30782e6261ac98ae49d5911f6",
+          "unchanged": true,
+          "url": "https://github.com/lowRISC/opentitan/blob/41049e9deb40e0602cd5272c40398be380ae2637/hw/top_earlgrey/ip_autogen/alert_handler/rtl/alert_handler.sv"
+        },
+        {
+          "path": "util/design/secded_gen.py",
+          "sha256": "c0a70389c75127c377103c69044366757f1e22ad357ea09adb7ccda64eea8e70",
+          "previous_sha256": "cc8e94873c774cd5bd85a7df196dc331b65a9fd92f20e76d523ec952a68605f2",
+          "unchanged": false,
+          "url": "https://github.com/lowRISC/opentitan/blob/41049e9deb40e0602cd5272c40398be380ae2637/util/design/secded_gen.py"
+        }
+      ],
+      "disposition": "Reference-only update. The 39/32 assertion changes whitespace only; fault assumptions and predicates remain unchanged. The generator accepts data widths through 256 with iterative larger-Hsiao selection, rewrites emitted encoders, computes software integer parity and applies inverted-code masks after parity generation. No selected matrix, theorem or RTL acceptance is claimed. Sensor/alert/AST source disposition is recorded per file; alert operation documentation only changes top-level alert and low-power-group counts."
+    },
+    {
+      "path": "upstream/ibex",
+      "upstream": "https://github.com/lowRISC/ibex",
+      "branch": "master",
+      "previous_revision": "1b29dae8866e6c0f0a3cd9dead53a77b4f45e357",
+      "selected_revision": "f4515520c0045bb8ef1e72d46ed82499a6ac5f18",
+      "changed": true,
+      "ancestry": "ahead",
+      "commits": 9,
+      "comparison_url": "https://github.com/lowRISC/ibex/compare/1b29dae8866e6c0f0a3cd9dead53a77b4f45e357...f4515520c0045bb8ef1e72d46ed82499a6ac5f18",
+      "license_files": [
+        {
+          "path": "LICENSE",
+          "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+          "previous_sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+          "unchanged": true,
+          "url": "https://github.com/lowRISC/ibex/blob/f4515520c0045bb8ef1e72d46ed82499a6ac5f18/LICENSE"
+        },
+        {
+          "path": "NOTICE",
+          "sha256": "21b2cb02046e122bfb3671adb532f1a237110864ac060ae434b8228fd3f13d9d",
+          "previous_sha256": "c1e9a919a0c950b77997dfff1878c76c6cbcc26a60e826c532f9e9513a0c5e4d",
+          "unchanged": false,
+          "url": "https://github.com/lowRISC/ibex/blob/f4515520c0045bb8ef1e72d46ed82499a6ac5f18/NOTICE"
+        }
+      ],
+      "disposition": "Reference-only update, including register-writeback suppression after integrity errors and a Microsoft CHERIoT attribution in NOTICE."
+    },
+    {
+      "path": "upstream/cheriot-ibex",
+      "upstream": "https://github.com/microsoft/cheriot-ibex",
+      "branch": "main",
+      "previous_revision": "531ca2ec439fe3fa89bd6f60ae8f256bc0b9b241",
+      "selected_revision": "cafaeae02c014456a99247b68788d31b7516a252",
+      "changed": true,
+      "ancestry": "ahead",
+      "commits": 1,
+      "comparison_url": "https://github.com/microsoft/cheriot-ibex/compare/531ca2ec439fe3fa89bd6f60ae8f256bc0b9b241...cafaeae02c014456a99247b68788d31b7516a252",
+      "license_files": [
+        {
+          "path": "LICENSE",
+          "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+          "previous_sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+          "unchanged": true,
+          "url": "https://github.com/microsoft/cheriot-ibex/blob/cafaeae02c014456a99247b68788d31b7516a252/LICENSE"
+        }
+      ],
+      "reviewed_files": [
+        {
+          "path": "dv/formal/README.md",
+          "sha256": "d69a845c0e37c431eecd5353a403d0cef5d61bde5531cfce67a1beeed620b95a",
+          "previous_sha256": "d69a845c0e37c431eecd5353a403d0cef5d61bde5531cfce67a1beeed620b95a",
+          "unchanged": true,
+          "url": "https://github.com/microsoft/cheriot-ibex/blob/cafaeae02c014456a99247b68788d31b7516a252/dv/formal/README.md"
+        }
+      ],
+      "disposition": "Only .github/workflows/pr_lint_review.yml changed; formal artifact and RTL remain unchanged."
+    }
+  ],
+  "validation": [
+    {
+      "command": "python tools/run.py rtl device-regs",
+      "verdict": "deferred",
+      "detail": "Guest bootstrap refused before generation because uv is unavailable in WSL."
+    },
+    {
+      "command": "vos.device_regs.emit(root) through host Python",
+      "verdict": "passed",
+      "detail": "Emitted from populated selected Mocha checkout, wrote UTF-8/LF bytes, and replayed the same owner to verify exact package equality. Only the owner revision stamp changed."
+    }
+  ]
+}
