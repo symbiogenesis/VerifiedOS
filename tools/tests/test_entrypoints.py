@@ -227,7 +227,7 @@ def _entrypoints_check_version_before_tool_imports() -> None:
         "with patch.object(sys, 'version_info', (3, 12, 9)):\n"
         "    runpy.run_path(sys.argv[1], run_name='__main__')\n"
     )
-    for name in ("run.py", "check.py"):
+    for name in ("run.py", "check.py", "ci/bootstrap_guest.py"):
         result = subprocess.run([sys.executable, "-c", probe, str(TOOLS / name)],
                                 cwd=_ROOT, capture_output=True, encoding="utf-8",
                                 check=False, timeout=30)

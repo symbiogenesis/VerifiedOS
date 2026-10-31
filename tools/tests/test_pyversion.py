@@ -41,7 +41,7 @@ def _invalid_owner_refuses() -> None:
                 path.write_text(text, encoding="utf-8", newline="")
             try:
                 pyversion.supported_minor(root)
-            except (OSError, ValueError):
+            except OSError, ValueError:
                 pass
             else:
                 raise AssertionError(f"invalid or missing interpreter owner accepted: {text!r}")

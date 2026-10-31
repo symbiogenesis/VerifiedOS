@@ -28,7 +28,7 @@
     },
     {
       "path": "tools/vos/proofenv.py",
-      "sha256": "cc6c5beca2aaefc1761e3b7748bdca52816d093f836ecdac9a879b79fa4d0513"
+      "sha256": "288ce963f92bd2ec4ba1b2fa69b704ce563d77a30b8893df03a182c98a623faf"
     },
     {
       "path": "tools/vos/atomic.py",
@@ -52,7 +52,7 @@
     },
     {
       "path": "tools/vos/cli/admission.py",
-      "sha256": "897c0dc126835f333645e7c2ffb4db7946532f8fb2ee6e0310f3a0ac078c38a7"
+      "sha256": "efa3b9e7ac79aa7f5284cf1b3970bdc16ae4c99e0249cc70496e1a2f86871b6d"
     }
   ],
   "interfaces": [

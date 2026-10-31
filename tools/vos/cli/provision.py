@@ -4,7 +4,7 @@
 
 Every loop here runs against a machine that is a particular thing: two opam switches
 for the model and the prover, two more for the Gallina front, a pinned solver ahead of
-the distribution's, two pinned checkers, and an interpreter floor. Nothing wrote that
+the distribution's, two pinned checkers, and the supported interpreter. Nothing wrote that
 down as anything a machine could act on, so standing the lane up anywhere else was a
 reading of prose scattered across a plan, a README and half a dozen modules. This is
 that list, one row per fact, each row naming the loop that wants it, the artifact that
@@ -37,7 +37,7 @@ CertiRocq oracle's switch, whose recipe lives in
 [tools/wasm-oracle/README.md](../../wasm-oracle/README.md) as prose for a person.
 Inventing a command for either would be the unowned derived fact the working rules
 refuse, so their rows, `uv` and the oracle switch, report and plan nothing. Other rows
-carry no command for reasons of their own, among them the interpreter floor, which is
+carry no command for reasons of their own, among them the supported interpreter, which is
 the interpreter taking the probe and which nothing it runs can replace, and the cache
 invariant, whose repair is to give a lane a copy rather than to delete somebody's warm
 cache. The `opam` row's command installs the reviewed client by the route guest
@@ -945,7 +945,7 @@ def _outputs_on_the_guest() -> Found:
 # the gate's five, then the toolchain from the opam root's system packages outward, so
 # `--apply` installs what `opam init` needs before the opam row's command runs it.
 FACTS: tuple[Fact, ...] = (
-    Fact("the interpreter floor", GATE,
+    Fact("the supported interpreter", GATE,
          "every command here, on both lanes",
          "tools/pyproject.toml project.requires-python, read through tools/vos/pyversion.py",
          _interpreter),

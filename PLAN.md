@@ -2934,7 +2934,15 @@ decisions, diagnostics, deterministic output and artifact bytes.
   Ubuntu, and dispatch every Guest CI lane for the same revision through
   [the validation handoff](AGENTS.md#tool-execution-and-validation).
 
-Implementation is open; hosted acceptance and landing evidence remain due.
+The active-source review and implementation are complete: explicit type aliases,
+lazy annotations, standard-library batching, current exception syntax and CLI
+choice suggestions are in use where applicable. The bootstrap and guest installer
+share a manifest-derived interpreter refusal; the universal-version rule lives in
+[AGENTS.md](AGENTS.md#tool-execution-and-validation). Focused bootstrap, parser,
+emitter, supervisor and provisioning controls pass, including unchanged emitted
+bytes. Source-bound views and the finite rank-48 receipt are regenerated through
+their owners. The `python-modern-20261031` fanout journal records exact-revision
+hosted evidence and Guest CI dispatch; the guest verdict is deferred to the user.
 
 ## Compiler differential library boundary
 

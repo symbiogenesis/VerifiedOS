@@ -22,11 +22,16 @@ from typing import IO
 TOOLS = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(TOOLS))
 
-from vos.pyversion import supported_minor  # noqa: E402 (stdlib-only bootstrap metadata)
+from vos.pyversion import (  # noqa: E402 (stdlib-only bootstrap metadata)
+    require_supported,
+    supported_minor,
+)
 
 PYTHON_VERSION = supported_minor(TOOLS.parent)
-if f"{sys.version_info.major}.{sys.version_info.minor}" != PYTHON_VERSION:
-    raise SystemExit(f"guest bootstrap requires Python {PYTHON_VERSION}; found {platform.python_version()}")
+try:
+    require_supported(TOOLS.parent)
+except (OSError, ValueError) as error:
+    raise SystemExit(str(error)) from error
 
 from vos import (  # noqa: E402  (standalone bootstrap precedes the locked environment)
     cli,

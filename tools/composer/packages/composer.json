@@ -28,7 +28,7 @@
     },
     {
       "path": "tools/vos/proofenv.py",
-      "sha256": "cc6c5beca2aaefc1761e3b7748bdca52816d093f836ecdac9a879b79fa4d0513"
+      "sha256": "288ce963f92bd2ec4ba1b2fa69b704ce563d77a30b8893df03a182c98a623faf"
     },
     {
       "path": "tools/vos/atomic.py",
@@ -56,7 +56,7 @@
     },
     {
       "path": "tools/vos/cli/composer.py",
-      "sha256": "2d2c497aadd2e58d99ef84037420c27634636be534f4efda5834caa8039f75cf"
+      "sha256": "6e8a003948fd5791a91dc92fc1e62053792759a42db42c145a1539d952004bed"
     },
     {
       "path": "tools/vos/composition_staged.py",

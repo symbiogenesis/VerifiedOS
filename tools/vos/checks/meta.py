@@ -197,8 +197,6 @@ _Q_PATH_RE = re.compile(
 # coupling that matters is held at every site without exception.
 _Q_PATH_EXEMPT = ("tools/vos/checks/meta.py", "tools/vos/cli/selftest.py")
 
-# The interpreter floor, as the type checker's own environment fixes it.
-
 # A repository path an owner cell names, and the same path with the symbol that cell
 # calls that artifact's own. The symbol run admits an `and` chain because a row names two
 # constants of one module that way, and the continuation has to look like a symbol,

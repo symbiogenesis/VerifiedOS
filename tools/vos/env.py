@@ -920,7 +920,7 @@ def _lease_sleep() -> int | None:
     """
     try:
         pid = int(_keepalive_pidfile().read_text().strip())
-    except (OSError, ValueError):
+    except OSError, ValueError:
         # no pidfile, an unreadable one, or garbage in it: there is no lease
         return None
     try:
