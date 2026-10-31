@@ -13,7 +13,7 @@ from dataclasses import dataclass, field, replace
 from itertools import product
 from typing import Literal, override
 
-Scope = Literal["software", "unit"]
+type Scope = Literal["software", "unit"]
 DOMAIN = "VerifiedOS/Q22c/TLS-attestation/v1"
 ROLE = "tls-attesting-client"
 OPERATION = "attest-local-session"

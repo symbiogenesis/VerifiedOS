@@ -597,7 +597,7 @@ def scan(ctx: Context, excluded: dict[str, str], snapshots: bool = False) -> Sca
                 try:
                     sensitive, folded = archive_needles()
                     facts = cache.scan(rel, blob, (), sensitive, folded)
-                except (OSError, EOFError, ValueError, zlib.error):
+                except OSError, EOFError, ValueError, zlib.error:
                     # Preserve the original decoder's exact refusal message and
                     # complete positive-candidate diagnostics on every fallback.
                     pass

@@ -41,7 +41,7 @@ import re
 from collections.abc import Callable, Iterable, Mapping
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Literal, NoReturn
+from typing import Literal, Never
 
 from vos import jsonc
 from vos.jsonc import Json
@@ -590,7 +590,7 @@ class TraceProducer:
                                  produce=lambda: account(site, order)) is not None:
             self._ordinal += 1
 
-    def _refuse_internal(self, site: str) -> NoReturn:
+    def _refuse_internal(self, site: str) -> Never:
         message = (f"{site} reaches the model's internal entropy draw and no bus "
                    f"transaction carries it, so this capture is refused whole; "
                    f"use the synchronous {DRAW} observer with RootProducer, or "

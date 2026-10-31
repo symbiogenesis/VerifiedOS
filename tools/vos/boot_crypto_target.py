@@ -7,6 +7,7 @@ import re
 import subprocess
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from itertools import batched
 from pathlib import Path, PurePosixPath
 from typing import Any, cast
 
@@ -311,8 +312,8 @@ def compose(stream: str, case: boot_crypto.Case) -> str:
     composite = prologue.replace(anchor, setup + anchor, 1) + cd.normalize(stream) + "\n" + epilogue
     for label, data, extent in objects:
         composite += f"\n        .balign {extent}\nvos_crypto_{label}:\n"
-        composite += "\n".join("        .byte " + ",".join(map(str, data[i:i+32]))
-                                for i in range(0, len(data), 32)) + "\n"
+        composite += "\n".join("        .byte " + ",".join(map(str, chunk))
+                                for chunk in batched(data, 32, strict=False)) + "\n"
         if extent > len(data):
             composite += f"        .space {extent - len(data)}\n"
     return composite

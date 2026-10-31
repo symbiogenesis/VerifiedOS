@@ -253,7 +253,7 @@ class Server:
                 fail(-32601, "Method not found")
         except ProtocolError as exc:
             self.error(ident, exc.code, str(exc), exc.data)
-        except (OSError, ValueError):
+        except OSError, ValueError:
             self.error(ident, -32603, "Cannot read the local tool contract")
 
     def close(self) -> None:
@@ -269,7 +269,7 @@ def serve(root: Path, incoming: BinaryIO, outgoing: BinaryIO) -> int:
                 return 1
             try:
                 message = decode(raw)
-            except (ValueError, UnicodeError, RecursionError):
+            except ValueError, UnicodeError, RecursionError:
                 server.error(None, -32700, "Invalid UTF-8 JSON")
                 continue
             server.receive(message)

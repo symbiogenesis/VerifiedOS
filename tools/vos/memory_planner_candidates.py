@@ -159,7 +159,7 @@ manifest. Returns Cargo, its process environment and the installed component has
     wanted = {"version": version, "target": triple, "components": components}
     try:
         installed = json.loads(stamp.read_text(encoding="utf-8")) == wanted
-    except (OSError, ValueError):
+    except OSError, ValueError:
         installed = False
     if not installed or not (prefix / "bin/cargo").is_file():
         shutil.rmtree(prefix, ignore_errors=True)

@@ -550,7 +550,7 @@ def _sources(ctx: Context, named: list[tuple[str, str, pins_mod.Pin]]) -> Iterat
                     sensitive, folded = archive_needles()
                     facts = cache.scan(rel, blob, tuple(needle for needle, _, _ in named),
                                        sensitive, folded)
-                except (OSError, EOFError, ValueError, zlib.error):
+                except OSError, EOFError, ValueError, zlib.error:
                     # The legacy reader owns exact malformed-gzip and text behavior.
                     # Failed or unsupported prescans are never cached as absences.
                     pass
@@ -566,7 +566,7 @@ def _sources(ctx: Context, named: list[tuple[str, str, pins_mod.Pin]]) -> Iterat
             # Preserve read_text's universal-newline behavior for these files,
             # including retained text now stored as lossless gzip evidence.
             text = text.replace("\r\n", "\n").replace("\r", "\n")
-        except (OSError, UnicodeDecodeError, EOFError, ValueError, zlib.error):
+        except OSError, UnicodeDecodeError, EOFError, ValueError, zlib.error:
             continue
         lowered = text.lower()
         candidate = any(needle in lowered for needle, _, _ in named)

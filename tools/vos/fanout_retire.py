@@ -12,7 +12,7 @@ import sys
 from collections.abc import Callable
 from dataclasses import asdict, dataclass
 from pathlib import Path, PurePosixPath
-from typing import NoReturn, cast
+from typing import Never, cast
 
 from vos import env, receipts
 from vos.cli import worktree
@@ -89,7 +89,7 @@ def _clean(path: Path) -> None:
         raise RetirementError(f"worker is dirty, including untracked files: {path}")
 
 
-def _unlistable(error: OSError) -> NoReturn:
+def _unlistable(error: OSError) -> Never:
     raise RetirementError(f"directory cannot be listed: {error.filename} "
                           f"({error.strerror or error})") from error
 
@@ -100,7 +100,7 @@ def _entries(directory: Path) -> list[str]:
     try:
         with os.scandir(directory) as found:
             return [entry.name for entry in found]
-    except (FileNotFoundError, NotADirectoryError):
+    except FileNotFoundError, NotADirectoryError:
         return []
     except OSError as error:
         _unlistable(error)
@@ -411,7 +411,7 @@ def _names_now(path: Path) -> tuple[int, int] | None:
     """The file a selected lock path names now, or None once it is gone."""
     try:
         status = path.lstat()
-    except (FileNotFoundError, NotADirectoryError):
+    except FileNotFoundError, NotADirectoryError:
         return None
     return status.st_dev, status.st_ino
 

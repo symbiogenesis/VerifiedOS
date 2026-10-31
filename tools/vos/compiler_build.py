@@ -275,7 +275,7 @@ def candidate(settings: Settings, key: str) -> tuple[Path | None, str]:
         return None, "default: no prior controller output"
     try:
         return _index_candidate(settings, key, index)
-    except (OSError, ValueError, TypeError):
+    except OSError, ValueError, TypeError:
         return None, "default: stale or invalid index candidate; execute necessary phases"
 
 
@@ -303,7 +303,7 @@ def _index_candidate(settings: Settings, key: str, index: Path) -> tuple[Path | 
         if tier in tiers:
             try:
                 return _indexed_candidate(settings, key, tiers[tier], tier)
-            except (OSError, ValueError, TypeError):
+            except OSError, ValueError, TypeError:
                 continue
     raise ValueError("no valid indexed tier")
 

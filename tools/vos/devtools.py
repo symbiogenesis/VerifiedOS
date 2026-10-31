@@ -451,7 +451,7 @@ class Owners:
             if path in self.indexed:
                 try:
                     text = (self.root / path).read_text(encoding="utf-8")
-                except (OSError, UnicodeDecodeError):
+                except OSError, UnicodeDecodeError:
                     text = None
             self._texts[path] = text
         text = self._texts[path]

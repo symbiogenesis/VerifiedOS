@@ -73,7 +73,7 @@ def read(path: Path) -> list[Unit] | None:
     """The units a member recorded at `path`, or None where it recorded no readable list."""
     try:
         found: object = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, ValueError):
+    except OSError, ValueError:
         return None
     if not isinstance(found, list):
         return None

@@ -204,7 +204,7 @@ def _token(root: Path, repo: str) -> str:
                               input=f"protocol=https\nhost=github.com\npath={repo}.git\n\n",
                               capture_output=True, text=True, check=False, timeout=30,
                               env=environment)
-    except (OSError, subprocess.TimeoutExpired):
+    except OSError, subprocess.TimeoutExpired:
         raise CIError("cannot read GitHub credentials; set GH_TOKEN or GITHUB_TOKEN") from None
     if done.returncode == 0:
         for line in done.stdout.splitlines():
@@ -244,7 +244,7 @@ class GitHub:
                 return result
         except urllib.error.HTTPError as error:
             raise APIError(error.code) from None
-        except (OSError, ValueError):
+        except OSError, ValueError:
             raise APIError(None) from None
 
     def runs(self, workflow: str, revision: str | None = None) -> list[dict[str, object]]:

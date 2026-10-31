@@ -7,6 +7,7 @@ import re
 import subprocess
 import time
 from concurrent.futures import ThreadPoolExecutor
+from itertools import batched
 from pathlib import Path
 
 from vos import asm, boot_crypto_target, boot_target, config, image, kernel_restore, receipts
@@ -76,8 +77,8 @@ def compose(root: Path, stream: str, boot: bytes, public: bytes, floor: int) -> 
     for label, blob, capacity in (("vos_public_key", public, len(public)),
                                   ("vos_boot_image", boot, image_extent)):
         result += f"\n        .balign {capacity}\n{label}:\n"
-        result += "\n".join("        .byte " + ",".join(str(b) for b in blob[i:i + 32])
-                            for i in range(0, len(blob), 32)) + "\n"
+        result += "\n".join("        .byte " + ",".join(str(b) for b in chunk)
+                            for chunk in batched(blob, 32, strict=False)) + "\n"
         result += f"        .space {capacity - len(blob)}\n"
     result += (f"        .balign 8\nvos_parameters:\n"
                f"        .dword {len(boot)}, 0, 0, 0, 0, 0\n"

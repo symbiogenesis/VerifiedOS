@@ -136,7 +136,7 @@ class _Pipe:
         try:
             self._in.write(value + b"\n")
             self._in.flush()
-        except (BrokenPipeError, OSError):
+        except BrokenPipeError, OSError:
             raise ReplayRuntimeError("private native protocol interrupted") from None
 
     def reject(self) -> bool | None:
@@ -214,7 +214,7 @@ def _artifacts(expected: Binding, executable: Path, configuration: Path) -> None
             _fail("native artifacts are unavailable")
         root = digest(executable)
         composition = digest(configuration)
-    except (OSError, ValueError):
+    except OSError, ValueError:
         raise ReplayRuntimeError("native artifacts are unavailable") from None
     if (root, composition) != (expected.base_image_root, expected.composition):
         _fail("native artifacts differ from independently expected development binding")

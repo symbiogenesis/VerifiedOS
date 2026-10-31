@@ -10,6 +10,7 @@ import json
 import re
 import subprocess
 import time
+from itertools import batched
 from pathlib import Path
 
 from vos import asm, compiler_provenance, image, kernel_restore, receipts
@@ -73,8 +74,8 @@ def compose(stream: str, public: bytes, message: bytes, signature: bytes) -> str
         ("vos_signature", signature, signature_extent, signature_extent),
     ):
         result += f"\n        .balign {alignment}\n{label}:\n"
-        result += "\n".join("        .byte " + ",".join(str(b) for b in blob[i:i + 32])
-                            for i in range(0, len(blob), 32)) + "\n"
+        result += "\n".join("        .byte " + ",".join(str(b) for b in chunk)
+                            for chunk in batched(blob, 32, strict=False)) + "\n"
         if capacity > len(blob):
             result += f"        .space {capacity - len(blob)}\n"
     return result
