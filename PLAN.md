@@ -2989,11 +2989,19 @@ their acceptance conditions.
   `41185452472`, the model-build contract above and the
   [portable proof workflow](docs/assurance/proof-assistance.md).
 - **Owns:** the failing CMake identity control and bounded tactic-script repairs in
-  `CopyRingService.v`, `HmacDrbg.v`, `JournalIndex.v` and `KernelInstance.v`.
+  `CopyRingService.v`, `HmacDrbg.v`, `JournalIndex.v` and `KernelInstance.v`, plus
+  shared opaque laws in `LastEvent.v` and `ProofSupport.v` where they remove
+  repeated structural reasoning from those clients. Keep application-specific
+  selectors and state-update correspondence in their clients; introduce no helper
+  merely to hide a fixed conjunction arity or save a tactic line.
   Downstream proof files remain consumers, not an excuse to alter their premises.
 - **Check:** preserve and compare the base proof statement/definition readings;
-  change no executable definition, theorem statement, assumption, dependency pin
-  or gate. Record the proof workflow's bounded candidate journal. The empty-library
+  change no existing executable definition, theorem statement, assumption,
+  dependency pin or gate. Shared laws must retain empty, selected and absent-event
+  behavior and the last-event ordering distinction; clients should apply them
+  rather than repeat their list induction. New helper proofs owe the same exact
+  assumption audit. Record the proof workflow's bounded candidate journal, retaining
+  the original budget across this helper revision. The empty-library
   control must refuse because of the missing Sail population and invalidate its
   identity, with the positive generation and reuse controls retained. Run focused
   existing controls and dispatch a cold Guest proof check for the exact settled
