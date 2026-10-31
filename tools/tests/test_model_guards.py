@@ -121,7 +121,8 @@ def _stale_build() -> None:
         })
         # Each corpus change below is sealed with a fresh manifest, as a re-download
         # would leave it, so what refuses it is the receipt and not the manifest check.
-        with patch.object(model, "build_identity", return_value=identity):
+        with (patch.object(model, "build_identity", return_value=identity),
+              patch.object(model.native_build, "verify")):
             model.verified_build(e)
             for target in (*(e.build_dir / rel for rel in model.BUILD_ARTIFACTS), elf):
                 original = target.read_bytes()
@@ -175,6 +176,8 @@ def _refused_evidence_is_recorded() -> None:
             # The Sail test runs in the ctest stage, which stands in with the others.
             with (patch.object(model, "build_identity", side_effect=identities),
                   patch.object(model, "_configure", return_value=0),
+                  patch.object(model, "_native_start", return_value={}),
+                  patch.object(model, "_native_finish", return_value={}),
                   patch.object(model, "_early_decision", return_value=(False, "after")),
                   patch.object(model, "env", SimpleNamespace(stage=Mock(return_value=0))),
                   patch.object(model, "subprocess",

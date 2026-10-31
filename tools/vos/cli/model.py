@@ -69,6 +69,8 @@ from vos import (
     env,
     freezeschema,
     model_corpus,
+    model_dependencies,
+    native_build,
     receipts,
     rocqterm,
     sailbundle,
@@ -194,6 +196,8 @@ def verified_build(e: env.Environment, *, fast: bool = False) -> dict[str, objec
     if record.get("artifacts") != build_artifacts(
             e.fast_build_dir if fast else e.build_dir, e.model):
         raise ValueError("the build receipt is stale: built artifacts changed")
+    native_build.verify(record.get("native_inputs"),
+                        e.fast_build_dir if fast else e.build_dir, e.model)
     if record.get("log_sha256") != receipts.digest(log):
         raise ValueError("the build receipt is stale: its test log changed")
     return record
@@ -267,6 +271,8 @@ def configure_command(e: env.Environment, build_dir: Path,
         "-DCMAKE_BUILD_TYPE=RelWithDebInfo",
         "-DDOWNLOAD_GMP=FALSE",
         "-DENABLE_RISCV_TESTS=TRUE",
+        "-DCMAKE_FIND_USE_PACKAGE_REGISTRY=FALSE",
+        "-DCMAKE_FIND_USE_SYSTEM_PACKAGE_REGISTRY=FALSE",
         *e.compilers, *e.ccache, *(extra or []),
         f"-DTEST_DOWNLOAD_VERSION={test_version}",
         *([f"-DSAIL_BIN={sail}"] if bool(sail) else []),
@@ -276,12 +282,30 @@ def configure_command(e: env.Environment, build_dir: Path,
 def _configure(e: env.Environment, build_dir: Path,
                extra: list[str] | None = None, out: IO[str] | None = None) -> int:
     try:
-        argv = configure_command(e, build_dir, extra)
-    except ValueError as err:
-        print(str(err), file=sys.stderr)
+        prepared = model_dependencies.prepare(e.model, build_dir, offline=e.model_offline)
+        argv = configure_command(e, build_dir, [*(extra or []), *prepared])
+    except (OSError, ValueError, RuntimeError) as err:
+        print(f"model preparation refused: {err}", file=out or sys.stderr)
         return 1
     return env.stage("configure", argv, stdout=out, stderr=out,
                      add_env=env.git_env(e.root) or None)
+
+
+def cmd_dependencies(e: env.Environment, args: argparse.Namespace) -> int:
+    """Materialize verified inputs without configuring or compiling the model."""
+    directory = e.fast_build_dir if args.fast else e.build_dir
+    lock = env.build_lock(directory)
+    try:
+        flags = model_dependencies.prepare(e.model, directory, offline=e.model_offline)
+    except (OSError, ValueError, RuntimeError) as err:
+        print(f"model preparation refused: {err}", file=sys.stderr)
+        return 1
+    finally:
+        if lock is not None:
+            lock.close()
+    print(json.dumps({"build": str(directory), "offline": e.model_offline,
+                      "configure_options": flags}, indent=2))
+    return 0
 
 
 def cmd_simulator(e: env.Environment, args: argparse.Namespace) -> int:
@@ -532,8 +556,8 @@ def cmd_rocq(e: env.Environment, args: argparse.Namespace) -> int:
     the receipt binds and why.
 
     The term's outputs and receipt are deleted first, before the tree is touched: the
-    target's dependencies do not name the Sail binary, library or plugin, so outputs it
-    left earlier would satisfy it without an emission. The tree is then seeded and
+    run-specific receipt requires a fresh emission even when the generation graph
+    could reuse an earlier output. The tree is then seeded and
     configured as `emit` configures it, and the configured Sail command is read back
     out of the tree and refused unless it emits at this checkout's frozen profile. The
     configuration and the sources are hashed before and after the build, and a run in
@@ -840,6 +864,26 @@ def _ctest_stage(e: env.Environment, build_dir: Path, handle: IO[str],
     return code or early_code
 
 
+def _native_start(e: env.Environment, directory: Path,
+                  stream: IO[str]) -> native_build.Manifest:
+    """Refuse stale native reuse before any compile or test can consume it."""
+    if native_build.prepare(directory, e.model):
+        code = env.stage("native-clean", ["cmake", "--build", str(directory),
+                                          "--target", "clean"], stdout=stream, stderr=stream)
+        if code:
+            raise ValueError(f"native input invalidation could not clean the build: exit {code}")
+    return native_build.configured(directory, e.model)
+
+
+def _native_finish(e: env.Environment, directory: Path,
+                   before: native_build.Manifest) -> native_build.Manifest:
+    """Bind the used native closure and reject inputs changed during the build."""
+    native_build.validate(before)
+    result = native_build.capture(directory, e.model)
+    native_build.validate(before)
+    return result
+
+
 def _build_locked(e: env.Environment, build_dir: Path, log: Path,
                   extra: list[str]) -> int:
     """Run the stages while cmd_build holds the lane, then publish their identity.
@@ -858,6 +902,9 @@ def _build_locked(e: env.Environment, build_dir: Path, log: Path,
     record_path.unlink(missing_ok=True)
     identity = build_identity(e)
     stages: dict[str, int] = {}
+    native_before: native_build.Manifest | None = None
+    native_inputs: native_build.Manifest | None = None
+    refusal = ""
     run_id = uuid.uuid4().hex
     beside, decision = _early_decision(e)
 
@@ -879,6 +926,13 @@ def _build_locked(e: env.Environment, build_dir: Path, log: Path,
         # Each stage gates the next: a configure that failed makes the build's error a
         # second symptom of the first, and reporting both hides which one to fix.
         code = stages["configure"] = _configure(e, build_dir, extra, handle)
+        if not code:
+            try:
+                native_before = _native_start(e, build_dir, handle)
+            except (OSError, ValueError, RuntimeError) as err:
+                refusal = f"native build inputs refused: {err}"
+                handle.write(refusal + "\n")
+                code = stages["configure"] = 1
         handle.write(f"CONFIGURE_EXIT={code}\n")
         handle.flush()
         early: _EarlyRun | None = None
@@ -911,7 +965,6 @@ def _build_locked(e: env.Environment, build_dir: Path, log: Path,
     # A build whose stages passed can still be refused its evidence. The reason is kept
     # in the receipt as well as printed, because a background build's stderr goes
     # nowhere, and `verified_build`, which `model wait` reports through, names it.
-    refusal = ""
     if code == 0 and build_identity(e) != identity:
         refusal = "the inputs changed during the build; its evidence is stale"
     artifacts: dict[str, str] = {}
@@ -922,8 +975,12 @@ def _build_locked(e: env.Environment, build_dir: Path, log: Path,
         # receipt records rather than an exception that ends the run before one is
         # written.
         try:
+            if native_before is None:
+                raise ValueError("no native input identity was captured before the build")
+            native_inputs = _native_finish(e, build_dir, native_before)
+            receipts.write(build_dir / native_build.STAMP, native_inputs)
             artifacts = build_artifacts(build_dir, e.model)
-        except (OSError, ValueError) as err:
+        except (OSError, ValueError, RuntimeError) as err:
             refusal = f"the build's evidence cannot be recorded: {err}"
     if refusal:
         print(refusal, file=sys.stderr)
@@ -931,6 +988,7 @@ def _build_locked(e: env.Environment, build_dir: Path, log: Path,
     receipts.write(record_path, {
         "schema": 1, "run_id": run_id, "exit_code": code, "stages": stages,
         "identity": identity, "artifacts": artifacts,
+        "native_inputs": native_inputs,
         "log_sha256": receipts.digest(log), "extra_options": extra,
         **({"refusal": refusal} if refusal else {}),
     })
@@ -951,7 +1009,8 @@ def _detach(args: argparse.Namespace, log: Path, lock: IO[str] | None) -> int:
     Move the old log aside before launching. The parent never removes the new log:
     the child can open it before Popen returns. A failed launch restores the old log.
     """
-    argv = cli.entry("model", "build", *(["--fast"] if args.fast else []))
+    argv = cli.entry("model", "build", *(["--fast"] if args.fast else []),
+                     *(["--offline"] if getattr(args, "offline", False) else []))
     log.parent.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(prefix="previous-build-", dir=log.parent) as td:
         previous = Path(td) / log.name
@@ -2481,23 +2540,34 @@ def main(argv: list[str] | None = None) -> int:
                              "against it, writing nothing")
     bundle.set_defaults(run=cmd_bundle)
 
-    sub.add_parser("emit", suggest_on_error=True, help="emit C++, then validate the profile config").set_defaults(
-        run=cmd_emit)
+    emit = sub.add_parser("emit", suggest_on_error=True, help="emit C++, then validate the profile config")
+    emit.add_argument("--offline", action="store_true", help="require already verified dependency inputs")
+    emit.set_defaults(run=cmd_emit)
 
-    sub.add_parser("rocq", suggest_on_error=True, help="emit the canonical Rocq term through the model's own "
+    rocq = sub.add_parser("rocq", suggest_on_error=True, help="emit the canonical Rocq term through the model's own "
                                 "target and write its generation-identity receipt"
-                   ).set_defaults(run=cmd_rocq)
+                   )
+    rocq.add_argument("--offline", action="store_true", help="require already verified dependency inputs")
+    rocq.set_defaults(run=cmd_rocq)
+
+    dependencies = sub.add_parser("dependencies", suggest_on_error=True,
+                                  help="prepare verified dependency inputs before configuration")
+    dependencies.add_argument("--offline", action="store_true", help="verify cached inputs without downloading")
+    dependencies.add_argument("--fast", action="store_true", help="prepare the iterate build tree")
+    dependencies.set_defaults(run=cmd_dependencies)
 
     build = sub.add_parser("build", suggest_on_error=True, help="configure, build, and run the bundled suite")
     build.add_argument("--fast", action="store_true",
                        help="the iterate profile: the canonical build without -g")
     build.add_argument("--background", action="store_true",
                        help="detach the run and return; wait on it with `run.py model wait`")
+    build.add_argument("--offline", action="store_true", help="require already verified dependency inputs")
     build.set_defaults(run=cmd_build)
 
     simulator = sub.add_parser("simulator", suggest_on_error=True, help="build only the Q39 replay simulator dependency")
     simulator.add_argument("--out", required=True,
                            help="fresh absolute native output directory in this checkout's lane")
+    simulator.add_argument("--offline", action="store_true", help="require already verified dependency inputs")
     simulator.set_defaults(run=cmd_simulator)
 
     wait = sub.add_parser("wait", suggest_on_error=True, help="wait for this lane's build, then report it")
@@ -2607,6 +2677,7 @@ def main(argv: list[str] | None = None) -> int:
     hosted = next((c.host_ok for c in commands.COMMANDS if c.name == "model"), frozenset())
     needs_guest = args.command not in hosted
     e = env.load(toolchain=needs_guest)
+    e.model_offline = e.model_offline or getattr(args, "offline", False)
     if args.command != "keepalive" and needs_guest:
         # every loop holds the distribution up while it runs, so a long build does not
         # lose the VM underneath it; the keepalive command manages that lease directly

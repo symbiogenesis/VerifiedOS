@@ -10,10 +10,10 @@ import time
 from pathlib import Path
 from typing import cast
 
-from vos import config, env, receipts
+from vos import config, env, model_dependencies, native_build, receipts
 from vos.jsonc import Json
 
-SCHEMA = "verifiedos-focused-simulator-build/1"
+SCHEMA = "verifiedos-focused-simulator-build/2"
 PROFILE = "q39-compiler-replay"
 TARGET = "sail_riscv_sim"
 ARTIFACT = "c_emulator/sail_riscv_sim"
@@ -185,6 +185,9 @@ def read(root: Path, simulator: Path, path: Path) -> dict[str, Json]:
             raise ValueError("focused simulator producer facts disagree with the frozen CMake cache")
     if artifacts.get(ARTIFACT) != receipts.digest(simulator):
         raise ValueError("focused simulator differs from the recorded build artifact")
+    if not isinstance(record.get("native_inputs"), dict) or not record["native_inputs"]:
+        raise ValueError("focused simulator lacks its native input closure")
+    native_build.verify(record["native_inputs"], directory, root / "model")
     return record
 
 
@@ -203,13 +206,16 @@ def build(e: env.Environment, out: Path) -> int:
     stages: dict[str, Json] = {}
     before = _identity(e)
     cmake = str(_mapping(_mapping(before["tools"])["cmake"])["executable"])
-    commands = {"configure": [cmake, *model.configure_command(e, directory)[1:]],
-                "target-build": [cmake, "--build", str(directory), "-j", str(e.jobs),
-                                 "--target", TARGET]}
     passed = True
     lock = env.build_lock(directory)
     try:
+        prepared = model_dependencies.prepare(e.model, directory, offline=e.model_offline)
+        commands = {"configure": [cmake, *model.configure_command(e, directory, prepared)[1:]],
+                    "target-build": [cmake, "--build", str(directory), "-j", str(e.jobs),
+                                     "--target", TARGET]}
         configured: dict[str, Json] = {}
+        native_before: native_build.Manifest | None = None
+        native_inputs: native_build.Manifest | None = None
         for name, argv in commands.items():
             if not passed:
                 break
@@ -226,6 +232,13 @@ def build(e: env.Environment, out: Path) -> int:
             print(f"END focused simulator {name}: {ran.returncode}", flush=True)
             if name == "configure" and passed:
                 configured = _configured(directory, _mapping(before["tools"]))
+                native_before = native_build.configured(directory, e.model)
+        if passed:
+            if native_before is None:
+                raise ValueError("focused simulator lacks native inputs before compilation")
+            native_build.validate(native_before)
+            native_inputs = native_build.capture(directory, e.model)
+            native_build.validate(native_before)
         validation, messages = (config.validate(directory / model.SCHEMA, e.profile)
                                 if passed else (1, ["build stage failed"]))
         (logs / "profile-validation.log").write_text("\n".join(messages) + "\n", encoding="utf-8")
@@ -242,6 +255,7 @@ def build(e: env.Environment, out: Path) -> int:
             "passed": passed, "exit_code": 0 if passed else 1, "inputs_unchanged": unchanged,
             "identity": before, "stages": stages, "profile_validation_exit": validation,
             "build_root": str(directory.resolve()), "configured_producers": configured,
+            "native_inputs": cast("Json", native_inputs),
             "configuration_evidence": evidence, "artifacts": artifacts,
             "bundled_model_tests": "not-run",
             "full_model_acceptance": "pending"}

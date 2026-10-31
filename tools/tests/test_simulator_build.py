@@ -58,6 +58,7 @@ def fixture(root: Path) -> tuple[Path, Path, dict[str, Any]]:
                            "profile_sha256": receipts.digest(model / "config/verifiedos.json"),
                            "tools": tools}, "stages": stages,
               "build_root": str(build),
+              "native_inputs": {"fixture": True},
               "configured_producers": {role: {"cache_entry": entry, "executable": str(root / role),
                                                "sha256": tools[role]["sha256"]}
                   for role, entry in (("sail", "SAIL_BIN"), ("cxx", "CMAKE_CXX_COMPILER"))},
@@ -76,7 +77,8 @@ def consumer_refusals() -> None:
     with tempfile.TemporaryDirectory(prefix="vos-focused-simulator-") as name:
         root = Path(name)
         simulator, path, original = fixture(root)
-        with patch.object(receipts, "inputs", side_effect=_inputs):
+        with (patch.object(receipts, "inputs", side_effect=_inputs),
+              patch.object(dependency.native_build, "verify")):
             receipts.write(path, original)
             ensure(dependency.read(root, simulator, path)["passed"] is True,
                    "honest focused dependency refused")
@@ -87,6 +89,10 @@ def consumer_refusals() -> None:
                                ("full_model_acceptance", "passed"), ("profile_validation_exit", 1)):
                 record = copy.deepcopy(original)
                 record[key] = value
+                mutants.append(record)
+            for value in (None, {}, "unbound"):
+                record = copy.deepcopy(original)
+                record["native_inputs"] = value
                 mutants.append(record)
             for role in ("sail", "cmake", "cxx"):
                 for field in (None, "sha256", "reported_version", "executable"):
@@ -181,6 +187,11 @@ def producer_checks() -> None:
             with (patch.object(receipts, "inputs", side_effect=_inputs),
                   patch.object(dependency, "_tools", side_effect=tool_reads),
                   patch("vos.cli.model.configure_command", return_value=configured),
+                  patch.object(dependency.model_dependencies, "prepare", return_value=[]),
+                  patch.object(dependency.native_build, "configured", return_value={}),
+                  patch.object(dependency.native_build, "capture", return_value={"fixture": True}),
+                  patch.object(dependency.native_build, "validate"),
+                  patch.object(dependency.native_build, "verify"),
                   patch.object(dependency.subprocess, "run", side_effect=stage),
                   patch.object(dependency.config, "validate", return_value=(0, ["valid"])),
                   patch.object(env, "build_lock", return_value=None) as locked):

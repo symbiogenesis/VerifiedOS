@@ -866,6 +866,55 @@ defect, `check.py` reports a capability format that disagrees with itself, and
 `run.py selftest` copies a mutated tree into the template every sandbox links
 against. The run says so on its first line.
 
+## Model build inputs
+
+The upstream-derived model keeps CMake and Ninja. The supported CMake floor lives
+in [the model project](../model/CMakeLists.txt); provisioning reads that owner.
+The shared [configure recipe](vos/cli/model.py) selects the native lane, build
+profile, Sail executable and dependency inputs, and disables CMake package
+registries. The optional static-library experiment uses the same recipe.
+
+```console
+python tools/run.py model dependencies
+python tools/run.py model build --offline
+python tools/run.py model dependencies --offline
+```
+
+`model dependencies` acquires missing pinned inputs and materializes them on the
+guest's native filesystem without configuring or compiling the model. `--fast`
+selects the iterate tree. Ordinary configure-based model commands perform the
+same preparation automatically. `--offline` on `build`, `emit`, `rocq`, `simulator`
+or `dependencies`, or `VOS_MODEL_OFFLINE=1`, requires inputs already available;
+`VOS_MODEL_OFFLINE=0` permits acquisition and any other value refuses.
+
+[The acquisition helper](vos/model_dependencies.py) reads URLs and archive hashes
+from the existing model declarations, verifies archive bytes and compares each
+materialized source population with the authenticated archive. Corrupt or
+substituted inputs refuse rather than being silently repaired. Archive extraction
+rejects escaping paths and special files. Safe archive-internal directory aliases
+are materialized as ordinary directory copies; no filesystem links are installed.
+Preparation supplies verified source overrides and disconnected settings to CMake.
+Configuration refuses a missing or invalid offline suite before deleting or
+fetching anything. Acquisition is the network-using phase; these settings do not
+enforce OS-level network isolation on arbitrary upstream build code.
+
+[The generation graph](../model/cmake/sail_toolchain.cmake) hashes the selected
+Sail executable, installed library and plugin population and selected solver at
+build time. A changed identity invalidates generated outputs even when input
+timestamps are preserved; an unchanged identity preserves incremental reuse.
+Completion stamps are published only after successful generation. The canonical
+Rocq command additionally forces a new emission for its run-specific receipt.
+
+[Native input evidence](vos/native_build.py) records CMake's actual compiler and
+tool selections, compiler support files, used native source/header population and
+linked runtime libraries. A previous native population that changed, or existing
+objects without that evidence, requires cleaning before reuse. Successful model
+receipts bind this closure and later consumption revalidates its membership and
+bytes. Missing inputs or changes during the observed build interval refuse the
+receipt. These checks improve freshness and provenance; they do not establish an
+independent bit-for-bit rebuild, constrain every OS input or discharge the checker
+bootstrap's diverse-compilation obligation.
+
 ## Worktree isolation during fan-out
 
 Apply the [shared isolation and ownership rules](../AGENTS.md#worktree-isolation-and-ownership)

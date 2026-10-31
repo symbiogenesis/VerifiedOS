@@ -239,6 +239,11 @@ def _command_parse() -> None:
         ensure(argv[0] == "/opt/sail/bin/sail" and "--rocq" in argv,
                f"the emission's argv follows the `&&`, got {argv}")
         rocqterm.require_profile(argv, at.profile)
+        guarded = at.listing().replace("&& /opt/sail/bin/sail --strict-var",
+                                       "&& cmake -E rm -f success.stamp && /opt/sail/bin/sail --strict-var")
+        guarded = guarded.rstrip() + " && cmake -E touch success.stamp\n"
+        ensure(rocqterm.target_command(guarded) == argv,
+               "generation guards must not enter the recorded Sail argv")
         for listing, why in (("cd x && sail --list-files\n", "no emission"),
                              (at.listing() * 2, "two emissions")):
             try:

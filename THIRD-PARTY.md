@@ -52,7 +52,15 @@ SoftFloat is the `ucb-bar/berkeley-softfloat-3` repository at `master` commit `a
 
 ## Fetched at build time
 
-The repository retains each component's license and `CMakeLists.txt` under `model/dependencies/`. `FetchContent` obtains the governed source from the upstream using a URL and verified archive hash; that source is not tracked here.
+The repository retains each component's license and `CMakeLists.txt` under
+`model/dependencies/`. These declarations own the upstream URLs and verified
+archive hashes. [Model preparation](tools/README.md#model-build-inputs) acquires and
+verifies those archives before configuration, supplies verified local source
+directories to `FetchContent`, and disables configuration-time fetching. Direct
+CMake users retain the declared download route unless they select offline mode.
+Fetched source is not tracked here. Asio's archive-internal directory aliases are
+materialized as ordinary copies of their authenticated target contents; the
+prepared tree contains no symbolic links.
 
 | Component | Version | Upstream | Integrity hash | License | License text |
 | --- | --- | --- | --- | --- | --- |

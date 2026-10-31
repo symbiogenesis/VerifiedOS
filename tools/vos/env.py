@@ -224,6 +224,7 @@ class Environment:
     test_jobs: int
     compilers: list[str] = field(default_factory=list)
     ccache: list[str] = field(default_factory=list)
+    model_offline: bool = False
 
     @property
     def lane_root(self) -> Path:
@@ -538,6 +539,14 @@ def _apply_opam_env() -> None:
         os.environ[name] = value.replace("'\\''", "'")
 
 
+def model_offline() -> bool:
+    """Select acquisition without network; malformed policy never enables fetching."""
+    value = os.environ.get("VOS_MODEL_OFFLINE", "0")
+    if value not in {"0", "1"}:
+        raise ValueError("VOS_MODEL_OFFLINE must be 0 or 1")
+    return value == "1"
+
+
 def load(*, toolchain: bool = True) -> Environment:
     """Prepare this process, and describe the machine it is preparing it on.
 
@@ -576,6 +585,7 @@ def load(*, toolchain: bool = True) -> Environment:
             mem_available_mb=0,
             jobs=1,
             test_jobs=1,
+            model_offline=model_offline(),
         )
 
     if toolchain:
@@ -605,6 +615,7 @@ def load(*, toolchain: bool = True) -> Environment:
         test_jobs=int(os.environ.get("VOS_TEST_JOBS", cpus)),
         compilers=_compiler_args(),
         ccache=_ccache_args(),
+        model_offline=model_offline(),
     )
 
 

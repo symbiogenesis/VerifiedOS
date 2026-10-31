@@ -276,6 +276,28 @@ def _on_path(name: str) -> Found:
     return Found(where is not None, where or f"no {name} on PATH")
 
 
+def _cmake() -> Found:
+    """Read the model's supported floor instead of accepting any installed CMake."""
+    owner = Path(__file__).resolve().parents[3] / "model/CMakeLists.txt"
+    try:
+        versions = re.findall(r"(?m)^cmake_minimum_required\(VERSION ([0-9]+(?:\.[0-9]+){1,2})\)$",
+                              owner.read_text(encoding="utf-8"))
+        if len(versions) != 1:
+            raise ValueError("expected one literal cmake_minimum_required VERSION")
+        minimum = versions[0]
+    except (OSError, ValueError) as err:
+        return Found(False, f"cannot read CMake floor from {owner}: {err}", repairable=False)
+    executable = shutil.which("cmake")
+    if executable is None:
+        return Found(False, f"no cmake on PATH; model requires {minimum} or newer")
+    version = _number(_say((executable, "--version")))
+    if not version:
+        return Found(False, f"{executable} answered with no CMake version")
+    current = tuple(int(part) for part in version.split("."))
+    required = tuple(int(part) for part in minimum.split("."))
+    return Found(current >= required, f"CMake {version}; model requires {minimum} or newer")
+
+
 def _both_on_path(first: str, second: str) -> Found:
     """Two executables one preference wants together, because half of a C and C++ pair
     is not a compiler choice: `env._compiler_args` passes clang for both or neither."""
@@ -1028,7 +1050,7 @@ FACTS: tuple[Fact, ...] = (
     Fact("cmake", TOOLCHAIN,
          "run.py model build's configure",
          "model/CMakeLists.txt, which run.py model configures",
-         partial(_on_path, "cmake"),
+         _cmake,
          ((*APT, "cmake"),)),
     Fact("ninja", TOOLCHAIN,
          "run.py model build's build stage",

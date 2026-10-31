@@ -23,7 +23,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from vos import differential, env, model_corpus, receipts, trace
+from vos import differential, env, receipts, trace
 from vos.cli import model
 
 LLVM_VERSION = "21.1.8"
@@ -472,12 +472,10 @@ def _qualify_locked(e: env.Environment, count: int, root: Path,
     verify_manifest(manifest)
     verify_dependency_closure(build_dependencies(e.build_dir, compiler), manifest,
                               e.build_dir, e.build_dir)
-    stages.append(_measure("configure", ["cmake", "-S", str(e.model), "-B", str(build), "-GNinja",
-                  "-DCMAKE_BUILD_TYPE=RelWithDebInfo", "-DDOWNLOAD_GMP=FALSE",
-                  "-DENABLE_RISCV_TESTS=TRUE", *e.compilers, *e.ccache,
-                  f"-DTEST_DOWNLOAD_VERSION={model_corpus.test_corpus_version(e.model)}",
+    prepared = model.model_dependencies.prepare(e.model, build, offline=e.model_offline)
+    stages.append(_measure("configure", model.configure_command(e, build, [*prepared,
                   f"-DCMAKE_PROJECT_INCLUDE={recipe}", f"-DVOS_MODULAR_DIR={generated}",
-                  f"-DVOS_MODULAR_COUNT={count}"], e.root, logs, env.git_env(e.root)))
+                  f"-DVOS_MODULAR_COUNT={count}"]), e.root, logs, env.git_env(e.root)))
     # The one new support input has prescribed bytes. Bind configuration and
     # actual optional compile flags before compilation as well as the recipe.
     anchor = build / "sail_modular_anchor.cpp"

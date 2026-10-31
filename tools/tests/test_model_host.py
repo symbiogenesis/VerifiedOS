@@ -1328,6 +1328,8 @@ def _build_records_an_unreadable_product() -> None:
             # The Sail test runs in the ctest stage, which stands in with the others.
             with (patch.object(_MODEL, "build_identity", return_value={"inputs": {}}),
                   patch.object(_MODEL, "_configure", return_value=0),
+                  patch.object(_MODEL, "_native_start", return_value={}),
+                  patch.object(_MODEL, "_native_finish", return_value={}),
                   patch.object(_MODEL, "_early_decision", return_value=(False, "after")),
                   patch.object(_MODEL, "env", SimpleNamespace(stage=Mock(return_value=0))),
                   patch.object(_MODEL, "subprocess",
@@ -1438,6 +1440,8 @@ class _BuildRig:
         sail = subprocess.CompletedProcess([], 0, "Sail 9.9.9 (fixture)\n", "")
         with (patch.object(_MODEL, "build_identity", return_value={"inputs": {}}),
               patch.object(_MODEL, "_configure", return_value=self.configure_code),
+              patch.object(_MODEL, "_native_start", return_value={}),
+              patch.object(_MODEL, "_native_finish", return_value={}),
               patch.object(_MODEL, "build_artifacts", return_value={}),
               patch.object(_MODEL, "env", SimpleNamespace(stage=self._stage)),
               patch.object(_MODEL, "subprocess", SimpleNamespace(run=Mock(return_value=sail))),
@@ -1901,6 +1905,7 @@ def _record(name, argv, report_to=None, **kw):
 
 
 env.stage = _record
+model.model_dependencies.prepare = lambda *args, **kw: []
 root = Path(sys.argv[1])
 sail = sys.argv[2] or None
 model.shutil.which = lambda name: sail if name == "sail" else None

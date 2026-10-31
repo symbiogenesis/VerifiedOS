@@ -20,8 +20,8 @@ other versions and never runs a package manager. LLVM 23.1.3 is the current
 upstream release, but the supported Ubuntu image supplies no `libclang1-23`
 package. Its available 22.1.2 library has not passed this adapter's AST and
 partitioning qualification, so the exact qualified 21.1.8 prerequisite remains.
-CMake
-3.24 or later with the Linux RESCAN link-group feature is required. Stage resource
+The model's [supported CMake baseline](../../model/CMakeLists.txt), with the Linux
+RESCAN link-group feature, is required. Stage resource
 measurements use the operating system's `wait4`, with no timing-tool dependency.
 Its peak RSS is the maximum child/descendant value, not the sum of concurrent
 compiler processes; it does not establish aggregate build-memory savings.

@@ -9,12 +9,10 @@ it is emitted and what identifies it. `run.py model rocq` runs the model's own
 beside the two files the target emits. This module holds the parses and the identity;
 the command holds the lock, the configure and the build.
 
-**Stale outputs are deleted before anything else, and that is most of why the command
-exists rather than a bare cmake call.** The target's DEPENDS name the Sail sources, the
-project file and the configuration, but not the Sail binary, its library or its Rocq
-plugin, so outputs older than a toolchain change satisfy the target without an
-emission, and a receipt read beside them would name a term nothing emitted. A refused
-run deletes what it emitted as well, so no output stands without its receipt.
+**Stale outputs are deleted before anything else.** The model's generation graph
+tracks a content-based toolchain identity. This command additionally requires a new
+emission for the canonical term's run-specific receipt. A refused run deletes what
+it emitted as well, so no output stands without its receipt.
 
 **The target must read the frozen profile.** The emission fixes every configuration
 leaf into the term, hart identity included, so a tree configured from a target that
@@ -155,14 +153,22 @@ def target_command(listing: str) -> list[str]:
 
     Exactly one command of the target's closure writes the Rocq output directory; none,
     or two, is a tree this module cannot read rather than a guess between them. CMake
-    writes the step as `cd <dir> && <argv>`, so the argv is what follows the `&&`.
+    writes an && chain containing the working directory, generation guards and Sail.
+    Only the segment carrying the exact emission option is the recorded Sail argv.
     """
     found: list[list[str]] = []
     for line in listing.splitlines():
         if "--rocq-output-dir" not in line:
             continue
-        _, sep, tail = line.partition(" && ")
-        found.append(shlex.split(tail if sep else line))
+        segments: list[list[str]] = [[]]
+        for word in shlex.split(line):
+            if word == "&&":
+                segments.append([])
+            elif word in {";", "||", "|", "&", ">", ">>"}:
+                raise TermError("unsupported shell operator in the Rocq generation command")
+            else:
+                segments[-1].append(word)
+        found.extend(segment for segment in segments if "--rocq-output-dir" in segment)
     if len(found) != 1:
         raise TermError(f"the configured tree has {len(found)} command(s) writing the "
                         f"Rocq output directory for {TARGET}, and one is what it emits")

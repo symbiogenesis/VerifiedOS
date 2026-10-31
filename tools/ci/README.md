@@ -53,7 +53,11 @@ measured, so a smaller runner needs a separate resource measurement.
 
 The gate job is a matrix of lanes, and each lane has its own runner. The `model` lane
 installs Z3, Sail and Verilator, checks the generated vector oracle adapter with
-`vector-bitcount smoke`, then runs the model evidence sweep. The adapter checks
+`vector-bitcount smoke` and executes small CMake generation and native-input fixtures,
+then runs the model evidence sweep. The fixtures check content changes with
+preserved timestamps, unchanged-input reuse, failed-generation recovery and actual
+compiler/header/library closure binding through a small GMP-linked program.
+Both preparation checks must pass before the sweep. The adapter checks
 the shared Sail expectation selector and reproduces the old descending-index
 mismatch as a negative control, without a complete model build. A failed adapter
 skips the sweep and fails the lane; it grants no ISA or model acceptance. The `rtl` lane

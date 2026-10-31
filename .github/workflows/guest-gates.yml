@@ -404,9 +404,19 @@ jobs:
           /usr/bin/time -f "$GUEST_TIME" python3 tools/run.py vector-bitcount smoke \
             2>&1 | tee "$VOS_LOG_DIR/vector-bitcount-adapter.log"
 
+      - name: Check native build inputs and generation
+        id: cmake-generation
+        if: ${{ matrix.lane == 'model' && !cancelled() && steps.dispatch.outcome != 'failure' && steps.bootstrap.outcome == 'success' }}
+        timeout-minutes: 5
+        run: |
+          python3 tools/run.py test --only test_cmake_generation \
+            2>&1 | tee "$VOS_LOG_DIR/cmake-generation.log"
+          python3 tools/run.py test --only test_native_build \
+            2>&1 | tee "$VOS_LOG_DIR/native-build-inputs.log"
+
       - name: Model evidence
         id: evidence
-        if: ${{ matrix.lane == 'model' && !cancelled() && steps.dispatch.outcome != 'failure' && steps.bootstrap.outcome == 'success' && steps.adapter.outcome == 'success' }}
+        if: ${{ matrix.lane == 'model' && !cancelled() && steps.dispatch.outcome != 'failure' && steps.bootstrap.outcome == 'success' && steps.adapter.outcome == 'success' && steps.cmake-generation.outcome == 'success' }}
         # The sweep took at most 12.1 minutes on a hosted runner, with a cold Sail memo.
         timeout-minutes: 150
         # The proofs lane runs the proof gate, and the rtl lane the bundle and RTL
