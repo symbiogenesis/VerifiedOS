@@ -3012,13 +3012,18 @@ their acceptance conditions.
 
 The CMake control normalizes wrapped diagnostic whitespace and checks stamp
 invalidation independently. The native fixture also uses the production compiler
-selection. The proof candidate changes only opaque tactic bodies: it avoids eager
-reduction of shared wrappers and uses fresh hypothesis names. Source comparison
-preserves every byte outside those bodies. The pinned prover is unavailable
-locally, so printed elaborated-type/universe comparison and proof acceptance
-remain outstanding; the cold Guest run supplies the kernel and assumption verdict.
-The `cmake-ci-20261031` handoff retains the source-review checkpoint and validation
-identities without treating lexical closure as proof acceptance.
+selection. The shared `LastEvent` laws now relate selection presence to a boolean
+detector and expose the positive cons case. Journal clients reuse those laws;
+their remaining induction relates committed writes to store updates. Other
+clients unfold their projections before rewriting and consume conjunction
+hypotheses without retaining duplicate names. Source comparison preserves every
+existing statement and executable definition, with new opaque laws and the
+qualified `ProofSupport` dependency reviewed explicitly. The pinned prover is
+unavailable locally, so printed elaborated-type/universe comparison and proof
+acceptance remain outstanding; the cold Guest run supplies the kernel and
+assumption verdict. The `cmake-ci-helper-20261031` handoff retains the source-review
+checkpoint and validation identities without treating lexical closure as proof
+acceptance.
 
 ## C modernization
 
