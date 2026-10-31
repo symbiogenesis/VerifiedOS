@@ -2980,6 +2980,28 @@ profile, imported source bytes or the resident toolchain's admission contract.
   installation evidence for the changed native preparation path and record any
   acceptance checks outside the hosted workflows explicitly.
 
+## Hosted CI repair after model build assurance
+
+Repair the reported Host and cold Guest failures at `3cb994df` without weakening
+their acceptance conditions.
+
+- **Start:** the completed run diagnostics for Host CI `41185304303` and Guest CI
+  `41185452472`, the model-build contract above and the
+  [portable proof workflow](docs/assurance/proof-assistance.md).
+- **Owns:** the failing CMake identity control and bounded tactic-script repairs in
+  `CopyRingService.v`, `HmacDrbg.v`, `JournalIndex.v` and `KernelInstance.v`.
+  Downstream proof files remain consumers, not an excuse to alter their premises.
+- **Check:** preserve and compare the base proof statement/definition readings;
+  change no executable definition, theorem statement, assumption, dependency pin
+  or gate. Record the proof workflow's bounded candidate journal. The empty-library
+  control must refuse because of the missing Sail population and invalidate its
+  identity, with the positive generation and reuse controls retained. Run focused
+  existing controls and dispatch a cold Guest proof check for the exact settled
+  revision. Source review or a pending hosted run supplies no proof-pass verdict.
+- **Join:** publish only `main`, record refreshed Host and all Guest lane run
+  identities and retire this repair batch's owned worktrees. The user's CI
+  monitoring handoff permits finishing without waiting on hosted verdicts.
+
 ## C modernization
 
 Modernize active authored C within the selected compiler and proof interfaces.
