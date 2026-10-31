@@ -161,6 +161,8 @@ existing parser still decides every ID and its attribution. Programs are bound t
 the actual name tuple, and unsupported inputs retain the legacy scan. The boundary
 oracle and chunk tests retain the original `isalnum` and underscore/hyphen rules.
 The name matcher skips whole runs whose characters forbid a new left boundary.
+Separator runs and words beginning outside the exact literal first-character set
+skip the full trie test; supported names cannot start anywhere inside those runs.
 It uses one anchored match per forward scan, with the actual name in a separate
 capture; retrying a failed suffix with `search()` would lose that linear bound.
 Completed spans skip name-line extraction while the complete streaming scan has
@@ -211,9 +213,11 @@ it supplies no performance or checker-acceptance verdict.
 
 The [retained comparison evidence](../docs/performance/tool-benchmarks-2026-10-30/README.md)
 records the completed runner improvement, proof-context timing limits and rejected
-checker runtime comparisons. A memory reduction alone does not satisfy the
-complete checker runtime predicate. Later scanner revisions require their own
-paired measurement; the earlier records do not establish their speed.
+checker experiments. The selected scanner improves both complete checker samples
+with equal ordered reports and substantially lower peak worker memory. A memory
+reduction alone does not satisfy the complete checker runtime predicate; the
+accepted first-character-filtered comparison establishes its runtime improvement.
+These component and checker measurements establish no whole-CI speed factor.
 
 Additional shard changes, duration-based case ordering and new concurrent repair
 sandboxes are not selected: they add scheduling state or concurrent corpus copies

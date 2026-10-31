@@ -1,0 +1,160 @@
+{
+  "baseline_revision": "b00b601d3e3f432a41a0f451f826d0bc8c12b751",
+  "candidate_revision": "a76b825eec7866809db8bd9d10558eb79f620b46",
+  "corpus_revision": "a76b825eec7866809db8bd9d10558eb79f620b46",
+  "indexed_inputs_sha256": "1733bda99af7a05c96c8f4dff6c634d246c9b9da7b6ea3293c74b3c463987a76",
+  "python": "3.14.9 (main, Oct 21 2026, 14:48:41) [GCC 15.2.0]",
+  "platform": "Linux-7.0.0-1017-azure-x86_64-with-glibc2.43",
+  "workers": 1,
+  "repetitions": 2,
+  "command": [
+    "tools/ci/runner_benchmark.py",
+    "--base",
+    "b00b601d3e3f432a41a0f451f826d0bc8c12b751",
+    "--output",
+    "/home/runner/work/_temp/performance/runner.json"
+  ],
+  "scope": {
+    "markdown": "complete indexed Markdown command and ordered report",
+    "proof_headers": "complete indexed proof-header repair sweep in private full-corpus sandboxes; exact source and template bytes preserved"
+  },
+  "report_identical": true,
+  "byte_assertions_identical": true,
+  "failure": "",
+  "median_component_seconds": {
+    "baseline": {
+      "markdown": 178.31188089399996,
+      "proof_headers": 19.75276111750003
+    },
+    "candidate": {
+      "markdown": 174.11991665600004,
+      "proof_headers": 6.934236532000057
+    }
+  },
+  "samples": {
+    "baseline": {
+      "markdown": [
+        {
+          "component_seconds": 175.87638582900001,
+          "setup_seconds": 0.6934443399999992,
+          "cpu_seconds": 176.393153186,
+          "peak_rss_kb": 115268.0,
+          "temporary_apparent_bytes": 0,
+          "findings": 0,
+          "report": [
+            "=== markdown: standard table syntax ===",
+            "ok markdown: the pinned MD055 and MD056 checks accept every indexed table"
+          ],
+          "bytes_unchanged": true,
+          "process_seconds": 176.71491693099998
+        },
+        {
+          "component_seconds": 180.7473759589999,
+          "setup_seconds": 0.0953742730000613,
+          "cpu_seconds": 180.83380757,
+          "peak_rss_kb": 112932.0,
+          "temporary_apparent_bytes": 0,
+          "findings": 0,
+          "report": [
+            "=== markdown: standard table syntax ===",
+            "ok markdown: the pinned MD055 and MD056 checks accept every indexed table"
+          ],
+          "bytes_unchanged": true,
+          "process_seconds": 180.98186718700003
+        }
+      ],
+      "proof_headers": [
+        {
+          "component_seconds": 19.710344253000017,
+          "setup_seconds": 5.429458721000003,
+          "cpu_seconds": 21.837641644999998,
+          "peak_rss_kb": 690588.0,
+          "temporary_apparent_bytes": 572734888,
+          "findings": 0,
+          "report": [
+            "--- the proof-header corpus repair ---",
+            "  ok: 60 stale manifests detected and repaired; authored bytes preserved, generated owners untouched, dependent export current, and the second repair queues nothing"
+          ],
+          "bytes_unchanged": true,
+          "process_seconds": 25.827975628000047
+        },
+        {
+          "component_seconds": 19.79517798200004,
+          "setup_seconds": 4.623283653000044,
+          "cpu_seconds": 21.398332103999998,
+          "peak_rss_kb": 691408.0,
+          "temporary_apparent_bytes": 572734888,
+          "findings": 0,
+          "report": [
+            "--- the proof-header corpus repair ---",
+            "  ok: 60 stale manifests detected and repaired; authored bytes preserved, generated owners untouched, dependent export current, and the second repair queues nothing"
+          ],
+          "bytes_unchanged": true,
+          "process_seconds": 25.07200168700001
+        }
+      ]
+    },
+    "candidate": {
+      "markdown": [
+        {
+          "component_seconds": 175.447344503,
+          "setup_seconds": 0.10585641799997347,
+          "cpu_seconds": 175.51757474000001,
+          "peak_rss_kb": 113424.0,
+          "temporary_apparent_bytes": 0,
+          "findings": 0,
+          "report": [
+            "=== markdown: standard table syntax ===",
+            "ok markdown: the pinned MD055 and MD056 checks accept every indexed table"
+          ],
+          "bytes_unchanged": true,
+          "process_seconds": 175.68160611900004
+        },
+        {
+          "component_seconds": 172.79248880900008,
+          "setup_seconds": 0.09740927599995075,
+          "cpu_seconds": 172.85326254900002,
+          "peak_rss_kb": 113412.0,
+          "temporary_apparent_bytes": 0,
+          "findings": 0,
+          "report": [
+            "=== markdown: standard table syntax ===",
+            "ok markdown: the pinned MD055 and MD056 checks accept every indexed table"
+          ],
+          "bytes_unchanged": true,
+          "process_seconds": 172.98425890199997
+        }
+      ],
+      "proof_headers": [
+        {
+          "component_seconds": 6.945678709000049,
+          "setup_seconds": 5.075699679999957,
+          "cpu_seconds": 8.963279153,
+          "peak_rss_kb": 606580.0,
+          "temporary_apparent_bytes": 572734888,
+          "findings": 0,
+          "report": [
+            "--- the proof-header corpus repair ---",
+            "  ok: 60 stale manifests detected and repaired; authored bytes preserved, generated owners untouched, dependent export current, and the second repair queues nothing"
+          ],
+          "bytes_unchanged": true,
+          "process_seconds": 12.694477178999989
+        },
+        {
+          "component_seconds": 6.922794355000065,
+          "setup_seconds": 4.630299304000005,
+          "cpu_seconds": 8.547708175999999,
+          "peak_rss_kb": 603296.0,
+          "temporary_apparent_bytes": 572734888,
+          "findings": 0,
+          "report": [
+            "--- the proof-header corpus repair ---",
+            "  ok: 60 stale manifests detected and repaired; authored bytes preserved, generated owners untouched, dependent export current, and the second repair queues nothing"
+          ],
+          "bytes_unchanged": true,
+          "process_seconds": 12.942766559999995
+        }
+      ]
+    }
+  }
+}

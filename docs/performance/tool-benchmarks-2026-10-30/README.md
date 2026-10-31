@@ -63,8 +63,32 @@ retains its [checker](41152868322-checker.json),
 assertions and native cache controls match, and memory stays lower, but complete
 checker time regresses further. That implementation is rejected. Its separate
 profile attributes the new overhead to native pattern searches, with the byte
-trie slower than the original byte scans. The selected refinement restores those
-byte scans and tests bounded name candidates only at possible word starts.
+trie slower than the original byte scans.
+
+The [word-skipping comparison](https://github.com/symbiogenesis/VerifiedOS/actions/runs/41155386340)
+retains its [checker](41155386340-checker.json),
+[runner](41155386340-runner.json) and
+[proof-context](41155386340-proof-identity.json) records. Restoring the original
+byte searches, anchoring the name scan and skipping duplicate candidate extraction
+preserve complete reports and the memory reduction, but complete checker time
+still does not improve. This runtime result is rejected. The subsequent refinement
+skips separator runs and words with impossible initial characters before testing
+the full name trie. Proof-header repair again improves with equal reports and
+byte assertions; the proof-context timing difference remains inconclusive and
+native cache controls pass.
+
+The [first-character-filtered comparison](https://github.com/symbiogenesis/VerifiedOS/actions/runs/41156550085)
+retains its [checker](41156550085-checker.json),
+[runner](41156550085-runner.json) and
+[proof-context](41156550085-proof-identity.json) records. Both candidate checker
+samples improve over both baseline samples, with equal complete ordered reports
+and substantially lower peak worker memory. This scanner implementation meets the
+paired runtime predicate. The original byte searches remain selected.
+Markdown and proof-header repair retain equal reports and byte assertions, with
+lower median component times; the proof-header improvement repeats across runs.
+Installed proof-context identities match, native cache controls pass and their timing
+difference remains inconclusive. The raw records identify the measured source
+revision; later evidence-only commits do not supply additional timing samples.
 
 The [initial attempt](https://github.com/symbiogenesis/VerifiedOS/actions/runs/41108543698)
 retains [partial runner evidence](41108543698-runner.json) and its

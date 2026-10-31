@@ -1,0 +1,44 @@
+{
+  "baseline_revision": "b00b601d3e3f432a41a0f451f826d0bc8c12b751",
+  "candidate_revision": "a76b825eec7866809db8bd9d10558eb79f620b46",
+  "python": "3.14.9 (main, Oct 21 2026, 14:48:41) [GCC 15.2.0]",
+  "platform": "Linux-7.0.0-1017-azure-x86_64-with-glibc2.43",
+  "workers": 1,
+  "repetitions": 2,
+  "status": "complete",
+  "native_controls": "passed",
+  "samples": {
+    "baseline": [
+      {
+        "seconds": 0.716167439000003,
+        "context_sha256": "37c7a23b9f493d6ba298b808aa16428ba95095daac5327e67808434e062bbe0a",
+        "peak_rss_kib": 39816,
+        "process_seconds": 0.8656231859999934
+      },
+      {
+        "seconds": 0.6908261399999844,
+        "context_sha256": "37c7a23b9f493d6ba298b808aa16428ba95095daac5327e67808434e062bbe0a",
+        "peak_rss_kib": 38556,
+        "process_seconds": 0.8157971820000114
+      }
+    ],
+    "candidate": [
+      {
+        "seconds": 0.6964752780000083,
+        "context_sha256": "37c7a23b9f493d6ba298b808aa16428ba95095daac5327e67808434e062bbe0a",
+        "peak_rss_kib": 38524,
+        "process_seconds": 0.8156840820000184
+      },
+      {
+        "seconds": 0.753687350000007,
+        "context_sha256": "37c7a23b9f493d6ba298b808aa16428ba95095daac5327e67808434e062bbe0a",
+        "peak_rss_kib": 38312,
+        "process_seconds": 0.8657114430000092
+      }
+    ]
+  },
+  "median_seconds": {
+    "baseline": 0.7034967894999937,
+    "candidate": 0.7250813140000076
+  }
+}

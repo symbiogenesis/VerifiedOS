@@ -2950,6 +2950,16 @@ skip an option whose resources or measured benefit do not justify adoption.
 Existing Q35q and Q43 qualification boundaries and candidate/campaign allowances
 remain unchanged. Record measured dispositions in the performance owner.
 
+**State:** the selected checker, census, Markdown, repair and proof-context
+implementations are integrated on `main`. The
+[recorded comparisons](docs/performance/tool-benchmarks-2026-10-30/README.md)
+accept the complete checker and proof-header runtime improvements, retain smaller
+Markdown gains and inconclusive proof-context timings, and reject slower scanner
+experiments. Additional scheduling and concurrency changes are not selected.
+The native census comparison still needs the original three-root control emission;
+its complete qualification remains open below. The stable-tree Host and Guest
+handoff retains the check and join requirements above.
+
 ## Native Sail census validation
 
 Open under [Q35q](PLAN.md). Full native
