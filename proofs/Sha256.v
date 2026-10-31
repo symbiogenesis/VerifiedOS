@@ -242,7 +242,7 @@
    (*| END derived |*)
    ========================================================================= *)
 
-Require ProofSupport.
+Require ProofSupport CryptoLists.
 
 Open Scope list_scope.
 
@@ -845,6 +845,31 @@ Qed.
    of thirty-two arbitrary bits. That is the whole of what is invertible
    here: the shifts drop bits, the compression maps 768 bits to 256, and no
    inverse of either is stated. *)
+Lemma rotation_inverse_for_complementary_cuts : forall (r : nat) (w : word),
+  length_of w =
+    (word_bits - Nat.modulo r word_bits) +
+    (word_bits - Nat.modulo (word_bits - r) word_bits) ->
+  rotr (word_bits - r) (rotr r w) = w.
+Proof.
+  intros r w H.
+  exact (CryptoLists.complementary_cuts_inverse bool
+    (word_bits - Nat.modulo r word_bits)
+    (word_bits - Nat.modulo (word_bits - r) word_bits) w H).
+Qed.
+
+Lemma listed_rotations_cancel_for_word_length : forall w : word,
+  length_of w = word_bits ->
+  map_over (fun r => rotr (word_bits - r) (rotr r w)) rotation_amounts
+    = repeat_of (length_of rotation_amounts) w.
+Proof.
+  intros w Hlength. apply CryptoLists.map_over_constant.
+  intros r Hr.
+  change (r = 2 \/ r = 13 \/ r = 22 \/ r = 6 \/ r = 11 \/ r = 25 \/
+          r = 7 \/ r = 18 \/ r = 17 \/ r = 19 \/ False) in Hr.
+  destruct Hr as [Hr|[Hr|[Hr|[Hr|[Hr|[Hr|[Hr|[Hr|[Hr|[Hr|Hr]]]]]]]]]];
+    try contradiction Hr; subst r; apply rotation_inverse_for_complementary_cuts; exact Hlength.
+Qed.
+
 Theorem the_rotations_are_invertible_on_an_arbitrary_word :
   forall b0 b1 b2 b3 b4 b5 b6 b7 b8 b9 b10 b11 b12 b13 b14 b15 b16 b17 b18 b19 b20 b21 b22 b23 b24 b25 b26 b27 b28 b29 b30 b31 : bool,
     let w :=
@@ -854,7 +879,7 @@ Theorem the_rotations_are_invertible_on_an_arbitrary_word :
       b24 :: b25 :: b26 :: b27 :: b28 :: b29 :: b30 :: b31 :: nil in
     map_over (fun r => rotr (word_bits - r) (rotr r w)) rotation_amounts
     = repeat_of (length_of rotation_amounts) w.
-Proof. vm_reflexivity. Qed.
+Proof. intros. apply listed_rotations_cancel_for_word_length. reflexivity. Qed.
 
 (* The schedule keeps a block of sixteen arbitrary words as its first sixteen
    entries, standard's sigmas or exchanged: the exchange is a defect of the

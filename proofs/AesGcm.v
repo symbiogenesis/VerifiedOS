@@ -1137,6 +1137,31 @@ Example the_inverse_row_shift_is_a_permutation_too :
 
 (* And it recovers a state whose sixteen bytes are sixteen arbitrary bytes,
    which is what a known answer cannot show. *)
+Lemma inverse_row_index_conditions : forall i : nat,
+  ProofSupport.Member i (upto block_bytes) ->
+  Nat.ltb (inv_shift_rows_index i) block_bytes = true /\
+  shift_rows_index (inv_shift_rows_index i) = i.
+Proof.
+  intros i Hi.
+  assert (Hindices : ProofSupport.all_of (fun j =>
+    andb (Nat.ltb (inv_shift_rows_index j) block_bytes)
+      (Nat.eqb (shift_rows_index (inv_shift_rows_index j)) j)) (upto block_bytes) = true).
+  { reflexivity. }
+  pose proof (ProofSupport.all_of_member nat _ (upto block_bytes) i Hindices Hi) as H.
+  destruct (ProofSupport.andb_split _ _ H) as [Hbound Hinverse].
+  split; [exact Hbound | exact (ProofSupport.nat_eqb_true _ _ Hinverse)].
+Qed.
+
+Theorem row_shift_inverse_for_state_length : forall s : state,
+  length_of s = block_bytes -> inv_shift_rows (shift_rows s) = s.
+Proof.
+  intros s Hlength. unfold inv_shift_rows, shift_rows, permute, byte_of_state, upto.
+  apply (CryptoLists.gather_inverse byte block_bytes shift_rows_index inv_shift_rows_index s zero_byte).
+  - exact Hlength.
+  - intros i Hi. exact (proj1 (inverse_row_index_conditions i Hi)).
+  - intros i Hi. exact (proj2 (inverse_row_index_conditions i Hi)).
+Qed.
+
 Theorem the_row_shift_is_invertible_on_an_arbitrary_state :
   forall b0 b1 b2 b3 b4 b5 b6 b7 b8 b9 b10 b11 b12 b13 b14 b15 : byte,
     inv_shift_rows (shift_rows (
@@ -1145,7 +1170,7 @@ Theorem the_row_shift_is_invertible_on_an_arbitrary_state :
     =
     b0 :: b1 :: b2 :: b3 :: b4 :: b5 :: b6 :: b7 ::
     b8 :: b9 :: b10 :: b11 :: b12 :: b13 :: b14 :: b15 :: nil.
-Proof. vm_reflexivity. Qed.
+Proof. intros. apply row_shift_inverse_for_state_length. reflexivity. Qed.
 
 (* AddRoundKey is an involution in the round key, over arbitrary bits. *)
 Lemma xorb_cancels : forall x y : bool, xorb (xorb x y) y = x.

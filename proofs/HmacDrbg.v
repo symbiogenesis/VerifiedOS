@@ -50,12 +50,11 @@
    refuted of a construction that breaks it, and neither is a claim about
    any distribution.
 
-   One Require, and what it reaches. `Require Import Sha256.` is a sibling
-   artifact under proofs/ and nothing else: it carries no Require of its own,
-   so the reach of this file is the prelude, that file and this one, and
-   every constant enumerated at the end of both is closed under the global
-   context. The list helpers below are that file's, and the ones this file
-   adds are authored in the same idiom.
+   `Require Import Sha256.` reaches that sibling artifact and its shared
+   ProofSupport and CryptoLists laws. The dependency closure uses only the
+   prelude, and the native proof gate audits each module's assumptions. The
+   list helpers below are Sha256's, and the ones this file adds use the same
+   representation.
 
    The representation, which no register entry fixes and which is therefore
    a reading of this file:
@@ -517,6 +516,46 @@ Definition disciplined_b (d : SeedingDiscipline) : bool :=
 
 Definition Disciplined (d : SeedingDiscipline) : Prop := disciplined_b d = true.
 
+(* The ordered executable conjunction has one named logical projection per
+   condition. Its consumers do not depend on conjunction depth. *)
+Record DisciplineConditions (d : SeedingDiscipline) : Prop := {
+  discipline_seed_sufficient : Nat.leb (security_strength d) (seed_length d) = true;
+  discipline_nonce_sufficient : Nat.leb (security_strength d) (2 * nonce_length d) = true;
+  discipline_draw_positive : Nat.leb 1 (draw_bound d) = true;
+  discipline_interval_positive : Nat.leb 1 (interval_bound d) = true;
+  discipline_transitions_reseed : all_of (reseed_on d) all_transitions = true
+}.
+
+Lemma disciplined_conditions : forall d : SeedingDiscipline,
+  Disciplined d -> DisciplineConditions d.
+Proof.
+  intros d H. unfold Disciplined, disciplined_b in H.
+  destruct (ProofSupport.andb_split _ _ H) as [Hseed H].
+  destruct (ProofSupport.andb_split _ _ H) as [Hnonce H].
+  destruct (ProofSupport.andb_split _ _ H) as [Hdraw H].
+  destruct (ProofSupport.andb_split _ _ H) as [Hinterval Htransitions].
+  constructor; assumption.
+Qed.
+
+Lemma discipline_conditions_suffice : forall d : SeedingDiscipline,
+  DisciplineConditions d -> Disciplined d.
+Proof.
+  intros d [Hseed Hnonce Hdraw Hinterval Htransitions].
+  unfold Disciplined, disciplined_b.
+  rewrite Hseed, Hnonce, Hdraw, Hinterval, Htransitions. reflexivity.
+Qed.
+
+Lemma disciplined_transition_reseeds : forall (d : SeedingDiscipline) (t : Transition),
+  Disciplined d -> ProofSupport.Member t all_transitions -> reseed_on d t = true.
+Proof.
+  intros d t H Hmember.
+  exact (ProofSupport.all_of_member Transition (reseed_on d) all_transitions t
+    (discipline_transitions_reseed d (disciplined_conditions d H)) Hmember).
+Qed.
+
+Lemma the_lock_edge_is_a_transition : ProofSupport.Member the_lock_edge all_transitions.
+Proof. simpl. right. right. right. right. right. right. left. reflexivity. Qed.
+
 (* -------------------------------------------------------------------------
    The s9 envelope as a machine over a pool of conditioned root output. A
    draw past the discipline's bound is refused; a draw when the counter has
@@ -665,15 +704,15 @@ Proof. intros d r bits additional H. unfold step. rewrite H. reflexivity. Qed.
 Theorem every_transition_reseeds_under_a_disciplined_discipline :
   forall d : SeedingDiscipline, Disciplined d -> all_of (reseed_on d) all_transitions = true.
 Proof.
-  intros d H. unfold Disciplined, disciplined_b in H. do 4 apply andb_right in H. exact H.
+  intros d H. exact (discipline_transitions_reseed d (disciplined_conditions d H)).
 Qed.
 
 (*| discharges: R-15-241d |*)
 Theorem the_lock_edge_reseeds_under_a_disciplined_discipline :
   forall d : SeedingDiscipline, Disciplined d -> reseed_on d the_lock_edge = true.
 Proof.
-  intros d H. apply every_transition_reseeds_under_a_disciplined_discipline in H.
-  simpl in H. do 6 apply andb_right in H. apply andb_left in H. exact H.
+  intros d H. exact (disciplined_transition_reseeds d the_lock_edge H
+    the_lock_edge_is_a_transition).
 Qed.
 
 (* A lock transition under a disciplined discipline takes the next string of
@@ -798,6 +837,9 @@ Definition demo_pr : SeedingDiscipline :=
 
 Example the_witness_is_disciplined : Disciplined demo.
 Proof. vm_compute. reflexivity. Qed.
+
+Definition witness_DisciplineConditions : DisciplineConditions demo :=
+  disciplined_conditions demo the_witness_is_disciplined.
 
 Example the_prediction_resistant_witness_is_disciplined : Disciplined demo_pr.
 Proof. vm_compute. reflexivity. Qed.
