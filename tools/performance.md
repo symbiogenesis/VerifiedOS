@@ -230,9 +230,9 @@ the already large native graph. No persistent acceptance cache is added.
 ## Guardrail follow-through
 
 The [follow-through predicate](../PLAN.md#guardrail-performance-follow-through)
-selects two further experiments from the accepted checker's hosted profile and the
+selects the accepted follow-through changes from the checker's hosted profile and the
 complete Markdown comparison. The retained-archive scan remains the main checker
-cost; complete Markdown parsing remains a separate serial host-wave cost.
+cost; complete Markdown parsing is the other targeted cost in the host gate.
 
 The name matcher establishes its initial left boundary once, then advances over
 complete word and separator runs. Its trie keeps the original terminal assertions.
@@ -242,11 +242,23 @@ still requires the legacy reader. The frozen matcher oracle owns the differentia
 fixtures, including arbitrary offsets and punctuation inside names.
 
 Markdown workers retain complete documents and the same pinned parser. The bounded
-experiment requires exact source/configuration snapshots, complete and disjoint
-results, ordered diagnostics and serial replay after worker failure. Its hosted
-comparison must measure the worker tree as well as parent-only residency before
-the concurrent default is accepted. Neither algorithmic rationale nor a passing
-fixture supplies a measured speed factor.
+implementation uses exact source/configuration snapshots, complete and disjoint
+results, ordered diagnostics and serial replay after worker failure. Workers stop
+and join before serial replay or temporary-file cleanup. Unencodable source strings
+retain the original string provider. Unfamiliar configuration keeps its original
+location rather than entering a relocated worker snapshot.
+
+The [hosted follow-through records](../docs/performance/tool-benchmarks-2026-10-30/README.md)
+accept both changes: each candidate's complete command samples improve over both
+baseline samples, including process startup, with equal ordered reports. Checker
+worker memory remains similar. Markdown uses more aggregate memory and slightly
+more total CPU within its bounded worker population; its recorded process-tree
+residency supports that tradeoff on the hosted runner. Sampled summed RSS can count
+shared pages repeatedly and miss spikes between readings or during scheduling
+delays. Parent high-water RSS, requested sampling interval and actual sample counts
+remain separate fields. Proof-header reports and source-byte assertions remain
+equal; neither those timings nor the unchanged proof-context comparison supplies
+an additional speed factor. These measurements establish no whole-CI speed factor.
 
 The audit leaves the existing proof-context snapshots, native kernel checks,
 fresh mutant processes and independent sandboxes intact. Source parsing and

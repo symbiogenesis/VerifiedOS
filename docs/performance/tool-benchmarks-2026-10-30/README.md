@@ -7,8 +7,29 @@ runs the [checker](../../../tools/ci/archive_scan_benchmark.py),
 on GitHub Actions. Each raw record owns its source and corpus identities,
 interpreter, platform, repetitions, worker count, elapsed time and peak memory.
 Baseline and candidate read the same indexed corpus in fresh processes, in
-alternating order. Worker RSS excludes descendants and does not describe a full
-kernel check. These comparisons supply no Host or Guest CI verdict.
+alternating order. Parent-only RSS excludes descendants and does not describe a
+full kernel check. The follow-through runner record also supplies sampled summed
+process-tree RSS, child CPU time and actual parser worker counts. Shared pages may
+be counted repeatedly, and scheduling delays or gaps between samples can miss
+spikes; the requested interval and actual sample counts remain in the record.
+These comparisons supply no Host or Guest CI verdict.
+
+The [follow-through comparison](https://github.com/symbiogenesis/VerifiedOS/actions/runs/41160809136)
+retains its [checker](41160809136-checker.json),
+[runner](41160809136-runner.json) and
+[proof-context](41160809136-proof-identity.json) records. Hoisting the initial
+name boundary and specializing complete ASCII windows improve both complete
+checker samples over both baseline samples with identical ordered reports and
+similar peak worker memory. Bounded Markdown workers likewise improve both
+complete command samples, including process startup, with identical reports and
+no serial fallback. The Markdown gain uses more aggregate memory and slightly
+more total CPU; the recorded worker cap and process-tree residency support that
+tradeoff on the hosted runner. Both changes meet their runtime predicates.
+Proof-header reports and exact source/template bytes remain equal, and their
+timing difference supplies no additional speed factor. Installed proof-context
+identities match and native cache controls pass; their timings also supply no
+additional speed factor. The records bind the measured source and corpus;
+subsequent evidence-only commits add no timing samples.
 
 The [complete earlier run](https://github.com/symbiogenesis/VerifiedOS/actions/runs/41110964006)
 retains its [checker](41110964006-checker.json),

@@ -2955,7 +2955,8 @@ implementations are integrated on `main`. The
 [recorded comparisons](docs/performance/tool-benchmarks-2026-10-30/README.md)
 accept the complete checker and proof-header runtime improvements, retain smaller
 Markdown gains and inconclusive proof-context timings, and reject slower scanner
-experiments. Additional scheduling and concurrency changes are not selected.
+experiments. The [follow-through](#guardrail-performance-follow-through) owns the
+subsequent bounded Markdown workers; other scheduling changes are not selected.
 The native census comparison still needs the original three-root control emission;
 its complete qualification remains open below. The stable-tree Host and Guest
 handoff retains the check and join requirements above.
@@ -2984,9 +2985,14 @@ repeatable improvement without a material whole-run regression. Require Host CI
 on both platforms and dispatch every Guest CI lane for the settled revision,
 without waiting for Guest CI.
 
-**State:** investigation has selected these bounded experiments. Proof-context
-freshness reads, native kernel execution and native census qualification retain
-their existing contracts; no additional acceptance cache is commissioned.
+**State:** the matcher and bounded Markdown workers are integrated on `main`.
+The [hosted follow-through records](docs/performance/tool-benchmarks-2026-10-30/README.md)
+accept both complete-command runtime improvements with identical reports. The
+Markdown comparison records its higher aggregate residency and slightly higher
+total CPU alongside the worker cap. Proof-context freshness reads, native kernel
+execution and native census qualification retain their existing contracts; no
+additional acceptance cache is commissioned. The final Host and Guest handoff
+retains the check requirements above.
 
 ## Native Sail census validation
 

@@ -1,0 +1,230 @@
+{
+  "baseline_revision": "f0b37b5dd051589b7b7512bd1b6499a8ade910e2",
+  "candidate_revision": "41d5b4fd7c25a591f84e51d8f74e0a39d26d5467",
+  "corpus_revision": "41d5b4fd7c25a591f84e51d8f74e0a39d26d5467",
+  "indexed_inputs_sha256": "3b813adae74d1cf66a4777f445da6fcea2f0304775fb5778130eb0ca60c9ea99",
+  "python": "3.14.9 (main, Oct 21 2026, 14:48:41) [GCC 15.2.0]",
+  "platform": "Linux-7.0.0-1017-azure-x86_64-with-glibc2.43",
+  "workers": 1,
+  "memory_scope": {
+    "peak_rss_kb": "worker process high-water mark; excludes descendants",
+    "peak_tree_rss_kb": "sampled summed RSS of worker and descendants; shared pages may be counted repeatedly; spikes between samples may be missed",
+    "tree_sampling_interval_seconds": 0.1
+  },
+  "worker_scope": "one measurement controller; each sample records its selected parser worker population and observed descendant count",
+  "repetitions": 2,
+  "command": [
+    "tools/ci/runner_benchmark.py",
+    "--base",
+    "f0b37b5dd051589b7b7512bd1b6499a8ade910e2",
+    "--output",
+    "/home/runner/work/_temp/performance/runner.json"
+  ],
+  "scope": {
+    "markdown": "complete indexed Markdown command and ordered report",
+    "proof_headers": "complete indexed proof-header repair sweep in private full-corpus sandboxes; exact source and template bytes preserved"
+  },
+  "report_identical": true,
+  "byte_assertions_identical": true,
+  "failure": "",
+  "median_component_seconds": {
+    "baseline": {
+      "markdown": 182.03116330400002,
+      "proof_headers": 7.88826445199993
+    },
+    "candidate": {
+      "markdown": 96.52340636749997,
+      "proof_headers": 7.853360904000056
+    }
+  },
+  "samples": {
+    "baseline": {
+      "markdown": [
+        {
+          "component_seconds": 182.420190918,
+          "setup_seconds": 0.6468525519999844,
+          "cpu_seconds": 183.784423632,
+          "peak_rss_kb": 116732.0,
+          "child_cpu_seconds": 0.0,
+          "workers": 1,
+          "worker_limit": 1,
+          "parallel_attempts": 0,
+          "parallel_fallbacks": 0,
+          "temporary_apparent_bytes": 0,
+          "findings": 0,
+          "report": [
+            "=== markdown: standard table syntax ===",
+            "ok markdown: the pinned MD055 and MD056 checks accept every indexed table"
+          ],
+          "bytes_unchanged": true,
+          "peak_tree_rss_kb": 117000,
+          "peak_descendant_processes": 0,
+          "tree_samples": 61,
+          "process_seconds": 183.28948876900003
+        },
+        {
+          "component_seconds": 181.64213569000003,
+          "setup_seconds": 0.0970503019999569,
+          "cpu_seconds": 182.64133246999998,
+          "peak_rss_kb": 114292.0,
+          "child_cpu_seconds": 0.0,
+          "workers": 1,
+          "worker_limit": 1,
+          "parallel_attempts": 0,
+          "parallel_fallbacks": 0,
+          "temporary_apparent_bytes": 0,
+          "findings": 0,
+          "report": [
+            "=== markdown: standard table syntax ===",
+            "ok markdown: the pinned MD055 and MD056 checks accept every indexed table"
+          ],
+          "bytes_unchanged": true,
+          "peak_tree_rss_kb": 114520,
+          "peak_descendant_processes": 0,
+          "tree_samples": 59,
+          "process_seconds": 181.891859867
+        }
+      ],
+      "proof_headers": [
+        {
+          "component_seconds": 7.931250549999959,
+          "setup_seconds": 6.003425119999974,
+          "cpu_seconds": 11.085180338999999,
+          "peak_rss_kb": 616928.0,
+          "child_cpu_seconds": 3.6199999999999997,
+          "workers": 1,
+          "worker_limit": 1,
+          "parallel_attempts": 0,
+          "parallel_fallbacks": 0,
+          "temporary_apparent_bytes": 573554658,
+          "findings": 0,
+          "report": [
+            "--- the proof-header corpus repair ---",
+            "  ok: 60 stale manifests detected and repaired; authored bytes preserved, generated owners untouched, dependent export current, and the second repair queues nothing"
+          ],
+          "bytes_unchanged": true,
+          "peak_tree_rss_kb": 555872,
+          "peak_descendant_processes": 1,
+          "tree_samples": 70,
+          "process_seconds": 14.794309160000012
+        },
+        {
+          "component_seconds": 7.845278353999902,
+          "setup_seconds": 5.182763967000028,
+          "cpu_seconds": 10.471237816,
+          "peak_rss_kb": 616692.0,
+          "child_cpu_seconds": 3.64,
+          "workers": 1,
+          "worker_limit": 1,
+          "parallel_attempts": 0,
+          "parallel_fallbacks": 0,
+          "temporary_apparent_bytes": 573554658,
+          "findings": 0,
+          "report": [
+            "--- the proof-header corpus repair ---",
+            "  ok: 60 stale manifests detected and repaired; authored bytes preserved, generated owners untouched, dependent export current, and the second repair queues nothing"
+          ],
+          "bytes_unchanged": true,
+          "peak_tree_rss_kb": 567808,
+          "peak_descendant_processes": 1,
+          "tree_samples": 66,
+          "process_seconds": 13.943525296999951
+        }
+      ]
+    },
+    "candidate": {
+      "markdown": [
+        {
+          "component_seconds": 95.48839625299996,
+          "setup_seconds": 0.4206639439999549,
+          "cpu_seconds": 8.239314065,
+          "peak_rss_kb": 119524.0,
+          "child_cpu_seconds": 177.6,
+          "workers": 2,
+          "worker_limit": 2,
+          "parallel_attempts": 1,
+          "parallel_fallbacks": 0,
+          "temporary_apparent_bytes": 0,
+          "findings": 0,
+          "report": [
+            "=== markdown: standard table syntax ===",
+            "ok markdown: the pinned MD055 and MD056 checks accept every indexed table"
+          ],
+          "bytes_unchanged": true,
+          "peak_tree_rss_kb": 281720,
+          "peak_descendant_processes": 3,
+          "tree_samples": 882,
+          "process_seconds": 96.06623380600001
+        },
+        {
+          "component_seconds": 97.55841648199998,
+          "setup_seconds": 0.10386839699998518,
+          "cpu_seconds": 8.346027294999999,
+          "peak_rss_kb": 116148.0,
+          "child_cpu_seconds": 179.96,
+          "workers": 2,
+          "worker_limit": 2,
+          "parallel_attempts": 1,
+          "parallel_fallbacks": 0,
+          "temporary_apparent_bytes": 0,
+          "findings": 0,
+          "report": [
+            "=== markdown: standard table syntax ===",
+            "ok markdown: the pinned MD055 and MD056 checks accept every indexed table"
+          ],
+          "bytes_unchanged": true,
+          "peak_tree_rss_kb": 278296,
+          "peak_descendant_processes": 3,
+          "tree_samples": 898,
+          "process_seconds": 97.82082409799995
+        }
+      ],
+      "proof_headers": [
+        {
+          "component_seconds": 7.828365101000031,
+          "setup_seconds": 5.751416190000043,
+          "cpu_seconds": 10.937834363999999,
+          "peak_rss_kb": 621344.0,
+          "child_cpu_seconds": 3.68,
+          "workers": 1,
+          "worker_limit": 1,
+          "parallel_attempts": 0,
+          "parallel_fallbacks": 0,
+          "temporary_apparent_bytes": 573554658,
+          "findings": 0,
+          "report": [
+            "--- the proof-header corpus repair ---",
+            "  ok: 60 stale manifests detected and repaired; authored bytes preserved, generated owners untouched, dependent export current, and the second repair queues nothing"
+          ],
+          "bytes_unchanged": true,
+          "peak_tree_rss_kb": 588480,
+          "peak_descendant_processes": 1,
+          "tree_samples": 69,
+          "process_seconds": 14.493844127999978
+        },
+        {
+          "component_seconds": 7.87835670700008,
+          "setup_seconds": 5.163226626999972,
+          "cpu_seconds": 10.550307432,
+          "peak_rss_kb": 621484.0,
+          "child_cpu_seconds": 3.64,
+          "workers": 1,
+          "worker_limit": 1,
+          "parallel_attempts": 0,
+          "parallel_fallbacks": 0,
+          "temporary_apparent_bytes": 573554658,
+          "findings": 0,
+          "report": [
+            "--- the proof-header corpus repair ---",
+            "  ok: 60 stale manifests detected and repaired; authored bytes preserved, generated owners untouched, dependent export current, and the second repair queues nothing"
+          ],
+          "bytes_unchanged": true,
+          "peak_tree_rss_kb": 582916,
+          "peak_descendant_processes": 1,
+          "tree_samples": 70,
+          "process_seconds": 14.393759312999919
+        }
+      ]
+    }
+  }
+}
