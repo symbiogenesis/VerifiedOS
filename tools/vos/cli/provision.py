@@ -194,7 +194,7 @@ def _say(argv: Sequence[str]) -> str:
         done = subprocess.run(list(argv), capture_output=True, encoding="utf-8",
                               errors="replace", check=False, timeout=TIMEOUT,
                               stdin=subprocess.DEVNULL, env=env.declining_environment())
-    except (OSError, subprocess.SubprocessError):
+    except OSError, subprocess.SubprocessError:
         return ""
     return done.stdout.strip() if done.returncode == 0 else ""
 
@@ -297,7 +297,7 @@ def _checker(name: str, pin: str) -> Found:
         return Found(False, f"no {name} in this interpreter's environment")
     try:
         found = typecheck._version(exe)
-    except (OSError, subprocess.SubprocessError):
+    except OSError, subprocess.SubprocessError:
         return Found(False, f"{exe} could not be asked its version")
     return Found(found == pin, f"{found} at {exe}")
 
@@ -554,7 +554,7 @@ def _archive_nested(archive: Path) -> bool | None:
                     return None
                 return _named_nested(member.name)
             return _ended(members)
-    except (OSError, EOFError, tarfile.TarError, zlib.error):
+    except OSError, EOFError, tarfile.TarError, zlib.error:
         return None
 
 
@@ -1215,7 +1215,7 @@ def run(table: Sequence[Fact] = FACTS, *, group: str = "",
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
-        prog="run.py provision",
+        suggest_on_error=True, prog="run.py provision",
         description="The lane this repository builds in, as an executable fact list.")
     what = parser.add_mutually_exclusive_group()
     what.add_argument("--check", action="store_true",

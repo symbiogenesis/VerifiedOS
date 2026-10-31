@@ -12,7 +12,7 @@ from vos.compute_audit import AUDIT_PATH, REGISTRY_REVISION, REGISTRY_URL, compa
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(prog="run.py compute-audit", description=__doc__)
+    parser = argparse.ArgumentParser(suggest_on_error=True, prog="run.py compute-audit", description=__doc__)
     parser.add_argument("registry", type=Path, help=f"unmodified bytes from {REGISTRY_URL}")
     parser.add_argument("--json", action="store_true", help="emit identities and derived membership")
     args = parser.parse_args(argv)

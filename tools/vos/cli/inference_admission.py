@@ -101,7 +101,7 @@ def inspect(raw: bytes, root: Path) -> dict[str, object]:
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description=__doc__, prog="run.py inference-admission")
+    parser = argparse.ArgumentParser(suggest_on_error=True, description=__doc__, prog="run.py inference-admission")
     parser.add_argument("input", type=Path, help="JSON containing decoded host reference inputs")
     args = parser.parse_args(argv)
     try:

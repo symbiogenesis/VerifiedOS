@@ -1287,7 +1287,7 @@ def _cache_context(work: Path, sources: list[Path]) -> dict[str, object] | None:
                                     value.encode("utf-8", "surrogateescape")).hexdigest()
                                 for key, value in sorted(os.environ.items())
                                 if key not in {"WSL_INTEROP", "SHLVL", "_"}}}
-    except (OSError, ValueError, KeyError):
+    except OSError, ValueError, KeyError:
         return None
 
 
@@ -1424,7 +1424,7 @@ def _run_locked(root: Path, jobs: int | None, fresh: bool = False) -> int:
     if sources and len(reusable) == len(sources):
         try:
             _validate_receipt(root)
-        except (OSError, TypeError, ValueError):
+        except OSError, TypeError, ValueError:
             pass
         else:
             if (inputs == _inputs(root, _sources(root)) and toolchain == _toolchain()
@@ -1592,7 +1592,7 @@ def main(argv: list[str] | None = None) -> int:
         from vos import proofheaders  # noqa: PLC0415
         return proofheaders.main(args[1:])
     parser = argparse.ArgumentParser(
-        prog="run.py proofs",
+        suggest_on_error=True, prog="run.py proofs",
         description="Reuse content-matched proof evidence or compile each proof "
                     "incrementally, concurrently and once every proof it Requires "
                     "has compiled and been audited, logging each one's start and end "

@@ -79,7 +79,7 @@ def _run(args: argparse.Namespace, root: Path, output: Path) -> tuple[dict[str, 
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = argparse.ArgumentParser(suggest_on_error=True, description=__doc__)
     parser.add_argument("action", choices=("demo", "plan", "logs"))
     parser.add_argument("--instance", type=Path)
     parser.add_argument("--baseline", type=Path)

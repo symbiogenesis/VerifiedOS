@@ -148,7 +148,7 @@ def _line(name: str, result: Result) -> str:
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = argparse.ArgumentParser(suggest_on_error=True, description=__doc__)
     parser.add_argument("--json", action="store_true")
     parser.add_argument("--contract", type=Path, metavar="FILE",
                         help="check this JSON contract instead of the fixed scenarios")

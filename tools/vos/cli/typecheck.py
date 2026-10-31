@@ -609,7 +609,7 @@ def _unfound(names: list[str]) -> list[str]:
     for name in names:
         try:
             found = importlib.util.find_spec(name.partition(".")[0]) is not None
-        except (ImportError, ValueError):
+        except ImportError, ValueError:
             found = False
         if not found:
             unfound.append(name)
@@ -718,7 +718,7 @@ def run(root: Path) -> Reporter:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
-        description="Typecheck and lint this repository's own tools.")
+        suggest_on_error=True, description="Typecheck and lint this repository's own tools.")
     parser.parse_args(argv)
 
     report = run(corpus_mod.find_root())

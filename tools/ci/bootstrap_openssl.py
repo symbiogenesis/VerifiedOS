@@ -13,7 +13,7 @@ from vos import openssl
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = argparse.ArgumentParser(suggest_on_error=True, description=__doc__)
     parser.add_argument("--prefix", type=Path, required=True)
     parser.add_argument("--jobs", type=int, choices=range(1, 7), default=2)
     parser.add_argument("--github-env", type=Path)

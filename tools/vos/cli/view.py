@@ -144,7 +144,7 @@ def _output_path(root: Path, name: str | None) -> Path:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
-        description="Weave the specification and the register into one reading view.")
+        suggest_on_error=True, description="Weave the specification and the register into one reading view.")
     parser.add_argument("--out", metavar="PATH",
                         help="external or ignored repository-relative output (default: out/spec-woven.md)")
     args = parser.parse_args(argv)

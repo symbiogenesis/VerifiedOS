@@ -10,12 +10,12 @@ from vos.corpus import find_root
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(prog="run.py sail-context", description=sailcontext.NOTICE)
+    parser = argparse.ArgumentParser(suggest_on_error=True, prog="run.py sail-context", description=sailcontext.NOTICE)
     commands = parser.add_subparsers(dest="operation", required=True)
     for operation, help_text in (("search", "rank local declaration examples by words"),
                                  ("symbol", "find an exact symbol across kinds and clauses"),
                                  ("references", "find compiler-recorded incoming links")):
-        command = commands.add_parser(operation, help=help_text)
+        command = commands.add_parser(operation, suggest_on_error=True, help=help_text)
         command.add_argument("query", metavar="QUERY" if operation == "search" else "NAME")
         command.add_argument("--json", action="store_true", help="versioned JSON Schema output")
         command.add_argument("--limit", type=int, default=5, help="result bound, 1..50 (default: 5)")

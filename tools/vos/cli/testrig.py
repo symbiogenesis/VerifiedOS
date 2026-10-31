@@ -48,6 +48,7 @@ import subprocess
 import sys
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field, replace
+from itertools import batched
 from pathlib import Path
 from typing import IO, cast
 
@@ -771,10 +772,10 @@ def cmd_bmc(args: argparse.Namespace) -> int:
     covered = bmc.scope()
     _rule(f"the instruction scope, read out of the dialect table ({len(covered)} forms)")
     ctors = sorted(bmc.SCOPE)
-    for at in range(0, len(ctors), 7):
-        print(f"  {'constructors' if at == 0 else '':<12} {', '.join(ctors[at:at + 7])}")
-    for at in range(0, len(covered), 10):
-        print(f"  {' '.join(covered[at:at + 10])}")
+    for index, batch in enumerate(batched(ctors, 7, strict=False)):
+        print(f"  {'constructors' if index == 0 else '':<12} {', '.join(batch)}")
+    for batch in batched(covered, 10, strict=False):
+        print(f"  {' '.join(batch)}")
 
     _rule("in scope, and judged by a model owed in place of riscv-formal's")
     for name, why in sorted(bmc.MODELS_OWED.items()):
@@ -1141,13 +1142,13 @@ def cmd_framesim(args: argparse.Namespace) -> int:
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    parser = argparse.ArgumentParser(suggest_on_error=True, description=__doc__.splitlines()[0])
     sub = parser.add_subparsers(dest="command", required=True)
 
-    sub.add_parser("protocol", help="the wire this rig speaks, and where the two "
+    sub.add_parser("protocol", suggest_on_error=True, help="the wire this rig speaks, and where the two "
                    "formats meet").set_defaults(run=cmd_protocol)
 
-    sub.add_parser("handshake", help="negotiate with the emulator and report it"
+    sub.add_parser("handshake", suggest_on_error=True, help="negotiate with the emulator and report it"
                    ).set_defaults(run=cmd_handshake)
 
     def stream_args(target: argparse.ArgumentParser) -> None:
@@ -1159,7 +1160,7 @@ def main(argv: list[str] | None = None) -> int:
         target.add_argument("--context", type=int, default=4,
                             help="records of agreement to print before a divergence")
 
-    run = sub.add_parser("run", help="generate, drive, adjudicate, and shrink")
+    run = sub.add_parser("run", suggest_on_error=True, help="generate, drive, adjudicate, and shrink")
     stream_args(run)
     run.add_argument("--defect", default="w-form-no-sext",
                      help=f"the defect the second executor carries, or {NO_DEFECT}")
@@ -1171,12 +1172,12 @@ def main(argv: list[str] | None = None) -> int:
                      help="the most executor runs the shrinker may spend")
     run.set_defaults(run=cmd_run)
 
-    bridge = sub.add_parser("bridge",
+    bridge = sub.add_parser("bridge", suggest_on_error=True,
                             help="hold the packets against the commit records of one run")
     stream_args(bridge)
     bridge.set_defaults(run=cmd_bridge)
 
-    adapt = sub.add_parser("adapt", help="hold an RTL frame against the golden commit "
+    adapt = sub.add_parser("adapt", suggest_on_error=True, help="hold an RTL frame against the golden commit "
                            "trace of the same program")
     adapt.add_argument("frame", type=Path, help=f"the RTL harness's `{rtltrace.FORMAT}` frame")
     adapt.add_argument("reference", type=Path,
@@ -1185,7 +1186,7 @@ def main(argv: list[str] | None = None) -> int:
                        help="records of agreement to print before a divergence")
     adapt.set_defaults(run=cmd_adapt)
 
-    carry = sub.add_parser("carry", help="re-encode the corpus's golden traces as frames "
+    carry = sub.add_parser("carry", suggest_on_error=True, help="re-encode the corpus's golden traces as frames "
                            "and hold the adapter to them and to seeded changes")
     carry.add_argument("member", nargs="*", help="corpus members to run (default: all)")
     carry.add_argument("--sites", type=int, default=4,
@@ -1194,7 +1195,7 @@ def main(argv: list[str] | None = None) -> int:
                        help="seconds one member may run on the emulator")
     carry.set_defaults(run=cmd_carry)
 
-    framesim = sub.add_parser("framesim", help="build the SystemVerilog frame writer and "
+    framesim = sub.add_parser("framesim", suggest_on_error=True, help="build the SystemVerilog frame writer and "
                               "hold what it writes to the decoder")
     framesim.add_argument("--controls", action="store_true",
                           help="also build each seeded writer mutant and require the "
@@ -1206,7 +1207,7 @@ def main(argv: list[str] | None = None) -> int:
                           help="seconds one member may run on the emulator")
     framesim.set_defaults(run=cmd_framesim)
 
-    sub.add_parser("bmc", help="the bounded model-checking smoke this harness owes, as a "
+    sub.add_parser("bmc", suggest_on_error=True, help="the bounded model-checking smoke this harness owes, as a "
                    "plan; runs nothing").set_defaults(run=cmd_bmc)
 
     args = parser.parse_args(argv)

@@ -125,7 +125,7 @@ def fetch(url: str, limit: int) -> bytes:
     try:
         with urllib.request.urlopen(request, timeout=120) as response:  # noqa: S310
             data = bytes(response.read(limit + 1))
-    except (OSError, ValueError):
+    except OSError, ValueError:
         raise fanout_ci.CIError("the artifact download failed; no credential was sent") from None
     if len(data) > limit:
         raise fanout_ci.CIError(f"the artifact is larger than its {limit}-byte bound")
@@ -342,7 +342,7 @@ def extract(data: bytes, target: Path, limit: int = route.ARCHIVE_LIMIT) -> list
     leaves nothing extracted."""
     try:
         archive = zipfile.ZipFile(io.BytesIO(data))
-    except (zipfile.BadZipFile, zipfile.LargeZipFile, ValueError, EOFError):
+    except zipfile.BadZipFile, zipfile.LargeZipFile, ValueError, EOFError:
         return ["the artifact is not a zip archive"]
     with archive:
         members = [info for info in archive.infolist() if not info.is_dir()]

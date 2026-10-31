@@ -11,7 +11,7 @@ from vos.matrix_margin import compare
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(prog="run.py matrix-margin", description=__doc__)
+    parser = argparse.ArgumentParser(suggest_on_error=True, prog="run.py matrix-margin", description=__doc__)
     parser.add_argument("plan", type=Path, help="reviewed matrix-margin-plan-v1 JSON")
     parser.add_argument("report", type=Path, help="matrix-margin-report-v1 measurements")
     parser.add_argument("--json", action="store_true", help="emit exact ratios and source identities")

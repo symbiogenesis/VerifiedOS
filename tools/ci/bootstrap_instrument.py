@@ -374,11 +374,11 @@ def export(args: argparse.Namespace) -> int:
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description=(__doc__ or "").splitlines()[0])
+    parser = argparse.ArgumentParser(suggest_on_error=True, description=(__doc__ or "").splitlines()[0])
     parser.add_argument("--root", type=Path, default=route.ROOT,
                         help="the job's private root (default: ~/verifiedos-instrument)")
     subs = parser.add_subparsers(dest="command", required=True)
-    building = subs.add_parser("provision", help="build the side's switch in a fresh root")
+    building = subs.add_parser("provision", suggest_on_error=True, help="build the side's switch in a fresh root")
     building.add_argument("--side", type=Path, required=True,
                           help="the side revision's checkout, whose declarations are built")
     building.add_argument("--build", choices=BUILDS, required=True,
@@ -390,7 +390,7 @@ def main(argv: list[str] | None = None) -> int:
                           help="install absent distribution packages using passwordless sudo")
     building.add_argument("--github-env", type=Path)
     building.add_argument("--github-path", type=Path)
-    exporting = subs.add_parser("export", help="export the switch the provisioning built")
+    exporting = subs.add_parser("export", suggest_on_error=True, help="export the switch the provisioning built")
     exporting.add_argument("--github-output", type=Path)
     args = parser.parse_args(argv)
     handlers: dict[str, Callable[[argparse.Namespace], int]] = {

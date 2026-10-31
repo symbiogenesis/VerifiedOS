@@ -833,7 +833,7 @@ def publish_native_qualification(campaign: Campaign, modules: list[str], roots: 
         validate_native_qualification(campaign.upload, campaign.side, campaign.report["revision"],
             run_id=campaign.report["run_id"], run_attempt=campaign.report["run_attempt"],
             dispatch_revision=campaign.report["dispatch_revision"])
-    except (OSError, ValueError, KeyError, TypeError):
+    except OSError, ValueError, KeyError, TypeError:
         target.unlink(missing_ok=True)
         raise
 
@@ -1405,7 +1405,7 @@ def checked_import(snapshot: Path | None, expected: str | None) -> None:
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = argparse.ArgumentParser(suggest_on_error=True, description=__doc__)
     parser.add_argument("command", choices=("plan", "build", "import", "join"))
     parser.add_argument("--side", type=Path, required=True)
     parser.add_argument("--root", type=Path, required=True)

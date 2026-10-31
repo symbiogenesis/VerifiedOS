@@ -45,7 +45,7 @@ def run(args: argparse.Namespace, root: Path) -> str:
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = argparse.ArgumentParser(suggest_on_error=True, description=__doc__)
     parser.add_argument("action", choices=("replay", "check-report"))
     inputs = parser.add_mutually_exclusive_group()
     inputs.add_argument("--source-dir", type=Path)

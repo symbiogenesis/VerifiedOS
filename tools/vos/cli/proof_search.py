@@ -11,7 +11,7 @@ from vos.corpus import find_root
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
-        prog="run.py proof-search",
+        suggest_on_error=True, prog="run.py proof-search",
         description="Search current local Rocq sources; every result is advisory only.")
     parser.add_argument("query", nargs="?", default="",
                         help="query words (OR); name matches rank above statements and scripts")

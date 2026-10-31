@@ -39,10 +39,10 @@ def dispatch(doc: str | None, table: Table, argv: list[str] | None,
     it belongs to rather than moving into a table nothing reads.
     """
     parser = argparse.ArgumentParser(
-        prog=prog, description=(doc or "").splitlines()[0] if bool(doc) else None)
+        suggest_on_error=True, prog=prog, description=(doc or "").splitlines()[0] if bool(doc) else None)
     subs = parser.add_subparsers(dest="command", required=True)
     for name, (_, help_text) in table.items():
-        sub = subs.add_parser(name, help=help_text)
+        sub = subs.add_parser(name, suggest_on_error=True, help=help_text)
         if flags is not None:
             flags(name, sub)
     args = parser.parse_args(argv)

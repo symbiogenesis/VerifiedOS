@@ -19,7 +19,7 @@ from vos.memory_planner_json import unique_object
 
 
 def parser() -> argparse.ArgumentParser:
-    result = argparse.ArgumentParser(description=__doc__)
+    result = argparse.ArgumentParser(suggest_on_error=True, description=__doc__)
     result.add_argument("action", choices=("plan", "check", "solve", "verify", "demo", "contracts",
                                           "resources", "resource-proof", "demo-tflm", "structure-corpus"))
     result.add_argument("--instance", type=Path, help="portable instance JSON")

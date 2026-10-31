@@ -36,7 +36,7 @@ def _write_contract(path: Path, inputs: tuple[Path, ...], raw: bytes) -> Path:
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(prog="run.py phase-schedule", description=__doc__)
+    parser = argparse.ArgumentParser(suggest_on_error=True, prog="run.py phase-schedule", description=__doc__)
     parser.add_argument("schedule", type=Path,
                         help="phase-schedule-v1 or phase-schedule-v2 JSON declaration")
     parser.add_argument("resources", type=Path, help="digest-bound phase-resources-v1 JSON")

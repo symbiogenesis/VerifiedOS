@@ -240,7 +240,7 @@ def report(root: Path, field: str | None, artifact: str | None,
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
-        description="What an edit re-opens in the apex statement.")
+        suggest_on_error=True, description="What an edit re-opens in the apex statement.")
     # A bare positional, because `blast R-07-015` is how the question is asked out
     # loud; it is checked against the other two here rather than in a mutually
     # exclusive group, which would have to be told a positional's default is not a

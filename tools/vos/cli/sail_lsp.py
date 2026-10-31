@@ -10,10 +10,10 @@ from vos import env, saillsp
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(prog="run.py sail-lsp", description=saillsp.NOTICE)
+    parser = argparse.ArgumentParser(suggest_on_error=True, prog="run.py sail-lsp", description=saillsp.NOTICE)
     commands = parser.add_subparsers(dest="operation", required=True)
     for operation in ("install", "status", "serve", "qualify"):
-        command = commands.add_parser(operation)
+        command = commands.add_parser(operation, suggest_on_error=True)
         if operation != "serve":
             command.add_argument("--json", action="store_true")
         if operation == "qualify":

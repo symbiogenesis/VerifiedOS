@@ -12,10 +12,10 @@ from vos.corpus import find_root
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(prog="run.py compiler-build", description=__doc__)
+    parser = argparse.ArgumentParser(suggest_on_error=True, prog="run.py compiler-build", description=__doc__)
     operations = parser.add_subparsers(dest="operation", required=True)
     for operation in ("build", "status", "prime"):
-        command = operations.add_parser(operation)
+        command = operations.add_parser(operation, suggest_on_error=True)
         for name in ("source", "lane-root", "out", "cache", "driver-root", "driver-manifest",
                      "opam-root", "lock", "configuration"):
             command.add_argument("--" + name, type=Path, required=True)
@@ -35,7 +35,7 @@ def main(argv: list[str] | None = None) -> int:
     try:
         report = compiler_build.run(compiler_build.Settings(**args), find_root(),
                                     status=operation == "status", prime=operation == "prime")
-    except (OSError, ValueError, TypeError, SystemExit):
+    except OSError, ValueError, TypeError, SystemExit:
         print("compiler-build: refused invalid, changed or unavailable operation inputs", file=sys.stderr)
         return 1
     if as_json:

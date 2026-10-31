@@ -392,9 +392,9 @@ def finish(root: Path, state: Batch, path: Path, args: argparse.Namespace) -> bo
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = argparse.ArgumentParser(suggest_on_error=True, description=__doc__)
     subs = parser.add_subparsers(dest="command", required=True)
-    init = subs.add_parser("init", help="record completed worker handoffs and batch ownership")
+    init = subs.add_parser("init", suggest_on_error=True, help="record completed worker handoffs and batch ownership")
     init.add_argument("--worktree", action="append", type=Path, default=[],
                       help="batch-owned worktree to integrate and retire (repeatable)")
     init.add_argument("--host-worktree", action="append", type=Path, default=[],
@@ -406,13 +406,13 @@ def main(argv: list[str] | None = None) -> int:
                            "Guest CI's proofs lane reads that commit's proofs and compares "
                            "them with the settled revision's (default: no reading)")
     init.add_argument("--defer", action="append", default=[], help="acceptance check outside CI")
-    joining = subs.add_parser("integrate", help="merge recorded worker commits, stopping on conflicts")
-    finishing = subs.add_parser("finish", help="repair, publish, require Host CI, dispatch Guest CI, retire")
+    joining = subs.add_parser("integrate", suggest_on_error=True, help="merge recorded worker commits, stopping on conflicts")
+    finishing = subs.add_parser("finish", suggest_on_error=True, help="repair, publish, require Host CI, dispatch Guest CI, retire")
     finishing.add_argument("--path", action="append", default=[], help="individual file to stage and commit")
     finishing.add_argument("--message", help="commit message for explicitly selected --path files")
     finishing.add_argument("--wait-host", type=int, default=0, metavar="SECONDS",
                            help="bounded Host CI wait; default returns pending for later resume")
-    status = subs.add_parser("status", help="read local evidence without querying Guest CI")
+    status = subs.add_parser("status", suggest_on_error=True, help="read local evidence without querying Guest CI")
     for sub in (init, joining, finishing, status):
         sub.add_argument("batch")
     args = parser.parse_args(argv)
