@@ -1431,7 +1431,7 @@ def analyzer_version(root: Path) -> Cell:
                                check=False, timeout=60)
         mark = "-dirty" if dirty.returncode == 0 and dirty.stdout.strip() else ""
         return text(rev.stdout.strip() + mark)
-    except (OSError, subprocess.SubprocessError):
+    except OSError, subprocess.SubprocessError:
         return pending("a commit; git did not answer")
 
 

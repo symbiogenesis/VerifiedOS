@@ -11,8 +11,6 @@ extracted executable; it does not prove extraction or compiler correctness and
 does not replace the native Rocq assumption/kernel audit.
 """
 
-from __future__ import annotations
-
 import argparse
 import hashlib
 import json

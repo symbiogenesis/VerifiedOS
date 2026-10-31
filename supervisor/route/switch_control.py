@@ -147,7 +147,7 @@ def answers(table: list[Row]) -> list[Answer]:
 def chunks(table: list[Row], per: int) -> list[list[Row]]:
     if per < 1:
         raise ValueError("each program needs at least one row")
-    return [table[at:at + per] for at in range(0, len(table), per)]
+    return [list(chunk) for chunk in itertools.batched(table, per)]
 
 
 def emit(table: list[Row], emitted: Path, memory: str, output: str, step_name: str,

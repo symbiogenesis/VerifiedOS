@@ -5,8 +5,6 @@ This is a qualification client, not a proof gate or package installer. See the
 machine-logic dependency trial document for exact source acquisition commands.
 """
 
-from __future__ import annotations
-
 import argparse
 import datetime
 import hashlib

@@ -38,7 +38,7 @@ def _expanded_reads_keep_scope_and_refresh() -> None:
             path.write_bytes(bad)
             try:
                 corpus.scan_bytes(root, rel)
-            except (OSError, EOFError, ValueError):
+            except OSError, EOFError, ValueError:
                 pass
             else:
                 raise AssertionError("malformed compressed evidence must not become an empty reading")

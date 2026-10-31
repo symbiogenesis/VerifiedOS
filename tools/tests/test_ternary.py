@@ -1,7 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
 """Hold Q12's derived static records against the captured instrument output."""
-from __future__ import annotations
-
 import json
 import runpy
 from pathlib import Path

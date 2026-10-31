@@ -25,7 +25,7 @@ from tests.harness import Case, ensure
 def refuses(call: Callable[[], object]) -> None:
     try:
         call()
-    except (OSError, ValueError, TypeError, subprocess.SubprocessError):
+    except OSError, ValueError, TypeError, subprocess.SubprocessError:
         return
     raise AssertionError("unsupported source-carriage input accepted")
 

@@ -323,7 +323,7 @@ def _producer_refusals() -> None:
         for name in ("existing", "EXISTING"):
             try:
                 retained_evidence.produce(root, name, [member], note=Path("docs/note.md"))
-            except (FileExistsError, ValueError):
+            except FileExistsError, ValueError:
                 pass
             else:
                 raise AssertionError("an existing empty destination or casing alias must be refused")
@@ -338,7 +338,7 @@ def _producer_refusals() -> None:
             try:
                 retained_evidence.produce(root, "bad-encoding", [
                     retained_evidence.Member(source, "record", encoding)], note=Path("docs/note.md"))
-            except (ValueError, OSError):
+            except ValueError, OSError:
                 pass
             else:
                 raise AssertionError(f"an invalid {encoding} input must be refused")

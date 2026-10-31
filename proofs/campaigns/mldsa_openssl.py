@@ -6,8 +6,6 @@ not standard KATs. Only DER framing and CLI glue are authored here; OpenSSL and
 the Gallina executable independently compute every cryptographic operation.
 No OpenSSL source or binary is incorporated into the tracked tree.
 """
-from __future__ import annotations
-
 import argparse
 import json
 import sys

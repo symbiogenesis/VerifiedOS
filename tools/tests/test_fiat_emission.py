@@ -17,7 +17,7 @@ from tests.harness import Case, ensure
 def _refuses(action: Callable[[], object]) -> None:
     try:
         action()
-    except (ValueError, OSError):
+    except ValueError, OSError:
         return
     raise AssertionError("invalid emission was accepted")
 

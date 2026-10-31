@@ -5,8 +5,6 @@ This is a focused sensitivity campaign, not exhaustive semantic coverage.
 Compile failures are stillborn; only a compiled mutant with a mismatching
 executed oracle result is killed. Every output stays under the assigned lane.
 """
-from __future__ import annotations
-
 import argparse
 import json
 import os
