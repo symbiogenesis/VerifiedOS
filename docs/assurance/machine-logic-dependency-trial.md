@@ -104,13 +104,15 @@ import through a reviewed source route that preserves the required statements;
 adding an assumption is not a compatibility fix.
 
 Katamaran [PR 73](https://github.com/katamaran-project/katamaran/pull/73) supplies
-that import removal upstream. The deferred reference pin selects its merged head
-`8b953fe8f17bb4553792c63665d368dc7f6bbd26`, which removes unused
-`Program.Equality` imports from six Iris modules without changing definitions,
-statements or proof scripts. The continuation can consume this source directly
-without carrying a local import-removal patch. The PR's hosted job was skipped;
-its reported Rocq 9.2 checks leave the locked-prover and complete-closure
-qualification below open. The frozen trial and F-786 retain their original inputs.
+that import removal upstream: it removes unused `Program.Equality` imports from
+six Iris modules without changing definitions, statements or proof scripts.
+The deferred reference pin selects `80985afd8164c31902181d41885e06e2df6dfe6d`,
+which includes that cleanup and subsequent universal-contract and
+shallow-executor soundness development. The continuation can consume the removal
+directly without carrying a local import-removal patch, but must qualify the
+selected closure. The PR's hosted job was skipped; its reported Rocq 9.2 checks
+leave the locked-prover and complete-closure qualification below open. The frozen
+trial and F-786 retain their original inputs.
 
 ### The separate stock-Iris result
 
