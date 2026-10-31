@@ -2556,6 +2556,7 @@ Lemma admissible_service_conditions : forall s : Service,
   admissible_service s = true <-> forall c : ServiceCondition, service_condition c s = true.
 Proof.
   intro s. unfold admissible_service. rewrite service_conjuncts_by_name.
+  unfold all_of, map_over.
   rewrite (ProofSupport.all_of_map ServiceCondition (Service -> bool)
              (fun p => p s) service_condition service_conditions).
   exact (ProofSupport.all_of_complete_roster ServiceCondition service_conditions
@@ -2770,6 +2771,7 @@ Theorem every_spoiling_breaks_exactly_one_conjunct :
   all_of (fun k => Nat.eqb (service_broken (spoiled_at k)) 1) (upto 13) = true.
 Proof.
   rewrite <- service_condition_indices.
+  unfold all_of, map_over.
   rewrite (ProofSupport.all_of_map ServiceCondition nat _
              service_condition_index service_conditions).
   apply (proj2 (ProofSupport.all_of_complete_roster ServiceCondition service_conditions
@@ -2781,6 +2783,7 @@ Theorem no_spoiled_service_is_admitted :
   all_of (fun k => negb (admissible_service (spoiled_at k))) (upto 13) = true.
 Proof.
   rewrite <- service_condition_indices.
+  unfold all_of, map_over.
   rewrite (ProofSupport.all_of_map ServiceCondition nat _
              service_condition_index service_conditions).
   apply (proj2 (ProofSupport.all_of_complete_roster ServiceCondition service_conditions
@@ -2796,6 +2799,7 @@ Theorem every_dropped_conjunct_admits_the_service_it_stopped_checking :
   all_of (fun k => declared_without k (spoiled_at k)) (upto 13) = true.
 Proof.
   rewrite <- service_condition_indices.
+  unfold all_of, map_over.
   rewrite (ProofSupport.all_of_map ServiceCondition nat _
              service_condition_index service_conditions).
   apply (proj2 (ProofSupport.all_of_complete_roster ServiceCondition service_conditions
