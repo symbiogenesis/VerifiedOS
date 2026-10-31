@@ -1511,7 +1511,7 @@
       "tool": "The model hooks' PyPI dependencies",
       "subject": "setuptools's pinned release",
       "reviewed": [
-        "84.0.0"
+        "84.2.1"
       ],
       "owners": [
         {
