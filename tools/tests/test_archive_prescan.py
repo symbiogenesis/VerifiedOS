@@ -207,7 +207,7 @@ def _literal_searches_and_unsupported_shapes_keep_the_oracle() -> None:
     with patch.object(literalsearch, "compile_names", side_effect=literalsearch.LegacyRequiredError("fixture")):
         try:
             retained.prescan(broken, ("core",), (b"Raw",), (), chunk_size=3)
-        except (OSError, EOFError, ValueError):
+        except OSError, EOFError, ValueError:
             pass
         else:
             raise AssertionError("matcher fallback hid corruption in a later gzip member")
@@ -251,7 +251,7 @@ def _members_headers_and_corruption() -> None:
     for blob in (b"", b"plain", first[:-4], first + b"garbage", first[:-1] + b"\xff"):
         try:
             retained.prescan(blob, names, (), (), chunk_size=2)
-        except (OSError, EOFError, ValueError):
+        except OSError, EOFError, ValueError:
             pass
         else:
             raise AssertionError("malformed gzip was accepted as an absence")
@@ -259,7 +259,7 @@ def _members_headers_and_corruption() -> None:
     bad_tail = gzip.compress(b"second member")[:-4]
     try:
         retained.prescan(early_candidates + bad_tail, names, (b"HACL",), (), chunk_size=2)
-    except (OSError, EOFError, ValueError):
+    except OSError, EOFError, ValueError:
         pass
     else:
         raise AssertionError("early positive facts must not bypass later member integrity")
@@ -301,7 +301,7 @@ def _cache_requires_actual_bytes_and_matchers() -> None:
     for _ in range(2):
         try:
             cache.scan("broken", bad, (), (), ())
-        except (OSError, EOFError, ValueError):
+        except OSError, EOFError, ValueError:
             pass
         else:
             raise AssertionError("failed archive became a successful cache entry")
@@ -349,7 +349,7 @@ def _sparse_pin_candidates_preserve_all_sites() -> None:
     broken = gzip.compress(b"a" * (1024 * 1024 + 1)) + gzip.compress(b"tail")[:-3]
     try:
         retained.prescan(broken, names, (), ())
-    except (OSError, EOFError, ValueError):
+    except OSError, EOFError, ValueError:
         pass
     else:
         raise AssertionError("pin fallback must still refuse a corrupt later gzip member")

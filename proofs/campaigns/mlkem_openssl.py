@@ -7,8 +7,6 @@ No OpenSSL algorithm source is copied. Generated DER wrappers, keys and outputs
 remain in the assigned native lane. Requires the preceding vector campaign's
 matching extracted executable and receipt in --reference.
 """
-from __future__ import annotations
-
 import argparse
 import hashlib
 import json

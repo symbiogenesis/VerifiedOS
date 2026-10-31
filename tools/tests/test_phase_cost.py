@@ -106,7 +106,7 @@ def _conservative() -> None:
 def _refuse(raw: bytes) -> None:
     try:
         parse(raw)
-    except (ValueError, TypeError):
+    except ValueError, TypeError:
         return
     raise AssertionError(f"malformed comparison accepted: {raw[:120]!r}")
 

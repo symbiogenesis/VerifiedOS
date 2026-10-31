@@ -19,6 +19,7 @@ prologue and epilogue, give back the source driver byte for byte.
 
 import argparse
 import hashlib
+import itertools
 import json
 import re
 import sys
@@ -41,7 +42,7 @@ def split(driver: str, step: str, rows: int) -> tuple[str, list[list[str]], str]
     if lines[-len(EPILOGUE):] != EPILOGUE:
         raise ValueError("the driver does not end in `return 0;` and a closing brace")
     end = len(lines) - len(EPILOGUE)
-    blocks = [lines[a:b] for a, b in zip(starts, [*starts[1:], end], strict=True)]
+    blocks = [lines[a:b] for a, b in itertools.pairwise((*starts, end))]
     width = {len(block) for block in blocks}
     if len(width) != 1:
         raise ValueError(f"row blocks of differing lengths {sorted(width)}")
@@ -59,8 +60,8 @@ def programs(driver: str, step: str, rows: int) -> list[tuple[int, int, str]]:
     """(first row, row count, text) for each program, in row order."""
     prologue, blocks, epilogue = split(driver, step, rows)
     out = []
-    for first in range(0, len(blocks), rows):
-        chunk = blocks[first:first + rows]
+    for index, chunk in enumerate(itertools.batched(blocks, rows)):
+        first = index * rows
         body = "".join("\n".join(block) + "\n" for block in chunk)
         out.append((first, len(chunk), prologue + body + epilogue))
     rejoined = prologue + "".join("\n".join(b) + "\n" for b in blocks) + epilogue

@@ -921,7 +921,7 @@ class Checks:
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0], suggest_on_error=True)
     parser.add_argument("command", choices=("freeze", "provision", "run", "rehash"))
     parser.add_argument("--lane", required=True, type=Path)
     parser.add_argument("--worktree", required=True, type=Path)

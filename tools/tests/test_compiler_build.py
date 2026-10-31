@@ -122,7 +122,7 @@ def _session(mode: str = "ordinary") -> Generator[tuple[cb.Settings, Path]]:
 def _refuses(fn: Callable[[], object]) -> None:
     try:
         fn()
-    except (ValueError, TypeError, OSError, SystemExit):
+    except ValueError, TypeError, OSError, SystemExit:
         return
     raise AssertionError("invalid controller operation was accepted")
 

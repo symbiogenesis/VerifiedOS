@@ -81,7 +81,7 @@ def _wait_stopped(pid: int) -> None:
     while True:
         try:
             state = Path(f"/proc/{pid}/stat").read_text().rpartition(")")[2].split()[0]
-        except (FileNotFoundError, ProcessLookupError):
+        except FileNotFoundError, ProcessLookupError:
             # procfs can report ESRCH if the process vanishes after open.
             return
         if state in {"Z", "X"}:

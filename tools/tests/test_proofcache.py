@@ -624,7 +624,7 @@ def _parallel_kernel_combines_joint_work_and_waits_for_peers() -> None:
             with patch.object(gate, "_recheck_joint", side_effect=recheck):
                 try:
                     fault = gate._recheck(root, sources, reused, jobs=2)
-                except (OSError, ValueError):
+                except OSError, ValueError:
                     ensure(failure in {"tamper", "exception"}, "unexpected kernel exception")
                 else:
                     ensure(bool(fault) == (failure != "none"), f"kernel lost {failure} verdict")

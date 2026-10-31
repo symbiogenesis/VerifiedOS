@@ -120,7 +120,7 @@ def _front_door() -> None:
         data[key] = value
         try:
             cli.inspect(json.dumps(data).encode(), ROOT)
-        except (ValueError, TypeError):
+        except ValueError, TypeError:
             continue
         raise AssertionError(f"malformed input accepted: {key}={value!r}")
     try:
@@ -164,7 +164,7 @@ def _deeply_nested_input() -> None:
                "over-nested decoded input must fail through the invalid-input CLI boundary")
         try:
             cli.inspect(raw, ROOT)
-        except (TypeError, ValueError):
+        except TypeError, ValueError:
             pass
         else:
             raise AssertionError("inspection accepted an over-nested route")

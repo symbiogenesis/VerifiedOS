@@ -7,8 +7,6 @@ uses definitions-only extraction and pinned official vectors as a runtime oracle
 Neither a definition compile failure nor a timed-out command counts as a kill.
 Run in a native lane with the matching audited modules already in --baseline.
 """
-from __future__ import annotations
-
 import argparse
 from dataclasses import asdict
 import hashlib

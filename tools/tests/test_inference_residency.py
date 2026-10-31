@@ -164,7 +164,7 @@ def _executed_defects() -> None:
 def _must_reject(fn: Callable[[], object], where: str) -> None:
     try:
         fn()
-    except (TypeError, ValueError):
+    except TypeError, ValueError:
         return
     raise AssertionError(f"invalid host input accepted: {where}")
 

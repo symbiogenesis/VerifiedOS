@@ -85,7 +85,7 @@ def _unknown_guard_refuses() -> None:
         syntax=row.syntax, bindings=row.bindings)
     try:
         dialectgen.admit(invented, facts)
-    except (dialectgen.RefusedError, sailexpr.UnresolvedError):
+    except dialectgen.RefusedError, sailexpr.UnresolvedError:
         return
     raise AssertionError("a guard this reader cannot resolve admitted a form: the "
                          "policy is fail-closed and this is the case that says so")

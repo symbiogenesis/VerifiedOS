@@ -56,7 +56,7 @@ def _exact_checker_pins() -> None:
             path.write_text(f"[dependency-groups]\ndev = {dependencies}\n", encoding="utf-8")
             try:
                 toolenv.checker_pins(root)
-            except (TypeError, ValueError):
+            except TypeError, ValueError:
                 continue
             raise AssertionError(f"invalid exact checker pin policy accepted: {dependencies}")
 

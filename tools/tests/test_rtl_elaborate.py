@@ -648,7 +648,7 @@ def _json_inventory_validates_all_definitions() -> None:
         with sandbox_tree({"inventory.json": json.dumps(tree)}) as root:
             try:
                 rtl._inventory(root / "inventory.json")
-            except (TypeError, ValueError):
+            except TypeError, ValueError:
                 pass
             else:
                 raise AssertionError(f"invalid module definition was silently accepted: {defect!r}")

@@ -9,8 +9,6 @@ revision and every fetched file's SHA-256. Pure ML-DSA, internal bit-message,
 and external-mu test adapters are supported; HashML-DSA prehash groups are
 deliberately excluded, never sent through the pure adapter.
 """
-from __future__ import annotations
-
 import argparse
 import concurrent.futures
 import hashlib

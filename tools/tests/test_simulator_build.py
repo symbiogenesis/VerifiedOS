@@ -122,7 +122,7 @@ def consumer_refusals() -> None:
                 receipts.write(path, record)
                 try:
                     dependency.read(root, simulator, path)
-                except (ValueError, TypeError):
+                except ValueError, TypeError:
                     continue
                 raise AssertionError("invalid focused simulator receipt admitted")
             receipts.write(path, original)
@@ -133,7 +133,7 @@ def consumer_refusals() -> None:
                 changed.write_bytes(before + b"changed")
                 try:
                     dependency.read(root, simulator, path)
-                except (ValueError, TypeError):
+                except ValueError, TypeError:
                     pass
                 else:
                     raise AssertionError("changed simulator, model or stage log admitted")
