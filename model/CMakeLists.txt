@@ -14,6 +14,11 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
 include(cmake/sail_required_version.cmake)
 
+option(VOS_MODEL_OFFLINE "Require prepared dependencies without downloading" OFF)
+if(VOS_MODEL_OFFLINE)
+    set(FETCHCONTENT_FULLY_DISCONNECTED ON)
+endif()
+
 # Make users explicitly pick a build type so they don't get
 # surprised when the default gives a very slow emulator.
 if (NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
@@ -117,6 +122,9 @@ endif()
 # These are the main requirements.
 # Don't use `REQUIRED` so that we can print custom help messages.
 option(DOWNLOAD_GMP "Download libgmp and build the library locally instead of using a system installation" OFF)
+if(VOS_MODEL_OFFLINE AND DOWNLOAD_GMP)
+    message(FATAL_ERROR "VOS_MODEL_OFFLINE requires system GMP; DOWNLOAD_GMP cannot be enabled")
+endif()
 if (DOWNLOAD_GMP)
     include(ExternalProject)
     # Build GMP with LTO when ENABLE_LTO is on, using the same toolchain and
