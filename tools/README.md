@@ -7,9 +7,11 @@ on Linux; the dispatcher sends guest commands to WSL when needed.
 ## One language, and what forced it
 
 Python spans both execution environments. Command modules use the supported version
-declared by [pyproject.toml](pyproject.toml) and the checker targets; the bootstrap
-accepts Python 3.12 or newer and selects the locked project environment through uv.
-The system interpreter need not be replaced.
+declared by [pyproject.toml](pyproject.toml) and the checker targets. The bootstrap,
+host, guest, CI and standalone scripts require that same Python minor version,
+as [the shared rule](../AGENTS.md#tool-execution-and-validation) requires. The
+bootstrap selects the locked project environment through uv after checking its
+own interpreter against the manifest.
 
 Annotations use Python's lazy evaluation, with cross-module type-only imports under
 `TYPE_CHECKING`; do not add `from __future__ import annotations` or evaluate those

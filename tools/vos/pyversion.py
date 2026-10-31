@@ -2,6 +2,7 @@
 """The project's single supported Python minor, read from its package metadata."""
 
 import re
+import sys
 import tomllib
 from pathlib import Path
 
@@ -23,3 +24,12 @@ def supported_minor(root: Path) -> str:
     if (upper_major, upper_minor) != (major, minor + 1):
         raise ValueError(f"{PROJECT} requires-python must exclude the next minor")
     return f"{major}.{minor}"
+
+
+def require_supported(root: Path) -> None:
+    """Refuse a different interpreter before loading tools or synchronizing packages."""
+    required = supported_minor(root)
+    current = ".".join(map(str, sys.version_info[:2]))
+    if current != required:
+        found = ".".join(map(str, sys.version_info[:3]))
+        raise ValueError(f"the tools require Python {required} from {PROJECT}; found {found}")

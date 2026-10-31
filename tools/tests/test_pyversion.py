@@ -5,6 +5,7 @@ import os
 import subprocess
 import tempfile
 from pathlib import Path
+from unittest.mock import patch
 
 from tests.harness import Case, ensure
 from vos import pyversion
@@ -46,6 +47,28 @@ def _invalid_owner_refuses() -> None:
                 raise AssertionError(f"invalid or missing interpreter owner accepted: {text!r}")
 
 
+def _runtime_follows_manifest() -> None:
+    with tempfile.TemporaryDirectory(prefix="vos-pyversion-") as name:
+        root = Path(name)
+        path = root / pyversion.PROJECT
+        path.parent.mkdir()
+        for minor in (14, 15):
+            path.write_text(f'[project]\nrequires-python = ">=3.{minor},<3.{minor + 1}"\n',
+                            encoding="utf-8", newline="")
+            with patch.object(pyversion.sys, "version_info", (3, minor, 7)):
+                pyversion.require_supported(root)
+            for version in ((3, minor - 1, 9), (3, minor + 1, 0)):
+                with patch.object(pyversion.sys, "version_info", version):
+                    try:
+                        pyversion.require_supported(root)
+                    except ValueError as error:
+                        ensure(f"Python 3.{minor}" in str(error)
+                               and pyversion.PROJECT in str(error),
+                               "the diagnostic must identify the version's owner")
+                    else:
+                        raise AssertionError(f"wrong interpreter accepted: {version}")
+
+
 def _editor_targets_follow_metadata() -> None:
     report = Reporter()
     editions = (("ty", typecheck.TY_VERSION, "3.11", "3.12", "type Scalar = int\n",
@@ -85,4 +108,5 @@ def _editor_targets_follow_metadata() -> None:
 def cases() -> list[Case]:
     return [Case("supported minor follows the manifest", _supported_minor),
             Case("missing and malformed version owners refuse", _invalid_owner_refuses),
+            Case("runtime follows the manifest", _runtime_follows_manifest),
             Case("editor targets follow the project metadata", _editor_targets_follow_metadata)]

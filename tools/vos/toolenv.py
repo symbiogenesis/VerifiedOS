@@ -9,7 +9,7 @@ import sys
 import tomllib
 from pathlib import Path
 
-from vos import env
+from vos import env, pyversion
 
 READY = "_VOS_TOOL_ENV"
 PROJECT = "tools/pyproject.toml"
@@ -56,6 +56,11 @@ def identity(root: Path, platform: str) -> str:
 
 def bootstrap(root: Path, argv: list[str]) -> int | None:
     """Synchronize before dispatch; children inherit the settled environment."""
+    try:
+        pyversion.require_supported(root)
+    except (OSError, ValueError) as err:
+        print(str(err), file=sys.stderr)
+        return 1
     try:
         target = environment(root, sys.platform)
         token = identity(root, sys.platform)

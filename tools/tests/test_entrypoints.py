@@ -27,7 +27,7 @@ from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
 from tests.harness import TOOLS, Case, ensure
-from vos import toolenv
+from vos import pyversion, toolenv
 
 _ROOT = TOOLS.parent
 
@@ -163,8 +163,9 @@ def _bootstrap_prerequisites() -> None:
         root = Path(temporary)
         project = root / "tools"
         project.mkdir()
-        for name in ("pyproject.toml", "uv.lock"):
-            (project / name).write_text("initial", encoding="utf-8")
+        (project / "pyproject.toml").write_text(
+            (_ROOT / pyversion.PROJECT).read_text(encoding="utf-8"), encoding="utf-8")
+        (project / "uv.lock").write_text("initial", encoding="utf-8")
         token = toolenv.identity(root, sys.platform)
         # A file left at the old location must neither select dependencies nor
         # hide the loss of the tools project's lockfile.
@@ -201,6 +202,40 @@ def _bootstrap_prerequisites() -> None:
                    "an OS launch error must be a reported failure")
             ensure("could not be started" in errors.getvalue(),
                    "the launch failure must include an actionable diagnostic")
+
+
+def _bootstrap_requires_project_interpreter() -> None:
+    for version in ((3, 12, 9), (3, 13, 1), (3, 15, 0)):
+        errors = StringIO()
+        with patch.object(pyversion.sys, "version_info", version), \
+                patch.object(toolenv.sys, "stderr", errors), \
+                patch.object(toolenv, "environment") as environment, \
+                patch.object(toolenv.subprocess, "run") as launch:
+            ensure(toolenv.bootstrap(_ROOT, ["check"]) == 1,
+                   "a different Python minor must refuse before environment setup")
+            environment.assert_not_called()
+            launch.assert_not_called()
+        ensure(f"Python {pyversion.supported_minor(_ROOT)}" in errors.getvalue()
+               and "found " + ".".join(map(str, version)) in errors.getvalue(),
+               "the refusal must name the manifest's version and the running version")
+
+
+def _entrypoints_check_version_before_tool_imports() -> None:
+    probe = (
+        "import runpy, sys\n"
+        "from unittest.mock import patch\n"
+        "with patch.object(sys, 'version_info', (3, 12, 9)):\n"
+        "    runpy.run_path(sys.argv[1], run_name='__main__')\n"
+    )
+    for name in ("run.py", "check.py"):
+        result = subprocess.run([sys.executable, "-c", probe, str(TOOLS / name)],
+                                cwd=_ROOT, capture_output=True, encoding="utf-8",
+                                check=False, timeout=30)
+        ensure(result.returncode == 1 and "found 3.12.9" in result.stderr
+               and f"Python {pyversion.supported_minor(_ROOT)}" in result.stderr
+               and "Traceback" not in result.stderr,
+               f"{name} must refuse the wrong Python before importing tool dependencies: "
+               f"{result.stdout!r} {result.stderr!r}")
 
 
 def _run(*argv: str, env: dict[str, str] | None = None) -> tuple[int, str, str]:
@@ -319,6 +354,8 @@ def cases() -> list[Case]:
         Case("wsl-environments-follow-native-lanes", _wsl_environments_follow_native_lanes),
         Case("filesystem-probes-take-resolved-paths", _filesystem_probes_take_resolved_paths),
         Case("bootstrap-prerequisites", _bootstrap_prerequisites),
+        Case("bootstrap-requires-project-interpreter", _bootstrap_requires_project_interpreter),
+        Case("entrypoints-check-version-first", _entrypoints_check_version_before_tool_imports),
         Case("tree-status-before", _tree_status_before, lane="host"),
         Case("coread-list-twice", _coread_list_twice, lane="host"),
         Case("unicode-pipe-twice", _unicode_pipe_twice, lane="host"),

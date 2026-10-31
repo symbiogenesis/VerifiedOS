@@ -70,6 +70,14 @@ from pathlib import Path
 # the path first. Every import below this line is deliberately not at the top.
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
+from vos import pyversion
+
+if __name__ == "__main__":
+    try:
+        pyversion.require_supported(Path(__file__).resolve().parents[1])
+    except (OSError, ValueError) as error:
+        raise SystemExit(str(error)) from error
+
 from vos import checkregistry, timings, toolenv
 from vos import corpus as corpus_mod
 

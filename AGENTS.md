@@ -90,6 +90,12 @@ validation handoff below.
 
 ### Tool execution and validation
 
+Use one universal Python minor version everywhere. `project.requires-python` in
+[tools/pyproject.toml](tools/pyproject.toml) is its sole owner. The bootstrap,
+Windows host, WSL guest, CI, standalone scripts and developer commands all require
+that same version; do not maintain older-version compatibility paths or separate
+interpreter floors. Upgrade every consumer together when changing the owner.
+
 Use `python tools/run.py <command>` on Windows; it dispatches toolchain commands into WSL. On Linux, including the WSL guest, use `python3 tools/run.py <command>` directly. `python tools/run.py help` lists commands and `python tools/run.py <command> --help` gives their options. Read [the tool guide](tools/README.md) before changing Python tools or their configuration.
 
 If a sandboxed Windows shell reports installed tools as missing, follow
