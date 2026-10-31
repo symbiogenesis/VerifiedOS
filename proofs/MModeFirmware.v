@@ -279,14 +279,7 @@ Lemma all_of_member :
     (forall a b : A, eqb a b = true -> a = b) ->
     forall (q : A -> bool) (l : list A) (x : A),
       all_of q l = true -> any_of (eqb x) l = true -> q x = true.
-Proof.
-  intros A eqb sound q l. induction l as [ | y r IH ]; intros x Hall Hany.
-  - discriminate Hany.
-  - simpl in Hall. destruct (andb_split (q y) (all_of q r) Hall) as [ Hy Hr ].
-    simpl in Hany. destruct (orb_split _ _ Hany) as [ He | Hrest ].
-    + rewrite (sound x y He). exact Hy.
-    + exact (IH x Hr Hrest).
-Qed.
+Proof. exact ProofSupport.all_of_eqb_member. Qed.
 
 Lemma any_of_and_all_of :
   forall (A : Type) (p q : A -> bool) (l : list A),

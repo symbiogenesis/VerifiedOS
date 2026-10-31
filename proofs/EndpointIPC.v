@@ -437,40 +437,24 @@ Proof. exact ProofSupport.all_of_app. Qed.
 Lemma all_of_app_intro :
   forall (A : Type) (p : A -> bool) (l r : list A),
     all_of p l = true -> all_of p r = true -> all_of p (app l r) = true.
-Proof.
-  intros A p l r. induction l as [ | x s IH ]; intros Hl Hr.
-  - exact Hr.
-  - simpl in Hl. destruct (andb_split _ _ Hl) as [ Hx Hs ].
-    simpl. apply andb_join; [ exact Hx | exact (IH Hs Hr) ].
-Qed.
+Proof. exact ProofSupport.all_of_app_join. Qed.
 
 Lemma all_of_map :
   forall (A B : Type) (p : B -> bool) (f : A -> B) (l : list A),
     all_of (fun x => p (f x)) l = true -> all_of p (map_over f l) = true.
 Proof.
-  intros A B p f l. induction l as [ | x r IH ]; intros H.
-  - reflexivity.
-  - simpl in H. destruct (andb_split _ _ H) as [ Hx Hr ].
-    simpl. apply andb_join; [ exact Hx | exact (IH Hr) ].
+  intros A B p f l H. rewrite (ProofSupport.all_of_map A B p f l). exact H.
 Qed.
 
 Lemma count_of_app :
   forall (A : Type) (l r : list A),
     count_of (app l r) = Nat.add (count_of l) (count_of r).
-Proof.
-  intros A l r. induction l as [ | x s IH ].
-  - reflexivity.
-  - simpl. rewrite IH. reflexivity.
-Qed.
+Proof. exact ProofSupport.count_of_app. Qed.
 
 Lemma count_of_map :
   forall (A B : Type) (f : A -> B) (l : list A),
     count_of (map_over f l) = count_of l.
-Proof.
-  intros A B f l. induction l as [ | x r IH ].
-  - reflexivity.
-  - simpl. rewrite IH. reflexivity.
-Qed.
+Proof. exact ProofSupport.count_of_map. Qed.
 
 Lemma leb_split : forall v k : nat, Nat.leb v k = true -> Nat.ltb v k = true \/ v = k.
 Proof.
@@ -1392,28 +1376,28 @@ Definition frozen_surface (l : list Invocation) : bool :=
 Definition IsTheFrozenSurface (l : list Invocation) : Prop :=
   forall i : Invocation, Nat.eqb (occurrences_inv i l) 1 = true.
 
+(* Completeness is proved once; checker semantics do not depend on roster order. *)
+Lemma all_invocations_complete : ProofSupport.CompleteRoster all_invocations.
+Proof. intros i. destruct i; simpl; auto 8. Qed.
+
+Lemma frozen_surface_spec : forall l : list Invocation,
+  frozen_surface l = true <-> IsTheFrozenSurface l.
+Proof.
+  intros l. exact (ProofSupport.all_of_complete_roster Invocation
+    all_invocations all_invocations_complete
+    (fun i => Nat.eqb (occurrences_inv i l) 1)).
+Qed.
+
 Lemma frozen_surface_sound :
   forall l : list Invocation, frozen_surface l = true -> IsTheFrozenSurface l.
-Proof.
-  intros l H i. unfold frozen_surface, all_invocations in H. simpl in H.
-  destruct (andb_split _ _ H) as [ H1 R1 ].
-  destruct (andb_split _ _ R1) as [ H2 R2 ].
-  destruct (andb_split _ _ R2) as [ H3 R3 ].
-  destruct (andb_split _ _ R3) as [ H4 R4 ].
-  destruct (andb_split _ _ R4) as [ H5 _ ].
-  destruct i; assumption.
-Qed.
+Proof. intros l. exact (proj1 (frozen_surface_spec l)). Qed.
 
 (* And the other direction, without which `frozen_surface w = false` says
    nothing about the obligation and every refusal below would be a refusal of
    the decision procedure rather than of what it decides. *)
 Lemma frozen_surface_complete :
   forall l : list Invocation, IsTheFrozenSurface l -> frozen_surface l = true.
-Proof.
-  intros l H. unfold frozen_surface, all_invocations. simpl.
-  rewrite (H Send), (H Receive), (H PollSiteYield), (H GrantRedeem), (H Revoke).
-  reflexivity.
-Qed.
+Proof. intros l. exact (proj2 (frozen_surface_spec l)). Qed.
 
 (* The contrapositive, which is the shape every refusal below is stated in:
    a sequence the check refuses is not the frozen surface. *)

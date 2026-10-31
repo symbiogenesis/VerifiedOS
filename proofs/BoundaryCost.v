@@ -20,6 +20,7 @@
    ========================================================================= *)
 
 Require Import PartitionContext.
+Require ProofSupport.
 
 Record ResidencyCase : Type := {
   remaining_operation : nat;
@@ -65,73 +66,44 @@ Definition ResidencyRefines (b : BoundaryInputs)
 
 (* Prelude-only arithmetic, with a prefix to avoid shadowing consumers. *)
 Lemma bc_leb_refl : forall n : nat, Nat.leb n n = true.
-Proof. induction n as [|n IHn]; simpl; [reflexivity | exact IHn]. Qed.
+Proof. exact ProofSupport.nat_leb_refl. Qed.
 
 Lemma bc_leb_trans : forall a b c : nat,
   Nat.leb a b = true -> Nat.leb b c = true -> Nat.leb a c = true.
-Proof.
-  induction a as [|a IHa]; intros b c Hab Hbc; [reflexivity |].
-  destruct b as [|b]; [discriminate Hab |]. destruct c as [|c]; [discriminate Hbc |].
-  simpl in *. exact (IHa b c Hab Hbc).
-Qed.
+Proof. exact ProofSupport.nat_leb_trans. Qed.
 
 Lemma bc_add_zero : forall a : nat, a + 0 = a.
-Proof. induction a as [|a IHa]; simpl; [reflexivity | rewrite IHa; reflexivity]. Qed.
+Proof. exact ProofSupport.nat_add_zero. Qed.
 
 Lemma bc_add_succ : forall a b : nat, a + S b = S (a + b).
-Proof. induction a as [|a IHa]; intros b; simpl; [reflexivity | rewrite IHa; reflexivity]. Qed.
+Proof. exact ProofSupport.nat_add_succ. Qed.
 
 Lemma bc_add_comm : forall a b : nat, a + b = b + a.
-Proof.
-  induction a as [|a IHa]; intros b; simpl.
-  - rewrite bc_add_zero. reflexivity.
-  - rewrite IHa, bc_add_succ. reflexivity.
-Qed.
+Proof. exact ProofSupport.nat_add_comm. Qed.
 
 Lemma bc_add_left : forall k a b : nat,
   Nat.leb a b = true -> Nat.leb (k + a) (k + b) = true.
-Proof. induction k as [|k IHk]; intros a b H; simpl; [exact H | apply IHk; exact H]. Qed.
+Proof. exact ProofSupport.nat_leb_add_left. Qed.
 
 Lemma bc_add_mono : forall a b c d : nat,
   Nat.leb a b = true -> Nat.leb c d = true ->
   Nat.leb (a + c) (b + d) = true.
-Proof.
-  intros a b c d Hab Hcd.
-  apply (bc_leb_trans (a + c) (a + d) (b + d)).
-  - apply bc_add_left. exact Hcd.
-  - rewrite (bc_add_comm a d), (bc_add_comm b d).
-    apply bc_add_left. exact Hab.
-Qed.
+Proof. exact ProofSupport.nat_leb_add_mono. Qed.
 
 Lemma bc_max_left : forall a b : nat, Nat.leb a (Nat.max a b) = true.
-Proof.
-  induction a as [|a IHa]; intros b; [reflexivity |].
-  destruct b; simpl; [apply bc_leb_refl | apply IHa].
-Qed.
+Proof. exact ProofSupport.nat_max_left. Qed.
 
 Lemma bc_max_right : forall a b : nat, Nat.leb b (Nat.max a b) = true.
-Proof.
-  induction a as [|a IHa]; intros b; simpl; [apply bc_leb_refl |].
-  destruct b; simpl; [reflexivity | apply IHa].
-Qed.
+Proof. exact ProofSupport.nat_max_right. Qed.
 
 Lemma bc_max_upper : forall a b c : nat,
   Nat.leb a c = true -> Nat.leb b c = true ->
   Nat.leb (Nat.max a b) c = true.
-Proof.
-  induction a as [|a IHa]; intros b c Ha Hb; simpl; [exact Hb |].
-  destruct c; [discriminate Ha |]. destruct b; simpl; [exact Ha |].
-  apply IHa; assumption.
-Qed.
+Proof. exact ProofSupport.nat_max_upper. Qed.
 
 Lemma bc_sub_padding : forall elapsed bound : nat,
   Nat.leb elapsed bound = true -> elapsed + (bound - elapsed) = bound.
-Proof.
-  induction elapsed as [|elapsed IHelapsed]; intros bound H.
-  - destruct bound; reflexivity.
-  - destruct bound as [|bound]; [discriminate H |]. simpl in *.
-    rewrite (IHelapsed bound H). reflexivity.
-Qed.
+Proof. exact ProofSupport.nat_sub_padding. Qed.
 
 Theorem residency_bounds_declared_case : forall ps p,
   DeclaredCase p ps -> Nat.leb (prefix_cost p) (residency_max ps) = true.
