@@ -10,7 +10,7 @@ from vos import env, sailmodular
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(prog="run.py sail-modular", description=__doc__)
+    parser = argparse.ArgumentParser(suggest_on_error=True, prog="run.py sail-modular", description=__doc__)
     parser.add_argument("action", choices=("qualify",))
     parser.add_argument("--partitions", type=int, default=4, help="method libraries, 2..16 (default: 4)")
     parser.add_argument("--json", action="store_true", help="print the complete qualification report")

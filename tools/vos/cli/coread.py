@@ -194,7 +194,7 @@ def _bless(root: Path, idents: list[str], everything: bool) -> int:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
-        description="Read a register entry against its prose, and record it.")
+        suggest_on_error=True, description="Read a register entry against its prose, and record it.")
     parser.add_argument("--show", nargs="*", metavar="ID",
                         help="print these pairs' two sides against each other")
     parser.add_argument("--where", nargs="*", metavar="ID",

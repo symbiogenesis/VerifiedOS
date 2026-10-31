@@ -317,7 +317,7 @@ def compare(root: Path, base: str, descriptor: Path, output: Path, timeout: int)
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = argparse.ArgumentParser(suggest_on_error=True, description=__doc__)
     parser.add_argument("--base")
     parser.add_argument("--root", type=Path, default=Path(__file__).resolve().parents[2])
     parser.add_argument("--inputs", type=Path)

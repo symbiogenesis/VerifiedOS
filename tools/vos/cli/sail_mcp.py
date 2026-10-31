@@ -9,6 +9,6 @@ from vos.corpus import find_root
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(prog="run.py sail-mcp", description=__doc__)
+    parser = argparse.ArgumentParser(suggest_on_error=True, prog="run.py sail-mcp", description=__doc__)
     parser.parse_args(argv)
     return sailmcp.serve(find_root(), sys.stdin.buffer, sys.stdout.buffer)

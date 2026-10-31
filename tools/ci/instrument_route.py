@@ -261,7 +261,7 @@ def load_json(path: Path) -> dict[str, object] | None:
         return None
     try:
         return as_object(json.loads(text))
-    except (ValueError, TypeError):
+    except ValueError, TypeError:
         return None
 
 
@@ -734,7 +734,7 @@ def kernel_oom() -> list[str] | None:
         done = subprocess.run((*prefix, "dmesg"), capture_output=True, text=True,
                               errors="replace", check=False, timeout=60,
                               stdin=subprocess.DEVNULL)
-    except (OSError, subprocess.SubprocessError):
+    except OSError, subprocess.SubprocessError:
         return None
     if done.returncode != 0:
         return None
@@ -1803,28 +1803,28 @@ def cmd_join(args: argparse.Namespace) -> int:
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description=(__doc__ or "").splitlines()[0])
+    parser = argparse.ArgumentParser(suggest_on_error=True, description=(__doc__ or "").splitlines()[0])
     parser.add_argument("--root", type=Path, default=ROOT,
                         help="the job's private root (default: ~/verifiedos-instrument)")
     subs = parser.add_subparsers(dest="command", required=True)
-    planning = subs.add_parser("plan", help="refuse a dispatch before any revision is checked out")
+    planning = subs.add_parser("plan", suggest_on_error=True, help="refuse a dispatch before any revision is checked out")
     planning.add_argument("--checkout", type=Path, default=TOOLS.parent,
                           help="the dispatching commit's checkout (default: this one)")
-    stepping = subs.add_parser("step", help="run one step under its limit, sampled")
+    stepping = subs.add_parser("step", suggest_on_error=True, help="run one step under its limit, sampled")
     stepping.add_argument("step", choices=sorted(LIMITS))
     stepping.add_argument("--journal", action="store_true",
                           help="the step is decided by seed's journal under the root")
     stepping.add_argument("argv", nargs=argparse.REMAINDER)
-    instrumenting = subs.add_parser("instrument", help="run one of the side's instruments "
+    instrumenting = subs.add_parser("instrument", suggest_on_error=True, help="run one of the side's instruments "
                                     "under its limit, with the flag its build calls for")
     instrumenting.add_argument("step", choices=INSTRUMENTS)
     instrumenting.add_argument("--side", type=Path, required=True,
                                help="the side revision's checkout")
-    staging = subs.add_parser("stage", help="stage the allowlist for upload")
+    staging = subs.add_parser("stage", suggest_on_error=True, help="stage the allowlist for upload")
     staging.add_argument("--job", required=True, choices=sorted(JOB_STEPS))
-    comparing = subs.add_parser("compare", help="hold the imported switch to the build's")
+    comparing = subs.add_parser("compare", suggest_on_error=True, help="hold the imported switch to the build's")
     comparing.add_argument("--build-receipt", type=Path, required=True)
-    joining = subs.add_parser("join", help="join one artifact per job into report.json")
+    joining = subs.add_parser("join", suggest_on_error=True, help="join one artifact per job into report.json")
     joining.add_argument("--artifacts", type=Path, required=True)
     args = parser.parse_args(argv)
     handlers: dict[str, Callable[[argparse.Namespace], int]] = {

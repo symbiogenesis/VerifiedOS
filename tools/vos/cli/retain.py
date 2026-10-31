@@ -29,7 +29,7 @@ def _selection(value: str, encoding: str) -> retained_evidence.Member:
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description=__doc__,
+    parser = argparse.ArgumentParser(suggest_on_error=True, description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--bundle", required=True, metavar="NAME",
                         help="new directory beneath docs/implementation/retained-evidence")

@@ -261,12 +261,12 @@ def create(root: Path, lane: str, base: str, *, branch: str | None = None
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = argparse.ArgumentParser(suggest_on_error=True, description=__doc__)
     subs = parser.add_subparsers(dest="command", required=True)
-    listing = subs.add_parser("list", help="show primary, default directory and registered worktrees")
-    creating = subs.add_parser("create", help="provision a fresh lane at an explicit base commit")
+    listing = subs.add_parser("list", suggest_on_error=True, help="show primary, default directory and registered worktrees")
+    creating = subs.add_parser("create", suggest_on_error=True, help="provision a fresh lane at an explicit base commit")
     creating.add_argument("lane")
-    verifying = subs.add_parser("verify", help="verify an assigned registered checkout")
+    verifying = subs.add_parser("verify", suggest_on_error=True, help="verify an assigned registered checkout")
     verifying.add_argument("path", type=Path)
     verifying.add_argument("--exact", action="store_true", help="require HEAD equal to --base")
     for sub in (creating, verifying):

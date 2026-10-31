@@ -10,7 +10,7 @@ from vos.storage_index import experiment
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = argparse.ArgumentParser(suggest_on_error=True, description=__doc__)
     parser.add_argument("--json", action="store_true", help="print reproducible measurements and source identities")
     args = parser.parse_args(argv)
     try:

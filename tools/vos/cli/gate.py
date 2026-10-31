@@ -302,7 +302,7 @@ def run(root: Path, fix: bool = False, tests: bool = False, check: bool = False,
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
-        prog="run.py gate",
+        suggest_on_error=True, prog="run.py gate",
         description="Run the host's gates together and answer with one verdict.")
     mode = parser.add_mutually_exclusive_group()
     mode.add_argument("--fix", action="store_true",

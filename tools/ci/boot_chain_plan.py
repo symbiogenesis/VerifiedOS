@@ -29,7 +29,7 @@ def readiness(root: Path, value: str) -> boot_chain.Staged:
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = argparse.ArgumentParser(suggest_on_error=True, description=__doc__)
     parser.add_argument("--timeout", required=True)
     parser.add_argument("--github-output", type=Path,
                         help="append the validated decimal timeout for dependent jobs")

@@ -9,12 +9,12 @@ from vos import env, sailisla
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(prog="run.py sail-isla", description=__doc__)
+    parser = argparse.ArgumentParser(suggest_on_error=True, prog="run.py sail-isla", description=__doc__)
     commands = parser.add_subparsers(dest="operation", required=True)
-    install = commands.add_parser("provision", help="explicit locked downloads and isolated builds")
+    install = commands.add_parser("provision", suggest_on_error=True, help="explicit locked downloads and isolated builds")
     install.add_argument("--jobs", type=int, default=2, help="native build jobs, 1..16")
     install.add_argument("--json", action="store_true")
-    qualify = commands.add_parser("qualify", help="generate witnesses, replay and run defect controls")
+    qualify = commands.add_parser("qualify", suggest_on_error=True, help="generate witnesses, replay and run defect controls")
     qualify.add_argument("--json", action="store_true")
     args = parser.parse_args(argv)
     if args.operation == "provision" and not 1 <= args.jobs <= 16:

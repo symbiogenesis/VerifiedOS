@@ -7,7 +7,7 @@ from vos import corpus, markdownlint
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = argparse.ArgumentParser(suggest_on_error=True, description=__doc__)
     parser.parse_args(argv)
     report = markdownlint.run(corpus.find_root())
     print("\n".join(report.out))

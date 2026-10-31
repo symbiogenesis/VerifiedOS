@@ -193,14 +193,14 @@ def _boot(args: argparse.Namespace, root: Path, recipe: boot.Recipe, record: dic
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(prog="run.py boot", description=(__doc__ or "").splitlines()[0])
+    parser = argparse.ArgumentParser(suggest_on_error=True, prog="run.py boot", description=(__doc__ or "").splitlines()[0])
     sub = parser.add_subparsers(dest="command", required=True)
-    roster = sub.add_parser("roster", help="the contract's roster, and what blocks accepting it")
+    roster = sub.add_parser("roster", suggest_on_error=True, help="the contract's roster, and what blocks accepting it")
     roster.add_argument("--roster", default=boot.CONTRACT,
                         help="a roster table or fixture roster (default: the contract's)")
     roster.set_defaults(run=cmd_roster)
-    compose = sub.add_parser("compose", help="compose a recipe's image and boot record")
-    run = sub.add_parser("run", help="boot a composed image on the golden emulator and digest it")
+    compose = sub.add_parser("compose", suggest_on_error=True, help="compose a recipe's image and boot record")
+    run = sub.add_parser("run", suggest_on_error=True, help="boot a composed image on the golden emulator and digest it")
     for command, handler in ((compose, cmd_compose), (run, cmd_run)):
         command.add_argument("recipe", help="a recipe JSON, relative to the repository root")
         command.add_argument("--out", help="where the image and records are written and read")

@@ -1962,7 +1962,7 @@ def _unvouched_oracle(e: env.Environment) -> str | None:
     rerun = f"run `run.py model oracle`, whose suite writes {receipt.name} once it passes"
     try:
         raw: object = json.loads(receipt.read_text(encoding="utf-8"))
-    except (OSError, ValueError):
+    except OSError, ValueError:
         return f"no readable receipt of a passing oracle suite at {receipt}; {rerun}"
     record = cast("dict[str, object]", raw) if isinstance(raw, dict) else {}
     suite = record.get("suite")
@@ -2468,46 +2468,46 @@ def cmd_keepalive(e: env.Environment, args: argparse.Namespace) -> int:
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    parser = argparse.ArgumentParser(suggest_on_error=True, description=__doc__.splitlines()[0])
     sub = parser.add_subparsers(dest="command", required=True)
 
-    sub.add_parser("typecheck", help="Sail typecheck only, no emission").set_defaults(
+    sub.add_parser("typecheck", suggest_on_error=True, help="Sail typecheck only, no emission").set_defaults(
         run=cmd_typecheck)
 
     bundle = sub.add_parser(
-        "bundle", help="regenerate the model's machine-readable bundle")
+        "bundle", suggest_on_error=True, help="regenerate the model's machine-readable bundle")
     bundle.add_argument("--check", action="store_true",
                         help="emit to a scratch path and hold the tracked bundle "
                              "against it, writing nothing")
     bundle.set_defaults(run=cmd_bundle)
 
-    sub.add_parser("emit", help="emit C++, then validate the profile config").set_defaults(
+    sub.add_parser("emit", suggest_on_error=True, help="emit C++, then validate the profile config").set_defaults(
         run=cmd_emit)
 
-    sub.add_parser("rocq", help="emit the canonical Rocq term through the model's own "
+    sub.add_parser("rocq", suggest_on_error=True, help="emit the canonical Rocq term through the model's own "
                                 "target and write its generation-identity receipt"
                    ).set_defaults(run=cmd_rocq)
 
-    build = sub.add_parser("build", help="configure, build, and run the bundled suite")
+    build = sub.add_parser("build", suggest_on_error=True, help="configure, build, and run the bundled suite")
     build.add_argument("--fast", action="store_true",
                        help="the iterate profile: the canonical build without -g")
     build.add_argument("--background", action="store_true",
                        help="detach the run and return; wait on it with `run.py model wait`")
     build.set_defaults(run=cmd_build)
 
-    simulator = sub.add_parser("simulator", help="build only the Q39 replay simulator dependency")
+    simulator = sub.add_parser("simulator", suggest_on_error=True, help="build only the Q39 replay simulator dependency")
     simulator.add_argument("--out", required=True,
                            help="fresh absolute native output directory in this checkout's lane")
     simulator.set_defaults(run=cmd_simulator)
 
-    wait = sub.add_parser("wait", help="wait for this lane's build, then report it")
+    wait = sub.add_parser("wait", suggest_on_error=True, help="wait for this lane's build, then report it")
     wait.add_argument("--fast", action="store_true", help="the iterate profile's build")
     wait.set_defaults(run=cmd_wait)
 
-    sub.add_parser("lane", help="where this checkout builds, and what is building there"
+    sub.add_parser("lane", suggest_on_error=True, help="where this checkout builds, and what is building there"
                    ).set_defaults(run=cmd_lane)
 
-    smt = sub.add_parser("smt", help="the capability-helper property suite under the "
+    smt = sub.add_parser("smt", suggest_on_error=True, help="the capability-helper property suite under the "
                                      "SMT target, one verdict and one time per property")
     smt.add_argument("--property", action="append", default=[], metavar="NAME",
                      help="run this property alone (repeatable; default: every one)")
@@ -2520,7 +2520,7 @@ def main(argv: list[str] | None = None) -> int:
                      help="solve the files the last run emitted rather than emitting again")
     smt.set_defaults(run=cmd_smt)
 
-    oracle = sub.add_parser("oracle",
+    oracle = sub.add_parser("oracle", suggest_on_error=True,
                             help="build the M0.4 capability oracle and run its suite")
     oracle.add_argument("--resync", action="store_true",
                         help="re-copy the pinned tree before building")
@@ -2528,13 +2528,13 @@ def main(argv: list[str] | None = None) -> int:
                         help="seconds before a bundled test counts as failed")
     oracle.set_defaults(run=cmd_oracle)
 
-    sweep = sub.add_parser("sweep", help="classify riscv-tests against the frozen profile")
+    sweep = sub.add_parser("sweep", suggest_on_error=True, help="classify riscv-tests against the frozen profile")
     sweep.add_argument("--xlen", default="64")
     sweep.add_argument("--timeout", type=int, default=10,
                        help="seconds before a test is classified as a hang")
     sweep.set_defaults(run=cmd_sweep)
 
-    td = sub.add_parser("trace-diff",
+    td = sub.add_parser("trace-diff", suggest_on_error=True,
                         help="adjudicate the curated model against the M0.4 oracle")
     td.add_argument("elf", nargs="*", help="the programs to run on both executors")
     td.add_argument("--corpus", action="store_true",
@@ -2548,7 +2548,7 @@ def main(argv: list[str] | None = None) -> int:
                     help="records of agreement to print before a divergence")
     td.set_defaults(run=cmd_trace_diff)
 
-    cp = sub.add_parser("corpus", help="assemble and run the differential corpus")
+    cp = sub.add_parser("corpus", suggest_on_error=True, help="assemble and run the differential corpus")
     cp.add_argument("member", nargs="*", help="the members to run (default: all)")
     cp.add_argument("--assemble-only", action="store_true",
                     help="write the images and do not run them")
@@ -2561,7 +2561,7 @@ def main(argv: list[str] | None = None) -> int:
                     help="seconds before a member counts as never having reported")
     cp.set_defaults(run=cmd_corpus)
 
-    fz = sub.add_parser("freeze-emit",
+    fz = sub.add_parser("freeze-emit", suggest_on_error=True,
                         help="emit §4's link map and per-site table for the corpus")
     fz.add_argument("member", nargs="*", help="the members to emit (default: all)")
     fz.add_argument("--out", help=f"where to write them (default: "
@@ -2574,28 +2574,28 @@ def main(argv: list[str] | None = None) -> int:
                     help="slot width in bits")
     fz.set_defaults(run=cmd_freeze_emit)
 
-    asm_cmd = sub.add_parser("asm", help="assemble one dialect program")
+    asm_cmd = sub.add_parser("asm", suggest_on_error=True, help="assemble one dialect program")
     asm_cmd.add_argument("source")
     asm_cmd.add_argument("elf")
     asm_cmd.set_defaults(run=cmd_asm)
 
-    sub.add_parser("reference",
+    sub.add_parser("reference", suggest_on_error=True,
                    help="print the frozen golden model's identity"
                    ).set_defaults(run=cmd_reference)
-    sub.add_parser("devicetree",
+    sub.add_parser("devicetree", suggest_on_error=True,
                    help="generate, compile, and size-check the attested devicetree"
                    ).set_defaults(run=cmd_devicetree)
-    ck = sub.add_parser("config-keys", help="compare two configurations' key sets")
+    ck = sub.add_parser("config-keys", suggest_on_error=True, help="compare two configurations' key sets")
     ck.add_argument("generated", type=Path)
     ck.add_argument("profile", type=Path)
     ck.set_defaults(run=cmd_config_keys)
 
-    vc = sub.add_parser("validate-config", help="validate a config against a schema")
+    vc = sub.add_parser("validate-config", suggest_on_error=True, help="validate a config against a schema")
     vc.add_argument("schema", type=Path)
     vc.add_argument("config", type=Path)
     vc.set_defaults(run=cmd_validate_config)
 
-    ka = sub.add_parser("keepalive", help="hold the WSL distribution up for a bounded time")
+    ka = sub.add_parser("keepalive", suggest_on_error=True, help="hold the WSL distribution up for a bounded time")
     ka.add_argument("--hours", type=int, default=env.keepalive_hours())
     ka.add_argument("--stop", action="store_true")
     ka.set_defaults(run=cmd_keepalive)

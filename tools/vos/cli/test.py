@@ -103,7 +103,7 @@ def _declares(name: str) -> bool:
     is left to the worker, whose import reports it."""
     try:
         return _DECLARED.search((TESTS / f"{name}.py").read_text(encoding="utf-8")) is not None
-    except (OSError, UnicodeDecodeError):
+    except OSError, UnicodeDecodeError:
         return False
 
 
@@ -242,7 +242,7 @@ def run(only: str | None = None, slow: bool = False, jobs: int | None = None,
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Run the tools' own behavioral tests.")
+    parser = argparse.ArgumentParser(suggest_on_error=True, description="Run the tools' own behavioral tests.")
     selection = parser.add_mutually_exclusive_group()
     selection.add_argument("--only", metavar="SUBSTRING",
                         help="run only the modules whose name carries this")

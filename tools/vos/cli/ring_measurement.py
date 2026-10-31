@@ -25,7 +25,7 @@ def _evidence(report: dict[str, object]) -> None:
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(prog="run.py ring-measurement", description=__doc__)
+    parser = argparse.ArgumentParser(suggest_on_error=True, prog="run.py ring-measurement", description=__doc__)
     parser.add_argument("capture", type=Path, help="ring capture JSON under roster-measurement")
     parser.add_argument("--expected-identity", type=Path, required=True,
                         help="independent roster, image, composition and capture identities")

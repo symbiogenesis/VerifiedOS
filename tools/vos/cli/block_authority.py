@@ -9,7 +9,7 @@ from vos.dialect import AsmError
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = argparse.ArgumentParser(suggest_on_error=True, description=__doc__)
     parser.add_argument("action", choices=("emit", "check"))
     args = parser.parse_args(argv)
     root = find_root()

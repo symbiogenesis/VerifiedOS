@@ -18,10 +18,10 @@ def _check_checkout(e: env.Environment) -> None:
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(prog="run.py sail-assist", description=__doc__)
+    parser = argparse.ArgumentParser(suggest_on_error=True, prog="run.py sail-assist", description=__doc__)
     subs = parser.add_subparsers(dest="action", required=True)
     for action in ("init", "status", "typecheck", "pause", "resume", "replan", "finish", "recover"):
-        command = subs.add_parser(action)
+        command = subs.add_parser(action, suggest_on_error=True)
         command.add_argument("session")
         command.add_argument("--json", action="store_true")
         if action == "init":

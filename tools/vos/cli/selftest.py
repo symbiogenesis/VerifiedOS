@@ -259,7 +259,7 @@ def _warm_bytecode(template: Path, jobs: int) -> int:
             cached = py_compile.compile(
                 str(source), doraise=True, quiet=2,
                 invalidation_mode=py_compile.PycInvalidationMode.CHECKED_HASH)
-        except (OSError, py_compile.PyCompileError):
+        except OSError, py_compile.PyCompileError:
             return False
         return cached is not None
 
@@ -450,7 +450,7 @@ def _newest_snapshot(cache: Path) -> tuple[Path, int, dict[str, list[int | str]]
                        key=lambda p: int(p.name[1:]), reverse=True):
         try:
             data = json.loads((path / _MANIFEST).read_text(encoding="utf-8"))
-        except (OSError, ValueError):
+        except OSError, ValueError:
             continue
         if not isinstance(data, dict):
             continue
@@ -498,7 +498,7 @@ def _complete_index(root: Path, files: Iterable[str]) -> bool:
                               input="".join(f":{name}\n" for name in names),
                               cwd=root, capture_output=True, encoding="utf-8",
                               errors="replace", check=False, timeout=60)
-    except (OSError, subprocess.TimeoutExpired):
+    except OSError, subprocess.TimeoutExpired:
         return False
     return done.returncode == 0 and done.stdout.splitlines() == ["blob"] * len(names)
 
@@ -2442,7 +2442,7 @@ def _needs_repair(selected: list[Case], shard: Shard | None,
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
-        description="Seed each checker rule a defect it must report.")
+        suggest_on_error=True, description="Seed each checker rule a defect it must report.")
     selection = parser.add_mutually_exclusive_group()
     selection.add_argument("--rule", help="run one rule's case only")
     selection.add_argument("--shard", type=sharding.parse, metavar="INDEX/TOTAL",

@@ -11,7 +11,7 @@ from vos.assembly_compare import compare
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(prog="run.py assembly-compare", description=__doc__)
+    parser = argparse.ArgumentParser(suggest_on_error=True, prog="run.py assembly-compare", description=__doc__)
     parser.add_argument("left", type=Path, help="original baseline assembly")
     parser.add_argument("right", type=Path, help="original candidate assembly")
     parser.add_argument("--json", action="store_true", help="emit identities and pair verdict")

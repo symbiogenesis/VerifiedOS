@@ -34,7 +34,7 @@ STATEMENTS = {
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(prog="run.py phase-stall", description=__doc__)
+    parser = argparse.ArgumentParser(suggest_on_error=True, prog="run.py phase-stall", description=__doc__)
     parser.add_argument("program", type=Path, help="phase-program-v1 JSON declaration")
     parser.add_argument("resources", type=Path, help="digest-bound phase-resources-v1 JSON")
     parser.add_argument("--costs", type=Path, metavar="COSTS",

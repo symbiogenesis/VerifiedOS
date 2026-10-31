@@ -99,7 +99,7 @@ def read_input(path: Path) -> tuple[object, str]:
 
 
 def parser() -> argparse.ArgumentParser:
-    result = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    result = argparse.ArgumentParser(suggest_on_error=True, description=__doc__.splitlines()[0])
     result.add_argument("action", choices=("corpus", "compare", "check",
                                           *EXPERIMENT_SOURCES))
     result.add_argument("--json", action="store_true", help="emit the replayable receipt")

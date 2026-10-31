@@ -11,7 +11,7 @@ from vos.jsonc import Json
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(prog="run.py allocation-churn", description=__doc__)
+    parser = argparse.ArgumentParser(suggest_on_error=True, prog="run.py allocation-churn", description=__doc__)
     parser.add_argument("capture", type=Path, help="complete observation capture JSON")
     parser.add_argument("--expected-identity", required=True, type=Path,
                         help="independently supplied roster, image, composition and capture identities")

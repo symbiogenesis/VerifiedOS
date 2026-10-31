@@ -33,7 +33,7 @@ def read_json(path: Path, inputs: dict[str, str]) -> object:
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = argparse.ArgumentParser(suggest_on_error=True, description=__doc__)
     parser.add_argument("action", choices=("setup", "demo", "encode", "certify", "verify", "proof"))
     parser.add_argument("--instance", type=Path)
     parser.add_argument("--candidate", type=Path)

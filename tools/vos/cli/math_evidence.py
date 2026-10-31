@@ -9,7 +9,7 @@ from vos import math_evidence
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = argparse.ArgumentParser(suggest_on_error=True, description=__doc__)
     parser.add_argument("action", choices=("emit", "check", "shapes"))
     args = parser.parse_args(argv)
     root = Path(__file__).resolve().parents[3]

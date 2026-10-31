@@ -11,7 +11,7 @@ from vos import witness
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description=__doc__, prog="run.py witness")
+    parser = argparse.ArgumentParser(suggest_on_error=True, description=__doc__, prog="run.py witness")
     parser.add_argument("command", choices=("qualify",))
     parser.add_argument("--max-n", type=int, default=6, choices=range(1, 7))
     parser.add_argument("--json", action="store_true")

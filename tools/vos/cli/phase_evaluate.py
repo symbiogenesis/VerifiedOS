@@ -91,7 +91,7 @@ def _check(extraction: Read) -> tuple[Acceptance, Completion, bytes, dict[str, J
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(prog="run.py phase-evaluate", description=__doc__)
+    parser = argparse.ArgumentParser(suggest_on_error=True, prog="run.py phase-evaluate", description=__doc__)
     parser.add_argument("schedule", type=Path)
     parser.add_argument("resources", type=Path)
     parser.add_argument("--costs", type=Path, required=True)
