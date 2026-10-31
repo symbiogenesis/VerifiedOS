@@ -184,13 +184,16 @@ def _invalid_identity() -> None:
         fixture.emit()
         fixture.environment["SAIL_PLUGIN_DIR"] = "relative/plugins"
         output = fixture.emit(passed=False)
-        ensure("plugin directory" in output and not fixture.identity.exists(),
+        ensure("plugin directory" in output, output)
+        ensure(not fixture.identity.exists(),
                "invalid plugin selection retained current input identity")
         fixture.environment.pop("SAIL_PLUGIN_DIR")
         fixture.emit()
         fixture.library.unlink()
         output = fixture.emit(passed=False)
-        ensure("no .sail source files" in output and not fixture.identity.exists(),
+        # CMake wraps prose diagnostics, including between "source" and "files".
+        ensure("no .sail source files" in " ".join(output.split()), output)
+        ensure(not fixture.identity.exists(),
                "empty Sail library retained current input identity")
 
 
