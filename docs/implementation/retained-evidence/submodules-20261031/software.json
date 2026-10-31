@@ -1,0 +1,277 @@
+{
+  "read_date": "2026-10-31",
+  "base_revision": "ef733250bd9c47767dca30446d0b2dfcbe79d0f0",
+  "scope": "Reference gitlink refresh and exact source/license readings only. No source implementation, dependency package, binary or foreign-prover verdict is incorporated; no build, proof replay or differential campaign was run. Fiat-Crypto emission provenance remains unchanged. Nested revisions remain selected by each parent upstream.",
+  "components": [
+    {
+      "path": "upstream/SECOMP",
+      "repository": "secure-compilation/SECOMP",
+      "branch": "ccs-main",
+      "previous_revision": "cbef9c338d23f40db5054c9a3d6f2b3b873e9204",
+      "selected_revision": "cbef9c338d23f40db5054c9a3d6f2b3b873e9204",
+      "disposition": "already_current",
+      "observed_branch_tip": "cbef9c338d23f40db5054c9a3d6f2b3b873e9204"
+    },
+    {
+      "path": "upstream/llvm-project",
+      "repository": "llvm/llvm-project",
+      "branch": "main",
+      "previous_revision": "e4b858025bbc53126faa9aad995ea7f1be8843e1",
+      "selected_revision": "8b066788f709ce1815a2b1ffe01639e98487bb65",
+      "disposition": "updated",
+      "observed_branch_tip": "8b066788f709ce1815a2b1ffe01639e98487bb65",
+      "license_scope": "Apache-2.0 WITH LLVM-exception",
+      "license_files": [
+        {
+          "repository": "llvm/llvm-project",
+          "revision": "8b066788f709ce1815a2b1ffe01639e98487bb65",
+          "path": "LICENSE.TXT",
+          "sha256": "8d85c1057d742e597985c7d4e6320b015a9139385cff4cbae06ffc0ebe89afee",
+          "bytes": 15141,
+          "byte_identical_to_previous_pin": true
+        }
+      ]
+    },
+    {
+      "path": "upstream/cheri-rust",
+      "repository": "CHERIoT-Platform/cheri-rust",
+      "branch": "beta",
+      "previous_revision": "e6026b48d9918557203a2986f6e3cf70779f57ee",
+      "selected_revision": "ba6e0e6c9c40593f7b47d5af071a6ccb9d154cf6",
+      "disposition": "updated",
+      "observed_branch_tip": "ba6e0e6c9c40593f7b47d5af071a6ccb9d154cf6",
+      "license_scope": "Apache-2.0 OR MIT, except component notices",
+      "license_files": [
+        {
+          "repository": "CHERIoT-Platform/cheri-rust",
+          "revision": "ba6e0e6c9c40593f7b47d5af071a6ccb9d154cf6",
+          "path": "COPYRIGHT",
+          "sha256": "172020dbfd5b53a226dfde77616190a48dcff519b0bc0e6deb91a8450782c4af",
+          "bytes": 1571,
+          "byte_identical_to_previous_pin": true
+        },
+        {
+          "repository": "CHERIoT-Platform/cheri-rust",
+          "revision": "ba6e0e6c9c40593f7b47d5af071a6ccb9d154cf6",
+          "path": "LICENSE-APACHE",
+          "sha256": "62c7a1e35f56406896d7aa7ca52d0cc0d272ac022b5d2796e7d6905db8a3636a",
+          "bytes": 9723,
+          "byte_identical_to_previous_pin": true
+        },
+        {
+          "repository": "CHERIoT-Platform/cheri-rust",
+          "revision": "ba6e0e6c9c40593f7b47d5af071a6ccb9d154cf6",
+          "path": "LICENSE-MIT",
+          "sha256": "b71bd43a069ca0641a9ecfe585ca7b3c53b5cc1608f8b68321168698e28b5ea1",
+          "bytes": 1068,
+          "byte_identical_to_previous_pin": true
+        },
+        {
+          "repository": "CHERIoT-Platform/cheri-rust",
+          "revision": "ba6e0e6c9c40593f7b47d5af071a6ccb9d154cf6",
+          "path": "REUSE.toml",
+          "sha256": "bc1e72e255bbd9ac52491e99c61f5110dee151a3ccada2f8e0d5ac94472fc14e",
+          "bytes": 6610,
+          "byte_identical_to_previous_pin": false
+        }
+      ]
+    },
+    {
+      "path": "upstream/cheri-compressed-cap",
+      "repository": "CTSRD-CHERI/cheri-compressed-cap",
+      "branch": "master",
+      "previous_revision": "5b3dfd25ae49a62594477ba25be1371d29774cf9",
+      "selected_revision": "5b3dfd25ae49a62594477ba25be1371d29774cf9",
+      "disposition": "already_current",
+      "observed_branch_tip": "5b3dfd25ae49a62594477ba25be1371d29774cf9"
+    },
+    {
+      "path": "upstream/qemu",
+      "repository": "CTSRD-CHERI/qemu",
+      "branch": "qemu-cheri",
+      "previous_revision": "d0bb921cd6d34d1f8f4b3dafd279aa571795c938",
+      "selected_revision": "d0bb921cd6d34d1f8f4b3dafd279aa571795c938",
+      "disposition": "already_current",
+      "observed_branch_tip": "d0bb921cd6d34d1f8f4b3dafd279aa571795c938"
+    },
+    {
+      "path": "upstream/fiat-crypto",
+      "repository": "mit-plv/fiat-crypto",
+      "branch": "master",
+      "previous_revision": "1e721c6f18c43b90922e7bc57fd64848e5cff2be",
+      "selected_revision": "1e721c6f18c43b90922e7bc57fd64848e5cff2be",
+      "disposition": "already_current",
+      "observed_branch_tip": "1e721c6f18c43b90922e7bc57fd64848e5cff2be"
+    },
+    {
+      "path": "upstream/hacl-star",
+      "repository": "hacl-star/hacl-star",
+      "branch": "main",
+      "previous_revision": "504c2987452f87fe44bce9b9f12e19d6e051761f",
+      "selected_revision": "f557259007db9933442dde10aa995c1b00bd3446",
+      "disposition": "updated",
+      "observed_branch_tip": "f557259007db9933442dde10aa995c1b00bd3446",
+      "license_scope": "Apache-2.0",
+      "license_files": [
+        {
+          "repository": "hacl-star/hacl-star",
+          "revision": "f557259007db9933442dde10aa995c1b00bd3446",
+          "path": "LICENSE",
+          "sha256": "c5accbbd8546e94c34aed24afe689a617627d18eed5a6c48277e48db57c23851",
+          "bytes": 11356,
+          "byte_identical_to_previous_pin": true
+        }
+      ]
+    },
+    {
+      "path": "upstream/libjade",
+      "repository": "formosa-crypto/libjade",
+      "branch": "main",
+      "previous_revision": "76579946c7c12078fd854ff7226bc0e4a31fbdf4",
+      "selected_revision": "76579946c7c12078fd854ff7226bc0e4a31fbdf4",
+      "disposition": "already_current",
+      "observed_branch_tip": "76579946c7c12078fd854ff7226bc0e4a31fbdf4"
+    },
+    {
+      "path": "upstream/s2n-bignum",
+      "repository": "awslabs/s2n-bignum",
+      "branch": "main",
+      "previous_revision": "45ad6720d0a86b588661f2d699cc383d0ff89e71",
+      "selected_revision": "573ea98f6a2eea3172f6146f83b86b9e526ce2dd",
+      "disposition": "updated",
+      "observed_branch_tip": "573ea98f6a2eea3172f6146f83b86b9e526ce2dd",
+      "license_scope": "Apache-2.0 OR ISC OR MIT-0",
+      "license_files": [
+        {
+          "repository": "awslabs/s2n-bignum",
+          "revision": "573ea98f6a2eea3172f6146f83b86b9e526ce2dd",
+          "path": "LICENSE",
+          "sha256": "41c6380384dc6065456d01405ef0b43e5fe39ba1bccc4ec67801cc66142728e5",
+          "bytes": 12053,
+          "byte_identical_to_previous_pin": true
+        },
+        {
+          "repository": "awslabs/s2n-bignum",
+          "revision": "573ea98f6a2eea3172f6146f83b86b9e526ce2dd",
+          "path": "NOTICE",
+          "sha256": "d4290ed64c2edd0fce1d84e3f9dfb2881240fe534def76b8cd29ed6af683e287",
+          "bytes": 67,
+          "byte_identical_to_previous_pin": true
+        }
+      ]
+    }
+  ],
+  "source_comparisons": [
+    {
+      "repository": "CHERIoT-Platform/cheri-rust",
+      "revision": "ba6e0e6c9c40593f7b47d5af071a6ccb9d154cf6",
+      "path": "README.md",
+      "sha256": "cd51bc3866054a6d7a06b43f4e366323e7c6e7e3cfb1613740b3a855fede0cd2",
+      "bytes": 4915,
+      "byte_identical_to_previous_pin": true
+    },
+    {
+      "repository": "CHERIoT-Platform/cheri-rust",
+      "revision": "ba6e0e6c9c40593f7b47d5af071a6ccb9d154cf6",
+      "path": "compiler/rustc_target/src/spec/targets/riscv32cheriot_unknown_cheriotrtos.rs",
+      "sha256": "ef60177ae138054868d4a6fabbdc121a4bf80966e193d5e446fd5e18d9aae41d",
+      "bytes": 1603,
+      "byte_identical_to_previous_pin": true
+    },
+    {
+      "repository": "CHERIoT-Platform/cheri-rust",
+      "revision": "ba6e0e6c9c40593f7b47d5af071a6ccb9d154cf6",
+      "path": "tests/codegen-llvm/cheriot/abi-compartment-call.rs",
+      "sha256": "77923ea34ce0b03833951fa3fd98a466be591a2214930bc3ea65419f3dbc8eb6",
+      "bytes": 1162,
+      "byte_identical_to_previous_pin": true
+    },
+    {
+      "repository": "CHERIoT-Platform/cheri-rust",
+      "revision": "ba6e0e6c9c40593f7b47d5af071a6ccb9d154cf6",
+      "path": "tests/codegen-llvm/cheriot/abi-library-call.rs",
+      "sha256": "02d5c704a9ca8199b0c265a4b13c52498abb585ba7f9f5d71c81fe7ffe9f28c5",
+      "bytes": 656,
+      "byte_identical_to_previous_pin": true
+    },
+    {
+      "repository": "CHERIoT-Platform/cheri-rust",
+      "revision": "ba6e0e6c9c40593f7b47d5af071a6ccb9d154cf6",
+      "path": "tests/codegen-llvm/cheriot/cap_import.rs",
+      "sha256": "384512b17e44cad8a670de41b6349178e411a49c496c8a50cc61fc2f3e92efac",
+      "bytes": 1311,
+      "byte_identical_to_previous_pin": true
+    },
+    {
+      "repository": "awslabs/s2n-bignum",
+      "revision": "573ea98f6a2eea3172f6146f83b86b9e526ce2dd",
+      "path": "arm/proofs/mlkem_ntt.ml",
+      "sha256": "6d45392e7c55d0990ca36b06b07379dff51a9b8f3e3c44d704ae0f2725ef8410",
+      "bytes": 35228,
+      "byte_identical_to_previous_pin": true
+    },
+    {
+      "repository": "awslabs/s2n-bignum",
+      "revision": "573ea98f6a2eea3172f6146f83b86b9e526ce2dd",
+      "path": "arm/proofs/sha3_keccak_f1600.ml",
+      "sha256": "987a665bb06543ac4becb4132702bf228c928f0185d8d4a097b613b51d82d432",
+      "bytes": 28037,
+      "byte_identical_to_previous_pin": true
+    },
+    {
+      "repository": "awslabs/s2n-bignum",
+      "revision": "573ea98f6a2eea3172f6146f83b86b9e526ce2dd",
+      "path": "arm/proofs/bignum_montmul_p256.ml",
+      "sha256": "f6ba3ab2aea3613475a9405b7b39cf5e3bbfb6a2988b6a81cfeef3bfcf36e02e",
+      "bytes": 86092,
+      "byte_identical_to_previous_pin": true
+    },
+    {
+      "repository": "awslabs/s2n-bignum",
+      "revision": "573ea98f6a2eea3172f6146f83b86b9e526ce2dd",
+      "path": "SOUNDNESS.md",
+      "sha256": "76000950f34735a93e8df1d10e2c74101d41e13c19182b355ab059744c712a5e",
+      "bytes": 19131,
+      "byte_identical_to_previous_pin": true
+    },
+    {
+      "repository": "hacl-star/hacl-star",
+      "revision": "f557259007db9933442dde10aa995c1b00bd3446",
+      "path": "specs/Spec.SHA3.fst",
+      "sha256": "430cd9130efb3d9d3c0ea222d3575c3b52c220687939998a48ae6c414c52b546",
+      "bytes": 7140,
+      "byte_identical_to_previous_pin": true
+    },
+    {
+      "repository": "CHERIoT-Platform/llvm-project",
+      "revision": "675963fce3ae380774038a7e001ad33f63c8dcdd",
+      "path": "llvm/LICENSE.TXT",
+      "sha256": "8d85c1057d742e597985c7d4e6320b015a9139385cff4cbae06ffc0ebe89afee",
+      "bytes": 15141,
+      "byte_identical_to_previous_pin": true
+    },
+    {
+      "repository": "CHERIoT-Platform/llvm-project",
+      "revision": "675963fce3ae380774038a7e001ad33f63c8dcdd",
+      "path": "clang/LICENSE.TXT",
+      "sha256": "ebcd9bbf783a73d05c53ba4d586b8d5813dcdf3bbec50265860ccc885e606f47",
+      "bytes": 15140,
+      "byte_identical_to_previous_pin": true
+    },
+    {
+      "repository": "CHERIoT-Platform/llvm-project",
+      "revision": "675963fce3ae380774038a7e001ad33f63c8dcdd",
+      "path": "lld/LICENSE.TXT",
+      "sha256": "f7891568956e34643eb6a0db1462db30820d40d7266e2a78063f2fe233ece5a0",
+      "bytes": 15138,
+      "byte_identical_to_previous_pin": true
+    }
+  ],
+  "rust_nested_llvm": {
+    "previous_revision": "6614c9be42d691e7fb0ccd1f9dd8dee74de4f733",
+    "selected_revision": "675963fce3ae380774038a7e001ad33f63c8dcdd",
+    "repository": "CHERIoT-Platform/llvm-project",
+    "path": "src/llvm-project",
+    "qualification": "Only the selected license texts and Rust donor interfaces were inspected; no nested compiler build or full closure qualification."
+  }
+}

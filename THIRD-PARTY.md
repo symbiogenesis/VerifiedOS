@@ -170,21 +170,26 @@ The Git index contains a gitlink for each component below, with no source files 
 
 Dependency updates resolve the development branches in [.gitmodules](.gitmodules) to fixed commits and review the licenses at changed pins. Nested submodules retain the revisions selected by their parent upstream. Historical measurements identify the editions actually built.
 
-The development branches in the table were resolved and their selected license
-instruments read on 2026-10-19. The changed Sail, SECOMP, LLVM, tag-controller,
-OpenTitan, Ibex, compressed-capability, Katamaran and Fiat-Crypto instruments
-retain their preceding grants. Mocha's `REUSE.toml` manifests spell the holder
-as lowRISC and contributors (COSMIC project); its seven `LICENSES/` texts are
-unchanged. Nested dependencies remain at the revisions their parent selects.
+The development refs were resolved on 2026-10-31. The exact changed-pin
+license instruments and source comparisons are recorded in the
+[model/proof census](docs/implementation/retained-evidence/submodules-20261031/model.json),
+[hardware census](docs/implementation/retained-evidence/submodules-20261031/hardware.json)
+and [software census](docs/implementation/retained-evidence/submodules-20261031/software.json).
+The selected instruments retain their preceding grants; component notices and
+nested dependencies keep their own scope. No nested revision is overridden.
 
-Mocha's consumed UART register/status sources, OpenTitan primitive packages,
-assertion header and primitive libraries are byte-identical to their preceding
-reading. Its platform and testbench have changed; the device package records
-the current owner revision, while imported-core measurements retain the exact
-editions they ran. The OpenTitan SECDED assertion and generator, sensor controller
-and alert RTL cited by the hardware surveys are unchanged. AST adds I3C memory
-configuration wiring without implementing the physical detectors its open-source
-selection leaves inactive.
+Mocha's consumed UART register/status sources, primitive packages, assertion
+header and primitive libraries are byte-identical to their preceding reading.
+The register package is regenerated from the selected checkout. Imported-core
+measurements retain the exact editions they ran. The OpenTitan source readings in
+[the hardware survey](docs/assurance/proof-reuse/hardware.md#hw-14-opentitan-secded-formal-assertions-and-generator)
+and [sensor contract](docs/hardware/environmental-fault-sensors.md) distinguish
+the selected reference from any later local qualification.
+
+Perennial retains its reviewed Rocq PoWER correspondence edition because the
+current `master` no longer contains `src/program_proof/verus/wrs.v`, the source
+selected by the storage consumer. Its census records the candidate and refusal;
+advancing a reference must preserve its named interface or qualify a replacement.
 
 SECOMP's current reference differs from the M1.1 edition only in `README.md`.
 The contained compiler and ABI measurements retain their historical start-from
@@ -205,36 +210,36 @@ The consumed rows cover all direct tool access. No proof under [proofs/](proofs/
 
 | Submodule | Upstream | Pin | License | Standing | Use |
 | --- | --- | --- | --- | --- | --- |
-| `upstream/sail-riscv` | `riscv/sail-riscv` | `cd3f185e` | `BSD-2-Clause` | Comparison reference for the curated model. The completion log identifies the last semantic reconciliation; this pin does not replace the curated ISA. | read |
+| `upstream/sail-riscv` | `riscv/sail-riscv` | `a83603b6` | `BSD-2-Clause` | Comparison reference for the curated model. The completion log identifies the last semantic reconciliation; this pin does not replace the curated ISA. | read |
 | `upstream/sail-cheri-riscv` | `CTSRD-CHERI/sail-cheri-riscv` | `cf36cfd4` | `BSD-2-Clause` | Capability-semantics oracle built by `run.py model oracle`. | consumed |
 | `upstream/SECOMP` | `secure-compilation/SECOMP` | `cbef9c33` | INRIA Non-Commercial License Agreement, over a dual-licensed subset | CompCert fork measured in a separate, unpublished local repository. No build here invokes it. | read |
-| `upstream/llvm-project` | `llvm/llvm-project` | `e4b85802`, on `main` | `Apache-2.0 WITH LLVM-exception` | Untrusted disassembly and object tooling for M1.4 to re-home to the frozen dialect, reusing the in-tree assembler's generated encoding and image composition. | pinned to read later |
-| `upstream/cheri-rust` | `CHERIoT-Platform/cheri-rust` | `e6026b48`, on `beta` | `Apache-2.0 OR MIT`, except as noted by `COPYRIGHT` and the dependency notices | Selected functional Rust producer baseline for R-18-014/R-18-015's future certifying Rust implementation; adapt its capability-aware compiler rather than construct that functional port anew. The donor is RV32E/CHERIoT, not the frozen target. No build here invokes it and no compiler, library or proof source is conveyed. | read |
-| `upstream/mocha` | `lowRISC/mocha` | `f9bacf5d`, on `main` | `Apache-2.0` for lowRISC content; vendored subtrees have the terms below | Bring-up SoC used to author the device and tag-fabric descriptions in [the RTL delta](docs/hardware/rtl-reparameterization-delta.md) and [provenance record](rtl/synthesis-provenance.md). `run.py rtl devicescheck` reads its UART register and status declarations. `run.py rtl elaborate` reads the primitive packages, assertion header and primitive libraries of its vendored OpenTitan tree, the edition it integrates the imported core with. | consumed |
+| `upstream/llvm-project` | `llvm/llvm-project` | `8b066788`, on `main` | `Apache-2.0 WITH LLVM-exception` | Untrusted disassembly and object tooling for M1.4 to re-home to the frozen dialect, reusing the in-tree assembler's generated encoding and image composition. | pinned to read later |
+| `upstream/cheri-rust` | `CHERIoT-Platform/cheri-rust` | `ba6e0e6c`, on `beta` | `Apache-2.0 OR MIT`, except as noted by `COPYRIGHT` and the dependency notices | Selected functional Rust producer baseline for R-18-014/R-18-015's future certifying Rust implementation; adapt its capability-aware compiler rather than construct that functional port anew. The donor is RV32E/CHERIoT, not the frozen target. No build here invokes it and no compiler, library or proof source is conveyed. | read |
+| `upstream/mocha` | `lowRISC/mocha` | `6c858825`, on `main` | `Apache-2.0` for lowRISC content; vendored subtrees have the terms below | Bring-up SoC used to author the device and tag-fabric descriptions in [the RTL delta](docs/hardware/rtl-reparameterization-delta.md) and [provenance record](rtl/synthesis-provenance.md). `run.py rtl devicescheck` reads its UART register and status declarations. `run.py rtl elaborate` reads the primitive packages, assertion header and primitive libraries of its vendored OpenTitan tree, the edition it integrates the imported core with. | consumed |
 | `upstream/cva6-cheri` | `lowRISC/cva6-cheri` | `0c7b3adf` | `SHL-0.51` at the root; file-specific `Apache-2.0 WITH SHL-2.0` and `Apache-2.0 WITH SHL-2.1` | C-class scalar datapath adapted to the 64+1-bit profile. `run.py rtl elaborate` builds the baseline and curated configurations. | consumed |
-| `upstream/axi-cheri-tagcontroller` | `Capabilities-Limited/axi_cheri_tagcontroller` | `c974f0c6` | `SHL-0.51` | Tag-fabric survey reference. The flat-store design in the RTL delta uses CVA6-CHERI's older nested pin, identified in the provenance record. | read |
-| `upstream/opentitan` | `lowRISC/opentitan` | `10738f38`, on `master` | `Apache-2.0` | RoT peripheral reference. [The hardware proof-reuse survey](docs/assurance/proof-reuse/hardware.md) cites its SECDED assertions and generator at this pin. | read |
-| `upstream/ibex` | `lowRISC/ibex` | `1b29dae8` | `Apache-2.0` | RoT functional reference. | pinned to read later |
-| `upstream/cheriot-ibex` | `microsoft/cheriot-ibex` | `531ca2ec` | `Apache-2.0` | Conformance-methodology reference: its `dv/formal` carries the formal artifact [HW-10](docs/assurance/proof-reuse/hardware.md#hw-10-cheriot-ibex-observational-rtlsail-verification) reads. The profile does not adopt its RV32 capability encoding. Its RTL has had no commit since 2026-03-05, while `lowRISC/ibex` `master` has carried the maintained CHERIoT v1.0 RTL since `f1cea015`, which the Ibex pin includes. That is a restructured integration: it renames the modules and drops cheriot-ibex's stack zeroing, TBRE revocation engine and legacy instruction formats, so the `dv/formal` artifact does not target it. The milestone that reads this reference decides which of the two it means. | pinned to read later |
+| `upstream/axi-cheri-tagcontroller` | `Capabilities-Limited/axi_cheri_tagcontroller` | `adffef32` | `SHL-0.51` | Tag-fabric survey reference. The flat-store design in the RTL delta uses CVA6-CHERI's older nested pin, identified in the provenance record. | read |
+| `upstream/opentitan` | `lowRISC/opentitan` | `41049e9d`, on `master` | `Apache-2.0` | RoT peripheral reference. [The hardware proof-reuse survey](docs/assurance/proof-reuse/hardware.md) cites its SECDED assertions and generator at this pin. | read |
+| `upstream/ibex` | `lowRISC/ibex` | `f4515520` | `Apache-2.0` | RoT functional reference. | pinned to read later |
+| `upstream/cheriot-ibex` | `microsoft/cheriot-ibex` | `cafaeae0` | `Apache-2.0` | Conformance-methodology reference: its `dv/formal` carries the formal artifact [HW-10](docs/assurance/proof-reuse/hardware.md#hw-10-cheriot-ibex-observational-rtlsail-verification) reads. The profile does not adopt its RV32 capability encoding. Its RTL has had no commit since 2026-03-05, while `lowRISC/ibex` `master` has carried the maintained CHERIoT v1.0 RTL since `f1cea015`, which the Ibex pin includes. That is a restructured integration: it renames the modules and drops cheriot-ibex's stack zeroing, TBRE revocation engine and legacy instruction formats, so the `dv/formal` artifact does not target it. The milestone that reads this reference decides which of the two it means. | pinned to read later |
 | `upstream/cheri-compressed-cap` | `CTSRD-CHERI/cheri-compressed-cap` | `5b3dfd25` | `BSD-2-Clause`; `test/FuzzedDataProvider.h` is `Apache-2.0 WITH LLVM-exception` | Library narrowed to the frozen 64+1-bit fields in the unpublished emulator repository, from the edition the completion log records. No build or check here uses it. | pinned for a struck milestone |
 | `upstream/qemu` | `CTSRD-CHERI/qemu` | `d0bb921c`, on `qemu-cheri` | `GPL-2.0`, with the [file-specific terms](#development-tools-contained-by-use) below | Base of the unpublished fast-emulator fork; its `VERSION` is 7.0.0. Nothing here runs or vendors the fork. | pinned for a struck milestone |
 | `upstream/rupicola` | `mit-plv/rupicola` | `d33f7024` | `MIT` | Relational-compilation toolkit for the GC-free lowering review, with Bedrock2 as a nested submodule. The lowering switch uses released opam packages. | pinned to read later |
-| `upstream/katamaran` | `katamaran-project/katamaran` | `8b953fe8` | `BSD-2-Clause` | Deferred separation-logic verifier using its own deep embedding rather than Sail; selected merged PR 73 import cleanup. | pinned to read later |
+| `upstream/katamaran` | `katamaran-project/katamaran` | `80985afd` | `BSD-2-Clause` | Deferred separation-logic verifier using its own deep embedding rather than Sail; includes PR 73 import cleanup and subsequent universal-contract work. | pinned to read later |
 | `upstream/sail-katamaran-backend` | `katamaran-project/sail-backend` | `c9b1cd02` | `BSD-2-Clause`, stated in packaging; see below | Translation backend for the Katamaran route. | pinned to read later |
 | `upstream/cerise` | `logsem/cerise` | `9eb72e67` | `BSD-3-Clause`; `extra/` is `BSD-2-Clause` | Capability-machine contract and sentry-reasoning reference for the kernel milestone. | pinned to read later |
 | `upstream/cerisier` | `logsem/cerisier` | `57ed584a` | `BSD-3-Clause`; `extra/` is `BSD-2-Clause` | Extension of that contract to local attestation. | pinned to read later |
 | `upstream/sail-cheri-riscv-verif` | `CTSRD-CHERI/sail-cheri-riscv-verif` | `4da8fd10` | `BSD-2-Clause` | Source of [the transcribed property suite](model/model/unit_tests/cap_properties.sail), checked by `run.py model smt` at the frozen widths. No tool opens this pin; Isla is not installed. | read |
 | `upstream/TestRIG` | `CTSRD-CHERI/TestRIG` | `70717956` | `BSD-2-Clause` | `LICENSE` reviewed at the pin. Its `RVFI-DII.md` informs [the local protocol codec](tools/vos/rvfi.py). The upstream engine is TestRIG's own submodule; no build here uses this pin. | read |
 | `upstream/fiat-crypto` | `mit-plv/fiat-crypto` | `1e721c6f` | `MIT OR Apache-2.0 OR BSD-1-Clause`; this project elects `Apache-2.0` under `COPYRIGHT` | Classical field-arithmetic generator. The locked-kernel derivation at this pin emits the tracked 32-bit 25519 and P256 inclusion headers; the generator and its dependencies remain external build inputs. | generated field headers incorporated |
-| `upstream/hacl-star` | `hacl-star/hacl-star` | `504c2987` | `Apache-2.0` | Planned behavioral comparator from the F*/Low* lineage for classical primitives, among them SHA-2, SHA-3, HMAC, HKDF, ChaCha20-Poly1305, AES-GCM, X25519, Ed25519 signatures, P256 ECDSA and ECDH, and secp256k1 ECDSA. Its AES-GCM exists only as Vale assembly for x86-64 and ppc64le (`dist/gcc-compatible/aesgcm-*`), so the aarch64 guest cannot run that comparison. Its only post-quantum code is FrodoKEM; it carries no ML-KEM, ML-DSA or SLH-DSA. No differential run, build, copying, or extraction occurs here. | pinned to read later |
+| `upstream/hacl-star` | `hacl-star/hacl-star` | `f5572590` | `Apache-2.0` | Planned behavioral comparator from the F*/Low* lineage for classical primitives, among them SHA-2, SHA-3, HMAC, HKDF, ChaCha20-Poly1305, AES-GCM, X25519, Ed25519 signatures, P256 ECDSA and ECDH, and secp256k1 ECDSA. Its AES-GCM exists only as Vale assembly for x86-64 and ppc64le (`dist/gcc-compatible/aesgcm-*`), so the aarch64 guest cannot run that comparison. Its only post-quantum code is FrodoKEM; it carries no ML-KEM, ML-DSA or SLH-DSA. No differential run, build, copying, or extraction occurs here. | pinned to read later |
 | `upstream/libjade` | `formosa-crypto/libjade` | `76579946` | `CC0-1.0 OR Apache-2.0` | Planned independent comparator from the Jasmin/EasyCrypt lineage, with the same usage limits. Its primitives sit under `oldsrc-should-delete/`: SHA-2, SHA-3, SHAKE, ChaCha, Salsa20, Poly1305, Kyber512, Kyber768, ML-KEM-768, X-Wing and Falcon-512 verification, with Curve25519 in the nested `formosa-25519`. None is a conforming ML-KEM-1024 or an ML-DSA-87: the nested `formosa-mlkem` this pin selects carries `code/jasmin/1024/{ref,avx2,avx2_stack}` with `MLKEM_K = 4`, an unfinished port from K=3 whose key generation and encapsulation hash 1,184 of the 1,568 public-key bytes. Neither that repository's root nor those sources state a licence, and libjade's terms are not read as covering it, as [the reading of a later revision](docs/assurance/proof-reuse/crypto.md#formosa-ml-kem-correctness-and-ind-cca) also records. Every implementation targets AMD64 only, so a differential run needs an x86-64 machine, not the aarch64 guest. The nested `formosa-mlkem` submodule has an SSH URL: initialize this pin non-recursively, or pass `-c url.https://github.com/.insteadOf=git@github.com:` to a recursive fetch without SSH credentials. | pinned to read later |
 | `upstream/perennial` | `mit-pdos/perennial` | `65884f24` | `MIT` | Selected Rocq PoWER write/crash-interface source for M5.3d's later storage refinement. The pinned `LICENSE` has an unnamed 2021 copyright notice, which an incorporation must preserve. The local bit-tear relation, exact assumptions and locked-prover compatibility remain unqualified; no Goose runtime or proof dependency is incorporated. | read |
-| `upstream/s2n-bignum` | `awslabs/s2n-bignum` | `45ad6720` | `Apache-2.0 OR ISC OR MIT-0` | Exact NTT and Keccak functional/public-event proof reference for M3.4b and M7.1f. The root license offers the stated choices; component notices still apply. Its HOL Light/AArch64 or x86 proofs supply no CHERI-Sail theorem or admitted assembly leaf. | read |
+| `upstream/s2n-bignum` | `awslabs/s2n-bignum` | `573ea98f` | `Apache-2.0 OR ISC OR MIT-0` | Exact NTT and Keccak functional/public-event proof reference for M3.4b and M7.1f. The root license offers the stated choices; component notices still apply. Its HOL Light/AArch64 or x86 proofs supply no CHERI-Sail theorem or admitted assembly leaf. | read |
 | `upstream/vasn` | `zhouxt1/vasn` | `5db5727c` | `MIT` | Source and independent PER-oracle candidate for R-18-029's unpriced ASN.1-to-Narcissus front end. The license credits Xiaotian Zhou, 2026. No Verus runtime, SSE2 leaf, schema, generated parser or proof dependency is incorporated. | read |
 
 ### Proof source binding scope
 
-The reference pins above select the exact source editions in the [reuse binding handoff](docs/implementation/reuse-source-bindings.md). Their source license instruments were read at those editions on 2026-10-23: Perennial's [LICENSE](https://github.com/mit-pdos/perennial/blob/65884f2494ce65c5369094050dfb7eca19299152/LICENSE), s2n-bignum's [LICENSE](https://github.com/awslabs/s2n-bignum/blob/45ad6720d0a86b588661f2d699cc383d0ff89e71/LICENSE), and vasn's [LICENSE](https://github.com/zhouxt1/vasn/blob/5db5727c06a3e996be6f87c3f0fa19d37817b739/LICENSE). Only URLs and gitlinks are distributed here. Initializing one obtains external source under its own terms; no recursive dependency, package, binary or foreign-prover verdict is admitted by the pin. Implementation, extraction or redistribution requires the selected closure's own license and semantic qualification at its existing owner. The Perennial selection retains the Rocq crash interface rather than its default Lean branch.
+The reference pins above select the exact source editions in the [reuse binding handoff](docs/implementation/reuse-source-bindings.md). Perennial's retained source license was re-read on 2026-10-31, as was s2n-bignum's updated instrument; vasn's unchanged reading is dated 2026-10-23: Perennial's [LICENSE](https://github.com/mit-pdos/perennial/blob/65884f2494ce65c5369094050dfb7eca19299152/LICENSE), s2n-bignum's [LICENSE](https://github.com/awslabs/s2n-bignum/blob/573ea98f6a2eea3172f6146f83b86b9e526ce2dd/LICENSE), and vasn's [LICENSE](https://github.com/zhouxt1/vasn/blob/5db5727c06a3e996be6f87c3f0fa19d37817b739/LICENSE). Only URLs and gitlinks are distributed here. Initializing one obtains external source under its own terms; no recursive dependency, package, binary or foreign-prover verdict is admitted by the pin. Implementation, extraction or redistribution requires the selected closure's own license and semantic qualification at its existing owner. The Perennial selection retains the Rocq crash interface rather than its default Lean branch.
 
 ### RTL license scope
 
@@ -272,11 +277,12 @@ The pinned editions have the following terms.
 
 **Katamaran and its Sail backend.** Katamaran's `LICENSE` is BSD-2-Clause, copyright 2019 Dominique Devriese, Georgy Lukyanov, Sander Huyghebaert, and Steven Keuchel, developed at the Vrije Universiteit Brussel Software Languages Lab.
 
-At selected merged PR head `8b953fe8f17bb4553792c63665d368dc7f6bbd26`, the
+At the selected `80985afd8164c31902181d41885e06e2df6dfe6d` reference, the
 license has SHA-256
 `6b961710f8d256461e624d0659fbaade43505b2ae709f91c8f0c3e34a08d010a`.
-The sole source delta from the preceding reference is PR 73's unused
-`Program.Equality` import removal in six Iris modules. This gitlink remains a
+The reference includes PR 73's unused `Program.Equality` import removal and later
+universal-contract and shallow-executor soundness work. `theories/Notations.v`
+remains byte-identical to the preceding reference. This gitlink remains a
 source reference for the separately commissioned machine-logic continuation;
 no Katamaran source, compiled library or binary is redistributed or accepted
 as a proof dependency by this update. Historical dependency-trial identities
@@ -632,15 +638,22 @@ These reviews support future incorporation decisions in the [implementation plan
 
 ### Selected implementation-source reuse
 
-The 2026-10-12 reading selects implementation starting points and proof-interface
-patterns at the owners linked below. Only CHERIoT Rust has a new gitlink; no
-compiler, runtime, analyzer, proof source, compiled object or dependency package
-from this reading is incorporated or conveyed. Each actual incorporation must
-read its full closure; source selection supplies no accepted local proof.
+The readings below select implementation starting points and proof-interface
+patterns at their linked owners. CHERIoT Rust's selected source and nested LLVM
+instruments were re-read on 2026-10-31. No compiler, runtime, analyzer, proof
+source, compiled object or dependency package is incorporated or conveyed by
+these selections. Each actual incorporation must read its full closure; source
+selection supplies no accepted local proof.
+
+Rust's `REUSE.toml` adds an annotation for
+`compiler/rustc_middle/src/ptrauth/llvm_siphash/tests.rs`, retaining its LLVM and
+Rust notices under `Apache-2.0 WITH LLVM-exception AND (Apache-2.0 OR MIT)`.
+The root grants and nested LLVM license texts are unchanged; the root grant does
+not replace this file-specific declaration.
 
 | Source and exact edition | Instruments read | Intended use and remaining licence boundary |
 | --- | --- | --- |
-| [CHERIoT Rust `e6026b48`](https://github.com/CHERIoT-Platform/cheri-rust/tree/e6026b48d9918557203a2986f6e3cf70779f57ee) | `LICENSE-MIT`, `LICENSE-APACHE` and `COPYRIGHT`: Apache-2.0 OR MIT except stated exceptions; `src/llvm-project` pin `6614c9be` has its own `llvm/`, `clang/` and `lld/` instruments, Apache-2.0 with LLVM exceptions, legacy NCSA text and file-specific exceptions | Functional capability-aware compiler baseline for the [certifying Rust producer](docs/assurance/proof-reuse/languages.md#cheriot-rust-selected-functional-capability-aware-compiler-baseline). No compiler source is redistributed. Future build/runtime closure, standard libraries and conveyed dependencies retain their separate notices; the root grant does not classify all Cargo/LLVM dependencies. |
+| [CHERIoT Rust `ba6e0e6c`](https://github.com/CHERIoT-Platform/cheri-rust/tree/ba6e0e6c9c40593f7b47d5af071a6ccb9d154cf6) | `LICENSE-MIT`, `LICENSE-APACHE` and `COPYRIGHT`: Apache-2.0 OR MIT except stated exceptions; `src/llvm-project` pin `675963fc` has its own `llvm/`, `clang/` and `lld/` instruments, Apache-2.0 with LLVM exceptions, legacy NCSA text and file-specific exceptions | Functional capability-aware compiler baseline for the [certifying Rust producer](docs/assurance/proof-reuse/languages.md#cheriot-rust-selected-functional-capability-aware-compiler-baseline). No compiler source is redistributed. Future build/runtime closure, standard libraries and conveyed dependencies retain their separate notices; the root grant does not classify all Cargo/LLVM dependencies. |
 | [GarageDoor's Fiat-Crypto `36676697`](https://github.com/mit-plv/fiat-crypto/tree/36676697ca59b0b3d8bcc477dac1eacda89e921c) | `COPYRIGHT`, `LICENSE-MIT`, `LICENSE-APACHE` and `LICENSE-BSD1`: MIT OR Apache-2.0 OR BSD-1-Clause | [Q35d's integration recipe](docs/assurance/proof-reuse/systems.md#sys-garagedoor-a-composed-software-image-theorem-with-explicit-machine-entry-conditions), read as proof architecture. This historical artifact selects its own nested sources and changes no current Fiat pin or emission provenance. No theorem or extensionality premise is imported. |
 | [PoWER `41cab950`](https://github.com/microsoft/verified-storage/tree/41cab95051229ebd457b4eed7fc111e3e7c9099c), with Perennial `65884f24` | Microsoft's `LICENSE.txt` and Perennial's `LICENSE`: MIT | [Storage crash-interface design](docs/assurance/proof-reuse/systems.md#sys-power-write-permissions-joined-to-a-crash-invariant-in-perennial). No Verus service or Goose runtime is imported; actual Rocq dependency closure and the local bit-tear adapter require qualification before theorem reuse. |
 | [Sailor `55faed60`](https://github.com/neeluk7/sailor_artifact/tree/55faed606bdff9655be32681384dc4e748c0cec7) | Root `LICENSE`: Apache-2.0 | [Bounded context-state adapter](docs/assurance/proof-reuse/hardware.md#hw-17-sailor-dependency-analysis-and-context-switch-test-generation). Read separate Sail/Isla/model grants before copying or executing their sources; no upstream setup script or symbolic-model patch is applied to the acceptance toolchain. |
@@ -812,7 +825,7 @@ The cryptography milestone distinguishes generated arithmetic, authored specific
 | Fiat-Crypto | [Pinned as a submodule](#pinned-as-submodules). Recorded generation at `1e721c6f` emits `tools/generated/fiat-crypto/25519_32.h` and `p256_32.h`; the [emission record](docs/implementation/fiat-crypto-emission.md) and manifest bind source and output. Historical build measurements retain their measured revisions. | Required classical field arithmetic, admitted by a recorded derivation. |
 | VST's `sha/` and `hmacdrbg/` | Reviewed, not acquired. The directories use BSD-2-Clause through `LICENSE` and `LICENSE-OPAM`; the project authors its own specifications. | SHA-256 and HMAC-DRBG-SHA-256 specifications, refinement proofs, and an FCF security proof. |
 | FIPS 202/203/204/205 and NIST ACVP known-answer vectors | Publication and immutable ACVP-source license reviewed. The tracked ML-KEM/ML-DSA and boot-signature campaigns fetch through [one pin owner](tools/vos/acvp.py) holding each source hash and retain the NIST notice; downloaded data remain native build inputs. | Validation inputs for authored primitives. |
-| Behavioral oracles | HACL* at `504c2987` and libjade at `76579946` remain [pinned leads](#pinned-as-submodules) for the primitives their rows list; neither carries a conforming ML-KEM-1024 or an ML-DSA-87, libjade's nested K=4 port being unfinished. The ML-KEM/ML-DSA independent campaigns execute privately built OpenSSL 3.5.9; no upstream implementation is copied. | Independent functional comparisons, without claiming the unrun HACL*/libjade qualification. |
+| Behavioral oracles | HACL* at `f5572590` and libjade at `76579946` remain [pinned leads](#pinned-as-submodules) for the primitives their rows list; neither carries a conforming ML-KEM-1024 or an ML-DSA-87, libjade's nested K=4 port being unfinished. The ML-KEM/ML-DSA independent campaigns execute privately built OpenSSL 3.5.9; no upstream implementation is copied. | Independent functional comparisons, without claiming the unrun HACL*/libjade qualification. |
 
 #### Fiat-Crypto
 

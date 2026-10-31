@@ -268,16 +268,18 @@ Correctness for the CHERIoT-Ibex Processor*](https://arxiv.org/abs/2502.04738),
 2025. The paper describes unbounded SVA proof using Jasper, memory-trace
 equivalence, a compressed-capability data-type invariant and bounded-response
 premises for liveness. At the project's pin
-`531ca2ec439fe3fa89bd6f60ae8f256bc0b9b241`,
-[dv/formal/README.md](https://github.com/microsoft/cheriot-ibex/blob/531ca2ec439fe3fa89bd6f60ae8f256bc0b9b241/dv/formal/README.md)
+`cafaeae02c014456a99247b68788d31b7516a252`,
+[dv/formal/README.md](https://github.com/microsoft/cheriot-ibex/blob/cafaeae02c014456a99247b68788d31b7516a252/dv/formal/README.md)
 instead says there is currently no liveness and exposes `prove_no_liveness`.
-It excludes stack zeroing and reservation/revocation. This discrepancy needs
+It excludes stack zeroing and reservation/revocation. The 2026-10-31 source comparison
+confirms that this formal README and the RTL are unchanged; the pin adds only workflow
+action identities. This discrepancy needs
 resolution before claiming the pinned artifact replays the paper's whole result.
 
 **Reuse:** the closest concrete CHERI RTL-to-Sail methodology for R1/R2 and
 CJ-RTL-SAIL. It needs the lowRISC Sail fork, `psgen`, Nix and JasperGold, with
 reset and clock-gating configuration changes. The
-[Apache-2.0 LICENSE](https://github.com/microsoft/cheriot-ibex/blob/531ca2ec439fe3fa89bd6f60ae8f256bc0b9b241/LICENSE)
+[Apache-2.0 LICENSE](https://github.com/microsoft/cheriot-ibex/blob/cafaeae02c014456a99247b68788d31b7516a252/LICENSE)
 permits source reuse with its notices. RV32 CHERIoT, its modified specification,
 microarchitecture-specific invariants and unchecked Sail-to-SV translation
 do not discharge the frozen RV64 CVA6 theorem or its Rocq proof endpoint.
@@ -368,14 +370,19 @@ and possible separately contained library use need an explicit future choice.
 **Standing: established hardware project proof suite.** The lowRISC
 contributors' [SECDED generator documentation](https://opentitan.org/book/util/design/index.html)
 describes generated RTL, assertions and formal targets. At local upstream pin
-`10738f38`,
-[prim_secded_39_32_assert_fpv.sv](https://github.com/lowRISC/opentitan/blob/10738f38/hw/ip/prim/fpv/vip/prim_secded_39_32_assert_fpv.sv)
+`41049e9d`,
+[prim_secded_39_32_assert_fpv.sv](https://github.com/lowRISC/opentitan/blob/41049e9deb40e0602cd5272c40398be380ae2637/hw/ip/prim/fpv/vip/prim_secded_39_32_assert_fpv.sv)
 contains `SingleErrorCorrect_A`, single/double detection and syndrome properties,
 under `MaxTwoErrors_M`, which assumes at most two injected errors.
-[util/design/secded_gen.py](https://github.com/lowRISC/opentitan/blob/10738f38/util/design/secded_gen.py)
-generates the assertion family. Both file headers name Apache-2.0 and lowRISC
+[util/design/secded_gen.py](https://github.com/lowRISC/opentitan/blob/41049e9deb40e0602cd5272c40398be380ae2637/util/design/secded_gen.py)
+generates the assertion family. The 2026-10-31 reading finds unchanged 39/32 assertion
+predicates and fault assumptions, with formatting changes only. The generator now
+supports data widths through 256 bits with an iterative selection algorithm for larger
+Hsiao codes, rewrites the emitted encoders, and computes software parity with integers,
+applying inverted-code masks after parity generation. These source changes require
+qualification for any selected output. Both file headers name Apache-2.0 and lowRISC
 contributors, under the root
-[LICENSE](https://github.com/lowRISC/opentitan/blob/10738f38/LICENSE).
+[LICENSE](https://github.com/lowRISC/opentitan/blob/41049e9deb40e0602cd5272c40398be380ae2637/LICENSE).
 
 **Reuse:** nearest permissible verification-IP template for the data-code half
 of R-15-175/R-15-179/R-15-181a. The inspected instance is 39/32, not the local
@@ -643,7 +650,7 @@ the existing inventory rather than commission unpriced implementations:
 | M0.6f / R-15-007a representation | **Adapt HW-02's statements.** At its recorded edition, `prop_decEnc` preserves raw bits and the input tag. `prop_decEnc2` has no property marker and documents a maximum-exponent/base-bit counterexample; `prop_setbounds_monotonic` starts from root-derived bounds rather than arbitrary malformed words. Compare those distinct questions with the local 19-bit bounds decoder. | Neither root-derived monotonicity nor a raw-bit round trip characterizes every malformed local encoding. The total 32-codepoint permission lattice needs its own order law. No upstream solver result is relabeled as local evidence. |
 | U-23 / U-24 / Q22d | **Qualify Kami first, retain Kôika as the comparison.** Re-read HW-07's MIT grant, but its selected example currently uses `cheat : forall t, t`; qualify the restored proof before accepting it. HW-08's exact `compiler_correct` relates a scheduled rule cycle to interpreted circuit register outputs under an external-function interpretation and a correctness-typed optimizer. U-23's bounded build and exact assumption receipt at the current locked prover decides availability; the shipped Kami example cannot supply an empty-assumption result. | Kami's documented Coq 8.12.x and Kôika's lower-bound package constraint establish no Rocq 9.3 compatibility. Kôika's LGPL election remains unresolved. Neither theorem covers the local memory sequencer, Sail relation, textual emission or synthesis; U-24 and Q22d retain those joins. |
 | R-15-069 / CJ-CERISE switcher | **Adapt HW-20's contract and adversarial-case structure after the existing terms refusal is resolved.** Its immutable source now makes the writable executable PCC mismatch and the halting-only binary observation concrete qualification questions. | No direct theorem instance over the local permission lattice; no timing, interrupt, physical reclamation or canonical-machine result. |
-| R-15-175 / R-15-179 / R-15-181a ECC | **Reuse HW-14 through the existing OpenTitan gitlink**, full edition `10738f384903ad7f7405a452ad41d6b8da23d2bb`. The inspected Apache-2.0 assertion file assumes at most two injected errors and checks correction/detection for its 39/32 instance. Carry the assumption explicitly into any generated target. | No selected 266/256 matrix/decoder theorem, separate DECTED validity-tag theorem, higher-weight-error guarantee, atomic data/tag commit, fixed-latency or fail-stop connection follows. Instantiate and verify the actual code rather than resize an assertion and call it proved. |
+| R-15-175 / R-15-179 / R-15-181a ECC | **Reuse [HW-14](#hw-14-opentitan-secded-formal-assertions-and-generator) through the existing OpenTitan gitlink** at its recorded current edition. The inspected Apache-2.0 assertion file assumes at most two injected errors and checks correction/detection for its 39/32 instance. Carry the assumption explicitly into any generated target. | No selected 266/256 matrix/decoder theorem, separate DECTED validity-tag theorem, higher-weight-error guarantee, atomic data/tag commit, fixed-latency or fail-stop connection follows. Instantiate and verify the actual code rather than resize an assertion and call it proved. |
 
 None of these source readings supplies the fixed, non-work-conserving NoC
 schedule or its cycle-observation theorem. HW-15 and HW-19 remain references;

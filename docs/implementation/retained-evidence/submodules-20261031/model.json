@@ -1,0 +1,142 @@
+{
+  "schema": 1,
+  "read_date": "2026-10-31",
+  "base_revision": "ef733250bd9c47767dca30446d0b2dfcbe79d0f0",
+  "scope": "Model, proof and protocol-reference submodule branch census. Only gitlinks and this metadata are conveyed; no nested dependency revision is overridden.",
+  "submodules": [
+    {
+      "path": "upstream/sail-riscv",
+      "url": "https://github.com/riscv/sail-riscv",
+      "ref": "refs/heads/master",
+      "previous_revision": "cd3f185e3a40cd402632d78a2bc213d62ae6f753",
+      "observed_revision": "a83603b6995428b9df2c464f98e18a7b0ae488fe",
+      "selected_revision": "a83603b6995428b9df2c464f98e18a7b0ae488fe",
+      "disposition": "updated"
+    },
+    {
+      "path": "upstream/sail-cheri-riscv",
+      "url": "https://github.com/CTSRD-CHERI/sail-cheri-riscv",
+      "ref": "refs/heads/master",
+      "previous_revision": "cf36cfd4fca0bd10a5906651bf48b9674ccd0a2b",
+      "observed_revision": "cf36cfd4fca0bd10a5906651bf48b9674ccd0a2b",
+      "selected_revision": "cf36cfd4fca0bd10a5906651bf48b9674ccd0a2b",
+      "disposition": "unchanged"
+    },
+    {
+      "path": "upstream/rupicola",
+      "url": "https://github.com/mit-plv/rupicola",
+      "ref": "refs/heads/master",
+      "previous_revision": "d33f7024a7a03c9e0f05f746dff8434d450a4f6e",
+      "observed_revision": "d33f7024a7a03c9e0f05f746dff8434d450a4f6e",
+      "selected_revision": "d33f7024a7a03c9e0f05f746dff8434d450a4f6e",
+      "disposition": "unchanged"
+    },
+    {
+      "path": "upstream/katamaran",
+      "url": "https://github.com/katamaran-project/katamaran",
+      "ref": "refs/heads/main",
+      "previous_revision": "8b953fe8f17bb4553792c63665d368dc7f6bbd26",
+      "observed_revision": "80985afd8164c31902181d41885e06e2df6dfe6d",
+      "selected_revision": "80985afd8164c31902181d41885e06e2df6dfe6d",
+      "disposition": "updated"
+    },
+    {
+      "path": "upstream/sail-katamaran-backend",
+      "url": "https://github.com/katamaran-project/sail-backend",
+      "ref": "refs/heads/master",
+      "previous_revision": "c9b1cd0234d7d4ee839b8d07bad7db601e6a5a40",
+      "observed_revision": "c9b1cd0234d7d4ee839b8d07bad7db601e6a5a40",
+      "selected_revision": "c9b1cd0234d7d4ee839b8d07bad7db601e6a5a40",
+      "disposition": "unchanged"
+    },
+    {
+      "path": "upstream/cerise",
+      "url": "https://github.com/logsem/cerise",
+      "ref": "refs/heads/main",
+      "previous_revision": "9eb72e675216d7c5473499f392b18049364db03a",
+      "observed_revision": "9eb72e675216d7c5473499f392b18049364db03a",
+      "selected_revision": "9eb72e675216d7c5473499f392b18049364db03a",
+      "disposition": "unchanged"
+    },
+    {
+      "path": "upstream/cerisier",
+      "url": "https://github.com/logsem/cerisier",
+      "ref": "refs/heads/main",
+      "previous_revision": "57ed584ae17eed308ae0fa554cf0dde9843112c1",
+      "observed_revision": "57ed584ae17eed308ae0fa554cf0dde9843112c1",
+      "selected_revision": "57ed584ae17eed308ae0fa554cf0dde9843112c1",
+      "disposition": "unchanged"
+    },
+    {
+      "path": "upstream/sail-cheri-riscv-verif",
+      "url": "https://github.com/CTSRD-CHERI/sail-cheri-riscv-verif",
+      "ref": "refs/heads/master",
+      "previous_revision": "4da8fd10e323ab67b92a771b02f5e989067ff81a",
+      "observed_revision": "4da8fd10e323ab67b92a771b02f5e989067ff81a",
+      "selected_revision": "4da8fd10e323ab67b92a771b02f5e989067ff81a",
+      "disposition": "unchanged"
+    },
+    {
+      "path": "upstream/TestRIG",
+      "url": "https://github.com/CTSRD-CHERI/TestRIG",
+      "ref": "refs/heads/master",
+      "previous_revision": "70717956d9a0445a11ac9a070387d119c523d60f",
+      "observed_revision": "70717956d9a0445a11ac9a070387d119c523d60f",
+      "selected_revision": "70717956d9a0445a11ac9a070387d119c523d60f",
+      "disposition": "unchanged"
+    },
+    {
+      "path": "upstream/perennial",
+      "url": "https://github.com/mit-pdos/perennial",
+      "ref": "refs/heads/master",
+      "previous_revision": "65884f2494ce65c5369094050dfb7eca19299152",
+      "observed_revision": "c3b7ecff27c1a6e8ed058d5aca362df1e2f63311",
+      "selected_revision": "65884f2494ce65c5369094050dfb7eca19299152",
+      "disposition": "retained",
+      "reason": "The selected Rocq PoWER correspondence source src/program_proof/verus/wrs.v is absent from current master. Retain the reviewed interface edition rather than silently remove the source used by M5.3d."
+    },
+    {
+      "path": "upstream/vasn",
+      "url": "https://github.com/zhouxt1/vasn",
+      "ref": "HEAD",
+      "previous_revision": "5db5727c06a3e996be6f87c3f0fa19d37817b739",
+      "observed_revision": "5db5727c06a3e996be6f87c3f0fa19d37817b739",
+      "selected_revision": "5db5727c06a3e996be6f87c3f0fa19d37817b739",
+      "disposition": "unchanged"
+    }
+  ],
+  "changed_pin_license_readings": [
+    {
+      "url": "https://raw.githubusercontent.com/riscv/sail-riscv/a83603b6995428b9df2c464f98e18a7b0ae488fe/LICENCE",
+      "sha256": "14cfdf5bfb57ba19f57f31c4a79b3712ede0fda06b1674cb40dec393f8694185",
+      "license": "BSD-2-Clause",
+      "byte_identical_to_previous_revision": true
+    },
+    {
+      "url": "https://raw.githubusercontent.com/katamaran-project/katamaran/80985afd8164c31902181d41885e06e2df6dfe6d/LICENSE",
+      "sha256": "6b961710f8d256461e624d0659fbaade43505b2ae709f91c8f0c3e34a08d010a",
+      "license": "BSD-2-Clause",
+      "byte_identical_to_previous_revision": true
+    }
+  ],
+  "observations": {
+    "sail_riscv": "Comparison reference only; curated model bytes are unchanged. Root LICENCE excludes dependencies/, whose own notices govern any later use.",
+    "katamaran": "Reference update includes universal-contract and shallow-executor soundness work. No new proof-library compatibility or qualification is claimed. theories/Notations.v is byte-identical at old and new pins.",
+    "katamaran_notations_sha256": "8041975bd9a84dd6591f3ad3d64fc270686f9db802807ee787fff8e1426f6716",
+    "perennial": {
+      "retained_source_url": "https://github.com/mit-pdos/perennial/blob/65884f2494ce65c5369094050dfb7eca19299152/src/program_proof/verus/wrs.v",
+      "retained_source_sha256": "1d7707d11ad6eb8d716f522172d591cceea4360f5d1b98da9939bb0ef89aa25f",
+      "candidate_source_url": "https://raw.githubusercontent.com/mit-pdos/perennial/c3b7ecff27c1a6e8ed058d5aca362df1e2f63311/src/program_proof/verus/wrs.v",
+      "candidate_source_http_status": 404,
+      "candidate_recursive_tree_url": "https://api.github.com/repos/mit-pdos/perennial/git/trees/c3b7ecff27c1a6e8ed058d5aca362df1e2f63311?recursive=1",
+      "candidate_tree_truncated": false,
+      "candidate_tree_contains_wrs_or_verus_path": false,
+      "license_sha256_at_both_revisions": "042d905c3e11164d3281d10035a5243952a5297fce5edbb4594c6adaf88ebad3"
+    },
+    "oracle": "Capability-semantics oracle revision cf36cfd4 is unchanged."
+  },
+  "validation": {
+    "performed": "Upstream ref resolution, exact-revision license reading and selected source continuity checks.",
+    "deferred": "Host CI and Guest CI; local-only user instruction prohibits publication. No model, proof or benchmark workload was run."
+  }
+}

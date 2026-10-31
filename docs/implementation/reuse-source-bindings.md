@@ -45,18 +45,19 @@ native assumption/kernel audit remain prerequisites for any proof import.
 
 ## Cryptography: functional results and public event traces
 
-[`upstream/s2n-bignum`](../../upstream/s2n-bignum) supplies two concrete comparisons:
+[`upstream/s2n-bignum`](../../upstream/s2n-bignum) supplies the comparisons below.
+The [reference refresh receipt](retained-evidence/submodules-20261031/software.json) verifies that the selected NTT and Keccak source files and `SOUNDNESS.md` are byte-identical to the preceding source reading. The changed shared proof infrastructure has not been replayed here.
 
 | Source and statements | Existing consumer and next comparison |
 | --- | --- |
-| [`arm/proofs/mlkem_ntt.ml`](https://github.com/awslabs/s2n-bignum/blob/45ad6720d0a86b588661f2d699cc383d0ff89e71/arm/proofs/mlkem_ntt.ml): `MLKEM_NTT_SUBROUTINE_CORRECT`, `MLKEM_NTT_SUBROUTINE_SAFE` | M3.4b's [PqArith.v](../../proofs/PqArith.v) and [MlKem.v](../../proofs/MlKem.v): compare coefficient representation, twiddle tables, range premises and the arithmetic postcondition before lowering. |
-| [`arm/proofs/sha3_keccak_f1600.ml`](https://github.com/awslabs/s2n-bignum/blob/45ad6720d0a86b588661f2d699cc383d0ff89e71/arm/proofs/sha3_keccak_f1600.ml): `SHA3_KECCAK_F1600_SUBROUTINE_CORRECT`, `SHA3_KECCAK_F1600_SUBROUTINE_SAFE` | M7.1f's [boot-crypto consumer](../../firmware/crypto/README.md), [Keccak.v](../../proofs/Keccak.v) and [C permutation](../../firmware/crypto/keccak.c): compare the 24-round permutation, state layout and constants separately from padding, sponge and signature verification. |
+| [`arm/proofs/mlkem_ntt.ml`](https://github.com/awslabs/s2n-bignum/blob/573ea98f6a2eea3172f6146f83b86b9e526ce2dd/arm/proofs/mlkem_ntt.ml): `MLKEM_NTT_SUBROUTINE_CORRECT`, `MLKEM_NTT_SUBROUTINE_SAFE` | M3.4b's [PqArith.v](../../proofs/PqArith.v) and [MlKem.v](../../proofs/MlKem.v): compare coefficient representation, twiddle tables, range premises and the arithmetic postcondition before lowering. |
+| [`arm/proofs/sha3_keccak_f1600.ml`](https://github.com/awslabs/s2n-bignum/blob/573ea98f6a2eea3172f6146f83b86b9e526ce2dd/arm/proofs/sha3_keccak_f1600.ml): `SHA3_KECCAK_F1600_SUBROUTINE_CORRECT`, `SHA3_KECCAK_F1600_SUBROUTINE_SAFE` | M7.1f's [boot-crypto consumer](../../firmware/crypto/README.md), [Keccak.v](../../proofs/Keccak.v) and [C permutation](../../firmware/crypto/keccak.c): compare the 24-round permutation, state layout and constants separately from padding, sponge and signature verification. |
 
 The `_SAFE` statements make the event list a function of public pointers, code,
 stack and return placement and bound memory accesses independently of secret
 coefficients or state. Use this separation when defining the local binary
 judgment for R-05-062/R-05-063. The
-[`SOUNDNESS.md` limits](https://github.com/awslabs/s2n-bignum/blob/45ad6720d0a86b588661f2d699cc383d0ff89e71/SOUNDNESS.md)
+[`SOUNDNESS.md` limits](https://github.com/awslabs/s2n-bignum/blob/573ea98f6a2eea3172f6146f83b86b9e526ce2dd/SOUNDNESS.md)
 and [crypto qualification](../assurance/proof-reuse/crypto.md#s2n-bignum-machine-code-arithmetic)
 remain applicable: HOL Light/AArch64 execution is not CHERI-RV64/Sail execution,
 and modeled instruction/address observations do not establish physical timing or

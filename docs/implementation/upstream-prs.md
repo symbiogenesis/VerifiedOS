@@ -557,7 +557,7 @@ Merged: `2026-10-22T08:57:21Z`.
 
 - Focused builds and before/after assumption comparisons are author-reported and were not independently rerun.
 - Merged 2026-10-22 at 48824e03a5915cc1ae375ce4fe0b86cb3da20dff. The Nix workflow and its matrix.rocq job were skipped; they supply no passing hosted evidence.
-- The deferred upstream/katamaran reference selects merged PR head 8b953fe8f17bb4553792c63665d368dc7f6bbd26, containing only this cleanup over the preceding pin. [The dependency-trial continuation](../assurance/machine-logic-dependency-trial.md#separately-scoped-unpriced-continuation) takes this upstream removal directly; historical trial inputs and qualification refusals remain unchanged.
+- The deferred upstream/katamaran reference selects 80985afd8164c31902181d41885e06e2df6dfe6d, containing this cleanup and subsequent upstream changes. [The dependency-trial continuation](../assurance/machine-logic-dependency-trial.md#separately-scoped-unpriced-continuation) takes the import removal directly; historical trial inputs and qualification refusals remain unchanged.
 
 [Next action in PLAN.md](../../PLAN.md#upstream-contributions-and-adoption).
 
