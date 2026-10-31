@@ -2808,6 +2808,15 @@ measurements remain pending hosted evidence. Hosted acceptance uses cold Guest C
 with the tranche's named base and does not wait for its verdict. A source comparison
 does not establish native proof acceptance or a performance result.
 
+The [failed Guest CI proof lane](https://github.com/symbiogenesis/VerifiedOS/actions/runs/41165278678)
+has candidate proof-body corrections for collection-alias unfolding, an explicit
+induction argument, geometry-view reduction, the last-event tactic binder and
+standard-library list lifting. The butterfly list proofs use the scripts from
+the [passing revision](https://github.com/symbiogenesis/VerifiedOS/actions/runs/41012232758).
+Source comparison preserves everything outside opaque proof bodies. The repair
+is committed locally at the user's request; publication, Host CI, cold Guest CI
+and elaborated-reading comparison remain outstanding.
+
 ## Model test-corpus library boundary
 
 The downloaded RISC-V test corpus has one integrity boundary: the model's declared

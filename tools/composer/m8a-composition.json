@@ -101,7 +101,7 @@
         },
         {
           "path": "proofs/AdmissionPath.v",
-          "sha256": "bb360305f5a29b2bbfdc2b7f92a2f96821431d73609251ccb27ee5633049a81f"
+          "sha256": "9665afddca7df1e6cdb421b70cc3f15fcc1123530bacb050a3125ff5527e32fa"
         }
       ]
     }
@@ -298,7 +298,7 @@
       "sources": [
         {
           "path": "proofs/CopyRingService.v",
-          "sha256": "362312cb0cc81e5070f5133a12042b9610ede657de02377694921d4bfcd2bb14"
+          "sha256": "0d9f6617efd8c4c4fd7caf2e8cb59cb6ee03be21213878761ebc0ee1eb8f84fe"
         },
         {
           "path": "proofs/RingContract.v",
@@ -446,7 +446,7 @@
         },
         {
           "path": "proofs/AdmissionPath.v",
-          "sha256": "bb360305f5a29b2bbfdc2b7f92a2f96821431d73609251ccb27ee5633049a81f"
+          "sha256": "9665afddca7df1e6cdb421b70cc3f15fcc1123530bacb050a3125ff5527e32fa"
         },
         {
           "path": "tools/vos/admission_production.py",
@@ -459,7 +459,7 @@
       ],
       "descriptor": {
         "path": "tools/composer/packages/admission.json",
-        "sha256": "c3fc7d4b0dccd91b796e2f7b76ebd2e4e6265434d320168051414f25a6ca9dd3"
+        "sha256": "5761e30d4d92988323bbd9b3cc8abb36c493cbdf4f6ffac243f6bb906ee491fb"
       },
       "artifact_slot": "admission-artifact",
       "entry": null,
