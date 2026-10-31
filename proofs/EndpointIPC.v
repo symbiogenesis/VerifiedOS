@@ -443,7 +443,7 @@ Lemma all_of_map :
   forall (A B : Type) (p : B -> bool) (f : A -> B) (l : list A),
     all_of (fun x => p (f x)) l = true -> all_of p (map_over f l) = true.
 Proof.
-  intros A B p f l H. rewrite (ProofSupport.all_of_map A B p f l). exact H.
+  intros A B p f l H. unfold all_of, map_over. rewrite (ProofSupport.all_of_map A B p f l). exact H.
 Qed.
 
 Lemma count_of_app :
