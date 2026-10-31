@@ -175,8 +175,8 @@ orders the work. Its technical transition criteria are:
    representative systems and mathematical clients, including a held-out client,
    before claiming the general authoring endpoint. Keep required current routes
    available until each consumer has an accepted replacement.
-2. Admit the candidate machine definition and its full-scope agreement evidence
-   for comparison under a reviewed migration amendment. During comparison, the
+2. Construct and kernel-check the candidate machine definition and its full-scope
+   agreement evidence under a reviewed comparison scope. During comparison, the
    pinned Sail term remains the authoritative subject of current claims; parallel
    candidate artifacts confer no replacement credit by themselves.
 3. Rebind and recheck every affected consumer: compiler/primitive meanings, binary
