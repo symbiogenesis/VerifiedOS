@@ -93,6 +93,75 @@ its implementation is a separate checker-qualification decision and is not
 required to eliminate handwritten Rocq. The [frontend disposition](full-language-review.md#r-05-009-r-05-020-and-what-holds-the-frontend-rows)
 still governs the existing calculus's interpretation commitment and admission.
 
+## Native verified compiler and self-hosting
+
+Vela's explicit long-term compiler goal is a native, verified compiler authored in
+Vela and able to compile itself. The accepted native route uses Vela-owned
+intermediate representations and emits the target's machine code without a
+mandatory Clight/CompCert or LLVM stage. Interim backends and interoperation with
+retained producers remain available during qualification and migration. This
+goal adds no implementation commission and replaces no current compiler duty.
+
+The intermediate representations retain or explicitly discharge the ownership,
+CHERI authority, layout, initialization, effect, protocol, leakage and resource
+facts needed by later transformations. Each representation has a reviewed
+interpretation; native compilation introduces no private ISA semantics. Both the
+compiler and hardware proofs resolve the canonical machine definition admitted
+for that generation, whether the current Sail term or its qualified successor.
+
+Compilation composes reusable correctness theorems for elaboration, erasure,
+representation changes, optimization, instruction selection, register allocation,
+calling conventions, assembly, linking and image construction. The goal is to
+carry the source theorem to exact final bytes without repeatedly reconstructing
+the justification of already proved transformations from their output. Functional
+refinement, termination or progress, authority preservation, robust isolation,
+relational leakage and resource bounds remain distinct obligations wherever the
+accepted claim includes them. An optimization's functional theorem alone supplies
+neither constant-time preservation nor its target cost.
+
+Independent kernel checking, dependency and assumption audits, and binding to the
+authored source and final image remain required. Reusing a pass theorem is valid
+only for its checked revision, premises and actual application. The current
+R-05-023a decompilation and final-validation route remains required until an
+explicit register/prose amendment admits the composed substitute evidence. An
+integrated proof-producing compiler does not certify its own output by assertion.
+
+Untrusted AI, search or scheduling heuristics may propose transformations. A
+proved checker or reconstructed proof must establish each accepted proposal's
+premises and required preservation properties. An unsupported transformation,
+missing certificate or failed check yields no accepted optimized artifact; an
+eligible fallback must independently meet the same contract. These mechanisms can
+be part of the native pipeline without making the search implementation trusted.
+
+Verified self-hosting additionally connects the executable compiler binary to its
+proved compiler definition. Its qualification records the seed compiler,
+interpreter or proof-grounded evaluation route, exact sources and tools, selected
+target/ABI, bootstrap stages, assumptions and final compiler image. The resulting
+compiler must compile its own declared Vela source closure and produce a successor
+with checked compiler correspondence; reproducible stage outputs are an additional
+check, not that correspondence theorem. The resident compiler and its helpers
+also meet the platform's applicable storage, runtime and admission rules. The
+initial checker and bootstrap trust boundary remain explicit; self-compilation
+alone supplies no soundness result or circular acceptance rule.
+
+Competitive optimization is a separate qualification goal. Compare representative
+systems and compute clients, including held-out clients, at identical semantics,
+security, target and resource constraints. Record final code size, stack,
+allocation, memory traffic and target execution cost, alongside compile/proof cost
+and maintenance effort. The target-specific goal is to match or improve the
+qualified comparison routes where their optimizations are admissible; LLVM-wide
+feature parity, universal speedups and performance superiority are not inferred
+from native compilation or self-hosting. Required optimization machinery and
+proofs must be scoped and priced before implementation.
+
+The complete native toolchain's selected source, proof, helper and runtime
+dependency closure must support its intended commercial use, distribution and
+resident rebuilding. Independently authored infrastructure may use the project's
+chosen terms; adapting existing passes retains their applicable terms. A claim of
+CompCert/LLVM independence or removal of non-commercial dependencies requires a
+closure audit and retirement of every affected consumer under the
+[compiler replacement duties](compiler-route-contract.md#conditional-amendment-and-reviewer-requirements).
+
 ## Machine model
 
 Vela's machine-description subset is intended to replace Sail source and its
@@ -217,6 +286,9 @@ well-formed changes at their intended obligations:
 | An elaborator resolves a source operation or contract to the wrong definition | Authored-source correspondence, even if the resulting kernel term checks |
 | Erasure removes a runtime discriminant or lowering changes failure cleanup | Phase, operational or all-exits refinement |
 | A spill loses a capability tag, or bounds/provenance/permissions change | Concrete representation, machine execution or binary admission relation |
+| An optimizer preserves outputs but changes a required leakage observation or resource bound | The composed security or resource obligation for that transformation |
+| An optimization certificate names another pass revision, source or output image | Transformation-premise checking and source/final-image binding |
+| A self-compiled binary reproduces stage output but lacks a connection to the proved compiler definition | Verified-bootstrap acceptance; reproducibility alone earns no compiler-correctness claim |
 | A decoder changes an exceptional result, admits an excluded encoding or drops a device event | Full-scope model agreement and the affected consumer theorem |
 | A comparison omits one core configuration or changes allowed concurrent traces | Configuration coverage or behavioral agreement |
 | Functional values agree but a secret changes branches, addresses or permitted latency | Relational leakage or cost/timing agreement |
