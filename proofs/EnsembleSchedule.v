@@ -784,6 +784,7 @@ Proof.
   intros T l1 l2 H k s Hk.
   pose proof (f_equal (fun slots => nth_of slots k)
                 (same_geometry_view T l1 l2 H)) as Hviews.
+  change (nth_of (slot_geometries l1) k = nth_of (slot_geometries l2) k) in Hviews.
   repeat rewrite nth_of_slot_geometries in Hviews. rewrite Hk in Hviews.
   destruct (nth_of l2 k) as [u|] eqn:Hu; [|discriminate Hviews].
   pose proof (f_equal (fun item =>
@@ -801,6 +802,7 @@ Proof.
   intros T l1 l2 H k Hk.
   pose proof (f_equal (fun slots => nth_of slots k)
                 (same_geometry_view T l1 l2 H)) as Hviews.
+  change (nth_of (slot_geometries l1) k = nth_of (slot_geometries l2) k) in Hviews.
   repeat rewrite nth_of_slot_geometries in Hviews. rewrite Hk in Hviews.
   destruct (nth_of l2 k); [discriminate Hviews|reflexivity].
 Qed.

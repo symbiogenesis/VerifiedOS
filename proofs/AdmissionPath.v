@@ -5190,8 +5190,9 @@ Proof.
       intros y Hy. rewrite Hy. reflexivity. }
   split.
   { intros a r g H. destruct (admissible m D rd a r) eqn:E; [ | discriminate H ].
-    unpack_generation H H2. unfold mem_nat. unfold image_ids.
-    simpl. rewrite (nat_eqb_refl x.(pkg_id)). reflexivity. }
+    unpack_generation H H2. apply andb_join.
+    - exact (mem_nat_here x.(pkg_id) (image_ids D r)).
+    - reflexivity. }
   intros a r H. rewrite H.
   exists {| gen_image := cons x r; gen_synthesized := cons x.(pkg_id) nil |}.
   split; [ reflexivity | ]. simpl.

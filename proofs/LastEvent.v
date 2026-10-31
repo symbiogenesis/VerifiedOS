@@ -34,9 +34,9 @@ Lemma last_matching_app :
     | None => last_matching select before
     end.
 Proof.
-  intros Event Value select before. induction before as [|event rest IH]; intro after.
-  - simpl. destruct (last_matching select after); reflexivity.
-  - simpl. rewrite IH. destruct (last_matching select after); reflexivity.
+  intros Event Value select before. induction before as [|event rest IH]; intro suffix.
+  - simpl. destruct (last_matching select suffix); reflexivity.
+  - simpl. rewrite IH. destruct (last_matching select suffix); reflexivity.
 Qed.
 
 Lemma last_matching_none_cons :
