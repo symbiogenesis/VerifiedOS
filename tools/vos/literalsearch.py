@@ -64,7 +64,10 @@ def _skip_expression(root: str, first: str) -> str:
     # unmatched word/nonword block once and stop before the first possible name.
     # Neither a separator run nor a word starting outside the literal first-set
     # can contain a valid start. Avoid testing the full trie at those positions.
-    return (r"(?:[^\w-]++|(?!" + first + r")[\w-]++|(?!"
+    # An arbitrary initial offset may lie inside a word. Skip that remainder
+    # once; each later alternative consumes a complete word or separator run,
+    # establishing the left boundary without a lookbehind in every trie branch.
+    return (r"(?:(?<=[\w-])[\w-]*+)?+(?:[^\w-]++|(?!" + first + r")[\w-]++|(?!"
             + root + r")[\w-]++)*+(" + root + ")")
 
 
@@ -73,9 +76,16 @@ class CandidateTrie:
     names: tuple[str, ...]
     complete: re.Pattern[str]
     known_right: re.Pattern[str]
+    ascii_complete: re.Pattern[str]
+    ascii_known_right: re.Pattern[str]
 
     def _span(self, low: str, *, pos: int, final: bool) -> tuple[int, int] | None:
-        pattern = self.complete if final else self.known_right
+        if low.isascii():
+            # The whole lowered window, including both boundary characters,
+            # establishes that ASCII and Unicode word classes are identical.
+            pattern = self.ascii_complete if final else self.ascii_known_right
+        else:
+            pattern = self.complete if final else self.known_right
         # search() would retry a failed suffix scan at every position. One
         # anchored match owns the forward scan; group 1 excludes skipped text.
         match = pattern.match(low, pos)
@@ -131,10 +141,14 @@ def compile_names(names: tuple[str, ...]) -> CandidateTrie:
     root = build(tuple(name.encode("ascii") for name in names))
     first = "[" + re.escape("".join(sorted({name[0] for name in names}))) + "]"
     try:
-        complete = re.compile(_skip_expression(expression(root, b"(?!\\w)").decode("ascii"), first))
+        complete_source = _skip_expression(_suffix(root, b"(?!\\w)").decode("ascii"), first)
+        complete = re.compile(complete_source)
         # Keeping this constraint at each terminal allows a failed longer EOF
         # alternative to fall back to a valid shorter literal at the SAME start.
-        known_right = re.compile(_skip_expression(expression(root, b"(?=\\W)").decode("ascii"), first))
+        known_right_source = _skip_expression(_suffix(root, b"(?=\\W)").decode("ascii"), first)
+        known_right = re.compile(known_right_source)
+        ascii_complete = re.compile(complete_source, re.ASCII)
+        ascii_known_right = re.compile(known_right_source, re.ASCII)
     except (RecursionError, re.PatternError, OverflowError) as error:
         raise LegacyRequiredError("native trie compilation requires legacy use") from error
-    return CandidateTrie(names, complete, known_right)
+    return CandidateTrie(names, complete, known_right, ascii_complete, ascii_known_right)
