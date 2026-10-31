@@ -46,6 +46,13 @@ Read the selected revision's own license files at the milestone that would incor
 
 Use `git ls-files -s upstream` to inspect tracked pins: mode `160000` identifies a gitlink, not vendored files. Inspect vendored and fetched dependencies separately. A linked worktree's uninitialized submodule status does not establish that the repository lacks the pin.
 
+## Before editing C
+
+Follow the [authored C language profile](docs/implementation/c-language-profile.md)
+for host and target dialects, declarations, initialization and source bindings.
+The selected compiler and semantic contracts determine admissibility; preserve
+the firmware campaign's frozen bytes and regenerate derived C through its owner.
+
 ## Before editing the model or RTL
 
 - **Preserve model bytes outside the intended edit.** [model/](model/) is a modified upstream derivative; [.gitattributes](.gitattributes) sets `model/** -text -eol`, so Git stores its line endings verbatim. Write UTF-8 with LF; avoid PowerShell array writes that introduce CRLF. Use absolute paths with `[System.IO.File]` APIs, whose relative paths follow the process directory rather than `Set-Location`. When vendoring, use `git -c core.autocrlf=false archive`. After scripted edits, inspect `git diff --stat` and `git ls-files --eol -- model` for unintended rewrites.

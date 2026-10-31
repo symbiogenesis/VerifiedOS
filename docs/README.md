@@ -38,6 +38,7 @@ obligations, acceptance criteria, extraction coverage and extraction defects.
 | Workflow and routes | [Workflow contract](languages/workflow-contract.md), [compiler routes](languages/compiler-route-contract.md) |
 | Language features | [Graded foundation](languages/graded-foundation.md), [handlers and async lifecycles](languages/handlers-async.md), [interior mutability](languages/interior-mutability.md), [composition review](languages/full-language-review.md) |
 | Interfaces | [IDL profile](languages/idl-profile.md) |
+| Authored C | [Language profile and modernization](implementation/c-language-profile.md) |
 
 ### The typed assembly language
 
