@@ -12,6 +12,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from tests.harness import Case, ensure
+from vos import env
 from vos import native_build as subject
 
 
@@ -220,7 +221,7 @@ def _symlink_selection() -> None:
         _refuses(subject.validate, original)
 
 
-def _native_fixture() -> None:
+def _native_fixture(compiler_args: list[str] | None = None) -> None:
     with tempfile.TemporaryDirectory(prefix="vos-native-cmake-") as name:
         root = Path(name)
         source, build = root / "model", root / "build"
@@ -242,7 +243,7 @@ def _native_fixture() -> None:
         (source / "helper.c").write_text("int helper(void) { return 0; }\n", encoding="utf-8")
         header = source / "local.h"
         header.write_text("#define LOCAL 0\n", encoding="utf-8")
-        subprocess.run(["cmake", "-S", str(source), "-B", str(build), "-GNinja"],
+        subprocess.run(["cmake", "-S", str(source), "-B", str(build), "-GNinja", *(compiler_args or [])],
                        capture_output=True, text=True, check=True, timeout=60)
         before = subject.configured(build, source)
         subprocess.run(["cmake", "--build", str(build)], capture_output=True,
@@ -255,6 +256,11 @@ def _native_fixture() -> None:
         ensure(subject.prepare(build, source, record), "real old-mtime header failed to invalidate reuse")
 
 
+def _preferred_native_fixture() -> None:
+    """Exercise the production model's compiler selection as well as the default."""
+    _native_fixture(env._compiler_args())
+
+
 def cases() -> list[Case]:
     return [Case("native tools, sources, headers and libraries bind bytes despite old mtimes", _content_and_reuse),
             Case("native dependency population and configured compiler identity", _population_and_configuration),
@@ -263,4 +269,6 @@ def cases() -> list[Case]:
             Case("retargeted native header symlink refuses even for equal bytes", _symlink_selection,
                  lane="guest"),
             Case("actual CMake Ninja compiler and GMP closure on a small native fixture", _native_fixture,
-                 lane="toolchain")]
+                 lane="toolchain"),
+            Case("actual production compiler and GMP closure on a small native fixture",
+                 _preferred_native_fixture, lane="toolchain")]
