@@ -981,7 +981,7 @@
       "tool": "uv",
       "subject": "the reviewed release",
       "reviewed": [
-        "0.13.1"
+        "0.13.6"
       ],
       "owners": [
         {
@@ -996,7 +996,7 @@
       "tool": "ruff",
       "subject": "the reviewed release",
       "reviewed": [
-        "0.17.1"
+        "0.17.3"
       ],
       "owners": [
         {
@@ -1011,7 +1011,7 @@
       "tool": "ty",
       "subject": "the reviewed release",
       "reviewed": [
-        "0.0.89"
+        "0.0.93"
       ],
       "owners": [
         {
@@ -1206,7 +1206,7 @@
       "tool": "pre-commit's dependencies",
       "subject": "virtualenv's locked release",
       "reviewed": [
-        "21.14.8"
+        "21.15.1"
       ],
       "owners": [
         {
@@ -1236,7 +1236,7 @@
       "tool": "pre-commit's dependencies",
       "subject": "filelock's locked release",
       "reviewed": [
-        "4.2.0"
+        "4.2.4"
       ],
       "owners": [
         {
@@ -1251,7 +1251,7 @@
       "tool": "pre-commit's dependencies",
       "subject": "platformdirs's locked release",
       "reviewed": [
-        "4.13.3"
+        "4.13.7"
       ],
       "owners": [
         {
@@ -1266,7 +1266,7 @@
       "tool": "pre-commit's dependencies",
       "subject": "python-discovery's locked release",
       "reviewed": [
-        "1.6.3"
+        "1.6.7"
       ],
       "owners": [
         {
@@ -2818,7 +2818,7 @@
       "id": "ty",
       "tool": "ty",
       "license": "`MIT`; embedded typeshed stubs `Apache-2.0` with MIT parts",
-      "standing": "Type-checks the tools in the same gate, at the `dev` group's pin. The reviewed `${ty_62_0}` tag of `astral-sh/ty` has an MIT `LICENSE`, blob `014835144877ea9c926d027ece3e1a26290cf481`, copyright 2025 Astral Software Inc. The binary embeds typeshed's stubs from that tag's `ruff` submodule at `5fd85180`, whose `crates/ty_vendored/vendor/typeshed/LICENSE`, blob `13264487581f82433dadf18a99613a7d215fd448`, is Apache-2.0 with MIT-licensed parts. No ty source or executable is redistributed here.",
+      "standing": "Type-checks the tools in the same gate, at the `dev` group's pin. The reviewed `${ty_62_0}` tag of `astral-sh/ty` has an MIT `LICENSE`, blob `014835144877ea9c926d027ece3e1a26290cf481`, copyright 2025 Astral Software Inc. The binary embeds typeshed's stubs from that tag's `ruff` submodule at `48630fbe`, whose `crates/ty_vendored/vendor/typeshed/LICENSE`, blob `13264487581f82433dadf18a99613a7d215fd448`, is Apache-2.0 with MIT-licensed parts. No ty source or executable is redistributed here.",
       "reviews": [
         "ty_62"
       ]
@@ -2851,7 +2851,7 @@
       "id": "pre-commit's dependencies",
       "tool": "pre-commit's dependencies",
       "license": "`MIT`; nodeenv `BSD-3-Clause`; distlib `PSF-2.0`; packaging `Apache-2.0 OR BSD-2-Clause`",
-      "standing": "The optional `model` group's closure, which [tools/uv.lock](tools/uv.lock) fixes. The locked wheels and release tags carry these license instruments: cfgv `v${pre_commit_s_dependencies_71_0}` `LICENSE`, blob `b7af5ef213084fe100c5bb755659ef68c14dae5b`, copyright 2018 Anthony Sottile; identify `v${pre_commit_s_dependencies_72_0}` `LICENSE`, blob `0ecc5db911dadf39c600843c4646aa2b5c3a0ed7`, copyright 2017 Chris Kuehl and Anthony Sottile; nodeenv `${pre_commit_s_dependencies_73_0}` `LICENSE`, blob `a087c8d694a12d9f113ab83e2eeb7adbfa1353cd`, copyright 2011 Eugene Kalinin; PyYAML `${pre_commit_s_dependencies_74_0}` `LICENSE`, blob `2f1b8e15e5627d92f0521605c9870bc8e5505cb4`, copyright Ingy döt Net and Kirill Simonov; virtualenv `${pre_commit_s_dependencies_75_0}` `LICENSE`, blob `99598eb01766f838b130ff04c02103c1418215e1`, and `THIRD-PARTY-NOTICES.md`, blob `b50c4f479ce24d15182d24a281572cd55e0c41bc`, which leaves its embedded pip and setuptools wheels under their own licenses, including those of the packages each vendors; distlib `${pre_commit_s_dependencies_76_0}` `LICENSE.txt`, blob `c31ac56d772f7061c8b42f0ee96063b7a94a4859`, the PSF License Version 2 with Python's historical agreements; filelock `${pre_commit_s_dependencies_77_0}` `LICENSE`, blob `291919c0b6f41d014767f6c877af9f7595fcff99`, copyright 2025 Bernát Gábor and contributors; platformdirs `${pre_commit_s_dependencies_78_0}` `LICENSE`, blob `f35fed9191b1142ddaada8a96de4a9461c5d796c`, crediting the platformdirs developers; python-discovery `${pre_commit_s_dependencies_79_0}` `LICENSE`, blob `364982344fbd94d55705e1f27a9a87abaa255333`, the MIT grant with no copyright line; and packaging `${pre_commit_s_dependencies_80_0}` `LICENSE`, blob `6f62d44e4ef733c0e713afcd2371fed7f2b3de67`, offering `LICENSE.APACHE`, blob `f433b1a53f5b830a205fd2df78e2b34974656c7b`, or `LICENSE.BSD`, blob `42ce7b75c92fb01a3f6ed17eea363f756b7da582`. nodeenv installs Node.js for pre-commit's Node hooks under Node's own terms. Nothing is redistributed here. The same reviewed filelock release is a direct host dependency for serializing Lychee cache installation with operating-system locks. The selected wheel has the recorded LICENSE blob; no package is redistributed here. The same reviewed PyYAML release is a direct runtime dependency for composing workflow and hook YAML as source nodes without constructing objects. Its ${pre_commit_s_dependencies_74_0} LICENSE grants MIT under the recorded copyright notices; no package is redistributed here.",
+      "standing": "The optional `model` group's closure, which [tools/uv.lock](tools/uv.lock) fixes. The locked wheels and release tags carry these license instruments: cfgv `v${pre_commit_s_dependencies_71_0}` `LICENSE`, blob `b7af5ef213084fe100c5bb755659ef68c14dae5b`, copyright 2018 Anthony Sottile; identify `v${pre_commit_s_dependencies_72_0}` `LICENSE`, blob `0ecc5db911dadf39c600843c4646aa2b5c3a0ed7`, copyright 2017 Chris Kuehl and Anthony Sottile; nodeenv `${pre_commit_s_dependencies_73_0}` `LICENSE`, blob `a087c8d694a12d9f113ab83e2eeb7adbfa1353cd`, copyright 2011 Eugene Kalinin; PyYAML `${pre_commit_s_dependencies_74_0}` `LICENSE`, blob `2f1b8e15e5627d92f0521605c9870bc8e5505cb4`, copyright Ingy döt Net and Kirill Simonov; virtualenv `${pre_commit_s_dependencies_75_0}` `LICENSE`, blob `99598eb01766f838b130ff04c02103c1418215e1`, and `THIRD-PARTY-NOTICES.md`, blob `107e3e0418e26691f3c1b3385942f2dd5fb54601`, which leaves its embedded pip and setuptools wheels under their own licenses, including those of the packages each vendors; distlib `${pre_commit_s_dependencies_76_0}` `LICENSE.txt`, blob `c31ac56d772f7061c8b42f0ee96063b7a94a4859`, the PSF License Version 2 with Python's historical agreements; filelock `${pre_commit_s_dependencies_77_0}` `LICENSE`, blob `291919c0b6f41d014767f6c877af9f7595fcff99`, copyright 2025 Bernát Gábor and contributors; platformdirs `${pre_commit_s_dependencies_78_0}` `LICENSE`, blob `f35fed9191b1142ddaada8a96de4a9461c5d796c`, crediting the platformdirs developers; python-discovery `${pre_commit_s_dependencies_79_0}` `LICENSE`, blob `364982344fbd94d55705e1f27a9a87abaa255333`, the MIT grant with no copyright line; and packaging `${pre_commit_s_dependencies_80_0}` `LICENSE`, blob `6f62d44e4ef733c0e713afcd2371fed7f2b3de67`, offering `LICENSE.APACHE`, blob `f433b1a53f5b830a205fd2df78e2b34974656c7b`, or `LICENSE.BSD`, blob `42ce7b75c92fb01a3f6ed17eea363f756b7da582`. nodeenv installs Node.js for pre-commit's Node hooks under Node's own terms. Nothing is redistributed here. The same reviewed filelock release is a direct host dependency for serializing Lychee cache installation with operating-system locks. The selected wheel has the recorded LICENSE blob; no package is redistributed here. The same reviewed PyYAML release is a direct runtime dependency for composing workflow and hook YAML as source nodes without constructing objects. Its ${pre_commit_s_dependencies_74_0} LICENSE grants MIT under the recorded copyright notices; no package is redistributed here.",
       "reviews": [
         "pre_commit_s_dependencies_71",
         "pre_commit_s_dependencies_72",
