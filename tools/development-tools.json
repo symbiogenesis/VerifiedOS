@@ -96,7 +96,7 @@
       "tool": "Z3",
       "subject": "the reviewed release and its licence tag",
       "reviewed": [
-        "5.3.1"
+        "5.3.2"
       ],
       "owners": [
         {
@@ -2620,7 +2620,7 @@
       "id": "Z3",
       "tool": "Z3",
       "license": "`MIT`",
-      "standing": "Sail's solver, installed at the pin in [env.py](tools/vos/env.py). The reviewed [${z3_6_0} LICENSE.txt](https://github.com/Z3Prover/z3/blob/z3-${z3_6_0}/LICENSE.txt), SHA-256 `e617cad2ab9347e3129c2b171e87909332174e17961c5c3412d0799469111337` and read on 2026-10-19, states MIT and credits Microsoft; the released `z3-solver` wheel's own metadata states `License: MIT License` and carries no licence file. Guest bootstrap and `run.py provision` install only the wheels whose SHA-256 values [the solver's requirements](tools/z3-requirements.txt) record, never a build from source, into a private prefix; no solver source or binary is distributed here.",
+      "standing": "Sail's solver, installed at the pin in [env.py](tools/vos/env.py). The reviewed [${z3_6_0} LICENSE.txt](https://github.com/Z3Prover/z3/blob/z3-${z3_6_0}/LICENSE.txt), SHA-256 `e617cad2ab9347e3129c2b171e87909332174e17961c5c3412d0799469111337` and read on 2026-10-31, states MIT and credits Microsoft; the released `z3-solver` wheel's own metadata states `License: MIT License` and carries no licence file. Guest bootstrap and `run.py provision` install only the wheels whose SHA-256 values [the solver's requirements](tools/z3-requirements.txt) record, never a build from source, into a private prefix; no solver source or binary is distributed here.",
       "reviews": [
         "z3_6"
       ]

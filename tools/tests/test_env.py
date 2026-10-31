@@ -332,7 +332,7 @@ def _hoisted_lane_constants() -> None:
     path is not caught by anything a build does, and this is what catches it.
     """
     with_env("VOS_Z3_BIN", None, lambda: ensure(
-        str(env.Z3_PREFIX / "bin").replace("\\", "/") == "/root/z3-5.3.1/bin",
+        str(env.Z3_PREFIX / "bin").replace("\\", "/") == "/root/z3-5.3.2/bin",
         f"the pinned solver's prefix must compose to the unpacked one, got "
         f"{env.Z3_PREFIX}"))
     ensure(env.SAIL_SWITCH == "verifiedos-sail-0.20.3-ocaml-5.4.1",

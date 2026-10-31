@@ -182,7 +182,7 @@ SAIL_INSTALL: tuple[tuple[str, ...], ...] = (
 # probe can report what a prefix answered rather than only whether the directory is
 # there; `_prepend_z3_path` below states what a missing prefix costs, and it is the one
 # invariant here whose absence is silent rather than loud.
-Z3_VERSION = "5.3.1"
+Z3_VERSION = "5.3.2"
 Z3_PREFIX = Path(f"/root/z3-{Z3_VERSION}")
 Z3_DISTRIBUTION = "4.13.3"
 
