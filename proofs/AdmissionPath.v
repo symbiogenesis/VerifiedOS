@@ -1758,6 +1758,115 @@ Definition check_cert (m : Machine) (id : nat) (tc : nat) (c : Cert) : Verdict :
            else Accepted
        end.
 
+(* The ordered verdict view records the exact rule and site. Later cases carry
+   every earlier successful check, so a valid later refusal cannot justify
+   skipping a preceding failure. The executable checker remains the owner of
+   the traversal; this relation is its proof interface. *)
+Inductive CertificateVerdict (m : Machine) (id tc : nat) (c : Cert)
+    : Verdict -> Prop :=
+| CertificateStale :
+    versions_eqb c.(cert_versions) m.(admitted_versions) = false ->
+    CertificateVerdict m id tc c (Refused VersionMismatch id)
+| CertificateWrongBinding :
+    versions_eqb c.(cert_versions) m.(admitted_versions) = true ->
+    Nat.eqb c.(cert_binds) id = false ->
+    CertificateVerdict m id tc c (Refused BindingMismatch id)
+| CertificateUnknownTier :
+    versions_eqb c.(cert_versions) m.(admitted_versions) = true ->
+    Nat.eqb c.(cert_binds) id = true -> tier_of_code tc = None ->
+    CertificateVerdict m id tc c (Refused TierUnrecognised id)
+| CertificateUnknownForm : forall t s,
+    versions_eqb c.(cert_versions) m.(admitted_versions) = true ->
+    Nat.eqb c.(cert_binds) id = true -> tier_of_code tc = Some t ->
+    first_unrecognised c.(cert_steps) = Some s ->
+    CertificateVerdict m id tc c (Refused FormUnrecognised s.(st_site))
+| CertificateOpenFacet : forall t f,
+    versions_eqb c.(cert_versions) m.(admitted_versions) = true ->
+    Nat.eqb c.(cert_binds) id = true -> tier_of_code tc = Some t ->
+    first_unrecognised c.(cert_steps) = None ->
+    first_undischarged c (in_phase_order (m.(required) t)) = Some f ->
+    CertificateVerdict m id tc c (Refused (rule_of_move (move_of f)) (code_of_facet f))
+| CertificateAccepted : forall t,
+    versions_eqb c.(cert_versions) m.(admitted_versions) = true ->
+    Nat.eqb c.(cert_binds) id = true -> tier_of_code tc = Some t ->
+    first_unrecognised c.(cert_steps) = None ->
+    first_undischarged c (in_phase_order (m.(required) t)) = None ->
+    CertificateVerdict m id tc c Accepted.
+
+Lemma check_cert_cases : forall m id tc c,
+  CertificateVerdict m id tc c (check_cert m id tc c).
+Proof.
+  intros m id tc c. unfold check_cert.
+  destruct (versions_eqb c.(cert_versions) m.(admitted_versions)) eqn:Hv; simpl.
+  - destruct (Nat.eqb c.(cert_binds) id) eqn:Hb; simpl.
+    + destruct (tier_of_code tc) as [t|] eqn:Ht.
+      * destruct (first_unrecognised c.(cert_steps)) as [s|] eqn:Hu.
+        -- eapply CertificateUnknownForm; [exact Hv | exact Hb | exact Ht | exact Hu].
+        -- destruct (first_undischarged c (in_phase_order (m.(required) t)))
+             as [f|] eqn:Hd.
+           ++ eapply CertificateOpenFacet;
+                [exact Hv | exact Hb | exact Ht | exact Hu | exact Hd].
+           ++ eapply CertificateAccepted;
+                [exact Hv | exact Hb | exact Ht | exact Hu | exact Hd].
+      * apply CertificateUnknownTier; assumption.
+    + apply CertificateWrongBinding; assumption.
+  - apply CertificateStale. exact Hv.
+Qed.
+
+Lemma certificate_verdict_result : forall m id tc c v,
+  CertificateVerdict m id tc c v -> check_cert m id tc c = v.
+Proof.
+  intros m id tc c v H.
+  destruct H as [Hv | Hv Hb | Hv Hb Ht | t s Hv Hb Ht Hu |
+                 t f Hv Hb Ht Hu Hd | t Hv Hb Ht Hu Hd];
+    unfold check_cert; rewrite Hv; simpl.
+  - reflexivity.
+  - rewrite Hb. reflexivity.
+  - rewrite Hb. simpl. rewrite Ht. reflexivity.
+  - rewrite Hb. simpl. rewrite Ht, Hu. reflexivity.
+  - rewrite Hb. simpl. rewrite Ht, Hu, Hd. reflexivity.
+  - rewrite Hb. simpl. rewrite Ht, Hu, Hd. reflexivity.
+Qed.
+
+Lemma check_cert_verdict_spec : forall m id tc c v,
+  check_cert m id tc c = v <-> CertificateVerdict m id tc c v.
+Proof.
+  intros m id tc c v. split; intro H.
+  - rewrite <- H. apply check_cert_cases.
+  - exact (certificate_verdict_result m id tc c v H).
+Qed.
+
+(* Acceptance is the terminal case of that ordered interface. This projection
+   lets clients use the semantic conditions without reopening earlier branches. *)
+Lemma check_cert_acceptance : forall m id tc c,
+  accepts (check_cert m id tc c) = true <->
+  exists t : Tier,
+    versions_eqb c.(cert_versions) m.(admitted_versions) = true /\
+    Nat.eqb c.(cert_binds) id = true /\ tier_of_code tc = Some t /\
+    all_of step_recognised c.(cert_steps) = true /\ covers m t c = true.
+Proof.
+  intros m id tc c. split.
+  - intro H. pose proof (check_cert_cases m id tc c) as Cases.
+    remember (check_cert m id tc c) as v eqn:Ev in H.
+    rewrite <- Ev in Cases.
+    destruct Cases as [Hv | Hv Hb | Hv Hb Ht | t s Hv Hb Ht Hu |
+                       t f Hv Hb Ht Hu Hd | t Hv Hb Ht Hu Hd];
+      simpl in H; try discriminate H.
+    exists t. split; [exact Hv |]. split; [exact Hb |].
+    split; [exact Ht |]. split.
+    + exact (first_unrecognised_none _ Hu).
+    + unfold covers.
+      exact (a_conjunction_over_the_phase_order_is_one_over_the_set
+        (discharged c) (m.(required) t) (first_undischarged_none _ _ Hd)).
+  - intros [t [Hv [Hb [Ht [Hu Hd]]]]].
+    assert (Hcase : CertificateVerdict m id tc c Accepted).
+    { eapply CertificateAccepted; [exact Hv | exact Hb | exact Ht | |].
+      - exact (all_recognised_first_none _ Hu).
+      - apply all_discharged_first_none. unfold covers in Hd.
+        exact (in_phase_order_keeps_a_conjunction _ _ Hd). }
+    rewrite (certificate_verdict_result m id tc c Accepted Hcase). reflexivity.
+Qed.
+
 (* The specification's checker. The `Ambient` argument is taken and not read,
    which is what makes reading 1's obligation a property with something to
    exclude rather than a shape the type already forces. *)
@@ -1775,25 +1884,31 @@ Lemma check_cert_refuses_a_stale_version :
   forall (m : Machine) (id tc : nat) (c : Cert),
     versions_eqb c.(cert_versions) m.(admitted_versions) = false ->
     accepts (check_cert m id tc c) = false.
-Proof. intros m id tc c H. unfold check_cert. rewrite H. reflexivity. Qed.
+Proof.
+  intros m id tc c H. destruct (accepts (check_cert m id tc c)) eqn:Ha;
+    [|reflexivity].
+  destruct (proj1 (check_cert_acceptance m id tc c) Ha) as [t [Hv _]].
+  rewrite Hv in H. discriminate H.
+Qed.
 
 Lemma check_cert_refuses_a_wrong_binding :
   forall (m : Machine) (id tc : nat) (c : Cert),
     Nat.eqb c.(cert_binds) id = false -> accepts (check_cert m id tc c) = false.
 Proof.
-  intros m id tc c H. unfold check_cert. rewrite H.
-  destruct (negb (versions_eqb c.(cert_versions) m.(admitted_versions)));
-    reflexivity.
+  intros m id tc c H. destruct (accepts (check_cert m id tc c)) eqn:Ha;
+    [|reflexivity].
+  destruct (proj1 (check_cert_acceptance m id tc c) Ha) as [t [_ [Hb _]]].
+  rewrite Hb in H. discriminate H.
 Qed.
 
 Lemma check_cert_refuses_an_unrecognised_tier :
   forall (m : Machine) (id tc : nat) (c : Cert),
     tier_of_code tc = None -> accepts (check_cert m id tc c) = false.
 Proof.
-  intros m id tc c H. unfold check_cert. rewrite H.
-  destruct (negb (versions_eqb c.(cert_versions) m.(admitted_versions)));
-    [ reflexivity | ].
-  destruct (negb (Nat.eqb c.(cert_binds) id)); reflexivity.
+  intros m id tc c H. destruct (accepts (check_cert m id tc c)) eqn:Ha;
+    [|reflexivity].
+  destruct (proj1 (check_cert_acceptance m id tc c) Ha) as [t [_ [_ [Ht _]]]].
+  rewrite Ht in H. discriminate H.
 Qed.
 
 Lemma check_cert_refuses_an_unrecognised_form :
@@ -1801,13 +1916,11 @@ Lemma check_cert_refuses_an_unrecognised_form :
     all_of step_recognised c.(cert_steps) = false ->
     accepts (check_cert m id tc c) = false.
 Proof.
-  intros m id tc c H. unfold check_cert.
-  destruct (negb (versions_eqb c.(cert_versions) m.(admitted_versions)));
-    [ reflexivity | ].
-  destruct (negb (Nat.eqb c.(cert_binds) id)); [ reflexivity | ].
-  destruct (tier_of_code tc) as [ t | ]; [ | reflexivity ].
-  destruct (first_unrecognised c.(cert_steps)) as [ s | ] eqn:E; [ reflexivity | ].
-  rewrite (first_unrecognised_none c.(cert_steps) E) in H. discriminate H.
+  intros m id tc c H. destruct (accepts (check_cert m id tc c)) eqn:Ha;
+    [|reflexivity].
+  destruct (proj1 (check_cert_acceptance m id tc c) Ha)
+    as [t [_ [_ [_ [Hu _]]]]].
+  rewrite Hu in H. discriminate H.
 Qed.
 
 Lemma check_cert_refuses_an_undischarged_facet :
@@ -1815,18 +1928,12 @@ Lemma check_cert_refuses_an_undischarged_facet :
     tier_of_code tc = Some t -> covers m t c = false ->
     accepts (check_cert m id tc c) = false.
 Proof.
-  intros m id tc t c Ht H. unfold check_cert. rewrite Ht.
-  destruct (negb (versions_eqb c.(cert_versions) m.(admitted_versions)));
-    [ reflexivity | ].
-  destruct (negb (Nat.eqb c.(cert_binds) id)); [ reflexivity | ].
-  destruct (first_unrecognised c.(cert_steps)) as [ s | ]; [ reflexivity | ].
-  destruct (first_undischarged c (in_phase_order (m.(required) t)))
-    as [ f | ] eqn:E; [ reflexivity | ].
-  unfold covers in H.
-  rewrite (a_conjunction_over_the_phase_order_is_one_over_the_set
-             (discharged c) (m.(required) t)
-             (first_undischarged_none c _ E)) in H.
-  discriminate H.
+  intros m id tc t c Ht H. destruct (accepts (check_cert m id tc c)) eqn:Ha;
+    [|reflexivity].
+  destruct (proj1 (check_cert_acceptance m id tc c) Ha)
+    as [t' [_ [_ [Ht' [_ Hcov]]]]].
+  rewrite Ht in Ht'. injection Ht' as Heq. subst t'.
+  rewrite Hcov in H. discriminate H.
 Qed.
 
 (* =========================================================================
@@ -2005,24 +2112,13 @@ Theorem the_specification_fails_closed :
     FailsClosed m D rd (spec_check m D rd).
 Proof.
   intros m D rd a p H. unfold spec_check in H.
-  destruct (pkg_cert p) as [ d | ] eqn:Ec; [ | discriminate H ].
-  unfold check_cert in H.
-  destruct (versions_eqb (cert_versions (rd d)) (admitted_versions m)) eqn:Ev;
-    [ | discriminate H ].
-  destruct (Nat.eqb (cert_binds (rd d)) (pkg_id p)) eqn:Eb; [ | discriminate H ].
-  destruct (tier_of_code (pkg_tier p)) as [ t | ] eqn:Et; [ | discriminate H ].
-  destruct (first_unrecognised (cert_steps (rd d))) as [ s | ] eqn:Eu;
-    [ discriminate H | ].
-  destruct (first_undischarged (rd d) (in_phase_order (required m t)))
-    as [ f | ] eqn:Ed; [ discriminate H | ].
-  exists d. exists t. split; [ exact Ec | ].
-  split; [ exact (versions_eqb_true _ _ Ev) | ].
-  split; [ exact (nat_eqb_true _ _ Eb) | ].
-  split; [ exact Et | ].
-  split; [ exact (first_unrecognised_none _ Eu) | ].
-  unfold covers.
-  exact (a_conjunction_over_the_phase_order_is_one_over_the_set
-           (discharged (rd d)) (required m t) (first_undischarged_none _ _ Ed)).
+  destruct (pkg_cert p) as [d|] eqn:Ec; [|discriminate H].
+  destruct (proj1 (check_cert_acceptance m p.(pkg_id) p.(pkg_tier) (rd d)) H)
+    as [t [Hv [Hb [Ht [Hu Hcov]]]]].
+  exists d, t. split; [exact Ec |].
+  split; [exact (versions_eqb_true _ _ Hv) |].
+  split; [exact (nat_eqb_true _ _ Hb) |].
+  exact (conj Ht (conj Hu Hcov)).
 Qed.
 
 (* S5: and it is complete for the same relation, so the fail-closed theorem is
@@ -2035,16 +2131,14 @@ Theorem the_specification_is_complete_for_the_typing_relation :
   forall (m : Machine) (D : Type) (rd : Reading D),
     CompleteFor D (WellTyped m D rd) (spec_check m D rd).
 Proof.
-  intros m D rd a p [ d [ t [ Hc [ Hv [ Hb [ Ht [ Hr Hcov ] ] ] ] ] ] ].
-  unfold spec_check. rewrite Hc. unfold check_cert.
-  rewrite Hv. rewrite Hb. rewrite (versions_eqb_refl (admitted_versions m)).
-  rewrite (nat_eqb_refl (pkg_id p)). simpl. rewrite Ht.
-  rewrite (all_recognised_first_none (cert_steps (rd d)) Hr).
-  unfold covers in Hcov.
-  rewrite (all_discharged_first_none (rd d) (in_phase_order (required m t))
-             (in_phase_order_keeps_a_conjunction (discharged (rd d))
-                (required m t) Hcov)).
-  reflexivity.
+  intros m D rd a p [d [t [Hc [Hv [Hb [Ht [Hu Hcov]]]]]]].
+  unfold spec_check. rewrite Hc.
+  apply (proj2 (check_cert_acceptance m p.(pkg_id) p.(pkg_tier) (rd d))).
+  exists t. split.
+  - rewrite Hv. apply versions_eqb_refl.
+  - split.
+    + rewrite Hb. apply nat_eqb_refl.
+    + exact (conj Ht (conj Hu Hcov)).
 Qed.
 
 (* =========================================================================
@@ -2300,13 +2394,22 @@ Theorem the_specification_refuses_in_the_early_phase_order :
     /\ RefusesUnderTheUnrecognisedTierBeforeTheForm m D rd (spec_check m D rd).
 Proof.
   intros m D rd. split.
-  { intros a p d Hc Hv. unfold spec_check. rewrite Hc. unfold check_cert.
-    rewrite Hv. reflexivity. }
+  { intros a p d Hc Hv. unfold spec_check. rewrite Hc.
+    assert (Hcase : CertificateVerdict m p.(pkg_id) p.(pkg_tier) (rd d)
+      (Refused VersionMismatch p.(pkg_id))).
+    { apply CertificateStale. exact Hv. }
+    rewrite (certificate_verdict_result _ _ _ _ _ Hcase). reflexivity. }
   split.
-  { intros a p d Hc Hv Hb. unfold spec_check. rewrite Hc. unfold check_cert.
-    rewrite Hv. simpl. rewrite Hb. reflexivity. }
-  intros a p d Hc Hv Hb Ht. unfold spec_check. rewrite Hc. unfold check_cert.
-  rewrite Hv. simpl. rewrite Hb. simpl. rewrite Ht. reflexivity.
+  { intros a p d Hc Hv Hb. unfold spec_check. rewrite Hc.
+    assert (Hcase : CertificateVerdict m p.(pkg_id) p.(pkg_tier) (rd d)
+      (Refused BindingMismatch p.(pkg_id))).
+    { apply CertificateWrongBinding; assumption. }
+    rewrite (certificate_verdict_result _ _ _ _ _ Hcase). reflexivity. }
+  intros a p d Hc Hv Hb Ht. unfold spec_check. rewrite Hc.
+  assert (Hcase : CertificateVerdict m p.(pkg_id) p.(pkg_tier) (rd d)
+    (Refused TierUnrecognised p.(pkg_id))).
+  { apply CertificateUnknownTier; assumption. }
+  rewrite (certificate_verdict_result _ _ _ _ _ Hcase). reflexivity.
 Qed.
 
 (* =========================================================================

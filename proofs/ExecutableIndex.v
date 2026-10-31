@@ -578,6 +578,131 @@ Definition publish_branch (ka : KeyAlgebra) (g : Geometry) (ar : Arena ka)
         end
     end.
 
+(* A publication has six semantic cases. The two successful cases expose only
+   its allocation steps and split result; each refusal names the first step
+   that cannot proceed. No tree invariant is required by this interface. *)
+Inductive PublicationCase (ka : KeyAlgebra) (g : Geometry) (ar : Arena ka)
+    (whole left right : ENode ka) (fits : bool) (cut : option (Key ka))
+    : option (prod (Arena ka) (Grown ka)) -> Prop :=
+| PublicationWhole : forall a ar1,
+    fits = true -> alloc ka g ar whole = Some (pair a ar1) ->
+    PublicationCase ka g ar whole left right fits cut
+      (Some (pair ar1 (pair a None)))
+| PublicationWholeRefused :
+    fits = true -> alloc ka g ar whole = None ->
+    PublicationCase ka g ar whole left right fits cut None
+| PublicationCutAbsent :
+    fits = false -> cut = None ->
+    PublicationCase ka g ar whole left right fits cut None
+| PublicationLeftRefused : forall s,
+    fits = false -> cut = Some s -> alloc ka g ar left = None ->
+    PublicationCase ka g ar whole left right fits cut None
+| PublicationRightRefused : forall s al ar1,
+    fits = false -> cut = Some s ->
+    alloc ka g ar left = Some (pair al ar1) -> alloc ka g ar1 right = None ->
+    PublicationCase ka g ar whole left right fits cut None
+| PublicationSplit : forall s al ar1 ap ar2,
+    fits = false -> cut = Some s ->
+    alloc ka g ar left = Some (pair al ar1) ->
+    alloc ka g ar1 right = Some (pair ap ar2) ->
+    PublicationCase ka g ar whole left right fits cut
+      (Some (pair ar2 (pair al (Some (pair s ap))))).
+
+Lemma publication_cases : forall ka g ar whole left right fits cut,
+  PublicationCase ka g ar whole left right fits cut
+    (if fits then
+       match alloc ka g ar whole with
+       | None => None
+       | Some (pair a ar1) => Some (pair ar1 (pair a None))
+       end
+     else match cut with
+          | None => None
+          | Some s =>
+              match alloc ka g ar left with
+              | None => None
+              | Some (pair al ar1) =>
+                  match alloc ka g ar1 right with
+                  | None => None
+                  | Some (pair ap ar2) =>
+                      Some (pair ar2 (pair al (Some (pair s ap))))
+                  end
+              end
+          end).
+Proof.
+  intros ka g ar whole left right fits cut. destruct fits.
+  - destruct (alloc ka g ar whole) as [[a ar1]|] eqn:E.
+    + apply PublicationWhole; [reflexivity | exact E].
+    + apply PublicationWholeRefused; [reflexivity | exact E].
+  - destruct cut as [s|].
+    + destruct (alloc ka g ar left) as [[al ar1]|] eqn:El.
+      * destruct (alloc ka g ar1 right) as [[ap ar2]|] eqn:Er.
+        -- eapply PublicationSplit; [reflexivity | reflexivity | exact El | exact Er].
+        -- eapply PublicationRightRefused;
+             [reflexivity | reflexivity | exact El | exact Er].
+      * eapply PublicationLeftRefused; [reflexivity | reflexivity | exact El].
+    + apply PublicationCutAbsent; reflexivity.
+Qed.
+
+Lemma publication_case_result : forall ka g ar whole left right fits cut result,
+  PublicationCase ka g ar whole left right fits cut result ->
+  (if fits then
+     match alloc ka g ar whole with
+     | None => None
+     | Some (pair a ar1) => Some (pair ar1 (pair a None))
+     end
+   else match cut with
+        | None => None
+        | Some s =>
+            match alloc ka g ar left with
+            | None => None
+            | Some (pair al ar1) =>
+                match alloc ka g ar1 right with
+                | None => None
+                | Some (pair ap ar2) =>
+                    Some (pair ar2 (pair al (Some (pair s ap))))
+                end
+            end
+        end) = result.
+Proof.
+  intros ka g ar whole left right fits cut result H.
+  destruct H as [a ar1 Hf Ea | Hf Ea | Hf Ec | s Hf Ec El |
+                 s al ar1 Hf Ec El Er | s al ar1 ap ar2 Hf Ec El Er];
+    rewrite Hf.
+  - rewrite Ea. reflexivity.
+  - rewrite Ea. reflexivity.
+  - rewrite Ec. reflexivity.
+  - rewrite Ec, El. reflexivity.
+  - rewrite Ec, El, Er. reflexivity.
+  - rewrite Ec, El, Er. reflexivity.
+Qed.
+
+Lemma publish_leaf_cases : forall ka g ar ix result,
+  publish_leaf ka g ar ix = result <->
+  PublicationCase ka g ar (leaf_of ka ix)
+    (leaf_of ka (take (halve (length ix)) ix))
+    (leaf_of ka (drop (halve (length ix)) ix))
+    (Nat.leb (length ix) (fan g))
+    (head_key ka (drop (halve (length ix)) ix)) result.
+Proof.
+  intros ka g ar ix result. split; intro H.
+  - rewrite <- H. unfold publish_leaf. apply publication_cases.
+  - unfold publish_leaf. exact (publication_case_result _ _ _ _ _ _ _ _ _ H).
+Qed.
+
+Lemma publish_branch_cases : forall ka g ar ss cs result,
+  publish_branch ka g ar ss cs = result <->
+  PublicationCase ka g ar (branch_of ka ss cs)
+    (branch_of ka (take (Nat.pred (halve (length cs))) ss)
+                  (take (halve (length cs)) cs))
+    (branch_of ka (drop (halve (length cs)) ss) (drop (halve (length cs)) cs))
+    (Nat.leb (length cs) (fan g))
+    (nth_error ss (Nat.pred (halve (length cs)))) result.
+Proof.
+  intros ka g ar ss cs result. split; intro H.
+  - rewrite <- H. unfold publish_branch. apply publication_cases.
+  - unfold publish_branch. exact (publication_case_result _ _ _ _ _ _ _ _ _ H).
+Qed.
+
 Fixpoint insert (ka : KeyAlgebra) (g : Geometry) (ar : Arena ka)
                 (fuel b : nat) (k : Key ka) (v : nat)
   : option (prod (Arena ka) (Grown ka)) :=
@@ -874,27 +999,30 @@ Proof.
   - congruence.
 Qed.
 
+Lemma publication_appended : forall ka g ar whole left right fits cut result,
+  PublicationCase ka g ar whole left right fits cut result ->
+  forall ar' gr, result = Some (pair ar' gr) -> appended ka ar ar'.
+Proof.
+  intros ka g ar whole left right fits cut result H.
+  destruct H as [a ar1 Hf Ea | Hf Ea | Hf Ec | s Hf Ec El |
+                 s al ar1 Hf Ec El Er | s al ar1 ap ar2 Hf Ec El Er];
+    intros ar' gr Hout; try discriminate Hout.
+  - injection Hout as Har _. rewrite <- Har.
+    exact (proj1 (alloc_appended ka g ar whole a ar1 Ea)).
+  - injection Hout as Har _. rewrite <- Har.
+    exact (appended_trans ka ar ar1 ar2
+      (proj1 (alloc_appended ka g ar left al ar1 El))
+      (proj1 (alloc_appended ka g ar1 right ap ar2 Er))).
+Qed.
+
 Lemma publish_leaf_appended :
   forall (ka : KeyAlgebra) (g : Geometry) (ar : Arena ka) (ix : Index ka)
          (ar' : Arena ka) (gr : Grown ka),
     publish_leaf ka g ar ix = Some (pair ar' gr) -> appended ka ar ar'.
 Proof.
-  intros ka g ar ix ar' gr H. unfold publish_leaf in H.
-  destruct (Nat.leb (length ix) (fan g)).
-  - destruct (alloc ka g ar (leaf_of ka ix)) as [ [ a ar1 ] | ] eqn:E1;
-      [ | discriminate H ].
-    injection H as H1 H2. apply alloc_appended in E1 as [ Hap _ ].
-    rewrite <- H1. exact Hap.
-  - destruct (head_key ka (drop (halve (length ix)) ix)) as [ s | ];
-      [ | discriminate H ].
-    destruct (alloc ka g ar (leaf_of ka (take (halve (length ix)) ix)))
-      as [ [ al ar1 ] | ] eqn:E1; [ | discriminate H ].
-    destruct (alloc ka g ar1 (leaf_of ka (drop (halve (length ix)) ix)))
-      as [ [ ap ar2 ] | ] eqn:E2; [ | discriminate H ].
-    injection H as H1 H2.
-    apply alloc_appended in E1 as [ Hap1 _ ].
-    apply alloc_appended in E2 as [ Hap2 _ ].
-    rewrite <- H1. exact (appended_trans ka ar ar1 ar2 Hap1 Hap2).
+  intros ka g ar ix ar' gr H.
+  apply (proj1 (publish_leaf_cases ka g ar ix (Some (pair ar' gr)))) in H.
+  exact (publication_appended _ _ _ _ _ _ _ _ _ H ar' gr eq_refl).
 Qed.
 
 Lemma publish_branch_appended :
@@ -902,26 +1030,9 @@ Lemma publish_branch_appended :
          (ss : list (Key ka)) (cs : list nat) (ar' : Arena ka) (gr : Grown ka),
     publish_branch ka g ar ss cs = Some (pair ar' gr) -> appended ka ar ar'.
 Proof.
-  intros ka g ar ss cs ar' gr H. unfold publish_branch in H.
-  destruct (Nat.leb (length cs) (fan g)).
-  - destruct (alloc ka g ar (branch_of ka ss cs)) as [ [ a ar1 ] | ] eqn:E1;
-      [ | discriminate H ].
-    injection H as H1 H2. apply alloc_appended in E1 as [ Hap _ ].
-    rewrite <- H1. exact Hap.
-  - destruct (nth_error ss (Nat.pred (halve (length cs)))) as [ s | ];
-      [ | discriminate H ].
-    destruct (alloc ka g ar
-                (branch_of ka (take (Nat.pred (halve (length cs))) ss)
-                              (take (halve (length cs)) cs)))
-      as [ [ al ar1 ] | ] eqn:E1; [ | discriminate H ].
-    destruct (alloc ka g ar1
-                (branch_of ka (drop (halve (length cs)) ss)
-                              (drop (halve (length cs)) cs)))
-      as [ [ ap ar2 ] | ] eqn:E2; [ | discriminate H ].
-    injection H as H1 H2.
-    apply alloc_appended in E1 as [ Hap1 _ ].
-    apply alloc_appended in E2 as [ Hap2 _ ].
-    rewrite <- H1. exact (appended_trans ka ar ar1 ar2 Hap1 Hap2).
+  intros ka g ar ss cs ar' gr H.
+  apply (proj1 (publish_branch_cases ka g ar ss cs (Some (pair ar' gr)))) in H.
+  exact (publication_appended _ _ _ _ _ _ _ _ _ H ar' gr eq_refl).
 Qed.
 
 (*| discharges: R-10-010 |*)
@@ -3435,23 +3546,28 @@ Proof.
   apply Nat.ltb_lt in E. rewrite length_app. simpl. lia.
 Qed.
 
+Lemma publication_arena_ok : forall ka g ar whole left right fits cut result,
+  PublicationCase ka g ar whole left right fits cut result ->
+  forall ar' gr, result = Some (pair ar' gr) -> arena_ok ka g ar' = true.
+Proof.
+  intros ka g ar whole left right fits cut result H.
+  destruct H as [a ar1 Hf Ea | Hf Ea | Hf Ec | s Hf Ec El |
+                 s al ar1 Hf Ec El Er | s al ar1 ap ar2 Hf Ec El Er];
+    intros ar' gr Hout; try discriminate Hout.
+  - injection Hout as Har _. rewrite <- Har.
+    exact (alloc_arena_ok ka g ar whole a ar1 Ea).
+  - injection Hout as Har _. rewrite <- Har.
+    exact (alloc_arena_ok ka g ar1 right ap ar2 Er).
+Qed.
+
 Lemma publish_leaf_arena_ok :
   forall (ka : KeyAlgebra) (g : Geometry) (ar : Arena ka) (ix : Index ka)
          (ar' : Arena ka) (gr : Grown ka),
     publish_leaf ka g ar ix = Some (pair ar' gr) -> arena_ok ka g ar' = true.
 Proof.
-  intros ka g ar ix ar' gr H. unfold publish_leaf in H.
-  destruct (Nat.leb (length ix) (fan g)).
-  - destruct (alloc ka g ar (leaf_of ka ix)) as [ [ a ar1 ] | ] eqn:E1;
-      [ | discriminate H ].
-    injection H as H1 _. rewrite <- H1. exact (alloc_arena_ok ka g ar _ a ar1 E1).
-  - destruct (head_key ka (drop (halve (length ix)) ix)) as [ s | ];
-      [ | discriminate H ].
-    destruct (alloc ka g ar (leaf_of ka (take (halve (length ix)) ix)))
-      as [ [ al ar1 ] | ]; [ | discriminate H ].
-    destruct (alloc ka g ar1 (leaf_of ka (drop (halve (length ix)) ix)))
-      as [ [ ap ar2 ] | ] eqn:E2; [ | discriminate H ].
-    injection H as H1 _. rewrite <- H1. exact (alloc_arena_ok ka g ar1 _ ap ar2 E2).
+  intros ka g ar ix ar' gr H.
+  apply (proj1 (publish_leaf_cases ka g ar ix (Some (pair ar' gr)))) in H.
+  exact (publication_arena_ok _ _ _ _ _ _ _ _ _ H ar' gr eq_refl).
 Qed.
 
 Lemma publish_branch_arena_ok :
@@ -3459,22 +3575,9 @@ Lemma publish_branch_arena_ok :
          (ss : list (Key ka)) (cs : list nat) (ar' : Arena ka) (gr : Grown ka),
     publish_branch ka g ar ss cs = Some (pair ar' gr) -> arena_ok ka g ar' = true.
 Proof.
-  intros ka g ar ss cs ar' gr H. unfold publish_branch in H.
-  destruct (Nat.leb (length cs) (fan g)).
-  - destruct (alloc ka g ar (branch_of ka ss cs)) as [ [ a ar1 ] | ] eqn:E1;
-      [ | discriminate H ].
-    injection H as H1 _. rewrite <- H1. exact (alloc_arena_ok ka g ar _ a ar1 E1).
-  - destruct (nth_error ss (Nat.pred (halve (length cs)))) as [ s | ];
-      [ | discriminate H ].
-    destruct (alloc ka g ar
-                (branch_of ka (take (Nat.pred (halve (length cs))) ss)
-                              (take (halve (length cs)) cs)))
-      as [ [ al ar1 ] | ]; [ | discriminate H ].
-    destruct (alloc ka g ar1
-                (branch_of ka (drop (halve (length cs)) ss)
-                              (drop (halve (length cs)) cs)))
-      as [ [ ap ar2 ] | ] eqn:E2; [ | discriminate H ].
-    injection H as H1 _. rewrite <- H1. exact (alloc_arena_ok ka g ar1 _ ap ar2 E2).
+  intros ka g ar ss cs ar' gr H.
+  apply (proj1 (publish_branch_cases ka g ar ss cs (Some (pair ar' gr)))) in H.
+  exact (publication_arena_ok _ _ _ _ _ _ _ _ _ H ar' gr eq_refl).
 Qed.
 
 Lemma insert_arena_ok :
