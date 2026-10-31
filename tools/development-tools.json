@@ -3047,14 +3047,14 @@
   "actions": [
     {
       "repository": "astral-sh/setup-uv",
-      "release": "v10.3.0",
-      "commit": "1c37ad07a6a961277cf70c0d37d6f313000f5884",
+      "release": "v10.3.2",
+      "commit": "07a047e608db84b3d8c06cd9a7c7dcc9c355c18e",
       "license": "MIT",
       "licence_paths": [
         "LICENSE"
       ],
       "description": "Host and guest CI, the boot signature target campaign and the instrument switch route download and run the action to install uv and cache its downloads; the campaign and the route read Guest CI's cache and save none.",
-      "attribution": "",
+      "attribution": "crediting Kevin Stillhammer",
       "notice": "No action source or bundled dependency is redistributed here."
     },
     {
@@ -3071,8 +3071,8 @@
     },
     {
       "repository": "actions/setup-python",
-      "release": "v7.0.0",
-      "commit": "5fda3b95a4ea91299a34e894583c3862153e4b97",
+      "release": "v7.1.0",
+      "commit": "6d4fd22b20465ccc0f7354476588e8df7c9ca0e0",
       "license": "MIT",
       "licence_paths": [
         "LICENSE"
