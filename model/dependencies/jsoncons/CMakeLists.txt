@@ -13,6 +13,9 @@ FetchContent_Declare(
 )
 
 if (DOWNLOAD_JSONCONS)
+    if(VOS_MODEL_OFFLINE AND NOT IS_DIRECTORY "${FETCHCONTENT_SOURCE_DIR_JSONCONS}")
+        message(FATAL_ERROR "Offline jsoncons input is missing; run model dependencies first")
+    endif()
     FetchContent_MakeAvailable(jsoncons)
 
     set_target_properties(jsoncons

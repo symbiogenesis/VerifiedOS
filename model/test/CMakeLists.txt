@@ -1,4 +1,5 @@
 # CMake options for test downloads
+option(VOS_MODEL_OFFLINE "Refuse dependency acquisition during model configuration" OFF)
 set(TEST_DOWNLOAD_URL "https://github.com/riscv-software-src/sail-riscv-tests/releases/download" CACHE STRING "Base URL to download precompiled riscv-tests and riscv-vector-tests from")
 set(TEST_DOWNLOAD_VERSION "2026-08-20" CACHE STRING "Version of precompiled tests to download")
 
@@ -113,12 +114,18 @@ function(download_riscv_tests DOWNLOAD_PATH TARBALL_NAME DOWNLOAD_URL)
         endif()
         string(FIND "${listing}" "\nunhashed " unhashed)
         if(NOT recorded STREQUAL listing OR NOT unhashed EQUAL -1)
+            if(VOS_MODEL_OFFLINE)
+                message(FATAL_ERROR "Offline ${TARBALL_NAME} input is unverified; run model dependencies first")
+            endif()
             message(STATUS "${TARBALL_NAME} has no matching ${TARBALL_NAME}.manifest, downloading again...")
             file(REMOVE_RECURSE "${suite}" "${manifest}")
         endif()
     endif()
 
     if(NOT EXISTS "${DOWNLOAD_PATH}/${TARBALL_NAME}")
+        if(VOS_MODEL_OFFLINE)
+            message(FATAL_ERROR "Offline ${TARBALL_NAME} input is missing; run model dependencies first")
+        endif()
         message(STATUS "${TARBALL_NAME}.tar.gz not extracted, downloading...")
 
         # Download the tar.gz file. A tarball left by an earlier run is kept
