@@ -191,7 +191,7 @@ def document_findings(documents: list[corpus.Document], config: Path, *,
             if not batched:
                 groups = _batch([doc.raw for _, doc in eligible], config)
                 batched = {index: group for (index, _), group in zip(eligible, groups, strict=True)}
-        except (OSError, ValueError, PyMarkdownApiException):
+        except OSError, ValueError, PyMarkdownApiException:
             pass
     findings: list[str] = []
     for index, doc in enumerate(documents):

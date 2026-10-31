@@ -140,7 +140,7 @@ def decode(blob: bytes, *, expected: Binding, expected_events: int,
         raw = cast(Json, json.loads(blob.decode("utf-8"), object_pairs_hook=_pairs,
                                    parse_constant=_noninteger, parse_float=_noninteger,
                                    parse_int=_integer))
-    except (UnicodeDecodeError, json.JSONDecodeError, RecursionError):
+    except UnicodeDecodeError, json.JSONDecodeError, RecursionError:
         raise RecordError("invalid UTF-8 JSON body") from None
     body = _object(raw, {"schema", "binding", "events"})
     if body["schema"] != SCHEMA:

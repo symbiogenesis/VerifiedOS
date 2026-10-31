@@ -31,6 +31,7 @@ compiler is provisioned (section 9.14) and hands it to `mmode_payload`.
 
 import re
 from dataclasses import dataclass
+from itertools import batched
 from pathlib import Path
 from typing import Final
 
@@ -112,8 +113,8 @@ def _flatten(source: str, name: str, text_base: int, data_base: int,
 
 
 def _bytes_directives(blob: bytes) -> str:
-    return "".join("        .byte " + ",".join(str(b) for b in blob[at:at + 32]) + "\n"
-                   for at in range(0, len(blob), 32))
+    return "".join("        .byte " + ",".join(str(b) for b in chunk) + "\n"
+                   for chunk in batched(blob, 32, strict=False))
 
 
 def mmode_assembly(root: Path, mmode_stream: str, kernel_root: bytes) -> str:

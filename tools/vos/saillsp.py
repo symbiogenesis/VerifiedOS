@@ -417,7 +417,7 @@ class Session:
                     shutdown = self.request("shutdown")
                     self.send("exit")
                     self.process.wait(timeout=5)
-                except (OSError, ValueError, TimeoutError, subprocess.TimeoutExpired):
+                except OSError, ValueError, TimeoutError, subprocess.TimeoutExpired:
                     terminate = True
             if terminate and self.process.poll() is None:
                 os.killpg(self.process.pid, signal.SIGTERM)

@@ -200,7 +200,7 @@ def read_ledger(root: Path) -> dict[str, tuple[str, str]]:
     path = root / LEDGER
     try:
         raw = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, ValueError):
+    except OSError, ValueError:
         return {}
     if not isinstance(raw, dict):
         return {}

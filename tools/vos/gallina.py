@@ -735,7 +735,7 @@ def seed(harness: Path) -> str | None:
     fixes nothing."""
     try:
         text = proofs.strip_comments(harness.read_text(encoding="utf-8"))
-    except (OSError, UnicodeDecodeError):
+    except OSError, UnicodeDecodeError:
         return None
     found = list(_SEED.finditer(text))
     loads = [m.end() for m in _REQUIRES_QUICKCHICK.finditer(text)]

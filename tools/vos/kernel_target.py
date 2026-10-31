@@ -10,6 +10,7 @@ import json
 import re
 import shutil
 import subprocess
+from itertools import batched
 from pathlib import Path
 
 from vos import (
@@ -418,8 +419,8 @@ def snapshot_source(source: str, built: boot_handoff.Assembled, window: bytes,
     emitted = (header + code + f"\n    .space {lay['BRINGUP_MMODE_LOAD_BASE'] + DATA_OFFSET} - .\n"
                + "\n".join(data_lines) + f"\n    .space {lay['BRINGUP_HANDOFF_BASE']} - .\n"
                + "kernel_boot_record:\n"
-               + "\n".join("    .byte " + ", ".join(str(b) for b in record[i:i + 16])
-                           for i in range(0, len(record), 16)) + "\n")
+               + "\n".join("    .byte " + ", ".join(str(b) for b in chunk)
+                           for chunk in batched(record, 16, strict=False)) + "\n")
     assembled = asm.Assembler(emitted, "kernel-snapshot")
     sections, _, entry = assembled.assemble()
     text = next(section for section in sections if section.name == ".text")

@@ -151,7 +151,7 @@ def _read_mem_available_mb() -> int | None:
                     if value >= 0:
                         return value // 1024
                 return None
-    except (OSError, ValueError):
+    except OSError, ValueError:
         return None
     return None
 

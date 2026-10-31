@@ -40,10 +40,10 @@ from .dialect import AsmError
 # table knows, and its operands already resolved to integers in source order. A
 # pseudo-instruction yields a list of these, which is the only reason it is a list
 # rather than a single instruction.
-Instr = tuple[str, list[int]]
+type Instr = tuple[str, list[int]]
 
 # A lexed token: the name of the group in `_TOKEN` that matched, and its text.
-Token = tuple[str, str]
+type Token = tuple[str, str]
 
 # Where the two sections are composed. Both are 16-aligned so that a section's
 # file offset and its address agree modulo the segment alignment, and both sit

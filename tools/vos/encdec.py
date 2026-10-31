@@ -220,7 +220,7 @@ def arm_key(node: object) -> tuple[object, ...] | None:
     return None
 
 
-Arms = dict[tuple[object, ...], object]
+type Arms = dict[tuple[object, ...], object]
 
 
 def _sided(clause: dict[str, Any], *, bits: bool

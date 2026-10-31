@@ -127,7 +127,7 @@ def _texts(ctx: Context) -> Iterator[tuple[str, str]]:
                 cache = cast(retained.Cache, ctx.shared.setdefault("retained_scan", retained.Cache()))
                 try:
                     facts = cache.scan(rel, blob, names, sensitive, folded, glyphs=glyph_needles)
-                except (OSError, EOFError, ValueError, zlib.error):
+                except OSError, EOFError, ValueError, zlib.error:
                     pass
                 else:
                     if facts.glyph is False:
@@ -140,7 +140,7 @@ def _texts(ctx: Context) -> Iterator[tuple[str, str]]:
             if blob.isascii():
                 continue
             yield rel, blob.decode("utf-8").replace("\r\n", "\n").replace("\r", "\n")
-        except (UnicodeDecodeError, OSError, EOFError, ValueError, zlib.error):
+        except UnicodeDecodeError, OSError, EOFError, ValueError, zlib.error:
             continue
 
 

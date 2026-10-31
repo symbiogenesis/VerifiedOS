@@ -359,7 +359,7 @@ def _source(ctx: Context, rel: str) -> str:
     """
     try:
         return (ctx.root / rel).read_text(encoding="utf-8")
-    except (OSError, UnicodeDecodeError):
+    except OSError, UnicodeDecodeError:
         return ""
 
 

@@ -129,7 +129,7 @@ _TOKEN = re.compile(r"""
 _KEYWORDS: Final[frozenset[str]] = frozenset(
     {"if", "then", "else", "match", "config", "sizeof", "not", "true", "false"})
 
-Token = tuple[str, str]
+type Token = tuple[str, str]
 
 
 def tokens(text: str) -> list[Token]:

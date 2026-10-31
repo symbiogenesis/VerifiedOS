@@ -322,7 +322,7 @@ def _repo_file(root: Path, name: str) -> str:
                     stream = archive.extractfile(member)
                     if stream is not None:
                         return stream.read().decode("utf-8", errors="replace")
-    except (OSError, tarfile.TarError):
+    except OSError, tarfile.TarError:
         return ""
     return ""
 
