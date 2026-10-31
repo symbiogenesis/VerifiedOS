@@ -73,7 +73,8 @@ def owned_storage_controls() -> None:
         sources = ('kernel/src/effects.c', 'kernel/src/context.c',
                    'supervisor/src/supervisor.c', 'supervisor/src/effects.c',
                    'supervisor/src/manifest.c', 'kernel/test/effects.c')
-        result = subprocess.run([cc, '-std=c11', '-O1', '-Wall', '-Wextra', '-Werror',
+        result = subprocess.run([cc, '-std=c17', '-O1', '-Wall', '-Wextra',
+            '-Wstrict-prototypes', '-Werror',
             '-pedantic', '-DVOS_HOST_MODEL', '-I' + str(root / 'kernel/include'),
             '-I' + str(root / 'supervisor/include'), *(str(root / name) for name in sources),
             '-o', str(executable)], capture_output=True, text=True, check=False)

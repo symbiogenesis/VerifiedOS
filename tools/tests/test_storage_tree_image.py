@@ -46,7 +46,8 @@ def _build(directory: Path, *, source: str | None = None) -> Path:
         reader = directory / "tree_image.c"
         reader.write_text(source, encoding="utf-8", newline="")
     binary = directory / "tree-image"
-    built = subprocess.run([compiler, "-std=c11", "-O1", "-Wall", "-Wextra", "-Werror", "-pedantic",
+    built = subprocess.run([compiler, "-std=c17", "-O1", "-Wall", "-Wextra",
+                            "-Wstrict-prototypes", "-Werror", "-pedantic",
                             "-I", str(ROOT / "storage" / "include"), str(reader),
                             str(ROOT / "storage" / "src" / "node_image.c"),
                             str(ROOT / "storage" / "host" / "tree_image.c"), "-o", str(binary)],

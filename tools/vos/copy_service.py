@@ -15,7 +15,8 @@ from vos.jsonutil import unique_object
 from vos.receipts import digest as _digest
 from vos.supervisor import c_compiler
 
-CFLAGS: Final = ("-std=c11", "-O1", "-Wall", "-Wextra", "-Werror", "-pedantic")
+CFLAGS: Final = ("-std=c17", "-O1", "-Wall", "-Wextra",
+                 "-Wstrict-prototypes", "-Werror", "-pedantic")
 STATES: Final = ("Free", "Writing", "Submitted", "Accepted", "Terminal", "Reclaimed")
 EVENTS: Final = ("reserve", "publish", "accept", "complete", "reclaim", "malformed")
 WAITS: Final = ("Finite host C/reference agreement only; copy-service target and notification "

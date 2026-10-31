@@ -42,7 +42,8 @@ def native_guards() -> None:
     work.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(prefix="copy-loan-", dir=work) as directory:
         executable = directory + "/loan"
-        result = subprocess.run([cc, "-std=c11", "-O1", "-Wall", "-Wextra", "-Werror",
+        result = subprocess.run([cc, "-std=c17", "-O1", "-Wall", "-Wextra",
+            "-Wstrict-prototypes", "-Werror",
             "-pedantic", "-DVOS_HOST_MODEL", "-fsanitize=address,undefined",
             "-I" + str(root / "kernel/include"), "-I" + str(root / "supervisor/include"),
             str(root / "kernel/src/copy_loan.c"), str(root / "kernel/test/copy_loan.c"),

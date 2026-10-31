@@ -57,7 +57,7 @@ INPUTS = (*SOURCES, MMODE, FIXTURE, PROBE, ROT_CONFIG, MAIN_CONFIG, CONTRACT,
           "tools/vos/boot_handoff.py", "tools/vos/boot_signing.py",
           "tools/vos/cli/boot_handoff.py")
 
-CFLAGS = ("-std=c11", "-O2", "-Wall", "-Wextra", "-Werror", "-pedantic",
+CFLAGS = ("-std=c17", "-O2", "-Wall", "-Wextra", "-Wstrict-prototypes", "-Werror", "-pedantic",
           "-ffreestanding", "-fno-builtin",
           "-fsanitize=address,undefined", "-fno-sanitize-recover=all")
 

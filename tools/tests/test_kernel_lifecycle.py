@@ -25,7 +25,8 @@ def lifecycle_controls() -> None:
         sources = ("kernel/src/effects.c", "kernel/src/context.c",
                    "kernel/src/lifecycle.c", "supervisor/src/supervisor.c",
                    "kernel/test/lifecycle.c")
-        compiled = subprocess.run([cc, "-std=c11", "-O1", "-Wall", "-Wextra", "-Werror",
+        compiled = subprocess.run([cc, "-std=c17", "-O1", "-Wall", "-Wextra",
+            "-Wstrict-prototypes", "-Werror",
             "-pedantic", "-DVOS_HOST_MODEL", "-DVOS_EFFECTS_TYPED", "-DVOS_KERNEL_EFFECT_UNITS=3",
             "-I" + str(root / "kernel/include"), "-I" + str(root / "supervisor/include"),
             *(str(root / name) for name in sources), "-o", str(executable)],

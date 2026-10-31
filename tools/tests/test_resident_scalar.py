@@ -62,7 +62,8 @@ def scalar_resident_controls() -> None:
             path = scratch / f"{name}.c"
             path.write_text(candidate, encoding="utf-8", newline="\n")
             executable = scratch / name
-            compiled = subprocess.run([compiler, "-std=c11", "-O1", "-Wall", "-Wextra",
+            compiled = subprocess.run([compiler, "-std=c17", "-O1", "-Wall", "-Wextra",
+                "-Wstrict-prototypes",
                 "-Werror", "-pedantic", "-DVOS_HOST_MODEL",
                 *("-I" + str(root / include) for include in
                   ("storage/include", "kernel/include", "supervisor/include")),

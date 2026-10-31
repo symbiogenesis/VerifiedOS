@@ -50,7 +50,8 @@ def _build(directory: Path, *, source: str | None = None) -> Path:
         codec = directory / "node_image.c"
         codec.write_text(source, encoding="utf-8", newline="")
     binary = directory / "node-image"
-    built = subprocess.run([compiler, "-std=c11", "-O1", "-Wall", "-Wextra", "-Werror", "-pedantic",
+    built = subprocess.run([compiler, "-std=c17", "-O1", "-Wall", "-Wextra",
+                            "-Wstrict-prototypes", "-Werror", "-pedantic",
                             "-I", str(ROOT / "storage" / "include"), str(codec),
                             str(ROOT / "storage" / "host" / "node_image.c"), "-o", str(binary)],
                            capture_output=True, text=True, timeout=60, check=False)

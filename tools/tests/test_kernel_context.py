@@ -22,7 +22,8 @@ def context_alias_controls() -> None:
     with tempfile.TemporaryDirectory(prefix="context-", dir=work) as directory:
         executable = Path(directory) / "context"
         built = subprocess.run(
-            [compiler, "-std=c11", "-O1", "-Wall", "-Wextra", "-Werror", "-pedantic",
+            [compiler, "-std=c17", "-O1", "-Wall", "-Wextra",
+             "-Wstrict-prototypes", "-Werror", "-pedantic",
              "-DVOS_HOST_MODEL", "-fsanitize=address,undefined", "-fno-omit-frame-pointer",
              "-I", str(root / "kernel/include"), str(root / "kernel/src/context.c"),
              str(root / "kernel/test/context.c"), "-o", str(executable)],
