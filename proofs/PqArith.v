@@ -556,15 +556,12 @@ Lemma scaled_butterfly_low : forall q c nu a b,
   vadd q (vscale q c (vadd q a (vscale q nu b)))
          (vscale q c (vsub q a (vscale q nu b))) = vscale q (2*c) a.
 Proof.
-  intros q c nu a b H.
-  apply (CryptoLists.lift_map_left Z Z Z
-    (fun a b => vadd q (vscale q c (vadd q a (vscale q nu b)))
-                      (vscale q c (vsub q a (vscale q nu b))))
-    (mulmod q (2*c))).
-  - reflexivity.
-  - intros x xs y ys. cbn [vadd vsub vscale map combine fst snd].
-    rewrite scaled_butterfly_low_scalar. reflexivity.
-  - exact H.
+  intros q c nu a. induction a as [|a ar IH]; intros [|b br] H;
+    simpl in H; try discriminate; [reflexivity|].
+  unfold vadd, vsub, vscale in *. cbn [map combine fst snd].
+  f_equal; [|apply IH; lia]. unfold addmod, submod, mulmod.
+  repeat rewrite Zmult_mod_idemp_r. rewrite <- Zplus_mod.
+  f_equal. ring.
 Qed.
 
 Lemma scaled_butterfly_high : forall q c nu nui a b,
@@ -573,16 +570,19 @@ Lemma scaled_butterfly_high : forall q c nu nui a b,
     (vsub q (vscale q c (vadd q a (vscale q nu b)))
             (vscale q c (vsub q a (vscale q nu b)))) = vscale q (2*c) b.
 Proof.
-  intros q c nu nui a b Hu H.
-  apply (CryptoLists.lift_map_right Z Z Z
-    (fun a b => vscale q nui
-      (vsub q (vscale q c (vadd q a (vscale q nu b)))
-              (vscale q c (vsub q a (vscale q nu b)))))
-    (mulmod q (2*c))).
-  - reflexivity.
-  - intros x xs y ys. cbn [vadd vsub vscale map combine fst snd].
-    rewrite (scaled_butterfly_high_scalar q c nu nui x y Hu). reflexivity.
-  - exact H.
+  intros q c nu nui a. induction a as [|a ar IH]; intros [|b br] Hu H;
+    simpl in H; try discriminate; [reflexivity|].
+  unfold vadd, vsub, vscale in *. cbn [map combine fst snd].
+  f_equal; [|apply IH; [exact Hu|lia]]. unfold addmod, submod, mulmod.
+  rewrite <- Zminus_mod. repeat rewrite Zmult_mod_idemp_r.
+  rewrite Z.mul_sub_distr_l, Zminus_mod.
+  repeat rewrite Z.mul_assoc. repeat rewrite Zmult_mod_idemp_r.
+  rewrite <- Zminus_mod.
+  replace (nui * c * (a + (nu * b) mod q) - nui * c * (a - (nu * b) mod q))
+    with ((2*c*nui) * ((nu*b) mod q)) by ring.
+  rewrite Zmult_mod_idemp_r.
+  replace (2*c*nui*(nu*b)) with ((nu*nui)*(2*c*b)) by ring.
+  rewrite Zmult_mod, Hu, <- Zmult_mod, Z.mul_1_l. reflexivity.
 Qed.
 
 (* A transform node divides one even-length input into equally sized
