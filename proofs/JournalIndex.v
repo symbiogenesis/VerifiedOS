@@ -838,18 +838,20 @@ Proof.
     + reflexivity.
 Qed.
 
+Lemma last_write_presence :
+  forall (p : list Rec) (cm : nat -> bool) (b : nat),
+    ProofSupport.is_some (last_write p cm b) = writes_committed p cm b.
+Proof.
+  intros p cm b. unfold last_write, writes_committed, any_of.
+  apply last_matching_presence. intro r. unfold committed_write_event.
+  destruct (andb (Nat.eqb (rec_block r) b) (cm (rec_txn r))); reflexivity.
+Qed.
+
 Lemma last_write_none :
   forall (p : list Rec) (cm : nat -> bool) (b : nat),
     last_write p cm b = None -> writes_committed p cm b = false.
 Proof.
-  intros p. induction p as [ | r t IH ]; intros cm b H.
-  - reflexivity.
-  - apply last_matching_none_cons in H. destruct H as [Hr Ht].
-    unfold writes_committed. simpl.
-    unfold committed_write_event in Hr.
-    destruct (andb (Nat.eqb (rec_block r) b) (cm (rec_txn r))) eqn:Ea.
-    + discriminate Hr.
-    + simpl. exact (IH cm b Ht).
+  intros p cm b H. rewrite <- (last_write_presence p cm b), H. reflexivity.
 Qed.
 
 Lemma apply_all_last :
@@ -858,18 +860,15 @@ Lemma apply_all_last :
 Proof.
   intros p. induction p as [ | r t IH ]; intros cm s b v H.
   - discriminate H.
-  - change ((match last_write t cm b with
-             | Some n => Some n
-             | None => committed_write_event cm b r
-             end) = Some v) in H.
-    simpl. destruct (last_write t cm b) as [ n | ] eqn:E.
-    + injection H as Hvalue. subst v. exact (IH cm _ b n E).
-    + unfold committed_write_event in H.
+  - apply last_matching_some_cons in H. simpl.
+    destruct H as [Htail | [Htail Hhead]].
+    + exact (IH cm _ b v Htail).
+    + unfold committed_write_event in Hhead.
       destruct (andb (Nat.eqb (rec_block r) b) (cm (rec_txn r))) eqn:Ea;
-        [ | discriminate H ].
-      injection H as Hvalue. subst v.
+        [ | discriminate Hhead ].
+      injection Hhead as Hvalue. subst v.
       destruct (andb_split _ _ Ea) as [ Eb Ec ].
-      rewrite Ec. rewrite (apply_all_untouched t cm _ b (last_write_none t cm b E)).
+      rewrite Ec. rewrite (apply_all_untouched t cm _ b (last_write_none t cm b Htail)).
       unfold put. rewrite Eb. reflexivity.
 Qed.
 
@@ -877,20 +876,7 @@ Lemma last_write_some :
   forall (p : list Rec) (cm : nat -> bool) (b v : nat),
     last_write p cm b = Some v -> writes_committed p cm b = true.
 Proof.
-  intros p. induction p as [ | r t IH ]; intros cm b v H.
-  - discriminate H.
-  - change ((match last_write t cm b with
-             | Some n => Some n
-             | None => committed_write_event cm b r
-             end) = Some v) in H.
-    unfold writes_committed. simpl.
-    destruct (last_write t cm b) as [ n | ] eqn:E.
-    + assert (Ht : writes_committed t cm b = true) by exact (IH cm b n E).
-      unfold writes_committed in Ht. rewrite Ht.
-      destruct (andb (Nat.eqb (rec_block r) b) (cm (rec_txn r))); reflexivity.
-    + unfold committed_write_event in H.
-      destruct (andb (Nat.eqb (rec_block r) b) (cm (rec_txn r))) eqn:Ea;
-        [ reflexivity | discriminate H ].
+  intros p cm b v H. rewrite <- (last_write_presence p cm b), H. reflexivity.
 Qed.
 
 Lemma scan_is_idempotent : forall j : list Rec, scan (scan j) = scan j.
