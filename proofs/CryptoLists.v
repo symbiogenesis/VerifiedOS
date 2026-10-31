@@ -147,7 +147,7 @@ Lemma map_over_constant : forall (A B : Type) (f : A -> B) (xs : list A) (b : B)
 Proof.
   intros A B f xs. induction xs as [|x xs IH]; intros b H; simpl.
   - reflexivity.
-  - rewrite (H x (or_introl eq_refl)). rewrite IH; [reflexivity |].
+  - rewrite (H x (or_introl eq_refl)). rewrite (IH b); [reflexivity |].
     intros y Hy. apply H. right. exact Hy.
 Qed.
 

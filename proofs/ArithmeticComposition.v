@@ -771,7 +771,7 @@ Lemma count_of_filter_cons :
   forall {A : Type} (p : A -> bool) (x : A) (l : list A),
     count_of (filter_of p (cons x l))
     = (if p x then 1 else 0) + count_of (filter_of p l).
-Proof. intros A p x l. cbn [filter_of]. destruct (p x); reflexivity. Qed.
+Proof. intros A p x l. unfold filter_of. cbn [ProofSupport.filter_of]. destruct (p x); reflexivity. Qed.
 
 Lemma nat_sum_constant :
   forall {A : Type} (g : A -> nat) (l : list A) (c : nat),
