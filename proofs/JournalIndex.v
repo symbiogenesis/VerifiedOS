@@ -858,11 +858,16 @@ Lemma apply_all_last :
 Proof.
   intros p. induction p as [ | r t IH ]; intros cm s b v H.
   - discriminate H.
-  - simpl in H. simpl. destruct (last_write t cm b) as [ n | ] eqn:E.
-    + injection H as H. rewrite <- H. exact (IH cm _ b n E).
-    + destruct (andb (Nat.eqb (rec_block r) b) (cm (rec_txn r))) eqn:Ea;
+  - change ((match last_write t cm b with
+             | Some n => Some n
+             | None => committed_write_event cm b r
+             end) = Some v) in H.
+    simpl. destruct (last_write t cm b) as [ n | ] eqn:E.
+    + injection H as Hvalue. subst v. exact (IH cm _ b n E).
+    + unfold committed_write_event in H.
+      destruct (andb (Nat.eqb (rec_block r) b) (cm (rec_txn r))) eqn:Ea;
         [ | discriminate H ].
-      injection H as H. rewrite <- H.
+      injection H as Hvalue. subst v.
       destruct (andb_split _ _ Ea) as [ Eb Ec ].
       rewrite Ec. rewrite (apply_all_untouched t cm _ b (last_write_none t cm b E)).
       unfold put. rewrite Eb. reflexivity.
@@ -874,12 +879,17 @@ Lemma last_write_some :
 Proof.
   intros p. induction p as [ | r t IH ]; intros cm b v H.
   - discriminate H.
-  - simpl in H. unfold writes_committed. simpl.
+  - change ((match last_write t cm b with
+             | Some n => Some n
+             | None => committed_write_event cm b r
+             end) = Some v) in H.
+    unfold writes_committed. simpl.
     destruct (last_write t cm b) as [ n | ] eqn:E.
     + assert (Ht : writes_committed t cm b = true) by exact (IH cm b n E).
       unfold writes_committed in Ht. rewrite Ht.
       destruct (andb (Nat.eqb (rec_block r) b) (cm (rec_txn r))); reflexivity.
-    + destruct (andb (Nat.eqb (rec_block r) b) (cm (rec_txn r))) eqn:Ea;
+    + unfold committed_write_event in H.
+      destruct (andb (Nat.eqb (rec_block r) b) (cm (rec_txn r))) eqn:Ea;
         [ reflexivity | discriminate H ].
 Qed.
 

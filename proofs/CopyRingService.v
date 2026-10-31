@@ -2676,11 +2676,15 @@ Definition set_progress_slack (r : svc_op_record) (n : nat) : svc_op_record :=
 (* Projection laws expose both the selected operation and the unchanged frame.
    No equality between functions or extensionality axiom is needed. *)
 Lemma with_op_hit : forall s o r, svc_per_op (with_op s o r) o = r.
-Proof. intros s o r. cbn [with_op]. rewrite op_eqb_refl. reflexivity. Qed.
+Proof. intros s o r. destruct o; reflexivity. Qed.
 
 Lemma with_op_miss : forall s o r x,
   op_eqb x o = false -> svc_per_op (with_op s o r) x = svc_per_op s x.
-Proof. intros s o r x H. cbn [with_op]. rewrite H. reflexivity. Qed.
+Proof.
+  intros s o r x H.
+  change ((if op_eqb x o then r else svc_per_op s x) = svc_per_op s x).
+  rewrite H. reflexivity.
+Qed.
 
 Lemma with_op_frame : forall s o r,
   svc_caps (with_op s o r) = svc_caps s /\

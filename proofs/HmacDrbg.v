@@ -530,10 +530,10 @@ Lemma disciplined_conditions : forall d : SeedingDiscipline,
   Disciplined d -> DisciplineConditions d.
 Proof.
   intros d H. unfold Disciplined, disciplined_b in H.
-  destruct (ProofSupport.andb_split _ _ H) as [Hseed H].
-  destruct (ProofSupport.andb_split _ _ H) as [Hnonce H].
-  destruct (ProofSupport.andb_split _ _ H) as [Hdraw H].
-  destruct (ProofSupport.andb_split _ _ H) as [Hinterval Htransitions].
+  destruct (ProofSupport.andb_split _ _ H) as [Hseed Hrest1].
+  destruct (ProofSupport.andb_split _ _ Hrest1) as [Hnonce Hrest2].
+  destruct (ProofSupport.andb_split _ _ Hrest2) as [Hdraw Hrest3].
+  destruct (ProofSupport.andb_split _ _ Hrest3) as [Hinterval Htransitions].
   constructor; assumption.
 Qed.
 
