@@ -7,6 +7,8 @@
 
 The Q19c, Q20b and Q20c execution experiments are canceled in the [implementation plan](../../PLAN.md). This retained protocol does not commission a trial. References to their roles below describe the frozen comparison, not active implementation owners. A new proposal must identify a concrete consumer blocked by the existing route, supply the checked foundations and usable environment, price all missing work and adopt a finite stop threshold before opening a new suffixed checklist item. Q2b/Q3b, M1, M6 and M7 retain all required backend, proof, admission and final-artifact duties; canceling the comparison neither completes nor weakens them.
 
+The [unified-source contract](unified-source-contract.md) extends Vela's design goal to proof, ISA and hardware authorship, including eventual Sail retirement. Its [proposal stages](../../PLAN.md#vela-whole-system-authoring-proposal) have their own scope and acceptance boundaries. This retained software trial still targets the pinned Sail model and supplies no qualification of a replacement machine model or hardware backend.
+
 ## Clients and baseline evidence
 
 The development client is **P, parser destination initialization**: Q2b's copy-once extension of the ring descriptor check, using generic bounded fill to initialize its fixed destination. The held-out client is **S, private service staging**: M7.1's sequential disjoint copy into the copy service's private staging buffer, under the declaration M6.4 generates. Q2b and M7.1 own their implementations and independently maintained comparison baselines. Q19c owns the generic interface, proofs and concrete instance; Q20b owns the one held-out adaptation record that both trials consume.

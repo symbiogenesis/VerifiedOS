@@ -34,7 +34,7 @@ obligations, acceptance criteria, extraction coverage and extraction defects.
 
 | Topic | Documents |
 | --- | --- |
-| Language design | [Verification strategy](languages/verification-strategy.md), [core design](languages/core-design.md), [assurance presets](languages/assurance-profiles.md) |
+| Language design | [Verification strategy](languages/verification-strategy.md), [unified software, proof and machine authorship](languages/unified-source-contract.md), [core design](languages/core-design.md), [assurance presets](languages/assurance-profiles.md) |
 | Workflow and routes | [Workflow contract](languages/workflow-contract.md), [compiler routes](languages/compiler-route-contract.md) |
 | Language features | [Graded foundation](languages/graded-foundation.md), [handlers and async lifecycles](languages/handlers-async.md), [interior mutability](languages/interior-mutability.md), [composition review](languages/full-language-review.md) |
 | Interfaces | [IDL profile](languages/idl-profile.md) |

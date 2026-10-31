@@ -68,7 +68,7 @@ for a settled change.
 
 ## 0. The discipline: two languages, two golden models
 
-The entire base system is written in exactly two languages, and each yields an executable reference by extraction, refinement, or generation rather than by hand-porting:
+The current bring-up route uses Sail for the machine and Gallina for software definitions and proofs, with the explicit C refinements and generated artifacts described below. Each yields its executable reference through the stated extraction, refinement or generation path. The [Vela whole-system proposal](#vela-whole-system-authoring-proposal) targets eventual single-language authorship, including replacement of Sail, after its own acceptance and migration gates:
 
 - **Hardware, Sail.**
   One Sail model of the machine (ISA + datapath + modeled devices), parameterized by core class ([§15](docs/spec.md#15-hardware-platform)), whose **C backend generates the golden-model emulator**, the executable ISA reference.
@@ -3291,6 +3291,8 @@ or completion credit.
 
 Source design and missing-law analysis remain in [the core design](docs/languages/core-design.md#proof-obligations-and-proposed-work-packages).
 
+The [Vela whole-system proposal](#vela-whole-system-authoring-proposal) extends the intended authoring surface to general proofs, the ISA model and hardware. The bounded packages below retain their own scope and estimates; none includes that extension's full establishment or migration work.
+
 The following owner keys are proposals, not schedule IDs or proof constants. Each selected package needs a reviewed checklist cell and entry predicate before implementation dispatch. Estimates are prospective attended-work design judgments, not measured agent-session results or conversions of the strategy's person-month bands. They exclude the unbounded foundation work and therefore do not establish a complete implementation price. Keep eventual human attended work, summed agent-session wall time and machine time in separate ledgers under Q20a. The general-logic and machine connections remain [Q2c's prerequisites](PLAN.md#q-assessment-actions); its rejection supplies neither an implementation budget nor a law.
 
 | Proposed owner | Estimate | Work and acceptance boundary |
@@ -3299,6 +3301,22 @@ The following owner keys are proposals, not schedule IDs or proof constants. Eac
 | `core-frontend` | 140 h, range 80-200 | Restricted parsing/resolution, bounded flow analysis, reconstructed arithmetic, checked elaboration/SourcePackage correspondence and erasure preservation. Excludes general dependent inference, effect polymorphism, kernel, backend and editor. |
 | `core-diagnostics` | 64 h, range 40-88 | Adapt the qualified interaction path to frontend derivations, typed holes, status and invalidation; demonstrate the specified source residuals. Excludes Q19a's existing-tool qualification and a new language server. |
 | `core-repair-trial` | 48 h, range 32-64 | Author and qualify the combined fixture/negative neighbors and its concrete `PreparationOpen`/`finish` interpretation using the supplied resource laws, then measure semantic/refactor/representation replay and review. Excludes discovering those laws, a repair service and Q20's held-out staging adaptation. |
+
+### Vela whole-system authoring proposal
+
+The design goal is one authored Vela codebase for operational software, independently reviewed contracts, mathematical proofs, the architectural machine model and hardware descriptions. The [unified-source contract](docs/languages/unified-source-contract.md) owns the technical acceptance boundary. Generated Clight, Rocq proof terms, executable simulators, binaries and RTL remain permitted; the software golden artifact is the proof-connected production implementation. A separately maintained optimized rewrite is outside this goal.
+
+These are uncommissioned proposal owner keys, with establishment and maintenance costs **unpriced**. They are not checklist IDs, checked artifacts or additions to the priced totals. Before implementation, split a selected stage into reviewed checklist cells with its own budget and entry predicate, charge shared foundation work once, and take the required register/prose acts. The existing compiler, machine-logic and hardware work retains its accepted subjects until a successor passes the migration gate. AI may propose programs, proofs and optimizations; acceptance still requires checked evidence and independent review of intended behavior.
+
+| Proposed owner and order | Start | Owns | Check | Join |
+| --- | --- | --- | --- | --- |
+| `vela-software` · first software bridge | Q25d's frontend-release conditions and the actual CHERI laws required by the selected component | Vela source/contract correspondence and explicit-memory lowering through the retained compiler route | [Software acceptance](docs/languages/unified-source-contract.md#software-and-proof-boundary), including error paths, source edits and exact installed bytes | Current compiler/admission and canonical Sail consumers; no handwritten optimized implementation for the accepted family |
+| `vela-proofs` · complete proof authorship | The interpreted frontend and reviewed theorem subjects for a selected library or metatheory package | General mathematical definitions and proofs in Vela, interoperating with retained checked libraries | [Proof-surface acceptance](docs/languages/unified-source-contract.md#software-and-proof-boundary); no mandatory handwritten Rocq fallback for the accepted package | Rocq/CIC rechecks generated terms and exact assumptions; replacing its checker is a separate decision |
+| `vela-machine` · qualify the ISA replacement | An admitted interpretation, independently reviewed machine contract and the pinned Sail model | Vela-authored machine definition, parameterized configuration closure, executable semantics and migration agreement | [Machine-model acceptance](docs/languages/unified-source-contract.md#machine-model) and its [negative cases](docs/languages/unified-source-contract.md#qualification-cases) | Binary logic, TAL, constant-time, timing and hardware consumers consume one candidate term before adoption |
+| `vela-hardware` · hardware authoring and generation | The hardware subset's reviewed cycle/register interpretation and selected block contract; machine adoption need not wait for every hardware port | Vela hardware descriptions and checked generation/refinement for each selected block | [Hardware acceptance](docs/languages/unified-source-contract.md#hardware), preserving the block's required evidence or theorem tier | Retained RTL and imported-core paths through explicit interfaces; the final whole-system authoring claim needs every in-scope authored block |
+| `vela-retirement` · canonical-model adoption and retirement | Accepted machine agreement, reviewed amendment dossier and completed affected-consumer inventory | Atomic adoption of the shared replacement model and retirement of active Sail authoring/tool dependencies | [Migration and retirement](docs/languages/unified-source-contract.md#migration-and-retirement); no private semantics, circular oracle or missing consumer evidence | Updated register/prose and all affected compiler, admission, proof, emulator, timing and hardware artifacts in the same admitted generation |
+
+The proof surface and hardware subset may be qualified independently once their own inputs exist. Machine adoption is a separate decision from hardware-source migration: both sides of the retained hardware theorem must name the newly admitted canonical model before Sail retires, even when the hardware description is still authored through the current route. Historical Sail evidence remains retained. Complete single-language authorship additionally requires replacing every in-scope handwritten implementation and proof surface; a successful compiler frontend alone closes neither claim.
 
 ## Machine-logic compatibility continuation
 
