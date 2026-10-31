@@ -69,6 +69,68 @@ handoff below.
     where that gives an acyclic dependency graph. Preserve existing import paths,
     exported declarations and campaign extraction behavior.
 
+## Further proof interfaces
+
+This tranche commissions the ten remaining improvements selected in the source
+review of revision `dfc6812e04b420f3c536e00fbc70590f02b1113d`. Implementation starts
+only after this extension is committed. The preservation boundary above applies;
+existing executable definitions stay unchanged or definitionally convertible,
+and existing theorem declarations remain available with their original types.
+
+1. **B-tree operation cases.** In ExecutableIndex, give leaf and branch
+   publication complete success and refusal interfaces, including allocation and
+   split cases. Use the interfaces in existing independent invariant proofs;
+   do not replace their premises with a stronger bundled invariant.
+2. **Named remaining conditions.** In CopyRingService, name the service
+   conditions and their projections while preserving the ordered predicate list,
+   numeric dropped-condition and spoiling interfaces, including out-of-range
+   behavior. In HmacDrbg, replace positional seeding-discipline extraction with
+   named projections and transition membership.
+3. **Codec composition.** In ModuleFormats, share sequencing and complete-input
+   reasoning behind certificate round trips and trailing-byte refusal. Preserve
+   every tag, bound, field order, suffix and canonical-encoding theorem.
+4. **Complete finite rosters.** Prove universal-check equivalence from an explicit
+   enumeration-completeness witness and consume it in EndpointIPC and firmware
+   roster proofs. Keep authored enumerations and their refusal evidence intact.
+5. **Compositional equality.** Add constructive list, option and pair equality
+   specifications using exactly the element laws each direction needs. Derive
+   existing comparison lemmas from them without changing comparison functions or
+   their exported theorem types.
+6. **Support-local probability.** Add finite-support extensionality and
+   mass-preserving reindexing laws in ProbingModel. Derive its current global
+   interfaces and ArithmeticComposition's membership-restricted counting result
+   without adding uniqueness, normalization or probabilistic assumptions.
+7. **Crypto permutation laws.** Give SHA rotations and AES row permutations
+   general length or inverse-index laws and derive the existing fixed-arity
+   declarations as instances. Raw lists, defaults and malformed-input behavior
+   remain part of the executable reference.
+8. **Ordered admission verdicts.** Give AdmissionPath's certificate checker one
+   semantic interface for acceptance and exact refusal rule and site, with earlier
+   checks successful in each later-refusal case. Derive existing refusal,
+   soundness and completeness results without changing first-failure order.
+9. **Remaining shared laws.** Move repeated collection and natural-arithmetic
+   laws into their small shared owner and keep client theorem names as wrappers.
+   Focus on all-of/map, Boolean membership, append/count, addition, order and
+   maximum laws. Retain the prelude-only boundary where a client requires it.
+10. **Named service updates.** Replace CopyRingService's positional setters with
+    compatible named-field definitions where convertible, and add projection and
+    pointwise hit/miss frame laws. Keep function-valued fields pointwise, with no
+    functional-extensionality assumption or new package.
+
+Each slice must migrate actual clients rather than add unused abstractions.
+Review old exported declaration types, definitions, assumptions and refusal
+families against the base. Use the hosted reading comparison with that base;
+new helper declarations are expected differences and do not excuse a changed
+existing theorem meaning. Frozen readings unavailable locally remain explicitly
+outstanding until the hosted comparison is reviewed. The source review and cold
+proof gate must establish preservation; a lexical comparison alone cannot.
+
+Runtime algorithms and inputs remain fixed. Proof compilation and kernel-check
+costs are measured only on hosted runners using the proof gate's timing evidence;
+do not infer a speedup from shorter scripts. A measured regression requires
+investigation and correction before claiming performance acceptance. Pending
+hosted measurements remain pending evidence under the no-wait Guest CI handoff.
+
 ## Validation handoff
 
 Focused native comparison tools and extraction campaigns that stage one of the

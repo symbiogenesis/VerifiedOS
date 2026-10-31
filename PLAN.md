@@ -2796,6 +2796,16 @@ hosted proof gate's decision. Host CI must pass on the published revision; every
 Guest CI lane is dispatched cold for that revision, with its proof verdict left
 pending. The local guest has no Rocq installation and supplies no compile verdict.
 
+The contract's [further proof interfaces](docs/implementation/contracts/proof-structure.md#further-proof-interfaces)
+commission a second tranche: B-tree operation cases, named service and seeding
+conditions, codec composition, finite-roster completeness, compositional equality,
+support-local probability, crypto permutation laws, ordered admission verdicts,
+remaining shared laws and named service updates. Implementation is open. Preserve
+existing theorem meanings, assumption sets, executable behavior and refusal
+evidence; compare the hosted readings with the tranche's named base and report
+proof-cost measurements separately from source simplification. Hosted acceptance
+uses cold Guest CI and does not wait for its verdict.
+
 ## Model test-corpus library boundary
 
 The downloaded RISC-V test corpus has one integrity boundary: the model's declared
