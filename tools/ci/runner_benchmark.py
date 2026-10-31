@@ -4,6 +4,7 @@
 import argparse
 import hashlib
 import importlib
+import inspect
 import json
 import os
 import platform
@@ -28,6 +29,17 @@ class Sample(TypedDict):
     report: list[str]
     bytes_unchanged: bool
     process_seconds: NotRequired[float]
+    child_cpu_seconds: NotRequired[float | None]
+    workers: NotRequired[int]
+    worker_limit: NotRequired[int]
+    parallel_attempts: NotRequired[int]
+    parallel_fallbacks: NotRequired[int]
+    peak_tree_rss_kb: NotRequired[int | None]
+    peak_descendant_processes: NotRequired[int | None]
+    tree_samples: NotRequired[int]
+
+
+TREE_INTERVAL = 0.1
 
 
 def _peak_rss_kb() -> float | None:
@@ -61,18 +73,22 @@ def _identity(root: Path) -> str:
     return digest.hexdigest()
 
 
-def worker(root: Path, tools: Path, kind: str, output: Path) -> None:
-    """Fresh selected implementation, private sandboxes, original complete reports."""
-    sys.path.insert(0, str(tools))
+def _work(root: Path, kind: str) -> Sample:
+    """Measure the complete selected workload; child CPU stays a separate quantity."""
     prepared = time.perf_counter()
     cpu = time.process_time()
+    times = os.times()
+    children = times.children_user + times.children_system
     temporary_bytes = 0
     unchanged = True
+    metrics: dict[str, int] = {"workers": 1, "worker_limit": 1,
+                               "parallel_attempts": 0, "parallel_fallbacks": 0}
     if kind == "markdown":
         markdown = importlib.import_module("vos.markdownlint")
         setup = time.perf_counter() - prepared
         started = time.perf_counter()
-        report = markdown.run(root)
+        report = (markdown.run(root, metrics=metrics)
+                  if "metrics" in inspect.signature(markdown.run).parameters else markdown.run(root))
         elapsed = time.perf_counter() - started
         findings, lines = report.findings, report.out
     else:
@@ -92,12 +108,52 @@ def worker(root: Path, tools: Path, kind: str, output: Path) -> None:
                 (template / rel).read_bytes() == data for rel, data in before.items() if rel != ".git")
             findings = len(problems) + int(not unchanged)
             temporary_bytes = sum(path.stat().st_size for path in estate.rglob("*") if path.is_file())
-    data: Sample = {
+    times = os.times()
+    return {
         "component_seconds": elapsed, "setup_seconds": setup,
         "cpu_seconds": time.process_time() - cpu, "peak_rss_kb": _peak_rss_kb(),
+        "child_cpu_seconds": (times.children_user + times.children_system - children
+                              if sys.platform != "win32" else None),
+        "workers": metrics["workers"], "worker_limit": metrics["worker_limit"],
+        "parallel_attempts": metrics["parallel_attempts"],
+        "parallel_fallbacks": metrics["parallel_fallbacks"],
         "temporary_apparent_bytes": temporary_bytes,
         "findings": findings, "report": lines, "bytes_unchanged": unchanged,
     }
+
+
+def worker(root: Path, tools: Path, kind: str, output: Path) -> None:
+    """Fresh selected implementation with sampled aggregate descendant residency."""
+    sys.path.insert(0, str(tools))
+    if sys.platform == "linux":
+        # The route owns /proc parsing. Reuse its reader without another process-tree
+        # grammar; RSS sums may count shared pages twice and sampling can miss spikes.
+        from ci import instrument_route  # noqa: PLC0415 (after selecting the measured tools path)
+
+        descendants = 0
+
+        def reading() -> instrument_route.Sample:
+            nonlocal descendants
+            family = instrument_route._tree(os.getpid())
+            descendants = max(descendants, len(family) - 1)
+            sizes = [instrument_route._rss_kb(process) for process in family]
+            return instrument_route.Sample(max(sizes, default=0), sum(sizes), None, None)
+
+        with tempfile.TemporaryDirectory(prefix="vos-runner-residency-") as temporary:
+            sampler = instrument_route.Sampler(Path(temporary) / "rss.log", kind, reading,
+                                               interval=TREE_INTERVAL)
+            sampler.sample()
+            sampler.start()
+            try:
+                data = _work(root, kind)
+            finally:
+                sampler.stop()
+                sampler.sample()
+            data.update(peak_tree_rss_kb=sampler.peak_tree_kb,
+                        peak_descendant_processes=descendants, tree_samples=sampler.samples)
+    else:
+        data = _work(root, kind)
+        data.update(peak_tree_rss_kb=None, peak_descendant_processes=None, tree_samples=0)
     output.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
 
 
@@ -166,6 +222,10 @@ def compare(root: Path, base: str, output: Path, repetitions: int) -> None:
         "baseline_revision": base, "candidate_revision": revision,
         "corpus_revision": revision, "indexed_inputs_sha256": scope,
         "python": sys.version, "platform": platform.platform(), "workers": 1,
+        "memory_scope": {"peak_rss_kb": "worker process high-water mark; excludes descendants",
+                         "peak_tree_rss_kb": "sampled summed RSS of worker and descendants; shared pages may be counted repeatedly; spikes between samples may be missed",
+                         "tree_sampling_interval_seconds": TREE_INTERVAL},
+        "worker_scope": "one measurement controller; each sample records its selected parser worker population and observed descendant count",
         "repetitions": repetitions, "command": sys.argv,
         "scope": {"markdown": "complete indexed Markdown command and ordered report",
                   "proof_headers": "complete indexed proof-header repair sweep in private full-corpus sandboxes; exact source and template bytes preserved"},
