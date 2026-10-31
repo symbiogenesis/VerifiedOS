@@ -32,7 +32,7 @@ ppxlib 0.39.0. The separate lock-adoption commit
 `instrument-ci read --closing` confirms that binding. This qualification does not
 state a Host CI or Guest CI verdict for later integration commits.
 
-The Sail, proof, QuickChick and Rupicola switches use OCaml 5.4.1 and ocamlfind 1.9.8. OCaml 5.5.1 is available, but the [released findlib package](https://opam.ocaml.org/packages/ocamlfind/ocamlfind.1.9.8/) requires OCaml below 5.5.0; its 5.5-compatible package is `1.9.9~preview`, marked `avoid-version`.
+The Sail, proof, QuickChick and Rupicola switches use OCaml 5.4.1 and ocamlfind 1.9.8. OCaml 5.5.2 is available, but the [released findlib package](https://opam.ocaml.org/packages/ocamlfind/ocamlfind.1.9.8/) requires OCaml below 5.5.0; its 5.5-compatible package is `1.9.9~preview`, marked `avoid-version`.
 
 The Sail switch locks Sail 0.20.3, and [Q37's note](../../docs/implementation/completion-log.md#q37-upgrade-the-sail-switch-to-sail-0203) compares its outputs over the model with 0.20.2's. Its [release notes](https://github.com/rems-project/sail/releases/tag/0.20.3) list reduced memory use in the Lean and Rocq conversion, colon-separated `SAIL_PLUGIN_DIR` lists, a `--tool` subcommand mechanism carrying a JSON comment stripper and moving `--fmt`'s arguments after it, and `where` reserved as a keyword. No project tool passes `--fmt`, `SAIL_PLUGIN_DIR` or `strip_json`, and the model's Sail sources use `where` only in comments and one string literal. The release's library declares in an implicit `corelib` project what 0.20.2 declared in `flow.sail` or built into the compiler: the integer comparisons, `__id`, `__size`, `__deref`, `internal_pick` and the `undefined_*` builtins. It also spells the Rocq externs of Euclidean division `e_div` and `e_modulo`. Sail is the model's acceptance compiler. Its paired Rocq support library, `rocq-sail-stdpp`, is published as 0.20.2 and 0.20.3, the latter tagged on 2026-09-24 and published in `rocq-released` on 2026-09-28 by [rocq-prover/opam#3872](https://github.com/rocq-prover/opam/pull/3872), each conflicting with every Sail version but its own and requiring `rocq-core` below 9.3, so the locked Sail's Rocq output pairs with 0.20.3. That bound is the published package's: the 0.20.3 source's own opam file requires `rocq-core` 9.0 or later with no upper bound. The proof switch takes dune 3.24.2, the Sail switch's edition: `rocq-runtime` 9.3.0 requires dune 3.21 or later with no upper bound, and `rocq-stdlib` 9.2.0 and `rocq-stdpp` 1.13.0 build against Rocq 9.3.0 unchanged.
 
@@ -146,6 +146,62 @@ source through this lock.
 If an import fails after creating its switch, retry the import command directly, omitting creation. The provisioner checks for an existing switch and skips creation automatically, so `run.py provision --apply` can resume a partial installation.
 
 To refresh a resolution, update repository metadata, review `opam upgrade --switch=SWITCH --dry-run`, and apply the compatible upgrade in that project switch. Recheck the compiler and library constraints when newer releases appear. Run the affected model, proof, oracle or lowering checks, then export the tested versions with `opam switch export --switch=SWITCH tools/opam/NAME.lock`. Keep the export and any changed version constants together. Record the package constraint or demonstrated build incompatibility whenever an older dependency is retained.
+
+## Rocq dependency refresh
+
+The current upstream review is dated 2026-10-31. Released metadata was read at
+opam-repository revision
+[`2ffc3518`](https://github.com/ocaml/opam-repository/tree/2ffc3518756432a5bea7cda8ae467ea8b4e0362a/packages)
+and rocq-released revision
+[`513d503c`](https://github.com/rocq-prover/opam/tree/513d503c69b3464f2c38853bcca455c7d9a50f44/released/packages).
+Rocq, Stdlib, stdpp, ExtLib, CertiRocq and the released lowering packages remain
+at the versions above. The qualified snapshots retain their 2026-10-19 evidence.
+
+The next QuickChick recipe selects QuickChick commit
+`527216554f31bfa526ae5395d64aa4de5beaf437`, simple-io commit
+`5c70625af00af6182817e490d93247cdefbed2e1` and
+`ocaml_intrinsics_kernel.v0.17.3`. Keep Rocq 9.3.0, OCaml 5.4.1, findlib 1.9.8,
+Stdlib 9.2.0, dune 3.23.1 and ExtLib 0.13.2. The source comparisons for
+[QuickChick](https://github.com/QuickChick/QuickChick/compare/3d4d6c0e9f72172a9f0b26db61c5496ec8e0f568...527216554f31bfa526ae5395d64aa4de5beaf437)
+and [simple-io](https://github.com/Lysxia/rocq-simple-io/compare/d035c0a85f0bde4ad56c31a9fa9ef3cb5e8d0f18...5c70625af00af6182817e490d93247cdefbed2e1)
+retain the old APIs below Rocq 9.4 through version guards. Simple-io also
+propagates the universe state returned by `interp_constr`; qualification must
+exercise polymorphic extraction as well as the existing property harness.
+Static review supplies no build verdict. Selected license readings belong to
+[the third-party ledger](../../THIRD-PARTY.md#development-tools-contained-by-use).
+
+Before moving recipe pins, ordinary checks and provisioning must recognize
+the qualified lock's source, while `--recipe` recognizes only the candidate's
+source. Focused controls must accept each source in its own mode and reject
+crossed sources before staging. The recipe remains a candidate until the
+[hosted instrument route](../ci/README.md#instrument-switch-route) passes its
+fresh build, property checks, independent import and seeded comparison against
+the qualified lock. Only that passing run's export replaces the lock. Stop on
+a changed statement, assumption, unsupported API or failed property. Compatible
+released packages retire the source pins under the existing rule.
+
+CertiRocq's compatible transitive candidate is `ocaml-version.4.1.5`. Trial it
+in a private native switch imported from `certirocq.lock`, preserving the
+compiler invariant and every other version, using
+`opam upgrade --switch=SWITCH ocaml-version.4.1.5`. Require an actual successful
+export, unchanged demo and IPC kernel/Wasm answers, the negative IPC control,
+exact consumer assumptions, recursive kernel checks, an independent clean
+import and the [complete-vector comparison](../wasm-oracle/README.md#the-purecap-counterpart-ipc_oraclec-m12f)
+before replacing that snapshot. This does not resume the deferred bootstrap
+backport or the Rocq 9.3 compatibility trial.
+
+Retained versions have concrete constraints: CertiRocq's
+[published metadata](https://github.com/rocq-prover/opam/blob/513d503c69b3464f2c38853bcca455c7d9a50f44/released/packages/rocq-certirocq/rocq-certirocq.0.9.1%2B9.1/opam)
+requires WasmCert exactly 2.2.0 and Rocq below 9.2; MetaRocq and Equations must
+match that prover. Rocq-Elpi 3.5.1 requires Elpi below 3.8 and dune below 3.24,
+excluding Elpi 4.0.0 and dune-configurator 3.24.2 from those closures. Stable
+findlib excludes OCaml 5.5 and later. The Sail-support and lowering refusals
+above remain applicable.
+
+Q45 in [the plan](../../PLAN.md) owns remaining qualification. The user's
+local-commit-only instruction defers publication, Host CI, Guest CI and the
+instrument dispatch. Pending checks supply no passing evidence; production
+snapshots retain their previously qualified versions.
 
 ## Merged checker and printer improvements
 

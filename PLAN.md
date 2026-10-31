@@ -468,17 +468,17 @@ These figures sum the full priced reference-build, assessment and named hardenin
 <!-- estimate-summary:start -->
 | Measure | Value |
 | --- | --- |
-| Total estimate midpoint h | 4,609.4 |
-| Total estimate range h | 2,993.3–6,225.5 |
+| Total estimate midpoint h | 4,613.4 |
+| Total estimate range h | 2,995.3–6,231.5 |
 | Completed scope h | 864.9 |
-| Complete by estimate % | 18.8 |
-| Remaining h | 3,744.5 |
+| Complete by estimate % | 18.7 |
+| Remaining h | 3,748.5 |
 | Committed remaining h | 2,302.5 |
 | Open class I h | 785.5 |
-| Open class X h | 2,959 |
+| Open class X h | 2,963 |
 | Retained completion estimate h | 261.5 |
 | Unmeasured completed items | 29 |
-| Calibrated total h | 5,624.4 |
+| Calibrated total h | 5,630.1 |
 | Committed M8a open h | 74 |
 | Committed M8b open h | 105.5 |
 | Other committed open h | 2,123 |
@@ -1336,6 +1336,10 @@ These trials add no prerequisite to the current M7.1 realization route. A failed
   * **Execute:** Land the contract before source work. Prove and exercise one bounded reservation first; then run the same witness through the actual storage owner and target. Preserve every-read verification and authenticate-before-return. Record memory traffic and service-work counts separately from benchmarks; all throughput benchmarks stay on CI. Neither fixtures nor a zero common-write count establish full-system throughput or production proof closure.
   * **Estimate basis:** bounded reference and safety/traffic proofs 3–6 h; retained-read source and lifecycle controls 3–6 h; independent review and target trace join 2–4 h. Reuse the existing IDL, ownership, revocation and authentication interfaces. This cell buys the new read-window work; M5.3d retains persistent storage/crypto/index integration and M5.4 retains transactor work. Q44 joins M5.3d's real storage/authentication producer and target trace, including the selected representation's reserved-memory cost; the two items coqualify on one settled executable revision without requiring either milestone already complete. M5.4 is a later consumer and does not gate Q44 or M8a.
 
+* [ ] **Q45 · Qualify the Rocq dependency refresh** · 4 h, range 2–6 · X
+  * **Dispatch. Start:** the [refresh contract](tools/opam/README.md#rocq-dependency-refresh) and existing qualified snapshots. **Owns:** independent qualified/candidate QuickChick source checks, the immutable QuickChick/simple-io recipe refresh with intrinsics v0.17.3, and the isolated CertiRocq ocaml-version 4.1.5 trial. **Check:** crossed-source refusals before staging, fresh hosted recipe build/properties/import and seeded comparison, the polymorphic extraction control, and the contract's native CertiRocq consumer, exact-assumption, recursive-kernel and complete-vector checks before actual exported locks replace their baselines. **Join:** unchanged production package bounds and source semantics; Host CI and every Guest CI lane on the settled revision. Local-only commits defer hosted acceptance and supply no replacement-snapshot qualification.
+  * **Estimate basis:** candidate source/recipe separation and focused controls 1–3 h; native consumer checks, hosted acceptance review and actual export adoption 1–3 h. Unattended build runtime is excluded.
+
 **Evidence and cost stay with their owners.** Q2b owns the target connection and Q3b its selected functional/fault evidence; existing compiler, admission and image-validation owners retain the mandatory exact-artifact duties. The canceled Q20c comparison owns no production implementation. Share source/configuration/image identities and baseline records across them, adding each task's distinct check. Changed semantics or bytes invalidate affected evidence. Each missing theorem, port, primitive or executable gets one implementation owner and one estimate; Q2c's foundation map remains the shared prerequisite record for Q21b, Q25d and any separately commissioned generic-library proposal.
 
 Candidate selection is bounded by the current client's failed predicate. The [language strategy](docs/languages/verification-strategy.md#existing-tooling-and-implementation-owners) owns the proof-tool research map and [THIRD-PARTY.md](THIRD-PARTY.md) the incorporated/pinned dependency record. Reuse those readings at the same revision. Inspect new terms and dependency closure only at the selected candidate's incorporation; do not install every surveyed alternative. Model weights, generated output and physical-design inputs retain their own provenance requirements.
@@ -1344,7 +1348,7 @@ Q6's conventional-memory simulators are conditional on a topology comparison nee
 
 No assessment completion automatically increases a performance estimate. For an optimization affecting fraction `f` of runtime by factor `s`, the unchanged-cost bound is `1 / ((1 - f) + f / s)`; added transfers or changed scheduling require a fresh whole-workload comparison. Better packing is not more fabricated capacity, and host performance is not target throughput.
 
-**Q subtotal:** 2,779.9 h · 60% · 252.9 h complete · open range 1,458–3,596 h.
+**Q subtotal:** 2,783.9 h · 60% · 252.9 h complete · open range 1,460–3,602 h.
 
 ### M0 · Hardware reference
 
