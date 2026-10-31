@@ -167,8 +167,13 @@ def document_findings(documents: list[corpus.Document], config: Path, *,
     if metrics is not None:
         metrics.update(workers=1, worker_limit=1, parallel_attempts=0, parallel_fallbacks=0)
     workers = min(2, os.process_cpu_count() or 1, len(eligible))
-    if (workers > 1
-            and sum(len(doc.raw.encode("utf-8")) for _, doc in eligible) >= PARALLEL_BYTES):
+    try:
+        source_bytes = sum(len(doc.raw.encode("utf-8")) for _, doc in eligible)
+    except UnicodeError:
+        # Direct string callers can supply unpaired surrogates. Placement already
+        # falls back to scan_string for them; sizing must preserve that route too.
+        source_bytes = -1
+    if workers > 1 and source_bytes >= PARALLEL_BYTES:
         if metrics is not None:
             metrics.update(worker_limit=workers, parallel_attempts=1)
         try:

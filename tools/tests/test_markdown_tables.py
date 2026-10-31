@@ -166,6 +166,17 @@ def _parallel_selection_is_bounded() -> None:
                "the host-wave parser budget must remain at most two workers")
 
 
+def _unencodable_sources_keep_the_string_provider() -> None:
+    for raw in ("| \ud800 | b |\n| --- | --- |\n| 1 |\n", "| ordinary \udfff text\n"):
+        documents = [corpus.from_text(raw, name) for name in ("a.md", "b.md")]
+        expected = _serial(documents, CONFIG)
+        with (patch.object(markdownlint.os, "process_cpu_count", return_value=2),
+              patch.object(markdownlint, "PARALLEL_BYTES", 0),
+              patch.object(markdownlint, "_parallel", side_effect=AssertionError("wrong provider"))):
+            ensure(markdownlint.document_findings(documents, CONFIG) == expected,
+                   "unencodable source strings must preserve the original provider's diagnostics")
+
+
 def _spawned_workers_preserve_complete_diagnostics() -> None:
     header = "| 标题 | b |\n| --- | --- |\n"
     inputs = [header + "| 1 |\n", "```md\n" + header + "| 1 |\n```\n",
@@ -316,6 +327,7 @@ def cases() -> list[Case]:
             Case("carriage returns retain string provider", _carriage_returns_keep_the_string_provider),
             Case("parallel partitions preserve and balance UTF-8 bytes", _partitions_are_complete_and_byte_balanced),
             Case("parallel selection respects host budget", _parallel_selection_is_bounded),
+            Case("unencodable sources retain string provider", _unencodable_sources_keep_the_string_provider),
             Case("spawned parsers preserve complete ordered findings", _spawned_workers_preserve_complete_diagnostics),
             Case("failed pools stop before complete serial replay", _pool_failures_stop_before_complete_serial_replay),
             Case("worker population errors retain serial validation", _parallel_rejects_incomplete_or_invalid_results),
