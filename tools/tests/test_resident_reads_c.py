@@ -64,7 +64,8 @@ def resident_c_controls() -> None:
             path = scratch / f"{name}.c"
             path.write_text(candidate, encoding="utf-8", newline="\n")
             executable = scratch / name
-            compiled = subprocess.run([compiler, "-std=c11", "-O1", "-Wall", "-Wextra",
+            compiled = subprocess.run([compiler, "-std=c17", "-O1", "-Wall", "-Wextra",
+                "-Wstrict-prototypes",
                 "-Werror", "-pedantic", "-I" + str(root / "storage/include"),
                 str(path), str(root / "storage/src/node_image.c"), str(root / FIXTURE),
                 "-o", str(executable)],

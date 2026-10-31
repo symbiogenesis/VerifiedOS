@@ -48,7 +48,8 @@ def _build(directory: Path, source: str | None = None) -> Path:
         updater = directory / "tree_update.c"
         updater.write_text(source, encoding="utf-8", newline="")
     binary = directory / "tree-update"
-    command = [compiler, "-std=c11", "-O1", "-Wall", "-Wextra", "-Werror", "-pedantic",
+    command = [compiler, "-std=c17", "-O1", "-Wall", "-Wextra",
+               "-Wstrict-prototypes", "-Werror", "-pedantic",
                "-I", str(ROOT / "storage" / "include"), str(updater),
                *(str(ROOT / "storage" / "src" / name) for name in ("node_image.c", "tree_image.c")),
                str(ROOT / "storage" / "host" / "tree_update.c"), "-o", str(binary)]

@@ -63,7 +63,7 @@ def main() -> int:
     source = work / "fiat-vectors.c"
     library = work / "fiat-vectors.so"
     source.write_text(HARNESS, encoding="utf-8")
-    command = [args.cc, "-std=c11", "-O2", "-Wall", "-Wextra", "-Werror",
+    command = [args.cc, "-std=c17", "-O2", "-Wall", "-Wextra", "-Wstrict-prototypes", "-Werror",
                "-Wno-unused-function", "-shared", "-fPIC", "-I", str(folder),
                str(source), "-o", str(library)]
     subprocess.run(command, cwd=work, check=True)

@@ -78,7 +78,8 @@ KERNEL: Final = "kernel"
 SOURCES: Final[tuple[str, ...]] = ("src/executive.c", "src/context.c", "src/partition.c")
 HOST_HARNESS: Final = "test/host_vectors.c"
 CFLAGS: Final[tuple[str, ...]] = (
-    "-std=c11", "-O1", "-Wall", "-Wextra", "-Werror", "-pedantic", "-DVOS_HOST_MODEL")
+    "-std=c17", "-O1", "-Wall", "-Wextra",
+    "-Wstrict-prototypes", "-Werror", "-pedantic", "-DVOS_HOST_MODEL")
 C_FAMILIES: Final[tuple[str, ...]] = ("kx", "kc", "kr", "kq", "ke")
 READER_FAMILIES: Final[tuple[str, ...]] = ("c", "b", "f", "run")
 WAITS: Final = ("target evidence waits on M1.2f's accepted backend, M1.7's target path "

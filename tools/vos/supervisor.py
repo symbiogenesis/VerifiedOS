@@ -35,7 +35,8 @@ SOURCES: Final = ("src/supervisor.c", "src/effects.c",
 MANIFESTS: Final = ("manifest.c", "manifest.json")
 KERNEL_SOURCES: Final = ("src/context.c",)
 KERNEL_HEADERS: Final = ("include/vos_kernel.h", "include/vos_platform.h")
-CFLAGS: Final = ("-std=c11", "-O1", "-Wall", "-Wextra", "-Werror", "-pedantic")
+CFLAGS: Final = ("-std=c17", "-O1", "-Wall", "-Wextra",
+                 "-Wstrict-prototypes", "-Werror", "-pedantic")
 WAITS: Final = ("Finite host C/reference and generated-manifest consumer agreement; "
                "authenticated target handoff, production admission and full-roster "
                "boot/fault observations remain open.")

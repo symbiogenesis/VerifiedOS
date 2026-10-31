@@ -72,7 +72,7 @@ def official(work: Path, notice: str) -> dict[str, bytes]:
 def build(root: Path, work: Path) -> Path:
     work.mkdir(parents=True, exist_ok=True)
     binary = work / "check-signature"
-    command = ["gcc", "-std=c11", "-O2", "-Wall", "-Wextra", "-Werror",
+    command = ["gcc", "-std=c17", "-O2", "-Wall", "-Wextra", "-Wstrict-prototypes", "-Werror",
                "-ffreestanding", "-fno-builtin", "-fsanitize=address,undefined",
                "-fno-sanitize-recover=all", "-I", str(root / "firmware/include")]
     command += [str(root / name) for name in SOURCE_FILES if name.endswith(".c")]
