@@ -2944,6 +2944,32 @@ bytes. Source-bound views and the finite rank-48 receipt are regenerated through
 their owners. The `python-modern-20261031` fanout journal records exact-revision
 hosted evidence and Guest CI dispatch; the guest verdict is deferred to the user.
 
+## C modernization
+
+Modernize active authored C within the selected compiler and proof interfaces.
+Use modern declarations, explicit initialization and compile-time checks where
+they clarify existing contracts, keeping the target's admitted scalar profile.
+The CompCert/Clight path used by VST constrains target language features; a host
+compiler accepting a feature alone does not establish target support.
+
+- **Start:** existing component contracts, the contained compiler's source-value
+  and ABI contracts, and the current C build commands.
+- **Owns:** active authored component C, host harnesses, C emitters and their build
+  settings, plus a documented language profile. Imported sources, retained
+  execution snapshots and generator-owned outputs retain their owners; regenerate
+  affected outputs through those owners. Preserve wire formats, capability and
+  atomic representations, integer widths, public interfaces and behavior.
+- **Check:** review the active authored population and selected frontend support;
+  compile affected host units with strict warnings and run existing focused
+  behavioral controls. Check target-facing constructs through the selected
+  frontend or bounded compiler controls. Preserve generated artifacts and refresh
+  affected source bindings. No new refinement, constant-time or target-execution
+  claim follows from syntax changes.
+- **Join:** merge isolated lanes into `main`, require Host CI on Windows and
+  Ubuntu, and dispatch every Guest CI lane at the settled revision through
+  [the validation handoff](AGENTS.md#tool-execution-and-validation). Record any
+  acceptance checks outside those workflows explicitly.
+
 ## Compiler differential library boundary
 
 The compiler differential harness is shared by the firmware, kernel and service
