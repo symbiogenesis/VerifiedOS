@@ -1,16 +1,5 @@
-cmake_minimum_required(VERSION 3.20)
-cmake_policy(VERSION 3.20...3.31)
-
-# CMake 3.24 and newer don't use the mtimes from archives when extracting
-# GMP in ExternalProject_Add(). This reverts that behaviour so that the
-# mtimes in the archive are used. This is necessary because otherwise
-# Make tries to rebuild the documentation that is already built, and
-# this requires `makeinfo` which we don't want to require.
-# TODO: Remove this when we bump the minimum CMake version to 3.24 and
-# instead add DOWNLOAD_EXTRACT_TIMESTAMP TRUE to ExternalProject_Add().
-if(POLICY CMP0135)
-    cmake_policy(SET CMP0135 OLD)
-endif()
+cmake_minimum_required(VERSION 3.26)
+cmake_policy(VERSION 3.26...3.31)
 
 # This sets -mmacosx-version-min. It must be done before project() (see the CMake docs).
 set (CMAKE_OSX_DEPLOYMENT_TARGET 10.15)
@@ -24,6 +13,11 @@ project(sail-riscv
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
 include(cmake/sail_required_version.cmake)
+
+option(VOS_MODEL_OFFLINE "Require prepared dependencies without downloading" OFF)
+if(VOS_MODEL_OFFLINE)
+    set(FETCHCONTENT_FULLY_DISCONNECTED ON)
+endif()
 
 # Make users explicitly pick a build type so they don't get
 # surprised when the default gives a very slow emulator.
@@ -70,26 +64,32 @@ if (ENABLE_LTO)
     endif()
 endif()
 
+# First-party build settings do not leak into fetched dependency projects.
+add_library(sail_assertions INTERFACE)
+add_library(sail_build_options INTERFACE)
+target_link_libraries(sail_build_options INTERFACE sail_assertions)
+
 # Don't allow undefined symbols. This is generally a pain.
 include(CheckLinkerFlag)
 
 check_linker_flag(C "-Wl,--no-undefined" LINKER_SUPPORTS_NO_UNDEFINED)
 if (LINKER_SUPPORTS_NO_UNDEFINED)
-    add_link_options("-Wl,--no-undefined")
+    target_link_options(sail_build_options INTERFACE "-Wl,--no-undefined")
 endif()
 
-add_compile_options(-Wall -Wextra -Wno-sign-compare)
+target_compile_options(sail_build_options INTERFACE -Wall -Wextra -Wno-sign-compare)
 include(CheckCCompilerFlag)
 check_c_compiler_flag(-Wimplicit-fallthrough HAVE_WIMPLICIT_FALLTHROUGH)
 
-# Ensure we globally build with assertions enabled even in non-Debug
+# Ensure model, runtime and test targets build with assertions enabled in non-Debug
 # builds, following the approach of LLVM in
 #   llvm/cmake/modules/HandleLLVMOptions.cmake
 string(TOUPPER "${CMAKE_BUILD_TYPE}" uppercase_CMAKE_BUILD_TYPE)
 # On non-Debug builds cmake automatically defines NDEBUG; so
 # explicitly undefine it:
 if(NOT uppercase_CMAKE_BUILD_TYPE STREQUAL "DEBUG")
-    add_compile_options($<$<OR:$<COMPILE_LANGUAGE:C>,$<COMPILE_LANGUAGE:CXX>>:-UNDEBUG>)
+    target_compile_options(sail_assertions INTERFACE
+        $<$<OR:$<COMPILE_LANGUAGE:C>,$<COMPILE_LANGUAGE:CXX>>:-UNDEBUG>)
 endif()
 
 # Extra CMake files.
@@ -108,12 +108,12 @@ if (STATIC)
 
         check_linker_flag(CXX "-static-libstdc++" HAVE_STATIC_LIBSTDCXX)
         if (HAVE_STATIC_LIBSTDCXX)
-            add_link_options(-static-libstdc++)
+            target_link_options(sail_build_options INTERFACE -static-libstdc++)
         endif()
 
         check_linker_flag(CXX "-static-libgcc" HAVE_STATIC_LIBGCC)
         if (HAVE_STATIC_LIBGCC)
-            add_link_options(-static-libgcc)
+            target_link_options(sail_build_options INTERFACE -static-libgcc)
         endif()
     endif()
 endif()
@@ -122,6 +122,9 @@ endif()
 # These are the main requirements.
 # Don't use `REQUIRED` so that we can print custom help messages.
 option(DOWNLOAD_GMP "Download libgmp and build the library locally instead of using a system installation" OFF)
+if(VOS_MODEL_OFFLINE AND DOWNLOAD_GMP)
+    message(FATAL_ERROR "VOS_MODEL_OFFLINE requires system GMP; DOWNLOAD_GMP cannot be enabled")
+endif()
 if (DOWNLOAD_GMP)
     include(ExternalProject)
     # Build GMP with LTO when ENABLE_LTO is on, using the same toolchain and
@@ -142,6 +145,9 @@ if (DOWNLOAD_GMP)
         gmp
         URL https://ftp.gnu.org/gnu/gmp/gmp-6.3.0.tar.xz https://gmplib.org/download/gmp/gmp-6.3.0.tar.xz https://ftpmirror.gnu.org/gnu/gmp/gmp-6.3.0.tar.xz
         URL_HASH SHA256=a3c2b80201b89e68616f4ad30bc66aee4927c3ce50e33929ca819d5c43538898
+        # Preserve only GMP's archive mtimes: its generated documentation would
+        # otherwise be rebuilt with makeinfo. Other archives use CMP0135 NEW.
+        DOWNLOAD_EXTRACT_TIMESTAMP TRUE
         INSTALL_DIR ${CMAKE_CURRENT_BINARY_DIR}/gmp
         CONFIGURE_COMMAND "<SOURCE_DIR>/configure"
             "--prefix=<INSTALL_DIR>"
@@ -150,11 +156,7 @@ if (DOWNLOAD_GMP)
             --with-pic
             # Newer compilers default to C23 which causes GMP build errors.
             ${GMP_EXTRA_CONFIGURE_ARGS}
-        # The libgmp.a output is created by the install step but since GMP::GMP
-        # depends on the entire ExternalProject build, we can pretend it is
-        # created by the build.
-        # TODO: Once we depend on CMake 3.26, use INSTALL_BYPRODUCTS
-        BUILD_BYPRODUCTS "<INSTALL_DIR>/lib/libgmp.a"
+        INSTALL_BYPRODUCTS "<INSTALL_DIR>/lib/libgmp.a"
     )
 
     ExternalProject_Get_property(gmp INSTALL_DIR)
@@ -195,6 +197,9 @@ execute_process(
 )
 message(STATUS "Sail library directory: ${sail_dir}")
 
+include(cmake/sail_toolchain.cmake)
+sail_add_toolchain_identity()
+
 option(COVERAGE "Compile with Sail coverage collection enabled.")
 
 include(GNUInstallDirs)
@@ -219,6 +224,26 @@ add_subdirectory("test")
 
 # Handwritten support files for provers
 add_subdirectory("handwritten_support")
+
+# Apply warnings and link settings only to model/runtime/test code. SoftFloat
+# keeps assertion behavior without inheriting first-party warning policy.
+function(sail_apply_build_options directory)
+    get_property(targets DIRECTORY "${directory}" PROPERTY BUILDSYSTEM_TARGETS)
+    foreach(target IN LISTS targets)
+        get_target_property(kind "${target}" TYPE)
+        if(kind MATCHES "^(EXECUTABLE|STATIC_LIBRARY|SHARED_LIBRARY|OBJECT_LIBRARY)$")
+            target_link_libraries("${target}" PRIVATE sail_build_options)
+        endif()
+    endforeach()
+    get_property(children DIRECTORY "${directory}" PROPERTY SUBDIRECTORIES)
+    foreach(child IN LISTS children)
+        sail_apply_build_options("${child}")
+    endforeach()
+endfunction()
+sail_apply_build_options("${CMAKE_CURRENT_SOURCE_DIR}/sail_runtime")
+sail_apply_build_options("${CMAKE_CURRENT_SOURCE_DIR}/c_emulator")
+sail_apply_build_options("${CMAKE_CURRENT_SOURCE_DIR}/test")
+target_link_libraries(softfloat PRIVATE sail_assertions)
 
 # Convenience targets.
 add_custom_target(csim DEPENDS sail_riscv_sim)
