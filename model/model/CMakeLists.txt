@@ -66,10 +66,10 @@ else()
     set(coverage_args)
 endif()
 
-add_custom_command(
+sail_generated_command(
+    STAMP "${CMAKE_CURRENT_BINARY_DIR}/cpp.stamp"
     DEPENDS ${sail_srcs} ${project_file}
-    OUTPUT ${c_model} ${c_model_header} ${branch_info_file} ${schema_file}
-    VERBATIM
+    OUTPUTS ${c_model} ${c_model_header} ${branch_info_file} ${schema_file}
     COMMENT "Building C++ code from Sail model"
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
     COMMAND
@@ -161,10 +161,10 @@ set(schema_file "${schema_file}" PARENT_SCOPE)
 # Generate JSON snippets file.
 set(model_doc "sail_riscv_model.json")
 
-add_custom_command(
+sail_generated_command(
+    STAMP "${CMAKE_CURRENT_BINARY_DIR}/json.stamp"
     DEPENDS ${sail_srcs} ${project_file}
-    OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/${model_doc}"
-    VERBATIM
+    OUTPUTS "${CMAKE_CURRENT_BINARY_DIR}/${model_doc}"
     COMMENT "Building documentation JSON from Sail model"
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
     COMMAND
@@ -203,10 +203,10 @@ add_custom_target(generated_sail_riscv_docs DEPENDS "${CMAKE_CURRENT_BINARY_DIR}
 set(model_html_tgz "sail_riscv_html.tgz")
 set(model_html_out "html_docs")
 
-add_custom_command(
+sail_generated_command(
+    STAMP "${CMAKE_CURRENT_BINARY_DIR}/html.stamp"
     DEPENDS ${sail_srcs} ${project_file}
-    OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/${model_html_out}"
-    VERBATIM
+    OUTPUTS "${CMAKE_CURRENT_BINARY_DIR}/${model_html_out}"
     COMMENT "Building HTML from Sail model"
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
     COMMAND
@@ -226,7 +226,7 @@ add_custom_command(
     VERBATIM
     COMMENT "Creating HTML tgz bundle"
     COMMAND
-        cmake -E tar cvfz ${model_html_tgz} ${model_html_out}
+        ${CMAKE_COMMAND} -E tar cvfz ${model_html_tgz} ${model_html_out}
 )
 
 add_custom_target(generated_html_tgz DEPENDS ${model_html_tgz})
@@ -250,10 +250,9 @@ foreach (xlen IN ITEMS 64)
     # Since the true output files are unknown we need to manually
     # generate a file to indicate that we have run this command.
     set(smt_stamp_file "${CMAKE_CURRENT_BINARY_DIR}/smt_${arch}.stamp")
-    add_custom_command(
+    sail_generated_command(
+        STAMP "${smt_stamp_file}"
         DEPENDS ${sail_srcs} ${project_file} ${config_file}
-        VERBATIM
-        OUTPUT ${smt_stamp_file}
         COMMENT "Building smtlib2 from Sail model (${arch})"
         WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
         COMMAND
@@ -267,7 +266,6 @@ foreach (xlen IN ITEMS 64)
             # Input files.
             ${SAIL_MODULES}
             ${project_file}
-        COMMAND ${CMAKE_COMMAND} -E touch ${smt_stamp_file}
     )
 
     add_custom_target(generated_smt_${arch} DEPENDS ${smt_stamp_file})
@@ -313,10 +311,10 @@ foreach (xlen IN ITEMS 64)
     # R-05-019b's term is the frozen machine's, and the generated file differs
     # from the profile in leaves the term carries.
     set(rocq_config_file "${PROJECT_SOURCE_DIR}/config/verifiedos.json")
-    add_custom_command(
+    sail_generated_command(
+        STAMP "${CMAKE_CURRENT_BINARY_DIR}/rocq_${arch}.stamp"
         DEPENDS ${sail_srcs} ${project_file} ${rocq_config_file}
-        VERBATIM
-        OUTPUT "${CMAKE_BINARY_DIR}/rocq/${arch}.v" "${CMAKE_BINARY_DIR}/rocq/${arch}_types.v"
+        OUTPUTS "${CMAKE_BINARY_DIR}/rocq/${arch}.v" "${CMAKE_BINARY_DIR}/rocq/${arch}_types.v"
         COMMENT "Building Rocq definitions from Sail model (${arch})"
         WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
         COMMAND

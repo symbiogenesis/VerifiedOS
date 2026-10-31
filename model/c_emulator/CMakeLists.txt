@@ -15,7 +15,7 @@ configure_file(sail_riscv_version.cpp.in sail_riscv_version.cpp @ONLY)
 # generated then.
 add_custom_command(
     OUTPUT config_schema.h
-    COMMAND cmake
+    COMMAND ${CMAKE_COMMAND}
                 "-Dschema_file=${schema_file}"
                 "-Dconfig_schema_h_in=${CMAKE_CURRENT_SOURCE_DIR}/config_schema.h.in"
                 -P "${CMAKE_CURRENT_SOURCE_DIR}/generate_schema_include.cmake"
@@ -160,14 +160,10 @@ target_compile_options(sail_riscv_sim PRIVATE
   -Wno-parentheses-equality
 )
 
-# TODO: Make this use CMAKE_COMPILE_WARNING_AS_ERROR once we upgrade
-# the cmake_minimum_version to 3.24 or higher.
 option(WARNINGS_AS_ERRORS "Treat C++ compiler warnings as errors." FALSE)
 
 if(WARNINGS_AS_ERRORS)
-  target_compile_options(sail_riscv_sim PRIVATE
-    -Werror
-  )
+  set_property(TARGET sail_riscv_sim PROPERTY COMPILE_WARNING_AS_ERROR TRUE)
 endif()
 
 # Enable Sail coverage collection.
