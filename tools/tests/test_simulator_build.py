@@ -26,7 +26,8 @@ def fixture(root: Path) -> tuple[Path, Path, dict[str, Any]]:
     (model / "source.sail").write_text("original", encoding="utf-8")
     out = root / "native"
     (out / "logs").mkdir(parents=True)
-    simulator = out / "sail_riscv_sim"
+    simulator = out / "build" / dependency.ARTIFACT
+    simulator.parent.mkdir(parents=True)
     simulator.write_bytes(b"simulator")
     tools = {}
     for role in ("sail", "cmake", "cxx"):
@@ -34,7 +35,7 @@ def fixture(root: Path) -> tuple[Path, Path, dict[str, Any]]:
         tools[role] = {"executable": str(root / role), "sha256": receipts.digest(root / role),
                        "reported_version": role + " version"}
     build = out / "build"
-    build.mkdir()
+    build.mkdir(exist_ok=True)
     cache = (f"SAIL_BIN:FILEPATH={root / 'sail'}\n"
              f"CMAKE_CXX_COMPILER:FILEPATH={root / 'cxx'}\n"
              f"CMAKE_HOME_DIRECTORY:INTERNAL={model}\n"

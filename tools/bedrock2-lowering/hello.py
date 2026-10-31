@@ -28,7 +28,9 @@ from vos import (  # noqa: E402
     compiler_provenance,
     differential,
     image,
+    native_build,
     receipts,
+    rocqterm,
     simulator_build,
     trace,
 )
@@ -73,6 +75,10 @@ def model_receipt(root: Path, simulator: Path, path: Path) -> tuple[dict[str, ob
             or not isinstance(raw["identity"].get("inputs"), dict)
             or not isinstance(raw["identity"].get("tools"), dict)
             or not raw["identity"]["tools"]
+            or not isinstance(raw["identity"].get("generator_inputs"), dict)
+            or not raw["identity"]["generator_inputs"]
+            or not isinstance(raw.get("native_inputs"), dict)
+            or not raw["native_inputs"]
             or any(not isinstance(value, str) or re.fullmatch(r"[0-9a-f]{64}", value) is None
                    for value in raw["identity"]["tools"].values())
             or not isinstance(raw.get("artifacts"), dict)
@@ -82,6 +88,15 @@ def model_receipt(root: Path, simulator: Path, path: Path) -> tuple[dict[str, ob
                 if name.startswith("model/")}
     if selected != receipts.inputs(root, "model"):
         raise ValueError("complete current model source population differs from built source")
+    for executable, digest in raw["identity"]["tools"].items():
+        if sha(Path(executable)) != digest:
+            raise ValueError("complete model producer bytes changed")
+    build = simulator.parent.parent
+    native_build.verify(raw["native_inputs"], build, root / "model")
+    sail = simulator_build._cache_value((build / simulator_build.CACHE).read_text(encoding="utf-8"),
+                                        "SAIL_BIN")
+    if raw["identity"]["generator_inputs"] != rocqterm.generator_identity(sail):
+        raise ValueError("complete model generator library or plugins changed")
     return cast("dict[str, object]", raw), cast("dict[str, str]", selected)
 
 

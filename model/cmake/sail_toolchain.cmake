@@ -26,13 +26,8 @@ function(sail_generated_command)
             OR NOT GENERATE_STAMP OR NOT GENERATE_COMMAND)
         message(FATAL_ERROR "sail_generated_command requires a stamp and command")
     endif()
-    set(byproducts)
-    if(GENERATE_OUTPUTS)
-        set(byproducts BYPRODUCTS ${GENERATE_OUTPUTS})
-    endif()
     add_custom_command(
-        OUTPUT "${GENERATE_STAMP}"
-        ${byproducts}
+        OUTPUT "${GENERATE_STAMP}" ${GENERATE_OUTPUTS}
         DEPENDS generated_sail_toolchain "${SAIL_TOOLCHAIN_STAMP}" ${GENERATE_DEPENDS}
         COMMAND "${CMAKE_COMMAND}" -E rm -f "${GENERATE_STAMP}"
         COMMAND ${GENERATE_COMMAND}

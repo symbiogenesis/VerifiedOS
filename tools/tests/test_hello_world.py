@@ -155,19 +155,25 @@ def _producer_receipts() -> None:
                    "HELLO's wrong-compiler diagnostic does not name the Q39 rebuild")
         else:
             raise AssertionError("HELLO accepted another compiler")
-        with patch.object(receipts, "inputs", side_effect=test_simulator_build._inputs):
+        with (patch.object(receipts, "inputs", side_effect=test_simulator_build._inputs),
+              patch.object(recipe.rocqterm, "generator_identity", return_value={"fixture": True}),
+              patch.object(recipe.native_build, "verify")):
             receipts.write(path, focused)
             record, selected = recipe.model_receipt(root, simulator, path)
             ensure(record["bundled_model_tests"] == "not-run" and len(selected) == 2,
                    "HELLO's focused route claims complete model acceptance")
             complete: dict[str, Any] = {"schema": 1, "exit_code": 0,
                         "stages": {"configure": 0, "build": 0, "ctest": 0},
-                        "identity": {"inputs": selected, "tools": {"/sail": "1" * 64}},
+                        "identity": {"inputs": selected,
+                                     "tools": {str(root / "sail"): receipts.digest(root / "sail")},
+                                     "generator_inputs": {"fixture": True}},
+                        "native_inputs": {"fixture": True},
                         "artifacts": {"c_emulator/sail_riscv_sim": receipts.digest(simulator)}}
             receipts.write(path, complete)
             ensure(recipe.model_receipt(root, simulator, path)[0]["stages"] == complete["stages"],
                    "HELLO refused the separate complete receipt route")
-            for change in ("ctest-failed", "stages-missing", "tools-missing", "artifact-changed"):
+            for change in ("ctest-failed", "stages-missing", "tools-missing", "artifact-changed",
+                           "native-missing", "generator-changed"):
                 damaged = copy.deepcopy(complete)
                 if change == "ctest-failed":
                     damaged["stages"]["ctest"] = 1
@@ -175,6 +181,10 @@ def _producer_receipts() -> None:
                     del damaged["stages"]
                 elif change == "tools-missing":
                     damaged["identity"]["tools"] = {}
+                elif change == "native-missing":
+                    del damaged["native_inputs"]
+                elif change == "generator-changed":
+                    damaged["identity"]["generator_inputs"] = {"changed": True}
                 else:
                     damaged["artifacts"]["c_emulator/sail_riscv_sim"] = "0" * 64
                 receipts.write(path, damaged)
