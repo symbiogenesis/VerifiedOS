@@ -114,7 +114,7 @@
       "sources": [
         {
           "path": "proofs/RotFirmware.v",
-          "sha256": "05968f1ae56134a71d3890b580b111487aa7e4bd37ad416327bc7a243b5ecc9a"
+          "sha256": "7e6fea986a61e0985165d6d44425cfa6d7827593b0815f2406884f0444c03da4"
         },
         {
           "path": "proofs/RomVerifier.v",
@@ -146,7 +146,7 @@
       "sources": [
         {
           "path": "proofs/MModeFirmware.v",
-          "sha256": "ec257d2f9ba7085839e6be4261e0dca397a9b87df90ef9bc8f8369a647e97b2b"
+          "sha256": "1ece3d73136639d15662835ec1a6b4618427022b960cb5bc71f8fe820bffe67c"
         }
       ],
       "descriptor": {
@@ -170,7 +170,7 @@
       "sources": [
         {
           "path": "proofs/KernelInstance.v",
-          "sha256": "9d3425c627927396fd1b283900b5b908ab9ff9d80532c766f0aa8bcce699954b"
+          "sha256": "29159258c00520c6a7dcfd6242d8af9057e91ae5ced9a42a2578aaf36c445b54"
         },
         {
           "path": "proofs/PartitionContext.v",
@@ -234,11 +234,11 @@
         },
         {
           "path": "proofs/Sha256.v",
-          "sha256": "651f68a00973e37b230a439cb8b82bc39c8d588ef3e39b9a3524993517fac710"
+          "sha256": "27da4c878bbb241932e0f55d24f4430e9dcc2fea3df8ea65e8ad4d576e36f529"
         },
         {
           "path": "proofs/AesGcm.v",
-          "sha256": "f87f6a64672ff45c40394dbc9153dc85c7c07481aed4ab9d83e9033e32f81e95"
+          "sha256": "b8df04681aeab55833e81ca9acabc058600bab4e2191bdfe554d241b5a3e71f3"
         },
         {
           "path": "proofs/MlDsa.v",
@@ -247,7 +247,7 @@
       ],
       "descriptor": {
         "path": "tools/composer/packages/crypto-core.json",
-        "sha256": "d8767e5594771c59d0be038a965ec0096a0dd12c38c9d0e23a6d03c51e3e232d"
+        "sha256": "704d22a979b77d959ae7272c3904ba3367b806dd43e331d3cbaf78aebf22df2f"
       },
       "artifact_slot": "crypto-core-artifact",
       "entry": null,
@@ -266,11 +266,11 @@
       "sources": [
         {
           "path": "proofs/ExecutableIndex.v",
-          "sha256": "5b2a2a8c38ec44c3c8d2c325961d1648e1d5e3b542721b98352ab27e0c0c5d92"
+          "sha256": "25a33bd72855832f8dd4ec02f59fa29b792d491b1a3762027a0efd0be19323a5"
         },
         {
           "path": "proofs/JournalIndex.v",
-          "sha256": "87fdca8ba034590a4d5688893eac34c2da9e7122b0a859bfb3f609017f764ee7"
+          "sha256": "62fbd57f10594af5ecb809627eae1c4fbb135a3fe1b8a1cb26faef8156cd18ca"
         },
         {
           "path": "proofs/StorageRecovery.v",
@@ -279,7 +279,7 @@
       ],
       "descriptor": {
         "path": "tools/composer/packages/storage.json",
-        "sha256": "79d567138c15eadc951056f0a7e6cf6ae7dfce1c7a15be9bb45daf28976bb7f5"
+        "sha256": "c64a1e94b9d111a5c3c6ebb0b7425420f1badbe501313b2c33a790b3613905e2"
       },
       "artifact_slot": "storage-artifact",
       "entry": null,
@@ -298,7 +298,7 @@
       "sources": [
         {
           "path": "proofs/CopyRingService.v",
-          "sha256": "b4dee7096b64cae6b8dd5ebf3722aa67e812c20aea42ebb676de3d855f69c65f"
+          "sha256": "362312cb0cc81e5070f5133a12042b9610ede657de02377694921d4bfcd2bb14"
         },
         {
           "path": "proofs/RingContract.v",
