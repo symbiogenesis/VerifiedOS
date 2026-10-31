@@ -4,15 +4,18 @@
 
    A last-event query separates trace order from the application's choice of
    relevant events. Tags, commit conditions and fallback values stay in clients.
-   This prelude-only support is subject to R-05-163's assumption audit. The
-   concrete examples for R-05-165 and R-05-166 distinguish the final selected
-   event from the first and distinguish an absent event from a present one.
+   ProofSupport supplies constructive boolean collections; the transitive
+   dependency closure remains prelude-only. R-05-163's assumption audit covers
+   these laws. The examples for R-05-165 and R-05-166 distinguish the final
+   selected event from the first and an absent event from a present one.
    (*| BEGIN derived: cited entries |*)
    Owner: docs/requirements-register.md
    Requirements: R-05-163 R-05-165 R-05-166
    SHA256: 4c631348347cb256d8d909843632bc4849e204c51521af8b014dbaabd4d358c9
    (*| END derived |*)
    ========================================================================= *)
+
+Require ProofSupport.
 
 Fixpoint last_matching {Event Value : Type} (select : Event -> option Value)
     (events : list Event) : option Value :=
@@ -55,6 +58,39 @@ Proof.
     + intros [H _]. exact H.
 Qed.
 
+Lemma last_matching_some_cons :
+  forall (Event Value : Type) (select : Event -> option Value)
+         (event : Event) (rest : list Event) (value : Value),
+    last_matching select (cons event rest) = Some value <->
+    last_matching select rest = Some value \/
+    (last_matching select rest = None /\ select event = Some value).
+Proof.
+  intros Event Value select event rest value. simpl.
+  destruct (last_matching select rest) as [found|].
+  - split.
+    + intro H. left. exact H.
+    + intros [H | [Hnone _]]; [exact H | discriminate Hnone].
+  - split.
+    + intro H. right. split; [reflexivity | exact H].
+    + intros [Hsome | [_ H]]; [discriminate Hsome | exact H].
+Qed.
+
+Lemma last_matching_presence :
+  forall (Event Value : Type) (select : Event -> option Value)
+         (present : Event -> bool),
+    (forall event, ProofSupport.is_some (select event) = present event) ->
+    forall events : list Event,
+      ProofSupport.is_some (last_matching select events) =
+      ProofSupport.any_of present events.
+Proof.
+  intros Event Value select present Hpresent events.
+  induction events as [|event rest IH].
+  - reflexivity.
+  - simpl. destruct (last_matching select rest) as [value|].
+    + simpl in IH |- *. rewrite <- IH. destruct (present event); reflexivity.
+    + rewrite <- IH, <- (Hpresent event). destruct (select event); reflexivity.
+Qed.
+
 Lemma last_matching_none_app :
   forall (Event Value : Type) (select : Event -> option Value)
          (before after : list Event),
@@ -73,9 +109,26 @@ Qed.
 
 Example the_last_selected_event_wins :
   last_matching (fun b : bool => Some b) (cons false (cons true nil)) = Some true.
-Proof. reflexivity. Qed.
+Proof. apply last_matching_some_cons. left. reflexivity. Qed.
 
 Example absence_is_distinct_from_a_selected_false :
   last_matching (fun b : bool => Some b) nil = None /\
   last_matching (fun b : bool => Some b) (cons false nil) = Some false.
 Proof. split; reflexivity. Qed.
+
+Example presence_matches_the_boolean_detector :
+  forall events : list bool,
+    ProofSupport.is_some
+      (last_matching (fun b : bool => if b then None else Some false) events) =
+    ProofSupport.any_of negb events.
+Proof.
+  intro events. apply last_matching_presence. intro b. destruct b; reflexivity.
+Qed.
+
+Example presence_distinguishes_empty_absent_and_selected_false :
+  ProofSupport.is_some (last_matching (fun b : bool => Some b) nil) = false /\
+  ProofSupport.is_some
+    (last_matching (fun _ : bool => @None bool) (cons false nil)) = false /\
+  ProofSupport.is_some
+    (last_matching (fun b : bool => Some b) (cons false nil)) = true.
+Proof. repeat split; reflexivity. Qed.

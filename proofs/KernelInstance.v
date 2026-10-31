@@ -737,11 +737,7 @@ Lemma replay_csr_ignores_unwritten_suffix :
     last_csr_write k.(csr_eqb) c after = None ->
     ctx_csr (replay k pre (app before after)) c = ctx_csr (replay k pre before) c.
 Proof.
-  intros k pre before after c H.
-  change ((if last_csr_write k.(csr_eqb) c (app before after) is Some v
-           then v else ctx_csr pre c) =
-          (if last_csr_write k.(csr_eqb) c before is Some v
-           then v else ctx_csr pre c)).
+  intros k pre before after c H. unfold replay, ctx_csr.
   rewrite last_csr_write_app, H. reflexivity.
 Qed.
 
