@@ -89,7 +89,8 @@ def _compiled_boundaries_match_the_literal_oracle() -> None:
             raise AssertionError("word skipping must not retry complete suffix scans")
 
     complete, partial = OnlyMatch(matcher.complete), OnlyMatch(matcher.known_right)
-    controlled = replace(matcher, complete=complete, known_right=partial)
+    controlled = replace(matcher, complete=complete, known_right=partial,
+                         ascii_complete=complete, ascii_known_right=partial)
     ensure(not controlled.present("ordinary words " * 100, first=True, final=True)
            and complete.calls == 1, "an absent name must take one anchored scan")
     ensure(controlled.present("core/core", first=True, final=False) and partial.calls == 1,
@@ -98,7 +99,8 @@ def _compiled_boundaries_match_the_literal_oracle() -> None:
     ensure([index for index, _, _ in controlled.lines("ordinary\ncore 123abcd\nmore\na+b 123abcd\ntrailing")]
            == [1, 3] and complete.calls == 3,
            "complete lines must use one forward match per candidate and final absence")
-    for first_names in (("0core", "9core"), ("_core", "-core"), ("a+b", "z.core", "-core")):
+    for first_names in (("0core", "9core"), ("_core", "-core"), ("a+b", "z.core", "-core"),
+                        ("foo", "foo-bar", "foo/bar", "foo+"), ("k", "core", "-core")):
         guarded = literalsearch.compile_names(first_names)
         ensure(guarded.complete.groups == guarded.known_right.groups == 1,
                "first-character filtering changed the candidate capture")
@@ -108,11 +110,66 @@ def _compiled_boundaries_match_the_literal_oracle() -> None:
                 terminal = r"(?!\w)" if final else r"(?=\W)"
                 root = literalsearch.expression(
                     literalsearch.build(tuple(n.encode("ascii") for n in first_names)), terminal.encode()).decode()
-                for pos in (0, 1, len(text)):
+                for pos in range(len(text) + 1):
                     expected_span = re.compile(root).search(text, pos)
                     ensure(guarded._span(text, pos=pos, final=final)
                            == (expected_span.span() if expected_span is not None else None),
                            "first-character filtering changed an arbitrary-position candidate")
+
+
+def _ascii_and_unicode_programs_keep_all_offset_boundaries() -> None:
+    names = ("core", "core/core", "-core", "foo", "foo-bar", "foo/bar", "foo+", "k")
+    matcher = literalsearch.compile_names(names)
+    programs = {final: re.compile(literalsearch.expression(
+        literalsearch.build(tuple(name.encode("ascii") for name in names)),
+        b"(?!\\w)" if final else b"(?=\\W)").decode("ascii")) for final in (False, True)}
+    # Exercise every offset, including interiors of words and names containing
+    # separators. A shorter same-start spelling must survive unknown EOF edges.
+    samples = ["", "ordinary", "core/core", "foo/bar foo-bar foo+", "-core core-", "core_core",
+               "xxcore core", "écore core中", "²core coreⅣ", "中-core/core é k", "K core",
+               "foo+core/core", "foo-bar/core foo/bar-core", "\x00core\nfoo\r\ncore/core"]
+    samples.extend("".join(chars) for chars in product(("a", "-", "/", " ", "é"), repeat=3))
+    for sample in samples:
+        low = sample.lower()
+        for final in (False, True):
+            for pos in range(len(low) + 1):
+                expected = programs[final].search(low, pos)
+                span = expected.span() if expected is not None else None
+                ensure(matcher._span(low, pos=pos, final=final) == span,
+                       "word-boundary hoisting or ASCII specialization changed a candidate")
+                if low.isascii():
+                    unicode_program = matcher.complete if final else matcher.known_right
+                    unicode_match = unicode_program.match(low, pos)
+                    ensure((unicode_match.span(1) if unicode_match is not None else None) == span,
+                           "Unicode and ASCII programs disagree on an ASCII source")
+        for first, final in product((False, True), repeat=2):
+            expected = programs[final].search(low, 0 if first else 1)
+            ensure(matcher.present(sample, first=first, final=final) == (expected is not None),
+                   "lowercase or streaming window edges changed a presence decision")
+    # Program selection is decided from the complete lowered window. Kelvin's
+    # length-preserving lower is ASCII; expanding lowercase retains the refusal.
+    ensure(matcher.present("K", first=True, final=True), "length-preserving lowercase lost an ASCII name")
+    for sample in ("İcore", "coreİ", "core İ"):
+        try:
+            matcher.present(sample, first=True, final=True)
+        except literalsearch.LegacyRequiredError:
+            pass
+        else:
+            raise AssertionError("expanding lowercase entered an offset-based matcher")
+    short_names = ("a", "ab", "a+b", "a-b", "a/b", "-a")
+    short = literalsearch.compile_names(short_names)
+    for final in (False, True):
+        oracle = re.compile(literalsearch.expression(
+            literalsearch.build(tuple(name.encode("ascii") for name in short_names)),
+            b"(?!\\w)" if final else b"(?=\\W)").decode("ascii"))
+        for size in range(5):
+            for characters in product(("a", "b", "-", "+", "/", " ", "é"), repeat=size):
+                source = "".join(characters)
+                for pos in range(len(source) + 1):
+                    expected = oracle.search(source, pos)
+                    ensure(short._span(source, pos=pos, final=final)
+                           == (expected.span() if expected is not None else None),
+                           "exhaustive word and punctuation offsets disagree with the frozen oracle")
 
 
 def _literal_searches_and_unsupported_shapes_keep_the_oracle() -> None:
@@ -377,6 +434,7 @@ def _checks_preserve_results_and_refresh_bytes() -> None:
 
 def cases() -> list[Case]:
     return [Case("compiled-boundaries-match-literal-oracle", _compiled_boundaries_match_the_literal_oracle),
+            Case("ascii-and-unicode-programs-keep-all-offset-boundaries", _ascii_and_unicode_programs_keep_all_offset_boundaries),
             Case("literal-searches-and-unsupported-shapes-keep-oracle", _literal_searches_and_unsupported_shapes_keep_the_oracle),
             Case("pin-boundaries-and-chunks", _pin_boundaries_and_chunks),
             Case("lineage-candidates-across-chunks", _lineage_candidates_across_chunks),
