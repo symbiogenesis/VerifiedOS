@@ -1003,9 +1003,9 @@ FACTS: tuple[Fact, ...] = (
     Fact("the QuickChick switch", TOOLCHAIN,
          "run.py quickchick check and properties, and run.py seed coq --quickchick",
          "tools/vos/gallina.py's QUICKCHICK_SWITCH and "
-         "tools/vos/cli/quickchick.py's PACKAGE and RECIPE_PIN",
+         "tools/vos/cli/quickchick.py's PACKAGE and INSTALL_PIN",
          partial(_switch_at, gallina.QUICKCHICK_SWITCH, quickchick.PACKAGE,
-                 quickchick.RECIPE_PIN, pinned=True),
+                 quickchick.INSTALL_PIN, pinned=True),
          quickchick.INSTALL),
     Fact("verilator", TOOLCHAIN,
          "run.py rtl lint, elaborate and crosscheck",

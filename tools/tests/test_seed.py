@@ -212,16 +212,19 @@ def _moved_counts_a_length_change() -> None:
 
 def _seed_coq_holds_the_installed_quickchick() -> None:
     """`seed coq --quickchick` holds what QuickChick's switch carries as `quickchick
-    check` holds it: anything but the recipe's pinned commit, a release among them, is
-    refused before a tree is staged, with `--recipe` or without, the refusal naming
-    both; the one held runs the population in the switch it was asked of."""
+    check` holds it: each mode accepts its own source and refuses the other's source
+    before a tree is staged. Releases and unknown commits also refuse; the selected
+    source runs the population in the switch it was asked of."""
     other = quickchick.RECIPE_PIN.rsplit("#", 1)[0] + "#" + "0" * 40
     for recipe, source, code in ((False, "2.2.0", 1), (True, "2.2.0", 1),
                                  (False, other, 1),
-                                 (False, quickchick.RECIPE_PIN, 0),
+                                 (True, other, 1),
+                                 (False, quickchick.RECIPE_PIN, 1),
+                                 (True, quickchick.INSTALL_PIN, 1),
+                                 (False, quickchick.INSTALL_PIN, 0),
                                  (True, quickchick.RECIPE_PIN, 0)):
         switch = gallina.QUICKCHICK_RECIPE_SWITCH if recipe else gallina.QUICKCHICK_SWITCH
-        wanted = quickchick.RECIPE_PIN
+        wanted = quickchick.RECIPE_PIN if recipe else quickchick.INSTALL_PIN
         asked: list[str] = []
 
         def held(name: str, source: str = source, asked: list[str] = asked) -> str:
