@@ -170,7 +170,7 @@
       "sources": [
         {
           "path": "proofs/KernelInstance.v",
-          "sha256": "29159258c00520c6a7dcfd6242d8af9057e91ae5ced9a42a2578aaf36c445b54"
+          "sha256": "c9c31337c864338ce3c3619bb305fe257557ab42e46f78824ad1884c4fbf9433"
         },
         {
           "path": "proofs/PartitionContext.v",
@@ -270,7 +270,7 @@
         },
         {
           "path": "proofs/JournalIndex.v",
-          "sha256": "62fbd57f10594af5ecb809627eae1c4fbb135a3fe1b8a1cb26faef8156cd18ca"
+          "sha256": "3d7509e4409d9f896f190b2b9965d49f208f76652d0caa18d469f3736d82ab92"
         },
         {
           "path": "proofs/StorageRecovery.v",
@@ -279,7 +279,7 @@
       ],
       "descriptor": {
         "path": "tools/composer/packages/storage.json",
-        "sha256": "c64a1e94b9d111a5c3c6ebb0b7425420f1badbe501313b2c33a790b3613905e2"
+        "sha256": "b1ad0037bc77c59e85e0751e50e71581d241e77350dcf5d785c9821ef3a758b4"
       },
       "artifact_slot": "storage-artifact",
       "entry": null,
@@ -298,7 +298,7 @@
       "sources": [
         {
           "path": "proofs/CopyRingService.v",
-          "sha256": "0d9f6617efd8c4c4fd7caf2e8cb59cb6ee03be21213878761ebc0ee1eb8f84fe"
+          "sha256": "5de2e8f7f968523c13adcac47122701ff6761083a5fb246a6a8309d1594299c4"
         },
         {
           "path": "proofs/RingContract.v",
