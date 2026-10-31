@@ -2960,6 +2960,34 @@ The native census comparison still needs the original three-root control emissio
 its complete qualification remains open below. The stable-tree Host and Guest
 handoff retains the check and join requirements above.
 
+## Guardrail performance follow-through
+
+**Start:** the [performance acceptance contract](tools/performance.md), the landed
+guardrail algorithms above and their retained hosted profiles. **Owns:** an
+ASCII-only specialization of the bounded name matcher with the complete Unicode
+route retained; removal of repeated left-boundary work only where complete word
+runs establish the same boundary; and bounded, independent-document Markdown
+workers over immutable source and configuration snapshots. Existing checker,
+mutation, proof and census acceptance populations remain complete.
+
+**Check:** compare the matcher with its frozen oracle at every tested source
+offset, window edge, prefix alternative and Unicode transition. Markdown must
+validate exactly the selected documents, preserve ordered diagnostics and fresh
+configuration reads, cap its worker population, and terminate failed or timed-out
+workers before replaying the existing serial route. Exercise malformed inputs,
+worker failures, omitted or duplicate results and edits between invocations.
+Focused fixture checks may run locally; all measurements and complete suites run
+on GitHub Actions. Paired hosted measurements bind identical inputs and tool
+revisions, alternate repetitions, and record component and process elapsed time,
+worker counts and sampled process-tree memory for concurrent work. Accept only
+repeatable improvement without a material whole-run regression. Require Host CI
+on both platforms and dispatch every Guest CI lane for the settled revision,
+without waiting for Guest CI.
+
+**State:** investigation has selected these bounded experiments. Proof-context
+freshness reads, native kernel execution and native census qualification retain
+their existing contracts; no additional acceptance cache is commissioned.
+
 ## Native Sail census validation
 
 Open under [Q35q](PLAN.md). Full native
