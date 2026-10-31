@@ -2913,6 +2913,29 @@ and aliases before any write. The integration batch
 `tools-maintenance-20261029` records exact-revision hosted evidence in its fanout
 journal; Guest CI is dispatched without waiting for its verdict.
 
+## Python modernization
+
+Standardize the authored Python code on the project's Python 3.14 runtime,
+including its bootstrap. Adopt modern language, typing and standard-library
+features where they clarify the code while preserving existing acceptance
+decisions, diagnostics, deterministic output and artifact bytes.
+
+- **Start:** the locked Python project, linter policy and current behavioral
+  contracts in [the tool guide](tools/README.md#checking-the-tools-themselves).
+- **Owns:** active authored Python modules and scripts, bootstrap version checks,
+  their focused controls and current setup documentation. Retained execution
+  snapshots, historical benchmark drivers and upstream repositories keep their
+  recorded source bytes. No model, proof or target behavior changes are claimed.
+- **Check:** review the complete active source population for applicable modern
+  constructs; typecheck under both platforms; run focused affected-module controls
+  for behavioral changes and bootstrap version refusal. Preserve emitted artifacts
+  through existing generator checks. Do not run native census workloads locally.
+- **Join:** merge the isolated lanes into `main`, require Host CI on Windows and
+  Ubuntu, and dispatch every Guest CI lane for the same revision through
+  [the validation handoff](AGENTS.md#tool-execution-and-validation).
+
+Implementation is open; hosted acceptance and landing evidence remain due.
+
 ## Compiler differential library boundary
 
 The compiler differential harness is shared by the firmware, kernel and service
