@@ -59,10 +59,13 @@ def _lowered(text: str) -> str:
     return low
 
 
-def _skip_expression(root: str) -> str:
+def _skip_expression(root: str, first: str) -> str:
     # Valid names start only at the beginning of a [\w-] run. Consume every
     # unmatched word/nonword block once and stop before the first possible name.
-    return r"(?:(?!" + root + r")[\w-]++|[^\w-]++)*+(" + root + ")"
+    # Neither a separator run nor a word starting outside the literal first-set
+    # can contain a valid start. Avoid testing the full trie at those positions.
+    return (r"(?:[^\w-]++|(?!" + first + r")[\w-]++|(?!"
+            + root + r")[\w-]++)*+(" + root + ")")
 
 
 @dataclass(frozen=True)
@@ -126,11 +129,12 @@ def compile_names(names: tuple[str, ...]) -> CandidateTrie:
         if total > MAX_CHARACTERS:
             raise LegacyRequiredError("excessive aggregate literal size")
     root = build(tuple(name.encode("ascii") for name in names))
+    first = "[" + re.escape("".join(sorted({name[0] for name in names}))) + "]"
     try:
-        complete = re.compile(_skip_expression(expression(root, b"(?!\\w)").decode("ascii")))
+        complete = re.compile(_skip_expression(expression(root, b"(?!\\w)").decode("ascii"), first))
         # Keeping this constraint at each terminal allows a failed longer EOF
         # alternative to fall back to a valid shorter literal at the SAME start.
-        known_right = re.compile(_skip_expression(expression(root, b"(?=\\W)").decode("ascii")))
+        known_right = re.compile(_skip_expression(expression(root, b"(?=\\W)").decode("ascii"), first))
     except (RecursionError, re.PatternError, OverflowError) as error:
         raise LegacyRequiredError("native trie compilation requires legacy use") from error
     return CandidateTrie(names, complete, known_right)

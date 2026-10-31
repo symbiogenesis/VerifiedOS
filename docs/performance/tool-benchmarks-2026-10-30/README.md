@@ -53,8 +53,8 @@ retains its complete [structured profile and worker report](41121547760-profile.
 including original artifact hashes. It profiles the actual checker and reports
 no findings. Repeated per-name and per-lineage absence searches dominate its call
 costs; native regex execution is small by comparison. Profiling overhead supplies
-no paired speedup evidence. The bounded name and byte tries replace those repeated
-searches; their complete comparison remains separate from this diagnostic.
+no paired speedup evidence. It motivated the direct-trie experiment evaluated
+separately below; this diagnostic does not qualify that implementation.
 
 The [direct-trie comparison](https://github.com/symbiogenesis/VerifiedOS/actions/runs/41152868322)
 retains its [checker](41152868322-checker.json),

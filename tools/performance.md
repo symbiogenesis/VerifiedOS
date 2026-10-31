@@ -337,11 +337,14 @@ must still fail, and malformed partitions cannot authorize provisional admission
 The [environment cases](tests/test_env.py) cover phase-specific limits and distinguish
 exhausted memory from an unavailable reading. The proof-cache cases cover explicit
 overrides, independent phase sampling and commands that must avoid resource probes.
-The native case includes contradictory universe constraints across
-separately valid batches. These additions and the parallel implementation are
-unvalidated: execution of checks, tests and benchmarks is explicitly deferred for
-this change. The [historical proof receipt](../proofs/proof-evidence.json) remains
-the timing owner; it contains no measurement of this implementation.
+The [hosted proof-context comparisons](../docs/performance/tool-benchmarks-2026-10-30/README.md)
+pass bounded native cache controls, including two-worker fixture checking,
+contradictory-universe rejection, installed-library admission coverage and sealed
+assumption refusals. POSIX workspace-lock and library-context fixtures also pass.
+Their paired timings measure context construction rather than full proof-set
+kernel execution. The [historical proof receipt](../proofs/proof-evidence.json)
+owns its recorded full-gate timings; complete fresh serial and parallel
+qualification remains outstanding under the acceptance conditions below.
 
 Performance acceptance still requires equivalent fresh serial and parallel runs
 on the same source and toolchain, with the worker count and input scope recorded.

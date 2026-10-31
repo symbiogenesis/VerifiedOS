@@ -98,6 +98,21 @@ def _compiled_boundaries_match_the_literal_oracle() -> None:
     ensure([index for index, _, _ in controlled.lines("ordinary\ncore 123abcd\nmore\na+b 123abcd\ntrailing")]
            == [1, 3] and complete.calls == 3,
            "complete lines must use one forward match per candidate and final absence")
+    for first_names in (("0core", "9core"), ("_core", "-core"), ("a+b", "z.core", "-core")):
+        guarded = literalsearch.compile_names(first_names)
+        ensure(guarded.complete.groups == guarded.known_right.groups == 1,
+               "first-character filtering changed the candidate capture")
+        for name, before, after in product(first_names, boundaries, boundaries):
+            text = before + name + after
+            for final in (False, True):
+                terminal = r"(?!\w)" if final else r"(?=\W)"
+                root = literalsearch.expression(
+                    literalsearch.build(tuple(n.encode("ascii") for n in first_names)), terminal.encode()).decode()
+                for pos in (0, 1, len(text)):
+                    expected_span = re.compile(root).search(text, pos)
+                    ensure(guarded._span(text, pos=pos, final=final)
+                           == (expected_span.span() if expected_span is not None else None),
+                           "first-character filtering changed an arbitrary-position candidate")
 
 
 def _literal_searches_and_unsupported_shapes_keep_the_oracle() -> None:
