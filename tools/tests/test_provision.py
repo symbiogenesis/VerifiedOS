@@ -316,11 +316,12 @@ def _a_pinned_source_is_held_by_its_commit() -> None:
     not, each said apart. The fact plans its switch as every switch row does, so over a
     root in an older format a switch without the pinned build is reported, never
     planned."""
-    pin = quickchick.RECIPE_PIN
+    pin = quickchick.INSTALL_PIN
     other = pin.rsplit("#", 1)[0] + "#" + "0" * 40
     answers = {
         f"dev {pin}": (True, f"built from {pin}"),
         f"dev {other}": (False, f"built from {other}"),
+        f"dev {quickchick.RECIPE_PIN}": (False, f"built from {quickchick.RECIPE_PIN}"),
         "2.2.0": (False, "from no pinned source"),
         "": (False, "carries no coq-quickchick"),
     }

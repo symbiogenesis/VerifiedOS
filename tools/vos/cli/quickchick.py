@@ -21,9 +21,10 @@ than the draws QuickChick spends on it is decided instead by
 domain, and `properties` runs both. The install is made, in a switch of its own, and
 `check` reports which commit that switch's QuickChick was built from. No QuickChick
 release installs beside Rocq 9.3.0, so `RECIPE` below builds it at that release from
-the upstream commits Rocq's own CI builds, under the lock guide's rule for commit pins,
-and `INSTALL` restores the snapshot a hosted run of the recipe exported once the
-randomized half's checks passed on it. QuickChick's dependency closure holds dune below
+reviewed upstream commits, under the lock guide's rule for commit pins, and `INSTALL`
+restores the snapshot a hosted run exported once the randomized half's checks passed
+on it. Its qualified sources remain independent of a candidate recipe's sources.
+QuickChick's dependency closure holds dune below
 the proof switch's, so it needs an environment independent of the proof gate and the
 CertiRocq compiler. `check`, `properties` and `seed coq --quickchick` take `--recipe`
 to run in the switch the recipe builds, which a refresh of the pins builds and checks
@@ -66,6 +67,13 @@ from vos.corpus import find_root
 # a recipe written once as a message and once as a command is a recipe only one reader
 # ever runs. `env.install_line` composes the sentence from the argv.
 PACKAGE = "coq-quickchick"
+PINS: tuple[tuple[str, str, str], ...] = (
+    ("coq-simple-io", "https://github.com/Lysxia/rocq-simple-io.git",
+     "d035c0a85f0bde4ad56c31a9fa9ef3cb5e8d0f18"),
+    (PACKAGE, "https://github.com/QuickChick/QuickChick.git",
+     "3d4d6c0e9f72172a9f0b26db61c5496ec8e0f568"),
+)
+INSTALL_PIN = next(f"git+{url}#{commit}" for name, url, commit in PINS if name == PACKAGE)
 INSTALL: tuple[tuple[str, ...], ...] = (
     ("opam", "switch", "create", gallina.QUICKCHICK_SWITCH,
      "--repos=rocq-released,default", "--empty", "--no-switch", "-y"),
@@ -75,35 +83,37 @@ INSTALL: tuple[tuple[str, ...], ...] = (
 
 # QuickChick's recipe, at Rocq 9.3.0. coq-ext-lib 0.13.2 carries the source fixes
 # that admit that release. No QuickChick or coq-simple-io release installs beside it:
-# coq-simple-io's latest caps Coq below 9.2. Each remaining pin is the commit Rocq
-# V9.3.0's own CI overlay builds, which tools/opam/README.md lists with the release that
-# retires it, and dune stays at 3.23.1, below the 3.24 that rocq-elpi in QuickChick's
-# closure admits. A pinned build calls itself `dev`, so what a check holds is the source
-# opam says the switch's QuickChick was built from, `git+URL#commit`.
+# coq-simple-io's latest caps Coq below 9.2. These candidate commits retain the Rocq 9.3
+# APIs behind version guards for 9.4; tools/opam/README.md owns their pending hosted
+# qualification and the releases that retire the pins. Dune stays at 3.23.1, below the
+# 3.24 that rocq-elpi in QuickChick's closure admits. A pinned build calls itself `dev`,
+# so what a check holds is the source opam states, `git+URL#commit`.
 #
 # Stated as argv for the reason INSTALL is. A hosted run builds the switch from it, runs
 # the randomized half's checks there and exports the lock, which is tracked only once
 # those checks pass; a refresh of the pins moves this recipe first and its lock after.
-PINS: tuple[tuple[str, str, str], ...] = (
+RECIPE_PINS: tuple[tuple[str, str, str], ...] = (
     ("coq-simple-io", "https://github.com/Lysxia/rocq-simple-io.git",
-     "d035c0a85f0bde4ad56c31a9fa9ef3cb5e8d0f18"),
+     "5c70625af00af6182817e490d93247cdefbed2e1"),
     (PACKAGE, "https://github.com/QuickChick/QuickChick.git",
-     "3d4d6c0e9f72172a9f0b26db61c5496ec8e0f568"),
+     "527216554f31bfa526ae5395d64aa4de5beaf437"),
 )
 STDLIB = "9.2.0"
 DUNE = "3.23.1"
 EXTLIB = "0.13.2"
-RECIPE_PIN = next(f"git+{url}#{commit}" for name, url, commit in PINS if name == PACKAGE)
+INTRINSICS = "v0.17.3"
+RECIPE_PIN = next(f"git+{url}#{commit}" for name, url, commit in RECIPE_PINS if name == PACKAGE)
 RECIPE: tuple[tuple[str, ...], ...] = (
     ("opam", "switch", "create", gallina.QUICKCHICK_RECIPE_SWITCH,
      "--repos=rocq-released,default", f"--packages=ocaml-base-compiler.{env.OCAML_VERSION}",
      "--no-switch", "-y"),
     *(("opam", "pin", "add", f"--switch={gallina.QUICKCHICK_RECIPE_SWITCH}", "--no-action",
-       "-y", f"{name}.dev", f"git+{url}#{commit}") for name, url, commit in PINS),
+       "-y", f"{name}.dev", f"git+{url}#{commit}") for name, url, commit in RECIPE_PINS),
     ("opam", "install", f"--switch={gallina.QUICKCHICK_RECIPE_SWITCH}", "-y",
      f"ocamlfind.{env.OCAMLFIND_VERSION}",
      f"rocq-core.{gallina.QUICKCHICK_RECIPE_ROCQ_VERSION}", f"rocq-stdlib.{STDLIB}",
-     f"dune.{DUNE}", f"coq-ext-lib.{EXTLIB}", *(f"{name}.dev" for name, _, _ in PINS)),
+     f"dune.{DUNE}", f"coq-ext-lib.{EXTLIB}", f"ocaml_intrinsics_kernel.{INTRINSICS}",
+     *(f"{name}.dev" for name, _, _ in RECIPE_PINS)),
 )
 
 
@@ -133,7 +143,7 @@ def installed(switch: str) -> str | None:
 def _held(recipe: bool) -> tuple[str, str | None, gallina.Prover | None, list[str]]:
     """The switch the randomized half runs in, what it holds of the half, and each
     reason it cannot run it: QuickChick's provisioned switch, or with `recipe` the
-    switch RECIPE builds, each at the recipe's pinned commit.
+    switch RECIPE builds, each at its own pinned commit.
 
     The package and the prover count together or not at all: a switch holding the
     library and no `rocq` is Coq 8 under another name, which compiles neither the
@@ -141,13 +151,14 @@ def _held(recipe: bool) -> tuple[str, str | None, gallina.Prover | None, list[st
     asked: a run that found the package somewhere else would compile in a switch no
     recipe here stands up."""
     switch = gallina.QUICKCHICK_RECIPE_SWITCH if recipe else gallina.QUICKCHICK_SWITCH
+    expected = RECIPE_PIN if recipe else INSTALL_PIN
     held = installed(switch)
     found = gallina.prover(switch)
     why: list[str] = []
     if held is None:
         why.append(f"opam lists no {PACKAGE} in the {switch} switch")
-    elif held != RECIPE_PIN:
-        why.append(f"requires {PACKAGE} built from {RECIPE_PIN}; the {switch} switch "
+    elif held != expected:
+        why.append(f"requires {PACKAGE} built from {expected}; the {switch} switch "
                    f"holds {held}")
     if found is None:
         why.append(f"the {switch} switch has no prover this repository can call: "
@@ -168,6 +179,7 @@ def cmd_check(args: argparse.Namespace) -> int:
     hosted run's.
     """
     switch, held, found, why = _held(args.recipe)
+    expected = RECIPE_PIN if args.recipe else INSTALL_PIN
     said = gallina.version(found) if found else "no `rocq` binary"
     out: list[str] = ["== the randomized half's switch",
                       f"   {switch}  {PACKAGE} {held or 'not installed'}  {said}"]
@@ -175,11 +187,11 @@ def cmd_check(args: argparse.Namespace) -> int:
     out.append("")
     if not why:
         recipe = " --recipe" if args.recipe else ""
-        out.append(f"ok {PACKAGE} is built from {RECIPE_PIN} in {switch} under {said}; "
+        out.append(f"ok {PACKAGE} is built from {expected} in {switch} under {said}; "
                    f"`run.py quickchick properties{recipe}` runs the randomized half")
         print("\n".join(out))
         return 0
-    out.append(f"FAIL {PACKAGE} built from {RECIPE_PIN} is not installed in {switch}, so "
+    out.append(f"FAIL {PACKAGE} built from {expected} is not installed in {switch}, so "
                "the randomized half does not run")
     out.append("     the enumerative half does: `run.py quickchick vectors`")
     out.append("     the install, as one priced step:")
