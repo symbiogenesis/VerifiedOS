@@ -227,6 +227,34 @@ live reads; sharing those decisions would need another freshness mechanism.
 Canonical native-key memoization is not selected without a memory comparison on
 the already large native graph. No persistent acceptance cache is added.
 
+## Guardrail follow-through
+
+The [follow-through predicate](../PLAN.md#guardrail-performance-follow-through)
+selects two further experiments from the accepted checker's hosted profile and the
+complete Markdown comparison. The retained-archive scan remains the main checker
+cost; complete Markdown parsing remains a separate serial host-wave cost.
+
+The name matcher establishes its initial left boundary once, then advances over
+complete word and separator runs. Its trie keeps the original terminal assertions.
+An ASCII-specialized program is selected only when the entire lowered window is
+ASCII; other windows retain the Unicode program and length-changing lowercase
+still requires the legacy reader. The frozen matcher oracle owns the differential
+fixtures, including arbitrary offsets and punctuation inside names.
+
+Markdown workers retain complete documents and the same pinned parser. The bounded
+experiment requires exact source/configuration snapshots, complete and disjoint
+results, ordered diagnostics and serial replay after worker failure. Its hosted
+comparison must measure the worker tree as well as parent-only residency before
+the concurrent default is accepted. Neither algorithmic rationale nor a passing
+fixture supplies a measured speed factor.
+
+The audit leaves the existing proof-context snapshots, native kernel checks,
+fresh mutant processes and independent sandboxes intact. Source parsing and
+JSON Schema setup account for small costs in the retained profile; their current
+duplication does not justify another cache. The existing runner already shares
+immutable templates and bytecode and overlaps independent setup. Further native
+census changes remain subject to the [missing-input follow-up](../PLAN.md#native-sail-census-validation).
+
 ## October 29 Host CI scheduling
 
 The [scheduling contract](../PLAN.md#host-ci-scheduling) keeps the existing test
