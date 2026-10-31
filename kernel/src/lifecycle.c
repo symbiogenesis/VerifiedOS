@@ -3,17 +3,15 @@
 
 static uint64_t lifecycle_word(const uint8_t *bytes, uint32_t word)
 {
-    uint32_t i;
     uint64_t result = 0;
-    for (i = 0; i < VOS_CTX_WORD_BYTES; ++i)
+    for (uint32_t i = 0; i < VOS_CTX_WORD_BYTES; ++i)
         result |= (uint64_t)bytes[word * VOS_CTX_WORD_BYTES + i] << (i * 8U);
     return result;
 }
 
 static void lifecycle_put(uint8_t *bytes, uint32_t word, uint64_t value)
 {
-    uint32_t i;
-    for (i = 0; i < VOS_CTX_WORD_BYTES; ++i)
+    for (uint32_t i = 0; i < VOS_CTX_WORD_BYTES; ++i)
         bytes[word * VOS_CTX_WORD_BYTES + i] = (uint8_t)(value >> (i * 8U));
 }
 
@@ -21,8 +19,7 @@ static void lifecycle_fields(const struct vos_kernel_lifecycle *c,
                               const struct vos_kernel_effect_state *e,
                               uint8_t *ack)
 {
-    uint32_t i;
-    for (i = 1; i < VOS_CTX_ACK_WORDS; ++i)
+    for (uint32_t i = 1; i < VOS_CTX_ACK_WORDS; ++i)
         lifecycle_put(ack, i, 0);
     lifecycle_put(ack, VOS_CTX_ACK_STATUS, c->status);
     lifecycle_put(ack, VOS_CTX_ACK_OPERATION, c->operation);
@@ -35,14 +32,13 @@ static void lifecycle_fields(const struct vos_kernel_lifecycle *c,
     lifecycle_put(ack, VOS_CTX_ACK_ATTEMPTS, c->attempts);
     lifecycle_put(ack, VOS_CTX_ACK_NOW, c->now);
     lifecycle_put(ack, VOS_CTX_ACK_DEADLINE, c->deadline);
-    for (i = 0; i < VOS_CTX_UNITS; ++i)
+    for (uint32_t i = 0; i < VOS_CTX_UNITS; ++i)
         lifecycle_put(ack, VOS_CTX_ACK_RETIRED + i, e->snapshot.retired[i]);
 }
 
 int vos_kernel_lifecycle_init(struct vos_kernel_lifecycle *c,
                               struct vos_kernel_effect_state *e, uint8_t *ack)
 {
-    uint32_t i;
     if (c == 0 || e == 0 || ack == 0 || !e->bound || e->locked || e->started ||
         e->retirement_pending || e->needs_replenish ||
         !vos_supervisor_manifest_ok(&e->manifest) ||
@@ -55,7 +51,7 @@ int vos_kernel_lifecycle_init(struct vos_kernel_lifecycle *c,
     c->status = VOS_CTX_STATUS_OK; c->phase = VOS_CTX_PHASE_INITIAL;
     c->members = 0; c->count = 0; c->prefix = 0;
     c->refused = e->manifest.units; c->attempts = 0;
-    for (i = 0; i < VOS_CTX_UNITS; ++i) {
+    for (uint32_t i = 0; i < VOS_CTX_UNITS; ++i) {
         c->starts[i].unit = 0; c->starts[i].grants = 0; c->starts[i].epoch = 0;
     }
     lifecycle_fields(c, e, ack);
@@ -66,13 +62,10 @@ uint32_t vos_kernel_lifecycle_prepare(struct vos_kernel_lifecycle *c,
                                       struct vos_kernel_effect_state *e,
                                       const uint8_t *request, uint64_t now)
 {
-    uint64_t sequence, value, epoch;
-    uint32_t i, j, unit, selected, count, operation, members, attempts;
-    struct vos_supervisor_epoch snapshot;
     if (c == 0 || e == 0 || request == 0 || !c->initialized || !e->bound ||
         c->action != VOS_LIFECYCLE_NONE || e->locked)
         return VOS_LIFECYCLE_NONE;
-    sequence = lifecycle_word(request, VOS_CTX_REQ_SEQUENCE);
+    const uint64_t sequence = lifecycle_word(request, VOS_CTX_REQ_SEQUENCE);
     if (sequence == 0 || c->last_sequence == UINT64_MAX ||
         sequence != c->last_sequence + 1 || sequence == UINT64_MAX)
         return VOS_LIFECYCLE_NONE;
@@ -83,32 +76,32 @@ uint32_t vos_kernel_lifecycle_prepare(struct vos_kernel_lifecycle *c,
     c->status = VOS_CTX_STATUS_INVALID;
     if (now < c->now) return c->action;
     c->now = now;
-    value = lifecycle_word(request, VOS_CTX_REQ_OPERATION);
+    uint64_t value = lifecycle_word(request, VOS_CTX_REQ_OPERATION);
     if (value != VOS_CTX_OP_RETIRE && value != VOS_CTX_OP_START) return c->action;
-    operation = (uint32_t)value; c->operation = operation;
+    const uint32_t operation = (uint32_t)value; c->operation = operation;
     value = lifecycle_word(request, VOS_CTX_REQ_MEMBERS);
     /* A definitive refusal still has a decodable acknowledgment. Do not echo
      * an invalid wire member mask into the trusted recovery snapshot. */
     if (value > ((1U << e->manifest.units) - 1U)) return c->action;
-    members = (uint32_t)value; c->members = members;
+    const uint32_t members = (uint32_t)value; c->members = members;
     value = lifecycle_word(request, VOS_CTX_REQ_COUNT);
     if (value > VOS_CTX_UNITS) return c->action;
-    count = (uint32_t)value; c->count = count;
+    const uint32_t count = (uint32_t)value; c->count = count;
     value = lifecycle_word(request, VOS_CTX_REQ_ATTEMPTS);
     if (value > UINT32_MAX) return c->action;
-    attempts = (uint32_t)value;
-    for (i = VOS_CTX_REQ_USED; i < VOS_CTX_REQ_WORDS; ++i)
+    const uint32_t attempts = (uint32_t)value;
+    for (uint32_t i = VOS_CTX_REQ_USED; i < VOS_CTX_REQ_WORDS; ++i)
         if (lifecycle_word(request, i) != 0) return c->action;
-    for (i = 0; i < VOS_CTX_UNITS; ++i) {
-        j = VOS_CTX_REQ_STARTS + i * VOS_CTX_START_WORDS;
-        value = lifecycle_word(request, j + VOS_CTX_START_UNIT);
+    for (uint32_t i = 0; i < VOS_CTX_UNITS; ++i) {
+        const uint32_t at = VOS_CTX_REQ_STARTS + i * VOS_CTX_START_WORDS;
+        value = lifecycle_word(request, at + VOS_CTX_START_UNIT);
         if (value > UINT32_MAX || (i >= count && value != 0)) return c->action;
         c->starts[i].unit = (uint32_t)value;
-        value = lifecycle_word(request, j + VOS_CTX_START_GRANTS);
+        value = lifecycle_word(request, at + VOS_CTX_START_GRANTS);
         if (value > UINT32_MAX || (i >= count && value != 0)) return c->action;
         c->starts[i].grants = (uint32_t)value;
     }
-    epoch = lifecycle_word(request, VOS_CTX_REQ_EPOCH);
+    uint64_t epoch = lifecycle_word(request, VOS_CTX_REQ_EPOCH);
     c->request_epoch = epoch;
     if (epoch != e->epoch || e->snapshot.number != epoch) {
         c->status = VOS_CTX_STATUS_STALE; return c->action;
@@ -127,7 +120,7 @@ uint32_t vos_kernel_lifecycle_prepare(struct vos_kernel_lifecycle *c,
         c->action = VOS_LIFECYCLE_RETIRE;
         return c->action;
     }
-    selected = c->initial_consumed ? e->manifest.restart_members :
+    const uint32_t selected = c->initial_consumed ? e->manifest.restart_members :
                (1U << e->manifest.units) - 1U;
     if (members != selected || e->retirement_pending || e->needs_replenish ||
         (c->initial_consumed && (c->phase != VOS_CTX_PHASE_RETIRED ||
@@ -136,9 +129,9 @@ uint32_t vos_kernel_lifecycle_prepare(struct vos_kernel_lifecycle *c,
     if (c->initial_consumed && now < c->deadline) {
         c->status = VOS_CTX_STATUS_EARLY; return c->action;
     }
-    j = 0;
-    for (i = 0; i < e->manifest.units; ++i) {
-        unit = e->manifest.order[i];
+    uint32_t j = 0;
+    for (uint32_t i = 0; i < e->manifest.units; ++i) {
+        const uint32_t unit = e->manifest.order[i];
         if ((selected & (1U << unit)) != 0) {
             if (j >= count || c->starts[j].unit != unit) return c->action;
             c->starts[j].epoch = epoch;
@@ -149,9 +142,10 @@ uint32_t vos_kernel_lifecycle_prepare(struct vos_kernel_lifecycle *c,
         }
     }
     if (j != count) return c->action;
+    struct vos_supervisor_epoch snapshot;
     if (!vos_kernel_acquire(e, &snapshot, &epoch)) return c->action;
     c->held = 1;
-    for (i = 0; i < count; ++i)
+    for (uint32_t i = 0; i < count; ++i)
         if (!vos_supervisor_request_current(&e->manifest, &snapshot, epoch, &c->starts[i])) {
             c->status = VOS_CTX_STATUS_STALE; return c->action;
         }
@@ -196,11 +190,10 @@ int vos_kernel_lifecycle_retire_finish(struct vos_kernel_lifecycle *c,
 int vos_kernel_lifecycle_start_finish(struct vos_kernel_lifecycle *c,
                                       struct vos_kernel_effect_state *e)
 {
-    uint32_t i;
     if (c == 0 || e == 0 || c->action != VOS_LIFECYCLE_START || !c->held || !e->locked)
         return 0;
     c->action = VOS_LIFECYCLE_ACK; c->status = VOS_CTX_STATUS_START_REFUSED;
-    for (i = 0; i < c->count; ++i) {
+    for (uint32_t i = 0; i < c->count; ++i) {
         if (!vos_kernel_start(e, &c->starts[i])) {
             c->refused = c->starts[i].unit;
             return 0;

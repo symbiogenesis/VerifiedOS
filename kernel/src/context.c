@@ -46,8 +46,7 @@ uint64_t vos_pending_written(const struct vos_machine *m, const struct vos_conte
  * zero register's null slot like any other. Each slot moves whole. */
 static void vos_copy_registers(const struct vos_context *succ, struct vos_context *post)
 {
-  uint32_t r;
-  for (r = 0; r < VOS_REGISTER_COUNT; r++) {
+  for (uint32_t r = 0; r < VOS_REGISTER_COUNT; r++) {
     post->reg[r] = succ->reg[r];
   }
 }
@@ -55,16 +54,15 @@ static void vos_copy_registers(const struct vos_context *succ, struct vos_contex
 void vos_switch_image(const struct vos_machine *m, const struct vos_context *succ,
                       const struct vos_context *pre, struct vos_context *post)
 {
-  uint32_t i;
   vos_copy_registers(succ, post);
   /* Retain only the predecessor fields the switch does not restore. The
    * output may be the successor record, so do not overwrite its inputs. */
-  for (i = 0; i < VOS_MAX_CSRS; i++) {
+  for (uint32_t i = 0; i < VOS_MAX_CSRS; i++) {
     if (i >= m->csr_count || !m->roster[i].nameable) {
       post->csr[i] = pre->csr[i];
     }
   }
-  for (i = 0; i < m->csr_count && i < VOS_MAX_CSRS; i++) {
+  for (uint32_t i = 0; i < m->csr_count && i < VOS_MAX_CSRS; i++) {
     const struct vos_csr_row *row = &m->roster[i];
     if (row->nameable) {
       if (row->zeroized) {
@@ -80,14 +78,13 @@ void vos_switch_image(const struct vos_machine *m, const struct vos_context *suc
 void vos_rotation_image(const struct vos_machine *m, const struct vos_context *succ,
                         const struct vos_context *pre, struct vos_context *post)
 {
-  uint32_t i;
   vos_copy_registers(succ, post);
-  for (i = 0; i < VOS_MAX_CSRS; i++) {
+  for (uint32_t i = 0; i < VOS_MAX_CSRS; i++) {
     if (i >= m->csr_count || !m->roster[i].nameable || m->roster[i].zeroized) {
       post->csr[i] = pre->csr[i];
     }
   }
-  for (i = 0; i < m->csr_count && i < VOS_MAX_CSRS; i++) {
+  for (uint32_t i = 0; i < m->csr_count && i < VOS_MAX_CSRS; i++) {
     const struct vos_csr_row *row = &m->roster[i];
     if (row->nameable && !row->zeroized) {
       post->csr[i] = succ->csr[i];
@@ -140,8 +137,7 @@ int vos_filtered_tag(const struct vos_bitmap *bm, vos_cap_t c)
 /* KernelInstance.v `ImageIsSanitized` over the witnessed registers, 1 to 31. */
 int vos_image_sanitized(const struct vos_bitmap *bm, const struct vos_context *succ)
 {
-  uint32_t r;
-  for (r = 1u; r < VOS_REGISTER_COUNT; r++) {
+  for (uint32_t r = 1u; r < VOS_REGISTER_COUNT; r++) {
     if (vos_cap_tag(succ->reg[r]) && vos_bitmap_marks(bm, vos_cap_base(succ->reg[r]))) {
       return 0;
     }

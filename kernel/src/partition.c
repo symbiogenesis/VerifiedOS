@@ -62,8 +62,7 @@ static int vos_extent_well_formed(const struct vos_extent *e)
 
 int32_t vos_partition_index(const struct vos_init_desc *d, uint32_t tenant)
 {
-  uint32_t i;
-  for (i = 0; i < d->partition_count && i < VOS_MAX_PARTITIONS; i++) {
+  for (uint32_t i = 0; i < d->partition_count && i < VOS_MAX_PARTITIONS; i++) {
     if (d->partitions[i].tenant == tenant) {
       return (int32_t)i;
     }
@@ -88,18 +87,16 @@ static int32_t vos_slot_partition(const struct vos_init_desc *d, uint32_t slot)
  */
 int vos_extents_readable(const struct vos_init_desc *d)
 {
-  uint32_t i;
-  uint32_t j;
-  for (i = 0; i < d->frame.slot_count && i < VOS_MAX_SLOTS; i++) {
-    int32_t a = vos_slot_partition(d, i);
+  for (uint32_t i = 0; i < d->frame.slot_count && i < VOS_MAX_SLOTS; i++) {
+    const int32_t a = vos_slot_partition(d, i);
     if (a < 0) {
       return 0;
     }
     if (!vos_extent_separated(&d->switch_text, &d->partitions[a].text)) {
       return 0;
     }
-    for (j = i + 1u; j < d->frame.slot_count && j < VOS_MAX_SLOTS; j++) {
-      int32_t b = vos_slot_partition(d, j);
+    for (uint32_t j = i + 1u; j < d->frame.slot_count && j < VOS_MAX_SLOTS; j++) {
+      const int32_t b = vos_slot_partition(d, j);
       if (b < 0) {
         return 0;
       }
@@ -114,9 +111,6 @@ int vos_extents_readable(const struct vos_init_desc *d)
 enum vos_status vos_init_validate(const struct vos_init_desc *d, uint64_t composition_id,
                                   uint64_t hart_id)
 {
-  uint32_t i;
-  uint32_t j;
-  enum vos_status table;
   if (d == 0) {
     return VOS_INIT_MISSING;
   }
@@ -135,19 +129,19 @@ enum vos_status vos_init_validate(const struct vos_init_desc *d, uint64_t compos
   if (vos_machine_validate(&d->machine) != VOS_OK) {
     return VOS_ROSTER_TOO_LARGE;
   }
-  table = vos_frame_validate(&d->frame);
+  const enum vos_status table = vos_frame_validate(&d->frame);
   if (table != VOS_OK) {
     return table;
   }
   if (!vos_extent_well_formed(&d->root) || !vos_extent_well_formed(&d->switch_text)) {
     return VOS_INIT_EXTENT_MALFORMED;
   }
-  for (i = 0; i < d->window_count; i++) {
+  for (uint32_t i = 0; i < d->window_count; i++) {
     if (!vos_extent_well_formed(&d->windows[i])) {
       return VOS_INIT_EXTENT_MALFORMED;
     }
   }
-  for (i = 0; i < d->partition_count; i++) {
+  for (uint32_t i = 0; i < d->partition_count; i++) {
     const struct vos_partition_desc *p = &d->partitions[i];
     if (!vos_extent_well_formed(&p->text) || !vos_extent_well_formed(&p->data)) {
       return VOS_INIT_EXTENT_MALFORMED;
@@ -158,8 +152,8 @@ enum vos_status vos_init_validate(const struct vos_init_desc *d, uint64_t compos
   }
   /* One partition per tenant, so that the checks below, which find a slot's
    * partition by its tenant, see every partition a slot can dispatch. */
-  for (i = 0; i < d->partition_count; i++) {
-    for (j = i + 1u; j < d->partition_count; j++) {
+  for (uint32_t i = 0; i < d->partition_count; i++) {
+    for (uint32_t j = i + 1u; j < d->partition_count; j++) {
       if (d->partitions[i].tenant == d->partitions[j].tenant) {
         return VOS_INIT_TENANT_SHARED;
       }
@@ -168,8 +162,8 @@ enum vos_status vos_init_validate(const struct vos_init_desc *d, uint64_t compos
   /* Every table entry must name a partition with a declared planned save
    * area. These input checks do not construct its initial image; that must
    * still precede dispatch under the ABI's planned-successor obligation. */
-  for (i = 0; i < d->frame.slot_count; i++) {
-    int32_t p = vos_partition_index(d, d->frame.slots[i].tenant);
+  for (uint32_t i = 0; i < d->frame.slot_count; i++) {
+    const int32_t p = vos_partition_index(d, d->frame.slots[i].tenant);
     if (p < 0 || !d->partitions[p].has_context) {
       return VOS_INIT_NO_PLANNED_SUCCESSOR;
     }

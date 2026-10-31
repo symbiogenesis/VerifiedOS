@@ -30,10 +30,9 @@ int vos_copy_take_index(vos_copy_view *view)
 
 int vos_copy_batch(vos_copy_view *view, size_t count, uint32_t *results)
 {
-    size_t i;
     if (!vos_copy_view_valid(view) || count > VOS_COPY_MAX_BATCH)
         return 0;
-    for (i = 0; i < count; ++i)
+    for (size_t i = 0; i < count; ++i)
         results[i] = (uint32_t)vos_copy_publish(view);
     return 1;
 }
@@ -67,12 +66,11 @@ int vos_copy_advance(vos_copy_slot *slot, vos_copy_event event)
 int vos_copy_stage(uint8_t *destination, size_t capacity, const uint8_t *source,
                    size_t extent, size_t length)
 {
-    size_t i;
     /* Metadata is passed by value. Once staged, consumers never reread source.
      * The caller supplies disjoint, accessible extents and excludes concurrent
      * source writes until this function returns, as required by C11. */
     if (length > extent || length > capacity) return 0;
-    for (i = 0; i < length; ++i) destination[i] = source[i];
+    for (size_t i = 0; i < length; ++i) destination[i] = source[i];
     return 1;
 }
 
@@ -86,9 +84,8 @@ void vos_copy_producer(vos_copy_world *world, vos_copy_reset reset)
 void vos_copy_consumer(vos_copy_world *world, vos_copy_reset reset,
                        uint32_t budget, vos_copy_act act)
 {
-    uint32_t count;
     if (act == VOS_COPY_DRAIN) {
-        count = vos_copy_occupancy(&world->view);
+        uint32_t count = vos_copy_occupancy(&world->view);
         if (count > budget) count = budget;
         world->view.consumed = (world->view.consumed + count) % VOS_COPY_INDEX_SPAN;
         if (reset == VOS_COPY_RESET_DRAIN) world->armed = 0;
@@ -106,9 +103,8 @@ void vos_copy_consumer(vos_copy_world *world, vos_copy_reset reset,
 void vos_copy_activation(vos_copy_world *world, vos_copy_reset reset,
                          uint32_t budget, uint32_t publication_step)
 {
-    uint32_t step;
     if (publication_step > 4) publication_step = 4;
-    for (step = 0; step <= 4; ++step) {
+    for (uint32_t step = 0; step <= 4; ++step) {
         if (step == publication_step) vos_copy_producer(world, reset);
         if (step < 4) vos_copy_consumer(world, reset, budget, (vos_copy_act)step);
     }
@@ -116,9 +112,8 @@ void vos_copy_activation(vos_copy_world *world, vos_copy_reset reset,
 
 void vos_copy_init_generation_slots(vos_copy_ring *ring, uint32_t generation)
 {
-    uint32_t i;
     ring->generation = generation;
-    for (i = 0; i < VOS_COPY_CAPACITY; ++i) {
+    for (uint32_t i = 0; i < VOS_COPY_CAPACITY; ++i) {
         ring->slots[i].life.state = VOS_COPY_FREE;
         ring->slots[i].life.readers = 0;
         ring->slots[i].life.validated = 0;
@@ -135,22 +130,20 @@ void vos_copy_init_slots(vos_copy_ring *ring)
 int vos_copy_submit_snapshot(vos_copy_ring *ring, const vos_copy_request *input,
                               vos_copy_view *view)
 {
-    uint32_t i;
-    vos_copy_payload *slot;
-    uint32_t generation = input->generation, request = input->request;
-    uint32_t operation = input->operation;
-    const uint8_t *source = input->source;
-    size_t extent = input->extent, length = input->length;
+    const uint32_t generation = input->generation, request = input->request;
+    const uint32_t operation = input->operation;
+    const uint8_t *const source = input->source;
+    const size_t extent = input->extent, length = input->length;
     if (!vos_copy_view_valid(view) || generation != ring->generation
         || vos_copy_occupancy(view) >= VOS_COPY_CAPACITY
         || operation >= VOS_COPY_OPERATION_COUNT || length > extent
         || length > vos_copy_payload_limit(operation)) return 0;
     /* Request identifiers are producer-written; consumer-owned lifecycle fields
      * are never scanned. An acquired tail conservatively delimits live IDs. */
-    for (i = 0; i < vos_copy_occupancy(view); ++i)
+    for (uint32_t i = 0; i < vos_copy_occupancy(view); ++i)
         if (ring->slots[(view->consumed + i) % VOS_COPY_CAPACITY].life.request == request)
             return 0;
-    slot = &ring->slots[view->produced % VOS_COPY_CAPACITY];
+    vos_copy_payload *const slot = &ring->slots[view->produced % VOS_COPY_CAPACITY];
     if ((slot->life.state != VOS_COPY_FREE && slot->life.state != VOS_COPY_RECLAIMED)
         || slot->life.readers != 0) return 0;
     /* Re-entry to Free is producer-owned only after the previous consumption. */
@@ -169,10 +162,9 @@ int vos_copy_submit_snapshot(vos_copy_ring *ring, const vos_copy_request *input,
 int vos_copy_take_snapshot(vos_copy_ring *ring, uint8_t *destination, size_t capacity,
                             size_t *length, uint32_t *request, vos_copy_view *view)
 {
-    vos_copy_payload *slot;
     if (!vos_copy_view_valid(view) || vos_copy_occupancy(view) == 0)
         return 0;
-    slot = &ring->slots[view->consumed % VOS_COPY_CAPACITY];
+    vos_copy_payload *const slot = &ring->slots[view->consumed % VOS_COPY_CAPACITY];
     if (slot->life.state != VOS_COPY_SUBMITTED || !slot->life.validated
         || slot->life.readers != 0 || slot->length > capacity) return 0;
     (void)vos_copy_advance(&slot->life, VOS_COPY_ACCEPT);
@@ -208,12 +200,16 @@ int vos_copy_submit(vos_copy_ring *ring, uint32_t generation, uint32_t request,
                     size_t extent, size_t length, uint32_t *signal)
 {
     vos_copy_view view;
-    vos_copy_request input;
     view.produced = vos_copy_index_load(&ring->produced);
     view.consumed = vos_copy_index_load(&ring->consumed);
-    input.generation = generation; input.request = request;
-    input.operation = operation; input.source = source;
-    input.extent = extent; input.length = length;
+    const vos_copy_request input = {
+        .generation = generation,
+        .request = request,
+        .operation = operation,
+        .source = source,
+        .extent = extent,
+        .length = length
+    };
     if (!vos_copy_submit_snapshot(ring, &input, &view)) return 0;
     vos_copy_index_store(&ring->produced, view.produced);
     *signal = vos_copy_word_exchange(&ring->armed, 0);
@@ -233,22 +229,20 @@ int vos_copy_take(vos_copy_ring *ring, uint8_t *destination, size_t capacity,
 
 int vos_copy_prepare_sleep(vos_copy_ring *ring)
 {
-    uint32_t produced, consumed;
     /* Invoke after draining the admitted batch. A false answer yields to the
      * next activation with backlog. A true answer permits the kernel's wait. */
     vos_copy_word_store(&ring->armed, 1);
-    produced = vos_copy_index_load(&ring->produced);
-    consumed = vos_copy_index_load(&ring->consumed);
+    const uint32_t produced = vos_copy_index_load(&ring->produced);
+    const uint32_t consumed = vos_copy_index_load(&ring->consumed);
     return produced == consumed;
 }
 
 int vos_copy_submit_batch(vos_copy_ring *ring, const vos_copy_request *requests,
                           size_t count, uint32_t *results, uint32_t *signals)
 {
-    size_t i;
     if (count > VOS_COPY_MAX_BATCH) return 0;
-    for (i = 0; i < count; ++i) {
-        vos_copy_request request = requests[i];
+    for (size_t i = 0; i < count; ++i) {
+        const vos_copy_request request = requests[i];
         uint32_t signal = 0;
         results[i] = (uint32_t)vos_copy_submit(ring, request.generation, request.request,
                          request.operation, request.source, request.extent, request.length, &signal);

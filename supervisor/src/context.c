@@ -4,8 +4,8 @@
 static int context_ack_ok(const struct vos_supervisor_manifest *m,
                           const uint64_t *ack)
 {
-    uint32_t i, unit, count = 0, prefix = 0, refused = m->units;
-    uint32_t all = (1U << m->units) - 1U;
+    uint32_t count = 0, prefix = 0, refused = m->units;
+    const uint32_t all = (1U << m->units) - 1U;
     if (ack[VOS_CTX_ACK_STATUS] > VOS_CTX_STATUS_START_REFUSED ||
         ack[VOS_CTX_ACK_OPERATION] > VOS_CTX_OP_START ||
         ack[VOS_CTX_ACK_PHASE] > VOS_CTX_PHASE_FAILED ||
@@ -14,10 +14,10 @@ static int context_ack_ok(const struct vos_supervisor_manifest *m,
         ack[VOS_CTX_ACK_REFUSED] > m->units ||
         ack[VOS_CTX_ACK_ATTEMPTS] > UINT32_MAX)
         return 0;
-    for (i = 0; i < VOS_CTX_UNITS; ++i)
+    for (uint32_t i = 0; i < VOS_CTX_UNITS; ++i)
         if (ack[VOS_CTX_ACK_RETIRED + i] > (i < m->units ? all : 0U))
             return 0;
-    for (i = VOS_CTX_ACK_USED; i < VOS_CTX_ACK_WORDS; ++i)
+    for (uint32_t i = VOS_CTX_ACK_USED; i < VOS_CTX_ACK_WORDS; ++i)
         if (ack[i] != 0)
             return 0;
     if (ack[VOS_CTX_ACK_SEQUENCE] == 0 &&
@@ -50,8 +50,8 @@ static int context_ack_ok(const struct vos_supervisor_manifest *m,
         if (ack[VOS_CTX_ACK_MEMBERS] != all &&
             ack[VOS_CTX_ACK_MEMBERS] != m->restart_members)
             return 0;
-        for (i = 0; i < m->units; ++i) {
-            unit = m->order[i];
+        for (uint32_t i = 0; i < m->units; ++i) {
+            const uint32_t unit = m->order[i];
             if ((ack[VOS_CTX_ACK_MEMBERS] & (1U << unit)) != 0) {
                 if (count < ack[VOS_CTX_ACK_COUNT])
                     prefix |= 1U << unit;
@@ -108,20 +108,19 @@ enum vos_supervisor_context_result vos_supervisor_context_step(
     const uint64_t ack[VOS_CTX_ACK_WORDS], uint32_t desired,
     uint64_t request[VOS_CTX_REQ_WORDS], uint64_t *publish_sequence)
 {
-    uint32_t i, restart, operation, attempts;
-    uint64_t sequence;
+    uint32_t operation;
     struct vos_supervisor_epoch snapshot = {0};
     struct vos_supervisor_plan plan = {0};
     if (publish_sequence == 0 || request == 0)
         return VOS_SUPERVISOR_CONTEXT_REJECTED;
     *publish_sequence = 0;
-    for (i = 0; i < VOS_CTX_REQ_WORDS; ++i)
+    for (uint32_t i = 0; i < VOS_CTX_REQ_WORDS; ++i)
         request[i] = 0;
     if (s == 0 || ack == 0 || !vos_supervisor_manifest_ok(m))
         return VOS_SUPERVISOR_CONTEXT_REJECTED;
     if (s->phase == VOS_SUPERVISOR_CONTEXT_REFUSED)
         return VOS_SUPERVISOR_CONTEXT_REJECTED;
-    sequence = s->phase == VOS_SUPERVISOR_CONTEXT_AWAIT_ACK ?
+    const uint64_t sequence = s->phase == VOS_SUPERVISOR_CONTEXT_AWAIT_ACK ?
                s->outstanding_sequence : s->acknowledged_sequence;
     if (ack[VOS_CTX_ACK_SEQUENCE] != sequence)
         return VOS_SUPERVISOR_CONTEXT_WAIT;
@@ -170,22 +169,22 @@ enum vos_supervisor_context_result vos_supervisor_context_step(
                 s->lifecycle_phase != VOS_CTX_PHASE_RETIRED ?
                 VOS_CTX_OP_RETIRE : VOS_CTX_OP_START;
     if (operation == VOS_CTX_OP_START) {
-        restart = desired == VOS_SUPERVISOR_CONTEXT_RESTART;
+        const uint32_t restart = desired == VOS_SUPERVISOR_CONTEXT_RESTART;
         if (restart && ack[VOS_CTX_ACK_NOW] < ack[VOS_CTX_ACK_DEADLINE]) {
             s->phase = VOS_SUPERVISOR_CONTEXT_BACKOFF;
             return VOS_SUPERVISOR_CONTEXT_WAIT;
         }
         snapshot.number = s->epoch;
-        for (i = 0; i < VOS_CTX_UNITS; ++i)
+        for (uint32_t i = 0; i < VOS_CTX_UNITS; ++i)
             snapshot.retired[i] = (uint32_t)ack[VOS_CTX_ACK_RETIRED + i];
         /* Successful retirement increments attempts after choosing its delay. */
-        attempts = restart && s->attempts != 0 ? s->attempts - 1U : s->attempts;
+        const uint32_t attempts = restart && s->attempts != 0 ? s->attempts - 1U : s->attempts;
         if (!vos_supervisor_plan(m, &snapshot, s->epoch, restart, attempts, &plan)) {
             s->phase = VOS_SUPERVISOR_CONTEXT_REFUSED;
             return VOS_SUPERVISOR_CONTEXT_REJECTED;
         }
         request[VOS_CTX_REQ_COUNT] = plan.count;
-        for (i = 0; i < plan.count; ++i) {
+        for (uint32_t i = 0; i < plan.count; ++i) {
             request[VOS_CTX_REQ_STARTS + VOS_CTX_START_WORDS * i +
                     VOS_CTX_START_UNIT] = plan.starts[i].unit;
             request[VOS_CTX_REQ_STARTS + VOS_CTX_START_WORDS * i +

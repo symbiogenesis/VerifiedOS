@@ -9,12 +9,12 @@ enum vos_supervisor_execution_status vos_supervisor_execute(
     struct vos_supervisor_manifest admitted;
     struct vos_supervisor_effects operations;
     struct vos_supervisor_execution result = {
-        VOS_SUPERVISOR_INVALID, 0, 0, 0, 0, VOS_SUPERVISOR_UNITS
+        .status = VOS_SUPERVISOR_INVALID,
+        .refused_unit = VOS_SUPERVISOR_UNITS
     };
-    struct vos_supervisor_epoch epoch = {0, {0}};
+    struct vos_supervisor_epoch epoch = {0};
     struct vos_completion completion = {0};
     struct vos_supervisor_plan plan;
-    uint32_t i;
     uint64_t current = 0;
 
     if (out == 0)
@@ -47,7 +47,7 @@ enum vos_supervisor_execution_status vos_supervisor_execute(
     result.status = VOS_SUPERVISOR_SNAPSHOT_REFUSED;
     if (!vos_supervisor_plan(&admitted, &epoch, current, restart, attempts, &plan))
         goto release;
-    for (i = 0; i < plan.count; ++i) {
+    for (uint32_t i = 0; i < plan.count; ++i) {
         const struct vos_supervisor_start *request = &plan.starts[i];
         if (!vos_supervisor_request_current(&admitted, &epoch, current, request))
             goto release;

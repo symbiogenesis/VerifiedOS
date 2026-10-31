@@ -40,10 +40,8 @@ int vos_slot_in_frame(const struct vos_slot *s, uint64_t major_frame)
  * past `slots`. */
 int vos_frame_pairwise_disjoint(const struct vos_frame *f)
 {
-  uint32_t i;
-  uint32_t j;
-  for (i = 0; i < f->slot_count && i < VOS_MAX_SLOTS; i++) {
-    for (j = i + 1u; j < f->slot_count && j < VOS_MAX_SLOTS; j++) {
+  for (uint32_t i = 0; i < f->slot_count && i < VOS_MAX_SLOTS; i++) {
+    for (uint32_t j = i + 1u; j < f->slot_count && j < VOS_MAX_SLOTS; j++) {
       if (!vos_slot_disjoint(&f->slots[i], &f->slots[j])) {
         return 0;
       }
@@ -56,8 +54,7 @@ int vos_frame_pairwise_disjoint(const struct vos_frame *f)
 uint64_t vos_frame_total_width(const struct vos_frame *f)
 {
   uint64_t total = 0;
-  uint32_t i;
-  for (i = 0; i < f->slot_count && i < VOS_MAX_SLOTS; i++) {
+  for (uint32_t i = 0; i < f->slot_count && i < VOS_MAX_SLOTS; i++) {
     total += f->slots[i].width;
   }
   return total;
@@ -70,8 +67,7 @@ uint64_t vos_frame_total_width(const struct vos_frame *f)
  */
 int32_t vos_slot_index_at(const struct vos_frame *f, uint64_t instant)
 {
-  uint32_t i;
-  for (i = 0; i < f->slot_count && i < VOS_MAX_SLOTS; i++) {
+  for (uint32_t i = 0; i < f->slot_count && i < VOS_MAX_SLOTS; i++) {
     const struct vos_slot *s = &f->slots[i];
     if (s->offset <= instant && instant < s->offset + s->width) {
       return (int32_t)i;
@@ -90,7 +86,6 @@ int32_t vos_slot_index_at(const struct vos_frame *f, uint64_t instant)
  */
 enum vos_status vos_frame_validate(const struct vos_frame *f)
 {
-  uint32_t i;
   if (f->slot_count == 0u) {
     return VOS_TABLE_EMPTY;
   }
@@ -103,7 +98,7 @@ enum vos_status vos_frame_validate(const struct vos_frame *f)
   if (f->major_frame == 0u) {
     return VOS_TABLE_ZERO_FRAME;
   }
-  for (i = 0; i < f->slot_count; i++) {
+  for (uint32_t i = 0; i < f->slot_count; i++) {
     const struct vos_slot *s = &f->slots[i];
     if (s->width == 0u) {
       return VOS_TABLE_ZERO_WIDTH;
@@ -118,7 +113,7 @@ enum vos_status vos_frame_validate(const struct vos_frame *f)
   if (!vos_frame_pairwise_disjoint(f)) {
     return VOS_TABLE_OVERLAP;
   }
-  for (i = 1u; i < f->slot_count; i++) {
+  for (uint32_t i = 1u; i < f->slot_count; i++) {
     if (f->slots[i].offset <= f->slots[i - 1u].offset) {
       return VOS_TABLE_UNORDERED;
     }
@@ -160,7 +155,7 @@ uint64_t vos_exec_release(const struct vos_frame *f, const struct vos_exec *e)
  * frame. The only input is the cursor. */
 void vos_exec_advance(const struct vos_frame *f, struct vos_exec *e)
 {
-  uint32_t next = e->cursor + 1u;
+  const uint32_t next = e->cursor + 1u;
   if (next >= f->slot_count) {
     e->cursor = 0;
     e->frame_index = e->frame_index + 1u;
