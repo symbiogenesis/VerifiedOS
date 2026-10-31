@@ -1032,11 +1032,18 @@ Proof.
   rewrite HN in H. rewrite Nat.pow_succ_r in H by lia. nia.
 Qed.
 
-(* A membership-restricted rerandomization over the counting measure. The
-   general lemma in ProbingModel.v asks for its reindexing identity at every
-   point of the carrier; a tape outside the enumeration is not one this
-   pipeline's coordinates reach, so the restriction is what the pipeline
-   can actually supply. *)
+(* The counting instance consumes ProbingModel's support-local law. A tape
+   outside the enumeration is not one this pipeline's coordinates reach. *)
+Lemma support_members_are_in : forall (T : Type) (enum : list T) (t : T),
+  ProofSupport.Member t enum -> In t enum.
+Proof.
+  intros T enum. induction enum as [|a r IH]; intros t Ht; simpl in *.
+  - exact Ht.
+  - destruct Ht as [Ht | Ht].
+    + left. symmetry. exact Ht.
+    + right. exact (IH t Ht).
+Qed.
+
 Lemma counting_rerandomization_on_members :
   forall (T : Type) (enum : list T) (O : Type) (oeqb : O -> O -> bool)
          (f g : T -> O) (sigma : T -> T),
@@ -1044,12 +1051,11 @@ Lemma counting_rerandomization_on_members :
     (forall t : T, In t enum -> g (sigma t) = f t) ->
     SameDistribution (counting T enum) O oeqb f g.
 Proof.
-  intros T enum O oeqb f g sigma Hperm Hg o.
-  rewrite counting_pr, counting_pr.
-  transitivity (count_of (filter_of (fun t => oeqb (g (sigma t)) o) enum)).
-  - f_equal. apply filter_of_ext_in. intros t Ht. rewrite (Hg t Ht). reflexivity.
-  - rewrite (count_filter_image sigma (fun u => oeqb (g u) o) enum).
-    apply count_of_perm. apply perm_filter. exact Hperm.
+  intros T enum O oeqb f g sigma Hperm Hg.
+  apply (rerandomization_hides_on_members (counting T enum) O oeqb f g sigma).
+  - intros t _. reflexivity.
+  - exact Hperm.
+  - intros t Ht. apply Hg. exact (support_members_are_in T enum t Ht).
 Qed.
 
 (* THE CARDINALITY-TO-PROBABILITY CONNECTION. Under uniform independent

@@ -84,6 +84,131 @@ Lemma xor_involution : forall xs ys : list bool,
   zip_with xorb (zip_with xorb xs ys) ys = xs.
 Proof. exact (zip_involution bool bool xorb xorb_cancels). Qed.
 
+(* Rotation is a cut followed by exchanging the two pieces. Complementary
+   cuts restore any list; the cipher supplies only its concrete cut sizes. *)
+Definition rotate_at {A : Type} (n : nat) (xs : list A) : list A :=
+  app (ProofSupport.drop_of n xs) (ProofSupport.take_of n xs).
+
+Lemma take_prefix_count : forall (A : Type) (front back : list A),
+  ProofSupport.take_of (list_length front) (app front back) = front.
+Proof.
+  intros A front. induction front as [|x front IH]; intros back; simpl.
+  - reflexivity.
+  - rewrite IH. reflexivity.
+Qed.
+
+Lemma drop_prefix_count : forall (A : Type) (front back : list A),
+  ProofSupport.drop_of (list_length front) (app front back) = back.
+Proof.
+  intros A front. induction front as [|x front IH]; intros back; simpl.
+  - reflexivity.
+  - exact (IH back).
+Qed.
+
+Lemma take_drop_reassemble : forall (A : Type) (n : nat) (xs : list A),
+  app (ProofSupport.take_of n xs) (ProofSupport.drop_of n xs) = xs.
+Proof.
+  intros A n. induction n as [|n IH]; intros [|x xs]; simpl; try reflexivity.
+  rewrite IH. reflexivity.
+Qed.
+
+Lemma count_drop_from_sum : forall (A : Type) (n m : nat) (xs : list A),
+  list_length xs = n + m -> list_length (ProofSupport.drop_of n xs) = m.
+Proof.
+  intros A n. induction n as [|n IH]; intros m xs H.
+  - exact H.
+  - destruct xs as [|x xs]; [discriminate H |].
+    simpl in H. injection H as H. simpl. exact (IH m xs H).
+Qed.
+
+Lemma complementary_cuts_inverse : forall (A : Type) (n m : nat) (xs : list A),
+  list_length xs = n + m -> rotate_at m (rotate_at n xs) = xs.
+Proof.
+  intros A n m xs H.
+  assert (Hm : m = list_length (ProofSupport.drop_of n xs)).
+  { symmetry. exact (count_drop_from_sum A n m xs H). }
+  unfold rotate_at. rewrite Hm.
+  rewrite drop_prefix_count, take_prefix_count. apply take_drop_reassemble.
+Qed.
+
+Lemma map_over_memberwise : forall (A B : Type) (f g : A -> B) (xs : list A),
+  (forall x : A, ProofSupport.Member x xs -> f x = g x) ->
+  map_over f xs = map_over g xs.
+Proof.
+  intros A B f g xs. induction xs as [|x xs IH]; intros H; simpl.
+  - reflexivity.
+  - rewrite (H x (or_introl eq_refl)). rewrite IH; [reflexivity |].
+    intros y Hy. apply H. right. exact Hy.
+Qed.
+
+Lemma map_over_constant : forall (A B : Type) (f : A -> B) (xs : list A) (b : B),
+  (forall x : A, ProofSupport.Member x xs -> f x = b) ->
+  map_over f xs = ProofSupport.repeat_of (list_length xs) b.
+Proof.
+  intros A B f xs. induction xs as [|x xs IH]; intros b H; simpl.
+  - reflexivity.
+  - rewrite (H x (or_introl eq_refl)). rewrite IH; [reflexivity |].
+    intros y Hy. apply H. right. exact Hy.
+Qed.
+
+Lemma nth_map_up_from : forall (A : Type) (f : nat -> A) (start n i : nat) (d : A),
+  Nat.ltb i n = true ->
+  ProofSupport.nth_of i (map_over f (ProofSupport.up_from start n)) d = f (start + i).
+Proof.
+  intros A f start n. revert start.
+  induction n as [|n IH]; intros start i d H.
+  - destruct i; discriminate H.
+  - destruct i as [|i].
+    + simpl. rewrite ProofSupport.nat_add_zero. reflexivity.
+    + simpl in H. change
+        (ProofSupport.nth_of i (map_over f (ProofSupport.up_from (S start) n)) d
+         = f (start + S i)).
+      rewrite (IH (S start) i d H), ProofSupport.nat_add_succ. reflexivity.
+Qed.
+
+Lemma map_up_from_succ : forall (A : Type) (f : nat -> A) (start n : nat),
+  map_over f (ProofSupport.up_from (S start) n) =
+  map_over (fun i => f (S i)) (ProofSupport.up_from start n).
+Proof.
+  intros A f start n. revert start.
+  induction n as [|n IH]; intros start; simpl.
+  - reflexivity.
+  - rewrite (IH (S start)). reflexivity.
+Qed.
+
+Lemma gather_identity : forall (A : Type) (xs : list A) (d : A),
+  map_over (fun i => ProofSupport.nth_of i xs d)
+    (ProofSupport.up_from 0 (list_length xs)) = xs.
+Proof.
+  intros A xs. induction xs as [|x xs IH]; intros d; simpl.
+  - reflexivity.
+  - f_equal. rewrite map_up_from_succ.
+    change (map_over (fun i => ProofSupport.nth_of i xs d)
+      (ProofSupport.up_from 0 (list_length xs)) = xs).
+    exact (IH d).
+Qed.
+
+(* An inverse index map suffices to invert a gather. Bounds are needed only
+   on indices the outer gather actually reads; defaults remain unchanged. *)
+Lemma gather_inverse : forall (A : Type) (n : nat) (p q : nat -> nat)
+    (xs : list A) (d : A),
+  list_length xs = n ->
+  (forall i, ProofSupport.Member i (ProofSupport.up_from 0 n) -> Nat.ltb (q i) n = true) ->
+  (forall i, ProofSupport.Member i (ProofSupport.up_from 0 n) -> p (q i) = i) ->
+  map_over (fun i => ProofSupport.nth_of (q i)
+    (map_over (fun j => ProofSupport.nth_of (p j) xs d) (ProofSupport.up_from 0 n)) d)
+    (ProofSupport.up_from 0 n) = xs.
+Proof.
+  intros A n p q xs d Hlength Hbound Hinverse.
+  transitivity (map_over (fun i => ProofSupport.nth_of i xs d) (ProofSupport.up_from 0 n)).
+  - apply map_over_memberwise. intros i Hi.
+    rewrite (nth_map_up_from A (fun j => ProofSupport.nth_of (p j) xs d)
+      0 n (q i) d (Hbound i Hi)).
+    change (ProofSupport.nth_of (p (q i)) xs d = ProofSupport.nth_of i xs d).
+    rewrite (Hinverse i Hi). reflexivity.
+  - rewrite <- Hlength. apply gather_identity.
+Qed.
+
 Example unequal_lists_still_truncate :
   zip_with xorb (cons true (cons false nil)) (cons true nil) = cons false nil.
 Proof. reflexivity. Qed.

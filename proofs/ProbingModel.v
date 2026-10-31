@@ -426,12 +426,73 @@ Proof.
   - rewrite IH1. exact IH2.
 Qed.
 
+(* Probability reads only the enumerated support, including repeated entries.
+   These laws need neither uniqueness nor a normalization of its masses. *)
+Lemma support_filter_member : forall (A : Type) (q : A -> bool) (l : list A) (x : A),
+  ProofSupport.Member x (filter_of q l) -> ProofSupport.Member x l.
+Proof.
+  intros A q l. induction l as [|a r IH]; intros x H; simpl in *.
+  - exact H.
+  - destruct (q a).
+    + destruct H as [H | H]; [left; exact H | right; exact (IH x H)].
+    + right. exact (IH x H).
+Qed.
+
+Lemma support_filter_ext : forall (A : Type) (q1 q2 : A -> bool) (l : list A),
+  (forall x : A, ProofSupport.Member x l -> q1 x = q2 x) ->
+  filter_of q1 l = filter_of q2 l.
+Proof.
+  intros A q1 q2 l. induction l as [|a r IH]; intros H; simpl.
+  - reflexivity.
+  - rewrite (H a (or_introl eq_refl)). rewrite IH; [reflexivity |].
+    intros x Hx. apply H. right. exact Hx.
+Qed.
+
+Lemma support_map_ext : forall (A B : Type) (f g : A -> B) (l : list A),
+  (forall x : A, ProofSupport.Member x l -> f x = g x) ->
+  map_over f l = map_over g l.
+Proof.
+  intros A B f g l. induction l as [|a r IH]; intros H; simpl.
+  - reflexivity.
+  - rewrite (H a (or_introl eq_refl)). rewrite IH; [reflexivity |].
+    intros x Hx. apply H. right. exact Hx.
+Qed.
+
+Lemma pr_ext_on_members :
+  forall (p : Probability) (q1 q2 : Tape p -> bool),
+    (forall t : Tape p, ProofSupport.Member t (tape_enum p) -> q1 t = q2 t) ->
+    pr p q1 = pr p q2.
+Proof.
+  intros p q1 q2 H. unfold pr.
+  rewrite (support_filter_ext (Tape p) q1 q2 (tape_enum p) H). reflexivity.
+Qed.
+
 Lemma pr_ext :
   forall (p : Probability) (q1 q2 : Tape p -> bool),
     (forall t : Tape p, q1 t = q2 t) -> pr p q1 = pr p q2.
 Proof.
-  intros p q1 q2 H. unfold pr. rewrite (filter_of_ext q1 q2 (tape_enum p) H).
-  reflexivity.
+  intros p q1 q2 H. apply pr_ext_on_members. intros t _. exact (H t).
+Qed.
+
+Theorem reindexing_preserves_probability_on_members :
+  forall (p : Probability) (sigma : Tape p -> Tape p) (q : Tape p -> bool),
+    (forall t : Tape p, ProofSupport.Member t (tape_enum p) ->
+       mass p (sigma t) = mass p t) ->
+    Perm (map_over sigma (tape_enum p)) (tape_enum p) ->
+    pr p (fun t => q (sigma t)) = pr p q.
+Proof.
+  intros p sigma q Hmass Hperm. unfold pr.
+  assert (Hmap :
+    map_over (mass p) (filter_of (fun t => q (sigma t)) (tape_enum p)) =
+    map_over (fun t => mass p (sigma t))
+      (filter_of (fun t => q (sigma t)) (tape_enum p))).
+  { apply support_map_ext. intros t Ht. symmetry. apply Hmass.
+    exact (support_filter_member (Tape p) (fun t => q (sigma t)) (tape_enum p) t Ht). }
+  rewrite Hmap.
+  rewrite <- (map_over_compose (mass p) sigma
+                (filter_of (fun t => q (sigma t)) (tape_enum p))).
+  rewrite (map_filter_comm sigma q (tape_enum p)).
+  apply fold_mass_perm. apply perm_map. apply perm_filter. exact Hperm.
 Qed.
 
 (* A mass-preserving permutation of the finite sample space leaves each
@@ -443,15 +504,9 @@ Theorem reindexing_preserves_probability :
     Perm (map_over sigma (tape_enum p)) (tape_enum p) ->
     pr p (fun t => q (sigma t)) = pr p q.
 Proof.
-  intros p sigma q Hmass Hperm. unfold pr.
-  rewrite (map_over_ext (mass p) (fun t => mass p (sigma t))
-             (filter_of (fun t => q (sigma t)) (tape_enum p))
-             (fun t => eq_sym (Hmass t))).
-  rewrite <- (map_over_compose (mass p) sigma
-                (filter_of (fun t => q (sigma t)) (tape_enum p))).
-  rewrite (map_filter_comm sigma q (tape_enum p)).
-  apply fold_mass_perm.
-  apply perm_map. apply perm_filter. exact Hperm.
+  intros p sigma q Hmass Hperm.
+  apply reindexing_preserves_probability_on_members; [|exact Hperm].
+  intros t _. exact (Hmass t).
 Qed.
 
 (* Two random variables over one sample space are identically distributed
@@ -480,6 +535,21 @@ Proof.
   intros p O oeqb f g H o. apply pr_ext. intros t. rewrite (H t). reflexivity.
 Qed.
 
+Theorem rerandomization_hides_on_members :
+  forall (p : Probability) (O : Type) (oeqb : O -> O -> bool)
+         (f g : Tape p -> O) (sigma : Tape p -> Tape p),
+    (forall t : Tape p, ProofSupport.Member t (tape_enum p) ->
+       mass p (sigma t) = mass p t) ->
+    Perm (map_over sigma (tape_enum p)) (tape_enum p) ->
+    (forall t : Tape p, ProofSupport.Member t (tape_enum p) -> g (sigma t) = f t) ->
+    SameDistribution p O oeqb f g.
+Proof.
+  intros p O oeqb f g sigma Hmass Hperm Hg o.
+  rewrite <- (reindexing_preserves_probability_on_members p sigma
+                (fun t => oeqb (g t) o) Hmass Hperm).
+  apply pr_ext_on_members. intros t Ht. rewrite (Hg t Ht). reflexivity.
+Qed.
+
 (*| discharges: R-15-053a |*)
 Theorem rerandomization_hides :
   forall (p : Probability) (O : Type) (oeqb : O -> O -> bool)
@@ -489,10 +559,11 @@ Theorem rerandomization_hides :
     (forall t : Tape p, g (sigma t) = f t) ->
     SameDistribution p O oeqb f g.
 Proof.
-  intros p O oeqb f g sigma Hmass Hperm Hg o.
-  rewrite <- (reindexing_preserves_probability p sigma
-                (fun t => oeqb (g t) o) Hmass Hperm).
-  apply pr_ext. intros t. rewrite (Hg t). reflexivity.
+  intros p O oeqb f g sigma Hmass Hperm Hg.
+  apply (rerandomization_hides_on_members p O oeqb f g sigma).
+  - intros t _. exact (Hmass t).
+  - exact Hperm.
+  - intros t _. exact (Hg t).
 Qed.
 
 (* -------------------------------------------------------------------------
