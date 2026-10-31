@@ -10,6 +10,9 @@ FetchContent_Declare(
 option(DOWNLOAD_ASIO "Download asio" ON)
 
 if (DOWNLOAD_ASIO)
+  if(VOS_MODEL_OFFLINE AND NOT IS_DIRECTORY "${FETCHCONTENT_SOURCE_DIR_ASIO}")
+    message(FATAL_ERROR "Offline Asio input is missing; run model dependencies first")
+  endif()
   FetchContent_MakeAvailable(asio)
 
   add_library(asio INTERFACE

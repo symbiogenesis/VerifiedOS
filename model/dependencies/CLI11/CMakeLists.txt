@@ -10,5 +10,8 @@ FetchContent_Declare(cli11
 )
 
 if(DOWNLOAD_CLI11)
+  if(VOS_MODEL_OFFLINE AND NOT IS_DIRECTORY "${FETCHCONTENT_SOURCE_DIR_CLI11}")
+    message(FATAL_ERROR "Offline CLI11 input is missing; run model dependencies first")
+  endif()
   FetchContent_MakeAvailable(cli11)
 endif()
