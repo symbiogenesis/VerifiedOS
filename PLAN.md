@@ -2944,6 +2944,42 @@ bytes. Source-bound views and the finite rank-48 receipt are regenerated through
 their owners. The `python-modern-20261031` fanout journal records exact-revision
 hosted evidence and Guest CI dispatch; the guest verdict is deferred to the user.
 
+## Model build assurance
+
+Keep the upstream-derived Sail model on CMake and Ninja. Strengthen the input
+and generation boundaries without changing Sail semantics, the frozen machine
+profile, imported source bytes or the resident toolchain's admission contract.
+
+- **Start:** the existing model, dependency declarations, build receipts and
+  isolated native build lanes. This contract is the entry predicate for the
+  CMake, acquisition and native-identity implementation lanes.
+- **Owns:** content-based Sail generator identity; verified dependency acquisition
+  before configuration; an explicit offline mode that refuses missing or changed
+  inputs; native compiler, header and library identity in model evidence; and
+  target-scoped CMake settings with a qualified supported baseline. Existing
+  dependency declarations remain the owners of URLs, versions and archive hashes.
+  Keep the Python configure recipe as the shared owner of dynamic lane settings.
+- **Check:** small fixtures prove that an in-place generator or library change
+  with preserved timestamps invalidates generated output, unchanged identity
+  preserves incremental reuse, and failed generation publishes no current stamp.
+  Verify downloaded archives and extracted populations before use; missing,
+  corrupted or substituted offline inputs fail before configuration can fetch.
+  Bind CMake's actual compiler and native dependency population, refuse stale
+  evidence, and rebuild or reject reuse when previously captured native inputs
+  change even if their timestamps do not. Exercise positive and negative controls
+  with focused host tests and hosted native CMake fixtures. Qualify the ordinary
+  model path through Guest CI; record its verdict as pending at dispatch.
+- **Limits:** identity and offline configuration do not establish independent
+  bit-for-bit reproduction, OS-enforced network isolation or the checker
+  bootstrap's DDC obligation. Retain those distinctions in the tool guide; do not
+  add Nix, Bazel, a second model build graph or unqualified compiler hardening
+  flags to satisfy this maintenance contract.
+- **Join:** integrate the isolated lanes into `main`, require Host CI on Windows
+  and Ubuntu, and dispatch every Guest CI lane at the settled revision through
+  [the validation handoff](AGENTS.md#tool-execution-and-validation). Use cold
+  installation evidence for the changed native preparation path and record any
+  acceptance checks outside the hosted workflows explicitly.
+
 ## C modernization
 
 Modernize active authored C within the selected compiler and proof interfaces.
