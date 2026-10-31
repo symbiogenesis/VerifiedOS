@@ -2,6 +2,8 @@
 """Small archive fixtures prove absence optimization preserves audit boundaries."""
 
 import gzip
+import re
+from dataclasses import replace
 from itertools import product
 from unittest.mock import patch
 
@@ -74,8 +76,31 @@ def _compiled_boundaries_match_the_literal_oracle() -> None:
            == list(pins._scan_ids("fixture", "core 123abcd", named)),
            "an attribution call reused a program for different names")
 
+    class OnlyMatch:
+        def __init__(self, program: re.Pattern[str]) -> None:
+            self.program = program
+            self.calls = 0
 
-def _byte_tries_and_unsupported_shapes_keep_the_literal_oracle() -> None:
+        def match(self, source: str, pos: int = 0) -> re.Match[str] | None:
+            self.calls += 1
+            return self.program.match(source, pos)
+
+        def search(self, source: str, pos: int = 0) -> None:
+            raise AssertionError("word skipping must not retry complete suffix scans")
+
+    complete, partial = OnlyMatch(matcher.complete), OnlyMatch(matcher.known_right)
+    controlled = replace(matcher, complete=complete, known_right=partial)
+    ensure(not controlled.present("ordinary words " * 100, first=True, final=True)
+           and complete.calls == 1, "an absent name must take one anchored scan")
+    ensure(controlled.present("core/core", first=True, final=False) and partial.calls == 1,
+           "nonfinal matching must take one anchored scan")
+    complete.calls = 0
+    ensure([index for index, _, _ in controlled.lines("ordinary\ncore 123abcd\nmore\na+b 123abcd\ntrailing")]
+           == [1, 3] and complete.calls == 3,
+           "complete lines must use one forward match per candidate and final absence")
+
+
+def _literal_searches_and_unsupported_shapes_keep_the_oracle() -> None:
     datasets: list[tuple[tuple[bytes, ...], tuple[bytes, ...]]] = [
         ((), ()), ((b"Raw", b"R+", b"\x00\xff"), (b"fold", b"FOLD", b"with.dot")),
         (tuple(bytes((value,)) for value in (0, 10, 127, 128, 255)), (b"long/word",))]
@@ -83,15 +108,13 @@ def _byte_tries_and_unsupported_shapes_keep_the_literal_oracle() -> None:
                bytes(range(256)), b"long/word", b"before Ra", b"w FOLD after"]
     for raw, folded in datasets:
         sensitive = tuple(raw)
-        matcher = literalsearch.compile_bytes(sensitive, folded)
         for sample in samples:
             expected = any(needle in sample for needle in sensitive) or any(needle in sample.lower() for needle in folded)
-            ensure(matcher.present(sample) == expected, "byte trie differs from the exact raw/folded oracle")
             for size in (1, 3, 17):
                 facts = retained.prescan(gzip.compress(sample), (), sensitive, folded, chunk_size=size)
-                ensure(facts.lineage == expected, "byte trie lost a cross-chunk or non-ASCII literal")
+                ensure(facts.lineage == expected, "byte searches lost a cross-chunk or non-ASCII literal")
     for names in ((), ("",), ("CORE",), ("é",), ("core\nother",), ("x" * 65,),
-                  ("x",) * 257, ("x" * 32,) * 129):
+                  ("x",) * 257, ("x" * 32,) * 129, ("/core",), (".core",), ("+core",)):
         try:
             literalsearch.compile_names(names)
         except literalsearch.LegacyRequiredError:
@@ -99,25 +122,17 @@ def _byte_tries_and_unsupported_shapes_keep_the_literal_oracle() -> None:
         else:
             raise AssertionError("unsupported name set silently entered the optimized matcher")
     for literals in ((b"",), (b"x" * 65,), (b"x",) * 257, (b"x" * 32,) * 129):
-        try:
-            literalsearch.compile_bytes(literals, ())
-        except literalsearch.LegacyRequiredError:
-            ensure(retained.prescan(gzip.compress(b"x"), (), literals, ()).lineage
-                   == any(needle in b"x" for needle in literals), "byte fallback changed an unsupported literal")
-        else:
-            raise AssertionError("unsupported byte set silently entered the optimized matcher")
+        ensure(retained.prescan(gzip.compress(b"x"), (), literals, ()).lineage
+               == any(needle in b"x" for needle in literals), "byte search changed an unusual literal population")
     with patch.object(literalsearch.re, "compile", side_effect=RecursionError("fixture")):
-        for build in (lambda: literalsearch.compile_names(("core",)),
-                      lambda: literalsearch.compile_bytes((b"core",), ())):
-            try:
-                build()
-            except literalsearch.LegacyRequiredError:
-                pass
-            else:
-                raise AssertionError("compilation failure became an absence verdict")
+        try:
+            literalsearch.compile_names(("core",))
+        except literalsearch.LegacyRequiredError:
+            pass
+        else:
+            raise AssertionError("compilation failure became an absence verdict")
     broken = gzip.compress(b"core 123abcd\nRaw\n") + gzip.compress(b"tail")[:-3]
-    with patch.object(literalsearch, "compile_names", side_effect=literalsearch.LegacyRequiredError("fixture")), \
-            patch.object(literalsearch, "compile_bytes", side_effect=literalsearch.LegacyRequiredError("fixture")):
+    with patch.object(literalsearch, "compile_names", side_effect=literalsearch.LegacyRequiredError("fixture")):
         try:
             retained.prescan(broken, ("core",), (b"Raw",), (), chunk_size=3)
         except (OSError, EOFError, ValueError):
@@ -347,7 +362,7 @@ def _checks_preserve_results_and_refresh_bytes() -> None:
 
 def cases() -> list[Case]:
     return [Case("compiled-boundaries-match-literal-oracle", _compiled_boundaries_match_the_literal_oracle),
-            Case("byte-tries-and-unsupported-shapes-keep-literal-oracle", _byte_tries_and_unsupported_shapes_keep_the_literal_oracle),
+            Case("literal-searches-and-unsupported-shapes-keep-oracle", _literal_searches_and_unsupported_shapes_keep_the_oracle),
             Case("pin-boundaries-and-chunks", _pin_boundaries_and_chunks),
             Case("lineage-candidates-across-chunks", _lineage_candidates_across_chunks),
             Case("members-headers-and-corruption", _members_headers_and_corruption),

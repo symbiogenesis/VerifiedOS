@@ -99,10 +99,6 @@ def prescan(blob: bytes, names: tuple[str, ...], sensitive: tuple[bytes, ...],
         name_matcher = literalsearch.compile_names(names)
     except literalsearch.LegacyRequiredError:
         name_matcher = None
-    try:
-        lineage_matcher = literalsearch.compile_bytes(sensitive, folded)
-    except literalsearch.LegacyRequiredError:
-        lineage_matcher = None
     decoder = io.IncrementalNewlineDecoder(codecs.getincrementaldecoder("utf-8")(), True)
     text_tail = ""
     name_tail = ""
@@ -123,12 +119,9 @@ def prescan(blob: bytes, names: tuple[str, ...], sensitive: tuple[bytes, ...],
             if not lineage or (glyphs and not glyph):
                 window = byte_tail + chunk
                 if not lineage:
-                    if lineage_matcher is not None:
-                        lineage = lineage_matcher.present(window)
-                    else:
-                        low = window.lower()
-                        lineage = (any(needle in window for needle in sensitive)
-                                   or any(needle in low for needle in folded))
+                    low = window.lower()
+                    lineage = (any(needle in window for needle in sensitive)
+                               or any(needle in low for needle in folded))
                 if glyphs and not glyph and not (glyphs_require_nonascii and window.isascii()):
                     glyph = any(needle in window for needle in glyphs)
                 byte_tail = window[-byte_overlap:] if byte_overlap else b""
@@ -155,16 +148,20 @@ def prescan(blob: bytes, names: tuple[str, ...], sensitive: tuple[bytes, ...],
                             parts.clear()
                             text_tail = ""
                         else:
-                            for index, start, finish in pins.candidate_lines(complete, names, lowered=low,
-                                                                           patterns=name_patterns,
-                                                                           matcher=name_matcher):
-                                pin_name = True  # candidate_lines establishes the exact name boundary.
-                                line = complete[start:finish]
-                                if pins.ID_RE.search(line) is None:
-                                    continue
-                                at = line_base + index
-                                parts.extend(("\n" * (at - kept_lines), line, "\n"))
-                                kept_lines = at + 1
+                            # The complete streaming name scan covers every prior
+                            # chunk and this one. With no name so far, completed
+                            # source cannot carry a pin site; keep its line count
+                            # and unfinished tail without searching it again.
+                            if pin_name:
+                                for index, start, finish in pins.candidate_lines(complete, names, lowered=low,
+                                                                               patterns=name_patterns,
+                                                                               matcher=name_matcher):
+                                    line = complete[start:finish]
+                                    if pins.ID_RE.search(line) is None:
+                                        continue
+                                    at = line_base + index
+                                    parts.extend(("\n" * (at - kept_lines), line, "\n"))
+                                    kept_lines = at + 1
                             line_base += complete.count("\n")
                 except (UnicodeDecodeError, UnsupportedScanError) as err:
                     # Still consume the entire stream: a late gzip error must not

@@ -160,10 +160,15 @@ start remains visible when a longer name reaches an unknown window edge. The
 existing parser still decides every ID and its attribution. Programs are bound to
 the actual name tuple, and unsupported inputs retain the legacy scan. The boundary
 oracle and chunk tests retain the original `isalnum` and underscore/hyphen rules.
-Separate byte tries search raw and ASCII-folded lineage candidates without
-repeating a whole-window search for each literal. Folding remains `bytes.lower()`;
-empty or unsupported literals retain the original `any()` path. Matcher programs
-are local to an invocation and carry no source verdict or persistent cache.
+The name matcher skips whole runs whose characters forbid a new left boundary.
+It uses one anchored match per forward scan, with the actual name in a separate
+capture; retrying a failed suffix with `search()` would lose that linear bound.
+Completed spans skip name-line extraction while the complete streaming scan has
+found no bounded name; unfinished lines and advancing line counts remain intact.
+Nonword initial literals retain the legacy path. Lineage candidates retain the
+original raw and ASCII-folded byte searches: the byte-trie experiment increased
+their measured cost. Folding remains `bytes.lower()`. Matcher programs are local
+to an invocation and carry no source verdict or persistent cache.
 The pin-ID repeat is possessive: backing off a consumed hexadecimal character can
 only put another word character before the refusing right boundary. Its frozen
 greedy oracle compares full matches, captures and bounded searches. ASCII stream

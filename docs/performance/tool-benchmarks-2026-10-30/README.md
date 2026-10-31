@@ -56,6 +56,16 @@ costs; native regex execution is small by comparison. Profiling overhead supplie
 no paired speedup evidence. The bounded name and byte tries replace those repeated
 searches; their complete comparison remains separate from this diagnostic.
 
+The [direct-trie comparison](https://github.com/symbiogenesis/VerifiedOS/actions/runs/41152868322)
+retains its [checker](41152868322-checker.json),
+[runner](41152868322-runner.json) and
+[proof-context](41152868322-proof-identity.json) records. Reports, source-byte
+assertions and native cache controls match, and memory stays lower, but complete
+checker time regresses further. That implementation is rejected. Its separate
+profile attributes the new overhead to native pattern searches, with the byte
+trie slower than the original byte scans. The selected refinement restores those
+byte scans and tests bounded name candidates only at possible word starts.
+
 The [initial attempt](https://github.com/symbiogenesis/VerifiedOS/actions/runs/41108543698)
 retains [partial runner evidence](41108543698-runner.json) and its
 [proof-context record](41108543698-proof-identity.json). Baseline source placement
