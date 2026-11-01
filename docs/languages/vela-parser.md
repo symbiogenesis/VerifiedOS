@@ -29,8 +29,11 @@ selected release's own licence and record its output terms in
 [THIRD-PARTY.md](../../THIRD-PARTY.md) before incorporation.
 
 Input is bounded by the prototype's source-byte and literal-digit limits. The
-native driver also bounds delimiter nesting and syntax-tree depth before exposing
-an AST, and reports stack exhaustion as a limit refusal. The command wrapper
+native driver also bounds delimiter nesting and raw syntax-tree depth at 256 before exposing
+an AST, and reports stack exhaustion as a limit refusal. Raw syntax counts groups
+and file/function/block/return wrappers; the separate AST consumer retains the
+prototype's expression and block/binding limits of 64. Independent migration
+fixtures cover their individual boundaries and combined paths. The command wrapper
 bounds process duration and reads source files with a bounded read. Refused input
 publishes no AST. Success emits deterministic JSON containing the complete located
 syntax tree and the exact source digest. A successful build alone is no parser
@@ -85,3 +88,49 @@ disposition every difference, and exercise malformed input without output or
 unbounded failure. Once these predicates pass, remove Python lexing/parsing and
 its fallback, retaining Python orchestration only where useful. The full-language
 frontend remains subject to [Q25d's interpretation and admission prerequisites](full-language-review.md#r-05-009-r-05-020-and-what-holds-the-frontend-rows).
+
+### Executable migration preparation
+
+The prototype's Python syntax parser and the generated AST decoder feed the same
+separate resolution, typing and Gallina emission consumer. The generated-tree
+decoder checks the complete schema, exact source digest, spans and token spellings,
+child containment and resource budgets before elaboration. It never invokes the
+Python lexer or parser as a fallback.
+
+`python tools/run.py vela-parser migration` builds and qualifies the syntax parser,
+then compares both routes on independently categorized fixtures, source edits,
+semantic diagnostic locations and resource boundaries. Accepted module identities
+and complete emitted bytes must agree. Every difference is retained in
+`migration.json` and produces a nonzero verdict; changed consumer, source,
+toolchain or generated-parser bytes invalidate the report. Guest CI's model lane
+runs this comparison and retains its verdict separately from syntax qualification.
+Agreement supplies a migration prerequisite, with no checked-parser or
+source-correspondence claim. The ordinary `vela` command continues to select Python
+syntax until the complete promotion contract passes.
+
+Syntax is now consumed completely before semantic checking, so a multiply-invalid
+file can report a later syntax error before an earlier name or type error. That
+diagnostic priority is the syntax-first frontend's selected behavior; independent
+single-fault semantic fixtures retain their categories and locations.
+
+### Rocq support prerequisite
+
+`python tools/run.py vela-parser support` authenticates the Menhir 20260209 release
+archive, builds its Rocq support library in the existing locked proof switch and
+runs the recursive kernel checker. An optional `--archive FILE` uses the same
+authenticated bytes without downloading them. The bounded source adaptation moves
+only the three late `Proof` commands identified in the
+[same-prover compatibility record](../../tools/opam/certirocq-compatibility.md#native-trial-verdict).
+Source hashes guard both sides of that transformation. A diagnostic reference
+deletes just those commands; its frozen public types, universes, executable bodies
+and assumptions must match the candidate at the same prover. No source is installed
+into the switch. The release's `Version.v` stays byte-identical, and positive and
+negative guard clients test its release identity.
+
+Guest CI's proofs lane runs this prerequisite and retains its qualification
+receipt. The receipt names the theorem assumptions in an uninstantiated abstract
+automaton context; it grants no concrete grammar's assumption or parser verdict.
+The exact generator/library pair, Vela's generated Rocq grammar and checked
+correctness/completeness, lexer and span evidence, extraction/runtime connection
+and both host platforms' replacement route remain Q25h's outstanding predicates.
+Support-library build and kernel evidence alone cannot retire Python parsing.

@@ -729,6 +729,27 @@ def _vela_parser_is_required_and_reported() -> None:
                    "native parser qualification outcome must remain explicit")
 
 
+def _vela_migration_and_support() -> None:
+    selections = (("model", "Compare the Vela parser migration", "vela-migration", "migration"),
+                  ("proofs", "Qualify the Vela parser Rocq support library", "vela-support", "support"))
+    with tempfile.TemporaryDirectory() as directory:
+        root = Path(directory)
+        for lane, title, identifier, command in selections:
+            step = _step(title)
+            ensure(f"vela-parser {command}" in step and "continue-on-error" not in step,
+                   f"{identifier} must retain a failing verdict")
+            ensure(_runs_in(lane, step) and identifier in LANES[lane], "parser check assigned to wrong lane")
+            ensure("cp --" in step and "$VOS_LOG_DIR/vela-" in step, "parser report is not retained")
+            for outcome in ("success", "failure", "skipped", "cancelled"):
+                logs = root / identifier / outcome
+                summary = report(lane, logs, root / "absent-console", root / "absent-proof",
+                                 {identifier: {"outcome": outcome}}, "abc", toolchains="cold")
+                result = json.loads((logs / "results.json").read_text(encoding="utf-8"))
+                ensure(result["commands"].get(identifier) == outcome
+                       and f"| {identifier} | {outcome} |" in summary,
+                       "parser preparation result was omitted or promoted")
+
+
 def cases() -> list[Case]:
     return [
         Case("bootstrap failure retains diagnostics without stale proofs", _bootstrap_failure),
@@ -747,6 +768,7 @@ def cases() -> list[Case]:
              _framesim_is_required_and_reported),
         Case("the native Vela parser qualification is required and reports every outcome",
              _vela_parser_is_required_and_reported),
+        Case("parser migration and support qualification keep their own verdicts", _vela_migration_and_support),
         Case("reading outcome and base are recorded and validated", _reading_outcome_recorded),
         Case("reading step runs in the gate's environment and reads compare's verdict",
              _reading_step),

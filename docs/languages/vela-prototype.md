@@ -23,13 +23,16 @@ metatheory, compiler qualification or final-binary admission.
 The selected development direction is a
 [Menhir-generated parser](verification-strategy.md#development-parser-and-grammar)
 for the proposed Vela surface, producing located syntax before separate checking
-and elaboration. This prototype currently uses a handwritten parser that combines
-checking and emission. Its replacement requires the
+and elaboration. The handwritten syntax parser and strict generated-AST decoder
+now feed a separate shared resolution, type-checking and emission consumer.
+Replacing the selected parser requires the
 [plan's `vela-parser` qualification](../../PLAN.md#vela-whole-system-authoring-proposal)
 and the [bounded parser and migration contract](vela-parser.md).
 `python tools/run.py vela-parser parse SOURCE` exercises the syntax-only generated
 development parser separately; `vela-parser qualify` checks its independent AST
-fixtures and regeneration. The `vela` command still uses the Python prototype
+fixtures and regeneration. `vela-parser migration` compares both routes on source
+edits and independently expected acceptance/refusal categories, retaining every
+difference. The `vela` command still uses the Python syntax parser
 until Q25h's checked-parser and migration predicates pass. Keep the current
 examples and rejection cases as migration fixtures.
 

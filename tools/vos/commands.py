@@ -74,7 +74,7 @@ COMMANDS: tuple[Command, ...] = (
     Command("vela", "vos.cli.vela",
             "check pure Vela prototype source and emit unqualified Gallina definitions"),
     Command("vela-parser", "vos.cli.vela_parser",
-            "build and qualify the syntax-only Menhir development parser", lane="guest"),
+            "build the Vela parser, compare migration and qualify Rocq support", lane="guest"),
     Command("worktree", "vos.cli.worktree",
             "create and verify isolated checkouts with a provider-neutral root"),
     Command("fanout", "vos.cli.fanout",

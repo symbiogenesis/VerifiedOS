@@ -12,7 +12,8 @@ let refuse kind lexbuf message =
 let opening state lexbuf token =
   state.delimiters <- state.delimiters + 1;
   if state.delimiters > Ast.max_delimiter_depth then
-    refuse "limit" lexbuf "delimiter nesting exceeds 64";
+    refuse "limit" lexbuf
+      (Printf.sprintf "delimiter nesting exceeds %d" Ast.max_delimiter_depth);
   token
 
 let closing state token =

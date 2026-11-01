@@ -14,8 +14,10 @@ exception Refusal of string * int * string
 
 let max_source_bytes = 65_536
 let max_literal_digits = 256
-let max_delimiter_depth = 64
-let max_syntax_depth = 64
+(* Raw syntax includes groups and the file/function/block/return wrappers.
+   Semantic expression and block budgets are enforced by the AST consumer. *)
+let max_delimiter_depth = 256
+let max_syntax_depth = 256
 
 let offsets first last =
   Array [Number first.Lexing.pos_cnum; Number last.Lexing.pos_cnum]
@@ -27,7 +29,7 @@ let make kind first last fields children =
   let depth = 1 + List.fold_left (fun current child -> max current child.depth) 0 children in
   if depth > max_syntax_depth then
     raise (Refusal ("limit", first.Lexing.pos_cnum,
-                    "syntax tree exceeds depth 64"));
+                    "syntax tree exceeds depth 256"));
   { syntax = Object (("kind", String kind) :: ("span", offsets first last) :: fields);
     depth }
 

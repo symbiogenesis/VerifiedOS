@@ -8,7 +8,7 @@ from pathlib import Path
 
 from filelock import Timeout
 
-from vos import vela_parser
+from vos import vela_migration, vela_parser, vela_parser_checked
 from vos.vela import VelaError
 
 
@@ -17,12 +17,19 @@ def main(argv: list[str] | None = None) -> int:
     commands = parser.add_subparsers(dest="command", required=True)
     commands.add_parser("build", help="make a fresh native parser and receipt")
     commands.add_parser("qualify", help="check independent AST/refusal fixtures and regeneration")
+    commands.add_parser("migration", help="compare generated AST translation with the retained prototype")
+    support = commands.add_parser("support", help="build and kernel-check the pinned Rocq support library")
+    support.add_argument("--archive", type=Path, help="use an already downloaded authenticated release archive")
     parse = commands.add_parser("parse", help="emit a complete located syntax tree as JSON")
     parse.add_argument("source", type=Path)
     args = parser.parse_args(argv)
     root = Path(__file__).resolve().parents[3]
     try:
-        if args.command == "qualify":
+        if args.command == "support":
+            output = vela_parser_checked.qualify(root, archive=args.archive)
+        elif args.command == "migration":
+            output = vela_migration.qualify(root)
+        elif args.command == "qualify":
             output = vela_parser.qualify(root)
         elif args.command == "build":
             output = vela_parser.build(root).receipt
@@ -37,4 +44,6 @@ def main(argv: list[str] | None = None) -> int:
         print(f"FAIL vela-parser: {error}", file=sys.stderr)
         return 1
     print(json.dumps(output, indent=2, sort_keys=True))
+    if args.command == "migration" and output["status"] != "agreed":
+        return 1
     return 0
