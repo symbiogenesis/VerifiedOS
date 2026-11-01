@@ -127,6 +127,64 @@ exhaustion. Semantic mistakes, including duplication, dropping a tracked token,
 stale snapshot use and borrowing across suspension, still parse: this entry
 supplies syntax for a future checker, not memory-safety acceptance.
 
+### Dependent elimination and library interfaces
+
+The foundation's [dependent elimination](graded-foundation.md#dependent-data-and-elimination)
+uses the existing record, union and pattern forms. An expression match has one
+or more expression arms, each terminated by a semicolon:
+
+```text
+definition Vec<byte, packet.Length> Contents(Packed<byte> packet) =
+    match (packet) as whole : Vec<byte, whole.Length> {
+        case Packed(let length, let bytes) => bytes;
+    };
+```
+
+Both expression matches and the existing statement matches accept the optional
+`as NAME : TYPE` motive. The name binds the scrutinee in the result type; branch
+substitution and resource compatibility remain checking obligations. A located
+`match_motive` node records its `name` and `type`. A match without an annotation
+has a null `motive`. Expression matches use `match_expression` and
+`expression_case` nodes with `pattern` and `value` fields; statement matches keep
+their `match` and `case` nodes and colon-delimited statement arms. Empty expression
+matches, incomplete motives and mixed arm delimiters are refused. Expression
+matches compose with calls, operators, lambdas, proofs and nested matches.
+
+Ordinary fields accept the same optional `@ GRADE` as record and constructor
+parameters, before an optional initializer. Their `grade` field is null when
+omitted. Thus a graded box or retained callback environment can use either record
+or struct presentation without a special storage primitive.
+
+Implementation declarations reuse the generic telescope and declaration
+contracts: `impl<T, grade q : NatExact> Dup<Box<T, q>> where Repeatable(T, q) { ... }`.
+Their `generics` and `contracts` fields contain the same located nodes as other
+declarations. Generic binding, instance coherence and the supplied laws are
+elaboration obligations.
+
+Callable types reuse that telescope too, for example
+`Fn<region 'loan>(scoped ref<'loan> T value) -> ()`. Their optional contracts are
+explicitly delimited after captures and effects:
+
+```text
+alias Update<T> = Fn<region 'loan>(scoped ref<'loan> T value) -> ()
+    with { requires Valid(value); restores Valid(value); };
+```
+
+The `with` block contains existing declaration contracts, each terminated by a
+semicolon. `function_type` nodes expose `generics` and `contracts` arrays, empty
+when omitted. Local binders, loan ancestry, scoped escape, callable invocation
+laws and closure disposal require checking; syntax alone grants none of them.
+The delimiters distinguish a callback's contract from its enclosing operation's
+contract without name resolution or a second contract language.
+
+Independent fixtures must distinguish the motive binder from branch binders,
+retain dependent indices, field grades, locally bound regions and contract
+ownership, and check original UTF-8 byte spans. Include malformed neighbors and
+syntax-valid examples with incompatible branches, escaping loans or invalid
+grade/resource use. Retain strict generation, pure migration and every existing
+feature row. These extensions keep ancillary boxes, cells, guards and protocols
+as ordinary library definitions over shared syntax.
+
 ### Native qualification
 
 Menhir's code backend must generate with `--strict --infer --explain`, with no
