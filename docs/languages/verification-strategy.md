@@ -821,7 +821,22 @@ The [full-language contract](#full-language-design-commitments) adds suspension,
 
 ### An Ideal Surface
 
-Call the illustrative language **Vela** in this document; the name denotes a thought experiment, not a package, reserved name or existing implementation. Every example below is original, unimplemented pseudocode: not valid C#, Rust or Idris, not checked Rocq, and not accepted by any parser or typechecker. The notation is a proposal rather than a frozen design. Together the examples show the intended end state on one grammar, from an ordinary loop to a cancellable task. The declarations and discoverability come from C#, ownership and representation control from Rust, and type-directed specification and proof construction from Idris. The examples are written against portable contracts, and the build selects the semantic instance and target profile. CHERI therefore appears in no ordinary signature, and `usize` and represented lengths obey the selected target's limits rather than the build host's word size.
+**Vela** names the proposed language. The [pure translation prototype](vela-prototype.md)
+implements a small Nat/bool function subset of this surface: public type-first
+declarations and parameters, immutable locals, explicit returns and parenthesized
+conditional blocks. Its grammar follows these conventions; resource and proof
+constructs remain unsupported.
+
+The examples below are original, unimplemented pseudocode for the wider design:
+not valid C#, Rust or Idris, not checked Rocq, and outside the prototype's accepted
+subset. The notation is a proposal rather than a frozen design. Together the examples
+show the intended end state on one grammar, from an ordinary loop to a cancellable
+task. The declarations and discoverability come from C#, ownership and representation
+control from Rust, and type-directed specification and proof construction from Idris.
+The examples are written against portable contracts, and the build selects the semantic
+instance and target profile. CHERI therefore appears in no ordinary signature, and
+`usize` and represented lengths obey the selected target's limits rather than the
+build host's word size.
 
 #### Surface Conventions
 

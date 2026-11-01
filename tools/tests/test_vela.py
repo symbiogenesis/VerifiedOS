@@ -17,10 +17,16 @@ _BOOL = "Corelib.Init.Datatypes.bool"
 _TRUE = "Corelib.Init.Datatypes.true"
 _FALSE = "Corelib.Init.Datatypes.false"
 _ORACLE = b"""module Oracle;
-fn cube(x: Nat) -> Nat { x * x * x }
-fn choose(flag: Bool, x: Nat) -> Bool {
-  let y = cube(x + 1);
-  if flag == true { y <= 9 } else { y == 0 }
+public Nat Cube(Nat x) { return x * x * x; }
+public bool Choose(bool flag, Nat x) {
+  let y = Cube(x + 1);
+  if (flag == true) {
+    let limit = 9;
+    return y <= limit;
+  } else {
+    let limit = 0;
+    if (y == limit) { return true; } else { return false; }
+  }
 }
 """
 
@@ -49,17 +55,18 @@ def _refuses(source: bytes | str, kind: str, fragment: str = "") -> VelaError:
 
 def _oracle() -> None:
     # Chosen independently of the emitter by the separate contract reviewer.
-    # cube is left associated; choose uses natural comparison and both equalities.
+    # Cube is left associated; Choose has separate branch locals and a nested exit.
     expected = (_header(_ORACLE) + "Module Vela_Oracle.\n\n"
-                f"Definition f_cube (v_x : {_NAT}) : {_NAT} :=\n"
+                f"Definition f_Cube (v_x : {_NAT}) : {_NAT} :=\n"
                 "  (Corelib.Init.Nat.mul (Corelib.Init.Nat.mul v_x v_x) v_x).\n\n"
-                f"Definition f_choose (v_flag : {_BOOL}) (v_x : {_NAT}) : {_BOOL} :=\n"
-                f"  (let v_y := (f_cube (Corelib.Init.Nat.add v_x {_nat(1)})) in "
+                f"Definition f_Choose (v_flag : {_BOOL}) (v_x : {_NAT}) : {_BOOL} :=\n"
+                f"  (let v_y := (f_Cube (Corelib.Init.Nat.add v_x {_nat(1)})) in "
                 f"(if (let vela_eq_left := v_flag in let vela_eq_right := {_TRUE} in "
                 f"if vela_eq_left then vela_eq_right else "
                 f"(if vela_eq_right then {_FALSE} else {_TRUE})) "
-                f"then (Corelib.Init.Nat.leb v_y {_nat(9)}) "
-                f"else (Corelib.Init.Nat.eqb v_y {_nat(0)}))).\n\n"
+                f"then (let v_limit := {_nat(9)} in (Corelib.Init.Nat.leb v_y v_limit)) "
+                f"else (let v_limit := {_nat(0)} in "
+                f"(if (Corelib.Init.Nat.eqb v_y v_limit) then {_TRUE} else {_FALSE})))).\n\n"
                 "End Vela_Oracle.\n")
     translation = translate(_ORACLE)
     ensure(translation.module == "Oracle", "module identity lost")
@@ -73,40 +80,42 @@ def _oracle() -> None:
 
 
 def _precedence_and_literals() -> None:
-    source = b"module Math; fn test() -> Bool { 0001 + 2 * 3 == 7 }"
+    source = b"module Math; public bool Test() { return 0001 + 2 * 3 == 7; }"
     body = (f"(Corelib.Init.Nat.eqb (Corelib.Init.Nat.add {_nat(1)} "
             f"(Corelib.Init.Nat.mul {_nat(2)} {_nat(3)})) {_nat(7)})")
     ensure(f"  {body}.\n" in translate(source).gallina,
            "arithmetic/equality precedence or decimal normalization changed")
-    source = b"module Math; fn test() -> Nat { (1 + 2) * 3 }"
+    source = b"module Math; public Nat Test() { return (1 + 2) * 3; }"
     body = f"(Corelib.Init.Nat.mul (Corelib.Init.Nat.add {_nat(1)} {_nat(2)}) {_nat(3)})"
     ensure(f"  {body}.\n" in translate(source).gallina, "parentheses lost grouping")
     wide = 2 ** 100 + 1
-    ensure(_nat(wide) in translate(f"module N; fn n() -> Nat {{ {wide} }}".encode()).gallina,
+    ensure(_nat(wide) in translate(f"module N; public Nat N() {{ return {wide}; }}".encode()).gallina,
            "mathematical natural truncated to a machine word")
-    source = b"module B; fn b() -> Bool { false } fn c() -> Bool { b() }"
+    source = b"module B; public bool B() { return false; } public bool C() { return B(); }"
     ensure(f"  {_FALSE}.\n" in translate(source).gallina, "false not emitted")
-    ensure("  f_b.\n" in translate(source).gallina, "nullary call malformed")
+    ensure("  f_B.\n" in translate(source).gallina, "nullary call malformed")
 
 
 def _scope_and_hygiene() -> None:
     source = b"""module Module;
-fn Definition(end: Nat, Type: Bool) -> Nat {
+public Nat Definition(Nat end, bool Type) {
   let nat = end;
-  if Type { let bool = nat; bool } else { let bool = 0; bool }
+  if (Type) { let Set = nat; return Set; } else { let Set = 0; return Set; }
 }
-fn invoke(Definition: Nat) -> Nat { Definition(Definition, true) }
+public Nat Invoke(Nat Definition) { return Definition(Definition, true); }
 """
     emitted = translate(source).gallina
     for fragment in ("Module Vela_Module.", "Definition f_Definition",
                      f"(v_end : {_NAT})", f"(v_Type : {_BOOL})",
-                     "(let v_nat := v_end in", "(let v_bool := v_nat in v_bool)",
+                     "(let v_nat := v_end in", "(let v_Set := v_nat in v_Set)",
                      "(f_Definition v_Definition", "End Vela_Module."):
         ensure(fragment in emitted, f"identifier hygiene lost: {fragment}")
     # A branch-local binder is gone after that branch; a fresh branch may reuse it.
-    _refuses("module M; fn f() -> Nat { let a = (let b = 1; b); b }", "name")
+    _refuses("module M; public Nat F() { if (true) { let b = 1; return b; } "
+             "else { return b; } }", "name")
     # Comments cannot enter generated code, even if they contain Gallina commands.
-    commented = "// café *) Axiom bad : False. (*\nmodule M; fn f() -> Nat { 1 }// tail\n"
+    commented = ("// café *) Axiom bad : False. (*\n"
+                 "module M; public Nat F() { return 1; }// tail\n")
     emitted = translate(commented.encode()).gallina
     ensure("Axiom" not in emitted and "café" not in emitted, "comment injected Gallina")
 
@@ -114,71 +123,98 @@ fn invoke(Definition: Nat) -> Nat { Definition(Definition, true) }
 def _typed_neighbors() -> None:
     # Each neighbor stays syntactically valid and reaches its intended premise.
     neighbors: tuple[tuple[str, str], ...] = (
-        ("fn f() -> Nat { true }", "type"),
-        ("fn f() -> Bool { 1 }", "type"),
-        ("fn f() -> Nat { if 1 { 0 } else { 1 } }", "type"),
-        ("fn f() -> Nat { if true { 0 } else { false } }", "type"),
-        ("fn f() -> Nat { true + 1 }", "type"),
-        ("fn f() -> Nat { 1 * false }", "type"),
-        ("fn f() -> Bool { true <= false }", "type"),
-        ("fn f() -> Bool { 0 == false }", "type"),
-        ("fn f(x: Nat) -> Nat { x } fn g() -> Nat { f(true) }", "type"),
-        ("fn f(x: Nat) -> Nat { x } fn g() -> Nat { f() }", "type"),
-        ("fn f(x: Nat) -> Nat { x } fn g() -> Nat { f(1, 2) }", "type"),
-        ("fn f() -> Nat { missing }", "name"),
-        ("fn f() -> Nat { missing() }", "name"),
-        ("fn f(x: Nat) -> Nat { f(x) }", "name"),
-        ("fn f() -> Nat { g() } fn g() -> Nat { 0 }", "name"),
-        ("fn f() -> Nat { 0 } fn f() -> Nat { 1 }", "name"),
-        ("fn f(x: Nat, x: Nat) -> Nat { x }", "name"),
-        ("fn f(x: Nat) -> Nat { let x = 1; x }", "name"),
-        ("fn f() -> Nat { let x = 1; let x = 2; x }", "name"),
-        ("fn f() -> Nat { let x = x; x }", "name"),
-        ("fn f(x: Nat) -> Nat { x() }", "name"),
+        ("public Nat F() { return true; }", "type"),
+        ("public bool F() { return 1; }", "type"),
+        ("public Nat F() { if (1) { return 0; } else { return 1; } }", "type"),
+        ("public Nat F() { if (true) { return 0; } else { return false; } }", "type"),
+        ("public Nat F() { if (true) { return false; } else { return true; } }", "type"),
+        ("public Nat F() { return true + 1; }", "type"),
+        ("public Nat F() { return 1 * false; }", "type"),
+        ("public bool F() { return true <= false; }", "type"),
+        ("public bool F() { return 0 == false; }", "type"),
+        ("public Nat F(Nat x) { return x; } public Nat G() { return F(true); }", "type"),
+        ("public Nat F(Nat x) { return x; } public Nat G() { return F(); }", "type"),
+        ("public Nat F(Nat x) { return x; } public Nat G() { return F(1, 2); }", "type"),
+        ("public Nat F() { return missing; }", "name"),
+        ("public Nat F() { return Missing(); }", "name"),
+        ("public Nat F(Nat x) { return F(x); }", "name"),
+        ("public Nat F() { return G(); } public Nat G() { return 0; }", "name"),
+        ("public Nat F() { return 0; } public Nat F() { return 1; }", "name"),
+        ("public Nat F(Nat x, Nat x) { return x; }", "name"),
+        ("public Nat F(Nat x) { let x = 1; return x; }", "name"),
+        ("public Nat F() { let x = 1; let x = 2; return x; }", "name"),
+        ("public Nat F() { let x = x; return x; }", "name"),
+        ("public Nat F(Nat x) { return x(); }", "name"),
     )
     for body, kind in neighbors:
         _refuses("module M; " + body, kind)
 
 
 def _syntax_and_locations() -> None:
-    for source in ("", "module M;", "module M; fn f() -> Nat { 1 } garbage",
-                   "module M; fn f() -> Nat { 1 } module N;",
-                   "module M; fn f() -> Nat { 1 <= 2 <= 3 }",
-                   "module M; fn f() -> Nat { -1 }",
-                   'module M; fn f() -> Nat { "Axiom injected" }',
-                   "module M; fn f() -> Nat { 1 } (* arbitrary *)",
-                   "module M; fn f() -> Nat { 1 / 2 }",
-                   "module M; fn f() -> Nat { if true { 0 } }",
-                   "module M; fn f(x) -> Nat { x }",
-                   "module M; fn f() -> Nat { 1, 2 }"):
+    for source in ("", "module M;", "module M; public Nat F() { return 1; } garbage",
+                   "module M; public Nat F() { return 1; } module N;",
+                   "module M; public Nat F() { return 1 <= 2 <= 3; }",
+                   "module M; public Nat F() { return -1; }",
+                   'module M; public Nat F() { return "Axiom injected"; }',
+                   "module M; public Nat F() { return 1; } (* arbitrary *)",
+                   "module M; public Nat F() { return 1 / 2; }",
+                   "module M; public Nat F() { if (true) { return 0; } }",
+                   "module M; public Nat F() { return 1, 2; }"):
         _refuses(source, "syntax")
-    _refuses("module M; async fn f() -> Nat { 1 }", "unsupported")
-    _refuses("module M; fn f() -> Nat { await 1 }", "unsupported")
+    _refuses("module M; public async Nat F() { return 1; }", "unsupported")
+    _refuses("module M; public Nat F() { return await 1; }", "unsupported")
+    _refuses("module M; public Nat F() requires true { return 1; }", "unsupported")
     _refuses(b"module M;\n// invalid \xff\n", "encoding")
-    _refuses("module M; fn café() -> Nat { 0 }", "syntax")
-    error = _refuses("module M;\r\nfn f() -> Nat {\r\n  missing\r\n}", "name")
-    ensure((error.line, error.column) == (3, 3), "CRLF source location drifted")
+    _refuses("module M; public Nat Café() { return 0; }", "syntax")
+    error = _refuses("module M;\r\npublic Nat F() {\r\n  return missing;\r\n}", "name")
+    ensure((error.line, error.column) == (3, 10), "CRLF source location drifted")
+
+
+def _surface_and_exits() -> None:
+    for source in ("public Nat F() {}", "public Nat F() { let x = 1; }",
+                   "public Nat F() { return 1 }", "public Nat F() { 1 }",
+                   "public Nat F() { return 1; return 2; }",
+                   "public Nat F() { if (true) {} else { return 1; } }",
+                   "public Nat F() { if true { return 0; } else { return 1; } }",
+                   "public Nat F() { if (true) { return 0; } else { return 1; } return 2; }",
+                   "public Nat F() { let x = if (true) { return 0; } else { return 1; }; return x; }",
+                   "public Nat F() { return (let x = 1; x); }",
+                   "public Nat F(Nat x) -> Nat { return x; }",
+                   "public Nat F(x: Nat) { return x; }"):
+        # A removed spelling may be an unsupported token or a syntax mismatch.
+        try:
+            translate(("module M; " + source).encode())
+        except VelaError as error:
+            ensure(error.kind in {"syntax", "unsupported"}, f"wrong surface failure: {error}")
+        else:
+            raise AssertionError(f"invalid surface accepted: {source}")
+    _refuses("module M; fn F(x: Nat) -> Nat { x }", "unsupported")
+    _refuses("module M; public Bool F() { return true; }", "unsupported")
 
 
 def _limits() -> None:
     _refuses(b" " * (MAX_SOURCE_BYTES + 1), "limit")
-    _refuses("module M; fn f() -> Nat { " + "9" * 257 + " }", "limit")
-    _refuses("module M; fn f() -> Nat { " + "(" * 2000 + "0" + ")" * 2000 + " }",
+    _refuses("module M; public Nat F() { return " + "9" * 257 + "; }", "limit")
+    _refuses("module M; public Nat F() { return " + "(" * 2000 + "0" + ")" * 2000 + "; }",
              "limit")
-    _refuses("module M; fn f() -> Nat { " + " + ".join(["1"] * 2000) + " }", "limit")
+    _refuses("module M; public Nat F() { return " + " + ".join(["1"] * 2000) + "; }", "limit")
     bindings = " ".join(f"let x{i} = {i};" for i in range(1000))
-    _refuses("module M; fn f() -> Nat { " + bindings + " 0 }", "limit")
+    _refuses("module M; public Nat F() { " + bindings + " return 0; }", "limit")
+    nested = "return 0;"
+    for _ in range(200):
+        nested = f"if (true) {{ {nested} }} else {{ return 1; }}"
+    _refuses("module M; public Nat F() { " + nested + " }", "limit")
     # Nested Boolean equality must not duplicate its right operand exponentially.
     expression = "false"
     for _ in range(30):
         expression = f"true == ({expression})"
-    emitted = translate(f"module M; fn f() -> Bool {{ {expression} }}".encode()).gallina
+    emitted = translate(f"module M; public bool F() {{ return {expression}; }}".encode()).gallina
     ensure(len(emitted) < 20_000, "small Boolean expression expanded exponentially")
 
 
 def _source_binding() -> None:
     first = translate(_ORACLE).gallina
-    changed = _ORACLE.replace(b"y <= 9", b"y <= 8")
+    changed = _ORACLE.replace(b"y <= limit", b"y == limit")
     ensure(translate(changed).gallina != first, "semantic edit reused stale output")
     comment = _ORACLE + b"// comment\r\n"
     second = translate(comment).gallina
@@ -210,7 +246,7 @@ def _cli_publication() -> None:
         ensure(code == 0 and not out and not err, "file publication failed")
         original = output.read_bytes()
         ensure(original == translate(_ORACLE).gallina.encode(), "published bytes differ")
-        source.write_bytes(b"module Broken; fn f() -> Nat { true }")
+        source.write_bytes(b"module Broken; public Nat F() { return true; }")
         code, out, err = _invoke(["emit", str(source), "--output", str(output)])
         ensure(code == 1 and not out and ": type:" in err, "rejected source emitted output")
         ensure(output.read_bytes() == original, "rejected source clobbered previous output")
@@ -244,5 +280,6 @@ def cases() -> list[Case]:
             Case("scope-and-hygiene", _scope_and_hygiene),
             Case("typed-negative-neighbors", _typed_neighbors),
             Case("syntax-and-locations", _syntax_and_locations),
+            Case("proposed-surface-and-terminal-returns", _surface_and_exits),
             Case("bounded-inputs", _limits), Case("exact-source-binding", _source_binding),
             Case("cli-publication", _cli_publication)]

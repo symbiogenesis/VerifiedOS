@@ -3312,7 +3312,7 @@ The following owner keys are proposals, not schedule IDs or proof constants. Eac
 ### Vela whole-system authoring proposal
 
 The [pure translation prototype](docs/languages/vela-prototype.md) is Q25e's
-separately commissioned first executable tool. Its Nat/Bool fragment denotes
+separately commissioned first executable tool. Its Nat/bool fragment denotes
 generated CIC terms and exercises parsing, explicit checking and Gallina emission.
 The next prototype increment is pinned-kernel replay of generated definitions and
 independently expected evaluations, followed by checked source correspondence;

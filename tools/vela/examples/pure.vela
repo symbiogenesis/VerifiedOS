@@ -2,9 +2,22 @@
 // Mathematical naturals and booleans; development prototype, unqualified.
 module Oracle;
 
-fn cube(x: Nat) -> Nat { x * x * x }
+public Nat Cube(Nat x)
+{
+  return x * x * x;
+}
 
-fn choose(flag: Bool, x: Nat) -> Bool {
-  let y = cube(x + 1);
-  if flag == true { y <= 9 } else { y == 0 }
+public bool Choose(bool flag, Nat x)
+{
+  let y = Cube(x + 1);
+  if (flag == true)
+  {
+    let limit = 9;
+    return y <= limit;
+  }
+  else
+  {
+    let limit = 0;
+    if (y == limit) { return true; } else { return false; }
+  }
 }
