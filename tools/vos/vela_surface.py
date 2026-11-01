@@ -45,6 +45,8 @@ public type[ResultType(value)] Select(type[InputType()] value) {
     let typed = Fn(type[CallbackInput()] selected) -> type[OutputType(selected)]
         with { restores Closed(selected); } => selected;
     Box<type[GenericType(value)]> boxed = source;
+    Box<type[match (flag) { case true => type Nat; case false => type bool; }]> choiceBox = source;
+    let nestedCallback = (Box<type[match (callbackFlag) { case true => type Nat; case false => type bool; }]> item) => item;
     let generic = Apply::<type[CallType(value)]>(local);
     return local;
 }
@@ -95,10 +97,15 @@ inductive Never {}
 definition T Absurd<T>(Never impossible) = match (impossible) as whole : T {};
 alias EmptyFamily<ghost Never empty> = type[match (empty) as witness : Type<u> {}];
 public T Eliminate<T>(Never absent) { return match (absent) {}; }
-public void Use(Never missing) {
+public void Use(Never missing, Never last) {
     let nested = Apply((match (missing) {}));
     let callback = (Never denied) => (match (denied) as dead : () {});
     match (missing) {}
+    match (missing) {};
+    match (missing) {} (missing);
+    match (missing) {} -1;
+    match (missing) {} { return; }
+    let combined = (match (last) {}).Member(0) + 1;
 }
 """, ("inductive", "group", "match_expression", "match_motive", "computed_type", "lambda", "match")),
     Fixture("family-type-errors-remain-syntax", """module InvalidFamilies;
@@ -897,6 +904,8 @@ NEGATIVE: tuple[tuple[str, bytes, str], ...] = (
     ("empty-match-missing-motive-name", b"module M; definition T F() = (match (x) as : T {});", "syntax"),
     ("empty-match-missing-motive-type", b"module M; definition T F() = (match (x) as p : {});", "syntax"),
     ("empty-match-missing-motive-colon", b"module M; definition T F() = (match (x) as p T {});", "syntax"),
+    ("empty-match-ungrouped-operator", b"module M; definition Nat F() = match (x) {} + 1;", "syntax"),
+    ("empty-match-ungrouped-postfix", b"module M; definition Nat F() = match (x) {}.Member();", "syntax"),
     ("local-inferred-missing-grade", b"module M; void F() { let value @ = Make(); }", "syntax"),
     ("local-var-missing-grade", b"module M; void F() { var Nat value @ = Make(); }", "syntax"),
     ("local-bare-missing-grade", b"module M; void F() { Nat value @ = Make(); }", "syntax"),
@@ -1303,6 +1312,16 @@ def _computed_type_roles(source: bytes, result: dict[str, Json]) -> None:
     boxed = _named(function, "typed_local", "boxed")
     _computed_type(source, _type_head(boxed.get("type"), "Box", 1)[0],
                    b"type[GenericType(value)]", "GenericType")
+    choice = _named(function, "typed_local", "choiceBox")
+    callback = _object(_named(function, "let", "nestedCallback").get("value"), "nested computed callback")
+    parameter = _named(callback.get("parameters"), "lambda_parameter", "item")
+    for owner, scrutinee in ((choice, "flag"), (parameter, "callbackFlag")):
+        computed = _object(_type_head(owner.get("type"), "Box", 1)[0], "nested computed annotation")
+        match = _object(computed.get("value"), "nested annotation match")
+        if computed.get("kind") != "computed_type" or match.get("kind") != "match_expression":
+            raise ValueError("surface nested computed annotation lost its match")
+        _exact_span(source, computed,
+                    ("type[match (" + scrutinee + ") { case true => type Nat; case false => type bool; }]").encode())
     application = next(node for node in nodes(function) if node.get("kind") == "generic_application")
     argument = _sequence(application.get("arguments"), "computed generic application arguments")[0]
     _computed_type(source, argument, b"type[CallType(value)]", "CallType")
@@ -1410,6 +1429,25 @@ def _empty_elimination_roles(source: bytes, result: dict[str, Json]) -> None:
     callback = _object(_named(use, "let", "callback").get("value"), "empty elimination callback")
     callback_body = _object(callback.get("body"), "grouped callback elimination")
     _exact_span(source, callback_body, b"(match (denied) as dead : () {})")
+    body = _object(use.get("body"), "empty elimination statement body")
+    statements = [_object(value, "empty elimination statement")
+                  for value in _sequence(body.get("statements"), "empty elimination statements")]
+    if [value.get("kind") for value in statements] != [
+            "let", "let", "match", "expression_statement", "match", "expression_statement",
+            "match", "expression_statement", "match", "block", "let"]:
+        raise ValueError("surface empty match consumed a following statement")
+    for statement, kind in ((statements[3], "match_expression"), (statements[5], "group"), (statements[7], "unary")):
+        if _object(statement.get("value"), "empty match statement boundary").get("kind") != kind:
+            raise ValueError("surface empty match confused statement and expression continuations")
+    combined = _object(_named(use, "let", "combined").get("value"), "grouped empty match arithmetic")
+    if combined.get("kind") != "binary" or _object(combined.get("operator"), "empty match operator").get("text") != "+":
+        raise ValueError("surface grouped empty match lost its arithmetic")
+    call = _object(combined.get("left"), "grouped empty match call")
+    member = _object(call.get("callee"), "grouped empty match member")
+    group = _object(member.get("value"), "grouped empty match receiver")
+    if call.get("kind") != "call" or member.get("kind") != "member" or group.get("kind") != "group":
+        raise ValueError("surface grouped empty match lost postfix composition")
+    _exact_span(source, group, b"(match (last) {})")
 
 
 def _local_grade_roles(source: bytes, result: dict[str, Json]) -> None:
