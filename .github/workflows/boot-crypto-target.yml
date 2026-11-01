@@ -2,7 +2,8 @@
 # M7.1f's complete boot signature target campaign on hosted Linux; see
 # firmware/crypto/README.md for its contract. The contained compiler never runs
 # here: firmware/crypto/target/ holds its staged streams, bound by their manifest
-# to the compiler build and the source bytes. Each interface runs on its own runner,
+# to the compiler build and the source bytes. A trusted plan checks revision, timeout
+# and strict staging before allocating interface runners. Each interface has its runner,
 # which builds the model and executes that interface's positive and refusals; the
 # campaign job joins the five shard receipts. Pushes to main that change the staged
 # streams or this workflow start it; manual dispatch runs from main, and its optional
@@ -47,7 +48,8 @@ env:
   PYTHONUTF8: "1"
   PYTHONUNBUFFERED: "1"
   CAMPAIGN_REVISION: ${{ inputs.revision || github.sha }}
-  CASE_TIMEOUT: ${{ inputs.case_timeout || 9000 }}
+  # Preserve an explicit zero so the trusted plan refuses it.
+  CASE_TIMEOUT: ${{ github.event_name == 'workflow_dispatch' && format('{0}', inputs.case_timeout) || '9000' }}
   GUEST_TIME: 'real %e\nuser %U\nsys %S\nmaxrss_kb %M'
 
 defaults:
@@ -56,8 +58,86 @@ defaults:
     shell: bash
 
 jobs:
+  plan:
+    name: boot-crypto-target (plan)
+    runs-on: ubuntu-26.04
+    timeout-minutes: 10
+    outputs:
+      case_timeout: ${{ steps.timeout.outputs.case_timeout }}
+    steps:
+      # Validate with the dispatching commit before checking out requested code.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+          submodules: false
+
+      - name: Verify dispatched revision belongs to main
+        id: dispatch
+        shell: python
+        env:
+          REQUESTED_REVISION: ${{ inputs.revision || github.sha }}
+          DISPATCH_REF: ${{ github.ref }}
+          DISPATCH_MAIN_SHA: ${{ github.sha }}
+        run: |
+          import os
+          import re
+          import subprocess
+
+          revision = os.environ["REQUESTED_REVISION"]
+          if os.environ["DISPATCH_REF"] != "refs/heads/main" or not re.fullmatch(r"[0-9a-f]{40}", revision):
+              raise SystemExit("Campaign must use main and a full lowercase commit SHA")
+          actual = subprocess.check_output(["git", "rev-parse", "--verify", "--end-of-options",
+                                            f"{revision}^{{commit}}"], text=True).strip()
+          if actual != revision:
+              raise SystemExit("Requested revision names no exact commit")
+          subprocess.run(["git", "merge-base", "--is-ancestor", revision,
+                          os.environ["DISPATCH_MAIN_SHA"]], check=True)
+
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version-file: tools/pyproject.toml
+
+      - uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
+        with:
+          version-file: tools/pyproject.toml
+          enable-cache: true
+          save-cache: false
+          cache-suffix: guest-gates
+          cache-dependency-glob: |
+            tools/pyproject.toml
+            tools/uv.lock
+
+      - name: Validate and normalize the case timeout
+        id: timeout
+        # This helper belongs to the dispatching commit; older requested revisions
+        # need only the stream verifier they already own, not this new helper.
+        run: |
+          uv run --project tools --locked --exact --no-python-downloads \
+            python tools/ci/boot_crypto_plan.py --timeout-only \
+            --timeout "$CASE_TIMEOUT" --github-output "$GITHUB_OUTPUT"
+
+      - name: Check out the planned revision
+        shell: python
+        env:
+          REQUESTED_REVISION: ${{ inputs.revision || github.sha }}
+        run: |
+          import os
+          import subprocess
+
+          subprocess.run(["git", "checkout", "--detach", os.environ["REQUESTED_REVISION"]], check=True)
+
+      - name: Verify campaign readiness
+        id: ready
+        # The requested revision's strict acceptance command owns its staged inputs.
+        run: python tools/run.py boot-crypto verify
+
   interface:
     name: boot-crypto-target (${{ matrix.mode }})
+    needs: plan
+    env:
+      CASE_TIMEOUT: ${{ needs.plan.outputs.case_timeout }}
     runs-on: ubuntu-26.04
     # Two phases of at most one case timeout each, after bootstrap and the model build.
     timeout-minutes: 355
@@ -122,67 +202,20 @@ jobs:
           fi
           python3 tools/run.py boot-crypto verify
 
-      - name: Identify the runner image
-        id: image
-        run: echo "version=${ImageOS:-unknown}-${ImageVersion:-unknown}" >> "$GITHUB_OUTPUT"
-
-      - name: Identify the toolchain recipe
-        id: recipe
-        # The model lane's selection, Sail and Verilator, though this job bootstraps Sail
-        # alone: the identity names the installation the restored cache holds.
-        run: |
-          identity=$(python3 tools/ci/bootstrap_guest.py --print-recipe-identity \
-            --toolchain sail --toolchain rtl)
-          if [[ ! "$identity" =~ ^[0-9a-f]{64}$ ]]; then
-            echo "::error::bootstrap printed no toolchain recipe identity: $identity"
-            exit 1
-          fi
-          echo "identity=$identity" >> "$GITHUB_OUTPUT"
-
-      - name: Restore installed toolchains
-        # Guest CI's model-lane installation, restored read-only: the key and the path
-        # list must equal guest-gates.yml's for its saved cache to match.
-        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      - name: Check out the trusted target setup action
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          path: |
-            ~/verifiedos-guest/.verifiedos-guest-root
-            ~/verifiedos-guest/opam
-            !~/verifiedos-guest/opam/download-cache
-            !~/verifiedos-guest/opam/log
-            ~/verifiedos-guest/build/toolchains
-          key: guest-toolchains-v1-model-${{ runner.os }}-${{ runner.arch }}-${{ steps.image.outputs.version }}-${{ steps.recipe.outputs.identity }}
+          ref: ${{ github.sha }}
+          path: .target-ci
+          sparse-checkout: .github/actions/setup-target-sail
+          persist-credentials: false
+          submodules: false
 
-      - name: Bootstrap the Sail toolchain
-        id: bootstrap
-        timeout-minutes: 120
-        run: |
-          /usr/bin/time -f "$GUEST_TIME" python3 tools/ci/bootstrap_guest.py \
-            --root "$HOME/verifiedos-guest" --install-system --toolchain sail \
-            --github-env "$GITHUB_ENV" --github-path "$GITHUB_PATH" \
-            2>&1 | tee "$RUNNER_TEMP/guest-bootstrap-console.log"
-
-      - name: Identify the Sail solver
-        id: solver
-        # The memo only accelerates the build; without an identity the build runs cold.
-        continue-on-error: true
-        run: |
-          python3 - >> "$GITHUB_OUTPUT" <<'PY'
-          import json
-          import os
-          from pathlib import Path
-
-          record = json.loads((Path(os.environ["VOS_LOG_DIR"]) / "bootstrap.json").read_text(encoding="utf-8"))
-          print(f"identity=sail-{record['sail']}-z3-{record['z3']}-{record['snapshots']['sail'][:16]}")
-          PY
-
-      - name: Restore the Sail memo
-        if: ${{ steps.solver.outcome == 'success' }}
-        # guest-gates.yml's memo under the same solver identity; misses cost time only.
-        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: ${{ env.VOS_BUILD_DIR }}/model/sail_smt_cache
-          key: guest-sail-memo-v1-${{ runner.os }}-${{ runner.arch }}-${{ steps.image.outputs.version }}-${{ steps.solver.outputs.identity }}-${{ hashFiles('model/model/**') }}
-          restore-keys: guest-sail-memo-v1-${{ runner.os }}-${{ runner.arch }}-${{ steps.image.outputs.version }}-${{ steps.solver.outputs.identity }}-
+      - name: Set up the target Sail toolchain
+        # The dispatching commit owns the action, including for older pinned revisions.
+        # Its commands use this runner's verified requested checkout.
+        uses: ./.target-ci/.github/actions/setup-target-sail
+        timeout-minutes: 125
 
       - name: Build the model
         timeout-minutes: 60
@@ -223,9 +256,9 @@ jobs:
 
   campaign:
     name: boot-crypto-target
-    needs: interface
+    needs: [plan, interface]
     # A shard that failed still leaves its receipt; the join records or refuses it.
-    if: ${{ !cancelled() }}
+    if: ${{ !cancelled() && needs.plan.result == 'success' }}
     runs-on: ubuntu-26.04
     timeout-minutes: 15
     steps:

@@ -211,67 +211,20 @@ jobs:
           fi
           python3 tools/run.py boot-handoff chain-verify
 
-      - name: Identify the runner image
-        id: image
-        run: echo "version=${ImageOS:-unknown}-${ImageVersion:-unknown}" >> "$GITHUB_OUTPUT"
-
-      - name: Identify the toolchain recipe
-        id: recipe
-        # The model lane's selection, Sail and Verilator, though this job bootstraps Sail
-        # alone: the identity names the installation the restored cache holds.
-        run: |
-          identity=$(python3 tools/ci/bootstrap_guest.py --print-recipe-identity \
-            --toolchain sail --toolchain rtl)
-          if [[ ! "$identity" =~ ^[0-9a-f]{64}$ ]]; then
-            echo "::error::bootstrap printed no toolchain recipe identity: $identity"
-            exit 1
-          fi
-          echo "identity=$identity" >> "$GITHUB_OUTPUT"
-
-      - name: Restore installed toolchains
-        # Guest CI's model-lane installation, restored read-only: the key and the path
-        # list must equal guest-gates.yml's for its saved cache to match.
-        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      - name: Check out the trusted target setup action
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          path: |
-            ~/verifiedos-guest/.verifiedos-guest-root
-            ~/verifiedos-guest/opam
-            !~/verifiedos-guest/opam/download-cache
-            !~/verifiedos-guest/opam/log
-            ~/verifiedos-guest/build/toolchains
-          key: guest-toolchains-v1-model-${{ runner.os }}-${{ runner.arch }}-${{ steps.image.outputs.version }}-${{ steps.recipe.outputs.identity }}
+          ref: ${{ github.sha }}
+          path: .target-ci
+          sparse-checkout: .github/actions/setup-target-sail
+          persist-credentials: false
+          submodules: false
 
-      - name: Bootstrap the Sail toolchain
-        id: bootstrap
-        timeout-minutes: 120
-        run: |
-          /usr/bin/time -f "$GUEST_TIME" python3 tools/ci/bootstrap_guest.py \
-            --root "$HOME/verifiedos-guest" --install-system --toolchain sail \
-            --github-env "$GITHUB_ENV" --github-path "$GITHUB_PATH" \
-            2>&1 | tee "$RUNNER_TEMP/guest-bootstrap-console.log"
-
-      - name: Identify the Sail solver
-        id: solver
-        # The memo only accelerates the build; without an identity the build runs cold.
-        continue-on-error: true
-        run: |
-          python3 - >> "$GITHUB_OUTPUT" <<'PY'
-          import json
-          import os
-          from pathlib import Path
-
-          record = json.loads((Path(os.environ["VOS_LOG_DIR"]) / "bootstrap.json").read_text(encoding="utf-8"))
-          print(f"identity=sail-{record['sail']}-z3-{record['z3']}-{record['snapshots']['sail'][:16]}")
-          PY
-
-      - name: Restore the Sail memo
-        if: ${{ steps.solver.outcome == 'success' }}
-        # guest-gates.yml's memo under the same solver identity; misses cost time only.
-        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: ${{ env.VOS_BUILD_DIR }}/model/sail_smt_cache
-          key: guest-sail-memo-v1-${{ runner.os }}-${{ runner.arch }}-${{ steps.image.outputs.version }}-${{ steps.solver.outputs.identity }}-${{ hashFiles('model/model/**') }}
-          restore-keys: guest-sail-memo-v1-${{ runner.os }}-${{ runner.arch }}-${{ steps.image.outputs.version }}-${{ steps.solver.outputs.identity }}-
+      - name: Set up the target Sail toolchain
+        # The dispatching commit owns the action, including for older pinned revisions.
+        # Its commands use this runner's verified requested checkout.
+        uses: ./.target-ci/.github/actions/setup-target-sail
+        timeout-minutes: 125
 
       - name: Build the model
         timeout-minutes: 60
@@ -378,61 +331,20 @@ jobs:
           fi
           python3 tools/run.py boot-handoff chain-verify
 
-      - name: Identify the runner image
-        id: image
-        run: echo "version=${ImageOS:-unknown}-${ImageVersion:-unknown}" >> "$GITHUB_OUTPUT"
-
-      - name: Identify the toolchain recipe
-        id: recipe
-        run: |
-          identity=$(python3 tools/ci/bootstrap_guest.py --print-recipe-identity \
-            --toolchain sail --toolchain rtl)
-          if [[ ! "$identity" =~ ^[0-9a-f]{64}$ ]]; then
-            echo "::error::bootstrap printed no toolchain recipe identity: $identity"
-            exit 1
-          fi
-          echo "identity=$identity" >> "$GITHUB_OUTPUT"
-
-      - name: Restore installed toolchains
-        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      - name: Check out the trusted target setup action
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          path: |
-            ~/verifiedos-guest/.verifiedos-guest-root
-            ~/verifiedos-guest/opam
-            !~/verifiedos-guest/opam/download-cache
-            !~/verifiedos-guest/opam/log
-            ~/verifiedos-guest/build/toolchains
-          key: guest-toolchains-v1-model-${{ runner.os }}-${{ runner.arch }}-${{ steps.image.outputs.version }}-${{ steps.recipe.outputs.identity }}
+          ref: ${{ github.sha }}
+          path: .target-ci
+          sparse-checkout: .github/actions/setup-target-sail
+          persist-credentials: false
+          submodules: false
 
-      - name: Bootstrap the Sail toolchain
-        id: bootstrap
-        timeout-minutes: 120
-        run: |
-          /usr/bin/time -f "$GUEST_TIME" python3 tools/ci/bootstrap_guest.py \
-            --root "$HOME/verifiedos-guest" --install-system --toolchain sail \
-            --github-env "$GITHUB_ENV" --github-path "$GITHUB_PATH" \
-            2>&1 | tee "$RUNNER_TEMP/guest-bootstrap-console.log"
-
-      - name: Identify the Sail solver
-        id: solver
-        continue-on-error: true
-        run: |
-          python3 - >> "$GITHUB_OUTPUT" <<'PY'
-          import json
-          import os
-          from pathlib import Path
-
-          record = json.loads((Path(os.environ["VOS_LOG_DIR"]) / "bootstrap.json").read_text(encoding="utf-8"))
-          print(f"identity=sail-{record['sail']}-z3-{record['z3']}-{record['snapshots']['sail'][:16]}")
-          PY
-
-      - name: Restore the Sail memo
-        if: ${{ steps.solver.outcome == 'success' }}
-        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: ${{ env.VOS_BUILD_DIR }}/model/sail_smt_cache
-          key: guest-sail-memo-v1-${{ runner.os }}-${{ runner.arch }}-${{ steps.image.outputs.version }}-${{ steps.solver.outputs.identity }}-${{ hashFiles('model/model/**') }}
-          restore-keys: guest-sail-memo-v1-${{ runner.os }}-${{ runner.arch }}-${{ steps.image.outputs.version }}-${{ steps.solver.outputs.identity }}-
+      - name: Set up the target Sail toolchain
+        # The dispatching commit owns the action, including for older pinned revisions.
+        # Its commands use this runner's verified requested checkout.
+        uses: ./.target-ci/.github/actions/setup-target-sail
+        timeout-minutes: 125
 
       - name: Build the model
         timeout-minutes: 60
@@ -533,61 +445,20 @@ jobs:
           fi
           python3 tools/run.py boot-handoff chain-verify
 
-      - name: Identify the runner image
-        id: image
-        run: echo "version=${ImageOS:-unknown}-${ImageVersion:-unknown}" >> "$GITHUB_OUTPUT"
-
-      - name: Identify the toolchain recipe
-        id: recipe
-        run: |
-          identity=$(python3 tools/ci/bootstrap_guest.py --print-recipe-identity \
-            --toolchain sail --toolchain rtl)
-          if [[ ! "$identity" =~ ^[0-9a-f]{64}$ ]]; then
-            echo "::error::bootstrap printed no toolchain recipe identity: $identity"
-            exit 1
-          fi
-          echo "identity=$identity" >> "$GITHUB_OUTPUT"
-
-      - name: Restore installed toolchains
-        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      - name: Check out the trusted target setup action
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          path: |
-            ~/verifiedos-guest/.verifiedos-guest-root
-            ~/verifiedos-guest/opam
-            !~/verifiedos-guest/opam/download-cache
-            !~/verifiedos-guest/opam/log
-            ~/verifiedos-guest/build/toolchains
-          key: guest-toolchains-v1-model-${{ runner.os }}-${{ runner.arch }}-${{ steps.image.outputs.version }}-${{ steps.recipe.outputs.identity }}
+          ref: ${{ github.sha }}
+          path: .target-ci
+          sparse-checkout: .github/actions/setup-target-sail
+          persist-credentials: false
+          submodules: false
 
-      - name: Bootstrap the Sail toolchain
-        id: bootstrap
-        timeout-minutes: 120
-        run: |
-          /usr/bin/time -f "$GUEST_TIME" python3 tools/ci/bootstrap_guest.py \
-            --root "$HOME/verifiedos-guest" --install-system --toolchain sail \
-            --github-env "$GITHUB_ENV" --github-path "$GITHUB_PATH" \
-            2>&1 | tee "$RUNNER_TEMP/guest-bootstrap-console.log"
-
-      - name: Identify the Sail solver
-        id: solver
-        continue-on-error: true
-        run: |
-          python3 - >> "$GITHUB_OUTPUT" <<'PY'
-          import json
-          import os
-          from pathlib import Path
-
-          record = json.loads((Path(os.environ["VOS_LOG_DIR"]) / "bootstrap.json").read_text(encoding="utf-8"))
-          print(f"identity=sail-{record['sail']}-z3-{record['z3']}-{record['snapshots']['sail'][:16]}")
-          PY
-
-      - name: Restore the Sail memo
-        if: ${{ steps.solver.outcome == 'success' }}
-        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: ${{ env.VOS_BUILD_DIR }}/model/sail_smt_cache
-          key: guest-sail-memo-v1-${{ runner.os }}-${{ runner.arch }}-${{ steps.image.outputs.version }}-${{ steps.solver.outputs.identity }}-${{ hashFiles('model/model/**') }}
-          restore-keys: guest-sail-memo-v1-${{ runner.os }}-${{ runner.arch }}-${{ steps.image.outputs.version }}-${{ steps.solver.outputs.identity }}-
+      - name: Set up the target Sail toolchain
+        # The dispatching commit owns the action, including for older pinned revisions.
+        # Its commands use this runner's verified requested checkout.
+        uses: ./.target-ci/.github/actions/setup-target-sail
+        timeout-minutes: 125
 
       - name: Build the model
         timeout-minutes: 60
@@ -691,61 +562,20 @@ jobs:
           fi
           python3 tools/run.py boot-handoff chain-verify
 
-      - name: Identify the runner image
-        id: image
-        run: echo "version=${ImageOS:-unknown}-${ImageVersion:-unknown}" >> "$GITHUB_OUTPUT"
-
-      - name: Identify the toolchain recipe
-        id: recipe
-        run: |
-          identity=$(python3 tools/ci/bootstrap_guest.py --print-recipe-identity \
-            --toolchain sail --toolchain rtl)
-          if [[ ! "$identity" =~ ^[0-9a-f]{64}$ ]]; then
-            echo "::error::bootstrap printed no toolchain recipe identity: $identity"
-            exit 1
-          fi
-          echo "identity=$identity" >> "$GITHUB_OUTPUT"
-
-      - name: Restore installed toolchains
-        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      - name: Check out the trusted target setup action
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          path: |
-            ~/verifiedos-guest/.verifiedos-guest-root
-            ~/verifiedos-guest/opam
-            !~/verifiedos-guest/opam/download-cache
-            !~/verifiedos-guest/opam/log
-            ~/verifiedos-guest/build/toolchains
-          key: guest-toolchains-v1-model-${{ runner.os }}-${{ runner.arch }}-${{ steps.image.outputs.version }}-${{ steps.recipe.outputs.identity }}
+          ref: ${{ github.sha }}
+          path: .target-ci
+          sparse-checkout: .github/actions/setup-target-sail
+          persist-credentials: false
+          submodules: false
 
-      - name: Bootstrap the Sail toolchain
-        id: bootstrap
-        timeout-minutes: 120
-        run: |
-          /usr/bin/time -f "$GUEST_TIME" python3 tools/ci/bootstrap_guest.py \
-            --root "$HOME/verifiedos-guest" --install-system --toolchain sail \
-            --github-env "$GITHUB_ENV" --github-path "$GITHUB_PATH" \
-            2>&1 | tee "$RUNNER_TEMP/guest-bootstrap-console.log"
-
-      - name: Identify the Sail solver
-        id: solver
-        continue-on-error: true
-        run: |
-          python3 - >> "$GITHUB_OUTPUT" <<'PY'
-          import json
-          import os
-          from pathlib import Path
-
-          record = json.loads((Path(os.environ["VOS_LOG_DIR"]) / "bootstrap.json").read_text(encoding="utf-8"))
-          print(f"identity=sail-{record['sail']}-z3-{record['z3']}-{record['snapshots']['sail'][:16]}")
-          PY
-
-      - name: Restore the Sail memo
-        if: ${{ steps.solver.outcome == 'success' }}
-        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: ${{ env.VOS_BUILD_DIR }}/model/sail_smt_cache
-          key: guest-sail-memo-v1-${{ runner.os }}-${{ runner.arch }}-${{ steps.image.outputs.version }}-${{ steps.solver.outputs.identity }}-${{ hashFiles('model/model/**') }}
-          restore-keys: guest-sail-memo-v1-${{ runner.os }}-${{ runner.arch }}-${{ steps.image.outputs.version }}-${{ steps.solver.outputs.identity }}-
+      - name: Set up the target Sail toolchain
+        # The dispatching commit owns the action, including for older pinned revisions.
+        # Its commands use this runner's verified requested checkout.
+        uses: ./.target-ci/.github/actions/setup-target-sail
+        timeout-minutes: 125
 
       - name: Build the model
         timeout-minutes: 60

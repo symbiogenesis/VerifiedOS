@@ -1122,12 +1122,14 @@ def _workflow_runs_every_case() -> None:
         found = test_fanout_ci._refused_dispatch_faults(text, job)
         ensure(not found, f"{job} runs checked-out code after a refused dispatch: {found}")
         if job != "campaign":
-            found = test_guest_report._campaign_restore_faults(gates, jobs[job])
+            found = test_guest_report._campaign_restore_faults(
+                gates, test_guest_report.TARGET_SETUP.read_text(encoding="utf-8"))
             ensure(not found, f"{job} misses the model lane's caches: {found}")
             ensure("python3 tools/run.py boot-handoff chain-verify" in jobs[job],
                    f"{job} spends runner time before verifying the staged chain")
     pinned = set(re.findall(r"uses: (\S+@[0-9a-f]{40})", CRYPTO_WORKFLOW.read_text(encoding="utf-8")))
-    ensure(set(re.findall(r"uses: (\S+)", text)) <= pinned,
+    ensure(set(re.findall(r"uses: (\S+)", text))
+           <= pinned | {"./.target-ci/.github/actions/setup-target-sail"},
            "the chain workflow runs an action the boot-crypto campaign does not pin")
     cap = re.search(r"CASE_TIMEOUT > (\d+)", text)
     steps = [int(value) for value in re.findall(
