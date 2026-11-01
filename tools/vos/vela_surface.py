@@ -62,6 +62,20 @@ public void Use() {
     let dormant = () => ();
 }
 """, ("lambda", "lambda_parameter", "binary", "tuple", "unit")),
+    Fixture("callback-expressions-in-grades", """module CallbackGrades;
+public void Declared(Nat x @ Grade.Of((Nat n) => {
+    let marker = "}; ) @";
+    let delimiter = '}';
+    /* }; ) @ */ return n;
+}));
+public void Use() {
+    let callback = (Nat x @ Grade.Of((Nat n) => {
+        let marker = "}; ) @";
+        let delimiter = '}';
+        /* }; ) @ */ return n;
+    })) => x;
+}
+""", ("parameter", "lambda_parameter", "lambda", "block", "string", "character", "return")),
     Fixture("explicit-structural-type-arguments", """module TypeArguments;
 alias Returned = Result<type (owned Packet, tracked Receipt), Error>;
 alias Function = Box<type Fn(Nat n) -> Vec<byte, n>>;
@@ -413,6 +427,8 @@ NEGATIVE: tuple[tuple[str, bytes, str], ...] = (
      + b"(let x," * 257 + b"()" + b")" * 257 + b": return; } }", "limit"),
     ("graded-lambda-lookahead-depth", b"module M; public void F() { let f = (Nat n @ "
      + b"(" * 257 + b"q" + b")" * 257 + b") => n; }", "limit"),
+    ("grade-callback-block-lookahead-depth", b"module M; public void F() { let f = (Nat x @ Grade.Of((Nat n) => "
+     + b"{" * 257 + b"return n;" + b"}" * 257 + b")) => x; }", "limit"),
     ("grouped-type-lookahead-depth", b"module M; public void F() { "
      + b"(" * 257 + b"Nat" + b")" * 257 + b" local = value; }", "limit"),
     ("missing-generic-argument", b"module M; public Result<Packet,> Parse();", "syntax"),
@@ -802,6 +818,40 @@ def _conditional_shape(value: Json) -> Json:
     raise ValueError("surface unbraced conditional lost its assignment/conditional body")
 
 
+def _callback_grade_roles(result: dict[str, Json]) -> None:
+    declaration = _named(result.get("ast"), "function", "Declared")
+    declared = _named(declaration, "parameter", "x")
+    use = _named(result.get("ast"), "function", "Use")
+    inferred = _named(use, "lambda_parameter", "x")
+    for parameter in (declared, inferred):
+        grade = _object(parameter.get("grade"), "callback-valued grade")
+        if grade.get("kind") != "call" or _texts(grade.get("callee")) != ["Grade", "Of"]:
+            raise ValueError("surface callback-valued grade detached from its binder")
+        arguments = _sequence(grade.get("arguments"), "grade callback arguments")
+        if len(arguments) != 1:
+            raise ValueError("surface grade callback call lost its argument boundary")
+        callback = _object(arguments[0], "grade callback")
+        if callback.get("kind") != "lambda":
+            raise ValueError("surface grade callback lost its lambda role")
+        nested = _sequence(callback.get("parameters"), "grade callback parameters")
+        if len(nested) != 1 or _texts(_object(nested[0], "grade callback parameter").get("name")) != ["n"]:
+            raise ValueError("surface grade callback binder was conflated with the outer binder")
+        body = _object(callback.get("body"), "grade callback block")
+        statements = _sequence(body.get("statements"), "grade callback statements")
+        if body.get("kind") != "block" or len(statements) != 3:
+            raise ValueError("surface grade lookahead lost a callback block or statement")
+        marker, delimiter, returned = [_object(value, "grade callback statement") for value in statements]
+        text = _object(marker.get("value"), "grade callback string")
+        character = _object(delimiter.get("value"), "grade callback character")
+        if (marker.get("kind") != "let" or _texts(marker.get("name")) != ["marker"]
+                or text.get("kind") != "string" or text.get("value") != '"}; ) @"'
+                or delimiter.get("kind") != "let" or _texts(delimiter.get("name")) != ["delimiter"]
+                or character.get("kind") != "character" or character.get("value") != "'}'"):
+            raise ValueError("surface grade lookahead interpreted literal delimiters as structure")
+        if returned.get("kind") != "return" or _texts(returned.get("value")) != ["n"]:
+            raise ValueError("surface grade callback lost its return after literal/comment delimiters")
+
+
 def _unbraced_if_roles(result: dict[str, Json]) -> None:
     expected: dict[str, Json] = {
         "Bare": ["if", ["ready"], ["set", "1"], None],
@@ -987,6 +1037,8 @@ def qualify(parse: Callable[[bytes], dict[str, Json]]) -> list[str]:
             _structural_annotation_roles(fixture.source.encode("utf-8"), result)
         elif fixture.name == "unbraced-conditionals-and-annotation-lookahead":
             _unbraced_if_roles(result)
+        elif fixture.name == "callback-expressions-in-grades":
+            _callback_grade_roles(result)
         passed.append(f"surface:{fixture.name}")
     for name, source, kind in NEGATIVE:
         try:
