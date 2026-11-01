@@ -400,6 +400,10 @@ NEGATIVE: tuple[tuple[str, bytes, str], ...] = (
      + b"Nat" + b")" * 257 + b";", "limit"),
     ("product-pattern-depth", b"module M; public void F() { match (p) { case "
      + b"(let x," * 257 + b"()" + b")" * 257 + b": return; } }", "limit"),
+    ("graded-lambda-lookahead-depth", b"module M; public void F() { let f = (Nat n @ "
+     + b"(" * 257 + b"q" + b")" * 257 + b") => n; }", "limit"),
+    ("grouped-type-lookahead-depth", b"module M; public void F() { "
+     + b"(" * 257 + b"Nat" + b")" * 257 + b" local = value; }", "limit"),
     ("missing-generic-argument", b"module M; public Result<Packet,> Parse();", "syntax"),
     ("incomplete-record", b"module M; public record Packet(Nat Count", "syntax"),
     ("incomplete-handler", b"module M; public Nat F() { return handle (G()) { return x =>", "syntax"),
