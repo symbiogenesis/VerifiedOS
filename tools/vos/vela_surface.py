@@ -807,7 +807,8 @@ def _conditional_shape(value: Json) -> Json:
         condition = _object(statement.get("condition"), "unbraced condition")
         if condition.get("kind") != "name":
             raise ValueError("surface conditional parentheses became a type annotation")
-        return ["if", _texts(condition), _conditional_shape(statement.get("then")),
+        names: list[Json] = list(_texts(condition))
+        return ["if", names, _conditional_shape(statement.get("then")),
                 _conditional_shape(statement.get("else"))]
     if statement.get("kind") == "assignment":
         assigned = _object(statement.get("value"), "unbraced assigned value")
