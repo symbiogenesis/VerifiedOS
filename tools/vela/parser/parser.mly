@@ -12,7 +12,7 @@ let binary first last operator left right =
 %token MODULE PUBLIC NAT BOOL LET RETURN IF ELSE TRUE FALSE
 %token LPAREN RPAREN LBRACE RBRACE SEMICOLON COMMA EQUAL PLUS STAR EQ LE EOF
 %token <string> IDENT DECIMAL
-%token PRIVATE INTERNAL ASYNC RECORD STRUCT UNION INTERFACE TRAIT IMPL IMPORT ALIAS NAMESPACE
+%token PRIVATE INTERNAL ASYNC RECORD STRUCT UNION INTERFACE TRAIT IMPL IMPORT ALIAS NAMESPACE AS
 %token OWNED MOVE IN REF GHOST TRACKED SCOPED REGION CAPTURES GRADE DOMAIN
 %token REQUIRES ENSURES RESTORES WHERE EFFECTS INVARIANT DECREASES PROGRESS
 %token VIEW GROWS TYPE PREDICATE OPERATION PROOF
@@ -160,9 +160,10 @@ s_decl:
   LBRACE members=list(s_declaration) RBRACE
     { make kind $startpos $endpos [("name", container_name); ("generics", array generics);
         ("declarations", array members)] (generics @ members) }
-| IMPL target=s_type LBRACE members=list(s_declaration) RBRACE
-    { make "impl" $startpos $endpos [("type", target.syntax); ("declarations", array members)]
-        (target :: members) }
+| IMPL generics=s_generics target=s_nonfunction_type contracts=list(s_contract) LBRACE members=list(s_declaration) RBRACE
+    { make "impl" $startpos $endpos [("type", target.syntax); ("generics", array generics);
+        ("contracts", array contracts); ("declarations", array members)]
+        (target :: generics @ contracts @ members) }
 | RECORD record_name=s_identifier generics=s_generics LPAREN
   parameters=separated_list(COMMA, s_parameter) RPAREN contracts=list(s_contract) tail=s_record_tail
     { make "record" $startpos $endpos [("name", record_name); ("generics", array generics);
@@ -223,9 +224,10 @@ s_decl:
         ("generics", array generics); ("parameters", array parameters); ("contracts", array contracts);
         ("body", optional body); ("cancel", optional cancel)]
         (result :: generics @ parameters @ contracts @ children body @ children cancel) }
-| value_type=s_type field_name=s_identifier value=option(s_value_definition) SEMICOLON
+| value_type=s_type field_name=s_identifier grade=option(s_grade) value=option(s_value_definition) SEMICOLON
     { make "field" $startpos $endpos [("name", field_name); ("type", value_type.syntax);
-        ("value", optional value)] (value_type :: children value) }
+        ("grade", optional grade); ("value", optional value)]
+        (value_type :: children grade @ children value) }
 
 s_container_kind:
   STRUCT { "struct" } | INTERFACE { "interface" } | TRAIT { "trait" }
@@ -330,12 +332,16 @@ s_type_atom:
 s_open_paren:
   LPAREN { () } | ANNOTATION_OPEN { () }
 s_function_type:
-  mode=s_function_mode LPAREN parameters=separated_list(COMMA, s_parameter) RPAREN ARROW result=s_nonfunction_type
-  captures=option(s_capture_type) effects=option(s_type_effects)
-    { make "function_type" $startpos $endpos [("mode", String mode); ("parameters", array parameters);
+  mode=s_function_mode generics=s_generics LPAREN parameters=separated_list(COMMA, s_parameter) RPAREN ARROW result=s_nonfunction_type
+  captures=option(s_capture_type) effects=option(s_type_effects) contracts=option(s_callable_contracts)
+    { let contracts = match contracts with None -> [] | Some values -> values in
+      make "function_type" $startpos $endpos [("mode", String mode); ("generics", array generics); ("parameters", array parameters);
         ("result", result.syntax); ("captures", optional captures);
-        ("effects", (match effects with None -> Array [] | Some values -> array values))]
-        (result :: parameters @ children captures @ (match effects with None -> [] | Some values -> values)) }
+        ("effects", (match effects with None -> Array [] | Some values -> array values));
+        ("contracts", array contracts)]
+        (result :: generics @ parameters @ children captures @ contracts @ (match effects with None -> [] | Some values -> values)) }
+s_callable_contracts:
+  WITH LBRACE contracts=list(terminated(s_contract, SEMICOLON)) RBRACE { contracts }
 s_function_mode:
   FN { "Fn" } | FNMUT { "FnMut" } | FNONCE { "FnOnce" }
 s_capture_type:
@@ -421,8 +427,9 @@ s_simple_statement:
 | CALC body=s_block { make "calc" $startpos $endpos [("body", body.syntax)] [body] }
 | SCOPE LPAREN values=separated_list(COMMA, s_expression) RPAREN body=s_block
     { make "scope" $startpos $endpos [("resources", array values); ("body", body.syntax)] (body :: values) }
-| MATCH LPAREN value=s_expression RPAREN LBRACE cases=list(s_match_case) RBRACE
-    { make "match" $startpos $endpos [("value", value.syntax); ("cases", array cases)] (value :: cases) }
+| MATCH LPAREN value=s_expression RPAREN motive=option(s_match_motive) LBRACE cases=list(s_match_case) RBRACE
+    { make "match" $startpos $endpos [("value", value.syntax); ("motive", optional motive);
+        ("cases", array cases)] (value :: children motive @ cases) }
 | NEXT target=s_postfix EQUAL value=s_expression SEMICOLON
     { make "next" $startpos $endpos [("target", target.syntax); ("value", value.syntax)] [target; value] }
 | target=s_expression operator=s_assignment value=s_expression SEMICOLON
@@ -458,6 +465,12 @@ s_assignment:
 s_match_case:
   CASE pattern=s_pattern COLON statements=list(s_statement)
     { make "case" $startpos $endpos [("pattern", pattern.syntax); ("statements", array statements)] (pattern :: statements) }
+s_match_motive:
+  AS scrutinee=s_identifier COLON value_type=s_type
+    { make "match_motive" $startpos $endpos [("name", scrutinee); ("type", value_type.syntax)] [value_type] }
+s_match_expression_case:
+  CASE pattern=s_pattern FATARROW value=s_expression SEMICOLON
+    { make "expression_case" $startpos $endpos [("pattern", pattern.syntax); ("value", value.syntax)] [pattern; value] }
 s_pattern:
   LET binding_name=s_identifier { make "binding_pattern" $startpos $endpos [("name", binding_name)] [] }
 | constructor_name=s_path arguments=option(s_pattern_arguments)
@@ -578,6 +591,10 @@ s_atom:
 | LPAREN value=s_expression RPAREN { make "group" $startpos $endpos [("value", value.syntax)] [value] }
 | LPAREN first=s_expression COMMA rest=separated_nonempty_list(COMMA, s_expression) RPAREN
     { make "tuple" $startpos $endpos [("values", array (first :: rest))] (first :: rest) }
+| MATCH LPAREN value=s_expression RPAREN motive=option(s_match_motive)
+  LBRACE cases=nonempty_list(s_match_expression_case) RBRACE
+    { make "match_expression" $startpos $endpos [("value", value.syntax); ("motive", optional motive);
+        ("cases", array cases)] (value :: children motive @ cases) }
 | kind=s_handle_kind shallow=option(SHALLOW) LPAREN value=s_expression RPAREN
   LBRACE clauses=s_handler_clauses RBRACE
     { make kind $startpos $endpos [("shallow", Boolean (shallow <> None));
