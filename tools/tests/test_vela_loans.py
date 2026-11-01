@@ -117,6 +117,34 @@ def _field_partitions_and_unknowns() -> None:
     _refuses(lambda: analyze(owner, Graph("entry", (Node("entry"),))), "unknown")
 
 
+def _unknown_footprints_without_competitors() -> None:
+    indexed = Place("workspace", ("bytes", "*"))
+    path = _path(Borrow(Loan("reader", "workspace", indexed)),
+                 Access(indexed, via="reader"))
+    ensure(not path.issues, "unknown projection was mislabeled as definitely outside its grant")
+    residuals = {(item.node, item.kind) for item in path.obligations}
+    ensure({("n0", "unknown-footprint"), ("n1", "unknown-footprint"),
+            ("n1", "footprint-containment")} <= residuals,
+           "a lone loan/access assumed equal unknown indices without a specific residual")
+    direct = _path(Access(indexed))
+    ensure(any(item.kind == "unknown-footprint" for item in direct.obligations),
+           "direct owner projection silently resolved its unknown footprint")
+    named = Place("workspace", ("bytes", "element"))
+    for parent, child in ((indexed, named), (named, indexed)):
+        path = _path(Borrow(Loan("writer", "workspace", parent, "exclusive")),
+                     Borrow(Loan("reader", "writer", child)), Access(child, via="reader"))
+        ensure("reborrow-outside-parent" not in _kinds(path)
+               and any(item.node == "n1" and item.kind == "footprint-containment"
+                       for item in path.obligations),
+               "unknown/named reborrow relation was reported as definitely outside or contained")
+    shared_write = _path(Borrow(Loan("reader", "workspace", indexed)),
+                         Access(indexed, "write", "reader"))
+    ensure("write-through-shared" in _kinds(shared_write),
+           "an unknown footprint concealed the independent shared-write violation")
+    malformed = _graph(Borrow(Loan("reader", "workspace", Place("workspace", ("bytes", "**")))))
+    _refuses(lambda: analyze(_OWNERS, malformed), "normalized identifiers")
+
+
 def _shared_and_exclusive_grants() -> None:
     shared = _path(Borrow(Loan("first", "workspace", _BYTES)),
                    Borrow(Loan("second", "workspace", _BYTES)), Use("first"), Use("second"))
@@ -205,6 +233,26 @@ def _branch_alternatives_and_returned_wrappers() -> None:
     present, absent = analyze(_OWNERS, graph).paths
     ensure(not present.issues and "unavailable-name" in _kinds(absent),
            "join invented a loan defined only on the sibling path")
+
+
+def _drop_is_availability_only() -> None:
+    direct = _path(Borrow(Loan("reader", "workspace", _BYTES)), Use("reader"),
+                   Access(_BYTES, "write"), Drop("reader"))
+    ensure(not direct.issues and _ends(direct) == [("n1", "reader", "workspace")],
+           "availability-only drop extended the loan beyond its actual last use")
+    wrapper = _path(Borrow(Loan("reader", "workspace", _BYTES)), Bind("wrapper", ("reader",)),
+                    Use("wrapper"), Access(_BYTES, "write"), Drop("wrapper"), Drop("reader"))
+    ensure(not wrapper.issues and _ends(wrapper) == [("n2", "reader", "workspace")],
+           "dropping a wrapper extended its captured loan after the wrapper's last use")
+    retained = _path(Borrow(Loan("reader", "workspace", _BYTES)), Bind("inner", ("reader",)),
+                     Bind("outer", ("inner",)), Drop("inner"), Drop("reader"),
+                     Access(_BYTES, "write"), Use("outer"), Drop("outer"))
+    ensure([(issue.node, issue.kind) for issue in retained.issues] == [("n5", "suspended-parent")]
+           and _ends(retained) == [("n6", "reader", "workspace")],
+           "dropping original descriptors ended a loan retained by another live wrapper")
+    stale = _path(Borrow(Loan("reader", "workspace", _BYTES)), Drop("reader"), Drop("reader"))
+    ensure([(issue.node, issue.kind) for issue in stale.issues] == [("n2", "unavailable-name")],
+           "demand-free drop stopped validating name availability")
 
 
 def _escape_limits_and_ancestor_duties() -> None:
@@ -300,9 +348,11 @@ def cases() -> list[Case]:
     return [Case("last-use restoration and unresolved facts", _last_use_and_residuals),
             Case("nested restoration and suspended ancestors", _nested_restoration_and_suspension),
             Case("declared field partitions and unknown overlap", _field_partitions_and_unknowns),
+            Case("unknown footprints and containment without competing loans", _unknown_footprints_without_competitors),
             Case("shared/exclusive access and reborrow grants", _shared_and_exclusive_grants),
             Case("transitive captures, moves and availability", _transitive_captures_and_moves),
             Case("branch-specific returned views and unavailable names", _branch_alternatives_and_returned_wrappers),
+            Case("availability-only drops preserve actual last use", _drop_is_availability_only),
             Case("escape restrictions and retained ancestor duties", _escape_limits_and_ancestor_duties),
             Case("owner movement and blocked routes", _owner_moves),
             Case("invariant and suspension boundaries", _invariants_and_boundaries),

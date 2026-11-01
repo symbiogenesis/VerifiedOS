@@ -403,6 +403,21 @@ def _within(child: Place, parent: Place) -> bool:
     return child.owner == parent.owner and child.fields[:len(parent.fields)] == parent.fields
 
 
+def _containment(child: Place, parent: Place) -> Overlap:
+    """A repeated unknown index spelling establishes no index identity."""
+    if child.owner != parent.owner:
+        return "no"
+    unknown = False
+    for child_field, parent_field in zip(child.fields, parent.fields, strict=False):
+        if child_field == "*" or parent_field == "*":
+            unknown = True
+        elif child_field != parent_field:
+            return "no"
+    if len(child.fields) < len(parent.fields):
+        return "unknown" if unknown else "no"
+    return "unknown" if unknown else "yes"
+
+
 def _overlap(left: Place, right: Place,
              fields_by_owner: dict[str, frozenset[tuple[str, ...]]]) -> Overlap:
     if left.owner != right.owner:
@@ -486,7 +501,7 @@ class _Path:
                     continue
                 if name not in values:
                     self.issue(node, "unavailable-name", name)
-                else:
+                elif not isinstance(event, Drop):
                     self.budget.spend(len(values[name].captures))
                     used.update(values[name].captures)
             binder = _binder(event)
@@ -564,11 +579,20 @@ class _Path:
             self.obligation(node, "overlap", place.owner, *place.fields, other)
         return overlap
 
+    def containment(self, node: Node, child: Place, parent: Place, grant: str) -> Overlap:
+        self.budget.spend()
+        relation = _containment(child, parent)
+        if relation == "unknown":
+            self.obligation(node, "footprint-containment", grant, child.owner, *child.fields)
+        return relation
+
     def borrow(self, node: Node, name: str, active: set[str], opened: set[str]) -> None:
         loan = self.loans[name]
         parent = self.parents[name]
         prior_issues = len(self.issues)
         self.obligation(node, "loan-interpretation", name, parent)
+        if "*" in loan.place.fields:
+            self.obligation(node, "unknown-footprint", name, loan.place.owner, *loan.place.fields)
         if loan.place.owner in self.moved:
             self.issue(node, "use-after-owner-move", loan.place.owner)
         if parent in self.owners:
@@ -580,7 +604,7 @@ class _Path:
                 self.issue(node, "borrow-parent-has-no-grant", name, parent)
             if parent_loan.mode == "shared" and loan.mode == "exclusive":
                 self.issue(node, "exclusive-from-shared", name, parent)
-        if not _within(loan.place, parent_place):
+        if self.containment(node, loan.place, parent_place, parent) == "no":
             self.issue(node, "reborrow-outside-parent", name, parent)
         if loan.invariant is not None and loan.invariant not in opened:
             self.issue(node, "loan-invariant-not-open", name, loan.invariant)
@@ -598,6 +622,8 @@ class _Path:
     def access(self, node: Node, event: Access, route: str | None, active: set[str]) -> None:
         self.obligation(node, "access-interpretation", event.place.owner, event.kind)
         self.obligation(node, "effect-interpretation", event.place.owner, event.kind)
+        if "*" in event.place.fields:
+            self.obligation(node, "unknown-footprint", event.place.owner, *event.place.fields)
         if event.kind != "read":
             self.obligation(node, "content-refinement-invalidation", event.place.owner)
         if event.place.owner in self.moved:
@@ -609,7 +635,7 @@ class _Path:
                 self.issue(node, "access-route-has-no-grant", route)
                 return
             loan = self.loans[route]
-            if not _within(event.place, loan.place):
+            if self.containment(node, event.place, loan.place, route) == "no":
                 self.issue(node, "access-outside-loan", route)
             if event.kind != "read" and loan.mode != "exclusive":
                 self.issue(node, "write-through-shared", route)
