@@ -106,6 +106,12 @@ of this repository at the dispatching commit supplies the referenced action.
 Focused controls refuse missing metadata, an untrusted alias and an altered pin
 inside the composite; the checker retains a mutant for a nested external action.
 
+The target alias retains workspace-relative action syntax because the reviewed
+actionlint release cannot parse GitHub's newer self-repository references. Each
+alias call documents a line-local exception to zizmor's `self-repository`
+recommendation. The checkout-provenance and dependency audits still decide its
+source; no other analyzer rule is excluded.
+
 Explicit manual Host CI dispatches have separate concurrency groups even when
 they test the same revision. Pull-request supersession and duplicate-push
 cancellation retain their existing groups. Focused controls cover those cases
