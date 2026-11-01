@@ -220,7 +220,8 @@ jobs:
           persist-credentials: false
           submodules: false
 
-      - name: Set up the target Sail toolchain
+      # The reviewed actionlint cannot parse $/; K-118 verifies this dispatch checkout.
+      - name: Set up the target Sail toolchain # zizmor: ignore[self-repository]
         # The dispatching commit owns the action, including for older pinned revisions.
         # Its commands use this runner's verified requested checkout.
         uses: ./.target-ci/.github/actions/setup-target-sail
@@ -340,7 +341,8 @@ jobs:
           persist-credentials: false
           submodules: false
 
-      - name: Set up the target Sail toolchain
+      # The reviewed actionlint cannot parse $/; K-118 verifies this dispatch checkout.
+      - name: Set up the target Sail toolchain # zizmor: ignore[self-repository]
         # The dispatching commit owns the action, including for older pinned revisions.
         # Its commands use this runner's verified requested checkout.
         uses: ./.target-ci/.github/actions/setup-target-sail
@@ -454,7 +456,8 @@ jobs:
           persist-credentials: false
           submodules: false
 
-      - name: Set up the target Sail toolchain
+      # The reviewed actionlint cannot parse $/; K-118 verifies this dispatch checkout.
+      - name: Set up the target Sail toolchain # zizmor: ignore[self-repository]
         # The dispatching commit owns the action, including for older pinned revisions.
         # Its commands use this runner's verified requested checkout.
         uses: ./.target-ci/.github/actions/setup-target-sail
@@ -571,7 +574,8 @@ jobs:
           persist-credentials: false
           submodules: false
 
-      - name: Set up the target Sail toolchain
+      # The reviewed actionlint cannot parse $/; K-118 verifies this dispatch checkout.
+      - name: Set up the target Sail toolchain # zizmor: ignore[self-repository]
         # The dispatching commit owns the action, including for older pinned revisions.
         # Its commands use this runner's verified requested checkout.
         uses: ./.target-ci/.github/actions/setup-target-sail
