@@ -23,6 +23,77 @@ class Fixture:
 
 
 POSITIVE: tuple[Fixture, ...] = (
+    Fixture("shared-operator-values", """// caf\u00e9: operators retain symbol and expression spans independently.
+module SharedOperators;
+definition Fn(Nat x, Nat y) -> Nat Addition() = (+);
+alias Computed = type[Family((+))];
+public Nat Use(Nat left, Nat right) requires Law((+)) {
+    let all = ((+), (-), (*), (/), (%), (<), (<=), (>), (>=), (==), (!=),
+               (&&), (||), (&), (|), (^), (==>), (<==>), (!), (~));
+    let direct = (+)(left, right);
+    let projected = (*).Apply(left, right);
+    let specialised = (%)::<Nat>(left, right);
+    let higher = Fold((+), 0, values);
+    let callback = (Nat item) => (-)(item);
+    let directGeneric = Apply::<(+)>();
+    let groupedGeneric = Apply::<((+))>();
+    return direct;
+}
+domain Arithmetic {
+    carrier Nat;
+    zero 0;
+    one 1;
+    add (+);
+    mul (*);
+    admits (<=);
+    interpret Identity;
+    laws ArithmeticLaws;
+}
+""", ("operator", "function_type", "computed_type", "tuple", "member", "generic_application", "lambda", "domain")),
+    Fixture("shared-operator-precedence", """module OperatorPrecedence;
+definition Nat Ladder() = 1 ==> 2 <==> 3 || 4 && 5 == 6..7 | 8 ^ 9 & 10 + 11 * 12;
+definition Nat Additive() = 20 - 6 + 2;
+definition Nat Multiplicative() = 24 / 4 % 3 * 2;
+definition Nat Disjunction() = 1 || 2 || 3;
+definition Nat Conjunction() = 1 && 2 && 3;
+definition Nat BitOr() = 1 | 2 | 3;
+definition Nat BitXor() = 1 ^ 2 ^ 3;
+definition Nat BitAnd() = 1 & 2 & 3;
+definition Nat Implication() = 1 ==> 2 ==> 3;
+definition Nat Equivalence() = 1 <==> 2 <==> 3;
+definition Nat Prefixes() = !~-1;
+definition Nat Grouping() = (-1) + (2 + 3);
+""", ("binary", "range", "unary", "group")),
+    Fixture("recursive-local-patterns", """// caf\u00e9: constructors and groups retain distinct pattern roles.
+module LocalPatterns;
+public void Eliminate() {
+    let Some(let value) = optional;
+    var Ready((let owner, let receipt)) = outcome;
+    let Result.Empty() = absent;
+    let (Some((let nested))) = wrapped;
+    let Outer(Inner(let deep), (let item, ())) = tree;
+    let ((let grouped)) = source;
+    let inferred = optional;
+    var mutable @ q = source;
+    let sharedLoan = (in ref value);
+    let exclusiveLoan = (ref ref value);
+    let Core.Box<Nat> annotated = source;
+    Core.Box<Nat> bareAnnotated = source;
+    var Core.Box<Nat> mutableAnnotated @ q = source;
+    let ref<'source> Core.Box<Nat> loanAnnotated = source;
+    let Core.Result.Ready(let qualified) = source;
+    match (optional) { case (Some((let matched))): return; }
+    let tested = optional is (Some((let testedValue)));
+    return;
+}
+public void InvalidMeaning() {
+    let Missing(let duplicate, let duplicate) = true;
+    var Ready() = 0;
+    let Some(_) = trackedToken;
+    let applyWrongArity = (+)();
+    let nonCallable = (~).Missing::<bool>(true, false);
+}
+""", ("let_pattern", "var_pattern", "constructor_pattern", "group_pattern", "tuple_pattern", "unit_pattern", "wildcard_pattern", "match", "is", "let", "var")),
     Fixture("computed-types-and-family-application", """// café: computed types retain their expression and original byte span.
 module ComputedTypes;
 universe u;
@@ -883,6 +954,36 @@ public UnknownType F() { return missing; }
 
 
 NEGATIVE: tuple[tuple[str, bytes, str], ...] = (
+    ("operator-value-missing-close", b"module M; definition T F() = (+;", "syntax"),
+    ("operator-value-mixed-symbols", b"module M; definition T F() = (+*);", "syntax"),
+    ("operator-value-plus-operand", b"module M; definition T F() = (+ 1);", "syntax"),
+    ("operator-value-assignment", b"module M; definition T F() = (=);", "syntax"),
+    ("operator-value-range", b"module M; definition T F() = (..);", "syntax"),
+    ("operator-value-propagation", b"module M; definition T F() = (?);", "syntax"),
+    ("operator-value-keyword", b"module M; definition T F() = (await);", "syntax"),
+    ("operator-generic-missing-close", b"module M; definition T F() = Apply::<(+>();", "syntax"),
+    ("operator-generic-trailing-comma", b"module M; definition T F() = Apply::<(+),>();", "syntax"),
+    ("operator-group-depth", b"module M; definition T F() = " + b"(" * 257
+     + b"(+)" + b")" * 257 + b";", "limit"),
+    ("local-constructor-incomplete-argument", b"module M; void F() { let Some(let) = value; }", "syntax"),
+    ("local-constructor-trailing-comma", b"module M; void F() { var Some(let x,) = value; }", "syntax"),
+    ("local-constructor-missing-initializer", b"module M; void F() { let Some(let x) = ; }", "syntax"),
+    ("local-constructor-grade", b"module M; void F() { let Some(let x) @ q = value; }", "syntax"),
+    ("local-qualified-constructor-missing-parentheses", b"module M; void F() { let Result.Empty = value; }", "syntax"),
+    ("local-pattern-incomplete-group", b"module M; void F() { let (let x = value; }", "syntax"),
+    ("local-pattern-group-trailing-comma", b"module M; void F() { let ((let x),) = value; }", "syntax"),
+    ("group-pattern-missing-close", b"module M; void F() { match (x) { case (Some(let value): return; } }", "syntax"),
+    ("local-constructor-pattern-depth", b"module M; void F() { let " + b"Some(" * 257
+     + b"let value" + b")" * 257 + b" = source; }", "limit"),
+    ("local-group-pattern-depth", b"module M; void F() { let " + b"(" * 257
+     + b"let value" + b")" * 257 + b" = source; }", "limit"),
+    ("local-pattern-syntax-depth", b"module M; void F() { let " + b"Some((" * 126
+     + b"let value" + b"))" * 126 + b" = source; }", "limit"),
+    *((f"nonassociative-{name}", b"module M; definition T F() = 1 " + symbol
+       + b" 2 " + symbol + b" 3;", "syntax")
+      for name, symbol in (("equal", b"=="), ("unequal", b"!="), ("less", b"<"),
+                           ("less-equal", b"<="), ("greater", b">"), ("greater-equal", b">="),
+                           ("range", b".."))),
     ("computed-type-missing-value", b"module M; alias A = type[];", "syntax"),
     ("computed-type-missing-close", b"module M; alias A = type[Family();", "syntax"),
     ("computed-type-wrong-delimiter", b"module M; alias A = type(Family());", "syntax"),
@@ -2489,6 +2590,224 @@ def _handler_roles(result: dict[str, Json]) -> None:
         raise ValueError("surface rehandle lost its own expression role")
 
 
+def _operator_value(source: bytes, value: Json, symbol: str) -> dict[str, Json]:
+    operator = _object(value, "operator value")
+    located = _object(operator.get("name"), "operator symbol")
+    span = operator.get("span")
+    if (operator.get("kind") != "operator" or located.get("text") != symbol
+            or not isinstance(span, list) or len(span) != 2):
+        raise ValueError("surface operator value lost its syntax or symbol role")
+    start, end = span
+    if (type(start) is not int or type(end) is not int
+            or source[start:end] != f"({symbol})".encode()
+            or located.get("span") != [start + 1, end - 1]):
+        raise ValueError("surface operator value or symbol original-byte span differs")
+    return operator
+
+
+def _shared_operator_roles(source: bytes, result: dict[str, Json]) -> None:
+    tree = result.get("ast")
+    returned = _object(_named(tree, "definition", "Addition").get("value"), "returned operator")
+    _operator_value(source, returned, "+")
+    function = _named(tree, "function", "Use")
+    contract = _object(_sequence(function.get("contracts"), "operator contract")[0], "operator contract")
+    law = _object(contract.get("value"), "operator law call")
+    _operator_value(source, _sequence(law.get("arguments"), "operator law arguments")[0], "+")
+    all_values = _object(_named(function, "let", "all").get("value"), "operator tuple")
+    symbols = ("+", "-", "*", "/", "%", "<", "<=", ">", ">=", "==", "!=",
+               "&&", "||", "&", "|", "^", "==>", "<==>", "!", "~")
+    values = _sequence(all_values.get("values"), "operator tuple values")
+    if all_values.get("kind") != "tuple" or len(values) != len(symbols):
+        raise ValueError("surface operator tuple omitted or regrouped a symbolic operation")
+    for value, symbol in zip(values, symbols, strict=True):
+        _operator_value(source, value, symbol)
+    direct = _object(_named(function, "let", "direct").get("value"), "direct operator call")
+    if direct.get("kind") != "call" or _texts(direct.get("arguments")) != ["left", "right"]:
+        raise ValueError("surface operator call displaced its arguments")
+    _operator_value(source, direct.get("callee"), "+")
+    projected = _object(_named(function, "let", "projected").get("value"), "projected operator call")
+    member = _object(projected.get("callee"), "operator member")
+    if member.get("kind") != "member" or _texts(member.get("name")) != ["Apply"]:
+        raise ValueError("surface operator value cannot compose with ordinary member syntax")
+    _operator_value(source, member.get("value"), "*")
+    specialised = _object(_named(function, "let", "specialised").get("value"), "specialised operator call")
+    application = _object(specialised.get("callee"), "specialised operator")
+    if application.get("kind") != "generic_application":
+        raise ValueError("surface operator generic application lost its postfix role")
+    _operator_value(source, application.get("value"), "%")
+    _type_head(_sequence(application.get("arguments"), "operator type arguments")[0], "Nat", 0)
+    higher = _object(_named(function, "let", "higher").get("value"), "higher-order call")
+    _operator_value(source, _sequence(higher.get("arguments"), "fold arguments")[0], "+")
+    callback = _object(_named(function, "let", "callback").get("value"), "operator callback")
+    callback_body = _object(callback.get("body"), "operator callback body")
+    if callback.get("kind") != "lambda" or callback_body.get("kind") != "call":
+        raise ValueError("surface operator callback lost its lambda/body boundary")
+    _operator_value(source, callback_body.get("callee"), "-")
+    for binding, grouped in (("directGeneric", False), ("groupedGeneric", True)):
+        called = _object(_named(function, "let", binding).get("value"), "generic operator call")
+        generic = _object(called.get("callee"), "generic operator application")
+        argument = _object(_sequence(generic.get("arguments"), "generic operator arguments")[0], "generic operator argument")
+        if called.get("kind") != "call" or generic.get("kind") != "generic_application":
+            raise ValueError("surface generic operator argument changed its enclosing application")
+        if grouped:
+            if argument.get("kind") != "group":
+                raise ValueError("surface explicitly grouped generic operator lost its group")
+            _exact_span(source, argument, b"((+))")
+            argument = _object(argument.get("value"), "grouped operator")
+        _operator_value(source, argument, "+")
+    computed = _object(_named(tree, "alias", "Computed").get("type"), "operator computed type")
+    family = _object(computed.get("value"), "operator type-family call")
+    if computed.get("kind") != "computed_type" or family.get("kind") != "call":
+        raise ValueError("surface operator value changed computed-type expression roles")
+    _operator_value(source, _sequence(family.get("arguments"), "operator family arguments")[0], "+")
+    domain = _named(tree, "domain", "Arithmetic")
+    entries = {_object(value, "domain entry").get("role"): _object(value, "domain entry")
+               for value in _sequence(domain.get("entries"), "domain entries")}
+    for role, symbol in (("add", "+"), ("mul", "*"), ("admits", "<=")):
+        _operator_value(source, entries[role].get("value"), symbol)
+
+
+def _operator_expression_shape(value: Json) -> Json:
+    expression = _object(value, "operator precedence expression")
+    kind = expression.get("kind")
+    if kind == "nat":
+        return ["nat", expression.get("value"), expression.get("suffix")]
+    if kind == "binary":
+        operator = _object(expression.get("operator"), "precedence symbol")
+        return [operator.get("text"), _operator_expression_shape(expression.get("left")),
+                _operator_expression_shape(expression.get("right"))]
+    if kind == "range":
+        return ["range", _operator_expression_shape(expression.get("start")),
+                _operator_expression_shape(expression.get("end"))]
+    if kind == "unary":
+        return ["unary", _object(expression.get("operator"), "prefix symbol").get("text"),
+                _operator_expression_shape(expression.get("value"))]
+    if kind == "group":
+        return ["group", _operator_expression_shape(expression.get("value"))]
+    raise ValueError(f"unexpected operator-precedence AST role: {kind}")
+
+
+def _shared_precedence_roles(result: dict[str, Json]) -> None:
+    def n(value: int) -> Json:
+        return ["nat", str(value), ""]
+
+    arithmetic: Json = ["+", n(10), ["*", n(11), n(12)]]
+    bitwise: Json = ["|", n(7), ["^", n(8), ["&", n(9), arithmetic]]]
+    comparison: Json = ["==", n(5), ["range", n(6), bitwise]]
+    logical: Json = ["||", n(3), ["&&", n(4), comparison]]
+    expected: dict[str, Json] = {
+        "Ladder": ["==>", n(1), ["<==>", n(2), logical]],
+        "Additive": ["+", ["-", n(20), n(6)], n(2)],
+        "Multiplicative": ["*", ["%", ["/", n(24), n(4)], n(3)], n(2)],
+        "Prefixes": ["unary", "!", ["unary", "~", ["unary", "-", n(1)]]],
+        "Grouping": ["+", ["group", ["unary", "-", n(1)]], ["group", ["+", n(2), n(3)]]],
+    }
+    for name, symbol in (("Disjunction", "||"), ("Conjunction", "&&"),
+                         ("BitOr", "|"), ("BitXor", "^"), ("BitAnd", "&")):
+        expected[name] = [symbol, [symbol, n(1), n(2)], n(3)]
+    for name, symbol in (("Implication", "==>"), ("Equivalence", "<==>")):
+        expected[name] = [symbol, n(1), [symbol, n(2), n(3)]]
+    for name, shape in expected.items():
+        actual = _named(result.get("ast"), "definition", name).get("value")
+        if _operator_expression_shape(actual) != shape:
+            raise ValueError(f"surface operator precedence/associativity differs for {name}")
+
+
+def _recursive_pattern_shape(value: Json) -> Json:
+    pattern = _object(value, "recursive pattern")
+    kind = pattern.get("kind")
+    if kind == "binding_pattern":
+        return ["bind", *_texts(pattern.get("name"))]
+    if kind == "constructor_pattern":
+        return ["constructor", *_texts(pattern.get("name")),
+                [_recursive_pattern_shape(child) for child in _sequence(pattern.get("arguments"), "constructor arguments")]]
+    if kind == "group_pattern":
+        return ["group", _recursive_pattern_shape(pattern.get("pattern"))]
+    if kind == "tuple_pattern":
+        return ["tuple", [_recursive_pattern_shape(child) for child in _sequence(pattern.get("patterns"), "product patterns")]]
+    if kind in {"unit_pattern", "wildcard_pattern"}:
+        return kind
+    raise ValueError(f"unexpected recursive pattern role: {kind}")
+
+
+def _recursive_local_roles(source: bytes, result: dict[str, Json]) -> None:
+    function = _named(result.get("ast"), "function", "Eliminate")
+    statements = _sequence(_object(function.get("body"), "elimination block").get("statements"), "elimination statements")
+    expected: list[tuple[str, bytes, Json]] = [
+        ("let_pattern", b"Some(let value)", ["constructor", "Some", [["bind", "value"]]]),
+        ("var_pattern", b"Ready((let owner, let receipt))", ["constructor", "Ready", [["tuple", [["bind", "owner"], ["bind", "receipt"]]]]]),
+        ("let_pattern", b"Result.Empty()", ["constructor", "Result.Empty", []]),
+        ("let_pattern", b"(Some((let nested)))", ["group", ["constructor", "Some", [["group", ["bind", "nested"]]]]]),
+        ("let_pattern", b"Outer(Inner(let deep), (let item, ()))", ["constructor", "Outer", [
+            ["constructor", "Inner", [["bind", "deep"]]], ["tuple", [["bind", "item"], "unit_pattern"]]]]),
+        ("let_pattern", b"((let grouped))", ["group", ["group", ["bind", "grouped"]]]),
+    ]
+    for statement, (kind, spelling, shape) in zip(statements[:6], expected, strict=True):
+        local = _object(statement, "local pattern binding")
+        pattern = _object(local.get("pattern"), "local elimination pattern")
+        if local.get("kind") != kind or _recursive_pattern_shape(pattern) != shape:
+            raise ValueError("surface local constructor/group/product elimination roles differ")
+        _exact_span(source, pattern, spelling)
+        if "grade" in local or "name" in local:
+            raise ValueError("surface pattern elimination fabricated a name or component allowance")
+    for node in nodes(function):
+        if node.get("kind") in {"binding_pattern", "constructor_pattern", "group_pattern", "tuple_pattern", "unit_pattern"}:
+            span = node.get("span")
+            if not isinstance(span, list) or len(span) != 2:
+                raise ValueError("surface recursive pattern lacks its own byte span")
+            start, end = span
+            if type(start) is not int or type(end) is not int:
+                raise ValueError("surface recursive pattern span is not an offset pair")
+            if node.get("kind") == "binding_pattern":
+                name = _object(node.get("name"), "nested pattern binder")
+                text = name.get("text")
+                if not isinstance(text, str) or source[start:end] != f"let {text}".encode():
+                    raise ValueError("surface nested binding span differs from original bytes")
+                if name.get("span") != [start + len(b"let "), end]:
+                    raise ValueError("surface nested binding name span includes its introducer")
+    inferred = _named(function, "let", "inferred")
+    mutable = _named(function, "var", "mutable")
+    if (inferred.get("type") is not None or inferred.get("grade") is not None
+            or "pattern" in inferred or _texts(inferred.get("value")) != ["optional"]
+            or _texts(mutable.get("grade")) != ["q"] or "pattern" in mutable):
+        raise ValueError("surface bare local names changed into constructor patterns")
+    for binding, outer in (("sharedLoan", "in"), ("exclusiveLoan", "ref")):
+        group = _object(_named(function, "let", binding).get("value"), "grouped loan computation")
+        first = _object(group.get("value"), "outer loan computation")
+        second = _object(first.get("value"), "inner loan computation")
+        if (group.get("kind") != "group" or first.get("kind") != "unary" or second.get("kind") != "unary"
+                or _texts(first.get("operator")) != [outer] or _texts(second.get("operator")) != ["ref"]
+                or _texts(second.get("value")) != ["value"]):
+            raise ValueError("surface grouped loan computations became type annotations")
+        _exact_span(source, group, f"({outer} ref value)".encode())
+    for kind, binding in (("let", "annotated"), ("typed_local", "bareAnnotated"),
+                          ("var", "mutableAnnotated")):
+        local = _named(function, kind, binding)
+        _type_head(_type_head(local.get("type"), "Core.Box", 1)[0], "Nat", 0)
+        if "pattern" in local or _texts(local.get("value")) != ["source"]:
+            raise ValueError("surface qualified typed local changed into constructor elimination")
+    loan_annotation = _object(_named(function, "let", "loanAnnotated").get("type"), "qualified loan local")
+    if loan_annotation.get("modifier") != "ref" or _texts(loan_annotation.get("lifetime")) != ["'source"]:
+        raise ValueError("surface qualified local annotation lost its loan lifetime")
+    _type_head(_type_head(loan_annotation.get("type"), "Core.Box", 1)[0], "Nat", 0)
+    qualified = [node for node in nodes(function) if node.get("kind") == "constructor_pattern"
+                 and _texts(node.get("name")) == ["Core.Result.Ready"]]
+    if len(qualified) != 1 or _recursive_pattern_shape(qualified[0]) != ["constructor", "Core.Result.Ready", [["bind", "qualified"]]]:
+        raise ValueError("surface qualified constructor elimination became a local type annotation")
+    _exact_span(source, qualified[0], b"Core.Result.Ready(let qualified)")
+    cases = [node for node in nodes(function) if node.get("kind") == "case"]
+    tests = [node for node in nodes(function) if node.get("kind") == "is"]
+    if len(cases) != 1 or len(tests) != 1:
+        raise ValueError("surface grouped pattern lost its match/test owner")
+    for owner, binder in ((cases[0], "matched"), (tests[0], "testedValue")):
+        expected_pattern: Json = ["group", ["constructor", "Some", [["group", ["bind", binder]]]]]
+        if _recursive_pattern_shape(owner.get("pattern")) != expected_pattern:
+            raise ValueError("surface match/test grouping differs from local pattern grouping")
+    invalid = _named(result.get("ast"), "function", "InvalidMeaning")
+    if len([node for node in nodes(invalid) if node.get("kind") in {"let_pattern", "var_pattern"}]) != 3:
+        raise ValueError("surface resource or constructor mistakes were resolved during parsing")
+
+
 def _literal_and_comment_boundaries(parse: Callable[[bytes], dict[str, Json]]) -> None:
     # Delimiter-looking bytes inside comments and strings are never nesting.
     source = (b"// " + b"{" * 300 + b"\r\n/* " + b"[" * 300
@@ -2566,7 +2885,13 @@ def qualify(parse: Callable[[bytes], dict[str, Json]]) -> list[str]:
         missing = set(fixture.kinds) - found
         if missing:
             raise ValueError(f"surface fixture {fixture.name} lacks AST roles: {sorted(missing)}")
-        if fixture.name == "computed-types-and-family-application":
+        if fixture.name == "shared-operator-values":
+            _shared_operator_roles(fixture.source.encode("utf-8"), result)
+        elif fixture.name == "shared-operator-precedence":
+            _shared_precedence_roles(result)
+        elif fixture.name == "recursive-local-patterns":
+            _recursive_local_roles(fixture.source.encode("utf-8"), result)
+        elif fixture.name == "computed-types-and-family-application":
             _computed_type_roles(fixture.source.encode("utf-8"), result)
         elif fixture.name == "alias-and-effect-family-contracts":
             _family_contract_roles(fixture.source.encode("utf-8"), result)
