@@ -215,4 +215,5 @@ jobs:
             ${{ runner.temp }}/model-snapshot-root/logs/model-build.json
             ${{ runner.temp }}/model-snapshot-root/logs/model-build.log
           if-no-files-found: warn
+          overwrite: true
           retention-days: 30

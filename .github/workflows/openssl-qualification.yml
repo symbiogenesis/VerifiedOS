@@ -172,4 +172,5 @@ jobs:
           name: openssl-qualification-${{ matrix.suite }}-${{ env.TESTED_REVISION }}
           path: ${{ runner.temp }}/qualification-evidence
           if-no-files-found: warn
+          overwrite: true
           retention-days: 30
