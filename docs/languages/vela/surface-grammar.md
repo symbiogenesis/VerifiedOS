@@ -400,6 +400,42 @@ and statement/expression boundaries, literal pattern spellings and original UTF-
 Retain malformed-neighbor refusals, bounded nesting, semantic-error positives,
 all earlier surface cases and pure migration behavior.
 
+### Shared operators and local elimination
+
+Parenthesized symbolic operators are ordinary expression atoms. Every binary
+operator in the surface precedence table, plus unary `!` and `~`, accepts this
+form: `(+)`, `(%)`, `(&)`, `(==>)` and `(!)` are examples. A located `operator`
+node retains its located `name`; its span includes parentheses while the name's
+span covers only the symbol. Unary and binary minus share `(-)`; elaboration
+determines the selected operation and arity. Operator values compose with calls,
+members, generic application, tuples, lambdas, computed types and ordinary
+declaration contracts. Grade-domain entries use these same expressions, including
+their existing `(+)` and `(*)` spellings, without a separate domain-value grammar.
+Assignment, range, propagation and keyword computations are not operator values.
+
+Local elimination reuses constructor and recursive patterns:
+`let Some(let value) = optional;` and
+`var Ready((let owner, let receipt)) = outcome;`. Qualified constructors and
+explicit empty argument lists are accepted. A single parenthesized pattern groups
+it, producing `group_pattern` with a `pattern` child; products still require at
+least two components. Grouping works in local elimination, match arms and pattern
+tests. Local pattern bindings retain `let_pattern`/`var_pattern` with `pattern`
+and `value` fields. A bare local name retains the existing inferred binding form;
+a local constructor pattern requires parentheses, as in `let Ready() = outcome;`.
+Component grades remain in their data types. Refutability, constructor arity,
+exhaustiveness, ownership and resource disposal are elaboration obligations, so
+syntactically valid mistakes still parse.
+
+The grammar shares operator productions between binary expressions and operator
+values, and shares recursive type-modifier construction across ordinary,
+callable, generic and local-annotation types. Preserve precedence, associativity,
+contract ownership, every child in syntax-depth accounting and the pure entry's
+schema. Independent fixtures must assert operator and nested pattern roles,
+original UTF-8 byte spans, higher-order application and domain compatibility;
+exercise every operator spelling and malformed neighboring forms, syntax-valid
+resource mistakes and nesting limits. Retain every earlier syntax and migration
+fixture and strict conflict-free generation.
+
 ### Native qualification
 
 Menhir's code backend must generate with `--strict --infer --explain`, with no
