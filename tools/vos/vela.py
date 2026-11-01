@@ -12,17 +12,23 @@ from typing import Literal
 
 MAX_SOURCE_BYTES = 65_536
 MAX_EXPRESSION_DEPTH = 64
+MAX_BLOCK_DEPTH = 64
 MAX_LITERAL_DIGITS = 256
 
-type ValueType = Literal["Nat", "Bool"]
+type ValueType = Literal["Nat", "bool"]
 
 _IDENTIFIER = re.compile(r"[A-Za-z_][A-Za-z0-9_]*")
 _DECIMAL = re.compile(r"[0-9]+")
-_KEYWORDS = frozenset({"module", "fn", "let", "if", "else", "Nat", "Bool", "true", "false"})
-_UNSUPPORTED = frozenset({"async", "await", "effect", "handler", "mut", "unsafe", "borrow"})
+_KEYWORDS = frozenset({"module", "public", "return", "let", "if", "else", "Nat", "bool",
+                       "true", "false"})
+_UNSUPPORTED = frozenset({"fn", "Bool", "async", "await", "effect", "effects", "handler",
+                          "handle", "resume", "dispose", "mut", "var", "unsafe", "borrow",
+                          "requires", "ensures", "restores", "ghost", "tracked", "grade",
+                          "proof", "owned", "move", "ref", "in", "captures", "scope",
+                          "spawn", "commit", "on", "cancel", "region", "view", "union"})
 _TYPES: dict[ValueType, str] = {
     "Nat": "Corelib.Init.Datatypes.nat",
-    "Bool": "Corelib.Init.Datatypes.bool",
+    "bool": "Corelib.Init.Datatypes.bool",
 }
 _TRUE = "Corelib.Init.Datatypes.true"
 _FALSE = "Corelib.Init.Datatypes.false"
@@ -159,10 +165,10 @@ class _Parser:
         if token.text == "Nat":
             self.offset += 1
             return "Nat"
-        if token.text == "Bool":
+        if token.text == "bool":
             self.offset += 1
-            return "Bool"
-        raise self._error("unsupported", f"type {token.text!r} is outside Nat and Bool")
+            return "bool"
+        raise self._error("unsupported", f"type {token.text!r} is outside Nat and bool")
 
     def _bounded(self, value_type: ValueType, gallina: str,
                  children: tuple[_Expression, ...], token: _Token) -> _Expression:
@@ -183,7 +189,8 @@ class _Parser:
         return module, definitions
 
     def _function(self) -> str:
-        self._expect("fn")
+        self._expect("public")
+        result_type = self._value_type()
         name = self._name()
         if name.text in self.functions:
             raise self._error("name", f"duplicate function '{name.text}'", name)
@@ -192,21 +199,18 @@ class _Parser:
         parameters: list[tuple[str, ValueType]] = []
         if not self._take(")"):
             while True:
+                value_type = self._value_type()
                 parameter = self._name()
                 if parameter.text in environment:
                     raise self._error("name", f"duplicate parameter '{parameter.text}'", parameter)
-                self._expect(":")
-                value_type = self._value_type()
                 parameters.append((parameter.text, value_type))
                 environment[parameter.text] = value_type
                 if self._take(")"):
                     break
                 self._expect(",")
-        self._expect("->")
-        result_type = self._value_type()
         self._expect("{")
         body_start = self._current()
-        body = self._expression(environment, 1)
+        body = self._statements(environment, 1)
         self._expect("}")
         if body.value_type != result_type:
             raise self._error("type", f"function '{name.text}' returns {body.value_type}, "
@@ -216,38 +220,52 @@ class _Parser:
                           for parameter, value_type in parameters)
         return f"Definition f_{name.text}{binders} : {_TYPES[result_type]} :=\n  {body.gallina}."
 
-    def _expression(self, environment: dict[str, ValueType], nesting: int) -> _Expression:
+    def _block(self, environment: dict[str, ValueType], nesting: int) -> _Expression:
+        self._expect("{")
+        body = self._statements(environment, nesting)
+        self._expect("}")
+        return body
+
+    def _statements(self, environment: dict[str, ValueType], nesting: int) -> _Expression:
+        """A bounded binding sequence ending in an explicit return on every path."""
         token = self._current()
-        if nesting > MAX_EXPRESSION_DEPTH:
-            raise self._error("limit", f"expression nesting exceeds {MAX_EXPRESSION_DEPTH}")
+        if nesting > MAX_BLOCK_DEPTH:
+            raise self._error("limit", f"block or binding nesting exceeds {MAX_BLOCK_DEPTH}")
         if self._take("let"):
             name = self._name()
             if name.text in environment:
                 raise self._error("name", f"duplicate local binding '{name.text}'", name)
             self._expect("=")
-            value = self._expression(environment, nesting + 1)
+            value = self._expression(environment, 1)
             self._expect(";")
             extended = {**environment, name.text: value.value_type}
-            body = self._expression(extended, nesting + 1)
+            body = self._statements(extended, nesting + 1)
             return self._bounded(body.value_type,
                                  f"(let v_{name.text} := {value.gallina} in {body.gallina})",
                                  (value, body), token)
         if self._take("if"):
-            condition = self._expression(environment, nesting + 1)
-            if condition.value_type != "Bool":
-                raise self._error("type", "if condition must be Bool", token)
-            self._expect("{")
-            yes = self._expression(environment, nesting + 1)
-            self._expect("}")
+            self._expect("(")
+            condition = self._expression(environment, 1)
+            self._expect(")")
+            if condition.value_type != "bool":
+                raise self._error("type", "if condition must be bool", token)
+            yes = self._block(environment, nesting + 1)
             self._expect("else")
-            self._expect("{")
-            no = self._expression(environment, nesting + 1)
-            self._expect("}")
+            no = self._block(environment, nesting + 1)
             if yes.value_type != no.value_type:
                 raise self._error("type", "if branches must have the same type", token)
             return self._bounded(yes.value_type,
                                  f"(if {condition.gallina} then {yes.gallina} else {no.gallina})",
                                  (condition, yes, no), token)
+        if self._take("return"):
+            value = self._expression(environment, 1)
+            self._expect(";")
+            return value
+        raise self._error("syntax", "expected let, return or a returning if statement")
+
+    def _expression(self, environment: dict[str, ValueType], nesting: int) -> _Expression:
+        if nesting > MAX_EXPRESSION_DEPTH:
+            raise self._error("limit", f"expression nesting exceeds {MAX_EXPRESSION_DEPTH}")
         left = self._sum(environment, nesting)
         token = self._current()
         if token.text in {"==", "<="}:
@@ -269,7 +287,7 @@ class _Parser:
                         f"let vela_eq_right := {right.gallina} in "
                         "if vela_eq_left then vela_eq_right else "
                         f"(if vela_eq_right then {_FALSE} else {_TRUE}))")
-            return self._bounded("Bool", term, (left, right), token)
+            return self._bounded("bool", term, (left, right), token)
         return left
 
     def _sum(self, environment: dict[str, ValueType], nesting: int) -> _Expression:
@@ -306,7 +324,7 @@ class _Parser:
             return _Expression("Nat", f"({int(token.text)} : {_TYPES['Nat']})")
         if token.text in {"true", "false"}:
             self.offset += 1
-            return _Expression("Bool", _TRUE if token.text == "true" else _FALSE)
+            return _Expression("bool", _TRUE if token.text == "true" else _FALSE)
         if token.kind != "name":
             raise self._error("syntax", f"expected expression, found {token.text!r}")
         self.offset += 1
