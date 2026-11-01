@@ -2208,14 +2208,14 @@ Each task starts with a concrete witness and a refuted alternative, then extends
 
 ## Build-loop instruments
 
-These items sit outside the milestone subtotals but inside the grand total, and each carries its own estimate cell like any other item. Every change must be benchmarked before adoption; canonical `-O2` RelWithDebInfo remains the exit criterion.
+These items count toward the grand total, outside milestone subtotals, with one estimate cell each. Benchmark every change before adoption; canonical `-O2` RelWithDebInfo remains the exit criterion.
 
 * [x] **Initial check/emit/FAST tooling** · 0.9 h actual
   * The first check, emit and FAST tooling, landed before the notes began. ([note](docs/implementation/completion-log.md#initial-checkemitfast-tooling))
 * [x] **I0 · Standardize the tools on one language** · 6 h actual
   * Every tool is Python on the one interpreter both lanes carry, with the shared parses in one package. ([note](docs/implementation/completion-log.md#i0-standardize-the-tools-on-one-language))
 * ~~**I1 · Move sources to WSL ext4 and uncap local parallelism**~~ · struck, and the reason is that the item is not closeable where it stands. Two of its four clauses closed, one was refused on its own measurement, and the two left standing are settings on the human's box rather than in this tree, so no benchmark reaches them. **S9 was its disposition and is no longer**: that item is a provisioner rather than a move, so the lane stays on WSL by choice and these two clauses stay open with it, an accepted cost rather than an owed act. A dedicated host would close all four, and is a choice available per run rather than a scheduled migration. The measurement below stands as the record of what the layout costs.
-  * Struck as not closeable where it stands: two clauses are done, the move is refused on a measurement, and two clauses are settings on the human's box. ([note](docs/implementation/completion-log.md#i1-move-sources-to-wsl-ext4-and-uncap-local-parallelism))
+  * Two clauses closed, the source move was refused on measurement, and host-only settings remain outside this tree. ([note](docs/implementation/completion-log.md#i1-move-sources-to-wsl-ext4-and-uncap-local-parallelism))
 * [x] **I2 · Use one shared content-keyed SMT memo cache** · 0.9 h actual
   * Declined on the pinned compiler's cache format; a lane copies a warm cache instead of sharing one. ([note](docs/implementation/completion-log.md#i2-use-one-shared-content-keyed-smt-memo-cache))
 * [x] **I3 · Benchmark a current z3 binary on a cold emission** · 0.8 h actual
@@ -2253,15 +2253,15 @@ These items sit outside the milestone subtotals but inside the grand total, and 
   * An authored source can stand in the imported build by declared substitution, and the elaboration diff is partitioned by what accounts for each kind. ([note](docs/implementation/completion-log.md#i16-put-an-authored-source-in-the-imported-build-and-partition-the-elaboration-diff))
 
 * [x] **I17 · Name the host gate member that went red, without a login** · 0.9 h actual · agent-parallel
-  * `run.py gate --summary PATH` writes the wave's verdict as JSON, one record per member carrying its exit code and whether that code is a verdict at all, and the workflow renders it as one annotation per unclean member and a table in the job summary; the wave stays one step, no gate is weakened, and the workflow's own expression contexts remain held by GitHub at validation time and by nothing here. ([note](docs/implementation/completion-log.md#i17-name-the-host-gate-member-that-went-red-without-a-login))
+  * `run.py gate --summary PATH` records each member's exit code and verdict validity as JSON; CI renders annotations for unclean members and a summary table. The wave remains one step with unchanged gates. GitHub alone validates workflow expression contexts. ([note](docs/implementation/completion-log.md#i17-name-the-host-gate-member-that-went-red-without-a-login))
 
 **Instrument subtotal:** 38.8 h · 1% · 38.8 h complete.
 
 ## Estimate and schedule basis
 
-* The [proof tooling decisions](docs/assurance/proof-assistance.md#tooling-decisions-from-the-2026-10-10-reading) add local tactic retrieval and select bounded reuse/decomposition within existing proof work; R2 selects a [SystemVerilog front-end qualification](docs/assurance/rtl-cosimulation-harness.md#7-the-bounded-model-checking-smoke) within its existing smoke preparation. These routes earn no numerical reduction before representative accepted proofs or the actual curated-core qualification remove named remaining work. Existing retrieval, incremental checking and generated-corpus savings are already in the baseline and receive no second discount. Upstream success rates and faster tactic calls do not scale whole implementation estimates.
+* The [proof tooling decisions](docs/assurance/proof-assistance.md#tooling-decisions-from-the-2026-10-10-reading) select local tactic retrieval and bounded reuse/decomposition; R2 selects [SystemVerilog front-end qualification](docs/assurance/rtl-cosimulation-harness.md#7-the-bounded-model-checking-smoke). Both fit existing work. Reduce estimates only when representative accepted proofs or curated-core qualification remove named work. Retrieval, incremental checks and generated-corpus savings are already priced; upstream success rates or faster tactics earn no whole-task discount.
 
-* [Research-scale formalizations](docs/assurance/proof-reuse/foundations.md#research-scale-formalization-as-planning-evidence) provide public existence evidence and examples of dependency-managed collaboration. Their team and calendar costs do not calibrate these cells. Reprice research-heavy work from a representative local audited proof, measured authoring and checking costs, and the remaining dependency closure.
+* [Research-scale formalizations](docs/assurance/proof-reuse/foundations.md#research-scale-formalization-as-planning-evidence) demonstrate feasibility and dependency-managed collaboration. Their team/calendar costs do not calibrate these cells. Reprice research-heavy work from a representative local audited proof, measured authoring/checking costs and remaining dependencies.
 
 * Measured completed cells record actual elapsed session intervals with overlapping build waits apportioned approximately. Cells explicitly marked `retained estimate, actual n/a` preserve a planning weight only; completed-scope totals are not cumulative actual time.
 * Open work classes:
@@ -2274,7 +2274,7 @@ These items sit outside the milestone subtotals but inside the grand total, and 
 * **Calibration is measured separately for each authority pool.** [The attended record](#calibration-record) and [the agent-parallel record](#the-agent-parallel-series) pair each measured item with its earliest estimate. The generated table below reports their results. Unmeasured retained estimates do not enter either fit.
 * **The ratio informs range width; it does not re-price item midpoints.** The attended external-authoring pool is limited, so the calibrated total remains a separate planning view. Individual items can meet, exceed or fall below their estimates.
 * **Attended and agent-parallel fits are kept separate.** Attended actuals measure elapsed attended intervals, while agent-parallel actuals measure summed agent-session wall-clock. There is no measured conversion between those clocks. The agent-parallel fit prices no item because its execution mode is not known when it is priced.
-* **The strategy the classes imply is one sentence: move work across the authority line, and generate what is currently authored.** The gate figures above state the remaining class-X share of the open budget; accepted compiler evidence supplies the backend prerequisite for M1.7.
+* **Strategy:** move work across the authority line and generate currently authored artifacts. The gate figures above give the remaining class-X share; accepted compiler evidence supplies M1.7's backend prerequisite.
 * Horizon: the planning assumption is 10–20 attended hours per week. Apply available attended capacity to the committed-work totals and producer joins in the [current summary](#current-summary); neither gives a calendar promise or a conversion to agent-parallel time.
 * M8a delivery waits for the concrete producer joins and acceptance predicates. Admit parallel work when its inputs and exclusive write boundary are settled and review/build capacity is reserved; no sum of milestone estimates predicts elapsed delivery time or fixes a lane count.
 
@@ -2293,7 +2293,7 @@ These items sit outside the milestone subtotals but inside the grand total, and 
 
 ### Calibration record
 
-One row per completed attended item, in document order: the pool its authority fell in, `I` for authority inside this repository, `X-read` for an item that read, pinned, installed or measured an external thing, and `X-authored` for one that authored against an external authority, beside the earliest estimate its cell recorded, read from the plan's own history at the item's first pricing. The actual stays in the item's cell and is read from there rather than restated here; an item that never carried an estimate reads `n/a` in both columns and is outside the fit. A retained-estimate item whose actual is unavailable uses the same exclusion, with its original estimate and range in the completion note. An agent-parallel item carries no row here, its actual being on the other clock and its row being in [the record below](#the-agent-parallel-series). `tools/check.py` holds the record total over the completed attended items in both directions and derives every ratio and count the calibration states from it.
+One row per completed attended item, in document order, records its authority pool and earliest estimate from the plan's history: `I` for repository authority, `X-read` for reading, pinning, installing or measuring an external artifact, and `X-authored` for authoring against external authority. Actuals come from item cells. Missing estimates or actuals use `n/a` in both columns and are excluded; retained original estimates and ranges stay in completion notes. Agent-parallel items use [the separate record below](#the-agent-parallel-series). `tools/check.py` checks completed-item membership in both directions and derives all calibration counts and ratios.
 
 | Item | Pool | Estimate |
 | --- | --- | --- |
@@ -2530,27 +2530,18 @@ One row per completed item marked `agent-parallel`, using the [calibration recor
 
 ## Static-memory research
 
-This backlog tracks a research project, not an additional implementation schedule. Work selected for execution is scoped in the [project plan](PLAN.md); Q5 owns placement comparisons, Q4 inference demand, Q6 memory topology, Q8 measured bottlenecks, Q22 assurance boundaries, and Q10 the product judgment. The research reuses those artifacts and returns findings to their owners. Research outputs do not confer implementation landing credit or accept a new requirement.
+This research backlog adds no implementation schedule, landing credit or accepted requirement. Selected work remains in the [project plan](PLAN.md): Q5 owns placement comparisons, Q4 inference demand, Q6 topology, Q8 measured bottlenecks, Q22 assurance boundaries and Q10 product judgment. Reuse their artifacts and return findings to those owners.
 
-The [replayable first experiments](docs/implementation/static-memory/experiments.md)
-provide a mathematical baseline, synthetic corpus, diagnostic ledger and bounded
-placement comparison. Each status applies to its stated deliverable: a reviewed
-baseline can close while its compiler implementation remains open. The open
-items retain their full acceptance conditions; a witness implementation does not
-complete an item's product, proof or generality obligations.
+The [replayable first experiments](docs/implementation/static-memory/experiments.md) provide a mathematical baseline, synthetic corpus, diagnostic ledger and bounded placement comparison. Status applies only to the stated deliverable: a reviewed baseline or witness leaves its implementation, product, proof and generality obligations open.
 
-The [worked replay walkthrough](docs/implementation/static-memory/experiments.md#walkthrough-three-kinds-of-unavailable-capacity)
-includes diagnostics for owner isolation, separated free
-extents and delayed device completion, with receipt fields that distinguish free
-backing from a usable declared slot and completed reuse.
+The [worked replay walkthrough](docs/implementation/static-memory/experiments.md#walkthrough-three-kinds-of-unavailable-capacity) diagnoses owner isolation, separated free extents and delayed device completion; receipts distinguish free backing, usable declared slots and completed reuse.
 
 - **Status: complete.** **Define the mathematical and operational baseline.** Produce a reviewed model of payload liveness, retained authority, safe reuse, legal placement, and per-arena physical charge. Reconcile R-08-011 through R-08-013 with the exact theorem assumptions and the placement-search quantities. Deliver a proof or minimal counterexample for each disputed implication before optimizing it.
-  Completion evidence: the [reviewed disposition](docs/implementation/static-memory/baseline.md#baseline-research-disposition) maps each disputed implication to a proof or counterexample. The [operational interface](docs/implementation/static-memory/baseline.md#the-operational-interface-a-producer-must-satisfy) states the binding, interference and completed-reuse premises and proves conditional isolation and occupancy bounds. R-08-011 through R-08-014 distinguish those premises from ownership alone, state the charged-load inequality and scoped laminar theorem, and use the correct interference predicate. The [mode comparison](docs/implementation/static-memory/modes.md) separates per-mode optima from a common layout. Producing sound intervals for actual admitted programs and implementing the qualified reuse gate remain downstream obligations.
-  The [mode-family witnesses](docs/implementation/static-memory/modes.md#the-declared-witnesses) separately exercise live state at the source and destination of a switch. A destination that is already live refuses the binding family even when the source is dead; the refusal carries no binding charge or optimality claim.
+  Completion evidence: the [reviewed disposition](docs/implementation/static-memory/baseline.md#baseline-research-disposition) proves or refutes every disputed implication. The [operational interface](docs/implementation/static-memory/baseline.md#the-operational-interface-a-producer-must-satisfy) states binding, interference and completed-reuse premises and proves conditional isolation/occupancy bounds. R-08-011 through R-08-014 distinguish these premises from ownership, state the charged-load inequality and scoped laminar theorem, and correct the interference predicate. The [mode comparison](docs/implementation/static-memory/modes.md) separates per-mode optima from a common layout. Sound admitted-program intervals and the qualified reuse gate remain open.
+  The [mode-family witnesses](docs/implementation/static-memory/modes.md#the-declared-witnesses) exercise live source/destination state: a live destination refuses the binding family even with a dead source, without a binding charge or optimality claim.
 - **Status: open.** **Build a reproducible capacity corpus.** Start from Q5's exporter and the real composed roster when available. Include bounded parsers, sessions, rings, saved application state, frame pipelines and inference, plus synthetic crossing lifetimes, adversarial sizes, burst teardown and delayed device completion. Record source revision, manifest, all cost assumptions and demand envelope. Keep witness demonstrations labeled as such.
-  Current output: the [corpus and Q5 bridge](docs/implementation/static-memory/corpus.md) emit identified synthetic contracts for every named family, cost assumptions, demand series and computed coverage. A separated-free-extents witness distinguishes total free bytes, contiguous free geometry and declared slot size. A same-owner size-class witness shows a larger request refused despite enough contiguous idle backing, then fitting its declared slot at completed reuse. The bridge reports absent source fields; no contract comes from an actual composed roster carrying per-component memory extents.
-  The [alignment-stranding witness](docs/implementation/static-memory/corpus.md#geometric-fit-and-typed-refusals) isolates an incompatible slot base from insufficient space: relaxing only the request alignment changes refusal to an instantaneous fit.
-  The `same-owner-arena-stranding` witness isolates placement from ownership: an idle declared slot in another arena fits the same request, while the requested arena refuses it until its own slot completes reuse. Neither result permits moving capacity between arenas.
+  Current output: the [corpus and Q5 bridge](docs/implementation/static-memory/corpus.md) identify synthetic contracts for every family, assumptions, demand series and computed coverage. Witnesses distinguish total free bytes, contiguous geometry and declared slot size; a same-owner size-class witness refuses a larger request despite contiguous idle backing, then fits its declared slot at completed reuse. The bridge reports missing source fields; actual-roster contracts with per-component extents remain absent.
+  The [alignment-stranding witness](docs/implementation/static-memory/corpus.md#geometric-fit-and-typed-refusals) changes refusal to instantaneous fit by relaxing request alignment alone. `same-owner-arena-stranding` fits an idle slot in another arena while the requested arena waits for its own completed reuse; neither permits cross-arena capacity transfer.
 
   - **Status: complete.** Build and replay the [synthetic capacity corpus and Q5 bridge](docs/implementation/static-memory/corpus.md#synthetic-corpus-disposition), covering every named family with source and manifest identities, explicit cost assumptions, bounded demand traces and witness labels. Preserve Q5's missing operational inputs; real-roster contracts remain open.
 
@@ -2560,9 +2551,9 @@ backing from a usable declared slot and completed reuse.
   - **Status: complete.** Validate the [finite-trace byte ledger and request diagnostics](docs/implementation/static-memory/corpus.md#finite-trace-ledger-disposition): independently check disjoint charges at every fixture tick, distinguish free geometry from idle declared slots, and preserve source identity, telemetry, cost, reuse and service-contract labels on every fit and typed refusal.
 
 - **Status: complete.** **Establish exact small-instance oracles.** Exhaustively enumerate small layouts and use independently checked lower bounds to separate unavoidable fragmentation from planner error. Mutate lifetimes, alignment, owner assignment, slot overlap and reuse barriers; invalid candidates must fail. A feasible certificate and an optimality certificate are different deliverables.
-  Completion evidence: the [exact oracle and independent replay](docs/implementation/static-memory/experiments.md), [representability-granule layer](docs/implementation/static-memory/representability.md) and [span lower bounds](docs/implementation/static-memory/scaling.md) separate checked feasibility from optimality over the declared finite model. The [mutation sweep](docs/implementation/static-memory/mutants.md) rejects the named placement defects, reuse before each completion barrier and internally consistent feasible-but-suboptimal certificates; independent byte/tick checks and refusal controls exercise those distinctions. Incomplete searches and stillborn mutants supply no successful verdict. Remaining capability-format rules and extraction of actual authority-completion evidence are extensions beyond this finite oracle.
+  Completion evidence: the [exact oracle and independent replay](docs/implementation/static-memory/experiments.md), [representability-granule layer](docs/implementation/static-memory/representability.md) and [span lower bounds](docs/implementation/static-memory/scaling.md) distinguish feasibility from finite-model optimality. The [mutation sweep](docs/implementation/static-memory/mutants.md), independent byte/tick checks and refusal controls reject placement defects, premature reuse at every completion barrier and internally consistent feasible-but-suboptimal certificates. Incomplete searches and stillborn mutants supply no successful verdict. Remaining capability-format rules and actual authority-completion extraction are outside this oracle.
 - **Status: open.** **Scale offline planning.** Benchmark deterministic heuristics and coupled search against the existing enumeration and exact oracles. Report best feasible span, proved lower bound, remaining gap, build time and reproducibility. Preserve the standing plan on timeout or failure to find improvement. Introduce and license-review dependencies only when that comparison justifies them.
-  Current output: the [scaling experiment](docs/implementation/static-memory/scaling.md) compares checked heuristics, bounded exact search and the existing Q5 witness. Each arena reports its strongest established lower bound, best checked span, remaining gap and work completeness. Interrupted lowering retains a partial improvement as diagnostic evidence while its selected placement and arena summaries keep the standing plan. A distinct coupled-search candidate remains to be benchmarked against those references. Applying the comparison to the actual roster and target constraints remains Q5b work.
+  Current output: the [scaling experiment](docs/implementation/static-memory/scaling.md) compares checked heuristics, bounded exact search and Q5's witness, reporting each arena's strongest lower bound, checked span, gap and work completeness. Interrupted lowering retains partial improvements diagnostically while selecting the standing plan. Coupled-search benchmarking remains open; actual-roster and target constraints remain Q5b work.
 
   - **Status: complete.** Establish [reproducible synthetic heuristic benchmarks](docs/implementation/static-memory/scaling.md#replay-and-receipt) with exact-oracle and Q5 comparisons, per-arena spans, lower bounds and gaps, identified host timings, and standing-plan preservation under work-budget exhaustion. Coupled-search comparison, actual-roster constraints and target build measurements remain open.
 
@@ -2580,7 +2571,7 @@ backing from a usable declared slot and completed reuse.
   - **Status: complete.** Validate the [finite reclamation calendar and adversarial envelope](docs/implementation/static-memory/reclamation.md#finite-reclamation-research-disposition), with declared retirement budgets, fixed-schedule capacity comparisons, conditional reuse bounds, independent byte/tick checks and Q22a refusal witnesses. Actual holder coverage, admitted workloads, target service rates and all-executions proofs remain open.
 
 - **Status: open.** **Prove or refute the structural questions.** Formalize the laminar special case and the restricted-lifetime parameterization, then characterize which added constraints break them. Publish negative results and minimal witnesses as first-class outputs. A mechanized feasibility check does not close the algorithmic optimality problem.
-  Current output: the [mechanized laminar statement](docs/implementation/static-memory/baseline.md#mechanized-statement) proves the scoped placement theorem and a crossing-family gap. The [deletion-parameter study](docs/implementation/static-memory/structure.md) supplies a polynomial parameter computation, a bipartite crossing-graph construction and refuted decompositions. The source-lifetime bridge, general replay correspondence and parameterized complexity question stay open; the following narrower structural deliverables are complete.
+  Current output: the [mechanized laminar statement](docs/implementation/static-memory/baseline.md#mechanized-statement) proves scoped placement and a crossing-family gap. The [deletion-parameter study](docs/implementation/static-memory/structure.md) computes the parameter polynomially, constructs bipartite crossing graphs and refutes decompositions. Source-lifetime bridging, general replay correspondence and parameterized complexity remain open; the narrower results below are complete.
 
   - **Status: complete.** Prove the [sharp triangle-free gap threshold](docs/implementation/static-memory/structure.md#a-sharp-gap-threshold-for-triangle-free-crossing-graphs): deletion number three permits a gap, and smaller deletion numbers cannot in that graph class. The unrestricted threshold is narrowed to `{2, 3}`.
   - **Status: complete.** Replay the explicit gap witness with independent feasibility and optimality checks, and establish inclusion-minimality by checking every proper subfamily. This does not establish the least object count over all possible witnesses.
@@ -2591,41 +2582,18 @@ backing from a usable declared slot and completed reuse.
 - **Status: open.** **Run a composition-level comparison.** Feed promising variants into Q5b and the product gate on the same roster and functional contract. Report which additional workload is admitted, all resource deltas, exhaustion behavior and any weakened promise. Perform ablations so packing, lifetime changes, segmentation and reclamation do not each claim the same recovered bytes.
   Current output: the reclamation and transformation reports compare declared ablations, the compiled census supplies a proxy, and the scaling report retains the existing Q5 witness. M7.1's actual roster, compiled service contracts and qualified product resource inputs remain required before Q5b can credit additional admitted workload.
 - **Status: open.** **Publish a reproducible research artifact and disposition.** Release definitions, proofs, generators, minimized counterexamples, checker inputs, search settings and replayable measurements. Identify peer-reviewed results, preprints, new conjectures and measured outcomes separately. Propose register changes only with the precise theorem or measured contract that replaces the current claim; an inconclusive experiment remains open.
-  Current output: the [artifact inventory](docs/implementation/static-memory/artifact.md) computes the files and registered actions, checks completeness and classifies the results. Replay reports malformed experiment and research receipts as findings, including when the action exits successfully; research receipts require matching action identity and nonempty contract-bearing cases. Expected diagnostic refusals and incomplete searches retain their stated scope. The [replay guide](docs/implementation/static-memory/experiments.md) binds source identities and inputs. External publication, peer review, the remaining mechanized refinements and a measured product comparison stay open.
-  Experiment receipts also require matching action identity and a nonempty scope. The replay CLI refuses an explicit search budget on an action that does not consume it.
+  Current output: the [artifact inventory](docs/implementation/static-memory/artifact.md) derives files/actions, checks completeness and classifies results. Replay rejects malformed research and experiment receipts even after successful action exits: action identity must match and scope be nonempty, with contract-bearing research cases. Expected refusals and incomplete searches retain diagnostic scope. The [replay guide](docs/implementation/static-memory/experiments.md) binds sources and inputs. The CLI refuses search budgets on actions that do not consume them. External publication/review, remaining mechanized refinements and measured product comparison stay open.
 
   - **Status: complete.** Validate the [local research inventory and registered-action replay](docs/implementation/static-memory/artifact.md#local-artifact-disposition), including indexed sources, completeness, classification, document reachability and malformed-receipt rejection. Intentional refusals and incomplete searches retain their diagnostic scope; external publication, review, implementation refinements and product comparison remain open.
 
-A credible project combines programming-language semantics, algorithms, real-time systems, capability security, and compiler engineering. Its success criterion is a checked increase in useful admitted work with the costs exposed. A proof that a particular reservation is unavoidable, or that a tempting optimization breaks isolation, is also a substantive result.
+Research combines programming-language semantics, algorithms, real-time systems, capability security and compiler engineering. Success means a checked increase in useful admitted work with explicit costs; proving a reservation unavoidable or an optimization isolation-breaking is also a result.
 
 ## Coverage-preserving tooling retirement
 
-Retire an implementation only when its replacement preserves the complete input
-population, observable decisions and refusal behavior. Shared commands may keep
-distinct acceptance obligations. The capability-vector consolidation adds no dependency,
-prover upgrade, performance claim or milestone completion credit.
+Retire implementations only when replacements preserve complete input populations, observable decisions and refusals. Shared commands retain distinct acceptance obligations. Capability-vector consolidation adds no dependency, prover upgrade, performance claim or milestone credit.
 
-- **Capability-vector generation. Status: implemented.** Typed probe declarations
-  use the shared oracle emitter for formatting, random generation and printing;
-  domain-specific helpers and the exact ordered sweeps remain authored Sail input.
-  The monolithic generator is retired. Focused controls and integrated typecheck
-  pass. The [retained hosted comparison](tools/cheri-equiv/README.md#migration-evidence)
-  establishes identical complete ordered vector data against the immutable
-  pre-migration generator, including exhaustive domains and deliberate corners.
-  The temporary qualification workflow and helper are retired into that evidence
-  bundle. The `retire-tools-20261030-final` journal owns final-revision Host CI and every
-  Guest CI lane's dispatch; the independent RTL consumer retains its hosted
-  acceptance boundary. No performance improvement is claimed.
-- **Concurrent link-validator installation. Status: implemented.** The reviewed
-  FileLock release serializes installation and cache revalidation per managed
-  environment. Its stable lock-file identity and required native backend preserve
-  retirement's producer-lock exclusion. Archive and executable pins, atomic
-  publication and corrupt-cache refusals remain active. Independent-process
-  controls cover single cold installation, failure/crash recovery, bounded
-  refusal and corruption; focused Windows controls and typecheck pass. Host CI's
-  Ubuntu controls exercise native FileLock/flock contention in both directions.
-  The final fanout journal owns both platform verdicts and every Guest CI lane's
-  dispatch.
+- **Capability-vector generation. Status: implemented.** Typed probes use the shared oracle emitter for formatting, random generation and printing; domain helpers and ordered sweeps remain Sail input. The monolithic generator is retired. Focused controls/typecheck pass. The [retained hosted comparison](tools/cheri-equiv/README.md#migration-evidence) establishes identical complete ordered vectors against the immutable predecessor, including exhaustive domains and corners; it retains the retired qualification workflow/helper. `retire-tools-20261030-final` owns final Host CI and all Guest dispatches. The independent RTL consumer retains hosted acceptance; no speedup is claimed.
+- **Concurrent link-validator installation. Status: implemented.** Reviewed FileLock serializes per-environment installation/cache revalidation. Stable lock identity and its required native backend preserve producer-lock exclusion. Archive/executable pins, atomic publication and corrupt-cache refusals remain. Independent-process controls cover one cold install, failure/crash recovery, bounded refusal and corruption; focused Windows controls/typecheck pass. Ubuntu Host CI tests FileLock/flock contention both ways. The final journal owns both platform verdicts and all Guest dispatches.
 - **Rocq context workaround. Status: conditional. Start:** a qualified prover-lock
   move carrying the merged checker fix described by the
   [opam adoption contract](tools/opam/README.md#merged-checker-and-printer-improvements).
@@ -2643,31 +2611,18 @@ own qualification and end-to-end measurements justify a change of default.
 
 ## Standard-tool guardrail replacements
 
-The implementations are landed. The typecheck wrapper passes explicit indexed
-filenames to the locked tools; uv owns locked-resolution consistency; authored
-registry and release identities generate their views; and `requires-python` owns
-interpreter selection. Maintained Markdown parsing, table lint and offline link
-validation replace the corresponding handwritten syntax and reference machinery.
-The [generated rule reference](tools/check-rules.md) and
-[tool guide](tools/README.md#checking-the-tools-themselves) describe the current
-owners and retained refusals. Permanent retired IDs remain in the registry.
+The replacements are landed: typecheck passes indexed filenames to locked tools; uv checks locked resolution; authored registry/release identities generate views; `requires-python` selects the interpreter. Maintained Markdown parsing, table lint and offline link validation replace handwritten syntax/reference checks. The [generated rule reference](tools/check-rules.md) and [tool guide](tools/README.md#checking-the-tools-themselves) name owners and retained refusals. Retired IDs remain permanent.
 
 Independent obligations remain active: annotation coverage and type analysis,
 licence-review bindings, semantic document consistency and detection of pipe-led
 runs without a table separator. Generation does not authorize a new reviewed
 dependency version or bless a requirement/prose reading.
 
-The `guardrails-20261030-repair` fanout journal owns the predecessor batch's
-revision-bound hosted evidence. Each later settled
-batch still requires Host CI on Windows and Ubuntu and dispatch of every Guest
-CI lane for its own revision, without waiting for Guest CI.
+The `guardrails-20261030-repair` journal owns its predecessor revision's hosted evidence. Later batches require fresh Windows/Ubuntu Host CI and all Guest dispatches, without waiting for Guest verdicts.
 
 ### Declarative guardrail follow-through
 
-This maintenance batch moves structural policy into standard JSON Schema and
-reuses existing dependency bindings. It introduces no dependency or toolchain
-upgrade. Runtime validation and editor associations consume the same schemas;
-semantic cross-artifact decisions retain their existing owners.
+Structural policy uses standard JSON Schema and existing dependency bindings, with no upgrade. Runtime validation and editors share schemas; semantic cross-artifact checks retain their owners.
 
 - **Typechecker configuration policy. Start:** the settings validators in
   `vos/cli/typecheck.py`. **Owns:** authored schemas for the admitted ty and Ruff
@@ -2700,19 +2655,11 @@ The integrator reads the settled change at Tier A, runs focused behavioral
 controls and typecheck, requires Host CI on Windows and Ubuntu, and dispatches
 every Guest CI lane for the published revision without waiting for Guest CI.
 
-These replacements are implemented. Configuration and maintenance-data readers
-share authored schemas with editor support; the review binding replaces K-97.
-Focused controls preserve predecessor configuration decisions and generated
-maintenance content, and cover duplicate keys, strict integer lengths and offline
-schema-reference refusals. The `guardrails-declarative-20261030-final` fanout journal
-owns revision-bound Host CI evidence and every Guest CI lane's dispatch.
+Implemented: shared configuration/maintenance schemas and editor support, with the review binding replacing K-97. Focused controls preserve predecessor decisions and generated bytes, and cover duplicate keys, strict integer lengths and offline schema-reference refusals. `guardrails-declarative-20261030-final` owns exact-revision Host evidence and all Guest dispatches.
 
 ## Parser and declaration guardrail consolidation
 
-This maintenance batch removes handwritten syntax and data-shape readers in favor
-of the already locked PyYAML and JSON Schema implementations. It changes no model,
-proof, compiler, dependency release or acceptance boundary. Implementation starts
-from these contracts; the integrator reads the settled changes at Tier A.
+Replace handwritten syntax/data-shape readers with locked PyYAML and JSON Schema, preserving model/proof/compiler bytes, dependency releases and acceptance boundaries. These contracts precede implementation; the integrator reads settled changes at Tier A.
 
 - **YAML pin owners. Start:** the workflow-key census in `vos/checks/pins.py`
   and the hook repository/revision reader in `vos/devtools.py`. **Owns:** one
@@ -2755,20 +2702,11 @@ published revision, finishing without waiting for Guest CI. The batch's fanout
 journal records the tested revision and hosted evidence; no performance claim or
 milestone completion credit is taken.
 
-The shared YAML node reader now supplies workflow and hook populations. Structured
-action reviews generate their pinned licence links and K-118 holds the workflow
-join; K-115 is permanently inactive. Device-register and wire-format declarations
-share their authored schemas with editor validation. Semantic joins remain in the
-readers, and the generated Gallina, RTL and format inventory retain their bytes.
-The `simplify-guardrails-20261030-final` fanout journal owns Host CI evidence and
-every Guest CI lane's dispatch for the settled revision.
+Implemented: shared YAML workflow/hook populations, structured action reviews generating pinned licence links, K-118's workflow join and permanently retired K-115. Device-register/wire-format schemas serve readers and editors; semantic joins remain authored. Generated Gallina, RTL and format-inventory bytes are unchanged. `simplify-guardrails-20261030-final` owns Host evidence and all Guest dispatches.
 
 ## Tool-library simplifications
 
-This maintenance batch preserves artifact formats, diagnostics and acceptance
-boundaries. Implementation starts from these contracts; each output joins through
-integrated typecheck, Host CI on Windows and Ubuntu, and dispatch of every Guest
-CI lane for the settled revision without waiting for Guest CI.
+Preserve artifact formats, diagnostics and acceptance boundaries. Implement against these contracts; join through typecheck, Windows/Ubuntu Host CI and all Guest dispatches for the settled revision, without waiting for Guest verdicts.
 
 - **Ring library extraction. Start:** the declaration reader and emitter in
   `vos/cli/ring.py`. **Owns:** a library module for shared declarations, types,
@@ -2796,64 +2734,21 @@ CI lane for the settled revision without waiting for Guest CI.
   readings. Consolidate only the qualified overlap; record any incompatible
   scanner policy and remaining boundary here.
 
-The ring parser and emitter now live in `vos/ring.py`; library consumers import
-that module directly. Composition and ring declarations share the lazy validator
-in `vos/schema.py`, and source inventories bind both new dependencies where used.
-The static-memory command supplies registration, digest and replay dependencies
-explicitly to its manifest library.
+Implemented: `vos/ring.py` owns parsing/emission and direct library imports; composition/ring share the lazy `vos/schema.py` validator. Source inventories bind new dependencies. The static-memory CLI injects registration, digest and replay dependencies into its manifest library.
 
-`vos/prooflex.py` shares comment and string region traversal. The proof reader
-retains tolerant unfinished-input handling and recognizes strings inside comments;
-navigation ignores quotes inside comments and refuses unmatched endings and
-unfinished regions. Those policies remain distinct at the adapters. Focused
-differential fixtures and live proof-source readings preserve both consumers'
-outputs. Hosted completion requires Host CI on the settled revision and a Guest
-dispatch for that revision. An existing dispatch with matching inputs is reused.
-The frozen-lexer and proof-command comparisons provide the source-reading
-equivalence evidence.
+`vos/prooflex.py` shares comment/string traversal. Adapters retain distinct policies: proof reading tolerates unfinished input and recognizes strings inside comments; navigation ignores comment quotes and refuses unmatched endings or unfinished regions. Frozen-lexer and proof-command comparisons, focused differential fixtures and live-source readings preserve both outputs. Require settled-revision Host CI and matching Guest dispatch; reuse an existing dispatch with identical inputs.
 
 ## Proof structure maintenance
 
-The [proof structure contract](docs/implementation/contracts/proof-structure.md)
-commissions the shared proof foundation, semantic checker interfaces, named
-conditions, geometry projection, trace replay, sequence edits, scalar lifting,
-NTT shape lemmas, independent updates and dependency-ordered crypto sources.
-The refactors are implemented with compatibility aliases and semantic interface
-lemmas. Source review preserves existing theorem statements, executable behavior
-and non-vacuity evidence; native compilation and assumption auditing remain the
-hosted proof gate's decision. Host CI must pass on the published revision; every
-Guest CI lane is dispatched cold for that revision, with its proof verdict left
-pending. The local guest has no Rocq installation and supplies no compile verdict.
+The [proof structure contract](docs/implementation/contracts/proof-structure.md) commissions the shared foundation, semantic checker interfaces, named conditions, geometry projection, trace replay, sequence edits, scalar lifting, NTT shapes, independent updates and dependency-ordered crypto sources. Implemented refactors provide compatibility aliases and semantic interface lemmas. Source review preserves statements, behavior and non-vacuity; hosted compilation/assumption audits decide proof acceptance. Require published-revision Host CI and all Guest lanes dispatched cold; the proof verdict remains pending. No local Rocq installation or compile verdict is available.
 
-The contract's [further proof interfaces](docs/implementation/contracts/proof-structure.md#further-proof-interfaces)
-commission a second tranche: B-tree operation cases, named service and seeding
-conditions, codec composition, finite-roster completeness, compositional equality,
-support-local probability, crypto permutation laws, ordered admission verdicts,
-remaining shared laws and named service updates. The source refactors are
-implemented and existing clients consume their interfaces. Source review retains
-existing theorem types, assumption declarations, executable behavior and refusal
-evidence; native compilation, elaborated-reading comparison and proof-cost
-measurements remain pending hosted evidence. Hosted acceptance uses cold Guest CI
-with the tranche's named base and does not wait for its verdict. A source comparison
-does not establish native proof acceptance or a performance result.
+The contract's [further proof interfaces](docs/implementation/contracts/proof-structure.md#further-proof-interfaces) commission B-tree cases, named service/seeding conditions, codec composition, finite-roster completeness, compositional equality, support-local probability, crypto permutation laws, ordered admission verdicts, remaining shared laws and named service updates. Implemented clients use these interfaces. Source review preserves types, assumptions, behavior and refusals; native compilation, elaborated-reading comparison and proof-cost measurements remain pending. Dispatch cold Guest CI with the named base and finish without waiting. Source comparison establishes neither proof acceptance nor performance.
 
-The [failed Guest CI proof lane](https://github.com/symbiogenesis/VerifiedOS/actions/runs/41165278678)
-has candidate proof-body corrections for collection-alias unfolding, an explicit
-induction argument, geometry-view reduction, the last-event tactic binder and
-standard-library list lifting. The butterfly list proofs use the scripts from
-the [passing revision](https://github.com/symbiogenesis/VerifiedOS/actions/runs/41012232758).
-Source comparison preserves everything outside opaque proof bodies. The repair
-is committed locally at the user's request; publication, Host CI, cold Guest CI
-and elaborated-reading comparison remain outstanding.
+Candidate corrections for the [failed Guest CI proof lane](https://github.com/symbiogenesis/VerifiedOS/actions/runs/41165278678) address collection-alias unfolding, an explicit induction argument, geometry reduction, the last-event binder and standard-library list lifting. Butterfly proofs use scripts from the [passing revision](https://github.com/symbiogenesis/VerifiedOS/actions/runs/41012232758). Source comparison preserves everything outside opaque bodies. Committed locally at the user's request; publication, Host CI, cold Guest CI and elaborated-reading comparison remain outstanding.
 
 ## Model test-corpus library boundary
 
-The downloaded RISC-V test corpus has one integrity boundary: the model's declared
-release and tarball digests, manifest rendering and verification, snapshot-based
-input selection, and copying only files that verified. These operations belong
-together in `vos/model_corpus.py`; `vos/cli/model.py` retains build receipts,
-donor selection, command orchestration and reporting. Consumers import the library
-directly rather than obtaining corpus operations from the model command.
+The RISC-V corpus integrity boundary belongs in `vos/model_corpus.py`: declared release/tarball digests, manifest rendering/verification, snapshot input selection and verified-only copying. `vos/cli/model.py` retains receipts, donor selection, orchestration and reporting; consumers import the library directly.
 
 **Start:** the existing corpus implementation and its fixture controls.
 **Owns:** the library boundary and direct consumer imports, preserving manifest
@@ -2867,27 +2762,13 @@ Ubuntu and dispatch of every Guest CI lane for the settled revision, without
 waiting for Guest CI. This refactor changes no model bytes, corpus format or
 model-acceptance requirement.
 
-The corpus library and direct consumers are implemented. Existing integrity
-controls and the independent-import control pass in focused Windows runs;
-the Sail assistance drift control also refuses changes to the extracted source.
-Integrated typecheck and repository checks pass. Hosted acceptance remains open.
+Implemented: direct library consumers, passing focused Windows integrity/import controls and Sail assistance drift refusal. Integrated typecheck/repository checks pass; hosted acceptance remains open.
 
 ## Shared JSON duplicate-key rejection
 
-The tool readers share the duplicate-key check in
-[`vos/jsonutil.py`](tools/vos/jsonutil.py). Each reader retains its numeric,
-encoding, shape and nesting policies, domain exception type and diagnostic text.
-The shared hook preserves member order and rejects the first repeated key at any
-object depth; callers may supply their own duplicate-error factory. Source
-identity manifests include the shared dependency, and affected composition and
-research artifacts are regenerated from their owners.
+Readers share [`vos/jsonutil.py`](tools/vos/jsonutil.py)'s ordered duplicate-key hook, rejecting the first repeat at any depth with optional caller-specific errors. Numeric, encoding, shape, nesting, exception and diagnostic policies remain local. Source manifests bind the helper; owners regenerate affected composition/research artifacts.
 
-Focused controls pass for ordered objects, nested and escaped duplicate keys,
-caller-specific errors and the affected readers, along with typecheck. The pinned
-finite rational-identity replay passes with both corruption controls refused.
-Hosted acceptance requires Host CI on Windows and Ubuntu and dispatch of every
-Guest CI lane for the settled revision without waiting for Guest CI. This
-maintenance change claims no new parser semantics or performance result.
+Focused controls and typecheck pass for ordered objects, nested/escaped duplicates, caller errors and affected readers. Pinned finite rational-identity replay passes and refuses both corruptions. Require settled-revision Windows/Ubuntu Host CI and all Guest dispatches without waiting. No new parser semantics or speedup is claimed.
 
 ## Shared tool publication and source identities
 
@@ -2924,20 +2805,11 @@ admission criterion, evidence authority or artifact format.
   certificate command does not load the planner command. **Join:** integrated
   typecheck and the same hosted validation handoff.
 
-The shared publication mechanism, declared source views, digest reuse and library
-parsing policy are implemented. Focused controls cover caller-specific publication
-and parsing behavior, digest errors, source propagation and inventory refusal before
-publication. Inventory destinations are resolved and checked together for escapes
-and aliases before any write. The integration batch
-`tools-maintenance-20261029` records exact-revision hosted evidence in its fanout
-journal; Guest CI is dispatched without waiting for its verdict.
+Implemented: shared publication, declared source views, digest reuse and library parsing. Focused controls cover caller-specific behavior, digest errors, source propagation and pre-publication inventory refusal. Resolve/check all inventory destinations for escapes and aliases before writing. `tools-maintenance-20261029` owns exact-revision hosted evidence and Guest dispatch, without awaiting its verdict.
 
 ## Python modernization
 
-Standardize the authored Python code on the project's Python 3.14 runtime,
-including its bootstrap. Adopt modern language, typing and standard-library
-features where they clarify the code while preserving existing acceptance
-decisions, diagnostics, deterministic output and artifact bytes.
+Standardize authored Python and its bootstrap on project Python 3.14. Use modern language, typing and library features where clearer, preserving acceptance decisions, diagnostics, deterministic outputs and artifact bytes.
 
 - **Start:** the locked Python project, linter policy and current behavioral
   contracts in [the tool guide](tools/README.md#checking-the-tools-themselves).
@@ -2953,15 +2825,7 @@ decisions, diagnostics, deterministic output and artifact bytes.
   Ubuntu, and dispatch every Guest CI lane for the same revision through
   [the validation handoff](AGENTS.md#tool-execution-and-validation).
 
-The active-source review and implementation are complete: explicit type aliases,
-lazy annotations, standard-library batching, current exception syntax and CLI
-choice suggestions are in use where applicable. The bootstrap and guest installer
-share a manifest-derived interpreter refusal; the universal-version rule lives in
-[AGENTS.md](AGENTS.md#tool-execution-and-validation). Focused bootstrap, parser,
-emitter, supervisor and provisioning controls pass, including unchanged emitted
-bytes. Source-bound views and the finite rank-48 receipt are regenerated through
-their owners. The `python-modern-20261031` fanout journal records exact-revision
-hosted evidence and Guest CI dispatch; the guest verdict is deferred to the user.
+Completed: applicable explicit aliases, lazy annotations, standard-library batching, current exception syntax and CLI suggestions. Bootstrap/guest installer share manifest-derived interpreter refusal under [AGENTS.md](AGENTS.md#tool-execution-and-validation). Focused bootstrap, parser, emitter, supervisor and provisioning controls pass with unchanged emitted bytes. Owners regenerated source-bound views and the finite rank-48 receipt. `python-modern-20261031` owns exact-revision hosted evidence and Guest dispatch; the user monitors its verdict.
 
 ## Model build assurance
 
@@ -3029,28 +2893,11 @@ their acceptance conditions.
   identities and retire this repair batch's owned worktrees. The user's CI
   monitoring handoff permits finishing without waiting on hosted verdicts.
 
-The CMake control normalizes wrapped diagnostic whitespace and checks stamp
-invalidation independently. The native fixture also uses the production compiler
-selection. The shared `LastEvent` laws now relate selection presence to a boolean
-detector and expose the positive cons case. Journal clients reuse those laws;
-their remaining induction relates committed writes to store updates. Other
-clients unfold their projections before rewriting and consume conjunction
-hypotheses without retaining duplicate names. Source comparison preserves every
-existing statement and executable definition, with new opaque laws and the
-qualified `ProofSupport` dependency reviewed explicitly. The pinned prover is
-unavailable locally, so printed elaborated-type/universe comparison and proof
-acceptance remain outstanding; the cold Guest run supplies the kernel and
-assumption verdict. The `cmake-ci-helper-20261031` handoff retains the source-review
-checkpoint and validation identities without treating lexical closure as proof
-acceptance.
+The CMake control normalizes wrapped whitespace, checks stamp invalidation independently and uses production compiler selection. Shared `LastEvent` laws relate selection presence to a boolean detector and expose positive cons; journal clients reuse them, retaining store-update induction. Other clients unfold projections before rewriting and avoid duplicate conjunction names. Source comparison preserves existing statements/definitions; new opaque laws and the `ProofSupport` dependency are reviewed. The pinned prover is unavailable locally; elaborated type/universe comparison, kernel acceptance and exact assumptions await cold Guest CI. `cmake-ci-helper-20261031` retains the source-review checkpoint and validation identities; lexical closure supplies no proof acceptance.
 
 ## C modernization
 
-Modernize active authored C within the selected compiler and proof interfaces.
-Use modern declarations, explicit initialization and compile-time checks where
-they clarify existing contracts, keeping the target's admitted scalar profile.
-The CompCert/Clight path used by VST constrains target language features; a host
-compiler accepting a feature alone does not establish target support.
+Modernize active authored C declarations, initialization and compile-time checks within selected compiler/proof interfaces and the admitted scalar profile. Host acceptance alone does not establish CompCert/Clight target support for VST.
 
 - **Start:** existing component contracts, the contained compiler's source-value
   and ABI contracts, and the current C build commands.
@@ -3070,25 +2917,11 @@ compiler accepting a feature alone does not establish target support.
   [the validation handoff](AGENTS.md#tool-execution-and-validation). Record any
   acceptance checks outside those workflows explicitly.
 
-The [language profile](docs/implementation/c-language-profile.md) distinguishes
-C17 host compilation from the contained target's admitted CompCert-C subset.
-Kernel, supervisor, copy-service and storage locals use narrower scopes and
-initialized immutable snapshots; host records use named fields where helpful.
-Host builds enable strict prototype warnings. Existing mutation anchors follow
-the changed declarations. Frozen firmware, the source-bound IPC oracle and
-retained execution snapshots keep their bytes. The `c-modern-20261031` fanout
-journal owns the hosted handoff; private target recompilation and component
-re-execution remain deferred because the contained compiler is unavailable on
-the current machine. This pass supplies no fresh target-execution verdict.
+The [language profile](docs/implementation/c-language-profile.md) distinguishes C17 host from admitted CompCert-C target code. Kernel, supervisor, copy-service and storage locals use narrower scopes and initialized immutable snapshots; host records use named fields where helpful. Host builds enforce strict prototypes and mutation anchors follow declarations. Frozen firmware, the source-bound IPC oracle and retained snapshots keep their bytes. `c-modern-20261031` owns hosted handoff. Private target recompilation/re-execution is deferred because the contained compiler is unavailable; no fresh target verdict is claimed.
 
 ## Compiler differential library boundary
 
-The compiler differential harness is shared by the firmware, kernel and service
-target instruments. Its reusable implementation belongs in `vos/compiler_diff.py`;
-`vos/cli/compiler_diff.py` owns argument parsing, command orchestration and output.
-Library consumers import the implementation directly rather than loading a command
-module. This maintenance change preserves compilation, assembly, generated programs,
-HTIF and trace decisions, output encodings and diagnostic text.
+Firmware, kernel and service target instruments share `vos/compiler_diff.py`; `vos/cli/compiler_diff.py` owns parsing, orchestration and output. Consumers import the library directly. Preserve compilation, assembly, generated programs, HTIF/trace decisions, encodings and diagnostics.
 
 **Start:** the existing differential driver and its behavioral controls.
 **Owns:** the library/CLI split, direct consumer imports and complete source bindings
@@ -3452,7 +3285,15 @@ The [critique](docs/background/critique.md) owns the findings and dispositions.
 The permanent critique ID below is a follow-up within Q22e, with no additional
 estimate or independent completion claim.
 
-10. **Resolve the store buffer against phase service.** Q22e owns the comparison and [the alternatives entry](docs/background/architectural-alternatives.md#delete-the-store-buffer-sequential-consistency-by-absence-distinguished-from-buffer-retained-sc) its disposition, and what the register decides ahead of any coefficient is recorded there: the zero-wait branch, on which deletion would be performance-neutral for arbitrary admitted code, is closed by construction on every second-class bank, whose refresh share grants the bank to no requester, and on every island hosting more than one domain, so it survives only on a first-class island hosting one domain, and there on a disjunction: every operation's bank occupancy is a single cycle, a magnitude R-17-041 carries as a crown-jewel residual, or the domain's code is proved never to present two requests to one bank inside that occupancy, which is the checked code/schedule certificate the restricted companions still lack. The synthetic assessment exercises the average-rate grant gap, joint acceptance, refresh, frame wrap, one hart's acceptance order over unequal fabric paths and a request that finds its bank taken on arrival; a schedule extractor, a completion analysis that separates in-flight time to bank acceptance from the total issued-operation drain the switch-side saving subtracts, and a conservative cost arithmetic join it at `phase-evaluate`, and every receipt reads its open verdict off the composition's own qualified and frozen flags and off the schedule, which has no artifact to read at all. What stays open is the cost branch, a bounded stall cost against the switch saving, whose every coefficient is owed to a row of the alternatives entry's symbol table: R-11-017's emitted schedule, R-15-108's widths, R-15-228's binding map with the R-15-052b roster, R-15-247m's qualification, R-07-032 and R-11-006's switch count, and R-17-041's unfrozen switch constants. A second-class comparison runs against R-15-015b's ordered unbuffered baseline and R-15-218's SRAM-only buffer drain, and what it still owes is R-15-247m's qualified inputs for that path's routing, grants, bank occupancy and permitted refresh phases together with R-07-040's complete timer residency under the actual schedule, a missing finite bound refusing admission. What the host carries for the cost branch is the stalled-transition instrument, `phase-stall`, which bounds a candidate's waiting at issue over declared per-hart programs and joins that bound to the cost arithmetic, and the mode-transition extension, which checks declared modes and their transitions as one reachable product; both are synthetic and read every coefficient above as owed. The retained Ztso baseline stands while the cost branch is undecided.
+10. **Resolve the store buffer against phase service.** Q22e owns the comparison; [the alternatives entry](docs/background/architectural-alternatives.md#delete-the-store-buffer-sequential-consistency-by-absence-distinguished-from-buffer-retained-sc) owns its disposition and symbol table.
+
+    Zero-wait deletion for arbitrary admitted code is ruled out on every second-class bank (refresh grants no requester service) and every multi-domain island. A single-domain first-class island qualifies only if bank occupancy is one cycle (R-17-041's crown-jewel residual), or checked code/schedule evidence forbids same-bank requests within that occupancy; the restricted companions still lack that certificate.
+
+    The synthetic assessment covers average-rate grant gaps, joint acceptance, refresh, frame wrap, one hart's acceptance order across unequal fabric paths, and an occupied bank on arrival. `phase-evaluate` joins schedule extraction, conservative cost arithmetic and completion analysis separating in-flight-to-bank-acceptance time from total issued-operation drain. Receipts derive their open verdict from composition qualification/freeze flags and the schedule, whose producer artifact is absent.
+
+    The open cost branch compares bounded issue stalls with switch savings. Required coefficients remain R-11-017's emitted schedule, R-15-108's widths, R-15-228's binding map and R-15-052b roster, R-15-247m's qualification, R-07-032/R-11-006's switch count, and R-17-041's unfrozen switch constants. The second-class comparison uses R-15-015b's ordered unbuffered baseline and R-15-218's SRAM-only drain. It still needs qualified routing, grants, occupancy and permitted refresh phases under R-15-247m, plus R-07-040's complete timer residency under the actual schedule; no finite bound means refusal.
+
+    The synthetic `phase-stall` instrument bounds issue waiting over declared per-hart programs and joins cost arithmetic. Its mode-transition extension checks modes/transitions as one reachable product. Both retain every coefficient as owed. Keep the Ztso baseline until the cost branch is decided.
 
 ---
 
@@ -3527,81 +3368,70 @@ Candidate IDs link to the [review evidence](docs/implementation/upstream-prs.md)
 
 ## Upstream adoption recommendations
 
-The [merged-upstream review](docs/implementation/upstream-merged-review.md) retains the dated source findings and local-consumer evidence for these recommendations. Existing implementation owners, qualification boundaries and tracker candidates retain their scope; these recommendations introduce no duplicate submission or implementation allowance.
+The [merged-upstream review](docs/implementation/upstream-merged-review.md) owns dated source findings and local-consumer evidence. These actions retain existing implementation owners, qualification boundaries and tracker scope; they add no submission or implementation allowance.
 
 ### Recommended order
 
-1. Carry the relevant Sail vector legality fix into the curated model, and qualify
-   the recently repaired Wasm numeric fixtures before freezing the interpreter
-   corpus. These address semantic cases the existing consumers need.
-2. Use the CHERIoT Rust source's existing calling conventions and attributes in
-   the compiler adaptation investigation. Qualify the newer pointer-width GVN
-   correction with it. The calling conventions and attributes are inventoried
-   in [the donor survey](docs/assurance/proof-reuse/languages.md#cheriot-rust-selected-functional-capability-aware-compiler-baseline).
-3. Trial Sail's new dependent-pair emitter and configuration rejection at the Q35
-   seams, and compare the coherent Stdlib-bits lowering APIs before writing more
-   glue against the retired word interface. Katamaran's new contract organization
-   is a method reference, with a different protection boundary.
-4. Make assertion enablement and locking part of the real-core harness
-   qualification; evaluate Mocha's AXI event collection when the fabric is bound.
-5. Bundle the useful Rocq inspection and checking changes with the already-owned
-   prover qualification. Keep optional certificate and compiler-pass experiments
-   behind their current trust boundaries.
+1. Port the Sail vector legality fix; qualify repaired Wasm numeric fixtures before freezing the interpreter corpus.
+2. Trial CHERIoT Rust's existing calling conventions/attributes and newer pointer-width GVN correction for compiler adaptation; [the donor survey](docs/assurance/proof-reuse/languages.md#cheriot-rust-selected-functional-capability-aware-compiler-baseline) inventories them.
+3. Trial Sail dependent-pair emission/configuration refusal at Q35, and coherent Stdlib-bits APIs before more retired-interface glue. Katamaran supplies a method reference across a different protection boundary.
+4. Qualify assertion enablement/locking in the real-core harness; evaluate Mocha AXI collection at fabric binding.
+5. Include Rocq inspection/checking changes in existing prover qualification; retain trust boundaries for optional certificate/compiler-pass experiments.
 
 ### Model and hardware
 
 | Evidence | Next action and boundary |
 | --- | --- |
-| [Indexed segment-store overlap legality](docs/implementation/upstream-merged-review.md#model-and-hardware) | Port the segment-aware helper and its `nf` argument under the Sail workflow. Adapt upstream positive/negative cases to the frozen profile, preserving capability authorization and fault ordering. Q35/model reconciliation owns acceptance. |
-| [A smaller vector-length representation](docs/implementation/upstream-merged-review.md#model-and-hardware) | Trial the `vl` portion, prove representation agreement, and zero-extend at CSR and external interfaces. The local exclusion of `vstart` is intentional and must survive; importing the upstream register block wholesale would change the machine. |
-| [Assertion controls that cannot be switched off by the design](docs/implementation/upstream-merged-review.md#model-and-hardware) | R2 should compile retained assertions with `--assert`, lock their runtime controls, and retain a deliberately failing property plus an attempted assertion-disable control. Reconcile imported assertion expectations before enabling them. |
-| [AXI request, response and completion observation](docs/implementation/upstream-merged-review.md#model-and-hardware) | At R1c-ii's fabric binding, compare these interfaces before authoring collection from scratch. The donor uses UVM analysis ports: qualify simulator compatibility or reuse its collection/protocol design in the current Verilator route. Add capability tags, delegated-window identity, reset/cancellation and landed-write/window-close semantics. An AXI response alone does not establish persistence or revocation completion. |
-| [Failing explicitly on unlowered formal checks](docs/implementation/upstream-merged-review.md#model-and-hardware) | Include this refusal in the selected formal frontend's minimum-feature/regression qualification. It strengthens an existing duty; it is not a replacement for property-preservation checks. |
-| [Concurrency-interface v2](docs/implementation/upstream-merged-review.md#model-and-hardware) | Review the backend, runtime and outcome interface together. Upstream currently hard-codes `CHERI=false` and `cap_size_log=0` with TODOs: this does not solve candidate 16's granule-keyed tag operations. Preserve the canonical machine anchor and prove any selected interface adapter's data/tag effects before adoption. The date given is the landed commit date. |
+| [Indexed segment-store overlap legality](docs/implementation/upstream-merged-review.md#model-and-hardware) | Port the segment-aware helper and `nf` under the Sail workflow. Adapt positive/negative cases to the frozen profile, preserving capability authorization and fault order. Q35/model reconciliation owns acceptance. |
+| [A smaller vector-length representation](docs/implementation/upstream-merged-review.md#model-and-hardware) | Trial `vl`, prove representation agreement and zero-extend at CSR/external interfaces. Preserve the intentional `vstart` exclusion; wholesale register-block import would change the machine. |
+| [Assertion controls that cannot be switched off by the design](docs/implementation/upstream-merged-review.md#model-and-hardware) | R2: compile retained assertions with `--assert`, lock runtime controls, retain a failing property and an attempted disable control. Reconcile imported assertion expectations before enablement. |
+| [AXI request, response and completion observation](docs/implementation/upstream-merged-review.md#model-and-hardware) | At R1c-ii fabric binding, compare donor UVM analysis ports before new collection; qualify simulator compatibility or adapt their collection/protocol design to Verilator. Add capability tags, delegated-window identity, reset/cancellation and landed-write/window-close semantics. AXI response alone proves neither persistence nor revocation completion. |
+| [Failing explicitly on unlowered formal checks](docs/implementation/upstream-merged-review.md#model-and-hardware) | Include this refusal in formal-frontend minimum-feature/regression qualification, retaining separate property-preservation checks. |
+| [Concurrency-interface v2](docs/implementation/upstream-merged-review.md#model-and-hardware) | Review backend, runtime and outcome interfaces together. Hard-coded `CHERI=false`/`cap_size_log=0` TODOs leave candidate 16's granule-keyed tags unresolved. Preserve the canonical machine anchor and prove adapter data/tag effects before adoption. The date is the landed commit date. |
 
 ### Proof interfaces and compiler construction
 
 | Evidence | Next action and boundary |
 | --- | --- |
-| [Broader Rocq dependent-pair emission](docs/implementation/upstream-merged-review.md#proof-interfaces-and-compiler-construction) | Compare emitted pair types, witnesses and projections with the frozen target, including reordered binders, before extending the compatibility patch. Replay strict whole-term compilation and exact assumptions. The change supplies neither Q35p's missing tag outcomes nor the strict notation repair. |
-| [Reject inconsistent instantiated configurations](docs/implementation/upstream-merged-review.md#proof-interfaces-and-compiler-construction) | Include violating and valid configurations in the next qualified Sail candidate. Establish whether the actual frozen model's instantiation path exercises the new check before calling it a local defect; preserve its declared constraints and authored validation. The date given is the commit date, not an independently checked merge timestamp. |
-| [A common Stdlib-bits word theory across the lowering stack](docs/implementation/upstream-merged-review.md#proof-interfaces-and-compiler-construction) | Qualify one immutable four-project closure and an actual descriptor/frame client before writing further old-interface glue. Compare generated behavior and audit changed proof settings. Do not update a single package independently, relax the prover lock or infer the absent CHERI target/Clight transport from a common bits library. Dates here describe landed source history, not individually verified PR merge times. |
-| [Reasoning about known M-mode code through a universal contract](docs/implementation/upstream-merged-review.md#proof-interfaces-and-compiler-construction) | Route the comparison through Q35m/Q35k and the machine-logic owner. The rule is not directly reusable: the donor splits M-mode known code from S/U-mode unknown code using privilege/PMP, while VerifiedOS runs all code in M-mode and protects it with capabilities. Strict compatibility, CHERI adequacy and canonical-Sail agreement remain separate work. |
-| [ANF assumptions and a Wasm invariant bridge](docs/implementation/upstream-merged-review.md#proof-interfaces-and-compiler-construction) | Inspect the changed theorem statements and complete dependency assumptions, then replay actual IPC consumers under the oracle owner's qualification. They do not prove end-to-end Wasm compilation or a resident VerifiedOS compiler. |
-| [C-implemented constants and box duplication](docs/implementation/upstream-merged-review.md#proof-interfaces-and-compiler-construction) | Keep it an optional producer/consumer experiment if those paths are needed. Do not count its passes as proof-chain progress or fold them into the deferred release qualification without a separate audit. |
-| [Capability-aware Rust calling conventions and named authority interfaces](docs/implementation/upstream-merged-review.md#proof-interfaces-and-compiler-construction) | Trial the existing implementation and its UI/codegen regressions for the R-18 compiler workstream. Adapt RV32E/64-bit capability assumptions to the frozen RV64 representation, ABI, sentries and MMIO authority. Experimental conventions do not establish a complete compartment system. |
-| [Use address width in pointer simplification](docs/implementation/upstream-merged-review.md#proof-interfaces-and-compiler-construction) | Replay constant-pointer simplification and provenance controls at the intended RV64 layout before selecting the compiler source. Keep tracker candidates 12/13's ABI and CTFE issues separate. |
+| [Broader Rocq dependent-pair emission](docs/implementation/upstream-merged-review.md#proof-interfaces-and-compiler-construction) | Compare pair types, witnesses, projections and reordered binders with the frozen target before extending compatibility. Replay strict whole-term compilation and exact assumptions. Q35p's tag outcomes and strict notation repair remain separate. |
+| [Reject inconsistent instantiated configurations](docs/implementation/upstream-merged-review.md#proof-interfaces-and-compiler-construction) | Qualify violating/valid configurations in the next Sail candidate; establish whether the frozen instantiation path exercises this check before alleging a local defect. Preserve constraints and authored validation. The date is a commit date, not a verified merge timestamp. |
+| [A common Stdlib-bits word theory across the lowering stack](docs/implementation/upstream-merged-review.md#proof-interfaces-and-compiler-construction) | Qualify one immutable four-project closure and a real descriptor/frame client before more old-interface glue. Compare behavior and audit proof-setting changes. No independent package update, relaxed prover lock or inferred CHERI target/Clight transport. Dates describe landed source history, not verified PR merge times. |
+| [Reasoning about known M-mode code through a universal contract](docs/implementation/upstream-merged-review.md#proof-interfaces-and-compiler-construction) | Compare through Q35m/Q35k and the machine-logic owner. Donor known-M/unknown-S/U separation relies on privilege/PMP; local all-M-mode code uses capabilities, preventing direct rule reuse. Strict compatibility, CHERI adequacy and canonical-Sail agreement remain separate. |
+| [ANF assumptions and a Wasm invariant bridge](docs/implementation/upstream-merged-review.md#proof-interfaces-and-compiler-construction) | Inspect changed statements and complete dependency assumptions, then replay IPC clients under oracle qualification. Neither end-to-end Wasm compilation nor a resident compiler follows. |
+| [C-implemented constants and box duplication](docs/implementation/upstream-merged-review.md#proof-interfaces-and-compiler-construction) | Optional producer/consumer experiment only when needed. Passes supply no proof-chain credit or deferred-release qualification without a separate audit. |
+| [Capability-aware Rust calling conventions and named authority interfaces](docs/implementation/upstream-merged-review.md#proof-interfaces-and-compiler-construction) | Trial implementation/UI/codegen regressions for R-18 compiler work. Adapt RV32E/64-bit-capability assumptions to frozen RV64 representation, ABI, sentries and MMIO authority. Experimental conventions establish no complete compartment system. |
+| [Use address width in pointer simplification](docs/implementation/upstream-merged-review.md#proof-interfaces-and-compiler-construction) | Replay constant-pointer/provenance controls at the intended RV64 layout before compiler selection. Keep candidates 12/13's ABI/CTFE issues separate. |
 
 ### Wasm, cryptography and compute
 
 | Evidence | Next action and boundary |
 | --- | --- |
-| [Official relaxed-SIMD and interpreter repairs](docs/implementation/upstream-merged-review.md#wasm-cryptography-and-compute) | Select and qualify the corrected rules, reference interpreter and emitted fixtures together before corpus curation. Preserve distinguishing NaNs, rounding boundaries, UTF-8 refusals and each chosen relaxed-dot intermediate. Watched upstream #2228 (tracker candidate 41) remains a separate open overflow-test PR; #2252 does not merge it. |
-| [A legal boundary-slice evaluation case](docs/implementation/upstream-merged-review.md#wasm-cryptography-and-compute) | Add evaluator end/empty-slice regressions within Q34g's tool/source qualification. This evaluator repair does not establish the missing bounds premises and nested update-path obligations tracked by candidate 44. |
-| [A verified P256 inversion implementation](docs/implementation/upstream-merged-review.md#wasm-cryptography-and-compute) | Compare that implementation and its exact theorem assumptions with the required consumer before choosing a generation/lowering route. It is not a proof of the current generated Bernstein–Yang divstep output or target timing. Tracker candidate 40's draft contract repair remains separate and unresolved. |
-| [Basic BF16 arithmetic and signaling-NaN classification](docs/implementation/upstream-merged-review.md#wasm-cryptography-and-compute) | At the next BF16 oracle qualification, compare the required operations, signaling NaNs, flags and rounding, including FMA double-rounding boundaries. Review the build's source glob and retained local `platform.h` change. Do not claim an existing executed NaN bug merely from an unused macro. |
-| [Correct integer div/rem lowering](docs/implementation/upstream-merged-review.md#wasm-cryptography-and-compute) | Include exact-width signed division/remainder and defined `x/x` cases in the common pilot corpus; qualify the selected LLVM/pass closure and source undefined-behavior policy. The selected 7.2 source already includes barrier-tail/load-rematerialization PR #2269; reuse its regressions without calling it a missing backport. |
-| [More discriminating compute conformance results](docs/implementation/upstream-merged-review.md#wasm-cryptography-and-compute) | Use these corrections when freezing the actual Q30b fixture slice, and record skip as no passing evidence. Keep one shared corpus and the separate semantic/certificate obligations; CTS success is not admission. |
-| [Explicit subgroup-width assumptions](docs/implementation/upstream-merged-review.md#wasm-cryptography-and-compute) | Use the donor cases to reject accidental fixed-32 or physical-vector-lane assumptions in a future HIP extension. Any subgroup surface needs its own source semantics and frozen membership; these changes do not authorize a new runtime or broaden the current pilot. |
+| [Official relaxed-SIMD and interpreter repairs](docs/implementation/upstream-merged-review.md#wasm-cryptography-and-compute) | Qualify corrected rules, interpreter and fixtures together before corpus curation. Preserve distinguishing NaNs, rounding boundaries, UTF-8 refusals and chosen relaxed-dot intermediates. Candidate 41's watched #2228 overflow-test PR remains open; #2252 does not merge it. |
+| [A legal boundary-slice evaluation case](docs/implementation/upstream-merged-review.md#wasm-cryptography-and-compute) | Add evaluator end/empty-slice regressions under Q34g tool/source qualification. Candidate 44's missing bounds premises and nested update paths remain separate. |
+| [A verified P256 inversion implementation](docs/implementation/upstream-merged-review.md#wasm-cryptography-and-compute) | Compare implementation/theorem assumptions with the consumer before choosing generation/lowering. It proves neither current generated Bernstein–Yang divstep output nor target timing. Candidate 40's draft contract repair remains unresolved. |
+| [Basic BF16 arithmetic and signaling-NaN classification](docs/implementation/upstream-merged-review.md#wasm-cryptography-and-compute) | At BF16 oracle qualification, compare operations, signaling NaNs, flags, rounding and FMA double-rounding boundaries. Review the source glob and retained `platform.h` change. An unused macro alone diagnoses no executed NaN bug. |
+| [Correct integer div/rem lowering](docs/implementation/upstream-merged-review.md#wasm-cryptography-and-compute) | Add exact-width signed div/rem and defined `x/x` cases to the common pilot; qualify LLVM/pass closure and source UB policy. Selected 7.2 already contains barrier-tail/load-rematerialization #2269: reuse regressions without claiming a missing backport. |
+| [More discriminating compute conformance results](docs/implementation/upstream-merged-review.md#wasm-cryptography-and-compute) | Use corrections in Q30b's frozen fixtures; skips supply no pass. Retain one corpus and separate semantic/certificate duties; CTS success supplies no admission. |
+| [Explicit subgroup-width assumptions](docs/implementation/upstream-merged-review.md#wasm-cryptography-and-compute) | Use donor cases against fixed-32/physical-vector-lane assumptions in a future HIP extension. Subgroups need their own source semantics and frozen membership; no new runtime or expanded pilot is authorized. |
 
 ### Proof inspection and host tools
 
 | Evidence | Next action and boundary |
 | --- | --- |
-| [Round-trip checked printing](docs/implementation/upstream-merged-review.md#proof-inspection-and-host-tools) | At qualified prover adoption, trial the strict mode on actual bounded declarations and make `reversible-printing` fallback warnings fatal in that route. Qualify naming/universe limitations and elaboration cost; weaker universe-ignoring modes are not equivalent. Keep exact assumptions, complete native census and body/universe comparisons. |
-| [Inspection and size limits](docs/implementation/upstream-merged-review.md#proof-inspection-and-host-tools) | Bundle the exact regressions with the existing prover release/backport qualification. Successful large-object loading does not establish acceptable memory/runtime or complete assumption reporting. |
-| [Conversion-height control and diagnostics](docs/implementation/upstream-merged-review.md#proof-inspection-and-host-tools) | Consider only a separately pinned, audited experiment after a real conversion bottleneck is established. Preserve statement/assumption readings and the recursive kernel check. Any performance measurements or benchmarks belong on CI; no speedup is assumed. |
-| [Replayable SMT proof interfaces](docs/implementation/upstream-merged-review.md#proof-inspection-and-host-tools) | Try a frozen finite obligation only if it needs this theory coverage. Bind the original query, declarations, assumptions and incremental scope, and reject partial/unsupported results. Lean/F* checking and native decoding introduce different qualification boundaries; neither is Rocq admission nor a reason to replace the working LRAT route. |
-| [Unsigned CLI rejection](docs/implementation/upstream-merged-review.md#proof-inspection-and-host-tools) | Reproduce parsing of `0b-1`/`0o-1` with positive and maximum-value controls, then qualify a release or bounded source update and a fresh hosted model build. The separate NaN range-validator fix has no identified floating CLI consumer here. |
+| [Round-trip checked printing](docs/implementation/upstream-merged-review.md#proof-inspection-and-host-tools) | At prover adoption, trial strict mode on bounded declarations; make `reversible-printing` fallback warnings fatal. Qualify naming/universe limits and elaboration cost. Universe-ignoring modes are weaker. Preserve exact assumptions, complete native census and body/universe comparisons. |
+| [Inspection and size limits](docs/implementation/upstream-merged-review.md#proof-inspection-and-host-tools) | Include exact regressions in existing prover release/backport qualification. Large-object loading alone establishes neither acceptable memory/runtime nor complete assumptions. |
+| [Conversion-height control and diagnostics](docs/implementation/upstream-merged-review.md#proof-inspection-and-host-tools) | Only trial a separately pinned/audited candidate after establishing a conversion bottleneck. Preserve statement/assumption readings and recursive kernel checks. Measure only on CI; no speedup is assumed. |
+| [Replayable SMT proof interfaces](docs/implementation/upstream-merged-review.md#proof-inspection-and-host-tools) | Trial a frozen finite obligation only when its theory coverage is needed. Bind query, declarations, assumptions and incremental scope; reject partial/unsupported results. Lean/F* checking and native decoding have distinct qualification boundaries, supply no Rocq admission and do not replace LRAT. |
+| [Unsigned CLI rejection](docs/implementation/upstream-merged-review.md#proof-inspection-and-host-tools) | Replay `0b-1`/`0o-1`, positive and maximum-value controls; qualify a release/bounded update and fresh hosted model build. No floating CLI consumer is identified for the separate NaN range-validator fix. |
 | [Already-installed capabilities and immature additions](docs/implementation/upstream-merged-review.md#proof-inspection-and-host-tools) | Keep the existing behavior; evaluate mature lockfile audits when available. |
 
 ### Consume upstream and contribute the portable remainder
 
 | Comparison seam | Consumption and possible contribution |
 | --- | --- |
-| Sail emitter and support library | Consume the new emitter capabilities while preserving the local strict syntax, notation and exact-assumption work. Candidates 17/18 already own the portable source/backend improvements, while candidate 16 owns the missing tag outcomes. Coordinate with those proposals instead of opening duplicates or weakening the local term to fit upstream. |
-| Curated vector semantics | Consume the segmented-overlap correction while preserving the frozen CHERI fault order. Candidate 33 already owns the generic legality-before-assertion repair. Separate a portable legality regression from capability semantics that the donor does not implement. |
-| Native proof inspection | At qualified adoption, use merged checker/module-printing improvements to replace only equivalent local workaround behavior. Candidates 4/10/19/22/32 already own related reporting changes. Retain stronger complete-census and sealed-field checks until the upstream path is shown equivalent; send a reduced upstream regression if the comparison exposes a residual generic defect. |
-| Fiat-Crypto archive builds | Consume the upstream generator and proofs while retaining the [local source/index refusal](docs/implementation/fiat-crypto-emission.md#current-2026-10-19-emission-and-replay). Candidate 45 already proposes complete import generation or explicit refusal for archives; that portable behavior is a contribution route, rather than a reason to replace the generator. |
-| Rust ABI, MMIO and shared objects | Start from the mechanisms already in the selected donor. Any local adaptation that exposes a generic capability-layout, tag-preservation or permission-check defect should produce a reduced Rust/Rust or Rust/C regression and a coordinated upstream fix. Candidates 12/13 already cover the known ABI/CTFE gaps; no additional local implementation advantage is established by this survey. |
-| Hardware and compute restrictions | Cache absence, all-M-mode capabilities, the bespoke format and excluded subgroup/JIT surfaces are intentional contract differences. Keep them as explicit adaptations; do not present deleting upstream features as a generic upstream improvement. Portable AXI observation or lowering corrections can still be contributed when the implementation comparison demonstrates them. |
+| Sail emitter and support library | Consume emitter capabilities while retaining strict syntax, notation and exact assumptions. Candidates 17/18 own portable source/backend changes; 16 owns tag outcomes. Coordinate rather than duplicate proposals or weaken the local term. |
+| Curated vector semantics | Consume segment-overlap legality while preserving frozen CHERI fault order. Candidate 33 owns legality-before-assertion. Separate portable regressions from capability semantics absent in the donor. |
+| Native proof inspection | At qualified adoption, replace only equivalent workaround behavior with merged checker/module printing. Candidates 4/10/19/22/32 own related changes. Retain stronger census/sealed-field checks until equivalence; contribute reduced regressions for residual generic defects. |
+| Fiat-Crypto archive builds | Consume generator/proofs, retaining the [local source/index refusal](docs/implementation/fiat-crypto-emission.md#current-2026-10-19-emission-and-replay). Candidate 45 proposes complete archive imports or explicit refusal; contribute that behavior while keeping the generator. |
+| Rust ABI, MMIO and shared objects | Start from selected donor mechanisms. For generic layout, tag-preservation or permission defects, produce reduced Rust/Rust or Rust/C regressions and coordinated fixes. Candidates 12/13 own known ABI/CTFE gaps; this survey establishes no further local implementation advantage. |
+| Hardware and compute restrictions | Cache absence, all-M-mode capabilities, bespoke format and excluded subgroup/JIT surfaces are intentional adaptations. Deleting donor features is no generic improvement; contribute portable AXI/lowering corrections only when comparison demonstrates them. |
