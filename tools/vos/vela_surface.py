@@ -114,9 +114,9 @@ public void Mix(ref Core.Span<byte> target) {
     Fixture("literal-sensitive-lambda-annotations", r"""module LiteralAnnotations;
 public void F() {
     let direct = (Nat x, V<(')')> y) => x;
-    let escaped = (Nat x, V<('\)')> y) => x;
+    let escaped = (Nat x, V<('\\')> y) => x;
 }
-""", ("lambda", "lambda_parameter", "type", "char")),
+""", ("lambda", "lambda_parameter", "type", "character")),
     Fixture("expressions-and-closures", """module Expressions;
 public void Compute() {
     let tuple = (0001usize, true, false);
