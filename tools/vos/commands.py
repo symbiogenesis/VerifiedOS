@@ -71,6 +71,8 @@ COMMANDS: tuple[Command, ...] = (
             "the tools' own behavioral tests"),
     Command("floor-div", "vos.cli.floor_div",
             "plan checked constant signed floor division and emit RV64 arithmetic candidates"),
+    Command("vela", "vos.cli.vela",
+            "check pure Vela prototype source and emit unqualified Gallina definitions"),
     Command("worktree", "vos.cli.worktree",
             "create and verify isolated checkouts with a provider-neutral root"),
     Command("fanout", "vos.cli.fanout",

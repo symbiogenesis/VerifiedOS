@@ -1385,6 +1385,8 @@ CASES: list[Case] = [
      _literal("tools/sail-lsp/fixtures/qualification.sail_project", "// SPDX-License-Identifier: Apache-2.0\n", "")),
     ("K-52", "an authored Lustre node whose license mark has gone",
      _literal("supervisor/route/start_restart.lus", "-- SPDX-License-Identifier: Apache-2.0\n", "")),
+    ("K-52", "an authored Vela example whose license mark has gone",
+     _literal("tools/vela/examples/pure.vela", "// SPDX-License-Identifier: Apache-2.0\n", "")),
 
     # A new file of an unknown kind cannot be seeded, because the corpus is the git
     # index and an untracked file is not in it. Withdrawing a kind's ruling puts an
@@ -1402,6 +1404,8 @@ CASES: list[Case] = [
      _literal("tools/vos/checks/marks.py", '    ".ml.in": ("(* ", " *)"),\n', "")),
     ("K-53", "the authored native OCaml language whose ruling has gone",
      _literal("tools/vos/checks/marks.py", '    ".ml": ("(* ", " *)"),\n', "")),
+    ("K-53", "the authored Vela language whose ruling has gone",
+     _literal("tools/vos/checks/marks.py", '    ".vela": ("// ", ""),\n', "")),
     ("K-53", "an upstream patch whose byte-preserving ruling has gone",
      _literal("tools/vos/checks/marks.py",
               '    ".patch": "a unified diff must preserve upstream context and hunk bytes",\n', "")),

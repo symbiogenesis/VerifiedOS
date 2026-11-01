@@ -3308,6 +3308,14 @@ The following owner keys are proposals, not schedule IDs or proof constants. Eac
 
 ### Vela whole-system authoring proposal
 
+The [pure translation prototype](docs/languages/vela-prototype.md) is Q25e's
+separately commissioned first executable tool. Its Nat/Bool fragment denotes
+generated CIC terms and exercises parsing, explicit checking and Gallina emission.
+The next prototype increment is pinned-kernel replay of generated definitions and
+independently expected evaluations, followed by checked source correspondence;
+those increments need their own reviewed cells and estimates before dispatch.
+The full-language frontend retains Q25d's admission prerequisites.
+
 The design goal is one authored Vela codebase for operational software, independently reviewed contracts, mathematical proofs, the architectural machine model and hardware descriptions. The [unified-source contract](docs/languages/unified-source-contract.md) owns the technical acceptance boundary. Generated Clight, Rocq proof terms, executable simulators, binaries and RTL remain permitted; the software golden artifact is the proof-connected production implementation. A separately maintained optimized rewrite is outside this goal.
 
 Vela also targets a [native, verified, self-hosting compiler](docs/languages/unified-source-contract.md#native-verified-compiler-and-self-hosting), authored in Vela and using its own intermediate representations to reach exact target bytes without a mandatory Clight/CompCert or LLVM stage. Reusable transformation proofs compose during compilation; independent kernel checking, verified bootstrap and final-artifact correspondence remain required. Competitive target optimization and commercial use, redistribution and resident rebuilding of the complete dependency closure need their own qualification. Interim compiler bridges remain valid while that endpoint is unbuilt.

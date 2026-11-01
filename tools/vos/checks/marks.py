@@ -90,6 +90,8 @@ MARKABLE: dict[str, tuple[str, str]] = {
     # cross-check's generator, which calls the curated model's own functions and is
     # authored here rather than vendored with the tree it reads.
     ".sail": ("// ", ""),
+    # The pure Vela prototype's authored source examples.
+    ".vela": ("// ", ""),
     ".sv": ("// ", ""),
     # The portable planner's original TFLite Micro adapter and API demonstration.
     ".cpp": ("// ", ""),

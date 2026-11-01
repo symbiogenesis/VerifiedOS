@@ -1,0 +1,10 @@
+// SPDX-License-Identifier: Apache-2.0
+// Mathematical naturals and booleans; development prototype, unqualified.
+module Oracle;
+
+fn cube(x: Nat) -> Nat { x * x * x }
+
+fn choose(flag: Bool, x: Nat) -> Bool {
+  let y = cube(x + 1);
+  if flag == true { y <= 9 } else { y == 0 }
+}

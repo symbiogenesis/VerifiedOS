@@ -21,6 +21,8 @@ metatheory, compiler qualification or final-binary admission.
 ## Source fragment
 
 The prototype accepts UTF-8 source with ASCII identifiers and `//` line comments.
+Identifiers match `[A-Za-z_][A-Za-z0-9_]*`, excluding source keywords. Decimal
+literals match `[0-9]+`; leading zeros are permitted and normalized on emission.
 Every file contains one named module and at least one function. Every parameter
 and return type is explicit. A function can call only previously declared
 functions; recursion and forward calls are refused. Local bindings are immutable.
@@ -56,7 +58,11 @@ Arithmetic and `<=` take naturals; equality takes two operands of the same type.
 A condition is Boolean and both branches have the same type. Calls have the
 declared arity and argument types. Let bindings infer only their expression's
 `Nat` or `Bool` type. Duplicate functions, parameters, local bindings in an active
-scope and unbound values are errors. Function and value namespaces are separate.
+scope (including active parameters) and unbound values are errors. Function and
+value namespaces are separate. Equality returns `Bool`. Natural arithmetic,
+equality and comparison map to `Corelib.Init.Nat.add`, `.mul`, `.eqb` and `.leb`.
+Boolean equality maps to pure nested conditionals returning the Boolean
+constructors. Types and constructors come from `Corelib.Init.Datatypes`.
 Every user name is mapped to a generated identifier so Gallina keywords and
 library names cannot capture source references. There is no raw Gallina escape.
 
@@ -98,3 +104,19 @@ The translation tests do not establish that a kernel has accepted emitted terms;
 a generated-term kernel replay is a separately identified follow-up unless hosted
 evidence explicitly supplies it. Production language and whole-system migration
 retain the [unified-source acceptance contract](unified-source-contract.md).
+
+## Try the prototype
+
+From the repository root on Windows:
+
+```console
+python tools/run.py vela check tools/vela/examples/pure.vela
+python tools/run.py vela emit tools/vela/examples/pure.vela --output out/Pure.v
+```
+
+Use `python3` on Linux. The output directory must already exist; omit `--output`
+to print the definitions. The [example](../../tools/vela/examples/pure.vela)
+defines a cube and a Boolean selection over its result. For example, its intended
+`choose(true, 1)` result is true and `choose(true, 2)` is false. Emission produces
+a `Vela_Oracle` module containing `f_cube` and `f_choose`; executing them requires
+the separately identified kernel replay, rather than an evaluator in this tool.
