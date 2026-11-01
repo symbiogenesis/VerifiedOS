@@ -46,11 +46,26 @@ definition Type<u> LoanType<T : Type<u>>(bool exclusive) where Stable(T) =
     };
 definition Type<u> Product<T>() = type (owned T, tracked Receipt);
 definition Type<u> UnitType() = type ();
-definition Type<u> Callback<T>() = type Fn<region 'local>(
+definition Type<u> Callback<T>() = type (Fn<region 'local>(
     scoped ref<'local> T value @ NatExact(1)) -> ()
-    with { restores Valid(value); };
+    with { restores Valid(value); });
 public void Inspect() { Compare((type Nat), (type bool)); }
 """, ("definition", "type_expression", "match_expression", "match_motive", "tuple_type", "unit_type")),
+    Fixture("callable-kinds-and-contract-effect-ownership", """// café: grouping fixes which interface owns each effect.
+module CallableKinds;
+universe u;
+alias Higher<F : (Fn(Type<u> value) -> Type<u>)> = F;
+trait Kinded<T : Type<u>> {
+    type Build : (Fn(Type<u>) -> Type<u>) where Formed(T);
+}
+union Factories<T> {
+    Bare(Fn() -> T callback) : Fn() -> T effects(Read) requires Available(callback);
+    Grouped() : (Fn() -> T effects(Read)) effects writes(Storage);
+}
+public void RequiresType()
+    requires type (Fn() -> bool effects(Read))
+    effects writes(Storage);
+""", ("generic_parameter", "group_type", "function_type", "constructor", "type_expression", "effects")),
     Fixture("typed-callable-values-and-scoped-loans", """// café: a callable value reuses its annotation's exact resource roles.
 module CallableValues;
 universe u;
@@ -66,6 +81,17 @@ public void Use<T : Type<u>, captures C, grade q : NatExact>(in Cell<T> cell) {
         match (flag) { case true => type T; case false => type (); };
 }
 """, ("typed_lambda", "function_type", "modified_type", "contract", "type_expression", "match_expression")),
+    Fixture("typed-callable-expression-composition", """// café: explicit signatures compose wherever values occur.
+module CallableComposition;
+public void Compose() {
+    Fn(Nat n) -> Nat => n;
+    Apply(Fn(Nat x) -> Nat => x + 1, FnOnce() -> () => { return; });
+    Fn(Nat) -> Nat annotated = Fn(Nat item) -> Nat => item;
+    let returning = Fn() -> (Fn(Nat) -> Nat) => Fn(Nat value) -> Nat => value;
+    let graded = Fn(Nat input @ Grade.Of(Fn(Nat sample) -> Nat => sample)) -> Nat => input;
+    let inferred = (Nat value @ Grade.Of(Fn() -> Nat => { return 1; })) => value;
+}
+""", ("typed_lambda", "function_type", "expression_statement", "typed_local", "lambda", "group_type")),
     Fixture("indexed-family-and-constructor-contracts", """// café: family and constructor laws retain different owners.
 module IndexedFamilies;
 universe u;
@@ -107,7 +133,7 @@ public async void Invalid(owned Packet packet, tracked Receipt receipt) {
         => { await Ready(); return; };
     Use(move receipt, move receipt);
 }
-""", ("generic_parameter", "type_expression", "typed_lambda", "await", "tuple")),
+""", ("generic_parameter", "type_expression", "typed_lambda", "unary", "tuple")),
     Fixture("effect-operation-resource-contracts", """// café: contract and grade spans use original UTF-8 bytes.
 module ResourceEffects;
 public effect Exchange<T, ghost Nat n> {
@@ -655,6 +681,12 @@ public UnknownType F() { return missing; }
 
 
 NEGATIVE: tuple[tuple[str, bytes, str], ...] = (
+    ("ungrouped-callable-kind", b"module M; alias A<F : Fn() -> Nat> = F;", "syntax"),
+    ("ungrouped-associated-callable-kind", b"module M; trait F { type A : Fn() -> Nat; }", "syntax"),
+    ("ungrouped-callable-type-expression", b"module M; definition Type<u> F() = type Fn() -> Nat;", "syntax"),
+    ("typed-callable-statement-missing-body", b"module M; void F() { Fn() -> Nat =>; }", "syntax"),
+    ("typed-callable-argument-missing-body", b"module M; void F() { Apply(Fn() -> Nat =>); }", "syntax"),
+    ("typed-callable-return-missing-body", b"module M; void F() { let f = Fn() -> (Fn() -> Nat) =>; }", "syntax"),
     ("type-binder-missing-kind", b"module M; alias Box<T :> = T;", "syntax"),
     ("type-binder-missing-name", b"module M; alias Box<: Type<u>> = T;", "syntax"),
     ("associated-missing-kind", b"module M; trait F { type Value :; }", "syntax"),
@@ -1012,7 +1044,7 @@ def _type_expression_roles(source: bytes, result: dict[str, Json]) -> None:
         _exact_span(source, expression, f"type {mode} T".encode())
     for name, kind, spelling in (("Product", "tuple_type", b"type (owned T, tracked Receipt)"),
                                  ("UnitType", "unit_type", b"type ()"),
-                                 ("Callback", "function_type", None)):
+                                 ("Callback", "group_type", None)):
         definition = _named(result.get("ast"), "definition", name)
         expression = _object(definition.get("value"), "type-valued definition")
         annotation = _object(expression.get("type"), "injected structural type")
@@ -1021,9 +1053,54 @@ def _type_expression_roles(source: bytes, result: dict[str, Json]) -> None:
         if spelling is not None:
             _exact_span(source, expression, spelling)
         if name == "Callback":
-            _contract_roles(annotation, ["restores"])
-            if annotation.get("mode") != "Fn":
+            callable_type = _object(annotation.get("type"), "grouped injected callable")
+            _contract_roles(callable_type, ["restores"])
+            if callable_type.get("kind") != "function_type" or callable_type.get("mode") != "Fn":
                 raise ValueError("surface injected callable type lost its call mode")
+
+
+def _callable_kind_effect_roles(source: bytes, result: dict[str, Json]) -> None:
+    higher = _named(result.get("ast"), "alias", "Higher")
+    generic = _object(_sequence(higher.get("generics"), "higher-kinded binder")[0], "callable kind binder")
+    kind = _object(generic.get("type"), "grouped callable kind")
+    signature = _object(kind.get("type"), "callable kind signature")
+    if kind.get("kind") != "group_type" or signature.get("kind") != "function_type":
+        raise ValueError("surface callable kind lost its grouping or signature role")
+    _exact_span(source, kind, b"(Fn(Type<u> value) -> Type<u>)")
+    associated = _named(result.get("ast"), "associated_type", "Build")
+    annotation = _object(associated.get("kind_annotation"), "associated callable kind")
+    if annotation.get("kind") != "group_type":
+        raise ValueError("surface associated callable kind lost its explicit boundary")
+    _exact_span(source, annotation, b"(Fn(Type<u>) -> Type<u>)")
+    _contract_roles(associated, ["where"])
+    factories = _named(result.get("ast"), "union", "Factories")
+    bare = _constructor(factories, "Bare")
+    callable_result = _object(bare.get("result"), "bare callable constructor result")
+    if callable_result.get("kind") != "function_type" or _texts(callable_result.get("effects")) != ["Read"]:
+        raise ValueError("surface constructor moved bare callable effects outside its result")
+    _contract_roles(bare, ["requires"])
+    grouped = _constructor(factories, "Grouped")
+    boundary = _object(grouped.get("result"), "grouped callable constructor result")
+    callable_result = _object(boundary.get("type"), "grouped result signature")
+    if boundary.get("kind") != "group_type" or _texts(callable_result.get("effects")) != ["Read"]:
+        raise ValueError("surface grouped callable result lost its own effect bound")
+    contracts = _sequence(grouped.get("contracts"), "constructor effect contract")
+    if (len(contracts) != 1 or _object(contracts[0], "constructor effects").get("kind") != "effects"
+            or _texts(contracts[0]) != ["writes", "Storage"]):
+        raise ValueError("surface grouped callable swallowed its constructor's effects")
+    operation = _named(result.get("ast"), "function", "RequiresType")
+    clauses = _sequence(operation.get("contracts"), "type-valued precondition and effects")
+    if len(clauses) != 2:
+        raise ValueError("surface type-valued contract swallowed the enclosing effect contract")
+    precondition, effects = [_object(value, "type-valued operation contract") for value in clauses]
+    expression = _object(precondition.get("value"), "type-valued precondition")
+    if (precondition.get("role") != "requires" or expression.get("kind") != "type_expression"
+            or effects.get("kind") != "effects" or _texts(effects) != ["writes", "Storage"]):
+        raise ValueError("surface type expression confused callable and declaration effects")
+    _exact_span(source, precondition, b"requires type (Fn() -> bool effects(Read))")
+    grouped_type = _object(expression.get("type"), "precondition's grouped callable")
+    if _texts(_object(grouped_type.get("type"), "precondition signature").get("effects")) != ["Read"]:
+        raise ValueError("surface precondition lost the injected callable's own effects")
 
 
 def _typed_callable_roles(source: bytes, result: dict[str, Json]) -> None:
@@ -1064,6 +1141,69 @@ def _typed_callable_roles(source: bytes, result: dict[str, Json]) -> None:
             expressions = [node for node in nodes(body) if node.get("kind") == "type_expression"]
             if len(expressions) != 2:
                 raise ValueError("surface shared callable lost its type-valued branches")
+
+
+def _typed_callable_composition_roles(source: bytes, result: dict[str, Json]) -> None:
+    function = _named(result.get("ast"), "function", "Compose")
+    statements = _sequence(_object(function.get("body"), "composition body").get("statements"),
+                           "composition statements")
+    first = _object(statements[0], "standalone callable statement")
+    standalone = _object(first.get("value"), "standalone callable value")
+    if first.get("kind") != "expression_statement" or standalone.get("kind") != "typed_lambda":
+        raise ValueError("surface standalone callable became an annotation or declaration")
+    _exact_span(source, standalone, b"Fn(Nat n) -> Nat => n")
+    call = _object(_object(statements[1], "callback application statement").get("value"), "callback application")
+    arguments = [_object(value, "nested callable argument")
+                 for value in _sequence(call.get("arguments"), "nested callable arguments")]
+    if call.get("kind") != "call" or [value.get("kind") for value in arguments] != ["typed_lambda", "typed_lambda"]:
+        raise ValueError("surface nested callable arguments lost their expression roles")
+    second_signature = _object(arguments[1].get("signature"), "zero-argument callback signature")
+    if second_signature.get("mode") != "FnOnce" or second_signature.get("parameters") != []:
+        raise ValueError("surface zero-argument callback lost its call mode or empty telescope")
+    annotated = _named(function, "typed_local", "annotated")
+    annotation = _object(annotated.get("type"), "local callable annotation")
+    initializer = _object(annotated.get("value"), "local callable initializer")
+    if annotation.get("kind") != "function_type" or initializer.get("kind") != "typed_lambda":
+        raise ValueError("surface callable local annotation and initializer became one signature")
+    _exact_span(source, initializer, b"Fn(Nat item) -> Nat => item")
+    returned = _object(_named(function, "let", "returning").get("value"), "callable factory")
+    returned_signature = _object(returned.get("signature"), "factory signature")
+    result_type = _object(returned_signature.get("result"), "factory result type")
+    if (returned.get("kind") != "typed_lambda" or returned_signature.get("parameters") != []
+            or result_type.get("kind") != "group_type"
+            or _object(result_type.get("type"), "returned callable type").get("kind") != "function_type"
+            or _object(returned.get("body"), "returned callable value").get("kind") != "typed_lambda"):
+        raise ValueError("surface callable factory confused nested signature and value roles")
+    for name, kind in (("graded", "typed_lambda"), ("inferred", "lambda")):
+        closure = _object(_named(function, "let", name).get("value"), "graded callback")
+        signature = _object(closure.get("signature"), "graded explicit signature") if kind == "typed_lambda" else closure
+        parameter = _object(_sequence(signature.get("parameters"), "graded parameters")[0], "graded parameter")
+        grade = _object(parameter.get("grade"), "callback-computed grade")
+        callback = _object(_sequence(grade.get("arguments"), "grade-operation arguments")[0], "grade callback")
+        if closure.get("kind") != kind or grade.get("kind") != "call" or callback.get("kind") != "typed_lambda":
+            raise ValueError("surface grade lookahead confused its nested typed callback")
+        if name == "inferred":
+            _exact_span(source, _object(callback.get("body"), "grade callback block"), b"{ return 1; }")
+
+
+def _typed_resource_error_roles(source: bytes, result: dict[str, Json]) -> None:
+    function = _named(result.get("ast"), "function", "Invalid")
+    duplicate = _object(_named(function, "let", "duplicate").get("value"), "invalid repeated-use callable")
+    signature = _object(duplicate.get("signature"), "invalid repeated-use signature")
+    parameter = _object(_sequence(signature.get("parameters"), "invalid callable parameter")[0], "zero-use owner")
+    grade = _object(parameter.get("grade"), "authored zero-use grade")
+    zero = _object(_sequence(grade.get("arguments"), "grade arguments")[0], "zero allowance")
+    body = _object(duplicate.get("body"), "duplicated owner value")
+    values = _sequence(body.get("values"), "duplicated owner components")
+    if zero.get("value") != "0" or body.get("kind") != "tuple" or [_texts(value) for value in values] != [
+            ["move", "p"], ["move", "p"]]:
+        raise ValueError("surface syntax sanitized invalid grade or repeated ownership use")
+    suspended = _object(_named(function, "let", "suspended").get("value"), "invalid suspended loan")
+    checkpoints = [node for node in nodes(suspended.get("body"))
+                   if node.get("kind") == "unary" and _texts(node.get("operator")) == ["await"]]
+    if len(checkpoints) != 1:
+        raise ValueError("surface syntax lost the explicit await under a scoped loan")
+    _exact_span(source, checkpoints[0], b"await Ready()")
 
 
 def _indexed_family_contract_roles(source: bytes, result: dict[str, Json]) -> None:
@@ -1744,8 +1884,14 @@ def qualify(parse: Callable[[bytes], dict[str, Json]]) -> list[str]:
             _kinded_family_roles(fixture.source.encode("utf-8"), result)
         elif fixture.name == "type-valued-dependent-matches":
             _type_expression_roles(fixture.source.encode("utf-8"), result)
+        elif fixture.name == "callable-kinds-and-contract-effect-ownership":
+            _callable_kind_effect_roles(fixture.source.encode("utf-8"), result)
         elif fixture.name == "typed-callable-values-and-scoped-loans":
             _typed_callable_roles(fixture.source.encode("utf-8"), result)
+        elif fixture.name == "typed-callable-expression-composition":
+            _typed_callable_composition_roles(fixture.source.encode("utf-8"), result)
+        elif fixture.name == "typed-resource-errors-remain-syntax":
+            _typed_resource_error_roles(fixture.source.encode("utf-8"), result)
         elif fixture.name == "indexed-family-and-constructor-contracts":
             _indexed_family_contract_roles(fixture.source.encode("utf-8"), result)
         elif fixture.name == "stable-literal-generic-arguments":
