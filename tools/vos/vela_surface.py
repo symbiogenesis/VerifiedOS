@@ -23,6 +23,156 @@ class Fixture:
 
 
 POSITIVE: tuple[Fixture, ...] = (
+    Fixture("dependent-callable-telescopes", """// café: positions below count original UTF-8 bytes.
+module CallableTypes;
+alias Dependent<captures C, grade q : NatExact> =
+    Fn(Nat n, in Span<byte, n> bytes @ q) -> Vec<byte, n> captures C effects(Read);
+alias Unnamed = Fn(byte) -> byte;
+alias Consuming = FnOnce(owned Buffer storage, tracked Permit permit) -> (owned Buffer, tracked Permit);
+alias Higher = Fn(in Fn(Nat width) -> Vec<byte, width> build, Nat count) -> (Vec<byte, count>, ());
+public void Use<grade q : NatExact>(in Fn(Nat count) -> Vec<byte, count> build) {
+    let project = (Nat n @ q, byte value @ NatExact(1)) => (n, value);
+    Apply((scoped ref byte selected @ NatExact(1)) => { selected = 0byte; });
+}
+""", ("alias", "function_type", "parameter", "lambda_parameter", "tuple_type", "tuple")),
+    Fixture("product-types-values-and-patterns", """module Products;
+alias Pair<T, U> = (T, U);
+alias Group = (Nat);
+alias Empty = ();
+public (owned Buffer, (tracked Permit, ())) Package(owned Buffer buffer, tracked Permit permit) {
+    return (move buffer, (move permit, ()));
+}
+public () Consume((owned Buffer, (tracked Permit, ())) package) {
+    let (let owner, (let receipt, ())) = package;
+    var (let left, let right) = (1, 2);
+    match ((move owner, (move receipt, ()))) {
+        case (let live, (let token, ())):
+            Finish(move live, move token);
+    }
+    match (left) { case _: return (); }
+}
+""", ("tuple_type", "group_type", "unit_type", "tuple", "unit", "tuple_pattern",
+      "unit_pattern", "wildcard_pattern", "let_pattern", "var_pattern")),
+    Fixture("grade-and-comparison-boundaries", """module GradedClosures;
+public void Use() {
+    let first = (Nat x @ (left < right)) => x;
+    let second = (Core.Byte x @ Grade.Combine(q, r), Nat y @ q * r + s) => y;
+    let third = (Core.Box<(')')> x @ q) => x;
+    let comparison = (left < right, low > high);
+    let dormant = () => ();
+}
+""", ("lambda", "lambda_parameter", "binary", "tuple", "unit")),
+    Fixture("explicit-structural-type-arguments", """module TypeArguments;
+alias Returned = Result<type (owned Packet, tracked Receipt), Error>;
+alias Function = Box<type Fn(Nat n) -> Vec<byte, n>>;
+alias Grouped = Box<type (Nat)>;
+alias Unit = Box<type ()>;
+alias Value = Indexed<((a, b))>;
+public void Use() { Construct::<type (Nat, bool)>(value); }
+""", ("tuple_type", "function_type", "group_type", "unit_type", "tuple", "generic_application")),
+    Fixture("structural-local-and-lambda-annotations", """module StructuralAnnotations;
+public void Use(ref Span<byte> text) {
+    ref<'self.text> (Span<byte>) local = ref text;
+    (owned Packet, tracked Receipt) package = source;
+    () empty = ();
+    let pairIdentity = ((owned Packet, tracked Receipt) pair) => pair;
+    let unitIdentity = (() value) => value;
+    let groupedIdentity = ((Nat) number) => number;
+}
+""", ("typed_local", "modified_type", "group_type", "tuple_type", "unit_type", "lambda")),
+    Fixture("dependent-resources-and-borrow-restoration", """module Resources;
+public record Packed<T>(usize Length, owned Buffer<T, Length> Storage,
+    ghost Bounded<Length> Evidence);
+public union Initialized<ghost Nat n> {
+    Ready(owned Buffer<byte, n, Full> buffer, tracked PreparationClosed receipt);
+    Rejected(owned Buffer<byte, n, Empty> buffer, tracked PreparationClosed receipt);
+}
+public Result<ref<'workspace.bytes> byte, Error> Select(ref Workspace workspace)
+    effects writes(workspace.bytes), writes(workspace.audit)
+    restores result is Ok(let slot) ==> workspace.bytes.Model == old(workspace.bytes.Model).Set(0, final(slot))
+{
+    ref Span<byte> parent = ref workspace.bytes;
+    ref byte child = ref parent[0usize];
+    child = 1byte;
+    workspace.audit = 1;
+    return Ok(child);
+}
+public Initialized<n> Prepare<ghost Nat n>(owned Buffer<byte, n, Empty> buffer,
+    tracked PreparationOpen obligation) {
+    let initialized = Initialize(move buffer);
+    let receipt = Finish(move obligation);
+    return Ready(move initialized, move receipt);
+}
+public void Inspect(owned Packed<byte> packet) {
+    match (packet) {
+        case Packed(let length, let storage, let evidence):
+            Observe(length, in storage);
+            Dispose(move storage);
+    }
+}
+""", ("record", "union", "modified_type", "lifetime", "contract", "is", "typed_local")),
+    Fixture("library-cells-and-guard-release", """module Cells;
+public Result Update(ref BorrowCell<byte> cell, byte value) {
+    let outcome = cell.WithTryWrite((scoped ref byte selected) => {
+        selected = value;
+        return ();
+    });
+    match (outcome) {
+        case Updated(()): return Ok();
+        case BorrowConflict: return Err(Conflict);
+        case CapacityExhausted: return Err(Capacity);
+    }
+}
+private Result WithWrite(ref BorrowCell<byte> cell,
+    in Fn(scoped ref byte selected) -> () callback) {
+    match (cell.TryWrite()) {
+        case Acquired(let writer, let debt):
+            callback(ref writer.Value);
+            cell.ReleaseWrite(move writer, move debt);
+            return Ok();
+        case BorrowConflict: return Err(Conflict);
+    }
+}
+public void Replace(ref LocalCell<Buffer> cell, owned Buffer replacement) {
+    let displaced = cell.Replace(move replacement);
+    Dispose(move displaced);
+}
+""", ("function_type", "lambda", "unit_type", "unit", "unit_pattern", "match", "call")),
+    Fixture("library-modalities-and-obligations", """module Modalities;
+public domain Presence {
+    carrier bool;
+    zero false; one true; add (||); mul (&&);
+    admits (==); interpret Use.Presence; laws PresenceLaws;
+}
+public record Box<T, grade q : NatExact>(T Value @ q);
+public (Box<T, q>, Box<T, q>) Duplicate<T, grade q : NatExact>(owned Box<T, q> value)
+    where Dup(value)
+    ensures Split(old(value), result);
+public void Close<T>(owned T value) where Dispose(value);
+public async T SuspendValue<T>(owned T value)
+    where Suspend(value)
+    ensures Preserved(old(value), result)
+{
+    await Checkpoint();
+    return move value;
+}
+on cancel { Close(move value); }
+""", ("record", "parameter", "tuple_type", "contract", "function")),
+    Fixture("resource-errors-remain-syntax", """module InvalidResources;
+public async void Invalid(ref BorrowCell<Buffer> cell, tracked Permit permit) {
+    let copied = (move permit, move permit);
+    match (copied) { case _: return; }
+    ghost Nat oldLength = cell.Snapshot().Length;
+    let changed = cell.Replace(move replacement);
+    Use(cell[oldLength]);
+    cell.WithTryWrite((scoped ref Buffer loan) => {
+        await Ready();
+        return loan;
+    });
+    cell.ReleaseWrite(move writer, move debt);
+    cell.ReleaseWrite(move writer, move debt);
+}
+""", ("tuple", "wildcard_pattern", "typed_local", "lambda", "unary")),
     Fixture("modules-and-abstraction", """module Library.Storage;
 import Core.Buffers;
 alias Word = u64;
@@ -237,6 +387,19 @@ public UnknownType F() { return missing; }
 
 
 NEGATIVE: tuple[tuple[str, bytes, str], ...] = (
+    ("incomplete-callable-binder", b"module M; alias F = Fn(Nat n, ) -> Nat;", "syntax"),
+    ("incomplete-callable-grade", b"module M; alias F = Fn(Nat n @) -> Nat;", "syntax"),
+    ("incomplete-lambda-grade", b"module M; public void F() { let f = (Nat n @) => n; }", "syntax"),
+    ("incomplete-generic-alias", b"module M; alias F<T,> = T;", "syntax"),
+    ("singleton-product-type", b"module M; alias P = (Nat,);", "syntax"),
+    ("singleton-product-value", b"module M; public void F() { let p = (1,); }", "syntax"),
+    ("singleton-product-pattern", b"module M; public void F() { let (let x,) = p; }", "syntax"),
+    ("incomplete-product-binding", b"module M; public void F() { let (let x, let) = p; }", "syntax"),
+    ("missing-product-value", b"module M; public void F() { let (let x, let y) = ; }", "syntax"),
+    ("product-type-depth", b"module M; alias P = " + b"(Nat," * 257
+     + b"Nat" + b")" * 257 + b";", "limit"),
+    ("product-pattern-depth", b"module M; public void F() { match (p) { case "
+     + b"(let x," * 257 + b"()" + b")" * 257 + b": return; } }", "limit"),
     ("missing-generic-argument", b"module M; public Result<Packet,> Parse();", "syntax"),
     ("incomplete-record", b"module M; public record Packet(Nat Count", "syntax"),
     ("incomplete-handler", b"module M; public Nat F() { return handle (G()) { return x =>", "syntax"),
@@ -444,6 +607,167 @@ def _typed_local_roles(result: dict[str, Json]) -> None:
     _type_head(_type_head(generic.get("type"), "Span", 1)[0], "byte", 0)
 
 
+def _sequence(value: Json, description: str) -> list[Json]:
+    if not isinstance(value, list):
+        raise TypeError(f"surface fixture lacks {description}")
+    return value
+
+
+def _exact_span(source: bytes, value: dict[str, Json], spelling: bytes) -> None:
+    start = source.index(spelling)
+    if value.get("span") != [start, start + len(spelling)]:
+        raise ValueError(f"surface original-byte span differs for {spelling!r}")
+
+
+def _callable_telescope_roles(source: bytes, result: dict[str, Json]) -> None:
+    alias = _named(result.get("ast"), "alias", "Dependent")
+    generics = _sequence(alias.get("generics"), "alias telescope")
+    if [_object(value, "alias generic").get("mode") for value in generics] != ["captures", "grade"]:
+        raise ValueError("surface generic alias lost capture/grade binder kinds")
+    callable_type = _object(alias.get("type"), "dependent callable type")
+    parameters = _sequence(callable_type.get("parameters"), "callable telescope")
+    if len(parameters) != 2 or callable_type.get("mode") != "Fn":
+        raise ValueError("surface dependent callable telescope differs")
+    length, data = [_object(value, "callable parameter") for value in parameters]
+    if any(value.get("kind") != "parameter" for value in (length, data)):
+        raise ValueError("surface callable parameters are not uniform binder nodes")
+    if _texts(length.get("name")) != ["n"] or length.get("grade") is not None:
+        raise ValueError("surface callable index binder acquired the next parameter's grade")
+    _type_head(length.get("type"), "Nat", 0)
+    _exact_span(source, length, b"Nat n")
+    name_start = source.index(b"Nat n") + len(b"Nat ")
+    if _object(length.get("name"), "index binder name").get("span") != [name_start, name_start + 1]:
+        raise ValueError("surface callable binder name lost its own byte span")
+    if _texts(data.get("name")) != ["bytes"] or _texts(data.get("grade")) != ["q"]:
+        raise ValueError("surface callable grade is not attached to the byte-view parameter")
+    _exact_span(source, data, b"in Span<byte, n> bytes @ q")
+    grade_start = source.index(b"bytes @ q") + len(b"bytes @ ")
+    if _object(data.get("grade"), "callable grade").get("span") != [grade_start, grade_start + 1]:
+        raise ValueError("surface callable grade lost its own byte span")
+    loan = _object(data.get("type"), "callable argument loan")
+    if loan.get("modifier") != "in":
+        raise ValueError("surface dependent argument loan mode differs")
+    _type_head(loan.get("type"), "Span", 2)
+    returned = _object(callable_type.get("result"), "dependent result")
+    arguments = _type_head(returned, "Vec", 2)
+    if _texts(arguments[1]) != ["n"]:
+        raise ValueError("surface dependent result no longer names its input binder")
+    _exact_span(source, returned, b"Vec<byte, n>")
+    index_start = source.index(b"Vec<byte, n>") + len(b"Vec<byte, ")
+    if _object(arguments[1], "result index").get("span") != [index_start, index_start + 1]:
+        raise ValueError("surface result index span was conflated with its declaration")
+    if _texts(callable_type.get("captures")) != ["C"] or _texts(callable_type.get("effects")) != ["Read"]:
+        raise ValueError("surface dependent callable lost its capture/effect suffix")
+    unnamed = _object(_named(result.get("ast"), "alias", "Unnamed").get("type"), "unnamed callable")
+    argument = _object(_sequence(unnamed.get("parameters"), "unnamed telescope")[0], "unnamed argument")
+    if argument.get("kind") != "parameter" or argument.get("name") is not None or argument.get("grade") is not None:
+        raise ValueError("surface unnamed callable argument fabricated a binding or grade")
+    higher = _object(_named(result.get("ast"), "alias", "Higher").get("type"), "higher callable")
+    outer = _object(_sequence(higher.get("parameters"), "higher telescope")[0], "higher parameter")
+    nested = _object(_object(outer.get("type"), "nested loan").get("type"), "nested callable")
+    if nested.get("kind") != "function_type" or _texts(outer.get("name")) != ["build"]:
+        raise ValueError("surface nested callable swallowed its enclosing binder")
+    nested_parameter = _object(_sequence(nested.get("parameters"), "nested telescope")[0], "nested index")
+    if _texts(nested_parameter.get("name")) != ["width"]:
+        raise ValueError("surface nested callable lost its independent index binder")
+    lambda_parameter = _named(result.get("ast"), "lambda_parameter", "n")
+    if _texts(lambda_parameter.get("grade")) != ["q"]:
+        raise ValueError("surface lambda parameter lost its use grade")
+    _exact_span(source, lambda_parameter, b"Nat n @ q")
+    value = _named(result.get("ast"), "lambda_parameter", "value")
+    grade = _object(value.get("grade"), "lambda grade application")
+    if grade.get("kind") != "call" or _texts(grade.get("callee")) != ["NatExact"]:
+        raise ValueError("surface lambda grade is not an ordinary domain application")
+    _exact_span(source, value, b"byte value @ NatExact(1)")
+
+
+def _product_roles(source: bytes, result: dict[str, Json]) -> None:
+    pair = _object(_named(result.get("ast"), "alias", "Pair").get("type"), "product alias")
+    if pair.get("kind") != "tuple_type" or len(_sequence(pair.get("types"), "product components")) != 2:
+        raise ValueError("surface product type lost component roles")
+    _exact_span(source, pair, b"(T, U)")
+    group = _object(_named(result.get("ast"), "alias", "Group").get("type"), "group type")
+    if group.get("kind") != "group_type":
+        raise ValueError("surface single type parentheses became a product")
+    _type_head(group.get("type"), "Nat", 0)
+    _exact_span(source, group, b"(Nat)")
+    unit = _object(_named(result.get("ast"), "alias", "Empty").get("type"), "unit alias")
+    if unit.get("kind") != "unit_type":
+        raise ValueError("surface unit type conflated with value syntax")
+    _exact_span(source, unit, b"()")
+    package = _named(result.get("ast"), "function", "Package")
+    returned = _object(package.get("result"), "resource product result")
+    outer = _sequence(returned.get("types"), "resource product types")
+    if returned.get("kind") != "tuple_type" or len(outer) != 2:
+        raise ValueError("surface returned resource product shape differs")
+    first, second = [_object(value, "resource component") for value in outer]
+    inner = _sequence(second.get("types"), "nested resource types")
+    if (first.get("modifier") != "owned" or second.get("kind") != "tuple_type"
+            or len(inner) != 2 or _object(inner[0], "receipt type").get("modifier") != "tracked"
+            or _object(inner[1], "empty type").get("kind") != "unit_type"):
+        raise ValueError("surface product erased resource modifiers or nesting")
+    destructures = [node for node in nodes(result.get("ast")) if node.get("kind") == "let_pattern"]
+    if len(destructures) != 1:
+        raise ValueError("surface local product elimination lost its statement role")
+    destructure = destructures[0]
+    _exact_span(source, destructure, b"let (let owner, (let receipt, ())) = package;")
+    pattern = _object(destructure.get("pattern"), "local product pattern")
+    _exact_span(source, pattern, b"(let owner, (let receipt, ()))")
+    fields = _sequence(pattern.get("patterns"), "product pattern fields")
+    if pattern.get("kind") != "tuple_pattern" or len(fields) != 2:
+        raise ValueError("surface local product pattern shape differs")
+    binding = _object(fields[0], "owner binding")
+    if binding.get("kind") != "binding_pattern" or _texts(binding.get("name")) != ["owner"]:
+        raise ValueError("surface product owner field is not a binding pattern")
+    _exact_span(source, binding, b"let owner")
+    nested = _object(fields[1], "nested product pattern")
+    nested_fields = _sequence(nested.get("patterns"), "nested product pattern fields")
+    if (nested.get("kind") != "tuple_pattern" or len(nested_fields) != 2
+            or _object(nested_fields[1], "unit pattern").get("kind") != "unit_pattern"):
+        raise ValueError("surface dependent resource pattern flattened or dropped its unit")
+    if _texts(destructure.get("value")) != ["package"]:
+        raise ValueError("surface product binding source was not retained")
+    wildcards = [node for node in nodes(result.get("ast")) if node.get("kind") == "wildcard_pattern"]
+    if len(wildcards) != 1:
+        raise ValueError("surface wildcard pattern became a constructor or binding")
+    _exact_span(source, wildcards[0], b"_")
+
+
+def _explicit_type_argument_roles(source: bytes, result: dict[str, Json]) -> None:
+    returned = _named(result.get("ast"), "alias", "Returned")
+    arguments = _type_head(returned.get("type"), "Result", 2)
+    explicit = _object(arguments[0], "explicit type argument")
+    product = _object(explicit.get("type"), "explicit product type")
+    if explicit.get("kind") != "type_argument" or product.get("kind") != "tuple_type":
+        raise ValueError("surface explicit structural type argument lost its discriminator")
+    _exact_span(source, explicit, b"type (owned Packet, tracked Receipt)")
+    _exact_span(source, product, b"(owned Packet, tracked Receipt)")
+    value = _named(result.get("ast"), "alias", "Value")
+    argument = _object(_type_head(value.get("type"), "Indexed", 1)[0], "generic tuple value")
+    if argument.get("kind") != "group" or _object(argument.get("value"), "tuple value").get("kind") != "tuple":
+        raise ValueError("surface parenthesized generic value was reinterpreted as a type")
+    _exact_span(source, argument, b"((a, b))")
+
+
+def _structural_annotation_roles(source: bytes, result: dict[str, Json]) -> None:
+    local = _named(result.get("ast"), "typed_local", "local")
+    annotation = _object(local.get("type"), "place-named grouped loan")
+    if annotation.get("modifier") != "ref" or _texts(annotation.get("lifetime")) != ["'self.text"]:
+        raise ValueError("surface structural local annotation lost its place-named loan")
+    group = _object(annotation.get("type"), "grouped view type")
+    if group.get("kind") != "group_type":
+        raise ValueError("surface structural local grouping lost its type role")
+    _type_head(group.get("type"), "Span", 1)
+    _exact_span(source, annotation, b"ref<'self.text> (Span<byte>)")
+    for name, kind, spelling in (("pair", "tuple_type", b"(owned Packet, tracked Receipt) pair"),
+                                 ("value", "unit_type", b"() value"),
+                                 ("number", "group_type", b"(Nat) number")):
+        parameter = _named(result.get("ast"), "lambda_parameter", name)
+        if _object(parameter.get("type"), "lambda structural annotation").get("kind") != kind:
+            raise ValueError("surface structural lambda parameter lost its type role")
+        _exact_span(source, parameter, spelling)
+
+
 def _indexed_constructor_roles(result: dict[str, Json]) -> None:
     vector = _named(result.get("ast"), "inductive", "Vec")
     for name in ("Nil", "Cons"):
@@ -603,6 +927,14 @@ def qualify(parse: Callable[[bytes], dict[str, Json]]) -> list[str]:
             _indexed_constructor_roles(result)
         elif fixture.name == "represented-numeric-patterns":
             _numeric_pattern_roles(fixture.source.encode("utf-8"), result)
+        elif fixture.name == "dependent-callable-telescopes":
+            _callable_telescope_roles(fixture.source.encode("utf-8"), result)
+        elif fixture.name == "product-types-values-and-patterns":
+            _product_roles(fixture.source.encode("utf-8"), result)
+        elif fixture.name == "explicit-structural-type-arguments":
+            _explicit_type_argument_roles(fixture.source.encode("utf-8"), result)
+        elif fixture.name == "structural-local-and-lambda-annotations":
+            _structural_annotation_roles(fixture.source.encode("utf-8"), result)
         passed.append(f"surface:{fixture.name}")
     for name, source, kind in NEGATIVE:
         try:

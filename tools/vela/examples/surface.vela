@@ -40,3 +40,85 @@ public async Delivery<n> Accept<ghost Nat n>(
 on cancel {
     return Cancelled(move packet);
 }
+
+// A callable's parameter telescope also binds its result indices and use grades.
+public alias Build<captures C, grade q : NatExact> =
+    Fn(usize length, byte seed @ q) -> Buffer<byte, length> captures C;
+
+// Dependent records package represented data with erased evidence.
+// No separate packet, box, cell or protocol-token primitive is needed.
+public record Sized<T>(
+    usize Length,
+    owned Buffer<T, Length> Storage,
+    ghost Bounded<Length> Evidence);
+
+public record Box<T, grade q : NatExact>(T Value @ q);
+
+public union Initialization<ghost Nat n> {
+    Ready(owned Buffer<byte, n, Initialized> buffer, tracked Closed receipt);
+    Rejected(owned Buffer<byte, n, Uninitialized> buffer, tracked Closed receipt);
+}
+
+public Initialization<n> Prepare<ghost Nat n>(
+    owned Buffer<byte, n, Uninitialized> storage, tracked Open obligation)
+{
+    let buffer = Initialize(move storage);
+    let receipt = Finish(move obligation);
+    return Ready(move buffer, move receipt);
+}
+
+// Products carry several resources through the same construction/elimination forms.
+public (owned Packet<n>, tracked Permit<n>) Pair<ghost Nat n>(
+    owned Packet<n> packet, tracked Permit<n> permit)
+{
+    return (move packet, move permit);
+}
+
+public () ForwardPair<ghost Nat n>((owned Packet<n>, tracked Permit<n>) pair) {
+    let (let packet, let permit) = pair;
+    Forward(in packet);
+    Release(move permit);
+    Dispose(move packet);
+    return ();
+}
+
+// Returned loans state the obligation that holds when the loan ends.
+public Result<ref<'workspace.bytes> byte, Error> First(ref Workspace workspace)
+    requires workspace.bytes.Length > 0
+    effects writes(workspace.bytes)
+    restores result is Ok(let slot) ==>
+        workspace.bytes.Model == old(workspace.bytes.Model).Set(0, final(slot))
+{
+    ref Span<byte> parent = ref workspace.bytes;
+    ref byte child = ref parent[0usize];
+    return Ok(child);
+}
+
+// The library brackets guards; the caller examines every represented outcome.
+public Result<type (), BorrowError> ReplaceByte(ref BorrowCell<byte> cell, byte value) {
+    let outcome = cell.WithTryWrite((scoped ref byte selected @ NatExact(1)) => {
+        selected = value;
+        return ();
+    });
+    match (outcome) {
+        case Updated(()): return Ok(());
+        case BorrowConflict: return Err(Conflict);
+        case CapacityExhausted: return Err(Capacity);
+    }
+}
+
+// Eligibility remains an explicit library contract with a proof obligation.
+public (Box<T, q>, Box<T, q>) Duplicate<T, grade q : NatExact>(owned Box<T, q> value)
+    where Dup(value)
+    ensures Split(old(value), result);
+
+public void Close<T>(owned T value) where Dispose(value);
+
+public async T Preserve<T>(owned T value)
+    where Suspend(value)
+    ensures Preserved(old(value), result)
+{
+    await Checkpoint();
+    return move value;
+}
+on cancel { Close(move value); }
