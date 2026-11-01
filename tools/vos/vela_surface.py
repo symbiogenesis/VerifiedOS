@@ -168,11 +168,23 @@ universe u;
 public definition Nat Twice(Nat x) = x + x;
 public definition Type<u> Identity<T>(T value) = T;
 public inductive Natural { Zero(); Succ(Natural predecessor); }
+public inductive Vec<T, ghost Nat n> {
+    Nil() : Vec<T, 0>;
+    Cons(ghost Nat m, T head, Vec<T,m> tail) : Vec<T,(m+1)>;
+}
 public coinductive Stream<T> { More(T head, Stream<T> tail); }
 public lemma Reflexive(Nat n): forall (Nat x) => x == x
     proof { calc { n + 0 == n; n == n; } assert n == n; ?step; }
 public theorem Witness(): exists (Nat n) => n == 0;
 """, ("universe", "definition", "inductive", "coinductive", "lemma", "theorem", "quantifier", "calc")),
+    Fixture("represented-numeric-patterns", """module Patterns;
+public bool IsLow(byte value) {
+    match (value) {
+        case 0u8: return true;
+        case 0b01: return false;
+    }
+}
+""", ("match", "return")),
     Fixture("machine-and-hardware", """module Machine;
 public machine Counter {
     state Nat value = 0;
@@ -209,6 +221,8 @@ NEGATIVE: tuple[tuple[str, bytes, str], ...] = (
     ("trailing-input", b"module M; public void F(); garbage", "syntax"),
     ("invalid-utf8", b"// invalid \xff\nmodule M; public void F();", "encoding"),
     ("literal-limit", b"module M; public Nat F() { return " + b"9" * 257 + b"; }", "limit"),
+    ("hex-literal-limit", b"module M; public Nat F() { return 0x" + b"f" * 257 + b"; }", "limit"),
+    ("binary-literal-limit", b"module M; public Nat F() { return 0b" + b"1" * 257 + b"; }", "limit"),
     ("delimiter-limit", b"module M; public Nat F() { return " + b"(" * 2000 + b"0" + b")" * 2000 + b"; }", "limit"),
     ("syntax-depth-limit", b"module M; public Nat F() { return " + b" + ".join([b"1"] * 2000) + b"; }", "limit"),
     ("source-limit", b" " * (MAX_SOURCE_BYTES + 1), "limit"),
@@ -330,6 +344,95 @@ def _receiver_roles(result: dict[str, Json]) -> None:
         raise ValueError("surface named-view receiver place differs")
 
 
+def _constructor(container: dict[str, Json], name: str) -> dict[str, Json]:
+    matches: list[dict[str, Json]] = []
+    for node in nodes(container):
+        spelling = node.get("name")
+        if isinstance(spelling, dict) and spelling.get("text") == name:
+            matches.append(node)
+    if len(matches) != 1:
+        raise ValueError(f"surface expected one constructor named {name}")
+    return matches[0]
+
+
+def _type_head(value: Json, name: str, arity: int) -> list[Json]:
+    typed = _object(value, "type annotation")
+    arguments = typed.get("arguments")
+    if (typed.get("kind") != "type" or _texts(typed.get("name")) != [name]
+            or not isinstance(arguments, list) or len(arguments) != arity):
+        raise ValueError(f"surface expected {name} type annotation with {arity} argument(s)")
+    return arguments
+
+
+def _typed_local_roles(result: dict[str, Json]) -> None:
+    local = _named(result.get("ast"), "typed_local", "local")
+    _type_head(_type_head(local.get("type"), "Span", 1)[0], "byte", 0)
+    before = _named(result.get("ast"), "typed_local", "before")
+    erased = _object(before.get("type"), "ghost local annotation")
+    if erased.get("kind") != "modified_type" or erased.get("modifier") != "ghost":
+        raise ValueError("surface ghost typed local lost its erased modifier")
+    _type_head(_type_head(erased.get("type"), "Seq", 1)[0], "byte", 0)
+    nested = _named(result.get("ast"), "typed_local", "nested")
+    arguments = _type_head(nested.get("type"), "Result", 2)
+    _type_head(_type_head(arguments[0], "Span", 1)[0], "byte", 0)
+    _type_head(arguments[1], "Error", 0)
+    parameters = [node for node in nodes(result.get("ast")) if node.get("kind") == "lambda_parameter"]
+    if len(parameters) != 2:
+        raise ValueError("surface scoped/generic callback parameter count differs")
+    annotations = [_object(parameter.get("type"), "callback parameter annotation") for parameter in parameters]
+    scoped, generic = annotations
+    if scoped.get("kind") != "modified_type" or scoped.get("modifier") != "scoped":
+        raise ValueError("surface callback lost its scoped modifier")
+    exclusive = _object(scoped.get("type"), "scoped exclusive callback annotation")
+    if exclusive.get("kind") != "modified_type" or exclusive.get("modifier") != "ref":
+        raise ValueError("surface callback conflated scoped and exclusive modifiers")
+    _type_head(exclusive.get("type"), "byte", 0)
+    if generic.get("kind") != "modified_type" or generic.get("modifier") != "ref":
+        raise ValueError("surface generic callback lost its exclusive modifier")
+    _type_head(_type_head(generic.get("type"), "Span", 1)[0], "byte", 0)
+
+
+def _indexed_constructor_roles(result: dict[str, Json]) -> None:
+    vector = _named(result.get("ast"), "inductive", "Vec")
+    for name in ("Nil", "Cons"):
+        constructor = _constructor(vector, name)
+        returned = _object(constructor.get("result"), "indexed constructor result")
+        if returned.get("kind") != "type" or _texts(returned.get("name")) != ["Vec"]:
+            raise ValueError("surface indexed constructor result head differs")
+        arguments = returned.get("arguments")
+        if not isinstance(arguments, list) or len(arguments) != 2 or _texts(arguments[0]) != ["T"]:
+            raise ValueError("surface indexed constructor type arguments differ")
+        index = _object(arguments[1], "constructor result index")
+        if name == "Nil":
+            if index.get("kind") != "nat" or index.get("value") != "0":
+                raise ValueError("surface empty-vector constructor lost its zero index")
+        else:
+            if index.get("kind") != "group":
+                raise ValueError("surface successor constructor lost its grouped index")
+            addition = _object(index.get("value"), "successor index")
+            right = _object(addition.get("right"), "successor constant")
+            if (addition.get("kind") != "binary" or _texts(addition.get("operator")) != ["+"]
+                    or _texts(addition.get("left")) != ["m"] or right.get("kind") != "nat"
+                    or right.get("value") != "1"):
+                raise ValueError("surface successor constructor index roles differ")
+    natural = _named(result.get("ast"), "inductive", "Natural")
+    successor = _constructor(natural, "Succ")
+    if "result" not in successor or successor["result"] is not None:
+        raise ValueError("surface unindexed constructor needs an explicit absent result")
+
+
+def _numeric_pattern_roles(source: bytes, result: dict[str, Json]) -> None:
+    patterns = [node for node in nodes(result.get("ast")) if node.get("kind") == "nat_pattern"]
+    expected = ((b"0u8", "0", "u8"), (b"0b01", "0b01", ""))
+    if len(patterns) != len(expected):
+        raise ValueError("surface represented numeric pattern count differs")
+    for pattern, (spelling, digits, suffix) in zip(patterns, expected, strict=True):
+        start = source.index(spelling)
+        if (pattern.get("value") != digits or pattern.get("suffix") != suffix
+                or pattern.get("span") != [start, start + len(spelling)]):
+            raise ValueError("surface numeric pattern lost spelling, representation or byte span")
+
+
 def _handler_roles(result: dict[str, Json]) -> None:
     handlers = [node for node in nodes(result.get("ast"))
                 if node.get("kind") == "handle" and node.get("shallow") is False]
@@ -436,10 +539,16 @@ def qualify(parse: Callable[[bytes], dict[str, Json]]) -> list[str]:
             _type_roles(result)
         elif fixture.name == "dependent-data-and-lifetimes":
             _receiver_roles(result)
+        elif fixture.name == "typed-locals-and-scoped-callbacks":
+            _typed_local_roles(result)
         elif fixture.name == "effects-handlers-and-disposal":
             _handler_roles(result)
         elif fixture.name == "structured-tasks-and-cleanup":
             _cancellation_roles(result)
+        elif fixture.name == "mathematical-definitions-and-proofs":
+            _indexed_constructor_roles(result)
+        elif fixture.name == "represented-numeric-patterns":
+            _numeric_pattern_roles(fixture.source.encode("utf-8"), result)
         passed.append(f"surface:{fixture.name}")
     for name, source, kind in NEGATIVE:
         try:
