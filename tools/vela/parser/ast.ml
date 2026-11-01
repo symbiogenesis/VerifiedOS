@@ -2,6 +2,7 @@
 (* Located syntax only: no resolution, typing, evaluation or code emission. *)
 
 type json =
+  | Null
   | String of string
   | Number of int
   | Boolean of bool
@@ -51,6 +52,7 @@ let string_json value =
   Buffer.contents out
 
 let rec write_json out = function
+  | Null -> Buffer.add_string out "null"
   | String value -> Buffer.add_string out (string_json value)
   | Number value -> Buffer.add_string out (string_of_int value)
   | Boolean value -> Buffer.add_string out (if value then "true" else "false")
