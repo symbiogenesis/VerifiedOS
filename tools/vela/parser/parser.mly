@@ -26,7 +26,7 @@ let binary first last operator left right =
 %token PLUS_ASSIGN MINUS_ASSIGN STAR_ASSIGN SLASH_ASSIGN MOD_ASSIGN
 %token GENERIC_OPEN
 %token <string * string> NUMBER
-%token <string> LIFETIME STRING CHARACTER HOLE
+%token <string> LIFETIME STRING CHARACTER HOLE ANNOTATION_NAME
 %start <Ast.node> file
 %start <Ast.node> surface_file
 
@@ -122,6 +122,9 @@ surface_file:
         [("name", module_name); ("declarations", array declarations)] declarations }
 
 s_identifier:
+  value=s_value_identifier { value }
+| value=ANNOTATION_NAME { name $startpos $endpos value }
+s_value_identifier:
   value=IDENT { name $startpos $endpos value }
 | NAT { name $startpos $endpos "Nat" }
 | BOOL { name $startpos $endpos "bool" }
@@ -169,8 +172,8 @@ s_decl:
         ("constructors", array cases)] (generics @ cases) }
 | DOMAIN domain_name=s_identifier LBRACE entries=list(s_domain_entry) RBRACE
     { make "domain" $startpos $endpos [("name", domain_name); ("entries", array entries)] entries }
-| EFFECT effect_name=s_identifier LBRACE operations=list(s_effect_operation) RBRACE
-    { make "effect" $startpos $endpos [("name", effect_name); ("operations", array operations)] operations }
+| EFFECT effect_name=s_identifier generics=s_generics LBRACE operations=list(s_effect_operation) RBRACE
+    { make "effect" $startpos $endpos [("name", effect_name); ("generics", array generics); ("operations", array operations)] (generics @ operations) }
 | VIEW view_name=s_identifier EQUAL parts=separated_nonempty_list(COMMA, s_view_part) SEMICOLON
     { make "view" $startpos $endpos [("name", view_name); ("parts", array parts)] parts }
 | TYPE type_name=s_identifier generics=s_generics definition=option(s_type_definition) SEMICOLON
@@ -242,6 +245,8 @@ s_schedule_entry:
   rule_name=s_path SEMICOLON { make "schedule_entry" $startpos $endpos [("name", rule_name)] [] }
 s_record_tail:
   SEMICOLON { [] } | LBRACE members=list(s_declaration) RBRACE { members }
+s_constructor_result:
+  COLON value=s_type { value }
 s_type_definition:
   EQUAL value=s_type { value }
 s_value_definition:
@@ -251,8 +256,8 @@ s_function_body:
 s_cancel:
   ON CANCEL body=s_block { body }
 s_constructor:
-  constructor_name=s_identifier LPAREN parameters=separated_list(COMMA, s_parameter) RPAREN SEMICOLON
-    { make "constructor" $startpos $endpos [("name", constructor_name); ("parameters", array parameters)] parameters }
+  constructor_name=s_identifier LPAREN parameters=separated_list(COMMA, s_parameter) RPAREN result=option(s_constructor_result) SEMICOLON
+    { make "constructor" $startpos $endpos [("name", constructor_name); ("parameters", array parameters); ("result", optional result)] (parameters @ children result) }
 s_view_part:
   value=s_expression grows=option(GROWS)
     { make "view_part" $startpos $endpos [("value", value.syntax); ("grows", Boolean (grows <> None))] [value] }
@@ -269,10 +274,10 @@ s_domain_value:
 | LPAREN op=s_any_operator RPAREN
     { make "operator" $startpos $endpos [("name", op)] [] }
 s_effect_operation:
-  result=s_type operation_name=s_identifier LPAREN parameters=separated_list(COMMA, s_parameter) RPAREN
+  result=s_type operation_name=s_identifier generics=s_generics LPAREN parameters=separated_list(COMMA, s_parameter) RPAREN
   resumes=option(s_resumes) SEMICOLON
     { make "effect_operation" $startpos $endpos [("name", operation_name); ("result", result.syntax);
-        ("parameters", array parameters); ("resumes", optional resumes)] (result :: parameters @ children resumes) }
+        ("generics", array generics); ("parameters", array parameters); ("resumes", optional resumes)] (result :: generics @ parameters @ children resumes) }
 s_resumes:
   RESUMES LPAREN value=s_expression RPAREN { value }
 
@@ -384,7 +389,7 @@ s_simple_statement:
     { make kind $startpos $endpos [("name", binding_name); ("type", Null); ("value", value.syntax)] [value] }
 | kind=s_local_kind value_type=s_type binding_name=s_identifier EQUAL value=s_expression SEMICOLON
     { make kind $startpos $endpos [("name", binding_name); ("type", value_type.syntax); ("value", value.syntax)] [value_type; value] }
-| value_type=s_expression binding_name=s_identifier EQUAL value=s_expression SEMICOLON
+| value_type=s_annotation_type binding_name=s_identifier EQUAL value=s_expression SEMICOLON
     { make "typed_local" $startpos $endpos [("name", binding_name);
         ("type", value_type.syntax); ("value", value.syntax)] [value_type; value] }
 | RETURN value=option(s_expression) SEMICOLON
@@ -393,7 +398,7 @@ s_simple_statement:
 | CONTINUE SEMICOLON { make "continue" $startpos $endpos [] [] }
 | PROOF body=s_block { make "proof" $startpos $endpos [("body", body.syntax)] [body] }
 | ASSERT value=s_expression SEMICOLON { make "assert" $startpos $endpos [("value", value.syntax)] [value] }
-| CALC body=s_block { make "calculation" $startpos $endpos [("body", body.syntax)] [body] }
+| CALC body=s_block { make "calc" $startpos $endpos [("body", body.syntax)] [body] }
 | SCOPE LPAREN values=separated_list(COMMA, s_expression) RPAREN body=s_block
     { make "scope" $startpos $endpos [("resources", array values); ("body", body.syntax)] (body :: values) }
 | MATCH LPAREN value=s_expression RPAREN LBRACE cases=list(s_match_case) RBRACE
@@ -404,6 +409,22 @@ s_simple_statement:
     { make "assignment" $startpos $endpos [("target", target.syntax); ("operator", operator); ("value", value.syntax)] [target; value] }
 | value=s_expression SEMICOLON
     { make "expression_statement" $startpos $endpos [("value", value.syntax)] [value] }
+s_annotation_type:
+  type_name=s_annotation_path arguments=s_type_arguments
+    { make "type" $startpos $endpos [("name", type_name); ("arguments", array arguments)] arguments }
+| value=s_function_type { value }
+| modifier=s_type_modifier value=s_annotation_type
+    { make "modified_type" $startpos $endpos [("modifier", String modifier);
+        ("lifetime", Null); ("type", value.syntax)] [value] }
+| modifier=s_type_modifier lifetime=s_loan_lifetime value=s_annotation_type
+    { make "modified_type" $startpos $endpos [("modifier", String modifier);
+        ("lifetime", lifetime.syntax); ("type", value.syntax)] [value; lifetime] }
+s_annotation_path:
+  first=ANNOTATION_NAME rest=list(s_path_segment)
+    { name $startpos $endpos (String.concat "." (first :: rest)) }
+s_path_segment:
+  DOT value=s_identifier
+    { match value with Object fields -> (match List.assoc "text" fields with String text -> text | _ -> "") | _ -> "" }
 s_local_kind:
   LET { "let" } | VAR { "var" }
 s_assignment:
@@ -420,7 +441,8 @@ s_pattern:
       make "constructor_pattern" $startpos $endpos [("name", constructor_name); ("arguments", array values)] values }
 | TRUE { make "bool_pattern" $startpos $endpos [("value", Boolean true)] [] }
 | FALSE { make "bool_pattern" $startpos $endpos [("value", Boolean false)] [] }
-| value=DECIMAL { make "nat_pattern" $startpos $endpos [("value", String value)] [] }
+| value=DECIMAL { make "nat_pattern" $startpos $endpos [("value", String value); ("suffix", String "")] [] }
+| value=NUMBER { let digits, suffix = value in make "nat_pattern" $startpos $endpos [("value", String digits); ("suffix", String suffix)] [] }
 s_pattern_arguments:
   LPAREN values=separated_list(COMMA, s_pattern) RPAREN { values }
 
@@ -436,7 +458,7 @@ s_lambda_parameters:
   { [] }
 | parameters=separated_nonempty_list(COMMA, s_lambda_parameter) { parameters }
 s_lambda_parameter:
-  value_type=s_expression parameter_name=s_identifier
+  value_type=s_annotation_type parameter_name=s_identifier
     { make "lambda_parameter" $startpos $endpos [("type", value_type.syntax); ("name", parameter_name)] [value_type] }
 s_lambda_body:
   value=s_expression { value } | value=s_block { value }
@@ -516,7 +538,7 @@ s_atom:
 | value=CHARACTER { make "character" $startpos $endpos [("value", String value)] [] }
 | TRUE { make "bool" $startpos $endpos [("value", Boolean true)] [] }
 | FALSE { make "bool" $startpos $endpos [("value", Boolean false)] [] }
-| value=s_identifier { make "name" $startpos $endpos [("name", value)] [] }
+| value=s_value_identifier { make "name" $startpos $endpos [("name", value)] [] }
 | value=HOLE { make "hole" $startpos $endpos [("name", name $startpos $endpos value)] [] }
 | LPAREN value=s_expression RPAREN { make "group" $startpos $endpos [("value", value.syntax)] [value] }
 | LPAREN first=s_expression COMMA rest=separated_nonempty_list(COMMA, s_expression) RPAREN
