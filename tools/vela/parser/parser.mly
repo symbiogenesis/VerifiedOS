@@ -170,23 +170,26 @@ s_decl:
         ("parameters", array parameters); ("contracts", array contracts); ("declarations", array tail)]
         (generics @ parameters @ contracts @ tail) }
 | kind=s_sum_kind sum_name=s_identifier generics=s_generics
-  LBRACE cases=list(s_constructor) RBRACE
+  contracts=list(s_contract) LBRACE cases=list(s_constructor) RBRACE
     { make kind $startpos $endpos [("name", sum_name); ("generics", array generics);
-        ("constructors", array cases)] (generics @ cases) }
+        ("contracts", array contracts); ("constructors", array cases)] (generics @ contracts @ cases) }
 | DOMAIN domain_name=s_identifier LBRACE entries=list(s_domain_entry) RBRACE
     { make "domain" $startpos $endpos [("name", domain_name); ("entries", array entries)] entries }
 | EFFECT effect_name=s_identifier generics=s_generics LBRACE operations=list(s_effect_operation) RBRACE
     { make "effect" $startpos $endpos [("name", effect_name); ("generics", array generics); ("operations", array operations)] (generics @ operations) }
 | VIEW view_name=s_identifier EQUAL parts=separated_nonempty_list(COMMA, s_view_part) SEMICOLON
     { make "view" $startpos $endpos [("name", view_name); ("parts", array parts)] parts }
-| TYPE type_name=s_identifier generics=s_generics definition=option(s_type_definition) SEMICOLON
+| TYPE type_name=s_identifier generics=s_generics kind=option(s_kind_annotation)
+  contracts=list(s_contract) definition=option(s_type_definition) SEMICOLON
     { make "associated_type" $startpos $endpos [("name", type_name); ("generics", array generics);
-        ("definition", optional definition)] (generics @ children definition) }
+        ("kind_annotation", optional kind); ("contracts", array contracts);
+        ("definition", optional definition)] (generics @ children kind @ contracts @ children definition) }
 | PREDICATE predicate_name=s_identifier generics=s_generics LPAREN
-  parameters=separated_list(COMMA, s_parameter) RPAREN definition=option(s_value_definition) SEMICOLON
+  parameters=separated_list(COMMA, s_parameter) RPAREN contracts=list(s_contract)
+  definition=option(s_value_definition) SEMICOLON
     { make "predicate" $startpos $endpos [("name", predicate_name); ("generics", array generics);
-        ("parameters", array parameters); ("definition", optional definition)]
-        (generics @ parameters @ children definition) }
+        ("parameters", array parameters); ("contracts", array contracts); ("definition", optional definition)]
+        (generics @ parameters @ contracts @ children definition) }
 | OPERATION result=s_type operation_name=s_identifier generics=s_generics LPAREN
   parameters=separated_list(COMMA, s_parameter) RPAREN contracts=list(s_contract) SEMICOLON
     { make "operation" $startpos $endpos [("name", operation_name); ("result", result.syntax);
@@ -197,10 +200,10 @@ s_decl:
 | UNIVERSE universe=s_identifier SEMICOLON
     { make "universe" $startpos $endpos [("name", universe)] [] }
 | DEFINITION result=s_type definition_name=s_identifier generics=s_generics LPAREN
-  parameters=separated_list(COMMA, s_parameter) RPAREN EQUAL value=s_expression SEMICOLON
+  parameters=separated_list(COMMA, s_parameter) RPAREN contracts=list(s_contract) EQUAL value=s_expression SEMICOLON
     { make "definition" $startpos $endpos [("name", definition_name); ("result", result.syntax);
-        ("generics", array generics); ("parameters", array parameters); ("value", value.syntax)]
-        (result :: value :: generics @ parameters) }
+        ("generics", array generics); ("parameters", array parameters); ("contracts", array contracts);
+        ("value", value.syntax)] (result :: value :: generics @ parameters @ contracts) }
 | kind=s_theorem_kind theorem_name=s_identifier generics=s_generics LPAREN
   parameters=separated_list(COMMA, s_parameter) RPAREN COLON proposition=s_expression body=s_theorem_body
     { make kind $startpos $endpos [("name", theorem_name); ("generics", array generics);
@@ -249,8 +252,6 @@ s_schedule_entry:
   rule_name=s_path SEMICOLON { make "schedule_entry" $startpos $endpos [("name", rule_name)] [] }
 s_record_tail:
   SEMICOLON { [] } | LBRACE members=list(s_declaration) RBRACE { members }
-s_constructor_result:
-  COLON value=s_type { value }
 s_type_definition:
   EQUAL value=s_type { value }
 s_value_definition:
@@ -260,8 +261,17 @@ s_function_body:
 s_cancel:
   ON CANCEL body=s_block { body }
 s_constructor:
-  constructor_name=s_identifier LPAREN parameters=separated_list(COMMA, s_parameter) RPAREN result=option(s_constructor_result) SEMICOLON
-    { make "constructor" $startpos $endpos [("name", constructor_name); ("parameters", array parameters); ("result", optional result)] (parameters @ children result) }
+  constructor_name=s_identifier LPAREN parameters=separated_list(COMMA, s_parameter) RPAREN
+  tail=s_constructor_tail SEMICOLON
+    { let result, contracts = tail in
+      make "constructor" $startpos $endpos [("name", constructor_name); ("parameters", array parameters);
+        ("result", optional result); ("contracts", array contracts)] (parameters @ children result @ contracts) }
+s_constructor_tail:
+  contracts=list(s_contract) { None, contracts }
+| COLON result=s_nonfunction_type contracts=list(s_contract) { Some result, contracts }
+/* Retain bare callable results: their effects belong to the callable. Group the
+   result when a constructor itself needs an effects contract. */
+| COLON result=s_qualified_function_type contracts=list(s_obligation) { Some result, contracts }
 s_view_part:
   value=s_expression grows=option(GROWS)
     { make "view_part" $startpos $endpos [("value", value.syntax); ("grows", Boolean (grows <> None))] [value] }
@@ -289,8 +299,9 @@ s_resumes:
 s_generics:
   { [] } | LT values=separated_nonempty_list(COMMA, s_generic_parameter) GT { values }
 s_generic_parameter:
-  generic_name=s_identifier
-    { make "generic_parameter" $startpos $endpos [("mode", String "type"); ("name", generic_name); ("type", Null)] [] }
+  generic_name=s_identifier kind=option(s_kind_annotation)
+    { make "generic_parameter" $startpos $endpos [("mode", String "type"); ("name", generic_name);
+        ("type", optional kind)] (children kind) }
 | GHOST value_type=s_type generic_name=s_identifier
     { make "generic_parameter" $startpos $endpos [("mode", String "ghost"); ("name", generic_name);
         ("type", value_type.syntax)] [value_type] }
@@ -304,6 +315,8 @@ s_generic_parameter:
 | GRADE generic_name=s_identifier COLON value_type=s_type
     { make "generic_parameter" $startpos $endpos [("mode", String "grade"); ("name", generic_name);
         ("type", value_type.syntax)] [value_type] }
+s_kind_annotation:
+  COLON value=s_nonfunction_type { value }
 
 s_type:
   value=s_nonfunction_type { value }
@@ -354,8 +367,8 @@ s_type_arguments:
 s_type_argument:
   value=s_generic_type { value }
 | TYPE value=s_type { make "type_argument" $startpos $endpos [("type", value.syntax)] [value] }
-| value=DECIMAL { make "nat" $startpos $endpos [("value", String value); ("suffix", String "")] [] }
-| value=NUMBER { let digits, suffix = value in make "nat" $startpos $endpos [("value", String digits); ("suffix", String suffix)] [] }
+| value=s_literal { value }
+| value=s_hole { value }
 | value=LIFETIME { make "lifetime" $startpos $endpos [("name", name $startpos $endpos value)] [] }
 | LPAREN value=s_expression RPAREN { make "group" $startpos $endpos [("value", value.syntax)] [value] }
 /* Bare parentheses in generic arguments remain value syntax. Structural types
@@ -377,10 +390,12 @@ s_parameter_name:
 s_grade:
   AT value=s_expression { value }
 s_contract:
-  role=s_contract_role value=s_expression
-    { make "contract" $startpos $endpos [("role", String role); ("value", value.syntax)] [value] }
+  value=s_obligation { value }
 | EFFECTS values=separated_nonempty_list(COMMA, s_expression)
     { make "effects" $startpos $endpos [("values", array values)] values }
+s_obligation:
+  role=s_contract_role value=s_expression
+    { make "contract" $startpos $endpos [("role", String role); ("value", value.syntax)] [value] }
 s_contract_role:
   REQUIRES { "requires" } | ENSURES { "ensures" } | RESTORES { "restores" }
 | WHERE { "where" } | INVARIANT { "invariant" } | DECREASES { "decreases" } | PROGRESS { "progress" }
@@ -494,6 +509,10 @@ s_product_pattern:
 
 s_expression:
   value=s_implication { value }
+| TYPE value=s_nonfunction_type
+    { make "type_expression" $startpos $endpos [("type", value.syntax)] [value] }
+| signature=s_function_type FATARROW body=s_lambda_body
+    { make "typed_lambda" $startpos $endpos [("signature", signature.syntax); ("body", body.syntax)] [signature; body] }
 | FORALL LPAREN parameters=separated_nonempty_list(COMMA, s_parameter) RPAREN FATARROW value=s_expression
     { make "quantifier" $startpos $endpos [("quantifier", String "forall"); ("parameters", array parameters); ("value", value.syntax)] (value :: parameters) }
 | EXISTS LPAREN parameters=separated_nonempty_list(COMMA, s_parameter) RPAREN FATARROW value=s_expression
@@ -580,14 +599,9 @@ s_postfix:
 | value=s_postfix QUESTION
     { make "propagate" $startpos $endpos [("value", value.syntax)] [value] }
 s_atom:
-  value=DECIMAL { make "nat" $startpos $endpos [("value", String value); ("suffix", String "")] [] }
-| value=NUMBER { let digits, suffix = value in make "nat" $startpos $endpos [("value", String digits); ("suffix", String suffix)] [] }
-| value=STRING { make "string" $startpos $endpos [("value", String value)] [] }
-| value=CHARACTER { make "character" $startpos $endpos [("value", String value)] [] }
-| TRUE { make "bool" $startpos $endpos [("value", Boolean true)] [] }
-| FALSE { make "bool" $startpos $endpos [("value", Boolean false)] [] }
+  value=s_literal { value }
+| value=s_hole { value }
 | value=s_value_identifier { make "name" $startpos $endpos [("name", value)] [] }
-| value=HOLE { make "hole" $startpos $endpos [("name", name $startpos $endpos value)] [] }
 | LPAREN RPAREN { make "unit" $startpos $endpos [] [] }
 | LPAREN value=s_expression RPAREN { make "group" $startpos $endpos [("value", value.syntax)] [value] }
 | LPAREN first=s_expression COMMA rest=separated_nonempty_list(COMMA, s_expression) RPAREN
@@ -601,6 +615,15 @@ s_atom:
     { make kind $startpos $endpos [("shallow", Boolean (shallow <> None));
         ("value", value.syntax); ("capability", (match capability with None -> Null | Some value -> value));
         ("clauses", array clauses)] (value :: clauses) }
+s_literal:
+  value=DECIMAL { make "nat" $startpos $endpos [("value", String value); ("suffix", String "")] [] }
+| value=NUMBER { let digits, suffix = value in make "nat" $startpos $endpos [("value", String digits); ("suffix", String suffix)] [] }
+| value=STRING { make "string" $startpos $endpos [("value", String value)] [] }
+| value=CHARACTER { make "character" $startpos $endpos [("value", String value)] [] }
+| TRUE { make "bool" $startpos $endpos [("value", Boolean true)] [] }
+| FALSE { make "bool" $startpos $endpos [("value", Boolean false)] [] }
+s_hole:
+  value=HOLE { make "hole" $startpos $endpos [("name", name $startpos $endpos value)] [] }
 s_handle_kind:
   HANDLE { "handle" } | REHANDLE { "rehandle" }
 s_handler_capability:

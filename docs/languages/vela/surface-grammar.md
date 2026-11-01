@@ -243,13 +243,16 @@ keeps its `type` field null for a bare binder and records the kind when supplied
 Associated types likewise accept an optional `: TYPE` kind before contracts and
 their optional definition; `associated_type.kind_annotation` is null when absent.
 Universe formation, conversion and dependent substitution remain checking duties.
+Parenthesize a callable kind so its effects stay distinct from declaration contracts.
 
 Explicit `type TYPE` expressions inject structural types into ordinary definitions,
 calls and dependent matches. A `type_expression` has a `type` field containing the
 located type node. For example, an ordinary type family can return
 `match (flag) { case true => type (T, T); case false => type (); }`.
 Like lambdas and quantifiers, these forms occupy a complete expression; group them
-when used as operator operands. This reuses callable, product and library types
+when used as operator operands. Parenthesize a callable payload, as in
+`type (Fn(T value) -> T effects(Read))`, to delimit its effects.
+This reuses callable, product and library types
 instead of introducing separate type-level function or box primitives.
 Bare Boolean, string, character and named-hole generic arguments use their existing
 expression nodes, alongside numbers, lifetimes and parenthesized expressions.
@@ -278,6 +281,8 @@ semicolon). Associated types accept them before an optional `=` definition.
 Each of these nodes exposes a `contracts` array, empty when omitted. Thus domain
 laws, graded storage, indexed outcomes and type families share the existing
 contract language; their laws do not acquire parser authority.
+Effects following a bare callable constructor result still belong to that callable;
+parenthesize the result to attach an effects contract to the constructor itself.
 
 Independent fixtures must compose kinded binders, type-valued matches, explicit
 callable signatures, scoped loans and graded library resources. Assert contract

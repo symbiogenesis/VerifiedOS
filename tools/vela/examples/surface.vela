@@ -190,3 +190,31 @@ public Nat ForwardChoice() {
         return value => value,
     };
 }
+
+// Type families and resource libraries reuse ordinary definitions and contracts.
+universe u;
+public definition Type<u> RepeatedType<T : Type<u>>(bool repeated)
+    where Repeatable(T)
+    = match (repeated) as choice : Type<u> {
+        case true => type (T, T);
+        case false => type T;
+    };
+
+public trait ResourceFamily<T : Type<u>> where Representable(T) {
+    type Output : Type<u> where Formed(T);
+    predicate Ready(T value) requires Stable(value);
+}
+
+public union ResourceOutcome<T : Type<u>> where Representable(T) {
+    Returned(owned T value @ NatExact(1)) ensures Retained(result);
+    Unavailable(tracked Closed receipt) restores Closed(receipt);
+}
+
+// A value can state the same local loan telescope and laws as a callable type.
+public void UpdateCell<T : Type<u>>(ref LocalCell<T> cell) {
+    let update = FnMut<region 'loan>(scoped ref<'loan> T value @ NatExact(1)) -> ()
+        effects(Write)
+        with { requires Open(value); restores Closed(final(value)); }
+        => { Touch(ref value); return (); };
+    cell.WithWrite(update);
+}
