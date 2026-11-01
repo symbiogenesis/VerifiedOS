@@ -131,10 +131,17 @@ s_value_identifier:
 | BOOL { name $startpos $endpos "bool" }
 
 s_path:
-  parts=separated_nonempty_list(DOT, s_identifier)
-    { let text = List.map (function Object fields ->
-          (match List.assoc "text" fields with String value -> value | _ -> "") | _ -> "") parts in
-      name $startpos $endpos (String.concat "." text) }
+  first=s_identifier rest=list(s_path_segment)
+    { let text = match first with Object fields ->
+          (match List.assoc "text" fields with String value -> value | _ -> "") | _ -> "" in
+      name $startpos $endpos (String.concat "." (text :: rest)) }
+
+/* Dictionary projections share ordinary paths; role words remain reserved at
+   the start of a name and retain their domain-entry meaning. */
+s_member_identifier:
+  value=s_identifier { value }
+| CARRIER { name $startpos $endpos "carrier" }
+| role=s_domain_role { name $startpos $endpos role }
 
 s_modifiers:
   values=list(s_modifier) { values }
@@ -173,8 +180,10 @@ s_decl:
   contracts=list(s_contract) LBRACE cases=list(s_constructor) RBRACE
     { make kind $startpos $endpos [("name", sum_name); ("generics", array generics);
         ("contracts", array contracts); ("constructors", array cases)] (generics @ contracts @ cases) }
-| DOMAIN domain_name=s_identifier LBRACE entries=list(s_domain_entry) RBRACE
-    { make "domain" $startpos $endpos [("name", domain_name); ("entries", array entries)] entries }
+| DOMAIN domain_name=s_identifier generics=s_generics contracts=list(s_contract)
+  LBRACE entries=list(s_domain_entry) RBRACE
+    { make "domain" $startpos $endpos [("name", domain_name); ("generics", array generics);
+        ("contracts", array contracts); ("entries", array entries)] (generics @ contracts @ entries) }
 | EFFECT effect_name=s_identifier generics=s_generics LBRACE operations=list(s_effect_operation) RBRACE
     { make "effect" $startpos $endpos [("name", effect_name); ("generics", array generics); ("operations", array operations)] (generics @ operations) }
 | VIEW view_name=s_identifier EQUAL parts=separated_nonempty_list(COMMA, s_view_part) SEMICOLON
@@ -425,15 +434,18 @@ s_simple_statement:
     { make "for" $startpos $endpos [("name", binding_name); ("range", range.syntax);
         ("contracts", array contracts); ("body", body.syntax)] (range :: body :: contracts) }
 
-| kind=s_local_kind binding_name=s_identifier EQUAL value=s_expression SEMICOLON
-    { make kind $startpos $endpos [("name", binding_name); ("type", Null); ("value", value.syntax)] [value] }
-| kind=s_local_kind value_type=s_annotation_type binding_name=s_identifier EQUAL value=s_expression SEMICOLON
-    { make kind $startpos $endpos [("name", binding_name); ("type", value_type.syntax); ("value", value.syntax)] [value_type; value] }
+| kind=s_local_kind binding_name=s_identifier grade=option(s_grade) EQUAL value=s_expression SEMICOLON
+    { make kind $startpos $endpos [("name", binding_name); ("type", Null);
+        ("grade", optional grade); ("value", value.syntax)] (value :: children grade) }
+| kind=s_local_kind value_type=s_annotation_type binding_name=s_identifier grade=option(s_grade) EQUAL value=s_expression SEMICOLON
+    { make kind $startpos $endpos [("name", binding_name); ("type", value_type.syntax);
+        ("grade", optional grade); ("value", value.syntax)] (value_type :: value :: children grade) }
 | kind=s_local_kind pattern=s_product_pattern EQUAL value=s_expression SEMICOLON
     { make (kind ^ "_pattern") $startpos $endpos [("pattern", pattern.syntax); ("value", value.syntax)] [pattern; value] }
-| value_type=s_annotation_type binding_name=s_identifier EQUAL value=s_expression SEMICOLON
+| value_type=s_annotation_type binding_name=s_identifier grade=option(s_grade) EQUAL value=s_expression SEMICOLON
     { make "typed_local" $startpos $endpos [("name", binding_name);
-        ("type", value_type.syntax); ("value", value.syntax)] [value_type; value] }
+        ("type", value_type.syntax); ("grade", optional grade); ("value", value.syntax)]
+        (value_type :: value :: children grade) }
 | RETURN value=option(s_expression) SEMICOLON
     { make "return" $startpos $endpos [("value", optional value)] (children value) }
 | BREAK SEMICOLON { make "break" $startpos $endpos [] [] }
@@ -470,7 +482,7 @@ s_annotation_path:
   first=ANNOTATION_NAME rest=list(s_path_segment)
     { name $startpos $endpos (String.concat "." (first :: rest)) }
 s_path_segment:
-  DOT value=s_identifier
+  DOT value=s_member_identifier
     { match value with Object fields -> (match List.assoc "text" fields with String text -> text | _ -> "") | _ -> "" }
 s_local_kind:
   LET { "let" } | VAR { "var" }
@@ -590,7 +602,7 @@ s_postfix:
   value=s_atom { value }
 | callee=s_postfix LPAREN arguments=separated_list(COMMA, s_expression) RPAREN
     { make "call" $startpos $endpos [("callee", callee.syntax); ("arguments", array arguments)] (callee :: arguments) }
-| value=s_postfix DOT member=s_identifier
+| value=s_postfix DOT member=s_member_identifier
     { make "member" $startpos $endpos [("value", value.syntax); ("name", member)] [value] }
 | value=s_postfix LBRACKET index=s_expression RBRACKET
     { make "index" $startpos $endpos [("value", value.syntax); ("index", index.syntax)] [value; index] }
@@ -639,6 +651,8 @@ s_handler_clause:
         ("parameters", Array parameters); ("continuation", continuation); ("body", body.syntax)] [body] }
 | RETURN result=s_identifier FATARROW body=s_lambda_body
     { make "return_clause" $startpos $endpos [("name", result); ("body", body.syntax)] [body] }
+| DISPOSE reason=s_identifier FATARROW body=s_lambda_body
+    { make "disposal_clause" $startpos $endpos [("name", reason); ("body", body.syntax)] [body] }
 s_any_operator:
   value=s_comparison_operator { value }
 | PLUS { name $startpos $endpos "+" } | MINUS { name $startpos $endpos "-" }

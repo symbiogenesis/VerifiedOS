@@ -90,11 +90,15 @@ let annotation lexbuf parenthesized =
         | ')' when parens > 0 -> angles depth (parens - 1) brackets (index + 1)
         | '[' -> angles depth parens (brackets + 1) (index + 1)
         | ']' when brackets > 0 -> angles depth parens (brackets - 1) (index + 1)
+        | '-' when index + 1 < length && at (index + 1) = '>' ->
+            angles depth parens brackets (index + 2)
+        | '=' when index + 1 < length && at (index + 1) = '>' ->
+            angles depth parens brackets (index + 2)
         | '<' when parens = 0 && brackets = 0 -> angles (depth + 1) parens brackets (index + 1)
         | '>' when parens = 0 && brackets = 0 ->
             if depth = 1 then index + 1 else angles (depth - 1) parens brackets (index + 1)
-        | '{' when parens > 0 || brackets > 0 -> angles depth parens brackets (block ['}'] 1 (index + 1))
-        | ';' | '{' | '}' -> length
+        | '{' -> angles depth parens brackets (block ['}'] 1 (index + 1))
+        | ';' | '}' -> length
         | _ -> angles depth parens brackets (index + 1)
   in
   let rec path index =
@@ -127,34 +131,41 @@ let annotation lexbuf parenthesized =
     let index = trivia index in
     index + 1 < length && at index = '=' && at (index + 1) = '>'
   in
-  let rec lambda_tail parens brackets graded index =
+  let rec binder_tail parens brackets graded index =
     if parens > Ast.max_delimiter_depth || brackets > Ast.max_delimiter_depth then
-      refuse "limit" lexbuf "lambda annotation nesting exceeds 256"
+      refuse "limit" lexbuf "binder annotation nesting exceeds 256"
     else if index >= length then false
     else let index = trivia index in
       if index >= length then false
       else match at index with
-        | '"' -> lambda_tail parens brackets graded (quoted (index + 1))
-        | '\'' when index + 2 < length && at (index + 2) = '\'' -> lambda_tail parens brackets graded (index + 3)
-        | '\'' when index + 3 < length && at (index + 1) = '\\' && at (index + 3) = '\'' -> lambda_tail parens brackets graded (index + 4)
-        | '(' -> lambda_tail (parens + 1) brackets graded (index + 1)
-        | ')' -> if parens = 0 then arrow (index + 1) else lambda_tail (parens - 1) brackets graded (index + 1)
-        | '[' -> lambda_tail parens (brackets + 1) graded (index + 1)
-        | ']' when brackets > 0 -> lambda_tail parens (brackets - 1) graded (index + 1)
-        | '@' when parens = 0 && brackets = 0 -> lambda_tail parens brackets true (index + 1)
-        | ',' when parens = 0 && brackets = 0 -> lambda_tail parens brackets false (index + 1)
+        | '"' -> binder_tail parens brackets graded (quoted (index + 1))
+        | '\'' when index + 2 < length && at (index + 2) = '\'' -> binder_tail parens brackets graded (index + 3)
+        | '\'' when index + 3 < length && at (index + 1) = '\\' && at (index + 3) = '\'' -> binder_tail parens brackets graded (index + 4)
+        | '(' -> binder_tail (parens + 1) brackets graded (index + 1)
+        | ')' -> if parens = 0 then arrow (index + 1) else binder_tail (parens - 1) brackets graded (index + 1)
+        | '[' -> binder_tail parens (brackets + 1) graded (index + 1)
+        | ']' when brackets > 0 -> binder_tail parens (brackets - 1) graded (index + 1)
+        | '@' when parens = 0 && brackets = 0 -> binder_tail parens brackets true (index + 1)
+        (* A comma may belong to a generic grade argument or a later binder.
+           Once inside a grade, keep allowing balanced callback/type blocks. *)
+        | ',' when parens = 0 && brackets = 0 -> binder_tail parens brackets graded (index + 1)
+        | ('<' | '>' | '!') when index + 1 < length && at (index + 1) = '=' ->
+            binder_tail parens brackets graded (index + 2)
+        | '=' when index + 1 < length && (at (index + 1) = '=' || at (index + 1) = '>') ->
+            binder_tail parens brackets graded (index + 2)
+        | '=' when graded && parens = 0 && brackets = 0 -> true
         | '{' when graded || parens > 0 || brackets > 0 ->
-            lambda_tail parens brackets graded (block ['}'] 1 (index + 1))
+            binder_tail parens brackets graded (block ['}'] 1 (index + 1))
         | ';' | '{' | '}' -> false
-        | _ -> lambda_tail parens brackets graded (index + 1)
+        | _ -> binder_tail parens brackets graded (index + 1)
   in
   if after_type >= length || not (initial (at after_type)) then false
   else let after_binder = trivia (word after_type) in
     after_binder < length && (match at after_binder with
       | '=' -> after_binder + 1 >= length || (at (after_binder + 1) <> '=' && at (after_binder + 1) <> '>')
       | ')' -> arrow (after_binder + 1)
-      | ',' -> lambda_tail 0 0 false (after_binder + 1)
-      | '@' -> lambda_tail 0 0 true (after_binder + 1)
+      | ',' -> binder_tail 0 0 false (after_binder + 1)
+      | '@' -> binder_tail 0 0 true (after_binder + 1)
       | _ -> false)
 let annotation_name lexbuf = annotation lexbuf false
 let identifier state lexbuf =
