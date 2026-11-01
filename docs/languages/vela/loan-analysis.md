@@ -54,6 +54,18 @@ The API must not expose an admitted-program or memory-safe verdict.
 
 ## Acceptance
 
+The design inputs have separate jobs. [Ante-style invalidation](interior-mutability.md#ante-as-a-candidate-for-static-invalidation)
+distinguishes address validity from current-content facts;
+[Granule/Gerty and the graded foundation](verification-strategy.md#reading-the-graded-type-claims)
+inform lawful demand without creating memory permission;
+[Polonius](verification-strategy.md#research-that-changes-the-experiments)
+informs branch-sensitive lifetime inference; and
+[borrow-end reasoning](core-design.md#reuse-decisions) informs restoration.
+This increment implements only the explicit flow/capture/restoration experiment.
+Static invalidation of dependent facts, grade checking and their combined checked
+interpretation remain open at those owners. A loan-end proposal does not certify
+any of them.
+
 Independent focused tests cover last-use restoration; named disjoint fields and
 overlapping prefixes; nested reborrows and ancestor suspension; shared versus
 exclusive interference; transitive captures and retained wrappers; moves;
