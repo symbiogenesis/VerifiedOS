@@ -2634,9 +2634,11 @@ def _shared_primitive_roles(source: bytes, result: dict[str, Json]) -> None:
     local = _named(tree, "typed_local", "local").get("type")
     callback = _object(_named(tree, "let", "callback").get("value"), "structural callback")
     parameters = _sequence(callback.get("parameters"), "structural callback parameters")
+    if len(parameters) != 1:
+        raise ValueError("surface shared callback lost its parameter")
     parameter = _object(parameters[0], "structural callback parameter")
     if (argument.get("kind") != "type_argument" or callback.get("kind") != "lambda"
-            or len(parameters) != 1 or parameter.get("kind") != "lambda_parameter"
+            or parameter.get("kind") != "lambda_parameter"
             or _texts(parameter.get("name")) != ["input"]):
         raise ValueError("surface shared type syntax lost its generic or callback role")
     for value in (product, argument.get("type"), local, parameter.get("type")):
