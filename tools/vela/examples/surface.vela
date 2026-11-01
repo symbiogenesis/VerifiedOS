@@ -82,6 +82,19 @@ public () ForwardPair<ghost Nat n>((owned Packet<n>, tracked Permit<n>) pair) {
     return ();
 }
 
+// Higher-order libraries accept the same operator values as grade dictionaries.
+public definition Nat SumValues(Seq<Nat> values) = Fold((+), 0, values);
+
+// Constructor elimination reuses the patterns of matches and pattern tests.
+public () ConsumeReady<ghost Nat n>(Initialization<n> outcome)
+    requires outcome is Ready(_, _)
+{
+    let Ready(let buffer, let receipt) = outcome;
+    Consume(move buffer);
+    Release(move receipt);
+    return ();
+}
+
 // Returned loans state the obligation that holds when the loan ends.
 public Result<ref<'workspace.bytes> byte, Error> First(ref Workspace workspace)
     requires workspace.bytes.Length > 0
