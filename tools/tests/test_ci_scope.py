@@ -8,6 +8,7 @@ import os
 import subprocess
 from contextlib import redirect_stdout
 from pathlib import Path
+from typing import cast
 from unittest.mock import patch
 
 from ci import select_changes as hosted
@@ -30,6 +31,10 @@ def _classifications() -> None:
                  "docs/languages/new.md", "docs/implementation/contracts/new.md",
                  "docs/implementation/phase-service/new.md", "docs/implementation/placement-search.md",
                  "docs/assurance/field-bindings.md", "interfaces/README.md",
+                 "docs/implementation/compute-feature-map.md", "docs/background/math-evidence.md",
+                 "docs/background/static-memory-research.md", "docs/implementation/static-memory/new.md",
+                 "docs/assurance/differential-corpus.md", "docs/assurance/crown-jewels.md",
+                 "docs/assurance/wire-format-inventory.md",
                  "rtl/synthesis-provenance.md", "tools/tests/fixtures/input.md",
                  "tools/ci/bootstrap_guest.py", ".github/workflows/host-gates.yml",
                  "unknown/new.file", "../README.md", "/README.md", "docs//README.md"):
@@ -113,7 +118,7 @@ def _hosted_events() -> None:
             with patch.dict(os.environ, environment), patch.object(
                     hosted, "__file__", str(root / "tools/ci/select_changes.py")), redirect_stdout(captured):
                 hosted.main()
-            return json.loads(captured.getvalue())
+            return cast("dict[str, object]", json.loads(captured.getvalue()))
 
         ensure(run("push", {"before": base})["host_full"] is False,
                "a push selects its complete before/after comparison")
@@ -122,9 +127,15 @@ def _hosted_events() -> None:
                "a PR selects its head against the merge base, excluding main's independent changes")
         ensure(run("pull_request", {"pull_request": {"base": {}, "head": {}}})["host_full"] is True,
                "unavailable PR history keeps full CI")
+        with patch.object(hosted.subprocess, "run", side_effect=AssertionError("unvalidated Git input")):
+            ensure(run("pull_request", {"pull_request": {"base": {"sha": "--help"}, "head": {"sha": prose}}})
+                   ["host_full"] is True, "malformed PR revisions never reach Git")
         ensure(run("workflow_dispatch", {})["host_full"] is True
                and run("push", {"before": base}, "2")["host_full"] is True,
                "manual dispatch and explicit reruns request complete Host CI")
+        with patch.dict(os.environ, {"CI_REVISION": base}):
+            ensure(run("workflow_dispatch", {})["revision"] == base,
+                   "a dispatch pinned behind main reports the checked-out revision")
 
 
 def _malformed_journal() -> None:

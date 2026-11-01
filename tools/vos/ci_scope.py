@@ -18,10 +18,15 @@ _ROOT_PROSE = frozenset({"README.md", "AGENTS.md", "PLAN.md", "COPYRIGHT.md", "T
 _EXECUTABLE_PROSE = frozenset({
     "docs/spec.md", "docs/requirements-register.md", "docs/assurance/field-bindings.md",
     "docs/implementation/placement-search.md", "rtl/synthesis-provenance.md",
+    "docs/implementation/compute-feature-map.md", "docs/assurance/wire-format-inventory.md",
+    "docs/assurance/crown-jewels.md", "docs/background/static-memory-research.md",
+    "docs/background/math-evidence.md", "docs/assurance/differential-corpus.md",
 })
+# New Markdown consumers must add their executable inputs here before receiving
+# the prose exemption. Directory entries reserve families of parsed contracts.
 _EXECUTABLE_PREFIXES = (
     "docs/hardware/", "docs/implementation/contracts/", "docs/implementation/phase-service/",
-    "docs/languages/", "interfaces/",
+    "docs/languages/", "docs/implementation/static-memory/", "interfaces/",
 )
 _FULL_REASONS = frozenset({"full override", "comparison unavailable", "empty comparison"})
 
@@ -117,14 +122,15 @@ def select_changes(root: Path, base: str | None, revision: str, *,
     paths: list[str] = []
     reason = "changed paths"
     normalized_base = base if base is not None and _SHA.fullmatch(base) else None
-    try:
-        if normalized_base is None:
-            raise ValueError("comparison has no base")
-        paths = changed_paths(root, normalized_base, revision)
-        if not paths:
-            reason = "empty comparison"
-    except (OSError, UnicodeError, ValueError, subprocess.SubprocessError):
+    if normalized_base is None:
         reason = "comparison unavailable"
+    else:
+        try:
+            paths = changed_paths(root, normalized_base, revision)
+            if not paths:
+                reason = "empty comparison"
+        except (OSError, UnicodeError, ValueError, subprocess.SubprocessError):
+            reason = "comparison unavailable"
     if force_full:
         reason = "full override"
     decision = classify(paths) if reason == "changed paths" else _full()
