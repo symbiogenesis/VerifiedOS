@@ -159,7 +159,9 @@ Implementation declarations reuse the generic telescope and declaration
 contracts: `impl<T, grade q : NatExact> Dup<Box<T, q>> where Repeatable(T, q) { ... }`.
 Their `generics` and `contracts` fields contain the same located nodes as other
 declarations. Generic binding, instance coherence and the supplied laws are
-elaboration obligations.
+elaboration obligations. A callable implementation target is parenthesized,
+for example `impl (Fn() -> Nat effects(Read)) where Law() { ... }`, so its effect
+bound stays distinct from implementation contracts.
 
 Callable types reuse that telescope too, for example
 `Fn<region 'loan>(scoped ref<'loan> T value) -> ()`. Their optional contracts are
