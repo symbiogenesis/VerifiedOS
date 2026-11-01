@@ -132,9 +132,26 @@ def _shared_primitive_oracle_required() -> None:
     oracle.assert_called_once_with(fixture.source.encode("utf-8"), result)
 
 
+def _expression_binding_oracle_required() -> None:
+    fixture = next(value for value in surface.POSITIVE if value.name == "expression-local-bindings")
+    result: dict[str, parser.Json] = {"ast": [{"kind": kind} for kind in fixture.kinds]}
+    with patch.object(surface, "POSITIVE", (fixture,)), \
+            patch.object(surface, "_precedence_and_spans"), \
+            patch.object(surface, "_literal_and_comment_boundaries"), \
+            patch.object(surface, "_expression_binding_roles", side_effect=ValueError("binding scope changed")) as oracle:
+        try:
+            surface.qualify(lambda source: result)
+        except ValueError as error:
+            ensure(str(error) == "binding scope changed", "binding oracle failure was replaced")
+        else:
+            raise AssertionError("expression-binding oracle was bypassed during qualification")
+    oracle.assert_called_once_with(fixture.source.encode("utf-8"), result)
+
+
 def cases() -> list[Case]:
     return [Case("surface-entry-schema-and-source-binding", _entry_protocol),
             Case("surface-cli-and-no-fallback", _entry_cli),
             Case("surface-fixture-input-identities", _qualification_input_binding),
             Case("surface-oracle-failure-without-receipt", _failed_surface_qualification),
-            Case("shared-primitive-oracle-is-required", _shared_primitive_oracle_required)]
+            Case("shared-primitive-oracle-is-required", _shared_primitive_oracle_required),
+            Case("expression-binding-oracle-is-required", _expression_binding_oracle_required)]

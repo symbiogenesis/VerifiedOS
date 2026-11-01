@@ -23,6 +23,46 @@ class Fixture:
 
 
 POSITIVE: tuple[Fixture, ...] = (
+    Fixture("expression-local-bindings", """// café: expression bindings retain initializer and body scopes separately.
+module LocalExpressions;
+universe u;
+definition Type<u> Family<T : Type<u>>(bool pair) =
+    let chosen = Select::<T>(pair) in chosen;
+alias Shared = type[let chosen = Family::<Nat>(true) in chosen];
+definition Type<u> Inject<T : Type<u>>(bool pair) =
+    let chosen = Select::<T>(pair) in type type[chosen];
+public Nat Read(scoped in<'source> Nat source)
+    requires let amount = Limit(source) in amount <= 10
+    ensures let expected = old(source) in result == expected
+{
+    let result = let borrowed = in source in Inspect(borrowed);
+    let annotated = let Nat value @ (let demand = 1 in demand) = 7 in value;
+    let inferredGraded = let value @ q = Compute() in value;
+    let deconstructed = let Ready((let owner, let receipt)) = Prepare() in Finish(owner, receipt);
+    let product = let (let left, let right) = Pair() in left + right;
+    let grouped = (let value = 1 in value) + 2;
+    let applied = (let callable = (+) in callable)(1, 2);
+    let projected = (let item = Build() in item).Value;
+    let callback = (Nat input) => let doubled = input + input in doubled;
+    let matched = match (ready) {
+        case Ready(let loan) => let borrowed = in loan in Inspect(borrowed);
+    };
+    return let outer = 1 in let inner = outer + 1 in inner;
+}
+definition Nat Shadow(Nat value) =
+    let value = value in let value = value + 1 in value;
+definition Fn(Nat value) -> Nat Callback() =
+    Fn(Nat value) -> Nat with { requires let valid = Valid(value) in valid; }
+    => let copied = value in copied;
+""", ("let_expression", "let", "let_pattern", "computed_type", "type_expression", "contract",
+      "constructor_pattern", "tuple_pattern", "lambda", "typed_lambda", "match_expression")),
+    Fixture("expression-binding-errors-remain-syntax", """module InvalidExpressionBindings;
+definition T Duplicate(owned T owner) = let retained = move owner in (owner, retained);
+definition T Missing() = let value = value in value;
+definition T Refutable() = let Some(let value) = None() in value;
+definition T Dropped(tracked T token) = let value @ 0 = Effectful(move token) in ();
+definition in<'local> T Escape() = let owner = Local() in in owner;
+""", ("let_expression", "let_pattern", "modified_type", "unary", "tuple", "unit")),
     Fixture("shared-syntax-primitives", """// café: shared forms preserve byte spans and syntax roles.
 module SyntaxPrimitives;
 alias Product = ((), (Core.Value));
@@ -975,6 +1015,19 @@ public UnknownType F() { return missing; }
 
 
 NEGATIVE: tuple[tuple[str, bytes, str], ...] = (
+    ("expression-binding-missing-name", b"module M; definition T F() = let = value in value;", "syntax"),
+    ("expression-binding-missing-initializer", b"module M; definition T F() = let value = in value;", "syntax"),
+    ("expression-binding-missing-delimiter", b"module M; definition T F() = let value = source value;", "syntax"),
+    ("expression-binding-missing-body", b"module M; definition T F() = let value = source in;", "syntax"),
+    ("expression-binding-statement-terminator", b"module M; definition T F() = let value = source; in value;", "syntax"),
+    ("expression-binding-mutable-keyword", b"module M; definition T F() = var value = source in value;", "syntax"),
+    ("expression-binding-missing-annotation-name", b"module M; definition T F() = let ref T = source in value;", "syntax"),
+    ("expression-binding-incomplete-grade", b"module M; definition T F() = let value @ = source in value;", "syntax"),
+    ("expression-binding-incomplete-pattern", b"module M; definition T F() = let Some(let) = source in value;", "syntax"),
+    ("expression-binding-pattern-grade", b"module M; definition T F() = let Some(let x) @ q = source in x;", "syntax"),
+    ("expression-binding-body-depth", b"module M; definition T F() = " + b"let value = source in " * 257 + b"value;", "limit"),
+    ("expression-binding-initializer-depth", b"module M; definition T F() = " + b"let value = " * 257
+     + b"source" + b" in value" * 257 + b";", "limit"),
     ("operator-value-missing-close", b"module M; definition T F() = (+;", "syntax"),
     ("operator-value-mixed-symbols", b"module M; definition T F() = (+*);", "syntax"),
     ("operator-value-plus-operand", b"module M; definition T F() = (+ 1);", "syntax"),
@@ -1194,6 +1247,116 @@ def _texts(value: Json) -> list[str]:
     if isinstance(value, list):
         return [text for child in value for text in _texts(child)]
     return []
+
+
+def _expression_binding_roles(source: bytes, result: dict[str, Json]) -> None:
+    tree = result.get("ast")
+    for expression in nodes(tree):
+        if expression.get("kind") != "let_expression":
+            continue
+        binding = _object(expression.get("binding"), "expression-local binding")
+        body = _object(expression.get("body"), "expression-local body")
+        value = _object(binding.get("value"), "expression-local initializer")
+        if binding.get("kind") not in {"let", "let_pattern"}:
+            raise ValueError("surface expression binding changed the ordinary local-node role")
+        expression_span = _sequence(expression.get("span"), "expression-local span")
+        binding_span = _sequence(binding.get("span"), "expression-local binding span")
+        body_span = _sequence(body.get("span"), "expression-local body span")
+        value_span = _sequence(value.get("span"), "expression-local initializer span")
+        if (binding_span[0] != expression_span[0] or binding_span[1] != value_span[1]
+                or body_span[1] != expression_span[1]):
+            raise ValueError("surface expression binding merged its initializer and body spans")
+        first, last = binding_span[1], body_span[0]
+        if type(first) is not int or type(last) is not int or source[first:last].strip() != b"in":
+            raise ValueError("surface expression binding lost its original-byte delimiter")
+
+    family = _object(_named(tree, "definition", "Family").get("value"), "type-family binding")
+    family_binding = _object(family.get("binding"), "type-family local")
+    family_body = _object(family.get("body"), "type-family body")
+    if (_texts(family_binding.get("name")) != ["chosen"]
+            or family_body.get("kind") != "name" or _texts(family_body.get("name")) != ["chosen"]):
+        raise ValueError("surface expression binding lost its dependent type computation")
+    _exact_span(source, family, b"let chosen = Select::<T>(pair) in chosen")
+    _exact_span(source, family_binding, b"let chosen = Select::<T>(pair)")
+    shared = _object(_named(tree, "alias", "Shared").get("type"), "computed shared type")
+    if shared.get("kind") != "computed_type" or _object(shared.get("value"), "type-local expression").get("kind") != "let_expression":
+        raise ValueError("surface computed type lost its local expression")
+    injected = _object(_named(tree, "definition", "Inject").get("value"), "injected local expression")
+    injection = _object(injected.get("body"), "type reinjection")
+    if (injection.get("kind") != "type_expression"
+            or _object(injection.get("type"), "reinjected computed type").get("kind") != "computed_type"):
+        raise ValueError("surface type-valued local changed its expression/type roles")
+
+    function = _named(tree, "function", "Read")
+    for clause in _contract_roles(function, ["requires", "ensures"]):
+        if _object(clause.get("value"), "contract-local expression").get("kind") != "let_expression":
+            raise ValueError("surface declaration contract cannot retain a local expression")
+    borrowed = _object(_named(function, "let", "result").get("value"), "borrow-local expression")
+    borrowed_value = _object(_object(borrowed.get("binding"), "borrow-local binding").get("value"), "borrow initializer")
+    if borrowed_value.get("kind") != "unary" or _texts(borrowed_value.get("operator")) != ["in"]:
+        raise ValueError("surface binding delimiter consumed the shared-loan prefix")
+
+    annotated = _object(_named(function, "let", "annotated").get("value"), "annotated expression")
+    annotated_binding = _object(annotated.get("binding"), "annotated expression binding")
+    _type_head(annotated_binding.get("type"), "Nat", 0)
+    grade = _object(annotated_binding.get("grade"), "expression binding grade")
+    if (grade.get("kind") != "group"
+            or _object(grade.get("value"), "grade-local expression").get("kind") != "let_expression"
+            or _object(annotated_binding.get("value"), "annotated initializer").get("value") != "7"):
+        raise ValueError("surface expression binding displaced its grade or initializer")
+    _exact_span(source, annotated_binding, b"let Nat value @ (let demand = 1 in demand) = 7")
+    inferred = _object(_named(function, "let", "inferredGraded").get("value"), "inferred graded expression")
+    inferred_binding = _object(inferred.get("binding"), "inferred graded binding")
+    if inferred_binding.get("type") is not None or _texts(inferred_binding.get("grade")) != ["q"]:
+        raise ValueError("surface inferred expression binding lost its grade or acquired a type")
+
+    deconstructed = _object(_named(function, "let", "deconstructed").get("value"), "pattern expression")
+    pattern_binding = _object(deconstructed.get("binding"), "pattern expression binding")
+    pattern = _object(pattern_binding.get("pattern"), "expression-local constructor pattern")
+    components = _sequence(pattern.get("arguments"), "expression-local constructor arguments")
+    if (pattern_binding.get("kind") != "let_pattern" or _texts(pattern.get("name")) != ["Ready"]
+            or len(components) != 1 or _object(components[0], "constructor product").get("kind") != "tuple_pattern"):
+        raise ValueError("surface expression binding lost its recursive constructor/product pattern")
+    _exact_span(source, pattern_binding, b"let Ready((let owner, let receipt)) = Prepare()")
+    product = _object(_named(function, "let", "product").get("value"), "product expression")
+    product_binding = _object(product.get("binding"), "product expression binding")
+    product_pattern = _object(product_binding.get("pattern"), "product expression pattern")
+    if (product_binding.get("kind") != "let_pattern" or product_pattern.get("kind") != "tuple_pattern"
+            or _texts(product_pattern.get("patterns")) != ["left", "right"]):
+        raise ValueError("surface product expression binding changed its pattern role")
+    for local_name, role, child in (("grouped", "binary", "left"), ("applied", "call", "callee"),
+                                    ("projected", "member", "value")):
+        composed = _object(_named(function, "let", local_name).get("value"), "composed local expression")
+        group = _object(composed.get(child), "grouped local expression")
+        if (composed.get("kind") != role or group.get("kind") != "group"
+                or _object(group.get("value"), "grouped binding").get("kind") != "let_expression"):
+            raise ValueError("surface local expression lost its operator/postfix grouping")
+
+    callback = _object(_named(function, "let", "callback").get("value"), "binding callback")
+    if _object(callback.get("body"), "callback binding body").get("kind") != "let_expression":
+        raise ValueError("surface inferred callback lost its local expression")
+    returned = next(node for node in nodes(function) if node.get("kind") == "return")
+    outer = _object(returned.get("value"), "outer expression binding")
+    inner = _object(outer.get("body"), "inner expression binding")
+    if (_texts(_object(outer.get("binding"), "outer local").get("name")) != ["outer"]
+            or inner.get("kind") != "let_expression"
+            or _texts(_object(inner.get("binding"), "inner local").get("name")) != ["inner"]
+            or _texts(inner.get("body")) != ["inner"]):
+        raise ValueError("surface expression bindings no longer associate to the right")
+
+    shadow = _object(_named(tree, "definition", "Shadow").get("value"), "shadowing expression")
+    local = _object(shadow.get("binding"), "shadowing binding")
+    binder = _object(local.get("name"), "shadowing binder")
+    initializer = _object(_object(local.get("value"), "shadowing initializer").get("name"), "initializer name")
+    if (_texts(binder) != ["value"] or _texts(initializer) != ["value"]
+            or binder.get("span") == initializer.get("span")):
+        raise ValueError("surface shadowing initializer lost its distinct name occurrence")
+    typed_callback = _object(_named(tree, "definition", "Callback").get("value"), "typed callback")
+    signature = _object(typed_callback.get("signature"), "typed callback signature")
+    callback_contract = _contract_roles(signature, ["requires"])[0]
+    if (_object(callback_contract.get("value"), "callable contract binding").get("kind") != "let_expression"
+            or _object(typed_callback.get("body"), "typed callback binding").get("kind") != "let_expression"):
+        raise ValueError("surface callable contract/body lost a local expression")
 
 
 def _type_roles(result: dict[str, Json]) -> None:
@@ -2978,7 +3141,9 @@ def qualify(parse: Callable[[bytes], dict[str, Json]]) -> list[str]:
         missing = set(fixture.kinds) - found
         if missing:
             raise ValueError(f"surface fixture {fixture.name} lacks AST roles: {sorted(missing)}")
-        if fixture.name == "shared-syntax-primitives":
+        if fixture.name == "expression-local-bindings":
+            _expression_binding_roles(fixture.source.encode("utf-8"), result)
+        elif fixture.name == "shared-syntax-primitives":
             _shared_primitive_roles(fixture.source.encode("utf-8"), result)
         elif fixture.name == "shared-operator-values":
             _shared_operator_roles(fixture.source.encode("utf-8"), result)

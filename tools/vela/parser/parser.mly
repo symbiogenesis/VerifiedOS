@@ -444,14 +444,9 @@ s_simple_statement:
     { make "for" $startpos $endpos [("name", binding_name); ("range", range.syntax);
         ("contracts", array contracts); ("body", body.syntax)] (range :: body :: contracts) }
 
-| kind=s_local_kind binding_name=s_identifier grade=option(s_grade) EQUAL value=s_expression SEMICOLON
-    { make kind $startpos $endpos [("name", binding_name); ("type", Null);
-        ("grade", optional grade); ("value", value.syntax)] (value :: children grade) }
-| kind=s_local_kind value_type=s_annotation_type binding_name=s_identifier grade=option(s_grade) EQUAL value=s_expression SEMICOLON
-    { make kind $startpos $endpos [("name", binding_name); ("type", value_type.syntax);
-        ("grade", optional grade); ("value", value.syntax)] (value_type :: value :: children grade) }
-| kind=s_local_kind pattern=s_local_pattern EQUAL value=s_expression SEMICOLON
-    { make (kind ^ "_pattern") $startpos $endpos [("pattern", pattern.syntax); ("value", value.syntax)] [pattern; value] }
+| kind=s_local_kind binding=s_local_initializer SEMICOLON
+    { let suffix, fields, parts = binding in
+      make (kind ^ suffix) $startpos $endpos fields parts }
 | value_type=s_annotation_type binding_name=s_identifier grade=option(s_grade) EQUAL value=s_expression SEMICOLON
     { make "typed_local" $startpos $endpos [("name", binding_name);
         ("type", value_type.syntax); ("grade", optional grade); ("value", value.syntax)]
@@ -492,8 +487,19 @@ s_annotation_path:
 s_path_segment:
   DOT value=s_member_identifier
     { match value with Object fields -> (match List.assoc "text" fields with String text -> text | _ -> "") | _ -> "" }
-s_local_kind:
+%inline s_local_kind:
   LET { "let" } | VAR { "var" }
+/* Statements and expression-local bindings share the complete initializer.
+   The owner supplies its keyword, terminator and existing syntax-node span. */
+s_local_initializer:
+  binding_name=s_identifier grade=option(s_grade) EQUAL value=s_expression
+    { "", [("name", binding_name); ("type", Null);
+        ("grade", optional grade); ("value", value.syntax)], value :: children grade }
+| value_type=s_annotation_type binding_name=s_identifier grade=option(s_grade) EQUAL value=s_expression
+    { "", [("name", binding_name); ("type", value_type.syntax);
+        ("grade", optional grade); ("value", value.syntax)], value_type :: value :: children grade }
+| pattern=s_local_pattern EQUAL value=s_expression
+    { "_pattern", [("pattern", pattern.syntax); ("value", value.syntax)], [pattern; value] }
 s_assignment:
   EQUAL { name $startpos $endpos "=" } | PLUS_ASSIGN { name $startpos $endpos "+=" }
 | MINUS_ASSIGN { name $startpos $endpos "-=" } | STAR_ASSIGN { name $startpos $endpos "*=" }
@@ -541,6 +547,11 @@ s_product_pattern:
 
 s_expression:
   value=s_implication { value }
+| LET initialized=s_local_initializer IN body=s_expression
+    { let suffix, fields, parts = initialized in
+      let binding = make ("let" ^ suffix) $startpos $endpos(initialized) fields parts in
+      make "let_expression" $startpos $endpos
+        [("binding", binding.syntax); ("body", body.syntax)] [binding; body] }
 | parts=s_empty_match
     { let value, motive = parts in
       make "match_expression" $startpos $endpos [("value", value.syntax); ("motive", optional motive);
