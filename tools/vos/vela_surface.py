@@ -23,6 +23,96 @@ class Fixture:
 
 
 POSITIVE: tuple[Fixture, ...] = (
+    Fixture("effect-operation-resource-contracts", """// café: contract and grade spans use original UTF-8 bytes.
+module ResourceEffects;
+public effect Exchange<T, ghost Nat n> {
+    owned Buffer<T, n> Replace(owned Buffer<T, n> replacement @ NatExact(1),
+        tracked Permit<n> permit) resumes(0..1)
+        requires Available(replacement)
+        ensures Returned(result)
+        restores Closed(result)
+        effects writes(replacement);
+    ref<'input> T Borrow(ref Buffer<T, n> input) resumes(1)
+        requires Nonempty(input) restores Preserved(input, final(result));
+    void Observe() requires ObserverReady();
+    void Plain();
+}
+""", ("effect", "effect_operation", "generic_parameter", "modified_type", "contract", "effects")),
+    Fixture("container-resource-contracts", """// café: container obligations stay outside their members.
+module ResourceContainers;
+public struct LocalCell<T, grade q : NatExact>
+    where Shape(T)
+    invariant Closed(self)
+{
+    private T Value @ q;
+    public void Close() requires Opened(self) ensures Closed(self);
+}
+public interface Storage<T> where StorageLaw(T) {
+    operation T Read() requires Readable(self) ensures Stable(result);
+    struct Nested invariant InnerLaw() {}
+}
+public trait Repeatable<T, grade q : NatExact> where Admits(T, q) {
+    public (Box<T, q>, Box<T, q>) Split(owned Box<T, q> value)
+        requires Dup(value);
+}
+public machine Counter invariant Bounded(value) {
+    state Nat value = 0;
+    transition Step() when (value < 10) { next value = value + 1; }
+}
+public hardware Clocked where PhysicalLaw() invariant Bounded(count) {
+    register Nat count = 0;
+    rule Tick() { next count = count + 1; }
+}
+private struct Empty {}
+""", ("struct", "interface", "trait", "machine", "hardware", "contract", "field", "operation")),
+    Fixture("named-handler-capabilities", """// café: repeated names retain distinct binding spans.
+module NamedHandlers;
+public Nat Nested() {
+    return handle (handle (inner.Read()) as inner {
+        Read() with nested => resume nested(outer.Read()),
+        return x => x,
+    }) as outer {
+        Read() with k => resume k(0),
+        return value => value,
+    };
+}
+public Nat Reinstall() {
+    let restored = handle shallow (current.Read()) as current {
+        Read() with k => rehandle (resume k(1)) as replacement {
+            Read() with resumed => resume resumed(2),
+            return raw => raw,
+        },
+        return done => done,
+    };
+    let unnamed = handle (Pure()) { return value => value, };
+    return restored;
+}
+public Nat Shadow() {
+    return handle (handle (same.Read()) as same { return inner => inner, })
+        as same { return outer => outer, };
+}
+""", ("handle", "rehandle", "resume", "call", "member")),
+    Fixture("effect-resource-errors-remain-syntax", """module InvalidEffectResources;
+public effect Unsafe<T> {
+    owned T Duplicate(owned T value @ NatExact(0)) resumes(0..2)
+        requires Missing(value) restores Unproved(result);
+}
+public struct Broken invariant false { tracked Permit Debt; }
+public Nat Escape(ref BorrowCell<byte> cell) {
+    return handle (chosen.Read()) as chosen {
+        Read() with k => {
+            let stolen = chosen;
+            cell.WithTryWrite((scoped ref byte loan) => {
+                await Ready();
+                return chosen.Read();
+            });
+            dispose k;
+            return resume k(0);
+        },
+        return value => chosen,
+    };
+}
+""", ("effect_operation", "struct", "handle", "lambda", "dispose", "resume")),
     Fixture("dependent-match-expressions-and-motives", """// café: motive and field locations are original UTF-8 bytes.
 module Elimination;
 public Vec<byte, packet.Length> Unpack(owned Packed packet) {
@@ -480,6 +570,20 @@ public UnknownType F() { return missing; }
 
 
 NEGATIVE: tuple[tuple[str, bytes, str], ...] = (
+    ("effect-missing-precondition", b"module M; effect E { Nat Get() requires; }", "syntax"),
+    ("effect-missing-restoration", b"module M; effect E { Nat Get() resumes(1) restores; }", "syntax"),
+    ("effect-missing-effects", b"module M; effect E { Nat Get() effects; }", "syntax"),
+    ("effect-missing-contract-terminator", b"module M; effect E { Nat Get() ensures Ready(result) }", "syntax"),
+    ("effect-resumes-after-contract", b"module M; effect E { Nat Get() requires Ready() resumes(1); }", "syntax"),
+    ("container-missing-law", b"module M; trait Repeatable<T> where {}", "syntax"),
+    ("container-missing-invariant", b"module M; struct Cell<T> invariant {}", "syntax"),
+    ("container-contract-semicolon", b"module M; interface I where Law(); {}", "syntax"),
+    ("handler-missing-capability", b"module M; Nat F() { return handle (Read()) as {}; }", "syntax"),
+    ("handler-capability-before-expression", b"module M; Nat F() { return handle as chosen (Read()) {}; }", "syntax"),
+    ("handler-capability-type-annotation", b"module M; Nat F() { return handle (Read()) as chosen : E {}; }", "syntax"),
+    ("shallow-missing-capability", b"module M; Nat F() { return handle shallow (Read()) as {}; }", "syntax"),
+    ("rehandle-missing-capability", b"module M; Nat F() { return rehandle (resume k(0)) as {}; }", "syntax"),
+    ("handler-double-capability", b"module M; Nat F() { return handle (Read()) as first as second {}; }", "syntax"),
     ("missing-match-motive-binder", b"module M; public Nat F() { return match (x) as : Nat { case _ => 0; }; }", "syntax"),
     ("missing-match-motive-colon", b"module M; public Nat F() { return match (x) as p Nat { case _ => 0; }; }", "syntax"),
     ("missing-match-motive-type", b"module M; public Nat F() { return match (x) as p : { case _ => 0; }; }", "syntax"),
@@ -734,6 +838,125 @@ def _exact_span(source: bytes, value: dict[str, Json], spelling: bytes) -> None:
     start = source.index(spelling)
     if value.get("span") != [start, start + len(spelling)]:
         raise ValueError(f"surface original-byte span differs for {spelling!r}")
+
+
+def _effect_resource_roles(source: bytes, result: dict[str, Json]) -> None:
+    effect = _named(result.get("ast"), "effect", "Exchange")
+    operation = _named(effect, "effect_operation", "Replace")
+    result_type = _object(operation.get("result"), "effect owned reply")
+    if result_type.get("modifier") != "owned":
+        raise ValueError("surface effect reply lost its ownership modifier")
+    arguments = _type_head(result_type.get("type"), "Buffer", 2)
+    if _texts(arguments) != ["T", "n"]:
+        raise ValueError("surface effect reply lost its stable dependent index")
+    parameters = _sequence(operation.get("parameters"), "effect parameters")
+    replacement = _object(parameters[0], "effect replacement")
+    permit = _object(parameters[1], "effect permit")
+    grade = _object(replacement.get("grade"), "effect parameter grade")
+    if (len(parameters) != 2 or _texts(replacement.get("name")) != ["replacement"]
+            or _texts(grade.get("callee")) != ["NatExact"]
+            or _object(permit.get("type"), "effect tracked permit").get("modifier") != "tracked"):
+        raise ValueError("surface effect parameter grade and authority roles differ")
+    _exact_span(source, replacement, b"owned Buffer<T, n> replacement @ NatExact(1)")
+    _exact_span(source, grade, b"NatExact(1)")
+    bound = _object(operation.get("resumes"), "effect resumption bound")
+    if (bound.get("kind") != "range" or _object(bound.get("start"), "bound start").get("value") != "0"
+            or _object(bound.get("end"), "bound end").get("value") != "1"):
+        raise ValueError("surface resumption allowance became a parameter-use grade")
+    _exact_span(source, bound, b"0..1")
+    contracts = _sequence(operation.get("contracts"), "effect resource contracts")
+    if [_object(value, "effect contract").get("role", _object(value, "effect contract").get("kind"))
+            for value in contracts] != ["requires", "ensures", "restores", "effects"]:
+        raise ValueError("surface effect resource contracts lost their ordered roles")
+    for clause, spelling in zip(contracts, (b"requires Available(replacement)", b"ensures Returned(result)",
+                                            b"restores Closed(result)", b"effects writes(replacement)"), strict=True):
+        _exact_span(source, _object(clause, "effect contract"), spelling)
+    observer = _named(effect, "effect_operation", "Observe")
+    if observer.get("resumes") is not None or _texts(observer.get("contracts")) != ["ObserverReady"]:
+        raise ValueError("surface effect contracts require or swallow a resumption bound")
+    plain = _named(effect, "effect_operation", "Plain")
+    if plain.get("contracts") != [] or plain.get("resumes") is not None:
+        raise ValueError("surface plain effect operation fabricated contracts or a bound")
+    borrowed = _named(effect, "effect_operation", "Borrow")
+    loan = _object(borrowed.get("result"), "effect returned loan")
+    if loan.get("modifier") != "ref" or _texts(loan.get("lifetime")) != ["'input"]:
+        raise ValueError("surface effect contract displaced its returned-loan lifetime")
+    _exact_span(source, loan, b"ref<'input> T")
+
+
+def _container_resource_roles(source: bytes, result: dict[str, Json]) -> None:
+    expected = (("struct", "LocalCell", ["where", "invariant"]),
+                ("interface", "Storage", ["where"]), ("trait", "Repeatable", ["where"]),
+                ("machine", "Counter", ["invariant"]), ("hardware", "Clocked", ["where", "invariant"]))
+    for kind, name, roles in expected:
+        container = _named(result.get("ast"), kind, name)
+        contracts = _sequence(container.get("contracts"), "container resource contracts")
+        if [_object(value, "container contract").get("role") for value in contracts] != roles:
+            raise ValueError(f"surface {kind} {name} lost its own resource contracts")
+    cell = _named(result.get("ast"), "struct", "LocalCell")
+    _exact_span(source, _object(_sequence(cell.get("contracts"), "cell contracts")[1], "cell invariant"),
+                b"invariant Closed(self)")
+    if _texts(_named(cell, "field", "Value").get("grade")) != ["q"]:
+        raise ValueError("surface container contract displaced a field grade")
+    closed = _named(cell, "function", "Close")
+    if _texts(closed.get("contracts")) != ["Opened", "self", "Closed", "self"]:
+        raise ValueError("surface container invariant swallowed its member's contracts")
+    storage = _named(result.get("ast"), "interface", "Storage")
+    read = _named(storage, "operation", "Read")
+    if _texts(read.get("contracts")) != ["Readable", "self", "Stable", "result"]:
+        raise ValueError("surface interface law swallowed its operation contracts")
+    nested = _named(storage, "struct", "Nested")
+    if _texts(nested.get("contracts")) != ["InnerLaw"]:
+        raise ValueError("surface nested container law was attached to its parent")
+    if _named(result.get("ast"), "struct", "Empty").get("contracts") != []:
+        raise ValueError("surface unconstrained container fabricated resource contracts")
+
+
+def _named_handler_roles(source: bytes, result: dict[str, Json]) -> None:
+    def capability(handler: dict[str, Json], expected: str) -> None:
+        binding = _object(handler.get("capability"), "handler capability binder")
+        if _texts(binding) != [expected]:
+            raise ValueError("surface handler capability was attached to another handler")
+        start = source.index(b"as " + expected.encode()) + len(b"as ")
+        if binding.get("span") != [start, start + len(expected)]:
+            raise ValueError("surface handler capability lost its original-byte binder span")
+
+    nested = _named(result.get("ast"), "function", "Nested")
+    terminal = next(node for node in nodes(nested) if node.get("kind") == "return")
+    outer = _object(terminal.get("value"), "outer handler")
+    inner = _object(outer.get("value"), "inner handler")
+    capability(outer, "outer")
+    capability(inner, "inner")
+    if outer.get("shallow") is not False or inner.get("shallow") is not False:
+        raise ValueError("surface named deep handlers changed mode")
+    call = _object(inner.get("value"), "explicit operation call")
+    if call.get("kind") != "call" or _texts(call.get("callee")) != ["inner", "Read"]:
+        raise ValueError("surface named capability call acquired a new operation primitive")
+    clauses = _sequence(inner.get("clauses"), "inner handler clauses")
+    operation = _object(clauses[0], "inner operation clause")
+    resumed = _object(operation.get("body"), "forwarding resumption")
+    if (_texts(operation.get("continuation")) != ["nested"]
+            or resumed.get("kind") != "resume" or _texts(resumed.get("value")) != ["outer", "Read"]):
+        raise ValueError("surface explicit forwarding lost its outer capability or continuation")
+    reinstall = _named(result.get("ast"), "function", "Reinstall")
+    handlers = [node for node in nodes(reinstall) if node.get("kind") in {"handle", "rehandle"}]
+    shallow = next(node for node in handlers if node.get("shallow") is True)
+    rehandled = next(node for node in handlers if node.get("kind") == "rehandle")
+    capability(shallow, "current")
+    capability(rehandled, "replacement")
+    if rehandled not in list(nodes(shallow.get("clauses"))):
+        raise ValueError("surface rehandler was detached from the shallow operation clause")
+    unnamed = [node for node in handlers if node.get("capability") is None]
+    if len(unnamed) != 1 or "capability" not in unnamed[0]:
+        raise ValueError("surface unnamed handler lacks its explicit null capability field")
+    shadow = _named(result.get("ast"), "function", "Shadow")
+    bindings = [_object(node.get("capability"), "shadowed handler capability")
+                for node in nodes(shadow) if node.get("kind") == "handle"]
+    starts = (source.index(b"as same") + 3, source.index(b"as same", source.index(b"as same") + 1) + 3)
+    spans = [binding.get("span") for binding in bindings]
+    if (len(bindings) != 2 or any(_texts(binding) != ["same"] for binding in bindings)
+            or any([start, start + 4] not in spans for start in starts)):
+        raise ValueError("surface same-spelled handler binders lost their distinct source identities")
 
 
 def _dependent_match_roles(source: bytes, result: dict[str, Json]) -> None:
@@ -1232,6 +1455,12 @@ def qualify(parse: Callable[[bytes], dict[str, Json]]) -> list[str]:
             raise ValueError(f"surface fixture {fixture.name} lacks AST roles: {sorted(missing)}")
         if fixture.name == "function-types-grades-and-contracts":
             _type_roles(result)
+        elif fixture.name == "effect-operation-resource-contracts":
+            _effect_resource_roles(fixture.source.encode("utf-8"), result)
+        elif fixture.name == "container-resource-contracts":
+            _container_resource_roles(fixture.source.encode("utf-8"), result)
+        elif fixture.name == "named-handler-capabilities":
+            _named_handler_roles(fixture.source.encode("utf-8"), result)
         elif fixture.name == "dependent-match-expressions-and-motives":
             _dependent_match_roles(fixture.source.encode("utf-8"), result)
         elif fixture.name == "graded-struct-fields":
