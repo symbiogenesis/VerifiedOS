@@ -165,9 +165,59 @@ def _cli() -> None:
                "failed build emitted an AST or lost its cause")
 
 
+def _qualification_freshness() -> None:
+    with tempfile.TemporaryDirectory(prefix="vos-vela-parser-") as temporary:
+        root = Path(temporary)
+        output = root / "build"
+        output.mkdir()
+        example = root / "tools/vela/examples/pure.vela"
+        example.parent.mkdir(parents=True)
+        source = b"module M; public Nat F() { return 1; }\r\n"
+        inputs, toolchain = {"source": "original"}, {"compiler": "original"}
+        for change in ("source", "toolchain", "generated", "executable", "example", "none"):
+            example.write_bytes(source)
+            for name in (*parser.GENERATED, "vela-parser"):
+                (output / name).write_bytes(b"original")
+            hashes = {name: hashlib.sha256(b"original").hexdigest()
+                      for name in (*parser.GENERATED, "vela-parser")}
+            compiled = parser.Build(output, output / "vela-parser",
+                                    {"inputs": inputs, "toolchain": toolchain,
+                                     "generated_sha256": hashes})
+            latest = root / "qualification.json"
+            latest.write_text('{"status":"passed","old":true}', encoding="utf-8")
+
+            def parse_example(_compiled: parser.Build, _source: bytes,
+                              mode: str = change) -> dict[str, parser.Json]:
+                if mode in {"generated", "executable"}:
+                    (output / ("parser.ml" if mode == "generated" else "vela-parser")).write_bytes(b"changed")
+                elif mode == "example":
+                    example.write_bytes(source + b"// changed")
+                return {"schema": 1}
+
+            with patch.object(parser, "_work_root", return_value=root), \
+                    patch.object(parser, "build", return_value=compiled), \
+                    patch.object(parser, "_fixtures", return_value=["independent"]), \
+                    patch.object(parser, "parse_source", side_effect=parse_example), \
+                    patch.object(parser, "_inputs", return_value={"source": "changed"} if change == "source" else inputs), \
+                    patch.object(parser, "_toolchain", return_value={"compiler": "changed"} if change == "toolchain" else toolchain):
+                try:
+                    report = parser.qualify(root)
+                except ValueError as error:
+                    ensure(change != "none" and "changed" in str(error), f"unexpected qualification refusal: {error}")
+                    ensure(not latest.exists(), "refused qualification preserved a stale passing report")
+                else:
+                    ensure(change == "none", f"changed {change} accepted after qualification fixtures")
+                    ensure(report["example"] == {"path": "tools/vela/examples/pure.vela",
+                                                  "source_sha256": hashlib.sha256(source).hexdigest()},
+                           "qualification omitted tested example byte identity")
+                    ensure(json.loads(latest.read_text(encoding="utf-8")) == report,
+                           "published qualification report differs from returned evidence")
+
+
 def cases() -> list[Case]:
     return [Case("native-protocol-and-source-identity", _protocol),
             Case("bounded-read-and-process-controls", _bounds),
             Case("snapshot-version-controls", _versions),
             Case("generator-failure-without-receipt", _failed_build),
+            Case("qualification-rechecks-tested-inputs", _qualification_freshness),
             Case("cli-failure-without-output", _cli)]
