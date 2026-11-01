@@ -2667,7 +2667,7 @@ def _shared_primitive_roles(source: bytes, result: dict[str, Json]) -> None:
                 if node.get("kind") in {"nat_pattern", "string_pattern", "character_pattern", "bool_pattern"}]
     expected: tuple[tuple[str, Json, str | None, bytes], ...] = (
         ("nat", "0007", "", b"0007"), ("nat", "0xAf", "u8", b"0xAfu8"),
-        ("string", '"café"', None, '"café"'.encode("utf-8")),
+        ("string", '"café"', None, '"café"'.encode()),
         ("character", "'\\n'", None, b"'\\n'"),
         ("bool", True, None, b"true"), ("bool", False, None, b"false"),
     )
