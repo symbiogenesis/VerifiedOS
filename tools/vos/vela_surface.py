@@ -2652,7 +2652,9 @@ def _shared_operator_roles(source: bytes, result: dict[str, Json]) -> None:
         if grouped:
             if argument.get("kind") != "group":
                 raise ValueError("surface explicitly grouped generic operator lost its group")
-            _exact_span(source, argument, b"((+))")
+            start = source.index(b"Apply::<((+))>") + len(b"Apply::<")
+            if argument.get("span") != [start, start + len(b"((+))")]:
+                raise ValueError("surface grouped generic operator span differs from its application")
             argument = _object(argument.get("value"), "grouped operator")
         _operator_value(source, argument, "+")
     computed = _object(_named(tree, "alias", "Computed").get("type"), "operator computed type")
