@@ -1082,7 +1082,7 @@ Landed: Tier A. The review states new claims about which admission arm the combi
 #### Q25e · Build a pure Vela-to-Gallina prototype
 
 The [pure translation contract](../languages/vela-prototype.md) landed at
-`d8b1cb38` before implementation. The host `vela` command checks explicit Nat/Bool
+`d8b1cb38` before implementation. The host `vela` command checks explicit Nat/bool
 functions, immutable bindings, branches and prior-function calls, then emits
 hygienic Gallina definitions bound to exact source bytes. Diagnostics retain source
 locations; rejected source and failed atomic file writes preserve existing output.
@@ -1092,7 +1092,7 @@ text linear in source size.
 
 Focused `test_vela`, command-lane tests and typecheck passed on the integrated
 implementation. The exact-revision Host CI verdict and every-lane Guest CI dispatch
-are retained by the `vela-20261031` fanout handoff; Guest CI supplies no verdict
+are retained by the `vela-surface-20261031` fanout handoff; Guest CI supplies no verdict
 until it completes. Kernel replay of generated terms, checked source correspondence,
 graded resources and target compilation remain open at the plan's language owners.
 Translation tests confer no kernel, metatheory or production acceptance.
@@ -1101,6 +1101,30 @@ Landed: Tier A. Separate full reads accepted the narrowed contract, independent
 oracle and complete implementation; the integrator reviewed the library and shared
 registrations. The review clarified reserved feature words and distinguished atomic
 file preservation from standard-output streaming.
+
+<a id="q25f-align-the-executable-vela-subset-with-its-proposed-surface"></a>
+
+#### Q25f · Align the executable Vela subset with its proposed surface
+
+The [surface contract](../languages/vela-prototype.md#source-fragment) landed at
+`2cac393c` before the parser correction. Public declarations and parameters put
+types first, Boolean types use `bool`, and immutable locals precede explicit
+returns or fully returning `if (condition)` blocks. The
+[example](../../tools/vela/examples/pure.vela), independent term oracle and rejection
+cases use those conventions from the
+[proposed surface](../languages/verification-strategy.md#an-ideal-surface).
+The superseded prototype spellings, missing returns, trailing statements,
+branch-local scope leaks and unsupported proof/resource features are refused.
+Block nesting is bounded separately from expression nesting.
+
+Focused translation tests and both-platform Python typecheck passed on the
+integrated correction. The `vela-surface-20261031` handoff retains exact-revision
+hosted acceptance and Guest CI dispatch. The accepted fragment still denotes its
+generated CIC terms; kernel replay, source correspondence and the wider language
+remain separately scoped work.
+
+Landed: Tier A. Independent full reads checked the source grammar against the
+design dossier and the parser against independently chosen returning-block cases.
 
 <a id="q26-price-the-resident-toolchain-against-the-floors-own-comparisons"></a>
 

@@ -78,7 +78,7 @@ constructors. Types and constructors come from `Corelib.Init.Datatypes`.
 Every user name is mapped to a generated identifier so Gallina keywords and
 library names cannot capture source references. There is no raw Gallina escape.
 
-Whole-source size, expression nesting and decimal-literal length have explicit
+Whole-source size, block/binding nesting, expression nesting and decimal-literal length have explicit
 implementation limits, reported as limit diagnostics rather than acceptance.
 These are host parser limits, not target resource bounds or integer widths.
 
