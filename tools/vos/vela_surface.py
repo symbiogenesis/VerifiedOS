@@ -111,6 +111,12 @@ public void Mix(ref Core.Span<byte> target) {
     });
 }
 """, ("typed_local", "lambda", "tuple", "binary", "modified_type")),
+    Fixture("literal-sensitive-lambda-annotations", r"""module LiteralAnnotations;
+public void F() {
+    let direct = (Nat x, V<(')')> y) => x;
+    let escaped = (Nat x, V<('\)')> y) => x;
+}
+""", ("lambda", "lambda_parameter", "type", "char")),
     Fixture("expressions-and-closures", """module Expressions;
 public void Compute() {
     let tuple = (0001usize, true, false);
@@ -248,6 +254,8 @@ NEGATIVE: tuple[tuple[str, bytes, str], ...] = (
     ("hex-literal-limit", b"module M; public Nat F() { return 0x" + b"f" * 257 + b"; }", "limit"),
     ("binary-literal-limit", b"module M; public Nat F() { return 0b" + b"1" * 257 + b"; }", "limit"),
     ("delimiter-limit", b"module M; public Nat F() { return " + b"(" * 2000 + b"0" + b")" * 2000 + b"; }", "limit"),
+    ("generic-annotation-lookahead-limit", b"module M; public void F() { " + b"Box<" * 257
+     + b"Nat" + b">" * 257 + b" local = value; }", "limit"),
     ("syntax-depth-limit", b"module M; public Nat F() { return " + b" + ".join([b"1"] * 2000) + b"; }", "limit"),
     ("source-limit", b" " * (MAX_SOURCE_BYTES + 1), "limit"),
 )
