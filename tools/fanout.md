@@ -28,7 +28,9 @@ Repeat `--worktree` for each batch-owned lane. Use `--host-worktree` for a host-
 checkout whose commits should be integrated but whose checkout and branch remain
 with its host. No option discovers or retires unrelated worktrees. An empty lane
 list supports CI handoff for an integrator-only batch. `--remote` defaults to
-`origin`; publication always targets `main`. Use
+`origin`; publication always targets `main`. `--full-ci` selects complete host and
+guest validation when an item's acceptance requires it. `--cold` additionally
+forces cold guest installation and fresh proofs. Use
 `--defer` repeatedly to retain acceptance checks outside the hosted workflows.
 
 `init --reading-base COMMIT` names a commit, by its full lowercase SHA, that `main`'s
@@ -45,9 +47,14 @@ subject names the lane branch and its latest non-merge commit subject, because t
 published commit's subject titles its Host CI push run. Resolve
 conflicts and shared edits normally; it never resets a checkout. `finish` includes
 integration into `main` when needed, runs `check --fix`, requires clean settled
-inputs, and pushes only `main` without force. Before each new publication it runs
+inputs, and pushes only `main` without force. Before publication it records remote
+`main` as the comparison base and freezes the [shared change selection](ci/README.md#change-selection)
+for the settled revision. It includes commits already present when the journal was
+initialized. An unavailable comparison selects full validation. Before each new
+publication with executable changes it runs
 `typecheck`, `test --only test_lanes` and `test --only test_retained_evidence` on
-the settled checkout, each with a five-minute limit. A finding, crash or timeout
+the settled checkout, each with a five-minute limit. Prose-only changes omit these
+preparation commands. A finding, crash or timeout
 stops publication and hosted dispatch. The checkout and revision are rechecked
 after these commands; resume of an already published revision does not repeat
 them. These focused checks do not run a full local suite or replace Host CI.
@@ -70,8 +77,10 @@ co-read blessing or decides that an external acceptance check passed.
 Without `--wait-host`, `finish` returns a finding with pending Host CI and the
 resume command. `--wait-host SECONDS` bounds host-only polling (maximum 7200);
 expiration leaves the journal resumable. Failure or cancellation stops completion.
-Guest dispatch records its identifier, tested revision and pending status, then
-retirement runs without waiting for a guest verdict. `status` reads only the local
+Guest dispatch includes the selected lanes and records its identifier, tested
+revision and pending status, then retirement runs without waiting for a guest
+verdict. A selection with no guest inputs records the omission and starts no guest
+run. `status` reads only the local
 journal. An interrupted dispatch retains its intent and the time it reached disk,
 then recovers identity from the one run with its title that GitHub created since
 then, allowing `fanout_ci.CLOCK_SKEW` for the local clock. Another dispatch with
@@ -94,7 +103,8 @@ When a completed batch's integration revision changes, initialize a new batch.
 
 - A batch records its `main` checkout, base revision, publication remote and
   `main` branch, explicitly selected worker paths and heads, lifecycle ownership, cold
-  proof policy, reading base or none, and deferred acceptance checks. State and
+  proof policy, full-validation policy, reading base or none, comparison base,
+  changed paths, selected checks and deferred acceptance checks. State and
   evidence live under the integration checkout's ignored `out/fanout/` directory.
   Unrelated worktrees are never inferred to be stale from age or a branch name.
 - Integration preserves worker ancestry with ordinary Git merges, refuses changed
@@ -121,11 +131,17 @@ When a completed batch's integration revision changes, initialize a new batch.
   after checking the same workflow, main branch and exact revision. A canceled
   manual dispatch does not permit that substitution. The surviving run still
   owes every aggregate job; duplicate selection never supplies a passing verdict.
-  Pending, failed, skipped or canceled checks supply no passing evidence.
-- After Host CI passes, dispatch Guest CI, which runs every lane of its matrix, for the
+  Pending, failed, skipped or canceled checks supply no passing evidence. Intentional
+  scope omissions are accepted only by the workflow's scope-aware aggregates and
+  remain omissions rather than passing check evidence. `--full-ci` requires a full
+  Host CI dispatch instead of accepting a potentially narrowed automatic run.
+- After Host CI passes, dispatch the selected Guest CI lanes for the
   same revision, forwarding the explicit cold policy and, when the batch names one,
   its reading base as the `reading_base` input; a batch naming none sends no such
-  input, and Host CI's dispatch never carries it. Record run identifiers or
+  input, and Host CI's dispatch never carries it. Cold installation, proof reading
+  and `--full-ci` select every guest lane. A prose-only selection records no guest
+  run as required. Old journals without a selection retain full validation.
+  Record run identifiers or
   URLs, revisions and available statuses. Never poll or wait for a guest verdict.
   Interrupted or ambiguous dispatches must not silently duplicate a guest run.
 - Retirement is limited to explicitly batch-owned, clean, integrated worktrees
@@ -151,7 +167,7 @@ and timeout leave the remote untouched and start no hosted handoff, that a chang
 checkout is refused after preparation, and that successful preparation precedes
 publication without repeating on an unchanged pending-host resume.
 Run focused tests and typecheck during implementation, then require hosted Host CI
-and dispatch every Guest CI lane for the settled revision. Host CI analyzes workflow
+and dispatch every Guest CI lane for changes to this orchestration tool. Host CI analyzes workflow
 edits with zizmor and actionlint, as the tools guide's
 [workflow analysis](README.md#workflow-analysis) describes. No local model or proof
 gate is needed for this orchestration tool.

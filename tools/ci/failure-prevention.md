@@ -59,8 +59,10 @@ interrupted publication. Producing a bundle does not stage it or edit an owning 
 
 ## Command and workflow preparation
 
-Before publishing a new settled revision, `fanout finish` runs the existing static
-analysis, command-lane fixtures and retained-evidence citation tests. Each command
+Before publishing a new settled revision with executable changes, `fanout finish`
+runs the existing static analysis, command-lane fixtures and retained-evidence
+citation tests. The [shared selection](README.md#change-selection) omits these
+preparation commands for prose-only changes. Each command
 has a five-minute limit and a nonzero exit or timeout refuses publication. A final
 checkout/revision check binds the preparation to the published bytes. Already
 published pending-host resumes do not repeat it. The [fanout contract](../fanout.md)

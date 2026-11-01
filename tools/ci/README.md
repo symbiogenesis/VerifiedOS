@@ -6,14 +6,59 @@ adapters, complete retained bundles and lightweight command/workflow preparation
 The guest pipeline validates the curated model, proof sources and authored RTL on
 Linux. This document owns its execution and acceptance contract. Follow the
 [validation handoff](../../AGENTS.md#tool-execution-and-validation) to publish inputs,
-require Host CI and dispatch every guest lane without waiting for their verdicts.
+require Host CI and dispatch the affected guest lanes without waiting for their verdicts.
+
+## Change selection
+
+[The shared classifier](../vos/ci_scope.py) owns changed-path decisions for
+[Host CI](../../.github/workflows/host-gates.yml) and the
+[publication handoff](../fanout.md). Host CI still starts on every main push and
+pull request. A lightweight planning job compares the complete Git diff, then
+allocates the required jobs. This avoids workflow path filters that can leave
+required checks pending or inspect only a truncated changed-file list.
+[GitHub's path-filter contract](https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax#git-diff-comparisons)
+describes those limitations.
+
+Prose-only changes run the corpus checker and Markdown validation on Windows and
+Ubuntu. They omit Python typechecking, behavioral and mutation shards, and guest
+builds. Model documentation can still require the model's own formatting hooks.
+Markdown used as machine-readable configuration retains its consuming checks;
+for example, ISA tables and boot campaign rosters are inputs. The classifier keeps
+normative specifications, hardware documents, implementation contracts and language
+documents conservative rather than assuming a Markdown extension means prose.
+
+Executable changes retain the full host suites. Model sources select the model
+and RTL guest lanes, RTL sources select RTL, and proof sources select proofs.
+Mixed changes take the union. Shared tooling, CI configuration, unknown paths,
+invalid or unavailable history and empty comparisons select full validation.
+Deletion and rename comparisons include the old paths as well as the new ones.
+Pull requests use their merge base; pushes compare the event's before and after
+revisions. The hosted planner reads the complete local diff, without an API file
+limit. Both host platform aggregates require a successful plan and every selected
+job; they permit only the omissions that plan declares.
+
+`fanout` freezes the comparison against remote `main` before publication, including
+work committed before `fanout init`. Its journal records the base, tested revision,
+changed paths and selection. Resumes reuse that decision. No guest inputs means
+no guest dispatch; omitted checks provide no passing evidence. Old journals that
+lack a selection retain full validation. The focused prepublication typecheck and
+lane/retention tests run only when the selection calls for full host validation.
+
+Manual Host CI dispatch defaults to full validation. Manual Guest CI defaults to
+`lanes: all`; its optional `lanes` input accepts a nonempty, comma-separated subset
+of `model,rtl,proofs`. Invalid names or duplicates refuse the plan. Scheduled runs,
+explicit reruns, `cold: true` and a proof-reading base select every guest lane.
+`fanout init --full-ci` expands both host and guest validation when an item's
+acceptance predicate requires it. Scope selection does not waive separately
+required acceptance checks or requirement/prose co-reads. Changes to CI selection
+itself require full Host CI and dispatch of every guest lane.
 
 ## Running it
 
 The [`fanout` completion command](../fanout.md) runs from `main`, merges the selected
 local worktrees and publishes only `main`,
-requires Host CI on Windows and Ubuntu for that commit, then dispatches every guest
-lane with the batch's `cold` policy and, for a batch initialized with
+requires both Host CI platform aggregates for that commit, then dispatches the
+selected guest lanes with the batch's `cold` policy and, for a batch initialized with
 `--reading-base`, its reading base. It records the dispatch response and returns
 without polling Guest CI. The optional `title` workflow input carries the commit
 subject into the run title, which also identifies an interrupted dispatch for
@@ -42,9 +87,10 @@ run first reads the latest completed run on the same branch. It skips the guest
 lanes before allocating their runners or installing tools when that run succeeded
 on the current revision: a scheduled run's head commit, or for a dispatched run,
 which may pin an older revision than its head, the revision named by every lane's
-artifact. New revisions,
-failed or canceled runs, absent history and failed history lookups run all gates. Manual dispatch, monthly cold runs and explicit
-reruns always execute them. The history job alone has `actions: read`; the gate lanes keep `contents: read`.
+artifact. New revisions, failed or canceled runs, absent history and failed history
+lookups run all scheduled gates. Monthly cold runs and explicit reruns always run
+every lane; manual runs execute their selected lanes and default to all.
+The planning/history job alone has `actions: read`; the gate lanes keep `contents: read`.
 They need no repository secrets or initialized submodules. The public repository's standard
 [runner](https://docs.github.com/en/actions/reference/runners/github-hosted-runners)
 has 16 GB of RAM; the proof gate's one kernel worker peaks just under its 10 GiB

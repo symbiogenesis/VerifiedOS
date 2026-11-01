@@ -1030,7 +1030,7 @@ reserves a quiet tree for their readers.
 | A checker rule | `python tools/run.py selftest --rule K-110`, substituting the changed rule, once the whole checker baseline is clean. This supplies only the selected rule's mutation evidence. |
 | Tool behavior | `python tools/run.py test --only gate`, substituting a module-name substring for the affected tests. |
 | Python sources or checker configuration | `python tools/run.py typecheck` after a coherent batch when feedback is needed before integration. It checks all tools; there is no path filter. |
-| Model, RTL or proofs | Use focused candidate checks when needed for debugging. Publish settled inputs and dispatch Guest CI for the model, proof and standalone RTL acceptance gates; retain separate checks for requirements outside its contract. |
+| Model, RTL or proofs | Use focused candidate checks when needed for debugging. Publish settled inputs and dispatch the affected Guest CI lanes under the [change-selection policy](ci/README.md#change-selection); retain separate checks for requirements outside its contract. |
 
 Before the readers start, `python tools/run.py prepare python --path FILE` applies
 locked import ordering to explicitly selected Python files; repeat `--path` as needed.
@@ -1102,8 +1102,12 @@ import, then runs `check`, `selftest`, `typecheck` and `markdown` in parallel. T
 and produce one exit code. `--tests` adds the behavioral suite; `--check --tests`
 is the same complete validation without tracked writes. CI partitions that work
 with `--shard INDEX/TOTAL` using the workflow's platform-specific counts, runs the rest
-with `--unpartitioned` in a job of its own on each OS, and requires every one of those
-jobs. `--rule` and `--only` cannot narrow a shard, and a
+with `--unpartitioned` in a job of its own on each OS, and requires every selected
+job. For prose-only changes, [change selection](ci/README.md#change-selection)
+instead runs `check` and `markdown` on both operating systems without allocating
+mutation or behavioral shards or running typecheck. Model hooks run only when
+their inputs are affected. Both platform aggregates remain mandatory and reject
+unexpected skips as well as failures. `--rule` and `--only` cannot narrow a shard, and a
 partition count larger than its mutation or module population is refused.
 
 `--fix` validates instructions, restores a missing import and repairs derived

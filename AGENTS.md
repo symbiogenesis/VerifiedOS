@@ -6,7 +6,8 @@ Read [README.md](README.md) first for the project's purpose, design goals, and c
 
 AGENTS.md owns shared agent instructions. Edit shared rules here. The linked artifacts own the detailed contracts summarized below; check them before changing the relevant area and resolve disagreements at their source.
 
-Follow the [validation handoff](#tool-execution-and-validation): require Host CI, dispatch every Guest CI lane, and finish without waiting for Guest CI.
+Follow the [validation handoff](#tool-execution-and-validation): require Host CI,
+select checks from the changed inputs, and finish without waiting for Guest CI.
 
 ## Repository map
 
@@ -132,23 +133,38 @@ Use [`python tools/run.py fanout`](tools/fanout.md) for the mechanical integrati
 publication, hosted-validation handoff and retirement of explicitly selected lanes.
 The integrator still resolves conflicts, shared edits, co-reads and acceptance
 checks outside the workflows. Resume `fanout finish` until Host CI passes and
-the command records Guest CI dispatch and safe retirement; never wait for Guest CI.
+the command records the selected Guest CI dispatch or its omission and safe
+retirement; never wait for Guest CI.
 
 1. Finish authored and generated changes, track deliverables by path, resolve
    co-reads and known findings, then merge all session work into `main`, commit and
    publish only `main`. A session is not complete while its work remains off `main`.
-2. Require [Host CI](.github/workflows/host-gates.yml) to pass on Windows and Ubuntu.
-   If no automatic event starts it, dispatch it from `main` with the published commit
-   as its `revision` input.
-3. Dispatch [Guest CI](.github/workflows/guest-gates.yml), every lane of its matrix,
-   for the same revision. Use `cold: true` when acceptance requires
-   `proofs --fresh` or cold installation evidence. The [Guest CI contract](tools/ci/README.md)
-   owns its scope and proof-reuse rules; checks outside it retain their acceptance requirements.
-4. Record both run URLs or identifiers, tested revisions, available verdicts and
-   deferred checks. **Finish without polling, watching or waiting for Guest CI.**
+2. Require both [Host CI](.github/workflows/host-gates.yml) platform aggregates to
+   pass. The [shared CI selection](tools/ci/README.md#change-selection) retains
+   the corpus checker and Markdown validation for prose-only changes; executable
+   changes also run the host suites, and affected model inputs run their hooks.
+   If no automatic event starts Host CI, dispatch it from `main` with the published
+   commit as its `revision` input; manual runs default to full validation.
+3. Let `fanout` compare the settled revision with remote `main` before publication,
+   freeze that selection in its journal and dispatch the affected
+   [Guest CI](.github/workflows/guest-gates.yml) lanes for the same revision.
+   Prose-only changes need no guest dispatch. Model changes select model and RTL,
+   RTL changes select RTL, and proof changes select proofs; mixed changes take
+   the union. Machine-readable Markdown, shared tooling, CI configuration,
+   unknown paths or unavailable history retain full validation. Use
+   `fanout init --full-ci` when the item's acceptance predicate requires broader
+   checks. `--cold` or a proof-reading base also selects every guest lane;
+   use `--cold` when acceptance requires `proofs --fresh` or cold installation
+   evidence. The [Guest CI contract](tools/ci/README.md) owns execution and
+   proof reuse; checks outside it retain their acceptance requirements.
+4. Record run URLs or identifiers, tested revisions, the comparison base, selected
+   and omitted checks, available verdicts and deferred checks.
+   **Finish without polling, watching or waiting for Guest CI.**
    The user monitors it and will report issues. A pending guest verdict does not
    block completion and must never be reported as passed. Skipped or canceled
-   gates likewise supply no passing evidence. Changed inputs require refreshed evidence.
+   gates likewise supply no passing evidence. An intentional scope omission is
+   recorded as not required, never as a passing check. Changed inputs require
+   refreshed evidence; reuse the frozen selection on an unchanged resume.
 
 - **Add a checker rule with required metadata and a mutant.** Update the appropriate [check module](tools/vos/checks/), [authored registry](tools/check-registry.json), and [selftest](tools/vos/cli/selftest.py). Regenerate the [registry views](tools/check-rules.md) through the checker; do not edit their generated regions. Enumeration readers also need the applicable floor or documented fail-closed treatment. See [adding a rule](tools/README.md#adding-a-rule-to-the-checker).
 - **Generate validation where an oracle exists.** Use `oracle`, `seed`, and `quickchick` as described in [the generator guide](tools/README.md#the-three-generators-and-what-each-answers). Distinguish stillborn mutants (did not compile), killed mutants (detected), and survivors (not detected); compilation failures are not kills, and survival needs investigation.
