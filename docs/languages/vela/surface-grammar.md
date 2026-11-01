@@ -84,6 +84,46 @@ the independent qualification fixtures exercise every feature row above.
 
 ## Acceptance and evidence
 
+### Composable type and resource syntax
+
+The [graded foundation](graded-foundation.md#functions-and-application) and
+[borrow rules](core-design.md#loans-and-control-flow) use the same parameter,
+data and elimination forms throughout the surface:
+
+- Callable types accept the declaration parameter telescope, including optional
+  names, grades and nested ownership modifiers: `Fn(Nat n, byte x @ q) -> Vec<byte, n>`.
+  Every callable parameter is a located `parameter` node with `name`, `type` and
+  `grade` fields; an unnamed argument has a null name. A lambda parameter accepts
+  the same optional use grade, for example `(byte x @ q) => x`. Type-use demands
+  remain inferred under the foundation's rules, not a second authored annotation.
+- `()` is the unit type and value; `(T, U)` and `(x, y)` are product types and
+  values. Parentheses around one type or value only group it. Products contain
+  at least two components and may nest. Type, value and pattern nodes preserve
+  their distinct roles (`unit_type`, `unit`, `unit_pattern`, `tuple_type`,
+  `tuple`, `tuple_pattern`). A product pattern uses existing binding patterns:
+  `case (let owner, let receipt): ...`. Local elimination uses
+  `let (let owner, let receipt) = value;`, with an explicit pattern node;
+  `var` supports the same shape. A bare `_` is a `wildcard_pattern`, whose
+  permission to discard a resource is an elaboration obligation.
+- Parametric aliases reuse the existing generic telescope:
+  `alias Callback<grade q : NatExact> = Fn(byte x @ q) -> byte;`.
+  Named dependent records supply dependent pairs, and indexed unions supply
+  outcome-dependent resources. `Box`, `Result`, `Option`, cells, guards and
+  protocol tokens remain ordinary library types and operations; they acquire
+  no special parser authority or implicit disposal.
+
+Qualification must compose these forms with place-named loans, captures,
+restoration, nested reborrows, typestate transitions, dynamic-borrow conflict
+branches and cleanup. Independent AST assertions must distinguish parameter
+names from their dependent result indices, attach grades to the correct binder,
+and retain nested pattern/type roles and original byte spans. Refusal fixtures
+cover incomplete binders/grades, malformed products and patterns, and nesting
+exhaustion. Semantic mistakes, including duplication, dropping a tracked token,
+stale snapshot use and borrowing across suspension, still parse: this entry
+supplies syntax for a future checker, not memory-safety acceptance.
+
+### Native qualification
+
 Menhir's code backend must generate with `--strict --infer --explain`, with no
 unresolved conflicts and no unchecked runtime dependency. Preserve exact locked
 generator/compiler checks and fresh-generation comparison. Use independently
