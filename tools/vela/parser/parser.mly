@@ -157,9 +157,9 @@ s_decl:
 | NAMESPACE path=s_path LBRACE members=list(s_declaration) RBRACE
     { make "namespace" $startpos $endpos [("name", path); ("declarations", array members)] members }
 | kind=s_container_kind container_name=s_identifier generics=s_generics
-  LBRACE members=list(s_declaration) RBRACE
+  contracts=list(s_contract) LBRACE members=list(s_declaration) RBRACE
     { make kind $startpos $endpos [("name", container_name); ("generics", array generics);
-        ("declarations", array members)] (generics @ members) }
+        ("contracts", array contracts); ("declarations", array members)] (generics @ contracts @ members) }
 | IMPL generics=s_generics target=s_nonfunction_type contracts=list(s_contract) LBRACE members=list(s_declaration) RBRACE
     { make "impl" $startpos $endpos [("type", target.syntax); ("generics", array generics);
         ("contracts", array contracts); ("declarations", array members)]
@@ -279,9 +279,10 @@ s_domain_value:
     { make "operator" $startpos $endpos [("name", op)] [] }
 s_effect_operation:
   result=s_type operation_name=s_identifier generics=s_generics LPAREN parameters=separated_list(COMMA, s_parameter) RPAREN
-  resumes=option(s_resumes) SEMICOLON
+  resumes=option(s_resumes) contracts=list(s_contract) SEMICOLON
     { make "effect_operation" $startpos $endpos [("name", operation_name); ("result", result.syntax);
-        ("generics", array generics); ("parameters", array parameters); ("resumes", optional resumes)] (result :: generics @ parameters @ children resumes) }
+        ("generics", array generics); ("parameters", array parameters); ("resumes", optional resumes);
+        ("contracts", array contracts)] (result :: generics @ parameters @ children resumes @ contracts) }
 s_resumes:
   RESUMES LPAREN value=s_expression RPAREN { value }
 
@@ -596,11 +597,14 @@ s_atom:
     { make "match_expression" $startpos $endpos [("value", value.syntax); ("motive", optional motive);
         ("cases", array cases)] (value :: children motive @ cases) }
 | kind=s_handle_kind shallow=option(SHALLOW) LPAREN value=s_expression RPAREN
-  LBRACE clauses=s_handler_clauses RBRACE
+  capability=option(s_handler_capability) LBRACE clauses=s_handler_clauses RBRACE
     { make kind $startpos $endpos [("shallow", Boolean (shallow <> None));
-        ("value", value.syntax); ("clauses", array clauses)] (value :: clauses) }
+        ("value", value.syntax); ("capability", (match capability with None -> Null | Some value -> value));
+        ("clauses", array clauses)] (value :: clauses) }
 s_handle_kind:
   HANDLE { "handle" } | REHANDLE { "rehandle" }
+s_handler_capability:
+  AS capability=s_identifier { capability }
 s_handler_clauses:
   { [] }
 | clause=s_handler_clause { [clause] }
