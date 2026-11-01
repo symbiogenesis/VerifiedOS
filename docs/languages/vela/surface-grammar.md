@@ -436,6 +436,16 @@ exercise every operator spelling and malformed neighboring forms, syntax-valid
 resource mistakes and nesting limits. Retain every earlier syntax and migration
 fixture and strict conflict-free generation.
 
+Equivalent grammar refactors share named-type application, parenthesized type
+construction, literal payloads and binary-expression construction across their
+existing contexts. Context-specific tokens and AST roles remain explicit: local
+annotations retain lexical disambiguation, literal patterns retain pattern kinds,
+and the pure entry retains schema 1. Preserve the exact accepted/refused language,
+JSON fields, original byte spans and syntax-depth accounting. Compare every
+retained positive fixture's complete JSON before and after, retain all refusal
+and migration cases, and independently check composed types, literal roles,
+quantifiers and lambda boundaries under strict conflict-free generation.
+
 ### Native qualification
 
 Menhir's code backend must generate with `--strict --infer --explain`, with no
