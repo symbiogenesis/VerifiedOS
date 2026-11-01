@@ -55,9 +55,9 @@ permissions:
 
 # Superseded PR runs are disposable. Main runs share only their tested revision:
 # duplicate push events cancel redundant work; different revisions and explicit
-# manual dispatches keep separate groups.
+# manual dispatches keep separate groups, including dispatches of the same revision.
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || format('{0}-{1}', github.event_name, inputs.revision || github.sha) }}
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || github.event_name == 'workflow_dispatch' && format('manual-{0}', github.run_id) || format('{0}-{1}', github.event_name, inputs.revision || github.sha) }}
   cancel-in-progress: true
 
 env:
@@ -245,7 +245,7 @@ jobs:
         run: |
           status=0
           uv run --project tools --locked --exact --only-group workflows --no-python-downloads \
-            zizmor --offline .github/workflows || status=1
+            zizmor --offline .github || status=1
           sh tools/ci/actionlint.sh -shellcheck= -pyflakes= || status=1
           exit "$status"
 
@@ -272,6 +272,7 @@ jobs:
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: archive-scan-comparison
+          overwrite: true
           path: ${{ runner.temp }}/archive-scan-comparison.json
           if-no-files-found: error
           retention-days: 14
