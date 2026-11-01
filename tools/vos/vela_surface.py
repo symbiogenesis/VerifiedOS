@@ -134,6 +134,15 @@ public domain NatExact {
     laws NatExactLaws;
 }
 """, ("domain",)),
+    Fixture("generic-effect-families", """module EffectFamilies;
+public effect State<T> {
+    T Get();
+    void Put(T value);
+}
+public Nat Run<effect E>(in Fn() -> Nat effects(E) body) {
+    return body();
+}
+""", ("effect", "generic_parameter", "function_type")),
     Fixture("effects-handlers-and-disposal", """module Effects;
 public effect Choose { bool Choose() resumes(0..2); }
 public effect Reject { never Reject(Error error); }
@@ -370,6 +379,26 @@ def _constructor(container: dict[str, Json], name: str) -> dict[str, Json]:
     return matches[0]
 
 
+def _effect_generic_roles(result: dict[str, Json]) -> None:
+    family = _named(result.get("ast"), "effect", "State")
+    parameters = family.get("generics")
+    if not isinstance(parameters, list) or len(parameters) != 1:
+        raise ValueError("surface effect family lost its generic type parameter")
+    parameter = _object(parameters[0], "effect family generic")
+    if parameter.get("mode") != "type" or _texts(parameter.get("name")) != ["T"]:
+        raise ValueError("surface effect family generic has the wrong role")
+    function = _named(result.get("ast"), "function", "Run")
+    binders = function.get("generics")
+    if not isinstance(binders, list) or len(binders) != 1:
+        raise ValueError("surface effect-polymorphic function lost its binder")
+    binder = _object(binders[0], "effect parameter")
+    if binder.get("mode") != "effect" or _texts(binder.get("name")) != ["E"]:
+        raise ValueError("surface effect parameter was conflated with an ordinary type")
+    closures = [node for node in nodes(function) if node.get("kind") == "function_type"]
+    if len(closures) != 1 or _texts(closures[0].get("effects")) != ["E"]:
+        raise ValueError("surface polymorphic effect lost its function-type role")
+
+
 def _type_head(value: Json, name: str, arity: int) -> list[Json]:
     typed = _object(value, "type annotation")
     arguments = typed.get("arguments")
@@ -558,6 +587,8 @@ def qualify(parse: Callable[[bytes], dict[str, Json]]) -> list[str]:
             _typed_local_roles(result)
         elif fixture.name == "effects-handlers-and-disposal":
             _handler_roles(result)
+        elif fixture.name == "generic-effect-families":
+            _effect_generic_roles(result)
         elif fixture.name == "structured-tasks-and-cleanup":
             _cancellation_roles(result)
         elif fixture.name == "mathematical-definitions-and-proofs":
