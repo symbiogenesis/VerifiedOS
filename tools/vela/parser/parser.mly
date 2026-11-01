@@ -82,28 +82,21 @@ exit:
 
 expression:
   value=sum { value }
-| left=sum EQ right=sum
-    { make "binary" $startpos $endpos
-        [("operator", name $startpos($2) $endpos($2) "==");
-         ("left", left.syntax); ("right", right.syntax)] [left; right] }
-| left=sum LE right=sum
-    { make "binary" $startpos $endpos
-        [("operator", name $startpos($2) $endpos($2) "<=");
-         ("left", left.syntax); ("right", right.syntax)] [left; right] }
+| left=sum op=comparison_operator right=sum
+    { binary $startpos $endpos op left right }
+
+comparison_operator:
+  EQ { name $startpos $endpos "==" } | LE { name $startpos $endpos "<=" }
 
 sum:
-  value=product { value }
-| left=sum PLUS right=product
-    { make "binary" $startpos $endpos
-        [("operator", name $startpos($2) $endpos($2) "+");
-         ("left", left.syntax); ("right", right.syntax)] [left; right] }
+  value=left_binary(product, plus_operator) { value }
+plus_operator:
+  PLUS { name $startpos $endpos "+" }
 
 product:
-  value=atom { value }
-| left=product STAR right=atom
-    { make "binary" $startpos $endpos
-        [("operator", name $startpos($2) $endpos($2) "*");
-         ("left", left.syntax); ("right", right.syntax)] [left; right] }
+  value=left_binary(atom, star_operator) { value }
+star_operator:
+  STAR { name $startpos $endpos "*" }
 
 atom:
   value=DECIMAL { make "nat" $startpos $endpos [("value", String value)] [] }
@@ -203,18 +196,18 @@ s_decl:
     { make "predicate" $startpos $endpos [("name", predicate_name); ("generics", array generics);
         ("parameters", array parameters); ("contracts", array contracts); ("definition", optional definition)]
         (generics @ parameters @ contracts @ children definition) }
-| OPERATION result=s_type operation_name=s_identifier generics=s_generics LPAREN
-  parameters=separated_list(COMMA, s_parameter) RPAREN contracts=list(s_contract) SEMICOLON
-    { make "operation" $startpos $endpos [("name", operation_name); ("result", result.syntax);
+| OPERATION header=s_callable_header contracts=list(s_contract) SEMICOLON
+    { let result, operation_name, generics, parameters = header in
+      make "operation" $startpos $endpos [("name", operation_name); ("result", result.syntax);
         ("generics", array generics); ("parameters", array parameters); ("contracts", array contracts)]
         (result :: generics @ parameters @ contracts) }
 | PROOF proof_name=s_identifier SEMICOLON
     { make "proof_signature" $startpos $endpos [("name", proof_name)] [] }
 | UNIVERSE universe=s_identifier SEMICOLON
     { make "universe" $startpos $endpos [("name", universe)] [] }
-| DEFINITION result=s_type definition_name=s_identifier generics=s_generics LPAREN
-  parameters=separated_list(COMMA, s_parameter) RPAREN contracts=list(s_contract) EQUAL value=s_expression SEMICOLON
-    { make "definition" $startpos $endpos [("name", definition_name); ("result", result.syntax);
+| DEFINITION header=s_callable_header contracts=list(s_contract) EQUAL value=s_expression SEMICOLON
+    { let result, definition_name, generics, parameters = header in
+      make "definition" $startpos $endpos [("name", definition_name); ("result", result.syntax);
         ("generics", array generics); ("parameters", array parameters); ("contracts", array contracts);
         ("value", value.syntax)] (result :: value :: generics @ parameters @ contracts) }
 | kind=s_theorem_kind theorem_name=s_identifier generics=s_generics LPAREN
@@ -233,10 +226,10 @@ s_decl:
     { make "schedule" $startpos $endpos [("name", schedule_name); ("rules", array rules)] rules }
 | CYCLE value=s_expression SEMICOLON
     { make "cycle" $startpos $endpos [("value", value.syntax)] [value] }
-| result=s_type function_name=s_identifier generics=s_generics LPAREN
-  parameters=separated_list(COMMA, s_parameter) RPAREN contracts=list(s_contract)
+| header=s_callable_header contracts=list(s_contract)
   body=s_function_body cancel=option(s_cancel)
-    { make "function" $startpos $endpos [("name", function_name); ("result", result.syntax);
+    { let result, function_name, generics, parameters = header in
+      make "function" $startpos $endpos [("name", function_name); ("result", result.syntax);
         ("generics", array generics); ("parameters", array parameters); ("contracts", array contracts);
         ("body", optional body); ("cancel", optional cancel)]
         (result :: generics @ parameters @ contracts @ children body @ children cancel) }
@@ -244,6 +237,12 @@ s_decl:
     { make "field" $startpos $endpos [("name", field_name); ("type", value_type.syntax);
         ("grade", optional grade); ("value", optional value)]
         (value_type :: children grade @ children value) }
+
+/* Declarations share the telescope; each owner retains its contract/body tail. */
+%inline s_callable_header:
+  result=s_type callable_name=s_identifier generics=s_generics LPAREN
+  parameters=separated_list(COMMA, s_parameter) RPAREN
+    { result, callable_name, generics, parameters }
 
 s_container_kind:
   STRUCT { "struct" } | INTERFACE { "interface" } | TRAIT { "trait" }
@@ -297,9 +296,9 @@ s_domain_role:
   ZERO { "zero" } | ONE { "one" } | ADD { "add" } | MUL { "mul" }
 | ADMITS { "admits" } | INTERPRET { "interpret" } | LAWS { "laws" }
 s_effect_operation:
-  result=s_type operation_name=s_identifier generics=s_generics LPAREN parameters=separated_list(COMMA, s_parameter) RPAREN
-  resumes=option(s_resumes) contracts=list(s_contract) SEMICOLON
-    { make "effect_operation" $startpos $endpos [("name", operation_name); ("result", result.syntax);
+  header=s_callable_header resumes=option(s_resumes) contracts=list(s_contract) SEMICOLON
+    { let result, operation_name, generics, parameters = header in
+      make "effect_operation" $startpos $endpos [("name", operation_name); ("result", result.syntax);
         ("generics", array generics); ("parameters", array parameters); ("resumes", optional resumes);
         ("contracts", array contracts)] (result :: generics @ parameters @ children resumes @ contracts) }
 s_resumes:
@@ -347,12 +346,17 @@ s_loan_lifetime:
   LT value=LIFETIME GT
     { make "lifetime" $startpos $endpos [("name", name $startpos(value) $endpos(value) value)] [] }
 s_type_atom:
-  type_name=s_path arguments=s_type_arguments
-    { make "type" $startpos $endpos [("name", type_name); ("arguments", array arguments)] arguments }
+  value=s_named_type(s_path) { value }
 | value=s_computed_type { value }
-| s_open_paren RPAREN { make "unit_type" $startpos $endpos [] [] }
-| s_open_paren value=s_type RPAREN { make "group_type" $startpos $endpos [("type", value.syntax)] [value] }
-| s_open_paren first=s_type COMMA rest=separated_nonempty_list(COMMA, s_type) RPAREN
+| value=s_parenthesized_type(s_open_paren) { value }
+%inline s_named_type(path):
+  type_name=path arguments=s_type_arguments
+    { make "type" $startpos $endpos [("name", type_name); ("arguments", array arguments)] arguments }
+/* Only the first token varies for local annotations; the type algebra is shared. */
+s_parenthesized_type(opening):
+  opening RPAREN { make "unit_type" $startpos $endpos [] [] }
+| opening value=s_type RPAREN { make "group_type" $startpos $endpos [("type", value.syntax)] [value] }
+| opening first=s_type COMMA rest=separated_nonempty_list(COMMA, s_type) RPAREN
     { make "tuple_type" $startpos $endpos [("types", array (first :: rest))] (first :: rest) }
 s_computed_type:
   TYPE LBRACKET value=s_expression RBRACKET
@@ -362,12 +366,13 @@ s_open_paren:
 s_function_type:
   mode=s_function_mode generics=s_generics LPAREN parameters=separated_list(COMMA, s_parameter) RPAREN ARROW result=s_nonfunction_type
   captures=option(s_capture_type) effects=option(s_type_effects) contracts=option(s_callable_contracts)
-    { let contracts = match contracts with None -> [] | Some values -> values in
+    { let contracts = Option.value contracts ~default:[] in
+      let effects = Option.value effects ~default:[] in
       make "function_type" $startpos $endpos [("mode", String mode); ("generics", array generics); ("parameters", array parameters);
         ("result", result.syntax); ("captures", optional captures);
-        ("effects", (match effects with None -> Array [] | Some values -> array values));
+        ("effects", array effects);
         ("contracts", array contracts)]
-        (result :: generics @ parameters @ children captures @ contracts @ (match effects with None -> [] | Some values -> values)) }
+        (result :: generics @ parameters @ children captures @ contracts @ effects) }
 s_callable_contracts:
   WITH LBRACE contracts=list(terminated(s_contract, SEMICOLON)) RBRACE { contracts }
 s_function_mode:
@@ -391,8 +396,7 @@ s_type_argument:
 s_generic_type:
   value=s_modified_type(s_generic_type_atom) { value }
 s_generic_type_atom:
-  type_name=s_path arguments=s_type_arguments
-    { make "type" $startpos $endpos [("name", type_name); ("arguments", array arguments)] arguments }
+  value=s_named_type(s_path) { value }
 | value=s_computed_type { value }
 | value=s_function_type { value }
 | LPAREN value=s_function_type RPAREN { make "group_type" $startpos $endpos [("type", value.syntax)] [value] }
@@ -456,9 +460,8 @@ s_simple_statement:
     { make "return" $startpos $endpos [("value", optional value)] (children value) }
 | BREAK SEMICOLON { make "break" $startpos $endpos [] [] }
 | CONTINUE SEMICOLON { make "continue" $startpos $endpos [] [] }
-| PROOF body=s_block { make "proof" $startpos $endpos [("body", body.syntax)] [body] }
+| kind=s_proof_block_kind body=s_block { make kind $startpos $endpos [("body", body.syntax)] [body] }
 | ASSERT value=s_expression SEMICOLON { make "assert" $startpos $endpos [("value", value.syntax)] [value] }
-| CALC body=s_block { make "calc" $startpos $endpos [("body", body.syntax)] [body] }
 | SCOPE LPAREN values=separated_list(COMMA, s_expression) RPAREN body=s_block
     { make "scope" $startpos $endpos [("resources", array values); ("body", body.syntax)] (body :: values) }
 | MATCH LPAREN value=s_expression RPAREN motive=option(s_match_motive) LBRACE cases=nonempty_list(s_match_case) RBRACE
@@ -477,14 +480,12 @@ s_simple_statement:
 s_annotation_type:
   value=s_modified_type(s_annotation_type_atom) { value }
 s_annotation_type_atom:
-  type_name=s_annotation_path arguments=s_type_arguments
-    { make "type" $startpos $endpos [("name", type_name); ("arguments", array arguments)] arguments }
+  value=s_named_type(s_annotation_path) { value }
 | value=s_computed_type { value }
 | value=s_function_type { value }
-| ANNOTATION_OPEN RPAREN { make "unit_type" $startpos $endpos [] [] }
-| ANNOTATION_OPEN value=s_type RPAREN { make "group_type" $startpos $endpos [("type", value.syntax)] [value] }
-| ANNOTATION_OPEN first=s_type COMMA rest=separated_nonempty_list(COMMA, s_type) RPAREN
-    { make "tuple_type" $startpos $endpos [("types", array (first :: rest))] (first :: rest) }
+| value=s_parenthesized_type(ANNOTATION_OPEN) { value }
+%inline s_proof_block_kind:
+  PROOF { "proof" } | CALC { "calc" }
 s_annotation_path:
   first=ANNOTATION_NAME rest=list(s_path_segment)
     { name $startpos $endpos (String.concat "." (first :: rest)) }
@@ -520,12 +521,8 @@ s_pattern:
       if wildcard then make "wildcard_pattern" $startpos $endpos [] []
       else make "constructor_pattern" $startpos $endpos [("name", constructor_name); ("arguments", array values)] values }
 | value=s_product_pattern { value }
-| TRUE { make "bool_pattern" $startpos $endpos [("value", Boolean true)] [] }
-| FALSE { make "bool_pattern" $startpos $endpos [("value", Boolean false)] [] }
-| value=DECIMAL { make "nat_pattern" $startpos $endpos [("value", String value); ("suffix", String "")] [] }
-| value=NUMBER { let digits, suffix = value in make "nat_pattern" $startpos $endpos [("value", String digits); ("suffix", String suffix)] [] }
-| value=STRING { make "string_pattern" $startpos $endpos [("value", String value)] [] }
-| value=CHARACTER { make "character_pattern" $startpos $endpos [("value", String value)] [] }
+| payload=s_literal_payload
+    { let kind, fields = payload in make (kind ^ "_pattern") $startpos $endpos fields [] }
 s_pattern_arguments:
   LPAREN values=separated_list(COMMA, s_pattern) RPAREN { values }
 /* A bare local name stays an inferred binder. Constructor elimination has an
@@ -552,16 +549,14 @@ s_expression:
     { make "type_expression" $startpos $endpos [("type", value.syntax)] [value] }
 | signature=s_function_type FATARROW body=s_lambda_body
     { make "typed_lambda" $startpos $endpos [("signature", signature.syntax); ("body", body.syntax)] [signature; body] }
-| FORALL LPAREN parameters=separated_nonempty_list(COMMA, s_parameter) RPAREN FATARROW value=s_expression
-    { make "quantifier" $startpos $endpos [("quantifier", String "forall"); ("parameters", array parameters); ("value", value.syntax)] (value :: parameters) }
-| EXISTS LPAREN parameters=separated_nonempty_list(COMMA, s_parameter) RPAREN FATARROW value=s_expression
-    { make "quantifier" $startpos $endpos [("quantifier", String "exists"); ("parameters", array parameters); ("value", value.syntax)] (value :: parameters) }
-| LPAREN parameters=s_lambda_parameters RPAREN FATARROW body=s_lambda_body
+| quantifier=s_quantifier_kind LPAREN parameters=separated_nonempty_list(COMMA, s_parameter) RPAREN FATARROW value=s_expression
+    { make "quantifier" $startpos $endpos [("quantifier", String quantifier); ("parameters", array parameters); ("value", value.syntax)] (value :: parameters) }
+| LPAREN parameters=separated_nonempty_list(COMMA, s_lambda_parameter) RPAREN FATARROW body=s_lambda_body
     { make "lambda" $startpos $endpos [("parameters", array parameters); ("body", body.syntax)] (body :: parameters) }
 | LPAREN RPAREN FATARROW body=s_lambda_body
     { make "lambda" $startpos $endpos [("parameters", Array []); ("body", body.syntax)] [body] }
-s_lambda_parameters:
-  parameters=separated_nonempty_list(COMMA, s_lambda_parameter) { parameters }
+%inline s_quantifier_kind:
+  FORALL { "forall" } | EXISTS { "exists" }
 s_lambda_parameter:
   value_type=s_annotation_type parameter_name=s_identifier grade=option(s_grade)
     { make "lambda_parameter" $startpos $endpos [("type", value_type.syntax); ("name", parameter_name);
@@ -570,24 +565,24 @@ s_lambda_body:
   value=s_expression { value } | value=s_block { value }
 /* Binary operators and their value forms share one spelling and source span.
    Recursive ladders make associativity explicit; comparison/range stay singular. */
-s_left_binary(operand, operator):
+left_binary(operand, operator):
   value=operand { value }
-| left=s_left_binary(operand, operator) op=operator right=operand
+| left=left_binary(operand, operator) op=operator right=operand
     { binary $startpos $endpos op left right }
-s_right_binary(operand, operator):
+right_binary(operand, operator):
   value=operand { value }
-| left=operand op=operator right=s_right_binary(operand, operator)
+| left=operand op=operator right=right_binary(operand, operator)
     { binary $startpos $endpos op left right }
 s_implication:
-  value=s_right_binary(s_disjunction, s_implication_operator) { value }
+  value=right_binary(s_disjunction, s_implication_operator) { value }
 s_implication_operator:
   IMPLIES { name $startpos $endpos "==>" } | IFF { name $startpos $endpos "<==>" }
 s_disjunction:
-  value=s_left_binary(s_conjunction, s_disjunction_operator) { value }
+  value=left_binary(s_conjunction, s_disjunction_operator) { value }
 s_disjunction_operator:
   OR { name $startpos $endpos "||" }
 s_conjunction:
-  value=s_left_binary(s_comparison, s_conjunction_operator) { value }
+  value=left_binary(s_comparison, s_conjunction_operator) { value }
 s_conjunction_operator:
   AND { name $startpos $endpos "&&" }
 s_comparison:
@@ -596,33 +591,33 @@ s_comparison:
 | value=s_range IS pattern=s_pattern
     { make "is" $startpos $endpos [("value", value.syntax); ("pattern", pattern.syntax)] [value; pattern] }
 s_comparison_operator:
-  EQ { name $startpos $endpos "==" } | NE { name $startpos $endpos "!=" }
+  value=comparison_operator { value } | NE { name $startpos $endpos "!=" }
 | LT { name $startpos $endpos "<" } | GT { name $startpos $endpos ">" }
-| LE { name $startpos $endpos "<=" } | GE { name $startpos $endpos ">=" }
+| GE { name $startpos $endpos ">=" }
 s_range:
   value=s_bit_or { value }
 | left=s_bit_or RANGE right=s_bit_or
     { make "range" $startpos $endpos [("start", left.syntax); ("end", right.syntax)] [left; right] }
 s_bit_or:
-  value=s_left_binary(s_bit_xor, s_bit_or_operator) { value }
+  value=left_binary(s_bit_xor, s_bit_or_operator) { value }
 s_bit_or_operator:
   BAR { name $startpos $endpos "|" }
 s_bit_xor:
-  value=s_left_binary(s_bit_and, s_bit_xor_operator) { value }
+  value=left_binary(s_bit_and, s_bit_xor_operator) { value }
 s_bit_xor_operator:
   CARET { name $startpos $endpos "^" }
 s_bit_and:
-  value=s_left_binary(s_sum, s_bit_and_operator) { value }
+  value=left_binary(s_sum, s_bit_and_operator) { value }
 s_bit_and_operator:
   AMP { name $startpos $endpos "&" }
 s_sum:
-  value=s_left_binary(s_product, s_sum_operator) { value }
+  value=left_binary(s_product, s_sum_operator) { value }
 s_sum_operator:
-  PLUS { name $startpos $endpos "+" } | MINUS { name $startpos $endpos "-" }
+  value=plus_operator { value } | MINUS { name $startpos $endpos "-" }
 s_product:
-  value=s_left_binary(s_unary, s_product_operator) { value }
+  value=left_binary(s_unary, s_product_operator) { value }
 s_product_operator:
-  STAR { name $startpos $endpos "*" } | SLASH { name $startpos $endpos "/" }
+  value=star_operator { value } | SLASH { name $startpos $endpos "/" }
 | PERCENT { name $startpos $endpos "%" }
 s_unary:
   value=s_postfix { value }
@@ -669,12 +664,16 @@ s_atom:
         ("value", value.syntax); ("capability", (match capability with None -> Null | Some value -> value));
         ("clauses", array clauses)] (value :: clauses) }
 s_literal:
-  value=DECIMAL { make "nat" $startpos $endpos [("value", String value); ("suffix", String "")] [] }
-| value=NUMBER { let digits, suffix = value in make "nat" $startpos $endpos [("value", String digits); ("suffix", String suffix)] [] }
-| value=STRING { make "string" $startpos $endpos [("value", String value)] [] }
-| value=CHARACTER { make "character" $startpos $endpos [("value", String value)] [] }
-| TRUE { make "bool" $startpos $endpos [("value", Boolean true)] [] }
-| FALSE { make "bool" $startpos $endpos [("value", Boolean false)] [] }
+  payload=s_literal_payload
+    { let kind, fields = payload in make kind $startpos $endpos fields [] }
+/* Literal spelling/payload is independent of its expression or pattern role. */
+%inline s_literal_payload:
+  value=DECIMAL { "nat", [("value", String value); ("suffix", String "")] }
+| value=NUMBER { let digits, suffix = value in "nat", [("value", String digits); ("suffix", String suffix)] }
+| value=STRING { "string", [("value", String value)] }
+| value=CHARACTER { "character", [("value", String value)] }
+| TRUE { "bool", [("value", Boolean true)] }
+| FALSE { "bool", [("value", Boolean false)] }
 s_hole:
   value=HOLE { make "hole" $startpos $endpos [("name", name $startpos $endpos value)] [] }
 s_handle_kind:
@@ -690,10 +689,10 @@ s_handler_clause:
   continuation=s_identifier FATARROW body=s_lambda_body
     { make "operation_clause" $startpos $endpos [("name", operation_name);
         ("parameters", Array parameters); ("continuation", continuation); ("body", body.syntax)] [body] }
-| RETURN result=s_identifier FATARROW body=s_lambda_body
-    { make "return_clause" $startpos $endpos [("name", result); ("body", body.syntax)] [body] }
-| DISPOSE reason=s_identifier FATARROW body=s_lambda_body
-    { make "disposal_clause" $startpos $endpos [("name", reason); ("body", body.syntax)] [body] }
+| kind=s_terminal_clause_kind binder=s_identifier FATARROW body=s_lambda_body
+    { make kind $startpos $endpos [("name", binder); ("body", body.syntax)] [body] }
+%inline s_terminal_clause_kind:
+  RETURN { "return_clause" } | DISPOSE { "disposal_clause" }
 s_operator_value:
   LPAREN op=s_symbolic_operator RPAREN
     { make "operator" $startpos $endpos [("name", op)] [] }
