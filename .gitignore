@@ -3,6 +3,9 @@
 # out of the selftest, which includes untracked, non-ignored files.
 /.worktrees/
 
+# Trusted action checkout used by hosted target campaigns on pinned revisions.
+/.target-ci/
+
 # Existing and host-provisioned worktrees may retain their assigned locations.
 # Keep these narrow: other files under provider configuration directories remain
 # visible to the corpus and its file-kind rules. The case variants are distinct

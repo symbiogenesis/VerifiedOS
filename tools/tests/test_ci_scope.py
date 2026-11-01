@@ -37,6 +37,7 @@ def _classifications() -> None:
                  "docs/assurance/wire-format-inventory.md",
                  "rtl/synthesis-provenance.md", "tools/tests/fixtures/input.md",
                  "tools/ci/bootstrap_guest.py", ".github/workflows/host-gates.yml",
+                 ".github/actions/setup-target-sail/action.yml",
                  "unknown/new.file", "../README.md", "/README.md", "docs//README.md"):
         decision = scope.classify([path])
         ensure(decision == scope.classify([]), f"executable or unknown input keeps all CI: {path}")

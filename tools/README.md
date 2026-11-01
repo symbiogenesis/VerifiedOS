@@ -142,7 +142,7 @@ skipped or cancelled job.
 One shard, or one unpartitioned job, alone supplies only a partial verdict. The
 unsharded command retains the complete suite and is reserved for GitHub Actions.
 
-<a id="workflow-analysis"></a>**Ubuntu's unpartitioned job analyzes every workflow**, in a
+<a id="workflow-analysis"></a>**Ubuntu's unpartitioned job analyzes workflows and local actions**, in a
 step of its own that runs whatever the gate's verdict and fails the job on either
 analyzer's finding. zizmor, pinned in [pyproject.toml](pyproject.toml)'s `workflows`
 group and locked outside the gate's environment, runs its offline security audits,
@@ -158,7 +158,7 @@ with bounded retries, and both analyzers remain mandatory.
 To reproduce the step in WSL, set `UV_CACHE_DIR`,
 `UV_PROJECT_ENVIRONMENT` and `ACTIONLINT_ROOT` to directories under the `lane_root`
 that `run.py worktree list --json` reports for the checkout, then run
-`uv run --project tools --locked --exact --only-group workflows --no-python-downloads zizmor --offline .github/workflows`
+`uv run --project tools --locked --exact --only-group workflows --no-python-downloads zizmor --offline .github`
 and `sh tools/ci/actionlint.sh -shellcheck= -pyflakes=` from the checkout.
 
 Host CI's jobs cache uv downloads keyed by the manifest and lockfile under Host CI's
