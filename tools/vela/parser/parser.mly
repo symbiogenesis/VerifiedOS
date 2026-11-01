@@ -131,7 +131,9 @@ s_value_identifier:
 | BOOL { name $startpos $endpos "bool" }
 
 s_path:
-  first=s_identifier rest=list(s_path_segment)
+  value=s_qualified_name(s_identifier) { value }
+s_qualified_name(head):
+  first=head rest=list(s_path_segment)
     { let text = match first with Object fields ->
           (match List.assoc "text" fields with String value -> value | _ -> "") | _ -> "" in
       name $startpos $endpos (String.concat "." (text :: rest)) }
@@ -335,7 +337,7 @@ s_nonfunction_type:
 /* All type contexts retain the same modifier order, lifetime and child depth. */
 s_modified_type(base):
   value=base { value }
-| modifier=s_type_modifier lifetime=option(s_loan_lifetime) value=s_modified_type(base)
+| modifier=s_type_modifier lifetime=ioption(s_loan_lifetime) value=s_modified_type(base)
     { make "modified_type" $startpos $endpos [("modifier", String modifier);
         ("lifetime", optional lifetime); ("type", value.syntax)] (value :: children lifetime) }
 %inline s_type_modifier:
@@ -530,7 +532,7 @@ s_pattern_arguments:
    explicit argument list, while nested patterns reuse the general grammar. */
 s_local_pattern:
   value=s_product_pattern { value }
-| constructor_name=s_path values=s_pattern_arguments
+| constructor_name=s_qualified_name(s_value_identifier) values=s_pattern_arguments
     { make "constructor_pattern" $startpos $endpos
         [("name", constructor_name); ("arguments", array values)] values }
 s_product_pattern:
