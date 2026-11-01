@@ -402,6 +402,122 @@ def _action_declarations_generate_pinned_terms_without_independent_urls() -> Non
            "stale generated licence URLs are restored from the single reviewed identity")
 
 
+def _local_files(*, alias: bool = False) -> dict[str, str]:
+    data = _data()
+    checkout = ""
+    if alias:
+        review = copy.deepcopy(cast("list[dict[str, object]]", data["actions"])[0])
+        review.update(repository="actions/checkout", commit="b" * 40)
+        cast("list[dict[str, object]]", data["actions"]).append(review)
+        checkout = ("  - uses: actions/checkout@" + "b" * 40 + " # v1.2.3\n"
+                    "    with:\n      ref: ${{ github.sha }}\n      path: .target-ci\n"
+                    "      sparse-checkout: .github/actions/fixture\n")
+    files = _files(data)
+    prefix = "./.target-ci/" if alias else "./"
+    files[".github/workflows/a.yml"] = "steps:\n" + checkout + "  - uses: " + prefix + ".github/actions/fixture\n"
+    files[".github/actions/fixture/action.yml"] = ("name: Authored fixture\nruns:\n  using: composite\n"
+        "  steps:\n    - uses: example/action@" + "a" * 40 + " # v1.2.3\n")
+    return files
+
+
+def _local_composites_keep_pin_and_population_policy() -> None:
+    files = _local_files()
+    workflow, metadata = ".github/workflows/a.yml", ".github/actions/fixture/action.yml"
+    source = files[metadata]
+    _expected, faults = _inspect(files)
+    ensure(not faults, f"a reachable authored composite supplies its external review usage: {faults!r}")
+    nested = ".github/actions/nested/action.yaml"
+    files[nested] = source
+    files[metadata] = "name: Wrapper\nruns:\n  using: composite\n  steps:\n    - uses: ./.github/actions/nested\n"
+    _expected, faults = _inspect(files)
+    ensure(not faults, f"nested authored composite references are audited: {faults!r}")
+    for changed, reason in (
+            (source.replace("a" * 40, "c" * 40), "a changed identity needs a licence reading"),
+            (source.replace("a" * 40 + " # v1.2.3", "v1"), "full commit"),
+            (source.replace(" # v1.2.3", ""), "full commit"),
+            (source.replace("example/action", "unreviewed/action"), "no structured action review"),
+            (source.replace("uses:", '"uses":'), "bare block"),
+            (source.replace("using: composite", "using: node24"), "composite runs"),
+            ("runs: [", "invalid YAML")):
+        _expected, faults = _inspect({**files, nested: changed})
+        ensure(any(reason in fault for fault in faults), f"nested composite mutation escaped ({reason}): {faults!r}")
+    _expected, faults = _inspect({**files, nested: files[metadata]})
+    ensure(any("recursive local action cycle" in fault for fault in faults), f"cycles refuse: {faults!r}")
+    unused = {**_local_files(), workflow: "steps:\n  - uses: ./.github/actions/empty\n",
+              ".github/actions/empty/action.yml": "runs:\n  using: composite\n  steps:\n    - run: echo fixture\n"}
+    _expected, faults = _inspect(unused)
+    ensure(any("has a review but no workflow runs it" in fault for fault in faults),
+           f"unused composites do not supply workflow usage: {faults!r}")
+    _expected, faults = _inspect({**unused, metadata: source.replace("example/action", "unreviewed/action")})
+    ensure(any("no structured action review" in fault for fault in faults),
+           f"unused authored composites still require reviewed external pins: {faults!r}")
+
+
+def _local_paths_fail_closed() -> None:
+    files = _local_files()
+    workflow, metadata = ".github/workflows/a.yml", ".github/actions/fixture/action.yml"
+    for reference in ("./.github/actions/absent", "./.github/actions/fixture/../other", "./.github/actions//fixture",
+                      "./.github/actions/${{ inputs.action }}", "./.github/actions/fixture@main",
+                      "./other/action", ".\\.github\\actions\\fixture", "/tmp/action"):
+        _expected, faults = _inspect({**files, workflow: f"steps:\n  - uses: {reference}\n"})
+        ensure(bool(faults), f"unsafe or unknown local reference passed: {reference!r}")
+    for changed in (files[workflow].replace("fixture\n", "fixture # comment\n"),
+                    files[workflow].replace("uses:", '"uses":'),
+                    "steps:\n  - uses: >-\n      ./.github/actions/fixture\n"):
+        _expected, faults = _inspect({**files, workflow: changed})
+        ensure(bool(faults), "local references retain single-line bare-key policy")
+    _expected, faults = _inspect({path: content for path, content in files.items() if path != metadata})
+    ensure(any("exactly one tracked" in fault for fault in faults), f"missing metadata refuses: {faults!r}")
+    _expected, faults = _inspect({**files, metadata.removesuffix("yml") + "yaml": files[metadata]})
+    ensure(any("exactly one tracked" in fault for fault in faults), f"ambiguous metadata refuses: {faults!r}")
+    with sandbox_tree(files) as root:
+        _expected, faults = devtools.inspect(root, frozenset(path for path in files if path != metadata),
+                                            files[devtools.RECORD])
+        ensure(any("exactly one tracked" in fault for fault in faults),
+               f"untracked working-tree metadata cannot authorize a local action: {faults!r}")
+
+
+def _local_alias_requires_its_own_dispatch_checkout() -> None:
+    files = _local_files(alias=True)
+    workflow = ".github/workflows/a.yml"
+    source = files[workflow]
+    _expected, faults = _inspect(files)
+    ensure(not faults, f"a prior same-repository dispatch checkout supplies the local alias: {faults!r}")
+    _expected, faults = _inspect({**files, workflow: source.replace("    with:\n", "    with:\n      repository: ${{ github.repository }}\n")})
+    ensure(not faults, f"explicit current repository has the same trusted identity: {faults!r}")
+    checkout, call = source.split("  - uses: ./.target-ci/", 1)
+    call = "  - uses: ./.target-ci/" + call
+    for changed in (
+            source.replace("ref: ${{ github.sha }}", "ref: main"),
+            source.replace("    with:\n", "    with:\n      repository: foreign/repository\n"),
+            source.replace("path: .target-ci", "path: other"),
+            source.replace("sparse-checkout: .github/actions/fixture", "sparse-checkout: .github/actions/other"),
+            source.replace("    with:\n", "    if: false\n    with:\n"),
+            source.replace("    with:\n", "    continue-on-error: true\n    with:\n"),
+            source.replace("    with:\n", "    with:\n      sparse-checkout-cone-mode: false\n"),
+            "steps:\n" + call + checkout.removeprefix("steps:\n"),
+            "jobs:\n  first:\n    " + checkout.replace("\n", "\n    ").rstrip() + "\n  second:\n    steps:\n    " + call.replace("\n", "\n    ").rstrip() + "\n",
+            checkout + checkout.removeprefix("steps:\n").replace("ref: ${{ github.sha }}", "ref: main") + call,
+            checkout + "  - uses: actions/checkout@" + "b" * 40 + " # v1.2.3\n" + call,
+            checkout + "  - uses: actions/checkout@" + "b" * 40 + " # v1.2.3\n    with:\n      ref: ${{ github.sha }}\n" + call):
+        _expected, faults = _inspect({**files, workflow: changed})
+        ensure(any("local action alias needs" in fault for fault in faults),
+               f"an alias without its own prior trusted checkout passed: {faults!r}")
+
+
+def _local_metadata_symlinks_refuse() -> None:
+    files = _local_files()
+    metadata = ".github/actions/fixture/action.yml"
+    with sandbox_tree(files) as root:
+        retained = root / "source.yml"
+        retained.write_text(files[metadata], encoding="utf-8")
+        (root / metadata).unlink()
+        (root / metadata).symlink_to(retained)
+        _expected, faults = devtools.inspect(root, frozenset(files), files[devtools.RECORD])
+        ensure(any("must not follow a symlink" in fault for fault in faults),
+               f"a metadata symlink cannot supply authored action source: {faults!r}")
+
+
 def cases() -> list[Case]:
     return [Case("identity-and-generated-bytes-are-independent",
                  _identity_and_generated_bytes_are_independent),
@@ -420,4 +536,8 @@ def cases() -> list[Case]:
                  _workflow_actions_keep_review_identity_and_population),
             Case("action-declarations-generate-pinned-terms-without-independent-urls",
                  _action_declarations_generate_pinned_terms_without_independent_urls),
+            Case("local-composites-keep-pin-and-population-policy", _local_composites_keep_pin_and_population_policy),
+            Case("local-paths-fail-closed", _local_paths_fail_closed),
+            Case("local-alias-requires-its-own-dispatch-checkout", _local_alias_requires_its_own_dispatch_checkout),
+            Case("local-metadata-symlinks-refuse", _local_metadata_symlinks_refuse, lane="guest"),
             Case("shipped-review-view-and-owners-agree", _shipped_review_view_and_owners_agree)]
