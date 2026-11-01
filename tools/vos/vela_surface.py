@@ -23,6 +23,74 @@ class Fixture:
 
 
 POSITIVE: tuple[Fixture, ...] = (
+    Fixture("dependent-match-expressions-and-motives", """// café: motive and field locations are original UTF-8 bytes.
+module Elimination;
+public Vec<byte, packet.Length> Unpack(owned Packed packet) {
+    return match (move packet) as packed : Vec<byte, packed.Length> {
+        case Packed(let count, let bytes) => bytes;
+    };
+}
+public Nat Inspect(owned Selection selected) {
+    match (move selected) as choice : Nat {
+        case Ready(let payload): return payload.Length;
+        case Rejected(let debt): Close(move debt); return 0;
+    }
+}
+public Nat Nested(bool flag) {
+    return 2 + match (flag) {
+        case true => match (other) { case false => 3; case true => 4; };
+        case false => 5;
+    } * 3;
+}
+public Result<ref<'workspace.bytes> byte, Error> Borrow(ref Workspace workspace) {
+    return Wrap(match (Find(ref workspace)) as outcome : LoanResult<outcome> {
+        case Ok(let selected) => Ok(selected);
+        case Err(let error) => Err(error);
+    });
+}
+""", ("match_expression", "expression_case", "match_motive", "match", "case", "modified_type")),
+    Fixture("graded-struct-fields", """// café: grades have spans separate from initializers.
+module GradedFields;
+public struct Box<T, grade q : NatExact> {
+    public T Value @ q;
+    private tracked Permit Debt @ NatExact(1);
+    public Nat Count @ (q + 1) = 0;
+    private Nat Plain;
+}
+""", ("struct", "field", "generic_parameter", "modified_type")),
+    Fixture("generic-library-implementations", """module GenericInstances;
+public impl<T, grade q : NatExact> Dup<Box<T, q>>
+    where Repeatable(T, q)
+    requires Available(T)
+{
+    public (Box<T, q>, Box<T, q>) Split(owned Box<T, q> box)
+        ensures SplitLaw(old(box), result);
+}
+private impl (Fn() -> Nat effects(Read)) where Reusable(Read) {}
+""", ("impl", "generic_parameter", "contract", "function", "tuple_type")),
+    Fixture("locally-quantified-callable-contracts", """// café: callback and enclosing contracts remain distinct.
+module ScopedCallbacks;
+alias Update<T, captures C> = Fn<region 'loan, grade q : NatExact>(
+    scoped ref<'loan> T value @ q) -> () captures C effects(Write)
+    with { requires Valid(value); restores Valid(final(value)); };
+public void Apply<T>(in Fn<region 'local>(scoped ref<'local> T selected) -> ()
+    with { requires CallbackReady(selected); restores CallbackClosed(selected); } callback)
+    requires CallerReady(callback)
+    ensures CallerClosed(callback);
+alias Plain = Fn(byte) -> byte;
+""", ("alias", "function_type", "generic_parameter", "modified_type", "contract")),
+    Fixture("dependent-elimination-errors-remain-syntax", """module InvalidElimination;
+public async Nat Bad(ref BorrowCell<byte> cell, tracked Permit permit) {
+    let incompatible = match (cell.TryWrite()) as observed : Bytes<observed.Length> {
+        case Acquired(let writer, let debt) => (move permit, move permit);
+        case BorrowConflict => 0;
+    };
+    let escaping = match (incompatible) as erased : Never<missing> {
+        case _ => (scoped ref byte loan) => { await Ready(); return loan; };
+    };
+    return escaping;
+}
+""", ("match_expression", "match_motive", "tuple", "lambda", "wildcard_pattern", "unary")),
     Fixture("dependent-callable-telescopes", """// café: positions below count original UTF-8 bytes.
 module CallableTypes;
 alias Dependent<captures C, grade q : NatExact> =
@@ -412,6 +480,24 @@ public UnknownType F() { return missing; }
 
 
 NEGATIVE: tuple[tuple[str, bytes, str], ...] = (
+    ("missing-match-motive-binder", b"module M; public Nat F() { return match (x) as : Nat { case _ => 0; }; }", "syntax"),
+    ("missing-match-motive-colon", b"module M; public Nat F() { return match (x) as p Nat { case _ => 0; }; }", "syntax"),
+    ("missing-match-motive-type", b"module M; public Nat F() { return match (x) as p : { case _ => 0; }; }", "syntax"),
+    ("empty-expression-match", b"module M; public Nat F() { return match (x) {}; }", "syntax"),
+    ("expression-match-colon-arm", b"module M; public Nat F() { return match (x) { case _ : 0; }; }", "syntax"),
+    ("expression-match-mixed-arms", b"module M; public Nat F() { return match (x) { case true => 0; case false : 1; }; }", "syntax"),
+    ("expression-match-missing-value", b"module M; public Nat F() { return match (x) { case _ => ; }; }", "syntax"),
+    ("expression-match-missing-semicolon", b"module M; public Nat F() { return match (x) { case _ => 0 }; }", "syntax"),
+    ("match-motive-depth", b"module M; public Nat F() { return match (x) as p : "
+     + b"Box<" * 257 + b"Nat" + b">" * 257 + b" { case _ => 0; }; }", "limit"),
+    ("field-missing-grade", b"module M; struct Box { Nat Value @; }", "syntax"),
+    ("field-grade-after-initializer", b"module M; struct Box { Nat Value = 0 @ q; }", "syntax"),
+    ("impl-incomplete-telescope", b"module M; impl<T,> Dup<T> {}", "syntax"),
+    ("impl-incomplete-contract", b"module M; impl<T> Dup<T> where {}", "syntax"),
+    ("impl-ungrouped-callable", b"module M; impl Fn() -> Nat effects(Read) where Reusable(Read) {}", "syntax"),
+    ("callable-incomplete-telescope", b"module M; alias F = Fn<region>() -> Nat;", "syntax"),
+    ("callable-incomplete-law-block", b"module M; alias F = Fn() -> Nat with { requires Ready() };", "syntax"),
+    ("callable-law-without-delimiter", b"module M; alias F = Fn() -> Nat with requires Ready();", "syntax"),
     ("incomplete-callable-binder", b"module M; alias F = Fn(Nat n, ) -> Nat;", "syntax"),
     ("incomplete-callable-grade", b"module M; alias F = Fn(Nat n @) -> Nat;", "syntax"),
     ("incomplete-lambda-grade", b"module M; public void F() { let f = (Nat n @) => n; }", "syntax"),
@@ -648,6 +734,138 @@ def _exact_span(source: bytes, value: dict[str, Json], spelling: bytes) -> None:
     start = source.index(spelling)
     if value.get("span") != [start, start + len(spelling)]:
         raise ValueError(f"surface original-byte span differs for {spelling!r}")
+
+
+def _dependent_match_roles(source: bytes, result: dict[str, Json]) -> None:
+    unpack = _named(result.get("ast"), "function", "Unpack")
+    expression = next(node for node in nodes(unpack) if node.get("kind") == "match_expression")
+    motive = _object(expression.get("motive"), "dependent expression motive")
+    if motive.get("kind") != "match_motive" or _texts(motive.get("name")) != ["packed"]:
+        raise ValueError("surface dependent match lost its scrutinee binder")
+    _exact_span(source, motive, b"as packed : Vec<byte, packed.Length>")
+    binder = source.index(b"as packed") + len(b"as ")
+    if _object(motive.get("name"), "motive binder").get("span") != [binder, binder + len(b"packed")]:
+        raise ValueError("surface motive name span was conflated with a branch binder")
+    arguments = _type_head(motive.get("type"), "Vec", 2)
+    if _texts(arguments[1]) != ["packed.Length"]:
+        raise ValueError("surface motive lost its dependent result index")
+    _exact_span(source, _object(motive.get("type"), "motive result type"), b"Vec<byte, packed.Length>")
+    arm = _object(_sequence(expression.get("cases"), "dependent expression arms")[0], "dependent arm")
+    if arm.get("kind") != "expression_case" or _texts(arm.get("pattern")) != ["Packed", "count", "bytes"]:
+        raise ValueError("surface expression match lost its distinct branch bindings")
+    _exact_span(source, _object(arm.get("pattern"), "dependent arm pattern"), b"Packed(let count, let bytes)")
+    if _texts(arm.get("value")) != ["bytes"] or "statements" in arm:
+        raise ValueError("surface expression arm value became a statement body")
+    value_start = source.index(b"=> bytes;") + len(b"=> ")
+    if _object(arm.get("value"), "dependent arm value").get("span") != [value_start, value_start + 5]:
+        raise ValueError("surface expression arm value span differs")
+    inspect = _named(result.get("ast"), "function", "Inspect")
+    statement = next(node for node in nodes(inspect) if node.get("kind") == "match")
+    annotated = _object(statement.get("motive"), "statement motive")
+    if _texts(annotated.get("name")) != ["choice"]:
+        raise ValueError("surface statement match lost its motive")
+    _type_head(annotated.get("type"), "Nat", 0)
+    if any(_object(case, "statement arm").get("kind") != "case"
+           or "statements" not in _object(case, "statement arm")
+           for case in _sequence(statement.get("cases"), "statement arms")):
+        raise ValueError("surface statement match became an expression arm")
+    nested = _named(result.get("ast"), "function", "Nested")
+    matches = [node for node in nodes(nested) if node.get("kind") == "match_expression"]
+    if len(matches) != 2 or any(match.get("motive") is not None for match in matches):
+        raise ValueError("surface inferred nested matches fabricated a motive")
+    returned = next(node for node in nodes(nested) if node.get("kind") == "return")
+    addition = _object(returned.get("value"), "match-containing addition")
+    product = _object(addition.get("right"), "match-containing product")
+    if (_texts(addition.get("operator")) != ["+"] or _texts(product.get("operator")) != ["*"]
+            or _object(product.get("left"), "multiplicative match").get("kind") != "match_expression"):
+        raise ValueError("surface match expression changed surrounding operator precedence")
+    borrow = _named(result.get("ast"), "function", "Borrow")
+    loan = _object(_type_head(borrow.get("result"), "Result", 2)[0], "returned branch loan")
+    if loan.get("modifier") != "ref" or _texts(loan.get("lifetime")) != ["'workspace.bytes"]:
+        raise ValueError("surface dependent branch lost its place-named result loan")
+    call = next(node for node in nodes(borrow)
+                if node.get("kind") == "call" and _texts(node.get("callee")) == ["Wrap"])
+    argument = _object(_sequence(call.get("arguments"), "call match argument")[0], "match argument")
+    if argument.get("kind") != "match_expression" or _texts(argument.get("motive")) != ["outcome", "LoanResult", "outcome"]:
+        raise ValueError("surface match expression failed to compose with a call")
+
+
+def _field_grade_roles(source: bytes, result: dict[str, Json]) -> None:
+    box = _named(result.get("ast"), "struct", "Box")
+    value = _named(box, "field", "Value")
+    if _texts(value.get("grade")) != ["q"] or value.get("value") is not None:
+        raise ValueError("surface field grade was dropped or became an initializer")
+    start = source.index(b"Value @ q") + len(b"Value @ ")
+    if _object(value.get("grade"), "field use grade").get("span") != [start, start + 1]:
+        raise ValueError("surface field grade lost its own byte span")
+    debt = _named(box, "field", "Debt")
+    if (_object(debt.get("type"), "tracked field").get("modifier") != "tracked"
+            or _texts(_object(debt.get("grade"), "tracked field grade").get("callee")) != ["NatExact"]):
+        raise ValueError("surface tracked field's modifier and grade were conflated")
+    count = _named(box, "field", "Count")
+    _exact_span(source, count, b"public Nat Count @ (q + 1) = 0;")
+    _exact_span(source, _object(count.get("grade"), "computed field grade"), b"(q + 1)")
+    initialized = _object(count.get("value"), "graded field initializer")
+    if initialized.get("kind") != "nat" or initialized.get("value") != "0":
+        raise ValueError("surface graded field lost its separate initializer")
+    if _named(box, "field", "Plain").get("grade") is not None:
+        raise ValueError("surface ungraded field acquired an implicit grade")
+
+
+def _generic_impl_roles(result: dict[str, Json]) -> None:
+    implementations = [node for node in nodes(result.get("ast")) if node.get("kind") == "impl"]
+    if len(implementations) != 2:
+        raise ValueError("surface generic and callable implementation count differs")
+    implementation, callable_impl = implementations
+    generics = _sequence(implementation.get("generics"), "implementation telescope")
+    if [_object(value, "implementation binder").get("mode") for value in generics] != ["type", "grade"]:
+        raise ValueError("surface implementation lost its generic binder roles")
+    contracts = _sequence(implementation.get("contracts"), "implementation contracts")
+    if [_object(value, "implementation contract").get("role") for value in contracts] != ["where", "requires"]:
+        raise ValueError("surface implementation contracts leaked into its members")
+    _type_head(_type_head(implementation.get("type"), "Dup", 1)[0], "Box", 2)
+    member = _named(implementation, "function", "Split")
+    clauses = _sequence(member.get("contracts"), "implementation member contracts")
+    if len(clauses) != 1 or _object(clauses[0], "member postcondition").get("role") != "ensures":
+        raise ValueError("surface generic instance swallowed its member postcondition")
+    grouped = _object(callable_impl.get("type"), "grouped callable implementation target")
+    target = _object(grouped.get("type"), "callable implementation target")
+    if (grouped.get("kind") != "group_type" or target.get("kind") != "function_type"
+            or _texts(target.get("effects")) != ["Read"] or target.get("contracts") != []
+            or _texts(callable_impl.get("contracts")) != ["Reusable", "Read"]):
+        raise ValueError("surface callable target effects absorbed its implementation law")
+
+
+def _scoped_callable_roles(source: bytes, result: dict[str, Json]) -> None:
+    alias = _named(result.get("ast"), "alias", "Update")
+    callable_type = _object(alias.get("type"), "locally quantified callable")
+    generics = _sequence(callable_type.get("generics"), "callable generic telescope")
+    if [_object(value, "callable generic").get("mode") for value in generics] != ["region", "grade"]:
+        raise ValueError("surface callable failed to bind its own region and grade")
+    _exact_span(source, _object(generics[0], "local region"), b"region 'loan")
+    parameter = _object(_sequence(callable_type.get("parameters"), "scoped callable parameter")[0], "scoped parameter")
+    scoped = _object(parameter.get("type"), "scoped annotation")
+    loan = _object(scoped.get("type"), "locally named loan")
+    if (scoped.get("modifier") != "scoped" or loan.get("modifier") != "ref"
+            or _texts(loan.get("lifetime")) != ["'loan"] or _texts(parameter.get("grade")) != ["q"]):
+        raise ValueError("surface callable lost scoped loan or binder-grade composition")
+    _exact_span(source, parameter, b"scoped ref<'loan> T value @ q")
+    if _texts(callable_type.get("captures")) != ["C"] or _texts(callable_type.get("effects")) != ["Write"]:
+        raise ValueError("surface callable contracts displaced captures or effects")
+    clauses = _sequence(callable_type.get("contracts"), "callable contracts")
+    if [_object(value, "callable contract").get("role") for value in clauses] != ["requires", "restores"]:
+        raise ValueError("surface locally quantified callable lost its contract block")
+    _exact_span(source, _object(clauses[1], "callable restoration"), b"restores Valid(final(value))")
+    operation = _named(result.get("ast"), "function", "Apply")
+    outer = _sequence(operation.get("contracts"), "enclosing operation contracts")
+    if [_object(value, "outer contract").get("role") for value in outer] != ["requires", "ensures"]:
+        raise ValueError("surface callback contracts escaped their delimiter")
+    callbacks = [node for node in nodes(operation) if node.get("kind") == "function_type"]
+    if len(callbacks) != 1 or _texts(callbacks[0].get("contracts")) != ["CallbackReady", "selected", "CallbackClosed", "selected"]:
+        raise ValueError("surface enclosing operation swallowed callback contracts")
+    plain = _object(_named(result.get("ast"), "alias", "Plain").get("type"), "plain callable")
+    if plain.get("generics") != [] or plain.get("contracts") != []:
+        raise ValueError("surface plain callable fabricated generic binders or laws")
 
 
 def _callable_telescope_roles(source: bytes, result: dict[str, Json]) -> None:
@@ -1014,6 +1232,14 @@ def qualify(parse: Callable[[bytes], dict[str, Json]]) -> list[str]:
             raise ValueError(f"surface fixture {fixture.name} lacks AST roles: {sorted(missing)}")
         if fixture.name == "function-types-grades-and-contracts":
             _type_roles(result)
+        elif fixture.name == "dependent-match-expressions-and-motives":
+            _dependent_match_roles(fixture.source.encode("utf-8"), result)
+        elif fixture.name == "graded-struct-fields":
+            _field_grade_roles(fixture.source.encode("utf-8"), result)
+        elif fixture.name == "generic-library-implementations":
+            _generic_impl_roles(result)
+        elif fixture.name == "locally-quantified-callable-contracts":
+            _scoped_callable_roles(fixture.source.encode("utf-8"), result)
         elif fixture.name == "dependent-data-and-lifetimes":
             _receiver_roles(result)
         elif fixture.name == "typed-locals-and-scoped-callbacks":

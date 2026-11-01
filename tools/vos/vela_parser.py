@@ -284,6 +284,19 @@ def _fixtures(compiled: Build) -> list[str]:
     if _object(located["ast"], "file").get("span") != [10, 52] or _body(located).get("span") != [45, 49]:
         raise ValueError("UTF-8/CRLF original-byte spans differ")
     passed.append("original-byte-spans")
+    source = b"module M; public Nat as(Nat as) { return as; }"
+    pure_identifier = parse_source(compiled, source)
+    functions = _object(pure_identifier["ast"], "pure file").get("functions")
+    if not isinstance(functions, list) or len(functions) != 1:
+        raise ValueError("pure surface-keyword regression lost its function")
+    function = _object(functions[0], "pure function named as")
+    parameters = function.get("parameters")
+    if (_object(function.get("name"), "pure function name").get("text") != "as"
+            or not isinstance(parameters, list) or len(parameters) != 1
+            or _object(_object(parameters[0], "pure parameter").get("name"), "pure parameter name").get("text") != "as"
+            or _object(_body(pure_identifier).get("name"), "pure returned identifier").get("text") != "as"):
+        raise ValueError("surface match keyword changed a pure identifier")
+    passed.append("pure-identifier-as")
     # These are deliberately invalid programs accepted as syntax.
     for source in (
             b"module M; public Nat F() { return true + 1; } public Nat F() { return missing; }",
