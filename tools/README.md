@@ -102,11 +102,10 @@ records source revisions, interpreter, group timings and whole-process durations
 ordinary push runs do not benchmark. This comparison supplies performance evidence
 alongside the required Host and Guest handoff, not a replacement for either.
 
-New commits cancel superseded runs of the same pull request. Main runs share a
-concurrency group only when their trigger and tested revision are the same:
-the dispatch's explicit revision, or the event SHA. Duplicate automatic push
-runs cancel redundant work; each manual dispatch keeps its own run group;
-different revisions of `main` keep separate runs. The
+New commits cancel superseded runs of the same pull request. Main push runs share
+a concurrency group only for the same event SHA, canceling redundant automatic
+work. Each manual dispatch has its own run group, and different revisions of
+`main` keep separate runs. The
 [workflow's matrix](../.github/workflows/host-gates.yml) fixes each platform's
 partition count and runner image. Mutation cases and sorted behavioral test modules are partitioned by
 position within each OS, with every item assigned once. A test module that declares

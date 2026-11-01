@@ -19,8 +19,6 @@ The boot target campaigns retain independent staged-input triggers, cancellation
 groups and acceptance joins. Their repeated Sail setup belongs to the
 [target setup action](../../.github/actions/setup-target-sail/action.yml);
 their readiness checks and campaign verdicts belong to each workflow.
-Combining these campaigns would make a new crypto run cancel unrelated chain work
-or require another routing layer to preserve those boundaries.
 
 Manual qualification and measurement routes run only when their consumers need
 them. Model snapshots supply architecture-specific emulators beside the contained
