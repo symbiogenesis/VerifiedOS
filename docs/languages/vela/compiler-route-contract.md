@@ -1,34 +1,34 @@
 # Compiler route comparison contract
 
-> **Execution status:** [The workflow contract's commissioning disposition](workflow-contract.md#commissioning-disposition) governs the canceled experiments, retained proposal roles and re-entry conditions used here.
+> Q21b's non-normative route comparison. Start with the [primary Vela design and examples](verification-strategy.md); its [compiler-route decision](verification-strategy.md#compiler-route-decision) owns the alternatives. The [workflow disposition](workflow-contract.md#commissioning-disposition) governs canceled experiments and re-entry; [PLAN.md](../../../PLAN.md#q-assessment-actions) owns scope, estimates and execution state.
 
-Q21b's deliverable is a reviewed comparison at one artifact boundary: capability-correct final bytes, their required TAL and CIC evidence, and correspondence to the exact operational source. This document specifies that comparison for CHERI-C/Clight and direct capability-aware lowering. It supplies neither a compiler implementation nor a route selection. The [project plan](../../../PLAN.md#q-assessment-actions) owns scope, estimates and execution state; the [strategy](verification-strategy.md#compiler-route-decision) owns the architectural alternatives.
+Compare CHERI-C/Clight and direct capability-aware lowering at the same endpoint: capability-correct final bytes, required TAL/CIC evidence and exact operational-source correspondence. This contract implements neither route and selects neither.
 
-Vela's separate long-term [native verified compiler and self-hosting goal](unified-source-contract.md#native-verified-compiler-and-self-hosting) covers a Vela-authored source-to-image pipeline and verified bootstrap. Its [proposal owners](../../../PLAN.md#vela-whole-system-authoring-proposal) retain unpriced establishment and maintenance work beyond this bounded comparison. Composed transformation proofs and integrated certificate checking can supply proposed replacement evidence; they do not waive the current final-validation or named-producer duties below without the corresponding amendments.
+The separate [native compiler and verified-bootstrap goal](unified-source-contract.md#native-verified-compiler-and-self-hosting) retains its [unpriced establishment and maintenance](../../../PLAN.md#vela-whole-system-authoring-proposal). Composed transformation proofs and integrated certificate checking are possible replacement evidence, subject to amendments preserving the final-validation and named-producer duties below.
 
-**Decision: reject commissioning the paired artifact experiment from the current inputs.** The [review decision](#review-decision) takes Q21b's reasoned-rejection arm: neither full endpoint has a defensible establishment and maintenance price, and bounded emission leaves the shared program-logic and arbitrary-context obligations intact. This decides whether to commission the experiment, not which compiler route is better. The source interface is shared with [Q21a's core design](core-design.md), foundation dependencies with [Q2c's map](../../hardware/cheri-foundation-map.md), and accounting and target protocol with [Q20a's workflow contract](workflow-contract.md). The contract below remains the reviewable specification for a separately justified re-entry; it opens no implementation or measurement.
+**Decision: reject commissioning the paired trial from current inputs.** Neither full endpoint has defensible establishment/maintenance pricing; bounded emission preserves the shared logic and arbitrary-context duties. The [review decision](#review-decision) judges readiness, not route superiority. Re-entry retains [Q21a's source interface](core-design.md), [Q2c's foundations](../../hardware/cheri-foundation-map.md) and [Q20a's accounting/target protocol](workflow-contract.md).
 
 ## Fixed consumers and common source boundary
 
-The initial client is **P, parser destination initialization**, under the complete [Q20a operational contract](workflow-contract.md#p-composed-positive-client), including its initialization, read, failure and ownership restoration behavior. Both compiler routes must preserve that contract unchanged.
+Both routes preserve **P, parser destination initialization**, under [Q20a's full behavior contract](workflow-contract.md#p-composed-positive-client), including initialization, reads, failures and owner restoration.
 
-The current [DescriptorCheck](../../../tools/bedrock2-lowering/DescriptorCheck.v) is the starting executable specification for the header check. It reads and checks; it does not copy a descriptor or initialize a destination. The additional realization is a missing producer input whose owner and estimate must be settled under Q2c/Q2b before the initial client exists. Neither its hand-written C yardstick nor an unproved printer becomes the required decoder implementation under R-05-043.
+[DescriptorCheck](../../../tools/bedrock2-lowering/DescriptorCheck.v) supplies only the executable header check. Its missing descriptor copy and destination initialization need Q2c/Q2b ownership and estimates before P exists. The handwritten C yardstick and unproved printer satisfy no R-05-043 decoder obligation.
 
-The reserved client is **S, private service staging**, under [Q20a's held-out staging contract](workflow-contract.md#s-held-out-staging-client). Its sequential slice and exclusions apply unchanged to this comparison; expanding them requires a new trial revision.
+Reserved **S, private service staging**, retains [Q20a's sequential slice and exclusions](workflow-contract.md#s-held-out-staging-client); expansion needs a revised trial.
 
-[Q20a's freeze and independence rules](workflow-contract.md#freeze-and-independence) govern the reserved client's use. Here the freeze includes the emission rules and proofs, and a different lane implements the reserved adaptation against that frozen family.
+Apply [Q20a's freeze/independence rules](workflow-contract.md#freeze-and-independence), also freezing emission rules and proofs. A different lane adapts S against that family.
 
-The shared source interface is not a shared workload identity. Q21a's `PrepareAndInspect` qualification fixture exercises returned views and callback behavior beyond Q20a's P; it cannot serve as P's manual baseline or replace either client. P is compared with P and S with S, with each baseline and candidate retaining that client's initialization, result, callback and failure contract. Qualifying the core fixture supplies no P/S implementation or productivity measurement.
+Compare P with P and S with S at unchanged initialization, result, callback and failure behavior. Q21a's `PrepareAndInspect` fixture exercises additional returned views/callbacks; it is neither client's implementation, baseline or productivity measurement.
 
-Both routes consume Q21a's same content-addressed `SourcePackage`, interpreted computation and representation contract. That contract exposes an explicitly sequenced operation graph, stable runtime indices, erased checked evidence, branch-specific resource predicates, bounded loops, a closed read/write/call/no-allocation effect summary, and a fixed layout and ABI instance. Inputs, outputs, I/O observations, prescribed refusals and faults, and the leakage and cost observations required by the assurance tier remain part of the meaning. A direct CFG, block or SSA representation is an internal choice with a checked relation to that graph, not another authoritative source. The source owner supplies the checked parse, resolution, desugaring, interpretation and erasure connection to that graph; a source map and hash alone supply none of those relations. Each route owns transport from the graph through its representations to machine traces. Its explicit trace relation may abstract implementation-only helper events only with a checked justification that preserves the selected source observations, authority effects, refusal/trap classification and applicable leakage and cost interpretation.
+Both routes consume the same content-addressed Q21a `SourcePackage`, interpreted computation and representation contract: sequenced operation graph, stable runtime indices, erased checked evidence, branch resource predicates, bounded loops, closed read/write/call/no-allocation effects, fixed layout and ABI. Meaning includes inputs/outputs, I/O, prescribed refusals/faults and tier-required leakage/cost observations. The source owner proves parsing, resolution, desugaring, interpretation and erasure to that graph; maps/hashes alone suffice for none. Each route proves transport through its internal CFG/block/SSA representations to machine traces. Abstracting implementation-only helper events requires a checked trace relation preserving source observations, authority, refusal/trap classification and applicable leakage/cost interpretation.
 
-The matching manual baseline implements that same contract and obtains the same evidence endpoint. It is independently maintained only as the experimental comparator. The generated unoptimized and optimized variants each regenerate from the authoritative source. Each route gets the same source change, input set, caller grants, primitive contracts, memory placement, link context, optimization eligibility and evidence obligations. A route cannot buy an apparent saving by assigning its caller a larger grant or weakening the failure predicate.
+Maintain the manual baseline independently as the experimental comparator at the same contract/evidence endpoint. Regenerate unoptimized and optimized candidates from authoritative source. Give both routes identical source changes, inputs, caller grants, primitive contracts, placement, link context, eligible optimizations and evidence duties. Larger grants or weaker failures invalidate the comparison.
 
 ## Baseline identity and evidence
 
-The decision inspection uses repository revision `4aeaceedf4626ef64583a4680c19da29a469df4f`. Its tracked gitlinks are inspected with `git ls-files -s upstream`; [THIRD-PARTY.md](../../../THIRD-PARTY.md#pinned-as-submodules) owns their recorded pins. Gitlink presence does not imply that its source or a qualifying theorem is built in a linked worktree.
+Decision inspection: `4aeaceedf4626ef64583a4680c19da29a469df4f`. Inspect tracked gitlinks with `git ls-files -s upstream`; [THIRD-PARTY.md](../../../THIRD-PARTY.md#pinned-as-submodules) owns the pins. A gitlink establishes neither a populated checkout nor a built theorem.
 
-The following is an evidence reading of tracked source and recorded results, not a fresh compiler run. Exact historical measurements stay at their owning artifacts instead of becoming a second maintained census here.
+This reads tracked source and recorded evidence, without a fresh compiler run. Historical measurement details remain at their linked owners.
 
 | Artifact and identity | Available evidence and actual subject | Missing connection at this endpoint |
 | --- | --- | --- |
@@ -40,25 +40,25 @@ The following is an evidence reading of tracked source and recorded results, not
 | [MemoryPlan.v](../../../proofs/MemoryPlan.v) | `the_specification_narrowing_is_exact` proves `Exact demo_plan inner_narrowing`; the surrounding specification and refutations give M1.2e a narrowing-check input. | This instance is not a theorem that every emitted narrowing uses a Sail-connected check. Representation, emission-site coverage and the machine connection remain owed. |
 | [Q2c's available artifacts](../../hardware/cheri-foundation-map.md#available-artifacts) | Actual constants, their semantic subjects, selected pins and the distinction between a local absence and an unconnected upstream result. | Inspection alone does not qualify an upstream result. The [required connections](../../hardware/cheri-foundation-map.md#required-connections) remain prerequisites on both arms. |
 
-The current M1.2 acceptance state must be read at trial entry. Q2a's older plain-RV64 and capability-printer measurements are historical evidence at the revisions that generated them, not a claim about all later backend revisions. The full contained commit, source digest, build recipe, extraction status, assumption census and compiler binary digest must be refreshed together by the compiler owner. This design lane neither reads a different checkout's uncommitted work nor reconstructs contained compiler source here.
+At entry, read current M1.2 acceptance and have the compiler owner refresh the contained commit, source digest, build recipe, extraction status, assumptions and binary digest together. Q2a's plain-RV64/capability-printer observations apply only to their recorded revisions. This design imports neither another checkout's uncommitted work nor contained compiler source.
 
 ## Equivalent artifact endpoint
 
-An endpoint package contains the authored source closure, elaboration and interpretation evidence, representation instance, generated IR, transformation records, exact primitive and ABI contracts, final linked image and its digest, TAL certificate, deeper CIC proofs required by its tier, and the validation record for every assembly, relaxation, link, layout and image-construction step. Every machine theorem resolves to the same Sail-generated Rocq definitions used by hardware refinement under R-05-019b. A proof of a separately transcribed capability machine is an unconnected result until an admitted agreement theorem supplies the connection.
+The endpoint package contains authored source closure, elaboration/interpretation evidence, representation, generated IR, transformation records, exact primitive/ABI contracts, final linked image/digest, TAL certificate, tier-required CIC proofs and validation of every assembly, relaxation, link, layout and image-construction step. Machine theorems resolve R-05-019b's same Sail-generated Rocq definitions as hardware refinement. A separate machine transcription needs an admitted agreement theorem.
 
-The final-image source-correspondence theorem quantifies over every behavior permitted by the selected model and context and refines the exact committed source closure under its explicit assumptions. It covers failures, divergence or termination as the contract requires, authority and initialization effects, and declared observations. A terminating postcondition alone does not supply progress. Robust preservation additionally quantifies over adversarial linked contexts under R-05-024; an induction on emitted programs or tests of selected hostile callers does not replace that quantifier.
+Final-image correspondence covers every behavior permitted by the model/context against the exact committed source and declared assumptions: failures, required divergence/termination treatment, authority, initialization and observations. A terminating postcondition supplies no progress. R-05-024 robust preservation additionally quantifies over adversarial linked contexts; emitted-program induction or hostile-caller samples cannot replace it.
 
-R-05-023a still requires CIC-checked decompilation into the R-13-017 Iris-over-Sail logic. Unary safety, the universal capability contract, relational constant-time and syntax-directed cost remain theories of that logic. TAL soundness and the required deeper proof obligations meet the final binary under R-05-026. A bounded emission theorem can assist construction or discharge instruction cases in that logic; it cannot make that logic unnecessary by restricting the producer's syntax. Host SMT, oracle and differential results can falsify claims and cannot act as substitute kernels.
+R-05-023a requires CIC-checked decompilation into R-13-017's Iris-over-Sail logic, including unary safety, universal capability contract, relational constant-time and syntax-directed cost. TAL soundness and deeper tier obligations meet the final binary under R-05-026. Bounded emission may discharge construction/instruction cases, but cannot replace that logic. Host SMT, oracle and differential results supply falsification, not substitute kernels.
 
-For each route, validation and target execution consume that route's exact final image; promotion retains those bytes. The two routes need not emit identical bytes. Their theorems must relate their respective bytes to the same source contract, assumptions and observation model. A changed relocation, byte, certificate, source binding or configuration invalidates the dependent evidence. Recompiling after validation produces a new subject and requires a new package.
+Validate, execute and promote each route's exact final image. Bytes may differ across routes; their source contract, assumptions and observation model may not. Changed bytes, relocations, certificates, source bindings or configuration invalidate dependent evidence; recompilation requires a new package.
 
 ## Route boundaries and closed emission family
 
-**Clight arm.** Construct an imperative implementation with a proved relation to the common source graph, prove the representation bridge to capability-aware CHERI-C/Clight, retain the applicable verified compiler passes and their proofs after the CHERI adaptation, then supply final Sail validation and admission evidence. C printing is included in the bridge if used. Retaining invariants in simulation relations is allowed; erasing an annotation does not waive proving its semantic consequence.
+**Clight arm.** Prove common-graph-to-imperative transport and its capability-aware CHERI-C/Clight representation bridge, including C printing if used. Retain proofs for applicable CHERI-adapted compiler passes, then supply final Sail validation/admission. Simulation relations may retain invariants; annotation erasure must preserve their semantic consequences.
 
-**Direct arm.** Construct an explicit-memory capability IR with a proved relation to the same source graph and representation, compose the bounded emission rules below, and reuse or verify/validate applicable optimization and allocation before the same final Sail and admission endpoint. A block representation is the trial's default interface because sequencing and joins are explicit; introducing SSA requires a proved conversion, phi/parallel-move behavior and capability-preserving allocation, charged to the direct arm. No general frontend, LLVM path or new optimization framework is commissioned here.
+**Direct arm.** Prove transport to explicit-memory capability IR at the same source/representation, compose the bounded emission rules and reuse or verify/validate applicable optimization/allocation before the same Sail/admission endpoint. Blocks are the default for explicit sequencing/joins. SSA additionally needs proved conversion, phi/parallel moves and capability-preserving allocation, charged here. This commissions no general frontend, LLVM path or optimization framework.
 
-The candidate family below is a proposed closed producer grammar. It is not a second enumeration of the ISA: concrete encodings and primitive names are resolved exclusively through the selected [profile](../../hardware/isa-profile.md) and its Sail clauses under R-05-023b. Each rule record binds its input constructor, emitted term, entry and exit representation predicates, consumed and restored frame, word-arithmetic premises, effects and observations, termination/cost obligations, and the Rocq constant of its Sail simulation. An empty constant field blocks the rule; a comment naming a desired theorem does not fill it.
+This proposed closed producer grammar resolves encodings and primitive names exclusively through the selected [profile](../../hardware/isa-profile.md) and Sail clauses under R-05-023b. Each rule binds input constructor, emitted term, entry/exit representations, consumed/restored frame, word-arithmetic premises, effects/observations, termination/cost duties and its Sail-simulation Rocq constant. A missing constant blocks the rule; a desired-theorem comment is insufficient.
 
 | Rule family | Permitted form | Required proof obligations and refusing neighbor |
 | --- | --- | --- |
@@ -72,7 +72,7 @@ The candidate family below is a proposed closed producer grammar. It is not a se
 | `frame` | Static entry/exit and declared spill slots under the composed plan | Fresh initialized live ranges, tag-preserving spills, stack bounds, preserved registers and exact return authority. No runtime allocator, garbage collector or hidden dynamic frame exists. |
 | `call` | A statically linked helper or explicitly contracted sentry/primitive call with the matching return form | Required/provided ABI and authority, effects, observations, relocations and termination behavior; no unchecked external, callback, suspension or reentrancy is added. Primitive semantics is its profile-bound Sail clause. |
 
-The trials use scalar operations required by the selected clients. Q20a's repeatable zero-byte source callback must specialize to a proved loop body or statically contracted helper before entering this family; specialization preserves its invocation, capture, effect and restoration obligations. The family admits no unchecked dynamic callback. This restriction does not discharge R-18-014's vector, scalar-floating-point or other production completeness duties. A bounded success qualifies the family and clients only. M1.3 and M1.3a remain the owners of applicable required optimizations, including outlining and tail merging; they do not acquire a second budget here.
+The trial uses the clients' scalar operations. Specialize Q20a's repeatable zero-byte callback to a proved loop body or contracted static helper, preserving invocation, capture, effect and restoration duties; unchecked dynamic callbacks are excluded. Success qualifies only this family/clients, leaving R-18-014's vector, scalar-floating-point and production completeness intact. M1.3/M1.3a retain required optimizations, including outlining/tail merging, without a second budget.
 
 Closure is decided in the following order, with the rules and proof constants frozen before the reserved client is lowered:
 
@@ -84,7 +84,7 @@ Closure is decided in the following order, with the rules and proof constants fr
 
 ## Reproduction and measurement protocol
 
-Before a producer or trial lane opens, a reviewed manifest records the following fields. They are required schema fields, not fabricated values for artifacts that do not exist. An absent field makes the package incomplete; `n/a` needs an explicit reason and cannot substitute for a required proof, target or comparator.
+Before producer/trial entry, freeze a reviewed manifest with these required fields. Missing fields leave an incomplete package; justified `n/a` cannot replace a required proof, target or comparator. Record actual artifacts, never fabricated values.
 
 ```text
 contract_revision; route; client; baseline_kind;
@@ -99,11 +99,11 @@ input_generator_and_seed; mutation_identity; host_machine_and_worker_limit;
 attended_work_log; wall_and_CPU_time; peak_RSS; result_and_missing_premises
 ```
 
-Baseline source identities in [the evidence table](#baseline-identity-and-evidence) remain fixed historical comparators. New producer revisions are named and frozen in this manifest by their owners before paired measurements, not filled with a guessed future commit. Replacing a baseline or threshold after seeing results is a revised experiment with an explicit reason; the old result remains visible. The compiler binary, runtime/primitive closure and copied third-party preambles enter identity and licence accounting alongside authored source.
+Keep [historical comparator identities](#baseline-identity-and-evidence) fixed; owners freeze actual producer revisions before measurement. Changing a baseline/threshold after results requires a revised experiment, explicit reason and retained old result. Identity/licence accounting includes compiler binary, runtime/primitive closure and copied third-party preambles alongside authored source.
 
-Use [Q20a's target protocol](workflow-contract.md#target-and-production-artifact-protocol): identical actual profile and Sail closure, memory-class and slot assignments, ABI and calling context, generation constants, link policy and eligible transformations. The main comparison includes manual, generated unoptimized and generated optimized variants at the same assurance endpoint. A secondary unoptimized comparison may isolate construction overhead; it earns no production performance claim. Every method receives the same initial, empty, one-element, boundary and full-capacity inputs, malformed discriminants, truncated fields, overflow and failure cases, with limits generated from the frozen declarations.
+Apply [Q20a's target protocol](workflow-contract.md#target-and-production-artifact-protocol) with identical actual profile/Sail closure, memory classes/slots, ABI/call context, generation constants, link policy and eligible transforms. Compare manual, generated unoptimized and generated optimized variants at equal assurance. A secondary unoptimized comparison isolates construction overhead without production-performance credit. Generate shared initial, empty, one-element, boundary, full-capacity, malformed-discriminant, truncated-field, overflow and failure inputs from frozen declarations.
 
-No missing metric is inferred from another unit. The corpus trace exposes architectural retire order and capability memory effects; it does not supply a cycle counter. A timing claim needs the selected timing annotation and its declared core class, obtained under R-18-024/R-18-025, or a separately identified instrument with its justified model. Host elapsed time is proof/build cost; instruction count is code/trace evidence; neither is target cycles or a WCET certificate. SRAM/interconnect traffic and tag effects are reported from supported observations, never as invented cache misses or silicon stalls.
+The corpus trace supplies retire order/capability memory effects, not cycles. Timing needs R-18-024/R-18-025's annotation and core class, or an identified instrument with a justified model. Host elapsed time measures proof/build cost; instruction counts measure code/traces. Neither supplies target cycles or WCET. Report SRAM/interconnect/tag effects only from supported observations, without invented cache-miss or silicon-stall metrics.
 
 | Measurement | Predeclared criterion |
 | --- | --- |
@@ -115,11 +115,11 @@ No missing metric is inferred from another unit. The corpus trace exposes archit
 | Reproduction and stability | A clean independent lane reproduces each route's final image and checks its evidence under permitted toolchain access. Deterministic target results must repeat exactly. Record a cold run and repeat warm runs until the prescribed workflow sample is complete; do not select the fastest sample or erase contention. |
 | Adoption and maintenance | Apply [Q20a's accounting threshold](workflow-contract.md#accounting-and-decision-thresholds) at this full endpoint, with shared establishment and later repair included. A source-level saving cannot pay for an unmeasured machine connection. |
 
-Capability-specific attribution records actual narrowing/derivation and redundant authority operations, tag-preserving spill/reload traffic, peak live capability pressure, ABI and slot padding, representability refusals and the interactions of allocation or memory promotion with tags. A scalar transformation is not charged as a capability saving merely because its operand occupies the merged register file. Report where provenance-preserving CSE, coalescing or allocation reuses existing qualified machinery, where a new proof is required, and the source/site responsible for each cost. Read the width and register organization from the selected profile and model instead of assuming a separate capability file or an upstream pointer size.
+Attribute capability costs by source/site: narrowing/derivation, redundant authority operations, tag-preserving spills/reloads, peak live capabilities, ABI/slot padding, representability refusals and allocation/memory-promotion tag effects. A scalar transform in the merged register file earns no capability-saving label by itself. Distinguish qualified reuse from new proof work in provenance-preserving CSE, coalescing and allocation. Read widths/register organization from the selected profile/model.
 
 ## Negative and disagreement cases
 
-The population is generated from the selected declarations and emitted sites. Each family below has an intended failure layer recorded before mutation; a syntax error is not the claimed semantic refutation. Source-level neighbors may properly fail elaboration, while backend and artifact mutations must reach the downstream judgment whose coverage they test.
+Generate variants from selected declarations and emitted sites, recording each intended failure layer before mutation. Source neighbors may fail elaboration; backend/artifact variants must reach the downstream judgment under test. A syntax error supplies no semantic refutation.
 
 | Mutation or disagreement | Required outcome |
 | --- | --- |
@@ -135,13 +135,13 @@ The population is generated from the selected declarations and emitted sites. Ea
 | The two routes return different statuses, effects, tags, failures, resource use or allowed observations | Preserve both images and reduce the disagreement against the common source contract and pinned Sail definitions. No route serves as truth merely because it is incumbent or shorter. |
 | Both routes agree but the reference contract is weakened or common parsing/layout is wrong | The negative contract cases must still reject; shared parsers, source generation, semantics, proof kernel and validation infrastructure are recorded as common-mode dependencies. Agreement is not independent proof. |
 
-Source maintenance probes separately change a client bound, an equal-width field interpretation, the representation or ABI, and an admitted optimization choice. Record which generic theorems replay unchanged, which instance and client proofs change, which certificates invalidate, and the attended repair plus machine costs. The reserved client cannot count a newly authored byte semantics as generic reuse.
+Separately change a client bound, equal-width field interpretation, representation/ABI and admitted optimization. Record unchanged generic replay, changed instance/client proofs, invalidated certificates and attended/machine repair costs. New byte semantics for the reserved client is not generic reuse.
 
 ## Pricing and entry conditions
 
-Every work record declares the checklist's effort series. Human attended hours and summed agent-session hours stay separate from each other and from machine wall time, CPU time and RSS, following Q20a's accounting convention. Existing actuals are evidence about their own completed milestone, not person-hour conversions and not full-route establishment costs. Neither the strategy's person-year bands nor sunk compiler work determines this comparison's answer.
+Declare each record's effort series under Q20a: human attended hours, summed agent-session hours, machine wall time, CPU and RSS remain separate. Existing actuals describe their own milestones; neither they, person-year bands nor sunk compiler work establish this full-route cost.
 
-For each row below, the trial ledger must provide `establishment`, `remaining_port`, `shared_maintenance` and `per_client_repair`, each as an owner-linked estimate interval before opening implementation and a measured interval at adoption. Establishment is the cost of obtaining a qualified artifact at this endpoint, including reusable prerequisites; remaining port credits demonstrated reusable artifacts rather than subtracting every historical hour. Unresolved work is `unpriced`, never zero. Shared work has one canonical owner and is included once in each complete alternative's counterfactual cost; it is charged only once to the integrated plan.
+For every row record owner-linked `establishment`, `remaining_port`, `shared_maintenance` and `per_client_repair` intervals: estimates before implementation, measurements at adoption. Establishment includes reusable prerequisites needed for this endpoint; remaining port credits demonstrated artifacts, not historical hours indiscriminately. Unknown work is `unpriced`. Common work has one owner, appears once in each full alternative and is charged once to the integrated plan.
 
 | Obligation | Clight route ownership and credit | Direct route ownership and credit |
 | --- | --- | --- |
@@ -154,19 +154,24 @@ For each row below, the trial ledger must provide `establishment`, `remaining_po
 | Linkage, production join and reproduction | Existing assembler/composer and proof owners; Q20c measures a qualified artifact join | Same owners when genuinely shared; a different ABI/link bridge needs an explicit owner and estimate before implementation |
 | Bounded comparison execution and review | A paired measurement package consumes completed prerequisites; it is not paid from Q21b's design cell | Same package and equal experiment caps; route-specific repair is booked separately at the owner of the repaired artifact |
 
-Q2c's [ownership decision](../../hardware/cheri-foundation-map.md#review-decision) rejects commissioning its missing canonical logic and contextual foundation as part of the bounded generic experiment. Its decision keys above identify obligations and existing ownership, not new schedule cells or qualified artifacts. The general Iris-over-Sail foundation, robust-context connection, source/representation bridges and direct backend establishment have no defensible full-establishment or recurring-maintenance interval at this endpoint. The [hardening boundary](../../../PLAN.md#12-build-order-milestones-and-execution-state) explicitly leaves secure compilation, R-05-023a validation, certificate mode and related proof work outside M1's functional bring-up price. Borrowing those numeric cells would price different endpoints. The incumbent retains partial encoding and compiler work, but its full cost is unknown too.
+Q2c's [decision](../../hardware/cheri-foundation-map.md#review-decision) declines commissioning missing canonical logic/context foundations for the generic experiment. Its keys identify existing duties, not new cells or qualified artifacts. Iris-over-Sail, robust-context transport, source/representation bridges and direct-backend establishment lack defensible establishment/maintenance intervals here. [M1's functional price excludes the hardening endpoint](../../../PLAN.md#12-build-order-milestones-and-execution-state): secure compilation, R-05-023a validation, certificate mode and related proofs. Partial incumbent encoding/compiler evidence does not price its full route either.
 
-The bounded emission alternative changes the construction of code and its local simulation cases. It still needs `machine-logic`, `byte-instance`, `scoped-resources`, `context-preservation` and `artifact-admission` wherever the selected guarantee requires them. Its induction ranges over its admitted producer grammar; the hostile context in R-05-024 is not generated by that grammar. Thus this alternative identifies no checked replacement or quantified cost reduction for the foundation that blocks commissioning. This rejects the claimed readiness of the reduced experiment, without concluding that a future bounded backend is impossible or that every local lemma must be authored anew.
+Bounded emission reorganizes construction/local simulation, retaining required `machine-logic`, `byte-instance`, `scoped-resources`, `context-preservation` and `artifact-admission`. Its producer-grammar induction excludes R-05-024's arbitrary hostile context. It supplies no checked substitute or quantified saving for the blocking foundation; this rejects readiness, not future bounded backends or reuse of local lemmas.
 
-The conditional **paired artifact trial** retains a proposed 16 h, range 8–24 h, authority-class-X execution budget. It is unbooked and is not commissioned by this decision. The proposal can be reconsidered only after the re-entry packages below exist; its finite execution cap is not an estimate for constructing a producer or proving a missing foundation. **Start:** both useful clients, the frozen source/representation and emission contracts, accepted producer images, required proof/admission artifacts, selected-file licence decisions, complete cost ledger and an independent Tier-A reviewer. **Owns:** route manifests, paired reproduction, generated negative/disagreement population, capability-cost attribution and full-endpoint adoption report. **Check:** the endpoint, closure, budgets and mutations in this document plus the applicable Q20a protocol, with stillborn/killed/survivor separation. **Join:** Q20c's artifact promotion report and the conditional amendment dossier; a successful trial can support a later decision and cannot amend the register. The cap covers execution and reading of supplied artifacts. A missing backend, client, law, proof or timing model returns to its separately estimated producer before this cell opens.
+The conditional **paired artifact trial** has a proposed, unbooked 16 h execution budget (8–24 h, class X). It opens only after the re-entry packages; the cap covers executing/reviewing supplied artifacts, not constructing producers or foundations.
+
+- **Start:** P and S; frozen source/representation/emission contracts; accepted producer images; required proof/admission artifacts; selected-file licence decisions; complete cost ledger; independent Tier-A reviewer.
+- **Owns:** route manifests, paired reproduction, generated negatives/disagreements, capability-cost attribution and full-endpoint adoption report.
+- **Check:** this contract's endpoint, closure, budgets and mutations plus applicable Q20a protocol, separating stillborns, kills and survivors.
+- **Join:** Q20c promotion report and conditional amendment dossier. Success supports a later decision, without amending the register.
+
+Missing backends, clients, laws, proofs or timing models return to separately estimated producers before entry.
 
 ### Re-entry packages
 
-Each package below is a prerequisite dossier for a named subject and an
-accountable owner. It is not permission to implement that subject. The owner must
-supply Start, Owns, Check and Join plus separate establishment, remaining-port and
-maintenance intervals before a new implementation cell opens. A deadline for
-writing a dossier cannot stand in for those implementation estimates.
+Each prerequisite dossier below needs an accountable owner, Start/Owns/Check/Join
+and separate establishment, remaining-port and maintenance intervals before an
+implementation cell opens. A dossier or its deadline authorizes no implementation.
 
 | Package and accountable owner | Required output and predeclared check | Join and stopping condition |
 | --- | --- | --- |
@@ -176,15 +181,13 @@ writing a dossier cannot stand in for those implementation estimates.
 | Useful clients and baselines, Q2b for P and M7.1 for S | Supply executable byte-memory definitions and independent matched baseline evidence under Q20a, with exact failure and initialization behavior. State any scope excess at its existing owner and price only that extension | Q19c qualifies actual laws, freezes the development interface, then Q20b records the single held-out adaptation. Stop if S has supplied design feedback or if a core fixture is substituted for either workload |
 | Paired measurement and adoption, the Q21b comparison owner with Q20c's integrator | Freeze complete manifests, cost allocation, independent reviewer, target/cycle evidence and licence dispositions; apply this contract's image identity, mutations, closure and Q20a thresholds | Only accepted producer/foundation packages can release the conditional measurement cell. Unknown historic or recurring cost keeps full-endpoint adoption undecided; it is not silently cancelled as common cost |
 
-New evidence in these packages can justify revisiting the commissioning decision.
-Neither a newly accepted design nor a newly assigned estimate supplies Q19c's
-checked laws, a final-artifact proof or an amended decoder route. No direct
-backend implementation, foundation construction, new frontend or proof-system
-port is commissioned here.
+These packages may justify reconsideration; designs and estimates alone supply
+neither Q19c's checked laws, final-artifact proofs nor an amended decoder route.
+No backend, foundation, frontend or proof-system port is commissioned here.
 
 ## Conditional amendment and reviewer requirements
 
-The proposed R-05-043 amendment would permit a specifically admitted explicit-memory capability intermediate in addition to Clight for synthesized decoders. It must preserve correct-by-construction descriptor-to-implementation transport, fixed-destination initialization, copy-once behavior, failure policy, bounded representation and exact-source-to-Sail refinement, with neither managed-runtime extraction nor hand refinement per grammar. It is conditional text for a later register act; the existing entry and its [specification prose](../../spec.md#r-05-043) remain binding.
+A future R-05-043 amendment could admit an explicit-memory capability intermediate alongside Clight for synthesized decoders. It must preserve correct-by-construction descriptor transport, fixed-destination initialization, copy-once behavior, failures, bounded representation and exact-source-to-Sail refinement, without managed-runtime extraction or per-grammar hand refinement. The current entry and [prose](../../spec.md#r-05-043) remain binding until that act.
 
 | Existing duty | Evidence or decision owed before any substitution |
 | --- | --- |
@@ -196,40 +199,32 @@ The proposed R-05-043 amendment would permit a specifically admitted explicit-me
 | R-18-014 and its refinements | Retain the named CHERI-CompCert TCB and certifying-Rust deliverables and their full target/optimization/placement duties. A direct generated route counts as neither. Any replacement needs an explicit owner, scope, bootstrap and independence decision at those requirements |
 | Typed interoperation and compiler independence | Proved linkage to retained verified-C and Rust components; shared frontend, model, validator and proof dependencies disclosed. A differently named executable is not an independent assurance path |
 
-The compiler owner reviews the emission and current backend facts; the foundation owner reviews actual theorem subjects and assumptions; the source owner reviews interpretation and failure behavior; the target/admission owner reviews the final package and timing claims. Tier-A acceptance requires a reviewer independent of the route implementer who can inspect and replay both routes' proof and IR artifacts at the stated revisions. A contained dependency unavailable to that reviewer blocks the claimed review/reproduction endpoint rather than being waived.
+Review responsibilities: compiler owner, emission/backend facts; foundation owner, theorem subjects/assumptions; source owner, interpretation/failures; target/admission owner, final package/timing. Independent Tier-A review must inspect and replay both routes' proof/IR artifacts at stated revisions. An inaccessible contained dependency blocks that review/reproduction endpoint.
 
-The selected-file and transitive-dependency licence record precedes incorporation. The current [CompCert/SECOMP reading](../../../THIRD-PARTY.md#compcert-and-secomp) and [development-tool inventory](../../../THIRD-PARTY.md#development-tools-contained-by-use) are the starting evidence; changed pins and newly selected files require their own upstream-file reading. The comparison accounts separately for permission to inspect/replay, commercial use, compiler redistribution, generated preambles and runtime/helper distribution. This document conveys no compiler source and obtains no new licence grant.
+Read selected-file and transitive-dependency licences before incorporation, starting from the [CompCert/SECOMP record](../../../THIRD-PARTY.md#compcert-and-secomp) and [tool inventory](../../../THIRD-PARTY.md#development-tools-contained-by-use). New files/pins need new readings. Separately qualify inspection/replay, commercial use, compiler redistribution, generated preambles and runtime/helpers. This contract conveys no compiler source or licence grant.
 
-Direct lowering removes a route-local dependency only when its selected implementation and proof closure actually omit that dependency under their recorded terms. Reusing an adapted backend pass through a different IR does not change its licence. Clight's dual-licensed material, the retained TCB and Rust duties, Velus and the oracle environment receive their own dispositions before any whole-toolchain claim. A route-local result cannot claim whole-toolchain commercial rebuildability.
+Dependency removal requires its absence from the selected implementation/proof closure; changing IR leaves reused-pass licences intact. Whole-toolchain commercial rebuildability separately disposes of Clight's dual-licensed material, retained TCB/Rust duties, Velus and the oracle environment. A route-local result is insufficient.
 
 ## Review decision
 
-**Reject commissioning this paired artifact experiment from the current inputs.**
-The decisive missing prerequisite is a responsibly bounded full-endpoint
-foundation, shared with Q2c, plus a priced direct producer and its maintenance.
-The rejection is a design decision under Q21b's stated alternative, not an
-experimental result. It rests on the following reviewable distinctions:
+**Reject commissioning from current inputs:** the shared Q2c full-endpoint
+foundation, direct producer and maintenance lack defensible scope/pricing.
+This is Q21b's reasoned design rejection, based on these evidence boundaries:
 
-- The available parser theorem ends at a read-only Bedrock2 byte-memory subject;
-  the copy-service theorems end at abstract data and read counts. Neither
-  constructs the copying clients' CHERI memory or final-byte evidence.
-- The current contained compiler has useful partial evidence, including the
-  focused recomposition repair. M1's open functional acceptance and its deferred
-  hardening have different endpoints, so neither success nor failure of that
-  focused build decides the proposed production comparison.
-- The finite emission grammar could organize local simulation work, but supplies
-  no replacement for the canonical logic and hostile-context quantifier. Q2c's
-  foundation remains required on both arms despite its rejected commissioning,
-  and its unknown price cannot be zeroed or hidden in a measurement cap.
-- Q20a requires attributable setup and maintenance at the same evidence endpoint.
-  No credible interval for these prerequisites means no defensible full-route
-  saving or break-even verdict. No paired benchmark in this comparison establishes a
-  performance loss, a failed semantic route or superiority of either compiler.
+- Parser evidence ends at read-only Bedrock2 byte memory; copy-service evidence
+  at abstract data/read counts. Neither supplies the clients' CHERI copying or
+  final-byte evidence.
+- Partial compiler evidence, including recomposition repair, decides neither
+  M1's open functional acceptance nor the separate production-hardening endpoint.
+- Finite emission organizes local simulation without replacing canonical logic
+  or the hostile-context quantifier. Both routes retain Q2c's foundation, whose
+  unknown price cannot become zero or hide in a measurement cap.
+- Q20a's same-endpoint setup/maintenance accounting needs credible intervals.
+  Without them, saving and break-even remain unknown. No paired benchmark here
+  establishes performance loss, semantic failure or compiler superiority.
 
-The predeclared consumers, failure cases, artifact identity, emission closure,
-measurement thresholds, licensing and conditional amendment obligations are
-retained for the re-entry decision above. Tier-A review and the integration gate
-record acceptance of this reasoned rejection in the checklist and completion
-log; document consistency alone cannot accept it. The conditional trial and
-Q19c remain unopened, the current M1/Q2 realization retains its owners, and no
-requirement or implementation estimate changes through this decision.
+Re-entry retains the consumers, failures, artifact identity, closure, thresholds,
+licences and amendment duties above. Tier-A review and integration acceptance
+belong in the checklist/completion log; document consistency is insufficient.
+The conditional trial/Q19c stay unopened, and M1/Q2 ownership, requirements and
+implementation estimates remain unchanged.

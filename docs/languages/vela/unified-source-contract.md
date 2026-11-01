@@ -1,62 +1,52 @@
 # Vela Whole-System Authoring Contract
 
-> Non-normative extension of the [language strategy](verification-strategy.md).
-> This contract specifies the proposed endpoint and the evidence needed to replace
-> existing authoring routes, including Sail. It implements no language, proves no
-> agreement theorem and amends no requirement. The [proposal ownership](../../../PLAN.md#vela-whole-system-authoring-proposal)
-> stays in PLAN.md; the [requirements register](../../requirements-register.md)
-> governs every admitted artifact until a replacement amendment lands.
+> Non-normative replacement criteria extending the [primary Vela design and examples](verification-strategy.md).
+> [PLAN.md](../../../PLAN.md#vela-whole-system-authoring-proposal) owns proposal stages;
+> the [requirements register](../../requirements-register.md) governs admission until
+> explicit amendments accept replacements. This contract supplies no implementation
+> or agreement theorem.
 
 ## Authoring end state
 
-Vela is intended to author the project's software, behavioral contracts, proofs,
-machine semantics and hardware designs. Repository-owned Gallina, Sail, C and
-VST scripts can retire as maintained sources when their replacements meet this
-contract. Generated Rocq terms, Clight, machine code and RTL remain acceptable
-build products. Existing proved libraries can remain dependencies behind Vela
-interfaces; reproducing their source in new syntax is no qualification result.
+Vela is intended to author software, contracts, proofs, machine semantics and
+hardware. Qualified replacements may retire maintained Gallina, Sail, C and VST
+sources. Generated Rocq terms, Clight, machine code and RTL remain valid products;
+proved libraries may remain dependencies behind Vela interfaces. Rewriting a
+library's syntax earns no qualification credit.
 
-The whole-system source closure includes firmware, the kernel, storage and system
-services, their bootstrap code, and low-level ISA/ABI primitives. Generated
-instruction and assembly stubs are acceptable; a primitive takes its meaning from
-the admitted machine definition and carries the required source and binary
-evidence. Inline assembly or a foreign stub supplies no semantic escape hatch.
-Retained upstream libraries and imported RTL have explicit dependency boundaries
-and qualification records. A complete authoring claim identifies its source
-closure and cannot conceal remaining first-party handwritten C, Gallina, VST or
-Sail inside it. Claims covering the toolchain's own authorship also include its
-compiler, proof automation and generators in that closure.
+Declare the source closure: firmware, kernel, storage, services, bootstrap and
+ISA/ABI primitives, plus compiler, proof automation and generators when claiming
+toolchain authorship. Remaining first-party handwritten C, Gallina, VST or Sail
+must stay visible. Generated instruction/assembly stubs are permitted, with
+primitive meaning from the admitted machine and required source/binary evidence;
+inline assembly and foreign stubs grant no semantic exception. Retained libraries
+and imported RTL need explicit dependency boundaries and qualification records.
 
-An accepted component has one maintained operational definition, its reviewed
-contract, representation information and proofs. The production executable and
-software reference are outputs of that definition, with correspondence to the
-exact final image. No manual optimized rewrite or repair of generated output
-belongs between that source and promotion. Explicit algorithm or layout choices
-may be authored in Vela and must carry their refinement evidence; arbitrary
-Gallina computations are not presumed efficiently lowerable.
+Each accepted component has one maintained operational definition, reviewed
+contract, representation and proofs. Its software reference and production
+executable derive from that definition with exact-final-image correspondence;
+manual optimized rewrites and generated-output repairs are excluded. Authored
+algorithm/layout choices need refinement evidence. Arbitrary Gallina computations
+are not presumed efficiently lowerable.
 
-One language supports distinct interpretations: total pure definitions and proofs,
-effectful software with explicit storage, architectural transition systems, and
-cycle-level hardware. Phase and target restrictions are part of each module's
-interface. A specification may use unbounded mathematical values while its runtime
-representation needs proved finite bounds. Ghost data supplies no runtime branch,
-allocation, instruction encoding or circuit state.
+The language has distinct interpretations for total pure definitions/proofs,
+effectful explicit-storage software, architectural transitions and cycle-level
+hardware. Module interfaces state phase/target restrictions. Unbounded mathematics
+needs proved finite runtime representations; ghost data supplies no runtime branch,
+allocation, encoding or circuit state.
 
-Contracts retain independent review and telling rejected behaviors. Sharing a
-language does not make an implementation its own correctness criterion. The
-architectural model and a processor implementation remain distinct theorem
-subjects even where their arithmetic or decoding definitions are shared.
+Contracts retain independent review and telling rejected behaviors. Architecture
+and processor implementation remain distinct theorem subjects even when sharing
+arithmetic/decoding definitions; an implementation cannot define its own correctness.
 
 ## Software and proof boundary
 
-The initial software route elaborates Vela into existing admitted interpretations,
-reconstructs its evidence in Rocq/CIC, and lowers supported explicit-memory code
-through the selected compiler. Clight is an acceptable generated intermediate.
-The [compiler-route contract](compiler-route-contract.md#conditional-amendment-and-reviewer-requirements)
-owns a changed backend's replacement duties. Language unification alone retires
-neither the verified-C producer nor the separately required Rust producer.
-Displacing either needs a duty-by-duty register and specification amendment;
-source-language-neutral admission does not itself cancel a required producer.
+Initially elaborate into admitted interpretations, reconstruct evidence in
+Rocq/CIC and lower supported explicit-memory code through the selected compiler;
+generated Clight is permitted. Replacing the required verified-C or Rust producer
+needs duty-by-duty register/prose amendments under the
+[compiler replacement contract](compiler-route-contract.md#conditional-amendment-and-reviewer-requirements).
+Language unification and source-neutral admission alone retire neither.
 
 The following evidence is needed before handwritten C and component VST scripts
 can retire:
@@ -74,110 +64,87 @@ can retire:
   progress, adversarial-context isolation, permitted leakage and resource bounds
   wherever the component's accepted claim includes them.
 
-The [CHERI foundation map](../../hardware/cheri-foundation-map.md#required-connections)
-owns the missing concrete laws; a surface feature or generic separation-logic
-theorem supplies no CHERI instance by itself. VST may initially remain an internal
-proof mechanism. Replacing it requires sound replacement rules and connections to
-the admitted machine logic, rather than removal of the obligations it discharged.
+The [foundation map](../../hardware/cheri-foundation-map.md#required-connections)
+owns missing concrete laws; generic separation logic or surface syntax supplies
+no CHERI instance. VST may remain internal. Its replacement needs sound rules and
+connections to the admitted machine logic, preserving every discharged obligation.
 
-Full Vela proof authoring additionally needs inductive and coinductive reasoning
-where used, universes, quantified mathematics, logical relations and the
-metatheory of the compiler and hardware paths. Existing Rocq fallbacks remain
-until these actual clients can be expressed and replayed. Proof reconstruction
-and dependency/assumption audits stay kernel checked; a solver or AI service may
-propose code, invariants, lemmas or optimizations and supplies no acceptance
-authority. AI availability is no premise of an accepted theorem.
+Full proof authoring needs inductive/coinductive reasoning where used, universes,
+quantified mathematics, logical relations and compiler/hardware metatheory. Retain
+Rocq fallbacks until actual clients express and replay in Vela. Reconstruction and
+dependency/assumption audits remain kernel checked. Solvers/AI may propose code,
+invariants, lemmas or optimizations; they confer no acceptance authority, and AI
+availability is no theorem premise.
 
-Rocq/CIC can remain the checker for the completed authoring endpoint. Replacing
-its implementation is a separate checker-qualification decision and is not
-required to eliminate handwritten Rocq. The [frontend disposition](full-language-review.md#r-05-009-r-05-020-and-what-holds-the-frontend-rows)
-still governs the existing calculus's interpretation commitment and admission.
+Rocq/CIC may remain the checker after handwritten Rocq retires; replacing its
+implementation is a separate qualification decision. The
+[frontend disposition](full-language-review.md#r-05-009-r-05-020-and-what-holds-the-frontend-rows)
+governs the calculus's interpretation commitment and admission.
 
 ## Native verified compiler and self-hosting
 
-Vela's explicit long-term compiler goal is a native, verified compiler authored in
-Vela and able to compile itself. The accepted native route uses Vela-owned
-intermediate representations and emits the target's machine code without a
-mandatory Clight/CompCert or LLVM stage. Interim backends and interoperation with
-retained producers remain available during qualification and migration. This
-goal adds no implementation commission and replaces no current compiler duty.
+The long-term goal is a verified, self-hosting Vela-authored compiler using
+Vela-owned IRs to emit target code without mandatory Clight/CompCert or LLVM.
+Interim backends and retained-producer interoperation remain available during
+qualification/migration. This goal commissions no implementation or changed duty.
 
-During development, Vela targets the
-[Menhir-generated parser route](verification-strategy.md#development-parser-and-grammar)
-over a reviewed grammar and located syntax-tree interface. Qualifying that route
-preserves the separate lexer, parsing, elaboration and source-correspondence
-obligations. The eventual Vela-authored compiler includes its parser; its verified
-bootstrap accounts for the Menhir development/seed tools until their replacement,
-preserving the accepted grammar and source meaning as that dependency retires.
+Development uses the [Menhir route](verification-strategy.md#development-parser-and-grammar)
+with a reviewed grammar and located AST, preserving separate lexer, parsing,
+elaboration and source-correspondence duties. The eventual Vela compiler includes
+its parser; verified bootstrap accounts for Menhir development/seed dependencies
+until retirement preserves accepted grammar and source meaning.
 
-The intermediate representations retain or explicitly discharge the ownership,
-CHERI authority, layout, initialization, effect, protocol, leakage and resource
-facts needed by later transformations. Each representation has a reviewed
-interpretation; native compilation introduces no private ISA semantics. Both the
-compiler and hardware proofs resolve the canonical machine definition admitted
-for that generation, whether the current Sail term or its qualified successor.
+Each IR has a reviewed interpretation and retains or discharges later passes'
+ownership, CHERI authority, layout, initialization, effect, protocol, leakage and
+resource premises. Compiler/hardware proofs resolve the generation's canonical
+machine, Sail or its qualified successor; native compilation adds no private ISA.
 
-Compilation composes reusable correctness theorems for elaboration, erasure,
-representation changes, optimization, instruction selection, register allocation,
-calling conventions, assembly, linking and image construction. The goal is to
-carry the source theorem to exact final bytes without repeatedly reconstructing
-the justification of already proved transformations from their output. Functional
-refinement, termination or progress, authority preservation, robust isolation,
-relational leakage and resource bounds remain distinct obligations wherever the
-accepted claim includes them. An optimization's functional theorem alone supplies
-neither constant-time preservation nor its target cost.
+Compose reusable correctness theorems for elaboration, erasure, representation,
+optimization, instruction selection, allocation, calling conventions, assembly,
+linking and image construction, carrying source evidence to exact bytes without
+reproving each transform from its output. Functional refinement, termination/progress,
+authority, robust isolation, relational leakage and resource bounds remain distinct
+where claimed; functional optimization correctness supplies neither CT nor cost.
 
-Independent kernel checking, dependency and assumption audits, and binding to the
-authored source and final image remain required. Reusing a pass theorem is valid
-only for its checked revision, premises and actual application. The current
-R-05-023a decompilation and final-validation route remains required until an
-explicit register/prose amendment admits the composed substitute evidence. An
-integrated proof-producing compiler does not certify its own output by assertion.
+Independently kernel-check evidence, audit dependencies/assumptions and bind source
+and final image. Pass-theorem reuse needs the checked revision, premises and actual
+application. R-05-023a decompilation/final validation remains required until a
+register/prose amendment admits composed substitutes; compiler assertions cannot
+certify output.
 
-Untrusted AI, search or scheduling heuristics may propose transformations. A
-proved checker or reconstructed proof must establish each accepted proposal's
-premises and required preservation properties. An unsupported transformation,
-missing certificate or failed check yields no accepted optimized artifact; an
-eligible fallback must independently meet the same contract. These mechanisms can
-be part of the native pipeline without making the search implementation trusted.
+AI/search/scheduling heuristics may propose transforms, but a proved checker or
+reconstructed proof establishes their premises and required preservation. Missing
+support/certificates or failed checks admit no optimized artifact; any fallback
+independently meets the same contract. Search implementations remain untrusted.
 
-Verified self-hosting additionally connects the executable compiler binary to its
-proved compiler definition. Its qualification records the seed compiler,
-interpreter or proof-grounded evaluation route, exact sources and tools, selected
-target/ABI, bootstrap stages, assumptions and final compiler image. The resulting
-compiler must compile its own declared Vela source closure and produce a successor
-with checked compiler correspondence; reproducible stage outputs are an additional
-check, not that correspondence theorem. The resident compiler and its helpers
-also meet the platform's applicable storage, runtime and admission rules. The
-initial checker and bootstrap trust boundary remain explicit; self-compilation
-alone supplies no soundness result or circular acceptance rule.
+Verified self-hosting connects executable compiler bytes to the proved definition.
+Record the seed compiler, interpreter or proof-grounded evaluation route, exact
+sources/tools, target/ABI, bootstrap stages, assumptions and final compiler image.
+The compiler must compile its declared Vela closure into a successor with checked
+compiler correspondence; reproducible stages are an additional check. Resident
+compiler/helpers meet storage, runtime and admission rules. Declare initial
+checker/bootstrap trust boundaries; self-compilation alone proves no soundness.
 
-Competitive optimization is a separate qualification goal. Compare representative
-systems and compute clients, including held-out clients, at identical semantics,
-security, target and resource constraints. Record final code size, stack,
-allocation, memory traffic and target execution cost, alongside compile/proof cost
-and maintenance effort. The target-specific goal is to match or improve the
-qualified comparison routes where their optimizations are admissible; LLVM-wide
-feature parity, universal speedups and performance superiority are not inferred
-from native compilation or self-hosting. Required optimization machinery and
-proofs must be scoped and priced before implementation.
+Qualify competitive optimization separately on representative systems/compute
+clients, including held-out ones, at identical semantics, security, target and
+resources. Measure final code size, stack, allocation, traffic, target cost,
+compile/proof cost and maintenance. Aim to match/improve qualified routes where
+their optimizations are admissible. Native/self-hosting compilation implies no
+LLVM-wide parity or universal superiority; scope and price optimization machinery
+and proofs before implementation.
 
-The complete native toolchain's selected source, proof, helper and runtime
-dependency closure must support its intended commercial use, distribution and
-resident rebuilding. Independently authored infrastructure may use the project's
-chosen terms; adapting existing passes retains their applicable terms. A claim of
-CompCert/LLVM independence or removal of non-commercial dependencies requires a
-closure audit and retirement of every affected consumer under the
-[compiler replacement duties](compiler-route-contract.md#conditional-amendment-and-reviewer-requirements).
+Qualify commercial use, distribution and resident rebuilding for the complete
+source/proof/helper/runtime closure. Independent infrastructure may use project
+terms; adapted passes retain their terms. CompCert/LLVM independence and removal
+of non-commercial dependencies require closure audit and consumer retirement under
+the [compiler replacement duties](compiler-route-contract.md#conditional-amendment-and-reviewer-requirements).
 
 ## Machine model
 
-Vela's machine-description subset is intended to replace Sail source and its
-required consumers, rather than remain a frontend that permanently regenerates
-Sail. The replacement is an independently reviewed architectural definition
-elaborated into the accepted kernel theory. It is upstream of compiler and
-hardware validation: no compiler derives its correctness target from its own
-emitted instructions or from the implementation it is meant to check.
+The machine subset aims to replace Sail authoring and required consumers, beyond
+permanent Sail generation. Its independently reviewed architecture elaborates
+into the accepted kernel theory upstream of compiler/hardware validation. A compiler
+cannot derive its target semantics from its output or the checked implementation.
 
 Its scope covers the frozen profile's architectural state and all operations
 reachable in a shipped composition: finite-width integer and floating-point
@@ -188,60 +155,47 @@ trace interface also carries the applicable timing, cost and leakage observation
 Unsupported operations and configurations require explicit refusal or a separately
 reviewed scope decision; silently omitting a difficult operation is no replacement.
 
-The replacement supplies one admitted machine-definition closure, parameterized
-where the platform actually varies, with explicit selected configuration, core
-class and hart identities. All consumers resolve that same closure and their
-declared instances. The [canonical-term record](../../assurance/canonical-machine-term.md#2-generation-identity)
-shows why a term fixed to one hart cannot silently stand for all compositions;
-its open configuration question must receive a decision before migration relies
-on it. Per-consumer transcriptions are prohibited.
+Supply one admitted machine closure, parameterized by actual platform variation,
+with explicit configuration, core class and hart identities. Every consumer resolves
+that closure and declared instances, without private transcriptions. Resolve the
+[canonical term's open configuration question](../../assurance/canonical-machine-term.md#2-generation-identity)
+before migration: a term fixed to one hart cannot stand for all compositions.
 
-Acceptance requires a checked relation to the pinned Sail-generated definitions
-for the complete selected scope, with state and observation mappings stated
-explicitly. The relation preserves the permitted behaviors in both directions,
-including failures, nondeterminism and termination or progress; a one-way relation
-that drops behaviors or admits extra ones is insufficient. A proved simulation
-with stuttering must also establish the relevant progress and observation clauses.
-Timing and leakage cannot disappear under an observation projection merely because
-functional output values agree. An intended architectural change is reviewed as
-such, outside the semantics-preserving migration claim.
+Prove full-selected-scope agreement with pinned Sail-generated definitions, with
+explicit state/observation maps and behavior preservation both ways: failures,
+nondeterminism and required termination/progress. One-way behavior loss/addition
+fails. Stuttering simulation must preserve progress/observations; functional-output
+agreement cannot erase timing/leakage. Review architectural changes separately
+from semantics-preserving migration.
 
-Unary behavioral agreement alone does not transport the relational security
-theories. Their transport preserves the public/secret entry relation, admissible
-contexts, independently chosen executions and the permitted observation relation;
-coupling two executions' choices to conceal a leak is invalid. Cost bounds and
-hardware refinement likewise need their own checked transport at their claimed
-scope. A model that immediately stops cannot satisfy the required progress clauses.
+Separately transport relational security, preserving public/secret entries,
+admissible contexts, independent executions and permitted observations. Coupling
+choices to hide leakage is invalid. Cost bounds and hardware refinement also need
+checked transport at their claimed scope. Immediate stopping fails required progress.
 
-Compilation of the reference emulator from this definition needs its own
-correspondence evidence and recorded host-runtime boundary. Differential tests,
-litmus tests and mutation controls remain useful checks, but agreement over a
-sample does not establish model equivalence. Unavailable Sail definitions or
-assumed external operations must be resolved or carried as explicitly reviewed
-premises; neither side of an agreement theorem may hide the missing semantics.
+Reference-emulator compilation needs correspondence evidence and a recorded
+host-runtime boundary. Differential/litmus/mutation samples establish no model
+equivalence. Resolve unavailable Sail definitions/external operations or explicitly
+review them as premises; neither side may hide missing semantics.
 
 ## Hardware
 
-A Vela hardware subset may author state, registers, concurrent rules and explicit
-cycle/schedule behavior. Its semantics and compiler need checked connections to
-the admitted hardware interpretation and the exact synthesis input. Vela may
-initially elaborate to Kami/Kôika or generate RTL; emitting RTL alone establishes
-neither connection. The [RTL correspondence boundary](../../assurance/rtl-correspondence-boundary.md)
-owns the distinction between a source circuit theorem and the artifact synthesized.
+A hardware subset may author state, registers, concurrent rules and cycles/schedules.
+Its semantics/compiler need checked connections to the admitted hardware interpretation
+and exact synthesis input. Initial Kami/Kôika elaboration or RTL generation is
+permitted; generation alone meets neither connection. The
+[RTL boundary](../../assurance/rtl-correspondence-boundary.md) distinguishes source
+circuit theorems from synthesized artifacts.
 
-Simulator and RTL generation may share a hardware definition, and architecture
-and hardware may share pure helpers. The processor still needs a refinement
-theorem from its cycle-level behavior to the architectural model, with explicit
-state mapping, commit observations, progress and applicable timing/leakage claims.
-Shared generation does not discharge that theorem or make two generated executors
-independent checks. Imported cores retain their existing qualification path until
-an accepted replacement covers the actual imported artifact.
+Simulator/RTL may share hardware definitions, and architecture/hardware may share
+pure helpers. Processor refinement still connects cycles to architecture through
+explicit state maps, commits, progress and applicable timing/leakage. Shared
+generation supplies neither that theorem nor independent executor checks. Imported
+cores retain their qualification path until replacement covers the actual artifact.
 
-Physical implementation, fabrication and measured-device obligations remain
-outside what source-language unification can prove. Each claim retains the
-evidence or theorem tier its admitted artifacts establish.
-Structural absence and netlist audits retain their independent artifact-bound
-checks; a generated circuit theorem does not imply the required physical absence.
+Physical implementation, fabrication and device measurement remain separate, with
+claims bounded by their artifacts' evidence/theorem tier. Structural-absence and
+netlist audits keep independent artifact checks; circuit theorems imply no physical absence.
 
 ## Migration and retirement
 
@@ -277,17 +231,14 @@ R-15-092 hardware routes; this is an impact starting point, not an exhaustive
 consumer inventory. It amends the register and its paired specification prose,
 updates derived coverage and resolves co-reads before relying on the new route.
 
-Current names such as Sail, VST and Kami/Kôika identify the required incumbents;
-they do not make equivalent replacements an impossible long-term design goal.
-Retirement requires the above substitute evidence and explicit amendments, rather
-than a permanent exception for Vela or deletion of a required guarantee. This
-contract changes none of the current admission gates.
+Sail, VST and Kami/Kôika remain required until substitute evidence and explicit
+amendments authorize retirement. Vela receives no exception or weakened guarantee;
+current admission gates remain unchanged.
 
 ## Qualification cases
 
-Qualification exercises supported mechanisms with independently reviewed expected
-behavior and inhabited premises. The candidate must reject the following
-well-formed changes at their intended obligations:
+Use independently reviewed expected behavior and inhabited premises. These
+well-formed changes must fail at their intended obligations:
 
 | Candidate change | Evidence that must fail |
 | --- | --- |
@@ -303,8 +254,7 @@ well-formed changes at their intended obligations:
 | A processor or generated RTL retains correct outputs while violating its commit/progress relation | Hardware refinement or synthesis-input correspondence |
 | A model change leaves an old binary or hardware certificate marked current | Dependency invalidation and exact-revision evidence binding |
 
-Malformed, noncompiling or unsupported variants are reported separately and supply
-no successful rejection evidence for a semantic obligation. A surviving required
-negative prevents the corresponding replacement claim. Independently reviewed
-contracts, distinguishing inputs and alternative execution paths address common
-errors in shared definitions; agreement of generated artifacts alone is insufficient.
+Separate malformed, noncompiling and unsupported variants from semantic rejections.
+A required survivor blocks replacement. Independent contracts, distinguishing
+inputs and alternative paths address shared-definition errors; generated-artifact
+agreement alone is insufficient.
