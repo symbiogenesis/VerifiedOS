@@ -97,6 +97,15 @@ and failure behavior; it never builds the model or saves a cache. Acceptance
 checks every caller's guard ordering and the action's cache ownership and
 identities, with hosted workflow analysis retaining syntax and security checks.
 
+The dependency audit reads tracked local composite actions as authored source and
+checks their nested external actions against the same structured licence reviews
+as workflow references. A local reference must resolve to tracked composite
+metadata without a dynamic path, traversal or symlink. The target workflows'
+`.target-ci` checkout is an alias for that source only when an earlier checkout
+of this repository at the dispatching commit supplies the referenced action.
+Focused controls refuse missing metadata, an untrusted alias and an altered pin
+inside the composite; the checker retains a mutant for a nested external action.
+
 Explicit manual Host CI dispatches have separate concurrency groups even when
 they test the same revision. Pull-request supersession and duplicate-push
 cancellation retain their existing groups. Focused controls cover those cases
