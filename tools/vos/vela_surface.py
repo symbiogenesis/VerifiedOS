@@ -23,6 +23,27 @@ class Fixture:
 
 
 POSITIVE: tuple[Fixture, ...] = (
+    Fixture("shared-syntax-primitives", """// café: shared forms preserve byte spans and syntax roles.
+module SyntaxPrimitives;
+alias Product = ((), (Core.Value));
+alias Generic = Box<type ((), (Core.Value))>;
+public void Compose() {
+    ((), (Core.Value)) local = seed;
+    let callback = (((), (Core.Value)) input) => input;
+    let empty = () => ();
+    let values = (0007, 0xAfu8, "café", '\\n', true, false);
+    match (token) {
+        case 0007: return;
+        case 0xAfu8: return;
+        case "café": return;
+        case '\\n': return;
+        case true: return;
+        case false: return;
+    }
+}
+definition bool Nested() = forall (Nat outer) => exists (Nat inner) => outer == inner;
+""", ("tuple_type", "unit_type", "group_type", "typed_local", "lambda", "quantifier",
+      "nat", "string", "character", "bool", "nat_pattern", "string_pattern", "character_pattern", "bool_pattern")),
     Fixture("shared-operator-values", """// caf\u00e9: operators retain symbol and expression spans independently.
 module SharedOperators;
 definition Fn(Nat x, Nat y) -> Nat Addition() = (+);
@@ -2605,6 +2626,74 @@ def _operator_value(source: bytes, value: Json, symbol: str) -> dict[str, Json]:
     return operator
 
 
+def _shared_primitive_roles(source: bytes, result: dict[str, Json]) -> None:
+    tree = result.get("ast")
+    product = _named(tree, "alias", "Product").get("type")
+    generic = _named(tree, "alias", "Generic").get("type")
+    argument = _object(_type_head(generic, "Box", 1)[0], "structural generic argument")
+    local = _named(tree, "typed_local", "local").get("type")
+    callback = _object(_named(tree, "let", "callback").get("value"), "structural callback")
+    parameters = _sequence(callback.get("parameters"), "structural callback parameters")
+    parameter = _object(parameters[0], "structural callback parameter")
+    if (argument.get("kind") != "type_argument" or callback.get("kind") != "lambda"
+            or len(parameters) != 1 or parameter.get("kind") != "lambda_parameter"
+            or _texts(parameter.get("name")) != ["input"]):
+        raise ValueError("surface shared type syntax lost its generic or callback role")
+    for value in (product, argument.get("type"), local, parameter.get("type")):
+        annotation = _object(value, "shared product type")
+        components = _sequence(annotation.get("types"), "shared product components")
+        if annotation.get("kind") != "tuple_type" or len(components) != 2:
+            raise ValueError("surface shared product type lost its arity or type role")
+        unit, group = [_object(component, "shared product component") for component in components]
+        if unit.get("kind") != "unit_type" or group.get("kind") != "group_type":
+            raise ValueError("surface unit/group type became a value or pattern")
+        _type_head(group.get("type"), "Core.Value", 0)
+        for node, spelling in ((annotation, b"((), (Core.Value))"), (unit, b"()"),
+                               (group, b"(Core.Value)")):
+            span = _sequence(node.get("span"), "shared type byte span")
+            if len(span) != 2 or type(span[0]) is not int or type(span[1]) is not int:
+                raise ValueError("surface shared type has no original-byte span")
+            if source[span[0]:span[1]] != spelling:
+                raise ValueError("surface shared type byte span differs")
+    empty = _object(_named(tree, "let", "empty").get("value"), "empty callback")
+    if (empty.get("kind") != "lambda" or empty.get("parameters") != []
+            or _object(empty.get("body"), "empty callback body").get("kind") != "unit"):
+        raise ValueError("surface empty callback changed its parameter/body boundary")
+    values = _object(_named(tree, "let", "values").get("value"), "literal tuple")
+    literals = _sequence(values.get("values"), "literal tuple values")
+    patterns = [node for node in nodes(tree)
+                if node.get("kind") in {"nat_pattern", "string_pattern", "character_pattern", "bool_pattern"}]
+    expected: tuple[tuple[str, Json, str | None, bytes], ...] = (
+        ("nat", "0007", "", b"0007"), ("nat", "0xAf", "u8", b"0xAfu8"),
+        ("string", '"café"', None, '"café"'.encode("utf-8")),
+        ("character", "'\\n'", None, b"'\\n'"),
+        ("bool", True, None, b"true"), ("bool", False, None, b"false"),
+    )
+    if values.get("kind") != "tuple" or len(literals) != len(expected) or len(patterns) != len(expected):
+        raise ValueError("surface shared literal syntax lost an expression or pattern")
+    for expression, pattern, (kind, payload, suffix, spelling) in zip(literals, patterns, expected, strict=True):
+        for value, role in ((expression, kind), (pattern, kind + "_pattern")):
+            literal = _object(value, "shared literal")
+            if (literal.get("kind") != role or literal.get("value") != payload
+                    or literal.get("suffix") != suffix):
+                raise ValueError("surface shared literal changed its role, payload or representation")
+            span = _sequence(literal.get("span"), "shared literal byte span")
+            if (len(span) != 2 or type(span[0]) is not int or type(span[1]) is not int
+                    or source[span[0]:span[1]] != spelling):
+                raise ValueError("surface shared literal original-byte span differs")
+    outer = _object(_named(tree, "definition", "Nested").get("value"), "outer quantifier")
+    inner = _object(outer.get("value"), "inner quantifier")
+    for quantifier, role, binder in ((outer, "forall", "outer"), (inner, "exists", "inner")):
+        parameters = _sequence(quantifier.get("parameters"), "quantifier parameters")
+        if (quantifier.get("kind") != "quantifier" or quantifier.get("quantifier") != role
+                or len(parameters) != 1 or _texts(_object(parameters[0], "quantifier parameter").get("name")) != [binder]):
+            raise ValueError("surface shared quantifier changed its keyword or binder scope")
+    equality = _object(inner.get("value"), "quantified equality")
+    if (equality.get("kind") != "binary" or _texts(equality.get("operator")) != ["=="]
+            or _texts(equality.get("left")) != ["outer"] or _texts(equality.get("right")) != ["inner"]):
+        raise ValueError("surface nested quantifier body changed its operand roles")
+
+
 def _shared_operator_roles(source: bytes, result: dict[str, Json]) -> None:
     tree = result.get("ast")
     returned = _object(_named(tree, "definition", "Addition").get("value"), "returned operator")
@@ -2887,7 +2976,9 @@ def qualify(parse: Callable[[bytes], dict[str, Json]]) -> list[str]:
         missing = set(fixture.kinds) - found
         if missing:
             raise ValueError(f"surface fixture {fixture.name} lacks AST roles: {sorted(missing)}")
-        if fixture.name == "shared-operator-values":
+        if fixture.name == "shared-syntax-primitives":
+            _shared_primitive_roles(fixture.source.encode("utf-8"), result)
+        elif fixture.name == "shared-operator-values":
             _shared_operator_roles(fixture.source.encode("utf-8"), result)
         elif fixture.name == "shared-operator-precedence":
             _shared_precedence_roles(result)
