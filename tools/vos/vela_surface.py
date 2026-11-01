@@ -23,6 +23,96 @@ class Fixture:
 
 
 POSITIVE: tuple[Fixture, ...] = (
+    Fixture("computed-types-and-family-application", """// café: computed types retain their expression and original byte span.
+module ComputedTypes;
+universe u;
+alias Selected<ghost bool choose> = type[ChooseType(choose)];
+alias Wrapped = Box<type[PayloadType(true)]>;
+alias Structural = (owned type[OwnerType()], tracked type[ReceiptType()]);
+definition Type<u> Reinject() = type type[ReifiedType()];
+alias Conditional = type[match (flag) {
+    case true => type owned Packet;
+    case false => type ();
+}];
+trait Family<T : type[KindOf()]> {
+    type Item : type[UniverseOf(T)] = type[MemberType(T)];
+}
+record Packed(bool Enabled, type[FieldType(Enabled)] Value);
+public type[ResultType(value)] Select(type[InputType()] value) {
+    type[LocalType(value)] local @ NatExact(1) = value;
+    var type[MutableType(value)] changed = local;
+    let callback = (scoped ref<'value> type[LoanType(value)] loan @ q) => loan;
+    let typed = Fn(type[CallbackInput()] selected) -> type[OutputType(selected)]
+        with { restores Closed(selected); } => selected;
+    Box<type[GenericType(value)]> boxed = source;
+    let generic = Apply::<type[CallType(value)]>(local);
+    return local;
+}
+""", ("computed_type", "match_expression", "type_expression", "typed_local", "lambda", "typed_lambda", "generic_application")),
+    Fixture("alias-and-effect-family-contracts", """// café: aliases and effect families own laws independently of their members.
+module FamilyContracts;
+alias Borrowed<T, region 'r> where Stable(T) requires Available(T) = ref<'r> T;
+alias Reusable<T, grade q : NatExact> where Admits(T, q) effects reads(T) =
+    Fn(T value @ q) -> T effects(Read)
+        with { requires Open(value); restores Closed(value); };
+alias Plain<T> = T;
+effect Exchange<T, grade q : NatExact>
+    where ExchangeLaw(T, q)
+    invariant Closed(self)
+    effects calls(Storage)
+{
+    owned T Replace(owned T replacement @ q) resumes(0..1)
+        requires ReplacementReady(replacement)
+        ensures ReplyReady(result)
+        restores ReplacementClosed(result);
+    ref<'input> T Borrow(ref T input) requires BorrowReady(input);
+}
+effect PlainEffect { Nat Read(); }
+""", ("alias", "effect", "contract", "effects", "function_type", "effect_operation", "range")),
+    Fixture("literal-patterns-and-dependent-branches", r"""// café: patterns preserve literal spelling rather than decoding it.
+module LiteralPatterns;
+definition Nat Classify(char marker) = match (marker) as token : Nat {
+    case 'x' => 1;
+    case '\n' => 2;
+    case _ => 3;
+};
+definition Nat Parse(Text text) = match (text) {
+    case "ready" => 4;
+    case "// {\"}" => 5;
+    case _ => 6;
+};
+public void Inspect(Text text) {
+    match (text) {
+        case "" : return;
+        case '\\' : return;
+        case Token(('(', "closed")) : return;
+    }
+}
+""", ("character_pattern", "string_pattern", "match_expression", "match", "tuple_pattern", "constructor_pattern")),
+    Fixture("empty-dependent-elimination", """// café: expression and statement eliminators keep distinct roles.
+module EmptyElimination;
+inductive Never {}
+definition T Absurd<T>(Never impossible) = match (impossible) as whole : T {};
+alias EmptyFamily<ghost Never empty> = type[match (empty) as witness : Type<u> {}];
+public T Eliminate<T>(Never absent) { return match (absent) {}; }
+public void Use(Never missing) {
+    let nested = Apply((match (missing) {}));
+    let callback = (Never denied) => (match (denied) as dead : () {});
+    match (missing) {}
+}
+""", ("inductive", "group", "match_expression", "match_motive", "computed_type", "lambda", "match")),
+    Fixture("family-type-errors-remain-syntax", """module InvalidFamilies;
+alias Invalid where false = type[17];
+effect Impossible<grade q : NatExact> where false { tracked Permit Read() ensures false; }
+definition Type<u> Erased(ghost bool erased) = type type[RuntimeRead(erased)];
+public async void Invalid(ref Buffer buffer, tracked Permit permit) {
+    type[buffer.CurrentType()] stale = move permit;
+    buffer.Replace(replacement);
+    let escaping = (scoped ref type[Unknown()] loan) => { await Ready(); return loan; };
+    let impossible = (match (true) {});
+    Use(move stale, move stale);
+}
+""", ("computed_type", "effect", "contract", "lambda", "match_expression", "modified_type", "unary")),
     Fixture("local-grades-and-evaluation", """// café: local allowances do not absorb initializer effects.
 module LocalGrades;
 public void Bind<grade q : NatExact>(ref Buffer source) {
@@ -786,6 +876,27 @@ public UnknownType F() { return missing; }
 
 
 NEGATIVE: tuple[tuple[str, bytes, str], ...] = (
+    ("computed-type-missing-value", b"module M; alias A = type[];", "syntax"),
+    ("computed-type-missing-close", b"module M; alias A = type[Family();", "syntax"),
+    ("computed-type-wrong-delimiter", b"module M; alias A = type(Family());", "syntax"),
+    ("computed-type-generic-missing-value", b"module M; alias A = Box<type[]>;", "syntax"),
+    ("computed-type-local-missing-binder", b"module M; void F() { type[Family()] = value; }", "syntax"),
+    ("computed-type-lambda-missing-binder", b"module M; void F() { let f = (type[Family()]) => value; }", "syntax"),
+    ("computed-type-lookahead-depth", b"module M; void F() { type[" + b"(" * 257
+     + b"Family()" + b")" * 257 + b"] local = value; }", "limit"),
+    ("alias-missing-law", b"module M; alias A<T> where = T;", "syntax"),
+    ("alias-law-after-definition", b"module M; alias A = T where Law(T);", "syntax"),
+    ("alias-missing-effect", b"module M; alias A effects = T;", "syntax"),
+    ("effect-family-missing-law", b"module M; effect E<T> where { Nat Get(); }", "syntax"),
+    ("effect-family-missing-invariant", b"module M; effect E invariant { Nat Get(); }", "syntax"),
+    ("effect-family-law-semicolon", b"module M; effect E where Ready(); { Nat Get(); }", "syntax"),
+    ("literal-pattern-missing-arrow", b'module M; Nat F() { return match (x) { case "ready" 1; }; }', "syntax"),
+    ("literal-pattern-unterminated-string", b'module M; Nat F() { return match (x) { case "ready => 1; }; }', "syntax"),
+    ("literal-pattern-empty-character", b"module M; void F() { match (x) { case '' : return; } }", "syntax"),
+    ("empty-match-missing-group-close", b"module M; definition T F() = (match (x) {};", "syntax"),
+    ("empty-match-missing-motive-name", b"module M; definition T F() = (match (x) as : T {});", "syntax"),
+    ("empty-match-missing-motive-type", b"module M; definition T F() = (match (x) as p : {});", "syntax"),
+    ("empty-match-missing-motive-colon", b"module M; definition T F() = (match (x) as p T {});", "syntax"),
     ("local-inferred-missing-grade", b"module M; void F() { let value @ = Make(); }", "syntax"),
     ("local-var-missing-grade", b"module M; void F() { var Nat value @ = Make(); }", "syntax"),
     ("local-bare-missing-grade", b"module M; void F() { Nat value @ = Make(); }", "syntax"),
@@ -856,7 +967,7 @@ NEGATIVE: tuple[tuple[str, bytes, str], ...] = (
     ("missing-match-motive-binder", b"module M; public Nat F() { return match (x) as : Nat { case _ => 0; }; }", "syntax"),
     ("missing-match-motive-colon", b"module M; public Nat F() { return match (x) as p Nat { case _ => 0; }; }", "syntax"),
     ("missing-match-motive-type", b"module M; public Nat F() { return match (x) as p : { case _ => 0; }; }", "syntax"),
-    ("empty-expression-match", b"module M; public Nat F() { return match (x) {}; }", "syntax"),
+    ("empty-expression-match-missing-body", b"module M; public Nat F() { return match (x); }", "syntax"),
     ("expression-match-colon-arm", b"module M; public Nat F() { return match (x) { case _ : 0; }; }", "syntax"),
     ("expression-match-mixed-arms", b"module M; public Nat F() { return match (x) { case true => 0; case false : 1; }; }", "syntax"),
     ("expression-match-missing-value", b"module M; public Nat F() { return match (x) { case _ => ; }; }", "syntax"),
@@ -1115,6 +1226,190 @@ def _contract_roles(owner: dict[str, Json], roles: list[str]) -> list[dict[str, 
     if [clause.get("role") for clause in clauses] != roles:
         raise ValueError("surface contract roles differ or belong to the wrong declaration")
     return clauses
+
+
+def _computed_type(source: bytes, value: Json, spelling: bytes, callee: str) -> dict[str, Json]:
+    annotation = _object(value, "computed type")
+    computation = _object(annotation.get("value"), "computed type's expression")
+    if (annotation.get("kind") != "computed_type" or computation.get("kind") != "call"
+            or _texts(computation.get("callee")) != [callee]):
+        raise ValueError("surface computed type lost its expression or type role")
+    _exact_span(source, annotation, spelling)
+    _exact_span(source, computation, spelling[len(b"type["):-1])
+    return computation
+
+
+def _computed_type_roles(source: bytes, result: dict[str, Json]) -> None:
+    tree = result.get("ast")
+    _computed_type(source, _named(tree, "alias", "Selected").get("type"),
+                   b"type[ChooseType(choose)]", "ChooseType")
+    argument = _type_head(_named(tree, "alias", "Wrapped").get("type"), "Box", 1)[0]
+    _computed_type(source, argument, b"type[PayloadType(true)]", "PayloadType")
+    reinjected = _object(_named(tree, "definition", "Reinject").get("value"), "type reinjection")
+    if reinjected.get("kind") != "type_expression":
+        raise ValueError("surface type reinjection conflated expression and type roles")
+    _computed_type(source, reinjected.get("type"), b"type[ReifiedType()]", "ReifiedType")
+    structural = _object(_named(tree, "alias", "Structural").get("type"), "computed product")
+    components = _sequence(structural.get("types"), "computed product components")
+    if structural.get("kind") != "tuple_type" or len(components) != 2:
+        raise ValueError("surface computed product changed its structural type")
+    for value, modifier, callee in zip(components, ("owned", "tracked"), ("OwnerType", "ReceiptType"), strict=True):
+        component = _object(value, "modified computed component")
+        if component.get("modifier") != modifier:
+            raise ValueError("surface computed type displaced its ownership modifier")
+        _computed_type(source, component.get("type"), f"type[{callee}()]".encode(), callee)
+    conditional = _object(_named(tree, "alias", "Conditional").get("type"), "type-valued match")
+    match = _object(conditional.get("value"), "computed match")
+    if conditional.get("kind") != "computed_type" or match.get("kind") != "match_expression":
+        raise ValueError("surface computed type cannot retain a dependent expression")
+    branches = _sequence(match.get("cases"), "computed type branches")
+    if len(branches) != 2 or any(_object(_object(value, "computed branch").get("value"),
+                                      "computed branch value").get("kind") != "type_expression" for value in branches):
+        raise ValueError("surface computed type confused type injection with type application")
+    family = _named(tree, "trait", "Family")
+    generic = _object(_sequence(family.get("generics"), "computed kind telescope")[0], "computed kind binder")
+    _computed_type(source, generic.get("type"), b"type[KindOf()]", "KindOf")
+    item = _named(family, "associated_type", "Item")
+    _computed_type(source, item.get("kind_annotation"), b"type[UniverseOf(T)]", "UniverseOf")
+    _computed_type(source, item.get("definition"), b"type[MemberType(T)]", "MemberType")
+    field = _named(_named(tree, "record", "Packed"), "parameter", "Value")
+    _computed_type(source, field.get("type"), b"type[FieldType(Enabled)]", "FieldType")
+    function = _named(tree, "function", "Select")
+    _computed_type(source, function.get("result"), b"type[ResultType(value)]", "ResultType")
+    parameter = _named(function.get("parameters"), "parameter", "value")
+    _computed_type(source, parameter.get("type"), b"type[InputType()]", "InputType")
+    local = _named(function, "typed_local", "local")
+    _computed_type(source, local.get("type"), b"type[LocalType(value)]", "LocalType")
+    if (_texts(_object(local.get("grade"), "computed local grade").get("callee")) != ["NatExact"]
+            or _texts(local.get("value")) != ["value"]):
+        raise ValueError("surface computed local merged allowance and initializer")
+    mutable = _named(function, "var", "changed")
+    _computed_type(source, mutable.get("type"), b"type[MutableType(value)]", "MutableType")
+    loan = _named(function, "lambda_parameter", "loan")
+    scoped = _object(loan.get("type"), "computed scoped loan")
+    exclusive = _object(scoped.get("type"), "computed exclusive loan")
+    if (scoped.get("modifier") != "scoped" or exclusive.get("modifier") != "ref"
+            or _texts(exclusive.get("lifetime")) != ["'value"] or _texts(loan.get("grade")) != ["q"]):
+        raise ValueError("surface computed callback lost its loan and grade roles")
+    _computed_type(source, exclusive.get("type"), b"type[LoanType(value)]", "LoanType")
+    typed = _object(_named(function, "let", "typed").get("value"), "computed callable value")
+    signature = _object(typed.get("signature"), "computed callable signature")
+    if typed.get("kind") != "typed_lambda" or _texts(typed.get("body")) != ["selected"]:
+        raise ValueError("surface computed callback displaced its body")
+    selected = _named(signature.get("parameters"), "parameter", "selected")
+    _computed_type(source, selected.get("type"), b"type[CallbackInput()]", "CallbackInput")
+    _computed_type(source, signature.get("result"), b"type[OutputType(selected)]", "OutputType")
+    _contract_roles(signature, ["restores"])
+    boxed = _named(function, "typed_local", "boxed")
+    _computed_type(source, _type_head(boxed.get("type"), "Box", 1)[0],
+                   b"type[GenericType(value)]", "GenericType")
+    application = next(node for node in nodes(function) if node.get("kind") == "generic_application")
+    argument = _sequence(application.get("arguments"), "computed generic application arguments")[0]
+    _computed_type(source, argument, b"type[CallType(value)]", "CallType")
+
+
+def _family_contract_roles(source: bytes, result: dict[str, Json]) -> None:
+    tree = result.get("ast")
+    borrowed = _named(tree, "alias", "Borrowed")
+    clauses = _contract_roles(borrowed, ["where", "requires"])
+    for clause, spelling in zip(clauses, (b"where Stable(T)", b"requires Available(T)"), strict=True):
+        _exact_span(source, clause, spelling)
+    loan = _object(borrowed.get("type"), "constrained alias loan")
+    if loan.get("modifier") != "ref" or _texts(loan.get("lifetime")) != ["'r"]:
+        raise ValueError("surface alias law displaced its loan lifetime")
+    reusable = _named(tree, "alias", "Reusable")
+    clauses = [_object(value, "alias contract") for value in _sequence(reusable.get("contracts"), "alias contracts")]
+    if [clause.get("role", clause.get("kind")) for clause in clauses] != ["where", "effects"]:
+        raise ValueError("surface alias lost its generic law or declaration effect")
+    _exact_span(source, clauses[1], b"effects reads(T)")
+    callable_type = _object(reusable.get("type"), "constrained callable alias")
+    if callable_type.get("kind") != "function_type" or _texts(callable_type.get("effects")) != ["Read"]:
+        raise ValueError("surface alias absorbed its callable's effect bound")
+    _contract_roles(callable_type, ["requires", "restores"])
+    _exact_span(source, _object(_sequence(callable_type.get("contracts"), "callable laws")[1], "callable restoration"),
+                b"restores Closed(value)")
+    if _named(tree, "alias", "Plain").get("contracts") != []:
+        raise ValueError("surface unconstrained alias fabricated laws")
+    effect = _named(tree, "effect", "Exchange")
+    clauses = [_object(value, "effect family contract")
+               for value in _sequence(effect.get("contracts"), "effect family contracts")]
+    if [clause.get("role", clause.get("kind")) for clause in clauses] != ["where", "invariant", "effects"]:
+        raise ValueError("surface effect family laws leaked into operation contracts")
+    for clause, spelling in zip(clauses, (b"where ExchangeLaw(T, q)", b"invariant Closed(self)", b"effects calls(Storage)"), strict=True):
+        _exact_span(source, clause, spelling)
+    replacement = _named(effect, "effect_operation", "Replace")
+    _contract_roles(replacement, ["requires", "ensures", "restores"])
+    parameter = _named(replacement.get("parameters"), "parameter", "replacement")
+    if _texts(parameter.get("grade")) != ["q"]:
+        raise ValueError("surface effect family laws displaced an operation's parameter grade")
+    bound = _object(replacement.get("resumes"), "constrained effect resumption allowance")
+    _exact_span(source, bound, b"0..1")
+    _contract_roles(_named(effect, "effect_operation", "Borrow"), ["requires"])
+    plain = _named(tree, "effect", "PlainEffect")
+    if plain.get("contracts") != [] or _named(plain, "effect_operation", "Read").get("contracts") != []:
+        raise ValueError("surface plain effect family or operation fabricated contracts")
+
+
+def _literal_pattern_roles(source: bytes, result: dict[str, Json]) -> None:
+    patterns = [node for node in nodes(result.get("ast"))
+                if node.get("kind") in {"character_pattern", "string_pattern"}]
+    expected = (("character_pattern", b"'x'"), ("character_pattern", b"'\\n'"),
+                ("string_pattern", b'"ready"'), ("string_pattern", b'"// {\\\"}"'),
+                ("string_pattern", b'""'), ("character_pattern", b"'\\\\'"),
+                ("character_pattern", b"'('"), ("string_pattern", b'"closed"'))
+    if len(patterns) != len(expected):
+        raise ValueError("surface literal pattern roles are missing or conflated with expressions")
+    for pattern, (kind, spelling) in zip(patterns, expected, strict=True):
+        if pattern.get("kind") != kind or pattern.get("value") != spelling.decode("utf-8"):
+            raise ValueError("surface literal pattern lost its raw spelling or literal kind")
+        _exact_span(source, pattern, spelling)
+    classify = _named(result.get("ast"), "definition", "Classify")
+    motive = _object(_object(classify.get("value"), "literal match").get("motive"), "literal match motive")
+    if _texts(motive.get("name")) != ["token"]:
+        raise ValueError("surface literal patterns displaced the dependent motive binder")
+    _exact_span(source, motive, b"as token : Nat")
+    statement = _named(result.get("ast"), "function", "Inspect")
+    cases = _sequence(next(node for node in nodes(statement) if node.get("kind") == "match").get("cases"), "literal statement cases")
+    constructor = _object(_object(cases[2], "nested literal case").get("pattern"), "nested constructor pattern")
+    nested = _object(_sequence(constructor.get("arguments"), "constructor patterns")[0], "nested product pattern")
+    if constructor.get("kind") != "constructor_pattern" or nested.get("kind") != "tuple_pattern":
+        raise ValueError("surface literal pattern composition lost its constructor/product roles")
+
+
+def _empty_elimination_roles(source: bytes, result: dict[str, Json]) -> None:
+    tree = result.get("ast")
+    if _named(tree, "inductive", "Never").get("constructors") != []:
+        raise ValueError("surface empty type fabricated a constructor")
+    absurd = _object(_named(tree, "definition", "Absurd").get("value"), "empty value elimination")
+    if absurd.get("kind") != "match_expression" or absurd.get("cases") != []:
+        raise ValueError("surface empty dependent eliminator became a statement")
+    _exact_span(source, absurd, b"match (impossible) as whole : T {}")
+    motive = _object(absurd.get("motive"), "empty eliminator motive")
+    if _texts(motive.get("name")) != ["whole"] or _texts(motive.get("type")) != ["T"]:
+        raise ValueError("surface empty eliminator lost its motive binder or result type")
+    family = _object(_named(tree, "alias", "EmptyFamily").get("type"), "computed empty family")
+    inner = _object(family.get("value"), "empty type computation")
+    if family.get("kind") != "computed_type" or inner.get("kind") != "match_expression" or inner.get("cases") != []:
+        raise ValueError("surface computed type lost its empty eliminator")
+    _exact_span(source, inner, b"match (empty) as witness : Type<u> {}")
+    returned = next(node for node in nodes(_named(tree, "function", "Eliminate")) if node.get("kind") == "return")
+    returned_match = _object(returned.get("value"), "returned empty eliminator")
+    if returned_match.get("kind") != "match_expression" or returned_match.get("motive") is not None:
+        raise ValueError("surface unannotated empty value match acquired a motive")
+    _exact_span(source, returned_match, b"match (absent) {}")
+    use = _named(tree, "function", "Use")
+    nested = _object(_named(use, "let", "nested").get("value"), "empty elimination call")
+    grouped = _object(_sequence(nested.get("arguments"), "empty elimination arguments")[0], "grouped empty elimination")
+    empty = _object(grouped.get("value"), "nested empty eliminator")
+    if grouped.get("kind") != "group" or empty.get("kind") != "match_expression" or empty.get("cases") != []:
+        raise ValueError("surface empty value match lost explicit grouping in a call")
+    _exact_span(source, grouped, b"(match (missing) {})")
+    statement = next(node for node in nodes(use) if node.get("kind") == "match")
+    if statement.get("cases") != [] or statement.get("motive") is not None:
+        raise ValueError("surface empty statement match changed its role")
+    callback = _object(_named(use, "let", "callback").get("value"), "empty elimination callback")
+    callback_body = _object(callback.get("body"), "grouped callback elimination")
+    _exact_span(source, callback_body, b"(match (denied) as dead : () {})")
 
 
 def _local_grade_roles(source: bytes, result: dict[str, Json]) -> None:
@@ -2233,7 +2528,15 @@ def qualify(parse: Callable[[bytes], dict[str, Json]]) -> list[str]:
         missing = set(fixture.kinds) - found
         if missing:
             raise ValueError(f"surface fixture {fixture.name} lacks AST roles: {sorted(missing)}")
-        if fixture.name == "local-grades-and-evaluation":
+        if fixture.name == "computed-types-and-family-application":
+            _computed_type_roles(fixture.source.encode("utf-8"), result)
+        elif fixture.name == "alias-and-effect-family-contracts":
+            _family_contract_roles(fixture.source.encode("utf-8"), result)
+        elif fixture.name == "literal-patterns-and-dependent-branches":
+            _literal_pattern_roles(fixture.source.encode("utf-8"), result)
+        elif fixture.name == "empty-dependent-elimination":
+            _empty_elimination_roles(fixture.source.encode("utf-8"), result)
+        elif fixture.name == "local-grades-and-evaluation":
             _local_grade_roles(fixture.source.encode("utf-8"), result)
         elif fixture.name == "local-grade-errors-remain-syntax":
             _local_grade_error_roles(result)
