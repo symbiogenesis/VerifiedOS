@@ -142,6 +142,10 @@ def _failed_build() -> None:
         (root / "tools/opam/sail.lock").write_text("snapshot\n", encoding="utf-8")
         (root / "tools/vos").mkdir()
         (root / "tools/vos/vela_parser.py").write_text("driver\n", encoding="utf-8")
+        (root / "tools/vos/vela_surface.py").write_text("fixtures\n", encoding="utf-8")
+        (root / "tools/vela/examples").mkdir()
+        for name in ("pure.vela", "surface.vela"):
+            (root / "tools/vela/examples" / name).write_text("example\n", encoding="utf-8")
         output = root / "native-build"
         output.mkdir()
         with patch.object(parser, "_run", side_effect=RuntimeError("generator refused grammar")):
@@ -174,8 +178,10 @@ def _qualification_freshness() -> None:
         example.parent.mkdir(parents=True)
         source = b"module M; public Nat F() { return 1; }\r\n"
         inputs, toolchain = {"source": "original"}, {"compiler": "original"}
-        for change in ("source", "toolchain", "generated", "executable", "example", "none"):
+        surface_example = example.with_name("surface.vela")
+        for change in ("source", "toolchain", "generated", "executable", "example", "surface", "none"):
             example.write_bytes(source)
+            surface_example.write_bytes(source)
             for name in (*parser.GENERATED, "vela-parser"):
                 (output / name).write_bytes(b"original")
             hashes = {name: hashlib.sha256(b"original").hexdigest()
@@ -186,17 +192,20 @@ def _qualification_freshness() -> None:
             latest = root / "qualification.json"
             latest.write_text('{"status":"passed","old":true}', encoding="utf-8")
 
-            def parse_example(_compiled: parser.Build, _source: bytes,
+            def parse_example(_compiled: parser.Build, _source: bytes, *, surface: bool = False,
                               mode: str = change) -> dict[str, parser.Json]:
                 if mode in {"generated", "executable"}:
                     (output / ("parser.ml" if mode == "generated" else "vela-parser")).write_bytes(b"changed")
                 elif mode == "example":
                     example.write_bytes(source + b"// changed")
+                elif mode == "surface" and surface:
+                    surface_example.write_bytes(source + b"// changed")
                 return {"schema": 1}
 
             with patch.object(parser, "_work_root", return_value=root), \
                     patch.object(parser, "build", return_value=compiled), \
                     patch.object(parser, "_fixtures", return_value=["independent"]), \
+                    patch.object(parser.vela_surface, "qualify", return_value=["surface-independent"]), \
                     patch.object(parser, "parse_source", side_effect=parse_example), \
                     patch.object(parser, "_inputs", return_value={"source": "changed"} if change == "source" else inputs), \
                     patch.object(parser, "_toolchain", return_value={"compiler": "changed"} if change == "toolchain" else toolchain):

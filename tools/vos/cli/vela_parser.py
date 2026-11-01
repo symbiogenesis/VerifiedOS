@@ -21,6 +21,7 @@ def main(argv: list[str] | None = None) -> int:
     support = commands.add_parser("support", help="build and kernel-check the pinned Rocq support library")
     support.add_argument("--archive", type=Path, help="use an already downloaded authenticated release archive")
     parse = commands.add_parser("parse", help="emit a complete located syntax tree as JSON")
+    parse.add_argument("--surface", action="store_true", help="parse the full development surface as schema 2")
     parse.add_argument("source", type=Path)
     args = parser.parse_args(argv)
     root = Path(__file__).resolve().parents[3]
@@ -35,7 +36,7 @@ def main(argv: list[str] | None = None) -> int:
             output = vela_parser.build(root).receipt
         else:
             source = vela_parser.read_source(args.source)
-            output = vela_parser.parse_source(vela_parser.build(root), source)
+            output = vela_parser.parse_source(vela_parser.build(root), source, surface=args.surface)
     except VelaError as error:
         site = str(args.source) if args.command == "parse" else "qualification"
         print(f"{site}:{error.line}:{error.column}: {error.kind}: {error.message}", file=sys.stderr)
