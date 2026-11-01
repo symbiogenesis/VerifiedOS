@@ -292,6 +292,66 @@ and contracts without an AST; syntax-valid erasure, ownership and grade violatio
 must still parse. Retain strict generation and every existing migration and syntax
 case. These forms establish no type-system, borrow-checker or erasure theorem.
 
+### Local grades, domain members and disposal clauses
+
+Local value bindings reuse the parameter and field use-grade annotation:
+`let value @ q = Make();`, `var T value @ q = Make();` and
+`T value @ q = Make();`. The existing `let`, `var` and `typed_local` nodes
+expose a nullable `grade` field alongside `type` and `value`. Both inferred and
+explicitly typed bindings accept the same grade expression. Product-pattern
+bindings retain their existing form; component modalities belong in their data
+types. Checking the binding's allowance, evaluation effects and subsequent uses
+remains subject to the [graded foundation](graded-foundation.md#functions-and-application).
+In particular, zero demand does not erase an effectful initializer.
+
+The domain roles `carrier`, `zero`, `one`, `add`, `mul`, `admits`, `interpret`
+and `laws` are contextual member names after a dot. Ordinary paths, type paths
+and member expressions can therefore refer to a domain dictionary without new
+operator or projection primitives:
+
+```text
+definition NatExact.carrier Twice(NatExact.carrier value) =
+    NatExact.add(value, NatExact.zero);
+```
+
+These names preserve the existing located path/member AST forms. They remain
+reserved at the start of a name; this extension does not alter domain-entry
+syntax or establish dictionary sealing, domain laws or an interpretation.
+Domains also reuse the existing generic telescope and declaration contracts,
+for example `domain Product<A : GradeDomain, B : GradeDomain>
+where Compatible(A, B) { carrier (A.carrier, B.carrier); ... }`.
+Their `generics` and `contracts` arrays are empty when omitted. Compatible product
+domains therefore need no separate grammar primitive or assumed algebraic law.
+
+Handlers accept an explicit disposal clause, using the same expression or block
+body as their operation and return clauses:
+
+```text
+handle (Run()) as chosen {
+    Choose() with k => resume k(true),
+    return value => value,
+    dispose reason => { Cleanup(reason); return (); },
+}
+```
+
+A `disposal_clause` has a located `name` for the disposal-reason binder and a
+`body`. It composes with deep/shallow handlers and rehandlers, sharing their
+comma-delimited clause list. The [handler lifecycle](handlers-async.md#handler-lookup-capture-and-return)
+owns its intended resource context and lexical restrictions: the handler's own
+perform capability is absent in its clauses. A disposal clause describes the
+declared disposal graph; capture and ordinary return do not invoke it. Parsing neither
+invokes cleanup nor supplies a resource-restoration proof; duplicate clauses,
+unbound capabilities and invalid disposal bodies still parse as semantic errors.
+The existing `dispose continuation` computation retains its separate syntax.
+
+Annotation lookahead must accept callable types inside generic local and lambda
+annotations, including nested results, loan modifiers, grades and effects.
+Arrows in these types must not close generic argument lists. Independent fixtures
+must distinguish local allowance, initializer and lambda-parameter grades, domain
+member/path spans, and operation/return/disposal clause ownership. Include nested
+handlers, syntax-valid resource violations, malformed neighboring spellings and
+bounded-lookahead exhaustion. Retain every prior syntax and pure migration case.
+
 ### Native qualification
 
 Menhir's code backend must generate with `--strict --infer --explain`, with no
