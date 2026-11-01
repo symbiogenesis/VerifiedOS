@@ -1,0 +1,120 @@
+# SPDX-License-Identifier: Apache-2.0
+"""The wider parser entry cannot bypass schema or qualification boundaries."""
+
+import hashlib
+import json
+import subprocess
+import tempfile
+from contextlib import redirect_stderr, redirect_stdout
+from io import StringIO
+from pathlib import Path
+from unittest.mock import patch
+
+from tests.harness import Case, ensure
+from vos import vela_parser as parser
+from vos.cli import vela_parser as cli
+
+
+def _build(directory: Path) -> parser.Build:
+    executable = directory / "vela-parser"
+    executable.write_bytes(b"fixture executable")
+    return parser.Build(directory, executable, {
+        "generated_sha256": {"vela-parser": hashlib.sha256(executable.read_bytes()).hexdigest()},
+    })
+
+
+def _entry_protocol() -> None:
+    source = b"module M;"
+    tree: dict[str, parser.Json] = {"kind": "surface_file", "span": [0, 9],
+                                   "name": {"text": "M", "span": [7, 8]}, "declarations": []}
+    with tempfile.TemporaryDirectory(prefix="vos-vela-surface-") as temporary:
+        compiled = _build(Path(temporary))
+        response = subprocess.CompletedProcess([], 0, json.dumps({"schema": 2, "ast": tree}).encode(), b"")
+        with patch.object(parser.subprocess, "run", return_value=response) as run:
+            result = parser.parse_source(compiled, source, surface=True)
+        ensure(run.call_args.args[0] == [str(compiled.executable), "--surface"],
+               "surface request used the pure native entry")
+        ensure(result == {"schema": 2, "source_sha256": hashlib.sha256(source).hexdigest(), "ast": tree},
+               "surface source binding or syntax changed")
+        for surface, schema, kind in ((False, 2, "surface_file"), (True, 1, "file"),
+                                      (True, True, "surface_file"), (True, 2, "file")):
+            payload = {"schema": schema, "ast": {**tree, "kind": kind}}
+            response = subprocess.CompletedProcess([], 0, json.dumps(payload).encode(), b"")
+            with patch.object(parser.subprocess, "run", return_value=response):
+                try:
+                    parser.parse_source(compiled, source, surface=surface)
+                except ValueError as error:
+                    ensure("schema" in str(error), "entry mismatch has no schema refusal")
+                else:
+                    raise AssertionError("cross-entry or boolean schema accepted")
+
+
+def _entry_cli() -> None:
+    with tempfile.TemporaryDirectory(prefix="vos-vela-surface-") as temporary:
+        directory = Path(temporary)
+        source = directory / "surface.vela"
+        source.write_bytes(b"module M;")
+        compiled = _build(directory)
+        with redirect_stdout(output := StringIO()), redirect_stderr(errors := StringIO()), \
+                patch.object(cli.vela_parser, "build", return_value=compiled), \
+                patch.object(cli.vela_parser, "parse_source", return_value={"schema": 2}) as parse:
+            code = cli.main(["parse", "--surface", str(source)])
+        ensure(code == 0 and json.loads(output.getvalue()) == {"schema": 2} and not errors.getvalue(),
+               "surface CLI failed or mixed diagnostics with syntax")
+        parse.assert_called_once_with(compiled, source.read_bytes(), surface=True)
+        with redirect_stdout(output := StringIO()), redirect_stderr(errors := StringIO()), \
+                patch.object(cli.vela_parser, "build", return_value=compiled), \
+                patch.object(cli.vela_parser, "parse_source", side_effect=ValueError("invalid surface schema")) as parse:
+            code = cli.main(["parse", "--surface", str(source)])
+        ensure(code == 1 and not output.getvalue() and "invalid surface schema" in errors.getvalue(),
+               "failed surface request emitted output or hid refusal")
+        ensure(parse.call_count == 1, "surface failure retried through a fallback parser")
+
+
+def _qualification_input_binding() -> None:
+    with tempfile.TemporaryDirectory(prefix="vos-vela-surface-") as temporary:
+        root = Path(temporary)
+        files = [*(f"tools/vela/parser/{name}" for name in parser.SOURCES),
+                 "tools/opam/sail.lock", "tools/vos/vela_parser.py", "tools/vos/vela_surface.py",
+                 "tools/vela/examples/pure.vela", "tools/vela/examples/surface.vela"]
+        for name in files:
+            path = root / name
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_bytes(name.encode())
+        initial = parser._inputs(root)
+        for name in ("tools/vos/vela_surface.py", "tools/vela/examples/surface.vela"):
+            path = root / name
+            original = path.read_bytes()
+            path.write_bytes(original + b" changed")
+            changed = parser._inputs(root)
+            ensure(changed[name] != initial[name], f"qualification omitted changed {name}")
+            path.write_bytes(original)
+
+
+def _failed_surface_qualification() -> None:
+    with tempfile.TemporaryDirectory(prefix="vos-vela-surface-") as temporary:
+        root = Path(temporary)
+        hashes = dict.fromkeys(parser.GENERATED, "same")
+        compiled = parser.Build(root, root / "unused", {
+            "inputs": {}, "toolchain": {}, "generated_sha256": hashes,
+        })
+        latest = root / "qualification.json"
+        latest.write_text('{"status":"passed"}', encoding="utf-8")
+        with patch.object(parser, "_work_root", return_value=root), \
+                patch.object(parser, "build", return_value=compiled), \
+                patch.object(parser, "_fixtures", return_value=["pure-passed"]), \
+                patch.object(parser.vela_surface, "qualify", side_effect=ValueError("surface oracle differs")):
+            try:
+                parser.qualify(root)
+            except ValueError as error:
+                ensure(str(error) == "surface oracle differs", "surface qualification failure was replaced")
+            else:
+                raise AssertionError("failed surface oracle produced passing qualification")
+        ensure(not latest.exists(), "failed surface oracle preserved stale passing evidence")
+
+
+def cases() -> list[Case]:
+    return [Case("surface-entry-schema-and-source-binding", _entry_protocol),
+            Case("surface-cli-and-no-fallback", _entry_cli),
+            Case("surface-fixture-input-identities", _qualification_input_binding),
+            Case("surface-oracle-failure-without-receipt", _failed_surface_qualification)]

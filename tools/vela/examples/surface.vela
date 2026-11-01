@@ -1,0 +1,42 @@
+// SPDX-License-Identifier: Apache-2.0
+// Syntax-only development example: no elaboration or proof claim.
+module Vela.Surface;
+
+public record Packet<region 'source>(
+    usize Length,
+    in<'source> Span<byte> Data,
+    ghost Nat Count)
+    invariant Nat(Length) == Count;
+
+public union Delivery<ghost Nat n> {
+    Accepted(owned Packet<n> packet, tracked Permit<n> receipt);
+    Cancelled(owned Packet<n> packet);
+}
+
+public void Fill<ghost Nat count>(ref Span<byte, count> target, byte value)
+    effects writes(target)
+    ensures target.Model == Seq.Repeat(value, count)
+{
+    for (let index in 0usize..target.Length)
+        invariant target.Model.Take(Nat(index)) == Seq.Repeat(value, Nat(index))
+    {
+        target[index] = value;
+        proof { ?extend; }
+    }
+}
+
+public effect Choose {
+    bool Choose() resumes(0..2);
+}
+
+public async Delivery<n> Accept<ghost Nat n>(
+    owned Packet<n> packet, tracked Permit<n> allowance)
+    effects reads(packet), calls(Forward, Counter.Add)
+{
+    await Forward(in packet);
+    let receipt = commit Counter.Add(move allowance, packet.Length);
+    return Accepted(move packet, receipt);
+}
+on cancel {
+    return Cancelled(move packet);
+}
