@@ -47,7 +47,9 @@ lane/retention tests run only when the selection calls for full host validation.
 Manual Host CI dispatch defaults to full validation. Manual Guest CI defaults to
 `lanes: all`; its optional `lanes` input accepts a nonempty, comma-separated subset
 of `model,rtl,proofs`. Invalid names or duplicates refuse the plan. Scheduled runs,
-explicit reruns, `cold: true` and a proof-reading base select every guest lane.
+**Re-run all jobs**, `cold: true` and a proof-reading base select every guest lane.
+**Re-run failed jobs** may reuse the earlier successful plan and its selection;
+start a new dispatch with `lanes: all` to request full coverage explicitly.
 `fanout init --full-ci` expands both host and guest validation when an item's
 acceptance predicate requires it. Scope selection does not waive separately
 required acceptance checks or requirement/prose co-reads. Changes to CI selection
@@ -88,7 +90,7 @@ lanes before allocating their runners or installing tools when that run succeede
 on the current revision: a scheduled run's head commit, or for a dispatched run,
 which may pin an older revision than its head, the revision named by every lane's
 artifact. New revisions, failed or canceled runs, absent history and failed history
-lookups run all scheduled gates. Monthly cold runs and explicit reruns always run
+lookups run all scheduled gates. Monthly cold runs and **Re-run all jobs** always run
 every lane; manual runs execute their selected lanes and default to all.
 The planning/history job alone has `actions: read`; the gate lanes keep `contents: read`.
 They need no repository secrets or initialized submodules. The public repository's standard
