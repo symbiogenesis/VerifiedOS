@@ -452,7 +452,8 @@ An ordinary expression may bind a shared subexpression with
 `let NAME = EXPR in EXPR`, including the existing optional type and use-grade
 annotations. Recursive local patterns use the same constructor/product/group
 forms as statement elimination. For example, a type family can compute
-`let chosen = Select(flag) in type[chosen]`; a contract or match arm can bind a
+`let chosen = Select(flag) in chosen`; a computed type can use
+`type[let chosen = Select(flag) in chosen]`. A contract or match arm can bind a
 library result without a new type-family, borrow or protocol primitive.
 
 A located `let_expression` contains a `binding` (the existing `let` or
