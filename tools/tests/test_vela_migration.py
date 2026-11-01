@@ -44,7 +44,7 @@ def _diagnostics() -> None:
     source = b"module M; public Nat F() { return missing; }"
     fixture = migration.Fixture("name-edit", source, "name")
     compiled = vela_parser.Build(TOOLS, TOOLS / "unused", {})
-    for line, column, expected in ((1, 34, "agreed"), (2, 1, "differences")):
+    for line, column, expected in ((1, 35, "agreed"), (2, 1, "differences")):
         with patch.object(migration.vela_parser, "parse_source", return_value={}), \
                 patch.object(migration.vela, "translate_ast",
                              side_effect=vela.VelaError("name", line, column, "missing")):
@@ -53,7 +53,7 @@ def _diagnostics() -> None:
     wrong_expectation = migration.Fixture("false-oracle", source, "type")
     with patch.object(migration.vela_parser, "parse_source", return_value={}), \
             patch.object(migration.vela, "translate_ast",
-                         side_effect=vela.VelaError("name", 1, 34, "missing")):
+                         side_effect=vela.VelaError("name", 1, 35, "missing")):
         report = migration.compare(compiled, (wrong_expectation,))
     ensure(report["status"] == "differences" and "baseline differs" in str(report["fixtures"]),
            "agreement overrode an independent expected category")
@@ -74,7 +74,7 @@ def _fixture_baseline() -> None:
     ensure(len({case.name for case in cases}) == len(cases), "duplicate migration identity")
     ensure(any(case.name == "group-boundary" for case in cases), "known limit difference omitted")
     for case in cases:
-        outcome = migration._observe(lambda: vela.translate(case.source))
+        outcome = migration._observe(lambda source=case.source: vela.translate(source))
         ensure(outcome["category"] == case.expected,
                f"migration oracle {case.name}: expected {case.expected}, got {outcome}")
 

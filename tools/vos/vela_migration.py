@@ -137,8 +137,8 @@ def compare(compiled: vela_parser.Build, cases: tuple[Fixture, ...]) -> dict[str
     rows: list[dict[str, object]] = []
     differences: list[str] = []
     for case in cases:
-        baseline = _observe(lambda: vela.translate(case.source))
-        native = _observe(lambda: vela.translate_ast(case.source, vela_parser.parse_source(compiled, case.source)))
+        baseline = _observe(lambda source=case.source: vela.translate(source))
+        native = _observe(lambda source=case.source: vela.translate_ast(source, vela_parser.parse_source(compiled, source)))
         reasons: list[str] = []
         if baseline["category"] != case.expected:
             reasons.append("baseline differs from independent expected category")

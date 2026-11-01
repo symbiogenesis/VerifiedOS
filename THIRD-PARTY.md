@@ -413,7 +413,7 @@ The [selected-wheel licence readings](docs/implementation/evidence/markdown-tool
 
 Lychee 0.24.2, release commit `2bba271688c1abb1503097a064e6c3bc1d1b6a9b`, supplies offline local-file and fragment checking. Its [MIT licence](https://github.com/lycheeverse/lychee/blob/2bba271688c1abb1503097a064e6c3bc1d1b6a9b/LICENSE-MIT), SHA-256 `7175e5dd1db3111bbab4e5bafcab2544780452bb6ca8f347b0187446498630d1`, and [Apache licence](https://github.com/lycheeverse/lychee/blob/2bba271688c1abb1503097a064e6c3bc1d1b6a9b/LICENSE-APACHE), SHA-256 `992df51ac0d6b07c1d7cb310dbeb60ed72b03a6a937779b273f82bdb6a757f6f`, were read on 2026-10-29. The release offers `MIT OR Apache-2.0`; its notices credit the lychee maintainers. The adapter downloads verified release archives into the managed host environment and extracts only the hash-bound executable. Windows ARM64 uses the published x64 executable through Windows emulation. No Lychee source, archive or executable is redistributed here; this development check supplies no platform proof assumption.
 
-### Development tools, contained by use
+### Vela parser support library
 
 Vela's [Q25h support-library prerequisite](docs/languages/vela-parser.md#rocq-support-prerequisite)
 builds `coq-menhirlib` from the same authenticated Menhir 20260209 archive the
@@ -426,6 +426,8 @@ modified sources and compiled Rocq library remain in native build directories.
 Only JSON receipts are exported; this use conveys no upstream source, library,
 generator or runtime binary. Parser or bootstrap distribution retains Q25h's
 separate terms qualification.
+
+### Development tools, contained by use
 <!-- generated:development-tools -->
 
 **Rocq Stdlib.** [MemoryPlan.v](proofs/MemoryPlan.v) references separately installed `PeanoNat.Nat` theorems. The reviewed V9.2.0 edition is `8dd155bc10529814202f8f4c643e5ae6c2c88fa6`. Its [LICENSE](https://github.com/rocq-prover/stdlib/blob/8dd155bc10529814202f8f4c643e5ae6c2c88fa6/LICENSE) and [PeanoNat header](https://github.com/rocq-prover/stdlib/blob/8dd155bc10529814202f8f4c643e5ae6c2c88fa6/theories/Arith/PeanoNat.v) state LGPL version 2.1 and credit the Rocq Development Team, INRIA, CNRS, contributors, and Evgeny Makarov. The proof-switch lock fixes the installed version. Project adapters copy no upstream proof scripts, and neither Stdlib nor compiled proof objects are distributed here. Distribution of the library or a combined artifact would require review of the LGPL source, notice, and modification or relinking obligations. [The reuse record](docs/assurance/proof-reuse/foundations.md#f01-rocq-stdlib-arithmetic-integrated-by-reference) identifies theorem references and transitive assumptions.

@@ -160,7 +160,8 @@ def _toolchain_controls() -> None:
                     checked.proofenv.OCAML_VERSION, str(directory)]
         with patch.object(checked, "_run", side_effect=expected):
             identity = checked._toolchain(directory, directory, [])
-        ensure(len(identity["binary_sha256"]) == 3, "support tools lost executable identities")
+        digests = identity["binary_sha256"]
+        ensure(isinstance(digests, dict) and len(digests) == 3, "support tools lost executable identities")
         for index in (0, 1, 2):
             changed = [*expected]
             changed[index] = "different identity"
@@ -182,9 +183,38 @@ def _toolchain_controls() -> None:
             run.assert_not_called()
 
 
+def _changed_observations() -> None:
+    with tempfile.TemporaryDirectory(prefix="vos-vela-support-observations-") as temporary:
+        root = Path(temporary)
+        candidate, reference = root / "candidate", root / "reference"
+        candidate.mkdir()
+        reference.mkdir()
+        guard = f"Definition guard := Version.require_{checked.RELEASE}.\n"
+        files = {candidate / "Frozen.v": checked.FROZEN_QUERY, reference / "Frozen.v": checked.FROZEN_QUERY,
+                 candidate / "Assumptions.v": checked.ASSUMPTIONS_QUERY,
+                 candidate / "VersionAccepted.v": guard,
+                 candidate / "VersionRefused.v": guard.replace(f"require_{checked.RELEASE}", "require_unreleased"),
+                 root / "run.stdout": "Closed under the global context\n", root / "run.stderr": ""}
+        steps: list[dict[str, object]] = [{"stdout": str(root / "run.stdout"), "stderr": str(root / "run.stderr"),
+                                         "stdout_sha256": checked._sha256(files[root / "run.stdout"].encode()),
+                                         "stderr_sha256": checked._sha256(b"")}]
+        for changed in (None, *files):
+            for path, text in files.items():
+                path.write_text(text, encoding="utf-8", newline="")
+            if changed is not None:
+                changed.write_bytes(b"substituted observation")
+            try:
+                checked._observations(candidate, reference, guard, steps)
+            except ValueError as error:
+                ensure(changed is not None and "changed" in str(error), "unexpected observation refusal")
+            else:
+                ensure(changed is None, "changed proof probe or transcript acquired qualification")
+
+
 def cases() -> list[Case]:
     return [Case("immutable-source-and-version-controls", _archive_controls),
             Case("proof-opening-byte-footprint", _proof_footprint),
             Case("bounded-command-and-negative-verdict-controls", _process_controls),
             Case("locked-generator-and-prover-controls", _toolchain_controls),
+            Case("changed-probes-and-transcripts-refuse", _changed_observations),
             Case("failed-qualification-discards-stale-success", _refused_qualification)]

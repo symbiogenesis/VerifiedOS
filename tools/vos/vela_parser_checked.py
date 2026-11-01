@@ -16,6 +16,7 @@ import tempfile
 import time
 import urllib.request
 from pathlib import Path, PurePosixPath
+from typing import cast
 
 from filelock import FileLock
 
@@ -76,6 +77,11 @@ End SupportBoundary.
 
 def _sha256(source: bytes) -> str:
     return hashlib.sha256(source).hexdigest()
+
+
+def _require(condition: bool, message: str) -> None:
+    if not condition:
+        raise ValueError(message)
 
 
 def _proof_openings(source: bytes, *, reference: bool = False) -> bytes:
@@ -267,9 +273,8 @@ def _stage(sources: dict[str, bytes], directory: Path, *, reference: bool) -> No
         # The selected license notices accompany every private build tree.
         if path in LICENSES:
             relative = "LICENSE.generator" if path == "LICENSE" else "LICENSE.support"
-        if relative == "Interpreter.v":
-            source = _proof_openings(source, reference=reference)
-        (directory / relative).write_bytes(source)
+        content = _proof_openings(source, reference=reference) if relative == "Interpreter.v" else source
+        (directory / relative).write_bytes(content)
 
 
 def _compile(directory: Path, steps: list[dict[str, object]]) -> None:
@@ -292,10 +297,25 @@ def _archive(path: Path | None, directory: Path) -> bytes:
     if path is not None:
         with path.open("rb") as stream:
             return stream.read(MAX_ARCHIVE_BYTES + 1)
-    with urllib.request.urlopen(ARCHIVE_URL, timeout=TIMEOUT) as response:  # noqa: S310
-        source = response.read(MAX_ARCHIVE_BYTES + 1)
+    with urllib.request.urlopen(ARCHIVE_URL, timeout=TIMEOUT) as response:
+        source = cast("bytes", response.read(MAX_ARCHIVE_BYTES + 1))
     (directory / "menhir.tar.gz").write_bytes(source)
     return source
+
+
+def _observations(candidate: Path, reference: Path, guard: str,
+                  steps: list[dict[str, object]]) -> dict[str, str]:
+    probes = {candidate / "Frozen.v": FROZEN_QUERY, reference / "Frozen.v": FROZEN_QUERY,
+              candidate / "Assumptions.v": ASSUMPTIONS_QUERY,
+              candidate / "VersionAccepted.v": guard,
+              candidate / "VersionRefused.v": guard.replace(f"require_{RELEASE}", "require_unreleased")}
+    for path, text in probes.items():
+        _require(path.read_bytes() == text.encode(), "Menhir support probe changed during qualification")
+    for step in steps:
+        for stream in ("stdout", "stderr"):
+            _require(_sha256(Path(str(step[stream])).read_bytes()) == step[f"{stream}_sha256"],
+                     "Menhir support transcript changed during qualification")
+    return {str(path): _sha256(text.encode()) for path, text in probes.items()}
 
 
 def qualify(root: Path, *, archive: Path | None = None) -> dict[str, object]:
@@ -325,8 +345,8 @@ def qualify(root: Path, *, archive: Path | None = None) -> dict[str, object]:
             outputs = {str(tree.name): {f"{name}.vo": _sha256((tree / f"{name}.vo").read_bytes())
                                        for name in MODULES} for tree in (candidate, reference)}
             frozen = (candidate / "frozen.stdout").read_bytes()
-            if not frozen or frozen != (reference / "frozen.stdout").read_bytes():
-                raise ValueError("same-prover Menhir public types, bodies, universes or assumptions differ")
+            _require(bool(frozen) and frozen == (reference / "frozen.stdout").read_bytes(),
+                     "same-prover Menhir public types, bodies, universes or assumptions differ")
             _run(_opam(["rocqchk", "-R", ".", "MenhirLib",
                         *(f"MenhirLib.{module}" for module in MODULES)]),
                  candidate, candidate / "kernel.stdout", steps)
@@ -341,24 +361,25 @@ def qualify(root: Path, *, archive: Path | None = None) -> dict[str, object]:
                 guard.replace(f"require_{RELEASE}", "require_unreleased"), encoding="utf-8", newline="")
             _run(_opam(["rocq", "c", "-R", ".", "MenhirLib", "VersionRefused.v"]),
                  candidate, candidate / "guard-refused.stdout", steps, refusal="require_unreleased")
-            if _inputs(root) != inputs or _toolchain(root, directory, steps) != tools:
-                raise ValueError("support qualification inputs or toolchain changed during execution")
-            if _runtime(directory, steps) != runtime:
-                raise ValueError("support installed library inputs changed during execution")
+            _require(_inputs(root) == inputs and _toolchain(root, directory, steps) == tools,
+                     "support qualification inputs or toolchain changed during execution")
+            _require(_runtime(directory, steps) == runtime,
+                     "support installed library inputs changed during execution")
             for tree, wanted in ((candidate, CANDIDATE_SHA256), (reference, REFERENCE_SHA256)):
                 for path, source in sources.items():
                     name = path.removeprefix("coq-menhirlib/src/")
                     if path in LICENSES:
                         name = "LICENSE.generator" if path == "LICENSE" else "LICENSE.support"
                     digest = wanted if name == "Interpreter.v" else _sha256(source)
-                    if _sha256((tree / name).read_bytes()) != digest:
-                        raise ValueError("Menhir support source changed during qualification")
+                    _require(_sha256((tree / name).read_bytes()) == digest,
+                             "Menhir support source changed during qualification")
                 for name, digest in outputs[tree.name].items():
-                    if _sha256((tree / name).read_bytes()) != digest:
-                        raise ValueError("Menhir support compiled output changed during qualification")
+                    _require(_sha256((tree / name).read_bytes()) == digest,
+                             "Menhir support compiled output changed during qualification")
+            probes = _observations(candidate, reference, guard, steps)
             report: dict[str, object] = {
                 **attempt, "status": "passed", "inputs": inputs, "toolchain": tools,
-                "installed_libraries": runtime, "compiled_sha256": outputs,
+                "installed_libraries": runtime, "compiled_sha256": outputs, "probes_sha256": probes,
                 "generator_pair_qualified": False, "checked_vela_parser": False,
                 "source": {"release": RELEASE, "url": ARCHIVE_URL,
                            "sha512": ARCHIVE_SHA512, "sha256": _sha256(contents),
@@ -379,6 +400,7 @@ def qualify(root: Path, *, archive: Path | None = None) -> dict[str, object]:
                                 "roots": [f"SupportBoundary.Parser.{name}" for name in (
                                     "parse_correct", "parse_complete", "unambiguity")],
                                 "query_sha256": _sha256(ASSUMPTIONS_QUERY.encode()),
+                                "reading": (candidate / "assumptions.stdout").read_text(encoding="utf-8"),
                                 "reading_sha256": _sha256((candidate / "assumptions.stdout").read_bytes())},
                 "deferred": ["concrete generated grammar and its exact assumption audit",
                              "exact generator executable and support-library pair",
@@ -387,8 +409,9 @@ def qualify(root: Path, *, archive: Path | None = None) -> dict[str, object]:
             }
             _write_json(directory / "qualification.json", report)
             _write_json(latest, report)
-            return report
         except (OSError, RuntimeError, TypeError, ValueError) as error:
             attempt.update(status="failed", reason=str(error))
             _write_json(directory / "attempt.json", attempt)
             raise
+        else:
+            return report
