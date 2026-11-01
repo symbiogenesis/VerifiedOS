@@ -1,32 +1,28 @@
 # Vela development parser qualification
 
+The [primary Vela design and examples](verification-strategy.md) explains the language;
+this contract owns the development parser's bounded qualification and retirement.
+
 ## Bounded increment
 
-[Q25g](../../../PLAN.md#q-assessment-actions) commissions a syntax-only Menhir
-development parser for the [pure prototype's source fragment](vela-prototype.md#source-fragment).
-Its accepted language is that fragment's grammar, with whole-file consumption.
-Name resolution, typing, elaboration and Gallina emission stay separate. In
-particular, a duplicate declaration or `true + 1` parses successfully: syntax
-acceptance supplies no name or type verdict. Unsupported extension keywords,
-invalid UTF-8, incomplete input and resource exhaustion produce located refusals.
+[Q25g](../../../PLAN.md#q-assessment-actions) commissions syntax-only Menhir parsing
+of the [prototype grammar](vela-prototype.md#source-fragment), consuming the whole
+file before separate resolution, typing, elaboration and Gallina emission.
+Duplicate declarations and `true + 1` parse without a name/type verdict. Unsupported
+extension keywords, invalid UTF-8, incomplete input and exhaustion give located refusals.
 
-The authored OCaml grammar and syntax-tree types are the syntax owners for this
-increment. Actions construct located syntax only. Every node carries a half-open
-byte-offset span into the original source; diagnostics use one-based lines and
-columns, treating CRLF and bare CR as line endings. Decimal spellings remain
-strings, including leading zeros, so parsing imposes no machine-integer bound.
-UTF-8 comments are allowed; identifiers remain ASCII. Source bytes are never
-normalized before computing provenance.
+The authored OCaml grammar and AST types own syntax; actions construct located
+syntax only. Nodes carry half-open original-source byte spans. Diagnostics use
+one-based lines/columns, treating CRLF and bare CR as line endings. Keep decimal
+spellings, including leading zeros, as strings without machine-integer bounds.
+Comments may be UTF-8; identifiers are ASCII. Provenance hashes unnormalized bytes.
 
-The code backend of Menhir 20260209 is the selected bounded route. Its generator
-and OCaml compiler come from the existing [Sail snapshot](../../../tools/opam/sail.lock).
-The build refuses a different generator or compiler version. Build products live
-in the native lane, with the authored input digests, tool identities, generation
-arguments and generated-file digests in a receipt. Repeated generation in fresh
-directories must produce identical parser bytes. No generated parser or upstream
-runtime source is tracked. This route links no Menhir runtime library. Read the
-selected release's own licence and record its output terms in
-[THIRD-PARTY.md](../../../THIRD-PARTY.md) before incorporation.
+Use Menhir 20260209's code backend and the [Sail snapshot's](../../../tools/opam/sail.lock)
+exact generator/OCaml compiler; refuse version mismatches. Native-lane build receipts
+bind authored-input digests, tool identities, arguments and generated-file digests.
+Fresh generations must be byte-identical. Track no generated parser/upstream runtime
+source and link no Menhir runtime. Before incorporation, read the release's licence
+and record output terms in [THIRD-PARTY.md](../../../THIRD-PARTY.md).
 
 Input is bounded by the prototype's source-byte and literal-digit limits. The
 native driver also bounds delimiter nesting and raw syntax-tree depth at 256 before exposing
@@ -55,11 +51,10 @@ already installed Sail snapshot. Require Host CI on Windows and Ubuntu, dispatch
 every Guest CI lane for the settled revision, and finish without waiting for
 Guest CI; its pending parser verdict remains pending.
 
-An independent reviewer reads the grammar against the prototype contract and
-selects expected trees independently of grammar actions. Preserve the existing
-Python prototype and its tests during this increment. Q25g closes the executable
-development increment only, without a checked-parser, lexer-correctness,
-source-correspondence or full-language frontend claim.
+An independent reviewer compares grammar with the prototype contract and selects
+expected trees independently of actions. Retain the Python prototype/tests. Q25g
+qualifies executable development syntax only; checked parsing, lexer correctness,
+source correspondence and the full frontend need separate evidence.
 
 ## Promotion and retirement
 
@@ -71,13 +66,11 @@ grammar and checked completeness evidence are required for that claim; source
 spans, diagnostics and lexing need their own evidence. Any backend grammar view
 must be generated from one owner and checked for drift.
 
-Prefer a released support library carrying the required Rocq adaptations. If none
-does, a reviewed upstream revision or a separately maintained fork may supply
-them, with its own licence reading, reproducible source pin and bounded semantic
-comparison. Contribute necessary fixes upstream when their qualification is ready.
-Release stamping must keep generator/library version checks meaningful; disabling
-them does not qualify a pair. The [existing compatibility record](../../../tools/opam/certirocq-compatibility.md#native-trial-verdict)
-identifies the upstream proof-command relocation and the remaining version issue.
+Prefer released Rocq adaptations; otherwise qualify a reviewed upstream revision
+or maintained fork with licence reading, reproducible pin and bounded semantic
+comparison. Contribute qualified fixes upstream. Preserve meaningful release/version
+checks; disabling them qualifies no pair. The [compatibility record](../../../tools/opam/certirocq-compatibility.md#native-trial-verdict)
+identifies proof-command relocation and the remaining version issue.
 
 Before switching the prototype, provide a supported build/runtime route on
 Windows and Ubuntu; route the generated AST through separate resolution, typing
@@ -108,10 +101,9 @@ Agreement supplies a migration prerequisite, with no checked-parser or
 source-correspondence claim. The ordinary `vela` command continues to select Python
 syntax until the complete promotion contract passes.
 
-Syntax is now consumed completely before semantic checking, so a multiply-invalid
-file can report a later syntax error before an earlier name or type error. That
-diagnostic priority is the syntax-first frontend's selected behavior; independent
-single-fault semantic fixtures retain their categories and locations.
+Whole-file syntax precedes semantics: a multiply-invalid file may report a later
+syntax error before an earlier name/type error. Independent single-fault semantic
+fixtures retain their categories and locations.
 
 ### Rocq support prerequisite
 

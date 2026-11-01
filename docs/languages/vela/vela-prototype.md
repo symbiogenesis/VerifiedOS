@@ -1,49 +1,42 @@
 # Pure Vela translation prototype
 
+Start with the [primary Vela design and examples](verification-strategy.md).
+This document specifies the implemented pure fragment and its development commands.
+
 ## Commission and interpretation
 
-[Q25e and Q25f](../../../PLAN.md#q-assessment-actions) commission a bounded host development
-tool: parse an explicitly typed, pure function fragment and emit Gallina
-definitions. The meaning of an accepted expression is its generated CIC term.
-There is no independent source evaluator, reduction relation or semantic anchor.
-`Nat` denotes mathematical naturals and `bool` denotes booleans; neither denotes
-a machine word, a storage layout or a CHERI permission.
+[Q25e/Q25f](../../../PLAN.md#q-assessment-actions) commission a bounded host tool
+translating explicitly typed pure functions to Gallina. Accepted expressions mean
+their generated CIC terms, with no independent evaluator, reduction relation or
+semantic anchor. `Nat` and `bool` denote mathematical naturals and booleans, not
+machine words, layouts or CHERI permissions.
 
-This separately scoped fixture follows the [core design's narrower-fixture
-rule](core-design.md#decision-and-reopening-evidence). It does not reopen the
-returned-loan trial or commission the [held full-language frontend
-rows](full-language-review.md#r-05-009-r-05-020-and-what-holds-the-frontend-rows).
-The full calculus still owes its interpretation commitment and register acts.
-The Python parser and type checker are untrusted development tools. Their success
-is not kernel acceptance, checked source correspondence, a `SourcePackage`,
-metatheory, compiler qualification or final-binary admission.
+The [narrower-fixture rule](core-design.md#decision-and-reopening-evidence) keeps
+this separate from the returned-loan trial and [held full-frontend rows](full-language-review.md#r-05-009-r-05-020-and-what-holds-the-frontend-rows).
+The full calculus retains its interpretation/register duties. Untrusted Python
+parsing/checking supplies no kernel acceptance, checked source correspondence,
+`SourcePackage`, metatheory, compiler qualification or binary admission.
 
 ## Development parser goal
 
-The selected development direction is a
-[Menhir-generated parser](verification-strategy.md#development-parser-and-grammar)
-for the proposed Vela surface, producing located syntax before separate checking
-and elaboration. The handwritten syntax parser and strict generated-AST decoder
-now feed a separate shared resolution, type-checking and emission consumer.
-Replacing the selected parser requires the
-[plan's `vela-parser` qualification](../../../PLAN.md#vela-whole-system-authoring-proposal)
-and the [bounded parser and migration contract](vela-parser.md).
-`python tools/run.py vela-parser parse SOURCE` exercises the syntax-only generated
-development parser separately; `vela-parser qualify` checks its independent AST
-fixtures and regeneration. `vela-parser migration` compares both routes on source
-edits and independently expected acceptance/refusal categories, retaining every
-difference. The `vela` command still uses the Python syntax parser
-until Q25h's checked-parser and migration predicates pass. Keep the current
-examples and rejection cases as migration fixtures.
+The [Menhir development route](verification-strategy.md#development-parser-and-grammar)
+produces located syntax before separate checking/elaboration. Python syntax and
+the strict generated-AST decoder feed shared resolution, typing and emission.
+Replacement requires the [plan's qualification](../../../PLAN.md#vela-whole-system-authoring-proposal)
+and [parser/migration contract](vela-parser.md).
+
+`python tools/run.py vela-parser parse SOURCE` exercises generated syntax;
+`vela-parser qualify` checks independent AST fixtures/regeneration;
+`vela-parser migration` compares source edits and independently expected
+acceptance/refusal categories, retaining all differences. `vela` uses Python
+syntax until Q25h passes. Retain current examples/refusals as migration fixtures.
 
 ## Source fragment
 
-The supported fragment follows the [proposed Vela surface](verification-strategy.md#an-ideal-surface):
-public declarations put the return type before the operation name, parameters put
-the type before the binding, immutable locals use `let`, and function exits use
-`return`. This is a subset of that surface rather than a separate expression-language
-syntax. Contracts, grades, effects, loans and machine representations remain outside
-this prototype; their presence is diagnosed rather than ignored.
+This subset follows the [proposed surface](verification-strategy.md#an-ideal-surface):
+return types precede operation names, parameter types precede bindings, immutable
+locals use `let` and exits use `return`. Contracts, grades, effects, loans and
+machine representations are unsupported and diagnosed, never ignored.
 
 The prototype accepts UTF-8 source with ASCII identifiers and `//` line comments.
 Identifiers match `[A-Za-z_][A-Za-z0-9_]*`, excluding grammar and reserved extension
@@ -112,10 +105,9 @@ type, unsupported-feature, encoding, limit and I/O failures. Rejected source
 produces no generated output. Atomic file publication preserves existing output
 after a failed write; standard output cannot roll back bytes already consumed.
 
-Generated output is deterministic, uses fully qualified CIC library constants
-for operations, and binds the exact source bytes with SHA-256. The digest is
-provenance, not a semantic correspondence proof. The emitter generates definitions
-only; no axioms, admitted obligations, proof scripts or machine-code escape exists.
+Deterministic output uses fully qualified CIC operations and SHA-256 provenance
+for exact source bytes, without a correspondence theorem. Emit definitions only:
+no axioms, admissions, proof scripts or machine-code escape.
 
 ## Acceptance
 
@@ -141,16 +133,15 @@ retain the [unified-source acceptance contract](unified-source-contract.md).
 
 ## Try the prototype
 
-From the repository root on Windows:
+From the repository root on Windows (use `python3` on Linux):
 
 ```console
 python tools/run.py vela check tools/vela/examples/pure.vela
 python tools/run.py vela emit tools/vela/examples/pure.vela --output out/Pure.v
 ```
 
-Use `python3` on Linux. The output directory must already exist; omit `--output`
-to print the definitions. The [example](../../../tools/vela/examples/pure.vela)
-defines a cube and a Boolean selection over its result. For example, its intended
-`Choose(true, 1)` result is true and `Choose(true, 2)` is false. Emission produces
-a `Vela_Oracle` module containing `f_Cube` and `f_Choose`; executing them requires
-the separately identified kernel replay, rather than an evaluator in this tool.
+Create the output directory first, or omit `--output` to print definitions.
+The [example](../../../tools/vela/examples/pure.vela) defines a cube and Boolean
+selection: intended `Choose(true, 1)` is true, `Choose(true, 2)` false. Output is
+module `Vela_Oracle` with `f_Cube`/`f_Choose`; execution requires the separate kernel
+replay, since this tool has no evaluator.
