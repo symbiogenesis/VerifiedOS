@@ -15,7 +15,10 @@
 # runs what no shard holds, the checker, typecheck and mutation repair path, and
 # Ubuntu's analyzes the workflows with zizmor and actionlint. The model-hooks job
 # runs the curated model's pre-commit hooks on Ubuntu beside them.
-# Every shard, both unpartitioned jobs and the hooks must pass.
+# A complete Git comparison selects the work before shard runners are allocated.
+# Prose-only changes run the checker and Markdown validation on both platforms;
+# unknown/shared inputs and explicit dispatches keep the complete host suites.
+# Every selected job must pass; only deliberately unselected jobs may skip.
 # uv installs locked dependencies into a checkout-local environment;
 # only downloads are cached. uv validates the lock; the manifest selects Python.
 #
@@ -62,8 +65,58 @@ env:
   VERDICT_FILE: host-gates-verdict.json
 
 jobs:
+  scope:
+    name: Select CI scope
+    runs-on: ubuntu-26.04
+    timeout-minutes: 5
+    outputs:
+      host_full: ${{ steps.scope.outputs.host_full }}
+      model_hooks: ${{ steps.scope.outputs.model_hooks }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.revision || github.sha }}
+          # Local Git reads the entire push or PR comparison, without API truncation.
+          fetch-depth: 0
+          persist-credentials: false
+          submodules: false
+
+      - name: Verify dispatched revision belongs to main
+        id: dispatch
+        if: ${{ github.event_name == 'workflow_dispatch' }}
+        shell: python
+        env:
+          REQUESTED_REVISION: ${{ inputs.revision || github.sha }}
+          DISPATCH_REF: ${{ github.ref }}
+          DISPATCH_MAIN_SHA: ${{ github.sha }}
+        run: |
+          import os
+          import re
+          import subprocess
+
+          revision = os.environ["REQUESTED_REVISION"]
+          if os.environ["DISPATCH_REF"] != "refs/heads/main" or not re.fullmatch(r"[0-9a-f]{40}", revision):
+              raise SystemExit("Dispatch must use main and a full lowercase commit SHA")
+          actual = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+          if actual != revision:
+              raise SystemExit("Checkout does not match the requested revision")
+          subprocess.run(["git", "merge-base", "--is-ancestor", revision,
+                          os.environ["DISPATCH_MAIN_SHA"]], check=True)
+
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version-file: tools/pyproject.toml
+
+      - name: Select the affected gates
+        id: scope
+        env:
+          CI_REVISION: ${{ inputs.revision || github.sha }}
+        run: python tools/ci/select_changes.py
+
   host-gates-shard:
     name: host-gates (${{ matrix.platform }}, ${{ matrix.shard == 'unpartitioned' && 'unpartitioned' || format('shard {0}/{1}', matrix.shard, matrix.shards) }})
+    needs: scope
+    if: ${{ needs.scope.outputs.host_full == 'true' }}
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 30
     strategy:
@@ -329,12 +382,76 @@ jobs:
               # the job's verdict.
               annotate("warning", f"Could not render gate results: {err!r}")
 
+  docs-checks:
+    name: Documentation (${{ matrix.platform }})
+    needs: scope
+    if: ${{ needs.scope.outputs.host_full == 'false' }}
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {platform: Ubuntu, runner: ubuntu-26.04}
+          - {platform: Windows, runner: windows-2025-vs2026}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.revision || github.sha }}
+          fetch-depth: ${{ github.event_name == 'workflow_dispatch' && '0' || '1' }}
+          persist-credentials: false
+          submodules: false
+
+      - name: Verify dispatched revision belongs to main
+        id: dispatch
+        if: ${{ github.event_name == 'workflow_dispatch' }}
+        shell: python
+        env:
+          REQUESTED_REVISION: ${{ inputs.revision || github.sha }}
+          DISPATCH_REF: ${{ github.ref }}
+          DISPATCH_MAIN_SHA: ${{ github.sha }}
+        run: |
+          import os
+          import re
+          import subprocess
+
+          revision = os.environ["REQUESTED_REVISION"]
+          if os.environ["DISPATCH_REF"] != "refs/heads/main" or not re.fullmatch(r"[0-9a-f]{40}", revision):
+              raise SystemExit("Dispatch must use main and a full lowercase commit SHA")
+          actual = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+          if actual != revision:
+              raise SystemExit("Checkout does not match the requested revision")
+          subprocess.run(["git", "merge-base", "--is-ancestor", revision,
+                          os.environ["DISPATCH_MAIN_SHA"]], check=True)
+
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version-file: tools/pyproject.toml
+
+      - uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
+        with:
+          version-file: tools/pyproject.toml
+          enable-cache: true
+          save-cache: ${{ github.event_name == 'push' }}
+          cache-suffix: host-gates
+          cache-dependency-glob: |
+            tools/pyproject.toml
+            tools/uv.lock
+
+      - name: Check the document corpus
+        run: python tools/run.py check
+
+      - name: Check Markdown syntax
+        run: python tools/run.py markdown
+
   # The curated model's hooks run in a job of their own beside the shards, on the Ubuntu
   # shards' image, so no shard waits after its gate while the hooks' environments
   # install. It checks out and verifies a dispatch as the shards do, and sets up the same
   # Python and uv; only Ubuntu's unpartitioned job saves the uv downloads it restores.
   model-hooks:
     name: model-hooks
+    needs: scope
+    if: ${{ needs.scope.outputs.model_hooks == 'true' }}
     runs-on: ubuntu-26.04
     # The hooks' step has taken 20-44 s, most of it installing their environments; the
     # limit leaves room for setup and for slow PyPI and npm downloads.
@@ -413,11 +530,10 @@ jobs:
             --show-diff-on-failure --color=always
 
   # fanout_ci.HOST_JOBS in tools/vos/fanout_ci.py owns these job names; renaming one
-  # changes the evidence fanout accepts. No repository ruleset requires them. A failed,
-  # skipped or cancelled shard, unpartitioned or model-hooks job cannot leave a
-  # successful aggregate, even if its peers completed successfully. Both aggregates
-  # require every shard, both unpartitioned jobs and the hooks, whatever their
-  # platform, so they fail together, and fail-fast is off so
+  # changes the evidence fanout accepts. No repository ruleset requires them. Both
+  # aggregates require the scope job and every selected job, whatever their platform.
+  # An unselected job must be skipped; a failed/canceled job is never an omission.
+  # They fail together, and fail-fast is off so
   # that the second to finish reports that failure rather than being cancelled. The
   # aggregates check out nothing and only read the other jobs' results, so they take
   # ubuntu-24.04 rather than the shards' ubuntu-26.04, whose queue held them 38-71 s
@@ -425,7 +541,7 @@ jobs:
   # general availability and while ubuntu-latest still named ubuntu-24.04.
   host-gates:
     name: host-gates (${{ matrix.platform }})
-    needs: [host-gates-shard, model-hooks]
+    needs: [scope, host-gates-shard, docs-checks, model-hooks]
     if: ${{ always() }}
     runs-on: ubuntu-24.04
     timeout-minutes: 2
@@ -434,8 +550,28 @@ jobs:
       matrix:
         platform: [Ubuntu, Windows]
     steps:
-      - name: Require every shard and unpartitioned job on both operating systems and the model hooks
+      - name: Require every selected job on both operating systems
+        shell: python
         env:
+          SCOPE_RESULT: ${{ needs.scope.result }}
           SHARDS_RESULT: ${{ needs.host-gates-shard.result }}
+          DOCS_RESULT: ${{ needs.docs-checks.result }}
           HOOKS_RESULT: ${{ needs.model-hooks.result }}
-        run: test "$SHARDS_RESULT" = success && test "$HOOKS_RESULT" = success
+          HOST_FULL: ${{ needs.scope.outputs.host_full }}
+          MODEL_HOOKS: ${{ needs.scope.outputs.model_hooks }}
+        run: |
+          import os
+
+          if os.environ["SCOPE_RESULT"] != "success":
+              raise SystemExit("CI selection did not succeed")
+          for flag in ("HOST_FULL", "MODEL_HOOKS"):
+              if os.environ[flag] not in {"true", "false"}:
+                  raise SystemExit("CI selection omitted a gate decision")
+          expected = {
+              "SHARDS_RESULT": "success" if os.environ["HOST_FULL"] == "true" else "skipped",
+              "DOCS_RESULT": "skipped" if os.environ["HOST_FULL"] == "true" else "success",
+              "HOOKS_RESULT": "success" if os.environ["MODEL_HOOKS"] == "true" else "skipped",
+          }
+          for name, result in expected.items():
+              if os.environ[name] != result:
+                  raise SystemExit(f"{name}: expected {result}, got {os.environ[name]}")

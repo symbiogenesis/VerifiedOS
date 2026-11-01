@@ -5,13 +5,16 @@ import copy
 import json
 import os
 import re
+import runpy
 import subprocess
 import sys
+import tempfile
 import textwrap
 import urllib.error
 import urllib.parse
 import urllib.request
 from collections.abc import Callable
+from itertools import product
 from pathlib import Path
 from typing import cast
 from unittest.mock import patch
@@ -802,22 +805,12 @@ def _unpartitioned_faults(contents: str) -> list[str]:
     return faults
 
 
-# Each aggregate check's command: one `test "$NAME" = success` for each job it needs,
-# joined by `&&`, so it passes only where every one of them succeeded.
-_RESULT_TEST_RE = re.compile(r'test "\$([A-Z][A-Z_]*)" = success')
-
-
 def _aggregate_faults(contents: str) -> list[str]:
-    """Why the host workflow's aggregate job could pass beside a job that did not succeed.
+    """Require all job results and scope flags to reach an unconditional aggregate.
 
-    The aggregate needs every other job of the workflow, listed in a flow sequence, and
-    runs whatever they concluded. No uncommented line of any job, the aggregate's
-    included, spells continue-on-error in any spelling `_spellings` gives it, so a
-    failed step fails its job and a failed job its result. The aggregate's one step
-    states only its name, env and run, so no condition skips it and no shell of its own
-    runs the line. It binds one environment variable to each needed job's result, and
-    its single-line run is a `test "$NAME" = success` of each of them, once, joined by
-    `&&` with nothing else. A shell set by `defaults` is not read."""
+    The separate outcome controls execute its actual Python script for every
+    result combination, including selected failures and intentional skips.
+    """
     jobs = _workflow_jobs(contents)
     aggregate = jobs.get("host-gates", "")
     others = sorted(job for job in jobs if job != "host-gates")
@@ -838,27 +831,47 @@ def _aggregate_faults(contents: str) -> list[str]:
     if len(steps) != 1:
         return [*faults, f"the aggregate runs {len(steps)} step(s), not one"]
     stated = re.findall(r"(?m)^(?:      - |        )([^\s:][^:\n]*?)[ \t]*:", steps[0])
-    if extra := sorted(set(stated) - {"name", "env", "run"}):
+    if extra := sorted(set(stated) - {"name", "shell", "env", "run"}):
         faults.append(f"the aggregate's step states {extra!r} beside its name, env and run, "
                       "so it can be skipped or run its line otherwise")
-    bound: dict[str, str] = {}
-    for line in _step_block(steps[0], "env")[1:]:
-        result = re.fullmatch(r"          ([A-Z][A-Z_]*): \$\{\{ needs\.([\w-]+)\.result \}\}",
-                              line)
-        if result is None:
-            faults.append(f"the aggregate's environment line {line!r} binds no job's result")
-        else:
-            bound[result[1]] = result[2]
-    runs = _step_values(steps[0], "run")
-    tested = [m[1] for m in _RESULT_TEST_RE.finditer(runs[0])] if len(runs) == 1 else []
-    if (len(runs) != 1 or _continued(steps[0])
-            or runs[0] != " && ".join(f'test "${name}" = success' for name in tested)):
-        faults.append(f"the aggregate runs {runs!r}, not only a success test of each result")
-    results = sorted(bound.get(name, "") for name in tested)
-    if len(set(tested)) != len(tested) or results != others:
-        faults.append(f"the aggregate tests {tested!r}, bound to {bound!r}, not each result of "
-                      f"{others!r} once")
+    expected = ["        env:",
+                "          SCOPE_RESULT: ${{ needs.scope.result }}",
+                "          SHARDS_RESULT: ${{ needs.host-gates-shard.result }}",
+                "          DOCS_RESULT: ${{ needs.docs-checks.result }}",
+                "          HOOKS_RESULT: ${{ needs.model-hooks.result }}",
+                "          HOST_FULL: ${{ needs.scope.outputs.host_full }}",
+                "          MODEL_HOOKS: ${{ needs.scope.outputs.model_hooks }}"]
+    if _step_block(steps[0], "env") != expected:
+        faults.append("the aggregate does not bind every job result and both scope flags")
+    if _step_values(steps[0], "shell") != ["python"] or _step_values(steps[0], "run") != ["|"]:
+        faults.append("the aggregate does not run its Python verdict script")
     return faults
+
+
+def _aggregate_outcome_faults(contents: str) -> list[str]:
+    steps = _step_texts(_workflow_jobs(contents)["host-gates"])
+    script = textwrap.dedent(steps[0].split("        run: |\n", 1)[1])
+    with tempfile.TemporaryDirectory(prefix="vos-aggregate-") as temporary:
+        path = Path(temporary) / "aggregate.py"
+        path.write_text(script, encoding="utf-8")
+        results = ("SCOPE_RESULT", "SHARDS_RESULT", "DOCS_RESULT", "HOOKS_RESULT")
+        for full, hooks in product(("true", "false", ""), repeat=2):
+            for outcomes in product(("success", "skipped", "failure", "cancelled"), repeat=4):
+                environment = dict(zip(results, outcomes, strict=True), HOST_FULL=full, MODEL_HOOKS=hooks)
+                expected = (outcomes[0] == "success" and full in {"true", "false"}
+                            and hooks in {"true", "false"}
+                            and outcomes[1] == ("success" if full == "true" else "skipped")
+                            and outcomes[2] == ("skipped" if full == "true" else "success")
+                            and outcomes[3] == ("success" if hooks == "true" else "skipped"))
+                accepted = True
+                with patch.dict(os.environ, environment):
+                    try:
+                        runpy.run_path(str(path), run_name="__main__")
+                    except SystemExit as error:
+                        accepted = error.code in (None, 0)
+                if accepted != expected:
+                    return [f"aggregate gave {accepted}, expected {expected}: {environment}"]
+    return []
 
 
 def _workflow_host_aggregate_needs() -> None:
@@ -867,8 +880,9 @@ def _workflow_host_aggregate_needs() -> None:
     contents = (ROOT / ".github/workflows" / ci.HOST).read_text(encoding="utf-8")
     found = _aggregate_faults(contents)
     ensure(not found, f"{ci.HOST}'s aggregates require every other job: {found!r}")
-    hooks = ' && test "$HOOKS_RESULT" = success'
-    bindings = "        env:\n          SHARDS_RESULT:"
+    ensure(not _aggregate_outcome_faults(contents),
+           "the actual aggregate script accepts only successful scope and every selected gate")
+    bindings = "        env:\n          SCOPE_RESULT:"
     for mutant, fragment in (
             (contents.replace("    name: model-hooks\n",
                               "    name: model-hooks\n    continue-on-error: true\n"),
@@ -881,20 +895,23 @@ def _workflow_host_aggregate_needs() -> None:
              "host-gates states continue-on-error"),
             (contents.replace(bindings, "        if: ${{ false }}\n" + bindings),
              "beside its name, env and run"),
-            (contents.replace("    needs: [host-gates-shard, model-hooks]\n",
+            (contents.replace("    needs: [scope, host-gates-shard, docs-checks, model-hooks]\n",
                               "    needs: host-gates-shard\n"), "not every other job"),
             (contents.replace("    if: ${{ always() }}\n", ""), "does not run whatever"),
-            (contents.replace(hooks, ""), "not each result"),
-            (contents.replace(hooks, hooks + " || true"), "not only a success test"),
             (contents.replace("${{ needs.model-hooks.result }}",
-                              "${{ needs.host-gates-shard.result }}"), "not each result"),
+                              "${{ needs.host-gates-shard.result }}"), "does not bind every job"),
             (contents.replace("${{ needs.model-hooks.result }}", "success"),
-             "binds no job's result")):
+             "does not bind every job")):
         ensure(mutant != contents, f"the fixture for {fragment!r} changed nothing")
         found = _aggregate_faults(mutant)
         ensure(any(fragment in fault for fault in found),
                f"an aggregate that can pass beside a failed job must be refused "
                f"({fragment!r}): {found!r}")
+    for mutant in (contents.replace('if os.environ[name] != result:', 'if False:'),
+                   contents.replace('if os.environ["SCOPE_RESULT"] != "success":', 'if False:'),
+                   contents.replace('else "skipped",', 'else "success",', 1)):
+        ensure(mutant != contents and bool(_aggregate_outcome_faults(mutant)),
+               "accepting failed required jobs or unexpectedly skipped jobs must be detected")
 
 
 # The shard job's gate command, and its two platform branches as the workflow spells
@@ -1338,7 +1355,8 @@ def _runner_faults(contents: str) -> list[str]:
     entries naming one platform must all name the same label, so its shards and its
     unpartitioned job share an image, and no label may be a moving `-latest` alias.
     Every `runs-on` is a block line whose value is either the shard job's
-    `${{ matrix.runner }}`, stated once and there alone, or one unquoted label fully
+    `${{ matrix.runner }}`, stated once there and once in documentation checks when
+    present, or one unquoted label fully
     matching `[A-Za-z0-9][A-Za-z0-9._-]*` without `latest`, so a YAML alias, a flow
     sequence, another expression or a trailing comment is refused.
     """
@@ -1378,9 +1396,18 @@ def _runner_faults(contents: str) -> list[str]:
             faults.append(f"runs-on {label!r} is not an explicit image label")
     if not re.search(r"(?m)^    runs-on: \$\{\{ matrix\.runner \}\}$", shards):
         faults.append("the shard job does not run on its matrix's runner")
-    if runs_on.count(matrix_runner) > 1:
+    documents = _job_text(contents, "docs-checks") if "\n  docs-checks:\n" in contents else None
+    expected_count = 1 if documents is None else 2
+    if documents is not None:
+        docs_lines = [line for line in documents.split("\n") if not line.lstrip().startswith("#")]
+        docs_runners = {_key_values(entry, "platform")[0]: _key_values(entry, "runner")
+                        for entry in _include_entries(docs_lines)
+                        if len(_key_values(entry, "platform")) == 1}
+        if docs_runners != {name: [labels[0]] for name, labels in runners.items() if labels}:
+            faults.append("documentation jobs do not name each platform's shard image")
+    if runs_on.count(matrix_runner) > expected_count:
         faults.append(f"runs-on {matrix_runner} is stated {runs_on.count(matrix_runner)} "
-                      "times, not once in the shard job")
+                      "times, not once in the shard job" + (" and documentation job" if documents is not None else ""))
     return faults
 
 
@@ -1671,24 +1698,23 @@ def _workflow_dispatch_checkout_keeps_history() -> None:
         found = _checkout_depth_faults(contents, job)
         ensure(not found, f"{ci.HOST}'s {job} checks out a dispatch with main's history: "
                           f"{found!r}")
-    depth = re.search(r"(?m)^          fetch-depth: .*\n", contents)
-    ensure(depth is not None, f"{ci.HOST}'s shard checkout states its depth")
-    line = depth[0] if depth else ""
-    for workflow, fragment in (
-            (contents.replace(line, "          fetch-depth: ${{ github.event_name == "
-                                    "'workflow_dispatch' && 0 || 1 }}\n"), "can check out"),
-            (contents.replace(line, "          fetch-depth: 1\n"), "can check out"),
-            (contents.replace(line, ""), "states 0 fetch-depth key(s)"),
-            (contents.replace(line, line + line), "states 2 fetch-depth key(s)")):
-        ensure(workflow != contents, f"the fixture for {fragment!r} changed nothing")
-        for job in jobs:
+    for job in jobs:
+        depth = re.search(r"(?m)^          fetch-depth: .*\n", _job_text(contents, job))
+        ensure(depth is not None, f"{ci.HOST}'s {job} checkout states its depth")
+        line = depth[0] if depth else ""
+        for workflow, fragment in (
+                (_in_job(contents, job, line, "          fetch-depth: ${{ github.event_name == "
+                         "'workflow_dispatch' && 0 || 1 }}\n"), "can check out"),
+                (_in_job(contents, job, line, "          fetch-depth: 1\n"), "can check out"),
+                (_in_job(contents, job, line, ""), "states 0 fetch-depth key(s)"),
+                (_in_job(contents, job, line, line + line), "states 2 fetch-depth key(s)")):
+            ensure(workflow != contents, f"the fixture for {fragment!r} changed nothing")
             found = _checkout_depth_faults(workflow, job)
             ensure(any(fragment in fault for fault in found),
                    f"a dispatch {job} checks out without main's history must be refused "
                    f"({fragment!r}): {found!r}")
-    found = [fault for job in jobs for fault in _checkout_depth_faults(
-        contents.replace(line, "          fetch-depth: 0\n"), job)]
-    ensure(not found, f"full history on every run is accepted: {found!r}")
+        found = _checkout_depth_faults(_in_job(contents, job, line, "          fetch-depth: 0\n"), job)
+        ensure(not found, f"full history on every run is accepted: {found!r}")
 
 
 # The step that checks a dispatched revision, and the conjunct each later step that runs
@@ -1697,7 +1723,8 @@ def _workflow_dispatch_checkout_keeps_history() -> None:
 _DISPATCH_CHECK = "Verify dispatched revision belongs to main"
 _DISPATCH_GUARD = "steps.dispatch.outcome != 'failure'"
 _CAMPAIGN = "boot-crypto-target.yml"
-_DISPATCH_JOBS = ((ci.HOST, "host-gates-shard"), (ci.HOST, "model-hooks"),
+_DISPATCH_JOBS = ((ci.HOST, "scope"), (ci.HOST, "host-gates-shard"),
+                  (ci.HOST, "docs-checks"), (ci.HOST, "model-hooks"),
                   (ci.GUEST, "guest-gates"), (_CAMPAIGN, "interface"), (_CAMPAIGN, "campaign"))
 
 
@@ -1803,7 +1830,8 @@ def _workflow_refused_dispatch() -> None:
     # failure also requires its job's check not to have failed, in every checking job.
     guard = f" && {_DISPATCH_GUARD}"
     check = "        id: dispatch\n"
-    named = {"host-gates-shard": ("Analyze workflows", "Report gate results"),
+    named = {"scope": (), "docs-checks": (),
+             "host-gates-shard": ("Analyze workflows", "Report gate results"),
              "model-hooks": ("Model hooks",),
              "guest-gates": ("Model evidence", "Proof gate",
                              "Read the proofs against the reading base", "Report guest results"),
