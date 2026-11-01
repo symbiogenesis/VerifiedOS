@@ -67,7 +67,7 @@ def _prose(path: str) -> bool:
         return True
     # Tool fixtures may be Markdown too. Only these documentation directories
     # have a prose exemption; a new fixture elsewhere keeps all behavioral tests.
-    return PurePosixPath(path).parent.as_posix() in {"tools", "tools/ci", "tools/quarantine"}
+    return PurePosixPath(path).parent.as_posix() in {"tools", "tools/ci"}
 
 
 def classify(paths: Sequence[str]) -> Decision:
