@@ -458,7 +458,7 @@ def _local_paths_fail_closed() -> None:
     workflow, metadata = ".github/workflows/a.yml", ".github/actions/fixture/action.yml"
     for reference in ("./.github/actions/absent", "./.github/actions/fixture/../other", "./.github/actions//fixture",
                       "./.github/actions/${{ inputs.action }}", "./.github/actions/fixture@main",
-                      "./other/action", ".\\.github\\actions\\fixture", "/tmp/action"):
+                      "./other/action", ".\\.github\\actions\\fixture", "/outside/action"):
         _expected, faults = _inspect({**files, workflow: f"steps:\n  - uses: {reference}\n"})
         ensure(bool(faults), f"unsafe or unknown local reference passed: {reference!r}")
     for changed in (files[workflow].replace("fixture\n", "fixture # comment\n"),

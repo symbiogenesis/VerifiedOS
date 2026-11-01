@@ -213,7 +213,8 @@ def inspect(root: Path, indexed: frozenset[str], text: str) -> tuple[str | None,
 
 
 def _scalar(node: object) -> str | None:
-    return node.value if isinstance(node, ScalarNode) else None
+    value = node.value if isinstance(node, ScalarNode) else None
+    return value if isinstance(value, str) else None
 
 
 def _action_previous_steps(tree: Node) -> dict[int, list[MappingNode]]:
@@ -281,6 +282,14 @@ def _local_action_file(owners: Owners, reference: str, previous: list[MappingNod
     return candidates[0]
 
 
+def _composite_action(tree: Node) -> None:
+    runs = yamlutil.fields(tree).get("runs") if isinstance(tree, MappingNode) else None
+    values = yamlutil.fields(runs) if isinstance(runs, MappingNode) else {}
+    steps = values.get("steps")
+    if _scalar(values.get("using")) != "composite" or not isinstance(steps, SequenceNode) or not steps.value:
+        raise ValueError("authored local action metadata needs composite runs with nonempty steps")
+
+
 def _action_census(owners: Owners, actions: tuple[Action, ...], findings: list[str]) -> None:
     """Audit all authored action metadata; only reachable references use a review."""
     reviewed = {action.repository: action for action in actions}
@@ -311,11 +320,7 @@ def _action_census(owners: Owners, actions: tuple[Action, ...], findings: list[s
         try:
             tree = yamlutil.read(source)
             if path in metadata:
-                runs = yamlutil.fields(tree).get("runs") if isinstance(tree, MappingNode) else None
-                values = yamlutil.fields(runs) if isinstance(runs, MappingNode) else {}
-                steps = values.get("steps")
-                if _scalar(values.get("using")) != "composite" or not isinstance(steps, SequenceNode) or not steps.value:
-                    raise ValueError("authored local action metadata needs composite runs with nonempty steps")
+                _composite_action(tree)
         except ValueError as error:
             findings.append(f"{path}: cannot read action references: {error}")
             unread = True

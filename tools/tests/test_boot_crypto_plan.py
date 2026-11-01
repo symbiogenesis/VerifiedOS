@@ -25,7 +25,7 @@ SETUP = "./.target-ci/.github/actions/setup-target-sail"
 
 
 def _readiness() -> None:
-    for value in ("0", "9601", "1.5", "-1", "", "999999999999999999999", " 1", "١"):
+    for value in ("0", "9601", "1.5", "-1", "", "999999999999999999999", " 1", "\u0661"):
         try:
             plan.case_timeout(value)
         except ValueError:
@@ -193,10 +193,10 @@ def _shared_setup() -> None:
             ensure(not _caller_faults(text, job, verifier), f"{path.name}/{job} lost its setup guard")
             block = workflows._workflow_jobs(text)[job]
             changed = block.replace("ref: ${{ github.sha }}", "ref: ${{ inputs.revision }}", 1)
-            ensure(changed != block and _caller_faults(text.replace(block, changed, 1), job, verifier),
+            ensure(changed != block and bool(_caller_faults(text.replace(block, changed, 1), job, verifier)),
                    "a setup action from the requested revision is refused")
             changed = block.replace(verifier, "echo skipped verifier", 1)
-            ensure(changed != block and _caller_faults(text.replace(block, changed, 1), job, verifier),
+            ensure(changed != block and bool(_caller_faults(text.replace(block, changed, 1), job, verifier)),
                    "a setup action before strict staging is refused")
 
 
