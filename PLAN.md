@@ -468,17 +468,17 @@ These figures sum the full priced reference-build, assessment and named hardenin
 <!-- estimate-summary:start -->
 | Measure | Value |
 | --- | --- |
-| Total estimate midpoint h | 4,635.8 |
-| Total estimate range h | 3,007.7–6,263.9 |
+| Total estimate midpoint h | 4,659.8 |
+| Total estimate range h | 3,023.7–6,295.9 |
 | Completed scope h | 865.3 |
-| Complete by estimate % | 18.7 |
-| Remaining h | 3,770.5 |
+| Complete by estimate % | 18.6 |
+| Remaining h | 3,794.5 |
 | Committed remaining h | 2,328.5 |
-| Open class I h | 791.5 |
+| Open class I h | 815.5 |
 | Open class X h | 2,979 |
 | Retained completion estimate h | 261.5 |
 | Unmeasured completed items | 29 |
-| Calibrated total h | 5,657.4 |
+| Calibrated total h | 5,674.5 |
 | Committed M8a open h | 74 |
 | Committed M8b open h | 105.5 |
 | Other committed open h | 2,149 |
@@ -1362,7 +1362,7 @@ Q6's conventional-memory simulators are conditional on a topology comparison nee
 
 No assessment completion automatically increases a performance estimate. For an optimization affecting fraction `f` of runtime by factor `s`, the unchanged-cost bound is `1 / ((1 - f) + f / s)`; added transfers or changed scheduling require a fresh whole-workload comparison. Better packing is not more fabricated capacity, and host performance is not target throughput.
 
-**Q subtotal:** 2,806.3 h · 61% · 253.3 h complete · open range 1,472–3,634 h.
+**Q subtotal:** 2,830.3 h · 61% · 253.3 h complete · open range 1,488–3,666 h.
 
 ### M0 · Hardware reference
 
@@ -3370,11 +3370,11 @@ The design goal is one authored Vela codebase for operational software, independ
 
 Vela also targets a [native, verified, self-hosting compiler](docs/languages/vela/unified-source-contract.md#native-verified-compiler-and-self-hosting), authored in Vela and using its own intermediate representations to reach exact target bytes without a mandatory Clight/CompCert or LLVM stage. Reusable transformation proofs compose during compilation; independent kernel checking, verified bootstrap and final-artifact correspondence remain required. Competitive target optimization and commercial use, redistribution and resident rebuilding of the complete dependency closure need their own qualification. Interim compiler bridges remain valid while that endpoint is unbuilt.
 
-Q25g and Q25h commission the bounded parser increments in the table. The other proposal owner keys have establishment and maintenance costs **unpriced**. They are not checklist IDs, checked artifacts or additions to the priced totals. Before implementation, split a selected stage into reviewed checklist cells with its own budget and entry predicate, charge shared foundation work once, and take the required register/prose acts. The existing compiler, machine-logic and hardware work retains its accepted subjects until a successor passes the migration gate. AI may propose programs, proofs and optimizations; acceptance still requires checked evidence and independent review of intended behavior.
+Q25g and Q25h commission the bounded parser increments in the table; Q25i commissions the wider syntax portion of core-frontend. The other proposal owner keys have establishment and maintenance costs **unpriced**. They are not checklist IDs, checked artifacts or additions to the priced totals. Before implementation, split a selected stage into reviewed checklist cells with its own budget and entry predicate, charge shared foundation work once, and take the required register/prose acts. The existing compiler, machine-logic and hardware work retains its accepted subjects until a successor passes the migration gate. AI may propose programs, proofs and optimizations; acceptance still requires checked evidence and independent review of intended behavior.
 
 | Proposed owner and order | Start | Owns | Check | Join |
 | --- | --- | --- | --- | --- |
-| `vela-parser` · Menhir during development | Q25f's pure source baseline and the [bounded qualification and migration contract](docs/languages/vela/vela-parser.md); Q25g commissions the executable syntax increment and Q25h owns checked parsing and Python retirement | Q25g and Q25h own their separately priced qualification; broader parser construction stays in `core-frontend`'s existing scope and is charged once | The [development parser contract](docs/languages/vela/verification-strategy.md#development-parser-and-grammar), refined by Q25g/Q25h's acceptance predicates; current compatibility and licensing records are inputs, not acceptance | The generated parser replaces Python parsing only after Q25h's migration predicates pass; full frontend admission retains Q25d's prerequisites, and Vela-authored parsing and retirement of seed/development dependencies remain `vela-native`/`vela-bootstrap` duties |
+| `vela-parser` · Menhir during development | Q25f's pure source baseline and the [bounded qualification and migration contract](docs/languages/vela/vela-parser.md); Q25g commissions the pure syntax increment, Q25i the full development surface, and Q25h checked parsing and Python retirement | Q25g and Q25h own their separately priced qualification; broader parser construction stays in `core-frontend`'s existing scope and is charged once | The [development parser contract](docs/languages/vela/verification-strategy.md#development-parser-and-grammar), refined by Q25g/Q25h/Q25i's acceptance predicates; current compatibility and licensing records are inputs, not acceptance | The generated parser replaces Python parsing only after Q25h's migration predicates pass; full frontend admission retains Q25d's prerequisites, and Vela-authored parsing and retirement of seed/development dependencies remain `vela-native`/`vela-bootstrap` duties |
 | `vela-software` · first software bridge | Q25d's frontend-release conditions and the actual CHERI laws required by the selected component | Vela source/contract correspondence and explicit-memory lowering through the retained compiler route | [Software acceptance](docs/languages/vela/unified-source-contract.md#software-and-proof-boundary), including error paths, source edits and exact installed bytes | Current compiler/admission and canonical Sail consumers; no handwritten optimized implementation for the accepted family |
 | `vela-proofs` · complete proof authorship | The interpreted frontend and reviewed theorem subjects for a selected library or metatheory package | General mathematical definitions and proofs in Vela, interoperating with retained checked libraries | [Proof-surface acceptance](docs/languages/vela/unified-source-contract.md#software-and-proof-boundary); no mandatory handwritten Rocq fallback for the accepted package | Rocq/CIC rechecks generated terms and exact assumptions; replacing its checker is a separate decision |
 | `vela-native` · native verified compiler | Admitted source/IR interpretations, concrete CHERI laws, selected target and reviewed replacement-duty scope; independent of machine-authoring migration | Vela-authored native pipeline, representation and optimization proofs, selection/allocation, ABI, assembly/link/image construction and complete licence closure | [Native-compiler acceptance](docs/languages/vela/unified-source-contract.md#native-verified-compiler-and-self-hosting), including held-out systems/compute clients, checked search proposals, relational security, resources and final bytes | Current producers and validation remain required until equivalent evidence and explicit amendments admit the replacement; no assumed LLVM parity or performance saving |

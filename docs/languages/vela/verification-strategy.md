@@ -887,9 +887,11 @@ declarations and parameters, immutable locals, explicit returns and parenthesize
 conditional blocks. Its grammar follows these conventions; resource and proof
 constructs remain unsupported.
 
-The examples below are original, unimplemented pseudocode for the wider design:
-not valid C#, Rust or Idris, not checked Rocq, and outside the prototype's accepted
-subset. The notation is a proposal rather than a frozen design. Together the examples
+The [development surface grammar](surface-grammar.md) parses the wider design as
+located syntax through `vela-parser parse --surface SOURCE`. The examples below
+remain outside the pure translator's accepted subset; wider typing, resource
+checking, proof reconstruction and lowering are unimplemented. The notation is a
+proposal rather than a frozen design. Together the examples
 show the intended end state on one grammar, from an ordinary loop to a cancellable
 task. The declarations and discoverability come from C#, ownership and representation
 control from Rust, and type-directed specification and proof construction from Idris.

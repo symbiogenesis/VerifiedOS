@@ -3,6 +3,9 @@
 The [primary Vela design and examples](verification-strategy.md) explains the language;
 this contract owns the development parser's bounded qualification and retirement.
 
+The [complete development surface grammar](surface-grammar.md) extends syntax through
+Q25i's separate entry point; the pure entry below remains the migration baseline.
+
 ## Bounded increment
 
 [Q25g](../../../PLAN.md#q-assessment-actions) commissions syntax-only Menhir parsing

@@ -31,7 +31,7 @@ construct syntax, including syntactically valid programs with semantic errors.
 | Expressions | Literal spellings and representation suffixes, qualified access, nested calls, indexing and ranges, unary/arithmetic/comparison/logical operators, implication, pattern tests, explicit generic application, tuples, lambdas and named holes |
 | Control | Immutable/mutable and typed locals, assignments, blocks, returns, if/else, bounded-loop syntax, exhaustive-match syntax, break/continue and explicit propagation |
 | Grades | Domain carrier/zero/one/add/mul/admits/interpret/laws declarations and parameter use grades |
-| Effects and tasks | Effect operations and resumption bounds, deep/shallow handlers, return/operation clauses, resume/dispose, async functions, scope/spawn/await/commit and on-cancel cleanup |
+| Effects and tasks | Effect operations and resumption bounds, deep/shallow handlers, return/operation clauses, resume/dispose/rehandle, async functions, scope/spawn/await/commit and on-cancel cleanup |
 | Mathematical proofs | Definitions, theorem/lemma statements, proof blocks, assertions, calculations, quantifiers, inductive/coinductive declarations and constructors, universes and typed holes |
 | Architecture and hardware | Machine/hardware containers, state/register declarations, transitions/rules, guards, next-state assignments and explicit schedules/cycles |
 
@@ -40,7 +40,9 @@ braced containers. Explicit generic expression application uses `::<...>` to
 separate it from comparison. Nested type arguments close with individual `>`
 tokens; shifts may use named operations. Generic arguments admit values and
 lifetimes. A parenthesized generic value disambiguates relational expressions.
-Lambdas use `=>`; function types use `->`. Quantifiers use typed binders followed
+Loop bodies use braces. A function type returning another function type puts that
+result in parentheses. Lambdas use =>; function types use ->. Quantifiers use
+typed binders followed
 by `=>`. Proof commands end in semicolons. Architecture/hardware syntax supplies
 no transition or circuit interpretation by itself.
 
