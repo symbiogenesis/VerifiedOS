@@ -187,6 +187,54 @@ grade/resource use. Retain strict generation, pure migration and every existing
 feature row. These extensions keep ancillary boxes, cells, guards and protocols
 as ordinary library definitions over shared syntax.
 
+### Resource contracts and lexical handler capabilities
+
+Effect operations reuse declaration contracts after their optional resumption
+bound and before the terminating semicolon. Their `effect_operation` nodes expose
+a `contracts` array, empty when omitted. The reply type, parameter grades,
+resumption allowance and resource transitions remain separate syntax fields:
+
+```text
+effect Exchange<T> {
+    owned T Replace(owned T replacement @ NatExact(1)) resumes(0..1)
+        requires Available(replacement)
+        ensures Returned(result)
+        restores Closed(result)
+        effects writes(Storage);
+}
+```
+
+Struct, interface, trait, machine and hardware containers accept the same
+declaration contracts between their generic telescope and opening brace. Their
+`contracts` arrays distinguish container laws from member contracts, for example
+`trait Repeatable<T, grade q : NatExact> where Admits(T, q) { ... }` and
+`struct LocalCell<T> invariant Closed(self) { ... }`. These forms only preserve
+proposed obligations; proving invariant preservation, lawful grades and operation
+effects remains an elaboration duty.
+
+The [handler lookup rules](handlers-async.md#handler-lookup-capture-and-return)
+permit an explicit name for the perform capability of a handler instance:
+`handle (body()) as chosen { ... }`. The optional `as NAME` follows the handled
+expression and also applies to `handle shallow` and `rehandle`. Each `handle` or
+`rehandle` node has a nullable `capability` field holding the located name. Existing
+unnamed handlers retain null. Qualified calls such as `chosen.Choose()` reuse
+ordinary call/member syntax, without adding another operation primitive.
+
+The capability's intended scope is the handled expression; the handler's clauses
+are checked without that capability. Nested bindings, shadowing, forwarding to an
+outer capability and rehandling retain distinct syntax identities. Parsing neither
+resolves those bindings nor permits an escaping capability, duplicate resumption
+or open invariant across capture. Lexical selection, frame identity, `Dup`,
+`Dispose` and restoration remain checking obligations under the linked rules.
+
+Independent fixtures must assert operation/container/member contract ownership,
+dependent reply indices, parameter-grade and resumption-bound attachment, named
+and unnamed handler associations, and original UTF-8 byte spans. Compose these
+forms with loans, guarded updates, indexed outcomes, shallow rehandling and explicit
+disposal. Refuse incomplete contract expressions and capability binders without
+publishing an AST. Syntactically valid violations of capability scope or resource
+rules must still parse. Retain every existing qualification and migration case.
+
 ### Native qualification
 
 Menhir's code backend must generate with `--strict --infer --explain`, with no
