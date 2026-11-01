@@ -13,7 +13,7 @@ from dataclasses import asdict
 from pathlib import Path
 from typing import NotRequired, TypedDict, cast
 
-from vos import fanout_ci, fanout_retire, receipts
+from vos import ci_scope, fanout_ci, fanout_retire, receipts
 from vos.cli import worktree
 from vos.corpus import find_root
 
@@ -47,6 +47,9 @@ class Batch(TypedDict):
     remote: str
     cold: bool
     reading_base: NotRequired[str | None]
+    full_ci: NotRequired[bool]
+    # Frozen before publication; its baseline is remote main, not the init head.
+    selection: NotRequired[ci_scope.Selection]
     deferred: list[str]
     lanes: list[dict[str, object]]
     retired: dict[str, object]
@@ -132,6 +135,8 @@ def _load(path: Path, root: Path) -> Batch:
             raise ValueError(f"invalid batch {key}")
     if not isinstance(value.get("cold"), bool):
         raise FanoutError("invalid cold policy")
+    if "full_ci" in value and type(value["full_ci"]) is not bool:
+        raise FanoutError("invalid full CI policy")
     reading_base = value.get("reading_base")
     if reading_base is not None and (not isinstance(reading_base, str)
                                      or not _COMMIT.fullmatch(reading_base)):
@@ -153,6 +158,20 @@ def _load(path: Path, root: Path) -> Batch:
             raise ValueError("CI cold policy differs from the batch")
         if value["ci"].get("reading_base") != reading_base:
             raise ValueError("CI reading base differs from the batch")
+        if bool(value["ci"].get("full_ci")) != bool(value.get("full_ci")):
+            raise ValueError("full CI policy differs from the batch")
+    if "selection" in value:
+        raw = value["selection"]
+        if not isinstance(raw, dict) or not isinstance(raw.get("revision"), str):
+            raise ValueError("invalid frozen CI selection")
+        selection = ci_scope.validate_selection(raw, raw["revision"])
+        if ((value["cold"] or reading_base is not None or value.get("full_ci"))
+                and selection["guest_lanes"] != list(ci_scope.ALL_GUEST_LANES)):
+            raise ValueError("cold, full CI and proof reading require every guest lane")
+        if value.get("ci") is not None and value["ci"].get("selection") != selection:
+            raise ValueError("CI selection differs from the batch")
+    elif value.get("ci") is not None and "selection" in value["ci"]:
+        raise ValueError("CI selection is missing from the batch")
     return cast("Batch", value)
 
 
@@ -226,6 +245,7 @@ def initialize(root: Path, args: argparse.Namespace) -> Batch:
         "base": _git(root, "rev-parse", "HEAD"),
         "branch": _git(root, "symbolic-ref", "--short", "HEAD"),
         "remote": args.remote, "cold": args.cold,
+        "full_ci": getattr(args, "full_ci", False),
         "reading_base": _reading_base(root, args.reading_base), "deferred": args.defer,
         "lanes": lanes, "retired": {}, "ci": None, "status": "initialized",
     }
@@ -311,11 +331,49 @@ def _prepublication(root: Path) -> None:
             raise ValueError(f"prepublication {label} exited {result.returncode}; main was not pushed")
 
 
+def _freeze_selection(root: Path, state: Batch, revision: str, path: Path) -> ci_scope.Selection:
+    """Record the pre-push remote comparison before any publication can change it."""
+    previous = state.get("selection")
+    if previous is not None and previous["revision"] == revision:
+        return ci_scope.validate_selection(previous, revision)
+    base: str | None = None
+    try:
+        answer = _git(root, "ls-remote", "--exit-code", state["remote"], "refs/heads/main")
+        fields = answer.split()
+        if len(fields) == 2 and fields[1] == "refs/heads/main" and _COMMIT.fullmatch(fields[0]):
+            base = fields[0]
+    except OSError, ValueError, subprocess.SubprocessError:
+        # Missing remote history cannot authorize omissions. Publication still
+        # checks remote state normally, so this does not hide a push failure.
+        pass
+    selection = ci_scope.select_changes(
+        root, base, revision,
+        force_full=bool(state["cold"] or state.get("reading_base") or state.get("full_ci")
+                        or "full_ci" not in state))
+    state["selection"] = selection
+    _save(path, state)
+    print(f"CI selection from {selection['base'] or 'unavailable'}: {selection['reason']}; "
+          f"guest lanes: {', '.join(selection['guest_lanes']) or 'none'}", flush=True)
+    return selection
+
+
 def _publish(root: Path, state: Batch, revision: str) -> str:
     _settled(root, state, revision)
-    _prepublication(root)
+    selection = state.get("selection")
+    if selection is not None:
+        selection = ci_scope.validate_selection(selection, revision)
+    if selection is None or selection["host_full"]:
+        _prepublication(root)
+    else:
+        print("Prose-only changes: omit unchanged Python publication checks", flush=True)
     _settled(root, state, revision)
     remote = state["remote"]
+    if selection is not None and selection["base"] is not None:
+        answer = _git(root, "ls-remote", "--exit-code", remote, "refs/heads/main")
+        if answer.split() not in ([selection["base"], "refs/heads/main"],
+                                  [revision, "refs/heads/main"]):
+            raise ValueError("remote main changed after CI selection; refresh the batch's "
+                             "settled inputs before publication")
     # Explicitly disable followTags even if a user's Git configuration enables it.
     _git(root, "-c", "push.followTags=false", "push", remote, f"{revision}:refs/heads/main")
     _published(root, state, revision)
@@ -354,10 +412,12 @@ def finish(root: Path, state: Batch, path: Path, args: argparse.Namespace) -> bo
     revision = _git(root, "rev-parse", "HEAD")
     if state["ci"] is None or state["ci"]["revision"] != revision:
         _reading_settled(root, state, revision)
+        selection = _freeze_selection(root, state, revision, path)
         ref = _publish(root, state, revision)
         state["ci"] = fanout_ci.new_state(fanout_ci.repository(root, state["remote"]),
                                           ref, revision, state["cold"],
-                                          state.get("reading_base"))
+                                          state.get("reading_base"), selection=selection,
+                                          full_ci=state.get("full_ci", False))
         state["status"] = "published"
         _save(path, state)
     deadline = time.monotonic() + args.wait_host
@@ -401,6 +461,8 @@ def main(argv: list[str] | None = None) -> int:
                       help="host-owned worktree to integrate and retain (repeatable)")
     init.add_argument("--remote", default="origin")
     init.add_argument("--cold", action="store_true", help="require cold Guest CI and fresh proofs")
+    init.add_argument("--full-ci", action="store_true",
+                      help="run every Host CI check and Guest CI lane regardless of changed paths")
     init.add_argument("--reading-base", metavar="COMMIT",
                       help="full lowercase SHA of a commit main's head descends from; "
                            "Guest CI's proofs lane reads that commit's proofs and compares "
