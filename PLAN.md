@@ -468,20 +468,20 @@ These figures sum the full priced reference-build, assessment and named hardenin
 <!-- estimate-summary:start -->
 | Measure | Value |
 | --- | --- |
-| Total estimate midpoint h | 4,613.7 |
-| Total estimate range h | 2,995.6–6,231.8 |
+| Total estimate midpoint h | 4,615.7 |
+| Total estimate range h | 2,996.6–6,234.8 |
 | Completed scope h | 865.2 |
-| Complete by estimate % | 18.8 |
-| Remaining h | 3,748.5 |
-| Committed remaining h | 2,306.5 |
-| Open class I h | 785.5 |
+| Complete by estimate % | 18.7 |
+| Remaining h | 3,750.5 |
+| Committed remaining h | 2,308.5 |
+| Open class I h | 787.5 |
 | Open class X h | 2,963 |
 | Retained completion estimate h | 261.5 |
 | Unmeasured completed items | 29 |
-| Calibrated total h | 5,630.4 |
+| Calibrated total h | 5,631.8 |
 | Committed M8a open h | 74 |
 | Committed M8b open h | 105.5 |
-| Other committed open h | 2,127 |
+| Other committed open h | 2,129 |
 | Conditional open h | 1,028 |
 | Unfunded option open h | 414 |
 | Committed M8a open class X h | 0 |
@@ -999,6 +999,8 @@ These trials add no prerequisite to the current M7.1 realization route. A failed
   * The combined calculus is reviewed against R-05-009's frontend admission and the arm propagated, with the implementation and admission decisions it still owes named at their owners. ([note](docs/implementation/completion-log.md#q25d-review-the-combined-calculus-and-price-its-implementation))
 * [x] **Q25e · Build a pure Vela-to-Gallina prototype** · 0.3 h actual · agent-parallel
   * Implements bounded pure-source checking, hygienic Gallina emission and atomic publication with independent translation and rejection cases; kernel replay and stronger language qualification remain open. ([note](docs/implementation/completion-log.md#q25e-build-a-pure-vela-to-gallina-prototype))
+* [ ] **Q25f · Align the executable Vela subset with its proposed surface** · 2 h, range 1–3 · I
+  * **Start:** the reviewed [surface grammar](docs/languages/vela-prototype.md#source-fragment), landed before implementation, and Q25e's translator. **Owns:** public type-first declarations and parameters, lowercase bool, immutable local statements, explicit returns and parenthesized conditional blocks; update the example and independent oracles together. **Check:** surface-conformance positives and type/name/return negatives pass focused tests, old prototype spellings are refused, and integrated Host CI passes with every Guest CI lane dispatched. **Join:** the existing pure CIC translation boundary; no contract, grade, loan, effect or target-semantic claim is added.
 * [x] **Q26 · Price the resident toolchain against the floor's own comparisons** · 4.6 h actual · agent-parallel
   * [The toolchain residency report](docs/performance/toolchain-residency.md) records the three quantities with their predicates, instruments, lanes and revisions, scores each against the artifact that owns its supply or declares it unscorable with the act that owes the supply named, and states which of the three binds and what would have to move, as arms for the product's owner with none taken. ([note](docs/implementation/completion-log.md#q26-price-the-resident-toolchain-against-the-floors-own-comparisons))
 
@@ -1351,7 +1353,7 @@ Q6's conventional-memory simulators are conditional on a topology comparison nee
 
 No assessment completion automatically increases a performance estimate. For an optimization affecting fraction `f` of runtime by factor `s`, the unchanged-cost bound is `1 / ((1 - f) + f / s)`; added transfers or changed scheduling require a fresh whole-workload comparison. Better packing is not more fabricated capacity, and host performance is not target throughput.
 
-**Q subtotal:** 2,784.2 h · 60% · 253.2 h complete · open range 1,460–3,602 h.
+**Q subtotal:** 2,786.2 h · 60% · 253.2 h complete · open range 1,461–3,605 h.
 
 ### M0 · Hardware reference
 

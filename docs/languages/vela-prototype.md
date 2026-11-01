@@ -2,11 +2,11 @@
 
 ## Commission and interpretation
 
-[Q25e](../../PLAN.md#q-assessment-actions) commissions a bounded host development
-tool: parse an explicitly typed, pure expression fragment and emit Gallina
+[Q25e and Q25f](../../PLAN.md#q-assessment-actions) commission a bounded host development
+tool: parse an explicitly typed, pure function fragment and emit Gallina
 definitions. The meaning of an accepted expression is its generated CIC term.
 There is no independent source evaluator, reduction relation or semantic anchor.
-`Nat` denotes mathematical naturals and `Bool` denotes booleans; neither denotes
+`Nat` denotes mathematical naturals and `bool` denotes booleans; neither denotes
 a machine word, a storage layout or a CHERI permission.
 
 This separately scoped fixture follows the [core design's narrower-fixture
@@ -20,6 +20,13 @@ metatheory, compiler qualification or final-binary admission.
 
 ## Source fragment
 
+The supported fragment follows the [proposed Vela surface](verification-strategy.md#an-ideal-surface):
+public declarations put the return type before the operation name, parameters put
+the type before the binding, immutable locals use `let`, and function exits use
+`return`. This is a subset of that surface rather than a separate expression-language
+syntax. Contracts, grades, effects, loans and machine representations remain outside
+this prototype; their presence is diagnosed rather than ignored.
+
 The prototype accepts UTF-8 source with ASCII identifiers and `//` line comments.
 Identifiers match `[A-Za-z_][A-Za-z0-9_]*`, excluding grammar and reserved extension
 keywords; the latter produce unsupported-feature diagnostics. Decimal
@@ -30,10 +37,10 @@ functions; recursion and forward calls are refused. Local bindings are immutable
 
 ```text
 module Example;
-fn twice(x: Nat) -> Nat { x + x }
-fn select(flag: Bool, x: Nat) -> Nat {
-  let result = twice(x);
-  if flag { result } else { 0 }
+public Nat Twice(Nat x) { return x + x; }
+public Nat Select(bool flag, Nat x) {
+  let result = Twice(x);
+  if (flag) { return result; } else { return 0; }
 }
 ```
 
@@ -41,12 +48,14 @@ The accepted grammar is:
 
 ```text
 file      := 'module' name ';' function+
-function  := 'fn' name '(' parameters? ')' '->' type '{' expression '}'
-parameters:= name ':' type (',' name ':' type)*
-type      := 'Nat' | 'Bool'
-expression:= 'let' name '=' expression ';' expression
-           | 'if' expression '{' expression '}' 'else' '{' expression '}'
-           | comparison
+function  := 'public' type name '(' parameters? ')' block
+parameters:= type name (',' type name)*
+type      := 'Nat' | 'bool'
+block     := '{' binding* exit '}'
+binding   := 'let' name '=' expression ';'
+exit      := 'return' expression ';'
+           | 'if' '(' expression ')' block 'else' block
+expression:= comparison
 comparison:= sum (('==' | '<=') sum)?
 sum       := product ('+' product)*
 product   := atom ('*' atom)*
@@ -56,11 +65,13 @@ arguments := expression (',' expression)*
 ```
 
 Arithmetic and `<=` take naturals; equality takes two operands of the same type.
-A condition is Boolean and both branches have the same type. Calls have the
+A condition is Boolean and every reachable branch explicitly returns the declared
+function result type. Statements after a terminal return or conditional are
+refused, and a block without a terminal result is a syntax error. Calls have the
 declared arity and argument types. Let bindings infer only their expression's
-`Nat` or `Bool` type. Duplicate functions, parameters, local bindings in an active
+`Nat` or `bool` type. Duplicate functions, parameters, local bindings in an active
 scope (including active parameters) and unbound values are errors. Function and
-value namespaces are separate. Equality returns `Bool`. Natural arithmetic,
+value namespaces are separate. Equality returns `bool`. Natural arithmetic,
 equality and comparison map to `Corelib.Init.Nat.add`, `.mul`, `.eqb` and `.leb`.
 Boolean equality maps to pure nested conditionals returning the Boolean
 constructors. Types and constructors come from `Corelib.Init.Datatypes`.
@@ -90,14 +101,17 @@ only; no axioms, admitted obligations, proof scripts or machine-code escape exis
 
 ## Acceptance
 
-Land this contract and its priced checklist cell before implementation. A separate
+Land this contract and its priced checklist cells before implementation. A separate
 reviewer reads the scope and independently authored expected translations.
 Focused behavioral tests must cover the example, precedence, lexical scope,
 both types and each operation, plus deterministic output, source binding and
 name hygiene. Well-formed negative neighbors must fail on return type, condition,
 branch, call, duplicate-name or resolution premises. Trailing input, unsupported
 constructs, malformed/invalid UTF-8, excessive nesting and oversized literals
-must produce bounded diagnostics. CLI tests must establish successful publication
+must produce bounded diagnostics. Surface-conformance cases use the same declaration,
+parameter, return and control-flow spellings as the design dossier. Reject the old
+`fn`, colon-typed parameter, arrow-return and implicit-expression-body forms, along
+with missing returns and unreachable trailing statements. CLI tests must establish successful publication
 and preservation of existing output on rejection, input aliases and write errors.
 
 Host CI on Windows and Ubuntu supplies the integrated tool verdict. Dispatch
@@ -119,6 +133,6 @@ python tools/run.py vela emit tools/vela/examples/pure.vela --output out/Pure.v
 Use `python3` on Linux. The output directory must already exist; omit `--output`
 to print the definitions. The [example](../../tools/vela/examples/pure.vela)
 defines a cube and a Boolean selection over its result. For example, its intended
-`choose(true, 1)` result is true and `choose(true, 2)` is false. Emission produces
-a `Vela_Oracle` module containing `f_cube` and `f_choose`; executing them requires
+`Choose(true, 1)` result is true and `Choose(true, 2)` is false. Emission produces
+a `Vela_Oracle` module containing `f_Cube` and `f_Choose`; executing them requires
 the separately identified kernel replay, rather than an evaluator in this tool.
