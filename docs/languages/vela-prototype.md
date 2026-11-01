@@ -18,6 +18,18 @@ The Python parser and type checker are untrusted development tools. Their succes
 is not kernel acceptance, checked source correspondence, a `SourcePackage`,
 metatheory, compiler qualification or final-binary admission.
 
+## Development parser goal
+
+The selected development direction is a
+[Menhir-generated parser](verification-strategy.md#development-parser-and-grammar)
+for the proposed Vela surface, producing located syntax before separate checking
+and elaboration. This prototype currently uses a handwritten parser that combines
+checking and emission. Its replacement requires the
+[plan's `vela-parser` qualification](../../PLAN.md#vela-whole-system-authoring-proposal)
+and an independently reviewed migration contract; the goal alone changes no
+accepted syntax or assurance claim. Keep the current examples and rejection cases
+as migration fixtures.
+
 ## Source fragment
 
 The supported fragment follows the [proposed Vela surface](verification-strategy.md#an-ideal-surface):

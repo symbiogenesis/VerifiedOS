@@ -3316,9 +3316,13 @@ The [pure translation prototype](docs/languages/vela-prototype.md) is Q25e's
 separately commissioned first executable tool; Q25f aligns it with the proposed
 source surface. Its Nat/bool fragment denotes
 generated CIC terms and exercises parsing, explicit checking and Gallina emission.
-The next prototype increment is pinned-kernel replay of generated definitions and
-independently expected evaluations, followed by checked source correspondence;
-those increments need their own reviewed cells and estimates before dispatch.
+The selected development parser goal is
+[Menhir generation](docs/languages/verification-strategy.md#development-parser-and-grammar),
+with a reviewed grammar of the proposed surface, located syntax trees and separate
+elaboration. The `vela-parser` row below owns qualification and migration from the
+handwritten prototype. Pinned-kernel replay of emitted definitions and independently
+expected evaluations, followed by checked source correspondence, remain additional
+work. Each increment needs its own reviewed cell and estimate before dispatch.
 The full-language frontend retains Q25d's admission prerequisites.
 
 The design goal is one authored Vela codebase for operational software, independently reviewed contracts, mathematical proofs, the architectural machine model and hardware descriptions. The [unified-source contract](docs/languages/unified-source-contract.md) owns the technical acceptance boundary. Generated Clight, Rocq proof terms, executable simulators, binaries and RTL remain permitted; the software golden artifact is the proof-connected production implementation. A separately maintained optimized rewrite is outside this goal.
@@ -3329,6 +3333,7 @@ These are uncommissioned proposal owner keys, with establishment and maintenance
 
 | Proposed owner and order | Start | Owns | Check | Join |
 | --- | --- | --- | --- | --- |
+| `vela-parser` · Menhir during development | Q25f's pure source baseline and a reviewed grammar/AST, exact toolchain and migration contract; Menhir-specific qualification is unpriced and needs its own checklist cell before implementation | Qualify the selected generator/Rocq-library closure, grammar conflicts, syntax-only AST construction, source spans, diagnostics, generated-view provenance and migration fixtures; parser construction stays in `core-frontend`'s existing scope and is charged once | The [development parser contract](docs/languages/verification-strategy.md#development-parser-and-grammar): independent surface/AST oracles, whole-file positive/refusal cases, bounded failure, deterministic regeneration and exact claimed kernel evidence; current compatibility and licensing records are inputs, not acceptance | Menhir becomes the development parser after qualification; full frontend admission retains Q25d's prerequisites, and Vela-authored parsing and retirement of seed/development dependencies remain `vela-native`/`vela-bootstrap` duties |
 | `vela-software` · first software bridge | Q25d's frontend-release conditions and the actual CHERI laws required by the selected component | Vela source/contract correspondence and explicit-memory lowering through the retained compiler route | [Software acceptance](docs/languages/unified-source-contract.md#software-and-proof-boundary), including error paths, source edits and exact installed bytes | Current compiler/admission and canonical Sail consumers; no handwritten optimized implementation for the accepted family |
 | `vela-proofs` · complete proof authorship | The interpreted frontend and reviewed theorem subjects for a selected library or metatheory package | General mathematical definitions and proofs in Vela, interoperating with retained checked libraries | [Proof-surface acceptance](docs/languages/unified-source-contract.md#software-and-proof-boundary); no mandatory handwritten Rocq fallback for the accepted package | Rocq/CIC rechecks generated terms and exact assumptions; replacing its checker is a separate decision |
 | `vela-native` · native verified compiler | Admitted source/IR interpretations, concrete CHERI laws, selected target and reviewed replacement-duty scope; independent of machine-authoring migration | Vela-authored native pipeline, representation and optimization proofs, selection/allocation, ABI, assembly/link/image construction and complete licence closure | [Native-compiler acceptance](docs/languages/unified-source-contract.md#native-verified-compiler-and-self-hosting), including held-out systems/compute clients, checked search proposals, relational security, resources and final bytes | Current producers and validation remain required until equivalent evidence and explicit amendments admit the replacement; no assumed LLVM parity or performance saving |

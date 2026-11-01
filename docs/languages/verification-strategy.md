@@ -4,7 +4,7 @@
 
 > Non-normative research and design proposal. Scheduled work belongs to the implementation checklist; this document supplies no admission rule, semantic anchor, or accepted trust assumption.
 > The [requirements register](../requirements-register.md) governs VerifiedOS; the [typed assembly language](typed-assembly-language.md) governs the certificate language.
-> Latest source update: 2026-10-21. Upstream capabilities below are distinguished from proposed integration work; a language sketch is not an implemented compiler.
+> Latest source update: 2026-10-31. Upstream capabilities below are distinguished from proposed integration work; a language sketch is not an implemented compiler.
 
 ## Recommendation
 
@@ -14,7 +14,14 @@
 
 **Hold `VerifiedComponents`, a bounded target-parametric Rocq library with one CHERI instance, as a frozen proposal.** The concrete operation and representation laws it would instantiate do not exist as checked constants, and **Q2c and Q21a/Q21b declined commissioning that foundation and its machine/contextual connections by reasoned rejection**, since neither can be responsibly priced for these consumers. The pilot was therefore canceled before execution. The [foundation map](../hardware/cheri-foundation-map.md#re-entry-evidence), [core design](core-design.md#decision-and-reopening-evidence) and [compiler comparison](compiler-route-contract.md#re-entry-packages) retain the contracts and name the evidence that would reopen them. The tooling half closed on its own evidence: [the qualification record](../assurance/proof-tooling-qualification.md) keeps the locked batch workflow, rejects the tested cached presentation workflow because changing an imported lemma did not invalidate its rendered page, and declines the selective Stdlib, Equations and standalone `sauto` candidates, which replayed without new assumptions but showed no client maintenance benefit.
 
-**Pursue Vela as a design, not yet as an implementation.** It is a clean-slate language with graded dependent types, general effect handlers, structured async/cancellation and controlled concurrent interior mutability, alongside flow-sensitive loans and explicit representations, authored under [three assurance presets over one surface](#assurance-presets-over-one-surface). Its long-term goal is one authored language for software, specifications, proofs, the ISA model and hardware descriptions, including retirement of authored Sail once a replacement qualifies under the [unified-source contract](unified-source-contract.md). Those [full-language design commitments](#full-language-design-commitments) are specified in Q25's rule dossiers and joined in [the composition review](full-language-review.md), which gives each implementation row one owner and one estimate and holds the frontend rows. Dependent implementation first needs an interpretation commitment, restated across the three rule dossiers, that makes each law a theorem about the elaboration's image in the kernel, landing with the lettered register act beside R-05-020 that records an untrusted elaborator the kernel re-checks as R-05-009's route. The R-08-046 inventory amendment for the language's runtime-varying storage is ordered behind that act. A reopened library pilot would establish reusable proof engineering, not Vela's calculus or compiler.
+**Develop Vela through bounded prototypes while the full calculus retains its implementation gates.** It is a clean-slate language with graded dependent types, general effect handlers, structured async/cancellation and controlled concurrent interior mutability, alongside flow-sensitive loans and explicit representations, authored under [three assurance presets over one surface](#assurance-presets-over-one-surface). Its long-term goal is one authored language for software, specifications, proofs, the ISA model and hardware descriptions, including retirement of authored Sail once a replacement qualifies under the [unified-source contract](unified-source-contract.md). Those [full-language design commitments](#full-language-design-commitments) are specified in Q25's rule dossiers and joined in [the composition review](full-language-review.md), which gives each implementation row one owner and one estimate and holds the frontend rows. Dependent implementation first needs an interpretation commitment, restated across the three rule dossiers, that makes each law a theorem about the elaboration's image in the kernel, landing with the lettered register act beside R-05-020 that records an untrusted elaborator the kernel re-checks as R-05-009's route. The R-08-046 inventory amendment for the language's runtime-varying storage is ordered behind that act. A reopened library pilot would establish reusable proof engineering, not Vela's calculus or compiler.
+
+**Use Menhir as the parser generator during Vela development.** The
+[development parser goal](#development-parser-and-grammar) connects an executable
+grammar of the proposed surface to located syntax trees, separate elaboration and
+eventual checked parsing. The current [pure prototype](vela-prototype.md) remains
+the executable baseline until that route is qualified. This is a selected
+development direction; implementation and migration retain their own entry gates.
 
 ## Constraints and Desired Product
 
@@ -66,6 +73,53 @@ Authored source closure + independently reviewed contract
 ```
 
 Each arrow is an obligation. The frontend emits a [SourcePackage](#mechanically-produced-evidence) binding parsing, resolution, implicit insertion and desugaring to the authored source; MetaRocq does not supply that theorem merely by checking the resulting term. Hardware refinement meets the same Sail definitions independently on this route; the [whole-system contract](unified-source-contract.md) extends authorship while preserving a shared canonical machine subject. Reuse [DeepSEA and Sepref's construction/representation techniques](#closest-matches-to-the-complete-workflow) and [capability-law precedents](#capability-aware-and-parametric-verification) where their subjects and assumptions fit. The [core rules](#a-compositional-core), [illustrative surface](#an-ideal-surface) and [library package](#concrete-package-shape) specify the proposed boundaries in detail.
+
+### Development parser and grammar
+
+Menhir is the selected parser-generator goal for Vela development. Its grammar
+must follow [Vela's proposed surface](#an-ideal-surface), with reviewed examples
+covering declarations, generics, contracts, grades, proof blocks, loans and control
+constructs as each syntax increment enters scope. Parsing a construct establishes
+syntax only; elaboration must report an unsupported feature until its meaning and
+required laws are implemented.
+
+The intended frontend separates source decoding and lexing, generated parsing,
+located syntax trees, resolution, type checking, elaboration and emission. Grammar
+actions construct syntax rather than performing hidden type checking or emitting
+CIC text directly. Keep the grammar structure and syntax-tree schema under one
+authored owner; any backend-specific grammar views need generation and checking.
+Diagnostics and source spans remain part of the interface tested by developer
+fixtures, including malformed input and incomplete editor input.
+
+The [Menhir manual](https://gallium.inria.fr/~fpottier/menhir/manual.html#sec76)
+describes ordinary OCaml backends and a Rocq backend that produces a parser with
+correctness and completeness results relative to its grammar. The latter is the
+goal for checked parsing. A completeness claim requires a conflict-free LR(1)
+grammar and its checked theorem; disabling or omitting that proof supplies no
+completeness evidence. Ordinary location annotations and traditional error
+recovery are unavailable in Rocq mode, so source spans need an explicit token/AST
+location scheme. Error-reporting metadata is outside those theorems. A
+qualification must establish the selected source-span and diagnostic behavior,
+whole-file consumption, fuel/refusal handling and the exact theorem/assumption
+boundary. A parser proof does not establish the lexer, the intended grammar,
+source elaboration or the final compiler's correctness.
+
+Select the exact generator and support-library closure together, preserving their
+version checks and qualifying them with the locked prover. The existing
+[toolchain terms record](../../THIRD-PARTY.md) and
+[Rocq compatibility findings](../../tools/opam/certirocq-compatibility.md#native-trial-verdict)
+are inputs to that work, not acceptance of a Vela parser. Read the selected source
+licences before incorporation and qualify the intended distribution and bootstrap
+use. Parser generation remains untrusted; claimed results are reconstructed and
+checked in the existing kernel.
+
+The [plan's `vela-parser` owner](../../PLAN.md#vela-whole-system-authoring-proposal)
+owns the separately scoped qualification and migration. Parser construction is
+charged once at `core-frontend`; Menhir-specific qualification does not silently
+consume that estimate or reopen the held full-language frontend. The eventual
+[native self-hosting compiler](unified-source-contract.md#native-verified-compiler-and-self-hosting)
+includes Vela-authored parsing and records the replacement of development tools
+in its bootstrap and dependency closure.
 
 ## Full Language Design Commitments
 

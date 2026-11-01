@@ -102,6 +102,14 @@ mandatory Clight/CompCert or LLVM stage. Interim backends and interoperation wit
 retained producers remain available during qualification and migration. This
 goal adds no implementation commission and replaces no current compiler duty.
 
+During development, Vela targets the
+[Menhir-generated parser route](verification-strategy.md#development-parser-and-grammar)
+over a reviewed grammar and located syntax-tree interface. Qualifying that route
+preserves the separate lexer, parsing, elaboration and source-correspondence
+obligations. The eventual Vela-authored compiler includes its parser; its verified
+bootstrap accounts for the Menhir development/seed tools until their replacement,
+preserving the accepted grammar and source meaning as that dependency retires.
+
 The intermediate representations retain or explicitly discharge the ownership,
 CHERI authority, layout, initialization, effect, protocol, leakage and resource
 facts needed by later transformations. Each representation has a reviewed
