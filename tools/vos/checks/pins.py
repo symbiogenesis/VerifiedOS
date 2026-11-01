@@ -134,8 +134,11 @@ repair; regeneration can reproduce an existing reading but never advance it. The
 shared library also retains the hook-repository and pip-constraint censuses, so new
 code installed by those routes still requires a review record. Structured action
 reviews generate pinned licence URLs and are held against every parsed workflow
-reference in both directions. Licence evidence and all prose outside the generated
-section retain their own owners.
+and reachable composite-action reference in both directions. Local actions resolve
+to tracked authored composite metadata; a secondary-checkout alias requires an
+earlier same-repository checkout at the dispatching revision. Missing, ambiguous
+or unsafe local paths and cycles refuse the census. Licence evidence and all prose
+outside the generated section retain their own owners.
 
 """
 
