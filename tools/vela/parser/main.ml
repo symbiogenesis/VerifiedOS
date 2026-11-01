@@ -74,17 +74,23 @@ let () =
     exit 1
   in
   try
+    let surface = match Array.to_list Sys.argv with
+      | [_] -> false
+      | [_; "--surface"] -> true
+      | _ -> raise (Ast.Refusal ("syntax", 0, "expected no arguments or --surface"))
+    in
     source := read_source ();
     validate_utf8 !source;
     let lexbuf = Lexing.from_string !source in
-    let state = Lexer.create () in
+    let state = Lexer.create ~surface () in
     let next lexbuf =
       let token = Lexer.token state lexbuf in
       current := Lexing.lexeme_start lexbuf;
       token
     in
-    let syntax = Parser.file next lexbuf in
-    print_endline (Ast.encode (Ast.Object [("schema", Ast.Number 1); ("ast", syntax.syntax)]))
+    let syntax = (if surface then Parser.surface_file else Parser.file) next lexbuf in
+    print_endline (Ast.encode (Ast.Object [("schema", Ast.Number (if surface then 2 else 1));
+                                          ("ast", syntax.syntax)]))
   with
   | Ast.Refusal (kind, offset, message) -> publish_failure kind offset message
   | Parser.Error -> publish_failure "syntax" !current "unexpected token or incomplete input"
