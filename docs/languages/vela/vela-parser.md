@@ -2,7 +2,7 @@
 
 ## Bounded increment
 
-[Q25g](../../PLAN.md#q-assessment-actions) commissions a syntax-only Menhir
+[Q25g](../../../PLAN.md#q-assessment-actions) commissions a syntax-only Menhir
 development parser for the [pure prototype's source fragment](vela-prototype.md#source-fragment).
 Its accepted language is that fragment's grammar, with whole-file consumption.
 Name resolution, typing, elaboration and Gallina emission stay separate. In
@@ -19,14 +19,14 @@ UTF-8 comments are allowed; identifiers remain ASCII. Source bytes are never
 normalized before computing provenance.
 
 The code backend of Menhir 20260209 is the selected bounded route. Its generator
-and OCaml compiler come from the existing [Sail snapshot](../../tools/opam/sail.lock).
+and OCaml compiler come from the existing [Sail snapshot](../../../tools/opam/sail.lock).
 The build refuses a different generator or compiler version. Build products live
 in the native lane, with the authored input digests, tool identities, generation
 arguments and generated-file digests in a receipt. Repeated generation in fresh
 directories must produce identical parser bytes. No generated parser or upstream
 runtime source is tracked. This route links no Menhir runtime library. Read the
 selected release's own licence and record its output terms in
-[THIRD-PARTY.md](../../THIRD-PARTY.md) before incorporation.
+[THIRD-PARTY.md](../../../THIRD-PARTY.md) before incorporation.
 
 Input is bounded by the prototype's source-byte and literal-digit limits. The
 native driver also bounds delimiter nesting and raw syntax-tree depth at 256 before exposing
@@ -63,7 +63,7 @@ source-correspondence or full-language frontend claim.
 
 ## Promotion and retirement
 
-[Q25h](../../PLAN.md#q-assessment-actions) owns promotion and Python parser
+[Q25h](../../../PLAN.md#q-assessment-actions) owns promotion and Python parser
 retirement. It must qualify the exact generator and Rocq support-library closure
 with the locked prover, preserving version checks, and name the checked parser
 correctness/completeness theorems and their exact assumptions. A conflict-free
@@ -76,7 +76,7 @@ does, a reviewed upstream revision or a separately maintained fork may supply
 them, with its own licence reading, reproducible source pin and bounded semantic
 comparison. Contribute necessary fixes upstream when their qualification is ready.
 Release stamping must keep generator/library version checks meaningful; disabling
-them does not qualify a pair. The [existing compatibility record](../../tools/opam/certirocq-compatibility.md#native-trial-verdict)
+them does not qualify a pair. The [existing compatibility record](../../../tools/opam/certirocq-compatibility.md#native-trial-verdict)
 identifies the upstream proof-command relocation and the remaining version issue.
 
 Before switching the prototype, provide a supported build/runtime route on
@@ -120,7 +120,7 @@ archive, builds its Rocq support library in the existing locked proof switch and
 runs the recursive kernel checker. An optional `--archive FILE` uses the same
 authenticated bytes without downloading them. The bounded source adaptation moves
 only the three late `Proof` commands identified in the
-[same-prover compatibility record](../../tools/opam/certirocq-compatibility.md#native-trial-verdict).
+[same-prover compatibility record](../../../tools/opam/certirocq-compatibility.md#native-trial-verdict).
 Source hashes guard both sides of that transformation. A diagnostic reference
 deletes just those commands; its frozen public types, universes, executable bodies
 and assumptions must match the candidate at the same prover. No source is installed

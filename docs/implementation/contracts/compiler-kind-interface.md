@@ -8,7 +8,7 @@ implemented pass, a compiler theorem or a target result. The
 [source-value contract](compiler-source-values.md) owns source operations and
 their definedness; the [purecap ABI](purecap-abi.md) owns register roles, frames
 and calls. The requirements register and the pinned Sail definitions retain
-precedence. The [route contract](../../languages/compiler-route-contract.md)
+precedence. The [route contract](../../languages/vela/compiler-route-contract.md)
 retains the separate production evidence and arbitrary-context obligations.
 
 ## 1. Selection and representation boundary

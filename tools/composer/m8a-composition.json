@@ -151,7 +151,7 @@
       ],
       "descriptor": {
         "path": "tools/composer/packages/mmode-firmware.json",
-        "sha256": "45c192f08b30b155b57ff8460506462acf4ac24ad62aeb9fc24e765d0ba07225"
+        "sha256": "cabb4d954fc1309e499600dd783c32b133fac59c3b7ef6cf0402896487e06c1f"
       },
       "artifact_slot": "mmode-firmware-artifact",
       "entry": null,
@@ -183,7 +183,7 @@
       ],
       "descriptor": {
         "path": "tools/composer/packages/kernel.json",
-        "sha256": "5308849a56583c743ea466be533b4efa2a3d32f946b50b8d2f35b8b4245a782d"
+        "sha256": "2da5bb88b52128e49bb63139fa502def4775a70eed75663117ead731a77ca9e0"
       },
       "artifact_slot": "kernel-artifact",
       "entry": null,

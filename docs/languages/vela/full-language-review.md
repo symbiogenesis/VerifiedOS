@@ -18,7 +18,7 @@ resource interpretation. A source grade cannot create a memory permission.
 Outcome-indexed resource transitions account for every returned owner, loan,
 mandatory result, continuation and terminal-completion obligation.
 
-The [bounded core](core-design.md) and [foundation map](../hardware/cheri-foundation-map.md)
+The [bounded core](core-design.md) and [foundation map](../../hardware/cheri-foundation-map.md)
 retain their missing concrete CHERI laws. The [compiler-route contract](compiler-route-contract.md)
 retains its unqualified source-to-machine connections. Q25 adds design obligations
 to those boundaries; it does not supply an instance of any missing law or reopen
@@ -128,7 +128,7 @@ region of machine memory and a tagged capability value over the Coq definitions
 Sail's own backend emits (R-05-019b); grades, proof data and counter allowances
 carry nothing at runtime in it; and the bounded reaction graph's frames, child
 slots, continuation storage and completion records are ordinary storage in that
-same carrier. It is [Q2c's](../hardware/cheri-foundation-map.md#foundation-ownership-ledger)
+same carrier. It is [Q2c's](../../hardware/cheri-foundation-map.md#foundation-ownership-ledger)
 `byte-instance` extended by its `scoped-resources` interpretation. Selecting it
 here fixes the subject each duty is about and supplies no law of it.
 
@@ -198,7 +198,7 @@ The estimate column keeps these rules.
   class; a citation to the owner that already carries the work, which prices
   nothing a second time; or `unpriced` beside the decision that blocks it. No row
   is blank, zero or a bare dash, which is the rule Q2c's ledger and
-  [the unassigned proof map](../assurance/unassigned-proof-map.md#how-to-read-a-row)
+  [the unassigned proof map](../../assurance/unassigned-proof-map.md#how-to-read-a-row)
   already keep. **A range is stated by its ends alone**, the midpoint being the
   mean of them at whatever cell eventually carries the row, so no figure derived
   from a range is written down here.
@@ -209,7 +209,7 @@ The estimate column keeps these rules.
 * **A language-side range is over Q25a's parameterised resource interface.**
   Instantiating any of those rows at the carrier named above is `byte-instance`
   and `scoped-resources`' work and is inside no range here.
-* **The authority classes are [the checklist's own](../../PLAN.md#checklist-conventions)**,
+* **The authority classes are [the checklist's own](../../../PLAN.md#checklist-conventions)**,
   `I` where the authority a row realizes is inside this repository and `X` where
   it is outside, and every class-X range's upper end is at least twice its lower
   end. That document's width test reads its own cells, so these rows are held to
@@ -239,7 +239,7 @@ The estimate column keeps these rules.
 | `MUT-SNAPSHOT` | `core-soundness`, extended | 18–46 h · X | Observation-to-snapshot introduction, stability under interference, invalidation of current predicates and dependent shape transport are proved. Fails where a refinement about an observed value is reused as a proposition about storage another operation may have written, which is the neighbour the client already refuses. |
 | `MUT-SHARE` | `core-soundness`, extended | 22–58 h · X | Transitive capture and the composition of the sharing operations through sealed representations, task frames and handlers are proved. Fails where a local cell becomes concurrently shared through a wrapper. That no capability resides in shared mutable memory is a premise R-15-026's `Zacas` exclusion rests on rather than a theorem that entry owns, and the source-side half of it is this row's; establishing it at the target is named in the TAL row's predicate below. |
 | `MUT-ATOMIC` | Q2c's `machine-logic` | `unpriced`; blocked by the same declined commissioning, U-22 being the priced decision that would state its breakdown | The counter invariant and history, the one-use allowance interpretation, exact atomic linearization, absence of overflow and the width, alignment, permission and physical-attribute conditions are proved against the pinned Sail subject. Fails where atomicity stands in for a multi-step functional contract, and fails where a second memory semantics appears beside the pinned term. |
-| `MUT-PUBLISH` | Q2c's `machine-logic`, over the existing ring owners | `unpriced`; the ordering half rests on that same blocked key, and the algorithm is [RingContract.v](../../proofs/RingContract.v)'s rather than re-authored | Immutable packet and completion publication instantiates the existing single-producer proof with actual ordering, reader and device quiescence and generation retirement. Fails where a counter-only atomic update is read as publishing a payload, and fails where a second ring algorithm appears. |
+| `MUT-PUBLISH` | Q2c's `machine-logic`, over the existing ring owners | `unpriced`; the ordering half rests on that same blocked key, and the algorithm is [RingContract.v](../../../proofs/RingContract.v)'s rather than re-authored | Immutable packet and completion publication instantiates the existing single-producer proof with actual ordering, reader and device quiescence and generation retirement. Fails where a counter-only atomic update is read as publishing a payload, and fails where a second ring algorithm appears. |
 | `MUT-EXIT` | `core-soundness`, extended | 22–58 h · X | Cancellation arbitration, checkpoint masking, no-replay receipt storage, child terminal records and reset join the control rules, and each outcome preserves cell and frame resources and its terminal bound. Fails where a cancelled unstarted child's frame is returned before terminal collection, which is F-356's case, and fails where an unused allowance is returned after the commit point. |
 | `MUT-OBSERVE` | Q2c's `context-preservation` | Cited: Q2c records its establishment and an alternate route's preservation join as unpriced, and M1's backend estimates exclude it | The chosen counter and packet information-flow contract survives optimization and final bytes over the declared leakage model and the actual artifact. Fails where scalar atomicity or a security grade is offered as the relational statement, and fails where an instance with a secret length exposes its count without a different observation contract. |
 | `MUT-CLIENT` | `core-repair-trial`, extended | 18–46 h · I | The combined client's supported positives and negatives replay, the accepted-byte contract is independently reviewed, and each entry state is inhabited at the level the review claims for it. Fails where an entry witness is called concrete without a checked inhabitant of the carrier; the concrete witnesses and the connection to the exact final representation are `byte-instance`'s and `artifact-admission`'s and are outside this range. |
@@ -251,10 +251,10 @@ The estimate column keeps these rules.
 | Preset selection, obligation expansion and the claim-status engine | `preset-policy`, a new package | 26–70 h · I · held in arm two | A build expands its preset into explicit obligations and gives every exported claim exactly one status, with an unestablished claim unavailable to proof search, elimination and proof-based optimization alike. Fails where a strictness setting moves the meaning of a construct two presets share, and fails where a release policy lacking the specification a declared dimension needs is completed by default rather than refused. |
 | Mixed-assurance linking and closure declaration | `preset-policy`, a new package | 24–56 h · I · held in arm two | Each call boundary carries its stated rule, the declared closure names the reachable implementations, instantiations, dependencies, generated code and runtime components, and a downgraded interface rechecks its dependents. Fails where ordinary code inherits a property from being linked beside verified code, and fails where compiling with verification disabled retains a theorem-dependent optimization whose justification has gone. |
 | Source representation and IR bridge for the added constructs | Q21b | Cited: each route's bridge and machine simulation are that comparison's, and Q2b owns the device lowering | The graded, handler and cell constructs reach the selected representation with their resource account intact. Fails where a route claims the bridge by naming the constructs rather than by carrying their representation obligations. |
-| Attribute projection under R-05-132 through R-05-134 | The CHERI-TAL owner, which [the unassigned map](../assurance/unassigned-proof-map.md#8-mandatory-work-outside-the-priced-total) records as carrying no cell | Cited, and `unpriced` at that owner | Source grades and protocol laws project into the existing admitted attributes where their actual rules suffice, and the remainder is carried as separately checked kernel terms; the target-side statement that no capability resides in shared mutable memory, which R-15-026's `Zacas` exclusion assumes rather than proves, is one of those terms and is carried here. Fails where a general source domain, dependent normalization or a grade dictionary is asked of an attribute, which is a requested new attribute owing that requirement's own admissibility demonstration. |
+| Attribute projection under R-05-132 through R-05-134 | The CHERI-TAL owner, which [the unassigned map](../../assurance/unassigned-proof-map.md#8-mandatory-work-outside-the-priced-total) records as carrying no cell | Cited, and `unpriced` at that owner | Source grades and protocol laws project into the existing admitted attributes where their actual rules suffice, and the remainder is carried as separately checked kernel terms; the target-side statement that no capability resides in shared mutable memory, which R-15-026's `Zacas` exclusion assumes rather than proves, is one of those terms and is carried here. Fails where a general source domain, dependent normalization or a grade dictionary is asked of an attribute, which is a requested new attribute owing that requirement's own admissibility demonstration. |
 | Final-byte admission and source correspondence under R-05-023a and R-05-026 | Q2c's `artifact-admission` | Cited, and unpriced at that owner; Q20c prices promotion of supplied evidence and not the construction of this logic | The final image's behaviour refines behaviour the committed source permits through assembly, linking and image construction, with the tier certificate re-checked at admission. Fails where a digest match is offered as a semantic theorem. |
 | Arbitrary-context preservation under R-05-024 and R-05-032 | Q2c's `context-preservation` | Cited, and unpriced at that owner | The top-level statement quantifies over an adversarial linked context and composes with the exact final artifact. Fails where a theorem about known generated code fills the slot, and fails where finite emission is offered as the quantifier. |
-| Reaction-graph cost and schedule admission under R-07-037a and R-11-006 | U-28's soundness statement over [the schedule record](../../proofs/CyclicExecutive.v) U-05 owns | Cited at those slices | An admitted reaction graph's cycles are bounded by a max-path sum over its typed graph with loop bounds, and its masked-cancellation distance is a term of that same bound. Fails where an unbounded cleanup retry, forwarding cycle or ready-task selection queue appears, and fails where a bound is asserted rather than derived from the annotated term. |
+| Reaction-graph cost and schedule admission under R-07-037a and R-11-006 | U-28's soundness statement over [the schedule record](../../../proofs/CyclicExecutive.v) U-05 owns | Cited at those slices | An admitted reaction graph's cycles are bounded by a max-path sum over its typed graph with loop bounds, and its masked-cancellation distance is a term of that same bound. Fails where an unbounded cleanup retry, forwarding cycle or ready-task selection queue appears, and fails where a bound is asserted rather than derived from the annotated term. |
 | Qualification: policy semantics | `preset-policy`, a new package | 14–34 h · I · held in arm two | The negative cases reject an invented invariant, an unresolved safety goal, a hidden external assumption and a proof-dependent optimization retained after verification is disabled. Fails where a rejection comes from an unsupported construct rather than from the policy rule under test. |
 | Qualification: ordinary application | `preset-policy`, a new package | 14–34 h · I · held in arm two | One parser, collection and service example written against application interfaces alone strengthens its assurance while reusing the executable implementation, with every required code change recorded. Fails where a rewrite is reported as the same program. |
 | Qualification: systems boundary | `core-repair-trial`, extended | 18–46 h · I · held in arm two | An explicit arena and an asynchronous hardware-facing operation establish the point at which the backing becomes reusable, against the cancellation and quiescence rules, over cancellation, late completion, error paths and exhaustion. Fails where reusability is taken at the terminal status rather than established at the release gate. |
@@ -269,7 +269,7 @@ the source language or producer identity of a binary. R-05-009 makes any
 memory-safe or formally-verified language that yields a well-typed binary and a
 kernel-checked elaboration into an existing semantic anchor admissible on the
 same terms as Rust, and its criterion adds *without exception or waiver*.
-[The specification's delivery prose](../spec.md#r-05-026) states the same route in
+[The specification's delivery prose](../../spec.md#r-05-026) states the same route in
 as many words: a producer for another language supplies a kernel-checked
 elaboration into one of the reviewed anchors, so admission stays language-neutral
 without making an arbitrary source parser or frontend trusted, which is why
@@ -327,12 +327,12 @@ is not self-defeating and is not refuted here: R-05-020's translator clause stil
 reaches a translation whose source end *is* an anchor, R-13-016's owed
 Sail-to-μSail translation of the profile's instruction subset being one such
 candidate in this repository. The case against the wider reading has to be made
-on [the anchor-budget prose](../spec.md#r-05-020)'s *rather than standing beside
+on [the anchor-budget prose](../../spec.md#r-05-020)'s *rather than standing beside
 it*, and it is not needed for the disposition below, which turns on R-05-009's
 premise rather than on R-05-021's exemption.
 
 **Q27a is the nearest precedent and it distinguishes rather than supports a flat
-refusal.** [That disposition](../../PLAN.md#q-assessment-actions)
+refusal.** [That disposition](../../../PLAN.md#q-assessment-actions)
 applies the first and third conditions to three outside certificate checkers,
 each of which would enter the trust base as a second checker deciding a verdict
 on its own acceptance. That is the case R-05-020 governs. An untrusted

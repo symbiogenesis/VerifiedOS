@@ -109,5 +109,5 @@ closes a production requirement.
 Q5b owns comparison against the actual composed roster and compiled service
 contracts. Q22 owns physical holder coverage, completion, revocation and safe
 reuse. Broader Vela ownership/effect/metatheory and compiler papers remain in the
-[language verification strategy](../../languages/verification-strategy.md); this
+[language verification strategy](../../languages/vela/verification-strategy.md); this
 static-memory disposition does not pronounce those independent integrations done.

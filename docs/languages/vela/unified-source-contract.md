@@ -3,8 +3,8 @@
 > Non-normative extension of the [language strategy](verification-strategy.md).
 > This contract specifies the proposed endpoint and the evidence needed to replace
 > existing authoring routes, including Sail. It implements no language, proves no
-> agreement theorem and amends no requirement. The [proposal ownership](../../PLAN.md#vela-whole-system-authoring-proposal)
-> stays in PLAN.md; the [requirements register](../requirements-register.md)
+> agreement theorem and amends no requirement. The [proposal ownership](../../../PLAN.md#vela-whole-system-authoring-proposal)
+> stays in PLAN.md; the [requirements register](../../requirements-register.md)
 > governs every admitted artifact until a replacement amendment lands.
 
 ## Authoring end state
@@ -74,7 +74,7 @@ can retire:
   progress, adversarial-context isolation, permitted leakage and resource bounds
   wherever the component's accepted claim includes them.
 
-The [CHERI foundation map](../hardware/cheri-foundation-map.md#required-connections)
+The [CHERI foundation map](../../hardware/cheri-foundation-map.md#required-connections)
 owns the missing concrete laws; a surface feature or generic separation-logic
 theorem supplies no CHERI instance by itself. VST may initially remain an internal
 proof mechanism. Replacing it requires sound replacement rules and connections to
@@ -191,7 +191,7 @@ reviewed scope decision; silently omitting a difficult operation is no replaceme
 The replacement supplies one admitted machine-definition closure, parameterized
 where the platform actually varies, with explicit selected configuration, core
 class and hart identities. All consumers resolve that same closure and their
-declared instances. The [canonical-term record](../assurance/canonical-machine-term.md#2-generation-identity)
+declared instances. The [canonical-term record](../../assurance/canonical-machine-term.md#2-generation-identity)
 shows why a term fixed to one hart cannot silently stand for all compositions;
 its open configuration question must receive a decision before migration relies
 on it. Per-consumer transcriptions are prohibited.
@@ -226,7 +226,7 @@ A Vela hardware subset may author state, registers, concurrent rules and explici
 cycle/schedule behavior. Its semantics and compiler need checked connections to
 the admitted hardware interpretation and the exact synthesis input. Vela may
 initially elaborate to Kami/Kôika or generate RTL; emitting RTL alone establishes
-neither connection. The [RTL correspondence boundary](../assurance/rtl-correspondence-boundary.md)
+neither connection. The [RTL correspondence boundary](../../assurance/rtl-correspondence-boundary.md)
 owns the distinction between a source circuit theorem and the artifact synthesized.
 
 Simulator and RTL generation may share a hardware definition, and architecture
@@ -245,7 +245,7 @@ checks; a generated circuit theorem does not imply the required physical absence
 
 ## Migration and retirement
 
-The [proposal ownership](../../PLAN.md#vela-whole-system-authoring-proposal)
+The [proposal ownership](../../../PLAN.md#vela-whole-system-authoring-proposal)
 orders the work. Its technical transition criteria are:
 
 1. Establish the software/proof route over the existing machine term. Qualify
@@ -268,7 +268,7 @@ orders the work. Its technical transition criteria are:
    identities for retained historical results. Remove active dual maintenance and
    update provenance, gates and the trust-base inventory in the same transition.
 
-The amendment dossier follows [the register amendment process](../spec.md#r-18-034).
+The amendment dossier follows [the register amendment process](../../spec.md#r-18-034).
 It reviews the anchor identity and provenance rules R-05-019 through R-05-019c,
 R-05-020's replacement conditions, and all affected source-correspondence,
 primitive, binary-validation and hardware obligations. In particular it accounts

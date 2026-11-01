@@ -726,7 +726,7 @@ Landed: Tier A.
 
 #### Q20a · Author the combined acceptance and benchmark contract
 
-[The workflow contract](../languages/workflow-contract.md) fixes parser client, held-out service, exits/cases, semantic probes, evidence identities and cost thresholds. Independent/integrated review and host document checks passed with proof/model/interfaces unchanged. The contract is authored; trials are unopened and missing copying baselines remain entry conditions.
+[The workflow contract](../languages/vela/workflow-contract.md) fixes parser client, held-out service, exits/cases, semantic probes, evidence identities and cost thresholds. Independent/integrated review and host document checks passed with proof/model/interfaces unchanged. The contract is authored; trials are unopened and missing copying baselines remain entry conditions.
 
 Landed: Tier A. The independent read covers the intended outputs, every exit, negative-case obligations, semantic invalidation and full-cost comparison; mechanical document checks cannot decide those contracts, and no Tier-B holder is claimed. The absence of copying baselines is an explicit trial-entry condition, per Q20a's permission to prepare its contract before those implementations exist.
 
@@ -759,7 +759,7 @@ an implemented trial or production theorem.
 
 #### Q21a · Specify the core design and its qualification contract
 
-[The core contract](../languages/core-design.md) rejects at unavailable/unpriced returned-view laws and missing frontend admission. Exit, reborrow, cleanup, source and diagnostic-generation obligations remain. Independent/integrated review accepted corrections; closing review is excluded from calibration. No language refutation or implemented metatheory/frontend qualification is established.
+[The core contract](../languages/vela/core-design.md) rejects at unavailable/unpriced returned-view laws and missing frontend admission. Exit, reborrow, cleanup, source and diagnostic-generation obligations remain. Independent/integrated review accepted corrections; closing review is excluded from calibration. No language refutation or implemented metatheory/frontend qualification is established.
 
 Landed: Tier A. The reasoned rejection closes this decision while preserving
 its conditional contract and reopening evidence. No metatheory, frontend
@@ -769,7 +769,7 @@ implementation or executed qualification case is claimed.
 
 #### Q21b · Price the compiler alternatives and define their artifact trial
 
-[The route contract](../languages/compiler-route-contract.md) rejects commissioning without full-endpoint price for contextual foundation, direct producer and maintenance. Independent/integrated review preserves equivalent endpoints/evidence and mandatory duties. Closing review is excluded from calibration; paired budget is conditional/unbooked. Neither route receives a feasibility, performance or production-theorem verdict.
+[The route contract](../languages/vela/compiler-route-contract.md) rejects commissioning without full-endpoint price for contextual foundation, direct producer and maintenance. Independent/integrated review preserves equivalent endpoints/evidence and mandatory duties. Closing review is excluded from calibration; paired budget is conditional/unbooked. Neither route receives a feasibility, performance or production-theorem verdict.
 
 Landed: Tier A. The read accepts this commissioning rejection and reopening
 contract. It establishes no performance comparison, route infeasibility, licence
@@ -1007,7 +1007,7 @@ Landed: Tier A. No rule holds what this item created: K-109 binds the file's gen
 
 ### Q25 · Design the full graded dependent language and its control and mutation rules
 
-The [full-language commitments](../languages/verification-strategy.md#full-language-design-commitments), [assurance presets](../languages/assurance-profiles.md) and [composition review](../languages/full-language-review.md) are completed design and qualification planning, covered by Q25a–Q25d. They join graded dependent typing, handlers, structured async/cancellation and guarded mutation.
+The [full-language commitments](../languages/vela/verification-strategy.md#full-language-design-commitments), [assurance presets](../languages/vela/assurance-profiles.md) and [composition review](../languages/vela/full-language-review.md) are completed design and qualification planning, covered by Q25a–Q25d. They join graded dependent typing, handlers, structured async/cancellation and guarded mutation.
 
 Frontend commissioning remains blocked by the interpretation commitment and register acts. The bounded-pool amendment, concrete CHERI laws, metatheory, frontend/backend and target qualification remain with their owners. No executed language or production binary is supplied. Children own evidence and actuals; this parent duplicates no estimate or effort, and settled integration supplies host validation.
 
@@ -1017,7 +1017,7 @@ Landed: Tier A. The combined design and its recorded acceptance boundaries are r
 
 #### Q25a · Specify the graded dependent foundation
 
-The [foundation dossier](../languages/graded-foundation.md) specifies grades, dependent contexts and constructors, structural rules and substitution, with explicit inference, specialization, ABI and source-correspondence limits. Its examples separate exact use, erasure and resource authority.
+The [foundation dossier](../languages/vela/graded-foundation.md) specifies grades, dependent contexts and constructors, structural rules and substitution, with explicit inference, specialization, ABI and source-correspondence limits. Its examples separate exact use, erasure and resource authority.
 
 At `6d0ee4e`, focused checks pass; integration reads the dossier against the strategy, synchronous core, sibling interfaces and register. Paper derivations supply no soundness theorem, concrete CHERI instance, executed negative case or qualified binary. The `GF-*` laws remain implementation obligations. Accounting: 0.2 h author/check actual; Q25d owns shared review, integration and host validation.
 
@@ -1033,7 +1033,7 @@ missing laws at Q25a's design predicate. It opens no frontend implementation.
 
 #### Q25b · Specify handlers and structured async lifecycles
 
-The [control dossier](../languages/handlers-async.md) specifies handler lookup/capture, resumption/disposal and bounded represented async reactions. Cancellation arrival, decision, commit, terminal publication and reuse are distinct; suffix bounds include child-result collection before cleanup dispatch.
+The [control dossier](../languages/vela/handlers-async.md) specifies handler lookup/capture, resumption/disposal and bounded represented async reactions. Cancellation arrival, decision, commit, terminal publication and reuse are distinct; suffix bounds include child-result collection before cleanup dispatch.
 
 Authoring `9503081` and independent review `1faa273` receive integration corrections to the cancellation bound and checkpoint order. The authored traces remain conditional derivations; `HA-*` laws, target bounds and frontend admission are unimplemented. Accounting: 0.2 h author/check actual; Q25d owns shared review, integration and final host checks. No guest measurement is claimed.
 
@@ -1053,7 +1053,7 @@ the bound and checkpoint-order corrections, with all target laws still explicit.
 
 #### Q25c · Specify interior mutability and interference guardrails
 
-The [cell dossier](../languages/interior-mutability.md) specifies local/dynamic-borrow interfaces, invariant access, capture/sharing, publication, quiescence and source exits. `CountCell` conserves `AddOnce` allowances through one AMO commit; capability storage remains private. Functional, race, progress and leakage claims retain separate premises and missing `MUT-*` laws.
+The [cell dossier](../languages/vela/interior-mutability.md) specifies local/dynamic-borrow interfaces, invariant access, capture/sharing, publication, quiescence and source exits. `CountCell` conserves `AddOnce` allowances through one AMO commit; capability storage remains private. Functional, race, progress and leakage claims retain separate premises and missing `MUT-*` laws.
 
 At `1f2d633`, focused checks pass; independent review and integration correct frame release and initialization/cancellation joins. Concrete CHERI witnesses and source-to-Sail correspondence remain owed; wrappers and grades supply no sharing authority. Accounting: 0.2 h author/check actual; Q25d owns shared review, integration and final host checks. No executed language or guest evidence is claimed.
 
@@ -1069,7 +1069,7 @@ protocol and qualification cases with their unmechanized obligations preserved.
 
 #### Q25d · Review the combined calculus and price its implementation
 
-The [composition dossier](../languages/full-language-review.md) joins the common client, refusal cases and laws over the named byte-and-capability carrier. It supplies reviewed ownership, conditional prices and acceptance predicates for the design debts, frontend and qualification increments, retaining unpriced foundation work. It constructs no carrier inhabitant or checked metatheory.
+The [composition dossier](../languages/vela/full-language-review.md) joins the common client, refusal cases and laws over the named byte-and-capability carrier. It supplies reviewed ownership, conditional prices and acceptance predicates for the design debts, frontend and qualification increments, retaining unpriced foundation work. It constructs no carrier inhabitant or checked metatheory.
 
 Admission is arm-dependent. A calculus interpreted by elaboration into an existing anchor can use R-05-009; the authored source judgments/reductions instead propose an eighth anchor refused by R-05-019/R-05-020. Frontend rows remain uncommissioned until the interpretation commitment and clarifying register act. R-08-046's inventory classification is negative: new runtime storage needs a proposed inventory/prose amendment, ordered after frontend admission. F-354's disposition separates those acts.
 
@@ -1081,7 +1081,7 @@ Landed: Tier A. The review states new claims about which admission arm the combi
 
 #### Q25e · Build a pure Vela-to-Gallina prototype
 
-The [pure translation contract](../languages/vela-prototype.md) landed at
+The [pure translation contract](../languages/vela/vela-prototype.md) landed at
 `d8b1cb38` before implementation. The host `vela` command checks explicit Nat/bool
 functions, immutable bindings, branches and prior-function calls, then emits
 hygienic Gallina definitions bound to exact source bytes. Diagnostics retain source
@@ -1106,13 +1106,13 @@ file preservation from standard-output streaming.
 
 #### Q25f · Align the executable Vela subset with its proposed surface
 
-The [surface contract](../languages/vela-prototype.md#source-fragment) landed at
+The [surface contract](../languages/vela/vela-prototype.md#source-fragment) landed at
 `2cac393c` before the parser correction. Public declarations and parameters put
 types first, Boolean types use `bool`, and immutable locals precede explicit
 returns or fully returning `if (condition)` blocks. The
 [example](../../tools/vela/examples/pure.vela), independent term oracle and rejection
 cases use those conventions from the
-[proposed surface](../languages/verification-strategy.md#an-ideal-surface).
+[proposed surface](../languages/vela/verification-strategy.md#an-ideal-surface).
 The superseded prototype spellings, missing returns, trailing statements,
 branch-local scope leaks and unsupported proof/resource features are refused.
 Block nesting is bounded separately from expression nesting.

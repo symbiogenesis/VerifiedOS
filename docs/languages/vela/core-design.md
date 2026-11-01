@@ -2,7 +2,7 @@
 
 > **Execution status:** [The workflow contract's commissioning disposition](workflow-contract.md#commissioning-disposition) governs the canceled experiments, retained proposal roles and re-entry conditions used here.
 
-> Non-normative Q21a design record. The decision declines commissioning the present core qualification under its missing foundation and translator-admission prerequisites. The bounded design below supplies no implemented frontend, proved metatheory or production qualification. The [requirements register](../requirements-register.md) remains authoritative. [The strategy](verification-strategy.md#a-compositional-core) states the wider objective; [the implementation checklist](../../PLAN.md#q-assessment-actions) owns scheduling.
+> Non-normative Q21a design record. The decision declines commissioning the present core qualification under its missing foundation and translator-admission prerequisites. The bounded design below supplies no implemented frontend, proved metatheory or production qualification. The [requirements register](../../requirements-register.md) remains authoritative. [The strategy](verification-strategy.md#a-compositional-core) states the wider objective; [the implementation checklist](../../../PLAN.md#q-assessment-actions) owns scheduling.
 
 ## Decision and boundary
 
@@ -10,31 +10,31 @@ This contract is the synchronous qualification slice of Vela. The [full-language
 
 Retain a synchronous core with stable dependent values, explicitly sequenced computations, resource-indexed exits, fixed representations and a finite loan tree as the conditional design. Its proposed qualification covers fallthrough, ordinary return, `Result` propagation, branch-sensitive returned shared loans, bounded loops with `break` and `continue`, statically disjoint fields and nested reborrowing. These are design cases, unavailable as a Vela implementation today. Q19's callback pilot establishes none of this flow analysis by itself.
 
-**Decision: decline commissioning this qualification.** The [foundation map's review decision](../hardware/cheri-foundation-map.md#review-decision) leaves its concrete resource interpretation and machine connection without checked laws or responsibly bounded implementation cells. In particular, the composed returned-view exit below needs concrete split, suspension and restoration laws that its proposed syntax rules cannot provide. The general frontend also lacks the retiring interim required for translator admission. This is a rejection under Q21a's present prerequisite predicate, with [specific reopening evidence](#decision-and-reopening-evidence); it establishes neither an inconsistent calculus nor an infeasible language product. Q19a/Q19b, the conditional library pilot and the existing realization route retain their own entry conditions.
+**Decision: decline commissioning this qualification.** The [foundation map's review decision](../../hardware/cheri-foundation-map.md#review-decision) leaves its concrete resource interpretation and machine connection without checked laws or responsibly bounded implementation cells. In particular, the composed returned-view exit below needs concrete split, suspension and restoration laws that its proposed syntax rules cannot provide. The general frontend also lacks the retiring interim required for translator admission. This is a rejection under Q21a's present prerequisite predicate, with [specific reopening evidence](#decision-and-reopening-evidence); it establishes neither an inconsistent calculus nor an infeasible language product. Q19a/Q19b, the conditional library pilot and the existing realization route retain their own entry conditions.
 
 The runtime fragment admits machine integers, bytes, fixed records, finite tagged sums, statically sized buffers, explicit parameters and statically resolved calls. Public capacities and layouts specialize before emission; runtime lengths and result discriminants remain represented. A statically known total shared-call callback may specialize with its immutable environment and a proved representation. General higher-order runtime functions, recursive heap data and dynamic dispatch are outside this qualification. Dependent families and total pure functions remain available for specifications and proofs when their accepted Rocq terms and assumptions permit them; that availability does not make every such type representable at runtime.
 
 There is no source allocation, implicit boxing, unwinding, suspension, cancellation, effect handler, concurrent interior mutation or loan crossing a service activation in this fragment. Its loops terminate; an unbounded service loop requires a separate progress contract. Revocation, DMA, publication ordering and arbitrary adversarial contexts remain obligations at their existing owners. A sequential memory theorem cannot replace them. Kernel conversion, universe rules and the assumption ledger are unchanged.
 
-The general frontend has no identified retiring interim, so [R-05-020's translator admission](../spec.md#r-05-020) refuses it wherever that entry engages, which [Q25d's disposition](full-language-review.md#r-05-009-r-05-020-and-what-holds-the-frontend-rows) shows is the arm this design sits in; in the other arm R-05-009 reaches the producer instead and R-05-020 has no subject. Rocq-native output alone satisfies neither nonduplication nor retirement. The implementation packages below stay held on that disposition; documenting a core interpretation does not make it a new semantic anchor.
+The general frontend has no identified retiring interim, so [R-05-020's translator admission](../../spec.md#r-05-020) refuses it wherever that entry engages, which [Q25d's disposition](full-language-review.md#r-05-009-r-05-020-and-what-holds-the-frontend-rows) shows is the arm this design sits in; in the other arm R-05-009 reaches the producer instead and R-05-020 has no subject. Rocq-native output alone satisfies neither nonduplication nor retirement. The implementation packages below stay held on that disposition; documenting a core interpretation does not make it a new semantic anchor.
 
 ## Inputs and their actual subjects
 
 The source inspection uses repository revision
 `4aeaceedf4626ef64583a4680c19da29a469df4f`. The
-[foundation map](../hardware/cheri-foundation-map.md) records available constants and missing
+[foundation map](../../hardware/cheri-foundation-map.md) records available constants and missing
 connections; the [workflow contract](workflow-contract.md) owns the
 pilot comparison, and the [compiler-route contract](compiler-route-contract.md)
 owns its separate full-artifact comparison.
 
 | Input | Inspected subject | Design use and limit |
 | --- | --- | --- |
-| [DescriptorCheck.v](../../tools/bedrock2-lowering/DescriptorCheck.v) | `Descriptor.descriptor_check`, `spec_of_descriptor_check`, `descriptor_check_br2fn_ok` | The header check reads bytes within declared length, returns a status word and preserves its byte-array footprint and frame. Its relation uses `BasicC64Semantics`; it neither copies bytes nor proves a CHERI memory rule. Request identifiers, offsets, lengths and session permissions remain validated at use. |
-| [RingContract.v](../../proofs/RingContract.v) | Generated layouts, operation declarations and status/lifecycle definitions | An extension evaluates layout constants from this owner. The core creates no competing wire enumeration or ring lifecycle. |
-| [CopyRingService.v](../../proofs/CopyRingService.v) | `svc_op_record`, `service_conjuncts`, `the_staging_buffer_holds_the_declared_payload`, `every_held_reference_is_released_at_cleanup` | These constrain declared capacity and released-reference accounting. The file supplies no byte copying, memory implementation or Ztso refinement. Private staging is a reserved independent consumer, not an implementation baseline. |
-| [Q19/Q20](../../PLAN.md#q-assessment-actions) | Concrete-law entry gate and initial/held-out comparison | Parser destination initialization develops the pilot; staging stays held out until interface freeze. Missing consumer implementations belong to Q2b/M7.1. Eventual-core cases are separate from that callback workflow. |
+| [DescriptorCheck.v](../../../tools/bedrock2-lowering/DescriptorCheck.v) | `Descriptor.descriptor_check`, `spec_of_descriptor_check`, `descriptor_check_br2fn_ok` | The header check reads bytes within declared length, returns a status word and preserves its byte-array footprint and frame. Its relation uses `BasicC64Semantics`; it neither copies bytes nor proves a CHERI memory rule. Request identifiers, offsets, lengths and session permissions remain validated at use. |
+| [RingContract.v](../../../proofs/RingContract.v) | Generated layouts, operation declarations and status/lifecycle definitions | An extension evaluates layout constants from this owner. The core creates no competing wire enumeration or ring lifecycle. |
+| [CopyRingService.v](../../../proofs/CopyRingService.v) | `svc_op_record`, `service_conjuncts`, `the_staging_buffer_holds_the_declared_payload`, `every_held_reference_is_released_at_cleanup` | These constrain declared capacity and released-reference accounting. The file supplies no byte copying, memory implementation or Ztso refinement. Private staging is a reserved independent consumer, not an implementation baseline. |
+| [Q19/Q20](../../../PLAN.md#q-assessment-actions) | Concrete-law entry gate and initial/held-out comparison | Parser destination initialization develops the pilot; staging stays held out until interface freeze. Missing consumer implementations belong to Q2b/M7.1. Eventual-core cases are separate from that callback workflow. |
 
-The proposed parser-derived extension initializes its fixed private destination whole, copies each admitted input byte once into it and validates that private copy. This development contract exercises [the initialization obligation](../spec.md#r-05-124), with failure behavior specified below. It does not make the existing header check a complete decoder or make copying an atomic snapshot of a concurrently mutable source.
+The proposed parser-derived extension initializes its fixed private destination whole, copies each admitted input byte once into it and validates that private copy. This development contract exercises [the initialization obligation](../../spec.md#r-05-124), with failure behavior specified below. It does not make the existing header check a complete decoder or make copying an atomic snapshot of a concurrently mutable source.
 
 ## Reuse decisions
 
@@ -118,7 +118,7 @@ The only escaping local loan is a shared view into one statically named borrowed
 
 Automatic refinement covers quantifier-free linear integer arithmetic over bounded scalars, equality/disequality, finite discriminants and congruence to a positive specialization-time alignment constant. Multiplication is by a known constant. Variable products, general nonlinear arithmetic and quantified mathematics remain explicit goals. Machine words enter through checked representability/no-overflow lemmas; intentional modular arithmetic uses explicit word lemmas. Initialization and typestate facts rely on resource rules. Sequence updates and content equality use domain lemmas rather than silently enlarging the arithmetic fragment.
 
-Checking uses conversion, resource/capture rules, reconstructed arithmetic, domain automation and explicit proof in that order. Timeout, unsupported formulas or failed reconstruction leave goals unresolved. [R-05-017](../spec.md#r-05-017) keeps its reconstruction duty. Proof search proves the chosen contract and cannot weaken it to close a goal.
+Checking uses conversion, resource/capture rules, reconstructed arithmetic, domain automation and explicit proof in that order. Timeout, unsupported formulas or failed reconstruction leave goals unresolved. [R-05-017](../../spec.md#r-05-017) keeps its reconstruction duty. Proof search proves the chosen contract and cannot weaken it to close a goal.
 
 Effects are closed read/write/call footprints with no allocation, including transitive callees and environments. Sequential footprints take union; named event counts add. Alternative exact counts must agree or become a proved bound or result-indexed count. Stack slots and specialized environments retain size/layout obligations. Effect variables, general grades and handler discharge belong to Q25's full-language design and are outside this synchronous fixture's qualification.
 
@@ -227,7 +227,7 @@ A hole records source expression, semantic environment, expected type/propositio
 
 At the inclusive copy guard, show `0 <= i <= n <= N` and `n <= s`, required `i < n`, `i < s` and `i < N`, destination loan and copy-prefix invariant. At failed error propagation, show outstanding `PreparationOpen` and expected `PreparationClosed`. At a post-match mutation, show retained `Ready` view and suspended parent. These are different diagnostics even if downstream search fails at one final theorem.
 
-Status distinguishes current unresolved, refuted with checked evidence where available, unsupported, timed out, stale and accepted by fresh batch gates. Interactive/rendered feedback supplies no acceptance under [R-05-018a](../spec.md#r-05-018a). A stable goal identity aids navigation; semantic changes make its status stale even when its displayed identifier is unchanged.
+Status distinguishes current unresolved, refuted with checked evidence where available, unsupported, timed out, stale and accepted by fresh batch gates. Interactive/rendered feedback supplies no acceptance under [R-05-018a](../../spec.md#r-05-018a). A stable goal identity aids navigation; semantic changes make its status stale even when its displayed identifier is unchanged.
 
 Every result also carries its source/dependency generation and judgment scope. An accepted subgoal does not mark the component accepted while another required obligation remains open. A semantic edit withdraws the previous generation's acceptance before asynchronous replay begins; a late successful response for that generation remains stale. The diagnostic trial exercises this ordering with an old result arriving after a changed bound. Failed proof search means unresolved or timed out, never a refutation without checked evidence. The first missing premise follows the deterministic checking order above and can change after repair; unrelated downstream failures cannot be credited as the intended negative's result.
 
@@ -246,7 +246,7 @@ Record actual semantic inputs rather than filenames alone. Until precise depende
 ## Proof obligations and proposed work packages
 
 The proposed packages and their estimates are maintained in
-[PLAN.md](../../PLAN.md#language-core-proposals). The obligation matrix below
+[PLAN.md](../../../PLAN.md#language-core-proposals). The obligation matrix below
 records the technical prerequisites and ownership boundaries for that work.
 
 | Obligation | Existing evidence or missing prerequisite | Owner |

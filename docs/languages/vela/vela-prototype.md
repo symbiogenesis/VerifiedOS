@@ -2,7 +2,7 @@
 
 ## Commission and interpretation
 
-[Q25e and Q25f](../../PLAN.md#q-assessment-actions) commission a bounded host development
+[Q25e and Q25f](../../../PLAN.md#q-assessment-actions) commission a bounded host development
 tool: parse an explicitly typed, pure function fragment and emit Gallina
 definitions. The meaning of an accepted expression is its generated CIC term.
 There is no independent source evaluator, reduction relation or semantic anchor.
@@ -26,7 +26,7 @@ for the proposed Vela surface, producing located syntax before separate checking
 and elaboration. The handwritten syntax parser and strict generated-AST decoder
 now feed a separate shared resolution, type-checking and emission consumer.
 Replacing the selected parser requires the
-[plan's `vela-parser` qualification](../../PLAN.md#vela-whole-system-authoring-proposal)
+[plan's `vela-parser` qualification](../../../PLAN.md#vela-whole-system-authoring-proposal)
 and the [bounded parser and migration contract](vela-parser.md).
 `python tools/run.py vela-parser parse SOURCE` exercises the syntax-only generated
 development parser separately; `vela-parser qualify` checks its independent AST
@@ -149,7 +149,7 @@ python tools/run.py vela emit tools/vela/examples/pure.vela --output out/Pure.v
 ```
 
 Use `python3` on Linux. The output directory must already exist; omit `--output`
-to print the definitions. The [example](../../tools/vela/examples/pure.vela)
+to print the definitions. The [example](../../../tools/vela/examples/pure.vela)
 defines a cube and a Boolean selection over its result. For example, its intended
 `Choose(true, 1)` result is true and `Choose(true, 2)` is false. Emission produces
 a `Vela_Oracle` module containing `f_Cube` and `f_Choose`; executing them requires

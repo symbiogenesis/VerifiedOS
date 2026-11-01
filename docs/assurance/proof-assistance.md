@@ -268,7 +268,7 @@ counts only inside such a proof, which instantiates the frozen statement at the
 counterexample and derives `False`. A test run, a search result or a solver verdict
 without a checked reconstruction is not evidence. A failed search or an exhausted
 budget is `stopped`, which the
-[typed-hole status vocabulary](../languages/core-design.md#typed-holes-and-invalidation)
+[typed-hole status vocabulary](../languages/vela/core-design.md#typed-holes-and-invalidation)
 calls unresolved or timed out, never `refuted`.
 
 Set status `refuted` when such a declaration closes, and link its revision and gate
