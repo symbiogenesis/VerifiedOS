@@ -214,7 +214,7 @@ public void UseRepeated<T : Type<u>>(bool repeated, T source)
 {
     type[RepeatedType::<T>(repeated)] selected @ NatExact(1) = Repeat(repeated, source);
     let identity = (type[RepeatedType::<T>(repeated)] value @ NatExact(1)) => value;
-    Box<type[RepeatedType::<T>(repeated)], NatExact(1)> boxed = Box(identity(selected));
+    Box<type[RepeatedType::<T>(repeated)], (NatExact(1))> boxed = Box(identity(selected));
     Consume(move boxed);
 }
 
@@ -226,7 +226,7 @@ public definition T Absurd<T>(Never impossible) =
 // Literal discrimination composes with the same indexed-result match syntax.
 public definition Nat ClassifyCharacter(char value) = match (value) {
     case 'a' => 1;
-    case '\\n' => 2;
+    case '\n' => 2;
     case _ => 0;
 };
 
