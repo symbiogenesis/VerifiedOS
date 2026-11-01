@@ -98,6 +98,19 @@ public void Lend(ref Span<byte> target, byte value) {
     Apply(ref target, (ref Span<byte> selected) => { selected[0usize] = 0byte; });
 }
 """, ("lambda", "modified_type", "type", "call")),
+    Fixture("annotation-and-comparison-boundaries", """module AnnotationBoundaries;
+public void Mix(ref Core.Span<byte> target) {
+    let less = a < b;
+    Core.Span< /* annotation comment */
+        byte> local = target;
+    Result<Core.Span<byte>, Error> nested = parsed;
+    Call(a < b, c > d);
+    let pair = (a < b, c > d);
+    Apply((ref Core.Span< /* callback comment */ byte> selected) => {
+        selected[0usize] = 0byte;
+    });
+}
+""", ("typed_local", "lambda", "tuple", "binary", "modified_type")),
     Fixture("expressions-and-closures", """module Expressions;
 public void Compute() {
     let tuple = (0001usize, true, false);
@@ -218,6 +231,8 @@ NEGATIVE: tuple[tuple[str, bytes, str], ...] = (
     ("unterminated-string", b'module M; public void F() { let text = "unterminated', "syntax"),
     ("unterminated-comment", b"module M; /* unterminated {", "syntax"),
     ("chained-comparison", b"module M; public bool F() { return a < b < c; }", "syntax"),
+    ("generic-looking-comparison-group", b"module M; public bool F() { return (a < b > c); }", "syntax"),
+    ("generic-looking-comparison-argument", b"module M; public void F() { Call(a < b > c, x); }", "syntax"),
     ("trailing-input", b"module M; public void F(); garbage", "syntax"),
     ("invalid-utf8", b"// invalid \xff\nmodule M; public void F();", "encoding"),
     ("literal-limit", b"module M; public Nat F() { return " + b"9" * 257 + b"; }", "limit"),
@@ -568,5 +583,14 @@ def qualify(parse: Callable[[bytes], dict[str, Json]]) -> list[str]:
                 raise ValueError("surface newline/UTF-8 diagnostic oracle differs") from error
         else:
             raise ValueError("surface malformed expression unexpectedly parsed")
+        annotation = (b"module M;" + newline + b"public void F() {" + newline
+                      + b"    Core.Span<byte> local = #;" + newline + b"}")
+        try:
+            parse(annotation)
+        except VelaError as error:
+            if (error.kind, error.line, error.column) != ("syntax", 3, 29):
+                raise ValueError("surface annotation-lookahead diagnostic position differs") from error
+        else:
+            raise ValueError("surface incomplete generic local unexpectedly parsed")
     passed.append("surface:newline-and-utf8-diagnostics")
     return passed
