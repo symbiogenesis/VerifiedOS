@@ -41,10 +41,46 @@ separate it from comparison. Nested type arguments close with individual `>`
 tokens; shifts may use named operations. Generic arguments admit values and
 lifetimes. A parenthesized generic value disambiguates relational expressions.
 Loop bodies use braces. A function type returning another function type puts that
-result in parentheses. Lambdas use =>; function types use ->. Quantifiers use
-typed binders followed
-by `=>`. Proof commands end in semicolons. Architecture/hardware syntax supplies
-no transition or circuit interpretation by itself.
+result in parentheses. Lambdas use `=>`; function types use `->`. Quantifiers use
+typed binders followed by `=>`. Proof commands end in semicolons. Architecture/hardware
+syntax supplies no transition or circuit interpretation by itself.
+
+Type-first local and callback annotations use bounded lexical lookahead to
+distinguish a qualified/applied type followed by a binder from a comparison.
+This classification consults token shape, with no symbol table or type judgment.
+It preserves the original lexeme positions and the pure entry's tokenization.
+
+The following spellings select previously unspecified mathematical and machine
+syntax. `Type<u>` names a universe-indexed type, and `effect E` is a generic
+effect parameter. `rehandle` takes the same body-and-clauses shape as `handle`.
+Inductive/coinductive constructors may add `: TYPE` before their semicolon to
+state result indices, for example `Nil() : Vec<T, 0>;`.
+
+```text
+module Syntax.Examples;
+universe u;
+public definition Nat Twice(Nat x) = x + x;
+public inductive Natural { Zero(); Succ(Natural predecessor); }
+public coinductive Stream<T> { More(T head, Stream<T> tail); }
+public lemma Reflexive(Nat n): forall (Nat x) => x == x
+    proof { assert n == n; ?step; }
+public theorem Witness(): exists (Nat n) => n == 0;
+public machine Counter {
+    state Nat value = 0;
+    transition Step() when (value < 10) { next value = value + 1; }
+}
+public hardware RegisterCounter {
+    register u64 count = 0;
+    rule Tick() when (count < 10) { next count = count + 1; }
+    schedule Main { Tick; }
+    cycle 1;
+}
+```
+
+Proof holes and theorem signatures parse without establishing a theorem. The
+[authored surface example](../../../tools/vela/examples/surface.vela) combines
+dependent data, contracts, loans and task cleanup;
+the independent qualification fixtures exercise every feature row above.
 
 ## Acceptance and evidence
 
