@@ -55,6 +55,27 @@ let annotation lexbuf parenthesized =
       | '\r' | '\n' -> length
       | _ -> quoted (index + 1)
   in
+  (* A grade or a generic value may contain a callback block. Skip its balanced
+     delimiters without interpreting statements or changing lexer positions. *)
+  let rec block closing depth index =
+    if depth > Ast.max_delimiter_depth then refuse "limit" lexbuf "annotation block nesting exceeds 256"
+    else if index >= length then length
+    else let index = trivia index in
+      if index >= length then length
+      else match at index with
+        | '"' -> block closing depth (quoted (index + 1))
+        | '\'' when index + 2 < length && at (index + 2) = '\'' -> block closing depth (index + 3)
+        | '\'' when index + 3 < length && at (index + 1) = '\\' && at (index + 3) = '\'' -> block closing depth (index + 4)
+        | '{' -> block ('}' :: closing) (depth + 1) (index + 1)
+        | '(' -> block (')' :: closing) (depth + 1) (index + 1)
+        | '[' -> block (']' :: closing) (depth + 1) (index + 1)
+        | ('}' | ')' | ']') as delimiter ->
+            (match closing with
+             | expected :: rest when delimiter = expected ->
+                 if rest = [] then index + 1 else block rest (depth - 1) (index + 1)
+             | _ -> length)
+        | _ -> block closing depth (index + 1)
+  in
   let rec angles depth parens brackets index =
     if depth > Ast.max_delimiter_depth || parens > Ast.max_delimiter_depth
        || brackets > Ast.max_delimiter_depth then refuse "limit" lexbuf "annotation nesting exceeds 256"
@@ -72,6 +93,7 @@ let annotation lexbuf parenthesized =
         | '<' when parens = 0 && brackets = 0 -> angles (depth + 1) parens brackets (index + 1)
         | '>' when parens = 0 && brackets = 0 ->
             if depth = 1 then index + 1 else angles (depth - 1) parens brackets (index + 1)
+        | '{' when parens > 0 || brackets > 0 -> angles depth parens brackets (block ['}'] 1 (index + 1))
         | ';' | '{' | '}' -> length
         | _ -> angles depth parens brackets (index + 1)
   in
@@ -93,7 +115,8 @@ let annotation lexbuf parenthesized =
         | '\'' when index + 3 < length && at (index + 1) = '\\' && at (index + 3) = '\'' -> parenthesized_type depth (index + 4)
         | '(' -> parenthesized_type (depth + 1) (index + 1)
         | ')' -> if depth = 1 then trivia (index + 1) else parenthesized_type (depth - 1) (index + 1)
-        | ';' | '{' | '}' -> length
+        | '{' -> parenthesized_type depth (block ['}'] 1 (index + 1))
+        | ';' | '}' -> length
         | _ -> parenthesized_type depth (index + 1)
   in
   let after_type = if parenthesized then parenthesized_type 1 lexbuf.Lexing.lex_curr_pos
@@ -104,27 +127,34 @@ let annotation lexbuf parenthesized =
     let index = trivia index in
     index + 1 < length && at index = '=' && at (index + 1) = '>'
   in
-  let rec lambda_tail parens index =
-    if parens > Ast.max_delimiter_depth then refuse "limit" lexbuf "lambda annotation nesting exceeds 256"
+  let rec lambda_tail parens brackets graded index =
+    if parens > Ast.max_delimiter_depth || brackets > Ast.max_delimiter_depth then
+      refuse "limit" lexbuf "lambda annotation nesting exceeds 256"
     else if index >= length then false
     else let index = trivia index in
       if index >= length then false
       else match at index with
-        | '"' -> lambda_tail parens (quoted (index + 1))
-        | '\'' when index + 2 < length && at (index + 2) = '\'' -> lambda_tail parens (index + 3)
-        | '\'' when index + 3 < length && at (index + 1) = '\\' && at (index + 3) = '\'' -> lambda_tail parens (index + 4)
-        | '(' -> lambda_tail (parens + 1) (index + 1)
-        | ')' -> if parens = 0 then arrow (index + 1) else lambda_tail (parens - 1) (index + 1)
+        | '"' -> lambda_tail parens brackets graded (quoted (index + 1))
+        | '\'' when index + 2 < length && at (index + 2) = '\'' -> lambda_tail parens brackets graded (index + 3)
+        | '\'' when index + 3 < length && at (index + 1) = '\\' && at (index + 3) = '\'' -> lambda_tail parens brackets graded (index + 4)
+        | '(' -> lambda_tail (parens + 1) brackets graded (index + 1)
+        | ')' -> if parens = 0 then arrow (index + 1) else lambda_tail (parens - 1) brackets graded (index + 1)
+        | '[' -> lambda_tail parens (brackets + 1) graded (index + 1)
+        | ']' when brackets > 0 -> lambda_tail parens (brackets - 1) graded (index + 1)
+        | '@' when parens = 0 && brackets = 0 -> lambda_tail parens brackets true (index + 1)
+        | ',' when parens = 0 && brackets = 0 -> lambda_tail parens brackets false (index + 1)
+        | '{' when graded || parens > 0 || brackets > 0 ->
+            lambda_tail parens brackets graded (block ['}'] 1 (index + 1))
         | ';' | '{' | '}' -> false
-        | _ -> lambda_tail parens (index + 1)
+        | _ -> lambda_tail parens brackets graded (index + 1)
   in
   if after_type >= length || not (initial (at after_type)) then false
   else let after_binder = trivia (word after_type) in
     after_binder < length && (match at after_binder with
       | '=' -> after_binder + 1 >= length || (at (after_binder + 1) <> '=' && at (after_binder + 1) <> '>')
       | ')' -> arrow (after_binder + 1)
-      | ',' -> lambda_tail 0 (after_binder + 1)
-      | '@' -> lambda_tail 0 (after_binder + 1)
+      | ',' -> lambda_tail 0 0 false (after_binder + 1)
+      | '@' -> lambda_tail 0 0 true (after_binder + 1)
       | _ -> false)
 let annotation_name lexbuf = annotation lexbuf false
 let identifier state lexbuf =
