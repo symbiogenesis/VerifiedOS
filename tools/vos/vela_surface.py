@@ -80,6 +80,17 @@ public void Use(ref Span<byte> text) {
     let groupedIdentity = ((Nat) number) => number;
 }
 """, ("typed_local", "modified_type", "group_type", "tuple_type", "unit_type", "lambda")),
+    Fixture("unbraced-conditionals-and-annotation-lookahead", """module Unbraced;
+public void Bare(bool ready) { if (ready) value = 1; }
+public void Paired(bool ready) { if (ready) value = 1; else value = 2; }
+public void Nearest(bool ready, bool permitted) {
+    if (ready) if (permitted) value = 1; else value = 2;
+}
+public void Chain(bool ready, bool permitted) {
+    if (ready) value = 1; else if (permitted) value = 2; else value = 3;
+}
+public void Trivia(bool ready) { if /* (not a type) */ (ready) value = 1; }
+""", ("if", "assignment")),
     Fixture("dependent-resources-and-borrow-restoration", """module Resources;
 public record Packed<T>(usize Length, owned Buffer<T, Length> Storage,
     ghost Bounded<Length> Evidence);
@@ -400,6 +411,10 @@ NEGATIVE: tuple[tuple[str, bytes, str], ...] = (
      + b"Nat" + b")" * 257 + b";", "limit"),
     ("product-pattern-depth", b"module M; public void F() { match (p) { case "
      + b"(let x," * 257 + b"()" + b")" * 257 + b": return; } }", "limit"),
+    ("graded-lambda-lookahead-depth", b"module M; public void F() { let f = (Nat n @ "
+     + b"(" * 257 + b"q" + b")" * 257 + b") => n; }", "limit"),
+    ("grouped-type-lookahead-depth", b"module M; public void F() { "
+     + b"(" * 257 + b"Nat" + b")" * 257 + b" local = value; }", "limit"),
     ("missing-generic-argument", b"module M; public Result<Packet,> Parse();", "syntax"),
     ("incomplete-record", b"module M; public record Packet(Nat Count", "syntax"),
     ("incomplete-handler", b"module M; public Nat F() { return handle (G()) { return x =>", "syntax"),
@@ -768,6 +783,41 @@ def _structural_annotation_roles(source: bytes, result: dict[str, Json]) -> None
         _exact_span(source, parameter, spelling)
 
 
+def _conditional_shape(value: Json) -> Json:
+    if value is None:
+        return None
+    statement = _object(value, "unbraced statement")
+    if statement.get("kind") == "if":
+        condition = _object(statement.get("condition"), "unbraced condition")
+        if condition.get("kind") != "name":
+            raise ValueError("surface conditional parentheses became a type annotation")
+        return ["if", _texts(condition), _conditional_shape(statement.get("then")),
+                _conditional_shape(statement.get("else"))]
+    if statement.get("kind") == "assignment":
+        assigned = _object(statement.get("value"), "unbraced assigned value")
+        if (_texts(statement.get("target")) != ["value"]
+                or _texts(statement.get("operator")) != ["="] or assigned.get("kind") != "nat"):
+            raise ValueError("surface unbraced assignment was reinterpreted as a declaration")
+        return ["set", assigned.get("value")]
+    raise ValueError("surface unbraced conditional lost its assignment/conditional body")
+
+
+def _unbraced_if_roles(result: dict[str, Json]) -> None:
+    expected: dict[str, Json] = {
+        "Bare": ["if", ["ready"], ["set", "1"], None],
+        "Paired": ["if", ["ready"], ["set", "1"], ["set", "2"]],
+        "Nearest": ["if", ["ready"], ["if", ["permitted"], ["set", "1"], ["set", "2"]], None],
+        "Chain": ["if", ["ready"], ["set", "1"], ["if", ["permitted"], ["set", "2"], ["set", "3"]]],
+        "Trivia": ["if", ["ready"], ["set", "1"], None],
+    }
+    for name, shape in expected.items():
+        function = _named(result.get("ast"), "function", name)
+        body = _object(function.get("body"), "conditional function body")
+        statements = _sequence(body.get("statements"), "conditional body statements")
+        if len(statements) != 1 or _conditional_shape(statements[0]) != shape:
+            raise ValueError(f"surface unbraced conditional/nearest-else shape differs in {name}")
+
+
 def _indexed_constructor_roles(result: dict[str, Json]) -> None:
     vector = _named(result.get("ast"), "inductive", "Vec")
     for name in ("Nil", "Cons"):
@@ -935,6 +985,8 @@ def qualify(parse: Callable[[bytes], dict[str, Json]]) -> list[str]:
             _explicit_type_argument_roles(fixture.source.encode("utf-8"), result)
         elif fixture.name == "structural-local-and-lambda-annotations":
             _structural_annotation_roles(fixture.source.encode("utf-8"), result)
+        elif fixture.name == "unbraced-conditionals-and-annotation-lookahead":
+            _unbraced_if_roles(result)
         passed.append(f"surface:{fixture.name}")
     for name, source, kind in NEGATIVE:
         try:

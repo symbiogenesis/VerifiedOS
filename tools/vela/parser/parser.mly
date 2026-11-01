@@ -323,11 +323,11 @@ s_loan_lifetime:
 s_type_atom:
   type_name=s_path arguments=s_type_arguments
     { make "type" $startpos $endpos [("name", type_name); ("arguments", array arguments)] arguments }
-| s_type_open RPAREN { make "unit_type" $startpos $endpos [] [] }
-| s_type_open value=s_type RPAREN { make "group_type" $startpos $endpos [("type", value.syntax)] [value] }
-| s_type_open first=s_type COMMA rest=separated_nonempty_list(COMMA, s_type) RPAREN
+| s_open_paren RPAREN { make "unit_type" $startpos $endpos [] [] }
+| s_open_paren value=s_type RPAREN { make "group_type" $startpos $endpos [("type", value.syntax)] [value] }
+| s_open_paren first=s_type COMMA rest=separated_nonempty_list(COMMA, s_type) RPAREN
     { make "tuple_type" $startpos $endpos [("types", array (first :: rest))] (first :: rest) }
-s_type_open:
+s_open_paren:
   LPAREN { () } | ANNOTATION_OPEN { () }
 s_function_type:
   mode=s_function_mode LPAREN parameters=separated_list(COMMA, s_parameter) RPAREN ARROW result=s_nonfunction_type
@@ -387,12 +387,12 @@ s_statement:
   value=s_closed_statement { value } | value=s_open_statement { value }
 s_closed_statement:
   value=s_simple_statement { value }
-| IF LPAREN condition=s_expression RPAREN yes=s_closed_statement ELSE no=s_closed_statement
+| IF s_open_paren condition=s_expression RPAREN yes=s_closed_statement ELSE no=s_closed_statement
     { make "if" $startpos $endpos [("condition", condition.syntax); ("then", yes.syntax); ("else", no.syntax)] [condition; yes; no] }
 s_open_statement:
-  IF LPAREN condition=s_expression RPAREN yes=s_statement
+  IF s_open_paren condition=s_expression RPAREN yes=s_statement
     { make "if" $startpos $endpos [("condition", condition.syntax); ("then", yes.syntax); ("else", Null)] [condition; yes] }
-| IF LPAREN condition=s_expression RPAREN yes=s_closed_statement ELSE no=s_open_statement
+| IF s_open_paren condition=s_expression RPAREN yes=s_closed_statement ELSE no=s_open_statement
     { make "if" $startpos $endpos [("condition", condition.syntax); ("then", yes.syntax); ("else", no.syntax)] [condition; yes; no] }
 s_simple_statement:
   value=s_block { value }
