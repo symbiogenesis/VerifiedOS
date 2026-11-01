@@ -446,6 +446,31 @@ retained positive fixture's complete JSON before and after, retain all refusal
 and migration cases, and independently check composed types, literal roles,
 quantifiers and lambda boundaries under strict conflict-free generation.
 
+### Expression-local bindings
+
+An ordinary expression may bind a shared subexpression with
+`let NAME = EXPR in EXPR`, including the existing optional type and use-grade
+annotations. Recursive local patterns use the same constructor/product/group
+forms as statement elimination. For example, a type family can compute
+`let chosen = Select(flag) in type[chosen]`; a contract or match arm can bind a
+library result without a new type-family, borrow or protocol primitive.
+
+A located `let_expression` contains a `binding` (the existing `let` or
+`let_pattern` node) and a `body`. The binding covers `let` through its initializer;
+the outer node includes the body. The binder's scope is the body, not the
+initializer; name resolution, refutability, grades, effects and resource disposal
+remain checking obligations. Bindings associate to the right and occupy a full
+expression, like lambdas and quantifiers. Group them for postfix/operator use.
+Statement bindings keep their semicolon and existing AST. The pure entry and its
+migration contract stay unchanged.
+
+Independent fixtures must compose nested bindings with dependent types, callable
+contracts, grades, constructor patterns, matches and lambdas; distinguish
+initializer/body and binder scopes in the AST and preserve UTF-8 byte spans.
+Refuse missing initializers, delimiters and bodies; keep syntax-valid resource
+errors accepted. Preserve nesting limits, strict conflict-free generation and
+every existing surface and pure qualification case.
+
 ### Native qualification
 
 Menhir's code backend must generate with `--strict --infer --explain`, with no
