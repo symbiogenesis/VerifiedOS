@@ -105,6 +105,10 @@ data and elimination forms throughout the surface:
   `let (let owner, let receipt) = value;`, with an explicit pattern node;
   `var` supports the same shape. A bare `_` is a `wildcard_pattern`, whose
   permission to discard a resource is an elaboration obligation.
+  In generic arguments, bare parentheses retain their existing value-expression
+  meaning. Prefix a structural type argument with `type`, as in
+  `Result<type (owned Packet, tracked Receipt), Error>`; this also accepts other
+  type forms and avoids guessing whether `(a, b)` names types or values.
 - Parametric aliases reuse the existing generic telescope:
   `alias Callback<grade q : NatExact> = Fn(byte x @ q) -> byte;`.
   Named dependent records supply dependent pairs, and indexed unions supply
