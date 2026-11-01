@@ -34,7 +34,8 @@ obligations, acceptance criteria, extraction coverage and extraction defects.
 
 | Topic | Documents |
 | --- | --- |
-| Vela design | [Verification strategy](languages/vela/verification-strategy.md), [unified software, proof and machine authorship](languages/vela/unified-source-contract.md), [core design](languages/vela/core-design.md), [assurance presets](languages/vela/assurance-profiles.md), [pure Vela prototype](languages/vela/vela-prototype.md), [Menhir development parser](languages/vela/vela-parser.md) |
+| Vela — start here | [Primary language design, purpose and examples](languages/vela/verification-strategy.md) |
+| Vela design contracts | [Unified software, proof and machine authorship](languages/vela/unified-source-contract.md), [core design](languages/vela/core-design.md), [assurance presets](languages/vela/assurance-profiles.md), [pure Vela prototype](languages/vela/vela-prototype.md), [Menhir development parser](languages/vela/vela-parser.md) |
 | Vela workflow and routes | [Workflow contract](languages/vela/workflow-contract.md), [compiler routes](languages/vela/compiler-route-contract.md) |
 | Vela features | [Graded foundation](languages/vela/graded-foundation.md), [handlers and async lifecycles](languages/vela/handlers-async.md), [interior mutability](languages/vela/interior-mutability.md), [composition review](languages/vela/full-language-review.md) |
 | Interfaces | [IDL profile](languages/idl-profile.md) |

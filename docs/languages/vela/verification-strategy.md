@@ -1,8 +1,14 @@
-# A Verification-First Systems Language: Strategy and Research
+# Vela: Language Design, Examples and Verification Strategy
+
+This is the **primary Vela document**: its purpose, intended developer experience,
+language design, illustrative examples and research basis. Start with the
+[product contract](#language-product-contract) and [surface examples](#an-ideal-surface).
+The companion contracts refine the design's rules and qualification boundaries;
+[PLAN.md](../../../PLAN.md#language-core-proposals) owns implementation work.
 
 > **Execution status:** [The implementation checklist](../../../PLAN.md#q-assessment-actions) owns assessment state; [the completion log](../../implementation/completion-log.md) records its evidence. [The workflow contract's commissioning disposition](workflow-contract.md#commissioning-disposition) governs the canceled experiments and retained proposal roles used below.
 
-> Non-normative research and design proposal. Scheduled work belongs to the implementation checklist; this document supplies no admission rule, semantic anchor, or accepted trust assumption.
+> Non-normative research and design proposal; it supplies no admission rule, semantic anchor or accepted trust assumption.
 > The [requirements register](../../requirements-register.md) governs VerifiedOS; the [typed assembly language](../typed-assembly-language.md) governs the certificate language.
 > Latest source update: 2026-10-31. Upstream capabilities below are distinguished from proposed integration work; a language sketch is not an implemented compiler.
 
