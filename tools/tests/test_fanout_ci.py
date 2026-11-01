@@ -20,6 +20,7 @@ from typing import cast
 from unittest.mock import patch
 
 from tests.harness import Case, ensure, sandbox_tree
+from vos import ci_scope
 from vos import fanout_ci as ci
 
 # Each case writes only under directories it creates, answers requests from a FakeGitHub
@@ -163,6 +164,69 @@ def _successful_handoff() -> None:
     fake.calls.clear()
     ensure(fake.advance(), "completed handoff should be idempotent")
     ensure(not fake.calls, "completed handoff must not request a guest verdict")
+
+
+def _selection(paths: list[str]) -> ci_scope.Selection:
+    return {**ci_scope.classify(paths), "base": "b" * 40, "revision": REVISION,
+            "paths": sorted(paths), "reason": "changed paths"}
+
+
+def _scoped_guest_handoffs() -> None:
+    for paths, lanes in ((["README.md"], []), (["proofs/Example.v"], ["proofs"]),
+                         (["rtl/example.sv"], ["rtl"]),
+                         (["model/example.sail", "proofs/Example.v"],
+                          ["model", "rtl", "proofs"])):
+        scope = _selection(paths)
+        state = ci.new_state(REPO, "main", REVISION, False, selection=scope)
+        fake = FakeGitHub(state)
+        ensure(fake.advance(), "selected guest handoff follows successful Host CI")
+        ensure(state["selection"] == scope and scope["guest_lanes"] == lanes,
+               "handoff preserves its frozen changed-path selection")
+        if lanes:
+            ensure(len(fake.posts()) == 1, "selected guest lanes dispatch once")
+            payload = fake.posts()[0][2]
+            expected: dict[str, object] = {"revision": REVISION, "title": SUBJECT, "cold": False}
+            if lanes != list(ci_scope.ALL_GUEST_LANES):
+                expected["lanes"] = ",".join(lanes)
+            ensure(payload == {"ref": "main", "inputs": expected},
+                   "Guest CI receives exactly the selected lanes")
+        else:
+            ensure(not fake.posts() and state["guest"] is None and state.get("guest_omitted", False),
+                   "prose-only handoff records omission without inventing a passing guest run")
+            for change in ("selection", "host"):
+                damaged: dict[str, object] = dict(copy.deepcopy(state))
+                del damaged[change]
+                _refuses(lambda damaged=damaged: ci.validate_state(damaged),
+                         "omission needs both its selection and host evidence")
+        fake.calls.clear()
+        ensure(fake.advance() and not fake.calls,
+               "a finished scoped handoff resumes without polling Guest CI")
+
+
+def _scope_overrides_and_legacy() -> None:
+    narrow = _selection(["README.md"])
+    for cold, base, full in ((True, None, False), (False, "b" * 40, False),
+                             (False, None, True)):
+        _refuses(lambda cold=cold, base=base, full=full: ci.new_state(
+            REPO, "main", REVISION, cold, base, selection=narrow, full_ci=full),
+                 "cold installation, proof reading and full CI cannot narrow guest coverage")
+    # A journal predating path selection still dispatches every lane.
+    legacy = FakeGitHub(ci.new_state(REPO, "main", REVISION, False))
+    ensure(legacy.advance() and len(legacy.posts()) == 1,
+           "legacy journals retain their complete guest handoff")
+    ensure(legacy.posts()[0][2] == {"ref": "main", "inputs": {
+        "revision": REVISION, "title": SUBJECT, "cold": False}},
+           "legacy dispatch uses Guest CI's full default matrix")
+    # Explicit full CI cannot adopt the potentially narrowed push run already listed.
+    full = ci_scope.select_changes(ROOT, None, REVISION, force_full=True)
+    fake = FakeGitHub(ci.new_state(REPO, "main", REVISION, False,
+                                  selection=full, full_ci=True))
+    ensure(not fake.advance() and not fake.host_lookups(),
+           "full CI dispatches a full Host run without adopting automatic path selection")
+    ensure(len(fake.posts()) == 1 and ci.HOST in fake.posts()[0][1],
+           "full CI starts Host CI explicitly")
+    ensure(fake.advance() and len(fake.posts()) == 2,
+           "full Host acceptance dispatches every guest lane once")
 
 
 def _reading_base_forwarded() -> None:
@@ -1938,6 +2002,8 @@ def _workflow_reading_base_through_environment() -> None:
 
 def cases() -> list[Case]:
     return [Case("successful-handoff", _successful_handoff),
+            Case("scoped-guest-handoffs", _scoped_guest_handoffs),
+            Case("scope-overrides-and-legacy", _scope_overrides_and_legacy),
             Case("reading-base-forwarded", _reading_base_forwarded),
             Case("host-pending", _host_pending), Case("host-failure", _host_failure),
             Case("host-aggregate-evidence", _host_aggregate_evidence),

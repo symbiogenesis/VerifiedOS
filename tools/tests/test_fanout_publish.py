@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 """Batch completion publishes only main, then orders hosted CI and retirement."""
 
+import json
 import subprocess
 from collections.abc import Callable
 from pathlib import Path
@@ -198,7 +199,8 @@ def _preparation_timeout_one(selector: str) -> None:
                 raise subprocess.TimeoutExpired(argv, timeout)
             return subprocess.run(argv, cwd=cwd, check=check, timeout=timeout)
 
-        with (patch.object(fanout, "subprocess", SimpleNamespace(run=launch)),
+        with (patch.object(fanout, "subprocess", SimpleNamespace(
+                run=launch, SubprocessError=subprocess.SubprocessError)),
               patch.object(fanout_ci, "advance") as handoff):
             try:
                 fanout.finish(root, state, path, finish_args())
@@ -231,6 +233,102 @@ def _preparation_changes_inputs() -> None:
                "preparation cannot publish a checkout changed during its checks")
 
 
+def _prose_selection_freezes_before_publication() -> None:
+    with fixture() as (root, lane, remote):
+        base = git(root, "rev-parse", "HEAD")
+        git(root, "push", "origin", "HEAD:refs/heads/main")
+        (root / "README.md").write_text("prose changed before batch init\n", encoding="utf-8")
+        git(root, "add", "--", "README.md")
+        revision = commit(root, "document change")
+        state, path = init(root, lane)
+        state["cold"] = False
+        fanout._save(path, state)
+        ensure(state["base"] == revision, "init may occur after authored work is committed")
+        observed: list[dict[str, object]] = []
+
+        def advance(checkout: Path, ci: fanout_ci.CIState, save: Callable[[], None]) -> bool:
+            ensure(git(remote, "rev-parse", "refs/heads/main") == revision,
+                   "the settled documentation revision is published")
+            selected = dict(ci.get("selection") or {})
+            observed.append(selected)
+            ensure(selected.get("base") == base and selected.get("paths") == ["README.md"]
+                   and selected.get("guest_lanes") == [],
+                   "selection compares pre-push remote main, not the batch's init head")
+            return len(observed) > 1
+
+        publish = fanout._publish
+
+        def publication(checkout: Path, batch: fanout.Batch, settled: str) -> str:
+            saved = fanout._load(path, root)
+            ensure(saved.get("selection") == batch.get("selection")
+                   and git(remote, "rev-parse", "refs/heads/main") == base,
+                   "the selection reaches the journal before publication changes the remote")
+            return publish(checkout, batch, settled)
+
+        with (patch.object(fanout_ci, "repository", return_value="example/repo"),
+              patch.object(fanout_ci, "advance", side_effect=advance),
+              patch.object(fanout, "_publish", side_effect=publication),
+              patch.object(fanout, "_prepublication") as preparation,
+              patch.object(fanout_retire, "retire", return_value={"status": "retired"})):
+            ensure(not fanout.finish(root, state, path, finish_args()), "Host CI may remain pending")
+            state = fanout._load(path, root)
+            ensure(fanout.finish(root, state, path, finish_args()), "pending documentation handoff resumes")
+            preparation.assert_not_called()
+        ensure(observed[0] == observed[1], "resume keeps the pre-publication scope after remote advances")
+
+
+def _scope_policy_and_journal_binding() -> None:
+    with fixture() as (root, lane, _):
+        state, path = init(root, lane)
+        ensure(state.get("full_ci") is False, "full CI is an explicit expansion")
+        legacy = dict(state)
+        del legacy["full_ci"]
+        path.write_text(json.dumps(legacy), encoding="utf-8")
+        ensure(not fanout._load(path, root).get("full_ci", False),
+               "older journals keep their explicit policy")
+        state["full_ci"] = True
+        revision = git(root, "rev-parse", "HEAD")
+        selection = fanout._freeze_selection(root, state, revision, path)
+        ensure(selection["host_full"] and selection["model_hooks"]
+               and selection["guest_lanes"] == ["model", "rtl", "proofs"],
+               "full CI expands every validation family")
+        state["ci"] = fanout_ci.new_state("example/repo", "main", revision, True,
+                                           selection=selection, full_ci=True)
+        fanout._save(path, state)
+        ensure(fanout._load(path, root) == state, "scope and full policy round-trip")
+        del state["selection"]
+        fanout._save(path, state)
+        refuses(lambda: fanout._load(path, root), "CI selection is missing")
+
+
+def _legacy_unprepared_scope_and_remote_reset() -> None:
+    for legacy in (True, False):
+        with fixture() as (root, lane, remote):
+            ancestor = git(root, "rev-parse", "HEAD")
+            base = commit(root, "published baseline")
+            git(root, "push", "origin", "HEAD:refs/heads/main")
+            (root / "README.md").write_text("documentation update\n", encoding="utf-8")
+            git(root, "add", "--", "README.md")
+            revision = commit(root, "settled documentation")
+            state, path = init(root, lane)
+            state["cold"] = False
+            if legacy:
+                del state["full_ci"]
+            selected = fanout._freeze_selection(root, state, revision, path)
+            ensure(selected["base"] == base and selected["paths"] == ["README.md"],
+                   "the complete pre-publication path set is retained")
+            if legacy:
+                ensure(selected["host_full"]
+                       and selected["guest_lanes"] == ["model", "rtl", "proofs"],
+                       "old unprepared journals cannot narrow the full handoff they promised")
+            else:
+                git(remote, "update-ref", "refs/heads/main", ancestor)
+                refuses(lambda state=state, revision=revision: fanout._publish(root, state, revision),
+                        "remote main changed after CI selection")
+                ensure(git(remote, "rev-parse", "refs/heads/main") == ancestor,
+                       "a remote reset cannot add unclassified changes to a non-force publication")
+
+
 def cases() -> list[Case]:
     return [Case("publish, pending host, resume and retirement order", _publish_wait_resume),
             Case("reading base reaches CI and needs a proper descendant",
@@ -241,4 +339,7 @@ def cases() -> list[Case]:
             Case("remote changes prevent retirement", _remote_changes_during_ci),
             Case("each preparation finding prevents publication", _preparation_refuses_publication),
             Case("each preparation timeout prevents publication", _preparation_timeout),
-            Case("changed inputs during preparation prevent publication", _preparation_changes_inputs)]
+            Case("changed inputs during preparation prevent publication", _preparation_changes_inputs),
+            Case("prose selection freezes before publication", _prose_selection_freezes_before_publication),
+            Case("scope policy and journal binding", _scope_policy_and_journal_binding),
+            Case("legacy unprepared scope and remote reset", _legacy_unprepared_scope_and_remote_reset)]

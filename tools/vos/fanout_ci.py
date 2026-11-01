@@ -21,6 +21,8 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import NotRequired, TypedDict, cast, override
 
+from vos import ci_scope
+
 HOST = "host-gates.yml"
 GUEST = "guest-gates.yml"
 # host-gates.yml names each aggregate job for its platform, never for its runner
@@ -63,6 +65,10 @@ class CIState(TypedDict):
     # The commit Guest CI's proofs lane reads beside the revision, forwarded as its
     # `reading_base` input; a record without the key names none.
     reading_base: NotRequired[str]
+    # Omitted in older journals, which retain the complete CI handoff.
+    selection: NotRequired[ci_scope.Selection]
+    full_ci: NotRequired[bool]
+    guest_omitted: NotRequired[bool]
     host: RunState | None
     guest: RunState | None
 
@@ -94,11 +100,16 @@ def repository(root: Path, remote: str) -> str:
 
 
 def new_state(repository: str, ref: str, revision: str, cold: bool,
-              reading_base: str | None = None) -> CIState:
+              reading_base: str | None = None, *,
+              selection: ci_scope.Selection | None = None, full_ci: bool = False) -> CIState:
     state: CIState = {"repository": repository, "ref": ref, "revision": revision,
                       "cold": cold, "host": None, "guest": None}
     if reading_base is not None:
         state["reading_base"] = reading_base
+    if selection is not None:
+        state["selection"] = selection
+    if full_ci:
+        state["full_ci"] = True
     return validate_state(state)
 
 
@@ -147,6 +158,19 @@ def validate_state(value: object) -> CIState:
         raise CIError("hosted validation publishes and dispatches only main; initialize a new main batch")
     if type(record.get("cold")) is not bool:
         raise CIError("hosted validation needs an explicit cold boolean")
+    for key in ("full_ci", "guest_omitted"):
+        if key in record and type(record[key]) is not bool:
+            raise CIError(f"hosted validation needs a boolean {key}")
+    if "selection" in record:
+        try:
+            selection = ci_scope.validate_selection(record["selection"], revision)
+        except ValueError as error:
+            raise CIError(f"invalid frozen CI selection: {error}") from error
+        if ((record["cold"] or record.get("reading_base") is not None or record.get("full_ci"))
+                and selection["guest_lanes"] != list(ci_scope.ALL_GUEST_LANES)):
+            raise CIError("cold, full CI and proof reading require every guest lane")
+        if record.get("full_ci") and not (selection["host_full"] and selection["model_hooks"]):
+            raise CIError("full CI requires every host check and model hooks")
     # Guest CI's dispatch check refuses any other reading base before checked-out code runs.
     if "reading_base" in record:
         base = _string(record, "reading_base")
@@ -191,6 +215,14 @@ def validate_state(value: object) -> CIState:
                 or host.get("conclusion") != "success"
                 or host.get("jobs") != dict.fromkeys(HOST_JOBS, "success")):
             raise CIError("guest dispatch state requires passing evidence from both host platforms")
+    if record.get("guest_omitted"):
+        selection = record.get("selection")
+        host = _object(record["host"])
+        if (selection is None or _object(selection).get("guest_lanes") != []
+                or record["guest"] is not None or host.get("phase") != "observed"
+                or host.get("status") != "completed" or host.get("conclusion") != "success"
+                or host.get("jobs") != dict.fromkeys(HOST_JOBS, "success")):
+            raise CIError("omitted guest lanes need a frozen empty selection and passing Host CI")
     return cast(CIState, value)
 
 
@@ -363,8 +395,12 @@ def _dispatch(client: GitHub, state: CIState, record: RunState, subject: str,
     save()
     inputs: dict[str, object] = {"revision": state["revision"], "title": subject}
     if record["workflow"] == GUEST:
-        # guest-gates owns a mandatory lane matrix; there is no lane filter.
         inputs["cold"] = state["cold"]
+        selection = state.get("selection")
+        if selection is not None and selection["guest_lanes"] != list(ci_scope.ALL_GUEST_LANES):
+            if not selection["guest_lanes"]:
+                raise CIError("an empty guest selection must not dispatch Guest CI")
+            inputs["lanes"] = ",".join(selection["guest_lanes"])
         # Sent only when the batch names one; the input's empty default reads none.
         reading_base = state.get("reading_base")
         if reading_base is not None:
@@ -469,13 +505,15 @@ def _replace_cancelled_push(client: GitHub, state: CIState, record: RunState,
 
 
 def advance(root: Path, state: CIState, save: Callable[[], None]) -> bool:
-    """Advance once; False means host pending, True means guest dispatch recorded.
+    """Advance once; False means host pending, True means the guest handoff is recorded.
 
     The caller may repeat pending host steps. Never repeat this function to learn
     a guest verdict: after accepted dispatch it returns without contacting GitHub.
     The first host lookup waits a bounded time for the push run before dispatching.
     """
     validate_state(state)
+    if state.get("guest_omitted", False):
+        return True
     guest = state["guest"]
     if guest is not None and guest["phase"] == "accepted" and guest["run_id"] is not None:
         return True
@@ -484,12 +522,15 @@ def advance(root: Path, state: CIState, save: Callable[[], None]) -> bool:
     subject = _subject(root, state["revision"])
     host = state["host"]
     if host is None:
-        runs = _push_runs(client, state)
-        for pause in PUSH_RUN_WAITS:
-            if runs:
-                break
-            time.sleep(pause)
-            runs = _push_runs(client, state)
+        # Explicit full CI cannot adopt a path-selected automatic run, whose
+        # aggregate success may intentionally omit unchanged checks.
+        runs = [] if state.get("full_ci", False) else _push_runs(client, state)
+        if not state.get("full_ci", False):
+            for pause in PUSH_RUN_WAITS:
+                if runs:
+                    break
+                time.sleep(pause)
+                runs = _push_runs(client, state)
         host = _blank(HOST, state["revision"])
         state["host"] = host
         if runs:
@@ -507,6 +548,11 @@ def advance(root: Path, state: CIState, save: Callable[[], None]) -> bool:
         _recover(client, state, host, subject, save)
     if not _host_status(client, state, host, subject, save):
         return False
+    selection = state.get("selection")
+    if selection is not None and not selection["guest_lanes"]:
+        state["guest_omitted"] = True
+        save()
+        return True
     if guest is None:
         guest = _blank(GUEST, state["revision"])
         state["guest"] = guest
