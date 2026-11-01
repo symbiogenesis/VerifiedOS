@@ -46,7 +46,8 @@ typed binders followed by `=>`. Proof commands end in semicolons. Architecture/h
 syntax supplies no transition or circuit interpretation by itself.
 
 Type-first local and callback annotations use bounded lexical lookahead to
-distinguish a qualified/applied type followed by a binder from a comparison.
+distinguish a qualified, applied or parenthesized type followed by a binder from
+an expression.
 This classification consults token shape, with no symbol table or type judgment.
 It preserves the original lexeme positions and the pure entry's tokenization.
 
