@@ -235,6 +235,58 @@ disposal. Refuse incomplete contract expressions and capability binders without
 publishing an AST. Syntactically valid violations of capability scope or resource
 rules must still parse. Retain every existing qualification and migration case.
 
+### Type-valued computations and uniform library laws
+
+Type parameters may state a kind using the existing type syntax:
+`Box<T : Type<u>, grade q : NatExact>`. A type-mode `generic_parameter`
+keeps its `type` field null for a bare binder and records the kind when supplied.
+Associated types likewise accept an optional `: TYPE` kind before contracts and
+their optional definition; `associated_type.kind_annotation` is null when absent.
+Universe formation, conversion and dependent substitution remain checking duties.
+
+Explicit `type TYPE` expressions inject structural types into ordinary definitions,
+calls and dependent matches. A `type_expression` has a `type` field containing the
+located type node. For example, an ordinary type family can return
+`match (flag) { case true => type (T, T); case false => type (); }`.
+Like lambdas and quantifiers, these forms occupy a complete expression; group them
+when used as operator operands. This reuses callable, product and library types
+instead of introducing separate type-level function or box primitives.
+Bare Boolean, string, character and named-hole generic arguments use their existing
+expression nodes, alongside numbers, lifetimes and parenthesized expressions.
+Named arguments remain unresolved syntax; this introduces no stable-value judgment.
+
+A callable value may reuse the complete callable type before `=>`:
+
+```text
+FnOnce<region 'loan>(scoped ref<'loan> T value @ NatExact(1)) -> T
+    captures Environment effects(Read)
+    with { requires Open(value); restores Closed(value); }
+    => Read(in value)
+```
+
+The `typed_lambda` node contains `signature` (the existing `function_type`) and
+`body`; its parameters, grades, local regions, captures, effects and contracts
+therefore have the same syntax as a callable annotation. Existing inferred lambdas
+retain their current nodes. Naming parameters, capture completeness, repeatability,
+loan escape and per-call resource transitions require elaboration.
+
+Union, inductive and coinductive declarations accept ordinary declaration contracts
+between their generic telescope and body. Constructors accept them after the
+optional result type. Pure `definition` and `predicate` declarations accept them
+after their parameter telescope and before `=` (or a predicate's terminating
+semicolon). Associated types accept them before an optional `=` definition.
+Each of these nodes exposes a `contracts` array, empty when omitted. Thus domain
+laws, graded storage, indexed outcomes and type families share the existing
+contract language; their laws do not acquire parser authority.
+
+Independent fixtures must compose kinded binders, type-valued matches, explicit
+callable signatures, scoped loans and graded library resources. Assert contract
+ownership, signature/body roles, dependent indices, literal spellings and original
+UTF-8 byte spans. Refuse incomplete kinds, type expressions, callable signatures
+and contracts without an AST; syntax-valid erasure, ownership and grade violations
+must still parse. Retain strict generation and every existing migration and syntax
+case. These forms establish no type-system, borrow-checker or erasure theorem.
+
 ### Native qualification
 
 Menhir's code backend must generate with `--strict --infer --explain`, with no
