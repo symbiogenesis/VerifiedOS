@@ -124,9 +124,16 @@ public usize Pick(in Fn() -> usize body) {
         Reject(error) with k => { dispose k; return Err(error); },
         return _ => Ok(),
     };
+    let forwarded = handle shallow (body()) {
+        Choose() with k => rehandle (resume k(true)) {
+            Choose() with nested => resume nested(false),
+            return inner => inner,
+        },
+        return outer => outer,
+    };
     return chosen;
 }
-""", ("effect", "handle", "resume", "dispose")),
+""", ("effect", "handle", "rehandle", "resume", "dispose")),
     Fixture("structured-tasks-and-cleanup", """module Tasks;
 public async Delivery<n> Accept<ghost Nat n>(
     owned Packet<n> packet, in Counter counter, tracked Permit<n> allowance)
@@ -150,12 +157,13 @@ public async Result Serve(ref Frames frames, owned Packet packet) {
     Fixture("mathematical-definitions-and-proofs", """module Mathematics;
 universe u;
 public definition Nat Twice(Nat x) = x + x;
+public definition Type<u> Identity<T>(T value) = T;
 public inductive Natural { Zero(); Succ(Natural predecessor); }
 public coinductive Stream<T> { More(T head, Stream<T> tail); }
 public lemma Reflexive(Nat n): forall (Nat x) => x == x
-    proof { assert n == n; ?step; }
+    proof { calc { n + 0 == n; n == n; } assert n == n; ?step; }
 public theorem Witness(): exists (Nat n) => n == 0;
-""", ("universe", "definition", "inductive", "coinductive", "lemma", "theorem", "quantifier")),
+""", ("universe", "definition", "inductive", "coinductive", "lemma", "theorem", "quantifier", "calc")),
     Fixture("machine-and-hardware", """module Machine;
 public machine Counter {
     state Nat value = 0;
@@ -212,8 +220,144 @@ def nodes(value: Json) -> Iterator[dict[str, Json]]:
 
 def _object(value: Json, description: str) -> dict[str, Json]:
     if not isinstance(value, dict):
-        raise ValueError(f"surface fixture lacks {description}")
+        raise TypeError(f"surface fixture lacks {description}")
     return value
+
+
+def _named(value: Json, kind: str, name: str) -> dict[str, Json]:
+    matches: list[dict[str, Json]] = []
+    for node in nodes(value):
+        candidate = node.get("name")
+        if node.get("kind") == kind and isinstance(candidate, dict) and candidate.get("text") == name:
+            matches.append(node)
+    if len(matches) != 1:
+        raise ValueError(f"surface oracle expected one {kind} named {name}")
+    return matches[0]
+
+
+def _texts(value: Json) -> list[str]:
+    if isinstance(value, dict):
+        text = value.get("text")
+        if isinstance(text, str):
+            return [text]
+        return [text for child in value.values() for text in _texts(child)]
+    if isinstance(value, list):
+        return [text for child in value for text in _texts(child)]
+    return []
+
+
+def _type_roles(result: dict[str, Json]) -> None:
+    function = _named(result.get("ast"), "function", "Find")
+    returned = _object(function.get("result"), "dependent return type")
+    if returned.get("kind") != "type" or _texts(returned.get("name")) != ["Result"]:
+        raise ValueError("surface dependent result head differs")
+    arguments = returned.get("arguments")
+    if not isinstance(arguments, list) or len(arguments) != 2:
+        raise ValueError("surface dependent result arguments differ")
+    loan = _object(arguments[0], "returned exclusive loan")
+    if loan.get("kind") != "modified_type" or loan.get("modifier") != "ref":
+        raise ValueError("surface returned-loan mode differs")
+    if _texts(loan.get("lifetime")) != ["'table"] or _texts(loan.get("type")) != ["Value"]:
+        raise ValueError("surface returned-loan lifetime/value roles differ")
+    parameters = function.get("parameters")
+    if not isinstance(parameters, list) or len(parameters) != 2:
+        raise ValueError("surface function parameter roles differ")
+    transform = _object(parameters[1], "graded closure parameter")
+    if _texts(transform.get("name")) != ["transform"] or _texts(transform.get("grade")) != ["q"]:
+        raise ValueError("surface use grade is not attached to its parameter")
+    shared = _object(transform.get("type"), "closure loan")
+    if shared.get("kind") != "modified_type" or shared.get("modifier") != "in":
+        raise ValueError("surface closure shared-loan role differs")
+    closure = _object(shared.get("type"), "closure function type")
+    if closure.get("kind") != "function_type" or closure.get("mode") != "Fn":
+        raise ValueError("surface closure call mode differs")
+    if _texts(closure.get("captures")) != ["C"] or _texts(closure.get("effects")) != ["Choose"]:
+        raise ValueError("surface capture/effect suffix is not attached to its function type")
+    contracts = function.get("contracts")
+    if not isinstance(contracts, list):
+        raise TypeError("surface dependent contracts lost their clause roles")
+    for role in ("ensures", "restores"):
+        clauses = [_object(clause, "contract") for clause in contracts
+                   if isinstance(clause, dict) and clause.get("role") == role]
+        if len(clauses) != 1:
+            raise ValueError(f"surface expected one {role} clause")
+        implication = _object(clauses[0].get("value"), "contract implication")
+        if implication.get("kind") != "binary" or _texts(implication.get("operator")) != ["==>"]:
+            raise ValueError("surface implication no longer heads its contract")
+        tested = _object(implication.get("left"), "implication pattern test")
+        if tested.get("kind") != "is" or _texts(tested) != ["result", "Ok", "slot"]:
+            raise ValueError("surface pattern test no longer binds before implication")
+        consequence = _object(implication.get("right"), "implication consequence")
+        if consequence.get("kind") != "binary" or _texts(consequence.get("operator")) != ["=="]:
+            raise ValueError("surface contract equality no longer binds inside implication")
+
+
+def _cancellation_roles(result: dict[str, Json]) -> None:
+    function = _named(result.get("ast"), "function", "Accept")
+    if function.get("modifiers") != ["public", "async"]:
+        raise ValueError("surface async modifiers differ")
+    body = _object(function.get("body"), "async normal body")
+    cancel = _object(function.get("cancel"), "async cancellation body")
+    if body.get("kind") != "block" or cancel.get("kind") != "block":
+        raise ValueError("surface cancellation body lost its block role")
+    if "Accepted" not in _texts(body) or "Cancelled" in _texts(body):
+        raise ValueError("surface normal/cancellation paths were conflated")
+    if "Cancelled" not in _texts(cancel) or "Accepted" in _texts(cancel):
+        raise ValueError("surface cancellation result lost its own body")
+
+
+def _receiver_roles(result: dict[str, Json]) -> None:
+    function = _named(result.get("ast"), "function", "Push")
+    parameters = function.get("parameters")
+    if not isinstance(parameters, list) or len(parameters) != 2:
+        raise ValueError("surface named-view receiver parameter count differs")
+    receiver = _object(parameters[0], "named-view receiver")
+    if receiver.get("name") is not None or receiver.get("grade") is not None:
+        raise ValueError("surface unnamed receiver fabricated a binding or grade")
+    loan = _object(receiver.get("type"), "receiver exclusive loan")
+    if loan.get("kind") != "modified_type" or loan.get("modifier") != "ref":
+        raise ValueError("surface named-view receiver lost its exclusive mode")
+    if _texts(loan.get("type")) != ["self.Tail"]:
+        raise ValueError("surface named-view receiver place differs")
+
+
+def _handler_roles(result: dict[str, Json]) -> None:
+    handlers = [node for node in nodes(result.get("ast"))
+                if node.get("kind") == "handle" and node.get("shallow") is False]
+    if len(handlers) != 1:
+        raise ValueError("surface deep/shallow handler association differs")
+    clauses = handlers[0].get("clauses")
+    if not isinstance(clauses, list) or len(clauses) != 2:
+        raise ValueError("surface handler clause roles differ")
+    operation = _object(clauses[0], "operation clause")
+    returned = _object(clauses[1], "handler return clause")
+    if (operation.get("kind") != "operation_clause"
+            or _texts(operation.get("name")) != ["Choose"]
+            or _texts(operation.get("continuation")) != ["k"]):
+        raise ValueError("surface operation/continuation roles differ")
+    if (returned.get("kind") != "return_clause" or _texts(returned.get("name")) != ["score"]
+            or _texts(returned.get("body")) != ["score"]):
+        raise ValueError("surface handler return clause became a return statement")
+    resumptions = [node for node in nodes(operation.get("body")) if node.get("kind") == "resume"]
+    if len(resumptions) != 2 or any(_texts(resume) != ["k"] for resume in resumptions):
+        raise ValueError("surface multi-shot resumption association differs")
+    rehandled = [node for node in nodes(result.get("ast")) if node.get("kind") == "rehandle"]
+    if len(rehandled) != 1:
+        raise ValueError("surface rehandle lost its own expression role")
+
+
+def _literal_and_comment_boundaries(parse: Callable[[bytes], dict[str, Json]]) -> None:
+    # Delimiter-looking bytes inside comments and strings are never nesting.
+    source = (b"// " + b"{" * 300 + b"\r\n/* " + b"[" * 300
+              + " caf\u00e9 */\r\nmodule M; public Nat F() { let s = \"".encode()
+              + b"(" * 300 + " caf\u00e9\"; return 0001usize; }".encode())
+    result = parse(source)
+    literals = [node for node in nodes(result.get("ast")) if node.get("kind") == "nat"]
+    if len(literals) != 1 or literals[0].get("value") != "0001" or literals[0].get("suffix") != "usize":
+        raise ValueError("surface decimal spelling/representation oracle differs")
+    start = source.index(b"0001usize")
+    if literals[0].get("span") != [start, start + len(b"0001usize")]:
+        raise ValueError("surface UTF-8 original-byte literal span differs")
 
 
 def _expression_shape(value: dict[str, Json]) -> Json:
@@ -271,13 +415,22 @@ def _precedence_and_spans(parse: Callable[[bytes], dict[str, Json]]) -> None:
 def qualify(parse: Callable[[bytes], dict[str, Json]]) -> list[str]:
     """Exercise independent syntax cases; a failed oracle never passes a case."""
     _precedence_and_spans(parse)
-    passed = ["surface:independent-precedence-and-spans"]
+    _literal_and_comment_boundaries(parse)
+    passed = ["surface:independent-precedence-and-spans", "surface:literal-and-comment-boundaries"]
     for fixture in POSITIVE:
         result = parse(fixture.source.encode("utf-8"))
         found = {node.get("kind") for node in nodes(result.get("ast"))}
         missing = set(fixture.kinds) - found
         if missing:
             raise ValueError(f"surface fixture {fixture.name} lacks AST roles: {sorted(missing)}")
+        if fixture.name == "function-types-grades-and-contracts":
+            _type_roles(result)
+        elif fixture.name == "dependent-data-and-lifetimes":
+            _receiver_roles(result)
+        elif fixture.name == "effects-handlers-and-disposal":
+            _handler_roles(result)
+        elif fixture.name == "structured-tasks-and-cleanup":
+            _cancellation_roles(result)
         passed.append(f"surface:{fixture.name}")
     for name, source, kind in NEGATIVE:
         try:

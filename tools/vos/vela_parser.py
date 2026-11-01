@@ -288,7 +288,8 @@ def _fixtures(compiled: Build) -> list[str]:
     for source in (
             b"module M; public Nat F() { return true + 1; } public Nat F() { return missing; }",
             b"module M; public Nat F() { if (true) { let x = 1; return x; } else { let x = 2; return x; } }",
-            b"module M; public Nat F(Nat x, bool b) { return F(x, b); }"):
+            b"module M; public Nat F(Nat x, bool b) { return F(x, b); }",
+            b"module M; public Nat interface(Nat state) { let register = state; return register; }"):
         parse_source(compiled, source)
     passed.append("syntax-only-and-scoped-constructs")
     for newline in (b"\n", b"\r\n", b"\r"):
