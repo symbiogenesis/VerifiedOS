@@ -17,9 +17,9 @@ from vos.cli import proof_reading
 from vos.cli import proofs as proofs_cli
 
 WORKFLOW = Path(__file__).resolve().parents[2] / ".github" / "workflows" / "guest-gates.yml"
-# The boot signature target campaign, which restores the model lane's installed
-# toolchains and Sail memo.
-CAMPAIGN = WORKFLOW.parent / "boot-crypto-target.yml"
+# Target campaigns share this read-only restoration of the model lane's toolchains
+# and Sail memo.
+TARGET_SETUP = WORKFLOW.parents[1] / "actions/setup-target-sail/action.yml"
 READING_BASE = "c" * 40
 # The minutes guest-gates.yml's job leaves under its limit, past every lane's step limits.
 LIMIT_MARGIN = 30
@@ -470,7 +470,7 @@ def _block(text: str, header: str) -> list[str]:
 
 
 def _campaign_restore_faults(gates: str, campaign: str) -> list[str]:
-    """Why the boot signature campaign's restores could miss the caches guest-gates.yml's
+    """Why the shared target setup's restores could miss the caches guest-gates.yml's
     model lane saves. Each restore's key, fallback and paths must be the model lane's,
     read with its cache lane and its image component, the runner image's version, which
     the campaign names directly. Both workflows must compute that version, the Sail
@@ -529,11 +529,11 @@ def _campaign_restore_faults(gates: str, campaign: str) -> list[str]:
 
 
 def _campaign_restores_the_model_lane() -> None:
-    """The boot signature campaign restores the model lane's installed toolchains and Sail
+    """The target setup action restores the model lane's installed toolchains and Sail
     memo under the keys and paths that lane saves them by, and a drift on either side is
     named."""
     original = {"gates": WORKFLOW.read_text(encoding="utf-8"),
-                "campaign": CAMPAIGN.read_text(encoding="utf-8")}
+                "campaign": TARGET_SETUP.read_text(encoding="utf-8")}
     found = _campaign_restore_faults(original["gates"], original["campaign"])
     ensure(not found, f"the campaign's restores miss the model lane's caches: {found}")
     identity = "-${{ steps.recipe.outputs.identity }}\n"
@@ -773,7 +773,7 @@ def cases() -> list[Case]:
         Case("each lane's step limits stay a margin under the job's", _lane_step_limits),
         Case("the reporter's lanes and their caches match the workflow's",
              _lanes_match_the_workflow),
-        Case("the boot signature campaign restores the model lane's caches by their keys",
+        Case("the target setup action restores the model lane's caches by their keys",
              _campaign_restores_the_model_lane),
         Case("the model lane alone restores and saves the compiler cache, never cold",
              _compiler_cache_steps),

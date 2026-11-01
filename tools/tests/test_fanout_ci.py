@@ -1789,7 +1789,8 @@ _DISPATCH_GUARD = "steps.dispatch.outcome != 'failure'"
 _CAMPAIGN = "boot-crypto-target.yml"
 _DISPATCH_JOBS = ((ci.HOST, "scope"), (ci.HOST, "host-gates-shard"),
                   (ci.HOST, "docs-checks"), (ci.HOST, "model-hooks"),
-                  (ci.GUEST, "guest-gates"), (_CAMPAIGN, "interface"), (_CAMPAIGN, "campaign"))
+                  (ci.GUEST, "guest-gates"), (_CAMPAIGN, "plan"),
+                  (_CAMPAIGN, "interface"), (_CAMPAIGN, "campaign"))
 
 
 def _conjuncts(condition: str) -> list[str] | None:
@@ -1899,7 +1900,7 @@ def _workflow_refused_dispatch() -> None:
              "model-hooks": ("Model hooks",),
              "guest-gates": ("Model evidence", "Proof gate",
                              "Read the proofs against the reading base", "Report guest results"),
-             "interface": (), "campaign": ("Report the campaign",)}
+             "plan": (), "interface": (), "campaign": ("Report the campaign",)}
     # Every job of those workflows with a step using actions/checkout, its `uses:` on
     # the step's dash line or beneath it, is read, so a job added with one cannot run
     # its code after a refusal unread.
