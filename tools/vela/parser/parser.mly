@@ -25,6 +25,7 @@ let binary first last operator left right =
 %token MINUS SLASH PERCENT LT GT GE NE AND OR NOT AMP BAR CARET TILDE
 %token PLUS_ASSIGN MINUS_ASSIGN STAR_ASSIGN SLASH_ASSIGN MOD_ASSIGN
 %token GENERIC_OPEN
+%token ANNOTATION_OPEN
 %token <string * string> NUMBER
 %token <string> LIFETIME STRING CHARACTER HOLE ANNOTATION_NAME
 %start <Ast.node> file
@@ -150,8 +151,9 @@ s_declaration:
 s_decl:
   IMPORT path=s_path SEMICOLON
     { make "import" $startpos $endpos [("name", path)] [] }
-| ALIAS alias=s_identifier EQUAL value=s_type SEMICOLON
-    { make "alias" $startpos $endpos [("name", alias); ("type", value.syntax)] [value] }
+| ALIAS alias=s_identifier generics=s_generics EQUAL value=s_type SEMICOLON
+    { make "alias" $startpos $endpos [("name", alias); ("generics", array generics);
+        ("type", value.syntax)] (value :: generics) }
 | NAMESPACE path=s_path LBRACE members=list(s_declaration) RBRACE
     { make "namespace" $startpos $endpos [("name", path); ("declarations", array members)] members }
 | kind=s_container_kind container_name=s_identifier generics=s_generics
@@ -321,9 +323,14 @@ s_loan_lifetime:
 s_type_atom:
   type_name=s_path arguments=s_type_arguments
     { make "type" $startpos $endpos [("name", type_name); ("arguments", array arguments)] arguments }
-| LPAREN value=s_function_type RPAREN { make "group_type" $startpos $endpos [("type", value.syntax)] [value] }
+| s_open_paren RPAREN { make "unit_type" $startpos $endpos [] [] }
+| s_open_paren value=s_type RPAREN { make "group_type" $startpos $endpos [("type", value.syntax)] [value] }
+| s_open_paren first=s_type COMMA rest=separated_nonempty_list(COMMA, s_type) RPAREN
+    { make "tuple_type" $startpos $endpos [("types", array (first :: rest))] (first :: rest) }
+s_open_paren:
+  LPAREN { () } | ANNOTATION_OPEN { () }
 s_function_type:
-  mode=s_function_mode LPAREN parameters=separated_list(COMMA, s_type) RPAREN ARROW result=s_nonfunction_type
+  mode=s_function_mode LPAREN parameters=separated_list(COMMA, s_parameter) RPAREN ARROW result=s_nonfunction_type
   captures=option(s_capture_type) effects=option(s_type_effects)
     { make "function_type" $startpos $endpos [("mode", String mode); ("parameters", array parameters);
         ("result", result.syntax); ("captures", optional captures);
@@ -338,11 +345,22 @@ s_type_effects:
 s_type_arguments:
   { [] } | LT values=separated_nonempty_list(COMMA, s_type_argument) GT { values }
 s_type_argument:
-  value=s_type { value }
+  value=s_generic_type { value }
+| TYPE value=s_type { make "type_argument" $startpos $endpos [("type", value.syntax)] [value] }
 | value=DECIMAL { make "nat" $startpos $endpos [("value", String value); ("suffix", String "")] [] }
 | value=NUMBER { let digits, suffix = value in make "nat" $startpos $endpos [("value", String digits); ("suffix", String suffix)] [] }
 | value=LIFETIME { make "lifetime" $startpos $endpos [("name", name $startpos $endpos value)] [] }
 | LPAREN value=s_expression RPAREN { make "group" $startpos $endpos [("value", value.syntax)] [value] }
+/* Bare parentheses in generic arguments remain value syntax. Structural types
+   have an explicit `type` introducer; legacy parenthesized callables are distinct. */
+s_generic_type:
+  type_name=s_path arguments=s_type_arguments
+    { make "type" $startpos $endpos [("name", type_name); ("arguments", array arguments)] arguments }
+| value=s_function_type { value }
+| modifier=s_type_modifier lifetime=option(s_loan_lifetime) value=s_generic_type
+    { make "modified_type" $startpos $endpos [("modifier", String modifier);
+        ("lifetime", optional lifetime); ("type", value.syntax)] (value :: children lifetime) }
+| LPAREN value=s_function_type RPAREN { make "group_type" $startpos $endpos [("type", value.syntax)] [value] }
 s_parameter:
   value_type=s_type parameter_name=option(s_parameter_name) grade=option(s_grade)
     { make "parameter" $startpos $endpos [("name", (match parameter_name with None -> Null | Some value -> value));
@@ -369,12 +387,12 @@ s_statement:
   value=s_closed_statement { value } | value=s_open_statement { value }
 s_closed_statement:
   value=s_simple_statement { value }
-| IF LPAREN condition=s_expression RPAREN yes=s_closed_statement ELSE no=s_closed_statement
+| IF s_open_paren condition=s_expression RPAREN yes=s_closed_statement ELSE no=s_closed_statement
     { make "if" $startpos $endpos [("condition", condition.syntax); ("then", yes.syntax); ("else", no.syntax)] [condition; yes; no] }
 s_open_statement:
-  IF LPAREN condition=s_expression RPAREN yes=s_statement
+  IF s_open_paren condition=s_expression RPAREN yes=s_statement
     { make "if" $startpos $endpos [("condition", condition.syntax); ("then", yes.syntax); ("else", Null)] [condition; yes] }
-| IF LPAREN condition=s_expression RPAREN yes=s_closed_statement ELSE no=s_open_statement
+| IF s_open_paren condition=s_expression RPAREN yes=s_closed_statement ELSE no=s_open_statement
     { make "if" $startpos $endpos [("condition", condition.syntax); ("then", yes.syntax); ("else", no.syntax)] [condition; yes; no] }
 s_simple_statement:
   value=s_block { value }
@@ -387,8 +405,10 @@ s_simple_statement:
 
 | kind=s_local_kind binding_name=s_identifier EQUAL value=s_expression SEMICOLON
     { make kind $startpos $endpos [("name", binding_name); ("type", Null); ("value", value.syntax)] [value] }
-| kind=s_local_kind value_type=s_type binding_name=s_identifier EQUAL value=s_expression SEMICOLON
+| kind=s_local_kind value_type=s_annotation_type binding_name=s_identifier EQUAL value=s_expression SEMICOLON
     { make kind $startpos $endpos [("name", binding_name); ("type", value_type.syntax); ("value", value.syntax)] [value_type; value] }
+| kind=s_local_kind pattern=s_product_pattern EQUAL value=s_expression SEMICOLON
+    { make (kind ^ "_pattern") $startpos $endpos [("pattern", pattern.syntax); ("value", value.syntax)] [pattern; value] }
 | value_type=s_annotation_type binding_name=s_identifier EQUAL value=s_expression SEMICOLON
     { make "typed_local" $startpos $endpos [("name", binding_name);
         ("type", value_type.syntax); ("value", value.syntax)] [value_type; value] }
@@ -413,6 +433,10 @@ s_annotation_type:
   type_name=s_annotation_path arguments=s_type_arguments
     { make "type" $startpos $endpos [("name", type_name); ("arguments", array arguments)] arguments }
 | value=s_function_type { value }
+| ANNOTATION_OPEN RPAREN { make "unit_type" $startpos $endpos [] [] }
+| ANNOTATION_OPEN value=s_type RPAREN { make "group_type" $startpos $endpos [("type", value.syntax)] [value] }
+| ANNOTATION_OPEN first=s_type COMMA rest=separated_nonempty_list(COMMA, s_type) RPAREN
+    { make "tuple_type" $startpos $endpos [("types", array (first :: rest))] (first :: rest) }
 | modifier=s_type_modifier value=s_annotation_type
     { make "modified_type" $startpos $endpos [("modifier", String modifier);
         ("lifetime", Null); ("type", value.syntax)] [value] }
@@ -438,13 +462,21 @@ s_pattern:
   LET binding_name=s_identifier { make "binding_pattern" $startpos $endpos [("name", binding_name)] [] }
 | constructor_name=s_path arguments=option(s_pattern_arguments)
     { let values = match arguments with None -> [] | Some values -> values in
-      make "constructor_pattern" $startpos $endpos [("name", constructor_name); ("arguments", array values)] values }
+      let wildcard = match constructor_name, arguments with
+        | Object fields, None -> List.assoc "text" fields = String "_" | _ -> false in
+      if wildcard then make "wildcard_pattern" $startpos $endpos [] []
+      else make "constructor_pattern" $startpos $endpos [("name", constructor_name); ("arguments", array values)] values }
+| value=s_product_pattern { value }
 | TRUE { make "bool_pattern" $startpos $endpos [("value", Boolean true)] [] }
 | FALSE { make "bool_pattern" $startpos $endpos [("value", Boolean false)] [] }
 | value=DECIMAL { make "nat_pattern" $startpos $endpos [("value", String value); ("suffix", String "")] [] }
 | value=NUMBER { let digits, suffix = value in make "nat_pattern" $startpos $endpos [("value", String digits); ("suffix", String suffix)] [] }
 s_pattern_arguments:
   LPAREN values=separated_list(COMMA, s_pattern) RPAREN { values }
+s_product_pattern:
+  LPAREN RPAREN { make "unit_pattern" $startpos $endpos [] [] }
+| LPAREN first=s_pattern COMMA rest=separated_nonempty_list(COMMA, s_pattern) RPAREN
+    { make "tuple_pattern" $startpos $endpos [("patterns", array (first :: rest))] (first :: rest) }
 
 s_expression:
   value=s_implication { value }
@@ -454,12 +486,14 @@ s_expression:
     { make "quantifier" $startpos $endpos [("quantifier", String "exists"); ("parameters", array parameters); ("value", value.syntax)] (value :: parameters) }
 | LPAREN parameters=s_lambda_parameters RPAREN FATARROW body=s_lambda_body
     { make "lambda" $startpos $endpos [("parameters", array parameters); ("body", body.syntax)] (body :: parameters) }
+| LPAREN RPAREN FATARROW body=s_lambda_body
+    { make "lambda" $startpos $endpos [("parameters", Array []); ("body", body.syntax)] [body] }
 s_lambda_parameters:
-  { [] }
-| parameters=separated_nonempty_list(COMMA, s_lambda_parameter) { parameters }
+  parameters=separated_nonempty_list(COMMA, s_lambda_parameter) { parameters }
 s_lambda_parameter:
-  value_type=s_annotation_type parameter_name=s_identifier
-    { make "lambda_parameter" $startpos $endpos [("type", value_type.syntax); ("name", parameter_name)] [value_type] }
+  value_type=s_annotation_type parameter_name=s_identifier grade=option(s_grade)
+    { make "lambda_parameter" $startpos $endpos [("type", value_type.syntax); ("name", parameter_name);
+        ("grade", optional grade)] (value_type :: children grade) }
 s_lambda_body:
   value=s_expression { value } | value=s_block { value }
 s_implication:
@@ -540,6 +574,7 @@ s_atom:
 | FALSE { make "bool" $startpos $endpos [("value", Boolean false)] [] }
 | value=s_value_identifier { make "name" $startpos $endpos [("name", value)] [] }
 | value=HOLE { make "hole" $startpos $endpos [("name", name $startpos $endpos value)] [] }
+| LPAREN RPAREN { make "unit" $startpos $endpos [] [] }
 | LPAREN value=s_expression RPAREN { make "group" $startpos $endpos [("value", value.syntax)] [value] }
 | LPAREN first=s_expression COMMA rest=separated_nonempty_list(COMMA, s_expression) RPAREN
     { make "tuple" $startpos $endpos [("values", array (first :: rest))] (first :: rest) }
