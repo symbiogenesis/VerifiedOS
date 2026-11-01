@@ -76,7 +76,7 @@ domain Legacy {
     admits (==); interpret Use.Exact; laws ExactLaws;
 }
 alias Associated = Library.NatExact.carrier;
-definition NatExact.carrier Twice(NatExact.carrier value) = NatExact.add(value, NatExact.zero);
+definition NatExact.carrier AddZero(NatExact.carrier value) = NatExact.add(value, NatExact.zero);
 public void Inspect<grade q : NatExact>() {
     NatExact.carrier selected @ q = NatExact.one;
     let identity = (NatExact.carrier operand) => operand;
@@ -1208,7 +1208,7 @@ def _domain_dictionary_roles(source: bytes, result: dict[str, Json]) -> None:
         entry = _object(value, "domain entry")
         role = entry.get("role")
         if not isinstance(role, str):
-            raise ValueError("surface domain entry lacks its role")
+            raise TypeError("surface domain entry lacks its role")
         entries[role] = entry
     carrier = _object(entries["carrier"].get("value"), "product carrier")
     components = [_object(value, "carrier component") for value in _sequence(carrier.get("types"), "carrier components")]
@@ -1235,9 +1235,9 @@ def _domain_dictionary_roles(source: bytes, result: dict[str, Json]) -> None:
         raise ValueError("surface legacy domain fabricated a telescope or contract")
     associated = _object(_named(result.get("ast"), "alias", "Associated").get("type"), "qualified carrier")
     _exact_span(source, _object(associated.get("name"), "qualified carrier path"), b"Library.NatExact.carrier")
-    twice = _named(result.get("ast"), "definition", "Twice")
-    _type_head(twice.get("result"), "NatExact.carrier", 0)
-    addition_call = _object(twice.get("value"), "dictionary addition")
+    add_zero = _named(result.get("ast"), "definition", "AddZero")
+    _type_head(add_zero.get("result"), "NatExact.carrier", 0)
+    addition_call = _object(add_zero.get("value"), "dictionary addition")
     _exact_span(source, _object(addition_call.get("callee"), "addition member"), b"NatExact.add")
     selected = _named(result.get("ast"), "typed_local", "selected")
     _type_head(selected.get("type"), "NatExact.carrier", 0)

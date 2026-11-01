@@ -249,10 +249,10 @@ public Nat ReadAndApply(
 
 // Unary continuation disposal and a handler's disposal graph have distinct roles.
 // The graph takes a reason; capture and ordinary return do not invoke it.
-public Result<Nat, Error> ReadGuarded(owned Guard guard) {
-    return handle (ReadOrFail(in guard)) as running {
+public Result<Nat, Error> ReadGuarded(owned Guard resource) {
+    return handle (ReadOrFail(in resource)) as running {
         Fail(error) with k => { dispose k; return Err(error); },
         return value => Ok(value),
-        dispose reason => { guard.Release(reason); return (); },
+        dispose reason => { resource.Release(reason); return (); },
     };
 }

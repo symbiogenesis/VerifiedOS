@@ -310,7 +310,7 @@ and member expressions can therefore refer to a domain dictionary without new
 operator or projection primitives:
 
 ```text
-definition NatExact.carrier Twice(NatExact.carrier value) =
+definition NatExact.carrier AddZero(NatExact.carrier value) =
     NatExact.add(value, NatExact.zero);
 ```
 

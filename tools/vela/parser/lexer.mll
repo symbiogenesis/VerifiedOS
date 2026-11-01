@@ -125,7 +125,8 @@ let annotation lexbuf parenthesized =
   in
   let after_type = if parenthesized then parenthesized_type 1 lexbuf.Lexing.lex_curr_pos
     else let after_path = path lexbuf.Lexing.lex_curr_pos in
-      if after_path < length && at after_path = '<'
+      (* `<=` and `<==>` are complete operators, never generic openers. *)
+      if after_path + 1 < length && at after_path = '<' && at (after_path + 1) <> '='
       then trivia (angles 1 0 0 (after_path + 1)) else after_path in
   let arrow index =
     let index = trivia index in
