@@ -32,7 +32,7 @@ on:
         type: string
         default: ""
       lanes:
-        description: all, or a comma-separated selection of model,rtl,proofs; cold, proof readings and reruns always select all
+        description: all, or a comma-separated selection of model,rtl,proofs; cold, proof readings and rerunning all jobs select all
         type: string
         default: all
       cold:
