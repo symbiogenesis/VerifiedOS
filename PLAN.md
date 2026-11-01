@@ -468,20 +468,20 @@ These figures sum the full priced reference-build, assessment and named hardenin
 <!-- estimate-summary:start -->
 | Measure | Value |
 | --- | --- |
-| Total estimate midpoint h | 4,621.4 |
-| Total estimate range h | 2,999.3–6,243.5 |
-| Completed scope h | 864.9 |
-| Complete by estimate % | 18.7 |
-| Remaining h | 3,756.5 |
-| Committed remaining h | 2,314.5 |
-| Open class I h | 793.5 |
+| Total estimate midpoint h | 4,613.7 |
+| Total estimate range h | 2,995.6–6,231.8 |
+| Completed scope h | 865.2 |
+| Complete by estimate % | 18.8 |
+| Remaining h | 3,748.5 |
+| Committed remaining h | 2,306.5 |
+| Open class I h | 785.5 |
 | Open class X h | 2,963 |
 | Retained completion estimate h | 261.5 |
 | Unmeasured completed items | 29 |
-| Calibrated total h | 5,635.7 |
+| Calibrated total h | 5,630.4 |
 | Committed M8a open h | 74 |
 | Committed M8b open h | 105.5 |
-| Other committed open h | 2,135 |
+| Other committed open h | 2,127 |
 | Conditional open h | 1,028 |
 | Unfunded option open h | 414 |
 | Committed M8a open class X h | 0 |
@@ -997,8 +997,8 @@ These trials add no prerequisite to the current M7.1 realization route. A failed
     * Specifies cell and borrow interfaces, snapshot and interference rules, and the scalar counter's commit and reuse protocol. ([note](docs/implementation/completion-log.md#q25c-specify-interior-mutability-and-interference-guardrails))
 * [x] **Q25d · Review the combined calculus and price its implementation** · 0.9 h actual · agent-parallel
   * The combined calculus is reviewed against R-05-009's frontend admission and the arm propagated, with the implementation and admission decisions it still owes named at their owners. ([note](docs/implementation/completion-log.md#q25d-review-the-combined-calculus-and-price-its-implementation))
-* [ ] **Q25e · Build a pure Vela-to-Gallina prototype** · 8 h, range 4–12 · I
-  * **Start:** the independently reviewed [pure translation contract](docs/languages/vela-prototype.md), landed before implementation; the existing CIC interpretation, with no resource laws required by this fragment. **Owns:** the bounded parser, explicit Nat/Bool checking, hygienic Gallina emission, diagnostics and independently expected examples. **Check:** the contract's positive and negative translation and publication cases pass focused tests and Host CI; every Guest CI lane is dispatched for the settled revision. **Join:** a development prototype only; full-language frontend admission, checked source correspondence, kernel replay and target compilation retain their separate acceptance duties.
+* [x] **Q25e · Build a pure Vela-to-Gallina prototype** · 0.3 h actual · agent-parallel
+  * Implements bounded pure-source checking, hygienic Gallina emission and atomic publication with independent translation and rejection cases; kernel replay and stronger language qualification remain open. ([note](docs/implementation/completion-log.md#q25e-build-a-pure-vela-to-gallina-prototype))
 * [x] **Q26 · Price the resident toolchain against the floor's own comparisons** · 4.6 h actual · agent-parallel
   * [The toolchain residency report](docs/performance/toolchain-residency.md) records the three quantities with their predicates, instruments, lanes and revisions, scores each against the artifact that owns its supply or declares it unscorable with the act that owes the supply named, and states which of the three binds and what would have to move, as arms for the product's owner with none taken. ([note](docs/implementation/completion-log.md#q26-price-the-resident-toolchain-against-the-floors-own-comparisons))
 
@@ -1351,7 +1351,7 @@ Q6's conventional-memory simulators are conditional on a topology comparison nee
 
 No assessment completion automatically increases a performance estimate. For an optimization affecting fraction `f` of runtime by factor `s`, the unchanged-cost bound is `1 / ((1 - f) + f / s)`; added transfers or changed scheduling require a fresh whole-workload comparison. Better packing is not more fabricated capacity, and host performance is not target throughput.
 
-**Q subtotal:** 2,791.9 h · 60% · 252.9 h complete · open range 1,464–3,614 h.
+**Q subtotal:** 2,784.2 h · 60% · 253.2 h complete · open range 1,460–3,602 h.
 
 ### M0 · Hardware reference
 
@@ -2272,10 +2272,10 @@ These items sit outside the milestone subtotals but inside the grand total, and 
 | attended | X-read | 14 | 45.5 | 26.9 | 0.59 |
 | attended | X-authored | 3 | 18 | 25.5 | 1.42 |
 | attended | All | 63 | 323.9 | 238.4 | 0.74 |
-| agent-parallel | I | 40 | 335 | 129.8 | 0.39 |
+| agent-parallel | I | 41 | 343 | 130.1 | 0.38 |
 | agent-parallel | X-read | 11 | 107.5 | 36.9 | 0.34 |
 | agent-parallel | X-authored | 25 | 284 | 44.1 | 0.16 |
-| agent-parallel | All | 76 | 726.5 | 210.8 | 0.29 |
+| agent-parallel | All | 77 | 734.5 | 211.1 | 0.29 |
 <!-- calibration-results:end -->
 
 ### Calibration record
@@ -2436,6 +2436,7 @@ One row per completed item marked `agent-parallel`, using the [calibration recor
 | Q25b | X-authored | 12 |
 | Q25c | X-authored | 10 |
 | Q25d | X-authored | 10 |
+| Q25e | I | 8 |
 | Q26 | X-read | 12 |
 | Q27a | I | 7 |
 | Q27b | I | 6 |

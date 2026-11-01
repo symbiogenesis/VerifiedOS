@@ -19,7 +19,7 @@ def main(argv: list[str] | None = None) -> int:
             command.add_argument("--output", type=Path,
                                  help="atomically replace a file in an existing directory")
     args = parser.parse_args(argv)
-    source: Path = args.source
+    source = Path(args.source)
     try:
         # Bound reads as well as parsing, including when the input is a special file.
         with source.open("rb") as stream:
@@ -30,7 +30,7 @@ def main(argv: list[str] | None = None) -> int:
         elif args.output is None:
             print(translation.gallina, end="")
         else:
-            destination: Path = args.output
+            destination = Path(args.output)
             if (source.resolve() == destination.resolve()
                     or (destination.exists() and source.samefile(destination))):
                 print(f"{source}:1:1: io: output aliases the input", file=sys.stderr)

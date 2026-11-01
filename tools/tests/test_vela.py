@@ -8,10 +8,9 @@ from io import StringIO
 from pathlib import Path
 from unittest.mock import patch
 
-from vos.vela import MAX_SOURCE_BYTES, VelaError, translate
-
 from tests.harness import TOOLS, Case, ensure
 from vos.cli import vela as cli
+from vos.vela import MAX_SOURCE_BYTES, VelaError, translate
 
 _NAT = "Corelib.Init.Datatypes.nat"
 _BOOL = "Corelib.Init.Datatypes.bool"
@@ -169,6 +168,12 @@ def _limits() -> None:
     _refuses("module M; fn f() -> Nat { " + " + ".join(["1"] * 2000) + " }", "limit")
     bindings = " ".join(f"let x{i} = {i};" for i in range(1000))
     _refuses("module M; fn f() -> Nat { " + bindings + " 0 }", "limit")
+    # Nested Boolean equality must not duplicate its right operand exponentially.
+    expression = "false"
+    for _ in range(30):
+        expression = f"true == ({expression})"
+    emitted = translate(f"module M; fn f() -> Bool {{ {expression} }}".encode()).gallina
+    ensure(len(emitted) < 20_000, "small Boolean expression expanded exponentially")
 
 
 def _source_binding() -> None:

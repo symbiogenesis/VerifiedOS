@@ -1077,6 +1077,31 @@ Authoring `4f10fab` and repair `2468545` pass focused document checks after inde
 
 Landed: Tier A. The review states new claims about which admission arm the combined calculus takes and what its implementation still owes, so it took a full attended read rather than a spot read of its findings.
 
+<a id="q25e-build-a-pure-vela-to-gallina-prototype"></a>
+
+#### Q25e · Build a pure Vela-to-Gallina prototype
+
+The [pure translation contract](../languages/vela-prototype.md) landed at
+`d8b1cb38` before implementation. The host `vela` command checks explicit Nat/Bool
+functions, immutable bindings, branches and prior-function calls, then emits
+hygienic Gallina definitions bound to exact source bytes. Diagnostics retain source
+locations; rejected source and failed atomic file writes preserve existing output.
+The [authored example](../../tools/vela/examples/pure.vela) and independent expected
+terms exercise the fragment. Boolean equality binds operands once to keep emitted
+text linear in source size.
+
+Focused `test_vela`, command-lane tests and typecheck passed on the integrated
+implementation. The exact-revision Host CI verdict and every-lane Guest CI dispatch
+are retained by the `vela-20261031` fanout handoff; Guest CI supplies no verdict
+until it completes. Kernel replay of generated terms, checked source correspondence,
+graded resources and target compilation remain open at the plan's language owners.
+Translation tests confer no kernel, metatheory or production acceptance.
+
+Landed: Tier A. Separate full reads accepted the narrowed contract, independent
+oracle and complete implementation; the integrator reviewed the library and shared
+registrations. The review clarified reserved feature words and distinguished atomic
+file preservation from standard-output streaming.
+
 <a id="q26-price-the-resident-toolchain-against-the-floors-own-comparisons"></a>
 
 ### Q26 · Price the resident toolchain against the floor's own comparisons

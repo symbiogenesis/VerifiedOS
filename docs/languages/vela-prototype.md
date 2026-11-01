@@ -21,7 +21,8 @@ metatheory, compiler qualification or final-binary admission.
 ## Source fragment
 
 The prototype accepts UTF-8 source with ASCII identifiers and `//` line comments.
-Identifiers match `[A-Za-z_][A-Za-z0-9_]*`, excluding source keywords. Decimal
+Identifiers match `[A-Za-z_][A-Za-z0-9_]*`, excluding grammar and reserved extension
+keywords; the latter produce unsupported-feature diagnostics. Decimal
 literals match `[0-9]+`; leading zeros are permitted and normalized on emission.
 Every file contains one named module and at least one function. Every parameter
 and return type is explicit. A function can call only previously declared
@@ -78,8 +79,9 @@ Gallina to standard output; `--output FILE` publishes it through the shared
 atomic writer only after complete validation. Reject overwriting the input,
 including aliases. Do not create missing output parent directories implicitly.
 Diagnostics identify the file, line and column, distinguishing syntax, name,
-type, unsupported-feature, encoding, limit and I/O failures. No partial output
-is published after a rejected source or failed write.
+type, unsupported-feature, encoding, limit and I/O failures. Rejected source
+produces no generated output. Atomic file publication preserves existing output
+after a failed write; standard output cannot roll back bytes already consumed.
 
 Generated output is deterministic, uses fully qualified CIC library constants
 for operations, and binds the exact source bytes with SHA-256. The digest is
