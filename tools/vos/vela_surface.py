@@ -23,6 +23,111 @@ class Fixture:
 
 
 POSITIVE: tuple[Fixture, ...] = (
+    Fixture("local-grades-and-evaluation", """// café: local allowances do not absorb initializer effects.
+module LocalGrades;
+public void Bind<grade q : NatExact>(ref Buffer source) {
+    let inferred @ q = Input.Read();
+    var mutable @ NatExact(2) = 0;
+    let byte annotated @ q = 1byte;
+    var scoped ref<'source> byte loan @ NatExact(1) = ref source[0];
+    scoped ref<'source> byte direct @ q = ref source[1];
+    let callback @ Grade.Of(Fn(Nat probe) -> Nat => probe) = Fn(Nat item) -> Nat => item;
+    Nat dormant @ NatExact(0) = Effects.Read();
+    Nat genericGrade @ Grade.Of::<T, U>() = source;
+    Nat typeGrade @ type Box<Fn() -> Nat with { requires Ready(); }, U> = source;
+    let plain = 7;
+    let (let left, let right) = Pair();
+}
+""", ("let", "var", "typed_local", "modified_type", "typed_lambda", "let_pattern")),
+    Fixture("local-grade-errors-remain-syntax", """module InvalidLocalGrades;
+public async void Invalid(tracked Permit permit, ref Buffer source) {
+    let duplicated @ NatExact(1) = move permit;
+    Use(move duplicated, move duplicated);
+    let erased @ NatExact(0) = Effectful(move permit);
+    let escaping @ NatExact(1) = FnOnce(scoped ref byte loan) -> byte => {
+        await Ready();
+        return loan;
+    };
+    var stale @ NatExact(0) = source.Snapshot();
+    source.Replace(replacement);
+    Use(source[stale.Length]);
+}
+""", ("typed_lambda", "unary", "index", "let", "var")),
+    Fixture("domain-dictionaries-and-product-laws", """// café: dictionary members use ordinary paths, products and callbacks.
+module DomainDictionaries;
+domain Product<A : GradeDomain, B : GradeDomain>
+    where Compatible(A, B)
+    effects calls(A.interpret, B.interpret)
+{
+    carrier (A.carrier, B.carrier);
+    zero (A.zero, B.zero);
+    one (A.one, B.one);
+    add Fn((A.carrier, B.carrier) left, (A.carrier, B.carrier) right)
+        -> (A.carrier, B.carrier)
+        with { requires CompatibleValues(left, right); } => PairAdd(left, right);
+    mul ProductMultiply;
+    admits ProductAdmits;
+    interpret Fn((A.carrier, B.carrier) demand) -> Nat effects(Read) => InterpretPair(demand);
+    laws ProductLaws(A.laws, B.laws);
+}
+domain Legacy {
+    carrier Nat;
+    zero 0; one 1; add (+); mul (*);
+    admits (==); interpret Use.Exact; laws ExactLaws;
+}
+alias Associated = Library.NatExact.carrier;
+definition NatExact.carrier Twice(NatExact.carrier value) = NatExact.add(value, NatExact.zero);
+public void Inspect<grade q : NatExact>() {
+    NatExact.carrier selected @ q = NatExact.one;
+    let identity = (NatExact.carrier operand) => operand;
+    let multiply = NatExact.mul(selected, selected);
+    let permitted = NatExact.admits(selected, selected);
+    let interpreted = NatExact.interpret(selected);
+    let lawsValue = NatExact.laws;
+}
+""", ("domain", "generic_parameter", "contract", "effects", "tuple_type", "typed_lambda", "member", "lambda")),
+    Fixture("disposal-clause-lifecycles", """// café: operation, return and disposal bodies retain separate owners.
+module DisposalClauses;
+public Nat Run() {
+    let deep = handle (Read()) as active {
+        Choose() with k => resume k(true),
+        return done => done,
+        dispose cancelled => { Cleanup(cancelled); return (); },
+    };
+    let outerHandler = handle shallow (Work()) {
+        Choose() with outer => rehandle shallow (resume outer(true)) as forwarded {
+            return nested => nested,
+            dispose innerReason => Cleanup(innerReason),
+        },
+        dispose shallowReason => { dispose continuation; return (); },
+    };
+    return deep;
+}
+""", ("handle", "rehandle", "operation_clause", "return_clause", "disposal_clause", "dispose")),
+    Fixture("disposal-errors-remain-syntax", """module InvalidDisposal;
+public void Invalid() {
+    let duplicate = handle (Run()) as forbidden {
+        dispose first => forbidden.Choose(),
+        dispose second => { resume missing(true); dispose missing; return (); },
+        return result => result,
+    };
+}
+""", ("handle", "disposal_clause", "resume", "dispose", "member")),
+    Fixture("generic-callable-annotation-composition", """// café: callable arrows and contract braces never close generic arguments.
+module GenericCallableAnnotations;
+public void Bind<T, grade q : NatExact>() {
+    Box<Fn(Nat n) -> Vec<T, n>> direct @ q = source;
+    Result<owned Box<FnOnce<region 'r>(scoped ref<'r> T item @ q) -> T
+        captures Environment effects(Read)
+        with { requires Valid(item); restores Closed(item); }>, Error> nested = source;
+    let callback = (Box<FnMut(T item) -> () effects(Write)
+        with { restores Closed(item); }> box @ q, Nat index) => box;
+    Box<Fn() -> (Fn(T) -> T)> higher = source;
+    Index<(Fn(Nat sample) -> Nat => sample), (left <==> right)> computed = source;
+    Index<("-> >")> literal = source;
+    let comparisons = (left < right, low > high);
+}
+""", ("typed_local", "function_type", "generic_parameter", "contract", "modified_type", "lambda", "typed_lambda", "binary")),
     Fixture("kinded-telescopes-and-associated-families", """// café: kinds have spans distinct from their binders.
 module KindedFamilies;
 universe u;
@@ -681,6 +786,31 @@ public UnknownType F() { return missing; }
 
 
 NEGATIVE: tuple[tuple[str, bytes, str], ...] = (
+    ("local-inferred-missing-grade", b"module M; void F() { let value @ = Make(); }", "syntax"),
+    ("local-var-missing-grade", b"module M; void F() { var Nat value @ = Make(); }", "syntax"),
+    ("local-bare-missing-grade", b"module M; void F() { Nat value @ = Make(); }", "syntax"),
+    ("local-grade-after-initializer", b"module M; void F() { let value = Make() @ q; }", "syntax"),
+    ("local-grade-without-initializer", b"module M; void F() { let value @ q; }", "syntax"),
+    ("local-pattern-grade", b"module M; void F() { let (let x, let y) @ q = Pair(); }", "syntax"),
+    ("local-grade-lookahead-depth", b"module M; void F() { Nat value @ " + b"(" * 257
+     + b"q" + b")" * 257 + b" = Make(); }", "limit"),
+    ("domain-incomplete-telescope", b"module M; domain Product<A,> {}", "syntax"),
+    ("domain-incomplete-law", b"module M; domain Product<A> where {}", "syntax"),
+    ("domain-missing-carrier-member", b"module M; alias A = D.;", "syntax"),
+    ("domain-member-without-value", b"module M; void F() { D.add(); let value = D.; }", "syntax"),
+    ("domain-role-remains-reserved", b"module M; definition Nat add() = 0;", "syntax"),
+    ("domain-role-remains-reserved-value", b"module M; void F() { let value = zero; }", "syntax"),
+    ("disposal-clause-missing-binder", b"module M; void F() { handle (Run()) { dispose => Cleanup(); }; }", "syntax"),
+    ("disposal-clause-missing-arrow", b"module M; void F() { handle (Run()) { dispose reason Cleanup(reason), }; }", "syntax"),
+    ("disposal-clause-missing-body", b"module M; void F() { handle (Run()) { dispose reason =>, }; }", "syntax"),
+    ("disposal-clause-semicolon-separator", b"module M; void F() { handle (Run()) { dispose reason => Cleanup(reason); }; }", "syntax"),
+    ("disposal-clause-body-depth", b"module M; void F() { handle (Run()) { dispose reason => "
+     + b"{" * 257 + b"return ();" + b"}" * 257 + b", }; }", "limit"),
+    ("generic-callable-missing-result", b"module M; void F() { Box<Fn() ->> value = source; }", "syntax"),
+    ("generic-callable-broken-arrow", b"module M; void F() { Box<Fn() - > Nat> value = source; }", "syntax"),
+    ("generic-callable-missing-contract-value", b"module M; void F() { Box<Fn() -> Nat with { restores; }> value = source; }", "syntax"),
+    ("generic-callable-contract-lookahead-depth", b"module M; void F() { Box<Fn() -> Nat with "
+     + b"{" * 257 + b"requires Ready();" + b"}" * 257 + b"> value = source; }", "limit"),
     ("ungrouped-callable-kind", b"module M; alias A<F : Fn() -> Nat> = F;", "syntax"),
     ("ungrouped-associated-callable-kind", b"module M; trait F { type A : Fn() -> Nat; }", "syntax"),
     ("ungrouped-callable-type-expression", b"module M; definition Type<u> F() = type Fn() -> Nat;", "syntax"),
@@ -985,6 +1115,231 @@ def _contract_roles(owner: dict[str, Json], roles: list[str]) -> list[dict[str, 
     if [clause.get("role") for clause in clauses] != roles:
         raise ValueError("surface contract roles differ or belong to the wrong declaration")
     return clauses
+
+
+def _local_grade_roles(source: bytes, result: dict[str, Json]) -> None:
+    function = _named(result.get("ast"), "function", "Bind")
+    inferred = _named(function, "let", "inferred")
+    if inferred.get("type") is not None or _texts(inferred.get("grade")) != ["q"]:
+        raise ValueError("surface inferred local lost its separate allowance")
+    _exact_span(source, inferred, b"let inferred @ q = Input.Read();")
+    grade_start = source.index(b"inferred @ q") + len(b"inferred @ ")
+    if _object(inferred.get("grade"), "local grade").get("span") != [grade_start, grade_start + 1]:
+        raise ValueError("surface local allowance lost its original-byte span")
+    if _texts(_object(inferred.get("value"), "effectful initializer").get("callee")) != ["Input", "Read"]:
+        raise ValueError("surface local allowance absorbed its initializer")
+    mutable = _named(function, "var", "mutable")
+    _exact_span(source, _object(mutable.get("grade"), "mutable allowance"), b"NatExact(2)")
+    annotated = _named(function, "let", "annotated")
+    _type_head(annotated.get("type"), "byte", 0)
+    if _texts(annotated.get("grade")) != ["q"]:
+        raise ValueError("surface typed let lost its allowance")
+    for kind, name in (("var", "loan"), ("typed_local", "direct")):
+        local = _named(function, kind, name)
+        scoped = _object(local.get("type"), "scoped local type")
+        loan = _object(scoped.get("type"), "exclusive local loan")
+        if (scoped.get("modifier") != "scoped" or loan.get("modifier") != "ref"
+                or _texts(loan.get("lifetime")) != ["'source"]):
+            raise ValueError("surface local grade displaced scoped loan ancestry")
+        _type_head(loan.get("type"), "byte", 0)
+        if _object(local.get("value"), "borrow initializer").get("kind") != "unary":
+            raise ValueError("surface graded loan lost its borrow initializer")
+    callback = _named(function, "let", "callback")
+    grade = _object(callback.get("grade"), "callback-computed local allowance")
+    argument = _object(_sequence(grade.get("arguments"), "allowance arguments")[0], "grade callback")
+    initializer = _object(callback.get("value"), "callable initializer")
+    if grade.get("kind") != "call" or argument.get("kind") != "typed_lambda" or initializer.get("kind") != "typed_lambda":
+        raise ValueError("surface local allowance conflated its callback with the initializer")
+    _exact_span(source, grade, b"Grade.Of(Fn(Nat probe) -> Nat => probe)")
+    dormant = _named(function, "typed_local", "dormant")
+    dormant_grade = _object(dormant.get("grade"), "zero-use allowance")
+    zero = _object(_sequence(dormant_grade.get("arguments"), "zero allowance arguments")[0], "zero allowance")
+    if zero.get("value") != "0" or _texts(_object(dormant.get("value"), "retained initializer").get("callee")) != ["Effects", "Read"]:
+        raise ValueError("surface zero-use local erased or replaced its effectful initializer")
+    generic_grade = _object(_named(function, "typed_local", "genericGrade").get("grade"), "generic local allowance")
+    if _object(generic_grade.get("callee"), "generic allowance operation").get("kind") != "generic_application":
+        raise ValueError("surface local allowance ended at a generic argument comma")
+    _exact_span(source, generic_grade, b"Grade.Of::<T, U>()")
+    type_grade = _object(_named(function, "typed_local", "typeGrade").get("grade"), "type-valued allowance")
+    if type_grade.get("kind") != "type_expression":
+        raise ValueError("surface syntax removed a semantically invalid type-valued allowance")
+    arguments = _type_head(type_grade.get("type"), "Box", 2)
+    _contract_roles(_object(arguments[0], "type-valued allowance callback"), ["requires"])
+    _exact_span(source, type_grade, b"type Box<Fn() -> Nat with { requires Ready(); }, U>")
+    plain = _named(function, "let", "plain")
+    if "grade" not in plain or plain.get("grade") is not None:
+        raise ValueError("surface ungraded local fabricated an allowance")
+    pattern = next(node for node in nodes(function) if node.get("kind") == "let_pattern")
+    if "grade" in pattern:
+        raise ValueError("surface product elimination acquired a component allowance")
+
+
+def _local_grade_error_roles(result: dict[str, Json]) -> None:
+    function = _named(result.get("ast"), "function", "Invalid")
+    duplicate = _named(function, "let", "duplicated")
+    if _object(duplicate.get("grade"), "invalid exact allowance").get("kind") != "call":
+        raise ValueError("surface invalid local lost its explicit allowance")
+    moves = [node for node in nodes(function) if node.get("kind") == "unary"
+             and _texts(node.get("operator")) == ["move"] and _texts(node.get("value")) == ["duplicated"]]
+    if len(moves) != 2:
+        raise ValueError("surface syntax repaired duplicated ownership use")
+    erased = _named(function, "let", "erased")
+    if _texts(_object(erased.get("value"), "zero-use effectful initializer").get("callee")) != ["Effectful"]:
+        raise ValueError("surface invalid zero-use binding lost its evaluated computation")
+    escaping = _object(_named(function, "let", "escaping").get("value"), "escaping callback")
+    if not any(node.get("kind") == "unary" and _texts(node.get("operator")) == ["await"] for node in nodes(escaping)):
+        raise ValueError("surface syntax repaired borrowing across a suspension")
+
+
+def _domain_dictionary_roles(source: bytes, result: dict[str, Json]) -> None:
+    product = _named(result.get("ast"), "domain", "Product")
+    generics = [_object(value, "domain generic") for value in _sequence(product.get("generics"), "domain telescope")]
+    if [_texts(value.get("name")) for value in generics] != [["A"], ["B"]]:
+        raise ValueError("surface product domain lost its ordinary telescope")
+    for generic in generics:
+        _type_head(generic.get("type"), "GradeDomain", 0)
+    contracts = [_object(value, "domain contract") for value in _sequence(product.get("contracts"), "domain contracts")]
+    if [value.get("kind") for value in contracts] != ["contract", "effects"] or contracts[0].get("role") != "where":
+        raise ValueError("surface domain law/effect ownership differs")
+    _exact_span(source, contracts[0], b"where Compatible(A, B)")
+    _exact_span(source, contracts[1], b"effects calls(A.interpret, B.interpret)")
+    entries: dict[str, dict[str, Json]] = {}
+    for value in _sequence(product.get("entries"), "domain entries"):
+        entry = _object(value, "domain entry")
+        role = entry.get("role")
+        if not isinstance(role, str):
+            raise ValueError("surface domain entry lacks its role")
+        entries[role] = entry
+    carrier = _object(entries["carrier"].get("value"), "product carrier")
+    components = [_object(value, "carrier component") for value in _sequence(carrier.get("types"), "carrier components")]
+    if carrier.get("kind") != "tuple_type" or [_texts(value.get("name")) for value in components] != [["A.carrier"], ["B.carrier"]]:
+        raise ValueError("surface domain carrier stopped using ordinary product types")
+    _exact_span(source, carrier, b"(A.carrier, B.carrier)")
+    zero = _object(entries["zero"].get("value"), "product zero")
+    if zero.get("kind") != "tuple" or _texts(zero) != ["A", "zero", "B", "zero"]:
+        raise ValueError("surface product domain zero lost contextual member projections")
+    addition = _object(entries["add"].get("value"), "domain addition callback")
+    signature = _object(addition.get("signature"), "addition signature")
+    if addition.get("kind") != "typed_lambda" or signature.get("effects") != []:
+        raise ValueError("surface domain effects leaked into addition's callable signature")
+    _contract_roles(signature, ["requires"])
+    interpretation = _object(entries["interpret"].get("value"), "domain interpretation callback")
+    interpretation_signature = _object(interpretation.get("signature"), "interpretation signature")
+    if _texts(interpretation_signature.get("effects")) != ["Read"] or interpretation_signature.get("contracts") != []:
+        raise ValueError("surface interpretation effects changed declaration ownership")
+    laws = _object(entries["laws"].get("value"), "product laws")
+    if _texts(laws) != ["ProductLaws", "A", "laws", "B", "laws"]:
+        raise ValueError("surface product laws lost dictionary member names")
+    legacy = _named(result.get("ast"), "domain", "Legacy")
+    if legacy.get("generics") != [] or legacy.get("contracts") != []:
+        raise ValueError("surface legacy domain fabricated a telescope or contract")
+    associated = _object(_named(result.get("ast"), "alias", "Associated").get("type"), "qualified carrier")
+    _exact_span(source, _object(associated.get("name"), "qualified carrier path"), b"Library.NatExact.carrier")
+    twice = _named(result.get("ast"), "definition", "Twice")
+    _type_head(twice.get("result"), "NatExact.carrier", 0)
+    addition_call = _object(twice.get("value"), "dictionary addition")
+    _exact_span(source, _object(addition_call.get("callee"), "addition member"), b"NatExact.add")
+    selected = _named(result.get("ast"), "typed_local", "selected")
+    _type_head(selected.get("type"), "NatExact.carrier", 0)
+    _exact_span(source, selected, b"NatExact.carrier selected @ q = NatExact.one;")
+    identity = _object(_named(result.get("ast"), "let", "identity").get("value"), "carrier callback")
+    parameter = _object(_sequence(identity.get("parameters"), "carrier callback parameters")[0], "carrier callback binder")
+    _type_head(parameter.get("type"), "NatExact.carrier", 0)
+    _exact_span(source, parameter, b"NatExact.carrier operand")
+    for local_name, role in (("multiply", "mul"), ("permitted", "admits"), ("interpreted", "interpret")):
+        value = _object(_named(result.get("ast"), "let", local_name).get("value"), "dictionary operation")
+        member = _object(value.get("callee"), "dictionary operation member")
+        if member.get("kind") != "member" or _texts(member.get("name")) != [role]:
+            raise ValueError("surface domain role was not retained as an ordinary member")
+
+
+def _disposal_clause_roles(source: bytes, result: dict[str, Json]) -> None:
+    deep = _object(_named(result.get("ast"), "let", "deep").get("value"), "deep handler")
+    clauses = [_object(value, "deep handler clause") for value in _sequence(deep.get("clauses"), "deep handler clauses")]
+    if deep.get("shallow") is not False or _texts(deep.get("capability")) != ["active"]:
+        raise ValueError("surface disposal changed its enclosing handler capability")
+    if [value.get("kind") for value in clauses] != ["operation_clause", "return_clause", "disposal_clause"]:
+        raise ValueError("surface disposal absorbed operation or return clauses")
+    disposal = clauses[2]
+    _exact_span(source, _object(disposal.get("name"), "disposal reason binder"), b"cancelled")
+    _exact_span(source, _object(disposal.get("body"), "disposal block"), b"{ Cleanup(cancelled); return (); }")
+    shallow = _object(_named(result.get("ast"), "let", "outerHandler").get("value"), "shallow handler")
+    outer_clauses = [_object(value, "shallow clause") for value in _sequence(shallow.get("clauses"), "shallow clauses")]
+    rehandler = _object(outer_clauses[0].get("body"), "nested rehandler")
+    if (shallow.get("shallow") is not True or rehandler.get("kind") != "rehandle"
+            or rehandler.get("shallow") is not True or _texts(rehandler.get("capability")) != ["forwarded"]):
+        raise ValueError("surface disposal lost shallow rehandler association")
+    inner = _named(rehandler, "disposal_clause", "innerReason")
+    if _object(inner.get("body"), "expression disposal body").get("kind") != "call":
+        raise ValueError("surface expression disposal body acquired a block")
+    _exact_span(source, inner, b"dispose innerReason => Cleanup(innerReason)")
+    outer = outer_clauses[1]
+    if outer.get("kind") != "disposal_clause" or _texts(outer.get("name")) != ["shallowReason"]:
+        raise ValueError("surface inner disposal escaped into the outer handler")
+    unary = next(node for node in nodes(outer) if node.get("kind") == "dispose")
+    if _texts(unary.get("value")) != ["continuation"]:
+        raise ValueError("surface disposal clause replaced the existing dispose computation")
+
+
+def _disposal_error_roles(result: dict[str, Json]) -> None:
+    handler = _object(_named(result.get("ast"), "let", "duplicate").get("value"), "invalid disposal handler")
+    clauses = [_object(value, "invalid disposal clause") for value in _sequence(handler.get("clauses"), "invalid disposal clauses")]
+    if [value.get("kind") for value in clauses] != ["disposal_clause", "disposal_clause", "return_clause"]:
+        raise ValueError("surface syntax silently repaired duplicate disposal clauses")
+    if _texts(_object(clauses[0].get("body"), "invalid capability use").get("callee")) != ["forbidden", "Choose"]:
+        raise ValueError("surface syntax removed forbidden handler-capability use")
+    if not any(node.get("kind") == "resume" for node in nodes(clauses[1])):
+        raise ValueError("surface syntax removed invalid disposal resumption")
+
+
+def _generic_callable_annotation_roles(source: bytes, result: dict[str, Json]) -> None:
+    direct = _named(result.get("ast"), "typed_local", "direct")
+    signature = _object(_type_head(direct.get("type"), "Box", 1)[0], "generic callable")
+    if signature.get("kind") != "function_type" or _texts(direct.get("grade")) != ["q"]:
+        raise ValueError("surface generic callable arrow displaced the local allowance")
+    _exact_span(source, signature, b"Fn(Nat n) -> Vec<T, n>")
+    result_arguments = _type_head(signature.get("result"), "Vec", 2)
+    if [_texts(value) for value in result_arguments] != [["T"], ["n"]]:
+        raise ValueError("surface generic callable lost dependent result indices")
+    nested = _named(result.get("ast"), "typed_local", "nested")
+    owned = _object(_type_head(nested.get("type"), "Result", 2)[0], "owned callable box")
+    nested_signature = _object(_type_head(owned.get("type"), "Box", 1)[0], "nested callable signature")
+    if owned.get("modifier") != "owned" or nested_signature.get("mode") != "FnOnce":
+        raise ValueError("surface generic callable lost ownership or call mode")
+    if _texts(nested_signature.get("captures")) != ["Environment"] or _texts(nested_signature.get("effects")) != ["Read"]:
+        raise ValueError("surface generic callable displaced capture/effect annotations")
+    contracts = _contract_roles(nested_signature, ["requires", "restores"])
+    _exact_span(source, contracts[0], b"requires Valid(item)")
+    parameter = _object(_sequence(nested_signature.get("parameters"), "nested callable parameters")[0], "scoped callable parameter")
+    scoped = _object(parameter.get("type"), "scoped callable loan")
+    loan = _object(scoped.get("type"), "exclusive callable loan")
+    if (scoped.get("modifier") != "scoped" or loan.get("modifier") != "ref"
+            or _texts(loan.get("lifetime")) != ["'r"] or _texts(parameter.get("grade")) != ["q"]):
+        raise ValueError("surface generic annotation displaced its parameter loan/grade")
+    callback_local = _named(result.get("ast"), "let", "callback")
+    callback = _object(callback_local.get("value"), "inferred generic callback")
+    box_parameter = _object(_sequence(callback.get("parameters"), "inferred callback telescope")[0], "generic box parameter")
+    box_signature = _object(_type_head(box_parameter.get("type"), "Box", 1)[0], "boxed mutable callable")
+    if (callback.get("kind") != "lambda" or callback_local.get("grade") is not None
+            or _texts(box_parameter.get("grade")) != ["q"] or box_signature.get("mode") != "FnMut"):
+        raise ValueError("surface generic callback conflated local and parameter allowances")
+    _contract_roles(box_signature, ["restores"])
+    if _texts(box_signature.get("effects")) != ["Write"]:
+        raise ValueError("surface boxed callback lost its effect annotation")
+    higher = _named(result.get("ast"), "typed_local", "higher")
+    higher_signature = _object(_type_head(higher.get("type"), "Box", 1)[0], "higher-order callable")
+    grouped_result = _object(higher_signature.get("result"), "higher-order result")
+    if grouped_result.get("kind") != "group_type" or _object(grouped_result.get("type"), "returned callable").get("kind") != "function_type":
+        raise ValueError("surface generic annotation lost its returned callable")
+    computed = _type_head(_named(result.get("ast"), "typed_local", "computed").get("type"), "Index", 2)
+    callback_argument = _object(_object(computed[0], "callback value argument").get("value"), "computed generic callback")
+    equivalence = _object(_object(computed[1], "equivalence argument").get("value"), "generic equivalence")
+    if callback_argument.get("kind") != "typed_lambda" or _texts(equivalence.get("operator")) != ["<==>"]:
+        raise ValueError("surface generic lookahead confused callback/equivalence arrows")
+    literal = _type_head(_named(result.get("ast"), "typed_local", "literal").get("type"), "Index", 1)
+    string = _object(_object(literal[0], "literal argument").get("value"), "arrow-like string")
+    if string.get("kind") != "string" or string.get("value") != '"-> >"':
+        raise ValueError("surface generic lookahead interpreted a literal arrow")
 
 
 def _kinded_family_roles(source: bytes, result: dict[str, Json]) -> None:
@@ -1878,7 +2233,19 @@ def qualify(parse: Callable[[bytes], dict[str, Json]]) -> list[str]:
         missing = set(fixture.kinds) - found
         if missing:
             raise ValueError(f"surface fixture {fixture.name} lacks AST roles: {sorted(missing)}")
-        if fixture.name == "function-types-grades-and-contracts":
+        if fixture.name == "local-grades-and-evaluation":
+            _local_grade_roles(fixture.source.encode("utf-8"), result)
+        elif fixture.name == "local-grade-errors-remain-syntax":
+            _local_grade_error_roles(result)
+        elif fixture.name == "domain-dictionaries-and-product-laws":
+            _domain_dictionary_roles(fixture.source.encode("utf-8"), result)
+        elif fixture.name == "disposal-clause-lifecycles":
+            _disposal_clause_roles(fixture.source.encode("utf-8"), result)
+        elif fixture.name == "disposal-errors-remain-syntax":
+            _disposal_error_roles(result)
+        elif fixture.name == "generic-callable-annotation-composition":
+            _generic_callable_annotation_roles(fixture.source.encode("utf-8"), result)
+        elif fixture.name == "function-types-grades-and-contracts":
             _type_roles(result)
         elif fixture.name == "kinded-telescopes-and-associated-families":
             _kinded_family_roles(fixture.source.encode("utf-8"), result)
