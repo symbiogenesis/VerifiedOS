@@ -139,6 +139,38 @@ def _hosted_events() -> None:
                    "a dispatch pinned behind main reports the checked-out revision")
 
 
+def _guest_overrides() -> None:
+    with sandbox_tree({"README.md": "base\n"}) as root:
+        base = _commit(root)
+        (root / "README.md").write_text("updated prose\n", encoding="utf-8")
+        _git(root, "add", "--", "README.md")
+        revision = _commit(root)
+        selected = scope.select_changes(root, base, revision, force_guest=True)
+        ensure(not selected["host_full"] and not selected["model_hooks"]
+               and selected["guest_lanes"] == list(scope.ALL_GUEST_LANES)
+               and selected["reason"] == "guest override",
+               "guest acceptance expands guest lanes while preserving prose's Host scope")
+        ensure(scope.validate_selection(selected, revision) == selected,
+               "the narrower override round trips through its journal validator")
+        for broken in (dict(selected, host_full=True), dict(selected, model_hooks=True),
+                       dict(selected, guest_lanes=["proofs"]), dict(selected, base=None),
+                       dict(selected, paths=[])):
+            try:
+                scope.validate_selection(broken, revision)
+            except ValueError:
+                pass
+            else:
+                raise AssertionError(f"noncanonical guest override was accepted: {broken}")
+        forced = scope.select_changes(root, base, revision, force_guest=True, force_full=True)
+        ensure(forced["host_full"] and forced["model_hooks"] and forced["reason"] == "full override",
+               "explicit full CI takes precedence over a guest-only override")
+        for missing in (None, revision):
+            fallback = scope.select_changes(root, missing, revision, force_guest=True)
+            ensure(fallback["host_full"] and fallback["model_hooks"]
+                   and fallback["reason"] in {"comparison unavailable", "empty comparison"},
+                   "guest overrides never narrow unavailable or empty comparisons")
+
+
 def _malformed_journal() -> None:
     paths = ["README.md"]
     selected: scope.Selection = {**scope.classify(paths), "base": "b" * 40,
@@ -160,4 +192,5 @@ def cases() -> list[Case]:
     return [Case("known-prose-and-source-consumers", _classifications),
             Case("complete-git-comparisons-and-full-fallbacks", _comparisons),
             Case("hosted-push-pr-and-manual-selection", _hosted_events),
+            Case("guest-overrides-preserve-host-scope", _guest_overrides),
             Case("frozen-selection-refuses-malformed-records", _malformed_journal)]

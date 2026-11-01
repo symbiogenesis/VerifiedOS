@@ -329,6 +329,33 @@ def _legacy_unprepared_scope_and_remote_reset() -> None:
                        "a remote reset cannot add unclassified changes to a non-force publication")
 
 
+def _guest_acceptance_preserves_host_scope() -> None:
+    for policy in ("cold", "reading_base", "full_ci"):
+        with fixture() as (root, lane, _):
+            base = git(root, "rev-parse", "HEAD")
+            git(root, "push", "origin", "HEAD:refs/heads/main")
+            (root / "README.md").write_text("prose for guest acceptance\n", encoding="utf-8")
+            git(root, "add", "--", "README.md")
+            revision = commit(root, "settled documentation")
+            state, path = init(root, lane, base if policy == "reading_base" else None)
+            state["cold"] = policy == "cold"
+            state["full_ci"] = policy == "full_ci"
+            selected = fanout._freeze_selection(root, state, revision, path)
+            full = policy == "full_ci"
+            ensure(selected["host_full"] is full and selected["model_hooks"] is full
+                   and selected["guest_lanes"] == ["model", "rtl", "proofs"]
+                   and selected["reason"] == ("full override" if full else "guest override"),
+                   "cold and reading acceptance expand Guest CI; full CI alone expands Host CI too")
+            state["ci"] = fanout_ci.new_state("example/repo", "main", revision, state["cold"],
+                                               state.get("reading_base"), selection=selected, full_ci=full)
+            fanout._save(path, state)
+            ensure(fanout._load(path, root) == state, "guest-only override remains valid on resume")
+            with patch.object(fanout, "_prepublication") as preparation:
+                fanout._publish(root, state, revision)
+                ensure(preparation.call_count == (1 if full else 0),
+                       "cold and proof-reading prose avoid unchanged Python publication checks")
+
+
 def cases() -> list[Case]:
     return [Case("publish, pending host, resume and retirement order", _publish_wait_resume),
             Case("reading base reaches CI and needs a proper descendant",
@@ -342,4 +369,5 @@ def cases() -> list[Case]:
             Case("changed inputs during preparation prevent publication", _preparation_changes_inputs),
             Case("prose selection freezes before publication", _prose_selection_freezes_before_publication),
             Case("scope policy and journal binding", _scope_policy_and_journal_binding),
-            Case("legacy unprepared scope and remote reset", _legacy_unprepared_scope_and_remote_reset)]
+            Case("legacy unprepared scope and remote reset", _legacy_unprepared_scope_and_remote_reset),
+            Case("guest acceptance preserves host scope", _guest_acceptance_preserves_host_scope)]

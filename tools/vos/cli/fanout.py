@@ -348,8 +348,8 @@ def _freeze_selection(root: Path, state: Batch, revision: str, path: Path) -> ci
         pass
     selection = ci_scope.select_changes(
         root, base, revision,
-        force_full=bool(state["cold"] or state.get("reading_base") or state.get("full_ci")
-                        or "full_ci" not in state))
+        force_full=bool(state.get("full_ci") or "full_ci" not in state),
+        force_guest=bool(state["cold"] or state.get("reading_base")))
     state["selection"] = selection
     _save(path, state)
     print(f"CI selection from {selection['base'] or 'unavailable'}: {selection['reason']}; "
