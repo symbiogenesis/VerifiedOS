@@ -122,3 +122,37 @@ public async T Preserve<T>(owned T value)
     return move value;
 }
 on cancel { Close(move value); }
+
+// The same grades and generic contracts describe ordinary library instances.
+public struct Graded<T, grade q : NatExact> {
+    private T Value @ q;
+}
+
+public impl<T, grade q : NatExact> Duplicate<Graded<T, q>>
+    where Repeatable(T, q)
+{
+    public (owned Graded<T, q>, owned Graded<T, q>) Split(owned Graded<T, q> value)
+        ensures Preserved(old(value), result);
+}
+
+// The callback binds its own region; its restoration belongs to the callable.
+public alias ScopedUpdate<T, captures C> =
+    Fn<region 'loan>(scoped ref<'loan> T value) -> () captures C
+        with { requires Valid(value); restores Valid(value); };
+
+// A dependent match names its scrutinee in the result type before eliminating it.
+public definition owned Buffer<T, packet.Length> TakeStorage<T>(owned Sized<T> packet) =
+    match (packet) as whole : owned Buffer<T, whole.Length> {
+        case Sized(let length, let storage, let evidence) => move storage;
+    };
+
+public Result<ref<'workspace.bytes> byte, Error> ForwardSlot(ref Workspace workspace)
+    effects writes(workspace.bytes)
+    restores result is Ok(let slot) ==>
+        workspace.bytes.Model == old(workspace.bytes.Model).Set(0, final(slot))
+{
+    return match (workspace.TryFirst()) {
+        case Ok(let slot) => Ok(slot);
+        case Err(let error) => Err(error);
+    };
+}
