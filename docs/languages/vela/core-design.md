@@ -1,31 +1,20 @@
 # Bounded language core and qualification contract
 
-> **Execution status:** [The workflow contract's commissioning disposition](workflow-contract.md#commissioning-disposition) governs the canceled experiments, retained proposal roles and re-entry conditions used here.
-
-> Non-normative Q21a design record. The decision declines commissioning the present core qualification under its missing foundation and translator-admission prerequisites. The bounded design below supplies no implemented frontend, proved metatheory or production qualification. The [requirements register](../../requirements-register.md) remains authoritative. [The strategy](verification-strategy.md#a-compositional-core) states the wider objective; [the implementation checklist](../../../PLAN.md#q-assessment-actions) owns scheduling.
+> Non-normative Q21a synchronous-core design. Start with the [primary Vela design and examples](verification-strategy.md). Qualification is declined for the [missing prerequisites](#decision-and-reopening-evidence); no frontend, metatheory or production qualification is supplied. The [workflow disposition](workflow-contract.md#commissioning-disposition) governs canceled trials and re-entry; the [requirements register](../../requirements-register.md) governs obligations and [PLAN.md](../../../PLAN.md#q-assessment-actions) owns scheduling.
 
 ## Decision and boundary
 
-This contract is the synchronous qualification slice of Vela. The [full-language commitments](verification-strategy.md#full-language-design-commitments) include graded dependent typing, general handlers, structured async/cancellation and controlled concurrent interior mutability under Q25. The exclusions below delimit this fixture and its evidence; they do not defer those features from the language design. Q25's combined rules must preserve the slice's contracts and meet its own concrete-law and implementation gates.
+This synchronous fixture preserves a bounded slice of [Vela's full design](verification-strategy.md#full-language-design-commitments): stable dependent values, sequenced computations, resource-indexed exits, fixed representations and a finite loan tree. It covers fallthrough/return, `Result` propagation, branch-sensitive returned shared loans, bounded loops with `break`/`continue`, disjoint fields and nested reborrowing. Q19's callback pilot establishes none of that flow analysis. The fixture's exclusions do not defer graded dependence, handlers, async/cancellation or concurrent interior mutability from Q25's language design; the combined rules must preserve its contracts and meet their own gates.
 
-Retain a synchronous core with stable dependent values, explicitly sequenced computations, resource-indexed exits, fixed representations and a finite loan tree as the conditional design. Its proposed qualification covers fallthrough, ordinary return, `Result` propagation, branch-sensitive returned shared loans, bounded loops with `break` and `continue`, statically disjoint fields and nested reborrowing. These are design cases, unavailable as a Vela implementation today. Q19's callback pilot establishes none of this flow analysis by itself.
+**Qualification is not commissioned.** The [foundation decision](../../hardware/cheri-foundation-map.md#review-decision) supplies neither checked concrete resource/machine laws nor responsibly bounded implementation cells. The returned-view exit needs split, suspension and restoration laws that syntax cannot supply. The frontend is also held by [Q25d's admission disposition](full-language-review.md#r-05-009-r-05-020-and-what-holds-the-frontend-rows): R-05-020 refuses the arm with independent source semantics this design occupies; R-05-009 instead governs a kernel-checked interpretation in an existing anchor. Rocq output alone proves neither nonduplication nor retirement. This prerequisite rejection establishes no inconsistency or product infeasibility and changes no entry condition for Q19a/Q19b, the conditional library pilot or current realization.
 
-**Decision: decline commissioning this qualification.** The [foundation map's review decision](../../hardware/cheri-foundation-map.md#review-decision) leaves its concrete resource interpretation and machine connection without checked laws or responsibly bounded implementation cells. In particular, the composed returned-view exit below needs concrete split, suspension and restoration laws that its proposed syntax rules cannot provide. The general frontend also lacks the retiring interim required for translator admission. This is a rejection under Q21a's present prerequisite predicate, with [specific reopening evidence](#decision-and-reopening-evidence); it establishes neither an inconsistent calculus nor an infeasible language product. Q19a/Q19b, the conditional library pilot and the existing realization route retain their own entry conditions.
+Runtime types are machine integers, bytes, fixed records, finite sums and statically sized buffers, with explicit parameters and statically resolved calls. Capacities/layouts specialize before emission; runtime lengths and discriminants stay represented. A known total shared-call callback may specialize with its immutable environment and proved representation. General runtime higher-order functions, recursive heap data and dynamic dispatch are excluded. Accepted Rocq terms/assumptions still permit dependent families and total pure functions in specifications and proofs without implying runtime representability.
 
-The runtime fragment admits machine integers, bytes, fixed records, finite tagged sums, statically sized buffers, explicit parameters and statically resolved calls. Public capacities and layouts specialize before emission; runtime lengths and result discriminants remain represented. A statically known total shared-call callback may specialize with its immutable environment and a proved representation. General higher-order runtime functions, recursive heap data and dynamic dispatch are outside this qualification. Dependent families and total pure functions remain available for specifications and proofs when their accepted Rocq terms and assumptions permit them; that availability does not make every such type representable at runtime.
-
-There is no source allocation, implicit boxing, unwinding, suspension, cancellation, effect handler, concurrent interior mutation or loan crossing a service activation in this fragment. Its loops terminate; an unbounded service loop requires a separate progress contract. Revocation, DMA, publication ordering and arbitrary adversarial contexts remain obligations at their existing owners. A sequential memory theorem cannot replace them. Kernel conversion, universe rules and the assumption ledger are unchanged.
-
-The general frontend has no identified retiring interim, so [R-05-020's translator admission](../../spec.md#r-05-020) refuses it wherever that entry engages, which [Q25d's disposition](full-language-review.md#r-05-009-r-05-020-and-what-holds-the-frontend-rows) shows is the arm this design sits in; in the other arm R-05-009 reaches the producer instead and R-05-020 has no subject. Rocq-native output alone satisfies neither nonduplication nor retirement. The implementation packages below stay held on that disposition; documenting a core interpretation does not make it a new semantic anchor.
+The fixture has no source allocation, implicit boxing, unwinding, suspension, cancellation, handler, concurrent interior mutation or loan across service activations. Loops terminate; unbounded service loops need a separate progress contract. Revocation, DMA, publication ordering and adversarial-context obligations retain their existing owners; a sequential theorem cannot discharge them. Kernel conversion, universes and the assumption ledger are unchanged. The packages below remain held; a proposed interpretation creates no admitted semantic anchor.
 
 ## Inputs and their actual subjects
 
-The source inspection uses repository revision
-`4aeaceedf4626ef64583a4680c19da29a469df4f`. The
-[foundation map](../../hardware/cheri-foundation-map.md) records available constants and missing
-connections; the [workflow contract](workflow-contract.md) owns the
-pilot comparison, and the [compiler-route contract](compiler-route-contract.md)
-owns its separate full-artifact comparison.
+Inspection revision: `4aeaceedf4626ef64583a4680c19da29a469df4f`. The [foundation map](../../hardware/cheri-foundation-map.md) records constants and missing connections; [workflow](workflow-contract.md) owns the pilot comparison and [compiler routes](compiler-route-contract.md) the full-artifact comparison.
 
 | Input | Inspected subject | Design use and limit |
 | --- | --- | --- |
@@ -38,7 +27,7 @@ The proposed parser-derived extension initializes its fixed private destination 
 
 ## Reuse decisions
 
-These decisions consume the [strategy's research comparison](verification-strategy.md#type-theory-and-elaboration-reuse); they incorporate no upstream artifact and report no new qualification result.
+Reuse follows the [strategy's comparison](verification-strategy.md#type-theory-and-elaboration-reuse); no upstream artifact is incorporated or newly qualified.
 
 | Mechanism considered | Selected bounded use | Missing evidence |
 | --- | --- | --- |
@@ -59,11 +48,11 @@ Sigma ; Gamma ; Delta |- v : A [phase p, usage q, captures C, representation rho
 Sigma ; Gamma ; Delta |- c : Exit(A, Q) ! E
 ```
 
-`Sigma` fixes resolution, primitive contracts, the logic instance and representation definitions. `Gamma` contains stable duplicable values, region identities and pure facts. A region identity identifies storage but grants no access. `Delta` contains owned represented values, access permissions, suspended parents and restoration obligations. A shared view can appear in `Gamma` carrying its loan identity; an operation through it still requires that loan's live permission in `Delta`. Duplicating the descriptor neither creates ownership nor extends its lifetime.
+`Sigma` fixes resolution, primitive contracts, logic and representation. `Gamma` contains stable duplicable values, region identities and pure facts; identity grants no access. `Delta` contains represented owners, permissions, suspended parents and restoration duties. A shared descriptor in `Gamma` names a loan whose live permission remains in `Delta`; descriptor duplication creates no ownership or lifetime.
 
-`Exit(A,Q)` maps each reachable exit tag to a result and resource predicate, possibly dependent on a represented result tag or scalar. Its interpretation relates the same entry state, execution and exit state under the same representation. `E` bounds operation footprints and named external events. Runtime evaluation is left to right and by value; short-circuiting is explicit control flow. Getters, conversions and callbacks cannot execute outside this judgment.
+`Exit(A,Q)` maps each reachable exit to a result and resource predicate, possibly indexed by a represented tag/scalar, relating the same entry, execution, exit and representation. `E` bounds footprints and named external events. Evaluation is left-to-right by value, short-circuiting is explicit control flow, and getters/conversions/callbacks remain inside the judgment.
 
-Resource splitting requires the selected logic's separating conjunction and frame rule, with checked entailments. Pure propositions in Rocq can be duplicated: a proposition-valued token field cannot enforce linearity. The interpreter, context analysis and resource derivation together owe that result. A schematic `Own(region, contents)` is not an accepted memory predicate until its concrete interpretation and operation laws exist.
+Splitting uses the selected separation logic's frame rule, separating conjunction and checked entailments. Duplicable Rocq propositions cannot enforce linearity through token fields; interpretation, context analysis and derivations must do so. `Own(region,contents)` needs concrete operation laws before it denotes accepted memory ownership.
 
 | Dimension | Interpretation | Refused implicit conversion |
 | --- | --- | --- |
@@ -73,7 +62,7 @@ Resource splitting requires the selected logic's separating conjunction and fram
 | Representation | Explicit runtime layout or erased checked evidence, fixed at specialization | Erasure cannot remove a runtime length, result tag or represented handle needed by execution. |
 | Dependence | Stable values and justified entry/exit snapshots | Mutable cell contents do not become stable type indices; mutation updates a resource predicate. |
 
-A closure exposes shared-call, exclusive-call or consuming-call mode, environment representation, captures, effects and per-call contract. The admitted callback is shared-call, total and immutable. Its invocation count authorizes neither copying a consuming environment nor inferring a machine call count after optimization. Mutable or escaping callbacks require additional transition and representation rules.
+Closures expose call mode (shared/exclusive/consuming), environment representation, transitive captures, effects and per-call contract. This fixture admits total immutable shared-call callbacks. A source invocation count licenses neither consuming-environment duplication nor optimized machine-call counts; mutable/escaping callbacks need further transition and representation rules.
 
 ### Kinded authority
 
@@ -85,21 +74,21 @@ A closure exposes shared-call, exclusive-call or consuming-call mode, environmen
 | Security permission | Separately proved release/declassification or observation policy | Hardware permissions and effect allowances grant no declassification. |
 | Resource budget | Named trace/cost interpretation and composition theorem | A loop count grants neither ownership nor target WCET. |
 
-The fixture requests memory access and closed effects, then proves an observation relation under explicit public inputs. It introduces no declassification operation. A variant requesting one must provide its separate security-policy premise. Removing a requested guarantee theorem while retaining operation laws leaves that request unresolved; no profile flag supplies the missing proof.
+The fixture requests memory access, closed effects and an observation relation under public inputs. It has no declassification; a variant must supply a separate security-policy premise. Operation laws cannot replace a missing requested guarantee theorem.
 
 ### Dependency and joins
 
 A pure dependent function has type `Pi x:A. B(x)` with Rocq-checked universes. A runtime result can have type `Sigma n:RuntimeLength. Payload(n)`, pairing a real scalar with erased evidence. A dependent match retains its discriminant while refining branch facts and resources. An erased existential witness cannot decide executable control flow.
 
-Writing a byte changes `Own(r,xs)` to `Own(r,update(xs,i,b))` under a fixed capacity. A shape-changing operation would consume the old owner and return a differently indexed one under a proved transition; arbitrary resizing is outside this trial. Initialization is a state transition witnessed by writes, never a cast. An entry snapshot is an immutable mathematical value justified by the entry representation and permits no access while its owner is lent out.
+A write transforms `Own(r,xs)` into `Own(r,update(xs,i,b))` at fixed capacity. Shape changes would consume the old owner and return a newly indexed one under a proved transition; this trial excludes resizing. Initialization needs writes, never a cast. Entry snapshots are immutable values justified by the entry representation and grant no access while ownership is lent.
 
 Branches join through checked entailments to one common resource predicate or through an indexed sum retaining the alternatives. `Ready(view of dst)` and `Rejected(owner restored)` cannot silently join into `owner restored`. Equality beyond conversion requires a checked transport; runtime equality requires a decision operation and its correctness law. No global UIP, proof irrelevance or extensionality axiom is introduced.
 
 ## Loans and control flow
 
-A loan record names parent, footprint, mode, captures and restoration predicate. An exclusive loan suspends overlapping parent access. A reborrow suspends its overlapping parent until descendants end; statically proved-disjoint fields remain accessible. Every shared descendant ends before exclusive access resumes. Ending a loan consumes its restoration obligation once and re-establishes the parent's predicate with the final contents.
+A loan records parent, footprint, mode, captures and restoration predicate. Exclusive loans suspend overlapping parent access; reborrows suspend overlapping ancestors until descendants end, while proved-disjoint fields stay accessible. All shared descendants end before exclusive access resumes. Ending a loan consumes its restoration duty once and restores the parent's final-content predicate.
 
-The first analysis infers last use within a finite control-flow region and explicit call contracts. Unknown overlap leaves a disjointness proof goal or an explicit unsupported pattern. No iteration-local loan crosses a loop back edge. Borrowed parameters and stable enclosing permissions remain available across iterations, while each iteration closes its local descendants. This restriction does not claim general loop-carried borrow inference.
+Analysis infers last use within finite control-flow regions and explicit call contracts. Unknown overlap yields a disjointness goal or unsupported pattern. Each iteration closes its local descendants before back edges; borrowed parameters and stable enclosing permissions may persist. General loop-carried borrow inference is excluded.
 
 | Exit | Required result |
 | --- | --- |
@@ -122,7 +111,7 @@ Checking uses conversion, resource/capture rules, reconstructed arithmetic, doma
 
 Effects are closed read/write/call footprints with no allocation, including transitive callees and environments. Sequential footprints take union; named event counts add. Alternative exact counts must agree or become a proved bound or result-indexed count. Stack slots and specialized environments retain size/layout obligations. Effect variables, general grades and handler discharge belong to Q25's full-language design and are outside this synchronous fixture's qualification.
 
-A generator records its inputs, environment and outputs, which undergo typing, proof and source-correspondence checks. Only total pure definitions execute in type conversion. A compile-time constant can choose a specialized layout; a runtime length cannot retroactively specialize it. Erasure preservation covers runtime results, effects, control decisions and required observations under the same representation; checking an erased proof term alone supplies no such theorem.
+Generators record inputs, environment and outputs for typing, proof and source-correspondence checks. Conversion executes only total pure definitions. Compile-time constants may specialize layouts; runtime lengths cannot. Erasure must preserve results, effects, control and observations under the same representation, beyond merely type-checking the erased proof.
 
 ## Composed qualification fixture
 
@@ -188,7 +177,7 @@ The independent behavior review freezes inhabited cases before proof or baseline
 
 ### Intended negative neighbors
 
-Each negative preserves parsing, resolution, supported syntax and unrelated premises of an accepted fixture. Its well-formed operation graph reaches the stated obligation. Missing implementation, parse failure, unrelated theorem failure and timeout are not intended rejection evidence. This record contains no executed negative result.
+Each negative keeps accepted syntax, resolution and unrelated premises, and reaches its stated obligation in a well-formed graph. Missing implementation, parse failure, unrelated theorem failure and timeout supply no intended rejection evidence. All negatives remain unexecuted.
 
 | Fixture change | First refusing obligation |
 | --- | --- |
@@ -213,13 +202,13 @@ The observation relation treats input bytes, lengths, inspection controls, `keep
 
 ## Source and compiler boundary
 
-Both routes consume one interpreted computation and representation contract: a sequenced graph with explicit branches, bounded-loop invariants, entry/exit predicates, calls, captures, effects, runtime layouts and requested guarantees. The boundary carries input/output traces and observations, ordinary refusals, target-trap classifications and the theorem excluding unexpected traps under entry premises. It is neutral between block/CFG and SSA implementations. Sharing this interface does not equate workloads: the compiler comparison still pairs P with P and S with S under Q20a; adopting `PrepareAndInspect` requires its own reviewed baseline and trial scope.
+Both routes consume the same interpreted sequenced graph and representation contract: branches, bounded-loop invariants, entry/exit predicates, calls, captures, effects, layouts and requested guarantees. It includes traces, observations, ordinary refusals, trap classifications and exclusion of unexpected traps under entry premises. CFG/block and SSA implementations are permitted. Q20a still compares P with P and S with S; `PrepareAndInspect` requires its own reviewed baseline and scope.
 
-A `SourcePackage` binds source/generated-input content, independent contract, parse tree or checked parse validation, qualified names and instances, inserted implicits/transports, desugaring, core graph, derivations and source locations. Interpretation and representation name that same graph and contract. A location map cannot prove correspondence, and a valid theorem about a different graph cannot accept current source.
+`SourcePackage` binds source/generated-input contents, independent contract, parsed or validated syntax, resolved names/instances, implicits/transports, desugaring, core graph, derivations and locations. Interpretation and representation name that same graph/contract. Locations and a proof about another graph cannot establish current-source correspondence.
 
 Lowering, capability-correct selection, optimization, stack/ABI relations, typed linkage and final-byte judgments over pinned Sail remain route obligations. Pointer-to-integer substitution needs its own correct relation; a flat array proof supplies no tag/provenance preservation. Erasing loan bookkeeping cannot erase machine authority. A route may abstract source helper-call events only under an explicit proved projection that preserves every requested externally visible observation and exact input-read/write relation. Functional simulation alone cannot transport relational observations or arbitrary-context guarantees. [Existing compiler duties](verification-strategy.md#compiler-amendment-obligations) remain binding.
 
-The shared trial identity records source/contract closure, generated inputs, Rocq/tool/library tuple and flags, actual assumptions, interface/instance, representation/erasure, compiler/assembler/linker/composer revisions, layout, target profile, Sail term/configuration, memory-placement inputs, final image and evidence digests. Unavailable artifacts remain explicit. Hashes identify subjects without proving behavior. Q20a owns equivalent-baseline measurement and Q21b owns the route trial; this core creates no competing benchmark or admission format.
+Trial identity binds source/contract closure, generated inputs, Rocq/tool/library tuple and flags, actual assumptions, interface/instance, representation/erasure, compiler/assembler/linker/composer revisions, layout, target, Sail term/configuration, placement inputs, final image and evidence digests. Missing artifacts stay explicit; hashes prove no behavior. Q20a owns equivalent-baseline measurement and Q21b the route trial; no competing benchmark/admission format is introduced.
 
 ## Typed holes and invalidation
 
@@ -227,9 +216,9 @@ A hole records source expression, semantic environment, expected type/propositio
 
 At the inclusive copy guard, show `0 <= i <= n <= N` and `n <= s`, required `i < n`, `i < s` and `i < N`, destination loan and copy-prefix invariant. At failed error propagation, show outstanding `PreparationOpen` and expected `PreparationClosed`. At a post-match mutation, show retained `Ready` view and suspended parent. These are different diagnostics even if downstream search fails at one final theorem.
 
-Status distinguishes current unresolved, refuted with checked evidence where available, unsupported, timed out, stale and accepted by fresh batch gates. Interactive/rendered feedback supplies no acceptance under [R-05-018a](../../spec.md#r-05-018a). A stable goal identity aids navigation; semantic changes make its status stale even when its displayed identifier is unchanged.
+Statuses distinguish unresolved, checked refutation where available, unsupported, timeout, stale and fresh-batch acceptance. [R-05-018a](../../spec.md#r-05-018a) admits no interactive/rendered acceptance. Stable goal IDs aid navigation without preserving acceptance after semantic edits.
 
-Every result also carries its source/dependency generation and judgment scope. An accepted subgoal does not mark the component accepted while another required obligation remains open. A semantic edit withdraws the previous generation's acceptance before asynchronous replay begins; a late successful response for that generation remains stale. The diagnostic trial exercises this ordering with an old result arriving after a changed bound. Failed proof search means unresolved or timed out, never a refutation without checked evidence. The first missing premise follows the deterministic checking order above and can change after repair; unrelated downstream failures cannot be credited as the intended negative's result.
+Every result carries its source/dependency generation and judgment scope. Open required goals block component acceptance. Semantic edits withdraw old acceptance before asynchronous replay; late old-generation successes stay stale. The diagnostic trial sends such a response after a bound change. Failed search is unresolved/timeout unless checked evidence refutes the claim. Report the first missing premise in the deterministic checking order; it may change after repair, and unrelated downstream failure does not count as the intended negative.
 
 | Edit | Invalidated evidence |
 | --- | --- |
@@ -241,7 +230,7 @@ Every result also carries its source/dependency generation and judgment scope. A
 | Parsing, insertion or desugaring | Source correspondence even if the old core proof remains valid |
 | Target, compiler flag, relocation or bytes | Affected transport/admission/measurements; host proof timing supplies no replacement |
 
-Record actual semantic inputs rather than filenames alone. Until precise dependency analysis is qualified, invalidate the component closure conservatively. Repair tools propose edits and replay; contract changes require independent review. Semantic edits, semantics-preserving refactors and representation changes are separate measurements. A cache hit or generated proof cannot itself demonstrate reduced review effort.
+Record semantic inputs, not filenames alone; conservatively invalidate the component closure until precise dependency analysis is qualified. Repair tools propose/replay; independent review approves contract changes. Measure semantic edits, preserving refactors and representation changes separately. Cache hits and generated proofs do not demonstrate review savings.
 
 ## Proof obligations and proposed work packages
 
@@ -262,14 +251,14 @@ records the technical prerequisites and ownership boundaries for that work.
 | Composed fixture and repair | All cases above are unexecuted | `core-repair-trial`, with independent intended-behavior review |
 | Device lowering, optimization, linkage and bytes | Actual producer state and missing connections are Q21b's inventory | Q2b and existing M1/TAL owners retain their booked work. Q2c's `source-transport` and `artifact-admission` review obligations and any route extension need separately reviewed cells for additional work. |
 
-Source syntax composition belongs to `core-soundness`; concrete permissions, disjoint split/join and parent restoration belong to Q2c's `scoped-resources` obligation. SourcePackage checking and frontend erasure belong to `core-frontend`; each route's source-to-IR representation bridge and machine simulation remain at Q2b/Q21b. Shared work is charged once at its actual implementation owner. Giving these obligations keys does not satisfy the missing-law price condition. A source-only qualification requires the concrete laws and guarantees its contract actually uses, without adding every production theory to that entry gate; arbitrary-context preservation and final admission remain required at their stronger endpoints.
+`core-soundness` owns syntax composition; Q2c's `scoped-resources` owns concrete permissions, split/join and restoration. `core-frontend` owns SourcePackage checking and frontend erasure; Q2b/Q21b retain source-to-IR bridges and machine simulation. Charge shared work once. Keys do not price missing laws. Source-only qualification requires its actual concrete laws/guarantees, while stronger endpoints additionally retain contextual preservation and final admission.
 
 ## Decision and reopening evidence
 
-The unresolved composed obligation is the `Ready` exit after nested inspection loans: close every reader descendant, preserve the copied bytes and frame, consume the concrete preparation token once, return a shared prefix permission with its restoration obligation, and restore disjoint audit/tail access while overlapping parent access remains suspended. The selected byte/loan representation must establish that entailment over the admitted CHERI machine interpretation, and every rejected exit must instead restore the full owner. Existing descriptor and ring theorems do not have that subject. No checked constant or separately priced implementation cell supplies the missing entailments. This is an unavailable premise, not an executed counterexample to the proposed rules.
+The blocking `Ready` entailment must close nested readers, preserve copied bytes/frame, consume the preparation token once, return a shared prefix and restoration duty, and restore disjoint audit/tail access while overlapping parent access stays suspended. Rejected exits restore full ownership. The selected byte/loan representation must prove these over the admitted CHERI interpretation; descriptor/ring theorems address different subjects. No checked constant or separately priced cell supplies them. This is an unavailable premise, not an executed counterexample.
 
-Q21a therefore takes its reasoned-rejection arm for commissioning the present qualification. The conditional estimates above cover syntax, frontend, diagnostics and a fixture only after that premise is met; they cannot absorb the unpriced foundation. [Q25d's disposition](full-language-review.md#r-05-009-r-05-020-and-what-holds-the-frontend-rows) additionally holds the new frontend, on the arm this design sits in, and Rocq-native output and a SourcePackage design alone move neither R-05-020 condition. This decision changes no requirement, cancels no existing implementation owner and makes no productivity or compiler-route claim.
+Q21a declines commissioning. Its conditional syntax/frontend/diagnostic/fixture estimates exclude this unpriced foundation; [Q25d](full-language-review.md#r-05-009-r-05-020-and-what-holds-the-frontend-rows) also holds the frontend's present interpretation arm. Rocq output or a SourcePackage sketch satisfies neither missing condition. No requirement, existing implementation owner, productivity result or compiler-route choice changes.
 
-Reopening requires a reviewed foundation package selecting the actual representation and Sail-generated term, naming checked laws or separately priced implementation cells with acceptance predicates for each missing connection, and assigning the fixture's additional scoped-resource obligations without charging Q2b/M7.1 twice. It also requires the arm-one interpretation commitment [that disposition](full-language-review.md#r-05-009-r-05-020-and-what-holds-the-frontend-rows) names, and a joint review of this source/IR boundary against Q20a and Q21b. If a narrower fixture removes returned loans or other obligations, give it its own independently reviewed contract, costs and comparison scope before implementation; it cannot inherit acceptance for the cases it removes.
+Reopening needs a reviewed foundation package selecting the representation and Sail-generated term, supplying checked laws or separately priced cells and predicates for every connection, and assigning extra scoped-resource work without duplicating Q2b/M7.1. It also needs Q25d's arm-one interpretation commitment and joint review against Q20a/Q21b. A narrower fixture excluding returned loans or other cases needs its own reviewed contract, costs and comparison scope; it inherits no acceptance for omitted cases.
 
-Tier-A review decides this bounded design disposition and its explicit missing premises, followed by integrated document gates. The document checker decides corpus rules, not metatheory. A reopened execution additionally requires positive cases replaying at the admitted assumption set, well-formed negatives failing at intended premises, satisfiable entry witnesses, independent behavior checks and current diagnostics after edits. Unavailable cases stay unavailable. Production qualification retains Q20c's stronger endpoint and actual prerequisites.
+Tier-A review and integrated document gates decide this design disposition, not metatheory. Reopened execution additionally needs positive replay under admitted assumptions, well-formed negatives rejected at intended premises, inhabited entry states, independent behavior checks and current diagnostics after edits. Unavailable cases remain so; production retains Q20c's stronger endpoint and prerequisites.

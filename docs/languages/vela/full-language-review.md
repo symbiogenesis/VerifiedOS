@@ -1,66 +1,22 @@
 # Full-language composition review
 
-> **Execution status:** [The workflow contract's commissioning disposition](workflow-contract.md#commissioning-disposition) governs the canceled experiments, retained proposal roles and re-entry conditions used here.
-
-> Non-normative Q25d integration record. The requirements register remains
-> authoritative. The source rules are design proposals; no implemented language,
-> checked metatheory, target execution or production qualification follows from
-> this review. It carries Q25d's implementation accounting, its frontend-admission
-> disposition and its runtime-occupancy classification; the two register acts those
-> last two name are proposed here and taken by their own amendment gates.
+> Non-normative Q25d integration review: composed client, representation, implementation pricing, frontend disposition and runtime-storage classification. Start with the [primary Vela design and examples](verification-strategy.md). The [requirements register](../../requirements-register.md) governs; [workflow commissioning](workflow-contract.md#commissioning-disposition) retains canceled trials and re-entry conditions. No implementation, checked metatheory or target qualification is supplied. The register amendments identified below remain proposals.
 
 ## Inputs and common boundary
 
-The [graded foundation](graded-foundation.md), [control and async rules](handlers-async.md)
-and [interior-mutability rules](interior-mutability.md) share stable dependent
-values, separately accounted computation and type use, and an independent
-resource interpretation. A source grade cannot create a memory permission.
-Outcome-indexed resource transitions account for every returned owner, loan,
-mandatory result, continuation and terminal-completion obligation.
+The [graded foundation](graded-foundation.md), [control/async](handlers-async.md) and [mutability](interior-mutability.md) rules share stable dependent values, separate computation/type demand and an independent resource interpretation. Grades create no memory permission; outcome-indexed transitions account for owners, loans, mandatory results, continuations and terminal-completion duties.
 
-The [bounded core](core-design.md) and [foundation map](../../hardware/cheri-foundation-map.md)
-retain their missing concrete CHERI laws. The [compiler-route contract](compiler-route-contract.md)
-retains its unqualified source-to-machine connections. Q25 adds design obligations
-to those boundaries; it does not supply an instance of any missing law or reopen
-the rejected implementation trials by changing their names.
+The [core](core-design.md) and [foundation map](../../hardware/cheri-foundation-map.md) still lack concrete CHERI laws, and [compiler routes](compiler-route-contract.md) lack qualified source-to-machine connections. Q25's added design duties supply none of those prerequisites and reopen no rejected trial.
 
 ## Composed client and inhabited entry
 
-Consider one declared child slot, one private packet frame, and the scalar
-accepted-byte counter described by the mutation dossier. At the source level,
-the packet has a runtime length `n`, storage capacity `N`, and an immutable
-snapshot `xs` with evidence `length(xs) = n` and `n <= N`. The child holds the
-packet owner, a live frame identity and generation, a request identity, and a
-linear counter allowance for adding `n`. Other children, if admitted, hold
-disjoint frames and disjoint allowances. No capability is stored in the shared
-counter.
+The client uses one declared child slot, a private packet frame and the mutability dossier's scalar accepted-byte counter. Its packet has represented length `n`, capacity `N`, and immutable `xs` satisfying `length(xs)=n` and `n<=N`. The child owns the packet, live frame identity/generation, request identity and a linear allowance to add `n`. Other children require disjoint frames/allowances. The counter stores no capability.
 
-An entry witness chooses `N = 4`, `n = 2`, `xs = [1, 2]`, a free declared child
-slot, private initialized backing `[1,2,0,0]`, a zero counter and an allowance of
-two. These are example inputs, not profile constants. The counter invariant reserves enough unused range for all
-outstanding allowances; an admitted increment consumes its allowance. A pure
-callback `f(xs,b)` takes the snapshot and a represented public Boolean and returns
-the sum of the snapshot's elements, independently of that Boolean. Its captured
-snapshot is stable and its environment has a separately justified duplication
-law; no packet owner, dynamic-borrow guard or single-use verdict is captured.
-Its computation-use budget is two invocations, with type dependencies accounted
-through the foundation's separate context rules.
+A source-level witness chooses `N=4`, `n=2`, `xs=[1,2]`, initialized backing `[1,2,0,0]`, a free slot, zero counter and allowance two. These are examples, not profile constants. The counter reserves range for all outstanding allowances; each increment consumes its allowance. A pure callback `f(xs,b)` sums the snapshot independently of its represented public Boolean. Its stable environment requires a separate duplication law, captures no packet owner, borrow guard or single-use verdict, and permits two invocations under the foundation's separate type-dependency rules.
 
-The source example executes a bounded choice-handler computation that invokes
-`f` in two resumptions, with `false` then `true`, and returns the pair of results. Each resumption carries only
-the duplicable snapshot environment; the caller's exclusive packet/frame owner
-stays outside the captured delimiter. The capture boundary and callback demand
-must be proved by the control and grade rules, rather than inferred from lexical
-variable names. For the witness both results are three. The child then reaches
-a cancellation checkpoint and, if still live and uncancelled, performs its
-single admitted counter increment. The atomic update is the commit point.
-Terminal publication and scope join follow the control dossier's separate
-completion protocol.
+A bounded choice handler resumes with `false` then `true`, producing `(3,3)` for this witness. Each resumption retains only the duplicable snapshot; the exclusive packet/frame owner stays outside the delimiter. Control and grade proofs must establish capture and demand, beyond lexical free-variable analysis. The child then reaches a cancellation checkpoint and, if live and uncancelled, performs its one atomic increment: the commit point. Terminal publication and scope join follow the control protocol.
 
-This entry is inhabited in the proposed source-level data and protocol model.
-It supplies no inhabitant of the missing concrete CHERI separation-logic
-interpretation. The witness exposes that remaining obligation instead of
-assuming the language's machine soundness in order to test it.
+The witness inhabits only the proposed source data/protocol model. No checked inhabitant of the concrete CHERI separation-logic interpretation is supplied.
 
 ## Paths the join must preserve
 
@@ -75,13 +31,7 @@ assuming the language's machine soundness in order to test it.
 | Full child/frame pool | Binding returns the mandatory capacity verdict and the unstarted computation's resources. No implicit wait or borrowing from another pool occurs. |
 | Child failure or cleanup failure | The owning scope observes the declared result. A fail-stop/restart path uses the platform's revocation and containment obligations; safety cannot depend on running ordinary source cleanup after a crash. |
 
-The parent-child order, time to a checkpoint, cleanup, outstanding device
-quiescence and terminal publication contribute to the control dossier's bound.
-That bound includes decision delay before either the cancelled or committed
-suffix, and separately bounds ordinary execution without cancellation.
-No numeric target time is established by the example. Confidential inputs
-add a separate observation/constant-time obligation; the witness's values and
-schedule decisions are public and therefore cannot establish that stronger case.
+The control bound includes parent-child order, checkpoint delay, cleanup, device quiescence and terminal publication, covering decision delay plus the selected cancelled/committed suffix and separately ordinary execution. This example supplies no numeric target. Public witness values and schedule choices establish no confidential-input observation or constant-time result.
 
 ## Well-formed neighbors and their judging premise
 
@@ -102,35 +52,13 @@ data while changing the stated resource premise.
 
 ## Conservative connection to the synchronous slice
 
-Restrict the proposed source language to the [core design's](core-design.md)
-syntax and representations: no handler, async task, cancellation or concurrent
-cell; stable data, flow-sensitive loans, explicit exits and the existing callback
-contracts remain. Choose the source domain and structural rules that express
-those actual use constraints, with no weakening of the independent resource
-context. Erasure preserves runtime lengths, branch tags and represented values.
+Restrict syntax/representation to the [core](core-design.md): stable data, flow-sensitive loans, explicit exits and existing callback contracts, without handlers, async, cancellation or concurrent cells. Select domains/structural rules for those uses without weakening `Delta`; preserve runtime lengths, tags and represented values through erasure.
 
-The required conservativity theorem maps derivations of this restriction to the
-core judgment with the same entry/exit interpretation, effects and observations,
-and maps execution back without introducing control or memory operations. A
-projection that forgets an outstanding loan or mandatory result does not qualify.
-Substitution, dependency reindexing, resource preservation, erasure, interference
-and every exit must commute with this projection. No such theorem is checked by
-this document. Q21a's unavailable concrete returned-view law remains unavailable
-in the restricted fragment as well.
+Conservativity must map derivations and executions to the core with identical entry/exit interpretation, effects and observations, introducing no control/memory operations or lost loan/verdict duties. Substitution, reindexing, preservation, erasure, interference and every exit must commute with the projection. That theorem and Q21a's concrete returned-view law remain unavailable.
 
 ## The representation the composed duties are stated over
 
-The duties that projection must commute with compose over one representation and
-not over a family of them, and the choice is made here rather than deferred
-to whichever instance a later lane reaches for. The representation is the
-byte-and-capability carrier: every source resource is a
-region of machine memory and a tagged capability value over the Coq definitions
-Sail's own backend emits (R-05-019b); grades, proof data and counter allowances
-carry nothing at runtime in it; and the bounded reaction graph's frames, child
-slots, continuation storage and completion records are ordinary storage in that
-same carrier. It is [Q2c's](../../hardware/cheri-foundation-map.md#foundation-ownership-ledger)
-`byte-instance` extended by its `scoped-resources` interpretation. Selecting it
-here fixes the subject each duty is about and supplies no law of it.
+All composed duties use one byte-and-capability carrier: memory regions and tagged capabilities over the Coq definitions emitted by Sail (R-05-019b). Grades, proofs and counter allowances are erased; frames, child slots, continuations and completion records occupy ordinary storage. This selects [Q2c's](../../hardware/cheri-foundation-map.md#foundation-ownership-ledger) `byte-instance` plus `scoped-resources`, fixing theorem subjects without supplying their laws.
 
 | Composed duty | What it states over that carrier | The missing constant that would discharge it |
 | --- | --- | --- |
@@ -140,17 +68,7 @@ here fixes the subject each duty is about and supplies no law of it.
 | Interference | A snapshot's proposition survives exactly the writes the cell's invariant admits, and the counter's committed value and outstanding allowances are conserved across the atomic update. | `machine-logic`'s invariant and mask machinery, with the pinned term's own clause for the atomic operation. |
 | Each exit of the path table above | Every ready, pending, cancelled, `too_late`, capacity and failure exit restores the account that path names, and the frame is released only after terminal collection. | `scoped-resources`' restoration entailments and `byte-instance`'s write law for the reserved completion record. |
 
-None of `machine-logic`, `byte-instance` and `scoped-resources` resolves to a
-checked constant in this repository, which is the state Q2c's ledger records,
-pricing `machine-logic`'s full establishment as unbounded, accepting no numeric
-estimate for `byte-instance` before the logic and representation are selected,
-and holding `scoped-resources`' missing instance inside the rejected foundation
-commissioning. **This review therefore constructs no inhabitant of that
-carrier.** The entry witness above stays at the source level and says so, and
-what naming the carrier buys is that each duty's missing constant is nameable
-rather than the whole composition being owed to an unnamed prerequisite. A duty
-proved over a different carrier is a different theorem and does not transfer by
-sharing a predicate name.
+Q2c records no checked constant for `machine-logic`, `byte-instance` or `scoped-resources`. Full logic establishment is unbounded; the byte instance has no responsible price before logic/representation selection; scoped resources remain inside the declined foundation commissioning. This review constructs no concrete carrier inhabitant. Naming the carrier identifies missing constants; a proof over another carrier cannot transfer merely by sharing predicate names.
 
 ## Existing owners, and where each decision is taken
 
@@ -166,64 +84,24 @@ sharing a predicate name.
 | Changed platform behavior | No target control, synchronization, memory or TAL extension is proposed: the scalar counter and the static reaction graph reuse current mechanisms, and a design intention is not target-correspondence evidence. An extension proposed later names its exact normative owner and completes that owner's amendment predicate first. |
 | Assurance-preset policy and mixed-assurance linking | The [preset dossier](assurance-profiles.md) states the claim statuses, composition rules and coverage dimensions this client is selected under, and its policy semantics, status reporting and mixed-assurance interface checks are priced at the same table against the same frontend and evidence-package owners. A claim status is a build output and supplies no source calculus, machine interpretation or admission rule. |
 
-Published donors bear on three of those rows and discharge none of them. For the
-source-calculus and erasure row, the machine-checked graded erasure development
-and VerusBelt's semantic soundness proof for a subset of a proof-oriented type
-system are the closest published shapes for the erasure statement owed, and both
-are also its warning: the first proves extraction sound only for a restricted
-class of modalities and context conditions, and the second leaves its own tool's
-erasure pass trusted and outside the model. For the representation, compiler and
-final-bytes row, Dargent is the closest published result, a declarative bit-level
-layout language whose generated accessors ship with generated proofs that they
-realize the declared layout, per compilation rather than once for the compiler,
-in Isabelle with a trusted C parser and no capability account. For the diagnostics
-and qualification-clients row, Quiver's completion of a specification sketch with
-a checked proof of the completion is the shape a residual obligation should take,
-with no theorem that an inferred specification is the intended one. The concrete
-CHERI resources row has no donor: every logic surveyed is about another modeled
-language, which is why its missing laws stay where they are. [The strategy's
-research map](verification-strategy.md#research-landscape) records each donor's
-kind, boundary and licence; naming one here prices no row, retires no interim and
-closes no debt.
+Donors guide these duties without discharging them. The machine-checked graded erasure work restricts modalities/contexts; VerusBelt's subset soundness model leaves its tool's erasure trusted. Dargent's declarative bit-layout accessors carry per-compilation layout proofs in Isabelle, with a trusted C parser and no capability account. Quiver completes specification sketches with checked proofs but cannot establish intended specifications. Every surveyed logic models another language, leaving concrete CHERI laws open. The [research map](verification-strategy.md#research-landscape) owns boundaries/licences; donor citations price no work, retire no interim and close no debt.
 
 ### Reviewed implementation pricing
 
-Every missing law the three rule dossiers name, every frontend component this
-design adds, every target connection it needs and every stage
-[the preset dossier](assurance-profiles.md#qualification-protocol) lists has one
-row below, one implementation owner, one estimate and one acceptance predicate.
-The estimate column keeps these rules.
+Each missing law, frontend component, target connection and [policy qualification stage](assurance-profiles.md#qualification-protocol) has one row, owner, estimate and predicate below.
 
-* **An estimate is exactly one of three values**: a range with an authority
-  class; a citation to the owner that already carries the work, which prices
-  nothing a second time; or `unpriced` beside the decision that blocks it. No row
-  is blank, zero or a bare dash, which is the rule Q2c's ledger and
-  [the unassigned proof map](../../assurance/unassigned-proof-map.md#how-to-read-a-row)
-  already keep. **A range is stated by its ends alone**, the midpoint being the
-  mean of them at whatever cell eventually carries the row, so no figure derived
-  from a range is written down here.
-* **Existing work is charged once.** Q2c's foundation keys, Q21a's proposed
-  packages and the duties Q2b, Q21b, Q20b, Q20c and M1 already carry keep their
-  owners. A row reaching one of them carries the citation and prices only the
-  increment this design adds, or nothing where it adds none.
-* **A language-side range is over Q25a's parameterised resource interface.**
-  Instantiating any of those rows at the carrier named above is `byte-instance`
-  and `scoped-resources`' work and is inside no range here.
-* **The authority classes are [the checklist's own](../../../PLAN.md#checklist-conventions)**,
-  `I` where the authority a row realizes is inside this repository and `X` where
-  it is outside, and every class-X range's upper end is at least twice its lower
-  end. That document's width test reads its own cells, so these rows are held to
-  it by hand.
-* **No total is stated.** These rows commission nothing and enter no schedule
-  until a cell is placed for them, and a sum over conditional ranges is a figure
-  for nothing.
+- Estimates are a range with authority class, a citation to work already owned elsewhere, or `unpriced` with its blocker; never blank, zero or a bare dash. Follow [the proof map](../../assurance/unassigned-proof-map.md#how-to-read-a-row).
+- Range ends are authored; eventual checklist cells derive their midpoint. Existing Q2c/Q21a/Q2b/Q21b/Q20b/Q20c/M1 duties are charged once, with only added work priced here.
+- Language ranges assume Q25a's parameterized interface. Concrete carrier instantiation remains `byte-instance`/`scoped-resources` work outside them.
+- [Authority classes](../../../PLAN.md#checklist-conventions) are `I` for internal and `X` for external authority; X upper bounds are at least twice their lower bounds, reviewed here by hand.
+- No total or scheduling commission follows from these conditional ranges; implementation requires checklist cells.
 
 | Key or component | Implementation owner | Estimate and class | Acceptance predicate, and what fails it |
 | --- | --- | --- | --- |
 | `GF-domain` | `core-soundness`, extended | 24–56 h · X | Domain records, certificate interpreters and interpretation laws check, and cross-domain composition is a law rather than a convention. Fails where an idempotent or Boolean domain admits an exact-use or ownership conclusion, where an order relaxation is accepted without its interpretation, or where a constraint procedure returns a verdict with no reconstructable certificate. |
 | `GF-substitution` | `core-soundness`, extended | 28–68 h · X | Telescope well-formedness, simultaneous substitution, both vector transformations and grade substitution are theorems about the interpretation's image. Fails on a later declaration retaining an unsubstituted index, and fails against R-05-019 where the statement quantifies over a source reduction relation not defined as that image. |
 | `GF-elimination` | `core-soundness`, extended | 22–58 h · X | Dependent functions, pairs, boxes, indexed sums and the admitted recursors preserve grades and well-formed motives, with an inhabited asymmetric-field example carrying its modality premise. Fails where a runtime discriminant is erased, and fails where the positive example is well typed but its hypotheses have no inhabitant, which is R-05-166's case. |
-| `GF-cbv` | `core-soundness`, extended | 32–80 h · X | Demand semantics connects to explicitly sequenced call-by-value computation with usage-aware resource preservation, covering zero-demand effectful arguments and repeated pure values. Fails where a zero-demand effectful argument executes, where a repeated pure value is charged twice, and where ordinary progress and preservation are offered in place of the usage statement. This is F-353's open case. |
+| `GF-cbv` | `core-soundness`, extended | 32–80 h · X | Demand semantics connects to explicitly sequenced call-by-value computation with usage-aware resource preservation, covering zero-demand effectful arguments and repeated pure values. Fails where zero parameter demand erases the argument's evaluation, effects, failures or mandatory result, where repeated use reexecutes that evaluation instead of using its once-evaluated value, or where ordinary progress/preservation replaces usage-aware resource accounting. This is F-353's open case. |
 | `GF-resource` | Q2c's `scoped-resources` over `byte-instance` | `unpriced`; blocked by Q2c's declined foundation commissioning, whose reviewed breakdown is U-22's deliverable | Spatial ownership, views, restoration and kinded authority are interpreted at the carrier and a packet entry state is inhabited by a checked constant. Fails on any statement assuming a law the foundation has not supplied. No range is defensible before the logic and the representation are selected, and a number here would be one. |
 | `GF-control-mutation` | `core-soundness`, extended | 36–92 h · X | Capture, `Dup`, `Dispose`, `Suspend`, `Transfer` and `Share` compose with the control and cell rules over repeated continuations, hidden cell captures, snapshots, cancellation and fresh per-resumption resources, and the synchronous slice stays a conservative restriction. Fails where a resumption reuses a resource a sibling resumption consumed, and fails where the projection admits a derivation the core judgment does not. |
 | `GF-erasure-source` | `core-soundness`, extended | 26–70 h · X | Phase separation and representation-specific erasure are proved under an assumption set declared per R-05-164 and audited against the proof term by R-05-163. Fails where two instances differing only in erased data have unrelated retained behaviour. The elaboration-correspondence and diagnostic halves of this key are charged at the frontend rows below and carry no number here. |
@@ -263,109 +141,30 @@ The estimate column keeps these rules.
 
 ### R-05-009, R-05-020, and what holds the frontend rows
 
-**R-05-020 is not the first entry a producer for a new source language meets, and
-reading it alone gets this frontend wrong.** R-05-008 forbids admission gating on
-the source language or producer identity of a binary. R-05-009 makes any
-memory-safe or formally-verified language that yields a well-typed binary and a
-kernel-checked elaboration into an existing semantic anchor admissible on the
-same terms as Rust, and its criterion adds *without exception or waiver*.
-[The specification's delivery prose](../../spec.md#r-05-026) states the same route in
-as many words: a producer for another language supplies a kernel-checked
-elaboration into one of the reviewed anchors, so admission stays language-neutral
-without making an arbitrary source parser or frontend trusted, which is why
-[the strategy](verification-strategy.md#refactoring-without-expanding-trust)
-already records a frontend elaborator as untrusted machinery whose proposed
-proofs are rechecked. R-05-020 governs what enters the anchor budget and the
-trust base. Whether this design's frontend does is what the two arms decide, so
-the arms come first and the conditions are read inside one of them.
+R-05-008 forbids binary admission based on source language or producer identity. R-05-009 admits memory-safe/formally-verified languages yielding well-typed binaries and kernel-checked elaboration into an existing anchor on Rust's terms, *without exception or waiver*. [Delivery prose](../../spec.md#r-05-026) and [the strategy](verification-strategy.md#refactoring-without-expanding-trust) preserve that language-neutral route with an untrusted frontend. R-05-020 governs additions to the anchor budget/trust base; its application depends on the interpretation:
 
-**The two arms, and the predicate that keeps a design in the first.** In arm one
-the calculus's meaning is its elaboration's image in the kernel's own theory, and
-every law above is a theorem about that image. In arm two the calculus carries
-its own judgment and reduction relation that the laws quantify over. The
-discriminating predicate is that no theorem quantifies over a source term or a
-source step whose meaning is not that image. **As the three rule dossiers state
-them the laws name a source judgment and a source reduction**, so the design as
-written sits in arm two, which is why the `GF-substitution` row above carries
-that clause rather than leaving it to a later tidying. Moving to arm one is a
-design act this review does not take on the dossiers' behalf: it restates every
-law over the elaboration's image, and doing it by assertion here would leave the
-three rule dossiers saying the opposite.
-
-**Arm one: R-05-009 reaches the frontend and R-05-020 does not engage.** The
-elaborator is then exactly the kernel-checked elaboration R-05-009's premise
-names, its anchor is Gallina/CIC, the anchor count stays at R-05-019's frozen
-seven, and nothing it emits is trusted, the kernel re-checking every term.
-Neither a semantics, nor a program logic, nor a second checker enters the trust
-base, so R-05-020 has no subject at this frontend; and refusing it anyway would
-be the exception and waiver R-05-009's criterion forbids, for the case that
-entry exists to admit. What is owed in arm one is the demonstration and not the
-admission: the `SourcePackage` correspondence priced above is what shows the
-kernel-checked half, and the arm-one interpretation commitment is what makes the
-premise true.
-
-**Arm two: R-05-009's premise is unmet and R-05-020 engages.** A source judgment
-and a source reduction the laws quantify over are an eighth anchor, so there is
-no elaboration into an *existing* anchor to be R-05-009's premise, R-05-019's
-freeze is an amendment owed before any of this opens, and R-05-019a additionally
-rejects the per-consumer re-transcription such a design would need. R-05-020's
-three conditions then read:
-
-| Condition | Reading in arm two | Verdict |
+| Arm | Interpretation and obligations | Disposition |
 | --- | --- | --- |
-| Coq-native or mechanically bridged | The elaborator emits kernel terms the kernel re-checks and introduces no second checker; what would show it is the `SourcePackage` correspondence priced at the frontend rows above. | Satisfiable, and not yet shown. |
-| Non-duplicating of an existing anchor | An eighth anchor for a domain Gallina/CIC already covers is the duplication the entry names, and R-05-019a reaches the re-transcription beside it. | Refuted in this arm. |
-| Retires an interim it replaces | Every interim R-05-022 carries has a named Coq-native destination and a consumer list. A Vela anchor is none of those destinations and removes no consumer from any of those lists, so it stands beside them rather than retiring one, which is the case the prose this entry is read with names in as many words. | Refuted. |
+| One: elaboration into CIC | Every source term/step and law means the elaboration's image in the kernel theory; no theorem quantifies over independently meaningful source terms/steps. `SourcePackage` correspondence demonstrates checked elaboration. | R-05-009 applies; R-05-020 has no new semantics, logic or checker to admit. Gallina/CIC remains one of R-05-019's frozen seven anchors, and the kernel checks every output. Refusal solely for lacking a retiring interim would violate R-05-009. |
+| Two: independent source semantics | Laws quantify over a source judgment/reduction independent of that image. | R-05-009's existing-anchor premise is unmet. The eighth anchor requires an R-05-019 amendment and faces R-05-019a's refusal of per-consumer retranscription and R-05-020 below. |
 
-**R-05-021 does not reach the case either.** It admits a verified compiler as
-proof transport between two existing anchors. In arm two the source end is an
-anchor this register has not admitted, and in arm one the source end is not an
-independent semantic object at all, so on neither arm are there two existing
-anchors and the entry's own premise is unmet on both. The wider reading, that an
-unanchored source end puts a translation outside R-05-020 rather than inside it,
-is not self-defeating and is not refuted here: R-05-020's translator clause still
-reaches a translation whose source end *is* an anchor, R-13-016's owed
-Sail-to-μSail translation of the profile's instruction subset being one such
-candidate in this repository. The case against the wider reading has to be made
-on [the anchor-budget prose](../../spec.md#r-05-020)'s *rather than standing beside
-it*, and it is not needed for the disposition below, which turns on R-05-009's
-premise rather than on R-05-021's exemption.
+**The rule dossiers currently occupy arm two.** Their source judgments/reductions and `GF-substitution` predicate say so. Moving to arm one requires restating every law over the elaboration image in the dossiers themselves; this review cannot establish it by assertion.
 
-**Q27a is the nearest precedent and it distinguishes rather than supports a flat
-refusal.** [That disposition](../../../PLAN.md#q-assessment-actions)
-applies the first and third conditions to three outside certificate checkers,
-each of which would enter the trust base as a second checker deciding a verdict
-on its own acceptance. That is the case R-05-020 governs. An untrusted
-elaborator the kernel re-checks is the opposite case, and reading the third
-condition onto it would make R-05-009 unsatisfiable for every new language,
-since no new language retires an interim.
+| R-05-020 condition | Arm-two reading | Verdict |
+| --- | --- | --- |
+| Coq-native or mechanically bridged | `SourcePackage` correspondence must show kernel-checked terms without a second checker. | Satisfiable, unshown. |
+| Non-duplicating of an existing anchor | An eighth anchor covers Gallina/CIC's domain and faces R-05-019a's retranscription prohibition. | Refuted. |
+| Retires an interim it replaces | Vela is no named R-05-022 destination and removes no listed consumer. It remains beside the interims. | Refuted. |
 
-**What holds the rows, and the register act that is owed.** The ten rows marked
-above are held in arm two, which is where the design as written sits: seven of
-them commission an elaborator, a diagnostic engine or a preset engine for a
-calculus whose anchor is refused, and the three qualification stages exercise a
-language whose frontend is not commissioned, so none of the ten opens on its own
-ground. Their scope is priced so the decision is taken against a number rather
-than against an unknown. What releases them is the arm-one interpretation
-commitment recorded in the three rule dossiers, and the register act that should
-land with it is a new lettered entry beside R-05-020 stating in terms that the
-translator clause governs what enters the trust base, so that an untrusted
-elaborator whose output the kernel re-checks is R-05-009's route rather than a
-translator under that entry. That act carries its own criterion line, its trace,
-the sentence of the specification's anchor-budget prose it is read with, and the
-co-read pair it moves. It is a clarification rather than a change of disposition,
-its substance being already decided by R-05-008, R-05-009 and the delivery prose
-above; it is named because the relation between those entries and R-05-020 is
-currently settled by reading, and a reading in a non-normative dossier is not
-where dependent implementation should be authorized from.
+R-05-021's transport exemption requires two existing anchors: arm two lacks an admitted source anchor, and arm one has no independent source semantic object. Neither meets it. A wider reading that an unanchored source lies outside R-05-020 is not refuted here: the translator clause still reaches anchored-source translations such as R-13-016's Sail-to-μSail subset. Its interpretation depends on the [anchor-budget prose](../../spec.md#r-05-020)'s *rather than standing beside it*. The present disposition needs only R-05-009's premise, not a decision on that wider reading.
+
+[Q27a](../../../PLAN.md#q-assessment-actions) applies the first/third conditions to outside certificate checkers entering the trust base, each deciding acceptance itself. It supplies no flat refusal of a kernel-rechecked untrusted elaborator; demanding interim retirement from every new language would make R-05-009 unusable.
+
+**The marked frontend, diagnostics, preset and qualification rows remain held.** Pricing grants no commission for a refused source anchor. Release requires the arm-one commitment across all three dossiers and a lettered entry beside R-05-020 clarifying that its translator clause governs trust-base additions, while untrusted kernel-rechecked elaboration follows R-05-009. The entry needs its own criterion, trace, corresponding specification sentence and co-read. This clarifies the existing R-05-008/R-05-009/delivery disposition; their relation to R-05-020 must be recorded at the normative owner before dependent implementation is authorized.
 
 ### R-08-046, and what the language's runtime-varying storage is
 
-R-08-046 requires every resource whose backing storage is static and whose
-occupancy varies at runtime to be a declared bounded pool with a complete
-manifest entry, and makes an unclassified counter, arena, queue or table
-that can influence admission or forward progress a review-gate finding. The design's storage kinds are below; the classification is
-performed here and its answer is negative.
+R-08-046 requires declared bounded pools and complete manifests for static backing with variable occupancy; unclassified counters, arenas, queues or tables affecting admission/progress are review findings. Comparing this design with the current inventory gives the following classification.
 
 | Storage kind | Covered by a member of R-08-046's current inventory? |
 | --- | --- |
@@ -377,8 +176,7 @@ performed here and its answer is negative.
 | Dynamic-borrow guard slot | No. |
 | The accepted-byte counter with its outstanding allowances | Not a pool, and this is a classification rather than an exclusion: its backing is one scalar of fixed width whose members are never bound and released, so the subject R-08-046 names has no referent here. R-08-045's charge covers the scalar, the conservation of committed value against outstanding allowances is a source-level invariant, and overflow is `MUT-ATOMIC`'s law rather than a capacity verdict. |
 
-Each kind the table leaves unplaced owes R-08-046's own field set, and the design
-supplies some of that set in kind and none of it in values.
+Every unplaced kind owes R-08-046's full manifest. This design supplies some field kinds, no concrete values.
 
 | Manifest field | Supplied by this design? |
 | --- | --- |
@@ -396,35 +194,10 @@ supplies some of that set in kind and none of it in values.
 | Restart semantics | Owed. Fail-stop and restart follow the platform's revocation and containment obligations, and the pool's own restart behaviour is not stated by that. |
 | Generation-migration semantics | Owed. |
 
-**The verdict is that a new class is required**, which makes this an amendment to
-R-08-046's inventory and to the prose it is read with rather than a classification
-under an existing member. This review proposes that amendment and does not take
-it, for two reasons that are the same reason twice: its predicate is a
-commissioned frontend, which the arm-two disposition above holds, and
-inventorying a pool class that no admitted design instantiates lands a row that
-is false on the day it lands. The
-act is therefore ordered behind the R-05-020 act, and F-354's classification duty
-is answered here while the amendment it names stays owed before dependent runtime
-implementation opens.
+**A new class is required.** Amend R-08-046's inventory and its prose after the frontend is commissioned: the arm-two hold currently blocks that prerequisite, and listing an uninstantiated class would misstate the admitted design. This review answers F-354's classification duty; the amendment remains owed before dependent runtime implementation, ordered after the R-05-020 clarification.
 
 ## What this review establishes and what it does not
 
-The assignment above is a design act. It establishes that every missing law,
-frontend component, target connection and qualification stage has one owner, one
-estimate and one predicate, and that nothing Q2c, Q21a, Q21b, Q2b, Q20b,
-Q20c or M1 already carries is priced a second time. **Design acceptance here
-claims no executed language, no checked metatheory theorem and no qualified
-binary**: what it claims is the reviewed rule set, the composed client, the named
-representation and this accounting. Integrated document gates and the required
-co-reads close this review, and mechanization, frontend admission, target
-execution and timing qualification each keep their own acceptance predicate and
-their own gate.
+This design review supplies rules, a composed source-level client, a named representation and owner/estimate/predicate accounting without duplicating existing Q2c/Q21a/Q21b/Q2b/Q20b/Q20c/M1 work. Integrated document gates and required co-reads decide design acceptance. Mechanization, frontend admission, target execution and timing retain separate acceptance predicates; none is established here.
 
-Two register acts are left owed rather than taken, in this order: the lettered
-R-05-020 act that records which entry reaches an untrusted elaborator, and the
-R-08-046 inventory act that would let a declared frame, slot, scope,
-continuation, completion or guard pool exist. Each follows R-18-034 with its
-co-read pair and its cited prose, and neither belongs inside a dossier this one's
-own header calls non-normative. **A frontend row also needs what no register act
-supplies**, the arm-one interpretation commitment restated across the three rule
-dossiers, so the act alone opens nothing.
+Two normative acts remain ordered under R-18-034, each with its prose/co-read: clarify R-05-020's relation to untrusted elaboration, then extend R-08-046 for frame, child-slot, scope, continuation, completion and guard pools. The first act alone releases no frontend row: the three dossiers must also adopt the arm-one interpretation commitment.
