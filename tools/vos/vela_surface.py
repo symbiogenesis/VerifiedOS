@@ -89,6 +89,15 @@ public void Fill(ref Span<byte> target) {
     return;
 }
 """, ("for", "while", "match", "proof", "hole", "if", "return")),
+    Fixture("typed-locals-and-scoped-callbacks", """module ScopedLoans;
+public void Lend(ref Span<byte> target, byte value) {
+    Span<byte> local = target;
+    ghost Seq<byte> before = target.Model;
+    Result<Span<byte>, Error> nested = parsed;
+    WithElement(ref target, 0, (scoped ref byte selected) => { selected = value; });
+    Apply(ref target, (ref Span<byte> selected) => { selected[0usize] = 0byte; });
+}
+""", ("lambda", "modified_type", "type", "call")),
     Fixture("expressions-and-closures", """module Expressions;
 public void Compute() {
     let tuple = (0001usize, true, false);
