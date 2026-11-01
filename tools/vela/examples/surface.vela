@@ -218,3 +218,41 @@ public void UpdateCell<T : Type<u>>(ref LocalCell<T> cell) {
         => { Touch(ref value); return (); };
     cell.WithWrite(update);
 }
+
+// Product grades are ordinary dictionary applications over pair values.
+// Compatible supplies the interaction laws; syntax establishes none of them.
+public domain Product<A : GradeDomain, B : GradeDomain>
+    where Compatible(A, B)
+{
+    carrier (A.carrier, B.carrier);
+    zero (A.zero, B.zero);
+    one (A.one, B.one);
+    add Products.Combine(A.add, B.add);
+    mul Products.Combine(A.mul, B.mul);
+    admits Products.All(A.admits, B.admits);
+    interpret Products.Interpret(A.interpret, B.interpret);
+    laws Products.Laws(A.laws, B.laws);
+}
+
+// Local allowances reuse parameter grades, independently of the loan's authority.
+public Nat ReadAndApply(
+    ref Span<byte> bytes, owned Box<FnOnce(Nat) -> Nat> callback)
+    requires bytes.Length > 0
+    restores Valid(bytes)
+{
+    ghost Nat length @ NatExact(0) = Nat(bytes.Length);
+    ref<'bytes> byte first @ NatExact(1) = ref bytes[0usize];
+    Box<FnOnce(Nat) -> Nat> retained @ NatExact(1) = move callback;
+    let observed @ NatExact(1) = Read(in first);
+    return retained.Value(observed);
+}
+
+// Unary continuation disposal and a handler's disposal graph have distinct roles.
+// The graph takes a reason; capture and ordinary return do not invoke it.
+public Result<Nat, Error> ReadGuarded(owned Guard guard) {
+    return handle (ReadOrFail(in guard)) as running {
+        Fail(error) with k => { dispose k; return Err(error); },
+        return value => Ok(value),
+        dispose reason => { guard.Release(reason); return (); },
+    };
+}
