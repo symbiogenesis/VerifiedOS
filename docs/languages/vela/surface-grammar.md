@@ -146,8 +146,8 @@ substitution and resource compatibility remain checking obligations. A located
 `match_motive` node records its `name` and `type`. A match without an annotation
 has a null `motive`. Expression matches use `match_expression` and
 `expression_case` nodes with `pattern` and `value` fields; statement matches keep
-their `match` and `case` nodes and colon-delimited statement arms. Empty expression
-matches, incomplete motives and mixed arm delimiters are refused. Expression
+their `match` and `case` nodes and colon-delimited statement arms. Incomplete
+motives and mixed arm delimiters are refused. Expression
 matches compose with calls, operators, lambdas, proofs and nested matches.
 
 Ordinary fields accept the same optional `@ GRADE` as record and constructor
@@ -381,12 +381,13 @@ before `=`. Effect families accept them before their opening brace. Their
 contracts. Grade-domain laws, capture requirements and family invariants therefore
 reuse the same contract language as records and other library definitions.
 
-An empty sum's value eliminator uses an explicitly grouped empty match:
-`(match (impossible) as whole : T {})`. Its ordinary `group` node contains a
-`match_expression` with an empty `cases` array and the existing optional motive.
-Grouping distinguishes it from the retained bare empty statement match and
-preserves strict parser generation. Nonempty expression matches keep their
-existing syntax. Whether the scrutinee has an empty type and which resources can
+An empty sum's value eliminator uses `match (impossible) as whole : T {}`.
+Its `match_expression` node has an empty `cases` array and the existing optional
+motive. Like lambdas and type injection, an empty value match occupies a complete
+expression; group it when applying operators or postfix operations. A semicolon
+distinguishes an empty-match expression statement from the retained bare empty
+statement match. Nonempty expression matches keep their existing syntax.
+Whether the scrutinee has an empty type and which resources can
 reach that branch are checking obligations; syntax supplies no inhabitant or
 proof. String and character literal patterns reuse their lexical spelling in
 `string_pattern` and `character_pattern` nodes, with the same `value` field as
@@ -395,7 +396,7 @@ their expression literals; they introduce no decoding or equality operation.
 Independent fixtures must compose computed types with kinded parameters,
 dependent results, scoped loans, local grades and callable contracts. Assert
 expression/type roles, alias/family/member contract ownership, empty-match motive
-and group boundaries, literal pattern spellings and original UTF-8 byte spans.
+and statement/expression boundaries, literal pattern spellings and original UTF-8 byte spans.
 Retain malformed-neighbor refusals, bounded nesting, semantic-error positives,
 all earlier surface cases and pure migration behavior.
 
