@@ -171,7 +171,7 @@ let identifier state lexbuf =
   | "private" -> PRIVATE | "internal" -> INTERNAL | "async" -> ASYNC
   | "record" -> RECORD | "struct" -> STRUCT | "union" -> UNION
   | "interface" -> INTERFACE | "trait" -> TRAIT | "impl" -> IMPL
-  | "import" -> IMPORT | "alias" -> ALIAS | "namespace" -> NAMESPACE
+  | "import" -> IMPORT | "alias" -> ALIAS | "namespace" -> NAMESPACE | "as" -> AS
   | "owned" -> OWNED | "move" -> MOVE | "in" -> IN | "ref" -> REF
   | "ghost" -> GHOST | "tracked" -> TRACKED | "scoped" -> SCOPED
   | "region" -> REGION | "captures" -> CAPTURES | "grade" -> GRADE | "domain" -> DOMAIN
