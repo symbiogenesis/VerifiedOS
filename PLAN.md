@@ -3095,6 +3095,30 @@ module, unchanged CLI help/dispatch and source-binding coverage, plus typecheck.
 the settled revision, without waiting for Guest CI. No new compiler, model or proof
 acceptance claim follows from moving this implementation.
 
+## Change-aware CI selection
+
+**Contract:** select validation from the complete changed-path set, with one shared
+classifier for hosted workflows and the publication handoff. Prose-only changes
+retain the corpus checker and Markdown validation on Windows and Ubuntu, while
+omitting behavioral/mutation shards, Python typechecking and unaffected model
+hooks. Markdown consumed as executable configuration keeps its consuming gates.
+Model changes select the model and RTL guest lanes, RTL changes select RTL, and
+proof changes select proofs; shared tooling, CI configuration, unknown paths and
+unavailable comparisons conservatively select the complete suites. Mixed changes
+take the union. Manual full runs, cold installation and explicit proof-reading
+acceptance remain available and cannot be narrowed by automatic classification.
+
+**Acceptance:** exercise documentation, executable Markdown, each source family,
+mixed changes, deleted/renamed files, unavailable history and full-run overrides.
+Keep both Host CI aggregate names and reject failed, canceled or unexpectedly
+skipped required jobs. Record the comparison and selected or omitted guest lanes
+in the fanout journal; reuse a frozen selection on resume and dispatch only the
+selected lanes after Host CI passes, without waiting for Guest CI. Preserve full
+scheduled coverage and its existing successful-revision deduplication. Update
+AGENTS.md and the workflow/handoff contracts together. Require passing Host CI on
+the settled published revision and dispatch every guest lane for this change to
+the CI mechanism itself.
+
 ## Host CI scheduling
 
 Host CI's mutation-test partitions allocate more runners to the measured Ubuntu
