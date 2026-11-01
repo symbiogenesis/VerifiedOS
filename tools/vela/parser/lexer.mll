@@ -30,7 +30,8 @@ let annotation_name lexbuf =
   let subsequent value = initial value || (value >= '0' && value <= '9') in
   let rec word index = if index < length && subsequent (at index) then word (index + 1) else index in
   let rec comment depth index =
-    if index + 1 >= length || depth > Ast.max_delimiter_depth then length
+    if depth > Ast.max_delimiter_depth then refuse "limit" lexbuf "annotation comment nesting exceeds 256"
+    else if index + 1 >= length then length
     else if at index = '/' && at (index + 1) = '*' then comment (depth + 1) (index + 2)
     else if at index = '*' && at (index + 1) = '/' then
       if depth = 1 then index + 2 else comment (depth - 1) (index + 2)
@@ -55,8 +56,9 @@ let annotation_name lexbuf =
       | _ -> quoted (index + 1)
   in
   let rec angles depth parens brackets index =
-    if index >= length || depth > Ast.max_delimiter_depth
-       || parens > Ast.max_delimiter_depth || brackets > Ast.max_delimiter_depth then length
+    if depth > Ast.max_delimiter_depth || parens > Ast.max_delimiter_depth
+       || brackets > Ast.max_delimiter_depth then refuse "limit" lexbuf "annotation nesting exceeds 256"
+    else if index >= length then length
     else let index = trivia index in
       if index >= length then length
       else match at index with
@@ -88,11 +90,14 @@ let annotation_name lexbuf =
     index + 1 < length && at index = '=' && at (index + 1) = '>'
   in
   let rec lambda_tail parens index =
-    if index >= length || parens > Ast.max_delimiter_depth then false
+    if parens > Ast.max_delimiter_depth then refuse "limit" lexbuf "lambda annotation nesting exceeds 256"
+    else if index >= length then false
     else let index = trivia index in
       if index >= length then false
       else match at index with
         | '"' -> lambda_tail parens (quoted (index + 1))
+        | '\'' when index + 2 < length && at (index + 2) = '\'' -> lambda_tail parens (index + 3)
+        | '\'' when index + 3 < length && at (index + 1) = '\\' && at (index + 3) = '\'' -> lambda_tail parens (index + 4)
         | '(' -> lambda_tail (parens + 1) (index + 1)
         | ')' -> if parens = 0 then arrow (index + 1) else lambda_tail (parens - 1) (index + 1)
         | ';' | '{' | '}' -> false
