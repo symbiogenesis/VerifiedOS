@@ -352,6 +352,53 @@ member/path spans, and operation/return/disposal clause ownership. Include neste
 handlers, syntax-valid resource violations, malformed neighboring spellings and
 bounded-lookahead exhaustion. Retain every prior syntax and pure migration case.
 
+### Computed types and uniform elimination
+
+The stable type-valued computations of the [graded foundation](graded-foundation.md#stable-telescope-and-dependency-bookkeeping)
+can appear wherever a type is expected, through `type[EXPR]`. A `computed_type`
+node stores the ordinary expression in its `value` field. This delimited form
+reuses calls, dependent matches, local indices and library operations:
+
+```text
+definition Type<u> Select<T : Type<u>>(bool pair) =
+    match (pair) { case true => type (T, T); case false => type T; };
+alias Selected<T : Type<u>, ghost bool pair> where Stable(pair) =
+    type[Select::<T>(pair)];
+operation type[Select::<T>(pair)] Read<T : Type<u>>(bool pair);
+```
+
+Computed types also work directly as generic arguments, as in
+`Box<type[Select::<T>(flag)]>`, and in fields, parameters, callable signatures,
+local annotations and lambda annotations. The existing `type TYPE` expression
+injects structural types into values; `type[EXPR]` uses a type-valued expression
+as a type. Parsing establishes neither stability nor purity, universe formation,
+conversion, erasure or resource availability. Effectful or ill-kinded type
+expressions remain syntax-valid inputs for the future checker.
+
+Aliases accept existing declaration contracts after their generic telescope and
+before `=`. Effect families accept them before their opening brace. Their
+`contracts` arrays are empty when omitted and distinct from operation or callable
+contracts. Grade-domain laws, capture requirements and family invariants therefore
+reuse the same contract language as records and other library definitions.
+
+An empty sum's value eliminator uses an explicitly grouped empty match:
+`(match (impossible) as whole : T {})`. Its ordinary `group` node contains a
+`match_expression` with an empty `cases` array and the existing optional motive.
+Grouping distinguishes it from the retained bare empty statement match and
+preserves strict parser generation. Nonempty expression matches keep their
+existing syntax. Whether the scrutinee has an empty type and which resources can
+reach that branch are checking obligations; syntax supplies no inhabitant or
+proof. String and character literal patterns reuse their lexical spelling in
+`string_pattern` and `character_pattern` nodes, with the same `value` field as
+their expression literals; they introduce no decoding or equality operation.
+
+Independent fixtures must compose computed types with kinded parameters,
+dependent results, scoped loans, local grades and callable contracts. Assert
+expression/type roles, alias/family/member contract ownership, empty-match motive
+and group boundaries, literal pattern spellings and original UTF-8 byte spans.
+Retain malformed-neighbor refusals, bounded nesting, semantic-error positives,
+all earlier surface cases and pure migration behavior.
+
 ### Native qualification
 
 Menhir's code backend must generate with `--strict --infer --explain`, with no
