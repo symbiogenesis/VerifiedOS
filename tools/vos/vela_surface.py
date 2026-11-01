@@ -23,6 +23,91 @@ class Fixture:
 
 
 POSITIVE: tuple[Fixture, ...] = (
+    Fixture("kinded-telescopes-and-associated-families", """// café: kinds have spans distinct from their binders.
+module KindedFamilies;
+universe u;
+alias Scoped<T : Type<u>, region 'loan> = Fn(scoped ref<'loan> T value) -> ();
+alias Plain<U> = U;
+trait Family<T : Type<u>> {
+    type Value<U : Type<u>> : Type<u> where Formed(U);
+    type Selected : Type<u> where Stable(T) = T;
+    type Legacy;
+    predicate Readable(T value) requires Ready(value) = Stable(value);
+    predicate Closed(T value) where Law(T);
+}
+""", ("generic_parameter", "associated_type", "predicate", "contract", "function_type")),
+    Fixture("type-valued-dependent-matches", """// café: structural types stay inside explicit type expressions.
+module TypeFamilies;
+universe u;
+definition Type<u> LoanType<T : Type<u>>(bool exclusive) where Stable(T) =
+    match (exclusive) as mode : Type<u> {
+        case true => type ref T;
+        case false => type in T;
+    };
+definition Type<u> Product<T>() = type (owned T, tracked Receipt);
+definition Type<u> UnitType() = type ();
+definition Type<u> Callback<T>() = type Fn<region 'local>(
+    scoped ref<'local> T value @ NatExact(1)) -> ()
+    with { restores Valid(value); };
+public void Inspect() { Compare((type Nat), (type bool)); }
+""", ("definition", "type_expression", "match_expression", "match_motive", "tuple_type", "unit_type")),
+    Fixture("typed-callable-values-and-scoped-loans", """// café: a callable value reuses its annotation's exact resource roles.
+module CallableValues;
+universe u;
+public void Use<T : Type<u>, captures C, grade q : NatExact>(in Cell<T> cell) {
+    let update = FnMut<region 'r>(scoped ref<'r> T slot @ q) -> ()
+        captures C effects(Write)
+        with { requires Valid(slot); restores Closed(final(slot)); }
+        => { Mutate(ref slot); return; };
+    cell.WithWrite(update);
+    let consume = FnOnce(owned T item @ NatExact(1)) -> T
+        with { ensures Returned(result); } => move item;
+    let classify = Fn(bool flag) -> Type<u> =>
+        match (flag) { case true => type T; case false => type (); };
+}
+""", ("typed_lambda", "function_type", "modified_type", "contract", "type_expression", "match_expression")),
+    Fixture("indexed-family-and-constructor-contracts", """// café: family and constructor laws retain different owners.
+module IndexedFamilies;
+universe u;
+union Outcome<T : Type<u>> where Separated(T) {
+    Ready(owned T value @ NatExact(1)) : Outcome<T> ensures Retained(value);
+    Rejected(tracked Receipt receipt) : Outcome<T> restores Closed(receipt);
+    Empty();
+}
+inductive Vec<T : Type<u>, ghost Nat n> where Admissible(T) {
+    Nil() : Vec<T, 0> ensures EmptyVector(result);
+    Cons(T head, Vec<T, n> tail) : Vec<T, (n + 1)> requires Bounded(n);
+}
+coinductive Stream<T> where Guarded(T) {
+    More(T head, Stream<T> tail) : Stream<T> ensures Productive(result);
+}
+definition Nat Count<T>(in Outcome<T> value) requires Available(value)
+    ensures Stable(result) = 0;
+union Legacy { Done(); }
+definition Nat Zero() = 0;
+""", ("union", "inductive", "coinductive", "constructor", "contract", "definition")),
+    Fixture("stable-literal-generic-arguments", """// café: generic literal spelling is not normalized.
+module StableArguments;
+alias Flags = FlagsOf<true, false>;
+alias Label = Named<"wire", 'x', ?missing>;
+alias Mixed = Indexed<0002usize, true, (n + 1), type (owned Packet, tracked Receipt)>;
+public void Use() { Select::<true, "tag", 'z', ?choice>(value); }
+""", ("bool", "string", "character", "hole", "type_argument", "generic_application")),
+    Fixture("typed-resource-errors-remain-syntax", """module InvalidTypedResources;
+universe u;
+alias NonType<T : Nat> = T;
+definition Type<u> ErasedChoice(ghost bool flag) =
+    match (flag) { case true => type Packet; case false => type (); };
+public async void Invalid(owned Packet packet, tracked Receipt receipt) {
+    let duplicate = Fn(owned Packet p @ NatExact(0)) -> (Packet, Packet)
+        => (move p, move p);
+    let escape = Fn<region 'local>(scoped ref<'local> Packet p) -> ref<'local> Packet
+        => ref p;
+    let suspended = FnOnce(scoped ref Packet p) -> ()
+        => { await Ready(); return; };
+    Use(move receipt, move receipt);
+}
+""", ("generic_parameter", "type_expression", "typed_lambda", "await", "tuple")),
     Fixture("effect-operation-resource-contracts", """// café: contract and grade spans use original UTF-8 bytes.
 module ResourceEffects;
 public effect Exchange<T, ghost Nat n> {
@@ -570,6 +655,28 @@ public UnknownType F() { return missing; }
 
 
 NEGATIVE: tuple[tuple[str, bytes, str], ...] = (
+    ("type-binder-missing-kind", b"module M; alias Box<T :> = T;", "syntax"),
+    ("type-binder-missing-name", b"module M; alias Box<: Type<u>> = T;", "syntax"),
+    ("associated-missing-kind", b"module M; trait F { type Value :; }", "syntax"),
+    ("associated-missing-law", b"module M; trait F { type Value : Type<u> where; }", "syntax"),
+    ("associated-kind-after-law", b"module M; trait F { type Value where Stable(T) : Type<u>; }", "syntax"),
+    ("type-expression-missing-type", b"module M; definition Type<u> F() = type;", "syntax"),
+    ("type-expression-missing-component", b"module M; definition Type<u> F() = type (T,);", "syntax"),
+    ("type-expression-incomplete-callable", b"module M; definition Type<u> F() = type Fn(T) ->;", "syntax"),
+    ("typed-lambda-missing-result", b"module M; void F() { let f = Fn(T x) -> => x; }", "syntax"),
+    ("typed-lambda-missing-arrow", b"module M; void F() { let f = Fn(T x) -> T x; }", "syntax"),
+    ("typed-lambda-missing-body", b"module M; void F() { let f = FnOnce(T x) -> T =>; }", "syntax"),
+    ("typed-lambda-missing-local-region", b"module M; void F() { let f = Fn<region>(T x) -> T => x; }", "syntax"),
+    ("typed-lambda-incomplete-law", b"module M; void F() { let f = Fn(T x) -> T with { restores; } => x; }", "syntax"),
+    ("typed-lambda-undelimited-law", b"module M; void F() { let f = Fn(T x) -> T requires Valid(x) => x; }", "syntax"),
+    ("sum-missing-law", b"module M; union Result<T> where { Ok(T value); }", "syntax"),
+    ("constructor-missing-law", b"module M; union Result { Ok() : Result ensures; }", "syntax"),
+    ("constructor-result-after-law", b"module M; union Result { Ok() ensures Ready() : Result; }", "syntax"),
+    ("definition-missing-law", b"module M; definition Nat F() requires = 0;", "syntax"),
+    ("predicate-missing-law", b"module M; predicate P(Nat n) where = true;", "syntax"),
+    ("literal-generic-missing-neighbor", b"module M; alias A = Indexed<true,>;", "syntax"),
+    ("typed-callable-generic-depth", b"module M; void F() { let f = Fn<T : "
+     + b"Box<" * 257 + b"T" + b">" * 257 + b">() -> T => value; }", "limit"),
     ("effect-missing-precondition", b"module M; effect E { Nat Get() requires; }", "syntax"),
     ("effect-missing-restoration", b"module M; effect E { Nat Get() resumes(1) restores; }", "syntax"),
     ("effect-missing-effects", b"module M; effect E { Nat Get() effects; }", "syntax"),
@@ -838,6 +945,184 @@ def _exact_span(source: bytes, value: dict[str, Json], spelling: bytes) -> None:
     start = source.index(spelling)
     if value.get("span") != [start, start + len(spelling)]:
         raise ValueError(f"surface original-byte span differs for {spelling!r}")
+
+
+def _contract_roles(owner: dict[str, Json], roles: list[str]) -> list[dict[str, Json]]:
+    clauses = [_object(value, "declaration contract")
+               for value in _sequence(owner.get("contracts"), "declaration contracts")]
+    if [clause.get("role") for clause in clauses] != roles:
+        raise ValueError("surface contract roles differ or belong to the wrong declaration")
+    return clauses
+
+
+def _kinded_family_roles(source: bytes, result: dict[str, Json]) -> None:
+    scoped = _named(result.get("ast"), "alias", "Scoped")
+    generic = _object(_sequence(scoped.get("generics"), "kinded telescope")[0], "kinded binder")
+    if generic.get("mode") != "type" or _texts(generic.get("name")) != ["T"]:
+        raise ValueError("surface explicit kind changed the generic binder's role")
+    _type_head(generic.get("type"), "Type", 1)
+    _exact_span(source, generic, b"T : Type<u>")
+    plain = _named(result.get("ast"), "alias", "Plain")
+    bare = _object(_sequence(plain.get("generics"), "bare telescope")[0], "bare binder")
+    if bare.get("mode") != "type" or bare.get("type") is not None:
+        raise ValueError("surface bare generic acquired an authored kind")
+    family = _named(result.get("ast"), "trait", "Family")
+    value = _named(family, "associated_type", "Value")
+    _type_head(value.get("kind_annotation"), "Type", 1)
+    _contract_roles(value, ["where"])
+    _exact_span(source, value, b"type Value<U : Type<u>> : Type<u> where Formed(U);")
+    if value.get("definition") is not None:
+        raise ValueError("surface abstract associated family acquired a definition")
+    selected = _named(family, "associated_type", "Selected")
+    _type_head(selected.get("kind_annotation"), "Type", 1)
+    _type_head(selected.get("definition"), "T", 0)
+    _contract_roles(selected, ["where"])
+    legacy = _named(family, "associated_type", "Legacy")
+    if legacy.get("kind_annotation") is not None or legacy.get("contracts") != []:
+        raise ValueError("surface unannotated associated type fabricated a kind or law")
+    readable = _named(family, "predicate", "Readable")
+    clauses = _contract_roles(readable, ["requires"])
+    _exact_span(source, clauses[0], b"requires Ready(value)")
+    if _texts(readable.get("definition")) != ["Stable", "value"]:
+        raise ValueError("surface predicate contract displaced its defining expression")
+    closed = _named(family, "predicate", "Closed")
+    _contract_roles(closed, ["where"])
+    if closed.get("definition") is not None:
+        raise ValueError("surface predicate signature acquired a defining expression")
+
+
+def _type_expression_roles(source: bytes, result: dict[str, Json]) -> None:
+    family = _named(result.get("ast"), "definition", "LoanType")
+    _contract_roles(family, ["where"])
+    elimination = _object(family.get("value"), "type-valued elimination")
+    motive = _object(elimination.get("motive"), "type-family motive")
+    if elimination.get("kind") != "match_expression" or _texts(motive.get("name")) != ["mode"]:
+        raise ValueError("surface type family lost its dependent elimination")
+    _type_head(motive.get("type"), "Type", 1)
+    arms = _sequence(elimination.get("cases"), "type-family branches")
+    for arm, truth, mode in zip(arms, (True, False), ("ref", "in"), strict=True):
+        branch = _object(arm, "type-family branch")
+        if _object(branch.get("pattern"), "type-family pattern").get("value") is not truth:
+            raise ValueError("surface type-family branch discriminant differs")
+        expression = _object(branch.get("value"), "type expression")
+        annotation = _object(expression.get("type"), "injected loan type")
+        if expression.get("kind") != "type_expression" or annotation.get("modifier") != mode:
+            raise ValueError("surface type expression erased its loan mode")
+        _type_head(annotation.get("type"), "T", 0)
+        _exact_span(source, expression, f"type {mode} T".encode())
+    for name, kind, spelling in (("Product", "tuple_type", b"type (owned T, tracked Receipt)"),
+                                 ("UnitType", "unit_type", b"type ()"),
+                                 ("Callback", "function_type", None)):
+        definition = _named(result.get("ast"), "definition", name)
+        expression = _object(definition.get("value"), "type-valued definition")
+        annotation = _object(expression.get("type"), "injected structural type")
+        if expression.get("kind") != "type_expression" or annotation.get("kind") != kind:
+            raise ValueError("surface injected structural type has the wrong role")
+        if spelling is not None:
+            _exact_span(source, expression, spelling)
+        if name == "Callback":
+            _contract_roles(annotation, ["restores"])
+            if annotation.get("mode") != "Fn":
+                raise ValueError("surface injected callable type lost its call mode")
+
+
+def _typed_callable_roles(source: bytes, result: dict[str, Json]) -> None:
+    function = _named(result.get("ast"), "function", "Use")
+    for name, mode, body_kind in (("update", "FnMut", "block"), ("consume", "FnOnce", "unary"),
+                                  ("classify", "Fn", "match_expression")):
+        binding = _named(function, "let", name)
+        closure = _object(binding.get("value"), "explicit callable value")
+        signature = _object(closure.get("signature"), "callable value signature")
+        body = _object(closure.get("body"), "callable value body")
+        if (closure.get("kind") != "typed_lambda" or signature.get("kind") != "function_type"
+                or signature.get("mode") != mode or body.get("kind") != body_kind):
+            raise ValueError("surface explicit callable confused signature, call mode or body")
+        if name == "update":
+            generics = _sequence(signature.get("generics"), "callable value local binders")
+            if len(generics) != 1 or _object(generics[0], "local region").get("mode") != "region":
+                raise ValueError("surface callable value lost its locally bound region")
+            _exact_span(source, _object(generics[0], "local region"), b"region 'r")
+            parameter = _object(_sequence(signature.get("parameters"), "callable parameters")[0], "scoped slot")
+            scoped = _object(parameter.get("type"), "scoped slot annotation")
+            loan = _object(scoped.get("type"), "exclusive slot loan")
+            if (scoped.get("modifier") != "scoped" or loan.get("modifier") != "ref"
+                    or _texts(loan.get("lifetime")) != ["'r"] or _texts(parameter.get("grade")) != ["q"]):
+                raise ValueError("surface callable value displaced its scoped loan or grade")
+            _exact_span(source, parameter, b"scoped ref<'r> T slot @ q")
+            if _texts(signature.get("captures")) != ["C"] or _texts(signature.get("effects")) != ["Write"]:
+                raise ValueError("surface callable value lost captures or effect bounds")
+            clauses = _contract_roles(signature, ["requires", "restores"])
+            _exact_span(source, clauses[1], b"restores Closed(final(slot))")
+            if "Mutate" not in _texts(body) or "Closed" in _texts(body):
+                raise ValueError("surface callable signature laws leaked into its executable body")
+        elif name == "consume":
+            _contract_roles(signature, ["ensures"])
+            _exact_span(source, body, b"move item")
+        else:
+            _contract_roles(signature, [])
+            _type_head(signature.get("result"), "Type", 1)
+            expressions = [node for node in nodes(body) if node.get("kind") == "type_expression"]
+            if len(expressions) != 2:
+                raise ValueError("surface shared callable lost its type-valued branches")
+
+
+def _indexed_family_contract_roles(source: bytes, result: dict[str, Json]) -> None:
+    for kind, name, law in (("union", "Outcome", "Separated"), ("inductive", "Vec", "Admissible"),
+                             ("coinductive", "Stream", "Guarded")):
+        family = _named(result.get("ast"), kind, name)
+        clauses = _contract_roles(family, ["where"])
+        if _texts(clauses[0].get("value")) != [law, "T"]:
+            raise ValueError("surface indexed-family law escaped its declaration")
+    outcome = _named(result.get("ast"), "union", "Outcome")
+    ready = _constructor(outcome, "Ready")
+    _type_head(ready.get("result"), "Outcome", 1)
+    clauses = _contract_roles(ready, ["ensures"])
+    _exact_span(source, clauses[0], b"ensures Retained(value)")
+    parameter = _object(_sequence(ready.get("parameters"), "ready owner")[0], "ready owner")
+    if _texts(parameter.get("grade")) != ["NatExact"]:
+        raise ValueError("surface constructor law displaced the owner's use grade")
+    _contract_roles(_constructor(outcome, "Rejected"), ["restores"])
+    _contract_roles(_constructor(outcome, "Empty"), [])
+    cons = _constructor(_named(result.get("ast"), "inductive", "Vec"), "Cons")
+    _contract_roles(cons, ["requires"])
+    arguments = _type_head(cons.get("result"), "Vec", 2)
+    if _object(arguments[1], "successor index").get("kind") != "group":
+        raise ValueError("surface constructor contracts consumed the dependent result index")
+    _contract_roles(_named(result.get("ast"), "definition", "Count"), ["requires", "ensures"])
+    _contract_roles(_named(result.get("ast"), "union", "Legacy"), [])
+    _contract_roles(_named(result.get("ast"), "definition", "Zero"), [])
+
+
+def _stable_generic_literal_roles(source: bytes, result: dict[str, Json]) -> None:
+    flags = _type_head(_named(result.get("ast"), "alias", "Flags").get("type"), "FlagsOf", 2)
+    if [(_object(value, "Boolean index").get("kind"), _object(value, "Boolean index").get("value"))
+            for value in flags] != [("bool", True), ("bool", False)]:
+        raise ValueError("surface generic Boolean literals became names or normalized values")
+    label = _type_head(_named(result.get("ast"), "alias", "Label").get("type"), "Named", 3)
+    for value, kind, spelling in zip(label, ("string", "character", "hole"),
+                                      (b'"wire"', b"'x'", b"?missing"), strict=True):
+        literal = _object(value, "stable literal argument")
+        if literal.get("kind") != kind:
+            raise ValueError("surface generic literal changed its syntax role")
+        if kind == "hole":
+            if _texts(literal.get("name")) != [spelling.decode()]:
+                raise ValueError("surface generic named hole lost its spelling")
+        elif literal.get("value") != spelling.decode():
+            raise ValueError("surface generic literal lost its quoted spelling")
+        _exact_span(source, literal, spelling)
+    mixed = _type_head(_named(result.get("ast"), "alias", "Mixed").get("type"), "Indexed", 4)
+    numeric = _object(mixed[0], "represented generic index")
+    if numeric.get("value") != "0002" or numeric.get("suffix") != "usize":
+        raise ValueError("surface stable arguments changed represented numeric spelling")
+    _exact_span(source, numeric, b"0002usize")
+    if [_object(value, "mixed generic argument").get("kind") for value in mixed] != [
+            "nat", "bool", "group", "type_argument"]:
+        raise ValueError("surface stable arguments displaced expression and structural-type roles")
+    application = next(node for node in nodes(result.get("ast")) if node.get("kind") == "generic_application")
+    if [_object(value, "explicit stable argument").get("kind")
+            for value in _sequence(application.get("arguments"), "explicit stable arguments")] != [
+            "bool", "string", "character", "hole"]:
+        raise ValueError("surface generic expression application lost its stable literals")
 
 
 def _effect_resource_roles(source: bytes, result: dict[str, Json]) -> None:
@@ -1455,6 +1740,16 @@ def qualify(parse: Callable[[bytes], dict[str, Json]]) -> list[str]:
             raise ValueError(f"surface fixture {fixture.name} lacks AST roles: {sorted(missing)}")
         if fixture.name == "function-types-grades-and-contracts":
             _type_roles(result)
+        elif fixture.name == "kinded-telescopes-and-associated-families":
+            _kinded_family_roles(fixture.source.encode("utf-8"), result)
+        elif fixture.name == "type-valued-dependent-matches":
+            _type_expression_roles(fixture.source.encode("utf-8"), result)
+        elif fixture.name == "typed-callable-values-and-scoped-loans":
+            _typed_callable_roles(fixture.source.encode("utf-8"), result)
+        elif fixture.name == "indexed-family-and-constructor-contracts":
+            _indexed_family_contract_roles(fixture.source.encode("utf-8"), result)
+        elif fixture.name == "stable-literal-generic-arguments":
+            _stable_generic_literal_roles(fixture.source.encode("utf-8"), result)
         elif fixture.name == "effect-operation-resource-contracts":
             _effect_resource_roles(fixture.source.encode("utf-8"), result)
         elif fixture.name == "container-resource-contracts":
