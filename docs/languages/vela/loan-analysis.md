@@ -75,7 +75,7 @@ The `Ready` path retains the shared view and suspended parent footprint. On
 `Rejected`, no later use demands the view: its proposed end precedes the write,
 and its restoration remains an unresolved obligation. `PathReport` keeps those
 outcomes separate. `Issue` describes a detected conflict or unsupported operation;
-`Obligation` and `Restoration` retain unresolved premises. `AnalysisRefusal`
+`Obligation` and `Restoration` retain unresolved premises. `AnalysisRefusalError`
 means malformed input or incomplete exploration and returns no report.
 
 `Use` means reading through a handle's retained loans. `Bind` retains captures

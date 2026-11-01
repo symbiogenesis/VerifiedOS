@@ -18,7 +18,7 @@ type Overlap = Literal["yes", "no", "unknown"]
 _NAME = re.compile(r"[A-Za-z_][A-Za-z_0-9]*\Z")
 
 
-class AnalysisRefusal(ValueError):
+class AnalysisRefusalError(ValueError):
     """Malformed or incompletely explored input; no partial report is returned."""
 
 
@@ -193,17 +193,17 @@ class _Budget:
     def spend(self, amount: int = 1) -> None:
         self.remaining -= amount
         if self.remaining < 0:
-            raise AnalysisRefusal("analysis work budget exhausted; no complete report")
+            raise AnalysisRefusalError("analysis work budget exhausted; no complete report")
 
 
 def _name(value: str) -> None:
     if not isinstance(value, str) or len(value) > 128 or not _NAME.fullmatch(value):
-        raise AnalysisRefusal("identities must be nonempty normalized identifiers")
+        raise AnalysisRefusalError("identities must be nonempty normalized identifiers")
 
 
 def _projection(value: tuple[str, ...]) -> None:
     if not isinstance(value, tuple) or len(value) > 32:
-        raise AnalysisRefusal("projection must be an immutable path of at most 32 fields")
+        raise AnalysisRefusalError("projection must be an immutable path of at most 32 fields")
     for part in value:
         if part != "*":
             _name(part)
@@ -239,28 +239,28 @@ def _validate(owners: tuple[Owner, ...], graph: Graph, limits: Limits,
               budget: _Budget) -> dict[str, Node]:
     for bound in (limits.owners, limits.nodes, limits.paths, limits.captures, limits.work):
         if type(bound) is not int or bound < 1:
-            raise AnalysisRefusal("analysis limits must be positive integers")
+            raise AnalysisRefusalError("analysis limits must be positive integers")
     if not isinstance(owners, tuple) or not isinstance(graph.nodes, tuple):
-        raise AnalysisRefusal("owners and nodes must be immutable tuples")
+        raise AnalysisRefusalError("owners and nodes must be immutable tuples")
     if not owners or len(owners) > limits.owners or not graph.nodes or len(graph.nodes) > limits.nodes:
-        raise AnalysisRefusal("owner or node budget exhausted, or empty input")
+        raise AnalysisRefusalError("owner or node budget exhausted, or empty input")
     owner_names: set[str] = set()
     capture_count = 0
     for owner in owners:
         budget.spend()
         _name(owner.name)
         if owner.name in owner_names or type(owner.borrowed) is not bool:
-            raise AnalysisRefusal("duplicate owner identity or malformed owner mode")
+            raise AnalysisRefusalError("duplicate owner identity or malformed owner mode")
         owner_names.add(owner.name)
         if not isinstance(owner.fields, tuple) or len(owner.fields) > limits.captures:
-            raise AnalysisRefusal("field declarations must be immutable")
+            raise AnalysisRefusalError("field declarations must be immutable")
         for path in owner.fields:
             budget.spend(len(path) + 1)
             _projection(path)
             if not path or "*" in path:
-                raise AnalysisRefusal("declared field projections cannot be empty or unknown")
+                raise AnalysisRefusalError("declared field projections cannot be empty or unknown")
         if len(set(owner.fields)) != len(owner.fields):
-            raise AnalysisRefusal("duplicate field declaration")
+            raise AnalysisRefusalError("duplicate field declaration")
 
     nodes: dict[str, Node] = {}
     known = set(owner_names)
@@ -269,11 +269,11 @@ def _validate(owners: tuple[Owner, ...], graph: Graph, limits: Limits,
         budget.spend()
         _name(node.name)
         if node.name in nodes:
-            raise AnalysisRefusal("duplicate graph identity")
+            raise AnalysisRefusalError("duplicate graph identity")
         nodes[node.name] = node
         if not isinstance(node.event, (Borrow, Access, Bind, Use, Drop, Move, Return,
                                        Checkpoint, OpenInvariant, CloseInvariant, Nop)):
-            raise AnalysisRefusal("unknown event")
+            raise AnalysisRefusalError("unknown event")
         binder = _binder(node.event)
         if binder is not None:
             _name(binder)
@@ -283,44 +283,44 @@ def _validate(owners: tuple[Owner, ...], graph: Graph, limits: Limits,
             invariants.add(node.event.name)
 
     if graph.entry not in nodes:
-        raise AnalysisRefusal("missing entry node")
+        raise AnalysisRefusalError("missing entry node")
     for node in graph.nodes:
         budget.spend()
         if (not isinstance(node.successors, tuple) or len(node.successors) > limits.nodes
                 or len(set(node.successors)) != len(node.successors)):
-            raise AnalysisRefusal("malformed or duplicate edges")
+            raise AnalysisRefusalError("malformed or duplicate edges")
         for successor in node.successors:
             budget.spend()
             if successor not in nodes:
-                raise AnalysisRefusal("missing successor")
+                raise AnalysisRefusalError("missing successor")
         if isinstance(node.event, Return) and node.successors:
-            raise AnalysisRefusal("return node has successors")
+            raise AnalysisRefusalError("return node has successors")
         references = _references(node.event)
         if not isinstance(references, tuple):
-            raise AnalysisRefusal("capture references must be immutable")
+            raise AnalysisRefusalError("capture references must be immutable")
         capture_count += len(references)
         if capture_count > limits.captures:
-            raise AnalysisRefusal("capture/reference budget exhausted")
+            raise AnalysisRefusalError("capture/reference budget exhausted")
         for reference in references:
             budget.spend()
             _name(reference)
             if reference not in known:
-                raise AnalysisRefusal(f"missing resource reference: {reference}")
+                raise AnalysisRefusalError(f"missing resource reference: {reference}")
         event = node.event
         if isinstance(event, (Borrow, Access)):
             place = event.loan.place if isinstance(event, Borrow) else event.place
             _projection(place.fields)
             if place.owner not in owner_names:
-                raise AnalysisRefusal("missing place owner")
+                raise AnalysisRefusalError("missing place owner")
         if isinstance(event, Borrow):
             if event.loan.mode not in ("shared", "exclusive") or type(event.loan.scoped) is not bool:
-                raise AnalysisRefusal("malformed loan mode")
+                raise AnalysisRefusalError("malformed loan mode")
             if event.loan.invariant is not None and event.loan.invariant not in invariants:
-                raise AnalysisRefusal("missing invariant reference")
+                raise AnalysisRefusalError("missing invariant reference")
         if isinstance(event, Access) and event.kind not in ("read", "write", "move"):
-            raise AnalysisRefusal("unknown access kind")
+            raise AnalysisRefusalError("unknown access kind")
         if isinstance(event, CloseInvariant) and event.name not in invariants:
-            raise AnalysisRefusal("missing invariant reference")
+            raise AnalysisRefusalError("missing invariant reference")
         if isinstance(event, (Return, Checkpoint)):
             label = event.outcome if isinstance(event, Return) else event.kind
             _name(label)
@@ -343,7 +343,7 @@ def _validate(owners: tuple[Owner, ...], graph: Graph, limits: Limits,
             if incoming[successor] == 0:
                 ready.append(successor)
     if visited != len(nodes):
-        raise AnalysisRefusal("cyclic control flow requires an invariant interpretation")
+        raise AnalysisRefusalError("cyclic control flow requires an invariant interpretation")
     return nodes
 
 
@@ -361,13 +361,13 @@ def _paths(graph: Graph, nodes: dict[str, Node], limit: int,
         if not node.successors:
             result.append(path)
             if len(result) > limit:
-                raise AnalysisRefusal("complete path budget exhausted")
+                raise AnalysisRefusalError("complete path budget exhausted")
         else:
             for successor in reversed(node.successors):
                 budget.spend()
                 pending.append((successor, path))
     if reached != set(nodes):
-        raise AnalysisRefusal("unreachable graph nodes")
+        raise AnalysisRefusalError("unreachable graph nodes")
     return tuple(result)
 
 
@@ -395,7 +395,7 @@ def _capture_cycles(path: tuple[Node, ...], budget: _Budget) -> None:
             if not dependencies[name] & pending:
                 ready.add(name)
         if not ready:
-            raise AnalysisRefusal("cyclic loan/capture dependencies")
+            raise AnalysisRefusalError("cyclic loan/capture dependencies")
         pending.difference_update(ready)
 
 
@@ -736,8 +736,8 @@ class _Path:
                           tuple(sorted(active)), suspended, tuple(sorted(self.moved)))
 
 
-def analyze(owners: tuple[Owner, ...], graph: Graph, limits: Limits = Limits()) -> Report:
-    """Return a complete, deterministic diagnostic or raise AnalysisRefusal.
+def analyze(owners: tuple[Owner, ...], graph: Graph, limits: Limits | None = None) -> Report:
+    """Return a complete, deterministic diagnostic or raise AnalysisRefusalError.
 
     Facts are supplied abstract inputs, not source interpretation or proved laws.
     Even a report with no issues contains unresolved interpretation obligations.
@@ -749,6 +749,8 @@ def analyze(owners: tuple[Owner, ...], graph: Graph, limits: Limits = Limits()) 
     Node("read", Use("view")),)))`` proposes ending ``view`` after ``read``.
     The resulting restoration and interpretation obligations remain unresolved.
     """
+    if limits is None:
+        limits = Limits()
     budget = _Budget(limits.work)
     nodes = _validate(owners, graph, limits, budget)
     paths = _paths(graph, nodes, limits.paths, budget)

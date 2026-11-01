@@ -6,7 +6,7 @@ from collections.abc import Callable
 from tests.harness import Case, ensure
 from vos.vela_loans import (
     Access,
-    AnalysisRefusal,
+    AnalysisRefusalError,
     Bind,
     Borrow,
     Checkpoint,
@@ -59,7 +59,7 @@ def _ends(path: PathReport) -> list[tuple[str, str, str]]:
 def _refuses(action: Callable[[], object], text: str) -> None:
     try:
         action()
-    except AnalysisRefusal as error:
+    except AnalysisRefusalError as error:
         ensure(text in str(error), f"wrong structural refusal: {error}")
     else:
         raise AssertionError(f"analysis did not refuse {text}")
@@ -339,7 +339,7 @@ def _complete_exploration_and_budgets() -> None:
     for work in range(1, 60):
         try:
             report = analyze(_OWNERS, graph, Limits(work=work))
-        except AnalysisRefusal:
+        except AnalysisRefusalError:
             continue
         ensure(len(report.paths) == 2, "budget exhaustion exposed a partial report")
 
