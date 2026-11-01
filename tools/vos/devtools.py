@@ -11,7 +11,7 @@ from string import Template
 from typing import Any, cast
 
 from jsonschema.exceptions import SchemaError
-from yaml.nodes import MappingNode, ScalarNode, SequenceNode
+from yaml.nodes import MappingNode, Node, ScalarNode, SequenceNode
 
 from vos import yamlutil
 from vos.jsonutil import unique_object
@@ -31,10 +31,13 @@ HOOK_CONSTRAINTS = "tools/ci/model-hooks-constraints.txt"
 HOOK_BUILD_CONSTRAINTS = "tools/ci/model-hooks-build-constraints.txt"
 TABLE = "development_tools_table"
 WORKFLOWS = ".github/workflows/"
+LOCAL_ACTIONS = ".github/actions/"
 _USES_RE = re.compile(r"^[ \t]*(?:-[ \t]+)?(?P<key>uses):[ \t]*(.*?)[ \t]*$")
 _ACTION_REF_RE = re.compile(
     r"(?P<reference>(?P<repository>[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+)(?:/[^@\s]+)?@"
     r"(?P<commit>[0-9a-f]{40})) # (?P<release>v\d+\.\d+\.\d+)")
+_LOCAL_ACTION_REF_RE = re.compile(
+    r"\./(?P<alias>\.target-ci/)?(?P<directory>\.github/actions/[A-Za-z0-9_-]+(?:/[A-Za-z0-9_-]+)*)")
 
 
 @dataclass(frozen=True)
@@ -209,41 +212,140 @@ def inspect(root: Path, indexed: frozenset[str], text: str) -> tuple[str | None,
     return expected, findings
 
 
+def _scalar(node: object) -> str | None:
+    return node.value if isinstance(node, ScalarNode) else None
+
+
+def _action_previous_steps(tree: Node) -> dict[int, list[MappingNode]]:
+    """Keep checkout provenance inside the exact steps sequence that invokes an action."""
+    previous: dict[int, list[MappingNode]] = {}
+    for mapping in yamlutil.mappings(tree):
+        steps = yamlutil.fields(mapping).get("steps")
+        if not isinstance(steps, SequenceNode):
+            continue
+        preceding: list[MappingNode] = []
+        for step in steps.value:
+            if isinstance(step, MappingNode):
+                previous[id(step)] = preceding.copy()
+                preceding.append(step)
+    return previous
+
+
+def _trusted_action_alias(previous: list[MappingNode], directory: str) -> bool:
+    for step in reversed(previous):
+        fields = yamlutil.fields(step)
+        reference, settings = _scalar(fields.get("uses")), fields.get("with")
+        if reference is None or not reference.startswith("actions/checkout@"):
+            continue
+        if not isinstance(settings, MappingNode):
+            return False
+        values = yamlutil.fields(settings)
+        destination = _scalar(values.get("path"))
+        if destination is None or destination in ("", ".", "./") or any(
+                token in destination for token in ("${{", "..", "\\")):
+            return False
+        if not (destination == ".target-ci" or destination.startswith(".target-ci/")):
+            continue
+        # A later checkout touching this alias must itself supply the reviewed source.
+        return (re.fullmatch(r"actions/checkout@[0-9a-f]{40}", reference) is not None
+                and destination == ".target-ci" and "if" not in fields
+                and ("continue-on-error" not in fields or _scalar(fields["continue-on-error"]) == "false")
+                and _scalar(values.get("ref")) == "${{ github.sha }}"
+                and ("repository" not in values or _scalar(values["repository"]) == "${{ github.repository }}")
+                and _scalar(values.get("sparse-checkout")) == directory
+                and ("sparse-checkout-cone-mode" not in values
+                     or _scalar(values["sparse-checkout-cone-mode"]) == "true"))
+    return False
+
+
+def _authored_action_file(owners: Owners, path: str) -> None:
+    current = owners.root
+    for part in Path(path).parts:
+        current /= part
+        if current.is_symlink():
+            raise ValueError("local action metadata must not follow a symlink")
+
+
+def _local_action_file(owners: Owners, reference: str, previous: list[MappingNode]) -> str:
+    local = _LOCAL_ACTION_REF_RE.fullmatch(reference)
+    if local is None:
+        raise ValueError("local action reference must use a canonical .github/actions path without traversal or expressions")
+    directory = local["directory"]
+    if local["alias"] and not _trusted_action_alias(previous, directory):
+        raise ValueError("local action alias needs an earlier same-repository checkout at github.sha supplying this action")
+    candidates = [f"{directory}/{name}" for name in ("action.yml", "action.yaml")
+                  if f"{directory}/{name}" in owners.indexed]
+    if len(candidates) != 1:
+        raise ValueError("local action needs exactly one tracked action.yml or action.yaml")
+    _authored_action_file(owners, candidates[0])
+    return candidates[0]
+
+
 def _action_census(owners: Owners, actions: tuple[Action, ...], findings: list[str]) -> None:
-    """Every real workflow reference matches a review, and every review is used."""
+    """Audit all authored action metadata; only reachable references use a review."""
     reviewed = {action.repository: action for action in actions}
-    files = sorted(path for path in owners.indexed
-                   if path.startswith(WORKFLOWS) and path.endswith((".yml", ".yaml")))
-    if not files:
+    workflows = sorted(path for path in owners.indexed
+                       if path.startswith(WORKFLOWS) and path.endswith((".yml", ".yaml")))
+    if not workflows:
         findings.append(f"the index carries no workflow under {WORKFLOWS}")
         return
-    used: set[str] = set()
+    metadata = sorted(path for path in owners.indexed if path.startswith(LOCAL_ACTIONS)
+                      and path.endswith(("/action.yml", "/action.yaml")))
+    dependencies: dict[str, set[str]] = {}
+    external: dict[str, set[str]] = {}
     references = 0
     unread = False
-    for path in files:
+    for path in [*workflows, *metadata]:
+        dependencies[path], external[path] = set(), set()
         try:
+            if path in metadata:
+                _authored_action_file(owners, path)
             source = owners._text(path)
         except OwnerError:
             unread = True
             continue
+        except ValueError as error:
+            findings.append(f"{path}: {error}")
+            unread = True
+            continue
         try:
             tree = yamlutil.read(source)
+            if path in metadata:
+                runs = yamlutil.fields(tree).get("runs") if isinstance(tree, MappingNode) else None
+                values = yamlutil.fields(runs) if isinstance(runs, MappingNode) else {}
+                steps = values.get("steps")
+                if _scalar(values.get("using")) != "composite" or not isinstance(steps, SequenceNode) or not steps.value:
+                    raise ValueError("authored local action metadata needs composite runs with nonempty steps")
         except ValueError as error:
             findings.append(f"{path}: cannot read action references: {error}")
             unread = True
             continue
         source_lines = yamlutil.lines(source)
+        previous = _action_previous_steps(tree)
         for mapping in yamlutil.mappings(tree):
             for key, value in mapping.value:
                 if key.value != "uses":
                     continue
-                references += 1
+                if path in workflows:
+                    references += 1
                 mark = yamlutil.start(key)
                 where = f"{path}:{mark.line + 1}"
                 line = _USES_RE.fullmatch(source_lines[mark.line])
                 if line is None or line.start("key") != mark.column:
                     findings.append(f"{where}: action reference needs a bare block `uses:` key")
                     unread = True
+                    continue
+                if isinstance(value, ScalarNode) and value.value.startswith("./"):
+                    if (value.value != line.group(2) or yamlutil.start(value).line != mark.line
+                            or value.end_mark is None or value.end_mark.line != mark.line):
+                        findings.append(f"{where}: parsed local action must equal its single-line reference")
+                        unread = True
+                        continue
+                    try:
+                        dependencies[path].add(_local_action_file(owners, value.value, previous.get(id(mapping), [])))
+                    except ValueError as error:
+                        findings.append(f"{where}: {error}")
+                        unread = True
                     continue
                 pin = _ACTION_REF_RE.fullmatch(line.group(2))
                 if pin is None:
@@ -258,7 +360,7 @@ def _action_census(owners: Owners, actions: tuple[Action, ...], findings: list[s
                     unread = True
                     continue
                 repository, commit, release = pin.group("repository", "commit", "release")
-                used.add(repository)
+                external[path].add(repository)
                 if repository not in reviewed:
                     findings.append(f"{where}: runs {repository} with no structured action review")
                     continue
@@ -268,6 +370,28 @@ def _action_census(owners: Owners, actions: tuple[Action, ...], findings: list[s
                     findings.append(f"{where}: runs {repository} at {ran} ({release}); "
                                     f"reviewed {wanted} ({action.release}); "
                                     "a changed identity needs a licence reading")
+    visited: set[str] = set()
+
+    def visit(path: str, active: tuple[str, ...]) -> None:
+        if path in active:
+            findings.append(f"{path}: recursive local action cycle: {' -> '.join((*active, path))}")
+            return
+        if path in visited:
+            return
+        visited.add(path)
+        for child in sorted(dependencies.get(path, ())):
+            visit(child, (*active, path))
+
+    for path in metadata:
+        visit(path, ())
+    reachable: set[str] = set()
+    pending = workflows.copy()
+    while pending:
+        path = pending.pop()
+        if path not in reachable:
+            reachable.add(path)
+            pending.extend(dependencies.get(path, ()))
+    used = {repository for path in reachable for repository in external.get(path, ())}
     if not references and not unread:
         findings.append(f"no workflow under {WORKFLOWS} states an action reference")
     if references and not unread:
