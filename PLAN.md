@@ -3119,6 +3119,14 @@ AGENTS.md and the workflow/handoff contracts together. Require passing Host CI o
 the settled published revision and dispatch every guest lane for this change to
 the CI mechanism itself.
 
+**Execution:** Hosted selection and `fanout` share the classifier, with focused
+scope, publication/resume and override controls plus static analysis passing.
+[Full-source Host CI](https://github.com/symbiogenesis/VerifiedOS/actions/runs/41316405666) passed for
+`6ddfd5dc8ab739f6271912f90d32fd7a40862c9d`; [Guest CI](https://github.com/symbiogenesis/VerifiedOS/actions/runs/41317609248) was dispatched
+for the same revision with every lane, without awaiting its verdict. The
+`ci-scope-20261101-final` journal owns the prose-only hosted control and
+retirement of this session's lanes.
+
 ## Host CI scheduling
 
 Host CI's mutation-test partitions allocate more runners to the measured Ubuntu
