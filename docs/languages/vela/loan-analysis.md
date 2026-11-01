@@ -52,6 +52,40 @@ obligations and path-specific proposed ends/escapes. A graph with no detected
 conflict still needs every restoration, capture, effect and interpretation proof.
 The API must not expose an admitted-program or memory-safe verdict.
 
+## Using the diagnostic
+
+[vela_loans.py](../../../tools/vos/vela_loans.py) exposes immutable graph/event
+records and `analyze(owners, graph, limits)`. Run its focused behavioral checks
+with `python tools/run.py test --only test_vela_loans --jobs 1` on Windows.
+An explicit result split can be modeled as follows:
+
+```python
+from vos.vela_loans import Access, Borrow, Graph, Loan, Node, Owner, Place, Return, analyze
+
+input_place = Place("input")
+report = analyze((Owner("input", borrowed=True),), Graph("lend", (
+    Node("lend", Borrow(Loan("view", "input", input_place)), ("ready", "error")),
+    Node("ready", Return("Ready", ("view",))),
+    Node("error", Access(input_place, "write"), ("rejected",)),
+    Node("rejected", Return("Rejected")),
+)))
+```
+
+The `Ready` path retains the shared view and suspended parent footprint. On
+`Rejected`, no later use demands the view: its proposed end precedes the write,
+and its restoration remains an unresolved obligation. `PathReport` keeps those
+outcomes separate. `Issue` describes a detected conflict or unsupported operation;
+`Obligation` and `Restoration` retain unresolved premises. `AnalysisRefusal`
+means malformed input or incomplete exploration and returns no report.
+
+`Use` means reading through a handle's retained loans. `Bind` retains captures
+without accessing their contents; `Move` transfers a descriptor's availability.
+`Drop` removes availability without running resource disposal or extending a
+dead loan's demand. Moving an owner root is an explicit `Access(..., "move")`;
+partial owner moves remain unsupported. Array projections use `"*"` and retain
+explicit overlap/containment obligations. The graph is a supplied model, not an
+extraction from the Menhir tree.
+
 ## Acceptance
 
 The design inputs have separate jobs. [Ante-style invalidation](interior-mutability.md#ante-as-a-candidate-for-static-invalidation)
