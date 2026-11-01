@@ -54,7 +54,12 @@ measured, so a smaller runner needs a separate resource measurement.
 The gate job is a matrix of lanes, and each lane has its own runner. The `model` lane
 installs Z3, Sail and Verilator, checks the generated vector oracle adapter with
 `vector-bitcount smoke` and executes small CMake generation and native-input fixtures,
-then runs the model evidence sweep. The fixtures check content changes with
+then runs the model evidence sweep. It also runs
+[`vela-parser qualify`](../../docs/languages/vela-parser.md#acceptance-and-commands)
+with the Sail snapshot's Menhir and OCaml. That syntax-only qualification checks
+independent AST/refusal fixtures and fresh regeneration; its log and complete
+build/qualification receipts are retained separately from model evidence. It
+supplies no checked-parser, typing or source-correspondence verdict. The fixtures check content changes with
 preserved timestamps, unchanged-input reuse, failed-generation recovery and actual
 compiler/header/library closure binding through a small GMP-linked program.
 Both preparation checks must pass before the sweep. The adapter checks

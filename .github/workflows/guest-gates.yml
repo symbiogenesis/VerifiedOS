@@ -404,6 +404,15 @@ jobs:
           /usr/bin/time -f "$GUEST_TIME" python3 tools/run.py vector-bitcount smoke \
             2>&1 | tee "$VOS_LOG_DIR/vector-bitcount-adapter.log"
 
+      - name: Qualify the Vela Menhir development parser
+        id: vela-parser
+        if: ${{ matrix.lane == 'model' && !cancelled() && steps.dispatch.outcome != 'failure' && steps.bootstrap.outcome == 'success' }}
+        timeout-minutes: 5
+        run: |
+          /usr/bin/time -f "$GUEST_TIME" python3 tools/run.py vela-parser qualify \
+            2>&1 | tee "$VOS_LOG_DIR/vela-parser.log"
+          cp -- "$VOS_BUILD_ROOT/vela-parser/qualification.json" "$VOS_LOG_DIR/vela-parser-qualification.json"
+
       - name: Check native build inputs and generation
         id: cmake-generation
         if: ${{ matrix.lane == 'model' && !cancelled() && steps.dispatch.outcome != 'failure' && steps.bootstrap.outcome == 'success' }}

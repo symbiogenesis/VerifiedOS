@@ -383,7 +383,7 @@
       "id": "K-53",
       "group": "marks",
       "meaning": "every tracked file kind is either given a comment syntax or refused by name, and every ruling covers a file that exists",
-      "ground": "the same, in both directions; the tool asks for a decision on a kind it does not know. Authored `.ml` sources and compound `.ml.in` and `.v.in` template kinds have explicit OCaml/Gallina comment syntax; other `.in` languages remain unruled. Authored `.lus` nodes use Lustre line comments. Resolver-generated `.lock` metadata and byte-preserving `.patch` diffs are refused alongside git metadata on the grounds stated in COPYRIGHT.md",
+      "ground": "the same, in both directions; the tool asks for a decision on a kind it does not know. Authored `.ml` sources, `.mll` lexer definitions and compound `.ml.in` and `.v.in` template kinds have explicit OCaml/Gallina comment syntax; `.mly` Menhir grammars use C-style block comments; other `.in` languages remain unruled. Authored `.lus` nodes use Lustre line comments. Resolver-generated `.lock` metadata and byte-preserving `.patch` diffs are refused alongside git metadata on the grounds stated in COPYRIGHT.md",
       "reach": "total"
     },
     {

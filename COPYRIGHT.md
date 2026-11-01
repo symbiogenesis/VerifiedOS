@@ -84,6 +84,9 @@ Every original file whose kind can carry a comment opens with an SPDX line, in t
 
 `tools/check.py` reads the identifier out of that block and holds every markable file against it, so a file that arrives unmarked, marked with another identifier, or marked in another kind's comment syntax is a finding. The tool carries a table of comment syntaxes rather than a list of files to skip, so a kind it has no ruling for is a finding too: an unknown kind is a decision somebody owes, not a gap to guess past.
 
+Authored Menhir `.mly` grammars use `/* ... */` for their opening mark;
+OCaml `.ml` sources and `.mll` lexer definitions use `(* ... *)`.
+
 These kinds carry no mark:
 
 | Kind | Ground |

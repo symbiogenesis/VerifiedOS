@@ -19,7 +19,7 @@ from vos import receipts  # noqa: E402  (standalone reporting needs no locked en
 # Each lane's workflow step ids, in execution order. The proofs lane's `reading` runs
 # only when a dispatch names a reading base, and is skipped otherwise.
 LANES: dict[str, tuple[str, ...]] = {
-    "model": ("bootstrap", "adapter", "evidence"),
+    "model": ("bootstrap", "adapter", "vela-parser", "evidence"),
     "rtl": ("bootstrap", "bundle", "lint", "widthcheck", "crosscheck", "framesim"),
     "proofs": ("bootstrap", "proofs", "reading"),
 }

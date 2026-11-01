@@ -68,6 +68,14 @@ grammar and checked completeness evidence are required for that claim; source
 spans, diagnostics and lexing need their own evidence. Any backend grammar view
 must be generated from one owner and checked for drift.
 
+Prefer a released support library carrying the required Rocq adaptations. If none
+does, a reviewed upstream revision or a separately maintained fork may supply
+them, with its own licence reading, reproducible source pin and bounded semantic
+comparison. Contribute necessary fixes upstream when their qualification is ready.
+Release stamping must keep generator/library version checks meaningful; disabling
+them does not qualify a pair. The [existing compatibility record](../../tools/opam/certirocq-compatibility.md#native-trial-verdict)
+identifies the upstream proof-command relocation and the remaining version issue.
+
 Before switching the prototype, provide a supported build/runtime route on
 Windows and Ubuntu; route the generated AST through separate resolution, typing
 and emission; pass all existing independent translation, refusal, resource-limit

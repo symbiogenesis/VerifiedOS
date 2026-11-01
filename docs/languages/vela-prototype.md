@@ -26,9 +26,12 @@ for the proposed Vela surface, producing located syntax before separate checking
 and elaboration. This prototype currently uses a handwritten parser that combines
 checking and emission. Its replacement requires the
 [plan's `vela-parser` qualification](../../PLAN.md#vela-whole-system-authoring-proposal)
-and an independently reviewed migration contract; the goal alone changes no
-accepted syntax or assurance claim. Keep the current examples and rejection cases
-as migration fixtures.
+and the [bounded parser and migration contract](vela-parser.md).
+`python tools/run.py vela-parser parse SOURCE` exercises the syntax-only generated
+development parser separately; `vela-parser qualify` checks its independent AST
+fixtures and regeneration. The `vela` command still uses the Python prototype
+until Q25h's checked-parser and migration predicates pass. Keep the current
+examples and rejection cases as migration fixtures.
 
 ## Source fragment
 

@@ -468,17 +468,17 @@ These figures sum the full priced reference-build, assessment and named hardenin
 <!-- estimate-summary:start -->
 | Measure | Value |
 | --- | --- |
-| Total estimate midpoint h | 4,613.8 |
-| Total estimate range h | 2,995.7–6,231.9 |
+| Total estimate midpoint h | 4,635.8 |
+| Total estimate range h | 3,007.7–6,263.9 |
 | Completed scope h | 865.3 |
-| Complete by estimate % | 18.8 |
-| Remaining h | 3,748.5 |
+| Complete by estimate % | 18.7 |
+| Remaining h | 3,770.5 |
 | Committed remaining h | 2,306.5 |
-| Open class I h | 785.5 |
-| Open class X h | 2,963 |
+| Open class I h | 791.5 |
+| Open class X h | 2,979 |
 | Retained completion estimate h | 261.5 |
 | Unmeasured completed items | 29 |
-| Calibrated total h | 5,630.5 |
+| Calibrated total h | 5,657.4 |
 | Committed M8a open h | 74 |
 | Committed M8b open h | 105.5 |
 | Other committed open h | 2,127 |
@@ -1357,7 +1357,7 @@ Q6's conventional-memory simulators are conditional on a topology comparison nee
 
 No assessment completion automatically increases a performance estimate. For an optimization affecting fraction `f` of runtime by factor `s`, the unchanged-cost bound is `1 / ((1 - f) + f / s)`; added transfers or changed scheduling require a fresh whole-workload comparison. Better packing is not more fabricated capacity, and host performance is not target throughput.
 
-**Q subtotal:** 2,784.3 h · 60% · 253.3 h complete · open range 1,460–3,602 h.
+**Q subtotal:** 2,806.3 h · 61% · 253.3 h complete · open range 1,472–3,634 h.
 
 ### M0 · Hardware reference
 
@@ -3333,7 +3333,7 @@ The design goal is one authored Vela codebase for operational software, independ
 
 Vela also targets a [native, verified, self-hosting compiler](docs/languages/unified-source-contract.md#native-verified-compiler-and-self-hosting), authored in Vela and using its own intermediate representations to reach exact target bytes without a mandatory Clight/CompCert or LLVM stage. Reusable transformation proofs compose during compilation; independent kernel checking, verified bootstrap and final-artifact correspondence remain required. Competitive target optimization and commercial use, redistribution and resident rebuilding of the complete dependency closure need their own qualification. Interim compiler bridges remain valid while that endpoint is unbuilt.
 
-These are uncommissioned proposal owner keys, with establishment and maintenance costs **unpriced**. They are not checklist IDs, checked artifacts or additions to the priced totals. Before implementation, split a selected stage into reviewed checklist cells with its own budget and entry predicate, charge shared foundation work once, and take the required register/prose acts. The existing compiler, machine-logic and hardware work retains its accepted subjects until a successor passes the migration gate. AI may propose programs, proofs and optimizations; acceptance still requires checked evidence and independent review of intended behavior.
+Q25g and Q25h commission the bounded parser increments in the table. The other proposal owner keys have establishment and maintenance costs **unpriced**. They are not checklist IDs, checked artifacts or additions to the priced totals. Before implementation, split a selected stage into reviewed checklist cells with its own budget and entry predicate, charge shared foundation work once, and take the required register/prose acts. The existing compiler, machine-logic and hardware work retains its accepted subjects until a successor passes the migration gate. AI may propose programs, proofs and optimizations; acceptance still requires checked evidence and independent review of intended behavior.
 
 | Proposed owner and order | Start | Owns | Check | Join |
 | --- | --- | --- | --- | --- |
