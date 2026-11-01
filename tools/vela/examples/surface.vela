@@ -172,7 +172,7 @@ public struct Stored<T, grade q : NatExact>
     public void Release() requires Disposable(self) ensures Disposed(self);
 }
 
-public effect Exchange<T> {
+public effect Exchange<T> where Representable(T) invariant Closed(Storage) {
     owned T Replace(owned T replacement @ NatExact(1)) resumes(0..1)
         requires Available(replacement)
         ensures Returned(result)
@@ -199,6 +199,36 @@ public definition Type<u> RepeatedType<T : Type<u>>(bool repeated)
         case true => type (T, T);
         case false => type T;
     };
+
+// Type-valued library functions can supply types throughout the same surface.
+public alias Repeated<T : Type<u>, ghost bool repeated>
+    where Repeatable(T)
+    = type[RepeatedType::<T>(repeated)];
+
+public operation type[RepeatedType::<T>(repeated)] Repeat<T : Type<u>>(
+    bool repeated, T value @ NatExact(1))
+    where Repeatable(T);
+
+public void UseRepeated<T : Type<u>>(bool repeated, T source)
+    where Repeatable(T)
+{
+    type[RepeatedType::<T>(repeated)] selected @ NatExact(1) = Repeat(repeated, source);
+    let identity = (type[RepeatedType::<T>(repeated)] value @ NatExact(1)) => value;
+    Box<type[RepeatedType::<T>(repeated)], NatExact(1)> boxed = Box(identity(selected));
+    Consume(move boxed);
+}
+
+// Empty sums use the ordinary dependent eliminator, without an abort primitive.
+public inductive Never {}
+public definition T Absurd<T>(Never impossible) =
+    match (impossible) as whole : T {};
+
+// Literal discrimination composes with the same indexed-result match syntax.
+public definition Nat ClassifyCharacter(char value) = match (value) {
+    case 'a' => 1;
+    case '\\n' => 2;
+    case _ => 0;
+};
 
 public trait ResourceFamily<T : Type<u>> where Representable(T) {
     type Output : Type<u> where Formed(T);

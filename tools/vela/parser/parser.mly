@@ -158,9 +158,9 @@ s_declaration:
 s_decl:
   IMPORT path=s_path SEMICOLON
     { make "import" $startpos $endpos [("name", path)] [] }
-| ALIAS alias=s_identifier generics=s_generics EQUAL value=s_type SEMICOLON
+| ALIAS alias=s_identifier generics=s_generics contracts=list(s_contract) EQUAL value=s_type SEMICOLON
     { make "alias" $startpos $endpos [("name", alias); ("generics", array generics);
-        ("type", value.syntax)] (value :: generics) }
+        ("contracts", array contracts); ("type", value.syntax)] (value :: generics @ contracts) }
 | NAMESPACE path=s_path LBRACE members=list(s_declaration) RBRACE
     { make "namespace" $startpos $endpos [("name", path); ("declarations", array members)] members }
 | kind=s_container_kind container_name=s_identifier generics=s_generics
@@ -184,8 +184,10 @@ s_decl:
   LBRACE entries=list(s_domain_entry) RBRACE
     { make "domain" $startpos $endpos [("name", domain_name); ("generics", array generics);
         ("contracts", array contracts); ("entries", array entries)] (generics @ contracts @ entries) }
-| EFFECT effect_name=s_identifier generics=s_generics LBRACE operations=list(s_effect_operation) RBRACE
-    { make "effect" $startpos $endpos [("name", effect_name); ("generics", array generics); ("operations", array operations)] (generics @ operations) }
+| EFFECT effect_name=s_identifier generics=s_generics contracts=list(s_contract)
+  LBRACE operations=list(s_effect_operation) RBRACE
+    { make "effect" $startpos $endpos [("name", effect_name); ("generics", array generics);
+        ("contracts", array contracts); ("operations", array operations)] (generics @ contracts @ operations) }
 | VIEW view_name=s_identifier EQUAL parts=separated_nonempty_list(COMMA, s_view_part) SEMICOLON
     { make "view" $startpos $endpos [("name", view_name); ("parts", array parts)] parts }
 | TYPE type_name=s_identifier generics=s_generics kind=option(s_kind_annotation)
@@ -348,10 +350,14 @@ s_loan_lifetime:
 s_type_atom:
   type_name=s_path arguments=s_type_arguments
     { make "type" $startpos $endpos [("name", type_name); ("arguments", array arguments)] arguments }
+| value=s_computed_type { value }
 | s_open_paren RPAREN { make "unit_type" $startpos $endpos [] [] }
 | s_open_paren value=s_type RPAREN { make "group_type" $startpos $endpos [("type", value.syntax)] [value] }
 | s_open_paren first=s_type COMMA rest=separated_nonempty_list(COMMA, s_type) RPAREN
     { make "tuple_type" $startpos $endpos [("types", array (first :: rest))] (first :: rest) }
+s_computed_type:
+  TYPE LBRACKET value=s_expression RBRACKET
+    { make "computed_type" $startpos $endpos [("value", value.syntax)] [value] }
 s_open_paren:
   LPAREN { () } | ANNOTATION_OPEN { () }
 s_function_type:
@@ -385,6 +391,7 @@ s_type_argument:
 s_generic_type:
   type_name=s_path arguments=s_type_arguments
     { make "type" $startpos $endpos [("name", type_name); ("arguments", array arguments)] arguments }
+| value=s_computed_type { value }
 | value=s_function_type { value }
 | modifier=s_type_modifier lifetime=option(s_loan_lifetime) value=s_generic_type
     { make "modified_type" $startpos $endpos [("modifier", String modifier);
@@ -455,9 +462,13 @@ s_simple_statement:
 | CALC body=s_block { make "calc" $startpos $endpos [("body", body.syntax)] [body] }
 | SCOPE LPAREN values=separated_list(COMMA, s_expression) RPAREN body=s_block
     { make "scope" $startpos $endpos [("resources", array values); ("body", body.syntax)] (body :: values) }
-| MATCH LPAREN value=s_expression RPAREN motive=option(s_match_motive) LBRACE cases=list(s_match_case) RBRACE
+| MATCH LPAREN value=s_expression RPAREN motive=option(s_match_motive) LBRACE cases=nonempty_list(s_match_case) RBRACE
     { make "match" $startpos $endpos [("value", value.syntax); ("motive", optional motive);
         ("cases", array cases)] (value :: children motive @ cases) }
+| parts=s_empty_match
+    { let value, motive = parts in
+      make "match" $startpos $endpos [("value", value.syntax); ("motive", optional motive);
+        ("cases", Array [])] (value :: children motive) }
 | NEXT target=s_postfix EQUAL value=s_expression SEMICOLON
     { make "next" $startpos $endpos [("target", target.syntax); ("value", value.syntax)] [target; value] }
 | target=s_expression operator=s_assignment value=s_expression SEMICOLON
@@ -467,6 +478,7 @@ s_simple_statement:
 s_annotation_type:
   type_name=s_annotation_path arguments=s_type_arguments
     { make "type" $startpos $endpos [("name", type_name); ("arguments", array arguments)] arguments }
+| value=s_computed_type { value }
 | value=s_function_type { value }
 | ANNOTATION_OPEN RPAREN { make "unit_type" $startpos $endpos [] [] }
 | ANNOTATION_OPEN value=s_type RPAREN { make "group_type" $startpos $endpos [("type", value.syntax)] [value] }
@@ -499,6 +511,11 @@ s_match_motive:
 s_match_expression_case:
   CASE pattern=s_pattern FATARROW value=s_expression SEMICOLON
     { make "expression_case" $startpos $endpos [("pattern", pattern.syntax); ("value", value.syntax)] [pattern; value] }
+/* Sharing the empty prefix avoids competing empty case-list reductions. Keep
+   value elimination at the full-expression boundary, like lambdas/type values. */
+s_empty_match:
+  MATCH LPAREN value=s_expression RPAREN motive=option(s_match_motive) LBRACE RBRACE
+    { value, motive }
 s_pattern:
   LET binding_name=s_identifier { make "binding_pattern" $startpos $endpos [("name", binding_name)] [] }
 | constructor_name=s_path arguments=option(s_pattern_arguments)
@@ -512,6 +529,8 @@ s_pattern:
 | FALSE { make "bool_pattern" $startpos $endpos [("value", Boolean false)] [] }
 | value=DECIMAL { make "nat_pattern" $startpos $endpos [("value", String value); ("suffix", String "")] [] }
 | value=NUMBER { let digits, suffix = value in make "nat_pattern" $startpos $endpos [("value", String digits); ("suffix", String suffix)] [] }
+| value=STRING { make "string_pattern" $startpos $endpos [("value", String value)] [] }
+| value=CHARACTER { make "character_pattern" $startpos $endpos [("value", String value)] [] }
 s_pattern_arguments:
   LPAREN values=separated_list(COMMA, s_pattern) RPAREN { values }
 s_product_pattern:
@@ -521,6 +540,10 @@ s_product_pattern:
 
 s_expression:
   value=s_implication { value }
+| parts=s_empty_match
+    { let value, motive = parts in
+      make "match_expression" $startpos $endpos [("value", value.syntax); ("motive", optional motive);
+        ("cases", Array [])] (value :: children motive) }
 | TYPE value=s_nonfunction_type
     { make "type_expression" $startpos $endpos [("type", value.syntax)] [value] }
 | signature=s_function_type FATARROW body=s_lambda_body
