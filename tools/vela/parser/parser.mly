@@ -131,7 +131,9 @@ s_value_identifier:
 | BOOL { name $startpos $endpos "bool" }
 
 s_path:
-  first=s_identifier rest=list(s_path_segment)
+  value=s_qualified_name(s_identifier) { value }
+s_qualified_name(head):
+  first=head rest=list(s_path_segment)
     { let text = match first with Object fields ->
           (match List.assoc "text" fields with String value -> value | _ -> "") | _ -> "" in
       name $startpos $endpos (String.concat "." (text :: rest)) }
@@ -289,15 +291,11 @@ s_view_part:
 s_domain_entry:
   CARRIER value=s_type SEMICOLON
     { make "domain_entry" $startpos $endpos [("role", String "carrier"); ("value", value.syntax)] [value] }
-| role=s_domain_role value=s_domain_value SEMICOLON
+| role=s_domain_role value=s_expression SEMICOLON
     { make "domain_entry" $startpos $endpos [("role", String role); ("value", value.syntax)] [value] }
 s_domain_role:
   ZERO { "zero" } | ONE { "one" } | ADD { "add" } | MUL { "mul" }
 | ADMITS { "admits" } | INTERPRET { "interpret" } | LAWS { "laws" }
-s_domain_value:
-  value=s_expression { value }
-| LPAREN op=s_any_operator RPAREN
-    { make "operator" $startpos $endpos [("name", op)] [] }
 s_effect_operation:
   result=s_type operation_name=s_identifier generics=s_generics LPAREN parameters=separated_list(COMMA, s_parameter) RPAREN
   resumes=option(s_resumes) contracts=list(s_contract) SEMICOLON
@@ -333,12 +331,13 @@ s_type:
   value=s_nonfunction_type { value }
 | value=s_qualified_function_type { value }
 s_qualified_function_type:
-  value=s_function_type { value }
-| modifier=s_type_modifier lifetime=option(s_loan_lifetime) value=s_qualified_function_type
-    { make "modified_type" $startpos $endpos [("modifier", String modifier); ("lifetime", optional lifetime); ("type", value.syntax)] (value :: children lifetime) }
+  value=s_modified_type(s_function_type) { value }
 s_nonfunction_type:
-  value=s_type_atom { value }
-| modifier=s_type_modifier lifetime=option(s_loan_lifetime) value=s_nonfunction_type
+  value=s_modified_type(s_type_atom) { value }
+/* All type contexts retain the same modifier order, lifetime and child depth. */
+s_modified_type(base):
+  value=base { value }
+| modifier=s_type_modifier lifetime=ioption(s_loan_lifetime) value=s_modified_type(base)
     { make "modified_type" $startpos $endpos [("modifier", String modifier);
         ("lifetime", optional lifetime); ("type", value.syntax)] (value :: children lifetime) }
 %inline s_type_modifier:
@@ -381,6 +380,7 @@ s_type_arguments:
   { [] } | LT values=separated_nonempty_list(COMMA, s_type_argument) GT { values }
 s_type_argument:
   value=s_generic_type { value }
+| value=s_operator_value { value }
 | TYPE value=s_type { make "type_argument" $startpos $endpos [("type", value.syntax)] [value] }
 | value=s_literal { value }
 | value=s_hole { value }
@@ -389,13 +389,12 @@ s_type_argument:
 /* Bare parentheses in generic arguments remain value syntax. Structural types
    have an explicit `type` introducer; legacy parenthesized callables are distinct. */
 s_generic_type:
+  value=s_modified_type(s_generic_type_atom) { value }
+s_generic_type_atom:
   type_name=s_path arguments=s_type_arguments
     { make "type" $startpos $endpos [("name", type_name); ("arguments", array arguments)] arguments }
 | value=s_computed_type { value }
 | value=s_function_type { value }
-| modifier=s_type_modifier lifetime=option(s_loan_lifetime) value=s_generic_type
-    { make "modified_type" $startpos $endpos [("modifier", String modifier);
-        ("lifetime", optional lifetime); ("type", value.syntax)] (value :: children lifetime) }
 | LPAREN value=s_function_type RPAREN { make "group_type" $startpos $endpos [("type", value.syntax)] [value] }
 s_parameter:
   value_type=s_type parameter_name=option(s_parameter_name) grade=option(s_grade)
@@ -447,7 +446,7 @@ s_simple_statement:
 | kind=s_local_kind value_type=s_annotation_type binding_name=s_identifier grade=option(s_grade) EQUAL value=s_expression SEMICOLON
     { make kind $startpos $endpos [("name", binding_name); ("type", value_type.syntax);
         ("grade", optional grade); ("value", value.syntax)] (value_type :: value :: children grade) }
-| kind=s_local_kind pattern=s_product_pattern EQUAL value=s_expression SEMICOLON
+| kind=s_local_kind pattern=s_local_pattern EQUAL value=s_expression SEMICOLON
     { make (kind ^ "_pattern") $startpos $endpos [("pattern", pattern.syntax); ("value", value.syntax)] [pattern; value] }
 | value_type=s_annotation_type binding_name=s_identifier grade=option(s_grade) EQUAL value=s_expression SEMICOLON
     { make "typed_local" $startpos $endpos [("name", binding_name);
@@ -476,6 +475,8 @@ s_simple_statement:
 | value=s_expression SEMICOLON
     { make "expression_statement" $startpos $endpos [("value", value.syntax)] [value] }
 s_annotation_type:
+  value=s_modified_type(s_annotation_type_atom) { value }
+s_annotation_type_atom:
   type_name=s_annotation_path arguments=s_type_arguments
     { make "type" $startpos $endpos [("name", type_name); ("arguments", array arguments)] arguments }
 | value=s_computed_type { value }
@@ -484,12 +485,6 @@ s_annotation_type:
 | ANNOTATION_OPEN value=s_type RPAREN { make "group_type" $startpos $endpos [("type", value.syntax)] [value] }
 | ANNOTATION_OPEN first=s_type COMMA rest=separated_nonempty_list(COMMA, s_type) RPAREN
     { make "tuple_type" $startpos $endpos [("types", array (first :: rest))] (first :: rest) }
-| modifier=s_type_modifier value=s_annotation_type
-    { make "modified_type" $startpos $endpos [("modifier", String modifier);
-        ("lifetime", Null); ("type", value.syntax)] [value] }
-| modifier=s_type_modifier lifetime=s_loan_lifetime value=s_annotation_type
-    { make "modified_type" $startpos $endpos [("modifier", String modifier);
-        ("lifetime", lifetime.syntax); ("type", value.syntax)] [value; lifetime] }
 s_annotation_path:
   first=ANNOTATION_NAME rest=list(s_path_segment)
     { name $startpos $endpos (String.concat "." (first :: rest)) }
@@ -533,8 +528,17 @@ s_pattern:
 | value=CHARACTER { make "character_pattern" $startpos $endpos [("value", String value)] [] }
 s_pattern_arguments:
   LPAREN values=separated_list(COMMA, s_pattern) RPAREN { values }
+/* A bare local name stays an inferred binder. Constructor elimination has an
+   explicit argument list, while nested patterns reuse the general grammar. */
+s_local_pattern:
+  value=s_product_pattern { value }
+| constructor_name=s_qualified_name(s_value_identifier) values=s_pattern_arguments
+    { make "constructor_pattern" $startpos $endpos
+        [("name", constructor_name); ("arguments", array values)] values }
 s_product_pattern:
   LPAREN RPAREN { make "unit_pattern" $startpos $endpos [] [] }
+| LPAREN value=s_pattern RPAREN
+    { make "group_pattern" $startpos $endpos [("pattern", value.syntax)] [value] }
 | LPAREN first=s_pattern COMMA rest=separated_nonempty_list(COMMA, s_pattern) RPAREN
     { make "tuple_pattern" $startpos $endpos [("patterns", array (first :: rest))] (first :: rest) }
 
@@ -564,18 +568,28 @@ s_lambda_parameter:
         ("grade", optional grade)] (value_type :: children grade) }
 s_lambda_body:
   value=s_expression { value } | value=s_block { value }
-s_implication:
-  value=s_disjunction { value }
-| left=s_disjunction op=s_implication_operator right=s_implication
+/* Binary operators and their value forms share one spelling and source span.
+   Recursive ladders make associativity explicit; comparison/range stay singular. */
+s_left_binary(operand, operator):
+  value=operand { value }
+| left=s_left_binary(operand, operator) op=operator right=operand
     { binary $startpos $endpos op left right }
+s_right_binary(operand, operator):
+  value=operand { value }
+| left=operand op=operator right=s_right_binary(operand, operator)
+    { binary $startpos $endpos op left right }
+s_implication:
+  value=s_right_binary(s_disjunction, s_implication_operator) { value }
 s_implication_operator:
   IMPLIES { name $startpos $endpos "==>" } | IFF { name $startpos $endpos "<==>" }
 s_disjunction:
-  value=s_conjunction { value }
-| left=s_disjunction OR right=s_conjunction { binary $startpos $endpos (name $startpos($2) $endpos($2) "||") left right }
+  value=s_left_binary(s_conjunction, s_disjunction_operator) { value }
+s_disjunction_operator:
+  OR { name $startpos $endpos "||" }
 s_conjunction:
-  value=s_comparison { value }
-| left=s_conjunction AND right=s_comparison { binary $startpos $endpos (name $startpos($2) $endpos($2) "&&") left right }
+  value=s_left_binary(s_comparison, s_conjunction_operator) { value }
+s_conjunction_operator:
+  AND { name $startpos $endpos "&&" }
 s_comparison:
   value=s_range { value }
 | left=s_range op=s_comparison_operator right=s_range { binary $startpos $endpos op left right }
@@ -590,23 +604,26 @@ s_range:
 | left=s_bit_or RANGE right=s_bit_or
     { make "range" $startpos $endpos [("start", left.syntax); ("end", right.syntax)] [left; right] }
 s_bit_or:
-  value=s_bit_xor { value }
-| left=s_bit_or BAR right=s_bit_xor { binary $startpos $endpos (name $startpos($2) $endpos($2) "|") left right }
+  value=s_left_binary(s_bit_xor, s_bit_or_operator) { value }
+s_bit_or_operator:
+  BAR { name $startpos $endpos "|" }
 s_bit_xor:
-  value=s_bit_and { value }
-| left=s_bit_xor CARET right=s_bit_and { binary $startpos $endpos (name $startpos($2) $endpos($2) "^") left right }
+  value=s_left_binary(s_bit_and, s_bit_xor_operator) { value }
+s_bit_xor_operator:
+  CARET { name $startpos $endpos "^" }
 s_bit_and:
-  value=s_sum { value }
-| left=s_bit_and AMP right=s_sum { binary $startpos $endpos (name $startpos($2) $endpos($2) "&") left right }
+  value=s_left_binary(s_sum, s_bit_and_operator) { value }
+s_bit_and_operator:
+  AMP { name $startpos $endpos "&" }
 s_sum:
-  value=s_product { value }
-| left=s_sum PLUS right=s_product { binary $startpos $endpos (name $startpos($2) $endpos($2) "+") left right }
-| left=s_sum MINUS right=s_product { binary $startpos $endpos (name $startpos($2) $endpos($2) "-") left right }
+  value=s_left_binary(s_product, s_sum_operator) { value }
+s_sum_operator:
+  PLUS { name $startpos $endpos "+" } | MINUS { name $startpos $endpos "-" }
 s_product:
-  value=s_unary { value }
-| left=s_product STAR right=s_unary { binary $startpos $endpos (name $startpos($2) $endpos($2) "*") left right }
-| left=s_product SLASH right=s_unary { binary $startpos $endpos (name $startpos($2) $endpos($2) "/") left right }
-| left=s_product PERCENT right=s_unary { binary $startpos $endpos (name $startpos($2) $endpos($2) "%") left right }
+  value=s_left_binary(s_unary, s_product_operator) { value }
+s_product_operator:
+  STAR { name $startpos $endpos "*" } | SLASH { name $startpos $endpos "/" }
+| PERCENT { name $startpos $endpos "%" }
 s_unary:
   value=s_postfix { value }
 | operator=s_unary_operator value=s_unary
@@ -635,6 +652,7 @@ s_postfix:
     { make "propagate" $startpos $endpos [("value", value.syntax)] [value] }
 s_atom:
   value=s_literal { value }
+| value=s_operator_value { value }
 | value=s_hole { value }
 | value=s_value_identifier { make "name" $startpos $endpos [("name", value)] [] }
 | LPAREN RPAREN { make "unit" $startpos $endpos [] [] }
@@ -676,8 +694,17 @@ s_handler_clause:
     { make "return_clause" $startpos $endpos [("name", result); ("body", body.syntax)] [body] }
 | DISPOSE reason=s_identifier FATARROW body=s_lambda_body
     { make "disposal_clause" $startpos $endpos [("name", reason); ("body", body.syntax)] [body] }
-s_any_operator:
-  value=s_comparison_operator { value }
-| PLUS { name $startpos $endpos "+" } | MINUS { name $startpos $endpos "-" }
-| STAR { name $startpos $endpos "*" } | SLASH { name $startpos $endpos "/" }
-| AND { name $startpos $endpos "&&" } | OR { name $startpos $endpos "||" }
+s_operator_value:
+  LPAREN op=s_symbolic_operator RPAREN
+    { make "operator" $startpos $endpos [("name", op)] [] }
+s_symbolic_operator:
+  value=s_implication_operator { value }
+| value=s_disjunction_operator { value }
+| value=s_conjunction_operator { value }
+| value=s_comparison_operator { value }
+| value=s_bit_or_operator { value }
+| value=s_bit_xor_operator { value }
+| value=s_bit_and_operator { value }
+| value=s_sum_operator { value }
+| value=s_product_operator { value }
+| NOT { name $startpos $endpos "!" } | TILDE { name $startpos $endpos "~" }
