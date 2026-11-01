@@ -12,6 +12,7 @@ import tempfile
 import weakref
 from collections.abc import Callable
 from copy import deepcopy
+from fnmatch import fnmatchcase
 from functools import partial
 from pathlib import Path
 from types import SimpleNamespace
@@ -19,7 +20,8 @@ from typing import Any, cast
 from unittest.mock import patch
 
 from ci import sail_support_route as route
-from tests.harness import Case, ensure
+from tests import test_fanout_ci as workflows
+from tests.harness import TOOLS, Case, ensure
 
 
 def refuses(call: Callable[[], object]) -> None:
@@ -193,6 +195,30 @@ def complete_join_and_missing_steps() -> None:
                 patch.object(route, "validate_native_qualification", return_value={"commands": []}):
             route.join(artifacts, side, "a" * 40, root / "result")
             ensure(route.load(root / "result/report.json")["status"] == "passed", "complete independent pair accepted")
+            contents = (TOOLS.parent / ".github/workflows/sail-support-qualification.yml").read_text(encoding="utf-8")
+            download = next(step for step in workflows._step_texts(workflows._workflow_jobs(contents)["join"])
+                            if "uses: actions/download-artifact@" in step)
+            patterns = re.findall(r"(?m)^          pattern: (.+)$", download)
+            ensure(len(patterns) == 1, "the join selects one artifact population")
+            pattern = patterns[0].replace("${{ github.run_id }}", "1").replace("${{ github.run_attempt }}", "2")
+            hosted = root / "hosted"
+            for run_id, attempt in (("1", "1"), ("1", "2"), ("11", "2")):
+                for phase in ("build", "import"):
+                    retained = hosted / f"sail-support-{phase}-{run_id}-{attempt}"
+                    shutil.copytree(artifacts / phase, retained)
+                    receipt = route.load(retained / "receipt.json")
+                    route.write(retained / "receipt.json", receipt | {"run_id": run_id, "run_attempt": attempt})
+            selected = root / "selected"
+            for retained in hosted.iterdir():
+                if fnmatchcase(retained.name, pattern):
+                    shutil.copytree(retained, selected / retained.name)
+            route.join(selected, side, "a" * 40, root / "selected-result")
+            ensure({path.name for path in selected.iterdir()} == {"sail-support-build-1-2", "sail-support-import-1-2"},
+                   "a cold rerun ignores successful artifacts from older attempts and other runs")
+            shutil.rmtree(selected / "sail-support-import-1-2")
+            refuses(partial(route.join, selected, side, "a" * 40, root / "selected-result"))
+            ensure((hosted / "sail-support-import-1-1/receipt.json").is_file(),
+                   "a passing historical import cannot complete the current independent pair")
             for phase in ("build", "import"):
                 path = artifacts / phase / "receipt.json"
                 original = route.load(path)
