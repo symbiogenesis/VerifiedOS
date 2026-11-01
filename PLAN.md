@@ -473,7 +473,7 @@ These figures sum the full priced reference-build, assessment and named hardenin
 | Completed scope h | 865.3 |
 | Complete by estimate % | 18.7 |
 | Remaining h | 3,770.5 |
-| Committed remaining h | 2,306.5 |
+| Committed remaining h | 2,328.5 |
 | Open class I h | 791.5 |
 | Open class X h | 2,979 |
 | Retained completion estimate h | 261.5 |
@@ -481,7 +481,7 @@ These figures sum the full priced reference-build, assessment and named hardenin
 | Calibrated total h | 5,657.4 |
 | Committed M8a open h | 74 |
 | Committed M8b open h | 105.5 |
-| Other committed open h | 2,127 |
+| Other committed open h | 2,149 |
 | Conditional open h | 1,028 |
 | Unfunded option open h | 414 |
 | Committed M8a open class X h | 0 |
