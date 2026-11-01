@@ -407,17 +407,15 @@ def _lane_step_limits() -> None:
 
 
 def _matrix(contents: str) -> list[dict[str, str]]:
-    """The matrix entries of guest-gates.yml's text, each as its fields."""
-    parts = contents.split("        include:\n", 1)
-    block = parts[1] if len(parts) == 2 else ""
+    """The planner's fixed matrix rows, each as its fields."""
+    plan = _workflow_step(contents, "Plan guest lanes")
     entries: list[dict[str, str]] = []
-    for line in block.split("\n    env:\n", 1)[0].splitlines():
-        first = re.fullmatch(r" {10}- (\w+): (.*)", line)
-        later = re.fullmatch(r" {12}(\w+): (.*)", line)
-        if first is not None:
-            entries.append({first[1]: first[2]})
-        elif later is not None and entries:
-            entries[-1][later[1]] = later[2]
+    for row in re.findall(r"rows\+=\('([^']+)'\)", plan):
+        value = json.loads(row)
+        ensure(isinstance(value, dict) and all(isinstance(key, str) and isinstance(field, str)
+                                              for key, field in value.items()),
+               f"the guest planner's matrix row is not string-valued: {row!r}")
+        entries.append(value)
     return entries
 
 

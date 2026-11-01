@@ -1893,7 +1893,7 @@ def _workflow_reading_base_through_environment() -> None:
     lines = [line for line in contents.split("\n") if not line.lstrip().startswith("#")]
     reads = [line for line in lines if "reading_base" in "".join(
         expression for expression in re.findall(r"\$\{\{(.*?)\}\}", line))]
-    ensure(len(reads) == 4, f"the input is read where the step guards expect: {reads!r}")
+    ensure(len(reads) == 5, f"the input is read where the step guards expect: {reads!r}")
     for line in reads:
         ensure(re.fullmatch(r"          [A-Z][A-Z_]*: \$\{\{ [^{}]* \}\}", line) is not None
                or re.fullmatch(r"        if: \$\{\{ [^{}]* \}\}", line) is not None,

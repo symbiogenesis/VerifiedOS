@@ -31,6 +31,10 @@ on:
         description: Optional run title text after the workflow name (empty shows the revision)
         type: string
         default: ""
+      lanes:
+        description: all, or a comma-separated selection of model,rtl,proofs; cold, proof readings and reruns always select all
+        type: string
+        default: all
       cold:
         description: Install toolchains cold and recompile/recheck every proof
         type: boolean
@@ -67,17 +71,67 @@ defaults:
 
 jobs:
   changes:
-    # Manual dispatch, monthly cold runs and explicit reruns always execute.
-    if: ${{ github.event.schedule == '23 4 * * 1' && github.run_attempt == 1 }}
+    # Planning reads only dispatch data, without a checkout or installed toolchain.
+    # Scheduled runs retain full coverage; only ordinary manual handoffs can narrow it.
     runs-on: ubuntu-26.04
     timeout-minutes: 5
     permissions:
       actions: read # the previous run's conclusion and artifact names
     outputs:
       unchanged: ${{ steps.previous.outputs.unchanged }}
+      matrix: ${{ steps.plan.outputs.matrix }}
     steps:
+      - name: Plan guest lanes
+        id: plan
+        env:
+          REQUESTED_LANES: ${{ inputs.lanes }}
+          GUEST_EVENT: ${{ github.event_name }}
+          FORCE_ALL: ${{ github.event_name == 'schedule' || inputs.cold == true || inputs.reading_base != '' || github.run_attempt > 1 }}
+        run: |
+          lanes="$REQUESTED_LANES"
+          if [[ "$GUEST_EVENT" != workflow_dispatch ]]; then
+            lanes=all
+          fi
+          if [[ "$lanes" == all ]]; then
+            lanes=model,rtl,proofs
+          fi
+          if [[ ! "$lanes" =~ ^(model|rtl|proofs)(,(model|rtl|proofs))*$ ]]; then
+            echo "::error::lanes must be all or a comma-separated selection of model,rtl,proofs."
+            exit 1
+          fi
+          IFS=, read -r -a selected <<< "$lanes"
+          declare -A requested=()
+          for lane in "${selected[@]}"; do
+            if [[ -v "requested[$lane]" ]]; then
+              echo "::error::lanes must not repeat a lane."
+              exit 1
+            fi
+            requested["$lane"]=true
+          done
+          if [[ "$FORCE_ALL" == true ]]; then
+            requested=([model]=true [rtl]=true [proofs]=true)
+          fi
+          rows=()
+          names=()
+          for lane in model rtl proofs; do
+            if [[ ! -v "requested[$lane]" ]]; then
+              continue
+            fi
+            names+=("$lane")
+            case "$lane" in
+              model) rows+=('{"lane":"model","cache_lane":"model","toolchains":"--toolchain sail --toolchain rtl"}') ;;
+              rtl) rows+=('{"lane":"rtl","cache_lane":"model","toolchains":"--toolchain sail --toolchain rtl"}') ;;
+              proofs) rows+=('{"lane":"proofs","cache_lane":"proofs","toolchains":"--toolchain rocq"}') ;;
+            esac
+          done
+          IFS=,
+          echo "matrix={\"include\":[${rows[*]}]}" >> "$GITHUB_OUTPUT"
+          printf 'Guest CI lanes: `%s`.\n' "${names[*]}" >> "$GITHUB_STEP_SUMMARY"
+
       - name: Check the previous completed run
         id: previous
+        # Cold/manual runs and explicit reruns never use scheduled deduplication.
+        if: ${{ github.event.schedule == '23 4 * * 1' && github.run_attempt == 1 }}
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -118,7 +172,7 @@ jobs:
     # The lane alone names a job; its other matrix fields follow from it.
     name: guest-gates (${{ matrix.lane }})
     needs: changes
-    if: ${{ !cancelled() && needs.changes.outputs.unchanged != 'true' }}
+    if: ${{ !cancelled() && needs.changes.result == 'success' && needs.changes.outputs.unchanged != 'true' }}
     runs-on: ubuntu-26.04
     # A job that reaches this limit is cancelled before its report and upload, so each
     # lane's step limits sum at least 30 minutes under it. That margin is left to the
@@ -128,19 +182,8 @@ jobs:
     strategy:
       # One lane's failure must not cancel another lane's verdict.
       fail-fast: false
-      matrix:
-        # A lane restores the download and installed-toolchain caches of its cache_lane,
-        # whose toolchains it selects, and saves them only when that lane is its own.
-        include:
-          - lane: model
-            cache_lane: model
-            toolchains: --toolchain sail --toolchain rtl
-          - lane: rtl
-            cache_lane: model
-            toolchains: --toolchain sail --toolchain rtl
-          - lane: proofs
-            cache_lane: proofs
-            toolchains: --toolchain rocq
+      # The planner preserves each lane's toolchains and cache ownership.
+      matrix: ${{ fromJSON(needs.changes.outputs.matrix) }}
     env:
       # Source downloads and the ownership marker that lets bootstrap resume the root;
       # no installed switches, build outputs or verdicts.
