@@ -82,10 +82,31 @@ qualification, and the hosted plan still checks commit existence, main ancestry,
 recipes and all inputs. Acceptance covers canonical resolution, invalid refs,
 literal raw inputs and unchanged interrupted-dispatch behavior.
 
-The boot-chain workflow checks revision, timeout and staged readiness once before
-allocating campaign runners. No refused plan executes campaign code. Acceptance
-covers absent, stale and incomplete staging, valid readiness and dependency wiring;
-no readiness result substitutes for campaign execution.
+The target-campaign workflows check revision, timeout and staged readiness once
+before allocating campaign runners. Explicit zero, fractional and out-of-range
+timeouts are refused; accepted whole-number inputs are normalized before shell
+arithmetic. No refused plan executes campaign code. Acceptance covers absent,
+stale and incomplete staging, valid readiness, timeout boundaries and dependency
+wiring; no readiness result substitutes for campaign execution.
+
+Target runners share one Sail setup action for runner and recipe identity,
+read-only restoration of Guest CI's model toolchain and solver-bound Sail memo,
+and bootstrap. Each caller verifies its revision and staging before executing
+the local action. The action preserves the existing cache keys, bootstrap logs
+and failure behavior; it never builds the model or saves a cache. Acceptance
+checks every caller's guard ordering and the action's cache ownership and
+identities, with hosted workflow analysis retaining syntax and security checks.
+
+Explicit manual Host CI dispatches have separate concurrency groups even when
+they test the same revision. Pull-request supersession and duplicate-push
+cancellation retain their existing groups. Focused controls cover those cases
+and distinct main revisions.
+
+Artifacts whose names are stable across attempts replace their preceding upload
+on rerun. Sail support's independent cold jobs instead retain attempt-qualified
+artifacts, and its join selects only the current attempt. Acceptance exercises
+replacement settings and selection with artifacts from multiple attempts;
+successful historical receipts do not supply a current-attempt verdict.
 
 Actionlint caches only the pinned source archive under its SHA-256 identity and
 verifies cached bytes before extraction. Corruption cannot authorize an executable;

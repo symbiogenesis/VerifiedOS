@@ -8,6 +8,33 @@ Linux. This document owns its execution and acceptance contract. Follow the
 [validation handoff](../../AGENTS.md#tool-execution-and-validation) to publish inputs,
 require Host CI and dispatch the affected guest lanes without waiting for their verdicts.
 
+## Workflow boundaries
+
+Host CI is the cross-platform publication gate. Guest CI owns the expensive native
+model, RTL and proof lanes and their scheduled cold validation. Keep their run
+identities separate so a publication can require Host CI and hand off Guest CI
+without waiting for it.
+
+The boot target campaigns retain independent staged-input triggers, cancellation
+groups and acceptance joins. Their repeated Sail setup belongs to a shared local
+action; their readiness checks and campaign verdicts belong to each workflow.
+Combining these campaigns would make a new crypto run cancel unrelated chain work
+or require another routing layer to preserve those boundaries.
+
+Manual qualification and measurement routes run only when their consumers need
+them. Model snapshots supply architecture-specific emulators beside the contained
+compiler. OpenSSL qualifies independent cryptographic oracles; the instrument
+route qualifies QuickChick; Sail support qualifies portable proof support; Sail
+runtime and guardrail comparisons retain their distinct measurement inputs.
+These routes supply evidence outside the publication gate and keep their own
+receipts. A successful specialist run supplies no Host or Guest aggregate verdict.
+
+Reruns preserve each route's artifact identity rules. Stable artifact names are
+replaced on upload. Sail support artifacts carry their attempt, and its join reads
+only that attempt; use **Re-run all jobs** for a new independent cold campaign.
+The [failure-prevention contract](failure-prevention.md#command-and-workflow-preparation)
+owns the focused controls for setup, concurrency, readiness and artifact handling.
+
 ## Change selection
 
 [The shared classifier](../vos/ci_scope.py) owns changed-path decisions for
