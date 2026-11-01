@@ -114,8 +114,15 @@ def changed_paths(root: Path, base: str, revision: str) -> list[str]:
     return paths
 
 
+def _decision(paths: Sequence[str], reason: str) -> Decision:
+    decision = classify(paths) if reason in {"changed paths", "guest override"} else _full()
+    if reason == "guest override":
+        decision["guest_lanes"] = list(ALL_GUEST_LANES)
+    return decision
+
+
 def select_changes(root: Path, base: str | None, revision: str, *,
-                   force_full: bool = False) -> Selection:
+                   force_full: bool = False, force_guest: bool = False) -> Selection:
     """A failed comparison broadens validation instead of silently omitting gates."""
     if not _SHA.fullmatch(revision):
         raise ValueError("selection requires a full lowercase revision")
@@ -133,7 +140,9 @@ def select_changes(root: Path, base: str | None, revision: str, *,
             reason = "comparison unavailable"
     if force_full:
         reason = "full override"
-    decision = classify(paths) if reason == "changed paths" else _full()
+    elif force_guest and reason == "changed paths":
+        reason = "guest override"
+    decision = _decision(paths, reason)
     return {**decision, "base": normalized_base, "revision": revision,
             "paths": paths, "reason": reason}
 
@@ -149,13 +158,13 @@ def validate_selection(raw: object, revision: str) -> Selection:
             or (base is not None and (not isinstance(base, str) or not _SHA.fullmatch(base)))
             or not isinstance(paths, list) or not all(isinstance(path, str) and _path(path) for path in paths)
             or paths != sorted(set(paths)) or not isinstance(reason, str)
-            or reason not in {*_FULL_REASONS, "changed paths"}
+            or reason not in {*_FULL_REASONS, "changed paths", "guest override"}
             or type(record["host_full"]) is not bool or type(record["model_hooks"]) is not bool):
         raise ValueError("invalid CI selection identity or comparison")
     selected_paths = cast("list[str]", paths)
-    if reason == "changed paths" and (base is None or not selected_paths):
+    if reason in {"changed paths", "guest override"} and (base is None or not selected_paths):
         raise ValueError("changed-path selection requires a base and paths")
-    decision = classify(selected_paths) if reason == "changed paths" else _full()
+    decision = _decision(selected_paths, reason)
     if any(record[key] != value for key, value in decision.items()):
         raise ValueError("CI selection does not match its recorded changed paths")
     return cast("Selection", record)
