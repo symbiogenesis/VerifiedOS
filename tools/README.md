@@ -105,7 +105,7 @@ alongside the required Host and Guest handoff, not a replacement for either.
 New commits cancel superseded runs of the same pull request. Main runs share a
 concurrency group only when their trigger and tested revision are the same:
 the dispatch's explicit revision, or the event SHA. Duplicate automatic push
-runs cancel redundant work; manual dispatches keep their own trigger group;
+runs cancel redundant work; each manual dispatch keeps its own run group;
 different revisions of `main` keep separate runs. The
 [workflow's matrix](../.github/workflows/host-gates.yml) fixes each platform's
 partition count and runner image. Mutation cases and sorted behavioral test modules are partitioned by

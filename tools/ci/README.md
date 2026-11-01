@@ -16,8 +16,9 @@ identities separate so a publication can require Host CI and hand off Guest CI
 without waiting for it.
 
 The boot target campaigns retain independent staged-input triggers, cancellation
-groups and acceptance joins. Their repeated Sail setup belongs to a shared local
-action; their readiness checks and campaign verdicts belong to each workflow.
+groups and acceptance joins. Their repeated Sail setup belongs to the
+[target setup action](../../.github/actions/setup-target-sail/action.yml);
+their readiness checks and campaign verdicts belong to each workflow.
 Combining these campaigns would make a new crypto run cancel unrelated chain work
 or require another routing layer to preserve those boundaries.
 
