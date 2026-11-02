@@ -9,8 +9,10 @@ import copy
 import hashlib
 from collections.abc import Callable
 from typing import cast
+from unittest.mock import patch
 
 from tests.harness import Case, ensure
+from vos import vela_elaborate as language
 from vos.vela_ast import VelaError
 from vos.vela_elaborate import elaborate
 
@@ -662,6 +664,17 @@ def _source_limits() -> None:
     _refuses(wrong, "limit")
 
 
+def _elaboration_budgets() -> None:
+    fixture = _Fixture()
+    fixture.theorem("Computed", (), _binary("==", _binary("+", _natural(1), _natural(1)), _natural(2)),
+                    _call("Refl", _natural(2)))
+    source, response = fixture.response()
+    elaborate(source, response)
+    for owner in ("MAX_WORK", "MAX_REDUCTIONS", "MAX_OUTPUT_BYTES"):
+        with patch.object(language, owner, 0):
+            _refuses(fixture, "limit")
+
+
 def cases() -> list[Case]:
     return [Case("fresh-polymorphism-and-higher-order-inference", _polymorphism_and_higher_order),
             Case("dependent-vectors-and-finite-indices", _dependent_vectors_and_indices),
@@ -673,4 +686,5 @@ def cases() -> list[Case]:
             Case("strict-surface-schema-and-source-binding", _strict_protocol),
             Case("malformed-role-containers", _malformed_role_containers),
             Case("holes-unsupported-forms-and-hygiene", _holes_unsupported_and_hygiene),
-            Case("bounded-source-and-syntax", _source_limits)]
+            Case("bounded-source-and-syntax", _source_limits),
+            Case("inference-reduction-and-output-budgets", _elaboration_budgets)]
