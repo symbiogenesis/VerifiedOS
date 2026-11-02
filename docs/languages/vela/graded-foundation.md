@@ -88,6 +88,24 @@ Application type use is `b+r*z`: codomain substitution removes the domain demand
 
 Vela computations evaluate left to right by value. Elaborate an effectful argument as `bind x <- c; call f x`: evaluate `c` once, record its trace/effects and resource exit, then apply the value rule to `x`. Parameter use zero does not erase `c`'s effects, failures or mandatory result. Parameter use two does not execute `c` twice. Moving this bind across a handler, mutation or cancellation checkpoint needs an explicit preservation proof.
 
+Torczon et al.'s [Effects and Coeffects in Call-by-Push-Value](https://doi.org/10.1145/3689750)
+(OOPSLA 2024; [extended paper](https://arxiv.org/abs/2311.11795v2)) mechanizes
+effect/coeffect soundness and CBV/CBN translations in Coq for clock effects and
+variable-use accounting. Its resource semantics preserves evaluation of effectful
+computations whose results are unused. This supports the value/computation split
+above; dependent indices, mutable ownership and handlers remain Vela's
+`GF-cbv` and `GF-control-mutation` debts. The artifact's proof terms are not read
+or replayed here, and no source is incorporated.
+
+Lorenzen et al.'s [Oxidizing OCaml with Modal Memory Management, §5.1](https://antonlorenzen.de/papers/oxidizing-ocaml-modal-memory-management.pdf)
+(ICFP 2024) gives the complementary promotion counterexample: a repeatedly usable
+file-opening function and argument do not make the returned file repeatedly
+usable. Their value-only promotion blocks that derivation. Vela likewise promotes
+pure values in `Box_q` below, after evaluation; a resource-carrying result still
+needs its own capture and `Dup` evidence. An initializer's use grade cannot erase
+its acquisition, cleanup or effects. These are design references, not a checked
+metatheory for Vela.
+
 ### Substitution and structural rules
 
 For a pure value substitution `Gamma, x:A, Xi |- t:B` with `Gamma |- v:A`, let `z` be the subject-use vector of `v`. For any demand row `d=(d_G,d_x,d_X)` after `x`, define:

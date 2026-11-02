@@ -763,6 +763,25 @@ The full core is a capability-oriented graded dependent language with explicitly
 
 The proposed core has dependent functions and pairs, records and indexed sums, exhaustive matching, sequenced computation, moves, loans and scope exits. One typing judgment tracks a duplicable context of stable values and a resource context, together with result type, retained captures, effects and phase. Mutable steps transform the resource context; branch joins must return compatible resources or an indexed sum describing the alternatives. `Result`, `Option` and user unions are instances of that same data mechanism. The elaboration must yield a derivation interpreted over the existing anchors, not create an authoritative universal machine semantics. Its acceptance obligations include substitution, phase separation, authority preservation, sound loan restoration and coherent elaboration; syntax alone discharges none of them.
 
+Keep higher-level features as compositions of these forms:
+
+| Programmer-facing feature | Foundation and library presentation |
+| --- | --- |
+| Optional values, errors and typestate outcomes | Ordinary indexed sums and matching; constructors retain the discriminants and resources needed by each branch |
+| Packed runtime indices | Dependent records with represented witnesses and separately erased evidence |
+| Graded boxes and callback environments | Ordinary graded fields, with capture and calling-mode contracts governing the retained environment |
+| Grade domains | Sealed law-bearing dictionary records; operations, laws and projections use ordinary expressions |
+| Cells, guards and protocol tokens | Library representations whose operations transform the resource context under explicit contracts |
+| Handlers and structured tasks | Sequenced computations with the shared capture, resumption, suspension and exit rules |
+
+This is the proposed decomposition, not an implemented desugaring or a soundness
+claim. The [graded foundation](graded-foundation.md#q25d-debts-and-acceptance-boundary)
+and control/mutation dossiers own its laws. Surface notation may expose an
+operation's scope or resource role; it must elaborate through those laws.
+Grammar helpers share repeated syntax and located-node construction while
+preserving those roles. Library names such as `Box`, `Option` and `Cell` need no
+dedicated productions in the [surface grammar](surface-grammar.md#shared-operators-and-local-elimination).
+
 #### Authority and Modalities
 
 One capture analysis can propagate several kinds of authority, but its output must preserve their kinds and interpretation obligations:
