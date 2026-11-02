@@ -1184,7 +1184,8 @@ verdicts remain deferred under the shared handoff.
 
 The required K-84 mutation control selects a current holder structurally instead
 of depending on PLAN prose; fenced examples and retained historical citations
-remain distinct test subjects. Host run `41393076478` supplied failing evidence
+remain distinct test subjects. The repair at `cb34a6b8` has independent source
+review and focused behavioral evidence. Host run `41393076478` supplied failing evidence
 for the stale mutation seed and a Windows standard-library import-probe timeout.
 The focused typecheck behavioral module passed locally without changing the
 probe's bound; the refreshed hosted verdict owns final acceptance.
@@ -1194,8 +1195,7 @@ Accepted on 2026-11-01 as a design contract. `vela-meta` and
 the existing frontend hold, prototypes and grammar qualification are unchanged.
 No evaluator, reflection API, staged checker or performance result is implemented
 by this item. Accounting: 0.5 h agent-parallel authoring, review and required CI
-fixture repair, excluding
-unattended hosted waiting. No prospective estimate was recorded for this design
+fixture repair, excluding unattended hosted waiting. No prospective estimate was recorded for this design
 increment, so its calibration-record columns are `n/a` and it supplies no fit pair.
 
 Landed: Tier A. Independent full reads covered the complete companion and changed
