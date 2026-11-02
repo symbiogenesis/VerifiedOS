@@ -438,14 +438,21 @@ resource mistakes and nesting limits. Retain every earlier syntax and migration
 fixture and strict conflict-free generation.
 
 Equivalent grammar refactors share named-type application, parenthesized type
-construction, literal payloads and binary-expression construction across their
-existing contexts. Context-specific tokens and AST roles remain explicit: local
+construction, literal payloads, binary-expression construction, generic-binder
+construction and typed local initializers across their existing contexts.
+Generic binders retain all six explicit modes and their name/type roles; typed
+initializers share their fields and children while the enclosing statement or
+expression binding owns its node kind and span. No helper adds a syntax node.
+Context-specific tokens and AST roles remain explicit: local
 annotations retain lexical disambiguation, literal patterns retain pattern kinds,
 and the pure entry retains schema 1. Preserve the exact accepted/refused language,
 JSON fields, original byte spans and syntax-depth accounting. Compare every
 retained positive fixture's complete JSON before and after, retain all refusal
 and migration cases, and independently check composed types, literal roles,
-quantifiers and lambda boundaries under strict conflict-free generation.
+quantifiers, lambda boundaries, all generic-binder modes and typed initializer
+roles/spans under strict conflict-free generation. Compose erased indices, grade
+parameters, callable captures and library-defined resource types in these cases;
+syntax-valid name, domain and resource mistakes must remain accepted syntax.
 
 ### Expression-local bindings
 
