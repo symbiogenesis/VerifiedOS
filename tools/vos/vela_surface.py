@@ -1474,7 +1474,8 @@ def _binder_initializer_roles(source: bytes, result: dict[str, Json]) -> None:
         _exact_span(source, binding, spelling)
         _exact_span(source, expression, spelling + b" in " + bound.encode())
         _type_head(binding.get("type"), "Vec", 2)
-        if _texts(binding.get("grade")) != (["allowance"] if graded else []):
+        grade = binding.get("grade")
+        if (graded and _texts(grade) != ["allowance"]) or (not graded and grade is not None):
             raise ValueError("surface expression initializer fabricated or lost its grade")
     if _named(function, "let", "inferred").get("type") is not None:
         raise ValueError("surface inferred initializer acquired an annotation")
