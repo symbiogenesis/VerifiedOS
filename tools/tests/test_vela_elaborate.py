@@ -426,6 +426,11 @@ def _proof_values_and_false_neighbors() -> None:
     fixture.definition("ProofParameter", _computed(_call("Eq", x, x, generics=(_NAT,))),
                        (("x", _NAT), ("evidence", _computed(_call("Eq", x, x, generics=(_NAT,))))),
                        _variable("evidence"))
+    proposition_generic: tuple[Generic, ...] = (("type", "P", _type("Prop")),)
+    fixture.definition("KeepProof", _type("P"), (("evidence", _type("P")),),
+                       _variable("evidence"), proposition_generic)
+    fixture.theorem("ForwardProof", (("evidence", _type("P")),), _variable("P"),
+                    _call("KeepProof", _variable("evidence")), proposition_generic)
     source, response = fixture.response()
     emitted = elaborate(source, response).gallina
     ensure("Corelib.Init.Logic.eq" in emitted, "proof goal omitted propositional equality")

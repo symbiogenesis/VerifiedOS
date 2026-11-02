@@ -45,4 +45,9 @@ public lemma Congruence(Nat value): value + 1 == value + 1
 public definition type[Eq::<Nat>(value, value)] KeepEvidence(
     Nat value, type[Eq::<Nat>(value, value)] evidence) = evidence;
 
+public definition P KeepProof<P : Prop>(P evidence) = evidence;
+
+public lemma ForwardProof<P : Prop>(P evidence): P
+    proof { return KeepProof(evidence); }
+
 public definition Type<1> SmallUniverse() = type Type;
