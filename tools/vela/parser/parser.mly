@@ -13,7 +13,7 @@ let binary first last operator left right =
 %token LPAREN RPAREN LBRACE RBRACE SEMICOLON COMMA EQUAL PLUS STAR EQ LE EOF
 %token <string> IDENT DECIMAL
 %token PRIVATE INTERNAL ASYNC RECORD STRUCT UNION INTERFACE TRAIT IMPL IMPORT ALIAS NAMESPACE AS
-%token OWNED MOVE IN REF GHOST TRACKED SCOPED REGION CAPTURES GRADE DOMAIN
+%token OWNED MOVE IN REF OUT GHOST TRACKED SCOPED REGION CAPTURES GRADE DOMAIN
 %token REQUIRES ENSURES RESTORES WHERE EFFECTS INVARIANT DECREASES PROGRESS
 %token VIEW GROWS TYPE PREDICATE OPERATION PROOF
 %token EFFECT RESUMES HANDLE SHALLOW WITH RESUME DISPOSE REHANDLE
@@ -340,7 +340,7 @@ s_modified_type(base):
     { make "modified_type" $startpos $endpos [("modifier", String modifier);
         ("lifetime", optional lifetime); ("type", value.syntax)] (value :: children lifetime) }
 %inline s_type_modifier:
-  OWNED { "owned" } | IN { "in" } | REF { "ref" } | GHOST { "ghost" }
+  OWNED { "owned" } | IN { "in" } | REF { "ref" } | OUT { "out" } | GHOST { "ghost" }
 | TRACKED { "tracked" } | SCOPED { "scoped" }
 s_loan_lifetime:
   LT value=LIFETIME GT
@@ -642,6 +642,8 @@ s_unary:
   MINUS { name $startpos $endpos "-" } | NOT { name $startpos $endpos "!" }
 | TILDE { name $startpos $endpos "~" } | MOVE { name $startpos $endpos "move" }
 | IN { name $startpos $endpos "in" } | REF { name $startpos $endpos "ref" }
+| OUT { name $startpos $endpos "out" }
+| STAR { name $startpos $endpos "*" } | AMP { name $startpos $endpos "&" }
 | AWAIT { name $startpos $endpos "await" } | SPAWN { name $startpos $endpos "spawn" }
 | COMMIT { name $startpos $endpos "commit" }
 s_postfix:

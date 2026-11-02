@@ -297,6 +297,20 @@ def _fixtures(compiled: Build) -> list[str]:
             or _object(_body(pure_identifier).get("name"), "pure returned identifier").get("text") != "as"):
         raise ValueError("surface match keyword changed a pure identifier")
     passed.append("pure-identifier-as")
+    for word in (b"out", b"null"):
+        source = b"module M; public Nat " + word + b"(Nat " + word + b") { return " + word + b"; }"
+        pure_identifier = parse_source(compiled, source)
+        functions = _object(pure_identifier["ast"], "pure file").get("functions")
+        if not isinstance(functions, list) or len(functions) != 1:
+            raise ValueError("surface-only reserved word changed pure declaration syntax")
+        function = _object(functions[0], "pure reserved-word identifier")
+        parameters = function.get("parameters")
+        if (_object(function.get("name"), "pure function name").get("text") != word.decode()
+                or not isinstance(parameters, list) or len(parameters) != 1
+                or _object(_object(parameters[0], "pure parameter").get("name"), "pure parameter name").get("text") != word.decode()
+                or _object(_body(pure_identifier).get("name"), "pure returned identifier").get("text") != word.decode()):
+            raise ValueError("surface-only reserved word changed pure identifier AST roles")
+        passed.append("pure-identifier-" + word.decode())
     # These are deliberately invalid programs accepted as syntax.
     for source in (
             b"module M; public Nat F() { return true + 1; } public Nat F() { return missing; }",
