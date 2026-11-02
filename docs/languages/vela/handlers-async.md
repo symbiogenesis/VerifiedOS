@@ -184,7 +184,7 @@ Work includes the callback and handler steps, resumptions, cloning and disposal;
 sequential work adds and alternatives take their permitted worst case. A multi-shot
 handler charges every explored resumption. Along `d` successive binary choices,
 exploring both replies at each choice can reach `2^d` leaves even though each
-operation resumes at most twice. A local resumption allowance is therefore no
+operation resumes at most twice. A local resumption allowance alone supplies no
 bound on complete exploration. `PeakFrames` counts the maximum simultaneously live
 source frames, including retained continuations and handler environments under the
 declared representation; it is not the total number of resumptions.

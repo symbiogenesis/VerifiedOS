@@ -1248,7 +1248,7 @@ public usize BestScore<captures C, ghost SearchBudget budget>(
 }
 
 let header = packet.Header;                              // a value copy, so duplicable
-let score = () => Score(header, Choose());               // the continuation retains only header
+Fn() -> usize effects(Choose) score = () => Score(header, Choose());
 let best = BestScore(in score);
 ```
 
@@ -1261,8 +1261,19 @@ checked summary; an unresolved limit remains a goal. Work is measured in named
 source steps and frames in simultaneous live source frames. Their transport to
 target costs, reserved storage and available pool capacity remains separate.
 
-A named callback `let score = () => Score(ref packet, Choose());` passed as
-`BestScore(in score)` is refused at `Duplicable(C)`, [the foundation's `Dup` obligation](graded-foundation.md#resource-and-computation-interface): the second resumption would duplicate an exclusive loan, and no grade on the closure repairs that. Every captured continuation is resumed, disposed or moved into the handler's result, and none is dropped. `dispose` runs the continuation's declared cleanup:
+The local callable annotation binds `Choose` as a per-call effect capability;
+the local capture set is inferred and retains `header` alone. Naming the callback
+therefore preserves the effect parameter that `BestScore`'s handler supplies,
+rather than capturing an ambient handler capability, and provides a place for the
+explicit `in` argument.
+
+A callback using `Score(ref packet, Choose())` is refused by the shared-call or
+capture-duplication rules: its exclusive access may require `FnMut` before
+`Duplicable(C)` is considered. If an exclusive loan reaches the
+[foundation's `Dup` obligation](graded-foundation.md#resource-and-computation-interface),
+a second resumption cannot duplicate it; no grade repairs that. Every captured
+continuation is resumed, disposed or moved into the handler's result, and none is
+dropped. `dispose` runs the continuation's declared cleanup:
 
 ```text
 public effect Reject
@@ -1297,7 +1308,7 @@ public async Delivery<n> Accept<ghost Nat n>(
 	effects reads(packet), calls(Forward, counter.Add, counter.Retire)
 {
 	let header = packet.Header;
-	let score = () => Score(header, Choose());
+	Fn() -> usize effects(Choose) score = () => Score(header, Choose());
 	let best = BestScore(in score);
 	await Forward(in packet, best);                                    // a checkpoint even when already complete
 	let receipt = commit counter.Add(move allowance, packet.Length);   // last checkpoint, then one AMOADD
