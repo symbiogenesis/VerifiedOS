@@ -787,7 +787,7 @@ The modalities have orthogonal dimensions: phase (runtime, specification or proo
 
 **Inference is bidirectional and equality is disciplined.** Check definitions and lambdas against declared interfaces; synthesize routine local types, indices, effects and loans where they have a determined answer. Unsolved dependent equations become source-located proof obligations or a request for an annotation. Kernel conversion decides definitional equality; a further mathematical equality requires a checked transport, which automation may supply without adding solver answers to conversion. A resource timeout remains unresolved rather than unequal. In executable expressions, equality uses a selected decidable operation with a correctness law; mathematical equality in a contract does not make arbitrary propositions executable decisions. Inferred proofs may differ after a harmless refactor, but the selected operation, contract and relevant elaborated meaning must remain the same.
 
-**Abstraction has one resolution rule.** Value records and tagged unions have nominal public names; interfaces use explicit implementations and coherent selection. Public generic parameters and their law-bearing instances are fixed at the module boundary. The initial surface admits no overlapping implicit instances, effectful implicit conversions, mutable-reference covariance or representation-changing structural casts. Fully qualifying a name disambiguates it; an unrelated import must not silently change the selected operation. Derived equality, optics or protocol boilerplate use the same module system and generate visible laws. Definitional equality does not acquire those laws merely because a derivation generates them.
+**Abstraction has one resolution rule.** Value records and tagged unions have nominal public names; interfaces use explicit implementations and coherent selection. Public generic parameters and their law-bearing instances are fixed at the module boundary. The surface admits no overlapping implicit instances, implicit type conversions, mutable-reference covariance or representation-changing structural casts; the [permanent exclusions](#permanent-language-exclusions) apply to pure conversions too. Fully qualifying a name disambiguates it; an unrelated import must not silently change the selected operation. Derived equality, optics or protocol boilerplate use the same module system and generate visible laws. Definitional equality does not acquire those laws merely because a derivation generates them.
 
 Runtime expressions evaluate left to right, by value, with short-circuit Boolean operators and explicit control flow. Contracts and total pure definitions have their own checked mathematical interpretation. Bounded executable functions establish termination through structural recursion or a decreasing measure; service loops use a separate progress contract and cannot run during type conversion. Query expressions and convenience properties earn inclusion through a documented lowering with the same ownership, effects and representation obligations. These choices leave everyday declarations and blocks familiar while keeping their semantic consequences explicit.
 
@@ -904,9 +904,11 @@ build host's word size.
 
 | Spelling | Meaning |
 | --- | --- |
-| `let`, `var` | An inferred immutable or mutable local. A typed literal such as `0usize` states a representation. |
+| `let`, `var`, `T name = value` | Immutable inferred, mutable inferred and immutable type-first locals respectively. `var T name = value` is explicitly mutable. A typed literal such as `0usize` states a representation. |
 | `owned T`, `move x` | A consuming parameter, and the call-site spelling that supplies one. The moved-from binding is unusable afterwards. |
-| `in T`, `ref T` | A shared or an exclusive loan, spelled again at the call site. Neither is a freely copyable authority token. |
+| `in T`, `ref T`, `out T` | Shared-read, initialized-exclusive and initialization-exclusive loans, spelled again at the call site. None is a freely copyable authority token. |
+| `Option<T>`, `Some(value)`, `None()` | Explicit optional data and its two tagged cases; payload use accounts for presence and absence. |
+| `*p`, `&place`, `p + n`, `p[i]` | Explicit dereference, address/loan derivation, pointer offset and indexing, under checked representation and access contracts. |
 | `'input`, `'self.text` | The loan on a named place, either a parameter or a field of one. A view returned from one source names that source; `region 'r` declares a lifetime parameter only for generic or multi-source relationships. |
 | `view Tail = ...`, `ref self.Tail` | A named part of a record, which a public signature can lend while other parts stay borrowed elsewhere. |
 | `ghost T`, `tracked T` | Erased data. A ghost value is duplicable specification data with no computation use; tracked evidence is an erased resource that cannot be copied. |
@@ -956,8 +958,8 @@ acceptance. The development parser does not implement a type or borrow checker.
   publication. No wrapper, getter, callback, continuation, global or thread-local
   state bypasses those rules or the platform's exclusion of shared mutable
   capabilities, conflicting non-atomic access and CAS.
-- **No implicit nullability or unchecked optional extraction.** `T` excludes
-  absence, including when `T` is a reference or capability-bearing value. Write
+- **No implicit nullability or unchecked optional extraction.** A type acquires
+  no extra absent case by default, including a reference or capability type. Write
   `Option<T>` for the ordinary tagged union with `Some(T)` and `None()` cases;
   construct a case explicitly. There is no universal `null` literal, `T?` type
   suffix, null-forgiving operator or automatic `T`/`Option<T>` conversion.
@@ -973,8 +975,10 @@ implicitly lends its storage. Use `owned T`/`move value` for consuming transfer,
 `in T`/`in place` for a shared read loan, `ref T`/`ref place` for an initialized
 exclusive loan, and `out T`/`out place` for an exclusive initialization loan.
 Each loan mode is explicit in both the signature and call. `out` permits no read
-before initialization and requires definite initialization on every normal return;
-failure, propagation and cancellation retain explicit resource-state contracts.
+before initialization and requires definite initialization on every normal return,
+including `Result`/`Option` failure branches and propagation that returns from the
+function. Cancellation or other nonreturning exits retain explicit resource-state
+contracts and cannot make uninitialized storage readable as `T`.
 The caller must supply an eligible writable place for `ref`/`out`; no implicit
 temporary, automatic copy or overlapping loan repairs a mismatch. These borrow
 rules apply regardless of a descriptor's machine representation.
@@ -986,7 +990,7 @@ C# also supplies familiar
 [pointer arithmetic symbols](https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/operators/pointer-related-operators).
 Vela uses `p + n`, `p - n`, `p[i]`, `*p` and `&place` for explicitly typed
 pointer/place operations. `&` derives a loan with no extra authority; `*` requires
-the required access permission. Bounds, provenance, lifetime, initialization,
+the corresponding access permission. Bounds, provenance, lifetime, initialization,
 alignment, permissions and arithmetic obligations still apply, including before
 dereference. Pointer differences require a common represented allocation.
 Integer-to-capability fabrication and implicit pointer/integer conversions remain
@@ -1299,11 +1303,11 @@ Under Safe, `Sort`'s postcondition may stay unestablished; the build reports it,
 | Area | Proposed behavior |
 | --- | --- |
 | Everyday data | Value records, tagged unions, exhaustive patterns, generics, traits/interfaces, local inference, immutable bindings by default. No implicit object allocation. |
-| Ownership | `owned`/`move` for transfers, `ref`/`in` for exclusive/shared loans, typestate transitions, place-named lifetimes and named views for partial loans. Restoration is inferred from control flow, and a returned loan states its `restores` contract; scoped callbacks are pilot proof infrastructure. Record copying cannot duplicate permission. |
-| Numeric behavior | Distinguish mathematical specification integers from fixed-width runtime integers. Overflow is proved absent or represented by explicit checked/wrapping operations under the platform's existing rules. |
+| Ownership | `owned`/`move` for transfers, `ref`/`in` for exclusive/shared loans and `out` for exclusive initialization loans, typestate transitions, place-named lifetimes and named views for partial loans. Restoration is inferred from control flow, and a returned loan states its `restores` contract; scoped callbacks are pilot proof infrastructure. Record copying cannot duplicate permission. |
+| Numeric behavior | Distinguish mathematical specification integers from fixed-width runtime integers. No implicit promotion or coercion; conversions are explicit contracted operations. Overflow is proved absent or represented by explicit checked/wrapping operations under the platform's existing rules. |
 | Dependent contracts | Stable lengths, states, identities and justified snapshots index types; changing contents use spatial predicates. Runtime-discovered indices use dependent packages. Non-definitional equalities need checked transport. |
 | Effects and authority | Typed captures and required authorities explain operations; the full design includes effect polymorphism, scoped discharge and handlers whose operations declare their resumption allowance. FFI and assembly require actual operation contracts, never unchecked `extern` promises. |
-| Error handling | Exhaustive `Result`/`Option` patterns preserve resource states on all branches; scoped restoration precedes propagation. Cancellation follows declared checkpoints, commit points and terminal cleanup. No hidden unwinding or ambient service access. |
+| Error handling | Absence requires explicit `Option<T>`; exhaustive `Result`/`Option` patterns preserve resource states on all branches, with no unchecked extraction. Scoped restoration precedes propagation. Cancellation follows declared checkpoints, commit points and terminal cleanup. No hidden unwinding or ambient service access. |
 | Async and interior mutability | Dormant computations, structured scopes, a checkpoint at every `await`, one declared commit point and bounded frames; abstract cells expose proved local, dynamically borrowed or concurrent operations. Invariants close before reentry or suspension, and concurrent sharing needs its own interpretation. |
 | Code generation | Static target/module instantiation and ahead-of-time specialization with explicit layout and ABI. Closures need a known environment representation; generic specialization is checked for code-size growth. |
 | Target requirements | Select semantic instances and required guarantee theorems separately from ordinary source syntax. Reject unsupported requirements; never silently downgrade the contract. |

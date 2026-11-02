@@ -406,8 +406,9 @@ Parenthesized symbolic operators are ordinary expression atoms. Every binary
 operator in the surface precedence table, plus unary `!` and `~`, accepts this
 form: `(+)`, `(%)`, `(&)`, `(==>)` and `(!)` are examples. A located `operator`
 node retains its located `name`; its span includes parentheses while the name's
-span covers only the symbol. Unary and binary minus share `(-)`; elaboration
-determines the selected operation and arity. Operator values compose with calls,
+span covers only the symbol. Unary and binary uses share `(-)`, `(*)` and `(&)`;
+elaboration determines the selected operation and arity under the pointer/loan
+rules below. Operator values compose with calls,
 members, generic application, tuples, lambdas, computed types and ordinary
 declaration contracts. Grade-domain entries use these same expressions, including
 their existing `(+)` and `(*)` spellings, without a separate domain-value grammar.
@@ -510,7 +511,7 @@ Use the symbol families consistently:
 | `[...]` | Indexing; `type[...]` explicitly introduces a computed type |
 | `<...>`, `::<...>` | Type/generic parameters and arguments; explicit generic expression application |
 | `->`, `=>`, `==>`, `<==>` | Callable result, lambda/quantifier/match/handler body, implication and equivalence respectively |
-| `|`, `||`, `&`, `&&`, `^`, `~` | Bitwise and Boolean operators with separate fixed precedence; prefix `&` derives an address/loan |
+| `\|`, `\|\|`, `&`, `&&`, `^`, `~` | Bitwise and Boolean operators with separate fixed precedence; prefix `&` derives an address/loan |
 | `*`, `+`, `-` | Multiplication and additive operators; prefix `*` dereferences a pointer and prefix `-` negates |
 | `@`, `'place`, `?`, `?name` | Use grade, lifetime identity, propagation and named hole respectively |
 
