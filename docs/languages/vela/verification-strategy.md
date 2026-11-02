@@ -924,6 +924,76 @@ Two spellings deliberately differ from C#. The borrow modifiers are C#'s, but th
 
 Every public operation exposes its effects and contract. An implementation may infer them locally, but the inferred result becomes a reviewed signature. Every bounded operation terminates on its stated entry conditions, including on every error result; a service loop carries a progress contract instead. `Nat(i)` embeds a machine value into the mathematical naturals. Executable failure takes an explicit `Result` or `union` branch, never an implicit assertion or an assumption.
 
+#### Permanent Language Exclusions
+
+These are language design constraints, including for future extensions. The
+[surface contract](surface-grammar.md#explicit-values-loans-and-absence) owns their
+syntax qualification; the existing resource and machine contracts own semantic
+acceptance. The development parser does not implement a type or borrow checker.
+
+- **No implicit type coercion.** Assignment, arguments, results, operators and
+  branch joins do not insert numeric widening/narrowing, signedness changes,
+  integer/Boolean truthiness, boxing, user-defined conversions, optional lifting,
+  borrowing, dereferencing or ownership transfer. Convert with an explicit named
+  operation whose contract accounts for failure, representation and effects.
+  Inferring a literal's type, a generic argument or a proof does not convert an
+  already typed value. Kernel definitional equality remains equality; checked
+  dependent transport retains its existing evidence obligations.
+- **No ambiguous syntax.** Token shape, fixed precedence and explicit delimiters
+  determine one syntax tree without a symbol table, inferred types, import order
+  or parser conflict defaults. Menhir generation is strict and conflict-free;
+  qualification distinguishes operators, callable arrows, generic applications,
+  patterns, local declarations and the nearest enclosing `else`. Checked parser
+  correctness, completeness and lexer correctness remain separate obligations.
+- **No implicit mutation or unrestricted shared mutation.** `let` and unmarked
+  type-first locals are immutable; only `var` permits local reassignment.
+  Parameter bindings are immutable by default. Binding immutability does not
+  manufacture deep immutability or write permission: changing referenced storage
+  requires an explicit exclusive loan or a sealed cell operation with its proved
+  invariant, effects and exit duties. A shared `in` loan alone grants no write.
+  The [interior-mutability rules](interior-mutability.md#scope-and-shared-interface)
+  regulate local cells, dynamic guards, concurrent scalars and immutable
+  publication. No wrapper, getter, callback, continuation, global or thread-local
+  state bypasses those rules or the platform's exclusion of shared mutable
+  capabilities, conflicting non-atomic access and CAS.
+- **No implicit nullability or unchecked optional extraction.** `T` excludes
+  absence, including when `T` is a reference or capability-bearing value. Write
+  `Option<T>` for the ordinary tagged union with `Some(T)` and `None()` cases;
+  construct a case explicitly. There is no universal `null` literal, `T?` type
+  suffix, null-forgiving operator or automatic `T`/`Option<T>` conversion.
+  Consuming the payload requires exhaustive elimination or checked evidence that
+  the present case holds. Combinators and explicit propagation must account for
+  absence, resources and cleanup on every reachable exit. Passing or storing the
+  intact union needs no premature extraction. Nested options retain their tags;
+  representation optimizations need the ordinary representation proof.
+
+Ordinary arguments pass values, with copying allowed only when the value's
+resource rules permit it. Copying a descriptor never copies its authority or
+implicitly lends its storage. Use `owned T`/`move value` for consuming transfer,
+`in T`/`in place` for a shared read loan, `ref T`/`ref place` for an initialized
+exclusive loan, and `out T`/`out place` for an exclusive initialization loan.
+Each loan mode is explicit in both the signature and call. `out` permits no read
+before initialization and requires definite initialization on every normal return;
+failure, propagation and cancellation retain explicit resource-state contracts.
+The caller must supply an eligible writable place for `ref`/`out`; no implicit
+temporary, automatic copy or overlapping loan repairs a mismatch. These borrow
+rules apply regardless of a descriptor's machine representation.
+
+This takes the explicit parameter vocabulary from C#'s
+[parameter rules](https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/keywords/method-parameters),
+with Vela's stricter resource interpretation and mandatory call-site `in`.
+C# also supplies familiar
+[pointer arithmetic symbols](https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/operators/pointer-related-operators).
+Vela uses `p + n`, `p - n`, `p[i]`, `*p` and `&place` for explicitly typed
+pointer/place operations. `&` derives a loan with no extra authority; `*` requires
+the required access permission. Bounds, provenance, lifetime, initialization,
+alignment, permissions and arithmetic obligations still apply, including before
+dereference. Pointer differences require a common represented allocation.
+Integer-to-capability fabrication and implicit pointer/integer conversions remain
+excluded. Pointer representations are named library types, not a `T*` type suffix;
+member access uses `.`, leaving `->` to callable types. This syntax grants no
+unchecked-memory escape.
+
 #### Contracts, Loops and Proof Mode
 
 `Span<byte, count>` views initialized storage with a runtime `Length` and an erased logical `Model`. `Span<byte>` hides `count` existentially while keeping `Length` and its relationship to the model.

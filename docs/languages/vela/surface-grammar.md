@@ -472,6 +472,60 @@ Refuse missing initializers, delimiters and bodies; keep syntax-valid resource
 errors accepted. Preserve nesting limits, strict conflict-free generation and
 every existing surface and pure qualification case.
 
+### Explicit values, loans and absence
+
+The [permanent exclusions](verification-strategy.md#permanent-language-exclusions)
+fix the semantic design. This syntax-only increment preserves the distinctions
+needed to check them; no grammar action performs conversion, proves exhaustive
+matching, grants write authority or repairs a missing argument modifier.
+
+Ordinary type-first parameters pass values. Extend the shared type-modifier and
+prefix-expression productions with `out`, alongside `in` and `ref`, retaining
+modifier order, optional place-named lifetime and original byte spans. The AST
+uses the existing `modified_type` and `unary` nodes. `out` is a keyword in the
+surface entry only; preserve the frozen pure entry's token classification.
+Add prefix `*` (dereference) and `&` (address/loan derivation) through the shared
+unary production, keeping multiplication, bitwise conjunction and parenthesized
+operator values distinct. Prefixes associate right; postfix indexing/calls bind
+more tightly. Pointer arithmetic uses the existing additive and indexing forms.
+Named library types carry pointer representations; no C declarator or `T*` type
+suffix is introduced. `->` remains a function-type arrow.
+
+`let`, `var` and unmarked type-first locals retain distinct existing AST roles;
+unmarked locals mean immutable bindings. `Option<T>`, `Some(value)`, `None()` and
+their constructor patterns use ordinary library syntax. Reserve bare `null` in
+the surface lexer and refuse it as syntax, without changing pure tokenization.
+Refuse `T?` annotations, null-forgiving postfix `!`, `??` and `?.`. Existing
+postfix `?` denotes explicit propagation; prefix `?name` remains a named hole.
+The parser still accepts incomplete option matches, immutable writes, mistyped
+arithmetic, missing/mismatched loan modifiers and forbidden sharing as located
+syntax so the future semantic consumer can report the appropriate obligation.
+
+Use the symbol families consistently:
+
+| Symbols | Syntax roles |
+| --- | --- |
+| `(...)` | Calls, parameter telescopes, grouping, products and parenthesized operator values; grammar context fixes the role |
+| `{...}` | Declaration/statement/proof bodies, match arms, handler clauses and explicitly introduced callable contracts |
+| `[...]` | Indexing; `type[...]` explicitly introduces a computed type |
+| `<...>`, `::<...>` | Type/generic parameters and arguments; explicit generic expression application |
+| `->`, `=>`, `==>`, `<==>` | Callable result, lambda/quantifier/match/handler body, implication and equivalence respectively |
+| `|`, `||`, `&`, `&&`, `^`, `~` | Bitwise and Boolean operators with separate fixed precedence; prefix `&` derives an address/loan |
+| `*`, `+`, `-` | Multiplication and additive operators; prefix `*` dereferences a pointer and prefix `-` negates |
+| `@`, `'place`, `?`, `?name` | Use grade, lifetime identity, propagation and named hole respectively |
+
+Independent fixtures must check default/explicit binding roles, nested
+`Option<Option<T>>` and exhaustive constructor matches, value/`in`/`ref`/`out`/
+`owned` signatures and arguments, `out` lifetime annotations, unary versus binary
+`*`/`&`, pointer arithmetic/indexing, operator values and original UTF-8 spans.
+Refuse malformed adjacent forms, C pointer declarators, nullable/null-forgiving
+spellings, missing unary operands and chained nonassociative comparisons.
+Keep semantically invalid neighbors as positive syntax fixtures, including
+partial matches, implicit conversion attempts, immutable reassignment and
+overlapping/shared-mutation attempts. Their acceptance is no semantic verdict.
+Retain strict conflict-free generation, byte-identical regeneration, every
+surface and pure fixture, pure migration and the native qualification below.
+
 ### Native qualification
 
 Menhir's code backend must generate with `--strict --infer --explain`, with no
