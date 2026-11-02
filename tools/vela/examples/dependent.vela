@@ -1,0 +1,41 @@
+// SPDX-License-Identifier: Apache-2.0
+// Mathematical development prototype; kernel replay checks emitted terms.
+module Dependent;
+
+public definition T Identity<T>(T value) = value;
+
+public definition U Apply<T, U>(Fn(T value) -> U function, T value) =
+    function(value);
+
+public definition (Nat, bool) SeparateInstantiations() =
+    (Identity(7), Identity::<bool>(true));
+
+public definition Nat HigherOrder() =
+    Apply((_ value) => value + 1, 41);
+
+public definition Vec<T, n> Copy<T, ghost Nat n>(Vec<T, n> values) = values;
+
+public alias Words<ghost Nat n> = Vec<Nat, n>;
+
+public definition Vec<Nat, 1> Singleton() = VCons(42, VNil::<Nat>());
+
+public definition Words<1> Aliased() = Singleton();
+
+public definition Nat Lookup() = At(Copy(Singleton()), FZero::<0>());
+
+public definition Fn(Nat n, Vec<Nat, n> values) -> Vec<Nat, n> PreserveLength() =
+    (Nat n, Vec<Nat, n> values) => values;
+
+public lemma Reflexivity<T>(T value): value == value
+    proof { return Refl(value); }
+
+public lemma Composed(Nat value): value == value
+    proof { return Trans(Refl(value), Symm(Refl(value))); }
+
+public lemma Congruence(Nat value): value + 1 == value + 1
+    proof { return Congr((Nat item) => item + 1, Refl(value)); }
+
+public definition type[Eq::<Nat>(value, value)] KeepEvidence(
+    Nat value, type[Eq::<Nat>(value, value)] evidence) = evidence;
+
+public definition Type<1> SmallUniverse() = type Type;
