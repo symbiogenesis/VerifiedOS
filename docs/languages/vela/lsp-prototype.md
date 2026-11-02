@@ -14,6 +14,13 @@ Deliver LSP first, then DWARF when an executable backend and ABI exist, then DAP
 over an identified execution backend. Simulator DAP can precede DWARF only when
 its backend supplies independently qualified source/runtime mappings.
 
+To connect a host editor, configure its stdio language-server command as `python`
+with arguments consisting of the absolute path to `tools/run.py` followed by
+`vela-lsp`; use `python3` on Linux. Associate Vela buffers with language ID `vela`
+and the `.vela` extension. No editor extension or automatic registration is
+installed by this command. The server uses open-buffer text and does not read the
+URI's file. Its current diagnostics cover only the pure subset linked above.
+
 ## Interface and bounds
 
 Support initialize/initialized, shutdown/exit, incremental document synchronization
