@@ -131,7 +131,9 @@ in its bootstrap and dependency closure.
 
 Q25 recorded the design and qualification plan for the combined language. The following choices remain project proposals; the cited research supplies mechanisms and counterexamples, not a theorem about their combination. The synchronous [Q21a contract](core-design.md) remains the bounded qualification slice, and Q21a declined commissioning it on its missing concrete laws and translator admission. Production support requires checked resource semantics, source correspondence, lowering and final-artifact evidence for the selected features.
 
-The rule dossiers cover the [graded foundation](graded-foundation.md),
+The [permanent language exclusions](#permanent-language-exclusions) apply across
+all assurance presets and future extensions. The rule dossiers cover the
+[graded foundation](graded-foundation.md),
 [handlers and async lifecycles](handlers-async.md),
 [interior mutability](interior-mutability.md), and the
 [assurance presets and evidence policy](assurance-profiles.md) those rules are

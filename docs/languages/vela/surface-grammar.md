@@ -498,6 +498,10 @@ their constructor patterns use ordinary library syntax. Reserve bare `null` in
 the surface lexer and refuse it as syntax, without changing pure tokenization.
 Refuse `T?` annotations, null-forgiving postfix `!`, `??` and `?.`. Existing
 postfix `?` denotes explicit propagation; prefix `?name` remains a named hole.
+Propagation followed by member access uses `(Read()?).Value`. Its former
+contiguous spelling `Read()?.Value` is now refused; the retained fixture is
+replaced with an independently checked grouped tree. This is an intentional
+syntax restriction, not an unchanged-tree claim for that replaced spelling.
 The parser still accepts incomplete option matches, immutable writes, mistyped
 arithmetic, missing/mismatched loan modifiers and forbidden sharing as located
 syntax so the future semantic consumer can report the appropriate obligation.
