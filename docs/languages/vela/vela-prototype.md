@@ -2,6 +2,9 @@
 
 Start with the [primary Vela design and examples](verification-strategy.md).
 This document specifies the implemented pure fragment and its development commands.
+The opt-in [mathematical elaborator](elaboration-prototype.md) adds generics,
+dependent types, higher-order inference and explicit proof terms through the
+existing native surface parser. The pure command below retains its narrow scope.
 
 ## Commission and interpretation
 

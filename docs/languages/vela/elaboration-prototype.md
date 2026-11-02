@@ -23,9 +23,11 @@ The increment uses the [surface grammar](surface-grammar.md) without new syntax:
 - Generic type and stable ghost-value telescopes, explicit `::<...>` application
   and fresh inferred instantiation at each use. Generic variables in a
   declaration are rigid; inference cannot specialize its promised signature.
-- Predicative universes, dependent `Fn` telescopes, type-valued parameters and
+- Numeric predicative universes `Type` and `Type<n>` for levels zero through
+  eight, dependent `Fn` telescopes, type-valued parameters and
   computed types. Substitution preserves dependency and avoids capture. Reject
-  self-typing universes and escaping inference variables.
+  self-typing universes and escaping inference variables. Symbolic universe
+  declarations and universe-level inference remain unsupported.
 - Bidirectional inference for applications, immutable locals, products and
   higher-order functions. Expected types constrain lambdas and omitted generic
   arguments. An annotation hole `_` requests inference, never an axiom. Ambiguous
@@ -89,3 +91,32 @@ revision. Native acceptance remains pending until its exact-revision hosted
 verdict exists. Finish without waiting for Guest CI. Keep Q25k open while that
 predicate is outstanding, and report the supported fragment and remaining
 production obligations in the command guide.
+
+## Try the mathematical fragment
+
+Run from the repository root on Windows, using `python3` on Linux:
+
+```console
+python tools/run.py vela-parser elaborate tools/vela/examples/dependent.vela
+python tools/run.py vela-parser elaborate-qualify
+```
+
+The [example](../../../tools/vela/examples/dependent.vela) combines a generic
+identity, higher-order application, inferred vector lengths, finite-index lookup,
+a dependent callable and equality proofs. `elaborate` prints Gallina or writes
+`--output FILE` in an existing directory. It requires the parser's locked native
+toolchain; `elaborate-qualify` additionally requires the locked proof switch.
+Only the latter command supplies a kernel verdict for its declared fixtures.
+
+Generic parameters default to `Type`; `<T, ghost Nat n>` quantifies a type and
+stable natural index. Each call infers new arguments, while `::<...>` supplies
+them explicitly and `_` requests an inferred argument. A contextual lambda can
+use `(_ value) => ...`. Declare a dependent callable with
+`Fn(Nat n, Vec<Nat, n> values) -> Vec<Nat, n>`.
+
+`Vec<T,n>` is a mathematical indexed collection, with `VNil`, `VCons`, `Fin`,
+`FZero`, `FSucc` and `At` for construction and safe lookup. This prototype gives
+it no machine layout. Definitional equality is computational: use `Succ(n)` or
+`1 + n` for a successor index; arbitrary rearrangement of natural arithmetic
+needs an explicit theorem. `Refl`, `Symm`, `Trans` and `Congr` construct equality
+evidence. `type[Eq::<T>(left, right)]` lets an ordinary parameter carry that proof.

@@ -29,6 +29,12 @@ eventual checked parsing. The current [pure prototype](vela-prototype.md) remain
 the executable baseline until that route is qualified. This is a selected
 development direction; implementation and migration retain their own entry gates.
 
+The opt-in [mathematical elaborator](elaboration-prototype.md) exercises generic
+and dependent functions, higher-order inference, indexed collections and explicit
+proof terms over the native surface tree. Its interpretation is the generated
+CIC term. Kernel replay checks those terms; checked parsing, source correspondence
+and the full calculus's implementation gates retain their existing owners.
+
 ## Constraints and Desired Product
 
 The [register](../../requirements-register.md) remains authoritative. [Semantic anchors are fixed](../../spec.md#r-05-019); [verified compilation transports proofs between them](../../spec.md#r-05-021). A [new translator](../../spec.md#r-05-020) must be Rocq-native or mechanically bridged, duplicate no anchor and retire an interim it replaces. A general Vela frontend retires no interim, and [Q25d's disposition](full-language-review.md#r-05-009-r-05-020-and-what-holds-the-frontend-rows) is that this refuses it only where the calculus carries its own judgment and reduction, which is an eighth anchor; where the calculus's meaning is its elaboration's image in the kernel, R-05-009 reaches the producer and R-05-020 has no subject. The design as written carries its own judgment, so the frontend is held. The [machine-model migration](unified-source-contract.md#migration-and-retirement) separately specifies the evidence and register amendments needed to replace the Sail anchor; the present freeze is a migration prerequisite, not a permanent exclusion of that goal. There is no new proof kernel, on-device dependent checker, managed runtime or non-CHERI VerifiedOS deployment path.
