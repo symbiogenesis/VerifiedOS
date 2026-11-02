@@ -160,7 +160,7 @@ def _explicit_value_oracles_required() -> None:
                 patch.object(surface, "_literal_and_comment_boundaries"), \
                 patch.object(surface, oracle_name, side_effect=ValueError("explicit role changed")) as oracle:
             try:
-                surface.qualify(lambda source: result)
+                surface.qualify(lambda source, result=result: result)
             except ValueError as error:
                 ensure(str(error) == "explicit role changed", "explicit-value oracle failure was replaced")
             else:
