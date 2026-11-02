@@ -94,6 +94,15 @@ elaboration and source-correspondence duties. The eventual Vela compiler include
 its parser; verified bootstrap accounts for Menhir development/seed dependencies
 until retirement preserves accepted grammar and source meaning.
 
+The toolchain also supplies [LSP, DAP and DWARF interoperability](tooling-protocols.md).
+Editor services consume the compiler's located and resolved source state and
+preserve batch-only proof acceptance. Native compilation carries source, type,
+scope, variable-location and unwind mappings through optimization and final
+image construction into separately stored DWARF information. DAP consumes a
+matching debug artifact and a qualified execution backend, preserving lifecycle
+authorization and CHERI authority. These interfaces have separate plan owners;
+compiler correctness and self-hosting alone do not qualify them.
+
 Each IR has a reviewed interpretation and retains or discharges later passes'
 ownership, CHERI authority, layout, initialization, effect, protocol, leakage and
 resource premises. Compiler/hardware proofs resolve the generation's canonical
