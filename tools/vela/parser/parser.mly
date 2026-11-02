@@ -307,22 +307,21 @@ s_resumes:
 s_generics:
   { [] } | LT values=separated_nonempty_list(COMMA, s_generic_parameter) GT { values }
 s_generic_parameter:
-  generic_name=s_identifier kind=option(s_kind_annotation)
-    { make "generic_parameter" $startpos $endpos [("mode", String "type"); ("name", generic_name);
-        ("type", optional kind)] (children kind) }
+  binder=s_generic_binder
+    { let mode, generic_name, value_type = binder in
+      make "generic_parameter" $startpos $endpos [("mode", String mode); ("name", generic_name);
+        ("type", optional value_type)] (children value_type) }
+/* Binder modes select syntax roles; one constructor retains their common shape. */
+%inline s_generic_binder:
+  generic_name=s_identifier kind=option(s_kind_annotation) { "type", generic_name, kind }
 | GHOST value_type=s_type generic_name=s_identifier
-    { make "generic_parameter" $startpos $endpos [("mode", String "ghost"); ("name", generic_name);
-        ("type", value_type.syntax)] [value_type] }
+    { "ghost", generic_name, Some value_type }
 | REGION lifetime=LIFETIME
-    { make "generic_parameter" $startpos $endpos [("mode", String "region");
-        ("name", name $startpos(lifetime) $endpos(lifetime) lifetime); ("type", Null)] [] }
-| EFFECT generic_name=s_identifier
-    { make "generic_parameter" $startpos $endpos [("mode", String "effect"); ("name", generic_name); ("type", Null)] [] }
-| CAPTURES generic_name=s_identifier
-    { make "generic_parameter" $startpos $endpos [("mode", String "captures"); ("name", generic_name); ("type", Null)] [] }
+    { "region", name $startpos(lifetime) $endpos(lifetime) lifetime, None }
+| EFFECT generic_name=s_identifier { "effect", generic_name, None }
+| CAPTURES generic_name=s_identifier { "captures", generic_name, None }
 | GRADE generic_name=s_identifier COLON value_type=s_type
-    { make "generic_parameter" $startpos $endpos [("mode", String "grade"); ("name", generic_name);
-        ("type", value_type.syntax)] [value_type] }
+    { "grade", generic_name, Some value_type }
 s_kind_annotation:
   COLON value=s_nonfunction_type { value }
 
@@ -447,10 +446,8 @@ s_simple_statement:
 | kind=s_local_kind binding=s_local_initializer SEMICOLON
     { let suffix, fields, parts = binding in
       make (kind ^ suffix) $startpos $endpos fields parts }
-| value_type=s_annotation_type binding_name=s_identifier grade=option(s_grade) EQUAL value=s_expression SEMICOLON
-    { make "typed_local" $startpos $endpos [("name", binding_name);
-        ("type", value_type.syntax); ("grade", optional grade); ("value", value.syntax)]
-        (value_type :: value :: children grade) }
+| binding=s_typed_initializer SEMICOLON
+    { let fields, parts = binding in make "typed_local" $startpos $endpos fields parts }
 | RETURN value=option(s_expression) SEMICOLON
     { make "return" $startpos $endpos [("value", optional value)] (children value) }
 | BREAK SEMICOLON { make "break" $startpos $endpos [] [] }
@@ -495,11 +492,14 @@ s_local_initializer:
   binding_name=s_identifier grade=option(s_grade) EQUAL value=s_expression
     { "", [("name", binding_name); ("type", Null);
         ("grade", optional grade); ("value", value.syntax)], value :: children grade }
-| value_type=s_annotation_type binding_name=s_identifier grade=option(s_grade) EQUAL value=s_expression
-    { "", [("name", binding_name); ("type", value_type.syntax);
-        ("grade", optional grade); ("value", value.syntax)], value_type :: value :: children grade }
+| binding=s_typed_initializer
+    { let fields, parts = binding in "", fields, parts }
 | pattern=s_local_pattern EQUAL value=s_expression
     { "_pattern", [("pattern", pattern.syntax); ("value", value.syntax)], [pattern; value] }
+%inline s_typed_initializer:
+  value_type=s_annotation_type binding_name=s_identifier grade=option(s_grade) EQUAL value=s_expression
+    { [("name", binding_name); ("type", value_type.syntax);
+       ("grade", optional grade); ("value", value.syntax)], value_type :: value :: children grade }
 s_assignment:
   EQUAL { name $startpos $endpos "=" } | PLUS_ASSIGN { name $startpos $endpos "+=" }
 | MINUS_ASSIGN { name $startpos $endpos "-=" } | STAR_ASSIGN { name $startpos $endpos "*=" }

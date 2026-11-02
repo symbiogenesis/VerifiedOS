@@ -23,6 +23,34 @@ class Fixture:
 
 
 POSITIVE: tuple[Fixture, ...] = (
+    Fixture("generic-binders-and-typed-initializers", """// café: generic roles and initializer owners retain original byte spans.
+module BinderComposition;
+alias Family<T : Type<u>, U, ghost Nat extent, region 'scope, effect E, captures C,
+    grade q : NatExact> =
+    Fn<region 'call, grade uses : NatExact>(scoped in<'call> T item @ uses) -> Vec<U, extent>
+    captures C effects(E) with { requires Repeatable(C, uses); };
+public void Bind<T, ghost Nat n, region 'input, captures Env, grade allowance : NatExact>(
+    scoped in<'input> Vec<T, n> input, in Fn(T) -> T captures Env mapper) {
+    Vec<T, n> direct @ NatExact(n) = input;
+    let scoped in<'input> Vec<T, n> immutable @ allowance = input;
+    var Vec<T, n> mutable @ allowance = direct;
+    let computed = let Vec<T, n> chosen @ allowance = direct in chosen;
+    let ungraded = let Vec<T, n> plain = direct in plain;
+    let inferred = input;
+    let Some(let payload) = Fetch(input);
+}
+""", ("alias", "generic_parameter", "function_type", "modified_type", "contract",
+      "typed_local", "let", "var", "let_expression", "let_pattern")),
+    Fixture("binder-initializer-errors-remain-syntax", """module InvalidBinderMeaning;
+alias Bad<ghost Nat duplicate, effect duplicate, captures C, grade q : UnknownDomain> =
+    Fn(owned Packet<duplicate> item @ q) -> Packet<duplicate> captures C;
+public void Invalid<ghost Nat n, grade q : UnknownDomain>(owned Packet<n> owner) {
+    Packet<n> shared @ NatExact(0) = move owner;
+    let Packet<n> copied @ q = move owner;
+    var FnOnce() -> Packet<n> repeated @ NatExact(2) = () => move owner;
+    let escaped = let ghost Nat runtime = Read() in runtime;
+}
+""", ("generic_parameter", "function_type", "typed_local", "let", "var", "unary", "let_expression")),
     Fixture("explicit-values-loans-and-options", """// café: binding, parameter and absence roles keep original byte spans.
 module ExplicitValues;
 alias Initializer = Fn<region 'slot>(out<'slot> Nat slot) -> ();
@@ -1085,6 +1113,12 @@ public UnknownType F() { return missing; }
 
 
 NEGATIVE: tuple[tuple[str, bytes, str], ...] = (
+    ("ghost-generic-missing-name", b"module M; alias A<ghost Nat> = Nat;", "syntax"),
+    ("region-generic-missing-lifetime", b"module M; alias A<region r> = Nat;", "syntax"),
+    ("effect-generic-missing-name", b"module M; alias A<effect> = Nat;", "syntax"),
+    ("captures-generic-missing-name", b"module M; alias A<captures> = Nat;", "syntax"),
+    ("grade-generic-missing-colon", b"module M; alias A<grade q NatExact> = Nat;", "syntax"),
+    ("grade-generic-missing-domain", b"module M; alias A<grade q :> = Nat;", "syntax"),
     ("null-literal", b"module M; void F() { let value = null; }", "syntax"),
     ("null-binder", b"module M; void F() { let null = value; }", "syntax"),
     ("nullable-type", b"module M; alias A = Nat?;", "syntax"),
@@ -1365,6 +1399,111 @@ def _explicit_shape(value: Json) -> Json:
     if kind == "operator":
         return ["operator", _object(expression.get("name"), "operator name").get("text")]
     raise ValueError(f"unexpected explicit-value AST role: {kind}")
+
+
+def _binder_initializer_roles(source: bytes, result: dict[str, Json]) -> None:
+    tree = result.get("ast")
+    family = _named(tree, "alias", "Family")
+    generics = _sequence(family.get("generics"), "shared generic telescope")
+    expected = (("type", "T", b"T : Type<u>", "Type", 1),
+                ("type", "U", b"U", None, 0),
+                ("ghost", "extent", b"ghost Nat extent", "Nat", 0),
+                ("region", "'scope", b"region 'scope", None, 0),
+                ("effect", "E", b"effect E", None, 0),
+                ("captures", "C", b"captures C", None, 0),
+                ("grade", "q", b"grade q : NatExact", "NatExact", 0))
+    if len(generics) != len(expected):
+        raise ValueError("surface generic modes lost a binder or fabricated a helper")
+    for raw, (mode, name, spelling, head, arity) in zip(generics, expected, strict=True):
+        binder = _object(raw, "shared generic binder")
+        if (set(binder) != {"kind", "span", "mode", "name", "type"}
+                or binder.get("kind") != "generic_parameter" or binder.get("mode") != mode
+                or _texts(binder.get("name")) != [name]):
+            raise ValueError("surface generic binder lost its mode/name/type roles")
+        _exact_span(source, binder, spelling)
+        first = source.index(spelling) + spelling.index(name.encode())
+        if _object(binder.get("name"), "generic name").get("span") != [first, first + len(name)]:
+            raise ValueError("surface generic name lost its original-byte span")
+        if head is None:
+            if binder.get("type") is not None:
+                raise ValueError("surface untyped generic fabricated a type")
+        else:
+            _type_head(binder.get("type"), head, arity)
+    callable_type = _object(family.get("type"), "shared callable type")
+    nested = _sequence(callable_type.get("generics"), "callable generic telescope")
+    if [(_object(value, "callable binder").get("mode"), _texts(value)) for value in nested] != [
+            ("region", ["'call"]), ("grade", ["uses", "NatExact"])]:
+        raise ValueError("surface nested callable changed its generic modes")
+    for raw, spelling in zip(nested, (b"region 'call", b"grade uses : NatExact"), strict=True):
+        _exact_span(source, _object(raw, "callable binder"), spelling)
+    if _texts(callable_type.get("captures")) != ["C"] or _texts(callable_type.get("effects")) != ["E"]:
+        raise ValueError("surface generic modes conflated captures and effects")
+    _contract_roles(callable_type, ["requires"])
+    function = _named(tree, "function", "Bind")
+    for kind, name, spelling, initializer in (
+            ("typed_local", "direct", b"Vec<T, n> direct @ NatExact(n) = input;", "input"),
+            ("let", "immutable", b"let scoped in<'input> Vec<T, n> immutable @ allowance = input;", "input"),
+            ("var", "mutable", b"var Vec<T, n> mutable @ allowance = direct;", "direct")):
+        local = _named(function, kind, name)
+        _exact_span(source, local, spelling)
+        if _texts(local.get("value")) != [initializer]:
+            raise ValueError("surface typed initializer changed its value")
+        annotation = _object(local.get("type"), "typed initializer annotation")
+        if name == "immutable":
+            loan = _object(annotation.get("type"), "scoped initializer loan")
+            if (annotation.get("modifier") != "scoped" or loan.get("modifier") != "in"
+                    or _texts(loan.get("lifetime")) != ["'input"]):
+                raise ValueError("surface typed initializer changed its loan ancestry")
+            annotation = _object(loan.get("type"), "initializer base type")
+        arguments = _type_head(annotation, "Vec", 2)
+        if [_texts(value) for value in arguments] != [["T"], ["n"]]:
+            raise ValueError("surface typed initializer changed its dependent indices")
+        if name != "direct" and _texts(local.get("grade")) != ["allowance"]:
+            raise ValueError("surface typed initializer changed its allowance")
+    direct_grade = _object(_named(function, "typed_local", "direct").get("grade"), "direct allowance")
+    _exact_span(source, direct_grade, b"NatExact(n)")
+    for local_name, bound, spelling, graded in (
+            ("computed", "chosen", b"let Vec<T, n> chosen @ allowance = direct", True),
+            ("ungraded", "plain", b"let Vec<T, n> plain = direct", False)):
+        expression = _object(_named(function, "let", local_name).get("value"), "initializer expression")
+        binding = _object(expression.get("binding"), "expression-owned initializer")
+        if (expression.get("kind") != "let_expression" or binding.get("kind") != "let"
+                or _texts(binding.get("name")) != [bound] or _texts(expression.get("body")) != [bound]
+                or _texts(binding.get("value")) != ["direct"]):
+            raise ValueError("surface expression initializer lost its binding/body roles")
+        _exact_span(source, binding, spelling)
+        _exact_span(source, expression, spelling + b" in " + bound.encode())
+        _type_head(binding.get("type"), "Vec", 2)
+        grade = binding.get("grade")
+        if (graded and _texts(grade) != ["allowance"]) or (not graded and grade is not None):
+            raise ValueError("surface expression initializer fabricated or lost its grade")
+    if _named(function, "let", "inferred").get("type") is not None:
+        raise ValueError("surface inferred initializer acquired an annotation")
+    pattern = next(node for node in nodes(function) if node.get("kind") == "let_pattern")
+    if "grade" in pattern or "type" in pattern:
+        raise ValueError("surface pattern initializer acquired whole-pattern type/grade fields")
+
+
+def _binder_initializer_error_roles(result: dict[str, Json]) -> None:
+    tree = result.get("ast")
+    bad = _named(tree, "alias", "Bad")
+    generics = [_object(value, "invalid generic") for value in _sequence(bad.get("generics"), "invalid telescope")]
+    if ([_texts(value.get("name")) for value in generics[:2]] != [["duplicate"], ["duplicate"]]
+            or [value.get("mode") for value in generics[:2]] != ["ghost", "effect"]):
+        raise ValueError("surface syntax repaired duplicate names across generic modes")
+    _type_head(generics[-1].get("type"), "UnknownDomain", 0)
+    function = _named(tree, "function", "Invalid")
+    for kind, name in (("typed_local", "shared"), ("let", "copied")):
+        value = _object(_named(function, kind, name).get("value"), "duplicate owner initializer")
+        if value.get("kind") != "unary" or _texts(value.get("operator")) != ["move"] or _texts(value.get("value")) != ["owner"]:
+            raise ValueError("surface syntax repaired repeated owner consumption")
+    repeated = _named(function, "var", "repeated")
+    if _object(repeated.get("type"), "repeated callable type").get("mode") != "FnOnce":
+        raise ValueError("surface syntax repaired an invalid repeated callable allowance")
+    runtime = _named(function, "let", "runtime")
+    if (_object(runtime.get("type"), "erased runtime type").get("modifier") != "ghost"
+            or _texts(_object(runtime.get("value"), "effectful erased initializer").get("callee")) != ["Read"]):
+        raise ValueError("surface syntax erased an effectful initializer or repaired its phase")
 
 
 def _explicit_value_roles(source: bytes, result: dict[str, Json]) -> None:
@@ -3425,7 +3564,11 @@ def qualify(parse: Callable[[bytes], dict[str, Json]]) -> list[str]:
         missing = set(fixture.kinds) - found
         if missing:
             raise ValueError(f"surface fixture {fixture.name} lacks AST roles: {sorted(missing)}")
-        if fixture.name == "explicit-values-loans-and-options":
+        if fixture.name == "generic-binders-and-typed-initializers":
+            _binder_initializer_roles(fixture.source.encode("utf-8"), result)
+        elif fixture.name == "binder-initializer-errors-remain-syntax":
+            _binder_initializer_error_roles(result)
+        elif fixture.name == "explicit-values-loans-and-options":
             _explicit_value_roles(fixture.source.encode("utf-8"), result)
         elif fixture.name == "explicit-pointer-operators":
             _pointer_roles(fixture.source.encode("utf-8"), result)
