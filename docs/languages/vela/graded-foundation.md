@@ -101,9 +101,9 @@ Lorenzen et al.'s [Oxidizing OCaml with Modal Memory Management, §5.1](https://
 (ICFP 2024) gives the complementary promotion counterexample: a repeatedly usable
 file-opening function and argument do not make the returned file repeatedly
 usable. Their value-only promotion blocks that derivation. Vela likewise promotes
-pure values in `Box_q` below, after evaluation; a resource-carrying result still
-needs its own capture and `Dup` evidence. An initializer's use grade cannot erase
-its acquisition, cleanup or effects. These are design references, not a checked
+pure values in `Box_q` below, after evaluation; duplicating a resource-carrying
+result still needs its own capture and `Dup` evidence. An initializer's use grade
+cannot erase its acquisition, cleanup or effects. These are design references, not a checked
 metatheory for Vela.
 
 ### Substitution and structural rules
