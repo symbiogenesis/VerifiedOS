@@ -1,0 +1,91 @@
+# Vela mathematical elaboration prototype
+
+## Commission and boundary
+
+[Q25k](../../../PLAN.md#q-assessment-actions) commissions an opt-in, bounded
+extension of the [pure prototype](vela-prototype.md). Its source means the emitted
+CIC term. It introduces no independent source semantics, production frontend,
+machine representation, resource interpretation or binary admission. The
+[full-language hold](full-language-review.md#r-05-009-r-05-020-and-what-holds-the-frontend-rows)
+and [unified-source acceptance](unified-source-contract.md) remain outstanding.
+Land this contract and its checklist predicate before implementation.
+
+The existing pure checker, schema-1 protocol and parser migration comparison keep
+their existing contracts. The new path consumes the existing Menhir surface
+entry point and schema 2, with no second surface parser. Generated Gallina is an
+untrusted proposal until the pinned Rocq kernel checks it. A source digest binds
+bytes; it supplies no source-correspondence theorem.
+
+## Supported mathematical increment
+
+The increment uses the [surface grammar](surface-grammar.md) without new syntax:
+
+- Generic type and stable ghost-value telescopes, explicit `::<...>` application
+  and fresh inferred instantiation at each use. Generic variables in a
+  declaration are rigid; inference cannot specialize its promised signature.
+- Predicative universes, dependent `Fn` telescopes, type-valued parameters and
+  computed types. Substitution preserves dependency and avoids capture. Reject
+  self-typing universes and escaping inference variables.
+- Bidirectional inference for applications, immutable locals, products and
+  higher-order functions. Expected types constrain lambdas and omitted generic
+  arguments. An annotation hole `_` requests inference, never an axiom. Ambiguous
+  or unresolved variables are errors. No implicit numeric or option coercions.
+- Mathematical `Nat`, `bool`, unit/products, equality propositions and explicit
+  proof constructors. Indexed vectors and finite indices provide a concrete
+  dependent collection boundary, including length preservation and safe lookup.
+- Aliases, definitions, returning pure functions, theorem/lemma bodies and
+  immutable proof locals. Equality proofs are ordinary first-class values;
+  theorem bodies must inhabit the declared proposition. Ordinary expression
+  equality remains Boolean, while theorem equality denotes a proposition.
+
+Inference uses bounded structural unification with occurs and scope checks and
+bounded definitional conversion. It proves no arbitrary arithmetic equality and
+uses no external solver. Reduction exhaustion is a limit diagnostic, never an
+established equation. Every unsupported syntax role, effect, capture, resource
+modifier, grade, contract or unfinished proof is refused explicitly. This
+increment supplies theorem authorship and proof parameters; automatic discharge
+of `requires`/`ensures` and the full proof language remain frontend work.
+
+The implementation owns explicit finite source, syntax-depth, inference-work,
+reduction and output limits. Diagnostics retain source positions and distinguish
+unsupported syntax, names, typing, unresolved inference, protocol and limits.
+The consumer validates schema, source digest, fields, spans and identifier
+spellings before constructing terms. Hygienic generated names and a closed
+builtin mapping prevent Gallina injection. No raw Gallina, axiom, admission,
+unchecked hole or foreign proof escape is emitted.
+
+## Commands and acceptance
+
+`python tools/run.py vela-parser elaborate SOURCE` parses the complete surface,
+elaborates this mathematical fragment and emits Gallina. `--output FILE` uses
+atomic publication after complete validation and refuses input aliases. Missing
+parents, malformed input and failed writes leave existing destinations intact.
+The command runs through the existing guest dispatch because Menhir is native.
+`vela-parser elaborate --help` documents development status and limits.
+
+`python tools/run.py vela-parser elaborate-qualify` builds the pinned parser,
+elaborates the authored example and independent positive/negative sources, then
+kernel-checks emitted terms with the locked proof switch and recursively checks
+the resulting library. Its receipt binds source, elaborator, parser and tool
+identities. A rejected neighbor must reach its intended semantic diagnostic;
+parse failure and unavailable tooling supply no semantic rejection evidence.
+The model Guest CI lane runs this command. A kernel verdict covers generated
+terms only, not checked parsing or source correspondence.
+
+Independent focused host tests exercise fresh polymorphic instantiations,
+explicit/inferred arguments, dependent substitution, vector lengths and finite
+lookup, higher-order constraints, proof composition, definitional conversion,
+determinism and name hygiene. Negative neighbors cover unequal indices, wrong
+domains, false equality proofs, non-propositions, universe misuse, occurs/scope
+failures, ambiguous holes, missing proof bodies, stale or malformed protocol,
+unsupported contracts and resource syntax, and bounded failures. CLI controls
+exercise atomic publication, input aliases and failure preservation. Native
+qualification replays source through the actual parser and kernel rather than
+only using hand-authored syntax fixtures.
+
+Require focused tests, Python type/lint checks, the consistency checker, Host CI
+on Windows and Ubuntu, and dispatch of every Guest CI lane at the settled
+revision. Native acceptance remains pending until its exact-revision hosted
+verdict exists. Finish without waiting for Guest CI. Keep Q25k open while that
+predicate is outstanding, and report the supported fragment and remaining
+production obligations in the command guide.

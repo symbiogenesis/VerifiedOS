@@ -440,20 +440,20 @@ These figures cover the priced reference-build, assessment and named hardening b
 <!-- estimate-summary:start -->
 | Measure | Value |
 | --- | --- |
-| Total estimate midpoint h | 4,671.8 |
-| Total estimate range h | 3,031.7–6,311.9 |
+| Total estimate midpoint h | 4,695.8 |
+| Total estimate range h | 3,047.7–6,343.9 |
 | Completed scope h | 865.3 |
-| Complete by estimate % | 18.5 |
-| Remaining h | 3,806.5 |
-| Committed remaining h | 2,364.5 |
-| Open class I h | 827.5 |
+| Complete by estimate % | 18.4 |
+| Remaining h | 3,830.5 |
+| Committed remaining h | 2,388.5 |
+| Open class I h | 851.5 |
 | Open class X h | 2,979 |
 | Retained completion estimate h | 261.5 |
 | Unmeasured completed items | 29 |
-| Calibrated total h | 5,683 |
+| Calibrated total h | 5,700 |
 | Committed M8a open h | 74 |
 | Committed M8b open h | 105.5 |
-| Other committed open h | 2,185 |
+| Other committed open h | 2,209 |
 | Conditional open h | 1,028 |
 | Unfunded option open h | 414 |
 | Committed M8a open class X h | 0 |
@@ -990,6 +990,8 @@ These trials add no prerequisite to the current M7.1 realization route. A failed
 * [ ] **Q25j · Prototype path-sensitive loan-end inference over explicit flow facts** · 12 h, range 8–16 · I · agent-parallel
   * **Start:** the landed [diagnostic contract](docs/languages/vela/loan-analysis.md), Q25's loan/capture/restoration designs and the unchanged frontend hold. **Owns:** a bounded non-admitting Python analysis API over explicit acyclic loan/control graphs, transitive capture demand, path-specific conflicts, inferred loan ends and residual restoration/overlap obligations. **Check:** every independent positive, negative, structural-refusal and budget predicate in the contract, focused host tests, Python type/lint checks and the consistency checker; hosted validation follows the shared handoff. **Join:** independent algorithm/fixture review; no source-semantic, concrete-machine, checked-borrowing or comparative claim. **Execute:** land this contract before implementation; leave loops, source extraction and production admission with their existing owners.
   * **Diagnostic checkpoint:** the [analysis API](tools/vos/vela_loans.py) at `1c6a2e69` keeps complete acyclic paths separate, follows transitive captures through moved wrappers, infers descendant-first ends, retains returned-view ancestry and reports conflicts without granting semantic acceptance. Declared field partitions permit disjoint access; unknown projections retain footprint/containment obligations, and bookkeeping drops do not extend dead-loan demand. Independent review and focused loan fixtures cover these boundaries; the host tests and integrated Python type/lint checks pass. Restoration, effects, separation and interpretation remain unresolved obligations. Source extraction, loop invariants, Ante-style current-fact invalidation, graded checking and the combined checked interpretation remain open; the [design-input boundary](docs/languages/vela/loan-analysis.md#acceptance) assigns their roles. Hosted acceptance remains outstanding; this item stays open.
+* [ ] **Q25k · Elaborate generic dependent mathematics and first-class proofs** · 24 h, range 16–32 · I · agent-parallel
+  * **Start:** the landed [mathematical elaboration contract](docs/languages/vela/elaboration-prototype.md), Q25f's pure prototype and Q25i's executable surface grammar. **Owns:** an opt-in schema-2 consumer, bounded bidirectional generic/dependent inference, indexed collections, explicit proof terms, Gallina emission and native kernel replay. **Check:** every positive, semantic refusal, protocol, resource-limit and publication predicate in the contract, focused host tests and Python checks, Host CI on both platforms and dispatch of every Guest CI lane; native acceptance stays pending until its hosted verdict. **Join:** independent type/proof fixtures and review of generated terms. **Execute:** preserve the pure migration route and the full-frontend hold; interpretation is the generated CIC image, with no independent source semantics or production admission.
 * [x] **Q26 · Price the resident toolchain against the floor's own comparisons** · 4.6 h actual · agent-parallel
   * [The toolchain residency report](docs/performance/toolchain-residency.md) records the three quantities with their predicates, instruments, lanes and revisions, scores each against the artifact that owns its supply or declares it unscorable with the act that owes the supply named, and states which of the three binds and what would have to move, as arms for the product's owner with none taken. ([note](docs/implementation/completion-log.md#q26-price-the-resident-toolchain-against-the-floors-own-comparisons))
 
@@ -1343,7 +1345,7 @@ Q6's conventional-memory simulators are conditional on a topology comparison nee
 
 No assessment completion automatically increases a performance estimate. For an optimization affecting fraction `f` of runtime by factor `s`, the unchanged-cost bound is `1 / ((1 - f) + f / s)`; added transfers or changed scheduling require a fresh whole-workload comparison. Better packing is not more fabricated capacity, and host performance is not target throughput.
 
-**Q subtotal:** 2,842.3 h · 61% · 253.3 h complete · open range 1,496–3,682 h.
+**Q subtotal:** 2,866.3 h · 61% · 253.3 h complete · open range 1,512–3,714 h.
 
 ### M0 · Hardware reference
 
