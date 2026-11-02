@@ -15,6 +15,10 @@ class FrameError(ValueError):
     """The stream cannot safely continue at another frame boundary."""
 
 
+class MessageError(ValueError):
+    """Valid JSON that cannot represent one message object."""
+
+
 def read_frame(stream: BinaryIO) -> bytes | None:
     headers: dict[str, str] = {}
     total = 0
@@ -81,7 +85,7 @@ def decode_message(raw: bytes) -> dict[str, object]:
     value = json.loads(raw.decode("utf-8"), object_pairs_hook=unique_object,
                        parse_float=finite_float, parse_constant=_reject_constant)
     if not isinstance(value, dict):
-        _reject_constant("one JSON object is required")
+        raise MessageError("one JSON object is required")
     return cast("dict[str, object]", value)
 
 

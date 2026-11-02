@@ -8,7 +8,7 @@ from collections.abc import Callable
 from contextlib import redirect_stderr
 from io import BytesIO, StringIO
 from pathlib import Path
-from typing import cast
+from typing import cast, override
 from unittest.mock import patch
 
 from tests.harness import Case, ensure
@@ -23,6 +23,7 @@ _GOOD = "module Demo; public Nat Answer() { return 42; }"
 class _Fragmented(BytesIO):
     """A blocking stream can return fewer body bytes than requested."""
 
+    @override
     def read(self, size: int | None = -1) -> bytes:
         return super().read(min(size, 3) if size is not None and size >= 0 else 3)
 
@@ -261,6 +262,15 @@ def _refused_edit_resynchronization() -> None:
     ensure(publication.get("diagnostics") == [] and server.documents[_URI] == current
            and checks == [b"old overlay", b"replacement"],
            "lone surrogate source changed the overlay or reached the producer")
+    with redirect_stderr(StringIO()):
+        server.handle(_change("x" * 65537, 8))
+        older = _published(server.handle(_change("obsolete replacement", 7)))
+    ensure(older.get("diagnostics") == [] and server.documents[_URI] == current
+           and checks == [b"old overlay", b"replacement"],
+           "older replacement restored diagnostics after a newer refused version")
+    ensure(_published(server.handle(_change("current replacement", 9))).get("version") == 9
+           and checks[-1] == b"current replacement",
+           "newer full replacement did not restore synchronization")
 
 
 def _bounds_and_opaque_uris() -> None:
@@ -352,6 +362,14 @@ def _serve_transcript() -> None:
     error = _record(json.loads(stream.read(size)))
     ensure(error.get("id") is None and _record(error.get("error")).get("code") == -32700,
            "malformed JSON did not receive a correlated-null parse error")
+    for body in (b"[]", b"null", b'"text"'):
+        output = BytesIO()
+        raw = f"Content-Length: {len(body)}\r\n\r\n".encode("ascii") + body
+        serve(BytesIO(raw + _wire(_notice("exit"))), output)
+        reply_body = output.getvalue().split(b"\r\n\r\n", 1)[1]
+        reply = _record(json.loads(reply_body))
+        ensure(_record(reply.get("error")).get("code") == -32600,
+               "valid non-message JSON was mislabeled as a parse error")
 
 
 def cases() -> list[Case]:

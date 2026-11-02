@@ -8,7 +8,7 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import BinaryIO, Never, cast
 
-from vos.protocol_json import FrameError, decode_message, encode_message, read_frame
+from vos.protocol_json import FrameError, MessageError, decode_message, encode_message, read_frame
 from vos.vela_source import SourceSnapshot
 
 MAX_DOCUMENTS = 16
@@ -75,6 +75,7 @@ class Server:
         self.checker = diagnose if checker is None else checker
         self.documents: dict[str, SourceSnapshot] = {}
         self.desynchronized: set[str] = set()
+        self.received_versions: dict[str, int] = {}
         self.generation = 0
         self.initialized = False
         self.ready = False
@@ -142,6 +143,7 @@ class Server:
                 self.shutdown = True
                 self.documents.clear()
                 self.desynchronized.clear()
+                self.received_versions.clear()
                 return [{"jsonrpc": "2.0", "id": request_id, "result": None}]
             if request:
                 return [_error(request_id, -32601, "Method not found")]
@@ -173,6 +175,7 @@ class Server:
                     _invalid("expected Vela languageId")
                 snapshot = self._snapshot(uri, _integer(document.get("version")),
                                           _string(document.get("text")))
+                self.received_versions[uri] = snapshot.version
             else:
                 if uri not in self.documents:
                     _invalid("document is not open")
@@ -180,6 +183,7 @@ class Server:
                 if method == "textDocument/didClose":
                     del self.documents[uri]
                     self.desynchronized.discard(uri)
+                    del self.received_versions[uri]
                     self.generation += 1
                     return [self._clear(uri)]
                 if method == "textDocument/didSave":
@@ -187,8 +191,11 @@ class Server:
                         return [self._clear(uri)]
                     return [self._diagnostics(old)]
                 version = _integer(document.get("version"))
-                if version <= old.version:
+                if version <= self.received_versions[uri]:
                     _invalid("document version must strictly increase")
+                # Remember newer received versions even if their text is refused.
+                # An older later update cannot resynchronize the document.
+                self.received_versions[uri] = version
                 changes = params.get("contentChanges")
                 if not isinstance(changes, list) or len(changes) != 1:
                     _invalid("one complete replacement is required")
@@ -225,6 +232,8 @@ def serve(input_stream: BinaryIO, output_stream: BinaryIO) -> int:
                 message = decode_message(raw)
             except FrameError:
                 raise
+            except MessageError:
+                replies = [_error(None, -32600, "Invalid Request")]
             except (ValueError, UnicodeError):
                 replies = [_error(None, -32700, "Parse error")]
             else:

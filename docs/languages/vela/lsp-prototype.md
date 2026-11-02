@@ -32,6 +32,8 @@ UTF-16 positions. Shared source utilities also convert half-open UTF-8 byte
 offsets, rejecting offsets inside encoded characters or CRLF. Handle LF, CRLF,
 bare CR and supplementary characters. Full unsaved text replaces earlier text;
 versions strictly increase, and invalid updates never alter the current snapshot.
+Remember a newer received version even when its replacement text is refused;
+an older later update cannot restore synchronization.
 Close clears diagnostics. Save rechecks the overlay. Configuration and watched-file
 changes invalidate and recheck all open snapshots conservatively. There are no
 import, rename, navigation, semantic-token or interactive-proof providers.
@@ -39,7 +41,7 @@ import, rename, navigation, semantic-token or interactive-proof providers.
 | Resource | Bound and refusal |
 | --- | --- |
 | Frame headers | 8,192 bytes; ASCII CRLF lines and exactly one decimal Content-Length; malformed/truncated frames close the session |
-| Frame bodies and replies | 1,048,576 bytes; strict UTF-8 JSON objects, unique keys and finite numbers; malformed bodies receive a parse error |
+| Frame bodies and replies | 1,048,576 bytes; strict UTF-8 JSON objects, unique keys and finite numbers; malformed JSON receives a parse error and valid non-message JSON an invalid-request error |
 | JSON nesting | 64 containers, counted outside strings before decoding; over-budget input closes the session |
 | Documents | 16 open documents, each at most the pure producer's 65,536 UTF-8 bytes; URI at most 4,096 UTF-8 bytes |
 | Diagnostic output | One producer error per document; message at most 4,096 characters; include version and snapshot identity, never an acceptance claim |
