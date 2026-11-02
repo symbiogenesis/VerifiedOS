@@ -12,6 +12,7 @@ from vos.protocol_json import FrameError, MessageError, decode_message, encode_m
 from vos.vela_source import SourceSnapshot
 
 MAX_DOCUMENTS = 16
+MAX_CHANGES = 64
 WORKER_SECONDS = 5
 type Checker = Callable[[bytes], dict[str, object] | None]
 
@@ -91,6 +92,41 @@ class Server:
         return {"jsonrpc": "2.0", "method": "textDocument/publishDiagnostics",
                 "params": {"uri": uri, "diagnostics": []}}
 
+    def _changed_snapshot(self, old: SourceSnapshot, version: int,
+                          changes: object) -> SourceSnapshot:
+        if not isinstance(changes, list) or len(changes) > MAX_CHANGES:
+            _invalid("expected at most 64 ordered content changes")
+        if old.uri in self.desynchronized and (not changes or "range" in _object(changes[0])):
+            _invalid("a complete replacement is required to restore synchronization")
+        candidate = old
+        for value in changes:
+            change = _object(value)
+            text = _string(change.get("text"))
+            if "range" in change:
+                if set(change) - {"range", "rangeLength", "text"}:
+                    _invalid("invalid ranged content change")
+                span = _object(change["range"])
+                start, end = _object(span.get("start")), _object(span.get("end"))
+                first = candidate.position_byte_offset(_integer(start.get("line")),
+                                                        _integer(start.get("character")))
+                last = candidate.position_byte_offset(_integer(end.get("line")),
+                                                       _integer(end.get("character")))
+                if first > last:
+                    _invalid("content change range is reversed")
+                source = candidate.source
+                if "rangeLength" in change:
+                    length = _integer(change["rangeLength"])
+                    removed = source[first:last].decode("utf-8")
+                    if length < 0 or length != len(removed.encode("utf-16-le")) // 2:
+                        _invalid("rangeLength differs from removed UTF-16 units")
+                text = (source[:first] + text.encode("utf-8") + source[last:]).decode("utf-8")
+            elif set(change) != {"text"}:
+                _invalid("invalid complete content replacement")
+            # Every intermediate is bounded. Nothing becomes current, and no
+            # generation is consumed, until all ordered edits have succeeded.
+            candidate = SourceSnapshot(old.uri, version, text, self.generation + 1)
+        return self._snapshot(old.uri, version, candidate.text)
+
     def _diagnostics(self, snapshot: SourceSnapshot) -> dict[str, object]:
         diagnostics: list[dict[str, object]] = []
         result = self.checker(snapshot.source)
@@ -137,7 +173,7 @@ class Server:
                 self.initialized = True
                 return [{"jsonrpc": "2.0", "id": request_id, "result": {
                     "capabilities": {"positionEncoding": "utf-16", "textDocumentSync": {
-                        "openClose": True, "change": 1, "save": {"includeText": False}}},
+                        "openClose": True, "change": 2, "save": {"includeText": False}}},
                     "serverInfo": {"name": "Vela pure prototype (unqualified)", "version": "0"}}}]
             if method == "shutdown" and request:
                 self.shutdown = True
@@ -196,13 +232,7 @@ class Server:
                 # Remember newer received versions even if their text is refused.
                 # An older later update cannot resynchronize the document.
                 self.received_versions[uri] = version
-                changes = params.get("contentChanges")
-                if not isinstance(changes, list) or len(changes) != 1:
-                    _invalid("one complete replacement is required")
-                change = _object(changes[0])
-                if set(change) != {"text"}:
-                    _invalid("incremental/ranged edits are unsupported")
-                snapshot = self._snapshot(uri, version, _string(change["text"]))
+                snapshot = self._changed_snapshot(old, version, params.get("contentChanges"))
             self.documents[uri] = snapshot
             self.desynchronized.discard(uri)
             return [self._diagnostics(snapshot)]

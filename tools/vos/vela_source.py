@@ -3,6 +3,7 @@
 
 import hashlib
 import json
+import re
 from dataclasses import dataclass
 
 from vos.vela_ast import MAX_SOURCE_BYTES
@@ -53,6 +54,30 @@ class SourceSnapshot:
             raise ValueError("source byte offset splits CRLF")
         lines = _normalized(prefix).split("\n")
         return {"line": len(lines) - 1, "character": _utf16_length(lines[-1])}
+
+    def position_byte_offset(self, line: int, character: int) -> int:
+        """Convert an LSP UTF-16 position to UTF-8, clamping past line end."""
+        if any(type(value) is not int or not 0 <= value < 2 ** 31
+               for value in (line, character)):
+            raise ValueError("source position requires unsigned 31-bit coordinates")
+        # Only CR, LF and CRLF are line breaks in this source API. Python's
+        # splitlines also recognizes Unicode separators that LSP does not use.
+        breaks = re.finditer(r"\r\n|\r|\n", self.text)
+        start = 0
+        for _ in range(line):
+            boundary = next(breaks, None)
+            if boundary is None:
+                raise ValueError("source position line out of bounds")
+            start = boundary.end()
+        boundary = next(breaks, None)
+        end = len(self.text) if boundary is None else boundary.start()
+        encoded = self.text[start:end].encode("utf-16-le")
+        column = min(character, len(encoded) // 2)
+        try:
+            prefix = encoded[:column * 2].decode("utf-16-le")
+        except UnicodeDecodeError as error:
+            raise ValueError("source position splits a supplementary character") from error
+        return len(self.text[:start].encode("utf-8")) + len(prefix.encode("utf-8"))
 
     def diagnostic_position(self, line: int, column: int) -> dict[str, int]:
         """Adapt the legacy producer's one-based normalized code-point site."""
