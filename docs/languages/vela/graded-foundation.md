@@ -217,6 +217,14 @@ The Boolean presence calculation `1+1=1` accepts two pure uses as presence. Atte
 
 ## Inference, specialization and admission
 
+The [staging contract](metaprogramming.md#evaluation-and-phase-boundaries) keeps
+compile-time availability independent of computation use, type use, phase and
+representation. A ghost binder or a zero grade does not make a runtime value
+known during generation. Conversely, a static constant may be materialized in the
+runtime representation when execution needs it. Describing a graded type or
+copying generated syntax supplies no `Dup`, `Dispose` or ownership premise;
+generated resource uses undergo this dossier's ordinary checks.
+
 Bidirectional checking uses public domain identities, grade variables/constraints, call modes, captures, effects and representations. Rules infer local demands; CIC reconstructs grade equalities/orders and bounded arithmetic. Symbolic multiplication, dependent unification, arbitrary operations and recursors may leave explicit goals. No principal-grade inference or complete procedure for all domains is promised.
 
 A constraint result binds its proposition, domain dictionary, substitutions and replayable certificate/term. Timeout, inconsistent model, unknown law or reconstruction failure leaves unresolved/refused evidence. Search cannot weaken exact declarations into bounds. Grade-polymorphic definitions check under explicit constraints, discharged at every public instantiation. Runtime natural indices stay represented even when indexing erased trace bounds; they cannot retrospectively select layout.

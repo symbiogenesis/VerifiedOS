@@ -6,6 +6,14 @@ The [language design](verification-strategy.md#an-ideal-surface) and
 required features and their meanings. This increment accepts located syntax;
 resolution, resource checking, proofs, compilation and admission remain separate.
 
+The [metaprogramming design](metaprogramming.md) specifies required-static
+evaluation, descriptions and generated definitions without adding accepted
+spellings to this increment. Existing computed-type and generic-call syntax
+supplies no evaluator, reflection API or staging judgment. A later parser
+increment must first land any required-static binder, derivation registration or
+quotation/splicing spelling, located AST and independent compatibility/refusal
+fixtures here; schematic library calls in that dossier are not parser fixtures.
+
 ## Entry points and compatibility
 
 One authored Menhir grammar owns two entry points. The existing `file` entry and

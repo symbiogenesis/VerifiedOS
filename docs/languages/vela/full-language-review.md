@@ -150,6 +150,33 @@ details of the existing owners; their implementation holds remain in force.
 | Qualification: complete release | Existing compiler, admission and image-validation owners; Q20a retains the comparison contract | Required implementation-closure evidence remains with its production owners. Canceled Q20c owns no release qualification; a future language comparison needs a newly priced owner | A dependency change, a callback, a foreign interface and generated code each invalidate the affected evidence in test. Fails where a preset's source-endpoint coverage report is accepted as a statement about the promoted image. |
 | Qualification: maintenance | Uncommissioned workflow comparison under Q20a | Canceled Q20b supplied no maintenance measurement. A future proposal must price and record representation change, proof repair, checking cost and held-out replay | Executable churn, specification churn, proof repair, checking cost and target resource consequences are reported separately. Fails where proof rediscovery and saved-term replay are reported as one figure. |
 
+### Metaprogramming and compiler-service extension
+
+The [metaprogramming dossier](metaprogramming.md) refines the intended language
+with required-static evaluation, opt-in descriptions and contextual checked
+generation. The existing combined client does not exercise these mechanisms.
+The [qualification cases](metaprogramming.md#qualification) add inhabited
+generation clients and well-formed negative neighbors; they supply no executed
+verdict. Current prototype normalization and computed types establish neither
+general reflection nor composition with graded ownership, handlers and async.
+
+The [plan's `vela-meta` and `vela-compiler-services` stages](../../../PLAN.md#vela-whole-system-authoring-proposal)
+own additional implementation scope. Their costs remain `unpriced` pending
+selection of a supported slice and its interpretation, descriptor protocol and
+source-correspondence boundary. Existing ranges above are unchanged and fund no
+general evaluator, reflection API, staged calculus or public compiler-service
+implementation. Price shared work once at the following joins:
+
+| Duty | Existing join and additional acceptance |
+| --- | --- |
+| Static evaluation, dependent reindexing and generated resource uses | `core-soundness`: preserve the graded/resource interpretation and kernel-compatible conversion; no static knowledge follows from erasure or a grade. |
+| Description, hygiene and generated-source correspondence | `core-frontend`: bind descriptor dictionaries, declaration identities, scoped generated terms, target/ABI and the exact resulting computation; no arbitrary elimination of `Type` or trusted generator result. |
+| Diagnostics, claims and tooling | `core-diagnostics` and `preset-policy`: preserve source provenance and current evidence status; `vela-compiler-services` exposes shared versioned snapshots and `vela-lsp` adapts them. No second semantic implementation or proof-acceptance path. |
+| Lowering and runtime-cost qualification | Existing compiler, admission and hardware owners: retain effects, exits, leakage, representation and final-artifact evidence; inspect removal of generator machinery and measure residual code, descriptors and specialization growth. |
+
+These joins retain the admission hold below. This extension neither makes the
+arm-one commitment for the three dossiers nor performs its required register act.
+
 ### R-05-009, R-05-020, and what holds the frontend rows
 
 R-05-008 forbids binary admission based on source language or producer identity. R-05-009 admits memory-safe/formally-verified languages yielding well-typed binaries and kernel-checked elaboration into an existing anchor on Rust's terms, *without exception or waiver*. [Delivery prose](../../spec.md#r-05-026) and [the strategy](verification-strategy.md#refactoring-without-expanding-trust) preserve that language-neutral route with an untrusted frontend. R-05-020 governs additions to the anchor budget/trust base; its application depends on the interpretation:

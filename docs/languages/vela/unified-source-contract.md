@@ -35,6 +35,15 @@ hardware. Module interfaces state phase/target restrictions. Unbounded mathemati
 needs proved finite runtime representations; ghost data supplies no runtime branch,
 allocation, encoding or circuit state.
 
+The [metaprogramming contract](metaprogramming.md) adds explicit static computation,
+opt-in structural descriptions and hygienic checked generation within those
+interpretations. Generated definitions, proof terms, specialization inputs and
+descriptor dictionaries belong to the declared source/dependency closure.
+Generator removal and final-code cost have separate acceptance predicates;
+static generation supplies no software, machine or hardware refinement theorem.
+Compiler services expose the same source identities and elaborated meanings to
+tools without adding an admission path or runtime evaluator.
+
 Contracts retain independent review and telling rejected behaviors. Architecture
 and processor implementation remain distinct theorem subjects even when sharing
 arithmetic/decoding definitions; an implementation cannot define its own correctness.

@@ -111,7 +111,15 @@ Checking uses conversion, resource/capture rules, reconstructed arithmetic, doma
 
 Effects are closed read/write/call footprints with no allocation, including transitive callees and environments. Sequential footprints take union; named event counts add. Alternative exact counts must agree or become a proved bound or result-indexed count. Stack slots and specialized environments retain size/layout obligations. Effect variables, general grades and handler discharge belong to Q25's full-language design and are outside this synchronous fixture's qualification.
 
-Generators record inputs, environment and outputs for typing, proof and source-correspondence checks. Conversion executes only total pure definitions. Compile-time constants may specialize layouts; runtime lengths cannot. Erasure must preserve results, effects, control and observations under the same representation, beyond merely type-checking the erased proof.
+Generators record inputs, environment and outputs for typing, proof and
+source-correspondence checks. Conversion executes only total pure definitions.
+The [staged metaprogramming contract](metaprogramming.md) separates required-static
+inputs from ghost/erased indices and use grades, and requires generated terms to
+retain their dependent context, captures, effects and exit resources. Its broader
+reflection and generation facilities are outside this synchronous fixture's
+qualification. Compile-time constants may specialize layouts; runtime lengths
+cannot. Erasure must preserve results, effects, control and observations under the
+same representation, beyond merely type-checking the erased proof.
 
 ## Composed qualification fixture
 

@@ -23,6 +23,14 @@ A build reports properties, scope, assumptions and endpoint. Source-level Comple
 
 Shared constructs retain their semantics across presets: overflow, evaluation order, ownership, exits and cancellation belong to the [language rules](verification-strategy.md#feature-decisions). A checked operation retains its failure behavior; eliminating its check requires preservation on every admitted input.
 
+The [metaprogramming contract](metaprogramming.md) applies the same policy to
+generated definitions, specialized instances, descriptors and dependencies.
+Generation alone establishes no optional contract. A generated theorem is usable
+only with its checked evidence and current source/dependency correspondence;
+an unestablished generated claim cannot justify optimization. Static evaluation
+must not erase an effect, runtime check or mandatory result merely because a
+generator or usage analysis does not need its value.
+
 ## The three presets
 
 ### Safe: ordinary programming without optional theorem obligations

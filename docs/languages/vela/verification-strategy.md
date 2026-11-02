@@ -41,6 +41,15 @@ The [register](../../requirements-register.md) remains authoritative. [Semantic 
 
 ### Language Product Contract
 
+Vela targets C#-like declarations, generic APIs and editor interaction; Rust-like
+control of representation and runtime cost; Zig-like compile-time evaluation,
+introspection and generation; Idris 2-style dependent programming and proof
+authorship; and Granule/Gerty-style law-bearing graded types. These goals share
+one surface, with separately checked phase, representation, resource and evidence
+boundaries. They are design commitments to qualify, not claims of implementation
+parity with those languages. The [metaprogramming contract](metaprogramming.md)
+specifies static computation and generation within those boundaries.
+
 **One language means one authoring surface, not one mathematical interpretation for every feature.** A component package combines its operational definition, independently reviewed intended behavior, explicit representations and supporting lemmas. Ordinary callers use typed APIs and inferred routine obligations; library authors prove the ownership and representation laws. The full combination remains a research objective, not a result established by library qualification.
 
 The supported family must execute without a second hand-maintained optimized implementation. This is stronger than the bring-up plan's manual Gallina-to-C refinement path; [the workflow contract](workflow-contract.md) fixes its first bounded clients and thresholds, and commissions no trial of them. Existing kernel and storage refinements retain their owners until an equivalent replacement is demonstrated; arbitrary Gallina algorithms are not presumed efficiently lowerable.
@@ -63,6 +72,7 @@ separate editor services from native debug information and execution backends.
 | Rust-like safety and control | Straight-line, flow-sensitive loans with inferred restoration, explicit layouts and bounded resource use, backed by proved primitives | Checked ownership and functional contracts across every supported exit, negative alias/escape/failure cases, and transport to the actual machine. Callback rewrites and manual restoration are limitations the canceled pilot would have measured, not the target UX. |
 | Idris/Gerty-style verification | Dependent specifications, erased proofs, indexed protocols and explicitly interpreted resource grades in the same workflow | Kernel-checked terms with the accepted assumptions, totality or progress where claimed, and sound resource interpretation. Routine code must not require authors to understand every underlying calculus. |
 | Production performance | Specialization, in-place representations and a verified or translation-validated optimization path appropriate to the selected backend | Comparable final code size, stack, allocation, memory traffic and target execution measurements. A cost proof is separate from a claim of competitive throughput. |
+| Compile-time metaprogramming | Ordinary static computation, opt-in type/declaration descriptions and hygienic checked derivation through familiar generic APIs | The [qualification cases](metaprogramming.md#qualification) establish phase separation, source correspondence, resource-safe generation and removal of generator machinery from the declared runtime closure; generated algorithms retain measured code-size and execution costs. |
 | Maintainability | Abstract contracts, stable source and goal identities, semantic dependency tracking and reproducible proof replay | A semantics-preserving refactor, an internal representation change and a genuine contract change, with review and repair effort reported separately. Stable identities aid navigation but never authorize reuse after a semantic dependency changes. |
 | Proof interaction | Typed holes and a predictable refinement tier before interactive proof | Each residual goal retains its source span, local values, hypotheses, available authorities, expected exit state and target-specific cause. Unresolved nodes cannot enter an accepted build; measure automatic discharge and diagnostic latency rather than promising a percentage. |
 | Editor and debugger interoperability | LSP navigation, diagnostics and proof interaction; DAP execution control and inspection; DWARF source/type/location information for native builds | Independently exercised clients, fresh source/dependency identities, exact-image debug mappings and honest erased/optimized-value display under the [protocol contract](tooling-protocols.md#qualification-and-delivery). Production hardware debug remains excluded. |
@@ -156,6 +166,25 @@ selected under. The
 [composition review](full-language-review.md) joins their client, gives each
 implementation row one owner and one estimate, and records Q25d's
 frontend-admission disposition and the register acts it leaves owed.
+
+### Staged Metaprogramming and Compiler Services
+
+Include required-static evaluation, opt-in structural descriptions and hygienic
+generation of definitions and evidence, using ordinary functions and generic
+interfaces wherever possible. A computed type does not grant arbitrary type
+reflection; descriptors need explicit compiler reification or a checked library
+dictionary. Static availability is independent of ghost status, erasure and
+computation/type-use grades. Generated code follows the same ownership, effects,
+dependent typing and assurance policy as handwritten code.
+
+The [metaprogramming contract](metaprogramming.md) owns stage boundaries,
+resource-aware construction, deterministic inputs and the runtime-cost claim.
+The [compiler-service boundary](metaprogramming.md#compiler-services-and-runtime-information)
+shares syntax, symbols, elaboration and source maps with generators and editor
+tools. Compile-time derivation replaces many uses of runtime reflection over a
+known source closure; it does not replace semantic services or information first
+discovered at runtime. These are additional qualification duties; the current
+mathematical prototype and full-frontend hold retain their existing scope.
 
 ### Graded Dependent Foundation
 
@@ -856,7 +885,17 @@ The refinement tier targets bounded integer ranges, capacity relationships, alig
 
 Equality ergonomics first use canonical indices, normalization, bidirectional insertion of checked transports and derived decidable equality with locally proved uniqueness where applicable. Logical proof irrelevance is used only where proved for the particular proposition. Runtime proof erasure needs its own preservation theorem and confers no additional equality principle. Cubical or observational equality is a separately scoped kernel or translation research question, outside this core's CIC authority.
 
-Staging distinguishes pure specification evaluation, compile-time code/evidence generation, represented runtime computation and checked proof terms. Cross-stage operations need typing, representation and soundness rules; generators record their inputs and dependencies and emit checked terms. A static bound can specialize a loop or layout, but a discovered packet length remains runtime data. A metaprogram that does not terminate or leaves a typed hole produces no accepted component. Sharing an evaluator between a generator and a host oracle creates common-mode risk, so independent intent review, negative examples and the independently authored Sail model remain necessary.
+Staging distinguishes pure specification evaluation, compile-time code/evidence
+generation, represented runtime computation and checked proof terms. The
+[metaprogramming rules](metaprogramming.md#evaluation-and-phase-boundaries)
+require explicit static inputs, kernel-compatible conversion and checked
+cross-stage representation. A static bound can specialize a loop or layout; a
+discovered packet length stays represented runtime data. Bounded generator failure
+produces no accepted component, and generation grants no theorem or resource
+permission. Input/dependency identities, independent intent review and negative
+examples remain required: a generator and a host oracle sharing one evaluator
+cannot supply independent agreement. Machine evidence retains the canonical
+Sail subject or its separately qualified successor.
 
 #### Compositional Leakage Obligations
 
@@ -1397,13 +1436,17 @@ an established guarantee for the current build.
 | Error handling | Absence requires explicit `Option<T>`; exhaustive `Result`/`Option` patterns preserve resource states on all branches, with no unchecked extraction. Scoped restoration precedes propagation. Cancellation follows declared checkpoints, commit points and terminal cleanup. No hidden unwinding or ambient service access. |
 | Async and interior mutability | Dormant computations, structured scopes, a checkpoint at every `await`, one declared commit point and bounded frames; abstract cells expose proved local, dynamically borrowed or concurrent operations. Invariants close before reentry or suspension, and concurrent sharing needs its own interpretation. |
 | Code generation | Static target/module instantiation and ahead-of-time specialization with explicit layout and ABI. Closures need a known environment representation; generic specialization is checked for code-size growth. |
+| Metaprogramming | Required-static ordinary computation, opt-in descriptors and hygienic checked generation under the [staging contract](metaprogramming.md). Generator machinery stays off the runtime path unless represented descriptors are explicitly requested; usage grades grant no static knowledge or authority. |
 | Target requirements | Select semantic instances and required guarantee theorems separately from ordinary source syntax. Reject unsupported requirements; never silently downgrade the contract. |
 | Proof interaction | Bidirectional checking and a declared refinement tier precede explicit proof; named typed holes retain source and resource context, with stable goal identity and semantic invalidation. Distinguish disproved, unresolved, timed out and unsupported. |
 | Encapsulation | Clients use abstract contracts and named views; representation proofs stay with the defining module. Changing layout invalidates its proof dependencies without requiring clients to inspect the heap. |
 
 The C# contribution is **ergonomics**, not the CLR: namespaces, precise completion, useful diagnostics, readable generic APIs, and direct navigation between code and proof.
 Properties cannot conceal unaccounted effects; query syntax needs a known allocation-free lowering before it belongs in the runtime subset.
-Open-ended reflection, dynamic loading, general managed objects, and an implicit async scheduler are outside that subset.
+Open-ended runtime reflection, dynamic native loading, general managed objects,
+and an implicit async scheduler are outside that subset. Compile-time reflection
+and explicitly represented finite metadata follow the
+[metaprogramming contract](metaprogramming.md#compiler-services-and-runtime-information).
 These restrictions define the initial systems-language subset and preserve VerifiedOS's deployment constraints while leaving host-side proof tooling expressive.
 The framework's target parameters do not authorize a backend to add hidden allocation or a managed runtime to that subset.
 

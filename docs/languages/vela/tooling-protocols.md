@@ -40,6 +40,14 @@ from `core-diagnostics`. The existing Rocq editor and
 [R-05-018a workflow](../../spec.md#r-05-018a) retain their own subject and scope;
 their qualification is not Vela-server qualification.
 
+The [compiler-service contract](metaprogramming.md#compiler-services-and-runtime-information)
+also exposes versioned semantic snapshots to analysis, refactoring and generation
+clients. Diagnostics and navigation connect a generated definition to its request,
+generator, concrete instantiation and source inputs; debug mappings additionally
+identify executable sites in the final image. Static generation cannot replace
+these services. An incomplete editor snapshot remains diagnostic data and cannot
+authorize a splice, theorem reuse or production emission.
+
 Host development initially uses standard input/output connections, keeping logs
 off the protocol stream. A resident VerifiedOS service must use the
 [capability-delegated compartment transport](../../implementation/userspace-porting.md#zed-the-reference-editor)

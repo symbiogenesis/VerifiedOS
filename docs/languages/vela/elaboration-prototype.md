@@ -16,6 +16,11 @@ entry point and schema 2, with no second surface parser. Generated Gallina is an
 untrusted proposal until the pinned Rocq kernel checks it. A source digest binds
 bytes; it supplies no source-correspondence theorem.
 
+The [staged metaprogramming design](metaprogramming.md) extends the intended
+language beyond this increment. Type-valued parameters and definitional reduction
+here supply no general descriptor reflection, required-static interface, generated
+declaration API or composition with the refused resource/effect features.
+
 ## Supported mathematical increment
 
 The increment uses the [surface grammar](surface-grammar.md) without new syntax:
