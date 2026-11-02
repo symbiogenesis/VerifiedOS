@@ -23,6 +23,76 @@ class Fixture:
 
 
 POSITIVE: tuple[Fixture, ...] = (
+    Fixture("explicit-values-loans-and-options", """// café: binding, parameter and absence roles keep original byte spans.
+module ExplicitValues;
+alias Initializer = Fn<region 'slot>(out<'slot> Nat slot) -> ();
+public void Modes<region 'slot>(Nat value, in Nat read, ref Nat write,
+    out<'slot> Nat output, owned Packet packet) {
+    let frozen = value;
+    Nat defaultFrozen = value;
+    var mutable = value;
+    let out<'slot> Nat annotatedOutput = output;
+    let callback = (out Nat destination) => Initialize(out destination);
+    Apply(value, in read, ref write, out output, move packet);
+    let present = Some(Some(value));
+    let absent = None();
+    let propagated = ReadOption()?;
+    let hole = ?proof;
+    let words = "null ?? ?. out";
+    // null ?? ?. out stay comment text.
+}
+definition Nat Consume(Option<Option<Nat>> choice) = match (choice) {
+    case Some(Some(let n)) => n;
+    case Some(None()) => 0;
+    case None() => 0;
+};
+""", ("modified_type", "unary", "let", "typed_local", "var", "lambda",
+      "call", "match_expression", "constructor_pattern", "propagate", "hole", "string")),
+    Fixture("explicit-pointer-operators", """// café: symbolic prefixes never change operator values.
+module PointerOperators;
+public void Pointers(Ptr<Nat> p, Nat i, Nat n) {
+    let address = &p[i];
+    let read = *p[i];
+    let nested = *&p[i];
+    let offset = *(p + n);
+    let advance = p + n * 2;
+    let difference = p - other;
+    let arithmetic = *p * n & mask;
+    let bitwise = flags & *p;
+    let field = (*p).Value;
+    let multiply = (*);
+    let conjunction = (&);
+    let apply = (*)(2, 3);
+    let derived = (&)(p);
+    *p = n;
+    *p += 1;
+}
+""", ("unary", "binary", "index", "group", "member", "operator", "call", "assignment")),
+    Fixture("explicit-values-errors-remain-syntax", """module ExplicitErrors;
+public void Invalid(in Nat shared, ref Nat exclusive, out Nat output, owned Packet packet) {
+    let frozen = 1;
+    Nat alsoFrozen = 1;
+    frozen = 2;
+    alsoFrozen += 1;
+    let u8 narrow = 300u64;
+    let mixed = 1u8 + 2u64;
+    let bool truthy = 1;
+    let Option<Nat> lifted = 1;
+    let Nat extracted = Some(1);
+    Apply(shared, exclusive, output, packet);
+    Apply(ref shared, in exclusive, ref output, move packet);
+    Overlap(ref exclusive, ref exclusive);
+    shared = 1;
+    SharedCell.Write(ref shared);
+    let invalidAddress = &1;
+    let invalidRead = *1;
+    let uninitialized = output;
+    return;
+}
+definition Nat Partial(Option<Nat> choice) = match (choice) {
+    case Some(let value) => value;
+};
+""", ("let", "typed_local", "assignment", "unary", "call", "match_expression")),
     Fixture("expression-local-bindings", """// café: expression bindings retain initializer and body scopes separately.
 module LocalExpressions;
 universe u;
@@ -901,7 +971,7 @@ public void Compute() {
     let mapped = Map::<byte>(input, (byte x) => x + 1);
     let dormant = (() => Ready());
     let selected = input[1..4];
-    let result = Read()?.Value;
+    let result = (Read()?).Value;
     let logical = !false && 1 + 2 * 3 <= 7 || false ==> true;
     let signed = -4 + 8 / 2 - 3 % 2;
     let bits = ~mask & other | third ^ fourth;
@@ -1015,6 +1085,26 @@ public UnknownType F() { return missing; }
 
 
 NEGATIVE: tuple[tuple[str, bytes, str], ...] = (
+    ("null-literal", b"module M; void F() { let value = null; }", "syntax"),
+    ("null-binder", b"module M; void F() { let null = value; }", "syntax"),
+    ("nullable-type", b"module M; alias A = Nat?;", "syntax"),
+    ("nullable-parameter", b"module M; void F(Nat? value) {}", "syntax"),
+    ("nullable-local", b"module M; void F() { let Nat? value = None(); }", "syntax"),
+    ("null-forgiving", b"module M; definition T F() = value!;", "syntax"),
+    ("null-coalescing", b"module M; definition T F() = value??other;", "syntax"),
+    ("null-conditional", b"module M; definition T F() = value?.Member;", "syntax"),
+    ("pointer-declarator", b"module M; alias A = Nat*;", "syntax"),
+    ("pointer-parameter-declarator", b"module M; void F(Nat* p) {}", "syntax"),
+    ("pointer-member-arrow", b"module M; definition T F() = p->Member;", "syntax"),
+    ("out-missing-type", b"module M; void F(out) {}", "syntax"),
+    ("out-missing-argument", b"module M; void F() { Apply(out); }", "syntax"),
+    ("out-incomplete-lifetime", b"module M; void F(out<'slot Nat value) {}", "syntax"),
+    ("out-incomplete-local", b"module M; void F() { let out Nat = value; }", "syntax"),
+    ("dereference-missing-operand", b"module M; definition T F() = *;", "syntax"),
+    ("address-missing-operand", b"module M; definition T F() = &;", "syntax"),
+    ("pointer-prefix-incomplete-group", b"module M; definition T F() = *(;", "syntax"),
+    ("out-prefix-depth", b"module M; definition T F() = " + b"out " * 257 + b"value;", "limit"),
+    ("pointer-prefix-depth", b"module M; definition T F() = " + b"*&" * 129 + b"value;", "limit"),
     ("expression-binding-missing-name", b"module M; definition T F() = let = value in value;", "syntax"),
     ("expression-binding-missing-initializer", b"module M; definition T F() = let value = in value;", "syntax"),
     ("expression-binding-missing-delimiter", b"module M; definition T F() = let value = source value;", "syntax"),
@@ -1247,6 +1337,200 @@ def _texts(value: Json) -> list[str]:
     if isinstance(value, list):
         return [text for child in value for text in _texts(child)]
     return []
+
+
+def _explicit_shape(value: Json) -> Json:
+    expression = _object(value, "explicit value expression")
+    kind = expression.get("kind")
+    if kind == "name":
+        return _object(expression.get("name"), "value name").get("text")
+    if kind == "nat":
+        return ["nat", expression.get("value"), expression.get("suffix")]
+    if kind in {"unary", "binary"}:
+        symbol = _object(expression.get("operator"), "value operator").get("text")
+        if kind == "unary":
+            return ["unary", symbol, _explicit_shape(expression.get("value"))]
+        return ["binary", symbol, _explicit_shape(expression.get("left")),
+                _explicit_shape(expression.get("right"))]
+    if kind in {"group", "propagate"}:
+        return [kind, _explicit_shape(expression.get("value"))]
+    if kind == "index":
+        return ["index", _explicit_shape(expression.get("value")), _explicit_shape(expression.get("index"))]
+    if kind == "member":
+        return ["member", _explicit_shape(expression.get("value")),
+                _object(expression.get("name"), "member name").get("text")]
+    if kind == "call":
+        return ["call", _explicit_shape(expression.get("callee")),
+                [_explicit_shape(argument) for argument in _sequence(expression.get("arguments"), "arguments")]]
+    if kind == "operator":
+        return ["operator", _object(expression.get("name"), "operator name").get("text")]
+    raise ValueError(f"unexpected explicit-value AST role: {kind}")
+
+
+def _explicit_value_roles(source: bytes, result: dict[str, Json]) -> None:
+    tree = result.get("ast")
+    function = _named(tree, "function", "Modes")
+    parameters = _sequence(function.get("parameters"), "explicit-mode parameters")
+    expected = (("value", None, "Nat"), ("read", "in", "Nat"),
+                ("write", "ref", "Nat"), ("output", "out", "Nat"), ("packet", "owned", "Packet"))
+    if len(parameters) != len(expected):
+        raise ValueError("surface explicit parameter modes lost their arity")
+    for raw, (name, mode, head) in zip(parameters, expected, strict=True):
+        parameter = _object(raw, "explicit-mode parameter")
+        annotation = _object(parameter.get("type"), "explicit-mode type")
+        if _texts(parameter.get("name")) != [name]:
+            raise ValueError("surface explicit parameter names changed")
+        if mode is not None:
+            if annotation.get("kind") != "modified_type" or annotation.get("modifier") != mode:
+                raise ValueError("surface parameter mode was inferred, lost or changed")
+            if mode == "out":
+                if _texts(annotation.get("lifetime")) != ["'slot"]:
+                    raise ValueError("surface out parameter lost its named lifetime")
+                start = source.index(b"out<'slot> Nat output")
+                if annotation.get("span") != [start, start + len(b"out<'slot> Nat")]:
+                    raise ValueError("surface out parameter original-byte span differs")
+            annotation = _object(annotation.get("type"), "underlying parameter type")
+        _type_head(annotation, head, 0)
+    for kind, name, spelling in (("let", "frozen", b"let frozen = value;"),
+                                 ("typed_local", "defaultFrozen", b"Nat defaultFrozen = value;"),
+                                 ("var", "mutable", b"var mutable = value;")):
+        binding = _named(tree, kind, name)
+        _exact_span(source, binding, spelling)
+        if _explicit_shape(binding.get("value")) != "value":
+            raise ValueError("surface default mutability changed its initializer")
+    annotated = _object(_named(tree, "let", "annotatedOutput").get("type"), "out local annotation")
+    start = source.index(b"out<'slot> Nat annotatedOutput")
+    if annotated.get("span") != [start, start + len(b"out<'slot> Nat")]:
+        raise ValueError("surface out local original-byte span differs")
+    if annotated.get("modifier") != "out" or _texts(annotated.get("lifetime")) != ["'slot"]:
+        raise ValueError("surface local out modifier/lifetime differs from parameter syntax")
+    callback = _object(_named(tree, "let", "callback").get("value"), "out callback")
+    parameter = _object(_sequence(callback.get("parameters"), "out callback parameters")[0], "out callback parameter")
+    callback_type = _object(parameter.get("type"), "out callback type")
+    if callback_type.get("modifier") != "out" or _texts(parameter.get("name")) != ["destination"]:
+        raise ValueError("surface callback lost explicit out mode")
+    initializer = _object(_named(tree, "alias", "Initializer").get("type"), "initializer callable")
+    argument = _object(_sequence(initializer.get("parameters"), "initializer parameters")[0], "initializer parameter")
+    if _object(argument.get("type"), "initializer out type").get("modifier") != "out":
+        raise ValueError("surface callable type lost out mode")
+    calls = [node for node in nodes(function) if node.get("kind") == "call"
+             and _texts(node.get("callee")) == ["Apply"]]
+    expected_call: Json = ["call", "Apply", ["value", ["unary", "in", "read"],
+        ["unary", "ref", "write"], ["unary", "out", "output"], ["unary", "move", "packet"]]]
+    if len(calls) != 1 or _explicit_shape(calls[0]) != expected_call:
+        raise ValueError("surface call-site modes were lost or inserted")
+    for symbol, spelling in (("in", b"in read"), ("ref", b"ref write"),
+                             ("out", b"out output"), ("move", b"move packet")):
+        unary = next(node for node in nodes(calls[0]) if node.get("kind") == "unary"
+                     and _texts(node.get("operator")) == [symbol])
+        _exact_span(source, unary, spelling)
+        start = source.index(spelling)
+        if _object(unary.get("operator"), "call-site keyword span").get("span") != [start, start + len(symbol)]:
+            raise ValueError("surface call-site keyword original-byte span differs")
+    consume = _named(tree, "definition", "Consume")
+    parameter = _object(_sequence(consume.get("parameters"), "option parameters")[0], "option parameter")
+    _type_head(_type_head(_type_head(parameter.get("type"), "Option", 1)[0], "Option", 1)[0], "Nat", 0)
+    match = _object(consume.get("value"), "option match")
+    cases = _sequence(match.get("cases"), "option cases")
+    patterns: list[Json] = [
+        ["constructor", "Some", [["constructor", "Some", [["bind", "n"]]]]],
+        ["constructor", "Some", [["constructor", "None", []]]], ["constructor", "None", []],
+    ]
+    if match.get("kind") != "match_expression" or len(cases) != len(patterns):
+        raise ValueError("surface option elimination lost a tagged branch")
+    for raw, expected_pattern, spelling in zip(cases, patterns,
+            (b"Some(Some(let n))", b"Some(None())", b"None()"), strict=True):
+        pattern = _object(_object(raw, "option case").get("pattern"), "option pattern")
+        if _recursive_pattern_shape(pattern) != expected_pattern:
+            raise ValueError("surface nested option cases were flattened or changed")
+        start = source.index(b"case " + spelling) + len(b"case ")
+        if pattern.get("span") != [start, start + len(spelling)]:
+            raise ValueError("surface nested option pattern original-byte span differs")
+    for name, shape in (("present", ["call", "Some", [["call", "Some", ["value"]]]]),
+                        ("absent", ["call", "None", []]),
+                        ("propagated", ["propagate", ["call", "ReadOption", []]])):
+        if _explicit_shape(_named(tree, "let", name).get("value")) != shape:
+            raise ValueError("surface option construction/propagation acquired an implicit operation")
+    hole = _object(_named(tree, "let", "hole").get("value"), "named proof hole")
+    _exact_span(source, hole, b"?proof")
+    if hole.get("kind") != "hole":
+        raise ValueError("surface named hole became optional syntax")
+
+
+def _explicit_error_roles(result: dict[str, Json]) -> None:
+    tree = result.get("ast")
+    for name, shape in (("narrow", ["nat", "300", "u64"]),
+                        ("mixed", ["binary", "+", ["nat", "1", "u8"], ["nat", "2", "u64"]]),
+                        ("truthy", ["nat", "1", ""]), ("lifted", ["nat", "1", ""]),
+                        ("extracted", ["call", "Some", [["nat", "1", ""]]]),
+                        ("invalidAddress", ["unary", "&", ["nat", "1", ""]]),
+                        ("invalidRead", ["unary", "*", ["nat", "1", ""]])):
+        if _explicit_shape(_named(tree, "let", name).get("value")) != shape:
+            raise ValueError("surface semantic-error fixture acquired a conversion or permission repair")
+    calls = [node for node in nodes(tree) if node.get("kind") == "call"
+             and _texts(node.get("callee")) == ["Apply"]]
+    expected: list[Json] = [
+        ["call", "Apply", ["shared", "exclusive", "output", "packet"]],
+        ["call", "Apply", [["unary", "ref", "shared"], ["unary", "in", "exclusive"],
+            ["unary", "ref", "output"], ["unary", "move", "packet"]]],
+    ]
+    if [_explicit_shape(call) for call in calls] != expected:
+        raise ValueError("surface missing/mismatched call modes were repaired or rejected")
+    partial = _object(_named(tree, "definition", "Partial").get("value"), "partial option elimination")
+    cases = _sequence(partial.get("cases"), "partial option cases")
+    if len(cases) != 1 or _recursive_pattern_shape(_object(cases[0], "partial case").get("pattern")) != [
+            "constructor", "Some", [["bind", "value"]]]:
+        raise ValueError("surface partial option match was completed or changed")
+    assignments = [node for node in nodes(tree) if node.get("kind") == "assignment"]
+    if [_explicit_shape(node.get("target")) for node in assignments] != ["frozen", "alsoFrozen", "shared"]:
+        raise ValueError("surface immutable/shared assignments lost their source obligations")
+
+
+def _propagation_member_role(result: dict[str, Json]) -> None:
+    value = _named(result.get("ast"), "let", "result").get("value")
+    if _explicit_shape(value) != ["member", ["group", ["propagate", ["call", "Read", []]]], "Value"]:
+        raise ValueError("surface explicit propagation/member grouping differs")
+
+
+def _pointer_roles(source: bytes, result: dict[str, Json]) -> None:
+    tree = result.get("ast")
+    indexed: Json = ["index", "p", "i"]
+    dereferenced: Json = ["unary", "*", "p"]
+    expected: tuple[tuple[str, Json, bytes], ...] = (
+        ("address", ["unary", "&", indexed], b"&p[i]"),
+        ("read", ["unary", "*", indexed], b"*p[i]"),
+        ("nested", ["unary", "*", ["unary", "&", indexed]], b"*&p[i]"),
+        ("offset", ["unary", "*", ["group", ["binary", "+", "p", "n"]]], b"*(p + n)"),
+        ("advance", ["binary", "+", "p", ["binary", "*", "n", ["nat", "2", ""]]], b"p + n * 2"),
+        ("difference", ["binary", "-", "p", "other"], b"p - other"),
+        ("arithmetic", ["binary", "&", ["binary", "*", dereferenced, "n"], "mask"], b"*p * n & mask"),
+        ("bitwise", ["binary", "&", "flags", dereferenced], b"flags & *p"),
+        ("field", ["member", ["group", dereferenced], "Value"], b"(*p).Value"),
+        ("multiply", ["operator", "*"], b"(*)"),
+        ("conjunction", ["operator", "&"], b"(&)"),
+        ("apply", ["call", ["operator", "*"], [["nat", "2", ""], ["nat", "3", ""]]], b"(*)(2, 3)"),
+        ("derived", ["call", ["operator", "&"], ["p"]], b"(&)(p)"),
+    )
+    for name, shape, spelling in expected:
+        expression = _object(_named(tree, "let", name).get("value"), "pointer expression")
+        if _explicit_shape(expression) != shape:
+            raise ValueError(f"surface pointer/operator precedence differs for {name}")
+        _exact_span(source, expression, spelling)
+    for name, symbol in (("multiply", "*"), ("conjunction", "&")):
+        _operator_value(source, _named(tree, "let", name).get("value"), symbol)
+    for unary in (node for node in nodes(tree) if node.get("kind") == "unary"):
+        symbol = _object(unary.get("operator"), "pointer prefix")
+        span = _sequence(unary.get("span"), "pointer prefix expression span")
+        if (len(span) != 2 or type(span[0]) is not int
+                or symbol.get("span") != [span[0], span[0] + 1]
+                or source[span[0]:span[0] + 1] != str(symbol.get("text")).encode()):
+            raise ValueError("surface pointer prefix original-byte span differs")
+    assignments = [node for node in nodes(tree) if node.get("kind") == "assignment"]
+    if len(assignments) != 2 or [_texts(node.get("operator")) for node in assignments] != [["="], ["+="]]:
+        raise ValueError("surface dereference assignments lost their operation")
+    for assignment in assignments:
+        if _explicit_shape(assignment.get("target")) != dereferenced:
+            raise ValueError("surface pointer assignment target lost its dereference")
 
 
 def _expression_binding_roles(source: bytes, result: dict[str, Json]) -> None:
@@ -3141,7 +3425,15 @@ def qualify(parse: Callable[[bytes], dict[str, Json]]) -> list[str]:
         missing = set(fixture.kinds) - found
         if missing:
             raise ValueError(f"surface fixture {fixture.name} lacks AST roles: {sorted(missing)}")
-        if fixture.name == "expression-local-bindings":
+        if fixture.name == "explicit-values-loans-and-options":
+            _explicit_value_roles(fixture.source.encode("utf-8"), result)
+        elif fixture.name == "explicit-pointer-operators":
+            _pointer_roles(fixture.source.encode("utf-8"), result)
+        elif fixture.name == "explicit-values-errors-remain-syntax":
+            _explicit_error_roles(result)
+        elif fixture.name == "expressions-and-closures":
+            _propagation_member_role(result)
+        elif fixture.name == "expression-local-bindings":
             _expression_binding_roles(fixture.source.encode("utf-8"), result)
         elif fixture.name == "shared-syntax-primitives":
             _shared_primitive_roles(fixture.source.encode("utf-8"), result)

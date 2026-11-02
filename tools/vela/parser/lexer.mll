@@ -184,7 +184,8 @@ let identifier state lexbuf =
   | "record" -> RECORD | "struct" -> STRUCT | "union" -> UNION
   | "interface" -> INTERFACE | "trait" -> TRAIT | "impl" -> IMPL
   | "import" -> IMPORT | "alias" -> ALIAS | "namespace" -> NAMESPACE | "as" -> AS
-  | "owned" -> OWNED | "move" -> MOVE | "in" -> IN | "ref" -> REF
+  | "owned" -> OWNED | "move" -> MOVE | "in" -> IN | "ref" -> REF | "out" -> OUT
+  | "null" -> refuse "syntax" lexbuf "absence requires an explicit Option case"
   | "ghost" -> GHOST | "tracked" -> TRACKED | "scoped" -> SCOPED
   | "region" -> REGION | "captures" -> CAPTURES | "grade" -> GRADE | "domain" -> DOMAIN
   | "requires" -> REQUIRES | "ensures" -> ENSURES | "restores" -> RESTORES
@@ -260,6 +261,13 @@ rule token state = parse
   | '{' { opening state lexbuf LBRACE } | '}' { closing state RBRACE }
   | '[' { opening state lexbuf LBRACKET } | ']' { closing state RBRACKET }
   | ';' { SEMICOLON } | ',' { COMMA } | '.' { DOT } | ':' { COLON }
+  | "??" | "?." {
+      if state.surface then refuse "syntax" lexbuf "implicit optional operators are not supported";
+      (* Preserve the pure entry's original one-character tokenization. *)
+      lexbuf.Lexing.lex_curr_pos <- lexbuf.Lexing.lex_start_pos + 1;
+      lexbuf.Lexing.lex_curr_p <- { lexbuf.Lexing.lex_curr_p with
+        Lexing.pos_cnum = lexbuf.Lexing.lex_start_p.Lexing.pos_cnum + 1 };
+      QUESTION }
   | '@' { AT } | '?' { QUESTION } | ".." { RANGE } | "::<" { GENERIC_OPEN }
   | "==>" { IMPLIES } | "<==>" { IFF } | "=>" { FATARROW } | "->" { ARROW }
   | "==" { EQ } | "<=" { LE } | ">=" { GE } | "!=" { NE }
