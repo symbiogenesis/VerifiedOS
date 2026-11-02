@@ -299,6 +299,8 @@ class _Elaborator:
         f = self.fresh(self.pi(a, b))
         congr_result = _apps(_constant("Eq"), b, _app(f, x), _app(f, y))
         bind("Congr", telescope((a, b, x, y, f), self.pi(eq(x, y), congr_result)), 4)
+        bind("Fst", telescope((a, b), self.pi(_term("prod", a, b), a)), 2)
+        bind("Snd", telescope((a, b), self.pi(_term("prod", a, b), b)), 2)
         bind("Vec", telescope((a, n), _SORT))
         bind("Fin", telescope((n,), _SORT))
         vec = _apps(_constant("Vec"), a, n)
@@ -385,6 +387,21 @@ class _Elaborator:
         if head.kind != "const":
             return term
         name = head.value
+        if name in {"Fst", "Snd"} and len(arguments) == 3:
+            pair = self.whnf(arguments[2])
+            if pair.kind == "pair":
+                self.tick(True)
+                return self.whnf(pair.args[2] if name == "Fst" else pair.args[3])
+        if name == "At" and len(arguments) == 4:
+            vector, values = self.spine(self.whnf(arguments[2]))
+            index, indices = self.spine(self.whnf(arguments[3]))
+            if vector == _constant("VCons") and len(values) == 4:
+                if index == _constant("FZero") and len(indices) == 2:
+                    self.tick(True)
+                    return self.whnf(values[2])
+                if index == _constant("FSucc") and len(indices) == 2:
+                    self.tick(True)
+                    return self.whnf(_apps(_constant("At"), arguments[0], values[1], values[3], indices[1]))
         if name == "Succ" and len(arguments) == 1:
             value = self.whnf(arguments[0])
             if value.kind == "nat":
@@ -1049,6 +1066,7 @@ _GALLINA = {
     "Succ": "Corelib.Init.Datatypes.S", "Eq": "Corelib.Init.Logic.eq",
     "Refl": "Corelib.Init.Logic.eq_refl", "Symm": "Corelib.Init.Logic.eq_sym",
     "Trans": "Corelib.Init.Logic.eq_trans", "Congr": "vela_Congr",
+    "Fst": "Corelib.Init.Datatypes.fst", "Snd": "Corelib.Init.Datatypes.snd",
     "Vec": "vela_Vec", "VNil": "vela_VNil", "VCons": "vela_VCons",
     "Fin": "vela_Fin", "FZero": "vela_FZero", "FSucc": "vela_FSucc", "At": "vela_At",
     "+": "Corelib.Init.Nat.add", "*": "Corelib.Init.Nat.mul", "-": "Corelib.Init.Nat.sub",
