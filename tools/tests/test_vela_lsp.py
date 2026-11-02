@@ -183,6 +183,11 @@ def _overlays() -> None:
            "diagnostic publication omitted the document identity/version")
     ensure(checks == [b"unsaved"], "open did not use unsaved text")
     original = server.documents[_URI]
+    diagnostics = cast("list[object]", publication.get("diagnostics"))
+    data = _record(_record(diagnostics[0]).get("data"))
+    ensure(data.get("snapshot") == original.identity and data.get("generation") == original.generation
+           and data.get("unqualified") is True,
+           "diagnostics did not bind their exact unqualified source snapshot")
     with redirect_stderr(StringIO()):
         stale = _published(server.handle(_change("older", 1)))
         duplicate = _published(server.handle(_change("same version", 2)))
@@ -219,6 +224,43 @@ def _overlays() -> None:
     closed = _published(server.handle(_notice("textDocument/didClose", {"textDocument": {"uri": _URI}})))
     ensure(closed.get("diagnostics") == [] and _URI not in server.documents,
            "close left diagnostics or the overlay alive")
+
+
+def _refused_edit_resynchronization() -> None:
+    checks: list[bytes] = []
+
+    def checker(source: bytes) -> dict[str, object] | None:
+        checks.append(source)
+        return {"kind": "syntax", "line": 1, "column": 1, "message": "broken input"}
+
+    server = Server(checker=checker)
+    _initialize(server)
+    _published(server.handle(_open(text="old overlay")))
+    invalid = _notice("textDocument/didChange", {
+        "textDocument": {"uri": _URI, "version": 2},
+        "contentChanges": [{"range": {}, "text": "unapplied client text"}]})
+    with redirect_stderr(StringIO()):
+        ensure(_published(server.handle(invalid)).get("diagnostics") == [],
+               "refused edit did not clear obsolete diagnostics")
+        for event in (_notice("textDocument/didSave", {"textDocument": {"uri": _URI}}),
+                      _notice("workspace/didChangeConfiguration", {"settings": {}}),
+                      _notice("workspace/didChangeWatchedFiles", {"changes": []})):
+            for message in server.handle(event):
+                ensure(_published([message]).get("diagnostics") == [],
+                       "save/dependency invalidation revived diagnostics for unapplied source")
+    ensure(checks == [b"old overlay"], "desynchronized document rechecked an obsolete overlay")
+    ensure(server.documents[_URI].text == "old overlay" and server.documents[_URI].version == 1,
+           "refused source was installed indirectly by save or invalidation")
+    publication = _published(server.handle(_change("replacement", 3)))
+    ensure(checks == [b"old overlay", b"replacement"] and publication.get("version") == 3
+           and bool(publication.get("diagnostics")),
+           "valid full replacement did not restore checking")
+    current = server.documents[_URI]
+    with redirect_stderr(StringIO()):
+        publication = _published(server.handle(_change("\ud800", 4)))
+    ensure(publication.get("diagnostics") == [] and server.documents[_URI] == current
+           and checks == [b"old overlay", b"replacement"],
+           "lone surrogate source changed the overlay or reached the producer")
 
 
 def _bounds_and_opaque_uris() -> None:
@@ -318,6 +360,7 @@ def cases() -> list[Case]:
             Case("source-coordinates-and-identities", _coordinates),
             Case("lifecycle-and-advertised-subset", _lifecycle),
             Case("versioned-full-overlays-and-invalidation", _overlays),
+            Case("refused-edit-resynchronization", _refused_edit_resynchronization),
             Case("resource-bounds-and-opaque-uris", _bounds_and_opaque_uris),
             Case("existing-producer-and-timeout", _real_producer_and_timeout),
             Case("independent-wire-transcript", _serve_transcript)]
