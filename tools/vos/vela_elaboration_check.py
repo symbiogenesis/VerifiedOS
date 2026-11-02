@@ -80,7 +80,7 @@ lemma Computed(): Twice(2) == 4 proof { return Refl(4); }
         ("universe-self-typing", "definition Type Wrong() = type Type;", "type"),
         ("unresolved-inference", "definition _ Unknown() = VNil();", "inference"),
         ("unfinished-proof", "lemma Missing(): 1 == 1;", "unsupported"),
-        ("proof-hole", "definition Nat Hole() = ?proof;", "unsupported"),
+        ("proof-hole", "definition Nat Hole() = ?proof;", "inference"),
         ("unsupported-contract", "definition Nat Contract() requires true = 0;", "unsupported"),
         ("unbound-value", "definition Nat Wrong() = missing;", "name"),
     )
