@@ -204,8 +204,13 @@ Compiler services expose located syntax, resolved symbols, types, elaboration,
 dependencies, generated definitions and diagnostics to analyzers and tools. They
 complement static generation: refactoring and navigation also operate on partial
 source and whole workspaces. Reuse the same frontend services for the
-[LSP/DAP/DWARF interfaces](tooling-protocols.md#standards-and-shared-boundaries),
-with versioned results and source/image identities. Introspection grants no editor
+[inspection and interoperability interfaces](tooling-protocols.md#compiler-inspection-api),
+with versioned concrete, resolved/typed, elaborated, analysis/proof and lowering
+views, bounded queries/exports and source/image identities. That contract owns
+public schemas, snapshot-scoped handles, partial-result status and consumer
+qualification. LSP, SARIF and SCIP consume projections of the same facts;
+compiler remarks and traces consume their actual pass/phase producers.
+Introspection grants no editor
 workspace access, runtime debug permission or additional proof acceptance path.
 
 ## Design references

@@ -58,13 +58,17 @@ The [whole-system authoring goal](unified-source-contract.md#authoring-end-state
 
 **The long-term compiler goal is a native, verified, self-hosting Vela toolchain.** Its [compiler and bootstrap contract](unified-source-contract.md#native-verified-compiler-and-self-hosting) requires Vela-authored compilation through purpose-built representations to exact machine code, reusable transformation proofs composed during compilation, and a checked connection from the running compiler to its proved definition. Clight and LLVM may serve as interim or comparison routes; neither is a mandatory stage of the completed native path. Independent kernel checking remains required. Target-specific optimization quality and the full toolchain's licensing are qualification subjects, not benefits established by self-hosting.
 
-**Support standard editor and debugger interfaces.** Vela's intended toolchain
-includes the Language Server Protocol for editing and proof feedback, the Debug
-Adapter Protocol for source debugging, and DWARF native debug information. The
-[interoperability contract](tooling-protocols.md) defines their features,
-qualification and target restrictions; the current prototypes implement none of
-these interfaces. Their [plan stages](../../../PLAN.md#vela-whole-system-authoring-proposal)
-separate editor services from native debug information and execution backends.
+**Expose compiler information and support interoperable tools.** Vela's intended
+toolchain includes versioned compiler inspection, LSP semantic services,
+Tree-sitter/TextMate editor assets, SARIF batch diagnostics, SCIP indexes, build
+integration, optimization remarks and compiler traces, alongside DAP and DWARF.
+Debugger-engine protocols and ECMA-426 source maps depend on selected backends
+and output consumers. The [interoperability contract](tooling-protocols.md)
+defines the schemas, features, qualification and target restrictions; Q25n's
+[bounded LSP prototype](lsp-prototype.md) provides lifecycle and pure-prototype
+diagnostics, with independent editor qualification and wider services still open.
+The [plan stages](../../../PLAN.md#vela-whole-system-authoring-proposal) separate
+shared compiler facts from adapters and retain their implementation prerequisites.
 
 | Desired quality | Design commitment to test | Evidence needed before claiming it |
 | --- | --- | --- |
@@ -76,6 +80,7 @@ separate editor services from native debug information and execution backends.
 | Maintainability | Abstract contracts, stable source and goal identities, semantic dependency tracking and reproducible proof replay | A semantics-preserving refactor, an internal representation change and a genuine contract change, with review and repair effort reported separately. Stable identities aid navigation but never authorize reuse after a semantic dependency changes. |
 | Proof interaction | Typed holes and a predictable refinement tier before interactive proof | Each residual goal retains its source span, local values, hypotheses, available authorities, expected exit state and target-specific cause. Unresolved nodes cannot enter an accepted build; measure automatic discharge and diagnostic latency rather than promising a percentage. |
 | Editor and debugger interoperability | LSP navigation, diagnostics and proof interaction; DAP execution control and inspection; DWARF source/type/location information for native builds | Independently exercised clients, fresh source/dependency identities, exact-image debug mappings and honest erased/optimized-value display under the [protocol contract](tooling-protocols.md#qualification-and-delivery). Production hardware debug remains excluded. |
+| Compiler visibility and interchange | Public concrete/typed/elaborated/analysis/lowering views, syntax assets, diagnostic/index/build exports and compiler decision/performance records under the [interface contracts](tooling-protocols.md#compiler-inspection-api) | Independent consumers and expected facts, explicit schema/snapshot/configuration identities, incomplete/stale-result controls and actual producer connections; interchange observations do not authorize proof or production acceptance. |
 
 ### Expected Developer Experience
 
