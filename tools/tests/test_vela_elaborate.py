@@ -10,10 +10,9 @@ import hashlib
 from collections.abc import Callable
 from typing import cast
 
-from vos.vela_elaborate import elaborate
-
 from tests.harness import Case, ensure
 from vos.vela_ast import VelaError
+from vos.vela_elaborate import elaborate
 
 type Node = dict[str, object]
 type Form = Callable[[_Fixture], Node]
@@ -474,6 +473,59 @@ def _occurs_and_unresolved_inference() -> None:
     _refuses(wrong, "type")
 
 
+def _definitional_conversion() -> None:
+    fixture = _Fixture("Conversion")
+    n = _variable("n")
+    fixture.theorem("ZeroOnLeft", (("n", _NAT),),
+                    _binary("==", _binary("+", _natural(0), n), n), _call("Refl", n))
+    identity = _group(_lambda((("value", _NAT),), _variable("value")))
+    fixture.theorem("Beta", (("n", _NAT),), _binary("==", _call(identity, n), n), _call("Refl", n))
+    fixture.definition("ComputedLength", _type("Vec", _NAT,
+                                               _group(_binary("+", _natural(0), _natural(1)))), (),
+                       _call("VCons", _natural(4), _call("VNil", generics=(_NAT,))))
+    source, response = fixture.response()
+    emitted = elaborate(source, response).gallina
+    ensure("Corelib.Init.Logic.eq_refl" in emitted, "definitional equality lost its proof constructor")
+    # Nat.add recurses on its first operand: n + 0 is stuck for arbitrary n.
+    # Accepting this neighbor with Refl would invent an arithmetic theorem.
+    wrong = _Fixture()
+    wrong.theorem("ZeroOnRight", (("n", _NAT),),
+                  _binary("==", _binary("+", n, _natural(0)), n), _call("Refl", n))
+    _refuses(wrong, "type")
+
+
+def _products_and_lookup_computation() -> None:
+    fixture = _Fixture("Elimination")
+    fixture.definition("First", _NAT, (),
+                       _call("Fst", _tuple(_natural(7), _boolean(True))))
+    fixture.definition("Second", _BOOL, (),
+                       _call("Snd", _tuple(_natural(7), _boolean(True)), generics=(_NAT, _BOOL)))
+    fixture.theorem("Projection", (),
+                    _binary("==", _call("Fst", _tuple(_natural(7), _boolean(False))), _natural(7)),
+                    _call("Refl", _natural(7)))
+    values = _call("VCons", _natural(7),
+                   _call("VCons", _natural(9), _call("VNil", generics=(_NAT,))))
+    fixture.theorem("LookupFirst", (),
+                    _binary("==", _call("At", values, _call("FZero", generics=(_natural(1),))),
+                            _natural(7)), _call("Refl", _natural(7)))
+    fixture.theorem("LookupSecond", (),
+                    _binary("==", _call("At", values,
+                                        _call("FSucc", _call("FZero", generics=(_natural(0),)))),
+                            _natural(9)), _call("Refl", _natural(9)))
+    source, response = fixture.response()
+    emitted = elaborate(source, response).gallina
+    ensure("Corelib.Init.Datatypes.fst" in emitted and "Corelib.Init.Datatypes.snd" in emitted,
+           "product elimination omitted the selected ordinary projections")
+    wrong = _Fixture()
+    wrong.definition("NotAProduct", _NAT, (), _call("Fst", _natural(7)))
+    _refuses(wrong, "type")
+    wrong = _Fixture()
+    wrong.theorem("WrongLookup", (),
+                  _binary("==", _call("At", values, _call("FZero", generics=(_natural(1),))),
+                          _natural(9)), _call("Refl", _natural(9)))
+    _refuses(wrong, "type")
+
+
 def _strict_protocol() -> None:
     fixture = _Fixture("Protocol")
     fixture.definition("Value", _NAT, (), _natural(1))
@@ -518,6 +570,42 @@ def _strict_protocol() -> None:
             raise AssertionError(f"accepted native {label} mutation")
 
 
+def _malformed_role_containers() -> None:
+    fixture = _Fixture("Roles")
+    fixture.definition("Lambda", _function_type((("x", _NAT),), _NAT), (),
+                       _lambda((("x", _NAT),), _variable("x")))
+    source, response = fixture.response()
+    mutations: list[tuple[str, Node]] = []
+    for malformed in (None, {}, True, "declarations", [None]):
+        changed = copy.deepcopy(response)
+        cast("Node", changed["ast"])["declarations"] = malformed
+        mutations.append(("declaration container", changed))
+    for field in ("generics", "parameters", "result"):
+        changed = copy.deepcopy(response)
+        root = cast("Node", changed["ast"])
+        declaration = cast("list[Node]", root["declarations"])[0]
+        declaration[field] = None
+        mutations.append((field, changed))
+    changed = copy.deepcopy(response)
+    root = cast("Node", changed["ast"])
+    declaration = cast("list[Node]", root["declarations"])[0]
+    value = cast("Node", declaration["value"])
+    parameter = cast("list[Node]", value["parameters"])[0]
+    parameter["kind"] = "generic_parameter"
+    del parameter["grade"]
+    parameter["mode"] = "ghost"
+    mutations.append(("generic binder inside lambda parameters", changed))
+    for label, changed in mutations:
+        try:
+            elaborate(source, changed)
+        except (TypeError, ValueError):
+            pass
+        except VelaError as error:
+            ensure(error.kind == "protocol", f"malformed {label} reached semantic checking")
+        else:
+            raise AssertionError(f"accepted malformed {label}")
+
+
 def _holes_unsupported_and_hygiene() -> None:
     wrong = _Fixture()
     wrong.definition("Unfinished", _NAT, (), _hole())
@@ -541,6 +629,16 @@ def _holes_unsupported_and_hygiene() -> None:
     ensure("Module Vela_Gallina_Module." in result.gallina, "qualified module escaped hygiene")
     ensure("vela_d0_Definition" in result.gallina and "(Check :" not in result.gallina,
            "source names captured Gallina syntax")
+    fixture = _Fixture("InternalNames")
+    fixture.definition("vela_d1_Later", _NAT, (), _natural(1))
+    fixture.definition("Later", _BOOL, (), _boolean(True))
+    fixture.definition("Use", _NAT, (), _call("vela_d1_Later"))
+    source, response = fixture.response()
+    elaborate(source, response)
+    wrong = _Fixture()
+    wrong.definition("Value", _NAT, (), _natural(1))
+    wrong.definition("Hidden", _NAT, (), _call("vela_d0_Value"))
+    _refuses(wrong, "name")
 
 
 def _source_limits() -> None:
@@ -565,6 +663,9 @@ def cases() -> list[Case]:
             Case("first-class-proofs-and-false-neighbors", _proof_values_and_false_neighbors),
             Case("predicative-universes-and-rigid-scope", _universes_and_scope),
             Case("occurs-and-unresolved-inference", _occurs_and_unresolved_inference),
+            Case("definitional-reduction-without-arithmetic-assumptions", _definitional_conversion),
+            Case("products-and-concrete-dependent-lookup", _products_and_lookup_computation),
             Case("strict-surface-schema-and-source-binding", _strict_protocol),
+            Case("malformed-role-containers", _malformed_role_containers),
             Case("holes-unsupported-forms-and-hygiene", _holes_unsupported_and_hygiene),
             Case("bounded-source-and-syntax", _source_limits)]

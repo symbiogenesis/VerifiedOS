@@ -242,6 +242,7 @@ class _Elaborator:
         self.metas: list[_Meta] = []
         self.types: dict[int, _Term] = {}
         self.globals: dict[str, _Binding] = {}
+        self.constants: dict[str, _Binding] = {}
         self.definitions: dict[str, _Term] = {}
         self.output: list[str] = []
         self.site: Node | None = None
@@ -270,6 +271,7 @@ class _Elaborator:
     def _builtins(self) -> None:
         def bind(name: str, value_type: _Term, generics: int = 0) -> None:
             self.globals[name] = _Binding(_constant(name), value_type, generics)
+            self.constants[name] = self.globals[name]
 
         for name in ("Nat", "bool", "Unit"):
             bind(name, _SORT)
@@ -297,6 +299,8 @@ class _Elaborator:
         f = self.fresh(self.pi(a, b))
         congr_result = _apps(_constant("Eq"), b, _app(f, x), _app(f, y))
         bind("Congr", telescope((a, b, x, y, f), self.pi(eq(x, y), congr_result)), 4)
+        bind("Fst", telescope((a, b), self.pi(_term("prod", a, b), a)), 2)
+        bind("Snd", telescope((a, b), self.pi(_term("prod", a, b), b)), 2)
         bind("Vec", telescope((a, n), _SORT))
         bind("Fin", telescope((n,), _SORT))
         vec = _apps(_constant("Vec"), a, n)
@@ -383,6 +387,21 @@ class _Elaborator:
         if head.kind != "const":
             return term
         name = head.value
+        if name in {"Fst", "Snd"} and len(arguments) == 3:
+            pair = self.whnf(arguments[2])
+            if pair.kind == "pair":
+                self.tick(True)
+                return self.whnf(pair.args[2] if name == "Fst" else pair.args[3])
+        if name == "At" and len(arguments) == 4:
+            vector, values = self.spine(self.whnf(arguments[2]))
+            index, indices = self.spine(self.whnf(arguments[3]))
+            if vector == _constant("VCons") and len(values) == 4:
+                if index == _constant("FZero") and len(indices) == 2:
+                    self.tick(True)
+                    return self.whnf(values[2])
+                if index == _constant("FSucc") and len(indices) == 2:
+                    self.tick(True)
+                    return self.whnf(_apps(_constant("At"), arguments[0], values[1], values[3], indices[1]))
         if name == "Succ" and len(arguments) == 1:
             value = self.whnf(arguments[0])
             if value.kind == "nat":
@@ -494,7 +513,7 @@ class _Elaborator:
         if kind == "const":
             if term.value == "Prop":
                 return _SORT
-            return self.globals[cast("str", term.value)].type
+            return self.constants[cast("str", term.value)].type
         if kind == "nat":
             return _NAT
         if kind == "bool":
@@ -545,8 +564,13 @@ class _Elaborator:
 
     def name(self, raw: object) -> str:
         if (not isinstance(raw, dict) or not isinstance(raw.get("text"), str)
-                or not (_IDENTIFIER.fullmatch(raw["text"]) or raw["text"] in _OPERATORS)):
+                or not _IDENTIFIER.fullmatch(raw["text"])):
             raise self.fail("protocol", "expected a located name")
+        return cast("str", raw["text"])
+
+    def operator(self, raw: object) -> str:
+        if not isinstance(raw, dict) or not isinstance(raw.get("text"), str) or raw["text"] not in _OPERATORS:
+            raise self.fail("protocol", "expected a supported located operator")
         return cast("str", raw["text"])
 
     def no_roles(self, node: Node, *roles: str) -> None:
@@ -643,7 +667,7 @@ class _Elaborator:
             self.bind_local(extended, self.name(node["name"]), _Binding(variable, domain))
         for node in parameter_nodes:
             self.site = node
-            if node["kind"] not in {"parameter", "lambda_parameter"}:
+            if node["kind"] != "parameter":
                 raise self.fail("protocol", "invalid parameter role")
             self.no_roles(node, "grade")
             domain = self.type(self.node(node["type"]), extended)
@@ -743,7 +767,9 @@ class _Elaborator:
         return value.term
 
     def lambda_(self, node: Node, environment: dict[str, _Binding], expected: _Term | None = None) -> _Binding:
+        parameter_role = "lambda_parameter"
         if node["kind"] == "typed_lambda":
+            parameter_role = "parameter"
             signature = self.type(self.node(node["signature"]), environment)
             if expected is not None:
                 self.unify(signature, expected)
@@ -767,6 +793,8 @@ class _Elaborator:
                 current = self.substitute(current.args[1], cast("int", current.value), variable)
         for parameter in parameters:
             self.site = parameter
+            if parameter["kind"] != parameter_role:
+                raise self.fail("protocol", "invalid lambda parameter syntax role")
             self.no_roles(parameter, "grade")
             domain = self.type(self.node(parameter["type"]), extended)
             expected_pi = None if current is None else self.whnf(current)
@@ -851,7 +879,7 @@ class _Elaborator:
         if kind == "unit":
             return _Binding(_term("unit"), _UNIT)
         if kind in {"name", "operator"}:
-            name = self.name(node["name"])
+            name = self.operator(node["name"]) if kind == "operator" else self.name(node["name"])
             if name == "Type":
                 return _Binding(_SORT, _term("sort", value=1))
             if name == "Prop":
@@ -888,7 +916,7 @@ class _Elaborator:
         if kind == "block":
             return self.block(node, environment)
         if kind == "binary":
-            operator = self.name(node["operator"])
+            operator = self.operator(node["operator"])
             left = self.expression(self.node(node["left"]), environment)
             right = self.expression(self.node(node["right"]), environment)
             if operator in {"==", "!="}:
@@ -907,7 +935,7 @@ class _Elaborator:
             self.unify(right.type, signature.args[0])
             return _Binding(_apps(binding.term, left.term, right.term), signature.args[1])
         if kind == "unary":
-            operator = self.name(node["operator"])
+            operator = self.operator(node["operator"])
             if operator != "!":
                 raise self.fail("unsupported", f"prefix '{operator}' is unsupported")
             value = self.check(self.node(node["value"]), _BOOL, environment)
@@ -919,7 +947,7 @@ class _Elaborator:
         if node["kind"] == "group":
             return self.proposition(self.node(node["value"]), environment)
         if node["kind"] == "binary":
-            operator = self.name(node["operator"])
+            operator = self.operator(node["operator"])
             if operator == "==":
                 left = self.expression(self.node(node["left"]), environment)
                 right = self.check(self.node(node["right"]), left.type, environment)
@@ -988,8 +1016,8 @@ class _Elaborator:
         self.output.append(f"Definition {emitted} : {self.render(signature)} :=\n  {self.render(definition)}.")
         binding = _Binding(_constant(emitted), signature, len(generics))
         self.globals[name] = binding
-        # Internal constants and source names are separate, with identical checked signatures.
-        self.globals[emitted] = binding
+        # Generated references never become names in the source namespace.
+        self.constants[emitted] = binding
         self.definitions[emitted] = definition
 
     def render(self, term: _Term) -> str:
@@ -1020,7 +1048,8 @@ class _Elaborator:
                     else f"(fun ({binder}) => {self.render(body)})")
         if kind == "app":
             head, arguments = self.spine(term)
-            return "(@" + self.render(head) + " " + " ".join(self.render(value) for value in arguments) + ")"
+            prefix = "(@" if head.kind == "const" else "("
+            return prefix + self.render(head) + " " + " ".join(self.render(value) for value in arguments) + ")"
         if kind == "prod":
             return f"(@Corelib.Init.Datatypes.prod {self.render(term.args[0])} {self.render(term.args[1])})"
         if kind == "pair":
@@ -1037,6 +1066,7 @@ _GALLINA = {
     "Succ": "Corelib.Init.Datatypes.S", "Eq": "Corelib.Init.Logic.eq",
     "Refl": "Corelib.Init.Logic.eq_refl", "Symm": "Corelib.Init.Logic.eq_sym",
     "Trans": "Corelib.Init.Logic.eq_trans", "Congr": "vela_Congr",
+    "Fst": "Corelib.Init.Datatypes.fst", "Snd": "Corelib.Init.Datatypes.snd",
     "Vec": "vela_Vec", "VNil": "vela_VNil", "VCons": "vela_VCons",
     "Fin": "vela_Fin", "FZero": "vela_FZero", "FSucc": "vela_FSucc", "At": "vela_At",
     "+": "Corelib.Init.Nat.add", "*": "Corelib.Init.Nat.mul", "-": "Corelib.Init.Nat.sub",
