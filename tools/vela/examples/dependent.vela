@@ -10,6 +10,10 @@ public definition U Apply<T, U>(Fn(T value) -> U function, T value) =
 public definition (Nat, bool) SeparateInstantiations() =
     (Identity(7), Identity::<bool>(true));
 
+public definition Nat FirstComponent() = Fst(SeparateInstantiations());
+
+public definition bool SecondComponent() = Snd(SeparateInstantiations());
+
 public definition Nat HigherOrder() =
     Apply((_ value) => value + 1, 41);
 
@@ -22,6 +26,9 @@ public definition Vec<Nat, 1> Singleton() = VCons(42, VNil::<Nat>());
 public definition Words<1> Aliased() = Singleton();
 
 public definition Nat Lookup() = At(Copy(Singleton()), FZero::<0>());
+
+public lemma LookupValue(): Lookup() == 42
+    proof { return Refl(42); }
 
 public definition Fn(Nat n, Vec<Nat, n> values) -> Vec<Nat, n> PreserveLength() =
     (Nat n, Vec<Nat, n> values) => values;
