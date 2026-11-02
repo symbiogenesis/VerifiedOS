@@ -162,6 +162,49 @@ Kotlin's [`NonCancellable`](https://kotlinlang.org/api/kotlinx.coroutines/kotlin
 
 R-12-100 terminal completion retains no DMA capability. Reclamation also needs every R-12-094 reader consumed and the pool release-to-Reusable gate; revocable storage retains R-08-007a's barrier/sweep. A deleted handle, error or absent completion proves no quiescence. Missing the DMA bound invokes R-12-099 fail-stop.
 
+## Compositional handler summaries
+
+A public higher-order handler contract states the source-work and live-frame
+bounds needed by its callers. Ordinary ghost parameters and `requires`/`ensures`
+carry these summaries; the [BestScore example](verification-strategy.md#handlers-with-accountable-continuations)
+uses an illustrative `SearchBudget` library record with natural-number `Work` and
+`Frames` fields. The summary binds the callback model, captures, selected handler
+clauses and resumption strategy. It covers every permitted reply history, including
+nested choices, forwarding and all reachable exits. A callback or handler change
+invalidates that evidence through its semantic dependencies.
+
+`Search.ExpansionFits(body.Model, budget)` denotes checked compositional evidence
+under this fixed handler strategy. Its derivation combines callback contracts and
+handler rules to establish the advertised limits; it is not an assumed Boolean or
+a renamed assertion of the desired postconditions. Inference may reconstruct a
+summary, but a missing bound or failed reconstruction remains an obligation.
+
+The source observation model defines the counted work events and frame lifecycle.
+Work includes the callback and handler steps, resumptions, cloning and disposal;
+sequential work adds and alternatives take their permitted worst case. A multi-shot
+handler charges every explored resumption. Along `d` successive binary choices,
+exploring both replies at each choice can reach `2^d` leaves even though each
+operation resumes at most twice. A local resumption allowance is therefore no
+bound on complete exploration. `PeakFrames` counts the maximum simultaneously live
+source frames, including retained continuations and handler environments under the
+declared representation; it is not the total number of resumptions.
+
+These source summaries grant no pool authority or physical capacity. Lowering
+connects them to frame layouts, reserved slots and bytes, including unused
+reservations and metadata under [R-08-045](../../spec.md#r-08-045), with exhaustion
+handled under [R-08-047](../../spec.md#r-08-047). Target cost and storage still come
+from [R-05-102](../../spec.md#r-05-102) and
+[R-08-017](../../spec.md#r-08-017)'s shared derivation; a source step is not a target
+cycle. The bounds below retain scheduled gaps, external waits and cleanup costs.
+
+Qualification under `HA-resume-dispose`, `HA-suspend-scope` and
+`HA-lowering-erasure` includes a
+nested-choice client, sequential frame reuse and simultaneously retained clones.
+Refuse a summary charging only the largest branch when both are explored, one
+omitting callback or disposal work, a stale callback/handler summary, and a
+live-frame bound presented as reserved-byte or target-time evidence. Positive and
+negative cases retain the same declared source measures and representation.
+
 ## Bounds and progress premises
 
 Specialization bounds frame nesting, children, resumptions, checkpoint distance, masks, cleanup, control delivery, device quiescence and publication. Each segment has a decreasing measure or acyclic bound. Service repetition may be indefinite across requests; each accepted request/cancellation cleanup still has a finite terminal contract. Join/resource dependencies must be acyclic: no descendant waits for a parent release that depends on its own join.

@@ -933,7 +933,7 @@ build host's word size.
 | --- | --- |
 | `let`, `var`, `T name = value` | Immutable inferred, mutable inferred and immutable type-first locals respectively. `var T name = value` is explicitly mutable. A typed literal such as `0usize` states a representation. |
 | `owned T`, `move x` | A consuming parameter, and the call-site spelling that supplies one. The moved-from binding is unusable afterwards. |
-| `in T`, `ref T`, `out T` | Shared-read, initialized-exclusive and initialization-exclusive loans, spelled again at the call site. None is a freely copyable authority token. |
+| `in T`, `ref T`, `out T` | Shared-read, initialized-exclusive and initialization-exclusive loans. Ordinary arguments repeat the mode; member-call syntax supplies the declared receiver loan. None is a freely copyable authority token. |
 | `Option<T>`, `Some(value)`, `None()` | Explicit optional data and its two tagged cases; payload use accounts for presence and absence. |
 | `*p`, `&place`, `p + n`, `p[i]` | Explicit dereference, address/loan derivation, pointer offset and indexing, under checked representation and access contracts. |
 | `'input`, `'self.text` | The loan on a named place, either a parameter or a field of one. A view returned from one source names that source; `region 'r` declares a lifetime parameter only for generic or multi-source relationships. |
@@ -963,7 +963,9 @@ acceptance. The development parser does not implement a type or borrow checker.
 - **No implicit type coercion.** Assignment, arguments, results, operators and
   branch joins do not insert numeric widening/narrowing, signedness changes,
   integer/Boolean truthiness, boxing, user-defined conversions, optional lifting,
-  borrowing, dereferencing or ownership transfer. Convert with an explicit named
+  dereferencing or ownership transfer. Ordinary loan arguments require explicit
+  `in`, `ref` or `out`; member-call syntax supplies only the declared receiver loan
+  under the rule below. Convert with an explicit named
   operation whose contract accounts for failure, representation and effects.
   Inferring a literal's type, a generic argument or a proof does not convert an
   already typed value. Kernel definitional equality remains equality; checked
@@ -1001,7 +1003,23 @@ resource rules permit it. Copying a descriptor never copies its authority or
 implicitly lends its storage. Use `owned T`/`move value` for consuming transfer,
 `in T`/`in place` for a shared read loan, `ref T`/`ref place` for an initialized
 exclusive loan, and `out T`/`out place` for an exclusive initialization loan.
-Each loan mode is explicit in both the signature and call. `out` permits no read
+Each ordinary loan argument repeats its signature's mode at the call site.
+For `receiver.Method(arguments)`, member resolution selects a declaration whose
+receiver names its mode and whole-object or named-view footprint, such as
+`ref self.Tail`. The call supplies that declared receiver loan. Evaluate the
+receiver once and establish its loan before evaluating the explicit arguments,
+under the existing left-to-right order. Eligibility, overlap, capture and lifetime
+checks apply to that exact view; resolution cannot widen it or invent a temporary
+to repair a mismatch. This shorthand supplies no consuming transfer: ownership
+still requires explicit `move`. The editor's resolved signature shows the receiver
+mode and view beside the call.
+
+Thus `log.Push(entry)` supplies `ref log.Tail`; `Fill(ref target, value)` still
+spells its ordinary argument's mode. A later argument that reads an overlapping
+part of `log` while the receiver loan is live is refused; take an allowed snapshot
+before the call when needed. No delayed receiver loan is inferred.
+
+`out` permits no read
 before initialization and requires definite initialization on every normal return,
 including `Result`/`Option` failure branches and propagation that returns from the
 function. Cancellation or other nonreturning exits retain explicit resource-state
@@ -1214,9 +1232,13 @@ public effect Choose
 	bool Choose() resumes(0..2);
 }
 
-public usize BestScore<captures C>(in Fn() -> usize captures C effects(Choose) body)
+public usize BestScore<captures C, ghost SearchBudget budget>(
+	in Fn() -> usize captures C effects(Choose) body)
 	where Duplicable(C)          // a second resumption copies everything the continuation retains
+	requires Search.ExpansionFits(body.Model, budget)
 	effects reads(C)
+	ensures Search.Work(trace) <= budget.Work
+	ensures Search.PeakFrames(trace) <= budget.Frames
 {
 	return handle (body())
 	{
@@ -1226,10 +1248,21 @@ public usize BestScore<captures C>(in Fn() -> usize captures C effects(Choose) b
 }
 
 let header = packet.Header;                              // a value copy, so duplicable
-let best = BestScore(() => Score(header, Choose()));     // the continuation retains only header
+let score = () => Score(header, Choose());               // the continuation retains only header
+let best = BestScore(in score);
 ```
 
-`BestScore(() => Score(ref packet, Choose()))` is refused at `Duplicable(C)`, [the foundation's `Dup` obligation](graded-foundation.md#resource-and-computation-interface): the second resumption would duplicate an exclusive loan, and no grade on the closure repairs that. Every captured continuation is resumed, disposed or moved into the handler's result, and none is dropped. `dispose` runs the continuation's declared cleanup:
+`SearchBudget` and `Search` are illustrative library contracts, using ordinary
+ghost parameters, `requires` and `ensures`. Their
+[compositional summary](handlers-async.md#compositional-handler-summaries) bounds
+this handler's complete exploration, including nested choices and callback work.
+The caller supplies `budget` at specialization or inference obtains it from the
+checked summary; an unresolved limit remains a goal. Work is measured in named
+source steps and frames in simultaneous live source frames. Their transport to
+target costs, reserved storage and available pool capacity remains separate.
+
+A named callback `let score = () => Score(ref packet, Choose());` passed as
+`BestScore(in score)` is refused at `Duplicable(C)`, [the foundation's `Dup` obligation](graded-foundation.md#resource-and-computation-interface): the second resumption would duplicate an exclusive loan, and no grade on the closure repairs that. Every captured continuation is resumed, disposed or moved into the handler's result, and none is dropped. `dispose` runs the continuation's declared cleanup:
 
 ```text
 public effect Reject
@@ -1264,7 +1297,8 @@ public async Delivery<n> Accept<ghost Nat n>(
 	effects reads(packet), calls(Forward, counter.Add, counter.Retire)
 {
 	let header = packet.Header;
-	let best = BestScore(() => Score(header, Choose()));
+	let score = () => Score(header, Choose());
+	let best = BestScore(in score);
 	await Forward(in packet, best);                                    // a checkpoint even when already complete
 	let receipt = commit counter.Add(move allowance, packet.Length);   // last checkpoint, then one AMOADD
 	return Accepted(move packet, receipt);                             // a later request is answered too_late
@@ -1324,6 +1358,12 @@ public Result<SortedView<'keys>, Unsorted> CheckSorted(in Span<Key> keys)
 ```
 
 Under Safe, `Sort`'s postcondition may stay unestablished; the build reports it, and no caller, proof search or proof-based optimization may use it. Selecting Contracted for the module makes that postcondition an obligation on `Sort`'s implementation. `CheckSorted` is checked on success: a `SortedView` exists only on its `Ok` case, and its shared loan keeps the keys from changing under that fact. No preset changes what `Sort` does.
+
+Generated API documentation and editor views show the claim's evidence status and
+endpoint beside its declaration, following the
+[evidence-presentation contract](assurance-profiles.md#evidence-beside-the-declaration).
+The `ensures` spelling stays the same; a detached or stale result cannot appear as
+an established guarantee for the current build.
 
 #### Feature Decisions
 

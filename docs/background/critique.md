@@ -544,6 +544,26 @@ contract extractor still owes source and target refinement. The adoption map
 records the alternatives and their prerequisites rather than treating their
 citation as implementation credit.
 
+## Vela interface clarity
+
+[Q25l](../../PLAN.md#q-assessment-actions) accepts three clarifications to
+Vela's existing design. The [receiver rule](../languages/vela/verification-strategy.md#permanent-language-exclusions)
+makes member-call borrowing explicit in the language contract while retaining
+ordinary argument modifiers. [Evidence beside the declaration](../languages/vela/assurance-profiles.md#evidence-beside-the-declaration)
+distinguishes an authored claim from its current established, conditional,
+success-only or unestablished status. [Compositional handler summaries](../languages/vela/handlers-async.md#compositional-handler-summaries)
+account for complete multi-shot exploration and peak live frames, preserving
+R-05-102/R-08-017's separate source-to-target connection and R-08-045/R-08-047's
+physical reservation and exhaustion duties.
+
+These findings support precise interfaces and qualification cases. They establish
+no reason to replace type-first declarations, binding markers, contract keywords
+or the existing cancellation notation. Source correspondence and admission still
+follow R-05-009/R-05-020; the held frontend, diagnostics, evidence-policy and
+handler/lowering rows in [Q25d's review](../languages/vela/full-language-review.md#reviewed-implementation-pricing)
+own executable enforcement. The clarification supplies no new semantic anchor,
+proof assumption or implemented language guarantee.
+
 ## The work list
 
 Outstanding assessment actions are maintained in

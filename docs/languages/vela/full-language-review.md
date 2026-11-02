@@ -90,6 +90,17 @@ Donors guide these duties without discharging them. The machine-checked graded e
 
 Each missing law, frontend component, target connection and [policy qualification stage](assurance-profiles.md#qualification-protocol) has one row, owner, estimate and predicate below.
 
+The [receiver rule](verification-strategy.md#permanent-language-exclusions)
+refines `core-frontend`'s existing resolution and loan obligations: qualify a named
+view receiver, once-only evaluation and an overlapping later argument; ordinary
+arguments still require their loan modifiers. `core-diagnostics` and
+`preset-policy` implement the [claim presentation](assurance-profiles.md#evidence-beside-the-declaration)
+with its freshness and conditional/success-scope controls.
+The [handler summaries](handlers-async.md#compositional-handler-summaries) refine
+`HA-resume-dispose`'s compositional traces, `HA-suspend-scope`'s live-frame
+accounting and `HA-lowering-erasure`'s target transport. These are acceptance
+details of the existing owners; their implementation holds remain in force.
+
 - Estimates are a range with authority class, a citation to work already owned elsewhere, or `unpriced` with its blocker; never blank, zero or a bare dash. Follow [the proof map](../../assurance/unassigned-proof-map.md#how-to-read-a-row).
 - Range ends are authored; eventual checklist cells derive their midpoint. Existing Q2c/Q21a/Q2b/Q21b/Q20b/Q20c/M1 duties are charged once, with only added work priced here.
 - Language ranges assume Q25a's parameterized interface. Concrete carrier instantiation remains `byte-instance`/`scoped-resources` work outside them.

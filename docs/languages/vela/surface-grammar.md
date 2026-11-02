@@ -499,6 +499,14 @@ more tightly. Pointer arithmetic uses the existing additive and indexing forms.
 Named library types carry pointer representations; no C declarator or `T*` type
 suffix is introduced. `->` remains a function-type arrow.
 
+Member calls retain ordinary member/call syntax. The
+[receiver rule](verification-strategy.md#permanent-language-exclusions) supplies
+the selected declaration's receiver loan, including a named view such as
+`ref self.Tail`; other arguments retain explicit loan modifiers. Resolution,
+once-only receiver evaluation, argument order and overlap remain semantic
+obligations. A call rejected for an overlapping argument or an ineligible receiver
+still parses; the parser neither chooses a view nor delays a loan.
+
 `let`, `var` and unmarked type-first locals retain distinct existing AST roles;
 unmarked locals mean immutable bindings. `Option<T>`, `Some(value)`, `None()` and
 their constructor patterns use ordinary library syntax. Reserve bare `null` in
