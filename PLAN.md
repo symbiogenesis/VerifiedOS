@@ -440,9 +440,9 @@ These figures cover the priced reference-build, assessment and named hardening b
 <!-- estimate-summary:start -->
 | Measure | Value |
 | --- | --- |
-| Total estimate midpoint h | 4,696.1 |
-| Total estimate range h | 3,048–6,344.2 |
-| Completed scope h | 865.6 |
+| Total estimate midpoint h | 4,696.4 |
+| Total estimate range h | 3,048.3–6,344.5 |
+| Completed scope h | 865.9 |
 | Complete by estimate % | 18.4 |
 | Remaining h | 3,830.5 |
 | Committed remaining h | 2,388.5 |
@@ -450,7 +450,7 @@ These figures cover the priced reference-build, assessment and named hardening b
 | Open class X h | 2,979 |
 | Retained completion estimate h | 261.5 |
 | Unmeasured completed items | 29 |
-| Calibrated total h | 5,700.3 |
+| Calibrated total h | 5,700.6 |
 | Committed M8a open h | 74 |
 | Committed M8b open h | 105.5 |
 | Other committed open h | 2,209 |
@@ -995,8 +995,8 @@ These trials add no prerequisite to the current M7.1 realization route. A failed
   * **Implementation checkpoint:** the [elaborator](tools/vos/vela_elaborate.py) and [authored example](tools/vela/examples/dependent.vela) support generic and ghost-index telescopes, dependent callables/type families, higher-order inference, indexed vectors/finite lookup, products and first-class equality/proposition proofs. Independent fixtures cover semantic refusals, inference bounds, protocol roles and source-name hygiene; the native replay command binds generated terms and their assumption audit to parser/prover inputs. The `vela-practical-20261101` fanout batch owns integrated host validation and the Guest CI dispatch. Exact-version parser and kernel acceptance remain pending; checked source correspondence and the full production frontend remain open.
 * [x] **Q25l · Clarify Vela borrowing, evidence and resource interfaces** · 0.3 h actual · agent-parallel
   * The design contracts specify receiver borrowing, visible claim evidence and compositional handler summaries, retaining the existing syntax and executable implementation owners. ([note](docs/implementation/completion-log.md#q25l-clarify-vela-borrowing-evidence-and-resource-interfaces))
-* [ ] **Q25m · Specify staged Vela metaprogramming and compiler services** · agent-parallel
-  * **Start:** the current Vela product contract, graded/resource dossiers, frontend disposition and compiler/tooling boundaries. **Owns:** the [metaprogramming contract](docs/languages/vela/metaprogramming.md), integrated product and composition rules, and separately scoped implementation stages. **Check:** independent full reads of phase, descriptor, hygiene, resource/effect, assurance, target-cost and source-provenance rules against their owners; telling positive/negative qualification cases, corpus/Markdown checks, Host CI on both platforms and the selected Guest CI handoff. **Join:** unchanged normative admission and frontend holds, no new parser/evaluator implementation or assumed language parity. **Execute:** keep C#-like ordinary APIs, static availability separate from erasure/grades and runtime reflection separate from compiler services; record future implementation as unpriced proposals until scoped and commissioned.
+* [x] **Q25m · Specify staged Vela metaprogramming and compiler services** · 0.3 h actual · agent-parallel
+  * The language contracts specify static evaluation, opt-in descriptions, resource-aware generation and shared compiler services, with implementation and artifact qualification retained at their proposed owners. ([note](docs/implementation/completion-log.md#q25m-specify-staged-vela-metaprogramming-and-compiler-services))
 * [x] **Q26 · Price the resident toolchain against the floor's own comparisons** · 4.6 h actual · agent-parallel
   * [The toolchain residency report](docs/performance/toolchain-residency.md) records the three quantities with their predicates, instruments, lanes and revisions, scores each against the artifact that owns its supply or declares it unscorable with the act that owes the supply named, and states which of the three binds and what would have to move, as arms for the product's owner with none taken. ([note](docs/implementation/completion-log.md#q26-price-the-resident-toolchain-against-the-floors-own-comparisons))
 
@@ -1350,7 +1350,7 @@ Q6's conventional-memory simulators are conditional on a topology comparison nee
 
 No assessment completion automatically increases a performance estimate. For an optimization affecting fraction `f` of runtime by factor `s`, the unchanged-cost bound is `1 / ((1 - f) + f / s)`; added transfers or changed scheduling require a fresh whole-workload comparison. Better packing is not more fabricated capacity, and host performance is not target throughput.
 
-**Q subtotal:** 2,866.6 h · 61% · 253.6 h complete · open range 1,512–3,714 h.
+**Q subtotal:** 2,866.9 h · 61% · 253.9 h complete · open range 1,512–3,714 h.
 
 ### M0 · Hardware reference
 
@@ -2428,6 +2428,7 @@ One row per completed item marked `agent-parallel`, using the [calibration recor
 | Q25e | I | 8 |
 | Q25f | I | 2 |
 | Q25l | I | 2 |
+| Q25m | n/a | n/a |
 | Q26 | X-read | 12 |
 | Q27a | I | 7 |
 | Q27b | I | 6 |
@@ -3198,7 +3199,7 @@ evaluation slice, then descriptor/derivation and cross-feature composition slice
 runtime-cost acceptance additionally needs the selected backend. Public semantic
 snapshots belong to `vela-compiler-services`, shared with generation and LSP
 clients. Q25m specifies these boundaries only. Q25k's mathematical prototype,
-Q25i's accepted grammar and the existing proposal estimates fund no additional
+Q25i's existing syntax increment and the proposal estimates fund no additional
 implementation. Each selected slice needs its own priced entry and acceptance
 predicate; source and final-artifact qualification remain distinct.
 

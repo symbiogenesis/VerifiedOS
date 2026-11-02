@@ -1159,6 +1159,41 @@ Landed: Tier A. Independent full reads covered the changed contracts, examples,
 qualification predicates and their requirement boundaries; no register or semantic
 anchor was amended.
 
+<a id="q25m-specify-staged-vela-metaprogramming-and-compiler-services"></a>
+
+#### Q25m · Specify staged Vela metaprogramming and compiler services
+
+The [metaprogramming contract](../languages/vela/metaprogramming.md) specifies
+ordinary static computation, opt-in compiler reification/schema dictionaries and
+hygienic construction carrying dependent contexts, grades, captures, effects and
+exit resources. Static availability is separate from ghost status, erasure and
+use grades; generic definitions check symbolically and demanded instantiations
+resolve before emission. The runtime-cost predicate checks removal of generator
+machinery and accounts separately for generated algorithms and retained metadata.
+Compiler semantic services remain shared with generation, analysis and editors.
+
+The acceptance predicate and cross-document scope are recorded at `97d00bb3`.
+Independent full reads accepted the integrated design at `690755bf`, including
+the companion at `ac0624da`, against the register and the retained phase,
+resource, assurance, parser and compiler owners. The codec qualification keeps
+independently chosen wire semantics, the required Narcissus route and descriptor
+review; generated laws supply no independent intent or final-artifact theorem.
+The `vela-metaprogramming-20261101` fanout journal binds the settled publication,
+comparison base, selected checks, Host CI evidence and Guest CI handoff. Guest
+verdicts remain deferred under the shared handoff.
+
+Accepted on 2026-11-01 as a design contract. `vela-meta` and
+`vela-compiler-services` retain separately scoped, unpriced implementation duties;
+the existing frontend hold, prototypes and grammar qualification are unchanged.
+No evaluator, reflection API, staged checker or performance result is implemented
+by this item. Accounting: 0.3 h agent-parallel authoring and review, excluding
+unattended hosted waiting. No prospective estimate was recorded for this design
+increment, so its calibration-record columns are `n/a` and it supplies no fit pair.
+
+Landed: Tier A. Independent full reads covered the complete companion and changed
+product, composition, evidence and implementation boundaries. No normative
+requirement, coverage cell, semantic anchor or kernel equality was amended.
+
 <a id="q26-price-the-resident-toolchain-against-the-floors-own-comparisons"></a>
 
 ### Q26 · Price the resident toolchain against the floor's own comparisons
