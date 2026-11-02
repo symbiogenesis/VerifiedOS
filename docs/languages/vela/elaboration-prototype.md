@@ -27,7 +27,9 @@ The increment uses the [surface grammar](surface-grammar.md) without new syntax:
   eight, dependent `Fn` telescopes, type-valued parameters and
   computed types. Substitution preserves dependency and avoids capture. Reject
   self-typing universes and escaping inference variables. Symbolic universe
-  declarations and universe-level inference remain unsupported.
+  declarations, implicit cumulativity and universe-level inference remain
+  unsupported; universe levels match exactly. Use `<P : Prop>` for a
+  proof-polymorphic routine.
 - Bidirectional inference for applications, immutable locals, products and
   higher-order functions. Expected types constrain lambdas and omitted generic
   arguments. An annotation hole `_` requests inference, never an axiom. Ambiguous
@@ -114,9 +116,11 @@ them explicitly and `_` requests an inferred argument. A contextual lambda can
 use `(_ value) => ...`. Declare a dependent callable with
 `Fn(Nat n, Vec<Nat, n> values) -> Vec<Nat, n>`.
 
-`Vec<T,n>` is a mathematical indexed collection, with `VNil`, `VCons`, `Fin`,
+`Fst` and `Snd` project ordinary products. `Vec<T,n>` is a mathematical indexed collection, with `VNil`, `VCons`, `Fin`,
 `FZero`, `FSucc` and `At` for construction and safe lookup. This prototype gives
 it no machine layout. Definitional equality is computational: use `Succ(n)` or
 `1 + n` for a successor index; arbitrary rearrangement of natural arithmetic
 needs an explicit theorem. `Refl`, `Symm`, `Trans` and `Congr` construct equality
-evidence. `type[Eq::<T>(left, right)]` lets an ordinary parameter carry that proof.
+evidence. Concrete product projections and finite lookup reduce during checking,
+so the example proves its lookup result. `type[Eq::<T>(left, right)]` lets an
+ordinary parameter carry that proof.
