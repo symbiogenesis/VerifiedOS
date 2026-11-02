@@ -165,13 +165,19 @@ own additional implementation scope. Their costs remain `unpriced` pending
 selection of a supported slice and its interpretation, descriptor protocol and
 source-correspondence boundary. Existing ranges above are unchanged and fund no
 general evaluator, reflection API, staged calculus or public compiler-service
-implementation. Price shared work once at the following joins:
+implementation. The [tooling contract](tooling-protocols.md#compiler-inspection-api)
+extends these joins to concrete/typed/elaborated/analysis/lowering inspection,
+syntax assets, SARIF/SCIP, build integration, remarks and compiler traces. Their
+separate proposal owners, conditional debugger protocols and generated-output maps
+remain unpriced; the existing ranges and Q25n's bounded LSP increment fund none
+of those additional adapters or missing semantic/backend producers. Price shared
+work once at the following joins:
 
 | Duty | Existing join and additional acceptance |
 | --- | --- |
 | Static evaluation, dependent reindexing and generated resource uses | `core-soundness`: preserve the graded/resource interpretation and kernel-compatible conversion; no static knowledge follows from erasure or a grade. |
 | Description, hygiene and generated-source correspondence | `core-frontend`: bind descriptor dictionaries, declaration identities, scoped generated terms, target/ABI and the exact resulting computation; no arbitrary elimination of `Type` or trusted generator result. |
-| Diagnostics, claims and tooling | `core-diagnostics` and `preset-policy`: preserve source provenance and current evidence status; `vela-compiler-services` exposes shared versioned snapshots and `vela-lsp` adapts them. No second semantic implementation or proof-acceptance path. |
+| Diagnostics, claims and tooling | `core-diagnostics` and `preset-policy`: preserve source provenance and current evidence status; `vela-compiler-services` exposes shared versioned views, and LSP/SARIF/SCIP consume projections. Syntax assets follow the canonical grammar; build, remarks and trace adapters consume their actual producers. No second semantic implementation or proof-acceptance path. |
 | Lowering and runtime-cost qualification | Existing compiler, admission and hardware owners: retain effects, exits, leakage, representation and final-artifact evidence; inspect removal of generator machinery and measure residual code, descriptors and specialization growth. |
 
 These joins retain the admission hold below. This extension neither makes the
