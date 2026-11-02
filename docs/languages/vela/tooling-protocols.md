@@ -59,6 +59,15 @@ identify executable sites in the final image. Static generation cannot replace
 these services. An incomplete editor snapshot remains diagnostic data and cannot
 authorize a splice, theorem reuse or production emission.
 
+For interchange exports, use the format's standard metadata where adequate and
+an explicitly hash-bound companion manifest for Vela provenance or completion
+facts it cannot carry. The exporter owns the exported-file digest, input closure,
+compiler/configuration/target identities, supported scope and completion status.
+A Vela integration wrapper validates these bindings against the requested current
+inputs before handing the projection to a stock consumer. Independent consumers
+qualify format interpretation; the wrapper owns freshness and completion checks
+that those consumers do not implement. A valid format alone supplies neither.
+
 Host development initially uses standard input/output connections, keeping logs
 off the protocol stream. A resident VerifiedOS service must use the
 [capability-delegated compartment transport](../../implementation/userspace-porting.md#zed-the-reference-editor)
@@ -73,7 +82,8 @@ before implementation. Capability exchange cannot weaken admission or security.
 
 Host development implementations remain untrusted diagnostic tools. Before
 admitting any resident attacker-facing endpoint or interchange reader described
-here, enumerate its exact framing, encoding and message-schema profile and descriptor identities in the
+here, enumerate its exact framing, encoding and message-schema profile and
+descriptor identities in the
 [wire-format inventory](../../assurance/wire-format-inventory.md).
 [R-05-042](../../spec.md#r-05-042) requires verified copy-once Narcissus parsers;
 [R-05-043](../../spec.md#r-05-043) retains their required lowering and
@@ -216,12 +226,14 @@ rule references and completion status to require visible rejection or degradatio
 
 Export offline definitions, references, implementations and symbol relationships
 through [SCIP](https://github.com/scip-code/scip). Pin its Protobuf schema and
-consumer. Bind the index to source/configuration/dependency identities and
-document symbol-identity rules, index scope and omissions. Import and query it
+consumer. Bind the index bytes and source/configuration/dependency identities
+through the companion manifest; document symbol-identity rules, index scope and
+omissions. Import and query it
 without a running language server; test shadowing, imports, generated definitions,
 specializations and deleted/renamed dependencies against independently expected
-navigation. Refuse a stale index as current source evidence and distinguish an
-incomplete index from a verified absence of references. SCIP is a navigation
+navigation. The Vela wrapper refuses a stale index as current source evidence
+and distinguishes an incomplete index from a verified absence of references
+within the qualified scope; the stock reader supplies no such verdict. SCIP is a navigation
 projection, not the typed AST or the complete analysis/proof-state interface.
 
 ## Build integration
@@ -263,8 +275,10 @@ Identify parsing, resolution, elaboration, generation, proof work and lowering,
 with explicit clock/time units, worker identities, counters and input/tool
 identities. Bound recording overhead and size; mark dropped events, incomplete
 spans and cancellation. An independent viewer must recover expected ordering,
-nesting and durations from a deterministic fixture; malformed timestamps and
-overflow/truncation cannot produce a complete measurement claim. Compiler traces
+nesting and durations from a deterministic fixture. The recorder and Vela
+validation wrapper bind those events and completeness metadata in the export
+manifest; malformed timestamps and overflow/truncation cannot produce a complete
+measurement claim. Compiler traces
 measure the compiler run, separately from emitted-program WCET and constant-time
 evidence. Runtime profiling or coverage formats need their own named consumers
 and commissioning; these compiler exports do not implement them.
@@ -380,9 +394,11 @@ mapping, emit [ECMA-426 source maps](https://tc39.es/ecma426/). Pin the publishe
 edition/schema and consumer, keeping any draft-only extension explicit. Map
 generated sites back to authored source and retain multi-stage expansion origins
 through the compiler services; document mappings that the standard cannot express.
-Bind maps to exact generated output and source closure. Qualify an independent
-consumer with composed generation, Unicode coordinates and missing/unmapped sites;
-alter output or source and require a mismatch refusal. These maps do not replace
+Bind map bytes, exact generated output and source closure in the companion
+manifest. Qualify an independent consumer with composed generation, Unicode
+coordinates and missing/unmapped sites. Separately alter map, output and source
+identities and require the Vela integration wrapper to refuse the mismatch before
+handoff to that consumer. These maps do not replace
 DWARF for native locations, types or unwinding, and a native-only stage has no
 ECMA-426 export duty. Lowering and source provenance remain compiler-owned once.
 
