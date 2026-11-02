@@ -8,13 +8,21 @@ message protocols with different message models.
 
 This is a non-normative design contract. The
 [plan](../../../PLAN.md#vela-whole-system-authoring-proposal) owns implementation
-stages and commissioning. The current parser and Gallina elaborator implement
-none of these interfaces. Semantic services depend on the qualified frontend;
+stages and commissioning. The [first host LSP increment](lsp-prototype.md)
+uses the pure prototype as its diagnostic producer. Semantic services depend on the qualified frontend;
 native debugging additionally needs an executable backend, its ABI and debug
 information. A separately commissioned syntax-only server may precede those
 dependencies if it advertises only its implemented subset.
 
 ## Standards and shared boundaries
+
+Delivery starts with LSP lifecycle and pure-prototype diagnostics, sharing immutable
+source snapshots and explicit coordinate conversion. Native DWARF follows an
+executable producer and fixed ABI; DAP follows a qualified simulator backend and
+consumes matching debug information for native images. These prerequisites favor
+incremental delivery. Compiler identities, source maps and final-image provenance
+have shared owners; LSP JSON-RPC, DAP messages and DWARF emission remain separate
+consumers.
 
 Use the published [LSP specification](https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/),
 with interoperability tests for the selected 3.17-compatible feature subset.
