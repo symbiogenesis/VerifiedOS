@@ -374,7 +374,7 @@ class _Elaborator:
             return term
         if term.kind == "const" and term.value in self.definitions:
             self.tick(True)
-            return self.whnf(self.definitions[cast("str", term.value)])
+            return self.whnf(self.definitions[term.value])
         if term.kind != "app":
             return term
         function, argument = term.args
@@ -425,7 +425,7 @@ class _Elaborator:
                               "ne_nat": lambda: int(a != b), "ne_bool": lambda: int(a != b),
                               "&&": lambda: int(bool(a and b)), "||": lambda: int(bool(a or b)),
                               "==>": lambda: int(not a or b), "<==>": lambda: int(a == b)}
-                operation = operations.get(cast("str", name))
+                operation = operations.get(name)
                 if operation is not None:
                     self.tick(True)
                     value = operation()

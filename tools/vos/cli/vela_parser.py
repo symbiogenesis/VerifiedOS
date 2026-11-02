@@ -19,6 +19,14 @@ from vos.atomic import atomic_path
 from vos.vela import VelaError
 
 
+def _publish(source: Path, destination: Path, gallina: str) -> None:
+    if (source.resolve() == destination.resolve()
+            or (destination.exists() and source.samefile(destination))):
+        raise VelaError("io", 1, 1, "output aliases the input")
+    with atomic_path(destination) as pending:
+        pending.write_text(gallina, encoding="utf-8", newline="")
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(suggest_on_error=True, description=__doc__)
     commands = parser.add_subparsers(dest="command", required=True)
@@ -49,12 +57,7 @@ def main(argv: list[str] | None = None) -> int:
             if args.output is None:
                 print(translation.gallina, end="")
             else:
-                destination = Path(args.output)
-                if (args.source.resolve() == destination.resolve()
-                        or (destination.exists() and args.source.samefile(destination))):
-                    raise VelaError("io", 1, 1, "output aliases the input")
-                with atomic_path(destination) as pending:
-                    pending.write_text(translation.gallina, encoding="utf-8", newline="")
+                _publish(args.source, args.output, translation.gallina)
             return 0
         if args.command == "elaborate-qualify":
             output = vela_elaboration_check.qualify(root)

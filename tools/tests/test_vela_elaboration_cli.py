@@ -8,11 +8,10 @@ from io import StringIO
 from pathlib import Path
 from unittest.mock import patch
 
-from vos.vela_elaborate import Elaboration
-
 from tests.harness import Case, ensure
 from vos.cli import vela_parser as cli
 from vos.vela import VelaError
+from vos.vela_elaborate import Elaboration
 
 SOURCE = b"module Demo; definition Nat Value() = 3;"
 GALLINA = "(* unqualified test term *)\nDefinition value : nat := 3.\n"
@@ -61,7 +60,7 @@ def _publication() -> None:
                 ensure(code == 1 and not out and "aliases" in err and source.read_bytes() == SOURCE,
                        "input alias was replaced")
             code, out, err = _invoke(["elaborate", str(source), "--output", str(root / "missing/out.v")])
-            ensure(code == 1 and not out and err and not (root / "missing").exists(),
+            ensure(code == 1 and not out and bool(err) and not (root / "missing").exists(),
                    "publication created an undeclared directory")
             with patch.object(Path, "replace", side_effect=OSError("publication refused")):
                 code, out, err = _invoke(["elaborate", str(source), "--output", str(output)])

@@ -101,6 +101,11 @@ def _sha256(source: bytes) -> str:
     return hashlib.sha256(source).hexdigest()
 
 
+def _require(condition: bool, message: str) -> None:
+    if not condition:
+        raise ValueError(message)
+
+
 def _write(path: Path, value: object) -> None:
     with atomic_path(path) as pending:
         pending.write_text(json.dumps(value, indent=2, sort_keys=True) + "\n",
@@ -336,23 +341,23 @@ def qualify(root: Path) -> dict[str, object]:
                 rows.append(_case(compiled, case, directory, index, steps))
                 _write(directory / "attempt.json", attempt)
             libraries = [str(row["library"]) for row in rows if row["category"] == "accepted"]
-            if not libraries:
-                raise ValueError("Vela replay has no accepted library to kernel-check")
+            _require(bool(libraries), "Vela replay has no accepted library to kernel-check")
             _run(_opam(["rocqchk", "-R", str(directory), "VelaElaboration", *libraries]),
                  directory, directory / "kernel.log", steps)
-            if (_inputs(root) != inputs or _toolchain(root, directory, steps) != tools
-                    or _runtime(directory, steps) != runtime):
-                raise ValueError("Vela replay inputs, toolchain or runtime changed during qualification")
-            if (compiled.receipt != parser_receipt or _parser_outputs(compiled) != outputs
-                    or vela_parser._toolchain(root) != parser_receipt["toolchain"]):
-                raise ValueError("Vela replay parser identity changed during qualification")
+            _require(_inputs(root) == inputs and _toolchain(root, directory, steps) == tools
+                     and _runtime(directory, steps) == runtime,
+                     "Vela replay inputs, toolchain or runtime changed during qualification")
+            _require(compiled.receipt == parser_receipt and _parser_outputs(compiled) == outputs
+                     and vela_parser._toolchain(root) == parser_receipt["toolchain"],
+                     "Vela replay parser identity changed during qualification")
             attempt.update({"status": "passed", "kernel_checked": True,
                             "artifacts_sha256": _observations(rows, steps)})
             _write(directory / "attempt.json", attempt)
             _write(latest, attempt)
-            return attempt
         except Exception as error:
             attempt.update({"status": "failed", "kernel_checked": False,
                             "error": f"{type(error).__name__}: {error}"})
             _write(directory / "attempt.json", attempt)
             raise
+        else:
+            return attempt

@@ -121,7 +121,7 @@ def _freshness_controls() -> None:
             raise AssertionError("stale generated parser was accepted")
         artifact = directory / "Case000.vo"
         artifact.write_bytes(b"checked library")
-        rows = [{"vo": str(artifact), "vo_sha256": replay._sha256(artifact.read_bytes())}]
+        rows: list[dict[str, object]] = [{"vo": str(artifact), "vo_sha256": replay._sha256(artifact.read_bytes())}]
         ensure(str(artifact) in replay._observations(rows, []), "checked library not bound in receipt")
         artifact.write_bytes(b"replacement library")
         try:
