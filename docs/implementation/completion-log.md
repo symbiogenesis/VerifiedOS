@@ -1126,6 +1126,39 @@ remain separately scoped work.
 Landed: Tier A. Independent full reads checked the source grammar against the
 design dossier and the parser against independently chosen returning-block cases.
 
+<a id="q25l-clarify-vela-borrowing-evidence-and-resource-interfaces"></a>
+
+#### Q25l · Clarify Vela borrowing, evidence and resource interfaces
+
+The acceptance contract landed at `950dd272`. The
+[language surface](../languages/vela/verification-strategy.md#permanent-language-exclusions)
+states the receiver-loan exception with its evaluation order, named-view footprint
+and alias checks; ordinary arguments retain explicit modifiers. The callback
+examples use typed local bindings to retain their per-call effect capability and
+provide a place for `in`. The
+[assurance policy](../languages/vela/assurance-profiles.md#evidence-beside-the-declaration)
+requires current claim status and endpoint beside rendered declarations. The
+[handler contract](../languages/vela/handlers-async.md#compositional-handler-summaries)
+separates whole-exploration source work, peak live frames, reserved storage and
+target cost. Existing syntax and implementation owners carry these duties.
+
+Independent review of `1e43489a` and `dcd089a4` resolved the callback's effect
+binding and the negative example's possible earlier call-mode refusal in
+`ba1c8b19`. It also checked receiver argument order, conditional budget inference,
+source/target resource boundaries and stale evidence presentation against the
+register. The `vela-interfaces-20261101` fanout journal records the settled revision,
+comparison base, hosted verdicts and selected Guest CI handoff. Guest verdicts are
+deferred under the shared handoff; they are not supplied by this design review.
+
+Accepted on 2026-11-01 as design-contract maintenance. No parser, semantic checker
+or evidence renderer is implemented by this item; Q25d's held frontend,
+diagnostics, policy and handler/lowering owners retain executable qualification.
+Accounting: 0.3 h agent-parallel authoring and review, excluding hosted waiting.
+
+Landed: Tier A. Independent full reads covered the changed contracts, examples,
+qualification predicates and their requirement boundaries; no register or semantic
+anchor was amended.
+
 <a id="q26-price-the-resident-toolchain-against-the-floors-own-comparisons"></a>
 
 ### Q26 · Price the resident toolchain against the floor's own comparisons

@@ -440,9 +440,9 @@ These figures cover the priced reference-build, assessment and named hardening b
 <!-- estimate-summary:start -->
 | Measure | Value |
 | --- | --- |
-| Total estimate midpoint h | 4,695.8 |
-| Total estimate range h | 3,047.7–6,343.9 |
-| Completed scope h | 865.3 |
+| Total estimate midpoint h | 4,696.1 |
+| Total estimate range h | 3,048–6,344.2 |
+| Completed scope h | 865.6 |
 | Complete by estimate % | 18.4 |
 | Remaining h | 3,830.5 |
 | Committed remaining h | 2,388.5 |
@@ -450,7 +450,7 @@ These figures cover the priced reference-build, assessment and named hardening b
 | Open class X h | 2,979 |
 | Retained completion estimate h | 261.5 |
 | Unmeasured completed items | 29 |
-| Calibrated total h | 5,700 |
+| Calibrated total h | 5,700.3 |
 | Committed M8a open h | 74 |
 | Committed M8b open h | 105.5 |
 | Other committed open h | 2,209 |
@@ -993,8 +993,8 @@ These trials add no prerequisite to the current M7.1 realization route. A failed
 * [ ] **Q25k · Elaborate generic dependent mathematics and first-class proofs** · 24 h, range 16–32 · I · agent-parallel
   * **Start:** the landed [mathematical elaboration contract](docs/languages/vela/elaboration-prototype.md), Q25f's pure prototype and Q25i's executable surface grammar. **Owns:** an opt-in schema-2 consumer, bounded bidirectional generic/dependent inference, indexed collections, explicit proof terms, Gallina emission and native kernel replay. **Check:** every positive, semantic refusal, protocol, resource-limit and publication predicate in the contract, focused host tests and Python checks, Host CI on both platforms and dispatch of every Guest CI lane; native acceptance stays pending until its hosted verdict. **Join:** independent type/proof fixtures and review of generated terms. **Execute:** preserve the pure migration route and the full-frontend hold; interpretation is the generated CIC image, with no independent source semantics or production admission.
   * **Implementation checkpoint:** the [elaborator](tools/vos/vela_elaborate.py) and [authored example](tools/vela/examples/dependent.vela) support generic and ghost-index telescopes, dependent callables/type families, higher-order inference, indexed vectors/finite lookup, products and first-class equality/proposition proofs. Independent fixtures cover semantic refusals, inference bounds, protocol roles and source-name hygiene; the native replay command binds generated terms and their assumption audit to parser/prover inputs. The `vela-practical-20261101` fanout batch owns integrated host validation and the Guest CI dispatch. Exact-version parser and kernel acceptance remain pending; checked source correspondence and the full production frontend remain open.
-* [ ] **Q25l · Clarify Vela borrowing, evidence and resource interfaces** · 2 h, range 1–3 · I · agent-parallel
-  * **Start:** Q25's language design, assurance policy and handler contracts, with the existing frontend hold. **Owns:** the member-call receiver rule, claim-status presentation beside source contracts, and compositional handler work/frame summaries expressed through existing syntax; the critique disposition and implementation-owner joins accompany those contracts. **Check:** independent review resolves receiver evaluation and aliasing cases, missing/stale/conditional evidence presentation, and nested multi-shot work/storage accounting; the examples preserve the existing surface and source/target evidence distinction; the consistency checker and both Host CI aggregates pass, with Guest CI selected by the shared classifier. **Join:** Q25d's existing frontend, diagnostics, policy and handler/lowering owners. **Execute:** maintain the design contracts and their qualification predicates; add no new syntax or claim of an implemented renderer, resource checker or semantic frontend.
+* [x] **Q25l · Clarify Vela borrowing, evidence and resource interfaces** · 0.3 h actual · agent-parallel
+  * The design contracts specify receiver borrowing, visible claim evidence and compositional handler summaries, retaining the existing syntax and executable implementation owners. ([note](docs/implementation/completion-log.md#q25l-clarify-vela-borrowing-evidence-and-resource-interfaces))
 * [x] **Q26 · Price the resident toolchain against the floor's own comparisons** · 4.6 h actual · agent-parallel
   * [The toolchain residency report](docs/performance/toolchain-residency.md) records the three quantities with their predicates, instruments, lanes and revisions, scores each against the artifact that owns its supply or declares it unscorable with the act that owes the supply named, and states which of the three binds and what would have to move, as arms for the product's owner with none taken. ([note](docs/implementation/completion-log.md#q26-price-the-resident-toolchain-against-the-floors-own-comparisons))
 
@@ -1348,7 +1348,7 @@ Q6's conventional-memory simulators are conditional on a topology comparison nee
 
 No assessment completion automatically increases a performance estimate. For an optimization affecting fraction `f` of runtime by factor `s`, the unchanged-cost bound is `1 / ((1 - f) + f / s)`; added transfers or changed scheduling require a fresh whole-workload comparison. Better packing is not more fabricated capacity, and host performance is not target throughput.
 
-**Q subtotal:** 2,866.3 h · 61% · 253.3 h complete · open range 1,512–3,714 h.
+**Q subtotal:** 2,866.6 h · 61% · 253.6 h complete · open range 1,512–3,714 h.
 
 ### M0 · Hardware reference
 
@@ -2259,10 +2259,10 @@ These items count toward the grand total, outside milestone subtotals, with one 
 | attended | X-read | 14 | 45.5 | 26.9 | 0.59 |
 | attended | X-authored | 3 | 18 | 25.5 | 1.42 |
 | attended | All | 63 | 323.9 | 238.4 | 0.74 |
-| agent-parallel | I | 42 | 345 | 130.2 | 0.38 |
+| agent-parallel | I | 43 | 347 | 130.5 | 0.38 |
 | agent-parallel | X-read | 11 | 107.5 | 36.9 | 0.34 |
 | agent-parallel | X-authored | 25 | 284 | 44.1 | 0.16 |
-| agent-parallel | All | 78 | 736.5 | 211.2 | 0.29 |
+| agent-parallel | All | 79 | 738.5 | 211.5 | 0.29 |
 <!-- calibration-results:end -->
 
 ### Calibration record
@@ -2425,6 +2425,7 @@ One row per completed item marked `agent-parallel`, using the [calibration recor
 | Q25d | X-authored | 10 |
 | Q25e | I | 8 |
 | Q25f | I | 2 |
+| Q25l | I | 2 |
 | Q26 | X-read | 12 |
 | Q27a | I | 7 |
 | Q27b | I | 6 |
