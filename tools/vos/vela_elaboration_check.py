@@ -48,6 +48,13 @@ definition Vec<T,n> Copy<T, ghost Nat n>(Vec<T,n> xs) = xs;
 definition Vec<Nat,2> Two() = VCons(7, VCons(8, VNil::<Nat>()));
 definition Vec<Nat,0> Empty() = Copy(VNil::<Nat>());
 definition Nat Lookup() = At(Copy(Two()), FSucc(FZero::<0>()));
+lemma Selected(): At(Two(), FSucc(FZero::<0>())) == 8 proof { return Refl(8); }
+"""),
+        ("product-projection-conversion", """module ProductReplay;
+definition Nat Left() = Fst((7, true));
+definition bool Right() = Snd((7, true));
+lemma LeftValue(): Fst((7, true)) == 7 proof { return Refl(7); }
+lemma RightValue(): Snd((7, true)) == true proof { return Refl(true); }
 """),
         ("higher-order-inference", """module InferenceReplay;
 definition U Apply<T,U>(Fn(T value) -> U f, T x) = f(x);
