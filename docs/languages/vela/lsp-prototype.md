@@ -51,6 +51,8 @@ Cancellation has no outstanding asynchronous work to cancel; it cannot undo a
 published notification. A worker timeout produces a diagnostic for that snapshot.
 Invalid document notifications clear diagnostics for the affected open document,
 are logged and leave overlays unchanged.
+Save and invalidation cannot republish diagnostics for a refused edit's old text;
+a valid full replacement or close/reopen restores synchronization.
 
 ## Acceptance and remaining qualification
 

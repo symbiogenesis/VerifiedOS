@@ -73,6 +73,8 @@ COMMANDS: tuple[Command, ...] = (
             "plan checked constant signed floor division and emit RV64 arithmetic candidates"),
     Command("vela", "vos.cli.vela",
             "check pure Vela prototype source and emit unqualified Gallina definitions"),
+    Command("vela-lsp", "vos.cli.vela_lsp",
+            "serve host LSP lifecycle and unqualified pure Vela diagnostics over stdio"),
     Command("vela-parser", "vos.cli.vela_parser",
             "parse Vela, elaborate dependent mathematics and replay proofs", lane="guest"),
     Command("worktree", "vos.cli.worktree",
