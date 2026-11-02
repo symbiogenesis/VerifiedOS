@@ -52,6 +52,16 @@ incompatible offers. Broader host-side feature negotiation supplies no exception
 to that rule; resident negotiation beyond it needs a register/prose amendment
 before implementation. Capability exchange cannot weaken admission or security.
 
+Host development implementations remain untrusted diagnostic tools. Before
+admitting any resident attacker-facing LSP/DAP endpoint, enumerate its exact
+framing, JSON and message-schema profile and descriptor identities in the
+[wire-format inventory](../../assurance/wire-format-inventory.md).
+[R-05-042](../../spec.md#r-05-042) requires verified copy-once Narcissus parsers;
+[R-05-043](../../spec.md#r-05-043) retains their required lowering and
+[R-05-046](../../spec.md#r-05-046) independent descriptor review. A bounded JSON
+library or successful protocol transcript discharges none of these duties.
+The unpriced protocol stages select no resident profile or parser implementation.
+
 Freeze bounds on header/body bytes, JSON nesting, document/workspace size,
 outstanding requests, result size and worker time before implementation
 qualification. Refuse malformed, truncated or over-budget input with bounded
