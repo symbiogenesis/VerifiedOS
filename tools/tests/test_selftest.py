@@ -766,18 +766,50 @@ def _holder_seeds_survive_changed_completion_prose() -> None:
                        f"the seeded defect must independently provoke its K-84 direction: {found}")
 
 
-def _holder_seeds_refuse_absent_structural_targets() -> None:
-    for seed, prose in (
-            (selftest._k84_unregistered_holder, "K-00 is plain discussion.\n```\n**K-00**\n```\n"),
-            (selftest._k84, "A fact is held by **K-00**.\nLanded: Tier A.\n"),
-            (selftest._k84, "Landed: Tier B.\n"),
-            (selftest._k84, "```\nLanded: Tier B under **K-00**.\n```\n")):
-        with sandbox_tree({selftest.LOG: "# Completion log\n\n" + prose}) as root:
+def _retired_holder_seed_selects_current_claim() -> None:
+    distractor = "```markdown\nAn example held by **K-00**.\n```\n"
+    sections = ("## Second\nChanged current narrative, held by **K-12**.\n",
+                "## First\nAnother current claim, held by **K-00**.\n")
+    historical = "# Completion log\n\nLanded: Tier B under **K-102**.\n"
+    for prose in (distractor + "\n".join(sections),
+                  "\n".join(reversed(sections)) + distractor):
+        with sandbox_tree({"docs/requirements-register.md": _REGISTER_MIN,
+                           selftest.RULES: "# Rules\n\n| ~~K-102~~ | retired | n/a |\n",
+                           selftest.PLAN: "# Plan\n\n" + prose,
+                           selftest.LOG: historical}) as root:
+            ctx = _context(root)
+            meta._landings(ctx, {"K-00", "K-12"})
+            ensure(not _findings_under(ctx, "K-84"),
+                   "a retired holder in historical evidence must begin valid")
             box = selftest.Sandbox(root, root)
-            before = box.read(selftest.LOG)
+            ensure(selftest._k84_retired_holder(box),
+                   "the current-holder mutant must survive narrative edits and reordering")
+            ensure(box.touched == {selftest.PLAN} and distractor in box.read(selftest.PLAN)
+                   and box.read(selftest.LOG) == historical,
+                   "the seed must preserve fenced examples and historical evidence")
+            ctx = _context(root)
+            meta._landings(ctx, {"K-00", "K-12"})
+            found = _findings_under(ctx, "K-84")
+            ensure(len(found) == 1 and "PLAN.md:" in found[0] and "names K-102" in found[0],
+                   f"only the current retired-holder claim must fail: {found}")
+
+
+def _holder_seeds_refuse_absent_structural_targets() -> None:
+    for seed, relative, prose in (
+            (selftest._k84_unregistered_holder, selftest.LOG,
+             "K-00 is plain discussion.\n```\n**K-00**\n```\n"),
+            (selftest._k84_retired_holder, selftest.PLAN,
+             "K-00 is plain discussion.\n```\n**K-00**\n```\n"),
+            (selftest._k84_retired_holder, selftest.PLAN, "A claim held by **K-102**.\n"),
+            (selftest._k84, selftest.LOG, "A fact is held by **K-00**.\nLanded: Tier A.\n"),
+            (selftest._k84, selftest.LOG, "Landed: Tier B.\n"),
+            (selftest._k84, selftest.LOG, "```\nLanded: Tier B under **K-00**.\n```\n")):
+        with sandbox_tree({relative: "# Fixture\n\n" + prose}) as root:
+            box = selftest.Sandbox(root, root)
+            before = box.read(relative)
             with patch.object(box, "check", side_effect=AssertionError("an unseeded case ran its checker")):
                 result = selftest._verdict(("K-84", "absent structural target", seed), box)
-            ensure(result.outcome == UNSEEDED and not box.touched and box.read(selftest.LOG) == before,
+            ensure(result.outcome == UNSEEDED and not box.touched and box.read(relative) == before,
                    "a missing target must remain an unchanged, explicitly unseeded mutant")
 
 
@@ -832,6 +864,7 @@ def cases() -> list[Case]:
         Case("case-verdict-reruns-only-survivors", _case_verdict_reruns_only_survivors),
         Case("repair-snapshots-share-only-unchanged-inputs", _repair_snapshots_share_only_unchanged_inputs),
         Case("holder-seeds-survive-changed-completion-prose", _holder_seeds_survive_changed_completion_prose),
+        Case("retired-holder-seed-selects-current-claim", _retired_holder_seed_selects_current_claim),
         Case("holder-seeds-refuse-absent-structural-targets", _holder_seeds_refuse_absent_structural_targets),
         Case("refresh-index-without-changing-snapshot", _refresh_index_without_changing_snapshot),
         Case("failed-carry-rebuilds-index", _failed_carry_rebuilds_index),

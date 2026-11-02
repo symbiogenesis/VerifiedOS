@@ -881,6 +881,20 @@ def _k84_unregistered_holder(box: Sandbox) -> bool:
     return False
 
 
+def _k84_retired_holder(box: Sandbox) -> bool:
+    """Change a current unfenced holder to the permanently retired K-102.
+
+    The plan is outside the completion log's historical-evidence exception. Select
+    an actual holder by its documented bold form, independent of the item's prose.
+    """
+    text = box.read(PLAN)
+    doc = corpus_mod.from_text(text, PLAN)
+    for holder in re.finditer(rf"\*\*({checkregistry.ID_PATTERN})\*\*", text):
+        if not doc.is_fenced(holder.start()) and holder.group(1) != "K-102":
+            return box.write(PLAN, text[:holder.start(1)] + "K-102" + text[holder.end(1):])
+    return False
+
+
 def _k84(box: Sandbox) -> bool:
     """Remove the holders from an unfenced Tier-B landing declaration.
 
@@ -1933,7 +1947,7 @@ CASES: list[Case] = [
     ("K-84", "a Tier-B landing naming no rule holding what it created", _k84),
 
     ("K-84", "a current claim relying on a retired rule",
-     _literal(PLAN, "K-86 checks this span floor", "**K-102** checks this span floor")),
+     _k84_retired_holder),
 
     # Seeded on the plan's side, which is the direction the defect arrives from: a
     # completion note is edited far more often than the index over it. The word alone
