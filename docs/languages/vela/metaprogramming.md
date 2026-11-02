@@ -21,14 +21,16 @@ and [whole-system acceptance](unified-source-contract.md#software-and-proof-boun
 remain in force; parser support is separately commissioned in the
 [surface grammar](surface-grammar.md).
 
-## Static computation and phases
+## Evaluation and phase boundaries
 
 Reuse ordinary total pure functions for mathematical computation, type functions,
-static values and generator libraries. A required-static position must resolve to
-an admissible closed value before specialization; an unavailable input leaves a
-located obligation or refusal, never an implicit runtime fallback. Infer routine
-static arguments from a declared interface; public requirements remain explicit.
-The eventual source spelling must be specified before extending the grammar.
+static values and generator libraries. Generic definitions check symbolically
+under declared static requirements. At each demanded instantiation, required-static
+inputs must resolve to admissible closed values before emitting its specialization;
+an unavailable input leaves a located obligation or refusal, never an implicit
+runtime fallback. Infer routine static arguments from a declared interface; public
+requirements remain explicit. The eventual source spelling must be specified
+before extending the grammar.
 
 Required-static availability is independent of the
 [foundation's dimensions](graded-foundation.md#dimensions-and-lawful-domains):
@@ -131,7 +133,10 @@ cross stages only through admitted representations and provenance checks.
 | Security and resources | Preserve requested relational observations, cost and storage bounds as well as functional results; specialization is not permission to declassify or drop failure paths. |
 | Machine and hardware authorship | Generated state, schedules and RTL retain their admitted architectural/cycle interpretations, finite representations and independent refinement subjects. Shared generation supplies no hardware theorem. |
 
-These are obligations about the elaboration's admitted interpretation. The
+Qualification must state these obligations over the admitted interpretation chosen
+under the [frontend disposition](full-language-review.md#r-05-009-r-05-020-and-what-holds-the-frontend-rows).
+This dossier neither moves the rule dossiers into arm one nor takes its required
+register act; their implementation rows remain held. The
 [composition review](full-language-review.md#the-representation-the-composed-duties-are-stated-over)
 still owns missing concrete CHERI laws. An intrinsically typed builder or a valid
 CIC output term supplies neither those laws nor checked source correspondence.
@@ -146,6 +151,12 @@ inside static evaluation. Import external data through explicit build inputs
 before generation. Bound source/input sizes, evaluation steps, recursion, memory,
 generated declarations and output bytes; exhaustion fails with the bounded cause.
 Publishing is atomic only after complete checking of the selected output boundary.
+
+A separately scoped procedural producer may use bounded local scratch storage
+when its accepted result is deterministic over the sealed inputs. Such storage
+supplies no target authority and cannot cross stages as a pointer or host-dependent
+representation. That producer's operational implementation stays outside kernel
+conversion; effectful target code remains constructed data during generation.
 
 Record resolved dependencies and the generated terms, representation decisions,
 proof obligations and source maps in the
@@ -164,7 +175,7 @@ build evidence. A generator shared with an oracle creates common-mode risk;
 independently reviewed intent, telling negative examples and the independent
 canonical machine subject retain their existing roles.
 
-## Runtime cost and compiler services
+## Runtime cost
 
 The intended zero-cost property means compile-time evaluator, introspection and
 construction machinery have no required runtime representation or dispatch.
@@ -181,6 +192,8 @@ growth and use checked sharing or specialization policies; unrolling everything
 is not a performance guarantee. Final-byte correspondence, constant-time and
 resource evidence remain the [compiler's duties](unified-source-contract.md#native-verified-compiler-and-self-hosting).
 
+## Compiler services and runtime information
+
 Compile-time derivation covers many finite serialization, dispatch and registry
 uses of runtime reflection. Data or schemas first discovered during execution
 need explicit runtime descriptors, a confined interpreter or a later build; no
@@ -195,7 +208,19 @@ source and whole workspaces. Reuse the same frontend services for the
 with versioned results and source/image identities. Introspection grants no editor
 workspace access, runtime debug permission or additional proof acceptance path.
 
-## Qualification and ownership
+## Design references
+
+These references guide the intended interfaces. Each mechanism still needs Vela's
+own interpretation, source correspondence and composition evidence; no source or
+dependency is incorporated, feature parity claimed or implementation commissioned.
+
+| Reference | Design use |
+| --- | --- |
+| Zig 0.15.2 [compile-time evaluation](https://ziglang.org/documentation/0.15.2/#comptime) and [type reflection](https://ziglang.org/documentation/0.15.2/#typeInfo) | Ordinary functions at compile time and the `@typeInfo`/`@Type` metadata/reification interface inform static computation and explicit descriptors. Their availability establishes no CIC or ownership theorem. |
+| Idris 2 [elaborator reflection](https://idris-lang.org/Idris2/base/docs/Language.Reflection.html) | Checking, quotation, declaration and fresh-name operations inform scoped generation and discoverable library APIs. Vela retains its own dependent, graded and resource-aware construction obligations. |
+| Roslyn [compiler API model](https://learn.microsoft.com/en-us/dotnet/csharp/roslyn-sdk/compiler-api-model) | Syntax, symbols, semantic analysis, diagnostics and workspace services inform the shared tool interface. These services complement compile-time generation. |
+
+## Qualification
 
 Qualify each advertised fragment with inhabited clients and independent, well-formed
 negative neighbors using the same supported mechanisms. A parse failure or missing
