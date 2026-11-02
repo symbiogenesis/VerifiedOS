@@ -70,6 +70,36 @@ Tests and measurements establish no universal theorem. A solver timeout is no co
 
 An ordinary sorter may export an array without sortedness. An opaque sorted-array invariant requires a verified algorithm, verified validation or approved assumption; disabling verification cannot manufacture that stronger value through a safe interface. Mutable abstractions must also control invalidating writes. Validation of one snapshot licenses no later write or alias, under the [snapshot rules](interior-mutability.md#snapshots-and-dependent-indices). Verus's ignored code, external specifications and assumed contracts provide a trust-accounting precedent in [the survey](verification-strategy.md#what-the-rust-verifiers-contribute).
 
+### Evidence beside the declaration
+
+Generated API documentation, signature help and editor contract views display each
+claim's status and evidence endpoint beside its source spelling. The status is
+text, not just color or a package-wide assurance badge. `Conditional` names its
+assumptions; `Checked on success` names the outcome that establishes the claim.
+The linked evidence view supplies the assumptions and exact subject for an
+`Established` claim. The same declaration can have different evidence across
+builds without acquiring different execution semantics.
+
+For example, the declaration below is authored normally; its final line is
+generated API information for a build that has not established the postcondition:
+
+```text
+public void Sort(ref Span<Key> keys)
+    ensures IsSorted(keys.Model);
+    // Evidence: Unestablished; endpoint: source; unavailable to callers.
+```
+
+The display reads the [release and policy record](#erasure-compilation-and-the-release-record)
+for the exact resolved claim, source closure and semantic dependencies, selected
+build configuration and endpoint. A missing, stale or incompatible record shows
+`Unestablished` with its reason. A declaration's name or unchanged source span
+cannot preserve an old `Established` status after its dependencies change.
+Exported documentation identifies the build it describes; an editor showing
+changed source cannot present that historical verdict as current evidence.
+Source-endpoint evidence stays visibly distinct from evidence about final bytes.
+These are presentation requirements on the existing claim statuses; comments and
+displayed badges confer no proof authority.
+
 ## Composition across mixed assurance
 
 | Call boundary | Rule |
@@ -179,6 +209,14 @@ The [pricing table](full-language-review.md#reviewed-implementation-pricing) own
 | Systems boundary | Arena and hardware-facing async operation through cancellation, late completion, errors and exhaustion | Establish when backing becomes reusable under cancellation and quiescence rules |
 | Complete release | Requirements over declared closure and endpoint | Dependency changes, callbacks, foreign interfaces and generated code invalidate affected evidence in test |
 | Maintenance | Representation change, concurrency, new failure path, replaced library | Separate executable/specification churn, proof repair, checking cost and target resources |
+
+The existing `preset-policy` and `core-diagnostics` owners qualify
+[evidence presentation](#evidence-beside-the-declaration) with all four statuses
+in signature help and exported API views. Controls change a claim, its dependency,
+the selected build configuration or the requested endpoint, and remove its evidence
+record: none may retain an incompatible established verdict. Conditional assumptions
+and success-only outcomes remain visible, and a historical documentation export
+keeps its build identity when the editor's current source has changed.
 
 Acceptance requires sound assurance boundaries and useful ordinary clients under composition/change, without a predetermined automatic-proof percentage.
 
