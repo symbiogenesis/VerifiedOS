@@ -126,7 +126,7 @@ budget there, as the runs [vos/proofenv.py](../vos/proofenv.py)'s `proof_jobs` r
 measured, so a smaller runner needs a separate resource measurement.
 
 The gate job is a matrix of lanes, and each lane has its own runner. The `model` lane
-installs Z3, Sail and Verilator, checks the generated vector oracle adapter with
+installs Z3, Sail, Verilator and Rocq, checks the generated vector oracle adapter with
 `vector-bitcount smoke` and executes small CMake generation and native-input fixtures,
 then runs the model evidence sweep. It also runs
 [`vela-parser qualify`](../../docs/languages/vela/vela-parser.md#acceptance-and-commands)
@@ -136,7 +136,13 @@ build/qualification receipts are retained separately from model evidence.
 `vela-parser migration` separately compares generated-AST and Python-syntax
 consumers on translations, semantic diagnostics, source edits and resource
 boundaries; differences fail and retain their report. Neither check supplies a
-checked-parser or source-correspondence verdict. The fixtures check content changes with
+checked-parser or source-correspondence verdict.
+[`vela-parser elaborate-qualify`](../../docs/languages/vela/elaboration-prototype.md#commands-and-acceptance)
+also parses generic/dependent mathematical sources, checks intended semantic
+refusals and compiles and recursively kernel-checks their emitted terms. Its
+native attempt logs and success receipt are retained under `vela-elaboration`;
+this term verdict supplies no source-correspondence or production qualification.
+The fixtures check content changes with
 preserved timestamps, unchanged-input reuse, failed-generation recovery and actual
 compiler/header/library closure binding through a small GMP-linked program.
 Both preparation checks must pass before the sweep. The adapter checks
@@ -354,7 +360,7 @@ verdicts were not discharged again in that run.
 The [boot signature target campaign](../../firmware/crypto/README.md#hosted-target-campaign)
 restores the model lane's installed toolchains and Sail memo under these same keys and
 path lists and saves neither. It computes the recipe identity for the model lane's
-selection, `--toolchain sail --toolchain rtl`, though it bootstraps Sail alone,
+selection, `--toolchain sail --toolchain rtl --toolchain rocq`, though it bootstraps Sail alone,
 because the cache it restores holds that lane's installation. A change to either key,
 path list or the model lane's selection here must change that workflow's restore with
 it, or its runners install and emit cold;

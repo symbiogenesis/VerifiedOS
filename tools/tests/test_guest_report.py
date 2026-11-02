@@ -543,7 +543,7 @@ def _campaign_restores_the_model_lane() -> None:
             ("campaign", "            !~/verifiedos-guest/opam/log\n", ""),
             ("gates", "        !~/verifiedos-guest/opam/log\n", ""),
             ("campaign", "restore-keys: guest-sail-memo-v1-", "restore-keys: guest-sail-memo-v2-"),
-            ("campaign", "--toolchain sail --toolchain rtl)", "--toolchain sail)"),
+            ("campaign", "--toolchain sail --toolchain rtl --toolchain rocq)", "--toolchain sail)"),
             ("gates", 'echo "toolchain=$version"', 'echo "toolchain=${ImageOS:-unknown}"'),
             ("campaign", "['snapshots']['sail'][:16]", "['snapshots']['sail'][:12]"),
             ("campaign", "        id: recipe\n", "        id: identity\n")):
@@ -729,7 +729,8 @@ def _vela_parser_is_required_and_reported() -> None:
 
 def _vela_migration_and_support() -> None:
     selections = (("model", "Compare the Vela parser migration", "vela-migration", "migration"),
-                  ("proofs", "Qualify the Vela parser Rocq support library", "vela-support", "support"))
+                  ("proofs", "Qualify the Vela parser Rocq support library", "vela-support", "support"),
+                  ("model", "Qualify Vela dependent elaboration and proof terms", "vela-elaboration", "elaborate-qualify"))
     with tempfile.TemporaryDirectory() as directory:
         root = Path(directory)
         for lane, title, identifier, command in selections:
@@ -737,7 +738,8 @@ def _vela_migration_and_support() -> None:
             ensure(f"vela-parser {command}" in step and "continue-on-error" not in step,
                    f"{identifier} must retain a failing verdict")
             ensure(_runs_in(lane, step) and identifier in LANES[lane], "parser check assigned to wrong lane")
-            ensure("cp --" in step and "$VOS_LOG_DIR/vela-" in step, "parser report is not retained")
+            ensure(("cp --" in step or "cp -R --" in step) and "$VOS_LOG_DIR/vela-" in step,
+                   "parser report is not retained")
             for outcome in ("success", "failure", "skipped", "cancelled"):
                 logs = root / identifier / outcome
                 summary = report(lane, logs, root / "absent-console", root / "absent-proof",

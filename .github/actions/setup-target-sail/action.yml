@@ -11,12 +11,12 @@ runs:
 
       - name: Identify the toolchain recipe
         id: recipe
-        # The model lane's selection, Sail and Verilator, though this job bootstraps Sail
+        # The model lane's selection, Sail, Verilator and Rocq, though this job bootstraps Sail
         # alone: the identity names the installation the restored cache holds.
         shell: bash
         run: |
           identity=$(python3 tools/ci/bootstrap_guest.py --print-recipe-identity \
-            --toolchain sail --toolchain rtl)
+            --toolchain sail --toolchain rtl --toolchain rocq)
           if [[ ! "$identity" =~ ^[0-9a-f]{64}$ ]]; then
             echo "::error::bootstrap printed no toolchain recipe identity: $identity"
             exit 1

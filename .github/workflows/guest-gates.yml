@@ -119,8 +119,8 @@ jobs:
             fi
             names+=("$lane")
             case "$lane" in
-              model) rows+=('{"lane":"model","cache_lane":"model","toolchains":"--toolchain sail --toolchain rtl"}') ;;
-              rtl) rows+=('{"lane":"rtl","cache_lane":"model","toolchains":"--toolchain sail --toolchain rtl"}') ;;
+              model) rows+=('{"lane":"model","cache_lane":"model","toolchains":"--toolchain sail --toolchain rtl --toolchain rocq"}') ;;
+              rtl) rows+=('{"lane":"rtl","cache_lane":"model","toolchains":"--toolchain sail --toolchain rtl --toolchain rocq"}') ;;
               proofs) rows+=('{"lane":"proofs","cache_lane":"proofs","toolchains":"--toolchain rocq"}') ;;
             esac
           done
@@ -466,6 +466,19 @@ jobs:
             2>&1 | tee "$VOS_LOG_DIR/vela-migration.log" || result=$?
           if [[ -f "$VOS_BUILD_ROOT/vela-parser/migration.json" ]]; then
             cp -- "$VOS_BUILD_ROOT/vela-parser/migration.json" "$VOS_LOG_DIR/vela-migration.json"
+          fi
+          exit "$result"
+
+      - name: Qualify Vela dependent elaboration and proof terms
+        id: vela-elaboration
+        if: ${{ matrix.lane == 'model' && !cancelled() && steps.dispatch.outcome != 'failure' && steps.bootstrap.outcome == 'success' }}
+        timeout-minutes: 5
+        run: |
+          result=0
+          /usr/bin/time -f "$GUEST_TIME" python3 tools/run.py vela-parser elaborate-qualify \
+            2>&1 | tee "$VOS_LOG_DIR/vela-elaboration.log" || result=$?
+          if [[ -d "$VOS_BUILD_ROOT/vela-elaboration" ]]; then
+            cp -R -- "$VOS_BUILD_ROOT/vela-elaboration" "$VOS_LOG_DIR/vela-elaboration"
           fi
           exit "$result"
 

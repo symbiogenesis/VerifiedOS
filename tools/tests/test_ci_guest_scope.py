@@ -86,7 +86,7 @@ def _selection() -> None:
             lane = row["lane"]
             ensure(row["cache_lane"] == ("proofs" if lane == "proofs" else "model")
                    and row["toolchains"] == ("--toolchain rocq" if lane == "proofs" else
-                                              "--toolchain sail --toolchain rtl"),
+                                              "--toolchain sail --toolchain rtl --toolchain rocq"),
                    f"selection changed {lane}'s toolchain or cache ownership")
         ensure(summary == f"Guest CI lanes: `{','.join(expected)}`.\n",
                "the summary records exactly the selected lane set")
