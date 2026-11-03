@@ -33,7 +33,7 @@ The unchanged release is expected to retain the five previously measured Stdlib
 axioms; a successful build does not authorize those axioms. Q35g's separately
 reviewed axiom-removal patch may be qualified only with its frozen elaborated
 comparison, complete strict closure, exact assumptions and unchanged consumer
-semantics. [Q35o's actual target emission](../../docs/implementation/q35o-emission-compatibility-20261013.md)
+semantics. [Q35o's actual target emission](../../docs/assurance/sail-rocq-emission.md)
 excludes unused `Real`; the term-side floating-point axioms and complete consumer
 acceptance remain independently owned obligations.
 
@@ -325,18 +325,18 @@ the campaign. Q35q's estimate prices this bounded diagnosis and adapter
 qualification; unattended native runtime and a further incompatibility are not
 a completion forecast. The contract must land before adapter implementation.
 
-[The bounded native diagnosis](../../docs/implementation/q35q-native-inventory.md)
+[The bounded native diagnosis](../../docs/assurance/sail-support-inventory.md)
 resolves the first shortened TypeCasts spelling through native `Locate` and
 establishes Inhabited's empty kernel-declaration body and abbreviation provenance.
 Its next signature-field assumption lookup refuses. The separately scoped
 [module-signature and abstract-functor census contract](../../docs/implementation/contracts/sail-support-census.md)
 governs qualification of those shapes before a reader is implemented. The
-[focused signature completeness check](../../docs/implementation/q35q-signature-types.md)
+[focused signature completeness check](../../docs/assurance/sail-support-inventory.md#signature-printing-limit)
 returns labels without their required types, so a complete native field-metadata
 producer remains owed. The common inventory guard and allowed contexts remain
 unchanged; Q35q's complete native and hosted recursive-kernel qualification is open.
 
-The merged [Rocq module-printing warning](../../docs/implementation/q35q-signature-types.md#remaining-owner-act)
+The merged [Rocq module-printing warning](../../docs/assurance/sail-support-inventory.md#remaining-owner-act)
 provides a direct incompleteness refusal after qualified prover adoption. Promote
 `module-printing-fallback` to an error in rich-print queries at that point; the
 locked prover and the complete native type-producer obligation remain unchanged.

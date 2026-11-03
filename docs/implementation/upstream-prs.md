@@ -100,11 +100,11 @@ Proposed PRs remain unsubmitted until an authored PR is mapped. Backport follow-
 
 **Project benefit:** Removes Q35p's semantic blocker to canonical machine-term compilation and the machine-code proof route that consumes that term.
 
-**Scope and readiness:** No submission recorded. [Q35p's bounded construction](q35p-memory-bindings.md) supplies a private standalone tag-outcome candidate and a bridge over the actual plain memory callers. Coordinate coq-sail's outcome interface and interpreters with Sail's Rocq bindings; complete conservativity, support comparison/census, whole-term consumer and cold carriage acceptance remain with their existing owners.
+**Scope and readiness:** No submission recorded. [Q35p's bounded construction](../assurance/sail-memory-bindings.md) supplies a private standalone tag-outcome candidate and a bridge over the actual plain memory callers. Coordinate coq-sail's outcome interface and interpreters with Sail's Rocq bindings; complete conservativity, support comparison/census, whole-term consumer and cold carriage acceptance remain with their existing owners.
 
 **Evidence and acceptance:**
 
-- [Q35p's checked scope](q35p-memory-bindings.md#executable-interpretation-and-checked-scope) records the candidate and its limits; the [baseline evidence](retained-evidence/close3-q35p-20261013/manifest.json) retains the original semantic refusal.
+- [Q35p's checked scope](../assurance/sail-memory-bindings.md#executable-interpretation-and-checked-scope) records the candidate and its limits; the [baseline evidence](retained-evidence/close3-q35p-20261013/manifest.json) retains the original semantic refusal.
 - Acceptance preserves raw granule keys, default-false absent tags, every overwritten-granule clear, metadata only after successful data writes and existing refusals. It then joins Q35o and Q35b for strict whole-term compilation, exact assumptions and compiled size; no new assumption or discarded tag effect supplies acceptance.
 
 [Next action in PLAN.md](../../PLAN.md#upstream-contributions-and-adoption).
@@ -136,7 +136,7 @@ Proposed PRs remain unsubmitted until an authored PR is mapped. Backport follow-
 
 **Evidence and acceptance:**
 
-- [Q35o immutable syntax trial](q35o-emission-compatibility-20261013.md#immutable-syntax-trial-and-exact-stop) retains the candidate, frozen minimal types and exact main-module notation refusal.
+- [Q35o immutable syntax trial](../assurance/sail-rocq-emission.md#immutable-syntax-trial-and-exact-stop) retains the candidate, frozen minimal types and exact main-module notation refusal.
 - [Sail PR 1790](https://github.com/rems-project/sail/pull/1790) merged on 2026-10-21 at 08:49:17 UTC. Its top-level monadic-value repair is separate from this strict-syntax repair; coordinate the merged change at qualified backend adoption.
 - Acceptance preserves notation expansions and executable readings, qualifies every canonical emitted declaration and the actual plugin identity, and completes strict whole-term compilation, exact closure, compiled size and hosted cold qualification under the existing owners. The minimal types result alone supplies no canonical consumer verdict.
 
@@ -694,12 +694,12 @@ Merged: `2026-10-22T08:05:22Z`.
 
 **Additional evidence:**
 
-- Merged into master on 2026-10-22 at 01b86fef6a51c6d0e3a9f2e50266f7fa1db3dbce, milestone 9.4+rc1. [The signature checkpoint](q35q-signature-types.md#remaining-owner-act) wires the future warning control into Q35q; locked Rocq 9.3.0 does not contain it.
+- Merged into master on 2026-10-22 at 01b86fef6a51c6d0e3a9f2e50266f7fa1db3dbce, milestone 9.4+rc1. [The signature checkpoint](../assurance/sail-support-inventory.md#remaining-owner-act) wires the future warning control into Q35q; locked Rocq 9.3.0 does not contain it.
 - The missing-types reproduction reduces to a module type with t : Type and x : t. A private diagnostic build identifies a swallowed Not_found; the PR reports the existing fallback rather than changing typed rendering.
 - Focused author validation: Rocq worker and Ltac plugin built with OCaml 5.4.1; the reduced ModulePrintingFallback output regression passes. Existing PrintModule and bug_9555 output results are reused because the printing implementation is unchanged. Controls cover both fallback commands, warning promotion, intentional short output and successful typed output. Full upstream suites remain CI-only.
 - [Related issue 11904](https://github.com/rocq-prover/rocq/issues/11904) concerns conflicting-notation imports. The PR references it without claiming a fix.
 - [The native census contract](contracts/sail-support-census.md#census-and-provenance) still requires complete native field types, enclosing signatures and functor parameters, provenance and separate concrete implementation assumption audits. The warning supplies no census or support-adoption verdict.
-- [The local rocq-census producer](../../tools/rocq-census/README.md) emits structured native type, universe and name metadata; [its checkpoint](q35q-native-inventory.md#current-native-producer) retains the bounded controls and unqualified census boundary. This original plugin and runner are not an upstream Rocq patch or an implementation of PR 22614.
+- [The local rocq-census producer](../../tools/rocq-census/README.md) emits structured native type, universe and name metadata; [its checkpoint](../assurance/sail-support-inventory.md#current-native-producer) retains the bounded controls and unqualified census boundary. This original plugin and runner are not an upstream Rocq patch or an implementation of PR 22614.
 - Public authored-PR search observed 2026-10-23 07:46:04 UTC: complete all-state searches for symbiogenesis in rocq-prover/rocq, rems-project/coq-sail and rems-project/sail found no exporter PR; complete global authored searches for the exact phrase rocq-census and for census returned no results. The [Rocq authored-PR inventory](https://api.github.com/search/issues?q=repo%3Arocq-prover%2Frocq+is%3Apr+author%3Asymbiogenesis&per_page=100) includes this warning PR. Private or unindexed work is not excluded. No separate submission or new upstream proposal is established by the local tool.
 
 [Next action in PLAN.md](../../PLAN.md#upstream-contributions-and-adoption).

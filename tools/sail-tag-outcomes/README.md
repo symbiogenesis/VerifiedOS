@@ -38,7 +38,7 @@ The replay runner's `PASS` means only these isolated compile controls passed.
 It does not perform the retained native assumption queries or kernel recheck,
 complete package tests, the production census, full canonical acceptance or a gate.
 
-The [current qualification](../../docs/implementation/q35p-memory-bindings.md)
+The [current qualification](../../docs/assurance/sail-memory-bindings.md)
 records all unmet joins and the immutable evidence. The original bounded search
 stopped after twelve checks; a new proof candidate needs a new reviewed checkpoint.
 The wraparound control uses lazy kernel conversion. Eager `vm_compute` can first

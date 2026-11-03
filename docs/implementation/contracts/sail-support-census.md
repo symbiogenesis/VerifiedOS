@@ -1,6 +1,6 @@
 # Native Sail support module census
 
-Q35q owns this prerequisite to its [native declaration inventory](../../../tools/opam/sail-compatibility.md#native-support-inventory-prerequisite). The [retained diagnosis](../q35q-native-inventory.md) identifies module-type fields that are not global constants and a sealed concrete functor result. Implementation starts after this contract is committed. Its scope is the exact selected support population in [the immutable recipe](../../../tools/opam/sail-support-qualification.json), at the existing locked prover, dependencies, strict flags and source patches.
+Q35q owns this prerequisite to its [native declaration inventory](../../../tools/opam/sail-compatibility.md#native-support-inventory-prerequisite). The [retained diagnosis](../../assurance/sail-support-inventory.md) identifies module-type fields that are not global constants and a sealed concrete functor result. Implementation starts after this contract is committed. Its scope is the exact selected support population in [the immutable recipe](../../../tools/opam/sail-support-qualification.json), at the existing locked prover, dependencies, strict flags and source patches.
 
 ## Census and provenance
 

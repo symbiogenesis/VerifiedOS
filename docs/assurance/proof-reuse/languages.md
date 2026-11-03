@@ -129,7 +129,7 @@ carries multiple tag bits with a byte-addressed memory request, through
 granule-keyed tag constructor. A zero-byte request is representable in the
 type, but its interpreter behavior and equivalence to the existing tag plane
 are not established. V2 is not a qualified adapter for
-[Q35p's seven bindings](../../implementation/q35p-memory-bindings.md), and
+[Q35p's seven bindings](../sail-memory-bindings.md), and
 switching the canonical outcome interface would require a preserving owner
 act and actual consumer acceptance. The inspected
 [`LICENSE`](https://github.com/rems-project/coq-sail/blob/e7b914cddc032e3676eebd87a808229828013e9c/LICENSE)

@@ -1,7 +1,7 @@
 # Canonical tag outcomes
 
 This is Q35p's owner contract for the missing representation identified by the
-[memory-binding qualification](../q35p-memory-bindings.md). Implementation begins
+[memory-binding qualification](../../assurance/sail-memory-bindings.md). Implementation begins
 after the integrator lands this contract. It commissions a representation of the
 model's existing tag effects in the canonical V1 outcome interface. It commissions
 no new ISA behavior, tag plane, admission assumption or proof-switch update.

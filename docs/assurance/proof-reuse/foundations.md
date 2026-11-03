@@ -568,7 +568,7 @@ copied, and no local replay or removed obligation is claimed.
 ## F16: native Rocq module metadata for the Sail support census
 
 **Read 2026-10-23. Source and exact consumer.** Q35q's
-[typed-signature refusal](../../implementation/q35q-signature-types.md) needs
+[typed-signature refusal](../sail-support-inventory.md#signature-printing-limit) needs
 elaborated field types even when `Print Module Type` returns only labels.
 The locked Rocq 9.3.0 source, revision
 [`c8e202eb0d6cc08b848ba27dcf2cc35804df7d96`](https://github.com/rocq-prover/rocq/tree/c8e202eb0d6cc08b848ba27dcf2cc35804df7d96),

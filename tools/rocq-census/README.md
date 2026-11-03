@@ -2,7 +2,7 @@
 
 This original producer reads Rocq 9.3.0's installed native module/declaration API.
 The [support census contract](../../docs/implementation/contracts/sail-support-census.md)
-owns its acceptance boundary. The [inventory note](../../docs/implementation/q35q-native-inventory.md)
+owns its acceptance boundary. The [inventory note](../../docs/assurance/sail-support-inventory.md)
 records executed evidence and remaining obligations.
 
 The default mode preserves `verifiedos-rocq-native-metadata/1`: constructor-based

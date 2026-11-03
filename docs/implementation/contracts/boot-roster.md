@@ -42,7 +42,7 @@ The bounded host consumer regenerates its expected C and JSON projections, check
 published bytes and source bindings, and compiles the checked C snapshot. Its native
 controls check the declared service order and current-epoch start/restart grants.
 The default scalar target uses the [handwritten comparison manifest](../../../supervisor/src/manifest.c).
-[The generated target mode](../m71b-generated-manifest-target.md) prepares the exact
+[The generated target mode](../../../supervisor/README.md#generated-manifest-target) prepares the exact
 checked production manifest for the bounded contained consumer; its native object
 layout and compiled mutation checks pass. Actual generated-manifest target execution
 requires valid locked compiler provenance. Binding the manifest to the admitted image

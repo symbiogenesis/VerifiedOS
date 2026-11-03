@@ -11,7 +11,7 @@ stored-cell observer and executed Python defect controls. Locked proof
 qualification, actual scalar/storage correspondence, compiled controls and
 complete concrete writer observation remain open.
 
-[The first reservation proof increment](../q44-resident-reservation.md) supplies a
+[The first reservation proof increment](../../assurance/resident-read-qualification.md) supplies a
 separate bounded Gallina model with focused native proof evidence. Its abstract
 transitions and write journal are not a refinement of the finite host service;
 the concrete storage, verifier, lifecycle and target qualification below remains

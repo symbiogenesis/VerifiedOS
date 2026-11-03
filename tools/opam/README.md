@@ -237,7 +237,7 @@ module-type printing returns names without types. After adoption, Q35q's rich-pr
 queries should unset `Short Module Printing` and use
 `Set Warnings "+module-printing-fallback"` to reject incomplete output directly.
 Explicit short printing emits no warning. This removes silent fallback from those
-queries; Q35q still needs its [complete native type producer](../../docs/implementation/q35q-signature-types.md#remaining-owner-act),
+queries; Q35q still needs its [complete native type producer](../../docs/assurance/sail-support-inventory.md#remaining-owner-act),
 census, exact concrete-implementation assumption audit and hosted recursive check.
 The current strict flags, inventory guards, proof handling and lock stay in force
 until their respective replacements qualify.

@@ -179,29 +179,94 @@ lifecycle states and a small owned span; it does not execute the service bodies,
 establish physical WCET or supply the complete measured boot roster. The scalar
 copy join must account separately for its full allocation and service interval.
 
-`supervisor target --generated-manifest` prepares the same contained consumer with
-the exact checked production C snapshot. It retains both projection identities,
-checks the compiled and final snapshots, and compares every initialized manifest
-byte in the target trace against an independent C-layout account. A write through
-the supervisor's read-only manifest capability must fault. Its short composition
-delay is already expired at the next fixed slot; an empty publication supplies
-the empty boundary control, and waiting-phase fault evidence stays with the
-long-delay comparison policy.
+### Generated manifest target
 
-The generated mode has native C wrapper and compiled-mutation evidence, but no
-accepted target execution. The retained target compiler refuses the current locked
-provenance preflight. [The integration record](../docs/implementation/m71b-generated-manifest-target.md)
-names that refusal and the remaining joins. Neither native layout agreement nor
-prepared target controls authenticate the manifest or close M7.1b.
+`python tools/run.py supervisor target --generated-manifest` uses the same explicit
+compiler, compiler-configuration, simulator and model-receipt arguments as ordinary
+target mode. It revalidates the production C and JSON projections against the typed
+composition input and declared bindings, copies their exact bytes into its native
+lane, and compiles a wrapper including the generated C object and trusted consumer.
+Both projections, snapshots and wrapper are rechecked after compilation and
+execution; stale projections refuse. The supervisor receives the manifest through
+its existing read-only capability.
 
-`python tools/run.py copy-service join --generated-manifest` prepares the existing
-scalar payload/notification/fault/restart campaign with that same checked immutable
-manifest. It charges the actual backoff table and observes every initialized
-manifest byte at each fresh entry, with a named read-only store-fault control.
-Focused host controls exercise the real joined source generation, byte oracle,
-snapshot refusals and locked compiler preflight; they execute no target image.
-The [joined consumer contract](../docs/implementation/m71b-generated-manifest-target.md#joined-scalar-manifest-consumer)
-retains Q39's target prerequisite, authenticated handoff and full-roster joins.
+Every initialized manifest byte is compared with an independent layout account for
+the `uint32_t` fields in [vos_supervisor.h](include/vos_supervisor.h). The finite
+account requires the production manifest's exact three units, order, authority
+edges and restart set; a different roster refuses. Prepared controls cover
+full-width epochs, stale requests, incomplete retirement/publication, phase cuts
+and a store through the read-only manifest capability.
+
+The reaction account charges each of three possible manifest validations for its
+detector loop and every admitted backoff entry, refusing a reaction that reaches
+the fixed-slot limit. Ordinary scalar comparison retains its one-entry account.
+The production policy's first backoff is one logical step and expires before the
+next fixed slot. An initial empty publication covers the empty padded release;
+faults before and after publication have separate empty reactions. Waiting-phase
+fault coverage belongs to the long-delay comparison policy.
+
+[Native layout and target-refusal evidence](../docs/implementation/retained-evidence/m71b-generated-manifest-20261013/manifest.json),
+SHA256 `883342b839f8c893af56718c4e0e9f9afa03aedc873641dec4f29c37a99df294`,
+binds regenerated projections, final source/header identities and native C wrapper
+execution. The focused `test_lifecycle_target` case compares every manifest-copy
+byte with the independent layout. A second object, which successfully compiles,
+changes the initial backoff from one to two and is detected by that comparison.
+Its receipt binds compiler path, executable digest and version, projection and
+executable identities and emitted-layout digests, with `target_execution: false`
+and `production_admission: false`.
+
+Other focused controls cover field offsets, roster mismatch, C/JSON/wrapper drift,
+compiler preflight refusal, generated and maximum backoff-table lengths, and a
+reaction that the former one-entry charge incorrectly admitted beyond the slot.
+These establish preparation and native consumer behavior, with target execution
+still owed. The retained target attempt stopped at `compiler-provenance`:
+
+> contained compiler toolchain does not bind the recorded lock
+
+No target compilation or simulation followed, and the model receipt was not
+assessed after that refusal. Final M7.1b acceptance requires Q39's qualified locked
+compiler for the shared capture, authenticated manifest admission and boot handoff,
+and observed start/fault order through the full real
+[boot roster](../docs/implementation/contracts/boot-roster.md).
+
+### Joined scalar manifest consumer
+
+`python tools/run.py copy-service join --generated-manifest` prepares the scalar
+payload, notification, fault and restart campaign using the same checked C/JSON
+snapshots and wrapper. The prepared image contains the actual copy-service body.
+The account charges the
+actual backoff-table length, checks initialized manifest bytes at every supervisor
+entry, and refuses source or snapshot drift. The named store through the read-only
+manifest capability must fault without publishing a request or starting copy work.
+An initial empty publication covers the short-backoff policy's empty boundary.
+
+Host controls exercise source generation, the byte oracle, snapshot refusals and
+compiler preflight; they execute no target image. Ordinary comparison mode retains
+its handwritten manifest. Qualified compiler provenance and actual target traces
+remain required; reset initialization and the copy-only body leave authenticated
+handoff, storage/crypto execution and full-roster acceptance open.
+
+### Shared boot observations for the scalar join
+
+Each prepared scalar image runs through the [boot observer](../tools/vos/boot.py),
+which streams the complete commit trace into a retained file and projects kernel,
+supervisor and copy-service entries, traps, HTIF writes and exit. The lifecycle
+observer reads that same trace. Each case retains console and event-log bytes,
+their digests, commit fingerprint, traced-step count, process result, timeout state
+and boot findings beside the lifecycle verdict. Both observers must accept.
+
+Ordinary, stale-grant and incomplete-completion cases require first entry in
+kernel, supervisor and copy-service order. The manifest-store control requires
+kernel and supervisor entry and refuses an unexpected copy-service entry. Timeout
+retains the partial trace and a timeout finding even if the process printed success.
+
+Focused scripted-process controls exercise the actual streaming observer with an
+unterminated final commit record, console disagreement, wrong or missing entries,
+exit disagreement, process failure and timeout. They also check that the lifecycle
+reader receives the complete trace. This is host integration evidence; the target,
+authenticated handoff, storage/crypto and full-roster joins above remain open. The
+bounded reset composition supplies no production admission or accepted full-roster
+measurement identity.
 
 ## Focused comparison
 
