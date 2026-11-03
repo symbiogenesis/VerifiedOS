@@ -90,8 +90,8 @@ def _bounded_evaluation() -> None:
     with patch.object(vela, "MAX_OUTPUT_BYTES", 32):
         _refuses(source, "limit", "output")
     declarations = ["public Nat F0(Nat x) => x;"]
-    for index in range(1, 16):
-        declarations.append(f"public Nat F{index}(Nat x) => F{index - 1}(x) + F{index - 1}(x);")
+    declarations.extend(f"public Nat F{index}(Nat x) => F{index - 1}(x) + F{index - 1}(x);"
+                        for index in range(1, 16))
     _refuses("module M; " + " ".join(declarations) + " public const Nat Limited = F15(0);", "limit", "budget")
 
 
@@ -231,6 +231,83 @@ def _complete_source_order() -> None:
             raise AssertionError("accepted skipped or reordered local constants")
 
 
+def _lexical_token_boundaries() -> None:
+    source = b"module M; public const Nat Limit = 2 + 3 * 4;"
+    original = _constant_tree(source)
+    for marker in (b"module M", b"public const", b"const Nat", b"Nat Limit"):
+        removed = source.index(marker) + marker.index(b" ")
+        edited = source[:removed] + source[removed + 1:]
+        changed = copy.deepcopy(original)
+        def relocate(value: object, boundary: int = removed) -> None:
+            if isinstance(value, dict):
+                if "span" in value:
+                    value["span"] = [offset - (offset > boundary) for offset in value["span"]]
+                for child in value.values():
+                    relocate(child, boundary)
+            elif isinstance(value, list):
+                for child in value:
+                    relocate(child, boundary)
+        relocate(changed)
+        changed["source_sha256"] = hashlib.sha256(edited).hexdigest()
+        try:
+            vela.translate_ast(edited, changed)
+        except ValueError:
+            pass
+        else:
+            raise AssertionError(f"accepted lexical token split at {marker!r}")
+
+
+def _inflated_neighbor_cannot_hide_runtime_shadow() -> None:
+    def name(text: str, start: int) -> dict[str, object]:
+        return {"text": text, "span": [start, start + len(text)]}
+    def node(kind: str, start: int, end: int, **fields: object) -> dict[str, object]:
+        return {"kind": kind, "span": [start, end], **fields}
+    base = b"module M; public const Nat Limit = 2 + 3 * 4;"
+    source = base + b" public Nat Read() { let saved = 0; let Limit = 1; const Nat Copy = Limit; return Copy; }"
+    response = _constant_tree(base)
+    response["source_sha256"] = hashlib.sha256(source).hexdigest()
+    ast = cast("dict[str, object]", response["ast"])
+    ast["span"] = [0, len(source)]
+    statement = source.index(b"let saved")
+    zero = source.index(b"0", statement)
+    hidden = source.index(b"let Limit", zero)
+    hidden_end = source.index(b";", hidden) + 1
+    local = source.index(b"const Nat Copy", hidden)
+    local_name = source.index(b"Copy", local)
+    local_value = source.index(b"Limit", local_name)
+    terminal = source.index(b"return", local)
+    returned = source.index(b"Copy", terminal)
+    # The omitted ordinary binding would shadow the global constant at the next
+    # initializer. Widening its neighbor must not make that input look static.
+    saved = node("let", statement, hidden_end, name=name("saved", statement + 4),
+                 value=node("nat", zero, zero + 1, value="0"))
+    constant = node("constant_local", local, source.index(b";", local) + 1,
+                    name=name("Copy", local_name), type=node("type", local + 6, local + 9, name="Nat"),
+                    value=node("name", local_value, local_value + 5, name=name("Limit", local_value)))
+    body = node("block", source.index(b"{", len(base)), len(source), bindings=[saved, constant],
+                exit=node("return", terminal, source.index(b";", terminal) + 1,
+                          value=node("name", returned, returned + 4, name=name("Copy", returned))))
+    start = source.index(b"public", len(base))
+    function = node("function", start, len(source), name=name("Read", source.index(b"Read", start)),
+                    result=node("type", start + 7, start + 10, name="Nat"), parameters=[], body=body)
+    cast("list[dict[str, object]]", ast["declarations"]).append(function)
+    _refuses(source.decode(), "unsupported", "runtime binding 'Limit'")
+    for inflate_value in (False, True):
+        changed = copy.deepcopy(response)
+        if inflate_value:
+            changed_ast = cast("dict[str, object]", changed["ast"])
+            changed_function = cast("list[dict[str, object]]", changed_ast["declarations"])[1]
+            changed_body = cast("dict[str, object]", changed_function["body"])
+            changed_saved = cast("list[dict[str, object]]", changed_body["bindings"])[0]
+            cast("dict[str, object]", changed_saved["value"])["span"] = [zero, hidden_end - 1]
+        try:
+            vela.translate_ast(source, changed)
+        except ValueError:
+            pass
+        else:
+            raise AssertionError("inflated neighboring binding hid a runtime constant dependency")
+
+
 def cases() -> list[Case]:
     return [Case("evaluated-scalars-and-pure-function-locals", _evaluated_values),
             Case("runtime-forward-cyclic-and-erased-dependencies", _static_dependencies),
@@ -238,4 +315,6 @@ def cases() -> list[Case]:
             Case("finite-static-evaluation-budgets", _bounded_evaluation),
             Case("constant-symbols-and-source-dependency-identities", _constant_facts),
             Case("complete-module-and-local-constant-source-order", _complete_source_order),
+            Case("identifier-keyword-and-type-lexical-token-boundaries", _lexical_token_boundaries),
+            Case("inflated-neighbor-cannot-hide-runtime-shadow", _inflated_neighbor_cannot_hide_runtime_shadow),
             Case("independent-constant-ast-values-and-source-binding", _independent_constant_ast)]

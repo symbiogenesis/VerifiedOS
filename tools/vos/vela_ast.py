@@ -251,6 +251,11 @@ class _Decoder:
             raise ValueError("native syntax keyword differs from its source")
         return trivia_end(self.source, end)
 
+    def _identifier_edges(self, start: int, end: int) -> None:
+        for adjacent in (self.source[start - 1:start] if start else b"", self.source[end:end + 1]):
+            if adjacent and (adjacent.isalnum() or adjacent == b"_"):
+                raise ValueError("native identifier or type splits a source token")
+
     def _text(self, raw: object, parent: tuple[int, int], *, identifier: bool = True) -> Name:
         if not isinstance(raw, dict) or set(raw) != {"text", "span"} or not isinstance(raw["text"], str):
             raise ValueError("native parser returned an invalid name or operator")
@@ -260,6 +265,8 @@ class _Decoder:
             raise ValueError("native name or operator differs from its source span")
         if identifier and (not IDENTIFIER.fullmatch(text) or text in KEYWORDS | UNSUPPORTED):
             raise ValueError("native parser returned an invalid identifier")
+        if identifier:
+            self._identifier_edges(start, end)
         return Name(text, self._site(start))
 
     def _list(self, raw: object) -> list[object]:
@@ -282,6 +289,7 @@ class _Decoder:
         value = node["name"]
         if value not in ("Nat", "bool") or self.source[span[0]:span[1]] != str(value).encode():
             raise ValueError("native parser returned an invalid value type")
+        self._identifier_edges(*span)
         return cast("ValueType", value)
 
     def _expression(self, raw: object, parent: tuple[int, int], depth: int) -> Expression:
