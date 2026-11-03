@@ -440,20 +440,20 @@ These figures cover the priced reference-build, assessment and named hardening b
 <!-- estimate-summary:start -->
 | Measure | Value |
 | --- | --- |
-| Total estimate midpoint h | 4,734.6 |
-| Total estimate range h | 3,072.5–6,396.7 |
+| Total estimate midpoint h | 4,782.6 |
+| Total estimate range h | 3,104.5–6,460.7 |
 | Completed scope h | 866.1 |
-| Complete by estimate % | 18.3 |
-| Remaining h | 3,868.5 |
-| Committed remaining h | 2,426.5 |
-| Open class I h | 889.5 |
+| Complete by estimate % | 18.1 |
+| Remaining h | 3,916.5 |
+| Committed remaining h | 2,474.5 |
+| Open class I h | 937.5 |
 | Open class X h | 2,979 |
 | Retained completion estimate h | 261.5 |
 | Unmeasured completed items | 29 |
-| Calibrated total h | 5,727.8 |
+| Calibrated total h | 5,761.9 |
 | Committed M8a open h | 74 |
 | Committed M8b open h | 105.5 |
-| Other committed open h | 2,247 |
+| Other committed open h | 2,295 |
 | Conditional open h | 1,028 |
 | Unfunded option open h | 414 |
 | Committed M8a open class X h | 0 |
@@ -1005,6 +1005,12 @@ These trials add no prerequisite to the current M7.1 realization route. A failed
 * [ ] **Q25q · Implement compositional Vela constant functions and parameters** · 16 h, range 8–24 · I · agent-parallel
   * **Start:** the landed [compositional constant contract](docs/languages/vela/surface-grammar.md#required-static-constants), Q25p's constant values and the existing pure/mathematical consumers. **Owns:** constant-function modifiers and static value parameters in both Menhir entries, strict source-bound AST consumption, symbolic static checking and bounded closed specialization, mathematical callable requirements, editor signatures, examples and current design prose. **Check:** every compositional acceptance case at the contract, independent positive and semantic/source-protocol negatives, focused host tests and Python checks, strict native generation and kernel replay in hosted model qualification, both Host CI aggregates and every Guest CI lane dispatched. **Join:** independent grammar, pure, mathematical and editor review and exact-revision hosted evidence. **Execute:** retain ordinary total pure constant calls, runtime calls of constant functions, declaration-order evaluation and the existing full-frontend/representation boundaries; introduce no compile-time-only function category or const expression form.
   * **Prototype checkpoint:** the pure and mathematical consumers, both Menhir entries and editor signatures implement the compositional interface. The [authored example](tools/vela/examples/constants.vela) combines a static configuration with runtime data. Focused host controls and strict diagnostic native generation supply development evidence; exact locked-parser and kernel qualification remains hosted. The `vela-const-compose-final-20261102` fanout journal owns revision-bound Host CI, selected Guest CI dispatch and safe retirement. This item remains open pending exact-version hosted qualification; no production frontend, target representation or source-correspondence theorem is claimed.
+* [ ] **Q25r · Add Vela numeric digit separators** · 12 h, range 8–16 · I · agent-parallel
+  * **Start:** the landed [separator contract](docs/languages/vela/authoring-tools.md#numeric-separators) and existing pure, surface and mathematical consumers. **Owns:** decimal separators in both pure routes, surface decimal/hex/binary separators, original located spellings, strict source consumption and mathematical evaluation. **Check:** the contract's independently expected values, spans, malformed neighbors, suffix/base boundaries and digit limits, focused host tests, Python checks, strict native generation in hosted qualification, both Host CI aggregates and every Guest CI lane dispatched. **Join:** independent lexer/consumer review and unchanged representation boundaries. **Execute:** preserve existing literal types and use one digit-validation owner per consumer.
+* [ ] **Q25s · Attach Vela documentation comments to compiler facts** · 12 h, range 8–16 · I · agent-parallel
+  * **Start:** the landed [documentation contract](docs/languages/vela/authoring-tools.md#documentation-comments), pure compiler facts and versioned LSP inspection. **Owns:** source-bound triple-slash declaration documentation, bounded plain-text hover projection and edit invalidation. **Check:** the contract's attachment, Unicode/newline, declaration/reference, forged/stale fact and stdio cases, focused host tests, Python checks, both Host CI aggregates and selected Guest CI dispatch. **Join:** independent producer/projection review; retained two-client qualification stays with Q25n/Q25o. **Execute:** retain existing parser schemas and grant comments no semantic or proof authority.
+* [ ] **Q25t · Integrate default Vela formatting and lints** · 24 h, range 16–32 · I · agent-parallel
+  * **Start:** the landed [common style and compiler contract](docs/languages/vela/authoring-tools.md), the pure checker and Q25r/Q25s's interfaces. **Owns:** StyleCop-inspired canonical layout, pure-subset formatter, stable advisory lints, automatic compiler-command rewriting, read-only checks, opt-outs and atomic source/output publication. **Check:** the contract's independently expected formatting/findings, idempotence, token/comment and syntax preservation, all CLI modes/refusals and exact post-format provenance, focused host tests, Python checks, both Host CI aggregates and every Guest CI lane dispatched. **Join:** independent formatter, lint and publication review and current examples/tool documentation. **Execute:** consume existing compiler syntax/facts, keep library/LSP reads immutable and leave wider resource/semantic lints with the qualified frontend.
 * [x] **Q26 · Price the resident toolchain against the floor's own comparisons** · 4.6 h actual · agent-parallel
   * [The toolchain residency report](docs/performance/toolchain-residency.md) records the three quantities with their predicates, instruments, lanes and revisions, scores each against the artifact that owns its supply or declares it unscorable with the act that owes the supply named, and states which of the three binds and what would have to move, as arms for the product's owner with none taken. ([note](docs/implementation/completion-log.md#q26-price-the-resident-toolchain-against-the-floors-own-comparisons))
 
@@ -1358,7 +1364,7 @@ Q6's conventional-memory simulators are conditional on a topology comparison nee
 
 No assessment completion automatically increases a performance estimate. For an optimization affecting fraction `f` of runtime by factor `s`, the unchanged-cost bound is `1 / ((1 - f) + f / s)`; added transfers or changed scheduling require a fresh whole-workload comparison. Better packing is not more fabricated capacity, and host performance is not target throughput.
 
-**Q subtotal:** 2,905.1 h · 61% · 254.1 h complete · open range 1,536–3,766 h.
+**Q subtotal:** 2,953.1 h · 62% · 254.1 h complete · open range 1,568–3,830 h.
 
 ### M0 · Hardware reference
 
