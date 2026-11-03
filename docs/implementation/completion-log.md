@@ -1220,8 +1220,8 @@ from a new authoritative semantics while retaining exact-source correspondence,
 concrete machine laws and every production obligation. Exported contracts remain
 mandatory under every assurance policy. Later async composition distinguishes
 sequential helper execution, ordinary error payloads and task-failure outcomes.
-Q25t retains the executable migration to immutable default check/emission;
-the current prototype still requires `--format off` for that behavior.
+Q25t owns the executable source-preserving default check/emission policy and
+its independent byte-preservation and explicit-write controls.
 
 The [delivery sequence](../../PLAN.md#vela-first-release-delivery) commissions
 Q25w's finite foundation investigation with separate successful-candidate and
