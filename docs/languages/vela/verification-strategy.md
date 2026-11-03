@@ -1029,6 +1029,13 @@ lifetime and restoration obligations; binding immutability is not deep immutabil
 Diagnostics identify a forbidden rebinding and explain explicit `var`, while the
 pure prototype states its unsupported-mutation boundary.
 
+Vela has no `const` keyword. An immutable binding may contain a runtime value;
+stability lets that value index dependent types without making it available to
+compile-time evaluation. `ghost` does not imply static availability either. The
+[required-static design](metaprogramming.md#evaluation-and-phase-boundaries)
+defines that separate phase requirement; its binder spelling is not part of the
+accepted parser surface.
+
 Labels match the resolved callable's next declared value parameter; they cannot
 reorder, omit, duplicate or default arguments, and no positional argument follows
 a label. An unnamed callable parameter has no available label. Each argument is
