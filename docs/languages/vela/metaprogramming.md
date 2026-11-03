@@ -129,10 +129,11 @@ optimization, a caller's proof or an accepted `requires`/`ensures` declaration.
 
 The following is a library API sketch inside a generation context. The names and
 context are illustrative, unimplemented interfaces, not additions to the current
-grammar or executable examples:
+grammar or executable examples. Its generic call uses the selected
+[familiar authoring syntax](surface-grammar.md#familiar-authoring-migration):
 
 ```text
-let schema = Meta.SchemaOf::<Packet<Capacity>>();
+let schema = Meta.SchemaOf<Packet<Capacity>>();
 let codec = Meta.DeriveCodec(schema, wireFormat);
 let specialized = Meta.Specialize(copyDefinition, Capacity);
 ```

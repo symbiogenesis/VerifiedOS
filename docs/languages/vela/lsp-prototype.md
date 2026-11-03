@@ -230,6 +230,11 @@ producer states that mutation requires the wider surface; it grants no accepted
 mutable program or source borrow verdict. A write through an exclusive loan is
 distinct from rebinding its immutable descriptor. Diagnostics and locations must
 survive local shadowing, incremental edits and unsupported resource syntax.
+The [familiar authoring migration](surface-grammar.md#familiar-authoring-migration)
+makes the symmetric `let name`/`let T name` and `var name`/`var T name` forms the
+explanation and completion convention. Q25z qualifies those projections against
+each producer's supported subset; editor text must not imply that the pure
+checker accepts mutable or represented-integer programs.
 
 Constants are compiler-resolved `constant` symbols, with details such as
 `const Nat Limit = 16` and LSP document-symbol kind 14. Their references and

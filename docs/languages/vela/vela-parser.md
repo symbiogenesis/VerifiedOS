@@ -5,6 +5,10 @@ this contract owns the development parser's bounded qualification and retirement
 
 The [complete development surface grammar](surface-grammar.md) extends syntax through
 Q25i's separate entry point; the pure entry below remains the migration baseline.
+The selected [familiar authoring migration](surface-grammar.md#familiar-authoring-migration)
+is Q25z's conditional increment. Its new spellings are not accepted merely because
+they appear in design examples; current parser fixtures and commands retain their
+qualified scope until the grammar and affected consumers migrate together.
 
 ## Bounded increment
 

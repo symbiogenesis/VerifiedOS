@@ -24,7 +24,13 @@ the refused resource/effect features remain outside it.
 
 ## Supported mathematical increment
 
-The increment uses the [surface grammar](surface-grammar.md):
+The increment uses the [surface grammar](surface-grammar.md). Its current executable
+examples retain `definition ... = expression;`, explicit `::<...>` application
+and the current match-arm delimiters. The selected [familiar authoring migration](surface-grammar.md#familiar-authoring-migration)
+belongs to Q25z and changes this consumer only after its parsing, interpretation,
+source-binding and kernel-replay predicates qualify together.
+
+The supported increment includes:
 
 - Generic type and stable ghost-value telescopes, explicit `::<...>` application
   and fresh inferred instantiation at each use. Generic variables in a
