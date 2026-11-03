@@ -2782,6 +2782,12 @@ predicate is committed. **Join:** focused local behavioral checks, typecheck,
 corpus/mutation checks and the local fanout handoff; hosted Host/Guest acceptance
 remains user-managed. No proof or model behavior claim follows from comment edits.
 
+Implemented: the corpus gate checks source-comment references, existing stale
+paths are repaired and ownership comments use supported declaration fragments.
+Focused source-reference and CI-selection controls pass. The local handoff journal
+`checked-refs-20261103-final` records the settled revision, selected checks and
+deferred hosted acceptance; Host CI and Guest CI remain user-managed and pending.
+
 ## Proof structure maintenance
 
 The [proof structure contract](docs/implementation/contracts/proof-structure.md) commissions the shared foundation, semantic checker interfaces, named conditions, geometry projection, trace replay, sequence edits, scalar lifting, NTT shapes, independent updates and dependency-ordered crypto sources. Implemented refactors provide compatibility aliases and semantic interface lemmas. Source review preserves statements, behavior and non-vacuity; hosted compilation/assumption audits decide proof acceptance. Require published-revision Host CI and all Guest lanes dispatched cold; the proof verdict remains pending. No local Rocq installation or compile verdict is available.

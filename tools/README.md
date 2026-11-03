@@ -1744,6 +1744,7 @@ the instructions at their own revision; a new session loads changed instructions
 
 Write a local cross-reference as a Markdown link in a comment or Python docstring.
 K-12 checks these alongside ordinary document links during `run.py check`.
+The source scan covers Python, Gallina, Sail, C, C++ and SystemVerilog.
 Paths are relative to the source file carrying the link and must name an indexed
 file or a directory with indexed descendants; directory links have no fragment.
 Use forward slashes and the exact filename case. Use a fragment when the
