@@ -240,6 +240,8 @@ def _validate(owners: tuple[Owner, ...], graph: Graph, limits: Limits,
     for bound in (limits.owners, limits.nodes, limits.paths, limits.captures, limits.work):
         if type(bound) is not int or bound < 1:
             raise AnalysisRefusalError("analysis limits must be positive integers")
+    if not isinstance(graph, Graph):
+        raise AnalysisRefusalError("graph must be an immutable Graph record")
     if not isinstance(owners, tuple) or not isinstance(graph.nodes, tuple):
         raise AnalysisRefusalError("owners and nodes must be immutable tuples")
     if not owners or len(owners) > limits.owners or not graph.nodes or len(graph.nodes) > limits.nodes:
@@ -248,6 +250,8 @@ def _validate(owners: tuple[Owner, ...], graph: Graph, limits: Limits,
     capture_count = 0
     for owner in owners:
         budget.spend()
+        if not isinstance(owner, Owner):
+            raise AnalysisRefusalError("owner must be an immutable Owner record")
         _name(owner.name)
         if owner.name in owner_names or type(owner.borrowed) is not bool:
             raise AnalysisRefusalError("duplicate owner identity or malformed owner mode")
@@ -255,8 +259,8 @@ def _validate(owners: tuple[Owner, ...], graph: Graph, limits: Limits,
         if not isinstance(owner.fields, tuple) or len(owner.fields) > limits.captures:
             raise AnalysisRefusalError("field declarations must be immutable")
         for path in owner.fields:
-            budget.spend(len(path) + 1)
             _projection(path)
+            budget.spend(len(path) + 1)
             if not path or "*" in path:
                 raise AnalysisRefusalError("declared field projections cannot be empty or unknown")
         if len(set(owner.fields)) != len(owner.fields):
@@ -267,6 +271,8 @@ def _validate(owners: tuple[Owner, ...], graph: Graph, limits: Limits,
     invariants: set[str] = set()
     for node in graph.nodes:
         budget.spend()
+        if not isinstance(node, Node):
+            raise AnalysisRefusalError("node must be an immutable Node record")
         _name(node.name)
         if node.name in nodes:
             raise AnalysisRefusalError("duplicate graph identity")
@@ -274,6 +280,8 @@ def _validate(owners: tuple[Owner, ...], graph: Graph, limits: Limits,
         if not isinstance(node.event, (Borrow, Access, Bind, Use, Drop, Move, Return,
                                        Checkpoint, OpenInvariant, CloseInvariant, Nop)):
             raise AnalysisRefusalError("unknown event")
+        if isinstance(node.event, Borrow) and not isinstance(node.event.loan, Loan):
+            raise AnalysisRefusalError("borrow must contain an immutable Loan record")
         binder = _binder(node.event)
         if binder is not None:
             _name(binder)
@@ -282,17 +290,20 @@ def _validate(owners: tuple[Owner, ...], graph: Graph, limits: Limits,
             _name(node.event.name)
             invariants.add(node.event.name)
 
+    _name(graph.entry)
     if graph.entry not in nodes:
         raise AnalysisRefusalError("missing entry node")
     for node in graph.nodes:
         budget.spend()
-        if (not isinstance(node.successors, tuple) or len(node.successors) > limits.nodes
-                or len(set(node.successors)) != len(node.successors)):
+        if not isinstance(node.successors, tuple) or len(node.successors) > limits.nodes:
             raise AnalysisRefusalError("malformed or duplicate edges")
         for successor in node.successors:
             budget.spend()
+            _name(successor)
             if successor not in nodes:
                 raise AnalysisRefusalError("missing successor")
+        if len(set(node.successors)) != len(node.successors):
+            raise AnalysisRefusalError("malformed or duplicate edges")
         if isinstance(node.event, Return) and node.successors:
             raise AnalysisRefusalError("return node has successors")
         references = _references(node.event)
@@ -309,18 +320,25 @@ def _validate(owners: tuple[Owner, ...], graph: Graph, limits: Limits,
         event = node.event
         if isinstance(event, (Borrow, Access)):
             place = event.loan.place if isinstance(event, Borrow) else event.place
+            if not isinstance(place, Place):
+                raise AnalysisRefusalError("footprint must be an immutable Place record")
+            _name(place.owner)
             _projection(place.fields)
             if place.owner not in owner_names:
                 raise AnalysisRefusalError("missing place owner")
         if isinstance(event, Borrow):
             if event.loan.mode not in ("shared", "exclusive") or type(event.loan.scoped) is not bool:
                 raise AnalysisRefusalError("malformed loan mode")
-            if event.loan.invariant is not None and event.loan.invariant not in invariants:
-                raise AnalysisRefusalError("missing invariant reference")
+            if event.loan.invariant is not None:
+                _name(event.loan.invariant)
+                if event.loan.invariant not in invariants:
+                    raise AnalysisRefusalError("missing invariant reference")
         if isinstance(event, Access) and event.kind not in ("read", "write", "move"):
             raise AnalysisRefusalError("unknown access kind")
-        if isinstance(event, CloseInvariant) and event.name not in invariants:
-            raise AnalysisRefusalError("missing invariant reference")
+        if isinstance(event, CloseInvariant):
+            _name(event.name)
+            if event.name not in invariants:
+                raise AnalysisRefusalError("missing invariant reference")
         if isinstance(event, (Return, Checkpoint)):
             label = event.outcome if isinstance(event, Return) else event.kind
             _name(label)
@@ -718,6 +736,11 @@ class _Path:
         terminal = self.path[-1]
         for invariant in sorted(opened):
             self.issue(terminal, "unclosed-invariant", invariant)
+        # Retaining a descendant retains every ancestor's restoration duty and
+        # scope. An unscoped descriptor cannot launder a scoped parent grant.
+        for name in sorted(self.ancestors(self.returned)):
+            if self.loans[name].scoped:
+                self.issue(terminal, "scoped-loan-escape", name)
         for name in sorted(self.returned):
             loan = self.loans[name]
             if name in self.invalid:
@@ -726,8 +749,6 @@ class _Path:
                 self.issue(terminal, "exclusive-loan-escape", name)
             if not self.owners[loan.place.owner].borrowed:
                 self.issue(terminal, "local-loan-escape", name)
-            if loan.scoped:
-                self.issue(terminal, "scoped-loan-escape", name)
             self.obligation(terminal, "returned-loan-lifetime", name, loan.place.owner)
         suspended = tuple(sorted({self.loans[name].place for name in active},
                                  key=lambda place: (place.owner, place.fields)))
@@ -751,6 +772,8 @@ def analyze(owners: tuple[Owner, ...], graph: Graph, limits: Limits | None = Non
     """
     if limits is None:
         limits = Limits()
+    if not isinstance(limits, Limits):
+        raise AnalysisRefusalError("limits must be an immutable Limits record")
     budget = _Budget(limits.work)
     nodes = _validate(owners, graph, limits, budget)
     paths = _paths(graph, nodes, limits.paths, budget)

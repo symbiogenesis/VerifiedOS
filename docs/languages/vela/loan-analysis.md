@@ -42,9 +42,11 @@ suspension. Declared disjoint fields remain accessible. Unknown projections or
 alias relations produce residual overlap obligations rather than permission.
 A shared loan may escape only into a declared borrowed parameter under an
 explicit return summary. That outcome retains the loan and ancestor restoration
-duties, with overlapping parent access suspended. Its error sibling restores
-locally. Local-owner and exclusive escapes produce diagnostics. Closure returns
-must include their transitive captures. Suspension and open-invariant cases
+duties, with overlapping parent access suspended. A scoped ancestor also retains
+its scope restriction through moved handles, nested reborrows and wrapper
+captures; returning an unscoped descendant cannot hide that restriction. Its
+error sibling restores locally. Local-owner and exclusive escapes produce
+diagnostics. Closure returns must include their transitive captures. Suspension and open-invariant cases
 remain unsupported or unresolved; syntactic availability is no proof of safety.
 
 The result distinguishes structural refusal, detected conflicts, unresolved
@@ -104,14 +106,17 @@ Independent focused tests cover last-use restoration; named disjoint fields and
 overlapping prefixes; nested reborrows and ancestor suspension; shared versus
 exclusive interference; transitive captures and retained wrappers; moves;
 separate returned-view/error outcomes; invalid local/exclusive escape; unknown
-overlap; malformed graphs, cycles and budget exhaustion. Rejected neighbors must
-reach their intended obligation instead of failing an unrelated input check.
+overlap; malformed records, edge identities, graphs, cycles and budget exhaustion.
+Malformed supplied records produce a structural refusal, including nested
+loan/footprint records and field paths; they produce no partial diagnostic.
+Rejected neighbors must reach their intended obligation instead of failing an
+unrelated input check.
 Tests assert restoration order and retained obligations, not only conflict counts.
 
 Run the affected host test module and Python type/lint checks, then the repository
 consistency checker on settled inputs. Hosted Host CI and selected Guest CI remain
-the validation handoff when publication is authorized. For this local-only session,
-record focused verdicts and defer publication and hosted evidence explicitly.
+the validation handoff when publication is authorized. Record focused verdicts
+separately from the exact-revision hosted evidence.
 Full frontend, concrete laws, checked derivations and comparative ergonomic or
 performance claims retain their existing owners; this experiment claims no
 superiority to Polonius.

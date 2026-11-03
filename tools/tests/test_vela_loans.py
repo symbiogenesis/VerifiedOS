@@ -2,6 +2,7 @@
 """Independent complete-path loan-flow fixtures and rejected neighbors."""
 
 from collections.abc import Callable
+from typing import cast
 
 from tests.harness import Case, ensure
 from vos.vela_loans import (
@@ -272,6 +273,30 @@ def _escape_limits_and_ancestor_duties() -> None:
     ensure("scoped-loan-escape" in _kinds(scoped), "wrapper hid a scoped escape")
 
 
+def _scoped_ancestor_escapes() -> None:
+    for scoped in (False, True):
+        path = _path(Borrow(Loan("parent", "workspace", _BYTES, "exclusive", scoped=scoped)),
+                     Move("parent", "moved"), Borrow(Loan("middle", "moved", _BYTES)),
+                     Borrow(Loan("view", "middle", _BYTES)), Bind("wrapper", ("view",)),
+                     Return("Ready", ("wrapper",)))
+        expected = [("n5", "scoped-loan-escape", ("parent",))] if scoped else []
+        ensure([(issue.node, issue.kind, issue.resources) for issue in path.issues] == expected,
+               "a moved, transitively retained scoped ancestor escaped through an unscoped child")
+        ensure(path.returned_loans == ("view",) and path.retained_loans == ("middle", "parent", "view")
+               and not path.restorations,
+               "escape diagnostics lost the child or its unresolved ancestor restoration duties")
+    shared = _path(Borrow(Loan("scope", "workspace", _BYTES, scoped=True)),
+                   Borrow(Loan("first", "scope", _BYTES)), Borrow(Loan("second", "scope", _BYTES)),
+                   Return("Ready", ("first", "second")))
+    ensure([(issue.node, issue.kind, issue.resources) for issue in shared.issues]
+           == [("n3", "scoped-loan-escape", ("scope",))],
+           "multiple returned descendants hid or duplicated their common scoped-ancestor diagnostic")
+    local = _path(Borrow(Loan("scope", "workspace", _BYTES, "exclusive", scoped=True)),
+                  Borrow(Loan("view", "scope", _BYTES)), Use("view"), Return("done"))
+    ensure(not local.issues and _ends(local) == [("n2", "view", "scope"), ("n2", "scope", "workspace")],
+           "transitive escape checks rejected locally restored descendants")
+
+
 def _owner_moves() -> None:
     path = _path(Borrow(Loan("reader", "workspace", _BYTES)), Access(_ROOT, "move"), Use("reader"))
     ensure("suspended-parent" in _kinds(path), "owner moved under its live child")
@@ -344,6 +369,38 @@ def _complete_exploration_and_budgets() -> None:
         ensure(len(report.paths) == 2, "budget exhaustion exposed a partial report")
 
 
+def _malformed_records_and_edges() -> None:
+    # Deliberately cross the annotated API boundary: malformed supplied facts
+    # must refuse the whole analysis rather than leak an incidental Python error.
+    def supplied(value: object) -> object:
+        return value
+
+    examples: tuple[tuple[object, str], ...] = (
+        (None, "Graph record"),
+        (Graph(cast("str", supplied([])), (Node("entry"),)), "normalized identifiers"),
+        (Graph("entry", cast("tuple[Node, ...]", supplied([Node("entry")]))), "immutable tuples"),
+        (Graph("entry", (cast("Node", supplied(None)),)), "Node record"),
+        (Graph("entry", (Node("entry", successors=(cast("str", supplied([])),)),)), "normalized identifiers"),
+        (Graph("entry", (Node("entry", successors=cast("tuple[str, ...]", supplied(["entry"]))),)), "edges"),
+        (_graph(Borrow(cast("Loan", supplied(None)))), "Loan record"),
+        (_graph(Borrow(Loan("view", "workspace", cast("Place", supplied(None))))), "Place record"),
+        (_graph(Access(cast("Place", supplied(None)))), "Place record"),
+        (_graph(Access(Place(cast("str", supplied([]))))), "normalized identifiers"),
+        (_graph(Access(Place("workspace", cast("tuple[str, ...]", supplied(None))))), "projection"),
+        (_graph(Borrow(Loan("view", "workspace", _BYTES, invariant=cast("str", supplied([]))))),
+         "normalized identifiers"),
+        (_graph(CloseInvariant(cast("str", supplied([])))), "normalized identifiers"),
+    )
+    for graph, message in examples:
+        _refuses(lambda graph=graph: analyze(_OWNERS, cast("Graph", graph)), message)
+    for owners, message in (
+        ((cast("Owner", supplied(None)),), "Owner record"),
+        ((Owner("workspace", fields=(cast("tuple[str, ...]", supplied(7)),)),), "projection"),
+    ):
+        _refuses(lambda owners=owners: analyze(owners, _graph(Return())), message)
+    _refuses(lambda: analyze(_OWNERS, _graph(Return()), cast("Limits", supplied({}))), "Limits record")
+
+
 def cases() -> list[Case]:
     return [Case("last-use restoration and unresolved facts", _last_use_and_residuals),
             Case("nested restoration and suspended ancestors", _nested_restoration_and_suspension),
@@ -354,7 +411,9 @@ def cases() -> list[Case]:
             Case("branch-specific returned views and unavailable names", _branch_alternatives_and_returned_wrappers),
             Case("availability-only drops preserve actual last use", _drop_is_availability_only),
             Case("escape restrictions and retained ancestor duties", _escape_limits_and_ancestor_duties),
+            Case("scoped ancestors cannot escape through returned descendants", _scoped_ancestor_escapes),
             Case("owner movement and blocked routes", _owner_moves),
             Case("invariant and suspension boundaries", _invariants_and_boundaries),
             Case("malformed graphs and absent references", _structural_refusals),
+            Case("malformed records and edge identities refuse completely", _malformed_records_and_edges),
             Case("complete deterministic exploration and bounded refusal", _complete_exploration_and_budgets)]
