@@ -30,6 +30,10 @@ _TYPES: dict[ValueType, str] = {
 }
 _TRUE = "Corelib.Init.Datatypes.true"
 _FALSE = "Corelib.Init.Datatypes.false"
+MAX_STATIC_WORK = 20_000
+MAX_STATIC_DEPTH = 128
+MAX_STATIC_NAT = 10 ** MAX_LITERAL_DIGITS - 1
+MAX_OUTPUT_BYTES = 1_048_576
 
 
 @dataclass(frozen=True)
@@ -62,12 +66,21 @@ class _Signature:
     parameters: tuple[tuple[syntax.Name, ValueType, int | None], ...]
     result: ValueType
     symbol: int | None
+    source: syntax.Function
+    constants: dict[str, _Local]
+
+
+@dataclass(frozen=True)
+class _Static:
+    value_type: ValueType
+    value: int | bool
 
 
 @dataclass(frozen=True)
 class _Local:
     value_type: ValueType
     symbol: int | None
+    static: _Static | None = None
 
 
 def _tokens(source: bytes) -> list[_Token]:
@@ -159,12 +172,27 @@ class _Parser:
         self._expect("module")
         module = self._name()
         self._expect(";")
-        functions: list[syntax.Function] = []
+        declarations: list[syntax.Function | syntax.Constant] = []
         while self._current().kind != "eof":
-            functions.append(self._function())
-        if not functions:
-            raise self._error("syntax", "module requires at least one function")
-        return syntax.Module(module, tuple(functions))
+            if self._current().text == "public" and self.tokens[self.offset + 1].text == "const":
+                start = self._expect("public")
+                declarations.append(self._constant(start))
+            else:
+                declarations.append(self._function())
+        if not declarations:
+            raise self._error("syntax", "module requires at least one function or constant")
+        return syntax.Module(module, tuple(declarations))
+
+    def _constant(self, start: _Token | None = None) -> syntax.Constant:
+        token = self._expect("const")
+        if self._current().kind == "name" and self.tokens[self.offset + 1].text == "=":
+            raise self._error("syntax", "const requires an explicit type before its name")
+        value_type = self._value_type()
+        name = self._name()
+        self._expect("=")
+        value = self._expression(1)
+        self._expect(";")
+        return syntax.Constant(name, value_type, value, (token if start is None else start).site)
 
     def _function(self) -> syntax.Function:
         self._expect("public")
@@ -193,11 +221,14 @@ class _Parser:
     def _block(self, nesting: int) -> syntax.Block:
         self._expect("{")
         start = self._current()
-        bindings: list[syntax.Binding | syntax.Reassignment] = []
-        while (self._current().text == "let"
+        bindings: list[syntax.Binding | syntax.Reassignment | syntax.Constant] = []
+        while (self._current().text in {"let", "const"}
                or (self._current().kind == "name" and self.tokens[self.offset + 1].text == "=")):
             if nesting + len(bindings) > MAX_BLOCK_DEPTH:
                 raise self._error("limit", f"block or binding nesting exceeds {MAX_BLOCK_DEPTH}")
+            if self._current().text == "const":
+                bindings.append(self._constant())
+                continue
             token = self._current()
             immutable = self._take("let")
             name = self._name()
@@ -293,6 +324,9 @@ class _Elaborator:
 
     def __init__(self, facts: Facts | None = None) -> None:
         self.functions: dict[str, _Signature] = {}
+        self.constants: dict[str, _Local] = {}
+        self.constant_values: dict[int, _Static] = {}
+        self.static_work = MAX_STATIC_WORK
         self.facts = facts
 
     def _declare(self, name: syntax.Name, kind: SymbolKind, detail: str) -> int | None:
@@ -313,7 +347,7 @@ class _Elaborator:
 
     def function(self, function: syntax.Function) -> str:
         name = function.name
-        if name.text in self.functions:
+        if name.text in self.functions or name.text in self.constants:
             raise _error("name", f"duplicate function '{name.text}'", name.site)
         parameters = ", ".join(f"{value_type} {parameter.text}"
                                for parameter, value_type in function.parameters)
@@ -332,26 +366,129 @@ class _Elaborator:
             raise _error("type", f"function '{name.text}' returns {body.value_type}, "
                          f"expected {function.result}", function.body.site)
         self.functions[name.text] = _Signature(tuple(parameter_facts),
-                                               function.result, identity)
+                                               function.result, identity, function, dict(self.constants))
         binders = "".join(f" (v_{parameter.text} : {_TYPES[value_type]})"
                           for parameter, value_type in function.parameters)
         return f"Definition f_{name.text}{binders} : {_TYPES[function.result]} :=\n  {body.gallina}."
+
+    def _static_tick(self, site: syntax.Site, depth: int = 0) -> None:
+        self.static_work -= 1
+        if self.static_work < 0 or depth > MAX_STATIC_DEPTH:
+            raise _error("limit", "constant evaluation work or nesting budget exhausted", site)
+
+    def _literal(self, value: _Static) -> str:
+        if value.value_type == "bool":
+            return _TRUE if value.value else _FALSE
+        return f"({value.value} : {_TYPES['Nat']})"
+
+    def _require_static(self, expression: syntax.Expression, environment: dict[str, _Local]) -> None:
+        pending = [expression]
+        while pending:
+            current = pending.pop()
+            self._static_tick(current.site)
+            if current.kind == "name":
+                name = cast("str", current.value)
+                local = environment.get(name, self.constants.get(name))
+                if local is not None and local.static is None:
+                    raise _error("unsupported", f"constant initializer depends on runtime binding '{name}'; "
+                                 "only earlier constants and static pure-call arguments are permitted", current.site)
+            pending.extend(reversed(current.children))
+
+    def _constant(self, declaration: syntax.Constant, environment: dict[str, _Local]) -> _Local:
+        checked = self._expression(declaration.value, environment)
+        if checked.value_type != declaration.value_type:
+            raise _error("type", f"constant '{declaration.name.text}' must be {declaration.value_type}, "
+                         f"got {checked.value_type}", declaration.name.site)
+        self._require_static(declaration.value, environment)
+        available = {name: local.static for name, local in {**self.constants, **environment}.items()
+                     if local.static is not None}
+        value = self._evaluate(declaration.value, available)
+        spelling = ("true" if value.value else "false") if value.value_type == "bool" else str(value.value)
+        symbol = self._declare(declaration.name, "constant",
+                               f"const {declaration.value_type} {declaration.name.text} = {spelling}")
+        self.constant_values[id(declaration)] = value
+        return _Local(declaration.value_type, symbol, value)
+
+    def constant(self, declaration: syntax.Constant) -> str:
+        name = declaration.name
+        if name.text in self.constants or name.text in self.functions:
+            raise _error("name", f"duplicate declaration '{name.text}'", name.site)
+        local = self._constant(declaration, {})
+        self.constants[name.text] = local
+        if local.static is None:
+            raise RuntimeError("constant declaration lost its static value")
+        return f"Definition c_{name.text} : {_TYPES[local.value_type]} :=\n  {self._literal(local.static)}."
+
+    def _evaluate(self, expression: syntax.Expression, environment: dict[str, _Static], depth: int = 0) -> _Static:
+        self._static_tick(expression.site, depth)
+        kind, name = expression.kind, cast("str", expression.value)
+        if kind == "nat":
+            return _Static("Nat", int(name))
+        if kind == "bool":
+            return _Static("bool", cast("bool", expression.value))
+        if kind == "name":
+            value = environment.get(name)
+            if value is None:
+                raise _error("unsupported", f"constant initializer has no static value for '{name}'", expression.site)
+            return value
+        if kind == "group":
+            return self._evaluate(expression.children[0], environment, depth + 1)
+        arguments = tuple(self._evaluate(child, environment, depth + 1) for child in expression.children)
+        if kind == "call":
+            signature = self.functions[name]
+            inputs = {parameter.text: value for (parameter, _, _), value in zip(signature.parameters, arguments, strict=True)}
+            captured = {label: local.static for label, local in signature.constants.items() if local.static is not None}
+            return self._evaluate_block(signature.source.body, {**captured, **inputs}, depth + 1)
+        left, right = arguments
+        if name == "==":
+            return _Static("bool", left.value == right.value)
+        first, second = left.value, right.value
+        if name == "<=":
+            return _Static("bool", first <= second)
+        if ((name == "+" and first > MAX_STATIC_NAT - second)
+                or (name == "*" and first != 0 and second > MAX_STATIC_NAT // first)):
+            raise _error("limit", f"constant result exceeds {MAX_LITERAL_DIGITS} decimal digits", expression.site)
+        return _Static("Nat", first + second if name == "+" else first * second)
+
+    def _evaluate_block(self, block: syntax.Block, environment: dict[str, _Static], depth: int) -> _Static:
+        self._static_tick(block.site, depth)
+        extended = dict(environment)
+        for binding in block.bindings:
+            if isinstance(binding, syntax.Reassignment):
+                raise _error("unsupported", "constant evaluation does not admit reassignment", binding.site)
+            value = (self.constant_values[id(binding)] if isinstance(binding, syntax.Constant)
+                     else self._evaluate(binding.value, extended, depth + 1))
+            extended[binding.name.text] = value
+        terminal = block.terminal
+        if isinstance(terminal, syntax.Return):
+            return self._evaluate(terminal.value, extended, depth + 1)
+        condition = self._evaluate(terminal.condition, extended, depth + 1)
+        return self._evaluate_block(terminal.yes if condition.value else terminal.no, extended, depth + 1)
 
     def _block(self, block: syntax.Block, environment: dict[str, _Local], nesting: int) -> _Expression:
         if nesting + len(block.bindings) > MAX_BLOCK_DEPTH:
             raise _error("limit", f"block or binding nesting exceeds {MAX_BLOCK_DEPTH}", block.site)
         extended = dict(environment)
-        values: list[tuple[syntax.Binding, _Expression]] = []
+        values: list[tuple[syntax.Binding | syntax.Constant, _Expression]] = []
         for binding in block.bindings:
             if isinstance(binding, syntax.Reassignment):
-                if binding.name.text not in extended:
+                selected = extended.get(binding.name.text, self.constants.get(binding.name.text))
+                if selected is None:
                     raise _error("name", f"unbound assignment target '{binding.name.text}'", binding.name.site)
-                raise _error("unsupported", f"cannot reassign immutable binding '{binding.name.text}'; "
+                mode = "const" if selected.static is not None else "immutable binding"
+                raise _error("unsupported", f"cannot reassign {mode} '{binding.name.text}'; "
                              "let and unmarked type-first bindings are immutable. Declare var for local "
                              "reassignment in the wider Vela surface; the pure prototype does not support mutation",
                              binding.name.site)
             if binding.name.text in extended:
                 raise _error("name", f"duplicate local binding '{binding.name.text}'", binding.name.site)
+            if isinstance(binding, syntax.Constant):
+                local = self._constant(binding, extended)
+                extended[binding.name.text] = local
+                if local.static is None:
+                    raise RuntimeError("local constant lost its static value")
+                values.append((binding, _Expression(local.value_type, self._literal(local.static))))
+                continue
             value = self._expression(binding.value, extended)
             symbol = self._declare(binding.name, "variable", f"{binding.name.text}: {value.value_type}")
             extended[binding.name.text] = _Local(value.value_type, symbol)
@@ -387,13 +524,16 @@ class _Elaborator:
             return self._expression(expression.children[0], environment)
         name = cast("str", value)
         if kind == "name":
-            local = environment.get(name)
+            local = environment.get(name, self.constants.get(name))
             if local is None:
                 raise _error("name", f"unbound value '{name}'", site)
             self._reference(local.symbol, site)
-            return _Expression(local.value_type, f"v_{name}")
+            return _Expression(local.value_type, f"v_{name}" if name in environment else f"c_{name}")
         arguments = tuple(self._expression(child, environment) for child in expression.children)
         if kind == "call":
+            local = environment.get(name, self.constants.get(name))
+            if local is not None and local.static is not None:
+                raise _error("type", f"constant '{name}' is a value and cannot be called", site)
             signature = self.functions.get(name)
             if signature is None:
                 raise _error("name", f"unknown or forward function '{name}'; "
@@ -446,13 +586,17 @@ class _Elaborator:
 
 def _translate(source: bytes, module: syntax.Module, facts: Facts | None = None) -> Translation:
     elaborator = _Elaborator(facts)
-    definitions = [elaborator.function(function) for function in module.functions]
+    definitions = [elaborator.constant(declaration) if isinstance(declaration, syntax.Constant)
+                   else elaborator.function(declaration) for declaration in module.declarations]
     name = module.name.text
     header = ("(* SPDX-License-Identifier: Apache-2.0 *)\n"
               f"(* Vela pure prototype: unqualified. Source SHA256: {hashlib.sha256(source).hexdigest()} *)\n"
               "From Corelib Require Import Init.Datatypes Init.Nat.\n\n"
               f"Module Vela_{name}.\n\n")
-    return Translation(name, header + "\n\n".join(definitions) + f"\n\nEnd Vela_{name}.\n")
+    gallina = header + "\n\n".join(definitions) + f"\n\nEnd Vela_{name}.\n"
+    if len(gallina.encode()) > MAX_OUTPUT_BYTES:
+        raise _error("limit", "pure translation exceeds its output byte budget", module.name.site)
+    return Translation(name, gallina)
 
 
 def translate(source: bytes) -> Translation:

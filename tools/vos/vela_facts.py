@@ -8,7 +8,7 @@ from vos.vela_ast import Name, Site, VelaError
 
 MAX_SYMBOLS = 1024
 MAX_OCCURRENCES = 4096
-type SymbolKind = Literal["function", "parameter", "variable"]
+type SymbolKind = Literal["function", "parameter", "variable", "constant"]
 
 
 @dataclass(frozen=True)

@@ -1147,6 +1147,22 @@ public hardware RegisterCounter {
     cycle 1;
 }
 """, ("machine", "hardware", "state", "register", "transition", "rule", "schedule", "cycle", "next")),
+    Fixture("required-static-constants", """// café: declaration order and constant spans are original bytes.
+module Constants;
+public Nat Square(Nat value) => value * value;
+public const Nat Limit = Square(value: 4);
+public const bool Ready = Limit == 16;
+public struct Bounds<T> {
+    public const usize Capacity = 8usize;
+    private const Nat Doubled = Limit + Limit;
+    public void Use(Nat runtime) {
+        const Nat Local = Limit + 1;
+        const Nat Invalid = runtime;
+        const ghost Nat Erased = runtime;
+        Consume(Local);
+    }
+}
+""", ("constant", "constant_local", "type", "argument", "modified_type")),
     Fixture("canonical-readable-calls", """// café: labels and explicit modes have separate spans.
 module Readable;
 alias Outcome = Result<Unit, Error>;
@@ -1179,6 +1195,10 @@ public UnknownType F() { return missing; }
 
 
 NEGATIVE: tuple[tuple[str, bytes, str], ...] = (
+    ("constant-missing-type", b"module M; public const Limit = 1;", "syntax"),
+    ("constant-missing-initializer", b"module M; public const Nat Limit;", "syntax"),
+    ("constant-missing-value", b"module M; public const Nat Limit = ;", "syntax"),
+    ("constant-local-missing-type", b"module M; void F() { const Limit = 1; }", "syntax"),
     ("empty-parenthesized-type", b"module M; alias Empty = ();", "syntax"),
     ("noncanonical-range-loop", b"module M; void F() { for (let index in 0..count) {} }", "syntax"),
     ("missing-named-argument-value", b"module M; Nat F() => Call(value:);", "syntax"),
@@ -1513,6 +1533,38 @@ def _readable_call_roles(result: dict[str, Json]) -> None:
     exits = {node.get("kind") for node in nodes(loops[0])}
     if not {"break", "continue", "return", "contract", "assignment"} <= exits:
         raise ValueError("surface foreach lost a loan/contract exit role")
+
+
+def _required_static_roles(source: bytes, result: dict[str, Json]) -> None:
+    tree = _object(result.get("ast"), "constant declaration root")
+    declarations = _sequence(tree.get("declarations"), "ordered declarations")
+    if [_texts(_object(value, "declaration").get("name")) for value in declarations] != [["Square"], ["Limit"], ["Ready"], ["Bounds"]]:
+        raise ValueError("surface constants changed authored declaration order")
+    for name, kind, spelling, annotation in (
+            ("Limit", "constant", b"public const Nat Limit = Square(value: 4);", "Nat"),
+            ("Ready", "constant", b"public const bool Ready = Limit == 16;", "bool"),
+            ("Capacity", "constant", b"public const usize Capacity = 8usize;", "usize"),
+            ("Doubled", "constant", b"private const Nat Doubled = Limit + Limit;", "Nat"),
+            ("Local", "constant_local", b"const Nat Local = Limit + 1;", "Nat")):
+        declaration = _named(tree, kind, name)
+        _exact_span(source, declaration, spelling)
+        _type_head(declaration.get("type"), annotation, 0)
+        expected = {"kind", "span", "name", "type", "value"}
+        if kind == "constant":
+            expected.add("modifiers")
+            if declaration.get("modifiers") != ["private" if name == "Doubled" else "public"]:
+                raise ValueError("surface constant lost its source visibility")
+        if set(declaration) != expected:
+            raise ValueError("surface constant acquired unexpected callable/grade fields")
+    initializer = _object(_named(tree, "constant", "Limit").get("value"), "unreduced initializer")
+    if initializer.get("kind") != "call" or _texts(initializer.get("callee")) != ["Square"]:
+        raise ValueError("surface parser evaluated a required-static initializer")
+    invalid = _named(tree, "constant_local", "Invalid")
+    if _object(invalid.get("value"), "runtime initializer").get("kind") != "name":
+        raise ValueError("surface parser hid a runtime constant dependency")
+    erased = _object(_named(tree, "constant_local", "Erased").get("type"), "erased constant annotation")
+    if erased.get("kind") != "modified_type" or erased.get("modifier") != "ghost":
+        raise ValueError("surface constant erased its unsupported phase annotation")
 
 
 def _named(value: Json, kind: str, name: str) -> dict[str, Json]:
@@ -3833,7 +3885,9 @@ def qualify(parse: Callable[[bytes], dict[str, Json]]) -> list[str]:
         missing = set(fixture.kinds) - found
         if missing:
             raise ValueError(f"surface fixture {fixture.name} lacks AST roles: {sorted(missing)}")
-        if fixture.name == "canonical-readable-calls":
+        if fixture.name == "required-static-constants":
+            _required_static_roles(fixture.source.encode("utf-8"), result)
+        elif fixture.name == "canonical-readable-calls":
             _readable_call_roles(result)
         elif fixture.name == "concise-authoring-syntax":
             _concise_authoring_roles(fixture.source.encode("utf-8"), result)

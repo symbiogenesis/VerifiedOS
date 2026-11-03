@@ -20,7 +20,7 @@ type ValueType = Literal["Nat", "bool"]
 
 IDENTIFIER = re.compile(r"[A-Za-z_][A-Za-z0-9_]*")
 DECIMAL = re.compile(r"[0-9]+")
-KEYWORDS = frozenset({"module", "public", "return", "let", "if", "else", "Nat", "bool",
+KEYWORDS = frozenset({"module", "public", "return", "let", "const", "if", "else", "Nat", "bool",
                       "true", "false"})
 UNSUPPORTED = frozenset({"fn", "Bool", "async", "await", "effect", "effects", "handler",
                         "handle", "resume", "dispose", "mut", "var", "unsafe", "borrow",
@@ -139,6 +139,14 @@ class Reassignment:
 
 
 @dataclass(frozen=True)
+class Constant:
+    name: Name
+    value_type: ValueType
+    value: Expression
+    site: Site
+
+
+@dataclass(frozen=True)
 class Return:
     value: Expression
     site: Site
@@ -154,7 +162,7 @@ class Conditional:
 
 @dataclass(frozen=True)
 class Block:
-    bindings: tuple[Binding | Reassignment, ...]
+    bindings: tuple[Binding | Reassignment | Constant, ...]
     terminal: Return | Conditional
     site: Site
 
@@ -170,7 +178,7 @@ class Function:
 @dataclass(frozen=True)
 class Module:
     name: Name
-    functions: tuple[Function, ...]
+    declarations: tuple[Function | Constant, ...]
 
 
 def position(prefix: str) -> Site:
@@ -235,6 +243,14 @@ class _Decoder:
     def _site(self, offset: int) -> Site:
         return self.sites[offset]
 
+    def _keyword(self, cursor: int, keyword: bytes) -> int:
+        end = cursor + len(keyword)
+        following = self.source[end:end + 1]
+        if (self.source[cursor:end] != keyword
+                or (following and (following.isalnum() or following == b"_"))):
+            raise ValueError("native syntax keyword differs from its source")
+        return trivia_end(self.source, end)
+
     def _text(self, raw: object, parent: tuple[int, int], *, identifier: bool = True) -> Name:
         if not isinstance(raw, dict) or set(raw) != {"text", "span"} or not isinstance(raw["text"], str):
             raise ValueError("native parser returned an invalid name or operator")
@@ -296,6 +312,8 @@ class _Decoder:
             return expression(kind, value, site)
         if kind == "name":
             name = self._text(node["name"], span)
+            if not isinstance(node["name"], dict) or self._span(node["name"].get("span"), span) != span:
+                raise ValueError("native name expression leaves source tokens uncovered")
             return expression(kind, name.text, name.site)
         if kind == "call":
             name = self._text(node["callee"], span)
@@ -305,6 +323,8 @@ class _Decoder:
             if not isinstance(raw_callee, dict):
                 raise TypeError("native call has no callee")
             callee_span = self._span(raw_callee.get("span"), span)
+            if callee_span[0] != span[0]:
+                raise ValueError("native call leaves source callee tokens uncovered")
             cursor = trivia_end(self.source, callee_span[1])
             if self.source[cursor:cursor + 1] != b"(":
                 raise ValueError("native call differs from its source opening")
@@ -350,36 +370,133 @@ class _Decoder:
                 values.append(value)
             return expression(kind, name.text, name.site, tuple(values), labels=tuple(labels))
         if kind == "group":
+            raw_value = node["value"]
+            if not isinstance(raw_value, dict):
+                raise TypeError("native group has no located value")
+            value_span = self._span(raw_value.get("span"), span)
+            if (self.source[span[0]:span[0] + 1] != b"("
+                    or trivia_end(self.source, span[0] + 1) != value_span[0]
+                    or trivia_end(self.source, value_span[1]) != span[1] - 1
+                    or self.source[span[1] - 1:span[1]] != b")"):
+                raise ValueError("native group leaves source tokens uncovered")
             return expression(kind, "", site, (child(node["value"]),))
         operator = self._text(node["operator"], span, identifier=False)
         if operator.text not in {"+", "*", "==", "<="}:
             raise ValueError("native parser returned an unknown binary operator")
         self._ordered([node["left"], node["operator"], node["right"]], span)
+        if not all(isinstance(node[field], dict) for field in ("left", "operator", "right")):
+            raise TypeError("native operator has no located operands")
+        left_span = self._span(cast("dict[str, object]", node["left"]).get("span"), span)
+        op_span = self._span(cast("dict[str, object]", node["operator"]).get("span"), span)
+        right_span = self._span(cast("dict[str, object]", node["right"]).get("span"), span)
+        if (left_span[0] != span[0] or right_span[1] != span[1]
+                or trivia_end(self.source, left_span[1]) != op_span[0]
+                or trivia_end(self.source, op_span[1]) != right_span[0]):
+            raise ValueError("native binary expression leaves source tokens uncovered")
         return expression(kind, operator.text, operator.site, (child(node["left"]), child(node["right"])))
+
+    def _constant(self, raw: object, kind: str, parent: tuple[int, int], depth: int) -> Constant:
+        node, span, site = self._node(raw, kind, {"name", "type", "value"}, parent, depth)
+        self._ordered([node["type"], node["name"], node["value"]], span)
+        value_type = self._type(node["type"], span, depth + 1)
+        name = self._text(node["name"], span)
+        value = self._expression(node["value"], span, depth + 1)
+        cursor = span[0]
+        for keyword in ((b"public", b"const") if kind == "constant" else (b"const",)):
+            if self.source[cursor:cursor + len(keyword)] != keyword:
+                raise ValueError("native constant differs from its source declaration")
+            end = cursor + len(keyword)
+            if self.source[end:end + 1] and (self.source[end:end + 1].isalnum() or self.source[end:end + 1] == b"_"):
+                raise ValueError("native constant keyword ends inside an identifier")
+            cursor = trivia_end(self.source, end)
+        raw_type, raw_name, raw_value = node["type"], node["name"], node["value"]
+        if not all(isinstance(item, dict) for item in (raw_type, raw_name, raw_value)):
+            raise TypeError("native constant is missing located fields")
+        type_span = self._span(cast("dict[str, object]", raw_type).get("span"), span)
+        name_span = self._span(cast("dict[str, object]", raw_name).get("span"), span)
+        value_span = self._span(cast("dict[str, object]", raw_value).get("span"), span)
+        equal = trivia_end(self.source, name_span[1])
+        if (cursor != type_span[0] or trivia_end(self.source, type_span[1]) != name_span[0]
+                or self.source[equal:equal + 1] != b"="
+                or trivia_end(self.source, equal + 1) != value_span[0]
+                or trivia_end(self.source, value_span[1]) != span[1] - 1
+                or self.source[span[1] - 1:span[1]] != b";"):
+            raise ValueError("native constant leaves source tokens uncovered")
+        return Constant(name, value_type, value, site)
 
     def _block(self, raw: object, parent: tuple[int, int], depth: int) -> Block:
         node, span, _ = self._node(raw, "block", {"bindings", "exit"}, parent, depth)
         bindings = self._list(node["bindings"])
         self._ordered([*bindings, node["exit"]], span)
+        if self.source[span[0]:span[0] + 1] != b"{" or self.source[span[1] - 1:span[1]] != b"}":
+            raise ValueError("native block differs from its source braces")
+        cursor = trivia_end(self.source, span[0] + 1)
+        for raw_statement in [*bindings, node["exit"]]:
+            if not isinstance(raw_statement, dict):
+                raise TypeError("native block has no located statement")
+            statement_span = self._span(raw_statement.get("span"), span)
+            if cursor != statement_span[0]:
+                raise ValueError("native block leaves source statements uncovered")
+            cursor = trivia_end(self.source, statement_span[1])
+        if cursor != span[1] - 1:
+            raise ValueError("native block leaves source statements uncovered")
         if len(bindings) > MAX_BLOCK_DEPTH:
             raise VelaError("limit", 1, 1, "native block exceeds binding limit")
-        converted: list[Binding | Reassignment] = []
+        converted: list[Binding | Reassignment | Constant] = []
         for raw_binding in bindings:
             kind = raw_binding.get("kind") if isinstance(raw_binding, dict) else None
+            if kind == "constant_local":
+                converted.append(self._constant(raw_binding, kind, span, depth + 1))
+                continue
             if kind not in {"let", "reassignment"}:
                 raise ValueError("native block has an invalid binding role")
             binding, binding_span, site = self._node(raw_binding, kind, {"name", "value"}, span, depth + 1)
             self._ordered([binding["name"], binding["value"]], binding_span)
+            raw_name, raw_value = binding["name"], binding["value"]
+            if not isinstance(raw_name, dict) or not isinstance(raw_value, dict):
+                raise TypeError("native binding has no located name/value")
+            name_span = self._span(raw_name.get("span"), binding_span)
+            value_span = self._span(raw_value.get("span"), binding_span)
+            cursor = self._keyword(binding_span[0], b"let") if kind == "let" else binding_span[0]
+            equal = trivia_end(self.source, name_span[1])
+            if (cursor != name_span[0] or self.source[equal:equal + 1] != b"="
+                    or trivia_end(self.source, equal + 1) != value_span[0]
+                    or trivia_end(self.source, value_span[1]) != binding_span[1] - 1
+                    or self.source[binding_span[1] - 1:binding_span[1]] != b";"):
+                raise ValueError("native binding differs from its source spelling or coverage")
             constructor = Binding if kind == "let" else Reassignment
             converted.append(constructor(self._text(binding["name"], binding_span),
                                      self._expression(binding["value"], binding_span, depth + 2), site))
         raw_exit = node["exit"]
         if isinstance(raw_exit, dict) and raw_exit.get("kind") == "return":
             terminal, terminal_span, site = self._node(raw_exit, "return", {"value"}, span, depth + 1)
+            raw_value = terminal["value"]
+            if not isinstance(raw_value, dict):
+                raise TypeError("native return has no located value")
+            value_span = self._span(raw_value.get("span"), terminal_span)
+            if (self._keyword(terminal_span[0], b"return") != value_span[0]
+                    or trivia_end(self.source, value_span[1]) != terminal_span[1] - 1
+                    or self.source[terminal_span[1] - 1:terminal_span[1]] != b";"):
+                raise ValueError("native return leaves source tokens uncovered")
             exit_value: Return | Conditional = Return(self._expression(terminal["value"], terminal_span, depth + 2), site)
         else:
             terminal, terminal_span, site = self._node(raw_exit, "if", {"condition", "then", "else"}, span, depth + 1)
             self._ordered([terminal["condition"], terminal["then"], terminal["else"]], terminal_span)
+            raw_condition, raw_yes, raw_no = terminal["condition"], terminal["then"], terminal["else"]
+            if not all(isinstance(item, dict) for item in (raw_condition, raw_yes, raw_no)):
+                raise TypeError("native conditional has no located branches")
+            condition_span = self._span(cast("dict[str, object]", raw_condition).get("span"), terminal_span)
+            yes_span = self._span(cast("dict[str, object]", raw_yes).get("span"), terminal_span)
+            no_span = self._span(cast("dict[str, object]", raw_no).get("span"), terminal_span)
+            opening = self._keyword(terminal_span[0], b"if")
+            closing = trivia_end(self.source, condition_span[1])
+            if (self.source[opening:opening + 1] != b"("
+                    or trivia_end(self.source, opening + 1) != condition_span[0]
+                    or self.source[closing:closing + 1] != b")"
+                    or trivia_end(self.source, closing + 1) != yes_span[0]
+                    or self._keyword(trivia_end(self.source, yes_span[1]), b"else") != no_span[0]
+                    or no_span[1] != terminal_span[1]):
+                raise ValueError("native conditional leaves source branches uncovered")
             exit_value = Conditional(self._expression(terminal["condition"], terminal_span, depth + 2),
                                      self._block(terminal["then"], terminal_span, depth + 2),
                                      self._block(terminal["else"], terminal_span, depth + 2), site)
@@ -403,13 +520,34 @@ class _Decoder:
         return Block((), Return(value, site), value.site)
 
     def module(self, raw: object) -> Module:
-        node, span, _ = self._node(raw, "file", {"name", "functions"}, (0, len(self.source)), 1)
-        functions = self._list(node["functions"])
-        if not functions:
-            raise ValueError("native syntax module has no functions")
-        self._ordered([node["name"], *functions], span)
-        converted: list[Function] = []
-        for raw_function in functions:
+        node, span, _ = self._node(raw, "file", {"name", "declarations"}, (0, len(self.source)), 1)
+        declarations = self._list(node["declarations"])
+        if not declarations:
+            raise ValueError("native syntax module has no declarations")
+        self._ordered([node["name"], *declarations], span)
+        raw_name = node["name"]
+        if not isinstance(raw_name, dict):
+            raise TypeError("native module has no located name")
+        name_span = self._span(raw_name.get("span"), span)
+        semicolon = trivia_end(self.source, name_span[1])
+        if (span[0] != trivia_end(self.source, 0) or self._keyword(span[0], b"module") != name_span[0]
+                or self.source[semicolon:semicolon + 1] != b";"):
+            raise ValueError("native module differs from its source header")
+        cursor = trivia_end(self.source, semicolon + 1)
+        for raw_declaration in declarations:
+            if not isinstance(raw_declaration, dict):
+                raise TypeError("native module has no located declaration")
+            declaration_span = self._span(raw_declaration.get("span"), span)
+            if declaration_span[0] != cursor:
+                raise ValueError("native module leaves source declarations uncovered")
+            cursor = trivia_end(self.source, declaration_span[1])
+        if cursor != len(self.source):
+            raise ValueError("native module leaves source declarations uncovered")
+        converted: list[Function | Constant] = []
+        for raw_function in declarations:
+            if isinstance(raw_function, dict) and raw_function.get("kind") == "constant":
+                converted.append(self._constant(raw_function, "constant", span, 2))
+                continue
             function, function_span, _ = self._node(raw_function, "function", {"name", "result", "parameters", "body"}, span, 2)
             parameters = self._list(function["parameters"])
             self._ordered([function["result"], function["name"], *parameters, function["body"]], function_span)
@@ -419,6 +557,42 @@ class _Decoder:
                 self._ordered([parameter["type"], parameter["name"]], parameter_span)
                 converted_parameters.append((self._text(parameter["name"], parameter_span),
                                              self._type(parameter["type"], parameter_span, 4)))
+            raw_result, raw_name, raw_body = function["result"], function["name"], function["body"]
+            if not all(isinstance(item, dict) for item in (raw_result, raw_name, raw_body)):
+                raise TypeError("native function has no located signature/body")
+            result_span = self._span(cast("dict[str, object]", raw_result).get("span"), function_span)
+            name_span = self._span(cast("dict[str, object]", raw_name).get("span"), function_span)
+            body_span = self._span(cast("dict[str, object]", raw_body).get("span"), function_span)
+            opening = trivia_end(self.source, name_span[1])
+            if (self._keyword(function_span[0], b"public") != result_span[0]
+                    or trivia_end(self.source, result_span[1]) != name_span[0]
+                    or self.source[opening:opening + 1] != b"("):
+                raise ValueError("native function differs from its source signature")
+            cursor = trivia_end(self.source, opening + 1)
+            for index, raw_parameter in enumerate(parameters):
+                if not isinstance(raw_parameter, dict):
+                    raise TypeError("native function has no located parameter")
+                parameter_span = self._span(raw_parameter.get("span"), function_span)
+                raw_type, raw_parameter_name = raw_parameter["type"], raw_parameter["name"]
+                if not isinstance(raw_type, dict) or not isinstance(raw_parameter_name, dict):
+                    raise TypeError("native parameter has no located name/type")
+                type_span = self._span(raw_type.get("span"), parameter_span)
+                binder_span = self._span(raw_parameter_name.get("span"), parameter_span)
+                if (cursor != parameter_span[0] or type_span[0] != parameter_span[0]
+                        or trivia_end(self.source, type_span[1]) != binder_span[0]
+                        or binder_span[1] != parameter_span[1]):
+                    raise ValueError("native function leaves source parameters uncovered")
+                cursor = trivia_end(self.source, parameter_span[1])
+                if index < len(parameters) - 1:
+                    if self.source[cursor:cursor + 1] != b",":
+                        raise ValueError("native function parameter separator differs")
+                    cursor = trivia_end(self.source, cursor + 1)
+            if parameters and self.source[cursor:cursor + 1] == b",":
+                cursor = trivia_end(self.source, cursor + 1)
+            if (self.source[cursor:cursor + 1] != b")"
+                    or trivia_end(self.source, cursor + 1) != body_span[0]
+                    or body_span[1] != function_span[1]):
+                raise ValueError("native function leaves source signature/body tokens uncovered")
             converted.append(Function(self._text(function["name"], function_span),
                                       self._type(function["result"], function_span, 3),
                                       tuple(converted_parameters), self._body(function["body"], function_span, 3)))
