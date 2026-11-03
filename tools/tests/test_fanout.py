@@ -27,7 +27,7 @@ def _roundtrip_and_handoff() -> None:
         ensure((root / "worker.txt").read_text(encoding="utf-8") == "landed\n",
                "worker changes reach integration")
         ensure(git(root, "log", "-1", "--format=%s") == "Merge work/worker: worker",
-               "the merge subject, a push run's title, names the lane and its work")
+               "the merge subject names the lane and its work")
         revision = git(root, "rev-parse", "HEAD")
         fanout.integrate(root, state, path)
         ensure(git(root, "rev-parse", "HEAD") == revision, "resume does not merge twice")
@@ -132,6 +132,18 @@ def _dirty_handoff() -> None:
         ensure(state["status"] == "initialized", "dirty worker never enters integration")
 
 
+def _local_revision_shape() -> None:
+    with fixture() as (root, lane, _):
+        state, path = init(root, lane)
+        for bad in ("", "A" * 40, "a" * 7, 5, None):
+            path.write_text(json.dumps({**state, "revision": bad}), encoding="utf-8")
+            refuses(lambda: fanout._load(path, root), "revision")
+        revision = git(root, "rev-parse", "HEAD")
+        path.write_text(json.dumps({**state, "revision": revision}), encoding="utf-8")
+        ensure(fanout._load(path, root).get("revision") == revision,
+               "the settled local revision is a full lowercase commit identity")
+
+
 def cases() -> list[Case]:
     return [Case("journal, merge ancestry and changed handoff", _roundtrip_and_handoff),
             Case("conflict remains for integrator", _conflict),
@@ -139,4 +151,5 @@ def cases() -> list[Case]:
             Case("only explicit paths enter commit", _explicit_commit),
             Case("reading base fixed at init and resumable without it",
                  _reading_base_fixed_at_init),
+            Case("local revision has a strict commit identity", _local_revision_shape),
             Case("dirty handoff stops before integration", _dirty_handoff)]

@@ -52,7 +52,7 @@ def init(root: Path, lane: Path,
 
 
 def finish_args() -> argparse.Namespace:
-    return argparse.Namespace(path=[], message=None, wait_host=0)
+    return argparse.Namespace(path=[], message=None)
 
 
 def refuses(action: Callable[[], object], fragment: str) -> None:
