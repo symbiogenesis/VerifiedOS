@@ -1,22 +1,26 @@
 # Interior mutability and interference contract
 
-> Non-normative Q25c proposal. Start with the [primary Vela design and examples](verification-strategy.md). The [requirements register](../../requirements-register.md) governs these proposed cell semantics and qualification cases; Q25d owns missing-law review. These rules/predicates supply no implemented library, proved calculus, admitted executable or accepted axiom.
+> Non-normative Q25c extension contract. Start with the [primary Vela design and examples](verification-strategy.md) and [first-release boundary](first-release.md#release-boundary). The [requirements register](../../requirements-register.md) governs these proposed cell interfaces and qualification cases; the [delivery plan](../../../PLAN.md#vela-first-release-delivery) owns commissioning. These rules/predicates supply no implemented library, proved calculus, admitted executable or accepted axiom.
 
 ## Scope and shared interface
 
-The [mutability commitment](verification-strategy.md#interior-mutability-guardrails) admits local cells, checked dynamic borrowing and proved concurrent protocols. Each sealed state-transition interface grants only its declared operation rights; handle representation or grade alone authorizes no representation access.
+The first supported release uses ordinary ownership, explicit loans and the [initialization and collection libraries](first-release.md#ownership-libraries). Local cells, checked dynamic borrowing and concurrent protocols are later library extensions, each requiring a concrete consumer and its own representation and operation proofs. They are not prerequisites for the first synchronous component or first async service. The [mutability guardrails](verification-strategy.md#interior-mutability-guardrails) constrain any such extension: each sealed state-transition interface grants only its declared operation rights; handle representation or grade alone authorizes no representation access. Preserve explicit snapshots and transitive capture accounting in the core without commissioning all cell mechanisms.
 
 Use Q25a's [resource/computation interface](graded-foundation.md#resource-and-computation-interface): stable `Gamma`, separate computation/type use and dependency rows, and `Delta` for owners, loans and protocols. Outcome-indexed transitions retain captures, effects, event counts, representation and exit duties. This specializes the [synchronous core](core-design.md#judgments-and-interpretations), without a second resource interpretation.
 
 `Capture`, `Dup`, `Dispose`, `Suspend`, `Transfer` and `Share` need semantic evidence. A grade counts invocations only through its trace interpretation; it creates neither ownership, access authority nor release. `Own(r,shape,snapshot)` belongs in `Delta`; stable identity `r` and historical snapshots may index `Gamma`, never unsynchronized current contents.
 
-The qualification uses private packets/tasks and a shared scalar counter within the [atomic profile](../../spec.md#r-15-026) and [exclusive-access constraints](../../spec.md#r-05-096a). It adds no shared mutable capability, CAS, blocking mutex, retry loop, inner scheduler or unwinding.
+The retained concurrent qualification candidate uses private packets/tasks and a shared scalar counter within the [atomic profile](../../spec.md#r-15-026) and [exclusive-access constraints](../../spec.md#r-05-096a). It is commissioned only if an actual consumer needs that protocol. It adds no shared mutable capability, CAS, blocking mutex, retry loop, inner scheduler or unwinding. Ordinary libraries and a service using one structured child do not acquire a shared-counter dependency.
+
+### Interpretation commitment
+
+All predicates and transition laws in this dossier apply to the checked elaboration's image in an existing semantic anchor under [R-05-020a](../../spec.md#r-05-020a). The schematic notation specifies proof obligations for the untrusted elaborator and kernel-checked resource derivations; it is not an independent source reduction or a new authoritative memory model. Local operations are interpreted by the selected existing resource logic, while target operations and interference refer to the one pinned Sail subject. Substitution, capture, exit preservation and erasure statements quantify over those interpreted computations and their actual representations, connected to exact source by checked correspondence. No rule can obtain a concrete CHERI instance merely by naming its predicate. The [composition review](full-language-review.md#r-05-009-r-05-020-and-what-holds-the-frontend-rows) retains those implementation prerequisites.
 
 ## Representation, authority and open invariants
 
 A cell declaration binds identity, domain, fixed footprint/layout, lifetime/generation, contents type, invariant, transitions, interference, operation rights and concrete memory representation. The latter includes CHERI permissions, tags, provenance, temporal state and initialization; naming an invariant proves none of them.
 
-The proposed proof interface is schematic:
+The proposed proof interface is schematic; its arrows relate assertions about the selected anchor computation and grant no independent operational semantics:
 
 ```text
 CellDecl(c, domain, generation, footprint, representation, invariant, protocol)
@@ -120,6 +124,8 @@ Ztso lacks general store-to-later-load ordering. Reclamation needs terminal ackn
 
 ## Concrete scalar service and composed client
 
+This section retains a later concurrent-library experiment. A selected cell consumer first qualifies only the operations it uses, with an independently reviewed functional contract and concrete entry witnesses. A synchronous local-cell client need not implement atomic publication, tasks or handlers. The cross-feature packet/search/counter fixture below is a deferred stress case, not the first useful language or async milestone.
+
 `CountCell(c,g)` is one aligned atomic `u64`, initially zero in generation `g`, summing committed accepted packet lengths. It holds no payload, pointer, request identity or capability. Participants need privately injected capabilities and declared operation rights; the integer handle in `Gamma` grants neither.
 
 `AddOnce(c,g,k,n)` is a unique `Delta` resource for live request `k` and represented stable length `n`, not a copyable grade/proposition. Finite generation allowances conserve `sum(n) <= U64_MAX`; issuing spends that conserved bound, and cancel/commit retires each allowance once. New traffic needs a fresh accounted allowance or quiescent generation, not wraparound or read-then-check.
@@ -135,7 +141,7 @@ target candidate: one aligned AMOADD.d, aq = false, rl = false
 
 The AMO commits/linearizes counter arithmetic only: no payload publication, stable returned current value or cross-client old-value ordering beyond atomic history. The allowance bound makes word addition equal mathematical addition. The proposed lowering must prove its `aq`/`rl` bits; stronger APIs need separate ordering evidence. Callback grades prove neither AMO occurrence nor allowance consumption.
 
-The Q25 client combines `n <= N`, an immutable-snapshot graded callback, handler and cancellable child. Multi-shot capture retains only `Dup` resources; unique packet/frame owners and `AddOnce` remain outside. Occurrence contract and multiplicity bound callback demand; `commit_add` is one separate child action. Sharing exposes only counter operations. Explicit sequencing evaluates effectful arguments once, unaffected by zero/repeated use grades.
+The deferred Q25 research client combines `n <= N`, an immutable-snapshot graded callback, handler and cancellable child. Multi-shot capture retains only `Dup` resources; unique packet/frame owners and `AddOnce` remain outside. Occurrence contract and multiplicity bound callback demand; `commit_add` is one separate child action. Sharing exposes only counter operations. Explicit sequencing evaluates effectful arguments once, unaffected by zero/repeated use grades. The [first async service](handlers-async.md#first-async-service-qualification) instead exercises sequential helper composition and structured ownership without requiring these extra mechanisms.
 
 An entry candidate fixes `N = 4`, `n = 2`, private backing `[1,2,0,0]` with prefix `[1,2]`, a separate immutable callback environment used twice, free declared frame/completion slots, live private grants, zero counter and allowance two. Alternatively two children have lengths/allowances three and two and disjoint packets/frames: either AMO order yields five after joins, with intermediate value three or two. These proposed data witnesses do not construct CHERI resources in Rocq. The [composition review](full-language-review.md#the-representation-the-composed-duties-are-stated-over) constructs no inhabitant of its named carriers; private grants/schedule laws remain in unpriced `GF-resource`/`MUT-ATOMIC`.
 
@@ -158,6 +164,8 @@ This operation has DMA quiescence `n/a`, but reuse still needs task/reader quies
 
 Completion uses a declared private record or immutable SPSC publication under the ordering/ownership rules above. Final observation/reset requires joining all terminals and retiring all old-generation rights; an expected count alone permits neither reset nor parent reuse. Live observations are historical scalar samples; their exact-width/alignment atomic-load law must prove single-copy atomicity, not a multi-field snapshot.
 
+The [task outcome policy](handlers-async.md#task-completion-and-scope-failure) applies to a cell operation used by a child. A completed `Err(BorrowConflict)` or `Err(CapacityExhausted(...))` is still an ordinary returned value with its examination duty, not an implicit task failure. The owner may handle it, explicitly propagate across the scope, or select an interface-declared failure exit. None of those choices erases the resource state or reverses a committed update.
+
 ## Exit closure and bounded progress
 
 Outcome-indexed ordinary exits restore the invariant and end all guards. Release cannot depend on an unproved destructor or its execution.
@@ -167,25 +175,26 @@ Outcome-indexed ordinary exits restore the invariant and end all guards. Release
 | Fallthrough, ordinary return, `Result` success/error propagation | End descendants, consume close/release debts and establish the tagged outcome's exact cell state and returned resources. Errors need not roll back unless their contract says so. |
 | `break`, `continue`, bounded-loop back edge | Close iteration-local invariants/guards and restore the loop predicate before transferring control. |
 | Effect operation, callback or reentrant call | Close first if it can capture, suspend or reenter. A certified local callback may run inside only under the scoped contract excluding those effects and result captures. |
-| Ready or pending `await`, cancellation checkpoint | Closed invariants, no default guard scopes, stable frame storage and an explicit `Suspend`/cleanup derivation. Ready status does not remove the checkpoint. |
-| Handler discard or multi-shot resumption | Account for transitive `Dispose` or `Dup`; an open debt, guard or allowance defeats an unsupported discard/duplication premise. |
+| Ready or pending `await`, cancellation checkpoint | Closed invariants, no default guard scopes, stable frame storage and an explicit `Suspend`/cleanup derivation. Directly awaiting a helper uses the same rule; nesting creates no fresh guard or cancellation allowance. Ready status does not remove the checkpoint. |
+| Handler discard or deferred multi-shot resumption | Account for transitive `Dispose` or, when the cloning extension is selected, `Dup`; an open debt, guard or allowance defeats an unsupported discard/duplication premise. |
 | Accepted cancellation | Enter bounded cleanup with the invariant closed, retire or return every retained token, and join terminal completion before reuse. |
 | Cleanup failure | The default local close/release primitives are total under their premises. An API with fallible external cleanup needs an explicit quarantined terminal state and a proved containment path; it cannot return ordinary reusable ownership. |
 | Panic, trap or environmental fail-stop | No language exception/unwinding rule is added. Prove absence of unexpected traps under operation premises; external faults stop the affected domain/session and retain its revocation/quiescence obligations without asserting successful source closing. |
 
-Declare local steps, checkpoint distance, cleanup/publication work, joins and external quiescence. Map them to the [reaction graph](../../spec.md#r-07-037a) and [schedule](../../spec.md#r-11-006). Compose comparable elapsed-time bounds `Lcheckpoint`, `Lcleanup`, `Ljoin`, `Lterminal` for accepted cancellation; prove the composition instead of merely adding them. Postcommit work has its own remaining bound. The no-checkpoint AMO region must fit locally and cannot defer requests indefinitely.
+Declare local steps, checkpoint distance, cleanup/publication work, joins and external quiescence. Map them to the [reaction graph](../../spec.md#r-07-037a) and [schedule](../../spec.md#r-11-006). Compose comparable elapsed-time bounds `Lcheckpoint`, `Lcleanup`, `Ljoin`, `Lterminal` for accepted cancellation; prove the composition instead of merely adding them. A directly awaited helper contributes to the same task's state and bound, including cleanup, without an extra child term. Postcommit work has its own remaining bound. The no-checkpoint AMO region must fit locally and cannot defer requests indefinitely.
 
 Progress names admitted activations and service/HAL response bounds, with no hidden fairness, spin or eventual-response premise. Adversarial failure takes the specified fail-stop path. Capacity exhaustion returns an immediate typed result with bounded handling; hardware recovery remains separate from source progress.
 
 ## Qualification cases and rejection neighbors
 
-Future qualification must make each negative parse/elaborate beside its positive, reach a satisfiable entry and fail at the named premise. Missing syntax/parser failure or inconsistent preconditions prove no safety.
+A commissioned extension selects its consumer, supported operations and applicable cases before implementation under the [delivery plan](../../../PLAN.md#vela-first-release-delivery). Local cells, dynamic borrowing and concurrent protocols may qualify separately; async and multi-shot cases apply only when those features are selected. Each negative must parse/elaborate beside its positive, reach a satisfiable entry and fail at the named premise. Missing syntax/parser failure or inconsistent preconditions prove no safety.
 
 | Case | Expected accepted derivation or first rejected premise |
 | --- | --- |
 | Local replacement returns an owner by move | `replace` changes the invariant and returns exactly the displaced resource; returning a second copy fails resource splitting. |
 | Two local readers then an attempted writer | Both read guards preserve one immutable value; writer returns examined `BorrowConflict`; releasing both restores `Idle`. |
 | Writer updates then returns `Err` | The declared error predicate contains the valid updated state; guard release precedes propagation. A rollback claim needs its own transition proof. |
+| Child completes with an examined borrow/capacity error | In-place handling preserves siblings; explicit propagation across a scope follows its early-exit join. A source or lowering rule that silently treats an error payload as `Failed` violates the task outcome policy. |
 | Snapshot length three, replacement length one, access index two | The snapshot remains valid history; current access fails the fresh bound/resource predicate. |
 | Hide an owner in a cell inside an unrestricted callback | Transitive capture includes the stored owner; duplicating the callback fails `Dup`, independently of its grade. |
 | Return a view in a nested wrapper or retained continuation | The result capture set contains the scoped loan; guard/view escape fails the scope closure rule. |
@@ -215,7 +224,7 @@ The example permits public lengths, scheduling and count while contents stay pri
 
 The [sharing/disposal survey](verification-strategy.md#effect-handlers-sharing-and-protocol-logics) records mechanized temporary guarding for `MUT-CELL` and a non-leaking resource-accounting adequacy result for `MUT-EXIT`. The [Rust survey](verification-strategy.md#rust-and-low-level-verification) records semantic soundness for a proof tool's cell/invariant/storage subset via guarding plus lifetime logic, and checked Cell/Mutex specifications over a Rust-core model. Each uses another language, trusted base and prover edition, retaining erasure/solver/compiler trust. None constructs this concrete representation, pinned-Sail atomic law or inhabited cell instance.
 
-Q25d assigns these unproved implementation laws, not new priced checklist cells. The [foundation map](../../hardware/cheri-foundation-map.md), Q2b/M7.1 target work and Q21 contracts retain their owners; charge shared work once.
+Q25d records these unproved implementation-law families. The [delivery plan](../../../PLAN.md#vela-first-release-delivery) selects and prices only the slice a consumer needs; the deferred combined fixture assigns no first-release duty. Every theorem below is over the checked interpretation image and its source-correspondence relation. The [foundation map](../../hardware/cheri-foundation-map.md), Q2b/M7.1 target work and Q21 contracts retain their owners; charge shared work once.
 
 | Debt | Concrete acceptance predicate and ownership boundary |
 | --- | --- |
@@ -225,20 +234,20 @@ Q25d assigns these unproved implementation laws, not new priced checklist cells.
 | `MUT-SHARE` | Prove transitive capture, `Dup`/`Dispose`/`Suspend`/`Transfer`/`Share` composition through sealed representations, task frames and handlers, with a target theorem excluding shared mutable capability storage and bypass paths. |
 | `MUT-ATOMIC` | Build the concrete counter invariant/history and one-use allowance interpretation; prove exact AMO linearization, no overflow, width/alignment/permission/PMA conditions and atomic observation against the pinned Sail subject. Reuse the target connection's owner; this dossier creates no parallel memory semantics. |
 | `MUT-PUBLISH` | Instantiate the existing SPSC proof with immutable packet/completion publication, actual Ztso/compiler/fabric ordering, reader/DMA quiescence and generation retirement. Reuse the canonical ring/HAL owners rather than inventing a second ring algorithm. |
-| `MUT-EXIT` | Join cancellation arbitration, checkpoint masking, no-replay receipt storage, child terminal records and reset with Q25b; prove each outcome preserves cell/frame resources and terminal bounds. |
+| `MUT-EXIT` | Join cancellation arbitration, checkpoint masking, sequential helper cleanup, no-replay receipt storage, child terminal records and reset with Q25b; prove each outcome preserves cell/frame resources and terminal bounds. Ordinary completed error values remain distinct from declared task failure, and helper composition neither resets commit phase nor duplicates cleanup. |
 | `MUT-OBSERVE` | Prove the chosen counter/packet information-flow contract, including AMO results, occupancy, cancellations and schedules, and preserve it through optimization and final bytes. Coordinate with the existing non-interference/WCET and compiler owners. |
-| `MUT-CLIENT` | Construct inhabited concrete entry witnesses, replay every supported positive/negative neighbor, independently review the accepted-byte contract, and connect the composed handler/graded-callback/child trace to its exact final representation. Q25d owns qualification scope and assigns implementation only after prerequisites and pricing are reviewed. |
+| `MUT-CLIENT` | Construct inhabited concrete entry witnesses for the selected local or concurrent library consumer, replay every supported positive/negative neighbor, independently review the actual behavior/byte contract, and connect the interpreted trace to its exact final representation. A later handler/graded-callback/child combination requires its own commissioned extension and cannot be charged to the first cell client. Q25d records the law boundary; the delivery plan assigns implementation after prerequisites and pricing are reviewed. |
 
 ### Requirement disposition owed at Q25d
 
-This dossier amends no requirement. Q25d must co-read each affected register/prose pair; the scalar counter, private frames and immutable publication intend the following boundaries.
+This dossier changes no platform obligation. The interpretation follows the register's R-05-020a clarification; concrete source correspondence and resource/machine laws remain unimplemented. A selected scalar counter, private frame or immutable-publication consumer retains the following boundaries, including required register/prose co-reads for any later amendment.
 
 | Requirement boundary | Present design and amendment trigger |
 | --- | --- |
 | R-05-096a and R-05-096b | Preserve exclusive non-atomic access, explicitly atomic shared cells and the binary/manifest join. No weakening is requested. Any proposal permitting a racing copy, mixed atomic/non-atomic alias or source-only exclusion requires an explicit amendment to these entries and their Sail/TAL theorem, and is outside this selected design. |
 | R-15-026, with R-15-024/R-15-025/R-15-027 | Preserve scalar `Zaamo`/`Zabha` and the absence of CAS, LR/SC and shared mutable capabilities. An unsupported synchronization library requires a separate profile amendment and renewed consumer justification, not an implementation fallback. |
 | R-05-039 and R-05-100 | Preserve injected mutable state and explicit bounded exits. Hidden globals, lazy mutable registries, exceptions or unwinding require amendments; no such feature is used here. |
-| R-05-020 and R-05-026 | [Q25d takes the nonduplication and retirement disposition](full-language-review.md#r-05-009-r-05-020-and-what-holds-the-frontend-rows), arm-dependent and holding the frontend in the arm this design sits in; the exact source-to-artifact obligations stay owed at Q2c's `artifact-admission`. A cell dossier or Rocq output is no disposition. |
+| R-05-020/R-05-020a and R-05-026 | This dossier adopts the checked-interpretation route under R-05-009/R-05-020a; the [composition review](full-language-review.md#r-05-009-r-05-020-and-what-holds-the-frontend-rows) retains concrete-law and source-correspondence gates. The exact source-to-artifact obligations remain owed at Q2c's `artifact-admission`. An independent source semantics or trusted checker would still require R-05-020's amendment conditions. A cell dossier or emitted Rocq term establishes none of these proofs. |
 | R-05-132 through R-05-134 | Keep source grades/protocol laws distinct from the frozen TAL attributes and separately checked CIC evidence. A new on-device attribute requires the existing admissibility demonstration; general grade interpretation or open-term reduction requires a reviewed change rather than silent expansion. |
 | R-07-037a and R-11-006 | Retain cooperative reactions and admitted bounds. An inner scheduler, blocking guard acquisition, arbitrary fairness premise or unbounded masking region would require an explicit scheduling amendment. |
 | R-08-045 through R-08-047 | Declare all cell/guard/frame/allowance/completion storage and exhaustion behavior. Unplanned allocation or reuse before the applicable lifecycle completes is inadmissible, not a local cell optimization. |
