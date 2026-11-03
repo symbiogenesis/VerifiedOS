@@ -570,13 +570,18 @@ implicit conversion, ownership transfer, effect, disposal or proof authority.
   Token shape and delimiters must distinguish lambdas from grouping, products
   and type annotations without consulting names or types.
 - Ordinary value-returning functions and operations accept `=> EXPR;` after
-  their existing signature and contracts. A located `expression_body` node
+  their signature. An expression body with declaration contracts groups them
+  using the existing clause syntax: `Nat F(Nat x) with { requires x > 0; }
+  => x;`. Block bodies retain their undelimited declaration clauses. The explicit
+  `with` boundary distinguishes the body arrow from a lambda inside a contract;
+  clause ownership cannot depend on parser precedence guesses. A located `expression_body` node
   contains `value` and covers the arrow through the semicolon. The pure entry
   accepts the same form. Consumers check it as the existing single return,
   preserving evaluation count/order, result type, effects, resources and source
   locations. The separate pure `definition ... = EXPR;` form retains its meaning;
-  an expression body alone does not assert purity. Void shorthand is outside
-  this increment, avoiding an implicit discarded resource.
+  an expression body alone does not assert purity. Semantic consumers reject
+  void shorthand that would discard a result or resource; syntax acceptance
+  alone grants no implicit discard.
 - Delimited comma lists for parameters, arguments and generic parameters and
   arguments accept one optional trailing comma after a nonempty list. This
   includes callable, constructor and pattern argument lists. Empty lists with
@@ -598,7 +603,9 @@ Compose inferred lambdas with products, calls, explicit generics and dependent
 expected types; retain typed/graded loan callbacks and unresolved-inference
 refusals. Check expression bodies against equivalent return blocks in both pure
 routes and mathematical elaboration, comparing generated terms apart from exact
-source provenance. Exercise list forms independently, including nested generic
+  source provenance. Distinguish lambdas inside grouped declaration contracts
+  from the expression body, and refuse an undelimited contract/body arrow.
+  Exercise list forms independently, including nested generic
 closers, and distinguish binding names from explicit nullary constructors.
 Preserve all unaffected syntax and refusal predicates, strict conflict-free
 generation and byte-identical regeneration. Update native fixtures and both
