@@ -985,6 +985,10 @@ build host's word size.
 | Spelling | Meaning |
 | --- | --- |
 | `let`, `var`, `T name = value` | Immutable inferred, mutable inferred and immutable type-first locals respectively. `var T name = value` is explicitly mutable. A typed literal such as `0usize` states a representation. |
+| `Unit`, `()` | The first-class unit type and its value or pattern. `Result<Unit, Error>` still requires examining the outcome; an empty success payload does not permit discarding an error or tracked resource. |
+| `this`, `'this.text`, `ref this.Tail` | The receiver, a loan tied to one receiver place, and a receiver loan limited to a named view. Naming the receiver grants no new access. |
+| `foreach (let index in lower..upper)` | Bounded range iteration with an immutable index and the same invariant, termination, cost and loan-exit obligations as other bounded control flow. |
+| `Fill(target: ref buffer, value: 0byte)` | Call arguments may have labels in declaration order. A positional prefix may precede labeled arguments; every argument retains its explicit resource mode. |
 | `value => expression`, `(left, right) => expression` | Lambdas whose parameter types are inferred from context; explicit typed, graded and loan parameters remain available. |
 | `T Name(...) => expression;` | A value-returning operation with the same checking as a single return block; the shorthand alone asserts no purity or permission. |
 | `let (owner, receipt) = pair;`, `case Ok(value): ...` | Bare pattern names bind values. Constructors use parentheses, including a nullary `None()`; `_` discards only where its resource rules permit. |
@@ -992,8 +996,8 @@ build host's word size.
 | `in T`, `ref T`, `out T` | Shared-read, initialized-exclusive and initialization-exclusive loans. Ordinary arguments repeat the mode; member-call syntax supplies the declared receiver loan. None is a freely copyable authority token. |
 | `Option<T>`, `Some(value)`, `None()` | Explicit optional data and its two tagged cases; payload use accounts for presence and absence. |
 | `*p`, `&place`, `p + n`, `p[i]` | Explicit dereference, address/loan derivation, pointer offset and indexing, under checked representation and access contracts. |
-| `'input`, `'self.text` | The loan on a named place, either a parameter or a field of one. A view returned from one source names that source; `region 'r` declares a lifetime parameter only for generic or multi-source relationships. |
-| `view Tail = ...`, `ref self.Tail` | A named part of a record, which a public signature can lend while other parts stay borrowed elsewhere. |
+| `'input`, `'this.text` | The loan on a named place, either a parameter or a field of one. A view returned from one source names that source; `region 'r` declares a lifetime parameter only for generic or multi-source relationships. |
+| `view Tail = ...`, `ref this.Tail` | A named part of a record, which a public signature can lend while other parts stay borrowed elsewhere. |
 | `ghost T`, `tracked T` | Erased data. A ghost value is duplicable specification data with no computation use; tracked evidence is an erased resource that cannot be copied. |
 | `requires`, `ensures`, `old(e)` | Entry and exit contracts; `old` evaluates its argument at entry. |
 | `restores P`, `final(x)` | A contract holding of the lender when a returned loan ends, with `final(x)` the value the loan leaves behind. |
@@ -1008,6 +1012,32 @@ build host's word size.
 Two spellings deliberately differ from C#. The borrow modifiers are C#'s, but their exclusive-storage interpretation is Vela's proposed rule. `union` does not have C#'s meaning either: C# 15, in preview with .NET 11 for a November 2026 release, makes `union` a [type union over existing case types](https://devblogs.microsoft.com/dotnet/csharp-15-union-types/), `union Pet(Cat, Dog, Bird)`, whose generated struct holds the value as one `object?` and so boxes value-type cases, and its other exhaustive sum, the [`closed` class hierarchy](https://devblogs.microsoft.com/dotnet/explore-csharp-15), is reference-typed. Neither representation fits the allocation-free subset, so what carries over is exhaustive matching without a default branch. The loan split has a shipped precedent. [Swift 6.2](https://www.swift.org/blog/swift-6.2-released/), released in September 2025, divides views the way `in` and `ref` do: [`MutableSpan`](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0467-MutableSpan.md) is noncopyable because "exclusive access cannot be modeled with a copyable type", while `Span` stays copyable for shared reads, and both are non-escaping. Swift writes lifetime dependence against the source parameter, in a spelling the proposal itself calls a placeholder, and Rust's roadmap plans [lifetimes named by the borrowed place](#research-that-changes-the-experiments). Vela's `'input` takes that shape.
 
 Every public operation exposes its effects and contract. An implementation may infer them locally, but the inferred result becomes a reviewed signature. Every bounded operation terminates on its stated entry conditions, including on every error result; a service loop carries a progress contract instead. `Nat(i)` embeds a machine value into the mathematical naturals. Executable failure takes an explicit `Result` or `union` branch, never an implicit assertion or an assumption.
+
+For a C# reader, local type inference and mutability are separate choices:
+
+| Declaration | Type | Binding |
+| --- | --- | --- |
+| `let count = ReadCount();` | Inferred | Immutable |
+| `var count = ReadCount();` | Inferred | Mutable |
+| `usize count = ReadCount();` | Explicit | Immutable |
+| `var usize count = ReadCount();` | Explicit | Mutable |
+
+An immutable binding cannot be reassigned. It may hold an exclusive loan that
+permits writes to the borrowed storage, as in `ref byte first = ref target[0usize];
+first = value;`. Such a write still requires the loan's access, initialization,
+lifetime and restoration obligations; binding immutability is not deep immutability.
+Diagnostics identify a forbidden rebinding and explain explicit `var`, while the
+pure prototype states its unsupported-mutation boundary.
+
+Labels match the resolved callable's next declared value parameter; they cannot
+reorder, omit, duplicate or default arguments, and no positional argument follows
+a label. An unnamed callable parameter has no available label. Each argument is
+evaluated once, left to right, with unchanged loan timing, captures, effects and
+use grades. Application substitutes through the remaining dependent telescope,
+including later types, grades and exit predicates, under the
+[graded substitution rules](graded-foundation.md#substitution-and-structural-rules).
+The [surface contract](surface-grammar.md#concise-authoring-syntax) owns located
+syntax and refusal cases. Labels do not insert conversions, authority or proofs.
 
 #### Permanent Language Exclusions
 
@@ -1062,7 +1092,7 @@ exclusive loan, and `out T`/`out place` for an exclusive initialization loan.
 Each ordinary loan argument repeats its signature's mode at the call site.
 For `receiver.Method(arguments)`, member resolution selects a declaration whose
 receiver names its mode and whole-object or named-view footprint, such as
-`ref self.Tail`. The call supplies that declared receiver loan. Evaluate the
+`ref this.Tail`. The call supplies that declared receiver loan. Evaluate the
 receiver once and establish its loan before evaluating the explicit arguments,
 under the existing left-to-right order. Eligibility, overlap, capture and lifetime
 checks apply to that exact view; resolution cannot widen it or invent a temporary
@@ -1070,7 +1100,7 @@ to repair a mismatch. This shorthand supplies no consuming transfer: ownership
 still requires explicit `move`. The editor's resolved signature shows the receiver
 mode and view beside the call.
 
-Thus `log.Push(entry)` supplies `ref log.Tail`; `Fill(ref target, value)` still
+Thus `log.Push(entry)` supplies `ref log.Tail`; `Fill(target: ref target, value: value)` still
 spells its ordinary argument's mode. A later argument that reads an overlapping
 part of `log` while the receiver loan is live is refused; take an allowed snapshot
 before the call when needed. No delayed receiver loan is inferred.
@@ -1110,7 +1140,7 @@ public void Fill<ghost Nat count>(ref Span<byte, count> target, byte value)
 	effects writes(target)
 	ensures target.Model == Seq.Repeat(value, count)
 {
-	for (let index in 0usize..target.Length)
+	foreach (let index in 0usize..target.Length)
 		invariant target.Model.Take(Nat(index)) == Seq.Repeat(value, Nat(index))
 	{
 		target[index] = value;
@@ -1118,7 +1148,7 @@ public void Fill<ghost Nat count>(ref Span<byte, count> target, byte value)
 }
 ```
 
-The caller writes `Fill(ref target, value)`, and `count` is inferred from the view; it never serves as the executable bound. The range loop supplies what a `while` loop would make the author write: `index < target.Length`, a representable increment under the instance's length and index laws, and the decreasing measure. Only the functional invariant is authored. The exclusive loan returns on exit with an inferred frame, so storage outside `target` is unchanged. `Take` and `Repeat` compute in specifications, never on the target. Filling initialized public data establishes no secure erasure, device-memory semantics or resistance to dead-store elimination.
+The caller writes `Fill(target: ref target, value: value)`, and `count` is inferred from the view; it never serves as the executable bound. The `foreach` range supplies what a `while` loop would make the author write: `index < target.Length`, a representable increment under the instance's length and index laws, and the decreasing measure. Only the functional invariant is authored. The exclusive loan returns on exit with an inferred frame, so storage outside `target` is unchanged. `Take` and `Repeat` compute in specifications, never on the target. Filling initialized public data establishes no secure erasure, device-memory semantics or resistance to dead-store elimination.
 
 When a step fails, the editor shows the local store, the live loans, the arithmetic facts and the remaining goal. Adding `proof { Seq.RepeatSnoc(value, Nat(index)); }` to the loop body invokes a named lemma with inferred arguments, and its unresolved premises stay goals. Writing `proof { ?extend; }` instead leaves a named typed hole that keeps its expected proposition, locals, loans and exit state. The build reports the hole, and nothing containing it enters an accepted package. One module system resolves executable definitions, specifications, lemmas and source locations.
 
@@ -1197,9 +1227,9 @@ public struct Log<T, ghost Nat capacity>
 	public view Entries = slots[0..length];            // lowering length also needs this view
 	public view Tail = slots[length], length grows;    // the next slot, and raising length only
 
-	public void Push(ref self.Tail, T item)
-		requires self.Length < capacity
-		ensures self.Model == old(self.Model).Append(item);
+	public void Push(ref this.Tail, T item)
+		requires this.Length < capacity
+		ensures this.Model == old(this.Model).Append(item);
 }
 
 public void AddEntry<ghost Nat capacity>(ref Log<Entry, capacity> log, Entry entry)

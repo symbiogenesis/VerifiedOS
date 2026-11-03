@@ -17,7 +17,7 @@ public void Fill<ghost Nat count>(ref Span<byte, count> target, byte value)
     effects writes(target)
     ensures target.Model == Seq.Repeat(value, count)
 {
-    for (let index in 0usize..target.Length)
+    foreach (let index in 0usize..target.Length)
         invariant target.Model.Take(Nat(index)) == Seq.Repeat(value, Nat(index))
     {
         target[index] = value;
@@ -35,10 +35,10 @@ public async Delivery<n> Accept<ghost Nat n>(
 {
     await Forward(in packet);
     let receipt = commit Counter.Add(move allowance, packet.Length);
-    return Accepted(move packet, receipt);
+    return Accepted(packet: move packet, receipt: receipt);
 }
 on cancel {
-    return Cancelled(move packet);
+    return Cancelled(packet: move packet);
 }
 
 // A callable's parameter telescope also binds its result indices and use grades.
@@ -64,7 +64,7 @@ public Initialization<n> Prepare<ghost Nat n>(
 {
     let buffer = Initialize(move storage);
     let receipt = Finish(move obligation);
-    return Ready(move buffer, move receipt);
+    return Ready(buffer: move buffer, receipt: move receipt);
 }
 
 // Products carry several resources through the same construction/elimination forms.
@@ -74,7 +74,7 @@ public (owned Packet<n>, tracked Permit<n>) Pair<ghost Nat n>(
     return (move packet, move permit);
 }
 
-public () ForwardPair<ghost Nat n>((owned Packet<n>, tracked Permit<n>) pair) {
+public Unit ForwardPair<ghost Nat n>((owned Packet<n>, tracked Permit<n>) pair) {
     let (packet, permit) = pair;
     Forward(in packet);
     Release(move permit);
@@ -86,7 +86,7 @@ public () ForwardPair<ghost Nat n>((owned Packet<n>, tracked Permit<n>) pair) {
 public definition Nat SumValues(Seq<Nat> values) = Fold((+), 0, values);
 
 // Constructor elimination reuses the patterns of matches and pattern tests.
-public () ConsumeReady<ghost Nat n>(Initialization<n> outcome)
+public Unit ConsumeReady<ghost Nat n>(Initialization<n> outcome)
     requires outcome is Ready(_, _)
 {
     let Ready(buffer, receipt) = outcome;
@@ -108,7 +108,7 @@ public Result<ref<'workspace.bytes> byte, Error> First(ref Workspace workspace)
 }
 
 // The library brackets guards; the caller examines every represented outcome.
-public Result<type (), BorrowError> ReplaceByte(ref BorrowCell<byte> cell, byte value) {
+public Result<Unit, BorrowError> ReplaceByte(ref BorrowCell<byte> cell, byte value) {
     let outcome = cell.WithTryWrite((scoped ref byte selected @ NatExact(1)) => {
         selected = value;
         return ();
@@ -150,7 +150,7 @@ public impl<T, grade q : NatExact> Duplicate<Graded<T, q>>
 
 // The callback binds its own region; its restoration belongs to the callable.
 public alias ScopedUpdate<T, captures C> =
-    Fn<region 'loan>(scoped ref<'loan> T value) -> () captures C
+    Fn<region 'loan>(scoped ref<'loan> T value) -> Unit captures C
         with { requires Valid(value); restores Valid(value); };
 
 // A dependent match names its scrutinee in the result type before eliminating it.
@@ -179,10 +179,10 @@ public interface LoanStorage<T> where StorageLaws(T) {
 
 public struct Stored<T, grade q : NatExact>
     where Admits(T, q)
-    invariant Closed(self)
+    invariant Closed(this)
 {
     private T Value @ q;
-    public void Release() requires Disposable(self) ensures Disposed(self);
+    public void Release() requires Disposable(this) ensures Disposed(this);
 }
 
 public effect Exchange<T> where Representable(T) invariant Closed(Storage) {
@@ -255,7 +255,7 @@ public union ResourceOutcome<T : Type<u>> where Representable(T) {
 
 // A value can state the same local loan telescope and laws as a callable type.
 public void UpdateCell<T : Type<u>>(ref LocalCell<T> cell) {
-    let update = FnMut<region 'loan>(scoped ref<'loan> T value @ NatExact(1)) -> ()
+    let update = FnMut<region 'loan>(scoped ref<'loan> T value @ NatExact(1)) -> Unit
         effects(Write)
         with { requires Open(value); restores Closed(final(value)); }
         => { Touch(ref value); return (); };
