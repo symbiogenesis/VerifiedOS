@@ -1,28 +1,21 @@
 # The Crown-Jewel Inventory
 
-*Normative as a **view**. This document is the artifact **R-17-016a** mandates and R-05-046, R-05-050, R-05-076, R-08-028, R-12-043c, R-14-013b, R-15-221, R-17-012, and R-17-016 depend on: the enumerated inventory of crown-jewel specifications. It is **derived from** [requirements-register.md](../requirements-register.md), which remains the audited artifact per R-05-152.*
-
-> **Precedence.** Where this document and the register disagree, **the register wins and this document is defective.** Every row cites the requirements that govern it. This document adds no obligation of its own.
+*The derived inventory required by **R-17-016a**. The [requirements register](../requirements-register.md) defines membership and remains the audited artifact under R-05-152. This view adds no obligations; any disagreement must be corrected here.*
 
 ## Why this document exists
 
-Acceptance criteria quantify over *the crown-jewel inventory*: R-05-046 ("the descriptor set is enumerated in the crown-jewel inventory"), R-05-050 ("the NAS descriptor is flagged in the crown-jewel inventory as hand-transcribed"), R-05-076 ("each primitive's functional specification is in the crown-jewel inventory"), R-08-028, R-12-043c ("the inventory carries one row per reference model"), R-14-013b ("the pinned-semantics artifact appears in the crown-jewel inventory"), R-15-221, R-17-012 ("both appear in the crown-jewel inventory"), R-17-016, and R-05-151 (every requirement traces "to the crown-jewel spec it constrains"). This document is that inventory; without it those criteria are not decidable.
+Requirements R-05-046, R-05-050, R-05-076, R-08-028, R-12-043c, R-14-013b, R-15-221, R-17-012 and R-17-016 require this inventory or quantify over its members. R-05-151 requires each obligation to trace to the crown-jewel specification it constrains. The inventory makes those sets explicit.
 
-Membership is **conferred, never declared in bulk**: a specification is a crown jewel because some requirement says of it that proofs against it can only match it, never check it, so no single entry can hold the list and R-17-016 does not try to. What stays distributed is the conferral; what is collected here is the set.
+A requirement **confers** crown-jewel status when its normative line identifies a specification whose fidelity to intent cannot be established by proofs against it. This document collects those conferrals. The register's **`CJ-` table** supplies coarser trace labels; it does not enumerate individual specifications.
 
-Two adjacent artifacts are sometimes mistaken for this one, and neither is an inventory:
-
-1. the register's **`CJ-` trace-target table**, whose entries are all used and internally consistent, but which is a *legend of trace targets* rather than an enumeration of specifications (below);
-2. the **conferring requirements**, the entries whose entry line asserts crown-jewel status. Each confers the status on one specification or speaks about the set, and not one of them states the membership. Conferral lives in the entry's normative line, never in an acceptance criterion, which tests an obligation and states none: the criteria that mention the status (R-11-015's and R-13-009's) each reference a conferral made elsewhere, R-17-041's and R-05-046's.
-
-Those requirements *are* the membership, and this table is the only place they are collected. The agreement runs both ways and is mechanical: `tools/check.py` reports a conferring requirement this document fails to carry, a row no conferring requirement stands behind, a row citing an identifier the register does not hold, and a status assertion living only in an acceptance criterion without a recorded disposition.
+Acceptance criteria can refer to an existing conferral but cannot create one. For example, R-11-015 relies on R-17-041's conferral, and R-13-009 relies on R-05-046's. `tools/check.py` reports a missing member, an unsupported row, an unknown requirement citation, or an undispositioned status assertion found only in an acceptance criterion.
 
 ## Why it matters for implementation
 
-A crown jewel is a **specification that must be authored**, not a proof to be discharged. R-17-016's residual is that *proofs match the spec, never intent*, so a wrong crown jewel yields a correct proof of the wrong property, and no amount of proof effort detects it. That makes this inventory two things at once:
+A crown jewel must be authored and reviewed. A proof can establish a property of a wrong specification without exposing the mistake (R-17-016). This inventory therefore identifies:
 
-- **the review gate's subject.** R-05-150 gates release on independent specification review, and the crown jewels are what that review reads. R-18-032 calls the composition statement *"the review artifact the crown-jewel gate most needs"*: that gate needs a defined scope, and this inventory is that scope.
-- **the specification work list.** Every row is an artifact someone writes before the corresponding proof workstream can begin. The **Status** column is therefore the honest count of how much of the specification half exists.
+- **Review scope:** specifications needed by the independent release review under R-05-150, including the composition statement R-18-032 names.
+- **Specification work:** artifacts needed before their corresponding proofs. The **Status** column records which exist and which remain incomplete or absent.
 
 ## The inventory
 
@@ -62,7 +55,11 @@ A crown jewel is a **specification that must be authored**, not a proof to be di
 | 30 | **The X.509 chain-validation policy reference model**, the judgment deciding which presented certificate chain authenticates a TLS peer: path construction, signature acceptance, validity against authenticated time, name constraints and host-name matching over the trust-anchor set, a curation of RFC 5280 and the published Verdict policy models (the Chrome, Firefox and OpenSSL policies stated in one first-order policy language) as its tracked upstream | `CJ-PKI` | **R-12-032a**, R-12-032, R-09-014, R-05-042 | not authored: the curation source exists in the literature |
 | 31 | **The elastic-domain contract**, the envelope an elastic domain runs inside and its confinement (no pool-derived capability outside the domain, no instant or byte moved outside the envelope), the EEVDF dispatch rule with its tentative-yield protocol, boundary rule and share bound, the yield-bound admission obligation, and the pool service's four guarantees (disjoint live chunks, exact representable bounds, zeroize before handoff, reuse only after the barrier and sweep) with the heap library's per-allocation narrowing | `CJ-ELASTIC` | **R-07-037e**, R-07-037f, R-07-037g, R-07-037h, R-07-037i, R-08-047a, R-08-047b, R-08-047c, R-08-047d, R-11-006c | partial: [ElasticDomain.v](../../proofs/ElasticDomain.v) and its [contract](../implementation/contracts/elastic-domain.md) state the envelope and its confinement, the dispatch rule with the tentative yield, boundary rule and share bound, the yield-bound obligation, the pool service's guarantees and the heap library's narrowing, each with its refutations. The share bound as the register states it is refuted by a conforming trace, and the contract records that and three further register questions as findings. The kernel and pool refinements are Q34b's and Q34c's, and R-05-150's independent specification review remains |
 
-Two rules decide how finely conferral is cut, and they cut in opposite directions. **A row is one specification, never one clause of one** (R-17-016a: *one row per crown-jewel specification*), so where a single artifact carries several statements it is one row: row 6 is the frozen profile's Sail model, not three rows for the three statements it makes, and row 8 is the isolation model, not a row per mechanism inside it, because R-15-211 makes non-interference *"decided against the isolation model's non-interference statement rather than against the list of mechanisms above it"* and a row per mechanism would reinstate that list. Row 16 is the same rule applied to a conferral phrased in the plural: R-17-044 names the Lustre program and the control/data boundary together, as one residual, and the boundary is the program's scope rather than a second artifact, since R-12-002 states the split by plane, R-05-052 mandates the node set that realizes it, and writing the program is what draws the boundary, so one act of authorship carries both statements. **But where a requirement confers per member, the members are rows**, which is why rows 19–22 are four and not one: R-12-043c confers *per protocol rather than per stack* and its acceptance criterion requires the inventory to carry **one row per reference model**, since it is a particular standard's state machine a particular sequencer is proved to refine. Row 10 sits between the two: R-05-046 confers on each descriptor individually, but the descriptor set is not knowable until R-05-042's inventory exists, so the row carries the enumeration obligation and names the member classes, and the per-descriptor enumeration lands in the row as that artifact is authored. Row 14 shares that shape: R-05-076 confers on each primitive's functional specification, and the per-primitive enumeration lands with the crypto inventory R-05-059 requires. Row 26 is the closest case the two rules reach and is decided by the conferral rather than by the vehicle: it rides row 12's sequence table and is authored into it, but R-15-247d confers on the *ordering* in its own right and what that ordering states is a security property (authority invalidation precedes residue sanitization, and neither rests on decay) that the table's dependency ordering does not carry, so folding it into row 12 would hide a conferred statement inside an artifact whose review reads for a different property.
+**A row represents one specification** (R-17-016a), even when its artifact contains several statements. Row 6 covers the Sail model; row 8 covers the isolation model rather than its individual mechanisms, as R-15-211 requires. Row 16 covers both the Lustre program and its control/data boundary: R-17-044 confers on them together, and authoring the program establishes the plane split and node set required by R-12-002 and R-05-052.
+
+**Per-member conferrals require per-member enumeration.** Rows 19–22 are separate because R-12-043c requires one row per protocol reference model. Rows 10 and 14 currently name member classes: individual descriptors will be enumerated with R-05-042's format inventory, and individual primitive specifications with R-05-059's crypto inventory, as R-05-046 and R-05-076 require.
+
+Row 26 remains separate from row 12 even though both use the same sequence table. R-15-247d confers on the security ordering itself: authority invalidation precedes residue sanitization, and neither depends on decay. Folding it into the dependency-order table would hide that separately conferred property.
 
 ## The theorem targets
 
@@ -87,9 +84,7 @@ Three premises above also name specifications the inventory does not carry: Comp
 
 ## What the `CJ-` table is, and is not
 
-The register's `CJ-` table is **healthy and should not be conflated with this inventory**: every target is used by at least one `Trace:` line, none orphaned. But it is a *trace legend* (a controlled vocabulary letting each requirement name the specification it constrains) and its granularity is deliberately coarser than the inventory's. `CJ-FORMAT` is one target covering every Narcissus descriptor; `CJ-CRYPTO-SPEC` is one target covering every primitive's functional specification. R-05-046 and R-05-076 require the *members* to be enumerated, which a trace legend cannot do without one target per member.
-
-So the two artifacts answer different questions and both are needed:
+Every target in the register's `CJ-` table is used by a `Trace:` line. A target can cover several specifications: `CJ-FORMAT` covers Narcissus descriptors and `CJ-CRYPTO-SPEC` covers primitives' functional specifications. R-05-046 and R-05-076 also require the individual members, which this inventory must enumerate as those inventories are authored.
 
 | Artifact | Question it answers | Granularity |
 | --- | --- | --- |
@@ -98,7 +93,7 @@ So the two artifacts answer different questions and both are needed:
 
 ## Standing obligations
 
-- **The list is closed by amendment** (R-17-016). A requirement asserting crown-jewel status for a specification absent from this table is a review-gate finding, not a silent addition; that is what closure can mean where membership is conferred entry by entry, and `tools/check.py` reports the violation in both directions rather than leaving it to a reader's roll-call.
+- **Membership changes by amendment** (R-17-016). A conferral missing from this table, or a row without a conferral, is a review-gate finding reported by `tools/check.py`.
 - **Every crown jewel is subject to independent review** under R-05-150 (R-05-046, R-08-028, R-15-221).
 - **Every crown jewel has a `CJ-` trace target** used by the sections that constrain it (R-17-016). The Constrained-by column is that check made visible.
 - **Status is maintained, not asserted once.** The inventory is revved with the register (R-18-034), and a status that moves from `not authored` without an artifact link is a finding.
@@ -107,6 +102,4 @@ So the two artifacts answer different questions and both are needed:
 
 The inventory rows identify each artifact, its status and its remaining scope; an authored reference model does not establish its implementation or the adequacy of its external premises.
 
-That status is the specification half of R-01-003's honest position: the specifications are *named, constrained, and traced*, while the status column records which artifacts exist and which remain incomplete or unauthored. Each theorem target depends on its stated premises being available. The inventory makes those dependencies explicit, which is what R-18-032 means by turning *"a dozen things are proven"* into *"the conjunction claims exactly this, and rests on exactly that."*
-
-**The column tracks outstanding specification work.** New obligations may add rows; an authored artifact changes the standing of the rows it answers. Read those changes alongside the git history and the [implementation plan](../../PLAN.md)'s milestones, which name the artifacts being delivered (M0's curated Sail model alone bears on rows 6, 7, and 15). A run of milestones that changes no row reports no progress against this specification work, which is what the inventory exists to make visible.
+The status column tracks R-01-003's specification work and the premises each theorem needs. New obligations may add rows; new artifacts may change their status. Read those changes alongside Git history and the [implementation plan](../../PLAN.md). A completed implementation milestone does not by itself complete a specification row.

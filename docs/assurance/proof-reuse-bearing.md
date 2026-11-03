@@ -1,15 +1,14 @@
 # Proof-reuse bearing record
 
-*Q27b's deliverable in [the implementation plan](../../PLAN.md#12-build-order-milestones-and-execution-state). For qualified sources in [the proof reuse inventory](proof-reuse.md), it names a consumer and what that consumer would stop owing, or records why none is selected. It is keyed by source, where the inventory's [subject records](proof-reuse/) are keyed by obligation family and [the unassigned proof map](unassigned-proof-map.md) is keyed by obligation. The latest source qualification is dated 2026-10-23. The plan's conventions give an existing start-from no second discount and a survey no measured productivity. No row changes an estimate, and a source without a consumer does not justify opening a cell.*
+*Q27b's deliverable in [the implementation plan](../../PLAN.md#12-build-order-milestones-and-execution-state). For each qualified source in the [proof reuse inventory](proof-reuse.md), this record identifies a local consumer and any work it would remove, or explains why none is selected. The [subject records](proof-reuse/) group sources by obligation family; the [unassigned proof map](unassigned-proof-map.md) groups work by obligation. Latest source qualification: 2026-10-23. No row changes an estimate or justifies a new plan item by itself.*
 
 ## How to read a row
 
-- **A row names one source and one consumer.** A source appearing twice, or a row naming two consumers, is a defect in this record.
-- **A consumer is an open cell of the plan or a slice of the proof map**, carried by its own id and checked against the plan's open items or the map's [next slices](unassigned-proof-map.md#7-the-next-slices) before the row is written. An id that resolves to neither is deleted from the record rather than defended.
-- **The third column says what the consumer would stop owing, or that nothing is removed and why.** Nothing removed is the ordinary answer and not a failure of the row: a cell that names its start-from without moving its range is what this item delivers, and a re-price is proposed only where a newly qualified source removes a named sub-obligation.
-- **A row whose consumer is `none` carries one ground**, from this set: **taken**, the bearing is already in a landed cell or a landed artifact; **refused**, the register refuses the import at a cited entry; **uncelled**, the obligation the subject record names is owned by no open cell and no slice; **unaimed**, the subject record proposes no local consumer at all; **unread**, the source's own terms are unread or absent, so no reuse may be proposed. Where more than one holds, the row names the one the subject record's own disposition rests on, and the clause may carry the other fact.
-- **Qualification alone earns no discount.** An existing start-from receives no second discount; a new source must remove a named sub-obligation before a re-price is proposed.
-- **This record does not restate the note a cell writes.** A cell's own reuse note states what that cell reuses and what work it still buys, on [the plan's conventions](../../PLAN.md#checklist-conventions); what lives here is the source-keyed resolution and the ground for each source that bears on nothing.
+- **One source and one consumer per row.** Duplicate sources or multiple consumers in a row are defects.
+- **A consumer must be an open plan item or a proof-map [next slice](unassigned-proof-map.md#7-the-next-slices).** Verify its ID before adding a row; remove IDs that resolve to neither.
+- **The third column identifies work removed, or explains why none is removed.** A qualified starting point can help a consumer without reducing its estimate. Propose repricing only when a newly qualified source removes a named sub-obligation; an existing starting point earns no second discount, and a survey measures no productivity gain.
+- **A `none` consumer has one primary reason:** **taken**, already used by a landed item or artifact; **refused**, prohibited by a cited register entry; **uncelled**, its obligation has no open plan item or proof-map slice; **unaimed**, no local consumer is proposed; **unread**, source terms are unread or absent, so reuse cannot be proposed. If several apply, use the reason supporting the subject record's disposition and mention others in the explanation.
+- **Keep the consumer's detailed reuse note in its plan item**, under the [checklist conventions](../../PLAN.md#checklist-conventions). This record supplies the source-to-consumer mapping and reasons for selecting no consumer.
 
 <a id="which-sources-the-sweep-added-and-the-predicate-that-decides-it"></a>
 
@@ -22,7 +21,7 @@ editions, terms and theorem scope.
 
 ## Foundations: the certified-search family
 
-[Q27a](../../PLAN.md#12-build-order-milestones-and-execution-state) owns this family's arms and its cell states of the Rocq-side candidates that none is a start-from for any cell in the plan. The rows record which of them bears on a consumer and cite that disposition rather than re-arguing it.
+[Q27a](../../PLAN.md#12-build-order-milestones-and-execution-state) records the certified-search alternatives and selects none of the Rocq-side candidates as an implementation starting point. The rows below retain that disposition for each source.
 
 | Source | Consumer | What it would remove, or the ground |
 | --- | --- | --- |
