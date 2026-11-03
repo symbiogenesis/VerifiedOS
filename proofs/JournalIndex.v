@@ -3271,10 +3271,19 @@ Fixpoint pairs_eqb (a b : list (prod nat nat)) : bool :=
 Lemma pairs_eqb_spec : forall a b : list (prod nat nat),
   pairs_eqb a b = true <-> a = b.
 Proof.
+  intros a b.
+  assert (Hsame : forall l r : list (prod nat nat),
+    pairs_eqb l r = ProofSupport.list_eqb
+      (ProofSupport.pair_eqb Nat.eqb Nat.eqb) l r).
+  { intros l. induction l as [|x xs IH]; intros r.
+    - destruct r; reflexivity.
+    - destruct r as [|y ys]; [reflexivity|].
+      simpl. rewrite IH. reflexivity. }
+  rewrite Hsame.
   exact (ProofSupport.list_eqb_spec (prod nat nat)
     (ProofSupport.pair_eqb Nat.eqb Nat.eqb)
     (ProofSupport.pair_eqb_sound nat nat Nat.eqb Nat.eqb nat_eqb_true nat_eqb_true)
-    (ProofSupport.pair_eqb_refl nat nat Nat.eqb Nat.eqb nat_eqb_refl nat_eqb_refl)).
+    (ProofSupport.pair_eqb_refl nat nat Nat.eqb Nat.eqb nat_eqb_refl nat_eqb_refl) a b).
 Qed.
 
 Lemma pairs_eqb_refl : forall a : list (prod nat nat), pairs_eqb a a = true.
