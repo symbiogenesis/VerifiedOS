@@ -85,6 +85,15 @@ A multi-field copy needs exclusion throughout or a proved snapshot protocol; sep
 
 [Ante's place-and-mutation design](https://antelang.org/blog/safe_cyclic_mutability/) could infer local-view invalidation. Distinguish address validity from current-content refinements: stable scalar overwrite may preserve a view while invalidating `current(c) = x`. Accept disjoint stable-field updates preserving view/invariant; reject use after invalidating replacement, container mutation or destruction. Hidden callback writes and handler capture need the same analysis.
 
+The proposed proof context records a current fact's dependency footprint
+separately from a view's address and lifetime footprint. Dependencies use resolved
+places and operation contracts, including transitive call effects. After a
+possibly overlapping write, reuse needs checked preservation or re-establishment
+of the current fact; an unknown effect leaves that premise unresolved. Historical
+snapshot facts remain stable. The [borrow-analysis promotion contract](core-design.md#borrow-analysis-promotion)
+connects these obligations to source checking without selecting shared mutation
+for the synchronous release.
+
 Selection still needs ownership, open/close and capture laws over all exits, suspension/cancellation, the local-domain boundary and artifact-level exclusivity. The [producer evaluation](../../background/architectural-alternatives.md#ante-place-sensitive-mutation-and-invalidation) retains this candidate without commissioning selection or qualification.
 
 ## Transfer, sharing and lifecycle eligibility

@@ -138,6 +138,29 @@ order remains selected, with footprint diagnostics and a checked snapshot
 suggestion where valid. These clients qualify ordinary use of the rules; no
 two-phase receiver analysis or unchecked initialization escape is assumed.
 
+### Borrow-analysis promotion
+
+The [loan diagnostic](loan-analysis.md) proposes ends over supplied acyclic
+graphs. Promoting that experiment into source checking requires the existing
+`core-frontend` and `core-soundness` joins below, using actual concrete resource
+laws. A conflict-free diagnostic report supplies none of those joins. Its
+[analysis cost and comparison boundary](loan-analysis.md#conditional-borrowing-comparison)
+also remains distinct from the production algorithm choice.
+
+| Join | Evidence for the selected source fragment |
+| --- | --- |
+| Source facts | Checked correspondence relates resolved places, field partitions, control edges, call effects and transitive captures to the exact elaborated computation. Unknown overlap remains a proof goal; names, pointer inequality and library spelling create no separation fact. |
+| Loan ends and exits | Checked derivations discharge split, parent suspension and restoration at every reachable exit. Independent source cases cover returned-view success versus restored-owner error, nested reborrows, moved captures, disjoint fields and premature parent reuse. Each invalid neighbor reaches its resource rule after parsing and with an inhabited entry state. |
+| Mutation and dependent facts | Writes and transitive call effects transform the current resource predicate. Reusing a current-content fact requires a checked preservation or re-establishment step; immutable historical snapshots stay stable without granting current access. Fresh authorized reads after a value-changing overwrite succeed; a stale equality, or an old length-three bound used to access index two after shrinking to one, fails. A proved-disjoint field fact survives. The [snapshot and invalidation contract](interior-mutability.md#snapshots-and-dependent-indices) owns this distinction; selecting Ante-style local aliases still requires its separately gated extension. |
+| Control and demand | Bounded loops establish their invariant at entry and every back edge, closing local descendants as specified above; acyclic unrolling supplies no loop evidence. Transitive capture checking respects the selected fixed usage modes. General grade checking, suspension, cyclic captures and broader loan escape retain their extension boundaries and require their own checked rules before support is claimed. |
+
+The [first-release qualification](first-release.md#qualification) consumes these
+joins on its actual clients. Record unsupported source patterns, unresolved
+proofs and exhausted analysis budgets separately from semantic rejection and
+checked acceptance. The [independent package trial](../../../PLAN.md#vela-first-release-delivery)
+owns any commissioned ergonomic or cost comparison; neither feature coverage
+nor a diagnostic's path precision establishes superiority to another checker.
+
 ## Refinement, effects and staging
 
 Automatic refinement covers quantifier-free linear integer arithmetic over bounded scalars, equality/disequality, finite discriminants and congruence to a positive specialization-time alignment constant. Multiplication is by a known constant. Variable products, general nonlinear arithmetic and quantified mathematics remain explicit goals. The [first-release primitive contract](first-release.md#primitive-semantics) fixes source operations and their target binding. Machine words enter through checked representability/no-overflow lemmas; intentional modular arithmetic uses explicit word lemmas. Initialization and typestate facts rely on resource rules. Sequence updates and content equality use domain lemmas rather than silently enlarging the arithmetic fragment.
