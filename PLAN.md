@@ -2932,6 +2932,13 @@ acceptance claim follows from moving this implementation.
 
 ## Change-aware CI selection
 
+The [local completion contract](tools/fanout.md) owns the fanout handoff: integrate
+and retire on local `main`, never push or contact CI, and record a recommended
+selection from locally available tracking history. The user owns publication and
+both hosted workflows, with monitoring only when explicitly requested. Its
+acceptance controls cover offline completion, unchanged remote refs, absence of
+CI calls and waits, legacy resume and retained worktree safety.
+
 **Contract:** select validation from the complete changed-path set, with one shared
 classifier for hosted workflows and the publication handoff. Prose-only changes
 retain the corpus checker and Markdown validation on Windows and Ubuntu, while

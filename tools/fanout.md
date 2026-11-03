@@ -1,15 +1,18 @@
 # Fan-out completion contract
 
-`python tools/run.py fanout` owns mechanical batch completion from explicit worker
-handoffs to hosted validation and retirement. The integrator owns judgments,
-conflict resolution, co-reads and acceptance checks outside the workflows.
+`python tools/run.py fanout` owns mechanical local batch completion from explicit
+worker handoffs to safe retirement. The integrator owns judgments, conflict
+resolution, co-reads and acceptance checks outside the workflows. The user owns
+all publication and hosted CI.
 
 ## Publication and completion invariant
 
-The [shared publication rule](../AGENTS.md#worktree-isolation-and-ownership) and
+The [shared ownership rule](../AGENTS.md#worktree-isolation-and-ownership) and
 [validation handoff](../AGENTS.md#tool-execution-and-validation) define session
-completion. The [required behavior below](#required-behavior) states how `fanout`
-enforces them, including exact-revision evidence and refusal of old non-main journals.
+completion on local `main`. `fanout` never pushes, fetches, contacts a remote,
+dispatches or queries CI, or polls or waits for Host CI or Guest CI. CI monitoring
+requires a separate explicit user instruction. Local completion supplies no hosted
+passing evidence.
 
 ## Usage
 
@@ -20,52 +23,43 @@ worktree with `--worktree` so its work is merged and its lane is retired too:
 ```console
 python tools/run.py fanout init batch-name --worktree <absolute-worker-path> --cold
 python tools/run.py fanout integrate batch-name
-python tools/run.py fanout finish batch-name --wait-host 1800
+python tools/run.py fanout finish batch-name
 python tools/run.py fanout status batch-name
 ```
 
 Repeat `--worktree` for each batch-owned lane. Use `--host-worktree` for a host-owned
 checkout whose commits should be integrated but whose checkout and branch remain
 with its host. No option discovers or retires unrelated worktrees. An empty lane
-list supports CI handoff for an integrator-only batch. `--remote` defaults to
-`origin`; publication always targets `main`. `--full-ci` selects complete host and
-guest validation when an item's acceptance requires it. `--cold` additionally
-forces cold guest installation and fresh proofs. Use
-`--defer` repeatedly to retain acceptance checks outside the hosted workflows.
+list supports an integrator-only batch. `--remote` defaults to `origin` and only
+names the local remote tracking ref used for the recommended CI comparison; the
+remote need not be configured or reachable. No command updates that ref.
+`--full-ci` recommends complete host and guest validation when an item's acceptance
+requires it. `--cold` additionally records the need for cold guest installation and
+fresh proofs. Use `--defer` repeatedly to retain other acceptance checks.
 
 `init --reading-base COMMIT` names a commit, by its full lowercase SHA, that `main`'s
-head descends from at init, such as a revision before the batch's changes. Guest CI's
-proofs lane then reads that commit's proofs and compares them with the settled
-revision's, as [the Guest CI contract](ci/README.md#inputs-and-execution) describes.
-The option is fixed at init; no later command changes it. `init` refuses any other
-value, and `finish` refuses to publish a revision that is the reading base itself,
-since Guest CI's dispatch check accepts only a proper ancestor. A journal without the
-field names no reading base.
+head descends from at init, such as a revision before the batch's changes. It records
+the proof comparison the user should request through Guest CI's `reading_base`
+input, as [the Guest CI contract](ci/README.md#inputs-and-execution) describes.
+The option is fixed at init. `init` refuses any other value, and `finish` refuses
+to settle the reading base itself, since Guest CI accepts only a proper ancestor.
+A journal without the field names no reading base.
 
 `integrate` makes ordinary merges so worker ancestry remains decidable. Each merge
-subject names the lane branch and its latest non-merge commit subject, because the
-published commit's subject titles its Host CI push run. Resolve
+subject names the lane branch and its latest non-merge commit subject. Resolve
 conflicts and shared edits normally; it never resets a checkout. `finish` includes
-integration into `main` when needed, runs `check --fix`, requires clean settled
-inputs, and pushes only `main` without force. Before publication it records remote
-`main` as the comparison base and freezes the [shared change selection](ci/README.md#change-selection)
-for the settled revision. It includes commits already present when the journal was
-initialized. An unavailable comparison selects full validation. Before each new
-publication with executable changes it runs
-`typecheck`, `test --only test_lanes` and `test --only test_retained_evidence` on
-the settled checkout, each with a five-minute limit. Prose-only changes omit these
-preparation commands. A finding, crash or timeout
-stops publication and hosted dispatch. The checkout and revision are rechecked
-after these commands; resume of an already published revision does not repeat
-them. These focused checks do not run a full local suite or replace Host CI.
-CI dispatches on `main` with the exact
-commit as its revision input. Authentication uses the configured GitHub credentials;
-the REST client reads `GH_TOKEN`, then `GITHUB_TOKEN`, then the noninteractive Git
-credential helper. It needs Actions read/write access as well as Git push access.
-The GitHub CLI is not required, and credentials never enter the journal.
-Run identifiers and tested commits remain in the journal as evidence references.
-Retirement removes local worker branches; the tool never creates remote work
-branches or publication tags. Preexisting remote refs need explicit cleanup.
+integration into local `main` when needed, runs `check --fix`, and requires clean
+settled inputs. It freezes the [shared change selection](ci/README.md#change-selection)
+against the locally stored `refs/remotes/<remote>/main`, including work committed
+before initialization. This ref may be stale; an unavailable comparison selects
+full validation. An unchanged resume reuses the frozen selection.
+
+For executable changes, local preparation runs `typecheck`,
+`test --only test_lanes` and `test --only test_retained_evidence`, each with a
+five-minute limit. Prose-only changes omit those preparation commands. A finding,
+crash, timeout or changed checkout stops completion before retirement. The checkout
+and revision are rechecked after preparation. These focused checks do not run a
+full local suite or replace hosted acceptance.
 
 To commit integrator edits through the tool, pass repeatable `--path <file>` with
 `--message <message>` to `finish`. It prints status and selected diffs, stages only
@@ -74,18 +68,14 @@ changes another file, a required co-read is unresolved, or the index already has
 staged changes, resolve that explicitly before resuming. No command performs
 co-read blessing or decides that an external acceptance check passed.
 
-Without `--wait-host`, `finish` returns a finding with pending Host CI and the
-resume command. `--wait-host SECONDS` bounds host-only polling (maximum 7200);
-expiration leaves the journal resumable. Failure or cancellation stops completion.
-Guest dispatch includes the selected lanes and records its identifier, tested
-revision and pending status, then retirement runs without waiting for a guest
-verdict. A selection with no guest inputs records the omission and starts no guest
-run. `status` reads only the local
-journal. An interrupted dispatch retains its intent and the time it reached disk,
-then recovers identity from the one run with its title that GitHub created since
-then, allowing `fanout_ci.CLOCK_SKEW` for the local clock. Another dispatch with
-the same title in that interval leaves the identity ambiguous; the command never
-silently submits a duplicate.
+`finish` records the settled local revision, retires eligible lanes and returns
+success without a hosted verdict. Its output identifies pushes and both CI
+workflows as the user's responsibility. `--wait-host` is not supported. `status`
+reads only the local journal. Legacy journals retain historical CI records as
+read-only evidence; neither pending dispatch intents nor completed records trigger
+remote checks or CI actions. A completed legacy journal is bound to its recorded
+revision. An unchanged completed batch returns without repeating preparation or
+retirement; changed inputs require a new batch.
 
 The journal is `out/fanout/<batch>/state.json`. Retained checkout outputs live under
 that batch's `retained/` directory; native guest outputs stay on their native
@@ -101,49 +91,26 @@ When a completed batch's integration revision changes, initialize a new batch.
 
 ## Required behavior
 
-- A batch records its `main` checkout, base revision, publication remote and
-  `main` branch, explicitly selected worker paths and heads, lifecycle ownership, cold
-  proof policy, full-validation policy, reading base or none, comparison base,
-  changed paths, selected checks and deferred acceptance checks. State and
-  evidence live under the integration checkout's ignored `out/fanout/` directory.
+- A batch records its `main` checkout, base revision, advisory remote name,
+  explicitly selected worker paths and heads, lifecycle ownership, cold proof
+  policy, full-validation policy, reading base or none, comparison base, changed
+  paths, recommended checks and deferred acceptance checks. State and evidence
+  live under the integration checkout's ignored `out/fanout/` directory.
   Unrelated worktrees are never inferred to be stale from age or a branch name.
 - Integration preserves worker ancestry with ordinary Git merges, refuses changed
   handoffs and dirty workers, and stops on conflicts without resetting anything.
   Repair uses the owning checker. Commits stage only explicitly named paths after
-  presenting their diffs; unresolved judgments and dirty inputs stop publication.
-- Publication pushes a settled commit only to `main`, without force or tags.
-  Initialization and completion refuse a work branch, including old completed
-  journals. Host CI must pass on both
-  Windows and Ubuntu for that exact revision, from the push run on `main` whose head
-  is that revision or from the batch's own dispatch, identified by its
-  `<workflow>:<subject>` run title. The subject is the revision's commit subject,
-  shortened to `fanout_ci.SUBJECT_LIMIT` characters and passed as the `title`
-  input with the revision input; an empty subject leaves the revision in its place.
-  Journals from when titles carried a `fanout:<token>:` prefix still recover by
-  that token. GitHub lists a
-  push run seconds after it accepts the push, so the first lookup retries after the
-  bounded pauses in `fanout_ci.PUSH_RUN_WAITS` and starts Host CI only when no such
-  push run appears.
-  Host CI groups non-PR runs by their trigger and tested revision and cancels
-  redundant automatic push runs for that revision; distinct main revisions and
-  explicit manual dispatches retain separate groups. If a bound
-  automatic push run is canceled, fanout may bind its surviving push peer only
-  after checking the same workflow, main branch and exact revision. A canceled
-  manual dispatch does not permit that substitution. The surviving run still
-  owes every aggregate job; duplicate selection never supplies a passing verdict.
-  Pending, failed, skipped or canceled checks supply no passing evidence. Intentional
-  scope omissions are accepted only by the workflow's scope-aware aggregates and
-  remain omissions rather than passing check evidence. `--full-ci` requires a full
-  Host CI dispatch instead of accepting a potentially narrowed automatic run.
-- After Host CI passes, dispatch the selected Guest CI lanes for the
-  same revision, forwarding the explicit cold policy and, when the batch names one,
-  its reading base as the `reading_base` input; a batch naming none sends no such
-  input, and Host CI's dispatch never carries it. Cold installation, proof reading
-  and `--full-ci` select every guest lane. A prose-only selection records no guest
-  run as required. Old journals without a selection retain full validation.
-  Record run identifiers or
-  URLs, revisions and available statuses. Never poll or wait for a guest verdict.
-  Interrupted or ambiguous dispatches must not silently duplicate a guest run.
+  presenting their diffs; unresolved judgments and dirty inputs stop completion.
+- Initialization and completion require local `main`, including old completed
+  journals. Completion never publishes any ref, reads credentials, contacts remote
+  Git or GitHub, dispatches CI, or sleeps to await a hosted run. Host CI and Guest
+  CI never gate local retirement. The journal records a local settled revision
+  independently of legacy CI evidence, and new batches create no hosted evidence.
+- Frozen selection remains advisory and revision-bound. Cold installation, proof
+  reading and `--full-ci` recommend every guest lane. A prose-only selection can
+  recommend no guest run. Missing comparison history or old journals without a
+  full-validation policy retain full validation. No recommendation supplies a
+  passing verdict or claims that the user has pushed or dispatched anything.
 - Retirement is limited to explicitly batch-owned, clean, integrated worktrees
   under the primary checkout's `.worktrees/`. Host-managed checkouts remain owned
   by their host. Verify resolved containment, branch identity, ancestry and output
@@ -151,23 +118,21 @@ When a completed batch's integration revision changes, initialize a new batch.
   files and native guest outputs outside the retired lane; refuse unsafe paths,
   active output locks and unintegrated branches. Never perform blanket pruning.
 - Persist progress atomically, make restart behavior explicit and revalidate inputs
-  before resuming consequential steps. A changed integration revision needs fresh
-  hosted evidence. Completion may record Guest CI as pending, never as passed.
+  before resuming consequential steps. Retirement interrupted after removing a
+  checkout resumes through its durable receipt. Preserve historical CI evidence
+  only for the revision it actually describes. Never interpret pending, skipped,
+  canceled or absent hosted checks as passed.
 
 ## Acceptance
 
-Focused behavioral tests exercise real temporary Git repositories and mocked
-GitHub responses: successful integration and retirement, dirty and escaping paths,
-unmerged or moved branches, retained outputs, host-managed preservation, wrong
-revision or incomplete Host CI evidence, failed dispatch and interrupted resume, and
-a reading base refused at init or at publication, forwarded with Guest CI's dispatch
-alone, and read as none from a journal without the field.
-Publication controls must demonstrate that each preparation command's nonzero exit
-and timeout leave the remote untouched and start no hosted handoff, that a changed
-checkout is refused after preparation, and that successful preparation precedes
-publication without repeating on an unchanged pending-host resume.
-Run focused tests and typecheck during implementation, then require hosted Host CI
-and dispatch every Guest CI lane for changes to this orchestration tool. Host CI analyzes workflow
-edits with zizmor and actionlint, as the tools guide's
-[workflow analysis](README.md#workflow-analysis) describes. No local model or proof
-gate is needed for this orchestration tool.
+Focused behavioral tests exercise real temporary Git repositories: integration
+and retirement while remote refs remain unchanged, no network/credential/CI calls
+or waits, offline initialization and completion, repeat completion, pending and
+completed legacy journal resume, changed inputs, partial retirement, local tracking
+comparisons and missing-history fallback, full/cold/reading overrides, and refusal
+of the old wait option. Preparation findings, timeouts and concurrent input changes
+must prevent retirement. Existing dirty-path, containment, branch, ancestry,
+retained-output and host-managed preservation controls remain required.
+Run focused tests and typecheck during implementation. The user owns the subsequent
+push, Host CI and Guest CI; recommend full hosted validation for changes to this
+orchestration tool. No local model or proof gate is needed.

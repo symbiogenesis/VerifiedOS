@@ -6,8 +6,8 @@ Read [README.md](README.md) first for the project's purpose, design goals, and c
 
 AGENTS.md owns shared agent instructions. Edit shared rules here. The linked artifacts own the detailed contracts summarized below; check them before changing the relevant area and resolve disagreements at their source.
 
-Follow the [validation handoff](#tool-execution-and-validation): require Host CI,
-select checks from the changed inputs, and finish without waiting for Guest CI.
+Follow the [validation handoff](#tool-execution-and-validation): finish locally,
+record the selected checks, and leave all pushes and hosted CI to the user.
 
 ## Repository map
 
@@ -63,11 +63,11 @@ the firmware campaign's frozen bytes and regenerate derived C through its owner.
 
 ## Worktree isolation and ownership
 
-**Publish only `main`, and finish every session with all of its work merged into
-local and remote `main`.** Worktrees and work branches provide temporary local
-isolation. Never push work branches or publication tags, and never treat a branch
-handoff as session completion. Integrate and resolve conflicts on `main`, publish
-`main`, complete the validation handoff, then retire the session's eligible owned
+**Never push anything. Finish every session with all of its work merged into
+local `main`.** The user owns every push, including `main`, branches and tags.
+Worktrees and work branches provide temporary local isolation; a branch handoff
+does not complete a session. Integrate and resolve conflicts on local `main`,
+complete the local validation handoff, then retire the session's eligible owned
 worktrees and local branches. Preserve another active session's uncommitted work;
 coordinate integration rather than ending with this session's work stranded.
 
@@ -130,26 +130,28 @@ own the detailed scope and follow-up.
 
 For the settled batch:
 
-Use [`python tools/run.py fanout`](tools/fanout.md) for the mechanical integration,
-publication, hosted-validation handoff and retirement of explicitly selected lanes.
+Use [`python tools/run.py fanout`](tools/fanout.md) for the mechanical local
+integration, validation handoff and retirement of explicitly selected lanes.
 The integrator still resolves conflicts, shared edits, co-reads and acceptance
-checks outside the workflows. Resume `fanout finish` until Host CI passes and
-the command records the selected Guest CI dispatch or its omission and safe
-retirement; never wait for Guest CI.
+checks outside the workflows. `fanout finish` completes without publishing,
+dispatching, querying, polling or waiting for either Host CI or Guest CI.
 
 1. Finish authored and generated changes, track deliverables by path, resolve
-   co-reads and known findings, then merge all session work into `main`, commit and
-   publish only `main`. A session is not complete while its work remains off `main`.
-2. Require both [Host CI](.github/workflows/host-gates.yml) platform aggregates to
-   pass. The [shared CI selection](tools/ci/README.md#change-selection) retains
+   co-reads and known findings, then merge all session work into local `main` and
+   commit. A session is not complete while its work remains off local `main`.
+   Never push, including through scripts or other indirect commands.
+2. The user owns [Host CI](.github/workflows/host-gates.yml) and
+   [Guest CI](.github/workflows/guest-gates.yml), including publication, dispatch,
+   monitoring and verdicts. Do not dispatch or monitor CI unless the user explicitly
+   directs that action. Never wait for CI as part of session completion.
+   The [shared CI selection](tools/ci/README.md#change-selection) retains
    the corpus checker and Markdown validation for prose-only changes; executable
    changes also run the host suites, and affected model inputs run their hooks.
-   If no automatic event starts Host CI, dispatch it from `main` with the published
-   commit as its `revision` input; manual runs default to full validation.
-3. Let `fanout` compare the settled revision with remote `main` before publication,
-   freeze that selection in its journal and dispatch the affected
-   [Guest CI](.github/workflows/guest-gates.yml) lanes for the same revision.
-   Prose-only changes need no guest dispatch. Model changes select model and RTL,
+3. Let `fanout` compare the settled revision with the locally available remote
+   tracking ref for `main` and freeze the recommended selection in its journal.
+   It neither contacts the remote nor updates tracking refs; the recorded base may
+   be stale. Unavailable history selects full validation. Prose-only changes need
+   no guest lanes. Model changes select model and RTL,
    RTL changes select RTL, and proof changes select proofs; mixed changes take
    the union. Machine-readable Markdown, shared tooling, CI configuration,
    unknown paths or unavailable history retain full validation. Use
@@ -158,11 +160,12 @@ retirement; never wait for Guest CI.
    use `--cold` when acceptance requires `proofs --fresh` or cold installation
    evidence. The [Guest CI contract](tools/ci/README.md) owns execution and
    proof reuse; checks outside it retain their acceptance requirements.
-4. Record run URLs or identifiers, tested revisions, the comparison base, selected
-   and omitted checks, available verdicts and deferred checks.
-   **Finish without polling, watching or waiting for Guest CI.**
-   The user monitors it and will report issues. A pending guest verdict does not
-   block completion and must never be reported as passed. Skipped or canceled
+4. Record the local revision, comparison base, recommended and omitted checks,
+   local verdicts and deferred acceptance checks. Hosted validation is user-managed
+   and supplies no verdict until the user provides evidence or requests inspection.
+   **Finish without pushing or waiting for Host CI or Guest CI.**
+   Pending hosted verdicts do not block local completion and must never be reported
+   as passed. Skipped or canceled
    gates likewise supply no passing evidence. An intentional scope omission is
    recorded as not required, never as a passing check. Changed inputs require
    refreshed evidence; reuse the frozen selection on an unchanged resume.
