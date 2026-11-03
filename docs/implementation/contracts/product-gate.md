@@ -1,6 +1,6 @@
 # The Product-Gate Contract: Absolute Limits, the Result Record, and What Rejects a Candidate
 
-> Non-normative, governed by [R-18-004a](../../requirements-register.md). This contract defines limits, result records and rejection predicates before any candidate is measured. It contains no candidate verdict.
+> Non-normative, governed by [R-18-004a](../../requirements-register.md). This contract fixes limits, result records and rejection predicates before any candidate exists, preventing limits tailored to a candidate. It contains no candidate verdict.
 > The register takes precedence. [Performance estimates](../../performance/performance-estimates.md) remain estimates; this gate evaluates measurements and cites estimate rows by ID without copying their figures.
 
 ## How to read this
