@@ -37,6 +37,27 @@ conditions are not first-release funding or acceptance requirements. A new
 comparison freezes its own subject, evidence endpoint, workloads and envelope
 before execution; safety and independent-intent requirements are unchanged.
 
+### Representation-transfer comparison
+
+The independent package trial's representation-change probe starts with ordinary
+Rocq relations, explicit transport lemmas and generalized rewriting over a pure
+value representation the client actually needs. Freeze the public laws, baseline
+and repeated proof steps before comparing automation. Reprove the changed
+instance laws and replay the generic client theorem unchanged; record handwritten
+transport, generated terms, review and repair separately. Concrete CHERI memory,
+ownership and primitive-operation laws retain their foundation owners.
+
+The [CoqEAL/Trocq candidates](verification-strategy.md#existing-tooling-and-implementation-owners)
+become an implementation option only when that baseline exposes recurring work
+worth automating and a new checklist item prices the selected package's exact
+prover/plugin closure, port, licence reading and maintenance. Keep the locked
+prover and assumption policy. Stop the candidate at its declared budget, an
+unresolved compatibility/assumption boundary or failure to meet its predeclared
+maintenance-benefit criterion; retain the native transport and useful checked
+lemmas. A generated proof must concern the same relations and client laws, with
+no strengthened precondition or weakened result. This comparison belongs to the
+first-release package trial and does not reopen Q19c/Q20b/Q20c.
+
 ## Clients and baseline evidence
 
 **P, parser destination initialization**, is Q2b's copy-once ring-descriptor check with generic bounded fill of its fixed destination. **S, private service staging**, is M7.1's held-out sequential disjoint copy into private staging under M6.4's declaration. Q2b and M7.1 own the implementations and independent baselines; Q19c owns the generic interface, proofs and concrete instance; Q20b owns the single held-out adaptation record shared by both trials.

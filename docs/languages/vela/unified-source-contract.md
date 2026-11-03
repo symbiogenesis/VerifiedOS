@@ -171,6 +171,16 @@ application. R-05-023a decompilation/final validation remains required until a
 register/prose amendment admits composed substitutes; compiler assertions cannot
 certify output.
 
+The [Plinth/Plutus design comparison](verification-strategy.md#compilation-and-executable-models)
+informs this separation of pass implementation, relation and proof. A composed
+record identifies each actual input/output, pass and checked theorem application;
+its interfaces preserve the facts later passes consume. A missing step or
+preservation property leaves the artifact incomplete. Proving a relation is
+decidable or checking a compiler's trace against an unproved specification
+supplies no substitute semantic-preservation result. Reuse stays within the
+selected compiler owner and existing interpretations; no parallel certifier is
+commissioned by this reference.
+
 AI/search/scheduling heuristics may propose transforms, but a proved checker or
 reconstructed proof establishes their premises and required preservation. Missing
 support/certificates or failed checks admit no optimized artifact; any fallback
