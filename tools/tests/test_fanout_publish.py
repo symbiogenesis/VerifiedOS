@@ -1,373 +1,387 @@
 # SPDX-License-Identifier: Apache-2.0
-"""Batch completion publishes only main, then orders hosted CI and retirement."""
+"""Fanout completes locally without publication, hosted actions or CI waits."""
 
-import json
+import io
 import subprocess
-from collections.abc import Callable
+import time
+import urllib.request
+from collections.abc import Generator
+from contextlib import contextmanager, redirect_stderr, redirect_stdout
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
 
 from tests.fanout_fixture import commit, finish_args, fixture, git, init, refuses
 from tests.harness import Case, ensure
-from vos import fanout_ci, fanout_retire
-from vos.cli import fanout
+from vos import ci_scope, fanout_ci, fanout_retire
+from vos.cli import fanout, worktree
 
-# Each case builds its own repository, remote and lane through fanout_fixture, and
-# patches only inside a `with`, so the cases share no state, and a sharded run spreads
-# them over every shard (vos/cli/test.py).
+# Fixtures, patches and captured streams are private to each case.
 INDEPENDENT_CASES = True
 
 
-def _publish_wait_resume() -> None:
+@contextmanager
+def _local_only() -> Generator[None]:
+    """Refuse remote Git, credentials, API construction and any polling delay."""
+    original = worktree._git
+
+    def local_git(root: Path, *args: str, allowed: tuple[int, ...] = (0,),
+                  stdin: bytes | None = None) -> bytes:
+        forbidden = {"push", "fetch", "pull", "ls-remote", "send-pack", "receive-pack", "credential"}
+        ensure(not forbidden.intersection(args), f"completion must keep Git local: {args!r}")
+        return original(root, *args, allowed=allowed, stdin=stdin)
+
+    with (patch.object(worktree, "_git", side_effect=local_git),
+          patch.object(fanout_ci, "repository", side_effect=AssertionError("CI repository lookup")),
+          patch.object(fanout_ci.GitHub, "__init__", side_effect=AssertionError("GitHub client")),
+          patch.object(urllib.request, "urlopen", side_effect=AssertionError("network request")),
+          patch.object(time, "sleep", side_effect=AssertionError("CI wait"))):
+        yield
+
+
+def _legacy_ci(revision: str, *, passed: bool = False) -> fanout_ci.CIState:
+    host: fanout_ci.RunState = {
+        "workflow": fanout_ci.HOST, "revision": revision,
+        "requested": "2026-11-02T00:00:00Z",
+        "phase": "observed" if passed else "intent",
+        "run_id": 123 if passed else None,
+        "url": "https://github.com/example/repo/actions/runs/123" if passed else "",
+        "status": "completed" if passed else "pending",
+        "conclusion": "success" if passed else None, "request_id": None,
+        "jobs": dict.fromkeys(fanout_ci.HOST_JOBS, "success") if passed else {},
+    }
+    return {"repository": "example/repo", "ref": "main", "revision": revision,
+            "cold": True, "host": host, "guest": None}
+
+
+def _local_completion_and_repeat() -> None:
     with fixture() as (root, lane, remote):
-        commit(lane, "worker commit")
+        (lane / "worker.txt").write_text("integrated locally\n", encoding="utf-8")
+        git(lane, "add", "--", "worker.txt")
+        worker_head = commit(lane, "worker contribution")
         state, path = init(root, lane)
-        observed: list[str] = []
-
-        def advance(checkout: Path, ci: fanout_ci.CIState, save: Callable[[], None]) -> bool:
-            ensure(checkout == root, "CI uses integration checkout")
-            published = git(remote, "rev-parse", "refs/heads/main")
-            ensure(published == ci["revision"], "publication precedes CI")
-            ensure(ci["ref"] == "main", "dispatch always uses main")
-            ensure(git(remote, "for-each-ref", "--format=%(refname)") == "refs/heads/main",
-                   "publication creates no work branch or tag")
-            ensure(ci["cold"], "fresh-proof policy propagates")
-            observed.append("ci")
-            save()
-            return len(observed) > 1
-
-        def retire(checkout: Path, record: fanout_retire.LaneRecord,
-                   revision: str, archive_root: Path) -> dict[str, object]:
-            ensure(observed == ["ci", "ci"], "retirement follows successful hosted handoff")
-            ensure(checkout == root and record.path == str(lane), "only selected lane retires")
-            ensure(revision == git(root, "rev-parse", "HEAD"), "retirement bound to tested commit")
-            ensure(archive_root.is_relative_to(root / "out/fanout"), "outputs retained per batch")
-            observed.append("retire")
-            return {"status": "retired"}
-
-        with (patch.object(fanout_ci, "repository", return_value="example/repo"),
-              patch.object(fanout_ci, "advance", side_effect=advance),
-              patch.object(fanout, "_prepublication", wraps=fanout._prepublication) as preparation,
-              patch.object(fanout_retire, "retire", side_effect=retire)):
-            ensure(not fanout.finish(root, state, path, finish_args()), "pending host stops completion")
-            ensure(state["status"] == "host-pending" and not state["retired"], "pending is not success")
+        git(root, "config", "push.followTags", "true")
+        git(root, "-c", "tag.gpgSign=false", "tag", "-a", "private", "-m", "local tag")
+        output = lane / "out" / "evidence.txt"
+        output.parent.mkdir()
+        output.write_text("keep this evidence\n", encoding="utf-8")
+        with (_local_only(), patch.object(fanout_retire, "_guest", return_value={}),
+              patch.object(fanout, "_precompletion", wraps=fanout._precompletion) as preparation):
+            ensure(fanout.finish(root, state, path, finish_args()), "local completion succeeds")
+            ensure(state["status"] == "complete" and state["ci"] is None,
+                   "local success creates no hosted evidence")
+            revision = git(root, "rev-parse", "HEAD")
+            ensure(state.get("revision") == revision, "journal binds the settled local revision")
+            git(root, "merge-base", "--is-ancestor", worker_head, revision)
+            ensure((root / "worker.txt").read_text(encoding="utf-8") == "integrated locally\n",
+                   "worker deliverable reaches local main")
+            ensure(not lane.exists() and not git(root, "branch", "--list", "work/worker"),
+                   "eligible lane and its local branch retire")
+            archived = list((path.parent / "retained").rglob("evidence.txt"))
+            ensure(len(archived) == 1 and archived[0].read_text(encoding="utf-8") == "keep this evidence\n",
+                   "ignored worker evidence survives retirement")
+            saved = path.read_bytes()
             state = fanout._load(path, root)
-            ensure(fanout.finish(root, state, path, finish_args()), "resume finishes")
-            ensure(state["status"] == "complete", "completion persisted")
-            ensure(fanout.finish(root, state, path, finish_args()), "completed resume is read-only")
-            ensure(observed == ["ci", "ci", "retire"], "no repeated dispatch or retirement")
-            ensure(preparation.call_count == 1, "pending and completed resumes do not repeat preparation")
+            ensure(fanout.finish(root, state, path, finish_args()), "completed batch resumes locally")
+            ensure(path.read_bytes() == saved and preparation.call_count == 1,
+                   "completed resume repeats neither preparation nor journal writes")
             commit(root, "new inputs")
             refuses(lambda: fanout.finish(root, state, path, finish_args()), "inputs changed")
-
-
-def _reading_base_reaches_ci() -> None:
-    with fixture() as (root, lane, _):
-        base = git(root, "rev-parse", "HEAD")
-        commit(lane, "worker commit")
-        state, path = init(root, lane, base)
-        forwarded: list[str | None] = []
-
-        def advance(checkout: Path, ci: fanout_ci.CIState, save: Callable[[], None]) -> bool:
-            forwarded.append(ci.get("reading_base"))
-            return True
-
-        with (patch.object(fanout_ci, "repository", return_value="example/repo"),
-              patch.object(fanout_ci, "advance", side_effect=advance),
-              patch.object(fanout_retire, "retire", return_value={"status": "retired"})):
-            ensure(fanout.finish(root, state, path, finish_args()), "the batch completes")
-        ensure(forwarded == [base],
-               "the batch's reading base reaches the CI record Guest CI's dispatch reads")
-        ci = fanout._load(path, root)["ci"]
-        ensure(ci is not None and ci.get("reading_base") == base,
-               "the CI record keeps the reading base for resume")
-    with fixture() as (root, lane, remote):
-        # Nothing lands after the reading base, so Guest CI would refuse it as no proper
-        # ancestor: finish refuses before publishing anything.
-        state, path = init(root, lane, git(root, "rev-parse", "HEAD"))
-        with (patch.object(fanout_ci, "repository", return_value="example/repo"),
-              patch.object(fanout_ci, "advance") as handoff):
-            refuses(lambda: fanout.finish(root, state, path, finish_args()),
-                    "the settled revision is the reading base itself")
-            handoff.assert_not_called()
         ensure(git(remote, "for-each-ref", "--format=%(refname)") == "",
-               "a revision Guest CI would refuse is never published")
-        ensure(state["ci"] is None, "no CI record exists for a refused revision")
+               "main, worker branches and tags were never published")
+
+
+def _offline_completion() -> None:
+    with fixture() as (root, lane, remote):
+        git(root, "remote", "remove", "origin")
+        with (_local_only(), patch.object(fanout_retire, "_guest", return_value={})):
+            state, path = init(root, lane)
+            ensure(fanout.finish(root, state, path, finish_args()),
+                   "initialization and completion require no configured or reachable remote")
+        selected = state.get("selection")
+        ensure(selected is not None and selected["base"] is None and selected["host_full"]
+               and selected["guest_lanes"] == ["model", "rtl", "proofs"],
+               "missing local comparison history recommends full hosted validation")
+        ensure(git(remote, "for-each-ref", "--format=%(refname)") == "",
+               "offline completion leaves remote refs untouched")
+
+
+def _legacy_pending_resume() -> None:
+    for status in ("published", "host-pending", "retiring"):
+        with fixture() as (root, lane, remote):
+            state, path = init(root, lane)
+            revision = git(root, "rev-parse", "HEAD")
+            historical = _legacy_ci(revision)
+            state["ci"] = historical
+            state["status"] = status
+            fanout._save(path, state)
+            with (_local_only(), patch.object(fanout_retire, "_guest", return_value={})):
+                resumed = fanout._load(path, root)
+                ensure(fanout.finish(root, resumed, path, finish_args()),
+                       f"legacy {status} resumes without finishing its dispatch intent")
+            ensure(resumed["ci"] == historical and resumed.get("revision") == revision,
+                   "legacy CI evidence remains historical beside local completion")
+            ensure(resumed["status"] == "complete" and not lane.exists(),
+                   "a pending hosted verdict never blocks eligible retirement")
+            ensure(git(remote, "for-each-ref", "--format=%(refname)") == "",
+                   "legacy resume never publishes")
+
+
+def _legacy_completed_resume() -> None:
+    with fixture() as (root, lane, remote):
+        state, path = init(root, lane)
+        revision = git(root, "rev-parse", "HEAD")
+        state["ci"] = _legacy_ci(revision, passed=True)
+        state["status"] = "complete"
+        fanout._save(path, state)
+        saved = path.read_bytes()
+        with (_local_only(), patch.object(fanout, "_prepare") as prepare,
+              patch.object(fanout_retire, "retire") as retire):
+            resumed = fanout._load(path, root)
+            ensure(fanout.finish(root, resumed, path, finish_args()),
+                   "a legacy completed journal needs no remote evidence lookup")
+            prepare.assert_not_called()
+            retire.assert_not_called()
+            ensure(path.read_bytes() == saved and lane.exists(), "completed resume is read-only")
+            commit(root, "new local inputs")
+            refuses(lambda: fanout.finish(root, resumed, path, finish_args()), "inputs changed")
+        ensure(git(remote, "for-each-ref", "--format=%(refname)") == "",
+               "completed legacy resume leaves every remote ref untouched")
+
+
+def _historical_evidence_keeps_its_revision() -> None:
+    with fixture() as (root, lane, _):
+        state, path = init(root, lane)
+        old_revision = git(root, "rev-parse", "HEAD")
+        historical = _legacy_ci(old_revision)
+        old_selection = ci_scope.select_changes(root, None, old_revision, force_guest=True)
+        historical["selection"] = old_selection
+        state["ci"] = historical
+        state["selection"] = old_selection
+        state["status"] = "host-pending"
+        (root / "README.md").write_text("new local revision\n", encoding="utf-8")
+        git(root, "add", "--", "README.md")
+        revision = commit(root, "changed settled input")
+        with (_local_only(), patch.object(fanout_retire, "_guest", return_value={})):
+            ensure(fanout.finish(root, state, path, finish_args()), "changed pending inputs finish locally")
+        ensure(state.get("revision") == revision and state["ci"] == historical
+               and historical["revision"] == old_revision,
+               "new local completion never relabels old hosted evidence")
+        ensure(fanout._load(path, root) == state, "independent historical evidence round-trips")
 
 
 def _retirement_resume() -> None:
     with fixture() as (root, lane, _):
         state, path = init(root, lane)
-        state["status"] = "retiring"
-        revision = git(root, "rev-parse", "HEAD")
-        fanout._publish(root, state, revision)
-        state["ci"] = fanout_ci.new_state("example/repo", "main",
-                                           revision, True)
-        # A prior retirement may already have removed the checkout before failing
-        # branch deletion. The retirement module owns recovery from its receipt.
-        git(root, "worktree", "remove", str(lane))
-        with (patch.object(fanout_ci, "advance", return_value=True),
-              patch.object(fanout_retire, "retire", return_value={"status": "retired"}) as retire):
-            ensure(fanout.finish(root, state, path, finish_args()), "partial removal can resume")
-            ensure(retire.call_count == 1, "retirement receipt handles missing checkout")
+        original = fanout_retire._git
 
+        def interrupted(checkout: Path, *args: str,
+                        allowed: tuple[int, ...] = (0,)) -> bytes:
+            if args[:2] == ("branch", "-d"):
+                raise fanout_retire.RetirementError("interrupted after checkout removal")
+            return original(checkout, *args, allowed=allowed)
 
-def _inputs_change_during_ci() -> None:
-    with fixture() as (root, lane, _):
-        state, path = init(root, lane)
-
-        def changed(checkout: Path, ci: fanout_ci.CIState, save: Callable[[], None]) -> bool:
-            (checkout / "README.md").write_text("concurrent edit\n", encoding="utf-8")
-            return True
-
-        with (patch.object(fanout_ci, "repository", return_value="example/repo"),
-              patch.object(fanout_ci, "advance", side_effect=changed),
-              patch.object(fanout_retire, "retire") as retire):
-            refuses(lambda: fanout.finish(root, state, path, finish_args()), "uncommitted inputs")
-            retire.assert_not_called()
-            ensure(state["status"] != "complete", "changed inputs do not complete")
+        with (_local_only(), patch.object(fanout_retire, "_guest", return_value={}),
+              patch.object(fanout, "_precompletion", wraps=fanout._precompletion) as preparation):
+            with patch.object(fanout_retire, "_git", side_effect=interrupted):
+                refuses(lambda: fanout.finish(root, state, path, finish_args()), "interrupted")
+            ensure(state["status"] == "retiring" and not lane.exists()
+                   and git(root, "branch", "--list", "work/worker"),
+                   "durable retirement interrupted between checkout and branch removal")
+            resumed = fanout._load(path, root)
+            ensure(fanout.finish(root, resumed, path, finish_args()), "missing checkout resumes from receipt")
+            ensure(resumed["status"] == "complete"
+                   and not git(root, "branch", "--list", "work/worker"), "resumed retirement finishes")
+            ensure(preparation.call_count == 1, "unchanged partial retirement reuses local preparation")
 
 
 def _main_only() -> None:
-    with fixture() as (root, lane, remote):
+    with fixture() as (root, lane, _):
         refuses(lambda: init(lane, root), "on main")
         state, path = init(root, lane)
-        revision = git(root, "rev-parse", "HEAD")
-        git(root, "config", "push.followTags", "true")
-        git(root, "tag", "-a", "private", "-m", "must remain local")
-        ensure(fanout._publish(root, state, revision) == "main", "only main is a dispatch ref")
-        ensure(git(remote, "for-each-ref", "--format=%(refname)") == "refs/heads/main",
-               "user followTags configuration cannot publish tags")
-        # A legacy completed journal must not bypass the main-only invariant.
         git(root, "switch", "-c", "work/old-integration")
         state["branch"] = "work/old-integration"
         state["status"] = "complete"
-        with patch.object(fanout_ci, "advance") as advance:
+        with _local_only(), patch.object(fanout_retire, "retire") as retire:
             refuses(lambda: fanout.finish(root, state, path, finish_args()), "requires main")
-            refuses(lambda: fanout._publish(root, state, revision), "requires main")
-            advance.assert_not_called()
-
-
-def _remote_changes_during_ci() -> None:
-    with fixture() as (root, lane, remote):
-        state, path = init(root, lane)
-
-        def changed(checkout: Path, ci: fanout_ci.CIState, save: Callable[[], None]) -> bool:
-            git(remote, "update-ref", "refs/heads/main", ci["revision"] + "^")
-            return True
-
-        # Give main a parent so the remote can move independently of local HEAD.
-        commit(root, "settled input")
-        with (patch.object(fanout_ci, "repository", return_value="example/repo"),
-              patch.object(fanout_ci, "advance", side_effect=changed),
-              patch.object(fanout_retire, "retire") as retire):
-            refuses(lambda: fanout.finish(root, state, path, finish_args()), "remote main changed")
             retire.assert_not_called()
-            ensure(state["status"] != "complete", "remote change does not complete")
 
 
-def _preparation_refuses_publication() -> None:
+def _preparation_findings() -> None:
     for selector in ("typecheck", "test_lanes", "test_retained_evidence"):
         with fixture() as (root, lane, remote):
             script = root / "tools/run.py"
-            script.write_text(
-                "import sys\n"
-                f"raise SystemExit(1 if sys.argv[-1] == {selector!r} else 0)\n",
-                encoding="utf-8", newline="")
+            script.write_text("import sys\n"
+                              f"raise SystemExit(1 if sys.argv[-1] == {selector!r} else 0)\n",
+                              encoding="utf-8", newline="")
             git(root, "add", "--", "tools/run.py")
             commit(root, "preparation finding")
             state, path = init(root, lane)
-            with patch.object(fanout_ci, "advance") as handoff:
+            with _local_only(), patch.object(fanout_retire, "retire") as retire:
                 refuses(lambda state=state, path=path: fanout.finish(root, state, path, finish_args()),
-                        "main was not pushed")
-                handoff.assert_not_called()
+                        "exited 1")
+                retire.assert_not_called()
+            ensure(lane.exists() and state["status"] != "complete" and state["ci"] is None,
+                   f"{selector} finding prevents retirement without hosted evidence")
             ensure(git(remote, "for-each-ref", "--format=%(refname)") == "",
-                   f"{selector} finding leaves the remote untouched")
-            ensure(state["ci"] is None, "refused preparation records no hosted evidence")
+                   "preparation failure cannot publish")
 
 
-def _preparation_timeout_one(selector: str) -> None:
-    with fixture() as (root, lane, remote):
-        state, path = init(root, lane)
-
-        def launch(argv: list[str], *, cwd: Path, check: bool,
-                   timeout: int) -> subprocess.CompletedProcess[bytes]:
-            if argv[-1] == selector:
-                ensure(cwd == root and timeout == 300,
-                       "preparation uses the settled checkout and its bounded limit")
-                raise subprocess.TimeoutExpired(argv, timeout)
-            return subprocess.run(argv, cwd=cwd, check=check, timeout=timeout)
-
-        with (patch.object(fanout, "subprocess", SimpleNamespace(
-                run=launch, SubprocessError=subprocess.SubprocessError)),
-              patch.object(fanout_ci, "advance") as handoff):
-            try:
-                fanout.finish(root, state, path, finish_args())
-            except subprocess.TimeoutExpired:
-                pass
-            else:
-                raise AssertionError("preparation timeout must stop publication")
-            handoff.assert_not_called()
-        ensure(git(remote, "for-each-ref", "--format=%(refname)") == "",
-               "preparation timeout leaves the remote untouched")
-        ensure(state["ci"] is None, "timeout records no hosted evidence")
-
-
-def _preparation_timeout() -> None:
+def _preparation_timeouts() -> None:
     for selector in ("typecheck", "test_lanes", "test_retained_evidence"):
-        _preparation_timeout_one(selector)
+        with fixture() as (root, lane, _):
+            state, path = init(root, lane)
+
+            def launch(argv: list[str], *, cwd: Path, check: bool,
+                       timeout: int, selector: str = selector) -> subprocess.CompletedProcess[bytes]:
+                if argv[-1] == selector:
+                    ensure(cwd == root and timeout == 300,
+                           "preparation uses the settled checkout and bounded local timeout")
+                    raise subprocess.TimeoutExpired(argv, timeout)
+                return subprocess.run(argv, cwd=cwd, check=check, timeout=timeout)
+
+            with (_local_only(), patch.object(fanout, "subprocess", SimpleNamespace(
+                    run=launch, SubprocessError=subprocess.SubprocessError)),
+                  patch.object(fanout_retire, "retire") as retire):
+                try:
+                    fanout.finish(root, state, path, finish_args())
+                except subprocess.TimeoutExpired:
+                    pass
+                else:
+                    raise AssertionError("preparation timeout must stop local completion")
+                retire.assert_not_called()
+            ensure(lane.exists() and state["status"] != "complete" and state["ci"] is None,
+                   "preparation timeout preserves the lane and creates no hosted evidence")
 
 
 def _preparation_changes_inputs() -> None:
-    with fixture() as (root, lane, remote):
-        state, _ = init(root, lane)
-        revision = git(root, "rev-parse", "HEAD")
+    for committed in (False, True):
+        with fixture() as (root, lane, _):
+            state, path = init(root, lane)
 
-        def changed(checkout: Path) -> None:
-            (checkout / "README.md").write_text("concurrent edit\n", encoding="utf-8")
+            def changed(checkout: Path, committed: bool = committed) -> None:
+                (checkout / "README.md").write_text("concurrent edit\n", encoding="utf-8")
+                if committed:
+                    git(checkout, "add", "--", "README.md")
+                    commit(checkout, "concurrent commit")
 
-        with patch.object(fanout, "_prepublication", side_effect=changed):
-            refuses(lambda: fanout._publish(root, state, revision), "uncommitted inputs")
-        ensure(git(remote, "for-each-ref", "--format=%(refname)") == "",
-               "preparation cannot publish a checkout changed during its checks")
+            with (_local_only(), patch.object(fanout, "_precompletion", side_effect=changed),
+                  patch.object(fanout_retire, "retire") as retire):
+                refuses(lambda: fanout.finish(root, state, path, finish_args()),
+                        "revision changed" if committed else "uncommitted inputs")
+                retire.assert_not_called()
+            ensure(lane.exists() and state["status"] != "complete", "changed inputs prevent retirement")
 
 
-def _prose_selection_freezes_before_publication() -> None:
+def _local_tracking_selection() -> None:
     with fixture() as (root, lane, remote):
         base = git(root, "rev-parse", "HEAD")
-        git(root, "push", "origin", "HEAD:refs/heads/main")
-        (root / "README.md").write_text("prose changed before batch init\n", encoding="utf-8")
+        # A local tracking ref can exist even when the named remote is unreachable.
+        git(root, "update-ref", "refs/remotes/origin/main", base)
+        git(root, "remote", "set-url", "origin", "https://unreachable.invalid/repository")
+        (root / "README.md").write_text("prose changed before init\n", encoding="utf-8")
         git(root, "add", "--", "README.md")
         revision = commit(root, "document change")
         state, path = init(root, lane)
         state["cold"] = False
-        fanout._save(path, state)
-        ensure(state["base"] == revision, "init may occur after authored work is committed")
-        observed: list[dict[str, object]] = []
-
-        def advance(checkout: Path, ci: fanout_ci.CIState, save: Callable[[], None]) -> bool:
-            ensure(git(remote, "rev-parse", "refs/heads/main") == revision,
-                   "the settled documentation revision is published")
-            selected = dict(ci.get("selection") or {})
-            observed.append(selected)
-            ensure(selected.get("base") == base and selected.get("paths") == ["README.md"]
-                   and selected.get("guest_lanes") == [],
-                   "selection compares pre-push remote main, not the batch's init head")
-            return len(observed) > 1
-
-        publish = fanout._publish
-
-        def publication(checkout: Path, batch: fanout.Batch, settled: str) -> str:
-            saved = fanout._load(path, root)
-            ensure(saved.get("selection") == batch.get("selection")
-                   and git(remote, "rev-parse", "refs/heads/main") == base,
-                   "the selection reaches the journal before publication changes the remote")
-            return publish(checkout, batch, settled)
-
-        with (patch.object(fanout_ci, "repository", return_value="example/repo"),
-              patch.object(fanout_ci, "advance", side_effect=advance),
-              patch.object(fanout, "_publish", side_effect=publication),
-              patch.object(fanout, "_prepublication") as preparation,
-              patch.object(fanout_retire, "retire", return_value={"status": "retired"})):
-            ensure(not fanout.finish(root, state, path, finish_args()), "Host CI may remain pending")
-            state = fanout._load(path, root)
-            ensure(fanout.finish(root, state, path, finish_args()), "pending documentation handoff resumes")
+        with (_local_only(), patch.object(fanout_retire, "_guest", return_value={}),
+              patch.object(fanout, "_precompletion") as preparation):
+            ensure(fanout.finish(root, state, path, finish_args()), "local tracking comparison finishes")
             preparation.assert_not_called()
-        ensure(observed[0] == observed[1], "resume keeps the pre-publication scope after remote advances")
+            selected = state.get("selection")
+            ensure(selected is not None and selected["base"] == base
+                   and selected["revision"] == revision and selected["paths"] == ["README.md"]
+                   and selected["guest_lanes"] == [] and not selected["host_full"],
+                   "scope includes work before init and recommends no unaffected guest lanes")
+            git(root, "update-ref", "refs/remotes/origin/main", revision)
+            ensure(fanout._freeze_selection(root, state, revision, path) == selected,
+                   "unchanged resume retains its recorded comparison after tracking refs advance")
+        ensure(git(remote, "for-each-ref", "--format=%(refname)") == "",
+               "tracking recommendation never contacts the remote")
 
 
-def _scope_policy_and_journal_binding() -> None:
-    with fixture() as (root, lane, _):
-        state, path = init(root, lane)
-        ensure(state.get("full_ci") is False, "full CI is an explicit expansion")
-        legacy = dict(state)
-        del legacy["full_ci"]
-        path.write_text(json.dumps(legacy), encoding="utf-8")
-        ensure(not fanout._load(path, root).get("full_ci", False),
-               "older journals keep their explicit policy")
-        state["full_ci"] = True
-        revision = git(root, "rev-parse", "HEAD")
-        selection = fanout._freeze_selection(root, state, revision, path)
-        ensure(selection["host_full"] and selection["model_hooks"]
-               and selection["guest_lanes"] == ["model", "rtl", "proofs"],
-               "full CI expands every validation family")
-        state["ci"] = fanout_ci.new_state("example/repo", "main", revision, True,
-                                           selection=selection, full_ci=True)
-        fanout._save(path, state)
-        ensure(fanout._load(path, root) == state, "scope and full policy round-trip")
-        del state["selection"]
-        fanout._save(path, state)
-        refuses(lambda: fanout._load(path, root), "CI selection is missing")
-
-
-def _legacy_unprepared_scope_and_remote_reset() -> None:
-    for legacy in (True, False):
-        with fixture() as (root, lane, remote):
-            ancestor = git(root, "rev-parse", "HEAD")
-            base = commit(root, "published baseline")
-            git(root, "push", "origin", "HEAD:refs/heads/main")
-            (root / "README.md").write_text("documentation update\n", encoding="utf-8")
-            git(root, "add", "--", "README.md")
-            revision = commit(root, "settled documentation")
-            state, path = init(root, lane)
-            state["cold"] = False
-            if legacy:
-                del state["full_ci"]
-            selected = fanout._freeze_selection(root, state, revision, path)
-            ensure(selected["base"] == base and selected["paths"] == ["README.md"],
-                   "the complete pre-publication path set is retained")
-            if legacy:
-                ensure(selected["host_full"]
-                       and selected["guest_lanes"] == ["model", "rtl", "proofs"],
-                       "old unprepared journals cannot narrow the full handoff they promised")
-            else:
-                git(remote, "update-ref", "refs/heads/main", ancestor)
-                refuses(lambda state=state, revision=revision: fanout._publish(root, state, revision),
-                        "remote main changed after CI selection")
-                ensure(git(remote, "rev-parse", "refs/heads/main") == ancestor,
-                       "a remote reset cannot add unclassified changes to a non-force publication")
-
-
-def _guest_acceptance_preserves_host_scope() -> None:
-    for policy in ("cold", "reading_base", "full_ci"):
+def _scope_overrides_and_legacy() -> None:
+    for policy in ("cold", "reading_base", "full_ci", "legacy"):
         with fixture() as (root, lane, _):
             base = git(root, "rev-parse", "HEAD")
-            git(root, "push", "origin", "HEAD:refs/heads/main")
-            (root / "README.md").write_text("prose for guest acceptance\n", encoding="utf-8")
+            git(root, "update-ref", "refs/remotes/origin/main", base)
+            (root / "README.md").write_text("prose for acceptance\n", encoding="utf-8")
             git(root, "add", "--", "README.md")
             revision = commit(root, "settled documentation")
             state, path = init(root, lane, base if policy == "reading_base" else None)
             state["cold"] = policy == "cold"
             state["full_ci"] = policy == "full_ci"
-            selected = fanout._freeze_selection(root, state, revision, path)
-            full = policy == "full_ci"
-            ensure(selected["host_full"] is full and selected["model_hooks"] is full
-                   and selected["guest_lanes"] == ["model", "rtl", "proofs"]
-                   and selected["reason"] == ("full override" if full else "guest override"),
-                   "cold and reading acceptance expand Guest CI; full CI alone expands Host CI too")
-            state["ci"] = fanout_ci.new_state("example/repo", "main", revision, state["cold"],
-                                               state.get("reading_base"), selection=selected, full_ci=full)
-            fanout._save(path, state)
-            ensure(fanout._load(path, root) == state, "guest-only override remains valid on resume")
-            with patch.object(fanout, "_prepublication") as preparation:
-                fanout._publish(root, state, revision)
-                ensure(preparation.call_count == (1 if full else 0),
-                       "cold and proof-reading prose avoid unchanged Python publication checks")
+            if policy == "legacy":
+                del state["full_ci"]
+            with _local_only():
+                selected = fanout._freeze_selection(root, state, revision, path)
+            full = policy in {"full_ci", "legacy"}
+            ensure(selected["base"] == base and selected["paths"] == ["README.md"]
+                   and selected["host_full"] is full and selected["model_hooks"] is full
+                   and selected["guest_lanes"] == ["model", "rtl", "proofs"],
+                   "acceptance expansions remain recommendations with conservative legacy defaults")
+            ensure(fanout._load(path, root) == state, "advisory scope policy round-trips")
+
+
+def _reading_base_handoff() -> None:
+    with fixture() as (root, lane, _):
+        base = git(root, "rev-parse", "HEAD")
+        commit(lane, "worker commit")
+        state, path = init(root, lane, base)
+        with _local_only(), patch.object(fanout_retire, "_guest", return_value={}):
+            ensure(fanout.finish(root, state, path, finish_args()), "proof reading recommendation finishes")
+        ensure(state.get("reading_base") == base and state["ci"] is None,
+               "user receives reading base without a dispatch or fabricated CI record")
+        ensure(fanout._load(path, root) == state, "reading recommendation survives resume")
+    with fixture() as (root, lane, _):
+        state, path = init(root, lane, git(root, "rev-parse", "HEAD"))
+        with _local_only(), patch.object(fanout_retire, "retire") as retire:
+            refuses(lambda: fanout.finish(root, state, path, finish_args()),
+                    "the settled revision is the reading base itself")
+            retire.assert_not_called()
+        ensure(state["ci"] is None and lane.exists(), "invalid reading recommendation never retires")
+
+
+def _old_wait_option_refused() -> None:
+    stream = io.StringIO()
+    with redirect_stderr(stream):
+        try:
+            fanout.main(["finish", "example", "--wait-host", "1"])
+        except SystemExit as err:
+            ensure(err.code == 2, "removed wait flag is a CLI usage error")
+        else:
+            raise AssertionError("fanout must not retain a Host CI wait option")
+    ensure("--wait-host" in stream.getvalue(), "usage error identifies the removed flag")
+
+
+def _status_and_cli_handoff() -> None:
+    with fixture() as (root, lane, _):
+        state, path = init(root, lane)
+        stream = io.StringIO()
+        with (_local_only(), patch.object(fanout, "find_root", return_value=root),
+              patch.object(fanout_retire, "_guest", return_value={}), redirect_stdout(stream)):
+            ensure(fanout.main(["finish", state["batch"]]) == 0, "CLI returns local success")
+            saved = path.read_bytes()
+            ensure(fanout.main(["status", state["batch"]]) == 0, "status reads only its local journal")
+        ensure(path.read_bytes() == saved and not lane.exists(), "status performs no mutation")
+        output = stream.getvalue().lower()
+        ensure("user" in output and "host ci" in output and "guest ci" in output,
+               "completion output assigns publication and both CI workflows to the user")
 
 
 def cases() -> list[Case]:
-    return [Case("publish, pending host, resume and retirement order", _publish_wait_resume),
-            Case("reading base reaches CI and needs a proper descendant",
-                 _reading_base_reaches_ci),
-            Case("partial retirement resumes without checkout", _retirement_resume),
-            Case("concurrent inputs prevent retirement", _inputs_change_during_ci),
-            Case("main-only completion and publication without tags", _main_only),
-            Case("remote changes prevent retirement", _remote_changes_during_ci),
-            Case("each preparation finding prevents publication", _preparation_refuses_publication),
-            Case("each preparation timeout prevents publication", _preparation_timeout),
-            Case("changed inputs during preparation prevent publication", _preparation_changes_inputs),
-            Case("prose selection freezes before publication", _prose_selection_freezes_before_publication),
-            Case("scope policy and journal binding", _scope_policy_and_journal_binding),
-            Case("legacy unprepared scope and remote reset", _legacy_unprepared_scope_and_remote_reset),
-            Case("guest acceptance preserves host scope", _guest_acceptance_preserves_host_scope)]
+    return [Case("local integration, retention, retirement and read-only repeat", _local_completion_and_repeat),
+            Case("offline initialization and completion", _offline_completion),
+            Case("legacy pending hosted states finish locally", _legacy_pending_resume),
+            Case("legacy completed journal is read-only", _legacy_completed_resume),
+            Case("historical CI evidence keeps its own revision", _historical_evidence_keeps_its_revision),
+            Case("partial retirement resumes from durable receipt", _retirement_resume),
+            Case("local completion requires main", _main_only),
+            Case("each local preparation finding prevents retirement", _preparation_findings),
+            Case("each local preparation timeout prevents retirement", _preparation_timeouts),
+            Case("concurrent input changes prevent retirement", _preparation_changes_inputs),
+            Case("local tracking comparison freezes advisory scope", _local_tracking_selection),
+            Case("advisory full cold reading and legacy policies", _scope_overrides_and_legacy),
+            Case("proof reading is a valid local handoff", _reading_base_handoff),
+            Case("old host wait flag is refused", _old_wait_option_refused),
+            Case("CLI handoff and status stay local", _status_and_cli_handoff)]
