@@ -17,12 +17,14 @@ from vos.vela_authoring import LINT_CODES, format_source, lint_source
 class _Source:
     path: Path
     data: bytes
-    identity: tuple[int, int, int, int, int]
+    identity: tuple[int, int, int, int]
     mode: int
 
 
-def _identity(value: os.stat_result) -> tuple[int, int, int, int, int]:
-    return value.st_dev, value.st_ino, value.st_size, value.st_mtime_ns, value.st_ctime_ns
+def _identity(value: os.stat_result) -> tuple[int, int, int, int]:
+    # Windows path stat and descriptor fstat expose different legacy ctime
+    # meanings after a write. File identity, size, mtime and exact bytes agree.
+    return value.st_dev, value.st_ino, value.st_size, value.st_mtime_ns
 
 
 def _read_source(path: Path) -> _Source:

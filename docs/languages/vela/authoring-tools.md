@@ -116,6 +116,15 @@ justify a finding; no heuristic borrow, effect, termination or proof verdict is
 invented. Emit no semantic/style finding for a source that failed complete checking.
 Lints never rewrite code automatically.
 
+The initial rule identities are defined here:
+
+| ID | Advisory finding |
+| --- | --- |
+| `VELA100` | A public member name does not use a capital initial and ASCII alphanumeric words |
+| `VELA101` | A parameter or local name does not use a lower-case initial and ASCII alphanumeric words; `_` is exempt |
+| `VELA102` | A public function or constant has no attached documentation |
+| `VELA103` | An equality comparison has a Boolean literal operand |
+
 Repeatable `--allow ID` suppresses optional findings; `--deny ID` makes them
 errors. The same ID cannot be both allowed and denied. Unknown IDs are command
 errors. Defaults and rule identities are compiler-versioned; disabling an optional

@@ -123,6 +123,7 @@ def _shared_primitive_oracle_required() -> None:
     with patch.object(surface, "POSITIVE", (fixture,)), \
             patch.object(surface, "_precedence_and_spans"), \
             patch.object(surface, "_literal_and_comment_boundaries"), \
+            patch.object(surface, "_numeric_separator_limits"), \
             patch.object(surface, "_argument_roles"), \
             patch.object(surface, "_shared_primitive_roles", side_effect=ValueError("primitive role changed")) as oracle:
         try:
@@ -140,6 +141,7 @@ def _expression_binding_oracle_required() -> None:
     with patch.object(surface, "POSITIVE", (fixture,)), \
             patch.object(surface, "_precedence_and_spans"), \
             patch.object(surface, "_literal_and_comment_boundaries"), \
+            patch.object(surface, "_numeric_separator_limits"), \
             patch.object(surface, "_argument_roles"), \
             patch.object(surface, "_expression_binding_roles", side_effect=ValueError("binding scope changed")) as oracle:
         try:
@@ -159,6 +161,7 @@ def _binder_initializer_oracles_required() -> None:
         with patch.object(surface, "POSITIVE", (fixture,)), \
                 patch.object(surface, "_precedence_and_spans"), \
                 patch.object(surface, "_literal_and_comment_boundaries"), \
+            patch.object(surface, "_numeric_separator_limits"), \
             patch.object(surface, "_argument_roles"), \
                 patch.object(surface, oracle_name, side_effect=ValueError("binder/initializer role changed")) as oracle:
             try:
@@ -183,6 +186,7 @@ def _explicit_value_oracles_required() -> None:
         with patch.object(surface, "POSITIVE", (fixture,)), \
                 patch.object(surface, "_precedence_and_spans"), \
                 patch.object(surface, "_literal_and_comment_boundaries"), \
+            patch.object(surface, "_numeric_separator_limits"), \
             patch.object(surface, "_argument_roles"), \
                 patch.object(surface, oracle_name, side_effect=ValueError("explicit role changed")) as oracle:
             try:
@@ -203,6 +207,7 @@ def _concise_authoring_oracle_required() -> None:
     with patch.object(surface, "POSITIVE", (fixture,)), \
             patch.object(surface, "_precedence_and_spans"), \
             patch.object(surface, "_literal_and_comment_boundaries"), \
+            patch.object(surface, "_numeric_separator_limits"), \
             patch.object(surface, "_argument_roles"), \
             patch.object(surface, "_concise_authoring_roles", side_effect=ValueError("concise role changed")) as oracle:
         try:
@@ -220,6 +225,7 @@ def _constant_oracle_required() -> None:
     with patch.object(surface, "POSITIVE", (fixture,)), \
             patch.object(surface, "_precedence_and_spans"), \
             patch.object(surface, "_literal_and_comment_boundaries"), \
+            patch.object(surface, "_numeric_separator_limits"), \
             patch.object(surface, "_argument_roles"), \
             patch.object(surface, "_required_static_roles", side_effect=ValueError("constant role changed")) as oracle:
         try:
@@ -237,6 +243,7 @@ def _constant_callable_oracle_required() -> None:
     with patch.object(surface, "POSITIVE", (fixture,)), \
             patch.object(surface, "_precedence_and_spans"), \
             patch.object(surface, "_literal_and_comment_boundaries"), \
+            patch.object(surface, "_numeric_separator_limits"), \
             patch.object(surface, "_argument_roles"), \
             patch.object(surface, "_compositional_constant_roles", side_effect=ValueError("static callable changed")) as oracle:
         try:
@@ -246,6 +253,38 @@ def _constant_callable_oracle_required() -> None:
         else:
             raise AssertionError("static callable syntax oracle was bypassed")
     oracle.assert_called_once_with(fixture.source.encode("utf-8"), result)
+
+
+def _numeric_separator_oracle_required() -> None:
+    fixture = next(value for value in surface.POSITIVE
+                   if value.name == "numeric-separator-values-patterns-and-indices")
+    result: dict[str, parser.Json] = {"ast": [{"kind": kind} for kind in fixture.kinds]}
+    with patch.object(surface, "POSITIVE", (fixture,)), \
+            patch.object(surface, "_precedence_and_spans"), \
+            patch.object(surface, "_literal_and_comment_boundaries"), \
+            patch.object(surface, "_numeric_separator_limits"), \
+            patch.object(surface, "_argument_roles"), \
+            patch.object(surface, "_numeric_separator_roles", side_effect=ValueError("separator role changed")) as oracle:
+        try:
+            surface.qualify(lambda source: result)
+        except ValueError as error:
+            ensure(str(error) == "separator role changed", "numeric separator oracle failure was replaced")
+        else:
+            raise AssertionError("numeric separator syntax oracle was bypassed")
+    oracle.assert_called_once_with(fixture.source.encode("utf-8"), result)
+
+
+def _numeric_separator_limits_required() -> None:
+    with patch.object(surface, "_precedence_and_spans"), \
+            patch.object(surface, "_literal_and_comment_boundaries"), \
+            patch.object(surface, "_numeric_separator_limits", side_effect=ValueError("separator limit changed")) as oracle:
+        try:
+            surface.qualify(lambda source: {})
+        except ValueError as error:
+            ensure(str(error) == "separator limit changed", "numeric limit oracle failure was replaced")
+        else:
+            raise AssertionError("numeric separator limit oracle was bypassed")
+    oracle.assert_called_once()
 
 
 def cases() -> list[Case]:
@@ -259,4 +298,6 @@ def cases() -> list[Case]:
             Case("shared-primitive-oracle-is-required", _shared_primitive_oracle_required),
             Case("expression-binding-oracle-is-required", _expression_binding_oracle_required),
             Case("binder-initializer-oracles-are-required", _binder_initializer_oracles_required),
-            Case("explicit-value-oracles-are-required", _explicit_value_oracles_required)]
+            Case("explicit-value-oracles-are-required", _explicit_value_oracles_required),
+            Case("numeric-separator-oracle-is-required", _numeric_separator_oracle_required),
+            Case("numeric-separator-limits-are-required", _numeric_separator_limits_required)]
