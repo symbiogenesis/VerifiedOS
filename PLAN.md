@@ -2761,7 +2761,8 @@ the ordinary link gate, Python's AST, the Gallina source-name reader and the
 compiler-emitted Sail bundle. **Owns:** checked local Markdown references in
 comments/docstrings across the repository's Python, Gallina, Sail, C and RTL
 sources; migrate existing links and concrete cross-file ownership references.
-Paths resolve relative to the source carrying the link. Markdown fragments name
+Paths resolve relative to the source carrying the link. Directory links without
+fragments require a safe directory with indexed descendants. Markdown fragments name
 headings or explicit anchors; Python, Gallina and Sail fragments name declarations
 in the target file. Python uses qualified class/member names, Gallina uses the
 existing source-name reader's supported declarations, and Sail uses its emitted
