@@ -39,9 +39,11 @@ def _change(server: Server, version: int, edits: list[dict[str, object]]) -> lis
 
 
 def _clamped_reversed_edit_rollback() -> None:
-    for edits in ([_edit(100, 99, "bad")],
-                  [_edit(0, 0, "first"), _edit(100, 99, "bad")],
-                  [{"text": "replacement"}, _edit(100, 99, "bad")]):
+    batches: tuple[list[dict[str, object]], ...] = (
+        [_edit(100, 99, "bad")],
+        [_edit(0, 0, "first"), _edit(100, 99, "bad")],
+        [{"text": "replacement"}, _edit(100, 99, "bad")])
+    for edits in batches:
         checked: list[bytes] = []
         server = Server(checker=checked.append)
         _open(server, "a😀b")
@@ -78,7 +80,9 @@ def _malformed_diagnostic_worker() -> None:
         done = subprocess.CompletedProcess(["fixed"], 0, raw, b"")
         with patch("vos.vela_lsp.subprocess.run", return_value=done):
             result = diagnose(_SOURCE)
-        ensure(result is not None and result.get("kind") == "internal"
+        if result is None:
+            raise AssertionError("malformed worker output erased its failure diagnostic")
+        ensure(result.get("kind") == "internal"
                and result.get("line") == result.get("column") == 1,
                f"malformed worker output escaped its boundary: {raw[:120]!r}")
         encode_message(result)
