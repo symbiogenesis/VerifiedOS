@@ -1579,9 +1579,9 @@ def _compositional_constant_roles(source: bytes, result: dict[str, Json]) -> Non
             raise ValueError("const entered the parameter type rather than qualifying the binder")
     for name in ("value", "item", "element", "entry"):
         for parameter in nodes(tree):
-            if parameter.get("kind") in {"parameter", "lambda_parameter"} and _texts(parameter.get("name")) == [name]:
-                if "const" in parameter:
-                    raise ValueError("ordinary parameter acquired a required-static qualifier")
+            if (parameter.get("kind") in {"parameter", "lambda_parameter"}
+                    and _texts(parameter.get("name")) == [name] and "const" in parameter):
+                raise ValueError("ordinary parameter acquired a required-static qualifier")
     local = _named(tree, "constant_local", "multiplier")
     if _object(local.get("value"), "static initializer").get("kind") != "call":
         raise ValueError("syntax parser evaluated a symbolic constant initializer")
