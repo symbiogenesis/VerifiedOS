@@ -186,7 +186,7 @@ def _retirement_resume() -> None:
             with patch.object(fanout_retire, "_git", side_effect=interrupted):
                 refuses(lambda: fanout.finish(root, state, path, finish_args()), "interrupted")
             ensure(state["status"] == "retiring" and not lane.exists()
-                   and git(root, "branch", "--list", "work/worker"),
+                   and bool(git(root, "branch", "--list", "work/worker")),
                    "durable retirement interrupted between checkout and branch removal")
             resumed = fanout._load(path, root)
             ensure(fanout.finish(root, resumed, path, finish_args()), "missing checkout resumes from receipt")
@@ -267,7 +267,7 @@ def _preparation_changes_inputs() -> None:
 
             with (_local_only(), patch.object(fanout, "_precompletion", side_effect=changed),
                   patch.object(fanout_retire, "retire") as retire):
-                refuses(lambda: fanout.finish(root, state, path, finish_args()),
+                refuses(lambda state=state, path=path: fanout.finish(root, state, path, finish_args()),
                         "revision changed" if committed else "uncommitted inputs")
                 retire.assert_not_called()
             ensure(lane.exists() and state["status"] != "complete", "changed inputs prevent retirement")
