@@ -554,6 +554,56 @@ overlapping/shared-mutation attempts. Their acceptance is no semantic verdict.
 Retain strict conflict-free generation, byte-identical regeneration, every
 surface and pure fixture, pure migration and the native qualification below.
 
+### Ergonomic authoring increment
+
+[Q25p](../../../PLAN.md#q-assessment-actions) commissions the following syntax
+changes. Earlier spellings need no compatibility guarantee; migrate maintained
+examples, fixtures and prose to the selected forms. These changes grant no
+implicit conversion, ownership transfer, effect, disposal or proof authority.
+
+- Inferred lambda parameters may omit the annotation: `value => value + 1`,
+  `(value) => value + 1` and `(left, right) => left + right`. Explicitly typed,
+  graded and resource-modified parameters retain their existing forms. An
+  omitted annotation is JSON null in the located `lambda_parameter` node;
+  existing expected-type inference supplies it or reports an unresolved goal.
+  Token shape and delimiters must distinguish lambdas from grouping, products
+  and type annotations without consulting names or types.
+- Ordinary value-returning functions and operations accept `=> EXPR;` after
+  their existing signature and contracts. A located `expression_body` node
+  contains `value` and covers the arrow through the semicolon. The pure entry
+  accepts the same form. Consumers check it as the existing single return,
+  preserving evaluation count/order, result type, effects, resources and source
+  locations. The separate pure `definition ... = EXPR;` form retains its meaning;
+  an expression body alone does not assert purity. Void shorthand is outside
+  this increment, avoiding an implicit discarded resource.
+- Delimited comma lists for parameters, arguments and generic parameters and
+  arguments accept one optional trailing comma after a nonempty list. This
+  includes callable, constructor and pattern argument lists. Empty lists with
+  a comma and doubled commas are refused. Products keep at least two elements;
+  `(value,)` acquires no new tuple or grouping meaning.
+- Bare unqualified names in patterns bind values; `_` remains a discard whose
+  resource admissibility requires checking. Constructors always have explicit
+  argument parentheses, including a nullary `None()` or `BorrowConflict()`.
+  Thus local elimination is `let (owner, receipt) = pair;` or
+  `let Ready(buffer, receipt) = outcome;`, and a match may use
+  `case Ok(value) => value;`. The outer local keyword selects binding mutability.
+  Located binding/constructor/product nodes retain their distinct roles. Update
+  maintained nullary constructor patterns and redundant inner binding keywords;
+  no capitalization, symbol-table or import-dependent interpretation is allowed.
+
+Acceptance requires independently expected AST roles, original UTF-8 spans,
+precedence, nesting/resource boundaries and malformed neighbors for every form.
+Compose inferred lambdas with products, calls, explicit generics and dependent
+expected types; retain typed/graded loan callbacks and unresolved-inference
+refusals. Check expression bodies against equivalent return blocks in both pure
+routes and mathematical elaboration, comparing generated terms apart from exact
+source provenance. Exercise list forms independently, including nested generic
+closers, and distinguish binding names from explicit nullary constructors.
+Preserve all unaffected syntax and refusal predicates, strict conflict-free
+generation and byte-identical regeneration. Update native fixtures and both
+authored examples; exact locked-generator acceptance remains hosted. The editor
+part of this increment follows the [hint contract](lsp-prototype.md#authoring-hints).
+
 ### Native qualification
 
 Menhir's code backend must generate with `--strict --infer --explain`, with no

@@ -162,6 +162,35 @@ producer and protocol projection. Two pinned editor clients with retained
 transcripts remain necessary for final interoperability qualification; a wire
 harness alone does not close Q25o or Q25n.
 
+## Authoring hints
+
+[Q25p](../../../PLAN.md#q-assessment-actions) adds `textDocument/inlayHint` for
+inferred local types in the completely checked pure subset. Advertise this
+provider alongside the existing navigation providers. Requests contain a valid
+half-open document range; return type hints at the ends of inferred local
+identifiers inside that range, with `kind: 1` and labels such as `: Nat` or
+`: bool`. Parameter declarations and explicit signatures need no redundant hint.
+Use the compiler's existing resolved symbol facts; do not reparse source or infer
+types in the protocol projection. Labels are diagnostic presentation and never
+insert source, conversions, loans, proof steps or accepted artifacts.
+
+Require synchronized initialized overlays, exact snapshot identity, bounded
+complete output and the existing unavailable/error policy. Invalid coordinates,
+reversed ranges, worker failures and stale/desynchronized documents follow the
+navigation protocol's errors. Unsupported or invalid source yields an empty hint
+list. Independent controls cover inferred types, shadowed declarations, requested
+ranges, UTF-16 and mixed newlines, incremental edits, refusal/recovery, malformed
+worker facts, limits and a real process-level request. Retain navigation and
+translation controls and the shared hosted validation handoff.
+
+Unsupported ownership/loan syntax should explain its requested mode and the
+current pure checker's limit, instead of presenting a borrow-conflict judgment
+that this producer cannot establish. Receiver mode/view hints and live-loan
+conflict explanations remain required by the broader
+[editor contract](tooling-protocols.md#language-server-protocol), and require the
+corresponding compiler facts before advertising those services. This increment
+does not commission a second surface parser or a source borrow checker.
+
 ## Acceptance and remaining qualification
 
 Independent wire fixtures exercise fragmented and coalesced frames, Unicode byte
