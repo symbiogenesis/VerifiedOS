@@ -29,8 +29,10 @@ under declared static requirements. At each demanded instantiation, required-sta
 inputs must resolve to admissible closed values before emitting its specialization;
 an unavailable input leaves a located obligation or refusal, never an implicit
 runtime fallback. Infer routine static arguments from a declared interface; public
-requirements remain explicit. The eventual source spelling must be specified
-before extending the grammar.
+requirements remain explicit. Typed constant declarations use
+[`const T Name = EXPR;`](surface-grammar.md#required-static-constants) as the
+required-static value interface. Generic static parameter binders and generation
+forms retain their separate syntax and frontend prerequisites.
 
 Required-static availability is independent of the
 [foundation's dimensions](graded-foundation.md#dimensions-and-lawful-domains):

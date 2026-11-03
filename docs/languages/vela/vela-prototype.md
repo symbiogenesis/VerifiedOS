@@ -46,7 +46,7 @@ The prototype accepts UTF-8 source with ASCII identifiers and `//` line comments
 Identifiers match `[A-Za-z_][A-Za-z0-9_]*`, excluding grammar and reserved extension
 keywords; the latter produce unsupported-feature diagnostics. Decimal
 literals match `[0-9]+`; leading zeros are permitted and normalized on emission.
-Every file contains one named module and at least one function. Every parameter
+Every file contains one named module and at least one function or constant. Every parameter
 and return type is explicit. A function can call only previously declared
 functions; recursion and forward calls are refused. Local bindings are immutable.
 
@@ -62,13 +62,15 @@ public Nat Select(bool flag, Nat x) {
 The accepted grammar is:
 
 ```text
-file      := 'module' name ';' function+
+file      := 'module' name ';' declaration+
+declaration:= function | 'public' constant
 function  := 'public' type name '(' parameters? ')' body
 body      := block | '=>' expression ';'
 parameters:= type name (',' type name)* ','?
 type      := 'Nat' | 'bool'
 block     := '{' binding* exit '}'
-binding   := 'let' name '=' expression ';'
+binding   := 'let' name '=' expression ';' | constant
+constant  := 'const' type name '=' expression ';'
 exit      := 'return' expression ';'
            | 'if' '(' expression ')' block 'else' block
 expression:= comparison
@@ -98,6 +100,12 @@ value namespaces are separate. Equality returns `bool`. Natural arithmetic,
 equality and comparison map to `Corelib.Init.Nat.add`, `.mul`, `.eqb` and `.leb`.
 Boolean equality maps to pure nested conditionals returning the Boolean
 constructors. Types and constructors come from `Corelib.Init.Datatypes`.
+Constants follow the [required-static contract](surface-grammar.md#required-static-constants):
+their typed initializers evaluate from earlier constants and pure calls with
+static arguments, under finite work and numeric bounds. Runtime parameters and
+ordinary outer locals are refused before evaluation, including ignored or dead
+dependencies. Constants denote evaluated values and cannot be reassigned or
+called. Compiler-recorded constant symbols support the existing editor services.
 Every user name is mapped to a generated identifier so Gallina keywords and
 library names cannot capture source references. There is no raw Gallina escape.
 

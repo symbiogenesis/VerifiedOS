@@ -6,13 +6,12 @@ The [language design](verification-strategy.md#an-ideal-surface) and
 required features and their meanings. This increment accepts located syntax;
 resolution, resource checking, proofs, compilation and admission remain separate.
 
-The [metaprogramming design](metaprogramming.md) specifies required-static
-evaluation, descriptions and generated definitions without adding accepted
-spellings to this increment. Existing computed-type and generic-call syntax
-supplies no evaluator, reflection API or staging judgment. A later parser
-increment must first land any required-static binder, derivation registration or
-quotation/splicing spelling, located AST and independent compatibility/refusal
-fixtures here; schematic library calls in that dossier are not parser fixtures.
+The [metaprogramming design](metaprogramming.md) owns required-static evaluation,
+descriptions and generated definitions. Constant declarations use the
+[required-static constant contract](#required-static-constants). Generic static
+parameter binders, derivation registration and quotation/splicing need their own
+located syntax and independent refusal fixtures before grammar support;
+schematic library calls in that dossier are not parser fixtures.
 
 ## Entry points
 
@@ -657,6 +656,59 @@ Qualify syntax and refusal predicates, strict conflict-free
 generation and byte-identical regeneration. Native fixtures and both authored
 examples must agree with these rules; exact locked-generator acceptance remains hosted. The editor
 part of this increment follows the [hint contract](lsp-prototype.md#authoring-hints).
+
+### Required-static constants
+
+`const T Name = EXPR;` declares an immutable value whose initializer must be
+evaluated during compilation. The explicit type is mandatory. Constants may be
+module or container members, with ordinary visibility modifiers, or local
+statements. A constant denotes a value, not a zero-parameter function; `Limit`
+may index `Vec<Nat, Limit>`, while `Limit()` is a call on a non-callable value.
+The unit type is `Unit`; a zero-parameter callable and a callable with an explicit
+`Unit` parameter have distinct source arities despite their shared CIC encoding.
+
+Initializers may use earlier constants and admitted total pure functions applied
+to static arguments. Surrounding runtime parameters, ordinary `let`/`var`
+bindings and generic or ghost indices are not constant-expression inputs.
+Check dependencies before reduction: a dead branch or unused argument cannot
+hide a forbidden input, effect, resource or authority. Parameters and ordinary
+locals inside a pure function evaluated with static arguments are evaluator
+locals; this does not promote surrounding runtime bindings into constants.
+Forward and cyclic constant dependencies are refused.
+
+Evaluation has finite work, reduction, numeric and output bounds. Failure,
+unavailable input or exhaustion is a located refusal without a runtime fallback.
+Use mathematical arithmetic or the selected target's checked representation;
+host widths and layouts supply no target constant semantics. Required-static
+availability grants no conversion, ownership, duplication, erasure, proof or
+unchecked optional extraction, and `ghost` alone supplies no static input.
+
+The pure prototype evaluates `Nat` and `bool` constants in both syntax routes;
+the mathematical consumer also admits `Unit`. Other represented types retain
+their existing frontend and selected-target prerequisites. Emit the evaluated
+value with its declared type; retain source-bound resolution and diagnostics.
+Neither evaluator parses emitted Gallina or uses an unchecked host `eval`.
+
+Both parser entries preserve declaration order. The pure `file` has a
+`declarations` array containing functions and `constant` nodes, each constant
+carrying `name`, `type` and `value`. Local `constant_local` nodes have those same
+located fields. The surface declaration also carries its ordinary modifiers.
+The checker records constants as distinct resolved symbols; editor navigation,
+references, hover and document symbols consume those facts without evaluating
+source in the protocol adapter. Explicitly typed constants need no inferred-type
+hint. Invalid or changed initializers invalidate the complete snapshot.
+
+Acceptance requires independently expected values and types for literals,
+arithmetic, comparisons, earlier constants, named pure calls and function-local
+evaluation. Compare both pure routes and mathematical emission, including a
+constant used as a dependent index. Refuse wrong types, runtime/erased inputs,
+ignored or dead forbidden dependencies, forward/cyclic references, constant
+reassignment/calls, missing type/initializer, malformed spans and exhausted
+budgets. Check mixed-newline/UTF-8 editor positions and invalidation. Native
+fixtures must reach the intended semantic diagnostic; syntax-only acceptance
+establishes no static, graded, borrowing or admission verdict. Require focused
+host tests and Python checks, both Host CI aggregates and dispatch every Guest
+CI lane; exact locked-parser and kernel evidence remains hosted.
 
 ### Native qualification
 

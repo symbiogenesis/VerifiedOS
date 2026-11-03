@@ -202,6 +202,13 @@ mutable program or source borrow verdict. A write through an exclusive loan is
 distinct from rebinding its immutable descriptor. Diagnostics and locations must
 survive local shadowing, incremental edits and unsupported resource syntax.
 
+Constants are compiler-resolved `constant` symbols, with details such as
+`const Nat Limit = 16` and LSP document-symbol kind 14. Their references and
+definitions use the same source identities and bounds as other symbols. Neither
+the editor adapter nor the inspection transport evaluates constant expressions.
+Explicit constant types receive no inferred-local hint; failed static evaluation
+removes the entire snapshot's semantic facts until a valid edit restores them.
+
 ## Acceptance and remaining qualification
 
 Independent wire fixtures exercise fragmented and coalesced frames, Unicode byte
