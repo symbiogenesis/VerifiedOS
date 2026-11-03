@@ -95,7 +95,7 @@ module vos_soc_decode
         // One conjunct per asserted kind and the read bit for the kind that
         // asserts neither, so a fetch is decided by `executable` alone and never
         // additionally by `readable`, which is the model's own reading
-        // (`pmaCheck` in model/model/sys/mem.sail) and not a stricter one on any
+        // ([pmaCheck](../model/model/sys/mem.sail#pmaCheck)) and not a stricter one on any
         // of the three kinds it encodes. The leading term is the one place this is
         // stricter, and what it is stricter about is an input `pmaCheck` has no
         // constructor for: both bits asserted is refused here rather than decided,

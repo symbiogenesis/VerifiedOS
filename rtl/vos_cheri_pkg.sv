@@ -2,19 +2,21 @@
 //
 // The frozen 64+1-bit capability format, in SystemVerilog.
 //
-// This package is authored against `model/model/core/cap_format.sail` and
-// `cap_common.sail`, which are the definition. It is not derived from the
-// imported CHERI-CVA6 datapath's own capability package: that one implements the
+// This package is authored against [cap_format.sail](../model/model/core/cap_format.sail)
+// and [cap_common.sail](../model/model/core/cap_common.sail), which are the definition.
+// It is not derived from the imported CHERI-CVA6 datapath's own capability package:
+// that one implements the
 // ISAv8/v9 128-bit lineage, and the delta between the two is enumerated in
-// [docs/hardware/rtl-reparameterization-delta.md]. Where this file and the Sail model
-// disagree the model wins and this file is defective.
+// [RTL reparameterization delta](../docs/hardware/rtl-reparameterization-delta.md).
+// Where this file and the Sail model disagree the model wins and this file is defective.
 //
 // **What has been checked and what has not.** The widths and the packed field
 // positions below are held against the model on the host by rule K-79, which
 // reads them out of `cap_format.sail` and `cap_common.sail` and holds every
 // restatement of them against that. The *functions* are held by
-// `tools/rtl.py crosscheck`, which compiles the model with a generator that calls
-// the same functions, prints what they return, and requires this package to
+// [run.py rtl crosscheck](../tools/vos/cli/rtl.py#cmd_crosscheck), which compiles
+// the model with a generator that calls the same functions, prints what they return,
+// and requires this package to
 // reproduce every line; the package lints clean and is executed there behind a
 // testbench, and nothing in a design instantiates it yet.
 //

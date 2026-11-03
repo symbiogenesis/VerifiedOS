@@ -13,9 +13,11 @@ package vos_scalar_width_pkg;
     return (data << shift_bits) | (data >> (MemoryBits - shift_bits));
   endfunction
 
-  // The merged register file's integer view (`regval_from_reg` and
-  // `regval_into_reg`, reg_type.sail). A register holds the decoded capability,
-  // so its integer reading is the memory form and not a slice of the record:
+  // The merged register file's integer view:
+  // [regval_from_reg](../model/model/core/reg_type.sail#regval_from_reg) and
+  // [regval_into_reg](../model/model/core/reg_type.sail#regval_into_reg).
+  // A register holds the decoded capability, so its integer reading is the memory
+  // form and not a slice of the record:
   // the low 36 bits of both are the address, and the upper 28 differ. An
   // integer write decodes the integer's bits untagged. Reading back returns the
   // integer: the packed form's decode copies every field or, for the exponent,

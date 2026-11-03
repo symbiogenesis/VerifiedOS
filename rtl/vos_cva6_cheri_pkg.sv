@@ -5,7 +5,8 @@
 // This file declares `cva6_cheri_pkg`, which is the name the imported CHERI-CVA6
 // datapath reaches its capability format through, by qualified reference across
 // `core/` and by wildcard import in `cheri_unit.sv` and `csr_regfile.sv`. It is
-// the first row of `tools/vos/cli/rtl.py`'s `SUBSTITUTIONS`: `run.py rtl` places
+// the first row of [rtl.py's SUBSTITUTIONS](../tools/vos/cli/rtl.py#SUBSTITUTIONS):
+// `run.py rtl` places
 // it where the imported manifest names `core/include/cva6_cheri_pkg.sv`, so the
 // datapath compiles against this package and the imported one stays behind its
 // gitlink. Nothing is copied out of it.
