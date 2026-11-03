@@ -54,6 +54,16 @@ public void Use() {
         case fallback: Inspect(fallback);
     }
 }
+public Nat OperatorContract() requires (+) => 0;
+public Nat ResumeContract() requires resume k(value) => 0;
+public void StructuralPatterns() {
+    let eliminated = match (value) {
+        case () => 0;
+        case (left, right) => left;
+        case (Some(item)) => item;
+    };
+    Fn() -> usize effects(Choose) score = () => Score();
+}
 public void InvalidMeaning() => move owner;
 """, ("lambda", "lambda_parameter", "expression_body", "generic_parameter",
       "generic_application", "binding_pattern", "constructor_pattern", "wildcard_pattern",
@@ -1795,6 +1805,33 @@ def _concise_authoring_roles(source: bytes, result: dict[str, Json]) -> None:
         raise ValueError("surface nullary constructor span differs from its match arm")
     if _sequence(nullary.get("arguments"), "nullary constructor"):
         raise ValueError("surface nullary constructor fabricated an argument")
+    operator_contract = _contract_roles(_named(tree, "function", "OperatorContract"), ["requires"])[0]
+    operator = _object(operator_contract.get("value"), "operator-valued contract")
+    if operator.get("kind") != "operator" or _texts(operator.get("name")) != ["+"]:
+        raise ValueError("surface body arrow changed its preceding operator value")
+    _exact_span(source, operator, b"(+)")
+    resumed = _object(_contract_roles(_named(tree, "function", "ResumeContract"), ["requires"])[0].get("value"), "resumption contract")
+    if resumed.get("kind") != "resume" or _texts(resumed.get("continuation")) != ["k"] or _texts(resumed.get("value")) != ["value"]:
+        raise ValueError("surface body arrow changed its preceding resumption expression")
+    _exact_span(source, resumed, b"resume k(value)")
+    structural = _named(tree, "function", "StructuralPatterns")
+    eliminated = _object(_named(structural, "let", "eliminated").get("value"), "structural expression match")
+    patterns = [_object(_object(arm, "structural match arm").get("pattern"), "structural arm pattern")
+                for arm in _sequence(eliminated.get("cases"), "structural match arms")]
+    expected_patterns: list[Json] = [
+        "unit_pattern", ["tuple", [["bind", "left"], ["bind", "right"]]],
+        ["group", ["constructor", "Some", [["bind", "item"]]]],
+    ]
+    if [_recursive_pattern_shape(pattern) for pattern in patterns] != expected_patterns:
+        raise ValueError("surface expression-arm arrows changed structural pattern roles")
+    for pattern, spelling in zip(patterns, (b"()", b"(left, right)", b"(Some(item))"), strict=True):
+        start = source.index(b"case " + spelling) + len(b"case ")
+        if pattern.get("span") != [start, start + len(spelling)]:
+            raise ValueError("surface expression-arm structural pattern span differs")
+    score = _named(structural, "typed_local", "score")
+    signature = _object(score.get("type"), "effectful callable local")
+    if signature.get("kind") != "function_type" or _texts(signature.get("effects")) != ["Choose"]:
+        raise ValueError("surface effect telescope lost annotation-adjacent parentheses")
 
 
 def _expression_binding_roles(source: bytes, result: dict[str, Json]) -> None:

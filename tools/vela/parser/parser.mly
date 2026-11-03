@@ -114,7 +114,7 @@ atom:
 | LPAREN value=expression RPAREN
     { make "group" $startpos $endpos [("value", value.syntax)] [value] }
 
-/* The wider syntax is deliberately separate from the frozen pure AST entry. */
+/* The wider syntax has a separate AST entry from the pure authoring subset. */
 surface_file:
   MODULE module_name=s_path SEMICOLON declarations=list(s_declaration) EOF
     { make "surface_file" $startpos $endpos(declarations)
@@ -390,7 +390,7 @@ s_function_mode:
 s_capture_type:
   CAPTURES capture=s_path { make "capture" $startpos $endpos [("name", capture)] [] }
 s_type_effects:
-  EFFECTS opening=s_parameter_open effects=comma_list(s_type) RPAREN { let () = opening in effects }
+  EFFECTS opening=s_open_paren effects=comma_list(s_type) RPAREN { let () = opening in effects }
 s_type_arguments:
   { [] } | LT values=comma_nonempty_list(s_type_argument) GT { values }
 s_type_argument:
@@ -549,10 +549,10 @@ s_local_pattern:
     { make "constructor_pattern" $startpos $endpos
         [("name", constructor_name); ("arguments", array values)] values }
 s_product_pattern:
-  LPAREN RPAREN { make "unit_pattern" $startpos $endpos [] [] }
-| LPAREN value=s_pattern RPAREN
+  s_parameter_open RPAREN { make "unit_pattern" $startpos $endpos [] [] }
+| s_parameter_open value=s_pattern RPAREN
     { make "group_pattern" $startpos $endpos [("pattern", value.syntax)] [value] }
-| LPAREN first=s_pattern COMMA rest=separated_nonempty_list(COMMA, s_pattern) RPAREN
+| s_parameter_open first=s_pattern COMMA rest=separated_nonempty_list(COMMA, s_pattern) RPAREN
     { make "tuple_pattern" $startpos $endpos [("patterns", array (first :: rest))] (first :: rest) }
 
 s_expression:
@@ -662,7 +662,7 @@ s_unary_with(opening):
     { make "unary" $startpos $endpos [("operator", operator); ("value", value.syntax)] [value] }
 | DISPOSE value=s_unary_with(opening)
     { make "dispose" $startpos $endpos [("value", value.syntax)] [value] }
-| RESUME continuation=s_identifier LPAREN value=s_expression RPAREN
+| RESUME continuation=s_identifier s_parameter_open value=s_expression RPAREN
     { make "resume" $startpos $endpos [("continuation", continuation); ("value", value.syntax)] [value] }
 %inline s_unary_operator:
   MINUS { name $startpos $endpos "-" } | NOT { name $startpos $endpos "!" }
@@ -686,7 +686,7 @@ s_postfix_with(opening):
     { make "propagate" $startpos $endpos [("value", value.syntax)] [value] }
 s_atom_with(opening):
   value=s_literal { value }
-| value=s_operator_value { value }
+| value=s_operator_value_with(opening) { value }
 | value=s_hole { value }
 | value=s_value_identifier { make "name" $startpos $endpos [("name", value)] [] }
 | opening RPAREN { make "unit" $startpos $endpos [] [] }
@@ -733,7 +733,9 @@ s_handler_clause:
 %inline s_terminal_clause_kind:
   RETURN { "return_clause" } | DISPOSE { "disposal_clause" }
 s_operator_value:
-  LPAREN op=s_symbolic_operator RPAREN
+  value=s_operator_value_with(LPAREN) { value }
+s_operator_value_with(opening):
+  opening op=s_symbolic_operator RPAREN
     { make "operator" $startpos $endpos [("name", op)] [] }
 s_symbolic_operator:
   value=s_implication_operator { value }
