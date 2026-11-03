@@ -2944,6 +2944,29 @@ their acceptance conditions.
 
 The CMake control normalizes wrapped whitespace, checks stamp invalidation independently and uses production compiler selection. Shared `LastEvent` laws relate selection presence to a boolean detector and expose positive cons; journal clients reuse them, retaining store-update induction. Other clients unfold projections before rewriting and avoid duplicate conjunction names. Source comparison preserves existing statements/definitions; new opaque laws and the `ProofSupport` dependency are reviewed. The pinned prover is unavailable locally; elaborated type/universe comparison, kernel acceptance and exact assumptions await cold Guest CI. `cmake-ci-helper-20261031` retains the source-review checkpoint and validation identities; lexical closure supplies no proof acceptance.
 
+## Recurring CI repair
+
+Repair the failures reported by Host CI `41610959816` and Guest CI `41579414302`
+without weakening their checks.
+
+- **Start:** the completed run logs, the model-build assurance contract, the
+  [CI failure-prevention contract](tools/ci/failure-prevention.md) and the
+  [portable proof workflow](docs/assurance/proof-assistance.md).
+- **Owns:** the Linux local-completion fixture, the stale proof-citation mutant,
+  repeated environment preparation and bounded proof-script repairs. Preserve
+  native input identities, proof statements, definitions and assumptions.
+- **Check:** local subprocess deadlines must coexist with forbidden CI waits;
+  citation mutants must survive prose edits and refuse absent targets; repeated
+  solver-path preparation must preserve an identical native environment while
+  real dependency changes still invalidate it. Run focused controls and static
+  analysis. Proof repairs retain the bounded journal and frozen-reading duties;
+  full kernel acceptance and elaborated comparison require cold Guest CI.
+- **Join:** integrate and commit on local `main`, then record full Host CI and
+  cold Guest CI recommendations through the validation handoff. The user owns
+  publication and hosted execution. Boot campaign runs `41601217459` and
+  `41601217451` separately require freshly staged inputs with complete compiler
+  provenance; historical manifests cannot supply that evidence.
+
 ## C modernization
 
 Modernize active authored C declarations, initialization and compile-time checks within selected compiler/proof interfaces and the admitted scalar profile. Host acceptance alone does not establish CompCert/Clight target support for VST.
