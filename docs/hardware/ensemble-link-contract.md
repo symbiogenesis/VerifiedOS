@@ -6,21 +6,21 @@
 
 ## How to read this
 
-R-02-003a admits an ensemble only when five artifacts exist, and this is the first of them: *the ensemble link contract stating the endpoint and the frame descriptor under R-15-228b through R-15-228e*. Three entries delegate to it by name rather than by description. R-15-228e sends the frame's code here, *this design's own and stated in the link contract*; R-15-119 repeats the delegation from the decoder's side and adds that the code owes no table to any standard, being between two copies of one design; and R-12-015d sends the handshake's *grammar, cryptographic checks and public fields* here. So the sections below are where those three sentences land, and nowhere else in this repository are they answered.
+This is the first of R-02-003a's five ensemble admission artifacts. It supplies the endpoint and frame contract delegated by R-15-228b through R-15-228e, the design-specific code delegated by R-15-119, and the handshake grammar, cryptographic checks and public fields delegated by R-12-015d.
 
-**What this document adds over the register is layout, field-level statement, and decision.** The register already fixes the frame's four forms, the code's discipline, the endpoint's absences, the two window contracts, the arrival-phase reading and the slot table's field set, and it fixes them in prose the review gate audits. A paragraph here that only re-says one of those is a defect under the corpus rule that a fact has one owner (R-05-152), so this document cites instead, and what it authors is the field order, the admissible length forms, the per-register ownership, the clause-by-clause sorting, the refusals, and the arithmetic three sibling items read.
+The register owns the frame forms, code discipline, endpoint absences, window contracts, arrival-phase rule and slot-table fields. Under R-05-152's single-owner rule, this contract adds their field layout, length forms, register ownership, classification decisions, refusals and consumer arithmetic.
 
-**What this document refuses is every magnitude.** R-15-228d makes the frame count and frame size per-link composition constants of the attested schedule artifact; R-11-017a makes the slot instants, guard bands and leap cadence entries of that same artifact; R-17-041 owns the latency magnitudes, at [crown-jewel](../assurance/crown-jewels.md) row 15, which reads `not authored`; and R-15-196a has the skew bound measured on a two-member pair at qualification. No composition in this tree fixes any of them. [§4](#4-the-per-link-composition-constants) therefore carries one row per constant with its unit, its admissibility predicate and its owner, and carries no number. A reader of [§4](#4-the-per-link-composition-constants) who wants a figure is reading the wrong artifact, and [§8](#8-what-makes-a-candidate-a-report-or-an-implementation-inadmissible)'s EL-2 is the refusal that says so.
+**Composition and qualification values remain pending.** R-15-228d and R-11-017a assign frame geometry, slot instants, guard bands and leap cadence to the attested schedule artifact. R-17-041 owns the latency magnitudes at [crown-jewel](../assurance/crown-jewels.md) row 15 (`not authored`); R-15-196a requires a measured two-member skew bound. No composition fixes these values. [§4](#4-the-per-link-composition-constants) records their units, admissibility predicates and owners; quoting a pending value as decided is EL-2 in [§8](#8-what-makes-a-candidate-a-report-or-an-implementation-inadmissible).
 
-**The code's family is owed rather than chosen.** R-15-228e admits either of R-15-119's two families and requires this document to state which. The operand that decides it is the wire's raw error rate at the declared reach and frame length, which nothing in this tree supplies, and Q23g's two-member pair is the first measurement named. [§2](#2-the-links-code) therefore states the selection predicate in full and records the family as owed with its operand named, so that the measurement decides it mechanically rather than confirming a choice already written. Stating one of the two families here would be a design decision resting on no measurement, and would be EL-2 against this document's own refusal table.
+**The code family remains unselected.** R-15-228e requires a choice between R-15-119's two families. [§2](#2-the-links-code) states the selection predicate; Q23g's two-member measurement must supply the wire's raw error rate at the declared reach and frame length. Selecting a family without that operand would also violate EL-2.
 
 ## 1. The frame grammar
 
 ### 1.1 The two layers, and which one the descriptor is over
 
-A frame on the wire is one codeword of the link's code (R-15-228e). **The descriptor's language is the decoded message block and never the wire symbols.** The encoder produces the parity symbols and the decoder strips them, neither reads a field, and no parser sees a symbol. What that separation buys is exact and no more: the code's output is bits, the grammar's input is bits, and no decode outcome reaches a field, so the verdict register R-15-228e refuses would have no consumer in this grammar even if a candidate block carried one. **The absence of the register itself is R-15-228e's rule and not this structure's consequence**, and EL-5 is where this document refuses it.
+A wire frame is one codeword of the link's code (R-15-228e). **The descriptor parses the decoded message block.** The encoder adds parity symbols and the decoder removes them; neither reads fields, and no parser sees symbols or a decode verdict. This separation leaves a verdict register without a grammar consumer; R-15-228e independently prohibits the register itself, enforced here by EL-5.
 
-Every frame form occupies exactly `M` bytes of message block, `M` being the code's message length and a composition constant of [§4](#4-the-per-link-composition-constants). There is therefore no frame-length field in any form, no length to bound, and one admissible length form at the frame level by construction, which is the first of R-05-051b's no-slack conditions met without a clause.
+Every form occupies exactly `M` message-block bytes, the composition-fixed code message length in [§4](#4-the-per-link-composition-constants). No form has a frame-length field. This supplies R-05-051b's single admissible frame-length form.
 
 ### 1.2 The four forms, and what selects between them
 
@@ -31,20 +31,20 @@ Every frame form occupies exactly `M` bytes of message block, `M` being the code
 | `FF-3` | scheduled handshake frame | unestablished | the composition-reserved establishment slots (R-12-015d) |
 | `FF-4` | unestablished-slot public padding | unestablished | every other enabled slot before establishment (R-15-228d) |
 
-**The wire selects nothing.** Which regime applies is the receiving member's own session state; which slot a frame arrived in is the receiving member's own table read against its own origin; which handshake step is expected is the reserved slot's, at the composition-fixed cadence R-12-015d names. Every discriminant a frame carries is therefore **checked against what the schedule and the session state already say**, and never read to select a handler, a key, or a regime. A mismatch is an eligibility refusal taken after the parse, not a decode failure taken during it, which keeps the descriptor a total function of the bytes alone and keeps canonicity a property of one language rather than of a language indexed by the receiver's state.
+The receiver's own session state selects the regime; its table and origin identify the slot and expected handshake step at R-12-015d's composition-fixed cadence. A frame's discriminants are checked against that state and schedule; they select no handler, key or regime. A mismatch is a post-parse eligibility refusal. Parsing remains a total function of bytes alone, and canonicity remains a property of one state-independent language.
 
-That split is the whole of *separating bounded handshake parsing from application-payload eligibility*. The parse is a fixed walk over fixed-width fields into a fixed destination buffer (R-05-124), so its cost is a function of `M` and of nothing in the bytes; eligibility is decided afterward, in the established regime only, and by the receiving link server against its own per-link session table (R-12-007a). Nothing a handshake frame parses to can make a payload eligible, because the eligibility decision is not reachable from the unestablished regime at all.
+Parsing walks fixed-width fields into a fixed destination buffer (R-05-124), with cost determined solely by `M`. The receiving link server then checks payload eligibility against its own per-link session table (R-12-007a). That decision is reachable only in the established regime, so no parsed handshake can authorize payload delivery.
 
 ### 1.3 `FF-1` and `FF-2`, the established-session message block
 
-The two forms share their public shape exactly, which is R-15-228d's requirement that an idle frame be indistinguishable on the wire from a payload frame except by a type field read after the crypto core has decrypted and authenticated it. The type field is accordingly **inside** the sealed body and there is no public discriminant in this regime at all.
+`FF-1` and `FF-2` have the same public shape. R-15-228d's distinguishing type field is inside the sealed body and read only after decryption and authentication; this regime has no public discriminant.
 
 | Order | Field | Kind | Length | Public before the tag verifies | Read by |
 | --- | --- | --- | --- | --- | --- |
 | 1 | `sealed_body` | opaque bytes | `M - L_tag` | no | the crypto core, which decrypts it (R-05-070, R-15-202) |
 | 2 | `tag` | opaque bytes | `L_tag` | as bytes, and it names nothing | the crypto core, which verifies it before any field below is read |
 
-The associated data the tag covers is **not on the wire**: it is the link, the session epoch, and the schedule's own count of that link's slots since the epoch began, a value R-12-015d has both ends derive from the schedule and neither from the wire. So this form carries no sequence number, no epoch field, no session identifier and no sender field, and R-15-132 stays unmoved as R-12-015d reads it. An adversary cannot supply any of the three, and a frame displaced into another slot fails its tag rather than being detected by a counter.
+The tag's associated data is derived locally: the link, session epoch and schedule-derived count of link slots since that epoch (R-12-015d). None is supplied on the wire. The frame carries no sequence number, epoch, session identifier or sender field (R-15-132); displacement to another slot fails the tag.
 
 The plaintext body, which the verified copy-once parser reads only after the tag verifies:
 
@@ -55,11 +55,11 @@ The plaintext body, which the verified copy-once parser reads only after the tag
 | 3 | `descriptors[i]` | R-12-092's descriptor, each member encoded by the row of [the IDL profile](../languages/idl-profile.md)'s encoding table that `IDL-053` names for its kind | `S_desc` each, `N_desc_max * S_desc` in all | the receiving link server, which validates every one against its own per-link table before any becomes eligible |
 | 4 | `payload_region` | opaque bytes, indexed by the descriptors' offsets and lengths | `P_bytes` | the receiving compartment, after validation and after the link server's copy |
 
-**The four rows exhaust `M - L_tag` exactly**, and [§4](#4-the-per-link-composition-constants)'s arithmetic is what makes that true rather than a trailing fill rule. A `descriptor` slot above `descriptor_count`, and every byte of `payload_region` no admitted descriptor's offset and length covers, is a **declared zero fill** on `IDL-024`'s terms: a fill byte that is not zero is a decode failure, so the fill carries no value and is not the free padding R-05-051b forbids. The `idle` case of `body_kind` admits `descriptor_count` zero alone, which makes rows 3 and 4 entirely fill, so `FF-2` is `FF-1` with an empty descriptor list and a zero payload region, encoded to the same length by the same rule.
+The four rows exactly fill `M - L_tag` by [§4](#4-the-per-link-composition-constants)'s arithmetic. Descriptor slots above `descriptor_count` and payload bytes outside admitted descriptor extents are declared zero fill under `IDL-024`; any nonzero fill byte fails decoding, as R-05-051b requires. For `idle`, `descriptor_count` must be zero, making both the descriptor array and payload region entirely fill. `FF-2` therefore uses `FF-1`'s encoding and length with an empty descriptor list and zero payload.
 
 ### 1.4 `FF-3`, the scheduled handshake frame
 
-No session exists, so no session tag covers this form. Its integrity is the construction's own, inside `step_payload`, and **this document authors none of it**: R-12-015a's sealing service brokers the credential operations as schema-bounded requests returning only the protocol result, and R-12-015d's reference model, owed at Q23c, states the relation. What is authored here is the grammar, which is what R-12-015d delegates.
+`FF-3` has no session tag. Its integrity checks are inside the construction's `step_payload`: R-12-015a's sealing service brokers schema-bounded credential requests returning only protocol results, and Q23c owes R-12-015d's reference model of that relation. This contract specifies the delegated grammar.
 
 | Order | Field | Kind | Length | Public before the tag verifies | Read by |
 | --- | --- | --- | --- | --- | --- |
@@ -67,9 +67,9 @@ No session exists, so no session tag covers this form. Its integrity is the cons
 | 2 | `step` | `WF-7` enum over R-12-015d's finite step set | the discriminant width `IDL-023` fixes for that set | yes | checked against the reserved slot's step, then R-12-015d's bounded establishment handler |
 | 3 | `step_payload` | opaque bytes, the construction's | `H_step(s)` for the decoded step `s`, the remainder of the block a declared zero fill on `IDL-024`'s terms | yes | R-12-015d's bounded establishment handler alone |
 
-**The one consumer this form reaches is that handler.** Nothing else is on the path: not the receiving compartment, not the payload-eligibility decision, not the leap. That is R-15-228b's *establishment traffic reaches only R-12-015d's bounded handler* read as a reachability property of this grammar rather than as a policy, and EL-4 is the refusal that holds it.
+This form reaches only R-12-015d's bounded establishment handler, with no path to the receiving compartment, payload eligibility or an origin leap (R-15-228b, EL-4).
 
-Every field of this form is public, which is stated rather than conceded: the hybrid key establishment's shares, the two fresh challenges, the attestation evidence and the slot-table digest each end binds are public by construction, so no field of `FF-3` carries a value whose disclosure the design depends on. What the form does not carry is equally exact: no address, no capability encoding, no persistent link-layer address and no sender field, the peer's identity being attestation evidence the session construction processes and never a header field (R-15-132, R-12-015d).
+All `FF-3` fields are public: hybrid key-establishment shares, two fresh challenges, attestation evidence and the bound slot-table digest. Confidentiality depends on none of them. The form carries no address, capability encoding, persistent link-layer address or sender field; peer identity appears only as attestation evidence processed by the session construction (R-15-132, R-12-015d).
 
 ### 1.5 `FF-4`, unestablished-slot public padding
 
@@ -78,11 +78,11 @@ Every field of this form is public, which is stated rather than conceded: the hy
 | 1 | `form` | `WF-7` enum, the `padding` case | the discriminant width `IDL-023` fixes for two cases | n/a, no tag exists in this regime | the bounded parse |
 | 2 | `fill` | the declared constant `F_pad`, repeated | the remainder of the block | yes | nothing |
 
-**`fill` is checked and then discarded, and the check is the point.** A byte that is not `F_pad` is a decode failure. An unchecked fill would be exactly the accept-and-ignore field R-05-051b forbids, and it would let a wire adversary place chosen bytes into an unestablished slot and have them retained somewhere on this member. Checking costs one fixed comparison over a fixed length and closes that reading; nothing downstream of the check reads this form at all, which is what makes *neither eligible as application traffic or a leap input* structural here rather than enforced.
+Every `fill` byte must equal `F_pad` or decoding fails. The fixed-length comparison precedes discarding the form; nothing downstream reads it. This meets R-05-051b's prohibition on unchecked fill and gives padding no path to application delivery or an origin leap.
 
 ### 1.6 The no-slack conditions, as this descriptor's own
 
-R-05-051b's conditions are stated here as properties of the four forms rather than cited, because the register states them of descriptors in general and this is the place they are decided of this one.
+The following table applies R-05-051b's general descriptor conditions to these four forms.
 
 | Condition | How this descriptor meets it |
 | --- | --- |
@@ -93,13 +93,13 @@ R-05-051b's conditions are stated here as properties of the four forms rather th
 | no accept-and-ignore field | every field above names a reader, and the two that name none, the fills, are decode failures when they differ from their declared value |
 | a non-canonical input fails rather than normalizing | the parse is total over the bytes and produces a value or a failure; no path rewrites an input into the canonical encoding of the same value |
 
-**The canonicity theorem R-05-051a requires is OWED.** It is owed and not deferred: the tag is computed over the frame's encoding, and each end binds the digest of its slot table into the session context, so this descriptor's encoding is an input to a signature and to an equality test and R-05-051a reaches it squarely. What owes it is [crown-jewel](../assurance/crown-jewels.md) row 10, the wire-format inventory and its Narcissus descriptors, whose status is `not authored`: no Narcissus descriptor is authored anywhere in this repository, so there is no artifact for a Coq-checked injectivity theorem to be stated against. [§1](#1-the-frame-grammar) enters this descriptor in that row's specification cell as a member under R-05-046; the theorem lands when the row does. A claim that this descriptor carries its canonicity theorem while that row reads `not authored` is EL-10.
+**R-05-051a's canonicity theorem is OWED.** The frame encoding feeds authentication, and both ends bind the slot-table digest into the session context, so its signature/equality-input rule applies. [Crown-jewel](../assurance/crown-jewels.md) row 10 is `partial`: the wire-format inventory exists, while Narcissus descriptors and their checked derivations remain absent. No descriptor exists for a Coq-checked injectivity theorem. [§1](#1-the-frame-grammar) supplies this member's grammar under R-05-046; the theorem must land with its descriptor. Claiming it already exists is EL-10.
 
 ## 2. The link's code
 
 ### 2.1 The selection predicate
 
-A candidate code is admissible for a link exactly when every clause holds. The clauses are what R-15-228e, R-15-119, R-15-119c and R-12-043a decide between them, collected here because the selection is made against all of them at once or not at all.
+A candidate code is admissible only if every clause below holds, jointly applying R-15-228e, R-15-119, R-15-119c and R-12-043a.
 
 | # | Clause | Why it is here |
 | --- | --- | --- |
@@ -113,19 +113,19 @@ A candidate code is admissible for a link exactly when every clause holds. The c
 | 8 | exactly one admissible code per link, fixed at composition | R-12-043a's one-configuration discipline read at the code |
 | 9 | the family is one of R-15-119's two, and the link's code is this design's own | R-15-228e, R-15-119, which adds that it owes no table to any standard |
 
-Clause 8 is the one that is easiest to lose, because a code family naturally carries a parameter set. **A link declares one code and no control plane holds a variable selecting a second**, exactly as no control plane holds a variable selecting a ciphersuite. Two links of one ensemble may declare different codes, each fixed at its own composition; one link may not.
+Clause 8 fixes one code per link, with no control-plane variable selecting another, just as no variable selects a ciphersuite. Different links may use different composition-fixed codes.
 
 ### 2.2 The two latency rows
 
-The encoder and the decoder are stages of a device datapath, so each is an entry in **the endpoint's own device row** of the timing-annotated model and neither is a third entry of R-15-119c's two ISA rows. R-15-119 states that division from the other side and this document records the consequence: the member's admission check charges `T_enc` in the transmitting endpoint's slot and `T_dec` in the receiving endpoint's. What enters the member's R-11-006 interval arithmetic as ordinary tasks and grants is R-11-017a's own list, the link server's slots, the endpoint's encode and decode latencies, the crypto core's per-frame operations, and the endpoint's window grants, the last of those being the two window contracts [§3.3](#33-the-two-window-contracts) states.
+Encoding and decoding belong to the endpoint's device timing row, separate from R-15-119c's two ISA rows. Admission charges `T_enc` to the transmitting endpoint's slot and `T_dec` to the receiving endpoint's. R-11-017a also charges the link server, per-frame crypto operations and [§3.3](#33-the-two-window-contracts)'s window grants as ordinary R-11-006 tasks and grants.
 
-`T_enc` and `T_dec` are magnitudes, so they are R-17-041's and not this document's, exactly as every other row's are. Both appear in [§4](#4-the-per-link-composition-constants) with no number.
+R-17-041 owns both latency magnitudes; [§4](#4-the-per-link-composition-constants) records them without values.
 
 ### 2.3 What the family is waiting on
 
-The selection predicate above admits both of R-15-119's families. Nothing in it separates them, because the clauses are all structural and both families satisfy every one at a suitable geometry. **What separates them is a measurement nobody has taken**: the decode latency each family needs, at the link's declared frame length and at a target residual frame error rate, given the wire's raw error rate at the declared reach. The frame length is itself an unfixed composition constant, the reach is a cable and connector question none of the five artifacts R-02-003a gates on buys, and the raw error rate is a physical measurement of a medium this tree does not name.
+Both R-15-119 families can satisfy [§2.1](#21-the-selection-predicate)'s structural clauses at a suitable geometry. The choice requires comparing decode latency at a target residual frame error rate, using the declared frame length and the wire's raw error rate at the declared reach. Frame length is unfixed, the cable and connector are unspecified, and none of R-02-003a's five artifacts supplies that reach or error-rate measurement.
 
-The first measurement named anywhere is Q23g's, a two-member pair on two FPGA instances of the R-18-005 scalar class carrying the endpoint block. **The family is therefore recorded as owed, with its operand named and its owner named**, and [§4](#4-the-per-link-composition-constants)'s `code_family` row carries it. What this document fixes today is that the choice is made once per link at composition against the predicate of [§2.1](#21-the-selection-predicate) and against nothing else, so whichever family the measurement selects changes no clause above and no field of [§1](#1-the-frame-grammar).
+Q23g owns the first planned measurement: two FPGA instances of R-18-005's scalar class carrying the endpoint. The `code_family` row in [§4](#4-the-per-link-composition-constants) records the missing operand and owner. Selection occurs once per link at composition under [§2.1](#21-the-selection-predicate), changing neither its clauses nor [§1](#1-the-frame-grammar)'s fields.
 
 ### Research handoff for the unselected code
 
@@ -137,7 +137,7 @@ The [communication proof handoff](../assurance/proof-reuse/protocols.md#research
 
 ### 3.1 What is a register of this endpoint and what is not
 
-Three structures a reader expects to find here are owned elsewhere, and naming them is the first half of *every register with its ownership*.
+Three relevant structures are owned outside the endpoint:
 
 | Structure | Whose it is | Why it is not the endpoint's |
 | --- | --- | --- |
@@ -145,11 +145,11 @@ Three structures a reader expects to find here are owned elsewhere, and naming t
 | the frame-origin register | the clock spine (R-15-195, R-15-196a) | it is the platform-wide origin every core's boundary handler, the memory controller's TDM arbiter and each window's grant read as a common zero, stepped by exactly one kernel instance, the boot core's, under a capability the composition grants to it alone; **the endpoint has no write path to it at all**, which is what A-21's search reads |
 | the session keys, the cipher, and the tag | the crypto core (R-05-070, R-15-202) | R-15-228c has the endpoint hold no key and no cipher, so no key register, no nonce register and no tag-verify result register exists here |
 
-**The engines hold their windows in the sense R-15-228c states and the register mechanism is R-15-208's.** The endpoint's configuration carries a window index naming which fabric-side window each engine issues against, and that index is neither an address nor a capability. This is a reading taken here rather than a sentence read out of either entry, because R-15-228c says the engine holds the capability and R-15-208 says the capability is held fabric-side; the reconciliation is that R-15-208 is the specific mechanism and R-15-228c the ownership, and a reviewer who reads it the other way should say so against this paragraph.
+R-15-228c assigns each engine a window; R-15-208 places the capability in fabric-side registers. This contract reconciles them by assigning each engine a configuration index naming its fabric-side window. The index is neither an address nor a capability. This is an explicit interpretation of ownership and mechanism, subject to review.
 
 ### 3.2 The registers
 
-**The `Owner` column names the party whose direction the `Access` column states**, `RW` and `RO` being that party's own direction, and any access a second party holds is stated in the description cell rather than in either column; a direction no party holds faults, and so does every offset this table does not admit. The offsets themselves are composition constants and are not stated here: an MMIO aperture's placement is a stated constraint on the attested devicetree (R-15-002b, R-09-007), and no entry of the register assigns an offset inside that aperture to any register of this table, which is a declaration owed on the same ground [§4.2](#42-one-declaration-this-contract-cannot-make-and-who-owes-it) reports for the link's other constants.
+`Access` is relative to the named `Owner`; additional parties' rights appear in the description. All unlisted accesses and offsets fault. Offsets remain pending composition constants: R-15-002b and R-09-007 constrain the attested devicetree's MMIO aperture, but no register entry assigns offsets within it. [§4.2](#42-one-declaration-this-contract-cannot-make-and-who-owes-it) records the corresponding declaration gap.
 
 | Name | Owner | Access | What it is, and what it is not |
 | --- | --- | --- | --- |
@@ -160,13 +160,13 @@ Three structures a reader expects to find here are owned elsewhere, and naming t
 | `EQ_COEF[j]` | the RoT | write, cleared on link-down | the equalization coefficients, trained at link-up and frozen for the epoch on R-15-137's terms (R-15-228c). The link server neither reads nor writes it |
 | `ARRIVAL_PHASE` | the endpoint | write, on the landing in the slot named for the leap | the one-sided arrival-phase reading of the most recent landing in the slot this endpoint's table names for the leap (R-15-196a). Holds one reading and no history, no accumulator and no estimator. It is `RO` to all software, and the boot core kernel's leap path is its one reader |
 
-**That is the whole set**, and the absences are as much of the description as the rows. There is no receive status register and no landed flag, because R-15-228c admits no state a received frame writes except the landing itself and the arrival-phase reading; **the schedule and not a flag tells the link server when to read a receive entry**, which is the same non-work-conserving discipline the table already keeps (R-15-228d). `EQ_READY` is not such a flag: the link's training phase writes it and nothing a frame does reaches it. There is no FIFO level register, a level being state the wire's timing writes. There is no enable bit, the endpoint being electronically enabled by the liveness of the link server's delegated window grant and by no software claim (R-15-146, R-15-228c). There is no software-writable equalization path, and no coefficient is retrained inside an epoch.
+The table is exhaustive. R-15-228c permits no frame-written state beyond the landing and arrival-phase reading, so no receive status, landed flag or FIFO-level register exists. The schedule tells software when to read a receive entry (R-15-228d); `EQ_READY` records training validity and is unreachable from frames. Enablement depends solely on the live delegated-window grant (R-15-146, R-15-228c). The link server has no equalization write path, and coefficients remain frozen within an epoch.
 
-The code's geometry is not a register either, and its absence from the table is a statement rather than an omission. `M`, `N`, `I_max` and the family are **synthesis-time parameters of the block**, so R-15-228c's *declared configuration the composition supplies* is read at synthesis for them and at `SLOT[i]` and the two window binds for the schedule. What binds such a parameter to a build is the form [the synthesis provenance record](../../rtl/synthesis-provenance.md) already keeps, one row per absence naming the parameter values that remove it; that record carries A-18 through A-21 as `n/a` today because the endpoint is net-new authored RTL rather than a configuration of an imported core, so the endpoint's own provenance rows are owed with the block and not with this contract.
+`M`, `N`, `I_max` and the code family are synthesis-time block parameters. R-15-228c's composition-supplied configuration therefore reaches them at synthesis, while `SLOT[i]` and the window binds carry schedule configuration. Their build binding follows [synthesis provenance](../../rtl/synthesis-provenance.md)'s parameter-recording form. Its A-18 through A-21 rows are currently `n/a` because the endpoint is net-new authored RTL; endpoint provenance is owed with the block.
 
-There is also **no slot counter**. The slot a launch or a landing belongs to is a function of the spine's origin and of `SLOT[i]`, computed rather than accumulated, which is precisely what R-04-010a's third condition asks of the block and what [§5.3](#53-condition-three-it-runs-to-a-stated-bound-and-accumulates-no-state-across-operations) decides against it. The monotone count of slots since the epoch began, which R-12-015d makes the frame's associated data, is the link server's and the crypto core's to derive from the same two inputs; putting it in the endpoint would be the sequence counter EL-1 refuses.
+There is no slot counter: the slot index is computed from the spine origin and `SLOT[i]`, meeting the third condition examined in [§5.3](#53-condition-three-it-runs-to-a-stated-bound-and-accumulates-no-state-across-operations). The link server and crypto core derive R-12-015d's epoch-relative slot count from the same inputs. An endpoint-held count would violate EL-1.
 
-`EQ_COEF[j]` sits in the RoT's aperture and not in the link server's, so R-15-143's indivisible ownership is over the configuration MMIO and the two windows, and the coefficient store is neither. **That placement is this contract's decision and not a deduction from the two entries.** The other placement is compatible with both: R-15-137 has the coefficients trained at link-up and then frozen for the epoch, and a store frozen for the epoch cannot be moved by whoever holds the aperture while traffic is in flight, so a coefficient store inside the ownership R-15-143 binds would satisfy R-15-137 as well. The separation is taken as the stronger of the two readings because it removes the control rather than timing it: a reviewer checking the weaker reading has to check that the freeze holds against every path that could write the store, and a reviewer checking this one has to check an ownership boundary. A reviewer who prefers the weaker reading should say so against this paragraph.
+This contract places `EQ_COEF[j]` in the RoT's aperture, outside R-15-143's indivisible configuration-MMIO/window ownership. R-15-137 also permits a store within that ownership if it remains frozen throughout the epoch. The chosen placement removes the link server's control altogether: review checks an ownership boundary rather than every possible write path through a freeze. This is a contract decision, open to review, rather than a deduction from those entries.
 
 ### 3.3 The two window contracts
 
@@ -181,25 +181,25 @@ The engines are R-15-206's second shape, autonomous streaming engines holding de
 | ownership | indivisible with the configuration MMIO, granted and revoked together, held by the link server compartment alone (R-15-143) | the same |
 | occupancy | one frame per slot, the slot's own entry, placed by the link server before the launch instant | **at most one frame per slot** (R-12-015d), landed in the entry the slot names |
 
-The receive side's clause is the one that differs because it is the one an adversary reaches. R-12-015d admits at most one frame per slot, so a peer or a wire cannot land two, and a link server that does not drain a receive entry before the schedule lands on it again is that partition's overrun, restarted by R-07-040 and reaching no other partition's slot (R-15-228c). **Neither window's extent is a function of anything a peer does**: both are composition constants of [§4](#4-the-per-link-composition-constants), and a window that grew or shrank with traffic would be the peer-varying depth EL-1 refuses.
+The receive occupancy limit prevents a peer or wire from landing two frames in a slot (R-12-015d). Failure to drain an entry before its next scheduled landing is the partition's overrun, restarted under R-07-040 without reaching another partition's slot (R-15-228c). Both window extents are composition constants in [§4](#4-the-per-link-composition-constants); peer-dependent resizing would violate EL-1.
 
 ### 3.4 The FIFO, the line rate, and why the link adds no asynchronous boundary
 
-The recovered line clock is one of R-15-196's three external interface clocks and terminates in the endpoint's bounded FIFO of depth `D_fifo`, with the fabric side on the island clock (R-15-196a). **R-15-196's count of three is unmoved by class membership and by nothing else**: its Accept clause reads an ensemble link's recovered line clock as one of the external interface clocks, terminating as they do, so the link adds one more member to a class already counted and no new class. Nothing about where the FIFO sits enters that.
+The recovered line clock terminates in a bounded receive FIFO of depth `D_fifo`; the fabric side uses the island clock (R-15-196a). It belongs to R-15-196's existing external-interface-clock class, adding no class to that entry's count of three. FIFO placement does not determine that count.
 
-**The FIFO is on the receive path alone**, the transmit serializer running off the member's own clock. That is this document's own statement in the voice [§3.2](#32-the-registers) uses for the readings it takes, no entry fixing the transmit path's clock domain; what it decides is which path carries a FIFO, and not the count above.
+This contract places the FIFO only on the receive path and runs the transmit serializer from the member's own clock. No register entry fixes the transmit clock domain; this is an explicit design decision, independent of the class count.
 
-`D_fifo` is admissible exactly when it absorbs the declared frequency difference between the recovered line clock and the island clock across one frame at `M` and `N`, and no deeper. **It is not a queue in A-20's sense**, and the distinction is what makes the row decidable: its depth is a function of two declared oscillator tolerances and one frame length, all three composition constants, and of no peer's activity, no credit, no retry and no sequence. A FIFO sized to hold more than one frame, or sized against a peer's behaviour, is the structure A-20's search would find.
+`D_fifo` must absorb the two declared oscillator tolerances across one frame at `M` and `N`, and be no deeper. Its depth depends only on those composition constants, never on peer activity, credits, retries or sequence. A depth sized for more than one frame or for peer behavior would be an A-20 queue.
 
-`R_line` carries two predicates at once and both bind: R-15-196 lets an external interface clock contribute a line-rate bound to the member's bandwidth reservation and nothing else, and R-12-015d's second Accept clause caps it at the crypto core's authenticated-encryption throughput. What this document decides is the consequence for a candidate composition: a declared `R_line` above that ceiling is inadmissible at composition and not a degraded mode, there being no rate to fall back to on a link that declares one code and one schedule.
+`R_line` contributes only a line-rate bound to bandwidth reservation (R-15-196) and must not exceed crypto-core authenticated-encryption throughput (R-12-015d). A higher rate refuses composition; the single-code, single-schedule link has no fallback rate.
 
 ### 3.5 The arrival-phase reading
 
 `ARRIVAL_PHASE` is updated by the landing of the leader link's frame in the slot the table names for the leap. It is **one-sided**: it is a reading of when a landing occurred against the member's own origin, not a two-sided estimate of the peer's offset, and the endpoint holds no loop that would close over it (A-21).
 
-**The endpoint cannot gate the reading on verification and does not try to.** It holds no key and no cipher, so it cannot know whether the frame that produced a reading will verify. What gates the leap is the consumer: the boot core kernel reads `ARRIVAL_PHASE` only after the crypto core has verified that frame's tag in its own slot, and a slot whose frame failed its tag yields no leap (R-15-196a). So the reading is updated by landings the crypto core later rejects, and the leap is not, and the register description must say which of the two the verification gates, or a reader will look for the gate in the wrong block.
+The endpoint has no key or cipher, so it updates `ARRIVAL_PHASE` before verification. The boot core kernel consumes the reading only after the crypto core verifies that frame's tag in its own slot; tag failure permits no leap (R-15-196a). Verification therefore gates the leap, not the reading's update.
 
-What this leaves an adversary is exactly what R-17-025a books and no more: a wire adversary delaying a genuine frame within its accepted slot, or a compromised leader, can walk a follower's origin by at most the skew bound per cadence inside the guard band. A frame displaced outside its accepted slot fails its tag and stops the link (R-17-030z). The tag does not authenticate the arrival instant within a slot, which R-17-025a states and this register's one-sidedness is the structural half of.
+A compromised leader or wire adversary delaying a genuine frame within its accepted slot can walk a follower's origin by at most the skew bound per cadence inside the guard band (R-17-025a). The tag authenticates no within-slot arrival instant. Displacement outside the accepted slot fails the tag and stops the link (R-17-030z).
 
 ### 3.6 The slot-table register format
 
@@ -211,13 +211,13 @@ What this leaves an adversary is exactly what R-17-025a books and no more: a wir
 | direction | transmit or receive | the same |
 | guard band | the slot's guard band, admissible only at or above the composition's skew bound plus this link's latency bound (R-11-017a) | the same |
 
-Every slot of a link carries the link's one frame length, so **no per-slot length field exists**, which is R-15-228d's fixed frame size read as an absence in the table rather than as a constraint on its values. The leap slot is not an entry of this table: it is a kernel-owned idle window the executive reserves on every core of the member at the same absolute instant, which R-11-017a places in the member's artifact and not in an endpoint's register. The digest of this table is what each end binds into the session's context at establishment (R-12-015d, R-11-017a), so a table one end does not hold refuses the session rather than corrupting a slot.
+All slots carry the link's one frame length, so `SLOT[i]` has no length field (R-15-228d). The leap slot belongs to the member's artifact, not this table: it is a kernel-owned idle window reserved on every core at the same absolute instant (R-11-017a). Each end binds the table digest into session establishment; different tables refuse the session (R-12-015d, R-11-017a).
 
 ## 4. The per-link composition constants
 
-One row per quantity, with the predicate that makes a value admissible and the artifact that carries and emits it. **Every row is pending and carries no number**, for the reason the reading note above states: no composition in this tree fixes any of them, and a figure written here would be the placeholder EL-2 refuses.
+Each row names a quantity, its admissibility predicate and its deciding and carrying artifacts. **All values remain pending** because no composition fixes them. EL-2 prohibits substituting placeholders.
 
-**Three carriers appear in the last column and they do not rest on equal authority**, which [§4.2](#42-one-declaration-this-contract-cannot-make-and-who-owes-it) is where the difference is reported. *The attested schedule artifact* carries the rows R-11-017a and R-15-228d put there by name: the slot tables, every slot's instant, direction and guard band, the leap cadence, and the link's one frame length. *The attested devicetree* carries the skew bound and the link's latency constants by name (R-15-196a) and the ensemble's membership, endpoints, leader ends and expected identities by name (R-02-003a); every other row marked with it rests on R-02-003a's general clause that every constant of an ensemble is carried in every member's attested devicetree, a clause that names none of these constants and whose enumeration R-09-007's own list does not carry. *[§7](#7-the-link-servers-idl-interface)'s declaration* carries what the generated interface artifact fixes.
+The carrier column distinguishes the attested schedule artifact, attested devicetree and [§7](#7-the-link-servers-idl-interface)'s generated-interface declaration. Some assignments are explicit in the register; others rely on R-02-003a's general clause for ensemble constants. [§4.2](#42-one-declaration-this-contract-cannot-make-and-who-owes-it) records that declaration gap.
 
 | Symbol | Quantity | Unit | Admissibility predicate | Decided by | Carried and emitted by |
 | --- | --- | --- | --- | --- | --- |
@@ -245,7 +245,7 @@ One row per quantity, with the predicate that makes a value admissible and the a
 
 ### 4.1 The arithmetic, which is what a sibling item can read
 
-Q23e's Start line asks for *Q23b's frame size*. **What this document can hand it is the size's arithmetic and these parameter names, and not a figure**, because R-15-228d makes the frame size a per-link composition constant and no composition fixes one. Reading a placeholder out of [§4](#4-the-per-link-composition-constants) would be worse than reading nothing, so [§4](#4-the-per-link-composition-constants) has none.
+Q23e's Start requires Q23b's frame size. This contract supplies its arithmetic and parameter names; no composition fixes the per-link value R-15-228d requires. [§4](#4-the-per-link-composition-constants) therefore supplies no placeholder.
 
 The arithmetic, over [§1.3](#13-ff-1-and-ff-2-the-established-session-message-block)'s field list:
 
@@ -255,19 +255,19 @@ The arithmetic, over [§1.3](#13-ff-1-and-ff-2-the-established-session-message-b
 - Wire symbols per step are that frame count times `N`, which is what `R_line` is checked against.
 - The per-frame charge on the member's admission is `T_enc` or `T_dec` in the endpoint's slot, the crypto core's authenticated-encryption operation over `M` in its slot, and the link server's validation and copy in its own (R-11-017a).
 
-Every term above but the two discriminant widths is a row of [§4](#4-the-per-link-composition-constants), and every one of those rows is pending, so the arithmetic evaluates to nothing today. Of the two widths, `d_kind` is one byte, `IDL-023`'s ladder fixing the smallest of one, two or four bytes that holds a two-case count, and `w_count` follows `N_desc_max` and is pending with it. That is the honest state and it is the useful one: a consumer cites a row rather than a sentence, and a row that acquires a value moves every figure derived from it.
+Every term except `d_kind` and `w_count` has a pending [§4](#4-the-per-link-composition-constants) row, so no numeric result follows today. `IDL-023` fixes `d_kind` at one byte, the smallest of one, two or four bytes holding two cases. `w_count` remains pending with `N_desc_max`. Consumers cite those owning rows for values.
 
 ### 4.2 One declaration this contract cannot make, and who owes it
 
-R-09-007's list of what the static devicetree declares names core classes, islands, the NoC schedule, OPP tables and radio calibration, and it gained one explicit Accept clause for the inference socket's declared constants under R-15-228h. **The ensemble link's per-link constants are not named in that list**, and [§4](#4-the-per-link-composition-constants)'s carrier column is the place a reader meets the consequence.
+R-09-007 explicitly lists core classes, islands, NoC schedule, OPP tables and radio calibration, and its added Accept clause names R-15-228h's inference-socket constants. It does not enumerate ensemble-link constants.
 
-Three entries name a carrier for part of the table and the rest rests on a general clause. R-11-017a makes the slot tables entries of the attested schedule artifact and public constants of the generation, which is `T_slot`, `G_band`, `C_leap` and, with R-15-228d, `M`. R-15-196a has the skew bound and the link's latency constants entered in the attested devicetree at qualification, which is `B_skew`, `T_enc` and `T_dec`. R-02-003a carries the membership, each link's endpoints, each link's leader end and each peer's expected unit and ensemble identity in every member's attested devicetree, and it opens with a general clause that **every** constant of an ensemble is carried there. **The remaining rows rest on that general clause alone.** `N`, `I_max`, `L_tag`, `F_pad`, `D_fifo`, `R_line`, `C_epoch`, `W_tx`, `W_rx` and `N_eq` are carried in the attested devicetree because they are constants of an ensemble and for no more specific reason, no entry naming any of them and R-09-007's own enumeration of what that tree declares reaching none of them. That the general clause is not read as exhaustive is visible inside the register: `M` is a constant of an ensemble too, and R-15-228d puts it in a different artifact by name.
+R-11-017a and R-15-228d explicitly place `T_slot`, `G_band`, `C_leap` and `M` in the attested schedule artifact. R-15-196a explicitly places `B_skew`, `T_enc` and `T_dec` in the attested devicetree. R-02-003a names ensemble membership, link endpoints, leader ends and expected peer identities there, plus a general clause covering every ensemble constant. Only that general clause places `N`, `I_max`, `L_tag`, `F_pad`, `D_fifo`, `R_line`, `C_epoch`, `W_tx`, `W_rx` and `N_eq` there; R-09-007 names none of them. The clause cannot be the sole carrier rule for all constants, since `M` is explicitly assigned to the schedule artifact.
 
-Whether R-09-007 owes an Accept clause naming this second class of declared constants, on the precedent of the one R-15-228h already earned there, is **a register act this document reports and does not take**. Until it is taken, a reader comparing R-09-007's list against [§4](#4-the-per-link-composition-constants)'s table finds the rows named above carrying an artifact read off a general clause rather than declared, and that, and not a settled answer, is what this section records.
+Whether R-09-007 needs an explicit Accept clause for this second class of constants remains a register decision. This contract records the reliance on a general clause and leaves that decision open.
 
 ## 5. R-04-010a, decided clause by clause
 
-R-15-228c sorts the endpoint as matter under R-04-010a's three conditions and R-04-010a's own criterion lists it among the standing matter dispositions. Neither decides the conditions **against this block's parts**, which is what a review gate and a netlist audit each need, so that is what [§5](#5-r-04-010a-decided-clause-by-clause) does: one table per condition, one row per clause of it, with the structure that satisfies the clause and the structure whose presence in the Coq term or in the netlist would falsify it. The falsifying column is written so that a reader can search for the thing rather than judge the claim.
+R-15-228c and R-04-010a classify the endpoint as matter. The tables below apply the three conditions to its parts, pairing each satisfying structure with a searchable falsifier in the Coq term or netlist.
 
 ### 5.1 Condition one: the transition relation is welded in RTL over no writable program store
 
@@ -278,7 +278,7 @@ R-15-228c sorts the endpoint as matter under R-04-010a's three conditions and R-
 | the slot timer | a comparator of the spine's origin plus `SLOT[i]`'s instant against the member's own cycle count (R-15-122's kind) | a sequencer whose next state is read from memory the block writes; a program store of any width |
 | the line interface | a fixed filter whose coefficients are frozen for the epoch and loaded only by the RoT ([§3.2](#32-the-registers)) | a coefficient store the datapath's own control rewrites within an epoch, which is a third-condition breach as well as this one |
 
-**Reacting is not deciding**, which R-04-010a states and which sorts this block: a codeword the wire delivers is reacted to under a relation this composition welded, exactly as the PD sequencer steps on a message a foreign device sent. The condition is over the program store and never over input dependence, so a frame's contents reaching the decoder's arithmetic falsifies nothing here.
+The first condition governs the program store, not input dependence (R-04-010a). Decoder arithmetic may depend on received symbols while its transition relation remains composition-fixed, as in the PD sequencer.
 
 ### 5.2 Condition two: every operand and every schedule is core-issued under explicit capability operands
 
@@ -290,7 +290,7 @@ R-15-228c sorts the endpoint as matter under R-04-010a's three conditions and R-
 | the origin | read from the frame-origin register in the clock spine, which the boot core kernel alone writes (R-15-196a) | **any write path from the endpoint to the frame-origin register**, to a launch instant, or to a guard band |
 | the enable | the liveness of the link server's delegated window grant (R-15-146) | a software-writable enable bit; an enable the block asserts for itself |
 
-The grammar closes one of these rows at the field level rather than at the fabric: R-12-007a admits no capability, no address of either member, and no authority of any kind in a frame, so there is no field for a peer-supplied address to arrive in, and an endpoint that mastered a transfer would have to have invented the address rather than received it. That is why [§1](#1-the-frame-grammar)'s *no field admits an address* and this condition's *masters nothing of its own* are two readings of one structure.
+R-12-007a permits no frame field containing a capability, either member's address or other authority. [§1](#1-the-frame-grammar) thus rules out peer-supplied transfer addresses at the field level; an endpoint mastering its own transfer would have to invent one.
 
 ### 5.3 Condition three: it runs to a stated bound and accumulates no state across operations
 
@@ -303,11 +303,11 @@ The grammar closes one of these rows at the field level rather than at the fabri
 | no loop | `ARRIVAL_PHASE` one-sided, read by software ([§3.5](#35-the-arrival-phase-reading)) | a phase accumulator; a latency estimator; any closed loop from a landing to a launch instant (A-21) |
 | the one admitted carry | the equalization frozen per link epoch, which R-15-137's canceller already takes of this condition per epoch (R-15-228c); `EQ_READY` is that freeze's own validity and carries nothing else across a slot ([§3.2](#32-the-registers)) | equalization retrained inside an epoch, or adapted while traffic is in flight |
 
-**The sorting is by these conditions and by nothing else.** The endpoint is not admitted here because it resembles the FEC decoders or the PD sequencer; it is admitted because each row above holds, and the resemblance is what makes the rows recognizable rather than what makes them true. R-04-010b is a separate admission category and the endpoint is not in it, holding neither a fixed model nor declared private retained state.
+Every row must hold for R-04-010a classification; resemblance to an FEC decoder or PD sequencer is insufficient. The endpoint is outside R-04-010b's separate category: it holds neither a fixed model nor declared private retained state.
 
 ## 6. The netlist evidence an auditor searches for
 
-Rows A-18 through A-21 are [the absence contract](absence-contract.md)'s, with their grounds, their evidence columns and their governing entries there and their provenance bindings in [the synthesis provenance record](../../rtl/synthesis-provenance.md). This section restates none of that. What it adds is the correspondence the rows cannot carry, because they are written over one block and this document is where that block's structures are named: **for each row, the structure of [§3](#3-the-endpoints-register-description) or [§5](#5-r-04-010a-decided-clause-by-clause) whose presence in the netlist or in the Coq term is the finding.**
+The [absence contract](absence-contract.md) owns A-18 through A-21's grounds and evidence, with bindings in [synthesis provenance](../../rtl/synthesis-provenance.md). This table maps each row to the named [§3](#3-the-endpoints-register-description) and [§5](#5-r-04-010a-decided-clause-by-clause) structures whose presence falsifies it.
 
 | Row | The structure whose presence falsifies it | Where a candidate would show it |
 | --- | --- | --- |
@@ -316,19 +316,19 @@ Rows A-18 through A-21 are [the absence contract](absence-contract.md)'s, with t
 | A-20 | an arbiter; virtual-channel state; a per-flow queue; a FIFO deeper than [§3.4](#34-the-fifo-the-line-rate-and-why-the-link-adds-no-asynchronous-boundary)'s predicate admits, or one sized against a peer | the receive FIFO and everything between it and the receive window |
 | A-21 | a phase accumulator; a latency estimator; a write path from the endpoint to the frame-origin register or to any launch instant; a leap path from an unverified landing; endpoint state a received frame updates beyond the landing and `ARRIVAL_PHASE` | `ARRIVAL_PHASE` and its fan-out, and the clock-data recovery, which is analog line-interface matter reaching no launch instant |
 
-Every row above is discharged as authored RTL under R-15-092 by R-15-102's structural predicate over the block's Coq term, checked in the same prover as the refinement, which is R-15-228c's own acceptance and Q23g's to run. **This document states what the predicate must exclude and states no predicate**, that being the block's artifact and not this one's.
+Q23g must discharge each row as authored RTL under R-15-092, using R-15-102's structural predicate over the block's Coq term in the refinement prover (R-15-228c). This contract specifies exclusions; the block must supply the predicate.
 
 ## 7. The link server's IDL interface
 
 ### 7.1 Where this declaration lives, and what it is waiting on
 
-The link server is contained non-TCB software on cores (R-15-228b), and its clients are the sharded-function compartments on the same member. This section states its world in prose rather than as a world of [the ring reference](../../interfaces/ring-reference.json), and the reason is what a declaration fixes rather than where one may be written: `run.py ring emit` reads that declaration's worlds and K-89 binds the emitted Gallina artifact byte for byte, so a world added there fixes every composition-time constant R-12-091 and R-12-101 name and its generated campaign refuses a set of them that does not hold together. This section fixes no value of any of them, which is `IDL-050`'s own rule, so what is missing is the measured roster those constants are chosen from and not a place to write them down. **The declaration and its generated interface artifact are owed**, with `IDL-064`'s three parts and R-18-037's conformance campaign, and they are owed to the item that stands the link server up rather than to this contract.
+The link server is contained non-TCB software serving this member's sharded-function compartments (R-15-228b). Its world is specified here in prose because adding one to [the ring reference](../../interfaces/ring-reference.json) would fix R-12-091 and R-12-101's composition constants: `run.py ring emit` generates the Gallina artifact, K-89 binds its bytes, and the generated campaign checks consistency. Under `IDL-050`, this contract fixes no values before a measured roster exists. The item implementing the server owes the declaration, generated artifact, `IDL-064`'s three parts and R-18-037's conformance campaign.
 
 ### 7.2 The rings
 
 Two ring instances, each declaring the composition-time constants R-12-091 enumerates as `IDL-050` requires, with **no value fixed here**: a request ring from the client compartment to the link server, and a completion ring back. The header is exactly the words R-12-091 names and carries nothing else, the count being that entry's and not this document's (`IDL-051`); indices are interpreted modulo the declared capacity with sequence information distinguishing full from empty, and no implementation infers validity from descriptor contents (`IDL-052`).
 
-**The request ring's capacity is a composition-fixed local constant and is not a credit.** It is declared in the generated interface artifact, it is a property of this member alone, and no frame, no peer and no wire changes it. The distinction matters because A-19 and A-20 exclude credit registers and peer-varying queues from the **endpoint**, and a reader who carried that exclusion up into the link server would conclude that the server may hold no ring at all. EL-1 is where the distinction is recorded.
+The request-ring capacity is a composition-fixed local constant in the generated interface artifact, unaffected by any frame, peer or wire. It is no credit or peer-varying endpoint queue under A-19/A-20; those exclusions do not forbid the software link server's rings (EL-1).
 
 ### 7.3 The operations
 
@@ -342,7 +342,7 @@ Two ring instances, each declaring the composition-time constants R-12-091 enume
 
 ### 7.4 The statuses, and how a link stop is represented
 
-Statuses are drawn from R-12-093's closed common set and this document restates neither the set nor its lifecycle meaning (`IDL-028`). What it decides is the mapping, and one row of it is the interesting one.
+Statuses use R-12-093's closed common set and lifecycle meanings (`IDL-028`), with these event mappings:
 
 | Event | How it is represented |
 | --- | --- |
@@ -351,13 +351,13 @@ Statuses are drawn from R-12-093's closed common set and this document restates 
 | **a frame that fails its tag, an uncorrectable frame included** | **not a status.** The link fail-stops (R-15-228e), the session is torn down, and teardown is represented out of band by revocation plus a generation change, after which every formerly live request has R-12-093's own logical result for that case |
 | re-establishment | a fresh session at `C_epoch`, never a resumption and never on demand (R-15-228e, R-12-015d); the new generation is live before any index is reused (`IDL-062`) |
 
-The third row is the one a reader is most likely to get wrong, because a status is the natural place to put a failure. Putting it there would make a tag failure a per-request outcome a client could retry against, which is the reactive element R-15-228d deletes and which R-17-030z already decided to spend availability rather than admit.
+Representing tag failure as a per-request status would permit client retries, contrary to R-15-228d's fixed schedule. R-17-030z instead requires the availability cost of stopping the link.
 
 ### 7.5 The two session tables, which are not one table
 
 R-12-006 has descriptors name only indices into a per-session table of pre-delegated capabilities, and R-12-007a reads that table at the link as the **receiving** member's own per-link session table, delegated at composition to the receiving link server alone and revoked as any compartment's authority is.
 
-**An index in a frame and an index in a descriptor of [§7.3](#73-the-operations) are indices into different tables.** The per-link table is the one a peer's descriptors select from, and it is the receiving link server's; the interface's session table is per client session, and it is the client's. An index carries no meaning on the member that sent it (R-12-007a), and it carries no meaning in the other table on the member that received it either. Conflating them would let a local client's index name a peer's entry, which is EL-3's refusal. A peer compromised inside an accepted session therefore reaches exactly what a compromised local ring peer behind the same table reaches, which is the ring proof's Byzantine peer (R-12-008) and no more.
+A peer's frame indices select the receiving link server's per-link table. [§7.3](#73-the-operations)'s local interface indices select the client's per-session table. A frame index has no meaning on the sending member or in the receiving client-session table (R-12-007a); conflating the tables violates EL-3. A compromised authenticated peer is therefore bounded by the same table authority as the ring proof's Byzantine local peer (R-12-008).
 
 ## 8. What makes a candidate, a report, or an implementation inadmissible
 
@@ -372,7 +372,7 @@ R-12-006 has descriptors name only indices into a per-session table of pre-deleg
 | EL-7 | a second admissible code, ciphersuite, protocol version or configuration on one link, or a control plane holding a variable that selects among them (R-12-043a) |
 | EL-8 | a public wire field selecting a regime, a handler or a key rather than being checked against the schedule and the session state; and any sender, address or persistent link-layer identifier field in any form (R-15-132, [§1.2](#12-the-four-forms-and-what-selects-between-them)) |
 | EL-9 | a re-encode at a hop, a member forwarding a frame, or a header carrying a route (R-15-228e, R-02-003a) |
-| EL-10 | a claim that this descriptor carries its R-05-051a canonicity theorem while [crown-jewel](../assurance/crown-jewels.md) row 10 records the wire-format inventory as not authored ([§1.6](#16-the-no-slack-conditions-as-this-descriptors-own)) |
+| EL-10 | a claim that this descriptor carries its R-05-051a canonicity theorem while [crown-jewel](../assurance/crown-jewels.md) row 10 records Narcissus descriptors and their checked derivations as absent ([§1.6](#16-the-no-slack-conditions-as-this-descriptors-own)) |
 | EL-11 | an accept-and-ignore field, a reserved bit, a fill byte accepted without its check, or any value with a second admissible encoding (R-05-051b, [§1.6](#16-the-no-slack-conditions-as-this-descriptors-own)) |
 | EL-12 | a `send` completion read as peer delivery, or any client behaviour conditioned on an acknowledgement this interface does not carry ([§7.3](#73-the-operations)) |
 | EL-13 | an endpoint register outside [§3.2](#32-the-registers)'s table, a receive status or landed flag, a FIFO level register, a software-writable enable, or a write path from the endpoint to the frame-origin register ([§3.2](#32-the-registers), A-21) |
@@ -381,7 +381,7 @@ R-12-006 has descriptors name only indices into a per-session table of pre-deleg
 
 | Owed | Who owes it |
 | --- | --- |
-| the descriptor's canonicity theorem and its Narcissus correctness pair | [crown-jewel](../assurance/crown-jewels.md) row 10, which reads `not authored`; no Narcissus descriptor exists in this repository for either to be stated against |
+| the descriptor's canonicity theorem and its Narcissus correctness pair | [crown-jewel](../assurance/crown-jewels.md) row 10, whose `partial` status records the inventory but no Narcissus descriptors; no descriptor exists in this repository for either to be stated against |
 | the code's family, with its operand the wire's raw error rate at the declared reach and `M` | first measured at Q23g's two-member pair; [§2.3](#23-what-the-family-is-waiting-on) |
 | `T_enc` and `T_dec` | R-17-041's magnitudes at [crown-jewel](../assurance/crown-jewels.md) row 15, measured at Q23g and entered in the devicetree fixture |
 | `B_skew`, and the oscillator tolerances `D_fifo` and `C_leap` are derived from | measured on a two-member pair at qualification (R-15-196a); Q23g |
@@ -391,4 +391,4 @@ R-12-006 has descriptors name only indices into a per-session table of pre-deleg
 | the composed non-interference statement the [§5](#5-r-04-010a-decided-clause-by-clause) dispositions are eventually decided against | Q23f, under R-17-014a and R-17-003d |
 | an R-09-007 Accept clause naming this class of declared per-link constants | **reported, not taken**; [§4.2](#42-one-declaration-this-contract-cannot-make-and-who-owes-it) names which rows an entry places by name and which rest on R-02-003a's general clause alone |
 
-**One thing is deliberately not moved.** Entering this descriptor in [crown-jewel](../assurance/crown-jewels.md) row 10's specification cell adds a member to an inventory row whose status stays `not authored`, because no descriptor of that row is authored, this one included: what [§1](#1-the-frame-grammar) states is the grammar a descriptor would be generated from, and the descriptor, its parser proof and its canonicity theorem are all still owed. Whether one stated grammar promotes that row's status is a coverage-matrix question, K-95 lifting a cell's standing from the inventory row's status class, and it belongs to whoever runs that repair rather than to this document.
+[Crown-jewel](../assurance/crown-jewels.md) row 10 remains `partial`: the inventory exists, while descriptors and checked derivations are absent. Adding this grammar to its specification cell supplies no Narcissus descriptor, parser proof or canonicity theorem. Any inventory-status change and resulting K-95 coverage repair belong to their owners.
