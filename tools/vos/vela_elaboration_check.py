@@ -93,6 +93,26 @@ definition Vec<Nat,1> Partial() = Keep(count: 1)(values: Singleton());
 definition U Apply<T,U>(Fn(T input) -> U function, T value) = function(input: value);
 definition Nat Higher() = Apply(implementation => implementation + 1, value: 41);
 """),
+        ("required-static-values-and-dependent-indices", """module StaticReplay;
+const Nat Base = 21;
+definition Nat Twice(Nat value) = let copy = value in copy + copy;
+const Nat Answer = Twice(value: Base);
+const bool Accepted = Answer <= 42;
+const Unit Nothing = ();
+Nat Local() { const Nat Next = Answer + 1; return Next; }
+const Nat Count = 1;
+definition Vec<Nat,Count> One() = VCons(7, VNil::<Nat>());
+lemma Correct(): Answer == 42 proof { return Refl(42); }
+"""),
+        ("nullary-and-explicit-unit-values", """module ArityReplay;
+definition Nat Empty() = 7;
+definition Nat Explicit(Unit token) = 7;
+definition Nat UseEmpty() = Empty();
+definition Nat UseExplicit() = Explicit(token: ());
+definition Nat UseLambda() = (() => 7)();
+definition Fn(Unit published) -> Nat Build() = actual => 7;
+definition Nat UseBuilt() = Build()(published: ());
+"""),
     )
     negatives = (
         ("wrong-call-domain", "definition Nat Identity(Nat x) = x; "
@@ -125,6 +145,28 @@ definition Nat Higher() = Apply(implementation => implementation + 1, value: 41)
          "lemma Wrong(): Id(value: 1) == 2 proof { return Refl(1); }", "type"),
         ("unsupported-use-grade", "definition Nat Graded(Nat value @ 1) = value;", "unsupported"),
         ("unsupported-source-loan", "definition Nat Loan(ref Nat value) = value;", "unsupported"),
+        ("constant-runtime-input", "Nat Wrong(Nat runtime) { const Nat value = runtime; return value; }", "type"),
+        ("constant-ordinary-let-input", "Nat Wrong() { let runtime = 3; const Nat value = runtime; return value; }", "type"),
+        ("constant-ignored-runtime-input", "definition Nat Ignore(Nat unused) = 0; "
+         "Nat Wrong(Nat runtime) { const Nat value = Ignore(runtime); return value; }", "type"),
+        ("constant-dead-runtime-input", "Nat Wrong(Nat runtime) { "
+         "const Nat value = (() => { if(false) { return runtime; } else { return 0; } })(); return value; }", "type"),
+        ("constant-ghost-input", "Nat Wrong<ghost Nat index>() { const Nat value = index; return value; }", "type"),
+        ("constant-wrong-type", "const Nat Wrong = true;", "type"),
+        ("constant-forward-input", "const Nat First = Later; const Nat Later = 3;", "name"),
+        ("constant-cyclic-input", "const Nat First = First;", "name"),
+        ("constant-noncallable", "const Nat Value = 3; definition Nat Wrong() = Value();", "type"),
+        ("constant-false-proof", "const Nat Value = 1; lemma Wrong(): Value == 2 proof { return Refl(1); }", "type"),
+        ("omitted-explicit-unit", "definition Nat Id(Unit token) = 1; definition Nat Wrong() = Id();", "type"),
+        ("explicit-nullary-unit", "definition Nat Empty() = 1; definition Nat Wrong() = Empty(());", "type"),
+        ("empty-lambda-explicit-interface", "definition Fn(Unit token) -> Nat Wrong() = () => 1;", "type"),
+        ("explicit-lambda-empty-interface", "definition Fn() -> Nat Wrong() = (Unit token) => 1;", "type"),
+        ("nullary-value-explicit-interface", "definition Nat Empty() = 1; "
+         "definition Nat Use(Fn(Unit) -> Nat function) = 0; definition Nat Wrong() = Use(Empty);", "type"),
+        ("explicit-value-nullary-interface", "definition Nat Explicit(Unit token) = 1; "
+         "definition Nat Use(Fn() -> Nat function) = 0; definition Nat Wrong() = Use(Explicit);", "type"),
+        ("omitted-unnamed-explicit-unit", "definition Nat Wrong(Fn(Unit) -> Nat function) = function();", "type"),
+        ("constant-product-growth", f"const Nat Wrong = {10 ** 200} * {10 ** 200};", "limit"),
     )
     return (Fixture("authored-example", example),
             *(Fixture(name, source.encode()) for name, source in positives),

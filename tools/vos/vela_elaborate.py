@@ -19,6 +19,8 @@ MAX_WORK = 200_000
 MAX_REDUCTIONS = 20_000
 MAX_OUTPUT_BYTES = 1_048_576
 MAX_UNIVERSE = 8
+MAX_NAT_BITS = 4096
+MAX_CONSTANT_NAT = 10 ** MAX_LITERAL_DIGITS - 1
 
 
 @dataclass(frozen=True)
@@ -32,6 +34,8 @@ type Node = dict[str, object]
 _FIELDS: dict[str, set[str]] = {
     "surface_file": {"name", "declarations"},
     "alias": {"name", "generics", "contracts", "type", "modifiers"},
+    "constant": {"name", "type", "value", "modifiers"},
+    "constant_local": {"name", "type", "value"},
     "definition": {"name", "result", "generics", "parameters", "contracts", "value", "modifiers"},
     "function": {"name", "result", "generics", "parameters", "contracts", "body", "cancel", "modifiers"},
     "theorem": {"name", "generics", "parameters", "proposition", "body", "modifiers"},
@@ -126,6 +130,180 @@ class _Protocol:
             return "".join(result)
         return "\x00"
 
+    @staticmethod
+    def _word(value: bytes) -> bool:
+        return value.isalnum() or value == b"_"
+
+    def _token(self, node: Node, cursor: int, token: bytes) -> int:
+        cursor = trivia_end(self.source, cursor, block_comments=True)
+        end = cursor + len(token)
+        if (self.source[cursor:end] != token
+                or (self._word(token[-1:]) and self._word(self.source[end:end + 1]))):
+            raise self.error("protocol", "syntax delimiter or keyword differs from source", node)
+        return end
+
+    def _child(self, node: Node, span: tuple[int, int], cursor: int, raw: object) -> int:
+        if not isinstance(raw, dict):
+            raise self.error("protocol", "syntax envelope requires a located child", node)
+        child_span = self._span(raw.get("span"), span)
+        if trivia_end(self.source, cursor, block_comments=True) != child_span[0]:
+            raise self.error("protocol", "syntax child leaves source tokens uncovered", node)
+        return child_span[1]
+
+    def _list(self, node: Node, span: tuple[int, int], cursor: int, raw: object,
+              opening: bytes = b"(", closing: bytes = b")") -> int:
+        if not isinstance(raw, list):
+            raise self.error("protocol", "syntax envelope requires a child list", node)
+        cursor = self._token(node, cursor, opening)
+        for index, value in enumerate(raw):
+            if index:
+                cursor = self._token(node, cursor, b",")
+            cursor = self._child(node, span, cursor, value)
+        if raw:
+            after = trivia_end(self.source, cursor, block_comments=True)
+            if self.source[after:after + 1] == b",":
+                cursor = after + 1
+        return self._token(node, cursor, closing)
+
+    def _generics(self, node: Node, span: tuple[int, int], cursor: int) -> int:
+        values = node["generics"]
+        if not isinstance(values, list):
+            raise self.error("protocol", "generic telescope must be a child list", node)
+        return self._list(node, span, cursor, values, b"<", b">") if values else cursor
+
+    def _ordinary_envelope(self, node: Node, span: tuple[int, int]) -> None:
+        kind = node["kind"]
+        cursor = span[0]
+        if kind in {"definition", "function", "alias", "theorem", "lemma"}:
+            if node.get("contracts") or node.get("cancel"):
+                return  # These roles are refused by the mathematical consumer.
+            modifiers = node["modifiers"]
+            if not isinstance(modifiers, list) or any(not isinstance(item, str) for item in modifiers):
+                raise self.error("protocol", "declaration modifiers must be a name list", node)
+            for modifier in modifiers:
+                cursor = self._token(node, cursor, cast("str", modifier).encode())
+            if kind != "function":
+                cursor = self._token(node, cursor, cast("str", kind).encode())
+            if kind in {"definition", "function"}:
+                cursor = self._child(node, span, cursor, node["result"])
+            cursor = self._child(node, span, cursor, node["name"])
+            cursor = self._generics(node, span, cursor)
+            if kind != "alias":
+                cursor = self._list(node, span, cursor, node["parameters"])
+            if kind in {"theorem", "lemma"}:
+                cursor = self._token(node, cursor, b":")
+                cursor = self._child(node, span, cursor, node["proposition"])
+                if node["body"] is not None:
+                    cursor = self._token(node, cursor, b"proof")
+                    cursor = self._child(node, span, cursor, node["body"])
+                else:
+                    cursor = self._token(node, cursor, b";")
+            elif kind in {"alias", "definition"}:
+                cursor = self._token(node, cursor, b"=")
+                cursor = self._child(node, span, cursor, node["type"] if kind == "alias" else node["value"])
+                cursor = self._token(node, cursor, b";")
+            elif node["body"] is None:
+                cursor = self._token(node, cursor, b";")
+            else:
+                cursor = self._child(node, span, cursor, node["body"])
+        elif kind in {"let", "typed_local", "parameter", "lambda_parameter", "generic_parameter"}:
+            if node.get("grade") is not None:
+                return
+            if kind == "generic_parameter":
+                if node["mode"] == "ghost":
+                    cursor = self._token(node, cursor, b"ghost")
+                    cursor = self._child(node, span, cursor, node["type"])
+                elif node["mode"] != "type":
+                    return
+                cursor = self._child(node, span, cursor, node["name"])
+                if node["mode"] == "type" and node["type"] is not None:
+                    cursor = self._token(node, cursor, b":")
+                    cursor = self._child(node, span, cursor, node["type"])
+            else:
+                if kind == "let":
+                    cursor = self._token(node, cursor, b"let")
+                if node["type"] is not None:
+                    cursor = self._child(node, span, cursor, node["type"])
+                if node["name"] is not None:
+                    cursor = self._child(node, span, cursor, node["name"])
+                if kind in {"let", "typed_local"}:
+                    cursor = self._token(node, cursor, b"=")
+                    cursor = self._child(node, span, cursor, node["value"])
+                    if cursor < span[1]:
+                        cursor = self._token(node, cursor, b";")
+        elif kind == "return":
+            cursor = self._token(node, cursor, b"return")
+            if node["value"] is not None:
+                cursor = self._child(node, span, cursor, node["value"])
+            cursor = self._token(node, cursor, b";")
+        elif kind == "if":
+            cursor = self._token(node, cursor, b"if")
+            cursor = self._token(node, cursor, b"(")
+            cursor = self._child(node, span, cursor, node["condition"])
+            cursor = self._token(node, cursor, b")")
+            cursor = self._child(node, span, cursor, node["then"])
+            if node["else"] is not None:
+                cursor = self._token(node, cursor, b"else")
+                cursor = self._child(node, span, cursor, node["else"])
+        elif kind in {"name", "hole"}:
+            cursor = self._child(node, span, cursor, node["name"])
+        elif kind == "binary":
+            for field in ("left", "operator", "right"):
+                cursor = self._child(node, span, cursor, node[field])
+        elif kind == "unary":
+            cursor = self._child(node, span, cursor, node["operator"])
+            cursor = self._child(node, span, cursor, node["value"])
+        elif kind in {"group", "group_type", "operator"}:
+            cursor = self._token(node, cursor, b"(")
+            field = {"group": "value", "group_type": "type", "operator": "name"}[cast("str", kind)]
+            cursor = self._child(node, span, cursor, node[field])
+            cursor = self._token(node, cursor, b")")
+        elif kind in {"tuple", "tuple_type"}:
+            cursor = self._list(node, span, cursor, node["values"] if kind == "tuple" else node["types"])
+        elif kind in {"type_expression", "type_argument", "computed_type"}:
+            cursor = self._token(node, cursor, b"type")
+            if kind == "computed_type":
+                cursor = self._token(node, cursor, b"[")
+                cursor = self._child(node, span, cursor, node["value"])
+                cursor = self._token(node, cursor, b"]")
+            else:
+                cursor = self._child(node, span, cursor, node["type"])
+        elif kind == "type":
+            cursor = self._child(node, span, cursor, node["name"])
+            values = node["arguments"]
+            if not isinstance(values, list):
+                raise self.error("protocol", "type arguments must be a child list", node)
+            if values:
+                cursor = self._list(node, span, cursor, values, b"<", b">")
+        elif kind == "function_type":
+            if node["captures"] or node["effects"] or node["contracts"]:
+                return
+            cursor = self._token(node, cursor, cast("str", node["mode"]).encode())
+            cursor = self._generics(node, span, cursor)
+            cursor = self._list(node, span, cursor, node["parameters"])
+            cursor = self._token(node, cursor, b"->")
+            cursor = self._child(node, span, cursor, node["result"])
+        elif kind == "generic_application":
+            cursor = self._child(node, span, cursor, node["value"])
+            cursor = self._list(node, span, cursor, node["arguments"], b"::<", b">")
+        elif kind == "typed_lambda":
+            cursor = self._child(node, span, cursor, node["signature"])
+            cursor = self._token(node, cursor, b"=>")
+            cursor = self._child(node, span, cursor, node["body"])
+        elif kind == "let_expression":
+            cursor = self._child(node, span, cursor, node["binding"])
+            cursor = self._token(node, cursor, b"in")
+            cursor = self._child(node, span, cursor, node["body"])
+        elif kind == "quantifier":
+            cursor = self._token(node, cursor, cast("str", node["quantifier"]).encode())
+            cursor = self._list(node, span, cursor, node["parameters"])
+            cursor = self._token(node, cursor, b"=>")
+            cursor = self._child(node, span, cursor, node["value"])
+        else:
+            return
+        if cursor != span[1]:
+            raise self.error("protocol", "syntax envelope leaves trailing source tokens uncovered", node)
+
     def _lambda_envelope(self, node: Node, span: tuple[int, int]) -> None:
         parameters = node["parameters"]
         body = node["body"]
@@ -190,6 +368,55 @@ class _Protocol:
         if self.source[cursor:cursor + 1] != b")" or cursor + 1 != span[1]:
             raise self.error("protocol", "call closing or argument list differs from source", node)
 
+    def _constant_envelope(self, node: Node, span: tuple[int, int]) -> None:
+        annotation, name, value = node["type"], node["name"], node["value"]
+        if not all(isinstance(part, dict) for part in (annotation, name, value)):
+            raise self.error("protocol", "constant requires a type, name and initializer", node)
+        annotation_span = self._span(cast("Node", annotation).get("span"), span)
+        name_span = self._span(cast("Node", name).get("span"), span)
+        value_span = self._span(cast("Node", value).get("span"), span)
+        modifiers = node.get("modifiers", [])
+        if not isinstance(modifiers, list) or any(not isinstance(item, str) for item in modifiers):
+            raise self.error("protocol", "constant modifiers must be a list of names", node)
+        cursor = span[0]
+        for spelling in (*modifiers, "const"):
+            token = cast("str", spelling).encode()
+            following = self.source[cursor + len(token):cursor + len(token) + 1]
+            if (self.source[cursor:cursor + len(token)] != token
+                    or following.isalnum() or following == b"_"):
+                raise self.error("protocol", "constant keyword or modifiers differ from source", node)
+            cursor = trivia_end(self.source, cursor + len(token), block_comments=True)
+        if cursor != annotation_span[0]:
+            raise self.error("protocol", "constant type leaves source tokens uncovered", node)
+        if trivia_end(self.source, annotation_span[1], block_comments=True) != name_span[0]:
+            raise self.error("protocol", "constant name leaves source tokens uncovered", node)
+        cursor = trivia_end(self.source, name_span[1], block_comments=True)
+        if (self.source[cursor:cursor + 1] != b"="
+                or trivia_end(self.source, cursor + 1, block_comments=True) != value_span[0]):
+            raise self.error("protocol", "constant initializer differs from source", node)
+        cursor = trivia_end(self.source, value_span[1], block_comments=True)
+        if self.source[cursor:cursor + 1] != b";" or cursor + 1 != span[1]:
+            raise self.error("protocol", "constant terminator leaves source tokens uncovered", node)
+
+    def _sequence_envelope(self, node: Node, span: tuple[int, int], role: str,
+                           cursor: int, closing: bytes = b"") -> None:
+        values = node[role]
+        if not isinstance(values, list):
+            raise self.error("protocol", f"{role} must be an ordered syntax list", node)
+        for value in values:
+            if not isinstance(value, dict):
+                raise self.error("protocol", f"{role} contains an invalid syntax node", node)
+            child_span = self._span(value.get("span"), span)
+            if trivia_end(self.source, cursor, block_comments=True) != child_span[0]:
+                raise self.error("protocol", f"{role} are reordered or leave source tokens uncovered", node)
+            cursor = child_span[1]
+        end = trivia_end(self.source, cursor, block_comments=True)
+        if not closing and cursor <= span[1] <= end:
+            return
+        cursor = end
+        if self.source[cursor:cursor + len(closing)] != closing or cursor + len(closing) != span[1]:
+            raise self.error("protocol", f"{role} leave trailing source tokens uncovered", node)
+
     def visit(self, raw: object, parent: tuple[int, int], depth: int = 0) -> None:
         if depth > MAX_DEPTH or self.remaining <= 0:
             raise self.error("limit", "surface syntax exceeds elaboration bounds")
@@ -211,6 +438,10 @@ class _Protocol:
                             or re.fullmatch(r"\?[A-Za-z_][A-Za-z_0-9]*", text))
                     or self._compact_name(self.source[span[0]:span[1]]) != text):
                 raise self.error("protocol", "syntax identifier or operator differs from its source", node)
+            if ((_IDENTIFIER.fullmatch(text) or text.startswith("?"))
+                    and (self._word(self.source[span[0] - 1:span[0]])
+                         or self._word(self.source[span[1]:span[1] + 1]))):
+                raise self.error("protocol", "syntax identifier splits a source token", node)
             return
         kind = node.get("kind")
         if not isinstance(kind, str):
@@ -220,6 +451,12 @@ class _Protocol:
             raise self.error("unsupported", f"'{kind}' is outside mathematical elaboration", node)
         if set(node) != {"kind", "span", *fields}:
             raise self.error("protocol", f"invalid fields for '{kind}'", node)
+        if "grade" in fields and node["grade"] is not None:
+            grade = node["grade"]
+            if not isinstance(grade, dict) or not isinstance(grade.get("kind"), str):
+                raise self.error("protocol", "optional grade must be null or a located syntax node", node)
+            self._span(grade.get("span"), span)
+        self._ordinary_envelope(node, span)
         if kind == "nat":
             value, suffix = node["value"], node["suffix"]
             if not isinstance(value, str) or not isinstance(suffix, str):
@@ -254,6 +491,26 @@ class _Protocol:
             self._lambda_envelope(node, span)
         if kind == "call":
             self._call_envelope(node, span)
+        if kind in {"constant", "constant_local"}:
+            self._constant_envelope(node, span)
+        if kind == "surface_file":
+            name = node["name"]
+            if not isinstance(name, dict):
+                raise self.error("protocol", "module requires its located name", node)
+            name_span = self._span(name.get("span"), span)
+            cursor = trivia_end(self.source, span[0] + len(b"module"), block_comments=True)
+            if (self.source[span[0]:span[0] + len(b"module")] != b"module"
+                    or self._word(self.source[span[0] + len(b"module"):span[0] + len(b"module") + 1])
+                    or cursor != name_span[0]):
+                raise self.error("protocol", "module header differs from source", node)
+            cursor = trivia_end(self.source, name_span[1], block_comments=True)
+            if self.source[cursor:cursor + 1] != b";":
+                raise self.error("protocol", "module header lacks its source terminator", node)
+            self._sequence_envelope(node, span, "declarations", cursor + 1)
+        if kind == "block":
+            if self.source[span[0]:span[0] + 1] != b"{":
+                raise self.error("protocol", "block opening differs from source", node)
+            self._sequence_envelope(node, span, "statements", span[0] + 1, b"}")
         if kind == "argument":
             value = node["value"]
             if not isinstance(value, dict):
@@ -294,6 +551,10 @@ class _Protocol:
         root = cast("Node", response["ast"])
         if root.get("kind") != "surface_file":
             raise self.error("protocol", "expected a complete surface_file")
+        start, end = cast("list[int]", root["span"])
+        if (trivia_end(self.source, 0, block_comments=True) != start
+                or trivia_end(self.source, end, block_comments=True) != len(self.source)):
+            raise self.error("protocol", "module omits nontrivial source outside its span", root)
         return root
 
 
@@ -341,6 +602,7 @@ class _Binding:
     term: _Term
     type: _Term
     generics: int = 0
+    constant: bool = False
 
 
 class _Elaborator:
@@ -353,6 +615,8 @@ class _Elaborator:
         self.types: dict[int, _Term] = {}
         # Callable parameter labels are source metadata, never CIC constructors.
         self.parameter_names: dict[int, str] = {}
+        self.nullary_parameters: set[int] = set()
+        self.static_forbidden: set[int] | None = None
         self.globals: dict[str, _Binding] = {}
         self.constants: dict[str, _Binding] = {}
         self.definitions: dict[str, _Term] = {}
@@ -376,8 +640,10 @@ class _Elaborator:
         self.types[index] = value_type
         return _term("var", value=index)
 
-    def pi(self, domain: _Term, codomain: _Term) -> _Term:
+    def pi(self, domain: _Term, codomain: _Term, *, nullary: bool = False) -> _Term:
         variable = self.fresh(domain)
+        if nullary:
+            self.nullary_parameters.add(cast("int", variable.value))
         return _term("pi", domain, codomain, value=variable.value)
 
     def _builtins(self) -> None:
@@ -418,9 +684,9 @@ class _Elaborator:
         vec = _apps(_constant("Vec"), a, n)
         fin = _app(_constant("Fin"), n)
         successor = _app(_constant("Succ"), n)
-        bind("VNil", telescope((a,), self.pi(_UNIT, _apps(_constant("Vec"), a, _term("nat", value=0)))), 1)
+        bind("VNil", telescope((a,), self.pi(_UNIT, _apps(_constant("Vec"), a, _term("nat", value=0)), nullary=True)), 1)
         bind("VCons", telescope((a, n), self.pi(a, self.pi(vec, _apps(_constant("Vec"), a, successor)))), 2)
-        bind("FZero", telescope((n,), self.pi(_UNIT, _app(_constant("Fin"), successor))), 1)
+        bind("FZero", telescope((n,), self.pi(_UNIT, _app(_constant("Fin"), successor), nullary=True)), 1)
         bind("FSucc", telescope((n,), self.pi(fin, _app(_constant("Fin"), successor))), 1)
         bind("At", telescope((a, n), self.pi(vec, self.pi(fin, a))), 2)
         for name in ("+", "*", "-", "/", "%"):
@@ -475,9 +741,14 @@ class _Elaborator:
         return ((term.kind == "meta" and term.value == index)
                 or any(self.occurs(index, child) for child in term.args))
 
+    def natural_limit(self) -> int:
+        return MAX_CONSTANT_NAT if self.static_forbidden is not None else (1 << MAX_NAT_BITS) - 1
+
     def whnf(self, term: _Term) -> _Term:
         self.tick()
         term = self.resolve(term)
+        if term.kind == "nat" and not 0 <= cast("int", term.value) <= self.natural_limit():
+            raise self.fail("limit", "computed natural exceeds representation bound")
         if term.kind == "if":
             condition = self.whnf(term.args[1])
             if condition.kind == "bool":
@@ -518,6 +789,8 @@ class _Elaborator:
             value = self.whnf(arguments[0])
             if value.kind == "nat":
                 self.tick(True)
+                if cast("int", value.value) >= self.natural_limit():
+                    raise self.fail("limit", "computed natural exceeds representation bound")
                 return _term("nat", value=cast("int", value.value) + 1)
         if name == "!" and len(arguments) == 1:
             value = self.whnf(arguments[0])
@@ -540,8 +813,12 @@ class _Elaborator:
                 operation = operations.get(name)
                 if operation is not None:
                     self.tick(True)
+                    limit = self.natural_limit()
+                    if ((name == "+" and a > limit - b)
+                            or (name == "*" and a != 0 and b > limit // a)):
+                        raise self.fail("limit", "computed natural exceeds representation bound")
                     value = operation()
-                    if value.bit_length() > 4096:
+                    if value > limit:
                         raise self.fail("limit", "computed natural exceeds representation bound")
                     kind = "nat" if name in {"+", "*", "-", "/", "%"} else "bool"
                     return _term(kind, value=value)
@@ -569,6 +846,10 @@ class _Elaborator:
     def unify(self, left: _Term, right: _Term) -> None:
         self.tick()
         left, right = self.whnf(left), self.whnf(right)
+        if (left.kind == right.kind and left.kind in {"pi", "lam"}
+                and (cast("int", left.value) in self.nullary_parameters)
+                != (cast("int", right.value) in self.nullary_parameters)):
+            raise self.fail("type", "zero-parameter and explicit-parameter callables have different source arities")
         if left == right:
             return
         # Decimal literals abbreviate constructor chains; expose one successor
@@ -719,6 +1000,8 @@ class _Elaborator:
         binding = environment.get(name, self.globals.get(name))
         if binding is None:
             raise self.fail("name", f"unknown or forward name '{name}'")
+        if self.static_forbidden is not None and id(binding) in self.static_forbidden:
+            raise self.fail("type", f"constant initializer depends on nonstatic binding '{name}'")
         return binding if raw else self.instantiate(binding, environment)
 
     def argument(self, node: Node, expected: _Term, environment: dict[str, _Binding]) -> _Term:
@@ -739,8 +1022,8 @@ class _Elaborator:
         term, value_type = binding.term, binding.type
         if not arguments:
             value_type = self.whnf(value_type)
-            if value_type.kind != "pi":
-                raise self.fail("type", "zero-argument call requires a unit function")
+            if value_type.kind != "pi" or cast("int", value_type.value) not in self.nullary_parameters:
+                raise self.fail("type", "zero-argument call requires a zero-parameter source callable")
             self.unify(value_type.args[0], _UNIT)
             argument = _term("unit")
             return _Binding(_app(term, argument), self.substitute(value_type.args[1], cast("int", value_type.value), argument))
@@ -760,6 +1043,8 @@ class _Elaborator:
                 value_type = self.whnf(value_type)
             if value_type.kind != "pi":
                 raise self.fail("type", "too many arguments or a non-callable value", node)
+            if cast("int", value_type.value) in self.nullary_parameters:
+                raise self.fail("type", "a zero-parameter callable accepts no explicit arguments", node)
             if label is not None:
                 spelling = self.name(label)
                 expected = self.parameter_names.get(cast("int", value_type.value))
@@ -803,7 +1088,9 @@ class _Elaborator:
                 self.parameter_names[cast("int", variable.value)] = name
                 self.bind_local(extended, name, _Binding(variable, domain))
         if unit and not parameter_nodes:
-            variables.append(self.fresh(_UNIT))
+            variable = self.fresh(_UNIT)
+            self.nullary_parameters.add(cast("int", variable.value))
+            variables.append(variable)
         return variables, extended
 
     def wrap(self, kind: str, variables: list[_Term], result: _Term) -> _Term:
@@ -911,11 +1198,14 @@ class _Elaborator:
         current = expected
         if not parameters:
             variable = self.fresh(_UNIT)
+            self.nullary_parameters.add(cast("int", variable.value))
             variables.append(variable)
             if current is not None:
                 current = self.whnf(current)
                 if current.kind != "pi":
                     raise self.fail("type", "lambda requires a callable expected type", node)
+                if cast("int", current.value) not in self.nullary_parameters:
+                    raise self.fail("type", "an empty lambda requires a zero-parameter source interface", node)
                 self.unify(current.args[0], _UNIT)
                 current = self.substitute(current.args[1], cast("int", current.value), variable)
         for parameter in parameters:
@@ -932,6 +1222,8 @@ class _Elaborator:
             if expected_pi is not None:
                 if expected_pi.kind != "pi":
                     raise self.fail("type", "lambda has more parameters than its expected type")
+                if cast("int", expected_pi.value) in self.nullary_parameters:
+                    raise self.fail("type", "an explicit lambda parameter cannot satisfy a zero-parameter source interface")
                 self.unify(domain, expected_pi.args[0])
             variable = self.fresh(domain)
             variables.append(variable)
@@ -949,17 +1241,45 @@ class _Elaborator:
 
     def local(self, node: Node, environment: dict[str, _Binding]) -> dict[str, _Binding]:
         self.site = node
-        if node["kind"] not in {"let", "typed_local"}:
+        if node["kind"] == "constant_local":
+            binding = self.constant_value(node, environment)
+        elif node["kind"] not in {"let", "typed_local"}:
             raise self.fail("unsupported", "only immutable name bindings are supported")
-        self.no_roles(node, "grade")
-        if node["type"] is None:
-            binding = self.expression(self.node(node["value"]), environment)
         else:
-            value_type = self.type(self.node(node["type"]), environment)
-            binding = _Binding(self.check(self.node(node["value"]), value_type, environment), value_type)
+            self.no_roles(node, "grade")
+            if node["type"] is None:
+                binding = self.expression(self.node(node["value"]), environment)
+            else:
+                value_type = self.type(self.node(node["type"]), environment)
+                binding = _Binding(self.check(self.node(node["value"]), value_type, environment), value_type)
         extended = dict(environment)
         self.bind_local(extended, self.name(node["name"]), binding)
         return extended
+
+    def constant_value(self, node: Node, environment: dict[str, _Binding]) -> _Binding:
+        previous = self.static_forbidden
+        # Retain the surrounding bindings while checking the whole initializer.
+        # Fresh lambda/function locals are distinct from its runtime inputs.
+        self.static_forbidden = (set() if previous is None else previous) | {
+            id(binding) for binding in environment.values() if not binding.constant}
+        try:
+            value_type = self.type(self.node(node["type"]), environment)
+            expected = self.whnf(value_type)
+            if expected not in {_NAT, _BOOL, _UNIT}:
+                raise self.fail("unsupported", "mathematical constants require Nat, bool or Unit", node)
+            value = self.check(self.node(node["value"]), value_type, environment)
+            self.complete(value)
+            if self.free(value):
+                raise self.fail("type", "constant initializer is not a closed static value", node)
+            normalized = self.whnf(value)
+            kind = {_NAT: "nat", _BOOL: "bool", _UNIT: "unit"}[expected]
+            if normalized.kind != kind:
+                raise self.fail("inference", "constant initializer did not evaluate to an admitted static value", node)
+            if kind == "nat" and not 0 <= cast("int", normalized.value) <= MAX_CONSTANT_NAT:
+                raise self.fail("limit", "constant natural exceeds representation bound", node)
+            return _Binding(normalized, value_type, constant=True)
+        finally:
+            self.static_forbidden = previous
 
     def block(self, node: Node, environment: dict[str, _Binding], expected: _Term | None = None) -> _Binding:
         self.node(node, "block")
@@ -968,7 +1288,7 @@ class _Elaborator:
         for index, statement in enumerate(statements):
             self.site = statement
             kind = statement["kind"]
-            if kind in {"let", "typed_local"}:
+            if kind in {"let", "typed_local", "constant_local"}:
                 extended = self.local(statement, extended)
                 continue
             if index != len(statements) - 1:
@@ -1110,7 +1430,7 @@ class _Elaborator:
         self.site = node
         first_meta = len(self.metas)
         kind = node["kind"]
-        if kind not in {"alias", "definition", "function", "theorem", "lemma"}:
+        if kind not in {"alias", "definition", "function", "theorem", "lemma", "constant"}:
             raise self.fail("unsupported", f"declaration '{kind}' requires the full frontend")
         modifiers = node["modifiers"]
         if (not isinstance(modifiers, list) or any(not isinstance(value, str) or value not in {"public", "private", "internal"} for value in modifiers)
@@ -1120,10 +1440,13 @@ class _Elaborator:
         name = self.name(node["name"])
         if name in self.globals or name in {"Type", "_"} or "." in name:
             raise self.fail("name", f"duplicate or reserved declaration '{name}'")
-        generics = self.nodes(node["generics"])
-        parameters = [] if kind == "alias" else self.nodes(node["parameters"])
-        variables, environment = self.telescope(generics, parameters, {}, unit=kind != "alias")
-        if kind == "alias":
+        generics = [] if kind == "constant" else self.nodes(node["generics"])
+        parameters = [] if kind in {"alias", "constant"} else self.nodes(node["parameters"])
+        variables, environment = self.telescope(generics, parameters, {}, unit=kind not in {"alias", "constant"})
+        if kind == "constant":
+            evaluated = self.constant_value(node, environment)
+            body, result = evaluated.term, evaluated.type
+        elif kind == "alias":
             body = self.type(self.node(node["type"]), environment)
             result = self.infer(body)
         elif kind in {"theorem", "lemma"}:
@@ -1147,7 +1470,7 @@ class _Elaborator:
             self.complete(self.metas[index].type)
         emitted = f"vela_d{len(self.output)}_{name}"
         self.output.append(f"Definition {emitted} : {self.render(signature)} :=\n  {self.render(definition)}.")
-        binding = _Binding(_constant(emitted), signature, len(generics))
+        binding = _Binding(_constant(emitted), signature, len(generics), constant=kind == "constant")
         self.globals[name] = binding
         # Generated references never become names in the source namespace.
         self.constants[emitted] = binding
