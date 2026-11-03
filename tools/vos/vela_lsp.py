@@ -1,14 +1,20 @@
 # SPDX-License-Identifier: Apache-2.0
 """Untrusted host LSP adapter for the existing pure Vela diagnostic producer."""
 
-import json
 import subprocess
 import sys
 from collections.abc import Callable
 from pathlib import Path
 from typing import BinaryIO, Never, cast
 
-from vos.protocol_json import FrameError, MessageError, decode_message, encode_message, read_frame
+from vos.protocol_json import (
+    MAX_BODY_BYTES,
+    FrameError,
+    MessageError,
+    decode_message,
+    encode_message,
+    read_frame,
+)
 from vos.vela_lsp_format import Formatter, format_document, formatting_edits
 from vos.vela_lsp_services import (
     METHODS,
@@ -42,22 +48,31 @@ def diagnose(source: bytes) -> dict[str, object] | None:
                   "from vos.vela_lsp_worker import main; raise SystemExit(main())")
         done = subprocess.run([sys.executable, "-I", "-c", script], input=source,
                               capture_output=True, timeout=WORKER_SECONDS, check=False)
-        if done.returncode != 0:
+        if done.returncode != 0 or len(done.stdout) > MAX_BODY_BYTES:
             _invalid("pure diagnostic worker failed")
-        result = json.loads(done.stdout)
-        if result is None:
+        if done.stdout.strip() == b"null":
             return None
-        if (not isinstance(result, dict) or set(result) != {"kind", "line", "column", "message"}
-                or not isinstance(result["kind"], str) or not isinstance(result["message"], str)
+        result = decode_message(done.stdout)
+        if (set(result) != {"kind", "line", "column", "message"}
+                or not isinstance(result["kind"], str)
+                or result["kind"] not in {"syntax", "name", "type", "unsupported", "limit", "encoding"}
+                or not isinstance(result["message"], str)
                 or type(result["line"]) is not int or type(result["column"]) is not int):
             _invalid("invalid pure diagnostic worker result")
-        return cast("dict[str, object]", result)
+        encode_message(result)
+        # Malformed producer sites are worker failures, not refused client edits.
+        # Validate through the shared coordinate adapter so failed publication
+        # cannot mark an otherwise valid client overlay out of synchronization.
+        snapshot = SourceSnapshot("untitled:diagnostic-worker", 1, source.decode("utf-8"), 1)
+        snapshot.diagnostic_position(result["line"], result["column"])
     except subprocess.TimeoutExpired:
         return {"kind": "timeout", "line": 1, "column": 1,
                 "message": "Pure prototype check exceeded 5 seconds; no acceptance verdict"}
     except (OSError, ValueError):
         return {"kind": "internal", "line": 1, "column": 1,
                 "message": "Pure prototype diagnostic worker unavailable; no acceptance verdict"}
+    else:
+        return result
 
 
 def _object(value: object) -> dict[str, object]:
@@ -134,12 +149,12 @@ class Server:
                     _invalid("invalid ranged content change")
                 span = _object(change["range"])
                 start, end = _object(span.get("start")), _object(span.get("end"))
-                first = candidate.position_byte_offset(_integer(start.get("line")),
-                                                        _integer(start.get("character")))
-                last = candidate.position_byte_offset(_integer(end.get("line")),
-                                                       _integer(end.get("character")))
-                if first > last:
+                first_position = _integer(start.get("line")), _integer(start.get("character"))
+                last_position = _integer(end.get("line")), _integer(end.get("character"))
+                if first_position > last_position:
                     _invalid("content change range is reversed")
+                first = candidate.position_byte_offset(*first_position)
+                last = candidate.position_byte_offset(*last_position)
                 source = candidate.source
                 if "rangeLength" in change:
                     length = _integer(change["rangeLength"])
