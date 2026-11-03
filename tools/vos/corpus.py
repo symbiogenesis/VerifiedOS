@@ -184,16 +184,12 @@ def from_text(raw: str, name: str) -> Document:
 PROSE = "docs/spec.md"
 PROSE_SECTION_RE = re.compile(r"## (\d+)\.")
 
-# the tree the corpus excludes by name, stated once so that the selftest's sandbox and
-# the exclusion itself cannot stop agreeing
+# Shared by the corpus exclusion and the selftest's sandbox.
 UNREAD_PREFIX = "model/"
 
-# The carve-out inside that exclusion, and the reason it has to live beside it. A few
-# model files carry a fact a document restates, and a rule holding the two together has
-# to read both; the selftest's sandbox stands the rest of the tree up as empty files to
-# save copying what no rule opens, so a path a rule reads and this list omits passes on
-# the host and fails every sandbox's baseline, which reports as a red tree rather than
-# as a bad mutant. One list, read by the sandbox and by the parses alike.
+# Model files whose values are checked against documentation. The selftest copies
+# these files into its sandbox; other excluded model files may be empty placeholders.
+# Add a path here whenever a checker starts reading its values.
 MODEL_FACTS = (
     "model/model/riscv.sail_project",
     "model/model/core/cap_format.sail",
@@ -212,31 +208,10 @@ MODEL_FACTS = (
     "model/.pre-commit-config.yaml",
 )
 
-# The second window into the same tree, declared separately because it is narrow for
-# no reason at all and the list above is narrow for a good one.
-#
-# `MODEL_FACTS` is a *value* window: a rule reading a number out of the model should
-# name the file it reads, and adding one is a decision somebody makes on purpose. The
-# citation check is not that kind of rule. What it holds is hygiene over a construct
-# that occurs wherever the curated model argues from the register, which is most of the
-# tree, so a window sized for the other purpose leaves its claim mostly untrue: aimed
-# at the files above it reaches under a quarter of the citations the model makes, and
-# the sentence *the model's own citations reach no rule* stays true of the rest. The
-# citations are counted on every run and the live figure is K-63's `ok` line's to state,
-# never this comment's.
-#
-# The reach is by kind rather than by name for the same reason: a list of seventy-odd
-# files would be a membership nobody maintains, and the day a new Sail file cites a
-# requirement is the day it should be checked rather than the day somebody remembers.
-# The cost is the selftest's sandbox copying these instead of standing them up empty,
-# which is a few hundred files and about a megabyte.
-#
-# The kinds are not only Sail. The emulator harness and the test build files argue from
-# the register too, and those arguments are this repository's rather than upstream's:
-# upstream has no reason to cite an id in this numbering, so a requirement named in a
-# `.cpp` under `c_emulator/` is a curation decision exactly as one in a `.sail` is. A
-# window that admitted only Sail left nine of them unread, which is the same defect one
-# scale down.
+# Citation checks cover these file kinds throughout the curated model, including
+# its emulator harness and build files. Selecting by kind includes new source files
+# automatically; MODEL_FACTS alone would miss their requirement citations.
+# The selftest copies citation sources rather than creating empty placeholders.
 MODEL_CITATION_SUFFIXES = (".sail", ".json", ".in", ".cpp", ".hpp", ".c", ".h",
                            ".cmake")
 MODEL_CITATION_NAMES = ("CMakeLists.txt",)
@@ -268,20 +243,11 @@ class Corpus:
         self.root = root
         self.docs = docs
         self.by_name = {d.name: d for d in docs}
-        # Each submodule's path *and* the commit the index records for it. A link at
-        # a submodule wants only the path and asks with `in`, which reads a mapping
-        # exactly as it read a set; the pin rule wants the commit, and the index is
-        # the one place it is written down. Keeping it costs the split the listing
-        # already performs and is the difference between the checker reading the
-        # pins and shelling out to git a second time to ask what it has just been
-        # told.
+        # Submodule path -> indexed commit. Link checks use path membership;
+        # pin checks use the commit without another Git invocation.
         self.gitlinks = gitlinks
-        # Every tracked path that is a file rather than a gitlink, Markdown and not,
-        # model/ and not. The groups that read it read the whole tree on purpose,
-        # because their questions are about every file rather than about the prose:
-        # what kind each one is, what bytes it is made of, and what commit it states.
-        # So the exclusions the document groups apply by construction are each of
-        # those groups' own to state and refuse.
+        # Tracked files present in the working tree, including non-Markdown and
+        # model files. Each whole-tree check defines its own exclusions.
         self.tracked = tracked
         # Stage-zero files, including working-tree deletions. Rules asking whether
         # the index carries a file need its membership, not a subprocess reading
@@ -518,16 +484,8 @@ def load(root: Path) -> Corpus:
     the pointers at it dead, which is a finding a person can act on; reading it
     instead would abort the run on an IO error before any rule decided anything.
     """
-    # One listing answers every question the corpus asks of the index, because each is
-    # answered by an entry's mode and the object beside it. A link at a submodule points
-    # at something the repository carries as a gitlink rather than as a directory, and
-    # whether that gitlink is checked out is the reader's business and not the
-    # pointer's. So a submodule path resolves whether or not its contents are on disk: a
-    # shallow clone, or a checkout that skipped submodules, is not a repository whose
-    # cross-references have gone stale. The commit each gitlink records is kept for the
-    # same reason and it is what makes the pin rule work on such a checkout: the id is
-    # in the index whether or not anything was ever fetched, and most checkouts here
-    # have `upstream/` unpopulated.
+    # Read file membership, gitlink paths and pinned commits in one listing.
+    # Gitlinks resolve for link and pin checks even when submodules are uninitialized.
     index = read_index(root)
     names: list[str] = []
     tracked: list[str] = []
@@ -543,8 +501,7 @@ def load(root: Path) -> Corpus:
         try:
             docs.append(_read(root / n, n))
         except FileNotFoundError:
-            # deleted between the listing and the read, by a peer session sharing the
-            # checkout: dropped exactly as a deletion that landed before the listing
-            # is, so its absence stays reportable on every rule's own terms
+            # Treat deletion after listing like any missing file: let each rule
+            # report its absence rather than aborting the corpus load.
             continue
     return Corpus(root, docs, index.gitlinks, sorted(tracked), set(index.indexed))

@@ -68,16 +68,11 @@ APEX = "proofs/ApexTheorem.v"
 # The type that makes a declaration one of the checklist's obligations.
 PROP = "Prop"
 
-# The record's opening, and then its body by brace depth. The lazy `\{(.*?)\}\.` this
-# replaces ended at the first `}.` after the header, so a record that ever gained a
-# brace inside it would have been truncated and every field past the truncation would
-# have vanished with only the view's own rows left to notice.
+# Locate the header, then match braces so nested braces cannot truncate the record.
 _RECORD_OPEN_RE = re.compile(r"Record\s+Vocabulary\s*:\s*Type\s*:=\s*\{")
 _BRACE_RE = re.compile(r"[{}]")
 
-# The body's declarations, cut at every `;` outside a bracket. One C-level scan over
-# the delimiters rather than a walk over the characters: the body is a couple of
-# thousand characters and the delimiters are a few dozen.
+# Split declarations at semicolons outside brackets, scanning only delimiters.
 _DELIM_RE = re.compile(r"[;(){}\[\]]")
 _OPENERS = "({["
 _CLOSERS = ")}]"
@@ -90,57 +85,25 @@ _DECL_RE = re.compile(r"(?s)^\s*(\w+)\s*:\s*(\S.*?)\s*$")
 # it carries.
 _WORD_RE = re.compile(r"\w+")
 
-# What may stand before a `Definition` is the shared lexer's decoration grammar: bullets
-# and goal selectors, control flags, and quoted and legacy attributes. None of them moves
-# a token of the body, so a definition under one is read as if it stood bare, except
-# under `Fail` or `Succeed`, on its line or on a line of its own above it, which leaves
-# nothing defined: the pattern below reads such a definition and the shared look-back
-# (proofs.void_flag) drops it, so the count makes it a residue.
-
-# A `Definition` sentence's head. Its body ends at its own full stop, where the shared
-# sentence split ends it (proofs.sentence_ends), which is what a Gallina sentence
-# boundary is, so no list of vernacular keywords stands between this and a file that
-# grows one: the terminator this replaced first named four of them, and a `Theorem`
-# written between two definitions was swallowed by the definition above it and reported
-# as that definition's own field reads. The split reads a string whole, so a string's
-# full stop before a capital on the next line ends no body early and leaves no field
-# read after it unseen.
+# Accept the shared lexer's Definition prefixes. proofs.void_flag rejects Fail
+# and Succeed, including flags on preceding lines, leaving an unread declaration.
+# proofs.sentence_ends finds each body's terminator while respecting strings.
 _DEFINITION_RE = re.compile(r"(?m)^" + CONTROL_PREFIXES + r"Definition\s+(\w+)")
 
-# Every `Definition` the file spells, for the count that says whether the pattern above
-# read all of them. The keyword is counted wherever it stands and read only at column 0
-# under a prefix the reading takes, and that difference is the whole of what makes this
-# a count rather than a restatement: a definition inside a `Module` or a `Section` is
-# indented and one under `Fail` defines nothing, and a count anchored where the reading
-# is anchored would have been the audited pattern spelling its own answer, unable to
-# report the one shape it exists to catch. Counted wider than it is read, so either is a
-# residue and not a consumer nobody saw.
+# Count Definition keywords independently of the supported header grammar.
+# A count mismatch exposes unsupported or rejected declarations as unread.
 _DEFINITION_HEAD_RE = re.compile(r"(?<![\w'])Definition(?![\w'])")
 
-# A record value completed from a base, `{| v with f := x |}`, copies every field it does
-# not assign as a projection of the base and names none of them, so the fields it
-# consumes are in neither reading below. Its `with` is the one token that says so, and a
-# `match` accounts for every other `with` a definition body writes; a body carrying more
-# of the first than of the second is handed back rather than read.
+# Record updates such as `{| v with f := x |}` implicitly read unnamed fields.
+# Reject bodies with more `with` than `match` tokens; neither field scan can
+# enumerate those implicit reads.
 _WITH_RE = re.compile(r"(?<![\w'])with(?![\w'])")
 _MATCH_RE = re.compile(r"(?<![\w'])match(?![\w'])")
 
-# A field read through a record value, at whatever the definition calls its argument,
-# and the second reading that holds the first honest. `v.(f)` is an abbreviation: `f v`
-# applies the same projection and is equally legal Gallina, so a seam written that way
-# consumes a field this pattern does not see, and the consumer cell is short with
-# nothing to disagree with it. The two readings are held together rather than unioned,
-# because the record constructions at the end of the statement name every field in
-# assignment position and consume none of them, which a union would report as
-# thirty-four consumers apiece; so an assignment is what the second reading discounts,
-# and a body the two read differently is handed to the caller instead of answered.
-#
-# **What is discounted is the occurrence and never the name**, because one body does
-# both: a record built from another record writes `f := f v`, assigning the field and
-# consuming it in the same line. Subtracting the name would drop that read from the
-# second reading, leave it absent from the first as well, and let the two agree on a
-# body whose every consumer had just been lost, which is this file's silent failure
-# wearing an assignment. Subtracting the position keeps the read and reports it.
+# Compare explicit projections (`v.(f)`) with field-name occurrences outside
+# assignments. Bare applications (`f v`) can expose reads the first scan misses.
+# Treat any disagreement as unread rather than silently omitting a consumer.
+# Exclude assignment occurrences, not names: `f := f v` still reads f on the right.
 _FIELD_READ_RE = re.compile(r"\w+\.\((\w+)\)")
 _ASSIGNED_RE = re.compile(r"\b(\w+)\s*:=")
 
@@ -152,11 +115,8 @@ class ApexRecord:
     consumers: dict[str, list[str]] = field(default_factory=dict)   # field -> what touches it
     def_fields: dict[str, list[str]] = field(default_factory=dict)  # definition -> fields read
     declarations: int = 0          # every declaration the record makes, read or not
-    # What the statement says and this parse could not read whole, in the record or in
-    # a definition body, each worded for a caller that has to report it. Non-empty is a
-    # finding and never a narrower answer: a declaration nobody can name is an
-    # obligation nobody can bind, and a body nobody can read is a consumer cell held
-    # against a set rather than against the statement.
+    # Unparsed declarations or bodies, with diagnostics for the caller. A nonempty
+    # list requires a finding; a partial parse cannot establish complete coverage.
     unread: list[str] = field(default_factory=list)
 
 

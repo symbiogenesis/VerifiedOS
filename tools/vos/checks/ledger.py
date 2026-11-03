@@ -110,9 +110,7 @@ from typing import TYPE_CHECKING
 
 from vos import proofcites
 
-# `Context` lives in this package's __init__, which imports this module in turn.
-# Guarded, so the annotation below costs no import at run time: under PEP 649 an
-# annotation is not evaluated unless something asks for it, and nothing here does.
+# Import Context only for type checking to avoid a runtime import cycle.
 if TYPE_CHECKING:
     from . import Context
 
@@ -123,20 +121,14 @@ HEADING = "=== ledger: what each proof constant claims, and the ledger that join
 ARTIFACT = "tools/generated/proof-ledger.md"
 GENERATOR = "run.py check --fix"
 
-# The two values the claim column takes. `claimed` is the stronger reading and `cited`
-# the weaker, and the column is named for the stronger one because a reader scanning it
-# is looking for the debts rather than for the bibliography.
+# A discharge annotation is claimed; a requirement reference without one is cited.
 CLAIMED = "claimed"
 CITED = "cited"
 
-# What a cell says where there is nothing to name, which the working rules fix: a
-# not-applicable cell is `n/a`, never a blank and never a bare dash.
 NONE = "n/a"
 
-# Where a cited row sorts among its artifact's rows for one entry. Negative because the
-# claims sort by the order their annotations appear in the file, and a row naming no
-# constant belongs ahead of all of them; it is never beside one, a claimed entry having
-# no cited row.
+# Sort cited rows before annotation positions, which start at zero.
+# A requirement/artifact pair has either cited or claimed rows.
 CITED_RANK = -1
 
 
@@ -158,9 +150,6 @@ class Row:
                 f"| {self.claims} |")
 
 
-# The file's whole prose, which is a function of nothing and so is written here rather
-# than composed. It states what a row means and why the file sits where it does, in that
-# order, because a reader meets the ruling after the reading and not before it.
 PREAMBLE = """\
 # The proof ledger
 
@@ -267,9 +256,7 @@ def run(ctx: Context) -> None:
     cites = {rel: set(ctx.proof_reading.ids(text)) for rel, text in pairs}
 
     if len(pairs) < len(rels):
-        # the per-file reason is K-103's, and repeating it here would price one
-        # unreadable artifact as two findings; what this says is only that this rule's
-        # subject is short of the index's, so a narrowed reading is not a silent one
+        # K-103 reports per-file errors. Report incomplete coverage here.
         findings.append(f"{len(rels) - len(pairs)} of the {len(rels)} proof artifacts "
                         "the index carries could not be read here, so what their "
                         "constants claim is undecided")
@@ -323,8 +310,7 @@ def _ledger(ctx: Context, place: dict[str, int], cites: dict[str, set[str]],
                         "checker decides about it means anything")
     else:
         expected = emit(joined)
-        # the corpus's copy rather than the file's, so that a `--fix` earlier in this
-        # same run is what the comparison sees instead of the bytes it has just replaced
+        # Include repairs queued earlier in this run, before they reach disk.
         held = ctx.text(ARTIFACT)
         if held != expected:
             findings.append(

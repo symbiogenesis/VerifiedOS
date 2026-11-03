@@ -338,21 +338,16 @@ class Assembler:
     def _operands(self, name: str, item: Item, pc: int) -> list[int]:
         wanted = dialect.signature(name)
         given = item.args
-        # The vector mask is the one operand a program leaves out rather than
-        # spells. `v0.t` is written where the operation is masked and nothing at
-        # all where it is not, which is how every RISC-V assembler spells it and
-        # how the model's own `maybe_vmask` mapping reads it back
-        # (extensions/V/vext_utils_insts.sail). It is the last operand of every
-        # form that has one, so the absence is unambiguous.
+        # An optional trailing vector mask is spelled `v0.t` when enabled and
+        # omitted when disabled. Normalize omission to the model's empty operand
+        # (extensions/V/vext_utils_insts.sail, maybe_vmask).
         if wanted and wanted[-1] == "vm" and len(given) == len(wanted) - 1:
             given = [*given, ""]
         if len(given) != len(wanted):
             raise self._error(item.line,
                               f"{name} takes {len(wanted)} operands, given {len(given)}")
         out: list[int] = []
-        # `strict` even though the lengths were just compared: the guard above
-        # reports the operand count a person got wrong, and this one refuses to
-        # encode a truncated instruction if the two ever stop agreeing.
+        # Keep strict pairing as a safeguard against silently truncated encodings.
         for spec, text in zip(wanted, given, strict=True):
             out += self._operand(spec, text, item, pc)
         return out
@@ -362,9 +357,7 @@ class Assembler:
         if spec == "reg":
             return [self._register(text, item)]
         if spec == "vreg":
-            # The vector register file is a separate file from the merged one,
-            # so this resolves against its own table and an integer register
-            # name in a vector operand is an error rather than an index.
+            # Use the vector register namespace; integer register names are invalid.
             key = text.lower()
             if key not in dialect.VREGISTERS:
                 raise self._error(item.line, f"no vector register {text}")
