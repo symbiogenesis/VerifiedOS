@@ -2,6 +2,7 @@
 """Independent complete-path loan-flow fixtures and rejected neighbors."""
 
 from collections.abc import Callable
+from itertools import product
 from typing import cast
 
 from tests.harness import Case, ensure
@@ -19,6 +20,7 @@ from vos.vela_loans import (
     Loan,
     Move,
     Node,
+    Nop,
     OpenInvariant,
     Owner,
     PathReport,
@@ -438,6 +440,48 @@ def _complete_exploration_and_budgets() -> None:
         ensure(len(report.paths) == 2, "budget exhaustion exposed a partial report")
 
 
+def _generated_branch_demand_oracle() -> None:
+    # Independent finite model: only explicit reads demand the shared loan.
+    # A parent write before that path's last read conflicts; an audit-field
+    # write never does. The sibling's reads must not affect either decision.
+    alternatives = tuple(product(("use", "write", "audit", "idle"), repeat=2))
+
+    def event(operation: str) -> Event:
+        match operation:
+            case "use":
+                return Use("reader")
+            case "write":
+                return Access(_BYTES, "write")
+            case "audit":
+                return Access(_AUDIT, "write")
+            case _:
+                return Nop()
+
+    for left, right in product(alternatives, repeat=2):
+        nodes = [Node("lend", Borrow(Loan("reader", "workspace", _BYTES)), ("left0", "right0"))]
+        for branch, operations in (("left", left), ("right", right)):
+            nodes.extend(Node(f"{branch}{index}", event(operation),
+                              (f"{branch}1",) if index == 0 else ())
+                         for index, operation in enumerate(operations))
+        reports = analyze(_OWNERS, Graph("lend", tuple(nodes))).paths
+        ensure(len(reports) == 2, "finite branch oracle lost an alternative")
+        for report, branch, operations in zip(reports, ("left", "right"), (left, right), strict=True):
+            last_read = max((index for index, operation in enumerate(operations) if operation == "use"),
+                            default=-1)
+            end_node = "lend" if last_read < 0 else f"{branch}{last_read}"
+            expected = [(f"{branch}{index}", "suspended-parent", ("reader",))
+                        for index, operation in enumerate(operations)
+                        if operation == "write" and index < last_read]
+            ensure([(issue.node, issue.kind, issue.resources) for issue in report.issues] == expected,
+                   f"branch demand/conflict differs from independent oracle: {branch}, {operations}")
+            ensure(_ends(report) == [(end_node, "reader", "workspace")],
+                   f"restoration differs from explicit last-read oracle: {branch}, {operations}")
+            ensure(not report.retained_loans and not report.suspended and not report.returned_loans,
+                   "finite branch retained a loan after its last demand")
+            ensure(all(item.status == "unresolved" for item in report.obligations),
+                   "finite oracle promoted supplied facts into checked obligations")
+
+
 def _malformed_records_and_edges() -> None:
     # Deliberately cross the annotated API boundary: malformed supplied facts
     # must refuse the whole analysis rather than leak an incidental Python error.
@@ -491,4 +535,5 @@ def cases() -> list[Case]:
             Case("invariant and suspension boundaries", _invariants_and_boundaries),
             Case("malformed graphs and absent references", _structural_refusals),
             Case("malformed records and edge identities refuse completely", _malformed_records_and_edges),
+            Case("generated independent branch-demand and restoration oracle", _generated_branch_demand_oracle),
             Case("complete deterministic exploration and bounded refusal", _complete_exploration_and_budgets)]
