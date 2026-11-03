@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from typing import Literal
 
 from vos.vela_ast import Name, Site, VelaError
+from vos.vela_documentation import DocumentationSource
 
 MAX_SYMBOLS = 1024
 MAX_OCCURRENCES = 4096
@@ -28,9 +29,12 @@ class _Occurrence:
 class Facts:
     """Collect decisions, without performing name resolution or semantic checks."""
 
-    def __init__(self) -> None:
+    def __init__(self, source: bytes | None = None,
+                 declaration_sites: dict[Site, Site] | None = None) -> None:
         self.symbols: list[_Symbol] = []
         self.occurrences: list[_Occurrence] = []
+        self.documentation = None if source is None else DocumentationSource(source)
+        self.declaration_sites = {} if declaration_sites is None else dict(declaration_sites)
 
     def declare(self, name: Name, kind: SymbolKind, detail: str) -> int:
         if len(self.symbols) >= MAX_SYMBOLS:
@@ -55,6 +59,15 @@ class Facts:
             {"name": symbol.name.text, "kind": symbol.kind, "detail": symbol.detail,
              "line": symbol.name.site.line, "column": symbol.name.site.column}
             for _, symbol in ordered]
+        for data, (_, symbol) in zip(symbols, ordered, strict=True):
+            site = self.declaration_sites.get(symbol.name.site)
+            if site is not None and self.documentation is not None:
+                try:
+                    documentation = self.documentation.at(site)
+                except ValueError as error:
+                    raise VelaError("inspection-limit", site.line, site.column, str(error)) from error
+                if documentation is not None:
+                    data["documentation"] = documentation.record()
         occurrences: list[dict[str, object]] = [
             {"symbol": identities[occurrence.symbol], "line": occurrence.site.line,
              "column": occurrence.site.column, "declaration": occurrence.declaration}
