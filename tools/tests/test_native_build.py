@@ -163,6 +163,24 @@ def _population_and_configuration() -> None:
         ensure(subject.prepare(at.build, at.source, original), "missing prior header allowed reuse")
 
 
+def _nested_solver_environment() -> None:
+    with fixture() as at:
+        solver = at.root / "solver-bin"
+        solver.mkdir()
+        inherited = os.pathsep.join((str(at.root / "opam-bin"), str(solver),
+                                    str(at.root / "python-bin")))
+        with patch.dict(os.environ, {"VOS_Z3_BIN": str(solver), "PATH": inherited}):
+            env._prepend_z3_path()
+            parent = subject.capture(at.build, at.source)
+            env._prepend_z3_path()
+            child = subject.capture(at.build, at.source)
+            subject.verify(parent, at.build, at.source)
+            ensure(child == parent,
+                   "nested model preparation must preserve native receipt identity")
+            with patch.dict(os.environ, {"PATH": inherited}):
+                _refuses(subject.validate, child)
+
+
 def _malformed_and_failed_discovery() -> None:
     with fixture() as at:
         original = subject.capture(at.build, at.source)
@@ -264,6 +282,7 @@ def _preferred_native_fixture() -> None:
 def cases() -> list[Case]:
     return [Case("native tools, sources, headers and libraries bind bytes despite old mtimes", _content_and_reuse),
             Case("native dependency population and configured compiler identity", _population_and_configuration),
+            Case("nested solver preparation preserves native input identity", _nested_solver_environment),
             Case("malformed native identity and failed discovery refuse", _malformed_and_failed_discovery),
             Case("fresh native builds and generated intermediate ownership", _fresh_and_generated),
             Case("retargeted native header symlink refuses even for equal bytes", _symlink_selection,

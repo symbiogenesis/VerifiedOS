@@ -347,6 +347,25 @@ def _hoisted_lane_constants() -> None:
         "VOS_BUILD_ROOT set after import must win, like every other override here"))
 
 
+def _solver_path_is_idempotent() -> None:
+    with tempfile.TemporaryDirectory(prefix="vos-z3-path-") as name:
+        solver = Path(name) / "bin"
+        solver.mkdir()
+        prefix = str(solver)
+        other = str(Path(name) / "other")
+        for original in (other, os.pathsep.join((prefix, other)),
+                         os.pathsep.join((other, prefix, "", prefix))):
+            with patch.dict(os.environ, {"VOS_Z3_BIN": prefix, "PATH": original}):
+                expected = os.pathsep.join((prefix, *(entry for entry in original.split(os.pathsep)
+                                                     if entry != prefix)))
+                env._prepend_z3_path()
+                ensure(os.environ["PATH"] == expected,
+                       "solver selection must preserve other PATH entries and their order")
+                env._prepend_z3_path()
+                ensure(os.environ["PATH"] == expected,
+                       "nested model commands must keep the selected solver environment stable")
+
+
 def _oracle_tree_keys_the_edition() -> None:
     """The shared oracle tree is named for its pin and filed under the Sail edition.
 
@@ -636,6 +655,7 @@ def cases() -> list[Case]:
         # host-only because on the guest load() would not refuse, it would load
         Case("refuses-win32", _refuses_win32, lane="host"),
         Case("hoisted-lane-constants", _hoisted_lane_constants),
+        Case("solver-path-is-idempotent", _solver_path_is_idempotent),
         Case("install-recipes-compose", _install_recipes_compose),
         Case("binds-the-proof-gate-environment", _binds_the_proof_gate_environment),
         Case("oracle-tree-keys-the-edition", _oracle_tree_keys_the_edition),
