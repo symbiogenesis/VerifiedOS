@@ -4,15 +4,15 @@
 # system runtime alone. Arguments are passed directly to Node.
 set -eu
 
-node_version=26.12.0
+node_version=26.13.0
 case "$(uname -s):$(uname -m)" in
     Linux:aarch64|Linux:arm64)
         node_arch=arm64
-        node_sha=fd6cc729fa4448c2ac27c3fca5606019ced63c65a15c152c8df03e0cbce7f4c5
+        node_sha=406fe3fbde1c054adff8b297c16fdb5af6659db327c1ac8acd46b56ef1af9a92
         ;;
     Linux:x86_64|Linux:amd64)
         node_arch=x64
-        node_sha=fd47865ecd6391ebb431fc815e01b9135bf83ded5cf373247e9331e196b7aded
+        node_sha=d28a96af6c38596f6d9d97c0ee531c13d238d757742387d1928de822d959e997
         ;;
     *)
         echo 'The oracle Node runtime supports Linux x64 and arm64.' >&2
@@ -20,7 +20,7 @@ case "$(uname -s):$(uname -m)" in
         ;;
 esac
 
-# Checksums are from https://nodejs.org/dist/v26.12.0/SHASUMS256.txt.
+# Checksums are from https://nodejs.org/dist/v26.13.0/SHASUMS256.txt.
 node_name="node-v${node_version}-linux-${node_arch}"
 node_root=${NODE_TOOLCHAIN_ROOT:-"${HOME}/build/toolchains"}
 mkdir -p -- "$node_root"
