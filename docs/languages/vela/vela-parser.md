@@ -94,6 +94,10 @@ or timeout establishes no completeness. Review diagnostic meaning independently
 after grammar changes. This reading selects no runtime error-message API, table
 backend or Menhir runtime dependency; such changes need their own qualification.
 
+Freeze a named syntax interaction the existing hand-authored corpus does not
+systematically vary, and the expected maintenance benefit, before implementation.
+Retain a campaign only when it exercises that interaction reproducibly and
+reduces explicit case construction or failure reduction under the same controls.
 Acceptance preserves syntax/migration fixtures and deterministic regeneration,
 demonstrates bounded replay and an independent seeded-defect kill, and records
 the exact generator, grammar and rendered-input identities. Stop a campaign
