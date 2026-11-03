@@ -294,12 +294,9 @@ Record Geometry : Type := {
      register states no minimum, so none is checked (JournalIndex.v gap b). *)
   fan : nat;
 
-  (* The declared height ceiling the composition will fix. Every walk below
-     is structural in the bound its caller passes rather than in this field;
-     what that bound buys is the refusal of an over-deep or cyclic
-     reference. `insert_gate` and `read_gate` read this field and refuse a
-     walk bound or a returned height past it, which is what ties a gated
-     call's bound to this declaration. *)
+  (* The composition's height ceiling. Walks recurse on the caller's bound
+     to terminate on deep or cyclic references. insert_gate and read_gate
+     reject bounds or returned heights above this ceiling. *)
   depth : nat
 }.
 
@@ -382,17 +379,10 @@ Fixpoint route (ka : KeyAlgebra) (k : Key ka) (ss : list (Key ka)) : nat :=
   | cons s rest => if key_leb ka s k then S (route ka k rest) else 0
   end.
 
-(* =========================================================================
-   Structural admission, in two layers.
-
-   `spans` is the weaker layer: an address outside the arena, a reference its
-   walk bound does not reach, and a cycle are each refused, the cycle because
-   a cycle has no finite walk and the walk below is structural in that bound.
-   It mirrors JournalIndex.v's `bounded_tree` over this arena. No operation
-   below calls it on its input; it is what the theorems take as a hypothesis,
-   what the writer re-decides through `admitted` on what it published, and
-   what the witnesses decide by conversion.
-   ========================================================================= *)
+(* Structural admission: spans rejects out-of-arena addresses and paths
+   longer than its walk bound, including cycles. It mirrors
+   JournalIndex.v's bounded_tree. Operations do not check spans on input;
+   theorems assume it, and the writer checks it through admitted on output. *)
 
 Fixpoint spans (ka : KeyAlgebra) (ar : Arena ka) (fuel b : nat) : bool :=
   match nth_error ar b with
@@ -484,10 +474,9 @@ Fixpoint lookup (ka : KeyAlgebra) (ar : Arena ka) (fuel b : nat)
            end
   end.
 
-(* The logical map the subtree represents: its entries in key order, read as
-   JournalIndex.v's L1 Index. A refused node contributes nothing, which is
-   why every statement below is gated on `spans` or on `admitted` rather than
-   read off this function alone. *)
+(* Flatten the subtree into JournalIndex.v's logical Index. Refused nodes
+   contribute no entries, so correctness statements require spans or
+   admitted. *)
 Fixpoint flatten (ka : KeyAlgebra) (ar : Arena ka) (fuel b : nat)
   : Index ka :=
   match nth_error ar b with
@@ -895,10 +884,9 @@ Proof.
              (cons c cs) lo hi (fun l h x Hx => IH ar l h x Hx) H).
 Qed.
 
-(* The opening the five frame lemmas below share: read node `b` of `ar` in `H`
-   and in the goal, refuse an address outside the arena, and read the goal's
-   node past the appended `ext`. The four names are parameters because an
-   Ltac definition must bind every hypothesis name it reads. *)
+(* Shared frame-lemma setup: read node b from ar in H and the goal, reject
+   an invalid address, then simplify the read in ar extended by ext. All
+   hypothesis names are explicit Ltac parameters. *)
 Local Ltac read_the_framed_node H ar ext b :=
   simpl in H |- *; destruct (nth_error ar b) as [ nd | ] eqn:E; [ | discriminate H ];
   rewrite (nth_error_app_l _ ar ext b nd E).
@@ -969,10 +957,8 @@ Proof.
              (fun l h x Hx => IH ar ext l h x Hx) H).
 Qed.
 
-(* =========================================================================
-   Copy-on-write, as the one fact every retained-root statement rests on:
-   a write appends and rewrites nothing.
-   ========================================================================= *)
+(* Copy-on-write: insertion appends nodes and preserves every existing
+   node. Retained-root proofs use this property. *)
 
 Definition appended (ka : KeyAlgebra) (ar ar' : Arena ka) : Prop :=
   exists ext : Arena ka, ar' = app ar ext.
@@ -1058,11 +1044,8 @@ Proof.
       * exact (publish_branch_appended ka g ar1 ss' cs' ar' gr H).
 Qed.
 
-(* =========================================================================
-   R-10-010's retained snapshot root: what a later write does to it, which
-   is nothing. The root is read at its own admission, the write is an
-   arbitrary insert anywhere in the same arena, and the query is arbitrary.
-   ========================================================================= *)
+(* R-10-010: an arbitrary later insertion preserves lookup through an
+   admitted retained snapshot root. *)
 
 (*| discharges: R-10-010 |*)
 Theorem a_retained_root_survives_a_later_insert :
@@ -1742,14 +1725,10 @@ Proof.
     rewrite (app_of_take_and_drop nat (halve (length cs)) cs). reflexivity.
 Qed.
 
-(* =========================================================================
-   S2, which states R-10-003's index for the B+ arm R-10-004 names and no
-   part of R-10-036's checkpoint transaction: an insert on the tree
-   represents the logical map's insert, replacement included, and the two
-   split cases change no map. Arbitrary key algebra, arena, geometry, walk
-   bound, subtree, key and value; the hypothesis is the admission of the
-   input, which `insert` does not run for itself and a caller supplies.
-   ========================================================================= *)
+(* S2 (R-10-003, the B+ arm of R-10-004): insertion implements logical-map
+   insertion, including replacement and splits. The input must be admitted;
+   insert does not check it. This is separate from R-10-036's checkpoint
+   transaction. *)
 
 (*| discharges: R-10-003 |*)
 Theorem an_insert_represents_the_logical_map :
@@ -1845,16 +1824,9 @@ Proof.
         rewrite HFP. rewrite HFQ. rewrite <- HIH. reflexivity.
 Qed.
 
-(* =========================================================================
-   The fail-closed discipline, and what it buys.
-
-   `insert_checked` re-decides the structural and order admission on what it
-   published and refuses a result that does not decide true, so an admitted
-   tree is followed by an admitted tree or by a refusal and never by a tree
-   nothing checked. That the check never fires on a well formed input is a
-   separate obligation, proved below the balance section over the inputs
-   `well_formed` decides, and refuted over `admitted` by a computed witness.
-   ========================================================================= *)
+(* insert_checked rechecks structural and ordering admission on output and
+   rejects failures. Completeness is proved below for well_formed inputs;
+   the computed counterexample shows admitted alone is insufficient. *)
 
 Lemma lookup_grown_one :
   forall (ka : KeyAlgebra) (ar : Arena ka) (fuel a : nat) (k : Key ka),
@@ -2011,36 +1983,15 @@ Proof.
     rewrite Hflat. reflexivity.
 Qed.
 
-(* =========================================================================
-   Balance, in the two readings this file keeps apart, because one of them is
-   the B+ property and the other is not.
+(* Occupancy and equal leaf depth are separate properties.
+   node_fits_everywhere checks node capacities and separator/child counts
+   and is part of admitted; it does not constrain leaf depth. The skew
+   witness is admitted and satisfies occupancy, but its leaf depths differ.
 
-   Occupancy. Every node the walk reaches holds no more entries and no more
-   children than the declared fanout and carries exactly one separator fewer
-   than its children. `node_fits_everywhere` decides that and nothing else: it
-   is `node_fits` applied down the walk, hence a conjunct of `admitted`, hence
-   decided by the fail-closed check on every published result. It is named for
-   what it decides rather than for balance, because it is blind to where a
-   leaf sits.
-
-   Equal leaf depth, which is the B+ property a reader of the word balance
-   takes: every leaf sits at one common distance below the root. Neither
-   `admitted` nor occupancy decides it. The skewed witness at the end of this
-   file is admitted, occupancy-fitting and spanning while one of its leaves
-   hangs a level above the others, and the fail-closed check does not repair
-   it, because what `insert_root` re-decides is `admitted`, which that tree
-   passes. `at_depth` decides equal leaf depth at a stated depth and
-   `leaves_share_one_depth` searches the depths a bound admits.
-
-   What carries the property through `insert_root` is therefore not its check
-   but the two theorems below: an insert from a subtree whose leaves share a
-   depth publishes both halves at that same depth, and a root insert answers
-   at that depth or at exactly one more, which is the only place a B+ tree's
-   height moves. Equal leaf depth enters those theorems as a hypothesis, and
-   the skew witness is what `insert_root` alone costs. `insert_gate`, after
-   the completeness section, decides it on what it publishes, and these
-   theorems are what make that decision never fire on its own output.
-   ========================================================================= *)
+   at_depth checks a stated leaf depth; leaves_share_one_depth searches
+   bounded depths. Insertion preserves a shared leaf depth, except that a
+   root split increases it by one. insert_root assumes this property in its
+   preservation theorem; insert_gate additionally checks it on output. *)
 
 Fixpoint node_fits_everywhere (ka : KeyAlgebra) (g : Geometry) (ar : Arena ka)
                               (fuel b : nat) : bool :=
@@ -2451,35 +2402,17 @@ Proof.
       [ lia | exact Ha ].
 Qed.
 
-(* =========================================================================
-   Completeness of the fail-closed check, and the inputs it is complete for.
+(* Completeness requires well_formed inputs, whose separators are strictly
+   above preceding bounds. admitted permits equal separators around an
+   empty child; splitting between them can produce a half that fails
+   admitted, even with ample capacity. an_admitted_input_the_check_refuses
+   exhibits this case.
 
-   The obligation is that the check never refuses a well formed insert, so
-   the first thing to settle is which inputs are well formed, and `admitted`
-   is not the answer. `rising` lets a separator equal the bound before it,
-   which admits an empty child between two equal separators, and a later
-   internal split that cuts the separator list between those two hands its
-   left half a last separator that is not strictly below the half's new upper
-   bound. `admitted` refuses that half, so an admitted input with ample arena
-   capacity and a key inside its range is refused by the check. The witness
-   `an_admitted_input_the_check_refuses` at the end of this file computes
-   exactly that, which is why every completeness statement below is stated
-   over `well_formed` and none over `admitted` alone.
-
-   `well_formed` is `admitted` with one change: every separator is strictly
-   above the bound before it, where `rising` asks only that it not be below
-   it. It implies `admitted` (`a_well_formed_tree_is_admitted`), an empty leaf
-   root is well formed (`the_empty_root_is_well_formed`), and every write
-   below keeps it, so it is the class the writer produces from an empty root.
-   Over it the check is complete in two halves, stated apart because they are
-   different facts. Whenever the write itself answers, the check agrees with
-   it and the result is well formed again
-   (`the_check_never_refuses_a_well_formed_insert`). And the write answers
-   whenever the arena has room for the two nodes per level a split can cost,
-   so the only refusal a well formed input can meet is a spent arena
-   (`a_well_formed_insert_is_refused_only_by_a_spent_arena`). That capacity
-   figure is a sufficient bound read off the walk bound, not a measured cost.
-   ========================================================================= *)
+   well_formed implies admitted, holds of an empty leaf root, and is
+   preserved by insertion. On these inputs, insert_checked accepts every
+   successful write. With valid geometry and a key inside the subtree
+   bounds, room for two nodes per level of the walk bound guarantees
+   success. This is a sufficient capacity bound, not a measured cost. *)
 
 Definition above_strict (ka : KeyAlgebra) (lo : Bound ka) (k : Key ka) : bool :=
   match lo with None => true | Some l => key_lt ka l k end.
@@ -3604,8 +3537,8 @@ Qed.
    The completeness statements.
    ------------------------------------------------------------------------- *)
 
-(* An empty leaf root is well formed, whatever the geometry, walk bound and range:
-   the class every write below keeps starts where a composition starts. *)
+(* An empty leaf root is well formed for any geometry, walk bound, and
+   range. *)
 Lemma the_empty_root_is_well_formed :
   forall (ka : KeyAlgebra) (g : Geometry) (fuel : nat) (lo hi : Bound ka),
     well_formed ka g (cons (leaf_of ka nil) nil) fuel lo hi 0 = true.
@@ -3613,8 +3546,8 @@ Proof.
   intros ka g fuel lo hi. destruct fuel; reflexivity.
 Qed.
 
-(* Half one: whenever the write itself answers on a well formed input, the
-   fail-closed check agrees with it and the result is well formed again. *)
+(* A successful write on a well_formed input passes the output check and
+   remains well_formed. *)
 (*| discharges: R-10-003 |*)
 Theorem the_check_never_refuses_a_well_formed_insert :
   forall (ka : KeyAlgebra) (g : Geometry) (fuel : nat) (ar : Arena ka)
@@ -3635,9 +3568,8 @@ Proof.
   rewrite (well_formed_grown_admitted ka g fuel ar' lo hi gr Hgr). reflexivity.
 Qed.
 
-(* Half two: a well formed input with room in the arena for two nodes per level the
-   walk bound admits is never refused, so the one refusal a well formed input can
-   meet is a spent arena. *)
+(* With valid geometry and an in-range key, a well_formed input with room
+   for two nodes per level of the walk bound cannot be refused. *)
 (*| discharges: R-10-003 |*)
 Theorem a_well_formed_insert_is_refused_only_by_a_spent_arena :
   forall (ka : KeyAlgebra) (g : Geometry) (fuel : nat) (ar : Arena ka)
@@ -3788,35 +3720,17 @@ Proof.
   - eexists; eexists; eexists. reflexivity.
 Qed.
 
-(* =========================================================================
-   The published gate: equal leaf depth and the declared height decided
-   inside it, rather than carried beside it by hypothesis.
+(* insert_gate first rejects a walk bound above the declared depth, then
+   runs insert_root and checks published on its result: height within the
+   ceiling, arena within capacity, equal leaf depth at that height, and
+   well_formed ordering. Subsequent calls and reads use the published
+   height as their walk bound.
 
-   `insert_root` re-decides `admitted`, which is blind to where a leaf sits,
-   and nothing in it reads the geometry's declared `depth`. `insert_gate`
-   first refuses a caller's walk bound above that depth, before walking the
-   tree. It then runs `insert_root` and decides `published` on what it
-   returned: the height the call hands back is within the declared `depth`,
-   the arena is within its
-   declared capacity, every leaf sits at exactly that height, and the tree is
-   well_formed. The first conjunct is what ties a call's walk bound to the
-   declared depth, since the height a gated call returns is the walk bound
-   the next gated call and every gated read take. The third is equal leaf
-   depth decided rather than assumed, at the height the walk actually needs
-   and not at any height a search admits. The fourth is the class the
-   completeness statements above are stated over, so a result the gate
-   publishes is an input those statements cover.
-
-   **What this changes and what it does not.** `insert_checked` and
-   `insert_root` admit exactly what they admitted before, and the skew
-   witness below still computes that `insert_root` publishes a skewed tree.
-   The gate is a new and stricter operation above them: it refuses that same
-   write, and it refuses a root split whose new height passes the declared
-   ceiling, which is a spent-capacity refusal of the same kind as a spent
-   arena. On an input the gate itself published, its own checks never fire
-   (`the_gate_never_refuses_a_published_input_below_its_ceiling`), so the
-   refusals left to it are a spent arena and a spent height.
-   ========================================================================= *)
+   The underlying insert_checked and insert_root retain their weaker
+   checks. The gate rejects their skewed outputs and root splits above the
+   height ceiling. On a published input below that ceiling, its checks
+   accept every successful write, leaving arena and height exhaustion as
+   refusal causes. *)
 
 Definition published (ka : KeyAlgebra) (g : Geometry) (ar : Arena ka) (h : nat)
                      (lo hi : Bound ka) (root : nat) : bool :=
@@ -3979,26 +3893,14 @@ Proof.
   reflexivity.
 Qed.
 
-(* =========================================================================
-   A read path that tells a structural refusal from a miss.
+(* seek distinguishes structural refusal (None) from an absent key (Some
+   None); a hit is Some (Some value). Refusals cover invalid addresses,
+   exhausted walk bounds, missing routed children, and cycles. It follows
+   lookup's route without checking admission.
 
-   `lookup` answers `None` for an address outside the arena, for a walk that
-   runs out of its bound, for a routed child index outside the child list and
-   for a cycle, and the same `None` for a key that is simply absent. `seek`
-   walks the same route and answers `None` for the first four only; a walk
-   that reaches a leaf answers `Some` of what the leaf holds, which is `Some
-   None` for a miss. It runs no admission of its own and costs the same walk
-   `lookup` costs: what it adds is that the answer names which of the two
-   happened. `lookup` is `seek` with the distinction forgotten
-   (`lookup_forgets_a_refusal`), an admitted tree is never refused a read
-   (`an_admitted_tree_refuses_no_read`), and so a refusal is evidence that the
-   tree is not admitted (`a_refused_read_names_an_unadmitted_tree`).
-
-   `read_gate` is the read a gated composition makes: it takes the walk bound
-   from the height the gate published and refuses one past the geometry's
-   declared depth, which is the read's half of tying a call's walk bound to
-   that declaration.
-   ========================================================================= *)
+   lookup discards this distinction. Admitted trees never refuse a read.
+   read_gate uses the published height as the walk bound and rejects
+   heights above the declared depth. *)
 
 Fixpoint seek (ka : KeyAlgebra) (ar : Arena ka) (fuel b : nat) (k : Key ka)
   : option (option nat) :=
@@ -4146,13 +4048,9 @@ Definition demo_arena : Arena nat_keys :=
 Definition cyclic_arena : Arena nat_keys :=
   cons (branch_of nat_keys (cons 5 nil) (cons 0 (cons 0 nil))) nil.
 
-(* The skew: the demo tree's two leaves under their branch at address 2, a
-   third leaf at address 3, and a root at address 4 holding the branch beside
-   that bare leaf. Every key is in order, every node fits, every reference is
-   inside the arena and the walk terminates, so `admitted`, `spans` and
-   `node_fits_everywhere` all decide true; the leaf at address 3 nevertheless
-   sits one level above the other two. This is why occupancy is not called
-   balance in this file and why `at_depth` is a separate decision. *)
+(* Skew witness: the root at address 4 has a branch at address 2 beside a
+   leaf at address 3. Ordering, occupancy, and spans pass, but the leaves
+   have different depths. at_depth detects the defect. *)
 Definition skew_geometry : Geometry :=
   {| arena_cap := 16; fan := 2; depth := 4 |}.
 
@@ -4263,11 +4161,8 @@ Example the_inserts_keep_the_leaves_at_one_depth :
   /\ demo_probe_depth 5 99 = Some (pair true true) :=
   conj eq_refl (conj eq_refl eq_refl).
 
-(* The skew, computed: `admitted`, `spans` and `node_fits_everywhere` all
-   decide true on a tree one of whose leaves sits a level above the other two,
-   and that tree answers a lookup. No depth is shared, at one level or at two
-   or at any level the walk bound admits, so occupancy is not equal leaf depth
-   and the name `node_fits_everywhere` is the one that holds. *)
+(* The skew witness passes admitted, spans, and node_fits_everywhere and
+   answers lookup, but no common leaf depth exists within the walk bound. *)
 Example a_skewed_tree_is_admitted_and_fits_yet_shares_no_leaf_depth :
   geometry_ok skew_geometry = true
   /\ arena_ok nat_keys skew_geometry skew_arena = true
@@ -4281,13 +4176,9 @@ Example a_skewed_tree_is_admitted_and_fits_yet_shares_no_leaf_depth :
   conj eq_refl (conj eq_refl (conj eq_refl (conj eq_refl (conj eq_refl
     (conj eq_refl (conj eq_refl (conj eq_refl eq_refl))))))).
 
-(* And what the fail-closed check does with it, which is nothing: the write is
-   published, `insert_root` re-decides `admitted` true on what it published,
-   and the skew is still there. The preservation theorem above is therefore
-   not a consequence of the check; it is a statement about an input whose
-   leaves already share a depth, and this is the tree that shows the
-   difference. The gate refuses the same write, which a witness below
-   computes. *)
+(* insert_root publishes the skewed write because admitted ignores leaf
+   depth. insert_gate rejects it. Thus depth preservation needs a balanced
+   input or the stronger gate. *)
 Example an_insert_does_not_repair_a_skewed_tree :
   skew_probe 22 220 = Some (pair true false)
   /\ skew_probe 3 30 = Some (pair true false) :=
@@ -4343,14 +4234,10 @@ Definition dup_arena : Arena nat_keys :=
   (cons (branch_of nat_keys (cons 5 (cons 5 nil)) (cons 0 (cons 1 (cons 2 nil))))
         nil))).
 
-(* The insert of 9 splits the full leaf, which promotes 7 beside the two
-   fives, and the root's four children split at the second five: the left
-   half is published holding a separator of 5 under an upper bound of 5.
-   The write answers, the check refuses what it published, and so does the
-   root insert above it, with the arena at a quarter of its capacity and the
-   key inside the root's range. A write that splits nothing on the same tree
-   is published, so what is refused is the cut between the equal separators
-   and not the tree. *)
+(* Inserting 9 splits the full leaf, promotes 7, then splits the root at
+   the second 5. Its left half has separator 5 under upper bound 5, so the
+   output check rejects it despite ample capacity. A nonsplitting write on
+   the same input succeeds. *)
 Example an_admitted_input_the_check_refuses :
   geometry_ok dup_geometry = true
   /\ arena_ok nat_keys dup_geometry dup_arena = true

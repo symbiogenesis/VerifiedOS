@@ -22,20 +22,10 @@
    frozen format, which is where the badge's bit budget is owed and not
    stated.
 
-   What this file is. A statement artifact in ApexTheorem.v's idiom, not a
-   proof development and not an implementation. Every quantity the register
-   leaves to composition is a field of the Machine record rather than a
-   literal or a top-level Parameter, which is what keeps the R-05-163
-   assumption gate green while leaving the decision where its owner can
-   make it. Nothing is admitted and nothing is axiomatized: the native
-   assumption audit reports every shipped constant closed under
-   the global context.
-
-   What the gate's green line means. Compiled, axiom-free, non-vacuous and
-   enumerated, and it does not mean verified. No constant here is compiled,
-   lowered, or run on either emulator, and nothing here executes anywhere.
-   The computed checks are decided inside the kernel by conversion and
-   print nothing.
+   This specification model keeps composition choices in Machine fields.
+   No axioms or admitted proofs are introduced; R-05-163 audits the complete
+   assumptions. Computed examples are proved by kernel conversion. Kernel
+   implementation, lowering, and target execution remain separate obligations.
 
    What is deferred, and to which item. M4.3 exercises the capability
    lifecycle, this IPC surface and slot faults through Wasm, and nothing
@@ -885,19 +875,11 @@ Example the_deleted_acts_take_no_number :
   /\ all_of (fun a => negb (is_the_act_of_an_invocation a)) deleted_acts = true
   := conj eq_refl eq_refl.
 
-(* =========================================================================
-   The trap surface is a parameter, and gap i is why.
-
-   R-07-031b's third accept clause decides that the schedule transitions take
-   no ABI number, and it decides that much and no more: *what carries that
-   request is owed at R-11-023 and is not an ABI act*. So whether a focus
-   rebinding (R-11-023), a rung selection (R-11-024) or a suspension
-   (R-11-026) reaches the kernel by trapping is open, and a file that decided
-   it would be closing a register gap by fiat. What is stated here instead is
-   the criterion the register does fix over a trap surface, with two values
-   of the parameter both admissible under it and nothing choosing between
-   them.
-   ========================================================================= *)
+(* R-07-031b excludes schedule transitions from the ABI number set but
+   leaves their trap transport open (gap i). The trap surface is therefore
+   a parameter. Both values below satisfy the fixed criterion; choosing how
+   focus rebinding (R-11-023), rung selection (R-11-024), or suspension
+   (R-11-026) reaches the kernel remains separate work. *)
 
 Definition TrapSurface : Type := Act -> bool.
 
@@ -1245,18 +1227,12 @@ Definition revoke_only_lifecycle : Lifecycles := fun c op =>
 Definition NoTableHasALifecycle (f : Lifecycles) : Prop :=
   forall (c : Nameable) (op : Lifecycle), is_table c = true -> f c op = false.
 
-(* And the twin, which is weaker than the one this file used to carry and
-   weaker on purpose. R-07-027a's sentence is a distinction and not a
-   schedule: it says the two tables have no lifecycle, and draws that as a
-   contrast against the three classes a capability does designate. Which of
-   the three acts each class has it does not say, and two entries push the
-   other way, R-07-031a deleting the derivation-tree invocation outright and
-   R-07-031b's closed five carrying no create and no derive; a statement
-   asserting all three of every class would be this file deciding gap j
-   rather than reading an entry, and no entry carries it. What is stated
-   instead is the distinction itself, which is what a map refusing everything
-   fails: on such a map the clause above holds of a map that draws no
-   distinction at all. *)
+(* R-07-027a distinguishes lifecycle-bearing capability classes from the
+   two tables, but does not assign every lifecycle act to every class (gap
+   j). R-07-031a removes derivation-tree invocation, and R-07-031b's five
+   operations include neither create nor derive. The predicate requires the
+   distinction without inventing a lifecycle schedule; a map that refuses
+   everything fails it. *)
 Definition DistinguishesTheClassesFromTheTables (f : Lifecycles) : Prop :=
   exists (c : Nameable) (op : Lifecycle), is_object c = true /\ f c op = true.
 
@@ -1414,16 +1390,10 @@ Theorem the_specification_surface_is_the_frozen_one :
   IsTheFrozenSurface spec_surface.
 Proof. apply frozen_surface_sound. reflexivity. Qed.
 
-(* -------------------------------------------------------------------------
-   The number a member takes, which is stated relative to a sequence because
-   gap d is that no entry says which sequence. R-07-031b closes the set and
-   has the frozen surface assign the numbers; which number each member takes
-   is nowhere fixed, so `index_in` reads a sequence, `index_of` is that
-   function at the one sequence this file writes down, and the result that
-   holds of every frozen surface is proved of an arbitrary one. A transposed
-   surface assigns different numbers and is still the frozen surface, which
-   is that gap exhibited rather than described.
-   ------------------------------------------------------------------------- *)
+(* R-07-031b fixes the operation set but leaves its numbering sequence open
+   (gap d). index_in is parameterized by a sequence; index_of uses this
+   file's chosen sequence. The general theorem covers any frozen surface,
+   including the transposed witness. *)
 
 Definition index_in (l : list Invocation) (i : Invocation) : nat :=
   match pos_inv i l with
@@ -2393,15 +2363,10 @@ Theorem the_specification_delivery_does_not_vary_with_the_predecessor :
   forall m : Machine, DoesNotVaryWithThePredecessor (spec_delivery m).
 Proof. intros m p q s b. reflexivity. Qed.
 
-(* S32a: the two clauses are ordered rather than independent, and this is the
-   direction that is real. Seeing one's own pending bits is a statement about
-   the successor alone, so it entails not varying with the predecessor; the
-   converse fails, `head_member_delivery` below meeting the weaker clause and
-   breaking the stronger. So no construction meets the first and breaks the
-   second and none can, and what the weaker clause is stated for is that a
-   construction can be refuted by it alone. That is one obligation ordering
-   another and not two independent ones, which is said here rather than
-   implied by exhibiting only the separation that exists. *)
+(* S32a: seeing only the successor's own pending bits implies predecessor
+   independence. The converse fails for head_member_delivery. The clauses
+   are ordered obligations, so only this direction has a separating
+   witness. *)
 Theorem seeing_its_own_pending_entails_predecessor_independence :
   forall (m : Machine) (d : Delivery),
     SeesItsOwnPendingOnly m d -> DoesNotVaryWithThePredecessor d.
@@ -2409,17 +2374,10 @@ Proof.
   intros m d H p q s b. rewrite (H p s b). rewrite (H q s b). reflexivity.
 Qed.
 
-(* -------------------------------------------------------------------------
-   R-07-037c's second conjunct: *the bits it leaves are restored to it at its
-   next dispatch*.
-
-   It is not statable of a `Delivery`, which reads a state and never moves
-   one, so the state is modelled here rather than the conjunct being reported
-   missing: a file per member, a dispatch step that runs one member, and the
-   obligation that a step dispatching somebody else moves nobody else's bits.
-   The restoration is then a consequence over an arbitrary sequence of
-   dispatches rather than an assumption, and two constructions break it.
-   ------------------------------------------------------------------------- *)
+(* R-07-037c also requires pending bits to survive until the next dispatch.
+   Delivery cannot express updates, so the model adds per-member files and
+   a dispatch step. Preservation by other members' steps implies
+   restoration over any dispatch sequence; two alternatives refute it. *)
 
 Definition Files : Type := nat -> nat -> bool.
 
@@ -3733,18 +3691,11 @@ Example the_ring_indices_are_the_source_of_truth :
    R-07-037d, R-07-044).
    ========================================================================= *)
 
-(* The rotation that performs no pending swap, written so that the two arms
-   of R-07-044's disjunction are what it reads rather than one of them. On
-   the swap arm there is one live file and it still holds the predecessor's
-   bits, so two rotations reaching one successor from different predecessors
-   deliver different pending state to the same member. On the static arm the
-   file is partitioned by member and holding it still is what identity
-   partitioning means, so the same construction hands each member its own
-   bits and coincides with the specification. One construction, two arms,
-   opposite verdicts, and neither verdict is reached through a hypothesis
-   nothing satisfies: that is the disjunction being real. What the static
-   arm's verdict is not is a statement that the arm's file is unshared, and
-   the theorem below says so at its own site. *)
+(* The no-swap rotation distinguishes R-07-044's two arms. With one live
+   file, the successor receives the predecessor's pending bits. With
+   statically partitioned files, no swap is needed and delivery matches the
+   specification. This second verdict does not establish that files are
+   unshared. *)
 Definition unswapped_delivery (m : Machine) : Delivery :=
   fun pred succ b =>
     if m.(pending_arm) then m.(pending) pred b else m.(pending) succ b.
@@ -3759,24 +3710,11 @@ Proof.
   intros H. discriminate (H 0 1 1 1).
 Qed.
 
-(* And admitted on the other arm, by the observable rather than by an empty
-   hypothesis. **What it establishes there, exactly.** On the static arm
-   `unswapped_delivery m` reduces to `m.(pending) succ b`, which is
-   `spec_delivery m`, so the construction and the specification coincide and
-   the admission is that coincidence: performing no swap is not a defect
-   where no swap exists to omit. That is the verdict the disjunction needs
-   and it is not vacuous in R-05-165's first mode, the statement carrying no
-   hypothesis at all.
-
-   **What it does not establish, stated because the coincidence invites the
-   stronger reading.** It is not a statement that the static arm's file is
-   unshared, and no instance of it could be:
-   `the_static_arm_admits_the_construction_of_every_machine` below proves it
-   holds of every machine on that arm, a sharing one included, because
-   `SeesItsOwnPendingOnly` quantifies `pending` away and so cannot express
-   sharing. R-07-044's *hidden or shared* is refuted on the carrier that can
-   express it, and arm-independently: `sharing_step` against
-   `LeavesEveryOtherMembersBitsAlone` below. *)
+(* On the static arm, unswapped_delivery reduces to spec_delivery.
+   SeesItsOwnPendingOnly quantifies pending away and cannot
+   express whether files are shared. R-07-044's sharing prohibition is
+   tested separately, on both arms, by sharing_step and
+   LeavesEveryOtherMembersBitsAlone. *)
 Theorem the_unswapped_delivery_is_admitted_on_the_static_arm :
   SeesItsOwnPendingOnly demo_static (unswapped_delivery demo_static)
   /\ DoesNotVaryWithThePredecessor (unswapped_delivery demo_static).

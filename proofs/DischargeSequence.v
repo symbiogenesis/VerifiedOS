@@ -27,20 +27,11 @@
    verdict is negative takes the discharge path this file already states
    (R-15-190a).
 
-   What this file is. A statement artifact in ApexTheorem.v's idiom, not a
-   proof development and not an implementation. Every quantity the register
-   leaves to composition or to a measurement is a field of the Machine
-   record rather than a literal or a top-level Parameter, which is what
-   keeps the R-05-163 assumption gate green while leaving the decision
-   where its owner can make it. Nothing is admitted and nothing is
-   axiomatized: the native assumption audit reports every
-   shipped constant closed under the global context.
-
-   What the gate's green line means. Compiled, axiom-free, non-vacuous and
-   enumerated, and it does not mean verified. No constant here is compiled,
-   lowered, or run on either emulator, and nothing here executes anywhere.
-   The computed checks are decided inside the kernel by conversion and
-   print nothing.
+   This specification model keeps composition and measurement choices in
+   Machine fields. No axioms or admitted proofs are introduced; R-05-163
+   audits the complete assumptions. Computed examples are proved by kernel
+   conversion. Firmware implementation, lowering, and target execution remain
+   separate obligations.
 
    What is deferred, and to which item. R-15-247f's timing clause, that no
    timing on either the success or the timeout path varies with discharge
@@ -1074,16 +1065,12 @@ Proof.
   split; [ exact H1 | exact H3 ].
 Qed.
 
-(* =========================================================================
-   The generated weakenings (R-05-166). A refutation is a seeded weakening
-   the theorem must reject, so these four generators produce families of
-   them from the specification's own success path rather than a person
-   authoring each. The theorems quantify over the index; the Examples check
-   the whole family by conversion and print nothing. The families are
-   generated at the demo machine's two phases, whose success path is ten
-   steps long; the specification's own obligations above and below are
-   proved at every phase count.
-   ========================================================================= *)
+(* Generated weakening families (R-05-166): adjacent swaps, deletions,
+   proper suffixes, and extra reads derived from the success path. Theorems
+   quantify the index; Examples check the complete demo families by conversion.
+   The demo
+   has two phases and ten steps; the specification theorems cover every
+   phase count. *)
 
 (* Transpose the adjacent pair at n: the natural wrong move on an ordered
    sequence, and one weakening per adjacent position. *)
@@ -1250,14 +1237,9 @@ Proof.
     intros H; first [ reflexivity | discriminate H ].
 Qed.
 
-(* -------------------------------------------------------------------------
-   No conjunct of the order is dead. M0.16's finding is that a validator
-   arm placed after another inherits what that one already refuses, so a
-   message it repeats is unreachable rather than redundant; the same defect
-   in a conjunction is a clause that decides nothing. Each of the nine
-   adjacent transpositions breaks exactly one conjunct, which is that
-   property computed rather than asserted.
-   ------------------------------------------------------------------------- *)
+(* Each of the nine adjacent transpositions violates exactly one order
+   conjunct. These checks establish that every conjunct affects the
+   decision, addressing M0.16's unreachable-validator-arm finding. *)
 
 Definition failing_conjuncts (ks : list nat) (l : list Step) : nat :=
   count_of (filter_of (fun pq => negb (pair_precedes l pq)) (required_order ks)).
@@ -1987,15 +1969,9 @@ Theorem the_reader_arity_is_observable :
   /\ per_bank_reader demo sweep_missed = false.
 Proof. split; [ reflexivity | split; reflexivity ]. Qed.
 
-(* -------------------------------------------------------------------------
-   And R-15-247d's second reading made checkable. Its acceptance clause is
-   stated of a *partially* sanitized bank, which is a necessary condition
-   and not the criterion: the reader that is exactly that clause admits a
-   bank nothing reached, because a bank nothing reached is not partially
-   sanitized. What excludes that admission is the completion read's own
-   domain, so the clause and the read are two obligations and the clause
-   alone does not carry the second.
-   ------------------------------------------------------------------------- *)
+(* R-15-247d's partial-sanitization clause is necessary but insufficient:
+   it alone admits an untouched bank. The completion read must also be
+   defined for the bank, as the counterexample shows. *)
 
 Theorem the_acceptance_clause_is_not_the_criterion :
   AdmitsNoPartiallySanitizedBank demo (no_partial_bank demo)
@@ -2470,14 +2446,8 @@ Example the_refused_retained_domain_runs_the_exit_path :
        (reentry_path_of demo verdicts_clean tags_dirty (fun _ => false)) = false :=
   conj eq_refl (conj eq_refl eq_refl).
 
-(* -------------------------------------------------------------------------
-   R-05-166's inhabitation witnesses: one closed definition per record this
-   file's statements quantify over, named for that record and ascribed at it.
-   The prover decides inhabitation by type-checking the ascription, so
-   `run.py proofs` reads a name rather than approximating a type judgement.
-   A record this file reaches through a Require is witnessed in the file that
-   declares it.
-   ------------------------------------------------------------------------- *)
+(* R-05-166 inhabitation witnesses: closed definitions ascribed to each
+   local record. Imported records are witnessed in their defining modules. *)
 
 Definition witness_Machine : Machine := demo.
 

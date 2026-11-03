@@ -6,23 +6,15 @@
    lemmas, interfaces aligned: day-one deliverable (iii) of R-18-003b,
    sub-deliverable (a) of R-18-031, row 1 of the crown-jewel inventory.
 
-   What this file is. A statement artifact, not a proof development. Every
-   constant is a Definition of sort Prop over the Vocabulary record, whose
-   fields are the interfaces other crown-jewel rows author; binding a row
-   is instantiating its fields. Nothing is admitted and nothing is
-   axiomatized: the native assumption audit reports every
-   constant closed under the global context, which is R-05-163's gate
-   holding over the declared set R-05-164 currently makes empty (no
-   admission axiom, bootstrap root, or Ax-ledger entry is yet authored).
-   The discharge of what is stated here is R-18-031(b), the linking
-   theorem, in the one Iris-over-Sail program logic (R-05-158); this file
-   precedes that development and is what it will import, so it depends on
-   nothing beyond the Coq prelude.
+   This file states propositions over the Vocabulary record, whose fields
+   are interfaces supplied by the other crown-jewel workstreams. It depends
+   only on the Coq prelude and introduces no axioms or admitted proofs.
+   R-05-163 audits assumptions against R-05-164's currently empty declared
+   set; no admission axiom, bootstrap root, or Ax-ledger entry is authored.
 
-   Read as the coverage checklist (R-18-031(a)): the record's Prop fields
-   enumerate every side-property some seam consumes or concludes. A proof
-   workstream lands by instantiating its field, and a field no workstream
-   instantiates is an uncovered obligation with exactly one name.
+   R-18-031(a)'s coverage checklist is the record's set of side-properties:
+   each uninstantiated field names an uncovered obligation. R-18-031(b) owns
+   the linking proof in the Iris-over-Sail logic required by R-05-158.
 
    Decisions this statement takes, each a reviewable reading of the
    register rather than a neutral transcription:

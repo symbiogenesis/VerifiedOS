@@ -68,26 +68,12 @@
    RingContract's is already on disk from the baseline, so the Require is paid
    once per run rather than once per member of the seeded population.
 
-   What this file is. A statement artifact in ApexTheorem.v's idiom, not a
-   proof development and not an implementation. Every quantity a composition
-   fixes and the contract does not is a field of the `Service` record rather
-   than a literal or a top-level Parameter, which is what keeps the R-05-163
-   assumption gate green while leaving the decision where its owner can make
-   it. Nothing is admitted and nothing is axiomatized: the native assumption
-   audit reports every shipped constant closed under the global
-   context.
-
-   What the gate's green line means. Compiled, axiom-free, non-vacuous and
-   enumerated, and it does not mean verified. Nothing here is compiled,
-   lowered, or run on either emulator. No ring exists and no service rides
-   one: no page is mapped, no descriptor is encoded or parsed, no byte is
-   copied, no notification word is written, no partition is scheduled and no
-   device is touched. The computed checks are decided inside the kernel by
-   conversion and print nothing. R-18-037's canonical SPSC proof is a proof
-   about an implementation under Ztso and this is not one: what is stated here
-   is a discipline over an index algebra and an ordered protocol, which is the
-   thing an implementation would be refined to and never a substitute for the
-   refinement.
+   This specification model uses Service fields for composition choices not
+   fixed by the contract. No axioms or admitted proofs are introduced;
+   R-05-163 audits the complete assumptions. Computed examples are proved by
+   kernel conversion. No implementation or target execution is supplied.
+   R-18-037 still requires a canonical SPSC implementation proof under Ztso,
+   refining the index algebra and ordered protocol stated here.
 
    What is deferred, and to which item. M6.5b owns the DMA service, and with
    it the whole of R-12-100's capability face: the session-table capability
@@ -763,14 +749,10 @@ Theorem the_slot_is_reused_exactly_a_capacity_later :
          (upto ring_capacity) = true.
 Proof. vm_reflexivity. Qed.
 
-(* And the two algebras are joined rather than asserted to be joined: over every
-   occupancy the capacity admits and from every base the span carries, the
-   contract's own `work_pending` on the two *wire* indices answers exactly
-   whether this file's sequence-number occupancy is non-zero. Reading 1 rests
-   on that identity, and until this it was a comment. A file that computes its
-   occupancy by subtraction while the contract computes it modulo the span owes
-   the bridge as a statement, because the two agree only inside a window the
-   declared constants make. *)
+(* Within the declared capacity window, RingContract.work_pending on wire
+   indices equals nonzero sequence-number occupancy, at every base. This
+   proves reading 1's bridge between modular occupancy and occupancy
+   computed by subtraction. *)
 (*| discharges: R-12-091 |*)
 Theorem the_occupancy_is_the_contracts_modular_difference :
   all_of (fun base =>
@@ -1446,16 +1428,10 @@ Proof.
   vm_compute in H. discriminate H.
 Qed.
 
-(* And it keeps the obligations it does not break: it never consumes past what
-   the producer published, and it takes no more than its budget. What refuses
-   it is the order of its arm against its recheck and nothing else.
-
-   Each is stated over an *arbitrary* publication step and not over a bounded
-   index. `pub_step` clamps every step past the chain's last act onto that
-   last act, so the schedules are finitely many, but a bounded index would be a
-   bound no theorem decides anything at: unlike the weakening families, whose
-   bound one wider reaches the specification and fails, a bound here could be
-   raised without limit and still hold. *)
+(* The alternative respects publication and budget limits but arms after
+   its recheck. The properties quantify every publication-step index;
+   pub_step clamps indices beyond the chain to its final act, so an extra
+   numeric bound would add no constraint. *)
 Theorem the_transposed_consumer_never_consumes_past_the_producer :
   forall p : nat,
     Nat.leb (rv_consumed (w_view (activation reset_at_the_signal ring_max_batch_size
@@ -1598,14 +1574,9 @@ Proof.
   destruct (andb_split _ _ H) as [ _ Hs ]. exact Hs.
 Qed.
 
-(* And this rule is the contract's own `sleeps` read at the wire, which is the
-   other half of the same bridge: RingContract states R-12-096's decision rule
-   over two reads of the producer index and this file states the interleaving,
-   so the two must be the one rule. Over every base the span carries and every
-   gap the capacity admits, an armed word with an empty recheck is the
-   contract's answer and this file's alike. `sleeps` ignores the index the
-   drain ended on, so the drained argument is passed the consumed index and
-   decides nothing, which is the entry's own sentence. *)
+(* Bridge to RingContract.sleeps (R-12-096): for every base and every gap
+   within capacity, both models sleep exactly when the word is armed and
+   the recheck is empty. The drained argument is irrelevant to sleeps. *)
 (*| discharges: R-12-096 |*)
 Theorem the_specification_sleep_rule_is_the_contracts :
   all_of (fun c =>
@@ -1641,14 +1612,9 @@ Theorem the_counting_rule_and_the_index_rule_differ_on_a_coalesced_burst :
        (negb (spec_sleep_rule after_a_coalesced_burst)) = true.
 Proof. vm_reflexivity. Qed.
 
-(* R-07-029a is what a sleep here is: the poll-site yield of R-07-037b, a
-   synchronous invocation that returns, and nowhere a block. Stated as a
-   property of an activation rather than as a sentence: the activation is a
-   finite fold over a finite chain and its cost is bounded by the chain's
-   length, so it has a WCET for R-11-006's admission to read. A construction
-   that waits has none, and the way it is refuted is that no fold over a
-   finite list can express it: what stands in for it is a consumer whose
-   drain is unbounded, and the bound below is what refuses that. *)
+(* R-07-029a models sleep as the returning poll-site yield of R-07-037b. An
+   activation folds over a finite chain, giving the cost bound R-11-006
+   needs. The unbounded-drain alternative fails this bound. *)
 Definition ActivationIsBounded (b : nat) (l : list consumer_act) : Prop :=
   forall p : nat,
     Nat.leb (w_drained (activation reset_at_the_signal b l p quiet_world)) b = true.
@@ -2321,16 +2287,10 @@ Theorem a_batch_is_bounded_by_the_declared_maximum :
           ring_max_batch_size = true.
 Proof. vm_reflexivity. Qed.
 
-(* =========================================================================
-   Part 7: the service declaration, and section 6's admission rule over it.
-
-   No service is grandfathered: one that cannot state its finite capacities,
-   its lifecycle semantics, its cleanup bounds and its per-operation WCET is
-   not admitted through the ring profile. That is the milestone's own rule and
-   it is stated here as thirteen conjuncts over a declaration, decided from
-   the declaration side by a one-field spoiling and from the filter side by a
-   dropped conjunct.
-   ========================================================================= *)
+(* Part 7: section 6's service-admission predicate. Its thirteen conjuncts
+   require finite capacities, lifecycle semantics, cleanup bounds, and WCET
+   for each operation. One-field spoiling and dropped-conjunct families
+   check each requirement. *)
 
 Record svc_capacities : Set := mk_svc_capacities {
   cap_accepted : nat;
@@ -3309,14 +3269,8 @@ Example the_two_copy_runs :
              (Nat.eqb (cr_bytes (mk_copy_run 2 7 9)) 9)) = true.
 Proof. vm_reflexivity. Qed.
 
-(* -------------------------------------------------------------------------
-   R-05-166's inhabitation witnesses: one closed definition per record this
-   file's statements quantify over, named for that record and ascribed at it.
-   The prover decides inhabitation by type-checking the ascription, so
-   `run.py proofs` reads a name rather than approximating a type judgement.
-   A record this file reaches through a Require is witnessed in the file that
-   declares it.
-   ------------------------------------------------------------------------- *)
+(* R-05-166 inhabitation witnesses: closed definitions ascribed to each
+   local record. Imported records are witnessed in their defining modules. *)
 
 Definition witness_Service : Service := demo_service.
 Definition witness_ring_view : ring_view := full_view.

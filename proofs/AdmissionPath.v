@@ -29,20 +29,12 @@
    breach. The order the phases run in is TAL-074's, in the typed assembly
    language R-05-135a pins.
 
-   What this file is. A statement artifact in ApexTheorem.v's idiom, not a
-   proof development and not an implementation. Every quantity a composition
-   fixes is a field of the Machine record rather than a literal or a top-level
-   Parameter, which is what keeps the R-05-163 assumption gate green while
-   leaving the decision where its owner can make it. Nothing is admitted and
-   nothing is axiomatized: the native assumption audit reports every
-   shipped constant closed under the global context.
-
-   What the gate's green line means. Compiled, axiom-free, non-vacuous and
-   enumerated, and it does not mean verified. No constant here is compiled,
-   lowered, or run on either emulator, and nothing here executes anywhere. No
-   artifact is decoded, no instruction is typed, no hash is computed, and
-   nothing below is the checker R-06-015d owes a refinement for. The computed
-   checks are decided inside the kernel by conversion and print nothing.
+   This is a specification model of admission, not the deployed checker.
+   Composition choices are Machine fields, avoiding top-level Parameters in
+   the R-05-163 assumption audit. No axioms or admitted proofs are introduced.
+   Computed examples are proved by kernel conversion. Decoding artifacts,
+   typing instructions, computing hashes, and the checker refinement required
+   by R-06-015d remain implementation work.
 
    Which half of M6.2a's cell each part answers. The cell has two clauses.
    *The packages it checks the golden-model components themselves* is the
@@ -389,12 +381,8 @@ Fixpoint nat_list_eqb (l r : list nat) : bool :=
   | _, _ => false
   end.
 
-(* -------------------------------------------------------------------------
-   The five generators. Each is polymorphic because the same operators run
-   over a derivation's record list and over a roster of packages, and
-   generating both families from one set is what makes the two axes
-   comparable.
-   ------------------------------------------------------------------------- *)
+(* Five polymorphic list generators, shared by derivation-record and
+   package-roster tests. *)
 
 (* Transpose the adjacent pair at n. *)
 Definition swap_at {A : Type} (n : nat) (l : list A) : list A := @ProofSupport.swap_at A n l.
@@ -548,10 +536,8 @@ Inductive Judgment : Type :=
 | ImageWellFormed             (* |- image ok                    *)
 | AdmissionJudgment.          (* |- cert |> artifact : verdict  *)
 
-(* R-05-029's eleven type-level obligations, in that entry's own order. Each
-   is a *row*: control-flow integrity carries both halves and is not two rows,
-   which is the same entry's own sentence, and memory safety is one row for
-   the same reason. What the rows split into is `Facet` below. *)
+(* R-05-029's eleven obligation rows, in entry order. Memory safety and
+   control-flow integrity each split into two Facets below. *)
 Inductive Obligation : Type :=
 | MemorySafety
 | DefiniteInitialization
@@ -571,11 +557,9 @@ Inductive Move : Type :=
 | EvaluateAnAttribute         (* II:  R-05-038 *)
 | ConfirmADeletion.           (* III: R-05-039 *)
 
-(* The unit that carries exactly one move. R-05-036's criterion is that each
-   of R-05-029's eleven maps to exactly one move *except* the two whose halves
-   split, so nine rows contribute one facet each and rows 1 and 4 contribute
-   two, which is thirteen. The names follow the language document's, the
-   register naming the rows and not the halves. *)
+(* A Facet takes one checker move. R-05-036 splits memory safety and
+   control-flow integrity, giving thirteen facets from eleven rows. Facet
+   names follow the language document. *)
 Inductive Facet : Type :=
 | MemSpatial                  (* row 1,  move I   (R-05-037) *)
 | MemTemporal                 (* row 1,  move II  (R-05-038) *)
@@ -611,10 +595,9 @@ Inductive Phase : Type :=
 | PhaseCitations              (* 4. move I                                      *)
 | PhaseAttributes.            (* 5. move II                                     *)
 
-(* The refusals this file's own check makes. TAL-078 fixes the shape of a
-   rejecting verdict, one requirement and one site, and closes no vocabulary
-   of requirement names, so this enumeration is the file's; what is not the
-   file's is its order, which is `phase_of_rule`'s and therefore TAL-074's. *)
+(* Refusal rules for this checker. TAL-078 requires one requirement and one
+   site but leaves requirement names open. phase_of_rule orders these rules
+   according to TAL-074. *)
 Inductive RuleId : Type :=
 | DerivationAbsent            (* R-13-003, R-13-011: no certificate to bind  *)
 | VersionMismatch             (* R-11-005, R-05-135b, TAL-008                *)
@@ -855,11 +838,9 @@ Proof.
   - simpl. apply andb_join; [ exact (rule_eqb_refl r) | exact (nat_eqb_refl s) ].
 Qed.
 
-(* A verdict is one of exactly two shapes, which is TAL-079's *rejection is
-   total and silent about repair* read at the type: there is no partial
-   admission, no warning tier and no override to express, because the codomain
-   carries no third value. What that leaves with something to exclude is the
-   composer's behaviour, which is stated further down. *)
+(* TAL-079 permits only admission or rejection: the verdict type has no
+   partial admission, warning, or override. Composer behavior is
+   constrained below. *)
 Theorem a_verdict_is_acceptance_or_a_named_refusal :
   forall v : Verdict, v = Accepted \/ (exists (r : RuleId) (s : nat), v = Refused r s).
 Proof.
@@ -953,21 +934,17 @@ Example every_row_is_partitioned_into_facets :
   /\ facets_of_row ControlFlowIntegrity = cons CfiRuntime (cons CfiCalleeSet nil) :=
   conj eq_refl (conj eq_refl (conj eq_refl eq_refl)).
 
-(* And the two rows that split are the two R-05-036 names, split the way it
-   names them: memory safety cited for its spatial half and attributed for its
-   temporal one, control-flow integrity cited for its runtime half and
-   attributed for its compose-time callee-set enumeration. *)
+(* R-05-036's split rows: spatial memory safety and runtime CFI use
+   citations; temporal memory safety and compose-time callee-set CFI use
+   attributes. *)
 Example the_two_split_rows_split_as_the_criterion_says :
   map_over move_of (facets_of_row MemorySafety)
   = cons CiteAnInvariant (cons EvaluateAnAttribute nil)
   /\ map_over move_of (facets_of_row ControlFlowIntegrity)
      = cons CiteAnInvariant (cons EvaluateAnAttribute nil) := conj eq_refl eq_refl.
 
-(* The three rows of the move table, against the three entries that state
-   them. R-05-037 carries spatial memory safety, no-runtime-codegen and
-   CFI-runtime; R-05-039 carries representation-and-provenance and absence of
-   ambient mutable state; R-05-038 carries the remaining eight. Three, two and
-   eight is thirteen, which is the cross-check on the facet count. *)
+(* The thirteen facets partition by move: R-05-037 assigns three citations,
+   R-05-039 assigns two deletions, and R-05-038 assigns eight attributes. *)
 Example the_move_table_is_the_registers :
   facets_of_move_in CiteAnInvariant all_facets
   = cons MemSpatial (cons CfiRuntime (cons CodegenNone nil))
@@ -1243,11 +1220,8 @@ Proof.
     injection H as H2; rewrite <- H2; reflexivity.
 Qed.
 
-(* And there is no permissive default anywhere past each enumeration: not only
-   at the first code past it, which the family generators use, but at every
-   one. TAL-023's *a form with no rule is a profile defect, not a permissive
-   default* is what this states, and it is an infinite statement rather than a
-   boundary conversion. *)
+(* TAL-023 requires rejection of every unknown code. These theorems cover
+   all codes beyond each enumeration, extending the boundary examples. *)
 Theorem no_code_past_the_judgments_is_recognised :
   forall n : nat, Nat.leb past_the_judgments n = true -> judgment_of_code n = None.
 Proof.
@@ -1372,11 +1346,8 @@ Arguments pkg_cert {D} p.
 Definition read_cert (D : Type) (rd : Reading D) (p : Package D) : option Cert :=
   map_option rd p.(pkg_cert).
 
-(* =========================================================================
-   The machine: everything a composition fixes. Fields rather than
-   Parameters, because a top-level Parameter prints as an assumption and fails
-   the R-05-163 gate.
-   ========================================================================= *)
+(* Compose-time machine fields. Using a record avoids top-level Parameters,
+   which would appear as assumptions under the R-05-163 audit. *)
 
 Record Machine : Type := {
 
@@ -1436,21 +1407,16 @@ Definition step_recognised (s : Step) : bool :=
              (is_some (move_of_code s.(st_move))))
        (is_some (facet_of_code s.(st_facet))).
 
-(* What it is for one record to discharge one facet: it names that facet, and
-   it makes the move the move table assigns to it. A citation offered where an
-   attribute is owed discharges nothing, and so does an attribute offered
-   where a citation is owed, which is R-05-036's *no fourth mechanism* read
-   from the side that has something to exclude. *)
+(* A record discharges a facet exactly when it names that facet and uses
+   the move assigned by the move table (R-05-036). *)
 Definition discharges (s : Step) (f : Facet) : bool :=
   match facet_of_code s.(st_facet), move_of_code s.(st_move) with
   | Some g, Some k => andb (facet_eqb f g) (move_eqb k (move_of f))
   | _, _ => false
   end.
 
-(* Whether some record of the derivation discharges this facet. R-05-029's
-   criterion is one discharge *for each* listed obligation and fixes no order
-   and no multiplicity, which is reading 7 and is why this is `any_of` over
-   the records rather than a walk in record order. *)
+(* R-05-029 requires coverage of every facet but fixes neither record order
+   nor multiplicity (reading 7), so coverage uses any_of. *)
 Definition discharged (c : Cert) (f : Facet) : bool :=
   any_of (fun s => discharges s f) c.(cert_steps).
 
@@ -1982,11 +1948,9 @@ Theorem the_specification_is_a_function_of_the_package :
     IsAFunctionOfThePackage D (spec_check m D rd).
 Proof. intros m D rd a1 a2 p. reflexivity. Qed.
 
-(* TAL-001's criterion has a second half, *identical rejection sites*, and it
-   is a predicate of its own rather than a decoration on the first: a checker
-   may name one rule on every run and move the site with the run, and another
-   may hold the site and move the rule. Both are exhibited below, so neither
-   half implies the other. *)
+(* TAL-001 requires stable rejection rules and sites. The counterexamples
+   below vary either component independently, showing that both clauses are
+   necessary. *)
 Definition NamesAStableRule (D : Type) (chk : Checker D) : Prop :=
   forall (a1 a2 : Ambient) (p : Package D), rule_of (chk a1 p) = rule_of (chk a2 p).
 
@@ -2097,10 +2061,8 @@ Definition WellTyped (m : Machine) (D : Type) (rd : Reading D) : Typing D :=
     /\ all_of step_recognised (rd d).(cert_steps) = true
     /\ covers m t (rd d) = true.
 
-(* Fail-closed is soundness against that relation and nothing weaker: a
-   checker that accepts is a checker whose acceptance the relation carries.
-   R-13-014's *no admitted path runs code that failed a check* and R-13-025's
-   *admission gates and never relaxes* are the two entries this reads. *)
+(* Fail-closed soundness: every accepted package satisfies the typing
+   relation (R-13-014, R-13-025). *)
 Definition FailsClosed (m : Machine) (D : Type) (rd : Reading D)
     (chk : Checker D) : Prop :=
   SoundFor D (WellTyped m D rd) chk.
@@ -2121,11 +2083,9 @@ Proof.
   exact (conj Ht (conj Hu Hcov)).
 Qed.
 
-(* S5: and it is complete for the same relation, so the fail-closed theorem is
-   not proved by a checker that refuses everything. The two are separate
-   obligations and R-17-033 is what says so in the register's own words: a
-   producer that cannot emit a valid derivation for a safe program costs
-   availability, and one whose output is admitted without one costs safety. *)
+(* S5: completeness for the same relation excludes a reject-all checker.
+   R-17-033 distinguishes rejection of safe programs (availability) from
+   admission without a valid derivation (safety). *)
 (*| discharges: R-17-033 |*)
 Theorem the_specification_is_complete_for_the_typing_relation :
   forall (m : Machine) (D : Type) (rd : Reading D),
@@ -2698,12 +2658,9 @@ Qed.
    induction hypothesis `IH` at `s`, and closed. *)
 Local Ltac step_by_IH IH s := simpl; rewrite (IH s); reflexivity.
 
-(* The opening that six of the lemmas below share: induction on the position
-   `n` with the list `l` generalized and reintroduced, the successor case's
-   hypothesis named `IH`, and at position zero the empty list closed, which
-   leaves that position's cons case over `a` and `s` first and the successor
-   case second. `n` and `l` are parameters because an Ltac definition must
-   bind every hypothesis name it reads. *)
+(* Shared induction on position n, generalizing list l. The remaining cases
+   are position zero in a cons list and a successor position; the successor
+   hypothesis is IH. Hypothesis names are explicit Ltac parameters. *)
 Local Ltac induct_on_the_position n l :=
   revert l; induction n as [ | k IH ]; intros l;
   [ destruct l as [ | a s ]; [ reflexivity | ] | .. ].

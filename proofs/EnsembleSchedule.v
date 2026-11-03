@@ -300,14 +300,10 @@ Proof.
   exact ProofSupport.all_of_mono.
 Qed.
 
-(* -------------------------------------------------------------------------
-   R-11-017a's per-slot field set, which is the same three the link
-   contract's slot-table register carries and no fourth: the slot's instant
-   in the member's own spine cycles against the member's own origin
-   (R-11-014a), its direction, and its guard band. There is no per-slot
-   length field, R-15-228d having every slot of a link carry the link's one
-   frame length, which is a field of the link and not of a slot.
-   ------------------------------------------------------------------------- *)
+(* R-11-017a slot fields: instant in member-local spine cycles relative to
+   its origin (R-11-014a), direction, and guard band. R-15-228d fixes one
+   frame length per link, so length belongs to the link rather than each
+   slot. *)
 
 Inductive Direction : Type := Transmit | Receive.
 
@@ -1193,15 +1189,10 @@ Proof.
   reflexivity.
 Qed.
 
-(* =========================================================================
-   A two-member, one-link emission whose every domain is inhabited, for
-   R-05-165's uninhabited-domain mode and for the refutation witnesses.
-   Every magnitude below is an arbitrary witness value and carries no
-   composition claim (gap a). The cores are authored here rather than taken
-   from CyclicExecutive.v's demo frames because that file's rungs fill their
-   major frame exactly, leaving no window a kernel-owned idle slot could
-   occupy.
-   ========================================================================= *)
+(* Two-member, one-link demo for R-05-165 and refutation witnesses.
+   Magnitudes are arbitrary fixtures, not composition choices (gap a).
+   These frames reserve an idle leap window; CyclicExecutive.v's demo
+   frames fill their major frames. *)
 
 (* Two cores of one member. `demo_composition`'s full boundary cost
    is what each slot's declared bound is checked against, so a slot's bound
@@ -1221,13 +1212,10 @@ Definition core_zero : Frame bool :=
 Definition core_one_reserved : Slot bool := Build_Slot bool 30 0 10 200 true.
 Definition core_one_focus : Slot bool := Build_Slot bool 60 50 40 200 false.
 
-(* The crypto core's slot that verifies the leader link's frame. It is index
-   2 of `frame_slots core_one`, the reserved band's one slot coming first
-   and the band's focus second. Its declared bound plus the full boundary
-   cost CyclicExecutive.v's own check charges exactly fills its width,
-   which is where that constant is load-bearing here rather than merely
-   present: one unit more is refused, and
-   `a_link_task_that_does_not_fit_its_slot_is_refused` is that unit. *)
+(* The leader-frame verification slot is index 2 of frame_slots core_one,
+   after the reserved band and its focus. Its declared work plus full
+   boundary cost exactly fills the slot;
+   a_link_task_that_does_not_fit_its_slot_is_refused adds one unit. *)
 Definition core_one_verify : Slot bool := Build_Slot bool 50 110 30 200 true.
 
 Definition core_one : Frame bool :=
@@ -1818,12 +1806,8 @@ Theorem a_weaker_guard_floor_admits_what_this_one_refuses :
   /\ link_guard_ok every_slot 0 narrow_link = true.
 Proof. split; reflexivity. Qed.
 
-(* =========================================================================
-   R-05-166's inhabitation witnesses: one closed definition per record this
-   file's statements quantify over, named for that record and ascribed at
-   it. A record this file reaches through its Require is witnessed in the
-   file that declares it.
-   ========================================================================= *)
+(* R-05-166 inhabitation witnesses for local records. Imported records are
+   witnessed in their defining modules. *)
 
 Definition witness_LinkSlot : LinkSlot :=
   {| ls_instant := 0; ls_direction := Transmit; ls_guard := 42 |}.
