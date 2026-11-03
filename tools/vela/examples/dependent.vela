@@ -6,6 +6,13 @@ public definition T Identity<T>(T value) = value;
 
 public const Nat Limit = Identity(value: 1);
 
+public const Nat Square(Nat value) => value * value;
+public Nat Scale(const Nat factor, Nat value) {
+    const Nat multiplier = Square(factor);
+    return multiplier * value;
+}
+public Nat Process(Nat value) => Scale(factor: Limit, value: value);
+
 public definition U Apply<T, U>(Fn(T value) -> U function, T value) =
     function(value: value);
 

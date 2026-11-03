@@ -2,7 +2,7 @@
 // Mathematical naturals and booleans; development prototype, unqualified.
 module Oracle;
 
-public Nat Cube(Nat x,) => x * x * x;
+public const Nat Cube(Nat x,) => x * x * x;
 
 public const Nat Base = 2;
 

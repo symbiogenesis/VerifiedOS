@@ -4,6 +4,12 @@ module Vela.Surface;
 
 public const usize FirstOffset = 0usize;
 
+public const Nat Square(Nat value) => value * value;
+public Nat Scale(const Nat factor, Nat value) {
+    const Nat multiplier = Square(factor);
+    return multiplier * value;
+}
+
 public record Packet<region 'source>(
     usize Length,
     in<'source> Span<byte> Data,
