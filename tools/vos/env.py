@@ -468,7 +468,11 @@ def _prepend_z3_path() -> None:
     """
     z3_bin = _env_path("VOS_Z3_BIN", Z3_PREFIX / "bin")
     if z3_bin.is_dir():
-        os.environ["PATH"] = f"{z3_bin}{os.pathsep}{os.environ.get('PATH', '')}"
+        prefix = str(z3_bin)
+        # Nested model commands must retain their caller's native input identity.
+        entries = [entry for entry in os.environ.get("PATH", "").split(os.pathsep)
+                   if entry != prefix]
+        os.environ["PATH"] = os.pathsep.join([prefix, *entries])
     else:
         print(f"WARNING {z3_bin} is absent: typechecking will use the z3 on PATH and "
               f"cache its answers", file=sys.stderr)
