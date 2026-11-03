@@ -985,6 +985,7 @@ build host's word size.
 | Spelling | Meaning |
 | --- | --- |
 | `let`, `var`, `T name = value` | Immutable inferred, mutable inferred and immutable type-first locals respectively. `var T name = value` is explicitly mutable. A typed literal such as `0usize` states a representation. |
+| `const T Name = expression;` | An explicitly typed immutable value evaluated during compilation from admitted static inputs; unavailable inputs or exhausted evaluation refuse compilation. |
 | `Unit`, `()` | The first-class unit type and its value or pattern. `Result<Unit, Error>` still requires examining the outcome; an empty success payload does not permit discarding an error or tracked resource. |
 | `this`, `'this.text`, `ref this.Tail` | The receiver, a loan tied to one receiver place, and a receiver loan limited to a named view. Naming the receiver grants no new access. |
 | `foreach (let index in lower..upper)` | Bounded range iteration with an immutable index and the same invariant, termination, cost and loan-exit obligations as other bounded control flow. |
@@ -1013,14 +1014,16 @@ Two spellings deliberately differ from C#. The borrow modifiers are C#'s, but th
 
 Every public operation exposes its effects and contract. An implementation may infer them locally, but the inferred result becomes a reviewed signature. Every bounded operation terminates on its stated entry conditions, including on every error result; a service loop carries a progress contract instead. `Nat(i)` embeds a machine value into the mathematical naturals. Executable failure takes an explicit `Result` or `union` branch, never an implicit assertion or an assumption.
 
-For a C# reader, local type inference and mutability are separate choices:
+For a C# reader, type inference, binding mutability and required-static
+availability are separate choices:
 
-| Declaration | Type | Binding |
-| --- | --- | --- |
-| `let count = ReadCount();` | Inferred | Immutable |
-| `var count = ReadCount();` | Inferred | Mutable |
-| `usize count = ReadCount();` | Explicit | Immutable |
-| `var usize count = ReadCount();` | Explicit | Mutable |
+| Declaration | Type | Binding | Availability |
+| --- | --- | --- | --- |
+| `let count = ReadCount();` | Inferred | Immutable | Runtime |
+| `var count = ReadCount();` | Inferred | Mutable | Runtime |
+| `usize count = ReadCount();` | Explicit | Immutable | Runtime |
+| `var usize count = ReadCount();` | Explicit | Mutable | Runtime |
+| `const Nat Limit = 16;` | Explicit | Immutable | Required static |
 
 An immutable binding cannot be reassigned. It may hold an exclusive loan that
 permits writes to the borrowed storage, as in `ref byte first = ref target[0usize];
@@ -1029,12 +1032,21 @@ lifetime and restoration obligations; binding immutability is not deep immutabil
 Diagnostics identify a forbidden rebinding and explain explicit `var`, while the
 pure prototype states its unsupported-mutation boundary.
 
-Vela has no `const` keyword. An immutable binding may contain a runtime value;
-stability lets that value index dependent types without making it available to
-compile-time evaluation. `ghost` does not imply static availability either. The
+`const` declares a value, not a zero-parameter function. Its initializer may use
+earlier constants and admitted total pure functions with static arguments.
+Dependency checking precedes reduction, so an ignored argument or dead branch
+cannot hide an outer runtime parameter, ordinary local, effect or resource.
+Ordinary locals inside a pure function evaluated on static arguments are evaluator
+locals; this does not make the caller's runtime bindings static. Evaluation is
+bounded and has no runtime fallback. The
+[constant contract](surface-grammar.md#required-static-constants) owns syntax,
+evaluation limits and the supported prototype types.
+
+An immutable runtime value may index dependent types without becoming statically
+evaluable. `ghost` does not imply static availability either. The
 [required-static design](metaprogramming.md#evaluation-and-phase-boundaries)
-defines that separate phase requirement; its binder spelling is not part of the
-accepted parser surface.
+keeps phase availability separate from erasure, use grades and ownership.
+Constants grant no new authority, implicit conversion, duplication or proof.
 
 Labels match the resolved callable's next declared value parameter; they cannot
 reorder, omit, duplicate or default arguments, and no positional argument follows
@@ -1045,6 +1057,9 @@ including later types, grades and exit predicates, under the
 [graded substitution rules](graded-foundation.md#substitution-and-structural-rules).
 The [surface contract](surface-grammar.md#concise-authoring-syntax) owns located
 syntax and refusal cases. Labels do not insert conversions, authority or proofs.
+Likewise `Fn() -> Unit` takes no explicit argument, while `Fn(Unit value) -> Unit`
+requires one: a shared CIC unit encoding does not grant an omitted argument or a
+default unit value.
 
 #### Permanent Language Exclusions
 

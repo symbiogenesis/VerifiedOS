@@ -4,6 +4,8 @@ module Dependent;
 
 public definition T Identity<T>(T value) = value;
 
+public const Nat Limit = Identity(value: 1);
+
 public definition U Apply<T, U>(Fn(T value) -> U function, T value) =
     function(value: value);
 
@@ -21,7 +23,7 @@ public definition Vec<T, n> Copy<T, ghost Nat n>(Vec<T, n> values) = values;
 
 public alias Words<ghost Nat n> = Vec<Nat, n>;
 
-public definition Vec<Nat, 1> Singleton() = VCons(42, VNil::<Nat>());
+public definition Vec<Nat, Limit> Singleton() = VCons(42, VNil::<Nat>());
 
 public definition Words<1> Aliased() = Singleton();
 
@@ -33,8 +35,8 @@ public lemma LookupValue(): Lookup() == 42
 public definition Fn(Nat n, Vec<Nat, n> values) -> Vec<Nat, n> PreserveLength() =
     (Nat n, Vec<Nat, n> values) => values;
 
-public definition Vec<Nat, 1> PreservedSingleton() =
-    PreserveLength()(n: 1, values: Singleton());
+public definition Vec<Nat, Limit> PreservedSingleton() =
+    PreserveLength()(n: Limit, values: Singleton());
 
 public lemma Reflexivity<T>(T value): value == value
     proof { return Refl(value); }

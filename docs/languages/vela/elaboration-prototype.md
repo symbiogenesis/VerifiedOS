@@ -48,10 +48,24 @@ The increment uses the [surface grammar](surface-grammar.md):
 - Mathematical `Nat`, `bool`, `Unit`, products, equality propositions and explicit
   proof constructors. Indexed vectors and finite indices provide a concrete
   dependent collection boundary, including length preservation and safe lookup.
+- Typed `const` values of `Nat`, `bool` or `Unit`, at module or local scope,
+  under the [required-static contract](surface-grammar.md#required-static-constants).
+  Initializers use earlier constants and admitted total pure calls with static
+  arguments; outer runtime parameters, ordinary locals and generic or ghost
+  indices are refused before reduction, including dead or ignored dependencies.
+  Internal locals of a pure call evaluated with static arguments remain part of
+  that evaluation. Emit the bounded evaluated value, with no runtime fallback.
+  A constant can index `Vec<Nat, Limit>` directly; it is a value, so `Limit()`
+  is not a constant access. Represented machine types retain target prerequisites.
 - Aliases, definitions, returning pure functions, theorem/lemma bodies and
   immutable proof locals. Equality proofs are ordinary first-class values;
   theorem bodies must inhabit the declared proposition. Ordinary expression
   equality remains Boolean, while theorem equality denotes a proposition.
+
+Source callable interfaces preserve explicit arity: `Fn() -> Unit` and
+`Fn(Unit value) -> Unit` require different calls and lambda parameter lists even
+though their CIC interpretations use unit. Neither named arguments nor unit
+normalization supplies an omitted argument.
 
 Inference uses bounded structural unification with occurs and scope checks and
 bounded definitional conversion. It proves no arbitrary arithmetic equality and

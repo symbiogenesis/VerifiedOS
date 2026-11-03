@@ -4,17 +4,19 @@ module Oracle;
 
 public Nat Cube(Nat x,) => x * x * x;
 
+public const Nat Base = 2;
+
 public bool Choose(bool flag, Nat x)
 {
   let y = Cube(x: x + 1,);
   if (flag == true)
   {
-    let limit = 9;
+    const Nat limit = Cube(x: Base) + 1;
     return y <= limit;
   }
   else
   {
-    let limit = 0;
+    const Nat limit = 0;
     if (y == limit) { return true; } else { return false; }
   }
 }

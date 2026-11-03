@@ -2,6 +2,8 @@
 // Syntax-only development example: no elaboration or proof claim.
 module Vela.Surface;
 
+public const usize FirstOffset = 0usize;
+
 public record Packet<region 'source>(
     usize Length,
     in<'source> Span<byte> Data,
@@ -103,7 +105,7 @@ public Result<ref<'workspace.bytes> byte, Error> First(ref Workspace workspace)
         workspace.bytes.Model == old(workspace.bytes.Model).Set(0, final(slot))
 {
     ref Span<byte> parent = ref workspace.bytes;
-    ref byte child = ref parent[0usize];
+    ref byte child = ref parent[FirstOffset];
     return Ok(child);
 }
 
