@@ -103,17 +103,17 @@ from vos.corpus import find_root
 
 # The release is built from its verified archive into a versioned project prefix.
 # Every RTL loop and the provisioner select that binary before consulting PATH.
-VERILATOR_PIN = "5.052"
+VERILATOR_PIN = "5.054"
 VERILATOR_URL = ("https://github.com/verilator/verilator/archive/refs/tags/"
                  f"v{VERILATOR_PIN}.tar.gz")
-VERILATOR_SHA256 = "8c8d2e11e6ad32f641dd250742a94195ddecb912e2e2dabe2f42ddbbb99c1092"
+VERILATOR_SHA256 = "18658731b46922ef660bcb650be0aa503d751e5c17eb9d4644fdfabb11835198"
 # GitHub generates the tag archive, so the hash above authenticates GitHub's bytes.
 # The tag's own identity lets a regenerated archive be re-authenticated against the
 # tagged Git content instead of being trusted anew. Each row is a release's annotated
 # tag object and the commit it tags, keyed by version; a test holds the pin to a row.
 VERILATOR_TAGS: dict[str, tuple[str, str]] = {
-    "5.052": ("efa4927be48e75c3cd08fc848b198d1d9d237f00",
-              "ea338be98e1e838d3518809ce8899f85a009963c"),
+    "5.054": ("76d93f464fe9e24e4e407dcb565d95c7f71a82a9",
+              "bbb60a403932a9f695cb6ff001ceb73de6ad9234"),
 }
 VERILATOR_HOW = "python tools/run.py rtl install"
 VERILATOR_PREREQUISITES = ("autoconf", "bison", "flex", "g++", "make", "help2man")

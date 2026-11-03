@@ -1,0 +1,23 @@
+{
+  "version": "5.054",
+  "url": "https://github.com/verilator/verilator/archive/refs/tags/v5.054.tar.gz",
+  "sha256": "18658731b46922ef660bcb650be0aa503d751e5c17eb9d4644fdfabb11835198",
+  "tag_object": "76d93f464fe9e24e4e407dcb565d95c7f71a82a9",
+  "revision": "bbb60a403932a9f695cb6ff001ceb73de6ad9234",
+  "review_date": "2026-11-03",
+  "licenses": {
+    "LICENSE": {
+      "sha256": "996af0513df21f7496288951c41428a03c174e9e4a9d63665c57d670f845ccb1"
+    },
+    "README.rst": {
+      "sha256": "dae4b3358e3adc77181a5dd7da6c67397e4d7271ec6290e5eac3c2304050f451"
+    }
+  },
+  "compatibility_review": {
+    "source": "src/V3AstNodes.cpp",
+    "change": "dumpJsonNum omits zero; dumpJsonBoolIf omits false; dumpJsonStr omits empty strings; dumpJsonPtr omits null pointers.",
+    "consumer": "tools/vos/cli/rtl.py:_inventory",
+    "reading": "Required module names, resolved cell modName values and top level 1 remain nonempty/nonzero; omitted child collections are already traversed generically. Existing authored JSON fixtures exercise omitted unused fields.",
+    "native_verdict": "Not run locally; fresh Guest CI RTL elaboration, absence inventories, crosschecks and assertion-policy controls remain required."
+  }
+}

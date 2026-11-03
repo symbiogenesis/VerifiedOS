@@ -6,7 +6,7 @@
       "tool": "Verilator",
       "subject": "the enforced RTL tool release",
       "reviewed": [
-        "5.052"
+        "5.054"
       ],
       "owners": [
         {
@@ -2559,7 +2559,7 @@
       "id": "Verilator",
       "tool": "Verilator",
       "license": "`LGPL-3.0-only OR Artistic-2.0`, at the recipient's option",
-      "standing": "Elaborates and simulates RTL, pinned at **${verilator_0}**.",
+      "standing": "Elaborates and simulates RTL, pinned at **${verilator_0}**. The selected `v5.054` source archive and its `LICENSE` and `README.rst` were read on 2026-11-03; the latter states LGPL-3.0-only OR Artistic-2.0. The archive identity is recorded in [the dependency review](docs/implementation/evidence/verilator-20261103.json). Native RTL qualification remains with Guest CI.",
       "reviews": [
         "verilator"
       ]
