@@ -104,6 +104,29 @@ const Nat Count = 1;
 definition Vec<Nat,Count> One() = VCons(7, VNil::<Nat>());
 lemma Correct(): Answer == 42 proof { return Refl(42); }
 """),
+        ("compositional-static-and-runtime-calls", """module StaticCallsReplay;
+public const Nat Square(Nat value) => value * value;
+const Nat Limit = Square(4);
+Nat Scale(const Nat factor, Nat value) {
+    const Nat multiplier = Square(factor);
+    return multiplier * value;
+}
+Nat Forward(const Nat factor, Nat value) => Scale(factor: factor, value: value);
+Nat Runtime(Nat value) => Forward(factor: 4, value: value);
+Nat RuntimeSquare(Nat value) => Square(value);
+lemma Specialized(): Runtime(3) == 48 proof { return Refl(48); }
+lemma DualPhase(): RuntimeSquare(3) == 9 proof { return Refl(9); }
+"""),
+        ("static-callable-telescopes-and-lambdas", """module StaticCallableReplay;
+alias StaticMap = Fn(const Nat factor, Nat value) -> Nat;
+definition StaticMap Build() = (const Nat factor, Nat value) => factor * value;
+definition StaticMap Explicit() = Fn(const Nat factor, Nat value) -> Nat => factor * value;
+definition Nat Partial(Nat value) = Build()(factor: 4)(value: value);
+definition T Select<T>(const Nat index, T value) = value;
+definition Nat Generic(Nat value) = Select(index: 0, value: value);
+lemma Correct(): Partial(3) == 12 proof { return Refl(12); }
+lemma TypedCorrect(): Explicit()(factor: 5, value: 3) == 15 proof { return Refl(15); }
+"""),
         ("nullary-and-explicit-unit-values", """module ArityReplay;
 definition Nat Empty() = 7;
 definition Nat Explicit(Unit token) = 7;
@@ -115,6 +138,13 @@ definition Nat UseBuilt() = Build()(published: ());
 """),
     )
     negatives = (
+        ("static-parameter-runtime-input", "Nat F(const Nat value) => value; Nat Wrong(Nat runtime) => F(runtime);", "type"),
+        ("static-parameter-ignored-runtime-input", "Nat Ignore(Nat value) => 0; Nat F(const Nat value) => value; "
+         "Nat Wrong(Nat runtime) => F(Ignore(runtime));", "type"),
+        ("static-parameter-higher-order-runtime-input", "alias F = Fn(const Nat index) -> Nat; "
+         "definition Nat Wrong(F function, Nat runtime) = function(runtime);", "type"),
+        ("static-callable-requirement-erasure", "alias F = Fn(const Nat index) -> Nat; "
+         "definition Fn(Nat index) -> Nat Wrong(F function) = function;", "type"),
         ("wrong-call-domain", "definition Nat Identity(Nat x) = x; "
          "definition Nat Wrong() = Identity(true);", "type"),
         ("unequal-vector-index", "definition Vec<Nat,0> Wrong() = VCons(1, VNil::<Nat>());", "type"),

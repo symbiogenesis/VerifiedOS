@@ -1163,6 +1163,21 @@ public struct Bounds<T> {
     }
 }
 """, ("constant", "constant_local", "type", "argument", "modified_type")),
+    Fixture("compositional-constant-callables", """// café: const has declaration and telescope roles.
+module StaticCalls;
+public const Nat Square(Nat value) => value * value;
+public Nat Scale(const Nat factor, Nat value) {
+    const Nat multiplier = Square(factor);
+    return multiplier * value;
+}
+const internal Nat Hidden(Nat value) => Square(value);
+alias StaticMap = Fn(const Nat dimension, Nat item) -> Nat;
+definition StaticMap Build() = (const Nat coefficient, Nat element) => coefficient * element;
+definition StaticMap Explicit() = Fn(const Nat axis, Nat entry) -> Nat => axis * entry;
+interface StaticProvider {
+    public const Nat Select(const Nat selector);
+}
+""", ("function", "parameter", "constant_local", "function_type", "lambda_parameter", "typed_lambda", "interface")),
     Fixture("canonical-readable-calls", """// café: labels and explicit modes have separate spans.
 module Readable;
 alias Outcome = Result<Unit, Error>;
@@ -1195,6 +1210,12 @@ public UnknownType F() { return missing; }
 
 
 NEGATIVE: tuple[tuple[str, bytes, str], ...] = (
+    ("repeated-const-function", b"module M; public const const Nat F() => 1;", "syntax"),
+    ("repeated-const-parameter", b"module M; Nat F(const const Nat value) => value;", "syntax"),
+    ("repeated-const-lambda-parameter", b"module M; Nat F() => (const const Nat value) => value;", "syntax"),
+    ("const-parameter-missing-type", b"module M; Nat F(const) => 0;", "syntax"),
+    ("const-general-type-qualifier", b"module M; alias X = const Nat;", "syntax"),
+    ("const-non-callable-declaration", b"module M; const struct X {}", "syntax"),
     ("constant-missing-type", b"module M; public const Limit = 1;", "syntax"),
     ("constant-missing-initializer", b"module M; public const Nat Limit;", "syntax"),
     ("constant-missing-value", b"module M; public const Nat Limit = ;", "syntax"),
@@ -1533,6 +1554,37 @@ def _readable_call_roles(result: dict[str, Json]) -> None:
     exits = {node.get("kind") for node in nodes(loops[0])}
     if not {"break", "continue", "return", "contract", "assignment"} <= exits:
         raise ValueError("surface foreach lost a loan/contract exit role")
+
+
+def _compositional_constant_roles(source: bytes, result: dict[str, Json]) -> None:
+    tree = _object(result.get("ast"), "constant callable root")
+    for name, modifiers in (("Square", ["public", "const"]), ("Scale", ["public"]),
+                            ("Hidden", ["const", "internal"]), ("Select", ["public", "const"])):
+        function = _named(tree, "function", name)
+        if function.get("modifiers") != modifiers or "const" in function:
+            raise ValueError("constant function qualifier changed its declaration role")
+    for owner_kind, owner_name, parameter_kind, name, spelling in (
+            ("function", "Scale", "parameter", "factor", b"const Nat factor"),
+            ("alias", "StaticMap", "parameter", "dimension", b"const Nat dimension"),
+            ("definition", "Build", "lambda_parameter", "coefficient", b"const Nat coefficient"),
+            ("definition", "Explicit", "parameter", "axis", b"const Nat axis"),
+            ("function", "Select", "parameter", "selector", b"const Nat selector")):
+        parameter = _named(_named(tree, owner_kind, owner_name), parameter_kind, name)
+        if parameter.get("const") is not True or parameter.get("grade") is not None:
+            raise ValueError("required-static parameter lost its Boolean qualifier or acquired a grade")
+        _exact_span(source, parameter, spelling)
+        annotation = _object(parameter.get("type"), "static parameter annotation")
+        start = source.index(spelling) + len(b"const ")
+        if annotation.get("span") != [start, start + len(b"Nat")]:
+            raise ValueError("const entered the parameter type rather than qualifying the binder")
+    for name in ("value", "item", "element", "entry"):
+        for parameter in nodes(tree):
+            if parameter.get("kind") in {"parameter", "lambda_parameter"} and _texts(parameter.get("name")) == [name]:
+                if "const" in parameter:
+                    raise ValueError("ordinary parameter acquired a required-static qualifier")
+    local = _named(tree, "constant_local", "multiplier")
+    if _object(local.get("value"), "static initializer").get("kind") != "call":
+        raise ValueError("syntax parser evaluated a symbolic constant initializer")
 
 
 def _required_static_roles(source: bytes, result: dict[str, Json]) -> None:
@@ -3887,6 +3939,8 @@ def qualify(parse: Callable[[bytes], dict[str, Json]]) -> list[str]:
             raise ValueError(f"surface fixture {fixture.name} lacks AST roles: {sorted(missing)}")
         if fixture.name == "required-static-constants":
             _required_static_roles(fixture.source.encode("utf-8"), result)
+        elif fixture.name == "compositional-constant-callables":
+            _compositional_constant_roles(fixture.source.encode("utf-8"), result)
         elif fixture.name == "canonical-readable-calls":
             _readable_call_roles(result)
         elif fixture.name == "concise-authoring-syntax":

@@ -4,6 +4,34 @@ open Ast
 let optional = function None -> Null | Some value -> value.syntax
 let children = function None -> [] | Some value -> [value]
 let strings values = Array (List.map (fun value -> String value) values)
+let const_fields = function None -> [] | Some _ -> [("const", Boolean true)]
+let with_declaration_modifiers first last modifiers value =
+  match value.syntax with
+  | Object fields ->
+      let is_const = List.mem "const" modifiers in
+      let occurrences = List.length (List.filter ((=) "const") modifiers) in
+      let refuse message = raise (Refusal ("syntax", first.Lexing.pos_cnum, message)) in
+      if occurrences > 1 then refuse "repeated const declaration modifier";
+      let kind = List.assoc "kind" fields in
+      let kind, fields, modifiers =
+        if is_const && kind = String "field" then begin
+          if List.assoc "value" fields = Null || List.assoc "grade" fields <> Null then
+            refuse "a constant value requires an initializer and has no use grade";
+          if List.hd (List.rev modifiers) <> "const" then
+            refuse "a constant value places const immediately before its type";
+          String "constant", List.remove_assoc "grade" fields,
+          List.filter ((<>) "const") modifiers
+        end else begin
+          if is_const && not (List.mem kind [String "function"; String "definition"; String "operation"]) then
+            refuse "const modifies a function or an initialized value";
+          kind, fields, modifiers
+        end in
+      { value with syntax = Object
+          (List.map (fun (key, data) ->
+             if key = "span" then key, offsets first last
+             else if key = "kind" then key, kind else key, data) fields
+           @ [("modifiers", strings modifiers)]) }
+  | _ -> value
 let binary first last operator left right =
   make "binary" first last [("operator", operator); ("left", left.syntax);
                             ("right", right.syntax)] [left; right]
@@ -43,6 +71,12 @@ pure_declaration:
 | PUBLIC CONST value_type=value_type constant_name=name EQUAL value=expression SEMICOLON
     { make "constant" $startpos $endpos [("name", constant_name); ("type", value_type.syntax);
         ("value", value.syntax)] [value_type; value] }
+| PUBLIC CONST result=value_type function_name=name LPAREN
+  parameters=comma_list(parameter) RPAREN body=function_body
+    { make "function" $startpos $endpos
+        [("name", function_name); ("result", result.syntax);
+         ("parameters", array parameters); ("body", body.syntax); ("const", Boolean true)]
+        (result :: body :: parameters) }
 
 name:
   spelling=IDENT { name $startpos $endpos spelling }
@@ -65,9 +99,10 @@ function_body:
     { make "expression_body" $startpos $endpos [("value", value.syntax)] [value] }
 
 parameter:
-  parameter_type=value_type parameter_name=name
-    { make "parameter" $startpos $endpos
-        [("name", parameter_name); ("type", parameter_type.syntax)] [parameter_type] }
+  constant=option(CONST) parameter_type=value_type parameter_name=name
+    { make "parameter" $symbolstartpos $endpos
+        ([("name", parameter_name); ("type", parameter_type.syntax)] @ const_fields constant)
+        [parameter_type] }
 
 block:
   LBRACE bindings=list(binding) terminal=exit RBRACE
@@ -166,19 +201,15 @@ s_modifiers:
 
 s_modifier:
   PUBLIC { "public" } | PRIVATE { "private" } | INTERNAL { "internal" }
-| ASYNC { "async" }
+| ASYNC { "async" } | CONST { "const" }
 
 s_declaration:
   modifiers=s_modifiers declaration=s_decl
-    { { declaration with syntax = (match declaration.syntax with
-        Object fields -> Object (List.map (fun (key, value) -> if key = "span" then (key, offsets $symbolstartpos $endpos) else (key, value)) fields @ [("modifiers", strings modifiers)]) | value -> value) } }
+    { with_declaration_modifiers $symbolstartpos $endpos modifiers declaration }
 
 s_decl:
   IMPORT path=s_path SEMICOLON
     { make "import" $startpos $endpos [("name", path)] [] }
-| CONST value_type=s_type constant_name=s_identifier EQUAL value=s_expression SEMICOLON
-    { make "constant" $startpos $endpos [("name", constant_name); ("type", value_type.syntax);
-        ("value", value.syntax)] [value_type; value] }
 | ALIAS alias=s_identifier generics=s_generics contracts=list(s_contract) EQUAL value=s_type SEMICOLON
     { make "alias" $startpos $endpos [("name", alias); ("generics", array generics);
         ("contracts", array contracts); ("type", value.syntax)] (value :: generics @ contracts) }
@@ -431,9 +462,11 @@ s_generic_type_atom:
 | value=s_function_type { value }
 | LPAREN value=s_function_type RPAREN { make "group_type" $startpos $endpos [("type", value.syntax)] [value] }
 s_parameter:
-  value_type=s_type parameter_name=option(s_parameter_name) grade=option(s_grade)
-    { make "parameter" $startpos $endpos [("name", (match parameter_name with None -> Null | Some value -> value));
-        ("type", value_type.syntax); ("grade", optional grade)] (value_type :: children grade) }
+  constant=option(CONST) value_type=s_type parameter_name=option(s_parameter_name) grade=option(s_grade)
+    { make "parameter" $symbolstartpos $endpos
+        ([("name", (match parameter_name with None -> Null | Some value -> value));
+          ("type", value_type.syntax); ("grade", optional grade)] @ const_fields constant)
+        (value_type :: children grade) }
 s_parameter_name:
   value=s_identifier { value } | HANDLE { name $startpos $endpos "handle" }
 s_grade:
@@ -606,9 +639,10 @@ s_expression:
 %inline s_quantifier_kind:
   FORALL { "forall" } | EXISTS { "exists" }
 s_lambda_parameter:
-  value_type=s_annotation_type parameter_name=s_identifier grade=option(s_grade)
-    { make "lambda_parameter" $startpos $endpos [("type", value_type.syntax); ("name", parameter_name);
-        ("grade", optional grade)] (value_type :: children grade) }
+  constant=option(CONST) value_type=s_annotation_type parameter_name=s_identifier grade=option(s_grade)
+    { make "lambda_parameter" $symbolstartpos $endpos
+        ([("type", value_type.syntax); ("name", parameter_name);
+          ("grade", optional grade)] @ const_fields constant) (value_type :: children grade) }
 | parameter_name=s_value_identifier grade=option(s_grade)
     { make "lambda_parameter" $startpos $endpos [("type", Null); ("name", parameter_name);
         ("grade", optional grade)] (children grade) }

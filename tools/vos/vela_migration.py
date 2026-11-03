@@ -49,6 +49,14 @@ def fixtures(example: bytes) -> tuple[Fixture, ...]:
         ("constant-declarations-and-locals", b"module M; public Nat Square(Nat x) { let y = x * x; return y; } "
          b"public const Nat Limit = Square(x: 4); public const bool Ready = Limit == 16; "
          b"public Nat Read() { const Nat Local = Limit + 1; return Local; }"),
+        ("constant-function-dual-phase", b"module M; public const Nat Square(Nat x) => x * x; "
+         b"public const Nat Limit = Square(4); public Nat Runtime(Nat value) => Square(value);"),
+        ("static-parameter-specialization", b"module M; public const Nat Square(Nat x) => x * x; "
+         b"public Nat Scale(const Nat factor,Nat value) { const Nat multiplier = Square(factor); "
+         b"return multiplier * value; } public Nat Runtime(Nat value) => Scale(factor: 4,value: value);"),
+        ("static-parameter-forwarding", b"module M; public Nat Scale(const Nat factor,Nat value) => factor * value; "
+         b"public Nat Forward(const Nat factor,Nat value) => Scale(factor: factor,value: value); "
+         b"public Nat Runtime(Nat value) => Forward(4,value);"),
     )
     result = [Fixture(name, source, "accepted") for name, source in positive]
     for name, source in positive[:6]:
@@ -56,6 +64,12 @@ def fixtures(example: bytes) -> tuple[Fixture, ...]:
             edited = b"// caf\xc3\xa9" + newline + source.replace(b"\n", newline) + newline + b"// tail"
             result.append(Fixture(f"{name}-{suffix}-trivia", edited, "accepted"))
     negative = (
+        ("static-parameter-runtime-input", "public Nat F(const Nat value) => value; "
+         "public Nat G(Nat runtime) => F(runtime);", "unsupported"),
+        ("static-parameter-ignored-runtime-input", "public Nat Ignore(Nat value) => 0; "
+         "public Nat F(const Nat value) => value; public Nat G(Nat runtime) => F(Ignore(runtime));", "unsupported"),
+        ("repeated-constant-function-modifier", "public const const Nat F() => 0;", "syntax"),
+        ("repeated-constant-parameter-modifier", "public Nat F(const const Nat value) => value;", "syntax"),
         ("constant-wrong-type", "public const bool Flag = 1;", "type"),
         ("constant-runtime-input", "public Nat F(Nat x) { const Nat Limit = x; return Limit; }", "unsupported"),
         ("constant-ignored-runtime-input", "public Nat Ignore(Nat x) => 0; "
@@ -212,7 +226,10 @@ def qualify(root: Path) -> dict[str, object]:
     receipt = cast("dict[str, object]", syntax["build"])
     directory = Path(cast("str", receipt["directory"]))
     compiled = vela_parser.Build(directory, directory / "vela-parser", receipt)
-    report = compare(compiled, fixtures(vela_parser.read_source(root / "tools/vela/examples/pure.vela")))
+    cases = (*fixtures(vela_parser.read_source(root / "tools/vela/examples/pure.vela")),
+             Fixture("authored-compositional-constants",
+                     vela_parser.read_source(root / "tools/vela/examples/constants.vela"), "accepted"))
+    report = compare(compiled, cases)
     if _inputs(root) != inputs or vela_parser._toolchain(root) != receipt["toolchain"]:
         raise ValueError("migration inputs or toolchain changed during comparison")
     outputs = cast("dict[str, str]", receipt["generated_sha256"])
