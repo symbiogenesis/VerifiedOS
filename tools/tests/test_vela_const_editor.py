@@ -6,6 +6,7 @@ from typing import cast
 
 from tests.harness import Case, ensure
 from vos.vela import inspect_source
+from vos.vela_ast import MAX_LITERAL_DIGITS
 from vos.vela_lsp import Server
 from vos.vela_lsp_services import InspectionError, project
 from vos.vela_source import SourceSnapshot
@@ -129,7 +130,7 @@ def _constant_fact_shape_is_bounded() -> None:
     symbols = cast("list[dict[str, object]]", raw["symbols"])
     index = next(index for index, symbol in enumerate(symbols) if symbol["name"] == "Limit")
     for detail in ("const Nat Limit = -1", "const Nat Limit = 00", "const Nat Limit = true",
-                   "const bool Limit = 5", "const Nat Limit = " + "9" * 257,
+                   "const bool Limit = 5", "const Nat Limit = " + "9" * (MAX_LITERAL_DIGITS + 1),
                    "const Nat Limit = ５"):
         changed = copy.deepcopy(raw)
         cast("list[dict[str, object]]", changed["symbols"])[index]["detail"] = detail
