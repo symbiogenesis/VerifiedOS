@@ -440,20 +440,20 @@ These figures cover the priced reference-build, assessment and named hardening b
 <!-- estimate-summary:start -->
 | Measure | Value |
 | --- | --- |
-| Total estimate midpoint h | 4,782.6 |
-| Total estimate range h | 3,104.5–6,460.7 |
+| Total estimate midpoint h | 4,794.6 |
+| Total estimate range h | 3,112.5–6,476.7 |
 | Completed scope h | 866.1 |
 | Complete by estimate % | 18.1 |
-| Remaining h | 3,916.5 |
-| Committed remaining h | 2,474.5 |
-| Open class I h | 937.5 |
+| Remaining h | 3,928.5 |
+| Committed remaining h | 2,486.5 |
+| Open class I h | 949.5 |
 | Open class X h | 2,979 |
 | Retained completion estimate h | 261.5 |
 | Unmeasured completed items | 29 |
-| Calibrated total h | 5,761.9 |
+| Calibrated total h | 5,770.4 |
 | Committed M8a open h | 74 |
 | Committed M8b open h | 105.5 |
-| Other committed open h | 2,295 |
+| Other committed open h | 2,307 |
 | Conditional open h | 1,028 |
 | Unfunded option open h | 414 |
 | Committed M8a open class X h | 0 |
@@ -1014,6 +1014,8 @@ These trials add no prerequisite to the current M7.1 realization route. A failed
 * [ ] **Q25t · Integrate default Vela formatting and lints** · 24 h, range 16–32 · I · agent-parallel
   * **Start:** the landed [common style and compiler contract](docs/languages/vela/authoring-tools.md), the pure checker and Q25r/Q25s's interfaces. **Owns:** StyleCop-inspired canonical layout, pure-subset formatter, stable advisory lints, automatic compiler-command rewriting, read-only checks, opt-outs and atomic source/output publication. **Check:** the contract's independently expected formatting/findings, idempotence, token/comment and syntax preservation, all CLI modes/refusals and exact post-format provenance, focused host tests, Python checks, both Host CI aggregates and every Guest CI lane dispatched. **Join:** independent formatter, lint and publication review and current examples/tool documentation. **Execute:** consume existing compiler syntax/facts, keep library/LSP reads immutable and leave wider resource/semantic lints with the qualified frontend.
   * **Prototype checkpoint:** normal pure compiler commands automatically apply Allman layout and advisory lints, with explicit format/lint commands, check/off modes and per-ID policy. Token/comment preservation, idempotence, original-position denied diagnostics and post-format emission are checked; Windows snapshot comparisons use file identity, size, mtime and exact bytes. The `vela-authoring-20261102-final` journal owns hosted handoff. Wider-language formatting and semantic lints retain the proposed authoring owner below.
+* [ ] **Q25u · Add pure Vela editor formatting and semantic tokens** · 12 h, range 8–16 · I · agent-parallel
+  * **Start:** the landed [pure editor operations contract](docs/languages/vela/lsp-prototype.md#pure-editor-operations), Q25n's overlay/transport foundation, Q25o's compiler facts and Q25t's formatter. **Owns:** bounded isolated document formatting, full semantic token projection and independent overlay/wire controls. **Check:** every edit, token, coordinate, lifecycle, refusal, resource and real-process predicate in that contract, retained translation/authoring/LSP controls, focused host tests, Python checks, both Host CI aggregates and selected Guest CI dispatch. **Join:** independent formatting-isolation and fact-projection review and revision-bound hosted evidence; two pinned editor clients remain required for final qualification. **Execute:** reuse canonical style and resolved facts without a new parser or semantic checker; keep source writes in the existing compiler command and wider-language services with their frontend owners.
 * [x] **Q26 · Price the resident toolchain against the floor's own comparisons** · 4.6 h actual · agent-parallel
   * [The toolchain residency report](docs/performance/toolchain-residency.md) records the three quantities with their predicates, instruments, lanes and revisions, scores each against the artifact that owns its supply or declares it unscorable with the act that owes the supply named, and states which of the three binds and what would have to move, as arms for the product's owner with none taken. ([note](docs/implementation/completion-log.md#q26-price-the-resident-toolchain-against-the-floors-own-comparisons))
 
@@ -1367,7 +1369,7 @@ Q6's conventional-memory simulators are conditional on a topology comparison nee
 
 No assessment completion automatically increases a performance estimate. For an optimization affecting fraction `f` of runtime by factor `s`, the unchanged-cost bound is `1 / ((1 - f) + f / s)`; added transfers or changed scheduling require a fresh whole-workload comparison. Better packing is not more fabricated capacity, and host performance is not target throughput.
 
-**Q subtotal:** 2,953.1 h · 62% · 254.1 h complete · open range 1,568–3,830 h.
+**Q subtotal:** 2,965.1 h · 62% · 254.1 h complete · open range 1,576–3,846 h.
 
 ### M0 · Hardware reference
 

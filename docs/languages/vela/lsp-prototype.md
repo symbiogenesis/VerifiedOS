@@ -114,7 +114,8 @@ services retain their existing prerequisites.
 Support `textDocument/hover`, `textDocument/definition`,
 `textDocument/references` and `textDocument/documentSymbol`; advertise only those
 four navigation providers; [authoring hints](#authoring-hints) add the separate
-inlay-hint provider. Hover uses plain text with the resolved function
+inlay-hint provider; the [pure editor operations](#pure-editor-operations) add
+formatting and full semantic tokens. Hover uses plain text with the resolved function
 signature or local/parameter type and an explicit unqualified-prototype label.
 Definition returns the exact declaration identifier location. References use
 resolved identity within the requested document and honor `includeDeclaration`.
@@ -227,6 +228,58 @@ definitions use the same source identities and bounds as other symbols. Neither
 the editor adapter nor the inspection transport evaluates constant expressions.
 Explicit constant types receive no inferred-local hint; failed static evaluation
 removes the entire snapshot's semantic facts until a valid edit restores them.
+
+## Pure editor operations
+
+[Q25u](../../../PLAN.md#q-assessment-actions) commissions document formatting and
+full semantic tokens over the synchronized pure-prototype overlay. Reuse the
+existing compiler formatter and resolved inspection facts. These providers add
+no syntax, resolution, proof acceptance or wider-language qualification.
+
+`textDocument/formatting` returns no edits for canonical source, otherwise one
+edit replacing the complete original document with the checked canonical text.
+Use the shared source adapter for the original UTF-16 end position, including
+terminal newlines. The formatter retains its token/comment, attachment, syntax
+and idempotence checks and uses style version 1 from the
+[authoring contract](authoring-tools.md#common-style). Standard formatting options
+must contain a positive integer `tabSize` and Boolean `insertSpaces`; canonical
+compiler style determines the resulting layout regardless of those preferences.
+The server never applies an edit, writes a file or runs the compiler command's
+automatic publication. Invalid or unsupported source returns no edits. A bounded
+formatter failure returns RequestFailed, including expansion beyond the source
+bound; never return a partial edit. Run formatting in the existing isolated
+five-second worker and validate its complete, bounded transport result.
+
+`textDocument/semanticTokens/full` advertises a fixed legend with token types
+`function`, `parameter`, `variable`, in that order, and modifiers `declaration`,
+`readonly`, in that order. Project every resolved identifier occurrence in source
+order. Constants use `variable`; parameters, constants and immutable locals have
+`readonly`, while declaration occurrences also have `declaration`. Functions have
+no `readonly` modifier. Encode the standard five-integer relative token records,
+with UTF-16 lengths and same-line relative starts. Keywords, literals, comments
+and unsupported syntax receive no invented semantic facts. Invalid or unsupported
+source returns `{"data": []}`. Do not advertise range or delta tokens or return a
+result ID. Retain existing inspection validation, complete-output limits and
+worker failures; never truncate a token stream.
+
+Both requests require `initialized` and a synchronized open document. Retain the
+navigation errors for malformed parameters, unopened/closed documents, refused
+updates and resource failures. Compute each response from the current immutable
+snapshot; changes and configuration invalidation cannot reuse old results. An
+unknown URI grants no filesystem access. Existing request, reply, source,
+inspection and timeout bounds apply to the complete operation.
+
+Independent controls must assert exact edits and token streams, declaration/use
+identity, shadowing and distinct call/value namespaces, constants, comments,
+supplementary characters and LF/CRLF/bare-CR positions. Exercise canonical,
+invalid and unsupported sources, malformed options and worker results, source
+and reply limits, timeout, lifecycle, incremental edits, desynchronization and
+recovery. A real stdio process must exercise both requests before and after an
+unsaved update. Retain pure translation, authoring and existing LSP controls,
+focused host tests, Python checks, both Host CI aggregates and selected Guest CI
+dispatch. Independent review covers projection and formatting isolation. Two
+pinned editor clients and retained transcripts remain required for final
+interoperability qualification; this increment stays open without them.
 
 ## Acceptance and remaining qualification
 
