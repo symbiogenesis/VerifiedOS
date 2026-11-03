@@ -4008,7 +4008,7 @@ def _precedence_and_spans(parse: Callable[[bytes], dict[str, Json]]) -> None:
 
 
 def _numeric_separator_roles(source: bytes, result: dict[str, Json]) -> None:
-    def start(node: dict[str, Json]) -> int:
+    def span_start(node: dict[str, Json]) -> int:
         span = node.get("span")
         if not isinstance(span, list) or len(span) != 2:
             raise ValueError("numeric separator literal has no original-byte span")
@@ -4019,7 +4019,7 @@ def _numeric_separator_roles(source: bytes, result: dict[str, Json]) -> None:
 
     literals = sorted((node for node in nodes(result.get("ast"))
                        if node.get("kind") in {"nat", "nat_pattern"}),
-                      key=start)
+                      key=span_start)
     expected = (("1_024", "usize"), ("1_000", ""), ("1_024", ""),
                 ("0b1010_0011", "byte"), ("0xA_3", "u8"), ("0xFF_FF", "u16"), ("1_0", ""))
     if len(literals) != len(expected):
