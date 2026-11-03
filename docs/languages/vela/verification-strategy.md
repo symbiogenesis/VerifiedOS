@@ -1,10 +1,9 @@
 # Vela: Language Design, Examples and Verification Strategy
 
-This is the **primary Vela design document**, covering purpose, developer experience,
-examples and research. Start with the
-[product contract](#language-product-contract) and [surface examples](#an-ideal-surface).
-The companion contracts refine the design's rules and qualification boundaries;
-[PLAN.md](../../../PLAN.md#language-core-proposals) owns implementation work.
+This **primary Vela design document** covers purpose, developer experience,
+examples and research. Start with the [product contract](#language-product-contract)
+and [surface examples](#an-ideal-surface). Companion contracts refine the rules and
+qualification boundaries; [PLAN.md](../../../PLAN.md#language-core-proposals) owns implementation.
 
 > **Status:** This is a non-normative design proposal, not an implemented compiler or admission rule. [PLAN.md](../../../PLAN.md#q-assessment-actions) records execution state; [the completion log](../../implementation/completion-log.md) records evidence. The [workflow contract](workflow-contract.md#commissioning-disposition) defines the canceled experiments and their re-entry conditions.
 
@@ -17,26 +16,25 @@ The companion contracts refine the design's rules and qualification boundaries;
 
 **Adapt the selected CHERIoT Rust fork for the mandatory functional Rust producer.** The [baseline](../../assurance/proof-reuse/languages.md#cheriot-rust-selected-functional-capability-aware-compiler-baseline) already builds `compiler-builtins`, `core` and `alloc`; the [alternative decision](../../background/architectural-alternatives.md#functional-cheri-rust-compiler-starting-point) explains the selection and reopening conditions. Remaining work covers RV64 representation, purecap ABI, frozen instruction selection, compartment/device interfaces, bounded libraries/runtime, source-to-final-byte correspondence and replayable CHERI-TAL derivations. R-18-015's safe-MIR frontend, certification and resident-toolchain qualification remain required. This workstream keeps its separate owner and sits outside the priced bring-up total.
 
-**Keep `VerifiedComponents` as a frozen proposal.** This target-parametric Rocq library needs concrete operation and representation laws for its CHERI instance. Q2c and Q21a/Q21b declined commissioning the foundation and machine/contextual connections because they could not responsibly price them; the pilot was canceled before execution. The [foundation map](../../hardware/cheri-foundation-map.md#re-entry-evidence), [core design](core-design.md#decision-and-reopening-evidence) and [compiler comparison](compiler-route-contract.md#re-entry-packages) specify reopening evidence.
+**Keep `VerifiedComponents` frozen.** Its target-parametric Rocq library lacks concrete CHERI operation/representation laws and machine/contextual connections. Q2c and Q21a/Q21b declined commissioning those foundations without responsible pricing; the pilot never ran. Reopening evidence belongs to the [foundation map](../../hardware/cheri-foundation-map.md#re-entry-evidence), [core design](core-design.md#decision-and-reopening-evidence) and [compiler comparison](compiler-route-contract.md#re-entry-packages).
 
-The separate [tooling qualification](../../assurance/proof-tooling-qualification.md) retained the locked batch workflow. It rejected cached presentation because changing an imported lemma left its rendered page valid. Selective Stdlib, Equations and standalone `sauto` replayed without new assumptions but showed no client maintenance benefit, so they were not adopted.
+The [tooling qualification](../../assurance/proof-tooling-qualification.md) retained the locked batch workflow: cached presentation missed an imported-lemma change; Selective Stdlib, Equations and standalone `sauto` replayed without new assumptions but showed no client maintenance benefit. None was adopted.
 
 **Deliver the bounded synchronous release first.** The [release contract](first-release.md#release-boundary) selects explicit representations, fixed ownership/use modes, stable dependent indices, ordinary errors and checked contracts over one retained compiler route. General grade algebras, multi-shot/shallow handlers, broad reflection and concurrent mutation need separate justification. Async requires a concrete service consumer and complete resource contract. The [delivery plan](../../../PLAN.md#vela-first-release-delivery) starts with a bounded concrete-buffer foundation investigation, whose results determine pricing for an executable slice and independent package trial. Syntax, mathematics and editor prototypes remain development tools; they supply no machine laws.
 
 **Interpret source in existing anchors.** Under [R-05-020a](../../spec.md#r-05-020a), untrusted elaboration is kernel-rechecked under R-05-009. The rule dossiers state laws about that checked interpretation, without introducing independent source semantics. Concrete resource laws, checked source correspondence, lowering and final-byte acceptance remain prerequisites. Before implementing later runtime-varying storage, amend the R-08-046 inventory and lifecycle classification.
 
-**Use Menhir as the parser generator during Vela development.** The
-[development parser goal](#development-parser-and-grammar) connects an executable
-grammar of the proposed surface to located syntax trees, separate elaboration and
-eventual checked parsing. The current [pure prototype](vela-prototype.md) remains
-the executable baseline until that route is qualified. This is a selected
-development direction; implementation and migration retain their own entry gates.
+**Use Menhir for development parsing.** The [parser goal](#development-parser-and-grammar)
+connects the proposed grammar to located syntax trees, separate elaboration and
+eventual checked parsing. The [pure prototype](vela-prototype.md) remains the
+executable baseline until qualification; implementation and migration retain
+their entry gates.
 
 The opt-in [mathematical elaborator](elaboration-prototype.md) exercises generic
 and dependent functions, higher-order inference, indexed collections and explicit
-proof terms over the native surface tree. Its interpretation is the generated
-CIC term. Kernel replay checks those terms; checked parsing, source correspondence
-and the full calculus's implementation gates retain their existing owners.
+proof terms over the native surface tree. Kernel replay checks its generated CIC
+interpretation; checked parsing, source correspondence and full-calculus implementation
+retain their separate owners and gates.
 
 ## Constraints and Desired Product
 
@@ -44,17 +42,17 @@ The [register](../../requirements-register.md) remains authoritative. [Semantic 
 
 ### Language Product Contract
 
-Vela's first supported runtime language is the [bounded software subset](first-release.md#release-boundary). Familiar declarations, local inference and editor feedback serve explicit representation, ownership, ordinary error handling and checked specifications. The mathematical authoring surface can remain expressive without making every theorem-level construction a represented runtime feature. Broader graded programming, reflection, general handlers and whole-system authorship remain separately qualified options. A donor language's feature set is not a Vela release checklist.
+The [bounded software subset](first-release.md#release-boundary) is Vela's first supported runtime language: familiar declarations, local inference and editor feedback for explicit representations, ownership, ordinary errors and checked specifications. Mathematical definitions need not have runtime representations. Broader graded programming, reflection, general handlers and whole-system authorship need separate qualification; donor-language features do not define release scope.
 
 **One authoring surface can have several mathematical interpretations.** A component package combines an operational definition, independently reviewed intended behavior, explicit representations and supporting lemmas. Callers use typed APIs with routine obligations inferred; library authors prove ownership and representation laws. Qualifying a library does not establish the full language design.
 
-The supported family must execute from one maintained implementation. This goes beyond the bring-up plan's manual Gallina-to-C refinement path. The [workflow contract](workflow-contract.md) defines bounded clients and comparison thresholds, but commissions no trial. Existing kernel and storage refinements remain with their owners until an equivalent replacement is demonstrated; efficient lowering of arbitrary Gallina algorithms is not assumed.
+The supported family must execute from one maintained implementation, beyond manual Gallina-to-C refinement. The [workflow contract](workflow-contract.md) defines bounded clients and comparison thresholds without commissioning a trial. Kernel and storage refinements retain their owners until an equivalent replacement is demonstrated; efficient lowering of arbitrary Gallina is not assumed.
 
-The [whole-system authoring option](unified-source-contract.md#authoring-end-state) extends the same discipline to general proofs, the architectural machine model and hardware descriptions. Generated Rocq terms, Clight, machine code and RTL remain permitted build products, with Rocq/CIC checking evidence. Retained Rocq libraries and proof terms are valid first-release dependencies; complete replacement of authored VST, Sail or hardware sources is not a software-release predicate. Each future replacement retains its memory, representation, framing and migration duties and needs a demonstrated consumer benefit and separately priced scope.
+The [whole-system option](unified-source-contract.md#authoring-end-state) extends authorship to general proofs, the architectural model and hardware. Generated Rocq terms, Clight, machine code and RTL remain permitted, with Rocq/CIC checking evidence. The first software release may retain Rocq libraries/proofs and authored VST, Sail and hardware sources. Replacements need demonstrated consumer benefit, separate pricing and unchanged memory, representation, framing and migration duties.
 
-**A native verified self-hosting toolchain is a separate future option.** Its [compiler and bootstrap contract](unified-source-contract.md#native-verified-compiler-and-self-hosting) retains source-to-running-binary correspondence, optimization, ABI and licensing obligations. The first release uses one retained lowering route; self-hosting, alternative backends and optimization parity supply no prerequisite or presumed saving for that release.
+**Native verified self-hosting is a future option.** Its [compiler/bootstrap contract](unified-source-contract.md#native-verified-compiler-and-self-hosting) retains source-to-running-binary correspondence, optimization, ABI and licensing duties. The first release uses one retained lowering route; self-hosting, alternative backends and optimization parity provide no prerequisite or presumed saving.
 
-**Prioritize the tools needed to use and inspect the supported language.** Batch diagnostics, basic LSP navigation, explicit formatting and inspectable residual obligations come first. The [tooling contract](tooling-protocols.md) retains qualified compiler inspection and optional interchange/debug adapters for named consumers. Existing bounded editor prototypes can finish their qualification; more syntax or protocol breadth waits for a concrete producer and consumer. Compiler-service schemas share semantic facts rather than creating a second implementation.
+**Prioritize batch diagnostics, basic LSP navigation, explicit formatting and inspectable residual obligations.** The [tooling contract](tooling-protocols.md) retains qualified compiler inspection and optional interchange/debug adapters for named consumers. Bounded editor prototypes may finish qualification; further syntax/protocol breadth needs a concrete producer and consumer. Compiler-service schemas share semantic facts without a second implementation.
 
 | Desired quality | Design commitment to test | Evidence needed before claiming it |
 | --- | --- | --- |
