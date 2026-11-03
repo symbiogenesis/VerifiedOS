@@ -11,6 +11,7 @@ from typing import cast
 
 from tests.harness import Case, ensure
 from vos.vela import VelaError, inspect_source, translate
+from vos.vela_authoring import format_source
 from vos.vela_documentation import MAX_DOCUMENTATION_BYTES
 from vos.vela_lsp import Server
 from vos.vela_lsp_services import InspectionError, project
@@ -195,6 +196,38 @@ def _unicode_documentation_byte_bound() -> None:
         raise AssertionError("Unicode documentation was bounded by characters instead of UTF-8 bytes")
 
 
+def _use_site_comments_and_formatting_attachment() -> None:
+    source = ("/// Orphan module text.\r\nmodule Preserve;\r"
+              "/// Configured 😀.\npublic const Nat Size=2;\r\n"
+              "/// Callable description.\rpublic Nat Echo(Nat arg){\n"
+              "/// Local documentation stays a comment.\nlet local=arg;return local;}\n"
+              "/// Broken by a blank line.\n\npublic Nat Use(Nat input){\n"
+              "/// Use-site text does not document Echo.\nreturn Echo(input)+Size;}")
+    expected = {"Size": "Configured 😀.", "Echo": "Callable description."}
+    for current in (source, format_source(source.encode()).decode()):
+        raw = inspect_source(current.encode())
+        actual = {cast("str", symbol["name"]): cast("dict[str, object]", symbol["documentation"])["text"]
+                  for symbol in _symbols(raw) if "documentation" in symbol}
+        ensure(actual == expected,
+               f"formatting changed attachment or promoted orphan/local/use-site comments: {actual!r}")
+        normalized = current.replace("\r\n", "\n").replace("\r", "\n")
+        prefix = normalized[:normalized.index("Echo(input)")]
+        line, column = prefix.count("\n"), len(prefix.rsplit("\n", 1)[-1])
+        contents = _contents(_hover(current, line, column, raw))
+        ensure("Callable description." in contents and "Use-site text" not in contents,
+               "reference hover selected nearby comments instead of declaration documentation")
+
+
+def _orphan_documentation_budget() -> None:
+    oversized = "/// " + "x" * (MAX_DOCUMENTATION_BYTES + 1)
+    for source in (oversized + "\nmodule M;\npublic Nat F() => 1;",
+                   "module M;\n" + oversized + "\n\npublic Nat F() => 1;",
+                   "module M;\n" + oversized + "\n// break\npublic Nat F() => 1;"):
+        raw = inspect_source(source.encode())
+        ensure("documentation" not in _find(raw, "F"),
+               "an orphan comment consumed or bypassed the attached-documentation budget")
+
+
 def _message(method: str, params: object = None, identity: int | None = None) -> dict[str, object]:
     result = {"jsonrpc": "2.0", "method": method, "params": {} if params is None else params}
     if identity is not None:
@@ -278,5 +311,7 @@ def cases() -> list[Case]:
             Case("bounded-documentation-and-invalid-programs", _documentation_bounds_and_invalid_sources),
             Case("documentation-declaration-kind-source-binding", _declaration_kind_source_binding),
             Case("unicode-documentation-byte-boundary", _unicode_documentation_byte_bound),
+            Case("use-site-comments-and-formatting-attachment", _use_site_comments_and_formatting_attachment),
+            Case("orphan-documentation-does-not-consume-presentation-budget", _orphan_documentation_budget),
             Case("incremental-documentation-invalidation", _edited_overlay),
             Case("real-stdio-documentation-and-edit", _real_stdio_documentation)]
