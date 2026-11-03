@@ -145,6 +145,37 @@ public const Nat Second = Local(2, 3);
              "type", "is a value and cannot be called")
 
 
+def _specialization_preserves_global_shadowing() -> None:
+    source = b"""module Shadowing;
+public const Nat Seed = 11;
+public const Nat Delta = 3;
+public Nat Offset(const Nat factor, Nat value) => factor + value + Seed;
+public Nat ConstantLocal(const Nat factor, Nat value) {
+    const Nat Seed = factor * 2;
+    return Seed + value + Offset(1, value);
+}
+public Nat OrdinaryLocal(const Nat factor, Nat value) {
+    let Seed = value;
+    return Seed + factor + Delta;
+}
+public Nat Runtime(Nat value) => ConstantLocal(2, value) + OrdinaryLocal(2, value);
+public const Nat Total = ConstantLocal(3, 1) + OrdinaryLocal(2, 1);
+"""
+    result = vela.translate(source).gallina
+    runtime = result.split("Definition f_Runtime", 1)[1].split("Definition c_Total", 1)[0]
+    ensure("(let v_Seed := (4 : Corelib.Init.Datatypes.nat)" in runtime,
+           "specialization rejected or misbound a local constant shadowing a module constant")
+    ensure("(let v_Seed := vela_arg_" in runtime and "c_Delta" in runtime,
+           "specialization rejected an ordinary shadow or lost captured module constants")
+    ensure(runtime.count("c_Seed") == 1 and "f_Offset" not in runtime,
+           "a nested specialization captured its caller's shadow instead of its own module constant")
+    ensure("Definition c_Total : Corelib.Init.Datatypes.nat :=\n  (26 :" in result,
+           "closed static evaluation disagrees with the shadowed and captured bindings")
+    facts = cast("list[dict[str, object]]", vela.inspect_source(source)["symbols"])
+    ensure(sum(item["name"] == "Seed" for item in facts) == 3,
+           "specialization duplicated source identities for a shadowed module constant")
+
+
 def _independent_const_tree(source: bytes) -> dict[str, object]:
     def node(kind: str, start: int, end: int, **fields: object) -> dict[str, object]:
         return {"kind": kind, "span": [start, end], **fields}
@@ -214,4 +245,5 @@ def cases() -> list[Case]:
             Case("hygienic-left-to-right-once-only-runtime-arguments", _hygienic_once_only_arguments),
             Case("bounded-closed-specialization", _bounded_specialization),
             Case("specialization-preserves-function-and-value-namespaces", _specialization_preserves_namespaces),
+            Case("specialization-preserves-module-constant-shadowing", _specialization_preserves_global_shadowing),
             Case("independent-const-function-and-parameter-provenance", _independent_qualifier_protocol)]
