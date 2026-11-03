@@ -4,7 +4,35 @@
 
 ## Scope and research boundary
 
-The [graded design](verification-strategy.md#graded-dependent-foundation) separates computation/type dependence, lawful extensible grades and CIC interpretation, preserving the [synchronous resource interpretation](core-design.md#judgments-and-interpretations). [Handlers](handlers-async.md) and [mutability](interior-mutability.md) consume the [resource interface](#resource-and-computation-interface); [Q25d](full-language-review.md) reviews composition and assigns missing implementation work.
+The [first supported release](first-release.md#release-boundary) uses fixed
+unrestricted, affine, relevant-verdict and linear-obligation cases, stable
+dependent indices and explicit runtime/erased phases. Its ownership, restoration,
+trace and target-cost laws remain mandatory; arbitrary grade algebras do not
+replace them. This dossier specifies the separately gated extension to lawful
+computation/type-use domains. Its generic demand vectors, domain inference and
+multi-shot composition are not prerequisites for the first synchronous product.
+A named client must justify the extension against the fixed discipline under
+the [delivery plan](../../../PLAN.md#vela-first-release-delivery).
+
+The [graded design](verification-strategy.md#graded-dependent-foundation)
+separates computation/type dependence, lawful extensible grades and CIC
+interpretation, preserving the
+[synchronous resource interpretation](core-design.md#judgments-and-interpretations).
+[Handlers](handlers-async.md) and [mutability](interior-mutability.md) consume the
+[resource interface](#resource-and-computation-interface) when their own increments
+are selected; [Q25d](full-language-review.md) records composition obligations.
+
+Every law in this dossier is a theorem about the elaboration's image in an
+existing anchor, under [the untrusted-elaboration boundary](../../spec.md#r-05-020a).
+The displayed judgments describe proposed syntax-directed evidence construction.
+They carry no independent source evaluation or admission authority. Substitution
+and structural-rule theorems relate the interpreted images of the original and
+transformed syntax, using the selected CIC/resource interpretation; preservation
+and erasure quantify over that interpretation's computation and observations.
+The source-correspondence relation must bind the actual parsed/resolved source,
+generated term and reconstructed evidence. Merely renaming a source calculus or
+kernel-checking an unrelated term establishes none of those laws. Their proofs
+and the required concrete resource instance remain outstanding.
 
 Sources: Moon, Eades and Orchard's [GrTT v2](https://arxiv.org/pdf/2010.13163v2) and Gerty ESOP 2021 prototype; Choudhury, Eades, Eisenberg and Weirich's [GraD v2](https://arxiv.org/html/2011.04070v2); Abel, Danielsson and Eriksson's [ICFP 2023 erasure development](https://research.chalmers.se/en/publication/537991), [extended 30 April 2026](https://arxiv.org/abs/2603.29716). The [strategy](verification-strategy.md#reading-the-graded-type-claims) owns the wider comparison. No source/dependency is incorporated.
 
@@ -12,7 +40,7 @@ GrTT supplies two use vectors and dependency bookkeeping. Its call-by-name, rest
 
 ## Dimensions and lawful domains
 
-Each judgment fixes `S`: qualified definitions, universe constraints, grade identities, primitive contracts, logic, representation and observation model. `Type i : Type (i+1)` uses CIC universe checking; cumulative conversion uses checked universe inequalities. No `Type : Type`, new conversion, global UIP, proof irrelevance or extensionality axiom is added. Transports require accepted terms and the existing assumption audit.
+Each evidence-construction judgment fixes `S`: qualified definitions, universe constraints, grade identities, primitive contracts, logic, representation and observation model. Its conclusion names the term whose image is checked. `Type i : Type (i+1)` uses CIC universe checking; cumulative conversion uses checked universe inequalities. No `Type : Type`, new conversion, global UIP, proof irrelevance or extensionality axiom is added. Transports require accepted terms and the existing assumption audit.
 
 | Dimension | Meaning | Evidence it cannot replace |
 | --- | --- | --- |
@@ -24,7 +52,7 @@ Each judgment fixes `S`: qualified definitions, universe constraints, grade iden
 | Trace contract `T` | Named source events, their order and exact counts or upper bounds | Surviving machine calls or instruction timing |
 | Target bound `W` | The existing final-CFG cost judgment against pinned Sail timing | A source use or event count without its transport theorem |
 
-A domain is a sealed CIC record, never an executable admission plugin. Its identity binds carrier universe, grade syntax, operations, equality/order proofs, structural permissions, certificate interpreter and semantics; clients cannot replace its dictionary behind a qualified signature.
+In the extensible proposal, a domain is a sealed CIC record, never an executable admission plugin. Its identity binds carrier universe, grade syntax, operations, equality/order proofs, structural permissions, certificate interpreter and interpretation in the existing anchor; clients cannot replace its dictionary behind a qualified signature. The first release does not accept arbitrary domain dictionaries or require their general inference procedure.
 
 ```text
 q ::= 0_D | 1_D | named_constant_D | alpha_D | q +_D q | q *_D q
@@ -47,7 +75,7 @@ Zero-use erasure needs a theorem excluding relevant observations; nontriviality,
 
 ## Stable telescope and dependency bookkeeping
 
-`J(M; u; v; Gamma |- t:A)` is the pure judgment, with `S` implicit. `Gamma` is an ordered telescope of stable values/types, immutable snapshots and logical identities. Runtime handles are stable descriptors; permissions stay in `Delta`. Stability alone grants no permission to copy the referent, and indices never evaluate unsynchronized mutable reads.
+`J(M; u; v; Gamma |- t:A)` is the proposed pure evidence-construction interface, with `S` implicit: it must elaborate `t`, `A` and the demand interpretation to checked terms and a theorem about their image. `Gamma` is an ordered telescope of stable values/types, immutable snapshots and logical identities. Runtime handles are stable descriptors; permissions stay in `Delta`. Stability alone grants no permission to copy the referent, and indices never evaluate unsynchronized mutable reads.
 
 `M[i]` records preceding declarations' use in `Gamma[i]`'s type, with a well-formed derivation. Vectors `u` and `v` have one component per declaration, recording use in `t` and `A`; `v` is not a sum of declaration rows. All zero-padded rows/vectors refer to the same ordered telescope.
 
@@ -84,7 +112,7 @@ APP: J(M; w; a+b; Gamma |- f : Pi x:(s,r) A.B)
      J(M; w+s*z; b+r*z; Gamma |- f v : B[v/x])
 ```
 
-Application type use is `b+r*z`: codomain substitution removes the domain demand `a`. Combined substitution/preservation remain debts below. Resource-carrying closures also record transitive environment and call mode; grade arithmetic alone cannot justify capture duplication.
+Application type use is `b+r*z`: codomain substitution removes the domain demand `a`. The producer must reconstruct this equation and its meaning for the elaborated application; it is not an extra kernel conversion rule. Combined substitution/preservation of interpreted images remain debts below. Resource-carrying closures also record transitive environment and call mode; grade arithmetic alone cannot justify capture duplication.
 
 Vela computations evaluate left to right by value. Elaborate an effectful argument as `bind x <- c; call f x`: evaluate `c` once, record its trace/effects and resource exit, then apply the value rule to `x`. Parameter use zero does not erase `c`'s effects, failures or mandatory result. Parameter use two does not execute `c` twice. Moving this bind across a handler, mutation or cancellation checkpoint needs an explicit preservation proof.
 
@@ -118,7 +146,7 @@ v_type          becomes   substDemand(v_type,x,z)
 each later M row becomes   substDemand(that row,x,z)
 ```
 
-Earlier rows stay fixed; `x`'s row disappears. Capture-avoiding substitution also updates types, motives, index-dependent grades, captures and exit predicates. Recheck the whole telescope: updating conclusion vectors alone leaves a later `y:B(x)` stale. `GF-substitution` owes simultaneous typing/well-formedness proofs; this is no unchecked solver rewrite, and computations cannot replace stable indices.
+Earlier rows stay fixed; `x`'s row disappears. Capture-avoiding substitution also updates types, motives, index-dependent grades, captures and exit predicates. Recheck the whole telescope: updating conclusion vectors alone leaves a later `y:B(x)` stale. `GF-substitution` owes simultaneous typing/well-formedness and interpretation-agreement proofs for the elaborated images before and after substitution; this is no unchecked solver rewrite, and computations cannot replace stable indices.
 
 | Structural operation | Admissibility condition |
 | --- | --- |
@@ -153,7 +181,7 @@ Finite sums use an explicit motive and branch-specific resource predicates. Each
 
 ## Resource and computation interface
 
-The common judgment is:
+The common evidence-construction interface is:
 
 ```text
 S; M; Gamma; Delta_in |- c : Exit(A,Q)
@@ -163,7 +191,7 @@ S; M; Gamma; Delta_in |- c : Exit(A,Q)
 Q(tag,value) = Delta_out for that represented exit
 ```
 
-The judgment relates entry state, execution and every reachable exit. The chosen logic interprets `Delta` as ownership, loans/restoration, protocols, effect/security permissions; `Own(id,shape,snapshot)` is an interface, not a supplied CHERI predicate. Identity cannot construct authority. `Q` includes captures transferred in results/frames; branch-dependent owners retain their discriminant until a join/restoration proof removes it.
+Its generated theorem relates entry state, execution of the elaborated image and every reachable exit under the existing anchor. The chosen logic interprets `Delta` as ownership, loans/restoration, protocols, effect/security permissions; `Own(id,shape,snapshot)` is an interface, not a supplied CHERI predicate. Identity cannot construct authority. `Q` includes captures transferred in results/frames; branch-dependent owners retain their discriminant until a join/restoration proof removes it. The first release consumes the synchronous resource portion through its fixed use discipline; `Suspend`, concurrent `Share` and multi-shot `Dup` compose only in separately selected extensions.
 
 | Interface obligation | Required evidence |
 | --- | --- |
@@ -182,7 +210,7 @@ Mutation updates the owner's snapshot; shape changes consume the old owner and r
 
 ## Schematic derivations and invalid neighbors
 
-These are hand derivations of proposed rules over inhabited pure inputs and explicit domains. Each negative preserves the positive's representations and unrelated resources; parsing failure or absent implementation does not establish its intended refusal.
+These are hand derivations for the proposed extensible producer over inhabited pure inputs and explicit domains. They specify equations and interpretation obligations that a selected implementation would reconstruct and check; no independent source metatheory or executed verdict is supplied. Each negative preserves the positive's representations and unrelated resources; parsing failure or absent implementation does not establish its intended refusal. The exact type-demand identity below is an extension qualification case, not a required annotation for ordinary first-release identity functions.
 
 ### Pure dependent identity
 
@@ -211,7 +239,7 @@ Changing only `n` to erased while keeping the reader's runtime bound fails the p
 
 A pure callback over an immutable copied two-byte snapshot has a shared-call contract and no owned mutable capture. A total bounded client invokes it twice in declared order. The source trace law gives `CallCount(callback)=1+1=2`; a `NatExact` callable allowance of two supports the two value uses, while `Dup` handles its immutable environment. Allowance one fails `2=1`. A branch invoking it once must either return an indexed count or advertise a bound; silently keeping exact two fails its trace contract.
 
-The Q25 composed client retains its packet/frame owner and unique service allowance outside the pure handler's capture delimiter while a child updates a scalar atomic accepted-byte counter. Its `AddOnce(request,n)` allowance is a protocol token in `Delta`; `n` is represented, the overflow bound is erased evidence, and the service handle exposes only its proved atomic operation. Two resumptions of the pure callback continuation cannot capture the child update that consumes this allowance. The AMO transition and cancellation commit behavior belong to Q25c and Q25b. Replacing the callback environment with a cell retaining the owner fails `Dup`; declaring the surface callback unchanged cannot hide that transitive capture.
+The deferred Q25 composition fixture retains its packet/frame owner and unique service allowance outside the pure handler's capture delimiter while a child updates a scalar atomic accepted-byte counter. Its `AddOnce(request,n)` allowance is a protocol token in `Delta`; `n` is represented, the overflow bound is erased evidence, and the service handle exposes only its proved atomic operation. Two resumptions of the pure callback continuation cannot capture the child update that consumes this allowance. The AMO transition and cancellation commit behavior belong to Q25c and Q25b. Replacing the callback environment with a cell retaining the owner fails `Dup`; declaring the surface callback unchanged cannot hide that transitive capture. This fixture preserves a future interaction test; it is not the first software milestone or evidence that those extensions are needed.
 
 The Boolean presence calculation `1+1=1` accepts two pure uses as presence. Attempting the same contraction on `AddOnce` still requires a spatial/protocol split that its unique transition cannot provide. This is the invalid authority neighbor even when grade constraints succeed. Dropping the child verdict or must-erase data similarly fails `Dispose`; use/erasure annotations cannot manufacture terminal completion or wiping.
 
@@ -225,7 +253,7 @@ runtime representation when execution needs it. Describing a graded type or
 copying generated syntax supplies no `Dup`, `Dispose` or ownership premise;
 generated resource uses undergo this dossier's ordinary checks.
 
-Bidirectional checking uses public domain identities, grade variables/constraints, call modes, captures, effects and representations. Rules infer local demands; CIC reconstructs grade equalities/orders and bounded arithmetic. Symbolic multiplication, dependent unification, arbitrary operations and recursors may leave explicit goals. No principal-grade inference or complete procedure for all domains is promised.
+The first release uses bidirectional checking with its fixed use modes, explicit call modes/captures and a bounded refinement tier. In the separately selected extensible proposal, public domain identities and grade variables/constraints additionally enter those interfaces. Rules propose local demands; checked CIC terms establish grade equalities/orders and their interpretation. Symbolic multiplication, dependent unification, arbitrary operations and recursors may leave explicit goals. No principal-grade inference or complete procedure for all domains is promised.
 
 A constraint result binds its proposition, domain dictionary, substitutions and replayable certificate/term. Timeout, inconsistent model, unknown law or reconstruction failure leaves unresolved/refused evidence. Search cannot weaken exact declarations into bounds. Grade-polymorphic definitions check under explicit constraints, discharged at every public instantiation. Runtime natural indices stay represented even when indexing erased trace bounds; they cannot retrospectively select layout.
 
@@ -237,14 +265,14 @@ Specialization fixes phase, convention, layout and erasure before emission. Repr
 
 ## Q25d debts and acceptance boundary
 
-These debt keys are neither Rocq constants, schedule cells nor assumptions. Q25d joins them with [Q21 packages](core-design.md#proof-obligations-and-proposed-work-packages) and the [foundation map](../../hardware/cheri-foundation-map.md), assigning owners, estimates and predicates in [pricing](full-language-review.md#reviewed-implementation-pricing) under its [frontend disposition](full-language-review.md#r-05-009-r-05-020-and-what-holds-the-frontend-rows). Unestablished foundation work stays explicitly `unpriced` when a responsible range is unavailable.
+These debt keys are neither Rocq constants, schedule cells nor assumptions. Q25d joins them with [Q21 packages](core-design.md#proof-obligations-and-proposed-work-packages) and the [foundation map](../../hardware/cheri-foundation-map.md), recording owner and estimate boundaries in [pricing](full-language-review.md#reviewed-implementation-pricing). All theorem subjects below are elaborated images in the selected existing anchor. The [first-release plan](../../../PLAN.md#vela-first-release-delivery) selects the fixed resource/phase/correspondence obligations it actually uses; it does not commission every generic-domain or control/mutation debt. Unestablished foundation work stays explicitly `unpriced` when a responsible range is unavailable.
 
 | Debt key | Required artifact and refusal predicate |
 | --- | --- |
 | `GF-domain` | Construct domain records, certificate interpreters and interpretation laws; reject Boolean-to-exact/ownership coercion and unsound order relaxation. Includes cross-domain compatibility rather than duplicating an event-count pilot. |
-| `GF-substitution` | Mechanize telescope well-formedness, simultaneous substitution, both vector transformations, grade substitution and dependency-preserving structural rules. Reject a later declaration retaining an unsubstituted index. |
+| `GF-substitution` | Mechanize telescope well-formedness, simultaneous substitution, both vector transformations, grade substitution and dependency-preserving structural rules as checked interpretation theorems relating the elaborated images. Reject a later declaration retaining an unsubstituted index; no independent source reduction supplies a theorem premise. |
 | `GF-elimination` | Prove dependent functions, pairs, boxes, indexed sums and admitted recursors preserve grades and well-formed motives. Construct positive asymmetric-field examples with their modality premises; refuse erased runtime discriminants. |
-| `GF-cbv` | Connect pure demand semantics to explicitly sequenced call-by-value computations, captures and outcome-indexed exits. Prove usage-aware resource preservation, including zero-demand effectful arguments and repeated pure values. Ordinary progress/preservation alone is insufficient. |
+| `GF-cbv` | Connect the selected demand interpretation to explicitly sequenced call-by-value images, captures and outcome-indexed exits in the anchor. Prove usage-aware resource preservation, including zero-demand effectful arguments and repeated pure values. Ordinary progress/preservation alone is insufficient. |
 | `GF-resource` | Instantiate spatial ownership, views, restoration and kinded authority on the selected logic/CHERI representation; construct inhabited packet entry states. Q2c retains concrete foundation ownership; these rules cannot assume its missing laws. |
 | `GF-control-mutation` | Compose Capture/Dup/Dispose/Suspend/Transfer/Share with Q25b/Q25c, including repeated continuations, hidden cell captures, snapshots, cancellation and fresh per-resumption resources. Preserve the synchronous slice as a conservative restriction. |
 | `GF-erasure-source` | Prove phase separation, representation-specific erasure and source/elaboration correspondence under checked CIC assumptions; qualify domain inference diagnostics and stale-source rejection. Reuse retained frontend/diagnostic duties once. |
