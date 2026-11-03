@@ -1149,6 +1149,26 @@ CASES: list[Case] = [
     ("K-12", "a link pointing at a file the repository does not carry",
      _literal("README.md", "](docs/", "](docs/not-a-")),
 
+    ("K-12", "a source comment linking to a file the repository does not carry",
+     _literal("tools/vos/checks/links.py", "# SPDX-License-Identifier: Apache-2.0",
+              "# SPDX-License-Identifier: Apache-2.0\n"
+              "# [missing source](missing-reference.py)")),
+
+    ("K-12", "a source comment linking to a renamed Python declaration",
+     _literal("tools/vos/checks/links.py", "# SPDX-License-Identifier: Apache-2.0",
+              "# SPDX-License-Identifier: Apache-2.0\n"
+              "# [renamed declaration](links.py#missing_declaration)")),
+
+    ("K-12", "a source comment linking to a renamed Gallina declaration",
+     _literal("tools/vos/checks/links.py", "# SPDX-License-Identifier: Apache-2.0",
+              "# SPDX-License-Identifier: Apache-2.0\n"
+              "# [renamed declaration](../../../proofs/KernelInstance.v#missing_declaration)")),
+
+    ("K-12", "a source comment linking to a renamed Sail declaration",
+     _literal("tools/vos/checks/links.py", "# SPDX-License-Identifier: Apache-2.0",
+              "# SPDX-License-Identifier: Apache-2.0\n"
+              "# [renamed declaration](../../../model/model/core/cap_format.sail#missing_declaration)")),
+
     ("K-14", "a bearing requirement its view stops carrying", _k14),
 
     ("K-15", "a matrix cell moved off its own pair, leaving a gap and a duplicate",

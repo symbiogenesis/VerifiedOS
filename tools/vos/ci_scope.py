@@ -1,7 +1,8 @@
 # SPDX-License-Identifier: Apache-2.0
 """Conservative changed-path policy shared by Host CI and publication.
 
-Known prose needs corpus and Markdown validation. Source families select their
+Known prose needs corpus and Markdown validation, including source-comment links
+to document headings. Source families select their
 guest consumers; shared inputs and anything this policy does not recognize keep
 the complete suites. Markdown that supplies parsed tables is an executable input.
 """

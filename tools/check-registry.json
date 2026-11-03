@@ -88,8 +88,8 @@
     {
       "id": "K-12",
       "group": "links",
-      "meaning": "pinned offline Lychee validates local Markdown file links and heading or explicit-anchor fragments over the indexed corpus",
-      "ground": "standard link syntax and target validation; external network links are excluded, indexed gitlink roots remain valid when uninitialized, and malformed tool verdicts refuse",
+      "meaning": "offline validation resolves local Markdown links in indexed documents and live source comments/docstrings, including document fragments and supported Python, Gallina and Sail declaration fragments",
+      "ground": "Pinned Lychee owns ordinary document links; maintained Markdown parsing extracts source-comment links. Paths resolve relative to their referring file with exact indexed membership and containment; directory links require indexed descendants and cannot select fragments. Python AST declarations, the shared Gallina source-name reader and current compiler-emitted Sail declarations own symbol targets; unsupported source fragments and missing or unreadable owners refuse. Source families are selected by file kind, not a maintained filename list; retained source snapshots remain historical evidence. Every encountered link and requested target is checked, with malformed parsing, unsafe paths and stale Sail identity reported rather than skipped. External network links remain outside offline validation; indexed gitlink roots remain valid when uninitialized. Resolution does not establish the comment's semantic claim. Report-only: a reference choice requires judgment, so no stale reference is repaired automatically.",
       "reach": "name"
     },
     {

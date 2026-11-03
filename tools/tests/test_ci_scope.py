@@ -14,6 +14,7 @@ from unittest.mock import patch
 from ci import select_changes as hosted
 from tests.harness import Case, ensure, sandbox_tree
 from vos import ci_scope as scope
+from vos import corpus, source_refs
 
 INDEPENDENT_CASES = True
 
@@ -49,6 +50,22 @@ def _classifications() -> None:
         ensure(scope.classify(paths)
                == {"host_full": True, "model_hooks": hooks, "guest_lanes": lanes},
                f"source selection is the union of consuming lanes: {paths}")
+
+
+def _source_backlinks_keep_prose_check() -> None:
+    """A prose-only heading edit still needs the source-reference consumer."""
+    with sandbox_tree({
+            "docs/target.md": "# Contract\n",
+            "tools/client.py": "# [contract](../docs/target.md#contract)\n"}) as root:
+        ensure(not source_refs.findings(root, corpus.load(root)),
+               "the source backlink must initially resolve")
+        (root / "docs/target.md").write_text("# Renamed\n", encoding="utf-8")
+        decision = scope.classify(["docs/target.md"])
+        ensure(not decision["host_full"] and not decision["guest_lanes"],
+               "ordinary heading edits retain prose-only selection")
+        found = source_refs.findings(root, corpus.load(root))
+        ensure(len(found) == 1 and "tools/client.py:1" in found[0],
+               f"the retained corpus check must reject the stale source backlink: {found}")
 
 
 def _git(root: Path, *args: str) -> str:
@@ -190,6 +207,7 @@ def _malformed_journal() -> None:
 
 def cases() -> list[Case]:
     return [Case("known-prose-and-source-consumers", _classifications),
+            Case("prose-heading-edits-retain-source-backlinks", _source_backlinks_keep_prose_check),
             Case("complete-git-comparisons-and-full-fallbacks", _comparisons),
             Case("hosted-push-pr-and-manual-selection", _hosted_events),
             Case("guest-overrides-preserve-host-scope", _guest_overrides),
