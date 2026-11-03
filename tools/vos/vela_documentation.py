@@ -91,7 +91,7 @@ class DocumentationSource:
                 or not isinstance(text, str) or len(text.encode("utf-8")) > MAX_DOCUMENTATION_BYTES
                 or type(declaration) is not int or kind not in {"function", "constant"}):
             raise ValueError("invalid documentation fact values")
-        offset = cast("int", declaration)
+        offset = declaration
         expected = self.at_offset(offset)
         if expected is None or expected.record() != record:
             raise ValueError("documentation differs from its source comment")

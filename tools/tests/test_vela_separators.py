@@ -50,7 +50,7 @@ def _pure_protocol_and_spelling() -> None:
         parsed = vela._Parser(vela._tokens(source)).parse()
         function = parsed.declarations[0]
         if not isinstance(function, vela_ast.Function) or not isinstance(function.body.terminal, vela_ast.Return):
-            raise AssertionError("separated literal changed the function/return syntax roles")
+            raise TypeError("separated literal changed the function/return syntax roles")
         ensure(function.body.terminal.value.value == "0_001",
                "Python syntax normalized the original separated spelling")
         for corruption in ("normalized", "shifted", "malformed"):

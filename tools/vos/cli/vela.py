@@ -165,9 +165,9 @@ def main(argv: list[str] | None = None) -> int:
         else:
             current = _rewrite(source, candidate)
             _unchanged(current)
-        if args.command != "fmt" and not args.no_lint:
-            if not _lint(path, candidate, allowed, denied, require_complete=bool(denied)):
-                return 1
+        if (args.command != "fmt" and not args.no_lint
+                and not _lint(path, candidate, allowed, denied, require_complete=bool(denied))):
+            return 1
         if args.command == "check":
             print(f"ok vela: {translation.module}: pure prototype checked; unqualified")
         elif args.command == "emit" and destination is None:
