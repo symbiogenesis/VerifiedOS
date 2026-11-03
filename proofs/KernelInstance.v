@@ -2,191 +2,79 @@
 (* =========================================================================
    KernelInstance.v
 
-   What one run of one kernel instance decides, as M4.4's acceptance
-   predicate states it over three questions: R-07-006's runtime half, that
-   the instance derives nothing past its root's top or past a declared
-   shared window's top; R-07-015's total restore, read off the commit
-   trace's own `X` and `C` records rather than restated; and R-07-032's
-   table-driven frame, whose order a run decides and whose duration it does
-   not. Q22a's revocation interface joins the second of those: a saved image
-   sanitized at R-08-006's barrier, or R-08-005b's defined filtered load
-   result, is what turns total restoration into removal of stale authority,
-   and neither this file nor R-07-015 gets that for free.
+   Source specifications and proofs for M4.4's single-kernel run predicate:
+   refusal of capability derivations beyond root/shared-window bounds
+   (R-07-006), total restore from X/C commit-trace records (R-07-015), and
+   table-driven frame order (R-07-032).
+   RunAnswersM44 also requires unique attempt PCs, identified result registers,
+   and exactly one observed write per register/CSR. QualifiedRunAnswersM44
+   adds Q22a's semantic revocation barrier and sanitized-image predicates.
 
-   This file supplies source specifications and proofs over typed traces.
-   RunAnswersM44 checks the three questions, including unique attempt sites,
-   identified result registers and exactly one observed register/CSR write.
-   QualifiedRunAnswersM44 joins them to the semantic barrier and sanitized
-   image predicates. These are not an executable target kernel. Every quantity a composition
-   or the profile fixes is a field of the Kernel record rather than a
-   literal, which is what keeps the R-05-163 assumption gate green while
-   leaving the decision where its owner can make it. Nothing is admitted and
-   nothing is axiomatized.
+   This file supplies no target-execution evidence: backend lowering, compiled
+   C, composed images, emulator runs and HTIF verdicts remain M4.4 work through
+   M1.2f, M1.7 and M3.5's initial-capability handoff. The Kernel record carries
+   composition/profile parameters. State equalities are pointwise, avoiding
+   functional extensionality; no axiom or admission is introduced.
 
-   What this file does not do, and it is the whole of what M4.4 still owes.
-   No backend lowers a corpus member here. No C is compiled, no image is
-   composed, no emulator runs, and no HTIF verdict is produced: the target
-   join M4.4's dispatch note names, M1.2f's backend, M1.7's path and M3.5's
-   actual initial-capability handoff, is absent, so nothing below is
-   evidence that the predicate passes. What is here is the predicate itself,
-   decidable, with the constructions it rejects proved rejected. The gate's
-   green line means compiled, axiom-free, non-vacuous and enumerated, and it
-   does not mean verified. Every state equality is stated pointwise, because
-   functional extensionality is an axiom and would fail that gate.
+   PartitionContext.v owns RestoresRegisters and RestoresNameableCsrs;
+   CyclicExecutive.v owns Frame. The predicates here consume those definitions.
 
-   The Requires are load-bearing rather than decorative, on the one-owner
-   rule. R-07-015's restore set is PartitionContext.v's `RestoresRegisters`
-   and `RestoresNameableCsrs` and is consumed here, never restated; the
-   schedule table is CyclicExecutive.v's `Frame`, and the three clauses
-   below read that record's own bands rather than a second table. Both
-   Requires are paid once per mutant `run.py seed coq` stages, which is the
-   cost the dependency is worth here and was not worth in HandlerGraph.v.
+   Trace interpretation and assumptions:
+   1. Refused capability derivation clears the result tag rather than trapping
+      (R-15-007h). Confinement checks X-record tags, not decoded bounds or data.
+   2. AttemptsCover requires declared attempts at the root top and every shared
+      window top. Results are tied to declared registers, and WellFormedAttempts
+      rejects duplicate PCs. The compiled corpus must still bind those PCs and
+      targets to actual over-bound instructions.
+   3. R-15-007i's merged file has 32 registers. The model's wX emits no write
+      record for register zero, so trace checks cover only the other registers.
+      ZeroRegisterIsFixed is an explicit, locally unproved premise needed to
+      recover PartitionContext.v's full restore theorem. The model defines
+      zero_reg as null_cap (R-15-182); arbitrary machines need not satisfy it.
+   4. csr_roster enumerates nameable CSRs and carries a covering law. The
+      predicate in PartitionContext.v cannot itself be enumerated; the bank's
+      owner is isa-profile.md section 5.1 (R-15-001b).
+   5. X/C-only restoration does not inspect the four special capability
+      registers, whose trace records are S, or R-07-044's interrupt pending
+      state. Counterexamples show that the X/C restoration check can pass while
+      those differ.
+   6. Total restore alone permits stale tagged authority: R-08-005/R-08-005b's
+      load filter does not revoke register-held capabilities. Filtering an
+      unsanitized image removes stale tags but fails exact R-07-015 restoration.
+      Both properties hold when R-08-006's barrier has sanitized the saved image.
+      Completion also requires published bits, cleared live roots, cancelled
+      loans and the device boundary, not merely an epoch change (R-08-007a).
+   7. Frame checks read retire sequence, not duration. I records contain no cycle
+      field and R-15-077 supplies no cycle counter. CyclicExecutive.v instead
+      checks the static R-11-006 sum, including R-11-009 switch cost. The trace's
+      order numerals are ignored, as the comparison schema requires.
+   8. Visits are maximal runs of PCs in declared partition or switch extents.
+      Astray PCs refuse the run. ExtentsAreReadable checks that classification
+      is unambiguous; overlapping switch and partition extents are rejected.
+   9. The R-15-005 emulator has one hart. These predicates provide no evidence
+      for R-07-003's two-instance disjointness or R-07-004's absence of shared
+      mutable state. R2 owns comparison with a second implementation.
 
-   Readings of the register and of the trace schema this statement takes,
-   each a reviewable judgment rather than a neutral transcription:
+   Decisions and artifacts still owed:
+   a. Choose saved-image sanitization or filtered restoration, and reconcile
+      the choice with exact total restore (R-08-006, R-07-015).
+   b. Supply the nameable-CSR enumeration at its owner (R-15-001b).
+   c. Decide how M4.4 witnesses special capability registers (R-07-015).
+   d. Decide how it witnesses interrupt pending state (R-07-044); interrupt-file
+      stores would be W records, outside the X/C-only clause.
+   e. Establish the fixed-zero-register architectural fact behind premise 3
+      (R-15-007i).
+   f. Supply partition/switch extents, shared windows, attempt sites, CSR roster
+      and schedule widths/offsets. Demo values make no composition claim; see
+      CyclicExecutive.v gap e and PartitionContext.v gap j.
+   g. Supply M4.4's C partition, switch and executive implementation.
 
-   1. A refused derivation is an untagged result and not a trap. R-15-007h
-      states it outright: non-monotonic capability modification clears the
-      validity tag, owes no cause code and owes no control-flow term, so a
-      failed derivation is a data result. The run's observation of R-07-006's
-      runtime half is therefore the `X` record's tag bit, and the adjudicator
-      that reads it needs none of the 64 data bits. That is what
-      `confinement_reads_the_tag_and_not_the_value` states and what
-      `a_bounds_decoding_check_is_refuted` excludes, on the corpus document's
-      own ground that base and top are the decode of the bounds triple and a
-      second implementation of the bounds algorithm inside a reader is a
-      second place for it to be wrong.
-   2. The attempt list is declared and not discovered. A run cannot find the
-      root's top without decoding it, so the member declares one attempt per
-      question it asks and `AttemptsCover` decides that the declaration
-      reaches R-07-006's whole subject: the root's top, and each of the
-      statically declared shared windows. A member that attempts fewer is
-      refused before any trace is read. The result register is declared too;
-      unrelated untagged writes cannot witness a refusal. WellFormedAttempts
-      rejects duplicate attempt PCs. The compiled corpus still has to bind
-      each declared target and PC to the real over-bound instruction.
-   3. The run's register domain is not the statement's. R-15-007i fixes the
-      merged file at 32 registers and PartitionContext.v's `RestoresRegisters`
-      quantifies over all 32, index zero included; the curated model emits no
-      register-write record for index zero at all, its `wX` guarding the
-      callback with `if r != 0` (model/model/core/regs.sail). So the observed
-      domain here is the statement's domain less that one register, and the
-      gap is closed by an architectural premise rather than by a record:
-      `ZeroRegisterIsFixed` says the zero register reads alike in every
-      context, which is `zero_reg : regtype = null_cap` in the model's own
-      reg_type.sail and R-15-182's all-zeroes granule. That premise is
-      stated, discharged nowhere in this file, and refuted of an arbitrary
-      machine by `the_fixed_zero_register_is_a_premise_and_not_a_theorem`, so
-      it cannot be mistaken for something the run establishes.
-   4. The nameable CSR bank enters as a list and not only as a predicate.
-      PartitionContext.v carries `csr_nameable` as a predicate because
-      isa-profile.md section 5.1 owns the bank register by register; a
-      decidable check over a trace needs the bank enumerated, because the
-      obligation is that every nameable CSR was written and a predicate
-      cannot be walked. `csr_roster` is that enumeration, a field with a
-      covering law beside it, and gap b below records that no artifact in
-      this tree carries the list itself.
-   5. The `X` and `C` records are the whole of what M4.4's clause reads, and
-      that is the cell's own sentence rather than a narrowing taken here. Two
-      consequences follow and both are stated as theorems rather than left to
-      a reader. The four capability registers outside the merged file get
-      records of their own under the schema's section 4, and R-07-015's
-      sentence names "capability register" alongside the general-purpose
-      ones, so a burst writing MEPCC to anything at all passes this clause:
-      `clause_two_does_not_read_the_capability_registers_outside_the_file`.
-      And R-07-044's pending component is reached by no `X` and no `C`
-      record, so two runs from one successor context can pass this clause and
-      disagree on it, which is R-07-015's own no-residue criterion failing
-      inside a green clause: `clause_two_admits_a_burst_that_fails_no_residue`.
-      Both are gaps in the acceptance predicate rather than defects in
-      PartitionContext.v, and gaps c and d book them.
-   6. Total restoration is not removal of stale authority, and the two arms
-      that make it so are not interchangeable. R-08-005 and R-08-005b put the
-      revocation check on the capability-width load and say outright that a
-      register-held capability is not revoked merely because that rule
-      exists; R-08-006 makes containment complete only after every affected
-      bit is published, every live root cleared, every saved context made
-      restorable only through the filter, every loan cancelled and the device
-      boundary reached. So a burst that satisfies R-07-015 exactly can
-      install a tagged capability whose base a published bit marks, which
-      `total_restoration_is_not_removal_of_stale_authority` exhibits. The
-      filtered arm removes it and stops satisfying R-07-015 while doing so,
-      which `a_filtered_restore_of_an_unsanitized_image_is_not_total`
-      exhibits. The two meet only where the barrier already sanitized the
-      saved image, which is `the_filter_is_the_identity_on_a_sanitized_image`;
-      gap a books the entry that owes the choice.
-   7. A run decides the frame's order and never its duration. R-15-077 leaves
-      no counter to read a cycle from, the trace schema's `I` record carries
-      the retire order and the decoded word and no cycle field, and R-11-006
-      puts the schedulability check in a Coq artifact where CyclicExecutive.v
-      discharges it as a static sum with R-11-009's switch duty inside it. So
-      the frame check below is a function of the run sequence alone, which
-      `the_frame_check_decides_order_and_not_duration` states, and a check
-      that reads how long a slot dwelt is refuted rather than merely
-      declined. The schema's own instruction that the `order` field is
-      dropped when comparing is read the same way, at
-      `the_frame_check_ignores_the_order_numeral`.
-   8. The boundaries are the switch text and not a marker the reader invents.
-      A run sequence is the maximal runs of retired instructions classified by
-      whose declared extent their `pc` falls in, with the kernel's own switch
-      text one such extent; a `pc` in none of them is `Astray` and refuses the
-      run outright, because a reading that silently skipped it would answer a
-      question about a different program. That the extents separate is a side
-      condition of the reading rather than an assumption, decided by
-      `ExtentsAreReadable` and refuted at a kernel whose partition text
-      overlaps its switch text.
-   9. The duplication axis is absent on purpose and its absence is this
-      item's own name. R-15-005's emulator composes one hart, so R-07-003's
-      identical text at strictly disjoint state and R-07-004's absence of
-      shared mutable kernel data have no second instance to be false of.
-      Nothing below quantifies over two instances, nothing below is evidence
-      about them, and R2 owns that measurement over one trace format against
-      a second implementation.
-
-   What this file deliberately does not author, with the entry that owes each
-   decision:
-
-   a. Which arm of the revocation join a composition is on. R-08-006 requires
-      that saved contexts cannot restore retired authority unfiltered and
-      does not say whether the barrier sanitizes the saved image or the
-      restore is obliged to run through R-08-005b's filtered load. The two
-      differ observably against R-07-015: one satisfies the total restore and
-      one does not, which is `a_filtered_restore_of_an_unsanitized_image_is_not_total`.
-      Owed at R-08-006 or at R-07-015.
-   b. The nameable CSR bank as an enumeration. R-07-015 quantifies over every
-      CSR a partition can name and no artifact carries that list; isa-profile.md
-      section 5.1 owns the bank in prose and PartitionContext.v carries a
-      predicate. A run cannot walk a predicate, so `csr_roster` is a field
-      here and the list is owed at its owner. Owed at R-15-001b.
-   c. Whether a run must witness the four capability registers outside the
-      merged file. R-07-015 names capability registers; the trace schema gives
-      them `S` records of their own; M4.4's clause reads `X` and `C` records.
-      Owed at R-07-015.
-   d. Whether a run must witness R-07-044's pending component. That entry
-      disposes of the interrupt-file pending bits at the switch and no record
-      kind in the schema carries them; a store into the interrupt file would
-      appear as a `W` record, which M4.4's clause does not read. Owed at
-      R-07-044.
-   e. Whether the zero register is inside the run's obligation. Reading 3
-      says why it cannot be, and closing the gap needs an entry that states
-      the architectural fact rather than a Gallina premise. Owed at R-15-007i.
-   f. Every composition magnitude: the partition extents, the switch text
-      extent, the shared-window count, the attempt sites, the CSR roster and
-      the schedule table's widths and offsets. The demo kernel at the end
-      instantiates them with arbitrary witness values that carry no
-      composition claim, in CyclicExecutive.v's gap e and PartitionContext.v's
-      gap j.
-   g. The C implementation of the partition, switch and executive. M4.4 owns
-      it; nothing here is that code, and nothing here can be compiled into it.
-
-   Non-vacuity (R-05-165, R-05-166). Every obligation below is stated as a
-   decidable predicate over a trace, proved of a concrete run that satisfies
-   it, and refuted of an alternative run or an alternative adjudicator the
-   register's own sentence excludes. Every blindness obligation is stated of
-   an arbitrary adjudicator and refuted of one that reads what the obligation
-   forbids. Inhabitation is concrete: one kernel whose every domain is
-   inhabited, one admitted frame, and computed checks in the silent Example
-   form for the run that passes and for each run that does not.
+   Non-vacuity (R-05-165, R-05-166): concrete runs satisfy the predicates and
+   counterexamples reject altered traces or adjudicators. Blindness properties
+   quantify over arbitrary adjudicators. The demo kernel inhabits every domain
+   and includes a frame accepted by the schedule predicate and computed
+   positive/negative cases.
+   R-05-163 and R-05-164 govern the complete native inventory and assumptions.
    (*| BEGIN derived: cited entries |*)
    Owner: docs/requirements-register.md
    Requirements: R-05-163 R-05-164 R-05-165 R-05-166 R-07-003 R-07-004 R-07-005 R-07-006
@@ -618,8 +506,7 @@ Definition last_csr_write {W Cs Sr : Type} (eqb : Cs -> Cs -> bool) (c : Cs)
     (l : list (TraceRecord W Cs Sr)) : option W :=
   last_matching (csr_event eqb c) l.
 
-(* These equations retain the former traversals' exact treatment of every
-   record kind, including skipping effects unrelated to the queried name. *)
+(* Traversal equations for the register and CSR projections of LastEvent. *)
 Lemma last_reg_write_cons :
   forall (W Cs Sr : Type) (g : nat) (event : TraceRecord W Cs Sr)
          (rest : list (TraceRecord W Cs Sr)),
@@ -1412,9 +1299,8 @@ Proof.
   cbv in H. discriminate H.
 Qed.
 
-(* And the premise that closes it is a premise: an arbitrary machine's
-   contexts disagree at the zero register, so `ZeroRegisterIsFixed` is a
-   claim about this machine's architecture and not a tautology. *)
+(* The demo machine admits contexts that disagree at register zero, refuting
+   ZeroRegisterIsFixed without an architectural constraint. *)
 (*| discharges: R-15-007i |*)
 Theorem the_fixed_zero_register_is_a_premise_and_not_a_theorem :
   ~ ZeroRegisterIsFixed (kmachine demo_kernel).

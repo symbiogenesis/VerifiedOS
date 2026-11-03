@@ -262,10 +262,7 @@ Fixpoint fields_fit (sch : Schema) (vs : list nat) : bool :=
   | _, _ => false
   end.
 
-(* The unfolding steps, each a conversion this file states once. They are
-   written as rewrites rather than taken with a reduction tactic because a
-   reduction over this format expands the base's numeral and turns a
-   three-symbol goal into a thousand-symbol one. *)
+(* Use rewrite equations to unfold the format without reducing the base numeral. *)
 
 Lemma field_encode_succ : forall w v : nat,
   field_encode (S w) v = (v mod 256) :: field_encode w (v / 256).
@@ -283,9 +280,6 @@ Lemma field_decode_succ : forall (w b : nat) (t : list Byte),
     end.
 Proof. intros w b t. reflexivity. Qed.
 
-(* `injection` normalizes the equations it produces, which over this format
-   expands the base's numeral. These two read a constructor equality apart
-   without touching either side. *)
 Lemma some_pair_eq : forall (A B : Type) (a c : A) (b d : B),
   Some (a, b) = Some (c, d) -> a = c /\ b = d.
 Proof. intros A B a c b d H. injection H as H1 H2. split; assumption. Qed.
@@ -298,9 +292,6 @@ Proof.
   intros w b t v r H. rewrite field_decode_succ. rewrite H. reflexivity.
 Qed.
 
-(* Both list identities are stated at Byte rather than taken polymorphically,
-   because a polymorphic instance resolves at nat and leaves the rewritten
-   goal spelling one list type where every other term spells the other. *)
 Lemma cons_app : forall (x : Byte) (l r : list Byte),
   (x :: l) ++ r = x :: (l ++ r).
 Proof. intros x l r. reflexivity. Qed.
