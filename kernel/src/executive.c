@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 /*
  * The table-driven static cyclic executive (R-07-032), authored against
- * proofs/CyclicExecutive.v and the frame clause of proofs/KernelInstance.v.
+ * [CyclicExecutive.v](../../proofs/CyclicExecutive.v) and the
+ * [frame clause](../../proofs/KernelInstance.v#FrameIsTheTables) of KernelInstance.v.
  *
  * What runs is a pure function of the table and a cursor. There is no
  * priority, no ready set, no budget and no occupancy input anywhere below, so
@@ -17,7 +18,8 @@
  */
 #include "vos_kernel.h"
 
-/* CyclicExecutive.v `disjoint`: one slot ends at or before the other begins. */
+/* [CyclicExecutive.disjoint](../../proofs/CyclicExecutive.v#disjoint):
+ * one slot ends at or before the other begins. */
 int vos_slot_disjoint(const struct vos_slot *s, const struct vos_slot *t)
 {
   if (s->offset + s->width <= t->offset) {

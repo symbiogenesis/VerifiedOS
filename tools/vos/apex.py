@@ -1,11 +1,13 @@
 # SPDX-License-Identifier: Apache-2.0
 """The apex statement's Vocabulary record, read once and shared.
 
-proofs/ApexTheorem.v is the coverage checklist R-18-031(a) requires: every
+[ApexTheorem.v's Vocabulary](../../proofs/ApexTheorem.v#Vocabulary)
+is the coverage checklist R-18-031(a) requires: every
 side-property some seam consumes or concludes is a Prop field of the record, and a
 field nothing instantiates is an uncovered obligation with exactly one name. Two
-tools ask the same question of it. The checker holds docs/assurance/field-bindings.md against
-the fields and their consumers; blast-radius.py answers what an edit re-opens.
+tools ask the same question of it. The checker holds
+[field-bindings.md](../../docs/assurance/field-bindings.md) against the fields
+and their consumers; [the blast command](cli/blast.py) answers what an edit re-opens.
 Parsed twice they would be one fact restated by hand, which is the defect both tools
 exist to catch, so the parse is here and neither carries a copy of it.
 

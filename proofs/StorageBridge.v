@@ -3,14 +3,15 @@
    StorageBridge.v
 
    The bytes-to-record bridge M5.3 owes between the modeled block device
-   (interfaces/block-device-contract.md) and the journal records
-   JournalIndex.v and StorageRecovery.v consume, under the policy R-10-002a
+   ([block-device-contract.md](../interfaces/block-device-contract.md)) and the
+   journal records [JournalIndex.v](JournalIndex.v#Rec) and
+   [StorageRecovery.v](StorageRecovery.v) consume, under the policy R-10-002a
    selects: complete authenticated prefix redo.
 
    What this file is. A specification of one journal frame layout over device
    bytes, a writer that seals transactions into frames, and a decoder that
-   reads frames back into JournalIndex's `Rec`, with every payload and commit
-   authenticated through an opener the composition binds to a domain key. The
+   reads frames back into [JournalIndex's Rec](JournalIndex.v#Rec), with every
+   payload and commit authenticated through an opener the composition binds to a domain key. The
    decoder is written against that opener and never holds a key (R-10-022);
    `gcm_opener` instantiates it with AesGcm.v's functional AES-GCM reference,
    the one cipher R-10-024 freezes. It implements no cipher and no binary

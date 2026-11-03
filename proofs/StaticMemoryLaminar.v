@@ -3,10 +3,10 @@
    StaticMemoryLaminar.v
 
    The laminar placement theorem of the static-memory research baseline
-   (docs/implementation/static-memory/baseline.md, "A complete laminar
-   special case"), mechanized. A companion to that research document and
-   to MemoryPlan.v and part of neither: it changes no admission criterion,
-   accepts no requirement, confers no landing credit, adds no field to
+   (["A complete laminar special case"](../docs/implementation/static-memory/baseline.md#a-complete-laminar-special-case)),
+   mechanized. A companion to that research document and
+   to [MemoryPlan.v](MemoryPlan.v#Plan) and part of neither: it changes no
+   admission criterion, accepts no requirement, confers no landing credit, adds no field to
    MemoryPlan.v's Plan record and no axiom, and everything here is proved
    outright. It cites the entries the theorem argues from and carries no
    discharge annotation, because a result about an idealized model claims
@@ -38,7 +38,8 @@
    another in identity order, so a group of equal intervals lands
    consecutively. The definition is a filtered sum over the family and
    neither sorts nor enumerates addresses. Agreement with the stack replay
-   in tools/vos/static_memory_structure.py requires numeric identities
+   in [laminar_placement](../tools/vos/static_memory_structure.py#laminar_placement)
+   requires numeric identities
    to preserve the replay's string ordering; the concrete family below is
    its receipt's `equal-nested-disjoint` contract with that ordering. The
    agreement of that replay with this definition on every laminar family

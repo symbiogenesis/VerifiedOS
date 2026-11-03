@@ -69,7 +69,7 @@ import math
 import re
 from typing import TYPE_CHECKING
 
-# `Context` lives in this package's __init__, which imports this module in turn.
+# [Context](__init__.py#Context) lives in this package, which imports this module in turn.
 # Guarded, so the annotation below costs no import at run time: under PEP 649 an
 # annotation is not evaluated unless something asks for it, and nothing here does.
 if TYPE_CHECKING:

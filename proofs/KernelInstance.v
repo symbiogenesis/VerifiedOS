@@ -16,8 +16,10 @@
    composition/profile parameters. State equalities are pointwise, avoiding
    functional extensionality; no axiom or admission is introduced.
 
-   PartitionContext.v owns RestoresRegisters and RestoresNameableCsrs;
-   CyclicExecutive.v owns Frame. The predicates here consume those definitions.
+   PartitionContext.v owns [RestoresRegisters](PartitionContext.v#RestoresRegisters)
+   and [RestoresNameableCsrs](PartitionContext.v#RestoresNameableCsrs);
+   CyclicExecutive.v owns [Frame](CyclicExecutive.v#Frame).
+   The predicates here consume those definitions.
 
    Trace interpretation and assumptions:
    1. Refused capability derivation clears the result tag rather than trapping

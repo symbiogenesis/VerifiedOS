@@ -4,7 +4,7 @@
 
 This is the instrument the plan's §10 sentence *one CI runner diffing one trace
 format across three executors* has been describing and has had nothing behind.
-[vos/rvfi.py](vos/rvfi.py) is the wire format, [vos/vengine.py](vos/vengine.py)
+[vos/rvfi.py](../rvfi.py) is the wire format, [vos/vengine.py](../vengine.py)
 is the engine, and this is the command line over them.
 
 Eight commands, and three of them need no toolchain:
@@ -749,7 +749,7 @@ def cmd_carry(args: argparse.Namespace) -> int:
 def cmd_bmc(args: argparse.Namespace) -> int:
     """Print the bounded model-checking smoke this harness owes, and run nothing.
 
-    File-only, like `protocol`: the plan is [vos/bmc.py](vos/bmc.py)'s and its
+    File-only, like `protocol`: the plan is [vos/bmc.py](../bmc.py)'s and its
     instruction scope is read out of the dialect table here and now, so what prints
     is the plan the gate would run today. It exits nonzero only where the scope's
     classification and the dialect table disagree, which is a finding about the plan;

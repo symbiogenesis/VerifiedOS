@@ -2,8 +2,10 @@
 /*
  * One isolated kernel instance: the partition context and its switch, the
  * table-driven cyclic executive, and the consumer checks over the composed
- * initialization descriptor. Authored against proofs/PartitionContext.v,
- * proofs/CyclicExecutive.v and proofs/KernelInstance.v (M4.1b: authored
+ * initialization descriptor. Authored against
+ * [PartitionContext.v](../../proofs/PartitionContext.v),
+ * [CyclicExecutive.v](../../proofs/CyclicExecutive.v) and
+ * [KernelInstance.v](../../proofs/KernelInstance.v) (M4.1b: authored
  * instead; nothing here derives from seL4 or CHERI-seL4).
  *
  * GC-free by construction: every object is a fixed-size record, every table

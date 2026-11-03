@@ -19,7 +19,7 @@ from typing import TYPE_CHECKING
 from vos import proofcites
 from vos.register import REGISTER, REQ_ID_PATTERN
 
-# `Context` lives in this package's __init__, which imports this module in turn.
+# [Context](__init__.py#Context) lives in this package, which imports this module in turn.
 # Guarded, so the annotations below cost no import at run time: under PEP 649 an
 # annotation is not evaluated unless something asks for it, and nothing here does.
 if TYPE_CHECKING:
