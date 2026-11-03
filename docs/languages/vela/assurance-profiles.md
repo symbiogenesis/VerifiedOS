@@ -38,7 +38,7 @@ analysis does not need their values.
 
 ### Safe: ordinary programming without optional theorem obligations
 
-Safe supports ordinary functions, records, collections, parsers and iteration within the qualified fragment, establishing its enumerated type, ownership, initialization and permitted-effect obligations. Functional specifications, algorithmic loop invariants and named lemmas are optional when required obligations are otherwise discharged; libraries hide implementation proofs. Exported contracts remain mandatory. The profile must permit runtime bounds/validation checks, their explicit failures and resource costs. Async requires separate qualification.
+Safe supports ordinary functions, records, collections, parsers and iteration within the qualified fragment, establishing its enumerated type, ownership, initialization and permitted-effect obligations. Functional specifications, algorithmic loop invariants and named lemmas are optional when required obligations are otherwise discharged; libraries hide implementation proofs. Authored exported contracts remain mandatory. The profile must permit runtime bounds/validation checks, their explicit failures and resource costs. Async requires separate qualification.
 
 Required type safety, public invariants, legal reuse and admission obligations remain mandatory. If automation fails, use a supported checked operation, simplify the implementation, prove the obligation or declare a permitted trust boundary. Assuming success is unavailable.
 

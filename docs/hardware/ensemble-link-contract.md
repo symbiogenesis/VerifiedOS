@@ -10,7 +10,7 @@ This is the first of R-02-003a's five ensemble admission artifacts. It supplies 
 
 The register owns the frame forms, code discipline, endpoint absences, window contracts, arrival-phase rule and slot-table fields. Under R-05-152's single-owner rule, this contract adds their field layout, length forms, register ownership, classification decisions, refusals and consumer arithmetic.
 
-**Composition and qualification values remain pending.** R-15-228d and R-11-017a assign frame geometry, slot instants, guard bands and leap cadence to the attested schedule artifact. R-17-041 owns the latency magnitudes at [crown-jewel](../assurance/crown-jewels.md) row 15 (`not authored`); R-15-196a requires a measured two-member skew bound. No composition fixes these values. [§4](#4-the-per-link-composition-constants) records their units, admissibility predicates and owners; quoting a pending value as decided is EL-2 in [§8](#8-what-makes-a-candidate-a-report-or-an-implementation-inadmissible).
+**Composition and qualification values remain pending.** R-15-228d and R-11-017a assign frame count and size, slot instants, guard bands and leap cadence to the attested schedule artifact. R-17-041 owns the latency magnitudes at [crown-jewel](../assurance/crown-jewels.md) row 15 (`not authored`); R-15-196a requires a measured two-member skew bound. No composition fixes these values. [§4](#4-the-per-link-composition-constants) records their units, admissibility predicates and owners; quoting a pending value as decided is EL-2 in [§8](#8-what-makes-a-candidate-a-report-or-an-implementation-inadmissible).
 
 **The code family remains unselected.** R-15-228e requires a choice between R-15-119's two families. [§2](#2-the-links-code) states the selection predicate; Q23g's two-member measurement must supply the wire's raw error rate at the declared reach and frame length. Selecting a family without that operand would also violate EL-2.
 
@@ -69,7 +69,7 @@ The four rows exactly fill `M - L_tag` by [§4](#4-the-per-link-composition-cons
 
 This form reaches only R-12-015d's bounded establishment handler, with no path to the receiving compartment, payload eligibility or an origin leap (R-15-228b, EL-4).
 
-All `FF-3` fields are public: hybrid key-establishment shares, two fresh challenges, attestation evidence and the bound slot-table digest. Confidentiality depends on none of them. The form carries no address, capability encoding, persistent link-layer address or sender field; peer identity appears only as attestation evidence processed by the session construction (R-15-132, R-12-015d).
+All `FF-3` fields are public: hybrid key-establishment shares, two fresh challenges, attestation evidence and the bound slot-table digest. These fields require no confidentiality. The form carries no address, capability encoding, persistent link-layer address or sender field; peer identity appears only as attestation evidence processed by the session construction (R-15-132, R-12-015d).
 
 ### 1.5 `FF-4`, unestablished-slot public padding
 
@@ -99,7 +99,7 @@ The following table applies R-05-051b's general descriptor conditions to these f
 
 ### 2.1 The selection predicate
 
-A candidate code is admissible only if every clause below holds, jointly applying R-15-228e, R-15-119, R-15-119c and R-12-043a.
+A candidate code is admissible exactly when every clause below holds, jointly applying R-15-228e, R-15-119, R-15-119c and R-12-043a.
 
 | # | Clause | Why it is here |
 | --- | --- | --- |
