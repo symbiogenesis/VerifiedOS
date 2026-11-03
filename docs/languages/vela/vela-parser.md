@@ -59,6 +59,50 @@ expected trees independently of actions. Retain the Python prototype/tests. Q25g
 qualifies executable development syntax only; checked parsing, lexer correctness,
 source correspondence and the full frontend need separate evidence.
 
+## Generated syntax campaigns
+
+[Q25y](../../../PLAN.md#q-assessment-actions) qualifies reuse of the
+[Menhir manual's](https://gallium.inria.fr/~fpottier/menhir/manual.html) seeded
+sentence generation and interpreter/CST inspection after the exact locked Q25g
+qualification. The [first-release delivery order](../../../PLAN.md#vela-first-release-delivery)
+retains Q25w's concrete foundation priority. This campaign changes neither the
+existing code backend/runtime closure nor Q25h's checked-parsing prerequisites.
+
+Freeze the pure entry point, grammar/tool digests, deterministic seed set,
+independent expected cases and numeric time, output, token and memory budgets
+before implementation. `--random-seed`, `--random-sentence-length` and
+`--random-sentence` generate terminal names; the length argument is a goal, not a
+hard output bound. Enforce the declared bounds independently, and qualify a
+small token-payload renderer before sending generated source through the actual
+lexer and parser. Record terminal input, rendered source and selected entry so
+a failure replays without random generation. No second grammar is introduced.
+
+Interpreter acceptance and `--interpret-show-cst` can expose automaton and
+production-action disagreements, but share the grammar's possible mistakes.
+Retain independently selected expected ASTs, source spans and refusal cases.
+Generate bounded whitespace, comment, newline and token-payload variants;
+compare the expected syntax and exact-source binding while preserving resource
+refusals. A deliberately wrong action or span must be detected by an independent
+expected observation, not merely by comparing two grammar-derived trees.
+
+Keep `--list-errors` and `.messages` exploration a separately priced follow-up
+after an actual diagnostic-maintenance need. The manual warns that enumeration
+can consume gigabytes; do not place it unbounded on every parser build. Retain
+complete enumeration separately from selected replay cases, and use Menhir's
+update/comparison facilities to detect stale state/message coverage. Truncation
+or timeout establishes no completeness. Review diagnostic meaning independently
+after grammar changes. This reading selects no runtime error-message API, table
+backend or Menhir runtime dependency; such changes need their own qualification.
+
+Acceptance preserves syntax/migration fixtures and deterministic regeneration,
+demonstrates bounded replay and an independent seeded-defect kill, and records
+the exact generator, grammar and rendered-input identities. Stop a campaign
+whose bound or renderer cannot be qualified; generation alone supplies no result
+about source meaning. Host helper checks and native Guest CI qualification
+retain their existing owners and pending status. The
+[generated-test boundary](tooling-protocols.md#generated-development-tests)
+keeps these development results separate from proof and product acceptance.
+
 ## Promotion and retirement
 
 [Q25h](../../../PLAN.md#q-assessment-actions) owns promotion and Python parser
