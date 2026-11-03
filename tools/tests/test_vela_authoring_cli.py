@@ -211,6 +211,44 @@ def _concurrent_edit_and_special_files() -> None:
                    "default compilation followed a source symlink")
 
 
+def _explicit_write_publication_failures() -> None:
+    with tempfile.TemporaryDirectory(prefix="vos-vela-explicit-publication-") as directory:
+        root = Path(directory)
+        source, output = root / "source.vela", root / "output.v"
+        sentinel = b"previous generated artifact"
+        denied = b"module M;public Nat bad()=>1_000;"
+        source.write_bytes(denied)
+        output.write_bytes(sentinel)
+        code, stdout, errors = _call(["emit", str(source), "--format", "write",
+                                     "--deny", "VELA100", "--output", str(output)])
+        ensure(code == 1 and not stdout and "error VELA100:" in errors,
+               "denied explicit-format emission did not report the original finding")
+        ensure(source.read_bytes() == denied and output.read_bytes() == sentinel,
+               "denied explicit-format emission published source or output")
+
+        source.write_bytes(_COMPACT)
+        replace = Path.replace
+
+        def refuse_output(pending: Path, target: Path) -> Path:
+            if target == output:
+                raise OSError("injected output publication failure after source formatting")
+            return replace(pending, target)
+
+        with patch.object(Path, "replace", refuse_output):
+            code, stdout, errors = _call(["emit", str(source), "--format", "write",
+                                         "--output", str(output)])
+        ensure(code == 1 and not stdout and "after source formatting" in errors,
+               "post-format output publication failure was reported as success")
+        ensure(source.read_bytes() == _FORMATTED and output.read_bytes() == sentinel,
+               "post-format failure lost the published source or predecessor output")
+        ensure(not list(root.glob(".*.tmp")), "post-format failure leaked pending files")
+        code, stdout, errors = _call(["emit", str(source), "--output", str(output)])
+        ensure(code == 0 and not stdout and not errors,
+               "emission did not recover after explicit-format publication failure")
+        ensure(output.read_text(encoding="utf-8") == translate(_FORMATTED).gallina,
+               "recovered emission did not bind the formatted snapshot")
+
+
 def _unavailable_lints() -> None:
     with tempfile.TemporaryDirectory(prefix="vos-vela-lint-unavailable-") as directory:
         source = Path(directory) / "source.vela"
@@ -237,4 +275,5 @@ def cases() -> list[Case]:
             Case("vela-authoring-cli:lint-policy", _lint_policy),
             Case("vela-authoring-cli:refusal-publication", _refusals_preserve_files),
             Case("vela-authoring-cli:source-snapshot", _concurrent_edit_and_special_files),
+            Case("vela-authoring-cli:explicit-write-publication-failures", _explicit_write_publication_failures),
             Case("vela-authoring-cli:lint-unavailable", _unavailable_lints)]

@@ -49,6 +49,24 @@ def _comments_and_documentation_boundaries() -> None:
     ensure(format_source(expected) == expected, "comments are not idempotent")
 
 
+def _composed_authoring_features() -> None:
+    source = (b"module M;\n/// Defines the limit.\npublic const Nat Limit=1_024;\n"
+              b"/// Returns the selected value.\npublic Nat Echo(Nat value,)=>value;"
+              b"public Nat Pick(bool yes,Nat count){const Nat localLimit=2_048;"
+              b"if(yes){return Echo(value:count+Limit,);}"
+              b"else{// fallback\nreturn localLimit;}}")
+    expected = (b"module M;\n\n/// Defines the limit.\npublic const Nat Limit = 1_024;\n\n"
+                b"/// Returns the selected value.\npublic Nat Echo(Nat value,) => value;\n\n"
+                b"public Nat Pick(bool yes, Nat count)\n{\n    const Nat localLimit = 2_048;\n"
+                b"    if (yes)\n    {\n        return Echo(value: count + Limit,);\n    }\n"
+                b"    else\n    { // fallback\n        return localLimit;\n    }\n}\n")
+    ensure(format_source(source) == expected,
+           "composed constants, separators, calls, comments and nesting changed canonical bytes")
+    ensure(format_source(expected) == expected, "composed authoring features are not idempotent")
+    ensure(translate(source).gallina.splitlines()[2:] == translate(expected).gallina.splitlines()[2:],
+           "composed authoring formatting changed emitted definitions")
+
+
 def _inline_comments_in_delimiters() -> None:
     source = (b"module M;public Nat Echo(Nat // parameter\nvalue)"
               b"{return ( // grouped\nvalue);}")
@@ -105,6 +123,7 @@ def cases() -> list[Case]:
     return [Case("vela-style-allman-and-spacing", _allman_and_spacing),
             Case("vela-style-nested-control-and-expression-body", _nested_control_and_expression_bodies),
             Case("vela-style-comments-and-doc-attachment", _comments_and_documentation_boundaries),
+            Case("vela-style-composed-authoring-features", _composed_authoring_features),
             Case("vela-style-inline-comments-in-delimiters", _inline_comments_in_delimiters),
             Case("vela-style-generated-comment-token-boundaries", _generated_comment_boundaries),
             Case("vela-style-invalid-and-unsupported-refusal", _refuses_invalid_and_unsupported),
