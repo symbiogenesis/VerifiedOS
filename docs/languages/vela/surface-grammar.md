@@ -577,10 +577,12 @@ implicit conversion, ownership transfer, effect, disposal or proof authority.
   enumerator protocol, allocation, copying, conversion or disposal.
 - Calls accept a positional prefix followed by an optional labeled suffix:
   `Copy(in source, target: ref destination, count: length)`. Every label names
-  exactly the next declared value parameter; arguments cannot be reordered,
-  omitted, defaulted or repeated. A positional argument after a label is
+  exactly the next declared value parameter; argument slots cannot be skipped,
+  reordered, defaulted or repeated. A positional argument after a label is
   refused. Labels on unnamed callable parameters are refused. Explicit generic
   arguments retain their own existing syntax and inference rules.
+  The mathematical fragment's partial applications return the remaining
+  callable; labels cannot skip its next parameter or supply a default.
   Each argument is evaluated once, left to right, with the same loan timing,
   grades, captures, effects and cleanup obligations as its positional form.
   Dependent application substitutes each argument through the entire remaining

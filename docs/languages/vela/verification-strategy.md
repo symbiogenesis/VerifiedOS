@@ -1049,7 +1049,7 @@ keeps phase availability separate from erasure, use grades and ownership.
 Constants grant no new authority, implicit conversion, duplication or proof.
 
 Labels match the resolved callable's next declared value parameter; they cannot
-reorder, omit, duplicate or default arguments, and no positional argument follows
+skip slots, reorder, duplicate or default arguments, and no positional argument follows
 a label. An unnamed callable parameter has no available label. Each argument is
 evaluated once, left to right, with unchanged loan timing, captures, effects and
 use grades. Application substitutes through the remaining dependent telescope,
@@ -1057,6 +1057,8 @@ including later types, grades and exit predicates, under the
 [graded substitution rules](graded-foundation.md#substitution-and-structural-rules).
 The [surface contract](surface-grammar.md#concise-authoring-syntax) owns located
 syntax and refusal cases. Labels do not insert conversions, authority or proofs.
+Mathematical partial application returns the remaining callable with its
+dependent telescope; a label never jumps past an unsupplied parameter.
 Likewise `Fn() -> Unit` takes no explicit argument, while `Fn(Unit value) -> Unit`
 requires one: a shared CIC unit encoding does not grant an omitted argument or a
 default unit value.
