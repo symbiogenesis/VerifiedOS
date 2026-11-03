@@ -51,7 +51,9 @@ Remember a newer received version even when its replacement text is refused;
 an older later update cannot restore synchronization.
 Close clears diagnostics. Save rechecks the overlay. Configuration and watched-file
 changes invalidate and recheck all open snapshots conservatively. There are no
-import, rename, navigation, semantic-token or interactive-proof providers.
+import, rename, semantic-token or interactive-proof providers. The separately
+commissioned pure navigation increment below consumes existing resolution facts;
+it supplies no wider-language qualification.
 
 | Resource | Bound and refusal |
 | --- | --- |
@@ -73,6 +75,70 @@ Save and invalidation cannot republish diagnostics for a refused edit's old text
 a valid full replacement or close/reopen restores synchronization. A ranged edit
 cannot use a desynchronized overlay; a change batch must begin with a full
 replacement before any subsequent ranged edits can restore synchronization.
+
+## Pure navigation increment
+
+Q25o commissions hover, definition, references and flat document symbols for
+completely checked sources in the existing pure Nat/bool subset. These services
+remain unqualified host diagnostics. Record immutable declaration identities,
+types and occurrences in the existing pure elaborator's resolution decisions;
+do not introduce another parser, resolver or type system. Retain both existing
+translation routes and their emitted terms. No facts survive a failed complete
+check. Partial syntax, imports, completion, rename, proof state and wider-language
+services retain their existing prerequisites.
+
+Support `textDocument/hover`, `textDocument/definition`,
+`textDocument/references` and `textDocument/documentSymbol`; advertise only those
+four additional providers. Hover uses plain text with the resolved function
+signature or local/parameter type and an explicit unqualified-prototype label.
+Definition returns the exact declaration identifier location. References use
+resolved identity within the requested document and honor `includeDeclaration`.
+Flat `SymbolInformation` lists functions, parameters and local bindings in source
+order with exact identifier locations; it makes no function-body span claim.
+Use distinct identities for same-spelled declarations in different functions or
+sibling branches, and preserve the producer's distinct call/value namespaces and
+earlier-function-only rule. Identifier ranges are half-open: positions at their
+end, comments, punctuation and whitespace select no symbol.
+
+Require the initialized notification and a synchronized open overlay for every
+query. Unknown or closed documents are invalid parameters; desynchronized
+documents return ContentModified (`-32801`). Refused source yields null hover
+and definition, and empty references and symbols. Malformed query parameters
+return invalid parameters (`-32602`). Worker/resource failure returns RequestFailed
+(`-32803`), without partial facts, truncation or session termination. Requests
+are synchronous and correlated; each result uses the current immutable snapshot.
+Any cache is bound to its full identity and is discarded on changes, refused
+updates, configuration/dependency invalidation, close and shutdown. A result for
+an old snapshot cannot become a result for a newer one. URI strings grant no disk
+access, and query responses cannot publish accepted artifacts.
+
+Use the same isolated interpreter and five-second worker bound as diagnostics.
+An inspection may contain at most 1,024 declarations and 4,096 identifier
+occurrences, including declarations; exceeding either refuses inspection without
+changing ordinary translation. Its internal JSON result is either
+`{"status":"unavailable","reason":KIND}` or an object with `status: "ok"`,
+`symbols` and `occurrences`. Each symbol has `name`, `kind` (`function`,
+`parameter` or `variable`), `detail` and one-based normalized code-point `line`
+and `column`. Its index is a snapshot-local identity. Each occurrence has
+`symbol` (that index), `line`, `column` and boolean `declaration`. Validate the
+worker shape, bounds, identity links and exact source spelling before converting
+positions through the shared source API. Worker output and each complete reply
+retain the 1,048,576-byte bound; an oversized result is refused as a whole.
+
+Acceptance requires independently expected signatures, types, declaration sites
+and reference sets for earlier calls, parameters, inferred locals, same-spelled
+bindings across functions and sibling branches, and distinct call/value
+namespaces. Cover half-open token selection, UTF-16 with supplementary comments,
+LF/CRLF/bare CR, invalid and unsupported source, malformed parameters, all limits,
+timeout, unopened/closed/desynchronized overlays and recovery. Incremental edits
+must move or remove facts; invalidation and refused edits cannot expose cached
+facts. A process-level stdio session exercises all four requests against the real
+producer and an unsaved incremental update. Existing translation and LSP controls,
+focused host tests, Python checks, both Host CI aggregates and selected Guest CI
+dispatch remain required. Independent review must check the compiler fact
+producer and protocol projection. Two pinned editor clients with retained
+transcripts remain necessary for final interoperability qualification; a wire
+harness alone does not close Q25o or Q25n.
 
 ## Acceptance and remaining qualification
 

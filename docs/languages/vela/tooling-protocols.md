@@ -12,7 +12,10 @@ their own ecosystem specifications rather than a shared standards status.
 This is a non-normative design contract. The
 [plan](../../../PLAN.md#vela-whole-system-authoring-proposal) owns implementation
 stages and commissioning. The [first host LSP increment](lsp-prototype.md)
-uses the pure prototype as its diagnostic producer. Semantic services depend on the qualified frontend;
+uses the pure prototype as its diagnostic producer. The separately commissioned
+[pure navigation increment](lsp-prototype.md#pure-navigation-increment) exposes
+that prototype's resolution facts as explicitly unqualified host diagnostics.
+Broader semantic services depend on the qualified frontend;
 native debugging additionally needs an executable backend, its ABI and debug
 information. A separately commissioned syntax-only server may precede those
 dependencies if it advertises only its implemented subset.
