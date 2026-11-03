@@ -636,11 +636,15 @@ class _Elaborator:
         """Instantiate static binders while evaluating each runtime argument exactly once."""
         self.specialization_depth += 1
         previous_facts = self.facts
+        previous_constants = self.constants
         self.facts = None
+        self.constants = signature.constants
         try:
             self._static_tick(site, self.specialization_depth)
-            environment = {name: _Local(local.value_type, None, local.static, local.required_static,
-                                        f"c_{name}") for name, local in signature.constants.items()}
+            # Captured module values remain the global fallback, as they were
+            # when checking the original definition. They are not local binders:
+            # parameters and locals may shadow them without becoming duplicates.
+            environment: dict[str, _Local] = {}
             bindings: list[tuple[str, _Expression]] = []
             for (parameter, value_type, _), argument in zip(signature.parameters, arguments, strict=True):
                 value = static_arguments.get(parameter.text)
@@ -658,6 +662,7 @@ class _Elaborator:
             return body
         finally:
             self.facts = previous_facts
+            self.constants = previous_constants
             self.specialization_depth -= 1
 
 
