@@ -79,7 +79,8 @@ def _integer(value: object) -> int:
 
 
 def _error(request_id: object, code: int, message: str) -> dict[str, object]:
-    reply = {"jsonrpc": "2.0", "id": request_id, "error": {"code": code, "message": message}}
+    reply: dict[str, object] = {"jsonrpc": "2.0", "id": request_id,
+                                "error": {"code": code, "message": message}}
     try:
         encode_message(reply)
     except (FrameError, UnicodeError):
