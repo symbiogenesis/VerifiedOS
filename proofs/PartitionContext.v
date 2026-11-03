@@ -419,9 +419,6 @@ Definition SumsExactlyTheThreeTerms (f : Machine -> nat) : Prop :=
 Theorem cost_is_three_terms : SumsExactlyTheThreeTerms switch_cost.
 Proof. intros m. reflexivity. Qed.
 
-(* The one arithmetic fact this file needs, proved rather than imported:
-   the stdlib module carrying it is outside the prelude, and adding zero
-   axioms is the point of the gate. *)
 Lemma lt_add_pos : forall n k : nat, 0 < k -> n < n + k.
 Proof.
   intros n k H. induction n as [ | n IH ].
@@ -555,10 +552,7 @@ Definition canonical_post (m : Machine) (succ : Context m) : State m :=
     (fun c => if m.(csr_zeroized) c then m.(zero_word) else ctx_csr succ c)
     (pending_written m succ).
 
-(* The opening that nine of the step memberships below share: split the
-   step's three write obligations, close the register one by reflexivity,
-   and leave the CSR and pending obligations as two goals, each under its own
-   bullet. *)
+(* Discharge the register obligation shared by the canonical state constructions. *)
 Local Ltac split_closing_the_registers :=
   split; [ intros r _; reflexivity | split ].
 

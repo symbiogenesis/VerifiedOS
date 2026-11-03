@@ -995,14 +995,9 @@ Example there_are_ten_probe_polynomials_of_the_full_degree :
    forallb (fun p => Nat.eqb (length p) 256) (probes 256)) = (10%nat, true).
 Proof. vm_reflexivity. Qed.
 
-(* The transforms and the product several examples below read at ML-KEM's
-   ring, each evaluated once into a literal and equated to its source. The
-   compiling machine keeps a constant's value from one example to the next,
-   and the kernel's recheck does not: each example rewritten through these
-   lemmas reads the literal where it would otherwise transform or multiply
-   the probes again. Each lemma unfolds its literal before the cast: the
-   recheck compares a computation with an unfolded literal several times
-   faster than with the constant that names it. *)
+(* Cache the ML-KEM probe transforms and product as computed literals.
+   Rewriting through these equations avoids repeating their evaluation in
+   each example; unfolding the literal before the cast simplifies rechecking. *)
 Definition ramp_ntt_literal : list Z := Eval vm_compute in ntt mlkem_ring (ramp_poly 256).
 Definition stride_ntt_literal : list Z := Eval vm_compute in ntt mlkem_ring (stride_poly 256).
 Definition ramp_stride_product_literal : list Z :=
@@ -1190,9 +1185,8 @@ Proof.
   vm_reflexivity.
 Qed.
 
-(* And mixing them is wrong, which is what makes the order a contract between
-   two implementations rather than a presentation detail: this file's leaf
-   roots against the other order's transform compute neither product. *)
+(* Mixing one transform order with the other order's leaf roots gives
+   incorrect products. *)
 Example one_order_s_leaf_roots_against_the_other_order_s_transform_is_wrong :
   poly_eqb (intt_other_order mlkem_ring
               (mul_ntt_quadratic mlkem_ring
@@ -1215,10 +1209,8 @@ Qed.
    transform left one per coefficient.
    ------------------------------------------------------------------------- *)
 
-(* The four answers sit in one statement rather than in four, because what
-   they say is one thing: each ring's own contract reproduces the schoolbook
-   product and the other ring's contract does not, in both directions. A
-   reader who takes only the two positive answers has read half of it. *)
+(* Each ring reproduces the schoolbook product under its own multiplication
+   contract and rejects the other ring's contract. *)
 (*| discharges: R-05-058a |*)
 Example the_two_rings_multiply_under_two_different_contracts :
   let f := ramp_poly 256 in

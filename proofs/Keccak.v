@@ -2,253 +2,90 @@
 (* =========================================================================
    Keccak.v
 
-   The Keccak-*p*[1600] permutation, the sponge over it, and the six FIPS 202
-   functions SHA3-224, SHA3-256, SHA3-384, SHA3-512, SHAKE128 and SHAKE256,
-   written in Gallina against FIPS 202 and checked against the standard's own
-   published known answers.
+   Gallina functional reference for Keccak-p[1600], its sponge, SHA3-224,
+   SHA3-256, SHA3-384, SHA3-512, SHAKE128 and SHAKE256, transcribed from
+   FIPS 202. It is paired with model/model/extensions/keccak/keccak_p1600.sail
+   for differential comparison. R-15-056 and R-15-058 concern the Sail
+   invariant; this reference does not discharge them or correspond to a binary.
 
-   What this file is, and what it is not. It is a **functional reference**: a
-   second transcription of FIPS 202, deliberately made against the same
-   standard and the same published answers as the Sail unit in
-   model/model/extensions/keccak/keccak_p1600.sail, so that the two
-   transcriptions are a differential pair rather than two independent chances
-   to be wrong. It is not a discharge of R-15-058, whose subject is the Sail
-   invariant; it is not an implementation, and no binary corresponds to it.
+   This is only the functional layer of R-05-059. Binary constant-time
+   properties (R-05-062, R-05-067) and distributional reduction claims
+   (R-05-077a) are outside its scope. The proof gate checks compilation,
+   assumptions and non-vacuity, not these omitted properties. Light Examples
+   use conversion; permutation checks use bytecode evaluation without adding
+   assumptions. ProofSupport and CryptoLists depend only on the Rocq prelude;
+   their complete import closure remains subject to R-05-163 and R-05-164.
 
-   What the gate's green line means. Compiled, axiom-free, non-vacuous and
-   enumerated, and it does not mean verified. Nothing here executes on either
-   emulator. The computed checks are decided inside the kernel, the light ones
-   by conversion in the silent `Example ... := eq_refl` form and the ones that
-   run a permutation by the bytecode machine, which contributes nothing to
-   the native assumption audit.
+   Representation:
+   - A lane is a 64-element list bool, least significant bit first (z = 0).
+   - The state is 25 lanes in x + 5*y order, matching FIPS 202's string-to-state
+     conversion and the Sail unit. Output bytes take eight consecutive bits,
+     least significant bit first (FIPS 202 sections 3.1.2 and B.1).
+   - Messages are byte-aligned; sub-byte conventions are not exercised.
+   - Lane-wise lists avoid repeatedly indexing a flat 1600-bit list.
 
-   The three assurance layers, and which one this is. R-05-059 wants
-   functional correctness, constant-time and reduction-level security per
-   primitive, and what is here is the **functional layer alone**. No
-   constant-time property is claimed: R-05-062 and R-05-067 put that
-   obligation on a binary as a 2-safety hyperproperty, a Gallina reference is
-   not a binary, and the fact that every value-dependent operation below is
-   xorb, andb, negb or a rotation by a table constant is a remark about the
-   shape and never evidence. No reduction and no distributional claim is made
-   either: R-05-077a's reduction is stated over uniformly drawn keys and
-   nonces, and a functional reference carries no distribution of any kind. So
-   nothing here is a shipped primitive under R-05-059.
+   Structural obligations:
+   - theta, rho, pi, chi and iota are separate definitions, composed in that
+     order by keccak_round (R-15-056).
+   - Unlike Sail's literal tables, rho offsets are derived from the triangular
+     recurrence and (x, y) walk; round constants use Algorithm 5's LFSR. Both
+     derived tables are checked against published values.
+   - Keccak-p[1600, n] uses the last n rounds (R-15-056a). The general theorem
+     checks suffix selection; the twelve-round vector has the limited
+     provenance recorded below.
+   - pi is invertible on 25 lanes; the used rho rotations are invertible on
+     64-bit words; iota is an involution; chi is bijective on all five-bit rows.
+     Theta's column indexing and choice of rotated neighbour are checked, but
+     theta invertibility and bijectivity of the composite remain unproved.
+     Those are local obligations, not acceptance clauses of R-15-056.
+   - SHA3-256 and SHAKE256 share rate and capacity but use different suffixes.
+     Checks distinguish their outputs and exhibit equality without separators.
 
-   The shared ProofSupport and CryptoLists modules use only the Rocq prelude,
-   so there is no Z, N, String or List library. A 64-bit lane remains a `list bool` rather
-   than a machine integer. An assumption reachable through an import is an
-   assumption inside the R-05-163 gate's reach, which includes the shared
-   support's full closure.
+   Known answers are constants in Example statements, not Definitions or
+   hypotheses. This keeps them outside the seed-mutation population and keeps
+   their provenance separate from the function being checked. Under R-05-022,
+   these behavioural comparators enter no trust base or retirement regime.
 
-   The representation, which no register entry fixes and which is therefore a
-   reading of this file rather than a transcription of the register:
+   Vector provenance, recorded 2026-08-31:
+   - XKCP/XKCP at eb5244d6, tests/TestVectors/KeccakF-1600-IntermediateValues.txt:
+     round constants, rho offsets and the all-zero 24-round state.
+   - The same revision's tests/TestVectors/ShortMsgKAT_SHA3-224.txt and its five
+     siblings: digests and squeezed outputs emitted by NIST's genKAT harness.
+   - The twelve-round state is the Sail harness constant, recorded there as
+     produced by an independent implementation; it is not a published vector.
+   - The empty-message SHA3-256 answer also appears in the NIST ACVP sets and
+     is checked by the Sail harness. No ACVP dataset is copied here.
+   XKCP's LICENSE has a CC0 default with six exceptions; tests/TestVectors is
+   in none. The NIST exception covers genKAT.c/h and the Standalone harness,
+   not emitted vectors. The default names source and header files, leaving
+   its application to vector text files unclear; no stated arm imposes a
+   notice, change-notice or acknowledgement condition on these files.
 
-   1. A lane is `list bool` of length 64, indexed by FIPS 202's *z* with the
-      **least significant bit at the head**, so the head of a lane is z = 0.
-   2. The state is a 25-element `list word` flattened as *x* + 5*y*, which is
-      the flattening keccak_p1600.sail states and the order FIPS 202's own
-      string-to-state conversion puts the lanes in, so element *i* is lane *i*
-      in both files with no reordering anywhere.
-   3. A bit string is the concatenation of the lanes in that order, which is
-      FIPS 202 s3.1.2 read backwards, and a byte of a squeezed output is eight
-      consecutive bits with the head as the byte's least significant bit,
-      which is FIPS 202 sB.1. That is why the known answers below read as the
-      published hexadecimal, digit pair by digit pair, with no reversal.
-   4. Every message here is byte-aligned, so no sub-byte convention is
-      exercised and none is claimed.
+   Boot use: RomVerifier.v states the ROM-verifier construction over shake256
+   for SLH-DSA-SHAKE-256s (R-05-058a, R-05-058c). No signature scheme is
+   implemented here. HmacDrbg.v owns HMAC-DRBG-SHA-256 and its R-15-241d
+   discipline; AesGcm.v owns the R-10-024 AEAD reference.
 
-   A flat 1600-bit list is the arm not taken. It would make `nth_of` linear in
-   1600 at every lane read and the known-answer checks quadratic and unusable,
-   and it buys nothing the 25-lane list does not already give.
+   Remaining integration decisions:
+   - R-15-058 or M3.4 must select the oracle pair of independent verification
+     lineage for this authored reference. Its representation conventions and
+     role in acceptance are local choices, not fixed by register entries.
+   - RotFirmware.v's extend_separates_on_the_chain is finite separation at the
+     chain's seven digests and item codes, not total hash injectivity. Its demo
+     instance is computed; wiring the real extension remains M3.4 work under
+     R-05-058c or R-09-002.
 
-   The readings of the register this file takes:
+   Standard literals are the geometry, round counts, output lengths, SHAKE
+   strengths, c = 2n, domain separators and Algorithms 5/6 parameters. Rates,
+   state size, offsets, constants and table shapes are derived from them.
 
-   1. **R-15-058's subject is the Sail invariant, not this file.** The entry
-      makes the fixed-permutation invariant a fresh Sail statement disciplined
-      against FIPS 202 and the NIST ACVP vectors, with software Keccak as the
-      portable path and the differential reference. What is here is a second
-      transcription of the same standard against the same published answers,
-      which is what makes the pair a pair. Nothing here closes that entry.
-   2. **The oracle enters no trust base.** Every published answer below is a
-      constant inside an `Example`'s own statement, never a `Definition`, and
-      nothing above it depends on the answer being right: what a known-answer
-      check buys is that the constant and the transcription were produced by
-      different routes. Putting an answer in a `Definition` would also put it
-      inside the seeded-mutation population, where a constant moved off by one
-      would score as a kill of the oracle rather than of the subject.
-   3. **The five step mappings are the standard's own, by the standard's own
-      names, in the standard's own order, and unfused**: theta, rho, pi, chi,
-      iota, one definition each, composed once in `keccak_round`. R-15-056's
-      acceptance names them that way and the shape is what the entry buys.
-   4. **The rho offsets and the round constants are derived here and
-      transcribed there.** keccak_p1600.sail writes both tables out, on the
-      ground that a reader checks a written row against the published one.
-      This file instead derives the offsets from FIPS 202's own (t+1)(t+2)/2
-      triangular recurrence over the (x, y) walk and the constants from
-      Algorithm 5's linear-feedback shift register, and then computes that
-      what it derived equals what the standard publishes. That is what makes
-      the pair a differential pair rather than a copy, and it is the pair that
-      would have caught both of the defects the Sail unit's own known-answer
-      vectors found: a mod-5 arm written one row early, and a table read in
-      the wrong direction.
-   5. **Keccak-p[1600, n] is the last n rounds** (FIPS 202 s3.3, R-15-056a),
-      so `round_indices` is a suffix of the round-index list and the twelve-
-      round form is rounds 12 through 23 of the same constant table. That is
-      stated here as a theorem over an arbitrary state and an arbitrary round
-      count, because it is the one thing about R-15-056a a round-count
-      argument cannot show and a known-answer check would show at one input.
-      The short form carries that one input too, and it is the weakest answer
-      in the file: the intermediate-value file read below publishes the
-      twenty-four-round state and not this one, so what the twelve-round form
-      is checked against is the constant the Sail unit's harness carries,
-      whose warrant is that file's own record of an independent
-      implementation rather than a source a reader can open. That is an
-      answer from outside both transcriptions and not a copy of either, which
-      is what admits it; it is not a published answer and nothing here calls
-      it one.
-   6. **How much of the word "permutation" is discharged, and whose
-      obligation that is.** R-15-056's *acceptance* carries no bijection
-      clause. It reads, whole, and with the refinement symbol the register
-      writes there spelled out as this tree's prose spells it, "it clears all
-      five admission tests; its correctness is a Sail invariant (fixed
-      theta/rho/pi/chi/iota rounds, no tables, no secret-dependent control
-      flow) riding RTL-refines-Sail", whose subject is the Sail unit and not
-      this file, by the same test reading 1 applies to R-15-058. Nothing in
-      it says bijection, injective, invertible or permutation at all. The
-      word *permutation* is in the entry's IS line,
-      describing what the fork adopts, so the obligation to show it of the
-      transcription here is one **this file states of itself** and not a
-      clause of that entry left open. Four of the five steps carry it: pi is a
-      bijection on the twenty-five lanes, and its inverse recovers an
-      arbitrary state; every rotation the rho table actually uses is
-      invertible on an arbitrary sixty-four-bit word; iota is an involution
-      over an arbitrary constant and an arbitrary lane; and chi is a bijection
-      on an arbitrary row of five bits, checked over all thirty-two rows.
-      **Theta's invertibility is not stated here, and nothing below moves
-      it.** It is a linear map on the 320-bit column-parity space whose
-      inverse is dense, no prelude-only argument for it fits in this item,
-      and the composite claim that Keccak-p is a bijection is an obligation
-      this file states of itself and does not close. What theta carries
-      instead is the other half of a step map's account, its index structure
-      over arbitrary lane contents and arbitrary column parities: which five
-      lanes a column parity reads, decided by the statement itself, and which
-      of the two neighbouring columns is the rotated one, refuted of the
-      exchange. Neither of those is an invertibility statement and neither is
-      offered as a part of one, so the four-of-five figure above is what it
-      was before theta acquired an obligation at all.
-   7. **The domain separators decide, and no known answer says so.** SHA3-256
-      and SHAKE256 have the same rate and the same capacity and differ only in
-      the suffix appended before the padding, so the property that separates
-      them is that they disagree, and the refutation is a construction with no
-      separator at all under which they agree. A missing suffix is the defect
-      no digest vector names, because a wrong digest and a wrong domain read
-      alike.
-
-   Where this file sits in the boot chain, which is why it is the half of
-   M3.4a that was authored. R-05-058c splits the signature schemes by verifier
-   and puts SLH-DSA at every ROM-verified object, R-05-058a freezes the
-   parameter sets at Category 5 and names SLH-DSA-SHAKE-256s, and a hash-based
-   signature is a construction over an extendable-output function and nothing
-   else. So the ROM verifier's whole substrate is `shake256` below, **no
-   classical signature appears in the frozen suite at all**, and the primitive
-   that had to exist before anything above it could be assembled is this one.
-   R-05-022's disposition for the pinned comparators is beside it and is the
-   licence record's rather than this file's: an oracle is a behavioural
-   comparator, it enters no trust base, and it is therefore not an interim
-   anchor and carries no retirement rule.
-
-   What is deliberately absent, with the entry that owes each decision. A
-   register gap is reported, not closed:
-
-   a. **No entry fixes the oracle pair for an authored SHA-3.** R-15-058 names
-      FIPS 202 and the ACVP vectors for the Sail unit and names software
-      Keccak as the reference; M3.4's own cell requires two oracles of
-      independent verification lineage. Which two those are for this artifact
-      is nobody's decision in the register. Owed at R-15-058 or in the plan.
-   b. **No entry fixes the representation obligations above.** Word width and
-      bit order, the lane flattening, the byte order of a squeezed output, and
-      whether a Gallina reference is inside any acceptance at all are readings
-      of this file and nothing else.
-   c. **RotFirmware.v's hash-separation field is the finite instance, not a
-      total one.** That Machine field is `extend_separates_on_the_chain`, the
-      finite instance of R-05-058c's computational hash-only assumption at the
-      scale the chain uses it: at each of the seven digests the chain extends
-      from, the seven item codes extend to seven distinct digests. It is
-      decidable and the demo machine discharges it by conversion over a
-      concrete extension rather than leaving it a bare assumption, and a total
-      separation of every distinct pair is met by no hash function, which is
-      why the field is deliberately not that (RotFirmware reading 7). What
-      stays owed is wiring the real hash extension in place of the demo's,
-      which is M3.4's. Owed at R-05-058c or R-09-002.
-   d. **No AEAD, no DRBG and no signature is authored here.** R-15-241d's
-      seeding discipline, its reseed bounds and its prediction- and
-      backtracking-resistance clauses are stated in HmacDrbg.v, which
-      authors HMAC-DRBG-SHA-256 over Sha256.v and takes that discipline as
-      the explicit hypothesis of every theorem it states; R-10-024
-      freezes the cipher to AES-GCM where the plan's own sentence has both
-      AEADs authored; and R-05-058c's split carries no classical scheme to
-      author at all, so what the boot chain's ROM verifier needs is stated
-      over this file's `shake256` in RomVerifier.v rather than authored as a
-      scheme. The AEAD is in AesGcm.v; none of the four is here.
-
-   The literals taken from the standard, and there are no others. The 5 x 5 x
-   64 geometry (`side`, `width`, `lanes`), the twenty-four and twelve round
-   counts, the four SHA-3 output lengths and the two SHAKE security strengths,
-   the capacity rule c = 2n, the two domain separators, the seven bit
-   positions of Algorithm 6 and the eight-bit register and 255-step period of
-   Algorithm 5. Everything else is derived: the rate is b minus the capacity,
-   b is 25 lanes of 64 bits, the rho offsets are the recurrence's, the round
-   constants are the register's, and every table's shape is `lanes` or `side`
-   rather than 25 or 5 written again.
-
-   Non-vacuity (R-05-165, R-05-166). Every structural obligation below is
-   stated of an arbitrary table, word, state or construction, and nine
-   constructions the standard's own sentences exclude are built here and
-   refuted: a mod-5 arm written one row early, a rho recurrence started one
-   step early, a constant table read in reverse, a first-twelve-rounds short
-   form, a theta whose two neighbouring columns are exchanged, a chi missing
-   its own term, a pad that admits an empty block, a pad without its final
-   one, and a sponge with no domain separator. **Three obligations stated
-   over arbitrary arguments carry no such construction, and are named rather
-   than folded into that list**: iota's involution, rho's rotations being
-   undone by their complements, and theta's column reading. For the first two
-   a near alternative to an involution, or to a rotation and its complement,
-   is a different function rather than a transcription defect, so a
-   construction would have nothing to exhibit. For the third it would be a
-   transcription defect and would be worth building, except that the
-   statement already refuses it: the twenty-five lane contents are distinct
-   named variables and the right-hand side names which five of them each
-   column reads, so a flattening transposed to y + 5x makes that theorem
-   false rather than leaving it silent. The fixed values nothing above
-   reaches are pinned in a section of their own and say there why.
-   Inhabitation is the published answers themselves, so no check below holds
-   of everything and none holds of nothing.
-
-   Where each published answer came from, and under which instrument. The
-   round-constant table, the rho offsets and both all-zero permutation states
-   are read from `tests/TestVectors/KeccakF-1600-IntermediateValues.txt` in
-   `XKCP/XKCP` at commit `eb5244d6`, on 2026-08-31. The digests and squeezed
-   outputs are read from `tests/TestVectors/ShortMsgKAT_SHA3-224.txt` and its
-   five siblings in the same tree at the same commit on the same date, which
-   are the known-answer files NIST's own genKAT harness emits. **The arm is
-   XKCP's own and not the NIST notice**, terms being read at the instrument
-   the bytes came out of rather than at the lineage of the program that wrote
-   them. XKCP's `LICENSE` is a decomposition of a CC0 default across six named
-   exceptions, and `tests/TestVectors/` is in none of them: the fourth
-   exception is the NIST notice over `tests/UnitTests/genKAT.c/h` and the
-   Standalone harness, which are the emitter's sources rather than the emitted
-   files. What that leaves is one residue, named rather than closed: the
-   default sentence is stated over the tree's *source and header files*, and
-   a vector text file is not squarely inside its subject either, so the file
-   states no arm that reaches these bytes by name. Under every arm it does
-   state, nothing reaches them carrying a notice, change-notice or
-   acknowledgement condition. The NIST terms are `usnistgov/ACVP-Server`'s and
-   reach the ACVP sets, which this file does not quote at all. The
-   twelve-round answer is neither tree's: it is the Sail
-   unit's own harness constant, recorded there as produced by an independent
-   implementation. The empty-message SHA3-256 answer is the same one the NIST
-   ACVP SHA3-256 sets carry for the same input, and it is the answer the Sail
-   unit's harness checks, which is where the two transcriptions meet.
+   Non-vacuity (R-05-165, R-05-166): structural theorems quantify over arbitrary
+   tables, words, states or constructions. Negative cases cover wrong mod-5
+   indexing, recurrence start, constant order, short-round selection, theta
+   neighbours, chi, padding and separators. Iota involution and inverse
+   rotations have no mutant construction; theta's explicit lane variables
+   already distinguish a transposed flattening. Published vectors supply
+   concrete positive cases; otherwise-unreached constants have separate checks.
    (*| BEGIN derived: cited entries |*)
    Owner: docs/requirements-register.md
    Requirements: R-05-022 R-05-058a R-05-058c R-05-059 R-05-062 R-05-067 R-05-077a R-05-163
@@ -282,9 +119,7 @@ Definition drop_of {A : Type} : nat -> list A -> list A := @ProofSupport.drop_of
 
 Definition nth_of {A : Type} : nat -> list A -> A -> A := @ProofSupport.nth_of A.
 
-(* The two out-of-range answers this file relies on, each named once so that
-   the answer is a decision rather than a default repeated at twenty sites,
-   and each pinned by an Example below rather than left unreachable. *)
+(* Out-of-range bit and offset lookups return false and zero, respectively. *)
 Definition bit_at (l : list bool) (i : nat) : bool := nth_of i l false.
 
 Definition offset_at (l : list nat) (i : nat) : nat := nth_of i l 0.
@@ -698,10 +533,8 @@ Fixpoint absorb (fuel rate : nat) (m : list bool) (a : state) : state :=
                        (keccak_f1600 (xor_into (take_of rate m) a))
   end.
 
-(* The branch is taken on what is left after this block rather than on a
-   comparison, because at d exactly equal to the rate the two arms of a
-   comparison give the same answer and a weakening of it would be a defect
-   nothing could observe. *)
+(* Stop when no output remains after this block. At d = rate,
+   take_of d already supplies the complete output. *)
 Fixpoint squeeze (fuel rate d : nat) (a : state) : list bool :=
   match fuel with
   | 0 => nil
@@ -710,12 +543,8 @@ Fixpoint squeeze (fuel rate d : nat) (a : state) : list bool :=
                 ++ squeeze k rate (d - rate) (keccak_f1600 a)
   end.
 
-(* Both fuels are block counts and not bit counts. A fuel is only there to
-   satisfy the termination checker, since neither loop recurses on a
-   structurally smaller list, and one generous enough to count bits would let
-   a weakening of the loop run thousands of permutations before the answer it
-   returns can be looked at. A block count is the smallest fuel that is still
-   never the thing that stops a correct run. *)
+(* Fuel counts blocks to satisfy structural recursion without allowing excess
+   iterations to perform thousands of unnecessary permutations. *)
 Definition sponge (rate : nat) (m : list bool) (d : nat) : list bool :=
   let padded := m ++ pad10star1 rate (length_of m) in
   let absorbed := absorb (S (Nat.div (length_of padded) rate)) rate padded zero_state in

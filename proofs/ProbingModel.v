@@ -83,10 +83,8 @@ Fixpoint flat_map_over {A B : Type} (f : A -> list B) (l : list A) : list B :=
 (* 0 through n-1, in that order. *)
 Definition upto (n : nat) : list nat := @ProofSupport.upto n.
 
-(* The nth member of a list, or the declared fallback past its end. Reading
-   11 is what the fallback is for: it makes the lookup total and is not a
-   claim about a wire the circuit does not carry, which `wires_exist`
-   excludes instead. *)
+(* Out-of-range lookup returns dflt. The wires_exist condition separately
+   rejects references to wires outside the circuit. *)
 Fixpoint at_member {A : Type} (l : list A) (n : nat) (dflt : A) : A :=
   match l with
   | nil => dflt
@@ -111,9 +109,7 @@ Fixpoint list_eqb {A : Type} (eqb : A -> A -> bool) (l1 l2 : list A) : bool :=
 Definition prev_cycle (t : nat) : nat := match t with 0 => 0 | S k => k end.
 
 (* -------------------------------------------------------------------------
-   The arithmetic this file needs, proved rather than imported: the stdlib
-   modules carrying it are outside the prelude, and adding zero axioms is
-   the point of the gate.
+   Arithmetic lemmas for finite mass and sharing proofs.
    ------------------------------------------------------------------------- *)
 
 Lemma eqb_refl_nat : forall n : nat, Nat.eqb n n = true.
@@ -623,11 +619,9 @@ Proof.
 Qed.
 
 (* =========================================================================
-   The sharing algebra: reading 2. An arbitrary finite abelian group whose
-   carrier is enumerated once and is invariant under translation, which is
-   what a uniform mask needs and all a uniform mask needs. GF(2)
-   instantiates it below; a prime field instantiates it for the arithmetic
-   composition half.
+   An enumerated finite abelian group with translation-invariant enumeration,
+   used for uniform masks. GF(2) supplies the Boolean examples; arithmetic
+   gadget composition needs a prime-field instance.
    ========================================================================= *)
 
 Record Sharing : Type := {
@@ -695,8 +689,8 @@ Proof.
 Qed.
 
 (* =========================================================================
-   The gate-level circuit (reading 1) and its trace semantics. A wire is an
-   index into the gate list and the gate at that index drives it.
+   Gate-level circuits and trace semantics. A wire index identifies its
+   driving gate in the gate list.
    ========================================================================= *)
 
 Inductive Gate : Type :=
@@ -875,14 +869,13 @@ Proof.
 Qed.
 
 (* =========================================================================
-   Observations and the three probe expansions (readings 3, 4 and 5).
+   Probe observations and expansion functions.
    ========================================================================= *)
 
 Inductive Obs : Type :=
   | obs_at (w : nat) (t : nat)      (* the stable value of wire w at cycle t *)
   | obs_delta (w : nat) (t : nat).  (* the difference across one cycle
-                                       boundary at wire w, the difference-only
-                                       transition reading of gap c           *)
+                                       boundary at wire w *)
 
 Definition obs_eqb (a b : Obs) : bool :=
   match a, b with
@@ -907,10 +900,8 @@ Definition obs_value (m : Sharing) (ops : nat -> list (Val m) -> Val m)
               (value_at m ops c init ins (prev_cycle t) w)
   end.
 
-(* The glitch walk of reading 3: back through combinational gates, stopping
-   at a register output and at a primary input. A gate with no arguments is
-   a constant and contributes nothing, which is the correct answer and not
-   a gap in the walk. *)
+(* Follow combinational dependencies back to registers and primary inputs.
+   Constant gates have no stable sources. *)
 Fixpoint stable_sources (c : Circuit) (fuel w : nat) : list nat :=
   match fuel with
   | 0 => cons w nil
@@ -931,24 +922,22 @@ Definition Expansion : Type := Circuit -> Probe -> list Obs.
 Definition ex_stable : Expansion :=
   fun _ p => cons (obs_at (p_wire p) (p_cycle p)) nil.
 
-(* The glitch extension (reading 3). *)
+(* Glitch observations. *)
 Definition ex_glitch : Expansion :=
   fun c p => map_over (fun s => obs_at s (p_cycle p))
                       (stable_sources c (wire_count c) (p_wire p)).
 
-(* The transition extension, pair reading (reading 4). *)
+(* Observe both values across a cycle boundary. *)
 Definition ex_transition : Expansion :=
   fun _ p => cons (obs_at (p_wire p) (p_cycle p))
                   (cons (obs_at (p_wire p) (prev_cycle (p_cycle p))) nil).
 
-(* The transition extension, difference-only reading: the other arm of
-   gap c, carried so the choice can be seen rather than assumed. *)
+(* Observe only the difference across a cycle boundary. *)
 Definition ex_transition_delta : Expansion :=
   fun _ p => cons (obs_delta (p_wire p) (p_cycle p)) nil.
 
-(* THE MODEL R-15-053a FIXES: both extensions at once (reading 5). Each
-   stable source of the probed wire is observed at the probed cycle and at
-   the cycle before it. *)
+(* The combined R-15-053a expansion observes each stable source at the probed
+   cycle and the preceding cycle. *)
 Definition ex_robust : Expansion :=
   fun c p =>
     flat_map_over
@@ -1015,8 +1004,7 @@ Proof.
     intros m ops c regs regs' ins ins' w H.
   - reflexivity.
   - simpl. destruct (gate_at c w) as [ i | s | o args ] eqn:Eg.
-    (* A primary input and a register output are each their own only stable
-       source, so one script closes both: the hypothesis at w is the goal. *)
+    (* A primary input or register output is its own only stable source. *)
     1-2: assert (Hw : stable_value m c regs ins w
                       = stable_value m c regs' ins' w)
            by (apply H; simpl; rewrite Eg; simpl; rewrite eqb_refl_nat;
@@ -1041,10 +1029,8 @@ Definition admissible_probes (c : Circuit) (d : nat) (ps : list Probe)
        (wires_exist c (map_over p_wire ps)).
 
 (* -------------------------------------------------------------------------
-   An experiment: a circuit with a secret, an input assignment that folds
-   the secret and the randomness into the primary inputs, and a probe
-   budget. `x_order` is the probe budget and never the share count
-   (reading 10).
+   An experiment supplies a circuit, secret/randomness input assignment and
+   probe budget. x_order counts physical probes, not shares.
    ------------------------------------------------------------------------- *)
 
 Record Experiment : Type := {
@@ -1064,10 +1050,9 @@ Definition x_view (x : Experiment) (E : Expansion) (ps : list Probe)
                       (x_init x s t) (x_in x s t))
            (probe_set E (x_circuit x) ps).
 
-(* d-PROBING SECURITY, the statement R-15-053a fixes and R-05-004a's
-   masking theorems are verified against: no admissible probe set of at
-   most d probes distinguishes two secrets, perfectly (reading 8), under
-   the expansion the model names. *)
+(* Perfect d-probing security for R-15-053a and R-05-004a: under the chosen
+   expansion, every admissible probe list of length at most d has the same
+   distribution for any two secrets. *)
 Definition ProbingSecure (x : Experiment) (E : Expansion) : Prop :=
   forall ps : list Probe,
     admissible_probes (x_circuit x) (x_order x) ps = true ->
@@ -1186,11 +1171,8 @@ Proof.
 Qed.
 
 (* =========================================================================
-   The composition notions (reading 9). All three are stated over one view
-   so that the ladder beneath them is an inclusion of bounds rather than a
-   comparison of differently shaped objects: a probe split is a list of
-   internal probes and a set of output-share indices, and the view is the
-   internal observations followed by the selected output shares.
+   NI, SNI and PINI use the same view: internal observations followed by
+   selected output shares. Their bounds differ, not their observation format.
    ========================================================================= *)
 
 Record Gadget : Type := {
@@ -1211,8 +1193,7 @@ Record Gadget : Type := {
 Definition ShareMatrix (g : Gadget) : Type := nat -> nat -> Val (gd_share g).
 Definition ShareSet : Type := nat -> nat -> bool.
 
-(* Reading 10 as a predicate this file states rather than asserts: the
-   convention under which R-05-004a's one letter carries both quantities. *)
+(* The local R-05-004a convention uses d+1 shares for probe order d. *)
 Definition OrderMatchesShares (g : Gadget) (d : nat) : Prop :=
   gd_shares g = S d.
 
@@ -1252,7 +1233,7 @@ Definition agree_on (g : Gadget) (I : ShareSet) (a b : ShareMatrix g) : Prop :=
     Nat.ltb j (gd_inputs g) = true -> Nat.ltb k (gd_shares g) = true ->
     I j k = true -> a j k = b j k.
 
-(* Reading 12: simulability stated as dependence. *)
+(* The view distribution depends only on the selected input shares. *)
 Definition SimulableFrom (g : Gadget) (I : ShareSet)
     (f : ShareMatrix g -> Tape (gd_prob g) -> list (Val (gd_share g)))
     : Prop :=
@@ -1260,10 +1241,8 @@ Definition SimulableFrom (g : Gadget) (I : ShareSet)
     SameDistribution (gd_prob g) (list (Val (gd_share g)))
       (list_eqb (v_eqb (gd_share g))) (f a) (f b).
 
-(* The direction of reading 12 that needs proving: a view that depends only
-   on I is reproduced by a term that reads only I, which is the simulator a
-   simulation-based definition would existentially quantify. The completion
-   is the share matrix that agrees with `a` on I and is zero elsewhere. *)
+(* A simulator retains input shares in I and replaces all others with zero.
+   SimulableFrom ensures this preserves the view distribution. *)
 Definition restrict_to (g : Gadget) (I : ShareSet) (a : ShareMatrix g)
     : ShareMatrix g :=
   fun j k => if I j k then a j k else v_zero (gd_share g).
@@ -1408,9 +1387,8 @@ Defined.
 Fixpoint xor_fold (l : list bool) : bool :=
   match l with nil => false | cons x r => xorb x (xor_fold r) end.
 
-(* Operation 0 is the constant-zero gate and every other index is the XOR
-   of the gate's arguments. Which operations the alphabet carries is a
-   field of the model (reading 1); these two are what the witnesses need. *)
+(* For these witnesses, operation 0 is constant zero; other indices XOR
+   their arguments. General models parameterize the operation alphabet. *)
 Definition gf2_ops (o : nat) (args : list bool) : bool :=
   if o is 0 then false else xor_fold args.
 
@@ -1581,9 +1559,7 @@ Proof.
   - exact the_stable_probe_on_that_wire_is_not_a_leak.
 Qed.
 
-(* The composed extension inherits the leak, which is reading 5 made
-   checkable: a model carrying both extensions refuses what either refuses.
-*)
+(* The combined extension also detects the glitch leak. *)
 (*| discharges: R-15-053a |*)
 Theorem the_robust_expansion_inherits_the_glitch_leak :
   Leaks glitch_experiment ex_robust.
@@ -1715,11 +1691,9 @@ Proof.
 Qed.
 
 (* =========================================================================
-   Gap c made checkable: the two transition readings are not two spellings
-   of one model. A register holding the unmasked secret across a cycle
-   boundary is a leak under the pair reading and is invisible under the
-   difference-only one, because the difference is zero exactly where the
-   value is constant.
+   Pair and difference-only transition observations differ: a register that
+   holds the secret unchanged leaks under the pair model but has zero
+   difference. The initial state here already contains the secret.
    ========================================================================= *)
 
 Definition static_secret_experiment : Experiment := {|
@@ -1766,13 +1740,8 @@ Proof.
 Qed.
 
 (* =========================================================================
-   The composition notions are inhabited, and they are not one predicate.
-
-   The constant gadget satisfies all three at every order, which closes
-   R-05-165's unsatisfiable-premise case for NI, SNI and PINI at once. The
-   copy gadget is refused by SNI at exactly the split where PINI's
-   obligation is met, which is the separation reading 9 rests on: the two
-   notions differ at the output boundary and the difference is observable.
+   The constant gadget satisfies NI, SNI and PINI at every order (R-05-165).
+   The copy gadget separates PINI from SNI at the output boundary.
    ========================================================================= *)
 
 Definition constant_circuit : Circuit := cons (g_op 0 nil) nil.
@@ -1814,8 +1783,7 @@ Theorem the_constant_gadget_satisfies_all_three_notions :
     NI constant_gadget E d /\ SNI constant_gadget E d
     /\ PINI constant_gadget E d.
 Proof.
-  (* The three notions differ only in the bound they demand on the share set,
-     and the empty set meets all three, so one script serves each. *)
+  (* The empty input-share set meets all three bounds. *)
   intros E d. split; [ | split ];
     (intros ps B _ _; exists empty_shares; split;
        [ apply empty_shares_are_bounded
@@ -1863,10 +1831,8 @@ Proof.
   vm_compute in Hsim. discriminate Hsim.
 Qed.
 
-(* The same gadget, the same split, and PINI's obligation met: the output
-   share at index 0 is simulated from input share 0, which is exactly what
-   PINI grants and SNI refuses. The two notions are therefore not one
-   predicate, and reading 9's selection is a choice with consequences. *)
+(* PINI can simulate output share 0 from input share 0; SNI grants no
+   input share for an output probe, so the same split fails SNI. *)
 (*| discharges: R-05-004a |*)
 Theorem copy_gadget_meets_the_pini_obligation_where_sni_fails :
   exists I : ShareSet,
