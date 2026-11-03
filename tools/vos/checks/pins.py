@@ -271,14 +271,6 @@ SITE_RESIDUE: dict[tuple[str, str], str] = {
                "the Rust pointer-simplification correction proposed for comparison, "
                "not the later selected compiler-reference gitlink",
        }.items()},
-    **{(file, "8b953fe8f17bb4553792c63665d368dc7f6bbd26"):
-       "the merged Katamaran PR 73 edition used for its notation comparison, "
-       "not the later selected reference gitlink"
-       for file in (
-           "PLAN.md",
-           "docs/implementation/upstream-prs.md",
-           "docs/implementation/upstream-prs/snapshot.json",
-       )},
     **{("docs/implementation/retained-evidence/submodules-20261031/hardware.json", ident):
        f"the previous {name} edition in its exact upstream comparison URL, "
        "not the newly selected reference gitlink"
