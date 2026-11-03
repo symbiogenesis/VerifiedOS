@@ -1,16 +1,22 @@
 # The Second-Class Macro Architecture: What the Five Properties Imply, and What R5 Measures at Each Part
 
 > A derived view, governed by [R-15-247m](../requirements-register.md).
-> It states the macro architecture the second class's five properties imply and the measurand R5 takes at each of its parts; it states no figure. Every physical quantity it names is a symbol R5 returns, every frozen parameter it uses is cited to the register entry that owns it, and every composition placeholder it mentions is named as a placeholder and never as an input.
+> It defines the macro structure implied by the second class's five properties and the quantities R5 must measure. It supplies no physical values. Frozen parameters cite their owning register entries; composition placeholders remain unqualified.
 > Where this document and [the register](../requirements-register.md) disagree, the register wins and this document is defective.
 
 ## How to read this
 
-Main memory is two static latency classes under one placement discipline (R-15-247), and the second is oxide-semiconductor 2T0C decks stacked above the logic tier on the one die. R-15-247m measures that class's usable density, retention floor, and read, write, refresh and discharge constants on a **repaired megabit-class macro carrying complete tag, ECC, refresh, discharge, and routing overhead**, and admits no density figure as an architectural input ahead of that measurement. No commodity part supplies what the class needs, which the specification states in one sentence ([the memory subsystem](../spec.md#r-15-247m)): monolithic integration above a logic die, a native 64+1-bit granule tag plane, SECDED on the data and DECTED on the tags at the frozen codeword width, wordline drivers sized for whole-bank assertion, and fixed-latency random access with no activate/precharge. So the macro is a custom program, and a custom program needs a stated architecture before anything can be measured against it.
+Main memory has two static latency classes under one placement discipline (R-15-247). The second uses oxide-semiconductor 2T0C decks stacked above the logic tier on one die. R-15-247m requires usable density, retention and read/write/refresh/discharge constants measured on a **repaired megabit-class macro with complete tag, ECC, refresh, discharge and routing overhead**. No density figure becomes an architectural input before that measurement.
 
-This document is that statement. It decides the **shape** of the macro, which is the set of choices a measurement plan has to be written against: what a bank, a deck, a row and a page are here; where the tag bits and the check bits sit; which ports the discharge and the refresh reuse; what the completion indication is a read of; and which constants the controller sees. It decides **no value**: every density, latency, retention, current, energy, dwell and geometry figure is a measurand named in [section 5](#5-the-measurands) with the corner it is taken at and the item that owes it, and the composition's placeholder point is the one [the bank-count contract](bank-count-dse-contract.md) restates as an illustration and [the configuration](../../model/config/verifiedos.json) declares behind a `qualified` flag that reads false; it is not repeated here.
+No commodity part provides the [required combination](../spec.md#r-15-247m): monolithic integration above logic, native 64+1-bit granule tags, SECDED data and DECTED tags at the frozen codeword width, whole-bank wordline assertion, and fixed-latency random access without activate/precharge. The custom macro therefore needs an architecture against which R5 can measure it.
 
-Three documents sit beside this one and are not duplicated by it. [The bank-count contract](bank-count-dse-contract.md) states the search the per-class bank count is admitted through and the coefficients it waits on; this document defines three of those coefficients at the macro so that R5 can return them, and takes no candidate. [The block-geometry constraint](block-geometry-constraint.md) states the welded block size's constraint set and leaves its second-class axis empty until a row and a page are measured; this document gives that axis its vocabulary and no value, so the matrix stays as it is and its rows C7 and C8 stay owed to R5. [The alternatives register](../background/architectural-alternatives.md) holds the device evidence and the three-construction reset analysis the adoption rests on; this document consumes none of that evidence as a figure and re-dates in [section 6](#6-dated-device-readings) the readings it relies on for shape.
+This document defines banks, decks, rows and pages; tag and check-bit placement; discharge and refresh ports; completion indications; and controller-visible constants. [Section 5](#5-the-measurands) assigns every physical quantity a measurement corner and owner. The [bank-count contract](bank-count-dse-contract.md) illustrates the composition placeholder, which [the configuration](../../model/config/verifiedos.json) marks `qualified: false`; it is not a measured value.
+
+Related contracts define the remaining boundaries:
+
+- [The bank-count contract](bank-count-dse-contract.md) defines the search and required coefficients. This document defines three coefficients for R5 to measure and selects no bank count.
+- [The block-geometry constraint](block-geometry-constraint.md) defines the common block size. Its second-class row/page values and constraints C7/C8 remain owed to R5.
+- [The alternatives register](../background/architectural-alternatives.md) records device evidence and the three-construction reset analysis. [Section 6](#6-dated-device-readings) dates the readings used here for structure; none supplies a physical coefficient.
 
 ## 1. What the five properties fix
 
@@ -30,7 +36,7 @@ The five are stated in the specification as one sentence and are not five indepe
 
 ### 2.1 The hierarchy
 
-Five levels, from the die inward. The names are the ones the register and [the block-geometry constraint](block-geometry-constraint.md) already use, so that a measured value lands on a symbol that exists.
+The hierarchy uses the register's and [block-geometry constraint's](block-geometry-constraint.md) terms so measurements map to existing symbols.
 
 | Level | What it is | What is fixed about it | What is measured about it |
 | --- | --- | --- | --- |

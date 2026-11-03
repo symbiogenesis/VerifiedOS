@@ -1,8 +1,6 @@
 # Prompt-processing term for the inference floor
 
-Status: **proposed contract; target magnitude owed to Q4b**. Q12 can state the
-measurement and refusal rules without transferring a host throughput figure to
-the target. This document makes no register amendment and lowers no floor.
+Status: **proposed contract; target magnitude owed to Q4b**. Q12 defines proposed measurement and refusal rules without amending the register or lowering the release floor. Host throughput supplies no target limit.
 
 ## The missing quantity
 
