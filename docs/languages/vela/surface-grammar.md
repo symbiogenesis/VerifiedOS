@@ -109,7 +109,7 @@ data and elimination forms throughout the surface:
   `grade` fields; an unnamed argument has a null name. A lambda parameter accepts
   the same optional use grade, for example `(byte x @ q) => x`. Type-use demands
   remain inferred under the foundation's rules, not a second authored annotation.
-- `()` is the unit type and value; `(T, U)` and `(x, y)` are product types and
+- `Unit` is the unit type and `()` its value; `(T, U)` and `(x, y)` are product types and
   values. Parentheses around one type or value only group it. Products contain
   at least two components and may nest. Type, value and pattern nodes preserve
   their distinct roles (`unit_type`, `unit`, `unit_pattern`, `tuple_type`,
@@ -120,7 +120,8 @@ data and elimination forms throughout the surface:
   permission to discard a resource is an elaboration obligation.
   In generic arguments, bare parentheses retain their existing value-expression
   meaning. Prefix a structural type argument with `type`, as in
-  `Result<type (owned Packet, tracked Receipt), Error>`; this also accepts other
+  `Result<type (owned Packet, tracked Receipt), Error>`; ordinary named arguments
+  such as `Result<Unit, Error>` need no `type` prefix. This also accepts other
   type forms and avoids guessing whether `(a, b)` names types or values.
 - Parametric aliases reuse the existing generic telescope:
   `alias Callback<grade q : NatExact> = Fn(byte x @ q) -> byte;`.
@@ -564,6 +565,39 @@ The following forms are the surface syntax commissioned by
 these forms throughout. The syntax grants no
 implicit conversion, ownership transfer, effect, disposal or proof authority.
 
+- First-class unit types use `Unit`, including `Result<Unit, Error>` and
+  `Fn() -> Unit`; the unit value and pattern are `()`. No empty parenthesized
+  type spelling is accepted. Ordinary `void` operation declarations retain
+  their no-result role and grant no implicit conversion or resource discard.
+- Receiver names in declarations, contracts, views, capture sets and
+  place-named lifetimes use `this`, including `ref this.Tail` and `'this.text`.
+  This is the receiver's source name, not a new authority or permission rule.
+- Range iteration uses `foreach (let index in lower..upper)` with a braced
+  body and the existing loop contracts. The binder is immutable. Bounds,
+  evaluation order/count, representability, decreasing measures, WCET and
+  branch/loop-exit loan obligations are unchanged; there is no implicit
+  enumerator protocol, allocation, copying, conversion or disposal.
+- Calls accept a positional prefix followed by an optional labeled suffix:
+  `Copy(in source, target: ref destination, count: length)`. Every label names
+  exactly the next declared value parameter; arguments cannot be reordered,
+  omitted, defaulted or repeated. A positional argument after a label is
+  refused. Labels on unnamed callable parameters are refused. Explicit generic
+  arguments retain their own existing syntax and inference rules.
+  Each argument is evaluated once, left to right, with the same loan timing,
+  grades, captures, effects and cleanup obligations as its positional form.
+  Dependent application substitutes each argument through the entire remaining
+  telescope, including types, grades, captures and exit predicates. Labels
+  never supply a conversion, implicit loan, ownership transfer or proof.
+  Located `argument` nodes contain an optional `label` and a `value`; label
+  names and values retain their original byte spans. Both pure syntax routes
+  and mathematical elaboration validate labels against the resolved callable.
+- Local bindings use `let name = value` for immutable inference,
+  `var name = value` for mutable inference, `T name = value` for an immutable
+  annotation and `var T name = value` for a mutable annotation. Reassignment
+  diagnostics explain these forms. Binding immutability does not prohibit a
+  write through an eligible exclusive loan, and the pure prototype reports its
+  unsupported mutation boundary without claiming a source borrow judgment.
+
 - Inferred lambda parameters may omit the annotation: `value => value + 1`,
   `(value) => value + 1` and `(left, right) => left + right`. Explicitly typed,
   graded and resource-modified parameters retain their existing forms. An
@@ -606,6 +640,13 @@ implicit conversion, ownership transfer, effect, disposal or proof authority.
 
 Acceptance requires independently expected AST roles, original UTF-8 spans,
 precedence, nesting/resource boundaries and malformed neighbors for every form.
+Check labeled and positional call agreement in both pure routes and mathematical
+elaboration, including dependent later parameters, callable labels, generics,
+shadowing, duplicate/unknown/out-of-order labels, positional-after-label calls
+and effectful resource-modified arguments. Check unit values separately from
+types, all loop exits and the distinction between rebinding and loan writes.
+Every authored Vela example uses the canonical type, receiver and range-loop
+spellings. These are the sole surface spellings.
 Compose inferred lambdas with products, calls, explicit generics and dependent
 expected types; retain typed/graded loan callbacks and unresolved-inference
 refusals. Check expression bodies against equivalent return blocks in both pure

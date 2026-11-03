@@ -77,7 +77,8 @@ sum       := product ('+' product)*
 product   := atom ('*' atom)*
 atom      := decimal | 'true' | 'false' | name
            | name '(' arguments? ')' | '(' expression ')'
-arguments := expression (',' expression)* ','?
+arguments := argument (',' argument)* ','?
+argument  := (name ':')? expression
 ```
 
 Arithmetic and `<=` take naturals; equality takes two operands of the same type.
@@ -86,7 +87,11 @@ function result type. An expression body checks exactly like a single return;
 its expression is evaluated once. Optional trailing commas apply to nonempty
 parameter and argument lists, never to grouping. Statements after a terminal
 return or conditional are refused, and a block without a terminal result is a syntax error. Calls have the
-declared arity and argument types. Let bindings infer only their expression's
+declared arity and argument types. A positional prefix may be followed by a
+labeled suffix; each label must name the next declared parameter. Reordered,
+duplicate or unknown labels, omitted arguments and positional arguments after a
+label are refused. Labels preserve once-only left-to-right evaluation and do
+not change the emitted application. Let bindings infer only their expression's
 `Nat` or `bool` type. Duplicate functions, parameters, local bindings in an active
 scope (including active parameters) and unbound values are errors. Function and
 value namespaces are separate. Equality returns `bool`. Natural arithmetic,

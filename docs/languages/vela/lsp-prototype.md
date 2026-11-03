@@ -195,6 +195,13 @@ conflict explanations remain required by the broader
 corresponding compiler facts before advertising those services. This increment
 does not commission a second surface parser or a source borrow checker.
 
+Immutable-binding reassignment diagnostics identify the binding and explain
+`let`/unmarked type-first immutability and explicit `var` reassignment. The pure
+producer states that mutation requires the wider surface; it grants no accepted
+mutable program or source borrow verdict. A write through an exclusive loan is
+distinct from rebinding its immutable descriptor. Diagnostics and locations must
+survive local shadowing, incremental edits and unsupported resource syntax.
+
 ## Acceptance and remaining qualification
 
 Independent wire fixtures exercise fragmented and coalesced frames, Unicode byte
