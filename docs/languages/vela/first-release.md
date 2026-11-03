@@ -54,7 +54,9 @@ The [extended grade dossier](graded-foundation.md),
 [whole-system contract](unified-source-contract.md) retain their extension
 obligations. Selecting an extension requires a named client, a comparison with
 the supported subset, a bounded implementation/qualification budget and a
-decision predicate. A proposal's syntax or a demonstration assembled to exercise
+decision predicate. Grading follows the [incremental selection protocol](graded-foundation.md#extension-selection-and-qualification),
+with type-use accounting and generated usability tools justified separately.
+A proposal's syntax or a demonstration assembled to exercise
 the proposal is insufficient evidence of product need. Its omission changes no
 VerifiedOS guarantee or mandatory compiler obligation.
 
