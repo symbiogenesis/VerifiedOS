@@ -1,21 +1,16 @@
 # Documentation
 
-Use this index to find each topic's owner. The linked contracts hold the details;
-the unified backlog and execution state belong in [PLAN.md](../PLAN.md), and landing
-evidence belongs in the completion log.
-
-For a first read, start with the [project overview](../README.md), then use the
-[implementation summary](../PLAN.md#current-summary)
-to distinguish the specified system from completed artifacts. The
-[requirements register](requirements-register.md) owns obligations; the
-[specification](spec.md) explains their rationale. For independent review, follow
-the [reviewer onramp](assurance/reviewer-onramp.md).
+Start with the [project overview](../README.md) and
+[implementation summary](../PLAN.md#current-summary) to see the design and what
+exists today. Use the tables below to find each topic's defining document.
+For independent review, follow the [reviewer onramp](assurance/reviewer-onramp.md).
 
 ## Specification and companions
 
 | Start here | Purpose |
 | --- | --- |
 | [Specification](spec.md) | Design and rationale |
+| [Requirements register](requirements-register.md) | Normative obligations, acceptance criteria, extraction coverage and defects |
 | [Reviewer onramp](assurance/reviewer-onramp.md) | How to review the requirements and their evidence |
 | [Project plan](../PLAN.md) | Unified backlog, build order, acceptance predicates, estimates and execution state |
 | [Completion log](implementation/completion-log.md) | Recorded landing evidence |
@@ -24,11 +19,6 @@ the [reviewer onramp](assurance/reviewer-onramp.md).
 Design entry points: [release scope](spec.md#r-18-004a),
 [elastic domain](spec.md#r-07-037e), [elastic memory pool](spec.md#r-08-047a),
 [independent review gate](spec.md#r-05-150), and [realization plan](spec.md#18-realization).
-
-### The atomic-requirements register
-
-The [requirements register](requirements-register.md) owns VerifiedOS's normative
-obligations, acceptance criteria, extraction coverage and extraction defects.
 
 ## Languages and compilation
 
@@ -39,12 +29,8 @@ obligations, acceptance criteria, extraction coverage and extraction defects.
 | Vela workflow and routes | [Workflow contract](languages/vela/workflow-contract.md), [compiler routes](languages/vela/compiler-route-contract.md), [common style, formatting, documentation and lints](languages/vela/authoring-tools.md), [Compiler inspection, editor/debug protocols and interchange](languages/vela/tooling-protocols.md) |
 | Vela features | [Generic dependent mathematical elaboration](languages/vela/elaboration-prototype.md), [staged metaprogramming and compiler services](languages/vela/metaprogramming.md), [graded foundation](languages/vela/graded-foundation.md), [handlers and async lifecycles](languages/vela/handlers-async.md), [interior mutability](languages/vela/interior-mutability.md), [composition review](languages/vela/full-language-review.md), [loan-inference diagnostic contract](languages/vela/loan-analysis.md) |
 | Interfaces | [IDL profile](languages/idl-profile.md) |
+| Typed assembly | [Language specification and VerifiedOS's CHERI-TAL instantiation](languages/typed-assembly-language.md) |
 | Authored C | [Language profile and modernization](implementation/c-language-profile.md) |
-
-### The typed assembly language
-
-The [typed assembly language](languages/typed-assembly-language.md) owns the
-standalone language specification and its relationship to VerifiedOS's CHERI-TAL instantiation.
 
 ## Derived views
 

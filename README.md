@@ -1,12 +1,12 @@
 # VerifiedOS
 
-Design for an end-to-end formally verified computer, built around a bespoke in-order CHERI-enabled RV64IMV-inspired system-on-chip and a seL4-inspired multikernel operating system. The proof chain is meant to run unbroken from abstract specification through source, binary, and ISA down to the modeled hardware.
+VerifiedOS is a design and implementation in progress for an end-to-end formally verified computer. It combines an in-order CHERI-enabled RV64IMV-inspired system-on-chip with a seL4-inspired multikernel OS. The intended proof chain connects the abstract specification, source, binary and ISA to the modeled hardware.
 
 Engineering effort is treated as free and trust as the scarce resource, so security comes ahead of performance and ahead of compatibility with existing hardware and software.
 
 The first release targets a [general-purpose laptop](docs/spec.md#r-18-004a). The [release scope](docs/spec.md#r-18-004) defers the browser, handset and server ensemble. The design [prefers open standards wherever its guarantees permit](docs/spec.md#r-04-001a); the [compute and graphics compatibility plan](docs/implementation/compute-compatibility.md) records the proposed OpenCL, SPIR-V and HIP surfaces and assesses Vulkan and Vulkan SC frontends over shared native execution.
 
-> This repository contains the design and an implementation in progress. The unified [project plan](PLAN.md) records priorities, milestones, completed artifacts and remaining work toward the full system.
+The [project plan](PLAN.md) records completed artifacts, remaining work, priorities and milestones.
 
 <details>
 <summary><strong>Contents</strong></summary>
@@ -109,20 +109,20 @@ Fixed-tier storage is assigned before boot. Within its fixed envelope, the deskt
 
 ## 🧱 Bug classes removed by construction <a id="bug-classes-removed-by-construction"></a>
 
-This inventory states the guarantees targeted by the **full specified stack**; implementation and proof work remain incomplete. Each row claims one or more of seven discharge modes. Native binary guarantees apply to native apps and interpreter hosts; an interpreted guest has [arena confinement and the stated guest-semantic limits](docs/spec.md#r-14-013a), so native object-level safety is not implicitly a property of its linear memory.
+This inventory describes the guarantees targeted by the **full specified stack**. Implementation and proofs remain incomplete. Each row labels how the design addresses a bug class. Native binary guarantees cover native apps and interpreter hosts. Interpreted guests have [arena confinement and the stated guest-semantic limits](docs/spec.md#r-14-013a); their linear memory does not inherit native object-level safety.
 
-Four say the bug class cannot occur at all:
+Four modes target prevention:
 
 - 🕳️ **Absent**: the bug's enabling mechanism is deleted.
 - 🛡️ **Enforced**: the CHERI hardware checks every access.
 - ✋ **Rejected**: a mechanical check refuses the artifact before it installs or ships: CHERI-TAL admission for a binary, the proof gate for a proof artifact.
-- ✅ **Proved**: what ships carries a machine-checked theorem, subject to the [proof-artifact gates](#the-proof-artifacts-themselves). Like every mode here it names the target; the [crown-jewel inventory](docs/assurance/crown-jewels.md) records which specifications and theorems exist today.
+- ✅ **Proved**: the shipped artifact must carry a machine-checked theorem and pass the [proof-artifact gates](#the-proof-artifacts-themselves). The [crown-jewel inventory](docs/assurance/crown-jewels.md) records which specifications and theorems exist today.
 
-Three claim something weaker:
+Three modes describe detection or remaining obligations:
 
-- 🔔 **Detected**: a fault the detector is built for can occur but never silently: it is corrected or contained fail-stop, never claimed absent.
-- 🤝 **Transferred**: a real obligation owned by the named party; naming it makes it countable, nothing more.
-- 🚩 **Residual**: the row names what it leaves open; the spec's [residual-risks](docs/spec.md#17-residual-risks-the-honest-ceiling) section carries it.
+- 🔔 **Detected**: a fault within the detector's coverage is corrected or causes a fail-stop response.
+- 🤝 **Transferred**: the named party must meet the obligation; naming that party does not discharge it.
+- 🚩 **Residual**: the obligation remains open in the specification's [residual-risks section](docs/spec.md#17-residual-risks-the-honest-ceiling).
 
 ### RISC-V and microarchitectural omissions
 
@@ -131,7 +131,7 @@ Three claim something weaker:
 | Transient-execution attacks, from Spectre and Meltdown to microarchitectural data sampling | No speculative execution, transient state, reorder buffer, or reservation stations exist | **🕳️&nbsp;Absent** |
 | Cross-thread SMT leakage and sibling-thread state corruption | One hardware thread per core; there is no second thread context | **🕳️&nbsp;Absent** |
 | Poisoning or aliasing of any dynamic predictor state | Prediction is static-only; BHT/PHT, BTB, and RAS state do not exist | **🕳️&nbsp;Absent** |
-| Cache timing and cache-eviction side channels | Two fixed-speed memory classes replace the cache hierarchy, leaving no hit/miss latency or eviction pattern to modulate; which class an address sits in is fixed when the image is composed, not by what ran recently, and the address term that survives, which SRAM bank an access selects, is refused at the address in admitted secret-typed code | **🕳️&nbsp;Absent**<br>**✋&nbsp;Rejected** |
+| Cache timing and cache-eviction side channels | Two fixed-speed memory classes replace caches, eliminating hit/miss and eviction timing. Composition fixes each address's memory class. Admitted secret-typed code rejects secret-dependent SRAM bank selection | **🕳️&nbsp;Absent**<br>**✋&nbsp;Rejected** |
 | Cache-coherence protocol and stale-cache bugs | With no cached copies there is no coherence protocol to get wrong and no stale line to serve | **🕳️&nbsp;Absent** |
 | Address-translation and paging bugs | Virtual memory, the MMU, page tables, TLBs, walk caches, and the shootdown protocol are deleted | **🕳️&nbsp;Absent** |
 | Privilege-ring confusion and S/U transition bugs | Machine mode is the only mode; privileged operations require an unforgeable CHERI permission on PCC | **🕳️&nbsp;Absent**<br>**🛡️&nbsp;Enforced** |
@@ -140,7 +140,7 @@ Three claim something weaker:
 | CAS retry and capability-sized ABA machinery | `Zacas` is excluded, so no compare-and-swap exists to retry or to hand a recycled value | **🕳️&nbsp;Absent** |
 | Self-modifying-code and instruction-stream synchronization bugs | Runtime emission into executable memory, writable executable memory, `fence.i`, and writable-to-executable promotion are absent; same-session Wasm apps are interpreted data | **🕳️&nbsp;Absent** |
 | DRAM read-disturbance bit flips on the fast class | An SRAM latch gives Rowhammer and RowPress no leaking capacitor or refresh cycle to disturb; SRAM's far weaker disturb modes are detected faults below | **🕳️&nbsp;Absent** |
-| Read-disturbance on the bulk class | The bulk gain cell has no capacitor, but its own disturb behaviour is a device property measured before a part qualifies and claimed nowhere ahead of that measurement; whatever it returns is met by cell margin, ECC, and the fixed refresh schedule, an uncorrectable event stopping the machine rather than passing silently, and never by a counter reacting to what was accessed | **🔔&nbsp;Detected**<br>**🚩&nbsp;Residual** |
+| Read-disturbance on the bulk class | The capacitorless gain cell's disturb behaviour must be measured before qualification. Cell margin, ECC and fixed refresh address the measured faults; an uncorrectable event stops the machine. No access-reactive counter is used | **🔔&nbsp;Detected**<br>**🚩&nbsp;Residual** |
 | Reactive refresh machinery: activation counters, alerts, and back-off | The bulk class is topped up on a schedule fixed when the image is composed, so nothing counts accesses and nothing reacts to them | **🕳️&nbsp;Absent** |
 | Memory-bus probing and DIMM or module interposition | On-die memory has no external memory bus, module, or die-to-die link to probe; an ensemble link joins two whole machines and carries scheduled frames, never a load or store, so it is not a memory bus either | **🕳️&nbsp;Absent** |
 | Cold-boot remanence | Both memory classes and key storage need construction-specific power-loss qualification. Completed zeroization and authority discharge do not establish erasure after abrupt loss; the [physical residuals](docs/spec.md#r-17-058) remain explicit | **🚩&nbsp;Residual** |
@@ -149,28 +149,28 @@ Three claim something weaker:
 | Refresh-timing channels | DRAM refresh and PRAC activity do not exist to observe | **🕳️&nbsp;Absent** |
 | Interconnect and quality-of-service contention channels | The admission proof emits a static time-division fabric schedule; best-effort arbitration does not exist. The NoC model is unauthored, so this absence is structural, not yet proved | **🕳️&nbsp;Absent**<br>**🚩&nbsp;Residual** |
 | Contention between high-assurance memory islands | A high-assurance island takes a whole SRAM macro or tier and hosts one domain, sharing no path, arbiter, or revocation array with any peer; the unauthored-model residual above applies | **🕳️&nbsp;Absent**<br>**🚩&nbsp;Residual** |
-| Contention between low-sensitivity islands sharing an SRAM macro, or domains sharing an island | Static per-island arbitration, sub-slotted per core inside a shared island, schedules the contention away; the macro's periphery, power delivery, and thermal mass, and inside a shared island the bank ports and the atomic stage, stay shared under a schedule rather than deleted, and the same residual applies | **🚩&nbsp;Residual** |
+| Contention between low-sensitivity islands sharing an SRAM macro, or domains sharing an island | Static arbitration assigns island slots and, within a shared island, core sub-slots. Macro periphery, power delivery and thermal mass remain shared, as do bank ports and the atomic stage within an island. The unauthored-model residual above applies | **🚩&nbsp;Residual** |
 | Variable latency on a secret operand | Every secret-reachable operation is fixed-latency (integer divide, the vector FPU including subnormals, atomics), and misaligned accesses trap rather than split | **🛡️&nbsp;Enforced** |
 | Variable-latency `vfdiv`/`vfsqrt` reached by a secret | The one exception to fixed latency is flow-rejected: no admitted crypto kernel uses either instruction | **✋&nbsp;Rejected** |
 | Secret-dependent address timing across SRAM banks | The flow discipline rejects a secret-labeled address, scalar or vector element, in admitted secret-typed code, and the non-work-conserving schedule confines the term to the issuing partition's own slot; no constant-time claim is made outside that code | **✋&nbsp;Rejected** |
 
-The timing rows claim architectural timing only: power and near-field electromagnetic leakage are outside that model, answered by the crypto core's masked datapath, whose row in [CHERI-TAL and binary admission](#cheri-tal-and-binary-admission) carries the probing-model residual.
+The timing rows cover architectural timing. The crypto core's masked datapath addresses power and near-field electromagnetic leakage under a separate probing model; its limits appear in [CHERI-TAL and binary admission](#cheri-tal-and-binary-admission).
 
-The auditable list of invisible hardware structures is the [microarchitectural absence contract](docs/hardware/absence-contract.md); the complete architectural profile is the [frozen ISA profile](docs/hardware/isa-profile.md).
+The [microarchitectural absence contract](docs/hardware/absence-contract.md) lists structures the audit must not find. The [frozen ISA profile](docs/hardware/isa-profile.md) defines the architecture.
 
 
 ### CHERI capability tags, bounds, and monotonicity
 
 | Potential bug or attack class | Construction | Mode |
 | --- | --- | --- |
-| Buffer overflows and out-of-bounds access, down to sub-object fields | Every usable pointer is a tagged capability with hardware-enforced bounds. In the fixed tier the offline memory plan lays each object out so every narrowing is exact, the install check refusing one that would round; in the desktop's elastic pool every allocation comes from a size-class table fixed at composition, so the heap library's narrowing to each allocation is exact as well | **🛡️&nbsp;Enforced**<br>**✋&nbsp;Rejected** |
+| Buffer overflows and out-of-bounds access, down to sub-object fields | Tagged capabilities enforce pointer bounds. The fixed-tier memory plan makes every narrowing exact; installation rejects bounds that would round. Desktop allocations use a composition-fixed size-class table that also permits exact narrowing | **🛡️&nbsp;Enforced**<br>**✋&nbsp;Rejected** |
 | Pointer and device-address forgery | Integers and raw bit patterns cannot create a valid tagged capability; authority must derive from an existing capability | **🛡️&nbsp;Enforced** |
 | Pointer-provenance violations | Capability validity records derivation in hardware; the admitted ISA exposes no integer-to-capability escape | **🛡️&nbsp;Enforced**<br>**🕳️&nbsp;Absent** |
 | Permission escalation and confused derivation | Bounds and permissions only narrow; derivation cannot add authority | **🛡️&nbsp;Enforced** |
 | Corruption reaching across any isolation boundary | Each object, compartment, and kernel partition is reachable only through bounded capabilities rooted in the static distribution | **🛡️&nbsp;Enforced** |
 | Unsafe-language or compiler-emitted code bypassing spatial checks | Capability checks apply to emitted machine accesses regardless of source language | **🛡️&nbsp;Enforced** |
-| DMA bypassing spatial or revocation checks | Device transfers carry explicit capability operands, checked like CPU accesses; a window held by a running transfer is re-authorized against the revocation bitmap at each of its fabric grants, an obligation on the fabric the residual-risk register carries | **🛡️&nbsp;Enforced**<br>**🚩&nbsp;Residual** |
-| Writable-code injection and executable-data promotion | No permission encoding holds store together with execute, so a W+X capability is unrepresentable rather than merely underivable, and the only writer of executable memory on either class is the measured-boot loader, ahead of any core's release, so a region written while the machine runs never becomes executable | **🕳️&nbsp;Absent**<br>**🛡️&nbsp;Enforced**<br>**✅&nbsp;Proved** |
+| DMA bypassing spatial or revocation checks | Device transfers carry explicit capability operands, checked like CPU accesses. Each fabric grant rechecks a live transfer window against the revocation bitmap. The fabric proof remains a recorded residual | **🛡️&nbsp;Enforced**<br>**🚩&nbsp;Residual** |
+| Writable-code injection and executable-data promotion | Store and execute cannot coexist in a capability's permission encoding. Only the measured-boot loader writes executable memory in either class, before any core is released. Runtime-written regions never become executable | **🕳️&nbsp;Absent**<br>**🛡️&nbsp;Enforced**<br>**✅&nbsp;Proved** |
 | Corrupted pointers accidentally becoming live authority | A modified capability loses its validity tag or fails its bounds and permission checks | **🛡️&nbsp;Enforced** |
 
 
@@ -187,16 +187,16 @@ The auditable list of invisible hardware structures is the [microarchitectural a
 | Argument injection between composed commands | The command interpreter pipes typed values between typed-signature commands, never byte streams for each stage to reparse | **🕳️&nbsp;Absent** |
 | Dispatch hijack, handler registration to content sniffing | The handler/translator graph is finite, signed, and fixed at composition; no runtime act can add a handler or reroute a format to one | **🕳️&nbsp;Absent** |
 | Malicious or compromised dependencies corrupting their caller or reaching unrelated resources | Attacker-facing and over-authorized libraries are separate least-authority compartments in the static graph | **🛡️&nbsp;Enforced**<br>**✅&nbsp;Proved** |
-| Escape from an embedded script engine into its host | The platform ships one pure-interpreter Wasm engine with machine-checked soundness and robust guest confinement against the pinned guest semantics: an adversarial module influences host and peers only through its embedding's declared imports and exports; an app that rolls its own engine keeps the transferred row below | **✅&nbsp;Proved**<br>**🤝&nbsp;Transferred** |
+| Escape from an embedded script engine into its host | The platform's Wasm interpreter must prove soundness and guest confinement against pinned semantics. Even an adversarial module can affect its host and peers only through declared imports and exports. Apps supplying another engine retain the obligation below | **✅&nbsp;Proved**<br>**🤝&nbsp;Transferred** |
 | Forged entry points and calls into the middle of a component | Sealed forward-edge sentries constrain entry to declared sites | **🛡️&nbsp;Enforced** |
 | Forged or replayed return addresses | Sealed backward-edge sentries constrain return sites | **🛡️&nbsp;Enforced** |
 | Unprivileged code accessing system registers or switch machinery | Access-system-register authority is a permission on PCC, held only by the kernel | **🛡️&nbsp;Enforced** |
 | Stale capabilities surviving object reuse | Linear lifetime typing, revocation epochs, a budgeted sweep, quarantine, and the per-load filter over the loading island's own revocation array invalidate the old tenant before reuse; a device-held copy dies at its window's next fabric grant, and the desktop pool reuses a chunk only after the same sweep | **🛡️&nbsp;Enforced**<br>**✋&nbsp;Rejected**<br>**✅&nbsp;Proved** |
-| Heap-allocator corruption, double allocation, and cross-app heap grooming on the desktop | The desktop pool's service is verified: live chunks are disjoint, exactly bounded and zeroed before handoff, and a released chunk returns only after revocation sweeps it; an app's own heap can damage only chunks it holds, CHERI bounding every access, and no pool capability can be held outside the domain | **✅&nbsp;Proved**<br>**🛡️&nbsp;Enforced** |
+| Heap-allocator corruption, double allocation, and cross-app heap grooming on the desktop | The verified pool service provides disjoint, exactly bounded chunks, zeroed before handoff and swept for revocation before reuse. CHERI confines an app's heap damage to its own chunks. Pool capabilities cannot leave the domain | **✅&nbsp;Proved**<br>**🛡️&nbsp;Enforced** |
 | Runtime creation of unreviewed protection domains or authority edges | Compartments, imports, exports, shared windows, and schedule slots are fixed and checked at composition or package admission; launching a desktop app activates a context the composition already placed | **🕳️&nbsp;Absent**<br>**✋&nbsp;Rejected** |
 | Kernel memory exhaustion and allocation-failure paths | The kernel neither allocates after boot nor exposes an allocation primitive; the composition-time memory plan places every kernel object | **🕳️&nbsp;Absent** |
-| Out-of-memory kills and cross-compartment memory pressure | Fixed-tier compartments can exhaust only their own pre-composed allotments, with no shared kernel heap or reclaim policy. Desktop apps share their elastic domain's fixed pool: its exhaustion walks a declared ladder over that domain's own apps, hibernating a background app and never the focused one, with no global reserve, victim scan or kill daemon, and the pressure apps put on each other inside one domain is a recorded residual | **🕳️&nbsp;Absent**<br>**🚩&nbsp;Residual** |
-| Permission-dialog spoofing and confused consent delegation | Only the trusted powerbox may attenuate and grant device authority, and the prompt's pixels and touches are the trusted-path agent's under one root-of-trust latch that also lights the hardware indicator: neither an app nor the compositor draws the prompt, draws over it, or mints the grant | **🛡️&nbsp;Enforced**<br>**✅&nbsp;Proved** |
+| Out-of-memory kills and cross-compartment memory pressure | Fixed-tier compartments exhaust only their own allotments; there is no shared kernel heap or reclaim policy. Desktop pool exhaustion follows a declared sequence within its domain, hibernating background apps and preserving the focused app. No global reserve, victim scan or kill daemon exists. Pressure between apps in one domain remains a residual | **🕳️&nbsp;Absent**<br>**🚩&nbsp;Residual** |
+| Permission-dialog spoofing and confused consent delegation | Only the trusted powerbox narrows and grants device authority. A root-of-trust latch assigns prompt rendering and touch input to the trusted-path agent and lights the hardware indicator. Apps and the compositor cannot draw, overlay or authorize the prompt | **🛡️&nbsp;Enforced**<br>**✅&nbsp;Proved** |
 | A declassification grant wider than the object it named | The non-interference theorem models a powerbox grant as a delimited release, CHERI-bounded to the object consent named, never a general high-to-low conduit. Whether the user named the right object is transferred below | **✅&nbsp;Proved**<br>**🛡️&nbsp;Enforced** |
 | A declassification an attacker can drive | Robust declassification quantifies over every compromised-component strategy: whether, what, and to whom the powerbox releases depends only on the unforgeable consent act and verified powerbox logic | **✅&nbsp;Proved** |
 | An inter-level edge that outlives the act that created it | First-class revocation bounds the grant's lifetime, making an overlong edge a revocation failure rather than a policy exception | **✅&nbsp;Proved**<br>**🛡️&nbsp;Enforced** |
@@ -252,7 +252,7 @@ VerifiedOS adopts Mon CHÉRI's **Write-before-Read guarantee** without its runti
 | Power and near-field electromagnetic analysis of the crypto core | The secret-handling datapath is masked, and its *d*-probing and composition theorems are verified on the artifact against a stated probing model; the model is an axiom about the silicon, its faithfulness the recorded residual | **✅&nbsp;Proved**<br>**🚩&nbsp;Residual** |
 | Secret residue in the frames of a compartment that returns | Restart erases the compartment's whole footprint before any reuse | **🕳️&nbsp;Absent** |
 | Secret-dependent traps and the restart they cause | Constant-time typing makes trap choice a function of public inputs, and restart consumes only the offender's slots | **✋&nbsp;Rejected**<br>**🕳️&nbsp;Absent** |
-| A crash record disclosing more than its labeled fault class | The sentinel receives a labeled fault from a closed enumeration, never verbose logs; that the record's shape bounds the class has no theorem, a recorded residual | **🕳️&nbsp;Absent**<br>**🚩&nbsp;Residual** |
+| A crash record disclosing more than its labeled fault class | The sentinel receives only a fault label from a closed enumeration. Proving that the record reveals no more than that class remains open | **🕳️&nbsp;Absent**<br>**🚩&nbsp;Residual** |
 | Unit, dimension, and clock-domain confusion in quantity arithmetic | Quantities carry a phantom dimension decided by type equality and erased before code generation, so cycles cannot stand in for microseconds or bytes for elements | **✋&nbsp;Rejected** |
 | Unbounded or slot-overrunning execution | Syntax-directed WCET costs and loop-bound proofs must fit the static cyclic-executive slot; a desktop app instead proves a bounded interval between compiler-inserted yield points, which needs no loop bound | **✋&nbsp;Rejected**<br>**✅&nbsp;Proved** |
 | Stack exhaustion and unbounded recursion | The enumerated callee set proves call-graph acyclicity and recursion depth, so worst-case stack use is static; unbounded depth is refused | **✋&nbsp;Rejected** |
@@ -286,7 +286,7 @@ VerifiedOS adopts Mon CHÉRI's **Write-before-Read guarantee** without its runti
 | Executable-loading and dynamic-linking bugs | There is no on-device ELF loader, dynamic linker, relocation pass, or executable-format parser; a small verified content-addressed image reader and capability-wiring table replace them | **🕳️&nbsp;Absent**<br>**✅&nbsp;Proved** |
 | Malicious or compromised supply-chain output bypassing platform safety | Admission re-checks the final artifact's types and proofs with no trust in its build pedigree, the correspondence theorem above ties it to its included source closure, and source-level malicious dependencies remain least-authority contained | **✋&nbsp;Rejected**<br>**✅&nbsp;Proved**<br>**🛡️&nbsp;Enforced** |
 | Protocol downgrade and negotiation confusion | Each protocol has one composition-fixed configuration, ciphersuite, and version, with no capability-driven fallback; downgrade generations are absent from silicon | **🕳️&nbsp;Absent** |
-| Ensemble-link interposition, peer substitution, or frame replay | A link is an authenticated encrypted session between two mutually attested machines whose unit and composition are fixed when the ensemble is composed, its keys never leaving the crypto core; a peer that fails attestation or attests another composition is refused the link and the machine runs its own generation, an unauthenticated or replayed session frame stops the link at the frame, and the session model is a recorded residual | **✅&nbsp;Proved**<br>**🚩&nbsp;Residual** |
+| Ensemble-link interposition, peer substitution, or frame replay | Mutually attested peers use an authenticated encrypted session with identities and composition fixed at ensemble composition. Keys stay in the crypto core. Failed or mismatched attestation refuses the link; each machine runs its own generation. An unauthenticated or replayed session frame stops the link. The session model remains a residual | **✅&nbsp;Proved**<br>**🚩&nbsp;Residual** |
 | Link and radio state-machine flaws | A Lustre control plane refines a formal model of the standard's state machine, making unmodeled states, transitions, and timers unreachable | **✅&nbsp;Proved** |
 | Model unfaithfulness and composed session security | Each reference model is curated from its protocol's machine-checked symbolic security analysis, so the machine the sequencer provably runs is the one whose session security that analysis checks; what remains recorded is the model's faithfulness to the prose standard, the primitives' symbolic abstraction, and the imported analyses standing as evidence outside the trust base | **🚩&nbsp;Residual** |
 | Firmware bugs in auxiliary processors, baseband to management engine | Those programmable foreign computers are absent; fixed-function matter is driven by attested host software | **🕳️&nbsp;Absent** |
@@ -294,7 +294,7 @@ VerifiedOS adopts Mon CHÉRI's **Write-before-Read guarantee** without its runti
 
 ### Faults the machine detects rather than prevents
 
-These rows follow a single doctrine: *detect, correct, or contain, never shield*. **Detected** therefore never means absent.
+These faults can occur. The design detects, corrects or contains them within the stated coverage.
 
 | Potential bug or fault class | Construction | Mode |
 | --- | --- | --- |
@@ -304,7 +304,7 @@ These rows follow a single doctrine: *detect, correct, or contain, never shield*
 | An uncorrectable error | The access fails stop rather than returning a value | **🔔&nbsp;Detected** |
 | SRAM disturb and half-select upsets | The same end-to-end ECC corrects these operationally induced flips, the far weaker analogs of the deleted DRAM disturbance classes | **🔔&nbsp;Detected** |
 | A dead or degraded noise source weakening the one entropy root | Independent sources spanning at least two physical mechanisms are health-tested at startup and continuously after; failure is fail-stop, never a degraded draw. A failure the tests miss remains a recorded residual | **🔔&nbsp;Detected**<br>**🚩&nbsp;Residual** |
-| Physical fault injection, glitching to laser to EM | [Supply, clock, timing-margin and light sensors](docs/spec.md#r-16-008g) trip fail-stop on the excursion itself; ECC corrects stored-state faults, capability corruption traps on tag and bounds checks, the multikernel confines live-kernel faults for crash-only restart, and layered watchdogs reach wedged cores; a strike that corrupts a datapath result without tripping a sensor or landing in any of these is the residual below | **🔔&nbsp;Detected**<br>**🚩&nbsp;Residual** |
+| Physical fault injection, glitching to laser to EM | [Supply, clock, timing-margin and light sensors](docs/spec.md#r-16-008g) trigger fail-stop on excursions. ECC corrects stored-state faults; tag and bounds checks trap capability corruption; the multikernel confines live-kernel faults for restart; watchdogs handle wedged cores. Undetected datapath corruption remains a residual | **🔔&nbsp;Detected**<br>**🚩&nbsp;Residual** |
 | A fault the layered detectors miss | Coverage beyond the stated single-fault model is evidence rather than theorem, and consumer-grade transient datapath strikes are unclaimed; both are recorded residuals | **🚩&nbsp;Residual** |
 | Skipped critical instructions under an injected fault | The certifying compiler maintains control-flow signatures over boot verification, credential comparison, and lifecycle transitions; acceptance requires a comparison-derived token that fall-through or truncation cannot produce, and its absence under every fault in the protected-sequence single-fault model is a theorem | **🔔&nbsp;Detected**<br>**✅&nbsp;Proved** |
 | A fault-corrupted detector that cannot report itself | The sentinel is a detection-only lockstepped pair whose divergence latches fail-stop to the root of trust, with no third replicated core and no voting | **🔔&nbsp;Detected** |
@@ -315,24 +315,24 @@ These rows follow a single doctrine: *detect, correct, or contain, never shield*
 
 ### Obligations discharged elsewhere
 
-Each row names the owner of a real obligation met outside the platform; an unnamed transfer would drop the obligation.
+Each row names who must meet an obligation outside the platform.
 
 | Class the platform does not close | Where the obligation goes, and what the platform still contributes | Mode |
 | --- | --- | --- |
-| Injection into an app-supplied interpreter, web content in the browser being the standing case | **The compartment author, for the declining set.** The platform offers one verified Wasm interpreter any app may bind, so the transfer narrows to apps that decline it and to the JS standing case, contained rather than verified; an app's own string parser remains injectable within its compartment, and manifest capabilities bound the blast radius to app authority either way | **🤝&nbsp;Transferred** |
+| Injection into an app-supplied interpreter, including browser JavaScript | **The compartment author.** Apps using their own engine instead of the platform's verified Wasm interpreter must handle guest injection themselves. Browser JavaScript is also contained without a verification claim. In either case, manifest capabilities limit damage to the app's authority | **🤝&nbsp;Transferred** |
 | Upset rates and component reliability beyond what the die's own correction covers | **The deployment.** The platform mandates correction at every point; the deployment selects the radiation-hardening grade, the one source-rate lever an enclosure cannot supply | **🤝&nbsp;Transferred** |
 | The user granting the authority they meant to grant | **The human.** The attested, unspoofable powerbox makes the grant mechanism trustworthy and CHERI-bounded, but no proof can establish that the user named the right object; the abuse-resistance half of that ceiling is booked open | **🤝&nbsp;Transferred**<br>**🚩&nbsp;Residual** |
 
 
 ### The proof artifacts themselves
 
-**Proved** means a machine-checked theorem, which can verify while establishing too little. The following checks apply to proof artifacts rather than the machine and are prerequisites for every use of that mode: two are build refusals, and the third is a refutation each proof artifact carries.
+Every **Proved** claim must pass the checks below. They guard against undeclared assumptions, vacuous theorems and specifications too weak to reject a bad implementation.
 
 | Potential bug class | Construction | Mode |
 | --- | --- | --- |
 | A shipped theorem resting on more than its declared assumptions | The proof term enumerates each theorem's axioms and assumptions for exact comparison with the requirements-register declaration; any extra or missing member fails the build | **✋&nbsp;Rejected** |
-| A theorem that is true and empty: a premise nothing satisfies or a quantifier ranging over nothing | The build gate refuses a proof artifact whose theorems quantify over a record the artifact never constructs, and reports each artifact's constructed witnesses beside its constants; because general vacuity is undecidable, that a witness satisfies its theorem's hypotheses stays a per-theorem obligation read at review, and its residue is booked in the [residual-risks section](docs/spec.md#17-residual-risks-the-honest-ceiling) | **✋&nbsp;Rejected**<br>**🚩&nbsp;Residual** |
-| A specification so weak that anything refines it | Every refinement and policy claim exhibits an instance the specification rejects, a construction the proof artifact carries and the review gate reads; no build check decides that the rejected instance is a telling one, and that judgement is booked in the [residual-risks section](docs/spec.md#17-residual-risks-the-honest-ceiling) | **✅&nbsp;Proved**<br>**🚩&nbsp;Residual** |
+| A vacuous theorem: an impossible premise or an empty quantified domain | The build rejects quantified records without constructed witnesses and reports witnesses beside constants. Review must still establish that each witness satisfies the theorem's hypotheses. General vacuity is undecidable; the remaining obligation is a [recorded residual](docs/spec.md#17-residual-risks-the-honest-ceiling) | **✋&nbsp;Rejected**<br>**🚩&nbsp;Residual** |
+| A specification so weak that anything refines it | Every refinement and policy claim carries an instance its specification rejects. Review judges whether that instance meaningfully tests the specification; no build check decides this. That judgment remains a [recorded residual](docs/spec.md#17-residual-risks-the-honest-ceiling) | **✅&nbsp;Proved**<br>**🚩&nbsp;Residual** |
 
 
 ### What this inventory does not claim

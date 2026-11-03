@@ -170,15 +170,13 @@ directory is on a
 Per-member timing notices are also available through the public check-run
 annotations API.
 
-**The lane is the front door's business rather than the caller's.** A `[wsl]` command
-asked for on the host is re-launched in the guest and says so, so there is no
-`wsl -u root -e python3` to remember and no wrong lane to be in. Commands that
-use native build outputs take the hop; the [generated lane reference](generated/command-lanes.md)
-names every operational and help-only exception from [the dispatch owner](vos/commands.py).
-`proofs status` takes the hop because its compiled outputs live in native guest storage.
-[tests/test_lanes.py](tests/test_lanes.py) exercises each operational declaration
-with independent handler fixtures and each help declaration for its usage output.
-The generated reference is checked and repaired by the normal artifact registry.
+**The dispatcher selects the execution lane.** On Windows, `[wsl]` commands
+relaunch in the guest and report that choice. Commands that read native build
+outputs, including `proofs status`, run there. The checked, generated
+[lane reference](generated/command-lanes.md) lists operational and help-only
+exceptions declared in [vos/commands.py](vos/commands.py).
+[tests/test_lanes.py](tests/test_lanes.py) checks operational declarations with
+independent handler fixtures and help declarations against their usage output.
 
 | Command | Lane | What it does |
 | --- | --- | --- |
@@ -721,9 +719,9 @@ For a new computer, use the [WSL migration guide](wsl-migration.md) to retain th
 old distribution and Windows compiler checkout. Check CPU architecture before
 restoring executable toolchains; historical evidence still requires revalidation.
 
-There is one WSL toolchain and there are as many checkouts as there are git worktrees, so the build trees have to be told apart. Each checkout gets a **lane**, and `run.py model lane` prints which one this is, where it builds, on which filesystem, and whether anything is building there right now.
+Each checkout has a **lane** with separate build outputs, using the shared WSL toolchain. `run.py model lane` reports its paths, filesystems and active builds.
 
-The lane is derived from the checkout rather than declared: a linked worktree's `.git` is a *file* naming its administrative directory under the primary checkout's `.git/worktrees/`, and the lane is git's own name for the worktree, which is unique within the repository by construction. The primary worktree has no lane and keeps the paths it always had; a linked one builds under `/root/build/lane-<name>/`, which is one directory holding the whole of what that lane knows, so a lane is retired by deleting it. The one tree every lane shares is the M0.4 oracle's, because it is stock upstream at a pinned commit and none of this repository's curation reaches it.
+Git's unique administrative name for a linked worktree determines its lane. Its `.git` file points to that administrative directory under the primary checkout's `.git/worktrees/`. Linked worktrees build under `/root/build/lane-<name>/`; the primary checkout keeps its existing paths. All lanes share only the M0.4 oracle tree, which contains pinned stock upstream sources unaffected by local curation.
 
 The bounded distribution keepalive runs from its native pidfile directory. It
 does not inherit a checkout directory whose handle would prevent Windows from
@@ -731,13 +729,13 @@ retiring that worktree. The lease still has its existing duration and identity;
 the [failure-prevention contract](ci/failure-prevention.md) records this launch
 requirement beside the other preparation controls.
 
-**Three things collide when two checkouts share one tree, and only one of them is loud.** cmake refuses outright to point an existing cache at a second source directory, so the second lane's build fails at `configure` with an error that names cmake rather than the collision. A build opens its log with `w`, so the second lane truncates the first's while the first is still writing into it. And every loop downstream of a build reads the simulator back out of the build tree, `sweep`, `corpus`, `trace-diff`, `devicetree` and `reference` all of them, and none can tell whose model generated it: that one is silent, and it is the reason lanes exist.
+Sharing a build tree causes three failures: CMake refuses a cache configured for another source directory; one build can truncate another's log; and consumers can silently read the wrong simulator. `sweep`, `corpus`, `trace-diff`, `devicetree` and `reference` all depend on lane separation.
 
-A build **holds its lane** for exactly as long as it runs, so a second build over a live one is refused and named rather than merged into it. The lock is `flock` rather than a pidfile, so a killed build leaves nothing to break, and `run.py model build --background` hands the lock to the run it detaches rather than dropping it. `run.py model wait` blocks on that lock, then reports the log's verdict and, when the log's stages passed, the build receipt's: a receipt that is missing, malformed or records no successful complete build fails the wait, naming the refusal reason the receipt records when it records one, and a receipt whose sources, tools, options, artifacts or log changed since fails it as stale. The lock is released by the kernel whether the build finished or died, so a wait ends either way, where a wait on the marker alone would hang on the build that never wrote one.
+A build holds a `flock` lock for its lifetime and refuses a concurrent build in the same lane. Background builds inherit the lock; the kernel releases it when the build exits or dies. `run.py model wait` waits for release, then checks the log and, if its stages passed, the build receipt. A missing, malformed, unsuccessful or incomplete receipt fails the wait, with its recorded refusal reason when available. Changes to bound sources, tools, options, artifacts or logs make the receipt stale and also fail the wait.
 
-A build is not the only holder of state, and every holder refuses a concurrent run by naming the one that holds it. `emit` takes the same lock as `build`, because both drive the one cmake tree; `typecheck` holds a lock beside its lane's SMT memo cache, which Sail rewrites whole at exit; and `oracle` holds the one tree every lane shares, which `trace-diff` holds shared while it runs the simulator, so a sync or `--resync` from any lane is refused rather than deleting the tree under a live comparison. `corpus` writes its images into the lane's own directory, so two lanes' runs cannot land one ELF path.
+Other stateful commands also name and refuse conflicting owners. `emit` shares the build lock because it uses the same CMake tree. `typecheck` locks its lane's SMT memo cache, which Sail rewrites at exit. `oracle` locks the shared oracle tree; `trace-diff` holds a shared lock while running its simulator, preventing sync or `--resync` from replacing live inputs. `corpus` writes images into its lane so separate lanes cannot overwrite one ELF path.
 
-A lane standing up for the first time is seeded from the primary worktree's tree rather than built cold, which is what makes a lane cheap enough to be worth having. What is copied is the downloaded riscv-tests, only as a copy that matches the manifest configure wrote when it verified the download ([THIRD-PARTY.md](../THIRD-PARTY.md#fetched-at-build-time)), and the Sail SMT memo caches a lane keeps, the build tree's two, the build's and its property test's, and those of the typecheck and `smt` loops, and a cache is **copied and never shared**: see `vos/cli/model.py`'s `_seed_smt_cache` for what two writers of one memo cache do to each other. Every command that can stand a tree up seeds it before it configures one, `build`, `emit` and `bundle`, so which command a lane is opened with does not decide what that lane pays.
+On first use, `build`, `emit` and `bundle` seed a lane before configuration. They copy riscv-tests only when it matches the manifest recorded during download verification ([THIRD-PARTY.md](../THIRD-PARTY.md#fetched-at-build-time)). They also copy the build, property-test, typecheck and `smt` memo caches. Caches are **copied, never shared**, because Sail rewrites them; `vos/cli/model.py`'s `_seed_smt_cache` implements this rule.
 
 [vos/model_corpus.py](vos/model_corpus.py) owns the downloaded corpus's release
 and digest readers, manifest verification, input selection and verified copying.
@@ -1741,7 +1739,7 @@ the instructions at their own revision; a new session loads changed instructions
 
 ## The conventions
 
-Each of these is a rule the next tool added is expected to keep.
+All tools must follow these rules.
 
 - **Exit 0 is clean, 1 is a finding.** argparse answers a usage error with 2, and a crash is a traceback rather than a verdict; nothing else is returned deliberately, and nothing returns 0 while printing a problem.
 - **The root is found, not assumed.** `vos.corpus.find_root` walks up from the tool's own file. No tool reads the working directory, and no tool needs `cd` first.
@@ -1770,8 +1768,8 @@ Each of these is a rule the next tool added is expected to keep.
   receipt manifests. Regenerate its owned fields with `composer bind-sources`
   before `composer project`; K-88 checks those views and the existing generated
   artifacts. Keep authored package and composition decisions outside those fields.
-- **Every function is annotated, and every table is typed.** Not for documentation: a table of callbacks nothing types is a table where a member with the wrong shape is found by running the corpus rather than by reading the module, `dialect.KINDS` and `asm.PSEUDOS` being the two largest here. A dispatch family gets a `Protocol`, a configuration row gets a `TypedDict`, and a `list`, `dict` or `re.Match` written bare gets its parameter.
-- **An id pattern admits the letter suffix.** Every id family here can take one, because a thing inserted between two others is suffixed rather than renumbered, so `A-\d+` does not merely read imprecisely, it narrows its input silently and in two directions that mask each other: the parse side undercounts, and a claim repaired from that parse is then *written* wrong under `--fix`, which is worse than a copied figure because the rule vouches for it; while on the name side a token under a trailing `(?![\w-])` boundary does not match the suffixed id at all, so a citation of one that does not exist is skipped rather than reported unknown. Audit the parse side and the name side together, since fixing either alone leaves the other blind.
+- **Annotate every function and type every table.** Use a `Protocol` for dispatch families, a `TypedDict` for configuration rows, and type parameters for containers and `re.Match`. This catches callback-shape errors in tables such as `dialect.KINDS` and `asm.PSEUDOS` before execution.
+- **ID patterns must admit letter suffixes.** Inserted IDs use suffixes instead of renumbering. A pattern such as `A-\d+` can undercount entries and make `--fix` write an incorrect total. With a trailing `(?![\w-])`, it can also skip an unknown suffixed citation entirely. Audit both enumeration and citation readers; fixing one leaves the other unsound.
 - **An invariant is stated where it is relied on.** A reader entitled to a value because two branches above ruled out the alternatives says so, rather than leaving a `None` to be subscripted at the point the tool is reporting the finding it exists to report.
 - **Assertions that guard an artifact are raised, not asserted.** `python -O` deletes an `assert`, and a check standing between a mis-transcribed row and an image the emulator runs anyway has to outlive a flag. `zip` over two sequences that must correspond takes `strict=True` for the same reason: a silent truncation in a tool whose output is evidence is worse than a stopped run.
 - **A rule's cost is the shape of its scan, not the Python around it.** Three shapes each cost tens of milliseconds per pass over the corpus and each has a cheaper equal: `(?m)^` over a document's whole text, which the engine attempts at every line start however few lines match, where walking `doc.lines` with `.match()` behind a substring pre-test gives the line index free; a leading lookbehind such as `(?<![\w-])`, re-decided at every position, where dropping it and checking the boundary in Python on the hits is safe wherever every character inside the token is a word character; and a case-insensitive alternation with no literal prefix, where `str.find` over the lowered text proposes sites and the pattern decides them. The third is where the second's rule reverses, removing the lookbehind making it slower, so a candidate is timed against an equality assertion over the current result rather than applied blind.
