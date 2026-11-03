@@ -247,7 +247,7 @@
       ],
       "descriptor": {
         "path": "tools/composer/packages/crypto-core.json",
-        "sha256": "ae0f4a611c130b41c27886820a812e4e6263683c8614d2404a1dfacd55210c25"
+        "sha256": "5c22e6bbcc111d59ea4d6552d1e402db03da4bbe0724862606a613eb580a552f"
       },
       "artifact_slot": "crypto-core-artifact",
       "entry": null,
@@ -279,7 +279,7 @@
       ],
       "descriptor": {
         "path": "tools/composer/packages/storage.json",
-        "sha256": "397fc3c90f3bf58a2b40f9bc20acdff92d27afad05924cfa6dbf9bafa6ed0920"
+        "sha256": "9a782cacf168974bb994d4d7085a104dfc73ec993a0bd7b55364d63cab39ca44"
       },
       "artifact_slot": "storage-artifact",
       "entry": null,
@@ -387,7 +387,7 @@
       ],
       "descriptor": {
         "path": "tools/composer/packages/composer.json",
-        "sha256": "fa3a826e2fb1282a5e54f76ce4dee6fee88e5c3de9242ad2017aea0d4d7780f3"
+        "sha256": "71635042e9ad13a9f24f31077c251fd9920cd9ca4d93750e48eccaf7828407ed"
       },
       "artifact_slot": "composer-artifact",
       "entry": null,
@@ -459,7 +459,7 @@
       ],
       "descriptor": {
         "path": "tools/composer/packages/admission.json",
-        "sha256": "8cb52c1252cc1e6f866c9483a9a615e16e67ed9e0aee28d819115102662c464e"
+        "sha256": "802733949248ee4e723248e805aad042a8ce2c6edafe8f95b9175a7773f07f7c"
       },
       "artifact_slot": "admission-artifact",
       "entry": null,
