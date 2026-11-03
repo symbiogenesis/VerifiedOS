@@ -9,7 +9,7 @@ let binary first last operator left right =
                             ("right", right.syntax)] [left; right]
 %}
 
-%token MODULE PUBLIC NAT BOOL LET RETURN IF ELSE TRUE FALSE
+%token MODULE PUBLIC NAT BOOL LET CONST RETURN IF ELSE TRUE FALSE
 %token LPAREN RPAREN LBRACE RBRACE SEMICOLON COMMA EQUAL PLUS STAR EQ LE EOF
 %token <string> IDENT DECIMAL
 %token PRIVATE INTERNAL ASYNC RECORD STRUCT UNION INTERFACE TRAIT IMPL IMPORT ALIAS NAMESPACE AS
@@ -34,9 +34,15 @@ let binary first last operator left right =
 %%
 
 file:
-  MODULE module_name=name SEMICOLON functions=nonempty_list(function_decl) EOF
-    { make "file" $startpos $endpos(functions)
-        [("name", module_name); ("functions", array functions)] functions }
+  MODULE module_name=name SEMICOLON declarations=nonempty_list(pure_declaration) EOF
+    { make "file" $startpos $endpos(declarations)
+        [("name", module_name); ("declarations", array declarations)] declarations }
+
+pure_declaration:
+  value=function_decl { value }
+| PUBLIC CONST value_type=value_type constant_name=name EQUAL value=expression SEMICOLON
+    { make "constant" $startpos $endpos [("name", constant_name); ("type", value_type.syntax);
+        ("value", value.syntax)] [value_type; value] }
 
 name:
   spelling=IDENT { name $startpos $endpos spelling }
@@ -79,6 +85,9 @@ binding:
 | binding_name=name EQUAL value=expression SEMICOLON
     { make "reassignment" $startpos $endpos
         [("name", binding_name); ("value", value.syntax)] [value] }
+| CONST value_type=value_type constant_name=name EQUAL value=expression SEMICOLON
+    { make "constant_local" $startpos $endpos [("name", constant_name); ("type", value_type.syntax);
+        ("value", value.syntax)] [value_type; value] }
 
 exit:
   RETURN value=expression SEMICOLON
@@ -167,6 +176,9 @@ s_declaration:
 s_decl:
   IMPORT path=s_path SEMICOLON
     { make "import" $startpos $endpos [("name", path)] [] }
+| CONST value_type=s_type constant_name=s_identifier EQUAL value=s_expression SEMICOLON
+    { make "constant" $startpos $endpos [("name", constant_name); ("type", value_type.syntax);
+        ("value", value.syntax)] [value_type; value] }
 | ALIAS alias=s_identifier generics=s_generics contracts=list(s_contract) EQUAL value=s_type SEMICOLON
     { make "alias" $startpos $endpos [("name", alias); ("generics", array generics);
         ("contracts", array contracts); ("type", value.syntax)] (value :: generics @ contracts) }
@@ -455,6 +467,9 @@ s_open_statement:
     { make "if" $startpos $endpos [("condition", condition.syntax); ("then", yes.syntax); ("else", no.syntax)] [condition; yes; no] }
 s_simple_statement:
   value=s_block { value }
+| CONST value_type=s_type constant_name=s_identifier EQUAL value=s_expression SEMICOLON
+    { make "constant_local" $startpos $endpos [("name", constant_name); ("type", value_type.syntax);
+        ("value", value.syntax)] [value_type; value] }
 | WHILE LPAREN condition=s_expression RPAREN contracts=list(s_contract) body=s_block
     { make "while" $startpos $endpos [("condition", condition.syntax); ("contracts", array contracts); ("body", body.syntax)]
         (condition :: body :: contracts) }

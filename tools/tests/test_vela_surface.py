@@ -213,8 +213,26 @@ def _concise_authoring_oracle_required() -> None:
     oracle.assert_called_once_with(fixture.source.encode("utf-8"), result)
 
 
+def _constant_oracle_required() -> None:
+    fixture = next(value for value in surface.POSITIVE if value.name == "required-static-constants")
+    result: dict[str, parser.Json] = {"ast": [{"kind": kind} for kind in fixture.kinds]}
+    with patch.object(surface, "POSITIVE", (fixture,)), \
+            patch.object(surface, "_precedence_and_spans"), \
+            patch.object(surface, "_literal_and_comment_boundaries"), \
+            patch.object(surface, "_argument_roles"), \
+            patch.object(surface, "_required_static_roles", side_effect=ValueError("constant role changed")) as oracle:
+        try:
+            surface.qualify(lambda source: result)
+        except ValueError as error:
+            ensure(str(error) == "constant role changed", "constant role oracle failure was replaced")
+        else:
+            raise AssertionError("required-static syntax oracle was bypassed")
+    oracle.assert_called_once_with(fixture.source.encode("utf-8"), result)
+
+
 def cases() -> list[Case]:
     return [Case("concise-authoring-oracle-is-required", _concise_authoring_oracle_required),
+            Case("constant-declaration-order-and-span-oracle-is-required", _constant_oracle_required),
             Case("surface-entry-schema-and-source-binding", _entry_protocol),
             Case("surface-cli-and-no-fallback", _entry_cli),
             Case("surface-fixture-input-identities", _qualification_input_binding),

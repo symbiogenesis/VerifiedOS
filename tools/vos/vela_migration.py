@@ -45,6 +45,10 @@ def fixtures(example: bytes) -> tuple[Fixture, ...]:
          b"public Nat G() => F(x: 3, flag: true,);"),
         ("mixed-named-arguments", b"module M; public Nat F(Nat x, bool flag) => x; "
          b"public Nat G() => F(3, flag: true);"),
+        ("constant-only-module", b"module M; public const Nat Limit = 2 + 3 * 4;"),
+        ("constant-declarations-and-locals", b"module M; public Nat Square(Nat x) { let y = x * x; return y; } "
+         b"public const Nat Limit = Square(x: 4); public const bool Ready = Limit == 16; "
+         b"public Nat Read() { const Nat Local = Limit + 1; return Local; }"),
     )
     result = [Fixture(name, source, "accepted") for name, source in positive]
     for name, source in positive[:6]:
@@ -52,6 +56,18 @@ def fixtures(example: bytes) -> tuple[Fixture, ...]:
             edited = b"// caf\xc3\xa9" + newline + source.replace(b"\n", newline) + newline + b"// tail"
             result.append(Fixture(f"{name}-{suffix}-trivia", edited, "accepted"))
     negative = (
+        ("constant-wrong-type", "public const bool Flag = 1;", "type"),
+        ("constant-runtime-input", "public Nat F(Nat x) { const Nat Limit = x; return Limit; }", "unsupported"),
+        ("constant-ignored-runtime-input", "public Nat Ignore(Nat x) => 0; "
+         "public Nat F(Nat x) { const Nat Limit = Ignore(x); return Limit; }", "unsupported"),
+        ("constant-dead-runtime-input", "public Nat F(Nat x) { if (false) { const Nat Limit = x; "
+         "return Limit; } else { return 0; } }", "unsupported"),
+        ("constant-forward-reference", "public const Nat Limit = Later; public const Nat Later = 1;", "name"),
+        ("constant-cycle", "public const Nat Limit = Limit;", "name"),
+        ("constant-call", "public const Nat Limit = 1; public Nat F() => Limit();", "type"),
+        ("constant-reassignment", "public Nat F() { const Nat Limit = 1; Limit = 2; return Limit; }", "unsupported"),
+        ("constant-missing-type", "public const Limit = 1;", "syntax"),
+        ("constant-missing-initializer", "public const Nat Limit;", "syntax"),
         ("reordered-labels", "public Nat F(Nat x, Nat y) => x; public Nat G() => F(y: 1, x: 2);", "name"),
         ("duplicate-label", "public Nat F(Nat x, Nat y) => x; public Nat G() => F(x: 1, x: 2);", "name"),
         ("unknown-label", "public Nat F(Nat x) => x; public Nat G() => F(missing: 1);", "name"),

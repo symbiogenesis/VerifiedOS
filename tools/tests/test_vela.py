@@ -18,13 +18,14 @@ _TRUE = "Corelib.Init.Datatypes.true"
 _FALSE = "Corelib.Init.Datatypes.false"
 _ORACLE = b"""module Oracle;
 public Nat Cube(Nat x) { return x * x * x; }
+public const Nat Base = 2;
 public bool Choose(bool flag, Nat x) {
   let y = Cube(x + 1);
   if (flag == true) {
-    let limit = 9;
+    const Nat limit = Cube(x: Base) + 1;
     return y <= limit;
   } else {
-    let limit = 0;
+    const Nat limit = 0;
     if (y == limit) { return true; } else { return false; }
   }
 }
@@ -59,6 +60,7 @@ def _oracle() -> None:
     expected = (_header(_ORACLE) + "Module Vela_Oracle.\n\n"
                 f"Definition f_Cube (v_x : {_NAT}) : {_NAT} :=\n"
                 "  (Corelib.Init.Nat.mul (Corelib.Init.Nat.mul v_x v_x) v_x).\n\n"
+                f"Definition c_Base : {_NAT} :=\n  {_nat(2)}.\n\n"
                 f"Definition f_Choose (v_flag : {_BOOL}) (v_x : {_NAT}) : {_BOOL} :=\n"
                 f"  (let v_y := (f_Cube (Corelib.Init.Nat.add v_x {_nat(1)})) in "
                 f"(if (let vela_eq_left := v_flag in let vela_eq_right := {_TRUE} in "

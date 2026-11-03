@@ -41,7 +41,7 @@ def _expect_failure(compiled: parser.Build, response: subprocess.CompletedProces
 def _protocol() -> None:
     with tempfile.TemporaryDirectory(prefix="vos-vela-parser-") as temporary:
         compiled = _build(Path(temporary))
-        ast = {"kind": "file", "span": [0, 9], "name": {"text": "M", "span": [7, 8]}, "functions": []}
+        ast = {"kind": "file", "span": [0, 9], "name": {"text": "M", "span": [7, 8]}, "declarations": []}
         source = b"module M;\r\n// exact bytes"
         with patch.object(parser.subprocess, "run", return_value=_response({"schema": 1, "ast": ast})) as process:
             result = parser.parse_source(compiled, source)

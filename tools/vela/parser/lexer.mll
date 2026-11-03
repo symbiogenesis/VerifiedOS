@@ -243,7 +243,7 @@ let identifier state lexbuf =
   | "module" -> MODULE | "public" -> PUBLIC
   | "Nat" -> if state.surface && annotation_name lexbuf then ANNOTATION_NAME word else NAT
   | "bool" -> if state.surface && annotation_name lexbuf then ANNOTATION_NAME word else BOOL
-  | "let" -> LET | "return" -> RETURN | "if" -> IF | "else" -> ELSE
+  | "let" -> LET | "const" -> CONST | "return" -> RETURN | "if" -> IF | "else" -> ELSE
   | "true" -> TRUE | "false" -> FALSE
   | _ when not state.surface -> IDENT word
   | "private" -> PRIVATE | "internal" -> INTERNAL | "async" -> ASYNC

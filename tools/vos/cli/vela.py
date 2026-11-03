@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-"""Check pure Vela prototype source or emit its unqualified Gallina translation."""
+"""Check pure Vela functions/constants or emit their unqualified Gallina translation."""
 
 import argparse
 import sys

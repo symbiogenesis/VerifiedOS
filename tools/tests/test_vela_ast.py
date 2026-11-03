@@ -33,7 +33,7 @@ def _fixture(source: bytes, expression: dict[str, object]) -> dict[str, object]:
                                 exit=_node("return", terminal, source.index(b";", terminal) + 1,
                                            value=expression)))
     return {"schema": 1, "source_sha256": hashlib.sha256(source).hexdigest(),
-            "ast": _node("file", start, end, name=_name("M", start + 7), functions=[function])}
+            "ast": _node("file", start, end, name=_name("M", start + 7), declarations=[function])}
 
 
 def _literal(source: bytes, spelling: bytes = b"1") -> dict[str, object]:
@@ -52,7 +52,7 @@ def _arrow_fixture(source: bytes, expression: dict[str, object]) -> dict[str, ob
                      body=_node("expression_body", arrow, end, value=expression))
     module = source.index(b"module")
     return {"schema": 1, "source_sha256": hashlib.sha256(source).hexdigest(),
-            "ast": _node("file", module, end, name=_name("M", module + 7), functions=[function])}
+            "ast": _node("file", module, end, name=_name("M", module + 7), declarations=[function])}
 
 
 def _expression_body_protocol() -> None:
@@ -67,7 +67,7 @@ def _expression_body_protocol() -> None:
         for label in ("arrow", "terminator", "value", "field"):
             changed = copy.deepcopy(tree)
             ast = cast("dict[str, object]", changed["ast"])
-            function = cast("list[dict[str, object]]", ast["functions"])[0]
+            function = cast("list[dict[str, object]]", ast["declarations"])[0]
             body = cast("dict[str, object]", function["body"])
             start, end = cast("list[int]", body["span"])
             if label == "arrow":
@@ -177,7 +177,7 @@ def _protocol_controls() -> None:
         response = copy.deepcopy(expected)
         # Mutations use the fixture's known shape rather than production decoding.
         ast = cast("dict[str, object]", response["ast"])
-        function = cast("dict[str, object]", cast("list[object]", ast["functions"])[0])
+        function = cast("dict[str, object]", cast("list[object]", ast["declarations"])[0])
         terminal = cast("dict[str, object]", cast("dict[str, object]", function["body"])["exit"])
         expression = cast("dict[str, object]", terminal["value"])
         if label == "field":
@@ -193,7 +193,7 @@ def _protocol_controls() -> None:
         elif label == "kind":
             expression["kind"] = "effect"
         elif label == "empty":
-            ast["functions"] = []
+            ast["declarations"] = []
         else:
             terminal["value"] = []
         try:
@@ -283,7 +283,7 @@ def _named_call_tree(source: bytes) -> dict[str, object]:
     module = source.index(b"module")
     return {"schema": 1, "source_sha256": hashlib.sha256(source).hexdigest(),
             "ast": _node("file", module, len(source), name=_name("M", module + 7),
-                         functions=[declaration, function])}
+                         declarations=[declaration, function])}
 
 
 def _located_named_arguments() -> None:
@@ -297,7 +297,7 @@ def _located_named_arguments() -> None:
         for corruption in ("name", "erased-label", "narrowed-wrapper", "separator", "stale-source"):
             response = copy.deepcopy(tree)
             ast = cast("dict[str, object]", response["ast"])
-            functions = cast("list[dict[str, object]]", ast["functions"])
+            functions = cast("list[dict[str, object]]", ast["declarations"])
             body = cast("dict[str, object]", functions[1]["body"])
             call = cast("dict[str, object]", body["value"])
             argument = cast("list[dict[str, object]]", call["arguments"])[0]

@@ -215,7 +215,7 @@ def parse_source(compiled: Build, source: bytes, *, surface: bool = False) -> di
 
 def _body(result: dict[str, Json]) -> dict[str, Json]:
     ast = _object(result["ast"], "file")
-    functions = ast.get("functions")
+    functions = ast.get("declarations")
     if not isinstance(functions, list) or not functions:
         raise ValueError("fixture has no function")
     function = _object(functions[0], "function")
@@ -240,7 +240,7 @@ def _shape(value: dict[str, Json]) -> Json:
 def _precedence_oracle() -> dict[str, Json]:
     # Authored independently of grammar actions by the contract reviewer.
     return {"kind": "file", "span": [0, 46], "name": {"text": "M", "span": [7, 8]},
-            "functions": [{"kind": "function", "span": [10, 46],
+            "declarations": [{"kind": "function", "span": [10, 46],
                            "name": {"text": "F", "span": [21, 22]},
                            "result": {"kind": "type", "span": [17, 20], "name": "Nat"},
                            "parameters": [],
@@ -260,7 +260,7 @@ def _concise_fixture(compiled: Build) -> str:
               b"public Nat Add(Nat left, Nat right,) => left + right;\r\n"
               b"public Nat Use() => Add(1, 2,);")
     result = parse_source(compiled, source)
-    functions = _object(result["ast"], "concise pure file").get("functions")
+    functions = _object(result["ast"], "concise pure file").get("declarations")
     if not isinstance(functions, list) or len(functions) != 2:
         raise ValueError("concise pure syntax changed declaration boundaries")
     add, use = [_object(value, "concise pure function") for value in functions]
@@ -325,7 +325,7 @@ def _fixtures(compiled: Build) -> list[str]:
     passed.append("original-byte-spans")
     source = b"module M; public Nat as(Nat as) { return as; }"
     pure_identifier = parse_source(compiled, source)
-    functions = _object(pure_identifier["ast"], "pure file").get("functions")
+    functions = _object(pure_identifier["ast"], "pure file").get("declarations")
     if not isinstance(functions, list) or len(functions) != 1:
         raise ValueError("pure surface-keyword regression lost its function")
     function = _object(functions[0], "pure function named as")
@@ -339,7 +339,7 @@ def _fixtures(compiled: Build) -> list[str]:
     for word in (b"null",):
         source = b"module M; public Nat " + word + b"(Nat " + word + b") { return " + word + b"; }"
         pure_identifier = parse_source(compiled, source)
-        functions = _object(pure_identifier["ast"], "pure file").get("functions")
+        functions = _object(pure_identifier["ast"], "pure file").get("declarations")
         if not isinstance(functions, list) or len(functions) != 1:
             raise ValueError("surface-only reserved word changed pure declaration syntax")
         function = _object(functions[0], "pure reserved-word identifier")
