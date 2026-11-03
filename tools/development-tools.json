@@ -3047,15 +3047,15 @@
   "actions": [
     {
       "repository": "astral-sh/setup-uv",
-      "release": "v10.3.2",
-      "commit": "07a047e608db84b3d8c06cd9a7c7dcc9c355c18e",
+      "release": "v10.3.3",
+      "commit": "68559e99cc807c1eb7e9238fd43a15bba460eec2",
       "license": "MIT",
       "licence_paths": [
         "LICENSE"
       ],
       "description": "Host and guest CI, the boot signature target campaign and the instrument switch route download and run the action to install uv and cache its downloads; the campaign and the route read Guest CI's cache and save none.",
-      "attribution": "crediting Kevin Stillhammer",
-      "notice": "No action source or bundled dependency is redistributed here."
+      "attribution": "read on 2026-11-03 and crediting Kevin Stillhammer",
+      "notice": "This release adds the Astral manifest mirror with GitHub fallback and embedded checksums for the locked uv 0.13.6. No action source or bundled dependency is redistributed here."
     },
     {
       "repository": "actions/checkout",

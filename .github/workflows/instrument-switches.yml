@@ -205,7 +205,7 @@ jobs:
 
       # The side's run.py enters its locked tool environment, so uv comes first. Guest
       # CI owns the saved cache this reads; nothing here saves one.
-      - uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
         with:
           version-file: side/tools/pyproject.toml
           enable-cache: true
@@ -338,7 +338,7 @@ jobs:
         with:
           python-version-file: side/tools/pyproject.toml
 
-      - uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
         with:
           version-file: side/tools/pyproject.toml
           enable-cache: true
@@ -482,7 +482,7 @@ jobs:
         with:
           python-version-file: side/tools/pyproject.toml
 
-      - uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
         with:
           version-file: side/tools/pyproject.toml
           enable-cache: true
