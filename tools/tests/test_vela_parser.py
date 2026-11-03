@@ -111,6 +111,90 @@ def _bounds() -> None:
                 raise AssertionError("timed-out build accepted")
 
 
+def _strict_response_json() -> None:
+    with tempfile.TemporaryDirectory(prefix="vos-vela-parser-") as temporary:
+        compiled = _build(Path(temporary))
+        ast = {"kind": "file", "span": [0, 9], "name": {"text": "M", "span": [7, 8]},
+               "declarations": []}
+        valid = json.dumps({"schema": 1, "ast": ast}).encode()
+        ambiguous = (
+            b'{"schema":2,"schema":1,"ast":' + json.dumps(ast).encode() + b'}',
+            b'{"schema":2,"schem\\u0061":1,"ast":' + json.dumps(ast).encode() + b'}',
+            valid.replace(b'"declarations": []', b'"declarations": [1], "declarations": []'),
+            valid.replace(b'"declarations": []', b'"declarations": [NaN]'),
+            valid.replace(b'"declarations": []', b'"declarations": [Infinity]'),
+            valid.replace(b'"declarations": []', b'"declarations": [1e400]'),
+            valid.decode().encode("utf-16"),
+            b'{"schema":1,"ast":"\xff"}',
+        )
+        for raw in ambiguous:
+            _expect_failure(compiled, subprocess.CompletedProcess([], 0, raw, b""), "malformed JSON")
+        for depth in (parser.MAX_RESPONSE_DEPTH + 1, 10_000):
+            raw = b'{"schema":1,"ast":' + b'[' * depth + b'0' + b']' * depth + b'}'
+            with patch.object(parser.json, "loads", side_effect=AssertionError("unbounded JSON decoding")):
+                _expect_failure(compiled, subprocess.CompletedProcess([], 0, raw, b""), "nesting bound")
+        # Brackets, escaped quotes and escaped backslashes inside a JSON string
+        # consume no container budget, regardless of their byte count.
+        spelling = '[{\\\"' * (parser.MAX_RESPONSE_DEPTH + 1)
+        escaped = {**ast, "description": spelling}
+        with patch.object(parser.subprocess, "run", return_value=_response({"schema": 1, "ast": escaped})):
+            actual = parser.parse_source(compiled, b"module M;")
+        ensure(actual["ast"] == escaped, "quoted delimiters changed syntax or exhausted JSON depth")
+        for response in ({"schema": 1, "ast": ast, "ignored": True},
+                         {"kind": "syntax", "line": 1, "column": 1, "message": "bad", "ast": ast},
+                         {"kind": [], "line": 1, "column": 1, "message": "bad"},
+                         {"kind": "syntax", "line": 1, "column": 1, "message": "\ud800"}):
+            _expect_failure(compiled, _response(response, 1 if "kind" in response else 0),
+                            "invalid refusal" if "kind" in response else "schema")
+
+
+def _located_tree_bounds() -> None:
+    with tempfile.TemporaryDirectory(prefix="vos-vela-parser-") as temporary:
+        compiled = _build(Path(temporary))
+        source = b"module M; // caf\xc3\xa9"
+        for child, message in (({"kind": "child", "span": [7, 8]}, None),
+                               ({"kind": "child", "span": [10, 11]}, "parent"),
+                               ({"kind": "child", "span": [16, 17]}, "UTF-8"),
+                               ({"kind": "child", "span": [7, 8], "value": "\ud800"}, "Unicode")):
+            # The UTF-8 case needs its parent to cover the comment containing é.
+            end = len(source) if message == "UTF-8" else 9
+            ast = {"kind": "file", "span": [0, end], "declarations": [child]}
+            response = _response({"schema": 1, "ast": ast})
+            if message:
+                with patch.object(parser.subprocess, "run", return_value=response):
+                    try:
+                        parser.parse_source(compiled, source)
+                    except ValueError as error:
+                        ensure(message in str(error), f"wrong located-tree refusal: {error}")
+                    else:
+                        raise AssertionError(f"native tree accepted invalid {message} boundary")
+            else:
+                with patch.object(parser.subprocess, "run", return_value=response):
+                    ensure(parser.parse_source(compiled, source)["ast"] == ast,
+                           "valid nested source span changed")
+        for depth in (parser.MAX_SYNTAX_DEPTH, parser.MAX_SYNTAX_DEPTH + 1):
+            ast = {"kind": "leaf", "span": [0, 9]}
+            for _ in range(depth - 1):
+                ast = {"kind": "file", "span": [0, 9], "child": ast}
+            response = _response({"schema": 1, "ast": ast})
+            with patch.object(parser.subprocess, "run", return_value=response):
+                try:
+                    parser.parse_source(compiled, b"module M;")
+                except ValueError as error:
+                    ensure(depth > parser.MAX_SYNTAX_DEPTH and "syntax depth" in str(error),
+                           "wrong syntax-depth boundary")
+                else:
+                    ensure(depth == parser.MAX_SYNTAX_DEPTH, "over-budget native syntax accepted")
+        ast = {"kind": "file", "span": [0, 1]}
+        with patch.object(parser.subprocess, "run", return_value=_response({"schema": 1, "ast": ast})):
+            try:
+                parser.parse_source(compiled, b"\xff")
+            except ValueError as error:
+                ensure("UTF-8" in str(error), "invalid source encoding has no protocol refusal")
+            else:
+                raise AssertionError("successful native reply concealed invalid source encoding")
+
+
 def _versions() -> None:
     root = TOOLS.parent
     locked = parser._locked_versions(root)
@@ -246,6 +330,8 @@ def cases() -> list[Case]:
     return [Case("constant-callable-oracle-is-required", _constant_callable_oracle_required),
             Case("native-protocol-and-source-identity", _protocol),
             Case("bounded-read-and-process-controls", _bounds),
+            Case("strict-unambiguous-bounded-native-json", _strict_response_json),
+            Case("native-tree-depth-containment-and-utf8-spans", _located_tree_bounds),
             Case("snapshot-version-controls", _versions),
             Case("generator-failure-without-receipt", _failed_build),
             Case("qualification-rechecks-tested-inputs", _qualification_freshness),

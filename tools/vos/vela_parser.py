@@ -19,7 +19,9 @@ from filelock import FileLock
 
 from vos import env, vela_surface
 from vos.atomic import atomic_path
+from vos.jsonutil import finite_float, unique_object
 from vos.vela import MAX_SOURCE_BYTES, VelaError
+from vos.vela_ast import MAX_SYNTAX_DEPTH
 
 type Json = bool | int | float | str | list[Json] | dict[str, Json] | None
 
@@ -29,6 +31,9 @@ GENERATION_FLAGS = ("--strict", "--infer", "--explain")
 BUILD_TIMEOUT = 120
 PARSE_TIMEOUT = 15
 MAX_RESPONSE_BYTES = 8 * 1024 * 1024
+# A syntax edge can add a node object and a child-list container. The response
+# envelope, located names and span arrays require the remaining four levels.
+MAX_RESPONSE_DEPTH = 2 * MAX_SYNTAX_DEPTH + 4
 
 
 @dataclass(frozen=True)
@@ -160,22 +165,77 @@ def _object(value: Json, description: str) -> dict[str, Json]:
     return value
 
 
-def _validate_tree(value: Json, length: int) -> None:
-    if isinstance(value, list):
-        for child in value:
-            _validate_tree(child, length)
-    elif isinstance(value, dict):
-        if "kind" in value or "text" in value:
-            span = value.get("span")
-            if not isinstance(span, list) or len(span) != 2:
-                raise ValueError("native parser returned an invalid source span")
-            start, end = span
-            if type(start) is not int or type(end) is not int:
-                raise ValueError("native parser returned an invalid source span")
-            if not 0 <= start <= end <= length:
-                raise ValueError("native parser returned a source span outside its input")
-        for child in value.values():
-            _validate_tree(child, length)
+def _response(raw: bytes) -> dict[str, Json]:
+    """Bound nesting before the JSON decoder, and reject ambiguous objects."""
+    quoted, escaped, depth = False, False, 0
+    for byte in raw:
+        if quoted:
+            if escaped:
+                escaped = False
+            elif byte == 92:
+                escaped = True
+            elif byte == 34:
+                quoted = False
+        elif byte == 34:
+            quoted = True
+        elif byte in (91, 123):
+            depth += 1
+            if depth > MAX_RESPONSE_DEPTH:
+                raise ValueError("native parser response exceeds JSON nesting bound")
+        elif byte in (93, 125):
+            depth -= 1
+
+    def reject_constant(value: str) -> Json:
+        raise ValueError(f"non-finite native JSON value: {value}")
+
+    try:
+        value = json.loads(raw.decode("utf-8"), object_pairs_hook=unique_object,
+                           parse_float=finite_float, parse_constant=reject_constant)
+        return _object(cast("Json", value), "JSON response")
+    except (TypeError, ValueError, UnicodeError, RecursionError) as error:
+        raise ValueError("native parser returned malformed JSON") from error
+
+
+def _validate_tree(value: Json, source: bytes) -> None:
+    try:
+        text = source.decode("utf-8")
+    except UnicodeDecodeError as error:
+        raise ValueError("native parser accepted invalid UTF-8 source") from error
+    boundaries = {0}
+    offset = 0
+    for character in text:
+        offset += len(character.encode("utf-8"))
+        boundaries.add(offset)
+    pending = [(value, (0, len(source)), 0)]
+    while pending:
+        current, parent, depth = pending.pop()
+        if isinstance(current, list):
+            pending.extend((child, parent, depth) for child in current)
+        elif isinstance(current, dict):
+            if "kind" in current:
+                depth += 1
+                if depth > MAX_SYNTAX_DEPTH:
+                    raise ValueError("native parser returned excessive syntax depth")
+            if "kind" in current or "text" in current:
+                span = current.get("span")
+                if not isinstance(span, list) or len(span) != 2:
+                    raise ValueError("native parser returned an invalid source span")
+                start, end = span
+                if type(start) is not int or type(end) is not int:
+                    raise ValueError("native parser returned an invalid source span")
+                if not 0 <= start <= end <= len(source):
+                    raise ValueError("native parser returned a source span outside its input")
+                if not parent[0] <= start <= end <= parent[1]:
+                    raise ValueError("native parser returned a source span outside its parent")
+                if start not in boundaries or end not in boundaries:
+                    raise ValueError("native parser returned a span splitting a UTF-8 character")
+                parent = (start, end)
+            pending.extend((child, parent, depth) for child in current.values())
+        elif isinstance(current, str):
+            try:
+                current.encode("utf-8")
+            except UnicodeEncodeError as error:
+                raise ValueError("native parser returned a non-Unicode syntax string") from error
 
 
 def parse_source(compiled: Build, source: bytes, *, surface: bool = False) -> dict[str, Json]:
@@ -193,24 +253,27 @@ def parse_source(compiled: Build, source: bytes, *, surface: bool = False) -> di
         raise VelaError("limit", 1, 1, f"parser exceeded {PARSE_TIMEOUT} seconds") from error
     if len(done.stdout) > MAX_RESPONSE_BYTES or done.stderr:
         raise ValueError("native parser returned excessive output or unexpected standard error")
-    try:
-        response = _object(cast("Json", json.loads(done.stdout)), "JSON response")
-    except (TypeError, ValueError, UnicodeDecodeError) as error:
-        raise ValueError("native parser returned malformed JSON") from error
+    response = _response(done.stdout)
     if done.returncode == 1:
         kind, line, column, message = (response.get(key) for key in ("kind", "line", "column", "message"))
-        if (kind not in {"syntax", "unsupported", "encoding", "limit"}
+        if (set(response) != {"kind", "line", "column", "message"}
+                or not isinstance(kind, str) or kind not in {"syntax", "unsupported", "encoding", "limit"}
                 or type(line) is not int or type(column) is not int
                 or line < 1 or column < 1 or not isinstance(message, str)):
             raise ValueError("native parser returned an invalid refusal")
+        try:
+            message.encode("utf-8")
+        except UnicodeEncodeError as error:
+            raise ValueError("native parser returned an invalid refusal message") from error
         raise VelaError(cast("str", kind), line, column, message)
     if done.returncode:
         raise RuntimeError(f"native parser exited {done.returncode}")
     ast = _object(response.get("ast"), "syntax tree")
     schema, kind = (2, "surface_file") if surface else (1, "file")
-    if type(response.get("schema")) is not int or response["schema"] != schema or ast.get("kind") != kind:
+    if (set(response) != {"schema", "ast"} or type(response.get("schema")) is not int
+            or response["schema"] != schema or ast.get("kind") != kind):
         raise ValueError("native parser returned an unsupported syntax-tree schema")
-    _validate_tree(ast, len(source))
+    _validate_tree(ast, source)
     return {"schema": schema, "source_sha256": hashlib.sha256(source).hexdigest(), "ast": ast}
 
 
