@@ -7,12 +7,21 @@ canonical-consumer acceptance remains owed.
 
 ## Retained evidence
 
-| Bundle | Scope and SHA256 |
-| --- | --- |
-| [Bounded tag outcomes](../implementation/retained-evidence/q35p-tag-outcomes-20261023/manifest.json) | Immutable semantic patch, authored laws/controls, emitted reproducer, native readings, compiler arguments, inputs and available logs. `975fb21ac24e0e45c07ac5704e16ebe3a6fcdd229837090178173eb80fb74ba2`. |
-| [Baseline bindings](../implementation/retained-evidence/close3-q35p-20261013/manifest.json) | Emulator/state readings and original missing-outcome diagnostic, with [frozen inputs](../implementation/retained-evidence/close3-q35p-20261013/inputs.json). `db26237bdbde7915efa9f3d4ce29b3b95c595dc1008842fb34ce9f713a4f3510`. |
-| [Reusable native candidate](../implementation/retained-evidence/reuse-wire-tags-20261023/manifest.json) | Separate semantic patch, support, unchanged minimal emission, readings, assumptions, scoped kernel check and installed-path inventories at `a5e4ba0e3e2ab477cdde2ae8a59dd47b82a9da90`. `3fe661163dd4ac2c9781d2229e2a8a546306bfe87359bbecffa1f0d762aaac0d`. |
-| [Executed reusable drivers](../implementation/retained-evidence/reuse-wire-tags-drivers-20261023/manifest.json) | Original per-attempt Python commands. `04b6f1e55fc37ca623105f559be23a23c6af723a271e0adfbd49074d1680dfb6`. |
+- [Bounded tag outcomes](../implementation/retained-evidence/q35p-tag-outcomes-20261023/manifest.json),
+  SHA256 `975fb21ac24e0e45c07ac5704e16ebe3a6fcdd229837090178173eb80fb74ba2`:
+  immutable semantic patch, authored laws/controls, emitted reproducer, native
+  readings, compiler arguments, inputs and available logs.
+- [Baseline bindings](../implementation/retained-evidence/close3-q35p-20261013/manifest.json),
+  SHA256 `db26237bdbde7915efa9f3d4ce29b3b95c595dc1008842fb34ce9f713a4f3510`:
+  emulator/state readings and original diagnostic, with
+  [frozen inputs](../implementation/retained-evidence/close3-q35p-20261013/inputs.json).
+- [Reusable native candidate](../implementation/retained-evidence/reuse-wire-tags-20261023/manifest.json),
+  SHA256 `3fe661163dd4ac2c9781d2229e2a8a546306bfe87359bbecffa1f0d762aaac0d`:
+  separate patch, support, unchanged minimal emission, readings, assumptions, scoped
+  kernel check and installed-path inventories at `a5e4ba0e3e2ab477cdde2ae8a59dd47b82a9da90`.
+- [Executed reusable drivers](../implementation/retained-evidence/reuse-wire-tags-drivers-20261023/manifest.json),
+  SHA256 `04b6f1e55fc37ca623105f559be23a23c6af723a271e0adfbd49074d1680dfb6`:
+  original per-attempt Python commands.
 
 <a id="actual-semantic-boundary"></a>
 

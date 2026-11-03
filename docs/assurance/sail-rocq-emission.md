@@ -12,11 +12,18 @@ tag-write monad mismatch. The main has not been qualified against the
 
 Each bundle binds its executed commands, inputs, readings and diagnostics.
 
-| Bundle | Scope and identity |
-| --- | --- |
-| [Handwritten support and canonical types](../implementation/retained-evidence/q35o-handwritten-types-20261023/manifest.json) | Preserving import repair, native declarations and assumptions, fresh original-plugin generation, complete types comparison and strict compilation at `a5e4ba0e3e2ab477cdde2ae8a59dd47b82a9da90`. SHA256 `e6d5db45c31b8983a137bfbd0bd04a9ea36a400a9128aecad9f66a6b97bf835d`. |
-| [Scoped canonical syntax](../implementation/retained-evidence/q35o-scope-20261023/manifest.json) | Private patch, four notation controls, canonical generation identity, first strict diagnostic and installed-artifact restoration at base `59f8a9e9`. SHA256 `30f9caabab5f9e92c949242b527a8702b4a6a19ec022ef821b7367465305b32c`. |
-| [Minimal syntax and identity](../implementation/retained-evidence/close3-q35o-20261013/manifest.json) | Source patch, frozen readings, generation receipt and notices at committed target inputs `2f3500f6`. SHA256 `c23303de03306ca8f985592f4967cf61db365ddb0168cebc16ccf8950a4c07dd`. |
+- [Handwritten support and canonical types](../implementation/retained-evidence/q35o-handwritten-types-20261023/manifest.json),
+  SHA256 `e6d5db45c31b8983a137bfbd0bd04a9ea36a400a9128aecad9f66a6b97bf835d`:
+  preserving import repair, native declarations and assumptions, fresh original-plugin
+  generation, complete types comparison and strict compilation at
+  `a5e4ba0e3e2ab477cdde2ae8a59dd47b82a9da90`.
+- [Scoped canonical syntax](../implementation/retained-evidence/q35o-scope-20261023/manifest.json),
+  SHA256 `30f9caabab5f9e92c949242b527a8702b4a6a19ec022ef821b7367465305b32c`:
+  private patch, four notation controls, canonical generation identity, first strict
+  diagnostic and installed-artifact restoration at base `59f8a9e9`.
+- [Minimal syntax and identity](../implementation/retained-evidence/close3-q35o-20261013/manifest.json),
+  SHA256 `c23303de03306ca8f985592f4967cf61db365ddb0168cebc16ccf8950a4c07dd`:
+  source patch, frozen readings, generation receipt and notices at inputs `2f3500f6`.
 
 ## Canonical target and loader identity
 

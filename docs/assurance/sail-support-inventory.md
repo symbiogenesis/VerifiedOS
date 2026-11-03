@@ -25,12 +25,14 @@ public signature resolver maps that name to independently looked-up
 [public-alias correction](../implementation/contracts/sail-support-census.md#public-alias-canonicalization)
 requires their explicit bridge without resetting counters or time allocations.
 
-| Retained bundle | SHA256 |
-| --- | --- |
-| [Complete native census and bounded replay](../implementation/retained-evidence/q35q-census-native-20261023/manifest.json) | `176fc8a261105e4e3afdb771b4f4f1c084e24153462b92dc24822703274b300e` |
-| [Complete-schema replay timeout](../implementation/retained-evidence/q35q-census-replay2-20261023/manifest.json) | `b08d005ac0cb3f18f04a75073a6bb6fbe397e239c10d2c9901552a6eac26d33e` |
-| [Native signature and sealed-axiom controls](../implementation/retained-evidence/q35q-native-control-refusals-20261023/manifest.json) | `b8be83d068822b032728f4c3a480939d00bd6d823158a3f152cc8c12f205d74a` |
-| [Private/public alias resolver observations](../implementation/retained-evidence/q35q-native-alias-refusal-20261023/manifest.json) | `3ebe3e6927cf9727a2323e6b597744d386e87f5987e20f0a6cfdd1e41b0ab420` |
+- [Complete native census and bounded replay](../implementation/retained-evidence/q35q-census-native-20261023/manifest.json),
+  SHA256 `176fc8a261105e4e3afdb771b4f4f1c084e24153462b92dc24822703274b300e`.
+- [Complete-schema replay timeout](../implementation/retained-evidence/q35q-census-replay2-20261023/manifest.json),
+  SHA256 `b08d005ac0cb3f18f04a75073a6bb6fbe397e239c10d2c9901552a6eac26d33e`.
+- [Native signature and sealed-axiom controls](../implementation/retained-evidence/q35q-native-control-refusals-20261023/manifest.json),
+  SHA256 `b8be83d068822b032728f4c3a480939d00bd6d823158a3f152cc8c12f205d74a`.
+- [Private/public alias resolver observations](../implementation/retained-evidence/q35q-native-alias-refusal-20261023/manifest.json),
+  SHA256 `3ebe3e6927cf9727a2323e6b597744d386e87f5987e20f0a6cfdd1e41b0ab420`.
 
 Full native generation, validation and corruption-control replay now run only
 on GitHub-hosted Actions under the contract's
@@ -96,12 +98,14 @@ population, without rescanning additions. That probe's `Constr.debug_print`
 omits relevance, cast kinds and case metadata; the current producer supersedes
 the rendering, not the outstanding census obligation.
 
-| Retained bundle | SHA256 |
-| --- | --- |
-| [Native support provenance diagnosis](../implementation/retained-evidence/q35q-native-20261013/manifest.json) | `b1d43d1412742df9fb8361a0dc927576552d7852a94722e8096cfcfd5f1c5ed8` |
-| [Module-body API probe](../implementation/retained-evidence/q35q-native-api-20261023/manifest.json) | `7f6bf881ccde03a7c69f6031fb2f87cb4f7358c3ceb20c1c7133abedecc329a6` |
-| [Restored API replay](../implementation/retained-evidence/q35q-native-api-restoration-20261023/manifest.json) | `3191c3beae438f5d0269518de00e07fb2720a280c6d1394f81495cd569b6084f` |
-| [Signature completeness diagnosis](../implementation/retained-evidence/close3-q35q-20261013/manifest.json) | `9643ce249720459c89f8ad672cf48f5d10bd3a3a51139b384fb5c4972193d139` |
+- [Native support provenance diagnosis](../implementation/retained-evidence/q35q-native-20261013/manifest.json),
+  SHA256 `b1d43d1412742df9fb8361a0dc927576552d7852a94722e8096cfcfd5f1c5ed8`.
+- [Module-body API probe](../implementation/retained-evidence/q35q-native-api-20261023/manifest.json),
+  SHA256 `7f6bf881ccde03a7c69f6031fb2f87cb4f7358c3ceb20c1c7133abedecc329a6`.
+- [Restored API replay](../implementation/retained-evidence/q35q-native-api-restoration-20261023/manifest.json),
+  SHA256 `3191c3beae438f5d0269518de00e07fb2720a280c6d1394f81495cd569b6084f`.
+- [Signature completeness diagnosis](../implementation/retained-evidence/close3-q35q-20261013/manifest.json),
+  SHA256 `9643ce249720459c89f8ad672cf48f5d10bd3a3a51139b384fb5c4972193d139`.
 
 The paired Sail 0.20.3 archive and reviewed patches retain their recipe and BSD
 notices. Installed Rocq/API notices state LGPL 2.1. Original Apache-2.0 producer
