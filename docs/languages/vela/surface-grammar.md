@@ -69,6 +69,10 @@ state result indices, for example `Nil() : Vec<T, 0>;`.
 module Syntax.Examples;
 universe u;
 public definition Nat Twice(Nat x) = x + x;
+public Nat Increment(Nat x)
+    requires x > 0
+    ensures result > x
+    => x + 1;
 public inductive Natural { Zero(); Succ(Natural predecessor); }
 public coinductive Stream<T> { More(T head, Stream<T> tail); }
 public lemma Reflexive(Nat n): forall (Nat x) => x == x
