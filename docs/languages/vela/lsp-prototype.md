@@ -150,6 +150,25 @@ worker shape, bounds, identity links and exact source spelling before converting
 positions through the shared source API. Worker output and each complete reply
 retain the 1,048,576-byte bound; an oversized result is refused as a whole.
 
+[Declaration documentation](authoring-tools.md#documentation-comments) extends a
+public function or constant symbol with an optional `documentation` record:
+`text`, an original-byte half-open `span`, and the original-byte `declaration`
+start. The parser records that start without extending either native AST schema.
+The compiler attaches only a directly preceding contiguous triple-slash block;
+blank lines, ordinary comments and intervening source break attachment. Text
+removes the slashes and at most one following space per line, and uses LF between
+lines while retaining all other UTF-8 content. An attached block may supply at
+most 8,192 UTF-8 presentation bytes; overflow refuses inspection without affecting
+ordinary translation. XML-looking documentation remains authored plain text.
+
+Hover includes the declaration's documentation for both its declaration and
+references. The projection checks comment bytes, rendered text, adjacency and
+the declaration/name source link before rendering it; it performs no name
+resolution or semantic checking. Old records lacking the optional field remain
+valid. Incomplete, forged or stale documentation records refuse the entire
+inspection. Overlay edits and configuration changes use existing snapshot
+invalidation, so changed or removed documentation cannot survive in cached facts.
+
 Acceptance requires independently expected signatures, types, declaration sites
 and reference sets for earlier calls, parameters, inferred locals, same-spelled
 bindings across functions and sibling branches, and distinct call/value

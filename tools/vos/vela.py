@@ -135,6 +135,7 @@ class _Parser:
     def __init__(self, tokens: list[_Token]) -> None:
         self.tokens = tokens
         self.offset = 0
+        self.declaration_sites: dict[syntax.Site, syntax.Site] = {}
 
     def _current(self) -> _Token:
         return self.tokens[self.offset]
@@ -185,6 +186,7 @@ class _Parser:
                 raise self._error("syntax", "const requires an explicit type before its name")
             result = self._value_type()
             name = self._name()
+            self.declaration_sites[name.site] = start.site
             if self._current().text == "(":
                 declarations.append(self._function(name, result, is_const))
             elif is_const:
@@ -681,8 +683,9 @@ def translate(source: bytes) -> Translation:
 
 def inspect_source(source: bytes) -> dict[str, object]:
     """Return diagnostic resolution facts only after a complete successful pure check."""
-    module = _Parser(_tokens(source)).parse()
-    facts = Facts()
+    parser = _Parser(_tokens(source))
+    module = parser.parse()
+    facts = Facts(source, parser.declaration_sites)
     _translate(source, module, facts)
     return facts.result()
 

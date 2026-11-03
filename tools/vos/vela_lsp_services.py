@@ -9,7 +9,16 @@ from pathlib import Path
 from typing import cast
 
 from vos.protocol_json import MAX_BODY_BYTES, decode_message, encode_message
-from vos.vela_ast import IDENTIFIER, KEYWORDS, MAX_LITERAL_DIGITS, MAX_SOURCE_BYTES, UNSUPPORTED
+from vos.vela_ast import (
+    IDENTIFIER,
+    KEYWORDS,
+    MAX_LITERAL_DIGITS,
+    MAX_SOURCE_BYTES,
+    UNSUPPORTED,
+    Name,
+    Site,
+)
+from vos.vela_documentation import DocumentationSource
 from vos.vela_facts import MAX_OCCURRENCES, MAX_SYMBOLS
 from vos.vela_source import SourceSnapshot
 
@@ -51,6 +60,7 @@ class _Symbol:
     start: Position
     end: Position
     type_hint: str | None
+    documentation: str | None
 
 
 @dataclass(frozen=True)
@@ -111,9 +121,13 @@ def _validate(snapshot: SourceSnapshot, raw: dict[str, object]) -> _Inspection |
             or len(occurrences_raw) > MAX_OCCURRENCES):
         raise InspectionError("Pure prototype inspection exceeds its bounds or has invalid status")
     lines = snapshot.text.replace("\r\n", "\n").replace("\r", "\n").split("\n")
+    documentation = DocumentationSource(snapshot.source)
     symbols: list[_Symbol] = []
     for value in symbols_raw:
-        symbol = _object(value, {"name", "kind", "detail", "line", "column"})
+        fields = {"name", "kind", "detail", "line", "column"}
+        if isinstance(value, dict) and "documentation" in value:
+            fields.add("documentation")
+        symbol = _object(value, fields)
         name, kind, detail = symbol["name"], symbol["kind"], symbol["detail"]
         if (not isinstance(name, str) or not IDENTIFIER.fullmatch(name)
                 or name in KEYWORDS | UNSUPPORTED or kind not in {"function", "parameter", "variable", "constant"}
@@ -144,7 +158,11 @@ def _validate(snapshot: SourceSnapshot, raw: dict[str, object]) -> _Inspection |
                     f"const bool {name} = true", f"const bool {name} = false",
                     f"const Nat {name}", f"const bool {name}"}:
                 raise InspectionError("Invalid pure prototype constant detail")
-        symbols.append(_Symbol(name, cast("str", kind), detail, first, last, type_hint))
+        doc = None
+        if "documentation" in symbol:
+            site = Site(_integer(symbol["line"]), _integer(symbol["column"]))
+            doc = documentation.validate(symbol["documentation"], Name(name, site), cast("str", kind))
+        symbols.append(_Symbol(name, cast("str", kind), detail, first, last, type_hint, doc))
     occurrences: list[_Occurrence] = []
     declarations: set[int] = set()
     for value in occurrences_raw:
@@ -209,7 +227,8 @@ def project(snapshot: SourceSnapshot, raw: dict[str, object], method: str,
         return empty
     symbol = inspection.symbols[selected.symbol]
     if method == "textDocument/hover":
-        return {"contents": {"kind": "plaintext", "value": symbol.detail + "\nVela pure prototype (unqualified)"},
+        doc = "" if symbol.documentation is None else "\n\n" + symbol.documentation
+        return {"contents": {"kind": "plaintext", "value": symbol.detail + doc + "\nVela pure prototype (unqualified)"},
                 "range": _range(selected.start, selected.end)}
     if method == "textDocument/definition":
         return _location(snapshot.uri, symbol.start, symbol.end)
