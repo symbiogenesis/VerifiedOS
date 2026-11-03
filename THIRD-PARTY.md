@@ -1108,6 +1108,37 @@ An actual installation must pin and review the complete selected Yosys, solver a
 front-end closure and preserve applicable notices; this reading qualifies no core
 or generated netlist.
 
+### Vela development and proof-reuse candidates
+
+[Q25x](PLAN.md#q-assessment-actions) qualifies Hypothesis as an isolated development
+test generator before deciding whether to add a permanent dependency. The
+2026-11-03 reading inspected Hypothesis 6.170.14's own `LICENSE.txt` in its
+[release source archive](https://files.pythonhosted.org/packages/d6/0f/10b2076a1314c554eee58c26e1dbe630fd26a32773df2a63bd5dba5d9947/hypothesis-6.170.14.tar.gz)
+and [Windows ARM64 wheel](https://files.pythonhosted.org/packages/ab/72/482a68ae0e94b24acd964196cca830d1dd65efbf3d4821599d1c9527f8e2/hypothesis-6.170.14-cp311-abi3-win_arm64.whl).
+Both carry the MPL-2.0 instrument. The archives' SHA-256 identities are respectively
+`8272913eb34c4399a88cf8a9ecdb351c9ef8f621c061f2ac323362d4a66b755d` and
+`7dbaec9a62b7792b0b04b7ebc933aeafd3ff019b81d67d763c36ebcf4d56f864`;
+the licence member in each has SHA-256
+`ac89037bac63550644dce8cf32c6765e5fab9dc1a1ce94b89f8a805f341a6750`.
+The intended use is a separately installed development instrument; no upstream
+source, wheel or generated executable is copied or distributed here or selected
+for the device. This reading supplies no installation, complete licence-closure
+or host-compatibility verdict. Q25x must select its actual version under the
+existing cooldown, read native contents, exceptions and transitive notices, and
+qualify that exact closure before adoption. The [test contract](docs/languages/vela/tooling-protocols.md#generated-development-tests)
+owns its use and evidence boundary. Q25y reuses the selected Menhir and its
+[parser output terms](#vela-parser-support-library); it still reads the actual
+outputs its additional facilities would retain.
+
+[CoqEAL and Trocq](docs/languages/vela/verification-strategy.md#existing-tooling-and-implementation-owners)
+remain conditional proof-transfer references. A concrete consumer and separately
+priced qualification must select the revision and read its own complete licence
+and dependency closure; neither is installed or incorporated by this decision.
+QCheck is similarly conditional on an actual OCaml test consumer and has no
+selected package. The [Plinth/Plutus paper](docs/languages/vela/verification-strategy.md#compilation-and-executable-models)
+is a compiler-architecture reference only. No software source is taken from its
+artifact, and the paper's publication licence supplies no software grant.
+
 ### Proof assistance design references
 
 The [portable proof workflow](docs/assurance/proof-assistance.md) adopts local
