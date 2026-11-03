@@ -6,8 +6,8 @@ The [surface grammar](surface-grammar.md) owns syntax and the
 The compiler includes a formatter and an advisory lint pass. The design keeps
 checking and emission read-only with respect to source; formatting writes require
 an explicit command or option. The initial executable formatter and lints cover
-the pure subset, whose current automatic-writing default still needs the
-[command-policy migration](#compiler-commands-and-publication). Wider formatting
+the pure subset, following the
+[source-preserving command policy](#compiler-commands-and-publication). Wider formatting
 and semantic lints consume qualified parser/frontend producers through
 [compiler services](tooling-protocols.md#compiler-inspection-api).
 Q25z owns the later [familiar authoring migration](surface-grammar.md#familiar-authoring-migration),
@@ -145,11 +145,10 @@ An I/O failure after that source publication may leave a formatted source but
 must not claim successful output publication. The library checker and language
 server never rewrite files.
 
-**Current prototype boundary:** the implemented pure CLI still defaults
-`check`/`emit` to `--format write`. Until Q25t's migration passes, use
-`--format off` for source-preserving checking/emission or `--format check` to
-enforce formatting without writes. The contract above changes the required
-behavior; this document does not claim that executable migration has landed.
+The pure CLI defaults `check`/`emit` to `--format off`, preserving the exact
+input snapshot and its emitted provenance. Use `--format check` for read-only
+style enforcement, or explicitly select `fmt` or `--format write` to apply
+canonical formatting. Hosted qualification remains part of Q25t's acceptance.
 
 ## Lint policy
 

@@ -968,8 +968,9 @@ build host's word size.
 
 The [common authoring style](authoring-tools.md) defines StyleCop-inspired layout,
 explicit formatting, immutable default checking, documentation comments and advisory
-lints. Q25t still owns migration from the pure prototype's current automatic rewriting; wider formatting and
-semantic findings retain their qualified parser/frontend prerequisites.
+lints. The pure prototype implements this source-preserving command policy;
+Q25t retains hosted qualification, and wider formatting and semantic findings
+retain their qualified parser/frontend prerequisites.
 
 | Spelling | Meaning |
 | --- | --- |
