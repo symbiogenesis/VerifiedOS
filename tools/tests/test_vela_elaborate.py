@@ -18,7 +18,7 @@ from vos.vela_elaborate import elaborate
 
 type Node = dict[str, object]
 type Form = Callable[[_Fixture], Node]
-type Parameter = tuple[str | None, Form]
+type Parameter = tuple[str | None, Form] | tuple[str | None, Form, bool]
 type Generic = tuple[str, str, Form | None]
 
 
@@ -57,16 +57,26 @@ class _Fixture:
     def parameters(self, parameters: tuple[Parameter, ...], *, kind: str = "parameter") -> list[Node]:
         nodes: list[Node] = []
         self.write("(")
-        for index, (name, value_type) in enumerate(parameters):
+        for index, parameter in enumerate(parameters):
+            if len(parameter) == 3:
+                name, value_type, static = parameter
+            else:
+                name, value_type = parameter
+                static = False
             if index:
                 self.write(", ")
             start = self.offset
+            if static:
+                self.write("const ")
             annotation = value_type(self)
             binding = None
             if name is not None:
                 self.write(" ")
                 binding = self.name(name)
-            nodes.append(self.node(kind, start, name=binding, type=annotation, grade=None))
+            node = self.node(kind, start, name=binding, type=annotation, grade=None)
+            if static:
+                node["const"] = True
+            nodes.append(node)
         self.write(")")
         return nodes
 
@@ -145,10 +155,10 @@ class _Fixture:
                                            modifiers=["public"]))
 
     def function(self, name: str, result: Form, parameters: tuple[Parameter, ...], value: Form,
-                 *, arrow: bool = True, block: bool = False) -> None:
+                 *, arrow: bool = True, block: bool = False, constant: bool = False) -> None:
         self.write("\n")
         start = self.offset
-        self.write("public ")
+        self.write("public const " if constant else "public ")
         annotation = result(self)
         self.write(" ")
         binding = self.name(name)
@@ -173,7 +183,7 @@ class _Fixture:
             body = self.node("block", body_start, statements=[terminal])
         self.declarations.append(self.node("function", start, name=binding, result=annotation,
                                            generics=[], parameters=parameter_nodes, contracts=[],
-                                           body=body, cancel=None, modifiers=["public"]))
+                                           body=body, cancel=None, modifiers=["public", "const"] if constant else ["public"]))
 
     def alias(self, name: str, value_type: Form, generics: tuple[Generic, ...] = ()) -> None:
         self.write("\n")
