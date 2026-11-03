@@ -1,6 +1,9 @@
 # SPDX-License-Identifier: Apache-2.0
 """Ordinary Markdown pointers use pinned offline Lychee validation.
 
+Source comments/docstrings use the same link syntax with source declarations as
+fragment targets where supported. Their targets must belong to the Git index.
+
 The licence-text check separately requires that redistributed terms belong to the
 Git index. A file existing on disk does not establish that this repository ships
 it.
@@ -12,10 +15,10 @@ from collections.abc import Iterator
 from pathlib import PurePosixPath
 from typing import TYPE_CHECKING
 
-from vos import lychee
+from vos import lychee, source_refs
 from vos.corpus import Document
 
-# `Context` lives in this package's __init__, which imports this module in turn.
+# [Context](__init__.py#Context) imports this module in turn.
 # Guarded, so the annotation below costs no import at run time: under PEP 649 an
 # annotation is not evaluated unless something asks for it, and nothing here does.
 if TYPE_CHECKING:
@@ -127,8 +130,10 @@ def run(ctx: Context) -> None:
         dead = lychee.findings(ctx.root, [doc.name for doc in corpus.docs], corpus.gitlinks)
     except (OSError, ValueError, TypeError, KeyError, subprocess.SubprocessError) as exc:
         dead = [f"ordinary link validation could not complete: {exc}"]
+    dead += source_refs.findings(ctx.root, corpus)
     rep.report("K-12", "dead link(s):", dead,
-               "every link resolves to a file, and every fragment to a bookmark or heading")
+               "Markdown and source-comment links resolve; fragments name headings, "
+               "anchors or supported source declarations")
 
     # The membership is the index and not the filesystem, which is the whole of what
     # separates this from K-12: a licence file present but untracked is one this
