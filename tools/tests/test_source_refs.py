@@ -92,6 +92,26 @@ def _comment_dialects_and_reference_links() -> None:
             raise AssertionError(f"{rel}: unfinished comment must refuse")
 
 
+def _complete_docstring_values() -> None:
+    text = ('def first():\n'
+            '    ("See [owner]("\n'
+            '     "missing.py)")\n'
+            'def second():\n'
+            '    ("See [owner]" "(another.py)")\n'
+            'def escaped():\n'
+            '    "See [owner]\\x28escaped.py\\x29"\n'
+            'ordinary = ("[ignored]" "(ordinary-missing.py)")\n')
+    refs = list(source_refs.references("live.py", text))
+    ensure({ref.target for ref in refs} == {"missing.py", "another.py", "escaped.py"},
+           f"whole decoded docstrings must resolve links crossing literals and escapes: {refs}")
+    ensure({ref.line for ref in refs} == {2, 5, 7},
+           f"decoded logical lines must point to existing physical docstring source lines: {refs}")
+    with _tree({"live.py": text}) as (root, corpus):
+        faults = source_refs.findings(root, corpus)
+        ensure(len(faults) == 3 and any("live.py:5" in fault for fault in faults),
+               f"raw-text prefilter must not hide links assembled by Python string concatenation: {faults}")
+
+
 _PYTHON = ("raise RuntimeError('reference checking must never execute this file')\n"
            "LIMIT = 5\nclass Worker:\n    value: int\n    async def run(self): pass\n"
            "if True:\n    def conditional(): pass\n")
@@ -132,7 +152,8 @@ def _declaration_and_heading_renames() -> None:
 
 def _membership_and_path_safety() -> None:
     targets = ["../untracked.txt", "../TARGET.py", "../../outside.txt", "/absolute.txt",
-               "file:///outside.txt", "C:/outside.txt", "..%5Ctarget.py", "../target.py?query=yes",
+               "file:///outside.txt", "file://localhost/missing.py", "file://host/missing.py",
+               "C:/outside.txt", "..%5Ctarget.py", "../target.py?query=yes",
                "../target.txt#unsupported", "../target.py#absent", "../proof.v#ghost"]
     files = {"src/main.py": "\n".join(f"# [target]({target})" for target in targets)
                              + "\n# [network](https://never-contact.invalid/a)\n",
@@ -201,6 +222,7 @@ def _sail_identity() -> None:
 
 def cases() -> list[Case]:
     return [Case("Python source comments and docstrings", _python_comments_and_docstrings),
+            Case("Complete concatenated and escaped docstring values", _complete_docstring_values),
             Case("Gallina, Sail, C and RTL comment boundaries", _comment_dialects_and_reference_links),
             Case("Declaration, heading and file renames", _declaration_and_heading_renames),
             Case("Indexed membership and safe local paths", _membership_and_path_safety),

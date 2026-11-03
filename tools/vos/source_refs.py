@@ -44,6 +44,12 @@ class Reference:
     target: str
 
 
+@dataclass(frozen=True)
+class _Prose:
+    text: str
+    lines: tuple[int, ...]
+
+
 def is_source(rel: str) -> bool:
     """Historical snapshots retain their original links; indexed live kinds grow."""
     return not rel.startswith(_HISTORICAL) and PurePosixPath(rel).suffix in SUFFIXES
@@ -60,9 +66,40 @@ def _normal(text: str) -> str:
     return "\n".join(lines)
 
 
-def _python(text: str) -> Iterator[tuple[int, str]]:
+def _docstring(tokens: list[tokenize.TokenInfo], value: str, fallback: int) -> _Prose:
+    """Read the whole runtime string, retaining physical origins for its lines.
+
+    Literal decoding is Python's, never execution. Escaped literals use the actual
+    token's start line where decoded line breaks have no physical source counterpart.
+    """
+    chunks: list[str] = []
+    origins: list[int] = []
+    for token in tokens:
+        decoded = ast.literal_eval(token.string)
+        if not isinstance(decoded, str):
+            raise TypeError("Python docstring literal does not decode to text")
+        match = _QUOTES.match(token.string)
+        if match is None:
+            raise ValueError("Python docstring literal has no recognized quote")
+        quote = match.group(1)
+        body = token.string[match.end():-len(quote)]
+        raw = "r" in token.string[:match.start(1)].lower()
+        physical = token.start[0]
+        for char in decoded:
+            origins.append(physical)
+            if char == "\n" and (raw or "\\" not in body):
+                physical += 1
+        chunks.append(decoded)
+    if "".join(chunks) != value:
+        raise ValueError("Python docstring literals disagree with the AST value")
+    starts = [0, *(match.end() for match in re.finditer("\n", value))]
+    lines = tuple(origins[min(at, len(origins) - 1)] if origins else fallback for at in starts)
+    return _Prose(_normal(value), lines)
+
+
+def _python(text: str) -> Iterator[_Prose]:
     tree = ast.parse(text)
-    docstrings: list[tuple[tuple[int, int], tuple[int, int]]] = []
+    docstrings: list[tuple[tuple[int, int], tuple[int, int], str, list[tokenize.TokenInfo]]] = []
     for node in ast.walk(tree):
         if not isinstance(node, (ast.Module, ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef)):
             continue
@@ -71,7 +108,7 @@ def _python(text: str) -> Iterator[tuple[int, str]]:
             if first.value.end_lineno is None or first.value.end_col_offset is None:
                 raise ValueError("Python docstring has no complete source span")
             docstrings.append(((first.value.lineno, first.value.col_offset),
-                               (first.value.end_lineno, first.value.end_col_offset)))
+                               (first.value.end_lineno, first.value.end_col_offset), first.value.value, []))
     # A single projected comment document allows reference definitions on adjacent
     # comment lines. Non-comments remain blank, so string fixtures are never read.
     comments = [""] * len(text.split("\n"))
@@ -83,13 +120,13 @@ def _python(text: str) -> Iterator[tuple[int, str]]:
             # AST columns count UTF-8 bytes; tokenize columns count characters.
             begin = (token.start[0], len(source_lines[token.start[0] - 1][:token.start[1]].encode("utf-8")))
             end = (token.end[0], len(source_lines[token.end[0] - 1][:token.end[1]].encode("utf-8")))
-            if not any(first <= begin and end <= last for first, last in docstrings):
-                continue
-            match = _QUOTES.match(token.string)
-            if match:
-                quote = match.group(1)
-                yield token.start[0], _normal(token.string[match.end():-len(quote)])
-    yield 1, "\n".join(comments)
+            for first, last, _value, tokens in docstrings:
+                if first <= begin and end <= last:
+                    tokens.append(token)
+                    break
+    for first, _last, value, tokens in docstrings:
+        yield _docstring(tokens, value, first[0])
+    yield _Prose("\n".join(comments), tuple(range(1, len(comments) + 1)))
 
 
 def _c_comments(text: str, *, chars: bool, nested: bool, cpp: bool) -> Iterator[tuple[int, str]]:
@@ -121,8 +158,8 @@ def _c_comments(text: str, *, chars: bool, nested: bool, cpp: bool) -> Iterator[
         raise ValueError("unterminated block comment")
 
 
-def prose(rel: str, text: str) -> Iterator[tuple[int, str]]:
-    """Comment/docstring blocks as their one-based start line and Markdown text."""
+def prose(rel: str, text: str) -> Iterator[_Prose]:
+    """Comment/docstring Markdown with physical source origins for every line."""
     suffix = PurePosixPath(rel).suffix
     if suffix == ".py":
         yield from _python(text)
@@ -146,7 +183,7 @@ def prose(rel: str, text: str) -> Iterator[tuple[int, str]]:
             marginless = re.sub(r"^[ \t]*\* ?", "", value)
             separator = " " if projected[line + offset] else ""
             projected[line + offset] += separator + marginless
-    yield 1, "\n".join(projected)
+    yield _Prose("\n".join(projected), tuple(range(1, len(projected) + 1)))
 
 
 @cache
@@ -165,9 +202,9 @@ def _markdown() -> MarkdownIt:
 
 def references(rel: str, text: str) -> Iterator[Reference]:
     """Use CommonMark links, including reference-style links and excluding code."""
-    for start, block in prose(rel, text):
-        lines = block.split("\n")
-        for token in _markdown().parse(block):
+    for block in prose(rel, text):
+        lines = block.text.split("\n")
+        for token in _markdown().parse(block.text):
             if token.type != "inline" or token.children is None or token.map is None:
                 continue
             cursor = token.map[0]
@@ -184,14 +221,16 @@ def references(rel: str, text: str) -> Iterator[Reference]:
                 # the referring block's first line rather than the definition's.
                 line = next((n for n in range(cursor, token.map[1]) if target in lines[n]), cursor)
                 cursor = line
-                yield Reference(start + line, target)
+                yield Reference(block.lines[line], target)
 
 
 def _local(source: str, target: str) -> tuple[str, str] | None:
     parsed = urlsplit(target)
     if re.match(r"^[A-Za-z]:", target):
         raise ValueError("local references cannot use a Windows drive path")
-    if (parsed.scheme and parsed.scheme != "file") or parsed.netloc:
+    if parsed.scheme == "file":
+        raise ValueError("local references cannot use a file: URL")
+    if parsed.scheme or parsed.netloc:
         return None
     path, fragment = unquote(parsed.path), unquote(parsed.fragment)
     if (parsed.scheme or parsed.query or "\\" in path or "\0" in path
@@ -334,7 +373,8 @@ def findings(root: Path, corpus: Corpus) -> list[str]:
             # A CommonMark local link or reference definition contains a closing
             # label followed by a destination, label or colon. Skip unrelated
             # source before paying for AST/tokenization and comment projection.
-            if not re.search(r"\][ \t\r\n]*(?:\(|\[|:)", text):
+            if (not source.endswith(".py")
+                    and not re.search(r"\][ \t\r\n]*(?:\(|\[|:)", text)):
                 continue
             refs = list(references(source, text))
         except (OSError, UnicodeError, ValueError, TypeError, SyntaxError, tokenize.TokenError) as exc:
