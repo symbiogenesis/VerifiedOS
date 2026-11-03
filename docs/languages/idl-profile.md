@@ -4,19 +4,17 @@
 > This document defines the typed interface profile required by R-12-010. It specifies the constructors used by server protocols and capability manifests in the register's [§12](../requirements-register.md#12-system-servers), their wire encoding, the obligations attached to each definition, and the contents of generated Coq interface skeletons.
 > Its [§4](#4-the-wire-format-mapping) defines the wire-format mapping designated `CJ-IDL` by R-12-013 and listed in row 3 of [the crown-jewel inventory](../assurance/crown-jewels.md).
 >
-> **Normative for the profile; not a derived view.**
-> [The frozen instruction-set profile](../hardware/isa-profile.md), [the absence contract](../hardware/absence-contract.md), [the crown-jewel inventory](../assurance/crown-jewels.md), and [the coverage matrix](../assurance/coverage-matrix.md) are derived views of [requirements-register.md](../requirements-register.md) and state no obligation of their own.
-> This document states its own numbered requirements and acceptance criteria, following the form used by [the typed assembly language](typed-assembly-language.md).
-> Where this document and the register disagree about a VerifiedOS obligation, **the register governs and this document is defective**; where they disagree about the profile's own language, this document governs.
-> Where the register leaves a necessary profile choice open, [§8](#8-declared-parameters) records it as a **declared parameter**, with its rationale and the conditions that would change it.
+> **Authority.**
+> This profile states numbered requirements and acceptance criteria, following [the typed assembly language](typed-assembly-language.md)'s form. The [requirements register](../requirements-register.md) governs VerifiedOS obligations; this document governs the profile's own language. A conflict over a VerifiedOS obligation is a defect in this document.
+> Choices left open by the register appear as **declared parameters** in [§8](#8-declared-parameters), with rationale and conditions for changing them.
 >
 > **Normative form.**
 > Every obligation is a numbered requirement of the form `**IDL-nnn** MUST | MUST NOT | IS:` carrying one `· Accept:` line and one `· Trace:` line. Prose around them is rationale and binds nothing. Identifiers are permanent: a retired requirement is struck in place and its identifier is never reused.
 >
 > **Section references.** Each section citation links to its owning document. The register, specification and this profile have independent section numbering.
 >
-> **The crown-jewel inventory records the mapping's review status.**
-> [§4](#4-the-wire-format-mapping) defines the mapping R-12-013 designates as a crown jewel. Changing row 3's status requires an edit to [the crown-jewel inventory](../assurance/crown-jewels.md) under R-05-150's review gate. This document presents the mapping as ready for that review; it does not change the inventory's status.
+> **Review status.**
+> The mapping in [§4](#4-the-wire-format-mapping) is ready for review. Its recorded status remains in row 3 of [the crown-jewel inventory](../assurance/crown-jewels.md); changing that status requires the R-05-150 review gate.
 >
 > **What is built against this profile, and what is not.**
 > One interface declaration exists, [the ring reference](../../interfaces/ring-reference.json), and one generator compiles it to the [§4.3.6](#436-the-generated-interface-artifact) interface artifact, [RingContract.v](../../proofs/RingContract.v). Marshalling code, verified parsers, systems-language bindings, and an admission checker remain to be built. Sections 4 and 6 specify their obligations.
@@ -27,7 +25,7 @@ The [web application host](../implementation/userspace-porting.md#web-applicatio
 
 ## 1. The start-from, and what survives the read
 
-R-12-010 says **fork-and-frozen** and names no artifact. The register is silent on what the fork is a fork of; the specification's [§12](../spec.md#12-system-servers-contained-outside-the-tcb) prose says *WIT-derived* and [inspirations.md](../background/inspirations.md) splits the intent in two, a WIT-derived type layer over a FIDL/Zircon-channel wire layer. Neither is the artifact the review gate audits, so naming a start-from is a maturity claim under R-18-001a with no register owner, and it is taken here as a declared parameter ([§8](#8-declared-parameters)) rather than as a reading of the register.
+R-12-010 requires a **fork-and-frozen** profile without naming its source. The specification's [§12](../spec.md#12-system-servers-contained-outside-the-tcb) calls it *WIT-derived*; [inspirations.md](../background/inspirations.md) proposes a WIT type layer over a FIDL/Zircon-channel wire layer. Because the register does not select either source, this profile records its choice as a declared parameter in [§8](#8-declared-parameters), subject to R-18-001a's maturity rule.
 
 **IDL-001** IS: The type layer of this profile is a fork of **WIT**, the interface-definition syntax of `WebAssembly/component-model`, taken at its own `design/mvp/WIT.md`. The wire layer forks no artifact: its exemplar is **FIDL and the Zircon channel**, whose bytes-plus-out-of-band-handles discipline the register's [§12](../requirements-register.md#12-system-servers) ring data plane already carries, and what [§4](#4-the-wire-format-mapping) states over that data plane is authored here.
 · Accept: every constructor row of [§2](#2-the-type-constructors) names WIT's own spelling or is marked as this profile's own; no row of [§4](#4-the-wire-format-mapping) is transcribed from an upstream's encoding.
@@ -37,7 +35,7 @@ R-12-010 says **fork-and-frozen** and names no artifact. The register is silent 
 
 **A licence is read at the milestone that would incorporate the upstream, at that upstream's own licence file, and never inferred from its lineage** (R-18-001a). Both readings are dated **2026-08-31** and are recorded in [THIRD-PARTY.md](../../THIRD-PARTY.md), which is where their terms live; this section states only what the readings decided for the profile.
 
-Both instruments are permissive, non-reciprocal, and carry no field-of-use restriction, so **the arm this repository has taken three times does not engage.** That arm refuses a term reaching a shipped artifact and contains a term reaching a build-time producer; a wire-format mapping is the first kind, and neither read produced a term to refuse or to contain. Nothing is incorporated in either direction: this repository tracks no file, no URL, no integrity hash, and no gitlink of either upstream.
+Both licences are permissive, non-reciprocal and unrestricted by field of use. Neither triggers the repository's restriction on terms affecting shipped artifacts or its containment rule for build-time producers. A wire-format mapping would be a shipped artifact. Neither upstream is incorporated: the repository tracks no upstream file, source URL, integrity hash or gitlink for either.
 
 **IDL-002** MUST: No text, grammar file, schema, or generated artifact of either upstream is copied, vendored, or transcribed into this repository. What the type layer takes from WIT is a **vocabulary of constructor names and their intended meanings**, which is a discipline rather than an artifact.
 · Accept: no tracked file of this repository is derived from an upstream interface-definition source, and [THIRD-PARTY.md](../../THIRD-PARTY.md) carries neither upstream in its vendored, fetched, or submodule tables.
@@ -45,9 +43,11 @@ Both instruments are permissive, non-reciprocal, and carry no field-of-use restr
 
 ### 1.2 Why the wire layer is authored rather than forked, and the two grounds are technical
 
-**The Canonical ABI is declined because it names a machine no interface of this profile runs on.** WIT's own wire format is the Component Model's **Canonical ABI**, which is stated over Core WebAssembly linear memory: values flatten to `i32`, `i64`, `f32` and `f64`, and lifting and lowering run through a module's own memory with a realloc callback. Wasm is not a native compartment or system interface target here (R-05-085): the R-14-013e application host interprets Wasm guests as data, and no compartment whose interfaces are stated in this profile is a Wasm module, and authority moves out of band as session-table indices rather than through memory (R-12-006, R-12-007). The Canonical ABI therefore has **no machine here to be stated over**, and forking it would carry a mapping whose every term names a substrate this design does not have. The one Wasm machine the register does carry is a guest and not an endpoint: R-14-013a ships exactly one pure-interpreter engine as a library compartment an application may bind, its guest state inside the embedding's own CHERI-bounded memory plan and its reach into its host through the host functions that embedding's manifest names, so an interface of this profile is what the embedding is stated in and never what the guest speaks.
+**The Canonical ABI targets Wasm linear memory, not this profile's native endpoints.** The Component Model's ABI flattens values to `i32`, `i64`, `f32` and `f64`; lifting and lowering use a module's memory and a realloc callback. Here, native compartments exchange authority out of band through session-table indices (R-12-006, R-12-007). Wasm is interpreted guest data rather than a native system-interface target (R-05-085, R-14-013e).
 
-**FIDL's wire model is declined on a different ground, because its discipline transfers and its artifact does not.** A FIDL message is bytes plus out-of-band handles over a Zircon channel, which is structurally what the register's [§12](../requirements-register.md#12-system-servers) data plane is, so the exemplar reaches where the Canonical ABI does not: bounded schema formers, handles beside the bytes, and a decoder hardened at a trust boundary are the disciplines [§2](#2-the-type-constructors), [§4](#4-the-wire-format-mapping) and [§3.3](#33-the-receiver-validation-obligation) carry. What does not transfer is the encoder and the decoder themselves, which are unverified C++, where marshalling here is a Narcissus copy-once verified parser generated from the type source (R-05-042, R-05-046, IDL-022). Forking that encoding would fork the one part this design replaces.
+R-14-013a specifies one pure-interpreter library that an application may bind. Its guest state stays within the embedding's CHERI-bounded memory plan, and the embedding's manifest names the available host functions. This profile describes the embedding's native interfaces, not the guest ABI. Importing the Canonical ABI would therefore introduce an inapplicable memory model.
+
+**FIDL provides a structural example, not an implementation to fork.** Its bytes-plus-out-of-band-handles model resembles the register's [§12](../requirements-register.md#12-system-servers) data plane. This profile retains bounded constructors, separate handles and validation at the receiving trust boundary in [§2](#2-the-type-constructors), [§4](#4-the-wire-format-mapping) and [§3.3](#33-the-receiver-validation-obligation). FIDL's unverified C++ encoder and decoder do not meet the requirement for Narcissus-generated, copy-once verified marshalling (R-05-042, R-05-046, IDL-022), so the wire mapping is authored here.
 
 **The wire mapping needs review as an authored specification.** The type vocabulary can be compared with its WIT source, while the wire mapping has no upstream encoding to check against. This explains the review burden in this profile; R-12-013 itself designates the mapping as `CJ-IDL` without giving that rationale.
 
@@ -67,7 +67,7 @@ Both instruments are permissive, non-reciprocal, and carry no field-of-use restr
 
 ## 2. The type constructors
 
-R-12-012 restricts the profile to closed variants, no recursion, and an explicit bound on every list and string. It does not enumerate what constructors exist, so **the table below is closed by this document and by nothing the review gate audits** ([§8](#8-declared-parameters)). Every row is decided by a requirement or by a declared parameter; nothing is deleted on taste.
+R-12-012 requires closed variants, no recursion and explicit bounds on lists and strings. This document defines the constructor set because the register does not enumerate it. Each row cites a requirement or a declared parameter in [§8](#8-declared-parameters).
 
 **Standing** is `admitted` where the constructor is carried as the upstream states it, `narrowed` where it is carried under a restriction this table names, and `deleted` where no declaration may use it.
 
@@ -107,13 +107,13 @@ R-12-012 restricts the profile to closed variants, no recursion, and an explicit
 · Accept: the constructor graph over a declaration's type definitions is acyclic, and every former of `TC-4` and `TC-5` carries its bound; this is R-12-012's own acceptance criterion decided over [§2](#2-the-type-constructors)'s closed set.
 · Trace: [§2](#2-the-type-constructors)
 
-**Three deletions are worth a sentence each, because each removes something an interface author will reach for.** `TC-17`'s map has no declared key order, so one association carries several admissible byte strings and there is nothing for a canonicity theorem to be stated over; a declaration that wants one uses a bounded `list` of a two-field `record` and states the order it is sorted in. `TC-15` and `TC-16` are the concurrency formers, and what replaces them is the ring's own lifecycle: a request receives exactly one terminal completion (R-12-093), and a repeated result is a repeated request rather than a stream inside one. `TC-20` is the one deletion whose ground is a parameter rather than a requirement, and [§8](#8-declared-parameters) carries both arms.
+For a map (`TC-17`), use a bounded `list` of key/value records with a declared sort order; an unordered association permits multiple byte encodings and cannot meet canonicity. The concurrency constructors (`TC-15`, `TC-16`) are replaced by the ring lifecycle: each request receives one terminal completion (R-12-093), and repeated results require repeated requests. `TC-20` is excluded by a declared parameter rather than a register requirement; [§8](#8-declared-parameters) records the alternatives.
 
 ---
 
 ## 3. What every definition carries
 
-Every obligation below attaches **at a type's or an operation's definition** rather than at a call site, and that placement is what R-18-016 buys: the net-new work sits at the interface definitions rather than at every call site, and the front end propagates from there.
+Under R-18-016, the obligations below attach to type or operation definitions. The frontend propagates them to callers, avoiding repeated declarations at call sites.
 
 ### 3.1 The flow labels
 
@@ -149,7 +149,7 @@ Every obligation below attaches **at a type's or an operation's definition** rat
 
 ### 3.3 The receiver-validation obligation
 
-R-12-012a is the entry that keeps a declared type from being read as a statement about meaning: a declared type bounds what a value *is* and never what it *means to the receiver*, and capability bounds do not close the difference. The register requires the IDL to declare which received values carry the obligation and says nothing about the form that declaration takes, so the vocabulary below is this document's ([§8](#8-declared-parameters)).
+R-12-012a requires validation when a receiver uses a value as an index, length, offset or selector into its own state. A declared type and capability bounds cannot establish that receiver-specific meaning. The register requires the IDL to identify these values; this profile chooses per-field markers in [§8](#8-declared-parameters).
 
 **IDL-014** MUST: Every field of every received type carries a **validated-at-use marker**, set where the receiver uses the value as an index, a length, an offset, or a selector into its own state.
 · Accept: the marker is per field, which is this document's form ([§8](#8-declared-parameters)) over R-12-012a's *which received values*, a wording that rules a per-operation granularity out and fixes no finer one; the Tier-1 proof discharges the obligation at the receiver and never inherits it from a sender's compliance.
@@ -171,7 +171,7 @@ R-12-012a is the entry that keeps a declared type from being read as a statement
 · Accept: no figure of this kind is written in this document; each is a field of the declaration and of the generated artifact.
 · Trace: [§2](#2-the-type-constructors), [§8](#8-declared-parameters)
 
-**Nothing in the register bounds the size of a declaration.** R-05-143 bounds every recursive former and R-12-012 bounds every list and string, and both are bounds on **values**; the number of operations, types, fields, or worlds a declaration carries is not a runtime value and no entry bounds it. IDL-017 is the idiom the landed Gallina items already use, stated here so the absence reads as a boundary rather than a gap.
+**The register bounds values, not declaration size.** R-05-143 bounds recursive formers and R-12-012 bounds lists and strings. Neither limits the number of operations, types, fields or worlds in a declaration. IDL-017 follows the existing Gallina artifacts by recording those magnitudes as declaration fields.
 
 ### 3.6 The per-operation records
 
@@ -187,9 +187,9 @@ R-12-012a is the entry that keeps a declared type from being read as a statement
 
 ## 4. The wire-format mapping
 
-*This is the mapping R-12-013 confers crown-jewel status on, and row 3 of [the crown-jewel inventory](../assurance/crown-jewels.md) names. It is a specification that must be authored rather than a proof to be discharged: a wrong mapping yields a correct proof of the wrong property, which is R-17-016's residual and the reason this section is what the review gate reads.*
+*R-12-013 designates this mapping as a crown jewel, recorded in row 3 of [the crown-jewel inventory](../assurance/crown-jewels.md). Independent review must assess the specification itself: a correct proof can still establish the wrong intended property (R-17-016).*
 
-Three things the register already fixes position this section, and it cites them rather than restating them.
+The mapping follows three register obligations:
 
 - **Parsing.** Every attacker-facing wire format is parsed by a verified copy-once Narcissus parser and the parser proof is against the descriptor rather than against any prose (R-05-042, R-05-046). A descriptor arriving from another compartment is attacker-facing by R-12-008a's Byzantine-peer posture, which assumes no protocol compliance beyond admission of the typed binary.
 - **Canonicity.** A descriptor whose encoding is ever an input to a signature, a hash used as a name, a content address, a cache key, or an equality test carries a machine-checked canonicity theorem and admits no encoding slack (R-05-051a, R-05-051b), and a format that cannot carry one is refused that role rather than used with a caveat (R-05-051c).
@@ -213,7 +213,7 @@ Three things the register already fixes position this section, and it cites them
 
 ### 4.2 The encoding, per constructor
 
-**The encoding is packed and alignment is the destination buffer's rather than the wire's.** A copy-once parser writes its fixed destination buffer whole (R-05-124), so interior padding buys nothing on the wire and would be exactly the free padding R-05-051b forbids. Multi-byte scalars are little-endian, which is the machine's own order and a parameter of this document rather than a reading of any entry: R-05-051b requires one admissible form and either order satisfies it ([§8](#8-declared-parameters)).
+**The wire encoding is packed; alignment belongs to the destination buffer.** The copy-once parser initializes that buffer whole (R-05-124), so wire padding is unnecessary and would violate R-05-051b's no-slack rule. Multi-byte scalars are little-endian, matching the machine. This profile chooses the byte order in [§8](#8-declared-parameters); R-05-051b requires a single form without choosing an order.
 
 | Id | Constructor | Encoding |
 | --- | --- | --- |
@@ -510,23 +510,13 @@ Three things the register already fixes position this section, and it cites them
 
 ## 9. What holds this document, and what nothing holds
 
-`tools/check.py` reaches this document as it reaches every tracked Markdown file, and the rules that bear on it are named here so the reach is legible rather than assumed. Each is written plain: none of them is cited as the holder of a fact this document creates. The table is a reading of [the rule registry](../../tools/check-rules.md) and nothing holds the two together, so a rule added there reaches this document whether or not a row here says so.
+`tools/check.py` applies the corpus checks listed in [the rule registry](../../tools/check-rules.md), including reference, link, table and encoding checks. Those checks validate structure and selected cross-artifact agreements; they do not establish that this profile specifies the right behavior.
 
-| Predicate | Rule |
-| --- | --- |
-| every register, crown-jewel, absence and coverage id used names one its declarer holds | K-11 |
-| every link resolves to a file, and every fragment to a bookmark or heading | K-12 |
-| every section number a sentence names is carried by some heading | K-13 |
-| every table row is the width its header declares, in a table with a header rule | K-38, K-39 |
-| no mojibake, no replacement character | K-41 |
-| every entry this document names in another document is carried by a heading there | K-59 |
-| every finding the completion note counts has exactly one entry in the findings register | K-82 |
-| every tracked file kind is given a comment syntax or refused by name | K-53 |
-| the [§4.3.6](#436-the-generated-interface-artifact) interface artifact is byte-identical to what its emitter writes from the declaration and from the register entries that emitter reads | K-89 |
-| the width ladder and the two encoded sizes that emitter writes are the ones IDL-023, IDL-053 and `WF-11` state | K-99 |
+The [ring emitter](../../tools/vos/cli/ring.py) implements this profile. An encoding disagreement requires repair to the emitter because [§4.2](#42-the-encoding-per-constructor) defines the encoding (R-15-001a). Two rules check different relationships:
 
-**No rule holds [§2](#2-the-type-constructors)'s constructor table against anything, and none holds [§4.1](#41-the-standing-position)'s rules.** For [§2](#2-the-type-constructors) that is not an omission in the tool: nothing else in this repository states a constructor set for the IDL, so there is no second statement for a rule to hold the first against, and a rule invented to hold one artifact against itself would be the older discipline the plan's own conventions call a finding. **For [§4.2](#42-the-encoding-per-constructor) a second statement does exist, and this section is the authoritative one.** [The ring emitter](../../tools/vos/cli/ring.py) writes IDL-023's ladder as a Gallina literal and [§4.2](#42-the-encoding-per-constructor)'s packed rule as the encoded size of a descriptor, of a completion, and of a buffer reference; it is code rather than prose, and it is what a reader of [§4.2](#42-the-encoding-per-constructor) would have to read to find out what this repository actually encodes. The emitter implements these rows and owns none of them: where the two disagree, the emitter is the defective side and the repair is to the emitter, on the same terms as any derived view that disagrees with the entry it derives from (R-15-001a). K-89 alone could not decide that, holding the emitted artifact against the declaration and the register entries it reads, which is agreement with the artifact's owners and not with this section: a row edited here moves neither side of it. K-99 is the binding, and it reaches three of these rows rather than all of them. IDL-023's ladder is **recomputed** from the rungs this document states in words, so a rung added here and not in the emitter is a finding at the edit that adds it; IDL-053's member-to-row assignment is held against the terms the emitter's descriptor size spends, in both directions; and `WF-11`'s members are held against the widths its buffer-reference size spends. **What is still held by nothing is stated rather than left to be met.** The completion's members are R-12-093's and this document places none of them, so IDL-055 names no row for a rule to read and that encoded size is unheld; a member added to `WF-11`'s row is not caught, that row being one sentence rather than an enumeration with a shape; and every other row of [§4.2](#42-the-encoding-per-constructor) is reached only where the emitter spends a width the assignment above names, so `WF-2` through `WF-6`, `WF-9`, `WF-12` and `WF-13` are unheld here. **[§4.3](#43-the-ring-schema-and-its-lifecycle) is reached by a rule that holds a file rather than a claim**: K-89 holds the [§4.3.6](#436-the-generated-interface-artifact) interface artifact byte-identical to what its emitter writes from the declaration and from the register entries that emitter reads, which decides that the artifact still agrees with its owners and decides nothing about whether [§4.3](#43-the-ring-schema-and-its-lifecycle) states the right obligations. What [§2](#2-the-type-constructors), [§4.1](#41-the-standing-position) and the unheld rows of [§4.2](#42-the-encoding-per-constructor) are held by is R-05-150's independent review, which is what a crown jewel is for.
+- **K-89** regenerates the [interface artifact](#436-the-generated-interface-artifact) from the declaration and the register entries the emitter reads, then compares the bytes. It does not compare the emitter with this profile or judge the ring obligations in [§4.3](#43-the-ring-schema-and-its-lifecycle).
+- **K-99** compares the emitter with three profile definitions: IDL-023's width ladder, IDL-053's descriptor-member encoding assignments in both directions, and the widths of `WF-11`'s buffer-reference members. The ladder is recomputed from the stated rungs, so adding an unsupported rung produces a finding.
 
-**The membership of every enumeration this document depends on is cited rather than restated**, and that is deliberate: R-12-091's ring constants and header words, R-12-092's descriptor members, R-12-093's status set, R-12-094's lifecycle states, R-12-095's typed result, R-12-097's cancellation answers, R-12-101's per-variant field list, and R-07-031b's closed invocation list are each one entry's to state and every other site's to cite. A figure written here would be an unheld restatement free to drift from the entry that owns it, and where the [§4.3.6](#436-the-generated-interface-artifact) artifact carries one of these sets it is generated out of the entry rather than transcribed beside it.
+K-99 does not cover the completion's encoded size: R-12-093 defines its members, and IDL-055 assigns them no encoding rows. Nor does it detect a new member added to `WF-11`'s prose sentence. Other encoding rows are checked only where IDL-053 assigns a width the emitter uses; `WF-2` through `WF-6`, `WF-9`, `WF-12` and `WF-13` have no such comparison. The constructor set in [§2](#2-the-type-constructors) and the rules in [§4.1](#41-the-standing-position) also have no independent artifact to compare. These boundaries still require R-05-150's independent review.
 
-**One restatement is unavoidable and it is IDL-053's**, because a mapping that assigns an encoding row per member cannot assign one without naming the member kinds it assigns to. That requirement therefore writes out R-12-092's six kinds against the rows of [§4.2](#42-the-encoding-per-constructor), and if that entry's enumeration moves, the row assignment is wrong here with no rule to say so. The membership stays that entry's, the assignment is this section's, and the pair is held by the review and by nothing mechanical.
+Register-owned enumerations are cited here and read by generators rather than copied into prose. IDL-053 must name R-12-092's descriptor-member kinds to assign their encoding rows. K-99 checks that assignment against the emitter, but does not establish that the assignment covers the register's current member set; that relationship remains an independent-review duty.

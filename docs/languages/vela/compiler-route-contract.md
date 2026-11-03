@@ -6,7 +6,7 @@ Compare CHERI-C/Clight and direct capability-aware lowering at the same endpoint
 
 The separate [native compiler and verified-bootstrap goal](unified-source-contract.md#native-verified-compiler-and-self-hosting) retains its [unpriced establishment and maintenance](../../../PLAN.md#vela-whole-system-authoring-proposal). Composed transformation proofs and integrated certificate checking are possible replacement evidence, subject to amendments preserving the final-validation and named-producer duties below.
 
-**Decision: reject commissioning the paired trial from current inputs.** Neither full endpoint has defensible establishment/maintenance pricing; bounded emission preserves the shared logic and arbitrary-context duties. The [review decision](#review-decision) judges readiness, not route superiority. Re-entry retains [Q21a's source interface](core-design.md), [Q2c's foundations](../../hardware/cheri-foundation-map.md) and [Q20a's accounting/target protocol](workflow-contract.md).
+**Decision: do not commission the paired trial on current evidence.** Neither route has a defensible establishment and maintenance estimate for the full endpoint. Bounded emission still needs the shared logic and arbitrary-context proofs. The [review decision](#review-decision) assesses readiness without selecting a winner. Re-entry requires [Q21a's source interface](core-design.md), [Q2c's foundations](../../hardware/cheri-foundation-map.md) and [Q20a's accounting/target protocol](workflow-contract.md).
 
 ## Fixed consumers and common source boundary
 
@@ -18,7 +18,7 @@ Reserved **S, private service staging**, retains [Q20a's sequential slice and ex
 
 Apply [Q20a's freeze/independence rules](workflow-contract.md#freeze-and-independence), also freezing emission rules and proofs. A different lane adapts S against that family.
 
-Compare P with P and S with S at unchanged initialization, result, callback and failure behavior. Q21a's `PrepareAndInspect` fixture exercises additional returned views/callbacks; it is neither client's implementation, baseline or productivity measurement.
+Compare each client's two implementations with identical initialization, result, callback and failure behavior. Q21a's `PrepareAndInspect` fixture tests additional returned views and callbacks; it supplies neither client's implementation, baseline or productivity measurement.
 
 Both routes consume the same content-addressed Q21a `SourcePackage`, interpreted computation and representation contract: sequenced operation graph, stable runtime indices, erased checked evidence, branch resource predicates, bounded loops, closed read/write/call/no-allocation effects, fixed layout and ABI. Meaning includes inputs/outputs, I/O, prescribed refusals/faults and tier-required leakage/cost observations. The source owner proves parsing, resolution, desugaring, interpretation and erasure to that graph; maps/hashes alone suffice for none. Each route proves transport through its internal CFG/block/SSA representations to machine traces. Abstracting implementation-only helper events requires a checked trace relation preserving source observations, authority, refusal/trap classification and applicable leakage/cost interpretation.
 
@@ -28,7 +28,7 @@ Maintain the manual baseline independently as the experimental comparator at the
 
 Decision inspection: `4aeaceedf4626ef64583a4680c19da29a469df4f`. Inspect tracked gitlinks with `git ls-files -s upstream`; [THIRD-PARTY.md](../../../THIRD-PARTY.md#pinned-as-submodules) owns the pins. A gitlink establishes neither a populated checkout nor a built theorem.
 
-This reads tracked source and recorded evidence, without a fresh compiler run. Historical measurement details remain at their linked owners.
+This assessment uses tracked source and recorded evidence, without a fresh compiler run. Historical measurements remain in the linked records.
 
 | Artifact and identity | Available evidence and actual subject | Missing connection at this endpoint |
 | --- | --- | --- |
