@@ -505,25 +505,6 @@
       "priority": "high"
     },
     {
-      "id": "30",
-      "repository": "katamaran-project/katamaran",
-      "topic": "Support strict Rocq 9.3 postfix notation without changing elaboration",
-      "issue": "https://github.com/katamaran-project/katamaran/blob/8b953fe8f17bb4553792c63665d368dc7f6bbd26/theories/Notations.v#L55",
-      "pr": null,
-      "benefit": "Removes a reproduced strict-source blocker to machine-logic foundation qualification after candidate 8's unused-import cleanup.",
-      "reviewed_head": null,
-      "review": "New upstream issue/PR proposal; no report has been filed. Q35m directly reproduces postfix-notation-not-level-1 at theories/Notations.v line 55. The selected merged PR head retains that reserved notation; the notation file's Git blob is identical at upstream main's inspected merge revision. No matching open issue or PR was found in the open inventory and postfix/9.3 searches; unmentioned or private work cannot be excluded.",
-      "next_action": "TBD: open a narrowly scoped compatibility report with Q35m's diagnostic and agree a syntax/precedence repair with parsing and elaborated-reading regressions.",
-      "evidence": [
-        "[The dependency trial](../assurance/machine-logic-dependency-trial.md#reproduced-incompatibilities) records the strict-source refusal and unchanged gate flags.",
-        "[Notation at the selected merged PR head](https://github.com/katamaran-project/katamaran/blob/8b953fe8f17bb4553792c63665d368dc7f6bbd26/theories/Notations.v#L55) is distinct from PR 73's import cleanup. GitHub's contents API confirms the notation file has the same Git blob at that head and upstream main's inspected merge revision.",
-        "Acceptance preserves public types, notation expansions, executable meanings and exact assumptions; a notation repair alone does not qualify the complete Islaris/Lithium/Katamaran closure."
-      ],
-      "proposed_on": "2026-10-22",
-      "priority": "high",
-      "kind": "proposal"
-    },
-    {
       "id": "31",
       "repository": "YosysHQ/riscv-formal",
       "topic": "Test REMUW zero divisors at word width",
