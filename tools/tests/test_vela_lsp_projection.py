@@ -2,13 +2,14 @@
 """Independent controls for the pure-fact worker boundary and LSP projection."""
 
 import copy
+import json
 import subprocess
 from collections.abc import Callable
 from typing import cast
 from unittest.mock import patch
 
 from tests.harness import Case, ensure
-from vos.protocol_json import MAX_BODY_BYTES
+from vos.protocol_json import MAX_BODY_BYTES, encode_message
 from vos.vela_lsp import Server
 from vos.vela_lsp_services import InspectionError, inspect_document, project
 from vos.vela_source import SourceSnapshot
@@ -185,9 +186,27 @@ def _oversized_reply_recovery() -> None:
            "oversized query terminated the session or poisoned the next result")
 
 
+def _frame_sized_request_id_recovery() -> None:
+    server = _opened(lambda _: _facts(), uri="u")
+    request = _request("textDocument/documentSymbol", {"textDocument": {"uri": "u"}})
+    request["id"] = ""
+    envelope = len(json.dumps(request, ensure_ascii=False, separators=(",", ":")).encode())
+    request["id"] = "x" * (MAX_BODY_BYTES - envelope)
+    ensure(len(encode_message(request).split(b"\r\n\r\n", 1)[1]) == MAX_BODY_BYTES,
+           "large-ID control did not fill the valid incoming frame")
+    refused = server.handle(request)
+    ensure(_error_code(refused) == -32803 and refused[0]["id"] == request["id"],
+           "oversized large-ID reply lost its correlated refusal")
+    encode_message(refused[0])
+    recovered = server.handle(_request("textDocument/hover", _params("u"), 92))
+    ensure(recovered[0]["id"] == 92 and "result" in recovered[0] and server.exit_code is None,
+           "large-ID reply refusal poisoned the next query")
+
+
 def cases() -> list[Case]:
     return [Case("resolved-fact-projection-and-source-units", _projection),
             Case("producer-shape-source-links-and-bounds", _producer_refusals),
             Case("isolated-inspection-worker-boundary", _worker_boundary),
             Case("query-parameter-lifecycle-and-overlay-refusals", _request_refusals),
-            Case("oversized-result-refusal-and-session-recovery", _oversized_reply_recovery)]
+            Case("oversized-result-refusal-and-session-recovery", _oversized_reply_recovery),
+            Case("frame-sized-request-id-recovery", _frame_sized_request_id_recovery)]

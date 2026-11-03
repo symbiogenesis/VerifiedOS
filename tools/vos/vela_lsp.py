@@ -177,7 +177,9 @@ class Server:
             reply: dict[str, object] = {"jsonrpc": "2.0", "id": request_id, "result": result}
             encode_message(reply)
         except (InspectionError, FrameError, OSError, subprocess.SubprocessError):
-            return _error(request_id, -32803, "Pure prototype inspection unavailable or exceeds its bounds")
+            # Keep the error envelope smaller than the smallest valid navigation
+            # request, including when a string ID nearly fills the frame budget.
+            return _error(request_id, -32803, "Inspection failed or exceeded bounds")
         else:
             return reply
 

@@ -10,10 +10,9 @@ from typing import cast
 
 from vos.protocol_json import MAX_BODY_BYTES, decode_message, encode_message
 from vos.vela_ast import IDENTIFIER, KEYWORDS, MAX_SOURCE_BYTES, UNSUPPORTED
+from vos.vela_facts import MAX_OCCURRENCES, MAX_SYMBOLS
 from vos.vela_source import SourceSnapshot
 
-MAX_SYMBOLS = 1024
-MAX_OCCURRENCES = 4096
 INSPECTION_SECONDS = 5
 METHODS = frozenset({"textDocument/hover", "textDocument/definition",
                      "textDocument/references", "textDocument/documentSymbol"})
