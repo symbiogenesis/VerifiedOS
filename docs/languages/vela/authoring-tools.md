@@ -207,3 +207,33 @@ checks; hand the selected hosted validation to the user under the shared
 [validation procedure](../../../AGENTS.md#tool-execution-and-validation).
 Wider-language formatting and semantic lints remain consumer-gated extensions
 after the [first release](first-release.md#qualification).
+
+## Pure formatting and lint disposition
+
+Q25t's pure implementation meets its local predicate. Independent review covers
+the complete [formatter and lints](../../../tools/vos/vela_authoring.py),
+[compiler command](../../../tools/vos/cli/vela.py) and
+[publication helper](../../../tools/vos/atomic.py) at
+`bd51161f7858b55cb1a3e854730998c1c22c3204`, with the acceptance controls added by
+this landing. Ordered token/comment fingerprints, documentation-break tracking,
+location-erased reparsed syntax and stable second rendering preserve the source
+contract. The [formatting controls](../../../tools/tests/test_vela_format.py)
+independently specify canonical bytes, including constants, separators, named
+arguments, expression bodies, nesting and comments together. The
+[lint controls](../../../tools/tests/test_vela_lint.py) specify stable findings and
+original locations, complete-check requirements and unavailable-inspection refusal.
+
+The [command controls](../../../tools/tests/test_vela_authoring_cli.py) pass for
+immutable repeated defaults, read-only input, original-snapshot emission, explicit
+formatting and post-format provenance, policy choices and refusal without writes.
+Explicit-write denial preserves source and output; an output failure after an
+explicit source publication truthfully retains formatted source and predecessor
+output, cleans pending files and recovers on the next emission. The
+[editor controls](../../../tools/tests/test_vela_lsp_editor.py) pass for exact
+proposed edits, unchanged overlays and positions, worker refusal/recovery and real
+stdio operations. Focused Windows host controls and locked Python checks pass.
+The [shared handoff](../../../AGENTS.md#tool-execution-and-validation) records the
+settled revision and user-managed hosted validation; no hosted passing verdict
+follows from this acceptance. Wider-language formatting, semantic lints,
+two-editor interoperability, checked source correspondence and production
+admission retain their existing owners.
