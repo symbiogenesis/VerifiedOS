@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-"""Hosted fan-out handoffs bind exact revisions and never poll guest verdicts."""
+"""Historical CI records, shared transport and independent hosted workflow controls."""
 
 import copy
 import json
@@ -11,7 +11,6 @@ import sys
 import tempfile
 import textwrap
 import urllib.error
-import urllib.parse
 import urllib.request
 from collections.abc import Callable
 from itertools import product
@@ -23,19 +22,11 @@ from tests.harness import Case, ensure, sandbox_tree
 from vos import ci_scope
 from vos import fanout_ci as ci
 
-# Each case writes only under directories it creates, answers requests from a FakeGitHub
-# of its own where it makes any, and patches only inside a `with`, so the cases share no
-# state, and a sharded run spreads them over every shard (vos/cli/test.py).
+# Each case owns its fixtures and patches, so sharded cases share no state.
 INDEPENDENT_CASES = True
 
 REVISION = "a" * 40
-SUBJECT = "Settle the fixture batch"
-HOST_TITLE = f"host-gates:{SUBJECT}"
-GUEST_TITLE = f"guest-gates:{SUBJECT}"
-# The fixture's dispatch intent reaches disk at NOW; GitHub creates its run LATER.
 NOW = "2026-09-27T16:00:00Z"
-LATER = "2026-09-27T16:00:05Z"
-# A dispatch identity from when run titles carried one, as `fanout:<id>:`.
 OLD_ID = "5c6c433b07cb4212b594b83fffccdc48"
 REPO = "example/verifiedos"
 ROOT = Path(__file__).resolve().parents[2]
@@ -45,93 +36,21 @@ def _state() -> ci.CIState:
     return ci.new_state(REPO, "main", REVISION, True)
 
 
-def _run(number: int = 10, **changes: object) -> dict[str, object]:
-    return {"id": number, "head_sha": REVISION, "head_branch": "main",
-            "event": "push", "status": "completed", "created_at": LATER,
-            "path": ".github/workflows/host-gates.yml", "conclusion": "success", **changes}
+def _record(workflow: str, number: int, phase: str) -> ci.RunState:
+    return {"workflow": workflow, "revision": REVISION, "requested": NOW,
+            "phase": phase, "run_id": number,
+            "url": f"https://github.com/{REPO}/actions/runs/{number}",
+            "status": "completed" if phase == "observed" else "pending",
+            "conclusion": "success" if phase == "observed" else None,
+            "request_id": "historical-receipt",
+            "jobs": dict.fromkeys(ci.HOST_JOBS, "success") if phase == "observed" else {}}
 
 
-class FakeGitHub:
-    def __init__(self, state: ci.CIState) -> None:
-        self.state = state
-        self.calls: list[tuple[str, str, dict[str, object] | None]] = []
-        self.host_runs = [_run()]
-        self.host = _run()
-        self.host_peers: dict[int, dict[str, object]] = {}
-        self.jobs: list[dict[str, object]] = [
-            {"name": name, "status": "completed", "conclusion": "success"}
-            for name in sorted(ci.HOST_JOBS)]
-        self.guest_runs: list[dict[str, object]] = []
-        self.ref_sha = REVISION
-        self.dispatch_sha = REVISION
-        self.comparison: dict[str, object] = {"status": "ahead", "merge_base_commit": {"sha": REVISION}}
-        self.dispatch_error: ci.APIError | None = None
-        self.saved: list[ci.CIState] = []
-        self.slept: list[float] = []
-        # Host runs GitHub lists only after the first pause, as a push run it has
-        # accepted but not yet registered.
-        self.late_host_runs: list[dict[str, object]] | None = None
-
-    def save(self) -> None:
-        self.saved.append(copy.deepcopy(self.state))
-
-    def sleep(self, seconds: float) -> None:
-        self.slept.append(seconds)
-        if self.late_host_runs is not None:
-            self.host_runs, self.late_host_runs = self.late_host_runs, None
-
-    def request(self, method: str, path: str,
-                payload: dict[str, object] | None = None) -> dict[str, object]:
-        self.calls.append((method, path, payload))
-        if path == "git/ref/heads/main":
-            return {"object": {"type": "commit", "sha": self.ref_sha}}
-        if path.startswith("compare/"):
-            return self.comparison
-        if method == "POST":
-            lane = "guest" if ci.GUEST in path else "host"
-            ensure(bool(self.saved), "dispatch must first publish a journal")
-            saved_run = self.saved[-1][lane]
-            ensure(saved_run is not None and saved_run["phase"] == "intent",
-                   "dispatch intent must be durable before the network call")
-            if self.dispatch_error:
-                raise self.dispatch_error
-            if lane == "host" and saved_run is not None:
-                self.host = _run(event="workflow_dispatch", head_sha=self.dispatch_sha,
-                                 display_title=HOST_TITLE)
-            number = 20 if lane == "guest" else 10
-            return {"workflow_run_id": number,
-                    "html_url": f"https://github.com/{REPO}/actions/runs/{number}",
-                    "_request_id": "receipt-123"}
-        if f"workflows/{ci.HOST}/runs?" in path:
-            page = int(urllib.parse.parse_qs(urllib.parse.urlsplit(path).query).get("page", ["1"])[0])
-            return {"workflow_runs": self.host_runs[(page - 1) * 100:page * 100]}
-        if f"workflows/{ci.GUEST}/runs?" in path:
-            page = int(urllib.parse.parse_qs(urllib.parse.urlsplit(path).query).get("page", ["1"])[0])
-            return {"workflow_runs": self.guest_runs[(page - 1) * 100:page * 100]}
-        observed = re.fullmatch(r"actions/runs/(\d+)", path)
-        if observed:
-            number = int(observed[1])
-            if number in self.host_peers:
-                return self.host_peers[number]
-            if number == 10 or number == self.host.get("id"):
-                return self.host
-        if re.fullmatch(r"actions/runs/\d+/jobs\?.*", path):
-            return {"jobs": self.jobs}
-        raise AssertionError(f"unexpected GitHub request: {method} {path}")
-
-    def advance(self) -> bool:
-        with (patch.object(ci, "_token", return_value="fixture-credential"),
-              patch.object(ci, "_subject", return_value=SUBJECT),
-              patch.object(ci, "_now", return_value=NOW),
-              patch.object(ci.GitHub, "request", side_effect=self.request),
-              patch.object(ci.time, "sleep", side_effect=self.sleep)):
-            return ci.advance(ROOT, self.state, self.save)
-
-    def host_lookups(self) -> int:
-        return sum(f"workflows/{ci.HOST}/runs?" in path for _, path, _ in self.calls)
-
-    def posts(self) -> list[tuple[str, str, dict[str, object] | None]]:
-        return [call for call in self.calls if call[0] == "POST"]
+def _historical() -> ci.CIState:
+    state = _state()
+    state["host"] = _record(ci.HOST, 10, "observed")
+    state["guest"] = _record(ci.GUEST, 20, "accepted")
+    return state
 
 
 def _refuses(action: Callable[[], object], message: str) -> None:
@@ -142,469 +61,9 @@ def _refuses(action: Callable[[], object], message: str) -> None:
     raise AssertionError(message)
 
 
-def _successful_handoff() -> None:
-    state = _state()
-    fake = FakeGitHub(state)
-    ensure(fake.advance(), "passing host must dispatch guest")
-    host, guest = state["host"], state["guest"]
-    ensure(host is not None and host["jobs"] == dict.fromkeys(ci.HOST_JOBS, "success"),
-           "both successful host aggregates must be retained")
-    ensure(guest is not None and guest["status"] == "pending" and guest["run_id"] == 20,
-           "guest dispatch is pending evidence with the returned run identifier")
-    ensure(guest is not None and guest["request_id"] == "receipt-123", "retain dispatch receipt")
-    posts = fake.posts()
-    ensure(len(posts) == 1, "dispatch guest exactly once")
-    ensure(posts[0][2] == {"ref": state["ref"], "inputs": {
-        "revision": REVISION, "title": SUBJECT, "cold": True}},
-        "guest dispatch must use main, exact revision, explicit cold policy and subject title")
-    ensure(guest is not None and guest.get("requested") == NOW and "token" not in guest,
-           "the record keeps when its intent reached disk, for recovery by title")
-    ensure(not any(ci.GUEST in path and method == "GET" for method, path, _ in fake.calls),
-           "normal guest dispatch must not query guest runs")
-    fake.calls.clear()
-    ensure(fake.advance(), "completed handoff should be idempotent")
-    ensure(not fake.calls, "completed handoff must not request a guest verdict")
-
-
 def _selection(paths: list[str]) -> ci_scope.Selection:
     return {**ci_scope.classify(paths), "base": "b" * 40, "revision": REVISION,
             "paths": sorted(paths), "reason": "changed paths"}
-
-
-def _scoped_guest_handoffs() -> None:
-    for paths, lanes in ((["README.md"], []), (["proofs/Example.v"], ["proofs"]),
-                         (["rtl/example.sv"], ["rtl"]),
-                         (["model/example.sail", "proofs/Example.v"],
-                          ["model", "rtl", "proofs"])):
-        scope = _selection(paths)
-        state = ci.new_state(REPO, "main", REVISION, False, selection=scope)
-        fake = FakeGitHub(state)
-        ensure(fake.advance(), "selected guest handoff follows successful Host CI")
-        ensure(state["selection"] == scope and scope["guest_lanes"] == lanes,
-               "handoff preserves its frozen changed-path selection")
-        if lanes:
-            ensure(len(fake.posts()) == 1, "selected guest lanes dispatch once")
-            payload = fake.posts()[0][2]
-            expected: dict[str, object] = {"revision": REVISION, "title": SUBJECT, "cold": False}
-            if lanes != list(ci_scope.ALL_GUEST_LANES):
-                expected["lanes"] = ",".join(lanes)
-            ensure(payload == {"ref": "main", "inputs": expected},
-                   "Guest CI receives exactly the selected lanes")
-        else:
-            ensure(not fake.posts() and state["guest"] is None and state.get("guest_omitted", False),
-                   "prose-only handoff records omission without inventing a passing guest run")
-            for change in ("selection", "host"):
-                damaged: dict[str, object] = dict(copy.deepcopy(state))
-                del damaged[change]
-                _refuses(lambda damaged=damaged: ci.validate_state(damaged),
-                         "omission needs both its selection and host evidence")
-        fake.calls.clear()
-        ensure(fake.advance() and not fake.calls,
-               "a finished scoped handoff resumes without polling Guest CI")
-
-
-def _scope_overrides_and_legacy() -> None:
-    narrow = _selection(["README.md"])
-    for cold, base, full in ((True, None, False), (False, "b" * 40, False),
-                             (False, None, True)):
-        _refuses(lambda cold=cold, base=base, full=full: ci.new_state(
-            REPO, "main", REVISION, cold, base, selection=narrow, full_ci=full),
-                 "cold installation, proof reading and full CI cannot narrow guest coverage")
-    # A journal predating path selection still dispatches every lane.
-    legacy = FakeGitHub(ci.new_state(REPO, "main", REVISION, False))
-    ensure(legacy.advance() and len(legacy.posts()) == 1,
-           "legacy journals retain their complete guest handoff")
-    ensure(legacy.posts()[0][2] == {"ref": "main", "inputs": {
-        "revision": REVISION, "title": SUBJECT, "cold": False}},
-           "legacy dispatch uses Guest CI's full default matrix")
-    # Explicit full CI cannot adopt the potentially narrowed push run already listed.
-    full = ci_scope.select_changes(ROOT, None, REVISION, force_full=True)
-    fake = FakeGitHub(ci.new_state(REPO, "main", REVISION, False,
-                                  selection=full, full_ci=True))
-    ensure(not fake.advance() and not fake.host_lookups(),
-           "full CI dispatches a full Host run without adopting automatic path selection")
-    ensure(len(fake.posts()) == 1 and ci.HOST in fake.posts()[0][1],
-           "full CI starts Host CI explicitly")
-    ensure(fake.advance() and len(fake.posts()) == 2,
-           "full Host acceptance dispatches every guest lane once")
-
-
-def _reading_base_forwarded() -> None:
-    base = "b" * 40
-    fake = FakeGitHub(ci.new_state(REPO, "main", REVISION, True, base))
-    fake.host_runs = []
-    ensure(not fake.advance(), "the fixture's host dispatch starts pending")
-    ensure(fake.advance(), "the passing host run dispatches guest")
-    ensure([payload for _, _, payload in fake.posts()] == [
-        {"ref": "main", "inputs": {"revision": REVISION, "title": SUBJECT}},
-        {"ref": "main", "inputs": {"revision": REVISION, "title": SUBJECT, "cold": True,
-                                   "reading_base": base}}],
-        "Guest CI's dispatch, and only it, carries the batch's reading base")
-    # A rejected guest dispatch, retried, carries the same reading base.
-    fake = FakeGitHub(ci.new_state(REPO, "main", REVISION, False, base))
-    fake.dispatch_error = ci.APIError(422)
-    _refuses(fake.advance, "a rejected dispatch must fail the handoff")
-    fake.dispatch_error = None
-    ensure(fake.advance(), "a rejected dispatch can retry")
-    guest = {"ref": "main", "inputs": {"revision": REVISION, "title": SUBJECT, "cold": False,
-                                       "reading_base": base}}
-    ensure([payload for _, _, payload in fake.posts()] == [guest, guest],
-           "a retried guest dispatch forwards the reading base it first sent")
-    # A record without the field sends none.
-    fake = FakeGitHub(_state())
-    ensure(fake.advance() and "reading_base" not in fake.state, "no reading base is recorded")
-    ensure([payload for _, _, payload in fake.posts()] == [
-        {"ref": "main", "inputs": {"revision": REVISION, "title": SUBJECT, "cold": True}}],
-        "a batch without a reading base sends no reading_base input")
-
-
-def _host_pending() -> None:
-    state = _state()
-    fake = FakeGitHub(state)
-    fake.host.update(status="in_progress", conclusion=None)
-    ensure(not fake.advance(), "pending host is not a passing verdict")
-    ensure(not fake.posts() and state["guest"] is None, "guest must wait for completed host")
-
-
-def _host_failure() -> None:
-    for result in ("failure", "skipped", "cancelled", None):
-        fake = FakeGitHub(_state())
-        fake.host["conclusion"] = result
-        _refuses(fake.advance, f"host {result} cannot pass")
-        ensure(not fake.posts(), "failed host must not dispatch guest")
-
-
-def _host_aggregate_evidence() -> None:
-    for change in ("missing", "skipped", "pending", "duplicate"):
-        fake = FakeGitHub(_state())
-        if change == "missing":
-            fake.jobs.pop()
-        elif change == "duplicate":
-            fake.jobs.append(fake.jobs[0])
-        elif change == "pending":
-            fake.jobs[0]["status"] = "in_progress"
-        else:
-            fake.jobs[0]["conclusion"] = "skipped"
-        _refuses(fake.advance, f"{change} host aggregate cannot pass")
-        ensure(not fake.posts(), "incomplete aggregate evidence must stop guest")
-
-
-def _host_revision_binding() -> None:
-    for key, value in (("head_sha", "b" * 40), ("path", ".github/workflows/another.yml"),
-                       ("head_branch", "work/stranded")):
-        fake = FakeGitHub(_state())
-        fake.host[key] = value
-        _refuses(fake.advance, "host must test the exact revision with the intended workflow")
-        ensure(not fake.posts(), "wrong revision or workflow cannot dispatch guest")
-
-
-def _host_dispatch() -> None:
-    fake = FakeGitHub(_state())
-    fake.host_runs = [_run(head_sha="b" * 40), _run(event="pull_request"),
-                      _run(head_branch="work/stranded"), _run(event="workflow_dispatch")]
-    ensure(not fake.advance(), "manual host dispatch is initially pending")
-    ensure(fake.slept == list(ci.PUSH_RUN_WAITS)
-           and fake.host_lookups() == len(ci.PUSH_RUN_WAITS) + 1,
-           "dispatch only after the bounded wait for GitHub to list a push run")
-    posts = fake.posts()
-    ensure(len(posts) == 1 and ci.HOST in posts[0][1],
-           "start Host CI when no exact suitable run exists")
-    ensure(posts[0][2] == {"ref": "main", "inputs": {"revision": REVISION, "title": SUBJECT}},
-           "Host CI dispatch must pin checkout to the requested main revision")
-    ensure(fake.state["guest"] is None, "host dispatch supplies no verdict")
-    ensure(fake.advance(), "the next advance can accept the completed host run")
-
-
-def _late_push_run_adopted() -> None:
-    fake = FakeGitHub(_state())
-    fake.host_runs = []
-    fake.late_host_runs = [_run()]
-    ensure(fake.advance(), "a push run listed during the wait establishes host evidence")
-    ensure(not any(ci.HOST in path for _, path, _ in fake.posts()),
-           "a push run GitHub had not yet listed must not be duplicated by a dispatch")
-    ensure(fake.slept == list(ci.PUSH_RUN_WAITS[:1]), "stop waiting once the push run is listed")
-    host = fake.state["host"]
-    ensure(host is not None and host["run_id"] == 10 and host["jobs"]
-           == dict.fromkeys(ci.HOST_JOBS, "success"), "adopt the push run's host evidence")
-    fake = FakeGitHub(_state())
-    ensure(fake.advance() and not fake.slept, "an already listed push run needs no wait")
-
-
-def _duplicate_push_runs_reused() -> None:
-    fake = FakeGitHub(_state())
-    fake.host_runs = [_run(9), _run(10)]
-    ensure(fake.advance(), "one exact push run can establish the host verdict")
-    host = fake.state["host"]
-    ensure(host is not None and host["run_id"] == 10,
-           "the handoff binds one run rather than combining duplicate evidence")
-    ensure(len(fake.posts()) == 1 and ci.GUEST in fake.posts()[0][1],
-           "duplicate automatic push runs must not authorize another Host CI dispatch")
-
-
-def _cancelled_push_peer_recovery() -> None:
-    for peer_id in (9, 11):
-        fake = FakeGitHub(_state())
-        fake.host.update(status="in_progress", conclusion=None)
-        ensure(not fake.advance(), "the selected push is initially pending")
-        fake.host.update(status="completed", conclusion="cancelled")
-        peer = _run(peer_id, status="in_progress", conclusion=None)
-        fake.host_peers[peer_id] = peer
-        fake.host_runs = [fake.host, peer]
-        ensure(not fake.advance(), "rebinding a canceled duplicate supplies no passing verdict")
-        host = fake.state["host"]
-        ensure(host is not None and host["run_id"] == peer_id and host["status"] == "pending"
-               and host["conclusion"] is None and not host["jobs"],
-               "either run-ID ordering can survive; the replacement awaits its own evidence")
-        ensure(not fake.posts() and fake.state["guest"] is None,
-               "a surviving duplicate must not cause a Host dispatch or premature Guest dispatch")
-        peer.update(status="completed", conclusion="success")
-        ensure(fake.advance(), "the surviving peer's complete host evidence can dispatch Guest")
-        ensure(host is not None and host["jobs"] == dict.fromkeys(ci.HOST_JOBS, "success"),
-               "normal aggregate evidence is required from the surviving run")
-        ensure(len(fake.posts()) == 1 and ci.GUEST in fake.posts()[0][1],
-               "recovery dispatches Guest once and never dispatches Host")
-        fake.calls.clear()
-        ensure(fake.advance() and not fake.calls, "a completed handoff never queries Guest")
-
-
-def _cancelled_push_peer_identity_and_verdict() -> None:
-    for change in ("absent", "revision", "branch", "workflow", "event", "failure",
-                   "cancelled", "skipped"):
-        fake = FakeGitHub(_state())
-        fake.host.update(status="completed", conclusion="cancelled")
-        peer = _run(9)
-        if change == "revision":
-            peer["head_sha"] = "b" * 40
-        elif change == "branch":
-            peer["head_branch"] = "work/unrelated"
-        elif change == "workflow":
-            peer["path"] = ".github/workflows/another.yml"
-        elif change == "event":
-            peer["event"] = "workflow_dispatch"
-        elif change in {"failure", "cancelled", "skipped"}:
-            peer["conclusion"] = change
-        fake.host_runs = [fake.host] + ([] if change == "absent" else [peer])
-        _refuses(fake.advance, f"a canceled push cannot pass through a {change} peer")
-        ensure(not fake.posts() and fake.state["guest"] is None,
-               "without a valid surviving push there is no dispatch or passing evidence")
-    for change in ("revision", "workflow", "incomplete-jobs", "cancelled"):
-        fake = FakeGitHub(_state())
-        fake.host.update(status="completed", conclusion="cancelled")
-        peer = _run(9)
-        fake.host_runs = [fake.host, peer]
-        fake.host_peers[9] = peer
-        ensure(not fake.advance(), "a listed peer is rebound before accepting its verdict")
-        if change == "revision":
-            peer["head_sha"] = "b" * 40
-        elif change == "workflow":
-            peer["path"] = ".github/workflows/another.yml"
-        elif change == "incomplete-jobs":
-            fake.jobs.pop()
-        else:
-            peer["conclusion"] = "cancelled"
-        _refuses(fake.advance, f"the replacement's own {change} evidence must refuse")
-        ensure(not fake.posts() and fake.state["guest"] is None,
-               "run-list success cannot bypass identity and aggregate checks")
-
-
-def _cancelled_dispatch_never_rebinds_push() -> None:
-    fake = FakeGitHub(_state())
-    fake.host_runs = []
-    ensure(not fake.advance(), "the manual Host dispatch is initially pending")
-    fake.host.update(status="completed", conclusion="cancelled")
-    fake.host_runs = [_run(9)]
-    lookups = fake.host_lookups()
-    _refuses(fake.advance, "a canceled pinned dispatch cannot adopt another push's head")
-    ensure(fake.host_lookups() == lookups and len(fake.posts()) == 1
-           and fake.state["guest"] is None,
-           "dispatch cancellation neither searches for a peer nor repeats a dispatch")
-
-
-def _main_ancestry() -> None:
-    fake = FakeGitHub(_state())
-    fake.ref_sha = "b" * 40
-    ensure(fake.advance(), "an ancestor of advanced main remains a published revision")
-    ensure(any(path == f"compare/{REVISION}...{'b' * 40}" for _, path, _ in fake.calls),
-           "remote main ancestry must be verified with immutable comparison endpoints")
-    for result in ({"status": "diverged", "merge_base_commit": {"sha": REVISION}},
-                   {"status": "ahead", "merge_base_commit": {"sha": "c" * 40}},
-                   {"status": "behind", "merge_base_commit": {"sha": REVISION}}):
-        fake = FakeGitHub(_state())
-        fake.ref_sha = "b" * 40
-        fake.comparison = dict(result)
-        _refuses(fake.advance, "revision outside remote main must stop the handoff")
-        ensure(not fake.posts(), "unpublished revision must stop all dispatch")
-
-
-def _dispatch_revision_survives_main_advance() -> None:
-    fake = FakeGitHub(_state())
-    fake.host_runs = []
-    fake.dispatch_sha = "b" * 40
-    ensure(not fake.advance(), "host dispatch starts pending")
-    ensure(fake.advance(), "pinned checkout remains evidence when main advances during dispatch")
-    ensure(fake.state["host"] is not None and fake.state["host"]["revision"] == REVISION,
-           "evidence must name the checked out revision, not the workflow's newer main tip")
-    for title in (GUEST_TITLE, "host-gates:Another subject", "host-gates:" + REVISION,
-                  HOST_TITLE + " ", f"fanout:{'0' * 32}:{SUBJECT}", None):
-        fake = FakeGitHub(_state())
-        fake.host_runs = []
-        ensure(not fake.advance(), "fixture host dispatch starts pending")
-        fake.host["display_title"] = title
-        _refuses(fake.advance, "a dispatch needs the title its request set with the revision")
-        ensure(len(fake.posts()) == 1, "wrong dispatch cannot start guest")
-
-
-def _guest_interrupt_recovery() -> None:
-    fake = FakeGitHub(_state())
-    fake.dispatch_error = ci.APIError(None)
-    _refuses(fake.advance, "transport failure must report ambiguity")
-    guest = fake.state["guest"]
-    ensure(guest is not None and guest["phase"] == "intent", "preserve ambiguous intent")
-    ensure(fake.saved[-1]["guest"] == guest, "intent is recoverable from the saved journal")
-    fake.dispatch_error = None
-    # Stamped a clock allowance before the intent, as by a GitHub clock running behind.
-    fake.guest_runs = [_run(20, event="workflow_dispatch", head_sha="b" * 40,
-                            display_title=GUEST_TITLE, created_at="2026-09-27T15:59:00Z",
-                            status="completed", conclusion="failure",
-                            path=".github/workflows/guest-gates.yml")]
-    ensure(fake.advance(), "a unique dispatched identity must be adopted")
-    ensure(len(fake.posts()) == 1, "recovery must never duplicate an ambiguous dispatch")
-    ensure(guest is not None and guest["conclusion"] is None and guest["status"] == "pending",
-           "identity recovery must not collect or claim a guest verdict")
-    ensure(sum(ci.GUEST in path and method == "GET" for method, path, _ in fake.calls) == 1,
-           "ambiguous dispatch permits a single identity lookup")
-
-
-def _ambiguous_recovery_never_reposts() -> None:
-    for count in (0, 2):
-        fake = FakeGitHub(_state())
-        fake.dispatch_error = ci.APIError(500)
-        _refuses(fake.advance, "server error may have accepted the dispatch")
-        fake.guest_runs = [_run(number, event="workflow_dispatch", display_title=GUEST_TITLE)
-                           for number in range(20, 20 + count)]
-        fake.dispatch_error = None
-        _refuses(fake.advance, "ambiguous identity must not authorize a second dispatch")
-        ensure(len(fake.posts()) == 1, "only the original request may have started guest")
-
-
-def _recovery_ambiguity_across_pages() -> None:
-    fake = FakeGitHub(_state())
-    fake.dispatch_error = ci.APIError(500)
-    _refuses(fake.advance, "server error may have accepted the dispatch")
-    candidate = _run(20, event="workflow_dispatch", display_title=GUEST_TITLE,
-                     path=".github/workflows/guest-gates.yml")
-    fake.guest_runs = [candidate, *[
-        _run(number, event="workflow_dispatch", display_title="guest-gates:Another subject",
-             path=".github/workflows/guest-gates.yml") for number in range(21, 120)],
-        {**candidate, "id": 120}]
-    fake.dispatch_error = None
-    _refuses(fake.advance, "a second matching dispatch on another page leaves identity ambiguous")
-    guest = fake.state["guest"]
-    ensure(guest is not None and guest["phase"] == "intent" and guest["run_id"] is None,
-           "incomplete identity evidence must leave the interrupted intent unbound")
-    ensure(len(fake.posts()) == 1, "ambiguity across pages must not repeat the guest dispatch")
-
-
-def _workflow_run_pagination() -> None:
-    for revision in (None, REVISION):
-        for count in (0, 100, 101):
-            fake = FakeGitHub(_state())
-            runs = [_run(number) for number in range(1, count + 1)]
-            fake.host_runs, fake.guest_runs = runs, runs
-            workflow = ci.GUEST if revision is None else ci.HOST
-            with (patch.object(ci, "_token", return_value="fixture-credential"),
-                  patch.object(ci.GitHub, "request", side_effect=fake.request)):
-                ensure(ci.GitHub(ROOT, REPO).runs(workflow, revision) == runs,
-                       "workflow run listings include every page through an empty or short final page")
-            queries = [urllib.parse.parse_qs(urllib.parse.urlsplit(path).query)
-                       for _, path, _ in fake.calls]
-            pages = count // 100 + 1
-            for page, query in enumerate(queries, start=1):
-                expected = {"branch": ["main"], "per_page": ["100"], "page": [str(page)]}
-                expected["event" if revision is None else "head_sha"] = [
-                    "workflow_dispatch" if revision is None else revision]
-                ensure(query == expected, "each page retains the revision or dispatch filters")
-            ensure(len(queries) == pages, "run listing stops at its first empty or short page")
-    fake = FakeGitHub(_state())
-    fake.host_runs = [_run(number) for number in range(1, 1001)]
-    with (patch.object(ci, "_token", return_value="fixture-credential"),
-          patch.object(ci.GitHub, "request", side_effect=fake.request)):
-        _refuses(lambda: ci.GitHub(ROOT, REPO).runs(ci.HOST, REVISION),
-                 "a full final bounded page cannot establish a complete run listing")
-    ensure(len(fake.calls) == 10, "workflow-run pagination remains bounded")
-
-
-def _recovery_requires_main_and_own_dispatch() -> None:
-    for change in ("branch", "title", "earlier", "workflow"):
-        fake = FakeGitHub(_state())
-        fake.dispatch_error = ci.APIError(None)
-        _refuses(fake.advance, "interrupted dispatch must retain its intent")
-        ensure(fake.state["guest"] is not None, "interrupted guest intent must exist")
-        candidate = _run(20, event="workflow_dispatch", display_title=GUEST_TITLE,
-                         path=".github/workflows/guest-gates.yml")
-        if change == "branch":
-            candidate["head_branch"] = "work/stranded"
-        elif change == "title":
-            candidate["display_title"] = "guest-gates:Another subject"
-        elif change == "earlier":
-            # An older dispatch of the same commit, beyond the local clock allowance.
-            candidate["created_at"] = "2026-09-27T15:58:59Z"
-        else:
-            candidate["path"] = ".github/workflows/host-gates.yml"
-        fake.guest_runs = [candidate]
-        fake.dispatch_error = None
-        _refuses(fake.advance, "recovery must identify main and this record's own dispatch")
-        ensure(len(fake.posts()) == 1, "identity mismatch must not repeat the guest dispatch")
-
-
-def _rejected_dispatch_can_retry() -> None:
-    fake = FakeGitHub(_state())
-    fake.dispatch_error = ci.APIError(403)
-    _refuses(fake.advance, "a rejected dispatch must fail the handoff")
-    guest = fake.state["guest"]
-    ensure(guest is not None and guest["phase"] == "rejected", "record definite rejection")
-    fake.dispatch_error = None
-    ensure(fake.advance(), "a rejected dispatch can safely retry after authorization repair")
-    ensure(len(fake.posts()) == 2, "a rejection, unlike ambiguity, permits retry")
-
-
-def _host_interrupt_recovery() -> None:
-    fake = FakeGitHub(_state())
-    fake.host_runs = []
-    fake.dispatch_error = ci.APIError(None)
-    _refuses(fake.advance, "host transport error must preserve its intent")
-    fake.host_runs = [_run(event="workflow_dispatch", head_sha="b" * 40,
-                          display_title=HOST_TITLE)]
-    fake.host = fake.host_runs[0]
-    fake.dispatch_error = None
-    ensure(fake.advance(), "recovered host may establish evidence and dispatch guest")
-    ensure(sum(ci.HOST in path for _, path, _ in fake.posts()) == 1,
-           "interrupted host dispatch must not duplicate")
-
-
-def _token_journal_recovery() -> None:
-    for title, adopted in ((f"fanout:{OLD_ID}:{REVISION}", True),
-                           (f"fanout:{OLD_ID}:{SUBJECT}", True), (HOST_TITLE, False)):
-        fake = FakeGitHub(_state())
-        fake.host_runs = []
-        fake.dispatch_error = ci.APIError(None)
-        _refuses(fake.advance, "host transport error must preserve its intent")
-        host = fake.state["host"]
-        if host is None:
-            raise AssertionError("interrupted host intent must exist")
-        # A journal from when titles carried a token has the token and no request time.
-        del host["requested"]
-        host["token"] = OLD_ID
-        fake.host_runs = [_run(event="workflow_dispatch", display_title=title,
-                               created_at="2026-09-20T00:00:00Z")]
-        fake.host = fake.host_runs[0]
-        fake.dispatch_error = None
-        if adopted:
-            ensure(fake.advance(), "a token-titled dispatch recovers by its token")
-        else:
-            _refuses(fake.advance, "without a request time, a title alone cannot identify it")
-        ensure(sum(ci.HOST in path for _, path, _ in fake.posts()) == 1,
-               "recovering a token journal never repeats its dispatch")
 
 
 def _remote_validation() -> None:
@@ -624,69 +83,84 @@ def _state_validation() -> None:
     for key, value in (("revision", "a" * 7), ("cold", "true"),
                        ("ref", "work/stranded"), ("ref", f"fanout/batch/{REVISION}"),
                        ("repository", "github.com/example/repo"),
-                       # Guest CI's dispatch check refuses each of these reading bases.
                        ("reading_base", "b" * 7), ("reading_base", "B" * 40),
                        ("reading_base", REVISION), ("reading_base", None),
                        ("reading_base", "")):
         state: dict[str, object] = dict(_state())
         state[key] = value
         _refuses(lambda state=state: ci.validate_state(state), f"invalid {key} must be refused")
-    fake = FakeGitHub(_state())
-    ensure(fake.advance(), "fixture must complete its hosted handoff")
+    historical = _historical()
     for requested in ("yesterday", "2026-09-27T16:00:00", 1759000000):
-        timed = copy.deepcopy(fake.state)
+        timed = copy.deepcopy(historical)
         guest: dict[str, object] = dict(timed["guest"] or {})
         guest["requested"] = requested
         _refuses(lambda guest=guest, timed=timed: ci.validate_state({**timed, "guest": guest}),
                  f"request time {requested!r} must be a zoned timestamp")
-    tokened = copy.deepcopy(fake.state)
+    tokened = copy.deepcopy(historical)
     guest = dict(tokened["guest"] or {})
     del guest["requested"]
     guest["token"] = OLD_ID
     ci.validate_state({**tokened, "guest": guest})
-    legacy = copy.deepcopy(fake.state)
+    legacy = copy.deepcopy(historical)
     legacy["ref"] = f"fanout/batch/{REVISION}"
-    _refuses(lambda: ci.advance(ROOT, legacy, lambda: None),
-             "even completed legacy tag handoffs must be rejected")
-    fake.state["host"] = None
-    _refuses(fake.advance, "guest state without passing host evidence must be refused")
+    _refuses(lambda: ci.validate_state(legacy), "legacy tag handoffs remain invalid")
+    historical["host"] = None
+    _refuses(lambda: ci.validate_state(historical),
+             "historical guest dispatch without passing host evidence must be refused")
 
 
 def _phase_validation() -> None:
     for lane, workflow in (("host", ci.HOST), ("guest", ci.GUEST)):
         for phase in ([], {}, ["intent"], {"phase": "intent"}):
             state: dict[str, object] = dict(_state())
-            record: dict[str, object] = dict(ci._blank(workflow, REVISION))
+            record: dict[str, object] = dict(_record(workflow, 10, "accepted"))
             record["phase"] = phase
             state[lane] = record
-            saved: list[bool] = []
-            with patch.object(ci, "GitHub") as client:
-                _refuses(lambda state=state, saved=saved: ci.advance(
-                    ROOT, cast(ci.CIState, state), lambda: saved.append(True)),
-                         f"malformed {lane} phase must produce a controlled refusal")
-                ensure(not client.called and not saved,
-                       "malformed journal phases must refuse before credentials, network or saving")
+            _refuses(lambda state=state: ci.validate_state(state),
+                     f"malformed {lane} phase must produce a controlled refusal")
 
 
 def _completed_handoff_provenance() -> None:
-    fake = FakeGitHub(_state())
-    ensure(fake.advance(), "the fixture must first retain a complete hosted handoff")
     for lane, change in (("host", "unobserved"), ("host", "missing-run"),
                          ("guest", "missing-run")):
-        state: dict[str, object] = dict(copy.deepcopy(fake.state))
+        state: dict[str, object] = dict(_historical())
         run = dict(cast(dict[str, object], state[lane]))
         if change == "unobserved":
             run["phase"] = "intent"
         else:
             run["run_id"], run["url"] = None, ""
         state[lane] = run
-        saved: list[bool] = []
-        with patch.object(ci, "GitHub") as client:
-            _refuses(lambda state=state, saved=saved: ci.advance(
-                ROOT, cast(ci.CIState, state), lambda: saved.append(True)),
-                     f"a complete handoff cannot trust {change} {lane} provenance")
-            ensure(not client.called and not saved,
-                   "incomplete saved provenance must refuse before credentials, network or saving")
+        _refuses(lambda state=state: ci.validate_state(state),
+                 f"historical handoffs cannot trust {change} {lane} provenance")
+
+
+def _historical_validation_is_local() -> None:
+    with (patch.object(ci, "GitHub", side_effect=AssertionError("unexpected CI client")),
+          patch.object(ci, "_token", side_effect=AssertionError("unexpected credential read"))):
+        for state in (_state(), _historical()):
+            before = copy.deepcopy(state)
+            ensure(ci.validate_state(state) == before and state == before,
+                   "historical validation only reads existing evidence")
+
+
+def _scope_validation() -> None:
+    narrow = _selection(["README.md"])
+    for cold, base, full in ((True, None, False), (False, "b" * 40, False),
+                             (False, None, True)):
+        _refuses(lambda cold=cold, base=base, full=full: ci.new_state(
+            REPO, "main", REVISION, cold, base, selection=narrow, full_ci=full),
+                 "historical scope must agree with its frozen overrides")
+    legacy = ci.new_state(REPO, "main", REVISION, False)
+    ensure("selection" not in legacy, "old records remain valid without invented scope")
+    state = ci.new_state(REPO, "main", REVISION, False, selection=narrow)
+    state["host"] = _record(ci.HOST, 10, "observed")
+    state["guest_omitted"] = True
+    ci.validate_state(state)
+    for change in ("selection", "host"):
+        damaged: dict[str, object] = dict(copy.deepcopy(state))
+        del damaged[change]
+        _refuses(lambda damaged=damaged: ci.validate_state(damaged),
+                 "historical omission needs both its selection and host evidence")
 
 
 def _transport_contract() -> None:
@@ -724,32 +198,11 @@ def _fixture_identity(root: Path) -> None:
     _git(root, "config", "commit.gpgsign", "false")
 
 
-def _dispatch_subject() -> None:
-    long = "Accelerate scoped document count checks with candidate and offset indexes"
-    with sandbox_tree({"README.md": "subject fixture\n"}) as root:
-        _fixture_identity(root)
-        revisions: dict[str, str] = {}
-        for subject in ("Short subject", "a" * ci.SUBJECT_LIMIT, long):
-            _git(root, "commit", "--allow-empty", "-qm", subject, "-m", "Body text stays out.")
-            revisions[subject] = _git(root, "rev-parse", "HEAD")
-        ensure(ci._subject(root, revisions["Short subject"]) == "Short subject",
-               "a short subject is the whole title text, without the body")
-        ensure(ci._subject(root, revisions["a" * ci.SUBJECT_LIMIT]) == "a" * ci.SUBJECT_LIMIT,
-               "a subject at the limit is not shortened")
-        ensure(ci._subject(root, revisions[long])
-               == "Accelerate scoped document count checks with candidate and offset ind…",
-               "a long subject is shortened as GitHub shortens a push run's title")
-        _refuses(lambda: ci._subject(root, "b" * 40), "a missing revision has no subject")
-
-
 def _workflow_titles() -> None:
-    record = ci._blank(ci.GUEST, REVISION)
-    ensure(ci._title(record, "") == f"guest-gates:{REVISION}",
-           "an empty subject leaves the revision, as the workflow's title fallback does")
     for workflow in (ci.HOST, ci.GUEST):
         contents = (ROOT / ".github/workflows" / workflow).read_text(encoding="utf-8")
         ensure(f"\nname: {workflow.removesuffix('.yml')}\n" in contents,
-               f"{workflow} is named for its file, as fanout's expected title assumes")
+               f"{workflow} is named for its file, matching their workflow identities")
         ensure("format('{0}:{1}', github.workflow, inputs.title || inputs.revision || github.sha)"
                in contents and "fanout_token" not in contents,
                f"{workflow} titles a dispatch with its name and the title input, and no token")
@@ -764,8 +217,8 @@ def _job_text(contents: str, job: str) -> str:
 
 
 def _workflow_host_job_names() -> None:
-    # The aggregate jobs' names are the evidence _host_status accepts: a renamed job
-    # or platform leaves fanout refusing every Host CI run, however green.
+    # The aggregate names remain stable for retained historical evidence and hosted
+    # workflow consumers, including when runner images change.
     contents = (ROOT / ".github/workflows" / ci.HOST).read_text(encoding="utf-8")
     shards, aggregate = _job_text(contents, "host-gates-shard"), _job_text(contents, "host-gates")
     platform_list = re.compile(r"(?m)^        platform: \[([^\]\n]*)\]$")
@@ -1783,7 +1236,7 @@ def _workflow_dispatch_checkout_keeps_history() -> None:
 
 # The step that checks a dispatched revision, and the conjunct each later step that runs
 # checked-out code after a failure states, in every job of each workflow that checks one:
-# the two fanout dispatches and the boot signature target campaign's.
+# Host CI, Guest CI and the boot signature target campaign.
 _DISPATCH_CHECK = "Verify dispatched revision belongs to main"
 _DISPATCH_GUARD = "steps.dispatch.outcome != 'failure'"
 _CAMPAIGN = "boot-crypto-target.yml"
@@ -1998,38 +1451,17 @@ def _workflow_reading_base_through_environment() -> None:
                "inputs.reading_base || '' }}" for line in reads) == 1,
            "only the proofs lane's reporter receives the base")
     host = (ROOT / ".github/workflows" / ci.HOST).read_text(encoding="utf-8")
-    ensure("reading_base" not in host, "Host CI declares no reading base, and fanout sends it none")
+    ensure("reading_base" not in host, "Host CI declares no reading base")
 
 
 def cases() -> list[Case]:
-    return [Case("successful-handoff", _successful_handoff),
-            Case("scoped-guest-handoffs", _scoped_guest_handoffs),
-            Case("scope-overrides-and-legacy", _scope_overrides_and_legacy),
-            Case("reading-base-forwarded", _reading_base_forwarded),
-            Case("host-pending", _host_pending), Case("host-failure", _host_failure),
-            Case("host-aggregate-evidence", _host_aggregate_evidence),
-            Case("host-revision-binding", _host_revision_binding),
-            Case("host-dispatch", _host_dispatch),
-            Case("late-push-run-adopted", _late_push_run_adopted),
-            Case("duplicate-push-runs-reused", _duplicate_push_runs_reused),
-            Case("cancelled-push-peer-recovery", _cancelled_push_peer_recovery),
-            Case("cancelled-push-peer-identity-verdict", _cancelled_push_peer_identity_and_verdict),
-            Case("cancelled-dispatch-never-rebinds-push", _cancelled_dispatch_never_rebinds_push),
-            Case("main-ancestry", _main_ancestry),
-            Case("dispatch-revision-survives-main-advance", _dispatch_revision_survives_main_advance),
-            Case("guest-interrupt-recovery", _guest_interrupt_recovery),
-            Case("ambiguous-recovery-never-reposts", _ambiguous_recovery_never_reposts),
-            Case("recovery-ambiguity-across-pages", _recovery_ambiguity_across_pages),
-            Case("workflow-run-pagination", _workflow_run_pagination),
-            Case("recovery-main-and-own-dispatch", _recovery_requires_main_and_own_dispatch),
-            Case("rejected-dispatch-retry", _rejected_dispatch_can_retry),
-            Case("host-interrupt-recovery", _host_interrupt_recovery),
-            Case("token-journal-recovery", _token_journal_recovery),
-            Case("remote-validation", _remote_validation), Case("state-validation", _state_validation),
+    return [Case("remote-validation", _remote_validation),
+            Case("state-validation", _state_validation),
+            Case("scope-validation", _scope_validation),
             Case("malformed-phase-refusal", _phase_validation),
             Case("completed-handoff-provenance", _completed_handoff_provenance),
+            Case("historical-validation-is-local", _historical_validation_is_local),
             Case("transport-contract", _transport_contract),
-            Case("dispatch-subject", _dispatch_subject),
             Case("workflow-titles", _workflow_titles),
             Case("workflow-host-job-names", _workflow_host_job_names),
             Case("workflow-host-aggregate-needs", _workflow_host_aggregate_needs),

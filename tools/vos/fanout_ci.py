@@ -1,23 +1,18 @@
 # SPDX-License-Identifier: Apache-2.0
-"""Resumable hosted validation for a settled fan-out revision.
+"""Historical CI journal validation and shared GitHub request transport.
 
-The caller publishes main, owns the journal lock and atomically saves
-the enclosing batch whenever requested. A dispatch intent reaches disk before the
-POST. An interrupted POST is recovered by its workflow title among the runs GitHub
-created after that intent, never retried on the assumption that a missing response
-means GitHub did not start a run.
+Local fanout completion reads historical records without advancing them. The
+request client remains available to separately invoked hosted tools; no batch
+orchestration, polling or waiting lives here.
 """
 
 import json
 import os
 import re
 import subprocess
-import time
 import urllib.error
-import urllib.parse
 import urllib.request
-from collections.abc import Callable
-from datetime import UTC, datetime, timedelta
+from datetime import datetime
 from pathlib import Path
 from typing import NotRequired, TypedDict, cast, override
 
@@ -29,16 +24,6 @@ GUEST = "guest-gates.yml"
 # image, so an image move leaves this set and the evidence it accepts unchanged.
 HOST_JOBS = {"host-gates (Ubuntu)", "host-gates (Windows)"}
 API_VERSION = "2026-03-10"
-# A push to main starts Host CI itself, but GitHub lists that run seconds after it
-# accepts the push. Dispatching before then runs every host shard twice for one
-# revision, so the first lookup retries after each of these pauses before dispatching.
-PUSH_RUN_WAITS: tuple[int, ...] = (5, 10, 15, 30)
-# A dispatched run's title follows the workflow name with the commit subject,
-# shortened to the length GitHub gives a push run's default title.
-SUBJECT_LIMIT = 70
-# GitHub creates a dispatched run after its intent reaches disk. Recovery also
-# accepts a run stamped this much earlier, in case the local clock runs ahead.
-CLOCK_SKEW = timedelta(seconds=60)
 
 
 class RunState(TypedDict):
@@ -65,7 +50,7 @@ class CIState(TypedDict):
     # The commit Guest CI's proofs lane reads beside the revision, forwarded as its
     # `reading_base` input; a record without the key names none.
     reading_base: NotRequired[str]
-    # Omitted in older journals, which retain the complete CI handoff.
+    # Omitted in journals written before changed-path selection.
     selection: NotRequired[ci_scope.Selection]
     full_ci: NotRequired[bool]
     guest_omitted: NotRequired[bool]
@@ -140,10 +125,6 @@ def _instant(value: object) -> datetime:
     if moment is None or moment.tzinfo is None:
         raise CIError("hosted evidence has no zoned timestamp")
     return moment
-
-
-def _now() -> str:
-    return datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
 def validate_state(value: object) -> CIState:
@@ -278,287 +259,3 @@ class GitHub:
             raise APIError(error.code) from None
         except OSError, ValueError:
             raise APIError(None) from None
-
-    def runs(self, workflow: str, revision: str | None = None) -> list[dict[str, object]]:
-        parameters: dict[str, str | int] = {"branch": "main", "per_page": 100}
-        if revision is not None:
-            parameters["head_sha"] = revision
-        else:
-            parameters["event"] = "workflow_dispatch"
-        runs: list[dict[str, object]] = []
-        # Recovery must see later pages too: a second dispatch with the same title
-        # cannot become a unique identity merely by falling outside the first page.
-        for page in range(1, 11):
-            parameters["page"] = page
-            query = urllib.parse.urlencode(parameters)
-            response = self.request("GET", f"actions/workflows/{workflow}/runs?{query}")
-            values = response.get("workflow_runs")
-            if not isinstance(values, list):
-                raise CIError("GitHub did not return workflow runs")
-            runs.extend(_object(run) for run in values)
-            if len(values) < 100:
-                return runs
-        raise CIError("workflow run listing exceeded the bounded pagination limit")
-
-    def verify_ref(self, state: CIState) -> None:
-        response = self.request("GET", "git/ref/heads/main")
-        target = _object(response.get("object"))
-        head = _string(target, "sha")
-        if target.get("type") != "commit" or not re.fullmatch(r"[0-9a-f]{40}", head):
-            raise CIError("remote main does not identify a commit")
-        if head != state["revision"]:
-            comparison = self.request("GET", f"compare/{state['revision']}...{head}")
-            ancestor = _object(comparison.get("merge_base_commit"))
-            if comparison.get("status") != "ahead" or ancestor.get("sha") != state["revision"]:
-                raise CIError("settled revision is not on remote main")
-
-
-def _blank(workflow: str, revision: str) -> RunState:
-    return {"workflow": workflow, "revision": revision,
-            "phase": "intent", "run_id": None, "url": "", "status": "pending",
-            "conclusion": None, "request_id": None, "jobs": {}}
-
-
-def _subject(root: Path, revision: str) -> str:
-    done = subprocess.run(["git", "-C", str(root), "log", "-1", "--format=%s", revision],
-                          capture_output=True, text=True, encoding="utf-8", errors="replace",
-                          check=False, timeout=30)
-    if done.returncode:
-        raise CIError("cannot read the settled revision's commit subject")
-    subject = done.stdout.strip()
-    if len(subject) <= SUBJECT_LIMIT:
-        return subject
-    return subject[:SUBJECT_LIMIT - 1].rstrip() + "…"
-
-
-def _title(record: RunState, subject: str) -> str:
-    # Each workflow is named for its file, and its run-name falls back to the revision.
-    return f"{record['workflow'].removesuffix('.yml')}:{subject or record['revision']}"
-
-
-def _dispatched(record: RunState, run: dict[str, object], subject: str) -> bool:
-    title = run.get("display_title")
-    if "token" in record and isinstance(title, str) and title.startswith(
-            f"fanout:{record['token']}:"):
-        return True
-    return "requested" in record and title == _title(record, subject)
-
-
-def _identity(state: CIState, record: RunState, run: dict[str, object], subject: str) -> None:
-    if run.get("head_branch") != "main":
-        raise CIError("GitHub workflow run did not use main")
-    event = run.get("event")
-    if event == "push":
-        if record["workflow"] != HOST or run.get("head_sha") != state["revision"]:
-            raise CIError("GitHub push run tested a different revision")
-    elif event == "workflow_dispatch":
-        # The run identifier comes from this record's own request or its bounded
-        # recovery, and the title carries the checkout input's commit subject.
-        # head_sha instead names the main tip used to load the workflow and can
-        # advance before GitHub starts it.
-        if not _dispatched(record, run, subject):
-            raise CIError("GitHub dispatch did not identify the requested checkout revision")
-    else:
-        raise CIError("pull-request or scheduled runs cannot establish this publication's host evidence")
-    if run.get("path") != ".github/workflows/" + record["workflow"]:
-        raise CIError("GitHub workflow run used a different workflow file")
-    record["run_id"] = _run_id(run.get("id"))
-    record["url"] = f"https://github.com/{state['repository']}/actions/runs/{record['run_id']}"
-
-
-def _recover(client: GitHub, state: CIState, record: RunState, subject: str,
-             save: Callable[[], None]) -> None:
-    # One identity lookup resolves interrupted requests. Another dispatch with the
-    # same title since the intent leaves them ambiguous. A guest's verdict is never
-    # read or copied, even when it happens to be included in this API response.
-    requested = record.get("requested")
-    earliest = _instant(requested) - CLOCK_SKEW if requested is not None else None
-    matches = [run for run in client.runs(record["workflow"])
-               if _dispatched(record, run, subject)
-               and run.get("head_branch") == "main"
-               and run.get("event") == "workflow_dispatch"
-               and (earliest is None or _instant(run.get("created_at")) >= earliest)]
-    if len(matches) != 1:
-        raise CIError("dispatch identity remains ambiguous; no dispatch was repeated. "
-                      "Inspect GitHub Actions and retry recovery when the original run is visible")
-    _identity(state, record, matches[0], subject)
-    record["phase"] = "accepted"
-    record["status"] = "pending"
-    save()
-
-
-def _dispatch(client: GitHub, state: CIState, record: RunState, subject: str,
-              save: Callable[[], None]) -> None:
-    client.verify_ref(state)
-    record["phase"] = "intent"
-    record["requested"] = _now()
-    save()
-    inputs: dict[str, object] = {"revision": state["revision"], "title": subject}
-    if record["workflow"] == GUEST:
-        inputs["cold"] = state["cold"]
-        selection = state.get("selection")
-        if selection is not None and selection["guest_lanes"] != list(ci_scope.ALL_GUEST_LANES):
-            if not selection["guest_lanes"]:
-                raise CIError("an empty guest selection must not dispatch Guest CI")
-            inputs["lanes"] = ",".join(selection["guest_lanes"])
-        # Sent only when the batch names one; the input's empty default reads none.
-        reading_base = state.get("reading_base")
-        if reading_base is not None:
-            inputs["reading_base"] = reading_base
-    try:
-        result = client.request("POST", f"actions/workflows/{record['workflow']}/dispatches",
-                                {"ref": state["ref"], "inputs": inputs})
-    except APIError as error:
-        if error.status in {400, 401, 403, 404, 409, 410, 422, 429}:
-            record["phase"] = "rejected"
-            record["status"] = f"rejected HTTP {error.status}"
-            save()
-        raise
-    # The current API returns the run ID directly. Older empty responses leave a
-    # durable intent requiring identity recovery rather than a duplicate POST.
-    record["run_id"] = _run_id(result.get("workflow_run_id"))
-    record["url"] = f"https://github.com/{state['repository']}/actions/runs/{record['run_id']}"
-    if result.get("html_url") != record["url"]:
-        raise CIError("dispatch response returned an unexpected run URL; recover its identity")
-    request_id = result.get("_request_id")
-    record["request_id"] = request_id if isinstance(request_id, str) else None
-    record["phase"] = "accepted"
-    record["status"] = "pending"
-    save()
-
-
-def _host_status(client: GitHub, state: CIState, record: RunState, subject: str,
-                 save: Callable[[], None]) -> bool:
-    run = client.request("GET", f"actions/runs/{record['run_id']}")
-    if run.get("id") != record["run_id"]:
-        raise CIError("GitHub returned the wrong workflow run identifier")
-    _identity(state, record, run, subject)
-    record["phase"] = "observed"
-    record["status"] = _string(run, "status")
-    conclusion = run.get("conclusion")
-    if conclusion is not None and not isinstance(conclusion, str):
-        raise CIError("GitHub returned a malformed host conclusion")
-    record["conclusion"] = conclusion
-    record["jobs"] = {}
-    save()
-    if record["status"] != "completed":
-        return False
-    if (conclusion == "cancelled" and run.get("event") == "push"
-            and _replace_cancelled_push(client, state, record, subject, save)):
-        return False
-    if conclusion != "success":
-        raise CIError(f"Host CI did not pass: {conclusion}; {record['url']}")
-    jobs: dict[str, str] = {}
-    # filter=latest excludes failed jobs from previous attempts of a rerun.
-    for page in range(1, 11):
-        response = client.request("GET", f"actions/runs/{record['run_id']}/jobs"
-                                  f"?filter=latest&per_page=100&page={page}")
-        values = response.get("jobs")
-        if not isinstance(values, list):
-            raise CIError("GitHub did not return host jobs")
-        for value in values:
-            job = _object(value)
-            name = _string(job, "name")
-            if name in HOST_JOBS:
-                if name in jobs:
-                    raise CIError("Host CI returned duplicate aggregate jobs")
-                jobs[name] = str(job.get("conclusion")) if job.get("status") == "completed" else "pending"
-        if len(values) < 100:
-            break
-    else:
-        raise CIError("Host CI job listing exceeded the bounded pagination limit")
-    record["jobs"] = jobs
-    save()
-    if set(jobs) != HOST_JOBS or any(result != "success" for result in jobs.values()):
-        raise CIError("Host CI lacks successful Windows and Ubuntu aggregate jobs")
-    return True
-
-
-def _push_runs(client: GitHub, state: CIState) -> list[dict[str, object]]:
-    return [run for run in client.runs(HOST, state["revision"])
-            if run.get("head_sha") == state["revision"]
-            and run.get("head_branch") == "main"
-            and run.get("event") == "push"]
-
-
-def _replace_cancelled_push(client: GitHub, state: CIState, record: RunState,
-                            subject: str, save: Callable[[], None]) -> bool:
-    # Same-revision concurrency can cancel either duplicate: run-ID order does
-    # not decide which one survives. Rebind only a canceled push, then require
-    # the peer's own run and aggregate jobs on the next advance. A dispatch's
-    # pinned checkout cannot be inferred from another run's head SHA.
-    peers = [run for run in _push_runs(client, state)
-             if run.get("path") == ".github/workflows/" + HOST
-             and _run_id(run.get("id")) != record["run_id"]
-             and isinstance(run.get("status"), str)
-             and (run.get("status") != "completed" or run.get("conclusion") == "success")]
-    if not peers:
-        return False
-    selected = max(peers, key=lambda run: _run_id(run.get("id")))
-    _identity(state, record, selected, subject)
-    record["phase"] = "accepted"
-    record["status"] = "pending"
-    record["conclusion"] = None
-    record["jobs"] = {}
-    save()
-    return True
-
-
-def advance(root: Path, state: CIState, save: Callable[[], None]) -> bool:
-    """Advance once; False means host pending, True means the guest handoff is recorded.
-
-    The caller may repeat pending host steps. Never repeat this function to learn
-    a guest verdict: after accepted dispatch it returns without contacting GitHub.
-    The first host lookup waits a bounded time for the push run before dispatching.
-    """
-    validate_state(state)
-    if state.get("guest_omitted", False):
-        return True
-    guest = state["guest"]
-    if guest is not None and guest["phase"] == "accepted" and guest["run_id"] is not None:
-        return True
-    client = GitHub(root, state["repository"])
-    client.verify_ref(state)
-    subject = _subject(root, state["revision"])
-    host = state["host"]
-    if host is None:
-        # Explicit full CI cannot adopt a path-selected automatic run, whose
-        # aggregate success may intentionally omit unchanged checks.
-        runs = [] if state.get("full_ci", False) else _push_runs(client, state)
-        if not state.get("full_ci", False):
-            for pause in PUSH_RUN_WAITS:
-                if runs:
-                    break
-                time.sleep(pause)
-                runs = _push_runs(client, state)
-        host = _blank(HOST, state["revision"])
-        state["host"] = host
-        if runs:
-            selected = max(runs, key=lambda run: _run_id(run.get("id")))
-            _identity(state, host, selected, subject)
-            host["phase"] = "accepted"
-            save()
-        else:
-            _dispatch(client, state, host, subject, save)
-            return False
-    elif host["phase"] == "rejected":
-        _dispatch(client, state, host, subject, save)
-        return False
-    elif host["phase"] == "intent" or host["run_id"] is None:
-        _recover(client, state, host, subject, save)
-    if not _host_status(client, state, host, subject, save):
-        return False
-    selection = state.get("selection")
-    if selection is not None and not selection["guest_lanes"]:
-        state["guest_omitted"] = True
-        save()
-        return True
-    if guest is None:
-        guest = _blank(GUEST, state["revision"])
-        state["guest"] = guest
-        _dispatch(client, state, guest, subject, save)
-    elif guest["phase"] == "rejected":
-        _dispatch(client, state, guest, subject, save)
-    else:
-        _recover(client, state, guest, subject, save)
-    return True
