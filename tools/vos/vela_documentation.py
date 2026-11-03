@@ -6,7 +6,7 @@ from bisect import bisect_right
 from dataclasses import dataclass
 from typing import cast
 
-from vos.vela_ast import Name, Site, source_text
+from vos.vela_ast import Name, Site, source_text, trivia_end
 
 MAX_DOCUMENTATION_BYTES = 8192
 
@@ -104,4 +104,8 @@ class DocumentationSource:
         qualifier = rb"const\s+" if kind == "constant" else rb"(?:const\s+)?"
         if re.fullmatch(rb"public\s+" + qualifier + rb"(?:Nat|bool)\s+", prefix) is None:
             raise ValueError("documentation anchor does not belong to this declaration")
+        suffix = trivia_end(self.source, target + len(name.text.encode("utf-8")))
+        marker = b"=" if kind == "constant" else b"("
+        if suffix < 0 or self.source[suffix:suffix + 1] != marker:
+            raise ValueError("documentation declaration kind differs from source")
         return text

@@ -155,6 +155,46 @@ def _documentation_bounds_and_invalid_sources() -> None:
         raise AssertionError("invalid source published documentation facts")
 
 
+def _declaration_kind_source_binding() -> None:
+    source = ("module K;\r\n/// Stored.\npublic const Nat Value // before initializer\r\n = 7;\r"
+              "/// Callable.\npublic const Nat Get // before parameters\n () => Value;")
+    original = inspect_source(source.encode())
+    ensure("Stored." in _contents(_hover(source, 2, 17, original))
+           and "Callable." in _contents(_hover(source, 5, 17, original)),
+           "legitimate constant and const function documentation lost its declaration kind")
+    for name, kind, detail, position in (
+            ("Value", "function", "public const Nat Value()", (2, 17)),
+            ("Get", "constant", "const Nat Get", (5, 17))):
+        raw = copy.deepcopy(original)
+        symbol = _find(raw, name)
+        symbol.update(kind=kind, detail=detail)
+        try:
+            _hover(source, *position, raw)
+        except InspectionError:
+            continue
+        raise AssertionError(f"forged declaration kind reused documentation for {name}")
+
+
+def _unicode_documentation_byte_bound() -> None:
+    text = "😀" * (MAX_DOCUMENTATION_BYTES // 4 - 1) + "\nabc"
+    ensure(len(text.encode()) == MAX_DOCUMENTATION_BYTES,
+           "independent Unicode fixture does not reach the UTF-8 byte boundary")
+    source = "module M;\r\n" + "\r\n".join("/// " + line for line in text.split("\n"))
+    source += "\r\npublic Nat F() => 1;"
+    raw = inspect_source(source.encode())
+    ensure(cast("dict[str, object]", _find(raw, "F")["documentation"])["text"] == text
+           and text in _contents(_hover(source, 3, 11, raw)),
+           "exact UTF-8 bound changed Unicode text or counted authored CRLF bytes")
+    oversized = source.replace("/// abc", "/// abcd")
+    translate(oversized.encode())
+    try:
+        inspect_source(oversized.encode())
+    except VelaError as error:
+        ensure(error.kind == "inspection-limit", "Unicode overflow received a semantic verdict")
+    else:
+        raise AssertionError("Unicode documentation was bounded by characters instead of UTF-8 bytes")
+
+
 def _message(method: str, params: object = None, identity: int | None = None) -> dict[str, object]:
     result = {"jsonrpc": "2.0", "method": method, "params": {} if params is None else params}
     if identity is not None:
@@ -236,5 +276,7 @@ def cases() -> list[Case]:
             Case("declaration-reference-documentation-hovers", _declaration_and_reference_hovers),
             Case("forged-and-stale-documentation-refusal", _forged_and_stale_documentation),
             Case("bounded-documentation-and-invalid-programs", _documentation_bounds_and_invalid_sources),
+            Case("documentation-declaration-kind-source-binding", _declaration_kind_source_binding),
+            Case("unicode-documentation-byte-boundary", _unicode_documentation_byte_bound),
             Case("incremental-documentation-invalidation", _edited_overlay),
             Case("real-stdio-documentation-and-edit", _real_stdio_documentation)]
