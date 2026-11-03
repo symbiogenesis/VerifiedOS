@@ -2,42 +2,21 @@
 (* =========================================================================
    ResetTable.v
 
-   The release points of R-15-198's power and reset sequence table, as
-   R-15-198a fixes them: the table releases islands at fixed points rather
-   than at one, each island's release step following the ready indications
-   and completion reads of the domains bound to that island and of no other
-   island's; the table orders the shell and telephony islands' fills and
-   releases ahead of the inference island's; and the RoT's start-up entropy
-   health tests (R-09-006a) begin at the first step after the RoT's own
-   rail is up and run concurrently with the clock-spine lock and the
-   memory-controller bring-up, the verdict's extension ordered before the
-   first step that draws entropy. The same entry has the tests run
-   concurrently with every image-derived fill and re-verification as well,
-   which this file does not state (reading 6). R-15-198 makes mode
-   transitions, standby exit and deep-sleep wake re-entries into suffixes
-   of the same table, and R-15-190b puts every re-execution of the chain
-   the RoT sequences at such a suffix, so the release obligation is stated
-   at every entry point the table declares and not on the cold path alone.
+   Reset-table release checks for R-15-198 and R-15-198a, including the
+   re-entry suffixes R-15-190b requires. The domain-to-island map comes from
+   MemoryPlan.v's PowerVector, which carries R-15-228's map.
 
-   What this file is. A statement artifact in ApexTheorem.v's idiom, not a
-   proof development and not an implementation: the release-point schema
-   Q33 owns and four composition checks over it, with admitted tables
-   computed and every malformed table the entry names refused. The checks
-   are the release check at every entry point, the cold path's release of
-   every island a domain is bound to, the staging order, and the entropy
-   clauses. The island a domain is bound to is read from MemoryPlan.v's
-   `PowerVector`, the same binding its label checks read, so the table
-   carries no second copy of R-15-228's map. Every quantity the register
-   leaves to composition is a field of the ResetTable record; nothing is
-   admitted and nothing is axiomatized, and the native assumption audit
-   reports every shipped constant closed under the global context.
+   Four executable composition checks cover release after an island's own
+   ready/completion reads, cold-path release coverage, staging order and
+   entropy-test ordering (R-09-006a). The release and coverage checks are
+   proved equivalent to their stated obligations. Accepted tables and
+   distinguishing refusals are computed below.
 
-   What the gate's green line means. Compiled, axiom-free, non-vacuous and
-   enumerated, and it does not mean verified. No shipped composition
-   carries a reset table, so no constant here is read from one, emitted
-   into an attested devicetree, lowered into the RoT firmware, or run on
-   either emulator. The computed checks are decided inside the kernel by
-   conversion and print nothing.
+   Scope: a schema and reference checks, with no global axioms. No shipped
+   composition supplies these values, and no theorem connects them to a
+   devicetree, firmware image or emulator run. The excluded concurrency
+   clause is explained in reading 6; the checks do not discharge the entire
+   reset-table requirements.
 
    What is not stated here, and who owns it.
 
@@ -167,27 +146,13 @@
    The literals taken from the design: none. The step order of the demo
    tables below is a witness value and carries no composition claim.
 
-   Non-vacuity (R-05-165, R-05-166). The release and coverage obligations
-   are stated of an arbitrary table and vector and proved of their checks
-   in both directions. Inhabitation is concrete: a staged table the checks
-   admit, with a re-entry it declares; a second admitted table confirming
-   a session-derived domain ahead of the staging; and a third, admitted
-   over a vector binding one domain to an island no role names. Beside
-   them fourteen refused tables, each refused by one check with the other
-   three holding: over the held vector the release check refusing three,
-   the staging check three and the entropy checks seven, five of which
-   fail one entropy clause each so that every clause is separated from
-   the others by a table of its own; and the coverage check one, the
-   staged table over the three-island vector. A table releasing no island
-   is refused by the coverage and staging checks both, and the whole check
-   is computed to refuse every one of these tables. The one-release-point
-   reading refuses the admitted table, and three generated families over
-   the admitted table's cold path have their verdicts computed: of the
-   sixteen deletions the release check refuses exactly the eight that
-   remove a released island's read and the coverage check exactly the two
-   that remove a release, and of the fifteen adjacent transpositions the
-   release check refuses exactly one, the one moving the inference release
-   ahead of its last read.
+   Non-vacuity (R-05-165, R-05-166): witnesses cover an admitted staged
+   table and re-entry, an admitted session-derived completion, and release
+   of an island outside the named staging roles. Refused tables isolate
+   release, coverage, staging and entropy defects. Generated deletions and
+   adjacent transpositions exercise missing reads, missing releases and
+   reordered completion. The stronger all-domains-before-every-release
+   condition rejects the admitted staged table.
    (*| BEGIN derived: cited entries |*)
    Owner: docs/requirements-register.md
    Requirements: R-02-003 R-05-163 R-05-164 R-05-165 R-05-166 R-09-006a R-09-006b R-15-247d
@@ -248,8 +213,8 @@ Fixpoint step_occurs (s : TableStep) (l : list TableStep) : bool :=
   | cons x r => orb (step_eqb s x) (step_occurs s r)
   end.
 
-(* Answers at whichever of p and q the walk meets first; false where either
-   is absent (reading 1). *)
+(* True when p's first occurrence precedes q's first occurrence. False if
+   either is absent or p = q (reading 1). *)
 Fixpoint step_precedes (p q : TableStep) (l : list TableStep) : bool :=
   match l with
   | nil => false
@@ -327,7 +292,7 @@ Proof.
       destruct (Nat.eqb e y); reflexivity.
 Qed.
 
-(* What a step preceding another says of each of the two. *)
+(* Precedence requires the later step to occur. *)
 Lemma step_precedes_occurs :
   forall (p q : TableStep) (l : list TableStep),
     step_precedes p q l = true -> step_occurs q l = true.
@@ -430,8 +395,7 @@ Definition ReleasePointsFollowOwnReads (t : ResetTable) (v : PowerVector) : Prop
     any_of (Nat.eqb e) (entries_of t) = true ->
     ReleasesFollowOwnReads v (suffix_from e t.(table_steps)).
 
-(* T1 (R-15-198a): the walk's check decides its obligation in both
-   directions. *)
+(* T1 (R-15-198a): soundness and completeness of the per-walk release check. *)
 (*| discharges: R-15-198a |*)
 Lemma releases_follow_own_reads_sound :
   forall (v : PowerVector) (s : list TableStep),
@@ -460,7 +424,7 @@ Proof.
   apply andb_join; [ exact Hr | exact Hc ].
 Qed.
 
-(* T2 (R-15-198a, R-15-190b): and so does the table's, at every entry. *)
+(* T2 (R-15-198a, R-15-190b): soundness and completeness at every entry. *)
 (*| discharges: R-15-198a, R-15-190b |*)
 Theorem release_points_ok_sound :
   forall (t : ResetTable) (v : PowerVector),
@@ -493,8 +457,7 @@ Definition EveryBoundIslandIsReleased (t : ResetTable) (v : PowerVector) : Prop 
     Nat.ltb d v.(domain_count) = true ->
     step_occurs (IslandRelease (v.(domain_island) d)) t.(table_steps) = true.
 
-(* T1b (R-15-198a): the coverage check decides its obligation in both
-   directions. *)
+(* T1b (R-15-198a): soundness and completeness of release coverage. *)
 (*| discharges: R-15-198a |*)
 Lemma islands_released_ok_sound :
   forall (t : ResetTable) (v : PowerVector),
@@ -513,8 +476,8 @@ Proof.
   apply all_of_upto_intro. intros d Hd. exact (H d Hd).
 Qed.
 
-(* The one-release-point reading reading 3 refutes: every release follows
-   every domain's reads, its own island's or not. *)
+(* Alternative rejected in reading 3: require every domain's reads before
+   every island release, including domains belonging to other islands. *)
 Definition all_reads_before (v : PowerVector) (s : list TableStep) (i : nat) : bool :=
   all_of (fun d => andb (step_precedes (DomainReady d) (IslandRelease i) s)
                         (step_precedes (DomainComplete d) (IslandRelease i) s))
@@ -546,9 +509,8 @@ Definition staging_ok (t : ResetTable) (v : PowerVector) : bool :=
        (all_of (fun a => staged_ahead_of v t.(table_steps) a t.(inference_island))
                t.(ahead_islands)).
 
-(* T3 (R-15-198a): with the release obligation on the cold path, the
-   staging check puts every fill of an island ordered ahead before the
-   inference island's release, reading 5 proved rather than asserted. *)
+(* T3 (R-15-198a): release and staging checks put every domain completion
+   of an ahead island before the inference island's release (reading 5). *)
 (*| discharges: R-15-198a |*)
 Theorem the_ahead_fills_precede_the_inference_release :
   forall (t : ResetTable) (v : PowerVector) (a d : nat),
@@ -598,8 +560,7 @@ Definition entropy_ok (t : ResetTable) : bool :=
              (andb (verdict_before_draws t.(table_steps))
                    (verdict_before_releases t.(table_steps)))).
 
-(* T4 (R-15-198a): an admitted table draws nothing before the verdict is
-   extended, which is R-15-198a's own ordering clause. *)
+(* T4 (R-15-198a): every draw follows the entropy-verdict extension. *)
 (*| discharges: R-15-198a |*)
 Theorem an_admitted_table_draws_after_the_verdict :
   forall t : ResetTable,
@@ -615,9 +576,8 @@ Proof.
   exact (only_if_elim _ _ Hv Hdraw).
 Qed.
 
-(* T5 (R-15-198a, R-09-006a): and releases no island before it. This claims
-   R-09-006a's ordering half at the table, read as RotFirmware.v's C3 reads
-   it at the chain, and nothing of its failure half (item iv). *)
+(* T5 (R-15-198a, R-09-006a): every island release follows the verdict.
+   This models ordering, not the failed-test response deferred in item iv. *)
 (*| discharges: R-15-198a, R-09-006a |*)
 Theorem an_admitted_table_releases_no_island_before_the_verdict :
   forall (t : ResetTable) (i : nat),
@@ -633,10 +593,9 @@ Proof.
   exact (all_of_steps _ _ (IslandRelease i) Hrel Hocc).
 Qed.
 
-(* T6: what reading 6 reports. With the verdict before every release and
-   the staging order, every image-derived fill of the inference island
-   stands after the verdict, so no admitted table whose inference island
-   has one runs the tests concurrently with all of its fills. *)
+(* T6: staging and verdict-before-release put inference fills after the
+   verdict. This prevents a positional interpretation of the requirement
+   that all fills overlap the tests; see reading 6. *)
 Theorem the_inference_fills_follow_the_verdict :
   forall (t : ResetTable) (v : PowerVector) (a d : nat),
     staging_ok t v = true ->
@@ -658,7 +617,8 @@ Proof.
   exact (step_precedes_trans _ _ _ _ Hv Hfirst).
 Qed.
 
-(* The whole of R-15-198a's schema check. *)
+(* Combine the four implemented checks; reading 6 identifies the omitted
+   R-15-198a concurrency clause. *)
 Definition reset_table_ok (t : ResetTable) (v : PowerVector) : bool :=
   andb (release_points_ok t v)
        (andb (islands_released_ok t v) (andb (staging_ok t v) (entropy_ok t))).

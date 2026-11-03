@@ -2,124 +2,52 @@
 (* =========================================================================
    StaticMemoryService.v
 
-   The frame service of the static-memory transformation experiment
-   (tools/vos/static_memory_transform.py), at the level of list functions:
-   the value specification `reference`, the byte arithmetic the emitted
-   map instruction uses, a functional model of each emitted variant's data
-   flow, and the theorem that every model returns `reference` on every
-   input list, under the one hypothesis the chunk variants carry, that
-   their chunk starts partition the index interval.
+   Functional models of the frame service in
+   tools/vos/static_memory_transform.py. Each model returns `reference` on
+   every list of naturals; chunked models require chunk starts and lengths
+   to partition the input index interval. The argument is modular checksum
+   associativity, map equivalence and read-before-overwrite ordering, as
+   described in docs/implementation/static-memory/transformations.md.
 
-   What this file is. A machine-checked form of the elementary algorithm
-   argument docs/implementation/static-memory/transformations.md states in
-   prose: modular addition is associative, so reducing consecutive chunks
-   gives the whole-list checksum; the shift/add/mask map equals the
-   multiply/mod map on every byte; and an in-place pass that overwrites
-   element i after reading it, then XORs only after the reduction is
-   complete, emits the same bytes in index order. Everything below is
-   proved outright over Rocq's standard library: nothing is admitted and
-   no axiom is declared. R-05-163's native assumption gate, `run.py proofs`,
-   enumerates every constant and checks that each is closed under the global
-   context.
+   Models and emitted variants:
+   - `retained`: keep the mapped list, reduce, then XOR (lexical-cache and
+     phased-cache share this data flow and differ only in retirement).
+   - `early_release`: map/reduce slices, then XOR the complete mapped list
+     (early-input-release).
+   - `chunked`: map/reduce slices, then XOR and concatenate the kept chunks
+     (chunked-cache). The staging copy has no functional effect.
+   - `tiled`: recompute each mapped slice for the XOR pass
+     (tiled-rematerialized).
+   - `fused`: map during reduction, then recompute for XOR
+     (fused-rematerialized).
+   - `in_place`: read and overwrite each index while accumulating the
+     checksum, then run XOR after the complete reduction (in-place-phased).
 
-   What this file is not. It does not model the interpreter. The Python
-   `execute` walks an instruction list over a flat byte array with base
-   offsets, bounded views, descriptor reads, reserve and retire scrubs,
-   the control-workspace checksum byte and the erasure check after return;
-   the functions here take a list of naturals and return one. That the
-   program `emit_program` writes for a variant computes the function its
-   model names is the executable-test claim `equivalence_findings` makes
-   over the report's frames, and it stays an executable claim: no
-   refinement from the emitted schedule to these functions is stated here,
-   and authority, index checks, zeroization, staging copies and DMA are
-   outside every theorem in this file. The chunk models place a chunk's
-   outputs by chunk order where the schedule writes them at their start
-   offsets, which agree under the partition hypothesis and not otherwise.
-   The costs the experiment compares (reservations, traffic, operation
-   counts) are not modelled at all; the file decides only that the
-   candidates agree on their output.
+   `generator_chunks_partition` proves the positive-tile generator satisfies
+   the chunk hypothesis; `generator_chunks_clamp` preserves it when the tile
+   is clamped to the length. Partitioning is sufficient, not necessary: a
+   final chunk extending beyond the input still agrees because slices
+   truncate. Missing or repeated indices can change the result.
 
-   The models, six over the seven rows of the emitted variant table,
-   because two rows share one data flow:
-   - `retained` maps, folds the checksum, then maps the XOR over the kept
-     mapped list (lexical-cache and phased-cache, which differ in
-     retirement and not in data flow).
-   - `early_release chunks` maps and reduces the input slice by slice
-     into one mapped list and XORs over that whole list
-     (early-input-release, whose input arrives in chunks while its mapped
-     buffer and its XOR pass are whole-length).
-   - `chunked chunks` maps and reduces slice by slice, then XORs each kept
-     mapped chunk and concatenates the chunk outputs (chunked-cache; the
-     stage copy is a pure move and leaves no functional trace).
-   - `tiled chunks` recomputes the map of the input slice in the second
-     pass instead of reading a kept mapped chunk (tiled-rematerialized).
-   - `fused` folds the checksum over the map applied on the fly and
-     recomputes the map again under the XOR (fused-rematerialized).
-   - `in_place` is a sequential state machine over a memory function:
-     `map_sum_step` reads element i, overwrites it with its mapped value
-     and accumulates the checksum over that value; `xor_step` runs only
-     after the whole reduction; the readout reads the memory back in
-     index order, as the emit instructions do (in-place-phased).
-   The three chunk models are one function up to a reassociation of maps:
-   `early_release_is_chunked` is `concat_finish` and `tiled_is_chunked`
-   is `map_map`. That is the whole functional content of the two
-   observations that a stage copy is a pure move and that recomputing a
-   pure map returns what was stored; the models are stated separately
-   because each mirrors a different emitted schedule, and none of them
-   carries anything about what the recomputation or the copy costs.
-   `generator_chunks tile len` is the chunk list `emit_program` builds,
-   the starts of `range(0, length, tile)` with `min(tile, length - start)`
-   counts; `generator_chunks_clamp` shows the generator's clamp of the
-   tile to the length changes no chunk, and `generator_chunks_partition`
-   proves the list satisfies `partitions` for every positive tile, so the
-   chunk theorems apply to every program the generator emits.
-   `partitions` is a sufficient condition and not a necessary one:
-   `single_chunk_agrees` shows one chunk reaching past the end of the
-   list still returns the reference, because a slice truncates there, and
-   `partitions_not_necessary` names such a chunk list on the demo frame.
-   What the hypothesis excludes is the defect a wrong chunk list
-   introduces: one that drops an index or repeats one fails it and, on
-   the demo frame, returns a different list.
+   Bytes are naturals below 256. Equivalence holds for all natural inputs;
+   `reference_bytes` proves the output is byte-valued. The shift/add/mask map
+   is algebraically equal to the multiply/mod map and is also checked on
+   all 256 byte values.
 
-   Byte representation. Bytes are naturals below 256, `is_byte`. The
-   equivalences are stated for every list of naturals, because every
-   model uses the same total functions and no theorem needs the bound;
-   `reference_bytes` shows the specification returns bytes on any input,
-   which is the closure the Python `bytes` type takes for granted, and
-   `emitted_map_is_map_byte` is proved algebraically for every natural,
-   with `emitted_map_checked_over_every_byte` re-deciding it by
-   computation over the 256 byte values, the domain the emitted
-   instruction actually sees.
+   Scope: these are list functions, not an interpreter or schedule refinement.
+   Agreement between emitted programs and these models remains the finite
+   executable claim of `equivalence_findings`. The chunk models concatenate
+   by chunk order; emitted schedules write at start offsets, which agree
+   under the partition hypothesis. Authority, index checks, zeroization,
+   staging copies, DMA, reservations, traffic and operation costs are outside
+   the theorems. R-08-019e's recompute-rather-than-store lever motivates the
+   tiled and fused models; no peak or space/time certificate is proved here.
 
-   Why R-08-019e. It is cited and not claimed. Its subject, a peak too
-   large and the three levers that act on the artifact, is not modelled
-   here: no reservation, no peak and no cost appears in this file. The
-   contact is the second lever, recompute rather than store, which the
-   tiled and fused variants exercise and which acts on the artifact only
-   where recomputation returns the same output; `tiled_correct` and
-   `fused_correct` are that equality for this service, and at this level
-   the equality is a reassociation of maps rather than a fact about the
-   trade. The certificate that prices the trade in space and time is not
-   touched here, so no entry about that certificate is cited, and whether
-   the entry governs this artifact is the review gate's reading.
-
-   Non-vacuity (R-05-165, R-05-166). `demo_frame` is a concrete frame
-   whose outputs every model computes in the virtual machine,
-   `witness_InPlaceState` inhabits the one record theorems quantify over,
-   and three wrong variants are refuted on that frame: the XOR pass
-   replaced by a copy, which mirrors the mutant the Python tests apply, a
-   chunk list missing the last two indices, and one repeating the first
-   two in their place, both defects no generator path produces and the
-   hypothesis exists to exclude. The copy and the repetition return lists
-   of the reference's length with different values, and the omission
-   differs already on the prefix the two outputs share, so each
-   refutation is by value and not by length alone; the two chunk lists
-   also fail `partitions`.
-
-   No landing credit. This file is research evidence for the backlog item
-   it answers; the requirements register remains authoritative, nothing
-   here accepts a requirement, and the ledger rows it generates are
-   citations rather than claims except where a witness lemma says so.
+   R-05-163 audits the global assumption closure. For R-05-165 and R-05-166,
+   `demo_frame` exercises every model and refutes an omitted XOR, omitted
+   indices and repeated indices by output values, not length alone.
+   `witness_InPlaceState` supplies record inhabitation. These are research
+   results and do not discharge the cited requirements.
    (*| BEGIN derived: cited entries |*)
    Owner: docs/requirements-register.md
    Requirements: R-05-163 R-05-165 R-05-166 R-08-019e
@@ -131,10 +59,8 @@ From Stdlib Require Import List Lia PeanoNat.
 Require Import IndexedUpdates.
 Import ListNotations.
 
-(* An equality closed by one evaluation. `vm_compute. reflexivity.` evaluates
-   the goal in the tactic and again where the kernel checks its cast at Qed;
-   this casts eq_refl to the goal unevaluated, so only the check at Qed
-   evaluates it. *)
+(* Defer VM evaluation to the kernel's cast check at Qed, avoiding a
+   separate tactic-side evaluation. *)
 Local Ltac vm_reflexivity :=
   intros; lazymatch goal with |- _ = ?b => vm_cast_no_check (@eq_refl _ b) end.
 
