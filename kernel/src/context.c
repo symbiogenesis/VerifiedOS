@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 /*
  * The partition context and the image a switch installs, authored against
- * proofs/PartitionContext.v, and the revocation join of proofs/KernelInstance.v.
+ * [PartitionContext.v](../../proofs/PartitionContext.v), and the revocation join
+ * of [KernelInstance.v](../../proofs/KernelInstance.v).
  *
  * `vos_switch_image` is the post-state R-07-015's total restore writes:
  * every one of the 32 merged registers, value and tag together; every CSR
@@ -9,8 +10,9 @@
  * disposition; and R-07-044's pending component on either arm. It is the
  * restore plan the switch text executes, not the instruction sequence: C
  * cannot place values into x1 to x31 or order a total restore. The separate
- * scalar emitter in tools/vos/kernel_restore.py owns `lc`, `fence.t` and
- * `mret` for the C-class subset with an empty nameable CSR roster. General
+ * scalar emitter in [kernel_restore.py](../../tools/vos/kernel_restore.py)
+ * owns `lc`, `fence.t` and `mret` for the C-class subset with an empty nameable
+ * CSR roster. General
  * CSR restoration and `vmclear` remain unimplemented (kernel/README.md).
  *
  * `vos_rotation_image` is R-07-037b's intra-slot step between members of one
@@ -31,8 +33,8 @@ enum vos_status vos_machine_validate(const struct vos_machine *m)
   return VOS_OK;
 }
 
-/* PartitionContext.v `pending_written`: a function of the successor alone
- * on either arm. */
+/* [PartitionContext.pending_written](../../proofs/PartitionContext.v#pending_written):
+ * a function of the successor alone on either arm. */
 uint64_t vos_pending_written(const struct vos_machine *m, const struct vos_context *succ)
 {
   if (m->pending_swapped) {
@@ -41,9 +43,10 @@ uint64_t vos_pending_written(const struct vos_machine *m, const struct vos_conte
   return succ->pending & m->pending_static_mask;
 }
 
-/* The whole register file, index zero included: PartitionContext.v's
- * `RestoresRegisters` quantifies over all 32, and the save area carries the
- * zero register's null slot like any other. Each slot moves whole. */
+/* The whole register file, index zero included:
+ * [RestoresRegisters](../../proofs/PartitionContext.v#RestoresRegisters)
+ * quantifies over all 32, and the save area carries the zero register's null
+ * slot like any other. Each slot moves whole. */
 static void vos_copy_registers(const struct vos_context *succ, struct vos_context *post)
 {
   for (uint32_t r = 0; r < VOS_REGISTER_COUNT; r++) {

@@ -2,14 +2,15 @@
 /*
  * Partition root handling over the composed initialization descriptor.
  *
- * purecap-abi.md section 7 hands the kernel, at its first C instruction, a
+ * [The ABI handoff](../../docs/implementation/contracts/purecap-abi.md#7-the-kernel-entry-interface)
+ * hands the kernel, at its first C instruction, a
  * read-only root-set table in `c10`, the boot descriptor in `c11` and this
  * descriptor in `c12`. The consumer obligations it states are the ones below:
  * a missing descriptor, a wrong-composition or wrong-hart descriptor, and an
  * initialization lacking a planned successor are refused before any dispatch,
  * as producer/consumer checks and not as capability faults. The record read
  * here is the consumer's, not the `c12` byte layout M3.5's handoff owns.
- * handoff.c parses that layout and invokes these checks before publishing
+ * [handoff.c](handoff.c) parses that layout and invokes these checks before publishing
  * the consumer record; target capability entry remains unbuilt.
  *
  * A tenant is one partition here. R-07-037b's same-label groups and
@@ -26,25 +27,26 @@
  */
 #include "vos_kernel.h"
 
-/* KernelInstance.v `within`. */
+/* [KernelInstance.within](../../proofs/KernelInstance.v#within). */
 int vos_extent_within(const struct vos_extent *e, uint64_t address)
 {
   return e->base <= address && address < e->top;
 }
 
-/* KernelInstance.v `extent_eqb`. */
+/* [KernelInstance.extent_eqb](../../proofs/KernelInstance.v#extent_eqb). */
 int vos_extent_equal(const struct vos_extent *a, const struct vos_extent *b)
 {
   return a->base == b->base && a->top == b->top;
 }
 
-/* KernelInstance.v `separated`. */
+/* [KernelInstance.separated](../../proofs/KernelInstance.v#separated). */
 int vos_extent_separated(const struct vos_extent *a, const struct vos_extent *b)
 {
   return a->top <= b->base || b->top <= a->base;
 }
 
-/* KernelInstance.v `compatible`: two slots of one tenant declare one extent. */
+/* [KernelInstance.compatible](../../proofs/KernelInstance.v#compatible):
+ * two slots of one tenant declare one extent. */
 int vos_extent_compatible(const struct vos_extent *a, const struct vos_extent *b)
 {
   return vos_extent_equal(a, b) || vos_extent_separated(a, b);
