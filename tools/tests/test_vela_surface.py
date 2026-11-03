@@ -192,8 +192,25 @@ def _explicit_value_oracles_required() -> None:
             oracle.assert_called_once_with(fixture.source.encode("utf-8"), result)
 
 
+def _concise_authoring_oracle_required() -> None:
+    fixture = next(value for value in surface.POSITIVE if value.name == "concise-authoring-syntax")
+    result: dict[str, parser.Json] = {"ast": [{"kind": kind} for kind in fixture.kinds]}
+    with patch.object(surface, "POSITIVE", (fixture,)), \
+            patch.object(surface, "_precedence_and_spans"), \
+            patch.object(surface, "_literal_and_comment_boundaries"), \
+            patch.object(surface, "_concise_authoring_roles", side_effect=ValueError("concise role changed")) as oracle:
+        try:
+            surface.qualify(lambda source: result)
+        except ValueError as error:
+            ensure(str(error) == "concise role changed", "concise oracle failure was replaced")
+        else:
+            raise AssertionError("concise authoring oracle was bypassed during qualification")
+    oracle.assert_called_once_with(fixture.source.encode("utf-8"), result)
+
+
 def cases() -> list[Case]:
-    return [Case("surface-entry-schema-and-source-binding", _entry_protocol),
+    return [Case("concise-authoring-oracle-is-required", _concise_authoring_oracle_required),
+            Case("surface-entry-schema-and-source-binding", _entry_protocol),
             Case("surface-cli-and-no-fallback", _entry_cli),
             Case("surface-fixture-input-identities", _qualification_input_binding),
             Case("surface-oracle-failure-without-receipt", _failed_surface_qualification),
