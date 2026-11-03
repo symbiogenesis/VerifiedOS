@@ -8,46 +8,24 @@
    FIPS 197 and NIST SP 800-38D and checked against the standards' own
    published known answers.
 
-   What this file is, and what it is not. It is a **functional reference** for
-   the one cipher R-10-024 freezes: *the cipher is frozen to AES-GCM via
-   Zvkned/Zvkg, one cipher and not a menu*, with ChaCha20/Poly1305 the
-   frozen-out alternative. It is a second transcription of the same two
-   standards the curated model's vector-crypto unit transcribes, so the two are
-   a differential pair rather than two independent chances to be wrong. It is
-   not an implementation, no binary corresponds to it, and it discharges no
-   acceptance clause of any entry.
+   This functional reference covers the AES-GCM cipher frozen by R-10-024
+   via Zvkned/Zvkg; ChaCha20/Poly1305 is excluded. It transcribes the same
+   standards as the curated vector-crypto model for differential comparison.
+   It supplies no binary implementation, correspondence proof, or requirement
+   discharge.
 
-   What the gate's green line means. Compiled, axiom-free, non-vacuous and
-   enumerated, and it does not mean verified. Nothing here executes on either
-   emulator. The computed checks are decided inside the kernel, the light ones
-   by conversion in the silent `Example ... := eq_refl` form and the ones that
-   run a cipher by the bytecode machine, which contributes nothing to the
-   native assumption audit.
+   Only R-05-059's functional layer is addressed. The remaining obligations are:
 
-   The three assurance layers, and which one this is. R-05-059 wants functional
-   correctness, constant-time and reduction-level security per primitive, and
-   what is here is the **functional layer alone**.
+   - Binary constant-time behavior (R-05-062, R-05-067), including gcm_open's
+     tag comparison, which is ordinary structural equality here.
+   - Artifact-level d-probing and composition security (R-05-004a) against
+     R-15-053a's probing model; this reference contains no masking.
+   - Reduction-level security over uniformly drawn keys and nonces
+     (R-05-077a). The nonce-reuse example is a computation, not a security game.
 
-   - **No constant-time property is claimed and none is implied.** R-05-062
-     makes constant time a 2-safety hyperproperty verified directly on the
-     binary, and R-05-067 names AES by name among the control-flow-heavy
-     primitives that are written branchless on secrets and *then verified on
-     the artifact*. A Gallina reference is not a binary. That the S-box below
-     is computed from the field inverse rather than read out of a table, and
-     that every value-dependent operation here is xorb, andb, negb or a
-     rotation, is a remark about the shape of this text and never evidence.
-   - **No masking claim.** R-05-004a puts the secret-handling datapath's
-     d-probing security and its composition property on the artifact against
-     the R-15-053a probing model. Nothing here is a sharing of anything.
-   - **No reduction and no distributional claim.** R-05-077a states the
-     reduction over uniformly drawn keys and nonces, and a functional
-     reference carries no distribution of any kind. The nonce-reuse
-     construction below is a computation and not a game.
-
-   So nothing here is a shipped primitive under R-05-059, and the tag
-   comparison in `gcm_open` is ordinary structural equality: a constant-time
-   comparison is the *binary's* obligation under R-05-062, taken at the
-   artifact and not at this text.
+   The proof gate checks compilation, assumptions, non-vacuity, and inventory.
+   Known-answer equalities are checked by conversion or VM evaluation in the
+   kernel. These checks provide no target-execution evidence.
 
    The shared ProofSupport and CryptoLists modules use only the Rocq prelude.
    The list operations below retain the same total representation and the native
@@ -251,10 +229,7 @@
 Require ProofSupport CryptoLists.
 Open Scope list_scope.
 
-(* An equality closed by one evaluation. `vm_compute. reflexivity.` evaluates
-   the goal in the tactic and again where the kernel checks its cast at Qed;
-   this casts eq_refl to the goal unevaluated, so only the check at Qed
-   evaluates it. *)
+(* Defer evaluation of the equality to the kernel's VM cast check at Qed. *)
 Local Ltac vm_reflexivity :=
   intros; lazymatch goal with |- _ = ?b => vm_cast_no_check (@eq_refl _ b) end.
 
@@ -273,9 +248,8 @@ Definition drop_of {A : Type} : nat -> list A -> list A := @ProofSupport.drop_of
 
 Definition nth_of {A : Type} : nat -> list A -> A -> A := @ProofSupport.nth_of A.
 
-(* The one out-of-range answer this file relies on, named once so that it is a
-   decision rather than a default repeated at twenty sites, and pinned by an
-   Example below rather than left unreachable. *)
+(* Out-of-range bit reads return false; an Example below checks this
+   default. *)
 Definition bit_at (l : list bool) (i : nat) : bool := nth_of i l false.
 
 Definition rev_onto {A : Type} : list A -> list A -> list A := @ProofSupport.rev_onto A.
@@ -284,8 +258,7 @@ Definition rev_of {A : Type} (l : list A) : list A := rev_onto l nil.
 
 Definition repeat_of {A : Type} : nat -> A -> list A := @ProofSupport.repeat_of A.
 
-(* start through start + count - 1, built by a downward count rather than by
-   appending one element at a time, an append per element being quadratic. *)
+(* Generate start through start + count - 1 without repeated append. *)
 Definition up_from : nat -> nat -> list nat := ProofSupport.up_from.
 
 Definition upto (n : nat) : list nat := up_from 0 n.
@@ -300,9 +273,8 @@ Definition count_where {A : Type} : (A -> bool) -> list A -> nat := @ProofSuppor
 
 Definition keep_where {A : Type} : (A -> bool) -> list A -> list A := @ProofSupport.filter_of A.
 
-(* The fuel argument is the caller's bound on how many chunks there can be, the
-   recursion being on the chunk count rather than on the list, which `drop_of`
-   does not decrease structurally. *)
+(* Recurse on a chunk-count bound because drop_of does not produce a
+   structural subterm of the list. *)
 Fixpoint chunks_of {A : Type} (fuel n : nat) (l : list A) : list (list A) :=
   match fuel with
   | 0 => nil
@@ -320,8 +292,8 @@ Fixpoint bits_eqb (a b : list bool) : bool :=
 Definition mem_nat (n : nat) (l : list nat) : bool :=
   negb (Nat.eqb (count_where (fun k => Nat.eqb k n) l) 0).
 
-(* n bits of v, least significant first and then reversed, so no power of two
-   is ever built: a 64-bit length field is a fold of halvings and never 2^64. *)
+(* Extract n low bits by repeated halving. Reversing this list gives the
+   big-endian length field without constructing 2^64. *)
 Fixpoint bits_le_of (n v : nat) : list bool :=
   match n with
   | 0 => nil
@@ -367,9 +339,8 @@ Definition state_of_block (b : block) : state := chunks_of block_bytes byte_bits
 
 Definition block_of_state (s : state) : block := concat_of s.
 
-(* FIPS 197's own bit index inside a byte, where b0 is the least significant.
-   This is the only place the standard's numbering and this file's head-first
-   list meet, and it is stated once for that reason. *)
+(* FIPS 197 numbers byte bits from the least significant bit; the list
+   stores the most significant bit first. *)
 Definition bit_num (b : byte) (i : nat) : bool :=
   bit_at b (byte_bits - 1 - Nat.modulo i byte_bits).
 
@@ -411,10 +382,9 @@ Definition gmul (a b : byte) : byte := gmul_from (rev_of b) a.
 
 Definition gsquare (a : byte) : byte := gmul a a.
 
-(* a^254. The multiplicative group has order 255, so a^254 is a^-1 at every
-   nonzero a; at zero it is zero, which is FIPS 197 s5.1.1's own convention for
-   the element that has no inverse. Seven squarings and six products, rather
-   than a search over 256 candidates. *)
+(* Compute a^254 with seven squarings and six products. In GF(2^8) this is
+   the inverse of nonzero a and maps zero to zero, as FIPS 197 s5.1.1
+   requires. *)
 Fixpoint ginv_from (n : nat) (sq acc : byte) : byte :=
   match n with
   | 0 => acc
@@ -484,10 +454,9 @@ Definition shift_rows_index (i : nat) : nat :=
 Definition inv_shift_rows_index (i : nat) : nat :=
   state_index (row_index i) (Nat.modulo (column_index i + nb - row_index i) nb).
 
-(* The same clause read under the transposed flattening i = c + 4r, which is
-   the defect a state drawn as a picture invites. It is a permutation of the
-   sixteen positions like the standard's and it leaves four of them fixed like
-   the standard's, and the two agree at exactly one position. *)
+(* ShiftRows under the incorrect transposed layout i = c + 4r. This
+   permutation fixes four positions but agrees with the standard at only
+   one position. *)
 Definition transposed_shift_rows_index (i : nat) : nat :=
   Nat.modulo (Nat.modulo i nb + Nat.div i nb) nb + nb * Nat.div i nb.
 
@@ -592,13 +561,9 @@ Fixpoint expand_from (fuel : nat) (sb : byte -> byte) (guard nk i : nat)
       expand_from f sb guard nk (S i) (acc ++ (xor_bytes (nth_of (i - nk) acc nil) temp :: nil))
   end.
 
-(* FIPS 197 s5.2 takes the second substitution where Nk exceeds six. **The
-   guard is a parameter here and not a literal in the loop**, because it is a
-   clause no key length the standard admits can decide: 6 < Nk and 7 < Nk agree
-   at 4, at 6 and at 8, and part only at 7, which is not a key length FIPS 197
-   carries. A seeded weakening of the six survives every published vector, so
-   the alternative is built beside it and the two are parted below at the key
-   length between them. *)
+(* FIPS 197 s5.2 requires Nk > 6 for the second substitution. Raising the
+   guard to 7 preserves every standard key length (Nk = 4, 6, 8), so the
+   distinguishing check uses Nk = 7 on the expansion function. *)
 Definition second_substitution_guard : nat := 6.
 
 Definition raised_substitution_guard : nat := 7.
@@ -684,15 +649,10 @@ Fixpoint gf128_mul_from (xs : list bool) (v z : block) : block :=
 
 Definition gf128_mul (x y : block) : block := gf128_mul_from x y zero_block.
 
-(* -------------------------------------------------------------------------
-   The same multiplication as the curated model writes it. zvkg_insts.sail
-   holds its operand as a Sail bits(128) whose byte 0 sits in the least
-   significant eight bits, reverses the bits inside every byte with `brev8`,
-   and then multiplies with a **left** shift and a reduction by 0x87 at the low
-   byte. Written out here so that either form is the other's image or one of
-   the two is wrong; and written out a second time **without** the reflection,
-   which is the defect the reflected convention exists to invite.
-   ------------------------------------------------------------------------- *)
+(* The model's equivalent GF(2^128) representation: zvkg_insts.sail stores
+   byte 0 in the low eight bits, applies brev8 within each byte, then
+   multiplies by left shifts with reduction 0x87. The variant without
+   reflection below tests the bit-order error. *)
 
 Definition sail_word_of_block (b : block) : list bool :=
   concat_of (rev_of (state_of_block b)).
@@ -831,11 +791,9 @@ Definition gcm_encrypt_unpadded (nk : nat) (key : list byte) (iv aad m : list bo
 Definition gcm_encrypt_from_j0 (nk : nat) (key : list byte) (iv aad m : list bool)
   : (list bool * block) := gcm_over ghash_input_padded (fun j => j) nk key iv aad m.
 
-(* Authenticated decryption, SP 800-38D s7.2. The tag comparison is ordinary
-   structural equality: a constant-time comparison is the binary's obligation
-   under R-05-062 and R-05-067, taken on the artifact, and this text makes no
-   such claim. FAIL is `None` and it carries no plaintext with it, which is the
-   whole of what the standard asks of the failure arm. *)
+(* Authenticated decryption, SP 800-38D s7.2. Tag failure returns None with
+   no plaintext. The structural tag comparison has no constant-time
+   guarantee; R-05-062 and R-05-067 require that guarantee on the binary. *)
 Definition gcm_open (t_bits nk : nat) (key : list byte) (iv aad c t : list bool)
   : option (list bool) :=
   let sched := key_schedule nk key in
@@ -894,8 +852,7 @@ Definition demo_truncated_tag : AeadParameters :=
      nonce := repeat_of nonce_split false;
      associated_data := nil; invocations_per_key := None |}.
 
-(* The same parameters with a bound stated. Nothing this file computes reads
-   the field, which is the shape of the gap and not a bound taken here. *)
+(* A stated usage bound that the reference does not enforce. *)
 Definition demo_with_a_stated_bound : AeadParameters :=
   {| key_words := 4; tag_bits := block_bits; nonce := repeat_of nonce_split false;
      associated_data := nil; invocations_per_key := Some 1 |}.
@@ -1075,9 +1032,7 @@ Proof. vm_reflexivity. Qed.
    The step maps, over arbitrary inputs or over the whole domain they act on.
    ------------------------------------------------------------------------- *)
 
-(* The image is taken once and counted against, rather than the map being
-   applied inside the count: 256 applications and 65,536 comparisons where the
-   other order is 65,536 applications. *)
+(* Compute the 256 map results once, then compare all 65,536 pairs. *)
 Definition is_a_bijection_on_bytes (f : byte -> byte) : bool :=
   let image := map_over f all_bytes in
   all_of (fun b => Nat.eqb (count_where (fun a => bits_eqb a b) image) 1) all_bytes.
@@ -1215,10 +1170,9 @@ Example the_round_key_and_the_state_have_the_same_shape :
              (round_key (key_schedule 4 (bytes_from (upto block_bytes))) 3) = true.
 Proof. vm_reflexivity. Qed.
 
-(* MixColumns: the two polynomials are inverse in the ring the step multiplies
-   in, and the round trip holds on the thirty-two columns that span the column
-   space. The step from a spanning set to the whole map is GF(2)-linearity,
-   which this file does not prove and does not claim. *)
+(* MixColumns' polynomials are inverse, and the round trip is checked on
+   the thirty-two GF(2) basis columns. Extending this check to all columns
+   requires a linearity proof, which this file does not supply. *)
 Example the_two_mix_polynomials_are_inverse_modulo_x_to_the_fourth_plus_one :
   map_over byte_value (poly4_mul mix_polynomial inv_mix_polynomial) = 1 :: 0 :: 0 :: 0 :: nil.
 Proof. vm_reflexivity. Qed.
@@ -1339,14 +1293,9 @@ Example the_models_form_and_the_standards_form_are_one_multiplication :
          ghash_probe_pairs = true.
 Proof. vm_reflexivity. Qed.
 
-(* The form without the reflection is the standard's multiplication under a
-   byte-wise reversal of the bits, so it is a field multiplication too and
-   commutative just as the standard's is. What refuses it is that it names the
-   wrong bit strings, and the unit is where that is smallest and sharpest: its
-   identity is the standard's reflected, 0x01 00..00 where the standard's is
-   0x80 00..00. Both are computed below, the second as a refusal, because an
-   identity carried over from the isomorphism rather than decided at the
-   element is the one obligation this near alternative could be let off. *)
+(* Removing reflection preserves commutativity but changes the bit-string
+   representation. Its identity is 0x01 00..00 instead of the standard's
+   0x80 00..00; the checks below distinguish them. *)
 Example the_unreflected_form_is_the_standards_under_a_byte_wise_reversal :
   all_of (fun p => bits_eqb (ghash_mul_without_the_reflection (fst p) (snd p))
                             (reflect_block (gf128_mul (reflect_block (fst p))
@@ -1527,14 +1476,10 @@ Example the_open_of_a_seal_returns_the_message_and_a_flipped_tag_bit_returns_not
         is Some _ then false else true) = true.
 Proof. vm_reflexivity. Qed.
 
-(* The unpadded GHASH input agrees with the standard's at every published case
-   whose associated data and ciphertext are both block-aligned, which is the
-   first three of the five, and parts from it at the fourth. All three of those
-   carry an **empty** associated data, where the padding of A is absent in any
-   case, so a fourth conjunct of this file's own carries the aligned case the
-   five do not: a sixteen-byte associated data beside a thirty-two-byte
-   plaintext, where both paddings are present and both are empty. A vector set
-   with no unaligned member cannot see this defect at all. *)
+(* The unpadded GHASH variant passes the first three published cases, whose
+   associated data is empty and ciphertext is block-aligned, and fails the
+   fourth. An additional case checks nonempty aligned associated data and
+   ciphertext. An unaligned case is needed to expose the missing padding. *)
 Example the_unpadded_ghash_input_agrees_at_every_aligned_published_case :
   andb (andb (andb (bits_eqb (snd (gcm_encrypt_unpadded 4 (bytes_from (repeat_of 16 0))
                                                        (block_from (repeat_of 12 0)) nil nil))
@@ -1590,9 +1535,9 @@ Example the_unpadded_ghash_input_misses_the_fourth_published_tag :
   = false.
 Proof. vm_reflexivity. Qed.
 
-(* And the counter started at J0 agrees at every empty plaintext, which is the
-   first published case, and parts from the standard at the second. A vector
-   set with no nonempty plaintext cannot see this defect either. *)
+(* Starting the counter at J0 passes the empty-plaintext case and fails the
+   second published case. Nonempty plaintext is needed to expose this
+   error. *)
 Example the_counter_started_at_j0_agrees_at_the_empty_plaintext :
   let a := gcm_encrypt_from_j0 4 (bytes_from (repeat_of 16 0))
                                (block_from (repeat_of 12 0)) nil nil in
@@ -1655,13 +1600,8 @@ Example the_three_key_lengths_carry_three_round_counts :
   map_over (fun p => rounds_for (key_words p)) (demo :: demo_aes192 :: demo_aes256 :: nil) =
   10 :: 12 :: 14 :: nil := eq_refl.
 
-(* -------------------------------------------------------------------------
-   The decisions a reader would otherwise take on trust because nothing above
-   reaches them: the out-of-range answer, the geometry, the key schedule's own
-   size, and the admissible tag lengths the standard states and the register
-   does not choose from. A fixture nothing reaches is a site a seeded weakening
-   survives at rather than a site nothing can go wrong in.
-   ------------------------------------------------------------------------- *)
+(* Checks for defaults and geometry not exercised above: out-of-range
+   reads, key-schedule size, and the standard's tag-length lists. *)
 
 Example a_bit_off_the_end_of_a_byte_is_zero : bit_at nil 0 = false := eq_refl.
 
@@ -1674,18 +1614,9 @@ Example the_key_schedule_has_one_round_key_per_round_and_one_more :
   44 :: 52 :: 60 :: nil.
 Proof. vm_reflexivity. Qed.
 
-(* The second substitution's guard, at the key lengths that decide it. The three
-   FIPS 197 key lengths do not: they agree under either guard, and only a key of
-   seven words parts them, which the standard does not carry and this file
-   therefore states of the expansion rather than of the cipher. Without this
-   pair the six is a literal every published vector accepts one higher. *)
-(* RotWord, FIPS 197 s5.2, is a cyclic rotation of the four bytes of a word, so
-   it moves each byte one place, adds none, and is the identity after four
-   applications. **Neither clause is decided by anything else in this file**:
-   `xor_bytes` truncates to the shorter of its two operands, so a rotation
-   returning a longer word is silently cut back to four bytes by the
-   exclusive-or that consumes it, and every published answer stands. Both are
-   stated over four arbitrary bytes for that reason. *)
+(* RotWord, FIPS 197 s5.2, rotates four bytes once and returns to the
+   original word after four rotations. Checking both shape and rotation
+   prevents xor_bytes from hiding an oversized result by truncation. *)
 Theorem rotating_a_word_moves_each_byte_one_place_and_adds_none :
   forall b0 b1 b2 b3 : byte,
     rot_word (b0 :: b1 :: b2 :: b3 :: nil) = b1 :: b2 :: b3 :: b0 :: nil.
@@ -1697,6 +1628,9 @@ Theorem rotating_a_word_four_times_is_the_identity :
     b0 :: b1 :: b2 :: b3 :: nil.
 Proof. intros. reflexivity. Qed.
 
+(* The guards agree at every standard key length and differ only at Nk = 7.
+   These checks concern expansion, not an AES cipher with a standard key
+   size. *)
 Example the_two_substitution_guards_agree_at_every_key_length_the_standard_carries :
   all_of (fun nk =>
             let k := bytes_from (upto (nb * nk)) in
@@ -1725,17 +1659,9 @@ Proof. vm_reflexivity. Qed.
 Example the_full_tag_is_the_longest_admissible_one :
   Nat.eqb (nth_of 0 admissible_tag_lengths 0) block_bits = true := eq_refl.
 
-(* Both lists held to the standard's own shape **and to its own count**, rather
-   than left as literals no computation visits. The admissible lengths descend
-   one byte at a time from the full tag and there are five of them; each
-   restricted length is a whole number of bytes below the shortest admissible
-   one and there are two. The counts are exactly what the shape alone leaves
-   free, and they are not decoration: without them a sixth admissible length of
-   88 descends one byte at a time like the five above it, and a third
-   restricted length of 24 is a whole number of bytes below the shortest
-   admissible one like the two beside it, so both checks below pass on lists SP
-   800-38D s5.2.1.2 does not admit. A tag length nothing reaches is a site a
-   seeded weakening survives at rather than a site nothing can go wrong in. *)
+(* Check the tag-length lists' shapes and counts against SP 800-38D
+   s5.2.1.2. Shape alone admits extra lengths: 88 in the admissible list
+   and 24 in the restricted list. *)
 Example the_admissible_tag_lengths_descend_one_byte_at_a_time_from_the_full_tag :
   all_of (fun i => Nat.eqb (nth_of i admissible_tag_lengths 0) (block_bits - byte_bits * i))
          (upto (length_of admissible_tag_lengths)) = true.
@@ -1751,14 +1677,10 @@ Example the_two_tag_length_lists_carry_the_counts_the_standard_states :
   andb (Nat.eqb (length_of admissible_tag_lengths) 5)
        (Nat.eqb (length_of restricted_tag_lengths) 2) = true := eq_refl.
 
-(* Truncating at a listed length takes a whole number of bytes off the front of
-   the published tag and no more, which is the whole of what makes a listed
-   length a length *of this tag*. The equality is the weakest of the three
-   clauses and holds of every natural number, both sides being the same block
-   under `take_of`; the length clause is what refuses a t above 128 and the
-   whole-byte clause what refuses a t that is not a byte boundary, so the
-   statement decides the domain it quantifies over rather than passing over it.
-   Without the two the check is true of `7 :: 5000 :: 3 :: 999 :: nil`. *)
+(* Check that each listed tag length is at most 128 bits and a whole number
+   of bytes, and that truncation selects the corresponding prefix. Prefix
+   equality alone holds for arbitrary natural lengths and does not validate
+   the list. *)
 Example truncating_at_every_listed_tag_length_takes_whole_bytes_of_the_published_tag :
   all_of (fun t =>
             let short := take_of t (snd (gcm_encrypt 4 (bytes_from (repeat_of 16 0))

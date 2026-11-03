@@ -20,15 +20,10 @@
    MemClass indexes the pool extents and its representable_granule decides
    whether a size class narrows exactly.
 
-   What this file is. A statement artifact in PartitionContext.v's idiom,
-   not a proof development and not an implementation. Every quantity the
-   register leaves to composition is a field of a record. Nothing is
-   admitted and nothing is axiomatized: the native assumption audit reports
-   every shipped constant closed under the global context.
-   What the proof gate's green line means for it: compiled, axiom-free,
-   witnessed and enumerated, and not verified. Nothing here executes on
-   either emulator, and no kernel, pool service, heap library or toolchain
-   pass is proved against it here.
+   This specification model keeps composition choices in record fields and
+   introduces no axioms or admitted proofs. The proof gate checks compilation,
+   assumptions, witnesses, and inventory. It supplies no target execution or
+   refinement proof for a kernel, pool service, heap library, or toolchain pass.
 
    What is stated, and what consumes it.
 
@@ -1310,16 +1305,10 @@ Proof.
   intros tb d H. split; [ exact H | exact (an_instant_bound_bounds_every_interval tb d _ H) ].
 Qed.
 
-(* -------------------------------------------------------------------------
-   F1's construction. Member 0 is light (weight 1) and member 1 heavy
-   (weight 9), both with a request of 1; call interval 1 and yield bound
-   2, so a call bound of 3. Member 1's earlier deadline wins the first
-   dispatch; it uses its request and yields with work still pending, which
-   leaves it ahead of virtual time and ineligible. Member 0 is then the
-   only eligible member: it runs one call bound to its first invocation,
-   is answered switch-requested because its request is spent, and sinks
-   for one yield bound. Every step is the rule's; both lags end at 22/5.
-   ------------------------------------------------------------------------- *)
+(* F1: weights 1 and 9, requests 1, call bound 3. The heavy member wins the
+   first deadline, uses its request, then yields pending and becomes
+   ineligible. The light member runs to a switch-requested reply and sinks
+   for one yield bound. Both lags reach 22/5 under the published rules. *)
 
 Definition fields (a p : bool) (ve vd : Q) : PcFields :=
   {| pc_active := a; pc_pending := p; pc_eligible := ve; pc_deadline := vd |}.
@@ -1414,13 +1403,10 @@ Proof.
   - exact (the_register_s_lag_bound_is_refuted_over_slot_time H).
 Qed.
 
-(* -------------------------------------------------------------------------
-   F2's construction. One member alone, request 1, a call bound of 3, a
-   step of 5 and a slot of 12: each slot runs one dispatch of 3, its step
-   of 5, and then the boundary rule idles the remaining 4. Over slot time
-   the member's shortfall grows by 9 a slot, the step and the idle tail;
-   over served time it is zero.
-   ------------------------------------------------------------------------- *)
+(* F2: one member, request 1, call bound 3, step 5, slot 12. Each slot
+   serves 3 units, spends 5 in the step, and idles 4. Lag grows by 9 per
+   slot under slot-time accounting and stays zero under served-time
+   accounting. *)
 
 Definition tail_decl : Decl := {|
   dc_count := 1;
@@ -1484,17 +1470,12 @@ Proof.
   rewrite E in Hb. discriminate Hb.
 Qed.
 
-(* -------------------------------------------------------------------------
-   F3's construction. Two members of weight 1 and request 10. Member 0
-   wins the tie, runs four call bounds and its sink, and is ahead of
-   virtual time; member 1 runs one unit and yields with nothing pending,
-   leaving owed service behind. Without the published leave adjustment
-   (reading 5), member 0 then competes alone, never eligible again, and
-   the core idles slot after slot with its work pending, while its
-   served-time lag stays inside the register's bound. With the adjustment
-   member 0 is eligible at once, and its accounting lag and its service
-   lag part.
-   ------------------------------------------------------------------------- *)
+(* F3: two weight-1 members request 10. Member 0 runs four call bounds plus
+   its sink and moves ahead of virtual time; member 1 serves one unit then
+   leaves with service owed. Without the leave adjustment (reading 5),
+   member 0 remains ineligible and the core idles despite pending work. The
+   adjustment restores eligibility and separates accounting lag from
+   service lag. *)
 
 Definition wc_decl : Decl := {|
   dc_count := 2;
@@ -2784,11 +2765,8 @@ Proof.
     reflexivity.
 Qed.
 
-(* =========================================================================
-   R-05-166's inhabitation witnesses: one closed definition per record this
-   file declares, named for that record and ascribed at it. Records reached
-   through a Require are witnessed in the files that declare them.
-   ========================================================================= *)
+(* R-05-166 inhabitation witnesses for local records. Imported records are
+   witnessed in their defining modules. *)
 
 Definition witness_Manifest : Manifest := plain_manifest 0 3.
 Definition witness_Domain : Domain := demo_domain.

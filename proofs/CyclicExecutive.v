@@ -16,19 +16,12 @@
    it into slack. BoundaryCost.v adds the declared residency and context
    bounds to PartitionContext.v's unchanged R-15-220 platform cost.
 
-   What this file is. A statement artifact in ApexTheorem.v's idiom.
-   Composition constants are fields of the Composition record, never
-   literals: R-11-021's criterion calls the 4/8/16/32 ladder "the reference
-   instantiation", the focus majority is "composition-fixed", the phase
-   offsets and slot widths are composition inputs, and the per-slot WCET
-   magnitudes are R-11-015's derivation, whose timing-annotation
-   specification is not authored. Nothing is admitted and nothing is
-   axiomatized.
-
-   What this file does not do. It executes nothing, on either emulator or
-   anywhere else. The computed checks below are decided inside the kernel
-   by conversion and print nothing; the gate's green line means compiled,
-   axiom-free, and enumerated rather than verified.
+   Composition constants are Composition fields. R-11-021's 4/8/16/32
+   ladder is a reference instantiation; focus majority, phase offsets, and
+   slot widths remain composition inputs. Per-slot WCET magnitudes require
+   R-11-015's derivation and its unauthored timing-annotation specification.
+   No axioms or admitted proofs are introduced. Computed examples are proved
+   by kernel conversion; this file supplies no implementation or target run.
 
    Readings of the register this statement takes:
 
@@ -922,14 +915,9 @@ Proof.
   - simpl. rewrite Hw, Ho, IH. reflexivity.
 Qed.
 
-(* =========================================================================
-   A composition whose every domain is inhabited, for R-05-165's
-   uninhabited-domain mode and for the refutation witnesses. Its harmonic
-   predicate, its focus majority, its ladder function, its capacity and its
-   table load are arbitrary witness values and carry no composition claim
-   (gap e); the harmonic predicate in particular is instantiated at the
-   weakest one available, precisely so that the witness fixes no direction.
-   ========================================================================= *)
+(* Inhabited demo composition for R-05-165 and the refutation witnesses.
+   All schedule quantities are arbitrary fixtures, not composition choices
+   (gap e). The harmonic predicate is deliberately unconstrained. *)
 
 Definition demo_composition : Composition := {|
   machine := demo_rotation_swaps;
@@ -998,13 +986,9 @@ Definition underwide_rung : Frame bool :=
 Example switch_duty_is_counted :
   admits demo_composition underwide_rung = false := eq_refl.
 
-(* And the margin, which is where the constant is load-bearing rather than
-   merely present: one slot's declared bound plus the full boundary
-   exactly fills its width, and one unit more is refused. R-11-009 counts
-   the switch-duty ratio explicitly instead of absorbing it into slack, so
-   a change to BoundaryCost.v's boundary_cost changes this verdict, which
-   is what makes the Require at the top of this file a dependency rather
-   than a citation. *)
+(* The declared work bound plus BoundaryCost.v's full boundary cost exactly
+   fills one slot; adding one unit is refused. This makes the boundary-cost
+   dependency observable and keeps R-11-009's switch-duty cost explicit. *)
 Definition tight_focus : Slot bool := Build_Slot bool 90 60 70 100 false.
 Definition overtight_focus : Slot bool := Build_Slot bool 90 60 71 100 false.
 
@@ -1237,14 +1221,8 @@ Proof.
   cbv in Hgeo. discriminate Hgeo.
 Qed.
 
-(* -------------------------------------------------------------------------
-   R-05-166's inhabitation witnesses: one closed definition per record this
-   file's statements quantify over, named for that record and ascribed at it.
-   The prover decides inhabitation by type-checking the ascription, so
-   `run.py proofs` reads a name rather than approximating a type judgement.
-   A record this file reaches through a Require is witnessed in the file that
-   declares it.
-   ------------------------------------------------------------------------- *)
+(* R-05-166 inhabitation witnesses: closed definitions ascribed to each
+   local record. Imported records are witnessed in their defining modules. *)
 
 Definition witness_Band : Band bool := band_a.
 Definition witness_Composition : Composition := demo_composition.

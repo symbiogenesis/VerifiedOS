@@ -18,10 +18,7 @@ Require Import CyclicExecutive MemoryPlan ElasticDomain.
 Import ListNotations.
 Local Open Scope nat_scope.
 
-(* An equality closed by one evaluation. `vm_compute. reflexivity.` evaluates
-   the goal in the tactic and again where the kernel checks its cast at Qed;
-   this casts eq_refl to the goal unevaluated, so only the check at Qed
-   evaluates it. *)
+(* Defer evaluation of the equality to the kernel's VM cast check at Qed. *)
 Local Ltac vm_reflexivity :=
   intros; lazymatch goal with |- _ = ?b => vm_cast_no_check (@eq_refl _ b) end.
 
