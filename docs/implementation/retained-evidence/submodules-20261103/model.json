@@ -1,0 +1,40 @@
+{
+  "schema": 1,
+  "read_date": "2026-11-03",
+  "base_revision": "5555428b6a7a4123a199009e66bec9f8a0dbd72d",
+  "scope": "Exact selected upstream licenses and source continuity checks; only gitlinks and metadata are conveyed. No nested dependency revision is overridden.",
+  "components": [
+    {
+      "path": "upstream/katamaran",
+      "url": "https://github.com/katamaran-project/katamaran",
+      "ref": "refs/heads/main",
+      "previous_revision": "80985afd8164c31902181d41885e06e2df6dfe6d",
+      "observed_revision": "f9dbb2ae5a6bffb1d733d0146f3c0188fda65660",
+      "status": "ahead",
+      "total_commits": 12,
+      "source_readings": [
+        {
+          "path": "LICENSE",
+          "sha256": "6b961710f8d256461e624d0659fbaade43505b2ae709f91c8f0c3e34a08d010a",
+          "previous_sha256": "6b961710f8d256461e624d0659fbaade43505b2ae709f91c8f0c3e34a08d010a",
+          "byte_identical": true,
+          "url": "https://github.com/katamaran-project/katamaran/blob/f9dbb2ae5a6bffb1d733d0146f3c0188fda65660/LICENSE"
+        },
+        {
+          "path": "theories/Notations.v",
+          "sha256": "8041975bd9a84dd6591f3ad3d64fc270686f9db802807ee787fff8e1426f6716",
+          "previous_sha256": "8041975bd9a84dd6591f3ad3d64fc270686f9db802807ee787fff8e1426f6716",
+          "byte_identical": true,
+          "url": "https://github.com/katamaran-project/katamaran/blob/f9dbb2ae5a6bffb1d733d0146f3c0188fda65660/theories/Notations.v"
+        }
+      ],
+      "selected_revision": "f9dbb2ae5a6bffb1d733d0146f3c0188fda65660",
+      "disposition": "Reference-only update changes bitvector tactics, case-study decode/shutdown behavior and FemtoKernel organization. PR 73 import cleanup remains included and theories/Notations.v remains byte-identical. Historical dependency trials and their refusals retain their original inputs; no locked-prover compatibility or proof-library qualification is claimed.",
+      "comparison_url": "https://github.com/katamaran-project/katamaran/compare/80985afd8164c31902181d41885e06e2df6dfe6d...f9dbb2ae5a6bffb1d733d0146f3c0188fda65660"
+    }
+  ],
+  "validation": {
+    "performed": "Configured ref resolution, exact-revision license reading and source byte comparisons.",
+    "deferred": "Host CI and selected Guest CI lanes are user-managed. No complete local suite, model/proof gate or benchmark was run."
+  }
+}
