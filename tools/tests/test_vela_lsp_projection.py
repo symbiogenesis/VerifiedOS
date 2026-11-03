@@ -199,6 +199,18 @@ def _frame_sized_request_id_recovery() -> None:
     ensure(_error_code(refused) == -32803 and refused[0]["id"] == request["id"],
            "oversized large-ID reply lost its correlated refusal")
     encode_message(refused[0])
+    server.desynchronized.add("u")
+    refused = server.handle(request)
+    ensure(_error_code(refused) == -32801 and refused[0]["id"] == request["id"],
+           "large-ID desynchronization refusal lost its code or correlation")
+    encode_message(refused[0])
+    server.desynchronized.discard("u")
+    server.ready = False
+    refused = server.handle(request)
+    ensure(_error_code(refused) == -32002 and refused[0]["id"] == request["id"],
+           "large-ID initialization refusal lost its code or correlation")
+    encode_message(refused[0])
+    server.ready = True
     recovered = server.handle(_request("textDocument/hover", _params("u"), 92))
     ensure(recovered[0]["id"] == 92 and "result" in recovered[0] and server.exit_code is None,
            "large-ID reply refusal poisoned the next query")

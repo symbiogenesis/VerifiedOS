@@ -147,13 +147,13 @@ class Server:
     def _navigation(self, request_id: object, method: str,
                     params: dict[str, object]) -> dict[str, object]:
         if not self.ready:
-            return _error(request_id, -32002, "Initialized notification is required before queries")
+            return _error(request_id, -32002, "Initialized notification required")
         document = _object(params.get("textDocument"))
         uri = _string(document.get("uri"))
         if uri not in self.documents:
             _invalid("document is not open")
         if uri in self.desynchronized:
-            return _error(request_id, -32801, "Document content is out of synchronization")
+            return _error(request_id, -32801, "Document is out of synchronization")
         snapshot = self.documents[uri]
         position: tuple[int, int] | None = None
         include_declaration = False
