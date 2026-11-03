@@ -83,7 +83,7 @@ Muse size estimate nor evidence of quality, bandwidth, latency or laptop fit.
 A substantially smaller resident model needs additional model reduction or
 distillation and independent quality evidence.
 
-Use the [existing BITCOS storage inequality](bitcos-assessment.md#compare-against-this-repositorys-actual-baseline)
+Use the [existing BITCOS storage inequality](quantization-assessment.md#compare-against-this-repositorys-actual-baseline)
 with Muse's final per-tensor zero census, actual scale groups and each competing
 packing's geometry. Include directories, panel offsets, padding, tails and
 guard storage. Neither a Bonsai histogram nor the ternary alphabet chooses

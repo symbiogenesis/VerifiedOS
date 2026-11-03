@@ -8,7 +8,7 @@ establish a release-model replacement or target kernel. The
 [Muse Spark Open assessment](muse-spark-open-assessment.md) adds a candidate
 with a much larger resource budget, without displacing compact deployment.
 
-This review extends the [BITCOS comparison](bitcos-assessment.md). Q4b owns
+This review extends the [PQ2_0, PTQ1_0 and BITCOS comparison](quantization-assessment.md). Q4b owns
 target selection, M6.6/M6.8 own the server and grant, and the
 [product-gate contract](../implementation/contracts/product-gate.md)
 owns quality acceptance. A model is best for a declared workload and resource

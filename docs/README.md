@@ -100,7 +100,7 @@ Design entry points: [release scope](spec.md#r-18-004a),
 | Topic | Documents |
 | --- | --- |
 | System estimates | [Performance estimates](performance/performance-estimates.md) |
-| Inference | [Demand record](performance/inference-demand.md) and [measurement artifacts](performance/inference-demand/), [ternary static demand](performance/ternary-static-demand.md), [prompt-processing term](performance/prompt-processing-term.md), [BITCOS assessment](performance/bitcos-assessment.md), [Bonsai 2 and Swift assessment](performance/bonsai2-assessment.md), [Muse Spark Open assessment](performance/muse-spark-open-assessment.md) |
+| Inference | [Demand record](performance/inference-demand.md) and [measurement artifacts](performance/inference-demand/), [ternary static demand](performance/ternary-static-demand.md), [prompt-processing term](performance/prompt-processing-term.md), [PQ2_0, PTQ1_0 and BITCOS assessment](performance/quantization-assessment.md), [Bonsai 2 and Swift assessment](performance/bonsai2-assessment.md), [Muse Spark Open assessment](performance/muse-spark-open-assessment.md) |
 | Ensemble traffic | [Sharding traffic](performance/ensemble-sharding-traffic.md) and [derived artifacts](performance/ensemble-sharding-traffic/) |
 | Self-hosting | [Toolchain residency](performance/toolchain-residency.md) and [measurement artifacts](performance/toolchain-residency/) |
 

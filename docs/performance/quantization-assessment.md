@@ -1,7 +1,9 @@
-# BITCOS on the VerifiedOS inference path
+# Ternary formats on the VerifiedOS inference path
 
-Status: research assessment and proposed comparison for Q4b, not an admitted
-format, implemented target kernel or measured speedup. The existing
+Status: research assessment and proposed comparison for Q4b, reviewed
+2026-11-03. **Compare PQ2_0, PTQ1_0 and BITCOS on the same finalized ternary
+weights, with the same scales and arithmetic.** No format has an implemented
+VerifiedOS kernel or measured target speedup from this assessment. The existing
 [ternary demand record](ternary-static-demand.md) owns the measured baseline.
 The [prompt-processing contract](prompt-processing-term.md) owns the coordinated
 quality, demonstration-set and register act needed to select a ternary release
@@ -16,7 +18,126 @@ adds a much larger mixture-of-experts research candidate. Any reasoning-efficien
 derivative is finalized and quality-tested before choosing its BITCOS layout;
 neither its quality nor its zero distribution is inherited from another model.
 
-## What the paper establishes
+## Shared comparison and source identity
+
+These are packing choices for an already ternarized model. They do not supply
+a training method or establish the quality of a new ternary checkpoint.
+The [Bonsai review's exact artifact identities](bonsai2-assessment.md#source-and-candidate-selection)
+remain the starting point for Bonsai 2; Q12's older g64 model remains a
+separate baseline. A lossless comparison preserves the decoded symbol at
+every tensor index, original scale bits, rotation metadata and precision
+exceptions. Re-running a float quantizer is not that comparison.
+
+The publisher's [format guide](https://github.com/PrismML-Eng/Bonsai-demo/blob/294035ef0d42faec196a49b6a32401d5f1129c58/MODEL-FORMATS.md)
+identifies PQ2_0 and PTQ1_0 as fork formats. Its
+[backend support record](https://github.com/PrismML-Eng/Bonsai-demo/blob/294035ef0d42faec196a49b6a32401d5f1129c58/BACKEND-SUPPORT.md)
+pins `prism-b10787-73bfe6c`, commit
+`73bfe6cc485554822f80c473a3c0c4f25e80f41b`; the format analysis below reads
+that revision's block declarations and reference codecs. This is a source review, not a new
+runtime pin or an incorporation of upstream code. Before importing or building
+that runtime, complete its own exact-revision license and dependency review
+under the [existing terms decision](../../THIRD-PARTY.md#bonsai-2-and-swift-model-research).
+
+For eligible g128 tensors, the
+[block declarations](https://github.com/PrismML-Eng/llama.cpp/blob/73bfe6cc485554822f80c473a3c0c4f25e80f41b/ggml/src/ggml-common.h)
+give the following storage comparison. BITCOS's entry is an ideal stream
+cost before panel metadata and byte rounding, rather than a fixed-size block.
+
+| Format | Symbol storage per 128 weights | Scale storage | Bits per weight before additional overhead | Main target question |
+| --- | --- | --- | --- | --- |
+| PQ2_0 | 32 bytes | 2 bytes | 2.125 | Does simpler unpacking repay the larger weight stream? |
+| PTQ1_0 | 24 five-trit bytes plus 2 four-trit bytes | 2 bytes | 1.750 | Does the smaller stream repay radix decode and rearrangement? |
+| BITCOS | 128 presence bits plus one sign bit per nonzero | 2 bytes | `2.125 - z`, at zero fraction `z` | Do sparsity savings repay cursor, rank and sign ingress costs? |
+
+These are eligible-tensor costs. Model metadata, other tensor types,
+alignment, prepared layouts, session state and scratch remain separate.
+Neither a nominal bit width nor the whole GGUF file length is the complete
+resident or per-token traffic cost.
+
+## PQ2_0 assessment
+
+PQ2_0 has independently addressable 34-byte blocks: an FP16 scale followed
+by 32 bytes, each carrying four adjacent two-bit codes. The
+[reference codec](https://github.com/PrismML-Eng/llama.cpp/blob/73bfe6cc485554822f80c473a3c0c4f25e80f41b/ggml/src/ggml-quants.c)
+maps codes `00`, `01`, `10`, `11` to `-1`, `0`, `+1`, `+2`, respectively,
+before scaling. The fourth code therefore has a defined nonternary value;
+refuse it in a ternary-only conversion to PTQ1_0 or BITCOS rather than silently
+changing it. Census the exact source artifact instead of assuming the model
+name proves code membership.
+
+For the existing RVV surface, propose byte loads, shifts by 0/2/4/6, masking
+and widening subtraction of one, then place the results in contraction order.
+Zero-extending a byte subtraction that wrapped would turn code zero into 255
+instead of -1; choose signed lanes explicitly. Compare a fused unpack/contract
+schedule with a bounded int8 tile reused across prompt rows. Charge all
+rearrangement, scale ingress, activation preparation and tile traffic. This
+is a candidate lowering, with no new instruction or target throughput claim.
+
+Against Q12's g64 representation, retaining one scale per 128 weights would
+reduce scale overhead from `16/64` to `16/128` bits per weight. Merging two
+g64 groups generally changes their scaling semantics: preserve their original
+scales in a separate comparison layout, or treat regrouping as a numerical
+change with new quality evidence. A PQ2_0 name cannot turn that saving into
+a lossless repack of Q12.
+
+PQ2_0 supplies the simple fixed-field baseline, particularly for prompt
+processing and repeated tile use. Its extra six bytes per g128 block relative
+to PTQ1_0 may dominate cacheless batch-one generation. Neither observation
+selects a winner without the in-slot schedule and fixed-grant evidence.
+
+## PTQ1_0 assessment
+
+PTQ1_0 has independently addressable 28-byte blocks, with 24 `qs` bytes,
+two `qh` bytes and an FP16 scale. The
+[reference encoder and decoder](https://github.com/PrismML-Eng/llama.cpp/blob/73bfe6cc485554822f80c473a3c0c4f25e80f41b/ggml/src/ggml-quants.c)
+use rescaled radix-3 bytes. For stored byte `b`, digit position `n` decodes to
+`floor(3 * ((b * 3^n) mod 256) / 256) - 1`. Use five positions for `qs`
+and four for `qh`. Weight order is `16*n+m` for `qs[m]`,
+`80+8*n+m` for `qs[16+m]`, and `120+2*n+h` for `qh[h]`.
+The first span has 16 lanes, the second eight and the last two.
+Ordinary base-243 extraction and consecutive groups of five would decode
+the wrong weights. Valid stored bytes can exceed 242.
+
+On RVV, propose multiplying bytes by powers of three with explicit byte wrap,
+then widening the result before the multiply by three and high-byte extraction.
+Widen before subtracting one. This is a fixed sequence of integer operations;
+it needs no data-dependent division loop. Keep the three spans explicit when
+forming operand order. A register-lookup alternative needs all table bytes,
+register groups and gathers charged; a memory lookup adds bank accesses and
+the applicable address-flow obligations.
+
+The 26 symbol bytes encode 128 weights, so the symbol term is `208/128 =
+1.625` bits per weight, not the ideal `8/5`. Including the FP16 scale gives
+1.750. The six-byte saving over PQ2_0 is local to eligible g128 blocks; it
+does not shrink higher-precision tensors, KV or recurrent state. Both fixed
+layouts permit direct block addressing without BITCOS's sign directory.
+
+Treat the decoder as a symbol relation, not proof that an upstream reader
+rejects malformed or noncanonical data. Define a canonical preparation
+encoding and check it by exact symbol re-encoding with preserved scale bits;
+do not use a `b < 243` test or assume the four-trit tail is literal bit padding.
+At admission, refuse unsupported dimensions, row tails, scale forms or
+inconsistent byte ranges. Retain exact source bytes separately if conversion
+normalizes an accepted upstream encoding.
+
+PTQ1_0 is the required capacity and traffic baseline even where PQ2_0 wins
+compute time. The publisher's
+[Bonsai 2 throughput table](https://huggingface.co/prism-ml/Ternary-Bonsai-2-27B-gguf/blob/6ed5e12bf84b7a63069882c91dd9e9218647d17b/README.md#cross-platform-throughput)
+reports different decode winners on different GPUs and a prompt-processing
+advantage for PQ2_0 in its paired measurements. Those measurements motivate
+both arms; they do not supply RVV latency or energy. Runtime preparation can
+also expand a packed model: the backend record specifically identifies a
+PTQ1_0-to-PQ2_0-sized SYCL path. Measure the representation actually resident
+and consumed by the selected kernel.
+
+The 34-byte and 28-byte block strides also need an aligned access plan under
+the [misaligned-access rule](../spec.md#r-15-084). Use suitably aligned narrow
+loads or buffered aligned windows with validated backing, rather than assuming
+every block permits a wide load. Charge padding and overlapping reads in the
+physical traffic ledger; padding every block for convenience can erase much
+of a nominal storage advantage. Tail masking does not authorize an overread.
+
+## What the BITCOS paper establishes
 
 [Georganas, Heinecke and Dubey, BITCOS v1](https://arxiv.org/html/2609.16338v1)
 describe lossless packing of existing ternary weights: a presence bitmap and
@@ -75,9 +196,9 @@ BITCOS beats five-trit storage only when
 `z > o_bitcos - o_two`. This exposes the particularly small margin over
 five-trit at the paper's Bonsai-4B density. Per-vector offset records or generous
 alignment can consume that margin. No format wins universally after overhead.
-For the paper's `t = 1.625` and equal additional overhead, the break-even zero
-fraction is 37.5 percent. This threshold is conditional on that geometry; it
-does not replace the exact PTQ1_0 comparison or a target access schedule.
+For `t = 1.625`, matching PTQ1_0's symbol geometry, and equal additional
+overhead, the break-even zero fraction is 37.5 percent. Actual directories,
+padding and the target access schedule still decide the complete comparison.
 
 For a conditional sensitivity calculation, let `N` be the eligible Q2_0
 elements read per token, including the additional embedding row, and let `H`
@@ -94,7 +215,7 @@ aligned words. Count issued accesses, bank service, scratch reads and writes,
 and transfer granularity separately from encoded file length. Credit reuse
 only where an explicit register or scratch buffer retains those words.
 
-## First candidate: use the existing RVV operations
+## BITCOS candidate: use the existing RVV operations
 
 Start with a lossless BITCOS-to-int8 expansion on the M-class's specified
 VLEN=1024 RVV unit. Decode a block of at most 128 weights with SEW=8 and
@@ -175,7 +296,8 @@ are satisfied; a specified array geometry does not supply an executable opcode.
 
 | Candidate | Reason to include it | Cost that can defeat it |
 | --- | --- | --- |
-| Two-bit and five-trit RVV kernels | Required baselines with identical symbols, scales and arithmetic | Extra stream bytes or radix decoding |
+| PQ2_0 and PTQ1_0 RVV kernels | Exact g128 baselines with identical symbols, scales and arithmetic | Extra stream bytes or radix decoding |
+| Q12 g64 layouts with original scales | Preserve the measured baseline's numerical representation | More scale bytes; g128 savings cannot be assumed |
 | Prefix-rank BITCOS | Existing operations and a simple functional relation | Scan, gather, sign-window ingress and issue occupancy |
 | Register lookup BITCOS | Replace a long prefix path with small local lookups | Cursor formation, table registers and operand rearrangement |
 | Bounded pre-expansion | Amortize decode over prompt rows or a batch | Scratch capacity, extra memory movement and reloads |
@@ -246,8 +368,9 @@ Before scoring candidates, fix the model digest, tensor census, arithmetic,
 workload cases, candidate set and ranking rule. The comparison is complete only
 when the following evidence exists:
 
-1. Census the exact Q12 weight artifact by tensor and scale group, checking its
-   original license record before use. Record zero counts and all representation
+1. Census each selected weight artifact by tensor and scale group, retaining
+   Q12's exact baseline and checking each original license record before use.
+   Record zero counts and all representation
    costs from bytes, with a generator and drift check for any retained derived
    report. The paper's density alone cannot select a layout.
 2. Round-trip every eligible tensor with identical symbols, original scale bits
@@ -256,6 +379,11 @@ when the following evidence exists:
    vector, all sign-word offsets, all-zero/all-nonzero blocks, tails and panel
    boundaries against an independent scalar relation. These are functional
    checks, not a proof of the target kernel or parser.
+   For PQ2_0, exercise all four codes and enforce the ternary-only conversion
+   precondition. For PTQ1_0, exhaust every byte at every digit position, both
+   `qs` spans and the `qh` tail, then test the full 128-weight index mapping
+   with distinguishable patterns and exact scale-bit retention. Separate
+   decoder equivalence from canonical-encoding refusal tests.
 3. Compare emitted target kernels with that relation, then compare complete
    contractions including signed-int8 extrema, group boundaries, overflow and
    rounding. Freeze acceptable numerical and quality differences before any
@@ -274,7 +402,8 @@ when the following evidence exists:
    selection open; they are not zero costs. Any release-format choice still
    takes the joint act in the prompt-processing contract.
 
-The immediate design recommendation is to evaluate the existing-RVV prefix
-route and register-lookup alternative against two-bit and five-trit baselines,
-with exact model statistics and aligned buffered sign reads. A hardware change
+The immediate design recommendation is to compare exact PQ2_0 and PTQ1_0
+RVV kernels with the BITCOS prefix and register-lookup routes, retaining a
+separate original-scale g64 comparison for Q12. Use exact model statistics,
+aligned buffered reads and complete decode and prompt schedules. A hardware change
 is justified only by the resulting target bottleneck evidence.
