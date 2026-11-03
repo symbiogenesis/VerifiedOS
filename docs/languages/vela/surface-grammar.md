@@ -43,8 +43,8 @@ construct syntax, including syntactically valid programs with semantic errors.
 | Mathematical proofs | Definitions, theorem/lemma statements, proof blocks, assertions, calculations, quantifiers, inductive/coinductive declarations and constructors, universes and typed holes |
 | Architecture and hardware | Machine/hardware containers, state/register declarations, transitions/rules, guards, next-state assignments and explicit schedules/cycles |
 
-New syntax without a prior concrete spelling uses type-first declarations and
-braced containers. Explicit generic expression application uses `::<...>` to
+The surface uses type-first declarations and braced containers.
+Explicit generic expression application uses `::<...>` to
 separate it from comparison. Nested type arguments close with individual `>`
 tokens; shifts may use named operations. Generic arguments admit values and
 lifetimes. A parenthesized generic value disambiguates relational expressions.
@@ -59,8 +59,8 @@ an expression.
 This classification consults token shape, with no symbol table or type judgment.
 It preserves the original lexeme positions and the pure entry's tokenization.
 
-The following spellings select previously unspecified mathematical and machine
-syntax. `Type<u>` names a universe-indexed type, and `effect E` is a generic
+The mathematical and machine syntax uses the following spellings.
+`Type<u>` names a universe-indexed type, and `effect E` is a generic
 effect parameter. `rehandle` takes the same body-and-clauses shape as `handle`.
 Inductive/coinductive constructors may add `: TYPE` before their semicolon to
 state result indices, for example `Nil() : Vec<T, 0>;`.
@@ -503,8 +503,8 @@ matching, grants write authority or repairs a missing argument modifier.
 Ordinary type-first parameters pass values. Extend the shared type-modifier and
 prefix-expression productions with `out`, alongside `in` and `ref`, retaining
 modifier order, optional place-named lifetime and original byte spans. The AST
-uses the existing `modified_type` and `unary` nodes. `out` is a keyword in the
-surface entry only; preserve the frozen pure entry's token classification.
+uses the `modified_type` and `unary` nodes. The pure entry diagnoses `out`
+as unsupported, alongside the other loan modes.
 Add prefix `*` (dereference) and `&` (address/loan derivation) through the shared
 unary production, keeping multiplication, bitwise conjunction and parenthesized
 operator values distinct. Prefixes associate right; postfix indexing/calls bind

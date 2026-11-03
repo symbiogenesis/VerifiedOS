@@ -963,7 +963,7 @@ The [full-language contract](#full-language-design-commitments) adds suspension,
 
 **Vela** names the proposed language. The [pure translation prototype](vela-prototype.md)
 implements a small Nat/bool function subset of this surface: public type-first
-declarations and parameters, immutable locals, explicit returns and parenthesized
+declarations and parameters, immutable locals, return blocks or expression bodies, and parenthesized
 conditional blocks. Its grammar follows these conventions; resource and proof
 constructs remain unsupported.
 
@@ -1224,7 +1224,11 @@ public Buffer<byte, count, Initialized> Initialize<ghost Nat count>(
 	owned Buffer<byte, count, Uninitialized> storage, byte value)
 	effects writes(storage)
 	ensures result.Model == Seq.Repeat(value, count);
+```
 
+Inside a caller:
+
+```text
 let zeroed = Initialize(move storage, 0);   // storage is consumed; only the initialized buffer is readable
 ```
 
@@ -1302,7 +1306,11 @@ public usize BestScore<captures C, ghost SearchBudget budget>(
 		return score => score,                                     // runs once per completed resumption
 	};
 }
+```
 
+Inside a caller:
+
+```text
 let header = packet.Header;                              // a value copy, so duplicable
 Fn() -> usize effects(Choose) score = () => Score(header, Choose());
 let best = BestScore(in score);
@@ -1336,7 +1344,11 @@ public effect Reject
 {
 	never Reject(ParseError error);          // no reply exists, so a handler can only dispose
 }
+```
 
+Inside a caller:
+
+```text
 let checked = handle (Validate(ref packet))
 {
 	Reject(error) with k => { dispose k; return Err(error); },   // ends k's loans, erases, examines verdicts
