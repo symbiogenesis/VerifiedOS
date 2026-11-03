@@ -331,7 +331,7 @@ class _Decoder:
                 or self.source[span[1] - 1:span[1]] != b";"):
             raise ValueError("native expression body differs from its source delimiters")
         raw_value = node["value"]
-        if not isinstance(raw_value, dict):
+        if not isinstance(raw_value, dict) or "span" not in raw_value:
             raise ValueError("native expression body has no value node")
         value_span = self._span(raw_value.get("span"), (span[0] + 2, span[1] - 1))
         if (trivia_end(self.source, span[0] + 2) != value_span[0]

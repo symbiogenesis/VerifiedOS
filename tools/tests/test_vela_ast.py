@@ -91,7 +91,8 @@ def _expression_body_protocol() -> None:
                       else _node("name", literal, literal + len(spelling), name=_name("missing", literal)))
         response = _arrow_fixture(source, expression)
         errors: list[tuple[str, int, int, str]] = []
-        for operation in (lambda: vela.translate(source), lambda: vela.translate_ast(source, response)):
+        for operation in (lambda source=source: vela.translate(source),
+                          lambda source=source, response=response: vela.translate_ast(source, response)):
             try:
                 operation()
             except vela.VelaError as error:
