@@ -1,6 +1,6 @@
 # Verification-Maximal Capability OS: Specification
 
-*This document explains the design. The [requirements register](requirements-register.md) defines the obligations and acceptance criteria, and takes precedence if they disagree (R-05-152). After changing either document, re-read each affected requirement with its explanation. K-61 identifies those pairs; `tools/run.py coread` records the review.*
+*This document explains the design. The [requirements register](requirements-register.md) defines the obligations and acceptance criteria, and takes precedence if the two disagree (R-05-152). After changing either document, re-read each affected requirement with its explanation; rule K-61 reports the affected pairs and `tools/run.py coread` records the review.*
 
 **Goal:** a formally verified capability OS with strong security, transactional updates, stateless operation and fault recovery.
 Compatibility retains the greatest open-standard surface consistent with the guarantees below, and performance is subordinate to security. <a id="r-01-006-2"></a>

@@ -24,10 +24,14 @@ No shared switch or host/guest tool binary is changed for this batch.
 
 Run focused local checks appropriate to each changed consumer and record their
 scope and verdict. Complete host and guest suites and all benchmarks remain on
-GitHub Actions. Integrate through `run.py fanout`, publish only `main`, require
-Host CI on Windows and Ubuntu, and dispatch every Guest CI lane for the settled
-revision. Finish with Guest CI pending and no claim of its success. Checks outside
-those workflows retain their separate acceptance requirements.
+GitHub Actions. Integrate into local `main` through
+[`run.py fanout`](../../tools/fanout.md) and record the settled revision, local
+verdicts and deferred acceptance checks. This batch requires Host CI on Windows
+and Ubuntu and every Guest CI lane, so use `fanout init --full-ci` to retain that
+recommendation. The user owns every push, CI dispatch and hosted verdict. Finish
+locally without publishing or waiting for CI; pending hosted checks supply no
+passing evidence. Checks outside those workflows retain their separate acceptance
+requirements.
 
 ## Local qualification
 
@@ -44,8 +48,8 @@ The Sail checks use locked Sail 0.20.3. The local expected Z3 5.3.1 prefix is
 absent, so the front door reports a PATH-solver fallback; the bounded journal
 retains the actual tools and diagnostics. Complete qualification therefore remains
 with Guest CI's pinned bootstrap and model evidence sweep. No complete suite or
-benchmark is run locally. Host CI and the Guest CI dispatch for the settled revision
-are recorded by the fan-out handoff and reported with the delivery.
+benchmark is run locally. The fan-out handoff records the settled revision and
+required hosted checks; their execution and verdicts remain user-managed.
 
 The source review's broader toolchain migrations, new proof interfaces, optional
 certificate backends and unimplemented compute/runtime consumers remain with

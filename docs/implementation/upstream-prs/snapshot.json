@@ -2,7 +2,7 @@
   "version": 1,
   "author": "symbiogenesis",
   "created_since": "2026-10-19",
-  "observed_at": "2026-10-29 16:12:00 UTC",
+  "observed_at": "2026-11-03 08:22:12 UTC",
   "items": [
     {
       "id": "1",
@@ -29,7 +29,6 @@
       "review": "Revised after [Alasdair's review](https://github.com/rems-project/sail/pull/1786#issuecomment-6420197338). Cache invalidation evicts disk-file lookup entries while preserving old source snapshots and error locations; editor takeover searches only active entries. Dependency refresh clears checked state and navigation. Each server retains its first project and rejects another before frontend processing, avoiding cross-project frontend state reuse. Implementation and tests are separate commits.",
       "next_action": "Await maintainer review and upstream CI approval.",
       "evidence": [
-        "PR #1786 alone was rechecked at 2026-10-26 15:57:43 UTC; all other captured statuses retain the snapshot observation date.",
         "[Reply to Alasdair](https://github.com/rems-project/sail/pull/1786#issuecomment-6420582589) records the narrowed scope and validation.",
         "Local validation of `c29feede338c303df5a3ae8cdfb9a2acfc110376` passed: Libsail and LSP release builds, 16 focused protocol tests, one source-snapshot unit test, and OCamlformat 0.29.0. The history split preserved the tested tree exactly. Full upstream CI remains subject to maintainer approval; these focused checks supply no VerifiedOS model or proof acceptance."
       ]
@@ -53,12 +52,12 @@
       "issue": "https://github.com/rocq-prover/rocq/issues/10372",
       "pr": "https://github.com/rocq-prover/rocq/pull/22609",
       "benefit": "Reduces reliance on parsing human-readable context summaries to decide proof acceptance.",
-      "reviewed_head": "956ec7d95d33cca4197482edd58c40f0856e69b6",
-      "review": "Tests cover explicit/imported/sealed axioms, unsafe flags, primitives, module parameters and trust modes. Maintainer SkySkimmer flagged a redundant unsafe-flags fold and potentially incomplete coverage of unsafe flags hidden by module sealing under -admit/-norec, and suggested checking flags_are_safe in axiom collection after candidates 10 and 22. The author acknowledged the request. Candidate 10 is merged; candidate 22 remains open. Integration still needs combined-option coverage without -o.",
-      "next_action": "Address the maintainer's unsafe-flag collection request with candidate 10 and coordinate candidate 22; exercise -axiom-free without -o across recursive, -norec, -admit and sealed-module cases.",
+      "reviewed_head": "d0c923cc6c7285669a27240470883ded58a2475a",
+      "review": "The current revision moves unsafe-flag checks into constant and inductive assumption collection, enables collection for -axiom-free without -o, and adds recursive/-norec/-admit controls for sealed constants, inductives and axioms. Candidates 10 and 22 are merged. Maintainer discussion now concerns primitive types and rewrite-permission handling; the author explains their existing checker representation and import behavior. That exchange supplies no independent acceptance verdict.",
+      "next_action": "Await maintainer review of the revised collection and exit-status behavior; qualify recursive, -norec, -admit, sealed, primitive and rewrite-permission cases with candidates 10, 21, 22 and 47 before prover adoption.",
       "evidence": [
-        "GitLab reports a successful light pipeline through a NEUTRAL check; FULL_CI is false. It is not evidence of a full GitLab pipeline pass.",
-        "[Maintainer review](https://github.com/rocq-prover/rocq/pull/22609#discussion_r4337474886) requests the unsafe-flag collection change; [the author's reply](https://github.com/rocq-prover/rocq/pull/22609#discussion_r4350847776) acknowledges it."
+        "The displayed GitHub platform jobs succeed. The current GitLab check explicitly reports FULL_CI false and a successful light pipeline through a NEUTRAL result; it supplies no full GitLab pipeline verdict.",
+        "[The maintainer request](https://github.com/rocq-prover/rocq/pull/22609#discussion_r4337474886) is implemented in the reviewed revision. [Current review](https://github.com/rocq-prover/rocq/pull/22609#discussion_r4414635701) and [the author response](https://github.com/rocq-prover/rocq/pull/22609#discussion_r4414724542) retain the primitive/rewrite discussion."
       ]
     },
     {
@@ -157,7 +156,9 @@
       "reviewed_head": null,
       "review": "No matching authored PR found. Mocha issue 748 is related extension-configuration discussion, not this exact implementation.",
       "next_action": "TBD: discuss configuration controls and decoder-matrix tests with upstream.",
-      "evidence": []
+      "evidence": [
+        "[Mocha extension-configuration issue 748](https://github.com/lowRISC/mocha/issues/748) remains open; coordinate its existing discussion before proposing a patch."
+      ]
     },
     {
       "id": "12",
@@ -169,7 +170,9 @@
       "reviewed_head": null,
       "review": "No matching authored PR found; the upstream issue has an existing assignee and unsettled mixed-aggregate ABI details.",
       "next_action": "TBD: coordinate ABI rules and add Rust/Rust plus Rust/C regressions.",
-      "evidence": []
+      "evidence": [
+        "[Rust small-aggregate ABI issue 271](https://github.com/CHERIoT-Platform/cheri-rust/issues/271) remains open; coordinate its existing discussion before proposing a patch."
+      ]
     },
     {
       "id": "13",
@@ -181,7 +184,9 @@
       "reviewed_head": null,
       "review": "No matching authored PR found.",
       "next_action": "TBD: add positive and rejection tests requested by upstream.",
-      "evidence": []
+      "evidence": [
+        "[Rust CTFE capability-metadata issue 204](https://github.com/CHERIoT-Platform/cheri-rust/issues/204) remains open; coordinate its existing discussion before proposing a patch."
+      ]
     },
     {
       "id": "14",
@@ -207,7 +212,9 @@
       "reviewed_head": null,
       "review": "No matching authored PR found.",
       "next_action": "TBD: agree generic optional tracing based on existing RVFI values.",
-      "evidence": []
+      "evidence": [
+        "[Mocha retirement-tracing issue 231](https://github.com/lowRISC/mocha/issues/231) remains open; coordinate its existing discussion before proposing a patch."
+      ]
     },
     {
       "id": "CI-1",
@@ -305,12 +312,14 @@
       "pr": null,
       "benefit": "Addresses known locked-prover defects and creates a path to retiring the specific local proof restrictions after qualified release adoption.",
       "reviewed_head": null,
-      "review": "Release-manager follow-up; no backport request or submission is recorded here. The three cofixpoint/inductive fixes and checker fix below are merged on master. Candidate 20 separately tracks the merged universe-checking fix 22624, milestoned 9.3.1 at observation. Upstream release managers decide carriage; publication and VerifiedOS lock adoption remain separate acts.",
-      "next_action": "Request appropriate 9.3 carriage for fixes 22388, 22392 and 22394, discuss checker fix 22556, and track candidate 20's universe-checking fix 22624 through release/backport carriage. Qualify the chosen release before changing local restrictions.",
+      "review": "Release-manager follow-up; no backport request or submission is recorded here. The cofixpoint, inductive-subtyping and checker fixes below are merged on master. Candidate 20 separately tracks the merged universe-checking fix 22624; candidate 39 tracks the merged forged-alias checker fix 22456. Fix 22494 and candidate 20 are milestoned 9.3.1; candidate 39 is milestoned 9.4+rc1. No published 9.3.1 release or tag was found at observation. Upstream release managers decide carriage; publication and VerifiedOS lock adoption remain separate acts.",
+      "next_action": "Request appropriate 9.3 carriage for fixes 22388, 22392, 22394 and 22494, discuss checker fixes 22556 and 22456, and track candidate 20's universe-checking fix 22624 through release/backport carriage. Qualify the chosen release and regressions before changing the prover lock or local restrictions.",
       "evidence": [
         "[Fix 22388](https://github.com/rocq-prover/rocq/pull/22388) corrects the environment used for cofixpoint recursive trees; [fix 22392](https://github.com/rocq-prover/rocq/pull/22392) rejects recursive calls outside the main nested-cofixpoint branch; [fix 22394](https://github.com/rocq-prover/rocq/pull/22394) repairs inductive subtyping with constructor let-ins.",
+        "[Fix 22494](https://github.com/rocq-prover/rocq/pull/22494) repairs inductive-subtyping conditions, including uniform-parameter consistency in [issue 22510](https://github.com/rocq-prover/rocq/issues/22510). Its bug_15842.v and bug_22510.v regressions belong in release qualification; the local lock guide already records this defect.",
         "[Checker fix 22556](https://github.com/rocq-prover/rocq/pull/22556) addresses the separate sealed-module delta-resolver anomaly; its release adoption and VST requalification retain their existing obligations.",
         "[Merged fix 22624](https://github.com/rocq-prover/rocq/pull/22624), tracked in candidate 20, addresses the locked-version universe-checking inconsistency 22287. An upstream merge or assigned milestone does not establish released backport carriage.",
+        "[Merged fix 22456](https://github.com/rocq-prover/rocq/pull/22456), tracked in candidate 39, validates serialized delta aliases. Its 9.4+rc1 milestone does not establish 9.3 carriage. [Published Rocq releases](https://github.com/rocq-prover/rocq/releases) still end at 9.3.0 at observation.",
         "[The prover lock guide](../../tools/opam/README.md) owns the recorded defects, local restrictions, residual exposure and exact lock-move predicate. Acceptance requires the chosen release to carry the fixes and their regression tests, then project-specific requalification; a milestone, prepared backport or upstream merge supplies no release-adoption verdict."
       ],
       "kind": "backport",
@@ -343,8 +352,8 @@
       "pr": "https://github.com/rocq-prover/rocq/pull/22294",
       "benefit": "Makes an unsafe typing flag visible to the exact-assumption and whole-context audits instead of allowing a clean-looking report when a plugin disabled elimination checking.",
       "reviewed_head": "5afc5ba2dc575d5c7de23d94a64b3381d33d6ed2",
-      "review": "Existing upstream PR, assigned to ppedrot with an approved review at observation. The review covers its public motivation, changes and regression scope; no independent upstream build was run. This is an audit-visibility gap, not evidence that current VerifiedOS proofs use the bypass.",
-      "next_action": "Track upstream completion; at qualified adoption extend parser and rejection fixtures for unchecked eliminations in both compiler and checker reports.",
+      "review": "Merged upstream reporting change for unchecked sort eliminations. The reviewed diff adds compiler and checker reporting, keeps the new checker section absent when empty, and exercises a plugin that disables elimination checking independently of universe checking. No independent upstream build was run. This is an audit-visibility repair, not evidence that current VerifiedOS proofs use the bypass.",
+      "next_action": "At qualified prover adoption, extend parser and rejection fixtures for unchecked eliminations in both compiler and checker reports, including the conditionally absent empty section.",
       "evidence": [
         "The PR adds compiler and checker reporting plus a plugin-based regression that distinguishes disabled elimination checking from universe checking.",
         "[The proof gate's context contract](../../tools/README.md#current-evidence-and-generated-documentation) owns exact unsafe-context rejection. A new report section must be understood and refused before adoption."
@@ -360,9 +369,9 @@
       "issue": null,
       "pr": "https://github.com/rocq-prover/rocq/pull/22623",
       "benefit": "Closes a checker-context omission relevant to sealed support-library qualification and candidates 4 and 10.",
-      "reviewed_head": "ede870fe4c26ededbdb83493c565d19074553c45",
-      "review": "Existing upstream PR for issue 22618. The published reproducer hides an axiom through an inductive constructor let-in under a module seal; Print Assumptions exposes that reproducer while the checker summary omits it. The change also affects functor axiom naming and reports axioms in never-applied functors. The existing dual audit remains necessary.",
-      "next_action": "Track with candidates 4 and 10; qualify changed axiom names, context parsing and recursive/admitted/sealed regressions before prover adoption.",
+      "reviewed_head": "927530a8805d6df27aeb0dc4ceeefa3f9078013d",
+      "review": "Merged repair for issue 22618 replaces the checker's opacification-based bookkeeping with direct collection of axiom declarations from module implementations, including unused sealed-module axioms and never-applied functors. The published reproducer hides an axiom through an inductive constructor let-in under a module seal. Functor axioms now use their declaration names rather than names at each application. The existing theorem and loaded-context audits retain separate duties.",
+      "next_action": "Qualify the merged collection change with candidates 4 and 10; update changed axiom names and context parsing, and replay recursive/admitted/sealed and unused-functor regressions before prover adoption.",
       "evidence": [
         "[Issue 22618](https://github.com/rocq-prover/rocq/issues/22618) supplies the existing report and reproducer; do not duplicate it.",
         "Acceptance preserves complete loaded-context rejection, concrete sealed-implementation audits and joint consistency; upstream completion alone supplies no proof-gate qualification."
@@ -452,7 +461,7 @@
       "benefit": "Improves the Rocq backend's bitvector-cast heuristic and is relevant to canonical machine-term generation.",
       "reviewed_head": "6dca11b316413b05728719da1d25bdbffe49aebe",
       "review": "Existing maintainer-authored PR prefers structural equality before arithmetic unification and adds a Rocq regression. Fewer unnecessary casts may ease generated-term elaboration, but no VerifiedOS size, timing or blocker-removal improvement has been measured.",
-      "next_action": "Track upstream adoption; assess the exact change during qualified Sail adoption without moving the locked compiler solely because upstream checks pass.",
+      "next_action": "Assess the merged structural-unification repair during qualified Sail adoption; preserve the locked compiler until its consumer and release acceptance pass.",
       "evidence": [
         "The PR's motivating example avoids solving a type variable as (n - 1) + 1 when n suffices. Its Rocq regression supplies upstream scope, not a canonical VerifiedOS consumer verdict.",
         "Candidates 16 through 18 retain higher implementation priority because they address measured semantic and strict-compilation blockers."
@@ -541,11 +550,11 @@
       "benefit": "Preserves each theorem's assumption attribution in one multi-name query, with command-local reuse of loaded bodies.",
       "reviewed_head": "1090cfde2672cebea0f78466dc8bb3649de5c2b7",
       "review": "Multi-reference Print Assumptions and dependency queries report each reference by default, grouping consecutive equivalent reports while preserving request order and repeated names. Single-reference output is unchanged. Grouping compares assumption identities and types, usage annotations and all theory flags. Each root retains its own dependency walk; only successfully loaded constant bodies are shared within the command. Independent static review found no issues. No performance improvement is measured.",
-      "next_action": "Await maintainer review and remaining upstream validation; qualify the output parser before adopting it in VerifiedOS.",
+      "next_action": "Await maintainer review; qualify the batched output parser before adopting it in VerifiedOS. The displayed GitHub matrix succeeds, while GitLab evidence remains light-only.",
       "evidence": [
         "[Issue 22627](https://github.com/rocq-prover/rocq/issues/22627) contains the proposal and minimal example. The PR follows [the maintainer recommendation on closed PR 22610](https://github.com/rocq-prover/rocq/pull/22610#issuecomment-6342792902).",
         "The 2026-10-29 revision incorporates [SkySkimmer's review](https://github.com/rocq-prover/rocq/pull/22628#issuecomment-6472258578): the option is removed and consecutive equivalent reports share a heading. The implementation, documentation, changelog and regressions are folded into one commit.",
-        "[The author's reply](https://github.com/rocq-prover/rocq/pull/22628#issuecomment-6501982770) notifies the reviewer of the folded revision and records Linux CI success with Windows/macOS still pending at reply time.",
+        "[The author's reply](https://github.com/rocq-prover/rocq/pull/22628#issuecomment-6501982770) notifies the reviewer of the folded revision. The displayed GitHub platform jobs now all succeed; the GitLab NEUTRAL result records a successful light pipeline with FULL_CI false.",
         "Regressions cover grouped and distinct reports, root order and repetition, closed roots, recursive/type dependencies, sealed implementations, section variables, opaque/all dependency output, False-use annotations, unsafe-flag isolation and theory differences hidden by the printing settings.",
         "[GitHub CI for the reviewed head](https://github.com/rocq-prover/rocq/actions/runs/40907751042) supplies the hosted build and test evidence; available verdicts are recorded in the captured public checks.",
         "[Issue 5639](https://github.com/rocq-prover/rocq/issues/5639) records repeated-query costs. [PR 22425](https://github.com/rocq-prover/rocq/pull/22425) addresses shared proof-term traversal separately; this PR does not claim to solve it."
@@ -671,13 +680,14 @@
       "issue": null,
       "pr": "https://github.com/rocq-prover/rocq/pull/22456",
       "benefit": "Strengthens the independent checker trusted by R-05-018a and R-05-163 against crafted compiled libraries that give incompatible declarations the same canonical identity.",
-      "reviewed_head": "d8b11360301e1ea115ff9b729472ccce25d7d554",
+      "reviewed_head": "f1a7ab03d588c64078255b71a15698665e5b4a4d",
       "priority": "high",
       "proposed_on": "2026-10-22",
-      "review": "Open PR validates nontrivial serialized constant and inductive aliases against their canonical declarations before extending the checker environment. Its regressions rewrite valid compiled libraries and recompute their segment digests, then require rejection of both forgeries. This is separate from the merged resolver-substitution repair 22556 already named by R-1. VerifiedOS recompiles sources and binds cached objects by hash; no bypass of its current fresh gate was demonstrated by this review. Public platform checks do not establish a passing full upstream pipeline.",
-      "next_action": "Track review and release/backport carriage with R-1; qualify constant and inductive forgeries, legitimate aliases and current proof-gate refusals before prover adoption.",
+      "review": "Merged hotfix uses module-subtyping checks to validate serialized constant and inductive aliases against their canonical declarations, while preserving legitimate transparent strengthening. Its regressions rewrite valid compiled libraries and recompute segment digests, then require rejection of both forgeries. The maintainer describes the delta-resolver design as needing a broader repair and merged despite an identified unrelated CI failure. This is separate from resolver-substitution repair 22556. VerifiedOS recompiles sources and binds cached objects by hash; this review demonstrated no bypass of its fresh gate or passing full upstream pipeline.",
+      "next_action": "Track release/backport carriage with R-1; qualify the merged hotfix against constant and inductive forgeries, legitimate aliases and current proof-gate refusals before prover adoption. Its 9.4+rc1 milestone supplies no 9.3 carriage.",
       "evidence": [
         "[The proof-artifact obligations](../requirements-register.md) and [the proof gate](../../tools/README.md#current-evidence-and-generated-documentation) require independent checking and exact assumption acceptance; source and object identity remain separate controls.",
+        "[The maintainer assessment](https://github.com/rocq-prover/rocq/pull/22456#issuecomment-6558482466) treats this as a hotfix rather than a complete delta-resolver redesign; [the merge instruction](https://github.com/rocq-prover/rocq/pull/22456#issuecomment-6563624607) identifies an unrelated CI failure. Retain the captured check verdicts as reported.",
         "[PR 22556](https://github.com/rocq-prover/rocq/pull/22556) repairs implementation delta-resolver substitution for anomaly 22555; it does not replace this serialized-alias validation.",
         "Acceptance checks digest-recomputed constant and inductive forgeries, legitimate transparent strengthening, sealed modules and recursive/admitted roots on the qualified release. No independent upstream build or forged-object execution was run for this tracker."
       ],
@@ -712,12 +722,12 @@
       "reviewed_head": "ce2f20c26b4f2b66c85d7cc90d0571f5b00f89b7",
       "priority": "high",
       "proposed_on": "2026-10-22",
-      "review": "Open PR adds boundary cases with byte operands -128, making each pair sum 32768 and exposing the i16 intermediate. For the add variant with zero accumulator, a direct-byte sum returns 65536, outside the proposed allowed lane values -65536, -1 and 65534. The existing inputs keep pair sums in range and cannot distinguish that error. The captured upstream interpreter check fails the new add-variant case with wrong return values, so the expected-result/reference disagreement remains unresolved; neither side supplies accepted local semantics. This is required guest-feature coverage; no local interpreter failure was demonstrated.",
-      "next_action": "Resolve the failing upstream overflow case and outstanding checks, then qualify the agreed fixtures in Q34g’s shared manifest against the generation-fixed DET choices, including a control that omits the i16 intermediate.",
+      "review": "Open PR adds byte-operand -128 boundary cases that expose i16 intermediate overflow. For the add variant with zero accumulator, summing byte products directly gives 65536, outside the proposed expectations. The captured old-head interpreter check still fails, but the maintainer diagnoses a missing saturation step and reports a fix on upstream main; the PR needs a refresh before a new verdict. The reviewer also disputes the proposed -1 mixed wrap/saturate result because the two intermediate results must use consistent choices. The accepted fixture expectations remain unsettled. No local interpreter failure was demonstrated.",
+      "next_action": "Refresh the PR against the upstream interpreter repair and resolve the consistent-choice objection to the mixed wrap/saturate expectation; then qualify agreed fixtures against Q34g's generation-fixed DET choices, including a control that omits the i16 intermediate.",
       "evidence": [
         "[The complete guest-language contract](contracts/wasm-execution.md#wasm-30-inside-the-existing-boundary) includes fixed and relaxed SIMD with generation-fixed DET choices. [The shared corpus](contracts/wasm-execution.md#shared-upstream-corpus) has one feature-mapped fixture manifest.",
         "Acceptance exercises both relaxed-dot forms, the intermediate-overflow case, nonzero accumulators and ordinary in-range controls. Each implementation must return its selected deterministic result; a broad allowed-result set must not replace the exact DET-profile check.",
-        "The upstream report describes interpreter bugs that the preceding corpus missed. [The captured interpreter log](https://github.com/WebAssembly/spec/actions/runs/32062414434/job/99852679950) reports wrong return values at relaxed_dot_product.wast lines 117-126. This tracker read that failure and the fixture diff without independently executing the reproducers or assigning the discrepancy to the test or interpreter."
+        "[The maintainer review](https://github.com/WebAssembly/spec/pull/2228#pullrequestreview-5081321440) identifies the missing interpreter saturation and a fix on main. [The inline objection](https://github.com/WebAssembly/spec/pull/2228#discussion_r3906878937) challenges the mixed wrap/saturate expected value. The captured old-head failure is not a verdict on a refreshed PR or an independent reproduction."
       ],
       "kind": "watch"
     },
@@ -744,18 +754,19 @@
       "repository": "WebAssembly/spec",
       "topic": "Specify signed zero for floating zero times finite nonzero",
       "issue": "https://github.com/WebAssembly/spec/issues/2300",
-      "pr": null,
+      "pr": "https://github.com/WebAssembly/spec/pull/2308",
       "benefit": "Closes a numeric-semantic gap in the full Core 3.0 reference Q34g must curate, including the sign of zero in ordinary floating multiplication.",
-      "reviewed_head": null,
+      "reviewed_head": "219b01194089025632668552e2515ee0f799dd85",
       "priority": "high",
       "proposed_on": "2026-10-22",
-      "review": "Issue 2300 remains open; no matching open repair PR was found. The inspected fmul rules cover zero times infinity and zero times zero but omit zero times finite nonzero. Those cases reach ieee_N(0), whose zero rounding returns +0, so expressions such as -0 times +1 lose their required sign. The issue reports agreement among the reference interpreter and two independent runtimes on -0. This review checked the written rules but did not execute those runtimes.",
-      "next_action": "TBD: coordinate explicit signed-zero cases under issue 2300, keeping prose and formal rules aligned, with both operand orders, signs, f32/f64 and applicable SIMD regressions.",
+      "review": "Issue 2300 is closed after commit fe509cad6fc90577fa60264564c6b8ebf4963a43 adds the missing signed-zero multiplication rules. Merged PR 2308 then corrects the two new prose cases from infinity to signed zero; their equations already specified the right zero signs and are unchanged by that PR. A duplicate implementation proposal is obsolete. Qualification must select both the semantic repair and its prose correction in the intended Core 3.0 edition; an upstream merge alone supplies no local engine-refinement verdict.",
+      "next_action": "Qualify the signed-zero semantic repair and merged prose correction in Q34g's selected Core 3.0 edition, with both operand orders, signs, f32/f64 and applicable SIMD regressions; no duplicate repair PR is needed.",
       "evidence": [
         "[The numeric contract](contracts/wasm-execution.md#wasm-30-inside-the-existing-boundary) requires complete deterministic Core 3.0 numeric behavior; [the semantic-upstream assessment](../assurance/proof-reuse/parsers.md#other-source-leads) keeps the selected edition and generated proof frontier explicit.",
-        "[The upstream multiplication rules](https://github.com/WebAssembly/spec/blob/main/document/core/exec/numerics.rst#op-fmul) and issue 2300 identify the missing cases. Acceptance fixes the qualified semantic edition rather than silently changing the meaning of a pinned reference.",
+        "[Issue 2300](https://github.com/WebAssembly/spec/issues/2300#issuecomment-6353949041) is closed as fixed. [Commit fe509cad](https://github.com/WebAssembly/spec/commit/fe509cad6fc90577fa60264564c6b8ebf4963a43) adds the missing rules; [PR 2308's diff](https://github.com/WebAssembly/spec/pull/2308/files) corrects their prose without changing the equations. Qualify their carriage in the selected semantic edition.",
         "Acceptance covers positive/negative zero with positive/negative finite nonzero operands in both orders and widths, plus zero/zero, infinity, NaN and nonzero-underflow controls; qualify scalar rules and their fixed-SIMD consumers. No specification edit alone establishes local engine refinement."
-      ]
+      ],
+      "kind": "watch"
     },
     {
       "id": "44",
@@ -767,10 +778,11 @@
       "reviewed_head": null,
       "priority": "high",
       "proposed_on": "2026-10-22",
-      "review": "Issue 2196 already covers missing or wrong middle-end side conditions. Issue 2301 supplies a slice-update example with no emitted bounds premise and reports that a totalized generated backend admits both an out-of-bounds i32.store write and a trap. Keep these as one repair item. Related Wasm-DSL/spectec PRs 204 and 216 remain open, but neither is evidence that the specific bounds repair has landed in the selected WebAssembly/spec edition. No independent backend reproduction was executed.",
-      "next_action": "TBD: coordinate the bounds repair and its backport under issues 2196/2301, tracking the related SpecTec PRs; require nested-path bounds and trap/write exclusivity before consuming generated semantics.",
+      "review": "Issue 2196 remains the umbrella for missing or wrong middle-end side conditions. Issue 2301 supplies a slice-update example without an emitted bounds premise and reports both an out-of-bounds i32.store write and a trap in a totalized generated backend. Its author already has spectec-trapped-ifs and spectec-slice-bounds repair branches and reports local checks; no repair PR is filed. The maintainer requires Community Group membership before significant contributions are opened as PRs. Related Wasm-DSL/spectec PRs 204 and 216 remain open and do not establish that this bounds repair has landed in the selected WebAssembly/spec edition. No independent backend reproduction was executed.",
+      "next_action": "Coordinate the existing spectec-trapped-ifs and spectec-slice-bounds branches under issues 2196/2301 and the maintainer's contribution prerequisite; track the related SpecTec PRs and require nested-path bounds and trap/write exclusivity before consuming generated semantics.",
       "evidence": [
         "[Issue 2301](https://github.com/WebAssembly/spec/issues/2301) contains the reduced slice-update case and identifies missing guards in SliceE, UpdE, ExtE and update paths. [Issue 2196](https://github.com/WebAssembly/spec/issues/2196) is the existing umbrella; no duplicate issue is proposed.",
+        "[The author's repair branches and reported local checks](https://github.com/WebAssembly/spec/issues/2301#issuecomment-6390409182) are existing work to coordinate. [The maintainer response](https://github.com/WebAssembly/spec/issues/2301#issuecomment-6394612565) sets the Community Group membership prerequisite; neither comment supplies upstream or local acceptance.",
         "Related open work is [Wasm-DSL/spectec PR 204](https://github.com/Wasm-DSL/spectec/pull/204) and [PR 216](https://github.com/Wasm-DSL/spectec/pull/216). [The local semantic-upstream assessment](../assurance/proof-reuse/parsers.md#other-source-leads) requires qualification of the exact generated artifact and admitted-version frontier.",
         "Acceptance covers zero-length and boundary slices, out-of-bounds lengths/indices, nested update paths with bounds checked against each reached list, ordinary valid stores and exclusive trapping for invalid stores. A proposal-repository merge is not acceptance of a backport or a generated Core 3.0 theorem."
       ]
@@ -827,6 +839,24 @@
         "Assumption discovery retains the parent checker's context coverage and -admit/-norec trust assumptions; the new flag does not independently establish complete discovery."
       ],
       "proposed_on": "2026-10-29"
+    },
+    {
+      "id": "48",
+      "repository": "CHERIoT-Platform/cheri-rust",
+      "topic": "Preserve address and capability sizes in constant-aggregate codegen",
+      "issue": "https://github.com/CHERIoT-Platform/cheri-rust/issues/293",
+      "pr": null,
+      "benefit": "Addresses a distinct code-generation qualification gap in the selected future Rust compiler baseline before adapting its unequal address and capability widths to frozen RV64.",
+      "reviewed_head": null,
+      "priority": "high",
+      "proposed_on": "2026-11-03",
+      "review": "Existing issue 293 reports an internal compiler error on beta and pull-upstream/08-10-2026: constant-aggregate lowering passes a capability field storage size to try_to_bits, reaching a ScalarInt size mismatch (4 versus 8). The selected ba6e0e6c source retains that aggregate call site even after the related GVN repair. Targeted all-state searches found no matching repair PR. This is separate from candidate 12's call ABI and candidate 13's CTFE tests. No local compiler build or executed frozen-RV64 failure was demonstrated.",
+      "next_action": "Coordinate the constant-aggregate size repair under issue 293; reproduce the donor failure, qualify correct lowering or a safe fallback, and add integer/capability-field, provenance and unequal-width layout controls for the selected Rust adaptation.",
+      "evidence": [
+        "[Issue 293](https://github.com/CHERIoT-Platform/cheri-rust/issues/293) supplies the reduced program and aggregate-codegen stack trace. The report distinguishes the compiler panic from the capability violation its example is intended to exercise; compile-only success is insufficient.",
+        "[The selected aggregate call site](https://github.com/CHERIoT-Platform/cheri-rust/blob/ba6e0e6c9c40593f7b47d5af071a6ccb9d154cf6/compiler/rustc_codegen_ssa/src/mir/rvalue.rs#L76) passes field_layout.size to try_to_bits. [The selected compiler assessment](../assurance/proof-reuse/languages.md#cheriot-rust-selected-functional-capability-aware-compiler-baseline) records RV32E addresses with wider capability pointers and the required RV64 adaptation; source correspondence establishes no executed local reproducer.",
+        "Acceptance separates address bits, capability storage and provenance; covers immediate aggregates and fallback lowering with positive and refusal controls; preserves capability tags, the intended runtime protection and ordinary integer constants. Retain the existing compiler-closure, target and certificate qualification duties."
+      ]
     }
   ],
   "pulls": [
@@ -1002,12 +1032,12 @@
         },
         {
           "__typename": "CheckRun",
-          "completedAt": "0001-01-01T00:00:00Z",
-          "conclusion": "",
+          "completedAt": "2026-10-29T16:12:52Z",
+          "conclusion": "SUCCESS",
           "detailsUrl": "https://github.com/rocq-prover/rocq/actions/runs/40902961664/job/123549950791",
           "name": "Windows",
           "startedAt": "2026-10-29T15:34:41Z",
-          "status": "IN_PROGRESS",
+          "status": "COMPLETED",
           "workflowName": "Github CI"
         },
         {
@@ -1022,13 +1052,34 @@
         },
         {
           "__typename": "CheckRun",
-          "completedAt": "0001-01-01T00:00:00Z",
-          "conclusion": "",
+          "completedAt": "2026-10-29T20:01:48Z",
+          "conclusion": "NEUTRAL",
           "detailsUrl": "https://gitlab.inria.fr/coq/coq/-/pipelines/1523268",
           "name": "GitLab CI pipeline (pull request)",
-          "startedAt": "2026-10-29T15:34:55Z",
-          "status": "QUEUED",
+          "startedAt": "2026-10-29T20:01:48Z",
+          "status": "COMPLETED",
           "workflowName": ""
+        },
+        {
+          "__typename": "StatusContext",
+          "context": "doc:init: corelib artifact",
+          "startedAt": "2026-10-29T19:52:19Z",
+          "state": "SUCCESS",
+          "targetUrl": "https://coq.gitlabpages.inria.fr/-/coq/-/jobs/8195811/artifacts/_build/default/doc/corelib/html/index.html"
+        },
+        {
+          "__typename": "StatusContext",
+          "context": "doc:ml-api:odoc: ml-api artifact",
+          "startedAt": "2026-10-29T19:51:46Z",
+          "state": "SUCCESS",
+          "targetUrl": "https://coq.gitlabpages.inria.fr/-/coq/-/jobs/8195812/artifacts/_build/default/_doc/_html/index.html"
+        },
+        {
+          "__typename": "StatusContext",
+          "context": "doc:refman: refman artifact",
+          "startedAt": "2026-10-29T19:53:41Z",
+          "state": "SUCCESS",
+          "targetUrl": "https://coq.gitlabpages.inria.fr/-/coq/-/jobs/8195809/artifacts/doc/refman-html/index.html"
         }
       ],
       "title": "checker: add opt-in -axiom-free exit status",
@@ -1037,8 +1088,8 @@
       "workflow_runs": [
         {
           "name": "Github CI",
-          "status": "in_progress",
-          "conclusion": null,
+          "status": "completed",
+          "conclusion": "success",
           "html_url": "https://github.com/rocq-prover/rocq/actions/runs/40902961664"
         }
       ]
@@ -1236,7 +1287,7 @@
           "name": "build-matrix (rocq-certirocq.opam, mattam82/metacoq:metarocq-1.5.1-rocq-9.1)",
           "startedAt": "2026-10-20T13:15:18Z",
           "status": "COMPLETED",
-          "workflowName": "Compile and test"
+          "workflowName": "OPAM CI"
         },
         {
           "__typename": "CheckRun",
@@ -1312,7 +1363,7 @@
           "name": "build-matrix (rocq-certirocq.opam, mattam82/metacoq:metarocq-1.5.1-rocq-9.1)",
           "startedAt": "2026-10-20T17:45:36Z",
           "status": "COMPLETED",
-          "workflowName": "Compile and test"
+          "workflowName": "OPAM CI"
         },
         {
           "__typename": "CheckRun",
@@ -1545,9 +1596,9 @@
     {
       "headRefOid": "5afc5ba2dc575d5c7de23d94a64b3381d33d6ed2",
       "isDraft": false,
-      "mergedAt": null,
+      "mergedAt": "2026-10-29T18:51:51Z",
       "number": 22294,
-      "state": "OPEN",
+      "state": "MERGED",
       "statusCheckRollup": [
         {
           "__typename": "CheckRun",
@@ -1619,7 +1670,7 @@
         }
       ],
       "title": "Report check_eliminations bypasses in Print Assumptions and rocqchk",
-      "updatedAt": "2026-10-21T03:43:44Z",
+      "updatedAt": "2026-10-30T02:32:10Z",
       "url": "https://github.com/rocq-prover/rocq/pull/22294",
       "workflow_runs": [
         {
@@ -2108,22 +2159,22 @@
       "statusCheckRollup": [
         {
           "__typename": "CheckRun",
-          "completedAt": "0001-01-01T00:00:00Z",
-          "conclusion": "",
+          "completedAt": "2026-10-29T16:17:45Z",
+          "conclusion": "SUCCESS",
           "detailsUrl": "https://github.com/rocq-prover/rocq/actions/runs/40907751042/job/123567058015",
           "name": "macOS",
           "startedAt": "2026-10-29T16:03:26Z",
-          "status": "IN_PROGRESS",
+          "status": "COMPLETED",
           "workflowName": "Github CI"
         },
         {
           "__typename": "CheckRun",
-          "completedAt": "0001-01-01T00:00:00Z",
-          "conclusion": "",
+          "completedAt": "2026-10-29T16:39:48Z",
+          "conclusion": "SUCCESS",
           "detailsUrl": "https://github.com/rocq-prover/rocq/actions/runs/40907751042/job/123567057595",
           "name": "Windows",
           "startedAt": "2026-10-29T16:03:27Z",
-          "status": "IN_PROGRESS",
+          "status": "COMPLETED",
           "workflowName": "Github CI"
         },
         {
@@ -2138,165 +2189,143 @@
         },
         {
           "__typename": "CheckRun",
-          "completedAt": "0001-01-01T00:00:00Z",
-          "conclusion": "",
+          "completedAt": "2026-10-29T20:08:51Z",
+          "conclusion": "NEUTRAL",
           "detailsUrl": "https://gitlab.inria.fr/coq/coq/-/pipelines/1523334",
           "name": "GitLab CI pipeline (pull request)",
-          "startedAt": "2026-10-29T16:03:47Z",
-          "status": "QUEUED",
-          "workflowName": ""
-        }
-      ],
-      "title": "Print Assumptions: add per-reference output",
-      "updatedAt": "2026-10-29T16:11:08Z",
-      "url": "https://github.com/rocq-prover/rocq/pull/22628",
-      "workflow_runs": [
-        {
-          "name": "Github CI",
-          "status": "in_progress",
-          "conclusion": null,
-          "html_url": "https://github.com/rocq-prover/rocq/actions/runs/40907751042"
-        }
-      ]
-    },
-    {
-      "headRefOid": "d8b11360301e1ea115ff9b729472ccce25d7d554",
-      "isDraft": false,
-      "mergedAt": null,
-      "number": 22456,
-      "state": "OPEN",
-      "statusCheckRollup": [
-        {
-          "__typename": "CheckRun",
-          "completedAt": "2026-10-19T12:47:51Z",
-          "conclusion": "SUCCESS",
-          "detailsUrl": "https://github.com/rocq-prover/rocq/actions/runs/39252622668/job/118059907997",
-          "name": "macOS",
-          "startedAt": "2026-10-19T12:30:52Z",
-          "status": "COMPLETED",
-          "workflowName": "Github CI"
-        },
-        {
-          "__typename": "CheckRun",
-          "completedAt": "2026-10-19T13:09:36Z",
-          "conclusion": "SUCCESS",
-          "detailsUrl": "https://github.com/rocq-prover/rocq/actions/runs/39252622668/job/118059907393",
-          "name": "Windows",
-          "startedAt": "2026-10-19T12:30:45Z",
-          "status": "COMPLETED",
-          "workflowName": "Github CI"
-        },
-        {
-          "__typename": "CheckRun",
-          "completedAt": "2026-10-19T12:39:17Z",
-          "conclusion": "SUCCESS",
-          "detailsUrl": "https://github.com/rocq-prover/rocq/actions/runs/39252622668/job/118059907942",
-          "name": "Linux (latest OCaml)",
-          "startedAt": "2026-10-19T12:30:46Z",
-          "status": "COMPLETED",
-          "workflowName": "Github CI"
-        },
-        {
-          "__typename": "CheckRun",
-          "completedAt": "2026-10-19T15:33:02Z",
-          "conclusion": "FAILURE",
-          "detailsUrl": "https://gitlab.inria.fr/coq/coq/-/jobs/8093196",
-          "name": "GitLab CI job plugin:ci-autosubst_ocaml (pull request)",
-          "startedAt": "2026-10-19T15:33:02Z",
-          "status": "COMPLETED",
-          "workflowName": ""
-        },
-        {
-          "__typename": "CheckRun",
-          "completedAt": "2026-10-19T15:33:19Z",
-          "conclusion": "FAILURE",
-          "detailsUrl": "https://gitlab.inria.fr/coq/coq/-/jobs/8093202",
-          "name": "GitLab CI job plugin:ci-elpi_hb (pull request)",
-          "startedAt": "2026-10-19T15:33:19Z",
-          "status": "COMPLETED",
-          "workflowName": ""
-        },
-        {
-          "__typename": "CheckRun",
-          "completedAt": "2026-10-19T15:44:02Z",
-          "conclusion": "FAILURE",
-          "detailsUrl": "https://gitlab.inria.fr/coq/coq/-/jobs/8093203",
-          "name": "GitLab CI job plugin:ci-equations (pull request)",
-          "startedAt": "2026-10-19T15:44:02Z",
-          "status": "COMPLETED",
-          "workflowName": ""
-        },
-        {
-          "__typename": "CheckRun",
-          "completedAt": "2026-10-19T15:46:28Z",
-          "conclusion": "FAILURE",
-          "detailsUrl": "https://gitlab.inria.fr/coq/coq/-/jobs/8093214",
-          "name": "GitLab CI job plugin:ci-rocq_lsp (pull request)",
-          "startedAt": "2026-10-19T15:46:28Z",
-          "status": "COMPLETED",
-          "workflowName": ""
-        },
-        {
-          "__typename": "CheckRun",
-          "completedAt": "2026-10-19T15:37:03Z",
-          "conclusion": "FAILURE",
-          "detailsUrl": "https://gitlab.inria.fr/coq/coq/-/jobs/8093217",
-          "name": "GitLab CI job plugin:ci-tactician (pull request)",
-          "startedAt": "2026-10-19T15:37:03Z",
-          "status": "COMPLETED",
-          "workflowName": ""
-        },
-        {
-          "__typename": "CheckRun",
-          "completedAt": "2026-10-19T17:19:55Z",
-          "conclusion": "FAILURE",
-          "detailsUrl": "https://gitlab.inria.fr/coq/coq/-/pipelines/1512056",
-          "name": "GitLab CI pipeline (pull request)",
-          "startedAt": "2026-10-19T17:19:55Z",
-          "status": "COMPLETED",
-          "workflowName": ""
-        },
-        {
-          "__typename": "CheckRun",
-          "completedAt": "2026-10-19T12:32:07Z",
-          "conclusion": "CANCELLED",
-          "detailsUrl": "https://gitlab.inria.fr/coq/coq/-/jobs/8093139",
-          "name": "bench",
-          "startedAt": "2026-10-19T12:32:07Z",
+          "startedAt": "2026-10-29T20:08:51Z",
           "status": "COMPLETED",
           "workflowName": ""
         },
         {
           "__typename": "StatusContext",
           "context": "doc:init: corelib artifact",
-          "startedAt": "2026-10-19T15:18:29Z",
+          "startedAt": "2026-10-29T20:00:56Z",
           "state": "SUCCESS",
-          "targetUrl": "https://coq.gitlabpages.inria.fr/-/coq/-/jobs/8093171/artifacts/_build/default/doc/corelib/html/index.html"
+          "targetUrl": "https://coq.gitlabpages.inria.fr/-/coq/-/jobs/8196053/artifacts/_build/default/doc/corelib/html/index.html"
         },
         {
           "__typename": "StatusContext",
           "context": "doc:ml-api:odoc: ml-api artifact",
-          "startedAt": "2026-10-19T15:18:22Z",
+          "startedAt": "2026-10-29T20:00:40Z",
           "state": "SUCCESS",
-          "targetUrl": "https://coq.gitlabpages.inria.fr/-/coq/-/jobs/8093172/artifacts/_build/default/_doc/_html/index.html"
+          "targetUrl": "https://coq.gitlabpages.inria.fr/-/coq/-/jobs/8196054/artifacts/_build/default/_doc/_html/index.html"
         },
         {
           "__typename": "StatusContext",
           "context": "doc:refman: refman artifact",
-          "startedAt": "2026-10-19T15:20:16Z",
+          "startedAt": "2026-10-29T20:02:51Z",
           "state": "SUCCESS",
-          "targetUrl": "https://coq.gitlabpages.inria.fr/-/coq/-/jobs/8093169/artifacts/doc/refman-html/index.html"
+          "targetUrl": "https://coq.gitlabpages.inria.fr/-/coq/-/jobs/8196051/artifacts/doc/refman-html/index.html"
+        }
+      ],
+      "title": "Print Assumptions: add per-reference output",
+      "updatedAt": "2026-10-29T16:40:50Z",
+      "url": "https://github.com/rocq-prover/rocq/pull/22628",
+      "workflow_runs": [
+        {
+          "name": "Github CI",
+          "status": "completed",
+          "conclusion": "success",
+          "html_url": "https://github.com/rocq-prover/rocq/actions/runs/40907751042"
+        }
+      ]
+    },
+    {
+      "headRefOid": "f1a7ab03d588c64078255b71a15698665e5b4a4d",
+      "isDraft": false,
+      "mergedAt": "2026-11-01T20:43:29Z",
+      "number": 22456,
+      "state": "MERGED",
+      "statusCheckRollup": [
+        {
+          "__typename": "CheckRun",
+          "completedAt": "2026-11-01T13:33:39Z",
+          "conclusion": "SUCCESS",
+          "detailsUrl": "https://github.com/rocq-prover/rocq/actions/runs/41310809036/job/124860653394",
+          "name": "macOS",
+          "startedAt": "2026-11-01T13:21:06Z",
+          "status": "COMPLETED",
+          "workflowName": "Github CI"
+        },
+        {
+          "__typename": "CheckRun",
+          "completedAt": "2026-11-01T13:57:14Z",
+          "conclusion": "SUCCESS",
+          "detailsUrl": "https://github.com/rocq-prover/rocq/actions/runs/41310809036/job/124860653652",
+          "name": "Windows",
+          "startedAt": "2026-11-01T13:21:07Z",
+          "status": "COMPLETED",
+          "workflowName": "Github CI"
+        },
+        {
+          "__typename": "CheckRun",
+          "completedAt": "2026-11-01T13:30:44Z",
+          "conclusion": "SUCCESS",
+          "detailsUrl": "https://github.com/rocq-prover/rocq/actions/runs/41310809036/job/124860653607",
+          "name": "Linux (latest OCaml)",
+          "startedAt": "2026-11-01T13:21:06Z",
+          "status": "COMPLETED",
+          "workflowName": "Github CI"
+        },
+        {
+          "__typename": "CheckRun",
+          "completedAt": "2026-11-01T13:33:21Z",
+          "conclusion": "FAILURE",
+          "detailsUrl": "https://gitlab.inria.fr/coq/coq/-/jobs/8213513",
+          "name": "GitLab CI job plugin:ci-coinduction (pull request)",
+          "startedAt": "2026-11-01T13:33:21Z",
+          "status": "COMPLETED",
+          "workflowName": ""
+        },
+        {
+          "__typename": "CheckRun",
+          "completedAt": "2026-11-01T14:29:28Z",
+          "conclusion": "FAILURE",
+          "detailsUrl": "https://gitlab.inria.fr/coq/coq/-/pipelines/1525473",
+          "name": "GitLab CI pipeline (pull request)",
+          "startedAt": "2026-11-01T14:29:28Z",
+          "status": "COMPLETED",
+          "workflowName": ""
+        },
+        {
+          "__typename": "StatusContext",
+          "context": "doc:ci-refman: ci-refman artifact",
+          "startedAt": "2026-11-01T13:56:29Z",
+          "state": "SUCCESS",
+          "targetUrl": "https://coq.gitlabpages.inria.fr/-/coq/-/jobs/8213577/artifacts/_build_ci/refman/refman-html/index.html"
+        },
+        {
+          "__typename": "StatusContext",
+          "context": "doc:init: corelib artifact",
+          "startedAt": "2026-11-01T13:25:47Z",
+          "state": "SUCCESS",
+          "targetUrl": "https://coq.gitlabpages.inria.fr/-/coq/-/jobs/8213485/artifacts/_build/default/doc/corelib/html/index.html"
+        },
+        {
+          "__typename": "StatusContext",
+          "context": "doc:ml-api:odoc: ml-api artifact",
+          "startedAt": "2026-11-01T13:25:08Z",
+          "state": "SUCCESS",
+          "targetUrl": "https://coq.gitlabpages.inria.fr/-/coq/-/jobs/8213486/artifacts/_build/default/_doc/_html/index.html"
+        },
+        {
+          "__typename": "StatusContext",
+          "context": "doc:refman: refman artifact",
+          "startedAt": "2026-11-01T13:28:02Z",
+          "state": "SUCCESS",
+          "targetUrl": "https://coq.gitlabpages.inria.fr/-/coq/-/jobs/8213483/artifacts/doc/refman-html/index.html"
         }
       ],
       "title": "rocqchk: fix soundness bug accepting proofs of False through forged delta aliases",
-      "updatedAt": "2026-10-28T15:46:48Z",
+      "updatedAt": "2026-11-01T20:43:29Z",
       "url": "https://github.com/rocq-prover/rocq/pull/22456",
       "workflow_runs": [
         {
           "name": "Github CI",
           "status": "completed",
           "conclusion": "success",
-          "html_url": "https://github.com/rocq-prover/rocq/actions/runs/39252622668"
+          "html_url": "https://github.com/rocq-prover/rocq/actions/runs/41310809036"
         }
       ]
     },
@@ -3020,12 +3049,12 @@
         },
         {
           "__typename": "CheckRun",
-          "completedAt": "0001-01-01T00:00:00Z",
-          "conclusion": "",
+          "completedAt": "2026-10-29T16:31:29Z",
+          "conclusion": "SUCCESS",
           "detailsUrl": "https://github.com/rocq-prover/rocq/actions/runs/40905803408/job/123560397055",
           "name": "Windows",
           "startedAt": "2026-10-29T15:52:17Z",
-          "status": "IN_PROGRESS",
+          "status": "COMPLETED",
           "workflowName": "Github CI"
         },
         {
@@ -3040,13 +3069,34 @@
         },
         {
           "__typename": "CheckRun",
-          "completedAt": "0001-01-01T00:00:00Z",
-          "conclusion": "",
+          "completedAt": "2026-10-29T20:04:47Z",
+          "conclusion": "NEUTRAL",
           "detailsUrl": "https://gitlab.inria.fr/coq/coq/-/pipelines/1523302",
           "name": "GitLab CI pipeline (pull request)",
-          "startedAt": "2026-10-29T15:51:50Z",
-          "status": "QUEUED",
+          "startedAt": "2026-10-29T20:04:47Z",
+          "status": "COMPLETED",
           "workflowName": ""
+        },
+        {
+          "__typename": "StatusContext",
+          "context": "doc:init: corelib artifact",
+          "startedAt": "2026-10-29T19:54:03Z",
+          "state": "SUCCESS",
+          "targetUrl": "https://coq.gitlabpages.inria.fr/-/coq/-/jobs/8195936/artifacts/_build/default/doc/corelib/html/index.html"
+        },
+        {
+          "__typename": "StatusContext",
+          "context": "doc:ml-api:odoc: ml-api artifact",
+          "startedAt": "2026-10-29T19:53:32Z",
+          "state": "SUCCESS",
+          "targetUrl": "https://coq.gitlabpages.inria.fr/-/coq/-/jobs/8195937/artifacts/_build/default/_doc/_html/index.html"
+        },
+        {
+          "__typename": "StatusContext",
+          "context": "doc:refman: refman artifact",
+          "startedAt": "2026-10-29T19:56:35Z",
+          "state": "SUCCESS",
+          "targetUrl": "https://coq.gitlabpages.inria.fr/-/coq/-/jobs/8195934/artifacts/doc/refman-html/index.html"
         }
       ],
       "title": "checker: allow named axioms with -axiom-free",
@@ -3055,12 +3105,155 @@
       "workflow_runs": [
         {
           "name": "Github CI",
-          "status": "in_progress",
-          "conclusion": null,
+          "status": "completed",
+          "conclusion": "success",
           "html_url": "https://github.com/rocq-prover/rocq/actions/runs/40905803408"
+        }
+      ]
+    },
+    {
+      "headRefOid": "219b01194089025632668552e2515ee0f799dd85",
+      "isDraft": false,
+      "mergedAt": "2026-11-02T10:18:29Z",
+      "number": 2308,
+      "state": "MERGED",
+      "statusCheckRollup": [
+        {
+          "__typename": "CheckRun",
+          "completedAt": "2026-11-02T10:02:30Z",
+          "conclusion": "SUCCESS",
+          "detailsUrl": "https://github.com/WebAssembly/spec/actions/runs/40838583637/job/125211039639",
+          "name": "ensure-wasm-latest",
+          "startedAt": "2026-11-02T10:02:26Z",
+          "status": "COMPLETED",
+          "workflowName": "CI for specs"
+        },
+        {
+          "__typename": "CheckRun",
+          "completedAt": "2026-11-02T10:16:44Z",
+          "conclusion": "SUCCESS",
+          "detailsUrl": "https://github.com/WebAssembly/spec/actions/runs/40838583636/job/125211047885",
+          "name": "spec-tec",
+          "startedAt": "2026-11-02T10:02:37Z",
+          "status": "COMPLETED",
+          "workflowName": "CI for spectec"
+        },
+        {
+          "__typename": "CheckRun",
+          "completedAt": "2026-11-02T10:03:06Z",
+          "conclusion": "SUCCESS",
+          "detailsUrl": "https://github.com/WebAssembly/spec/actions/runs/40838583637/job/125211039344",
+          "name": "resolve-baseline",
+          "startedAt": "2026-11-02T10:02:36Z",
+          "status": "COMPLETED",
+          "workflowName": "CI for specs"
+        },
+        {
+          "__typename": "CheckRun",
+          "completedAt": "2026-11-02T10:14:28Z",
+          "conclusion": "SUCCESS",
+          "detailsUrl": "https://github.com/WebAssembly/spec/actions/runs/40838583637/job/125211354388",
+          "name": "build-core-spec (head)",
+          "startedAt": "2026-11-02T10:03:09Z",
+          "status": "COMPLETED",
+          "workflowName": "CI for specs"
+        },
+        {
+          "__typename": "CheckRun",
+          "completedAt": "2026-11-02T10:03:32Z",
+          "conclusion": "SUCCESS",
+          "detailsUrl": "https://github.com/WebAssembly/spec/actions/runs/40838583637/job/125211354487",
+          "name": "build-js-api-spec (head)",
+          "startedAt": "2026-11-02T10:03:09Z",
+          "status": "COMPLETED",
+          "workflowName": "CI for specs"
+        },
+        {
+          "__typename": "CheckRun",
+          "completedAt": "2026-11-02T10:03:52Z",
+          "conclusion": "SUCCESS",
+          "detailsUrl": "https://github.com/WebAssembly/spec/actions/runs/40838583637/job/125211354455",
+          "name": "build-web-api-spec (head)",
+          "startedAt": "2026-11-02T10:03:19Z",
+          "status": "COMPLETED",
+          "workflowName": "CI for specs"
+        },
+        {
+          "__typename": "CheckRun",
+          "completedAt": "2026-11-02T10:07:51Z",
+          "conclusion": "SUCCESS",
+          "detailsUrl": "https://github.com/WebAssembly/spec/actions/runs/40838583637/job/125211354503",
+          "name": "build-code-metadata-spec (head)",
+          "startedAt": "2026-11-02T10:03:09Z",
+          "status": "COMPLETED",
+          "workflowName": "CI for specs"
+        },
+        {
+          "__typename": "CheckRun",
+          "completedAt": "2026-11-02T10:04:58Z",
+          "conclusion": "SUCCESS",
+          "detailsUrl": "https://github.com/WebAssembly/spec/actions/runs/40838583637/job/125211354440",
+          "name": "build-legacy-exceptions-core-spec (head)",
+          "startedAt": "2026-11-02T10:03:09Z",
+          "status": "COMPLETED",
+          "workflowName": "CI for specs"
+        },
+        {
+          "__typename": "CheckRun",
+          "completedAt": "2026-11-02T10:03:41Z",
+          "conclusion": "SUCCESS",
+          "detailsUrl": "https://github.com/WebAssembly/spec/actions/runs/40838583637/job/125211354395",
+          "name": "build-legacy-exceptions-js-api-spec (head)",
+          "startedAt": "2026-11-02T10:03:09Z",
+          "status": "COMPLETED",
+          "workflowName": "CI for specs"
+        },
+        {
+          "__typename": "CheckRun",
+          "completedAt": "2026-11-02T10:03:15Z",
+          "conclusion": "SUCCESS",
+          "detailsUrl": "https://github.com/WebAssembly/spec/actions/runs/40838583637/job/125211354387",
+          "name": "build-spec-versions (head)",
+          "startedAt": "2026-11-02T10:03:09Z",
+          "status": "COMPLETED",
+          "workflowName": "CI for specs"
+        },
+        {
+          "__typename": "CheckRun",
+          "completedAt": "2026-11-02T10:15:10Z",
+          "conclusion": "SUCCESS",
+          "detailsUrl": "https://github.com/WebAssembly/spec/actions/runs/40838583637/job/125216525666",
+          "name": "publish-spec",
+          "startedAt": "2026-11-02T10:14:40Z",
+          "status": "COMPLETED",
+          "workflowName": "CI for specs"
+        },
+        {
+          "__typename": "StatusContext",
+          "context": "ipr",
+          "startedAt": "2026-10-29T10:30:58Z",
+          "state": "SUCCESS",
+          "targetUrl": "https://labs.w3.org/repo-manager/pr/id/WebAssembly/spec/2308"
+        }
+      ],
+      "title": "[spec] Correct signed-zero results in fmul prose",
+      "updatedAt": "2026-11-02T10:18:29Z",
+      "url": "https://github.com/WebAssembly/spec/pull/2308",
+      "workflow_runs": [
+        {
+          "name": "CI for spectec",
+          "status": "completed",
+          "conclusion": "success",
+          "html_url": "https://github.com/WebAssembly/spec/actions/runs/40838583636"
+        },
+        {
+          "name": "CI for specs",
+          "status": "completed",
+          "conclusion": "success",
+          "html_url": "https://github.com/WebAssembly/spec/actions/runs/40838583637"
         }
       ]
     }
   ],
-  "reviewed_on": "2026-10-22"
+  "reviewed_on": "2026-11-03"
 }
