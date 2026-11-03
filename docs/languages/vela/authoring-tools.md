@@ -10,6 +10,9 @@ the pure subset, whose current automatic-writing default still needs the
 [command-policy migration](#compiler-commands-and-publication). Wider formatting
 and semantic lints consume qualified parser/frontend producers through
 [compiler services](tooling-protocols.md#compiler-inspection-api).
+Q25z owns the later [familiar authoring migration](surface-grammar.md#familiar-authoring-migration),
+including its source edits and editor support; it does not broaden the existing
+formatter's implemented subset.
 
 ## Common style
 
@@ -34,6 +37,12 @@ StyleCop or Clippy rule; neither upstream implementation is incorporated.
   and local bindings use camelCase. The formatter never renames symbols.
   Primitive spellings, lifetime identities, grade names and foreign names retain
   their defining contracts; naming is a suppressible lint, not parsing authority.
+- Introductory examples and declaration guidance use `let name = value` or
+  `let T name = value` for immutable locals, and `var name = value` or
+  `var T name = value` for mutable locals. The surface parser already accepts
+  typed `let`; bare `T name = value` remains an immutable declaration. A formatter
+  preserves the authored form, and diagnostics distinguish rebinding from a
+  write through a permitted loan.
 - Declaration contracts occupy separate indented lines before the body. Long
   signatures and calls may wrap at argument boundaries with one extra indentation
   level; width is guidance, not a source acceptance limit. Keep ownership, loan,
@@ -41,6 +50,19 @@ StyleCop or Clippy rule; neither upstream implementation is incorporated.
 - Preserve token spellings, literal representations, comments and documentation
   contents. Do not sort imports, declarations or arguments, insert conversions,
   change parentheses or synthesize proof, resource or disposal operations.
+
+Once Q25z qualifies the [selected syntax](surface-grammar.md#familiar-authoring-migration),
+examples and editor insertion templates use comma-separated expression-match
+arms without `case`, `=>` for ordinary and mathematical function expression
+bodies, and ordinary `F<T>(arguments)` generic calls. Statement `case Pattern:`
+arms, constant/type-alias `=` and explicit `::<...>` applications retain their
+own roles. Numeric aliases follow their [standard module's scope and identity](first-release.md#primitive-semantics);
+the formatter does not rename width types or synthesize imports.
+The explicit source migration owns token-changing rewrites, with preview,
+source binding and semantic-preservation checks; ordinary formatting keeps its
+token-preservation contract. Until qualification, completion, snippets,
+formatting and lints must describe the selected compiler's actual supported
+syntax and report an unsupported feature rather than silently rewriting it.
 
 ```text
 module Example;

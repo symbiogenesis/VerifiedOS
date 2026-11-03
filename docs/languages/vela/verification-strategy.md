@@ -948,11 +948,13 @@ declarations and parameters, immutable locals, return blocks or expression bodie
 conditional blocks. Its grammar follows these conventions; resource and proof
 constructs remain unsupported.
 
-The [development surface grammar](surface-grammar.md) parses the wider design as
-located syntax through `vela-parser parse --surface SOURCE`. The examples below
-remain outside the pure translator's accepted subset; wider typing, resource
-checking, proof reconstruction and lowering are unimplemented. The notation is a
-proposal rather than a frozen design. Together the examples
+The [development surface grammar](surface-grammar.md) parses its implemented
+surface as located syntax through `vela-parser parse --surface SOURCE`. The
+[familiar authoring migration](surface-grammar.md#familiar-authoring-migration)
+selects further syntax whose implementation and qualification belong to Q25z;
+its examples below are design examples, not current parser fixtures. Wider
+typing, resource checking, proof reconstruction and lowering remain
+unimplemented outside each prototype's declared subset. Together the examples
 illustrate selected and optional constructs on one grammar, from an ordinary loop to a cancellable
 task. The declarations and discoverability come from C#, ownership and representation
 control from Rust, and type-directed specification and proof construction from Idris.
@@ -970,7 +972,9 @@ semantic findings retain their qualified parser/frontend prerequisites.
 
 | Spelling | Meaning |
 | --- | --- |
-| `let`, `var`, `T name = value` | Immutable inferred, mutable inferred and immutable type-first locals respectively. `var T name = value` is explicitly mutable. A typed literal such as `0usize` states a representation. |
+| `let name = value`, `let T name = value` | Immutable locals with inferred or explicit type. The explicit `let` is the introductory and example convention; the accepted bare `T name = value` retains the same immutable binding. |
+| `var name = value`, `var T name = value` | Mutable locals with inferred or explicit type. A typed literal such as `0usize` states a representation independently of binding mutability. |
+| `int`, `uint`, `long`, `ulong` | Familiar ordinary aliases from the [standard numeric module](first-release.md#primitive-semantics), with the same type identity, arithmetic and proof obligations as their width-named targets. |
 | `const T Name = expression;` | An explicitly typed immutable value evaluated during compilation from admitted static inputs; unavailable inputs or exhausted evaluation refuse compilation. |
 | `const T Name(...)`, `T Name(const U input, V value)` | A function that supports constant evaluation and runtime calls; a parameter whose argument must be static while other inputs may remain runtime data. |
 | `Unit`, `()` | The first-class unit type and its value or pattern. `Result<Unit, Error>` still requires examining the outcome; an empty success payload does not permit discarding an error or tracked resource. |
@@ -979,7 +983,10 @@ semantic findings retain their qualified parser/frontend prerequisites.
 | `Fill(target: ref buffer, value: 0byte)` | Call arguments may have labels in declaration order. A positional prefix may precede labeled arguments; every argument retains its explicit resource mode. |
 | `value => expression`, `(left, right) => expression` | Lambdas whose parameter types are inferred from context; explicit typed, graded and loan parameters remain available. |
 | `T Name(...) => expression;` | A value-returning operation with the same checking as a single return block; the shorthand alone asserts no purity or permission. |
+| `definition T Name(...) => expression;` | A mathematical definition using the same expression-body marker, with its mathematical interpretation and representation boundary retained. Constant values and type aliases continue to use `=`. |
+| `Name<T>(arguments)`, `Name::<T>` | An ordinary generic call and an explicit generic application, respectively. The latter also supplies a generic callable as a value. The [migration contract](surface-grammar.md#familiar-authoring-migration) fixes token-only disambiguation and retains the explicit form when needed. |
 | `let (owner, receipt) = pair;`, `case Ok(value): ...` | Bare pattern names bind values. Constructors use parentheses, including a nullary `None()`; `_` discards only where its resource rules permit. |
+| `match (value) { Some(item) => item, None() => fallback, }` | Expression-match arms omit `case` and use commas, with an optional final comma. Statement matches retain `case Pattern:`. Both forms keep exhaustive elimination, dependent motives and resource checking. |
 | `owned T`, `move x` | A consuming parameter, and the call-site spelling that supplies one. The moved-from binding is unusable afterwards. |
 | `in T`, `ref T`, `out T` | Shared-read, initialized-exclusive and initialization-exclusive loans. Ordinary arguments repeat the mode; member-call syntax supplies the declared receiver loan. None is a freely copyable authority token. |
 | `Option<T>`, `Some(value)`, `None()` | Explicit optional data and its two tagged cases; payload use accounts for presence and absence. |
@@ -1008,16 +1015,46 @@ availability are separate choices:
 | --- | --- | --- | --- |
 | `let count = ReadCount();` | Inferred | Immutable | Runtime |
 | `var count = ReadCount();` | Inferred | Mutable | Runtime |
-| `usize count = ReadCount();` | Explicit | Immutable | Runtime |
+| `let usize count = ReadCount();` | Explicit | Immutable | Runtime |
 | `var usize count = ReadCount();` | Explicit | Mutable | Runtime |
 | `const Nat Limit = 16;` | Explicit | Immutable | Required static |
 
+The surface parser already accepts typed `let`; making the four `let`/`var`
+forms prominent changes the teaching convention, not binding semantics. Bare
+`usize count = ReadCount();` remains an accepted immutable declaration. Show
+`let` explicitly in introductory examples and diagnostics so choosing a type
+annotation does not conceal that distinction. A prototype that lacks a type or
+mutation feature must still report its supported-subset boundary.
+
 An immutable binding cannot be reassigned. It may hold an exclusive loan that
-permits writes to the borrowed storage, as in `ref byte first = ref target[0usize];
+permits writes to the borrowed storage, as in `let ref byte first = ref target[0usize];
 first = value;`. Such a write still requires the loan's access, initialization,
 lifetime and restoration obligations; binding immutability is not deep immutability.
 Diagnostics identify a forbidden rebinding and explain explicit `var`, while the
 pure prototype states its unsupported-mutation boundary.
+
+The selected expression forms compose in ordinary mathematical code:
+
+```text
+public definition T Identity<T>(T value) => value;
+
+public definition Nat ValueOrZero(Option<Nat> optional) =>
+    match (optional)
+    {
+        Some(value) => Identity<Nat>(value),
+        None() => 0,
+    };
+```
+
+This is the Q25z design surface. The current development parser still uses
+`definition ... = expression;`, explicit `::<...>` calls and
+`case Pattern => expression;` arms. The mathematical prototype consumes its
+supported subset of that syntax until migration qualifies. The
+[surface acceptance contract](surface-grammar.md#familiar-authoring-migration)
+requires the new spellings to preserve interpretation, evaluation order and
+resource duties, with exact-source correspondence refreshed. Q25z follows the
+working synchronous slice under the [delivery order](../../../PLAN.md#vela-first-release-delivery);
+these authoring choices add no foundation or runtime feature prerequisite.
 
 In a value declaration, `const` declares a value, not a zero-parameter function.
 Its initializer may use earlier constants, explicit static parameters and admitted
@@ -1208,7 +1245,7 @@ public void SetFirst<ghost Nat count>(ref Span<byte, count> target, byte value)
 	effects writes(target)
 	ensures target.Model == old(target.Model).Update(0, value)
 {
-	ref byte first = ref target[0usize];
+	let ref byte first = ref target[0usize];
 	first = value;
 }
 ```
