@@ -173,6 +173,8 @@ class Function:
     result: ValueType
     parameters: tuple[tuple[Name, ValueType], ...]
     body: Block
+    is_const: bool = False
+    const_parameters: frozenset[str] = frozenset()
 
 
 @dataclass(frozen=True)
@@ -556,15 +558,30 @@ class _Decoder:
             if isinstance(raw_function, dict) and raw_function.get("kind") == "constant":
                 converted.append(self._constant(raw_function, "constant", span, 2))
                 continue
-            function, function_span, _ = self._node(raw_function, "function", {"name", "result", "parameters", "body"}, span, 2)
+            function_fields = {"name", "result", "parameters", "body"}
+            if isinstance(raw_function, dict) and "const" in raw_function:
+                function_fields.add("const")
+            function, function_span, _ = self._node(raw_function, "function", function_fields, span, 2)
+            is_const = function.get("const", False)
+            if type(is_const) is not bool:
+                raise ValueError("native function has an invalid const qualifier")
             parameters = self._list(function["parameters"])
             self._ordered([function["result"], function["name"], *parameters, function["body"]], function_span)
             converted_parameters: list[tuple[Name, ValueType]] = []
+            const_parameters: set[str] = set()
             for raw_parameter in parameters:
-                parameter, parameter_span, _ = self._node(raw_parameter, "parameter", {"name", "type"}, function_span, 3)
+                parameter_fields = {"name", "type"}
+                if isinstance(raw_parameter, dict) and "const" in raw_parameter:
+                    parameter_fields.add("const")
+                parameter, parameter_span, _ = self._node(raw_parameter, "parameter", parameter_fields, function_span, 3)
+                parameter_const = parameter.get("const", False)
+                if type(parameter_const) is not bool:
+                    raise ValueError("native parameter has an invalid const qualifier")
                 self._ordered([parameter["type"], parameter["name"]], parameter_span)
-                converted_parameters.append((self._text(parameter["name"], parameter_span),
-                                             self._type(parameter["type"], parameter_span, 4)))
+                parameter_name = self._text(parameter["name"], parameter_span)
+                converted_parameters.append((parameter_name, self._type(parameter["type"], parameter_span, 4)))
+                if parameter_const:
+                    const_parameters.add(parameter_name.text)
             raw_result, raw_name, raw_body = function["result"], function["name"], function["body"]
             if not all(isinstance(item, dict) for item in (raw_result, raw_name, raw_body)):
                 raise TypeError("native function has no located signature/body")
@@ -572,7 +589,10 @@ class _Decoder:
             name_span = self._span(cast("dict[str, object]", raw_name).get("span"), function_span)
             body_span = self._span(cast("dict[str, object]", raw_body).get("span"), function_span)
             opening = trivia_end(self.source, name_span[1])
-            if (self._keyword(function_span[0], b"public") != result_span[0]
+            result_start = self._keyword(function_span[0], b"public")
+            if is_const:
+                result_start = self._keyword(result_start, b"const")
+            if (result_start != result_span[0]
                     or trivia_end(self.source, result_span[1]) != name_span[0]
                     or self.source[opening:opening + 1] != b"("):
                 raise ValueError("native function differs from its source signature")
@@ -586,7 +606,10 @@ class _Decoder:
                     raise TypeError("native parameter has no located name/type")
                 type_span = self._span(raw_type.get("span"), parameter_span)
                 binder_span = self._span(raw_parameter_name.get("span"), parameter_span)
-                if (cursor != parameter_span[0] or type_span[0] != parameter_span[0]
+                type_start = parameter_span[0]
+                if raw_parameter.get("const", False):
+                    type_start = self._keyword(type_start, b"const")
+                if (cursor != parameter_span[0] or type_span[0] != type_start
                         or trivia_end(self.source, type_span[1]) != binder_span[0]
                         or binder_span[1] != parameter_span[1]):
                     raise ValueError("native function leaves source parameters uncovered")
@@ -603,7 +626,8 @@ class _Decoder:
                 raise ValueError("native function leaves source signature/body tokens uncovered")
             converted.append(Function(self._text(function["name"], function_span),
                                       self._type(function["result"], function_span, 3),
-                                      tuple(converted_parameters), self._body(function["body"], function_span, 3)))
+                                      tuple(converted_parameters), self._body(function["body"], function_span, 3),
+                                      is_const, frozenset(const_parameters)))
         return Module(self._text(node["name"], span), tuple(converted))
 
 
