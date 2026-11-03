@@ -23,8 +23,11 @@ from vos.vela_facts import MAX_OCCURRENCES, MAX_SYMBOLS
 from vos.vela_source import SourceSnapshot
 
 INSPECTION_SECONDS = 5
+SEMANTIC_TOKEN_TYPES = ("function", "parameter", "variable")
+SEMANTIC_TOKEN_MODIFIERS = ("declaration", "readonly")
 METHODS = frozenset({"textDocument/hover", "textDocument/definition",
-                     "textDocument/references", "textDocument/documentSymbol", "textDocument/inlayHint"})
+                     "textDocument/references", "textDocument/documentSymbol", "textDocument/inlayHint",
+                     "textDocument/semanticTokens/full"})
 type Inspector = Callable[[bytes], dict[str, object]]
 type Position = tuple[int, int]
 type QueryRange = tuple[Position, Position]
@@ -206,8 +209,23 @@ def project(snapshot: SourceSnapshot, raw: dict[str, object], method: str,
         raise InspectionError("Invalid pure prototype inspection result") from error
     empty: object = [] if method in {
         "textDocument/references", "textDocument/documentSymbol", "textDocument/inlayHint"} else None
+    if method == "textDocument/semanticTokens/full":
+        empty = {"data": []}
     if inspection is None:
         return empty
+    if method == "textDocument/semanticTokens/full":
+        data: list[int] = []
+        previous_line, previous_start = 0, 0
+        for occurrence in inspection.occurrences:
+            symbol = inspection.symbols[occurrence.symbol]
+            line, start = occurrence.start
+            token_type = {"function": 0, "parameter": 1, "variable": 2, "constant": 2}[symbol.kind]
+            modifiers = int(occurrence.declaration) | (0 if symbol.kind == "function" else 2)
+            data.extend((line - previous_line,
+                         start - previous_start if line == previous_line else start,
+                         occurrence.end[1] - start, token_type, modifiers))
+            previous_line, previous_start = line, start
+        return {"data": data}
     if method == "textDocument/inlayHint":
         if requested_range is None:
             raise InspectionError("Pure prototype hints require a source range")
