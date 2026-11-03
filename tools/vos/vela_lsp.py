@@ -9,8 +9,11 @@ from pathlib import Path
 from typing import BinaryIO, Never, cast
 
 from vos.protocol_json import FrameError, MessageError, decode_message, encode_message, read_frame
+from vos.vela_lsp_format import Formatter, format_document, formatting_edits
 from vos.vela_lsp_services import (
     METHODS,
+    SEMANTIC_TOKEN_MODIFIERS,
+    SEMANTIC_TOKEN_TYPES,
     InspectionError,
     Inspector,
     QueryRange,
@@ -76,13 +79,27 @@ def _integer(value: object) -> int:
 
 
 def _error(request_id: object, code: int, message: str) -> dict[str, object]:
-    return {"jsonrpc": "2.0", "id": request_id, "error": {"code": code, "message": message}}
+    reply = {"jsonrpc": "2.0", "id": request_id, "error": {"code": code, "message": message}}
+    try:
+        encode_message(reply)
+    except (FrameError, UnicodeError):
+        # Some valid requests leave less space for an error envelope than their
+        # ID needs. Retain correlation whenever even the shortest refusal fits.
+        reply = {"jsonrpc": "2.0", "id": request_id, "error": {"code": -32803, "message": ""}}
+        try:
+            encode_message(reply)
+        except (FrameError, UnicodeError):
+            reply = {"jsonrpc": "2.0", "id": None,
+                     "error": {"code": -32803, "message": "Request ID exceeds reply bounds"}}
+    return reply
 
 
 class Server:
-    def __init__(self, checker: Checker | None = None, inspector: Inspector | None = None) -> None:
+    def __init__(self, checker: Checker | None = None, inspector: Inspector | None = None,
+                 formatter: Formatter | None = None) -> None:
         self.checker = diagnose if checker is None else checker
         self.inspector = inspect_document if inspector is None else inspector
+        self.formatter = format_document if formatter is None else formatter
         self.documents: dict[str, SourceSnapshot] = {}
         self.desynchronized: set[str] = set()
         self.received_versions: dict[str, int] = {}
@@ -176,7 +193,8 @@ class Server:
             last_position = snapshot.byte_position(snapshot.position_byte_offset(*last))
             requested_range = ((first_position["line"], first_position["character"]),
                                (last_position["line"], last_position["character"]))
-        elif method != "textDocument/documentSymbol":
+        elif method not in {"textDocument/documentSymbol", "textDocument/semanticTokens/full",
+                            "textDocument/formatting"}:
             point = _object(params.get("position"))
             offset = snapshot.position_byte_offset(_integer(point.get("line")),
                                                     _integer(point.get("character")))
@@ -188,11 +206,18 @@ class Server:
             if type(include) is not bool:
                 _invalid("includeDeclaration must be a boolean")
             include_declaration = include
+        if method == "textDocument/formatting":
+            options = _object(params.get("options"))
+            if _integer(options.get("tabSize")) <= 0 or type(options.get("insertSpaces")) is not bool:
+                _invalid("formatting requires positive tabSize and Boolean insertSpaces")
         try:
             # No fact cache: every query consumes precisely this current immutable
             # overlay, so invalidation and refused updates cannot revive old facts.
-            result = project(snapshot, self.inspector(snapshot.source), method,
-                             position, include_declaration, requested_range)
+            if method == "textDocument/formatting":
+                result = formatting_edits(snapshot, self.formatter(snapshot.source))
+            else:
+                result = project(snapshot, self.inspector(snapshot.source), method,
+                                 position, include_declaration, requested_range)
             reply: dict[str, object] = {"jsonrpc": "2.0", "id": request_id, "result": result}
             encode_message(reply)
         except (InspectionError, FrameError, OSError, subprocess.SubprocessError):
@@ -230,14 +255,24 @@ class Server:
                 if not isinstance(encodings, list) or not all(isinstance(e, str) for e in encodings):
                     _invalid("invalid positionEncodings")
                 # UTF-16 is mandatory in LSP even when omitted from the offer.
-                self.initialized = True
-                return [{"jsonrpc": "2.0", "id": request_id, "result": {
+                reply: dict[str, object] = {"jsonrpc": "2.0", "id": request_id, "result": {
                     "capabilities": {"positionEncoding": "utf-16", "hoverProvider": True,
                         "definitionProvider": True, "referencesProvider": True, "documentSymbolProvider": True,
                         "inlayHintProvider": True,
+                        "documentFormattingProvider": True,
+                        "semanticTokensProvider": {
+                            "legend": {"tokenTypes": list(SEMANTIC_TOKEN_TYPES),
+                                       "tokenModifiers": list(SEMANTIC_TOKEN_MODIFIERS)},
+                            "full": True, "range": False},
                         "textDocumentSync": {
                         "openClose": True, "change": 2, "save": {"includeText": False}}},
-                    "serverInfo": {"name": "Vela pure prototype (unqualified)", "version": "0"}}}]
+                    "serverInfo": {"name": "Vela pure prototype (unqualified)", "version": "0"}}}
+                try:
+                    encode_message(reply)
+                except (FrameError, UnicodeError):
+                    return [_error(request_id, -32803, "Initialization reply exceeds bounds")]
+                self.initialized = True
+                return [reply]
             if method == "shutdown" and request:
                 self.shutdown = True
                 self.documents.clear()
@@ -245,7 +280,7 @@ class Server:
                 self.received_versions.clear()
                 return [{"jsonrpc": "2.0", "id": request_id, "result": None}]
             if request:
-                if method in METHODS:
+                if method in METHODS or method == "textDocument/formatting":
                     return [self._navigation(request_id, method, params)]
                 return [_error(request_id, -32601, "Method not found")]
             if method == "initialized":

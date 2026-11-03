@@ -75,7 +75,7 @@ Remember a newer received version even when its replacement text is refused;
 an older later update cannot restore synchronization.
 Close clears diagnostics. Save rechecks the overlay. Configuration and watched-file
 changes invalidate and recheck all open snapshots conservatively. There are no
-import, rename, semantic-token or interactive-proof providers. The separately
+import, rename or interactive-proof providers. The separately
 commissioned pure navigation increment below consumes existing resolution facts;
 it supplies no wider-language qualification.
 
@@ -91,6 +91,12 @@ it supplies no wider-language qualification.
 
 Unsupported language constructs receive the producer's explicit unsupported
 diagnostic. Empty diagnostics mean only that the prototype reported no error.
+Every reply, including initialization and errors, must fit the frame bound.
+An oversized initialization result returns RequestFailed without initializing the
+session. Error replies retain correlation when a bounded refusal can carry the
+request ID; if even the shortest correlated refusal cannot fit, return a bounded
+RequestFailed with null ID. Either refusal leaves the session usable for later
+bounded requests.
 Cancellation has no outstanding asynchronous work to cancel; it cannot undo a
 published notification. A worker timeout produces a diagnostic for that snapshot.
 Invalid document notifications clear diagnostics for the affected open document,
