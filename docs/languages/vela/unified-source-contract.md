@@ -112,6 +112,24 @@ matching debug artifact and a qualified execution backend, preserving lifecycle
 authorization and CHERI authority. These interfaces have separate plan owners;
 compiler correctness and self-hosting alone do not qualify them.
 
+### Optimization stages and evidence
+
+Native compilation stages optimization across intermediate representations;
+direct emission removes the mandatory C stage, not the intermediate languages.
+Keep structured control flow and established type, alias, effect and contract
+facts available for specialization, inlining and justified check elimination.
+Selected loop, layout and vector transformations need concrete memory and target
+information; instruction selection, allocation, scheduling and local rewrites
+use the appropriate target representations. The scoped compiler package selects
+and qualifies its IRs and pass families.
+
+Runtime erasure may remove proof values while retaining checked compiler facts.
+Each later transformation must transport or re-establish the premises it uses
+in its current IR; an earlier source annotation alone supplies no such premise.
+An interim C/Clight backend may consume already optimized output, with checked
+representation transport and backend evidence through to the final artifact.
+Bypassing C alone establishes no optimization benefit.
+
 Each IR has a reviewed interpretation and retains or discharges later passes'
 ownership, CHERI authority, layout, initialization, effect, protocol, leakage and
 resource premises. Compiler/hardware proofs resolve the generation's canonical
@@ -134,6 +152,8 @@ AI/search/scheduling heuristics may propose transforms, but a proved checker or
 reconstructed proof establishes their premises and required preservation. Missing
 support/certificates or failed checks admit no optimized artifact; any fallback
 independently meets the same contract. Search implementations remain untrusted.
+
+### Bootstrap and qualification
 
 Verified self-hosting connects executable compiler bytes to the proved definition.
 Record the seed compiler, interpreter or proof-grounded evaluation route, exact
@@ -263,6 +283,7 @@ well-formed changes must fail at their intended obligations:
 | An elaborator resolves a source operation or contract to the wrong definition | Authored-source correspondence, even if the resulting kernel term checks |
 | Erasure removes a runtime discriminant or lowering changes failure cleanup | Phase, operational or all-exits refinement |
 | A spill loses a capability tag, or bounds/provenance/permissions change | Concrete representation, machine execution or binary admission relation |
+| A widened or vectorized load crosses the readable or initialized extent while preserving returned values on nontrapping inputs | Concrete access, initialization and trap preservation, including admitted inputs on which the widened access newly faults |
 | An optimizer preserves outputs but changes a required leakage observation or resource bound | The composed security or resource obligation for that transformation |
 | An optimization certificate names another pass revision, source or output image | Transformation-premise checking and source/final-image binding |
 | A self-compiled binary reproduces stage output but lacks a connection to the proved compiler definition | Verified-bootstrap acceptance; reproducibility alone earns no compiler-correctness claim |

@@ -10,7 +10,7 @@ The companion contracts refine the design's rules and qualification boundaries;
 
 > Non-normative research and design proposal; it supplies no admission rule, semantic anchor or accepted trust assumption.
 > The [requirements register](../../requirements-register.md) governs VerifiedOS; the [typed assembly language](../typed-assembly-language.md) governs the certificate language.
-> Latest source update: 2026-11-01. Upstream capabilities below are distinguished from proposed integration work; a language sketch is not an implemented compiler.
+> Latest source update: 2026-11-02. Upstream capabilities below are distinguished from proposed integration work; a language sketch is not an implemented compiler.
 
 ## Recommendation
 
@@ -261,7 +261,7 @@ These names are deliberately disjoint from [the platform's three admission tiers
 
 ## Compiler Route Decision
 
-The [native verified compiler and self-hosting goal](unified-source-contract.md#native-verified-compiler-and-self-hosting) is the long-term Vela endpoint. The comparison below governs the retained bounded experiment and current compiler obligations; it does not price or commission that full native compiler. Its transformation proofs should compose source-to-image evidence, with untrusted optimization search accepted only through checked proofs or proved validators. Substituting that evidence for a currently mandated validation step still needs the affected requirement's amendment.
+The [native verified compiler and self-hosting goal](unified-source-contract.md#native-verified-compiler-and-self-hosting) is the long-term Vela endpoint. Its [optimization stages](unified-source-contract.md#optimization-stages-and-evidence) retain checked facts across runtime erasure and lowering; direct emission still uses intermediate representations. The comparison below governs the retained bounded experiment and current compiler obligations; it does not price or commission that full native compiler. Its transformation proofs should compose source-to-image evidence, with untrusted optimization search accepted only through checked proofs or proved validators. Substituting that evidence for a currently mandated validation step still needs the affected requirement's amendment.
 
 **A Bedrock2-style end-to-end theorem does not require Clight; it requires a compositional proof chain terminating in the same pinned machine semantics.** [Bedrock2](https://github.com/mit-plv/bedrock2) compiles its own imperative source through lower representations to RISC-V instructions and bytes, composing source proofs, compiler correctness, an ISA-specification connection and a Kami processor theorem. [Pancake](https://cakeml.org/pancake.html) similarly uses explicit memory and lower CakeML compiler layers to transport source correctness toward binaries. These establish architectural precedent, not the required Rocq/CHERI integration.
 
