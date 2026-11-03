@@ -5,7 +5,7 @@ module Dependent;
 public definition T Identity<T>(T value) = value;
 
 public definition U Apply<T, U>(Fn(T value) -> U function, T value) =
-    function(value);
+    function(value: value);
 
 public definition (Nat, bool) SeparateInstantiations() =
     (Identity(7), Identity::<bool>(true));
@@ -15,7 +15,7 @@ public definition Nat FirstComponent() = Fst(SeparateInstantiations());
 public definition bool SecondComponent() = Snd(SeparateInstantiations());
 
 public definition Nat HigherOrder() =
-    Apply(value => value + 1, 41,);
+    Apply(function: value => value + 1, value: 41,);
 
 public definition Vec<T, n> Copy<T, ghost Nat n>(Vec<T, n> values) = values;
 
@@ -25,13 +25,16 @@ public definition Vec<Nat, 1> Singleton() = VCons(42, VNil::<Nat>());
 
 public definition Words<1> Aliased() = Singleton();
 
-public definition Nat Lookup() = At(Copy(Singleton()), FZero::<0>());
+public definition Nat Lookup() = At(Copy(values: Singleton()), FZero::<0>());
 
 public lemma LookupValue(): Lookup() == 42
     proof { return Refl(42); }
 
 public definition Fn(Nat n, Vec<Nat, n> values) -> Vec<Nat, n> PreserveLength() =
     (Nat n, Vec<Nat, n> values) => values;
+
+public definition Vec<Nat, 1> PreservedSingleton() =
+    PreserveLength()(n: 1, values: Singleton());
 
 public lemma Reflexivity<T>(T value): value == value
     proof { return Refl(value); }

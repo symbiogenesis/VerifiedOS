@@ -54,7 +54,7 @@ functions; recursion and forward calls are refused. Local bindings are immutable
 module Example;
 public Nat Twice(Nat x) => x + x;
 public Nat Select(bool flag, Nat x) {
-  let result = Twice(x);
+  let result = Twice(x: x);
   if (flag) { return result; } else { return 0; }
 }
 ```

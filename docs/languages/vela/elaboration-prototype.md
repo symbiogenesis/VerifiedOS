@@ -10,8 +10,8 @@ machine representation, resource interpretation or binary admission. The
 and [unified-source acceptance](unified-source-contract.md) remain outstanding.
 Land this contract and its checklist predicate before implementation.
 
-The existing pure checker, schema-1 protocol and parser migration comparison keep
-their existing contracts. The new path consumes the existing Menhir surface
+The pure checker, schema-1 protocol and parser migration comparison retain
+their contracts. Mathematical elaboration consumes the Menhir surface
 entry point and schema 2, with no second surface parser. Generated Gallina is an
 untrusted proposal until the pinned Rocq kernel checks it. A source digest binds
 bytes; it supplies no source-correspondence theorem.
@@ -23,7 +23,7 @@ declaration API or composition with the refused resource/effect features.
 
 ## Supported mathematical increment
 
-The increment uses the [surface grammar](surface-grammar.md) without new syntax:
+The increment uses the [surface grammar](surface-grammar.md):
 
 - Generic type and stable ghost-value telescopes, explicit `::<...>` application
   and fresh inferred instantiation at each use. Generic variables in a
@@ -39,7 +39,13 @@ The increment uses the [surface grammar](surface-grammar.md) without new syntax:
   higher-order functions. Expected types constrain lambdas and omitted generic
   arguments. An annotation hole `_` requests inference, never an axiom. Ambiguous
   or unresolved variables are errors. No implicit numeric or option coercions.
-- Mathematical `Nat`, `bool`, unit/products, equality propositions and explicit
+- Calls use positional arguments or a positional prefix followed by a labeled
+  suffix. Each label must match the next declared value parameter, including
+  named `Fn` parameters; unnamed callable parameters accept no labels. No
+  argument reordering, omission or defaults are inferred. Dependent later
+  parameters are instantiated in declaration order before their arguments are
+  checked, preserving complete telescope substitution.
+- Mathematical `Nat`, `bool`, `Unit`, products, equality propositions and explicit
   proof constructors. Indexed vectors and finite indices provide a concrete
   dependent collection boundary, including length preservation and safe lookup.
 - Aliases, definitions, returning pure functions, theorem/lemma bodies and

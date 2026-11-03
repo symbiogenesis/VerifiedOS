@@ -167,7 +167,7 @@ harness alone does not close Q25o or Q25n.
 
 ## Authoring hints
 
-[Q25p](../../../PLAN.md#q-assessment-actions) adds `textDocument/inlayHint` for
+[Q25p](../../../PLAN.md#q-assessment-actions) supplies `textDocument/inlayHint` for
 inferred local types in the completely checked pure subset. Advertise this
 provider alongside the existing navigation providers. Requests contain a valid
 half-open document range; return type hints at the ends of inferred local

@@ -112,7 +112,7 @@ data and elimination forms throughout the surface:
 - `Unit` is the unit type and `()` its value; `(T, U)` and `(x, y)` are product types and
   values. Parentheses around one type or value only group it. Products contain
   at least two components and may nest. Type, value and pattern nodes preserve
-  their distinct roles (`unit_type`, `unit`, `unit_pattern`, `tuple_type`,
+  their distinct roles (`type` for `Unit`, `unit`, `unit_pattern`, `tuple_type`,
   `tuple`, `tuple_pattern`). A product pattern uses existing binding patterns:
   `case (owner, receipt): ...`. Local elimination uses
   `let (owner, receipt) = value;`, with an explicit pattern node;
@@ -120,8 +120,8 @@ data and elimination forms throughout the surface:
   permission to discard a resource is an elaboration obligation.
   In generic arguments, bare parentheses retain their existing value-expression
   meaning. Prefix a structural type argument with `type`, as in
-  `Result<type (owned Packet, tracked Receipt), Error>`; ordinary named arguments
-  such as `Result<Unit, Error>` need no `type` prefix. This also accepts other
+  `Result<type (owned Packet, tracked Receipt), Error>`; a named type such as
+  `Unit` in `Result<Unit, Error>` needs no `type` prefix. This also accepts other
   type forms and avoids guessing whether `(a, b)` names types or values.
 - Parametric aliases reuse the existing generic telescope:
   `alias Callback<grade q : NatExact> = Fn(byte x @ q) -> byte;`.
@@ -177,11 +177,11 @@ for example `impl (Fn() -> Nat effects(Read)) where Law() { ... }`, so its effec
 bound stays distinct from implementation contracts.
 
 Callable types reuse that telescope too, for example
-`Fn<region 'loan>(scoped ref<'loan> T value) -> ()`. Their optional contracts are
+`Fn<region 'loan>(scoped ref<'loan> T value) -> Unit`. Their optional contracts are
 explicitly delimited after captures and effects:
 
 ```text
-alias Update<T> = Fn<region 'loan>(scoped ref<'loan> T value) -> ()
+alias Update<T> = Fn<region 'loan>(scoped ref<'loan> T value) -> Unit
     with { requires Valid(value); restores Valid(value); };
 ```
 
@@ -221,7 +221,7 @@ Struct, interface, trait, machine and hardware containers accept the same
 declaration contracts between their generic telescope and opening brace. Their
 `contracts` arrays distinguish container laws from member contracts, for example
 `trait Repeatable<T, grade q : NatExact> where Admits(T, q) { ... }` and
-`struct LocalCell<T> invariant Closed(self) { ... }`. These forms only preserve
+`struct LocalCell<T> invariant Closed(this) { ... }`. These forms only preserve
 proposed obligations; proving invariant preservation, lawful grades and operation
 effects remains an elaboration duty.
 
@@ -261,7 +261,7 @@ Parenthesize a callable kind so its effects stay distinct from declaration contr
 Explicit `type TYPE` expressions inject structural types into ordinary definitions,
 calls and dependent matches. A `type_expression` has a `type` field containing the
 located type node. For example, an ordinary type family can return
-`match (flag) { case true => type (T, T); case false => type (); }`.
+`match (flag) { case true => type (T, T); case false => type Unit; }`.
 Like lambdas and quantifiers, these forms occupy a complete expression; group them
 when used as operator operands. Parenthesize a callable payload, as in
 `type (Fn(T value) -> T effects(Read))`, to delimit its effects.
@@ -363,7 +363,7 @@ Arrows in these types must not close generic argument lists. Independent fixture
 must distinguish local allowance, initializer and lambda-parameter grades, domain
 member/path spans, and operation/return/disposal clause ownership. Include nested
 handlers, syntax-valid resource violations, malformed neighboring spellings and
-bounded-lookahead exhaustion. Retain every prior syntax and pure migration case.
+bounded-lookahead exhaustion. Qualify the complete syntax and pure migration corpus.
 
 ### Computed types and uniform elimination
 
@@ -411,7 +411,7 @@ dependent results, scoped loans, local grades and callable contracts. Assert
 expression/type roles, alias/family/member contract ownership, empty-match motive
 and statement/expression boundaries, literal pattern spellings and original UTF-8 byte spans.
 Retain malformed-neighbor refusals, bounded nesting, semantic-error positives,
-all earlier surface cases and pure migration behavior.
+the complete surface corpus and pure migration behavior.
 
 ### Shared operators and local elimination
 
@@ -448,8 +448,8 @@ contract ownership, every child in syntax-depth accounting and the pure entry's
 schema. Independent fixtures must assert operator and nested pattern roles,
 original UTF-8 byte spans, higher-order application and domain compatibility;
 exercise every operator spelling and malformed neighboring forms, syntax-valid
-resource mistakes and nesting limits. Retain every earlier syntax and migration
-fixture and strict conflict-free generation.
+resource mistakes and nesting limits. Qualify the complete syntax and migration
+corpus and strict conflict-free generation.
 
 Equivalent grammar refactors share named-type application, parenthesized type
 construction, literal payloads, binary-expression construction, generic-binder
@@ -516,7 +516,7 @@ suffix is introduced. `->` remains a function-type arrow.
 Member calls retain ordinary member/call syntax. The
 [receiver rule](verification-strategy.md#permanent-language-exclusions) supplies
 the selected declaration's receiver loan, including a named view such as
-`ref self.Tail`; other arguments retain explicit loan modifiers. Resolution,
+`ref this.Tail`; other arguments retain explicit loan modifiers. Resolution,
 once-only receiver evaluation, argument order and overlap remain semantic
 obligations. A call rejected for an overlapping argument or an ineligible receiver
 still parses; the parser neither chooses a view nor delays a loan.
@@ -560,9 +560,8 @@ surface and pure fixture, pure migration and the native qualification below.
 
 ### Concise authoring syntax
 
-The following forms are the surface syntax commissioned by
-[Q25p](../../../PLAN.md#q-assessment-actions). Examples, fixtures and prose use
-these forms throughout. The syntax grants no
+The [Q25p surface](../../../PLAN.md#q-assessment-actions) uses the following forms
+throughout examples, fixtures and prose. The syntax grants no
 implicit conversion, ownership transfer, effect, disposal or proof authority.
 
 - First-class unit types use `Unit`, including `Result<Unit, Error>` and
