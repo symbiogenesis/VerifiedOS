@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import BinaryIO, Never, cast
 
 from vos.protocol_json import FrameError, MessageError, decode_message, encode_message, read_frame
+from vos.vela_lsp_services import METHODS, InspectionError, Inspector, inspect_document, project
 from vos.vela_source import SourceSnapshot
 
 MAX_DOCUMENTS = 16
@@ -72,8 +73,9 @@ def _error(request_id: object, code: int, message: str) -> dict[str, object]:
 
 
 class Server:
-    def __init__(self, checker: Checker | None = None) -> None:
+    def __init__(self, checker: Checker | None = None, inspector: Inspector | None = None) -> None:
         self.checker = diagnose if checker is None else checker
+        self.inspector = inspect_document if inspector is None else inspector
         self.documents: dict[str, SourceSnapshot] = {}
         self.desynchronized: set[str] = set()
         self.received_versions: dict[str, int] = {}
@@ -142,6 +144,43 @@ class Server:
                 "params": {"uri": snapshot.uri, "version": snapshot.version,
                            "diagnostics": diagnostics}}
 
+    def _navigation(self, request_id: object, method: str,
+                    params: dict[str, object]) -> dict[str, object]:
+        if not self.ready:
+            return _error(request_id, -32002, "Initialized notification is required before queries")
+        document = _object(params.get("textDocument"))
+        uri = _string(document.get("uri"))
+        if uri not in self.documents:
+            _invalid("document is not open")
+        if uri in self.desynchronized:
+            return _error(request_id, -32801, "Document content is out of synchronization")
+        snapshot = self.documents[uri]
+        position: tuple[int, int] | None = None
+        include_declaration = False
+        if method != "textDocument/documentSymbol":
+            point = _object(params.get("position"))
+            offset = snapshot.position_byte_offset(_integer(point.get("line")),
+                                                    _integer(point.get("character")))
+            converted = snapshot.byte_position(offset)
+            position = converted["line"], converted["character"]
+        if method == "textDocument/references":
+            context = _object(params.get("context"))
+            include = context.get("includeDeclaration")
+            if type(include) is not bool:
+                _invalid("includeDeclaration must be a boolean")
+            include_declaration = include
+        try:
+            # No fact cache: every query consumes precisely this current immutable
+            # overlay, so invalidation and refused updates cannot revive old facts.
+            result = project(snapshot, self.inspector(snapshot.source), method,
+                             position, include_declaration)
+            reply: dict[str, object] = {"jsonrpc": "2.0", "id": request_id, "result": result}
+            encode_message(reply)
+        except (InspectionError, FrameError, OSError, subprocess.SubprocessError):
+            return _error(request_id, -32803, "Pure prototype inspection unavailable or exceeds its bounds")
+        else:
+            return reply
+
     def handle(self, message: dict[str, object]) -> list[dict[str, object]]:
         if self.exit_code is not None:
             return []
@@ -172,7 +211,9 @@ class Server:
                 # UTF-16 is mandatory in LSP even when omitted from the offer.
                 self.initialized = True
                 return [{"jsonrpc": "2.0", "id": request_id, "result": {
-                    "capabilities": {"positionEncoding": "utf-16", "textDocumentSync": {
+                    "capabilities": {"positionEncoding": "utf-16", "hoverProvider": True,
+                        "definitionProvider": True, "referencesProvider": True, "documentSymbolProvider": True,
+                        "textDocumentSync": {
                         "openClose": True, "change": 2, "save": {"includeText": False}}},
                     "serverInfo": {"name": "Vela pure prototype (unqualified)", "version": "0"}}}]
             if method == "shutdown" and request:
@@ -182,6 +223,8 @@ class Server:
                 self.received_versions.clear()
                 return [{"jsonrpc": "2.0", "id": request_id, "result": None}]
             if request:
+                if method in METHODS:
+                    return [self._navigation(request_id, method, params)]
                 return [_error(request_id, -32601, "Method not found")]
             if method == "initialized":
                 self.ready = True
