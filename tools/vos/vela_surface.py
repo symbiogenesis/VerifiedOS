@@ -1992,18 +1992,24 @@ def _callable_list_roles(source: bytes, result: dict[str, Json]) -> None:
             raise ValueError("surface handler list changed mode, clause count or order")
         _exact_span(source, value, spelling)
     call = _object(_named(tree, "let", "arguments").get("value"), "nested labeled call")
-    arguments = [_object(raw, "outer call argument")
-                 for raw in _sequence(call.get("arguments"), "outer call arguments")]
-    if len(arguments) != 2 or arguments[0].get("label") is not None or _texts(arguments[1].get("label")) != ["label"]:
+    arguments = _sequence(call.get("arguments"), "outer call arguments")
+    if len(arguments) != 2:
+        raise ValueError("surface argument list changed its arity")
+    positional, labeled = arguments
+    if not isinstance(positional, dict) or not isinstance(labeled, dict):
+        raise TypeError("surface fixture lacks outer argument wrappers")
+    if positional.get("label") is not None or _texts(labeled.get("label")) != ["label"]:
         raise ValueError("surface argument list changed its positional and labeled roles")
-    _exact_span(source, arguments[0], b"Input()")
-    _exact_span(source, arguments[1], b"label: Nested(inner: value,)")
-    nested = _object(arguments[1].get("value"), "nested labeled argument value")
-    nested_arguments = [_object(raw, "nested argument")
-                        for raw in _sequence(nested.get("arguments"), "nested arguments")]
-    if nested.get("kind") != "call" or len(nested_arguments) != 1 or _texts(nested_arguments[0].get("label")) != ["inner"]:
+    _exact_span(source, positional, b"Input()")
+    _exact_span(source, labeled, b"label: Nested(inner: value,)")
+    nested = _object(labeled.get("value"), "nested labeled argument value")
+    nested_arguments = _sequence(nested.get("arguments"), "nested arguments")
+    if nested.get("kind") != "call" or len(nested_arguments) != 1:
+        raise ValueError("surface nested trailing comma changed its arity")
+    inner = nested_arguments[0]
+    if not isinstance(inner, dict) or _texts(inner.get("label")) != ["inner"]:
         raise ValueError("surface nested trailing comma changed its labeled argument")
-    _exact_span(source, nested_arguments[0], b"inner: value")
+    _exact_span(source, inner, b"inner: value")
 
 
 def _concise_authoring_roles(source: bytes, result: dict[str, Json]) -> None:
