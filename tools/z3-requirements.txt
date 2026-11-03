@@ -4,6 +4,6 @@
 # only these two wheels install, never a solver compiled from the source archive.
 # The hashes are PyPI's for the manylinux_2_27_x86_64 and manylinux_2_38_aarch64
 # wheels, in that order, and equal the digests of the release's own wheel assets.
-z3-solver==5.3.2.0 \
-    --hash=sha256:f17df07300228a383470d4b4e1ad9daf429dc94885996712a1844a8242803935 \
-    --hash=sha256:b8add6becdc222090b78d4bd5300b6a212d5ecfb0e3eadb1df008b43ddef8602
+z3-solver==5.3.3.0 \
+    --hash=sha256:0431023a82278dab706c02a320f63178ee0755fb8f10a5c980f0bfe3c84f6f96 \
+    --hash=sha256:701619d4995695819e150e9fa10218b67a5a2241868f31dddccfe2d3fe15f986
