@@ -22,6 +22,7 @@ from tests.test_vela_elaborate import (
     _local_constant,
     _natural,
     _type,
+    _type_value,
     _variable,
 )
 from vos import vela_elaborate as language
@@ -158,6 +159,15 @@ def _generic_and_dependent_parameters() -> None:
     _refuses(fixture, "type", "nonstatic binding 'runtime'")
 
 
+def _type_family_static_application() -> None:
+    fixture = _Fixture()
+    fixture.definition("Family", _type("Type"), (("index", _NAT, True),), _type_value(_NAT))
+    fixture.function("Good", _type("Family", _natural(1)), (("value", _NAT),), _variable("value"))
+    language.elaborate(*fixture.response())
+    fixture.function("Bad", _type("Family", _variable("runtime")), (("runtime", _NAT),), _natural(1))
+    _refuses(fixture, "type", "nonstatic binding 'runtime'")
+
+
 def _dependency_neighbors() -> None:
     def ignored(runtime: Form) -> Form:
         return _call("Ignore", runtime)
@@ -228,6 +238,7 @@ def cases() -> list[Case]:
             Case("const-callable-types-inferred-lambdas-and-erasure-refusal", _higher_order_requirements),
             Case("static-callable-values-are-distinct-from-callable-parameter-contracts", _static_callback_value),
             Case("generic-and-dependent-constant-parameter-substitution", _generic_and_dependent_parameters),
+            Case("named-type-family-applications-preserve-static-parameters", _type_family_static_application),
             Case("const-argument-whole-dependency-refusals", _dependency_neighbors),
             Case("const-qualifier-complete-source-provenance", _qualifier_source_binding),
             Case("bounded-symbolic-static-specialization", _symbolic_limits)]
