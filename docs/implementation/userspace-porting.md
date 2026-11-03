@@ -263,7 +263,7 @@ NuShell passes typed values, tables, records and lists between commands with typ
 3. **Keep pure interpretation.** The evaluator parses and interprets its internal representation without native code generation, satisfying obstacle 4.
 4. **Remove unsupported `unsafe` dependencies.** Terminal control, process spawning and filesystem metadata wrappers either disappear with their POSIX assumptions or use the verified HAL under obstacle 1.
 
-**Disposition:** Tier-2, reimplemented from NuShell's pipeline, command model and plugin structure. Pass capability handles as first-class pipeline values so authority can accompany typed data. fish and Ion retain the byte-stream and process-spawning model this port replaces, so they are not selected.
+**Disposition:** Tier-2, reimplemented from NuShell's pipeline, command model and plugin structure. A further design option is to make capability handles first-class pipeline values, allowing authority to accompany typed data. fish and Ion retain the byte-stream and process-spawning model this port replaces, so they are not selected.
 
 ### Servo: the contained browser engine
 

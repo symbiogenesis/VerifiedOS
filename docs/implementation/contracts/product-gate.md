@@ -163,7 +163,7 @@ Consider this hypothetical T-1 run, with no candidate measured:
 3. The first input during the focus change still waits for the compositor's request, the session manager's forwarding, and the kernel's next dispatch point (R-07-037i). R-11-006c's bound starts with a member already in focus; it does not bound that preceding path. Existing build members can also consume their declared EEVDF lag before the new focus weight takes effect.
 4. If the admitted bound leaves no margin for that path, the first response exceeds PL-2. Admission still holds, but product acceptance fails.
 
-The same distinction applies to T-4: the exhaustion ladder can correctly hibernate the least-recently-focused permitted member while disrupting the document the user was about to revisit. At T-3, an install requiring the unreachable composer may correctly fail; PL-8 additionally requires every operation independent of that composer to remain available.
+The same distinction applies to T-4: the exhaustion ladder can correctly hibernate the least-recently-focused permitted member while disrupting the document the user was about to revisit. At T-3, fetching an object absent from the local store may fail; PL-8 still requires resident composition, signing, admission and boot from a complete local source closure.
 
 This is a logical example, not measurement evidence. The contained backend produces finite [kernel](../../../kernel/README.md#finite-compiled-target) and [boot-chain](boot-handoff.md#9-the-target-chain) images, but no complete eight-member workload candidate is measured here. Wall-clock clauses still require R-17-041's latency magnitudes and R-11-017's artifact.
 

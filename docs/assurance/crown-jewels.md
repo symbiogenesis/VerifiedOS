@@ -84,7 +84,7 @@ Three premises above also name specifications the inventory does not carry: Comp
 
 ## What the `CJ-` table is, and is not
 
-Every target in the register's `CJ-` table is used by a `Trace:` line. A target can cover several specifications: `CJ-FORMAT` covers Narcissus descriptors and `CJ-CRYPTO-SPEC` covers primitives' functional specifications. R-05-046 and R-05-076 also require the individual members, which this inventory enumerates.
+Every target in the register's `CJ-` table is used by a `Trace:` line. A target can cover several specifications: `CJ-FORMAT` covers Narcissus descriptors and `CJ-CRYPTO-SPEC` covers primitives' functional specifications. R-05-046 and R-05-076 also require the individual members, which this inventory must enumerate as those inventories are authored.
 
 | Artifact | Question it answers | Granularity |
 | --- | --- | --- |
