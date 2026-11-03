@@ -212,6 +212,28 @@ _CAPTURING_RECEIPTS: dict[str, str] = {
 # These sites retain measured or external editions, or record identifiers that
 # resemble object ids. They do not state this repository's current top-level pin.
 SITE_RESIDUE: dict[tuple[str, str], str] = {
+    **{(f"docs/implementation/retained-evidence/submodules-{date}/hardware.json", ident):
+       f"the {name} edition retained by the dated 2026-10-31 source reading or "
+       "used as the preceding side of the 2026-11-03 comparison, not the current gitlink"
+       for date in ("20261031", "20261103")
+       for ident, name in {
+           "6c85882513bb12711cdcbea69a1a7eb065a37f1a": "Mocha",
+           "41049e9deb40e0602cd5272c40398be380ae2637": "OpenTitan",
+           "cafaeae02c014456a99247b68788d31b7516a252": "CHERIoT-Ibex",
+       }.items()},
+    **{(f"docs/implementation/retained-evidence/submodules-{date}/model.json",
+        "80985afd8164c31902181d41885e06e2df6dfe6d"):
+       "the Katamaran edition retained by the dated 2026-10-31 source reading or "
+       "used as the preceding side of the 2026-11-03 comparison, not the current gitlink"
+       for date in ("20261031", "20261103")},
+    ("docs/implementation/retained-evidence/submodules-20261103/llvm-project.json",
+     "8b066788f709ce1815a2b1ffe01639e98487bb65"):
+        "the preceding LLVM edition in the exact 2026-11-03 comparison URL, "
+        "not the selected reference gitlink",
+    ("docs/implementation/retained-evidence/submodules-20261103/s2n-bignum.json",
+     "573ea98f6a2eea3172f6146f83b86b9e526ce2dd"):
+        "the preceding s2n-bignum edition in the exact 2026-11-03 comparison URL, "
+        "not the selected reference gitlink",
     **{("docs/assurance/proof-reuse/systems.md", ident): reason
        for ident, reason in {
            "3fe5d0a957a95c27cff204e729a5e96a3e3217ad":
