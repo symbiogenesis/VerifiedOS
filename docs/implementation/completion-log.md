@@ -1126,6 +1126,31 @@ remain separately scoped work.
 Landed: Tier A. Independent full reads checked the source grammar against the
 design dossier and the parser against independently chosen returning-block cases.
 
+<a id="q25j-prototype-path-sensitive-loan-end-inference-over-explicit-flow-facts"></a>
+
+#### Q25j · Prototype path-sensitive loan-end inference over explicit flow facts
+
+Accepted on 2026-11-03 at the
+[bounded diagnostic boundary](../languages/vela/loan-analysis.md#diagnostic-disposition).
+Independent algorithm and fixture review accepts separate complete-path demand,
+transitive captures and moved handles, footprint restrictions, descendant-first
+restoration and explicit structural/budget refusals. The independent branch-demand
+oracle at `2f8413c9` checks exact conflict and restoration locations against supplied
+reads and writes; the focused loan module and locked Python checks pass. Every
+restoration, interpretation and unknown-overlap premise remains unresolved.
+Source extraction, loops, concrete laws, checked borrowing and comparative claims
+retain their existing owners.
+
+The `resolve-three-20261103` local fanout handoff records the settled revision,
+consistency validation and recommended user-managed hosted checks. Hosted verdicts
+remain pending; local completion supplies no hosted pass. The original 12 h
+estimate, range 8–16, is retained because the earlier prototype's complete active
+timing is unavailable. This review does not substitute for that missing actual;
+both calibration columns remain `n/a`.
+
+Landed: Tier A. Independent full reads cover the implementation, diagnostic
+contract and positive, conflict, malformed-input and incomplete-exploration cases.
+
 <a id="q25l-clarify-vela-borrowing-evidence-and-resource-interfaces"></a>
 
 #### Q25l · Clarify Vela borrowing, evidence and resource interfaces
@@ -1201,6 +1226,54 @@ increment, so its calibration-record columns are `n/a` and it supplies no fit pa
 Landed: Tier A. Independent full reads covered the complete companion and changed
 product, composition, evidence and implementation boundaries. No normative
 requirement, coverage cell, semantic anchor or kernel equality was amended.
+
+<a id="q25s-attach-vela-documentation-comments-to-compiler-facts"></a>
+
+#### Q25s · Attach Vela documentation comments to compiler facts
+
+Accepted on 2026-11-03 for public functions and constants in the pure compiler.
+The [independent qualification](vela-documentation-qualification.md) covers the
+compiler-selected declaration site, original UTF-8 witnesses, bounded plain-text
+hover and complete refusal of forged or stale documentation. At `e29b9547`,
+focused documentation, formatter and lint controls pass, including attachment
+through formatting, use-site comments, orphan budgets, mixed newlines and live
+stdio edit invalidation. Documentation grants no semantic or proof authority;
+local/parameter documentation and wider-language facts remain outside this scope.
+Two-editor interoperability retains Q25n/Q25o's separate predicate.
+
+The `resolve-three-20261103` local handoff records the settled revision and
+recommended hosted validation, with no hosted passing verdict. The original 12 h
+estimate, range 8–16, is retained because total active time for the earlier
+implementation is unavailable; current qualification time cannot replace it.
+Both calibration columns remain `n/a`.
+
+Landed: Tier A. Independent full reads cover attachment, fact production,
+projection, edit invalidation and the independently expected refusal/wire cases.
+
+<a id="q25t-integrate-default-vela-formatting-and-lints"></a>
+
+#### Q25t · Integrate default Vela formatting and lints
+
+Accepted on 2026-11-03 for the pure compiler's
+[source-preserving command policy](../languages/vela/authoring-tools.md#pure-formatting-and-lint-disposition).
+Ordinary checks and emission preserve exact source snapshots; explicit formatting
+preserves tokens, comments, attachment and reparsed syntax. Emission identifies
+the original bytes, or the formatted bytes only after an explicit write.
+Stable advisory lints retain original locations and explicit allow/deny policy.
+Independent formatter, lint, CLI and editor controls pass at `a507a3e3`, including
+composed syntax, read-only and changed inputs, denied-write preservation and
+truthful recovery after output publication fails following source formatting.
+Library and editor reads remain immutable. Wider formatting, semantic lints,
+two-editor interoperability and production admission retain their owners.
+
+The `resolve-three-20261103` handoff records local integration and recommends full
+Host CI and all Guest CI lanes for the user; none has a passing verdict from this
+session. The original 24 h estimate, range 16–32, is retained because the earlier
+implementation's complete active timing is unavailable. Current acceptance work
+cannot reconstruct that actual; both calibration columns remain `n/a`.
+
+Landed: Tier A. Independent full reads cover the formatter, lints, compiler and
+atomic publication paths, owner predicates and independent preservation controls.
 
 <a id="q25v-settle-the-bounded-vela-release-and-practical-language-contracts"></a>
 
