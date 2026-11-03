@@ -12,7 +12,8 @@ replace them. This dossier specifies the separately gated extension to lawful
 computation/type-use domains. Its generic demand vectors, domain inference and
 multi-shot composition are not prerequisites for the first synchronous product.
 A named client must justify the extension against the fixed discipline under
-the [delivery plan](../../../PLAN.md#vela-first-release-delivery).
+the [delivery plan](../../../PLAN.md#vela-first-release-delivery) and the
+[selection protocol](#extension-selection-and-qualification) below.
 
 The [graded design](verification-strategy.md#graded-dependent-foundation)
 separates computation/type dependence, lawful extensible grades and CIC
@@ -37,6 +38,73 @@ and the required concrete resource instance remain outstanding.
 Sources: Moon, Eades and Orchard's [GrTT v2](https://arxiv.org/pdf/2010.13163v2) and Gerty ESOP 2021 prototype; Choudhury, Eades, Eisenberg and Weirich's [GraD v2](https://arxiv.org/html/2011.04070v2); Abel, Danielsson and Eriksson's [ICFP 2023 erasure development](https://research.chalmers.se/en/publication/537991), [extended 30 April 2026](https://arxiv.org/abs/2603.29716). The [strategy](verification-strategy.md#reading-the-graded-type-claims) owns the wider comparison. No source/dependency is incorporated.
 
 GrTT supplies two use vectors and dependency bookkeeping. Its call-by-name, restricted normalization result is pen-and-paper; the external-solver prototype is unverified against it. Neither establishes Vela's effectful call-by-value calculus. GraD motivates usage-aware soundness and shows Boolean grade one need not mean unique use; its selected syntactic mechanization and heap result supply no CHERI ownership theorem. The machine-checked Agda erasure donor restricts modalities/contexts, including weak-pair erased elimination, and proves extraction value preservation for natural-number programs under a restricted modality class. It trusts Agda's checker; the MIT repository covers several papers, so the tag identifies this artifact. Vela still owes CIC erasure/elimination and mutable-computation connections.
+
+## Extension selection and qualification
+
+The [delivery plan](../../../PLAN.md#vela-first-release-delivery) selects a
+concrete client after the synchronous resource discipline qualifies. Freeze its
+behavior, resource/representation contract, evidence endpoint, toolchain, positive
+cases and semantic refusals independently of the proposed grading API. Compare the following
+increments in order; stop when the smaller supported account meets the client's
+needs without a material benefit from the next increment.
+
+| Candidate | Comparison and admission evidence |
+| --- | --- |
+| Fixed use modes and checked library contracts | Baseline: state-indexed operations and natural-valued exact or bounded trace judgments, using the existing ownership and phase rules. Retain the client's actual proof and maintenance obligations. |
+| A bounded `NatExact`/`NatBound` extension | Identify the repeated-use or composition obligation that source grading improves. Qualify the selected boxes, polymorphism and arithmetic with checked domain laws, usage-aware call-by-value interpretation and exact-source correspondence. Connect value demand to the requested trace property explicitly; grade arithmetic alone is not an invocation-count theorem. |
+| General domains or separate type-use accounting | Select each independently. For domains, demonstrate an analysis the qualified fixed instances cannot conveniently express and prove its interpretation/composition laws. For type use, compare the proposed vectors and dependency rows with the simplest sound dependency account meeting the same contract; identify the additional dependency or parametricity guarantee, or measured authoring benefit, that warrants the extra machinery. |
+
+Before a trial, freeze material-benefit thresholds and budgets for annotations,
+proof/review/repair effort, diagnostic quality, checking time and memory. Separate
+demand reconstruction, constraint search and certificate/kernel replay; record
+fresh and changed-input runs, unresolved goals and budget refusals. Keep the same
+behavior, preconditions and assurance endpoint across candidates, and account for
+setup and maintenance separately from recurring benefit. Run benchmarks and proof
+acceptance through the [hosted validation handoff](../../../AGENTS.md#tool-execution-and-validation).
+Absent benefit, missing prerequisite laws or exhausted budgets retain the smaller
+qualified discipline; none permits weakening a client contract or treating
+unsupported syntax as a semantic rejection.
+
+Gerty's [substitution-skipping experiment](verification-strategy.md#reading-the-graded-type-claims)
+is a separate optional optimization. It requires a proved zero-type-use
+irrelevance condition for the selected domain, agreement with ordinary checked
+substitution, and measured total checking benefit including any new solver calls.
+Evaluate it within an already justified graded implementation; this does not
+commission a separate verification tool solely for speed.
+Retaining that optimization is not a prerequisite for adopting useful type-use
+reasoning, and its donor measurements establish no Vela speedup.
+
+### Conditional usability producers
+
+Granule's [derived distributive combinators](https://arxiv.org/abs/2112.14966)
+move a modality through a data type in supported directions, reducing manual
+composition code. Its [grade-directed synthesis](https://doi.org/10.1007/978-3-031-57262-3_4)
+uses resource constraints to narrow program search. These are separate candidate
+producers of ordinary checked terms, not consequences of accepting grade syntax.
+Their published implementations supply no Vela compatibility or correctness
+evidence, and no donor source is incorporated here.
+
+A named library client must first demonstrate repetitive conversions or a useful
+bounded synthesis task against ordinary proved combinators or existing proof
+search. Derivation fixes the supported type constructors, conversion direction
+and grade premises; it cannot assume `Box_q (F A)` and `F (Box_q A)` are always
+interchangeable. Synthesis fixes the grammar, component library, intended behavior
+and search budget; grades alone need not determine behavior or evaluation order.
+Failed search supplies no proof that the requested program is impossible.
+Both retain transitive capture, ownership, phase and effect premises and produce
+inspectable terms with replayable evidence under the unchanged assumption audit.
+Qualification includes a valid client, an invalid domain/duplication premise,
+changed source/dependency/domain bindings, a well-typed but behaviorally wrong candidate and
+bounded failure with no accepted partial result. Measure recurring client benefit
+and total evidence-checking cost before retention.
+
+The existing [frontend and soundness owners](full-language-review.md#existing-owners-and-where-each-decision-is-taken)
+own selected grading increments. Derived combinators reuse
+[`vela-meta`'s generation boundary](metaprogramming.md#qualification); bounded
+synthesis retains the same untrusted-producer and source-correspondence rules.
+Each selected producer needs its own priced checklist predicate before work;
+existing Q25 design credit and conditional estimates commission neither producer.
+All selected increments still owe the applicable [GF obligations](#q25d-debts-and-acceptance-boundary).
 
 ## Dimensions and lawful domains
 
