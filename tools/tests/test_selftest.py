@@ -23,7 +23,7 @@ import check
 from tests.harness import Case, ensure, sandbox_tree
 from tests.test_checks import _REGISTER_MIN, _context, _findings_under
 from vos import checkregistry, corpus, timings
-from vos.checks import Context, meta
+from vos.checks import Context, citations, meta
 from vos.cli import selftest
 from vos.seeded import KILLED, SURVIVED, UNSEEDED, Verdict
 from vos.sharding import Shard
@@ -738,6 +738,45 @@ def _case_verdict_reruns_only_survivors() -> None:
         ensure(not box.answers, "a scripted checker run was left unused")
 
 
+def _proof_citation_seed_survives_prose_edits() -> None:
+    register = (_REGISTER_MIN.replace("R-01-001", "R-05-166")
+                + "**R-05-165** MUST x.\n· Trace: t\n")
+    derived = (f"{selftest.proofcites.DERIVED_BEGIN}\n"
+               "Requirements: R-05-166\n"
+               f"{selftest.proofcites.DERIVED_END}\n")
+    for prose in ("Following R-05-165 and R-05-166.", "R-05-166 supplies the discipline."):
+        source = f"(* {derived}{prose} *)\nDefinition witness := 0.\n"
+        with sandbox_tree({selftest.REGISTER: register,
+                           selftest.SEAM_WITNESSES: source}) as root:
+            box = selftest.Sandbox(root, root)
+            ctx = _context(root)
+            citations._cited(ctx, [selftest.SEAM_WITNESSES],
+                             [(selftest.SEAM_WITNESSES, source, selftest.proofcites.derived(source))], [])
+            ensure(not _findings_under(ctx, "K-103"), "the independent fixture must begin valid")
+            ensure(selftest._k103(box), "citation mutation must survive surrounding prose edits")
+            after = box.read(selftest.SEAM_WITNESSES)
+            ensure(derived in after and after == source.replace(prose, prose.replace("166", "616")),
+                   "only the authored citation may change, preserving the derived manifest")
+            ctx = _context(root)
+            citations._cited(ctx, [selftest.SEAM_WITNESSES],
+                             [(selftest.SEAM_WITNESSES, after, selftest.proofcites.derived(after))], [])
+            found = _findings_under(ctx, "K-103")
+            ensure(any("R-05-616" in finding for finding in found),
+                   f"the checker must detect the transposed authored requirement: {found}")
+
+
+def _proof_citation_seed_refuses_absent_targets() -> None:
+    for source in ("(* no requirement citation *)\n",
+                   f"(* {selftest.proofcites.DERIVED_BEGIN}\nRequirements: R-05-166\n"
+                   f"{selftest.proofcites.DERIVED_END} *)\n",
+                   f"(* {selftest.proofcites.DERIVED_BEGIN}\nR-05-166 *)\n"):
+        with sandbox_tree({selftest.SEAM_WITNESSES: source}) as root:
+            box = selftest.Sandbox(root, root)
+            ensure(not selftest._k103(box) and not box.touched
+                   and box.read(selftest.SEAM_WITNESSES) == source,
+                   "an absent authored citation or malformed region must remain unseeded")
+
+
 def _holder_seeds_survive_changed_completion_prose() -> None:
     distractor = "```markdown\n* Exit evidence: example only\nLanded: Tier B under **K-79**.\n```\n"
     sections = ("## Second\nShortened narrative with no exit-evidence sentence.\n"
@@ -863,6 +902,8 @@ def cases() -> list[Case]:
         Case("checker-stops-after-the-rules-group", _checker_stops_after_the_rules_group),
         Case("case-verdict-reruns-only-survivors", _case_verdict_reruns_only_survivors),
         Case("repair-snapshots-share-only-unchanged-inputs", _repair_snapshots_share_only_unchanged_inputs),
+        Case("proof-citation-seed-survives-prose-edits", _proof_citation_seed_survives_prose_edits),
+        Case("proof-citation-seed-refuses-absent-targets", _proof_citation_seed_refuses_absent_targets),
         Case("holder-seeds-survive-changed-completion-prose", _holder_seeds_survive_changed_completion_prose),
         Case("retired-holder-seed-selects-current-claim", _retired_holder_seed_selects_current_claim),
         Case("holder-seeds-refuse-absent-structural-targets", _holder_seeds_refuse_absent_structural_targets),

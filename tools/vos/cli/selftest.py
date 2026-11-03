@@ -763,6 +763,19 @@ def _literal(rel: str, find: str, repl: str) -> Mutation:
     return apply
 
 
+def _k103(box: Sandbox) -> bool:
+    """Transpose an authored requirement citation without depending on its prose."""
+    text = box.read(SEAM_WITNESSES)
+    region = proofcites.derived(text)
+    if region.faults:
+        return False
+    for match in REQ_TOKEN_RE.finditer(text):
+        if match.group() == "R-05-166" and not any(
+                start <= match.start() < end for start, end in region.spans):
+            return box.write(SEAM_WITNESSES, replace_span(text, match, "R-05-616"))
+    return False
+
+
 def _k114_compressed_premise(box: Sandbox) -> bool:
     """An unlisted premise inside retained gzip evidence must remain visible."""
     rel = ("docs/implementation/retained-evidence/q39/pending-audits-20261012/"
@@ -2318,8 +2331,7 @@ CASES: list[Case] = [
     # a header comment because that is where the artifacts argue from the register, and
     # it moves no count, no link and no anchor.
     ("K-103", "a proof artifact citing a requirement id with two digits transposed",
-     _literal(SEAM_WITNESSES, "the R-05-165 / R-05-166 discipline",
-              "the R-05-165 / R-05-616 discipline")),
+     _k103),
 
     # The adapter's generated exception code is edited without moving its Sail owner.
     # This reaches generation rather than the capability-format rule's width surface.
