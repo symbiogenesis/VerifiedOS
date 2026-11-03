@@ -77,43 +77,28 @@ from vos import (
     trace,
 )
 
-# What every subcommand handler is. `main` attaches one to each subparser and
-# `argparse` hands it back as an untyped attribute, so the shape is stated once
-# here and asserted at the single point it is called.
+# Shared handler signature, recovered from argparse with a cast before dispatch.
 type Command = Callable[[env.Environment, argparse.Namespace], int]
 
 SCHEMA = "sail_riscv_config_schema.json"
 EMIT_TARGET = "generated_sail_riscv_model"
 
-# The emitter asks git where it is standing, and the answer must not reach the artifact.
-# `sail --doc` shells out to `git rev-parse HEAD` and, where that answers, writes a
-# `git` object of the commit and a dirty flag into the bundle it emits. Two things then
-# follow, and both are fatal to holding the artifact byte-for-byte: the bytes would move
-# on every commit, so a tracked bundle would be stale the moment it landed and the rule
-# over it would report on a fact about the checkout rather than about the model; and
-# whether the object appears at all would depend on whether `GIT_DIR` happened to be
-# exported into the stage, which a lane's configure does and a bare emission does not,
-# so one lane's bundle and another's would differ while describing one model. Pointing
-# `GIT_DIR` at a path that is not there makes the question fail rather than answer, the
-# emitter omits the object, and what is left is a function of the Sail sources alone.
-# The stage runs one binary and that binary reads git for this and nothing else.
+# `sail --doc` embeds the commit and dirty flag when `git rev-parse HEAD` succeeds.
+# Disable that lookup with a nonexistent GIT_DIR so identical model sources emit
+# identical bundles across commits and lanes. This emitter uses Git only for metadata.
 _NO_GIT = "/nonexistent/the-bundle-describes-the-model-not-the-checkout"
 
-# How the one binary every Sail loop starts with is installed, for the refusal that
-# names it.
+# Installation hint used when the required Sail binary is missing.
 SAIL_HOW = env.install_line(env.SAIL_INSTALL)
 
-# What `cmd_build` writes after each stage, and what `wait` reads a finished run's
-# verdict back out of. One spelling, at both ends.
+# Shared format for stage exit codes written by `cmd_build` and read by `wait`.
 STAGE_EXIT = re.compile(r"^\w+_EXIT=(\d+)$")
 
 # The M0.4 oracle's pinned source, and the only submodule any model command opens.
 ORACLE_SRC = "upstream/sail-cheri-riscv"
 
-# The gitlinks a model build and the evidence sweep bind, which are the ones a model
-# command opens and no others: a pin recorded to be read later changes nothing these
-# commands read, so advancing one must not stale a build receipt or the evidence
-# inputs. `build_inputs` refuses an identity missing any of them.
+# Bind only gitlinks consumed by model commands; unrelated pins must not invalidate
+# build receipts or evidence. `build_inputs` rejects a missing pin.
 BUILD_GITLINKS = (ORACLE_SRC,)
 BUILD_INPUTS = ("model", "tools/run.py", "tools/vos", "tools/generated", "interfaces", "corpus",
                 *BUILD_GITLINKS, ".gitmodules")
@@ -217,19 +202,14 @@ ORACLE_TARGET = "c_emulator/cheri_riscv_sim_RV64"
 ORACLE_NESTED = "sail-riscv"
 ORACLE_INIT = f"git submodule update --init --recursive {ORACLE_SRC}"
 
-# Written into a synced tree once its files are shown to be the pinned commits', and
-# read back before a tree already standing is reused. The stamp is both commits and
-# then `ORACLE_STAMP_CLAIM`, which says what it vouches for: the tree's files are those
-# commits' blobs byte for byte. A stamp that does not end in it vouches for less, and
-# is refused like a stamp naming other commits.
+# The source stamp records both pinned commits and a claim of byte-for-byte blob
+# verification. Reuse requires matching commits and the `bytes` claim.
 ORACLE_STAMP = ".verifiedos-oracle-source"
 ORACLE_STAMP_CLAIM = "bytes"
 
-# Written beside the tree once the bundled suite has passed on the simulator a run just
-# built there, and read back by `trace-diff` before it runs a simulator as the oracle:
-# the stamp the tree carried, the simulator's SHA-256 and the suite's tally. `oracle`
-# removes it as soon as it holds the tree's lock, so it stands only while the latest
-# `oracle` run to hold that lock passed.
+# A passing oracle run records its source stamp, simulator SHA-256 and suite tally
+# beside the tree. `trace-diff` checks this receipt before using the simulator.
+# `oracle` removes it when acquiring the lock so a failed rerun leaves no success receipt.
 ORACLE_RECEIPT_SUFFIX = ".receipt.json"
 
 
@@ -239,16 +219,9 @@ def oracle_receipt(tree: Path) -> Path:
     return tree.with_name(tree.name + ORACLE_RECEIPT_SUFFIX)
 
 
-# The C standard the oracle's tree is built to. gcc 15 defaults to C23, in which an
-# empty parameter list declares *no* parameters rather than an unspecified one; Sail's
-# `rts.h` predates that reading (`unit platform_barrier();`, `plat_get_16_random_bits()`)
-# and the emitted C calls both with arguments, so the build stops on a type error that
-# is neither tree's fault. It rides in on `C_WARNINGS` rather than `CC` because the
-# tree's recipe hardcodes `gcc`, which makes a `CC` override silently do nothing, and
-# because `C_WARNINGS` is declared `?=` and sits ahead of `$(C_FLAGS)` on the compile
-# line: a command-line assignment wins there without replacing the flags the tree sets
-# for itself. The curated model needs none of this, emitting C++ where the prototypes
-# were never ambiguous.
+# The oracle's old-style C declarations require pre-C23 empty-parameter semantics.
+# Pass this through C_WARNINGS: the recipe hardcodes gcc, ignores CC, and appends its
+# own C_FLAGS separately. The curated model emits C++ and needs no such override.
 ORACLE_CSTD = "-std=gnu17"
 
 
@@ -2405,13 +2378,8 @@ def cmd_devicetree(e: env.Environment, args: argparse.Namespace) -> int:
             return 1
         size = blob.stat().st_size
 
-        # The emulator's own bound rather than a copy of it. That bound lives on the
-        # `--device-tree-blob` path and `--validate-config` exits before reaching it,
-        # which is exactly why a generated tree could outgrow its region in silence:
-        # the check existed and no ordinary run took the path to it. Getting there
-        # costs one program, because the tree is written into memory just ahead of the
-        # ELF load, so a member of the corpus stands in as the thing that makes the
-        # emulator get that far.
+        # Exercise the emulator's blob-size check with a corpus ELF. `--validate-config`
+        # exits before that check, which runs when the blob is loaded before the ELF.
         corpus = differential.load(e.root)
         if not corpus.members:
             print("the differential corpus contains no member for the devicetree check",
@@ -2689,9 +2657,7 @@ def main(argv: list[str] | None = None) -> int:
     ka.set_defaults(run=cmd_keepalive)
 
     args = parser.parse_args(argv)
-    # Which subcommands answer on either lane is `commands.COMMANDS`'s and is asked rather
-    # than restated: a second list here would be the two-copies defect inside the table
-    # that exists to prevent it, and it would drift the first time one is added.
+    # Read host-compatible subcommands from the shared command table.
     hosted = next((c.host_ok for c in commands.COMMANDS if c.name == "model"), frozenset())
     needs_guest = args.command not in hosted
     e = env.load(toolchain=needs_guest)
@@ -2700,9 +2666,6 @@ def main(argv: list[str] | None = None) -> int:
         # every loop holds the distribution up while it runs, so a long build does not
         # lose the VM underneath it; the keepalive command manages that lease directly
         env.keepalive()
-    # `set_defaults(run=...)` puts the handler on the namespace, where its type is
-    # gone: named here so that the exit code this returns is checked to be one, and
-    # so that a handler with the wrong shape is a finding rather than a TypeError on
-    # whichever subcommand nobody ran lately.
+    # Restore the signature erased by argparse so the call and return type are checked.
     run = cast("Command", args.run)
     return run(e, args)

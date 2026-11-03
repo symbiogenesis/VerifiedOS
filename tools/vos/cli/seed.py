@@ -96,8 +96,7 @@ from vos.seeded import (
     unshard,
 )
 
-# This lane's working directories under the lane root, one per oracle, because two of
-# them are running compilers over trees that must not be the same tree.
+# Separate workspaces per oracle keep concurrent compiler runs from sharing a tree.
 WORK = "seed"
 
 # The Gallina lane's default subject: the file whose definitions the theorems above
@@ -666,16 +665,12 @@ def _coq_run(args: argparse.Namespace, e: env.Environment, root: Path, rel: str,
                    else "prover-then-vector")
     picked, scope = picked_with_scope(root, rel, args)
 
-    # Opened before the trees are stood up, because a return taken before the head is
-    # written leaves the *previous* run's journal on disk with its closing line intact,
-    # and the closing line's absence is the whole record: a stale finished file and this
-    # run's would then read the same. The two loops beside this one journal a baseline
-    # that will not stand up, and this one does now as well.
+    # Start the journal before baseline setup so an early failure cannot leave the
+    # previous run's completed journal as evidence for this run.
     book = journal_at(e, name)
     out.append(book.start(rel, oracle_name, scope))
 
-    # One tree per job, and the single-job path keeps the directory it always used, so
-    # a run that asked for no concurrency stages exactly where it staged before.
+    # One tree per job; preserve the existing workspace path for a single job.
     jobs = max(1, args.jobs)
     trees = [work] if jobs == 1 else [work / f"j{n}" for n in range(jobs)]
     baseline, why = _stand_up(root, found, trees, harness_name, args.quickchick, book)
@@ -760,12 +755,8 @@ def cmd_properties(args: argparse.Namespace) -> int:
         print(f"FAIL {rel} has uncommitted changes; this loop writes into it and puts "
               "it back, so it refuses to start over an edit it would have to restore")
         return 1
-    # Held for the life of this process; dropping the handle releases it, so it stays
-    # bound rather than being taken and discarded. Refuses a second run of this loop in
-    # the lane and a build beside it, which are the two collisions a lock can reach.
-    # Taken before the harness is looked for rather than after: that look reads the
-    # build tree, and a build holding the lane is exactly the run that would be part
-    # way through writing what it reads.
+    # Keep the lock handle alive for the process lifetime to exclude concurrent builds
+    # and properties runs in this lane. Acquire it before reading the build tree.
     _lane = env.build_lock(e.build_dir)
     harness = e.build_dir / "test" / "unit_tests" / "unit_tests"
     if not harness.exists():
@@ -810,18 +801,12 @@ def cmd_properties(args: argparse.Namespace) -> int:
     finally:
         write_source(path, original)
 
-    # The source is back and the *build tree* is not: it holds the last mutant's
-    # emission, and every loop downstream of a build reads the simulator back out of
-    # that tree without being able to tell whose model generated it. So the tree is
-    # rebuilt from the restored source before this run reports, and the rebuild's own
-    # verdict is part of what it reports.
+    # Rebuild and check the restored source: the build tree still holds the last
+    # mutant, and downstream commands trust the simulator in that tree.
     rebuilt = _build_harness(e)
     ok, said = _properties_run(harness) if rebuilt else (False, "the rebuild failed")
     out.append(f"== the lane's build tree, rebuilt from the restored source: {said}")
-    # The scope is narrowed to the verdicts rather than left at what was picked,
-    # because this is the one loop that can stop before the end of its own sample: a
-    # restore it cannot verify breaks the loop above, and a closing line taken from the
-    # picking would then state a run larger than the verdicts printed under it.
+    # Count recorded verdicts because a failed source restore can truncate the sample.
     code = summarize(out, verdicts, rel, "$[test] harness",
                      scope.decided(len(verdicts)))
     if not (rebuilt and ok):

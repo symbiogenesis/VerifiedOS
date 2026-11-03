@@ -99,27 +99,18 @@ from vos.cli import quickchick, rtl, typecheck
 from vos.corpus import find_root
 from vos.report import Reporter
 
-# The bound a probe must answer within. Every one of these is a version query or a
-# directory listing, so a run that reaches this is hung rather than slow, and a hung
-# probe has to become a finding rather than a command that never returns.
+# Bound version queries and directory listings so a stalled probe becomes a finding.
 TIMEOUT = 60
 
-# How this lane installs a distribution package. The route is stated once here, and it
-# is the provisioner's own: no artifact in this tree owned the apt prerequisite set
-# before this file did, which is why every row below names a consumer already in the
-# tree and a row that cannot name one is not written.
+# Shared package-install command; each prerequisite row below must name a consumer.
 APT: tuple[str, ...] = ("apt-get", "install", "-y")
 
 # Where the opam row's command puts the reviewed client on a machine with none: ahead
 # of /usr/bin on a Debian or Ubuntu PATH, where opam's own installer puts a client.
 OPAM_DESTINATION = Path("/usr/local/bin/opam")
 
-# The two groups, and what separates them. `gate` is what the three host gates and the
-# tools' own tests want and nothing more, which is the split I8 already drew between
-# quick checks and canonical ones; `toolchain` is everything a model, RTL, oracle or
-# prover loop drives. The split is a narrowing rather than a schedule: nothing here
-# decides what runs where, S14 having declined the workflow that would have, so this
-# makes the question askable and leaves it open.
+# `gate` covers host checks and tool tests; `toolchain` covers model, RTL, oracle and
+# prover dependencies. These groups filter probes; they do not schedule execution.
 GATE = "gate"
 TOOLCHAIN = "toolchain"
 GROUPS: tuple[str, ...] = (GATE, TOOLCHAIN)
@@ -199,9 +190,7 @@ def _say(argv: Sequence[str]) -> str:
     return done.stdout.strip() if done.returncode == 0 else ""
 
 
-# A version inside whatever else a tool prints around it. Dotted rather than merely
-# numeric, and that is load-bearing: `Z3 version 5.1.0 - 64 bit` opens with a digit
-# inside the tool's own name, and a pattern reading the first number would answer 3.
+# Require a dotted version so `Z3 version 5.1.0 - 64 bit` yields 5.1.0, not 3.
 _NUMBER_RE = re.compile(r"\d+(?:\.\d+)+")
 
 
@@ -226,7 +215,7 @@ class _Asked:
     client: tuple[str | None, str] | None = None
 
 
-# The `_Asked` of the `take` this probe runs under, and none outside a `take`.
+# Per-`take` shared probe state; unset outside that run.
 _ASKED: contextvars.ContextVar[_Asked | None] = contextvars.ContextVar("provision_asked",
                                                                       default=None)
 
