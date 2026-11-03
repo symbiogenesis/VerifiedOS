@@ -137,11 +137,11 @@ def _inspection_limits_only() -> None:
 
 def _worker(source: bytes, inspect: bool) -> tuple[int, object]:
     output = StringIO()
-    with TextIOWrapper(BytesIO(source), encoding="utf-8") as input_stream:
-        with (patch.object(sys, "stdin", input_stream),
-              patch.object(sys, "argv", ["vela-lsp-worker", *(["--inspect"] if inspect else [])]),
-              redirect_stdout(output)):
-            code = vela_lsp_worker.main()
+    with (TextIOWrapper(BytesIO(source), encoding="utf-8") as input_stream,
+          patch.object(sys, "stdin", input_stream),
+          patch.object(sys, "argv", ["vela-lsp-worker", *(["--inspect"] if inspect else [])]),
+          redirect_stdout(output)):
+        code = vela_lsp_worker.main()
     return code, json.loads(output.getvalue())
 
 

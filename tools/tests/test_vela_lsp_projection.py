@@ -88,7 +88,7 @@ def _projection() -> None:
     ensure(isinstance(symbols, list) and len(symbols) == 2, "flat symbols lost a declaration")
     ensure(cast("list[dict[str, object]]", symbols)[1] == {"name": "value", "kind": 13, "location": location},
            "flat parameter symbol changed its exact name location")
-    refused = {"status": "unavailable", "reason": "type"}
+    refused: dict[str, object] = {"status": "unavailable", "reason": "type"}
     ensure(project(snapshot, refused, "textDocument/hover", (2, 34)) is None
            and project(snapshot, refused, "textDocument/references", (2, 34)) == [],
            "failed complete source exposed facts")
@@ -112,9 +112,10 @@ def _producer_refusals() -> None:
     prefix = _facts()
     cast("list[dict[str, object]]", prefix["symbols"])[1]["name"] = "valu"
     variants.append(prefix)
-    for raw in (*variants, {"status": "unavailable", "reason": "inspection-limit"},
-                {"status": "ok", "symbols": [], "occurrences": [], "extra": True},
-                {"status": "unavailable", "reason": []}):
+    variants.extend([{"status": "unavailable", "reason": "inspection-limit"},
+                     {"status": "ok", "symbols": [], "occurrences": [], "extra": True},
+                     {"status": "unavailable", "reason": []}])
+    for raw in variants:
         _refuses(lambda raw=raw: project(snapshot, raw, "textDocument/hover", (2, 34)),
                  f"malformed or incomplete producer result accepted: {raw!r}")
     bounded = _facts()

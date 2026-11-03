@@ -9,7 +9,14 @@ from pathlib import Path
 from typing import BinaryIO, Never, cast
 
 from vos.protocol_json import FrameError, MessageError, decode_message, encode_message, read_frame
-from vos.vela_lsp_services import METHODS, InspectionError, Inspector, inspect_document, project
+from vos.vela_lsp_services import (
+    METHODS,
+    InspectionError,
+    Inspector,
+    QueryRange,
+    inspect_document,
+    project,
+)
 from vos.vela_source import SourceSnapshot
 
 MAX_DOCUMENTS = 16
@@ -156,8 +163,20 @@ class Server:
             return _error(request_id, -32801, "Document content is out of synchronization")
         snapshot = self.documents[uri]
         position: tuple[int, int] | None = None
+        requested_range: QueryRange | None = None
         include_declaration = False
-        if method != "textDocument/documentSymbol":
+        if method == "textDocument/inlayHint":
+            span = _object(params.get("range"))
+            start, end = _object(span.get("start")), _object(span.get("end"))
+            first = _integer(start.get("line")), _integer(start.get("character"))
+            last = _integer(end.get("line")), _integer(end.get("character"))
+            if first > last:
+                _invalid("hint range is reversed")
+            first_position = snapshot.byte_position(snapshot.position_byte_offset(*first))
+            last_position = snapshot.byte_position(snapshot.position_byte_offset(*last))
+            requested_range = ((first_position["line"], first_position["character"]),
+                               (last_position["line"], last_position["character"]))
+        elif method != "textDocument/documentSymbol":
             point = _object(params.get("position"))
             offset = snapshot.position_byte_offset(_integer(point.get("line")),
                                                     _integer(point.get("character")))
@@ -173,7 +192,7 @@ class Server:
             # No fact cache: every query consumes precisely this current immutable
             # overlay, so invalidation and refused updates cannot revive old facts.
             result = project(snapshot, self.inspector(snapshot.source), method,
-                             position, include_declaration)
+                             position, include_declaration, requested_range)
             reply: dict[str, object] = {"jsonrpc": "2.0", "id": request_id, "result": result}
             encode_message(reply)
         except (InspectionError, FrameError, OSError, subprocess.SubprocessError):
@@ -215,6 +234,7 @@ class Server:
                 return [{"jsonrpc": "2.0", "id": request_id, "result": {
                     "capabilities": {"positionEncoding": "utf-16", "hoverProvider": True,
                         "definitionProvider": True, "referencesProvider": True, "documentSymbolProvider": True,
+                        "inlayHintProvider": True,
                         "textDocumentSync": {
                         "openClose": True, "change": 2, "save": {"includeText": False}}},
                     "serverInfo": {"name": "Vela pure prototype (unqualified)", "version": "0"}}}]

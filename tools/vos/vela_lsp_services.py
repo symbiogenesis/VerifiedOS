@@ -15,9 +15,10 @@ from vos.vela_source import SourceSnapshot
 
 INSPECTION_SECONDS = 5
 METHODS = frozenset({"textDocument/hover", "textDocument/definition",
-                     "textDocument/references", "textDocument/documentSymbol"})
+                     "textDocument/references", "textDocument/documentSymbol", "textDocument/inlayHint"})
 type Inspector = Callable[[bytes], dict[str, object]]
 type Position = tuple[int, int]
+type QueryRange = tuple[Position, Position]
 
 
 class InspectionError(ValueError):
@@ -49,6 +50,7 @@ class _Symbol:
     detail: str
     start: Position
     end: Position
+    type_hint: str | None
 
 
 @dataclass(frozen=True)
@@ -120,7 +122,14 @@ def _validate(snapshot: SourceSnapshot, raw: dict[str, object]) -> _Inspection |
         first, last = _span(snapshot, lines, name, symbol)
         if symbols and first <= symbols[-1].start:
             raise InspectionError("Pure prototype inspection declarations are unordered or duplicated")
-        symbols.append(_Symbol(name, cast("str", kind), detail, first, last))
+        type_hint = None
+        if kind == "variable":
+            # The pure compiler's closed detail format already records the
+            # inferred type. Decode that fact; the adapter never infers a type.
+            type_hint = {f"{name}: Nat": ": Nat", f"{name}: bool": ": bool"}.get(detail)
+            if type_hint is None:
+                raise InspectionError("Invalid pure prototype inferred local type")
+        symbols.append(_Symbol(name, cast("str", kind), detail, first, last, type_hint))
     occurrences: list[_Occurrence] = []
     declarations: set[int] = set()
     for value in occurrences_raw:
@@ -155,15 +164,25 @@ def _location(uri: str, start: Position, end: Position) -> dict[str, object]:
 
 
 def project(snapshot: SourceSnapshot, raw: dict[str, object], method: str,
-            position: Position | None, include_declaration: bool = False) -> object:
+            position: Position | None, include_declaration: bool = False,
+            requested_range: QueryRange | None = None) -> object:
     """Project only complete current facts; malformed producer data is a refusal."""
     try:
         inspection = _validate(snapshot, raw)
     except (ValueError, TypeError, KeyError) as error:
         raise InspectionError("Invalid pure prototype inspection result") from error
-    empty: object = [] if method in {"textDocument/references", "textDocument/documentSymbol"} else None
+    empty: object = [] if method in {
+        "textDocument/references", "textDocument/documentSymbol", "textDocument/inlayHint"} else None
     if inspection is None:
         return empty
+    if method == "textDocument/inlayHint":
+        if requested_range is None:
+            raise InspectionError("Pure prototype hints require a source range")
+        first, last = requested_range
+        return [{"position": {"line": symbol.end[0], "character": symbol.end[1]},
+                 "label": symbol.type_hint, "kind": 1}
+                for symbol in inspection.symbols
+                if symbol.type_hint is not None and first <= symbol.start and symbol.end <= last]
     if method == "textDocument/documentSymbol":
         return [{"name": symbol.name, "kind": 12 if symbol.kind == "function" else 13,
                  "location": _location(snapshot.uri, symbol.start, symbol.end)}
