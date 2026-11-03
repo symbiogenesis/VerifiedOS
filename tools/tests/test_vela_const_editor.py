@@ -131,7 +131,7 @@ def _constant_fact_shape_is_bounded() -> None:
     index = next(index for index, symbol in enumerate(symbols) if symbol["name"] == "Limit")
     for detail in ("const Nat Limit = -1", "const Nat Limit = 00", "const Nat Limit = true",
                    "const bool Limit = 5", "const Nat Limit = " + "9" * (MAX_LITERAL_DIGITS + 1),
-                   "const Nat Limit = ５"):
+                   "const Nat Limit = \uff15"):
         changed = copy.deepcopy(raw)
         cast("list[dict[str, object]]", changed["symbols"])[index]["detail"] = detail
         try:
