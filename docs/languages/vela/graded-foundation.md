@@ -23,7 +23,7 @@ interpretation, preserving the
 [resource interface](#resource-and-computation-interface) when their own increments
 are selected; [Q25d](full-language-review.md) records composition obligations.
 
-Every law in this dossier is a theorem about the elaboration's image in an
+Every law in this dossier must be proved about the elaboration's image in an
 existing anchor, under [the untrusted-elaboration boundary](../../spec.md#r-05-020a).
 The displayed judgments describe proposed syntax-directed evidence construction.
 They carry no independent source evaluation or admission authority. Substitution

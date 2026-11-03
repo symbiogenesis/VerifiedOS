@@ -22,15 +22,17 @@ does not supply the complete resource/machine laws for this fixture. The
 returned-view exit needs actual split, suspension and restoration laws; syntax
 cannot supply them. The selected interpretation is the elaboration's image in
 an existing anchor under [R-05-020a](../../spec.md#r-05-020a). Every law below is
-a checked theorem about that image and its resource interpretation, with
-source correspondence binding the exact authored computation. No independent
-source reduction is admitted and no missing law is supplied by the commitment.
+a theorem to be checked about that image and its resource interpretation, with
+source correspondence binding the exact authored computation. This interpretation
+commitment supplies no proof of those laws and admits no independent source reduction.
 The [delivery plan](../../../PLAN.md#vela-first-release-delivery) scopes an actual
 first consumer, a finite foundation investigation and conditional construction;
 it does not reopen the canceled generic pilot or assert that its foundations
 are now established.
 
-Runtime types are machine integers, bytes, fixed records, finite sums and statically sized buffers, with explicit parameters and statically resolved calls. Capacities/layouts specialize before emission; runtime lengths and discriminants stay represented. A known total shared-call callback may specialize with its immutable environment and proved representation. General runtime higher-order functions, recursive heap data and dynamic dispatch are excluded. Accepted Rocq terms/assumptions still permit dependent families and total pure functions in specifications and proofs without implying runtime representability.
+Runtime types are machine integers, bytes, fixed records, finite sums and statically sized buffers. Parameters are explicit and calls resolve statically. Capacities and layouts specialize before emission; runtime lengths and discriminants remain represented. A known total shared-call callback may specialize with its immutable environment and proved representation. General runtime higher-order functions, recursive heap data and dynamic dispatch are excluded.
+
+Specifications and proofs may use dependent families and total pure functions under the accepted Rocq terms and assumptions. That expressiveness does not establish a runtime representation.
 
 The fixture has no source allocation, implicit boxing, unwinding, suspension, cancellation, handler, concurrent interior mutation or loan across service activations. Loops terminate; unbounded service loops need a separate progress contract. Revocation, DMA, publication ordering and adversarial-context obligations retain their existing owners; a sequential theorem cannot discharge them. Kernel conversion, universes and the assumption ledger are unchanged. Each selected package starts only at its landed entry predicate; its checked interpretation introduces no additional semantic anchor.
 

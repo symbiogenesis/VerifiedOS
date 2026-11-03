@@ -4,14 +4,13 @@
 > This document specifies the typed machine-code language, and its admission check, by which [VerifiedOS](../spec.md) admits binaries.
 > Its requirements are independent of the operating system: they depend on the target's machine semantics and the language's type theory, not on a particular kernel, storage stack, or authority model.
 >
-> **Normative for the language; not a derived view.**
-> The [frozen instruction-set profile](../hardware/isa-profile.md), the [absence contract](../hardware/absence-contract.md), the [crown-jewel inventory](../assurance/crown-jewels.md), and the [coverage matrix](../assurance/coverage-matrix.md) are derived views of [requirements-register.md](../requirements-register.md) and state no obligation of their own.
-> This document states obligations of its own, as numbered requirements carrying acceptance criteria; VerifiedOS depends on one instantiation and pins its version.
-> Where this document and the register disagree about VerifiedOS requirements, the register governs; where they disagree about the language, this document governs.
+> **Authority.**
+> This document states the language's numbered requirements and acceptance criteria. VerifiedOS uses one version-pinned instantiation.
+> The [requirements register](../requirements-register.md) governs VerifiedOS obligations; this document governs the language itself.
 >
 > **How to read it.**
-> Sections 1 to 15 are normative. Every obligation is a numbered `TAL-` requirement; the prose around them is rationale and binds nothing.
-> Appendices A to D are not: they record where the design comes from, what it cites, the artifact landscape on a stated date, and the order in which the normative content must be settled.
+> Sections 1 to 15 contain the normative `TAL-` requirements; surrounding prose is rationale.
+> Appendices A to D are non-normative: design lineage, references, dated artifact status and the order for settling requirements.
 > Section citations link directly to their owning document.
 >
 > **The name is provisional.**
@@ -19,7 +18,7 @@
 > The VerifiedOS corpus calls the CHERI-RISC-V instantiation *CHERI-TAL*.
 >
 > **Implementation status.**
-> The type system, checker, and soundness proof remain unbuilt. This standalone specification makes them independently reviewable and allows multiple consumers to share the implementation cost; it does not reduce the work required.
+> The type system, checker and soundness proof remain unbuilt. This specification supports independent review and shared implementation across consumers.
 
 ---
 
@@ -27,16 +26,16 @@
 
 This is a **typed assembly language** in the Necula and Morrisett lineage: final machine code carries a **typing derivation**, checked before the code may run.
 
-Three commitments distinguish this language from that lineage.
+The design makes three commitments:
 
 - **The check is certificate-directed dataflow validation, not proof checking.**
   The checker decides a fixed set of attributes over an already-typed control-flow graph. The derivation supplies the abstract state at every join, so certificate consumption requires neither fixpoint computation nor reduction of open terms.
   A producer may use any fixpoint analysis to compute those annotations; the no-fixpoint property is one of consumption alone ([§12](#12-producers)).
   This is a claim about the *kind* of checker specified: the complexity contract ([§10.3](#103-the-complexity-contract)) and the audit figure ([§10.6](#106-the-audit-figure)) follow from that classification rather than standing as independent targets.
-- **The theory is frozen, and freezing it is the mechanism.**
-  A line budget does not constrain an unspecified theory. What the checker must decide is fixed in [§7](#7-the-frozen-theory), and the cost of deciding it follows.
-- **The target's own guarantees are a parameter, not an assumption.**
-  A machine profile declares which machine-enforced invariants the derivation may *cite* instead of re-proving ([§5](#5-the-parameter-the-machine-profile)).
+- **A frozen theory bounds the checker.**
+  [§7](#7-the-frozen-theory) fixes what the checker decides, allowing its cost to be derived.
+- **The machine profile declares reusable hardware guarantees.**
+  It lists the machine-enforced invariants a derivation may cite instead of re-proving ([§5](#5-the-parameter-the-machine-profile)).
 
 **TAL-001** IS: The admission check is a total, deterministic decision procedure over an installed artifact and a certificate, returning accept or reject.
 · Accept: the checker returns exactly one verdict on every input, including malformed ones; two runs over identical inputs return identical verdicts and identical rejection sites.
@@ -429,10 +428,11 @@ The profile VerifiedOS pins. Bounds, tags, monotone derivation, and sealed entry
 
 **The qualifications a citing profile must state.**
 A citation is a theorem about the machine, and an unsound citation invalidates everything that depends on it.
-Compressed capability encodings permit **inexact bounds**, so M1 holds for the encoding's rounded representable region, not necessarily for the exact byte range the source intended; `mem.spatial` is stated over the representable region accordingly.
-Monotone derivation has **privileged and transition cases**, the instructions and states in which authority is installed rather than narrowed, and M2 names them rather than quantifying over the whole machine.
-Capability hardware alone provides no **exact callee set or ABI conformance**, and of **temporal safety** only M5's half, the load filter killing a capability already revoked while saying nothing about when revocation is owed; that is why those three facets are attributed here, `mem.temporal` consuming M5 inside its soundness lemma rather than as its route.
-Its immutable-code guarantee rests on an initial capability distribution from which no writable-and-executable authority can be derived: a loader property, carried as L1 rather than as a machine theorem.
+
+- **Bounds:** M1 covers the rounded region representable by the capability encoding, which may exceed the source's intended byte range. `mem.spatial` therefore refers to the representable region.
+- **Monotonicity:** M2 names the privileged and transition instructions and states that install authority rather than narrow it. It does not quantify over those exceptions.
+- **Callee sets, ABI and temporal safety:** capability hardware supplies no exact callee set or ABI conformance. M5 filters already-revoked capabilities on load but does not establish when revocation is required. These facets therefore use the attributed route; `mem.temporal` uses M5 within its soundness lemma.
+- **Immutable code:** L1 requires the loader's initial capability distribution to prevent derivation of writable-and-executable authority. This is a loader obligation, not a machine theorem.
 
 ### 6.3 `bare-rv64`
 
@@ -528,15 +528,17 @@ Certificate-bounded carriers: the callee set (bounded by the declared maximum ca
 
 ### 7.3 Every rider fits the theory
 
-Memory safety and control-flow integrity are register-file preconditions over capability or pointer types, and first-order.
-The linear and affine discipline and the relevance grading are context-splitting side conditions decided structurally.
-The callee set is a finite collection of first-order code labels whose membership test is structural set comparison, so it refines an existing former rather than adding a grade axis.
-The initialization flag rides the capability-type former over the slots the consumer's memory plan already fixes, and taint is a join in a two-point lattice.
-The representation and provenance rules add no former and no grade: they are the five deletions of move III, four of them absences the checker confirms by inspecting a derivation it already reads.
-The three riders on values that are not capabilities add no axis either.
-*Use-once* is the linear grade the context-splitting side condition already runs.
-*Must-erase* uses the `era` grade on that same axis. Like relevance, it denies weakening, but only a rule-table erasing operation consumes an `era` value. Every other use rebinds the value with its grade intact, and every copy retains the grade. Spilling a secret and then dropping it is therefore a type error at the drop. The same context-splitting side condition checks this discipline through the `verdict.relevance` route.
-A *dimension* is a phantom parameter of the integer former ([§8.2](#82-types)). The certificate declares its name but no definition or inhabitant; the checker compares it by syntactic type equality under absence (2), and code generation erases it.
+Each attribute uses the existing type vocabulary or grade axes:
+
+- Memory safety and control-flow integrity use first-order register-file preconditions over capability or pointer types.
+- Linear, affine and relevance grades use structural context-splitting checks.
+- Callee sets contain finite first-order code labels and use structural set comparison, without adding a grade axis.
+- Initialization flags attach to capability types over memory-plan slots; taint uses a two-point join lattice.
+- Representation and provenance use move III's five deletions, four checked as absences in the derivation. They add no type constructor or grade.
+
+The three attributes for non-capability values also fit existing machinery. *Use-once* uses the linear grade. *Must-erase* uses `era` on the same axis: only a rule-table erasing operation consumes it, every other use rebinds it, and every copy retains it. Dropping a spilled secret is therefore a type error. The `verdict.relevance` route checks this through the same context-splitting condition.
+
+A *dimension* is an erased phantom parameter of the integer constructor ([§8.2](#82-types)). The certificate declares its name without a definition or inhabitant; the checker compares names by syntactic type equality under absence (2).
 
 ### 7.4 What the vocabulary contains
 
@@ -927,9 +929,7 @@ The word *attribute* is Knuth's, and the analogy is deliberately partial: an att
 
 ### 11.4 The trusted base
 
-The metatheorem is the language's main trusted theorem, and freezing the theory bounds its size as it bounds the checker's.
-It is not the whole base: a consumer also trusts the machine semantics and its correspondence to the silicon (ledger entry S1), the profile's cited invariants, the decoder that recovers instructions from the image, the loader and initial-state model, and the checker implementation.
-The claim worth making is that this list is small, fixed, separately reviewable, and enumerated in one place, not that it has one element.
+Freezing the theory bounds the metatheorem and checker. The trusted base also includes machine semantics and silicon correspondence (S1), cited invariants, the image decoder, loader, initial-state model and checker implementation. The profile ledger enumerates these dependencies for separate review.
 
 **TAL-087** MUST: The trusted base is enumerated as the profile's ledger plus the checker implementation plus the metatheorem, and a consumer can read it off an accepted verdict.
 · Accept: the verdict's ledger plus two named artifacts is the whole base; no element of the base is discoverable only from prose.
@@ -937,7 +937,7 @@ The claim worth making is that this list is small, fixed, separately reviewable,
 
 ### 11.5 What soundness does not say
 
-A mis-stated typing rule admits an unsafe binary that type-checks perfectly, exactly as a wrong specification verifies perfectly, which is why this is a specification worth reviewing rather than a proof worth trusting.
+A binary can satisfy a mis-stated typing rule and still be unsafe. Independent review must assess the rules as well as the soundness proof.
 
 **TAL-088** IS: The theorem says nothing about facets a profile does not route, about properties outside the menu, about the artifact's functional behavior, or about executions from a state violating the ledger's L and O entries.
 · Accept: no consumer document claims a guarantee that no matrix line carries.
@@ -1060,7 +1060,7 @@ This appendix is rationale. It binds nothing, and a change in the literature's s
 
 **Certifying compilation.** [NeculaLee98], [Crellvm], [CompCert]. Crellvm is the closest match to [§12](#12-producers)'s hinted mirroring, over selected intermediate-representation optimizations rather than native code generation, so it supports the architecture without completing it.
 
-**The combination is the novel part.** Not typed assembly language, not proof-carrying code, not capability typing, not taint typing, and not resource certificates, each of which is someone else's result. The combination is a fixed, non-extensible certificate language carrying all of them at once, assigning every facet an explicit cited, attributed, or inserted discharge against a versioned machine profile, and checking final decoded machine code without invoking a general proof kernel at install time. That is a claim about the arrangement, and the part a reviewer should attack first.
+**The proposed contribution is the combination.** A fixed certificate language combines typed assembly, proof-carrying code, capability typing, taint typing and resource certificates. Each facet takes a cited, attributed or inserted route against a versioned machine profile. Checking applies to final decoded code without a general install-time proof kernel. Review should test whether these mechanisms compose as claimed.
 
 ---
 
@@ -1117,16 +1117,22 @@ Keys are document-local and stable across versions of this document; they assert
 
 ## Appendix C. Dated evidence note (non-normative)
 
-**As of 2026-08-19.** Everything in this appendix is a claim about the state of external artifacts on that date. It is evidence for schedule and start-from decisions, not a premise of any requirement, and it goes stale without amending anything.
+**As of 2026-08-19.** This appendix records external-artifact evidence for scheduling and source selection at that date. These observations are not requirement premises; later upstream changes do not amend the language.
 
 **What the founding lineage leaves to inherit: nothing executable.** The TALx86 toolset survives as a 2002 all-rights-reserved download; the Twelf mechanization of foundational TAL and Princeton's LTAL checker were never publicly released; the Necula-line certifying compilers died closed-source. Appendix A's first two groups therefore contribute design and metatheory only, with the foundational-PCC trusted-base accounting (a sub-thousand-line C checker over a fixed logic signature) the closest published relative of [§10.6](#106-the-audit-figure)'s counting rule.
 
-**What a `cheri-rv64` instantiation stands on today.** The CHERI-RISC-V Sail model's generated Coq is the one existing route to theorems over the real ISA, and no published development has yet proved anything over it, so the profile instantiation is a first rather than a repetition. Katamaran is an actively developed contract verifier over a Sail-like embedding with a capability-machine case study, the natural engine for per-instruction lemmas and cited-invariant premises; its Sail-to-μSail backend is now where the project's investment sits, and it began ingesting the CHERIoT Sail model in April 2026, not yet working, the first motion toward a contract over a real capability Sail model rather than an idealized one. WasmCert-Coq is a maintained skeleton for a checker verified sound and complete against its type system, though for a bytecode rather than a native instruction set, and its published account left end-to-end work unfinished. The Isla-trace route of Islaris and Morello-Cerise is the current means of taming a full model, and Morello-Cerise prices it: the fundamental theorem over the full Morello model cost about six person-months and 6.5k lines of Rocq, atop several prior person-years of T-CHERI and Isla infrastructure, sequential-only, with a hand-checked Isabelle-to-Rocq seam the paper itself flags. Sail 0.20 implemented the language's own core stepwise semantics in Rocq, the interpreter's and constant-folder's semantics rather than the theorem backend, a step toward the emitted definitions and the language agreeing on one mechanized account. CT-Wasm's extracted verified checker is the taint attribute's port target, its artifact pinned to a 2017 Isabelle.
+**Evidence for a `cheri-rv64` instantiation at that date:**
+
+- CHERI-RISC-V Sail's generated Coq was the existing route to theorems over the real ISA, with no published proof development over it. Instantiating the profile would therefore require new work.
+- Katamaran's contract verifier had a capability-machine case study over a Sail-like embedding. Its active Sail-to-μSail backend began ingesting CHERIoT Sail in April 2026 but did not yet work. It was a candidate for per-instruction lemmas and cited-invariant premises, not an established real-ISA instance.
+- WasmCert-Coq supplied a maintained checker verified sound and complete against its type system, for bytecode rather than native instructions. Its published end-to-end account remained unfinished.
+- Islaris and Morello-Cerise used Isla traces to handle full models. Morello-Cerise's fundamental theorem cost about six person-months and 6.5k Rocq lines, after several person-years of T-CHERI/Isla infrastructure. It covered sequential execution and retained the paper's acknowledged hand-checked Isabelle-to-Rocq connection.
+- Sail 0.20 mechanized its core stepwise semantics in Rocq for the interpreter and constant folder, not the theorem backend. This advanced agreement between emitted definitions and language semantics without establishing it.
+- CT-Wasm's extracted verified checker was the taint attribute's port target, with its artifact pinned to a 2017 Isabelle.
 
 **Deployment and revival evidence for the certificate architecture.** The JVM's split verifier (stack-map frames, mandatory since class-file version 51) is this architecture in production at large scale, its type-checking core a few thousand lines over a richer vocabulary than [§8.2](#82-types)'s. Klein and Nipkow's account is re-checked against every Isabelle release in the Archive of Formal Proofs. CertrBPF (CAV 2022) is a Coq-verified admission checker extracted to C and shipped in an embedded operating system. BCF (SOSP 2025) has the Linux eBPF verifier accept load-time certificates proved in user space and checked by a small kernel-side checker.
 
-**Adjacent active lines.** Universal contracts and secure calling conventions on CHERI-RISC-V, taint-typed assembly for cryptographic code, and now attestation contracts (Cerisier, PLDI 2026, still on the idealized machine) each cover one slice of the menu; none is the assembly language.
-A fourth slice arrives from outside the program-logic line entirely: a symbolic memory model for a CHERI-enabled idealized assembly language, mechanized and proven OX-sound in the compositional-symbolic-execution lineage, with UX soundness and the tool integration booked by its own authors as future work. It is a memory model rather than a type system, and it is stated over an idealized machine rather than over the pinned Sail term, so it joins the list on the same footing as the three above: one slice, and not the assembly language.
+**Related work covers individual facets.** Universal contracts and secure calling conventions on CHERI-RISC-V, taint-typed cryptographic assembly, and Cerisier's attestation contracts (PLDI 2026, over an idealized machine) each address part of the menu. A mechanized OX-sound symbolic memory model also covers idealized CHERI assembly; its authors leave UX soundness and tool integration as future work. It supplies a memory model, not a type system over pinned Sail. None of these supplies the complete assembly language.
 
 ---
 

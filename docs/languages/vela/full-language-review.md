@@ -4,7 +4,9 @@
 
 ## Inputs and common boundary
 
-The [first-release contract](first-release.md#release-boundary) selects synchronous software with fixed usage modes. General graded demand, async, handlers and concurrent mutation are separately commissioned extensions. The [graded foundation](graded-foundation.md), [control/async](handlers-async.md) and [mutability](interior-mutability.md) dossiers interpret their rules as obligations over elaboration images in existing anchors; their source notation adds no independent authoritative reduction. Grades create no memory permission; outcome-indexed transitions account for owners, loans, mandatory results, continuations and terminal-completion duties.
+The [first-release contract](first-release.md#release-boundary) selects synchronous software with fixed usage modes. General graded demand, async, handlers and concurrent mutation need separate commissioning. The [graded foundation](graded-foundation.md), [control/async](handlers-async.md) and [mutability](interior-mutability.md) dossiers state proof obligations about elaborated terms in existing semantic anchors, without defining independent source semantics.
+
+Grades create no memory permission. Each possible outcome must account for its owners, loans, mandatory results, continuations and terminal-completion duties.
 
 The [core](core-design.md) and [foundation map](../../hardware/cheri-foundation-map.md) still lack concrete CHERI laws, and [compiler routes](compiler-route-contract.md) lack qualified source-to-machine connections. Q25's added design duties supply none of those prerequisites and reopen no rejected trial.
 
