@@ -362,6 +362,8 @@ class _Elaborator:
 
     def _bounded(self, value_type: ValueType, gallina: str,
                  children: tuple[_Expression, ...], site: syntax.Site) -> _Expression:
+        if len(gallina) > MAX_OUTPUT_BYTES:
+            raise _error("limit", "pure translation exceeds its output byte budget", site)
         depth = max((child.depth for child in children), default=0) + 1
         if depth > MAX_EXPRESSION_DEPTH:
             raise _error("limit", f"expression exceeds depth {MAX_EXPRESSION_DEPTH}", site)
@@ -568,7 +570,17 @@ class _Elaborator:
             self._reference(local.symbol, site)
             return _Expression(local.value_type, local.gallina if local.gallina is not None
                                else f"v_{name}" if name in environment else f"c_{name}")
-        arguments = tuple(self._expression(child, environment) for child in expression.children)
+        # Specialization may expand a short source argument into a large term.
+        # Bound retained siblings before building the application's joined text.
+        collected: list[_Expression] = []
+        argument_bytes = 0
+        for child in expression.children:
+            argument = self._expression(child, environment)
+            argument_bytes += len(argument.gallina)
+            if argument_bytes > MAX_OUTPUT_BYTES:
+                raise _error("limit", "pure translation exceeds its output byte budget", site)
+            collected.append(argument)
+        arguments = tuple(collected)
         if kind == "call":
             signature = self.functions.get(name)
             if signature is None:
@@ -668,16 +680,26 @@ class _Elaborator:
 
 def _translate(source: bytes, module: syntax.Module, facts: Facts | None = None) -> Translation:
     elaborator = _Elaborator(facts)
-    definitions = [elaborator.constant(declaration) if isinstance(declaration, syntax.Constant)
-                   else elaborator.function(declaration) for declaration in module.declarations]
     name = module.name.text
     header = ("(* SPDX-License-Identifier: Apache-2.0 *)\n"
               f"(* Vela pure prototype: unqualified. Source SHA256: {hashlib.sha256(source).hexdigest()} *)\n"
               "From Corelib Require Import Init.Datatypes Init.Nat.\n\n"
               f"Module Vela_{name}.\n\n")
-    gallina = header + "\n\n".join(definitions) + f"\n\nEnd Vela_{name}.\n"
-    if len(gallina.encode()) > MAX_OUTPUT_BYTES:
+    footer = f"\n\nEnd Vela_{name}.\n"
+    output_bytes = len(header) + len(footer)
+    if output_bytes > MAX_OUTPUT_BYTES:
         raise _error("limit", "pure translation exceeds its output byte budget", module.name.site)
+    definitions: list[str] = []
+    for declaration in module.declarations:
+        definition = (elaborator.constant(declaration) if isinstance(declaration, syntax.Constant)
+                      else elaborator.function(declaration))
+        # Emission is ASCII: identifiers are ASCII and comments are not emitted.
+        # Account for separators and the footer before retaining another definition.
+        output_bytes += len(definition) + (2 if definitions else 0)
+        if output_bytes > MAX_OUTPUT_BYTES:
+            raise _error("limit", "pure translation exceeds its output byte budget", declaration.name.site)
+        definitions.append(definition)
+    gallina = header + "\n\n".join(definitions) + footer
     return Translation(name, gallina)
 
 
