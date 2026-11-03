@@ -929,7 +929,7 @@ The word *attribute* is Knuth's, and the analogy is deliberately partial: an att
 
 ### 11.4 The trusted base
 
-Freezing the theory bounds the metatheorem and checker. The trusted base also includes machine semantics and silicon correspondence (S1), cited invariants, the image decoder, loader, initial-state model and checker implementation. The profile ledger enumerates these dependencies for separate review.
+Freezing the theory bounds the metatheorem and checker. The trusted base also includes machine semantics and silicon correspondence (S1), cited invariants, the image decoder, loader, initial-state model and checker implementation. The accepted verdict identifies the ledger, checker implementation and metatheorem for separate review.
 
 **TAL-087** MUST: The trusted base is enumerated as the profile's ledger plus the checker implementation plus the metatheorem, and a consumer can read it off an accepted verdict.
 · Accept: the verdict's ledger plus two named artifacts is the whole base; no element of the base is discoverable only from prose.
