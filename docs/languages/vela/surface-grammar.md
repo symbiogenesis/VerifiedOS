@@ -694,8 +694,10 @@ omitted for ordinary declarations. Surface function modifiers include `const`;
 surface parameter nodes use the same optional Boolean field. Consumers bind the
 flag to the source keyword and refuse invented, missing or repeated qualifiers.
 Callable parameter requirements survive the mathematical consumer's function
-types and substitution. Editor signatures identify constant functions and static
-parameters without evaluating source in the protocol adapter.
+types, explicitly typed lambdas and substitution. Contextual lambdas inherit
+the expected static-parameter requirement; a conversion cannot discard it.
+Editor signatures identify constant functions and static parameters without
+evaluating source in the protocol adapter.
 
 ```text
 public const Nat Square(Nat value) => value * value;

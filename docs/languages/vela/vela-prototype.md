@@ -54,8 +54,13 @@ are refused. Local bindings are immutable.
 
 ```text
 module Example;
-public Nat Twice(Nat x) => x + x;
+public const Nat Twice(Nat x) => x + x;
 public const Nat Limit = Twice(x: 8);
+public Nat Scale(const Nat factor, Nat value) {
+  const Nat multiplier = Twice(factor);
+  return multiplier * value;
+}
+public Nat Runtime(Nat value) => Scale(factor: Limit, value: value);
 public Nat Select(bool flag, Nat x) {
   const Nat fallback = Twice(x: 0);
   let result = Twice(x: x);
@@ -68,9 +73,10 @@ The accepted grammar is:
 ```text
 file      := 'module' name ';' declaration+
 declaration:= function | 'public' constant
-function  := 'public' type name '(' parameters? ')' body
+function  := 'public' 'const'? type name '(' parameters? ')' body
 body      := block | '=>' expression ';'
-parameters:= type name (',' type name)* ','?
+parameters:= parameter (',' parameter)* ','?
+parameter := 'const'? type name
 type      := 'Nat' | 'bool'
 block     := '{' binding* exit '}'
 binding   := 'let' name '=' expression ';' | constant
@@ -107,7 +113,7 @@ constructors. Types and constructors come from `Corelib.Init.Datatypes`.
 Constants follow the [required-static contract](surface-grammar.md#required-static-constants):
 their typed initializers evaluate from earlier constants and pure calls with
 static arguments, under finite work and numeric bounds. The supported constant
-types are `Nat` and `bool`. Runtime parameters and
+types are `Nat` and `bool`. Unmarked runtime parameters and
 ordinary outer locals are refused before evaluation, including ignored or dead
 dependencies. Constants denote evaluated values and cannot be reassigned or
 called. Compiler-recorded constant symbols support the existing editor services.
@@ -115,6 +121,16 @@ An ordinary local inside a pure function evaluated with static arguments belongs
 to that evaluation; it is not an outer runtime dependency. Constants with machine
 types such as `usize` require the wider selected-target interpretation and are
 outside this pure prototype.
+
+The function modifier records constant-evaluation support without restricting
+runtime calls. A static parameter is checked symbolically in its definition and
+requires a static argument at every call. Instantiation substitutes that argument
+and computes the required local constants, leaving ordinary data arguments in
+their original order. Forwarding a static parameter preserves its availability;
+neither a ghost binder nor a runtime local acquires that availability implicitly.
+Logical template definitions may retain symbolic static expressions; this host
+prototype establishes no target erasure or source-correspondence theorem.
+
 Every user name is mapped to a generated identifier so Gallina keywords and
 library names cannot capture source references. There is no raw Gallina escape.
 

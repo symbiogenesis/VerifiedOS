@@ -4,7 +4,8 @@
 import copy
 from typing import cast
 
-from tests.harness import Case, ensure
+from tests.harness import TOOLS, Case, ensure
+from vos import vela
 from vos.vela import inspect_source
 from vos.vela_ast import MAX_LITERAL_DIGITS
 from vos.vela_lsp import Server
@@ -141,7 +142,50 @@ def _constant_fact_shape_is_bounded() -> None:
         raise AssertionError(f"constant projection accepted invalid compiler detail {detail!r}")
 
 
+def _compositional_signatures_and_recovery() -> None:
+    text = ("// 😀\r\nmodule Composition;\n"
+            "public const Nat Square(Nat value) => value * value;\n"
+            "public Nat Scale(const Nat factor, Nat value) {\r\n"
+            "  const Nat multiplier = Square(factor);\n"
+            "  return multiplier * value;\n}\n"
+            "public Nat Read(Nat value) => Scale(factor: 2, value: value);\n"
+            "public Nat Runtime(Nat value) => Square(value);")
+    server = _server()
+    ensure(_replace(server, text, 2) == [], "compositional const overlay was refused")
+    for line, column, expected in (
+            (2, 17, "public const Nat Square(Nat value)"),
+            (3, 27, "const factor: Nat"),
+            (4, 12, "const Nat multiplier")):
+        hover = _object(_query(server, "textDocument/hover", _params(line, column)))
+        detail = str(_object(hover.get("contents")).get("value"))
+        ensure(detail.split("\n", 1)[0] == expected,
+               f"constant function/parameter/template display differs: {detail!r}")
+    ensure(_query(server, "textDocument/definition", _params(4, 32)) == {
+        "uri": _URI, "range": _range(3, 27, 6)},
+        "symbolic static parameter reference lost its declaration identity")
+    invalid = text.replace("Scale(const Nat factor", "Scale(Nat factor")
+    ensure(len(_replace(server, invalid, 3)) == 1,
+           "removing a parameter's static requirement retained an invalid local constant")
+    ensure(_query(server, "textDocument/documentSymbol", {"textDocument": {"uri": _URI}}) == [],
+           "failed symbolic computation retained old editor declarations")
+    ensure(_replace(server, text, 4) == [], "restoring static parameter did not recover facts")
+
+
+def _authored_compositional_example() -> None:
+    source = (TOOLS / "vela/examples/constants.vela").read_bytes()
+    result = vela.translate(source).gallina
+    ensure("Definition c_StaticResult" in result and "(16 : Corelib.Init.Datatypes.nat)" in result,
+           "authored constant example lost its independently expected square")
+    process = result.split("Definition f_Process", 1)[1].split("Definition c_StaticResult", 1)[0]
+    ensure("(16 : Corelib.Init.Datatypes.nat)" in process and "f_Square" not in process,
+           "runtime example retained configuration-time plan computation")
+    ensure("Definition f_RuntimeSquare" in result and "f_Square" in result.rsplit("Definition f_RuntimeSquare", 1)[1],
+           "constant function could not also be used with a runtime input")
+
+
 def cases() -> list[Case]:
     return [Case("constant-definitions-symbols-hover-and-hints", _constant_navigation_and_display),
             Case("static-dependency-diagnostics-invalidate-and-recover", _static_failures_invalidate_and_recover),
-            Case("constant-fact-display-boundary", _constant_fact_shape_is_bounded)]
+            Case("constant-fact-display-boundary", _constant_fact_shape_is_bounded),
+            Case("compositional-signatures-and-overlay-recovery", _compositional_signatures_and_recovery),
+            Case("authored-compositional-constant-example", _authored_compositional_example)]
