@@ -165,6 +165,15 @@ def _formatter_transport_and_limits() -> None:
     snapshot = SourceSnapshot(_URI, 1, _TEXT, 1)
     valid = _format(snapshot.source)
     ensure(formatting_edits(snapshot, valid) == _edits((1, 32)), "valid format worker result was refused")
+    success = subprocess.CompletedProcess([], 0, json.dumps(valid).encode(), b"")
+    with patch("vos.vela_lsp_format.subprocess.run", return_value=success) as worker:
+        ensure(format_document(snapshot.source) == valid, "valid worker transport was refused")
+        args, kwargs = worker.call_args
+        command = args[0]
+        ensure(command[0] == sys.executable and command[1] == "-I" and command[-1] == "--format"
+               and kwargs["input"] == snapshot.source and kwargs["timeout"] == 5
+               and kwargs["capture_output"] is True and kwargs["check"] is False,
+               "formatter isolation, source input or bounded execution changed")
     for raw in ({}, {**valid, "extra": True}, {**valid, "source_sha256": "0" * 64},
                 {**valid, "formatted": ""}, {**valid, "formatted": "x" * 65_537},
                 {**valid, "formatted": 1}, {**valid, "formatted": "\ud800"},
@@ -191,7 +200,7 @@ def _formatter_transport_and_limits() -> None:
         server.formatter = format_document
         _error(server, "textDocument/formatting", _params(True), -32803)
     # This compact valid input expands beyond the source bound with Allman layout.
-    huge = "module M;" + "".join(f"public Nat F{i}()=>1;" for i in range(2_300))
+    huge = "module M;" + "".join(f"public Nat F{i}()=>1;" for i in range(2_700))
     ensure(len(huge.encode()) <= 65_536, "expansion fixture exceeds source bound before formatting")
     translate(huge.encode())
     report = _format(huge.encode())

@@ -155,7 +155,8 @@ def _located_tree_bounds() -> None:
         for child, message in (({"kind": "child", "span": [7, 8]}, None),
                                ({"kind": "child", "span": [10, 11]}, "parent"),
                                ({"kind": "child", "span": [16, 17]}, "UTF-8"),
-                               ({"kind": "child", "span": [7, 8], "value": "\ud800"}, "Unicode")):
+                               ({"kind": "child", "span": [7, 8], "value": "\ud800"}, "Unicode"),
+                               ({"kind": "child", "span": [7, 8], "\ud800": "value"}, "Unicode")):
             # The UTF-8 case needs its parent to cover the comment containing é.
             end = len(source) if message == "UTF-8" else 9
             ast = {"kind": "file", "span": [0, end], "declarations": [child]}

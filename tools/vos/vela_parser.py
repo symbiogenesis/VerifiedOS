@@ -212,6 +212,11 @@ def _validate_tree(value: Json, source: bytes) -> None:
         if isinstance(current, list):
             pending.extend((child, parent, depth) for child in current)
         elif isinstance(current, dict):
+            for key in current:
+                try:
+                    key.encode("utf-8")
+                except UnicodeEncodeError as error:
+                    raise ValueError("native parser returned a non-Unicode syntax key") from error
             if "kind" in current:
                 depth += 1
                 if depth > MAX_SYNTAX_DEPTH:

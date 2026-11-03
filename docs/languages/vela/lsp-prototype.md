@@ -44,6 +44,9 @@ Only complete sources accepted by the pure checker provide navigation; incomplet
 or unsupported code continues to receive the producer's diagnostic.
 Editors with standard inlay-hint support can also show inferred local `Nat` and
 `bool` types through the [authoring-hint provider](#authoring-hints).
+The [pure editor operations](#pure-editor-operations) supply full semantic tokens
+for resolved identifiers and standard document formatting. A formatting request
+offers the compiler's canonical layout as an edit for the client to apply.
 
 ## Interface and bounds
 

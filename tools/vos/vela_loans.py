@@ -196,7 +196,7 @@ class _Budget:
             raise AnalysisRefusalError("analysis work budget exhausted; no complete report")
 
 
-def _name(value: str) -> None:
+def _name(value: object) -> None:
     if not isinstance(value, str) or len(value) > 128 or not _NAME.fullmatch(value):
         raise AnalysisRefusalError("identities must be nonempty normalized identifiers")
 
@@ -283,9 +283,10 @@ def _validate(owners: tuple[Owner, ...], graph: Graph, limits: Limits,
         if isinstance(node.event, Borrow) and not isinstance(node.event.loan, Loan):
             raise AnalysisRefusalError("borrow must contain an immutable Loan record")
         binder = _binder(node.event)
-        if binder is not None:
+        if isinstance(node.event, (Borrow, Bind, Move)):
             _name(binder)
-            known.add(binder)
+            if binder is not None:
+                known.add(binder)
         if isinstance(node.event, OpenInvariant):
             _name(node.event.name)
             invariants.add(node.event.name)
