@@ -1,0 +1,39 @@
+{
+  "schema": 1,
+  "read_date": "2026-11-03",
+  "previous_version": "26.12.0",
+  "selected_version": "26.13.0",
+  "scope": "Host-side Wasm oracle runtime only. Official binaries remain external lane-local tools; no Node source, executable or package is distributed here. CertiRocq/prover pins remain unchanged.",
+  "release": {
+    "version": "26.13.0",
+    "release_date": "2026-10-28",
+    "source_url": "https://nodejs.org/dist/v26.13.0/SHASUMS256.txt",
+    "sha256": {
+      "node-v26.13.0-linux-arm64.tar.xz": "406fe3fbde1c054adff8b297c16fdb5af6659db327c1ac8acd46b56ef1af9a92",
+      "node-v26.13.0-linux-x64.tar.xz": "d28a96af6c38596f6d9d97c0ee531c13d238d757742387d1928de822d959e997"
+    },
+    "license_url": "https://github.com/nodejs/node/blob/v26.13.0/LICENSE",
+    "license_git_blob": "fc7b8c7d2111e12c10dca5b54e8ded99f6bf1d56",
+    "license_sha256": "8e603aa87c70d36e497004f0dec63111511cb61b7d65ace12e10ea791599286c",
+    "license_bytes": 156386,
+    "license_byte_identical_to_26_12_0": true,
+    "old_license_git_blob": "fc7b8c7d2111e12c10dca5b54e8ded99f6bf1d56"
+  },
+  "validation": {
+    "shell_syntax": {
+      "command": "sh -n tools/wasm-oracle/node.sh",
+      "exit_code": 0
+    },
+    "native_runtime": {
+      "node": "v26.13.0",
+      "architecture": "arm64",
+      "verified_official_archive": true,
+      "positive_wasm_result": true,
+      "false_result_control": true,
+      "truncated_module_refused": true,
+      "exit_code": 0,
+      "output": "{\"node\":\"v26.13.0\",\"arch\":\"arm64\",\"wasm_positive\":true,\"false_result_control\":true,\"truncated_module_refused\":true}"
+    },
+    "scope_limit": "These focused runtime controls do not compile Gallina or qualify a new CertiRocq output. The complete-vector component comparison and hosted acceptance remain pending for the changed runtime."
+  }
+}
