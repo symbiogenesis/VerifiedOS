@@ -576,7 +576,7 @@ def cmd_vectors(args: argparse.Namespace) -> int:
 def _compare(want: Path, got: Path) -> tuple[list[str], int, int, int]:
     """The two texts, line against line, with the sides named for this cross-check.
 
-    The comparison itself is [vos/sailrig.py](vos/sailrig.py)'s, three tools making it
+    The comparison itself is [sailrig.compare](../sailrig.py#compare)'s, three tools making it
     now; what stays here is which side is which, `a` and `b` meaning nothing to a
     reader looking for a disagreement between the model and the RTL.
     """
@@ -911,7 +911,7 @@ def _substitution_modules(root: Path, subs: tuple[Substitution, ...]
 class Diff:
     """The two inventories partitioned, one member per thing a reader does with it.
 
-    `removed` is the column [the provenance record](../rtl/synthesis-provenance.md)
+    `removed` is the column [the provenance record](../../../rtl/synthesis-provenance.md)
     speaks about and stays exactly that, every kind a substitution can account for
     having been taken out of it into `displaced`. `unexplained` and `inert` are the two
     findings, and they are opposite failures of one declaration: a module the curated

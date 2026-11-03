@@ -7,17 +7,17 @@ The CertiCoq -> Wasm oracle (M1.5) runs Gallina components on a stock engine and
 to write down. This tool is the missing side, and it comes in two halves that answer
 the same question at different prices.
 
-[quickchick/Vectors.v](quickchick/Vectors.v) is the half that runs today: a domain
+[quickchick/Vectors.v](../../quickchick/Vectors.v) is the half that runs today: a domain
 declared in Gallina, walked exhaustively, printing one line of text per point. It
 loads Stdlib alone, it is compiled in the proof gate's own switch, and its output is a
 text file, which is the form both earlier model-as-oracle rigs crossed in.
 
-[quickchick/Properties.v](quickchick/Properties.v) is the half that needs an install:
+[quickchick/Properties.v](../../quickchick/Properties.v) is the half that needs an install:
 random generators and `forAll` over them, which reach a range rather than a list, drawn
 from a seed the harness fixes so a verdict replays, a refuting draw printed as drawn
 because `forAll` shrinks nothing. A property set whose domain holds no more points
 than the draws QuickChick spends on it is decided instead by
-[quickchick/Walks.v](quickchick/Walks.v), which loads Stdlib alone and walks the whole
+[quickchick/Walks.v](../../quickchick/Walks.v), which loads Stdlib alone and walks the whole
 domain, and `properties` runs both. The install is made, in a switch of its own, and
 `check` reports which commit that switch's QuickChick was built from. No QuickChick
 release installs beside Rocq 9.3.0, so `RECIPE` below builds it at that release from
@@ -31,12 +31,12 @@ to run in the switch the recipe builds, which a refresh of the pins builds and c
 ahead of its lock in a root that does not already hold the provisioned switch of that
 name.
 
-[quickchick/FreezeModel.v](quickchick/FreezeModel.v) is a third harness and a different
+[quickchick/FreezeModel.v](../../quickchick/FreezeModel.v) is a third harness and a different
 question: not *what does this artifact answer* but *do the two statements of one
 arithmetic agree*. R-15-036i makes the instruction dictionary a permanent freeze-time
 commitment, so the density model over it is the one arithmetic in this tree whose wrong
 answer invalidates stored code rather than costing a recompile, and it is therefore
-written down twice on purpose, in [vos/freezemodel.py](freezemodel.py) and in that
+written down twice on purpose, in [vos/freezemodel.py](../freezemodel.py) and in that
 harness, and compared. `freeze` below runs the second and holds it against the first and
 both against the four figures the register's own prose quotes.
 
