@@ -57,7 +57,7 @@ def _python_comments_and_docstrings() -> None:
 def _comment_dialects_and_reference_links() -> None:
     cases = {
         "proof.v": 'Definition text := "[decoy](missing.py)".\n'
-                   '(* Outer (* nested [target](target.py#Worker) *) remains. *)\n',
+                   '(* Outer "*)" (* nested [target](target.py#Worker) *) remains. *)\n',
         "model.sail": "val identity : forall 'a, 'a -> 'a\n"
                       '// [target][worker]\n//\n// [worker]: target.py#Worker\n'
                       'let text = "[decoy](missing.py)"\n',
@@ -67,11 +67,22 @@ def _comment_dialects_and_reference_links() -> None:
         "main.c": "char c = '/'; char *text = \"[decoy](missing.py)\";\n"
                   '/* A quote " inside a comment must not swallow its ending.\n'
                   ' * [target](target.py#Worker)\n */\n',
+        "main.cpp": 'auto text = R"custom(quote " // [decoy](missing.py)\n'
+                    '/* still data */)custom";\n'
+                    '// [target](target.py#Worker)\n',
     }
     for rel, text in cases.items():
         refs = list(source_refs.references(rel, text))
         ensure(len(refs) == 1 and refs[0].target == "target.py#Worker",
                f"{rel} must read comment links and ignore string decoys: {refs}")
+    continued = '// continued comment \\\n [target](target.py#Worker)\n'
+    refs = list(source_refs.references("main.c", continued))
+    ensure(len(refs) == 1 and refs[0].target == "target.py#Worker",
+           f"C backslash-newline comments retain their continued prose: {refs}")
+    for rel, text in (("main.c", "/* [decoy] */ int x; /* (missing.py) */"),
+                      ("proof.v", "(* [decoy] *) Definition x := 0. (* (missing.py) *)")):
+        ensure(not list(source_refs.references(rel, text)),
+               f"{rel}: distinct comments cannot fabricate one Markdown link")
     for rel, text in (("proof.v", "(* unfinished"), ("model.sail", "/* unfinished")):
         try:
             list(source_refs.references(rel, text))

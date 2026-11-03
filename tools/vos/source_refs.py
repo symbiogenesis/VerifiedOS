@@ -18,7 +18,7 @@ from collections.abc import Iterator
 from dataclasses import dataclass
 from functools import cache
 from pathlib import Path, PurePosixPath
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, override
 from urllib.parse import unquote, urlsplit
 
 from vos import proofcites, prooflex, sailbundle
@@ -32,8 +32,9 @@ SUFFIXES = frozenset({".py", ".v", ".sail", ".c", ".h", ".cc", ".cpp", ".hpp",
                       ".sv", ".svh"})
 _HISTORICAL = "docs/implementation/retained-evidence/"
 _QUOTES = re.compile(r"(?i)^[rub]*(\"\"\"|'''|\"|')")
-_C_TOKEN = re.compile(r'"(?:\\[\s\S]|[^"\\])*"|//[^\r\n]*|/\*|\*/')
+_C_TOKEN = re.compile(r'"(?:\\[\s\S]|[^"\\])*"|//(?:\\\r?\n|[^\r\n])*|/\*|\*/')
 _C_CHAR = re.compile(r"'(?:\\[^\r\n]|[^'\\\r\n])*'")
+_CPP_RAW = r'(?:u8|u|U|L)?R"(?P<raw_delimiter>[^\s()\\]{0,16})\('
 _BLOCK_TOKEN = re.compile(r"/\*|\*/")
 
 
@@ -91,9 +92,10 @@ def _python(text: str) -> Iterator[tuple[int, str]]:
     yield 1, "\n".join(comments)
 
 
-def _c_comments(text: str, *, chars: bool, nested: bool) -> Iterator[tuple[int, str]]:
+def _c_comments(text: str, *, chars: bool, nested: bool, cpp: bool) -> Iterator[tuple[int, str]]:
     """Locate C-like comments, without treating Sail/SV apostrophes as strings."""
-    pattern = re.compile(_C_TOKEN.pattern + ("|" + _C_CHAR.pattern if chars else ""))
+    pattern = re.compile((_CPP_RAW + "|" if cpp else "") + _C_TOKEN.pattern
+                         + ("|" + _C_CHAR.pattern if chars else ""))
     depth = start = at = 0
     while token := (_BLOCK_TOKEN if depth else pattern).search(text, at):
         at = token.end()
@@ -105,6 +107,12 @@ def _c_comments(text: str, *, chars: bool, nested: bool) -> Iterator[tuple[int, 
                 depth -= 1
                 if not depth:
                     yield start, text[start + 2:token.start()]
+        elif cpp and (delimiter := token.group("raw_delimiter")) is not None:
+            ending = ")" + delimiter + '"'
+            end = text.find(ending, at)
+            if end < 0:
+                raise ValueError("unterminated C++ raw string")
+            at = end + len(ending)
         elif value == "/*":
             depth, start = 1, token.start()
         elif value.startswith("//"):
@@ -121,22 +129,23 @@ def prose(rel: str, text: str) -> Iterator[tuple[int, str]]:
         return
     if suffix == ".v":
         regions = []
-        for part in prooflex.regions(text, strings_in_comments=False):
+        for part in prooflex.regions(text, strings_in_comments=True):
             if not part.closed:
                 raise ValueError("unclosed string/comment or unmatched comment ending")
             if part.kind == "comment":
                 regions.append((part.start, text[part.start + 2:part.end - 2]))
     else:
         regions = list(_c_comments(text, chars=suffix not in {".sail", ".sv", ".svh"},
-                                   nested=suffix == ".sail"))
+                                   nested=suffix == ".sail", cpp=suffix in {".cc", ".cpp", ".hpp"}))
     projected = [""] * len(text.split("\n"))
     starts = [0, *(match.end() for match in re.finditer("\n", text))]
     for start, body in regions:
         line = bisect_right(starts, start) - 1
         for offset, value in enumerate(_normal(body).split("\n")):
             # Conventional block-comment '*' margins have no Markdown meaning.
-            value = re.sub(r"^[ \t]*\* ?", "", value)
-            projected[line + offset] += value
+            marginless = re.sub(r"^[ \t]*\* ?", "", value)
+            separator = " " if projected[line + offset] else ""
+            projected[line + offset] += separator + marginless
     yield 1, "\n".join(projected)
 
 
@@ -144,11 +153,14 @@ def prose(rel: str, text: str) -> Iterator[tuple[int, str]]:
 def _markdown() -> MarkdownIt:
     from markdown_it import MarkdownIt  # noqa: PLC0415
 
-    parser = MarkdownIt("commonmark")
-    # Validation reads destinations, never renders or opens them. Keep unsafe
-    # file: destinations visible so the local-path policy can refuse them.
-    parser.validateLink = lambda _url: True
-    return parser
+    class LinkParser(MarkdownIt):
+        @override
+        def validateLink(self, url: str) -> bool:
+            # Validation reads destinations, never renders or opens them. Keep
+            # file: destinations visible so local-path policy can refuse them.
+            return True
+
+    return LinkParser("commonmark")
 
 
 def references(rel: str, text: str) -> Iterator[Reference]:
@@ -156,7 +168,7 @@ def references(rel: str, text: str) -> Iterator[Reference]:
     for start, block in prose(rel, text):
         lines = block.split("\n")
         for token in _markdown().parse(block):
-            if token.type != "inline" or not token.children or token.map is None:
+            if token.type != "inline" or token.children is None or token.map is None:
                 continue
             cursor = token.map[0]
             for child in token.children:
@@ -165,6 +177,8 @@ def references(rel: str, text: str) -> Iterator[Reference]:
                 target = child.attrGet("href" if child.type == "link_open" else "src")
                 if target is None:
                     continue
+                if not isinstance(target, str):
+                    raise TypeError("Markdown link destination is not text")
                 # Inline tokens have block source maps. Locate an explicit URL
                 # within that block when available; reference-style links retain
                 # the referring block's first line rather than the definition's.
@@ -177,7 +191,7 @@ def _local(source: str, target: str) -> tuple[str, str] | None:
     parsed = urlsplit(target)
     if re.match(r"^[A-Za-z]:", target):
         raise ValueError("local references cannot use a Windows drive path")
-    if parsed.scheme and parsed.scheme != "file" or parsed.netloc:
+    if (parsed.scheme and parsed.scheme != "file") or parsed.netloc:
         return None
     path, fragment = unquote(parsed.path), unquote(parsed.fragment)
     if (parsed.scheme or parsed.query or "\\" in path or "\0" in path
@@ -233,7 +247,7 @@ def python_names(text: str) -> set[str]:
                     names.update(prefix + name for name in bindings(target))
             elif isinstance(node, ast.AnnAssign) and isinstance(node.target, ast.Name):
                 names.add(prefix + node.target.id)
-            elif isinstance(node, ast.TypeAlias) and isinstance(node.name, ast.Name):
+            elif isinstance(node, ast.TypeAlias):
                 names.add(prefix + node.name.id)
             else:
                 # Conditional declarations retain their lexical owner. Local
@@ -267,7 +281,7 @@ def findings(root: Path, corpus: Corpus) -> list[str]:
                     raise ValueError("Sail bundle and source identity must be indexed")
                 raw = _safe(root, sailbundle.BUNDLE).read_bytes()
                 owners = sailbundle.read_source_identity(root, raw)
-                sail = {owner: set() for owner in owners}
+                sail = {owner: set[str]() for owner in owners}
                 for declaration in sailbundle.parse(raw).declarations():
                     file = declaration.source.file
                     owner = f"{sailbundle.SOURCE_ROOT}/{file}"
@@ -290,6 +304,27 @@ def findings(root: Path, corpus: Corpus) -> list[str]:
                 raise ValueError(f"{rel}: fragments are unsupported for this target kind")
         return symbols[rel]
 
+    def validate(source: str, ref: Reference) -> None:
+        resolved = _local(source, ref.target)
+        if resolved is None:
+            return
+        target, fragment = resolved
+        if target in corpus.gitlinks and not fragment:
+            return
+        if target not in corpus.indexed:
+            prefix = target + "/" if target else ""
+            if any(rel.startswith(prefix) for rel in corpus.indexed):
+                if fragment:
+                    raise ValueError(f"{target}: directory references cannot select a fragment")
+                if not _safe(root, target).is_dir():
+                    raise ValueError(f"{target}: indexed directory is missing from the working tree")
+                return
+            raise ValueError(f"{target}: target is not an indexed file (paths are case-sensitive)")
+        if not _safe(root, target).is_file():
+            raise ValueError(f"{target}: indexed target is missing from the working tree")
+        if fragment and fragment not in declarations(target):
+            raise ValueError(f"{target}: no heading, anchor or supported declaration #{fragment}")
+
     sources = sorted(rel for rel in corpus.indexed if is_source(rel))
     if not sources:
         return ["the index carries no live source file for comment-reference validation"]
@@ -302,30 +337,12 @@ def findings(root: Path, corpus: Corpus) -> list[str]:
             if not re.search(r"\][ \t\r\n]*(?:\(|\[|:)", text):
                 continue
             refs = list(references(source, text))
-        except (OSError, UnicodeError, ValueError, SyntaxError, tokenize.TokenError) as exc:
+        except (OSError, UnicodeError, ValueError, TypeError, SyntaxError, tokenize.TokenError) as exc:
             faults.append(f"{source}: cannot read source references: {exc}")
             continue
         for ref in refs:
             try:
-                resolved = _local(source, ref.target)
-                if resolved is None:
-                    continue
-                target, fragment = resolved
-                if target in corpus.gitlinks and not fragment:
-                    continue
-                if target not in corpus.indexed:
-                    prefix = target + "/" if target else ""
-                    if any(rel.startswith(prefix) for rel in corpus.indexed):
-                        if fragment:
-                            raise ValueError(f"{target}: directory references cannot select a fragment")
-                        if not _safe(root, target).is_dir():
-                            raise ValueError(f"{target}: indexed directory is missing from the working tree")
-                        continue
-                    raise ValueError(f"{target}: target is not an indexed file (paths are case-sensitive)")
-                if not _safe(root, target).is_file():
-                    raise ValueError(f"{target}: indexed target is missing from the working tree")
-                if fragment and fragment not in declarations(target):
-                    raise ValueError(f"{target}: no heading, anchor or supported declaration #{fragment}")
+                validate(source, ref)
             except (OSError, UnicodeError, ValueError, SyntaxError, sailbundle.BundleError) as exc:
                 faults.append(f"{source}:{ref.line} {ref.target}: {exc}")
     return faults
