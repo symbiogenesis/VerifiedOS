@@ -21,7 +21,7 @@
       "tool": "Node.js",
       "subject": "the reviewed release",
       "reviewed": [
-        "26.12.0"
+        "26.13.0"
       ],
       "owners": [
         {
@@ -96,7 +96,7 @@
       "tool": "Z3",
       "subject": "the reviewed release and its licence tag",
       "reviewed": [
-        "5.3.2"
+        "5.3.3"
       ],
       "owners": [
         {
@@ -1011,7 +1011,7 @@
       "tool": "ty",
       "subject": "the reviewed release",
       "reviewed": [
-        "0.0.93"
+        "0.0.95"
       ],
       "owners": [
         {
@@ -1176,7 +1176,7 @@
       "tool": "pre-commit's dependencies",
       "subject": "nodeenv's locked release",
       "reviewed": [
-        "1.11.0"
+        "1.11.1"
       ],
       "owners": [
         {
@@ -1206,7 +1206,7 @@
       "tool": "pre-commit's dependencies",
       "subject": "virtualenv's locked release",
       "reviewed": [
-        "21.15.1"
+        "21.15.2"
       ],
       "owners": [
         {
@@ -1236,7 +1236,7 @@
       "tool": "pre-commit's dependencies",
       "subject": "filelock's locked release",
       "reviewed": [
-        "4.2.4"
+        "4.2.5"
       ],
       "owners": [
         {
@@ -1251,7 +1251,7 @@
       "tool": "pre-commit's dependencies",
       "subject": "platformdirs's locked release",
       "reviewed": [
-        "4.13.7"
+        "4.14.0"
       ],
       "owners": [
         {
@@ -1266,7 +1266,7 @@
       "tool": "pre-commit's dependencies",
       "subject": "python-discovery's locked release",
       "reviewed": [
-        "1.6.7"
+        "1.9.0"
       ],
       "owners": [
         {
@@ -2559,7 +2559,7 @@
       "id": "Verilator",
       "tool": "Verilator",
       "license": "`LGPL-3.0-only OR Artistic-2.0`, at the recipient's option",
-      "standing": "Elaborates and simulates RTL, pinned at **${verilator_0}**. The selected `v5.054` source archive and its `LICENSE` and `README.rst` were read on 2026-11-03; the latter states LGPL-3.0-only OR Artistic-2.0. The archive identity is recorded in [the dependency review](docs/implementation/evidence/verilator-20261103.json). Native RTL qualification remains with Guest CI.",
+      "standing": "Elaborates and simulates RTL, pinned at **${verilator_0}**. The selected `v${verilator_0}` source archive and its `LICENSE` and `README.rst` were read on 2026-11-03; the latter states LGPL-3.0-only OR Artistic-2.0. The archive identity is recorded in [the dependency review](docs/implementation/evidence/verilator-20261103.json). Native RTL qualification remains with Guest CI.",
       "reviews": [
         "verilator"
       ]
@@ -2568,7 +2568,7 @@
       "id": "Node.js",
       "tool": "Node.js",
       "license": "`MIT`, with dependency notices in the upstream `LICENSE`",
-      "standing": "Runs the host-side Wasm oracle. [The runtime helper](tools/wasm-oracle/node.sh) pins its release, verifies the official archive hash, and installs it under a versioned project prefix. The `LICENSE` was read at the pinned release's `v${node_js_1_0}` tag, blob `fc7b8c7d2111e12c10dca5b54e8ded99f6bf1d56`, and is read again when the pin moves.",
+      "standing": "Runs the host-side Wasm oracle. [The runtime helper](tools/wasm-oracle/node.sh) pins its release, verifies the official archive hash, and installs it under a versioned project prefix. The `LICENSE` was read at the pinned release's `v${node_js_1_0}` tag, blob `fc7b8c7d2111e12c10dca5b54e8ded99f6bf1d56`, and is read again when the pin moves. The [2026-11-03 runtime controls](docs/implementation/retained-evidence/node-runtime-20261103/manifest.json) bind the official archive and bounded Wasm checks; the full component comparison remains pending.",
       "reviews": [
         "node_js_1"
       ]
@@ -2620,7 +2620,7 @@
       "id": "Z3",
       "tool": "Z3",
       "license": "`MIT`",
-      "standing": "Sail's solver, installed at the pin in [env.py](tools/vos/env.py). The reviewed [${z3_6_0} LICENSE.txt](https://github.com/Z3Prover/z3/blob/z3-${z3_6_0}/LICENSE.txt), SHA-256 `e617cad2ab9347e3129c2b171e87909332174e17961c5c3412d0799469111337` and read on 2026-10-31, states MIT and credits Microsoft; the released `z3-solver` wheel's own metadata states `License: MIT License` and carries no licence file. Guest bootstrap and `run.py provision` install only the wheels whose SHA-256 values [the solver's requirements](tools/z3-requirements.txt) record, never a build from source, into a private prefix; no solver source or binary is distributed here.",
+      "standing": "Sail's solver, installed at the pin in [env.py](tools/vos/env.py). The reviewed [${z3_6_0} LICENSE.txt](https://github.com/Z3Prover/z3/blob/z3-${z3_6_0}/LICENSE.txt), SHA-256 `e617cad2ab9347e3129c2b171e87909332174e17961c5c3412d0799469111337` and read on 2026-11-03, states MIT and credits Microsoft; the released `z3-solver` wheel's own metadata states `License: MIT License` and carries no licence file. Guest bootstrap and `run.py provision` install only the wheels whose SHA-256 values [the solver's requirements](tools/z3-requirements.txt) record, never a build from source, into a private prefix; no solver source or binary is distributed here.",
       "reviews": [
         "z3_6"
       ]
@@ -2818,7 +2818,7 @@
       "id": "ty",
       "tool": "ty",
       "license": "`MIT`; embedded typeshed stubs `Apache-2.0` with MIT parts",
-      "standing": "Type-checks the tools in the same gate, at the `dev` group's pin. The reviewed `${ty_62_0}` tag of `astral-sh/ty` has an MIT `LICENSE`, blob `014835144877ea9c926d027ece3e1a26290cf481`, copyright 2025 Astral Software Inc. The binary embeds typeshed's stubs from that tag's `ruff` submodule at `48630fbe`, whose `crates/ty_vendored/vendor/typeshed/LICENSE`, blob `13264487581f82433dadf18a99613a7d215fd448`, is Apache-2.0 with MIT-licensed parts. No ty source or executable is redistributed here.",
+      "standing": "Type-checks the tools in the same gate, at the `dev` group's pin. The reviewed `${ty_62_0}` tag of `astral-sh/ty` has an MIT `LICENSE`, blob `014835144877ea9c926d027ece3e1a26290cf481`, copyright 2025 Astral Software Inc. The binary embeds typeshed's stubs from that tag's `ruff` submodule at `7cb935d9`, whose `crates/ty_vendored/vendor/typeshed/LICENSE`, blob `13264487581f82433dadf18a99613a7d215fd448`, is Apache-2.0 with MIT-licensed parts. No ty source or executable is redistributed here.",
       "reviews": [
         "ty_62"
       ]

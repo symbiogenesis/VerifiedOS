@@ -1,0 +1,2832 @@
+{
+  "review_date": "2026-11-03",
+  "base_revision": "5555428b6a7a4123a199009e66bec9f8a0dbd72d",
+  "scope": "Dated dependency review and focused development evidence; not a hosted acceptance receipt.",
+  "python": {
+    "reviewed_at_utc": "2026-11-03T07:17:33.269498+00:00",
+    "cooldown_cutoff_utc": "2026-10-31T07:17:33.269498+00:00",
+    "packages": [
+      {
+        "name": "application-file-scanner",
+        "locked": "0.6.4",
+        "latest": "0.6.4",
+        "cooldown_latest": "0.6.4",
+        "current_under_policy": true,
+        "source": "https://pypi.org/pypi/application-file-scanner/json"
+      },
+      {
+        "name": "application-properties",
+        "locked": "0.9.3",
+        "latest": "0.9.3",
+        "cooldown_latest": "0.9.3",
+        "current_under_policy": true,
+        "source": "https://pypi.org/pypi/application-properties/json"
+      },
+      {
+        "name": "attrs",
+        "locked": "26.1.0",
+        "latest": "26.1.0",
+        "cooldown_latest": "26.1.0",
+        "current_under_policy": true,
+        "source": "https://pypi.org/pypi/attrs/json"
+      },
+      {
+        "name": "cfgv",
+        "locked": "3.5.0",
+        "latest": "3.5.0",
+        "cooldown_latest": "3.5.0",
+        "current_under_policy": true,
+        "source": "https://pypi.org/pypi/cfgv/json"
+      },
+      {
+        "name": "columnar",
+        "locked": "1.4.1",
+        "latest": "1.4.1",
+        "cooldown_latest": "1.4.1",
+        "current_under_policy": true,
+        "source": "https://pypi.org/pypi/columnar/json"
+      },
+      {
+        "name": "distlib",
+        "locked": "0.4.4",
+        "latest": "0.4.4",
+        "cooldown_latest": "0.4.4",
+        "current_under_policy": true,
+        "source": "https://pypi.org/pypi/distlib/json"
+      },
+      {
+        "name": "filelock",
+        "locked": "4.2.5",
+        "latest": "4.2.7",
+        "cooldown_latest": "4.2.5",
+        "current_under_policy": true,
+        "source": "https://pypi.org/pypi/filelock/json"
+      },
+      {
+        "name": "identify",
+        "locked": "2.6.20",
+        "latest": "2.6.20",
+        "cooldown_latest": "2.6.20",
+        "current_under_policy": true,
+        "source": "https://pypi.org/pypi/identify/json"
+      },
+      {
+        "name": "jsonschema",
+        "locked": "4.26.0",
+        "latest": "4.26.0",
+        "cooldown_latest": "4.26.0",
+        "current_under_policy": true,
+        "source": "https://pypi.org/pypi/jsonschema/json"
+      },
+      {
+        "name": "jsonschema-specifications",
+        "locked": "2025.9.1",
+        "latest": "2025.9.1",
+        "cooldown_latest": "2025.9.1",
+        "current_under_policy": true,
+        "source": "https://pypi.org/pypi/jsonschema-specifications/json"
+      },
+      {
+        "name": "markdown-it-py",
+        "locked": "4.2.0",
+        "latest": "4.2.0",
+        "cooldown_latest": "4.2.0",
+        "current_under_policy": true,
+        "source": "https://pypi.org/pypi/markdown-it-py/json"
+      },
+      {
+        "name": "mdurl",
+        "locked": "0.1.2",
+        "latest": "0.1.2",
+        "cooldown_latest": "0.1.2",
+        "current_under_policy": true,
+        "source": "https://pypi.org/pypi/mdurl/json"
+      },
+      {
+        "name": "nodeenv",
+        "locked": "1.11.1",
+        "latest": "1.12.0",
+        "cooldown_latest": "1.11.1",
+        "current_under_policy": true,
+        "source": "https://pypi.org/pypi/nodeenv/json"
+      },
+      {
+        "name": "packaging",
+        "locked": "26.3",
+        "latest": "26.3",
+        "cooldown_latest": "26.3",
+        "current_under_policy": true,
+        "source": "https://pypi.org/pypi/packaging/json"
+      },
+      {
+        "name": "platformdirs",
+        "locked": "4.14.0",
+        "latest": "4.14.3",
+        "cooldown_latest": "4.14.0",
+        "current_under_policy": true,
+        "source": "https://pypi.org/pypi/platformdirs/json"
+      },
+      {
+        "name": "pre-commit",
+        "locked": "4.7.0",
+        "latest": "4.7.0",
+        "cooldown_latest": "4.7.0",
+        "current_under_policy": true,
+        "source": "https://pypi.org/pypi/pre-commit/json"
+      },
+      {
+        "name": "py-walk",
+        "locked": "0.3.3",
+        "latest": "0.3.3",
+        "cooldown_latest": "0.3.3",
+        "current_under_policy": true,
+        "source": "https://pypi.org/pypi/py-walk/json"
+      },
+      {
+        "name": "pyjson5",
+        "locked": "2.0.1",
+        "latest": "2.0.1",
+        "cooldown_latest": "2.0.1",
+        "current_under_policy": true,
+        "source": "https://pypi.org/pypi/pyjson5/json"
+      },
+      {
+        "name": "pymarkdownlnt",
+        "locked": "0.9.41",
+        "latest": "0.9.41",
+        "cooldown_latest": "0.9.41",
+        "current_under_policy": true,
+        "source": "https://pypi.org/pypi/pymarkdownlnt/json"
+      },
+      {
+        "name": "python-discovery",
+        "locked": "1.9.0",
+        "latest": "1.9.2",
+        "cooldown_latest": "1.9.0",
+        "current_under_policy": true,
+        "source": "https://pypi.org/pypi/python-discovery/json"
+      },
+      {
+        "name": "pyyaml",
+        "locked": "6.0.3",
+        "latest": "6.0.3",
+        "cooldown_latest": "6.0.3",
+        "current_under_policy": true,
+        "source": "https://pypi.org/pypi/pyyaml/json"
+      },
+      {
+        "name": "referencing",
+        "locked": "0.37.0",
+        "latest": "0.37.0",
+        "cooldown_latest": "0.37.0",
+        "current_under_policy": true,
+        "source": "https://pypi.org/pypi/referencing/json"
+      },
+      {
+        "name": "rpds-py",
+        "locked": "2026.9.1",
+        "latest": "2026.9.1",
+        "cooldown_latest": "2026.9.1",
+        "current_under_policy": true,
+        "source": "https://pypi.org/pypi/rpds-py/json"
+      },
+      {
+        "name": "ruff",
+        "locked": "0.17.3",
+        "latest": "0.17.3",
+        "cooldown_latest": "0.17.3",
+        "current_under_policy": true,
+        "source": "https://pypi.org/pypi/ruff/json"
+      },
+      {
+        "name": "sly",
+        "locked": "0.5",
+        "latest": "0.5",
+        "cooldown_latest": "0.5",
+        "current_under_policy": true,
+        "source": "https://pypi.org/pypi/sly/json"
+      },
+      {
+        "name": "tomli",
+        "locked": "2.5.0",
+        "latest": "2.5.0",
+        "cooldown_latest": "2.5.0",
+        "current_under_policy": true,
+        "source": "https://pypi.org/pypi/tomli/json"
+      },
+      {
+        "name": "toolz",
+        "locked": "1.2.0",
+        "latest": "1.2.0",
+        "cooldown_latest": "1.2.0",
+        "current_under_policy": true,
+        "source": "https://pypi.org/pypi/toolz/json"
+      },
+      {
+        "name": "ty",
+        "locked": "0.0.95",
+        "latest": "0.0.96",
+        "cooldown_latest": "0.0.95",
+        "current_under_policy": true,
+        "source": "https://pypi.org/pypi/ty/json"
+      },
+      {
+        "name": "typing-extensions",
+        "locked": "4.16.0",
+        "latest": "4.16.0",
+        "cooldown_latest": "4.16.0",
+        "current_under_policy": true,
+        "source": "https://pypi.org/pypi/typing-extensions/json"
+      },
+      {
+        "name": "virtualenv",
+        "locked": "21.15.2",
+        "latest": "21.15.2",
+        "cooldown_latest": "21.15.2",
+        "current_under_policy": true,
+        "source": "https://pypi.org/pypi/virtualenv/json"
+      },
+      {
+        "name": "wcwidth",
+        "locked": "0.9.4",
+        "latest": "0.9.4",
+        "cooldown_latest": "0.9.4",
+        "current_under_policy": true,
+        "source": "https://pypi.org/pypi/wcwidth/json"
+      },
+      {
+        "name": "zizmor",
+        "locked": "1.31.1",
+        "latest": "1.32.0",
+        "cooldown_latest": "1.31.1",
+        "current_under_policy": true,
+        "source": "https://pypi.org/pypi/zizmor/json"
+      },
+      {
+        "name": "uv",
+        "locked": "0.13.6",
+        "latest": "0.13.7",
+        "cooldown_latest": "0.13.6",
+        "current_under_policy": true,
+        "source": "https://pypi.org/pypi/uv/json"
+      }
+    ]
+  },
+  "python_license_readings": [
+    {
+      "name": "filelock",
+      "version": "4.2.5",
+      "url": "https://files.pythonhosted.org/packages/14/2d/2cf36eca330b7a97c0e9076e8fc4272127c29398fa2bb7b24d4321b8b476/filelock-4.2.5-py3-none-any.whl",
+      "sha256": "46ce42d27e5cdde09ee7197349663e97cb106679bd9e75db3a09679fbc7aa1a8",
+      "latest_asset_upload": "2026-10-30T19:27:22.237276Z",
+      "licenses": [
+        {
+          "path": "filelock-4.2.5.dist-info/licenses/LICENSE",
+          "sha256": "608c89d5060ae9921adccf3236695bc654a9946e12323ef6c021dfa04e294d48",
+          "git_blob": "291919c0b6f41d014767f6c877af9f7595fcff99"
+        }
+      ]
+    },
+    {
+      "name": "ty",
+      "version": "0.0.95",
+      "url": "https://files.pythonhosted.org/packages/39/08/d63954788578b9189dbf85081d8cbdba9a32a9a6a29729129a0da09cd3a0/ty-0.0.95.tar.gz",
+      "sha256": "a480853a74d43074b2d4b28025d406b9d7223f7fe9f3a6c2adec3eacdbf14ca0",
+      "latest_asset_upload": "2026-10-29T19:21:51.955948Z",
+      "licenses": [
+        {
+          "path": "ty-0.0.95/LICENSE",
+          "sha256": "860e3d7a86b84e6a7012c7a635fc64df475cebc6cce34dfeb73a5982ec58176c",
+          "git_blob": "014835144877ea9c926d027ece3e1a26290cf481"
+        },
+        {
+          "path": "ty-0.0.95/ruff/crates/ty_vendored/vendor/typeshed/LICENSE",
+          "sha256": "295f8538c94ae5c3043301cf7cff1c852dab6a786a8ddee471e061b40d5ecabe",
+          "git_blob": "13264487581f82433dadf18a99613a7d215fd448"
+        }
+      ]
+    },
+    {
+      "name": "nodeenv",
+      "version": "1.11.1",
+      "url": "https://files.pythonhosted.org/packages/40/35/a09e0b1dac4027e35b872e4f123a9f9e7bbc39e6424bdc9776920d3a6491/nodeenv-1.11.1-py2.py3-none-any.whl",
+      "sha256": "bc0fb085d8ed0d67a6471892535f3d9b795eb911b7cd129d3a24967aab7a538f",
+      "latest_asset_upload": "2026-10-29T20:54:04.261005Z",
+      "licenses": [
+        {
+          "path": "nodeenv-1.11.1.dist-info/licenses/LICENSE",
+          "sha256": "606faf42d48b54d539dae99db6fecd48544535587e27275b319a3f36113cb6fa",
+          "git_blob": "a087c8d694a12d9f113ab83e2eeb7adbfa1353cd"
+        }
+      ]
+    },
+    {
+      "name": "platformdirs",
+      "version": "4.14.0",
+      "url": "https://files.pythonhosted.org/packages/69/2b/887969ef4bb53e0cb271dc7c3f4a73d50c5d58bb88aeaae311e3340cd57e/platformdirs-4.14.0-py3-none-any.whl",
+      "sha256": "1dadfc59a8a5d7565b3d9270ae8fa71c065595352c4277b41c11ee6c222c4b91",
+      "latest_asset_upload": "2026-10-28T18:27:30.973421Z",
+      "licenses": [
+        {
+          "path": "platformdirs-4.14.0.dist-info/licenses/LICENSE",
+          "sha256": "29e0fd62e929850e86eb28c3fdccf0cefdf4fa94879011cffb3d0d4bed6d4db6",
+          "git_blob": "f35fed9191b1142ddaada8a96de4a9461c5d796c"
+        }
+      ]
+    },
+    {
+      "name": "python-discovery",
+      "version": "1.9.0",
+      "url": "https://files.pythonhosted.org/packages/cb/3c/da1cae963a076132dbc4d3c1f0292dd2f373b9d3e072d42f4620801159c1/python_discovery-1.9.0-py3-none-any.whl",
+      "sha256": "fb65edfff3541b7ceb3a39be334a0f69f4cb5148287a053e1874748742fda93b",
+      "latest_asset_upload": "2026-10-30T23:24:24.910342Z",
+      "licenses": [
+        {
+          "path": "python_discovery-1.9.0.dist-info/licenses/LICENSE",
+          "sha256": "90e25e1faf2a4aaea8d95ee8e7f5738b052a1acc0c9c58068101f931a86bd588",
+          "git_blob": "364982344fbd94d55705e1f27a9a87abaa255333"
+        }
+      ]
+    },
+    {
+      "name": "virtualenv",
+      "version": "21.15.2",
+      "url": "https://files.pythonhosted.org/packages/38/9e/40c7098240cedd3a2f32e42a74b35c4563c617fdd7e41ae6268d4fdd8915/virtualenv-21.15.2.tar.gz",
+      "sha256": "dbd886e6e5689eb4dde6a9bbc478ad14b4fc8ed0852690d8273ccfb8c467f635",
+      "latest_asset_upload": "2026-10-30T19:18:04.759827Z",
+      "licenses": [
+        {
+          "path": "virtualenv-21.15.2/LICENSE",
+          "sha256": "38ef740a641ff08df082680e98ab30d09badccee9e5fb686bce21212f3a663f0",
+          "git_blob": "99598eb01766f838b130ff04c02103c1418215e1"
+        },
+        {
+          "path": "virtualenv-21.15.2/THIRD-PARTY-NOTICES.md",
+          "sha256": "edcfad5b7c374e6af94d1c3ddb069bed087ba6f573664fb5fb2da5c9cc240d24",
+          "git_blob": "107e3e0418e26691f3c1b3385942f2dd5fb54601"
+        }
+      ]
+    }
+  ],
+  "python_hook_qualification": {
+    "verdict": "pass",
+    "scope": "Four representative Python hooks in an external temporary Git fixture on Windows ARM64; full model hook suite remains hosted-only.",
+    "hooks": [
+      "check-yaml",
+      "clang-format",
+      "forbid-tabs",
+      "codespell"
+    ],
+    "environment_policy": {
+      "empty_PRE_COMMIT_HOME": true,
+      "empty_VIRTUALENV_OVERRIDE_APP_DATA": true,
+      "PIP_LOG": "separate retained file per run",
+      "PIP_UPLOADED_PRIOR_TO": "P3D",
+      "first_run_constraints": false,
+      "second_run_constraints": "both existing absolute-path constraint files"
+    },
+    "virtualenv": "21.15.2",
+    "python": "3.14.10 (tags/v3.14.10:b703b2c, Oct 25 2026, 18:26:59) [MSC v.1944 64 bit (ARM64)]",
+    "temporary_fixture_removed": true,
+    "inputs": {
+      "model/.pre-commit-config.yaml": "17a94d2ba61a1418a62cfe869204b060d8bda5d3069aa6909e6f28f670c38732",
+      "tools/ci/model-hooks-constraints.txt": "10956058b0ad66c7cd97ef5d4c3dcb96d544e4529d5798d75c344bc58fee509a",
+      "tools/ci/model-hooks-build-constraints.txt": "105a51d9d7ff8f13f62da2f8bf98c72cd04264de067e508ca7214c8ba29ccf64",
+      "tools/uv.lock": "3ec7b8f3b137af6405df6ea1085da2c789611bcb05bb5297ff7292f0a1824c12",
+      "tools/pyproject.toml": "3d1bbd38f558a98c46d87ba87ac62f360cca55dafd9ba42c323acb162e46b781"
+    },
+    "comparisons": [
+      {
+        "mode": "unconstrained",
+        "runtime_dependencies": {
+          "ruamel-yaml": "0.19.1",
+          "clang-format": "23.1.3",
+          "rapidfuzz": "3.14.6"
+        },
+        "build_dependencies": {
+          "setuptools": "84.2.1",
+          "packaging": "26.3",
+          "setuptools-scm": "10.3.4",
+          "vcs-versioning": "2.6.0"
+        },
+        "hooks_exit": 0,
+        "embedded_pip": "26.2.2"
+      },
+      {
+        "mode": "constrained",
+        "runtime_dependencies": {
+          "ruamel-yaml": "0.19.1",
+          "rapidfuzz": "3.14.6",
+          "clang-format": "23.1.3"
+        },
+        "build_dependencies": {
+          "setuptools": "84.2.1",
+          "packaging": "26.3",
+          "setuptools-scm": "10.3.4",
+          "vcs-versioning": "2.6.0"
+        },
+        "hooks_exit": 0,
+        "embedded_pip": "26.2.2"
+      }
+    ],
+    "same_installed_closures": true,
+    "constraint_changes_required": false
+  },
+  "native": {
+    "reviewed": "2026-11-03",
+    "base_revision": "5555428b6a7a4123a199009e66bec9f8a0dbd72d",
+    "revision": "7c2bef84638d390a5a95d9a87b599ebedf672b37",
+    "changed_paths": {
+      "model/dependencies/CLI11/CMakeLists.txt": "ce8d3be765a8f2c4ff3e7357da9d1c15bcae5a6a4150865640d18d138e0a73ff",
+      "tools/memory-planner/idealloc.Cargo.lock": "61dd57932fa3eb330e2f7e1d403be69bcb1dd4ad52ebaf943a855ca577bbf2e6",
+      "tools/memory-planner/idealloc.json": "3f5393b191db4e1986b3d3c72413473fea1cb1ce1ef8f4a9af0d1827bff8ceb3",
+      "tools/memory-planner/interfaces.json": "1a22505b1922317bd83bfd582bc34c94a153b443451a54d50456f34bc9ca9e2f",
+      "tools/sail-isla/driver/Cargo.lock": "37dd26d1942364a5f9fab568c13bb1b532fd800a4d853bd3623535adbef9a188",
+      "tools/sail-isla/isla.Cargo.lock": "064d8e1216e588574ac5f3b9423abf7941b38992521f159d1ed58cecbc5e4776",
+      "tools/sail-isla/lock.json": "c4f2a5c52111be76f62c45b3e6f5b8018755e66469a35c0e49ff6100f3027eeb",
+      "tools/tests/test_env.py": "9c9c6c5b1a9cac9078846b3dfbf906e987137970fb02d424867f38666e501ce1",
+      "tools/vos/env.py": "3e789f9d53e7ba4b2edf660e861a9fc8ba0c02caef4979aa206f7b822234ac14",
+      "tools/z3-requirements.txt": "c73c7ba056c3803f7dcd8bc0af2b63cedecaec9e30087a65dd9bb3416a5a981b"
+    },
+    "selected": {
+      "z3": {
+        "old": "5.3.2",
+        "new": "5.3.3",
+        "source": "https://github.com/Z3Prover/z3/releases/tag/z3-5.3.3",
+        "wheel_hash_owner": "tools/z3-requirements.txt"
+      },
+      "cli11": {
+        "old": "08ca3298f6704bfe652f5b85e1bc22dc2800ac5f",
+        "new": "1764a057b760e8873eab03f4635b4aaed5303a04",
+        "archive_sha256": "6fa7a14f662be8461af1c1d3cf8f7a56b99492067127c986fdc9ec0dbd4f3e6a",
+        "source": "https://github.com/CLIUtils/CLI11/tree/1764a057b760e8873eab03f4635b4aaed5303a04"
+      },
+      "tflm": {
+        "old": "0b059d2cf82882386b7f8d074d77d645250cd599",
+        "new": "964e43d7ee3e82fe6abb6075b7f50506eafce79b",
+        "pinned_header_and_license_bytes": "identical",
+        "source": "https://github.com/tensorflow/tflite-micro/tree/964e43d7ee3e82fe6abb6075b7f50506eafce79b"
+      }
+    },
+    "unchanged": {
+      "rust": {
+        "version": "1.99.1",
+        "reason": "latest stable; 1.100 beta remains unreleased",
+        "source": "https://blog.rust-lang.org/releases/"
+      },
+      "asio": {
+        "version": "1.38.2",
+        "reason": "latest tag",
+        "source": "https://github.com/chriskohlhoff/asio/tags"
+      },
+      "jsoncons": {
+        "version": "1.10.0",
+        "reason": "latest release",
+        "source": "https://github.com/danielaparker/jsoncons/releases"
+      },
+      "elfio": {
+        "revision": "660e90514a2e80fba1c55f2cee07bbeda3d1c601",
+        "reason": "unchanged default-branch head",
+        "source": "https://github.com/serge1/ELFIO"
+      },
+      "openssl": {
+        "version": "3.5.9",
+        "latest_major": "4.1.0",
+        "reason": "latest patch in selected 3.5 LTS line",
+        "source": "https://github.com/openssl/openssl/releases"
+      },
+      "softfloat": {
+        "revision": "a0c6494cdc11865811dec815d5c0049fba9d82a8",
+        "targeted_fix": "73e3f397e84d6d2a34bded52b0a77af3f4062ac2",
+        "latest_tip": "07ebd29db0cfb55723a79fbbffe99103ef38e305",
+        "reason": "Current bounded adoption preserves all other bytes and adds no BF16 arithmetic; later tip changes that source boundary.",
+        "source": "https://github.com/ucb-bar/berkeley-softfloat-3"
+      },
+      "acvp": {
+        "revision": "975de31eb83d87039ec88934fdc47d8c312b892d",
+        "reason": "unchanged default-branch head",
+        "source": "https://github.com/usnistgov/ACVP-Server"
+      },
+      "model_tests": {
+        "version": "2026-08-20",
+        "reason": "latest release",
+        "source": "https://github.com/riscv-software-src/sail-riscv-tests/releases"
+      },
+      "idealloc": {
+        "revision": "3b7eb67f234905ebccb90e252b220189770c9dcb",
+        "reason": "unchanged default-branch head"
+      },
+      "lrat_isa": {
+        "revision": "99b832b501f473f7890f20b99755b5ace86eae48",
+        "reason": "unchanged default-branch head"
+      },
+      "cadical": {
+        "revision": "c60730422e758ef1cebe7aeddf2dda31c996bf04",
+        "release": "rel-3.0.1",
+        "reason": "unchanged default-branch head/latest release"
+      },
+      "executorch": {
+        "version": "1.5.1",
+        "reason": "latest release"
+      },
+      "minimalloc": {
+        "revision": "9f5cf810fec4494df473c23cffd0567989e81b69",
+        "reason": "unchanged default-branch head"
+      },
+      "isla": {
+        "revision": "e9b5d945394277656593a0d429466d7fa0a2b4b3",
+        "reason": "unchanged default-branch head"
+      },
+      "isla_testgen": {
+        "revision": "ee2d7efcec993fdb364bd74788b4fd39e857d151",
+        "reason": "unchanged default-branch head; nested Isla stays bcc7ee8463a8fed5911ccf7167da5a82f7b5e4db"
+      },
+      "lsp": {
+        "version": "1.28.0",
+        "reason": "latest release"
+      }
+    },
+    "cargo": {
+      "isla": {
+        "accepted": [
+          {
+            "name": "log",
+            "from": "0.4.34",
+            "to": "0.4.35"
+          },
+          {
+            "name": "smallvec",
+            "from": "1.16.3",
+            "to": "1.16.4"
+          }
+        ],
+        "refused": [
+          {
+            "name": "ahash",
+            "version": "0.8.12",
+            "reason": "the isla lock override changes an undeclared package"
+          },
+          {
+            "name": "getopts",
+            "version": "0.2.24",
+            "reason": "overridden isla lock package is not unique: unicode-width"
+          },
+          {
+            "name": "libredox",
+            "version": "0.1.25",
+            "reason": "the isla lock override changes an undeclared package"
+          },
+          {
+            "name": "lock_api",
+            "version": "0.4.14",
+            "reason": "the isla lock override for lock_api is not the declared version alone"
+          },
+          {
+            "name": "num-bigint",
+            "version": "0.4.8",
+            "reason": "the isla lock override for num-bigint is not the declared version alone"
+          },
+          {
+            "name": "parking_lot",
+            "version": "0.12.5",
+            "reason": "the isla lock override changes an undeclared package"
+          },
+          {
+            "name": "parking_lot_core",
+            "version": "0.9.12",
+            "reason": "the isla lock override changes an undeclared package"
+          },
+          {
+            "name": "phf_shared",
+            "version": "0.11.3",
+            "reason": "help: if this error is too confusing you may wish to retry without `--offline`"
+          },
+          {
+            "name": "ppv-lite86",
+            "version": "0.2.21",
+            "reason": "overridden isla lock package is not unique: zerocopy"
+          },
+          {
+            "name": "redox_syscall",
+            "version": "0.5.18",
+            "reason": "help: if this error is too confusing you may wish to retry without `--offline`"
+          },
+          {
+            "name": "serde",
+            "version": "1.0.229",
+            "reason": "the isla lock override changes an undeclared package"
+          },
+          {
+            "name": "serde_derive",
+            "version": "1.0.229",
+            "reason": "help: if this error is too confusing you may wish to retry without `--offline`"
+          },
+          {
+            "name": "siphasher",
+            "version": "1.0.4",
+            "reason": "help: if this error is too confusing you may wish to retry without `--offline`"
+          },
+          {
+            "name": "string_cache",
+            "version": "0.8.9",
+            "reason": "the isla lock override for string_cache is not the declared version alone"
+          },
+          {
+            "name": "thiserror",
+            "version": "1.0.69",
+            "reason": "the isla lock override changes an undeclared package"
+          },
+          {
+            "name": "thiserror-impl",
+            "version": "1.0.69",
+            "reason": "help: if this error is too confusing you may wish to retry without `--offline`"
+          },
+          {
+            "name": "winapi-util",
+            "version": "0.1.11",
+            "reason": "the isla lock override changes an undeclared package"
+          },
+          {
+            "name": "zerocopy",
+            "version": "0.8.63",
+            "reason": "help: if this error is too confusing you may wish to retry without `--offline`"
+          },
+          {
+            "name": "zerocopy-derive",
+            "version": "0.8.63",
+            "reason": "help: if this error is too confusing you may wish to retry without `--offline`"
+          }
+        ],
+        "overrides": {
+          "aho-corasick": "1.1.5",
+          "autocfg": "1.5.1",
+          "cfg-if": "1.0.5",
+          "crossbeam": "0.8.5",
+          "crossbeam-channel": "0.5.17",
+          "crossbeam-deque": "0.8.8",
+          "crossbeam-epoch": "0.9.21",
+          "crossbeam-queue": "0.3.14",
+          "crossbeam-utils": "0.8.23",
+          "crunchy": "0.2.4",
+          "either": "1.19.0",
+          "ena": "0.14.4",
+          "equivalent": "1.0.3",
+          "id-arena": "2.3.0",
+          "lazy_static": "1.5.1",
+          "libc": "0.2.191",
+          "log": "0.4.35",
+          "memchr": "2.8.3",
+          "num-integer": "0.1.47",
+          "num-traits": "0.2.19",
+          "once_cell": "1.21.4",
+          "proc-macro2": "1.0.107",
+          "quote": "1.0.47",
+          "redox_users": "0.4.6",
+          "regex": "1.13.1",
+          "regex-automata": "0.4.18",
+          "regex-syntax": "0.8.11",
+          "rustversion": "1.0.23",
+          "smallvec": "1.16.4",
+          "stable_deref_trait": "1.2.1",
+          "typenum": "1.20.1",
+          "unicode-ident": "1.0.27",
+          "unicode-segmentation": "1.13.3",
+          "unicode-width": "0.1.14",
+          "unicode-xid": "0.2.6",
+          "version_check": "0.9.5",
+          "zerocopy": "0.7.35",
+          "zerocopy-derive": "0.7.35"
+        },
+        "generated_lock": "/root/build/lane-deps-native-20261103/dep-refresh/isla/Cargo.lock"
+      },
+      "idealloc": {
+        "accepted": [
+          {
+            "name": "crc32fast",
+            "from": "1.5.2",
+            "to": "1.5.4"
+          },
+          {
+            "name": "log",
+            "from": "0.4.34",
+            "to": "0.4.35"
+          }
+        ],
+        "refused": [
+          {
+            "name": "ahash",
+            "version": "0.8.12",
+            "reason": "overridden idealloc lock package is not unique: getrandom"
+          },
+          {
+            "name": "anstream",
+            "version": "1.0.0",
+            "reason": "help: if this error is too confusing you may wish to retry without `--offline`"
+          },
+          {
+            "name": "anstyle-parse",
+            "version": "1.0.0",
+            "reason": "help: if this error is too confusing you may wish to retry without `--offline`"
+          },
+          {
+            "name": "anstyle-query",
+            "version": "1.1.5",
+            "reason": "the idealloc lock override changes an undeclared package"
+          },
+          {
+            "name": "anstyle-wincon",
+            "version": "3.0.11",
+            "reason": "the idealloc lock override changes an undeclared package"
+          },
+          {
+            "name": "cc",
+            "version": "1.11.0",
+            "reason": "the idealloc lock override changes an undeclared package"
+          },
+          {
+            "name": "chrono",
+            "version": "0.4.45",
+            "reason": "the idealloc lock override changes an undeclared package"
+          },
+          {
+            "name": "clap",
+            "version": "4.6.7",
+            "reason": "overridden idealloc lock package is not unique: syn"
+          },
+          {
+            "name": "clap_builder",
+            "version": "4.6.7",
+            "reason": "help: if this error is too confusing you may wish to retry without `--offline`"
+          },
+          {
+            "name": "clap_derive",
+            "version": "4.6.7",
+            "reason": "help: if this error is too confusing you may wish to retry without `--offline`"
+          },
+          {
+            "name": "clap_lex",
+            "version": "1.1.1",
+            "reason": "help: if this error is too confusing you may wish to retry without `--offline`"
+          },
+          {
+            "name": "dirs",
+            "version": "6.0.0",
+            "reason": "help: if this error is too confusing you may wish to retry without `--offline`"
+          },
+          {
+            "name": "dirs-sys",
+            "version": "0.5.0",
+            "reason": "help: if this error is too confusing you may wish to retry without `--offline`"
+          },
+          {
+            "name": "dlib",
+            "version": "0.5.3",
+            "reason": "the idealloc lock override for libloading is not the declared version alone"
+          },
+          {
+            "name": "flate2",
+            "version": "1.1.10",
+            "reason": "the idealloc lock override changes an undeclared package"
+          },
+          {
+            "name": "font-kit",
+            "version": "0.14.3",
+            "reason": "overridden idealloc lock package is not unique: syn"
+          },
+          {
+            "name": "foreign-types-macros",
+            "version": "0.2.4",
+            "reason": "overridden idealloc lock package is not unique: syn"
+          },
+          {
+            "name": "hashbrown",
+            "version": "0.17.1",
+            "reason": "help: if this error is too confusing you may wish to retry without `--offline`"
+          },
+          {
+            "name": "iana-time-zone",
+            "version": "0.1.65",
+            "reason": "the idealloc lock override changes an undeclared package"
+          },
+          {
+            "name": "indexmap",
+            "version": "2.14.2",
+            "reason": "overridden idealloc lock package is not unique: syn"
+          },
+          {
+            "name": "js-sys",
+            "version": "0.3.107",
+            "reason": "overridden idealloc lock package is not unique: syn"
+          },
+          {
+            "name": "libloading",
+            "version": "0.8.9",
+            "reason": "the idealloc lock override changes an undeclared package"
+          },
+          {
+            "name": "libredox",
+            "version": "0.1.25",
+            "reason": "the idealloc lock override for libredox is not the declared version alone"
+          },
+          {
+            "name": "png",
+            "version": "0.17.16",
+            "reason": "the idealloc lock override changes an undeclared package"
+          },
+          {
+            "name": "ppv-lite86",
+            "version": "0.2.21",
+            "reason": "overridden idealloc lock package is not unique: zerocopy"
+          },
+          {
+            "name": "redox_users",
+            "version": "0.5.3",
+            "reason": "help: if this error is too confusing you may wish to retry without `--offline`"
+          },
+          {
+            "name": "serde",
+            "version": "1.0.229",
+            "reason": "overridden idealloc lock package is not unique: syn"
+          },
+          {
+            "name": "serde_derive",
+            "version": "1.0.229",
+            "reason": "help: if this error is too confusing you may wish to retry without `--offline`"
+          },
+          {
+            "name": "serde_json",
+            "version": "1.0.154",
+            "reason": "overridden idealloc lock package is not unique: syn"
+          },
+          {
+            "name": "shlex",
+            "version": "2.0.1",
+            "reason": "help: if this error is too confusing you may wish to retry without `--offline`"
+          },
+          {
+            "name": "wasi",
+            "version": "0.11.1+wasi-snapshot-preview1",
+            "reason": "upstream's wasi is not a plain major.minor.patch release: '0.11.0+wasi-snapshot-preview1'"
+          },
+          {
+            "name": "wasm-bindgen",
+            "version": "0.2.130",
+            "reason": "overridden idealloc lock package is not unique: syn"
+          },
+          {
+            "name": "wasm-bindgen-macro",
+            "version": "0.2.130",
+            "reason": "help: if this error is too confusing you may wish to retry without `--offline`"
+          },
+          {
+            "name": "wasm-bindgen-macro-support",
+            "version": "0.2.130",
+            "reason": "help: if this error is too confusing you may wish to retry without `--offline`"
+          },
+          {
+            "name": "wasm-bindgen-shared",
+            "version": "0.2.130",
+            "reason": "help: if this error is too confusing you may wish to retry without `--offline`"
+          },
+          {
+            "name": "web-sys",
+            "version": "0.3.107",
+            "reason": "overridden idealloc lock package is not unique: syn"
+          },
+          {
+            "name": "winapi-util",
+            "version": "0.1.11",
+            "reason": "the idealloc lock override for libloading is not the declared version alone"
+          },
+          {
+            "name": "windows-core",
+            "version": "0.62.2",
+            "reason": "help: if this error is too confusing you may wish to retry without `--offline`"
+          },
+          {
+            "name": "yeslogic-fontconfig-sys",
+            "version": "6.0.1",
+            "reason": "the idealloc lock override for libloading is not the declared version alone"
+          },
+          {
+            "name": "zerocopy",
+            "version": "0.8.63",
+            "reason": "help: if this error is too confusing you may wish to retry without `--offline`"
+          },
+          {
+            "name": "zerocopy-derive",
+            "version": "0.8.63",
+            "reason": "help: if this error is too confusing you may wish to retry without `--offline`"
+          }
+        ],
+        "overrides": {
+          "adler2": "2.0.1",
+          "android_system_properties": "0.1.6",
+          "anstyle": "1.0.14",
+          "anstyle-parse": "0.2.7",
+          "autocfg": "1.5.1",
+          "bumpalo": "3.20.3",
+          "bytemuck": "1.25.2",
+          "cfg-if": "1.0.5",
+          "clap_lex": "0.7.7",
+          "colorchoice": "1.0.5",
+          "crc32fast": "1.5.4",
+          "crossbeam-deque": "0.8.8",
+          "crossbeam-epoch": "0.9.21",
+          "crossbeam-utils": "0.8.23",
+          "dwrote": "0.11.5",
+          "either": "1.19.0",
+          "equivalent": "1.0.3",
+          "fdeflate": "0.3.7",
+          "getrandom": "0.2.17",
+          "hashbrown": "0.15.5",
+          "indexmap": "2.11.1",
+          "is_terminal_polyfill": "1.70.2",
+          "itoa": "1.0.18",
+          "jpeg-decoder": "0.3.2",
+          "lazy_static": "1.5.1",
+          "libc": "0.2.191",
+          "log": "0.4.35",
+          "memchr": "2.8.3",
+          "once_cell": "1.21.4",
+          "pathfinder_simd": "0.5.6",
+          "pkg-config": "0.3.34",
+          "proc-macro2": "1.0.107",
+          "quote": "1.0.47",
+          "rand": "0.8.8",
+          "rayon": "1.12.0",
+          "rayon-core": "1.13.0",
+          "ryu": "1.0.23",
+          "semver": "1.0.28",
+          "serde_json": "1.0.143",
+          "simd-adler32": "0.3.10",
+          "syn": "2.0.119",
+          "thiserror": "1.0.69",
+          "thiserror-impl": "1.0.69",
+          "unicode-ident": "1.0.27",
+          "weezl": "0.1.12"
+        },
+        "generated_lock": "/root/build/lane-deps-native-20261103/dep-refresh/idealloc/Cargo.lock"
+      },
+      "driver": {
+        "accepted": [
+          {
+            "name": "log",
+            "from": "0.4.34",
+            "to": "0.4.35"
+          },
+          {
+            "name": "smallvec",
+            "from": "1.16.3",
+            "to": "1.16.4"
+          },
+          {
+            "name": "unicode-width",
+            "from": "0.2.2",
+            "to": "0.2.3"
+          }
+        ],
+        "command": "cargo update",
+        "manifest_preserved": true,
+        "sha2": "0.8.2",
+        "lalrpop-util": "0.19.12"
+      }
+    },
+    "license_readings": [
+      {
+        "source": "https://raw.githubusercontent.com/Z3Prover/z3/z3-5.3.3/LICENSE.txt",
+        "license": "MIT",
+        "sha256": "e617cad2ab9347e3129c2b171e87909332174e17961c5c3412d0799469111337",
+        "unchanged": true
+      },
+      {
+        "source": "https://raw.githubusercontent.com/CLIUtils/CLI11/1764a057b760e8873eab03f4635b4aaed5303a04/LICENSE",
+        "license": "BSD-3-Clause",
+        "sha256": "cfc76368aef8f51868fa1cda6bcfa26e583406a4cf8e48e725e7624df24d8855",
+        "unchanged": true
+      },
+      {
+        "source": "https://raw.githubusercontent.com/tensorflow/tflite-micro/964e43d7ee3e82fe6abb6075b7f50506eafce79b/LICENSE",
+        "license": "Apache-2.0",
+        "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+        "unchanged": true
+      },
+      {
+        "crate": "log",
+        "version": "0.4.35",
+        "source": "https://static.crates.io/crates/log/log-0.4.35.crate",
+        "archive_sha256": "5d15f86d12da44cd8d4ec3c73984537eb7f4cadcb9776a575a0a8a05ca11005c",
+        "license": "MIT OR Apache-2.0",
+        "files": [
+          {
+            "path": "log-0.4.35/LICENSE-APACHE",
+            "sha256": "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2"
+          },
+          {
+            "path": "log-0.4.35/LICENSE-MIT",
+            "sha256": "6485b8ed310d3f0340bf1ad1f47645069ce4069dcc6bb46c7d5c6faf41de1fdb"
+          }
+        ]
+      },
+      {
+        "crate": "smallvec",
+        "version": "1.16.4",
+        "source": "https://static.crates.io/crates/smallvec/smallvec-1.16.4.crate",
+        "archive_sha256": "d0d5d4b1981b8bbbb7aed204cae5726d683d5d6ac7e74ec54122ea28f315e7c8",
+        "license": "MIT OR Apache-2.0",
+        "files": [
+          {
+            "path": "smallvec-1.16.4/LICENSE-APACHE",
+            "sha256": "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2"
+          },
+          {
+            "path": "smallvec-1.16.4/LICENSE-MIT",
+            "sha256": "0b28172679e0009b655da42797c03fd163a3379d5cfa67ba1f1655e974a2a1a9"
+          }
+        ]
+      },
+      {
+        "crate": "crc32fast",
+        "version": "1.5.4",
+        "source": "https://static.crates.io/crates/crc32fast/crc32fast-1.5.4.crate",
+        "archive_sha256": "5f97d3416d5337d15c4b0d78c8c91df922ca143f57ec20e2d1c188333047ef04",
+        "license": "MIT OR Apache-2.0",
+        "files": [
+          {
+            "path": "crc32fast-1.5.4/LICENSE-APACHE",
+            "sha256": "c6596eb7be8581c18be736c846fb9173b69eccf6ef94c5135893ec56bd92ba08"
+          },
+          {
+            "path": "crc32fast-1.5.4/LICENSE-MIT",
+            "sha256": "61d383b05b87d78f94d2937e2580cce47226d17823c0430fbcad09596537efcf"
+          }
+        ]
+      },
+      {
+        "crate": "unicode-width",
+        "version": "0.2.3",
+        "source": "https://static.crates.io/crates/unicode-width/unicode-width-0.2.3.crate",
+        "archive_sha256": "ca718471876992059f251e33aafc334346ada08042b7661dd1fe313a9bced557",
+        "license": "MIT OR Apache-2.0",
+        "files": [
+          {
+            "path": "unicode-width-0.2.3/LICENSE-APACHE",
+            "sha256": "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2"
+          },
+          {
+            "path": "unicode-width-0.2.3/LICENSE-MIT",
+            "sha256": "7b63ecd5f1902af1b63729947373683c32745c16a10e8e6292e2e2dcd7e90ae0"
+          }
+        ]
+      }
+    ],
+    "checks": {
+      "focused_host": {
+        "test_env": 22,
+        "test_model_dependencies": 6,
+        "test_memory_planner_adapters": 11,
+        "test_rust_toolchain": 5,
+        "test_sailisla": 14,
+        "test_memory_planner_candidates": 13
+      },
+      "cargo_override_guard": "Exact upstream package graphs validated by vos.rust_toolchain.check_lock_override; candidate version/checksum-only changes accepted. Broader updates refused and not exported.",
+      "z3_native_smoke": {
+        "version": "Z3 version 5.3.3 - 64 bit",
+        "wheel_sha256": "701619d4995695819e150e9fa10218b67a5a2241868f31dddccfe2d3fe15f986",
+        "result": [
+          "sat",
+          "unsat",
+          "sat"
+        ]
+      }
+    },
+    "deferred": [
+      "Host CI full suites/typecheck per integration selection",
+      "Guest CI model and RTL with current pinned dependencies",
+      "Fresh hosted actual emulator parser regression for selected CLI11 source",
+      "Optional Isla replay/protocol and idealloc qualification after reprovisioning; no local C/C++ compiler, CMake, baseline Sail toolchain or full suite run"
+    ],
+    "outputs": {
+      "native_root": "/root/build/lane-deps-native-20261103/dep-refresh",
+      "active_processes_or_locks": false,
+      "host_record": "C:\\Users\\symbi\\source\\repos\\VerifiedOS\\.worktrees\\deps-native-20261103\\out\\evidence\\dependencies-native-20261103.json"
+    }
+  },
+  "opam": {
+    "review_date": "2026-11-03",
+    "scope": "Package-version enumeration only; available filters, avoid-version flags and consumer constraints still apply. No switch build, resolver or proof verdict is claimed.",
+    "metadata": {
+      "ocaml/opam-repository": {
+        "revision": "c878b35dc57b9231bb9dce91f64f05ad9f0c180b",
+        "tree": "af7042d718cdd9586bf4a1deda701d87ea3d2389",
+        "truncated": false
+      },
+      "rocq-prover/opam": {
+        "revision": "374fe908421dc69a51cb3b1b014c7a7766054827",
+        "tree": "7d81cc0088496cfb582bf4b8a5ea7773322801fe",
+        "truncated": false
+      }
+    },
+    "packages": [
+      {
+        "lock": "certirocq.lock",
+        "package": "astring",
+        "locked": "0.8.5",
+        "newest_nonpreview_version_in_metadata": "0.8.5"
+      },
+      {
+        "lock": "certirocq.lock",
+        "package": "atd",
+        "locked": "4.2.0",
+        "newest_nonpreview_version_in_metadata": "4.2.0"
+      },
+      {
+        "lock": "certirocq.lock",
+        "package": "atdgen",
+        "locked": "4.2.0",
+        "newest_nonpreview_version_in_metadata": "4.2.0"
+      },
+      {
+        "lock": "certirocq.lock",
+        "package": "atdgen-runtime",
+        "locked": "4.2.0",
+        "newest_nonpreview_version_in_metadata": "4.2.0"
+      },
+      {
+        "lock": "certirocq.lock",
+        "package": "atdts",
+        "locked": "4.2.0",
+        "newest_nonpreview_version_in_metadata": "4.2.0"
+      },
+      {
+        "lock": "certirocq.lock",
+        "package": "base",
+        "locked": "v0.16.5",
+        "newest_nonpreview_version_in_metadata": "v0.17.3"
+      },
+      {
+        "lock": "certirocq.lock",
+        "package": "base-bigarray",
+        "locked": "base",
+        "newest_nonpreview_version_in_metadata": "base"
+      },
+      {
+        "lock": "certirocq.lock",
+        "package": "base-threads",
+        "locked": "base",
+        "newest_nonpreview_version_in_metadata": "base"
+      },
+      {
+        "lock": "certirocq.lock",
+        "package": "base-unix",
+        "locked": "base",
+        "newest_nonpreview_version_in_metadata": "base"
+      },
+      {
+        "lock": "certirocq.lock",
+        "package": "biniou",
+        "locked": "1.2.2",
+        "newest_nonpreview_version_in_metadata": "1.2.2"
+      },
+      {
+        "lock": "certirocq.lock",
+        "package": "camlp-streams",
+        "locked": "5.0.1",
+        "newest_nonpreview_version_in_metadata": "5.0.1"
+      },
+      {
+        "lock": "certirocq.lock",
+        "package": "cmdliner",
+        "locked": "2.1.1",
+        "newest_nonpreview_version_in_metadata": "2.1.1"
+      },
+      {
+        "lock": "certirocq.lock",
+        "package": "conf-clang",
+        "locked": "2",
+        "newest_nonpreview_version_in_metadata": "2"
+      },
+      {
+        "lock": "certirocq.lock",
+        "package": "conf-gmp",
+        "locked": "5",
+        "newest_nonpreview_version_in_metadata": "5"
+      },
+      {
+        "lock": "certirocq.lock",
+        "package": "conf-linux-libc-dev",
+        "locked": "0",
+        "newest_nonpreview_version_in_metadata": "0"
+      },
+      {
+        "lock": "certirocq.lock",
+        "package": "conf-pkg-config",
+        "locked": "5",
+        "newest_nonpreview_version_in_metadata": "5"
+      },
+      {
+        "lock": "certirocq.lock",
+        "package": "coq",
+        "locked": "9.1.1",
+        "newest_nonpreview_version_in_metadata": "9.3.0"
+      },
+      {
+        "lock": "certirocq.lock",
+        "package": "coq-compcert",
+        "locked": "3.18",
+        "newest_nonpreview_version_in_metadata": "3.18"
+      },
+      {
+        "lock": "certirocq.lock",
+        "package": "coq-core",
+        "locked": "9.1.1",
+        "newest_nonpreview_version_in_metadata": "9.3.0"
+      },
+      {
+        "lock": "certirocq.lock",
+        "package": "coq-ext-lib",
+        "locked": "0.13.2",
+        "newest_nonpreview_version_in_metadata": "0.13.2"
+      },
+      {
+        "lock": "certirocq.lock",
+        "package": "coq-flocq",
+        "locked": "4.2.2",
+        "newest_nonpreview_version_in_metadata": "4.2.2"
+      },
+      {
+        "lock": "certirocq.lock",
+        "package": "coq-mathcomp-ssreflect",
+        "locked": "2.4.0",
+        "newest_nonpreview_version_in_metadata": "2.6.0"
+      },
+      {
+        "lock": "certirocq.lock",
+        "package": "coq-menhirlib",
+        "locked": "20260209",
+        "newest_nonpreview_version_in_metadata": "20260209"
+      },
+      {
+        "lock": "certirocq.lock",
+        "package": "coq-parseque",
+        "locked": "0.2.2",
+        "newest_nonpreview_version_in_metadata": "0.2.2"
+      },
+      {
+        "lock": "certirocq.lock",
+        "package": "coq-stdlib",
+        "locked": "9.0.0",
+        "newest_nonpreview_version_in_metadata": "9.2.0"
+      },
+      {
+        "lock": "certirocq.lock",
+        "package": "coq-wasm",
+        "locked": "2.2.0",
+        "newest_nonpreview_version_in_metadata": "2.2.1"
+      },
+      {
+        "lock": "certirocq.lock",
+        "package": "coqide-server",
+        "locked": "9.1.1",
+        "newest_nonpreview_version_in_metadata": "9.3.0"
+      },
+      {
+        "lock": "certirocq.lock",
+        "package": "cppo",
+        "locked": "1.8.0",
+        "newest_nonpreview_version_in_metadata": "1.8.0"
+      },
+      {
+        "lock": "certirocq.lock",
+        "package": "csexp",
+        "locked": "1.5.2",
+        "newest_nonpreview_version_in_metadata": "1.5.2"
+      },
+      {
+        "lock": "certirocq.lock",
+        "package": "dune",
+        "locked": "3.23.1",
+        "newest_nonpreview_version_in_metadata": "3.24.2"
+      },
+      {
+        "lock": "certirocq.lock",
+        "package": "dune-configurator",
+        "locked": "3.23.1",
+        "newest_nonpreview_version_in_metadata": "3.24.2"
+      },
+      {
+        "lock": "certirocq.lock",
+        "package": "easy-format",
+        "locked": "1.3.4",
+        "newest_nonpreview_version_in_metadata": "1.3.4"
+      },
+      {
+        "lock": "certirocq.lock",
+        "package": "elpi",
+        "locked": "3.7.3",
+        "newest_nonpreview_version_in_metadata": "4.0.0"
+      },
+      {
+        "lock": "certirocq.lock",
+        "package": "fmt",
+        "locked": "0.11.0",
+        "newest_nonpreview_version_in_metadata": "0.11.0"
+      },
+      {
+        "lock": "certirocq.lock",
+        "package": "linenoise",
+        "locked": "1.5.1",
+        "newest_nonpreview_version_in_metadata": "1.5.1"
+      },
+      {
+        "lock": "certirocq.lock",
+        "package": "logs",
+        "locked": "0.10.0",
+        "newest_nonpreview_version_in_metadata": "0.10.0"
+      },
+      {
+        "lock": "certirocq.lock",
+        "package": "mdx",
+        "locked": "2.7.0",
+        "newest_nonpreview_version_in_metadata": "2.7.0"
+      },
+      {
+        "lock": "certirocq.lock",
+        "package": "menhir",
+        "locked": "20260209",
+        "newest_nonpreview_version_in_metadata": "20260209"
+      },
+      {
+        "lock": "certirocq.lock",
+        "package": "menhirCST",
+        "locked": "20260209",
+        "newest_nonpreview_version_in_metadata": "20260209"
+      },
+      {
+        "lock": "certirocq.lock",
+        "package": "menhirGLR",
+        "locked": "20260209",
+        "newest_nonpreview_version_in_metadata": "20260209"
+      },
+      {
+        "lock": "certirocq.lock",
+        "package": "menhirLib",
+        "locked": "20260209",
+        "newest_nonpreview_version_in_metadata": "20260209"
+      },
+      {
+        "lock": "certirocq.lock",
+        "package": "menhirSdk",
+        "locked": "20260209",
+        "newest_nonpreview_version_in_metadata": "20260209"
+      },
+      {
+        "lock": "certirocq.lock",
+        "package": "ocaml",
+        "locked": "4.14.4",
+        "newest_nonpreview_version_in_metadata": "5.7.0"
+      },
+      {
+        "lock": "certirocq.lock",
+        "package": "ocaml-base-compiler",
+        "locked": "4.14.4",
+        "newest_nonpreview_version_in_metadata": "5.5.2"
+      },
+      {
+        "lock": "certirocq.lock",
+        "package": "ocaml-compiler-libs",
+        "locked": "v0.12.4",
+        "newest_nonpreview_version_in_metadata": "v0.17.0"
+      },
+      {
+        "lock": "certirocq.lock",
+        "package": "ocaml-config",
+        "locked": "2",
+        "newest_nonpreview_version_in_metadata": "3"
+      },
+      {
+        "lock": "certirocq.lock",
+        "package": "ocaml-options-vanilla",
+        "locked": "1",
+        "newest_nonpreview_version_in_metadata": "1"
+      },
+      {
+        "lock": "certirocq.lock",
+        "package": "ocaml-version",
+        "locked": "4.1.4",
+        "newest_nonpreview_version_in_metadata": "4.1.5"
+      },
+      {
+        "lock": "certirocq.lock",
+        "package": "ocamlbuild",
+        "locked": "0.16.1",
+        "newest_nonpreview_version_in_metadata": "0.16.1"
+      },
+      {
+        "lock": "certirocq.lock",
+        "package": "ocamlfind",
+        "locked": "1.9.8",
+        "newest_nonpreview_version_in_metadata": "1.9.8"
+      },
+      {
+        "lock": "certirocq.lock",
+        "package": "ppx_derivers",
+        "locked": "1.2.1",
+        "newest_nonpreview_version_in_metadata": "1.2.1"
+      },
+      {
+        "lock": "certirocq.lock",
+        "package": "ppx_deriving",
+        "locked": "6.0.3",
+        "newest_nonpreview_version_in_metadata": "6.2.0"
+      },
+      {
+        "lock": "certirocq.lock",
+        "package": "ppx_optcomp",
+        "locked": "v0.16.0",
+        "newest_nonpreview_version_in_metadata": "v0.17.1"
+      },
+      {
+        "lock": "certirocq.lock",
+        "package": "ppxlib",
+        "locked": "0.35.0",
+        "newest_nonpreview_version_in_metadata": "0.39.0"
+      },
+      {
+        "lock": "certirocq.lock",
+        "package": "re",
+        "locked": "1.14.0",
+        "newest_nonpreview_version_in_metadata": "1.14.0"
+      },
+      {
+        "lock": "certirocq.lock",
+        "package": "result",
+        "locked": "1.5",
+        "newest_nonpreview_version_in_metadata": "1.5"
+      },
+      {
+        "lock": "certirocq.lock",
+        "package": "rocq-certirocq",
+        "locked": "0.9.1+9.1",
+        "newest_nonpreview_version_in_metadata": "0.9.1+9.1"
+      },
+      {
+        "lock": "certirocq.lock",
+        "package": "rocq-core",
+        "locked": "9.1.1",
+        "newest_nonpreview_version_in_metadata": "9.3.0"
+      },
+      {
+        "lock": "certirocq.lock",
+        "package": "rocq-elpi",
+        "locked": "3.5.1",
+        "newest_nonpreview_version_in_metadata": "3.5.1"
+      },
+      {
+        "lock": "certirocq.lock",
+        "package": "rocq-equations",
+        "locked": "1.3.1+9.1",
+        "newest_nonpreview_version_in_metadata": "1.3.2+9.3"
+      },
+      {
+        "lock": "certirocq.lock",
+        "package": "rocq-hierarchy-builder",
+        "locked": "1.10.3",
+        "newest_nonpreview_version_in_metadata": "1.10.3"
+      },
+      {
+        "lock": "certirocq.lock",
+        "package": "rocq-mathcomp-ssreflect",
+        "locked": "2.4.0",
+        "newest_nonpreview_version_in_metadata": "2.6.0"
+      },
+      {
+        "lock": "certirocq.lock",
+        "package": "rocq-metarocq-common",
+        "locked": "1.5.1+9.1",
+        "newest_nonpreview_version_in_metadata": "1.5.1+9.2"
+      },
+      {
+        "lock": "certirocq.lock",
+        "package": "rocq-metarocq-erasure",
+        "locked": "1.5.1+9.1",
+        "newest_nonpreview_version_in_metadata": "1.5.1+9.2"
+      },
+      {
+        "lock": "certirocq.lock",
+        "package": "rocq-metarocq-erasure-plugin",
+        "locked": "1.5.1+9.1",
+        "newest_nonpreview_version_in_metadata": "1.5.1+9.2"
+      },
+      {
+        "lock": "certirocq.lock",
+        "package": "rocq-metarocq-pcuic",
+        "locked": "1.5.1+9.1",
+        "newest_nonpreview_version_in_metadata": "1.5.1+9.2"
+      },
+      {
+        "lock": "certirocq.lock",
+        "package": "rocq-metarocq-safechecker",
+        "locked": "1.5.1+9.1",
+        "newest_nonpreview_version_in_metadata": "1.5.1+9.2"
+      },
+      {
+        "lock": "certirocq.lock",
+        "package": "rocq-metarocq-safechecker-plugin",
+        "locked": "1.5.1+9.1",
+        "newest_nonpreview_version_in_metadata": "1.5.1+9.2"
+      },
+      {
+        "lock": "certirocq.lock",
+        "package": "rocq-metarocq-template",
+        "locked": "1.5.1+9.1",
+        "newest_nonpreview_version_in_metadata": "1.5.1+9.2"
+      },
+      {
+        "lock": "certirocq.lock",
+        "package": "rocq-metarocq-template-pcuic",
+        "locked": "1.5.1+9.1",
+        "newest_nonpreview_version_in_metadata": "1.5.1+9.2"
+      },
+      {
+        "lock": "certirocq.lock",
+        "package": "rocq-metarocq-utils",
+        "locked": "1.5.1+9.1",
+        "newest_nonpreview_version_in_metadata": "1.5.1+9.2"
+      },
+      {
+        "lock": "certirocq.lock",
+        "package": "rocq-runtime",
+        "locked": "9.1.1",
+        "newest_nonpreview_version_in_metadata": "9.3.0"
+      },
+      {
+        "lock": "certirocq.lock",
+        "package": "rocq-stdlib",
+        "locked": "9.0.0",
+        "newest_nonpreview_version_in_metadata": "9.2.0"
+      },
+      {
+        "lock": "certirocq.lock",
+        "package": "sexplib0",
+        "locked": "v0.16.0",
+        "newest_nonpreview_version_in_metadata": "v0.17.0"
+      },
+      {
+        "lock": "certirocq.lock",
+        "package": "stdio",
+        "locked": "v0.16.0",
+        "newest_nonpreview_version_in_metadata": "v0.17.0"
+      },
+      {
+        "lock": "certirocq.lock",
+        "package": "stdlib-shims",
+        "locked": "0.3.0",
+        "newest_nonpreview_version_in_metadata": "0.3.0"
+      },
+      {
+        "lock": "certirocq.lock",
+        "package": "topkg",
+        "locked": "1.1.1",
+        "newest_nonpreview_version_in_metadata": "1.1.1"
+      },
+      {
+        "lock": "certirocq.lock",
+        "package": "wasm",
+        "locked": "2.0.2",
+        "newest_nonpreview_version_in_metadata": "2.0.2"
+      },
+      {
+        "lock": "certirocq.lock",
+        "package": "yojson",
+        "locked": "3.0.0",
+        "newest_nonpreview_version_in_metadata": "3.0.0"
+      },
+      {
+        "lock": "certirocq.lock",
+        "package": "zarith",
+        "locked": "1.14",
+        "newest_nonpreview_version_in_metadata": "1.14"
+      },
+      {
+        "lock": "contained-compiler.lock",
+        "package": "base-bigarray",
+        "locked": "base",
+        "newest_nonpreview_version_in_metadata": "base"
+      },
+      {
+        "lock": "contained-compiler.lock",
+        "package": "base-threads",
+        "locked": "base",
+        "newest_nonpreview_version_in_metadata": "base"
+      },
+      {
+        "lock": "contained-compiler.lock",
+        "package": "base-unix",
+        "locked": "base",
+        "newest_nonpreview_version_in_metadata": "base"
+      },
+      {
+        "lock": "contained-compiler.lock",
+        "package": "conf-gmp",
+        "locked": "5",
+        "newest_nonpreview_version_in_metadata": "5"
+      },
+      {
+        "lock": "contained-compiler.lock",
+        "package": "conf-linux-libc-dev",
+        "locked": "0",
+        "newest_nonpreview_version_in_metadata": "0"
+      },
+      {
+        "lock": "contained-compiler.lock",
+        "package": "conf-pkg-config",
+        "locked": "5",
+        "newest_nonpreview_version_in_metadata": "5"
+      },
+      {
+        "lock": "contained-compiler.lock",
+        "package": "coq",
+        "locked": "9.3.0",
+        "newest_nonpreview_version_in_metadata": "9.3.0"
+      },
+      {
+        "lock": "contained-compiler.lock",
+        "package": "coq-core",
+        "locked": "9.3.0",
+        "newest_nonpreview_version_in_metadata": "9.3.0"
+      },
+      {
+        "lock": "contained-compiler.lock",
+        "package": "coq-stdlib",
+        "locked": "9.2.0",
+        "newest_nonpreview_version_in_metadata": "9.2.0"
+      },
+      {
+        "lock": "contained-compiler.lock",
+        "package": "coqide-server",
+        "locked": "9.3.0",
+        "newest_nonpreview_version_in_metadata": "9.3.0"
+      },
+      {
+        "lock": "contained-compiler.lock",
+        "package": "dune",
+        "locked": "3.24.2",
+        "newest_nonpreview_version_in_metadata": "3.24.2"
+      },
+      {
+        "lock": "contained-compiler.lock",
+        "package": "menhir",
+        "locked": "20260209",
+        "newest_nonpreview_version_in_metadata": "20260209"
+      },
+      {
+        "lock": "contained-compiler.lock",
+        "package": "menhirCST",
+        "locked": "20260209",
+        "newest_nonpreview_version_in_metadata": "20260209"
+      },
+      {
+        "lock": "contained-compiler.lock",
+        "package": "menhirGLR",
+        "locked": "20260209",
+        "newest_nonpreview_version_in_metadata": "20260209"
+      },
+      {
+        "lock": "contained-compiler.lock",
+        "package": "menhirLib",
+        "locked": "20260209",
+        "newest_nonpreview_version_in_metadata": "20260209"
+      },
+      {
+        "lock": "contained-compiler.lock",
+        "package": "menhirSdk",
+        "locked": "20260209",
+        "newest_nonpreview_version_in_metadata": "20260209"
+      },
+      {
+        "lock": "contained-compiler.lock",
+        "package": "ocaml",
+        "locked": "4.14.4",
+        "newest_nonpreview_version_in_metadata": "5.7.0"
+      },
+      {
+        "lock": "contained-compiler.lock",
+        "package": "ocaml-base-compiler",
+        "locked": "4.14.4",
+        "newest_nonpreview_version_in_metadata": "5.5.2"
+      },
+      {
+        "lock": "contained-compiler.lock",
+        "package": "ocaml-config",
+        "locked": "2",
+        "newest_nonpreview_version_in_metadata": "3"
+      },
+      {
+        "lock": "contained-compiler.lock",
+        "package": "ocaml-options-vanilla",
+        "locked": "1",
+        "newest_nonpreview_version_in_metadata": "1"
+      },
+      {
+        "lock": "contained-compiler.lock",
+        "package": "ocamlfind",
+        "locked": "1.9.8",
+        "newest_nonpreview_version_in_metadata": "1.9.8"
+      },
+      {
+        "lock": "contained-compiler.lock",
+        "package": "rocq-core",
+        "locked": "9.3.0",
+        "newest_nonpreview_version_in_metadata": "9.3.0"
+      },
+      {
+        "lock": "contained-compiler.lock",
+        "package": "rocq-runtime",
+        "locked": "9.3.0",
+        "newest_nonpreview_version_in_metadata": "9.3.0"
+      },
+      {
+        "lock": "contained-compiler.lock",
+        "package": "rocq-stdlib",
+        "locked": "9.2.0",
+        "newest_nonpreview_version_in_metadata": "9.2.0"
+      },
+      {
+        "lock": "contained-compiler.lock",
+        "package": "zarith",
+        "locked": "1.14",
+        "newest_nonpreview_version_in_metadata": "1.14"
+      },
+      {
+        "lock": "quickchick.lock",
+        "package": "atd",
+        "locked": "4.2.0",
+        "newest_nonpreview_version_in_metadata": "4.2.0"
+      },
+      {
+        "lock": "quickchick.lock",
+        "package": "atdgen",
+        "locked": "4.2.0",
+        "newest_nonpreview_version_in_metadata": "4.2.0"
+      },
+      {
+        "lock": "quickchick.lock",
+        "package": "atdgen-runtime",
+        "locked": "4.2.0",
+        "newest_nonpreview_version_in_metadata": "4.2.0"
+      },
+      {
+        "lock": "quickchick.lock",
+        "package": "atdts",
+        "locked": "4.2.0",
+        "newest_nonpreview_version_in_metadata": "4.2.0"
+      },
+      {
+        "lock": "quickchick.lock",
+        "package": "base",
+        "locked": "v0.17.3",
+        "newest_nonpreview_version_in_metadata": "v0.17.3"
+      },
+      {
+        "lock": "quickchick.lock",
+        "package": "base-bigarray",
+        "locked": "base",
+        "newest_nonpreview_version_in_metadata": "base"
+      },
+      {
+        "lock": "quickchick.lock",
+        "package": "base-domains",
+        "locked": "base",
+        "newest_nonpreview_version_in_metadata": "base"
+      },
+      {
+        "lock": "quickchick.lock",
+        "package": "base-effects",
+        "locked": "base",
+        "newest_nonpreview_version_in_metadata": "base"
+      },
+      {
+        "lock": "quickchick.lock",
+        "package": "base-nnp",
+        "locked": "base",
+        "newest_nonpreview_version_in_metadata": "base"
+      },
+      {
+        "lock": "quickchick.lock",
+        "package": "base-threads",
+        "locked": "base",
+        "newest_nonpreview_version_in_metadata": "base"
+      },
+      {
+        "lock": "quickchick.lock",
+        "package": "base-unix",
+        "locked": "base",
+        "newest_nonpreview_version_in_metadata": "base"
+      },
+      {
+        "lock": "quickchick.lock",
+        "package": "biniou",
+        "locked": "1.2.2",
+        "newest_nonpreview_version_in_metadata": "1.2.2"
+      },
+      {
+        "lock": "quickchick.lock",
+        "package": "camlp-streams",
+        "locked": "5.0.1",
+        "newest_nonpreview_version_in_metadata": "5.0.1"
+      },
+      {
+        "lock": "quickchick.lock",
+        "package": "cmdliner",
+        "locked": "2.1.1",
+        "newest_nonpreview_version_in_metadata": "2.1.1"
+      },
+      {
+        "lock": "quickchick.lock",
+        "package": "conf-gmp",
+        "locked": "5",
+        "newest_nonpreview_version_in_metadata": "5"
+      },
+      {
+        "lock": "quickchick.lock",
+        "package": "conf-linux-libc-dev",
+        "locked": "0",
+        "newest_nonpreview_version_in_metadata": "0"
+      },
+      {
+        "lock": "quickchick.lock",
+        "package": "conf-pkg-config",
+        "locked": "5",
+        "newest_nonpreview_version_in_metadata": "5"
+      },
+      {
+        "lock": "quickchick.lock",
+        "package": "coq",
+        "locked": "9.3.0",
+        "newest_nonpreview_version_in_metadata": "9.3.0"
+      },
+      {
+        "lock": "quickchick.lock",
+        "package": "coq-core",
+        "locked": "9.3.0",
+        "newest_nonpreview_version_in_metadata": "9.3.0"
+      },
+      {
+        "lock": "quickchick.lock",
+        "package": "coq-ext-lib",
+        "locked": "0.13.2",
+        "newest_nonpreview_version_in_metadata": "0.13.2"
+      },
+      {
+        "lock": "quickchick.lock",
+        "package": "coq-mathcomp-ssreflect",
+        "locked": "2.6.0",
+        "newest_nonpreview_version_in_metadata": "2.6.0"
+      },
+      {
+        "lock": "quickchick.lock",
+        "package": "coq-quickchick",
+        "locked": "dev",
+        "newest_nonpreview_version_in_metadata": "2.2.0"
+      },
+      {
+        "lock": "quickchick.lock",
+        "package": "coq-simple-io",
+        "locked": "dev",
+        "newest_nonpreview_version_in_metadata": "1.11.0"
+      },
+      {
+        "lock": "quickchick.lock",
+        "package": "coqide-server",
+        "locked": "9.3.0",
+        "newest_nonpreview_version_in_metadata": "9.3.0"
+      },
+      {
+        "lock": "quickchick.lock",
+        "package": "cppo",
+        "locked": "1.8.0",
+        "newest_nonpreview_version_in_metadata": "1.8.0"
+      },
+      {
+        "lock": "quickchick.lock",
+        "package": "csexp",
+        "locked": "1.5.2",
+        "newest_nonpreview_version_in_metadata": "1.5.2"
+      },
+      {
+        "lock": "quickchick.lock",
+        "package": "dune",
+        "locked": "3.23.1",
+        "newest_nonpreview_version_in_metadata": "3.24.2"
+      },
+      {
+        "lock": "quickchick.lock",
+        "package": "dune-configurator",
+        "locked": "3.23.1",
+        "newest_nonpreview_version_in_metadata": "3.24.2"
+      },
+      {
+        "lock": "quickchick.lock",
+        "package": "easy-format",
+        "locked": "1.3.4",
+        "newest_nonpreview_version_in_metadata": "1.3.4"
+      },
+      {
+        "lock": "quickchick.lock",
+        "package": "elpi",
+        "locked": "3.7.3",
+        "newest_nonpreview_version_in_metadata": "4.0.0"
+      },
+      {
+        "lock": "quickchick.lock",
+        "package": "menhir",
+        "locked": "20260209",
+        "newest_nonpreview_version_in_metadata": "20260209"
+      },
+      {
+        "lock": "quickchick.lock",
+        "package": "menhirCST",
+        "locked": "20260209",
+        "newest_nonpreview_version_in_metadata": "20260209"
+      },
+      {
+        "lock": "quickchick.lock",
+        "package": "menhirGLR",
+        "locked": "20260209",
+        "newest_nonpreview_version_in_metadata": "20260209"
+      },
+      {
+        "lock": "quickchick.lock",
+        "package": "menhirLib",
+        "locked": "20260209",
+        "newest_nonpreview_version_in_metadata": "20260209"
+      },
+      {
+        "lock": "quickchick.lock",
+        "package": "menhirSdk",
+        "locked": "20260209",
+        "newest_nonpreview_version_in_metadata": "20260209"
+      },
+      {
+        "lock": "quickchick.lock",
+        "package": "ocaml",
+        "locked": "5.4.1",
+        "newest_nonpreview_version_in_metadata": "5.7.0"
+      },
+      {
+        "lock": "quickchick.lock",
+        "package": "ocaml-base-compiler",
+        "locked": "5.4.1",
+        "newest_nonpreview_version_in_metadata": "5.5.2"
+      },
+      {
+        "lock": "quickchick.lock",
+        "package": "ocaml-compiler",
+        "locked": "5.4.1",
+        "newest_nonpreview_version_in_metadata": "5.7"
+      },
+      {
+        "lock": "quickchick.lock",
+        "package": "ocaml-compiler-libs",
+        "locked": "v0.17.0",
+        "newest_nonpreview_version_in_metadata": "v0.17.0"
+      },
+      {
+        "lock": "quickchick.lock",
+        "package": "ocaml-config",
+        "locked": "3",
+        "newest_nonpreview_version_in_metadata": "3"
+      },
+      {
+        "lock": "quickchick.lock",
+        "package": "ocaml-options-vanilla",
+        "locked": "1",
+        "newest_nonpreview_version_in_metadata": "1"
+      },
+      {
+        "lock": "quickchick.lock",
+        "package": "ocaml_intrinsics_kernel",
+        "locked": "v0.17.2",
+        "newest_nonpreview_version_in_metadata": "v0.17.3"
+      },
+      {
+        "lock": "quickchick.lock",
+        "package": "ocamlbuild",
+        "locked": "0.16.1",
+        "newest_nonpreview_version_in_metadata": "0.16.1"
+      },
+      {
+        "lock": "quickchick.lock",
+        "package": "ocamlfind",
+        "locked": "1.9.8",
+        "newest_nonpreview_version_in_metadata": "1.9.8"
+      },
+      {
+        "lock": "quickchick.lock",
+        "package": "ppx_derivers",
+        "locked": "1.2.1",
+        "newest_nonpreview_version_in_metadata": "1.2.1"
+      },
+      {
+        "lock": "quickchick.lock",
+        "package": "ppx_deriving",
+        "locked": "6.2.0",
+        "newest_nonpreview_version_in_metadata": "6.2.0"
+      },
+      {
+        "lock": "quickchick.lock",
+        "package": "ppx_optcomp",
+        "locked": "v0.17.1",
+        "newest_nonpreview_version_in_metadata": "v0.17.1"
+      },
+      {
+        "lock": "quickchick.lock",
+        "package": "ppxlib",
+        "locked": "0.39.0",
+        "newest_nonpreview_version_in_metadata": "0.39.0"
+      },
+      {
+        "lock": "quickchick.lock",
+        "package": "re",
+        "locked": "1.14.0",
+        "newest_nonpreview_version_in_metadata": "1.14.0"
+      },
+      {
+        "lock": "quickchick.lock",
+        "package": "rocq-core",
+        "locked": "9.3.0",
+        "newest_nonpreview_version_in_metadata": "9.3.0"
+      },
+      {
+        "lock": "quickchick.lock",
+        "package": "rocq-elpi",
+        "locked": "3.5.1",
+        "newest_nonpreview_version_in_metadata": "3.5.1"
+      },
+      {
+        "lock": "quickchick.lock",
+        "package": "rocq-hierarchy-builder",
+        "locked": "1.10.3",
+        "newest_nonpreview_version_in_metadata": "1.10.3"
+      },
+      {
+        "lock": "quickchick.lock",
+        "package": "rocq-mathcomp-boot",
+        "locked": "2.6.0",
+        "newest_nonpreview_version_in_metadata": "2.6.0"
+      },
+      {
+        "lock": "quickchick.lock",
+        "package": "rocq-mathcomp-order",
+        "locked": "2.6.0",
+        "newest_nonpreview_version_in_metadata": "2.6.0"
+      },
+      {
+        "lock": "quickchick.lock",
+        "package": "rocq-mathcomp-ssreflect",
+        "locked": "2.6.0",
+        "newest_nonpreview_version_in_metadata": "2.6.0"
+      },
+      {
+        "lock": "quickchick.lock",
+        "package": "rocq-runtime",
+        "locked": "9.3.0",
+        "newest_nonpreview_version_in_metadata": "9.3.0"
+      },
+      {
+        "lock": "quickchick.lock",
+        "package": "rocq-stdlib",
+        "locked": "9.2.0",
+        "newest_nonpreview_version_in_metadata": "9.2.0"
+      },
+      {
+        "lock": "quickchick.lock",
+        "package": "sexplib0",
+        "locked": "v0.17.0",
+        "newest_nonpreview_version_in_metadata": "v0.17.0"
+      },
+      {
+        "lock": "quickchick.lock",
+        "package": "stdio",
+        "locked": "v0.17.0",
+        "newest_nonpreview_version_in_metadata": "v0.17.0"
+      },
+      {
+        "lock": "quickchick.lock",
+        "package": "stdlib-shims",
+        "locked": "0.3.0",
+        "newest_nonpreview_version_in_metadata": "0.3.0"
+      },
+      {
+        "lock": "quickchick.lock",
+        "package": "yojson",
+        "locked": "3.0.0",
+        "newest_nonpreview_version_in_metadata": "3.0.0"
+      },
+      {
+        "lock": "quickchick.lock",
+        "package": "zarith",
+        "locked": "1.14",
+        "newest_nonpreview_version_in_metadata": "1.14"
+      },
+      {
+        "lock": "rocq.lock",
+        "package": "base-bigarray",
+        "locked": "base",
+        "newest_nonpreview_version_in_metadata": "base"
+      },
+      {
+        "lock": "rocq.lock",
+        "package": "base-domains",
+        "locked": "base",
+        "newest_nonpreview_version_in_metadata": "base"
+      },
+      {
+        "lock": "rocq.lock",
+        "package": "base-effects",
+        "locked": "base",
+        "newest_nonpreview_version_in_metadata": "base"
+      },
+      {
+        "lock": "rocq.lock",
+        "package": "base-nnp",
+        "locked": "base",
+        "newest_nonpreview_version_in_metadata": "base"
+      },
+      {
+        "lock": "rocq.lock",
+        "package": "base-threads",
+        "locked": "base",
+        "newest_nonpreview_version_in_metadata": "base"
+      },
+      {
+        "lock": "rocq.lock",
+        "package": "base-unix",
+        "locked": "base",
+        "newest_nonpreview_version_in_metadata": "base"
+      },
+      {
+        "lock": "rocq.lock",
+        "package": "conf-gmp",
+        "locked": "5",
+        "newest_nonpreview_version_in_metadata": "5"
+      },
+      {
+        "lock": "rocq.lock",
+        "package": "conf-linux-libc-dev",
+        "locked": "0",
+        "newest_nonpreview_version_in_metadata": "0"
+      },
+      {
+        "lock": "rocq.lock",
+        "package": "conf-pkg-config",
+        "locked": "5",
+        "newest_nonpreview_version_in_metadata": "5"
+      },
+      {
+        "lock": "rocq.lock",
+        "package": "dune",
+        "locked": "3.24.2",
+        "newest_nonpreview_version_in_metadata": "3.24.2"
+      },
+      {
+        "lock": "rocq.lock",
+        "package": "ocaml",
+        "locked": "5.4.1",
+        "newest_nonpreview_version_in_metadata": "5.7.0"
+      },
+      {
+        "lock": "rocq.lock",
+        "package": "ocaml-base-compiler",
+        "locked": "5.4.1",
+        "newest_nonpreview_version_in_metadata": "5.5.2"
+      },
+      {
+        "lock": "rocq.lock",
+        "package": "ocaml-compiler",
+        "locked": "5.4.1",
+        "newest_nonpreview_version_in_metadata": "5.7"
+      },
+      {
+        "lock": "rocq.lock",
+        "package": "ocaml-config",
+        "locked": "3",
+        "newest_nonpreview_version_in_metadata": "3"
+      },
+      {
+        "lock": "rocq.lock",
+        "package": "ocaml-options-vanilla",
+        "locked": "1",
+        "newest_nonpreview_version_in_metadata": "1"
+      },
+      {
+        "lock": "rocq.lock",
+        "package": "ocamlfind",
+        "locked": "1.9.8",
+        "newest_nonpreview_version_in_metadata": "1.9.8"
+      },
+      {
+        "lock": "rocq.lock",
+        "package": "rocq-core",
+        "locked": "9.3.0",
+        "newest_nonpreview_version_in_metadata": "9.3.0"
+      },
+      {
+        "lock": "rocq.lock",
+        "package": "rocq-runtime",
+        "locked": "9.3.0",
+        "newest_nonpreview_version_in_metadata": "9.3.0"
+      },
+      {
+        "lock": "rocq.lock",
+        "package": "rocq-stdlib",
+        "locked": "9.2.0",
+        "newest_nonpreview_version_in_metadata": "9.2.0"
+      },
+      {
+        "lock": "rocq.lock",
+        "package": "rocq-stdpp",
+        "locked": "1.13.0",
+        "newest_nonpreview_version_in_metadata": "1.13.0"
+      },
+      {
+        "lock": "rocq.lock",
+        "package": "zarith",
+        "locked": "1.14",
+        "newest_nonpreview_version_in_metadata": "1.14"
+      },
+      {
+        "lock": "rupicola.lock",
+        "package": "base-bigarray",
+        "locked": "base",
+        "newest_nonpreview_version_in_metadata": "base"
+      },
+      {
+        "lock": "rupicola.lock",
+        "package": "base-domains",
+        "locked": "base",
+        "newest_nonpreview_version_in_metadata": "base"
+      },
+      {
+        "lock": "rupicola.lock",
+        "package": "base-effects",
+        "locked": "base",
+        "newest_nonpreview_version_in_metadata": "base"
+      },
+      {
+        "lock": "rupicola.lock",
+        "package": "base-nnp",
+        "locked": "base",
+        "newest_nonpreview_version_in_metadata": "base"
+      },
+      {
+        "lock": "rupicola.lock",
+        "package": "base-threads",
+        "locked": "base",
+        "newest_nonpreview_version_in_metadata": "base"
+      },
+      {
+        "lock": "rupicola.lock",
+        "package": "base-unix",
+        "locked": "base",
+        "newest_nonpreview_version_in_metadata": "base"
+      },
+      {
+        "lock": "rupicola.lock",
+        "package": "conf-findutils",
+        "locked": "1",
+        "newest_nonpreview_version_in_metadata": "1"
+      },
+      {
+        "lock": "rupicola.lock",
+        "package": "conf-gmp",
+        "locked": "5",
+        "newest_nonpreview_version_in_metadata": "5"
+      },
+      {
+        "lock": "rupicola.lock",
+        "package": "conf-linux-libc-dev",
+        "locked": "0",
+        "newest_nonpreview_version_in_metadata": "0"
+      },
+      {
+        "lock": "rupicola.lock",
+        "package": "conf-pkg-config",
+        "locked": "5",
+        "newest_nonpreview_version_in_metadata": "5"
+      },
+      {
+        "lock": "rupicola.lock",
+        "package": "coq",
+        "locked": "9.2.0",
+        "newest_nonpreview_version_in_metadata": "9.3.0"
+      },
+      {
+        "lock": "rupicola.lock",
+        "package": "coq-bedrock2",
+        "locked": "0.0.9",
+        "newest_nonpreview_version_in_metadata": "0.0.9"
+      },
+      {
+        "lock": "rupicola.lock",
+        "package": "coq-bedrock2-compiler",
+        "locked": "0.0.9",
+        "newest_nonpreview_version_in_metadata": "0.0.9"
+      },
+      {
+        "lock": "rupicola.lock",
+        "package": "coq-coqutil",
+        "locked": "0.0.7",
+        "newest_nonpreview_version_in_metadata": "0.0.7"
+      },
+      {
+        "lock": "rupicola.lock",
+        "package": "coq-core",
+        "locked": "9.2.0",
+        "newest_nonpreview_version_in_metadata": "9.3.0"
+      },
+      {
+        "lock": "rupicola.lock",
+        "package": "coq-riscv",
+        "locked": "0.0.6",
+        "newest_nonpreview_version_in_metadata": "0.0.6"
+      },
+      {
+        "lock": "rupicola.lock",
+        "package": "coq-rupicola",
+        "locked": "0.0.11",
+        "newest_nonpreview_version_in_metadata": "0.0.11"
+      },
+      {
+        "lock": "rupicola.lock",
+        "package": "coqide-server",
+        "locked": "9.2.0",
+        "newest_nonpreview_version_in_metadata": "9.3.0"
+      },
+      {
+        "lock": "rupicola.lock",
+        "package": "dune",
+        "locked": "3.23.1",
+        "newest_nonpreview_version_in_metadata": "3.24.2"
+      },
+      {
+        "lock": "rupicola.lock",
+        "package": "ocaml",
+        "locked": "5.4.1",
+        "newest_nonpreview_version_in_metadata": "5.7.0"
+      },
+      {
+        "lock": "rupicola.lock",
+        "package": "ocaml-base-compiler",
+        "locked": "5.4.1",
+        "newest_nonpreview_version_in_metadata": "5.5.2"
+      },
+      {
+        "lock": "rupicola.lock",
+        "package": "ocaml-compiler",
+        "locked": "5.4.1",
+        "newest_nonpreview_version_in_metadata": "5.7"
+      },
+      {
+        "lock": "rupicola.lock",
+        "package": "ocaml-config",
+        "locked": "3",
+        "newest_nonpreview_version_in_metadata": "3"
+      },
+      {
+        "lock": "rupicola.lock",
+        "package": "ocaml-options-vanilla",
+        "locked": "1",
+        "newest_nonpreview_version_in_metadata": "1"
+      },
+      {
+        "lock": "rupicola.lock",
+        "package": "ocamlfind",
+        "locked": "1.9.8",
+        "newest_nonpreview_version_in_metadata": "1.9.8"
+      },
+      {
+        "lock": "rupicola.lock",
+        "package": "rocq-core",
+        "locked": "9.2.0",
+        "newest_nonpreview_version_in_metadata": "9.3.0"
+      },
+      {
+        "lock": "rupicola.lock",
+        "package": "rocq-runtime",
+        "locked": "9.2.0",
+        "newest_nonpreview_version_in_metadata": "9.3.0"
+      },
+      {
+        "lock": "rupicola.lock",
+        "package": "rocq-stdlib",
+        "locked": "9.2.0",
+        "newest_nonpreview_version_in_metadata": "9.2.0"
+      },
+      {
+        "lock": "rupicola.lock",
+        "package": "zarith",
+        "locked": "1.14",
+        "newest_nonpreview_version_in_metadata": "1.14"
+      },
+      {
+        "lock": "sail.lock",
+        "package": "base-bigarray",
+        "locked": "base",
+        "newest_nonpreview_version_in_metadata": "base"
+      },
+      {
+        "lock": "sail.lock",
+        "package": "base-bytes",
+        "locked": "base",
+        "newest_nonpreview_version_in_metadata": "base"
+      },
+      {
+        "lock": "sail.lock",
+        "package": "base-domains",
+        "locked": "base",
+        "newest_nonpreview_version_in_metadata": "base"
+      },
+      {
+        "lock": "sail.lock",
+        "package": "base-effects",
+        "locked": "base",
+        "newest_nonpreview_version_in_metadata": "base"
+      },
+      {
+        "lock": "sail.lock",
+        "package": "base-nnp",
+        "locked": "base",
+        "newest_nonpreview_version_in_metadata": "base"
+      },
+      {
+        "lock": "sail.lock",
+        "package": "base-threads",
+        "locked": "base",
+        "newest_nonpreview_version_in_metadata": "base"
+      },
+      {
+        "lock": "sail.lock",
+        "package": "base-unix",
+        "locked": "base",
+        "newest_nonpreview_version_in_metadata": "base"
+      },
+      {
+        "lock": "sail.lock",
+        "package": "base64",
+        "locked": "3.5.2",
+        "newest_nonpreview_version_in_metadata": "3.5.2"
+      },
+      {
+        "lock": "sail.lock",
+        "package": "conf-findutils",
+        "locked": "1",
+        "newest_nonpreview_version_in_metadata": "1"
+      },
+      {
+        "lock": "sail.lock",
+        "package": "conf-gmp",
+        "locked": "5",
+        "newest_nonpreview_version_in_metadata": "5"
+      },
+      {
+        "lock": "sail.lock",
+        "package": "conf-pkg-config",
+        "locked": "5",
+        "newest_nonpreview_version_in_metadata": "5"
+      },
+      {
+        "lock": "sail.lock",
+        "package": "csexp",
+        "locked": "1.5.2",
+        "newest_nonpreview_version_in_metadata": "1.5.2"
+      },
+      {
+        "lock": "sail.lock",
+        "package": "dune",
+        "locked": "3.24.2",
+        "newest_nonpreview_version_in_metadata": "3.24.2"
+      },
+      {
+        "lock": "sail.lock",
+        "package": "dune-private-libs",
+        "locked": "3.24.2",
+        "newest_nonpreview_version_in_metadata": "3.24.2"
+      },
+      {
+        "lock": "sail.lock",
+        "package": "dune-site",
+        "locked": "3.24.2",
+        "newest_nonpreview_version_in_metadata": "3.24.2"
+      },
+      {
+        "lock": "sail.lock",
+        "package": "dyn",
+        "locked": "3.24.2",
+        "newest_nonpreview_version_in_metadata": "3.24.2"
+      },
+      {
+        "lock": "sail.lock",
+        "package": "fs-io",
+        "locked": "3.24.2",
+        "newest_nonpreview_version_in_metadata": "3.24.2"
+      },
+      {
+        "lock": "sail.lock",
+        "package": "lem",
+        "locked": "2026-05-01",
+        "newest_nonpreview_version_in_metadata": "2026-05-01"
+      },
+      {
+        "lock": "sail.lock",
+        "package": "libsail",
+        "locked": "0.20.3",
+        "newest_nonpreview_version_in_metadata": "0.20.3"
+      },
+      {
+        "lock": "sail.lock",
+        "package": "linenoise",
+        "locked": "1.5.1",
+        "newest_nonpreview_version_in_metadata": "1.5.1"
+      },
+      {
+        "lock": "sail.lock",
+        "package": "linksem",
+        "locked": "0.8",
+        "newest_nonpreview_version_in_metadata": "0.8"
+      },
+      {
+        "lock": "sail.lock",
+        "package": "menhir",
+        "locked": "20260209",
+        "newest_nonpreview_version_in_metadata": "20260209"
+      },
+      {
+        "lock": "sail.lock",
+        "package": "menhirCST",
+        "locked": "20260209",
+        "newest_nonpreview_version_in_metadata": "20260209"
+      },
+      {
+        "lock": "sail.lock",
+        "package": "menhirGLR",
+        "locked": "20260209",
+        "newest_nonpreview_version_in_metadata": "20260209"
+      },
+      {
+        "lock": "sail.lock",
+        "package": "menhirLib",
+        "locked": "20260209",
+        "newest_nonpreview_version_in_metadata": "20260209"
+      },
+      {
+        "lock": "sail.lock",
+        "package": "menhirSdk",
+        "locked": "20260209",
+        "newest_nonpreview_version_in_metadata": "20260209"
+      },
+      {
+        "lock": "sail.lock",
+        "package": "num",
+        "locked": "1.6",
+        "newest_nonpreview_version_in_metadata": "1.6"
+      },
+      {
+        "lock": "sail.lock",
+        "package": "ocaml",
+        "locked": "5.4.1",
+        "newest_nonpreview_version_in_metadata": "5.7.0"
+      },
+      {
+        "lock": "sail.lock",
+        "package": "ocaml-base-compiler",
+        "locked": "5.4.1",
+        "newest_nonpreview_version_in_metadata": "5.5.2"
+      },
+      {
+        "lock": "sail.lock",
+        "package": "ocaml-compiler",
+        "locked": "5.4.1",
+        "newest_nonpreview_version_in_metadata": "5.7"
+      },
+      {
+        "lock": "sail.lock",
+        "package": "ocaml-config",
+        "locked": "3",
+        "newest_nonpreview_version_in_metadata": "3"
+      },
+      {
+        "lock": "sail.lock",
+        "package": "ocaml-options-vanilla",
+        "locked": "1",
+        "newest_nonpreview_version_in_metadata": "1"
+      },
+      {
+        "lock": "sail.lock",
+        "package": "ocamlbuild",
+        "locked": "0.16.1",
+        "newest_nonpreview_version_in_metadata": "0.16.1"
+      },
+      {
+        "lock": "sail.lock",
+        "package": "ocamlfind",
+        "locked": "1.9.8",
+        "newest_nonpreview_version_in_metadata": "1.9.8"
+      },
+      {
+        "lock": "sail.lock",
+        "package": "ocamlgraph",
+        "locked": "2.2.0",
+        "newest_nonpreview_version_in_metadata": "2.2.0"
+      },
+      {
+        "lock": "sail.lock",
+        "package": "omd",
+        "locked": "1.3.2",
+        "newest_nonpreview_version_in_metadata": "1.3.2"
+      },
+      {
+        "lock": "sail.lock",
+        "package": "ordering",
+        "locked": "3.24.2",
+        "newest_nonpreview_version_in_metadata": "3.24.2"
+      },
+      {
+        "lock": "sail.lock",
+        "package": "ott",
+        "locked": "0.34",
+        "newest_nonpreview_version_in_metadata": "0.34"
+      },
+      {
+        "lock": "sail.lock",
+        "package": "pp",
+        "locked": "2.0.0",
+        "newest_nonpreview_version_in_metadata": "2.0.0"
+      },
+      {
+        "lock": "sail.lock",
+        "package": "pprint",
+        "locked": "20230830",
+        "newest_nonpreview_version_in_metadata": "20230830"
+      },
+      {
+        "lock": "sail.lock",
+        "package": "sail",
+        "locked": "0.20.3",
+        "newest_nonpreview_version_in_metadata": "0.20.3"
+      },
+      {
+        "lock": "sail.lock",
+        "package": "sail_c_backend",
+        "locked": "0.20.3",
+        "newest_nonpreview_version_in_metadata": "0.20.3"
+      },
+      {
+        "lock": "sail.lock",
+        "package": "sail_coq_backend",
+        "locked": "0.20.3",
+        "newest_nonpreview_version_in_metadata": "0.20.3"
+      },
+      {
+        "lock": "sail.lock",
+        "package": "sail_doc_backend",
+        "locked": "0.20.3",
+        "newest_nonpreview_version_in_metadata": "0.20.3"
+      },
+      {
+        "lock": "sail.lock",
+        "package": "sail_latex_backend",
+        "locked": "0.20.3",
+        "newest_nonpreview_version_in_metadata": "0.20.3"
+      },
+      {
+        "lock": "sail.lock",
+        "package": "sail_lean_backend",
+        "locked": "0.20.3",
+        "newest_nonpreview_version_in_metadata": "0.20.3"
+      },
+      {
+        "lock": "sail.lock",
+        "package": "sail_lem_backend",
+        "locked": "0.20.3",
+        "newest_nonpreview_version_in_metadata": "0.20.3"
+      },
+      {
+        "lock": "sail.lock",
+        "package": "sail_maker",
+        "locked": "0.20.3",
+        "newest_nonpreview_version_in_metadata": "0.20.3"
+      },
+      {
+        "lock": "sail.lock",
+        "package": "sail_ocaml_backend",
+        "locked": "0.20.3",
+        "newest_nonpreview_version_in_metadata": "0.20.3"
+      },
+      {
+        "lock": "sail.lock",
+        "package": "sail_output",
+        "locked": "0.20.3",
+        "newest_nonpreview_version_in_metadata": "0.20.3"
+      },
+      {
+        "lock": "sail.lock",
+        "package": "sail_smt_backend",
+        "locked": "0.20.3",
+        "newest_nonpreview_version_in_metadata": "0.20.3"
+      },
+      {
+        "lock": "sail.lock",
+        "package": "sail_sv_backend",
+        "locked": "0.20.3",
+        "newest_nonpreview_version_in_metadata": "0.20.3"
+      },
+      {
+        "lock": "sail.lock",
+        "package": "stdune",
+        "locked": "3.24.2",
+        "newest_nonpreview_version_in_metadata": "3.24.2"
+      },
+      {
+        "lock": "sail.lock",
+        "package": "top-closure",
+        "locked": "3.24.2",
+        "newest_nonpreview_version_in_metadata": "3.24.2"
+      },
+      {
+        "lock": "sail.lock",
+        "package": "yojson",
+        "locked": "3.0.0",
+        "newest_nonpreview_version_in_metadata": "3.0.0"
+      },
+      {
+        "lock": "sail.lock",
+        "package": "zarith",
+        "locked": "1.14",
+        "newest_nonpreview_version_in_metadata": "1.14"
+      }
+    ]
+  },
+  "actions": {
+    "source": "Official GitHub releases/latest endpoints, resolved 2026-11-03.",
+    "selected": {
+      "astral-sh/setup-uv": {
+        "version": "v10.3.3",
+        "revision": "68559e99cc807c1eb7e9238fd43a15bba460eec2"
+      }
+    },
+    "unchanged_latest_releases": {
+      "actions/checkout": "v7.0.1",
+      "actions/setup-python": "v7.1.0",
+      "actions/upload-artifact": "v7.0.2",
+      "actions/download-artifact": "v8.0.2",
+      "actions/cache": "v6.1.0"
+    }
+  },
+  "other_current_pins": {
+    "actionlint": {
+      "version": "1.7.12",
+      "source": "https://github.com/rhysd/actionlint/releases"
+    },
+    "lychee": {
+      "version": "0.24.2",
+      "source": "https://github.com/lycheeverse/lychee/releases"
+    },
+    "rocq_bootstrap_container": {
+      "tag": "9.1.1-ocaml-4.14.2-flambda",
+      "digest": "sha256:9a1e969649a3cc3c6f310d5be5a842e2187384560337c6c0807aba9f8565efba",
+      "publisher_updated": "2026-08-28T15:47:45.413646Z",
+      "source": "https://hub.docker.com/v2/repositories/rocq/rocq-prover/tags/9.1.1-ocaml-4.14.2-flambda"
+    },
+    "quickchick_candidate": {
+      "revision": "527216554f31bfa526ae5395d64aa4de5beaf437",
+      "source": "https://github.com/QuickChick/QuickChick",
+      "decision": "Current candidate; qualified production snapshot remains unchanged pending Q45."
+    },
+    "simple_io_candidate": {
+      "revision": "5c70625af00af6182817e490d93247cdefbed2e1",
+      "source": "https://github.com/Lysxia/rocq-simple-io",
+      "decision": "Current candidate; qualified production snapshot remains unchanged pending Q45."
+    }
+  },
+  "material_limits": [
+    "Python 3.15 all-group wheels-only resolution still refuses PyYAML 6.0.3; supported universal minor stays 3.14.",
+    "The existing zizmor 1.31.1 workflow group has no Windows ARM64 wheel; Linux workflow validation remains hosted.",
+    "Verilator native RTL checks, full model builds, proof gates, full host/guest suites and optional native consumer qualification remain deferred to user-managed hosted validation.",
+    "No push, hosted dispatch, hosted polling or shared toolchain replacement was performed."
+  ],
+  "integrator_focused_checks": {
+    "reason": "Validate updated source/archive owners and the classifications required by the new current pins.",
+    "verdict": "pass",
+    "commands": {
+      "test_verilator": 6,
+      "test_rtl_elaborate": 32,
+      "test_workflow_artifacts": 1,
+      "test_pins": 16,
+      "test_interims": 14
+    },
+    "preparation": "Locked prepare python passed for tools/vos/checks/pins.py and tools/vos/checks/interims.py.",
+    "scope": "Focused helper/control checks only; no full host, guest or proof suite."
+  }
+}

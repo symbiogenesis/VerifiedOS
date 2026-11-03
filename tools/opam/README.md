@@ -149,13 +149,18 @@ To refresh a resolution, update repository metadata, review `opam upgrade --swit
 
 ## Rocq dependency refresh
 
-The current upstream review is dated 2026-10-31. Released metadata was read at
+The current upstream review is dated 2026-11-03. Released metadata was read at
 opam-repository revision
-[`2ffc3518`](https://github.com/ocaml/opam-repository/tree/2ffc3518756432a5bea7cda8ae467ea8b4e0362a/packages)
+[`c878b35d`](https://github.com/ocaml/opam-repository/tree/c878b35dc57b9231bb9dce91f64f05ad9f0c180b/packages)
 and rocq-released revision
-[`513d503c`](https://github.com/rocq-prover/opam/tree/513d503c69b3464f2c38853bcca455c7d9a50f44/released/packages).
+[`374fe908`](https://github.com/rocq-prover/opam/tree/374fe908421dc69a51cb3b1b014c7a7766054827/released/packages).
 Rocq, Stdlib, stdpp, ExtLib, CertiRocq and the released lowering packages remain
 at the versions above. The qualified snapshots retain their 2026-10-19 evidence.
+The [package enumeration](../../docs/implementation/evidence/dependency-refresh-20261103.json)
+records every installed lock entry against those metadata revisions. It is a
+source review, with availability and consumer constraints still applicable, and
+supplies no new resolver, build or kernel verdict. The existing candidate sources
+remain current; Q45 retains their qualification and production-lock adoption.
 
 The next QuickChick recipe selects QuickChick commit
 `527216554f31bfa526ae5395d64aa4de5beaf437`, simple-io commit
@@ -191,7 +196,7 @@ before replacing that snapshot. This does not resume the deferred bootstrap
 backport or the Rocq 9.3 compatibility trial.
 
 Retained versions have concrete constraints: CertiRocq's
-[published metadata](https://github.com/rocq-prover/opam/blob/513d503c69b3464f2c38853bcca455c7d9a50f44/released/packages/rocq-certirocq/rocq-certirocq.0.9.1%2B9.1/opam)
+[published metadata](https://github.com/rocq-prover/opam/blob/374fe908421dc69a51cb3b1b014c7a7766054827/released/packages/rocq-certirocq/rocq-certirocq.0.9.1%2B9.1/opam)
 requires WasmCert exactly 2.2.0 and Rocq below 9.2; MetaRocq and Equations must
 match that prover. Rocq-Elpi 3.5.1 requires Elpi below 3.8 and dune below 3.24,
 excluding Elpi 4.0.0 and dune-configurator 3.24.2 from those closures. Stable
