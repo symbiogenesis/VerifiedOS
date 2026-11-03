@@ -36,6 +36,10 @@ def fixtures(example: bytes) -> tuple[Fixture, ...]:
         ("hygienic-names", b"module Module; public Nat Definition(Nat end) { "
          b"let Type = end; return Type; }"),
         ("wide-decimal", b"module M; public Nat F() { return " + b"9" * 256 + b"; }"),
+        ("digit-separators", b"module M; public const Nat Capacity = 1_024; "
+         b"public Nat Scale(Nat count) { const Nat Twice = Capacity * 2; return count * Twice + 0_001; }"),
+        ("wide-separated-decimal", b"module M; public Nat F() { return "
+         + b"_".join([b"9"] * 256) + b"; }"),
         ("boolean-equality", b"module M; public bool F(bool x) { return x == (false == true); }"),
         ("expression-body", b"module M; public Nat Twice(Nat x) => x + x; "
          b"public Nat F() => Twice(4);"),
@@ -111,6 +115,9 @@ def fixtures(example: bytes) -> tuple[Fixture, ...]:
         ("empty-block", "public Nat F() {}", "syntax"),
         ("missing-return", "public Nat F() { let x = 1; }", "syntax"),
         ("missing-semicolon", "public Nat F() { return 1 }", "syntax"),
+        ("repeated-digit-separator", "public Nat F() => 1__024;", "syntax"),
+        ("trailing-digit-separator", "public Nat F() => 1_024_;", "syntax"),
+        ("digit-separator-before-suffix", "public Nat F() => 1_Nat;", "syntax"),
         ("extra-return", "public Nat F() { return 1; return 2; }", "syntax"),
         ("missing-else", "public Nat F() { if (true) { return 0; } }", "syntax"),
         ("arrow-return-type", "public Nat F() => true;", "type"),

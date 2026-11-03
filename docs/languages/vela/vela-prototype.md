@@ -46,7 +46,11 @@ never ignored.
 The prototype accepts UTF-8 source with ASCII identifiers and `//` line comments.
 Identifiers match `[A-Za-z_][A-Za-z0-9_]*`, excluding grammar and reserved extension
 keywords; the latter produce unsupported-feature diagnostics. Decimal
-literals match `[0-9]+`; leading zeros are permitted and normalized on emission.
+literals match `[0-9](?:_?[0-9])*`; underscores separate digits, while leading
+zeros are permitted. Separators and leading zeros normalize on emission; their
+authored spelling and source locations remain intact in syntax. The
+[separator contract](authoring-tools.md#numeric-separators) owns the digit bounds
+and wider surface's hexadecimal, binary and representation-suffix rules.
 Every file contains one named module and at least one function or constant.
 Declarations are resolved in source order. Every parameter and return type is
 explicit. A function can call only earlier functions; recursion and forward calls

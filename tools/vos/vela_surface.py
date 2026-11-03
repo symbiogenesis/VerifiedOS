@@ -24,6 +24,16 @@ class Fixture:
 
 
 POSITIVE: tuple[Fixture, ...] = (
+    Fixture("numeric-separator-values-patterns-and-indices", """// café: retain every authored digit and separator.
+module NumericSeparators;
+public const usize Capacity = 1_024usize;
+public definition Nat Scale(Nat count) = count + 1_000;
+public alias Sized = Buffer<byte, 1_024>;
+public byte Classify(byte value) => match (value) {
+    case 0b1010_0011byte => 0xA_3u8;
+    case 0xFF_FFu16 => 1_0;
+};
+""", ("constant", "definition", "alias", "nat", "nat_pattern", "match_expression")),
     Fixture("callable-list-boundaries", """module CallableLists;
 public void Forms() {
     let noParameters = () => Zero();
@@ -3997,11 +4007,54 @@ def _precedence_and_spans(parse: Callable[[bytes], dict[str, Json]]) -> None:
         raise ValueError("surface trailing trivia/source binding differs")
 
 
+def _numeric_separator_roles(source: bytes, result: dict[str, Json]) -> None:
+    literals = sorted((node for node in nodes(result.get("ast"))
+                       if node.get("kind") in {"nat", "nat_pattern"}),
+                      key=lambda node: cast("list[int]", node["span"])[0])
+    expected = (("1_024", "usize"), ("1_000", ""), ("1_024", ""),
+                ("0b1010_0011", "byte"), ("0xA_3", "u8"), ("0xFF_FF", "u16"), ("1_0", ""))
+    if len(literals) != len(expected):
+        raise ValueError("numeric separators changed literal or pattern boundaries")
+    cursor = 0
+    for literal, (digits, suffix) in zip(literals, expected, strict=True):
+        if literal.get("value") != digits or literal.get("suffix") != suffix:
+            raise ValueError("numeric separator spelling or representation suffix differs")
+        spelling = (digits + suffix).encode()
+        start = source.index(spelling, cursor)
+        cursor = start + len(spelling)
+        if literal.get("span") != [start, cursor]:
+            raise ValueError("numeric separator original-byte span differs")
+
+
+def _numeric_separator_limits(parse: Callable[[bytes], dict[str, Json]]) -> None:
+    prefix = b"module M; public Nat F() => "
+    for base, digit in ((b"", b"9"), (b"0x", b"f"), (b"0b", b"1")):
+        parse(prefix + base + b"_".join([digit] * 256) + b";")
+        try:
+            parse(prefix + base + b"_".join([digit] * 257) + b";")
+        except VelaError as error:
+            if error.kind != "limit":
+                raise ValueError("separated literal has the wrong digit-bound refusal") from error
+        else:
+            raise ValueError("separated literal bypassed its actual-digit bound")
+    for spelling in (b"1_", b"1__0", b"1_usize", b"0x_FF", b"0xFF_u64",
+                     b"0xF__F", b"0b_10", b"0b10_", b"0b1__0", b"0b1_2"):
+        try:
+            parse(prefix + spelling + b";")
+        except VelaError as error:
+            if error.kind != "syntax":
+                raise ValueError("malformed separator has the wrong syntax refusal") from error
+        else:
+            raise ValueError(f"malformed numeric separator parsed: {spelling!r}")
+
+
 def qualify(parse: Callable[[bytes], dict[str, Json]]) -> list[str]:
     """Exercise independent syntax cases; a failed oracle never passes a case."""
     _precedence_and_spans(parse)
     _literal_and_comment_boundaries(parse)
-    passed = ["surface:independent-precedence-and-spans", "surface:literal-and-comment-boundaries"]
+    _numeric_separator_limits(parse)
+    passed = ["surface:independent-precedence-and-spans", "surface:literal-and-comment-boundaries",
+              "surface:numeric-separator-suffixes-and-digit-limits"]
     for fixture in POSITIVE:
         result = parse(fixture.source.encode("utf-8"))
         _argument_roles(fixture.source.encode("utf-8"), result)
@@ -4009,7 +4062,9 @@ def qualify(parse: Callable[[bytes], dict[str, Json]]) -> list[str]:
         missing = set(fixture.kinds) - found
         if missing:
             raise ValueError(f"surface fixture {fixture.name} lacks AST roles: {sorted(missing)}")
-        if fixture.name == "callable-list-boundaries":
+        if fixture.name == "numeric-separator-values-patterns-and-indices":
+            _numeric_separator_roles(fixture.source.encode("utf-8"), result)
+        elif fixture.name == "callable-list-boundaries":
             _callable_list_roles(fixture.source.encode("utf-8"), result)
         elif fixture.name == "required-static-constants":
             _required_static_roles(fixture.source.encode("utf-8"), result)
