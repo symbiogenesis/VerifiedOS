@@ -1085,7 +1085,7 @@ class _Elaborator:
             marked = _term("static", term.args[0], value)
             return marked if self.free(value) else self.whnf(marked)
         if term.kind == "const" and term.value in self.definitions:
-            return self.specialize(self.definitions[cast("str", term.value)], depth + 1)
+            return self.specialize(self.definitions[term.value], depth + 1)
         if term.kind == "app":
             function = self.specialize(term.args[0], depth + 1)
             argument = self.specialize(term.args[1], depth + 1)
