@@ -19,9 +19,10 @@ from vos.vela_ast import (
     ValueType,
     VelaError,
 )
+from vos.vela_facts import Facts, SymbolKind
 
 __all__ = ["MAX_BLOCK_DEPTH", "MAX_EXPRESSION_DEPTH", "MAX_LITERAL_DIGITS", "MAX_SOURCE_BYTES",
-           "Translation", "ValueType", "VelaError", "translate", "translate_ast"]
+           "Translation", "ValueType", "VelaError", "inspect_source", "translate", "translate_ast"]
 
 _TYPES: dict[ValueType, str] = {
     "Nat": "Corelib.Init.Datatypes.nat",
@@ -60,6 +61,13 @@ class _Expression:
 class _Signature:
     parameters: tuple[ValueType, ...]
     result: ValueType
+    symbol: int | None
+
+
+@dataclass(frozen=True)
+class _Local:
+    value_type: ValueType
+    symbol: int | None
 
 
 def _tokens(source: bytes) -> list[_Token]:
@@ -262,8 +270,18 @@ def _error(kind: str, message: str, site: syntax.Site) -> VelaError:
 class _Elaborator:
     """Resolve and type located syntax, emitting only the established pure terms."""
 
-    def __init__(self) -> None:
+    def __init__(self, facts: Facts | None = None) -> None:
         self.functions: dict[str, _Signature] = {}
+        self.facts = facts
+
+    def _declare(self, name: syntax.Name, kind: SymbolKind, detail: str) -> int | None:
+        return None if self.facts is None else self.facts.declare(name, kind, detail)
+
+    def _reference(self, identity: int | None, site: syntax.Site) -> None:
+        if self.facts is not None:
+            if identity is None:
+                raise RuntimeError("pure inspection is missing a resolved declaration identity")
+            self.facts.reference(identity, site)
 
     def _bounded(self, value_type: ValueType, gallina: str,
                  children: tuple[_Expression, ...], site: syntax.Site) -> _Expression:
@@ -276,21 +294,27 @@ class _Elaborator:
         name = function.name
         if name.text in self.functions:
             raise _error("name", f"duplicate function '{name.text}'", name.site)
-        environment: dict[str, ValueType] = {}
+        parameters = ", ".join(f"{value_type} {parameter.text}"
+                               for parameter, value_type in function.parameters)
+        identity = self._declare(name, "function",
+                                 f"public {function.result} {name.text}({parameters})")
+        environment: dict[str, _Local] = {}
         for parameter, value_type in function.parameters:
             if parameter.text in environment:
                 raise _error("name", f"duplicate parameter '{parameter.text}'", parameter.site)
-            environment[parameter.text] = value_type
+            symbol = self._declare(parameter, "parameter", f"{parameter.text}: {value_type}")
+            environment[parameter.text] = _Local(value_type, symbol)
         body = self._block(function.body, environment, 1)
         if body.value_type != function.result:
             raise _error("type", f"function '{name.text}' returns {body.value_type}, "
                          f"expected {function.result}", function.body.site)
-        self.functions[name.text] = _Signature(tuple(value for _, value in function.parameters), function.result)
+        self.functions[name.text] = _Signature(tuple(value for _, value in function.parameters),
+                                               function.result, identity)
         binders = "".join(f" (v_{parameter.text} : {_TYPES[value_type]})"
                           for parameter, value_type in function.parameters)
         return f"Definition f_{name.text}{binders} : {_TYPES[function.result]} :=\n  {body.gallina}."
 
-    def _block(self, block: syntax.Block, environment: dict[str, ValueType], nesting: int) -> _Expression:
+    def _block(self, block: syntax.Block, environment: dict[str, _Local], nesting: int) -> _Expression:
         if nesting + len(block.bindings) > MAX_BLOCK_DEPTH:
             raise _error("limit", f"block or binding nesting exceeds {MAX_BLOCK_DEPTH}", block.site)
         extended = dict(environment)
@@ -299,7 +323,8 @@ class _Elaborator:
             if binding.name.text in extended:
                 raise _error("name", f"duplicate local binding '{binding.name.text}'", binding.name.site)
             value = self._expression(binding.value, extended)
-            extended[binding.name.text] = value.value_type
+            symbol = self._declare(binding.name, "variable", f"{binding.name.text}: {value.value_type}")
+            extended[binding.name.text] = _Local(value.value_type, symbol)
             values.append((binding, value))
         terminal = block.terminal
         if isinstance(terminal, syntax.Return):
@@ -322,7 +347,7 @@ class _Elaborator:
         return body
 
     def _expression(self, expression: syntax.Expression,
-                    environment: dict[str, ValueType]) -> _Expression:
+                    environment: dict[str, _Local]) -> _Expression:
         kind, value, site = expression.kind, expression.value, expression.site
         if kind == "nat":
             return _Expression("Nat", f"({int(cast('str', value))} : {_TYPES['Nat']})")
@@ -332,10 +357,11 @@ class _Elaborator:
             return self._expression(expression.children[0], environment)
         name = cast("str", value)
         if kind == "name":
-            value_type = environment.get(name)
-            if value_type is None:
+            local = environment.get(name)
+            if local is None:
                 raise _error("name", f"unbound value '{name}'", site)
-            return _Expression(value_type, f"v_{name}")
+            self._reference(local.symbol, site)
+            return _Expression(local.value_type, f"v_{name}")
         arguments = tuple(self._expression(child, environment) for child in expression.children)
         if kind == "call":
             signature = self.functions.get(name)
@@ -349,6 +375,7 @@ class _Elaborator:
                 if argument.value_type != expected:
                     raise _error("type", f"argument {index} to '{name}' must be {expected}, "
                                  f"got {argument.value_type}", site)
+            self._reference(signature.symbol, site)
             term = f"f_{name}"
             if arguments:
                 term = "(" + term + " " + " ".join(argument.gallina for argument in arguments) + ")"
@@ -376,8 +403,8 @@ class _Elaborator:
         return self._bounded("bool", term, arguments, site)
 
 
-def _translate(source: bytes, module: syntax.Module) -> Translation:
-    elaborator = _Elaborator()
+def _translate(source: bytes, module: syntax.Module, facts: Facts | None = None) -> Translation:
+    elaborator = _Elaborator(facts)
     definitions = [elaborator.function(function) for function in module.functions]
     name = module.name.text
     header = ("(* SPDX-License-Identifier: Apache-2.0 *)\n"
@@ -390,6 +417,14 @@ def _translate(source: bytes, module: syntax.Module) -> Translation:
 def translate(source: bytes) -> Translation:
     """Validate the complete bounded source through the retained Python syntax route."""
     return _translate(source, _Parser(_tokens(source)).parse())
+
+
+def inspect_source(source: bytes) -> dict[str, object]:
+    """Return diagnostic resolution facts only after a complete successful pure check."""
+    module = _Parser(_tokens(source)).parse()
+    facts = Facts()
+    _translate(source, module, facts)
+    return facts.result()
 
 
 def translate_ast(source: bytes, response: object) -> Translation:
