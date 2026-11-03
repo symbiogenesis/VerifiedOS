@@ -568,11 +568,11 @@ class _Elaborator:
                                else f"v_{name}" if name in environment else f"c_{name}")
         arguments = tuple(self._expression(child, environment) for child in expression.children)
         if kind == "call":
-            local = environment.get(name, self.constants.get(name))
-            if local is not None and local.static is not None:
-                raise _error("type", f"constant '{name}' is a value and cannot be called", site)
             signature = self.functions.get(name)
             if signature is None:
+                local = environment.get(name, self.constants.get(name))
+                if local is not None and (local.static is not None or local.required_static):
+                    raise _error("type", f"constant '{name}' is a value and cannot be called", site)
                 raise _error("name", f"unknown or forward function '{name}'; "
                              "only earlier declarations are callable", site)
             if len(arguments) != len(signature.parameters):

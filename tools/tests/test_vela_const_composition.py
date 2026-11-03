@@ -122,6 +122,29 @@ def _bounded_specialization() -> None:
         _refuses(source.decode(), "limit", "output")
 
 
+def _specialization_preserves_namespaces() -> None:
+    source = b"""module Names;
+public Nat Same(Nat value) => value + 1;
+public Nat Forward(const Nat Same, Nat value) => Same(value) + Same;
+public Nat Local(const Nat seed, Nat value) {
+    const Nat Same = seed;
+    return Same(value) + Same;
+}
+public Nat Runtime(Nat value) => Forward(2, value) + Local(2, value);
+public const Nat First = Forward(2, 3);
+public const Nat Second = Local(2, 3);
+"""
+    result = vela.translate(source).gallina
+    for name in ("First", "Second"):
+        ensure(f"Definition c_{name} : Corelib.Init.Datatypes.nat :=\n  (6 :" in result,
+               "static instantiation changed the function/value namespace decision")
+    runtime = result.split("Definition f_Runtime", 1)[1].split("Definition c_First", 1)[0]
+    ensure(runtime.count("f_Same") == 2 and "f_Forward" not in runtime and "f_Local" not in runtime,
+           "specialization captured a named function with a static value binder")
+    _refuses("module M; public Nat Bad(const Nat OnlyValue) => OnlyValue();",
+             "type", "is a value and cannot be called")
+
+
 def _independent_const_tree(source: bytes) -> dict[str, object]:
     def node(kind: str, start: int, end: int, **fields: object) -> dict[str, object]:
         return {"kind": kind, "span": [start, end], **fields}
@@ -190,4 +213,5 @@ def cases() -> list[Case]:
             Case("static-argument-dependency-type-and-immutability-refusals", _static_argument_dependency_and_typing_refusals),
             Case("hygienic-left-to-right-once-only-runtime-arguments", _hygienic_once_only_arguments),
             Case("bounded-closed-specialization", _bounded_specialization),
+            Case("specialization-preserves-function-and-value-namespaces", _specialization_preserves_namespaces),
             Case("independent-const-function-and-parameter-provenance", _independent_qualifier_protocol)]
