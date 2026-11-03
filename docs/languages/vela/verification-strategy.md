@@ -982,6 +982,11 @@ build host's word size.
 
 #### Surface Conventions
 
+The [common authoring style](authoring-tools.md) defines StyleCop-inspired layout,
+compiler-integrated automatic formatting, documentation comments and advisory
+lints. The executable increment covers the pure prototype; wider formatting and
+semantic findings retain their qualified parser/frontend prerequisites.
+
 | Spelling | Meaning |
 | --- | --- |
 | `let`, `var`, `T name = value` | Immutable inferred, mutable inferred and immutable type-first locals respectively. `var T name = value` is explicitly mutable. A typed literal such as `0usize` states a representation. |

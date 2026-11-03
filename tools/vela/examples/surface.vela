@@ -5,7 +5,8 @@ module Vela.Surface;
 public const usize FirstOffset = 0usize;
 
 public const Nat Square(Nat value) => value * value;
-public Nat Scale(const Nat factor, Nat value) {
+public Nat Scale(const Nat factor, Nat value)
+{
     const Nat multiplier = Square(factor);
     return multiplier * value;
 }
@@ -16,7 +17,8 @@ public record Packet<region 'source>(
     ghost Nat Count)
     invariant Nat(Length) == Count;
 
-public union Delivery<ghost Nat n> {
+public union Delivery<ghost Nat n>
+{
     Accepted(owned Packet<n> packet, tracked Permit<n> receipt);
     Cancelled(owned Packet<n> packet);
 }
@@ -29,11 +31,15 @@ public void Fill<ghost Nat count>(ref Span<byte, count> target, byte value)
         invariant target.Model.Take(Nat(index)) == Seq.Repeat(value, Nat(index))
     {
         target[index] = value;
-        proof { ?extend; }
+        proof
+        {
+            ?extend;
+        }
     }
 }
 
-public effect Choose {
+public effect Choose
+{
     bool Choose() resumes(0..2);
 }
 
@@ -45,7 +51,8 @@ public async Delivery<n> Accept<ghost Nat n>(
     let receipt = commit Counter.Add(move allowance, packet.Length);
     return Accepted(packet: move packet, receipt: receipt);
 }
-on cancel {
+on cancel
+{
     return Cancelled(packet: move packet);
 }
 
@@ -62,7 +69,8 @@ public record Sized<T>(
 
 public record Box<T, grade q : NatExact>(T Value @ q);
 
-public union Initialization<ghost Nat n> {
+public union Initialization<ghost Nat n>
+{
     Ready(owned Buffer<byte, n, Initialized> buffer, tracked Closed receipt);
     Rejected(owned Buffer<byte, n, Uninitialized> buffer, tracked Closed receipt);
 }
@@ -82,7 +90,8 @@ public (owned Packet<n>, tracked Permit<n>) Pair<ghost Nat n>(
     return (move packet, move permit);
 }
 
-public Unit ForwardPair<ghost Nat n>((owned Packet<n>, tracked Permit<n>) pair) {
+public Unit ForwardPair<ghost Nat n>((owned Packet<n>, tracked Permit<n>) pair)
+{
     let (packet, permit) = pair;
     Forward(in packet);
     Release(move permit);
@@ -116,12 +125,15 @@ public Result<ref<'workspace.bytes> byte, Error> First(ref Workspace workspace)
 }
 
 // The library brackets guards; the caller examines every represented outcome.
-public Result<Unit, BorrowError> ReplaceByte(ref BorrowCell<byte> cell, byte value) {
-    let outcome = cell.WithTryWrite((scoped ref byte selected @ NatExact(1)) => {
+public Result<Unit, BorrowError> ReplaceByte(ref BorrowCell<byte> cell, byte value)
+{
+    let outcome = cell.WithTryWrite((scoped ref byte selected @ NatExact(1)) =>
+    {
         selected = value;
         return ();
     });
-    match (outcome) {
+    match (outcome)
+    {
         case Updated(()): return Ok(());
         case BorrowConflict(): return Err(Conflict);
         case CapacityExhausted(): return Err(Capacity);
@@ -142,10 +154,14 @@ public async T Preserve<T>(owned T value)
     await Checkpoint();
     return move value;
 }
-on cancel { Close(move value); }
+on cancel
+{
+    Close(move value);
+}
 
 // The same grades and generic contracts describe ordinary library instances.
-public struct Graded<T, grade q : NatExact> {
+public struct Graded<T, grade q : NatExact>
+{
     private T Value @ q;
 }
 
@@ -159,11 +175,16 @@ public impl<T, grade q : NatExact> Duplicate<Graded<T, q>>
 // The callback binds its own region; its restoration belongs to the callable.
 public alias ScopedUpdate<T, captures C> =
     Fn<region 'loan>(scoped ref<'loan> T value) -> Unit captures C
-        with { requires Valid(value); restores Valid(value); };
+        with
+        {
+            requires Valid(value);
+            restores Valid(value);
+        };
 
 // A dependent match names its scrutinee in the result type before eliminating it.
 public definition owned Buffer<T, packet.Length> TakeStorage<T>(owned Sized<T> packet) =
-    match (packet) as whole : owned Buffer<T, whole.Length> {
+    match (packet) as whole : owned Buffer<T, whole.Length>
+    {
         case Sized(length, storage, evidence) => move storage;
     };
 
@@ -172,14 +193,16 @@ public Result<ref<'workspace.bytes> byte, Error> ForwardSlot(ref Workspace works
     restores result is Ok(slot) ==>
         workspace.bytes.Model == old(workspace.bytes.Model).Set(0, final(slot))
 {
-    return match (workspace.TryFirst()) {
+    return match (workspace.TryFirst())
+    {
         case Ok(slot) => Ok(slot);
         case Err(error) => Err(error);
     };
 }
 
 // Resource contracts use the same forms on containers and effect operations.
-public interface LoanStorage<T> where StorageLaws(T) {
+public interface LoanStorage<T> where StorageLaws(T)
+{
     operation ref<'input> T First(ref Span<T> input)
         requires input.Length > 0
         restores Preserved(input, final(result));
@@ -193,7 +216,8 @@ public struct Stored<T, grade q : NatExact>
     public void Release() requires Disposable(this) ensures Disposed(this);
 }
 
-public effect Exchange<T> where Representable(T) invariant Closed(Storage) {
+public effect Exchange<T> where Representable(T) invariant Closed(Storage)
+{
     owned T Replace(owned T replacement @ NatExact(1)) resumes(0..1)
         requires Available(replacement)
         ensures Returned(result)
@@ -202,11 +226,14 @@ public effect Exchange<T> where Representable(T) invariant Closed(Storage) {
 }
 
 // A clause can explicitly forward through an outer capability using an ordinary call.
-public Nat ForwardChoice() {
-    return handle (handle (inner.Choose()) as inner {
+public Nat ForwardChoice()
+{
+    return handle (handle (inner.Choose()) as inner
+    {
         Choose() with k => resume k(outer.Choose()),
         return value => value,
-    }) as outer {
+    }) as outer
+    {
         Choose() with k => resume k(1),
         return value => value,
     };
@@ -216,7 +243,8 @@ public Nat ForwardChoice() {
 universe u;
 public definition Type<u> RepeatedType<T : Type<u>>(bool repeated)
     where Repeatable(T)
-    = match (repeated) as choice : Type<u> {
+    = match (repeated) as choice : Type<u>
+    {
         case true => type (T, T);
         case false => type T;
     };
@@ -240,33 +268,49 @@ public void UseRepeated<T : Type<u>>(bool repeated, T source)
 }
 
 // Empty sums use the ordinary dependent eliminator, without an abort primitive.
-public inductive Never {}
+public inductive Never
+{
+}
 public definition T Absurd<T>(Never impossible) =
-    match (impossible) as whole : T {};
+    match (impossible) as whole : T
+    {
+    };
 
 // Literal discrimination composes with the same indexed-result match syntax.
-public definition Nat ClassifyCharacter(char value) = match (value) {
+public definition Nat ClassifyCharacter(char value) = match (value)
+{
     case 'a' => 1;
     case '\n' => 2;
     case _ => 0;
 };
 
-public trait ResourceFamily<T : Type<u>> where Representable(T) {
+public trait ResourceFamily<T : Type<u>> where Representable(T)
+{
     type Output : Type<u> where Formed(T);
     predicate Ready(T value) requires Stable(value);
 }
 
-public union ResourceOutcome<T : Type<u>> where Representable(T) {
+public union ResourceOutcome<T : Type<u>> where Representable(T)
+{
     Returned(owned T value @ NatExact(1)) ensures Retained(result);
     Unavailable(tracked Closed receipt) restores Closed(receipt);
 }
 
 // A value can state the same local loan telescope and laws as a callable type.
-public void UpdateCell<T : Type<u>>(ref LocalCell<T> cell) {
+public void UpdateCell<T : Type<u>>(ref LocalCell<T> cell)
+{
     let update = FnMut<region 'loan>(scoped ref<'loan> T value @ NatExact(1)) -> Unit
         effects(Write)
-        with { requires Open(value); restores Closed(final(value)); }
-        => { Touch(ref value); return (); };
+        with
+        {
+            requires Open(value);
+            restores Closed(final(value));
+        }
+        =>
+        {
+            Touch(ref value);
+            return ();
+        };
     cell.WithWrite(update);
 }
 
@@ -300,11 +344,21 @@ public Nat ReadAndApply(
 
 // Unary continuation disposal and a handler's disposal graph have distinct roles.
 // The graph takes a reason; capture and ordinary return do not invoke it.
-public Result<Nat, Error> ReadGuarded(owned Guard resource) {
-    return handle (ReadOrFail(in resource)) as running {
-        Fail(error) with k => { dispose k; return Err(error); },
+public Result<Nat, Error> ReadGuarded(owned Guard resource)
+{
+    return handle (ReadOrFail(in resource)) as running
+    {
+        Fail(error) with k =>
+        {
+            dispose k;
+            return Err(error);
+        },
         return value => Ok(value),
-        dispose reason => { resource.Release(reason); return (); },
+        dispose reason =>
+        {
+            resource.Release(reason);
+            return ();
+        },
     };
 }
 

@@ -84,6 +84,8 @@ documentation, not nearby comments at a use site. Protocol projection validates
 source binding and limits, and never reparses or resolves declarations itself.
 The existing parser schemas need no invented documentation fields. Unsupported
 surface declarations retain their comments without acquiring semantic facts.
+The executable increment attaches public function and constant documentation;
+local and parameter documentation remains ordinary comment text.
 
 ## Compiler commands and publication
 
@@ -119,6 +121,9 @@ errors. The same ID cannot be both allowed and denied. Unknown IDs are command
 errors. Defaults and rule identities are compiler-versioned; disabling an optional
 lint cannot waive a language error. Findings go to stderr, keeping emitted Gallina
 on stdout usable. A denied finding prevents default formatting and output writes.
+If bounded compiler inspection cannot supply complete lint facts, normal advisory
+compilation reports lints unavailable and continues. Explicit `vela lint` and a
+command with denied lints require complete findings and refuse without writes.
 
 ## Qualification
 

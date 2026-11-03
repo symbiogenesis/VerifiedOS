@@ -257,8 +257,10 @@ def _source_binding() -> None:
 
 
 def _invoke(arguments: list[str]) -> tuple[int, str, str]:
+    # These publication oracles exercise exact authored bytes. Default authoring
+    # behavior is covered separately by test_vela_authoring_cli.
     with redirect_stdout(out := StringIO()), redirect_stderr(err := StringIO()):
-        result = cli.main(arguments)
+        result = cli.main([*arguments, "--format", "off", "--no-lint"])
     return result, out.getvalue(), err.getvalue()
 
 

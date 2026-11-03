@@ -7,7 +7,8 @@ public definition T Identity<T>(T value) = value;
 public const Nat Limit = Identity(value: 1);
 
 public const Nat Square(Nat value) => value * value;
-public Nat Scale(const Nat factor, Nat value) {
+public Nat Scale(const Nat factor, Nat value)
+{
     const Nat multiplier = Square(factor);
     return multiplier * value;
 }
@@ -37,7 +38,10 @@ public definition Words<1> Aliased() = Singleton();
 public definition Nat Lookup() = At(Copy(values: Singleton()), FZero::<0>());
 
 public lemma LookupValue(): Lookup() == 42
-    proof { return Refl(42); }
+    proof
+    {
+        return Refl(42);
+    }
 
 public definition Fn(Nat n, Vec<Nat, n> values) -> Vec<Nat, n> PreserveLength() =
     (Nat n, Vec<Nat, n> values) => values;
@@ -46,13 +50,22 @@ public definition Vec<Nat, Limit> PreservedSingleton() =
     PreserveLength()(n: Limit, values: Singleton());
 
 public lemma Reflexivity<T>(T value): value == value
-    proof { return Refl(value); }
+    proof
+    {
+        return Refl(value);
+    }
 
 public lemma Composed(Nat value): value == value
-    proof { return Trans(Refl(value), Symm(Refl(value))); }
+    proof
+    {
+        return Trans(Refl(value), Symm(Refl(value)));
+    }
 
 public lemma Congruence(Nat value): value + 1 == value + 1
-    proof { return Congr(item => item + 1, Refl(value)); }
+    proof
+    {
+        return Congr(item => item + 1, Refl(value));
+    }
 
 public definition type[Eq::<Nat>(value, value)] KeepEvidence(
     Nat value, type[Eq::<Nat>(value, value)] evidence) = evidence;
@@ -60,6 +73,9 @@ public definition type[Eq::<Nat>(value, value)] KeepEvidence(
 public definition P KeepProof<P : Prop>(P evidence) = evidence;
 
 public lemma ForwardProof<P : Prop>(P evidence): P
-    proof { return KeepProof(evidence); }
+    proof
+    {
+        return KeepProof(evidence);
+    }
 
 public definition Type<1> SmallUniverse() = type Type;
