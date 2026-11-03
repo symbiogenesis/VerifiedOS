@@ -71,6 +71,11 @@ _FIELDS: dict[str, set[str]] = {
 }
 _IDENTIFIER = re.compile(r"[A-Za-z_][A-Za-z_0-9]*(?:\.[A-Za-z_][A-Za-z_0-9]*)*")
 _OPERATORS = {"+", "*", "-", "/", "%", "==", "!=", "<", "<=", ">", ">=", "&&", "||", "!", "==>", "<==>"}
+_SYNTAX_WORDS = {
+    "function_type": ("mode", {"Fn", "FnMut", "FnOnce"}),
+    "generic_parameter": ("mode", {"type", "ghost", "region", "effect", "captures", "grade"}),
+    "quantifier": ("quantifier", {"forall", "exists"}),
+}
 
 
 class _Protocol:
@@ -462,6 +467,11 @@ class _Protocol:
         if (set(node) - optional != {"kind", "span", *fields}
                 or ("const" in node and type(node["const"]) is not bool)):
             raise self.error("protocol", f"invalid fields for '{kind}'", node)
+        if kind in _SYNTAX_WORDS:
+            field, spellings = _SYNTAX_WORDS[kind]
+            word = node[field]
+            if not isinstance(word, str) or word not in spellings:
+                raise self.error("protocol", f"invalid syntax word for '{kind}.{field}'", node)
         if node.get("const", False) and kind == "lambda_parameter" and node["type"] is None:
             raise self.error("protocol", "a constant lambda parameter requires an explicit type", node)
         if "grade" in fields and node["grade"] is not None:

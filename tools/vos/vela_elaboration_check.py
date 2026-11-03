@@ -73,6 +73,11 @@ lemma Same<T>(T x): x == x proof {
 }
 definition Eq<T,(x),(y)> KeepProof<T, ghost T x, ghost T y>(Eq<T,(x),(y)> p) = p;
 """),
+        ("universal-explicit-equality-proof", """module QuantifierReplay;
+lemma Reflexive(): forall (Nat value) => value == value proof {
+    return (Nat value) => Refl(value);
+}
+"""),
         ("definitional-conversion", """module ConversionReplay;
 definition Nat Twice(Nat value) = value + value;
 lemma Computed(): Twice(2) == 4 proof { return Refl(4); }
@@ -151,6 +156,8 @@ definition Nat UseBuilt() = Build()(published: ());
         ("out-of-bounds-index", "definition Nat Wrong() = At(VNil::<Nat>(), FZero::<0>());", "type"),
         ("false-equality-proof", "lemma Wrong(): 1 == 2 proof { return Refl(1); }", "type"),
         ("non-proposition", "lemma Wrong(): 3 proof { return 3; }", "type"),
+        ("unsupported-existential", "lemma Wrong(): exists (Nat value) => value == value "
+         "proof { return (Nat value) => Refl(value); }", "unsupported"),
         ("universe-self-typing", "definition Type Wrong() = type Type;", "type"),
         ("unresolved-inference", "definition _ Unknown() = VNil();", "inference"),
         ("unfinished-proof", "lemma Missing(): 1 == 1;", "unsupported"),
