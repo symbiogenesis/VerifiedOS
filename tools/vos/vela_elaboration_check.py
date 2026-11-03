@@ -77,6 +77,22 @@ definition Eq<T,(x),(y)> KeepProof<T, ghost T x, ghost T y>(Eq<T,(x),(y)> p) = p
 definition Nat Twice(Nat value) = value + value;
 lemma Computed(): Twice(2) == 4 proof { return Refl(4); }
 """),
+        ("canonical-unit-and-labeled-generics", """module NamedReplay;
+definition T Identity<T>(T value) = value;
+definition Unit Empty() = Identity::<Unit>(value: ());
+definition Nat Value() = Identity(value: 7,);
+lemma Same(): Identity(value: 7) == 7 proof { return Refl(7); }
+"""),
+        ("declared-dependent-callable-labels", """module CallableReplay;
+alias Reader<T> = Fn(Nat count, Vec<T,count> values) -> Vec<T,count>;
+definition Reader<Nat> Preserve() = (length, storage) => storage;
+definition Vec<Nat,1> Singleton() = VCons(7, VNil::<Nat>());
+definition Vec<Nat,1> Use() = Preserve()(count: 1, values: Singleton());
+definition Vec<Nat,count> Keep(Nat count, Vec<Nat,count> values) = values;
+definition Vec<Nat,1> Partial() = Keep(count: 1)(values: Singleton());
+definition U Apply<T,U>(Fn(T input) -> U function, T value) = function(input: value);
+definition Nat Higher() = Apply(implementation => implementation + 1, value: 41);
+"""),
     )
     negatives = (
         ("wrong-call-domain", "definition Nat Identity(Nat x) = x; "
@@ -91,6 +107,24 @@ lemma Computed(): Twice(2) == 4 proof { return Refl(4); }
         ("proof-hole", "definition Nat Hole() = ?proof;", "inference"),
         ("unsupported-contract", "definition Nat Contract() requires true = 0;", "unsupported"),
         ("unbound-value", "definition Nat Wrong() = missing;", "name"),
+        ("unknown-call-label", "definition Nat Id(Nat value) = value; "
+         "definition Nat Wrong() = Id(missing: 1);", "name"),
+        ("out-of-order-call-label", "definition Nat Pick(Nat first,Nat second) = first; "
+         "definition Nat Wrong() = Pick(second: 1,first: 2);", "name"),
+        ("duplicate-call-label", "definition Nat Pick(Nat first,Nat second) = first; "
+         "definition Nat Wrong() = Pick(first: 1,first: 2);", "name"),
+        ("positional-after-label", "definition Nat Pick(Nat first,Nat second) = first; "
+         "definition Nat Wrong() = Pick(first: 1,2);", "name"),
+        ("unnamed-callable-label", "definition Nat Use(Fn(Nat) -> Nat function) = function(value: 1);", "name"),
+        ("unnamed-builtin-label", "definition Nat Wrong() = Succ(value: 1);", "name"),
+        ("implementation-name-not-interface", "definition Fn(Nat published) -> Nat Build() = implementation => implementation; "
+         "definition Nat Wrong() = Build()(implementation: 1);", "name"),
+        ("labeled-dependent-index-mismatch", "definition Vec<Nat,n> Keep(Nat n,Vec<Nat,n> values) = values; "
+         "definition Vec<Nat,0> Wrong() = Keep(n: 1,values: VNil::<Nat>());", "type"),
+        ("labeled-false-equality", "definition Nat Id(Nat value) = value; "
+         "lemma Wrong(): Id(value: 1) == 2 proof { return Refl(1); }", "type"),
+        ("unsupported-use-grade", "definition Nat Graded(Nat value @ 1) = value;", "unsupported"),
+        ("unsupported-source-loan", "definition Nat Loan(ref Nat value) = value;", "unsupported"),
     )
     return (Fixture("authored-example", example),
             *(Fixture(name, source.encode()) for name, source in positives),

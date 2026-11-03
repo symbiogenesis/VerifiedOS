@@ -42,10 +42,11 @@ _FIELDS: dict[str, set[str]] = {
     "type": {"name", "arguments"},
     "function_type": {"mode", "generics", "parameters", "result", "captures", "effects", "contracts"},
     "group_type": {"type"}, "computed_type": {"value"}, "type_argument": {"type"},
-    "unit_type": set(), "tuple_type": {"types"},
+    "tuple_type": {"types"},
     "name": {"name"}, "nat": {"value", "suffix"}, "bool": {"value"},
     "unit": set(), "tuple": {"values"}, "group": {"value"},
     "call": {"callee", "arguments"}, "generic_application": {"value", "arguments"},
+    "argument": {"label", "value"},
     "binary": {"operator", "left", "right"}, "unary": {"operator", "value"},
     "operator": {"name"}, "type_expression": {"type"},
     "lambda": {"parameters", "body"}, "typed_lambda": {"signature", "body"},
@@ -163,6 +164,32 @@ class _Protocol:
                 or trivia_end(self.source, cursor + 2, block_comments=True) != body_span[0]):
             raise self.error("protocol", "lambda arrow or body leaves source tokens uncovered", node)
 
+    def _call_envelope(self, node: Node, span: tuple[int, int]) -> None:
+        callee, arguments = node["callee"], node["arguments"]
+        if not isinstance(callee, dict) or not isinstance(arguments, list):
+            raise self.error("protocol", "call has invalid callee or arguments", node)
+        callee_span = self._span(callee.get("span"), span)
+        cursor = trivia_end(self.source, callee_span[1], block_comments=True)
+        if callee_span[0] != span[0] or self.source[cursor:cursor + 1] != b"(":
+            raise self.error("protocol", "call callee or opening differs from source", node)
+        cursor += 1
+        for index, argument in enumerate(arguments):
+            if not isinstance(argument, dict) or argument.get("kind") != "argument":
+                raise self.error("protocol", "call requires located argument wrappers", node)
+            argument_span = self._span(argument.get("span"), span)
+            if trivia_end(self.source, cursor, block_comments=True) != argument_span[0]:
+                raise self.error("protocol", "call argument leaves source tokens uncovered", node)
+            cursor = trivia_end(self.source, argument_span[1], block_comments=True)
+            if index != len(arguments) - 1:
+                if self.source[cursor:cursor + 1] != b",":
+                    raise self.error("protocol", "call argument separator differs from source", node)
+                cursor += 1
+        cursor = trivia_end(self.source, cursor, block_comments=True)
+        if arguments and self.source[cursor:cursor + 1] == b",":
+            cursor = trivia_end(self.source, cursor + 1, block_comments=True)
+        if self.source[cursor:cursor + 1] != b")" or cursor + 1 != span[1]:
+            raise self.error("protocol", "call closing or argument list differs from source", node)
+
     def visit(self, raw: object, parent: tuple[int, int], depth: int = 0) -> None:
         if depth > MAX_DEPTH or self.remaining <= 0:
             raise self.error("limit", "surface syntax exceeds elaboration bounds")
@@ -207,6 +234,11 @@ class _Protocol:
             value = node["value"]
             if type(value) is not bool or self.source[span[0]:span[1]] != (b"true" if value else b"false"):
                 raise self.error("protocol", "Boolean literal differs from its source", node)
+        if kind == "unit":
+            cursor = trivia_end(self.source, span[0] + 1, block_comments=True)
+            if (self.source[span[0]:span[0] + 1] != b"("
+                    or self.source[cursor:cursor + 1] != b")" or cursor + 1 != span[1]):
+                raise self.error("protocol", "unit value differs from its source", node)
         if kind == "expression_body":
             if (self.source[span[0]:span[0] + 2] != b"=>"
                     or self.source[span[1] - 1:span[1]] != b";"):
@@ -220,6 +252,26 @@ class _Protocol:
                 raise self.error("protocol", "expression body leaves source tokens uncovered", node)
         if kind == "lambda":
             self._lambda_envelope(node, span)
+        if kind == "call":
+            self._call_envelope(node, span)
+        if kind == "argument":
+            value = node["value"]
+            if not isinstance(value, dict):
+                raise self.error("protocol", "call argument has no expression", node)
+            value_span = self._span(value.get("span"), span)
+            label = node["label"]
+            if label is None:
+                if value_span != span:
+                    raise self.error("protocol", "positional argument leaves source tokens uncovered", node)
+            else:
+                if not isinstance(label, dict):
+                    raise self.error("protocol", "call argument has an invalid label", node)
+                label_span = self._span(label.get("span"), span)
+                cursor = trivia_end(self.source, label_span[1], block_comments=True)
+                if (label_span[0] != span[0] or self.source[cursor:cursor + 1] != b":"
+                        or trivia_end(self.source, cursor + 1, block_comments=True) != value_span[0]
+                        or value_span[1] != span[1]):
+                    raise self.error("protocol", "argument label differs from source delimiters", node)
         if kind == "lambda_parameter" and node["type"] is None:
             name = node["name"]
             if not isinstance(name, dict):
@@ -299,6 +351,8 @@ class _Elaborator:
         self.reductions = MAX_REDUCTIONS
         self.metas: list[_Meta] = []
         self.types: dict[int, _Term] = {}
+        # Callable parameter labels are source metadata, never CIC constructors.
+        self.parameter_names: dict[int, str] = {}
         self.globals: dict[str, _Binding] = {}
         self.constants: dict[str, _Binding] = {}
         self.definitions: dict[str, _Term] = {}
@@ -673,7 +727,7 @@ class _Elaborator:
             value = self.type(self.node(node["type"]), environment)
             self.unify(self.infer(value), expected)
             return value
-        if node["kind"] in {"type", "function_type", "unit_type", "group_type", "tuple_type", "computed_type"}:
+        if node["kind"] in {"type", "function_type", "group_type", "tuple_type", "computed_type"}:
             if node["kind"] == "type" and self.name(node["name"]) == "_" and not self.nodes(node["arguments"]):
                 return self.meta(expected, environment)
             value = self.type(node, environment, require_sort=False)
@@ -690,7 +744,13 @@ class _Elaborator:
             self.unify(value_type.args[0], _UNIT)
             argument = _term("unit")
             return _Binding(_app(term, argument), self.substitute(value_type.args[1], cast("int", value_type.value), argument))
+        labeled = False
         for node in arguments:
+            self.node(node, "argument")
+            label = node["label"]
+            if label is None and labeled:
+                raise self.fail("name", "positional arguments cannot follow a named argument", node)
+            labeled = labeled or label is not None
             value_type = self.whnf(value_type)
             if value_type.kind == "meta":
                 domain = self.meta(_SORT, environment)
@@ -700,7 +760,14 @@ class _Elaborator:
                 value_type = self.whnf(value_type)
             if value_type.kind != "pi":
                 raise self.fail("type", "too many arguments or a non-callable value", node)
-            argument = self.check(node, value_type.args[0], environment)
+            if label is not None:
+                spelling = self.name(label)
+                expected = self.parameter_names.get(cast("int", value_type.value))
+                if expected is None:
+                    raise self.fail("name", "unnamed callable parameters do not accept argument labels", node)
+                if spelling != expected:
+                    raise self.fail("name", f"expected argument label '{expected}', got '{spelling}'", node)
+            argument = self.check(self.node(node["value"]), value_type.args[0], environment)
             term = _app(term, argument)
             value_type = self.substitute(value_type.args[1], cast("int", value_type.value), argument)
         return _Binding(term, value_type)
@@ -732,7 +799,9 @@ class _Elaborator:
             variable = self.fresh(domain)
             variables.append(variable)
             if node["name"] is not None:
-                self.bind_local(extended, self.name(node["name"]), _Binding(variable, domain))
+                name = self.name(node["name"])
+                self.parameter_names[cast("int", variable.value)] = name
+                self.bind_local(extended, name, _Binding(variable, domain))
         if unit and not parameter_nodes:
             variables.append(self.fresh(_UNIT))
         return variables, extended
@@ -777,8 +846,6 @@ class _Elaborator:
                     value_type = self.substitute(value_type.args[1], cast("int", value_type.value), value)
         elif kind in {"group_type", "type_argument"}:
             result = self.type(self.node(node["type"]), environment, require_sort=require_sort)
-        elif kind == "unit_type":
-            result = _UNIT
         elif kind == "tuple_type":
             values = [self.type(value, environment) for value in self.nodes(node["types"])]
             if len(values) < 2:
@@ -868,7 +935,9 @@ class _Elaborator:
                 self.unify(domain, expected_pi.args[0])
             variable = self.fresh(domain)
             variables.append(variable)
-            self.bind_local(extended, self.name(parameter["name"]), _Binding(variable, domain))
+            name = self.name(parameter["name"])
+            self.parameter_names[cast("int", variable.value)] = name
+            self.bind_local(extended, name, _Binding(variable, domain))
             if expected_pi is not None:
                 current = self.substitute(expected_pi.args[1], cast("int", expected_pi.value), variable)
         body_node = self.node(node["body"])

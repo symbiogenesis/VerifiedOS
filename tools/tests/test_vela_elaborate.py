@@ -18,7 +18,7 @@ from vos.vela_elaborate import elaborate
 
 type Node = dict[str, object]
 type Form = Callable[[_Fixture], Node]
-type Parameter = tuple[str, Form]
+type Parameter = tuple[str | None, Form]
 type Generic = tuple[str, str, Form | None]
 
 
@@ -62,8 +62,10 @@ class _Fixture:
                 self.write(", ")
             start = self.offset
             annotation = value_type(self)
-            self.write(" ")
-            binding = self.name(name)
+            binding = None
+            if name is not None:
+                self.write(" ")
+                binding = self.name(name)
             nodes.append(self.node(kind, start, name=binding, type=annotation, grade=None))
         self.write(")")
         return nodes
@@ -236,7 +238,8 @@ def _group(value: Form) -> Form:
     return form
 
 
-def _call(name: str | Form, *arguments: Form, generics: tuple[Form, ...] = ()) -> Form:
+def _call(name: str | Form, *arguments: Form, generics: tuple[Form, ...] = (),
+          labels: tuple[str | None, ...] | None = None, trailing: bool = False) -> Form:
     def form(fixture: _Fixture) -> Node:
         start = fixture.offset
         callee = (_variable(name) if isinstance(name, str) else name)(fixture)
@@ -246,9 +249,32 @@ def _call(name: str | Form, *arguments: Form, generics: tuple[Form, ...] = ()) -
             fixture.write(">")
             callee = fixture.node("generic_application", start, value=callee, arguments=generic_nodes)
         fixture.write("(")
-        args = fixture.forms(arguments)
+        args: list[Node] = []
+        if labels is not None:
+            ensure(len(labels) == len(arguments), "each fixture argument needs a label role")
+        for index, value in enumerate(arguments):
+            if index:
+                fixture.write(", ")
+            argument_start = fixture.offset
+            label = None if labels is None else labels[index]
+            label_node = None
+            if label is not None:
+                label_node = fixture.name(label)
+                fixture.write(": ")
+            expression = value(fixture)
+            args.append(fixture.node("argument", argument_start, label=label_node, value=expression))
+        if arguments and trailing:
+            fixture.write(",")
         fixture.write(")")
         return fixture.node("call", start, callee=callee, arguments=args)
+    return form
+
+
+def _unit() -> Form:
+    def form(fixture: _Fixture) -> Node:
+        start = fixture.offset
+        fixture.write("()")
+        return fixture.node("unit", start)
     return form
 
 
@@ -437,6 +463,152 @@ def _polymorphism_and_higher_order() -> None:
            "definitions lost their independent hygienic names")
     ensure("Axiom " not in result.gallina and "Admitted" not in result.gallina,
            "generic inference emitted an unchecked assumption")
+
+
+def _canonical_named_call_terms() -> None:
+    def candidate(named: bool) -> _Fixture:
+        fixture = _Fixture("NamedCalls")
+        _identity(fixture)
+        fixture.definition("Apply", _type("U"),
+                           (("function", _function_type((("input", _T),), _type("U"))),
+                            ("value", _T)),
+                           _call("function", _variable("value"),
+                                 labels=("input",) if named else None),
+                           (*_POLY, ("type", "U", None)))
+        fixture.definition("Use", _NAT, (),
+                           _call("Apply", _inferred_lambda(("implementation",),
+                                  _binary("+", _variable("implementation"), _natural(1)), bare=True),
+                                 _call("Identity", _natural(41),
+                                       labels=("value",) if named else None),
+                                 labels=(None, "value") if named else None,
+                                 generics=(_NAT, _NAT), trailing=True))
+        fixture.definition("Empty", _type("Unit"), (),
+                           _call("Identity", _unit(), generics=(_type("Unit"),),
+                                 labels=("value",) if named else None))
+        vector = _type("Vec", _NAT, _type("count"))
+        signature = _function_type((("count", _NAT), ("values", vector)), vector)
+        fixture.alias("Reader", signature)
+        fixture.definition("Preserve", _type("Reader"), (),
+                           _inferred_lambda(("length", "storage"), _variable("storage")))
+        fixture.definition("Keep", vector, (("count", _NAT), ("values", vector)), _variable("values"))
+        singleton = _call("VCons", _natural(7), _call("VNil", generics=(_NAT,)))
+        fixture.definition("Preserved", _type("Vec", _NAT, _natural(1)), (),
+                           _call(_call("Preserve"), _natural(1), singleton,
+                                 labels=("count", "values") if named else None))
+        partial = _call("Keep", _natural(1), labels=("count",) if named else None)
+        fixture.definition("Partial", _type("Vec", _NAT, _natural(1)), (),
+                           _call(partial, singleton, labels=("values",) if named else None))
+        fixture.definition("WithUnit", _tuple(_type("Unit"), _NAT, types=True), (),
+                           _tuple(_unit(), _natural(7)))
+        return fixture
+
+    positional = elaborate(*candidate(False).response()).gallina.split("\n", 2)[2]
+    source, response = candidate(True).response()
+    named = elaborate(source, response).gallina
+    ensure(named.split("\n", 2)[2] == positional,
+           "argument labels changed dependent, generic, aliased, partial or Unit CIC terms")
+    ensure(hashlib.sha256(source).hexdigest() in named, "labeled calls lost exact source provenance")
+    ensure("Corelib.Init.Datatypes.unit" in named and "Corelib.Init.Datatypes.tt" in named,
+           "canonical Unit type and value lost their existing interpretation")
+
+
+def _named_call_refusals() -> None:
+    for labels, fragment in ((("missing", "right"), "expected argument label 'left'"),
+                              (("right", "left"), "expected argument label 'left'"),
+                              (("left", "left"), "expected argument label 'right'"),
+                              (("left", None), "positional arguments cannot follow")):
+        fixture = _Fixture()
+        fixture.definition("Choose", _NAT, (("left", _NAT), ("right", _NAT)), _variable("left"))
+        fixture.definition("Wrong", _NAT, (),
+                           _call("Choose", _natural(1), _natural(2), labels=labels))
+        _refuses(fixture, "name", fragment)
+    fixture = _Fixture()
+    fixture.definition("Use", _NAT,
+                       (("callback", _function_type(((None, _NAT),), _NAT)),),
+                       _call("callback", _natural(1), labels=("implementation",)))
+    _refuses(fixture, "name", "unnamed callable parameters")
+    fixture = _Fixture()
+    fixture.definition("Builtin", _NAT, (), _call("Succ", _natural(1), labels=("value",)))
+    _refuses(fixture, "name", "unnamed callable parameters")
+    for public_name in ("published", None):
+        fixture = _Fixture()
+        signature = _function_type(((public_name, _NAT),), _NAT)
+        fixture.definition("Build", signature, (),
+                           _inferred_lambda(("implementation",), _variable("implementation"), bare=True))
+        fixture.definition("Wrong", _NAT, (),
+                           _call(_call("Build"), _natural(1), labels=("implementation",)))
+        _refuses(fixture, "name", "expected argument label" if public_name else "unnamed callable parameters")
+    fixture = _Fixture()
+    _identity(fixture)
+    fixture.definition("Incomplete", _NAT, (),
+                       _call("Identity", _boolean(True), generics=(_NAT,), labels=("value",)))
+    _refuses(fixture, "type")
+    fixture = _Fixture()
+    vector = _type("Vec", _NAT, _type("count"))
+    fixture.definition("Keep", vector, (("count", _NAT), ("values", vector)), _variable("values"))
+    fixture.definition("WrongIndex", _type("Vec", _NAT, _natural(0)), (),
+                       _call("Keep", _natural(1), _call("VNil", generics=(_NAT,)),
+                             labels=("count", "values")))
+    _refuses(fixture, "type")
+    fixture = _Fixture()
+    _identity(fixture)
+    fixture.theorem("False", (),
+                    _binary("==", _call("Identity", _natural(0), labels=("value",)), _natural(1)),
+                    _call("Refl", _natural(0)))
+    _refuses(fixture, "type")
+
+
+def _named_argument_source_protocol() -> None:
+    fixture = _Fixture()
+    _identity(fixture)
+    fixture.definition("Use", _NAT, (), _call("Identity", _natural(7), labels=("value",)))
+    source, response = fixture.response()
+    for mutation in ("label-text", "label-span", "drop-label", "hide-label", "legacy-expression",
+                     "value-span", "argument-end", "call-end"):
+        changed = copy.deepcopy(response)
+        root = cast("Node", changed["ast"])
+        declaration = cast("list[Node]", root["declarations"])[1]
+        call = cast("Node", declaration["value"])
+        arguments = cast("list[Node]", call["arguments"])
+        argument = arguments[0]
+        value = cast("Node", argument["value"])
+        if mutation == "label-text":
+            cast("Node", argument["label"])["text"] = "wrong"
+        elif mutation == "label-span":
+            span = cast("list[int]", cast("Node", argument["label"])["span"])
+            cast("Node", argument["label"])["span"] = [span[0] + 1, span[1]]
+        elif mutation in {"drop-label", "hide-label"}:
+            argument["label"] = None
+            if mutation == "hide-label":
+                argument["span"] = value["span"]
+        elif mutation == "legacy-expression":
+            arguments[0] = value
+        elif mutation == "value-span":
+            value["span"] = argument["span"]
+        else:
+            node = argument if mutation == "argument-end" else call
+            start, end = cast("list[int]", node["span"])
+            node["span"] = [start, end - 1]
+        try:
+            elaborate(source, changed)
+        except VelaError as error:
+            ensure(error.kind == "protocol", f"argument {mutation} corruption reached semantics")
+        else:
+            raise AssertionError(f"accepted argument protocol corruption: {mutation}")
+    fixture = _Fixture()
+    fixture.definition("UnitValue", _type("Unit"), (), _natural(1))
+    source, response = fixture.response()
+    declaration = cast("list[Node]", cast("Node", response["ast"])["declarations"])[0]
+    value = cast("Node", declaration["value"])
+    value.pop("value")
+    value.pop("suffix")
+    value["kind"] = "unit"
+    try:
+        elaborate(source, response)
+    except VelaError as error:
+        ensure(error.kind == "protocol", "forged Unit value reached type checking")
+    else:
+        raise AssertionError("literal bytes reinterpreted as a Unit value")
 
 
 def _concise_lambdas_and_expression_bodies() -> None:
@@ -859,6 +1031,9 @@ def _elaboration_budgets() -> None:
 
 def cases() -> list[Case]:
     return [Case("fresh-polymorphism-and-higher-order-inference", _polymorphism_and_higher_order),
+            Case("canonical-named-dependent-call-term-agreement", _canonical_named_call_terms),
+            Case("named-call-interface-order-and-semantic-refusals", _named_call_refusals),
+            Case("named-argument-complete-source-protocol", _named_argument_source_protocol),
             Case("concise-lambdas-and-expression-body-terms", _concise_lambdas_and_expression_bodies),
             Case("ergonomic-source-token-coverage", _ergonomic_source_token_coverage),
             Case("dependent-vectors-and-finite-indices", _dependent_vectors_and_indices),
