@@ -2754,6 +2754,33 @@ Implemented: `vos/ring.py` owns parsing/emission and direct library imports; com
 
 `vos/prooflex.py` shares comment/string traversal. Adapters retain distinct policies: proof reading tolerates unfinished input and recognizes strings inside comments; navigation ignores comment quotes and refuses unmatched endings or unfinished regions. Frozen-lexer and proof-command comparisons, focused differential fixtures and live-source readings preserve both outputs. Require settled-revision Host CI and matching Guest dispatch; reuse an existing dispatch with identical inputs.
 
+## Checked source references
+
+**Start:** Markdown links already written in source comments and Python docstrings,
+the ordinary link gate, Python's AST, the Gallina source-name reader and the
+compiler-emitted Sail bundle. **Owns:** checked local Markdown references in
+comments/docstrings across the repository's Python, Gallina, Sail, C and RTL
+sources; migrate existing links and concrete cross-file ownership references.
+Paths resolve relative to the source carrying the link. Markdown fragments name
+headings or explicit anchors; Python, Gallina and Sail fragments name declarations
+in the target file. Python uses qualified class/member names, Gallina uses the
+existing source-name reader's supported declarations, and Sail uses its emitted
+declarations with current source identity. Other file kinds support file links
+without claiming declaration resolution. Keep external provenance and generated
+or frozen source bytes under their existing owners.
+
+**Check:** renamed/deleted files, headings and supported declarations fail the
+host corpus check with the referring source and line. Comment/string decoys,
+nested Gallina comments, reference-style Markdown links, relative paths,
+untracked targets, unsafe paths and stale Sail identity have focused controls.
+Reuse maintained Markdown parsing and existing declaration readers without
+importing Python targets or introducing a Sail grammar. Extend rule metadata and
+mutation controls, document the convention and preserve the CI classifier's
+corpus-check coverage for prose-only changes. Implementation starts after this
+predicate is committed. **Join:** focused local behavioral checks, typecheck,
+corpus/mutation checks and the local fanout handoff; hosted Host/Guest acceptance
+remains user-managed. No proof or model behavior claim follows from comment edits.
+
 ## Proof structure maintenance
 
 The [proof structure contract](docs/implementation/contracts/proof-structure.md) commissions the shared foundation, semantic checker interfaces, named conditions, geometry projection, trace replay, sequence edits, scalar lifting, NTT shapes, independent updates and dependency-ordered crypto sources. Implemented refactors provide compatibility aliases and semantic interface lemmas. Source review preserves statements, behavior and non-vacuity; hosted compilation/assumption audits decide proof acceptance. Require published-revision Host CI and all Guest lanes dispatched cold; the proof verdict remains pending. No local Rocq installation or compile verdict is available.
