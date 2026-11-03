@@ -270,7 +270,7 @@
         },
         {
           "path": "proofs/JournalIndex.v",
-          "sha256": "3d7509e4409d9f896f190b2b9965d49f208f76652d0caa18d469f3736d82ab92"
+          "sha256": "64318ab18e9f06dfb02f09889b74fdf13ce403f7ef1ed935dd0a3b35507a8e0e"
         },
         {
           "path": "proofs/StorageRecovery.v",
@@ -279,7 +279,7 @@
       ],
       "descriptor": {
         "path": "tools/composer/packages/storage.json",
-        "sha256": "1d0504e3d43742a4931979cef48ce35e5318b6bf27f3b9c12236eeada1f25980"
+        "sha256": "397fc3c90f3bf58a2b40f9bc20acdff92d27afad05924cfa6dbf9bafa6ed0920"
       },
       "artifact_slot": "storage-artifact",
       "entry": null,

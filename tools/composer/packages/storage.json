@@ -8,7 +8,7 @@
     },
     {
       "path": "proofs/JournalIndex.v",
-      "sha256": "3d7509e4409d9f896f190b2b9965d49f208f76652d0caa18d469f3736d82ab92"
+      "sha256": "64318ab18e9f06dfb02f09889b74fdf13ce403f7ef1ed935dd0a3b35507a8e0e"
     },
     {
       "path": "proofs/StorageRecovery.v",
