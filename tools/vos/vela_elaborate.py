@@ -451,6 +451,11 @@ class _Protocol:
             raise self.error("unsupported", f"'{kind}' is outside mathematical elaboration", node)
         if set(node) != {"kind", "span", *fields}:
             raise self.error("protocol", f"invalid fields for '{kind}'", node)
+        if "grade" in fields and node["grade"] is not None:
+            grade = node["grade"]
+            if not isinstance(grade, dict) or not isinstance(grade.get("kind"), str):
+                raise self.error("protocol", "optional grade must be null or a located syntax node", node)
+            self._span(grade.get("span"), span)
         self._ordinary_envelope(node, span)
         if kind == "nat":
             value, suffix = node["value"], node["suffix"]

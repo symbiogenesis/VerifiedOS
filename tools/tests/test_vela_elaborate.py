@@ -826,7 +826,7 @@ def _lexical_boundaries_and_hidden_bindings() -> None:
     fixture.function("Wrong", _NAT, (("runtime", _NAT),), hidden_body, block=True)
     _refuses(fixture, "type", "nonstatic binding 'Shadow'")
     source, response = fixture.response()
-    for widen_value in (False, True):
+    for widen_value, empty_grade in ((False, False), (True, False), (False, True)):
         changed = copy.deepcopy(response)
         declaration = cast("list[Node]", cast("Node", changed["ast"])["declarations"])[1]
         statements = cast("list[Node]", cast("Node", declaration["body"])["statements"])
@@ -834,6 +834,8 @@ def _lexical_boundaries_and_hidden_bindings() -> None:
         cast("list[int]", padding["span"])[1] = cast("list[int]", hidden["span"])[1]
         if widen_value:
             cast("list[int]", cast("Node", padding["value"])["span"])[1] = cast("list[int]", hidden["span"])[1] - 1
+        if empty_grade:
+            padding["grade"] = []
         del statements[1]
         refuse(source, changed)
     fixture = _Fixture()
@@ -844,6 +846,15 @@ def _lexical_boundaries_and_hidden_bindings() -> None:
     declaration = cast("list[Node]", cast("Node", response["ast"])["declarations"])[1]
     declaration["parameters"] = []
     refuse(source, response)
+
+    fixture = _Fixture()
+    fixture.definition("Identity", _NAT, (("value", _NAT),), _variable("value"))
+    source, response = fixture.response()
+    for malformed in ([], False, "", 0, {}):
+        changed = copy.deepcopy(response)
+        declaration = cast("list[Node]", cast("Node", changed["ast"])["declarations"])[0]
+        cast("list[Node]", declaration["parameters"])[0]["grade"] = malformed
+        refuse(source, changed)
 
 
 def _named_call_refusals() -> None:
