@@ -423,6 +423,82 @@ handoff to that consumer. These maps do not replace
 DWARF for native locations, types or unwinding, and a native-only stage has no
 ECMA-426 export duty. Lowering and source provenance remain compiler-owned once.
 
+## Generated development tests
+
+[Q25x](../../../PLAN.md#q-assessment-actions) owns a bounded qualification of
+[Hypothesis](https://hypothesis.readthedocs.io/en/latest/stateful.html) as an
+optional development instrument for the existing Python source API, synchronous
+LSP overlays and pure formatter. Its generators and shrinking can reduce
+handwritten sequence construction and failure reduction. This selects a trial,
+not a permanent dependency or a new semantic producer. Read the selected
+release's own licence and dependency notices and record its use in
+[THIRD-PARTY.md](../../../THIRD-PARTY.md) before provisioning it. Pin and qualify
+the exact package closure with the manifest's Python minor version on Windows
+and Ubuntu; a published wheel is not a host verdict. Keep the candidate outside
+the ordinary tool environment until the adoption decision, and reuse the existing
+`Case` runner without a test-framework migration.
+
+Use a small independently written document/state model and independently
+expected canonical text. Compute expected coordinates from scalar traversal and
+explicit UTF-16 unit counts, without calling production coordinate, edit,
+snapshot-identity or invalidation helpers. Retain existing independent coordinate,
+refusal, resource-limit and real-process fixtures. Comparing incremental results
+with fresh analysis helps expose stale state but establishes neither analysis's
+semantic correctness. Formatter generation uses small supported templates with
+expected tokens, comments and documentation attachment; its own output is not an
+expected answer.
+
+The initial campaign caps are 64 generated examples per property, 32 actions per
+state trace, 4,096 UTF-8 bytes per normal generated document and 60 seconds of
+wall time for each campaign process, including shrinking. Existing explicit
+boundary fixtures still test the implementation's actual resource limits.
+Configure deterministic generation under the pinned tool version and record
+seed, settings and exact input/tool identities. Disable dependence on an ambient
+example database. Retain a minimized failure as explicit data or a normal
+regression fixture, so replay does not depend solely on a version-specific
+reproduction token. Exhaustion, timeout or failure to replay is an incomplete
+campaign, never a passing test.
+
+| Subject | Independent observations required |
+| --- | --- |
+| Source coordinates | UTF-8 boundaries and UTF-16 positions agree with the model across supplementary characters, LF/CRLF/bare CR, line-end clamping and rejected interior/out-of-range coordinates |
+| Synchronous overlays | Open/change/close/reopen, strictly increasing versions, sequential ranged edits, later-edit rollback, desynchronization/recovery and configuration invalidation preserve documented source, generation, readiness and diagnostics |
+| Supported requests | Observations use the current synchronized snapshot; closed or desynchronized documents cannot expose prior facts. Cancellation retains its existing synchronous no-op behavior; no pending-work or late-reply claim is made |
+| Pure formatting | Expected tokens, literal values, comments and documentation attachment survive; repeated formatting is idempotent and library/editor calls leave caller-owned source unchanged |
+
+Use a bounded deterministic diagnostic stub for source/protocol-state observations
+and retain the real-producer/process controls for that separate join. Do not
+launch a compiler subprocess for every generated transition. Future asynchronous
+scheduling, dependency graphs and broader language features need their own model
+and consumer; this trial implements none.
+
+Before generation, freeze the same-contract manual baseline and independent
+seeded defects: code-point/UTF-16 confusion, applying every edit to the original
+document, and publishing an early edit before a later invalid edit refuses.
+Keep at least one defect held out from generator design. Reuse the repository's
+mutation vocabulary: an unexecutable mutant is stillborn, a running mutant
+detected by the expected observation is killed, and a survivor needs investigation.
+Require the original to pass, every selected executable mutant to be killed and
+a deliberately nonminimal failing trace to shrink to a strictly smaller replay
+exposing the same observation. A stillborn selected defect leaves its control
+unqualified.
+A go decision also requires unchanged independent controls, both host
+qualifications, bounded reproducible execution and a demonstrated reduction in
+handwritten sequence construction or failure-reduction work for an exercised
+interaction class. Record that maintenance benefit against the frozen baseline;
+neither a test count nor discovery of a production bug is the success criterion.
+Otherwise retain useful explicit regressions and record rejection or unresolved
+prerequisites without promoting the candidate into the ordinary tool closure.
+
+[QCheck](https://github.com/c-cube/qcheck) is an alternative for a separately
+selected native OCaml consumer; no OCaml framework is added beside Hypothesis
+without such a consumer. The parser first uses its
+[existing Menhir facilities](vela-parser.md#generated-syntax-campaigns).
+These campaigns supply development falsification only. Checked source
+correspondence, kernel evidence and independent-client qualification retain their
+existing duties. Hosted verdicts and any benchmark comparisons follow the
+[validation handoff](../../../AGENTS.md#tool-execution-and-validation).
+
 ## Qualification and delivery
 
 Each implementation increment first names its actual client and evidence of need,
