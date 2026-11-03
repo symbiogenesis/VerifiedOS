@@ -24,6 +24,22 @@ class Fixture:
 
 
 POSITIVE: tuple[Fixture, ...] = (
+    Fixture("callable-list-boundaries", """module CallableLists;
+public void Forms() {
+    let noParameters = () => Zero();
+    let oneParameter = (single) => single;
+    let manyParameters = (left, right) => Pair(left, right);
+    let trailingParameter = (last,) => last;
+    let noClauses = handle (Empty()) {};
+    let oneClause = handle (Single()) { return item => item };
+    let manyClauses = handle (Multiple()) {
+        Choose(chosen) with k => resume k(chosen), return answer => answer
+    };
+    let trailingClause = rehandle shallow (Trailing()) { return final => final, };
+    let arguments = Apply(/* café */ Input(), label: Nested(inner: value,),);
+}
+""", ("lambda", "lambda_parameter", "handle", "rehandle", "operation_clause",
+      "return_clause", "argument", "resume")),
     Fixture("concise-authoring-syntax", """// caf?: omitted syntax retains exact binder and expression locations.
 module Concise;
 alias Nested<T,> = Pair<T, List<Nat,>,>;
@@ -1235,6 +1251,9 @@ NEGATIVE: tuple[tuple[str, bytes, str], ...] = (
     ("double-generic-comma", b"module M; alias X<T,,> = T;", "syntax"),
     ("empty-generic-arguments-comma", b"module M; alias X = Box<,>;", "syntax"),
     ("double-lambda-comma", b"module M; Nat F() => (left,,right) => left;", "syntax"),
+    ("empty-lambda-comma", b"module M; Nat F() => (,) => 0;", "syntax"),
+    ("empty-handler-comma", b"module M; Nat F() => handle (Run()) { , };", "syntax"),
+    ("double-handler-comma", b"module M; Nat F() => handle (Run()) { return x => x,, };", "syntax"),
     ("grouped-singleton-not-product", b"module M; Nat F() => (value,);", "syntax"),
     ("typed-singleton-not-product", b"module M; alias X = (Nat,);", "syntax"),
     ("qualified-constructor-without-arguments", b"module M; void F() { match (x) { case Result.None: return; } }", "syntax"),
@@ -1938,6 +1957,53 @@ def _pointer_roles(source: bytes, result: dict[str, Json]) -> None:
     for assignment in assignments:
         if _explicit_shape(assignment.get("target")) != dereferenced:
             raise ValueError("surface pointer assignment target lost its dereference")
+
+
+def _callable_list_roles(source: bytes, result: dict[str, Json]) -> None:
+    tree = result.get("ast")
+    for local, names, spelling in (
+            ("noParameters", [], b"() => Zero()"),
+            ("oneParameter", ["single"], b"(single) => single"),
+            ("manyParameters", ["left", "right"], b"(left, right) => Pair(left, right)"),
+            ("trailingParameter", ["last"], b"(last,) => last")):
+        value = _object(_named(tree, "let", local).get("value"), "list-boundary lambda")
+        parameters = [_object(raw, "list-boundary parameter")
+                      for raw in _sequence(value.get("parameters"), "list-boundary parameters")]
+        if value.get("kind") != "lambda" or [_texts(item.get("name")) for item in parameters] != [[name] for name in names]:
+            raise ValueError("surface lambda list changed its parameter count or order")
+        _exact_span(source, value, spelling)
+        for parameter, name in zip(parameters, names, strict=True):
+            _exact_span(source, parameter, name.encode())
+            if (parameter.get("span") != _object(parameter.get("name"), "lambda name").get("span")
+                    or parameter.get("type") is not None or parameter.get("grade") is not None):
+                raise ValueError("surface inferred parameter includes absent annotations or delimiters")
+    for local, kind, shallow, clause_kinds, spelling in (
+            ("noClauses", "handle", False, [], b"handle (Empty()) {}"),
+            ("oneClause", "handle", False, ["return_clause"], b"handle (Single()) { return item => item }"),
+            ("manyClauses", "handle", False, ["operation_clause", "return_clause"],
+             b"handle (Multiple()) {\n        Choose(chosen) with k => resume k(chosen), return answer => answer\n    }"),
+            ("trailingClause", "rehandle", True, ["return_clause"],
+             b"rehandle shallow (Trailing()) { return final => final, }")):
+        value = _object(_named(tree, "let", local).get("value"), "list-boundary handler")
+        clauses = [_object(raw, "list-boundary clause")
+                   for raw in _sequence(value.get("clauses"), "list-boundary clauses")]
+        if (value.get("kind") != kind or value.get("shallow") is not shallow
+                or [clause.get("kind") for clause in clauses] != clause_kinds):
+            raise ValueError("surface handler list changed mode, clause count or order")
+        _exact_span(source, value, spelling)
+    call = _object(_named(tree, "let", "arguments").get("value"), "nested labeled call")
+    arguments = [_object(raw, "outer call argument")
+                 for raw in _sequence(call.get("arguments"), "outer call arguments")]
+    if len(arguments) != 2 or arguments[0].get("label") is not None or _texts(arguments[1].get("label")) != ["label"]:
+        raise ValueError("surface argument list changed its positional and labeled roles")
+    _exact_span(source, arguments[0], b"Input()")
+    _exact_span(source, arguments[1], b"label: Nested(inner: value,)")
+    nested = _object(arguments[1].get("value"), "nested labeled argument value")
+    nested_arguments = [_object(raw, "nested argument")
+                        for raw in _sequence(nested.get("arguments"), "nested arguments")]
+    if nested.get("kind") != "call" or len(nested_arguments) != 1 or _texts(nested_arguments[0].get("label")) != ["inner"]:
+        raise ValueError("surface nested trailing comma changed its labeled argument")
+    _exact_span(source, nested_arguments[0], b"inner: value")
 
 
 def _concise_authoring_roles(source: bytes, result: dict[str, Json]) -> None:
@@ -3937,7 +4003,9 @@ def qualify(parse: Callable[[bytes], dict[str, Json]]) -> list[str]:
         missing = set(fixture.kinds) - found
         if missing:
             raise ValueError(f"surface fixture {fixture.name} lacks AST roles: {sorted(missing)}")
-        if fixture.name == "required-static-constants":
+        if fixture.name == "callable-list-boundaries":
+            _callable_list_roles(fixture.source.encode("utf-8"), result)
+        elif fixture.name == "required-static-constants":
             _required_static_roles(fixture.source.encode("utf-8"), result)
         elif fixture.name == "compositional-constant-callables":
             _compositional_constant_roles(fixture.source.encode("utf-8"), result)
