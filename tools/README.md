@@ -50,38 +50,31 @@ user's rulings let it be built and checked;
 contract owns it, and `run.py instrument-ci` dispatches it and reads its runs back.
 `run.py provision --apply` must not import QuickChick in the local guest (F-616).
 
-**A red host CI run has to name which member went red, to a reader who cannot open its
-log.** One invocation is four members and one exit code, which reaches the run page and
-the API as *process completed with exit code 1* and says nothing. So that invocation
-carries `--summary`, which writes the per-member verdict as JSON beside the run rather
-than into the checkout, and the workflow's next step renders it into one annotation per
-member that did not come back clean and a table into the job summary. That step runs
-after success or failure, unless the workflow was cancelled or refused its dispatch, so
-a gate that stopped before the wave finished is named as that rather than left looking
-like a failing member.
-`--summary` adds no member and decides nothing about the tree; asked to write that
-verdict and unable to, it reports
-one finding of its own, which is the only way it reaches the exit code.
-Each member's elapsed wall time, including process launch, appears in its log
-section, JSON record (`elapsed_seconds`) and CI summary. Members run concurrently,
-so these durations overlap and must not be added to obtain the wave's duration.
-The JSON record's `units` add what a member measured inside itself, through
-[vos/timings.py](vos/timings.py): each behavioral test module's cases and seconds;
-the selftest's phases and per-case seconds; and the checker's fixed phases before its
-first group (importing the groups' modules, loading the corpus, reading the register
-and the artifacts), each group's seconds and, inside the generated group, its batched
-read of the staged blobs and each generated artifact's row, with the checker process's
-own CPU seconds (`cpu_seconds`) beside each and, except on Windows, whose process accounting
-counts none, those of the processes it started and waited for, such as Git's
-(`child_cpu_seconds`). A selftest or checker unit also carries its `start`, its offset in
-seconds from when that member's clock started, which places it on that member's
-timeline, and its `at`, the wall-clock time it began in seconds since the epoch, which
-lays the parts of the members that ran at once on one runner on one timeline; a test
-module's unit carries neither. Units overlap the same way and never enter the printed
-report. The CI summary names the slowest of them, and the reporting step prints every
-unit of every member to the job log, one JSON line each, by member and then slowest
-first, after one line naming the runner's CPU count and model, in one collapsed group
-with workflow commands stopped.
+**Host CI reports each gate member's result.** `--summary` writes per-member
+verdicts as JSON outside the checkout. After success or failure, the workflow
+renders a job-summary table and annotations for members that did not finish cleanly.
+It distinguishes interrupted gates from failing members. Reporting is skipped for
+canceled runs and refused dispatches. The summary adds no check; failure to write
+it produces a finding and affects the exit code.
+
+Each member's log, JSON `elapsed_seconds` and CI summary include wall time from
+process launch. Members run concurrently, so their durations must not be summed.
+[vos/timings.py](vos/timings.py) records finer measurements in JSON `units`:
+
+- Behavioral tests record cases and seconds per module.
+- The selftest records phases and individual cases.
+- The checker records module imports, corpus/register/artifact loading, rule groups,
+  and the generated group's batched staged-blob read and individual artifacts.
+  It includes `cpu_seconds` and, except on Windows, waited-for child-process
+  `child_cpu_seconds`.
+
+Selftest and checker units also record `start` (seconds since the member's clock
+started) and `at` (start time in epoch seconds). These place units on member and
+shared-runner timelines; test-module units omit both fields. Unit durations can
+overlap and do not enter the member's printed report. The CI summary names the
+slowest units. A collapsed log group prints the runner's CPU count and model,
+then every unit as a JSON line, grouped by member and sorted slowest first,
+with workflow commands disabled.
 
 Members run with unbuffered output. A member timeout retains captured stdout and
 stderr and its last readable timing snapshot while remaining a failed gate with no
@@ -778,11 +771,21 @@ The rules that follow from the table, each a thing a worker or a brief gets wron
 
 ## The lane as a fact list, and what no provisioner reaches
 
-[run.py provision](vos/cli/provision.py) is that machine written down. Its probes cover the opam switches declared in `FACTS`, a pinned solver ahead of the distribution's, two pinned checkers, the supported interpreter, a handful of distribution packages, and the lane's layout: one memo cache per lane, and every guest output on the guest's own filesystem. The tool is one table: a row per fact, each naming the loop that wants it, the artifact that owns it, a probe that reports what is actually there, and, where this tree states one, the command that would put it there. **Versions and switch names come from their owners**; the interpreter target is read from the manifest and held by K-75. The fact table owns current membership; historical completion notes retain their recorded measurements. [The opam snapshots](opam/README.md) record complete package resolutions, including the lowering experiment's separate switch, which has its own [installation recipe](bedrock2-lowering/README.md).
+[run.py provision](vos/cli/provision.py) checks the toolchain and lane layout. Its `FACTS` table declares each dependency's consumer, source of truth, probe and optional installation command. It covers opam switches, the pinned solver and checkers, Python, distribution packages, per-lane memo caches and native guest output placement. **Versions and switch names come from their defining artifacts**; K-75 checks the interpreter against the manifest. Historical completion records retain their original measurements. The [opam snapshots](opam/README.md) record complete package resolutions, including the lowering experiment's separate switch and [installation recipe](bedrock2-lowering/README.md).
 
-It is native rather than containerized: the prover and model toolchains are built on the guest. WSL Containers (`wslc`) are declined for these loops without a revisit condition: a container still reads the Windows checkout across the VM boundary that [the placement table](#where-a-file-lives-and-which-lane-touches-it) prices, and Guest CI installs the same toolchains natively, so a container lane would be an environment no gate runs. [The M1.5 note](../docs/implementation/completion-log.md#m15-run-the-certicoq-to-wasm-oracle) records the review. Python and uv are bootstrap prerequisites. The runner synchronizes the locked Python packages before the provisioner probes them, so those rows have no separate install recipes. `--apply` handles only rows with declared commands. The opam row's command, `run.py provision --install-opam`, installs the reviewed client through [its owner](vos/opam_client.py)'s verified route where no client is on `PATH` and no root stands in a format older than that client writes, which it would rewrite one way, and creates a root by the owner's root-creation route where none stands, so the switch recipes `--apply` runs after it find one. The rows ahead of it install the distribution packages that route needs, which the owner names because `opam init` refuses to create a root without them, and where it would run that route the command refuses, naming each still absent, before it installs anything. It replaces no client and alters no standing root but one in the shape that route leaves after its leading steps, in the reviewed client's format with only the route's leading repositories, the first with its metadata stamp read and at least one of the owner's repositories not yet fetched, which the route's remaining steps complete, leaving out the `opam init` that would rewrite that root's shell setup: a client at another release, a missing client over a root in an older format, and any other root that states no format, states one newer than the reviewed client writes, lacks one of the owner's repositories at its URL, or lacks that repository's metadata stamp, are reported and never planned. While a root stands in a format older than the reviewed client writes, no switch row plans its recipe either, since the reviewed client rewrites that root one way at its first write, or at its first read where the upgrade cannot be made in memory, and none does while a client at another release is on `PATH`, which would build the switch as a client this tree has not reviewed. [Guest CI bootstrap](ci/README.md) creates an isolated opam root by the same route and installs the Sail and proof snapshots plus their native prerequisites. It does not install the experimental CertiRocq oracle switch; that switch's manual recipe is in [wasm-oracle/README.md](wasm-oracle/README.md). The interpreter cannot replace itself, and the cache invariant needs separate copies rather than deletion of a warm cache.
+The prover and model toolchains build natively in the guest. WSL Containers (`wslc`) are declined without a revisit condition: they retain the Windows-filesystem crossing described in the [placement table](#where-a-file-lives-and-which-lane-touches-it), and would introduce an environment absent from Guest CI. The [M1.5 completion record](../docs/implementation/completion-log.md#m15-run-the-certicoq-to-wasm-oracle) records that decision.
 
-**What it does not reach it prints rather than absorbs.** Two settings decide how this lane behaves and neither is in this tree: WSL2's memory reclamation, which lives in a per-user file global to every distribution, and whether a person edits from the host or from inside the guest. Both are printed at the end of a run as not reached and neither is counted into the verdict, which is the same boundary [vos/env.py](vos/env.py) draws around the idle timer.
+Python and uv must already be installed. The runner synchronizes locked Python packages before provisioning, so those rows need no separate recipes. `--apply` executes only declared commands. It cannot replace its own interpreter; cache isolation requires separate copies, not deletion of a warm cache.
+
+`run.py provision --install-opam` uses the verified installation and root-creation routes in [vos/opam_client.py](vos/opam_client.py). It installs the reviewed client only when none is on `PATH` and doing so cannot upgrade an older root. It creates a missing root before switch recipes run. Earlier rows install the required distribution packages; if any prerequisite remains missing, root creation names it and refuses before installation.
+
+The command never replaces an installed client. It modifies an existing root only when it matches a partially completed creation route: the root must use the reviewed format, contain exactly an initial sequence of the route's repositories at their declared URLs, retain the first repository's metadata stamp, and leave at least one required repository unfetched. Completion runs only the remaining steps; it skips `opam init`, which would rewrite shell setup.
+
+Other client/root problems are reported without a repair plan: a different client release; a missing client over an older root; or a root with no format, a newer format, a required repository missing or at the wrong URL, or missing repository metadata. Switch installation is also blocked by a different client release or an older root format. The reviewed client can irreversibly upgrade an older root on its first write, or even its first read when an in-memory upgrade is insufficient, so that migration requires a deliberate step.
+
+[Guest CI bootstrap](ci/README.md) uses the same route to create an isolated opam root and install the Sail and proof snapshots with native prerequisites. The experimental CertiRocq oracle switch has a separate manual [recipe](wasm-oracle/README.md).
+
+The report lists two external settings as **not reached**: WSL2 memory reclamation, configured per user across distributions, and whether editing happens on the host or in the guest. Neither affects the verdict. [vos/env.py](vos/env.py) uses the same boundary for the idle timer.
 
 ## The three generators, and what each answers
 
