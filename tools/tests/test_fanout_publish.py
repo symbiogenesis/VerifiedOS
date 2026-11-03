@@ -3,6 +3,7 @@
 
 import io
 import subprocess
+import sys
 import time
 import urllib.request
 from collections.abc import Generator
@@ -22,8 +23,11 @@ INDEPENDENT_CASES = True
 
 @contextmanager
 def _local_only() -> Generator[None]:
-    """Refuse remote Git, credentials, API construction and any polling delay."""
+    """Refuse remote Git, credentials, API construction and application polling."""
     original = worktree._git
+    # POSIX child waits use time.sleep when a local subprocess has a timeout.
+    # Give subprocess its own clock namespace before guarding application sleeps.
+    local_process_time = SimpleNamespace(**vars(time))
 
     def local_git(root: Path, *args: str, allowed: tuple[int, ...] = (0,),
                   stdin: bytes | None = None) -> bytes:
@@ -35,8 +39,21 @@ def _local_only() -> Generator[None]:
           patch.object(fanout_ci, "repository", side_effect=AssertionError("CI repository lookup")),
           patch.object(fanout_ci.GitHub, "__init__", side_effect=AssertionError("GitHub client")),
           patch.object(urllib.request, "urlopen", side_effect=AssertionError("network request")),
+          patch.object(subprocess, "time", local_process_time),
           patch.object(time, "sleep", side_effect=AssertionError("CI wait"))):
         yield
+
+
+def _local_wait_guard() -> None:
+    with _local_only():
+        subprocess.run([sys.executable, "-c", "import time; time.sleep(0.02)"],
+                       check=True, timeout=5)
+        try:
+            time.sleep(0)
+        except AssertionError as err:
+            ensure(str(err) == "CI wait", "application polling remains forbidden")
+        else:
+            raise AssertionError("local child waits must not authorize application polling")
 
 
 def _legacy_ci(revision: str, *, passed: bool = False) -> fanout_ci.CIState:
@@ -370,7 +387,8 @@ def _status_and_cli_handoff() -> None:
 
 
 def cases() -> list[Case]:
-    return [Case("local integration, retention, retirement and read-only repeat", _local_completion_and_repeat),
+    return [Case("bounded local child waits preserve the application polling guard", _local_wait_guard),
+            Case("local integration, retention, retirement and read-only repeat", _local_completion_and_repeat),
             Case("offline initialization and completion", _offline_completion),
             Case("legacy pending hosted states finish locally", _legacy_pending_resume),
             Case("legacy completed journal is read-only", _legacy_completed_resume),
