@@ -17,8 +17,18 @@ let pure_reserved = function
   | "handle" | "resume" | "dispose" | "mut" | "var" | "unsafe" | "borrow"
   | "requires" | "ensures" | "restores" | "ghost" | "tracked" | "grade"
   | "proof" | "owned" | "move" | "ref" | "in" | "out" | "captures" | "scope"
-  | "spawn" | "commit" | "on" | "cancel" | "region" | "view" | "union" -> true
+  | "spawn" | "commit" | "on" | "cancel" | "region" | "view" | "union" | "foreach" -> true
   | _ -> false
+let pure_unsupported word =
+  let mode = match word with
+    | "in" -> Some "a shared read loan" | "ref" -> Some "an initialized exclusive loan"
+    | "out" -> Some "an exclusive initialization loan" | "owned" -> Some "consuming ownership"
+    | "move" -> Some "an explicit ownership transfer" | _ -> None
+  in
+  match word, mode with
+  | "var", _ -> "'var' declares a mutable binding; let and unmarked type-first bindings are immutable. Local reassignment requires the wider Vela surface; the pure prototype does not support mutation"
+  | _, Some requested -> "'" ^ word ^ "' requests " ^ requested ^ "; the pure Nat/bool prototype cannot check ownership, borrowing or resource lifetimes"
+  | _ -> "'" ^ word ^ "' is outside the pure prototype"
 (* Contextual annotation names resolve the lexical ambiguity between a type-first
    binder and comparison. This bounded token-shape probe never resolves names.
    The driver uses Lexing.from_string, so the complete bounded input is buffered. *)
@@ -228,7 +238,7 @@ let annotation_name lexbuf = annotation lexbuf false
 let identifier state lexbuf =
   let word = Lexing.lexeme lexbuf in
   if not state.surface && pure_reserved word then
-    refuse "unsupported" lexbuf ("'" ^ word ^ "' is outside the pure prototype");
+    refuse "unsupported" lexbuf (pure_unsupported word);
   match word with
   | "module" -> MODULE | "public" -> PUBLIC
   | "Nat" -> if state.surface && annotation_name lexbuf then ANNOTATION_NAME word else NAT
@@ -252,7 +262,7 @@ let identifier state lexbuf =
   | "handle" -> HANDLE | "shallow" -> SHALLOW | "with" -> WITH | "resume" -> RESUME
   | "dispose" -> DISPOSE | "rehandle" -> REHANDLE | "await" -> AWAIT
   | "scope" -> SCOPE | "spawn" -> SPAWN | "commit" -> COMMIT | "on" -> ON | "cancel" -> CANCEL
-  | "var" -> VAR | "for" -> FOR | "while" -> WHILE | "match" -> MATCH | "case" -> CASE
+  | "var" -> VAR | "foreach" -> FOREACH | "while" -> WHILE | "match" -> MATCH | "case" -> CASE
   | "break" -> BREAK | "continue" -> CONTINUE | "definition" -> DEFINITION
   | "theorem" -> THEOREM | "lemma" -> LEMMA | "inductive" -> INDUCTIVE
   | "coinductive" -> COINDUCTIVE | "universe" -> UNIVERSE | "forall" -> FORALL

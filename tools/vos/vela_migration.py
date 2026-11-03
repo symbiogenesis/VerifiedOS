@@ -41,6 +41,10 @@ def fixtures(example: bytes) -> tuple[Fixture, ...]:
          b"public Nat F() => Twice(4);"),
         ("trailing-commas", b"module M; public Nat F(Nat x, bool flag,) => x; "
          b"public Nat G() { return F(3, true,); }"),
+        ("named-arguments", b"module M; public Nat F(Nat x, bool flag) => x; "
+         b"public Nat G() => F(x: 3, flag: true,);"),
+        ("mixed-named-arguments", b"module M; public Nat F(Nat x, bool flag) => x; "
+         b"public Nat G() => F(3, flag: true);"),
     )
     result = [Fixture(name, source, "accepted") for name, source in positive]
     for name, source in positive[:6]:
@@ -48,6 +52,11 @@ def fixtures(example: bytes) -> tuple[Fixture, ...]:
             edited = b"// caf\xc3\xa9" + newline + source.replace(b"\n", newline) + newline + b"// tail"
             result.append(Fixture(f"{name}-{suffix}-trivia", edited, "accepted"))
     negative = (
+        ("reordered-labels", "public Nat F(Nat x, Nat y) => x; public Nat G() => F(y: 1, x: 2);", "name"),
+        ("duplicate-label", "public Nat F(Nat x, Nat y) => x; public Nat G() => F(x: 1, x: 2);", "name"),
+        ("unknown-label", "public Nat F(Nat x) => x; public Nat G() => F(missing: 1);", "name"),
+        ("positional-after-label", "public Nat F(Nat x, Nat y) => x; public Nat G() => F(x: 1, 2);", "name"),
+        ("immutable-reassignment", "public Nat F() { let value = 1; value = 2; return value; }", "unsupported"),
         ("return-type", "public Nat F() { return true; }", "type"),
         ("boolean-return", "public bool F() { return 1; }", "type"),
         ("condition-type", "public Nat F() { if (1) { return 0; } else { return 1; } }", "type"),

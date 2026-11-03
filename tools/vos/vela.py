@@ -59,7 +59,7 @@ class _Expression:
 
 @dataclass(frozen=True)
 class _Signature:
-    parameters: tuple[ValueType, ...]
+    parameters: tuple[tuple[syntax.Name, ValueType, int | None], ...]
     result: ValueType
     symbol: int | None
 
@@ -193,16 +193,19 @@ class _Parser:
     def _block(self, nesting: int) -> syntax.Block:
         self._expect("{")
         start = self._current()
-        bindings: list[syntax.Binding] = []
-        while self._current().text == "let":
+        bindings: list[syntax.Binding | syntax.Reassignment] = []
+        while (self._current().text == "let"
+               or (self._current().kind == "name" and self.tokens[self.offset + 1].text == "=")):
             if nesting + len(bindings) > MAX_BLOCK_DEPTH:
                 raise self._error("limit", f"block or binding nesting exceeds {MAX_BLOCK_DEPTH}")
-            token = self._expect("let")
+            token = self._current()
+            immutable = self._take("let")
             name = self._name()
             self._expect("=")
             value = self._expression(1)
             self._expect(";")
-            bindings.append(syntax.Binding(name, value, token.site))
+            constructor = syntax.Binding if immutable else syntax.Reassignment
+            bindings.append(constructor(name, value, token.site))
         if nesting + len(bindings) > MAX_BLOCK_DEPTH:
             raise self._error("limit", f"block or binding nesting exceeds {MAX_BLOCK_DEPTH}")
         token = self._current()
@@ -263,15 +266,21 @@ class _Parser:
         name = self._name()
         if self._take("("):
             arguments: list[syntax.Expression] = []
+            labels: list[syntax.Name | None] = []
             if not self._take(")"):
                 while True:
+                    label = None
+                    if self._current().kind == "name" and self.tokens[self.offset + 1].text == ":":
+                        label = self._name()
+                        self._expect(":")
+                    labels.append(label)
                     arguments.append(self._expression(nesting + 1))
                     if self._take(")"):
                         break
                     self._expect(",")
                     if self._take(")"):
                         break
-            return syntax.expression("call", name.text, name.site, tuple(arguments))
+            return syntax.expression("call", name.text, name.site, tuple(arguments), labels=tuple(labels))
         return syntax.expression("name", name.text, name.site)
 
 
@@ -311,16 +320,18 @@ class _Elaborator:
         identity = self._declare(name, "function",
                                  f"public {function.result} {name.text}({parameters})")
         environment: dict[str, _Local] = {}
+        parameter_facts: list[tuple[syntax.Name, ValueType, int | None]] = []
         for parameter, value_type in function.parameters:
             if parameter.text in environment:
                 raise _error("name", f"duplicate parameter '{parameter.text}'", parameter.site)
             symbol = self._declare(parameter, "parameter", f"{parameter.text}: {value_type}")
             environment[parameter.text] = _Local(value_type, symbol)
+            parameter_facts.append((parameter, value_type, symbol))
         body = self._block(function.body, environment, 1)
         if body.value_type != function.result:
             raise _error("type", f"function '{name.text}' returns {body.value_type}, "
                          f"expected {function.result}", function.body.site)
-        self.functions[name.text] = _Signature(tuple(value for _, value in function.parameters),
+        self.functions[name.text] = _Signature(tuple(parameter_facts),
                                                function.result, identity)
         binders = "".join(f" (v_{parameter.text} : {_TYPES[value_type]})"
                           for parameter, value_type in function.parameters)
@@ -332,6 +343,13 @@ class _Elaborator:
         extended = dict(environment)
         values: list[tuple[syntax.Binding, _Expression]] = []
         for binding in block.bindings:
+            if isinstance(binding, syntax.Reassignment):
+                if binding.name.text not in extended:
+                    raise _error("name", f"unbound assignment target '{binding.name.text}'", binding.name.site)
+                raise _error("unsupported", f"cannot reassign immutable binding '{binding.name.text}'; "
+                             "let and unmarked type-first bindings are immutable. Declare var for local "
+                             "reassignment in the wider Vela surface; the pure prototype does not support mutation",
+                             binding.name.site)
             if binding.name.text in extended:
                 raise _error("name", f"duplicate local binding '{binding.name.text}'", binding.name.site)
             value = self._expression(binding.value, extended)
@@ -383,7 +401,18 @@ class _Elaborator:
             if len(arguments) != len(signature.parameters):
                 raise _error("type", f"function '{name}' expects {len(signature.parameters)} arguments, "
                              f"got {len(arguments)}", site)
-            for index, (argument, expected) in enumerate(zip(arguments, signature.parameters, strict=True), start=1):
+            labeled = False
+            for index, (argument, (parameter, expected, symbol), label) in enumerate(
+                    zip(arguments, signature.parameters, expression.labels, strict=True), start=1):
+                if label is None:
+                    if labeled:
+                        raise _error("name", "positional arguments cannot follow a named argument", expression.children[index - 1].site)
+                else:
+                    labeled = True
+                    if label.text != parameter.text:
+                        raise _error("name", f"argument {index} to '{name}' must name parameter '{parameter.text}', "
+                                     f"got '{label.text}'", label.site)
+                    self._reference(symbol, label.site)
                 if argument.value_type != expected:
                     raise _error("type", f"argument {index} to '{name}' must be {expected}, "
                                  f"got {argument.value_type}", site)

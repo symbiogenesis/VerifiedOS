@@ -122,6 +122,7 @@ def _shared_primitive_oracle_required() -> None:
     with patch.object(surface, "POSITIVE", (fixture,)), \
             patch.object(surface, "_precedence_and_spans"), \
             patch.object(surface, "_literal_and_comment_boundaries"), \
+            patch.object(surface, "_argument_roles"), \
             patch.object(surface, "_shared_primitive_roles", side_effect=ValueError("primitive role changed")) as oracle:
         try:
             surface.qualify(lambda source: result)
@@ -138,6 +139,7 @@ def _expression_binding_oracle_required() -> None:
     with patch.object(surface, "POSITIVE", (fixture,)), \
             patch.object(surface, "_precedence_and_spans"), \
             patch.object(surface, "_literal_and_comment_boundaries"), \
+            patch.object(surface, "_argument_roles"), \
             patch.object(surface, "_expression_binding_roles", side_effect=ValueError("binding scope changed")) as oracle:
         try:
             surface.qualify(lambda source: result)
@@ -156,6 +158,7 @@ def _binder_initializer_oracles_required() -> None:
         with patch.object(surface, "POSITIVE", (fixture,)), \
                 patch.object(surface, "_precedence_and_spans"), \
                 patch.object(surface, "_literal_and_comment_boundaries"), \
+            patch.object(surface, "_argument_roles"), \
                 patch.object(surface, oracle_name, side_effect=ValueError("binder/initializer role changed")) as oracle:
             try:
                 surface.qualify(lambda source, result=result: result)
@@ -179,6 +182,7 @@ def _explicit_value_oracles_required() -> None:
         with patch.object(surface, "POSITIVE", (fixture,)), \
                 patch.object(surface, "_precedence_and_spans"), \
                 patch.object(surface, "_literal_and_comment_boundaries"), \
+            patch.object(surface, "_argument_roles"), \
                 patch.object(surface, oracle_name, side_effect=ValueError("explicit role changed")) as oracle:
             try:
                 surface.qualify(lambda source, result=result: result)
@@ -198,6 +202,7 @@ def _concise_authoring_oracle_required() -> None:
     with patch.object(surface, "POSITIVE", (fixture,)), \
             patch.object(surface, "_precedence_and_spans"), \
             patch.object(surface, "_literal_and_comment_boundaries"), \
+            patch.object(surface, "_argument_roles"), \
             patch.object(surface, "_concise_authoring_roles", side_effect=ValueError("concise role changed")) as oracle:
         try:
             surface.qualify(lambda source: result)

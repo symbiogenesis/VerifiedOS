@@ -26,7 +26,7 @@ UNSUPPORTED = frozenset({"fn", "Bool", "async", "await", "effect", "effects", "h
                         "handle", "resume", "dispose", "mut", "var", "unsafe", "borrow",
                         "requires", "ensures", "restores", "ghost", "tracked", "grade",
                         "proof", "owned", "move", "ref", "in", "out", "captures", "scope",
-                        "spawn", "commit", "on", "cancel", "region", "view", "union"})
+                        "spawn", "commit", "on", "cancel", "region", "view", "union", "foreach"})
 
 
 def unsupported_message(spelling: str) -> str:
@@ -34,6 +34,9 @@ def unsupported_message(spelling: str) -> str:
     mode = {"in": "a shared read loan", "ref": "an initialized exclusive loan",
             "out": "an exclusive initialization loan", "owned": "consuming ownership",
             "move": "an explicit ownership transfer"}.get(spelling)
+    if spelling == "var":
+        return ("'var' declares a mutable binding; let and unmarked type-first bindings are immutable. "
+                "Local reassignment requires the wider Vela surface; the pure prototype does not support mutation")
     if mode is None:
         return f"'{spelling}' is outside the pure prototype"
     return (f"'{spelling}' requests {mode}; the pure Nat/bool prototype cannot check "
@@ -103,10 +106,11 @@ class Expression:
     children: tuple[Expression, ...] = ()
     depth: int = 1
     nesting: int = 1
+    labels: tuple[Name | None, ...] = ()
 
 
 def expression(kind: str, value: str | bool, site: Site,
-               children: tuple[Expression, ...] = ()) -> Expression:
+               children: tuple[Expression, ...] = (), *, labels: tuple[Name | None, ...] = ()) -> Expression:
     depth = max((child.depth for child in children), default=0) + (kind != "group")
     if depth > MAX_EXPRESSION_DEPTH:
         raise VelaError("limit", site.line, site.column,
@@ -117,11 +121,18 @@ def expression(kind: str, value: str | bool, site: Site,
     if nesting > MAX_EXPRESSION_DEPTH:
         raise VelaError("limit", site.line, site.column,
                         f"expression nesting exceeds {MAX_EXPRESSION_DEPTH}")
-    return Expression(kind, value, site, children, depth, nesting)
+    return Expression(kind, value, site, children, depth, nesting, labels)
 
 
 @dataclass(frozen=True)
 class Binding:
+    name: Name
+    value: Expression
+    site: Site
+
+
+@dataclass(frozen=True)
+class Reassignment:
     name: Name
     value: Expression
     site: Site
@@ -143,7 +154,7 @@ class Conditional:
 
 @dataclass(frozen=True)
 class Block:
-    bindings: tuple[Binding, ...]
+    bindings: tuple[Binding | Reassignment, ...]
     terminal: Return | Conditional
     site: Site
 
@@ -290,7 +301,54 @@ class _Decoder:
             name = self._text(node["callee"], span)
             arguments = self._list(node["arguments"])
             self._ordered([node["callee"], *arguments], span)
-            return expression(kind, name.text, name.site, tuple(child(value) for value in arguments))
+            raw_callee = node["callee"]
+            if not isinstance(raw_callee, dict):
+                raise TypeError("native call has no callee")
+            callee_span = self._span(raw_callee.get("span"), span)
+            cursor = trivia_end(self.source, callee_span[1])
+            if self.source[cursor:cursor + 1] != b"(":
+                raise ValueError("native call differs from its source opening")
+            cursor = trivia_end(self.source, cursor + 1)
+            for index, raw_argument in enumerate(arguments):
+                if not isinstance(raw_argument, dict):
+                    raise TypeError("native call has an invalid argument")
+                argument_span = self._span(raw_argument.get("span"), span)
+                if cursor != argument_span[0]:
+                    raise ValueError("native call leaves source argument tokens uncovered")
+                cursor = trivia_end(self.source, argument_span[1])
+                if index < len(arguments) - 1:
+                    if self.source[cursor:cursor + 1] != b",":
+                        raise ValueError("native call differs from its source separator")
+                    cursor = trivia_end(self.source, cursor + 1)
+            if arguments and self.source[cursor:cursor + 1] == b",":
+                cursor = trivia_end(self.source, cursor + 1)
+            if cursor != span[1] - 1 or self.source[cursor:cursor + 1] != b")":
+                raise ValueError("native call leaves source argument tokens uncovered")
+            values: list[Expression] = []
+            labels: list[Name | None] = []
+            for raw_argument in arguments:
+                argument, argument_span, _ = self._node(raw_argument, "argument", {"label", "value"}, span, depth + 1)
+                label = None if argument["label"] is None else self._text(argument["label"], argument_span)
+                value = self._expression(argument["value"], argument_span, depth + 2)
+                if not isinstance(argument["value"], dict):
+                    raise TypeError("native argument has no expression")
+                value_span = self._span(argument["value"].get("span"), argument_span)
+                if label is None:
+                    if value_span != argument_span:
+                        raise ValueError("native positional argument leaves source tokens uncovered")
+                else:
+                    raw_label = argument["label"]
+                    if not isinstance(raw_label, dict):
+                        raise TypeError("native argument has an invalid label")
+                    label_span = self._span(raw_label.get("span"), argument_span)
+                    colon = trivia_end(self.source, label_span[1])
+                    if (label_span[0] != argument_span[0] or self.source[colon:colon + 1] != b":"
+                            or trivia_end(self.source, colon + 1) != value_span[0]
+                            or value_span[1] != argument_span[1]):
+                        raise ValueError("native argument label differs from source delimiters")
+                labels.append(label)
+                values.append(value)
+            return expression(kind, name.text, name.site, tuple(values), labels=tuple(labels))
         if kind == "group":
             return expression(kind, "", site, (child(node["value"]),))
         operator = self._text(node["operator"], span, identifier=False)
@@ -305,11 +363,15 @@ class _Decoder:
         self._ordered([*bindings, node["exit"]], span)
         if len(bindings) > MAX_BLOCK_DEPTH:
             raise VelaError("limit", 1, 1, "native block exceeds binding limit")
-        converted: list[Binding] = []
+        converted: list[Binding | Reassignment] = []
         for raw_binding in bindings:
-            binding, binding_span, site = self._node(raw_binding, "let", {"name", "value"}, span, depth + 1)
+            kind = raw_binding.get("kind") if isinstance(raw_binding, dict) else None
+            if kind not in {"let", "reassignment"}:
+                raise ValueError("native block has an invalid binding role")
+            binding, binding_span, site = self._node(raw_binding, kind, {"name", "value"}, span, depth + 1)
             self._ordered([binding["name"], binding["value"]], binding_span)
-            converted.append(Binding(self._text(binding["name"], binding_span),
+            constructor = Binding if kind == "let" else Reassignment
+            converted.append(constructor(self._text(binding["name"], binding_span),
                                      self._expression(binding["value"], binding_span, depth + 2), site))
         raw_exit = node["exit"]
         if isinstance(raw_exit, dict) and raw_exit.get("kind") == "return":

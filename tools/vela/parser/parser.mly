@@ -17,7 +17,7 @@ let binary first last operator left right =
 %token REQUIRES ENSURES RESTORES WHERE EFFECTS INVARIANT DECREASES PROGRESS
 %token VIEW GROWS TYPE PREDICATE OPERATION PROOF
 %token EFFECT RESUMES HANDLE SHALLOW WITH RESUME DISPOSE REHANDLE
-%token AWAIT SCOPE SPAWN COMMIT ON CANCEL VAR FOR WHILE MATCH CASE BREAK CONTINUE
+%token AWAIT SCOPE SPAWN COMMIT ON CANCEL VAR FOREACH WHILE MATCH CASE BREAK CONTINUE
 %token DEFINITION THEOREM LEMMA INDUCTIVE COINDUCTIVE UNIVERSE FORALL EXISTS ASSERT CALC
 %token MACHINE HARDWARE STATE REGISTER TRANSITION RULE GUARD WHEN NEXT SCHEDULE CYCLE
 %token FN FNMUT FNONCE IS CARRIER ZERO ONE ADD MUL ADMITS INTERPRET LAWS
@@ -76,6 +76,9 @@ binding:
   LET binding_name=name EQUAL value=expression SEMICOLON
     { make "let" $startpos $endpos
         [("name", binding_name); ("value", value.syntax)] [value] }
+| binding_name=name EQUAL value=expression SEMICOLON
+    { make "reassignment" $startpos $endpos
+        [("name", binding_name); ("value", value.syntax)] [value] }
 
 exit:
   RETURN value=expression SEMICOLON
@@ -108,11 +111,17 @@ atom:
 | TRUE { make "bool" $startpos $endpos [("value", Boolean true)] [] }
 | FALSE { make "bool" $startpos $endpos [("value", Boolean false)] [] }
 | value=name { make "name" $startpos $endpos [("name", value)] [] }
-| callee=name LPAREN arguments=comma_list(expression) RPAREN
+| callee=name LPAREN arguments=comma_list(argument) RPAREN
     { make "call" $startpos $endpos
         [("callee", callee); ("arguments", array arguments)] arguments }
 | LPAREN value=expression RPAREN
     { make "group" $startpos $endpos [("value", value.syntax)] [value] }
+
+argument:
+  value=expression
+    { make "argument" $startpos $endpos [("label", Null); ("value", value.syntax)] [value] }
+| label=name COLON value=expression
+    { make "argument" $startpos $endpos [("label", label); ("value", value.syntax)] [value] }
 
 /* The wider syntax has a separate AST entry from the pure authoring subset. */
 surface_file:
@@ -364,8 +373,7 @@ s_type_atom:
     { make "type" $startpos $endpos [("name", type_name); ("arguments", array arguments)] arguments }
 /* Only the first token varies for local annotations; the type algebra is shared. */
 s_parenthesized_type(opening):
-  opening RPAREN { make "unit_type" $startpos $endpos [] [] }
-| opening value=s_type RPAREN { make "group_type" $startpos $endpos [("type", value.syntax)] [value] }
+  opening value=s_type RPAREN { make "group_type" $startpos $endpos [("type", value.syntax)] [value] }
 | opening first=s_type COMMA rest=separated_nonempty_list(COMMA, s_type) RPAREN
     { make "tuple_type" $startpos $endpos [("types", array (first :: rest))] (first :: rest) }
 s_computed_type:
@@ -450,8 +458,8 @@ s_simple_statement:
 | WHILE LPAREN condition=s_expression RPAREN contracts=list(s_contract) body=s_block
     { make "while" $startpos $endpos [("condition", condition.syntax); ("contracts", array contracts); ("body", body.syntax)]
         (condition :: body :: contracts) }
-| FOR LPAREN LET binding_name=s_identifier IN range=s_expression RPAREN contracts=list(s_contract) body=s_block
-    { make "for" $startpos $endpos [("name", binding_name); ("range", range.syntax);
+| FOREACH LPAREN LET binding_name=s_identifier IN range=s_expression RPAREN contracts=list(s_contract) body=s_block
+    { make "foreach" $startpos $endpos [("name", binding_name); ("range", range.syntax);
         ("contracts", array contracts); ("body", body.syntax)] (range :: body :: contracts) }
 
 | kind=s_local_kind binding=s_local_initializer SEMICOLON
@@ -674,7 +682,7 @@ s_unary_with(opening):
 | COMMIT { name $startpos $endpos "commit" }
 s_postfix_with(opening):
   value=s_atom_with(opening) { value }
-| callee=s_postfix_with(opening) s_parameter_open arguments=comma_list(s_expression) RPAREN
+| callee=s_postfix_with(opening) s_parameter_open arguments=comma_list(s_argument) RPAREN
     { make "call" $startpos $endpos [("callee", callee.syntax); ("arguments", array arguments)] (callee :: arguments) }
 | value=s_postfix_with(opening) DOT member=s_member_identifier
     { make "member" $startpos $endpos [("value", value.syntax); ("name", member)] [value] }
@@ -684,6 +692,11 @@ s_postfix_with(opening):
     { make "generic_application" $startpos $endpos [("value", value.syntax); ("arguments", array arguments)] (value :: arguments) }
 | value=s_postfix_with(opening) QUESTION
     { make "propagate" $startpos $endpos [("value", value.syntax)] [value] }
+s_argument:
+  value=s_expression
+    { make "argument" $startpos $endpos [("label", Null); ("value", value.syntax)] [value] }
+| label=s_identifier COLON value=s_expression
+    { make "argument" $startpos $endpos [("label", label); ("value", value.syntax)] [value] }
 s_atom_with(opening):
   value=s_literal { value }
 | value=s_operator_value_with(opening) { value }

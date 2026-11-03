@@ -302,11 +302,44 @@ def _cli_publication() -> None:
         ensure(code == 1 and ": encoding:" in err, "invalid encoding escaped CLI")
 
 
+def _named_calls() -> None:
+    prefix = b"module M; public Nat Add(Nat left, bool flag, Nat right) => left + right; public Nat F() => "
+    baseline = prefix + b"Add(1, true, 2);"
+    expected = translate(baseline).gallina[len(_header(baseline)):]
+    for call in (b"Add(left: 1, flag: true, right: 2)",
+                 b"Add(1, flag: true, right: 2,)", b"Add(1, true, right: 2)"):
+        source = prefix + call + b";"
+        ensure(translate(source).gallina[len(_header(source)):] == expected,
+               "argument labels changed positional evaluation or terms")
+    for call, fragment in ((b"Add(right: 1, flag: true, left: 2)", "left"),
+                           (b"Add(left: 1, left: true, right: 2)", "flag"),
+                           (b"Add(missing: 1, flag: true, right: 2)", "left"),
+                           (b"Add(left: 1, true, 2)", "positional")):
+        _refuses(prefix + call + b";", "name", fragment)
+    _refuses(prefix + b"Add(left: 1, right: 2);", "type", "expects 3")
+    _refuses(prefix + b"Add(left: 1, flag: 0, right: 2);", "type", "must be bool")
+
+
+def _immutable_reassignment() -> None:
+    for declaration in ("let count = 1;", ""):
+        parameter = "" if declaration else "Nat count"
+        source = f"module M; public Nat F({parameter}) {{ {declaration} count = 2; return count; }}"
+        error = _refuses(source, "unsupported", "immutable binding 'count'")
+        ensure("var" in error.message and "wider Vela surface" in error.message,
+               "immutable assignment diagnostic omitted explicit mutability/producer boundary")
+    _refuses("module M; public Nat F() { missing = 2; return 0; }", "name", "unbound assignment")
+    _refuses("module M; public Nat F() { var count = 1; return count; }", "unsupported", "mutable binding")
+    _refuses("module M; public Nat F() { ref Nat slot = ref source; slot = 1; return 0; }",
+             "unsupported", "exclusive loan")
+
+
 def cases() -> list[Case]:
     return [Case("independent-translation-oracle", _oracle),
             Case("precedence-and-literals", _precedence_and_literals),
             Case("expression-bodies-and-trailing-commas", _expression_bodies_and_commas),
             Case("unsupported-ownership-explanations", _ownership_explanations),
+            Case("declaration-order-named-call-arguments", _named_calls),
+            Case("immutable-binding-reassignment-boundary", _immutable_reassignment),
             Case("scope-and-hygiene", _scope_and_hygiene),
             Case("typed-negative-neighbors", _typed_neighbors),
             Case("syntax-and-locations", _syntax_and_locations),

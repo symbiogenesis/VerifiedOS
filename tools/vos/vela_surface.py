@@ -7,9 +7,10 @@ unknown names, duplicate declarations and invalid resource use must still parse.
 
 from collections.abc import Callable, Iterator
 from dataclasses import dataclass
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 from vos.vela import MAX_SOURCE_BYTES, VelaError
+from vos.vela_ast import trivia_end
 
 if TYPE_CHECKING:
     from vos.vela_parser import Json
@@ -98,7 +99,7 @@ public void Invalid<ghost Nat n, grade q : UnknownDomain>(owned Packet<n> owner)
 """, ("generic_parameter", "function_type", "typed_local", "let", "var", "unary", "let_expression")),
     Fixture("explicit-values-loans-and-options", """// café: binding, parameter and absence roles keep original byte spans.
 module ExplicitValues;
-alias Initializer = Fn<region 'slot>(out<'slot> Nat slot) -> ();
+alias Initializer = Fn<region 'slot>(out<'slot> Nat slot) -> Unit;
 public void Modes<region 'slot>(Nat value, in Nat read, ref Nat write,
     out<'slot> Nat output, owned Packet packet) {
     let frozen = value;
@@ -208,11 +209,11 @@ definition in<'local> T Escape() = let owner = Local() in in owner;
 """, ("let_expression", "let_pattern", "modified_type", "unary", "tuple", "unit")),
     Fixture("shared-syntax-primitives", """// café: shared forms preserve byte spans and syntax roles.
 module SyntaxPrimitives;
-alias Product = ((), (Core.Value));
-alias Generic = Box<type ((), (Core.Value))>;
+alias Product = (Unit, (Core.Value));
+alias Generic = Box<type (Unit, (Core.Value))>;
 public void Compose() {
-    ((), (Core.Value)) local = seed;
-    let callback = (((), (Core.Value)) input) => input;
+    (Unit, (Core.Value)) local = seed;
+    let callback = ((Unit, (Core.Value)) input) => input;
     let empty = () => ();
     let values = (0007, 0xAfu8, "café", '\\n', true, false);
     match (token) {
@@ -225,7 +226,7 @@ public void Compose() {
     }
 }
 definition bool Nested() = forall (Nat outer) => exists (Nat inner) => outer == inner;
-""", ("tuple_type", "unit_type", "group_type", "typed_local", "lambda", "quantifier",
+""", ("tuple_type", "type", "group_type", "typed_local", "lambda", "quantifier",
       "nat", "string", "character", "bool", "nat_pattern", "string_pattern", "character_pattern", "bool_pattern")),
     Fixture("shared-operator-values", """// caf\u00e9: operators retain symbol and expression spans independently.
 module SharedOperators;
@@ -307,7 +308,7 @@ alias Structural = (owned type[OwnerType()], tracked type[ReceiptType()]);
 definition Type<u> Reinject() = type type[ReifiedType()];
 alias Conditional = type[match (flag) {
     case true => type owned Packet;
-    case false => type ();
+    case false => type Unit;
 }];
 trait Family<T : type[KindOf()]> {
     type Item : type[UniverseOf(T)] = type[MemberType(T)];
@@ -335,7 +336,7 @@ alias Reusable<T, grade q : NatExact> where Admits(T, q) effects reads(T) =
 alias Plain<T> = T;
 effect Exchange<T, grade q : NatExact>
     where ExchangeLaw(T, q)
-    invariant Closed(self)
+    invariant Closed(this)
     effects calls(Storage)
 {
     owned T Replace(owned T replacement @ q) resumes(0..1)
@@ -374,7 +375,7 @@ alias EmptyFamily<ghost Never empty> = type[match (empty) as witness : Type<u> {
 public T Eliminate<T>(Never absent) { return match (absent) {}; }
 public void Use(Never missing, Never last) {
     let nested = Apply((match (missing) {}));
-    let callback = (Never denied) => (match (denied) as dead : () {});
+    let callback = (Never denied) => (match (denied) as dead : Unit {});
     match (missing) {}
     match (missing) {};
     match (missing) {} (missing);
@@ -492,7 +493,7 @@ public void Bind<T, grade q : NatExact>() {
     Result<owned Box<FnOnce<region 'r>(scoped ref<'r> T item @ q) -> T
         captures Environment effects(Read)
         with { requires Valid(item); restores Closed(item); }>, Error> nested = source;
-    let callback = (Box<FnMut(T item) -> () effects(Write)
+    let callback = (Box<FnMut(T item) -> Unit effects(Write)
         with { restores Closed(item); }> box @ q, Nat index) => box;
     Box<Fn() -> (Fn(T) -> T)> higher = source;
     Index<(Fn(Nat sample) -> Nat => sample), (left <==> right)> computed = source;
@@ -503,7 +504,7 @@ public void Bind<T, grade q : NatExact>() {
     Fixture("kinded-telescopes-and-associated-families", """// café: kinds have spans distinct from their binders.
 module KindedFamilies;
 universe u;
-alias Scoped<T : Type<u>, region 'loan> = Fn(scoped ref<'loan> T value) -> ();
+alias Scoped<T : Type<u>, region 'loan> = Fn(scoped ref<'loan> T value) -> Unit;
 alias Plain<U> = U;
 trait Family<T : Type<u>> {
     type Value<U : Type<u>> : Type<u> where Formed(U);
@@ -522,12 +523,12 @@ definition Type<u> LoanType<T : Type<u>>(bool exclusive) where Stable(T) =
         case false => type in T;
     };
 definition Type<u> Product<T>() = type (owned T, tracked Receipt);
-definition Type<u> UnitType() = type ();
+definition Type<u> UnitType() = type Unit;
 definition Type<u> Callback<T>() = type (Fn<region 'local>(
-    scoped ref<'local> T value @ NatExact(1)) -> ()
+    scoped ref<'local> T value @ NatExact(1)) -> Unit
     with { restores Valid(value); });
 public void Inspect() { Compare((type Nat), (type bool)); }
-""", ("definition", "type_expression", "match_expression", "match_motive", "tuple_type", "unit_type")),
+""", ("definition", "type_expression", "match_expression", "match_motive", "tuple_type", "type")),
     Fixture("callable-kinds-and-contract-effect-ownership", """// café: grouping fixes which interface owns each effect.
 module CallableKinds;
 universe u;
@@ -547,7 +548,7 @@ public void RequiresType()
 module CallableValues;
 universe u;
 public void Use<T : Type<u>, captures C, grade q : NatExact>(in Cell<T> cell) {
-    let update = FnMut<region 'r>(scoped ref<'r> T slot @ q) -> ()
+    let update = FnMut<region 'r>(scoped ref<'r> T slot @ q) -> Unit
         captures C effects(Write)
         with { requires Valid(slot); restores Closed(final(slot)); }
         => { Mutate(ref slot); return; };
@@ -555,14 +556,14 @@ public void Use<T : Type<u>, captures C, grade q : NatExact>(in Cell<T> cell) {
     let consume = FnOnce(owned T item @ NatExact(1)) -> T
         with { ensures Returned(result); } => move item;
     let classify = Fn(bool flag) -> Type<u> =>
-        match (flag) { case true => type T; case false => type (); };
+        match (flag) { case true => type T; case false => type Unit; };
 }
 """, ("typed_lambda", "function_type", "modified_type", "contract", "type_expression", "match_expression")),
     Fixture("typed-callable-expression-composition", """// café: explicit signatures compose wherever values occur.
 module CallableComposition;
 public void Compose() {
     Fn(Nat n) -> Nat => n;
-    Apply(Fn(Nat x) -> Nat => x + 1, FnOnce() -> () => { return; });
+    Apply(Fn(Nat x) -> Nat => x + 1, FnOnce() -> Unit => { return; });
     Fn(Nat) -> Nat annotated = Fn(Nat item) -> Nat => item;
     let returning = Fn() -> (Fn(Nat) -> Nat) => Fn(Nat value) -> Nat => value;
     let graded = Fn(Nat input @ Grade.Of(Fn(Nat sample) -> Nat => sample)) -> Nat => input;
@@ -600,13 +601,13 @@ public void Use() { Select::<true, "tag", 'z', ?choice>(value); }
 universe u;
 alias NonType<T : Nat> = T;
 definition Type<u> ErasedChoice(ghost bool flag) =
-    match (flag) { case true => type Packet; case false => type (); };
+    match (flag) { case true => type Packet; case false => type Unit; };
 public async void Invalid(owned Packet packet, tracked Receipt receipt) {
     let duplicate = Fn(owned Packet p @ NatExact(0)) -> (Packet, Packet)
         => (move p, move p);
     let escape = Fn<region 'local>(scoped ref<'local> Packet p) -> ref<'local> Packet
         => ref p;
-    let suspended = FnOnce(scoped ref Packet p) -> ()
+    let suspended = FnOnce(scoped ref Packet p) -> Unit
         => { await Ready(); return; };
     Use(move receipt, move receipt);
 }
@@ -630,13 +631,13 @@ public effect Exchange<T, ghost Nat n> {
 module ResourceContainers;
 public struct LocalCell<T, grade q : NatExact>
     where Shape(T)
-    invariant Closed(self)
+    invariant Closed(this)
 {
     private T Value @ q;
-    public void Close() requires Opened(self) ensures Closed(self);
+    public void Close() requires Opened(this) ensures Closed(this);
 }
 public interface Storage<T> where StorageLaw(T) {
-    operation T Read() requires Readable(self) ensures Stable(result);
+    operation T Read() requires Readable(this) ensures Stable(result);
     struct Nested invariant InnerLaw() {}
 }
 public trait Repeatable<T, grade q : NatExact> where Admits(T, q) {
@@ -749,9 +750,9 @@ private impl (Fn() -> Nat effects(Read)) where Reusable(Read) {}
     Fixture("locally-quantified-callable-contracts", """// café: callback and enclosing contracts remain distinct.
 module ScopedCallbacks;
 alias Update<T, captures C> = Fn<region 'loan, grade q : NatExact>(
-    scoped ref<'loan> T value @ q) -> () captures C effects(Write)
+    scoped ref<'loan> T value @ q) -> Unit captures C effects(Write)
     with { requires Valid(value); restores Valid(final(value)); };
-public void Apply<T>(in Fn<region 'local>(scoped ref<'local> T selected) -> ()
+public void Apply<T>(in Fn<region 'local>(scoped ref<'local> T selected) -> Unit
     with { requires CallbackReady(selected); restores CallbackClosed(selected); } callback)
     requires CallerReady(callback)
     ensures CallerClosed(callback);
@@ -775,7 +776,7 @@ alias Dependent<captures C, grade q : NatExact> =
     Fn(Nat n, in Span<byte, n> bytes @ q) -> Vec<byte, n> captures C effects(Read);
 alias Unnamed = Fn(byte) -> byte;
 alias Consuming = FnOnce(owned Buffer storage, tracked Permit permit) -> (owned Buffer, tracked Permit);
-alias Higher = Fn(in Fn(Nat width) -> Vec<byte, width> build, Nat count) -> (Vec<byte, count>, ());
+alias Higher = Fn(in Fn(Nat width) -> Vec<byte, width> build, Nat count) -> (Vec<byte, count>, Unit);
 public void Use<grade q : NatExact>(in Fn(Nat count) -> Vec<byte, count> build) {
     let project = (Nat n @ q, byte value @ NatExact(1)) => (n, value);
     Apply((scoped ref byte selected @ NatExact(1)) => { selected = 0byte; });
@@ -784,11 +785,11 @@ public void Use<grade q : NatExact>(in Fn(Nat count) -> Vec<byte, count> build) 
     Fixture("product-types-values-and-patterns", """module Products;
 alias Pair<T, U> = (T, U);
 alias Group = (Nat);
-alias Empty = ();
-public (owned Buffer, (tracked Permit, ())) Package(owned Buffer buffer, tracked Permit permit) {
+alias Empty = Unit;
+public (owned Buffer, (tracked Permit, Unit)) Package(owned Buffer buffer, tracked Permit permit) {
     return (move buffer, (move permit, ()));
 }
-public () Consume((owned Buffer, (tracked Permit, ())) package) {
+public Unit Consume((owned Buffer, (tracked Permit, Unit)) package) {
     let (owner, (receipt, ())) = package;
     var (left, right) = (1, 2);
     match ((move owner, (move receipt, ()))) {
@@ -797,7 +798,7 @@ public () Consume((owned Buffer, (tracked Permit, ())) package) {
     }
     match (left) { case _: return (); }
 }
-""", ("tuple_type", "group_type", "unit_type", "tuple", "unit", "tuple_pattern",
+""", ("tuple_type", "group_type", "type", "tuple", "unit", "tuple_pattern",
       "unit_pattern", "wildcard_pattern", "let_pattern", "var_pattern")),
     Fixture("grade-and-comparison-boundaries", """module GradedClosures;
 public void Use() {
@@ -826,20 +827,20 @@ public void Use() {
 alias Returned = Result<type (owned Packet, tracked Receipt), Error>;
 alias Function = Box<type Fn(Nat n) -> Vec<byte, n>>;
 alias Grouped = Box<type (Nat)>;
-alias Unit = Box<type ()>;
+alias UnitBox = Box<Unit>;
 alias Value = Indexed<((a, b))>;
 public void Use() { Construct::<type (Nat, bool)>(value); }
-""", ("tuple_type", "function_type", "group_type", "unit_type", "tuple", "generic_application")),
+""", ("tuple_type", "function_type", "group_type", "type", "tuple", "generic_application")),
     Fixture("structural-local-and-lambda-annotations", """module StructuralAnnotations;
 public void Use(ref Span<byte> text) {
-    ref<'self.text> (Span<byte>) local = ref text;
+    ref<'this.text> (Span<byte>) local = ref text;
     (owned Packet, tracked Receipt) package = source;
-    () empty = ();
+    Unit empty = ();
     let pairIdentity = ((owned Packet, tracked Receipt) pair) => pair;
-    let unitIdentity = (() value) => value;
+    let unitIdentity = (Unit value) => value;
     let groupedIdentity = ((Nat) number) => number;
 }
-""", ("typed_local", "modified_type", "group_type", "tuple_type", "unit_type", "lambda")),
+""", ("typed_local", "modified_type", "group_type", "tuple_type", "type", "lambda")),
     Fixture("unbraced-conditionals-and-annotation-lookahead", """module Unbraced;
 public void Bare(bool ready) { if (ready) value = 1; }
 public void Paired(bool ready) { if (ready) value = 1; else value = 2; }
@@ -895,7 +896,7 @@ public Result Update(ref BorrowCell<byte> cell, byte value) {
     }
 }
 private Result WithWrite(ref BorrowCell<byte> cell,
-    in Fn(scoped ref byte selected) -> () callback) {
+    in Fn(scoped ref byte selected) -> Unit callback) {
     match (cell.TryWrite()) {
         case Acquired(writer, debt):
             callback(ref writer.Value);
@@ -908,7 +909,7 @@ public void Replace(ref LocalCell<Buffer> cell, owned Buffer replacement) {
     let displaced = cell.Replace(move replacement);
     Dispose(move displaced);
 }
-""", ("function_type", "lambda", "unit_type", "unit", "unit_pattern", "match", "call")),
+""", ("function_type", "lambda", "type", "unit", "unit_pattern", "match", "call")),
     Fixture("library-modalities-and-obligations", """module Modalities;
 public domain Presence {
     carrier bool;
@@ -971,9 +972,9 @@ public struct Log<T, ghost Nat capacity> {
     private Slots<T, capacity> slots;
     public view Entries = slots[0..length];
     public view Tail = slots[length], length grows;
-    public void Push(ref self.Tail, T item)
-        requires self.Length < capacity
-        ensures self.Model == old(self.Model).Append(item);
+    public void Push(ref this.Tail, T item)
+        requires this.Length < capacity
+        ensures this.Model == old(this.Model).Append(item);
 }
 """, ("record", "union", "struct", "view", "generic_parameter", "modified_type")),
     Fixture("function-types-grades-and-contracts", """module Maps;
@@ -991,7 +992,7 @@ public void Use(owned Packet packet, tracked Permit permit, scoped ref byte sele
 public void Fill(ref Span<byte> target) {
     var seen = 0usize;
     ref byte first = ref target[0usize];
-    for (let i in 0usize..target.Length)
+    foreach (let i in 0usize..target.Length)
         invariant i <= target.Length
     {
         target[i] = 0byte;
@@ -1009,7 +1010,7 @@ public void Fill(ref Span<byte> target) {
     if (true) return;
     return;
 }
-""", ("for", "while", "match", "proof", "hole", "if", "return")),
+""", ("foreach", "while", "match", "proof", "hole", "if", "return")),
     Fixture("typed-locals-and-scoped-callbacks", """module ScopedLoans;
 public void Lend(ref Span<byte> target, byte value) {
     Span<byte> local = target;
@@ -1146,6 +1147,26 @@ public hardware RegisterCounter {
     cycle 1;
 }
 """, ("machine", "hardware", "state", "register", "transition", "rule", "schedule", "cycle", "next")),
+    Fixture("canonical-readable-calls", """// café: labels and explicit modes have separate spans.
+module Readable;
+alias Outcome = Result<Unit, Error>;
+public void Use(ref Span<byte> bytes) requires Valid(this) {
+    Fill(target: ref bytes, value: 0byte);
+    Forward(in bytes, count: bytes.Length);
+    Transfer(input: in source, target: ref bytes, output: out nextSlot, owner: move packet);
+    let exact = Fn(Nat n, Vec<byte, n> values) -> Vec<byte, n> => values;
+    let selected = exact(n: 1, values: Singleton());
+    foreach (let index in 0usize..bytes.Length)
+        invariant Valid(this)
+    {
+        ref byte selected = ref bytes[index];
+        if (index == 0usize) { continue; }
+        if (index == 1usize) { break; }
+        if (index == 2usize) { return; }
+        selected = 0byte;
+    }
+}
+""", ("argument", "function_type", "typed_lambda", "foreach", "type", "unary")),
     Fixture("semantic-errors-are-syntax", """module InvalidMeaning;
 public UnknownType F(ghost Nat n) {
     let copied = (move authority, move authority);
@@ -1158,6 +1179,10 @@ public UnknownType F() { return missing; }
 
 
 NEGATIVE: tuple[tuple[str, bytes, str], ...] = (
+    ("empty-parenthesized-type", b"module M; alias Empty = ();", "syntax"),
+    ("noncanonical-range-loop", b"module M; void F() { for (let index in 0..count) {} }", "syntax"),
+    ("missing-named-argument-value", b"module M; Nat F() => Call(value:);", "syntax"),
+    ("missing-named-argument-label", b"module M; Nat F() => Call(: 1);", "syntax"),
     ("arrow-missing-expression", b"module M; Nat F() => ;", "syntax"),
     ("arrow-missing-semicolon", b"module M; Nat F() => 1", "syntax"),
     ("arrow-double-arrow", b"module M; Nat F() => => 1;", "syntax"),
@@ -1412,7 +1437,82 @@ def nodes(value: Json) -> Iterator[dict[str, Json]]:
 def _object(value: Json, description: str) -> dict[str, Json]:
     if not isinstance(value, dict):
         raise TypeError(f"surface fixture lacks {description}")
+    # Payload-role oracles inspect expressions; _argument_roles independently
+    # validates every located wrapper before these assertions run.
+    if value.get("kind") == "argument":
+        return _object(value.get("value"), description)
     return value
+
+
+def _argument_roles(source: bytes, result: dict[str, Json]) -> None:
+    """Independently bind each call's labels, payloads and delimiters to bytes."""
+    for call in nodes(result.get("ast")):
+        if call.get("kind") != "call":
+            continue
+        arguments = _sequence(call.get("arguments"), "located call arguments")
+        raw_callee = call.get("callee")
+        if not isinstance(raw_callee, dict):
+            raise TypeError("surface call has no callee")
+        callee_span = _sequence(raw_callee.get("span"), "callee span")
+        call_span = _sequence(call.get("span"), "call span")
+        cursor = trivia_end(source, cast("int", callee_span[1]), block_comments=True)
+        if source[cursor:cursor + 1] != b"(":
+            raise ValueError("surface call opening differs from source")
+        cursor = trivia_end(source, cursor + 1, block_comments=True)
+        for index, raw in enumerate(arguments):
+            if not isinstance(raw, dict) or set(raw) != {"kind", "span", "label", "value"} or raw.get("kind") != "argument":
+                raise ValueError("surface call argument lost its located label/value role")
+            span = _sequence(raw.get("span"), "argument span")
+            value = raw.get("value")
+            if not isinstance(value, dict):
+                raise TypeError("surface argument has no value")
+            value_span = _sequence(value.get("span"), "argument value span")
+            if span[0] != cursor or span[1] != value_span[1]:
+                raise ValueError("surface call leaves argument bytes uncovered")
+            label = raw.get("label")
+            if label is None:
+                if span != value_span:
+                    raise ValueError("surface positional argument span differs")
+            else:
+                if not isinstance(label, dict) or set(label) != {"text", "span"}:
+                    raise ValueError("surface argument label lost its name role")
+                label_span = _sequence(label.get("span"), "argument label span")
+                if (label_span[0] != span[0]
+                        or source[cast("int", label_span[0]):cast("int", label_span[1])].decode() != label.get("text")):
+                    raise ValueError("surface argument label differs from source")
+                colon = trivia_end(source, cast("int", label_span[1]), block_comments=True)
+                if (source[colon:colon + 1] != b":"
+                        or trivia_end(source, colon + 1, block_comments=True) != value_span[0]):
+                    raise ValueError("surface argument label delimiter differs")
+            cursor = trivia_end(source, cast("int", span[1]), block_comments=True)
+            if index < len(arguments) - 1:
+                if source[cursor:cursor + 1] != b",":
+                    raise ValueError("surface call argument separator differs")
+                cursor = trivia_end(source, cursor + 1, block_comments=True)
+        if arguments and source[cursor:cursor + 1] == b",":
+            cursor = trivia_end(source, cursor + 1, block_comments=True)
+        if source[cursor:cursor + 1] != b")" or cursor != cast("int", call_span[1]) - 1:
+            raise ValueError("surface call closing differs or leaves uncovered arguments")
+
+
+def _readable_call_roles(result: dict[str, Json]) -> None:
+    calls = [node for node in nodes(result.get("ast")) if node.get("kind") == "call"]
+    transfer = next(node for node in calls if _texts(node.get("callee")) == ["Transfer"])
+    arguments = _sequence(transfer.get("arguments"), "explicit loan arguments")
+    if len(arguments) != 4:
+        raise ValueError("surface labeled transfer changed its arity")
+    for raw, label, mode in zip(arguments, ("input", "target", "output", "owner"), ("in", "ref", "out", "move"), strict=True):
+        if not isinstance(raw, dict) or _texts(raw.get("label")) != [label]:
+            raise ValueError("surface argument label changed resolved-slot spelling")
+        value = _object(raw.get("value"), "loan argument")
+        if value.get("kind") != "unary" or _texts(value.get("operator")) != [mode]:
+            raise ValueError("surface argument label removed its explicit loan/transfer mode")
+    loops = [node for node in nodes(result.get("ast")) if node.get("kind") == "foreach"]
+    if len(loops) != 1 or _texts(loops[0].get("name")) != ["index"]:
+        raise ValueError("surface bounded foreach lost its immutable binder")
+    exits = {node.get("kind") for node in nodes(loops[0])}
+    if not {"break", "continue", "return", "contract", "assignment"} <= exits:
+        raise ValueError("surface foreach lost a loan/contract exit role")
 
 
 def _named(value: Json, kind: str, name: str) -> dict[str, Json]:
@@ -2018,7 +2118,7 @@ def _receiver_roles(result: dict[str, Json]) -> None:
     loan = _object(receiver.get("type"), "receiver exclusive loan")
     if loan.get("kind") != "modified_type" or loan.get("modifier") != "ref":
         raise ValueError("surface named-view receiver lost its exclusive mode")
-    if _texts(loan.get("type")) != ["self.Tail"]:
+    if _texts(loan.get("type")) != ["this.Tail"]:
         raise ValueError("surface named-view receiver place differs")
 
 
@@ -2227,7 +2327,7 @@ def _family_contract_roles(source: bytes, result: dict[str, Json]) -> None:
                for value in _sequence(effect.get("contracts"), "effect family contracts")]
     if [clause.get("role", clause.get("kind")) for clause in clauses] != ["where", "invariant", "effects"]:
         raise ValueError("surface effect family laws leaked into operation contracts")
-    for clause, spelling in zip(clauses, (b"where ExchangeLaw(T, q)", b"invariant Closed(self)", b"effects calls(Storage)"), strict=True):
+    for clause, spelling in zip(clauses, (b"where ExchangeLaw(T, q)", b"invariant Closed(this)", b"effects calls(Storage)"), strict=True):
         _exact_span(source, clause, spelling)
     replacement = _named(effect, "effect_operation", "Replace")
     _contract_roles(replacement, ["requires", "ensures", "restores"])
@@ -2301,7 +2401,7 @@ def _empty_elimination_roles(source: bytes, result: dict[str, Json]) -> None:
         raise ValueError("surface empty statement match changed its role")
     callback = _object(_named(use, "let", "callback").get("value"), "empty elimination callback")
     callback_body = _object(callback.get("body"), "grouped callback elimination")
-    _exact_span(source, callback_body, b"(match (denied) as dead : () {})")
+    _exact_span(source, callback_body, b"(match (denied) as dead : Unit {})")
     body = _object(use.get("body"), "empty elimination statement body")
     statements = [_object(value, "empty elimination statement")
                   for value in _sequence(body.get("statements"), "empty elimination statements")]
@@ -2604,7 +2704,7 @@ def _type_expression_roles(source: bytes, result: dict[str, Json]) -> None:
         _type_head(annotation.get("type"), "T", 0)
         _exact_span(source, expression, f"type {mode} T".encode())
     for name, kind, spelling in (("Product", "tuple_type", b"type (owned T, tracked Receipt)"),
-                                 ("UnitType", "unit_type", b"type ()"),
+                                 ("UnitType", "type", b"type Unit"),
                                  ("Callback", "group_type", None)):
         definition = _named(result.get("ast"), "definition", name)
         expression = _object(definition.get("value"), "type-valued definition")
@@ -2884,15 +2984,15 @@ def _container_resource_roles(source: bytes, result: dict[str, Json]) -> None:
             raise ValueError(f"surface {kind} {name} lost its own resource contracts")
     cell = _named(result.get("ast"), "struct", "LocalCell")
     _exact_span(source, _object(_sequence(cell.get("contracts"), "cell contracts")[1], "cell invariant"),
-                b"invariant Closed(self)")
+                b"invariant Closed(this)")
     if _texts(_named(cell, "field", "Value").get("grade")) != ["q"]:
         raise ValueError("surface container contract displaced a field grade")
     closed = _named(cell, "function", "Close")
-    if _texts(closed.get("contracts")) != ["Opened", "self", "Closed", "self"]:
+    if _texts(closed.get("contracts")) != ["Opened", "this", "Closed", "this"]:
         raise ValueError("surface container invariant swallowed its member's contracts")
     storage = _named(result.get("ast"), "interface", "Storage")
     read = _named(storage, "operation", "Read")
-    if _texts(read.get("contracts")) != ["Readable", "self", "Stable", "result"]:
+    if _texts(read.get("contracts")) != ["Readable", "this", "Stable", "result"]:
         raise ValueError("surface interface law swallowed its operation contracts")
     nested = _named(storage, "struct", "Nested")
     if _texts(nested.get("contracts")) != ["InnerLaw"]:
@@ -3153,9 +3253,9 @@ def _product_roles(source: bytes, result: dict[str, Json]) -> None:
     _type_head(group.get("type"), "Nat", 0)
     _exact_span(source, group, b"(Nat)")
     unit = _object(_named(result.get("ast"), "alias", "Empty").get("type"), "unit alias")
-    if unit.get("kind") != "unit_type":
+    if unit.get("kind") != "type":
         raise ValueError("surface unit type conflated with value syntax")
-    _exact_span(source, unit, b"()")
+    _exact_span(source, unit, b"Unit")
     package = _named(result.get("ast"), "function", "Package")
     returned = _object(package.get("result"), "resource product result")
     outer = _sequence(returned.get("types"), "resource product types")
@@ -3165,7 +3265,7 @@ def _product_roles(source: bytes, result: dict[str, Json]) -> None:
     inner = _sequence(second.get("types"), "nested resource types")
     if (first.get("modifier") != "owned" or second.get("kind") != "tuple_type"
             or len(inner) != 2 or _object(inner[0], "receipt type").get("modifier") != "tracked"
-            or _object(inner[1], "empty type").get("kind") != "unit_type"):
+            or _object(inner[1], "empty type").get("kind") != "type"):
         raise ValueError("surface product erased resource modifiers or nesting")
     destructures = [node for node in nodes(result.get("ast")) if node.get("kind") == "let_pattern"]
     if len(destructures) != 1:
@@ -3213,15 +3313,15 @@ def _explicit_type_argument_roles(source: bytes, result: dict[str, Json]) -> Non
 def _structural_annotation_roles(source: bytes, result: dict[str, Json]) -> None:
     local = _named(result.get("ast"), "typed_local", "local")
     annotation = _object(local.get("type"), "place-named grouped loan")
-    if annotation.get("modifier") != "ref" or _texts(annotation.get("lifetime")) != ["'self.text"]:
+    if annotation.get("modifier") != "ref" or _texts(annotation.get("lifetime")) != ["'this.text"]:
         raise ValueError("surface structural local annotation lost its place-named loan")
     group = _object(annotation.get("type"), "grouped view type")
     if group.get("kind") != "group_type":
         raise ValueError("surface structural local grouping lost its type role")
     _type_head(group.get("type"), "Span", 1)
-    _exact_span(source, annotation, b"ref<'self.text> (Span<byte>)")
+    _exact_span(source, annotation, b"ref<'this.text> (Span<byte>)")
     for name, kind, spelling in (("pair", "tuple_type", b"(owned Packet, tracked Receipt) pair"),
-                                 ("value", "unit_type", b"() value"),
+                                 ("value", "type", b"Unit value"),
                                  ("number", "group_type", b"(Nat) number")):
         parameter = _named(result.get("ast"), "lambda_parameter", name)
         if _object(parameter.get("type"), "lambda structural annotation").get("kind") != kind:
@@ -3401,10 +3501,10 @@ def _shared_primitive_roles(source: bytes, result: dict[str, Json]) -> None:
         if annotation.get("kind") != "tuple_type" or len(components) != 2:
             raise ValueError("surface shared product type lost its arity or type role")
         unit, group = [_object(component, "shared product component") for component in components]
-        if unit.get("kind") != "unit_type" or group.get("kind") != "group_type":
+        if unit.get("kind") != "type" or group.get("kind") != "group_type":
             raise ValueError("surface unit/group type became a value or pattern")
         _type_head(group.get("type"), "Core.Value", 0)
-        for node, spelling in ((annotation, b"((), (Core.Value))"), (unit, b"()"),
+        for node, spelling in ((annotation, b"(Unit, (Core.Value))"), (unit, b"Unit"),
                                (group, b"(Core.Value)")):
             span = _sequence(node.get("span"), "shared type byte span")
             if len(span) != 2 or type(span[0]) is not int or type(span[1]) is not int:
@@ -3728,11 +3828,14 @@ def qualify(parse: Callable[[bytes], dict[str, Json]]) -> list[str]:
     passed = ["surface:independent-precedence-and-spans", "surface:literal-and-comment-boundaries"]
     for fixture in POSITIVE:
         result = parse(fixture.source.encode("utf-8"))
+        _argument_roles(fixture.source.encode("utf-8"), result)
         found = {node.get("kind") for node in nodes(result.get("ast"))}
         missing = set(fixture.kinds) - found
         if missing:
             raise ValueError(f"surface fixture {fixture.name} lacks AST roles: {sorted(missing)}")
-        if fixture.name == "concise-authoring-syntax":
+        if fixture.name == "canonical-readable-calls":
+            _readable_call_roles(result)
+        elif fixture.name == "concise-authoring-syntax":
             _concise_authoring_roles(fixture.source.encode("utf-8"), result)
         elif fixture.name == "generic-binders-and-typed-initializers":
             _binder_initializer_roles(fixture.source.encode("utf-8"), result)

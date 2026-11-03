@@ -252,10 +252,78 @@ def _resource_boundaries() -> None:
         raise AssertionError("oversized source accepted through native consumer")
 
 
+def _named_call_tree(source: bytes) -> dict[str, object]:
+    first = source.index(b"public")
+    first_name = source.index(b"A(", first)
+    parameter = source.index(b"Nat value", first_name)
+    first_arrow = source.index(b"=>", parameter)
+    first_end = source.index(b";", first_arrow) + 1
+    first_value = source.index(b"value", first_arrow)
+    declaration = _node("function", first, first_end, name=_name("A", first_name),
+                        result=_node("type", first + 7, first + 10, name="Nat"),
+                        parameters=[_node("parameter", parameter, parameter + 9,
+                                          name=_name("value", parameter + 4),
+                                          type=_node("type", parameter, parameter + 3, name="Nat"))],
+                        body=_node("expression_body", first_arrow, first_end,
+                                   value=_node("name", first_value, first_value + 5,
+                                               name=_name("value", first_value))))
+    second = source.index(b"public", first_end)
+    second_name = source.index(b"F(", second)
+    second_arrow = source.index(b"=>", second_name)
+    call = source.index(b"A(", second_arrow)
+    label = source.index(b"value", call)
+    literal = source.index(b"1", label)
+    argument = _node("argument", label, literal + 1, label=_name("value", label),
+                     value=_node("nat", literal, literal + 1, value="1"))
+    function = _node("function", second, len(source), name=_name("F", second_name),
+                     result=_node("type", second + 7, second + 10, name="Nat"), parameters=[],
+                     body=_node("expression_body", second_arrow, len(source),
+                                value=_node("call", call, source.index(b")", literal) + 1,
+                                            callee=_name("A", call), arguments=[argument])))
+    module = source.index(b"module")
+    return {"schema": 1, "source_sha256": hashlib.sha256(source).hexdigest(),
+            "ast": _node("file", module, len(source), name=_name("M", module + 7),
+                         functions=[declaration, function])}
+
+
+def _located_named_arguments() -> None:
+    for newline in (b"\n", b"\r\n", b"\r"):
+        source = ("// café".encode() + newline
+                  + b"module M; public Nat A(Nat value) => value; public Nat F() => A(value: 1);")
+        tree = _named_call_tree(source)
+        with patch.object(vela, "_tokens", side_effect=AssertionError("Python parsing fallback")):
+            actual = vela.translate_ast(source, tree)
+        ensure(actual == vela.translate(source), "native label changed the independently parsed application")
+        for corruption in ("name", "erased-label", "narrowed-wrapper", "separator", "stale-source"):
+            response = copy.deepcopy(tree)
+            ast = cast("dict[str, object]", response["ast"])
+            functions = cast("list[dict[str, object]]", ast["functions"])
+            body = cast("dict[str, object]", functions[1]["body"])
+            call = cast("dict[str, object]", body["value"])
+            argument = cast("list[dict[str, object]]", call["arguments"])[0]
+            if corruption == "name":
+                cast("dict[str, object]", argument["label"])["text"] = "other"
+            elif corruption in {"erased-label", "narrowed-wrapper"}:
+                argument["label"] = None
+                if corruption == "narrowed-wrapper":
+                    argument["span"] = cast("dict[str, object]", argument["value"])["span"]
+            elif corruption == "separator":
+                call["arguments"] = []
+            else:
+                response["source_sha256"] = "0" * 64
+            try:
+                vela.translate_ast(source, response)
+            except (ValueError, TypeError):
+                pass
+            else:
+                raise AssertionError(f"accepted named-argument {corruption} corruption")
+
+
 def cases() -> list[Case]:
     return [Case("independent-located-ast-to-terms", _independent_translation),
             Case("expression-body-source-binding-and-terms", _expression_body_protocol),
             Case("expression-body-complete-token-coverage", _expression_body_uncovered_tokens),
+            Case("located-labels-and-complete-call-token-coverage", _located_named_arguments),
             Case("held-out-source-edits", _held_out_edits),
             Case("strict-native-schema-and-provenance", _protocol_controls),
             Case("native-semantic-diagnostics", _semantic_refusals),
