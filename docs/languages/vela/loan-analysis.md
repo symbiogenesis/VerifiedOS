@@ -130,6 +130,33 @@ Full frontend, concrete laws, checked derivations and comparative ergonomic or
 performance claims retain their existing owners; this experiment claims no
 superiority to Polonius.
 
+## Diagnostic disposition
+
+The independent source and fixture review on 2026-11-03 accepts the bounded
+explicit-flow diagnostic at this contract's boundary. The reviewed implementation
+is [vela_loans.py](../../../tools/vos/vela_loans.py) at
+`007a54832aeeb89c12047ca21be9df8724a451d8`; the accompanying
+[branch-demand oracle](../../../tools/tests/test_vela_loans.py#_generated_branch_demand_oracle)
+adds independently expected last-read and conflict decisions across mutually
+exclusive alternatives. It uses no analyzer internals to calculate expectations.
+
+| Reviewed obligation | Decisive evidence and judgment |
+| --- | --- |
+| Complete input and exploration | Validation rejects malformed nested facts, missing references, duplicate edges, cycles and unreachable nodes before returning any report. Node, path, capture and work exhaustion raise structural refusals, including exhaustion after exploration starts. |
+| Path-local demand | Complete paths have distinct capture environments and loan states. The generated oracle varies each sibling's reads and writes independently and checks exact conflict locations and restoration locations; a sibling's demand cannot delay the other's end. |
+| Capture and move accounting | Retained captures are flattened transitively to canonical loan identities. Existing moved-wrapper and dropped-descriptor controls check retained ancestry and unavailable old names separately. A drop performs no disposal and does not prolong dead demand. |
+| Footprint and grant restrictions | Declared sibling fields support disjoint access; unknown indices and undeclared separation retain explicit obligations. Rejected exclusive-from-shared and out-of-footprint children receive no active grant. Their uses and returned wrappers retain their intended invalidity diagnostics. |
+| Restoration and escape | Last demand ends descendants before ancestors. Returned shared views retain their ancestors' duties and footprint suspension. Scoped ancestors remain restricted through moved nested wrappers; local-owner and exclusive escapes remain diagnosed. |
+| Honest result boundary | Every result remains diagnostic-only and every restoration and interpretation premise unresolved. Unsupported suspension and invariant boundaries retain diagnostics and obligations. No source program, concrete memory predicate or proof is accepted by this API. |
+
+The focused loan module, including its generated oracle, and the locked Python
+type/lint checks pass on the Windows host. The integrator records the settled
+consistency-check verdict and local completion revision in the completion log and
+fan-out journal. Host CI and selected Guest CI remain user-managed deferred
+validation, with no passing hosted verdict inferred from this local acceptance.
+Source extraction, loops, concrete-law interpretation, checked borrowing and
+comparative measurements retain their existing owners.
+
 ## Conditional borrowing comparison
 
 A comparison commissioned through the existing
