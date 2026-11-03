@@ -2967,6 +2967,21 @@ without weakening their checks.
   `41601217451` separately require freshly staged inputs with complete compiler
   provenance; historical manifests cannot supply that evidence.
 
+The local-completion fixture now isolates subprocess timeout waits from its
+application sleep guard; its focused controls pass on Windows and Linux. Solver
+selection removes repeated selected-path entries before native identity capture;
+environment and freshness controls pass, including Linux symlink substitution
+refusal. The proof-citation mutant selects an authored requirement token outside
+generated regions, with prose-edit and absent-target controls passing.
+`JournalIndex.pairs_eqb_spec` has a proof-body-only equality bridge to the shared
+list comparator; the reported `KernelInstance` projection repair already exists
+in the local base. No pinned prover or qualified contained compiler is available
+locally. Native proof closure, statement/universe comparison, assumption audits
+and kernel acceptance remain pending, as do the actual CMake/GMP fixtures and
+cold Guest evidence. The existing Q39 qualification dependency still blocks fresh
+boot staging. The `ci-repair-20261103` fanout journal records the settled revision,
+local checks, recommended validation and deferred acceptance.
+
 ## C modernization
 
 Modernize active authored C declarations, initialization and compile-time checks within selected compiler/proof interfaces and the admitted scalar profile. Host acceptance alone does not establish CompCert/Clight target support for VST.
