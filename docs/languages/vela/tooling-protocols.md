@@ -1,10 +1,13 @@
 # Vela compiler, editor and debugger interoperability
 
 The [primary language design](verification-strategy.md#language-product-contract)
-includes Language Server Protocol (LSP), Debug Adapter Protocol (DAP) and DWARF
-support in Vela's intended toolchain, together with machine-readable compiler
-inspection and the interchange surfaces below. This contract defines their
-acceptance boundaries. DWARF is a debugging information format; LSP and DAP are
+selects useful diagnostics, navigation, formatting and proof inspection for the
+[first supported release](first-release.md#release-boundary). Language Server
+Protocol (LSP) and shared compiler facts support that workflow. Debug Adapter
+Protocol (DAP), DWARF and the wider interchange surfaces below are separately
+selected extensions with actual consumers. This contract defines their
+acceptance boundaries; it requires no first release to implement every adapter.
+DWARF is a debugging information format; LSP and DAP are
 editor-facing message protocols with different message models. SARIF and ECMA-426
 are standards; SCIP, editor grammars, BSP, LLVM remarks and trace formats have
 their own ecosystem specifications rather than a shared standards status.
@@ -23,7 +26,22 @@ dependencies if it advertises only its implemented subset.
 ## Standards and shared boundaries
 
 Delivery starts with LSP lifecycle and pure-prototype diagnostics, sharing immutable
-source snapshots and explicit coordinate conversion. Native DWARF follows an
+source snapshots and explicit coordinate conversion. Navigation, explicit
+formatting edits and inspection of supported source obligations follow the same
+producer. Basic tooling should make the first software clients usable before
+additional syntax surfaces or protocol coverage are commissioned. Check, emission
+and build operations follow the [source-preserving command policy](authoring-tools.md#compiler-commands-and-publication);
+formatting applies only through an explicit source-edit action.
+
+SARIF, SCIP, compiler-inspection schema breadth, editor grammar distributions,
+build adapters, optimization remarks and performance traces each need a named
+consumer and demonstrated diagnostic, review or maintenance value. Prefer a small
+shared schema over simultaneous public exposure of every compiler layer. A later
+adapter reuses existing judgments and snapshot identities; its schema does not
+justify creating a second semantic producer. New functionality beyond the basic
+workflow follows the [first-release delivery gates](../../../PLAN.md#vela-first-release-delivery).
+
+Native DWARF follows an
 executable producer and fixed ABI; DAP follows a qualified simulator backend and
 consumes matching debug information for native images. These prerequisites favor
 incremental delivery. Compiler identities, source maps and final-image provenance
@@ -55,7 +73,7 @@ from `core-diagnostics`. The existing Rocq editor and
 their qualification is not Vela-server qualification.
 
 The [compiler-service contract](metaprogramming.md#compiler-services-and-runtime-information)
-also exposes versioned semantic snapshots to analysis, refactoring and generation
+constrains versioned semantic snapshots selected for analysis, refactoring and generation
 clients. Diagnostics and navigation connect a generated definition to its request,
 generator, concrete instantiation and source inputs; debug mappings additionally
 identify executable sites in the final image. Static generation cannot replace
@@ -407,11 +425,17 @@ ECMA-426 export duty. Lowering and source provenance remain compiler-owned once.
 
 ## Qualification and delivery
 
-Each implementation increment first lands a priced plan cell, supported subset,
+Each implementation increment first names its actual client and evidence of need,
+then lands a priced plan cell, supported subset,
 backend/client pins, numeric resource budgets and executable acceptance fixtures.
 Language meaning, contextual diagnostics, lowering and protocol adapters retain
 their separate owners; charge shared work once. Preserve full-frontend admission
-prerequisites and existing compiler duties.
+prerequisites and existing compiler duties. The first release qualifies its basic
+workflow on the independent software clients in the
+[release contract](first-release.md#qualification); broader protocols add no
+implicit prerequisite to that acceptance. An unsupported adapter remains
+unadvertised. Existing prototype features retain their current qualification
+status rather than becoming accepted through this priority decision.
 
 | Increment | Required positive and negative controls |
 | --- | --- |
@@ -425,6 +449,6 @@ transcripts, expected results and verdicts. Independent review checks that the
 displayed source and values match the executed artifact, including telling
 negative neighbors. Protocol conformance alone establishes no compiler theorem,
 proof acceptance or measured productivity benefit. Complete the repository's
-[validation handoff](../../../AGENTS.md#tool-execution-and-validation): require
-Host CI on both platforms, dispatch the selected Guest CI lanes, and finish
-without waiting for Guest CI.
+[validation handoff](../../../AGENTS.md#tool-execution-and-validation): finish
+local integration and record the recommended checks; the user owns publication,
+Host CI and Guest CI. No hosted verdict is supplied until its evidence exists.

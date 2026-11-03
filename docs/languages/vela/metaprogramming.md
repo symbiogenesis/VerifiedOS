@@ -4,20 +4,28 @@
 
 ## Product and scope
 
-Vela's intended surface combines familiar type-first declarations, named APIs and
-local inference with dependent specifications, lawful resource grades, explicit
-representation and compile-time generation. Ordinary clients call generated APIs
-like other library APIs. Library authors can compute types, derive boilerplate,
-specialize algorithms and construct checked definitions and evidence in Vela.
-Generation remains visible through navigation, diagnostics and inspectable output.
+The [first supported release](first-release.md#release-boundary) uses ordinary
+total pure computation for required-static constants and finite specialization.
+Its bounded software path needs no general reflection API, user-defined grade
+algebra or contextual code generator. A narrowly scoped derivation may be selected
+only for an actual library client, with an independently fixed input/output
+contract and separately priced acceptance work.
+
+Broader typed introspection, boilerplate derivation and hygienic construction of
+definitions/evidence are later options. Their admission requires a named consumer,
+measured authoring or maintenance benefit over ordinary libraries, and the
+composition proofs for the features actually used. Ordinary clients call generated
+APIs like other library APIs; generation stays visible through navigation,
+diagnostics and inspectable output. The rules below constrain a selected extension
+without making the entire extension a first-release dependency.
 
 The [mathematical prototype](elaboration-prototype.md#supported-mathematical-increment)
 already exercises type-valued parameters, computed types and bounded definitional
 computation. Those mechanisms alone do not expose arbitrary types' constructors,
 fields or source declarations. General introspection, generation and their
 composition with ownership, effects and grades remain proposed work. The
-[full-frontend hold](full-language-review.md#r-05-009-r-05-020-and-what-holds-the-frontend-rows)
-and [whole-system acceptance](unified-source-contract.md#software-and-proof-boundary)
+[frontend prerequisites](full-language-review.md#r-05-009-r-05-020-and-what-holds-the-frontend-rows)
+and applicable [software acceptance](unified-source-contract.md#software-and-proof-boundary)
 remain in force; parser support is separately commissioned in the
 [surface grammar](surface-grammar.md).
 
@@ -114,8 +122,10 @@ their generated definitions and requested laws through the normal module system.
 Declaring a derivation does not make its laws definitionally true or established.
 Mandatory safety judgments and the selected
 [assurance policy](assurance-profiles.md#claim-status-and-what-each-status-licenses)
-apply exactly as they do to handwritten code; optional unproved claims retain
-their visible status and cannot justify optimization or a caller's proof.
+apply exactly as they do to handwritten code. Every generated exported contract
+must be discharged before its interface is accepted. Exploratory unproved claims
+stay in the separate non-exported scratch channel; they cannot justify
+optimization, a caller's proof or an accepted `requires`/`ensures` declaration.
 
 The following is a library API sketch inside a generation context. The names and
 context are illustrative, unimplemented interfaces, not additions to the current
@@ -166,8 +176,9 @@ cross stages only through admitted representations and provenance checks.
 
 Qualification must state these obligations over the admitted interpretation chosen
 under the [frontend disposition](full-language-review.md#r-05-009-r-05-020-and-what-holds-the-frontend-rows).
-This dossier neither moves the rule dossiers into arm one nor takes its required
-register act; their implementation rows remain held. The
+The selected extension must prove its laws about the checked elaboration image
+in that existing anchor and supply the required source correspondence; neither
+the interpretation commitment nor a register clarification supplies those proofs. The
 [composition review](full-language-review.md#the-representation-the-composed-duties-are-stated-over)
 still owns missing concrete CHERI laws. An intrinsically typed builder or a valid
 CIC output term supplies neither those laws nor checked source correspondence.
@@ -258,6 +269,13 @@ dependency is incorporated, feature parity claimed or implementation commissione
 
 ## Qualification
 
+The [delivery plan](../../../PLAN.md#vela-first-release-delivery) qualifies static
+computation with the initial software clients. Select later descriptor,
+construction or cross-feature rows only when a named consumer needs them; a
+synchronous derivation does not owe handler/async or hardware generation before
+it can be useful. General generation, compiler-service schema breadth and
+extensible graded interaction retain separately scoped budgets and stop decisions.
+
 Qualify each advertised fragment with inhabited clients and independent, well-formed
 negative neighbors using the same supported mechanisms. A parse failure or missing
 feature supplies no semantic rejection. Retain exact source, tools, target, generated
@@ -272,7 +290,7 @@ subjects and verdicts; documentation examples alone supply no executed evidence.
 | Ownership and control | Generate bounded code with one owner, checked callback demand and cleanup across a handler/async path; reject duplicated captures, a lost mandatory verdict, repeated effectful evaluation and moved checkpoints/commits. |
 | Freshness and tooling | Replay after a harmless local rename, then invalidate changed generator, private layout, format, instance, input and target dependencies; reject late editor results, stale output and forged source maps. |
 | Artifact costs and runtime metadata | Show the evaluator/descriptors absent when not requested and account for explicitly retained metadata; detect hidden boxing, runtime derivation fallback, unjustified code growth and changed final bytes reusing old evidence. |
-| Proof and machine boundary | Replay requested generated laws with exact assumptions and independent intended behavior; refuse unchecked holes, extra axioms and a disconnected source/output claim. Hardware generation retains independent architecture/refinement checks. |
+| Proof and machine boundary | Replay generated exported laws under every preset with exact assumptions and independent intended behavior; refuse unestablished exported clauses, scratch claims consumed as facts, unchecked holes, extra axioms and a disconnected source/output claim. A selected hardware extension retains independent architecture/refinement checks. |
 
 | Existing owner | Work retained at that boundary |
 | --- | --- |

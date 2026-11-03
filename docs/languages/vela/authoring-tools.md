@@ -3,9 +3,12 @@
 This contract owns [Q25r, Q25s and Q25t](../../../PLAN.md#q-assessment-actions).
 The [surface grammar](surface-grammar.md) owns syntax and the
 [pure prototype](vela-prototype.md) owns its executable semantic boundary.
-The compiler includes a formatter and lint pass, enabled by default. The initial
-executable formatter and lints cover that pure subset; wider formatting and
-semantic lints consume their qualified parser/frontend producers through
+The compiler includes a formatter and an advisory lint pass. The design keeps
+checking and emission read-only with respect to source; formatting writes require
+an explicit command or option. The initial executable formatter and lints cover
+the pure subset, whose current automatic-writing default still needs the
+[command-policy migration](#compiler-commands-and-publication). Wider formatting
+and semantic lints consume qualified parser/frontend producers through
 [compiler services](tooling-protocols.md#compiler-inspection-api).
 
 ## Common style
@@ -89,23 +92,42 @@ local and parameter documentation remains ordinary comment text.
 
 ## Compiler commands and publication
 
-`vela fmt SOURCE` writes canonical formatting; `--check` reports differences
-without writing. `vela lint SOURCE` reports the supported lint set without
-rewriting. Ordinary `vela check SOURCE` and `vela emit SOURCE` run formatting and
-linting automatically. `--format check` makes formatting differences a failing
-read-only check; `--format off` leaves source bytes intact. `--no-lint` disables
-optional lints, never parser, type, constant-evaluation or proof obligations.
+The accepted command policy is:
 
-Validate the complete source before default rewriting. Reparse and recheck the
-formatted candidate, establish token/comment preservation and idempotence, and
-publish changes atomically only to the same unchanged regular source file.
-Refuse symbolic links and changed inputs rather than overwriting another file or
-another editor's work. Failed syntax/type checks, denied lints or invalid output
-destinations leave source and generated output intact. Diagnostics and emitted
-source hashes bind the exact snapshot used for compilation; after formatting,
-recompute semantic facts and emission from the new bytes. An I/O failure after
-source publication may leave a formatted source but must not claim successful
-output publication. The library checker and language server never rewrite files.
+| Command or mode | Source policy |
+| --- | --- |
+| `vela check SOURCE`, `vela emit SOURCE`, and future package builds | Read an immutable snapshot, run required checks and advisory lints, and preserve source bytes. Emission may publish its explicitly requested output only after successful checking. |
+| `vela fmt SOURCE` | Explicitly request canonical source formatting. |
+| `vela fmt SOURCE --check`, `--format check` on check/emission | Report formatting differences without writing source; differences fail the formatting check. |
+| `--format off` on check/emission | Explicitly select the ordinary source-preserving default. |
+| `--format write` on check/emission | Explicitly opt into formatting this invocation; this mode is never inherited as a hidden build or dependency setting. |
+| `vela lint SOURCE` | Report the supported lint set without rewriting. |
+| Editor formatting | Return a proposed edit; only the editor's explicit edit/save policy applies it. |
+
+`--no-lint` disables optional lints, never parser, type, constant-evaluation or
+proof obligations. A style difference alone does not reject ordinary check or
+emission; CI can select the explicit formatting-check mode. Read-only source
+files remain usable by source-preserving commands when their requested output
+locations are writable. Unsaved editor snapshots are checked at their own identity
+and never published into the source file by the compiler.
+
+For an explicit formatting write, validate the complete source, reparse and
+recheck the formatted candidate, establish token/comment preservation and
+idempotence, and publish atomically only to the same unchanged regular source
+file. Refuse symbolic links and changed inputs rather than overwriting another
+file or another editor's work. Failed syntax/type checks, denied lints or invalid
+output destinations leave source and generated output intact. Diagnostics and
+emitted source hashes bind the exact snapshot used for compilation. Only an
+explicit write mode recomputes semantic facts and emission from formatted bytes.
+An I/O failure after that source publication may leave a formatted source but
+must not claim successful output publication. The library checker and language
+server never rewrite files.
+
+**Current prototype boundary:** the implemented pure CLI still defaults
+`check`/`emit` to `--format write`. Until Q25t's migration passes, use
+`--format off` for source-preserving checking/emission or `--format check` to
+enforce formatting without writes. The contract above changes the required
+behavior; this document does not claim that executable migration has landed.
 
 ## Lint policy
 
@@ -129,7 +151,7 @@ Repeatable `--allow ID` suppresses optional findings; `--deny ID` makes them
 errors. The same ID cannot be both allowed and denied. Unknown IDs are command
 errors. Defaults and rule identities are compiler-versioned; disabling an optional
 lint cannot waive a language error. Findings go to stderr, keeping emitted Gallina
-on stdout usable. A denied finding prevents default formatting and output writes.
+on stdout usable. A denied finding prevents any requested formatting and output writes.
 If bounded compiler inspection cannot supply complete lint facts, normal advisory
 compilation reports lints unavailable and continues. Explicit `vela lint` and a
 command with denied lints require complete findings and refuse without writes.
@@ -150,9 +172,17 @@ two-editor interoperability qualification remains with Q25n/Q25o.
 Q25t requires independently expected formatting and lint findings, idempotence,
 unchanged ordered tokens/comments and equivalent reparsed syntax apart from
 locations. Compose named arguments, constants, expression bodies, nesting,
-comments and numeric separators. Verify default rewriting, check/off modes,
-allow/deny and invalid-ID behavior, stdout/stderr separation, exact post-format
-provenance and refusal without writes for invalid, unsupported, oversized, aliased,
-changed or nonregular input/output. Run focused host tests and Python checks;
-require both Host CI aggregates and dispatch every Guest CI lane for the settled
-revision. Wider-language qualification remains with its frontend owners.
+comments and numeric separators. Verify that default check/emission preserve exact
+source bytes on both success and failure, including noncanonical layout and
+read-only source, while ordinary style differences remain advisory. Check/off modes
+write no source; only `fmt` or explicit `--format write` may change it. Cover
+allow/deny and invalid-ID behavior, stdout/stderr separation, output publication
+failure, unchanged editor overlays, source changes during checking, exact original
+snapshot provenance and separately exact post-format provenance in write mode.
+Retain refusal without writes for invalid, unsupported, oversized, aliased,
+changed or nonregular input/output. Update CLI help, examples and callers with the
+new default before reporting migration complete. Run focused host tests and Python
+checks; hand the selected hosted validation to the user under the shared
+[validation procedure](../../../AGENTS.md#tool-execution-and-validation).
+Wider-language formatting and semantic lints remain consumer-gated extensions
+after the [first release](first-release.md#qualification).
