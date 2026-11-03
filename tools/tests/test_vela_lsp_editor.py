@@ -247,6 +247,38 @@ def _large_ids_and_initialization_recovery() -> None:
            "large-ID recovery lost later framed requests")
 
 
+def _complete_editor_reply_bounds_and_recovery() -> None:
+    text = "module M;\n" + "".join(f"public Nat F{index}()=>0;\n" for index in range(20))
+    formatted = ("module M;\n\n"
+                 + "\n\n".join(f"public Nat F{index}() => 0;" for index in range(20)) + "\n")
+    tokens = {"data": [value for index in range(20)
+                       for value in (1, 11, 2 if index < 10 else 3, 0, 1)]}
+    for method, expected in (("textDocument/formatting", _edits((21, 0), formatted)),
+                             ("textDocument/semanticTokens/full", tokens)):
+        server = _server(text)
+        snapshot = server.documents[_URI]
+        params = _params(method.endswith("formatting"))
+        request = _request(method, params, "")
+        overhead = len(json.dumps(request, separators=(",", ":")).encode())
+        request["id"] = "i" * (MAX_BODY_BYTES - overhead)
+        encode_message(request)
+        replies = server.handle(request)
+        ensure(len(replies) == 1 and replies[0].get("id") == request["id"]
+               and _object(replies[0].get("error")).get("code") == -32803,
+               "complete editor reply exceeded its frame bound or lost request correlation")
+        encode_message(replies[0])
+        ensure(server.documents[_URI] is snapshot and _URI not in server.desynchronized
+               and server.generation == snapshot.generation
+               and server.received_versions[_URI] == snapshot.version == 1,
+               "reply-bound refusal changed or desynchronized the current editor overlay")
+        ensure(_result(server, method, params) == expected,
+               "reply-bound refusal truncated editor results or poisoned a later bounded request")
+        ensure(server.documents[_URI] is snapshot and _URI not in server.desynchronized
+               and server.generation == snapshot.generation
+               and server.received_versions[_URI] == snapshot.version == 1,
+               "editor recovery changed the source snapshot or its current version")
+
+
 def _real_process_editor_operations() -> None:
     messages = [_request("initialize", identity=1), _notice("initialized"),
                 _notice("textDocument/didOpen", {"textDocument": {
@@ -291,4 +323,5 @@ def cases() -> list[Case]:
             Case("editor-options-lifecycle-and-overlay-recovery", _parameters_lifecycle_and_recovery),
             Case("formatter-worker-transport-timeout-and-limits", _formatter_transport_and_limits),
             Case("large-request-ids-and-initialization-recovery", _large_ids_and_initialization_recovery),
+            Case("complete-editor-reply-bounds-and-recovery", _complete_editor_reply_bounds_and_recovery),
             Case("real-process-editor-operations-and-unsaved-update", _real_process_editor_operations)]
