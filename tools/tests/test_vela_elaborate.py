@@ -145,7 +145,7 @@ class _Fixture:
                                            modifiers=["public"]))
 
     def function(self, name: str, result: Form, parameters: tuple[Parameter, ...], value: Form,
-                 *, arrow: bool = True) -> None:
+                 *, arrow: bool = True, block: bool = False) -> None:
         self.write("\n")
         start = self.offset
         self.write("public ")
@@ -155,7 +155,9 @@ class _Fixture:
         parameter_nodes = self.parameters(parameters)
         self.write(" ")
         body_start = self.offset
-        if arrow:
+        if block:
+            body = value(self)
+        elif arrow:
             self.write("=> ")
             returned = value(self)
             self.write(";")
@@ -184,6 +186,19 @@ class _Fixture:
         self.write(";")
         self.declarations.append(self.node("alias", start, name=binding, generics=generic_nodes,
                                            contracts=[], type=annotation, modifiers=["public"]))
+
+    def constant(self, name: str, value_type: Form, value: Form) -> None:
+        self.write("\n")
+        start = self.offset
+        self.write("public const ")
+        annotation = value_type(self)
+        self.write(" ")
+        binding = self.name(name)
+        self.write(" = ")
+        initializer = value(self)
+        self.write(";")
+        self.declarations.append(self.node("constant", start, name=binding, type=annotation,
+                                           value=initializer, modifiers=["public"]))
 
     def response(self) -> tuple[bytes, Node]:
         source = self.text.encode("utf-8")
@@ -360,6 +375,58 @@ def _let(name: str, value: Form, body: Form) -> Form:
     return form
 
 
+def _local_constant(name: str, value_type: Form, value: Form, body: Form) -> Form:
+    def form(fixture: _Fixture) -> Node:
+        start = fixture.offset
+        fixture.write("{ ")
+        constant_start = fixture.offset
+        fixture.write("const ")
+        annotation = value_type(fixture)
+        fixture.write(" ")
+        binding = fixture.name(name)
+        fixture.write(" = ")
+        initializer = value(fixture)
+        fixture.write(";")
+        constant = fixture.node("constant_local", constant_start, name=binding,
+                                type=annotation, value=initializer)
+        fixture.write(" return ")
+        return_start = fixture.offset - len("return ")
+        result = body(fixture)
+        fixture.write(";")
+        terminal = fixture.node("return", return_start, value=result)
+        fixture.write(" }")
+        return fixture.node("block", start, statements=[constant, terminal])
+    return form
+
+
+def _choice(condition: Form, yes: Form, no: Form) -> Form:
+    def branch(fixture: _Fixture, value: Form) -> Node:
+        start = fixture.offset
+        fixture.write("{ return ")
+        return_start = start + 2
+        expression = value(fixture)
+        fixture.write(";")
+        terminal = fixture.node("return", return_start, value=expression)
+        fixture.write(" }")
+        return fixture.node("block", start, statements=[terminal])
+
+    def form(fixture: _Fixture) -> Node:
+        start = fixture.offset
+        fixture.write("{ ")
+        if_start = fixture.offset
+        fixture.write("if (")
+        selected = condition(fixture)
+        fixture.write(") ")
+        accepted = branch(fixture, yes)
+        fixture.write(" else ")
+        rejected = branch(fixture, no)
+        conditional = fixture.node("if", if_start, condition=selected,
+                                   **{"then": accepted, "else": rejected})
+        fixture.write(" }")
+        return fixture.node("block", start, statements=[conditional])
+    return form
+
+
 def _type_value(value_type: Form) -> Form:
     def form(fixture: _Fixture) -> Node:
         start = fixture.offset
@@ -510,6 +577,183 @@ def _canonical_named_call_terms() -> None:
     ensure(hashlib.sha256(source).hexdigest() in named, "labeled calls lost exact source provenance")
     ensure("Corelib.Init.Datatypes.unit" in named and "Corelib.Init.Datatypes.tt" in named,
            "canonical Unit type and value lost their existing interpretation")
+
+
+def _required_static_constants() -> None:
+    fixture = _Fixture("Constants")
+    fixture.constant("Base", _NAT, _natural(21))
+    fixture.definition("Twice", _NAT, (("value", _NAT),),
+                       _let("copy", _variable("value"), _binary("+", _variable("copy"), _variable("copy"))))
+    fixture.constant("Answer", _NAT, _call("Twice", _variable("Base"), labels=("value",)))
+    fixture.constant("Accepted", _BOOL, _binary("<=", _variable("Answer"), _natural(42)))
+    fixture.constant("Nothing", _type("Unit"), _unit())
+    fixture.function("Local", _NAT, (),
+                     _local_constant("Next", _NAT, _binary("+", _variable("Answer"), _natural(1)),
+                                     _variable("Next")), block=True)
+    fixture.constant("Length", _NAT, _natural(1))
+    fixture.definition("One", _type("Vec", _NAT, _type("Length")), (),
+                       _call("VCons", _natural(7), _call("VNil", generics=(_NAT,))))
+    fixture.theorem("Computed", (), _binary("==", _variable("Answer"), _natural(42)),
+                    _call("Refl", _natural(42)))
+    source, response = fixture.response()
+    emitted = elaborate(source, response).gallina
+    ensure("Definition vela_d2_Answer : Corelib.Init.Datatypes.nat :=\n  (42 :" in emitted,
+           "module constant was not emitted as its evaluated scalar value")
+    ensure("Definition vela_d3_Accepted : Corelib.Init.Datatypes.bool :=\n  Corelib.Init.Datatypes.true." in emitted,
+           "comparison constant did not evaluate to its independently expected Boolean")
+    local = emitted.split("Definition vela_d5_Local", 1)[1].split("Definition", 1)[0]
+    ensure("(43 : Corelib.Init.Datatypes.nat)" in local and "Corelib.Init.Nat.add" not in local,
+           "local constant retained runtime arithmetic instead of its evaluated value")
+    ensure("Corelib.Init.Datatypes.tt" in emitted and hashlib.sha256(source).hexdigest() in emitted,
+           "Unit constant or exact source provenance was lost")
+
+
+def _static_dependency_refusals() -> None:
+    for role in ("parameter", "ordinary-let", "ignored", "dead-branch", "ghost"):
+        fixture = _Fixture()
+        fixture.definition("Ignore", _NAT, (("unused", _NAT),), _natural(0))
+        initial = _variable("runtime")
+        if role == "ignored":
+            initial = _call("Ignore", initial)
+        elif role == "dead-branch":
+            initial = _call(_group(_lambda((), _choice(_boolean(False), initial, _natural(0)))))
+        body = _local_constant("Chosen", _NAT, initial, _variable("Chosen"))
+        if role == "ordinary-let":
+            fixture.definition("Wrong", _NAT, (),
+                               _let("runtime", _natural(3), _call(_group(_lambda((), body)))))
+        elif role == "ghost":
+            fixture.definition("Wrong", _NAT, (), _call(_group(_lambda((), body))),
+                               (("ghost", "runtime", _NAT),))
+        else:
+            fixture.function("Wrong", _NAT, (("runtime", _NAT),), body, block=True)
+        _refuses(fixture, "type", "nonstatic binding 'runtime'")
+    for name in ("Missing", "Self"):
+        fixture = _Fixture()
+        fixture.constant("Self", _NAT, _variable(name))
+        _refuses(fixture, "name")
+    fixture = _Fixture()
+    fixture.constant("WrongType", _NAT, _boolean(True))
+    _refuses(fixture, "type")
+    fixture = _Fixture()
+    fixture.constant("Value", _NAT, _natural(1))
+    fixture.definition("Wrong", _NAT, (), _call("Value"))
+    _refuses(fixture, "type")
+    fixture = _Fixture()
+    fixture.constant("Pair", _tuple(_NAT, _BOOL, types=True), _tuple(_natural(1), _boolean(True)))
+    _refuses(fixture, "unsupported", "Nat, bool or Unit")
+    fixture = _Fixture()
+    fixture.constant("Overflow", _NAT, _binary("*", _natural(10 ** 200), _natural(10 ** 200)))
+    _refuses(fixture, "limit", "representation bound")
+    fixture = _Fixture()
+    fixture.constant("Boundary", _NAT, _natural(10 ** 256 - 1))
+    elaborate(*fixture.response())
+    fixture.constant("Overflow", _NAT, _call("Succ", _variable("Boundary")))
+    _refuses(fixture, "limit", "representation bound")
+    fixture = _Fixture()
+    fixture.definition("Work", _NAT, (("value", _NAT),), _binary("+", _variable("value"), _natural(1)))
+    fixture.constant("Constant", _NAT, _call("Work", _natural(1)))
+    with patch.object(language, "MAX_REDUCTIONS", 0):
+        _refuses(fixture, "limit")
+
+
+def _source_callable_arities() -> None:
+    fixture = _Fixture()
+    fixture.definition("Empty", _NAT, (), _natural(7))
+    fixture.definition("Explicit", _NAT, (("token", _type("Unit")),), _natural(7))
+    fixture.definition("UseEmpty", _NAT, (), _call("Empty"))
+    fixture.definition("UseExplicit", _NAT, (), _call("Explicit", _unit(), labels=("token",)))
+    fixture.definition("UseLambda", _NAT, (), _call(_group(_lambda((), _natural(7)))))
+    elaborate(*fixture.response())
+    for empty_declaration, explicit_argument in ((False, False), (True, True)):
+        fixture = _Fixture()
+        fixture.definition("Call", _NAT,
+                           () if empty_declaration else (("token", _type("Unit")),), _natural(1))
+        fixture.definition("Wrong", _NAT, (), _call("Call", *([_unit()] if explicit_argument else [])))
+        _refuses(fixture, "type", "zero-parameter")
+    for empty_interface in (False, True):
+        fixture = _Fixture()
+        signature = _function_type(() if empty_interface else (("published", _type("Unit")),), _NAT)
+        implementation = _lambda((("actual", _type("Unit")),) if empty_interface else (), _natural(1))
+        fixture.definition("Wrong", signature, (), implementation)
+        _refuses(fixture, "type", "zero-parameter")
+    for empty_interface in (False, True):
+        fixture = _Fixture()
+        source_signature = _function_type(((None, _type("Unit")),) if empty_interface else (), _NAT)
+        interface = _function_type(() if empty_interface else ((None, _type("Unit")),), _NAT)
+        fixture.definition("Apply", _NAT, (("function", interface),), _natural(0))
+        fixture.definition("Wrong", _NAT, (("function", source_signature),),
+                           _call("Apply", _variable("function")))
+        _refuses(fixture, "type", "different source arities")
+    fixture = _Fixture()
+    fixture.definition("Wrong", _NAT,
+                       (("function", _function_type(((None, _type("Unit")),), _NAT)),),
+                       _call("function"))
+    _refuses(fixture, "type", "zero-parameter")
+    fixture = _Fixture()
+    fixture.definition("Use", _NAT,
+                       (("function", _function_type(((None, _type("Unit")),), _NAT)),),
+                       _call("function", _unit()))
+    elaborate(*fixture.response())
+
+
+def _constant_source_protocol() -> None:
+    fixture = _Fixture()
+    fixture.constant("Answer", _NAT, _binary("+", _natural(20), _natural(22)))
+    source, response = fixture.response()
+    for mutation in ("name", "keyword", "type", "initializer", "equals", "terminator"):
+        changed = copy.deepcopy(response)
+        constant = cast("list[Node]", cast("Node", changed["ast"])["declarations"])[0]
+        if mutation == "name":
+            cast("Node", constant["name"])["text"] = "Other"
+        elif mutation == "keyword":
+            start, end = cast("list[int]", constant["span"])
+            constant["span"] = [start + len("public const "), end]
+        elif mutation == "type":
+            constant["type"] = None
+        elif mutation in {"initializer", "equals"}:
+            initial = cast("Node", constant["value"])
+            start, end = cast("list[int]", initial["span"])
+            initial["span"] = [start - 2, end] if mutation == "equals" else [start, end - 1]
+        else:
+            start, end = cast("list[int]", constant["span"])
+            constant["span"] = [start, end - 1]
+        try:
+            elaborate(source, changed)
+        except VelaError as error:
+            ensure(error.kind == "protocol", f"constant {mutation} forgery reached semantic evaluation")
+        else:
+            raise AssertionError(f"accepted constant {mutation} corruption")
+    fixture = _Fixture()
+    fixture.constant("First", _NAT, _natural(1))
+    fixture.constant("Second", _NAT, _variable("First"))
+    source, response = fixture.response()
+    for omission in (False, True):
+        changed = copy.deepcopy(response)
+        root = cast("Node", changed["ast"])
+        declarations = cast("list[Node]", root["declarations"])
+        root["declarations"] = declarations[1:] if omission else list(reversed(declarations))
+        try:
+            elaborate(source, changed)
+        except VelaError as error:
+            ensure(error.kind == "protocol", "module constant order forgery reached dependency checking")
+        else:
+            raise AssertionError("accepted omitted or reordered module constants")
+    fixture = _Fixture()
+    fixture.function("Local", _NAT, (),
+                     _local_constant("value", _NAT, _natural(1), _variable("value")), block=True)
+    source, response = fixture.response()
+    for omission in (False, True):
+        changed = copy.deepcopy(response)
+        declaration = cast("list[Node]", cast("Node", changed["ast"])["declarations"])[0]
+        body = cast("Node", declaration["body"])
+        statements = cast("list[Node]", body["statements"])
+        body["statements"] = statements[1:] if omission else list(reversed(statements))
+        try:
+            elaborate(source, changed)
+        except VelaError as error:
+            ensure(error.kind == "protocol", "local constant order forgery reached static evaluation")
+        else:
+            raise AssertionError("accepted omitted or reordered local constant statements")
 
 
 def _named_call_refusals() -> None:
@@ -1032,6 +1276,10 @@ def _elaboration_budgets() -> None:
 def cases() -> list[Case]:
     return [Case("fresh-polymorphism-and-higher-order-inference", _polymorphism_and_higher_order),
             Case("canonical-named-dependent-call-term-agreement", _canonical_named_call_terms),
+            Case("required-static-values-and-dependent-indices", _required_static_constants),
+            Case("static-dependencies-types-and-numeric-bounds", _static_dependency_refusals),
+            Case("source-nullary-versus-explicit-Unit-arities", _source_callable_arities),
+            Case("constant-complete-source-protocol", _constant_source_protocol),
             Case("named-call-interface-order-and-semantic-refusals", _named_call_refusals),
             Case("named-argument-complete-source-protocol", _named_argument_source_protocol),
             Case("concise-lambdas-and-expression-body-terms", _concise_lambdas_and_expression_bodies),
