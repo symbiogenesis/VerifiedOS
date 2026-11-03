@@ -8,7 +8,11 @@ Ordinary theorem syntax remains available to its separately scoped mathematical
 consumer. Exploratory contract claims use a distinct editor/scratch channel;
 accepted exported `requires`/`ensures` follow the [assurance contract](assurance-profiles.md).
 
-This is the syntax contract for [Q25i](../../../PLAN.md#q-assessment-actions).
+This is the syntax contract for [Q25i](../../../PLAN.md#q-assessment-actions),
+with the selected [familiar authoring migration](#familiar-authoring-migration)
+owned by Q25z. Examples here use the selected surface. The current parser and
+checked-in `.vela` examples retain that section's stated implementation boundary;
+the design change supplies no new parser or semantic qualification.
 The [language design](verification-strategy.md#an-ideal-surface) and
 [whole-system contract](unified-source-contract.md#authoring-end-state) own the
 required features and their meanings. This increment accepts located syntax;
@@ -54,8 +58,10 @@ construct syntax, including syntactically valid programs with semantic errors.
 | Architecture and hardware | Machine/hardware containers, state/register declarations, transitions/rules, guards, next-state assignments and explicit schedules/cycles |
 
 The surface uses type-first declarations and braced containers.
-Explicit generic expression application uses `::<...>` to
-separate it from comparison. Nested type arguments close with individual `>`
+Ordinary explicit generic calls use `F<T>(arguments)` under the
+[token-only call rule](#familiar-authoring-migration); explicit generic expression
+application retains `::<...>` for function values and disambiguation.
+Nested type arguments close with individual `>`
 tokens; shifts may use named operations. Generic arguments admit values and
 lifetimes. A parenthesized generic value disambiguates relational expressions.
 Loop bodies use braces. A function type returning another function type puts that
@@ -78,7 +84,7 @@ state result indices, for example `Nil() : Vec<T, 0>;`.
 ```text
 module Syntax.Examples;
 universe u;
-public definition Nat Twice(Nat x) = x + x;
+public definition Nat Twice(Nat x) => x + x;
 public Nat Increment(Nat x)
     requires x > 0
     ensures result > x
@@ -153,13 +159,14 @@ supplies syntax for a future checker, not memory-safety acceptance.
 ### Dependent elimination and library interfaces
 
 The foundation's [dependent elimination](graded-foundation.md#dependent-data-and-elimination)
-uses the existing record, union and pattern forms. An expression match has one
-or more expression arms, each terminated by a semicolon:
+uses the existing record, union and pattern forms. A nonempty expression match
+has comma-separated expression arms, with one optional trailing comma, under
+the [authoring migration](#familiar-authoring-migration):
 
 ```text
-definition Vec<byte, packet.Length> Contents(Packed<byte> packet) =
+definition Vec<byte, packet.Length> Contents(Packed<byte> packet) =>
     match (packet) as whole : Vec<byte, whole.Length> {
-        case Packed(length, bytes) => bytes;
+        Packed(length, bytes) => bytes,
     };
 ```
 
@@ -271,7 +278,7 @@ Parenthesize a callable kind so its effects stay distinct from declaration contr
 Explicit `type TYPE` expressions inject structural types into ordinary definitions,
 calls and dependent matches. A `type_expression` has a `type` field containing the
 located type node. For example, an ordinary type family can return
-`match (flag) { case true => type (T, T); case false => type Unit; }`.
+`match (flag) { true => type (T, T), false => type Unit, }`.
 Like lambdas and quantifiers, these forms occupy a complete expression; group them
 when used as operator operands. Parenthesize a callable payload, as in
 `type (Fn(T value) -> T effects(Read))`, to delimit its effects.
@@ -333,7 +340,7 @@ and member expressions can therefore refer to a domain dictionary without new
 operator or projection primitives:
 
 ```text
-definition NatExact.carrier AddZero(NatExact.carrier value) =
+definition NatExact.carrier AddZero(NatExact.carrier value) =>
     NatExact.add(value, NatExact.zero);
 ```
 
@@ -383,15 +390,15 @@ node stores the ordinary expression in its `value` field. This delimited form
 reuses calls, dependent matches, local indices and library operations:
 
 ```text
-definition Type<u> Select<T : Type<u>>(bool pair) =
-    match (pair) { case true => type (T, T); case false => type T; };
+definition Type<u> Select<T : Type<u>>(bool pair) =>
+    match (pair) { true => type (T, T), false => type T, };
 alias Selected<T : Type<u>, ghost bool pair> where Stable(pair) =
-    type[Select::<T>(pair)];
-operation type[Select::<T>(pair)] Read<T : Type<u>>(bool pair);
+    type[Select<T>(pair)];
+operation type[Select<T>(pair)] Read<T : Type<u>>(bool pair);
 ```
 
 Computed types also work directly as generic arguments, as in
-`Box<type[Select::<T>(flag)]>`, and in fields, parameters, callable signatures,
+`Box<type[Select<T>(flag)]>`, and in fields, parameters, callable signatures,
 local annotations and lambda annotations. The existing `type TYPE` expression
 injects structural types into values; `type[EXPR]` uses a type-valued expression
 as a type. Parsing establishes neither stability nor purity, universe formation,
@@ -409,7 +416,7 @@ Its `match_expression` node has an empty `cases` array and the existing optional
 motive. Like lambdas and type injection, an empty value match occupies a complete
 expression; group it when applying operators or postfix operations. A semicolon
 distinguishes an empty-match expression statement from the retained bare empty
-statement match. Nonempty expression matches keep their existing syntax.
+statement match. Nonempty expression matches use the comma-separated arms above.
 Whether the scrutinee has an empty type and which resources can
 reach that branch are checking obligations; syntax supplies no inhabitant or
 proof. String and character literal patterns reuse their lexical spelling in
@@ -550,7 +557,7 @@ Use the symbol families consistently:
 | `(...)` | Calls, parameter telescopes, grouping, products and parenthesized operator values; grammar context fixes the role |
 | `{...}` | Declaration/statement/proof bodies, match arms, handler clauses and explicitly introduced callable contracts |
 | `[...]` | Indexing; `type[...]` explicitly introduces a computed type |
-| `<...>`, `::<...>` | Type/generic parameters and arguments; explicit generic expression application |
+| `<...>`, `::<...>` | Type/generic parameters and arguments, including ordinary generic calls under the token-only rule; explicit generic expression application |
 | `->`, `=>`, `==>`, `<==>` | Callable result, lambda/operation/quantifier/match/handler body, implication and equivalence respectively |
 | `\|`, `\|\|`, `&`, `&&`, `^`, `~` | Bitwise and Boolean operators with separate fixed precedence; prefix `&` derives an address/loan |
 | `*`, `+`, `-` | Multiplication and additive operators; prefix `*` dereferences a pointer and prefix `-` negates |
@@ -570,8 +577,10 @@ surface and pure fixture, pure migration and the native qualification below.
 
 ### Concise authoring syntax
 
-The [Q25p surface](../../../PLAN.md#q-assessment-actions) uses the following forms
-throughout examples, fixtures and prose. The syntax grants no
+The [Q25p surface](../../../PLAN.md#q-assessment-actions), as amended by the
+[Q25z migration](#familiar-authoring-migration), selects the following forms for
+examples, fixtures and prose. Q25z owns migrating the existing implementations
+and does not enlarge Q25p's frozen qualification. The syntax grants no
 implicit conversion, ownership transfer, effect, disposal or proof authority.
 
 - First-class unit types use `Unit`, including `Result<Unit, Error>` and
@@ -602,10 +611,12 @@ implicit conversion, ownership transfer, effect, disposal or proof authority.
   Located `argument` nodes contain an optional `label` and a `value`; label
   names and values retain their original byte spans. Both pure syntax routes
   and mathematical elaboration validate labels against the resolved callable.
-- Local bindings use `let name = value` for immutable inference,
-  `var name = value` for mutable inference, `T name = value` for an immutable
-  annotation and `var T name = value` for a mutable annotation. Reassignment
-  diagnostics explain these forms. Binding immutability does not prohibit a
+- Local bindings use `let name = value` or `let T name = value` for immutable
+  bindings, and `var name = value` or `var T name = value` for mutable bindings.
+  The optional annotation chooses type inference independently of mutability.
+  The existing unmarked `T name = value` remains immutable; examples and
+  reassignment diagnostics prefer the explicit symmetric forms. Binding
+  immutability does not prohibit a
   write through an eligible exclusive loan, and the pure prototype reports its
   unsupported mutation boundary without claiming a source borrow judgment.
 
@@ -622,8 +633,10 @@ implicit conversion, ownership transfer, effect, disposal or proof authority.
   contains `value` and covers the arrow through the semicolon. The pure entry
   accepts the same form. Consumers check it as the existing single return,
   preserving evaluation count/order, result type, effects, resources and source
-  locations. The separate pure `definition ... = EXPR;` form retains its meaning;
-  an expression body alone does not assert purity. Semantic consumers reject
+  locations. Mathematical functions use `definition ... => EXPR;` under the
+  [migration](#familiar-authoring-migration), retaining their distinct declaration
+  kind and pure interpretation. An expression body alone does not assert purity.
+  Semantic consumers reject
   void shorthand that would discard a result or resource; syntax acceptance
   alone grants no implicit discard.
 - Declaration contracts use ordinary operator expressions, such as
@@ -645,7 +658,8 @@ implicit conversion, ownership transfer, effect, disposal or proof authority.
   argument parentheses, including a nullary `None()` or `BorrowConflict()`.
   Thus local elimination is `let (owner, receipt) = pair;` or
   `let Ready(buffer, receipt) = outcome;`, and a match may use
-  `case Ok(value) => value;`. The outer local keyword selects binding mutability.
+  `Ok(value) => value,` in an expression match or `case Ok(value):` in a statement
+  match. The outer local keyword selects binding mutability.
   Located binding/constructor/product nodes have distinct roles.
   No capitalization, symbol-table or import-dependent interpretation is allowed.
 
@@ -657,7 +671,8 @@ shadowing, duplicate/unknown/out-of-order labels, positional-after-label calls
 and effectful resource-modified arguments. Check unit values separately from
 types, all loop exits and the distinction between rebinding and loan writes.
 Every authored Vela example uses the canonical type, receiver and range-loop
-spellings. These are the sole surface spellings.
+spellings. The migration below owns the new expression-arm, mathematical-body
+and generic-call spellings and their implementation status.
 Compose inferred lambdas with products, calls, explicit generics and dependent
 expected types; retain typed/graded loan callbacks and unresolved-inference
 refusals. Check expression bodies against equivalent return blocks in both pure
@@ -669,6 +684,116 @@ Qualify syntax and refusal predicates, strict conflict-free
 generation and byte-identical regeneration. Native fixtures and both authored
 examples must agree with these rules; exact locked-generator acceptance remains hosted. The editor
 part of this increment follows the [hint contract](lsp-prototype.md#authoring-hints).
+
+### Familiar authoring migration
+
+[Q25z](../../../PLAN.md#q-assessment-actions) selects this surface refinement;
+its implementation follows the [first synchronous component](../../../PLAN.md#vela-first-release-delivery).
+The current surface parser already accepts typed `let` and `var` through the
+shared local initializer. It still requires `case ... => ...;` expression arms,
+`definition ... = EXPR;` mathematical bodies and `::<...>` explicit expression
+applications. Ordinary generic calls, new expression arms, the mathematical
+body marker and the `Vela.Numerics` aliases remain implementation work. This
+contract does not expand the pure prototype's types or mutation support.
+
+**Bindings and aliases.** Documentation, diagnostics and editor examples present
+`let [T] name = value` and `var [T] name = value`, where `[T]` here means an
+optional type annotation, not literal source brackets. Unmarked typed locals
+remain immutable and accepted. Preserve existing local AST kinds, annotations,
+grades, destructuring and the distinction between rebinding and writing through
+an exclusive loan. The [primitive contract](first-release.md#primitive-semantics)
+owns the exact integer aliases exported by `Vela.Numerics`. They require ordinary
+explicit import or qualification; there is no implicit prelude. They use
+ordinary type-name syntax and alias resolution, without new keyword tokens,
+implicit conversions, numeric suffixes, default integer types or changes to
+arithmetic. Alias identity, range, layout and operator selection must agree
+with the underlying fixed-width type.
+
+**Expression arms and mathematical bodies.** A nonempty expression match uses
+`PATTERN => EXPR` arms separated by commas, allowing one trailing comma.
+It has no `case` keyword and no semicolon between arms. Empty matches retain
+their existing rules; `{,}`, doubled commas, missing separators and a mixture
+of expression and statement arm syntax are refused. Statement matches retain
+`case PATTERN:` and their statement bodies. Preserve located `match_expression`,
+`expression_case`, `match_motive`, `pattern` and `value` roles, scrutinee
+evaluation once, branch order, exhaustive elimination, dependent substitution
+and resource accounting. An incomplete match or a branch that discards a
+required resource still parses for semantic diagnosis.
+
+Mathematical function definitions use `definition ... => EXPR;`, including
+declaration contracts before the arrow. Retain the `definition` node and its
+interpretation; the marker does not turn a mathematical definition into an
+effectful operation or establish runtime representation. Ordinary function
+expression bodies keep their existing meaning. Value initializers, constants,
+type aliases, associated-type definitions and grade-domain equations keep `=`.
+The existing clause-root grouping rules separate a contract's lambda or
+quantifier from the function-body arrow.
+
+**Ordinary generic calls.** At a postfix expression followed by `<`, perform a
+bounded token-only probe for one complete nonempty generic-argument list ending
+in its matching `>`, followed by `(`. Whitespace and comments between these
+tokens do not affect the decision. Arguments reuse the existing generic-argument
+grammar, including dependent values, lifetimes, explicit structural types,
+computed types, optional trailing commas and parenthesized value expressions.
+If that complete shape exists, select generic application followed by a call.
+Otherwise `<` belongs to the ordinary operator grammar. This is an explicit
+lexical classification rule, never a parser conflict default or a choice made
+by name resolution, inferred types or import order. Once selected, a malformed
+call or semantic error cannot retry as comparisons.
+
+Thus `Outer(F<A, B>(7))` contains one generic call argument, while
+`Outer(F < A, B > 7)` contains two comparison arguments. `f < n > (x)` selects a
+generic call even if `f` and `n` do not resolve to suitable declarations;
+whitespace cannot request another reading. Use parentheses to express the
+comparison structure, as in `(f < n) > x`, leaving type validity to checking.
+Relational expressions used as generic values remain parenthesized, as in
+`Choose<(a < b)>(value)`. Member and computed callees follow the same rule,
+including `Library.F<T>(value)` and `factory()<T>(value)`.
+
+`::<...>` remains explicit generic application, including non-call values such
+as `Apply(Identity::<Nat>, value)` and explicitly disambiguated calls. Canonical
+ordinary calls use `<...>`. Neither spelling changes inference, argument order,
+dependent substitution, loans, ownership, effects or evaluation counts. Both
+produce the same `generic_application` and enclosing call structure, while
+retaining the actual source spelling through original-byte spans. Nested type
+closers remain individual `>` tokens; no shift operator is introduced.
+
+Every probe shares the existing source, delimiter, syntax-depth and duration
+bounds, plus a declared aggregate token-inspection budget covering unsuccessful
+and nested probes. Exhaustion is a resource refusal for the whole parse, never
+permission to reinterpret the source as comparisons. No speculative AST or
+token rewrite may leak into a failed probe. The implementation freezes the
+numeric budget and boundary fixtures before qualification, retaining the
+current source-consumption and diagnostic bounds.
+
+**Qualification and migration.** Independently expected fixtures cover all
+four local forms, their AST roles and reassignment diagnostics; aliases versus
+underlying types, exact boundary values, explicit conversion refusals, import/name
+collisions and alias source identity beside target-type identity; empty,
+single and multiple match arms, nested patterns/motives and malformed separators;
+mathematical body arrows beside contracts and alias/constant `=`, refusing legacy
+or combined body markers; and both
+generic-application spellings beside comparisons. Include nested generic calls,
+computed and member callees, higher-order values, parenthesized relational
+arguments, all generic-argument modes, trailing commas, comments/newlines,
+Unicode byte spans, incomplete delimiters and probe-budget boundaries. Name,
+type, purity, grade and resource mistakes must reach their semantic consumer
+after successful parsing where their token shape is valid.
+
+Retain independently frozen old-source baselines, migrate the checked-in
+examples and fixtures together, and compare corresponding syntax roles and
+elaborated terms apart from exact source provenance. The promoted surface
+refuses legacy expression-arm and mathematical-body spellings; it has no silent
+fallback parser. Explicit `::<...>` and immutable unmarked typed locals remain
+supported as specified above. Update every source-validating AST consumer,
+formatter, diagnostic and editor projection that reads the changed syntax;
+each revalidates exact source bytes rather than accepting stale spans or facts.
+The pure routes preserve their supported fragment and unsupported-feature
+diagnostics; this migration grants them no dependent or represented integers.
+Qualify strict conflict-free Menhir generation, byte-identical regeneration,
+all retained pure migration cases and mathematical kernel replay for supported
+new spellings. Native acceptance and full suites remain hosted under the
+[validation handoff](../../../AGENTS.md#tool-execution-and-validation).
 
 ### Required-static constants
 
