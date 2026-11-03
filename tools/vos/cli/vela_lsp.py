@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-"""Serve LSP lifecycle and pure-prototype diagnostics over standard input/output."""
+"""Serve unqualified pure Vela diagnostics and navigation over standard input/output."""
 
 import argparse
 import sys

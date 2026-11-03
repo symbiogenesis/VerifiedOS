@@ -19,7 +19,29 @@ with arguments consisting of the absolute path to `tools/run.py` followed by
 `vela-lsp`; use `python3` on Linux. Associate Vela buffers with language ID `vela`
 and the `.vela` extension. No editor extension or automatic registration is
 installed by this command. The server uses open-buffer text and does not read the
-URI's file. Its current diagnostics cover only the pure subset linked above.
+URI's file. Diagnostics and navigation cover only the pure subset linked above.
+
+For Neovim 0.11's built-in LSP client, adapt these absolute paths in `init.lua`
+and reopen a `.vela` file. This configuration uses the
+[documented client configuration API](https://github.com/neovim/neovim/blob/v0.11.0/runtime/doc/lsp.txt);
+it is a setup example, with two-client qualification still outstanding.
+
+```lua
+vim.filetype.add({ extension = { vela = 'vela' } })
+vim.lsp.config['vela'] = {
+  cmd = { 'python', 'C:/src/VerifiedOS/tools/run.py', 'vela-lsp' },
+  filetypes = { 'vela' },
+  root_markers = { '.git' },
+}
+vim.lsp.enable('vela')
+```
+
+Use the manifest's Python minor version and `python3` on Linux. Prepare the locked
+environment once with `python tools/run.py vela-lsp --help` before the editor's
+first connection. In Neovim, `K` shows hover, `grr` finds references, `gO` lists
+document symbols and `:lua vim.lsp.buf.definition()` jumps to a declaration.
+Only complete sources accepted by the pure checker provide navigation; incomplete
+or unsupported code continues to receive the producer's diagnostic.
 
 ## Interface and bounds
 
