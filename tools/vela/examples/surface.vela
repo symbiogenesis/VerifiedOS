@@ -75,7 +75,7 @@ public (owned Packet<n>, tracked Permit<n>) Pair<ghost Nat n>(
 }
 
 public () ForwardPair<ghost Nat n>((owned Packet<n>, tracked Permit<n>) pair) {
-    let (let packet, let permit) = pair;
+    let (packet, permit) = pair;
     Forward(in packet);
     Release(move permit);
     Dispose(move packet);
@@ -89,7 +89,7 @@ public definition Nat SumValues(Seq<Nat> values) = Fold((+), 0, values);
 public () ConsumeReady<ghost Nat n>(Initialization<n> outcome)
     requires outcome is Ready(_, _)
 {
-    let Ready(let buffer, let receipt) = outcome;
+    let Ready(buffer, receipt) = outcome;
     Consume(move buffer);
     Release(move receipt);
     return ();
@@ -99,7 +99,7 @@ public () ConsumeReady<ghost Nat n>(Initialization<n> outcome)
 public Result<ref<'workspace.bytes> byte, Error> First(ref Workspace workspace)
     requires workspace.bytes.Length > 0
     effects writes(workspace.bytes)
-    restores result is Ok(let slot) ==>
+    restores result is Ok(slot) ==>
         workspace.bytes.Model == old(workspace.bytes.Model).Set(0, final(slot))
 {
     ref Span<byte> parent = ref workspace.bytes;
@@ -115,8 +115,8 @@ public Result<type (), BorrowError> ReplaceByte(ref BorrowCell<byte> cell, byte 
     });
     match (outcome) {
         case Updated(()): return Ok(());
-        case BorrowConflict: return Err(Conflict);
-        case CapacityExhausted: return Err(Capacity);
+        case BorrowConflict(): return Err(Conflict);
+        case CapacityExhausted(): return Err(Capacity);
     }
 }
 
@@ -156,17 +156,17 @@ public alias ScopedUpdate<T, captures C> =
 // A dependent match names its scrutinee in the result type before eliminating it.
 public definition owned Buffer<T, packet.Length> TakeStorage<T>(owned Sized<T> packet) =
     match (packet) as whole : owned Buffer<T, whole.Length> {
-        case Sized(let length, let storage, let evidence) => move storage;
+        case Sized(length, storage, evidence) => move storage;
     };
 
 public Result<ref<'workspace.bytes> byte, Error> ForwardSlot(ref Workspace workspace)
     effects writes(workspace.bytes)
-    restores result is Ok(let slot) ==>
+    restores result is Ok(slot) ==>
         workspace.bytes.Model == old(workspace.bytes.Model).Set(0, final(slot))
 {
     return match (workspace.TryFirst()) {
-        case Ok(let slot) => Ok(slot);
-        case Err(let error) => Err(error);
+        case Ok(slot) => Ok(slot);
+        case Err(error) => Err(error);
     };
 }
 
@@ -299,3 +299,11 @@ public Result<Nat, Error> ReadGuarded(owned Guard resource) {
         dispose reason => { resource.Release(reason); return (); },
     };
 }
+
+// Short functions keep the same contracts, ownership and evaluation rules.
+public Nat Increment(Nat value,)
+    requires value < 10
+    ensures result == value + 1
+    => value + 1;
+
+public Fn(Nat) -> Nat Incrementer() => value => value + 1;

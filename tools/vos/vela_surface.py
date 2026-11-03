@@ -23,6 +23,51 @@ class Fixture:
 
 
 POSITIVE: tuple[Fixture, ...] = (
+    Fixture("concise-authoring-syntax", """// caf?: omitted syntax retains exact binder and expression locations.
+module Concise;
+alias Nested<T,> = Pair<T, List<Nat,>,>;
+record Package<T,>(T Value,);
+union Decision<T,> { Some(T Value,); None(); }
+public Nat Increment(Nat value,) => value + 1;
+public Nat Checked(Nat value,)
+    requires Allowed(value)
+    ensures Good(result)
+    effects Inspect(item => item)
+    => Increment(value,);
+public Nat Grouped(Nat value)
+    requires (let copy = value in Good(copy))
+    ensures (forall (Nat item) => item == item)
+    => value;
+public Fn(Nat) -> Nat Build() requires (ready) => item => item;
+public void Use() {
+    let identity = item => item;
+    let grouped = (value) => value;
+    let combine = (left, right,) => left + right;
+    let typed = (Nat amount,) => amount;
+    let graded = (scoped ref byte slot @ NatExact(1),) => Read(in slot);
+    let instance = Build::<Nat,>(1,);
+    let (owner, receipt) = pair;
+    var Some((nested, _),) = candidate;
+    match (candidate) {
+        case Some(payload,): Consume(payload);
+        case None(): Empty();
+        case fallback: Inspect(fallback);
+    }
+}
+public Nat OperatorContract() requires (+) => 0;
+public Nat ResumeContract() requires resume k(value) => 0;
+public void StructuralPatterns() {
+    let eliminated = match (value) {
+        case () => 0;
+        case (left, right) => left;
+        case (Some(item)) => item;
+    };
+    Fn() -> usize effects(Choose) score = () => Score();
+}
+public void InvalidMeaning() => move owner;
+""", ("lambda", "lambda_parameter", "expression_body", "generic_parameter",
+      "generic_application", "binding_pattern", "constructor_pattern", "wildcard_pattern",
+      "tuple_pattern", "let_pattern", "var_pattern", "group", "quantifier", "let_expression")),
     Fixture("generic-binders-and-typed-initializers", """// café: generic roles and initializer owners retain original byte spans.
 module BinderComposition;
 alias Family<T : Type<u>, U, ghost Nat extent, region 'scope, effect E, captures C,
@@ -37,7 +82,7 @@ public void Bind<T, ghost Nat n, region 'input, captures Env, grade allowance : 
     let computed = let Vec<T, n> chosen @ allowance = direct in chosen;
     let ungraded = let Vec<T, n> plain = direct in plain;
     let inferred = input;
-    let Some(let payload) = Fetch(input);
+    let Some(payload) = Fetch(input);
 }
 """, ("alias", "generic_parameter", "function_type", "modified_type", "contract",
       "typed_local", "let", "var", "let_expression", "let_pattern")),
@@ -70,7 +115,7 @@ public void Modes<region 'slot>(Nat value, in Nat read, ref Nat write,
     // null ?? ?. out stay comment text.
 }
 definition Nat Consume(Option<Option<Nat>> choice) = match (choice) {
-    case Some(Some(let n)) => n;
+    case Some(Some(n)) => n;
     case Some(None()) => 0;
     case None() => 0;
 };
@@ -118,7 +163,7 @@ public void Invalid(in Nat shared, ref Nat exclusive, out Nat output, owned Pack
     return;
 }
 definition Nat Partial(Option<Nat> choice) = match (choice) {
-    case Some(let value) => value;
+    case Some(value) => value;
 };
 """, ("let", "typed_local", "assignment", "unary", "call", "match_expression")),
     Fixture("expression-local-bindings", """// café: expression bindings retain initializer and body scopes separately.
@@ -130,34 +175,34 @@ alias Shared = type[let chosen = Family::<Nat>(true) in chosen];
 definition Type<u> Inject<T : Type<u>>(bool pair) =
     let chosen = Select::<T>(pair) in type type[chosen];
 public Nat Read(scoped in<'source> Nat source)
-    requires let amount = Limit(source) in amount <= 10
-    ensures let expected = old(source) in result == expected
+    requires (let amount = Limit(source) in amount <= 10)
+    ensures (let expected = old(source) in result == expected)
 {
     let result = let borrowed = in source in Inspect(borrowed);
     let annotated = let Nat value @ (let demand = 1 in demand) = 7 in value;
     let inferredGraded = let value @ q = Compute() in value;
-    let deconstructed = let Ready((let owner, let receipt)) = Prepare() in Finish(owner, receipt);
-    let product = let (let left, let right) = Pair() in left + right;
+    let deconstructed = let Ready((owner, receipt)) = Prepare() in Finish(owner, receipt);
+    let product = let (left, right) = Pair() in left + right;
     let grouped = (let value = 1 in value) + 2;
     let applied = (let callable = (+) in callable)(1, 2);
     let projected = (let item = Build() in item).Value;
     let callback = (Nat input) => let doubled = input + input in doubled;
     let matched = match (ready) {
-        case Ready(let loan) => let borrowed = in loan in Inspect(borrowed);
+        case Ready(loan) => let borrowed = in loan in Inspect(borrowed);
     };
     return let outer = 1 in let inner = outer + 1 in inner;
 }
 definition Nat Shadow(Nat value) =
     let value = value in let value = value + 1 in value;
 definition Fn(Nat value) -> Nat Callback() =
-    Fn(Nat value) -> Nat with { requires let valid = Valid(value) in valid; }
+    Fn(Nat value) -> Nat with { requires (let valid = Valid(value) in valid); }
     => let copied = value in copied;
 """, ("let_expression", "let", "let_pattern", "computed_type", "type_expression", "contract",
       "constructor_pattern", "tuple_pattern", "lambda", "typed_lambda", "match_expression")),
     Fixture("expression-binding-errors-remain-syntax", """module InvalidExpressionBindings;
 definition T Duplicate(owned T owner) = let retained = move owner in (owner, retained);
 definition T Missing() = let value = value in value;
-definition T Refutable() = let Some(let value) = None() in value;
+definition T Refutable() = let Some(value) = None() in value;
 definition T Dropped(tracked T token) = let value @ 0 = Effectful(move token) in ();
 definition in<'local> T Escape() = let owner = Local() in in owner;
 """, ("let_expression", "let_pattern", "modified_type", "unary", "tuple", "unit")),
@@ -226,12 +271,12 @@ definition Nat Grouping() = (-1) + (2 + 3);
     Fixture("recursive-local-patterns", """// caf\u00e9: constructors and groups retain distinct pattern roles.
 module LocalPatterns;
 public void Eliminate() {
-    let Some(let value) = optional;
-    var Ready((let owner, let receipt)) = outcome;
+    let Some(value) = optional;
+    var Ready((owner, receipt)) = outcome;
     let Result.Empty() = absent;
-    let (Some((let nested))) = wrapped;
-    let Outer(Inner(let deep), (let item, ())) = tree;
-    let ((let grouped)) = source;
+    let (Some((nested))) = wrapped;
+    let Outer(Inner(deep), (item, ())) = tree;
+    let ((grouped)) = source;
     let inferred = optional;
     var mutable @ q = source;
     let sharedLoan = (in ref value);
@@ -240,13 +285,13 @@ public void Eliminate() {
     Core.Box<Nat> bareAnnotated = source;
     var Core.Box<Nat> mutableAnnotated @ q = source;
     let ref<'source> Core.Box<Nat> loanAnnotated = source;
-    let Core.Result.Ready(let qualified) = source;
-    match (optional) { case (Some((let matched))): return; }
-    let tested = optional is (Some((let testedValue)));
+    let Core.Result.Ready(qualified) = source;
+    match (optional) { case (Some((matched))): return; }
+    let tested = optional is (Some((testedValue)));
     return;
 }
 public void InvalidMeaning() {
-    let Missing(let duplicate, let duplicate) = true;
+    let Missing(duplicate, duplicate) = true;
     var Ready() = 0;
     let Some(_) = trackedToken;
     let applyWrongArity = (+)();
@@ -363,7 +408,7 @@ public void Bind<grade q : NatExact>(ref Buffer source) {
     Nat genericGrade @ Grade.Of::<T, U>() = source;
     Nat typeGrade @ type Box<Fn() -> Nat with { requires Ready(); }, U> = source;
     let plain = 7;
-    let (let left, let right) = Pair();
+    let (left, right) = Pair();
 }
 """, ("let", "var", "typed_local", "modified_type", "typed_lambda", "let_pattern")),
     Fixture("local-grade-errors-remain-syntax", """module InvalidLocalGrades;
@@ -495,7 +540,7 @@ union Factories<T> {
     Grouped() : (Fn() -> T effects(Read)) effects writes(Storage);
 }
 public void RequiresType()
-    requires type (Fn() -> bool effects(Read))
+    requires (type (Fn() -> bool effects(Read)))
     effects writes(Storage);
 """, ("generic_parameter", "group_type", "function_type", "constructor", "type_expression", "effects")),
     Fixture("typed-callable-values-and-scoped-loans", """// café: a callable value reuses its annotation's exact resource roles.
@@ -660,13 +705,13 @@ public Nat Escape(ref BorrowCell<byte> cell) {
 module Elimination;
 public Vec<byte, packet.Length> Unpack(owned Packed packet) {
     return match (move packet) as packed : Vec<byte, packed.Length> {
-        case Packed(let count, let bytes) => bytes;
+        case Packed(count, bytes) => bytes;
     };
 }
 public Nat Inspect(owned Selection selected) {
     match (move selected) as choice : Nat {
-        case Ready(let payload): return payload.Length;
-        case Rejected(let debt): Close(move debt); return 0;
+        case Ready(payload): return payload.Length;
+        case Rejected(debt): Close(move debt); return 0;
     }
 }
 public Nat Nested(bool flag) {
@@ -677,8 +722,8 @@ public Nat Nested(bool flag) {
 }
 public Result<ref<'workspace.bytes> byte, Error> Borrow(ref Workspace workspace) {
     return Wrap(match (Find(ref workspace)) as outcome : LoanResult<outcome> {
-        case Ok(let selected) => Ok(selected);
-        case Err(let error) => Err(error);
+        case Ok(selected) => Ok(selected);
+        case Err(error) => Err(error);
     });
 }
 """, ("match_expression", "expression_case", "match_motive", "match", "case", "modified_type")),
@@ -715,8 +760,8 @@ alias Plain = Fn(byte) -> byte;
     Fixture("dependent-elimination-errors-remain-syntax", """module InvalidElimination;
 public async Nat Bad(ref BorrowCell<byte> cell, tracked Permit permit) {
     let incompatible = match (cell.TryWrite()) as observed : Bytes<observed.Length> {
-        case Acquired(let writer, let debt) => (move permit, move permit);
-        case BorrowConflict => 0;
+        case Acquired(writer, debt) => (move permit, move permit);
+        case BorrowConflict() => 0;
     };
     let escaping = match (incompatible) as erased : Never<missing> {
         case _ => (scoped ref byte loan) => { await Ready(); return loan; };
@@ -744,10 +789,10 @@ public (owned Buffer, (tracked Permit, ())) Package(owned Buffer buffer, tracked
     return (move buffer, (move permit, ()));
 }
 public () Consume((owned Buffer, (tracked Permit, ())) package) {
-    let (let owner, (let receipt, ())) = package;
-    var (let left, let right) = (1, 2);
+    let (owner, (receipt, ())) = package;
+    var (left, right) = (1, 2);
     match ((move owner, (move receipt, ()))) {
-        case (let live, (let token, ())):
+        case (live, (token, ())):
             Finish(move live, move token);
     }
     match (left) { case _: return (); }
@@ -815,7 +860,7 @@ public union Initialized<ghost Nat n> {
 }
 public Result<ref<'workspace.bytes> byte, Error> Select(ref Workspace workspace)
     effects writes(workspace.bytes), writes(workspace.audit)
-    restores result is Ok(let slot) ==> workspace.bytes.Model == old(workspace.bytes.Model).Set(0, final(slot))
+    restores result is Ok(slot) ==> workspace.bytes.Model == old(workspace.bytes.Model).Set(0, final(slot))
 {
     ref Span<byte> parent = ref workspace.bytes;
     ref byte child = ref parent[0usize];
@@ -831,7 +876,7 @@ public Initialized<n> Prepare<ghost Nat n>(owned Buffer<byte, n, Empty> buffer,
 }
 public void Inspect(owned Packed<byte> packet) {
     match (packet) {
-        case Packed(let length, let storage, let evidence):
+        case Packed(length, storage, evidence):
             Observe(length, in storage);
             Dispose(move storage);
     }
@@ -845,18 +890,18 @@ public Result Update(ref BorrowCell<byte> cell, byte value) {
     });
     match (outcome) {
         case Updated(()): return Ok();
-        case BorrowConflict: return Err(Conflict);
-        case CapacityExhausted: return Err(Capacity);
+        case BorrowConflict(): return Err(Conflict);
+        case CapacityExhausted(): return Err(Capacity);
     }
 }
 private Result WithWrite(ref BorrowCell<byte> cell,
     in Fn(scoped ref byte selected) -> () callback) {
     match (cell.TryWrite()) {
-        case Acquired(let writer, let debt):
+        case Acquired(writer, debt):
             callback(ref writer.Value);
             cell.ReleaseWrite(move writer, move debt);
             return Ok();
-        case BorrowConflict: return Err(Conflict);
+        case BorrowConflict(): return Err(Conflict);
     }
 }
 public void Replace(ref LocalCell<Buffer> cell, owned Buffer replacement) {
@@ -938,8 +983,8 @@ public Result<ref<'table> Value, Error> Find<ghost Nat n, captures C, grade q : 
     where Duplicable(C)
     requires n > 0
     effects reads(C), writes(table)
-    ensures result is Ok(let slot) ==> slot == old(table.Model).Get(0)
-    restores result is Ok(let slot) ==> table.Model == old(table.Model).Set(0, final(slot));
+    ensures result is Ok(slot) ==> slot == old(table.Model).Get(0)
+    restores result is Ok(slot) ==> table.Model == old(table.Model).Set(0, final(slot));
 public void Use(owned Packet packet, tracked Permit permit, scoped ref byte selected);
 """, ("function_type", "generic_parameter", "parameter", "modified_type")),
     Fixture("control-loans-and-proof", """module Fill;
@@ -958,8 +1003,8 @@ public void Fill(ref Span<byte> target) {
         if (seen == 3) { continue; } else { break; }
     }
     match (Parse(in target)) {
-        case Ok(let packet): Forward(in packet.Data);
-        case Err(let error): Report(error);
+        case Ok(packet): Forward(in packet.Data);
+        case Err(error): Report(error);
     }
     if (true) return;
     return;
@@ -1061,8 +1106,8 @@ public async Result Serve(ref Frames frames, owned Packet packet) {
     scope (ref frames) {
         let dormant = Accept(move packet);
         match (spawn dormant) {
-            case Spawned(let task): return Ok(await task);
-            case Full(let unstarted, let verdict): return Err(move unstarted);
+            case Spawned(task): return Ok(await task);
+            case Full(unstarted, verdict): return Err(move unstarted);
         }
     }
 }
@@ -1113,6 +1158,25 @@ public UnknownType F() { return missing; }
 
 
 NEGATIVE: tuple[tuple[str, bytes, str], ...] = (
+    ("arrow-missing-expression", b"module M; Nat F() => ;", "syntax"),
+    ("arrow-missing-semicolon", b"module M; Nat F() => 1", "syntax"),
+    ("arrow-double-arrow", b"module M; Nat F() => => 1;", "syntax"),
+    ("empty-parameter-trailing-comma", b"module M; Nat F(,) => 1;", "syntax"),
+    ("double-parameter-comma", b"module M; Nat F(Nat value,,) => value;", "syntax"),
+    ("empty-call-trailing-comma", b"module M; Nat F() => Call(,);", "syntax"),
+    ("double-call-comma", b"module M; Nat F() => Call(1,,);", "syntax"),
+    ("empty-generic-trailing-comma", b"module M; alias X<,> = Nat;", "syntax"),
+    ("double-generic-comma", b"module M; alias X<T,,> = T;", "syntax"),
+    ("empty-generic-arguments-comma", b"module M; alias X = Box<,>;", "syntax"),
+    ("double-lambda-comma", b"module M; Nat F() => (left,,right) => left;", "syntax"),
+    ("grouped-singleton-not-product", b"module M; Nat F() => (value,);", "syntax"),
+    ("typed-singleton-not-product", b"module M; alias X = (Nat,);", "syntax"),
+    ("qualified-constructor-without-arguments", b"module M; void F() { match (x) { case Result.None: return; } }", "syntax"),
+    ("redundant-pattern-let", b"module M; void F() { let (let left, let right) = pair; }", "syntax"),
+    ("contract-let-needs-grouping", b"module M; Nat F() requires let x = 1 in x == 1 => 1;", "syntax"),
+    ("contract-quantifier-needs-grouping", b"module M; Nat F() requires forall (Nat n) => n == n => 1;", "syntax"),
+    ("lambda-probe-comment-depth", b"module M; Nat F() => (" + b"/*" * 257 + b"*/" * 257 + b"x) => x;", "limit"),
+    ("lambda-probe-delimiter-depth", b"module M; Nat F() => (" + b"(" * 257 + b"x" + b")" * 257 + b") => x;", "limit"),
     ("ghost-generic-missing-name", b"module M; alias A<ghost Nat> = Nat;", "syntax"),
     ("region-generic-missing-lifetime", b"module M; alias A<region r> = Nat;", "syntax"),
     ("effect-generic-missing-name", b"module M; alias A<effect> = Nat;", "syntax"),
@@ -1148,7 +1212,7 @@ NEGATIVE: tuple[tuple[str, bytes, str], ...] = (
     ("expression-binding-missing-annotation-name", b"module M; definition T F() = let ref T = source in value;", "syntax"),
     ("expression-binding-incomplete-grade", b"module M; definition T F() = let value @ = source in value;", "syntax"),
     ("expression-binding-incomplete-pattern", b"module M; definition T F() = let Some(let) = source in value;", "syntax"),
-    ("expression-binding-pattern-grade", b"module M; definition T F() = let Some(let x) @ q = source in x;", "syntax"),
+    ("expression-binding-pattern-grade", b"module M; definition T F() = let Some(x) @ q = source in x;", "syntax"),
     ("expression-binding-body-depth", b"module M; definition T F() = " + b"let value = source in " * 257 + b"value;", "limit"),
     ("expression-binding-initializer-depth", b"module M; definition T F() = " + b"let value = " * 257
      + b"source" + b" in value" * 257 + b";", "limit"),
@@ -1160,23 +1224,23 @@ NEGATIVE: tuple[tuple[str, bytes, str], ...] = (
     ("operator-value-propagation", b"module M; definition T F() = (?);", "syntax"),
     ("operator-value-keyword", b"module M; definition T F() = (await);", "syntax"),
     ("operator-generic-missing-close", b"module M; definition T F() = Apply::<(+>();", "syntax"),
-    ("operator-generic-trailing-comma", b"module M; definition T F() = Apply::<(+),>();", "syntax"),
+    ("operator-generic-doubled-comma", b"module M; definition T F() = Apply::<(+),,>();", "syntax"),
     ("operator-group-depth", b"module M; definition T F() = " + b"(" * 257
      + b"(+)" + b")" * 257 + b";", "limit"),
     ("local-constructor-incomplete-argument", b"module M; void F() { let Some(let) = value; }", "syntax"),
-    ("local-constructor-trailing-comma", b"module M; void F() { var Some(let x,) = value; }", "syntax"),
-    ("local-constructor-missing-initializer", b"module M; void F() { let Some(let x) = ; }", "syntax"),
-    ("local-constructor-grade", b"module M; void F() { let Some(let x) @ q = value; }", "syntax"),
+    ("local-constructor-doubled-comma", b"module M; void F() { var Some(x,,) = value; }", "syntax"),
+    ("local-constructor-missing-initializer", b"module M; void F() { let Some(x) = ; }", "syntax"),
+    ("local-constructor-grade", b"module M; void F() { let Some(x) @ q = value; }", "syntax"),
     ("local-qualified-constructor-missing-parentheses", b"module M; void F() { let Result.Empty = value; }", "syntax"),
     ("local-pattern-incomplete-group", b"module M; void F() { let (let x = value; }", "syntax"),
-    ("local-pattern-group-trailing-comma", b"module M; void F() { let ((let x),) = value; }", "syntax"),
-    ("group-pattern-missing-close", b"module M; void F() { match (x) { case (Some(let value): return; } }", "syntax"),
+    ("local-pattern-group-trailing-comma", b"module M; void F() { let ((x),) = value; }", "syntax"),
+    ("group-pattern-missing-close", b"module M; void F() { match (x) { case (Some(value): return; } }", "syntax"),
     ("local-constructor-pattern-depth", b"module M; void F() { let " + b"Some(" * 257
-     + b"let value" + b")" * 257 + b" = source; }", "limit"),
+     + b"value" + b")" * 257 + b" = source; }", "limit"),
     ("local-group-pattern-depth", b"module M; void F() { let " + b"(" * 257
-     + b"let value" + b")" * 257 + b" = source; }", "limit"),
+     + b"value" + b")" * 257 + b" = source; }", "limit"),
     ("local-pattern-syntax-depth", b"module M; void F() { let " + b"Some((" * 126
-     + b"let value" + b"))" * 126 + b" = source; }", "limit"),
+     + b"value" + b"))" * 126 + b" = source; }", "limit"),
     *((f"nonassociative-{name}", b"module M; definition T F() = 1 " + symbol
        + b" 2 " + symbol + b" 3;", "syntax")
       for name, symbol in (("equal", b"=="), ("unequal", b"!="), ("less", b"<"),
@@ -1210,10 +1274,10 @@ NEGATIVE: tuple[tuple[str, bytes, str], ...] = (
     ("local-bare-missing-grade", b"module M; void F() { Nat value @ = Make(); }", "syntax"),
     ("local-grade-after-initializer", b"module M; void F() { let value = Make() @ q; }", "syntax"),
     ("local-grade-without-initializer", b"module M; void F() { let value @ q; }", "syntax"),
-    ("local-pattern-grade", b"module M; void F() { let (let x, let y) @ q = Pair(); }", "syntax"),
+    ("local-pattern-grade", b"module M; void F() { let (x, y) @ q = Pair(); }", "syntax"),
     ("local-grade-lookahead-depth", b"module M; void F() { Nat value @ " + b"(" * 257
      + b"q" + b")" * 257 + b" = Make(); }", "limit"),
-    ("domain-incomplete-telescope", b"module M; domain Product<A,> {}", "syntax"),
+    ("domain-incomplete-telescope", b"module M; domain Product<A,,> {}", "syntax"),
     ("domain-incomplete-law", b"module M; domain Product<A> where {}", "syntax"),
     ("domain-missing-carrier-member", b"module M; alias A = D.;", "syntax"),
     ("domain-member-without-value", b"module M; void F() { D.add(); let value = D.; }", "syntax"),
@@ -1255,7 +1319,7 @@ NEGATIVE: tuple[tuple[str, bytes, str], ...] = (
     ("constructor-result-after-law", b"module M; union Result { Ok() ensures Ready() : Result; }", "syntax"),
     ("definition-missing-law", b"module M; definition Nat F() requires = 0;", "syntax"),
     ("predicate-missing-law", b"module M; predicate P(Nat n) where = true;", "syntax"),
-    ("literal-generic-missing-neighbor", b"module M; alias A = Indexed<true,>;", "syntax"),
+    ("literal-generic-missing-neighbor", b"module M; alias A = Indexed<true,,>;", "syntax"),
     ("typed-callable-generic-depth", b"module M; void F() { let f = Fn<T : "
      + b"Box<" * 257 + b"T" + b">" * 257 + b">() -> T => value; }", "limit"),
     ("effect-missing-precondition", b"module M; effect E { Nat Get() requires; }", "syntax"),
@@ -1284,36 +1348,36 @@ NEGATIVE: tuple[tuple[str, bytes, str], ...] = (
      + b"Box<" * 257 + b"Nat" + b">" * 257 + b" { case _ => 0; }; }", "limit"),
     ("field-missing-grade", b"module M; struct Box { Nat Value @; }", "syntax"),
     ("field-grade-after-initializer", b"module M; struct Box { Nat Value = 0 @ q; }", "syntax"),
-    ("impl-incomplete-telescope", b"module M; impl<T,> Dup<T> {}", "syntax"),
+    ("impl-incomplete-telescope", b"module M; impl<T,,> Dup<T> {}", "syntax"),
     ("impl-incomplete-contract", b"module M; impl<T> Dup<T> where {}", "syntax"),
     ("impl-ungrouped-callable", b"module M; impl Fn() -> Nat effects(Read) where Reusable(Read) {}", "syntax"),
     ("callable-incomplete-telescope", b"module M; alias F = Fn<region>() -> Nat;", "syntax"),
     ("callable-incomplete-law-block", b"module M; alias F = Fn() -> Nat with { requires Ready() };", "syntax"),
     ("callable-law-without-delimiter", b"module M; alias F = Fn() -> Nat with requires Ready();", "syntax"),
-    ("incomplete-callable-binder", b"module M; alias F = Fn(Nat n, ) -> Nat;", "syntax"),
+    ("incomplete-callable-binder", b"module M; alias F = Fn(Nat n,, ) -> Nat;", "syntax"),
     ("incomplete-callable-grade", b"module M; alias F = Fn(Nat n @) -> Nat;", "syntax"),
     ("incomplete-lambda-grade", b"module M; public void F() { let f = (Nat n @) => n; }", "syntax"),
-    ("incomplete-generic-alias", b"module M; alias F<T,> = T;", "syntax"),
+    ("incomplete-generic-alias", b"module M; alias F<T,,> = T;", "syntax"),
     ("singleton-product-type", b"module M; alias P = (Nat,);", "syntax"),
     ("singleton-product-value", b"module M; public void F() { let p = (1,); }", "syntax"),
-    ("singleton-product-pattern", b"module M; public void F() { let (let x,) = p; }", "syntax"),
-    ("incomplete-product-binding", b"module M; public void F() { let (let x, let) = p; }", "syntax"),
-    ("missing-product-value", b"module M; public void F() { let (let x, let y) = ; }", "syntax"),
+    ("singleton-product-pattern", b"module M; public void F() { let (x,) = p; }", "syntax"),
+    ("incomplete-product-binding", b"module M; public void F() { let (x, let) = p; }", "syntax"),
+    ("missing-product-value", b"module M; public void F() { let (x, y) = ; }", "syntax"),
     ("product-type-depth", b"module M; alias P = " + b"(Nat," * 257
      + b"Nat" + b")" * 257 + b";", "limit"),
     ("product-pattern-depth", b"module M; public void F() { match (p) { case "
-     + b"(let x," * 257 + b"()" + b")" * 257 + b": return; } }", "limit"),
+     + b"(x," * 257 + b"()" + b")" * 257 + b": return; } }", "limit"),
     ("graded-lambda-lookahead-depth", b"module M; public void F() { let f = (Nat n @ "
      + b"(" * 257 + b"q" + b")" * 257 + b") => n; }", "limit"),
     ("grade-callback-block-lookahead-depth", b"module M; public void F() { let f = (Nat x @ Grade.Of((Nat n) => "
      + b"{" * 257 + b"return n;" + b"}" * 257 + b")) => x; }", "limit"),
     ("grouped-type-lookahead-depth", b"module M; public void F() { "
      + b"(" * 257 + b"Nat" + b")" * 257 + b" local = value; }", "limit"),
-    ("missing-generic-argument", b"module M; public Result<Packet,> Parse();", "syntax"),
+    ("missing-generic-argument", b"module M; public Result<Packet,,> Parse();", "syntax"),
     ("incomplete-record", b"module M; public record Packet(Nat Count", "syntax"),
     ("incomplete-handler", b"module M; public Nat F() { return handle (G()) { return x =>", "syntax"),
     ("missing-effect-result", b"module M; public effect E { Choose() resumes(1); }", "syntax"),
-    ("missing-match-colon", b"module M; public void F() { match (x) { case Ok(let x) return; } }", "syntax"),
+    ("missing-match-colon", b"module M; public void F() { match (x) { case Ok(x) return; } }", "syntax"),
     ("incomplete-cancel", b"module M; public async Nat F() { return 0; } on cancel", "syntax"),
     ("unterminated-string", b'module M; public void F() { let text = "unterminated', "syntax"),
     ("unterminated-comment", b"module M; /* unterminated {", "syntax"),
@@ -1578,7 +1642,7 @@ def _explicit_value_roles(source: bytes, result: dict[str, Json]) -> None:
     if match.get("kind") != "match_expression" or len(cases) != len(patterns):
         raise ValueError("surface option elimination lost a tagged branch")
     for raw, expected_pattern, spelling in zip(cases, patterns,
-            (b"Some(Some(let n))", b"Some(None())", b"None()"), strict=True):
+            (b"Some(Some(n))", b"Some(None())", b"None()"), strict=True):
         pattern = _object(_object(raw, "option case").get("pattern"), "option pattern")
         if _recursive_pattern_shape(pattern) != expected_pattern:
             raise ValueError("surface nested option cases were flattened or changed")
@@ -1672,6 +1736,104 @@ def _pointer_roles(source: bytes, result: dict[str, Json]) -> None:
             raise ValueError("surface pointer assignment target lost its dereference")
 
 
+def _concise_authoring_roles(source: bytes, result: dict[str, Json]) -> None:
+    tree = result.get("ast")
+    increment = _named(tree, "function", "Increment")
+    body = _object(increment.get("body"), "concise function body")
+    if set(body) != {"kind", "span", "value"} or body.get("kind") != "expression_body":
+        raise ValueError("surface expression body fabricated a block or lost its value")
+    _exact_span(source, body, b"=> value + 1;")
+    if _explicit_shape(body.get("value")) != ["binary", "+", "value", ["nat", "1", ""]]:
+        raise ValueError("surface expression body changed its arithmetic or evaluation")
+    checked = _named(tree, "function", "Checked")
+    clauses = [_object(item, "checked contract") for item in _sequence(checked.get("contracts"), "checked contracts")]
+    if [item.get("role", item.get("kind")) for item in clauses] != ["requires", "ensures", "effects"]:
+        raise ValueError("surface concise function lost its contract ownership")
+    effect = _object(_sequence(clauses[-1].get("values"), "effect values")[0], "effect call")
+    callback = _object(_sequence(effect.get("arguments"), "effect arguments")[0], "effect callback")
+    if callback.get("kind") != "lambda" or _texts(callback.get("body")) != ["item"]:
+        raise ValueError("surface body arrow swallowed the nested effect-expression lambda")
+    _exact_span(source, _object(checked.get("body"), "checked body"), b"=> Increment(value,);")
+    grouped = _named(tree, "function", "Grouped")
+    for clause, expected in zip(_contract_roles(grouped, ["requires", "ensures"]),
+                                ("let_expression", "quantifier"), strict=True):
+        group = _object(clause.get("value"), "full-form contract grouping")
+        if group.get("kind") != "group" or _object(group.get("value"), "full-form contract").get("kind") != expected:
+            raise ValueError("surface contract root lost its explicit full-expression grouping")
+    built = _named(tree, "function", "Build")
+    condition = _contract_roles(built, ["requires"])[0]
+    if _object(condition.get("value"), "grouped name contract").get("kind") != "group":
+        raise ValueError("surface grouped predicate became a lambda telescope")
+    if _object(_object(built.get("body"), "returned lambda body").get("value"), "returned lambda").get("kind") != "lambda":
+        raise ValueError("surface returned lambda consumed its enclosing function arrow")
+    function = _named(tree, "function", "Use")
+    for local, names in (("identity", ["item"]), ("grouped", ["value"]),
+                          ("combine", ["left", "right"])):
+        value = _object(_named(function, "let", local).get("value"), "inferred callable")
+        parameters = _sequence(value.get("parameters"), "inferred telescope")
+        if value.get("kind") != "lambda" or [_texts(_object(item, "inferred parameter").get("name")) for item in parameters] != [[name] for name in names]:
+            raise ValueError("surface concise lambda lost parameter identities or list boundaries")
+        for parameter in parameters:
+            item = _object(parameter, "inferred parameter")
+            if set(item) != {"kind", "span", "type", "name", "grade"} or item.get("type") is not None or item.get("grade") is not None:
+                raise ValueError("surface omitted lambda annotation fabricated a type or grade")
+            name = _object(item.get("name"), "inferred parameter name")
+            if item.get("span") != name.get("span"):
+                raise ValueError("surface inferred lambda binder span covers absent syntax")
+    typed = _object(_named(function, "let", "typed").get("value"), "typed callback")
+    _type_head(_object(_sequence(typed.get("parameters"), "typed telescope")[0], "typed parameter").get("type"), "Nat", 0)
+    graded = _object(_named(function, "let", "graded").get("value"), "graded callback")
+    slot = _object(_sequence(graded.get("parameters"), "graded telescope")[0], "graded slot")
+    if not _texts(slot.get("grade")) or _object(slot.get("type"), "scoped callback type").get("modifier") != "scoped":
+        raise ValueError("surface concise syntax removed explicit callback resource annotations")
+    instance = _object(_named(function, "let", "instance").get("value"), "trailing-comma call")
+    applied = _object(instance.get("callee"), "trailing-comma generic application")
+    if len(_sequence(instance.get("arguments"), "call arguments")) != 1 or len(_sequence(applied.get("arguments"), "generic arguments")) != 1:
+        raise ValueError("surface trailing comma fabricated a call or generic argument")
+    bindings = [node for node in nodes(function) if node.get("kind") == "binding_pattern"]
+    if sorted(_texts(node.get("name"))[0] for node in bindings) != ["fallback", "nested", "owner", "payload", "receipt"]:
+        raise ValueError("surface bare pattern names became constructors or lost binding roles")
+    for binding in bindings:
+        if binding.get("span") != _object(binding.get("name"), "bare pattern binder").get("span"):
+            raise ValueError("surface bare pattern binder span includes an absent keyword")
+    constructors = [node for node in nodes(function) if node.get("kind") == "constructor_pattern"]
+    if sorted(_texts(node.get("name"))[0] for node in constructors) != ["None", "Some", "Some"]:
+        raise ValueError("surface explicit constructors became bare pattern binders")
+    nullary = next(node for node in constructors if _texts(node.get("name")) == ["None"])
+    nullary_start = source.index(b"case None()") + len(b"case ")
+    if nullary.get("span") != [nullary_start, nullary_start + len(b"None()")]:
+        raise ValueError("surface nullary constructor span differs from its match arm")
+    if _sequence(nullary.get("arguments"), "nullary constructor"):
+        raise ValueError("surface nullary constructor fabricated an argument")
+    operator_contract = _contract_roles(_named(tree, "function", "OperatorContract"), ["requires"])[0]
+    operator = _object(operator_contract.get("value"), "operator-valued contract")
+    if operator.get("kind") != "operator" or _texts(operator.get("name")) != ["+"]:
+        raise ValueError("surface body arrow changed its preceding operator value")
+    _exact_span(source, operator, b"(+)")
+    resumed = _object(_contract_roles(_named(tree, "function", "ResumeContract"), ["requires"])[0].get("value"), "resumption contract")
+    if resumed.get("kind") != "resume" or _texts(resumed.get("continuation")) != ["k"] or _texts(resumed.get("value")) != ["value"]:
+        raise ValueError("surface body arrow changed its preceding resumption expression")
+    _exact_span(source, resumed, b"resume k(value)")
+    structural = _named(tree, "function", "StructuralPatterns")
+    eliminated = _object(_named(structural, "let", "eliminated").get("value"), "structural expression match")
+    patterns = [_object(_object(arm, "structural match arm").get("pattern"), "structural arm pattern")
+                for arm in _sequence(eliminated.get("cases"), "structural match arms")]
+    expected_patterns: list[Json] = [
+        "unit_pattern", ["tuple", [["bind", "left"], ["bind", "right"]]],
+        ["group", ["constructor", "Some", [["bind", "item"]]]],
+    ]
+    if [_recursive_pattern_shape(pattern) for pattern in patterns] != expected_patterns:
+        raise ValueError("surface expression-arm arrows changed structural pattern roles")
+    for pattern, spelling in zip(patterns, (b"()", b"(left, right)", b"(Some(item))"), strict=True):
+        start = source.index(b"case " + spelling) + len(b"case ")
+        if pattern.get("span") != [start, start + len(spelling)]:
+            raise ValueError("surface expression-arm structural pattern span differs")
+    score = _named(structural, "typed_local", "score")
+    signature = _object(score.get("type"), "effectful callable local")
+    if signature.get("kind") != "function_type" or _texts(signature.get("effects")) != ["Choose"]:
+        raise ValueError("surface effect telescope lost annotation-adjacent parentheses")
+
+
 def _expression_binding_roles(source: bytes, result: dict[str, Json]) -> None:
     tree = result.get("ast")
     for expression in nodes(tree):
@@ -1712,7 +1874,8 @@ def _expression_binding_roles(source: bytes, result: dict[str, Json]) -> None:
 
     function = _named(tree, "function", "Read")
     for clause in _contract_roles(function, ["requires", "ensures"]):
-        if _object(clause.get("value"), "contract-local expression").get("kind") != "let_expression":
+        group = _object(clause.get("value"), "grouped contract-local expression")
+        if group.get("kind") != "group" or _object(group.get("value"), "contract-local expression").get("kind") != "let_expression":
             raise ValueError("surface declaration contract cannot retain a local expression")
     borrowed = _object(_named(function, "let", "result").get("value"), "borrow-local expression")
     borrowed_value = _object(_object(borrowed.get("binding"), "borrow-local binding").get("value"), "borrow initializer")
@@ -1740,7 +1903,7 @@ def _expression_binding_roles(source: bytes, result: dict[str, Json]) -> None:
     if (pattern_binding.get("kind") != "let_pattern" or _texts(pattern.get("name")) != ["Ready"]
             or len(components) != 1 or _object(components[0], "constructor product").get("kind") != "tuple_pattern"):
         raise ValueError("surface expression binding lost its recursive constructor/product pattern")
-    _exact_span(source, pattern_binding, b"let Ready((let owner, let receipt)) = Prepare()")
+    _exact_span(source, pattern_binding, b"let Ready((owner, receipt)) = Prepare()")
     product = _object(_named(function, "let", "product").get("value"), "product expression")
     product_binding = _object(product.get("binding"), "product expression binding")
     product_pattern = _object(product_binding.get("pattern"), "product expression pattern")
@@ -1777,7 +1940,9 @@ def _expression_binding_roles(source: bytes, result: dict[str, Json]) -> None:
     typed_callback = _object(_named(tree, "definition", "Callback").get("value"), "typed callback")
     signature = _object(typed_callback.get("signature"), "typed callback signature")
     callback_contract = _contract_roles(signature, ["requires"])[0]
-    if (_object(callback_contract.get("value"), "callable contract binding").get("kind") != "let_expression"
+    contract_group = _object(callback_contract.get("value"), "grouped callable contract binding")
+    if (contract_group.get("kind") != "group"
+            or _object(contract_group.get("value"), "callable contract binding").get("kind") != "let_expression"
             or _object(typed_callback.get("body"), "typed callback binding").get("kind") != "let_expression"):
         raise ValueError("surface callable contract/body lost a local expression")
 
@@ -2489,11 +2654,14 @@ def _callable_kind_effect_roles(source: bytes, result: dict[str, Json]) -> None:
     if len(clauses) != 2:
         raise ValueError("surface type-valued contract swallowed the enclosing effect contract")
     precondition, effects = [_object(value, "type-valued operation contract") for value in clauses]
-    expression = _object(precondition.get("value"), "type-valued precondition")
+    expression_group = _object(precondition.get("value"), "grouped type-valued precondition")
+    if expression_group.get("kind") != "group":
+        raise ValueError("surface type-valued contract lost its explicit grouping")
+    expression = _object(expression_group.get("value"), "type-valued precondition")
     if (precondition.get("role") != "requires" or expression.get("kind") != "type_expression"
             or effects.get("kind") != "effects" or _texts(effects) != ["writes", "Storage"]):
         raise ValueError("surface type expression confused callable and declaration effects")
-    _exact_span(source, precondition, b"requires type (Fn() -> bool effects(Read))")
+    _exact_span(source, precondition, b"requires (type (Fn() -> bool effects(Read)))")
     grouped_type = _object(expression.get("type"), "precondition's grouped callable")
     if _texts(_object(grouped_type.get("type"), "precondition signature").get("effects")) != ["Read"]:
         raise ValueError("surface precondition lost the injected callable's own effects")
@@ -2797,7 +2965,7 @@ def _dependent_match_roles(source: bytes, result: dict[str, Json]) -> None:
     arm = _object(_sequence(expression.get("cases"), "dependent expression arms")[0], "dependent arm")
     if arm.get("kind") != "expression_case" or _texts(arm.get("pattern")) != ["Packed", "count", "bytes"]:
         raise ValueError("surface expression match lost its distinct branch bindings")
-    _exact_span(source, _object(arm.get("pattern"), "dependent arm pattern"), b"Packed(let count, let bytes)")
+    _exact_span(source, _object(arm.get("pattern"), "dependent arm pattern"), b"Packed(count, bytes)")
     if _texts(arm.get("value")) != ["bytes"] or "statements" in arm:
         raise ValueError("surface expression arm value became a statement body")
     value_start = source.index(b"=> bytes;") + len(b"=> ")
@@ -3003,16 +3171,16 @@ def _product_roles(source: bytes, result: dict[str, Json]) -> None:
     if len(destructures) != 1:
         raise ValueError("surface local product elimination lost its statement role")
     destructure = destructures[0]
-    _exact_span(source, destructure, b"let (let owner, (let receipt, ())) = package;")
+    _exact_span(source, destructure, b"let (owner, (receipt, ())) = package;")
     pattern = _object(destructure.get("pattern"), "local product pattern")
-    _exact_span(source, pattern, b"(let owner, (let receipt, ()))")
+    _exact_span(source, pattern, b"(owner, (receipt, ()))")
     fields = _sequence(pattern.get("patterns"), "product pattern fields")
     if pattern.get("kind") != "tuple_pattern" or len(fields) != 2:
         raise ValueError("surface local product pattern shape differs")
     binding = _object(fields[0], "owner binding")
     if binding.get("kind") != "binding_pattern" or _texts(binding.get("name")) != ["owner"]:
         raise ValueError("surface product owner field is not a binding pattern")
-    _exact_span(source, binding, b"let owner")
+    _exact_span(source, binding, b"owner")
     nested = _object(fields[1], "nested product pattern")
     nested_fields = _sequence(nested.get("patterns"), "nested product pattern fields")
     if (nested.get("kind") != "tuple_pattern" or len(nested_fields) != 2
@@ -3413,13 +3581,13 @@ def _recursive_local_roles(source: bytes, result: dict[str, Json]) -> None:
     function = _named(result.get("ast"), "function", "Eliminate")
     statements = _sequence(_object(function.get("body"), "elimination block").get("statements"), "elimination statements")
     expected: list[tuple[str, bytes, Json]] = [
-        ("let_pattern", b"Some(let value)", ["constructor", "Some", [["bind", "value"]]]),
-        ("var_pattern", b"Ready((let owner, let receipt))", ["constructor", "Ready", [["tuple", [["bind", "owner"], ["bind", "receipt"]]]]]),
+        ("let_pattern", b"Some(value)", ["constructor", "Some", [["bind", "value"]]]),
+        ("var_pattern", b"Ready((owner, receipt))", ["constructor", "Ready", [["tuple", [["bind", "owner"], ["bind", "receipt"]]]]]),
         ("let_pattern", b"Result.Empty()", ["constructor", "Result.Empty", []]),
-        ("let_pattern", b"(Some((let nested)))", ["group", ["constructor", "Some", [["group", ["bind", "nested"]]]]]),
-        ("let_pattern", b"Outer(Inner(let deep), (let item, ()))", ["constructor", "Outer", [
+        ("let_pattern", b"(Some((nested)))", ["group", ["constructor", "Some", [["group", ["bind", "nested"]]]]]),
+        ("let_pattern", b"Outer(Inner(deep), (item, ()))", ["constructor", "Outer", [
             ["constructor", "Inner", [["bind", "deep"]]], ["tuple", [["bind", "item"], "unit_pattern"]]]]),
-        ("let_pattern", b"((let grouped))", ["group", ["group", ["bind", "grouped"]]]),
+        ("let_pattern", b"((grouped))", ["group", ["group", ["bind", "grouped"]]]),
     ]
     for statement, (kind, spelling, shape) in zip(statements[:6], expected, strict=True):
         local = _object(statement, "local pattern binding")
@@ -3440,10 +3608,10 @@ def _recursive_local_roles(source: bytes, result: dict[str, Json]) -> None:
             if node.get("kind") == "binding_pattern":
                 name = _object(node.get("name"), "nested pattern binder")
                 text = name.get("text")
-                if not isinstance(text, str) or source[start:end] != f"let {text}".encode():
+                if not isinstance(text, str) or source[start:end] != text.encode():
                     raise ValueError("surface nested binding span differs from original bytes")
-                if name.get("span") != [start + len(b"let "), end]:
-                    raise ValueError("surface nested binding name span includes its introducer")
+                if name.get("span") != [start, end]:
+                    raise ValueError("surface nested binding name span differs from its binder")
     inferred = _named(function, "let", "inferred")
     mutable = _named(function, "var", "mutable")
     if (inferred.get("type") is not None or inferred.get("grade") is not None
@@ -3473,7 +3641,7 @@ def _recursive_local_roles(source: bytes, result: dict[str, Json]) -> None:
                  and _texts(node.get("name")) == ["Core.Result.Ready"]]
     if len(qualified) != 1 or _recursive_pattern_shape(qualified[0]) != ["constructor", "Core.Result.Ready", [["bind", "qualified"]]]:
         raise ValueError("surface qualified constructor elimination became a local type annotation")
-    _exact_span(source, qualified[0], b"Core.Result.Ready(let qualified)")
+    _exact_span(source, qualified[0], b"Core.Result.Ready(qualified)")
     cases = [node for node in nodes(function) if node.get("kind") == "case"]
     tests = [node for node in nodes(function) if node.get("kind") == "is"]
     if len(cases) != 1 or len(tests) != 1:
@@ -3564,7 +3732,9 @@ def qualify(parse: Callable[[bytes], dict[str, Json]]) -> list[str]:
         missing = set(fixture.kinds) - found
         if missing:
             raise ValueError(f"surface fixture {fixture.name} lacks AST roles: {sorted(missing)}")
-        if fixture.name == "generic-binders-and-typed-initializers":
+        if fixture.name == "concise-authoring-syntax":
+            _concise_authoring_roles(fixture.source.encode("utf-8"), result)
+        elif fixture.name == "generic-binders-and-typed-initializers":
             _binder_initializer_roles(fixture.source.encode("utf-8"), result)
         elif fixture.name == "binder-initializer-errors-remain-syntax":
             _binder_initializer_error_roles(result)

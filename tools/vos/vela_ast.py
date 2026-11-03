@@ -25,8 +25,51 @@ KEYWORDS = frozenset({"module", "public", "return", "let", "if", "else", "Nat", 
 UNSUPPORTED = frozenset({"fn", "Bool", "async", "await", "effect", "effects", "handler",
                         "handle", "resume", "dispose", "mut", "var", "unsafe", "borrow",
                         "requires", "ensures", "restores", "ghost", "tracked", "grade",
-                        "proof", "owned", "move", "ref", "in", "captures", "scope",
+                        "proof", "owned", "move", "ref", "in", "out", "captures", "scope",
                         "spawn", "commit", "on", "cancel", "region", "view", "union"})
+
+
+def unsupported_message(spelling: str) -> str:
+    """Explain requested ownership modes without claiming to check their laws."""
+    mode = {"in": "a shared read loan", "ref": "an initialized exclusive loan",
+            "out": "an exclusive initialization loan", "owned": "consuming ownership",
+            "move": "an explicit ownership transfer"}.get(spelling)
+    if mode is None:
+        return f"'{spelling}' is outside the pure prototype"
+    return (f"'{spelling}' requests {mode}; the pure Nat/bool prototype cannot check "
+            "ownership, borrowing or resource lifetimes")
+
+
+def trivia_end(source: bytes, offset: int, *, block_comments: bool = False) -> int:
+    """Skip complete lexer trivia; never let a source span end inside a comment."""
+    if not 0 <= offset <= len(source):
+        return -1
+    while offset < len(source):
+        if source[offset] in b" \t\r\n":
+            offset += 1
+        elif source.startswith(b"//", offset):
+            offset += 2
+            while offset < len(source) and source[offset] not in b"\r\n":
+                offset += 1
+        elif block_comments and source.startswith(b"/*", offset):
+            level = 1
+            offset += 2
+            while level and offset < len(source):
+                if source.startswith(b"/*", offset):
+                    level += 1
+                    if level > MAX_SYNTAX_DEPTH:
+                        return -1
+                    offset += 2
+                elif source.startswith(b"*/", offset):
+                    level -= 1
+                    offset += 2
+                else:
+                    offset += 1
+            if level:
+                return -1
+        else:
+            break
+    return offset
 
 
 class VelaError(Exception):
@@ -280,6 +323,23 @@ class _Decoder:
                                      self._block(terminal["else"], terminal_span, depth + 2), site)
         return Block(tuple(converted), exit_value, converted[0].site if converted else exit_value.site)
 
+    def _body(self, raw: object, parent: tuple[int, int], depth: int) -> Block:
+        if not isinstance(raw, dict) or raw.get("kind") != "expression_body":
+            return self._block(raw, parent, depth)
+        node, span, site = self._node(raw, "expression_body", {"value"}, parent, depth)
+        if (self.source[span[0]:span[0] + 2] != b"=>"
+                or self.source[span[1] - 1:span[1]] != b";"):
+            raise ValueError("native expression body differs from its source delimiters")
+        raw_value = node["value"]
+        if not isinstance(raw_value, dict):
+            raise ValueError("native expression body has no value node")
+        value_span = self._span(raw_value.get("span"), (span[0] + 2, span[1] - 1))
+        if (trivia_end(self.source, span[0] + 2) != value_span[0]
+                or trivia_end(self.source, value_span[1]) != span[1] - 1):
+            raise ValueError("native expression body leaves source tokens uncovered")
+        value = self._expression(node["value"], (span[0] + 2, span[1] - 1), depth + 1)
+        return Block((), Return(value, site), value.site)
+
     def module(self, raw: object) -> Module:
         node, span, _ = self._node(raw, "file", {"name", "functions"}, (0, len(self.source)), 1)
         functions = self._list(node["functions"])
@@ -299,7 +359,7 @@ class _Decoder:
                                              self._type(parameter["type"], parameter_span, 4)))
             converted.append(Function(self._text(function["name"], function_span),
                                       self._type(function["result"], function_span, 3),
-                                      tuple(converted_parameters), self._block(function["body"], function_span, 3)))
+                                      tuple(converted_parameters), self._body(function["body"], function_span, 3)))
         return Module(self._text(node["name"], span), tuple(converted))
 
 

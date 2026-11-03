@@ -15,7 +15,7 @@ public definition Nat FirstComponent() = Fst(SeparateInstantiations());
 public definition bool SecondComponent() = Snd(SeparateInstantiations());
 
 public definition Nat HigherOrder() =
-    Apply((_ value) => value + 1, 41);
+    Apply(value => value + 1, 41,);
 
 public definition Vec<T, n> Copy<T, ghost Nat n>(Vec<T, n> values) = values;
 
@@ -40,7 +40,7 @@ public lemma Composed(Nat value): value == value
     proof { return Trans(Refl(value), Symm(Refl(value))); }
 
 public lemma Congruence(Nat value): value + 1 == value + 1
-    proof { return Congr((Nat item) => item + 1, Refl(value)); }
+    proof { return Congr(item => item + 1, Refl(value)); }
 
 public definition type[Eq::<Nat>(value, value)] KeepEvidence(
     Nat value, type[Eq::<Nat>(value, value)] evidence) = evidence;

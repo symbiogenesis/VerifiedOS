@@ -37,6 +37,10 @@ def fixtures(example: bytes) -> tuple[Fixture, ...]:
          b"let Type = end; return Type; }"),
         ("wide-decimal", b"module M; public Nat F() { return " + b"9" * 256 + b"; }"),
         ("boolean-equality", b"module M; public bool F(bool x) { return x == (false == true); }"),
+        ("expression-body", b"module M; public Nat Twice(Nat x) => x + x; "
+         b"public Nat F() => Twice(4);"),
+        ("trailing-commas", b"module M; public Nat F(Nat x, bool flag,) => x; "
+         b"public Nat G() { return F(3, true,); }"),
     )
     result = [Fixture(name, source, "accepted") for name, source in positive]
     for name, source in positive[:6]:
@@ -70,6 +74,14 @@ def fixtures(example: bytes) -> tuple[Fixture, ...]:
         ("missing-semicolon", "public Nat F() { return 1 }", "syntax"),
         ("extra-return", "public Nat F() { return 1; return 2; }", "syntax"),
         ("missing-else", "public Nat F() { if (true) { return 0; } }", "syntax"),
+        ("arrow-return-type", "public Nat F() => true;", "type"),
+        ("arrow-unbound-value", "public Nat F() => absent;", "name"),
+        ("arrow-missing-value", "public Nat F() => ;", "syntax"),
+        ("arrow-missing-semicolon", "public Nat F() => 1", "syntax"),
+        ("empty-comma-parameters", "public Nat F(,) => 0;", "syntax"),
+        ("double-comma-parameters", "public Nat F(Nat x,,) => x;", "syntax"),
+        ("empty-comma-arguments", "public Nat F() => 0; public Nat G() => F(,);", "syntax"),
+        ("double-comma-arguments", "public Nat F(Nat x) => x; public Nat G() => F(1,,);", "syntax"),
         ("chained-comparison", "public bool F() { return 1 <= 2 <= 3; }", "syntax"),
         ("trailing-token", "public Nat F() { return 1; } garbage", "syntax"),
         ("incomplete-editor-input", "public Nat F() { return (1 +", "syntax"),

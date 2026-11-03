@@ -255,9 +255,48 @@ def _precedence_oracle() -> dict[str, Json]:
                                                                  "right": {"kind": "nat", "span": [42, 43], "value": "3"}}}}}}]}
 
 
+def _concise_fixture(compiled: Build) -> str:
+    source = (b"// caf\xc3\xa9\r\nmodule Concise;\r\n"
+              b"public Nat Add(Nat left, Nat right,) => left + right;\r\n"
+              b"public Nat Use() => Add(1, 2,);")
+    result = parse_source(compiled, source)
+    functions = _object(result["ast"], "concise pure file").get("functions")
+    if not isinstance(functions, list) or len(functions) != 2:
+        raise ValueError("concise pure syntax changed declaration boundaries")
+    add, use = [_object(value, "concise pure function") for value in functions]
+    for function, spelling in ((add, b"=> left + right;"), (use, b"=> Add(1, 2,);")):
+        body = _object(function.get("body"), "concise pure body")
+        start = source.index(spelling)
+        if set(body) != {"kind", "span", "value"} or body.get("kind") != "expression_body" or body.get("span") != [start, start + len(spelling)]:
+            raise ValueError("concise pure body lost its value or exact arrow/semicolon span")
+    parameters = add.get("parameters")
+    if not isinstance(parameters, list) or len(parameters) != 2:
+        raise ValueError("pure trailing comma fabricated a parameter")
+    for raw, spelling in zip(parameters, (b"Nat left", b"Nat right"), strict=True):
+        parameter = _object(raw, "concise pure parameter")
+        start = source.index(spelling)
+        if parameter.get("span") != [start, start + len(spelling)]:
+            raise ValueError("pure trailing comma entered a parameter span")
+    call = _object(_object(use.get("body"), "concise call body").get("value"), "concise pure call")
+    arguments = call.get("arguments")
+    if call.get("kind") != "call" or not isinstance(arguments, list) or len(arguments) != 2:
+        raise ValueError("pure trailing comma fabricated an argument or changed call syntax")
+    for spelling in (b"F(,)", b"F(Nat x,,)", b"F() => Add(1,,)"):
+        invalid = b"module M; public Nat " + spelling
+        invalid += b";" if b"=>" in spelling else b" => 0;"
+        try:
+            parse_source(compiled, invalid)
+        except VelaError as error:
+            if error.kind != "syntax":
+                raise ValueError("malformed concise pure list has wrong refusal") from error
+        else:
+            raise ValueError("malformed concise pure list unexpectedly parsed")
+    return "concise-expression-body-and-lists"
+
+
 def _fixtures(compiled: Build) -> list[str]:
     """Expected trees selected by the independent grammar reviewer."""
-    passed: list[str] = []
+    passed: list[str] = [_concise_fixture(compiled)]
     prefix = b"module M; public Nat F() { return "
     expressions: tuple[tuple[bytes, Json], ...] = (
         (b"1 + 2 * 3", ["+", ["nat", "1"], ["*", ["nat", "2"], ["nat", "3"]]]),
@@ -297,7 +336,7 @@ def _fixtures(compiled: Build) -> list[str]:
             or _object(_body(pure_identifier).get("name"), "pure returned identifier").get("text") != "as"):
         raise ValueError("surface match keyword changed a pure identifier")
     passed.append("pure-identifier-as")
-    for word in (b"out", b"null"):
+    for word in (b"null",):
         source = b"module M; public Nat " + word + b"(Nat " + word + b") { return " + word + b"; }"
         pure_identifier = parse_source(compiled, source)
         functions = _object(pure_identifier["ast"], "pure file").get("functions")
@@ -336,6 +375,7 @@ def _fixtures(compiled: Build) -> list[str]:
         (prefix + b"1; return 2; }", "syntax"),
         (prefix + b"1", "syntax"),
         (prefix + b"await 1; }", "unsupported"),
+        (b"module M; public Nat out() => 0;", "unsupported"),
         (b"// invalid \xff\n" + source, "encoding"),
         (prefix + b"9" * 257 + b"; }", "limit"),
         (prefix + b"(" * 2000 + b"0" + b")" * 2000 + b"; }", "limit"),

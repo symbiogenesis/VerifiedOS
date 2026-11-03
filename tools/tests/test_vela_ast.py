@@ -41,6 +41,84 @@ def _literal(source: bytes, spelling: bytes = b"1") -> dict[str, object]:
     return _node("nat", start, start + len(spelling), value=spelling.decode())
 
 
+def _arrow_fixture(source: bytes, expression: dict[str, object]) -> dict[str, object]:
+    declaration = source.index(b"public")
+    result = source.index(b"Nat", declaration)
+    name = source.index(b"F(", declaration)
+    arrow = source.index(b"=>", name)
+    end = source.index(b";", arrow) + 1
+    function = _node("function", declaration, end, name=_name("F", name),
+                     result=_node("type", result, result + 3, name="Nat"), parameters=[],
+                     body=_node("expression_body", arrow, end, value=expression))
+    module = source.index(b"module")
+    return {"schema": 1, "source_sha256": hashlib.sha256(source).hexdigest(),
+            "ast": _node("file", module, end, name=_name("M", module + 7), functions=[function])}
+
+
+def _expression_body_protocol() -> None:
+    for newline in (b"\n", b"\r\n", b"\r"):
+        source = ("// caf\u00e9".encode() + newline + b"module M; public Nat F() => // body"
+                  + newline + b"  0001 // terminator" + newline + b";")
+        literal = source.index(b"0001")
+        tree = _arrow_fixture(source, _node("nat", literal, literal + 4, value="0001"))
+        with patch.object(vela, "_tokens", side_effect=AssertionError("Python parser fallback")):
+            actual = vela.translate_ast(source, tree)
+        ensure(actual == vela.translate(source), "arrow body changed native/Python term agreement")
+        for label in ("arrow", "terminator", "value", "field"):
+            changed = copy.deepcopy(tree)
+            ast = cast("dict[str, object]", changed["ast"])
+            function = cast("list[dict[str, object]]", ast["functions"])[0]
+            body = cast("dict[str, object]", function["body"])
+            start, end = cast("list[int]", body["span"])
+            if label == "arrow":
+                body["span"] = [start + 1, end]
+            elif label == "terminator":
+                body["span"] = [start, end - 1]
+            elif label == "value":
+                body["value"] = _node("nat", start, start + 1, value="0")
+            else:
+                body["ignored"] = True
+            try:
+                vela.translate_ast(source, changed)
+            except (TypeError, ValueError):
+                pass
+            else:
+                raise AssertionError(f"accepted expression-body {label} corruption")
+    for spelling, kind in ((b"true", "type"), (b"missing", "name")):
+        source = b"module M; public Nat F() => " + spelling + b";"
+        literal = source.index(spelling)
+        expression = (_node("bool", literal, literal + 4, value=True) if spelling == b"true"
+                      else _node("name", literal, literal + len(spelling), name=_name("missing", literal)))
+        response = _arrow_fixture(source, expression)
+        errors: list[tuple[str, int, int, str]] = []
+        for operation in (lambda: vela.translate(source), lambda: vela.translate_ast(source, response)):
+            try:
+                operation()
+            except vela.VelaError as error:
+                errors.append((error.kind, error.line, error.column, error.message))
+        ensure(len(errors) == 2 and errors[0] == errors[1] and errors[0][0] == kind,
+               "expression body changed the semantic diagnostic or its location")
+
+
+def _expression_body_uncovered_tokens() -> None:
+    sources = (
+        (b"module M; public Nat F() => 0 + 1;", b"0"),
+        (b"module M; public Nat F() => 0 + 1;", b"1"),
+        (b"module M; public Nat F() => // hidden 0\n 1;", b"0"),
+        (b"module M; public Nat F() => /* unsupported trivia */ 1;", b"1"),
+        (b"module M; public Nat F() => \v 1;", b"1"),
+    )
+    for source, spelling in sources:
+        start = source.index(spelling, source.index(b"=>"))
+        tree = _arrow_fixture(source, _node("nat", start, start + len(spelling), value=spelling.decode()))
+        try:
+            vela.translate_ast(source, tree)
+        except ValueError:
+            pass
+        else:
+            raise AssertionError(f"expression body accepted uncovered non-trivia or comment payload: {source!r}")
+
+
 def _independent_translation() -> None:
     source = b"module M; public Nat F() { return 1 + 2 * 3; }"
     # These terms, source offsets and precedence are selected without invoking
@@ -175,6 +253,8 @@ def _resource_boundaries() -> None:
 
 def cases() -> list[Case]:
     return [Case("independent-located-ast-to-terms", _independent_translation),
+            Case("expression-body-source-binding-and-terms", _expression_body_protocol),
+            Case("expression-body-complete-token-coverage", _expression_body_uncovered_tokens),
             Case("held-out-source-edits", _held_out_edits),
             Case("strict-native-schema-and-provenance", _protocol_controls),
             Case("native-semantic-diagnostics", _semantic_refusals),

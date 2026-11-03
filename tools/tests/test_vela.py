@@ -96,6 +96,34 @@ def _precedence_and_literals() -> None:
     ensure("  f_B.\n" in translate(source).gallina, "nullary call malformed")
 
 
+def _expression_bodies_and_commas() -> None:
+    concise = (b"module M; public Nat F(Nat x, bool flag,) => x * (x + 1); "
+               b"public Nat G() => F(3, true,); public bool H() => false;")
+    expanded = (b"module M; public Nat F(Nat x, bool flag) { return x * (x + 1); } "
+                b"public Nat G() { return F(3, true); } public bool H() { return false; }")
+    actual = translate(concise).gallina[len(_header(concise)):]
+    ensure(actual == translate(expanded).gallina[len(_header(expanded)):],
+           "expression-body or trailing-comma sugar changed the checked definitions")
+    for source in ("public Nat F() => ;", "public Nat F() => 1",
+                   "public Nat F(,) => 0;", "public Nat F(Nat x,,) => x;",
+                   "public Nat F() => 0; public Nat G() => F(,);",
+                   "public Nat F(Nat x) => x; public Nat G() => F(1,,);",
+                   "public Nat F() => (1,);", "public Nat F() => 1; return 2;"):
+        _refuses("module M; " + source, "syntax")
+    _refuses("module M; public Nat F() => true;", "type")
+    _refuses("module M; public Nat F() => missing;", "name")
+    _refuses("module M; public Nat F() => " + "(" * 64 + "0" + ")" * 64 + ";", "limit")
+
+
+def _ownership_explanations() -> None:
+    for spelling, meaning in (("in", "shared read loan"), ("ref", "initialized exclusive loan"),
+                              ("out", "exclusive initialization loan"),
+                              ("owned", "consuming ownership"), ("move", "ownership transfer")):
+        error = _refuses(f"module M; public Nat F() => {spelling} value;", "unsupported", meaning)
+        ensure("cannot check ownership, borrowing or resource lifetimes" in error.message,
+               "ownership diagnostic claimed a borrow-checking verdict")
+
+
 def _scope_and_hygiene() -> None:
     source = b"""module Module;
 public Nat Definition(Nat end, bool Type) {
@@ -277,6 +305,8 @@ def _cli_publication() -> None:
 def cases() -> list[Case]:
     return [Case("independent-translation-oracle", _oracle),
             Case("precedence-and-literals", _precedence_and_literals),
+            Case("expression-bodies-and-trailing-commas", _expression_bodies_and_commas),
+            Case("unsupported-ownership-explanations", _ownership_explanations),
             Case("scope-and-hygiene", _scope_and_hygiene),
             Case("typed-negative-neighbors", _typed_neighbors),
             Case("syntax-and-locations", _syntax_and_locations),

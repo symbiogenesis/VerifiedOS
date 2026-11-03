@@ -16,7 +16,7 @@ let pure_reserved = function
   | "fn" | "Bool" | "async" | "await" | "effect" | "effects" | "handler"
   | "handle" | "resume" | "dispose" | "mut" | "var" | "unsafe" | "borrow"
   | "requires" | "ensures" | "restores" | "ghost" | "tracked" | "grade"
-  | "proof" | "owned" | "move" | "ref" | "in" | "captures" | "scope"
+  | "proof" | "owned" | "move" | "ref" | "in" | "out" | "captures" | "scope"
   | "spawn" | "commit" | "on" | "cancel" | "region" | "view" | "union" -> true
   | _ -> false
 (* Contextual annotation names resolve the lexical ambiguity between a type-first
@@ -168,6 +168,62 @@ let annotation lexbuf parenthesized =
       | ',' -> binder_tail 0 0 false (after_binder + 1)
       | '@' -> binder_tail 0 0 true (after_binder + 1)
       | _ -> false)
+(* Classify a parenthesized lambda telescope from its closing arrow. This probe
+   reads bounded bytes only: comments, quoted literals and nested delimiters do
+   not move positions or grant an identifier a type. Declaration/pattern
+   telescopes followed by the same arrow accept the same opening token. *)
+let lambda_open lexbuf =
+  let source = lexbuf.Lexing.lex_buffer in
+  let length = lexbuf.Lexing.lex_buffer_len in
+  let at index = Bytes.get source index in
+  let rec comment depth index =
+    if depth > Ast.max_delimiter_depth then refuse "limit" lexbuf "lambda comment nesting exceeds 256"
+    else if index + 1 >= length then length
+    else if at index = '/' && at (index + 1) = '*' then comment (depth + 1) (index + 2)
+    else if at index = '*' && at (index + 1) = '/' then
+      if depth = 1 then index + 2 else comment (depth - 1) (index + 2)
+    else comment depth (index + 1)
+  in
+  let rec trivia index =
+    if index >= length then length else match at index with
+      | ' ' | '\t' | '\r' | '\n' -> trivia (index + 1)
+      | '/' when index + 1 < length && at (index + 1) = '*' -> trivia (comment 1 (index + 2))
+      | '/' when index + 1 < length && at (index + 1) = '/' ->
+          let rec line current = if current < length && at current <> '\r' && at current <> '\n' then line (current + 1) else current in
+          trivia (line (index + 2))
+      | _ -> index
+  in
+  let rec quoted quote index =
+    if index >= length then length else match at index with
+      | '\\' -> quoted quote (min length (index + 2))
+      | value when value = quote -> index + 1
+      | '\r' | '\n' -> length
+      | _ -> quoted quote (index + 1)
+  in
+  let rec balanced stack depth index =
+    if depth > Ast.max_delimiter_depth then refuse "limit" lexbuf "lambda delimiter nesting exceeds 256"
+    else let index = trivia index in
+      if index >= length then false else match at index with
+        | '"' -> balanced stack depth (quoted '"' (index + 1))
+        | '\'' when index + 2 < length && at (index + 2) = '\'' ->
+            balanced stack depth (index + 3)
+        | '\'' when index + 3 < length && at (index + 1) = '\\' && at (index + 3) = '\'' ->
+            balanced stack depth (index + 4)
+        | '(' -> balanced (')' :: stack) (depth + 1) (index + 1)
+        | '[' -> balanced (']' :: stack) (depth + 1) (index + 1)
+        | '{' -> balanced ('}' :: stack) (depth + 1) (index + 1)
+        | (')' | ']' | '}') as closing ->
+            (match stack with
+             | expected :: rest when expected = closing ->
+                 if rest = [] then
+                   let after = trivia (index + 1) in
+                   after + 1 < length && at after = '=' && at (after + 1) = '>'
+                 else balanced rest (depth - 1) (index + 1)
+             | _ -> false)
+        | _ -> balanced stack depth (index + 1)
+  in
+  balanced [')'] 1 lexbuf.Lexing.lex_curr_pos
+
 let annotation_name lexbuf = annotation lexbuf false
 let identifier state lexbuf =
   let word = Lexing.lexeme lexbuf in
@@ -257,7 +313,8 @@ rule token state = parse
   | '\'' ([^ '\'' '\\' '\r' '\n'] | escape) '\'' { CHARACTER (Lexing.lexeme lexbuf) }
   | '\'' identifier ('.' identifier)* { LIFETIME (Lexing.lexeme lexbuf) }
   | '?' identifier { HOLE (Lexing.lexeme lexbuf) }
-  | '(' { opening state lexbuf (if state.surface && annotation lexbuf true then ANNOTATION_OPEN else LPAREN) } | ')' { closing state RPAREN }
+  | '(' { opening state lexbuf (if state.surface && lambda_open lexbuf then LAMBDA_OPEN
+      else if state.surface && annotation lexbuf true then ANNOTATION_OPEN else LPAREN) } | ')' { closing state RPAREN }
   | '{' { opening state lexbuf LBRACE } | '}' { closing state RBRACE }
   | '[' { opening state lexbuf LBRACKET } | ']' { closing state RBRACKET }
   | ';' { SEMICOLON } | ',' { COMMA } | '.' { DOT } | ':' { COLON }
