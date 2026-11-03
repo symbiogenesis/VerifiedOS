@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import cast
 
 from vos.protocol_json import MAX_BODY_BYTES, decode_message, encode_message
-from vos.vela_ast import IDENTIFIER, KEYWORDS, MAX_SOURCE_BYTES, UNSUPPORTED
+from vos.vela_ast import IDENTIFIER, KEYWORDS, MAX_LITERAL_DIGITS, MAX_SOURCE_BYTES, UNSUPPORTED
 from vos.vela_facts import MAX_OCCURRENCES, MAX_SYMBOLS
 from vos.vela_source import SourceSnapshot
 
@@ -116,7 +116,7 @@ def _validate(snapshot: SourceSnapshot, raw: dict[str, object]) -> _Inspection |
         symbol = _object(value, {"name", "kind", "detail", "line", "column"})
         name, kind, detail = symbol["name"], symbol["kind"], symbol["detail"]
         if (not isinstance(name, str) or not IDENTIFIER.fullmatch(name)
-                or name in KEYWORDS | UNSUPPORTED or kind not in {"function", "parameter", "variable"}
+                or name in KEYWORDS | UNSUPPORTED or kind not in {"function", "parameter", "variable", "constant"}
                 or not isinstance(detail, str) or not detail or len(detail) > MAX_SOURCE_BYTES):
             raise InspectionError("Invalid pure prototype inspection symbol")
         first, last = _span(snapshot, lines, name, symbol)
@@ -129,6 +129,16 @@ def _validate(snapshot: SourceSnapshot, raw: dict[str, object]) -> _Inspection |
             type_hint = {f"{name}: Nat": ": Nat", f"{name}: bool": ": bool"}.get(detail)
             if type_hint is None:
                 raise InspectionError("Invalid pure prototype inferred local type")
+        elif kind == "constant":
+            natural_prefix = f"const Nat {name} = "
+            natural = detail.removeprefix(natural_prefix)
+            valid_natural = (detail.startswith(natural_prefix)
+                             and 1 <= len(natural) <= MAX_LITERAL_DIGITS
+                             and natural.isascii() and natural.isdecimal()
+                             and (natural == "0" or not natural.startswith("0")))
+            if not valid_natural and detail not in {
+                    f"const bool {name} = true", f"const bool {name} = false"}:
+                raise InspectionError("Invalid pure prototype constant detail")
         symbols.append(_Symbol(name, cast("str", kind), detail, first, last, type_hint))
     occurrences: list[_Occurrence] = []
     declarations: set[int] = set()
@@ -184,7 +194,8 @@ def project(snapshot: SourceSnapshot, raw: dict[str, object], method: str,
                 for symbol in inspection.symbols
                 if symbol.type_hint is not None and first <= symbol.start and symbol.end <= last]
     if method == "textDocument/documentSymbol":
-        return [{"name": symbol.name, "kind": 12 if symbol.kind == "function" else 13,
+        kinds = {"function": 12, "constant": 14, "parameter": 13, "variable": 13}
+        return [{"name": symbol.name, "kind": kinds[symbol.kind],
                  "location": _location(snapshot.uri, symbol.start, symbol.end)}
                 for symbol in inspection.symbols]
     selected = next((occurrence for occurrence in inspection.occurrences
