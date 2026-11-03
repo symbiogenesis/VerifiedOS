@@ -2828,5 +2828,23 @@
     },
     "preparation": "Locked prepare python passed for tools/vos/checks/pins.py and tools/vos/checks/interims.py.",
     "scope": "Focused helper/control checks only; no full host, guest or proof suite."
+  },
+  "preceding_source_readings": [
+    {
+      "path": "submodules-20261031/hardware.json",
+      "sha256": "cc7cf6ef4bc53ce576ccbc330015d84782d366a30872201e42608d49ce98b07e"
+    },
+    {
+      "path": "submodules-20261031/model.json",
+      "sha256": "d2555b13139e3d76fe776cb9c34108438611fca7eca4ad780d8c7a1719a20c9d"
+    }
+  ],
+  "upstream_reference_census": {
+    "path": "submodules-20261103/census.json",
+    "sha256": "15a039b4e4ac4042733976e724180b3e934c402881345f85a771de8274c94b88"
+  },
+  "node_runtime_controls": {
+    "path": "node-runtime-20261103/report.json",
+    "sha256": "bd5a1ceedcfde39b3f8ba895defafb18fad020fe4f2f7b67995212dd0035941b"
   }
 }

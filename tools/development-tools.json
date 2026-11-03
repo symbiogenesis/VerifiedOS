@@ -2568,7 +2568,7 @@
       "id": "Node.js",
       "tool": "Node.js",
       "license": "`MIT`, with dependency notices in the upstream `LICENSE`",
-      "standing": "Runs the host-side Wasm oracle. [The runtime helper](tools/wasm-oracle/node.sh) pins its release, verifies the official archive hash, and installs it under a versioned project prefix. The `LICENSE` was read at the pinned release's `v${node_js_1_0}` tag, blob `fc7b8c7d2111e12c10dca5b54e8ded99f6bf1d56`, and is read again when the pin moves. The [2026-11-03 runtime controls](docs/implementation/retained-evidence/node-runtime-20261103/manifest.json) bind the official archive and bounded Wasm checks; the full component comparison remains pending.",
+      "standing": "Runs the host-side Wasm oracle. [The runtime helper](tools/wasm-oracle/node.sh) pins its release, verifies the official archive hash, and installs it under a versioned project prefix. The `LICENSE` was read at the pinned release's `v${node_js_1_0}` tag, blob `fc7b8c7d2111e12c10dca5b54e8ded99f6bf1d56`, and is read again when the pin moves. The [2026-11-03 runtime controls](docs/implementation/retained-evidence/node-runtime-20261103/report.json) bind the official archive and bounded Wasm checks; the full component comparison remains pending.",
       "reviews": [
         "node_js_1"
       ]

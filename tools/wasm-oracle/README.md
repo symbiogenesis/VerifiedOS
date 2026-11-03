@@ -14,7 +14,7 @@ snapshot.
 * **OCaml**: 4.14.4 with ocamlfind 1.9.8. CertiRocq's unmodified native `certirocqc` bootstrap fails with OCaml 5.4.1 because its runtime's `Hd_val` macro collides with the inline function introduced in OCaml 5.2; OCaml 4.14.4 defines `Hd_val` as the same macro, token for token. The [package snapshot guide](../opam/README.md) records this boundary and the independent 5.4.1 switches. The container imports the same snapshot; its published Rocq 9.1 image's OCaml 4.14.2 only runs opam.
 * **Engine**: Node.js 26.13.0 through [node.sh](node.sh), which verifies the official archive checksum and installs into a versioned toolchain directory. It uses stock `WebAssembly.instantiate`; the emitted module is import-free. `wasmtime` works equally for modules that need no result pretty-printing.
 
-The [runtime reading](../../docs/implementation/retained-evidence/node-runtime-20261103/manifest.json)
+The [runtime reading](../../docs/implementation/retained-evidence/node-runtime-20261103/report.json)
 binds the official archive hashes and unchanged release license. Focused native
 arm64 controls cover a successful Wasm result, a false-result control and truncated
 module refusal. Complete-vector acceptance for this runtime remains pending under
