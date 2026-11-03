@@ -14,10 +14,10 @@ increment must first land any required-static binder, derivation registration or
 quotation/splicing spelling, located AST and independent compatibility/refusal
 fixtures here; schematic library calls in that dossier are not parser fixtures.
 
-## Entry points and compatibility
+## Entry points
 
-One authored Menhir grammar owns two entry points. The existing `file` entry and
-schema 1 preserve the pure prototype and its migration comparison. The new
+One authored Menhir grammar owns two entry points. The `file` entry and
+schema 1 serve the pure prototype and its parser comparison. The
 `surface_file` entry, selected with `vela-parser parse --surface SOURCE`, emits
 schema 2 and a `surface_file` node with a module name and declarations. It has no
 translation fallback. Pure translation continues to reject wider constructs.
@@ -522,10 +522,8 @@ their constructor patterns use ordinary library syntax. Reserve bare `null` in
 the surface lexer and refuse it as syntax, without changing pure tokenization.
 Refuse `T?` annotations, null-forgiving postfix `!`, `??` and `?.`. Existing
 postfix `?` denotes explicit propagation; prefix `?name` remains a named hole.
-Propagation followed by member access uses `(Read()?).Value`. Its former
-contiguous spelling `Read()?.Value` is now refused; the retained fixture is
-replaced with an independently checked grouped tree. This is an intentional
-syntax restriction, not an unchanged-tree claim for that replaced spelling.
+Propagation followed by member access uses `(Read()?).Value`.
+The contiguous spelling `Read()?.Value` is refused.
 The parser still accepts incomplete option matches, immutable writes, mistyped
 arithmetic, missing/mismatched loan modifiers and forbidden sharing as located
 syntax so the future semantic consumer can report the appropriate obligation.
@@ -555,11 +553,11 @@ overlapping/shared-mutation attempts. Their acceptance is no semantic verdict.
 Retain strict conflict-free generation, byte-identical regeneration, every
 surface and pure fixture, pure migration and the native qualification below.
 
-### Ergonomic authoring increment
+### Concise authoring syntax
 
-[Q25p](../../../PLAN.md#q-assessment-actions) commissions the following syntax
-changes. Earlier spellings need no compatibility guarantee; migrate maintained
-examples, fixtures and prose to the selected forms. These changes grant no
+The following forms are the surface syntax commissioned by
+[Q25p](../../../PLAN.md#q-assessment-actions). Examples, fixtures and prose use
+these forms throughout. The syntax grants no
 implicit conversion, ownership transfer, effect, disposal or proof authority.
 
 - Inferred lambda parameters may omit the annotation: `value => value + 1`,
@@ -569,12 +567,9 @@ implicit conversion, ownership transfer, effect, disposal or proof authority.
   existing expected-type inference supplies it or reports an unresolved goal.
   Token shape and delimiters must distinguish lambdas from grouping, products
   and type annotations without consulting names or types.
-- Ordinary value-returning functions and operations accept `=> EXPR;` after
-  their signature. An expression body with declaration contracts groups them
-  using the existing clause syntax: `Nat F(Nat x) with { requires x > 0; }
-  => x;`. Block bodies retain their undelimited declaration clauses. The explicit
-  `with` boundary distinguishes the body arrow from a lambda inside a contract;
-  clause ownership cannot depend on parser precedence guesses. A located `expression_body` node
+- Ordinary value-returning functions accept `=> EXPR;` after their signature
+  and declaration contracts: `Nat F(Nat x) requires x > 0 => x;`.
+  A located `expression_body` node
   contains `value` and covers the arrow through the semicolon. The pure entry
   accepts the same form. Consumers check it as the existing single return,
   preserving evaluation count/order, result type, effects, resources and source
@@ -582,6 +577,15 @@ implicit conversion, ownership transfer, effect, disposal or proof authority.
   an expression body alone does not assert purity. Semantic consumers reject
   void shorthand that would discard a result or resource; syntax acceptance
   alone grants no implicit discard.
+- Declaration contracts use ordinary operator expressions, such as
+  `requires Valid(x)` and `ensures result > x`. A lambda, quantifier, expression-local
+  binding or type expression at the root of a clause is parenthesized:
+  `requires (forall (Nat n) => Valid(n))` or
+  `requires (let n = Limit(x) in n > 0)`. Nested lambdas need no extra grouping,
+  as in `requires All(items, item => Valid(item))`. The shared operator grammar
+  and explicit grouping delimit contracts from a function body's arrow without
+  symbol lookup or precedence guesses. The same clause expression rules apply
+  to block-bodied functions and other declarations.
 - Delimited comma lists for parameters, arguments and generic parameters and
   arguments accept one optional trailing comma after a nonempty list. This
   includes callable, constructor and pattern argument lists. Empty lists with
@@ -593,9 +597,8 @@ implicit conversion, ownership transfer, effect, disposal or proof authority.
   Thus local elimination is `let (owner, receipt) = pair;` or
   `let Ready(buffer, receipt) = outcome;`, and a match may use
   `case Ok(value) => value;`. The outer local keyword selects binding mutability.
-  Located binding/constructor/product nodes retain their distinct roles. Update
-  maintained nullary constructor patterns and redundant inner binding keywords;
-  no capitalization, symbol-table or import-dependent interpretation is allowed.
+  Located binding/constructor/product nodes have distinct roles.
+  No capitalization, symbol-table or import-dependent interpretation is allowed.
 
 Acceptance requires independently expected AST roles, original UTF-8 spans,
 precedence, nesting/resource boundaries and malformed neighbors for every form.
@@ -603,13 +606,12 @@ Compose inferred lambdas with products, calls, explicit generics and dependent
 expected types; retain typed/graded loan callbacks and unresolved-inference
 refusals. Check expression bodies against equivalent return blocks in both pure
 routes and mathematical elaboration, comparing generated terms apart from exact
-  source provenance. Distinguish lambdas inside grouped declaration contracts
-  from the expression body, and refuse an undelimited contract/body arrow.
-  Exercise list forms independently, including nested generic
+source provenance. Distinguish lambdas inside declaration contracts from the
+expression body. Exercise list forms independently, including nested generic
 closers, and distinguish binding names from explicit nullary constructors.
-Preserve all unaffected syntax and refusal predicates, strict conflict-free
-generation and byte-identical regeneration. Update native fixtures and both
-authored examples; exact locked-generator acceptance remains hosted. The editor
+Qualify syntax and refusal predicates, strict conflict-free
+generation and byte-identical regeneration. Native fixtures and both authored
+examples must agree with these rules; exact locked-generator acceptance remains hosted. The editor
 part of this increment follows the [hint contract](lsp-prototype.md#authoring-hints).
 
 ### Native qualification

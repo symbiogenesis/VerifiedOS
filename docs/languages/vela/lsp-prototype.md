@@ -171,9 +171,10 @@ harness alone does not close Q25o or Q25n.
 inferred local types in the completely checked pure subset. Advertise this
 provider alongside the existing navigation providers. Requests contain a valid
 half-open document range; return type hints at the ends of inferred local
-identifiers inside that range, with `kind: 1` and labels such as `: Nat` or
+identifiers wholly contained in that range, with `kind: 1` and labels such as `: Nat` or
 `: bool`. Parameter declarations and explicit signatures need no redundant hint.
-Use the compiler's existing resolved symbol facts; do not reparse source or infer
+The identifier may end exactly at the requested range's end, which also anchors
+its hint there. Use the compiler's existing resolved symbol facts; do not reparse source or infer
 types in the protocol projection. Labels are diagnostic presentation and never
 insert source, conversions, loans, proof steps or accepted artifacts.
 

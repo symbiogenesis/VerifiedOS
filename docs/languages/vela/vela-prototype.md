@@ -129,7 +129,7 @@ must produce bounded diagnostics. Surface-conformance cases use the same declara
 parameter, return and control-flow spellings as the design dossier. Cover expression
 bodies and equivalent return blocks, trailing commas and malformed adjacent forms
 through both syntax routes, with unchanged terms apart from exact source provenance.
-Reject the old `fn`, colon-typed parameter, arrow-return and undelimited expression
+Reject `fn`, colon-typed parameter, arrow-return and undelimited expression
 body forms, along with missing returns and unreachable trailing statements. CLI tests must establish successful publication
 and preservation of existing output on rejection, input aliases and write errors.
 

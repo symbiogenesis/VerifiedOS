@@ -1403,7 +1403,7 @@ Cells expose only their proved operations:
 ```text
 stats.Update((ref Stats s) => { s.Accepted += 1; });       // local: the view cannot escape, suspend or reenter
 
-if (settings.TryWrite((ref Settings s) => { s.Retries = 3; }) is Err(BorrowConflict))
+if (settings.TryWrite((ref Settings s) => { s.Retries = 3; }) is Err(BorrowConflict()))
 	Defer();                                                // a live reader is an examined result, not a panic
 
 let seen = counter.Load();                                  // a historical sample, never a current fact
