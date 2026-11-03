@@ -1740,6 +1740,53 @@ nonempty UTF-8 regular file. Edit shared rules there. Personal preferences shoul
 link to repository procedures instead of copying them. Existing worktrees retain
 the instructions at their own revision; a new session loads changed instructions.
 
+## Checked references in source comments
+
+Write a local cross-reference as a Markdown link in a comment or Python docstring.
+K-12 checks these alongside ordinary document links during `run.py check`.
+Paths are relative to the source file carrying the link and must name an indexed
+file; use forward slashes and the exact filename case. Use a fragment when the
+comment depends on a particular section or declaration:
+
+```python
+# In tools/vos/checks/links.py:
+# [source reference validation](../source_refs.py#findings)
+# [validation handoff](../../../AGENTS.md#tool-execution-and-validation)
+```
+
+```coq
+(* In proofs/KernelInstance.v:
+   [register restoration](PartitionContext.v#RestoresRegisters) *)
+```
+
+```systemverilog
+// In rtl/vos_scalar_width_pkg.sv:
+// [register conversion](../model/model/core/reg_type.sail#regval_into_reg)
+```
+
+Markdown fragments name headings or explicit anchors. Source fragments name a
+Python declaration (including qualified class/member names), a Gallina declaration
+supported by the shared source-name reader, or a Sail declaration recorded for
+that file in the current compiler bundle. Python targets are parsed without
+importing or executing them. Sail references require the existing bundle's
+source identity to agree with current sources. Other target kinds support file
+references without a fragment. C and RTL comments can link to declarations in
+these supported languages; their own declarations do not yet have a resolver.
+
+Inline and reference-style Markdown links are supported in source comments;
+Python docstrings also participate. Ordinary strings and fenced examples do not
+introduce references. Retained source snapshots are historical evidence and stay
+outside this live-source check. External URLs remain outside offline validation.
+Keep generated references in their generator and preserve frozen campaign bytes.
+Existing requirement-ID checks remain responsible for requirement citations.
+
+Renaming or deleting a referenced file, section or supported declaration makes
+the corpus check fail at the referring source and line. Resolution establishes
+that the target exists; review still decides whether it supports the comment.
+Prefer these links over bare filenames, line numbers or symbol names when
+directing readers to an owner. The host gate runs the corpus check even for
+prose-only changes, so moving a document heading also checks source backlinks.
+
 ## The conventions
 
 All tools must follow these rules.

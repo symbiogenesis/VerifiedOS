@@ -48,6 +48,14 @@ Read the selected revision's own license files at the milestone that would incor
 
 Use `git ls-files -s upstream` to inspect tracked pins: mode `160000` identifies a gitlink, not vendored files. Inspect vendored and fetched dependencies separately. A linked worktree's uninitialized submodule status does not establish that the repository lacks the pin.
 
+## Before writing source comments
+
+Use [checked Markdown references](tools/README.md#checked-references-in-source-comments)
+when a comment or docstring sends readers to a local file, document section or
+supported declaration. Include the declaration fragment when the claim depends
+on that declaration; keep examples fenced and regenerate generated sources
+through their owner. K-12 reports stale references during the host corpus check.
+
 ## Before editing C
 
 Follow the [authored C language profile](docs/implementation/c-language-profile.md)

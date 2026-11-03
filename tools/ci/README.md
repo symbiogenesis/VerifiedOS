@@ -47,7 +47,9 @@ required checks pending or inspect only a truncated changed-file list.
 describes those limitations.
 
 Prose-only changes run the corpus checker and Markdown validation on Windows and
-Ubuntu. They omit Python typechecking, behavioral and mutation shards, and guest
+Ubuntu. The corpus checker includes source-comment backlinks to document headings,
+so a heading rename retains its consuming check under this selection. They omit
+Python typechecking, behavioral and mutation shards, and guest
 builds. Model documentation can still require the model's own formatting hooks.
 Markdown used as machine-readable configuration retains its consuming checks;
 for example, ISA tables and boot campaign rosters are inputs. The classifier keeps
