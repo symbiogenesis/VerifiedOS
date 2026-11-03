@@ -8,7 +8,7 @@ This tracker preserves the original candidate numbers and includes the related C
 
 The [merged-upstream review](upstream-merged-review.md) looks backwards at recent upstream changes, their current local use and opportunities for adoption.
 
-Submitted PRs: **13**; open: **8**; merged: **5**; closed without merge: **0**; candidates marked TBD: **18**; backport follow-ups: **1**; issue proposals marked TBD: **4**.
+Submitted PRs: **13**; open: **8**; merged: **5**; closed without merge: **0**; candidates marked TBD: **18**; backport follow-ups: **1**; issue proposals marked TBD: **3**.
 
 Upstream PR watches: **14**; open: **8**; merged: **6**; closed without merge: **0**.
 
@@ -191,23 +191,6 @@ Proposed PRs remain unsubmitted until an authored PR is mapped. Backport follow-
 
 - [Issue 1771](https://github.com/rems-project/sail/issues/1771) owns the reproducer. It remains separate from candidate 28's specialization constraints.
 - Acceptance preserves termination annotations and strict settings rather than dropping the measure to make emission succeed.
-
-[Next action in PLAN.md](../../PLAN.md#upstream-contributions-and-adoption).
-
-<a id="upstream-30"></a>
-### 30. katamaran-project/katamaran — Support strict Rocq 9.3 postfix notation without changing elaboration
-
-**Priority:** High.
-
-**Project benefit:** Removes a reproduced strict-source blocker to machine-logic foundation qualification after candidate 8's unused-import cleanup.
-
-**Scope and readiness:** New upstream issue/PR proposal; no report has been filed. Q35m directly reproduces postfix-notation-not-level-1 at theories/Notations.v line 55. The selected merged PR head retains that reserved notation; the notation file's Git blob is identical at upstream main's inspected merge revision. No matching open issue or PR was found in the open inventory and postfix/9.3 searches; unmentioned or private work cannot be excluded.
-
-**Evidence and acceptance:**
-
-- [The dependency trial](../assurance/machine-logic-dependency-trial.md#reproduced-incompatibilities) records the strict-source refusal and unchanged gate flags.
-- [Notation at the selected merged PR head](https://github.com/katamaran-project/katamaran/blob/8b953fe8f17bb4553792c63665d368dc7f6bbd26/theories/Notations.v#L55) is distinct from PR 73's import cleanup. GitHub's contents API confirms the notation file has the same Git blob at that head and upstream main's inspected merge revision.
-- Acceptance preserves public types, notation expansions, executable meanings and exact assumptions; a notation repair alone does not qualify the complete Islaris/Lithium/Katamaran closure.
 
 [Next action in PLAN.md](../../PLAN.md#upstream-contributions-and-adoption).
 
