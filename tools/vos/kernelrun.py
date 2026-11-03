@@ -1,8 +1,8 @@
 # SPDX-License-Identifier: Apache-2.0
 """M4.4's three trace questions, read off a commit trace.
 
-[proofs/KernelInstance.v](../../proofs/KernelInstance.v) states what one run of one
-kernel instance decides as decidable predicates over typed traces: the root is the
+[proofs/KernelInstance.v](../../proofs/KernelInstance.v#RunAnswersM44) states what
+one run of one kernel instance decides as decidable predicates over typed traces: the root is the
 partition's (`RootIsThePartitions`), the switch is total (`SwitchIsTotal` with
 `BurstWritesExactlyOnce`), and the frame is the table's (`FrameIsTheTables`), joined
 as `RunAnswersM44`. This module is the reader a corpus run needs to ask them of the
@@ -40,7 +40,7 @@ from dataclasses import dataclass
 
 from vos import trace
 
-REGISTER_COUNT = 32  # R-15-007i; PartitionContext.v `register_count`
+REGISTER_COUNT = 32  # R-15-007i; [register_count](../../proofs/PartitionContext.v#register_count)
 
 # One parsed record: the kind letter and its integer fields, in the schema's order.
 # I: (pc, insn); X: (reg, tag, value); S: (scr, tag, value); C: (csr, value);
@@ -93,7 +93,8 @@ def read_emulator_trace(lines: Iterable[str]) -> list[Record]:
 
 @dataclass(frozen=True)
 class Extent:
-    """KernelInstance.v `Extent`: a declared half-open address range."""
+    """A declared half-open address range:
+    [KernelInstance.Extent](../../proofs/KernelInstance.v#Extent)."""
 
     base: int
     top: int
@@ -110,7 +111,8 @@ class Extent:
 
 @dataclass(frozen=True)
 class Attempt:
-    """KernelInstance.v `Attempt`: a declared over-bound derivation site."""
+    """A declared over-bound derivation site:
+    [KernelInstance.Attempt](../../proofs/KernelInstance.v#Attempt)."""
 
     pc: int
     register: int

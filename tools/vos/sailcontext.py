@@ -1,8 +1,9 @@
 # SPDX-License-Identifier: Apache-2.0
 """Advisory navigation of the compiler bundle against its recorded local owners.
 
-Only the emitter's declarations and links are read. No Sail grammar, inferred call
-graph, compiler invocation or persistent index lives here. Every invocation reads
+Only the emitter's [declarations](sailbundle.py#Bundle.declarations) and links
+are read. No Sail grammar, inferred call graph, compiler invocation or persistent
+index lives here. Every invocation reads
 the bundle, its complete project source identity and every local source once.
 SHA-256 identifies those individual reads, not an atomic snapshot or authenticity.
 """

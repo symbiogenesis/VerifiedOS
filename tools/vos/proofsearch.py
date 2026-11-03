@@ -2,8 +2,8 @@
 """Fresh, advisory navigation of local Rocq source, with no prover or index.
 
 This is a limited lexical reader, not Gallina elaboration. It recognizes the named
-declarations in proofcites.DEFINERS, optional attributes/locality modifiers, direct
-bodies, named Ltac definitions and ordinary Qed/Defined/Admitted/Abort endings.
+declarations in [proofcites.DEFINERS](proofcites.py#DEFINERS), optional attributes/locality
+modifiers, direct bodies, named Ltac definitions and ordinary Qed/Defined/Admitted/Abort endings.
 It does not resolve modules, notation, generated obligations, mutual secondary
 names, Ltac redefinitions, Ltac2 or tactic semantics. A script token can be a
 variable or term as well as a tactic. In particular, lexical

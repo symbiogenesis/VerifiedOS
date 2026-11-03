@@ -95,7 +95,7 @@ from typing import TYPE_CHECKING, TypedDict
 
 from vos.proofs import VOID, decorations
 
-# `Context` lives in this package's __init__, which imports this module in turn.
+# [Context](__init__.py#Context) lives in this package, which imports this module in turn.
 if TYPE_CHECKING:
     from . import Context
 
