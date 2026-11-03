@@ -108,8 +108,8 @@ def main(argv: list[str] | None = None) -> int:
             command.add_argument("--deny", action="append", choices=sorted(LINT_CODES), default=[],
                                  help="make an optional lint an error (repeatable)")
         if name in {"check", "emit"}:
-            command.add_argument("--format", choices=("write", "check", "off"), default="write",
-                                 help="source formatting mode (default: write)")
+            command.add_argument("--format", choices=("write", "check", "off"), default="off",
+                                 help="source formatting mode (default: off; write requires explicit opt-in)")
             command.add_argument("--no-lint", action="store_true",
                                  help="disable optional lints; language checks remain required")
         if name == "emit":

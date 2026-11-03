@@ -145,20 +145,21 @@ These are host parser limits, not target resource bounds or integer widths.
 ## Command and publication
 
 `python tools/run.py vela check SOURCE` parses and checks the complete file,
-automatically writes the canonical layout and runs advisory lints before reporting
+preserves the exact source bytes and runs advisory lints before reporting
 its prototype status. The [authoring-tools contract](authoring-tools.md) owns the
 StyleCop-inspired style, documentation, lint policy and publication checks.
 `vela fmt SOURCE` applies formatting explicitly; `vela fmt SOURCE --check` and
 `vela lint SOURCE` leave source unchanged. Normal compiler commands accept
-`--format check` for read-only style enforcement or `--format off` to preserve
-authored bytes. `--no-lint` disables optional lints; repeatable `--allow ID` and
+`--format check` for read-only style enforcement, `--format off` to state the
+source-preserving default, or `--format write` to opt into canonical formatting.
+`--no-lint` disables optional lints; repeatable `--allow ID` and
 `--deny ID` control individual findings without disabling language checks.
 
 `python tools/run.py vela emit SOURCE` uses the same default authoring passes and
 writes Gallina to standard output; `--output FILE` publishes it through the shared
 atomic writer only after complete validation. Reject overwriting the input,
 including aliases. Do not create missing output parent directories implicitly.
-Default source rewriting requires an unchanged regular file and a completely
+Explicit source rewriting requires an unchanged regular file and a completely
 checked formatted candidate; library and language-server calls never rewrite.
 Diagnostics identify the file, line and column, distinguishing syntax, name,
 type, unsupported-feature, encoding, limit and I/O failures. Rejected source
@@ -166,7 +167,7 @@ produces no generated output. Atomic file publication preserves existing output
 after a failed write; standard output cannot roll back bytes already consumed.
 
 Deterministic output uses fully qualified CIC operations and SHA-256 provenance
-for the exact post-format source bytes, or authored bytes with formatting off,
+for the exact authored bytes, or post-format bytes after an explicit formatting write,
 without a correspondence theorem. Emit definitions only:
 no axioms, admissions, proof scripts or machine-code escape.
 

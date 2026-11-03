@@ -1,8 +1,9 @@
 # SPDX-License-Identifier: Apache-2.0
-"""Independent default-formatting, lint-policy and publication refusal controls."""
+"""Independent immutable-source defaults, lint-policy and publication controls."""
 
 import hashlib
 import os
+import stat
 import tempfile
 from contextlib import redirect_stderr, redirect_stdout
 from io import StringIO
@@ -11,7 +12,7 @@ from unittest.mock import patch
 
 from tests.harness import Case, ensure
 from vos.cli import vela as cli
-from vos.vela import MAX_SOURCE_BYTES, VelaError, translate
+from vos.vela import MAX_SOURCE_BYTES, Translation, VelaError, translate
 
 INDEPENDENT_CASES = True
 
@@ -34,22 +35,45 @@ def _defaults_and_provenance() -> None:
     with tempfile.TemporaryDirectory(prefix="vos-vela-default-style-") as directory:
         source = Path(directory) / "source.vela"
         source.write_bytes(_COMPACT)
-        code, output, errors = _call(["check", str(source)])
-        ensure(code == 0 and "unqualified" in output and not errors,
-               f"default authoring command failed: {errors}")
-        ensure(source.read_bytes() == _FORMATTED, "normal check did not write canonical Allman layout")
+        destination = Path(directory) / "output.v"
+        before = source.stat()
+        for _ in range(2):
+            for arguments in (["check", str(source)], ["emit", str(source)],
+                              ["emit", str(source), "--output", str(destination)]):
+                with patch.object(cli, "format_source", side_effect=AssertionError("unexpected formatter")):
+                    code, output, errors = _call(arguments)
+                ensure(code == 0 and not errors, f"default authoring command failed: {errors}")
+                after = source.stat()
+                ensure(source.read_bytes() == _COMPACT and after.st_ino == before.st_ino
+                       and after.st_mtime_ns == before.st_mtime_ns,
+                       "default compilation changed noncanonical source")
+                if arguments[0] == "check":
+                    ensure("unqualified" in output, "check lost prototype status")
+                else:
+                    emitted = destination.read_text(encoding="utf-8") if "--output" in arguments else output
+                    ensure(emitted == translate(_COMPACT).gallina,
+                           "default emission did not preserve exact source provenance")
+                    ensure(hashlib.sha256(_COMPACT).hexdigest() in emitted
+                           and hashlib.sha256(_FORMATTED).hexdigest() not in emitted,
+                           "default emitted provenance described formatted source")
+
+
+def _readonly_source() -> None:
+    with tempfile.TemporaryDirectory(prefix="vos-vela-readonly-style-") as directory:
+        source, destination = Path(directory) / "source.vela", Path(directory) / "output.v"
         source.write_bytes(_COMPACT)
-        code, output, errors = _call(["emit", str(source)])
-        ensure(code == 0 and not errors, f"default emission failed: {errors}")
-        ensure(output == translate(_FORMATTED).gallina, "emission did not use the post-format source")
-        ensure(hashlib.sha256(_FORMATTED).hexdigest() in output,
-               "emitted provenance retained the original source digest")
-        ensure(hashlib.sha256(_COMPACT).hexdigest() not in output,
-               "pre-format provenance survived source rewriting")
-        before = source.stat().st_mtime_ns
-        code, _, errors = _call(["check", str(source)])
-        ensure(code == 0 and not errors and source.stat().st_mtime_ns == before,
-               "already canonical source was rewritten")
+        mode = source.stat().st_mode
+        source.chmod(stat.S_IREAD)
+        try:
+            for arguments in (["check", str(source)],
+                              ["emit", str(source), "--output", str(destination)]):
+                code, _, errors = _call(arguments)
+                ensure(code == 0 and not errors and source.read_bytes() == _COMPACT,
+                       "source-preserving compilation failed on read-only source")
+            ensure(destination.read_text(encoding="utf-8") == translate(_COMPACT).gallina,
+                   "read-only source did not produce exact-snapshot output")
+        finally:
+            source.chmod(mode)
 
 
 def _explicit_modes() -> None:
@@ -57,7 +81,8 @@ def _explicit_modes() -> None:
         source = Path(directory) / "source.vela"
         source.write_bytes(_COMPACT)
         for command in (["fmt", str(source), "--check"],
-                        ["check", str(source), "--format", "check"]):
+                        ["check", str(source), "--format", "check"],
+                        ["emit", str(source), "--format", "check"]):
             code, _, errors = _call(command)
             ensure(code == 1 and "format:" in errors and source.read_bytes() == _COMPACT,
                    "check-only formatting did not refuse without writes")
@@ -65,6 +90,19 @@ def _explicit_modes() -> None:
         ensure(code == 0 and not errors and source.read_bytes() == _COMPACT,
                "format off changed source")
         ensure(output == translate(_COMPACT).gallina, "format off changed exact source provenance")
+        for command in ("check", "emit"):
+            source.write_bytes(_COMPACT)
+            code, output, errors = _call([command, str(source), "--format", "write"])
+            ensure(code == 0 and not errors and source.read_bytes() == _FORMATTED,
+                   "explicit write mode did not format source")
+            if command == "emit":
+                ensure(output == translate(_FORMATTED).gallina,
+                       "explicit write emission did not bind post-format source")
+            before = source.stat().st_mtime_ns
+            code, _, errors = _call([command, str(source), "--format", "write"])
+            ensure(code == 0 and not errors and source.stat().st_mtime_ns == before,
+                   "explicit write rewrote already canonical source")
+        source.write_bytes(_COMPACT)
         code, _, errors = _call(["fmt", str(source)])
         ensure(code == 0 and not errors and source.read_bytes() == _FORMATTED,
                "explicit formatter did not write canonical source")
@@ -114,16 +152,18 @@ def _refusals_preserve_files() -> None:
                     b"module M; public Nat Broken(ref Nat value)=>value;",
                     b"\xff", b" " * (MAX_SOURCE_BYTES + 1)):
             source.write_bytes(raw)
-            code, stdout, _ = _call(["emit", str(source), "--output", str(output)])
-            ensure(code == 1 and not stdout and source.read_bytes() == raw,
-                   "invalid source was formatted or emitted")
-            ensure(output.read_bytes() == sentinel, "invalid source replaced generated output")
+            for options in ([], ["--format", "write"]):
+                code, stdout, _ = _call(["emit", str(source), "--output", str(output), *options])
+                ensure(code == 1 and not stdout and source.read_bytes() == raw,
+                       "invalid source was formatted or emitted")
+                ensure(output.read_bytes() == sentinel, "invalid source replaced generated output")
         source.write_bytes(_COMPACT)
         for destination in (source, root / "absent" / "output.v", root):
-            code, stdout, errors = _call(["emit", str(source), "--output", str(destination)])
-            ensure(code == 1 and not stdout and ": io:" in errors,
-                   "invalid output destination was not diagnosed")
-            ensure(source.read_bytes() == _COMPACT, "invalid output destination still reformatted source")
+            for options in ([], ["--format", "write"]):
+                code, stdout, errors = _call(["emit", str(source), "--output", str(destination), *options])
+                ensure(code == 1 and not stdout and ": io:" in errors,
+                       "invalid output destination was not diagnosed")
+                ensure(source.read_bytes() == _COMPACT, "invalid output destination still reformatted source")
         alias = root / "hardlink.v"
         alias.hardlink_to(source)
         code, _, errors = _call(["emit", str(source), "--output", str(alias)])
@@ -132,9 +172,9 @@ def _refusals_preserve_files() -> None:
         with patch.object(Path, "replace", side_effect=OSError("injected replacement failure")):
             code, _, errors = _call(["emit", str(source), "--output", str(output)])
         ensure(code == 1 and "injected replacement failure" in errors,
-               "source publication failure was not diagnosed")
+               "output publication failure was not diagnosed")
         ensure(source.read_bytes() == _COMPACT and output.read_bytes() == sentinel,
-               "failed source publication changed input or output")
+               "failed output publication changed input or output")
         ensure(not list(root.glob(".*.tmp")), "failed publication leaked temporary files")
 
 
@@ -142,20 +182,22 @@ def _concurrent_edit_and_special_files() -> None:
     with tempfile.TemporaryDirectory(prefix="vos-vela-style-snapshot-") as directory:
         root = Path(directory)
         source, output = root / "source.vela", root / "output.v"
-        source.write_bytes(_COMPACT)
         output.write_bytes(b"previous")
         changed = b"module Example;public Nat Other()=>7;"
 
-        def edit_during_format(_: bytes) -> bytes:
+        def edit_during_check(data: bytes) -> Translation:
+            result = translate(data)
             source.write_bytes(changed)
-            return _FORMATTED
+            return result
 
-        with patch.object(cli, "format_source", side_effect=edit_during_format):
-            code, stdout, errors = _call(["emit", str(source), "--output", str(output)])
-        ensure(code == 1 and not stdout and "source changed" in errors,
-               "concurrent edit was not refused")
-        ensure(source.read_bytes() == changed and output.read_bytes() == b"previous",
-               "concurrent editor or previous output was overwritten")
+        for options in ([], ["--format", "write"]):
+            source.write_bytes(_COMPACT)
+            with patch.object(cli, "translate", side_effect=edit_during_check):
+                code, stdout, errors = _call(["emit", str(source), "--output", str(output), *options])
+            ensure(code == 1 and not stdout and "source changed" in errors,
+                   "concurrent edit was not refused")
+            ensure(source.read_bytes() == changed and output.read_bytes() == b"previous",
+                   "concurrent editor or previous output was overwritten")
         code, _, errors = _call(["check", str(root)])
         ensure(code == 1 and "regular file" in errors, "directory input was not refused")
         alias = root / "source-link.vela"
@@ -166,7 +208,7 @@ def _concurrent_edit_and_special_files() -> None:
         else:
             code, _, errors = _call(["check", str(alias)])
             ensure(code == 1 and "symbolic link" in errors and source.read_bytes() == changed,
-                   "default formatting followed a source symlink")
+                   "default compilation followed a source symlink")
 
 
 def _unavailable_lints() -> None:
@@ -178,7 +220,7 @@ def _unavailable_lints() -> None:
             code, output, errors = _call(["check", str(source)])
             ensure(code == 0 and "unqualified" in output and "warning lint-unavailable:" in errors,
                    "optional lint unavailability changed compiler acceptance or claimed clean findings")
-            ensure(source.read_bytes() == _FORMATTED, "advisory lint limits disabled default formatting")
+            ensure(source.read_bytes() == _COMPACT, "advisory lint limits changed source")
             source.write_bytes(_COMPACT)
             for arguments in (["lint", str(source)],
                               ["emit", str(source), "--deny", "VELA100"]):
@@ -190,6 +232,7 @@ def _unavailable_lints() -> None:
 
 def cases() -> list[Case]:
     return [Case("vela-authoring-cli:defaults-and-provenance", _defaults_and_provenance),
+            Case("vela-authoring-cli:readonly-source", _readonly_source),
             Case("vela-authoring-cli:explicit-modes", _explicit_modes),
             Case("vela-authoring-cli:lint-policy", _lint_policy),
             Case("vela-authoring-cli:refusal-publication", _refusals_preserve_files),
