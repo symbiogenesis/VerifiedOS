@@ -100,6 +100,25 @@ def _expression_body_protocol() -> None:
                "expression body changed the semantic diagnostic or its location")
 
 
+def _expression_body_uncovered_tokens() -> None:
+    sources = (
+        (b"module M; public Nat F() => 0 + 1;", b"0"),
+        (b"module M; public Nat F() => 0 + 1;", b"1"),
+        (b"module M; public Nat F() => // hidden 0\n 1;", b"0"),
+        (b"module M; public Nat F() => /* unsupported trivia */ 1;", b"1"),
+        (b"module M; public Nat F() => \v 1;", b"1"),
+    )
+    for source, spelling in sources:
+        start = source.index(spelling, source.index(b"=>"))
+        tree = _arrow_fixture(source, _node("nat", start, start + len(spelling), value=spelling.decode()))
+        try:
+            vela.translate_ast(source, tree)
+        except ValueError:
+            pass
+        else:
+            raise AssertionError(f"expression body accepted uncovered non-trivia or comment payload: {source!r}")
+
+
 def _independent_translation() -> None:
     source = b"module M; public Nat F() { return 1 + 2 * 3; }"
     # These terms, source offsets and precedence are selected without invoking
@@ -235,6 +254,7 @@ def _resource_boundaries() -> None:
 def cases() -> list[Case]:
     return [Case("independent-located-ast-to-terms", _independent_translation),
             Case("expression-body-source-binding-and-terms", _expression_body_protocol),
+            Case("expression-body-complete-token-coverage", _expression_body_uncovered_tokens),
             Case("held-out-source-edits", _held_out_edits),
             Case("strict-native-schema-and-provenance", _protocol_controls),
             Case("native-semantic-diagnostics", _semantic_refusals),

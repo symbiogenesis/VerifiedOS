@@ -12,7 +12,7 @@ import re
 from dataclasses import dataclass
 from typing import cast
 
-from vos.vela_ast import MAX_LITERAL_DIGITS, MAX_SOURCE_BYTES, VelaError, source_text
+from vos.vela_ast import MAX_LITERAL_DIGITS, MAX_SOURCE_BYTES, VelaError, source_text, trivia_end
 
 MAX_DEPTH = 128
 MAX_WORK = 200_000
@@ -125,6 +125,44 @@ class _Protocol:
             return "".join(result)
         return "\x00"
 
+    def _lambda_envelope(self, node: Node, span: tuple[int, int]) -> None:
+        parameters = node["parameters"]
+        body = node["body"]
+        if not isinstance(parameters, list) or not isinstance(body, dict):
+            raise self.error("protocol", "lambda has invalid parameters or body", node)
+        body_span = self._span(body.get("span"), span)
+        if body_span[1] != span[1]:
+            raise self.error("protocol", "lambda body leaves trailing source tokens", node)
+        cursor = span[0]
+        parenthesized = self.source[cursor:cursor + 1] == b"("
+        if parenthesized:
+            cursor += 1
+        elif len(parameters) != 1:
+            raise self.error("protocol", "a bare lambda requires one parameter", node)
+        for index, parameter in enumerate(parameters):
+            if not isinstance(parameter, dict):
+                raise self.error("protocol", "lambda has an invalid parameter", node)
+            parameter_span = self._span(parameter.get("span"), span)
+            if trivia_end(self.source, cursor, block_comments=True) != parameter_span[0]:
+                raise self.error("protocol", "lambda parameter leaves source tokens uncovered", node)
+            if not parenthesized and parameter.get("type") is not None:
+                raise self.error("protocol", "a bare lambda parameter cannot carry a type", node)
+            cursor = trivia_end(self.source, parameter_span[1], block_comments=True)
+            if index != len(parameters) - 1:
+                if self.source[cursor:cursor + 1] != b",":
+                    raise self.error("protocol", "lambda parameter separator differs from source", node)
+                cursor += 1
+        cursor = trivia_end(self.source, cursor, block_comments=True)
+        if parenthesized:
+            if parameters and self.source[cursor:cursor + 1] == b",":
+                cursor = trivia_end(self.source, cursor + 1, block_comments=True)
+            if self.source[cursor:cursor + 1] != b")":
+                raise self.error("protocol", "lambda parameter delimiter differs from source", node)
+            cursor = trivia_end(self.source, cursor + 1, block_comments=True)
+        if (self.source[cursor:cursor + 2] != b"=>"
+                or trivia_end(self.source, cursor + 2, block_comments=True) != body_span[0]):
+            raise self.error("protocol", "lambda arrow or body leaves source tokens uncovered", node)
+
     def visit(self, raw: object, parent: tuple[int, int], depth: int = 0) -> None:
         if depth > MAX_DEPTH or self.remaining <= 0:
             raise self.error("limit", "surface syntax exceeds elaboration bounds")
@@ -176,7 +214,12 @@ class _Protocol:
             value = node["value"]
             if not isinstance(value, dict):
                 raise self.error("protocol", "expression body has no value node", node)
-            self._span(value.get("span"), (span[0] + 2, span[1] - 1))
+            value_span = self._span(value.get("span"), (span[0] + 2, span[1] - 1))
+            if (trivia_end(self.source, span[0] + 2, block_comments=True) != value_span[0]
+                    or trivia_end(self.source, value_span[1], block_comments=True) != span[1] - 1):
+                raise self.error("protocol", "expression body leaves source tokens uncovered", node)
+        if kind == "lambda":
+            self._lambda_envelope(node, span)
         if kind == "lambda_parameter" and node["type"] is None:
             name = node["name"]
             if not isinstance(name, dict):

@@ -40,6 +40,38 @@ def unsupported_message(spelling: str) -> str:
             "ownership, borrowing or resource lifetimes")
 
 
+def trivia_end(source: bytes, offset: int, *, block_comments: bool = False) -> int:
+    """Skip complete lexer trivia; never let a source span end inside a comment."""
+    if not 0 <= offset <= len(source):
+        return -1
+    while offset < len(source):
+        if source[offset] in b" \t\r\n":
+            offset += 1
+        elif source.startswith(b"//", offset):
+            offset += 2
+            while offset < len(source) and source[offset] not in b"\r\n":
+                offset += 1
+        elif block_comments and source.startswith(b"/*", offset):
+            level = 1
+            offset += 2
+            while level and offset < len(source):
+                if source.startswith(b"/*", offset):
+                    level += 1
+                    if level > MAX_SYNTAX_DEPTH:
+                        return -1
+                    offset += 2
+                elif source.startswith(b"*/", offset):
+                    level -= 1
+                    offset += 2
+                else:
+                    offset += 1
+            if level:
+                return -1
+        else:
+            break
+    return offset
+
+
 class VelaError(Exception):
     """One bounded diagnostic; callers supply the source file's display name."""
 
@@ -298,6 +330,13 @@ class _Decoder:
         if (self.source[span[0]:span[0] + 2] != b"=>"
                 or self.source[span[1] - 1:span[1]] != b";"):
             raise ValueError("native expression body differs from its source delimiters")
+        raw_value = node["value"]
+        if not isinstance(raw_value, dict):
+            raise ValueError("native expression body has no value node")
+        value_span = self._span(raw_value.get("span"), (span[0] + 2, span[1] - 1))
+        if (trivia_end(self.source, span[0] + 2) != value_span[0]
+                or trivia_end(self.source, value_span[1]) != span[1] - 1):
+            raise ValueError("native expression body leaves source tokens uncovered")
         value = self._expression(node["value"], (span[0] + 2, span[1] - 1), depth + 1)
         return Block((), Return(value, site), value.site)
 

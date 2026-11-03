@@ -292,11 +292,14 @@ def _lambda(parameters: tuple[Parameter, ...], body: Form) -> Form:
     return form
 
 
-def _inferred_lambda(names: tuple[str, ...], body: Form, *, bare: bool = False) -> Form:
+def _inferred_lambda(names: tuple[str, ...], body: Form, *, bare: bool = False,
+                     trivia: bool = False) -> Form:
     def form(fixture: _Fixture) -> Node:
         start = fixture.offset
         if not bare:
             fixture.write("(")
+        if trivia:
+            fixture.write("/* before /* nested */ binder */ ")
         params: list[Node] = []
         for index, spelling in enumerate(names):
             if index:
@@ -305,9 +308,13 @@ def _inferred_lambda(names: tuple[str, ...], body: Form, *, bare: bool = False) 
             binding = fixture.name(spelling)
             params.append(fixture.node("lambda_parameter", parameter_start,
                                       name=binding, type=None, grade=None))
+            if trivia:
+                fixture.write(" /* after binder */ ")
         if not bare:
             fixture.write(")")
         fixture.write(" => ")
+        if trivia:
+            fixture.write("// before body\r\n ")
         value = body(fixture)
         return fixture.node("lambda", start, parameters=params, body=value)
     return form
@@ -506,6 +513,55 @@ def _concise_lambdas_and_expression_bodies() -> None:
             ensure(error.kind == "protocol", f"body {label} forgery reached semantic checking")
         else:
             raise AssertionError(f"accepted expression-body {label} corruption")
+
+
+def _ergonomic_source_token_coverage() -> None:
+    def surrounding(value: Form, before: str, after: str) -> Form:
+        def form(fixture: _Fixture) -> Node:
+            fixture.write(before)
+            node = value(fixture)
+            fixture.write(after)
+            return node
+        return form
+
+    for before, after, value in (("", " + 1", 0), ("0 + ", "", 1),
+                                 ("/* ", " */ 1", 0), ("// ", "\n 1", 0),
+                                 ("\v", "", 1)):
+        fixture = _Fixture()
+        fixture.function("Forged", _NAT, (), surrounding(_natural(value), before, after))
+        _refuses(fixture, "protocol")
+
+    fixture = _Fixture()
+    grouped = _group(_binary("+", _natural(0), _natural(1)))
+    fixture.function("Grouped", _NAT, (),
+                     surrounding(grouped, "/* before /* nested */ value */ ", " // after\r\n "))
+    signature = _function_type((("left", _NAT), ("right", _NAT)), _NAT)
+    fixture.definition("WithTrivia", signature, (),
+                       _inferred_lambda(("left", "right"),
+                                        _group(_binary("+", _variable("left"), _variable("right"))),
+                                        trivia=True))
+    emitted = elaborate(*fixture.response()).gallina
+    ensure("Corelib.Init.Nat.add" in emitted, "valid grouped/trivia syntax was refused or changed")
+
+    for typed_parameter in (0, 1):
+        fixture = _Fixture()
+        signature = (_function_type((("value", _NAT),), _NAT) if typed_parameter == 0
+                     else _function_type((("first", _NAT), ("value", _NAT)), _NAT))
+        parameters = ((("value", _BOOL),) if typed_parameter == 0
+                      else (("first", _NAT), ("value", _BOOL)))
+        fixture.definition("Annotation", signature, (), _lambda(parameters, _variable("value")))
+        source, response = fixture.response()
+        root = cast("Node", response["ast"])
+        declaration = cast("list[Node]", root["declarations"])[0]
+        parameter = cast("list[Node]", cast("Node", declaration["value"])["parameters"])[typed_parameter]
+        parameter["type"] = None
+        parameter["span"] = cast("Node", parameter["name"])["span"]
+        try:
+            elaborate(source, response)
+        except VelaError as error:
+            ensure(error.kind == "protocol", "shrunk parameter span erased an authored annotation")
+        else:
+            raise AssertionError("inferred lambda accepted an omitted annotation with a shrunk parameter span")
 
 
 def _dependent_vectors_and_indices() -> None:
@@ -804,6 +860,7 @@ def _elaboration_budgets() -> None:
 def cases() -> list[Case]:
     return [Case("fresh-polymorphism-and-higher-order-inference", _polymorphism_and_higher_order),
             Case("concise-lambdas-and-expression-body-terms", _concise_lambdas_and_expression_bodies),
+            Case("ergonomic-source-token-coverage", _ergonomic_source_token_coverage),
             Case("dependent-vectors-and-finite-indices", _dependent_vectors_and_indices),
             Case("first-class-proofs-and-false-neighbors", _proof_values_and_false_neighbors),
             Case("predicative-universes-and-rigid-scope", _universes_and_scope),
