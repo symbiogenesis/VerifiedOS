@@ -27,6 +27,15 @@ budgets refuse analysis. No partial exploration may produce a complete result.
 Loops need a separately checked invariant/back-edge interpretation; unrolling
 supplied finite paths does not establish termination or loop-carried borrowing.
 
+The current [implementation](../../../tools/vos/vela_loans.py) materializes every
+complete path and analyzes each separately. Independent branches can therefore
+produce exponentially many paths as the graph grows; this follows from the
+algorithm and is not a measured latency result. `Limits` owns the bounded node,
+path, capture and work budgets. Exhaustion refuses the complete analysis without
+returning partial success. This diagnostic establishes neither production
+scalability nor a choice of production algorithm; the
+[promotion contract](core-design.md#borrow-analysis-promotion) retains that decision.
+
 ## Inference and obligations
 
 Analyze complete reachable paths separately so a join never unions mutually
@@ -120,3 +129,30 @@ separately from the exact-revision hosted evidence.
 Full frontend, concrete laws, checked derivations and comparative ergonomic or
 performance claims retain their existing owners; this experiment claims no
 superiority to Polonius.
+
+## Conditional borrowing comparison
+
+A comparison commissioned through the existing
+[client qualification](first-release.md#qualification) freezes independently
+reviewed client behavior, expected decisions and the compared guarantee
+endpoints. Pin the compiler/analyzer revision and configuration, explicitly
+distinguishing original Polonius from Polonius Alpha. Pin the selected
+[Ante design](interior-mutability.md#ante-as-a-candidate-for-static-invalidation)
+and identify its implemented subset; a design example supplies no compiler
+verdict. Supplied graph diagnostics and source checking have different endpoints.
+
+Record accepted, semantically rejected, unsupported and incomplete cases
+separately. A diagnostic with no detected conflict still carries its unresolved
+proof obligations and supplies no source acceptance. Compare matching behavior
+without weakening ownership, dependent facts, effects or required guarantees.
+Retain manual rewrites, annotations and the first intended diagnostic; an
+unrelated parse/type failure supplies no borrowing rejection evidence.
+
+Reuse the applicable [measurement record and sampling](workflow-contract.md#measurement-record-and-sampling)
+for diagnostic latency, elapsed/CPU time, peak memory and environment identity.
+Record graph size, branching, captures, configured budgets and budget refusals
+alongside successful cases. State each claimed improvement's objective and
+supported workload, including regressions and endpoint differences. A finite
+comparison establishes no universal optimality. This contract commissions no
+additional benchmark, source integration or production-analysis implementation
+within Q25j.
