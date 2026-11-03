@@ -118,7 +118,11 @@ Only the latter command supplies a kernel verdict for its declared fixtures.
 Generic parameters default to `Type`; `<T, ghost Nat n>` quantifies a type and
 stable natural index. Each call infers new arguments, while `::<...>` supplies
 them explicitly and `_` requests an inferred argument. A contextual lambda can
-use `(_ value) => ...`. Declare a dependent callable with
+use `value => ...` or `(left, right) => ...`; omitted parameter annotations use
+the same bounded expected-type inference as annotation holes. Missing type
+information remains an error. Ordinary value-returning functions may use
+`=> expression;` as the checked equivalent of a single return block.
+Declare a dependent callable with
 `Fn(Nat n, Vec<Nat, n> values) -> Vec<Nat, n>`.
 
 `Fst` and `Snd` project ordinary products. `Vec<T,n>` is a mathematical indexed collection, with `VNil`, `VCons`, `Fin`,

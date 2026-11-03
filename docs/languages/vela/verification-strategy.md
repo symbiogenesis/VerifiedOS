@@ -985,6 +985,9 @@ build host's word size.
 | Spelling | Meaning |
 | --- | --- |
 | `let`, `var`, `T name = value` | Immutable inferred, mutable inferred and immutable type-first locals respectively. `var T name = value` is explicitly mutable. A typed literal such as `0usize` states a representation. |
+| `value => expression`, `(left, right) => expression` | Lambdas whose parameter types are inferred from context; explicit typed, graded and loan parameters remain available. |
+| `T Name(...) => expression;` | A value-returning operation with the same checking as a single return block; the shorthand alone asserts no purity or permission. |
+| `let (owner, receipt) = pair;`, `case Ok(value): ...` | Bare pattern names bind values. Constructors use parentheses, including a nullary `None()`; `_` discards only where its resource rules permit. |
 | `owned T`, `move x` | A consuming parameter, and the call-site spelling that supplies one. The moved-from binding is unusable afterwards. |
 | `in T`, `ref T`, `out T` | Shared-read, initialized-exclusive and initialization-exclusive loans. Ordinary arguments repeat the mode; member-call syntax supplies the declared receiver loan. None is a freely copyable authority token. |
 | `Option<T>`, `Some(value)`, `None()` | Explicit optional data and its two tagged cases; payload use accounts for presence and absence. |
@@ -1142,9 +1145,9 @@ The caller's loan ends at the view's last use, branch by branch:
 ```text
 match (ParsePrefix(in frame))
 {
-	case Ok(let packet):
+	case Ok(packet):
 		Forward(in packet.Payload);          // frame stays shared-borrowed until this last use
-	case Err(let error):
+	case Err(error):
 		frame.Clear();                       // no view exists on this branch, so frame is writable
 		Report(error);
 }
@@ -1171,11 +1174,11 @@ A loan returned on one branch leaves the owner writable on the other, the condit
 public Result<ref<'table> Value, TableFull> FindOrInsert<ghost Nat capacity>(
 	ref Table<Key, Value, capacity> table, Key key)
 	effects writes(table)
-	ensures result is Ok(let slot) ==> slot == old(table.Model).GetOr(key, Value.Default)
-	restores result is Ok(let slot) ==> table.Model == old(table.Model).Set(key, final(slot))
-	ensures result is Err ==> table.Model == old(table.Model) && table.Model.Count == capacity
+	ensures result is Ok(slot) ==> slot == old(table.Model).GetOr(key, Value.Default)
+	restores result is Ok(slot) ==> table.Model == old(table.Model).Set(key, final(slot))
+	ensures result is Err(_) ==> table.Model == old(table.Model) && table.Model.Count == capacity
 {
-	if (table.Find(key) is Some(let slot))
+	if (table.Find(key) is Some(slot))
 		return Ok(slot);                           // the loan leaves with the result on this branch only
 	return table.TryInsert(key, Value.Default);    // no loan is live here, so the table is writable
 }
@@ -1382,9 +1385,9 @@ public async Result<Delivery<n>, Busy<n>> Serve<ghost Nat n>(
 		let dormant = Accept(move packet, in counter, move allowance);   // constructed, not yet run
 		match (spawn dormant)                                          // binds a declared frame and completion record
 		{
-			case Spawned(let task):
+			case Spawned(task):
 				return Ok(await task);                                 // a checkpoint, then the join
-			case Full(let unstarted, let verdict):
+			case Full(unstarted, verdict):
 				return Err(Busy(verdict, move unstarted));             // exhaustion returns every input
 		}
 	}                                                                  // an early exit cancels, then joins, every child

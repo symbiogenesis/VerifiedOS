@@ -42,6 +42,8 @@ first connection. In Neovim, `K` shows hover, `grr` finds references, `gO` lists
 document symbols and `:lua vim.lsp.buf.definition()` jumps to a declaration.
 Only complete sources accepted by the pure checker provide navigation; incomplete
 or unsupported code continues to receive the producer's diagnostic.
+Editors with standard inlay-hint support can also show inferred local `Nat` and
+`bool` types through the [authoring-hint provider](#authoring-hints).
 
 ## Interface and bounds
 
@@ -111,7 +113,8 @@ services retain their existing prerequisites.
 
 Support `textDocument/hover`, `textDocument/definition`,
 `textDocument/references` and `textDocument/documentSymbol`; advertise only those
-four additional providers. Hover uses plain text with the resolved function
+four navigation providers; [authoring hints](#authoring-hints) add the separate
+inlay-hint provider. Hover uses plain text with the resolved function
 signature or local/parameter type and an explicit unqualified-prototype label.
 Definition returns the exact declaration identifier location. References use
 resolved identity within the requested document and honor `includeDeclaration`.

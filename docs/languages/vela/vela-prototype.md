@@ -38,8 +38,9 @@ syntax until Q25h passes. Retain current examples/refusals as migration fixtures
 
 This subset follows the [proposed surface](verification-strategy.md#an-ideal-surface):
 return types precede operation names, parameter types precede bindings, immutable
-locals use `let` and exits use `return`. Contracts, grades, effects, loans and
-machine representations are unsupported and diagnosed, never ignored.
+locals use `let` and exits use `return` or an expression body. Contracts, grades,
+effects, loans and machine representations are unsupported and diagnosed,
+never ignored.
 
 The prototype accepts UTF-8 source with ASCII identifiers and `//` line comments.
 Identifiers match `[A-Za-z_][A-Za-z0-9_]*`, excluding grammar and reserved extension
@@ -51,7 +52,7 @@ functions; recursion and forward calls are refused. Local bindings are immutable
 
 ```text
 module Example;
-public Nat Twice(Nat x) { return x + x; }
+public Nat Twice(Nat x) => x + x;
 public Nat Select(bool flag, Nat x) {
   let result = Twice(x);
   if (flag) { return result; } else { return 0; }
@@ -62,8 +63,9 @@ The accepted grammar is:
 
 ```text
 file      := 'module' name ';' function+
-function  := 'public' type name '(' parameters? ')' block
-parameters:= type name (',' type name)*
+function  := 'public' type name '(' parameters? ')' body
+body      := block | '=>' expression ';'
+parameters:= type name (',' type name)* ','?
 type      := 'Nat' | 'bool'
 block     := '{' binding* exit '}'
 binding   := 'let' name '=' expression ';'
@@ -75,13 +77,15 @@ sum       := product ('+' product)*
 product   := atom ('*' atom)*
 atom      := decimal | 'true' | 'false' | name
            | name '(' arguments? ')' | '(' expression ')'
-arguments := expression (',' expression)*
+arguments := expression (',' expression)* ','?
 ```
 
 Arithmetic and `<=` take naturals; equality takes two operands of the same type.
-A condition is Boolean and every reachable branch explicitly returns the declared
-function result type. Statements after a terminal return or conditional are
-refused, and a block without a terminal result is a syntax error. Calls have the
+A condition is Boolean and every reachable branch returns the declared
+function result type. An expression body checks exactly like a single return;
+its expression is evaluated once. Optional trailing commas apply to nonempty
+parameter and argument lists, never to grouping. Statements after a terminal
+return or conditional are refused, and a block without a terminal result is a syntax error. Calls have the
 declared arity and argument types. Let bindings infer only their expression's
 `Nat` or `bool` type. Duplicate functions, parameters, local bindings in an active
 scope (including active parameters) and unbound values are errors. Function and
@@ -122,9 +126,11 @@ name hygiene. Well-formed negative neighbors must fail on return type, condition
 branch, call, duplicate-name or resolution premises. Trailing input, unsupported
 constructs, malformed/invalid UTF-8, excessive nesting and oversized literals
 must produce bounded diagnostics. Surface-conformance cases use the same declaration,
-parameter, return and control-flow spellings as the design dossier. Reject the old
-`fn`, colon-typed parameter, arrow-return and implicit-expression-body forms, along
-with missing returns and unreachable trailing statements. CLI tests must establish successful publication
+parameter, return and control-flow spellings as the design dossier. Cover expression
+bodies and equivalent return blocks, trailing commas and malformed adjacent forms
+through both syntax routes, with unchanged terms apart from exact source provenance.
+Reject the old `fn`, colon-typed parameter, arrow-return and undelimited expression
+body forms, along with missing returns and unreachable trailing statements. CLI tests must establish successful publication
 and preservation of existing output on rejection, input aliases and write errors.
 
 Host CI on Windows and Ubuntu supplies the integrated tool verdict. Dispatch

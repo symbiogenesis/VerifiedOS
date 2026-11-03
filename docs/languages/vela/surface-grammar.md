@@ -110,8 +110,8 @@ data and elimination forms throughout the surface:
   at least two components and may nest. Type, value and pattern nodes preserve
   their distinct roles (`unit_type`, `unit`, `unit_pattern`, `tuple_type`,
   `tuple`, `tuple_pattern`). A product pattern uses existing binding patterns:
-  `case (let owner, let receipt): ...`. Local elimination uses
-  `let (let owner, let receipt) = value;`, with an explicit pattern node;
+  `case (owner, receipt): ...`. Local elimination uses
+  `let (owner, receipt) = value;`, with an explicit pattern node;
   `var` supports the same shape. A bare `_` is a `wildcard_pattern`, whose
   permission to discard a resource is an elaboration obligation.
   In generic arguments, bare parentheses retain their existing value-expression
@@ -144,7 +144,7 @@ or more expression arms, each terminated by a semicolon:
 ```text
 definition Vec<byte, packet.Length> Contents(Packed<byte> packet) =
     match (packet) as whole : Vec<byte, whole.Length> {
-        case Packed(let length, let bytes) => bytes;
+        case Packed(length, bytes) => bytes;
     };
 ```
 
@@ -423,15 +423,16 @@ their existing `(+)` and `(*)` spellings, without a separate domain-value gramma
 Assignment, range, propagation and keyword computations are not operator values.
 
 Local elimination reuses constructor and recursive patterns:
-`let Some(let value) = optional;` and
-`var Ready((let owner, let receipt)) = outcome;`. Qualified constructors and
+`let Some(value) = optional;` and
+`var Ready((owner, receipt)) = outcome;`. Qualified constructors and
 explicit empty argument lists are accepted. A single parenthesized pattern groups
 it, producing `group_pattern` with a `pattern` child; products still require at
 least two components. Grouping works in local elimination, match arms and pattern
 tests. Local pattern bindings retain `let_pattern`/`var_pattern` with `pattern`
 and `value` fields. A bare local name retains the existing inferred binding form;
 a local constructor pattern requires parentheses, as in `let Ready() = outcome;`.
-Component grades remain in their data types. Refutability, constructor arity,
+Bare pattern names bind; constructor patterns require parentheses even for a
+nullary case, such as `None()`. Component grades remain in their data types. Refutability, constructor arity,
 exhaustiveness, ownership and resource disposal are elaboration obligations, so
 syntactically valid mistakes still parse.
 
@@ -537,7 +538,7 @@ Use the symbol families consistently:
 | `{...}` | Declaration/statement/proof bodies, match arms, handler clauses and explicitly introduced callable contracts |
 | `[...]` | Indexing; `type[...]` explicitly introduces a computed type |
 | `<...>`, `::<...>` | Type/generic parameters and arguments; explicit generic expression application |
-| `->`, `=>`, `==>`, `<==>` | Callable result, lambda/quantifier/match/handler body, implication and equivalence respectively |
+| `->`, `=>`, `==>`, `<==>` | Callable result, lambda/operation/quantifier/match/handler body, implication and equivalence respectively |
 | `\|`, `\|\|`, `&`, `&&`, `^`, `~` | Bitwise and Boolean operators with separate fixed precedence; prefix `&` derives an address/loan |
 | `*`, `+`, `-` | Multiplication and additive operators; prefix `*` dereferences a pointer and prefix `-` negates |
 | `@`, `'place`, `?`, `?name` | Use grade, lifetime identity, propagation and named hole respectively |
