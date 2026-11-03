@@ -4,7 +4,7 @@
   "sources": [
     {
       "path": "kernel/src/context.c",
-      "sha256": "ba655480c0a01c7ff2bb4310cc7a576e3bc23671afbadb0802688a83115fdb9c"
+      "sha256": "d20394f087e8bd8047e60c797f11fef2d7ed058c15b0033845f10956b5a91ea9"
     },
     {
       "path": "kernel/src/copy_loan.c",
@@ -16,7 +16,7 @@
     },
     {
       "path": "kernel/src/executive.c",
-      "sha256": "5e9c28002b189dad1e7637ce891cce18c471e1d45e2e9b0439cb32c3b899daae"
+      "sha256": "0e1aca2215eeaac8da59d13696cbc7e3ed117eef01e64edfb5f90b522f137e7b"
     },
     {
       "path": "kernel/src/handoff.c",
@@ -28,7 +28,7 @@
     },
     {
       "path": "kernel/src/partition.c",
-      "sha256": "bf5e746432b19fbc77ea5a6998ff3570fcbe7d33d79b2c1dbd4ac7c926bbb344"
+      "sha256": "f34ae497fd962865eaecc19d27cba3a5c17bfb52d688e39769d8dfb597ba5d3c"
     },
     {
       "path": "kernel/src/target.c",
@@ -48,7 +48,7 @@
     },
     {
       "path": "kernel/include/vos_kernel.h",
-      "sha256": "06e6c2296493cd3d3a96be57694148739138de8f6560e8e40315cecb1e9fd301"
+      "sha256": "de274585c72c18819a823e206d87d149c698c87f0b0a1eed0e81fb4bebdfbf2e"
     },
     {
       "path": "kernel/include/vos_lifecycle.h",

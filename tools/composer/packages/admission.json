@@ -28,7 +28,7 @@
     },
     {
       "path": "tools/vos/proofenv.py",
-      "sha256": "288ce963f92bd2ec4ba1b2fa69b704ce563d77a30b8893df03a182c98a623faf"
+      "sha256": "8554680f83eacb10085c9c35a1e7951c66129fe409bb5bcb845df1baa40d8c28"
     },
     {
       "path": "tools/vos/atomic.py",
