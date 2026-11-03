@@ -756,6 +756,96 @@ def _constant_source_protocol() -> None:
             raise AssertionError("accepted omitted or reordered local constant statements")
 
 
+def _lexical_boundaries_and_hidden_bindings() -> None:
+    def remove_space(fixture: _Fixture, pattern: bytes) -> tuple[bytes, Node]:
+        source, response = fixture.response()
+        offset = source.index(pattern) + pattern.index(b" ")
+        source = source[:offset] + source[offset + 1:]
+
+        def adjust(raw: object) -> None:
+            if isinstance(raw, list):
+                for child in raw:
+                    adjust(child)
+            elif isinstance(raw, dict):
+                if "span" in raw:
+                    raw["span"] = [position - (position > offset) for position in raw["span"]]
+                for key, child in raw.items():
+                    if key != "span":
+                        adjust(child)
+        adjust(response)
+        response["source_sha256"] = hashlib.sha256(source).hexdigest()
+        return source, response
+
+    def refuse(source: bytes, response: Node) -> None:
+        try:
+            elaborate(source, response)
+        except VelaError as error:
+            ensure(error.kind == "protocol", "source omission or token splitting reached semantic evaluation")
+        else:
+            raise AssertionError("accepted source token splitting or hidden runtime binding")
+
+    fixture = _Fixture("X")
+    fixture.constant("Limit", _NAT, _natural(1))
+    refuse(*remove_space(fixture, b"module X"))
+    fixture = _Fixture()
+    fixture.constant("Limit", _NAT, _natural(1))
+    refuse(*remove_space(fixture, b"Nat Limit"))
+    fixture = _Fixture()
+    fixture.alias("Same", _T, _POLY)
+    fixture.constant("Limit", _type("Same", _NAT), _natural(1))
+    elaborate(*remove_space(fixture, b"> Limit"))
+
+    def grouped_type(fixture: _Fixture) -> Node:
+        start = fixture.offset
+        fixture.write("(")
+        annotation = _NAT(fixture)
+        fixture.write(")")
+        return fixture.node("group_type", start, type=annotation)
+    fixture = _Fixture()
+    fixture.constant("Limit", grouped_type, _natural(1))
+    elaborate(*remove_space(fixture, b") Limit"))
+
+    def hidden_body(fixture: _Fixture) -> Node:
+        start = fixture.offset
+        fixture.write("{ ")
+        statements: list[Node] = []
+        for spelling, initial in (("padding", _variable("Shadow")), ("Shadow", _variable("runtime"))):
+            first = fixture.offset
+            fixture.write("let ")
+            name = fixture.name(spelling)
+            fixture.write(" = ")
+            value = initial(fixture)
+            fixture.write(";")
+            statements.append(fixture.node("let", first, name=name, type=None, grade=None, value=value))
+            fixture.write(" ")
+        statements.append(_local_constant("Chosen", _NAT, _variable("Shadow"), _variable("Chosen"))(fixture))
+        fixture.write(" }")
+        return fixture.node("block", start, statements=statements)
+    fixture = _Fixture()
+    fixture.constant("Shadow", _NAT, _natural(1))
+    fixture.function("Wrong", _NAT, (("runtime", _NAT),), hidden_body, block=True)
+    _refuses(fixture, "type", "nonstatic binding 'Shadow'")
+    source, response = fixture.response()
+    for widen_value in (False, True):
+        changed = copy.deepcopy(response)
+        declaration = cast("list[Node]", cast("Node", changed["ast"])["declarations"])[1]
+        statements = cast("list[Node]", cast("Node", declaration["body"])["statements"])
+        padding, hidden = statements[:2]
+        cast("list[int]", padding["span"])[1] = cast("list[int]", hidden["span"])[1]
+        if widen_value:
+            cast("list[int]", cast("Node", padding["value"])["span"])[1] = cast("list[int]", hidden["span"])[1] - 1
+        del statements[1]
+        refuse(source, changed)
+    fixture = _Fixture()
+    fixture.constant("Shadow", _NAT, _natural(1))
+    fixture.function("Wrong", _NAT, (("Shadow", _NAT),),
+                     _local_constant("Chosen", _NAT, _variable("Shadow"), _variable("Chosen")), block=True)
+    source, response = fixture.response()
+    declaration = cast("list[Node]", cast("Node", response["ast"])["declarations"])[1]
+    declaration["parameters"] = []
+    refuse(source, response)
+
+
 def _named_call_refusals() -> None:
     for labels, fragment in ((("missing", "right"), "expected argument label 'left'"),
                               (("right", "left"), "expected argument label 'left'"),
@@ -1280,6 +1370,7 @@ def cases() -> list[Case]:
             Case("static-dependencies-types-and-numeric-bounds", _static_dependency_refusals),
             Case("source-nullary-versus-explicit-Unit-arities", _source_callable_arities),
             Case("constant-complete-source-protocol", _constant_source_protocol),
+            Case("lexical-edges-and-hidden-runtime-binding-refusals", _lexical_boundaries_and_hidden_bindings),
             Case("named-call-interface-order-and-semantic-refusals", _named_call_refusals),
             Case("named-argument-complete-source-protocol", _named_argument_source_protocol),
             Case("concise-lambdas-and-expression-body-terms", _concise_lambdas_and_expression_bodies),

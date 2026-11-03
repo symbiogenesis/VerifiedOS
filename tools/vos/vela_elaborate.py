@@ -130,6 +130,180 @@ class _Protocol:
             return "".join(result)
         return "\x00"
 
+    @staticmethod
+    def _word(value: bytes) -> bool:
+        return value.isalnum() or value == b"_"
+
+    def _token(self, node: Node, cursor: int, token: bytes) -> int:
+        cursor = trivia_end(self.source, cursor, block_comments=True)
+        end = cursor + len(token)
+        if (self.source[cursor:end] != token
+                or (self._word(token[-1:]) and self._word(self.source[end:end + 1]))):
+            raise self.error("protocol", "syntax delimiter or keyword differs from source", node)
+        return end
+
+    def _child(self, node: Node, span: tuple[int, int], cursor: int, raw: object) -> int:
+        if not isinstance(raw, dict):
+            raise self.error("protocol", "syntax envelope requires a located child", node)
+        child_span = self._span(raw.get("span"), span)
+        if trivia_end(self.source, cursor, block_comments=True) != child_span[0]:
+            raise self.error("protocol", "syntax child leaves source tokens uncovered", node)
+        return child_span[1]
+
+    def _list(self, node: Node, span: tuple[int, int], cursor: int, raw: object,
+              opening: bytes = b"(", closing: bytes = b")") -> int:
+        if not isinstance(raw, list):
+            raise self.error("protocol", "syntax envelope requires a child list", node)
+        cursor = self._token(node, cursor, opening)
+        for index, value in enumerate(raw):
+            if index:
+                cursor = self._token(node, cursor, b",")
+            cursor = self._child(node, span, cursor, value)
+        if raw:
+            after = trivia_end(self.source, cursor, block_comments=True)
+            if self.source[after:after + 1] == b",":
+                cursor = after + 1
+        return self._token(node, cursor, closing)
+
+    def _generics(self, node: Node, span: tuple[int, int], cursor: int) -> int:
+        values = node["generics"]
+        if not isinstance(values, list):
+            raise self.error("protocol", "generic telescope must be a child list", node)
+        return self._list(node, span, cursor, values, b"<", b">") if values else cursor
+
+    def _ordinary_envelope(self, node: Node, span: tuple[int, int]) -> None:
+        kind = node["kind"]
+        cursor = span[0]
+        if kind in {"definition", "function", "alias", "theorem", "lemma"}:
+            if node.get("contracts") or node.get("cancel"):
+                return  # These roles are refused by the mathematical consumer.
+            modifiers = node["modifiers"]
+            if not isinstance(modifiers, list) or any(not isinstance(item, str) for item in modifiers):
+                raise self.error("protocol", "declaration modifiers must be a name list", node)
+            for modifier in modifiers:
+                cursor = self._token(node, cursor, cast("str", modifier).encode())
+            if kind != "function":
+                cursor = self._token(node, cursor, cast("str", kind).encode())
+            if kind in {"definition", "function"}:
+                cursor = self._child(node, span, cursor, node["result"])
+            cursor = self._child(node, span, cursor, node["name"])
+            cursor = self._generics(node, span, cursor)
+            if kind != "alias":
+                cursor = self._list(node, span, cursor, node["parameters"])
+            if kind in {"theorem", "lemma"}:
+                cursor = self._token(node, cursor, b":")
+                cursor = self._child(node, span, cursor, node["proposition"])
+                if node["body"] is not None:
+                    cursor = self._token(node, cursor, b"proof")
+                    cursor = self._child(node, span, cursor, node["body"])
+                else:
+                    cursor = self._token(node, cursor, b";")
+            elif kind in {"alias", "definition"}:
+                cursor = self._token(node, cursor, b"=")
+                cursor = self._child(node, span, cursor, node["type"] if kind == "alias" else node["value"])
+                cursor = self._token(node, cursor, b";")
+            elif node["body"] is None:
+                cursor = self._token(node, cursor, b";")
+            else:
+                cursor = self._child(node, span, cursor, node["body"])
+        elif kind in {"let", "typed_local", "parameter", "lambda_parameter", "generic_parameter"}:
+            if node.get("grade") is not None:
+                return
+            if kind == "generic_parameter":
+                if node["mode"] == "ghost":
+                    cursor = self._token(node, cursor, b"ghost")
+                    cursor = self._child(node, span, cursor, node["type"])
+                elif node["mode"] != "type":
+                    return
+                cursor = self._child(node, span, cursor, node["name"])
+                if node["mode"] == "type" and node["type"] is not None:
+                    cursor = self._token(node, cursor, b":")
+                    cursor = self._child(node, span, cursor, node["type"])
+            else:
+                if kind == "let":
+                    cursor = self._token(node, cursor, b"let")
+                if node["type"] is not None:
+                    cursor = self._child(node, span, cursor, node["type"])
+                if node["name"] is not None:
+                    cursor = self._child(node, span, cursor, node["name"])
+                if kind in {"let", "typed_local"}:
+                    cursor = self._token(node, cursor, b"=")
+                    cursor = self._child(node, span, cursor, node["value"])
+                    if cursor < span[1]:
+                        cursor = self._token(node, cursor, b";")
+        elif kind == "return":
+            cursor = self._token(node, cursor, b"return")
+            if node["value"] is not None:
+                cursor = self._child(node, span, cursor, node["value"])
+            cursor = self._token(node, cursor, b";")
+        elif kind == "if":
+            cursor = self._token(node, cursor, b"if")
+            cursor = self._token(node, cursor, b"(")
+            cursor = self._child(node, span, cursor, node["condition"])
+            cursor = self._token(node, cursor, b")")
+            cursor = self._child(node, span, cursor, node["then"])
+            if node["else"] is not None:
+                cursor = self._token(node, cursor, b"else")
+                cursor = self._child(node, span, cursor, node["else"])
+        elif kind in {"name", "hole"}:
+            cursor = self._child(node, span, cursor, node["name"])
+        elif kind == "binary":
+            for field in ("left", "operator", "right"):
+                cursor = self._child(node, span, cursor, node[field])
+        elif kind == "unary":
+            cursor = self._child(node, span, cursor, node["operator"])
+            cursor = self._child(node, span, cursor, node["value"])
+        elif kind in {"group", "group_type", "operator"}:
+            cursor = self._token(node, cursor, b"(")
+            field = {"group": "value", "group_type": "type", "operator": "name"}[cast("str", kind)]
+            cursor = self._child(node, span, cursor, node[field])
+            cursor = self._token(node, cursor, b")")
+        elif kind in {"tuple", "tuple_type"}:
+            cursor = self._list(node, span, cursor, node["values"] if kind == "tuple" else node["types"])
+        elif kind in {"type_expression", "type_argument", "computed_type"}:
+            cursor = self._token(node, cursor, b"type")
+            if kind == "computed_type":
+                cursor = self._token(node, cursor, b"[")
+                cursor = self._child(node, span, cursor, node["value"])
+                cursor = self._token(node, cursor, b"]")
+            else:
+                cursor = self._child(node, span, cursor, node["type"])
+        elif kind == "type":
+            cursor = self._child(node, span, cursor, node["name"])
+            values = node["arguments"]
+            if not isinstance(values, list):
+                raise self.error("protocol", "type arguments must be a child list", node)
+            if values:
+                cursor = self._list(node, span, cursor, values, b"<", b">")
+        elif kind == "function_type":
+            if node["captures"] or node["effects"] or node["contracts"]:
+                return
+            cursor = self._token(node, cursor, cast("str", node["mode"]).encode())
+            cursor = self._generics(node, span, cursor)
+            cursor = self._list(node, span, cursor, node["parameters"])
+            cursor = self._token(node, cursor, b"->")
+            cursor = self._child(node, span, cursor, node["result"])
+        elif kind == "generic_application":
+            cursor = self._child(node, span, cursor, node["value"])
+            cursor = self._list(node, span, cursor, node["arguments"], b"::<", b">")
+        elif kind == "typed_lambda":
+            cursor = self._child(node, span, cursor, node["signature"])
+            cursor = self._token(node, cursor, b"=>")
+            cursor = self._child(node, span, cursor, node["body"])
+        elif kind == "let_expression":
+            cursor = self._child(node, span, cursor, node["binding"])
+            cursor = self._token(node, cursor, b"in")
+            cursor = self._child(node, span, cursor, node["body"])
+        elif kind == "quantifier":
+            cursor = self._token(node, cursor, cast("str", node["quantifier"]).encode())
+            cursor = self._list(node, span, cursor, node["parameters"])
+            cursor = self._token(node, cursor, b"=>")
+            cursor = self._child(node, span, cursor, node["value"])
+        else:
+            return
+        if cursor != span[1]:
+            raise self.error("protocol", "syntax envelope leaves trailing source tokens uncovered", node)
+
     def _lambda_envelope(self, node: Node, span: tuple[int, int]) -> None:
         parameters = node["parameters"]
         body = node["body"]
@@ -264,6 +438,10 @@ class _Protocol:
                             or re.fullmatch(r"\?[A-Za-z_][A-Za-z_0-9]*", text))
                     or self._compact_name(self.source[span[0]:span[1]]) != text):
                 raise self.error("protocol", "syntax identifier or operator differs from its source", node)
+            if ((_IDENTIFIER.fullmatch(text) or text.startswith("?"))
+                    and (self._word(self.source[span[0] - 1:span[0]])
+                         or self._word(self.source[span[1]:span[1] + 1]))):
+                raise self.error("protocol", "syntax identifier splits a source token", node)
             return
         kind = node.get("kind")
         if not isinstance(kind, str):
@@ -273,6 +451,7 @@ class _Protocol:
             raise self.error("unsupported", f"'{kind}' is outside mathematical elaboration", node)
         if set(node) != {"kind", "span", *fields}:
             raise self.error("protocol", f"invalid fields for '{kind}'", node)
+        self._ordinary_envelope(node, span)
         if kind == "nat":
             value, suffix = node["value"], node["suffix"]
             if not isinstance(value, str) or not isinstance(suffix, str):
@@ -316,6 +495,7 @@ class _Protocol:
             name_span = self._span(name.get("span"), span)
             cursor = trivia_end(self.source, span[0] + len(b"module"), block_comments=True)
             if (self.source[span[0]:span[0] + len(b"module")] != b"module"
+                    or self._word(self.source[span[0] + len(b"module"):span[0] + len(b"module") + 1])
                     or cursor != name_span[0]):
                 raise self.error("protocol", "module header differs from source", node)
             cursor = trivia_end(self.source, name_span[1], block_comments=True)
