@@ -440,20 +440,20 @@ These figures cover the priced reference-build, assessment and named hardening b
 <!-- estimate-summary:start -->
 | Measure | Value |
 | --- | --- |
-| Total estimate midpoint h | 4,794.6 |
-| Total estimate range h | 3,112.5–6,476.7 |
-| Completed scope h | 866.1 |
-| Complete by estimate % | 18.1 |
-| Remaining h | 3,928.5 |
-| Committed remaining h | 2,486.5 |
+| Total estimate midpoint h | 4,819.3 |
+| Total estimate range h | 3,129.2–6,509.4 |
+| Completed scope h | 866.8 |
+| Complete by estimate % | 18.0 |
+| Remaining h | 3,952.5 |
+| Committed remaining h | 2,510.5 |
 | Open class I h | 949.5 |
-| Open class X h | 2,979 |
+| Open class X h | 3,003 |
 | Retained completion estimate h | 261.5 |
 | Unmeasured completed items | 29 |
-| Calibrated total h | 5,770.4 |
+| Calibrated total h | 5,805.2 |
 | Committed M8a open h | 74 |
 | Committed M8b open h | 105.5 |
-| Other committed open h | 2,307 |
+| Other committed open h | 2,331 |
 | Conditional open h | 1,028 |
 | Unfunded option open h | 414 |
 | Committed M8a open class X h | 0 |
@@ -1019,10 +1019,10 @@ The [first-release delivery sequence](#vela-first-release-delivery) governs new 
 * [ ] **Q25u · Add pure Vela editor formatting and semantic tokens** · 12 h, range 8–16 · I · agent-parallel
   * **Start:** the landed [pure editor operations contract](docs/languages/vela/lsp-prototype.md#pure-editor-operations), Q25n's overlay/transport foundation, Q25o's compiler facts and Q25t's formatter. **Owns:** bounded isolated document formatting, full semantic token projection and independent overlay/wire controls. **Check:** every edit, token, coordinate, lifecycle, refusal, resource and real-process predicate in that contract, retained translation/authoring/LSP controls, focused host tests, Python checks, both Host CI aggregates and selected Guest CI dispatch. **Join:** independent formatting-isolation and fact-projection review and revision-bound hosted evidence; two pinned editor clients remain required for final qualification. **Execute:** reuse canonical style and resolved facts without a new parser or semantic checker; keep source writes in explicit formatter/editor actions or opt-in formatting, and wider-language services with their frontend owners.
   * **Prototype checkpoint:** the language server offers compiler-checked canonical formatting as a proposed whole-document edit and full identifier semantic tokens from resolved facts. Independent controls cover exact edits and relative token streams, Unicode/newlines, refusal/recovery, worker isolation and a real stdio session with unsaved edits. Initialization and error replies obey complete-frame bounds without poisoning later requests. The `vela-editor-safety-20261102` journal owns revision-bound Host CI, selected Guest CI dispatch and lane retirement. Two pinned editor clients and retained transcripts remain outstanding; this item stays open and grants no wider-language or production qualification.
-* [ ] **Q25v · Settle the bounded Vela release and practical language contracts** · 4 h, range 2–6 · I · agent-parallel
-  * **Start:** the practical Vela critique, the existing language dossiers and the requirements register. **Owns:** the bounded synchronous release, interpretation-policy clarification, primitive and package contracts, ownership ergonomics, async composition/outcome corrections, assurance and immutable-tooling defaults, critique dispositions and staged delivery. **Check:** Tier A review of every changed owner, normative entry/prose co-reads, generated corpus consistency and Markdown validation; each accepted recommendation has a current design owner and an implementation acceptance predicate, without claiming implementation or proof evidence. **Join:** independent core, effects and policy review plus integrator consistency review. **Execute:** settle design and planning only; retain current prototype limitations and existing production obligations.
+* [x] **Q25v · Settle the bounded Vela release and practical language contracts** · 0.7 h actual · agent-parallel
+  * Selects a synchronous release, checked interpretation and concrete primitive/package contracts, with practical ownership, assurance, tooling and staged-delivery acceptance. ([note](docs/implementation/completion-log.md#q25v-settle-the-bounded-vela-release-and-practical-language-contracts))
 * [ ] **Q25w · Investigate the concrete Vela buffer foundation within a fixed budget** · 24 h, range 16–32 · X · agent-parallel
-  * **Start:** Q25v, the [first-release contract](docs/languages/vela/first-release.md#qualification), R-05-020a, Q2b's actual decoder destination and the [existing foundation ledger](docs/hardware/cheri-foundation-map.md). **Owns:** one pinned Sail carrier for bounded initialize/copy, an inhabited byte case, concrete read/write/frame/disjoint-sharing and returned-view restoration laws, and resource accounting on failure. Freeze an actual packet format and independently expected bytes/status before using parser success as evidence. **Check:** either a checked candidate with an explicit law/assumption/dependency inventory, or a decisive blocked/refused result naming the missing dependency and next owner. Abstract token records or an uninhabited representation are not concrete evidence. Follow the portable proof workflow, including cold hosted acceptance for repairs; exercise empty/full/error cases and wrong-byte, alias, stale-input and restoration controls that fail for the intended semantic reason. Pending hosted checks supply no passing verdict. **Join:** independently review the inhabitant, theorem subjects, invalid neighbors and foundation reuse; retain compiler, contextual-security and exact-byte duties at their existing owners without duplicate costs.
+  * **Start:** Q25v, the [first-release contract](docs/languages/vela/first-release.md#qualification), R-05-020a, Q2b's actual decoder destination and the [existing foundation ledger](docs/hardware/cheri-foundation-map.md). **Owns:** one pinned Sail carrier for bounded initialize/copy, an inhabited byte case, concrete read/write/frame/disjoint-sharing and returned-view restoration laws, and resource accounting on failure. Freeze an actual packet format and independently expected bytes/status before using parser success as evidence. **Check:** a successful candidate supplies an explicit checked law/assumption/dependency inventory and inhabited concrete representation. It follows the portable proof workflow, including cold hosted acceptance for repairs, and passes empty/full/error cases and wrong-byte, alias, stale-input and restoration controls that fail for the intended semantic reason. Abstract token records or an uninhabited representation are not concrete evidence. Alternatively, a blocked/refused outcome records the inspected missing dependency or exhausted budget, the attempted candidate and evidence, the next owner, and every check that could not run. That outcome supplies no candidate acceptance; missing or pending hosted checks supply no passing verdict. **Join:** independently review the inhabitant, theorem subjects, invalid neighbors and foundation reuse; retain compiler, contextual-security and exact-byte duties at their existing owners without duplicate costs.
   * **Execute:** stop after at most 32 summed active agent-session hours, including review and repair. Record consumed budget and the precise candidate or blocking result. Do not automatically extend the budget, build a general logic/backend or reopen Q2c/Q19/Q20. A blocked result completes only this investigation; successful evidence permits pricing the [next delivery stage](#vela-first-release-delivery), not its automatic implementation.
 * [x] **Q26 · Price the resident toolchain against the floor's own comparisons** · 4.6 h actual · agent-parallel
   * [The toolchain residency report](docs/performance/toolchain-residency.md) records the three quantities with their predicates, instruments, lanes and revisions, scores each against the artifact that owns its supply or declares it unscorable with the act that owes the supply named, and states which of the three binds and what would have to move, as arms for the product's owner with none taken. ([note](docs/implementation/completion-log.md#q26-price-the-resident-toolchain-against-the-floors-own-comparisons))
@@ -1377,7 +1377,7 @@ Q6's conventional-memory simulators are conditional on a topology comparison nee
 
 No assessment completion automatically increases a performance estimate. For an optimization affecting fraction `f` of runtime by factor `s`, the unchanged-cost bound is `1 / ((1 - f) + f / s)`; added transfers or changed scheduling require a fresh whole-workload comparison. Better packing is not more fabricated capacity, and host performance is not target throughput.
 
-**Q subtotal:** 2,965.1 h · 62% · 254.1 h complete · open range 1,576–3,846 h.
+**Q subtotal:** 2,989.8 h · 62% · 254.8 h complete · open range 1,592–3,878 h.
 
 ### M0 · Hardware reference
 
@@ -2288,10 +2288,10 @@ These items count toward the grand total, outside milestone subtotals, with one 
 | attended | X-read | 14 | 45.5 | 26.9 | 0.59 |
 | attended | X-authored | 3 | 18 | 25.5 | 1.42 |
 | attended | All | 63 | 323.9 | 238.4 | 0.74 |
-| agent-parallel | I | 43 | 347 | 130.5 | 0.38 |
+| agent-parallel | I | 44 | 351 | 131.2 | 0.37 |
 | agent-parallel | X-read | 11 | 107.5 | 36.9 | 0.34 |
 | agent-parallel | X-authored | 25 | 284 | 44.1 | 0.16 |
-| agent-parallel | All | 79 | 738.5 | 211.5 | 0.29 |
+| agent-parallel | All | 80 | 742.5 | 212.2 | 0.29 |
 <!-- calibration-results:end -->
 
 ### Calibration record
@@ -2456,6 +2456,7 @@ One row per completed item marked `agent-parallel`, using the [calibration recor
 | Q25f | I | 2 |
 | Q25l | I | 2 |
 | Q25m | n/a | n/a |
+| Q25v | I | 4 |
 | Q26 | X-read | 12 |
 | Q27a | I | 7 |
 | Q27b | I | 6 |

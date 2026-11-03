@@ -8,7 +8,6 @@ Ordinary theorem syntax remains available to its separately scoped mathematical
 consumer. Exploratory contract claims use a distinct editor/scratch channel;
 accepted exported `requires`/`ensures` follow the [assurance contract](assurance-profiles.md).
 
-
 This is the syntax contract for [Q25i](../../../PLAN.md#q-assessment-actions).
 The [language design](verification-strategy.md#an-ideal-surface) and
 [whole-system contract](unified-source-contract.md#authoring-end-state) own the

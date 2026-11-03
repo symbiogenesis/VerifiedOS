@@ -6723,7 +6723,7 @@ The table below records the extracted normative sections and their entry counts,
 | **§2 Non-Goals** | **extracted** | **10** |
 | **§3 Threat Model** | **extracted** | **9** |
 | **§4 Organizing Principle** | **extracted** | **15** |
-| **§5 Languages & Verification** | **extracted** | **213** |
+| **§5 Languages & Verification** | **extracted** | **214** |
 | **§6 Trusted Computing Base** | **extracted** | **32** |
 | **§7 Kernel** | **extracted** | **70** |
 | **§8 Authority Model** | **extracted** | **96** |

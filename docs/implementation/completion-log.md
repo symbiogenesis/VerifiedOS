@@ -1202,6 +1202,49 @@ Landed: Tier A. Independent full reads covered the complete companion and change
 product, composition, evidence and implementation boundaries. No normative
 requirement, coverage cell, semantic anchor or kernel equality was amended.
 
+<a id="q25v-settle-the-bounded-vela-release-and-practical-language-contracts"></a>
+
+### Q25v · Settle the bounded Vela release and practical language contracts
+
+Accepted on 2026-11-03 as a design and planning change. The
+[first-release contract](../languages/vela/first-release.md) selects bounded
+synchronous software through one retained backend, explicit scalar/text and
+package semantics, and usable initialization/loan libraries. The
+[critique dispositions](../background/critique.md#vela-interface-clarity) map the
+accepted recommendations to their owners. General grades, runtime multi-shot
+and shallow handlers, broad reflection, extra tool adapters, self-hosting and
+machine/hardware replacement require separately justified consumers.
+
+R-05-020/R-05-020a and their co-read prose distinguish checked interpretation
+from a new authoritative semantics while retaining exact-source correspondence,
+concrete machine laws and every production obligation. Exported contracts remain
+mandatory under every assurance policy. Later async composition distinguishes
+sequential helper execution, ordinary error payloads and task-failure outcomes.
+Q25t retains the executable migration to immutable default check/emission;
+the current prototype still requires `--format off` for that behavior.
+
+The [delivery sequence](../../PLAN.md#vela-first-release-delivery) commissions
+Q25w's finite foundation investigation with separate successful-candidate and
+blocked-result predicates. Later component, independent-package and release
+stages require actual prerequisites and separately priced acceptance. This item
+implements no language feature, checked concrete law, runtime or compiler route.
+Technical feasibility, recurring developer value and economic adoption have
+separate criteria without weakening mandatory guarantees.
+
+Independent review of integrated `53b9f9dd` identified a task-outcome example
+mismatch and a blocked-investigation predicate requiring unavailable candidate
+checks; both are corrected in the settled design. The local
+`vela-wire-20261103-final` fanout journal records the settled revision, comparison
+base, selected checks and local verdicts. Hosted acceptance remains user-managed
+and has no verdict from this session; no push or hosted dispatch is performed.
+Accounting: 0.7 h summed agent-session authoring, independent review and integration,
+rounded to the plan's precision; the prospective estimate was 4 h, range 2–6.
+
+Landed: Tier A. Review covers the changed contracts, normative entry/prose pairs,
+coverage relation, examples and implementation predicates. Corpus and Markdown
+validation retain their local handoff; they establish document consistency,
+not source metatheory or executable acceptance.
+
 <a id="q26-price-the-resident-toolchain-against-the-floors-own-comparisons"></a>
 
 ### Q26 · Price the resident toolchain against the floor's own comparisons
