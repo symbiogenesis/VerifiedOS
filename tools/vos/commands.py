@@ -80,7 +80,7 @@ COMMANDS: tuple[Command, ...] = (
     Command("worktree", "vos.cli.worktree",
             "create and verify isolated checkouts with a provider-neutral root"),
     Command("fanout", "vos.cli.fanout",
-            "integrate a batch, publish hosted CI evidence and retire its worktrees"),
+            "integrate a local batch, record CI recommendations and retire its worktrees"),
     Command("instrument-ci", "vos.cli.instrument_ci",
             "dispatch the hosted QuickChick switch route and read its runs back"),
     Command("retain", "vos.cli.retain",

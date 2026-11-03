@@ -1,12 +1,11 @@
 # SPDX-License-Identifier: Apache-2.0
-"""Complete an explicit fan-out batch, including hosted CI and safe retirement."""
+"""Complete an explicit fan-out batch on local main with safe retirement."""
 
 import argparse
 import json
 import re
 import subprocess
 import sys
-import time
 from collections.abc import Generator
 from contextlib import contextmanager
 from dataclasses import asdict
@@ -21,19 +20,13 @@ from vos.corpus import find_root
 # check accepts.
 _COMMIT = re.compile(r"[0-9a-f]{40}")
 
-# Seconds between Host CI polls under --wait-host. A poll is two or three GitHub GETs,
-# a credential read and a status read of the integration checkout, each a short local
-# process, so even the longest bound stays far inside the API's hourly request limit,
-# and a completed run is seen within seconds.
-_HOST_POLL_SECONDS = 5
-
 
 class FanoutError(ValueError):
     """Batch completion cannot continue without an explicit correction."""
 
 
 class Batch(TypedDict):
-    """Local journal; CI records are evidence for one settled revision only.
+    """Local completion journal with inert historical CI evidence, if present.
 
     `reading_base` is fixed at init: the commit Guest CI's proofs lane reads beside
     the settled revision, or None. A journal without the key names none.
@@ -48,7 +41,9 @@ class Batch(TypedDict):
     cold: bool
     reading_base: NotRequired[str | None]
     full_ci: NotRequired[bool]
-    # Frozen before publication; its baseline is remote main, not the init head.
+    # Local settled commit, independent of any historical hosted evidence.
+    revision: NotRequired[str]
+    # Frozen against the local remote tracking ref, which may be stale.
     selection: NotRequired[ci_scope.Selection]
     deferred: list[str]
     lanes: list[dict[str, object]]
@@ -133,6 +128,9 @@ def _load(path: Path, root: Path) -> Batch:
     for key in ("base", "branch", "remote", "status"):
         if not isinstance(value.get(key), str) or not value[key]:
             raise ValueError(f"invalid batch {key}")
+    if "revision" in value and (not isinstance(value["revision"], str)
+                                or not _COMMIT.fullmatch(value["revision"])):
+        raise ValueError("invalid local settled revision")
     if not isinstance(value.get("cold"), bool):
         raise FanoutError("invalid cold policy")
     if "full_ci" in value and type(value["full_ci"]) is not bool:
@@ -165,12 +163,18 @@ def _load(path: Path, root: Path) -> Batch:
         if not isinstance(raw, dict) or not isinstance(raw.get("revision"), str):
             raise ValueError("invalid frozen CI selection")
         selection = ci_scope.validate_selection(raw, raw["revision"])
+        if "revision" in value and value["revision"] != selection["revision"]:
+            raise ValueError("CI selection differs from the local settled revision")
         if ((value["cold"] or reading_base is not None or value.get("full_ci"))
                 and selection["guest_lanes"] != list(ci_scope.ALL_GUEST_LANES)):
             raise ValueError("cold, full CI and proof reading require every guest lane")
-        if value.get("ci") is not None and value["ci"].get("selection") != selection:
+        if (value.get("ci") is not None
+                and value["ci"]["revision"] == selection["revision"]
+                and "selection" in value["ci"]
+                and value["ci"].get("selection") != selection):
             raise ValueError("CI selection differs from the batch")
-    elif value.get("ci") is not None and "selection" in value["ci"]:
+    elif (value.get("ci") is not None and "selection" in value["ci"]
+          and value.get("revision", value["ci"]["revision"]) == value["ci"]["revision"]):
         raise ValueError("CI selection is missing from the batch")
     return cast("Batch", value)
 
@@ -179,7 +183,7 @@ def _reading_base(root: Path, value: str | None) -> str | None:
     """The reading base `init` fixes: a commit main's head descends from, or None.
 
     Every revision the batch settles descends from main's head at init, so it descends
-    from this commit too; `finish` refuses to publish the commit itself.
+    from this commit too; `finish` refuses to settle the commit itself.
     """
     if value is None:
         return None
@@ -239,7 +243,6 @@ def initialize(root: Path, args: argparse.Namespace) -> Batch:
              for owned, selected in ((True, args.worktree), (False, args.host_worktree))
              for path in selected]
     worktree._branch(root, args.remote)  # Ref-safe literal, never an option or URL.
-    _git(root, "remote", "get-url", args.remote)
     state: Batch = {
         "version": 1, "batch": args.batch, "root": str(root),
         "base": _git(root, "rev-parse", "HEAD"),
@@ -254,7 +257,7 @@ def initialize(root: Path, args: argparse.Namespace) -> Batch:
 
 
 def _merge_message(root: Path, lane: fanout_retire.LaneRecord) -> str:
-    # A push run is titled with this subject, so it names the lane, not a hash.
+    # Keep the integration subject useful when reviewing local main.
     name = lane.branch or lane.lane
     latest = _git(root, "log", "-1", "--no-merges", "--format=%s", f"HEAD..{lane.head}")
     return f"Merge {name}: {latest}" if latest else f"Merge {name}"
@@ -275,7 +278,6 @@ def integrate(root: Path, state: Batch, path: Path) -> None:
             continue
         _clean(root)
         _git(root, "merge", "--no-ff", "-m", _merge_message(root, lane), lane.head)
-        state["ci"] = None
         state["status"] = "integrating"
         _save(path, state)
     state["status"] = "integrated"
@@ -309,7 +311,7 @@ def _prepare(root: Path, paths: list[str], message: str | None) -> None:
         raise ValueError("repair/check reported findings; resolve them and required co-reads before finish")
     if paths:
         # Repair may have changed named files. Other derived files remain unstaged
-        # and prevent publication until the integrator explicitly selects them.
+        # and prevent completion until the integrator explicitly selects them.
         for relative in normalized:
             print(_git(root, "--literal-pathspecs", "diff", "--", relative), flush=True)
         _git(root, "--literal-pathspecs", "add", "--", *normalized)
@@ -318,79 +320,53 @@ def _prepare(root: Path, paths: list[str], message: str | None) -> None:
     _clean(root)
 
 
-def _prepublication(root: Path) -> None:
+def _precompletion(root: Path) -> None:
     """Focused feedback for recurring integration failures; hosted gates still decide."""
     commands = (("typecheck",), ("test", "--only", "test_lanes"),
                 ("test", "--only", "test_retained_evidence"))
     for command in commands:
         label = " ".join(command)
-        print(f"Before publication: {label}", flush=True)
+        print(f"Before local completion: {label}", flush=True)
         result = subprocess.run([sys.executable, str(root / "tools" / "run.py"), *command],
                                 cwd=root, check=False, timeout=300)
         if result.returncode:
-            raise ValueError(f"prepublication {label} exited {result.returncode}; main was not pushed")
+            raise ValueError(f"local preparation {label} exited {result.returncode}; lanes were not retired")
 
 
 def _freeze_selection(root: Path, state: Batch, revision: str, path: Path) -> ci_scope.Selection:
-    """Record the pre-push remote comparison before any publication can change it."""
+    """Freeze advisory CI scope without contacting or updating a remote."""
     previous = state.get("selection")
     if previous is not None and previous["revision"] == revision:
         return ci_scope.validate_selection(previous, revision)
     base: str | None = None
     try:
-        answer = _git(root, "ls-remote", "--exit-code", state["remote"], "refs/heads/main")
-        fields = answer.split()
-        if len(fields) == 2 and fields[1] == "refs/heads/main" and _COMMIT.fullmatch(fields[0]):
-            base = fields[0]
+        worktree._branch(root, state["remote"])
+        answer = _git(root, "rev-parse", "--verify", "--quiet",
+                      f"refs/remotes/{state['remote']}/main^{{commit}}")
+        if _COMMIT.fullmatch(answer):
+            base = answer
     except OSError, ValueError, subprocess.SubprocessError:
-        # Missing remote history cannot authorize omissions. Publication still
-        # checks remote state normally, so this does not hide a push failure.
+        # Missing local history cannot authorize omissions.
         pass
     selection = ci_scope.select_changes(
         root, base, revision,
         force_full=bool(state.get("full_ci") or "full_ci" not in state),
         force_guest=bool(state["cold"] or state.get("reading_base")))
+    if state.get("revision") != revision:
+        state.pop("revision", None)
     state["selection"] = selection
     _save(path, state)
-    print(f"CI selection from {selection['base'] or 'unavailable'}: {selection['reason']}; "
+    print(f"Recommended CI from local tracking base {selection['base'] or 'unavailable'}: "
+          f"{selection['reason']}; "
           f"guest lanes: {', '.join(selection['guest_lanes']) or 'none'}", flush=True)
     return selection
-
-
-def _publish(root: Path, state: Batch, revision: str) -> str:
-    _settled(root, state, revision)
-    selection = state.get("selection")
-    if selection is not None:
-        selection = ci_scope.validate_selection(selection, revision)
-    if selection is None or selection["host_full"]:
-        _prepublication(root)
-    else:
-        print("Prose-only changes: omit unchanged Python publication checks", flush=True)
-    _settled(root, state, revision)
-    remote = state["remote"]
-    if selection is not None and selection["base"] is not None:
-        answer = _git(root, "ls-remote", "--exit-code", remote, "refs/heads/main")
-        if answer.split() not in ([selection["base"], "refs/heads/main"],
-                                  [revision, "refs/heads/main"]):
-            raise ValueError("remote main changed after CI selection; refresh the batch's "
-                             "settled inputs before publication")
-    # Explicitly disable followTags even if a user's Git configuration enables it.
-    _git(root, "-c", "push.followTags=false", "push", remote, f"{revision}:refs/heads/main")
-    _published(root, state, revision)
-    return "main"
-
-
-def _published(root: Path, state: Batch, revision: str) -> None:
-    answer = _git(root, "ls-remote", "--exit-code", state["remote"], "refs/heads/main")
-    if answer.split() != [revision, "refs/heads/main"]:
-        raise ValueError("remote main changed; integrate its changes and refresh hosted evidence")
 
 
 def _settled(root: Path, state: Batch, revision: str) -> None:
     _checkout(root, state)
     _clean(root)
     if _git(root, "rev-parse", "HEAD") != revision:
-        raise ValueError("integration revision changed during hosted validation or retirement")
+        raise ValueError("integration revision changed during local preparation or retirement")
 
 
 def finish(root: Path, state: Batch, path: Path, args: argparse.Namespace) -> bool:
@@ -398,54 +374,39 @@ def finish(root: Path, state: Batch, path: Path, args: argparse.Namespace) -> bo
     if state["status"] == "complete":
         _clean(root)
         ci = state["ci"]
-        if ci is None or ci["revision"] != _git(root, "rev-parse", "HEAD"):
+        revision = state.get("revision") or (ci["revision"] if ci is not None else None)
+        if revision is None or revision != _git(root, "rev-parse", "HEAD"):
             raise ValueError("completed batch inputs changed; initialize a new batch")
-        _published(root, state, ci["revision"])
         return True
-    if state["status"] != "retiring":
+    retiring = state["status"] == "retiring"
+    if not retiring:
         integrate(root, state, path)
-        _prepare(root, args.path, args.message)
-    else:
-        # A fix to the retirement code may itself need a new tested revision.
-        # Already removed workers resume via their durable removal receipts.
-        _prepare(root, args.path, args.message)
+    # A retirement fix may itself need a new local revision. Already removed workers
+    # resume through the retirement module's durable removal receipts.
+    _prepare(root, args.path, args.message)
     revision = _git(root, "rev-parse", "HEAD")
-    if state["ci"] is None or state["ci"]["revision"] != revision:
-        _reading_settled(root, state, revision)
-        selection = _freeze_selection(root, state, revision, path)
-        ref = _publish(root, state, revision)
-        state["ci"] = fanout_ci.new_state(fanout_ci.repository(root, state["remote"]),
-                                          ref, revision, state["cold"],
-                                          state.get("reading_base"), selection=selection,
-                                          full_ci=state.get("full_ci", False))
-        state["status"] = "published"
-        _save(path, state)
-    deadline = time.monotonic() + args.wait_host
-    while True:
-        _settled(root, state, revision)
-        ready = fanout_ci.advance(root, state["ci"], lambda: _save(path, state))
-        if ready:
-            break
-        state["status"] = "host-pending"
-        _save(path, state)
-        host = state["ci"]["host"]
-        print(f"Host CI {host['status'] if host else 'pending'}: "
-              f"{host['url'] if host else 'awaiting dispatch'}", flush=True)
-        if time.monotonic() >= deadline:
-            return False
-        time.sleep(min(_HOST_POLL_SECONDS, max(0, deadline - time.monotonic())))
+    _reading_settled(root, state, revision)
+    selection = _freeze_selection(root, state, revision, path)
+    ci = state["ci"]
+    prepared = state.get("revision") or (
+        ci["revision"] if retiring and ci is not None else None)
+    if prepared != revision:
+        if selection["host_full"]:
+            _precompletion(root)
+        else:
+            print("Prose-only changes: omit unchanged Python preparation checks", flush=True)
+    _settled(root, state, revision)
+    state["revision"] = revision
     state["status"] = "retiring"
     _save(path, state)
     for raw in state["lanes"]:
         _settled(root, state, revision)
-        _published(root, state, revision)
         lane = fanout_retire.validate_record(raw)
         if lane.path not in state["retired"]:
             state["retired"][lane.path] = fanout_retire.retire(
                 root, lane, revision, path.parent / "retained")
             _save(path, state)
     _settled(root, state, revision)
-    _published(root, state, revision)
     state["status"] = "complete"
     _save(path, state)
     return True
@@ -459,27 +420,23 @@ def main(argv: list[str] | None = None) -> int:
                       help="batch-owned worktree to integrate and retire (repeatable)")
     init.add_argument("--host-worktree", action="append", type=Path, default=[],
                       help="host-owned worktree to integrate and retain (repeatable)")
-    init.add_argument("--remote", default="origin")
-    init.add_argument("--cold", action="store_true", help="require cold Guest CI and fresh proofs")
+    init.add_argument("--remote", default="origin", help="local remote tracking ref name for advisory CI scope")
+    init.add_argument("--cold", action="store_true", help="record a need for cold Guest CI and fresh proofs")
     init.add_argument("--full-ci", action="store_true",
-                      help="run every Host CI check and Guest CI lane regardless of changed paths")
+                      help="recommend every Host CI check and Guest CI lane regardless of changed paths")
     init.add_argument("--reading-base", metavar="COMMIT",
                       help="full lowercase SHA of a commit main's head descends from; "
                            "Guest CI's proofs lane reads that commit's proofs and compares "
                            "them with the settled revision's (default: no reading)")
     init.add_argument("--defer", action="append", default=[], help="acceptance check outside CI")
     joining = subs.add_parser("integrate", suggest_on_error=True, help="merge recorded worker commits, stopping on conflicts")
-    finishing = subs.add_parser("finish", suggest_on_error=True, help="repair, publish, require Host CI, dispatch Guest CI, retire")
+    finishing = subs.add_parser("finish", suggest_on_error=True, help="repair, record local CI recommendations and retire")
     finishing.add_argument("--path", action="append", default=[], help="individual file to stage and commit")
     finishing.add_argument("--message", help="commit message for explicitly selected --path files")
-    finishing.add_argument("--wait-host", type=int, default=0, metavar="SECONDS",
-                           help="bounded Host CI wait; default returns pending for later resume")
-    status = subs.add_parser("status", suggest_on_error=True, help="read local evidence without querying Guest CI")
+    status = subs.add_parser("status", suggest_on_error=True, help="read only the local journal")
     for sub in (init, joining, finishing, status):
         sub.add_argument("batch")
     args = parser.parse_args(argv)
-    if args.command == "finish" and not 0 <= args.wait_host <= 7200:
-        parser.error("--wait-host must be between 0 and 7200 seconds")
     try:
         root = find_root().resolve()
         path = _location(root, args.batch) / "state.json"
@@ -490,9 +447,10 @@ def main(argv: list[str] | None = None) -> int:
                 state = _load(path, root)
                 if args.command == "integrate":
                     integrate(root, state, path)
-                elif args.command == "finish" and not finish(root, state, path, args):
-                    print(f"Host CI pending; resume: python tools/run.py fanout finish {args.batch}")
-                    return 1
+                elif args.command == "finish":
+                    finish(root, state, path, args)
+                    print("Local batch complete. The user owns pushing, Host CI and Guest CI; "
+                          "no hosted verdict was requested.")
             print(json.dumps(state, indent=2))
             print(f"Journal: {path}")
     except (OSError, ValueError, fanout_ci.CIError, subprocess.SubprocessError) as err:
