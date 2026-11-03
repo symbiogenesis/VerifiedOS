@@ -2,195 +2,65 @@
 (* =========================================================================
    Sha256.v
 
-   SHA-256 as FIPS 180-4 states it, and HMAC over it as FIPS 198-1 states it,
-   written in Gallina and checked against the published known answers of the
-   two standards, of NIST's own validation corpus, and of RFC 4231.
+   Functional SHA-256 and HMAC references for HmacDrbg.v, following FIPS
+   180-4 s5.1.1, s5.2.1, s5.3.3, s6.2.1 and s6.2.2, and FIPS 198-1 s4
+   and s5. Known-answer checks use the standards, NIST's validation corpus
+   and RFC 4231. No target binary or implementation-refinement theorem is
+   supplied. R-15-041 and R-15-055 concern hardware SHA-2 datapaths, which
+   this file does not model.
 
-   What this file is, and what it is not. It is a **functional reference**: a
-   transcription of FIPS 180-4 s5.1.1, s5.2.1, s5.3.3, s6.2.1 and s6.2.2 and
-   of FIPS 198-1 s4 and s5, made so that the DRBG in HmacDrbg.v has a hash to
-   ride and so that the acquisition route M3.4a's read reopened is closed by
-   an artifact rather than by a sentence. It is not an implementation, no
-   binary corresponds to it, and it discharges no acceptance clause of any
-   entry. It is not a discharge of R-15-041 or R-15-055 either: those entries
-   are about which SHA-2 round datapath a core carries, and this file carries
-   none.
+   Scope: functional reference only. This supplies neither a shipped
+   primitive satisfying R-05-059, binary constant-time evidence under
+   R-05-062 and R-05-067, masking under R-05-004a, nor the cryptographic
+   assumptions of R-05-077a. R-05-163 and R-05-164 audit the global
+   assumption closure; compilation and known answers do not establish
+   security or correspondence to an implementation.
 
-   What the gate's green line means. Compiled, axiom-free, non-vacuous and
-   enumerated, and it does not mean verified. Nothing here executes on either
-   emulator. The computed checks are decided inside the kernel, the light ones
-   by conversion in the silent `Example ... := eq_refl` form and the ones that
-   run a compression by the bytecode machine, which contributes nothing to
-   the native assumption audit.
+   Representation:
+   - Bytes and 32-bit words are most-significant-bit-first lists of bools
+     (FIPS 180-4 s3.1). Messages are bit strings, with a 64-bit big-endian
+     length field (s5.1.1). Published vectors exercise byte-aligned messages.
+   - Word addition reverses the bits for ripple carry and discards the final
+     carry, implementing reduction modulo 2^32 without large unary naturals.
+   - Constant derivation alone uses arbitrary-precision, least-significant-
+     bit-first lists. Collection helpers come from the shared prelude-only
+     support; numeric helpers remain local.
 
-   The three assurance layers, and which one this is. R-05-059 wants
-   functional correctness, constant-time and reduction-level security per
-   primitive, and what is here is the **functional layer alone**. No
-   constant-time property is claimed: R-05-062 and R-05-067 put that
-   obligation on a binary as a 2-safety hyperproperty, a Gallina reference is
-   not a binary, and the fact that every value-dependent operation below is
-   xorb, andb, negb, a rotation by a constant or a ripple-carry addition is a
-   remark about the shape and never evidence. No masking claim is made under
-   R-05-004a. No reduction and no distributional claim is made either: HMAC's
-   pseudorandomness and the collision resistance of the compression function
-   are assumptions R-05-077a states over uniformly drawn keys, and a functional
-   reference carries no distribution of any kind. So nothing here is a
-   shipped primitive under R-05-059.
+   Constants and structural checks:
+   - Trial division supplies the primes. A bit-serial restoring root derives
+     the fractional square-root bits for the initial hash words (s5.3.3)
+     and cube-root bits for the round constants (s4.2.2). The hash uses these
+     derived tables, which are checked against the published tables.
+   - Ch, Maj and the four sigmas follow s4.1.2, equations 4.2--4.7. K-107
+     checks sigma rotation amounts against model/model/extensions/vector_crypto/
+     zvk_utils.sail; it does not prove agreement with the model's logical
+     functions in zvknhab_insts.sail. That oracle-pair gap has F-205b's shape.
+   - The ten rotations, four schedule taps, sizes and round count come from
+     FIPS 180-4; ipad 0x36 and opad 0x5C come from FIPS 198-1. Block/digest
+     word counts and HMAC's block-byte count are size quotients. The 16-bit
+     prime representation is local to the derivation.
+   - Quantified theorems cover adder commutativity, complementary rotations
+     on 32-bit words and preservation of the schedule's first sixteen words.
+     Compression is not claimed invertible: its 768-bit input has a
+     256-bit output.
 
-   Only the shared prelude-only support is required, so there is no
-   Z, no N, no String and no List library: `map`, `nth`, `firstn`, `skipn`,
-   `seq`, `rev`, `repeat`, `fold_left`, `filter` and `concat` are authored
-   below in the idiom Keccak.v and AesGcm.v author theirs in. An assumption
-   reachable through an import is an assumption inside the R-05-163 gate's
-   reach, which is what that rule buys and what a convenience import would
-   spend. The one thing this file needs that neither sibling needed is
-   arbitrary-precision integer arithmetic, for the derivation of the constant
-   tables, and it is authored below over `list bool` rather than imported:
-   the prelude's `nat` is unary and cannot carry a 105-bit integer, and the
-   binary numbers live behind a Require.
+   Known answers and distinguishing cases (R-05-165, R-05-166):
+   - Padding vectors cover 55, 56, 63 and 64 bytes and a three-block message.
+     Alternatives omit the one bit, reverse the length bytes, exchange the
+     lower-case sigmas, or replace Maj with Ch. Both defective pads preserve
+     length. Reversing the length field is invisible on the empty message.
+   - HMAC alternatives exchange its pads or truncate a long key instead of
+     hashing it. Truncation agrees with the reference for keys at most one
+     block long; 70-, 74- and 131-byte keys exercise the long-key branch.
+   - Published answers occur in Example statements, outside the seeded
+     mutation population of Definitions; no reference function depends on
+     them. Digests and table entries were independently recomputed before
+     transcription, as recorded below.
 
-   The representation, which no register entry fixes and which is therefore a
-   reading of this file:
-
-   1. A **byte** is a `list bool` of length 8 with the **most significant bit
-      at the head**, which is AesGcm.v's convention and the opposite of
-      Keccak.v's, each file taking its own standard's: FIPS 180-4 s3.1 writes
-      a word's bits most significant first and reads a message's bytes in
-      order, so a bit string here is the standard's own, with no reversal
-      anywhere.
-   2. A **word** is a `list bool` of length 32 in the same order, so the head
-      of a word is its bit 31 and `rotr` moves the tail to the head.
-   3. **Addition modulo 2^32 is a ripple-carry adder over the reversed word
-      with the final carry discarded**, and never `nat` arithmetic: a 32-bit
-      value is a `nat` no kernel can build, and the discarded carry is the
-      whole of the reduction. The adder is stated commutative over arbitrary
-      lists below, which is the property that separates an adder from a
-      ripple of the right length.
-   4. A **message** is a bit string of any length; every published answer
-      below is byte-aligned, so no sub-byte convention is exercised and none
-      is claimed. The length field is 64 bits big-endian, which is s5.1.1.
-   5. **Arbitrary-precision integers, used for the derivation alone**, are
-      `list bool` with the **least** significant bit at the head, the order
-      in which a ripple adder and a shift-and-add multiplier are simplest.
-      Nothing in the hash reads one.
-
-   The readings of the register this file takes:
-
-   1. **No entry names SHA-256 or HMAC.** R-15-241d names *the verified DRBG*
-      and the plan's cell names HMAC-DRBG-SHA-256 as that DRBG; the register
-      itself carries the hash only in R-15-041's and R-15-055's sentences
-      about which SHA-2 round datapath a core carries, and in the prose's
-      sentence that SHA-256, if needed, stays table-free constant-time integer
-      code. So which hash the DRBG rides is the plan's sentence and not an
-      entry's, and this file is written against that sentence. Reported, not
-      closed.
-   2. **The oracle enters no trust base.** Every published answer below is a
-      constant inside an `Example`'s own statement, never a `Definition`, and
-      nothing above it depends on the answer being right: what a known-answer
-      check buys is that the constant and the transcription were produced by
-      different routes. Putting an answer in a `Definition` would also put it
-      inside the seeded-mutation population, where a published byte moved off
-      by one would score as a kill of the oracle rather than of the subject.
-   3. **The two constant tables are derived and then computed equal to the
-      published ones**, which is the shape M3.4a set at FIPS 202 and M3.4d at
-      FIPS 197. FIPS 180-4 s4.2.2 states the sixty-four round constants as
-      the first thirty-two bits of the fractional parts of the cube roots of
-      the first sixty-four primes, and s5.3.3 states the eight initial hash
-      words the same way over square roots and the first eight primes. This
-      file derives the primes by trial division, the roots by a bit-serial
-      restoring root over the integers authored below, and the fraction as
-      the low thirty-two bits of the root of the prime shifted left by
-      thirty-two bits per degree; then it computes that what it derived is
-      what the standard publishes. The derived tables are the ones the hash
-      reads, so a transcription defect is a disagreement with a published
-      table and not a disagreement between two things this file wrote.
-   4. **The six logical functions are the standard's own, by the standard's
-      own names, and unfused**: Ch, Maj, the two upper-case sigmas and the
-      two lower-case sigmas of s4.1.2, one definition each, and the round is
-      composed once from them. The curated model's vector-crypto unit at
-      model/model/extensions/vector_crypto/zvknhab_insts.sail transcribes the
-      same functions for the `Zvknhb` instructions; no rule reads those
-      functions together and this file does not claim that pair, which is
-      reported below as F-205b's shape one hash over. What a rule does
-      hold is narrower and is not that pair: K-107 reads this file's
-      sigma rotation amounts against the ones
-      model/model/extensions/vector_crypto/zvk_utils.sail states, so the
-      functions remain the half nothing decides.
-   5. **The compression function is not a permutation and this file says
-      so.** It maps a 512-bit block and a 256-bit state to a 256-bit state,
-      so no inverse is stated and no bijection is claimed of it. What is
-      stated on arbitrary inputs is what is true: every rotation the four
-      sigmas use is undone by its complement on a word of thirty-two
-      arbitrary bits, the adder is commutative on arbitrary lists, and the
-      message schedule keeps a block of sixteen arbitrary words as its first
-      sixteen entries.
-   6. **The padding is where a hash reference goes wrong silently**, so the
-      boundary is exercised where it lies: the message lengths that leave
-      room for the length field in the same block (55 bytes), that do not
-      (56 bytes), that fill a block short of one byte (63) and exactly (64),
-      and one that spans three blocks, each at NIST's own published answer;
-      and three near alternatives are built and refuted, a pad that omits its
-      one bit, a length field written byte-reversed, and the two lower-case
-      sigmas exchanged in the schedule. The byte-reversed length field is
-      the interesting one: at the empty message its field is all zero either
-      way, so the empty-message vector decides nothing about it, and the
-      file computes that agreement rather than leaving it to be found.
-   7. **HMAC's long-key arm is where an HMAC reference goes wrong silently**,
-      because every key of the block size or shorter never reaches it. The
-      published cases with keys of 70, 74 and 131 bytes exercise it, and the
-      alternative that truncates such a key rather than hashing it is built
-      and computed to agree with the standard on every shorter key it is
-      given and to part from it on every longer one.
-
-   What is deliberately absent, with the entry that owes each decision. A
-   register gap is reported, not closed:
-
-   a. **No entry names the hash the DRBG rides** (reading 1). Owed at
-      R-15-241d or in the plan.
-   b. **No entry fixes the oracle pair for an authored SHA-256**, exactly as
-      none fixes it for an authored SHA-3 (F-205b) or an authored AEAD. The
-      answers below are NIST's own validation corpus, the two standards'
-      example documents and RFC 4231, and that is this file's choice on the
-      stated ground and not the register's.
-   c. **No entry fixes the representation obligations above.** Byte and word
-      order, the reduction as a discarded carry, and whether a Gallina
-      reference is inside any acceptance at all are readings of this file.
-   d. **HMAC's truncation length is a parameter and no entry fixes one.**
-      FIPS 198-1 s5 admits any leftmost `t` bytes; `hmac_sha256_truncated`
-      takes `t` as an argument and the published truncated cases carry their
-      own. The DRBG never truncates.
-   e. **No constant-time claim, no masking claim, no reduction** (above).
-
-   The literals taken from the standards, and there are no others. FIPS
-   180-4's 8-bit byte, 32-bit word, 512-bit block, 64-bit length field,
-   256-bit digest and sixty-four rounds; the ten rotation and shift amounts
-   of s4.1.2, {2, 13, 22}, {6, 11, 25}, {7, 18, 3} and {17, 19, 10}; the
-   schedule's four taps {2, 7, 15, 16} of s6.2.2; and FIPS 198-1's two pad
-   bytes 0x36 and 0x5C. Everything else is derived: the sixteen words of a
-   block and the eight words of a digest are quotients of the sizes, the
-   sixty-four constants and the eight initial words are the roots of the
-   primes, the block size in bytes HMAC pads a key to is the block size over
-   the byte size, and the sixteen-bit field a prime is carried in is a width
-   of this file's derivation and nothing the standard states.
-
-   Non-vacuity (R-05-165, R-05-166). Every structural obligation below is
-   stated of an arbitrary word, an arbitrary block or arbitrary lists, or is
-   enumerated over a domain the statement names, and six constructions the
-   standards' own sentences exclude are built here and refuted: a pad
-   without its one bit, a pad whose length field is written byte-reversed, a
-   schedule with its two lower-case sigmas exchanged, a compression with Maj
-   written as Ch, an HMAC whose inner and outer pads are exchanged, and an
-   HMAC that truncates a long key where the standard hashes it. Each is held
-   to the single difference it exists to exhibit: the two pads keep the
-   standard's length, the exchanged schedule keeps the block as its first
-   sixteen words, and the truncating HMAC agrees with the standard on every
-   key it never hashes. **Two of the six are invisible to a family of inputs
-   and the file says which**: the byte-reversed length field agrees with the
-   standard's at the empty message, and the truncating HMAC agrees at every
-   key of the block size or shorter, which is five of RFC 4231's seven cases
-   and two of the five validation cases quoted. Inhabitation is the published
-   answers themselves, so no check below holds of everything and none holds
-   of nothing.
+   Choices left outside the register: R-15-241d names a verified DRBG; the
+   plan selects HMAC-DRBG-SHA-256. The register does not select this hash,
+   its oracle pair or this representation. HMAC truncation takes a byte
+   count parameter, following FIPS 198-1 s5; the DRBG never truncates.
 
    Where each published answer came from, and under what instrument. The
    round-constant and initial-hash tables are FIPS 180-4's own, s4.2.2 and
@@ -246,10 +116,8 @@ Require ProofSupport CryptoLists.
 
 Open Scope list_scope.
 
-(* An equality closed by one evaluation. `vm_compute. reflexivity.` evaluates
-   the goal in the tactic and again where the kernel checks its cast at Qed;
-   this casts eq_refl to the goal unevaluated, so only the check at Qed
-   evaluates it. *)
+(* Defer VM evaluation to the kernel's cast check at Qed, avoiding a
+   separate tactic-side evaluation. *)
 Local Ltac vm_reflexivity :=
   intros; lazymatch goal with |- _ = ?b => vm_cast_no_check (@eq_refl _ b) end.
 
@@ -270,8 +138,7 @@ Definition drop_of {A : Type} (n : nat) (l : list A) : list A := @ProofSupport.d
 
 Definition nth_of {A : Type} (n : nat) (l : list A) (d : A) : A := @ProofSupport.nth_of A n l d.
 
-(* The one out-of-range answer this file relies on, named once so that it is
-   a decision rather than a default repeated at twenty sites. *)
+(* Out-of-range bit reads return false. *)
 Definition bit_at (l : list bool) (i : nat) : bool := nth_of i l false.
 
 Definition rev_onto {A : Type} (l acc : list A) : list A := @ProofSupport.rev_onto A l acc.
@@ -596,9 +463,7 @@ Example the_initial_hash_is_the_published_table :
   0x1F :: 0x83 :: 0xD9 :: 0xAB :: 0x5B :: 0xE0 :: 0xCD :: 0x19 :: nil.
 Proof. vm_reflexivity. Qed.
 
-(* The table is not its own reverse and carries no repeated entry, which is
-   the defect a table read in the wrong direction or off by a row would
-   share with a correct one at a glance. *)
+(* Check the round count and pairwise distinctness of the derived constants. *)
 Example the_round_constants_are_sixty_four_distinct_words :
   andb (Nat.eqb (length_of round_constants) rounds)
        (all_of (fun i => all_of (fun j => orb (Nat.eqb i j)
@@ -625,11 +490,8 @@ Definition small_sigma1 (x : word) : word := wxor3 (rotr 17 x) (rotr 19 x) (shr 
 Definition rotation_amounts : list nat :=
   2 :: 13 :: 22 :: 6 :: 11 :: 25 :: 7 :: 18 :: 17 :: 19 :: nil.
 
-(* The list above is the standard's own table of the ten rotation amounts
-   and the four functions above write theirs inline, which makes the list a
-   second statement of a fact the functions already own. It is held to them
-   here rather than left beside them: a table nothing computes from is a
-   table nothing can be wrong against. *)
+(* On this probe word, check the listed rotation amounts against the inline
+   amounts in all four sigmas. This is a finite check, not a universal theorem. *)
 Example the_listed_amounts_are_the_ones_the_four_sigmas_use :
   let a := fun i => nth_of i rotation_amounts 0 in
   let x := bytes_from (0x6A :: 0x09 :: 0xE6 :: 0x67 :: nil) in
@@ -665,9 +527,8 @@ Definition schedule_over (s0 s1 : word -> word) (block : list word) : list word 
 
 Definition schedule : list word -> list word := schedule_over small_sigma0 small_sigma1.
 
-(* The transcription defect two functions with one name and two subscripts
-   invite: the lower-case sigmas exchanged. It keeps the block as its first
-   sixteen words and differs in every computed one. *)
+(* Negative control: exchange the lower-case sigmas. The initial sixteen
+   words are unchanged; computed words may differ. *)
 Definition schedule_with_the_sigmas_exchanged : list word -> list word :=
   schedule_over small_sigma1 small_sigma0.
 
@@ -708,8 +569,7 @@ Definition compress_over (majority : word -> word -> word -> word) (ws hs : list
 
 Definition compress : list word -> list word -> list word := compress_over maj.
 
-(* Maj written as Ch, which is the defect two three-argument functions over
-   the same three words invite. *)
+(* Negative control: replace Maj with Ch in every compression round. *)
 Definition compress_with_maj_written_as_ch : list word -> list word -> list word :=
   compress_over ch.
 
@@ -728,8 +588,8 @@ Definition pad_over (length_field : nat -> list bool) (m : list bool) : list boo
 
 Definition pad : list bool -> list bool := pad_over big_endian_length.
 
-(* The length field with its eight bytes reversed, which is the defect a
-   little-endian machine invites and which the empty message cannot see. *)
+(* Negative control: reverse the length bytes. The empty message's zero
+   length field is unchanged, so it cannot distinguish this alternative. *)
 Definition byte_reversed_length (l : nat) : list bool :=
   concat_of (rev_of (chunks_of (Nat.div length_bits byte_bits) byte_bits (big_endian_length l))).
 
@@ -802,14 +662,12 @@ Definition hmac_sha256 : list bool -> list bool -> list bool :=
 Definition hmac_sha256_truncated (bytes : nat) (key text : list bool) : list bool :=
   take_of (bytes * byte_bits) (hmac_sha256 key text).
 
-(* The two pads exchanged, which is the defect two constants with one role
-   each invite; it is an HMAC in every other respect. *)
+(* Negative control: exchange HMAC's inner and outer pads. *)
 Definition hmac_with_the_pads_exchanged : list bool -> list bool -> list bool :=
   hmac_over sha256 opad_byte ipad_byte.
 
-(* A long key truncated to the block rather than hashed, which agrees with
-   the standard at every key of the block size or shorter, so that only a
-   longer key decides against it. *)
+(* Negative control: truncate long keys instead of hashing them. Keys of
+   at most one block take the unchanged branch and cannot detect the defect. *)
 Definition hmac_with_the_long_key_truncated : list bool -> list bool -> list bool :=
   hmac_over (take_of block_bits) ipad_byte opad_byte.
 
@@ -823,10 +681,8 @@ Proof. intros x y. destruct x; destruct y; reflexivity. Qed.
 Lemma majb_comm_local : forall x y c : bool, majb x y c = majb y x c.
 Proof. intros x y c. destruct x; destruct y; destruct c; reflexivity. Qed.
 
-(* The adder is commutative over arbitrary lists of arbitrary lengths, which
-   is the property that separates an adder from a ripple of the right length:
-   a defect in the carry or the sum bit that treats its two operands
-   differently fails this, where every published digest below is a value. *)
+(* Commutativity is checked for all bit lists and carry inputs, independently
+   of the known-answer vectors. *)
 Theorem the_adder_is_commutative :
   forall (a b : list bool) (c : bool), add_le a b c = add_le b a c.
 Proof.
@@ -900,9 +756,7 @@ Proof. intros. split; vm_compute; reflexivity. Qed.
 
 Definition probe_lengths : list nat := upto (2 * block_bits + byte_bits).
 
-(* The probe set has to reach past two whole blocks, because a padding that
-   is right on every message of one or two blocks and wrong on the first
-   that needs a third is the defect the boundary lengths exist to catch. *)
+(* Include message lengths beyond two blocks to exercise third-block padding. *)
 Example the_probes_reach_past_two_whole_blocks :
   andb (Nat.leb (S (2 * block_bits)) (length_of probe_lengths))
        (Nat.eqb (nth_of (2 * block_bits) probe_lengths 0) (2 * block_bits)) = true.
@@ -1162,10 +1016,8 @@ Example maj_written_as_ch_misses_the_published_digest :
   bits_eqb (sha256_with_maj_written_as_ch abc) (sha256 abc) = false.
 Proof. vm_reflexivity. Qed.
 
-(* Ch and Maj agree wherever their last two words coincide, each returning
-   that word, so a check at such a state would not separate them; the
-   published example's first round does, and the file computes both rather
-   than saying so. *)
+(* Ch and Maj agree when their last two words coincide. The initial hash
+   supplies a distinguishing input. *)
 Example ch_and_maj_agree_where_the_last_two_words_coincide :
   let x := word_at initial_hash 0 in
   let y := word_at initial_hash 1 in
@@ -1478,38 +1330,20 @@ Example the_short_and_long_key_cases_are_split_at_the_block :
        (all_of (fun c => Nat.ltb block_bits (length_of (fst c))) long_key_cases) = true.
 Proof. vm_reflexivity. Qed.
 
-(* A key of exactly one block is used as it is, so the truncating and the
-   hashing forms are the same function on it: this is the boundary the
-   corpus's 64-byte case stands on. *)
+(* The 64-byte key exercises the boundary: it is neither hashed nor padded. *)
 Example a_one_block_key_is_neither_hashed_nor_padded :
   bits_eqb (hmac_key_over sha256 cavp_key_64) cavp_key_64 = true.
 Proof. vm_reflexivity. Qed.
 
 (* -------------------------------------------------------------------------
-   The edges the composition above computes over and never states, each one
-   a site `run.py seed` reached and no statement of this file did. Three
-   kinds sit here. A **width**: the shift and the schedule are consumed by
-   operations that truncate to the shorter of their operands, so a longer
-   answer is cut back to size and the composition's own answers do not move
-   with it. An **intermediate**: the multiplier runs only inside a
-   comparison, where a product wrong by a little decides the same
-   comparison. And a **default**: what a total function answers where its
-   input runs out, which nothing above reaches because nothing above hands
-   it a ragged input. Each is the transcription's own claim and is stated
-   here rather than left to a reader to infer from the functions that
-   happen to consume it.
+   Helper checks for defects that digest vectors can miss: extra shift or
+   schedule output truncated by a caller, incorrect products that preserve a
+   root-search comparison, and defaults reached only by ragged inputs.
    ------------------------------------------------------------------------- *)
 
-(* s3.2's SHR^n is a shift within the word, so its answer is a word of the
-   same width: the exclusive-or in each lower-case sigma truncates to the
-   shorter of its operands and cuts a longer answer back again, which is
-   what leaves both the width and the shift itself unsaid by every digest
-   above. Stated on 0x12345678 at the two amounts the sigmas use, so the
-   answer decides the amount as well as the width. The word and both
-   answers are written a byte at a time, which is how every other word in
-   this file is written and which keeps every literal inside a byte: a
-   thirty-two-bit value spelled as one `nat` is a unary numeral the
-   evaluator would have to build before it could shift it. *)
+(* Check SHR (s3.2) at both amounts used by the sigmas, including output
+   width: their XOR would hide excess bits. Byte-sized literals avoid
+   constructing a 32-bit value as a unary natural. *)
 Definition shift_probe : word := bytes_from (0x12 :: 0x34 :: 0x56 :: 0x78 :: nil).
 
 Example the_right_shift_by_three_answers_the_standard_s_word :
@@ -1520,18 +1354,14 @@ Example the_right_shift_by_ten_answers_the_standard_s_word :
   bits_eqb (shr 10 shift_probe) (bytes_from (0x00 :: 0x04 :: 0x8D :: 0x15 :: nil)) = true.
 Proof. vm_reflexivity. Qed.
 
-(* s6.2.2 step 1 computes the block's sixteen words and forty-eight more,
-   and the compression reads the first sixty-four words of whatever it is
-   handed, so a schedule computed over too many indices is read short
-   rather than refused and no digest above moves with it. *)
+(* Check the exact schedule length (s6.2.2 step 1): compression reads only
+   sixty-four words and would silently ignore extra schedule entries. *)
 Example the_schedule_is_exactly_the_rounds_long :
   Nat.eqb (length_of (schedule (block_at (blocks_of (pad abc)) 0))) rounds = true.
 Proof. vm_reflexivity. Qed.
 
-(* The multiplier of the constant derivation, stated on a product rather
-   than left inside the comparison the root search makes of it, where a
-   product wrong by a little decides the same comparison: 11 * 13 is 143,
-   held from both sides so the pair decides the value and not one bound. *)
+(* Check 11 * 13 = 143 with both inequalities. A nearby wrong product can
+   preserve a root-search comparison, so digest checks may not expose it. *)
 Example the_multiplier_answers_its_product_from_below :
   leb_le (mul_le (bits_le_of word_bits 11) (bits_le_of word_bits 13))
          (bits_le_of word_bits 143) = true.
@@ -1542,10 +1372,7 @@ Example the_multiplier_answers_its_product_from_above :
          (mul_le (bits_le_of word_bits 11) (bits_le_of word_bits 13)) = true.
 Proof. vm_reflexivity. Qed.
 
-(* The defaults, each stated at the input that reaches it. Nothing above
-   hands any of these functions a ragged input, so each answer below is the
-   transcription's own and is stated here rather than inferred from the
-   callers that never ask. *)
+(* Exercise out-of-range and unequal-length inputs absent from the vectors. *)
 Example the_bits_past_the_end_of_a_string_are_zero :
   bits_eqb (map_over (bit_at zero_word) (up_from word_bits word_bits)) zero_word = true.
 Proof. vm_reflexivity. Qed.

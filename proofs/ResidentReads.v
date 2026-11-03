@@ -288,27 +288,9 @@ Definition window_inside (c : Common) (h : Handle) : Prop :=
   exists r, backing c = Some r /\ resident_identity r = handle_identity h /\
     window_start h + window_length h <= length (resident_bytes r).
 
-(* Frozen first-increment targets. The intended proofs use only the executable
-   definitions above. No record field contains a preservation/safety premise.
-
-   begin_common_frame: common (begun_state (begin_read b s h d id off len)) = common s.
-   complete_common_frame: common (after (complete verify s h seq)) = common s.
-   begin_no_common_writes: no_common (begin_journal (begin_read b s h d id off len)).
-   complete_no_common_writes: no_common (journal (complete verify s h seq)).
-   repeat_fixed_reservation: common (fst (repeat_reads verify b n s h)) = common s
-                            /\ no_common (snd (repeat_reads verify b n s h)).
-   completion_exact: an accepted completion has a matching pending request,
-     live current authority/identity, matching holder and request sequence,
-     verifier acceptance on actual backing, and exactly its requested slice.
-   stale_completion_unchanged: unmatched request sequence changes no state/writes.
-   refused_authority_and_authentication: failed live/verifier checks return None.
-   finite_sequence: accepted begin increments the previous private sequence by one
-                    and keeps it <= counter_bound; exhaustion refuses.
-   retirement_cancels: both modeled holder reservations and requests are absent,
-                      independently of any holder acknowledgment or barrier result.
-   unavailable_barrier_retains: closed backing still contains the same bytes.
-   completion_retains: completion preserves reservation and in-flight byte retention.
-*)
+(* The following proofs establish framing, exact completion, sequence bounds
+   and retirement behavior directly from the executable definitions. Record
+   fields supply no preservation or safety conclusions. *)
 Lemma set_same : forall (A : Type) (f : nat -> A) h v, set f h v h = v.
 Proof. intros. unfold set. destruct (Nat.eq_dec h h); congruence. Qed.
 Lemma set_other : forall (A : Type) (f : nat -> A) h v k,

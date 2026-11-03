@@ -2,48 +2,25 @@
 (* =========================================================================
    SeamWitnesses.v
 
-   Per-seam non-vacuity witnesses: the R-05-165 / R-05-166 discipline that
-   ApexTheorem.v applies to T, applied to each of R-05-160's nine seam
-   lemmas and to the composition meta-lemma, one distinguishing instance
-   each. A companion to the statement artifact, not part of it: this file
-   imports ApexTheorem.v, adds no Prop to the Vocabulary record, no seam,
-   no obligation, and no axiom, and everything here is proved outright.
-   Crown-jewel row 1 is unchanged by this file's existence.
+   Distinguishing witnesses for R-05-160's nine seam statements and the
+   composition meta-lemma, following R-05-165 and R-05-166. Each witness
+   satisfies a seam's premises and refutes its conclusion. This catches
+   weakening a seam into a tautology even when T's global witnesses survive.
 
-   Why per-seam. ApexTheorem.v's two global witnesses show that T is
-   satisfiable in one model and refutable in another, which closes
-   R-05-165's three vacuity modes for T itself. But the seam lemmas are
-   the units that proof workstreams will discharge and that refactoring
-   re-opens, and each is an implication that could be weakened to a
-   tautology without T's witnesses noticing until the linking theorem,
-   R-18-031(b), which is staged last, the worst place to learn it. So
-   each seam gets its own distinguishing instance: a model in which the
-   seam's premises hold and its conclusion fails, so the seam statement
-   is refutable and therefore excludes something. A future edit that
-   makes some seam's conclusion trivially derivable from its premises
-   (collapsing an interface, weakening a field to True by definition)
-   breaks that seam's witness here, and the failure lands at this file's
-   compile rather than at the capstone.
+   The parameterized model uses trivial_vocabulary's one-point machine with
+   nine independently chosen seam conclusions. To refute seam k, conclusion
+   k is False and the rest are True. A conclusion may also be another seam's
+   premise: composed_schedulability feeds seam 6 and ae_ind_cca_int_ctxt
+   feeds seam 5. The witness makes no claim about those other seams.
 
-   The same instance is built for the composition meta-lemma over
-   leaky_vocabulary: every substrate invariant, seam, and tower rung
-   holds there and T fails, so the meta-lemma is refutable, which is the
-   machine-checked form of "the linking theorem has content": the seam
-   conclusions alone do not entail T, and R-18-031(b) is a real
-   obligation rather than an unfolding.
+   At leaky_vocabulary, the substrate invariants, seams and tower rungs hold
+   while T fails. This refutes the composition meta-lemma and shows that
+   R-18-031(b)'s linking theorem is an additional obligation. Each statement
+   family is also inhabited at trivial_vocabulary, so the refutations do not
+   rely on unsatisfiable statements.
 
-   Inhabitation is also stated per family: the nine seams, the substrate,
-   the tower, and the meta-lemma are each provable at trivial_vocabulary,
-   so no witness below refutes a statement that was unsatisfiable to
-   begin with.
-
-   The construction is one parameterized model, the one-point machine of
-   trivial_vocabulary with the nine seam-conclusion fields exposed as
-   parameters. Refuting seam k is instantiating conclusion k at False and
-   the rest at True: every premise field stays True, so the implication
-   fails on the conclusion alone. Where a conclusion is also another
-   seam's premise (composed_schedulability feeds seam 6, ae_ind_cca_int_ctxt
-   feeds seam 5), the witness claims nothing about that other seam.
+   This companion imports ApexTheorem without changing Vocabulary, the
+   seam statements or crown-jewel row 1. It adds no axioms or obligations.
    (*| BEGIN derived: cited entries |*)
    Owner: docs/requirements-register.md
    Requirements: R-05-160 R-05-163 R-05-164 R-05-165 R-05-166 R-18-031
