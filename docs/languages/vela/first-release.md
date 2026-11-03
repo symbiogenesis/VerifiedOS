@@ -30,6 +30,16 @@ own supported subset; the [pure prototype](vela-prototype.md) and
 [surface parser](surface-grammar.md) retain theirs. Parsing a larger feature does
 not make it part of this release.
 
+The selected [familiar authoring surface](surface-grammar.md#familiar-authoring-migration)
+uses explicit `let`/`var` local conventions, ordinary numeric aliases, concise
+expression matches, one function-expression body marker and ordinary generic
+calls. Q25z migrates and qualifies these forms after the first synchronous slice
+under the [delivery order](../../../PLAN.md#vela-first-release-delivery). Typed
+`let` already parses; the other selected changes do not describe current
+prototype support. Their adoption preserves this release's semantic scope and
+does not become a prerequisite for its concrete foundation investigation or
+first executable slice.
+
 All language laws concern the elaborated image in an existing semantic anchor
 under [the untrusted-elaboration boundary](../../spec.md#r-05-020a). Located source
 syntax, binding and resource derivations are inputs to checked interpretation
@@ -73,6 +83,7 @@ binds that policy as follows; the target bridge must prove the binding.
 | --- | --- |
 | `bool`, `Unit` | Exactly `false`/`true`, and the single unit value `()`. Integers have no truthiness conversion. |
 | `u8`, `u16`, `u32`, `u64`; `i8`, `i16`, `i32`, `i64` | Unsigned values range from zero to `2^w - 1`; signed values range from `-2^(w-1)` to `2^(w-1) - 1`. Bitwise signed representation is two's complement. `byte` is an alias for `u8`. |
+| Standard numeric aliases | The standard library module `Vela.Numerics` exports ordinary public aliases `int = i32`, `uint = u32`, `long = i64` and `ulong = u64`. Each denotes exactly its target type, including representation, arithmetic and proof obligations. Width-named spellings remain available. |
 | `usize` | Unsigned index/count arithmetic at the target's declared XLEN width. This is not a capability's representation, permission to address all values of that width, or a pointer/integer conversion. Target specialization fixes the width and its representability obligations. |
 | Mathematical `Nat` and integers | Specification/static values with their mathematical operations. Runtime use needs a selected finite representation and a proved range relation; there is no implicit arbitrary-precision runtime. |
 | Integer literals | Decimal, binary and hexadecimal digits with the [separator rules](authoring-tools.md#numeric-separators) denote exact mathematical magnitudes. A suffix or expected type determines the representation; an unconstrained runtime literal needs an annotation. No machine-default integer type is guessed. A syntactic negative integer literal is checked as one signed value, admitting the signed minimum; negation of an already typed expression obeys the ordinary range rule. An out-of-range literal is a compile-time error. |
@@ -84,6 +95,21 @@ binds that policy as follows; the target bridge must prove the binding.
 | Conversions and comparisons | Checked conversion returns a named range failure; a proved conversion requires its range premise. Explicit truncation/reinterpretation uses a separately named bit operation. Ordering compares mathematical values within one type. Executable equality is Boolean through a selected decidable operation; proposition equality and transport stay in proof/contract interpretation. |
 | Layout and encoding | Scalar representation/alignment is fixed by the target/ABI. Integer-to-byte encoding uses explicitly named little- or big-endian library operations; native record layout and padding never define a wire format. Capability fabrication and implicit pointer/integer conversion remain excluded. |
 | Floating point | Not in this initial runtime release. A future consumer must select formats, NaN/signed-zero/rounding and exception behavior, equality/ordering, constant evaluation and target correspondence together. Parser recognition or existing hardware floating-point instructions supply no Vela support claim. |
+
+Numeric aliases follow the [module rules](#modules-and-packages): use an explicit
+`import Vela.Numerics;` or the fully qualified name, such as `Vela.Numerics.int`.
+The dependency lock binds the standard library package and its definitions;
+there is no implicit prelude or import-order precedence. A duplicate local or
+imported alias name is diagnosed under the same rules as another duplicate
+binding; explicit qualification identifies the intended declaration. The source
+facts retain that alias declaration and source spelling while type equality,
+instance coherence, representation and lowering use the target type identity.
+An alias creates no new nominal type, distinct implementation instance, runtime
+conversion, numeric suffix or default integer type. Literals use the existing
+suffix or expected-type rule; C# spelling does not import its conversion or
+overflow behavior. Q25z's [migration qualification](surface-grammar.md#familiar-authoring-migration)
+checks alias/target agreement, qualified and imported resolution, collisions,
+range refusals and source provenance before these aliases are supported.
 
 Named operations are library interface commitments. The surface parser may need
 no new productions for them, but implementations and operation laws remain to be
