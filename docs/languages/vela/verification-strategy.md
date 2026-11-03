@@ -986,6 +986,7 @@ build host's word size.
 | --- | --- |
 | `let`, `var`, `T name = value` | Immutable inferred, mutable inferred and immutable type-first locals respectively. `var T name = value` is explicitly mutable. A typed literal such as `0usize` states a representation. |
 | `const T Name = expression;` | An explicitly typed immutable value evaluated during compilation from admitted static inputs; unavailable inputs or exhausted evaluation refuse compilation. |
+| `const T Name(...)`, `T Name(const U input, V value)` | A function that supports constant evaluation and runtime calls; a parameter whose argument must be static while other inputs may remain runtime data. |
 | `Unit`, `()` | The first-class unit type and its value or pattern. `Result<Unit, Error>` still requires examining the outcome; an empty success payload does not permit discarding an error or tracked resource. |
 | `this`, `'this.text`, `ref this.Tail` | The receiver, a loan tied to one receiver place, and a receiver loan limited to a named view. Naming the receiver grants no new access. |
 | `foreach (let index in lower..upper)` | Bounded range iteration with an immutable index and the same invariant, termination, cost and loan-exit obligations as other bounded control flow. |
@@ -1032,10 +1033,15 @@ lifetime and restoration obligations; binding immutability is not deep immutabil
 Diagnostics identify a forbidden rebinding and explain explicit `var`, while the
 pure prototype states its unsupported-mutation boundary.
 
-`const` declares a value, not a zero-parameter function. Its initializer may use
-earlier constants and admitted total pure functions with static arguments.
+In a value declaration, `const` declares a value, not a zero-parameter function.
+Its initializer may use earlier constants, explicit static parameters and admitted
+total pure functions with static arguments. On a function, `const` promises
+constant evaluation support while preserving runtime calls. On a parameter,
+it requires a compile-time input and makes that input available to local constant
+initializers and downstream static parameters. A configuration-dependent plan can
+therefore be computed during compilation while its consumer handles runtime data.
 Dependency checking precedes reduction, so an ignored argument or dead branch
-cannot hide an outer runtime parameter, ordinary local, effect or resource.
+cannot hide an unmarked outer runtime parameter, ordinary local, effect or resource.
 Ordinary locals inside a pure function evaluated on static arguments are evaluator
 locals; this does not make the caller's runtime bindings static. Evaluation is
 bounded and has no runtime fallback. The

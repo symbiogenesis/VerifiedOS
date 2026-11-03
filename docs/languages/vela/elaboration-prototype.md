@@ -51,12 +51,21 @@ The increment uses the [surface grammar](surface-grammar.md):
 - Typed `const` values of `Nat`, `bool` or `Unit`, at module or local scope,
   under the [required-static contract](surface-grammar.md#required-static-constants).
   Initializers use earlier constants and admitted total pure calls with static
-  arguments; outer runtime parameters, ordinary locals and generic or ghost
-  indices are refused before reduction, including dead or ignored dependencies.
+  arguments and explicit static parameters; unmarked outer runtime parameters,
+  ordinary locals and generic or ghost indices are refused before reduction,
+  including dead or ignored dependencies.
   Internal locals of a pure call evaluated with static arguments remain part of
   that evaluation. Emit the bounded evaluated value, with no runtime fallback.
   A constant can index `Vec<Nat, Limit>` directly; it is a value, so `Limit()`
   is not a constant access. Represented machine types retain target prerequisites.
+- Constant-compatible function modifiers and `const` value parameters use the
+  same [compositional contract](surface-grammar.md#required-static-constants).
+  The former preserves runtime calls; the latter requires static arguments and
+  supports symbolic local constant computation. Static parameter requirements
+  follow dependent function telescopes, partial applications and higher-order
+  uses. A closed instantiation computes its demanded constants under the existing
+  bounded reducer. Logical templates retain their interpretation in CIC; no
+  production backend or runtime-storage guarantee is supplied by these terms.
 - Aliases, definitions, returning pure functions, theorem/lemma bodies and
   immutable proof locals. Equality proofs are ordinary first-class values;
   theorem bodies must inhabit the declared proposition. Ordinary expression

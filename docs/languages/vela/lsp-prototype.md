@@ -211,6 +211,12 @@ removes the entire snapshot's semantic facts until a valid edit restores them.
 
 ## Acceptance and remaining qualification
 
+Constant-compatible functions and required-static parameters retain their `const`
+qualifier in compiler-produced hover signatures. A symbolic local constant has a
+typed constant identity before its static inputs are instantiated; the editor
+must not invent an evaluated value. Changes to a parameter's static requirement
+invalidate the complete source snapshot, including navigation and diagnostics.
+
 Independent wire fixtures exercise fragmented and coalesced frames, Unicode byte
 lengths, strict JSON and bounds, lifecycle ordering, unknown requests, clean and
 unclean exit, overlays, stale versions, close clearing, configuration invalidation,

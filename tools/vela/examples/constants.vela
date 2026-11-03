@@ -1,0 +1,18 @@
+// SPDX-License-Identifier: Apache-2.0
+// Compositional constants in the mathematical development prototype.
+module Constants;
+
+public const Nat Square(Nat value) => value * value;
+public const Nat Gain = 4;
+
+// The plan is static; samples arrive at runtime.
+public Nat Scale(const Nat gain, Nat sample) {
+    const Nat multiplier = Square(gain);
+    return multiplier * sample;
+}
+
+public Nat Forward(const Nat gain, Nat sample) => Scale(gain: gain, sample: sample);
+public Nat Process(Nat sample) => Forward(gain: Gain, sample: sample);
+
+public const Nat StaticResult = Square(Gain);
+public Nat RuntimeSquare(Nat value) => Square(value);

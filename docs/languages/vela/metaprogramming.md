@@ -31,8 +31,37 @@ an unavailable input leaves a located obligation or refusal, never an implicit
 runtime fallback. Infer routine static arguments from a declared interface; public
 requirements remain explicit. Typed constant declarations use
 [`const T Name = EXPR;`](surface-grammar.md#required-static-constants) as the
-required-static value interface. Generic static parameter binders and generation
-forms retain their separate syntax and frontend prerequisites.
+required-static value interface. The same keyword marks a constant-compatible
+function, `const T F(...)`, or a required-static value parameter,
+`T F(const U configuration, V value)`. The function remains callable at runtime;
+the parameter makes its configuration available during compilation. A local
+constant can require a configuration-derived plan during specialization while
+the surrounding function processes runtime data. No separate compile-time-only
+function category or constant-expression wrapper is needed. Generic static
+parameter binders and generation forms retain their own frontend prerequisites.
+
+Static parameter requirements belong to callable interfaces, including dependent
+function telescopes and contextual or explicitly typed lambdas. Partial
+application preserves the requirements on remaining inputs. Replacing such an
+interface with an ordinary runtime-parameter function type is refused when that
+would permit a caller to omit a required static argument.
+
+```text
+public const Nat Square(Nat value) => value * value;
+public Nat ApplyGain(const Nat gain, Nat sample) {
+    const Nat multiplier = Square(gain);
+    return multiplier * sample;
+}
+public const Nat Gain = 4;
+public Nat Process(Nat sample) => ApplyGain(gain: Gain, sample: sample);
+```
+
+`Process` uses the computed multiplier with runtime samples. Passing its runtime
+sample as `gain` is refused even if another helper would ignore that input.
+Ordinary admitted total pure helpers remain usable by constant initializers;
+the function modifier states an explicit checked capability. Qualification of
+the current scalar fragment supplies no implementation of text parsing,
+aggregate freezing or a production specialization backend.
 
 Required-static availability is independent of the
 [foundation's dimensions](graded-foundation.md#dimensions-and-lawful-domains):

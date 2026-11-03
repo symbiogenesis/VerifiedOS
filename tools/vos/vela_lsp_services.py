@@ -129,6 +129,10 @@ def _validate(snapshot: SourceSnapshot, raw: dict[str, object]) -> _Inspection |
             type_hint = {f"{name}: Nat": ": Nat", f"{name}: bool": ": bool"}.get(detail)
             if type_hint is None:
                 raise InspectionError("Invalid pure prototype inferred local type")
+        elif kind == "parameter":
+            if detail not in {f"{name}: Nat", f"{name}: bool",
+                              f"const {name}: Nat", f"const {name}: bool"}:
+                raise InspectionError("Invalid pure prototype parameter detail")
         elif kind == "constant":
             natural_prefix = f"const Nat {name} = "
             natural = detail.removeprefix(natural_prefix)
@@ -137,7 +141,8 @@ def _validate(snapshot: SourceSnapshot, raw: dict[str, object]) -> _Inspection |
                              and natural.isascii() and natural.isdecimal()
                              and (natural == "0" or not natural.startswith("0")))
             if not valid_natural and detail not in {
-                    f"const bool {name} = true", f"const bool {name} = false"}:
+                    f"const bool {name} = true", f"const bool {name} = false",
+                    f"const Nat {name}", f"const bool {name}"}:
                 raise InspectionError("Invalid pure prototype constant detail")
         symbols.append(_Symbol(name, cast("str", kind), detail, first, last, type_hint))
     occurrences: list[_Occurrence] = []
