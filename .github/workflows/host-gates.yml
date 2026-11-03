@@ -7,7 +7,7 @@
 # after a failure also requires that check not to have failed. Push and pull
 # request runs keep GitHub's title: the commit subject or pull request title. A
 # dispatched run's title follows the workflow name with the title input, which
-# fanout fills with the commit subject, or else with the checked-out revision.
+# the caller may supply, or else with the checked-out revision.
 #
 # Shards partition mutation cases and behavioral test modules, and the cases of each
 # test module declaring them independent. The matrix below fixes each platform's
@@ -531,7 +531,7 @@ jobs:
             --show-diff-on-failure --color=always
 
   # fanout_ci.HOST_JOBS in tools/vos/fanout_ci.py owns these job names; renaming one
-  # changes the evidence fanout accepts. No repository ruleset requires them. Both
+  # changes historical evidence validation. No repository ruleset requires them. Both
   # aggregates require the scope job and every selected job, whatever their platform.
   # An unselected job must be skipped; a failed/canceled job is never an omission.
   # They fail together, and fail-fast is off so

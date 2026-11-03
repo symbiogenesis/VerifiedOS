@@ -133,8 +133,8 @@ members, and its verdict path from the step's environment
 rather than from expressions written into the command. Each platform runs on an explicit
 runner image label, and its aggregate check is named for the platform rather than the
 image, so that an image move renames nothing. `HOST_JOBS` in
-[vos/fanout_ci.py](vos/fanout_ci.py) owns those names as the Host CI evidence fanout
-accepts, and [test_fanout_ci.py](tests/test_fanout_ci.py) holds the workflow's
+[vos/fanout_ci.py](vos/fanout_ci.py) owns those names for historical Host CI evidence
+validation, and [test_fanout_ci.py](tests/test_fanout_ci.py) holds the workflow's
 aggregate jobs to them. The aggregate checks require every shard and unpartitioned job
 on both platforms and the model-hooks job to succeed, including refusal after a
 skipped or cancelled job.
@@ -195,7 +195,7 @@ The generated reference is checked and repaired by the normal artifact registry.
 | `test` | host | Runs the tools' own behavioral tests, one module per subject under [tests/](tests/). |
 | `worktree` | host | Lists registered checkouts, creates a fresh branch at an explicit base under the primary checkout's `.worktrees/`, and verifies assigned worktrees, including host-provisioned locations. `--json` produces handoff data, including each lane's name and `lane_root`, the guest directory its outputs land in. |
 | `retain` | host | Publishes explicitly mapped files into a new contained retained bundle and prints its hash-bound citation. See [retained evidence](../docs/implementation/retained-evidence/README.md) for the command and controls. It neither stages files nor edits the owning note. |
-| `fanout` | host | Records explicit worker handoffs, merges their commits, repairs derived facts, publishes settled inputs, requires Host CI on both platforms, dispatches every Guest CI lane and retires integrated batch-owned lanes. Journals support resume without waiting for Guest CI. See the [completion contract and usage](fanout.md). |
+| `fanout` | host | Records explicit worker handoffs, merges their commits into local `main`, repairs derived facts, records recommended CI scope and retires integrated batch-owned lanes. Never pushes, contacts remote Git or CI, or waits for hosted validation; the user owns publication and CI. See the [completion contract and usage](fanout.md). |
 | `instrument-ci` | host | `dispatch` sends one dispatch of [the instrument switch route](ci/README.md#instrument-switch-route), refusing nothing its plan job refuses, with a nonce in the run title and its intent journalled first; `--resume NONCE` recovers an interrupted dispatch by that nonce without posting again. `read --run ID` follows each artifact's redirect without credentials, extracts it under `out/instrument-ci/<run id>/`, holds its members to the staging allowlist and its inputs to the run, re-joins the run's verdict and says whether the run is closing evidence for a `--closing` commit. `dispatch --revision-from HEAD` resolves and journals a canonical local commit SHA; raw `--revision` remains available for hosted refusal qualification. `fanout` never runs it. |
 | `proof-search` | host | Retrieves current local proof examples and named Ltac definitions by query words, body tokens or authored requirement references, with bounded excerpts, source locations and SHA-256 identities. `--json` follows the tracked [JSON Schema](proof-search.schema.json). Results are advisory; the [portable workflow](../docs/assurance/proof-assistance.md) defines bounded tactic reuse, repair and the unchanged fresh proof gate. |
 | `rocq-census` | wsl / host help | Runs the [native metadata or census producer](rocq-census/README.md) against an explicit locked switch and copied precompiled inputs in a fresh native lane. Census mode binds native Search requests and emits field classifications and implementation provenance for adapter replay. Hosted exact assumptions, native controls and recursive kernel qualification remain separate acceptance joins. |
@@ -1006,9 +1006,9 @@ outside the lane to the integrator, who resolves ownership before integration.
 If isolation cannot be established, keep the worker undispatched. Nested fan-outs
 follow the same procedure, with a distinct checkout per child.
 
-After the workers stop, complete integration, publication and retirement through
+After the workers stop, complete local integration and retirement through
 [`run.py fanout`](fanout.md#usage). Its [completion contract](fanout.md#required-behavior)
-owns handoff freezing, revision-bound evidence, output retention, retirement checks
+owns handoff freezing, revision-bound recommendations, output retention, retirement checks
 and resumable refusals. Follow the [shared validation handoff](../AGENTS.md#tool-execution-and-validation)
 for the settled batch.
 
@@ -1030,7 +1030,7 @@ reserves a quiet tree for their readers.
 | A checker rule | `python tools/run.py selftest --rule K-110`, substituting the changed rule, once the whole checker baseline is clean. This supplies only the selected rule's mutation evidence. |
 | Tool behavior | `python tools/run.py test --only gate`, substituting a module-name substring for the affected tests. |
 | Python sources or checker configuration | `python tools/run.py typecheck` after a coherent batch when feedback is needed before integration. It checks all tools; there is no path filter. |
-| Model, RTL or proofs | Use focused candidate checks when needed for debugging. Publish settled inputs and dispatch the affected Guest CI lanes under the [change-selection policy](ci/README.md#change-selection); retain separate checks for requirements outside its contract. |
+| Model, RTL or proofs | Use focused candidate checks when needed for debugging. Record the affected Guest CI lanes for the user under the [change-selection policy](ci/README.md#change-selection); retain separate checks for requirements outside its contract. |
 
 Before the readers start, `python tools/run.py prepare python --path FILE` applies
 locked import ordering to explicitly selected Python files; repeat `--path` as needed.
@@ -1075,8 +1075,8 @@ The integrator closes the batch in this order:
    Required experiments and measurements outside the [Guest CI contract](ci/README.md)
    retain their separate acceptance checks.
 4. Reuse evidence for unchanged inputs. Refresh affected evidence when later edits
-   invalidate it; rerun hosted validation for a new batch or when the affected
-   scope cannot be established. A selected-rule selftest establishes only its
+   invalidate it; record the need for user-managed hosted validation for a new batch
+   or when the affected scope cannot be established. A selected-rule selftest establishes only its
    selected mutants' results.
 
 These scheduling rules do not replace the [landing tiers](../PLAN.md#checklist-conventions)

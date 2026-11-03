@@ -14,7 +14,7 @@
 # compiles, reads and compares with the passing gate's compile. A refused dispatch
 # runs no checked-out code afterwards: each later step that runs commands after a
 # failure also requires that check not to have failed. A run title follows
-# the workflow name with the title input, which fanout fills with the commit subject,
+# the workflow name with the title input, which the caller may supply,
 # or else with the checked-out revision.
 
 name: guest-gates

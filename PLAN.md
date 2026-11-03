@@ -2940,7 +2940,7 @@ acceptance controls cover offline completion, unchanged remote refs, absence of
 CI calls and waits, legacy resume and retained worktree safety.
 
 **Contract:** select validation from the complete changed-path set, with one shared
-classifier for hosted workflows and the publication handoff. Prose-only changes
+classifier for hosted workflows and the local handoff. Prose-only changes
 retain the corpus checker and Markdown validation on Windows and Ubuntu, while
 omitting behavioral/mutation shards, Python typechecking and unaffected model
 hooks. Markdown consumed as executable configuration keeps its consuming gates.
@@ -2954,12 +2954,11 @@ acceptance remain available and cannot be narrowed by automatic classification.
 mixed changes, deleted/renamed files, unavailable history and full-run overrides.
 Keep both Host CI aggregate names and reject failed, canceled or unexpectedly
 skipped required jobs. Record the comparison and selected or omitted guest lanes
-in the fanout journal; reuse a frozen selection on resume and dispatch only the
-selected lanes after Host CI passes, without waiting for Guest CI. Preserve full
+in the fanout journal; reuse a frozen recommendation on unchanged resume. The user
+owns publication and hosted execution, including any CI monitoring. Preserve full
 scheduled coverage and its existing successful-revision deduplication. Update
-AGENTS.md and the workflow/handoff contracts together. Require passing Host CI on
-the settled published revision and dispatch every guest lane for this change to
-the CI mechanism itself.
+AGENTS.md and the workflow/handoff contracts together. Changes to this CI mechanism
+recommend full Host CI and every guest lane for the user's settled published revision.
 
 **Execution:** Hosted selection and `fanout` share the classifier, with focused
 scope, publication/resume and override controls plus static analysis passing.

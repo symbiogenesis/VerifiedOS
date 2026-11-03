@@ -5,15 +5,16 @@ adapters, complete retained bundles and lightweight command/workflow preparation
 
 The guest pipeline validates the curated model, proof sources and authored RTL on
 Linux. This document owns its execution and acceptance contract. Follow the
-[validation handoff](../../AGENTS.md#tool-execution-and-validation) to publish inputs,
-require Host CI and dispatch the affected guest lanes without waiting for their verdicts.
+[validation handoff](../../AGENTS.md#tool-execution-and-validation) to finish on local
+`main` and record recommended checks. The user owns all pushes and both CI workflows;
+agents inspect or monitor CI only when explicitly directed.
 
 ## Workflow boundaries
 
-Host CI is the cross-platform publication gate. Guest CI owns the expensive native
+Host CI supplies cross-platform validation. Guest CI owns the expensive native
 model, RTL and proof lanes and their scheduled cold validation. Keep their run
-identities separate so a publication can require Host CI and hand off Guest CI
-without waiting for it.
+identities separate and bind evidence to its tested revision. Neither workflow
+blocks local session completion or worktree retirement.
 
 The boot target campaigns retain independent staged-input triggers, cancellation
 groups and acceptance joins. Their repeated Sail setup belongs to the
@@ -38,7 +39,7 @@ owns the focused controls for setup, concurrency, readiness and artifact handlin
 
 [The shared classifier](../vos/ci_scope.py) owns changed-path decisions for
 [Host CI](../../.github/workflows/host-gates.yml) and the
-[publication handoff](../fanout.md). Host CI still starts on every main push and
+[local handoff](../fanout.md). Host CI still starts on every main push and
 pull request. A lightweight planning job compares the complete Git diff, then
 allocates the required jobs. This avoids workflow path filters that can leave
 required checks pending or inspect only a truncated changed-file list.
@@ -63,12 +64,15 @@ revisions. The hosted planner reads the complete local diff, without an API file
 limit. Both host platform aggregates require a successful plan and every selected
 job; they permit only the omissions that plan declares.
 
-`fanout` freezes the comparison against remote `main` before publication, including
-work committed before `fanout init`. Its journal records the base, tested revision,
-changed paths and selection. Resumes reuse that decision. No guest inputs means
-no guest dispatch; omitted checks provide no passing evidence. Old journals that
-lack a selection retain full validation. The focused prepublication typecheck and
-lane/retention tests run only when the selection calls for full host validation.
+`fanout` freezes an advisory comparison against the local
+`refs/remotes/<remote>/main`, including work committed before `fanout init`. It
+never contacts the remote or refreshes that ref, so the base may be stale. Its
+journal records the base, local revision, changed paths and recommended selection.
+Unchanged resumes reuse that decision. No guest inputs means no guest run is
+recommended; omitted checks provide no passing evidence. Unavailable history and
+old journals without a full-validation policy retain full validation. The focused
+local preparation typecheck and lane/retention tests run only when the selection
+calls for full host validation.
 
 Manual Host CI dispatch defaults to full validation. Manual Guest CI defaults to
 `lanes: all`; its optional `lanes` input accepts a nonempty, comma-separated subset
@@ -76,24 +80,25 @@ of `model,rtl,proofs`. Invalid names or duplicates refuse the plan. Scheduled ru
 **Re-run all jobs**, `cold: true` and a proof-reading base select every guest lane.
 **Re-run failed jobs** may reuse the earlier successful plan and its selection;
 start a new dispatch with `lanes: all` to request full coverage explicitly.
-`fanout init --full-ci` expands both host and guest validation when an item's
+`fanout init --full-ci` expands the recommended host and guest validation when an item's
 acceptance predicate requires it. Scope selection does not waive separately
 required acceptance checks or requirement/prose co-reads. Changes to CI selection
-itself require full Host CI and dispatch of every guest lane.
+itself require full Host CI and every guest lane; the user owns their execution.
 
 ## Running it
 
-The [`fanout` completion command](../fanout.md) runs from `main`, merges the selected
-local worktrees and publishes only `main`,
-requires both Host CI platform aggregates for that commit, then dispatches the
-selected guest lanes with the batch's `cold` policy and, for a batch initialized with
-`--reading-base`, its reading base. It records the dispatch response and returns
-without polling Guest CI. The optional `title` workflow input carries the commit
-subject into the run title, which also identifies an interrupted dispatch for
-recovery. The explicit `revision` input pins checkout
-to the settled commit even if `main` advances during dispatch. Work branches and
-publication tags are never pushed. A session finishes only after its work is on
-local and remote `main`; Guest CI may remain pending.
+The [`fanout` completion command](../fanout.md) runs from local `main`, merges the
+selected local worktrees, prepares settled inputs and retires eligible lanes.
+It never pushes, dispatches, queries, polls or waits for Host CI or Guest CI.
+The journal records the recommended lanes, `cold` policy and optional
+`--reading-base` for the user's subsequent CI runs. Historical CI records remain
+read-only evidence. A session finishes with its work committed on local `main`.
+
+The user publishes the revision and controls hosted validation. When dispatching
+manually, the explicit `revision` input pins checkout to the settled commit even
+if `main` advances. The optional `title` workflow input labels the run. CI results
+remain deferred until supplied by the user or inspected at the user's direction;
+local completion supplies no hosted passing verdict.
 
 [guest-gates.yml](../../.github/workflows/guest-gates.yml) runs on Ubuntu 26.04,
 every Monday at 04:23 UTC, on the first day of each month at 04:23 UTC, or through
