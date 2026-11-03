@@ -297,6 +297,75 @@ def _scoped_ancestor_escapes() -> None:
            "transitive escape checks rejected locally restored descendants")
 
 
+def _branch_local_names_and_moved_returns() -> None:
+    # Identical resource spellings on exclusive paths denote different loans.
+    # Both paths move parent and wrapper handles, then drop the original names.
+    graph = Graph("choose", (
+        Node("choose", successors=("lend", "reject")),
+        Node("lend", Borrow(Loan("parent", "workspace", _BYTES, "exclusive")), ("lendMove",)),
+        Node("lendMove", Move("parent", "movedParent"), ("lendView",)),
+        Node("lendView", Borrow(Loan("view", "movedParent", _BYTES)), ("lendWrap",)),
+        Node("lendWrap", Bind("packet", ("view",)), ("lendResult",)),
+        Node("lendResult", Move("packet", "result"), ("lendDropView",)),
+        Node("lendDropView", Drop("view"), ("lendDropParent",)),
+        Node("lendDropParent", Drop("movedParent"), ("ready",)),
+        Node("ready", Return("Ready", ("result",))),
+        Node("reject", Borrow(Loan("parent", "workspace", _AUDIT, "exclusive", scoped=True)),
+             ("rejectMove",)),
+        Node("rejectMove", Move("parent", "movedParent"), ("rejectView",)),
+        Node("rejectView", Borrow(Loan("view", "movedParent", _AUDIT)), ("rejectWrap",)),
+        Node("rejectWrap", Bind("packet", ("view",)), ("rejectResult",)),
+        Node("rejectResult", Move("packet", "result"), ("rejectUse",)),
+        Node("rejectUse", Use("result"), ("rejectDropView",)),
+        Node("rejectDropView", Drop("view"), ("rejectDropParent",)),
+        Node("rejectDropParent", Drop("movedParent"), ("rejected",)),
+        Node("rejected", Return("Rejected")),
+    ))
+    ready, rejected = analyze(_OWNERS, graph).paths
+    ensure(not ready.issues and not rejected.issues,
+           "exclusive paths merged same-spelled identities or moved captures")
+    ensure(ready.outcome == "Ready" and ready.returned_loans == ("view",)
+           and ready.retained_loans == ("parent", "view") and ready.suspended == (_BYTES,)
+           and not ready.restorations,
+           "success lost its returned child, canonical moved ancestor or byte footprint")
+    ensure(rejected.outcome == "Rejected" and not rejected.returned_loans
+           and not rejected.retained_loans and not rejected.suspended
+           and _ends(rejected) == [("rejectUse", "view", "parent"),
+                                   ("rejectUse", "parent", "workspace")],
+           "failure retained the sibling's byte view or lost local audit restoration")
+    for path, node in ((ready, "lendWrap"), (rejected, "rejectWrap")):
+        ensure(any(item.node == node and item.kind == "capture-interpretation"
+                   and item.resources == ("packet", "view") for item in path.obligations),
+               "branch-local wrapper lost its independent capture premise")
+    escaped = Graph(graph.entry, tuple(
+        Node(node.name, Return("Rejected", ("result",))) if node.name == "rejected" else node
+        for node in graph.nodes))
+    ready, rejected = analyze(_OWNERS, escaped).paths
+    ensure(not ready.issues and [(issue.node, issue.kind, issue.resources) for issue in rejected.issues]
+           == [("rejected", "scoped-loan-escape", ("parent",))],
+           "returning the moved audit wrapper hid its scoped ancestor or tainted its sibling")
+    ensure(rejected.retained_loans == ("parent", "view") and rejected.suspended == (_AUDIT,)
+           and not rejected.restorations,
+           "rejected escape erased the audit path's retained restoration obligations")
+
+
+def _invalid_returned_capture_has_no_grant() -> None:
+    path = _path(Borrow(Loan("writer", "workspace", _BYTES, "exclusive")),
+                 Move("writer", "movedWriter"), Borrow(Loan("view", "movedWriter", _AUDIT)),
+                 Bind("inner", ("view",)), Bind("outer", ("inner",)),
+                 Move("outer", "result"), Drop("inner"), Drop("view"),
+                 Return("Ready", ("result",)))
+    ensure([(issue.node, issue.kind, issue.resources) for issue in path.issues]
+           == [("n2", "reborrow-outside-parent", ("view", "writer")),
+               ("n8", "invalid-loan-escape", ("view",))],
+           "nested moved return concealed an out-of-footprint grant's invalidity")
+    ensure(path.returned_loans == ("view",) and path.retained_loans == ("writer",)
+           and path.suspended == (_BYTES,) and not path.restorations,
+           "invalid child installed authority or erased its real ancestor's unresolved duty")
+    ensure(any(item.kind == "returned-loan-lifetime" and item.resources == ("view", "workspace")
+               for item in path.obligations), "invalid escape silently discarded its lifetime premise")
+
+
 def _owner_moves() -> None:
     path = _path(Borrow(Loan("reader", "workspace", _BYTES)), Access(_ROOT, "move"), Use("reader"))
     ensure("suspended-parent" in _kinds(path), "owner moved under its live child")
@@ -415,6 +484,9 @@ def cases() -> list[Case]:
             Case("availability-only drops preserve actual last use", _drop_is_availability_only),
             Case("escape restrictions and retained ancestor duties", _escape_limits_and_ancestor_duties),
             Case("scoped ancestors cannot escape through returned descendants", _scoped_ancestor_escapes),
+            Case("branch-local identities and moved returned captures stay separate",
+                 _branch_local_names_and_moved_returns),
+            Case("invalid returned captures never install a grant", _invalid_returned_capture_has_no_grant),
             Case("owner movement and blocked routes", _owner_moves),
             Case("invariant and suspension boundaries", _invariants_and_boundaries),
             Case("malformed graphs and absent references", _structural_refusals),
