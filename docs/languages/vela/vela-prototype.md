@@ -38,7 +38,8 @@ syntax until Q25h passes. Retain current examples/refusals as migration fixtures
 
 This subset follows the [proposed surface](verification-strategy.md#an-ideal-surface):
 return types precede operation names, parameter types precede bindings, immutable
-locals use `let` and exits use `return` or an expression body. Contracts, grades,
+locals use `let`, required-static values use typed `const`, and exits use `return`
+or an expression body. Contracts, grades,
 effects, loans and machine representations are unsupported and diagnosed,
 never ignored.
 
@@ -46,16 +47,19 @@ The prototype accepts UTF-8 source with ASCII identifiers and `//` line comments
 Identifiers match `[A-Za-z_][A-Za-z0-9_]*`, excluding grammar and reserved extension
 keywords; the latter produce unsupported-feature diagnostics. Decimal
 literals match `[0-9]+`; leading zeros are permitted and normalized on emission.
-Every file contains one named module and at least one function or constant. Every parameter
-and return type is explicit. A function can call only previously declared
-functions; recursion and forward calls are refused. Local bindings are immutable.
+Every file contains one named module and at least one function or constant.
+Declarations are resolved in source order. Every parameter and return type is
+explicit. A function can call only earlier functions; recursion and forward calls
+are refused. Local bindings are immutable.
 
 ```text
 module Example;
 public Nat Twice(Nat x) => x + x;
+public const Nat Limit = Twice(x: 8);
 public Nat Select(bool flag, Nat x) {
+  const Nat fallback = Twice(x: 0);
   let result = Twice(x: x);
-  if (flag) { return result; } else { return 0; }
+  if (flag) { return result; } else { return fallback; }
 }
 ```
 
@@ -102,10 +106,15 @@ Boolean equality maps to pure nested conditionals returning the Boolean
 constructors. Types and constructors come from `Corelib.Init.Datatypes`.
 Constants follow the [required-static contract](surface-grammar.md#required-static-constants):
 their typed initializers evaluate from earlier constants and pure calls with
-static arguments, under finite work and numeric bounds. Runtime parameters and
+static arguments, under finite work and numeric bounds. The supported constant
+types are `Nat` and `bool`. Runtime parameters and
 ordinary outer locals are refused before evaluation, including ignored or dead
 dependencies. Constants denote evaluated values and cannot be reassigned or
 called. Compiler-recorded constant symbols support the existing editor services.
+An ordinary local inside a pure function evaluated with static arguments belongs
+to that evaluation; it is not an outer runtime dependency. Constants with machine
+types such as `usize` require the wider selected-target interpretation and are
+outside this pure prototype.
 Every user name is mapped to a generated identifier so Gallina keywords and
 library names cannot capture source references. There is no raw Gallina escape.
 
