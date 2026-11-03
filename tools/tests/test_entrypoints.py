@@ -74,28 +74,14 @@ def _settled_children_do_not_sync() -> None:
 
 
 def _wsl_environments_follow_native_lanes() -> None:
-    # The fixture root is resolved where it is built, because the stub below answers on
-    # path identity and `environment` probes the checkout's real path rather than the
-    # spelling it was handed. The two forms differ wherever the temporary directory is
-    # reached through an alias, a junction or a short name alike, and a GitHub-hosted
-    # Windows runner reaches its TEMP through one. What the case depends on is the
-    # alias and not its kind. Left unresolved the stub answers `ext4` for the
-    # checkout, the native-Linux branch is taken, and the case fails for the layout of
-    # the machine it runs on rather than for anything about the bootstrap.
-    # `filesystem-probes-take-resolved-paths` below holds that contract directly.
+    # Resolve fixture paths to match environment()'s filesystem probes, including
+    # when TEMP uses an alias, junction or short name. A path mismatch in the stub
+    # would select the native-Linux branch instead of WSL.
     with tempfile.TemporaryDirectory(prefix="vos-bootstrap-layout-") as temporary:
         root = Path(temporary).resolve() / "source"
         root.mkdir()
         (root / ".git").write_text("gitdir: C:/repo/.git/worktrees/python-a\n", encoding="utf-8")
         native = Path("/root/build/venv-layout-fixture").resolve()
-        # The bootstrap asks which filesystem the *resolved* checkout sits on, so the
-        # fixture answers about that path rather than about the one the temporary
-        # directory was handed back under. The two differ wherever a component is not
-        # already in resolved form, and a Windows runner whose TEMP carries an 8.3
-        # short name is exactly that: keyed on the unresolved path the fixture answers
-        # "ext4" about the checkout, the guest branch below is never taken, and the
-        # case fails for a property of the runner's temporary directory rather than of
-        # the bootstrap it is about.
         checkout = root.resolve()
         with patch.dict(os.environ, {"VOS_BUILD_ROOT": str(native)}, clear=True), \
                 patch.object(toolenv.env, "filesystem", side_effect=lambda path:

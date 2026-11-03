@@ -126,8 +126,8 @@ def _projection_free_seam_is_a_residue() -> None:
 
 
 def _grouped_declaration_is_a_residue() -> None:
-    # `a b : Prop` declares two fields and is legal Gallina; read as one it would name
-    # neither, so the piece is handed back whole.
+    # Grouped fields are legal Gallina but unsupported by this parser. Report the
+    # whole declaration without guessing either field name.
     rec = _read(_APEX.replace("  gamma : Prop;", "  gamma delta : Prop;"))
     ensure(any("'gamma delta : Prop' is in no `name : type` form" in said
                for said in rec.unread),
@@ -137,8 +137,7 @@ def _grouped_declaration_is_a_residue() -> None:
 
 
 def _brace_inside_the_body_does_not_truncate() -> None:
-    # The body is brace-matched rather than cut at the first `}`, so a field at a type
-    # that carries one is read past instead of ending the record early.
+    # A closing brace inside a field's type must not end the record.
     rec = _read(_APEX.replace("  Carrier : Type;",
                               "  Carrier : Type;\n  bound : { n : nat | n = n };"))
     ensure(rec.unread == [] and rec.declarations == 6
@@ -148,9 +147,8 @@ def _brace_inside_the_body_does_not_truncate() -> None:
 
 
 def _prefixed_definition_is_read() -> None:
-    # An attribute or a locality leaves the body what it was, so each is read as the
-    # bare definition would be, on its own line or the definition's, and the sentence
-    # above it ends where the prefix opens rather than swallowing it.
+    # Attributes and locality prefixes must preserve the definition's field reads
+    # and stay outside the preceding definition's sentence.
     for prefix in ("#[local] ", "#[local]\n", "Local ", "Global ", "Program ",
                    "Polymorphic ", '#[deprecated(note="a ] b")] #[local] '):
         rec = _read(_APEX + f"\n{prefix}Definition inner (v : Vocabulary) : Prop := "
@@ -164,10 +162,8 @@ def _prefixed_definition_is_read() -> None:
 
 
 def _control_prefixed_definition_is_a_residue() -> None:
-    # `Fail` leaves nothing defined, so its sentence is counted and read by nothing, and
-    # the count names the difference rather than the reading narrowing past it. Written
-    # on a line of its own above the definition, with anything a sentence's lead may
-    # carry between them, it is the same flag and the same residue.
+    # Fail/Succeed commands add no definitions. Count their Definition sentences
+    # as unread, even with intervening whitespace, comments or attributes.
     for flag in ("Fail ", "Fail\n", "Succeed\n", "#[local]\nFail\n", "Fail\n\n",
                  "Fail (* why. *)\n#[local] "):
         rec = _read(_APEX + f"\n{flag}Definition inner (v : Vocabulary) : Prop := "
@@ -177,7 +173,7 @@ def _control_prefixed_definition_is_a_residue() -> None:
                f"a definition under {flag!r} is a residue, got {rec.unread!r}")
         ensure("inner" not in rec.def_fields and rec.consumers["gamma"] == ["seam_one"],
                f"and under {flag!r} it consumes nothing: {rec.consumers['gamma']!r}")
-    # `Time` keeps what it times, so a definition under it is read as itself
+    # Time preserves the definition and its field reads.
     rec = _read(_APEX + "\nTime\nDefinition inner (v : Vocabulary) : Prop := v.(gamma).\n")
     ensure(rec.unread == [] and rec.def_fields.get("inner") == ["gamma"],
            f"a timed definition is read: {rec.unread!r} {rec.def_fields!r}")

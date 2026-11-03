@@ -26,10 +26,8 @@ from pathlib import Path
 from tests.harness import Case, ensure
 from vos import capformat, sailbundle
 
-# The definitions, at deliberately not-the-live-tree values, so that a case
-# asserting agreement is asserting that the parse followed the fixture rather than
-# that it happened to know the real numbers. They are the bundle's rather than a
-# file's, which is where the parse now resolves a definition by name.
+# Use values different from the live model to detect hardcoded parser results.
+# Definitions are resolved by name from the generated bundle.
 _TYPES = {
     "cap_size": "type cap_size : Int = 4",
     "log2_cap_size": "type log2_cap_size : Int = 2",
@@ -43,9 +41,8 @@ _TYPES = {
 }
 _LETS = {"reserved_otypes": "let reserved_otypes = 1"}
 
-# The model's own two restatements are *comments*, which the documentation emitter
-# drops, so they stay a scan of the file and stay in these fixtures beside the
-# packing the same file writes.
+# The emitter drops comments, so the two comment claims must be read from source.
+# These fixtures also retain the capability packing checked in the same file.
 _CAP_FORMAT = """\
 // The address space is 20 bits, so the address field is 20 bits.
 

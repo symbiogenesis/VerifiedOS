@@ -84,9 +84,8 @@ _GOLDEN: Final[tuple[tuple[str, tuple[int, ...], int, int], ...]] = (
     ("cclear", (1, 0xFFFF), 0x0, 0xFFF00F8B),
     ("vmclear", (), 0x0, 0x0000100B),
     ("vkeccak.vi", (1, 2, 24), 0x0, 0x0181208B),
-    # The FEC pair shares `funct3` 100 and differs in `funct7` alone, which is
-    # what one row per code family rather than one `funct3` per family buys
-    # (R-15-119b). The two words below differ by exactly 1 << 25.
+    # The FEC pair shares funct3=100 and differs only in funct7 (R-15-119b).
+    # Its encodings must remain distinct; these words differ by 1 << 25.
     ("ldpcdec", (1, 2, 3), 0x0, 0x0031408B),
     ("polardec", (1, 2, 3), 0x0, 0x0231408B),
     ("vsetvli", (1, 2, 0b00011011000), 0x0, 0x0D8170D7),
@@ -103,13 +102,10 @@ _GOLDEN: Final[tuple[tuple[str, tuple[int, ...], int, int], ...]] = (
     ("vs1r.v", (1, 2), 0x0, 0x028100A7),
     ("vlm.v", (1, 2), 0x0, 0x02B10087),
     ("vsm.v", (1, 2), 0x0, 0x02B100A7),
-    # Four rows the transcription never carried, recorded when generation reached them
-    # (M1.4'). `vadc.vvm` is the one operand shape no other row here has: the mask
-    # register printed as a literal, so a program writes `v0` and the encoding carries
-    # nothing for it.
     ("vadd.vv", (1, 2, 3, 1), 0x0, 0x022180D7),
     ("vand.vi", (1, 2, -16, 0), 0x0, 0x242830D7),
     ("vmul.vv", (1, 2, 3, 1), 0x0, 0x9621A0D7),
+    # vadc.vvm uses a literal v0 operand with no encoded field.
     ("vadc.vvm", (1, 2, 3), 0x0, 0x402180D7),
 )
 
@@ -169,19 +165,16 @@ def _row_count() -> None:
            f"TABLE carries {len(dialect.TABLE)} rows against the {admitted} the "
            f"generated artifact admits plus the one authored `fence`")
     ensure("fence" in dialect.TABLE, "the one authored row is gone from the table")
-    # A floor under the generated half, on the ground the floors group states: the day
-    # the join stops matching anything is the day this says so rather than the day it
-    # starts agreeing with everything. 353 is what the transcription this replaced
-    # carried, so the generated table may not fall below it without a decision.
+    # The generated table must retain at least the 353 rows of the original
+    # transcription. This floor catches missing rows even if the counts agree.
     ensure(admitted >= 353,
            f"the generated table admits {admitted} rows, fewer than the 353 the "
            f"transcription it replaced carried")
 
 
 def _operand_specs_dispatch() -> None:
-    # Every operand kind a row's signature names must be one `asm._operand` dispatches
-    # on; a kind the generator emits and the parser does not know otherwise fails only
-    # when a program first uses it, as an AssertionError deep in the assembler.
+    # Exercise every generated operand kind so unsupported kinds fail here before
+    # a program uses them.
     assembler = asm.Assembler("")
     item = asm.Item("insn", 1, ".text", text="probe")
     for mnemonic, row in dialect.TABLE.items():
@@ -231,9 +224,7 @@ def _csr_range_names_the_line() -> None:
 
 
 def _vkeccak_rounds() -> None:
-    # The refusal was a hand rule quoting the clause and is now the clause: the guard
-    # `keccak_valid_rounds(rnd)` is read out of the model and carried to the site, so
-    # the diagnostic names the predicate rather than restating what it admits.
+    # Invalid rounds must fail the model-derived guard and name its predicate.
     for rounds in (0, 1, 11, 13, 16, 23, 25, 31):
         _raises(AsmError,
                 lambda r=rounds: dialect.encode("vkeccak.vi", [1, 2, r], 0),
@@ -243,18 +234,15 @@ def _vkeccak_rounds() -> None:
 
 
 def _lc_null_destination() -> None:
-    # At a zero destination the bit pattern is the cache-block block's, so the encoder
-    # refuses rather than laying down `cbo.zero`. This too is now the model's own guard
-    # rather than a rule beside it, so the diagnostic quotes `cd != zreg`.
+    # lc with a null destination aliases cbo.zero. Require the model-derived
+    # cd != zreg guard to reject it.
     _raises(AsmError, lambda: dialect.encode("lc", [0, 0, 1], 0), "cd != zreg")
     ensure(dialect.encode("lc", [1, 0, 2], 0) == 0x0001208F,
            "a non-null destination must still encode")
 
 
 def _operand_width_guard() -> None:
-    # Every field's width now comes from the model, so a register past its five bits is
-    # the operand diagnostic every other program defect gets rather than the 32-bit
-    # assertion it used to reach.
+    # An out-of-range register must produce an operand diagnostic before encoding.
     _raises(AsmError, lambda: dialect.encode("add", [1, 1, 4096], 0),
             "register 4096", "outside", "[0, 31]")
 
