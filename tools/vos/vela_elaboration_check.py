@@ -58,7 +58,8 @@ lemma RightValue(): Snd((7, true)) == true proof { return Refl(true); }
 """),
         ("higher-order-inference", """module InferenceReplay;
 definition U Apply<T,U>(Fn(T value) -> U f, T x) = f(x);
-definition Nat Increment() = Apply((_ x) => x + 1, 2);
+definition Nat Increment() = Apply(x => x + 1, 2,);
+Nat Arrow(Nat value,) => Apply((x) => x + 1, value,);
 """),
         ("dependent-type-family", """module FamilyReplay;
 definition type[family(n)] Keep(Fn(Nat index) -> Type family, Nat n,

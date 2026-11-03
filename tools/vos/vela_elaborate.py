@@ -50,7 +50,7 @@ _FIELDS: dict[str, set[str]] = {
     "operator": {"name"}, "type_expression": {"type"},
     "lambda": {"parameters", "body"}, "typed_lambda": {"signature", "body"},
     "let_expression": {"binding", "body"},
-    "block": {"statements"}, "return": {"value"},
+    "block": {"statements"}, "return": {"value"}, "expression_body": {"value"},
     "let": {"name", "type", "grade", "value"},
     "typed_local": {"name", "type", "grade", "value"},
     "if": {"condition", "then", "else"},
@@ -169,6 +169,21 @@ class _Protocol:
             value = node["value"]
             if type(value) is not bool or self.source[span[0]:span[1]] != (b"true" if value else b"false"):
                 raise self.error("protocol", "Boolean literal differs from its source", node)
+        if kind == "expression_body":
+            if (self.source[span[0]:span[0] + 2] != b"=>"
+                    or self.source[span[1] - 1:span[1]] != b";"):
+                raise self.error("protocol", "expression body differs from its source delimiters", node)
+            value = node["value"]
+            if not isinstance(value, dict):
+                raise self.error("protocol", "expression body has no value node", node)
+            self._span(value.get("span"), (span[0] + 2, span[1] - 1))
+        if kind == "lambda_parameter" and node["type"] is None:
+            name = node["name"]
+            if not isinstance(name, dict):
+                raise self.error("protocol", "inferred lambda parameter has no binder", node)
+            name_span = self._span(name.get("span"), span)
+            if name_span[0] != span[0] or (node["grade"] is None and name_span != span):
+                raise self.error("protocol", "inferred lambda parameter has an annotation span", node)
         for key, value in node.items():
             if key not in {"span", "kind"}:
                 self.visit(value, span, depth + 1)
@@ -748,6 +763,8 @@ class _Elaborator:
             return self.lambda_(node, environment, expected).term
         if node["kind"] == "block":
             return self.block(node, environment, expected).term
+        if node["kind"] == "expression_body":
+            return self.check(self.node(node["value"]), expected, environment)
         if node["kind"] == "tuple":
             expected_normal = self.whnf(expected)
             if expected_normal.kind == "prod":
@@ -796,7 +813,11 @@ class _Elaborator:
             if parameter["kind"] != parameter_role:
                 raise self.fail("protocol", "invalid lambda parameter syntax role")
             self.no_roles(parameter, "grade")
-            domain = self.type(self.node(parameter["type"]), extended)
+            annotation = parameter["type"]
+            if annotation is None and parameter_role != "lambda_parameter":
+                raise self.fail("protocol", "a declared callable parameter requires a type")
+            domain = (self.meta(_SORT, extended) if annotation is None
+                      else self.type(self.node(annotation), extended))
             expected_pi = None if current is None else self.whnf(current)
             if expected_pi is not None:
                 if expected_pi.kind != "pi":

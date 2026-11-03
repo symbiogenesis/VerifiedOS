@@ -2,14 +2,11 @@
 // Mathematical naturals and booleans; development prototype, unqualified.
 module Oracle;
 
-public Nat Cube(Nat x)
-{
-  return x * x * x;
-}
+public Nat Cube(Nat x,) => x * x * x;
 
 public bool Choose(bool flag, Nat x)
 {
-  let y = Cube(x + 1);
+  let y = Cube(x + 1,);
   if (flag == true)
   {
     let limit = 9;

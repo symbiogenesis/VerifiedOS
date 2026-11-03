@@ -92,8 +92,7 @@ def _tokens(source: bytes) -> list[_Token]:
         if match := syntax.IDENTIFIER.match(text, offset):
             spelling = match.group()
             if spelling in syntax.UNSUPPORTED:
-                raise VelaError("unsupported", line, column,
-                                f"'{spelling}' is outside the pure prototype")
+                raise VelaError("unsupported", line, column, syntax.unsupported_message(spelling))
             kind = "keyword" if spelling in syntax.KEYWORDS else "name"
         elif match := syntax.DECIMAL.match(text, offset):
             spelling = match.group()
@@ -101,7 +100,7 @@ def _tokens(source: bytes) -> list[_Token]:
                 raise VelaError("limit", line, column,
                                 f"literal exceeds {MAX_LITERAL_DIGITS} decimal digits")
             kind = "decimal"
-        elif text[offset:offset + 2] in {"->", "==", "<="}:
+        elif text[offset:offset + 2] in {"->", "=>", "==", "<="}:
             spelling, kind = text[offset:offset + 2], "symbol"
         elif character in "();,:{}=+*":
             spelling, kind = character, "symbol"
@@ -152,6 +151,8 @@ class _Parser:
         if token.text in {"Nat", "bool"}:
             self.offset += 1
             return token.text
+        if token.kind not in {"name", "keyword"}:
+            raise self._error("syntax", f"expected parameter or result type, found {token.text!r}")
         raise self._error("unsupported", f"type {token.text!r} is outside Nat and bool")
 
     def parse(self) -> syntax.Module:
@@ -178,7 +179,16 @@ class _Parser:
                 if self._take(")"):
                     break
                 self._expect(",")
-        return syntax.Function(name, result, tuple(parameters), self._block(1))
+                if self._take(")"):
+                    break
+        arrow = self._current()
+        if self._take("=>"):
+            value = self._expression(1)
+            self._expect(";")
+            body = syntax.Block((), syntax.Return(value, arrow.site), value.site)
+        else:
+            body = self._block(1)
+        return syntax.Function(name, result, tuple(parameters), body)
 
     def _block(self, nesting: int) -> syntax.Block:
         self._expect("{")
@@ -259,6 +269,8 @@ class _Parser:
                     if self._take(")"):
                         break
                     self._expect(",")
+                    if self._take(")"):
+                        break
             return syntax.expression("call", name.text, name.site, tuple(arguments))
         return syntax.expression("name", name.text, name.site)
 
