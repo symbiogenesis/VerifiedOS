@@ -336,6 +336,9 @@ def _fixtures(compiled: Build) -> list[str]:
         (b"1 + 2 + 3", ["+", ["+", ["nat", "1"], ["nat", "2"]], ["nat", "3"]]),
         (b"(1 + 2) * 3", ["*", ["group", ["+", ["nat", "1"], ["nat", "2"]]], ["nat", "3"]]),
         (b"0001", ["nat", "0001"]),
+        (b"0_001", ["nat", "0_001"]),
+        (b"1_024 + 2_048", ["+", ["nat", "1_024"], ["nat", "2_048"]]),
+        (b"_".join([b"9"] * 256), ["nat", "_".join(["9"] * 256)]),
     )
     for expression, expected in expressions:
         result = parse_source(compiled, prefix + expression + b"; }")
@@ -413,6 +416,10 @@ def _fixtures(compiled: Build) -> list[str]:
         (b"module M; public Nat out() => 0;", "unsupported"),
         (b"// invalid \xff\n" + source, "encoding"),
         (prefix + b"9" * 257 + b"; }", "limit"),
+        (prefix + b"_".join([b"9"] * 257) + b"; }", "limit"),
+        (prefix + b"1__0; }", "syntax"),
+        (prefix + b"1_; }", "syntax"),
+        (prefix + b"1_Nat; }", "syntax"),
         (prefix + b"(" * 2000 + b"0" + b")" * 2000 + b"; }", "limit"),
         (prefix + b" + ".join([b"1"] * 2000) + b"; }", "limit"),
         (b"module M; public Nat F() { " + b"let x = 1; " * 1000 + b"return 0; }", "limit"),

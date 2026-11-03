@@ -12,7 +12,14 @@ import re
 from dataclasses import dataclass
 from typing import cast
 
-from vos.vela_ast import MAX_LITERAL_DIGITS, MAX_SOURCE_BYTES, VelaError, source_text, trivia_end
+from vos.vela_ast import (
+    DECIMAL,
+    MAX_LITERAL_DIGITS,
+    MAX_SOURCE_BYTES,
+    VelaError,
+    source_text,
+    trivia_end,
+)
 
 MAX_DEPTH = 128
 MAX_WORK = 200_000
@@ -467,11 +474,11 @@ class _Protocol:
             value, suffix = node["value"], node["suffix"]
             if not isinstance(value, str) or not isinstance(suffix, str):
                 raise self.error("protocol", "invalid numeric literal payload", node)
-            if len(value) > MAX_LITERAL_DIGITS:
+            if len(value.replace("_", "")) > MAX_LITERAL_DIGITS:
                 raise self.error("limit", "numeric literal exceeds digit bound", node)
             if self.source[span[0]:span[1]] != (value + suffix).encode():
                 raise self.error("protocol", "numeric literal differs from its source", node)
-            if suffix or not re.fullmatch(r"[0-9]+", value):
+            if suffix or not DECIMAL.fullmatch(value):
                 raise self.error("unsupported", "only unsuffixed decimal Nat literals are supported", node)
         if kind == "bool":
             value = node["value"]
@@ -1219,7 +1226,7 @@ class _Elaborator:
                 if not arguments:
                     result = _SORT
                 elif len(arguments) == 1 and arguments[0]["kind"] == "nat":
-                    level = int(cast("str", arguments[0]["value"]))
+                    level = int(cast("str", arguments[0]["value"]).replace("_", ""))
                     if not 0 <= level <= MAX_UNIVERSE:
                         raise self.fail("limit", f"Type level must be between 0 and {MAX_UNIVERSE}")
                     result = _term("sort", value=level)
@@ -1448,7 +1455,7 @@ class _Elaborator:
         self.site = node
         kind = node["kind"]
         if kind == "nat":
-            return _Binding(_term("nat", value=int(cast("str", node["value"]))), _NAT)
+            return _Binding(_term("nat", value=int(cast("str", node["value"]).replace("_", ""))), _NAT)
         if kind == "hole":
             raise self.fail("inference", "unfinished named proof hole; provide an explicit term")
         if kind == "bool":

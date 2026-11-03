@@ -274,17 +274,30 @@ let identifier state lexbuf =
   | "carrier" -> CARRIER | "zero" -> ZERO | "one" -> ONE | "add" -> ADD | "mul" -> MUL
   | "admits" -> ADMITS | "interpret" -> INTERPRET | "laws" -> LAWS
   | _ -> if annotation_name lexbuf then ANNOTATION_NAME word else IDENT word
+let digit_run lexbuf spelling prefix valid =
+  let length = String.length spelling in
+  let index = ref prefix in
+  let count = ref 0 in
+  while !index < length && (valid spelling.[!index] || spelling.[!index] = '_') do
+    if spelling.[!index] = '_' then begin
+      if !index = prefix || !index + 1 >= length ||
+         not (valid spelling.[!index - 1]) || not (valid spelling.[!index + 1]) then
+        refuse "syntax" lexbuf "numeric separator must be between digits of the same base"
+    end else incr count;
+    incr index
+  done;
+  if !count = 0 then refuse "syntax" lexbuf "numeric base prefix requires digits";
+  if !count > Ast.max_literal_digits then refuse "limit" lexbuf "literal exceeds 256 digits";
+  !index
 let pure_decimal lexbuf =
   let spelling = Lexing.lexeme lexbuf in
-  let count = ref 0 in
-  while !count < String.length spelling && spelling.[!count] >= '0' && spelling.[!count] <= '9' do incr count done;
-  if !count > Ast.max_literal_digits then refuse "limit" lexbuf "literal exceeds 256 decimal digits";
+  let count = digit_run lexbuf spelling 0 (function '0'..'9' -> true | _ -> false) in
   (* Return the decimal token alone; its suffix must receive the original pure
      keyword classification and position on the next lexer invocation. *)
-  lexbuf.Lexing.lex_curr_pos <- lexbuf.Lexing.lex_start_pos + !count;
+  lexbuf.Lexing.lex_curr_pos <- lexbuf.Lexing.lex_start_pos + count;
   lexbuf.Lexing.lex_curr_p <- { lexbuf.Lexing.lex_curr_p with
-    Lexing.pos_cnum = lexbuf.Lexing.lex_start_p.Lexing.pos_cnum + !count };
-  DECIMAL (String.sub spelling 0 !count)
+    Lexing.pos_cnum = lexbuf.Lexing.lex_start_p.Lexing.pos_cnum + count };
+  DECIMAL (String.sub spelling 0 count)
 let numeric state lexbuf =
   let spelling = Lexing.lexeme lexbuf in
   let length = String.length spelling in
@@ -296,12 +309,9 @@ let numeric state lexbuf =
       | _ -> 0, (function '0'..'9' -> true | _ -> false)
     else 0, (function '0'..'9' -> true | _ -> false)
   in
-  let index = ref prefix in
-  while !index < length && valid spelling.[!index] do incr index done;
-  if !index = prefix then refuse "syntax" lexbuf "numeric base prefix requires digits";
-  if !index - prefix > Ast.max_literal_digits then refuse "limit" lexbuf "literal exceeds 256 digits";
-  let digits = String.sub spelling 0 !index in
-  let suffix = String.sub spelling !index (length - !index) in
+  let index = digit_run lexbuf spelling prefix valid in
+  let digits = String.sub spelling 0 index in
+  let suffix = String.sub spelling index (length - index) in
   if suffix <> "" && not state.surface then refuse "syntax" lexbuf "unexpected literal suffix";
   if suffix <> "" && (suffix.[0] >= '0' && suffix.[0] <= '9') then
     refuse "syntax" lexbuf "invalid digit for numeric base";

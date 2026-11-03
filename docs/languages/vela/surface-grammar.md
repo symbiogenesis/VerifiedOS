@@ -21,7 +21,10 @@ schema 1 serve the pure prototype and its parser comparison. The
 schema 2 and a `surface_file` node with a module name and declarations. It has no
 translation fallback. Pure translation continues to reject wider constructs.
 All syntax nodes and names carry original-byte, half-open spans; numeric literals
-retain their spelling. The existing UTF-8, source-byte, literal-digit, delimiter,
+retain their spelling, including underscores between digits of one base. The
+[separator contract](authoring-tools.md#numeric-separators) owns placement and
+suffix boundaries; only actual digits count toward the literal bound. The
+existing UTF-8, source-byte, literal-digit, delimiter,
 syntax-depth, duration and output bounds apply to both entries.
 
 ## Required syntax

@@ -112,7 +112,7 @@ def _tokens(source: bytes) -> list[_Token]:
             kind = "keyword" if spelling in syntax.KEYWORDS else "name"
         elif match := syntax.DECIMAL.match(text, offset):
             spelling = match.group()
-            if len(spelling) > MAX_LITERAL_DIGITS:
+            if len(spelling.replace("_", "")) > MAX_LITERAL_DIGITS:
                 raise VelaError("limit", line, column,
                                 f"literal exceeds {MAX_LITERAL_DIGITS} decimal digits")
             kind = "decimal"
@@ -460,7 +460,7 @@ class _Elaborator:
         self._static_tick(expression.site, depth)
         kind, name = expression.kind, cast("str", expression.value)
         if kind == "nat":
-            return _Static("Nat", int(name))
+            return _Static("Nat", int(name.replace("_", "")))
         if kind == "bool":
             return _Static("bool", cast("bool", expression.value))
         if kind == "name":
@@ -553,7 +553,7 @@ class _Elaborator:
                     environment: dict[str, _Local]) -> _Expression:
         kind, value, site = expression.kind, expression.value, expression.site
         if kind == "nat":
-            return _Expression("Nat", f"({int(cast('str', value))} : {_TYPES['Nat']})")
+            return _Expression("Nat", f"({int(cast('str', value).replace('_', ''))} : {_TYPES['Nat']})")
         if kind == "bool":
             return _Expression("bool", _TRUE if value else _FALSE)
         if kind == "group":

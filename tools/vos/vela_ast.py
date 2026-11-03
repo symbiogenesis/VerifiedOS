@@ -19,7 +19,7 @@ MAX_SYNTAX_DEPTH = 256
 type ValueType = Literal["Nat", "bool"]
 
 IDENTIFIER = re.compile(r"[A-Za-z_][A-Za-z0-9_]*")
-DECIMAL = re.compile(r"[0-9]+")
+DECIMAL = re.compile(r"[0-9](?:_?[0-9])*")
 KEYWORDS = frozenset({"module", "public", "return", "let", "const", "if", "else", "Nat", "bool",
                       "true", "false"})
 UNSUPPORTED = frozenset({"fn", "Bool", "async", "await", "effect", "effects", "handler",
@@ -310,7 +310,7 @@ class _Decoder:
             value = node["value"]
             if not isinstance(value, str) or not DECIMAL.fullmatch(value):
                 raise ValueError("native parser returned an invalid decimal spelling")
-            if len(value) > MAX_LITERAL_DIGITS:
+            if len(value.replace("_", "")) > MAX_LITERAL_DIGITS:
                 raise VelaError("limit", site.line, site.column, "native literal exceeds digit limit")
             if self.source[span[0]:span[1]] != value.encode():
                 raise ValueError("native decimal differs from its source span")
