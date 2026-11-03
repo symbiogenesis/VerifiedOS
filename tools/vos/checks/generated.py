@@ -850,8 +850,7 @@ def _repair(ctx: Context, row: Row, staged: bytes, out: Reading) -> None:
             f"with `{row.generator}`")
         return
     ctx.fixed[row.path] = staged.decode("utf-8")
-    # what goes forward is what this run has just written, which is the whole of why
-    # this group runs ahead of the ones that read the artifact
+    # Later checks must read the restored bundle; this group runs before its readers.
     out.bundle, out.owners = indexed, owners
     out.fixed.append(f"fixed: {row.path} restored from the index, "
                      f"{len(staged)} bytes")

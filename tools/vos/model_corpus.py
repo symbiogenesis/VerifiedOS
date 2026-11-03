@@ -58,22 +58,15 @@ def test_corpus_digests(model_root: Path, version: str) -> dict[str, str]:
     return digests
 
 
-# The manifest `download_riscv_tests` in model/test/CMakeLists.txt writes beside a
-# suite it has just extracted from a tarball whose SHA-256 it verified, and holds that
-# suite to on every configure, downloading again a suite that disagrees. The listing is
-# the tarball's recorded digest, then each file's SHA-256 and path relative to the
-# suite, sorted by the path's bytes; a symbolic link is listed unhashed, every name
-# holding `;` or `\` leaves at least one unhashed line, and no written manifest holds
-# an unhashed line. `corpus_listing` renders that listing for the readers that do not
-# configure: the seeding that copies a suite into a new lane, and the sweep and
-# trace-diff that read one. It walks the tree rather than globbing it and lists every
-# non-regular entry unhashed without reading it, hashing a file only through a
-# descriptor that is a regular file, so the sweep and trace-diff also refuse what
-# configure does not tell apart: a FIFO or device node, which the verified tarball
-# does not contain.
-# A build's receipt reads the corpus through `pinned_suite` too, so a disagreement
-# between the two renderings fails the first build that records its evidence rather
-# than passing unseen.
+# model/test/CMakeLists.txt's download_riscv_tests writes this manifest beside
+# each verified suite and redownloads the suite on a configure-time mismatch.
+# Format: tarball digest, then file SHA-256/path pairs sorted by path bytes.
+# CMake rejects symlinks and names containing `;` or `\` through unhashed lines.
+# corpus_listing reproduces the format for lane seeding, sweep and trace-diff.
+# It also marks FIFOs and device nodes unhashed, hashing only descriptors
+# verified as regular files.
+# Build receipts use pinned_suite, so recording a build checks that the Python
+# and CMake listings agree.
 CORPUS_MANIFEST_SUFFIX = ".manifest"
 
 
@@ -162,16 +155,11 @@ def corpus_listing(suite: Path, tarball_sha256: str) -> bytes:
     return _hashed_listing(suite, tarball_sha256, _corpus_entries(suite))[0]
 
 
-# How a corpus file is opened for reading once its name has been found to be a regular
-# file: without waiting, without following a final link and without taking a terminal
-# as the controlling one, so an entry replaced by another kind since is neither waited
-# on nor followed nor made this process's terminal, and its descriptor refuses it.
-# Opening a FIFO for reading otherwise waits for a writer that never comes, and a
-# character device such as `/dev/zero`, or a link to one, is read without end. What
-# opening a device node does to the device the flags do not prevent, so the name is
-# asked first, and only a device put in its place between that answer and the open is
-# opened at all. win32 has none of these flags, so there the name's and the opened
-# descriptor's kinds decide alone; `O_BINARY` keeps its reads byte-exact.
+# Where available, these flags prevent FIFO blocking, following a final symlink
+# and acquiring a controlling terminal if the path changes after lstat.
+# They cannot prevent all device-open side effects; _open_regular checks the
+# path's kind before opening and verifies the descriptor's kind and identity.
+# Windows relies on those checks alone; O_BINARY preserves file bytes.
 _REGULAR_ONLY = (os.O_RDONLY | getattr(os, "O_NONBLOCK", 0) | getattr(os, "O_NOFOLLOW", 0)
                  | getattr(os, "O_NOCTTY", 0) | getattr(os, "O_BINARY", 0))
 
