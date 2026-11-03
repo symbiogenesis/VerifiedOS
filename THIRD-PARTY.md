@@ -1127,7 +1127,7 @@ or host-compatibility verdict. Q25x must select its actual version under the
 existing cooldown, read native contents, exceptions and transitive notices, and
 qualify that exact closure before adoption. The [test contract](docs/languages/vela/tooling-protocols.md#generated-development-tests)
 owns its use and evidence boundary. Q25y reuses the selected Menhir and its
-[parser output terms](#vela-parser-support-library); it still reads the actual
+[generator and output reading](#development-tools-contained-by-use); it still reads the actual
 outputs its additional facilities would retain.
 
 [CoqEAL and Trocq](docs/languages/vela/verification-strategy.md#existing-tooling-and-implementation-owners)
