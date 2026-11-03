@@ -661,6 +661,61 @@ part of this increment follows the [hint contract](lsp-prototype.md#authoring-hi
 
 ### Required-static constants
 
+The compositional constant interface has three placements. `const T F(...)`
+declares a function that supports constant evaluation and remains callable with
+runtime arguments. `T F(const U input, V value)` requires `input` during
+compilation while `value` may be runtime data. `const T Name = EXPR;` requires
+the initializer's result during compilation. No separate compile-time-only
+function category or `const(expression)` form is introduced.
+
+A constant-compatible function checks its supported pure body symbolically.
+Its parameters need not themselves be declared constant: supplied static values
+make its ordinary evaluator locals static during that invocation. Existing
+admitted total pure functions remain eligible for constant evaluation; the
+function modifier records an explicit checked promise without breaking those
+calls. Unsupported effects, resources, mutation and opaque external calls retain
+their existing refusals, including in dead branches.
+
+A `const` parameter is an immutable, required-static value binder. Its type and
+availability are checked at every application, including labeled, generic,
+partially applied and higher-order applications. A definition checks symbolically
+under that declared availability; a demanded closed instantiation must resolve
+its static arguments before evaluation. Local constant initializers may depend
+on such binders and earlier constants. An unmarked runtime or ghost binder is
+not promoted by an ignored argument, dead branch, inlining or optimization.
+Forwarding a static parameter preserves its requirement. Specialization computes
+the demanded constant locals while retaining runtime inputs and declaration-order
+call-by-value evaluation. An unchanged mathematical template is a logical
+definition, not evidence that a production backend erased a static parameter.
+
+Both Menhir entries and the pure Python route preserve these distinctions.
+The pure function and parameter nodes carry an optional Boolean `const` field,
+omitted for ordinary declarations. Surface function modifiers include `const`;
+surface parameter nodes use the same optional Boolean field. Consumers bind the
+flag to the source keyword and refuse invented, missing or repeated qualifiers.
+Callable parameter requirements survive the mathematical consumer's function
+types and substitution. Editor signatures identify constant functions and static
+parameters without evaluating source in the protocol adapter.
+
+```text
+public const Nat Square(Nat value) => value * value;
+public const Nat Limit = Square(4);
+public Nat Scale(const Nat factor, Nat value) {
+    const Nat multiplier = Square(factor);
+    return multiplier * value;
+}
+public Nat Runtime(Nat value) => Scale(factor: Limit, value: value);
+```
+
+`Square(value)` is also valid with an ordinary runtime input. `Scale` requires
+only its factor statically; its multiplication still processes runtime data.
+Passing an unmarked runtime factor is refused at that argument. These examples
+use the current mathematical scalar fragment. Text, format plans, aggregates,
+scratch mutation and target materialization retain their own frontend and
+representation prerequisites. A static initializer value can seed mutable
+storage, but local initialization may still copy bytes on each invocation;
+placement in a composed image determines static storage initialization.
+
 `const T Name = EXPR;` declares an immutable value whose initializer must be
 evaluated during compilation. The explicit type is mandatory. Constants may be
 module or container members, with ordinary visibility modifiers, or local
@@ -671,12 +726,13 @@ The unit type is `Unit`; a zero-parameter callable and a callable with an explic
 
 Initializers may use earlier constants and admitted total pure functions applied
 to static arguments. Surrounding runtime parameters, ordinary `let`/`var`
-bindings and generic or ghost indices are not constant-expression inputs.
+bindings and unmarked generic or ghost indices are not constant-expression inputs.
 Check dependencies before reduction: a dead branch or unused argument cannot
 hide a forbidden input, effect, resource or authority. Parameters and ordinary
 locals inside a pure function evaluated with static arguments are evaluator
 locals; this does not promote surrounding runtime bindings into constants.
-Forward and cyclic constant dependencies are refused.
+Explicit static parameters supply the additional admitted symbolic inputs;
+forward and cyclic constant dependencies are refused.
 
 Evaluation has finite work, reduction, numeric and output bounds. Failure,
 unavailable input or exhaustion is a located refusal without a runtime fallback.
@@ -711,6 +767,16 @@ fixtures must reach the intended semantic diagnostic; syntax-only acceptance
 establishes no static, graded, borrowing or admission verdict. Require focused
 host tests and Python checks, both Host CI aggregates and dispatch every Guest
 CI lane; exact locked-parser and kernel evidence remains hosted.
+
+The compositional increment additionally requires runtime and static calls of the
+same constant function; static-factor/runtime-data specialization with an
+independently expected literal; static-parameter forwarding; declaration-order
+labeled calls; dependent and higher-order function-parameter preservation; refusal
+of runtime, erased, ignored and dead forbidden dependencies; bounded symbolic
+checking and closed evaluation; source-token mutations of every qualifier; and
+current-overlay editor signatures and navigation. Native generation remains
+strict and conflict-free. No valid literal alone establishes a folding theorem,
+source correspondence or production compiler admission.
 
 ### Native qualification
 
