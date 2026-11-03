@@ -1,5 +1,14 @@
 # Vela development surface grammar
 
+The grammar is a development superset. [The first-release contract](first-release.md#release-boundary)
+selects the supported synchronous runtime language, [primitive meanings](first-release.md#primitive-semantics)
+and [module/package rules](first-release.md#modules-and-packages). Parsing a
+future grade, handler, async or hardware form grants no implementation commitment.
+Ordinary theorem syntax remains available to its separately scoped mathematical
+consumer. Exploratory contract claims use a distinct editor/scratch channel;
+accepted exported `requires`/`ensures` follow the [assurance contract](assurance-profiles.md).
+
+
 This is the syntax contract for [Q25i](../../../PLAN.md#q-assessment-actions).
 The [language design](verification-strategy.md#an-ideal-surface) and
 [whole-system contract](unified-source-contract.md#authoring-end-state) own the

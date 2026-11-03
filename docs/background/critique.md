@@ -544,25 +544,33 @@ contract extractor still owes source and target refinement. The adoption map
 records the alternatives and their prerequisites rather than treating their
 citation as implementation credit.
 
-## Vela interface clarity
+## Vela practical release <a id="vela-interface-clarity"></a>
 
-[Q25l](../../PLAN.md#q-assessment-actions) accepts three clarifications to
-Vela's existing design. The [receiver rule](../languages/vela/verification-strategy.md#permanent-language-exclusions)
-makes member-call borrowing explicit in the language contract while retaining
-ordinary argument modifiers. [Evidence beside the declaration](../languages/vela/assurance-profiles.md#evidence-beside-the-declaration)
-distinguishes an authored claim from its current established, conditional,
-success-only or unestablished status. [Compositional handler summaries](../languages/vela/handlers-async.md#compositional-handler-summaries)
-account for complete multi-shot exploration and peak live frames, preserving
-R-05-102/R-08-017's separate source-to-target connection and R-08-045/R-08-047's
-physical reservation and exhaustion duties.
+[Q25v](../../PLAN.md#q-assessment-actions) accepts the practical-design review
+as changes to the owning contracts. The first product is [bounded synchronous
+software](../languages/vela/first-release.md#release-boundary), with checked
+contracts and one retained compiler route. The project retains its security-first
+priority: reducing implementation coupling never weakens binary admission,
+source correspondence, resource bounds, confidentiality or independent review.
 
-These findings support precise interfaces and qualification cases. They establish
-no reason to replace type-first declarations, binding markers, contract keywords
-or the existing cancellation notation. Source correspondence and admission still
-follow R-05-009/R-05-020; the held frontend, diagnostics, evidence-policy and
-handler/lowering rows in [Q25d's review](../languages/vela/full-language-review.md#reviewed-implementation-pricing)
-own executable enforcement. The clarification supplies no new semantic anchor,
-proof assumption or implemented language guarantee.
+| Finding and judgment | Disposition and implementation owner |
+| --- | --- |
+| A broad language portfolio does not establish a deliverable critical path | [Q25w and the delivery sequence](../../PLAN.md#vela-first-release-delivery) first investigate one concrete buffer carrier within a finite budget. Subsequent source, artifact, package and release stages require actual prerequisites and separately priced checklist cells. Missing foundations remain visible. |
+| General grade algebras and runtime continuation cloning lack a demonstrated first-release consumer | Fixed usage/ownership modes and erased proof data serve the initial runtime. [General grades](../languages/vela/graded-foundation.md), multi-shot/shallow handlers and broad reflection are optional extensions, requiring a useful client and independent qualification. Native self-hosting, ISA replacement and hardware authorship remain separate decisions. |
+| Sequential async helpers should not require child concurrency machinery | [Direct await](../languages/vela/handlers-async.md#frames-child-ownership-and-reaction-execution) consumes a dormant computation in the current task's bounded graph, with storage, checkpoints and cleanup accounted. `vela-service` qualifies it before general handler combinations; spawn remains explicit child registration. |
+| Ordinary domain errors and task failure need different meanings | [The task lifecycle](../languages/vela/handlers-async.md#frames-child-ownership-and-reaction-execution) separates completed payloads, cancellation resources and declared task failure. A completed `Err` alone does not cancel siblings; explicit early exit/failure follows the scope's cancel-and-join contract. |
+| An accepted interface displaying an unestablished `ensures` is a human review trap even if proof search ignores it | [The assurance contract](../languages/vela/assurance-profiles.md) makes authored exported clauses obligations under every preset. Omitted optional contracts and separately marked scratch conjectures remain available; unfinished interface evidence blocks acceptance. `vela-first-slice` and `vela-package-trial` qualify configuration and dependency invalidation. |
+| Primitive and module principles need an implementable language contract | [Primitive semantics](../languages/vela/first-release.md#primitive-semantics) settle arithmetic, representations and bytes/text; [module/package rules](../languages/vela/first-release.md#modules-and-packages) settle identity, instances, imports and locked closure. The package trial exercises independently authored libraries and changed contracts. Grammar support alone supplies no semantics. |
+| Safe ownership rules need usable collection and construction interfaces | [Ownership libraries](../languages/vela/first-release.md#ownership-libraries) cover partial/fallible initialization and rollback without weakening `out`, plus receiver-conflict diagnostics and snapshot rewrites. The independent client decides whether later two-phase borrowing earns its extra proof cost. |
+| Default checking/emission should preserve its input | [The authoring contract](../languages/vela/authoring-tools.md#compiler-commands-and-publication) selects immutable batch inputs and explicit formatting. Q25t owns the pending prototype migration and byte-preservation controls; current executables still require `--format off`. |
+| Early pilot economics should not substitute for product criteria | [The new workflow criteria](../languages/vela/workflow-contract.md#first-release-qualification-and-adoption) separate feasibility, recurring value and adoption, retaining all setup costs without requiring two tiny clients to amortize the language. Declared performance tradeoffs remain inside mandatory limits. Canceled Q20 thresholds retain their historical scope. |
+
+[R-05-020a](../spec.md#r-05-020a) settles the untrusted-elaborator classification,
+with the dossiers' laws interpreted in existing anchors. It supplies no new
+trusted checker or checked machine law. The source/production proof endpoints
+remain distinct, and the later task/continuation/guard inventory amendment stays
+owed before that runtime extension. This disposition changes design and planning;
+it claims no implemented ownership language, service runtime or performance gain.
 
 ## The work list
 

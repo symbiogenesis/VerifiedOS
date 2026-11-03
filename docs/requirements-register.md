@@ -390,9 +390,13 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 · Accept: the ISA model's provenance is the authored, frozen profile the R-05-150 gate reviews, and no build step produces it from a Coq artifact. Generation downstream of it, the Coq definitions its own backend emits, is proof transport under R-05-021 and is unaffected.
 · Trace: CJ-SAIL
 
-**R-05-020** MUST: A new semantics, program logic, or translator is admitted only on a shown demonstration of all three conditions: Coq-native or mechanically bridged; non-duplicating of an existing anchor; and retiring an interim it replaces.
-· Accept: each amendment record carries three arguments, one per condition, each shown rather than asserted.
+**R-05-020** MUST: A new load-bearing semantics, program logic, or translator that adds authoritative semantics or a checker to the trust base is admitted only on a shown demonstration of all three conditions: Coq-native or mechanically bridged; non-duplicating of an existing anchor; and retiring an interim it replaces.
+· Accept: each amendment record carries three arguments, one per condition, each shown rather than asserted. An untrusted elaborator qualifies for R-05-020a only on that entry's complete interpretation and correspondence criteria; calling a new semantics an elaboration does not exempt it.
 · Trace: CJ-T
+
+**R-05-020a** IS: An untrusted elaborator whose source meaning is its checked interpretation in an existing R-05-019 anchor follows R-05-009 and adds no semantic anchor or trusted checker. It need not retire an interim. An independent source semantics, replacement program logic or acceptance procedure remains subject to R-05-020.
+· Accept: the reviewed interpretation fixes parsing or parse validation, resolution, selected instances, implicit arguments, desugaring and the resulting anchor term. Resource, dependency, substitution, control and erasure laws quantify over that interpretation's image and the selected canonical anchor, rather than a separately authoritative source reduction. Every accepted source package carries kernel-checked correspondence for its exact source, generated inputs, dependencies, configuration and interpretation; typechecking an emitted term or comparing source hashes alone does not establish correspondence. The accepted assumptions remain those of R-05-163 and R-05-164. Qualification includes changed source/dependency bindings and well-typed emitted terms implementing a different operation; neither can satisfy the unchanged source correspondence. Binary admission, concrete machine laws, compilation, contextual security and final-byte evidence retain their existing requirements.
+· Trace: CJ-T, CJ-TAL-SOUND, CJ-COMPCERT
 
 **R-05-021** IS: A verified compiler is proof transport between two existing anchors, not an anchor, and is admitted freely.
 · Accept: the anchor count is unchanged by adding a verified compilation step.

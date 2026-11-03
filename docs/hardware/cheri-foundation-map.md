@@ -15,6 +15,13 @@ foundation for the bounded generic experiment is declined on the evidence below.
 The existing realization route and mandatory hardening obligations retain their
 owners. Q19c is canceled; the retained comparison can be proposed again only under the [workflow re-entry conditions](../languages/vela/workflow-contract.md#commissioning-disposition). This decision supplies no checked primitive law.
 
+The [bounded Vela delivery investigation](../../PLAN.md#vela-first-release-delivery)
+is a new finite client-scoped decision, not recommissioning the general Q2c
+foundation or canceled Q19/Q20 trials. It uses this ledger's canonical carrier
+and ownership assignments, records any missing prerequisites explicitly and
+stops at its budget. R-05-020a classifies untrusted elaboration but constructs
+none of the laws inventoried here.
+
 ## Available artifacts
 
 | Artifact and actual constant | Subject available at the inspection baseline | Limit at the consumer boundary |

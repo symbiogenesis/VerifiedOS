@@ -8,6 +8,35 @@ Q19c, Q20b and Q20c are canceled in [PLAN.md](../../../PLAN.md); their roles bel
 
 The [whole-system proposal](unified-source-contract.md) separately covers proof, ISA and hardware authorship and Sail retirement. This software trial targets the pinned Sail model; it qualifies neither a replacement model nor a hardware backend.
 
+## First-release qualification and adoption
+
+The [bounded first release](first-release.md#release-boundary) follows
+[its own delivery sequence](../../../PLAN.md#vela-first-release-delivery).
+Q19c/Q20b/Q20c remain canceled; this sequence neither reruns nor changes their
+frozen experiment. Separate three decisions:
+
+| Decision | Acceptance and stop rule |
+| --- | --- |
+| Technical feasibility | Construct checked concrete primitive/representation laws and a source-connected useful component at its declared endpoint. Missing laws, vacuous entry states or exhausted investigation budgets stop dependent implementation and produce a named blocking result. A weaker endpoint cannot satisfy the gate. |
+| Recurring developer value | An independent client, a contract change, a representation change and a semantics-preserving refactor measure authoring, annotation, review and repair effort separately. Record diagnostics and checking latency, resource costs and unsupported patterns; hidden manual rewrites or repeated proof reconstruction count against the result. Freeze the compared tasks, baseline and material-benefit criterion before observing results. |
+| Product adoption | Record establishment, shared maintenance, per-client costs and measured target envelopes. Projected amortization states its workload and uncertainty; the first two small clients need not repay all foundational work. The decision must name an independently reviewed useful benefit and acceptable recurring cost, with no reduction of any mandatory guarantee. |
+
+Every candidate must preserve correctness, authority, confidentiality, declared
+termination/progress and hard admission limits. Performance comparisons use the
+same endpoint and target. A selected optimization may trade code size, cycles or
+reserved space within a separately reviewed envelope; report each affected case
+and dimension, including regressions. Missing target measurements give no
+performance verdict. Never require a universal improvement across every metric
+as a substitute for the product's actual limits, and never average a safety or
+hard-budget failure into a passing score.
+
+The table under [accounting thresholds](#accounting-and-decision-thresholds)
+continues to govern only the canceled Q20 experiment and any explicit replay of
+that exact protocol. Its two-client break-even and Pareto-style optimization
+conditions are not first-release funding or acceptance requirements. A new
+comparison freezes its own subject, evidence endpoint, workloads and envelope
+before execution; safety and independent-intent requirements are unchanged.
+
 ## Clients and baseline evidence
 
 **P, parser destination initialization**, is Q2b's copy-once ring-descriptor check with generic bounded fill of its fixed destination. **S, private service staging**, is M7.1's held-out sequential disjoint copy into private staging under M6.4's declaration. Q2b and M7.1 own the implementations and independent baselines; Q19c owns the generic interface, proofs and concrete instance; Q20b owns the single held-out adaptation record shared by both trials.
