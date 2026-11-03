@@ -1052,13 +1052,14 @@ class _Elaborator:
             return value
         return self.check(node, expected, environment)
 
-    def static_argument(self, node: Node, expected: _Term, environment: dict[str, _Binding]) -> _Term:
+    def static_argument(self, node: Node, expected: _Term, environment: dict[str, _Binding],
+                        *, type_syntax: bool = False) -> _Term:
         """Check the complete source dependency graph before reducing an argument."""
         previous = self.static_forbidden
         self.static_forbidden = (set() if previous is None else previous) | {
             id(binding) for binding in environment.values() if not binding.constant}
         try:
-            value = self.check(node, expected, environment)
+            value = self.argument(node, expected, environment) if type_syntax else self.check(node, expected, environment)
             self.complete(value)
             available = set().union(*(self.free(binding.term) for binding in environment.values()
                                       if binding.constant))
@@ -1235,7 +1236,9 @@ class _Elaborator:
                     value_type = self.whnf(value_type)
                     if value_type.kind != "pi":
                         raise self.fail("type", f"too many arguments to '{name}'")
-                    value = self.argument(argument, value_type.args[0], environment)
+                    value = (self.static_argument(argument, value_type.args[0], environment, type_syntax=True)
+                             if cast("int", value_type.value) in self.constant_parameters else
+                             self.argument(argument, value_type.args[0], environment))
                     result = _app(result, value)
                     value_type = self.substitute(value_type.args[1], cast("int", value_type.value), value)
         elif kind in {"group_type", "type_argument"}:
