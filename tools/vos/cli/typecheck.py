@@ -39,14 +39,10 @@ RUFF_VERSION = _PINS["ruff"]
 # Both platforms must be typed: each can make different branches unreachable.
 TY_PLATFORMS = ("linux", "win32")
 
-# How many findings of one rule are printed before the rest are counted. A run that
-# has just switched a rule on is a list of hundreds of one thing, and the verdict is
-# the count; the individual sites are what the editor is for.
+# Limit printed examples per rule while retaining the total finding count.
 PER_RULE = 8
 
-# The bound every subprocess must answer within, version probes included. Both
-# checkers finish in about a second on this tree, so a run that reaches it is hung,
-# and a hung checker must become a finding rather than a gate that never returns.
+# Bound every subprocess, including version probes, so a stalled checker is reported.
 TIMEOUT = 120
 
 # Stay below CreateProcess's 32,767 UTF-16-code-unit limit, executable and quotes
@@ -54,8 +50,7 @@ TIMEOUT = 120
 COMMAND_LIMIT = 30_000
 TY_UNSET = frozenset({"TY_LOG", "TY_LOG_PROFILE"})
 
-# The tracked modules the gate's runs must reach: the index's Python sources and stubs
-# under `tools/`, where both checkers run.
+# Both checkers must cover every indexed Python source and stub under this prefix.
 TOOLS = "tools/"
 MODULE_SUFFIXES = (".py", ".pyi")
 
