@@ -66,17 +66,17 @@ file:
     { make "file" $startpos $endpos(declarations)
         [("name", module_name); ("declarations", array declarations)] declarations }
 
+/* Inline the optional modifier to share the prefix with constant declarations. */
 pure_declaration:
-  value=function_decl { value }
+  PUBLIC constant=ioption(CONST) result=value_type function_name=name LPAREN
+  parameters=comma_list(parameter) RPAREN body=function_body
+    { make "function" $startpos $endpos
+        ([("name", function_name); ("result", result.syntax);
+          ("parameters", array parameters); ("body", body.syntax)] @ const_fields constant)
+        (result :: body :: parameters) }
 | PUBLIC CONST value_type=value_type constant_name=name EQUAL value=expression SEMICOLON
     { make "constant" $startpos $endpos [("name", constant_name); ("type", value_type.syntax);
         ("value", value.syntax)] [value_type; value] }
-| PUBLIC CONST result=value_type function_name=name LPAREN
-  parameters=comma_list(parameter) RPAREN body=function_body
-    { make "function" $startpos $endpos
-        [("name", function_name); ("result", result.syntax);
-         ("parameters", array parameters); ("body", body.syntax); ("const", Boolean true)]
-        (result :: body :: parameters) }
 
 name:
   spelling=IDENT { name $startpos $endpos spelling }
@@ -84,14 +84,6 @@ name:
 value_type:
   NAT { make "type" $startpos $endpos [("name", String "Nat")] [] }
 | BOOL { make "type" $startpos $endpos [("name", String "bool")] [] }
-
-function_decl:
-  PUBLIC result=value_type function_name=name LPAREN
-  parameters=comma_list(parameter) RPAREN body=function_body
-    { make "function" $startpos $endpos
-        [("name", function_name); ("result", result.syntax);
-         ("parameters", array parameters); ("body", body.syntax)]
-        (result :: body :: parameters) }
 
 function_body:
   value=block { value }
@@ -155,16 +147,17 @@ atom:
 | TRUE { make "bool" $startpos $endpos [("value", Boolean true)] [] }
 | FALSE { make "bool" $startpos $endpos [("value", Boolean false)] [] }
 | value=name { make "name" $startpos $endpos [("name", value)] [] }
-| callee=name LPAREN arguments=comma_list(argument) RPAREN
+| callee=name LPAREN arguments=comma_list(call_argument(expression, name)) RPAREN
     { make "call" $startpos $endpos
         [("callee", callee); ("arguments", array arguments)] arguments }
 | LPAREN value=expression RPAREN
     { make "group" $startpos $endpos [("value", value.syntax)] [value] }
 
-argument:
+/* Both entries retain argument roles, original spans and the value child. */
+call_argument(expression, identifier):
   value=expression
     { make "argument" $startpos $endpos [("label", Null); ("value", value.syntax)] [value] }
-| label=name COLON value=expression
+| label=identifier COLON value=expression
     { make "argument" $startpos $endpos [("label", label); ("value", value.syntax)] [value] }
 
 /* The wider syntax has a separate AST entry from the pure authoring subset. */
@@ -196,15 +189,12 @@ s_member_identifier:
 | CARRIER { name $startpos $endpos "carrier" }
 | role=s_domain_role { name $startpos $endpos role }
 
-s_modifiers:
-  values=list(s_modifier) { values }
-
 s_modifier:
   PUBLIC { "public" } | PRIVATE { "private" } | INTERNAL { "internal" }
 | ASYNC { "async" } | CONST { "const" }
 
 s_declaration:
-  modifiers=s_modifiers declaration=s_decl
+  modifiers=list(s_modifier) declaration=s_decl
     { with_declaration_modifiers $symbolstartpos $endpos modifiers declaration }
 
 s_decl:
@@ -283,9 +273,8 @@ s_decl:
     { make "schedule" $startpos $endpos [("name", schedule_name); ("rules", array rules)] rules }
 | CYCLE value=s_expression SEMICOLON
     { make "cycle" $startpos $endpos [("value", value.syntax)] [value] }
-| header=s_callable_header tail=s_function_tail cancel=option(s_cancel)
+| header=s_callable_header contracts=list(s_contract) body=s_function_body cancel=option(s_cancel)
     { let result, function_name, generics, parameters = header in
-      let contracts, body = tail in
       make "function" $startpos $endpos [("name", function_name); ("result", result.syntax);
         ("generics", array generics); ("parameters", array parameters); ("contracts", array contracts);
         ("body", optional body); ("cancel", optional cancel)]
@@ -297,9 +286,9 @@ s_decl:
 
 /* Declarations share the telescope; each owner retains its contract/body tail. */
 %inline s_callable_header:
-  result=s_type callable_name=s_identifier generics=s_generics opening=s_parameter_open
+  result=s_type callable_name=s_identifier generics=s_generics s_parameter_open
   parameters=comma_list(s_parameter) RPAREN
-    { let () = opening in result, callable_name, generics, parameters }
+    { result, callable_name, generics, parameters }
 %inline s_parameter_open:
   LPAREN { () } | LAMBDA_OPEN { () }
 
@@ -327,8 +316,6 @@ s_type_definition:
   EQUAL value=s_type { value }
 s_value_definition:
   EQUAL value=s_expression { value }
-s_function_tail:
-  contracts=list(s_contract) body=s_function_body { contracts, body }
 s_function_body:
   SEMICOLON { None } | value=s_block { Some value }
 | FATARROW value=s_expression SEMICOLON
@@ -426,10 +413,8 @@ s_open_paren:
   LPAREN { () } | ANNOTATION_OPEN { () } | LAMBDA_OPEN { () }
 s_function_type:
   mode=s_function_mode generics=s_generics LPAREN parameters=comma_list(s_parameter) RPAREN ARROW result=s_nonfunction_type
-  captures=option(s_capture_type) effects=option(s_type_effects) contracts=option(s_callable_contracts)
-    { let contracts = Option.value contracts ~default:[] in
-      let effects = Option.value effects ~default:[] in
-      make "function_type" $startpos $endpos [("mode", String mode); ("generics", array generics); ("parameters", array parameters);
+  captures=option(s_capture_type) effects=loption(s_type_effects) contracts=loption(s_callable_contracts)
+    { make "function_type" $startpos $endpos [("mode", String mode); ("generics", array generics); ("parameters", array parameters);
         ("result", result.syntax); ("captures", optional captures);
         ("effects", array effects);
         ("contracts", array contracts)]
@@ -441,7 +426,7 @@ s_function_mode:
 s_capture_type:
   CAPTURES capture=s_path { make "capture" $startpos $endpos [("name", capture)] [] }
 s_type_effects:
-  EFFECTS opening=s_open_paren effects=comma_list(s_type) RPAREN { let () = opening in effects }
+  EFFECTS s_open_paren effects=comma_list(s_type) RPAREN { effects }
 s_type_arguments:
   { [] } | LT values=comma_nonempty_list(s_type_argument) GT { values }
 s_type_argument:
@@ -596,7 +581,7 @@ s_pattern:
 | payload=s_literal_payload
     { let kind, fields = payload in make (kind ^ "_pattern") $startpos $endpos fields [] }
 s_pattern_arguments:
-  opening=s_parameter_open values=comma_list(s_pattern) RPAREN { let () = opening in values }
+  s_parameter_open values=comma_list(s_pattern) RPAREN { values }
 /* A bare local name stays an inferred binder. Constructor elimination has an
    explicit argument list, while nested patterns reuse the general grammar. */
 s_local_pattern:
@@ -626,12 +611,10 @@ s_expression:
     { make "type_expression" $startpos $endpos [("type", value.syntax)] [value] }
 | signature=s_function_type FATARROW body=s_lambda_body
     { make "typed_lambda" $startpos $endpos [("signature", signature.syntax); ("body", body.syntax)] [signature; body] }
-| quantifier=s_quantifier_kind opening=s_parameter_open parameters=comma_nonempty_list(s_parameter) RPAREN FATARROW value=s_expression
-    { let () = opening in make "quantifier" $startpos $endpos [("quantifier", String quantifier); ("parameters", array parameters); ("value", value.syntax)] (value :: parameters) }
-| LAMBDA_OPEN parameters=comma_nonempty_list(s_lambda_parameter) RPAREN FATARROW body=s_lambda_body
+| quantifier=s_quantifier_kind s_parameter_open parameters=comma_nonempty_list(s_parameter) RPAREN FATARROW value=s_expression
+    { make "quantifier" $startpos $endpos [("quantifier", String quantifier); ("parameters", array parameters); ("value", value.syntax)] (value :: parameters) }
+| LAMBDA_OPEN parameters=comma_list(s_lambda_parameter) RPAREN FATARROW body=s_lambda_body
     { make "lambda" $startpos $endpos [("parameters", array parameters); ("body", body.syntax)] (body :: parameters) }
-| LAMBDA_OPEN RPAREN FATARROW body=s_lambda_body
-    { make "lambda" $startpos $endpos [("parameters", Array []); ("body", body.syntax)] [body] }
 | parameter_name=s_value_identifier FATARROW body=s_lambda_body
     { let parameter = make "lambda_parameter" $startpos(parameter_name) $endpos(parameter_name)
         [("type", Null); ("name", parameter_name); ("grade", Null)] [] in
@@ -731,7 +714,7 @@ s_unary_with(opening):
 | COMMIT { name $startpos $endpos "commit" }
 s_postfix_with(opening):
   value=s_atom_with(opening) { value }
-| callee=s_postfix_with(opening) s_parameter_open arguments=comma_list(s_argument) RPAREN
+| callee=s_postfix_with(opening) s_parameter_open arguments=comma_list(call_argument(s_expression, s_identifier)) RPAREN
     { make "call" $startpos $endpos [("callee", callee.syntax); ("arguments", array arguments)] (callee :: arguments) }
 | value=s_postfix_with(opening) DOT member=s_member_identifier
     { make "member" $startpos $endpos [("value", value.syntax); ("name", member)] [value] }
@@ -741,11 +724,6 @@ s_postfix_with(opening):
     { make "generic_application" $startpos $endpos [("value", value.syntax); ("arguments", array arguments)] (value :: arguments) }
 | value=s_postfix_with(opening) QUESTION
     { make "propagate" $startpos $endpos [("value", value.syntax)] [value] }
-s_argument:
-  value=s_expression
-    { make "argument" $startpos $endpos [("label", Null); ("value", value.syntax)] [value] }
-| label=s_identifier COLON value=s_expression
-    { make "argument" $startpos $endpos [("label", label); ("value", value.syntax)] [value] }
 s_atom_with(opening):
   value=s_literal { value }
 | value=s_operator_value_with(opening) { value }
@@ -760,7 +738,7 @@ s_atom_with(opening):
     { make "match_expression" $startpos $endpos [("value", value.syntax); ("motive", optional motive);
         ("cases", array cases)] (value :: children motive @ cases) }
 | kind=s_handle_kind shallow=option(SHALLOW) LPAREN value=s_expression RPAREN
-  capability=option(s_handler_capability) LBRACE clauses=s_handler_clauses RBRACE
+  capability=option(s_handler_capability) LBRACE clauses=comma_list(s_handler_clause) RBRACE
     { make kind $startpos $endpos [("shallow", Boolean (shallow <> None));
         ("value", value.syntax); ("capability", (match capability with None -> Null | Some value -> value));
         ("clauses", array clauses)] (value :: clauses) }
@@ -781,10 +759,6 @@ s_handle_kind:
   HANDLE { "handle" } | REHANDLE { "rehandle" }
 s_handler_capability:
   AS capability=s_identifier { capability }
-s_handler_clauses:
-  { [] }
-| clause=s_handler_clause { [clause] }
-| clause=s_handler_clause COMMA rest=s_handler_clauses { clause :: rest }
 s_handler_clause:
   operation_name=s_path LPAREN parameters=comma_list(s_identifier) RPAREN WITH
   continuation=s_identifier FATARROW body=s_lambda_body
