@@ -8,14 +8,27 @@
 
 ## Authoring end state
 
-Vela is intended to author software, contracts, proofs, machine semantics and
-hardware. Qualified replacements may retire maintained Gallina, Sail, C and VST
-sources. Generated Rocq terms, Clight, machine code and RTL remain valid products;
-proved libraries may remain dependencies behind Vela interfaces. Rewriting a
-library's syntax earns no qualification credit.
+The [first supported Vela release](first-release.md#release-boundary) delivers
+bounded synchronous software, contracts and usable proof interfaces through one
+retained backend. Its acceptance does not depend on self-hosting, a new native
+compiler, complete proof-language replacement, ISA-model migration or hardware
+authorship. The [delivery plan](../../../PLAN.md#vela-first-release-delivery)
+requires a complete useful software path and an independent client first.
 
-Declare the source closure: firmware, kernel, storage, services, bootstrap and
-ISA/ABI primitives, plus compiler, proof automation and generators when claiming
+Whole-system authorship is a later product option: Vela may author software,
+contracts, proofs, machine semantics and hardware. Each selected extension needs
+a named blocked consumer or demonstrated benefit, a bounded investigation with a
+stop decision, and separately scoped implementation and acceptance costs. The
+remaining sections are replacement criteria for those options, not a commission
+to build them all or a dependency of the first release. Qualified replacements
+may retire maintained Gallina, Sail, C and VST sources. Generated Rocq terms,
+Clight, machine code and RTL remain valid products; proved libraries may remain
+dependencies behind Vela interfaces. Rewriting a library's syntax earns no
+qualification credit.
+
+When claiming whole-system authorship, declare the source closure: firmware,
+kernel, storage, services, bootstrap and ISA/ABI primitives, plus compiler, proof
+automation and generators when claiming
 toolchain authorship. Remaining first-party handwritten C, Gallina, VST or Sail
 must stay visible. Generated instruction/assembly stubs are permitted, with
 primitive meaning from the admitted machine and required source/binary evidence;
@@ -29,16 +42,19 @@ manual optimized rewrites and generated-output repairs are excluded. Authored
 algorithm/layout choices need refinement evidence. Arbitrary Gallina computations
 are not presumed efficiently lowerable.
 
-The language has distinct interpretations for total pure definitions/proofs,
-effectful explicit-storage software, architectural transitions and cycle-level
-hardware. Module interfaces state phase/target restrictions. Unbounded mathematics
-needs proved finite runtime representations; ghost data supplies no runtime branch,
+The initial software/proof surface has interpretations in existing admitted
+anchors; selected machine and hardware extensions additionally interpret
+architectural transitions and cycle-level hardware. Each extension retains the
+anchor-admission and replacement gates. Module interfaces state phase/target
+restrictions. Unbounded mathematics needs proved finite runtime representations;
+ghost data supplies no runtime branch,
 allocation, encoding or circuit state.
 
-The [metaprogramming contract](metaprogramming.md) adds explicit static computation,
-opt-in structural descriptions and hygienic checked generation within those
-interpretations. Generated definitions, proof terms, specialization inputs and
-descriptor dictionaries belong to the declared source/dependency closure.
+The [metaprogramming contract](metaprogramming.md) supplies explicit static
+computation first and constrains separately selected structural-description and
+hygienic-generation extensions. Generated definitions, proof terms,
+specialization inputs and descriptor dictionaries belong to the declared
+source/dependency closure.
 Generator removal and final-code cost have separate acceptance predicates;
 static generation supplies no software, machine or hardware refinement theorem.
 Compiler services expose the same source identities and elaborated meanings to
@@ -78,8 +94,9 @@ owns missing concrete laws; generic separation logic or surface syntax supplies
 no CHERI instance. VST may remain internal. Its replacement needs sound rules and
 connections to the admitted machine logic, preserving every discharged obligation.
 
-Full proof authoring needs inductive/coinductive reasoning where used, universes,
-quantified mathematics, logical relations and compiler/hardware metatheory. Retain
+The optional full proof-authoring replacement needs inductive/coinductive
+reasoning where used, universes, quantified mathematics, logical relations and
+compiler/hardware metatheory. Retain
 Rocq fallbacks until actual clients express and replay in Vela. Reconstruction and
 dependency/assumption audits remain kernel checked. Solvers/AI may propose code,
 invariants, lemmas or optimizations; they confer no acceptance authority, and AI
@@ -92,18 +109,24 @@ governs the calculus's interpretation commitment and admission.
 
 ## Native verified compiler and self-hosting
 
-The long-term goal is a verified, self-hosting Vela-authored compiler using
-Vela-owned IRs to emit target code without mandatory Clight/CompCert or LLVM.
-Interim backends and retained-producer interoperation remain available during
-qualification/migration. This goal commissions no implementation or changed duty.
+A native verified, self-hosting compiler is a separately selected later option,
+using Vela-owned IRs to emit target code without mandatory Clight/CompCert or LLVM.
+Its selection needs a concrete consumer and comparison against extending the
+retained route, including compiler proof, bootstrap, maintenance and licensing
+costs. The first software release keeps one retained backend; it owes no new
+native compiler or self-compilation result. Retained-producer interoperation
+remains available throughout qualification/migration.
 
 Development uses the [Menhir route](verification-strategy.md#development-parser-and-grammar)
 with a reviewed grammar and located AST, preserving separate lexer, parsing,
-elaboration and source-correspondence duties. The eventual Vela compiler includes
-its parser; verified bootstrap accounts for Menhir development/seed dependencies
+elaboration and source-correspondence duties. The selected native Vela compiler
+includes its parser; verified bootstrap accounts for Menhir development/seed dependencies
 until retirement preserves accepted grammar and source meaning.
 
-The toolchain also supplies [LSP, DAP and DWARF interoperability](tooling-protocols.md).
+Select [LSP, DAP and DWARF interoperability](tooling-protocols.md) according to
+actual compiler/editor and execution-backend consumers. The initial software
+release requires useful diagnostics, navigation, formatting and proof inspection;
+it does not wait for every debugger or export adapter.
 Editor services consume the compiler's located and resolved source state and
 preserve batch-only proof acceptance. Native compilation carries source, type,
 scope, variable-location and unwind mappings through optimization and final
@@ -179,7 +202,8 @@ the [compiler replacement duties](compiler-route-contract.md#conditional-amendme
 
 ## Machine model
 
-The machine subset aims to replace Sail authoring and required consumers, beyond
+If selected after its own consumer and feasibility decision, the machine subset
+aims to replace Sail authoring and required consumers, beyond
 permanent Sail generation. Its independently reviewed architecture elaborates
 into the accepted kernel theory upstream of compiler/hardware validation. A compiler
 cannot derive its target semantics from its output or the checked implementation.
@@ -218,7 +242,8 @@ review them as premises; neither side may hide missing semantics.
 
 ## Hardware
 
-A hardware subset may author state, registers, concurrent rules and cycles/schedules.
+A separately selected hardware subset may author state, registers, concurrent
+rules and cycles/schedules.
 Its semantics/compiler need checked connections to the admitted hardware interpretation
 and exact synthesis input. Initial Kami/Kôika elaboration or RTL generation is
 permitted; generation alone meets neither connection. The
@@ -238,7 +263,9 @@ netlist audits keep independent artifact checks; circuit theorems imply no physi
 ## Migration and retirement
 
 The [proposal ownership](../../../PLAN.md#vela-whole-system-authoring-proposal)
-orders the work. Its technical transition criteria are:
+records conditional stages after the first software release. A successful
+software release starts no migration automatically. For an explicitly selected
+whole-system replacement, the technical transition criteria are:
 
 1. Establish the software/proof route over the existing machine term. Qualify
    representative systems and mathematical clients, including a held-out client,

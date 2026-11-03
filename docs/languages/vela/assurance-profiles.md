@@ -4,9 +4,14 @@
 
 ## Scope and the governing rule
 
-One authoring surface and executable implementation support three assurance presets: **Safe**, **Contracted** and **Complete**. A preset selects the claims a build must establish; each retains the safety obligations of its operations and execution profile. Library proofs and automation may satisfy Complete for an application whose author writes no theorems, while a systems author may select Safe.
+One authoring surface and executable implementation support three assurance presets: **Safe**, **Contracted** and **Complete**. A preset adds required properties and coverage to the baseline; every preset establishes the safety obligations of its operations and every authored exported contract. Library proofs and automation may satisfy Complete for an application whose author writes no theorems, while a systems author may select Safe.
 
-> **Omitting a claim is permitted. Treating an unestablished claim as established is not.**
+> **Optional specifications may be omitted. An exported promise must be discharged before its interface is accepted.**
+
+The [first supported release](first-release.md#release-boundary) is bounded
+synchronous software. The policy applies to that fragment first; async, general
+handlers, extensible grade domains and other later surfaces need their own
+consumer and qualification. A preset never enables an unsupported feature.
 
 Presets classify source-closure evidence off device. The platform's [numeric assurance tiers](../../spec.md#r-13-011) instead classify binary admission at install according to code's trust role; [landing tiers](../../../PLAN.md#checklist-conventions) classify document review. A preset confers no admission authority and changes no [refuse-uncertified-code policy](../../spec.md#r-13-014).
 
@@ -25,7 +30,7 @@ Shared constructs retain their semantics across presets: overflow, evaluation or
 
 The [metaprogramming contract](metaprogramming.md) applies the same policy to
 generated definitions, specialized instances, descriptors and dependencies.
-Generation alone establishes no optional contract. A generated theorem is usable
+Generation alone establishes no contract. A generated theorem is usable
 only with its checked evidence and current source/dependency correspondence;
 an unestablished generated claim cannot justify optimization. Static evaluation
 must not erase an effect, runtime check or mandatory result merely because a
@@ -35,15 +40,15 @@ generator or usage analysis does not need its value.
 
 ### Safe: ordinary programming without optional theorem obligations
 
-Safe supports ordinary functions, records, collections, parsers, iteration and profile-compatible async interfaces. It establishes the supported fragment's enumerated type, ownership, initialization and permitted-effect obligations. Optional functional specifications, algorithmic loop invariants and named lemmas may be omitted; libraries hide their implementation proofs. Runtime bounds and validation checks are allowed when the profile permits their explicit failure behavior and resource cost.
+Safe supports ordinary functions, records, collections, parsers and iteration within the qualified fragment. It establishes that fragment's enumerated type, ownership, initialization and permitted-effect obligations. Optional functional specifications, algorithmic loop invariants and named lemmas may be omitted when the required obligations are otherwise discharged; libraries hide their implementation proofs. Authored exported contracts remain mandatory. Runtime bounds and validation checks are allowed when the profile permits their explicit failure behavior and resource cost. Async interfaces enter Safe only after their separate extension qualifies.
 
 Required type safety, public invariants, legal reuse and admission obligations remain mandatory. If automation fails, use a supported checked operation, simplify the implementation, prove the obligation or declare a permitted trust boundary. Assuming success is unavailable.
 
 ### Contracted: selected stronger claims become mandatory
 
-Contracted adds selected functional, protocol or resource contracts to functions, modules or package interfaces. Every claim consumed by a client or optimization requires acceptable evidence, which inference, verified construction or a checked boundary may supply without handwritten proofs.
+Contracted requires selected additional functional, protocol or resource specifications for functions, modules or package interfaces. It changes which specifications must be supplied, while Safe already requires evidence for every authored exported contract. Inference, verified construction or a checked boundary may supply the evidence without handwritten proofs.
 
-Unselected code retains its ordinary interface; linking beside verified code conveys no sortedness, resource, confidentiality or progress guarantee. The report names verified scope and assumptions. An open required goal blocks the stronger contract even if the program can build under an explicitly weaker interface.
+Unselected code retains its ordinary interface; linking beside verified code conveys no sortedness, resource, confidentiality or progress guarantee. The report names verified scope and assumptions. An open required goal blocks that interface. Building a weaker interface requires an explicit source/interface change and rechecking its dependents; selecting Safe cannot silently discard an authored clause.
 
 ### Complete: policy-complete verification over a declared boundary
 
@@ -58,21 +63,50 @@ Helpers may be covered by enclosing proofs or automatic analysis. A service can 
 | Baseline language and profile safety | Required | Required | Required |
 | Handwritten theorems | Not routinely required | Where other evidence is insufficient | Not inherently required; every required goal is discharged |
 | Optional functional specifications | May be omitted | Required in selected scope | Required to express release requirements |
-| Unproved optional annotation | Visible as unestablished; unusable as a theorem | Cannot satisfy a selected contract | Blocks release where required |
+| Authored exported `requires`/`ensures` | Required | Required | Required |
+| Unproved scratch conjecture | Editor/scratch only; no exported promise | Editor/scratch only; no selected-contract credit | No release evidence |
 | Runtime validation | Where the profile permits it | For explicitly checked boundary properties | Where requirements permit rejection and account for cost |
 | Unsafe or foreign implementation | Explicit boundary and actual safety guarantees | Same, with transitive contract accounting | Meets release proof/assumption policy |
 | Coverage report | Baseline and exported evidence | Selected claims and dependencies | Requirements, closure, assumptions and endpoint |
 
+## Exported contracts and scratch claims
+
+An accepted public declaration's `requires` and `ensures` clauses are part of its
+interface under every preset. The implementation establishes its postcondition
+and safety/resource duties under the stated precondition; each caller establishes
+that precondition before entry. A precondition is not a theorem that all possible
+inputs satisfy it. Independent contract review retains satisfiable entry witnesses
+and telling negative cases, so an impossible precondition cannot make an intended
+service vacuously acceptable.
+
+A checked boundary may establish a precondition or result property on an explicit
+success branch. Its failure branch, effects and cost remain in the interface;
+there is no implicit runtime assertion, trap or unchecked assumption. An external
+interface instead names its assumption and provenance explicitly in the resolved
+declaration and evidence record, within the platform's existing permitted trust
+policy. A preset cannot turn an unproved implementation into such an interface.
+
+Exploratory propositions belong to a separate, non-exported scratch/conjecture
+channel carrying source context and `Unestablished` status. They do not use
+executable `requires`/`ensures` spelling, enter a library interface, influence
+elaboration or optimization as facts, or become runtime checks automatically.
+An editor may investigate them and propose a proof or a source edit. Promotion
+to an executable contract requires that edit, normal checking and current evidence.
+This specifies a tooling boundary; no new conjecture syntax is implemented by the
+current parser or mathematical prototype.
+
 ## Claim status, and what each status licenses
 
-Evidence attaches to claims. Every exported claim has one machine-readable status.
+Evidence attaches to claims. Each claim record, including unfinished editor work,
+has one machine-readable status. An accepted exported contract has applicable
+evidence; `Unestablished` is never an accepted contract status.
 
 | Status | Meaning | Permitted consumers |
 | --- | --- | --- |
 | Established | Accepted evidence proves the property under recorded assumptions | Proof search, elimination, proof-based optimization and dependent contracts |
 | Checked on success | A verified boundary establishes a decidable predicate when successful; failure remains possible | Success branch only; failure behavior and cost remain accounted |
 | Conditional | Result depends on a declared external assumption | Consumers carrying that assumption into their own reports |
-| Unestablished | No accepted evidence | No proof search, safe elimination or proof-based optimization |
+| Unestablished | No accepted evidence; scratch or unfinished build only | No accepted exported contract or use as a proof premise, safe-elimination justification or optimization fact |
 
 Tests and measurements establish no universal theorem. A solver timeout is no counterexample; unchecked unsatisfiability is no accepted proof. Checked success promises neither universal parsing nor inexhaustible allocation: invalid input and [bounded-pool exhaustion](../../spec.md#r-08-046) remain explicit outcomes.
 
@@ -85,22 +119,29 @@ claim's status and evidence endpoint beside its source spelling. The status is
 text, not just color or a package-wide assurance badge. `Conditional` names its
 assumptions; `Checked on success` names the outcome that establishes the claim.
 The linked evidence view supplies the assumptions and exact subject for an
-`Established` claim. The same declaration can have different evidence across
-builds without acquiring different execution semantics.
+`Established` claim. Evidence may be missing in an unfinished editor/build
+snapshot, but every accepted build must discharge the declaration's contract.
 
-For example, the declaration below is authored normally; its final line is
-generated API information for a build that has not established the postcondition:
+For example, this exported declaration requires its postcondition in every
+accepted build; the final line illustrates generated API information for one
+source-verified build:
 
 ```text
-public void Sort(ref Span<Key> keys)
+public Unit Sort(ref Span<Key> keys)
     ensures IsSorted(keys.Model);
-    // Evidence: Unestablished; endpoint: source; unavailable to callers.
+    // Evidence: Established; endpoint: source; exact build and assumptions linked.
 ```
+
+While its proof is unfinished, an editor shows `Unestablished` and the package
+cannot export this declaration as accepted. A developer exploring sortedness
+without taking on that interface obligation keeps it in the separate scratch
+channel and exports a declaration with no sortedness clause.
 
 The display reads the [release and policy record](#erasure-compilation-and-the-release-record)
 for the exact resolved claim, source closure and semantic dependencies, selected
 build configuration and endpoint. A missing, stale or incompatible record shows
-`Unestablished` with its reason. A declaration's name or unchanged source span
+`Unestablished` with its reason and blocks acceptance of an exported contract.
+A declaration's name or unchanged source span
 cannot preserve an old `Established` status after its dependencies change.
 Exported documentation identifies the build it describes; an editor showing
 changed source cannot present that historical verdict as current evidence.
@@ -120,7 +161,7 @@ displayed badges confer no proof authority.
 
 Postcondition validation cannot repair earlier memory corruption, disclosure or unbounded stalls. It substitutes for proof only where the predicate can be established at that boundary.
 
-Unresolved editor/scratch annotations cannot influence accepted typing or compilation as facts: [typed holes stay outside accepted packages](verification-strategy.md#mechanically-produced-evidence). Explicit interface downgrades recheck dependents and remove unjustified theorem-dependent optimization or invariant elimination.
+Unresolved editor/scratch annotations cannot influence accepted typing or compilation as facts: [typed holes stay outside accepted packages](verification-strategy.md#mechanically-produced-evidence). Explicit interface downgrades are source/interface changes that recheck dependents and remove unjustified theorem-dependent optimization or invariant elimination. A build flag cannot perform that downgrade.
 
 ## What complete coverage must mean
 
@@ -152,7 +193,7 @@ Mutable dependencies require stable snapshots or invariant protocols under every
 
 ## A simple subset that stays simple when libraries compose
 
-Application interfaces cover parsing, bounded collections, iteration, errors and structured async without unexpectedly exposing separation-logic resources or grade algebras. A parser returns a valid packet or explicit failure while its library accounts for bounds and backing ownership; loop/iterator interfaces supply routine bounds facts.
+Initial application interfaces cover parsing, bounded collections, iteration and errors without unexpectedly exposing separation-logic resources or grade algebras. Later structured async interfaces must meet the same ordinary-use criterion. A parser returns a valid packet or explicit failure while its library accounts for bounds and backing ownership; loop/iterator interfaces supply routine bounds facts. The [ownership-library contract](first-release.md#ownership-libraries) defines the first client-facing initialization and borrowing cases.
 
 Limits remain visible: collections fill, views cannot outlive storage, and closures retain captures. Diagnostics name the developer's operation and values and distinguish rule violation, refuted contract, unknown/timeout, unsupported feature and profile refusal. Checking proceeds through ordinary checking, a declared automatic refinement fragment, domain automation and contextual proof goals. The [proof-interaction contract](verification-strategy.md#language-product-contract) measures that ladder; it promises no automatic-proof percentage or unbounded search at every keystroke.
 
@@ -208,23 +249,27 @@ Complete refuses missing specifications/evidence for mandatory dimensions; it ne
 
 ## Qualification protocol
 
-The [pricing table](full-language-review.md#reviewed-implementation-pricing) owns each stage's implementation owner, estimate and predicate. Its [frontend disposition](full-language-review.md#r-05-009-r-05-020-and-what-holds-the-frontend-rows) holds policy-semantics, ordinary-application and systems-boundary qualification. Complete-release and maintenance work stays with cited production owners and the uncommissioned workflow comparison; this dossier schedules none.
+The [first-release delivery plan](../../../PLAN.md#vela-first-release-delivery) orders foundation, complete software path and independent-client qualification. The [pricing table](full-language-review.md#reviewed-implementation-pricing) retains conditional wider-language estimates; the [frontend disposition](full-language-review.md#r-05-009-r-05-020-and-what-holds-the-frontend-rows) owns interpretation and concrete-law prerequisites. Complete-release and maintenance work stays with cited production owners. This dossier supplies acceptance criteria without commissioning an implementation.
 
 | Stage | Exercise | Acceptance |
 | --- | --- | --- |
-| Policy semantics | Claim status and mixed-assurance rules on bounded core | Reject invented invariants, unresolved safety goals, hidden assumptions and optimizations retained after verification is disabled |
+| Policy semantics | Claim status and mixed-assurance rules on bounded core | Reject an unproved exported clause under every preset, a flag-only contract downgrade, scratch claims used as facts, invented invariants, unresolved safety goals, hidden assumptions and unjustified optimizations |
 | Ordinary application | Parser, collection and service using application interfaces alone | Strengthen assurance with executable reuse; record every code change and identify rewrites |
-| Systems boundary | Arena and hardware-facing async operation through cancellation, late completion, errors and exhaustion | Establish when backing becomes reusable under cancellation and quiescence rules |
+| Later systems boundary | Separately commissioned arena and hardware-facing async operation through cancellation, late completion, errors and exhaustion | Establish when backing becomes reusable under cancellation and quiescence rules; this extension is no first synchronous-release dependency |
 | Complete release | Requirements over declared closure and endpoint | Dependency changes, callbacks, foreign interfaces and generated code invalidate affected evidence in test |
 | Maintenance | Representation change, concurrency, new failure path, replaced library | Separate executable/specification churn, proof repair, checking cost and target resources |
 
 The existing `preset-policy` and `core-diagnostics` owners qualify
 [evidence presentation](#evidence-beside-the-declaration) with all four statuses
-in signature help and exported API views. Controls change a claim, its dependency,
+in signature help and review views, with successful exported API views excluding
+unestablished contract promises. Controls change a claim, its dependency,
 the selected build configuration or the requested endpoint, and remove its evidence
 record: none may retain an incompatible established verdict. Conditional assumptions
 and success-only outcomes remain visible, and a historical documentation export
-keeps its build identity when the editor's current source has changed.
+keeps its build identity when the editor's current source has changed. Changing
+Safe/Contracted/Complete cannot make an unresolved authored exported clause pass.
+Prove a validating wrapper's success predicate and retain its error/resource
+behavior; separately reject an external assumption lacking permitted provenance.
 
 Acceptance requires sound assurance boundaries and useful ordinary clients under composition/change, without a predetermined automatic-proof percentage.
 
