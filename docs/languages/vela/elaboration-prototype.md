@@ -17,9 +17,10 @@ untrusted proposal until the pinned Rocq kernel checks it. A source digest binds
 bytes; it supplies no source-correspondence theorem.
 
 The [staged metaprogramming design](metaprogramming.md) extends the intended
-language beyond this increment. Type-valued parameters and definitional reduction
-here supply no general descriptor reflection, required-static interface, generated
-declaration API or composition with the refused resource/effect features.
+language beyond this increment. Type-valued parameters, definitional reduction
+and the compositional constant interface support the bounded mathematical fragment.
+General descriptor reflection, generated declaration APIs and composition with
+the refused resource/effect features remain outside it.
 
 ## Supported mathematical increment
 
