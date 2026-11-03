@@ -77,13 +77,14 @@ def _qualification_input_binding() -> None:
         root = Path(temporary)
         files = [*(f"tools/vela/parser/{name}" for name in parser.SOURCES),
                  "tools/opam/sail.lock", "tools/vos/vela_parser.py", "tools/vos/vela_surface.py",
-                 "tools/vela/examples/pure.vela", "tools/vela/examples/surface.vela"]
+                 "tools/vela/examples/pure.vela", "tools/vela/examples/surface.vela",
+                 "tools/vela/examples/constants.vela"]
         for name in files:
             path = root / name
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_bytes(name.encode())
         initial = parser._inputs(root)
-        for name in ("tools/vos/vela_surface.py", "tools/vela/examples/surface.vela"):
+        for name in ("tools/vos/vela_surface.py", "tools/vela/examples/surface.vela", "tools/vela/examples/constants.vela"):
             path = root / name
             original = path.read_bytes()
             path.write_bytes(original + b" changed")
@@ -230,8 +231,26 @@ def _constant_oracle_required() -> None:
     oracle.assert_called_once_with(fixture.source.encode("utf-8"), result)
 
 
+def _constant_callable_oracle_required() -> None:
+    fixture = next(value for value in surface.POSITIVE if value.name == "compositional-constant-callables")
+    result: dict[str, parser.Json] = {"ast": [{"kind": kind} for kind in fixture.kinds]}
+    with patch.object(surface, "POSITIVE", (fixture,)), \
+            patch.object(surface, "_precedence_and_spans"), \
+            patch.object(surface, "_literal_and_comment_boundaries"), \
+            patch.object(surface, "_argument_roles"), \
+            patch.object(surface, "_compositional_constant_roles", side_effect=ValueError("static callable changed")) as oracle:
+        try:
+            surface.qualify(lambda source: result)
+        except ValueError as error:
+            ensure(str(error) == "static callable changed", "static callable oracle failure was replaced")
+        else:
+            raise AssertionError("static callable syntax oracle was bypassed")
+    oracle.assert_called_once_with(fixture.source.encode("utf-8"), result)
+
+
 def cases() -> list[Case]:
-    return [Case("concise-authoring-oracle-is-required", _concise_authoring_oracle_required),
+    return [Case("constant-callable-oracle-is-required", _constant_callable_oracle_required),
+            Case("concise-authoring-oracle-is-required", _concise_authoring_oracle_required),
             Case("constant-declaration-order-and-span-oracle-is-required", _constant_oracle_required),
             Case("surface-entry-schema-and-source-binding", _entry_protocol),
             Case("surface-cli-and-no-fallback", _entry_cli),

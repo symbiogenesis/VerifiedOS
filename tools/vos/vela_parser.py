@@ -92,7 +92,8 @@ def _toolchain(root: Path) -> dict[str, object]:
 def _inputs(root: Path) -> dict[str, str]:
     paths = [f"tools/vela/parser/{name}" for name in SOURCES]
     paths.extend(("tools/opam/sail.lock", "tools/vos/vela_parser.py", "tools/vos/vela_surface.py",
-                  "tools/vela/examples/pure.vela", "tools/vela/examples/surface.vela"))
+                  "tools/vela/examples/pure.vela", "tools/vela/examples/surface.vela",
+                  "tools/vela/examples/constants.vela"))
     return {name: _digest(root / name) for name in paths}
 
 
@@ -294,9 +295,40 @@ def _concise_fixture(compiled: Build) -> str:
     return "concise-expression-body-and-lists"
 
 
+def _constant_callable_fixture(compiled: Build) -> str:
+    source = (b"// caf\xc3\xa9\r\nmodule Static;\r\n"
+              b"public const Nat Square(Nat value) => value * value;\r\n"
+              b"public Nat Scale(const Nat factor, Nat value) { "
+              b"const Nat multiplier = Square(factor); return multiplier * value; }\r\n"
+              b"public const Nat Answer = Square(4);")
+    result = parse_source(compiled, source)
+    declarations = _object(result["ast"], "constant callable file").get("declarations")
+    if not isinstance(declarations, list) or len(declarations) != 3:
+        raise ValueError("constant function changed pure declaration boundaries")
+    square, scale, answer = [_object(value, "constant callable declaration") for value in declarations]
+    if (square.get("kind") != "function" or square.get("const") is not True
+            or scale.get("kind") != "function" or "const" in scale
+            or answer.get("kind") != "constant" or "const" in answer):
+        raise ValueError("pure constant function/value roles differ from the independent oracle")
+    parameters = scale.get("parameters")
+    if not isinstance(parameters, list) or len(parameters) != 2:
+        raise ValueError("static parameter changed pure callable arity")
+    factor, value = [_object(parameter, "pure constant parameter") for parameter in parameters]
+    start = source.index(b"const Nat factor")
+    if (factor.get("const") is not True or "const" in value
+            or factor.get("span") != [start, start + len(b"const Nat factor")]
+            or _object(factor.get("type"), "static parameter type").get("span") != [start + 6, start + 9]):
+        raise ValueError("pure required-static parameter qualifier or byte spans differ")
+    square_parameters = square.get("parameters")
+    if (not isinstance(square_parameters, list) or len(square_parameters) != 1
+            or "const" in _object(square_parameters[0], "ordinary constant-function input")):
+        raise ValueError("constant function incorrectly requires all inputs statically")
+    return "compositional-constant-function-and-parameter-roles"
+
+
 def _fixtures(compiled: Build) -> list[str]:
     """Expected trees selected by the independent grammar reviewer."""
-    passed: list[str] = [_concise_fixture(compiled)]
+    passed: list[str] = [_concise_fixture(compiled), _constant_callable_fixture(compiled)]
     prefix = b"module M; public Nat F() { return "
     expressions: tuple[tuple[bytes, Json], ...] = (
         (b"1 + 2 * 3", ["+", ["nat", "1"], ["*", ["nat", "2"], ["nat", "3"]]]),
@@ -369,6 +401,9 @@ def _fixtures(compiled: Build) -> list[str]:
             raise ValueError("invalid character unexpectedly parsed")
     passed.append("newline-and-utf8-comment-positions")
     refusals = (
+        (b"module M; public const const Nat F() => 1;", "syntax"),
+        (b"module M; public Nat F(const const Nat value) => value;", "syntax"),
+        (b"module M; public Nat F(const Nat) => 0;", "syntax"),
         (b"", "syntax"), (b"module M;", "syntax"),
         (prefix + b"1; } garbage", "syntax"),
         (prefix + b"1 == 2 <= 3; }", "syntax"),
@@ -414,6 +449,10 @@ def qualify(root: Path) -> dict[str, object]:
     surface_path = root / "tools/vela/examples/surface.vela"
     surface_example = read_source(surface_path)
     parse_source(first, surface_example, surface=True)
+    constant_path = root / "tools/vela/examples/constants.vela"
+    constant_example = read_source(constant_path)
+    parse_source(first, constant_example)
+    parse_source(first, constant_example, surface=True)
     if _inputs(root) != first.receipt["inputs"]:
         raise ValueError("qualification inputs changed after fixtures")
     if _toolchain(root) != first.receipt["toolchain"]:
@@ -427,13 +466,17 @@ def qualify(root: Path) -> dict[str, object]:
         raise ValueError("example changed during qualification")
     if read_source(surface_path) != surface_example:
         raise ValueError("surface example changed during qualification")
+    if read_source(constant_path) != constant_example:
+        raise ValueError("constant example changed during qualification")
     report: dict[str, object] = {
         "schema": 1, "scope": "vela-syntax-only-development-parser",
         "status": "passed", "checked_parser": False,
         "build": first.receipt, "regeneration": second.receipt,
         "example": {"path": "tools/vela/examples/pure.vela",
                     "source_sha256": hashlib.sha256(example).hexdigest()},
-        "fixtures": [*passed, "authored-example"],
+        "constant_example": {"path": "tools/vela/examples/constants.vela",
+                             "source_sha256": hashlib.sha256(constant_example).hexdigest()},
+        "fixtures": [*passed, "authored-example", "authored-compositional-constants"],
         "syntax_entries": {
             "pure": {"schema": 1, "status": "passed"},
             "surface": {"schema": 2, "status": "passed", "fixtures": surface_passed,

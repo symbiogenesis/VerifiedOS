@@ -222,6 +222,8 @@ class _Protocol:
             else:
                 if kind == "let":
                     cursor = self._token(node, cursor, b"let")
+                if kind in {"parameter", "lambda_parameter"} and node.get("const", False):
+                    cursor = self._token(node, cursor, b"const")
                 if node["type"] is not None:
                     cursor = self._child(node, span, cursor, node["type"])
                 if node["name"] is not None:
@@ -449,8 +451,12 @@ class _Protocol:
         fields = _FIELDS.get(kind)
         if fields is None:
             raise self.error("unsupported", f"'{kind}' is outside mathematical elaboration", node)
-        if set(node) != {"kind", "span", *fields}:
+        optional = {"const"} if kind in {"parameter", "lambda_parameter"} else set()
+        if (set(node) - optional != {"kind", "span", *fields}
+                or ("const" in node and type(node["const"]) is not bool)):
             raise self.error("protocol", f"invalid fields for '{kind}'", node)
+        if node.get("const", False) and kind == "lambda_parameter" and node["type"] is None:
+            raise self.error("protocol", "a constant lambda parameter requires an explicit type", node)
         if "grade" in fields and node["grade"] is not None:
             grade = node["grade"]
             if not isinstance(grade, dict) or not isinstance(grade.get("kind"), str):
@@ -616,6 +622,7 @@ class _Elaborator:
         # Callable parameter labels are source metadata, never CIC constructors.
         self.parameter_names: dict[int, str] = {}
         self.nullary_parameters: set[int] = set()
+        self.constant_parameters: set[int] = set()
         self.static_forbidden: set[int] | None = None
         self.globals: dict[str, _Binding] = {}
         self.constants: dict[str, _Binding] = {}
@@ -722,6 +729,9 @@ class _Elaborator:
             return replacement
         if term.kind in {"pi", "lam"} and term.value == variable:
             return _term(term.kind, self.substitute(term.args[0], variable, replacement), term.args[1], value=term.value)
+        if term.kind == "let" and term.value == variable:
+            return _term("let", self.substitute(term.args[0], variable, replacement),
+                         self.substitute(term.args[1], variable, replacement), term.args[2], value=term.value)
         return _Term(term.kind, term.value, tuple(self.substitute(value, variable, replacement) for value in term.args))
 
     def free(self, term: _Term) -> set[int]:
@@ -732,7 +742,7 @@ class _Elaborator:
         result: set[int] = set()
         for argument in term.args:
             result.update(self.free(argument))
-        if term.kind in {"pi", "lam"}:
+        if term.kind in {"pi", "lam", "let"}:
             result.discard(cast("int", term.value))
         return result
 
@@ -747,6 +757,22 @@ class _Elaborator:
     def whnf(self, term: _Term) -> _Term:
         self.tick()
         term = self.resolve(term)
+        if term.kind == "let":
+            self.tick(True)
+            return self.whnf(self.substitute(term.args[2], cast("int", term.value), term.args[1]))
+        if term.kind == "static":
+            if self.free(term.args[1]):
+                return self.whnf(term.args[1])
+            previous = self.static_forbidden
+            self.static_forbidden = set() if previous is None else previous
+            try:
+                normalized = self.whnf(term.args[1])
+                kind = {_NAT: "nat", _BOOL: "bool", _UNIT: "unit"}[self.whnf(term.args[0])]
+                if normalized.kind != kind:
+                    raise self.fail("inference", "constant initializer did not evaluate to an admitted static value")
+                return normalized
+            finally:
+                self.static_forbidden = previous
         if term.kind == "nat" and not 0 <= cast("int", term.value) <= self.natural_limit():
             raise self.fail("limit", "computed natural exceeds representation bound")
         if term.kind == "if":
@@ -850,6 +876,10 @@ class _Elaborator:
                 and (cast("int", left.value) in self.nullary_parameters)
                 != (cast("int", right.value) in self.nullary_parameters)):
             raise self.fail("type", "zero-parameter and explicit-parameter callables have different source arities")
+        if (left.kind == right.kind and left.kind in {"pi", "lam"}
+                and (cast("int", left.value) in self.constant_parameters)
+                != (cast("int", right.value) in self.constant_parameters)):
+            raise self.fail("type", "callable constant-parameter requirements differ")
         if left == right:
             return
         # Decimal literals abbreviate constructor chains; expose one successor
@@ -913,6 +943,10 @@ class _Elaborator:
             return _BOOL
         if kind == "unit":
             return _UNIT
+        if kind == "static":
+            return term.args[0]
+        if kind == "let":
+            return self.substitute(self.infer(term.args[2]), cast("int", term.value), term.args[1])
         if kind == "pi":
             domain = self.sort(term.args[0])
             result = self.sort(term.args[1])
@@ -1018,8 +1052,64 @@ class _Elaborator:
             return value
         return self.check(node, expected, environment)
 
+    def static_argument(self, node: Node, expected: _Term, environment: dict[str, _Binding],
+                        *, type_syntax: bool = False) -> _Term:
+        """Check the complete source dependency graph before reducing an argument."""
+        previous = self.static_forbidden
+        self.static_forbidden = (set() if previous is None else previous) | {
+            id(binding) for binding in environment.values() if not binding.constant}
+        try:
+            value = self.argument(node, expected, environment) if type_syntax else self.check(node, expected, environment)
+            self.complete(value)
+            available = set().union(*(self.free(binding.term) for binding in environment.values()
+                                      if binding.constant))
+            dependencies = self.free(value)
+            if not dependencies <= available:
+                raise self.fail("type", "constant parameter requires a static argument", node)
+            if self.whnf(expected) in {_NAT, _BOOL, _UNIT}:
+                marked = _term("static", expected, value)
+                return marked if dependencies else self.whnf(marked)
+            return value
+        finally:
+            self.static_forbidden = previous
+
+    def specialize(self, term: _Term, depth: int = 0) -> _Term:
+        """Instantiate logical templates while preserving deferred static demands."""
+        self.tick(True)
+        if depth > MAX_DEPTH:
+            raise self.fail("limit", "static specialization exceeds its nesting budget")
+        term = self.resolve(term)
+        if term.kind == "let":
+            return _term("let", term.args[0], term.args[1], self.specialize(term.args[2], depth + 1), value=term.value)
+        if term.kind == "static":
+            value = self.specialize(term.args[1], depth + 1)
+            marked = _term("static", term.args[0], value)
+            return marked if self.free(value) else self.whnf(marked)
+        if term.kind == "const" and term.value in self.definitions:
+            return self.specialize(self.definitions[term.value], depth + 1)
+        if term.kind == "app":
+            function = self.specialize(term.args[0], depth + 1)
+            argument = self.specialize(term.args[1], depth + 1)
+            if function.kind == "let":
+                body = self.specialize(_app(function.args[2], argument), depth + 1)
+                return _term("let", function.args[0], function.args[1], body, value=function.value)
+            if function.kind == "lam":
+                return self.specialize(self.substitute(function.args[1], cast("int", function.value), argument), depth + 1)
+            result = _app(function, argument)
+            reduced = self.whnf(result)
+            return result if reduced == result else self.specialize(reduced, depth + 1)
+        return _Term(term.kind, term.value, tuple(self.specialize(child, depth + 1) for child in term.args))
+
     def apply(self, binding: _Binding, arguments: list[Node], environment: dict[str, _Binding]) -> _Binding:
         term, value_type = binding.term, binding.type
+        specializing = False
+        specialized_term = term
+        runtime_arguments: list[tuple[_Term, _Term]] = []
+        future = self.whnf(value_type)
+        protects_runtime = False
+        while future.kind == "pi":
+            protects_runtime = protects_runtime or cast("int", future.value) in self.constant_parameters
+            future = self.whnf(future.args[1])
         if not arguments:
             value_type = self.whnf(value_type)
             if value_type.kind != "pi" or cast("int", value_type.value) not in self.nullary_parameters:
@@ -1052,9 +1142,24 @@ class _Elaborator:
                     raise self.fail("name", "unnamed callable parameters do not accept argument labels", node)
                 if spelling != expected:
                     raise self.fail("name", f"expected argument label '{expected}', got '{spelling}'", node)
-            argument = self.check(self.node(node["value"]), value_type.args[0], environment)
+            required_static = cast("int", value_type.value) in self.constant_parameters
+            checker = self.static_argument if required_static else self.check
+            argument = checker(self.node(node["value"]), value_type.args[0], environment)
+            specializing = specializing or required_static
+            if required_static:
+                specialized_term = _app(specialized_term, argument)
+            elif protects_runtime:
+                variable = self.fresh(value_type.args[0])
+                runtime_arguments.append((variable, argument))
+                specialized_term = _app(specialized_term, variable)
+            else:
+                specialized_term = _app(specialized_term, argument)
             term = _app(term, argument)
             value_type = self.substitute(value_type.args[1], cast("int", value_type.value), argument)
+        if protects_runtime:
+            term = self.specialize(specialized_term) if specializing else specialized_term
+            for variable, argument in reversed(runtime_arguments):
+                term = _term("let", self.types[cast("int", variable.value)], argument, term, value=variable.value)
         return _Binding(term, value_type)
 
     def telescope(self, generic_nodes: list[Node], parameter_nodes: list[Node],
@@ -1083,10 +1188,13 @@ class _Elaborator:
             domain = self.type(self.node(node["type"]), extended)
             variable = self.fresh(domain)
             variables.append(variable)
+            static = cast("bool", node.get("const", False))
+            if static:
+                self.constant_parameters.add(cast("int", variable.value))
             if node["name"] is not None:
                 name = self.name(node["name"])
                 self.parameter_names[cast("int", variable.value)] = name
-                self.bind_local(extended, name, _Binding(variable, domain))
+                self.bind_local(extended, name, _Binding(variable, domain, constant=static))
         if unit and not parameter_nodes:
             variable = self.fresh(_UNIT)
             self.nullary_parameters.add(cast("int", variable.value))
@@ -1128,7 +1236,9 @@ class _Elaborator:
                     value_type = self.whnf(value_type)
                     if value_type.kind != "pi":
                         raise self.fail("type", f"too many arguments to '{name}'")
-                    value = self.argument(argument, value_type.args[0], environment)
+                    value = (self.static_argument(argument, value_type.args[0], environment, type_syntax=True)
+                             if cast("int", value_type.value) in self.constant_parameters else
+                             self.argument(argument, value_type.args[0], environment))
                     result = _app(result, value)
                     value_type = self.substitute(value_type.args[1], cast("int", value_type.value), value)
         elif kind in {"group_type", "type_argument"}:
@@ -1227,9 +1337,18 @@ class _Elaborator:
                 self.unify(domain, expected_pi.args[0])
             variable = self.fresh(domain)
             variables.append(variable)
+            static = cast("bool", parameter.get("const", False))
+            if expected_pi is not None:
+                expected_static = cast("int", expected_pi.value) in self.constant_parameters
+                if annotation is None:
+                    static = expected_static
+                elif static != expected_static:
+                    raise self.fail("type", "lambda constant-parameter requirement differs from its expected type")
+            if static:
+                self.constant_parameters.add(cast("int", variable.value))
             name = self.name(parameter["name"])
             self.parameter_names[cast("int", variable.value)] = name
-            self.bind_local(extended, name, _Binding(variable, domain))
+            self.bind_local(extended, name, _Binding(variable, domain, constant=static))
             if expected_pi is not None:
                 current = self.substitute(expected_pi.args[1], cast("int", expected_pi.value), variable)
         body_node = self.node(node["body"])
@@ -1269,8 +1388,13 @@ class _Elaborator:
                 raise self.fail("unsupported", "mathematical constants require Nat, bool or Unit", node)
             value = self.check(self.node(node["value"]), value_type, environment)
             self.complete(value)
-            if self.free(value):
+            available = set().union(*(self.free(binding.term) for binding in environment.values()
+                                      if binding.constant))
+            dependencies = self.free(value)
+            if not dependencies <= available:
                 raise self.fail("type", "constant initializer is not a closed static value", node)
+            if dependencies:
+                return _Binding(_term("static", value_type, value), value_type, constant=True)
             normalized = self.whnf(value)
             kind = {_NAT: "nat", _BOOL: "bool", _UNIT: "unit"}[expected]
             if normalized.kind != kind:
@@ -1433,7 +1557,8 @@ class _Elaborator:
         if kind not in {"alias", "definition", "function", "theorem", "lemma", "constant"}:
             raise self.fail("unsupported", f"declaration '{kind}' requires the full frontend")
         modifiers = node["modifiers"]
-        if (not isinstance(modifiers, list) or any(not isinstance(value, str) or value not in {"public", "private", "internal"} for value in modifiers)
+        allowed_modifiers = {"public", "private", "internal"} | ({"const"} if kind in {"definition", "function"} else set())
+        if (not isinstance(modifiers, list) or any(not isinstance(value, str) or value not in allowed_modifiers for value in modifiers)
                 or len(modifiers) != len(set(modifiers))):
             raise self.fail("unsupported", "unsupported or repeated declaration modifiers")
         self.no_roles(node, "contracts", "cancel")
@@ -1497,6 +1622,13 @@ class _Elaborator:
             return "Corelib.Init.Datatypes.true" if term.value else "Corelib.Init.Datatypes.false"
         if kind == "unit":
             return "Corelib.Init.Datatypes.tt"
+        if kind == "static":
+            value = term.args[1] if self.free(term.args[1]) else self.whnf(term)
+            return self.render(value)
+        if kind == "let":
+            domain, value, body = term.args
+            return (f"(let vela_v{term.value} : {self.render(domain)} := {self.render(value)} "
+                    f"in {self.render(body)})")
         if kind in {"pi", "lam"}:
             domain, body = term.args
             binder = f"vela_v{term.value} : {self.render(domain)}"

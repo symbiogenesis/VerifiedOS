@@ -144,7 +144,7 @@ def _failed_build() -> None:
         (root / "tools/vos/vela_parser.py").write_text("driver\n", encoding="utf-8")
         (root / "tools/vos/vela_surface.py").write_text("fixtures\n", encoding="utf-8")
         (root / "tools/vela/examples").mkdir()
-        for name in ("pure.vela", "surface.vela"):
+        for name in ("pure.vela", "surface.vela", "constants.vela"):
             (root / "tools/vela/examples" / name).write_text("example\n", encoding="utf-8")
         output = root / "native-build"
         output.mkdir()
@@ -179,9 +179,12 @@ def _qualification_freshness() -> None:
         source = b"module M; public Nat F() { return 1; }\r\n"
         inputs, toolchain = {"source": "original"}, {"compiler": "original"}
         surface_example = example.with_name("surface.vela")
-        for change in ("source", "toolchain", "generated", "executable", "example", "surface", "none"):
+        constant_example = example.with_name("constants.vela")
+        constant_source = source + b"// const"
+        for change in ("source", "toolchain", "generated", "executable", "example", "surface", "constant", "none"):
             example.write_bytes(source)
             surface_example.write_bytes(source)
+            constant_example.write_bytes(constant_source)
             for name in (*parser.GENERATED, "vela-parser"):
                 (output / name).write_bytes(b"original")
             hashes = {name: hashlib.sha256(b"original").hexdigest()
@@ -200,6 +203,8 @@ def _qualification_freshness() -> None:
                     example.write_bytes(source + b"// changed")
                 elif mode == "surface" and surface:
                     surface_example.write_bytes(source + b"// changed")
+                elif mode == "constant" and _source == constant_source:
+                    constant_example.write_bytes(constant_source + b"// changed")
                 return {"schema": 1}
 
             with patch.object(parser, "_work_root", return_value=root), \
@@ -223,8 +228,23 @@ def _qualification_freshness() -> None:
                            "published qualification report differs from returned evidence")
 
 
+def _constant_callable_oracle_required() -> None:
+    with tempfile.TemporaryDirectory(prefix="vos-vela-parser-") as temporary:
+        compiled = _build(Path(temporary))
+        with patch.object(parser, "_concise_fixture", return_value="concise"), \
+                patch.object(parser, "_constant_callable_fixture", side_effect=ValueError("constant role changed")) as oracle:
+            try:
+                parser._fixtures(compiled)
+            except ValueError as error:
+                ensure(str(error) == "constant role changed", "constant oracle failure was replaced")
+            else:
+                raise AssertionError("constant callable syntax oracle was bypassed")
+        oracle.assert_called_once_with(compiled)
+
+
 def cases() -> list[Case]:
-    return [Case("native-protocol-and-source-identity", _protocol),
+    return [Case("constant-callable-oracle-is-required", _constant_callable_oracle_required),
+            Case("native-protocol-and-source-identity", _protocol),
             Case("bounded-read-and-process-controls", _bounds),
             Case("snapshot-version-controls", _versions),
             Case("generator-failure-without-receipt", _failed_build),
