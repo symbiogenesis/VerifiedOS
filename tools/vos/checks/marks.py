@@ -86,6 +86,8 @@ MARKABLE: dict[str, tuple[str, str]] = {
     # Authored Lustre nodes use the language's line-comment syntax.
     ".lus": ("-- ", ""),
     ".mjs": ("// ", ""),
+    ".html": ("<!-- ", " -->"),
+    ".css": ("/* ", " */"),
     ".sh": ("# ", ""),
     ".s": ("# ", ""),
     # Sail, in the one place this repository writes any outside `model/`: the

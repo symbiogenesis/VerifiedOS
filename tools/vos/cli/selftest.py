@@ -1438,6 +1438,10 @@ CASES: list[Case] = [
      _literal("tools/vela/parser/parser.mly", "/* SPDX-License-Identifier: Apache-2.0 */\n", "")),
     ("K-52", "an authored OCaml lexer whose license mark has gone",
      _literal("tools/vela/parser/lexer.mll", "(* SPDX-License-Identifier: Apache-2.0 *)\n", "")),
+    ("K-52", "the browser playground HTML whose license mark has gone",
+     _literal("tools/vela/playground/index.html", "<!-- SPDX-License-Identifier: Apache-2.0 -->\n", "")),
+    ("K-52", "the browser playground stylesheet whose license mark has gone",
+     _literal("tools/vela/playground/style.css", "/* SPDX-License-Identifier: Apache-2.0 */\n", "")),
 
     # A new file of an unknown kind cannot be seeded, because the corpus is the git
     # index and an untracked file is not in it. Withdrawing a kind's ruling puts an
@@ -1461,6 +1465,10 @@ CASES: list[Case] = [
      _literal("tools/vos/checks/marks.py", '    ".mly": ("/* ", " */"),\n', "")),
     ("K-53", "the authored OCaml lexer language whose ruling has gone",
      _literal("tools/vos/checks/marks.py", '    ".mll": ("(* ", " *)"),\n', "")),
+    ("K-53", "the browser HTML language whose ruling has gone",
+     _literal("tools/vos/checks/marks.py", '    ".html": ("<!-- ", " -->"),\n', "")),
+    ("K-53", "the browser stylesheet language whose ruling has gone",
+     _literal("tools/vos/checks/marks.py", '    ".css": ("/* ", " */"),\n', "")),
     ("K-53", "an upstream patch whose byte-preserving ruling has gone",
      _literal("tools/vos/checks/marks.py",
               '    ".patch": "a unified diff must preserve upstream context and hunk bytes",\n', "")),

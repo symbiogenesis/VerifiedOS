@@ -5,6 +5,11 @@ examples and research. Start with the [product contract](#language-product-contr
 and [surface examples](#an-ideal-surface). Companion contracts refine the rules and
 qualification boundaries; [PLAN.md](../../../PLAN.md#language-core-proposals) owns implementation.
 
+To try the implemented pure Nat/bool fragment, launch the
+[local browser playground](playground.md) with `python tools/run.py vela-playground`.
+It connects editing, language services, Gallina output and compile-time expression
+evaluation to the development prototypes.
+
 > **Status:** This is a non-normative design proposal, not an implemented compiler or admission rule. [PLAN.md](../../../PLAN.md#q-assessment-actions) records execution state; [the completion log](../../implementation/completion-log.md) records evidence. The [workflow contract](workflow-contract.md#commissioning-disposition) defines the canceled experiments and their re-entry conditions.
 
 > The [requirements register](../../requirements-register.md) governs VerifiedOS; the [typed assembly language](../typed-assembly-language.md) governs the certificate language.
