@@ -1331,7 +1331,8 @@ bounded Nat/bool static evaluator. The bridge uses isolated compiler workers,
 authenticated loopback requests, bounded reads and separate expiring sessions.
 Explicit tab close needs one request. Source remains an unsaved browser buffer.
 
-At `5f8006d9`, focused playground and retained constant-evaluation controls pass.
+At `f003fead`, focused playground and retained constant-evaluation controls pass,
+with both platform type checks and Ruff clean.
 Independent review covers compiler reuse, declaration injection, resource
 refusals, source identities, protocol/session isolation and stale-response
 guards. Absolute read deadlines prevent trickled headers or bodies occupying the
