@@ -104,6 +104,16 @@ unchecked hole or foreign proof escape is emitted.
 
 ## Commands and acceptance
 
+The [dependent playground increment](playground.md#dependent-mathematics-increment)
+also commissions a public closed-expression evaluator. It validates the original
+source first, accepts exactly one synthetic typed constant initializer through
+the same native surface parser, and uses the existing elaborator and reducer.
+Return a canonical closed `Nat` or `bool` only after complete typing and bounded
+normalization. Refuse extra declarations, malformed syntax, runtime dependencies,
+unresolved terms and exhausted budgets. Preserve original-source diagnostics and
+mark expression-context diagnostics. This development observation adds no kernel
+or source-correspondence verdict.
+
 `python tools/run.py vela-parser elaborate SOURCE` parses the complete surface,
 elaborates this mathematical fragment and emits Gallina. `--output FILE` uses
 atomic publication after complete validation and refuses input aliases. Missing

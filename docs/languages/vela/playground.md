@@ -1,5 +1,45 @@
 # Vela browser playground
 
+## Dependent mathematics increment
+
+Q25ae in [the plan](../../../PLAN.md#q-assessment-actions) commissions an explicit
+mathematical mode using the [mathematical elaborator](elaboration-prototype.md).
+`python tools/run.py vela-playground-math` runs in the native guest lane, builds
+the locked Menhir parser once before serving, and offers pure and mathematical
+modes. The ordinary host playground retains its pure-only launch. Mathematical
+source uses the existing schema-2 surface parser without a replacement parser.
+
+Compile elaborates the entire source and displays its actual Gallina. The console
+checks the complete source plus exactly one closed expression, reduces it with the
+existing bounded mathematical reducer, and returns only `Nat` or `bool`. Generic
+inference, dependent functions, length-indexed `Vec`, finite `Fin` indices and
+explicit equality proofs keep their existing semantics. Reject mismatched lengths,
+out-of-range indices, false proofs, ambiguous inference and declaration injection.
+No browser request may select an executable or filesystem path.
+
+An authenticated capability query reports whether the mathematical parser is
+available. Compile and evaluate accept an optional `mode` of `pure` or
+`mathematical`, defaulting to pure; unavailable modes refuse explicitly. Worker
+results retain exact source identity and strict shape, type, coordinate and budget
+validation. Parsing and elaboration run in the existing timed isolated worker.
+The server binds the prepared parser's executable identity and rejects changed
+parser bytes. Source, expression, result type and mode all invalidate stale output.
+
+Runnable examples demonstrate generic instantiation, safe vector lookup, dependent
+length preservation and a proof, with independently expected console answers.
+Mathematical mode disables pure-only LSP, formatting, lint and binding preview
+services explicitly; its diagnostics come from mathematical compilation. Mode
+switches clear old diagnostics and results, including in plain-text fallback.
+Label elaboration and compile-time reduction accurately: neither is a kernel verdict.
+
+Acceptance requires independent evaluator and injection/refusal controls, actual
+HTTP isolation and mode controls, browser asset checks, focused retained playground
+and pure tests, Python validation and corpus checks. Exercise the native parser
+with accepted and semantically rejected examples locally when available. Hosted
+Host CI on both platforms and every Guest CI lane, including kernel replay of the
+new evaluated examples, remain user-managed acceptance. Record pending verdicts
+without claiming production qualification.
+
 ## Scope and launch
 
 Q25aa in [the plan](../../../PLAN.md#q-assessment-actions) commissions a local
