@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-"""Serve the local pure Vela browser editor and compile-time expression console."""
+"""Serve Vela's local browser editor and bounded compile-time expression console."""
 
 import argparse
 import sys
