@@ -17,6 +17,8 @@ from unittest.mock import patch
 from tests.harness import Case, ensure
 from vos import vela
 from vos import vela_playground as playground
+from vos.vela_facts import MAX_SYMBOLS
+from vos.vela_playground_worker import compile_request
 
 _SOURCE = ("module Demo;\n// supplementary comment: \U0001f680\n"
            "public Nat Square(Nat x) { let result = x * x; return result; }\n"
@@ -188,6 +190,104 @@ def _http_compiler() -> None:
                "malformed worker result escaped schema checking")
 
 
+def _http_authoring() -> None:
+    source = ("// supplementary comment: \U0001f680\r\nmodule Style;\r"
+              "public bool bad(bool Flag)\n{\r\n    Nat count = 1;\n"
+              "    return Flag == true;\r}\n")
+    expected = source.replace("    Nat count", "    let Nat count")
+    with _running() as server:
+        response = _post(server, "/api/authoring", {"source": source})
+        ensure(response["ok"] is True and response["sourceHash"] == hashlib.sha256(source.encode()).hexdigest(),
+               "authoring response lost exact original source identity")
+        findings = cast("list[dict[str, object]]", response["findings"])
+        ensure(tuple((item["code"], item["line"], item["column"]) for item in findings)
+               == (("VELA100", 3, 13), ("VELA102", 3, 13), ("VELA101", 3, 22),
+                   ("VELA104", 5, 5), ("VELA103", 6, 17)),
+               "HTTP authoring findings differ from independent lint identities and original sites")
+        ensure(response["bindingPreview"] == expected,
+               "binding preview changed bytes beyond the independently expected let insertion")
+        clean = "module Clean;\n/// Returns its argument.\npublic Nat Identity(Nat value) => value;\n"
+        unchanged = _post(server, "/api/authoring", {"source": clean})
+        ensure(unchanged["ok"] is True and unchanged["findings"] == []
+               and unchanged["bindingPreview"] == clean,
+               "clean authoring result changed source or invented a finding")
+        repeated = _post(server, "/api/authoring", {"source": expected})
+        ensure(repeated["bindingPreview"] == expected
+               and not any(item["code"] == "VELA104"
+                           for item in cast("list[dict[str, object]]", repeated["findings"])),
+               "applying the binding preview did not remove its advisory or was not idempotent")
+        for invalid in ("module Bad; public Nat bad() => true;",
+                        "module Bad; public Nat bad(ref Nat value) => value;"):
+            refused = _post(server, "/api/authoring", {"source": invalid})
+            ensure(refused["ok"] is False and refused["sourceHash"] == hashlib.sha256(invalid.encode()).hexdigest()
+                   and "findings" not in refused and "bindingPreview" not in refused,
+                   "invalid authoring source retained partial findings or a candidate")
+        parameters = ",".join(f"Nat p{index}" for index in range(MAX_SYMBOLS))
+        unavailable = "module Limit;public Nat Read(" + parameters + ") => 0;"
+        refused = _post(server, "/api/authoring", {"source": unavailable})
+        ensure(refused["ok"] is False and cast("dict[str, object]", refused["error"])["kind"] == "inspection-limit"
+               and "findings" not in refused and "bindingPreview" not in refused,
+               "unavailable bounded inspection masqueraded as a clean authoring result")
+        declaration = "module Max;public Nat Read(){Nat value=1;return value;}"
+        maximum = "//" + "x" * (vela.MAX_SOURCE_BYTES - len(declaration) - 3) + "\n" + declaration
+        ensure(len(maximum.encode()) == vela.MAX_SOURCE_BYTES, "candidate-bound fixture lost its exact size")
+        refused = _post(server, "/api/authoring", {"source": maximum})
+        ensure(refused["ok"] is False and cast("dict[str, object]", refused["error"])["kind"] == "limit"
+               and "findings" not in refused and "bindingPreview" not in refused,
+               "explicit-binding insertion published a candidate exceeding the compiler source budget")
+        ensure(_post(server, "/api/compile", {"source": source})["sourceHash"] == response["sourceHash"],
+               "authoring check mutated the source consumed by compilation")
+        for payload in ({}, {"source": source, "path": "arbitrary"}, {"source": 12},
+                        {"source": "x" * (vela.MAX_SOURCE_BYTES + 1)}):
+            ensure(_http(server, "/api/authoring", payload)[0] == 400,
+                   "HTTP authoring accepted missing/extra/non-text/oversized input")
+
+
+def _authoring_worker_refusals() -> None:
+    source = "// \U0001f680\r\nmodule M;\rpublic Nat Read(){Nat value=1;return value;}"
+    request: dict[str, object] = {"action": "authoring", "source": source}
+    for kind in ("inspection-limit", "lint-preview", "format"):
+        with patch("vos.vela_playground_worker.preview_bindings",
+                   side_effect=vela.VelaError(kind, 3, 19, "independent producer refusal")):
+            refused = compile_request(request)
+        ensure(refused["ok"] is False and cast("dict[str, object]", refused["error"])["kind"] == kind
+               and "findings" not in refused and "bindingPreview" not in refused,
+               "failed preview producer published partial authoring success")
+    digest = hashlib.sha256(source.encode()).hexdigest()
+    finding: dict[str, object] = {"code": "VELA104", "message": "use let", "line": 3, "column": 19}
+    valid: dict[str, object] = {"ok": True, "sourceHash": digest, "findings": [finding],
+                               "bindingPreview": source}
+    malformed = [
+        {**valid, "sourceHash": "0" * 64}, {**valid, "extra": True},
+        {key: value for key, value in valid.items() if key != "bindingPreview"},
+        {**valid, "findings": {}}, {**valid, "findings": [None]},
+        {**valid, "findings": [finding] * (playground.MAX_AUTHORING_FINDINGS + 1)},
+        {**valid, "bindingPreview": 1},
+        {**valid, "bindingPreview": "\U0001f680" * (vela.MAX_SOURCE_BYTES // 4 + 1)},
+    ]
+    malformed.extend({**valid, "findings": [{**finding, field: value}]} for field, value in (
+        ("code", "VELA999"), ("code", []), ("message", ""), ("message", 0),
+        ("line", True), ("line", 0), ("line", 99), ("column", True), ("column", 0),
+        ("column", 999), ("extra", "unrecognized")))
+    # The supplementary character is one compiler code point, not two columns.
+    malformed.append({**valid, "findings": [{**finding, "line": 1, "column": 6}]})
+    with _running() as server:
+        for response in malformed:
+            process = playground.subprocess.CompletedProcess([], 0, json.dumps(response).encode(), b"")
+            with patch.object(playground.subprocess, "run", return_value=process):
+                refused = _post(server, "/api/authoring", {"source": source})
+            ensure(refused["ok"] is False and cast("dict[str, object]", refused["error"])["kind"] == "internal"
+                   and "findings" not in refused and "bindingPreview" not in refused,
+                   "malformed authoring worker reply escaped complete-result validation")
+        with patch.object(playground.subprocess, "run", side_effect=playground.subprocess.TimeoutExpired("worker", 5)):
+            refused = _post(server, "/api/authoring", {"source": source})
+        ensure(refused["ok"] is False and cast("dict[str, object]", refused["error"])["kind"] == "timeout",
+               "authoring worker timeout masqueraded as completed analysis")
+        recovered = _post(server, "/api/authoring", {"source": source})
+        ensure(recovered["ok"] is True and "let Nat value" in str(recovered["bindingPreview"]),
+               "authoring service did not recover from a refused worker reply")
+
+
 def _http_authority_and_bounds() -> None:
     with _running() as server:
         for path in ("/", "/index.html", "/app.mjs", "/style.css"):
@@ -307,6 +407,8 @@ def cases() -> list[Case]:
     return [Case("compiler-owned-static-natural-and-boolean-results", _static_values),
             Case("compiler-refusals-injection-and-existing-budgets", _static_refusals),
             Case("real-isolated-http-compilation-and-evaluation", _http_compiler),
+            Case("real-http-authoring-findings-preview-source-and-refusals", _http_authoring),
+            Case("authoring-worker-incomplete-invalid-coordinate-and-budget-controls", _authoring_worker_refusals),
             Case("http-auth-authority-strict-json-path-and-session-bounds", _http_authority_and_bounds),
             Case("absolute-http-header-and-body-read-deadline", _absolute_read_deadline),
             Case("real-http-lsp-lifecycle-overlays-navigation-and-formatting", _http_lsp)]

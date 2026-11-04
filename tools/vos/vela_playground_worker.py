@@ -7,6 +7,7 @@ from typing import cast
 
 from vos.protocol_json import MAX_BODY_BYTES, decode_message, encode_message
 from vos.vela import ValueType, VelaError, evaluate, translate
+from vos.vela_authoring import lint_source, preview_bindings
 
 
 def compile_request(request: dict[str, object]) -> dict[str, object]:
@@ -17,6 +18,14 @@ def compile_request(request: dict[str, object]) -> dict[str, object]:
             compiled = translate(source)
             return {"ok": True, "sourceHash": digest,
                     "module": compiled.module, "gallina": compiled.gallina}
+        if request["action"] == "authoring":
+            findings = lint_source(source)
+            preview = preview_bindings(source)
+            return {"ok": True, "sourceHash": digest,
+                    "findings": [{"code": finding.code, "message": finding.message,
+                                  "line": finding.line, "column": finding.column}
+                                 for finding in findings],
+                    "bindingPreview": preview.decode("utf-8")}
         result = evaluate(source, cast("str", request["expression"]),
                           cast("ValueType", request["valueType"]))
         value = ("true" if result.value else "false") if result.value_type == "bool" else str(result.value)
