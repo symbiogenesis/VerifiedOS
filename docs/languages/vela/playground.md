@@ -62,6 +62,7 @@ The JSON API is same-origin POST with `Authorization: Bearer TOKEN`:
 | Path | Request | Response |
 | --- | --- | --- |
 | `/api/session` | `{}` | `{ "session": "opaque-id" }` |
+| `/api/close` | `{ "session": "opaque-id" }` | `{ "closed": true }` (idempotent session release) |
 | `/api/lsp` | `{ "session": "opaque-id", "message": LSP_OBJECT }` | `{ "messages": [LSP_OBJECT] }` |
 | `/api/compile` | `{ "source": "UTF-8 text" }` | `{ "ok": true, "sourceHash": "sha256", "module": "name", "gallina": "text" }` |
 | `/api/evaluate` | `{ "source": "UTF-8 text", "expression": "text", "valueType": "Nat or bool" }` | `{ "ok": true, "sourceHash": "sha256", "valueType": "Nat or bool", "value": "decimal or true/false" }` |
@@ -75,7 +76,9 @@ result for changed input.
 
 Use the existing strict protocol JSON reader and its nesting/byte limits, and
 validate endpoint shapes. Bound HTTP reads, concurrent requests, session count
-and idle lifetime. Serialize each session's `Server.handle` calls, retain the
+and idle lifetime. A single keepalive close request releases a tab's session on
+reload or exit; reconnect also closes its previous session. Serialize each
+session's `Server.handle` calls, retain the
 server's document and isolated-worker limits, and bound complete HTTP replies.
 Compile and evaluation use isolated same-interpreter workers with a finite
 timeout and bounded input/output; no source becomes Python code. Sessions expire
