@@ -75,6 +75,8 @@ COMMANDS: tuple[Command, ...] = (
             "check pure Vela prototype source and emit unqualified Gallina definitions"),
     Command("vela-lsp", "vos.cli.vela_lsp",
             "serve host LSP diagnostics and navigation for unqualified pure Vela over stdio"),
+    Command("vela-playground", "vos.cli.vela_playground",
+            "serve a local browser editor and compile-time console for pure Vela"),
     Command("vela-parser", "vos.cli.vela_parser",
             "parse Vela, elaborate dependent mathematics and replay proofs", lane="guest"),
     Command("worktree", "vos.cli.worktree",

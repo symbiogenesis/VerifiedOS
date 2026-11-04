@@ -22,7 +22,8 @@ from vos.vela_ast import (
 from vos.vela_facts import Facts, SymbolKind
 
 __all__ = ["MAX_BLOCK_DEPTH", "MAX_EXPRESSION_DEPTH", "MAX_LITERAL_DIGITS", "MAX_SOURCE_BYTES",
-           "Translation", "ValueType", "VelaError", "inspect_source", "translate", "translate_ast"]
+           "StaticEvaluation", "Translation", "ValueType", "VelaError", "evaluate",
+           "inspect_source", "translate", "translate_ast"]
 
 _TYPES: dict[ValueType, str] = {
     "Nat": "Corelib.Init.Datatypes.nat",
@@ -40,6 +41,12 @@ MAX_OUTPUT_BYTES = 1_048_576
 class Translation:
     module: str
     gallina: str
+
+
+@dataclass(frozen=True)
+class StaticEvaluation:
+    value_type: ValueType
+    value: int | bool
 
 
 @dataclass(frozen=True)
@@ -689,8 +696,9 @@ class _Elaborator:
             self.specialization_depth -= 1
 
 
-def _translate(source: bytes, module: syntax.Module, facts: Facts | None = None) -> Translation:
-    elaborator = _Elaborator(facts)
+def _translate(source: bytes, module: syntax.Module, facts: Facts | None = None, *,
+               elaborator: _Elaborator | None = None) -> Translation:
+    elaborator = _Elaborator(facts) if elaborator is None else elaborator
     name = module.name.text
     header = ("(* SPDX-License-Identifier: Apache-2.0 *)\n"
               f"(* Vela pure prototype: unqualified. Source SHA256: {hashlib.sha256(source).hexdigest()} *)\n"
@@ -717,6 +725,35 @@ def _translate(source: bytes, module: syntax.Module, facts: Facts | None = None)
 def translate(source: bytes) -> Translation:
     """Validate the complete bounded source through the retained Python syntax route."""
     return _translate(source, _Parser(_tokens(source)).parse())
+
+
+def evaluate(source: bytes, expression: str, value_type: ValueType) -> StaticEvaluation:
+    """Check the original source and one closed compiler constant initializer.
+
+    The [playground contract](../../docs/languages/vela/playground.md#browser-behavior)
+    restricts this development service to the existing bounded static evaluator.
+    """
+    elaborator = _Elaborator()
+    _translate(source, _Parser(_tokens(source)).parse(), elaborator=elaborator)
+    if value_type not in {"Nat", "bool"}:
+        raise VelaError("type", 1, 1, "expression: expected Nat or bool result type")
+    if len(expression.encode("utf-8")) > 4096:
+        raise VelaError("limit", 1, 1, "expression: exceeds 4096 UTF-8 bytes")
+    probe = (f"module Playground;\npublic const {value_type} __vela_console_result =\n"
+             f"{expression}\n;").encode("utf-8")
+    try:
+        parsed = _Parser(_tokens(probe)).parse()
+        if (len(parsed.declarations) != 1
+                or not isinstance(parsed.declarations[0], syntax.Constant)
+                or parsed.declarations[0].name.text != "__vela_console_result"):
+            raise VelaError("syntax", 3, 1, "expected exactly one constant initializer")
+        result = elaborator._constant(parsed.declarations[0], {}).static
+        if result is None:
+            raise VelaError("unsupported", 3, 1, "expression must be closed and static")
+    except VelaError as error:
+        raise VelaError(error.kind, max(1, error.line - 2), error.column,
+                        f"expression: {error.message}") from error
+    return StaticEvaluation(result.value_type, result.value)
 
 
 def inspect_source(source: bytes) -> dict[str, object]:
