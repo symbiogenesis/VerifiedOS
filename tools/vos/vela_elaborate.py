@@ -211,7 +211,7 @@ class _Protocol:
                 else:
                     cursor = self._token(node, cursor, b";")
             elif kind in {"alias", "definition"}:
-                cursor = self._token(node, cursor, b"=")
+                cursor = self._token(node, cursor, b"=" if kind == "alias" else b"=>")
                 cursor = self._child(node, span, cursor, node["type"] if kind == "alias" else node["value"])
                 cursor = self._token(node, cursor, b";")
             elif node["body"] is None:
@@ -299,7 +299,14 @@ class _Protocol:
             cursor = self._child(node, span, cursor, node["result"])
         elif kind == "generic_application":
             cursor = self._child(node, span, cursor, node["value"])
-            cursor = self._list(node, span, cursor, node["arguments"], b"::<", b">")
+            cursor = trivia_end(self.source, cursor, block_comments=True)
+            explicit = self.source[cursor:cursor + 3] == b"::<"
+            if not node["arguments"]:
+                raise self.error("protocol", "generic application requires nonempty arguments", node)
+            cursor = self._list(node, span, cursor, node["arguments"], b"::<" if explicit else b"<", b">")
+            following = trivia_end(self.source, cursor, block_comments=True)
+            if not explicit and self.source[following:following + 1] != b"(":
+                raise self.error("protocol", "ordinary generic application must be followed by a call", node)
         elif kind == "typed_lambda":
             cursor = self._child(node, span, cursor, node["signature"])
             cursor = self._token(node, cursor, b"=>")
