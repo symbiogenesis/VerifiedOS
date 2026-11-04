@@ -172,6 +172,88 @@ public Nat Total()
 }
 `,
     },
+    generic: {
+        mode: "mathematical", label: "Generics & higher-order functions",
+        expression: "HigherOrder()", valueType: "Nat",
+        source: `module GenericFunctions;
+
+/// T is inferred separately at every call.
+public definition T Identity<T>(T value) => value;
+
+/// Functions are values, with their own input and result types.
+public definition U Apply<T, U>(Fn(T value) -> U function, T value) =>
+    function(value: value);
+
+public definition (Nat, bool) DifferentTypes() =>
+    (Identity(7), Identity(true));
+
+/// Evaluate HigherOrder(): the expected result is 42.
+public definition Nat HigherOrder() =>
+    Apply(function: value => value + 1, value: 41);
+
+/// Proof terms inhabit their declared equality proposition.
+public lemma Result(): HigherOrder() == 42
+    proof
+    {
+        return Refl(42);
+    }
+`,
+    },
+    vectors: {
+        mode: "mathematical", label: "Indexed vectors & safe lookup",
+        expression: "Second()", valueType: "Nat",
+        source: `module SafeLookup;
+
+/// The length is part of the vector's type.
+public definition Vec<Nat, 3> Samples() =>
+    VCons(10, VCons(20, VCons(30, VNil<Nat>())));
+
+/// Fin<3> describes exactly the three valid indices.
+public definition Nat Read(Fin<3> index) => At(Samples(), index);
+
+/// The successor of zero selects the second value: 20.
+public definition Nat Second() => Read(FSucc(FZero<1>()));
+
+public lemma SelectedValue(): Second() == 20
+    proof
+    {
+        return Refl(20);
+    }
+
+// Try Read(FZero<2>()) and Read(FSucc(FSucc(FZero<0>()))).
+// Read(FZero<3>()) is rejected: Fin<4> cannot index a Vec<Nat, 3>.
+`,
+    },
+    dependent: {
+        mode: "mathematical", label: "Dependent functions & length proofs",
+        expression: "PreservedValue()", valueType: "Nat",
+        source: `module LengthPreservation;
+
+/// The same inferred n appears in both the input and result.
+public definition Vec<T, n> Copy<T, ghost Nat n>(Vec<T, n> values) => values;
+
+/// Later parameter types can depend on an earlier value parameter.
+public definition Fn(Nat n, Vec<Nat, n> values) -> Vec<Nat, n> Preserve() =>
+    (Nat n, Vec<Nat, n> values) => values;
+
+public definition Vec<Nat, 1> Original() => VCons(42, VNil<Nat>());
+
+public definition Vec<Nat, 1> Preserved() =>
+    Preserve()(n: 1, values: Copy(Original()));
+
+public definition Nat PreservedValue() => At(Preserved(), FZero<0>());
+
+/// The proposed proof is checked by the elaborator; kernel replay is separate.
+public lemma SameValue(): PreservedValue() == 42
+    proof
+    {
+        return Refl(42);
+    }
+
+// Change n: 1 to n: 2 above to see a length mismatch.
+// Change Refl(42) to Refl(41) to see a false proof refused.
+`,
+    },
 };
 
 const state = {
@@ -181,7 +263,9 @@ const state = {
     compileTicket: 0, evaluateTicket: 0, checkTimer: null, gallina: "",
     authoringTicket: 0, authoring: null, outlineTicket: 0, inspectTicket: 0,
     outlineSnapshot: null, undoSource: null, inspectPending: false, inspectSelection: "",
+    mode: "pure", mathematical: false, buffers: {},
 };
+const pureExampleOptions = [...$("examples").options].map((option) => ({ value: option.value, label: option.textContent }));
 
 let token = new URLSearchParams(location.hash.slice(1)).get("token") || "";
 try {
@@ -199,6 +283,79 @@ function status(message, failed = false) {
 }
 
 function activity(message) { $("activity-label").textContent = message; }
+
+function updateModeUI() {
+    const mathematical = state.mode === "mathematical";
+    $("language-mode").value = state.mode;
+    $("mode-help").textContent = state.mathematical
+        ? mathematical ? "Dependent types and proof terms are checked on Compile. Kernel replay is separate."
+            : "Switch to Dependent mathematics to explore indexed vectors, generic functions and proofs."
+        : "For dependent types, launch: python tools/run.py vela-playground-math";
+    $("scope-title").textContent = mathematical ? "Dependent mathematics" : "Pure Nat / bool fragment";
+    $("scope-detail").textContent = mathematical ? "Generics · indexed vectors · proof terms" : "Mathematical values · compile-time evaluation";
+    $("intro-copy").textContent = mathematical ? "Make lengths, bounds and proofs part of the types you write." : "Explore pure functions with a real compiler and language server.";
+    $("gallina-description").textContent = mathematical ? "The mathematical elaborator’s proposed Gallina terms. Kernel replay is a separate check." : "The pure compiler’s generated Gallina definitions.";
+    $("problems-description").textContent = mathematical ? "Compile the current buffer to check dependent types and explicit proofs." : "Diagnostics for the current unsaved buffer, from the pure Vela checker.";
+    $("diagnostic-source").textContent = mathematical ? "ELABORATOR" : "LSP";
+    $("mode-services").hidden = !mathematical;
+    $("feature-notes").hidden = mathematical;
+    $("format-button").disabled = mathematical;
+    $("check-authoring").disabled = mathematical;
+    $("refresh-outline").disabled = mathematical;
+    $("inspect-symbol").disabled = mathematical;
+    $("show-hints").disabled = mathematical || !state.editor;
+    $("show-semantics").disabled = mathematical || !state.editor;
+    for (const name of ["inspect", "authoring"]) {
+        const tab = document.querySelector(`[data-tab="${name}"]`);
+        tab.disabled = mathematical;
+        tab.title = mathematical ? "This service currently supports pure Vela only." : "";
+    }
+    state.editor?.updateOptions({ inlayHints: { enabled: !mathematical && $("show-hints").checked ? "on" : "off" }, "semanticHighlighting.enabled": !mathematical && $("show-semantics").checked });
+    if (!state.editor && $("editor-notice").textContent.startsWith("Plain-text mode:")) {
+        $("editor-notice").textContent = mathematical
+            ? "Plain-text mode: Monaco could not load from the CDN. Mathematical compilation, expression evaluation and downloads are available."
+            : "Plain-text mode: Monaco could not load from the CDN. Compile, format, evaluate, authoring checks and symbol inspection are available; inline editor features need Monaco.";
+    }
+}
+
+function changeMode() {
+    const mode = $("language-mode").value;
+    if (mode === state.mode || (mode === "mathematical" && !state.mathematical)) return;
+    state.buffers[state.mode] = { source: state.text, expression: $("expression").value, valueType: $("value-type").value, example: $("examples").value };
+    state.mode = mode;
+    clearTimeout(state.checkTimer);
+    const options = mode === "pure" ? pureExampleOptions : Object.entries(examples)
+        .filter(([, example]) => example.mode === mode).map(([value, example]) => ({ value, label: example.label }));
+    $("examples").replaceChildren(...options.map(({ value, label }) => {
+        const option = element("option", "", label);
+        option.value = value;
+        return option;
+    }));
+    const saved = state.buffers[mode];
+    const selected = saved?.example || options[0].value;
+    const example = saved || examples[selected];
+    $("examples").value = selected;
+    $("expression").value = example.expression;
+    $("value-type").value = example.valueType;
+    state.compileTicket++;
+    state.gallina = "";
+    $("compile-button").disabled = false;
+    $("copy-output").disabled = true;
+    $("download-output").disabled = true;
+    $("gallina-output").textContent = "// Language mode changed. Compile to inspect the current translation.";
+    $("compile-summary").textContent = "Output cleared because the language mode changed.";
+    clearEvaluation("Language mode changed. Evaluate again for a current result.");
+    clearDiagnostics(mode === "mathematical" ? "Compile to check dependent types and proofs." : "Checking the current pure buffer…");
+    clearAuthoring("Style checks currently support pure Vela only.");
+    clearInspection("Symbol inspection currently supports pure Vela only.");
+    state.undoSource = null;
+    $("undo-buffer").disabled = true;
+    updateModeUI();
+    selectTab("console");
+    setSource(example.source);
+    connect();
+    activity(mode === "mathematical" ? "Dependent mathematics selected" : "Pure Vela selected");
+}
 
 function element(tag, className, text) {
     const node = document.createElement(tag);
@@ -226,8 +383,8 @@ async function api(path, body, { keepalive = false } = {}) {
     } finally { clearTimeout(timer); }
 }
 
-function snapshot() { return { text: state.text, version: state.version, generation: state.generation }; }
-function current(captured) { return captured.version === state.version && captured.text === state.text && captured.generation === state.generation; }
+function snapshot() { return { text: state.text, version: state.version, generation: state.generation, mode: state.mode }; }
+function current(captured) { return captured.version === state.version && captured.text === state.text && captured.generation === state.generation && captured.mode === state.mode; }
 
 function clearDiagnostics(message = "Checking the current buffer…") {
     $("problem-count").textContent = "0";
@@ -236,8 +393,8 @@ function clearDiagnostics(message = "Checking the current buffer…") {
     if (state.model && window.monaco) monaco.editor.setModelMarkers(state.model, "vela", []);
 }
 
-function publishDiagnostics(params, generation) {
-    if (generation !== state.generation || params.uri !== DOCUMENT_URI || params.version !== state.version) return;
+function publishDiagnostics(params, generation, mode = "pure") {
+    if (mode !== state.mode || generation !== state.generation || params.uri !== DOCUMENT_URI || params.version !== state.version) return;
     const diagnostics = params.diagnostics || [];
     $("problem-count").textContent = String(diagnostics.length);
     $("problem-count").classList.toggle("has-problems", diagnostics.length > 0);
@@ -245,11 +402,11 @@ function publishDiagnostics(params, generation) {
         monaco.editor.setModelMarkers(state.model, "vela", diagnostics.map((diagnostic) => ({
             ...toRange(diagnostic.range), message: diagnostic.message,
             severity: diagnostic.severity === 2 ? monaco.MarkerSeverity.Warning : monaco.MarkerSeverity.Error,
-            source: diagnostic.source || "Vela pure prototype", code: diagnostic.code,
+            source: diagnostic.source || (mode === "mathematical" ? "Vela mathematical elaborator" : "Vela pure prototype"), code: diagnostic.code,
         })));
     }
     if (!diagnostics.length) {
-        const clean = element("div", "diagnostic-clean", "No error reported by the pure prototype.");
+        const clean = element("div", "diagnostic-clean", mode === "mathematical" ? "Mathematical elaboration reported no error." : "No error reported by the pure prototype.");
         clean.append(element("small", "", "This is a development check, with no kernel or production acceptance verdict."));
         $("diagnostics").replaceChildren(clean);
         activity("Current buffer checked");
@@ -271,6 +428,16 @@ function publishDiagnostics(params, generation) {
         return item;
     }));
     activity(`${diagnostics.length} problem${diagnostics.length === 1 ? "" : "s"} in current buffer`);
+}
+
+function mathematicalDiagnostics(result, captured) {
+    if (!current(captured)) return;
+    const error = result.error;
+    const position = error ? compilerPosition(error.line, error.column) : null;
+    publishDiagnostics({ uri: DOCUMENT_URI, version: captured.version, diagnostics: error ? [{
+        range: { start: position, end: position }, severity: 1, message: errorText(error),
+        source: "Vela mathematical elaborator",
+    }] : [] }, captured.generation, "mathematical");
 }
 
 async function wire(session, message, generation) {
@@ -323,6 +490,18 @@ async function connect() {
     status("Connecting to the local language server…");
     if (oldSession) closeSession(oldSession);
     const pending = (async () => {
+        const available = await api("/api/capabilities", {});
+        if (generation !== state.generation) return;
+        state.mathematical = available.mathematical === true;
+        $("mathematical-option").disabled = !state.mathematical;
+        updateModeUI();
+        if (state.mode === "mathematical") {
+            if (!state.mathematical) throw new Error("Mathematical mode needs a server launched with vela-playground-math.");
+            state.connected = true;
+            status("Mathematical compiler connected");
+            clearDiagnostics("Compile to check dependent types and proofs in the current buffer.");
+            return;
+        }
         const response = await api("/api/session", {});
         const session = response.session;
         const initialized = await wire(session, {
@@ -344,7 +523,7 @@ async function connect() {
 }
 
 async function synchronize(captured) {
-    if (!current(captured) || !state.connected) return false;
+    if (state.mode !== "pure" || captured.mode !== "pure" || !current(captured) || !state.connected) return false;
     if (state.syncedVersion === captured.version) return true;
     const message = state.opened
         ? { jsonrpc: "2.0", method: "textDocument/didChange", params: { textDocument: { uri: DOCUMENT_URI, version: captured.version }, contentChanges: [{ text: captured.text }] } }
@@ -357,6 +536,7 @@ async function synchronize(captured) {
 }
 
 async function languageQuery(method, params = {}, captured = snapshot(), cancellation = null) {
+    if (state.mode !== "pure" || captured.mode !== "pure") return undefined;
     try {
         await state.connection;
         return await enqueue(async () => {
@@ -378,6 +558,7 @@ async function languageQuery(method, params = {}, captured = snapshot(), cancell
 
 function scheduleCheck(delay = 400) {
     clearTimeout(state.checkTimer);
+    if (state.mode !== "pure") return;
     state.checkTimer = setTimeout(async () => {
         const captured = snapshot();
         try {
@@ -411,7 +592,7 @@ function sourceChanged(text) {
         state.undoSource = null;
         $("undo-buffer").disabled = true;
     }
-    clearDiagnostics(state.connected ? "Checking the current buffer…" : "Language services are not connected.");
+    clearDiagnostics(state.mode === "mathematical" ? "Source changed. Compile to check dependent types and proofs." : state.connected ? "Checking the current buffer…" : "Language services are not connected.");
     activity("Source changed");
     scheduleCheck();
 }
@@ -474,7 +655,7 @@ function replaceBuffer(text, source) {
 function clearAuthoring(message) {
     state.authoringTicket++;
     state.authoring = null;
-    $("check-authoring").disabled = false;
+    $("check-authoring").disabled = state.mode !== "pure";
     $("apply-binding-preview").disabled = true;
     $("authoring-summary").textContent = message;
     $("authoring-findings").replaceChildren();
@@ -482,6 +663,7 @@ function clearAuthoring(message) {
 }
 
 async function checkAuthoring() {
+    if (state.mode !== "pure") return;
     const captured = snapshot();
     const ticket = ++state.authoringTicket;
     const stillCurrent = () => current(captured) && ticket === state.authoringTicket;
@@ -528,14 +710,15 @@ function clearInspection(message) {
     state.inspectTicket++;
     state.outlineSnapshot = null;
     state.inspectPending = false;
-    $("refresh-outline").disabled = false;
-    $("inspect-symbol").disabled = false;
+    $("refresh-outline").disabled = state.mode !== "pure";
+    $("inspect-symbol").disabled = state.mode !== "pure";
     $("outline").replaceChildren(element("p", "muted-message", message));
     $("symbol-details").textContent = "Select a symbol from the current outline or inspect an identifier at the source cursor.";
     $("symbol-references").replaceChildren();
 }
 
 async function refreshOutline() {
+    if (state.mode !== "pure") return;
     const captured = snapshot();
     clearInspection("Loading compiler-resolved symbols…");
     const ticket = ++state.outlineTicket;
@@ -566,6 +749,7 @@ async function refreshOutline() {
 }
 
 async function inspectSymbol(position = null) {
+    if (state.mode !== "pure") return;
     const captured = snapshot();
     const ticket = ++state.inspectTicket;
     const stillCurrent = () => current(captured) && ticket === state.inspectTicket;
@@ -612,6 +796,7 @@ function sourceSelectionKey() {
 }
 
 function sourceSelectionChanged() {
+    if (state.mode !== "pure") return;
     if (!state.inspectPending || state.inspectSelection === sourceSelectionKey()) return;
     state.inspectTicket++;
     state.inspectPending = false;
@@ -651,8 +836,8 @@ function registerLanguage() {
         surroundingPairs: [{ open: "{", close: "}" }, { open: "(", close: ")" }],
     });
     monaco.languages.setMonarchTokensProvider("vela", {
-        keywords: ["module", "public", "const", "let", "if", "else", "return"],
-        typeKeywords: ["Nat", "bool"], tokenizer: { root: [
+        keywords: ["module", "public", "const", "let", "if", "else", "return", "definition", "alias", "ghost", "lemma", "theorem", "proof", "type", "forall", "exists"],
+        typeKeywords: ["Nat", "bool", "Unit", "Type", "Prop", "Fn", "Vec", "Fin", "Eq"], tokenizer: { root: [
             [/\/\/.*$/, "comment"], [/\b(?:true|false)\b/, "constant"],
             [/[A-Za-z_][A-Za-z0-9_]*/, { cases: { "@keywords": "keyword", "@typeKeywords": "type", "@default": "identifier" } }],
             [/[0-9](?:_?[0-9])*/, "number"], [/=>|==|!=|<=|>=|&&|\|\||[+*\/%!=<>-]/, "operator"], [/[{}()]/, "@brackets"], [/[;,.:]/, "delimiter"],
@@ -758,7 +943,7 @@ async function loadEditor() {
             minimap: { enabled: false }, scrollBeyondLastLine: false, smoothScrolling: false,
             renderLineHighlight: "line", lineNumbersMinChars: 3, glyphMargin: false,
             folding: false, fontLigatures: false, tabSize: 4, insertSpaces: true,
-            wordWrap: "off", inlayHints: { enabled: $("show-hints").checked ? "on" : "off" }, "semanticHighlighting.enabled": $("show-semantics").checked,
+            wordWrap: "off", inlayHints: { enabled: state.mode === "pure" && $("show-hints").checked ? "on" : "off" }, "semanticHighlighting.enabled": state.mode === "pure" && $("show-semantics").checked,
             quickSuggestions: false, suggestOnTriggerCharacters: false, wordBasedSuggestions: "off",
             ariaLabel: "Vela source editor", contextmenu: true,
         });
@@ -774,8 +959,7 @@ async function loadEditor() {
         state.editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter, compile);
         $("source-fallback").hidden = true;
         $("editor-notice").hidden = true;
-        $("show-hints").disabled = false;
-        $("show-semantics").disabled = false;
+        updateModeUI();
         scheduleCheck(0);
     } catch (error) {
         state.editor?.dispose();
@@ -789,10 +973,12 @@ async function loadEditor() {
         $("source-fallback").value = state.text;
         $("editor-notice").textContent = "Plain-text mode: Monaco could not load from the CDN. Compile, format, evaluate, authoring checks and symbol inspection are available; inline editor features need Monaco.";
         $("editor-notice").hidden = false;
+        updateModeUI();
     }
 }
 
 function selectTab(name) {
+    if (state.mode !== "pure" && ["inspect", "authoring"].includes(name)) return;
     document.querySelectorAll("[data-tab]").forEach((button) => {
         const selected = button.dataset.tab === name;
         button.classList.toggle("active", selected);
@@ -816,7 +1002,7 @@ async function expectedHash(text) {
 async function compile() {
     const captured = snapshot();
     const ticket = ++state.compileTicket;
-    const stillCurrent = () => captured.version === state.version && captured.text === state.text && ticket === state.compileTicket;
+    const stillCurrent = () => current(captured) && ticket === state.compileTicket;
     selectTab("gallina");
     state.gallina = "";
     $("copy-output").disabled = true;
@@ -826,9 +1012,10 @@ async function compile() {
     $("gallina-output").textContent = "";
     activity("Compiling…");
     try {
-        const [result, hash] = await Promise.all([api("/api/compile", { source: captured.text }), expectedHash(captured.text)]);
+        const [result, hash] = await Promise.all([api("/api/compile", { source: captured.text, mode: captured.mode }), expectedHash(captured.text)]);
         if (!stillCurrent()) return;
         if (result.sourceHash !== hash) throw new Error("The compiler response does not match the requested source.");
+        if (captured.mode === "mathematical") mathematicalDiagnostics(result, captured);
         if (!result.ok) {
             $("compile-summary").textContent = "Compilation refused; no generated output.";
             $("gallina-output").textContent = errorText(result.error);
@@ -837,7 +1024,7 @@ async function compile() {
         }
         state.gallina = result.gallina;
         $("gallina-output").textContent = result.gallina;
-        $("compile-summary").textContent = `${result.module} · unqualified pure translation · SHA-256 ${hash.slice(0, 12)}`;
+        $("compile-summary").textContent = `${result.module} · ${captured.mode === "mathematical" ? "mathematical elaboration; kernel replay separate" : "unqualified pure translation"} · SHA-256 ${hash.slice(0, 12)}`;
         $("copy-output").disabled = false;
         $("download-output").disabled = false;
         activity("Gallina output ready");
@@ -855,13 +1042,13 @@ async function evaluate(event) {
     const expression = $("expression").value;
     const valueType = $("value-type").value;
     const ticket = ++state.evaluateTicket;
-    const stillCurrent = () => captured.version === state.version && captured.text === state.text && ticket === state.evaluateTicket && expression === $("expression").value && valueType === $("value-type").value;
+    const stillCurrent = () => current(captured) && ticket === state.evaluateTicket && expression === $("expression").value && valueType === $("value-type").value;
     selectTab("console");
     $("evaluate-button").disabled = true;
-    $("console-result").replaceChildren(element("p", "muted-message", "Evaluating with the pure compiler…"));
+    $("console-result").replaceChildren(element("p", "muted-message", captured.mode === "mathematical" ? "Reducing with the mathematical elaborator…" : "Evaluating with the pure compiler…"));
     activity("Evaluating…");
     try {
-        const [result, hash] = await Promise.all([api("/api/evaluate", { source: captured.text, expression, valueType }), expectedHash(captured.text)]);
+        const [result, hash] = await Promise.all([api("/api/evaluate", { source: captured.text, expression, valueType, mode: captured.mode }), expectedHash(captured.text)]);
         if (!stillCurrent()) return;
         if (result.sourceHash !== hash) throw new Error("The evaluation response does not match the requested source.");
         const card = element("div", `result-card${result.ok ? "" : " error"}`);
@@ -869,7 +1056,7 @@ async function evaluate(event) {
         card.append(element("p", "result-expression", `› ${expression}`));
         card.append(element("p", "result-value", result.ok ? result.value : errorText(result.error)));
         if (result.ok) card.append(element("div", "result-type", `: ${result.valueType}`));
-        card.append(element("div", "result-identity", `Source SHA-256 ${hash.slice(0, 12)} · unqualified pure prototype`));
+        card.append(element("div", "result-identity", `Source SHA-256 ${hash.slice(0, 12)} · ${captured.mode === "mathematical" ? "mathematical reduction; no kernel verdict" : "unqualified pure prototype"}`));
         $("console-result").replaceChildren(card);
         activity(result.ok ? "Compile-time value ready" : "Compiler refused the expression");
     } catch (error) {
@@ -882,6 +1069,7 @@ async function evaluate(event) {
 }
 
 async function format() {
+    if (state.mode !== "pure") return;
     const captured = snapshot();
     $("format-button").disabled = true;
     try {
@@ -894,7 +1082,7 @@ async function format() {
         for (const edit of ordered) text = text.slice(0, edit.start) + edit.text + text.slice(edit.end);
         replaceBuffer(text, "vela-format");
         activity("Canonical formatting applied");
-    } finally { $("format-button").disabled = false; }
+    } finally { updateModeUI(); }
 }
 
 $("source-fallback").addEventListener("input", () => sourceChanged($("source-fallback").value));
@@ -940,8 +1128,9 @@ $("undo-buffer").addEventListener("click", () => {
 });
 $("refresh-outline").addEventListener("click", refreshOutline);
 $("inspect-symbol").addEventListener("click", () => inspectSymbol());
-$("show-hints").addEventListener("change", () => state.editor?.updateOptions({ inlayHints: { enabled: $("show-hints").checked ? "on" : "off" } }));
-$("show-semantics").addEventListener("change", () => state.editor?.updateOptions({ "semanticHighlighting.enabled": $("show-semantics").checked }));
+$("language-mode").addEventListener("change", changeMode);
+$("show-hints").addEventListener("change", updateModeUI);
+$("show-semantics").addEventListener("change", updateModeUI);
 $("download-source").addEventListener("click", () => { download(state.text, "playground.vela"); activity("Source download requested"); });
 $("download-output").addEventListener("click", () => {
     if (!state.gallina) return;
@@ -964,7 +1153,7 @@ $("copy-output").addEventListener("click", async () => {
 document.querySelectorAll("[data-tab]").forEach((button) => {
     button.addEventListener("click", () => selectTab(button.dataset.tab));
     button.addEventListener("keydown", (event) => {
-        const tabs = [...document.querySelectorAll("[data-tab]")];
+        const tabs = [...document.querySelectorAll("[data-tab]")].filter((tab) => !tab.disabled);
         const index = tabs.indexOf(button);
         let next;
         if (event.key === "ArrowRight") next = tabs[(index + 1) % tabs.length];
