@@ -244,17 +244,51 @@ public const bool Static = !false && 2 < 3 || false;
         ("f_Repeated true", "true"), ("f_Mixed", "9"),
         ("f_LeftAssociative", "5"), ("f_Precedence", "true"),
         ("c_Underflow", "0"), ("c_Static", "true")))
+    division = Fixture("pure-division-remainder", b"""module PureDivision;
+public Nat Quotient(Nat dividend, Nat divisor) => dividend / divisor;
+public Nat Remainder(Nat dividend, Nat divisor) => dividend % divisor;
+public Nat Mixed() => 2 + 19 % 6 * 3;
+public Nat LeftAssociative() => 30 / 4 % 3;
+public Nat Grouped() => 20 / (3 * 2);
+public Nat DivThenMul() => 20 / 3 * 2;
+public Nat ModThenMul() => 20 % 6 * 2;
+public Nat StaticDivisor(const Nat divisor, Nat value) {
+    const Nat offset = 17 % divisor;
+    return value / divisor + offset;
+}
+public Nat Specialized(Nat value) => StaticDivisor(divisor: 5, value: value);
+public const Nat StaticQuotient = 17 / 5;
+public const Nat StaticRemainder = 17 % 5;
+public const Nat ZeroQuotient = 17 / 0;
+public const Nat ZeroRemainder = 17 % 0;
+""", pure=True, observations=(
+        ("f_Quotient 17 5", "3"), ("f_Remainder 17 5", "2"),
+        ("f_Quotient 5 8", "0"), ("f_Remainder 5 8", "5"),
+        ("f_Quotient 5 5", "1"), ("f_Remainder 5 5", "0"),
+        ("f_Quotient 17 0", "0"), ("f_Remainder 17 0", "17"),
+        ("f_Quotient 0 0", "0"), ("f_Remainder 0 0", "0"),
+        ("f_Quotient 0 5", "0"), ("f_Remainder 0 5", "0"),
+        ("f_Quotient 17 1", "17"), ("f_Remainder 17 1", "0"),
+        ("f_Mixed", "5"), ("f_LeftAssociative", "1"),
+        ("f_Grouped", "3"), ("f_DivThenMul", "12"), ("f_ModThenMul", "4"),
+        ("f_Specialized 23", "6"), ("f_StaticDivisor 0 23", "17"),
+        ("c_StaticQuotient", "3"), ("c_StaticRemainder", "2"),
+        ("c_ZeroQuotient", "0"), ("c_ZeroRemainder", "17")))
     pure_negatives = (
         ("pure-negation-type", "public bool Wrong() => !1;", "type"),
         ("pure-logical-type", "public bool Wrong() => false || 2;", "type"),
         ("pure-ordering-type", "public bool Wrong() => true < false;", "type"),
         ("pure-inequality-type", "public bool Wrong() => 1 != false;", "type"),
         ("pure-subtraction-type", "public Nat Wrong() => true - 1;", "type"),
+        ("pure-division-type", "public Nat Wrong() => true / 2;", "type"),
+        ("pure-remainder-type", "public Nat Wrong() => 2 % false;", "type"),
+        ("pure-division-static-dependency", "public Nat Wrong(Nat runtime) { "
+         "const Nat Value = runtime / 0; return Value; }", "unsupported"),
         ("pure-skipped-name", "public bool Wrong() => false && missing;", "name"),
         ("pure-skipped-runtime-dependency", "public bool Wrong(bool runtime) { "
          "const bool Value = false && runtime; return Value; }", "unsupported"),
     )
-    return (Fixture("authored-example", example), pure,
+    return (Fixture("authored-example", example), pure, division,
             *(Fixture(name, ("module PureNegativeReplay; " + source).encode(), expected, pure=True)
               for name, source, expected in pure_negatives),
             *(Fixture(name, source.encode()) for name, source in positives),

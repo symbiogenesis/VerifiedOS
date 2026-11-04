@@ -255,6 +255,13 @@ def _pure_semantic_negatives_and_inventory() -> None:
     ensure(any(case.name == "pure-skipped-runtime-dependency" and case.pure
                and case.expected == "unsupported" for case in fixtures),
            "hosted replay lost required-static checking of skipped operands")
+    division = next(case for case in fixtures if case.name == "pure-division-remainder")
+    ensure(division.pure and ("f_Quotient 17 0", "0") in division.observations
+           and ("f_Remainder 17 0", "17") in division.observations
+           and ("f_DivThenMul", "12") in division.observations
+           and ("f_Specialized 23", "6") in division.observations
+           and ("c_ZeroRemainder", "17") in division.observations,
+           "hosted division replay lacks runtime, zero, precedence or static observations")
     for case in fixtures:
         if not case.pure:
             continue

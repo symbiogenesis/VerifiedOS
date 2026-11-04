@@ -93,7 +93,7 @@ disjunction:= conjunction ('||' conjunction)*
 conjunction:= comparison ('&&' comparison)*
 comparison:= sum (('==' | '!=' | '<' | '<=' | '>' | '>=') sum)?
 sum       := product (('+' | '-') product)*
-product   := unary ('*' unary)*
+product   := unary (('*' | '/' | '%') unary)*
 unary     := '!' unary | atom
 atom      := decimal | 'true' | 'false' | name
            | name '(' arguments? ')' | '(' expression ')'
@@ -118,7 +118,8 @@ immutable too and receive advisory `VELA104`, preferring an explicit `let`.
 Duplicate functions, parameters, local bindings in an active
 scope (including active parameters) and unbound values are errors. Function and
 value namespaces are separate. Equality returns `bool`. Natural arithmetic,
-equality and comparison map to `Corelib.Init.Nat.add`, `.sub`, `.mul`, `.eqb`,
+division, remainder, equality and comparison map to `Corelib.Init.Nat.add`, `.sub`,
+`.mul`, `.div`, `.modulo`, `.eqb`,
 `.ltb` and `.leb`.
 Boolean equality maps to pure nested conditionals returning the Boolean
 constructors. Types and constructors come from `Corelib.Init.Datatypes`.

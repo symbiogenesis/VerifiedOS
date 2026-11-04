@@ -171,7 +171,7 @@ def _render(parts: list[_Part]) -> bytes:
             if current and not current.endswith((" ", "(", "!")):
                 current += " "
             current += "!"
-        elif spelling in {"=", "=>", "+", "-", "*", "==", "!=", "<", "<=", ">", ">=", "&&", "||"}:
+        elif spelling in {"=", "=>", "+", "-", "*", "/", "%", "==", "!=", "<", "<=", ">", ">=", "&&", "||"}:
             current = current.rstrip(" ") + " " + spelling + " "
         else:
             if current and not current.endswith((" ", "(", "!")):

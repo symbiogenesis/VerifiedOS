@@ -460,6 +460,29 @@ def _extended_expression_fixture(compiled: Build) -> str:
         }
         if _body(parse_source(compiled, source)) != expected:
             raise ValueError("extended expression precedence or original operator/operand byte spans differ")
+        source = (b"// caf\xc3\xa9" + newline + b"module M; public Nat F() { return 20 / // / %"
+                  + newline + b"3 % 2 * 4; }")
+        first = source.index(b"20 /")
+        divide = first + 3
+        three = source.index(b"3 %")
+        modulo = three + 2
+        two = source.index(b"2 *")
+        multiply = two + 2
+        four = source.index(b"4;")
+        expected = {
+            "kind": "binary", "span": [first, four + 1],
+            "operator": {"text": "*", "span": [multiply, multiply + 1]},
+            "left": {"kind": "binary", "span": [first, two + 1],
+                     "operator": {"text": "%", "span": [modulo, modulo + 1]},
+                     "left": {"kind": "binary", "span": [first, three + 1],
+                              "operator": {"text": "/", "span": [divide, divide + 1]},
+                              "left": {"kind": "nat", "span": [first, first + 2], "value": "20"},
+                              "right": {"kind": "nat", "span": [three, three + 1], "value": "3"}},
+                     "right": {"kind": "nat", "span": [two, two + 1], "value": "2"}},
+            "right": {"kind": "nat", "span": [four, four + 1], "value": "4"},
+        }
+        if _body(parse_source(compiled, source)) != expected:
+            raise ValueError("division/remainder associativity or original operator/operand byte spans differ")
     return "extended-expression-precedence-and-original-byte-spans"
 
 
@@ -473,6 +496,9 @@ def _fixtures(compiled: Build) -> list[str]:
         (b"1 * 2 * 3", ["*", ["*", ["nat", "1"], ["nat", "2"]], ["nat", "3"]]),
         (b"1 + 2 + 3", ["+", ["+", ["nat", "1"], ["nat", "2"]], ["nat", "3"]]),
         (b"9 - 3 - 2", ["-", ["-", ["nat", "9"], ["nat", "3"]], ["nat", "2"]]),
+        (b"20 / 3 * 2", ["*", ["/", ["nat", "20"], ["nat", "3"]], ["nat", "2"]]),
+        (b"20 % 6 * 2", ["*", ["%", ["nat", "20"], ["nat", "6"]], ["nat", "2"]]),
+        (b"30 / 4 % 3", ["%", ["/", ["nat", "30"], ["nat", "4"]], ["nat", "3"]]),
         (b"2 + 3 * 4 - 5", ["-", ["+", ["nat", "2"], ["*", ["nat", "3"], ["nat", "4"]]], ["nat", "5"]]),
         (b"!false == true", ["==", ["!", ["bool", False]], ["bool", True]]),
         (b"!false || false && false", ["||", ["!", ["bool", False]], ["&&", ["bool", False], ["bool", False]]]),
@@ -561,8 +587,12 @@ def _fixtures(compiled: Build) -> list[str]:
         (prefix + b"true &&; }", "syntax"),
         (prefix + b"!; }", "syntax"),
         (prefix + b"true | false; }", "syntax"),
-        (prefix + b"8 / 2; }", "syntax"),
-        (prefix + b"8 % 2; }", "syntax"),
+        (prefix + b"8 /; }", "syntax"),
+        (prefix + b"8 %; }", "syntax"),
+        (prefix + b"8 / / 2; }", "syntax"),
+        (prefix + b"8 %% 2; }", "syntax"),
+        (prefix + b"8 /= 2; }", "syntax"),
+        (prefix + b"8 %= 2; }", "syntax"),
         (prefix + b"1; return 2; }", "syntax"),
         (prefix + b"1", "syntax"),
         (prefix + b"await 1; }", "unsupported"),

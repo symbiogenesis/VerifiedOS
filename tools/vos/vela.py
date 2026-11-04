@@ -125,7 +125,7 @@ def _tokens(source: bytes) -> list[_Token]:
             kind = "decimal"
         elif text[offset:offset + 2] in {"->", "=>", "==", "!=", "<=", ">=", "&&", "||"}:
             spelling, kind = text[offset:offset + 2], "symbol"
-        elif character in "();,:{}=+*-!<>":
+        elif character in "();,:{}=+*/%-!<>":
             spelling, kind = character, "symbol"
         else:
             raise VelaError("syntax", line, column, f"unexpected character {character!r}")
@@ -324,9 +324,10 @@ class _Parser:
 
     def _product(self, nesting: int) -> syntax.Expression:
         left = self._unary(nesting)
-        while self._current().text == "*":
-            token = self._expect("*")
-            left = syntax.expression("binary", "*", token.site, (left, self._unary(nesting)))
+        while self._current().text in {"*", "/", "%"}:
+            token = self._current()
+            self.offset += 1
+            left = syntax.expression("binary", token.text, token.site, (left, self._unary(nesting)))
         return left
 
     def _unary(self, nesting: int) -> syntax.Expression:
@@ -543,6 +544,10 @@ class _Elaborator:
             return _Static("bool", first > second)
         if name == "-":
             return _Static("Nat", max(0, first - second))
+        if name == "/":
+            return _Static("Nat", first // second if second else 0)
+        if name == "%":
+            return _Static("Nat", first % second if second else first)
         if ((name == "+" and first > MAX_STATIC_NAT - second)
                 or (name == "*" and first != 0 and second > MAX_STATIC_NAT // first)):
             raise _error("limit", f"constant result exceeds {MAX_LITERAL_DIGITS} decimal digits", expression.site)
@@ -694,10 +699,10 @@ class _Elaborator:
             term = (f"(if {left.gallina} then {right.gallina} else {_FALSE})" if name == "&&"
                     else f"(if {left.gallina} then {_TRUE} else {right.gallina})")
             return self._bounded("bool", term, arguments, site)
-        if name in {"+", "-", "*"}:
+        if name in {"+", "-", "*", "/", "%"}:
             if left.value_type != "Nat" or right.value_type != "Nat":
                 raise _error("type", f"'{name}' operands must be Nat", site)
-            operation = {"+": "add", "-": "sub", "*": "mul"}[name]
+            operation = {"+": "add", "-": "sub", "*": "mul", "/": "div", "%": "modulo"}[name]
             return self._bounded("Nat", f"(Corelib.Init.Nat.{operation} {left.gallina} {right.gallina})", arguments, site)
         if left.value_type != right.value_type:
             raise _error("type", f"'{name}' operands must have the same type", site)

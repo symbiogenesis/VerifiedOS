@@ -406,7 +406,7 @@ class _Decoder:
                     or trivia_end(self.source, operator_span[1]) != value_span[0]):
                 raise ValueError("native unary expression leaves source tokens uncovered")
             return expression(kind, operator.text, operator.site, (child(node["value"]),))
-        if operator.text not in {"+", "-", "*", "==", "!=", "<", "<=", ">", ">=", "&&", "||"}:
+        if operator.text not in {"+", "-", "*", "/", "%", "==", "!=", "<", "<=", ">", ">=", "&&", "||"}:
             raise ValueError("native parser returned an unknown binary operator")
         self._ordered([node["left"], node["operator"], node["right"]], span)
         if not all(isinstance(node[field], dict) for field in ("left", "operator", "right")):

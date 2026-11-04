@@ -157,7 +157,7 @@ plus_operator:
   PLUS { name $startpos $endpos "+" }
 
 product:
-  value=left_binary(unary, star_operator) { value }
+  value=left_binary(unary, s_product_operator) { value }
 star_operator:
   STAR { name $startpos $endpos "*" }
 

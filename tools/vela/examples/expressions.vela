@@ -18,3 +18,14 @@ public bool HasRoom(Nat total, Nat used) => total > used;
 
 /// Subtraction groups left to right after multiplication.
 public Nat Adjusted(Nat value) => value * 3 + 2 - 4;
+
+/// Natural division gives a quotient; remainder gives the ungrouped amount.
+public Nat Groups(Nat count, Nat size) => count / size;
+public Nat Leftover(Nat count, Nat size) => count % size;
+
+/// Division and remainder share multiplication's left-to-right precedence.
+public Nat Grouped(Nat count) => count / 3 % 4 * 2;
+
+/// The mathematical prototype uses total Nat operations at zero too.
+public const Nat ZeroQuotient = 17 / 0;
+public const Nat ZeroRemainder = 17 % 0;
