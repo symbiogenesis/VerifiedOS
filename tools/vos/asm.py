@@ -52,6 +52,7 @@ TEXT_BASE = 0x8000_0000
 DATA_BASE = 0x8000_8000
 
 MASK64 = (1 << 64) - 1
+CANONICAL_BITS: Final[int] = 32
 
 # the data directives and the width each lays down, spelled once for the parse that
 # admits them and the encoder that sizes them
@@ -87,13 +88,20 @@ class Site:
     `source` is the line the site came from, and it is here rather than in the link map
     because the link map's fields are §4's and this is the assembler's own: a person
     reading a per-site table wants to know which line of which program a site is.
+    `word` is the exact canonical integer emitted at `address`; dictionary identity
+    includes every resolved operand rather than the descriptive `opcode` mnemonic.
     """
 
     site_id: str
     address: int
     opcode: str
+    word: int
     source: int
     section: str
+
+    def __post_init__(self) -> None:
+        if type(self.word) is not int or not 0 <= self.word < 1 << CANONICAL_BITS:
+            raise ValueError("instruction site word must be an unsigned 32-bit integer")
 
 
 @dataclass
@@ -289,12 +297,13 @@ class Assembler:
         if item.kind == "align" and item.section == ".text" and item.size:
             if item.address % 4 or item.size % 4:
                 raise self._error(item.line, "executable alignment needs whole 32-bit instructions")
-            word = dialect.encode("addi", [0, 0, 0], item.address).to_bytes(4, "little")
+            word = dialect.encode("addi", [0, 0, 0], item.address)
             for address in range(item.address, item.address + item.size, 4):
                 self.sites.append(Site(
                     site_id=f"{Path(self.name).stem}#{len(self.sites):05d}",
-                    address=address, opcode="addi", source=item.line, section=item.section))
-            return word * (item.size // 4)
+                    address=address, opcode="addi", word=word,
+                    source=item.line, section=item.section))
+            return word.to_bytes(4, "little") * (item.size // 4)
         if item.kind in ("space", "align"):
             return b"\0" * item.size
         if item.kind == "data":
@@ -310,7 +319,8 @@ class Assembler:
         pc = item.address
         for mnemonic, operands in self._expand(item, pc):
             try:
-                out += dialect.encode(mnemonic, operands, pc).to_bytes(4, "little")
+                word = dialect.encode(mnemonic, operands, pc)
+                out += word.to_bytes(4, "little")
             except AsmError as exc:
                 raise self._error(item.line, f"{item.text}: {exc}") from None
             # One site per *emitted* instruction rather than per source line, because
@@ -319,7 +329,7 @@ class Assembler:
             # stratum smaller than the stream it is stratifying.
             self.sites.append(Site(
                 site_id=f"{Path(self.name).stem}#{len(self.sites):05d}",
-                address=pc, opcode=mnemonic, source=item.line,
+                address=pc, opcode=mnemonic, word=word, source=item.line,
                 section=item.section))
             pc += 4
         return bytes(out)
