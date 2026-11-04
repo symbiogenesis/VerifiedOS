@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-"""Replay bounded Vela mathematical elaboration through Menhir and the Rocq kernel.
+"""Replay bounded Vela elaboration through Menhir and the Rocq kernel.
 
 This qualifies generated CIC terms, never checked parsing, source correspondence,
 the production frontend or machine-code admission. Each attempt retains its own
@@ -19,7 +19,7 @@ from typing import cast
 
 from filelock import FileLock
 
-from vos import env, proofenv, vela_elaborate, vela_parser
+from vos import env, proofenv, vela, vela_elaborate, vela_parser
 from vos.atomic import atomic_path
 from vos.vela import VelaError
 
@@ -32,6 +32,8 @@ class Fixture:
     name: str
     source: bytes
     expected: str = "accepted"
+    pure: bool = False
+    observations: tuple[tuple[str, str], ...] = ()
 
 
 def fixtures(example: bytes) -> tuple[Fixture, ...]:
@@ -213,7 +215,48 @@ definition Nat UseBuilt() => Build()(published: ());
         ("omitted-unnamed-explicit-unit", "definition Nat Wrong(Fn(Unit) -> Nat function) => function();", "type"),
         ("constant-product-growth", f"const Nat Wrong = {10 ** 200} * {10 ** 200};", "limit"),
     )
-    return (Fixture("authored-example", example),
+    pure = Fixture("pure-expression-operators", b"""module PureExpressions;
+public Nat Difference(Nat left, Nat right) => left - right;
+public bool Negate(bool value) => !value;
+public bool Both(bool left, bool right) => left && right;
+public bool Either(bool left, bool right) => left || right;
+public bool DifferentNat(Nat left, Nat right) => left != right;
+public bool DifferentBool(bool left, bool right) => left != right;
+public bool Less(Nat left, Nat right) => left < right;
+public bool Greater(Nat left, Nat right) => left > right;
+public bool AtLeast(Nat left, Nat right) => left >= right;
+public bool Repeated(bool value) => !!value;
+public Nat Mixed() => 2 + 3 * 4 - 5;
+public Nat LeftAssociative() => 10 - 3 - 2;
+public bool Precedence() => !false || false && false;
+public const Nat Underflow = 2 - 5;
+public const bool Static = !false && 2 < 3 || false;
+""", pure=True, observations=(
+        ("f_Difference 2 5", "0"), ("f_Difference 8 3", "5"),
+        ("f_Negate true", "false"), ("f_Negate false", "true"),
+        ("f_Both true false", "false"), ("f_Both true true", "true"),
+        ("f_Either false true", "true"), ("f_Either false false", "false"),
+        ("f_DifferentNat 2 3", "true"), ("f_DifferentNat 3 3", "false"),
+        ("f_DifferentBool true false", "true"), ("f_DifferentBool false false", "false"),
+        ("f_Less 2 3", "true"), ("f_Less 3 3", "false"),
+        ("f_Greater 3 2", "true"), ("f_Greater 2 3", "false"),
+        ("f_AtLeast 3 3", "true"), ("f_AtLeast 2 3", "false"),
+        ("f_Repeated true", "true"), ("f_Mixed", "9"),
+        ("f_LeftAssociative", "5"), ("f_Precedence", "true"),
+        ("c_Underflow", "0"), ("c_Static", "true")))
+    pure_negatives = (
+        ("pure-negation-type", "public bool Wrong() => !1;", "type"),
+        ("pure-logical-type", "public bool Wrong() => false || 2;", "type"),
+        ("pure-ordering-type", "public bool Wrong() => true < false;", "type"),
+        ("pure-inequality-type", "public bool Wrong() => 1 != false;", "type"),
+        ("pure-subtraction-type", "public Nat Wrong() => true - 1;", "type"),
+        ("pure-skipped-name", "public bool Wrong() => false && missing;", "name"),
+        ("pure-skipped-runtime-dependency", "public bool Wrong(bool runtime) { "
+         "const bool Value = false && runtime; return Value; }", "unsupported"),
+    )
+    return (Fixture("authored-example", example), pure,
+            *(Fixture(name, ("module PureNegativeReplay; " + source).encode(), expected, pure=True)
+              for name, source, expected in pure_negatives),
             *(Fixture(name, source.encode()) for name, source in positives),
             *(Fixture(name, ("module NegativeReplay; " + source).encode(), expected)
               for name, source, expected in negatives))
@@ -369,14 +412,16 @@ def _case(compiled: vela_parser.Build, case: Fixture, directory: Path, index: in
     stem = f"Case{index:03d}"
     source_path = directory / f"{stem}.vela"
     source_path.write_bytes(case.source)
-    parsed = vela_parser.parse_source(compiled, case.source, surface=True)
+    parsed = vela_parser.parse_source(compiled, case.source, surface=not case.pure)
     syntax_path = directory / f"{stem}.syntax.json"
     _write(syntax_path, parsed)
     row: dict[str, object] = {"name": case.name, "source": str(source_path),
                               "source_sha256": _sha256(case.source), "expected": case.expected,
+                              "consumer": "pure" if case.pure else "mathematical",
                               "syntax": str(syntax_path), "syntax_sha256": _sha256(syntax_path.read_bytes())}
+    consume = vela.translate_ast if case.pure else vela_elaborate.elaborate
     try:
-        translated = vela_elaborate.elaborate(case.source, parsed)
+        translated = consume(case.source, parsed)
     except VelaError as error:
         row.update({"category": error.kind, "line": error.line, "column": error.column,
                     "message": error.message})
@@ -385,32 +430,40 @@ def _case(compiled: vela_parser.Build, case: Fixture, directory: Path, index: in
         return row
     if case.expected != "accepted":
         raise ValueError(f"Vela replay {case.name}: expected {case.expected}, source was accepted")
-    repeated = vela_elaborate.elaborate(case.source, parsed)
+    repeated = consume(case.source, parsed)
     if translated != repeated:
         raise ValueError(f"Vela replay {case.name}: elaboration is nondeterministic")
+    module = "Vela_" + translated.module.replace(".", "_")
+    checks = "".join(
+        f"\nDefinition vela_replay_check_{index} : Corelib.Init.Logic.eq "
+        f"({module}.{expression}) ({expected}) := Corelib.Init.Logic.eq_refl ({expected}).\n"
+        for index, (expression, expected) in enumerate(case.observations))
     target = directory / f"{stem}.v"
-    target.write_text(translated.gallina, encoding="utf-8", newline="")
+    target.write_text(translated.gallina + checks, encoding="utf-8", newline="")
     _run(_opam(["rocq", "c", "-q", "-R", str(directory), "VelaElaboration", target.name]),
          directory, directory / f"{stem}.compile.log", steps)
-    exports = re.findall(r"^Definition (vela_d[0-9]+_[A-Za-z_][A-Za-z0-9_]*)\s*:",
+    export_pattern = r"[fc]_[A-Za-z_][A-Za-z0-9_]*" if case.pure else r"vela_d[0-9]+_[A-Za-z_][A-Za-z0-9_]*"
+    exports = re.findall(r"^Definition (" + export_pattern + r")\s*(?:\(|:)",
                          translated.gallina, flags=re.MULTILINE)
     if not exports:
         raise ValueError(f"Vela replay {case.name}: no generated exports to audit")
-    module = "Vela_" + translated.module.replace(".", "_")
+    audited = [f"{module}.{name}" for name in exports]
+    audited.extend(f"vela_replay_check_{index}" for index in range(len(case.observations)))
     query = directory / f"{stem}Assumptions.v"
     query.write_text(f"From VelaElaboration Require Import {stem}.\n"
-                     + "".join(f"Print Assumptions {stem}.{module}.{name}.\n" for name in exports),
+                     + "".join(f"Print Assumptions {stem}.{name}.\n" for name in audited),
                      encoding="utf-8", newline="")
     assumptions = _run(_opam(["rocq", "c", "-q", "-R", str(directory), "VelaElaboration", query.name]),
                        directory, directory / f"{stem}.assumptions.log", steps)
     if [line.strip() for line in assumptions.splitlines() if line.strip()] != [
-            "Closed under the global context"] * len(exports):
+            "Closed under the global context"] * len(audited):
         raise ValueError(f"Vela replay {case.name}: generated exports have unqualified assumptions")
     artifact = directory / f"{stem}.vo"
     row.update({"category": "accepted", "module": translated.module,
                 "gallina": str(target), "gallina_sha256": _sha256(target.read_bytes()),
                 "assumptions": str(query), "assumptions_sha256": _sha256(query.read_bytes()),
                 "assumption_exports": exports,
+                "observations": [list(value) for value in case.observations],
                 "library": f"VelaElaboration.{stem}", "vo": str(artifact),
                 "vo_sha256": _sha256(artifact.read_bytes())})
     return row
@@ -445,7 +498,7 @@ def qualify(root: Path) -> dict[str, object]:
         directory = Path(tempfile.mkdtemp(prefix="replay-", dir=work))
         steps: list[dict[str, object]] = []
         rows: list[dict[str, object]] = []
-        attempt: dict[str, object] = {"schema": 1, "scope": "vela-mathematical-elaboration-kernel-replay",
+        attempt: dict[str, object] = {"schema": 1, "scope": "vela-elaboration-kernel-replay",
                                       "status": "running", "directory": str(directory),
                                       "steps": steps, "fixtures": rows, "checked_parser": False,
                                       "source_correspondence": False, "production_admission": False}

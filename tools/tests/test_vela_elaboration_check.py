@@ -177,10 +177,92 @@ def _native_output_placement() -> None:
                     raise AssertionError(f"unsupported output filesystem accepted: {kind}")
 
 
+def _pure_routing_and_observations() -> None:
+    source = b"module M; public Nat F(Nat value) => value; public const Nat C = 2;"
+    translated = replay.vela.translate(source)
+    fixture = replay.Fixture("pure-routing", source, pure=True,
+                             observations=(("f_F 2", "2"), ("c_C", "2")))
+    with tempfile.TemporaryDirectory(prefix="vos-vela-replay-") as temporary:
+        directory = Path(temporary)
+        compiled = replay.vela_parser.Build(directory, directory / "parser", {})
+        commands: list[list[str]] = []
+
+        def command(arguments: list[str], _directory: Path, _log: Path,
+                    _steps: list[dict[str, object]]) -> str:
+            commands.append(arguments)
+            if arguments[-1] == "Case000.v":
+                (directory / "Case000.vo").write_bytes(b"kernel fixture")
+                return ""
+            return "Closed under the global context\n" * 4
+
+        with patch.object(replay.vela_parser, "parse_source", return_value={}) as parse, \
+                patch.object(replay.vela, "translate_ast", return_value=translated) as consume, \
+                patch.object(replay.vela_elaborate, "elaborate", side_effect=AssertionError("wrong consumer")), \
+                patch.object(replay, "_run", side_effect=command):
+            row = replay._case(compiled, fixture, directory, 0, [])
+        parse.assert_called_once_with(compiled, source, surface=False)
+        ensure(consume.call_count == 2, "pure consumer was not checked deterministically")
+        ensure(row["consumer"] == "pure" and row["category"] == "accepted"
+               and row["assumption_exports"] == ["f_F", "c_C"],
+               "pure exports were omitted from the assumption audit")
+        generated = (directory / "Case000.v").read_text(encoding="utf-8")
+        ensure(generated.startswith(translated.gallina)
+               and "Corelib.Init.Logic.eq (Vela_M.f_F 2) (2) := Corelib.Init.Logic.eq_refl (2)." in generated
+               and "Corelib.Init.Logic.eq (Vela_M.c_C) (2)" in generated,
+               "independent observations were not compiled in the kernel-checked library")
+        audit = (directory / "Case000Assumptions.v").read_text(encoding="utf-8")
+        ensure("Print Assumptions Case000.Vela_M.f_F." in audit
+               and "Print Assumptions Case000.Vela_M.c_C." in audit
+               and "Print Assumptions Case000.vela_replay_check_0." in audit
+               and "Print Assumptions Case000.vela_replay_check_1." in audit,
+               "generated exports or observation proofs escaped the assumption audit")
+        ensure(len(commands) == 2 and commands[0][-1] == "Case000.v",
+               "observation results used an extra host evaluator")
+        with patch.object(replay.vela_parser, "parse_source", return_value={}), \
+                patch.object(replay.vela, "translate_ast", return_value=translated), \
+                patch.object(replay, "_run", side_effect=RuntimeError("kernel rejected observation")):
+            try:
+                replay._case(compiled, fixture, directory, 1, [])
+            except RuntimeError as error:
+                ensure("kernel rejected" in str(error), "observation failure lost its cause")
+            else:
+                raise AssertionError("a rejected observation acquired acceptance")
+
+
+def _pure_semantic_negatives_and_inventory() -> None:
+    fixture = replay.Fixture("pure-negative", b"module M; public bool F() => !1;", "type", pure=True)
+    with tempfile.TemporaryDirectory(prefix="vos-vela-replay-") as temporary:
+        directory = Path(temporary)
+        compiled = replay.vela_parser.Build(directory, directory / "parser", {})
+        with patch.object(replay.vela_parser, "parse_source", return_value={}), \
+                patch.object(replay.vela, "translate_ast", side_effect=VelaError("type", 1, 35, "requires bool")), \
+                patch.object(replay.vela_elaborate, "elaborate", side_effect=AssertionError("wrong consumer")):
+            row = replay._case(compiled, fixture, directory, 0, [])
+        ensure(row["category"] == "type" and row["consumer"] == "pure", "pure semantic refusal was lost")
+        with patch.object(replay.vela_parser, "parse_source", side_effect=VelaError("syntax", 1, 1, "bad syntax")):
+            try:
+                replay._case(compiled, fixture, directory, 1, [])
+            except VelaError as error:
+                ensure(error.kind == "syntax", "parsing refusal changed kind")
+            else:
+                raise AssertionError("a parsing refusal satisfied a pure semantic negative")
+    fixtures = replay.fixtures(b"module M;")
+    operators = next(case for case in fixtures if case.name == "pure-expression-operators")
+    ensure(operators.pure and ("f_Difference 2 5", "0") in operators.observations
+           and ("f_Precedence", "true") in operators.observations
+           and ("c_Static", "true") in operators.observations,
+           "hosted fixtures lack runtime, static or precedence observations")
+    ensure(any(case.name == "pure-skipped-runtime-dependency" and case.pure
+               and case.expected == "unsupported" for case in fixtures),
+           "hosted replay lost required-static checking of skipped operands")
+
+
 def cases() -> list[Case]:
     return [Case("vela-replay-process-controls", _process_controls),
             Case("vela-replay-semantic-negative-controls", _semantic_controls),
             Case("vela-replay-failed-attempt-retention", _refused_attempts),
             Case("vela-replay-artifact-freshness", _freshness_controls),
             Case("vela-replay-changed-input-completion", _changed_input_completion),
+            Case("vela-replay-pure-routing-kernel-observations-and-exports", _pure_routing_and_observations),
+            Case("vela-replay-pure-semantic-negatives-and-hosted-inventory", _pure_semantic_negatives_and_inventory),
             Case("vela-replay-native-output-placement", _native_output_placement)]
