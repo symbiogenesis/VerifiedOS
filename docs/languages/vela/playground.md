@@ -28,7 +28,8 @@ parser bytes. Source, expression, result type and mode all invalidate stale outp
 Runnable examples demonstrate generic instantiation, safe vector lookup, dependent
 length preservation and a proof, with independently expected console answers.
 Mathematical mode disables pure-only LSP, formatting, lint and binding preview
-services explicitly; its diagnostics come from mathematical compilation. Mode
+services explicitly; its diagnostics come from mathematical compilation, including
+the [generic type naming lint](authoring-tools.md#generic-type-parameter-naming). Mode
 switches clear old diagnostics and results, including in plain-text fallback.
 Label elaboration and compile-time reduction accurately: neither is a kernel verdict.
 

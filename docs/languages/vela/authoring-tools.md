@@ -168,6 +168,38 @@ The initial rule identities are defined here:
 | `VELA102` | A public function or constant has no attached documentation |
 | `VELA103` | An equality comparison has a Boolean literal operand |
 | `VELA104` | An immutable typed local omits an explicit `let` binding keyword |
+| `VELA105` | A generic type parameter name does not use a capital initial and ASCII alphanumeric words |
+
+### Generic type parameter naming
+
+Q25ae's [mathematical playground](playground.md#dependent-mathematics-increment)
+and mathematical CLI expose `VELA105` as an advisory naming lint. Generic types
+use PascalCase: `T`, `TValue` and `Element` qualify. Prefer descriptive names when
+they clarify the role; a `T` prefix is useful but is not mandatory. This follows
+the capitalization in [C# type-parameter guidance](https://learn.microsoft.com/en-us/dotnet/standard/design-guidelines/names-of-classes-structs-and-interfaces#names-of-generic-type-parameters),
+while retaining [Rust's warning and deny distinction](https://doc.rust-lang.org/rustc/lints/levels.html).
+In `Copy<T, ghost Nat n>`, `T` is a type parameter and `n` is a natural-number
+value index. Keep that value camelCase; angle brackets do not make it a type.
+
+Inspect compiler-validated schema-2 generic binders by their declared role,
+including nested callable telescopes, after complete semantic checking succeeds.
+Use exact original identifier coordinates, preserve source and Gallina, and emit
+no naming findings for invalid or incomplete source. This is an optional style
+rule, not a type-system restriction or a naming-based resolution rule.
+
+`vela-parser elaborate SOURCE` reports warnings by default; `--allow VELA105`
+suppresses them and `--deny VELA105` makes them errors before stdout emission or
+atomic output publication. Conflicting options refuse before compilation.
+The mathematical playground displays successful compilation's bounded findings
+as warning markers and Problems entries; pure responses and mathematical
+evaluation responses retain their existing shapes. Invalid, stale, oversized or
+mislocated worker findings refuse the response rather than claiming clean output.
+
+Acceptance requires independent type/value, uppercase/lowercase/underscore,
+nested-binder, Unicode/newline, invalid-source and source-protocol controls; strict
+CLI publication preservation; worker/HTTP findings validation and browser warning
+recovery. Run focused host controls, Python and corpus checks, then record
+user-managed Host CI and all Guest CI lanes as pending until evidence is supplied.
 
 `VELA104` points to the original type token and explains that an unmarked typed
 local is immutable. The pure implementation covers its checked `Nat`/`bool`
