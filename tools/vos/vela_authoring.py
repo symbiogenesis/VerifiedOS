@@ -12,9 +12,10 @@ from typing import cast
 
 from vos import vela
 from vos import vela_ast as syntax
+from vos.vela_source import SourceSnapshot
 
 STYLE_VERSION = 1
-LINT_CODES = frozenset({"VELA100", "VELA101", "VELA102", "VELA103"})
+LINT_CODES = frozenset({"VELA100", "VELA101", "VELA102", "VELA103", "VELA104"})
 _MEMBER = re.compile(r"[A-Z][A-Za-z0-9]*")
 _BINDING = re.compile(r"[a-z][A-Za-z0-9]*")
 
@@ -227,6 +228,9 @@ def lint_source(source: bytes) -> tuple[Finding, ...]:
     def block(value: syntax.Block) -> None:
         for local in value.bindings:
             binding(local.name)
+            if isinstance(local, syntax.Binding) and not local.explicit_binding:
+                report("VELA104", f"typed local '{local.name.text}' is immutable; "
+                       "prefer an explicit let binding keyword", local.site)
             expression(local.value)
         terminal = value.terminal
         if isinstance(terminal, syntax.Return):
@@ -252,3 +256,37 @@ def lint_source(source: bytes) -> tuple[Finding, ...]:
         else:
             expression(declaration.value)
     return tuple(sorted(findings, key=lambda item: (item.line, item.column, item.code)))
+
+
+def preview_bindings(source: bytes) -> bytes:
+    """Check a candidate containing only explicit immutable-binding insertions."""
+    original = vela.translate(source)
+    findings = lint_source(source)
+    snapshot = SourceSnapshot("vela:binding-preview", 0, syntax.source_text(source), 1)
+    types = {token.site: token.text.encode("ascii") for token in vela._tokens(source)
+             if token.text in {"Nat", "bool"}}
+    offsets: list[int] = []
+    for finding in findings:
+        if finding.code != "VELA104":
+            continue
+        try:
+            position = snapshot.diagnostic_position(finding.line, finding.column)
+            offset = snapshot.position_byte_offset(position["line"], position["character"])
+        except ValueError as error:
+            raise syntax.VelaError("lint-preview", 1, 1,
+                                   "binding insertion site is outside the checked source") from error
+        spelling = types.get(syntax.Site(finding.line, finding.column))
+        if spelling is None or not source.startswith(spelling, offset):
+            raise syntax.VelaError("lint-preview", finding.line, finding.column,
+                                   "binding insertion differs from the checked source type token")
+        offsets.append(offset)
+    if offsets != sorted(set(offsets)):
+        raise syntax.VelaError("lint-preview", 1, 1, "binding insertion sites are not distinct and ordered")
+    candidate = source
+    for offset in reversed(offsets):
+        candidate = candidate[:offset] + b"let " + candidate[offset:]
+    checked = vela.translate(candidate)
+    if original.gallina.splitlines()[2:] != checked.gallina.splitlines()[2:]:
+        raise syntax.VelaError("lint-preview", 1, 1,
+                               "binding preview changed the interpreted terms")
+    return candidate

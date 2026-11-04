@@ -243,21 +243,27 @@ class _Parser:
         self._expect("{")
         start = self._current()
         bindings: list[syntax.Binding | syntax.Reassignment | syntax.Constant] = []
-        while (self._current().text in {"let", "const"}
-               or (self._current().kind == "name" and self.tokens[self.offset + 1].text == "=")):
+        while (self._current().text in {"let", "const", "Nat", "bool"}
+               or (self._current().kind == "name"
+                   and (self.tokens[self.offset + 1].text == "="
+                        or self.tokens[self.offset + 1].kind == "name"))):
             if nesting + len(bindings) > MAX_BLOCK_DEPTH:
                 raise self._error("limit", f"block or binding nesting exceeds {MAX_BLOCK_DEPTH}")
             if self._current().text == "const":
                 bindings.append(self._constant())
                 continue
             token = self._current()
-            immutable = self._take("let")
+            explicit_binding = self._take("let")
+            typed = (self._current().text in {"Nat", "bool"}
+                     or (self._current().kind == "name" and self.tokens[self.offset + 1].kind == "name"))
+            annotation = self._value_type() if typed else None
+            immutable = explicit_binding or annotation is not None
             name = self._name()
             self._expect("=")
             value = self._expression(1)
             self._expect(";")
-            constructor = syntax.Binding if immutable else syntax.Reassignment
-            bindings.append(constructor(name, value, token.site))
+            bindings.append(syntax.Binding(name, value, token.site, annotation, explicit_binding)
+                            if immutable else syntax.Reassignment(name, value, token.site))
         if nesting + len(bindings) > MAX_BLOCK_DEPTH:
             raise self._error("limit", f"block or binding nesting exceeds {MAX_BLOCK_DEPTH}")
         token = self._current()
@@ -351,8 +357,9 @@ class _Elaborator:
         self.fresh_argument = 0
         self.facts = facts
 
-    def _declare(self, name: syntax.Name, kind: SymbolKind, detail: str) -> int | None:
-        return None if self.facts is None else self.facts.declare(name, kind, detail)
+    def _declare(self, name: syntax.Name, kind: SymbolKind, detail: str, *,
+                 inferred: bool | None = None) -> int | None:
+        return None if self.facts is None else self.facts.declare(name, kind, detail, inferred=inferred)
 
     def _reference(self, identity: int | None, site: syntax.Site) -> None:
         if self.facts is not None:
@@ -530,7 +537,11 @@ class _Elaborator:
                 values.append((binding, local.initializer))
                 continue
             value = self._expression(binding.value, extended)
-            symbol = self._declare(binding.name, "variable", f"{binding.name.text}: {value.value_type}")
+            if binding.annotation is not None and binding.annotation != value.value_type:
+                raise _error("type", f"local '{binding.name.text}' requires {binding.annotation}, "
+                             f"but its initializer has type {value.value_type}", binding.site)
+            symbol = self._declare(binding.name, "variable", f"{binding.name.text}: {value.value_type}",
+                                   inferred=False if binding.annotation is not None else None)
             extended[binding.name.text] = _Local(value.value_type, symbol)
             values.append((binding, value))
         terminal = block.terminal
