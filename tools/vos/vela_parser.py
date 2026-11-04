@@ -483,7 +483,7 @@ def _fixtures(compiled: Build) -> list[str]:
         (b"1_024 + 2_048", ["+", ["nat", "1_024"], ["nat", "2_048"]]),
         (b"_".join([b"9"] * 256), ["nat", "_".join(["9"] * 256)]),
     )
-    expressions += tuple((b"3 " + operator + b" 4", [operator.decode(), ["nat", "3"], ["nat", "4"]])
+    expressions += tuple((b"3 " + operator + b" 4", cast("Json", [operator.decode(), ["nat", "3"], ["nat", "4"]]))
                          for operator in (b"==", b"!=", b"<", b"<=", b">", b">="))
     for expression, expected in expressions:
         result = parse_source(compiled, prefix + expression + b"; }")

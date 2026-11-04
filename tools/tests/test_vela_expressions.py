@@ -166,7 +166,7 @@ def _constants_and_facts() -> None:
     ensure(f"Definition c_Ready : {_BOOL} :=\n  {_TRUE}." in emitted,
            "combined constant operators did not normalize")
     facts = vela.inspect_source(source)
-    ensure(facts["symbols"] and facts["occurrences"], "operator increment dropped resolved editor facts")
+    ensure(bool(facts["symbols"]) and bool(facts["occurrences"]), "operator increment dropped resolved editor facts")
 
 
 def cases() -> list[Case]:
