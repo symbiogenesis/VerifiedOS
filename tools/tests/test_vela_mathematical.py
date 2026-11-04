@@ -205,12 +205,16 @@ def _parsed_declaration_injection() -> None:
 
 def _limits() -> None:
     fixture = _module()
-    unavailable: Callable[[bytes], object] = lambda _: (_ for _ in ()).throw(
-        AssertionError("invalid request reached native parser"))
+
+    def unavailable(_source: bytes) -> object:
+        raise AssertionError("invalid request reached native parser")
+
     _refuses(lambda: language.evaluate(*fixture.response(), "0" * 4097, "Nat", parse=unavailable), "limit")
     _refuses(lambda: language.evaluate(*fixture.response(), "\u00e9" * 2049, "Nat", parse=unavailable), "limit")
     _refuses(lambda: language.evaluate(*fixture.response(), "\ud800", "Nat", parse=unavailable), "encoding")
-    _refuses(lambda: language.evaluate(*fixture.response(), "1", cast("ValueType", "Unit"), parse=unavailable), "type")
+    invalid_request: dict[str, object] = {"valueType": "Unit"}
+    _refuses(lambda: language.evaluate(*fixture.response(), "1", cast("ValueType", invalid_request["valueType"]),
+                                       parse=unavailable), "type")
     for owner in ("MAX_WORK", "MAX_REDUCTIONS", "MAX_OUTPUT_BYTES"):
         with patch.object(language, owner, 0):
             _refuses(lambda: _evaluate(fixture, _natural(1)), "limit", expression=False)

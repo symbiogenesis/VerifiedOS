@@ -1770,6 +1770,34 @@ def elaborate(source: bytes, parsed: object) -> Elaboration:
     return _checked_elaboration(source, parsed)[0]
 
 
+def _console_initializer(elaborator: _Elaborator, protocol: _Protocol, parsed: object,
+                         prefix_bytes: int, expression_bytes: int) -> Node:
+    root = protocol.decode(parsed)
+    declarations = elaborator.nodes(root["declarations"])
+    if len(declarations) != 1 or declarations[0]["kind"] != "constant":
+        raise VelaError("syntax", 3, 1, "expected exactly one constant initializer")
+    declaration = declarations[0]
+    name = elaborator.name(declaration["name"])
+    value = elaborator.node(declaration["value"])
+    if (name != "__vela_console_result"
+            or declaration["span"] != [len(b"module Playground;\n"), len(protocol.source)]
+            or not prefix_bytes <= cast("list[int]", value["span"])[0]
+            < cast("list[int]", value["span"])[1] <= prefix_bytes + expression_bytes):
+        raise VelaError("syntax", 3, 1, "expected exactly one complete constant initializer")
+    return declaration
+
+
+def _console_value(elaborator: _Elaborator, declaration: Node,
+                   value_type: ValueType) -> StaticEvaluation:
+    result = elaborator.constant_value(declaration, {})
+    normalized = elaborator.whnf(result.term)
+    expected = "nat" if value_type == "Nat" else "bool"
+    if normalized.kind != expected or elaborator.free(normalized):
+        raise VelaError("inference", 1, 1, "constant did not reduce to a closed typed value")
+    return StaticEvaluation(value_type, cast("int", normalized.value) if value_type == "Nat"
+                            else bool(normalized.value))
+
+
 def evaluate(source: bytes, parsed: object, expression: str, value_type: ValueType,
              *, parse: Callable[[bytes], object]) -> StaticEvaluation:
     """Reduce one source-bound console constant in the checked module's environment.
@@ -1790,18 +1818,7 @@ def evaluate(source: bytes, parsed: object, expression: str, value_type: ValueTy
     probe = prefix + raw + b"\n;"
     protocol = _Protocol(probe)
     try:
-        root = protocol.decode(parse(probe))
-        declarations = elaborator.nodes(root["declarations"])
-        if len(declarations) != 1 or declarations[0]["kind"] != "constant":
-            raise VelaError("syntax", 3, 1, "expected exactly one constant initializer")
-        declaration = declarations[0]
-        name = elaborator.name(declaration["name"])
-        value = elaborator.node(declaration["value"])
-        if (name != "__vela_console_result"
-                or declaration["span"] != [len(b"module Playground;\n"), len(probe)]
-                or not len(prefix) <= cast("list[int]", value["span"])[0]
-                < cast("list[int]", value["span"])[1] <= len(prefix) + len(raw)):
-            raise VelaError("syntax", 3, 1, "expected exactly one complete constant initializer")
+        declaration = _console_initializer(elaborator, protocol, parse(probe), len(prefix), len(raw))
     except VelaError as error:
         lines = expression.replace("\r\n", "\n").replace("\r", "\n").split("\n")
         line = max(1, error.line - 2)
@@ -1813,13 +1830,7 @@ def evaluate(source: bytes, parsed: object, expression: str, value_type: ValueTy
         raise VelaError("limit", 1, 1, "expression: syntax nesting exceeds the host stack bound") from error
     elaborator.protocol = protocol
     try:
-        result = elaborator.constant_value(declaration, {})
-        normalized = elaborator.whnf(result.term)
-        expected = "nat" if value_type == "Nat" else "bool"
-        if normalized.kind != expected or elaborator.free(normalized):
-            raise VelaError("inference", 1, 1, "constant did not reduce to a closed typed value")
-        return StaticEvaluation(value_type, cast("int", normalized.value) if value_type == "Nat"
-                                else bool(normalized.value))
+        return _console_value(elaborator, declaration, value_type)
     except VelaError as error:
         raise VelaError(error.kind, 1, 1, f"expression: {error.message}") from error
     except RecursionError as error:
