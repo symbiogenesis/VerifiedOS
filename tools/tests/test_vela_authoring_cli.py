@@ -6,7 +6,7 @@ import os
 import stat
 import tempfile
 from contextlib import redirect_stderr, redirect_stdout
-from io import StringIO
+from io import BytesIO, StringIO, TextIOWrapper
 from pathlib import Path
 from unittest.mock import patch
 
@@ -309,6 +309,22 @@ def _binding_preview_policy_and_source_identity() -> None:
                "binding preview published a stale candidate or overwrote a concurrent edit")
 
 
+def _binding_preview_binary_stdout() -> None:
+    raw = b"module M;\r\n/// Returns a count.\npublic Nat Count(){Nat count=1;return count;}\r"
+    expected = b"module M;\r\n/// Returns a count.\npublic Nat Count(){let Nat count=1;return count;}\r"
+    with tempfile.TemporaryDirectory(prefix="vos-vela-binding-preview-bytes-") as directory:
+        source = Path(directory) / "source.vela"
+        source.write_bytes(raw)
+        buffer = BytesIO()
+        with TextIOWrapper(buffer, encoding="utf-8", newline="\r\n") as stream:
+            with redirect_stdout(stream), redirect_stderr(StringIO()):
+                code = cli.main(["lint", str(source), "--preview-bindings"])
+            stream.flush()
+            ensure(code == 0 and buffer.getvalue() == expected,
+                   "binding preview passed source bytes through Windows newline translation")
+        ensure(source.read_bytes() == raw, "binary preview publication wrote source")
+
+
 def cases() -> list[Case]:
     return [Case("vela-authoring-cli:defaults-and-provenance", _defaults_and_provenance),
             Case("vela-authoring-cli:readonly-source", _readonly_source),
@@ -319,4 +335,5 @@ def cases() -> list[Case]:
             Case("vela-authoring-cli:explicit-write-publication-failures", _explicit_write_publication_failures),
             Case("vela-authoring-cli:lint-unavailable", _unavailable_lints),
             Case("vela-authoring-cli:binding-preview-policy-and-source-identity",
-                 _binding_preview_policy_and_source_identity)]
+                 _binding_preview_policy_and_source_identity),
+            Case("vela-authoring-cli:binding-preview-binary-stdout", _binding_preview_binary_stdout)]
