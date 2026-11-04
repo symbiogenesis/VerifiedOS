@@ -287,8 +287,45 @@ def _numeric_separator_limits_required() -> None:
     oracle.assert_called_once()
 
 
+def _familiar_authoring_oracles_required() -> None:
+    for name, oracle_name in (("familiar-generic-calls-and-expression-arms", "_familiar_call_roles"),
+                              ("bounded-collection-iteration", "_collection_iteration_roles")):
+        fixture = next(value for value in surface.POSITIVE if value.name == name)
+        result: dict[str, parser.Json] = {"ast": [{"kind": kind} for kind in fixture.kinds]}
+        with patch.object(surface, "POSITIVE", (fixture,)), \
+                patch.object(surface, "_precedence_and_spans"), \
+                patch.object(surface, "_literal_and_comment_boundaries"), \
+                patch.object(surface, "_numeric_separator_limits"), \
+                patch.object(surface, "_argument_roles"), \
+                patch.object(surface, oracle_name, side_effect=ValueError("authoring role changed")) as oracle:
+            try:
+                surface.qualify(lambda source: result)
+            except ValueError as error:
+                ensure(str(error) == "authoring role changed", "authoring oracle failure was replaced")
+            else:
+                raise AssertionError("familiar authoring or collection oracle was bypassed")
+        oracle.assert_called_once_with(fixture.source.encode("utf-8"), result)
+
+
+def _generic_probe_limits_required() -> None:
+    with patch.object(surface, "POSITIVE", ()), \
+            patch.object(surface, "_precedence_and_spans"), \
+            patch.object(surface, "_literal_and_comment_boundaries"), \
+            patch.object(surface, "_numeric_separator_limits"), \
+            patch.object(surface, "_generic_probe_limits", side_effect=ValueError("probe budget changed")) as oracle:
+        try:
+            surface.qualify(lambda source: {})
+        except ValueError as error:
+            ensure(str(error) == "probe budget changed", "probe budget refusal was replaced")
+        else:
+            raise AssertionError("generic probe inspection controls were bypassed")
+    oracle.assert_called_once()
+
+
 def cases() -> list[Case]:
-    return [Case("constant-callable-oracle-is-required", _constant_callable_oracle_required),
+    return [Case("familiar-authoring-oracles-are-required", _familiar_authoring_oracles_required),
+            Case("generic-probe-limits-are-required", _generic_probe_limits_required),
+            Case("constant-callable-oracle-is-required", _constant_callable_oracle_required),
             Case("concise-authoring-oracle-is-required", _concise_authoring_oracle_required),
             Case("constant-declaration-order-and-span-oracle-is-required", _constant_oracle_required),
             Case("surface-entry-schema-and-source-binding", _entry_protocol),

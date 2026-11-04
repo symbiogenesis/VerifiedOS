@@ -2,8 +2,17 @@
 {
 open Parser
 
-type state = { mutable delimiters : int; surface : bool }
-let create ?(surface=false) () = { delimiters = 0; surface }
+type state = {
+  mutable delimiters : int;
+  surface : bool;
+  probe_tokens : int ref;
+  generic_probes : (int, bool) Hashtbl.t;
+  probe_depth : int;
+}
+let create ?(surface=false) () = {
+  delimiters = 0; surface; probe_tokens = ref 0;
+  generic_probes = Hashtbl.create 32; probe_depth = 0;
+}
 let refuse kind lexbuf message =
   raise (Ast.Refusal (kind, Lexing.lexeme_start lexbuf, message))
 let opening state lexbuf token =
@@ -12,6 +21,30 @@ let opening state lexbuf token =
     refuse "limit" lexbuf (Printf.sprintf "delimiter nesting exceeds %d" Ast.max_delimiter_depth);
   token
 let closing state token = state.delimiters <- max 0 (state.delimiters - 1); token
+(* Prefix classification reuses the authored generic-argument grammar. Clones
+   share only immutable source bytes, memoized decisions and the work budget. *)
+let generic_call next state lexbuf =
+  let offset = Lexing.lexeme_start lexbuf in
+  match Hashtbl.find_opt state.generic_probes offset with
+  | Some decision -> decision
+  | None ->
+      if state.probe_depth >= Ast.max_delimiter_depth then
+        refuse "limit" lexbuf "generic-call probe nesting exceeds 256";
+      let probe_state = { state with probe_depth = state.probe_depth + 1 } in
+      let probe = { lexbuf with Lexing.lex_mem = Array.copy lexbuf.Lexing.lex_mem } in
+      let inspect input =
+        incr state.probe_tokens;
+        if !(state.probe_tokens) > Ast.max_generic_probe_tokens then
+          raise (Ast.Refusal ("limit", offset, "generic-call probes exceed 200000 inspected tokens"));
+        next probe_state input
+      in
+      let decision =
+        try Parser.generic_call_prefix inspect probe; true with
+        | Parser.Error -> false
+        | Ast.Refusal ("syntax", _, _) -> false
+      in
+      Hashtbl.add state.generic_probes offset decision;
+      decision
 let pure_reserved = function
   | "fn" | "Bool" | "async" | "await" | "effect" | "effects" | "handler"
   | "handle" | "resume" | "dispose" | "mut" | "var" | "unsafe" | "borrow"
@@ -353,7 +386,9 @@ rule token state = parse
   | "+=" { PLUS_ASSIGN } | "-=" { MINUS_ASSIGN } | "*=" { STAR_ASSIGN }
   | "/=" { SLASH_ASSIGN } | "%=" { MOD_ASSIGN }
   | '=' { EQUAL } | '+' { PLUS } | '*' { STAR } | '-' { MINUS }
-  | '/' { SLASH } | '%' { PERCENT } | '<' { LT } | '>' { GT }
+  | '/' { SLASH } | '%' { PERCENT }
+  | '<' { if state.surface && generic_call token state lexbuf then CALL_GENERIC_OPEN else LT }
+  | '>' { GT }
   | eof { EOF }
   | _ { refuse "syntax" lexbuf "unexpected character" }
 and comment state depth start = parse
