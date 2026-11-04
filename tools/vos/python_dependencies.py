@@ -12,6 +12,7 @@ import stat
 import symtable
 from collections.abc import Iterable
 from pathlib import Path
+from typing import override
 
 
 class _RuntimeBindings(ast.NodeVisitor):
@@ -20,44 +21,66 @@ class _RuntimeBindings(ast.NodeVisitor):
     def __init__(self) -> None:
         self.names: set[str] = set()
 
+    @override
     def visit_Name(self, node: ast.Name) -> None:
         if isinstance(node.ctx, ast.Store):
             self.names.add(node.id)
 
+    @override
     def visit_AnnAssign(self, node: ast.AnnAssign) -> None:
         if node.value is not None:
             self.generic_visit(node)
 
-    def visit_FunctionDef(self, node: ast.FunctionDef | ast.AsyncFunctionDef) -> None:
+    @override
+    def visit_FunctionDef(self, node: ast.FunctionDef) -> None:
         self.names.add(node.name)
 
-    visit_AsyncFunctionDef = visit_FunctionDef
+    @override
+    def visit_AsyncFunctionDef(self, node: ast.AsyncFunctionDef) -> None:
+        self.names.add(node.name)
 
+    @override
     def visit_ClassDef(self, node: ast.ClassDef) -> None:
         self.names.add(node.name)
 
-    def visit_Lambda(self, _node: ast.Lambda) -> None:
+    @override
+    def visit_Lambda(self, node: ast.Lambda) -> None:
         pass
 
-    def visit_ListComp(self, _node: ast.ListComp | ast.SetComp | ast.DictComp | ast.GeneratorExp) -> None:
+    @override
+    def visit_ListComp(self, node: ast.ListComp) -> None:
         # Comprehension iteration variables never become module attributes.
         pass
 
-    visit_SetComp = visit_ListComp
-    visit_DictComp = visit_ListComp
-    visit_GeneratorExp = visit_ListComp
+    @override
+    def visit_SetComp(self, node: ast.SetComp) -> None:
+        pass
 
+    @override
+    def visit_DictComp(self, node: ast.DictComp) -> None:
+        pass
+
+    @override
+    def visit_GeneratorExp(self, node: ast.GeneratorExp) -> None:
+        pass
+
+    @override
     def visit_ExceptHandler(self, node: ast.ExceptHandler) -> None:
         if node.name is not None:
             self.names.add(node.name)
         self.generic_visit(node)
 
-    def visit_MatchAs(self, node: ast.MatchAs | ast.MatchStar) -> None:
+    @override
+    def visit_MatchAs(self, node: ast.MatchAs) -> None:
         if node.name is not None:
             self.names.add(node.name)
         self.generic_visit(node)
 
-    visit_MatchStar = visit_MatchAs
+    @override
+    def visit_MatchStar(self, node: ast.MatchStar) -> None:
+        if node.name is not None:
+            self.names.add(node.name)
+        self.generic_visit(node)
 
 
 def sources(root: Path, entrypoints: Iterable[str]) -> tuple[str, ...]:
@@ -160,7 +183,7 @@ def sources(root: Path, entrypoints: Iterable[str]) -> tuple[str, ...]:
                     anchor = package[:len(package) + 1 - node.level]
                 else:
                     anchor = ()
-                name = ".".join((*anchor, *((node.module,) if node.module else ())))
+                name = ".".join((*anchor, *((node.module,) if node.module is not None else ())))
                 top = name.split(".")[0]
                 imported = add(name, required=bool(node.level) or top in local
                                or module(top) is not None)
