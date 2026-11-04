@@ -1,0 +1,66 @@
+<!-- SPDX-License-Identifier: Apache-2.0 -->
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="dark">
+    <meta name="description" content="Explore the pure Vela language prototype with a local compiler and language server.">
+    <title>Vela · Playground</title>
+    <link rel="stylesheet" href="/style.css">
+    <script type="module" src="/app.mjs"></script>
+</head>
+<body>
+    <header class="topbar">
+        <a class="brand" href="/" aria-label="Vela playground home"><span class="brand-mark" aria-hidden="true">v<span>·</span></span><span>vela<span class="brand-divider">/</span><span class="brand-context">playground</span></span></a>
+        <div class="topbar-right"><span class="local-label"><span aria-hidden="true">◉</span> LOCAL WORKSPACE</span><span class="prototype-badge">DEVELOPMENT PREVIEW</span></div>
+    </header>
+
+    <main>
+        <section class="introduction" aria-labelledby="page-title">
+            <div><p class="eyebrow">A SMALL WINDOW INTO VELA</p><h1 id="page-title">Write it. Inspect it. Try it.</h1><p class="intro-copy">Explore pure functions with a real compiler and language server.</p></div>
+            <div class="scope-note"><span class="scope-icon" aria-hidden="true">λ</span><div><strong>Pure Nat / bool fragment</strong><span>Mathematical values · compile-time evaluation</span></div></div>
+        </section>
+
+        <section class="workspace" aria-label="Vela development workspace">
+            <div class="source-pane">
+                <div class="pane-toolbar">
+                    <div class="file-tab"><span class="file-icon" aria-hidden="true">V</span><span id="filename">playground.vela</span><span class="unsaved-dot" title="Unsaved browser buffer" aria-label="Unsaved browser buffer"></span></div>
+                    <div class="source-actions"><label class="sr-only" for="examples">Load an example</label><select id="examples" aria-label="Load an example"><option value="squares">Functions &amp; values</option><option value="branches">Branches &amp; booleans</option><option value="constants">Static configuration</option></select></div>
+                </div>
+                <div class="editor-shell">
+                    <div id="editor" aria-label="Vela source editor" hidden></div>
+                    <textarea id="source-fallback" aria-label="Vela source" spellcheck="false" autocapitalize="off" autocomplete="off"></textarea>
+                    <div id="editor-notice" class="editor-notice" role="status">Loading the code editor…</div>
+                </div>
+                <div class="editor-bottom"><span id="cursor-position">Ln 1, Col 1</span><span><span class="language-dot" aria-hidden="true"></span> Vela<span class="bottom-separator">UTF-8</span></span></div>
+                <div class="source-footer"><span class="shortcut-hint"><kbd>Ctrl</kbd><kbd>↵</kbd><span>compile</span></span><div class="footer-actions"><button id="format-button" class="button button-quiet" type="button" title="Format the current source (Shift+Alt+F)"><span aria-hidden="true">≡</span> Format</button><button id="compile-button" class="button button-primary" type="button"><span aria-hidden="true">▷</span> Compile</button></div></div>
+            </div>
+
+            <div class="output-pane">
+                <div class="output-toolbar" role="tablist" aria-label="Compiler output">
+                    <button id="console-tab" class="output-tab active" type="button" role="tab" aria-selected="true" aria-controls="console-panel" data-tab="console"><span aria-hidden="true">›_</span> Console</button>
+                    <button id="gallina-tab" class="output-tab" type="button" role="tab" aria-selected="false" aria-controls="gallina-panel" tabindex="-1" data-tab="gallina">Gallina</button>
+                    <button id="problems-tab" class="output-tab" type="button" role="tab" aria-selected="false" aria-controls="problems-panel" tabindex="-1" data-tab="problems">Problems <span id="problem-count" class="count-badge">0</span></button>
+                </div>
+
+                <section id="console-panel" class="output-panel console-panel" role="tabpanel" aria-labelledby="console-tab">
+                    <div class="panel-heading"><span class="eyebrow">EXPRESSION CONSOLE</span><span class="subtle-tag">COMPILE TIME</span></div>
+                    <p class="panel-description">Call a function or evaluate a closed expression from your source.</p>
+                    <form id="evaluate-form" class="expression-form"><label class="expression-label" for="expression">Expression</label><div class="expression-input-row"><span class="prompt" aria-hidden="true">›</span><input id="expression" name="expression" value="Square(7)" spellcheck="false" autocomplete="off" aria-label="Expression to evaluate"><label class="sr-only" for="value-type">Expected result type</label><select id="value-type" aria-label="Expected result type"><option value="Nat">Nat</option><option value="bool">bool</option></select><button id="evaluate-button" class="button button-primary" type="submit" title="Evaluate expression (Ctrl+Enter)"><span aria-hidden="true">▶</span><span>Evaluate</span></button></div></form>
+                    <div id="console-result" class="console-result" aria-live="polite"><div class="empty-console"><span class="empty-glyph" aria-hidden="true">ƒ</span><p>Your next idea starts here.</p><span>Try <code>Square(7)</code>, then change the function.</span></div></div>
+                    <div class="console-note"><span aria-hidden="true">ⓘ</span><p>Uses Vela’s bounded constant evaluator. Values are mathematical naturals and booleans; this console does not run native code or provide runtime I/O.</p></div>
+                </section>
+
+                <section id="gallina-panel" class="output-panel" role="tabpanel" aria-labelledby="gallina-tab" hidden><div class="panel-heading"><span class="eyebrow">COMPILER OUTPUT</span><button id="copy-output" class="text-button" type="button" disabled>Copy output</button></div><p class="panel-description">The pure compiler’s generated Gallina definitions.</p><div id="compile-summary" class="output-summary">Compile the source to inspect its translation.</div><pre id="gallina-output" class="gallina-code" tabindex="0" aria-label="Generated Gallina">// Generated output will appear here.</pre></section>
+
+                <section id="problems-panel" class="output-panel" role="tabpanel" aria-labelledby="problems-tab" hidden><div class="panel-heading"><span class="eyebrow">LIVE DIAGNOSTICS</span><span class="subtle-tag">LSP</span></div><p class="panel-description">Diagnostics for the current unsaved buffer, from the pure Vela checker.</p><div id="diagnostics" class="diagnostics" aria-live="polite"><p class="muted-message">Connecting to the language server…</p></div></section>
+                <div class="output-status"><span id="activity-label">Ready to explore</span><span class="readonly-label">SOURCE STAYS LOCAL</span></div>
+            </div>
+        </section>
+
+        <footer class="page-footer"><div class="connection-status"><span id="connection-dot" class="status-dot" aria-hidden="true"></span><span id="connection-label" role="status">Connecting to local services…</span><button id="reconnect-button" class="text-button" type="button" hidden>Reconnect</button></div><p>Unqualified development prototype. No kernel or production acceptance is implied.</p></footer>
+        <div class="feature-notes"><span><span aria-hidden="true">⌘</span> Hover to inspect types</span><span><span aria-hidden="true">↗</span> F12 to go to definition</span><span><span aria-hidden="true">≡</span> Shift+Alt+F to format</span></div>
+    </main>
+</body>
+</html>
