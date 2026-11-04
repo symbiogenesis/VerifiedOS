@@ -458,11 +458,105 @@ def _http_extended_expressions() -> None:
                "real isolated LSP formatting lost canonical operator spacing")
 
 
+def _http_division_and_remainder() -> None:
+    source = ("module Grouping;\r\n// supplementary comment: \U0001f680\r\n"
+              "public Nat Groups(Nat count,Nat size)=>count/size;\r\n"
+              "public Nat Leftover(Nat count,Nat size)=>count%size;\r\n"
+              "public Nat Regroup(Nat count,Nat size)=>count/size*2;\r\n"
+              "public const Nat ZeroGroups = 17/0;\r\n"
+              "public const Nat Unchanged = 17%0;\r\n")
+    digest = hashlib.sha256(source.encode()).hexdigest()
+    with _running() as server:
+        compiled = _post(server, "/api/compile", {"source": source})
+        ensure(compiled["ok"] is True and compiled["sourceHash"] == digest,
+               "division compilation lost original Unicode/CRLF source identity")
+        emitted = str(compiled["gallina"])
+        ensure("(Corelib.Init.Nat.div v_count v_size)" in emitted
+               and "(Corelib.Init.Nat.modulo v_count v_size)" in emitted,
+               "playground did not expose actual quotient/remainder terms")
+        for expression, expected in (("Groups(count: 17, size: 5)", "3"),
+                                     ("Leftover(17, 5)", "2"), ("Regroup(20, 3)", "12"),
+                                     ("20 / (3 * 2)", "3"), ("20 % 6 * 2", "4"),
+                                     ("ZeroGroups", "0"), ("Unchanged", "17")):
+            response = _post(server, "/api/evaluate", {
+                "source": source, "expression": expression, "valueType": "Nat"})
+            ensure(response == {"ok": True, "sourceHash": digest, "valueType": "Nat", "value": expected},
+                   f"wrong isolated quotient/remainder value for {expression}: {response}")
+        for expression in ("17 / false", "true % 5"):
+            refused = _post(server, "/api/evaluate", {
+                "source": source, "expression": expression, "valueType": "Nat"})
+            ensure(refused["ok"] is False and refused["sourceHash"] == digest
+                   and cast("dict[str, object]", refused["error"])["kind"] == "type"
+                   and "value" not in refused and "gallina" not in refused,
+                   "invalid operands retained a successful playground result")
+        recovered = _post(server, "/api/evaluate", {
+            "source": source, "expression": "Leftover(17, 0)", "valueType": "Nat"})
+        ensure(recovered == {"ok": True, "sourceHash": digest, "valueType": "Nat", "value": "17"},
+               "quotient/remainder worker failed recovery after a semantic refusal")
+        authoring = _post(server, "/api/authoring", {"source": source})
+        ensure(authoring["ok"] is True and authoring["bindingPreview"] == source,
+               "authoring changed quotient/remainder source bytes")
+
+        session = cast("str", _post(server, "/api/session", {})["session"])
+        _rpc(server, session, "initialize", {"capabilities": {}}, 1)
+        _rpc(server, session, "initialized")
+        opened = _rpc(server, session, "textDocument/didOpen", {"textDocument": {
+            "uri": _URI, "languageId": "vela", "version": 1, "text": source}})
+        params = cast("dict[str, object]", opened[0]["params"])
+        ensure(params["version"] == 1 and params["diagnostics"] == [],
+               "quotient/remainder overlay lost its clean diagnostic version")
+        hovered = _rpc(server, session, "textDocument/hover", {
+            "textDocument": {"uri": _URI}, "position": {"line": 2, "character": 12}}, 2)
+        ensure("Groups" in str(hovered[0].get("result")),
+               "division body lost compiler-backed function signatures")
+        defined = _rpc(server, session, "textDocument/definition", {
+            "textDocument": {"uri": _URI}, "position": {"line": 2, "character": 40}}, 3)
+        ensure(defined[0].get("result") == {"uri": _URI, "range": {
+            "start": {"line": 2, "character": 22}, "end": {"line": 2, "character": 27}}},
+            "division operand did not resolve to its original parameter span")
+        token_reply = _rpc(server, session, "textDocument/semanticTokens/full", {
+            "textDocument": {"uri": _URI}}, 4)
+        tokens = cast("dict[str, object]", token_reply[0].get("result"))
+        data = cast("list[int]", tokens["data"])
+        positions: list[tuple[int, int, int]] = []
+        line, column = 0, 0
+        for offset in range(0, len(data), 5):
+            delta, start, length = data[offset:offset + 3]
+            line += delta
+            column = start if delta else column + start
+            positions.append((line, column, length))
+        ensure((2, 39, 5) in positions and (3, 47, 4) in positions,
+               "quotient/remainder operands lost source-bound semantic tokens")
+        formatted = _rpc(server, session, "textDocument/formatting", {
+            "textDocument": {"uri": _URI}, "options": {"tabSize": 4, "insertSpaces": True}}, 5)
+        edits = cast("list[dict[str, object]]", formatted[0].get("result"))
+        ensure(len(edits) == 1 and "=> count / size;" in str(edits[0]["newText"])
+               and "=> count % size;" in str(edits[0]["newText"])
+               and "// supplementary comment: \U0001f680" in str(edits[0]["newText"]),
+               "LSP formatting lost quotient/remainder spacing or original comments")
+        broken = source.replace("count/size;", "count/false;", 1)
+        changed = _rpc(server, session, "textDocument/didChange", {
+            "textDocument": {"uri": _URI, "version": 2}, "contentChanges": [{"text": broken}]})
+        params = cast("dict[str, object]", changed[0]["params"])
+        ensure(params["version"] == 2 and bool(params["diagnostics"]),
+               "division operand type error lost its current overlay diagnostics")
+        invalid_hover = _rpc(server, session, "textDocument/hover", {
+            "textDocument": {"uri": _URI}, "position": {"line": 2, "character": 12}}, 6)
+        ensure(invalid_hover[0].get("result") is None,
+               "invalid division overlay retained earlier successful symbol facts")
+        recovered_overlay = _rpc(server, session, "textDocument/didChange", {
+            "textDocument": {"uri": _URI, "version": 3}, "contentChanges": [{"text": source}]})
+        params = cast("dict[str, object]", recovered_overlay[0]["params"])
+        ensure(params["version"] == 3 and params["diagnostics"] == [],
+               "quotient/remainder overlay failed recovery after an invalid edit")
+
+
 def cases() -> list[Case]:
     return [Case("compiler-owned-static-natural-and-boolean-results", _static_values),
             Case("compiler-refusals-injection-and-existing-budgets", _static_refusals),
             Case("real-isolated-http-compilation-and-evaluation", _http_compiler),
             Case("real-http-extended-expressions-authoring-and-editor-services", _http_extended_expressions),
+            Case("real-http-division-remainder-values-terms-and-overlay-recovery", _http_division_and_remainder),
             Case("real-http-authoring-findings-preview-source-and-refusals", _http_authoring),
             Case("authoring-worker-incomplete-invalid-coordinate-and-budget-controls", _authoring_worker_refusals),
             Case("http-auth-authority-strict-json-path-and-session-bounds", _http_authority_and_bounds),

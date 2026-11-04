@@ -90,6 +90,28 @@ public bool HasRoom(Nat total, Nat used) => total > used;
 public Nat Main() => Remaining(total: 12, used: 5);
 `,
     },
+    division: {
+        expression: "Groups(count: 17, size: 5)", valueType: "Nat",
+        source: `module Grouping;
+
+/// Divide a quantity into complete groups: Groups(17, 5) is 3.
+public Nat Groups(Nat count, Nat size) => count / size;
+
+/// Keep the amount left over: Leftover(17, 5) is 2.
+public Nat Leftover(Nat count, Nat size) => count % size;
+
+/// Multiplication, division and remainder group from left to right.
+/// Regroup(20, 3) is 12; 20 / (3 * 2) is 3.
+public Nat Regroup(Nat count, Nat size) => count / size * 2;
+
+/// Mathematical Nat operations are total: 17 / 0 is 0; 17 % 0 is 17.
+public const Nat ZeroGroups = Groups(17, 0);
+public const Nat Unchanged = Leftover(17, 0);
+
+/// Try Leftover(17, 5), Regroup(20, 3), ZeroGroups, and Unchanged.
+public Nat Main() => Groups(count: 17, size: 5);
+`,
+    },
     constants: {
         expression: "Process(5)", valueType: "Nat",
         source: `module Configuration;
@@ -633,7 +655,7 @@ function registerLanguage() {
         typeKeywords: ["Nat", "bool"], tokenizer: { root: [
             [/\/\/.*$/, "comment"], [/\b(?:true|false)\b/, "constant"],
             [/[A-Za-z_][A-Za-z0-9_]*/, { cases: { "@keywords": "keyword", "@typeKeywords": "type", "@default": "identifier" } }],
-            [/[0-9](?:_?[0-9])*/, "number"], [/=>|==|!=|<=|>=|&&|\|\||[+*!=<>-]/, "operator"], [/[{}()]/, "@brackets"], [/[;,.:]/, "delimiter"],
+            [/[0-9](?:_?[0-9])*/, "number"], [/=>|==|!=|<=|>=|&&|\|\||[+*\/%!=<>-]/, "operator"], [/[{}()]/, "@brackets"], [/[;,.:]/, "delimiter"],
         ] },
     });
     monaco.editor.defineTheme("vela-night", {
