@@ -299,7 +299,7 @@ def _familiar_authoring_oracles_required() -> None:
                 patch.object(surface, "_argument_roles"), \
                 patch.object(surface, oracle_name, side_effect=ValueError("authoring role changed")) as oracle:
             try:
-                surface.qualify(lambda source: result)
+                surface.qualify(lambda source, expected=result: expected)
             except ValueError as error:
                 ensure(str(error) == "authoring role changed", "authoring oracle failure was replaced")
             else:
