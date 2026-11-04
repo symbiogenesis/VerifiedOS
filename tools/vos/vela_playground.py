@@ -91,9 +91,10 @@ def _compiler_response(request: dict[str, object], digest: str, *,
                        mathematical_parser: Path | None = None,
                        parser_sha256: str | None = None) -> dict[str, object]:
     directory = str(Path(__file__).resolve().parents[1])
+    parser_argument = f"Path({str(mathematical_parser)!r})" if mathematical_parser is not None else "None"
     script = (f"import sys; sys.path.insert(0, {directory!r}); from pathlib import Path; "
               "from vos.vela_playground_worker import main; "
-              f"raise SystemExit(main(mathematical_parser={('Path(' + repr(str(mathematical_parser)) + ')') if mathematical_parser else 'None'}, "
+              f"raise SystemExit(main(mathematical_parser={parser_argument}, "
               f"parser_sha256={parser_sha256!r}))")
     done = subprocess.run([sys.executable, "-I", "-c", script], input=_raw(request),
                           capture_output=True, timeout=WORKER_SECONDS, check=False)
@@ -105,6 +106,11 @@ def _compiler_response(request: dict[str, object], digest: str, *,
     return response
 
 
+def _require_parser(parser: Path | None, digest: str | None) -> None:
+    if parser is None or digest is None or hashlib.sha256(parser.read_bytes()).hexdigest() != digest:
+        raise ValueError("prepared mathematical parser is unavailable or changed")
+
+
 def run_compiler(request: dict[str, object], *, mathematical_parser: Path | None = None,
                  parser_sha256: str | None = None) -> dict[str, object]:
     """Source is worker stdin data, never an executable argument or a disk path."""
@@ -112,13 +118,10 @@ def run_compiler(request: dict[str, object], *, mathematical_parser: Path | None
     digest = hashlib.sha256(source).hexdigest()
     try:
         if request.get("mode") == "mathematical":
-            if (mathematical_parser is None or parser_sha256 is None
-                    or hashlib.sha256(mathematical_parser.read_bytes()).hexdigest() != parser_sha256):
-                raise ValueError("prepared mathematical parser is unavailable or changed")
+            _require_parser(mathematical_parser, parser_sha256)
             response = _compiler_response(request, digest, mathematical_parser=mathematical_parser,
                                           parser_sha256=parser_sha256)
-            if hashlib.sha256(mathematical_parser.read_bytes()).hexdigest() != parser_sha256:
-                raise ValueError("prepared mathematical parser changed during compilation")
+            _require_parser(mathematical_parser, parser_sha256)
         else:
             response = _compiler_response(request, digest)
     except subprocess.TimeoutExpired:

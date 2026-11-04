@@ -7,6 +7,7 @@ from pathlib import Path
 
 from filelock import Timeout
 
+from vos import vela_parser
 from vos.vela_playground import PlaygroundServer
 
 
@@ -24,7 +25,6 @@ def serve(argv: list[str] | None = None, *, mathematical: bool = False) -> int:
     try:
         native_parser: Path | None = None
         if mathematical:
-            from vos import vela_parser
             print("Preparing the locked mathematical parser in this native lane...", flush=True)
             native_parser = vela_parser.build(Path(__file__).resolve().parents[3]).executable
         with PlaygroundServer(args.port, mathematical_parser=native_parser) as server:

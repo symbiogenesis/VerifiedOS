@@ -65,7 +65,7 @@ selected upstream terms and intended distribution.
 Provide an editable source pane, examples, a diagnostics view, a read-only
 Gallina output pane and a console for closed expressions. Include accessible
 labels, keyboard actions, a responsive layout, connection/error status and an
-explicit pure-prototype scope indication. A successful check means only that
+explicit active-fragment scope indication. A successful check means only that
 the unqualified prototype reported no error. It supplies no kernel, source
 correspondence, native execution or production-admission verdict.
 
@@ -80,7 +80,7 @@ unchanged snapshot. Render source-derived strings as text, including console
 output and hover documentation. Completion, imports and wider semantics are
 not advertised by this demo.
 
-Compile shows the actual Gallina returned by `translate` for the exact UTF-8
+In pure mode, Compile shows the actual Gallina returned by `translate` for the exact UTF-8
 source. The expression console selects `Nat` or `bool` and reuses the compiler's
 existing required-static checking and bounded evaluation. A structured compiler
 API validates the complete original source and exactly one synthetic constant
@@ -103,6 +103,7 @@ The JSON API is same-origin POST with `Authorization: Bearer TOKEN`:
 
 | Path | Request | Response |
 | --- | --- | --- |
+| `/api/capabilities` | `{}` | `{ "mathematical": true or false }` |
 | `/api/session` | `{}` | `{ "session": "opaque-id" }` |
 | `/api/close` | `{ "session": "opaque-id" }` | `{ "closed": true }` (idempotent session release) |
 | `/api/lsp` | `{ "session": "opaque-id", "message": LSP_OBJECT }` | `{ "messages": [LSP_OBJECT] }` |
@@ -116,6 +117,11 @@ one-based compiler coordinates; expression errors identify their expression
 context. Transport refusals use an unsuccessful HTTP status and an `error`
 string. The browser handles both explicitly. No refusal can retain a successful
 result for changed input.
+
+Compile and evaluate also accept `"mode": "pure"` or `"mode": "mathematical"`.
+Omission selects pure mode. Mathematical mode requires the native-backed launch;
+authoring requests remain pure-only. Mathematical refusals also include the
+elaborator's `protocol` and `inference` categories.
 
 Use the existing strict protocol JSON reader and its nesting/byte limits, and
 validate endpoint shapes. Bound HTTP reads, concurrent requests, session count
