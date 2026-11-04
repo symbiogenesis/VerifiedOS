@@ -136,22 +136,39 @@ exit:
         [condition; yes; no] }
 
 expression:
+  value=left_binary(conjunction, s_disjunction_operator) { value }
+
+conjunction:
+  value=left_binary(comparison, s_conjunction_operator) { value }
+
+comparison:
   value=sum { value }
 | left=sum op=comparison_operator right=sum
     { binary $startpos $endpos op left right }
 
 comparison_operator:
   EQ { name $startpos $endpos "==" } | LE { name $startpos $endpos "<=" }
+| NE { name $startpos $endpos "!=" } | LT { name $startpos $endpos "<" }
+| GT { name $startpos $endpos ">" } | GE { name $startpos $endpos ">=" }
 
 sum:
-  value=left_binary(product, plus_operator) { value }
+  value=left_binary(product, s_sum_operator) { value }
 plus_operator:
   PLUS { name $startpos $endpos "+" }
 
 product:
-  value=left_binary(atom, star_operator) { value }
+  value=left_binary(unary, star_operator) { value }
 star_operator:
   STAR { name $startpos $endpos "*" }
+
+unary:
+  value=atom { value }
+| operator=negation_operator value=unary
+    { make "unary" $startpos $endpos
+        [("operator", operator); ("value", value.syntax)] [value] }
+
+negation_operator:
+  NOT { name $startpos $endpos "!" }
 
 atom:
   value=DECIMAL { make "nat" $startpos $endpos [("value", String value)] [] }
@@ -700,9 +717,7 @@ s_comparison_with(opening):
 | value=s_range_with(opening) IS pattern=s_pattern
     { make "is" $startpos $endpos [("value", value.syntax); ("pattern", pattern.syntax)] [value; pattern] }
 s_comparison_operator:
-  value=comparison_operator { value } | NE { name $startpos $endpos "!=" }
-| LT { name $startpos $endpos "<" } | GT { name $startpos $endpos ">" }
-| GE { name $startpos $endpos ">=" }
+  value=comparison_operator { value }
 s_range_with(opening):
   value=s_bit_or_with(opening) { value }
 | left=s_bit_or_with(opening) RANGE right=s_bit_or_with(opening)
@@ -737,7 +752,7 @@ s_unary_with(opening):
 | RESUME continuation=s_identifier s_parameter_open value=s_expression RPAREN
     { make "resume" $startpos $endpos [("continuation", continuation); ("value", value.syntax)] [value] }
 %inline s_unary_operator:
-  MINUS { name $startpos $endpos "-" } | NOT { name $startpos $endpos "!" }
+  MINUS { name $startpos $endpos "-" } | value=negation_operator { value }
 | TILDE { name $startpos $endpos "~" } | MOVE { name $startpos $endpos "move" }
 | IN { name $startpos $endpos "in" } | REF { name $startpos $endpos "ref" }
 | OUT { name $startpos $endpos "out" }

@@ -18,17 +18,17 @@ def _name(text: str, start: int) -> dict[str, object]:
     return {"text": text, "span": [start, start + len(text)]}
 
 
-def _fixture(source: bytes, expression: dict[str, object]) -> dict[str, object]:
+def _fixture(source: bytes, expression: dict[str, object], *, value_type: str = "Nat") -> dict[str, object]:
     """One independently selected nullary function, located in its original bytes."""
     start = source.index(b"module")
     declaration = source.index(b"public")
-    result = source.index(b"Nat", declaration)
+    result = source.index(value_type.encode(), declaration)
     name = source.index(b"F(", declaration)
     brace = source.index(b"{", declaration)
     terminal = source.index(b"return", brace)
     end = source.index(b"}", terminal) + 1
     function = _node("function", declaration, end, name=_name("F", name),
-                     result=_node("type", result, result + 3, name="Nat"), parameters=[],
+                     result=_node("type", result, result + len(value_type), name=value_type), parameters=[],
                      body=_node("block", brace, end, bindings=[],
                                 exit=_node("return", terminal, source.index(b";", terminal) + 1,
                                            value=expression)))
@@ -208,6 +208,108 @@ def _held_out_edits() -> None:
             ensure(hashlib.sha256(source).hexdigest() in actual.gallina, "source binding was normalized")
 
 
+def _extended_operator_protocol() -> None:
+    for newline in (b"\n", b"\r\n", b"\r"):
+        for operator in (b"-", b"!=", b"<", b">", b">=", b"&&", b"||"):
+            boolean = operator in {b"&&", b"||"}
+            left_text, right_text = (b"true", b"false") if boolean else (b"3", b"2")
+            result_type = "Nat" if operator == b"-" else "bool"
+            source = ("// café".encode() + newline + b"module M; public " + result_type.encode()
+                      + b" F() { return " + left_text + b" " + operator + b" // operator trivia"
+                      + newline + right_text + b"; }")
+            left = source.index(left_text, source.index(b"return"))
+            op = left + len(left_text) + 1
+            right = source.index(right_text, op + len(operator))
+            expression = _node("binary", left, right + len(right_text), operator=_name(operator.decode(), op),
+                               left=_node("bool" if boolean else "nat", left, left + len(left_text),
+                                          value=True if boolean else "3"),
+                               right=_node("bool" if boolean else "nat", right, right + len(right_text),
+                                           value=False if boolean else "2"))
+            module = vela_ast.decode(source, _fixture(source, expression, value_type=result_type))
+            function = module.declarations[0]
+            ensure(isinstance(function, vela_ast.Function)
+                   and isinstance(function.body.terminal, vela_ast.Return)
+                   and function.body.terminal.value.value == operator.decode()
+                   and function.body.terminal.value.site == vela_ast.position(source[:op].decode()),
+                   "native extended binary operator lost its spelling or original source site")
+    source = b"module M; public bool F() { return !true; }"
+    first = source.index(b"!")
+    expected = _node("unary", first, first + 5, operator=_name("!", first),
+                     value=_node("bool", first + 1, first + 5, value=True))
+    for mutation in ("operator", "extra-field", "missing-value", "operator-span", "operand-span"):
+        changed = copy.deepcopy(expected)
+        if mutation == "operator":
+            cast("dict[str, object]", changed["operator"])["text"] = "-"
+        elif mutation == "extra-field":
+            changed["ignored"] = False
+        elif mutation == "missing-value":
+            del changed["value"]
+        elif mutation == "operator-span":
+            cast("dict[str, object]", changed["operator"])["span"] = [first, first + 2]
+        else:
+            cast("dict[str, object]", changed["value"])["span"] = [first, first + 5]
+        try:
+            vela_ast.decode(source, _fixture(source, changed, value_type="bool"))
+        except (TypeError, ValueError):
+            pass
+        else:
+            raise AssertionError(f"native decoder accepted unary {mutation} forgery")
+
+
+def _negation_source_coverage() -> None:
+    for newline in (b"\n", b"\r\n", b"\r"):
+        source = ("// café".encode() + newline + b"module M; public bool F() { return ! // skipped !"
+                  + newline + b" !true; }")
+        first = source.index(b"!", source.index(b"return"))
+        second = source.index(b"!true")
+        literal = second + 1
+        value = _node("bool", literal, literal + 4, value=True)
+        nested = _node("unary", second, literal + 4, operator=_name("!", second), value=value)
+        expression = _node("unary", first, literal + 4, operator=_name("!", first), value=nested)
+        module = vela_ast.decode(source, _fixture(source, expression, value_type="bool"))
+        declaration = module.declarations[0]
+        ensure(isinstance(declaration, vela_ast.Function)
+               and isinstance(declaration.body.terminal, vela_ast.Return)
+               and declaration.body.terminal.value.children[0].value == "!",
+               "nested unary source lost a negation across complete trivia")
+        omitted = _node("unary", first, literal + 4, operator=_name("!", first), value=value)
+        for changed in (omitted, nested, value):
+            try:
+                vela_ast.decode(source, _fixture(source, changed, value_type="bool"))
+            except ValueError:
+                pass
+            else:
+                raise AssertionError("native unary decoding omitted a source operator")
+    for authored, operator, operand in ((b"-true", "-", b"true"),
+                                        (b"!+true", "!", b"true"),
+                                        (b"!true false", "!", b"true"),
+                                        (b"! // true\n false", "!", b"true")):
+        source = b"module M; public bool F() { return " + authored + b"; }"
+        start = source.index(authored)
+        literal = source.index(operand, start)
+        value = _node("bool", literal, literal + len(operand), value=operand == b"true")
+        expression = _node("unary", start, start + len(authored), operator=_name(operator, start), value=value)
+        try:
+            vela_ast.decode(source, _fixture(source, expression, value_type="bool"))
+        except ValueError:
+            pass
+        else:
+            raise AssertionError(f"native unary source coverage accepted {authored!r}")
+    for count in (63, 64, 300):
+        source = b"module M; public bool F() { return " + b"!" * count + b"true; }"
+        literal = source.index(b"true")
+        expression = _node("bool", literal, literal + 4, value=True)
+        for index in range(count):
+            first = literal - index - 1
+            expression = _node("unary", first, literal + 4, operator=_name("!", first), value=expression)
+        try:
+            vela_ast.decode(source, _fixture(source, expression, value_type="bool"))
+        except vela.VelaError as error:
+            ensure(count >= 64 and error.kind == "limit", "wrong native unary depth refusal")
+        else:
+            ensure(count == 63, "native decoder accepted excessive unary depth")
+
+
 def _protocol_controls() -> None:
     source = b"module M; public Nat F() { return 1; }"
     expected = _fixture(source, _literal(source))
@@ -378,6 +480,8 @@ def cases() -> list[Case]:
             Case("expression-body-complete-token-coverage", _expression_body_uncovered_tokens),
             Case("located-labels-and-complete-call-token-coverage", _located_named_arguments),
             Case("held-out-source-edits", _held_out_edits),
+            Case("extended-operator-schema-and-sites", _extended_operator_protocol),
+            Case("negation-source-token-coverage-and-depth", _negation_source_coverage),
             Case("strict-native-schema-and-provenance", _protocol_controls),
             Case("native-semantic-diagnostics", _semantic_refusals),
             Case("native-resource-boundaries", _resource_boundaries)]

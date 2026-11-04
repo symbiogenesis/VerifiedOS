@@ -41,6 +41,18 @@ def fixtures(example: bytes) -> tuple[Fixture, ...]:
         ("wide-separated-decimal", b"module M; public Nat F() { return "
          + b"_".join([b"9"] * 256) + b"; }"),
         ("boolean-equality", b"module M; public bool F(bool x) { return x == (false == true); }"),
+        ("boolean-logic-and-precedence", b"module M; public bool F(bool flag) => !flag || false && true;"),
+        ("nested-negation", b"module M; public bool F(bool flag) => !!flag;"),
+        ("natural-subtraction-and-precedence", b"module M; public Nat F() => 2 + 3 * 4 - 5 - 1;"),
+        ("natural-underflow", b"module M; public const Nat Underflow = 2 - 5;"),
+        ("remaining-comparisons", b"module M; public bool F(Nat left, Nat right) => "
+         b"left != right && left < right || left > right && left >= right;"),
+        ("boolean-inequality", b"module M; public bool F(bool flag) => flag != false;"),
+        ("short-circuit-static-arithmetic", b"module M; public const bool Ready = "
+         b"false && (" + b"9" * 256 + b" * 2 == 0);"),
+        ("short-circuit-static-parameter", b"module M; public bool F(const bool ready, bool flag) { "
+         b"const bool selected = !ready || ready; return selected && flag; } "
+         b"public bool G(bool flag) => F(ready: true, flag: flag);"),
         ("expression-body", b"module M; public Nat Twice(Nat x) => x + x; "
          b"public Nat F() => Twice(4);"),
         ("trailing-commas", b"module M; public Nat F(Nat x, bool flag,) => x; "
@@ -111,6 +123,15 @@ def fixtures(example: bytes) -> tuple[Fixture, ...]:
         ("addition-type", "public Nat F() { return true + 1; }", "type"),
         ("multiply-type", "public Nat F() { return 1 * false; }", "type"),
         ("comparison-type", "public bool F() { return true <= false; }", "type"),
+        ("negation-type", "public bool F() => !1;", "type"),
+        ("conjunction-type", "public bool F() => 1 && true;", "type"),
+        ("disjunction-dead-type", "public bool F() => true || 2;", "type"),
+        ("subtraction-type", "public Nat F() => true - 1;", "type"),
+        ("ordering-type", "public bool F() => true < false;", "type"),
+        ("inequality-type", "public bool F() => 1 != false;", "type"),
+        ("short-circuit-dead-name", "public bool F() => false && missing;", "name"),
+        ("short-circuit-dead-runtime-input", "public bool F(bool flag) { "
+         "const bool Ready = false && flag; return Ready; }", "unsupported"),
         ("equality-type", "public bool F() { return 0 == false; }", "type"),
         ("argument-type", "public Nat F(Nat x) { return x; } public Nat G() { return F(true); }", "type"),
         ("missing-argument", "public Nat F(Nat x) { return x; } public Nat G() { return F(); }", "type"),
@@ -142,6 +163,11 @@ def fixtures(example: bytes) -> tuple[Fixture, ...]:
         ("empty-comma-arguments", "public Nat F() => 0; public Nat G() => F(,);", "syntax"),
         ("double-comma-arguments", "public Nat F(Nat x) => x; public Nat G() => F(1,,);", "syntax"),
         ("chained-comparison", "public bool F() { return 1 <= 2 <= 3; }", "syntax"),
+        ("chained-strict-comparison", "public bool F() => 1 < 2 < 3;", "syntax"),
+        ("missing-logical-operand", "public bool F() => true &&;", "syntax"),
+        ("missing-negation-operand", "public bool F() => !;", "syntax"),
+        ("unary-minus", "public Nat F() => -1;", "syntax"),
+        ("adjacent-subtraction", "public Nat F() => 1--2;", "syntax"),
         ("trailing-token", "public Nat F() { return 1; } garbage", "syntax"),
         ("incomplete-editor-input", "public Nat F() { return (1 +", "syntax"),
         ("unsupported-await", "public Nat F() { return await 1; }", "unsupported"),
@@ -172,6 +198,9 @@ def fixtures(example: bytes) -> tuple[Fixture, ...]:
         for terms, expected in ((64, "accepted"), (65, "limit")):
             result.append(Fixture(f"operator-boundary-{operator.decode()}-{terms}",
                                   prefix + (b" " + operator + b" ").join([b"1"] * terms) + b"; }", expected))
+    for count, expected in ((63, "accepted"), (64, "limit"), (2000, "limit")):
+        result.append(Fixture(f"negation-boundary-{count}",
+                              b"module M; public bool F() => " + b"!" * count + b"true;", expected))
     for bindings, expected in ((63, "accepted"), (64, "limit")):
         source = (b"module M; public Nat F() { "
                   + b"".join(f"let x{i} = 0; ".encode() for i in range(bindings)) + b"return 0; }")
@@ -248,7 +277,9 @@ def qualify(root: Path) -> dict[str, object]:
     compiled = vela_parser.Build(directory, directory / "vela-parser", receipt)
     cases = (*fixtures(vela_parser.read_source(root / "tools/vela/examples/pure.vela")),
              Fixture("authored-compositional-constants",
-                     vela_parser.read_source(root / "tools/vela/examples/constants.vela"), "accepted"))
+                     vela_parser.read_source(root / "tools/vela/examples/constants.vela"), "accepted"),
+             Fixture("authored-extended-expressions",
+                     vela_parser.read_source(root / "tools/vela/examples/expressions.vela"), "accepted"))
     report = compare(compiled, cases)
     if _inputs(root) != inputs or vela_parser._toolchain(root) != receipt["toolchain"]:
         raise ValueError("migration inputs or toolchain changed during comparison")

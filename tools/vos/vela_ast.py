@@ -302,6 +302,7 @@ class _Decoder:
         kind = raw["kind"]
         fields = {"nat": {"value"}, "bool": {"value"}, "name": {"name"},
                   "call": {"callee", "arguments"}, "binary": {"operator", "left", "right"},
+                  "unary": {"operator", "value"},
                   "group": {"value"}}.get(kind)
         if fields is None:
             raise ValueError(f"native parser returned an unknown expression kind: {kind}")
@@ -393,7 +394,19 @@ class _Decoder:
                 raise ValueError("native group leaves source tokens uncovered")
             return expression(kind, "", site, (child(node["value"]),))
         operator = self._text(node["operator"], span, identifier=False)
-        if operator.text not in {"+", "*", "==", "<="}:
+        if kind == "unary":
+            if operator.text != "!":
+                raise ValueError("native parser returned an unknown unary operator")
+            self._ordered([node["operator"], node["value"]], span)
+            if not isinstance(node["operator"], dict) or not isinstance(node["value"], dict):
+                raise TypeError("native unary operator has no located operand")
+            operator_span = self._span(node["operator"].get("span"), span)
+            value_span = self._span(node["value"].get("span"), span)
+            if (operator_span[0] != span[0] or value_span[1] != span[1]
+                    or trivia_end(self.source, operator_span[1]) != value_span[0]):
+                raise ValueError("native unary expression leaves source tokens uncovered")
+            return expression(kind, operator.text, operator.site, (child(node["value"]),))
+        if operator.text not in {"+", "-", "*", "==", "!=", "<", "<=", ">", ">=", "&&", "||"}:
             raise ValueError("native parser returned an unknown binary operator")
         self._ordered([node["left"], node["operator"], node["right"]], span)
         if not all(isinstance(node[field], dict) for field in ("left", "operator", "right")):
