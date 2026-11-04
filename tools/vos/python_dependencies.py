@@ -14,6 +14,52 @@ from collections.abc import Iterable
 from pathlib import Path
 
 
+class _RuntimeBindings(ast.NodeVisitor):
+    """Possible module assignments, excluding annotations and nested scopes."""
+
+    def __init__(self) -> None:
+        self.names: set[str] = set()
+
+    def visit_Name(self, node: ast.Name) -> None:
+        if isinstance(node.ctx, ast.Store):
+            self.names.add(node.id)
+
+    def visit_AnnAssign(self, node: ast.AnnAssign) -> None:
+        if node.value is not None:
+            self.generic_visit(node)
+
+    def visit_FunctionDef(self, node: ast.FunctionDef | ast.AsyncFunctionDef) -> None:
+        self.names.add(node.name)
+
+    visit_AsyncFunctionDef = visit_FunctionDef
+
+    def visit_ClassDef(self, node: ast.ClassDef) -> None:
+        self.names.add(node.name)
+
+    def visit_Lambda(self, _node: ast.Lambda) -> None:
+        pass
+
+    def visit_ListComp(self, _node: ast.ListComp | ast.SetComp | ast.DictComp | ast.GeneratorExp) -> None:
+        # Comprehension iteration variables never become module attributes.
+        pass
+
+    visit_SetComp = visit_ListComp
+    visit_DictComp = visit_ListComp
+    visit_GeneratorExp = visit_ListComp
+
+    def visit_ExceptHandler(self, node: ast.ExceptHandler) -> None:
+        if node.name is not None:
+            self.names.add(node.name)
+        self.generic_visit(node)
+
+    def visit_MatchAs(self, node: ast.MatchAs | ast.MatchStar) -> None:
+        if node.name is not None:
+            self.names.add(node.name)
+        self.generic_visit(node)
+
+    visit_MatchStar = visit_MatchAs
+
+
 def sources(root: Path, entrypoints: Iterable[str]) -> tuple[str, ...]:
     """Return sorted checkout-relative sources for explicit Python entry points.
 
@@ -46,9 +92,11 @@ def sources(root: Path, entrypoints: Iterable[str]) -> tuple[str, ...]:
                 symbols = symtable.symtable(text, str(path), "exec")
             except SyntaxError as error:
                 raise ValueError(f"invalid Python dependency: {path}: {error}") from error
+            runtime = _RuntimeBindings()
+            runtime.visit(tree)
             bound = frozenset(symbol.get_name() for symbol in symbols.get_symbols()
-                              if symbol.is_assigned() or symbol.is_imported()
-                              or symbol.is_namespace())
+                              if symbol.is_imported() or symbol.is_namespace()
+                              or (symbol.is_assigned() and symbol.get_name() in runtime.names))
             parsed[path] = tree, bound
         return parsed[path]
 

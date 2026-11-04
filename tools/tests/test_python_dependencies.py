@@ -64,6 +64,16 @@ def _exports_and_changed_edges() -> None:
                "a new import edge must join the current checkout's closure")
         (root / "tools/vos/helper.py").unlink()
         _refused(lambda: dependencies.sources(root, ("tools/vos/start.py",)), "vos.helper")
+        _write(root, "tools/vos/__init__.py", "helper: int\n")
+        _write(root, "tools/vos/helper.py", "value = 1\n")
+        ensure("tools/vos/helper.py" in dependencies.sources(root, ("tools/vos/start.py",)),
+               "annotation-only package names must resolve to actual helper modules")
+        (root / "tools/vos/helper.py").unlink()
+        _refused(lambda: dependencies.sources(root, ("tools/vos/start.py",)), "vos.helper")
+        _write(root, "tools/vos/__init__.py", "helper: int\nhelper = 1\n")
+        ensure(dependencies.sources(root, ("tools/vos/start.py",)) == before,
+               "an actual assignment after an annotation supplies an exported value")
+        _write(root, "tools/vos/__init__.py", "")
         _write(root, "tools/vos/start.py", "def later():\n    helper = 1\nfrom . import helper\n")
         _refused(lambda: dependencies.sources(root, ("tools/vos/start.py",)), "vos.helper")
 
@@ -97,7 +107,20 @@ def _refusals() -> None:
             _refused(lambda: dependencies.sources(root, (entry,)), "unreadable")
 
 
+def _redirects_refuse() -> None:
+    with (tempfile.TemporaryDirectory(prefix="vos-python-links-") as temporary,
+          tempfile.TemporaryDirectory(prefix="vos-python-outside-") as external):
+        root, outside = Path(temporary).resolve(), Path(external).resolve()
+        _write(root, "tools/vos/__init__.py", "")
+        _write(root, "tools/vos/start.py", "from . import helper\n")
+        target = outside / "helper.py"
+        target.write_text("value = 1\n", encoding="utf-8")
+        (root / "tools/vos/helper.py").symlink_to(target)
+        _refused(lambda: dependencies.sources(root, ("tools/vos/start.py",)), "within tools")
+
+
 def cases() -> list[Case]:
     return [Case("transitive lexical imports without execution", _transitive_imports),
             Case("bound exports and current import edges", _exports_and_changed_edges),
-            Case("missing unreadable and malformed inputs refuse", _refusals)]
+            Case("missing unreadable and malformed inputs refuse", _refusals),
+            Case("redirected source paths refuse", _redirects_refuse, lane="guest")]
