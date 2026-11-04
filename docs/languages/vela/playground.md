@@ -2,12 +2,13 @@
 
 ## Dependent mathematics increment
 
-Q25ae in [the plan](../../../PLAN.md#q-assessment-actions) commissions an explicit
-mathematical mode using the [mathematical elaborator](elaboration-prototype.md).
-`python tools/run.py vela-playground-math` runs in the native guest lane, builds
-the locked Menhir parser once before serving, and offers pure and mathematical
-modes. The ordinary host playground retains its pure-only launch. Mathematical
-source uses the existing schema-2 surface parser without a replacement parser.
+Q25ae in [the plan](../../../PLAN.md#q-assessment-actions) commissions one unified
+playground using the [mathematical elaborator](elaboration-prototype.md).
+`python tools/run.py vela-playground` runs in the native guest lane and builds
+the locked Menhir parser once before serving. Dependent mathematics is always
+included; there is no separate launch command or language-mode selector.
+Mathematical source uses the existing schema-2 surface parser without a
+replacement parser.
 
 Compile elaborates the entire source and displays its actual Gallina. The console
 checks the complete source plus exactly one closed expression, reduces it with the
@@ -17,24 +18,35 @@ explicit equality proofs keep their existing semantics. Reject mismatched length
 out-of-range indices, false proofs, ambiguous inference and declaration injection.
 No browser request may select an executable or filesystem path.
 
-An authenticated capability query reports whether the mathematical parser is
-available. Compile and evaluate accept an optional `mode` of `pure` or
-`mathematical`, defaulting to pure; unavailable modes refuse explicitly. Worker
-results retain exact source identity and strict shape, type, coordinate and budget
-validation. Parsing and elaboration run in the existing timed isolated worker.
+Compile and evaluate select the existing compiler from the complete source in
+the isolated worker. Try the pure compiler first; only its syntax or unsupported
+refusals select mathematical elaboration. Name, type, encoding and resource
+refusals retain their original judgment. Evaluation selects from the source
+before checking the expression, so expression refusal never changes compilers.
+Compile results include an `editorServices` Boolean identifying availability of
+the existing pure editor services, including on semantic refusal. Successful
+compilation always includes `findings`, empty for pure translation. Transport or
+worker failure disables editor services until a fresh source check succeeds.
+Client-supplied `mode` fields refuse. Worker results retain exact source identity
+and strict shape, type, coordinate and budget validation. Parsing and elaboration
+run in the existing timed isolated worker.
 The server binds the prepared parser's executable identity and rejects changed
-parser bytes. Source, expression, result type and mode all invalidate stale output.
+parser bytes. Source, expression and result type all invalidate stale output.
 
 Runnable examples demonstrate generic instantiation, safe vector lookup, dependent
 length preservation and a proof, with independently expected console answers.
-Mathematical mode disables pure-only LSP, formatting, lint and binding preview
-services explicitly; its diagnostics come from mathematical compilation, including
-the [generic type naming lint](authoring-tools.md#generic-type-parameter-naming). Mode
-switches clear old diagnostics and results, including in plain-text fallback.
+All examples share one selector and one source buffer. Debounced source checks
+automatically update diagnostics and editor-service availability. Dependent source
+disables pure-only LSP, formatting, lint and binding preview services explicitly;
+its diagnostics come from mathematical compilation, including the
+[generic type naming lint](authoring-tools.md#generic-type-parameter-naming).
+Returning to supported pure source restores those services automatically. Edits
+clear old diagnostics and results, including in plain-text fallback; late analysis
+must never restore services or output for an obsolete source or connection.
 Label elaboration and compile-time reduction accurately: neither is a kernel verdict.
 
 Acceptance requires independent evaluator and injection/refusal controls, actual
-HTTP isolation and mode controls, browser asset checks, focused retained playground
+HTTP isolation and automatic compiler-selection controls, browser asset checks, focused retained playground
 and pure tests, Python validation and corpus checks. Exercise the native parser
 with accepted and semantically rejected examples locally when available. Hosted
 Host CI on both platforms and every Guest CI lane, including kernel replay of the
@@ -81,7 +93,7 @@ unchanged snapshot. Render source-derived strings as text, including console
 output and hover documentation. Completion, imports and wider semantics are
 not advertised by this demo.
 
-In pure mode, Compile shows the actual Gallina returned by `translate` for the exact UTF-8
+For pure source, Compile shows the actual Gallina returned by `translate` for the exact UTF-8
 source. The expression console selects `Nat` or `bool` and reuses the compiler's
 existing required-static checking and bounded evaluation. A structured compiler
 API validates the complete original source and exactly one synthetic constant
@@ -108,7 +120,7 @@ The JSON API is same-origin POST with `Authorization: Bearer TOKEN`:
 | `/api/session` | `{}` | `{ "session": "opaque-id" }` |
 | `/api/close` | `{ "session": "opaque-id" }` | `{ "closed": true }` (idempotent session release) |
 | `/api/lsp` | `{ "session": "opaque-id", "message": LSP_OBJECT }` | `{ "messages": [LSP_OBJECT] }` |
-| `/api/compile` | `{ "source": "UTF-8 text" }` | `{ "ok": true, "sourceHash": "sha256", "module": "name", "gallina": "text" }` |
+| `/api/compile` | `{ "source": "UTF-8 text" }` | `{ "ok": true, "sourceHash": "sha256", "module": "name", "gallina": "text", "editorServices": true or false, "findings": [] }` |
 | `/api/evaluate` | `{ "source": "UTF-8 text", "expression": "text", "valueType": "Nat or bool" }` | `{ "ok": true, "sourceHash": "sha256", "valueType": "Nat or bool", "value": "decimal or true/false" }` |
 | `/api/authoring` | `{ "source": "UTF-8 text" }` | `{ "ok": true, "sourceHash": "sha256", "findings": [{ "code": "VELA104", "message": "text", "line": 1, "column": 1 }], "bindingPreview": "UTF-8 candidate" }` |
 
@@ -119,18 +131,18 @@ context. Transport refusals use an unsuccessful HTTP status and an `error`
 string. The browser handles both explicitly. No refusal can retain a successful
 result for changed input.
 
-Compile and evaluate also accept `"mode": "pure"` or `"mode": "mathematical"`.
-Omission selects pure mode. Mathematical mode requires the native-backed launch;
-authoring requests remain pure-only. Mathematical refusals also include the
-elaborator's `protocol` and `inference` categories.
+Compile refusals also include `editorServices`; evaluation and authoring retain
+their existing refusal shapes. The single launch prepares the native parser;
+authoring requests remain limited to supported pure source. Mathematical refusals
+also include the elaborator's `protocol` and `inference` categories.
 
-Successful mathematical compilation additionally returns `findings`, a list of
+Successful compilation returns `findings`, a list of
 `{ "code": "VELA105", "message": "text", "line": 1, "column": 1 }` naming
 warnings in source order. Require at most 8,192 findings, exact keys, known code,
 nonempty text and original identifier positions. Duplicate, unordered, malformed
 or oversized findings refuse the result. Warnings do not prevent Gallina output;
-failed compilation returns no findings. Pure compilation and both evaluation
-modes retain the response shapes above.
+failed compilation returns no findings. Pure compilation returns an empty list;
+both evaluation routes retain the response shape above.
 
 Use the existing strict protocol JSON reader and its nesting/byte limits, and
 validate endpoint shapes. Bound HTTP reads, concurrent requests, session count
