@@ -114,7 +114,7 @@ def _worker_reply_binding() -> None:
     with _mathematical_server() as (server, _parser):
         request = {"source": _SOURCE, "mode": "mathematical",
                    "expression": "Last()", "valueType": "Nat"}
-        malformed = (
+        malformed: tuple[dict[str, object], ...] = (
             {**_result(), "sourceHash": hashlib.sha256(b"different source").hexdigest()},
             {**_result(), "mode": "mathematical"},
             _result("-1"),
@@ -132,11 +132,11 @@ def _worker_reply_binding() -> None:
                    and cast("dict[str, object]", refused["error"])["kind"] == "internal"
                    and "value" not in refused and "gallina" not in refused,
                    "malformed mathematical worker reply escaped source/type/schema validation")
-        semantic: dict[str, object] = {"ok": False, "sourceHash": _DIGEST,
-                                      "error": {"kind": "type", "message": "expression: wrong vector length",
-                                                "line": 1, "column": 1}}
+        semantic_error: dict[str, object] = {"kind": "type", "message": "expression: wrong vector length",
+                                            "line": 1, "column": 1}
+        semantic: dict[str, object] = {"ok": False, "sourceHash": _DIGEST, "error": semantic_error}
         for kind in ("type", "inference", "protocol"):
-            cast("dict[str, object]", semantic["error"])["kind"] = kind
+            semantic_error["kind"] = kind
             with patch.object(playground.subprocess, "run", return_value=_process(semantic)):
                 ensure(_post(server, "/api/evaluate", request) == semantic,
                        "semantic mathematical refusal was replaced with a success or infrastructure error")
