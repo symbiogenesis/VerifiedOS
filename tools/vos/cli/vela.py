@@ -7,6 +7,7 @@ import stat
 import sys
 from dataclasses import dataclass
 from pathlib import Path
+from typing import BinaryIO, cast
 
 from vos.atomic import atomic_path
 from vos.vela import MAX_SOURCE_BYTES, VelaError, translate
@@ -93,6 +94,14 @@ def _lint(path: Path, source: bytes, allowed: set[str], denied: set[str], *,
     return not failed
 
 
+def _preview_output(candidate: bytes) -> None:
+    binary = cast("BinaryIO | None", getattr(sys.stdout, "buffer", None))
+    if binary is None:
+        sys.stdout.write(candidate.decode("utf-8"))
+    else:
+        binary.write(candidate)
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(suggest_on_error=True, description=__doc__)
     commands = parser.add_subparsers(dest="command", required=True)
@@ -136,7 +145,7 @@ def main(argv: list[str] | None = None) -> int:
             if args.preview_bindings:
                 candidate = source.data if "VELA104" in allowed else preview_bindings(source.data)
                 _unchanged(source)
-                print(candidate.decode("utf-8"), end="")
+                _preview_output(candidate)
             return 0
         formatting = "check" if args.command == "fmt" and args.check else (
             "write" if args.command == "fmt" else args.format)

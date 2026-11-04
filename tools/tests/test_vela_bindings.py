@@ -22,7 +22,7 @@ def _typed_local_semantics() -> None:
         module = vela._Parser(vela._tokens(source)).parse()
         declaration = module.declarations[0]
         if not isinstance(declaration, vela.syntax.Function):
-            raise AssertionError("test declaration is not callable")
+            raise TypeError("test declaration is not callable")
         local = declaration.body.bindings[0]
         ensure(isinstance(local, vela.syntax.Binding)
                and local.annotation == annotation and local.explicit_binding is explicit,
