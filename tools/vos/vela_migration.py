@@ -61,6 +61,15 @@ def fixtures(example: bytes) -> tuple[Fixture, ...]:
         ("static-parameter-forwarding", b"module M; public Nat Scale(const Nat factor,Nat value) => factor * value; "
          b"public Nat Forward(const Nat factor,Nat value) => Scale(factor: factor,value: value); "
          b"public Nat Runtime(Nat value) => Forward(4,value);"),
+        ("typed-immutable-locals", b"module M; public Nat F() { let Nat count = 3; "
+         b"let bool ready = true; if (ready) { return count; } else { return 0; } }"),
+        ("bare-typed-immutable-locals", b"module M; public bool F() { Nat count = 3; "
+         b"bool ready = count == 3; return ready; }"),
+        ("typed-local-branch-scopes", b"module M; public Nat F(bool flag) { "
+         b"if (flag) { let Nat count = 1; return count; } "
+         b"else { Nat count = 2; return count; } }"),
+        ("typed-locals-original-newlines", b"// caf\xc3\xa9\r\nmodule M;\rpublic Nat F() {\n"
+         b"Nat count = 3;\r\nlet bool ready = true;\rreturn count;\n}"),
     )
     result = [Fixture(name, source, "accepted") for name, source in positive]
     for name, source in positive[:6]:
@@ -91,6 +100,10 @@ def fixtures(example: bytes) -> tuple[Fixture, ...]:
         ("unknown-label", "public Nat F(Nat x) => x; public Nat G() => F(missing: 1);", "name"),
         ("positional-after-label", "public Nat F(Nat x, Nat y) => x; public Nat G() => F(x: 1, 2);", "name"),
         ("immutable-reassignment", "public Nat F() { let value = 1; value = 2; return value; }", "unsupported"),
+        ("typed-local-wrong-type", "public Nat F() { let bool value = 1; return 0; }", "type"),
+        ("bare-local-wrong-type", "public Nat F() { Nat value = true; return value; }", "type"),
+        ("typed-local-immutable-reassignment", "public Nat F() { Nat value = 1; value = 2; return value; }", "unsupported"),
+        ("typed-local-parameter-shadow", "public Nat F(Nat value) { let Nat value = 1; return value; }", "name"),
         ("return-type", "public Nat F() { return true; }", "type"),
         ("boolean-return", "public bool F() { return 1; }", "type"),
         ("condition-type", "public Nat F() { if (1) { return 0; } else { return 1; } }", "type"),
