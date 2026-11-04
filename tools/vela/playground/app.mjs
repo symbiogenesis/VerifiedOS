@@ -504,18 +504,26 @@ async function connect() {
         }
         const response = await api("/api/session", {});
         const session = response.session;
-        const initialized = await wire(session, {
-            jsonrpc: "2.0", id: ++state.requestId, method: "initialize",
-            params: { processId: null, rootUri: null, capabilities: { general: { positionEncodings: ["utf-16"] } } },
-        }, generation);
-        await wire(session, { jsonrpc: "2.0", method: "initialized", params: {} }, generation);
-        if (generation !== state.generation) return;
-        state.session = session;
-        state.capabilities = initialized.capabilities;
-        state.connected = true;
-        status("Language server connected");
-        scheduleCheck(0);
-        if (!$("inspect-panel").hidden) refreshOutline();
+        let adopted = false;
+        try {
+            if (generation !== state.generation) return;
+            const initialized = await wire(session, {
+                jsonrpc: "2.0", id: ++state.requestId, method: "initialize",
+                params: { processId: null, rootUri: null, capabilities: { general: { positionEncodings: ["utf-16"] } } },
+            }, generation);
+            if (generation !== state.generation) return;
+            await wire(session, { jsonrpc: "2.0", method: "initialized", params: {} }, generation);
+            if (generation !== state.generation) return;
+            state.session = session;
+            state.capabilities = initialized.capabilities;
+            adopted = true;
+            state.connected = true;
+            status("Language server connected");
+            scheduleCheck(0);
+            if (!$("inspect-panel").hidden) refreshOutline();
+        } finally {
+            if (!adopted) await closeSession(session);
+        }
     })();
     state.connection = pending;
     try { await pending; }
