@@ -445,22 +445,22 @@ Arguments transport_arch_commutes {source target} _ _ _ _ _.
 Lemma transport_T (source target : Vocabulary)
     (binding : SemanticTransport source target) : T source -> T target.
 Proof.
-  intros Hsource Hax C HC i1 i2 Hindist.
-  destruct (Hsource (binding.(transport_ax) Hax) (binding.(transport_context) C)
+  intros Hsource Hassumptions C HC i1 i2 Hindist.
+  destruct (Hsource (binding.(transport_ax) Hassumptions) (binding.(transport_context) C)
     (binding.(transport_admissible) C HC)
     (binding.(transport_input) i1) (binding.(transport_input) i2)
-    (binding.(transport_indist) C i1 i2 Hax HC Hindist)) as [Hv [Ht Ha]].
+    (binding.(transport_indist) C i1 i2 Hassumptions HC Hindist)) as [Hv [Ht Ha]].
   unfold observation_equal_modulo_D.
   split.
-  - rewrite (binding.(transport_value_commutes) C i1 Hax HC),
-      (binding.(transport_value_commutes) C i2 Hax HC).
+  - rewrite (binding.(transport_value_commutes) C i1 Hassumptions HC),
+      (binding.(transport_value_commutes) C i2 Hassumptions HC).
     now rewrite Hv.
   - split.
-    + rewrite (binding.(transport_timing_commutes) C i1 Hax HC),
-        (binding.(transport_timing_commutes) C i2 Hax HC).
+    + rewrite (binding.(transport_timing_commutes) C i1 Hassumptions HC),
+        (binding.(transport_timing_commutes) C i2 Hassumptions HC).
       now rewrite Ht.
-    + rewrite (binding.(transport_arch_commutes) C i1 Hax HC),
-        (binding.(transport_arch_commutes) C i2 Hax HC).
+    + rewrite (binding.(transport_arch_commutes) C i1 Hassumptions HC),
+        (binding.(transport_arch_commutes) C i2 Hassumptions HC).
       now rewrite Ha.
 Qed.
 
@@ -476,23 +476,23 @@ Proof.
     transport_ax := fun H => first.(transport_ax) (second.(transport_ax) H);
     transport_admissible := fun C H => first.(transport_admissible) _
       (second.(transport_admissible) C H) |}.
-  - intros C i1 i2 Hax HC Hindist.
-    exact (first.(transport_indist) _ _ _ (second.(transport_ax) Hax)
+  - intros C i1 i2 Hassumptions HC Hindist.
+    exact (first.(transport_indist) _ _ _ (second.(transport_ax) Hassumptions)
       (second.(transport_admissible) C HC)
-      (second.(transport_indist) C i1 i2 Hax HC Hindist)).
-  - intros C i Hax HC.
-    rewrite (second.(transport_value_commutes) C i Hax HC).
-    rewrite (first.(transport_value_commutes) _ _ (second.(transport_ax) Hax)
+      (second.(transport_indist) C i1 i2 Hassumptions HC Hindist)).
+  - intros C i Hassumptions HC.
+    rewrite (second.(transport_value_commutes) C i Hassumptions HC).
+    rewrite (first.(transport_value_commutes) _ _ (second.(transport_ax) Hassumptions)
       (second.(transport_admissible) C HC)).
     reflexivity.
-  - intros C i Hax HC.
-    rewrite (second.(transport_timing_commutes) C i Hax HC).
-    rewrite (first.(transport_timing_commutes) _ _ (second.(transport_ax) Hax)
+  - intros C i Hassumptions HC.
+    rewrite (second.(transport_timing_commutes) C i Hassumptions HC).
+    rewrite (first.(transport_timing_commutes) _ _ (second.(transport_ax) Hassumptions)
       (second.(transport_admissible) C HC)).
     reflexivity.
-  - intros C i Hax HC.
-    rewrite (second.(transport_arch_commutes) C i Hax HC).
-    rewrite (first.(transport_arch_commutes) _ _ (second.(transport_ax) Hax)
+  - intros C i Hassumptions HC.
+    rewrite (second.(transport_arch_commutes) C i Hassumptions HC).
+    rewrite (first.(transport_arch_commutes) _ _ (second.(transport_ax) Hassumptions)
       (second.(transport_admissible) C HC)).
     reflexivity.
 Defined.
