@@ -3019,6 +3019,38 @@ Modernize active authored C declarations, initialization and compile-time checks
 
 The [language profile](docs/implementation/c-language-profile.md) distinguishes C17 host from admitted CompCert-C target code. Kernel, supervisor, copy-service and storage locals use narrower scopes and initialized immutable snapshots; host records use named fields where helpful. Host builds enforce strict prototypes and mutation anchors follow declarations. Frozen firmware, the source-bound IPC oracle and retained snapshots keep their bytes. `c-modern-20261031` owns hosted handoff. Private target recompilation/re-execution is deferred because the contained compiler is unavailable; no fresh target verdict is claimed.
 
+## Producer dependency identities
+
+Model-build and composition identities bind their transitive local Python
+implementation from explicit entry points, with package initializers and imports
+inside functions included. Reuse the proof gate's static import reader through a
+shared library. Dynamic command targets and non-Python inputs remain explicit;
+dependency discovery never imports or executes the sources it inspects.
+
+**Start:** the model build receipt, composer/admission source views and proof
+gate implementation reader. **Owns:** the shared reader, consumer-specific roots,
+complete composition parser bindings and model identities that exclude unrelated
+tools. Recompute closures from the selected checkout rather than a process-global
+cache. Preserve declared schemas, Gallina/data inputs, model/corpus inputs,
+toolchain locks and pinned gitlinks. Keep the model's observed build revision as
+provenance outside its reuse identity; retained artifact hashes still bind the
+actual built bytes and their version stamp. Existing receipts missing the new
+input closure require fresh evidence.
+
+**Check:** independent fixture imports exercise transitive and relative imports,
+package initializers, function-local imports, cycles, changed import edges,
+unreadable or missing local modules and invalid Python without executing fixture
+code. A configuration-parser edit changes composition identity; an unrelated
+editor/checker edit or commit preserves model reuse, while relevant source, data,
+tool or option changes still refuse stale evidence. Preserve the proof reader's
+existing dependency decisions. Run focused dependency, source-binding and model
+receipt controls plus typecheck; regenerate owned source inventories and
+composition projections. **Join:** integrate on local `main` and record Windows
+and Ubuntu Host CI and all Guest lanes as user-managed acceptance under the
+[validation handoff](AGENTS.md#tool-execution-and-validation). No native package
+reuse or new model/proof acceptance follows from this change; Q31 retains that
+separate comparison.
+
 ## Compiler differential library boundary
 
 Firmware, kernel and service target instruments share `vos/compiler_diff.py`; `vos/cli/compiler_diff.py` owns parsing, orchestration and output. Consumers import the library directly. Preserve compilation, assembly, generated programs, HTIF/trace decisions, encodings and diagnostics.
