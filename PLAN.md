@@ -451,20 +451,20 @@ These figures cover the priced reference-build, assessment and named hardening b
 <!-- estimate-summary:start -->
 | Measure | Value |
 | --- | --- |
-| Total estimate midpoint h | 4,897.8 |
-| Total estimate range h | 3,206.2–6,589.4 |
+| Total estimate midpoint h | 4,903.8 |
+| Total estimate range h | 3,210.2–6,597.4 |
 | Completed scope h | 934.8 |
 | Complete by estimate % | 19.1 |
-| Remaining h | 3,963 |
-| Committed remaining h | 2,484.5 |
-| Open class I h | 949.5 |
+| Remaining h | 3,969 |
+| Committed remaining h | 2,490.5 |
+| Open class I h | 955.5 |
 | Open class X h | 3,013.5 |
 | Retained completion estimate h | 329.5 |
 | Unmeasured completed items | 34 |
-| Calibrated total h | 5,888.1 |
+| Calibrated total h | 5,892.4 |
 | Committed M8a open h | 74 |
 | Committed M8b open h | 105.5 |
-| Other committed open h | 2,305 |
+| Other committed open h | 2,311 |
 | Conditional open h | 1,064.5 |
 | Unfunded option open h | 414 |
 | Committed M8a open class X h | 0 |
@@ -1050,6 +1050,8 @@ The [first-release delivery sequence](#vela-first-release-delivery) governs new 
 * [ ] **Q25ac · Extend pure Vela expressions and playground examples** · 8 h, range 6–10 · I · agent-parallel
   * **Start:** the existing pure compiler, native grammar and playground, and the landed [expression increment contract](docs/languages/vela/vela-prototype.md#extended-pure-expressions). **Owns:** Boolean negation and short-circuit conjunction/disjunction, natural subtraction, remaining equality/ordering comparisons, both pure syntax routes, exact-source AST validation, bounded static evaluation, formatting/editor compatibility and playground examples. **Check:** every linked operator, precedence, evaluation, refusal, source-binding and integration predicate; focused host tests, Python validation and corpus checks, followed by user-managed Host CI on both platforms and all Guest CI lanes. Native generation and kernel replay remain pending until their selected-revision evidence exists. **Join:** independent grammar/consumer and fixture review, source-preserving authoring checks and the local validation handoff. **Execute:** reuse the canonical surface spellings, compiler facts and isolated playground worker; retain mathematical Nat/bool semantics and all wider-language/production boundaries.
   * **Implementation checkpoint:** both pure routes accept Boolean logic, all comparisons and saturating natural subtraction, with exact-source native decoding, bounded short-circuit evaluation, compiler-backed formatting and playground examples. Independent operator/AST/refusal controls and focused HTTP/editor tests pass locally. Strict native generation uses the exact locked tools, and the diagnostic `vela-parser migration` comparison agrees without differences. Headless Edge verifies the new examples, highlighting, formatting, compilation, evaluation, diagnostics and recovery in Monaco and plain-text fallback. The hosted replay now includes independently expected pure runtime-function and constant observations alongside the mathematical consumer. The `vela-expressions-final-20261104` fanout journal records the local handoff and full recommended hosted selection; Host CI, Guest CI and kernel verdicts remain pending, so this item stays open.
+* [ ] **Q25ad · Add natural division and remainder to Vela and its playground** · 6 h, range 4–8 · I · agent-parallel
+  * **Start:** the existing pure compiler, wider operator spellings and playground, and the landed [division and remainder contract](docs/languages/vela/vela-prototype.md#natural-division-and-remainder). **Owns:** both pure syntax routes, exact-source AST validation, Nat quotient/remainder emission and bounded static evaluation, authoring/editor integration and runnable playground examples. **Check:** every linked value, term, precedence, refusal, source-binding, limit and integration predicate; independent focused host controls, Python validation and corpus checks, followed by user-managed Host CI on both platforms and all Guest CI lanes, including native generation, migration and pure kernel observations. **Join:** independent grammar/consumer and fixture review, browser checks where available and the local validation handoff. **Execute:** retain total mathematical Nat semantics, existing resource bounds and compiler-service reuse; pending hosted verdicts supply no qualification or production acceptance.
 * [x] **Q26 · Price the resident toolchain against the floor's own comparisons** · 4.6 h actual · agent-parallel
   * [The toolchain residency report](docs/performance/toolchain-residency.md) records the three quantities with their predicates, instruments, lanes and revisions, scores each against the artifact that owns its supply or declares it unscorable with the act that owes the supply named, and states which of the three binds and what would have to move, as arms for the product's owner with none taken. ([note](docs/implementation/completion-log.md#q26-price-the-resident-toolchain-against-the-floors-own-comparisons))
 
@@ -1413,7 +1415,7 @@ Q6's conventional-memory simulators are conditional on a topology comparison nee
 
 No assessment completion automatically increases a performance estimate. For an optimization affecting fraction `f` of runtime by factor `s`, the unchanged-cost bound is `1 / ((1 - f) + f / s)`; added transfers or changed scheduling require a fresh whole-workload comparison. Better packing is not more fabricated capacity, and host performance is not target throughput.
 
-**Q subtotal:** 3,068.3 h · 63% · 322.8 h complete · open range 1,601–3,890 h.
+**Q subtotal:** 3,074.3 h · 63% · 322.8 h complete · open range 1,605–3,898 h.
 
 ### M0 · Hardware reference
 

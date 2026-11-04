@@ -160,7 +160,8 @@ to strongest, precedence is `||`, `&&`, a single comparison (`==`, `!=`, `<`,
 `<=`, `>`, `>=`), left-associative `+`/`-`, left-associative `*`, prefix `!`,
 then atoms/calls/grouping. Comparisons do not chain; parentheses are required.
 Repeated negation is permitted within the existing expression bounds. Unary
-minus, division, remainder and machine integer types remain outside this increment.
+minus and machine integer types remain outside this increment. Division and
+remainder have their own increment below.
 
 `!`, `&&` and `||` require Boolean operands. Equality and inequality require
 two operands of the same supported type; ordering and subtraction require
@@ -204,6 +205,50 @@ shared pure translator, alongside the mathematical consumer. Independently
 expected equalities check emitted runtime functions and evaluated constants;
 the kernel and assumption audit cover both the generated library and these
 observations. A syntax refusal cannot satisfy a semantic negative fixture.
+
+## Natural division and remainder
+
+Q25ad in [the plan](../../../PLAN.md#q-assessment-actions) adds binary `/` and
+`%` to both pure syntax routes, using the existing wider surface spellings.
+They require two `Nat` operands and return `Nat`, with the same precedence as
+`*`; all three associate left to right. Thus `20 / 3 * 2` is `12`,
+`20 % 6 * 2` is `4`, and `20 / (3 * 2)` is `3`.
+
+These operations denote `Corelib.Init.Nat.div` and `.modulo`. For a positive
+divisor, division is the natural quotient and remainder is the nonnegative
+remainder. The operations are total: `n / 0` is `0`, and `n % 0` is `n`.
+The static evaluator must match these terms, including zero divisors, without
+Python division exceptions. Both operands remain checked and evaluated once
+in source order, including when the divisor is zero. Existing static work,
+depth, numeric and emission bounds apply. There is no represented integer,
+target divide instruction, timing claim or new proof-admission route.
+This reuses the mathematical elaborator's existing total `Nat` interpretation.
+Represented first-release arithmetic retains the nonzero-divisor and
+representability obligations in [primitive semantics](first-release.md#primitive-semantics);
+these demonstration terms do not discharge those obligations.
+
+Acceptance requires independent values and exact emitted terms for both
+operators, zero and unit divisors, smaller/equal/larger operands, mixed
+precedence and grouping, named calls, constants and static parameters. Invalid
+Boolean/mixed operands must reach type refusals; missing operands, repeated
+operators, `/=` and `%=` remain refused. Native AST controls must preserve
+operator/operand spans and reject omitted, substituted or additional source
+tokens, including comments, Unicode and CRLF boundaries. Retain existing
+arithmetic, short-circuit and resource-limit controls. Zero results must not
+hide non-static dependencies or avoid evaluating an expensive operand.
+
+Formatting must preserve tokens, comments and interpretation and be idempotent;
+LSP diagnostics, hover, formatting and semantic tokens must retain their
+existing source identities. Add independently expected runtime and constant
+observations to hosted native pure kernel replay and retain migration controls.
+The [playground examples](playground.md#division-and-remainder-examples) must use
+the shared compiler and isolated worker for compilation and evaluation.
+Exercise Monaco and plain-text editing, formatting, evaluation, type refusals
+and recovery with available browser infrastructure, or record its absence.
+Run focused host tests, Python validation and corpus checks locally and record
+the settled revision and full recommended hosted selection through `fanout`.
+Native regeneration and kernel replay require user-managed hosted evidence;
+pending verdicts do not close qualification.
 
 ## Command and publication
 

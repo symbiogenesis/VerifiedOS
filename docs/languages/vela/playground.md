@@ -145,6 +145,18 @@ formatting, hover, diagnostics and source-bound stale-result behavior. The
 browser consumes the existing compiler services without parsing or evaluating
 the examples itself. Both Monaco and plain-text mode use the same APIs.
 
+## Division and remainder examples
+
+Q25ad in [the plan](../../../PLAN.md#q-assessment-actions) exposes the
+[natural division and remainder increment](vela-prototype.md#natural-division-and-remainder)
+through runnable examples and console suggestions. Show quotient/remainder
+grouping, mixed multiplication precedence and the mathematical zero-divisor
+results explicitly. Highlight `/` and `%` while preserving `//` comments.
+Reuse compiler evaluation, Gallina emission, formatting, diagnostics and editor
+facts in both Monaco and plain-text mode. Cover actual HTTP values, emitted
+operations, invalid operand types and successful recovery; preserve source and
+the existing stale-result checks.
+
 ## Acceptance
 
 Land this contract and Q25aa's estimate before implementation. Independently
