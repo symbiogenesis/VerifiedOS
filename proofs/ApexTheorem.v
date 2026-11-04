@@ -2,9 +2,10 @@
 (* =========================================================================
    ApexTheorem.v
 
-   The machine-checked statement of the apex theorem T and the nine seam
-   lemmas, interfaces aligned: day-one deliverable (iii) of R-18-003b,
-   sub-deliverable (a) of R-18-031, row 1 of the crown-jewel inventory.
+   The machine-checked statement of the apex theorem T, the nine seam
+   obligations and a generic semantic transport interface: day-one
+   deliverable (iii) of R-18-003b, sub-deliverable (a) of R-18-031,
+   row 1 of the crown-jewel inventory. Concrete interface bindings remain open.
 
    This file states propositions over the Vocabulary record, whose fields
    are interfaces supplied by the other crown-jewel workstreams. It depends
@@ -310,11 +311,10 @@ Definition refinement_tower (v : Vocabulary) : Prop :=
   /\ v.(rtl_refines_sail).
 
 (* -------------------------------------------------------------------------
-   The nine seam lemmas, exactly R-05-160's list in R-05-160's order.
-   Each is the statement that its two sides meet at the named interface;
-   the alignment (R-05-161: "each seam's conclusion is stated in the
-   vocabulary of the next's premise") is exhibited by field reuse, not
-   asserted in prose: reused fields are the interfaces shown to meet.
+   The nine seam obligations, exactly R-05-160's list in R-05-160's order.
+   Reused fields record their intended dependencies. Actual interface
+   alignment requires concrete execution relations, including the semantic
+   transports below; matching field names alone establishes no such relation.
    ------------------------------------------------------------------------- *)
 
 (* 1. NI joins timing (R-08-027, R-17-003). *)
@@ -390,18 +390,134 @@ Definition seam_lemmas (v : Vocabulary) : Prop :=
   /\ seam_attestation_capability_safety v.
 
 (* -------------------------------------------------------------------------
-   The composition meta-lemma (R-05-161): the four invariants and the nine
-   seams, transported through the tower, entail T. Stated here; its proof
-   is R-18-031(b), the linking theorem, discharged incrementally and last.
-   Its coverage obligation (no attacker-observable channel, authorized
-   flow, timing leak, liveness stall, or admitted binary escapes the
-   union) is the written-and-reviewed argument R-05-161 requires beside
-   this statement, not a further Prop of it.
+   Execution transport for R-05-161. The named Prop fields above are a
+   coverage ledger, not relations between executions. A transport instead
+   maps each target input and adversary context into a source, preserves
+   the actual policy premises, and commutes with each released observation.
+   The three maps are fixed independently of an input pair. Both executions
+   are total functions here; progress belongs to the observation its model
+   declares, and that observation must commute too.
    ------------------------------------------------------------------------- *)
 
-Definition composition_meta_lemma (v : Vocabulary) : Prop :=
+Record SemanticTransport (source target : Vocabulary) : Type := {
+  transport_input : target.(Input) -> source.(Input);
+  transport_context : (target.(Compartment) -> Prop) -> (source.(Compartment) -> Prop);
+  transport_value : source.(ValueObs) -> target.(ValueObs);
+  transport_timing : source.(TimingObs) -> target.(TimingObs);
+  transport_arch : source.(ArchObs) -> target.(ArchObs);
+  transport_ax : Ax target -> Ax source;
+  transport_admissible : forall C,
+    admissible target C -> admissible source (transport_context C);
+  transport_indist : forall C i1 i2,
+    Ax target -> admissible target C ->
+    target.(indist) target.(policy) C i1 i2 ->
+    source.(indist) source.(policy) (transport_context C)
+      (transport_input i1) (transport_input i2);
+  transport_value_commutes : forall C i,
+    Ax target -> admissible target C ->
+    target.(release_value) target.(D) (target.(observe_value) C (target.(exec) i)) =
+    transport_value (source.(release_value) source.(D)
+      (source.(observe_value) (transport_context C) (source.(exec) (transport_input i))));
+  transport_timing_commutes : forall C i,
+    Ax target -> admissible target C ->
+    target.(release_timing) target.(D) (target.(observe_timing) C (target.(exec) i)) =
+    transport_timing (source.(release_timing) source.(D)
+      (source.(observe_timing) (transport_context C) (source.(exec) (transport_input i))));
+  transport_arch_commutes : forall C i,
+    Ax target -> admissible target C ->
+    target.(release_arch) target.(D) (target.(observe_arch) C (target.(exec) i)) =
+    transport_arch (source.(release_arch) source.(D)
+      (source.(observe_arch) (transport_context C) (source.(exec) (transport_input i))))
+}.
+
+Arguments transport_input {source target} _ _.
+Arguments transport_context {source target} _ _.
+Arguments transport_value {source target} _ _.
+Arguments transport_timing {source target} _ _.
+Arguments transport_arch {source target} _ _.
+Arguments transport_ax {source target} _ _.
+Arguments transport_admissible {source target} _ _ _.
+Arguments transport_indist {source target} _ _ _ _ _ _ _.
+Arguments transport_value_commutes {source target} _ _ _ _ _.
+Arguments transport_timing_commutes {source target} _ _ _ _ _.
+Arguments transport_arch_commutes {source target} _ _ _ _ _.
+
+Lemma transport_T (source target : Vocabulary)
+    (binding : SemanticTransport source target) : T source -> T target.
+Proof.
+  intros Hsource Hax C HC i1 i2 Hindist.
+  destruct (Hsource (binding.(transport_ax) Hax) (binding.(transport_context) C)
+    (binding.(transport_admissible) C HC)
+    (binding.(transport_input) i1) (binding.(transport_input) i2)
+    (binding.(transport_indist) C i1 i2 Hax HC Hindist)) as [Hv [Ht Ha]].
+  unfold observation_equal_modulo_D.
+  split.
+  - rewrite (binding.(transport_value_commutes) C i1 Hax HC),
+      (binding.(transport_value_commutes) C i2 Hax HC).
+    now rewrite Hv.
+  - split.
+    + rewrite (binding.(transport_timing_commutes) C i1 Hax HC),
+        (binding.(transport_timing_commutes) C i2 Hax HC).
+      now rewrite Ht.
+    + rewrite (binding.(transport_arch_commutes) C i1 Hax HC),
+        (binding.(transport_arch_commutes) C i2 Hax HC).
+      now rewrite Ha.
+Qed.
+
+Definition compose_transport (source middle target : Vocabulary)
+    (first : SemanticTransport source middle)
+    (second : SemanticTransport middle target) : SemanticTransport source target.
+Proof.
+  refine {| transport_input := fun i => first.(transport_input) (second.(transport_input) i);
+    transport_context := fun C => first.(transport_context) (second.(transport_context) C);
+    transport_value := fun o => second.(transport_value) (first.(transport_value) o);
+    transport_timing := fun o => second.(transport_timing) (first.(transport_timing) o);
+    transport_arch := fun o => second.(transport_arch) (first.(transport_arch) o);
+    transport_ax := fun H => first.(transport_ax) (second.(transport_ax) H);
+    transport_admissible := fun C H => first.(transport_admissible) _
+      (second.(transport_admissible) C H) |}.
+  - intros C i1 i2 Hax HC Hindist.
+    exact (first.(transport_indist) _ _ _ (second.(transport_ax) Hax)
+      (second.(transport_admissible) C HC)
+      (second.(transport_indist) C i1 i2 Hax HC Hindist)).
+  - intros C i Hax HC.
+    rewrite (second.(transport_value_commutes) C i Hax HC).
+    rewrite (first.(transport_value_commutes) _ _ (second.(transport_ax) Hax)
+      (second.(transport_admissible) C HC)).
+    reflexivity.
+  - intros C i Hax HC.
+    rewrite (second.(transport_timing_commutes) C i Hax HC).
+    rewrite (first.(transport_timing_commutes) _ _ (second.(transport_ax) Hax)
+      (second.(transport_admissible) C HC)).
+    reflexivity.
+  - intros C i Hax HC.
+    rewrite (second.(transport_arch_commutes) C i Hax HC).
+    rewrite (first.(transport_arch_commutes) _ _ (second.(transport_ax) Hax)
+      (second.(transport_admissible) C HC)).
+    reflexivity.
+Defined.
+
+(* This unbound shape is retained only for its refuting witness in
+   [SeamWitnesses](SeamWitnesses.v#composition_meta_lemma_distinguishing).
+   No collection of named propositions supplies a missing transport. *)
+Definition ledger_only_composition (v : Vocabulary) : Prop :=
   substrate_invariants v /\ seam_lemmas v /\ refinement_tower v
   -> T v.
+
+(* The concrete source theorem and each transport in the actual refinement
+   tower remain R-18-031(b)'s open obligations. The generic result below
+   does not instantiate any coverage field or bind the fabricated machine. *)
+Definition composition_meta_lemma (source target : Vocabulary) : Prop :=
+  SemanticTransport source target ->
+  substrate_invariants target /\ seam_lemmas target /\ refinement_tower target ->
+  T source -> T target.
+
+Lemma semantic_composition_meta_lemma (source target : Vocabulary) :
+  composition_meta_lemma source target.
+Proof.
+  intros binding _ Hsource.
+  exact (transport_T source target binding Hsource).
+Qed.
 
 (* =========================================================================
    Non-vacuity witnesses (R-05-165, R-05-166). R-05-165 names the three
@@ -477,6 +593,8 @@ Definition trivial_vocabulary : Vocabulary := {|
   ax_human_carries_consent := fun _ => I
 |}.
 
+Definition witness_Vocabulary : Vocabulary := trivial_vocabulary.
+
 Lemma statement_inhabitation_witness : T trivial_vocabulary.
 Proof.
   intros _ C _ i1 i2 _.
@@ -492,6 +610,20 @@ Lemma premises_inhabited :
 Proof.
   now repeat split.
 Qed.
+
+Definition witness_SemanticTransport :
+    SemanticTransport trivial_vocabulary trivial_vocabulary.
+Proof.
+  refine {| transport_input := fun i => i;
+    transport_context := fun C => C;
+    transport_value := fun o => o;
+    transport_timing := fun o => o;
+    transport_arch := fun o => o;
+    transport_ax := fun H => H;
+    transport_admissible := fun _ H => H;
+    transport_indist := fun _ _ _ _ _ H => H |};
+    intros; reflexivity.
+Defined.
 
 (* A one-bit leak: the input is the secret, the value observation reveals
    it, the policy calls the two inputs indistinguishable, and T is

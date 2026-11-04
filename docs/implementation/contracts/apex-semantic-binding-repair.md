@@ -1,8 +1,8 @@
 # Apex semantic transport repair
 
 This bounded repair implements the execution-binding part of
-[R-05-161](../../requirements-register.md#r-05-161) within
-[R-18-031](../../requirements-register.md#r-18-031). The existing
+[R-05-161](../../spec.md#r-05-161) within
+[R-18-031](../../spec.md#r-18-031). The existing
 [Vocabulary](../../../proofs/ApexTheorem.v#Vocabulary) proposition fields remain a
 coverage ledger. A conjunction of those fields supplies no execution relation.
 The full composed-system proof and concrete field instantiations remain open.
