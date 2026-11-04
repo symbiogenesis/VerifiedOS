@@ -192,8 +192,7 @@ async function wire(session, message, generation) {
 
 async function closeSession(session, options = {}) {
     try {
-        await api("/api/lsp", { session, message: { jsonrpc: "2.0", id: ++state.requestId, method: "shutdown" } }, options);
-        await api("/api/lsp", { session, message: { jsonrpc: "2.0", method: "exit" } }, options);
+        await api("/api/close", { session }, options);
     } catch { /* Expired sessions and closing tabs also have bounded server-side expiry. */ }
 }
 

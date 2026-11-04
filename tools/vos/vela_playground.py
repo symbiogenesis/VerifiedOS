@@ -7,6 +7,7 @@ import secrets
 import socket
 import subprocess
 import sys
+import threading
 import time
 from dataclasses import dataclass, field
 from http.server import BaseHTTPRequestHandler, HTTPServer
@@ -128,6 +129,31 @@ class PlaygroundHandler(BaseHTTPRequestHandler):
     server_version = "VelaPlayground"
     _body_read = False
 
+    @override
+    def setup(self) -> None:
+        super().setup()
+        self._read_timer = threading.Timer(READ_SECONDS, self._end_read)
+        self._read_timer.daemon = True
+        self._read_timer.start()
+
+    def _end_read(self) -> None:
+        try:
+            self.connection.shutdown(socket.SHUT_RD)
+        except OSError:
+            pass
+
+    @override
+    def handle(self) -> None:
+        try:
+            super().handle()
+        except (ConnectionError, TimeoutError):
+            pass
+
+    @override
+    def finish(self) -> None:
+        self._read_timer.cancel()
+        super().finish()
+
     @property
     def playground(self) -> PlaygroundServer:
         return cast("PlaygroundServer", self.server)
@@ -137,6 +163,7 @@ class PlaygroundHandler(BaseHTTPRequestHandler):
         """Avoid logging source, request paths or authentication material."""
 
     def _send(self, status: int, body: bytes, content_type: str = "application/json; charset=utf-8") -> None:
+        self._read_timer.cancel()
         self.send_response(status)
         self.send_header("Content-Type", content_type)
         self.send_header("Content-Length", str(len(body)))
@@ -194,7 +221,7 @@ class PlaygroundHandler(BaseHTTPRequestHandler):
                 authorization[0].encode("utf-8"), f"Bearer {self.playground.token}".encode())):
             self._error(401, "Missing or invalid playground token; reopen the printed launch URL")
             return
-        if self.path not in {"/api/session", "/api/lsp", "/api/compile", "/api/evaluate"}:
+        if self.path not in {"/api/session", "/api/close", "/api/lsp", "/api/compile", "/api/evaluate"}:
             self._error(404, "Unknown playground operation")
             return
         lengths = self.headers.get_all("Content-Length", [])
@@ -214,6 +241,7 @@ class PlaygroundHandler(BaseHTTPRequestHandler):
             raw = self.rfile.read(size)
             if len(raw) != size:
                 raise ValueError("Truncated JSON body")
+            self._read_timer.cancel()
             request = decode_message(raw)
             response = self._dispatch(request)
             encoded = _raw(response)
@@ -230,6 +258,11 @@ class PlaygroundHandler(BaseHTTPRequestHandler):
 
     def _dispatch(self, request: dict[str, object]) -> dict[str, object]:
         self.playground.expire_sessions()
+        if self.path == "/api/close":
+            if set(request) != {"session"} or not isinstance(request["session"], str):
+                raise ValueError("Expected a session identifier")
+            self.playground.sessions.pop(request["session"], None)
+            return {"closed": True}
         if self.path == "/api/session":
             if request:
                 raise ValueError("Session creation requires an empty object")

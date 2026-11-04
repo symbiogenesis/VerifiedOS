@@ -747,11 +747,22 @@ def evaluate(source: bytes, expression: str, value_type: ValueType) -> StaticEva
                 or not isinstance(parsed.declarations[0], syntax.Constant)
                 or parsed.declarations[0].name.text != "__vela_console_result"):
             raise VelaError("syntax", 3, 1, "expected exactly one constant initializer")
+    except VelaError as error:
+        lines = expression.replace("\r\n", "\n").replace("\r", "\n").split("\n")
+        line = max(1, error.line - 2)
+        column = error.column if line <= len(lines) else len(lines[-1]) + 1
+        line = min(line, len(lines))
+        column = min(column, len(lines[line - 1]) + 1)
+        raise VelaError(error.kind, line, column,
+                        f"expression: {error.message}") from error
+    try:
         result = elaborator._constant(parsed.declarations[0], {}).static
         if result is None:
             raise VelaError("unsupported", 3, 1, "expression must be closed and static")
     except VelaError as error:
-        raise VelaError(error.kind, max(1, error.line - 2), error.column,
+        # Evaluation may visit an earlier function's source site. Anchor the
+        # refusal to this console invocation instead of relabeling that site.
+        raise VelaError(error.kind, 1, 1,
                         f"expression: {error.message}") from error
     return StaticEvaluation(result.value_type, result.value)
 

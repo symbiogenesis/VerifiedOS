@@ -3,8 +3,10 @@
 
 import hashlib
 import json
+import socket
 import tempfile
 import threading
+import time
 from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 from http.client import HTTPConnection
@@ -62,6 +64,14 @@ def _static_refusals() -> None:
                        "1; public Nat Escape() => 4", "1); public const Nat Injected = (2",
                        "", "import Something", "Square(7); 2"):
         _refuses(lambda expression=expression: vela.evaluate(source, expression, "Nat"))
+    for expression in ("", "1 +"):
+        try:
+            vela.evaluate(source, expression, "Nat")
+        except vela.VelaError as error:
+            ensure(error.line == 1 and 1 <= error.column <= len(expression) + 1,
+                   "synthetic parser suffix leaked into console error coordinates")
+        else:
+            raise AssertionError("accepted incomplete console expression")
     _refuses(lambda: vela.evaluate(source, "Small(1)", "Nat"), "type")
     _refuses(lambda: vela.evaluate(source, "missing", "Nat"), "name")
     _refuses(lambda: vela.evaluate(source, "9" * 4097, "Nat"), "limit")
@@ -79,6 +89,13 @@ def _static_refusals() -> None:
     _refuses(lambda: vela.evaluate(exponential, "F15(0)", "Nat"), "limit")
     with patch.object(vela, "MAX_STATIC_WORK", 2):
         _refuses(lambda: vela.evaluate(b"module M; public Nat Id(Nat x) => x;", "Id(1) + 2", "Nat"), "limit")
+    try:
+        vela.evaluate(exponential, "F15(0)", "Nat")
+    except vela.VelaError as error:
+        ensure(error.line == 1 and error.column == 1 and error.message.startswith("expression:"),
+               "function-body evaluation refusal was mislabeled as expression coordinates")
+    else:
+        raise AssertionError("accepted unbounded console evaluation")
     with patch.object(vela, "MAX_OUTPUT_BYTES", 32):
         _refuses(lambda: vela.evaluate(source, "42", "Nat"), "limit")
 
@@ -206,6 +223,13 @@ def _http_authority_and_bounds() -> None:
             ensure(_http(server, "/api/lsp", {"session": identity, "message": {}})[0] == 410,
                    "expired session remained usable")
             ensure(isinstance(_post(server, "/api/session", {})["session"], str), "expiry did not release a slot")
+        identity = cast("str", _post(server, "/api/session", {})["session"])
+        ensure(_post(server, "/api/close", {"session": identity}) == {"closed": True},
+               "explicit tab close did not release its session")
+        ensure(_post(server, "/api/close", {"session": identity}) == {"closed": True},
+               "duplicate tab close is not idempotent")
+        ensure(_http(server, "/api/lsp", {"session": identity, "message": {}})[0] == 410,
+               "closed tab retained language-server state")
 
 
 def _http_lsp() -> None:
@@ -252,9 +276,37 @@ def _http_lsp() -> None:
         _rpc(server, session, "exit")
 
 
+def _absolute_read_deadline() -> None:
+    with patch.object(playground, "READ_SECONDS", 0.2), _running() as server:
+        for prefix in (b"POST /api/session HTTP/1.1\r\nHost: ",
+                       (f"POST /api/session HTTP/1.1\r\nHost: {server.authority}\r\n"
+                        f"Authorization: Bearer {server.token}\r\nContent-Type: application/json\r\n"
+                        "Content-Length: 20\r\n\r\n{").encode()):
+            with socket.create_connection(("127.0.0.1", server.server_address[1]), timeout=2) as connection:
+                connection.sendall(prefix)
+                start = time.monotonic()
+                # Keep traffic inside the inactivity timeout while exceeding the
+                # whole-request deadline; the service must still release its slot.
+                for _ in range(6):
+                    time.sleep(0.06)
+                    try:
+                        connection.sendall(b" ")
+                    except OSError:
+                        break
+                try:
+                    connection.shutdown(socket.SHUT_WR)
+                    connection.recv(4096)
+                except ConnectionError:
+                    pass
+                ensure(time.monotonic() - start < 1.5, "trickled input extended the absolute read budget")
+            ensure(_http(server, "/", method="GET")[0] == 200,
+                   "expired read kept the synchronous service unavailable")
+
+
 def cases() -> list[Case]:
     return [Case("compiler-owned-static-natural-and-boolean-results", _static_values),
             Case("compiler-refusals-injection-and-existing-budgets", _static_refusals),
             Case("real-isolated-http-compilation-and-evaluation", _http_compiler),
             Case("http-auth-authority-strict-json-path-and-session-bounds", _http_authority_and_bounds),
+            Case("absolute-http-header-and-body-read-deadline", _absolute_read_deadline),
             Case("real-http-lsp-lifecycle-overlays-navigation-and-formatting", _http_lsp)]
