@@ -98,7 +98,7 @@ def _inputs(root: Path) -> dict[str, str]:
     paths = [f"tools/vela/parser/{name}" for name in SOURCES]
     paths.extend(("tools/opam/sail.lock", "tools/vos/vela_parser.py", "tools/vos/vela_surface.py",
                   "tools/vela/examples/pure.vela", "tools/vela/examples/surface.vela",
-                  "tools/vela/examples/constants.vela"))
+                  "tools/vela/examples/constants.vela", "tools/vela/examples/expressions.vela"))
     return {name: _digest(root / name) for name in paths}
 
 
@@ -301,6 +301,9 @@ def _shape(value: dict[str, Json]) -> Json:
         operator = _object(value.get("operator"), "operator")
         return [operator.get("text"), _shape(_object(value.get("left"), "left expression")),
                 _shape(_object(value.get("right"), "right expression"))]
+    if kind == "unary":
+        operator = _object(value.get("operator"), "unary operator")
+        return [operator.get("text"), _shape(_object(value.get("value"), "unary expression"))]
     if kind == "group":
         return ["group", _shape(_object(value.get("value"), "group expression"))]
     raise ValueError(f"unexpected fixture expression: {kind}")
@@ -426,20 +429,62 @@ def _typed_local_fixture(compiled: Build) -> str:
     return "typed-immutable-locals-and-original-byte-spans"
 
 
+def _extended_expression_fixture(compiled: Build) -> str:
+    for newline in (b"\n", b"\r\n", b"\r"):
+        source = (b"// caf\xc3\xa9" + newline + b"module M; public bool F() { return ! // hidden !"
+                  + newline + b" !false || 3 >= 2 && true; }")
+        first = source.index(b"!", source.index(b"return"))
+        second = source.index(b"!false")
+        false = second + 1
+        disjunction = source.index(b"||")
+        three = source.index(b"3 >=")
+        comparison = source.index(b">=")
+        two = source.index(b"2 &&")
+        conjunction = source.index(b"&&")
+        true = source.index(b"true;")
+        expected: dict[str, Json] = {
+            "kind": "binary", "span": [first, true + 4],
+            "operator": {"text": "||", "span": [disjunction, disjunction + 2]},
+            "left": {"kind": "unary", "span": [first, false + 5],
+                     "operator": {"text": "!", "span": [first, first + 1]},
+                     "value": {"kind": "unary", "span": [second, false + 5],
+                               "operator": {"text": "!", "span": [second, second + 1]},
+                               "value": {"kind": "bool", "span": [false, false + 5], "value": False}}},
+            "right": {"kind": "binary", "span": [three, true + 4],
+                      "operator": {"text": "&&", "span": [conjunction, conjunction + 2]},
+                      "left": {"kind": "binary", "span": [three, two + 1],
+                               "operator": {"text": ">=", "span": [comparison, comparison + 2]},
+                               "left": {"kind": "nat", "span": [three, three + 1], "value": "3"},
+                               "right": {"kind": "nat", "span": [two, two + 1], "value": "2"}},
+                      "right": {"kind": "bool", "span": [true, true + 4], "value": True}},
+        }
+        if _body(parse_source(compiled, source)) != expected:
+            raise ValueError("extended expression precedence or original operator/operand byte spans differ")
+    return "extended-expression-precedence-and-original-byte-spans"
+
+
 def _fixtures(compiled: Build) -> list[str]:
     """Expected trees selected by the independent grammar reviewer."""
-    passed: list[str] = [_concise_fixture(compiled), _constant_callable_fixture(compiled), _typed_local_fixture(compiled)]
+    passed: list[str] = [_concise_fixture(compiled), _constant_callable_fixture(compiled),
+                        _typed_local_fixture(compiled), _extended_expression_fixture(compiled)]
     prefix = b"module M; public Nat F() { return "
     expressions: tuple[tuple[bytes, Json], ...] = (
         (b"1 + 2 * 3", ["+", ["nat", "1"], ["*", ["nat", "2"], ["nat", "3"]]]),
         (b"1 * 2 * 3", ["*", ["*", ["nat", "1"], ["nat", "2"]], ["nat", "3"]]),
         (b"1 + 2 + 3", ["+", ["+", ["nat", "1"], ["nat", "2"]], ["nat", "3"]]),
+        (b"9 - 3 - 2", ["-", ["-", ["nat", "9"], ["nat", "3"]], ["nat", "2"]]),
+        (b"2 + 3 * 4 - 5", ["-", ["+", ["nat", "2"], ["*", ["nat", "3"], ["nat", "4"]]], ["nat", "5"]]),
+        (b"!false == true", ["==", ["!", ["bool", False]], ["bool", True]]),
+        (b"!false || false && false", ["||", ["!", ["bool", False]], ["&&", ["bool", False], ["bool", False]]]),
+        (b"!!true", ["!", ["!", ["bool", True]]]),
         (b"(1 + 2) * 3", ["*", ["group", ["+", ["nat", "1"], ["nat", "2"]]], ["nat", "3"]]),
         (b"0001", ["nat", "0001"]),
         (b"0_001", ["nat", "0_001"]),
         (b"1_024 + 2_048", ["+", ["nat", "1_024"], ["nat", "2_048"]]),
         (b"_".join([b"9"] * 256), ["nat", "_".join(["9"] * 256)]),
     )
+    expressions += tuple((b"3 " + operator + b" 4", [operator.decode(), ["nat", "3"], ["nat", "4"]])
+                         for operator in (b"==", b"!=", b"<", b"<=", b">", b">="))
     for expression, expected in expressions:
         result = parse_source(compiled, prefix + expression + b"; }")
         if _shape(_body(result)) != expected:
@@ -510,6 +555,14 @@ def _fixtures(compiled: Build) -> list[str]:
         (b"", "syntax"), (b"module M;", "syntax"),
         (prefix + b"1; } garbage", "syntax"),
         (prefix + b"1 == 2 <= 3; }", "syntax"),
+        (prefix + b"1 < 2 < 3; }", "syntax"),
+        (prefix + b"-1; }", "syntax"),
+        (prefix + b"1--2; }", "syntax"),
+        (prefix + b"true &&; }", "syntax"),
+        (prefix + b"!; }", "syntax"),
+        (prefix + b"true | false; }", "syntax"),
+        (prefix + b"8 / 2; }", "syntax"),
+        (prefix + b"8 % 2; }", "syntax"),
         (prefix + b"1; return 2; }", "syntax"),
         (prefix + b"1", "syntax"),
         (prefix + b"await 1; }", "unsupported"),
@@ -522,6 +575,7 @@ def _fixtures(compiled: Build) -> list[str]:
         (prefix + b"1_Nat; }", "syntax"),
         (prefix + b"(" * 2000 + b"0" + b")" * 2000 + b"; }", "limit"),
         (prefix + b" + ".join([b"1"] * 2000) + b"; }", "limit"),
+        (prefix + b"!" * 2000 + b"true; }", "limit"),
         (b"module M; public Nat F() { " + b"let x = 1; " * 1000 + b"return 0; }", "limit"),
         (b" " * (MAX_SOURCE_BYTES + 1), "limit"),
     )
@@ -560,6 +614,10 @@ def qualify(root: Path) -> dict[str, object]:
     constant_example = read_source(constant_path)
     parse_source(first, constant_example)
     parse_source(first, constant_example, surface=True)
+    expression_path = root / "tools/vela/examples/expressions.vela"
+    expression_example = read_source(expression_path)
+    parse_source(first, expression_example)
+    parse_source(first, expression_example, surface=True)
     if _inputs(root) != first.receipt["inputs"]:
         raise ValueError("qualification inputs changed after fixtures")
     if _toolchain(root) != first.receipt["toolchain"]:
@@ -575,6 +633,8 @@ def qualify(root: Path) -> dict[str, object]:
         raise ValueError("surface example changed during qualification")
     if read_source(constant_path) != constant_example:
         raise ValueError("constant example changed during qualification")
+    if read_source(expression_path) != expression_example:
+        raise ValueError("expression example changed during qualification")
     report: dict[str, object] = {
         "schema": 1, "scope": "vela-syntax-only-development-parser",
         "status": "passed", "checked_parser": False,
@@ -583,7 +643,9 @@ def qualify(root: Path) -> dict[str, object]:
                     "source_sha256": hashlib.sha256(example).hexdigest()},
         "constant_example": {"path": "tools/vela/examples/constants.vela",
                              "source_sha256": hashlib.sha256(constant_example).hexdigest()},
-        "fixtures": [*passed, "authored-example", "authored-compositional-constants"],
+        "expression_example": {"path": "tools/vela/examples/expressions.vela",
+                               "source_sha256": hashlib.sha256(expression_example).hexdigest()},
+        "fixtures": [*passed, "authored-example", "authored-compositional-constants", "authored-extended-expressions"],
         "syntax_entries": {
             "pure": {"schema": 1, "status": "passed"},
             "surface": {"schema": 2, "status": "passed", "fixtures": surface_passed,
