@@ -145,6 +145,55 @@ Whole-source size, block/binding nesting, expression nesting and decimal-literal
 implementation limits, reported as limit diagnostics rather than acceptance.
 These are host parser limits, not target resource bounds or integer widths.
 
+## Extended pure expressions
+
+Q25ac in [the plan](../../../PLAN.md#q-assessment-actions) commissions an
+expression increment over the source fragment above. Both the Python route and
+the native pure entry accept `!`, `&&`, `||`, `!=`, `<`, `>`, `>=` and binary
+`-`, using the existing wider surface's spellings and precedence. From weakest
+to strongest, precedence is `||`, `&&`, a single comparison (`==`, `!=`, `<`,
+`<=`, `>`, `>=`), left-associative `+`/`-`, left-associative `*`, prefix `!`,
+then atoms/calls/grouping. Comparisons do not chain; parentheses are required.
+Repeated negation is permitted within the existing expression bounds. Unary
+minus, division, remainder and machine integer types remain outside this increment.
+
+`!`, `&&` and `||` require Boolean operands. Equality and inequality require
+two operands of the same supported type; ordering and subtraction require
+naturals. Subtraction saturates at zero: `2 - 5` is `0`. Emission uses existing
+`Corelib.Init.Nat.sub`, `.ltb` and `.leb`, Boolean equality's once-only bindings,
+and Boolean conditionals for negation and short-circuit logic. Reversed ordering
+must preserve left-to-right once-only operand evaluation through fresh bindings.
+All generated binders remain disjoint from mapped source names.
+
+Both logical operands undergo name/type and required-static dependency checks,
+including dead operands. Evaluation and emitted conditionals evaluate the left
+operand once and evaluate the right only when needed. Thus
+`false && (huge * huge == 0)` can avoid a static arithmetic limit, while
+`false && runtimeFlag` still cannot initialize a required-static constant.
+Existing work, depth, output and numeric budgets apply; no new evaluator or
+browser-side interpretation is introduced.
+
+Acceptance requires independently expected terms and values for every operator,
+mixed precedence/associativity, nested negation, Nat underflow, both equality
+types, named calls, static parameters and short-circuit limit behavior. Semantic
+negative neighbors must reach the intended type/name/static-dependency refusal;
+malformed/chained operators, unary minus and excessive depth remain refused.
+Native AST controls cover exact operator/operand spans, trivia, Unicode and
+newlines, and reject omitted, substituted or extra source tokens. Retain existing
+translations and migration controls. Formatting must preserve token/comment
+order and reparsed meaning, be idempotent and space prefix negation correctly;
+compiler facts and existing LSP operations must remain usable.
+
+The [playground](playground.md#extended-expression-examples) exposes examples and
+console suggestions through the same compiler and bounded worker. Focused real
+HTTP/worker controls cover new values, Gallina and semantic refusals. Exercise
+browser editing, formatting, compilation and console evaluation when browser
+infrastructure is available; record its absence explicitly otherwise. Run focused
+host tests, Python validation and corpus checks, then record the local revision
+and full recommended hosted selection through `fanout`. The user owns Host CI
+and Guest CI, including native generation and kernel replay; no pending verdict
+counts as qualification or production acceptance.
+
 ## Command and publication
 
 `python tools/run.py vela check SOURCE` parses and checks the complete file,

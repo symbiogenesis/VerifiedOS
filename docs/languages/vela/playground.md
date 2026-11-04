@@ -134,6 +134,17 @@ focused API/LSP checks and code review as their narrower evidence. Run the
 focused playground controls, Python validation and corpus checker; record the
 settled revision and user-managed hosted selection through `fanout`.
 
+## Extended expression examples
+
+Q25ac in [the plan](../../../PLAN.md#q-assessment-actions) connects the
+[pure expression increment](vela-prototype.md#extended-pure-expressions) to the
+existing compile and expression-console APIs. Add examples for Boolean logic,
+ordering, inequality and saturating natural subtraction, with expressions users
+can evaluate in the console. Highlight the added spellings and retain compiler
+formatting, hover, diagnostics and source-bound stale-result behavior. The
+browser consumes the existing compiler services without parsing or evaluating
+the examples itself. Both Monaco and plain-text mode use the same APIs.
+
 ## Acceptance
 
 Land this contract and Q25aa's estimate before implementation. Independently
