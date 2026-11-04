@@ -55,6 +55,22 @@ ELFIO has no release after `Release_3.12`. The vendored headers and README are t
 
 SoftFloat is the `ucb-bar/berkeley-softfloat-3` repository at `master` commit `a0c6494cdc11865811dec815d5c0049fba9d82a8` (2025-03-07), which adds BF16 conversions and build and typo fixes to Release 3e; the repository has no tags. Every vendored file is that commit's blob except `build/Linux-x86_64-GCC/platform.h`, whose local changes define `INLINE` as `static inline` rather than `inline` and drop upstream's trailing blank line, and `source/include/internals.h`, which incorporates only the BF16 NaN predicate correction from [PR 44](https://github.com/ucb-bar/berkeley-softfloat-3/pull/44) at [the selected revision](https://github.com/ucb-bar/berkeley-softfloat-3/tree/73e3f397e84d6d2a34bded52b0a77af3f4062ac2). No other BF16 operations are imported. `COPYING.txt`, SHA-256 `145ea96b4a4a04a1a7738d2a2bf9e830f861971e69606187b018d9e8fc0b95c7`, is the Release 3e license, BSD-3-Clause. Both the base and selected correction revisions carry bytes identical to the retained notice. The source remains distributed with the curated model under those terms.
 
+## Browser editor assets
+
+The local [Vela playground](docs/languages/vela/playground.md) loads
+`monaco-editor` 0.55.1's browser distribution from the version-pinned jsDelivr
+package URL. The selected release's own
+[LICENSE.txt](https://github.com/microsoft/monaco-editor/blob/v0.55.1/LICENSE.txt)
+and [package manifest](https://github.com/microsoft/monaco-editor/blob/v0.55.1/package.json)
+were read on 2026-11-03: Monaco is MIT, copyright Microsoft Corporation.
+The license permits use, modification and distribution with its copyright and
+permission notice. Browser assets and their upstream notices are served by the
+package CDN, rather than copied into this repository or shipped in a VerifiedOS
+image. This is a development-host editor dependency; no editor source is
+vendored, no npm installation is required and no broader VS Code extension
+compatibility is claimed. A future bundled/offline distribution must retain the
+selected package's complete license and third-party notices.
+
 ## Fetched at build time
 
 The repository retains each component's license and `CMakeLists.txt` under
