@@ -9,14 +9,15 @@ from pathlib import Path
 from filelock import Timeout
 
 from vos import (
-    vela_elaborate,
     vela_elaboration_check,
+    vela_mathematical,
     vela_migration,
     vela_parser,
     vela_parser_checked,
 )
 from vos.atomic import atomic_path
 from vos.vela import VelaError
+from vos.vela_authoring import Finding
 
 
 def _publish(source: Path, destination: Path, gallina: str) -> None:
@@ -25,6 +26,19 @@ def _publish(source: Path, destination: Path, gallina: str) -> None:
         raise VelaError("io", 1, 1, "output aliases the input")
     with atomic_path(destination) as pending:
         pending.write_text(gallina, encoding="utf-8", newline="")
+
+
+def _naming(source: Path, findings: tuple[Finding, ...], allowed: set[str], denied: set[str]) -> bool:
+    failed = False
+    for finding in findings:
+        if finding.code in allowed:
+            continue
+        is_error = finding.code in denied
+        failed |= is_error
+        level = "error" if is_error else "warning"
+        print(f"{source}:{finding.line}:{finding.column}: {level} {finding.code}: {finding.message}",
+              file=sys.stderr)
+    return not failed
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -42,18 +56,28 @@ def main(argv: list[str] | None = None) -> int:
     elaborate.add_argument("source", type=Path)
     elaborate.add_argument("--output", type=Path,
                            help="atomically replace a file in an existing directory")
+    elaborate.add_argument("--allow", action="append", choices=("VELA105",), default=[],
+                           help="suppress the generic type naming lint (repeatable)")
+    elaborate.add_argument("--deny", action="append", choices=("VELA105",), default=[],
+                           help="make the generic type naming lint an error (repeatable)")
     support = commands.add_parser("support", help="build and kernel-check the pinned Rocq support library")
     support.add_argument("--archive", type=Path, help="use an already downloaded authenticated release archive")
     parse = commands.add_parser("parse", help="emit a complete located syntax tree as JSON")
     parse.add_argument("--surface", action="store_true", help="parse the full development surface as schema 2")
     parse.add_argument("source", type=Path)
     args = parser.parse_args(argv)
+    allowed = set(getattr(args, "allow", []))
+    denied = set(getattr(args, "deny", []))
+    if allowed & denied:
+        parser.error("a lint cannot be both allowed and denied")
     root = Path(__file__).resolve().parents[3]
     try:
         if args.command == "elaborate":
             source = vela_parser.read_source(args.source)
             parsed = vela_parser.parse_source(vela_parser.build(root), source, surface=True)
-            translation = vela_elaborate.elaborate(source, parsed)
+            translation = vela_mathematical.inspect_source(source, parsed)
+            if not _naming(args.source, translation.findings, allowed, denied):
+                return 1
             if args.output is None:
                 print(translation.gallina, end="")
             else:

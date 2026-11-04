@@ -11,7 +11,7 @@ from unittest.mock import patch
 from tests.harness import Case, ensure
 from vos.cli import vela_parser as cli
 from vos.vela import VelaError
-from vos.vela_elaborate import Elaboration
+from vos.vela_mathematical import Compilation
 
 SOURCE = b"module Demo; definition Nat Value() => 3;"
 GALLINA = "(* unqualified test term *)\nDefinition value : nat := 3.\n"
@@ -31,8 +31,8 @@ def _publication() -> None:
         tree: dict[str, object] = {"schema": 2}
         with (patch.object(cli.vela_parser, "build", return_value=object()) as build,
               patch.object(cli.vela_parser, "parse_source", return_value=tree) as parse,
-              patch.object(cli.vela_elaborate, "elaborate",
-                           return_value=Elaboration("Demo", GALLINA)) as elaborate):
+              patch.object(cli.vela_mathematical, "inspect_source",
+                           return_value=Compilation("Demo", GALLINA, ())) as elaborate):
             code, out, err = _invoke(["elaborate", str(source)])
             ensure(code == 0 and out == GALLINA and not err, "stdout differs from elaborated bytes")
             ensure(parse.call_args.args[1] == SOURCE and parse.call_args.kwargs == {"surface": True},
@@ -44,7 +44,7 @@ def _publication() -> None:
             ensure(code == 0 and not out and not err and output.read_bytes() == GALLINA.encode(),
                    "atomic file emission differs from stdout")
             original = output.read_bytes()
-            with patch.object(cli.vela_elaborate, "elaborate", side_effect=VelaError("type", 2, 4, "false proof")):
+            with patch.object(cli.vela_mathematical, "inspect_source", side_effect=VelaError("type", 2, 4, "false proof")):
                 code, out, err = _invoke(["elaborate", str(source), "--output", str(output)])
             ensure(code == 1 and not out and ":2:4: type: false proof" in err,
                    "failed elaboration lost its located diagnostic")
