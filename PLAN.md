@@ -452,19 +452,19 @@ These figures cover the priced reference-build, assessment and named hardening b
 | Measure | Value |
 | --- | --- |
 | Total estimate midpoint h | 4,881.8 |
-| Total estimate range h | 3,188.2–6,575.4 |
-| Completed scope h | 914.8 |
-| Complete by estimate % | 18.7 |
-| Remaining h | 3,967 |
-| Committed remaining h | 2,488.5 |
-| Open class I h | 953.5 |
+| Total estimate range h | 3,192.2–6,571.4 |
+| Completed scope h | 926.8 |
+| Complete by estimate % | 19.0 |
+| Remaining h | 3,955 |
+| Committed remaining h | 2,476.5 |
+| Open class I h | 941.5 |
 | Open class X h | 3,013.5 |
-| Retained completion estimate h | 309.5 |
-| Unmeasured completed items | 32 |
-| Calibrated total h | 5,871 |
+| Retained completion estimate h | 321.5 |
+| Unmeasured completed items | 33 |
+| Calibrated total h | 5,874.4 |
 | Committed M8a open h | 74 |
 | Committed M8b open h | 105.5 |
-| Other committed open h | 2,309 |
+| Other committed open h | 2,297 |
 | Conditional open h | 1,064.5 |
 | Unfunded option open h | 414 |
 | Committed M8a open class X h | 0 |
@@ -1043,8 +1043,8 @@ The [first-release delivery sequence](#vela-first-release-delivery) governs new 
   * **Estimate basis:** bounded lexer/parser preparation, pure annotated locals, source-validating consumer migration, lint/preview and independent controls; represented alias libraries, iterator checking, concrete inference and broader editor producers retain their delivery prerequisites. This increment extends neither Q25g–Q25u's frozen qualification nor the concrete-foundation investigation and is not a prerequisite for the first slice. Production and exact-version hosted acceptance remain separate from local implementation.
   * **Implementation checkpoint:** the native grammar uses ordinary generic calls, mathematical `=>` bodies and comma-separated expression arms; the mathematical consumer validates exact-source calls and bodies in its supported fragment. Collection loops retain explicit value/read/exclusive modes as located syntax; represented inference, iterator laws and wider borrowing/editor facts remain with their qualified producers. Both pure routes preserve typed immutable locals, while `VELA104` and `vela lint --preview-bindings` provide an advisory, rechecked source-preserving edit candidate. Local focused controls and strict exact-version native generation are diagnostic evidence. The `vela-ergonomics-20261103-implementation` fanout journal owns the local handoff and recommended hosted selection; hosted parser/kernel and production verdicts remain pending, so this item stays open.
   * **Remaining work:** the [ergonomics follow-through](#remaining-vela-ergonomics) assigns qualification, represented semantics, library, diagnostic, editor and adoption duties to their existing owners, with entry conditions and independently checked outcomes. Runtime and wider tooling implementation is outside this syntax increment's estimate.
-* [ ] **Q25aa · Build a local Vela browser playground** · 12 h, range 8–16 · I · agent-parallel
-  * **Start:** the landed [playground contract](docs/languages/vela/playground.md), implemented pure compiler, constant evaluation and LSP prototypes. **Owns:** a local Monaco editor, real LSP bridge, compiler output, bounded compile-time expression console and launch command. **Check:** every browser, snapshot, compiler-reuse, transport and refusal predicate in the contract, independent review, focused host controls, Python and corpus validation, available browser checks and a revision-bound local fanout handoff. Record unavailable browser checks and pending user-managed Host/Guest CI explicitly. **Join:** existing compiler/LSP facts and pinned upstream editor terms; two-client LSP qualification and production/native execution retain their owners. **Execute:** keep source on the local host, reuse existing checking/evaluation and finish on local main without pushing or publishing.
+* [x] **Q25aa · Build a local Vela browser playground** · 12 h retained estimate, actual n/a · agent-parallel
+  * The local Monaco playground connects the pure compiler and LSP to source editing, Gallina output and a bounded compile-time expression console. ([note](docs/implementation/completion-log.md#q25aa-build-a-local-vela-browser-playground))
 * [x] **Q26 · Price the resident toolchain against the floor's own comparisons** · 4.6 h actual · agent-parallel
   * [The toolchain residency report](docs/performance/toolchain-residency.md) records the three quantities with their predicates, instruments, lanes and revisions, scores each against the artifact that owns its supply or declares it unscorable with the act that owes the supply named, and states which of the three binds and what would have to move, as arms for the product's owner with none taken. ([note](docs/implementation/completion-log.md#q26-price-the-resident-toolchain-against-the-floors-own-comparisons))
 
@@ -1408,7 +1408,7 @@ Q6's conventional-memory simulators are conditional on a topology comparison nee
 
 No assessment completion automatically increases a performance estimate. For an optimization affecting fraction `f` of runtime by factor `s`, the unchanged-cost bound is `1 / ((1 - f) + f / s)`; added transfers or changed scheduling require a fresh whole-workload comparison. Better packing is not more fabricated capacity, and host performance is not target throughput.
 
-**Q subtotal:** 3,052.3 h · 63% · 302.8 h complete · open range 1,603–3,896 h.
+**Q subtotal:** 3,052.3 h · 63% · 314.8 h complete · open range 1,595–3,880 h.
 
 ### M0 · Hardware reference
 
@@ -2492,6 +2492,7 @@ One row per completed item marked `agent-parallel`, using the [calibration recor
 | Q25s | n/a | n/a |
 | Q25t | n/a | n/a |
 | Q25v | I | 4 |
+| Q25aa | n/a | n/a |
 | Q26 | X-read | 12 |
 | Q27a | I | 7 |
 | Q27b | I | 6 |

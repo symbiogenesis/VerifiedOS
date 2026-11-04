@@ -1318,6 +1318,47 @@ coverage relation, examples and implementation predicates. Corpus and Markdown
 validation retain their local handoff; they establish document consistency,
 not source metatheory or executable acceptance.
 
+<a id="q25aa-build-a-local-vela-browser-playground"></a>
+
+#### Q25aa · Build a local Vela browser playground
+
+Accepted on 2026-11-03 as a local development demo under the
+[playground contract](../languages/vela/playground.md). The host launch command
+serves Monaco with syntax coloring, actual pure LSP diagnostics/navigation,
+type hints, semantic tokens and explicit formatting. Compile displays the
+compiler's source-bound Gallina; the expression console reuses its existing
+bounded Nat/bool static evaluator. The bridge uses isolated compiler workers,
+authenticated loopback requests, bounded reads and separate expiring sessions.
+Explicit tab close needs one request. Source remains an unsaved browser buffer.
+
+At `5f8006d9`, focused playground and retained constant-evaluation controls pass.
+Independent review covers compiler reuse, declaration injection, resource
+refusals, source identities, protocol/session isolation and stale-response
+guards. Absolute read deadlines prevent trickled headers or bodies occupying the
+synchronous service indefinitely; console failures distinguish original-source
+errors from bounded expression coordinates.
+
+Local headless Edge 156.0.4314.58 verifies the pinned Monaco distribution, actual hover and
+definition navigation, live type diagnostics, explicit formatting, generated
+Gallina, natural and Boolean values, refused-source recovery, discarded delayed
+compile/evaluation replies, narrow-screen layout, reload reconnection and
+compile/evaluate fallback with the CDN blocked. No browser exceptions are
+reported by that interaction check. This is one browser/client configuration;
+Q25n/Q25o/Q25u's independent-client qualification remains open. Monaco needs
+internet access; plain-text fallback retains compiler operations. Native
+execution, runtime I/O, wider-language semantics and kernel/production acceptance
+remain outside the demo.
+
+The `vela-playground-20261103` fanout journal records the settled local revision,
+comparison base, focused local verdicts and recommended hosted checks. Host and
+Guest CI remain user-managed with no verdict from this session. No push,
+deployment or hosted dispatch is performed. The original 12 h estimate, range
+8–16, is retained because summed active agent-session timing was not captured;
+both calibration columns remain `n/a`.
+
+Landed: Tier A. Full source and contract reads, independent review and local
+compiler/protocol/browser evidence accept this bounded development demo.
+
 <a id="q26-price-the-resident-toolchain-against-the-floors-own-comparisons"></a>
 
 ### Q26 · Price the resident toolchain against the floor's own comparisons
