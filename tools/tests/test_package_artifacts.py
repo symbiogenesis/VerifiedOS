@@ -134,6 +134,21 @@ def _identity_binds_actual_outputs() -> None:
             path.write_bytes(packages.canonical(changed))
             ensure(packages.read_request(root, path.name).identity != before.identity,
                    "actual emitted proof bytes belong to artifact identity")
+        for index in (0, 1):
+            changed = copy.deepcopy(request)
+            old = changed["manifest"]["regions"][index]["object"]
+            original = next(item for item in changed["objects"] if item["sha256"] == old["sha256"])
+            blob = bytearray((root / original["path"]).read_bytes())
+            blob[-1] ^= 1
+            ref = {"sha256": packages.digest(bytes(blob)), "bytes": len(blob)}
+            changed["manifest"]["regions"][index]["object"] = ref
+            changed["objects"] = [item for item in changed["objects"] if item["sha256"] != old["sha256"]]
+            relative = f"inputs/{ref['sha256']}.bin"
+            (root / relative).write_bytes(blob)
+            changed["objects"].append({**ref, "path": relative})
+            path.write_bytes(packages.canonical(changed))
+            ensure(packages.read_request(root, path.name).identity != before.identity,
+                   "code and initializer output changes create new identities with identical source/context")
 
 
 def _malformed_and_corrupt_objects() -> None:
@@ -148,6 +163,8 @@ def _malformed_and_corrupt_objects() -> None:
             (lambda raw: raw["manifest"]["regions"][1].update(offset=0), "overlap"),
             (lambda raw: raw["manifest"].update(entry=256), "entry"),
             (lambda raw: raw["manifest"].update(alignment=3), "power of two"),
+            (lambda raw: raw["manifest"]["proofs"].update(
+                correspondence=raw["manifest"]["regions"][0]["object"]), "proof objects"),
             (lambda raw: raw["objects"].pop(), "population"),
             (lambda raw: raw["objects"][0].update(path="../outside"), "relative"),
         ]
@@ -163,8 +180,11 @@ def _malformed_and_corrupt_objects() -> None:
         object_path = home / "objects" / f"{artifact.objects[0][0]}.bin"
         object_path.write_bytes(b"corrupt")
         _refused(lambda: packages.load(home, artifact.identity), "digest or byte length")
-        _refused(lambda: packages.store(home, artifact), "corrupt")
+        _refused(lambda: packages.store(home, artifact), "digest or byte length")
         ensure(object_path.read_bytes() == b"corrupt", "reuse must not silently repair corrupt retained bytes")
+        object_path.unlink()
+        _refused(lambda: packages.store(home, artifact), ".bin")
+        ensure(not object_path.exists(), "publishing an existing root must not restore missing retained bytes")
         _refused(lambda: packages.place(artifact, (1 << 36) - 16), "overflow")
         _refused(lambda: packages.place(artifact, True), "alignment")
 
@@ -191,6 +211,14 @@ def _image_and_memory_substitutions() -> None:
             struct.pack_into(fmt, bad, image.EHDR_SIZE + displacement, value)
             _refused(lambda bad=bad: packages.verify_image(bytes(bad), [placed]), detail)
         _refused(lambda: packages.verify_image(good[:64], [placed]), "truncated")
+        for entry in (0x80000004, 0x80000100, 0x80001000):
+            bad = bytearray(good)
+            struct.pack_into("<Q", bad, 24, entry)
+            _refused(lambda bad=bad: packages.verify_image(bytes(bad), [placed]), "entry")
+        fresh = packages.place(artifact, placed.base)
+        hidden = image.Section(".hidden", 0x80002000, bytearray(b"\x13\0\0\0"), executable=True)
+        image.write_elf(elf, [*fresh.sections, hidden], {}, fresh.entry)
+        _refused(lambda: packages.verify_image(elf.read_bytes(), [fresh]), "declared regions")
         other = packages.place(fixture_artifact(root, "other"), 0x80000010)
         _refused(lambda: packages.verify_image(good, [placed, other]), "spans overlap")
         _refused(lambda: packages.validate_memory([placed],
