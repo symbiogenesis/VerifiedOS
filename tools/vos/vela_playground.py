@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-"""Loopback-only HTTP transport for the unqualified pure Vela playground."""
+"""Loopback-only HTTP transport for Vela's bounded development playground."""
 
 import hashlib
 import hmac
@@ -56,6 +56,8 @@ def _validate_result(response: dict[str, object], request: dict[str, object], di
     else:
         error = response.get("error")
         kinds = {"syntax", "name", "type", "unsupported", "limit", "encoding"}
+        if request.get("mode") == "mathematical":
+            kinds.update({"protocol", "inference"})
         if request["action"] == "authoring":
             kinds.update({"inspection-limit", "lint-preview", "format"})
         if (set(response) != {"ok", "sourceHash", "error"} or not isinstance(error, dict)
@@ -85,10 +87,14 @@ def _validate_authoring(response: dict[str, object], source: str) -> None:
         snapshot.diagnostic_position(finding["line"], finding["column"])
 
 
-def _compiler_response(request: dict[str, object], digest: str) -> dict[str, object]:
+def _compiler_response(request: dict[str, object], digest: str, *,
+                       mathematical_parser: Path | None = None,
+                       parser_sha256: str | None = None) -> dict[str, object]:
     directory = str(Path(__file__).resolve().parents[1])
-    script = (f"import sys; sys.path.insert(0, {directory!r}); "
-              "from vos.vela_playground_worker import main; raise SystemExit(main())")
+    script = (f"import sys; sys.path.insert(0, {directory!r}); from pathlib import Path; "
+              "from vos.vela_playground_worker import main; "
+              f"raise SystemExit(main(mathematical_parser={('Path(' + repr(str(mathematical_parser)) + ')') if mathematical_parser else 'None'}, "
+              f"parser_sha256={parser_sha256!r}))")
     done = subprocess.run([sys.executable, "-I", "-c", script], input=_raw(request),
                           capture_output=True, timeout=WORKER_SECONDS, check=False)
     if done.returncode != 0:
@@ -99,12 +105,22 @@ def _compiler_response(request: dict[str, object], digest: str) -> dict[str, obj
     return response
 
 
-def run_compiler(request: dict[str, object]) -> dict[str, object]:
+def run_compiler(request: dict[str, object], *, mathematical_parser: Path | None = None,
+                 parser_sha256: str | None = None) -> dict[str, object]:
     """Source is worker stdin data, never an executable argument or a disk path."""
     source = cast("str", request["source"]).encode("utf-8")
     digest = hashlib.sha256(source).hexdigest()
     try:
-        response = _compiler_response(request, digest)
+        if request.get("mode") == "mathematical":
+            if (mathematical_parser is None or parser_sha256 is None
+                    or hashlib.sha256(mathematical_parser.read_bytes()).hexdigest() != parser_sha256):
+                raise ValueError("prepared mathematical parser is unavailable or changed")
+            response = _compiler_response(request, digest, mathematical_parser=mathematical_parser,
+                                          parser_sha256=parser_sha256)
+            if hashlib.sha256(mathematical_parser.read_bytes()).hexdigest() != parser_sha256:
+                raise ValueError("prepared mathematical parser changed during compilation")
+        else:
+            response = _compiler_response(request, digest)
     except subprocess.TimeoutExpired:
         return {"ok": False, "sourceHash": digest,
                 "error": {"kind": "timeout", "line": 1, "column": 1,
@@ -127,8 +143,12 @@ class PlaygroundServer(HTTPServer):
 
     request_queue_size = 8
 
-    def __init__(self, port: int = 8765, *, assets: Path | None = None) -> None:
+    def __init__(self, port: int = 8765, *, assets: Path | None = None,
+                 mathematical_parser: Path | None = None) -> None:
         self.token = secrets.token_urlsafe(32)
+        self.mathematical_parser = mathematical_parser
+        self.parser_sha256 = (hashlib.sha256(mathematical_parser.read_bytes()).hexdigest()
+                              if mathematical_parser is not None else None)
         self.sessions: dict[str, Session] = {}
         self.assets = (Path(__file__).resolve().parents[1] / "vela" / "playground"
                        if assets is None else assets)
@@ -258,7 +278,7 @@ class PlaygroundHandler(BaseHTTPRequestHandler):
             self._error(401, "Missing or invalid playground token; reopen the printed launch URL")
             return
         if self.path not in {"/api/session", "/api/close", "/api/lsp", "/api/compile", "/api/evaluate",
-                             "/api/authoring"}:
+                             "/api/authoring", "/api/capabilities"}:
             self._error(404, "Unknown playground operation")
             return
         lengths = self.headers.get_all("Content-Length", [])
@@ -290,6 +310,10 @@ class PlaygroundHandler(BaseHTTPRequestHandler):
 
     def _dispatch(self, request: dict[str, object]) -> dict[str, object]:
         self.playground.expire_sessions()
+        if self.path == "/api/capabilities":
+            if request:
+                raise ValueError("Capability query requires an empty object")
+            return {"mathematical": self.playground.mathematical_parser is not None}
         if self.path == "/api/close":
             if set(request) != {"session"} or not isinstance(request["session"], str):
                 raise ValueError("Expected a session identifier")
@@ -316,14 +340,28 @@ class PlaygroundHandler(BaseHTTPRequestHandler):
                 del self.playground.sessions[request["session"]]
             return {"messages": messages}
         expected = {"source", "expression", "valueType"} if self.path == "/api/evaluate" else {"source"}
+        if "mode" in request:
+            expected.add("mode")
         if set(request) != expected or not all(isinstance(value, str) for value in request.values()):
             raise ValueError("Compiler request has missing, extra or non-text fields")
+        mode = request.get("mode", "pure")
+        if mode not in {"pure", "mathematical"}:
+            raise ValueError("Compiler mode must be pure or mathematical")
+        if mode == "mathematical":
+            if self.path == "/api/authoring":
+                raise ValueError("Authoring services support pure mode only")
+            if self.playground.mathematical_parser is None:
+                raise ValueError("Mathematical mode unavailable; launch vela-playground-math")
         source = cast("str", request["source"])
         if len(source.encode("utf-8")) > MAX_SOURCE_BYTES:
-            raise ValueError("Source exceeds the pure compiler's UTF-8 byte budget")
+            raise ValueError("Source exceeds the compiler's UTF-8 byte budget")
         if self.path == "/api/evaluate":
             if request["valueType"] not in {"Nat", "bool"}:
                 raise ValueError("Expression result type must be Nat or bool")
             if len(cast("str", request["expression"]).encode("utf-8")) > 4096:
                 raise ValueError("Expression exceeds 4096 UTF-8 bytes")
-        return run_compiler({**request, "action": self.path.rsplit("/", 1)[1]})
+        operation = {**request, "action": self.path.rsplit("/", 1)[1]}
+        if mode == "mathematical":
+            return run_compiler(operation, mathematical_parser=self.playground.mathematical_parser,
+                                parser_sha256=self.playground.parser_sha256)
+        return run_compiler(operation)
