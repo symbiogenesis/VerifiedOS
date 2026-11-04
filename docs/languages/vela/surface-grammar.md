@@ -10,9 +10,9 @@ accepted exported `requires`/`ensures` follow the [assurance contract](assurance
 
 This is the syntax contract for [Q25i](../../../PLAN.md#q-assessment-actions),
 with the selected [familiar authoring migration](#familiar-authoring-migration)
-owned by Q25z. Examples here use the selected surface. The current parser and
-checked-in `.vela` examples retain that section's stated implementation boundary;
-the design change supplies no new parser or semantic qualification.
+owned by Q25z. Examples and the development parser use that surface; each
+consumer retains its declared mathematical or runtime boundary. Native fixtures
+and local diagnostics supply no hosted parser or semantic qualification.
 The [language design](verification-strategy.md#an-ideal-surface) and
 [whole-system contract](unified-source-contract.md#authoring-end-state) own the
 required features and their meanings. This increment accepts located syntax;
@@ -27,7 +27,7 @@ schematic library calls in that dossier are not parser fixtures.
 
 ## Entry points
 
-One authored Menhir grammar owns two public entry points and may use an internal
+One authored Menhir grammar owns two public entry points and uses an internal
 generic-call prefix probe sharing its generic-argument productions. The internal
 probe is not an input/output protocol or a second syntax authority. The `file` entry and
 schema 1 serve the pure prototype and its parser comparison. The
@@ -694,12 +694,13 @@ Its bounded syntax and existing-consumer migration can proceed independently of
 the [first synchronous component](../../../PLAN.md#vela-first-release-delivery);
 represented libraries, runtime checking and production qualification retain
 that component's prerequisites.
-The current surface parser already accepts typed `let` and `var` through the
-shared local initializer. It still requires `case ... => ...;` expression arms,
-`definition ... = EXPR;` mathematical bodies and `::<...>` explicit expression
-applications. Ordinary generic calls, new expression arms, the mathematical
-body marker and the `Vela.Numerics` aliases remain implementation work. This
-contract does not expand the pure prototype's types or mutation support.
+The surface parser accepts typed `let`/`var`, comma-separated expression arms,
+mathematical `=>` bodies and ordinary generic calls. Explicit `::<...>` generic
+application remains supported. Numeric aliases use ordinary type-name syntax;
+their standard-library definitions and represented semantics remain later work.
+The pure prototype also accepts typed immutable `Nat`/`bool` locals, retaining
+its mathematical scalar types and unsupported mutation boundary. Exact-version
+hosted parser, kernel and production qualification retain their existing owners.
 
 **Bindings and aliases.** Documentation, diagnostics and editor examples present
 `let [T] name = value` and `var [T] name = value`, where `[T]` here means an

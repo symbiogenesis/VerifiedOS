@@ -38,7 +38,7 @@ syntax until Q25h passes. Retain current examples/refusals as migration fixtures
 
 This subset follows the [proposed surface](verification-strategy.md#an-ideal-surface):
 return types precede operation names, parameter types precede bindings, immutable
-locals use `let`, required-static values use typed `const`, and exits use `return`
+locals use `let` with an optional type, required-static values use typed `const`, and exits use `return`
 or an expression body. Contracts, grades,
 effects, loans and machine representations are unsupported and diagnosed,
 never ignored.
@@ -83,7 +83,8 @@ parameters:= parameter (',' parameter)* ','?
 parameter := 'const'? type name
 type      := 'Nat' | 'bool'
 block     := '{' binding* exit '}'
-binding   := 'let' name '=' expression ';' | constant
+binding   := 'let' type? name '=' expression ';'
+           | type name '=' expression ';' | constant
 constant  := 'const' type name '=' expression ';'
 exit      := 'return' expression ';'
            | 'if' '(' expression ')' block 'else' block
@@ -107,8 +108,10 @@ declared arity and argument types. A positional prefix may be followed by a
 labeled suffix; each label must name the next declared parameter. Reordered,
 duplicate or unknown labels, omitted arguments and positional arguments after a
 label are refused. Labels preserve once-only left-to-right evaluation and do
-not change the emitted application. Let bindings infer only their expression's
-`Nat` or `bool` type. Duplicate functions, parameters, local bindings in an active
+not change the emitted application. Local annotations must match the initializer's
+`Nat` or `bool` type exactly; unannotated locals infer it. Bare typed locals are
+immutable too and receive advisory `VELA104`, preferring an explicit `let`.
+Duplicate functions, parameters, local bindings in an active
 scope (including active parameters) and unbound values are errors. Function and
 value namespaces are separate. Equality returns `bool`. Natural arithmetic,
 equality and comparison map to `Corelib.Init.Nat.add`, `.mul`, `.eqb` and `.leb`.
@@ -154,6 +157,10 @@ StyleCop-inspired style, documentation, lint policy and publication checks.
 source-preserving default, or `--format write` to opt into canonical formatting.
 `--no-lint` disables optional lints; repeatable `--allow ID` and
 `--deny ID` control individual findings without disabling language checks.
+`vela lint --preview-bindings SOURCE` prints a rechecked candidate containing
+only the suggested `let ` insertions, preserving original comments and newlines
+and leaving the input file unchanged. Its [source-bound preview contract](authoring-tools.md#lint-policy)
+keeps annotation checking, allow/deny policy and semantic comparison explicit.
 
 `python tools/run.py vela emit SOURCE` uses the same default authoring passes and
 writes Gallina to standard output; `--output FILE` publishes it through the shared

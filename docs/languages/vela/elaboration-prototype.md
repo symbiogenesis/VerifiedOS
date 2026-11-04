@@ -24,15 +24,18 @@ the refused resource/effect features remain outside it.
 
 ## Supported mathematical increment
 
-The increment uses the [surface grammar](surface-grammar.md). Its current executable
-examples retain `definition ... = expression;`, explicit `::<...>` application
-and the current match-arm delimiters. The selected [familiar authoring migration](surface-grammar.md#familiar-authoring-migration)
-belongs to Q25z and changes this consumer only after its parsing, interpretation,
-source-binding and kernel-replay predicates qualify together.
+The increment uses the [surface grammar](surface-grammar.md), with mathematical
+`=>` bodies and ordinary `<...>` generic calls. Explicit `::<...>` applications
+remain available for generic values and disambiguation. The
+[familiar authoring migration](surface-grammar.md#familiar-authoring-migration)
+binds each accepted spelling to exact source bytes. Native syntax and local
+consumer agreement supply no hosted kernel or source-correspondence verdict.
+Expression matches and collection loops parse but remain unsupported by this
+mathematical consumer.
 
 The supported increment includes:
 
-- Generic type and stable ghost-value telescopes, explicit `::<...>` application
+- Generic type and stable ghost-value telescopes, ordinary generic calls and explicit `::<...>` application
   and fresh inferred instantiation at each use. Generic variables in a
   declaration are rigid; inference cannot specialize its promised signature.
 - Numeric predicative universes `Type` and `Type<n>` for levels zero through

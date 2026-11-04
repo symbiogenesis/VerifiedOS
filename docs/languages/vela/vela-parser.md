@@ -6,9 +6,12 @@ this contract owns the development parser's bounded qualification and retirement
 The [complete development surface grammar](surface-grammar.md) extends syntax through
 Q25i's separate entry point; the pure entry below remains the migration baseline.
 The selected [familiar authoring migration](surface-grammar.md#familiar-authoring-migration)
-is Q25z's conditional increment. Its new spellings are not accepted merely because
-they appear in design examples; current parser fixtures and commands retain their
-qualified scope until the grammar and affected consumers migrate together.
+is Q25z's bounded grammar/consumer increment. Public syntax entries share an
+internal token-only generic-call probe over the same authored generic productions,
+with parse-local aggregate work bounds. The parser accepts canonical generic
+calls, mathematical bodies, expression arms, typed pure locals and collection-loop
+modes; semantic consumers retain their own supported subsets and acceptance.
+Native local diagnostics do not replace hosted parser/kernel qualification.
 
 ## Bounded increment
 

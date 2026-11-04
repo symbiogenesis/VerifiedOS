@@ -10,9 +10,9 @@ the pure subset, following the
 [source-preserving command policy](#compiler-commands-and-publication). Wider formatting
 and semantic lints consume qualified parser/frontend producers through
 [compiler services](tooling-protocols.md#compiler-inspection-api).
-Q25z owns the later [familiar authoring migration](surface-grammar.md#familiar-authoring-migration),
-including its source edits and editor support; it does not broaden the existing
-formatter's implemented subset.
+Q25z owns the [familiar authoring migration](surface-grammar.md#familiar-authoring-migration),
+including typed pure locals and their binding preview. Wider editor support and
+formatting retain their qualified frontend prerequisites.
 
 ## Common style
 
@@ -51,8 +51,8 @@ StyleCop or Clippy rule; neither upstream implementation is incorporated.
   contents. Do not sort imports, declarations or arguments, insert conversions,
   change parentheses or synthesize proof, resource or disposal operations.
 
-Once Q25z qualifies the [selected syntax](surface-grammar.md#familiar-authoring-migration),
-examples and editor insertion templates use comma-separated expression-match
+The [selected syntax](surface-grammar.md#familiar-authoring-migration)
+uses comma-separated expression-match
 arms without `case`, `=>` for ordinary and mathematical function expression
 bodies, and ordinary `F<T>(arguments)` generic calls. Statement `case Pattern:`
 arms, constant/type-alias `=` and explicit `::<...>` applications retain their
@@ -60,7 +60,7 @@ own roles. Numeric aliases follow their [standard module's scope and identity](f
 the formatter does not rename width types or synthesize imports.
 The explicit source migration owns token-changing rewrites, with preview,
 source binding and semantic-preservation checks; ordinary formatting keeps its
-token-preservation contract. Until qualification, completion, snippets,
+token-preservation contract. Completion, snippets,
 formatting and lints must describe the selected compiler's actual supported
 syntax and report an unsupported feature rather than silently rewriting it.
 

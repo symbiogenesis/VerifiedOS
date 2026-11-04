@@ -36,8 +36,9 @@ expression matches, one function-expression body marker and ordinary generic
 calls. Q25z migrates syntax and existing consumers independently; represented
 libraries and runtime qualification follow the first synchronous slice under
 the [delivery order](../../../PLAN.md#vela-first-release-delivery). Typed
-`let` already parses; the other selected changes do not describe current
-prototype support. Their adoption preserves this release's semantic scope and
+immutable locals, canonical generic calls, expression arms and mathematical
+bodies have development parser support; collection modes remain syntax-only.
+Their adoption preserves this release's semantic scope and
 does not become a prerequisite for its concrete foundation investigation or
 first executable slice.
 

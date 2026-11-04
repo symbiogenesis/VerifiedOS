@@ -1046,15 +1046,16 @@ public definition Nat ValueOrZero(Option<Nat> optional) =>
     };
 ```
 
-This is the Q25z design surface. The current development parser still uses
-`definition ... = expression;`, explicit `::<...>` calls and
-`case Pattern => expression;` arms. The mathematical prototype consumes its
-supported subset of that syntax until migration qualifies. The
+The development parser accepts this Q25z surface, retaining explicit `::<...>`
+applications for higher-order values and disambiguation. The mathematical
+prototype consumes only its declared supported constructs; an expression match
+or represented resource still needs its actual semantic producer. The
 [surface acceptance contract](surface-grammar.md#familiar-authoring-migration)
 requires the new spellings to preserve interpretation, evaluation order and
-resource duties, with exact-source correspondence refreshed. Q25z follows the
-working synchronous slice under the [delivery order](../../../PLAN.md#vela-first-release-delivery);
-these authoring choices add no foundation or runtime feature prerequisite.
+resource duties, with exact-source correspondence refreshed. The
+[delivery order](../../../PLAN.md#vela-first-release-delivery) permits bounded
+parser/consumer preparation independently, while represented libraries and
+runtime qualification follow the working synchronous slice.
 
 In a value declaration, `const` declares a value, not a zero-parameter function.
 Its initializer may use earlier constants, explicit static parameters and admitted
