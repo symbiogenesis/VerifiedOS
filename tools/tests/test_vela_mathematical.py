@@ -166,11 +166,49 @@ def _injection_and_coordinates() -> None:
     ensure(probe.endswith(b"\n;"), "probe lacks a non-swallowable terminator")
 
 
+def _parsed_declaration_injection() -> None:
+    fixture = _Fixture("Playground")
+    fixture.text = "module "
+    fixture.start = 0
+    fixture.module = fixture.name("Playground")
+    fixture.write(";\n")
+    start = fixture.offset
+    fixture.write("public const ")
+    annotation = _type("Nat")(fixture)
+    fixture.write(" ")
+    name = fixture.name("__vela_console_result")
+    fixture.write(" =\n")
+    expression_start = fixture.offset
+    initializer = _natural(1)(fixture)
+    fixture.write(";")
+    fixture.declarations.append(fixture.node("constant", start, name=name, type=annotation,
+                                             value=initializer, modifiers=["public"]))
+    fixture.write(" ")
+    start = fixture.offset
+    fixture.write("public const ")
+    annotation = _type("Nat")(fixture)
+    fixture.write(" ")
+    name = fixture.name("Injected")
+    fixture.write(" = ")
+    initializer = _natural(2)(fixture)
+    expression = fixture.text.encode()[expression_start:].decode()
+    fixture.write("\n;")
+    fixture.declarations.append(fixture.node("constant", start, name=name, type=annotation,
+                                             value=initializer, modifiers=["public"]))
+    probe, syntax = fixture.response()
+    # Both declarations are valid and source-bound; the console alone must reject this input.
+    language.elaborate(probe, syntax)
+    error = _refuses(lambda: language.evaluate(*_module().response(), expression, "Nat",
+                                              parse=lambda _: syntax), "syntax")
+    ensure("exactly one" in error.message, "injected declaration failed for an unrelated reason")
+
+
 def _limits() -> None:
     fixture = _module()
     unavailable: Callable[[bytes], object] = lambda _: (_ for _ in ()).throw(
         AssertionError("invalid request reached native parser"))
     _refuses(lambda: language.evaluate(*fixture.response(), "0" * 4097, "Nat", parse=unavailable), "limit")
+    _refuses(lambda: language.evaluate(*fixture.response(), "\u00e9" * 2049, "Nat", parse=unavailable), "limit")
     _refuses(lambda: language.evaluate(*fixture.response(), "\ud800", "Nat", parse=unavailable), "encoding")
     _refuses(lambda: language.evaluate(*fixture.response(), "1", cast("ValueType", "Unit"), parse=unavailable), "type")
     for owner in ("MAX_WORK", "MAX_REDUCTIONS", "MAX_OUTPUT_BYTES"):
@@ -178,6 +216,13 @@ def _limits() -> None:
             _refuses(lambda: _evaluate(fixture, _natural(1)), "limit", expression=False)
     enormous = _binary("*", _natural(10 ** 200), _natural(10 ** 200))
     _refuses(lambda: _evaluate(fixture, enormous), "limit")
+
+    def boundary(example: _Fixture) -> Node:
+        example.write(" " * 4095)
+        return _natural(1)(example)
+
+    ensure(_evaluate(fixture, boundary) == StaticEvaluation("Nat", 1),
+           "exact 4096-byte expression boundary was refused")
 
 
 def _native_adapter() -> None:
@@ -216,5 +261,6 @@ def cases() -> list[Case]:
             Case("higher-order-and-hygienic-static-reduction", _higher_order_and_static),
             Case("unequal-indices-types-and-invalid-original-proofs", _semantic_refusals),
             Case("single-initializer-source-binding-and-expression-coordinates", _injection_and_coordinates),
+            Case("successfully-parsed-declaration-injection-is-refused", _parsed_declaration_injection),
             Case("mathematical-console-resource-and-unicode-bounds", _limits),
             Case("native-schema-two-compilation-and-evaluation-adapter", _native_adapter)]
