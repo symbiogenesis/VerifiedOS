@@ -10,7 +10,7 @@ from pathlib import Path
 
 from vos.atomic import atomic_path
 from vos.vela import MAX_SOURCE_BYTES, VelaError, translate
-from vos.vela_authoring import LINT_CODES, format_source, lint_source
+from vos.vela_authoring import LINT_CODES, format_source, lint_source, preview_bindings
 
 
 @dataclass(frozen=True)
@@ -107,6 +107,9 @@ def main(argv: list[str] | None = None) -> int:
                                  help="suppress an optional lint (repeatable)")
             command.add_argument("--deny", action="append", choices=sorted(LINT_CODES), default=[],
                                  help="make an optional lint an error (repeatable)")
+        if name == "lint":
+            command.add_argument("--preview-bindings", action="store_true",
+                                 help="print a checked explicit-let candidate without writing source")
         if name in {"check", "emit"}:
             command.add_argument("--format", choices=("write", "check", "off"), default="off",
                                  help="source formatting mode (default: off; write requires explicit opt-in)")
@@ -128,7 +131,13 @@ def main(argv: list[str] | None = None) -> int:
         # A failed complete check never rewrites even syntactically valid input.
         translation = translate(source.data)
         if args.command == "lint":
-            return 0 if _lint(path, source.data, allowed, denied) else 1
+            if not _lint(path, source.data, allowed, denied):
+                return 1
+            if args.preview_bindings:
+                candidate = source.data if "VELA104" in allowed else preview_bindings(source.data)
+                _unchanged(source)
+                print(candidate.decode("utf-8"), end="")
+            return 0
         formatting = "check" if args.command == "fmt" and args.check else (
             "write" if args.command == "fmt" else args.format)
         candidate = source.data if formatting == "off" else format_source(source.data)

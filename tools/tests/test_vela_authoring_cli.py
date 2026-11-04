@@ -268,6 +268,47 @@ def _unavailable_lints() -> None:
                 ensure(source.read_bytes() == _COMPACT, "incomplete required lints rewrote source")
 
 
+def _binding_preview_policy_and_source_identity() -> None:
+    raw = b"module M;\n/// Returns a count.\npublic Nat Count(){Nat count=1;return count;}"
+    expected = b"module M;\n/// Returns a count.\npublic Nat Count(){let Nat count=1;return count;}"
+    with tempfile.TemporaryDirectory(prefix="vos-vela-binding-preview-") as directory:
+        source = Path(directory) / "source.vela"
+        source.write_bytes(raw)
+        before = source.stat()
+        code, output, errors = _call(["lint", "--preview-bindings", str(source)])
+        ensure(code == 0 and output.encode() == expected and "warning VELA104:" in errors,
+               "binding preview failed to print independently expected checked candidate bytes")
+        after = source.stat()
+        ensure(source.read_bytes() == raw and before.st_ino == after.st_ino
+               and before.st_mtime_ns == after.st_mtime_ns,
+               "binding preview wrote its source")
+        code, output, errors = _call(["lint", str(source), "--preview-bindings", "--allow", "VELA104"])
+        ensure(code == 0 and output.encode() == raw and not errors,
+               "suppressed binding finding still changed the preview")
+        code, output, errors = _call(["lint", str(source), "--preview-bindings", "--deny", "VELA104"])
+        ensure(code == 1 and not output and "error VELA104:" in errors and source.read_bytes() == raw,
+               "denied binding preview published or wrote a candidate")
+        for invalid in (b"module M;public Nat Count(){Nat value=true;return 0;}",
+                        b"module M;public Nat Count(){var Nat value=1;return value;}"):
+            source.write_bytes(invalid)
+            code, output, _ = _call(["lint", str(source), "--preview-bindings"])
+            ensure(code == 1 and not output and source.read_bytes() == invalid,
+                   "invalid or unsupported binding source yielded a preview")
+        source.write_bytes(raw)
+        changed = b"module M;public Nat Other()=>2;"
+        preview = cli.preview_bindings
+
+        def edit_during_preview(data: bytes) -> bytes:
+            candidate = preview(data)
+            source.write_bytes(changed)
+            return candidate
+
+        with patch.object(cli, "preview_bindings", side_effect=edit_during_preview):
+            code, output, errors = _call(["lint", str(source), "--preview-bindings"])
+        ensure(code == 1 and not output and "source changed" in errors and source.read_bytes() == changed,
+               "binding preview published a stale candidate or overwrote a concurrent edit")
+
+
 def cases() -> list[Case]:
     return [Case("vela-authoring-cli:defaults-and-provenance", _defaults_and_provenance),
             Case("vela-authoring-cli:readonly-source", _readonly_source),
@@ -276,4 +317,6 @@ def cases() -> list[Case]:
             Case("vela-authoring-cli:refusal-publication", _refusals_preserve_files),
             Case("vela-authoring-cli:source-snapshot", _concurrent_edit_and_special_files),
             Case("vela-authoring-cli:explicit-write-publication-failures", _explicit_write_publication_failures),
-            Case("vela-authoring-cli:lint-unavailable", _unavailable_lints)]
+            Case("vela-authoring-cli:lint-unavailable", _unavailable_lints),
+            Case("vela-authoring-cli:binding-preview-policy-and-source-identity",
+                 _binding_preview_policy_and_source_identity)]
