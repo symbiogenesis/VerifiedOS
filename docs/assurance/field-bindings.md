@@ -2,6 +2,18 @@
 
 *Normative as a **view** of [ApexTheorem.v](../../proofs/ApexTheorem.v), the machine-checked statement R-18-031(a) makes the coverage checklist: every side-property some seam consumes or concludes is a Prop field of the statement's `Vocabulary` record, a proof workstream lands by instantiating its field, and a field nothing instantiates is an uncovered obligation with exactly one name. This document is that checklist laid out as a table, one row per Prop field, so that coverage and blast radius are read rather than reconstructed.*
 
+The fields are a coverage ledger. Their named conjunction supplies no relation
+between executions. [SemanticTransport](../../proofs/ApexTheorem.v#SemanticTransport)
+instead relates concrete source and target input, adversary-context and released
+observation interfaces. Its [transport theorem](../../proofs/ApexTheorem.v#transport_T)
+uses an independently proved source property and the value, timing and architectural
+commutation proofs to establish the target property; adjacent transports
+[compose](../../proofs/ApexTheorem.v#compose_transport). The
+[semantic witnesses](../../proofs/SeamWitnesses.v#semantic_positive_binding) exercise
+different source/target executions and refute missing or incompatible interface
+conditions. These generic results instantiate no field below and do not complete
+the concrete machine's linking theorem.
+
 > **Precedence.** The mechanical half of every row (the field list, its order, and the **Consumed by** column) is derived from the `.v`, which wins; `tools/check.py` recomputes it on every run and fails this document where it drifts. The semantic half (**Authored by**) is hand-authored and answers to [requirements-register.md](../requirements-register.md), which wins over both this document and the statement's own comments. This document adds no obligation.
 
 ## How to read a row

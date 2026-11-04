@@ -14,8 +14,8 @@
    feeds seam 5. The witness makes no claim about those other seams.
 
    At leaky_vocabulary, the substrate invariants, seams and tower rungs hold
-   while T fails. This refutes the composition meta-lemma and shows that
-   R-18-031(b)'s linking theorem is an additional obligation. Each statement
+   while T fails. This refutes the ledger-only implication and shows why
+   R-18-031(b)'s linking theorem needs actual semantic transports. Each statement
    family is also inhabited at trivial_vocabulary, so the refutations do not
    rely on unsatisfiable statements.
 
@@ -23,8 +23,8 @@
    seam statements or crown-jewel row 1. It adds no axioms or obligations.
    (*| BEGIN derived: cited entries |*)
    Owner: docs/requirements-register.md
-   Requirements: R-05-160 R-05-163 R-05-164 R-05-165 R-05-166 R-18-031
-   SHA256: 775dfecaaa575f3e8a7f0d8c9925b7edfe61b3a3effb15cffe0423c886f7d36e
+   Requirements: R-05-160 R-05-161 R-05-163 R-05-164 R-05-165 R-05-166 R-18-031
+   SHA256: 7917148395276627dc9bbe0a57d7353159963c0a6decb89e3096ebd0e2313524
    (*| END derived |*)
    ========================================================================= *)
 
@@ -126,8 +126,8 @@ Proof. repeat split. Qed.
 
 (*| discharges: R-05-165, R-05-166 |*)
 Lemma composition_meta_lemma_inhabitation :
-  composition_meta_lemma trivial_vocabulary.
-Proof. intros _. exact statement_inhabitation_witness. Qed.
+  composition_meta_lemma trivial_vocabulary trivial_vocabulary.
+Proof. exact (semantic_composition_meta_lemma trivial_vocabulary trivial_vocabulary). Qed.
 
 (* -------------------------------------------------------------------------
    The nine distinguishing instances, in R-05-160's order. Each vocabulary
@@ -225,14 +225,14 @@ Proof. exact (fun H => H (conj I (conj I I))). Qed.
 (* -------------------------------------------------------------------------
    The meta-lemma's own distinguishing instance: at leaky_vocabulary every
    substrate invariant, every seam, and every tower rung holds (each field
-   is True there), and T is refutable, so the composition meta-lemma is
-   refutable. The linking theorem R-18-031(b) therefore has content: the
-   seam conclusions alone do not entail T.
+   is True there), and T is refutable, so the ledger-only implication is
+   refutable. The ledger is a coverage checklist and supplies no transport:
+   the seam conclusions alone do not entail T.
    ------------------------------------------------------------------------- *)
 
 (*| discharges: R-05-165, R-05-166 |*)
 Lemma composition_meta_lemma_distinguishing :
-  ~ composition_meta_lemma leaky_vocabulary.
+  ~ ledger_only_composition leaky_vocabulary.
 Proof.
   intro H.
   apply statement_distinguishing_instance.
@@ -241,3 +241,261 @@ Proof.
 Qed.
 
 (* R-05-163 and R-05-164: `run.py proofs` audits the complete native inventory. *)
+
+
+(* Semantic transport controls for [R-05-161](../docs/spec.md#r-05-161).
+   The examples distinguish public input from secret input. The positive
+   source keeps only the public bit; the target also stores the secret bit
+   in its trace but exposes only public observations. Their traces differ
+   in type and contents, so the source theorem is not T of the target under
+   another name. No example instantiates a production coverage field. *)
+
+Definition semantic_witness_vocabulary (TraceType : Type)
+    (run : (bool * bool)%type -> TraceType)
+    (value timing : TraceType -> bool) (architectural : TraceType -> (bool * bool)%type)
+    (inputs : (bool * bool)%type -> (bool * bool)%type -> Prop)
+    (contexts : (unit -> Prop) -> Prop) (released : bool -> bool) : Vocabulary := {|
+  Input := (bool * bool)%type;
+  Trace := TraceType;
+  exec := run;
+  Compartment := unit;
+  tcb := fun _ => False;
+  graph_permits := contexts;
+  Policy := unit;
+  policy := tt;
+  indist := fun _ _ => inputs;
+  ValueObs := bool;
+  TimingObs := bool;
+  ArchObs := (bool * bool)%type;
+  observe_value := fun _ => value;
+  observe_timing := fun _ => timing;
+  observe_arch := fun _ => architectural;
+  Declass := unit;
+  D := tt;
+  release_value := fun _ => released;
+  release_timing := fun _ o => o;
+  release_arch := fun _ o => o;
+  spatial_safety := True;
+  temporal_safety := True;
+  wx_exclusivity := True;
+  write_before_read := True;
+  source_refines_spec := True;
+  binary_refines_source_robustly := True;
+  binary_against_sail := True;
+  rtl_refines_sail := True;
+  explicit_flow_noninterference := True;
+  timing_isolation := True;
+  partition_guarantee := True;
+  wcet_bounds_sound := True;
+  composed_schedulability := True;
+  constant_time_typed := True;
+  constant_time_on_die := True;
+  cheri_tal_soundness := True;
+  admission_type_check := True;
+  admitted_binaries_safe := True;
+  crypto_reductions := True;
+  ae_ind_cca_int_ctxt := True;
+  storage_noninterference := True;
+  verifiable_encryption := True;
+  kernel_liveness := True;
+  progress_guarantee := True;
+  declassified_flows_authorized := True;
+  init_realizes_topology := True;
+  attestation_chain := True;
+  image_binding := True;
+  die_matches_rtl := True;
+  hardness_conjectures := True;
+  idealized_model_assumptions := True;
+  consent_correctness := True;
+  Ax_machine := True;
+  Ax_hardness := True;
+  Ax_model := True;
+  Ax_estimate := True;
+  Ax_human := True;
+  ax_machine_carries_die_matches_rtl := fun _ => I;
+  ax_hardness_carries_conjectures := fun _ => I;
+  ax_model_carries_assumptions := fun _ => I;
+  ax_human_carries_consent := fun _ => I
+|}.
+
+Definition semantic_source : Vocabulary :=
+  semantic_witness_vocabulary bool (@fst bool bool)
+    (fun p => p) negb (fun p => (p, true))
+    (fun i1 i2 => fst i1 = fst i2) (fun _ => True) (fun o => o).
+
+Definition semantic_target : Vocabulary :=
+  semantic_witness_vocabulary (bool * bool)%type (fun i => i)
+    (@fst bool bool) (fun i => negb (fst i)) (fun i => (fst i, true))
+    (fun i1 i2 => fst i1 = fst i2) (fun _ => True) (fun o => o).
+
+Lemma semantic_source_secure : T semantic_source.
+Proof.
+  intros _ C _ i1 i2 Hpublic.
+  change (fst i1 = fst i2 /\ negb (fst i1) = negb (fst i2) /\
+    (fst i1, true) = (fst i2, true)).
+  change (fst i1 = fst i2) in Hpublic.
+  rewrite Hpublic; repeat split.
+Qed.
+
+Definition semantic_positive_binding : SemanticTransport semantic_source semantic_target.
+Proof.
+  refine (@Build_SemanticTransport semantic_source semantic_target
+    (fun i => i) (fun C => C) (fun o => o) (fun o => o) (fun o => o)
+    (fun H => H) (fun _ H => H) (fun _ _ _ _ _ H => H) _ _ _);
+    intros; reflexivity.
+Defined.
+
+Lemma semantic_target_secure : T semantic_target.
+Proof.
+  exact (transport_T semantic_source semantic_target semantic_positive_binding
+    semantic_source_secure).
+Qed.
+
+Lemma semantic_witness_inputs_are_distinct :
+  (false, true) <> (false, false) /\
+  semantic_target.(indist) semantic_target.(policy) (fun _ => True)
+    (false, true) (false, false) /\
+  semantic_target.(observe_value) (fun _ => True) (semantic_target.(exec) (true, false)) <>
+    semantic_target.(observe_value) (fun _ => True) (semantic_target.(exec) (false, false)).
+Proof. split; [discriminate | split; [reflexivity | discriminate]]. Qed.
+
+Definition semantic_identity_binding : SemanticTransport semantic_target semantic_target.
+Proof.
+  refine {| transport_input := fun i => i;
+    transport_context := fun C => C;
+    transport_value := fun o => o;
+    transport_timing := fun o => o;
+    transport_arch := fun o => o;
+    transport_ax := fun H => H;
+    transport_admissible := fun _ H => H;
+    transport_indist := fun _ _ _ _ _ H => H |};
+    intros; reflexivity.
+Defined.
+
+Lemma semantic_composed_target_secure : T semantic_target.
+Proof.
+  exact (transport_T semantic_source semantic_target
+    (compose_transport semantic_source semantic_target semantic_target
+      semantic_positive_binding semantic_identity_binding) semantic_source_secure).
+Qed.
+
+Definition semantic_timing_leak : Vocabulary :=
+  semantic_witness_vocabulary (bool * bool)%type (fun i => i)
+    (@fst bool bool) (@snd bool bool) (fun i => (fst i, true))
+    (fun i1 i2 => fst i1 = fst i2) (fun _ => True) (fun o => o).
+
+Lemma omitted_timing_value_and_arch_agree : forall C i,
+  semantic_timing_leak.(observe_value) C (semantic_timing_leak.(exec) i) =
+    semantic_source.(observe_value) C (semantic_source.(exec) i) /\
+  semantic_timing_leak.(observe_arch) C (semantic_timing_leak.(exec) i) =
+    semantic_source.(observe_arch) C (semantic_source.(exec) i).
+Proof. intros; split; reflexivity. Qed.
+
+Lemma omitted_timing_is_rejected : ~ T semantic_timing_leak.
+Proof.
+  intro H.
+  destruct (H (conj I (conj I (conj I (conj I I)))) (fun _ => True)
+    (conj I (fun _ _ contra => contra)) (false, true) (false, false) eq_refl)
+    as [_ [Htiming _]].
+  discriminate Htiming.
+Qed.
+
+Lemma omitted_timing_has_no_secure_binding :
+  SemanticTransport semantic_source semantic_timing_leak -> False.
+Proof.
+  intro binding; apply omitted_timing_is_rejected.
+  exact (transport_T semantic_source semantic_timing_leak binding semantic_source_secure).
+Qed.
+
+Definition semantic_arch_leak : Vocabulary :=
+  semantic_witness_vocabulary (bool * bool)%type (fun i => i)
+    (@fst bool bool) (fun i => negb (fst i)) (fun i => (fst i, snd i))
+    (fun i1 i2 => fst i1 = fst i2) (fun _ => True) (fun o => o).
+
+Lemma omitted_arch_is_rejected : ~ T semantic_arch_leak.
+Proof.
+  intro H.
+  destruct (H (conj I (conj I (conj I (conj I I)))) (fun _ => True)
+    (conj I (fun _ _ contra => contra)) (false, true) (false, false) eq_refl)
+    as [_ [_ Harch]].
+  discriminate Harch.
+Qed.
+
+Lemma omitted_arch_has_no_secure_binding :
+  SemanticTransport semantic_source semantic_arch_leak -> False.
+Proof.
+  intro binding; apply omitted_arch_is_rejected.
+  exact (transport_T semantic_source semantic_arch_leak binding semantic_source_secure).
+Qed.
+
+Lemma incompatible_input_map_is_rejected :
+  ~ (forall (i1 i2 : (bool * bool)%type),
+    semantic_target.(indist) semantic_target.(policy) (fun _ => True) i1 i2 ->
+    semantic_source.(indist) semantic_source.(policy) (fun _ => True)
+      (snd i1, fst i1) (snd i2, fst i2)).
+Proof.
+  intro H.
+  specialize (H (false, true) (false, false) eq_refl).
+  discriminate H.
+Qed.
+
+Definition semantic_restricted_context : Vocabulary :=
+  semantic_witness_vocabulary bool (@fst bool bool)
+    (fun p => p) negb (fun p => (p, true))
+    (fun i1 i2 => fst i1 = fst i2) (fun C => ~ C tt) (fun o => o).
+
+Lemma incompatible_context_map_is_rejected :
+  ~ (forall C, admissible semantic_target C -> admissible semantic_restricted_context C).
+Proof.
+  intro H.
+  destruct (H (fun _ => True) (conj I (fun _ _ contra => contra))) as [Hcontext _].
+  exact (Hcontext I).
+Qed.
+
+Definition semantic_redacted_source : Vocabulary :=
+  semantic_witness_vocabulary (bool * bool)%type (fun i => i)
+    (@snd bool bool) (fun i => negb (fst i)) (fun i => (fst i, true))
+    (fun i1 i2 => fst i1 = fst i2) (fun _ => True) (fun _ => false).
+
+Definition semantic_value_leak : Vocabulary :=
+  semantic_witness_vocabulary (bool * bool)%type (fun i => i)
+    (@snd bool bool) (fun i => negb (fst i)) (fun i => (fst i, true))
+    (fun i1 i2 => fst i1 = fst i2) (fun _ => True) (fun o => o).
+
+Lemma redacted_source_secure : T semantic_redacted_source.
+Proof.
+  intros _ C _ i1 i2 Hpublic.
+  change (false = false /\ negb (fst i1) = negb (fst i2) /\
+    (fst i1, true) = (fst i2, true)).
+  change (fst i1 = fst i2) in Hpublic.
+  rewrite Hpublic; repeat split.
+Qed.
+
+Lemma raw_values_agree_despite_incompatible_declassification : forall C i,
+  semantic_redacted_source.(observe_value) C (semantic_redacted_source.(exec) i) =
+  semantic_value_leak.(observe_value) C (semantic_value_leak.(exec) i).
+Proof. intros; reflexivity. Qed.
+
+Lemma incompatible_declassification_is_rejected : ~ T semantic_value_leak.
+Proof.
+  intro H.
+  destruct (H (conj I (conj I (conj I (conj I I)))) (fun _ => True)
+    (conj I (fun _ _ contra => contra)) (false, true) (false, false) eq_refl)
+    as [Hvalue _].
+  discriminate Hvalue.
+Qed.
+
+Lemma incompatible_declassification_has_no_secure_binding :
+  SemanticTransport semantic_redacted_source semantic_value_leak -> False.
+Proof.
+  intro binding; apply incompatible_declassification_is_rejected.
+  exact (transport_T semantic_redacted_source semantic_value_leak binding
+    redacted_source_secure).
+Qed.
+
+Lemma leaky_ledger_has_no_secure_binding (source : Vocabulary) :
+  T source -> SemanticTransport source leaky_vocabulary -> False.
+Proof.
+  intros Hsource binding; apply statement_distinguishing_instance.
+  exact (transport_T source leaky_vocabulary binding Hsource).
+Qed.
