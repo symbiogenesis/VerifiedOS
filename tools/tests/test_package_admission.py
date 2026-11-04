@@ -109,9 +109,11 @@ class _Checks:
         self.contexts = contexts
         self.packages: list[str] = []
         self.layouts: list[int] = []
+        self.linkages: list[bytes] = []
         self.generations: list[bytes] = []
         self.package_ok = True
         self.layout_ok = True
+        self.linkage_ok = True
         self.generation_ok = True
         self.on_generation: Callable[[], None] | None = None
 
@@ -134,9 +136,15 @@ class _Checks:
             self.on_generation()
         return self.generation_ok
 
+    def linkage(self, requests: tuple[admission.Request, ...], actual: bytes,
+                generation: bytes) -> bool:
+        ensure(bool(requests) and actual.startswith(b"\x7fELF"), "linkage checker lost its concrete inputs")
+        self.linkages.append(generation)
+        return self.linkage_ok
+
     def checkers(self) -> admission.Checkers:
         return admission.Checkers(package=self.package, layout=self.layout, generation=self.generation,
-                                  context=lambda artifact: self.contexts[artifact.identity])
+                                  context=lambda artifact: self.contexts[artifact.identity], linkage=self.linkage)
 
 
 def _refused(action: Callable[[], object], phrase: str) -> None:
@@ -156,7 +164,8 @@ def _reuse_across_reboot_and_change() -> None:
         requests = _requests(packages, contexts)
         checks = _Checks(dict(zip((artifact.identity for artifact in packages), contexts, strict=True)))
         first = admission.prepare_generation(requests, _image(root, requests), b"generation one", checks.checkers())
-        ensure(len(checks.packages) == 2 and len(checks.layouts) == 2 and len(checks.generations) == 1,
+        ensure(len(checks.packages) == 2 and len(checks.layouts) == 2 and len(checks.generations) == 1
+               and checks.linkages == [b"generation one"],
                "cold admission must invoke both package checkers and all fresh checks")
         snapshot = root / "committed-checked-set"
         snapshot.write_bytes(first.checked_set)
@@ -166,6 +175,7 @@ def _reuse_across_reboot_and_change() -> None:
         second = admission.prepare_generation(moved, _image(root, moved), b"generation two",
                                                moved_checks.checkers(), prior=prior)
         ensure(moved_checks.packages == [] and len(moved_checks.layouts) == 2
+               and moved_checks.linkages == [b"generation two"]
                and moved_checks.generations == [b"generation two"],
                "a reboot and new layouts reuse only package-local proofs")
         ensure(first.bindings != second.bindings and first.image_sha256 != second.image_sha256,
@@ -268,7 +278,8 @@ def _fresh_failures_do_not_publish() -> None:
         first = admission.prepare_generation(requests, actual, b"first", checks.checkers())
         current = _Current(first.checked_root)
         prior = admission.restore(first.checked_set, current)
-        for phase, phrase in (("layout", "TAL/layout"), ("generation", "wiring")):
+        for phase, phrase in (("layout", "TAL/layout"), ("linkage", "source-correspondence linkage"),
+                              ("generation", "wiring")):
             callbacks = _Checks(checks.contexts)
             setattr(callbacks, f"{phase}_ok", False)
             _refused(lambda callbacks=callbacks: admission.prepare_generation(requests, actual, b"refused",
@@ -284,6 +295,9 @@ def _fresh_failures_do_not_publish() -> None:
         _refused(lambda: admission.prepare_generation(requests, actual, b"missing checker", None), "checkers are required")
         missing_context = replace(checks.checkers(), context=None)
         _refused(lambda: admission.prepare_generation(requests, actual, b"missing context", missing_context, prior=prior),
+                 "checkers are required")
+        missing_linkage = replace(checks.checkers(), linkage=None)
+        _refused(lambda: admission.prepare_generation(requests, actual, b"missing linkage", missing_linkage, prior=prior),
                  "checkers are required")
         fake_verdict = replace(checks.checkers(), package=Mock(return_value={"accepted": True}))
         _refused(lambda: admission.prepare_generation(requests, actual, b"fake verdict", fake_verdict), "proof refused")
@@ -316,6 +330,17 @@ def _image_and_input_drift_refuses() -> None:
         corrupt = actual[:at] + bytes([actual[at] ^ 1]) + actual[at + 1:]
         _refused(lambda: admission.prepare_generation(requests, corrupt, b"bad image", checks.checkers()), "image")
         ensure(checks.packages == [], "a mismatched physical image must refuse before checking proofs")
+        placement = requests[0].placement
+        wrong_section = replace(placement.sections[0], writable=True)
+        forged = (replace(placement, entry=placement.base + 128),
+                  replace(placement, exports=(("main", placement.base + 128),)),
+                  replace(placement, sections=(wrong_section, *placement.sections[1:])))
+        for wrong in forged:
+            selected = (replace(requests[0], placement=wrong),)
+            _refused(lambda selected=selected: admission.prepare_generation(selected, actual, b"forged metadata",
+                     checks.checkers()), "placement metadata")
+            ensure(checks.packages == [] and checks.layouts == [],
+                   "noncanonical placement entry exports or sections must never reach a trusted checker")
         original_policy = context.policy
 
         def mutate_context() -> None:
@@ -326,6 +351,18 @@ def _image_and_input_drift_refuses() -> None:
             _refused(lambda: admission.prepare_generation(requests, actual, b"context drift", checks.checkers()), "inputs changed")
         finally:
             object.__setattr__(context, "policy", original_policy)
+        section = placement.sections[0]
+        original_bytes = bytes(section.data)
+
+        def mutate_section() -> None:
+            section.data[0] ^= 1
+
+        checks.on_generation = mutate_section
+        try:
+            _refused(lambda: admission.prepare_generation(requests, actual, b"section drift", checks.checkers()),
+                     "placement metadata")
+        finally:
+            section.data[:] = original_bytes
         checks.on_generation = None
         first = admission.prepare_generation(requests, actual, b"first", checks.checkers())
         current = _Current(first.checked_root)

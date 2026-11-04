@@ -109,6 +109,7 @@ class Checkers:
     layout: Callable[[Request, bytes, bytes], bool] | None
     generation: Callable[[tuple[Request, ...], bytes, bytes], bool] | None
     context: Callable[[package_artifacts.Artifact], ProofContext] | None = None
+    linkage: Callable[[tuple[Request, ...], bytes, bytes], bool] | None = None
 
 
 @dataclass(frozen=True)
@@ -182,8 +183,13 @@ def _prior_entries(prior: AuthenticatedState | None) -> frozenset[ProofKey]:
 def _request_binding(request: Request) -> tuple[ProofKey, str]:
     if not isinstance(request, Request) or not isinstance(request.context, ProofContext):
         raise PackageAdmissionError("generation requires typed fixed-package requests")
-    artifact = request.placement.artifact
-    artifact.validate()
+    placement = request.placement
+    if not isinstance(placement, package_artifacts.Placement):
+        raise PackageAdmissionError("generation requires a typed fixed-package placement")
+    artifact = placement.artifact
+    fresh = package_artifacts.place(artifact, placement.base)
+    if placement != fresh:
+        raise PackageAdmissionError("placement metadata differs from the immutable artifact and base")
     request.context.validate()
     context = artifact.document()["context"]
     for name, value in context.items():
@@ -193,7 +199,7 @@ def _request_binding(request: Request) -> tuple[ProofKey, str]:
         raise PackageAdmissionError("each concrete layout requires fresh nonempty TAL input")
     key = artifact.identity, request.context.identity()
     binding = _digest(canonical_bytes({"artifact": artifact.identity, "context": key[1],
-                                      "placement": request.placement.binding(),
+                                      "placement": fresh.binding(),
                                       "tal_sha256": _digest(request.tal)}))
     return key, binding
 
@@ -220,8 +226,9 @@ def prepare_generation(requests: Sequence[Request], image: bytes, generation: by
     """
     if (checkers is None or not isinstance(checkers, Checkers)
             or not callable(checkers.package) or not callable(checkers.layout)
-            or not callable(checkers.generation) or not callable(checkers.context)):
-        raise PackageAdmissionError("actual package, TAL/layout, generation and current-context checkers are required")
+            or not callable(checkers.generation) or not callable(checkers.context)
+            or not callable(checkers.linkage)):
+        raise PackageAdmissionError("actual package, TAL/layout, linkage, generation and current-context checkers are required")
     if type(image) is not bytes or type(generation) is not bytes or not image or not generation:
         raise PackageAdmissionError("image and generation inputs must be nonempty immutable bytes")
     selected = tuple(requests)
@@ -246,6 +253,8 @@ def prepare_generation(requests: Sequence[Request], image: bytes, generation: by
         staged.add(key)
         if checkers.layout(request, image, generation) is not True:
             raise PackageAdmissionError(f"concrete TAL/layout refused: {request.placement.artifact.package_id}")
+    if checkers.linkage(selected, image, generation) is not True:
+        raise PackageAdmissionError("generation source-correspondence linkage checks refused")
     if checkers.generation(selected, image, generation) is not True:
         raise PackageAdmissionError("generation wiring, memory or schedule checks refused")
     if tuple(_request_binding(request) for request in selected) != before:
