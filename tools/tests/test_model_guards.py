@@ -175,6 +175,7 @@ def _refused_evidence_is_recorded() -> None:
                                 ([identity, moved], "the inputs changed during the build")):
             # The Sail test runs in the ctest stage, which stands in with the others.
             with (patch.object(model, "build_identity", side_effect=identities),
+                  patch.object(model, "_observed_revision", return_value="fixture revision"),
                   patch.object(model, "_configure", return_value=0),
                   patch.object(model, "_native_start", return_value={}),
                   patch.object(model, "_native_finish", return_value={}),
@@ -213,9 +214,16 @@ def _pin(root: Path, path: str, commit: str) -> None:
 
 _ORACLE_PIN = "1" * 40
 
+_IDENTITY_IMPLEMENTATION = {
+    "tools/run.py": "",
+    "tools/vos/__init__.py": "",
+    "tools/vos/cli/__init__.py": "",
+    "tools/vos/cli/model.py": "",
+}
+
 
 def _proof_publication_keeps_build_identity() -> None:
-    with sandbox_tree({"model/source.sail": "model bytes\n",
+    with sandbox_tree({**_IDENTITY_IMPLEMENTATION, "model/source.sail": "model bytes\n",
                        "proofs/proof-evidence.json": "old receipt\n"}) as root:
         _pin(root, model.ORACLE_SRC, _ORACLE_PIN)
         _git(root, "commit", "-qm", "fixture")
@@ -249,7 +257,7 @@ def _identity_binds_only_opened_gitlinks() -> None:
     still moves the identity. The binding stays fail-closed: an index that no longer
     records the oracle as a gitlink is refused rather than dropped from the manifest.
     """
-    with sandbox_tree({"model/source.sail": "model bytes\n",
+    with sandbox_tree({**_IDENTITY_IMPLEMENTATION, "model/source.sail": "model bytes\n",
                        ".gitmodules": "[submodule \"upstream/sail-cheri-riscv\"]\n"}) as root:
         _pin(root, model.ORACLE_SRC, _ORACLE_PIN)
         _pin(root, "upstream/llvm-project", "2" * 40)
