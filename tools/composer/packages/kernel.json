@@ -16,7 +16,7 @@
     },
     {
       "path": "kernel/src/executive.c",
-      "sha256": "0e1aca2215eeaac8da59d13696cbc7e3ed117eef01e64edfb5f90b522f137e7b"
+      "sha256": "18468b18d37b35e1ec6c2c8163946dec44f24c588579f902e0146703fc091403"
     },
     {
       "path": "kernel/src/handoff.c",
@@ -32,7 +32,7 @@
     },
     {
       "path": "kernel/src/target.c",
-      "sha256": "efaac096b8da1181607fed0f6b0778965fceba196ec93b8a35aedb737ae6f039"
+      "sha256": "2ee292a2da65d47abb3484792a2ce5e459dc7d8add8b11cb865cbf97d13150e7"
     },
     {
       "path": "kernel/include/vos_copy_loan.h",
@@ -48,7 +48,7 @@
     },
     {
       "path": "kernel/include/vos_kernel.h",
-      "sha256": "de274585c72c18819a823e206d87d149c698c87f0b0a1eed0e81fb4bebdfbf2e"
+      "sha256": "ed1c0d71d198d501501340b6c9f38e3f5e5b1e59c2384abe5d20621fd474d908"
     },
     {
       "path": "kernel/include/vos_lifecycle.h",
@@ -60,7 +60,7 @@
     },
     {
       "path": "kernel/include/vos_target.h",
-      "sha256": "ca88dae4e118adcad257e4f70cf255230aa43a2cf80c4d1e2818091688d3d4d2"
+      "sha256": "14c38d70509fd999b8e4376cd7db7ef992ab4d2c2b4b49b9f63cd844ff3a5429"
     }
   ],
   "interfaces": [
@@ -68,7 +68,7 @@
       "id": "kernel-boundary",
       "source": {
         "path": "kernel/README.md",
-        "sha256": "ce3b24066b7fc745d9721ed29fdf40621489aeed6e5f5c3994e742b678ddaf4f"
+        "sha256": "83b4b4d8e0b0e67cf57a8cef7beb81524f1decf993ddc3134c73b414f4ffe7eb"
       }
     },
     {

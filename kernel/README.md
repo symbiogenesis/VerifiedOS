@@ -4,6 +4,22 @@ The GC-free C of one isolated kernel instance, M4.4 in the [project plan](../PLA
 
 The accepted contained compiler builds the actual C readers, context image, executive and target adapter into a two-partition C-class composition. [The target runner](../tools/vos/kernel_target.py) authenticates its release with the real SLH verifier, executes the firmware handoff and kernel on Sail, and checks bounds, complete restoration, semantic completion and table order. The RoT C executes on the host in this experiment; the report keeps that executor boundary explicit. [The corpus member](../corpus/kernel-instance.s) replays the exact released memory and handoff record. General restoration, restart and extended executive duties remain open below.
 
+## Executive clock horizon
+
+The [clock repair contract](../docs/implementation/contracts/executive-clock-repair.md)
+defines checked release, advancement and target-deadline operations. Zero and
+`UINT64_MAX` are valid instants. An unrepresentable phase, frame product or
+deadline refuses without changing the output or cursor; the target assembly
+checks success before programming the timer or dispatching a successor.
+
+`python tools/run.py test --only test_kernel_clock` includes the native C
+ASan/UBSan controls on the guest and the host assembly-adapter controls. Its
+executable mutants distinguish compiled defects from compilation failures.
+The changed C and target adapter require fresh contained-compiler/Sail replay;
+the retained target and corpus captures identify their earlier source bytes and
+provide no target verdict for this repair. Q46b in [the plan](../PLAN.md#q-assessment-actions)
+retains that acceptance work.
+
 ## What each file owns
 
 | File | What it implements | What holds it on the host |

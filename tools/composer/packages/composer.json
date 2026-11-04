@@ -60,7 +60,7 @@
     },
     {
       "path": "tools/vos/asm.py",
-      "sha256": "e37921e8325db4a4031c34125903e9ee6773a26d389dc6355715a8b67eba6b47"
+      "sha256": "f2e54ad9ddc6ac06cd8a16011a5f710ce34840f6e4f4b451666bd85b83d1f27d"
     },
     {
       "path": "tools/vos/atomic.py",

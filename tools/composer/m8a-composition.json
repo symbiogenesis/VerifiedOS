@@ -109,7 +109,7 @@
         },
         {
           "path": "tools/vos/asm.py",
-          "sha256": "e37921e8325db4a4031c34125903e9ee6773a26d389dc6355715a8b67eba6b47"
+          "sha256": "f2e54ad9ddc6ac06cd8a16011a5f710ce34840f6e4f4b451666bd85b83d1f27d"
         },
         {
           "path": "tools/vos/atomic.py",
@@ -279,7 +279,7 @@
       ],
       "descriptor": {
         "path": "tools/composer/packages/kernel.json",
-        "sha256": "d863d2972201d531a21f4f40c5c9f8172b6ad9e7bdb4f5201d647ee908a85ab5"
+        "sha256": "a2a1d41ecbd5d00460fe05b60f9587c8bb26c0a0d3a97719f41c7034b52aa776"
       },
       "artifact_slot": "kernel-artifact",
       "entry": null,
@@ -478,7 +478,7 @@
         },
         {
           "path": "tools/vos/asm.py",
-          "sha256": "e37921e8325db4a4031c34125903e9ee6773a26d389dc6355715a8b67eba6b47"
+          "sha256": "f2e54ad9ddc6ac06cd8a16011a5f710ce34840f6e4f4b451666bd85b83d1f27d"
         },
         {
           "path": "tools/vos/atomic.py",
@@ -631,7 +631,7 @@
       ],
       "descriptor": {
         "path": "tools/composer/packages/composer.json",
-        "sha256": "75d758a8c5274c12b5f2edb88168633c1427800aa4a83564b1ce501ffbb4b4cb"
+        "sha256": "15ff2668f10cffa0ceace21a6ce6f3c450e5e626417b74e80f8dfdbabdedfe08"
       },
       "artifact_slot": "composer-artifact",
       "entry": null,
@@ -710,7 +710,7 @@
         },
         {
           "path": "tools/vos/asm.py",
-          "sha256": "e37921e8325db4a4031c34125903e9ee6773a26d389dc6355715a8b67eba6b47"
+          "sha256": "f2e54ad9ddc6ac06cd8a16011a5f710ce34840f6e4f4b451666bd85b83d1f27d"
         },
         {
           "path": "tools/vos/atomic.py",
@@ -807,7 +807,7 @@
       ],
       "descriptor": {
         "path": "tools/composer/packages/admission.json",
-        "sha256": "38e5391e0788590bb4e90921510d276a0b005ccd1cacfbfbdbf4fa3ffd6829b4"
+        "sha256": "f17c951cdff407da2d25d05b6b86a6983b4c61db743436f0adfb475321007afe"
       },
       "artifact_slot": "admission-artifact",
       "entry": null,
