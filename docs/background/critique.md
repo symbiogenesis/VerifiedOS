@@ -262,15 +262,32 @@ A change to a semantic anchor, capability encoding, protocol grammar, memory map
 This is the security benefit of freezing the machine and the operational cost of doing so.
 The risk is not merely slow feature delivery: it is a long degraded interval after the outside world changes in a way the frozen assumptions did not anticipate.
 
-**The install path's expense is not where the design's own account of it looks.**
-The checker that could be slow is the one an install does not run: R-06-008 and R-13-027 scope the on-device CIC kernel to the artifact-local source-correspondence theorem and hold Tier-0 refinement, non-interference, and the composed proofs at release time, while the type check carries no budget at all, its termination and its linear work bound being properties of the pinned language rather than of this platform (R-05-129, R-05-135a, R-06-015a).
-The source closure that reads as the expensive part is the cheap one: R-13-010c keeps closures, derivations, and proof artifacts out of execution SRAM entirely, and R-13-008 makes a transfer a content-addressed set difference, so a shared dependency's source moves once per device.
-What an install actually costs is a boot, a composition, and a re-lowering of the whole package closure outside the base image (R-13-001a, R-13-001c, R-13-028); since R-13-027 made the toolchain resident, that composition is the device's own slots in a declared composition mode by default rather than a round trip, which moves the wait rather than removing it (R-13-027a, R-17-035a).
-R-17-035a names the whole-roster memory plan, the schedulability proof, and the cross-roster merge among what that boundary buys and prices them as immediacy, which is a constant, while what R-13-028 describes is not: composition re-runs the whole-image passes, the slot plan, and the schedule over the closure, so every object in it is re-emitted with its derivation and its correspondence theorem whatever the change was.
-The quantity a user meets is therefore a composer's turnaround against the size of the roster rather than the complexity of any check, and the corpus carries the turnaround as a host range alone and no roster at all.
-Nor is proof-checking time the whole of the visible cost: R-13-001a makes a package change a generation activated at boot, so a mundane software change remains a build-and-admit operation whose cost to the user includes the composition turnaround, the restart and the restoration of declared durable state.
-**The dependency half of this criticism is answered and the turnaround half is not.** R-13-027 puts the certifying toolchain in the roster and obliges that every generation the device runs it can also produce, and R-18-004e puts that in the first release, so a development-oriented user needs no second machine and no external build infrastructure's availability; what remains is that the same re-lowering now runs on a device whose composition mode R-13-027a declares and whose own wall-clock no artifact here states, [the toolchain residency report](../performance/toolchain-residency.md) carrying a host range and declining the ratio that would convert one. Q9 measures that turnaround, on the local path and the remote one; M1.10 and M6.10 carry the work, and Q26 has priced what the resident toolchain occupies.
-**The roster-tracking cost is a default the register names as one, and the alternative is now stated in the register's own vocabulary.** R-13-028 declines a second fixed package layer across rosters so that R-13-010b's merge and specialization reach the whole package closure, and names the comparison that reopens it. [The package-layer comparison](../implementation/comparisons/package-layer.md) states that layer as a contract a package fixes ahead of its roster, each clause with the entry that already owns it, and reads off the register what the measurement cannot move: the dictionary is a freeze-time constant, so the only byte question is R-15-036l's call form; TAL-068 keeps the derivation re-bound per roster, so what becomes roster-invariant is the CIC theorem alone; and cross-compartment edges are sealed sentries the merge pass does not cross, so what the whole closure buys across packages is narrower than the phrase reads. Q31 runs the comparison when the backend and the composed roster exist, and until it does an install's cost tracks the roster as R-17-035a says.
+**Native installation still pays roster-level work and a boot.**
+R-13-028's fixed packages avoid construction and package-local CIC checking for
+unchanged artifacts whose exact proof context remains admitted. That does not
+make an install proportional only to the changed package: object hashing,
+concrete-layout TAL, fresh modular linkage/instantiation, placement,
+initialization, wiring, the handler graph, scheduling and global resource checks
+still cover the resulting roster. A native
+package change remains a generation activated at boot (R-13-001a), so its visible
+cost includes restart and restoration of declared durable state.
+
+The proof-reuse boundary also has an implementation cost. A package-local theorem
+must expose the contract premises the fresh composition check discharges, and
+reuse must authenticate the prior checked-set root, bind exact proof and checker
+contexts, and commit new evidence atomically with the generation. A host cache or
+successful artifact hash cannot supply the missing modular correspondence,
+TAL/CIC consumers or resident target joins in
+[the production handoff](../implementation/contracts/production-admission.md).
+
+No device turnaround figure establishes how much this work costs. The
+[toolchain residency report](../performance/toolchain-residency.md) carries host
+sizing evidence rather than a conversion to device latency. Q9 measures the
+holder's turnaround, M1.10 and M6.10 own the resident implementation, and Q31's
+[package-layer comparison](../implementation/comparisons/package-layer.md)
+measures capacity and timing against optional replacement-artifact optimization.
+Fixed package spans and retained exports may spend scarce memory; the default
+construction boundary supplies no measured claim that those costs fit.
 
 **The largest unknown unknown is correlation.**
 The bespoke memory, capability dialect, compiler path, static kernel, scheduling model, package format, and server ecosystem are often justified independently.

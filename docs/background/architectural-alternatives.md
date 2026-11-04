@@ -519,13 +519,35 @@ The adopted image lineage is documented in [Inspirations & Prior Art](inspiratio
 
 ---
 
-## A fixed package layer with a declared contract: deferred to the comparison R-13-028 names
+## Fixed native packages: adopted construction boundary
 
-The proposal is modular proof-carrying packages: a package's image, data-initializer, correspondence theorem and hyperproperty certificates emitted once against a contract the package declares ahead of any roster, roster-invariant as the base image's are, so that installing one package re-checks that package and re-runs only the roster's own acts, the slot plan, the schedule, the wiring table and the handler graph, in place of re-lowering the whole package closure outside the base image. The motivation is R-17-035a's first cost read from the user's side: under R-13-028 an install's cost tracks the roster and not the change.
+<a id="a-fixed-package-layer-with-a-declared-contract-deferred-to-the-comparison-r-13-028-names"></a>
 
-**What the register decides before any measurement.** R-13-028 declines a second fixed package layer across rosters by default, names the cost it accepts for that, the merge and specialization reach of R-13-010b over the package closure, and names what reopens it, the bytes-versus-WCET comparison from the R-18-014a backend with the layer's composition and reproducibility duties included. Several readings narrow that comparison before it runs. The dictionary is a freeze-time constant (R-15-036i), so encoded bytes can be roster-invariant and the only position question is R-15-036l's: a package placed per roster takes the PC-relative forms at its own sites and pays R-15-036p's escape term there, while cross-package edges are sentries through the wiring table and pay nothing. TAL-068 admits no relocatable artifact, so the CHERI-TAL derivation stays re-bound and re-checked per roster and only the CIC correspondence theorem becomes roster-invariant, which is the half R-06-015a budgets. Outlining is intra-compartment (R-15-036o), specialization does not cross a sealed sentry, and a shared service compartment is a package with an export world, so what the merge reach loses across packages is identical-function merging and the exports no roster member imports. And R-13-001b is not touched: a contract composes no reservation ahead of its occupant.
+R-13-028 selects fixed packages. Their code-and-rodata, initializer,
+correspondence theorem and required hyperproperty objects bind an explicit
+source, interface and resource contract. Ordinary composition maps those bytes
+without invoking an unchanged package's producer, then supplies fresh
+concrete-layout TAL, wiring, handler-graph, placement and global resource checks.
+The first placement path preserves all relative region displacements under one
+common translation; independently moving regions requires a separately proved
+capability-relative ABI. Metadata alone establishes neither placement theorem.
 
-**Disposition:** deferred behind the comparison, not declined. [The package-layer comparison](../implementation/comparisons/package-layer.md) states the contract with the entry that owns each clause, the objects each side re-emits, and the adoption predicate with its evidence boundary; Q31 runs it when the backend and the composed roster exist. Until then the position-fixed image and roster-wide re-lowering stand, and no relocatable artifact, second manifest, or runtime binding is introduced under this entry.
+Package-local CIC verdicts are reused only from the current admitted generation's
+authenticated checked set, with exact artifact, proof and context identities.
+New successes are staged until all generation checks pass, and the existing
+authenticated transaction commits the successor root. Fetched receipts and
+candidate signatures cannot nominate their own prior trust anchor. Native
+activation still takes a boot; no running-image mutation or pre-proved empty
+native slot is introduced.
+
+**Disposition:** adopted under [the fixed-package contract](../implementation/contracts/fixed-packages.md).
+[The package-layer comparison](../implementation/comparisons/package-layer.md)
+and Q31 qualify capacity, timing, proof connections and turnaround against
+explicitly constructed roster-wide optimization. An optimization creates named
+replacement artifacts with fresh evidence; it never silently re-lowers unchanged
+packages during ordinary install. Missing measurements supply no speed or memory
+claim. Missing native correspondence, TAL/CIC consumers and resident joins keep
+their existing implementation owners.
 
 ---
 

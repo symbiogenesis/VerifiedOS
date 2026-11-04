@@ -9,7 +9,7 @@
 Measured here:
 
 - **The certifying compiler's peak resident bytes per translation unit**, over a size ladder and over the real units the contained fork's own runtime carries, with the growth answered by measurement rather than asserted, and with the optional optimization passes separated from the mandatory chain by running the same act with them off.
-- **The prover's peak resident bytes**, per module for the per-artifact check that is the device's act and R-06-015a's declared budget, and once over a whole module set for what one kernel re-check in one invocation costs.
+- **The prover's peak resident bytes**, per host module compilation/check and once over a whole module set for one kernel re-check in one invocation. These are sizing inputs, not measurements of the deferred device admission consumer.
 - **The store side**: actual bytes of the source closures and of the proof objects that exist on this machine, each named by the revision it was read at, with the deduplication R-13-008 performs credited once at each level and never twice at any.
 - **The turnaround**, as a range over the stages that have an executable, with the power state and the concurrent load per row.
 
@@ -96,9 +96,22 @@ Three consecutive invocations of the 1,024-function row, taken after the ladder 
 
 ### The prover, and which of its two acts the device performs
 
-**The two acts are not the same act and the register separates them.** R-13-028 says deep proofs are not per-device: Tier-0 functional refinement and non-interference are validated by the CIC kernel *at release time* over the base-image TCB, while a composition re-emits every object in the package closure outside the base image with its derivation and its correspondence theorem, and R-13-027 makes the on-device act *CIC-check the artifact-local source-correspondence theorem*. **So the per-artifact check is the act the device performs and the act R-06-015a's declared working-set budget covers**, that entry budgeting every proof the CIC kernel checks on the install path. **What R-13-028 separates is subject matter and not invocation shape**: its Accept puts on the install path *the CIC correspondence check over the closure the composition re-lowered, which is the roster's package closure*, so an install does re-check a whole closure, and the one-invocation shape decides nothing about which act is which. Both are measured; each is labelled for the closure it was taken over.
+R-13-028 separates release-time Tier-0 base-image proofs from package-local
+correspondence and hyperproperty checks. Fixed package objects are constructed
+once against their contracts. A later install rehashes their bytes and can reuse
+package-local CIC verdicts from the current admitted generation's authenticated
+checked set under exact artifact and checking-context equality. New or invalidated
+objects need actual checking under R-06-015a's budget. Concrete-layout TAL and
+roster-level checks remain fresh on every generation.
 
-**Per-module check, which is the device's act.** `rocq c -q -Q proofs "" <module>.v`, one invocation per module, over this repository's 27 tracked proof modules at `9e2b56ab`, in dependency order, each peak taken on the child that invocation forked. Ordered by peak:
+The host measurements below size available prover processes; they do not measure
+the deferred on-device CIC consumer or establish installation turnaround. Q31
+and [the fixed-package contract](../implementation/contracts/fixed-packages.md)
+separate package construction, first proof checking, authenticated reuse and
+fresh composition work when the native path is qualified. No per-roster proof
+recompilation is assumed for an unchanged admitted fixed package.
+
+**Per-module host compilation and checking.** `rocq c -q -Q proofs "" <module>.v`, one invocation per module, over this repository's 27 tracked proof modules at `9e2b56ab`, in dependency order, each peak taken on the child that invocation forked. Ordered by peak:
 
 | Module | Source bytes | `.vo` bytes | Peak resident bytes | Wall s |
 | --- | --- | --- | --- | --- |
@@ -132,9 +145,9 @@ Three consecutive invocations of the 1,024-function row, taken after the ladder 
 
 **The prover's peak does not track the input's size, and that is the opposite of the compiler's answer.** Source sizes span a factor of 35 across these 27 modules, 8,957 bytes to 313,611. The peaks of 25 of them span a factor of 2.6, 283,840,512 to 725,676,032, with no ordering by source size inside that band: the largest source, `AdmissionPath`, peaks below eleven smaller ones, and the smallest, `MemoryPlannerResources`, peaks above it. Only the two lightest modules fall out of the band, `SeamWitnesses` at 104,275,968 and `ApexTheorem` at 125,927,424. **What drives the peak inside the band is not identified here**: the instrument reaches the process and not the cause, and no property this report measured, not the source size, not the `.vo` size, not the constant count the gate enumerates, orders the band. Naming it is M1.10's, the item that owns the recorded peak per pass.
 
-**So the two components answer the growth question in opposite directions**, which is the part of quantity 1 the item asks for by name. The compiler's peak is affine in the unit's size, so it grows with a roster and a port can trade it against how much a unit holds. The prover's is a band between 0.28 and 0.73 gigabytes for 25 of this corpus's 27 modules, the two lightest sitting below it at 0.10 and 0.13, and inside the band it is independent of the module's byte count, so it does not grow with a roster and cannot be traded that way; what a roster changes is how many times it is paid. **A pool sized from a roster's byte count would be sized correctly for the first and wrongly for the second.**
+**The measured growth is per host invocation.** The compiler's peak is affine in the measured translation unit's size; fixed package construction chooses that unit without re-lowering it when unrelated roster members change. The prover's peaks sit between 0.28 and 0.73 gigabytes for 25 of this corpus's 27 modules, with the two lightest below that band at 0.10 and 0.13, and the measurements show no ordering by source byte count. These host observations do not supply a native checker's pool bound. First or invalidated package checks need their own declared resource evidence; authenticated reuse changes how often those checks run, not the resource requirement of a check that actually runs.
 
-**Whole-set re-check, over a corpus that is neither of R-13-028's two closures.** `rocqchk -silent -Q proofs "" <all 27 modules>` in one invocation: **peak 8,836,591,616 bytes**, 750.108 s wall, exit 0. The set is this repository's design corpus, which is neither the base-image TCB R-13-028 validates at release time nor a roster's package closure an install re-checks, and the row is reported for what one kernel check over 27 modules of this size costs rather than as either act.
+**Whole-set host re-check over the design corpus.** `rocqchk -silent -Q proofs "" <all 27 modules>` in one invocation: **peak 8,836,591,616 bytes**, 750.108 s wall, exit 0. The set is this repository's design corpus, not the base-image TCB or a fixed package's admission objects. The row reports what one kernel check over these 27 modules costs; it is not a required per-install act.
 
 **Conditions for these two rows.** `Discharging` at both stamps; guest load average 0.10 at the first stamp and 1.00 at the last. No second whole-set re-check was resident. The load was lower than the compiler ladder's 2.49 to 2.72; conditions are stated per act.
 
@@ -186,7 +199,7 @@ Reading B adds to every figure above whatever R-18-004a's eight members place in
 
 ## 6. Quantity 2: the store side
 
-R-13-027 obliges the device to hold the source closure every generation it runs it can also produce, and R-13-010c keeps source closures, derivations and proof artifacts out of execution SRAM: they are resident in the authenticated store and consumed at admission rather than at run time. **So this quantity is bytes of storage and is not charged against either memory class.** R-13-027's own text makes the proof objects closure members by putting the source closure and the artifact-local correspondence theorem on the same admission path, and R-13-028 re-emits every object outside the base image with its derivation and its correspondence theorem per roster, so a proof object is counted here as a closure member and never as a separate category.
+R-13-027 obliges the device to hold the source closure from which it can produce every generation it runs, and R-13-010c keeps source closures, derivations and proof artifacts out of execution SRAM: they are resident in the authenticated store and consumed at admission rather than at run time. **So this quantity is bytes of storage and is not charged against either memory class.** Fixed packages bind their proof objects and source closure under R-13-028; unchanged stored objects and authenticated package-local verdicts can be reused. A proof object is counted here with its stored closure rather than added again as a separate storage category.
 
 **What exists to be measured, and what does not.** There is no base image, so the base image's own source closure is absent and is owed by M6.10 and by R-13-026's reproducible object. What exists is one toolchain component's source closure, that component's proof objects, the prover's own installation, and this repository's tracked corpus, and each is labelled for what it is.
 
@@ -228,7 +241,7 @@ R-13-027 obliges the device to hold the source closure every generation it runs 
 
 **The range, then, is 0.01 s for one small compilation and 1,003 s for one gate run over 27 proof modules, on a host, at a contention that differed by stage and is stated per row.** One figure beside them, recorded by a build rather than by this report and quoted with its own predicate: the guest build directory's `evidence.json` records that same fork's `make -j6 proof` at 308.501 s and its `make extraction` at 8.592 s at revision `a826d5f1`, which is what building the compiler itself cost on this machine once.
 
-**Nothing here scales.** The largest single stage, the whole-set re-check at 750 s, is one kernel check over a corpus no roster fixes; the device's own per-artifact check is the 0.11 s to 84.58 s column, over modules whose count and content a roster would fix and no roster does.
+**These figures supply no device scaling law.** The largest single stage, the whole-set re-check at 750 s, is one kernel check over a corpus no roster fixes. The 0.11 s to 84.58 s column measures host per-module compilation/checking, not the deferred device's package-local CIC consumer. Neither column establishes changed-package install latency or the cost of authenticated reuse.
 
 **The ratio a device figure would need, stated term by term and not applied.** Converting any wall-clock figure above into a device figure needs, in order: R-11-017's selected operating point and slot share, which does not exist; R-17-041's latency magnitudes, which do not exist; the composition mode's own slot share for the toolchain compartments, which R-13-027a makes a composition-time constant and no composition has declared; and the step budget R-13-027a bounds one activation's work by, which makes a build many bounded activations rather than one task, so that a device turnaround is a count of activations times a period and not a scaled host second. **Not one of the four terms has a value, so the ratio has no value and none is applied here.** The product-gate contract's own PG-3 refuses a verdict taken this way and R-18-004c states the same rule from the register's side; a figure in `host_elapsed` stays in `host_elapsed`.
 
