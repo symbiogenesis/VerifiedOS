@@ -54,8 +54,10 @@ assembly-based harness remains a bring-up producer rather than the native
 installation policy.
 
 Each generation still obtains a new concrete TAL binding, monotonic capability
-wiring, handler graph, placement/memory-initialization check, schedule and global
-resource checks, signed generation root and A/B transaction. Removing a package
+wiring, fresh modular linkage/instantiation connecting reused correspondence to
+the exact installed image and wired capabilities, handler graph,
+placement/memory-initialization check, schedule and global resource checks,
+signed generation root and A/B transaction. Removing a package
 does not execute its code. Activation remains the next boot under R-13-001a.
 
 ## Reusing checked proofs across generations
@@ -66,8 +68,10 @@ artifact, fetched cache file, untrusted composer or candidate-generation signatu
 cannot supply its own trust anchor. Restoration verifies the complete checked-set
 bytes against that root. An unauthenticated or mismatched prior set refuses.
 
-A reuse key binds the exact artifact and all package-local proof objects to the
-contract, source closure, spec/model/profile/decoder versions, checker identity,
+A trusted current-generation checker/policy adapter supplies the expected
+checking context; an untrusted request cannot select an older policy merely to
+hit a prior entry. A reuse key binds the exact artifact and all package-local
+proof objects to the contract, source closure, spec/model/profile/decoder versions, checker identity,
 CIC environment, assumptions, tier, policy and resource context. Equality is
 exact; changing any member requires the actual package proof checker. A matching
 authenticated entry avoids only the package-local correspondence/hyperproperty

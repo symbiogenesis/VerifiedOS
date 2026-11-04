@@ -47,7 +47,7 @@ Evidence stage: **independent replay**. Disposition: **evaluate now**. Inspected
 Selected sources:
 
 - [tools/vos/composer.py](../../tools/vos/composer.py); identity `b96169f76319dd55c7597462472257830370fe9c86c44236ae3379efe34bcd3e`.
-- [proofs/HandlerGraph.v](../../proofs/HandlerGraph.v); identity `7bbb0de40e8e485e2797155515dd0c0d00f808e8b5254bbbc9f54c95ef18b4a2`.
+- [proofs/HandlerGraph.v](../../proofs/HandlerGraph.v); identity `98cdb2609c15cf18b52c10412424ae491c052e5620e56e926c3ec168d093edba`.
 
 Assumptions and exclusions:
 
@@ -292,12 +292,12 @@ Sorted reference payload SHA-256: `23b690105f12b96f3ef7a997cf508a5b775e70bcaf077
 
 | Bound input or implementation | SHA-256 |
 | --- | --- |
-| [tools/vos/source_bindings.py](../../tools/vos/source_bindings.py) | `1bfe1f594aed03ee4168fd2f836d01444383cb8998565d8fb7e0549be2cac270` |
+| [tools/vos/source_bindings.py](../../tools/vos/source_bindings.py) | `b949d49bafb5c9e738376f053bbbd71754df961e94ed3312b9b4a55f8fc1652f` |
 | [proofs/ProofSupport.v](../../proofs/ProofSupport.v) | `21fefa8c275f9a6ee41299d2d59b971974a8f89453cb8749bbec0d7d13e86a22` |
 | [tools/pyproject.toml](../../tools/pyproject.toml) | `3d1bbd38f558a98c46d87ba87ac62f360cca55dafd9ba42c323acb162e46b781` |
 | [tools/uv.lock](../../tools/uv.lock) | `3ec7b8f3b137af6405df6ea1085da2c789611bcb05bb5297ff7292f0a1824c12` |
 | [tools/vos/composer.py](../../tools/vos/composer.py) | `b96169f76319dd55c7597462472257830370fe9c86c44236ae3379efe34bcd3e` |
-| [proofs/HandlerGraph.v](../../proofs/HandlerGraph.v) | `7bbb0de40e8e485e2797155515dd0c0d00f808e8b5254bbbc9f54c95ef18b4a2` |
+| [proofs/HandlerGraph.v](../../proofs/HandlerGraph.v) | `98cdb2609c15cf18b52c10412424ae491c052e5620e56e926c3ec168d093edba` |
 | [tools/vos/math_evidence.py](../../tools/vos/math_evidence.py) | `cbe9e115518178c4ad00db96377ccbd9508544e9b24fbe78055b3d921d700a3c` |
 | [tools/vos/__init__.py](../../tools/vos/__init__.py) | `f4212439e361dd2a6d2b25d97c82b6ba6ab8aa4cf3814a69023d8a745b11d49c` |
 | [tools/vos/atomic.py](../../tools/vos/atomic.py) | `384e706e945f8cead1e1b3791f916f6e7f8783a7497c17dd3a551a765e670471` |

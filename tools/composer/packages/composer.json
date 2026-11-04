@@ -4,7 +4,7 @@
   "sources": [
     {
       "path": "tools/vos/source_bindings.py",
-      "sha256": "1bfe1f594aed03ee4168fd2f836d01444383cb8998565d8fb7e0549be2cac270"
+      "sha256": "b949d49bafb5c9e738376f053bbbd71754df961e94ed3312b9b4a55f8fc1652f"
     },
     {
       "path": "proofs/ProofSupport.v",
@@ -24,7 +24,7 @@
     },
     {
       "path": "proofs/HandlerGraph.v",
-      "sha256": "7bbb0de40e8e485e2797155515dd0c0d00f808e8b5254bbbc9f54c95ef18b4a2"
+      "sha256": "98cdb2609c15cf18b52c10412424ae491c052e5620e56e926c3ec168d093edba"
     },
     {
       "path": "tools/vos/composition.py",
@@ -44,7 +44,15 @@
     },
     {
       "path": "tools/vos/cli/composer.py",
-      "sha256": "6e8a003948fd5791a91dc92fc1e62053792759a42db42c145a1539d952004bed"
+      "sha256": "fcf877836eda8ab372f68b784b6dd710486dbe6f5e8af8ebadb65eabcd4c9eef"
+    },
+    {
+      "path": "tools/composer/fixed-package.schema.json",
+      "sha256": "4b97cb2d06b514b0f3a6cc58b8de904b894f71a491126c5a5d5c4fb5094a0ae1"
+    },
+    {
+      "path": "tools/composer/fixed-composition.schema.json",
+      "sha256": "0a59d1e8d02e335a69169e3101c1b1a46567ce669ce72ecb9079d7129de1c122"
     },
     {
       "path": "tools/vos/__init__.py",
@@ -143,6 +151,10 @@
       "sha256": "7f3b2a45727478dc9a65d99aa1e9738432becf00808b652238699ed611dd07a3"
     },
     {
+      "path": "tools/vos/fixed_composition.py",
+      "sha256": "588c46699c6f53a6a8411dac1839988bdf8be59a3e73aadcdfd351f728bf2804"
+    },
+    {
       "path": "tools/vos/image.py",
       "sha256": "00693f7a898025ebeb188d0a91cd4441a3085f918f119249e2ecac6b4ab4418f"
     },
@@ -165,6 +177,10 @@
     {
       "path": "tools/vos/openssl.py",
       "sha256": "dbe25044d107e0926ca7041b7e7fe369d0335d467c7988dd08dd2a97b68471e9"
+    },
+    {
+      "path": "tools/vos/package_artifacts.py",
+      "sha256": "2228d14d1ca855beac248dc9a42352b836c01607fa78e85e9c5c9e5ceb434993"
     },
     {
       "path": "tools/vos/proof_staging.py",

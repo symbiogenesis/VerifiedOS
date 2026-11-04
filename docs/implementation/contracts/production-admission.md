@@ -97,6 +97,10 @@ resource context. Equality is exact. A missing entry or changed member requires
 the actual package checker; an unavailable checker refuses rather than inventing
 a successful entry. Rehashing the objects remains mandatory even on a match.
 
+The trusted checker/policy adapter supplies the current expected context for each
+artifact. An untrusted request cannot select an older context to reuse a stale
+verdict. The coordinator checks this agreement before and after all consumers run.
+
 New successful package verdicts remain private candidates until fresh TAL,
 wiring, handler-graph, placement/initialization, scheduling and global resource
 checks all pass. Failure or interruption publishes no successor checked state.

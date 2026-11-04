@@ -15,7 +15,8 @@ immutable code-and-rodata, writable initializer, derivation template,
 correspondence theorem and required hyperproperty objects. Ordinary composition
 maps those objects without rewriting or re-lowering them, then performs the
 roster's placement, scheduling, capability-wiring, handler-graph and global
-resource checks. Concrete-layout CHERI-TAL bindings are fresh for every generation.
+resource checks. Concrete-layout CHERI-TAL bindings and modular source-correspondence
+linkage are fresh for every generation.
 Package-local CIC verdicts are reusable only through the authenticated checked-set
 interface in [the contract](../contracts/fixed-packages.md#reusing-checked-proofs-across-generations).
 
@@ -52,8 +53,8 @@ TAL-068 still require a derivation bound to the final concrete layout.
 Package-local dead elimination keeps the contract's exports, scheduled entries
 and interrupt roots. Outlining and tail merging retain R-15-036o's compartment
 boundary. Shared service compartments remain separately constructed packages
-with export worlds. Cross-package identical-function merging and removal of
-exports unused by one roster can spend additional bytes or proof work; Q31
+with export worlds. Retaining exports and forgoing cross-package merging can
+cost bytes; constructing optimized replacements costs new proof work. Q31
 measures those terms rather than assuming their magnitude.
 
 Fixed region contracts retain their memory classes, relative bank geometry,

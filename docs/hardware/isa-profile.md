@@ -64,6 +64,11 @@ Code is resident, fetched, and decoded in one fixed-rate **dictionary format**. 
 
 At freeze, compare PC-relative forms with composition-time absolute forms over the fixed image and dense 36-bit Bare address space. An absolute form must remain one canonical 32-bit instruction and add no CSR, table or target-membership structure (R-15-036l). `Zcmt`'s `cm.jt`, `cm.jalt` and JVT remain excluded independently of the purecap `C` encoding collision: no JVT CSR, branch-path table read, bespoke table authority, context-switch item or `fence.t` flush-set candidate is permitted (R-15-036q).
 
+Reusable package code must preserve its bytes' meaning at every placement its
+contract admits. A freeze choice of absolute forms does not permit installation
+to patch unchanged package code; a producer uses PC-relative or capability-relative
+forms wherever it cannot prove that placement condition (R-13-028, R-15-036l).
+
 **Multi-register saves remain struck.** The dictionary compresses individual instructions, so a *k*-register save already occupies *k* slots. A multi-save would remove only (*k* − 1) 16-bit slots, half its upstream byte saving. `Zcmp`'s restartable `cm.push`/`cm.pop` also require sequencing state that conflicts with the stateless front end and adds an absence-contract audit burden (R-15-036m).
 
 Any later proposal must instead be all-or-nothing, checking the stack capability once against [`csp` − adj, `csp`) before all accesses. That reduces repeated capability checks, as indexed load/store does. The candidate remains struck because its reduced byte saving overlaps the outlining pass below; it is not a pending freeze choice (R-15-036n).

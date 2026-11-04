@@ -527,7 +527,8 @@ R-13-028 selects fixed packages. Their code-and-rodata, initializer,
 correspondence theorem and required hyperproperty objects bind an explicit
 source, interface and resource contract. Ordinary composition maps those bytes
 without invoking an unchanged package's producer, then supplies fresh
-concrete-layout TAL, wiring, handler-graph, placement and global resource checks.
+concrete-layout TAL, modular source-correspondence linkage, wiring, handler-graph,
+placement and global resource checks.
 The first placement path preserves all relative region displacements under one
 common translation; independently moving regions requires a separately proved
 capability-relative ABI. Metadata alone establishes neither placement theorem.
