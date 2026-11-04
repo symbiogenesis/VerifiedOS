@@ -478,6 +478,7 @@ function clearInspection(message) {
 
 async function refreshOutline() {
     const captured = snapshot();
+    clearInspection("Loading compiler-resolved symbols…");
     const ticket = ++state.outlineTicket;
     const stillCurrent = () => current(captured) && ticket === state.outlineTicket;
     $("refresh-outline").disabled = true;
@@ -486,7 +487,7 @@ async function refreshOutline() {
         const result = await languageQuery("textDocument/documentSymbol", {}, captured);
         if (!stillCurrent()) return;
         if (!result) {
-            $("outline").replaceChildren(element("p", "muted-message", "Outline unavailable. Check the connection and source, then refresh."));
+            clearInspection("Outline unavailable. Check the connection and source, then refresh.");
             return;
         }
         state.outlineSnapshot = captured;
@@ -522,6 +523,7 @@ async function inspectSymbol(position = null) {
         ]);
         if (!stillCurrent()) return;
         if (hover === undefined || references === undefined) {
+            clearInspection("Inspection unavailable. Refresh the outline when language services are ready.");
             $("symbol-details").textContent = "Inspection unavailable. Check the connection and source, then retry.";
             return;
         }
