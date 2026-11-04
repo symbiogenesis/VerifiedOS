@@ -17,7 +17,8 @@ from vos import vela_playground as playground
 from vos.cli import vela_playground as playground_cli
 from vos.commands import COMMANDS
 from vos.vela import StaticEvaluation, VelaError
-from vos.vela_elaborate import Elaboration
+from vos.vela_authoring import Finding
+from vos.vela_mathematical import Compilation
 from vos.vela_playground_worker import compile_request
 
 _PURE = "module Simple; public Nat Value() => 42;"
@@ -91,7 +92,8 @@ def _http_dispatch_and_strict_fields() -> None:
         ensure(worker.call_args.kwargs["timeout"] == playground.WORKER_SECONDS,
                "mathematical compilation escaped the isolated worker timeout")
         compile_reply: dict[str, object] = {
-            "ok": True, "sourceHash": _DIGEST, "module": "Indexed", "gallina": "Module Indexed.\nEnd Indexed.\n"}
+            "ok": True, "sourceHash": _DIGEST, "module": "Indexed", "gallina": "Module Indexed.\nEnd Indexed.\n",
+            "findings": []}
         with patch.object(playground.subprocess, "run", return_value=_process(compile_reply)):
             ensure(_post(server, "/api/compile", {"source": _SOURCE, "mode": "mathematical"}) == compile_reply,
                    "mathematical compilation lost its Gallina result")
@@ -155,7 +157,8 @@ def _changed_parser_refuses() -> None:
     with _mathematical_server() as (server, parser):
         def replace_during_worker(*_args: object, **_kwargs: object) -> playground.subprocess.CompletedProcess[bytes]:
             parser.write_bytes(b"replaced parser with different executable bytes")
-            return _process({"ok": True, "sourceHash": _DIGEST, "module": "Indexed", "gallina": "stale terms"})
+            return _process({"ok": True, "sourceHash": _DIGEST, "module": "Indexed", "gallina": "stale terms",
+                             "findings": []})
 
         request = {"source": _SOURCE, "mode": "mathematical"}
         with patch.object(playground.subprocess, "run", side_effect=replace_during_worker) as worker:
@@ -177,13 +180,19 @@ def _changed_parser_refuses() -> None:
 def _worker_mathematical_routing() -> None:
     parser = Path("/prepared/native/vela-parser")
     compile_input: dict[str, object] = {"source": _SOURCE, "mode": "mathematical", "action": "compile"}
-    with patch("vos.vela_mathematical.compile_source", return_value=Elaboration("Indexed", "actual Gallina")) as compile_math:
+    with patch("vos.vela_mathematical.compile_source", return_value=Compilation("Indexed", "actual Gallina", ())) as compile_math:
         response = compile_request(compile_input, mathematical_parser=parser)
     ensure(response == {"ok": True, "sourceHash": _DIGEST,
-                        "module": "Indexed", "gallina": "actual Gallina"},
+                        "module": "Indexed", "gallina": "actual Gallina", "findings": []},
            "worker changed the mathematical elaborator's actual result")
     ensure(compile_math.call_args.args == (_SOURCE.encode(), parser),
            "worker did not forward the exact source bytes and server-owned parser")
+    finding = Finding("VELA105", "generic type parameter 'element' should use PascalCase", 3, 36)
+    with patch("vos.vela_mathematical.compile_source",
+               return_value=Compilation("Indexed", "actual Gallina", (finding,))):
+        response = compile_request(compile_input, mathematical_parser=parser)
+    ensure(response["findings"] == [{"code": "VELA105", "message": finding.message, "line": 3, "column": 36}],
+           "worker lost the mathematical producer's original naming finding")
     evaluate_input: dict[str, object] = {"source": _SOURCE, "mode": "mathematical", "action": "evaluate",
                                        "expression": "Last()", "valueType": "Nat"}
     with patch("vos.vela_mathematical.evaluate_source", return_value=StaticEvaluation("Nat", 8)) as evaluate_math:
@@ -199,6 +208,77 @@ def _worker_mathematical_routing() -> None:
     ensure(response == {"ok": False, "sourceHash": _DIGEST,
                         "error": {"kind": "type", "message": "wrong length", "line": 3, "column": 12}},
            "worker lost original mathematical diagnostic positions or source identity")
+
+
+def _mathematical_naming_reply_validation() -> None:
+    source = ("module Naming;\n// supplementary: \U0001f680\r\n"
+              "public definition element Identity<element>(element value) => value;\n")
+    digest = hashlib.sha256(source.encode()).hexdigest()
+    finding: dict[str, object] = {
+        "code": "VELA105", "message": "generic type parameter 'element' should use PascalCase",
+        "line": 3, "column": 36}
+    valid: dict[str, object] = {"ok": True, "sourceHash": digest, "module": "Naming",
+                                "gallina": "actual checked-source terms", "findings": [finding]}
+    request: dict[str, object] = {"source": source, "mode": "mathematical"}
+    malformed: tuple[dict[str, object], ...] = (
+        {key: value for key, value in valid.items() if key != "findings"},
+        {**valid, "findings": None},
+        {**valid, "findings": "not a list"},
+        {**valid, "findings": [{**finding, "code": "VELA100"}]},
+        {**valid, "findings": [{**finding, "code": "VELA999"}]},
+        {**valid, "findings": [{**finding, "line": True}]},
+        {**valid, "findings": [{**finding, "line": 99}]},
+        {**valid, "findings": [{**finding, "column": 999}]},
+        {**valid, "findings": [{**finding, "column": 7}]},
+        {**valid, "findings": [{**finding, "column": 37}]},
+        {**valid, "findings": [{**finding, "message": ""}]},
+        {**valid, "findings": [{**finding, "extra": "unrecognized"}]},
+        {**valid, "findings": [finding, finding]},
+        {**valid, "sourceHash": hashlib.sha256(b"old source").hexdigest()},
+    )
+    with _mathematical_server() as (server, _parser):
+        with patch.object(playground.subprocess, "run", return_value=_process(valid)):
+            ensure(_post(server, "/api/compile", request) == valid,
+                   "valid naming warnings prevented mathematical compilation")
+        for response in malformed:
+            with patch.object(playground.subprocess, "run", return_value=_process(response)):
+                refused = _post(server, "/api/compile", request)
+            ensure(refused["ok"] is False and refused["sourceHash"] == digest
+                   and cast("dict[str, object]", refused["error"])["kind"] == "internal"
+                   and "gallina" not in refused and "findings" not in refused,
+                   "invalid naming findings retained compilation output or a clean warning result")
+        with patch.object(playground, "MAX_AUTHORING_FINDINGS", 0), \
+                patch.object(playground.subprocess, "run", return_value=_process(valid)):
+            refused = _post(server, "/api/compile", request)
+        ensure(refused["ok"] is False and "gallina" not in refused,
+               "mathematical naming findings escaped their configured count budget")
+        underscored_source = source.replace("element", "T_value")
+        underscored: dict[str, object] = {
+            **valid, "sourceHash": hashlib.sha256(underscored_source.encode()).hexdigest(),
+            "findings": [{**finding, "message": "generic type parameter 'T_value' should use PascalCase"}]}
+        with patch.object(playground.subprocess, "run", return_value=_process(underscored)):
+            ensure(_post(server, "/api/compile", {**request, "source": underscored_source}) == underscored,
+                   "capital-initial name with underscores was confused with PascalCase")
+        capital_source = source.replace("element", "T")
+        capital: dict[str, object] = {
+            **valid, "sourceHash": hashlib.sha256(capital_source.encode()).hexdigest(),
+            "findings": [{**finding, "message": "generic type parameter 'T' should use PascalCase", "column": 30}]}
+        with patch.object(playground.subprocess, "run", return_value=_process(capital)):
+            refused = _post(server, "/api/compile", {**request, "source": capital_source})
+        ensure(refused["ok"] is False and "findings" not in refused,
+               "clean PascalCase type received a fabricated naming warning")
+        two_source = source + "public definition item Again<item>(item value) => value;\n"
+        later: dict[str, object] = {**finding, "line": 4, "column": 30,
+                                    "message": "generic type parameter 'item' should use PascalCase"}
+        reordered: dict[str, object] = {
+            **valid, "sourceHash": hashlib.sha256(two_source.encode()).hexdigest(), "findings": [later, finding]}
+        with patch.object(playground.subprocess, "run", return_value=_process(reordered)):
+            refused = _post(server, "/api/compile", {**request, "source": two_source})
+        ensure(refused["ok"] is False and "findings" not in refused,
+               "out-of-order worker naming coordinates bypassed complete reply validation")
+        with patch.object(playground.subprocess, "run", return_value=_process(valid)):
+            ensure(_post(server, "/api/compile", request) == valid,
+                   "mathematical naming transport failed recovery after malformed warnings")
 
 
 def _native_cli_startup() -> None:
@@ -227,10 +307,29 @@ def _native_cli_startup() -> None:
                "retained pure host command unexpectedly invoked the native parser toolchain")
 
 
+def _pure_authoring_rejects_mathematical_lint() -> None:
+    digest = hashlib.sha256(_PURE.encode()).hexdigest()
+    clean: dict[str, object] = {"ok": True, "sourceHash": digest, "bindingPreview": _PURE, "findings": []}
+    invalid: dict[str, object] = {
+        **clean, "findings": [{"code": "VELA105", "message": "unsupported generic type naming finding",
+                              "line": 1, "column": 1}]}
+    with _running() as server:
+        with patch.object(playground.subprocess, "run", return_value=_process(invalid)):
+            refused = _post(server, "/api/authoring", {"source": _PURE})
+        ensure(refused["ok"] is False and cast("dict[str, object]", refused["error"])["kind"] == "internal"
+               and "findings" not in refused and "bindingPreview" not in refused,
+               "pure authoring accepted a mathematical-only naming finding")
+        with patch.object(playground.subprocess, "run", return_value=_process(clean)):
+            ensure(_post(server, "/api/authoring", {"source": _PURE}) == clean,
+                   "pure authoring failed recovery after a refused mathematical finding")
+
+
 def cases() -> list[Case]:
     return [Case("mathematical-capabilities-authentication-and-retained-pure-default", _capabilities_and_pure_defaults),
             Case("mathematical-http-mode-routing-and-request-field-refusals", _http_dispatch_and_strict_fields),
             Case("mathematical-worker-source-type-and-schema-refusals-with-recovery", _worker_reply_binding),
             Case("mathematical-changed-parser-identity-refuses-before-worker", _changed_parser_refuses),
             Case("mathematical-worker-reuses-elaborator-and-preserves-refusals", _worker_mathematical_routing),
+            Case("mathematical-naming-findings-source-shape-budget-and-recovery", _mathematical_naming_reply_validation),
+            Case("pure-authoring-refuses-mathematical-only-naming-finding", _pure_authoring_rejects_mathematical_lint),
             Case("mathematical-cli-prepares-native-parser-once-and-refuses-missing-tools", _native_cli_startup)]
