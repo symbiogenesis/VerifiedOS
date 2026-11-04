@@ -9,13 +9,16 @@ Fin an indexed inductive, and lookup recurses structurally on the finite index.
 
 import hashlib
 import re
+from collections.abc import Callable
 from dataclasses import dataclass
 from typing import cast
 
+from vos.vela import StaticEvaluation
 from vos.vela_ast import (
     DECIMAL,
     MAX_LITERAL_DIGITS,
     MAX_SOURCE_BYTES,
+    ValueType,
     VelaError,
     source_text,
     trivia_end,
@@ -1741,8 +1744,7 @@ Definition vela_At (A : Type@{vela_u0}) (n : nat) (xs : vela_Vec A n) (i : vela_
 """
 
 
-def elaborate(source: bytes, parsed: object) -> Elaboration:
-    """Check an exact-source schema-2 AST and propose a complete bounded CIC file."""
+def _checked_elaboration(source: bytes, parsed: object) -> tuple[Elaboration, _Elaborator]:
     protocol = _Protocol(source)
     try:
         root = protocol.decode(parsed)
@@ -1758,8 +1760,67 @@ def elaborate(source: bytes, parsed: object) -> Elaboration:
                    + "\n\n".join(elaborator.output) + f"\n\nEnd {generated_module}.\n")
         if len(gallina.encode("utf-8")) > MAX_OUTPUT_BYTES:
             raise protocol.error("limit", "generated Gallina exceeds the output bound")
-        return Elaboration(module, gallina)
+        return Elaboration(module, gallina), elaborator
     except RecursionError as error:
         raise protocol.error("limit", "elaboration nesting exceeds the host stack bound") from error
+
+
+def elaborate(source: bytes, parsed: object) -> Elaboration:
+    """Check an exact-source schema-2 AST and propose a complete bounded CIC file."""
+    return _checked_elaboration(source, parsed)[0]
+
+
+def evaluate(source: bytes, parsed: object, expression: str, value_type: ValueType,
+             *, parse: Callable[[bytes], object]) -> StaticEvaluation:
+    """Reduce one source-bound console constant in the checked module's environment.
+
+    The [mathematical console contract](../../docs/languages/vela/elaboration-prototype.md#commands-and-acceptance)
+    retains the native parser and existing bounded constant reducer.
+    """
+    _, elaborator = _checked_elaboration(source, parsed)
+    if value_type not in {"Nat", "bool"}:
+        raise VelaError("type", 1, 1, "expression: expected Nat or bool result type")
+    try:
+        raw = expression.encode("utf-8")
+    except UnicodeEncodeError as error:
+        raise VelaError("encoding", 1, 1, "expression: invalid Unicode text") from error
+    if len(raw) > 4096:
+        raise VelaError("limit", 1, 1, "expression: exceeds 4096 UTF-8 bytes")
+    prefix = f"module Playground;\npublic const {value_type} __vela_console_result =\n".encode()
+    probe = prefix + raw + b"\n;"
+    protocol = _Protocol(probe)
+    try:
+        root = protocol.decode(parse(probe))
+        declarations = elaborator.nodes(root["declarations"])
+        if len(declarations) != 1 or declarations[0]["kind"] != "constant":
+            raise VelaError("syntax", 3, 1, "expected exactly one constant initializer")
+        declaration = declarations[0]
+        name = elaborator.name(declaration["name"])
+        value = elaborator.node(declaration["value"])
+        if (name != "__vela_console_result"
+                or declaration["span"] != [len(b"module Playground;\n"), len(probe)]
+                or not len(prefix) <= cast("list[int]", value["span"])[0]
+                < cast("list[int]", value["span"])[1] <= len(prefix) + len(raw)):
+            raise VelaError("syntax", 3, 1, "expected exactly one complete constant initializer")
+    except VelaError as error:
+        lines = expression.replace("\r\n", "\n").replace("\r", "\n").split("\n")
+        line = max(1, error.line - 2)
+        column = error.column if line <= len(lines) else len(lines[-1]) + 1
+        line = min(line, len(lines))
+        column = min(column, len(lines[line - 1]) + 1)
+        raise VelaError(error.kind, line, column, f"expression: {error.message}") from error
+    elaborator.protocol = protocol
+    try:
+        result = elaborator.constant_value(declaration, {})
+        normalized = elaborator.whnf(result.term)
+        expected = "nat" if value_type == "Nat" else "bool"
+        if normalized.kind != expected or elaborator.free(normalized):
+            raise VelaError("inference", 1, 1, "constant did not reduce to a closed typed value")
+        return StaticEvaluation(value_type, cast("int", normalized.value) if value_type == "Nat"
+                                else bool(normalized.value))
+    except VelaError as error:
+        raise VelaError(error.kind, 1, 1, f"expression: {error.message}") from error
+    except RecursionError as error:
+        raise VelaError("limit", 1, 1, "expression: elaboration nesting exceeds the host stack bound") from error
 
 
