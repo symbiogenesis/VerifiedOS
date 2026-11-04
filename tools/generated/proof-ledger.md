@@ -184,6 +184,7 @@ being a finding of the rules that read them rather than a row of this table.
 | R-05-160 | proofs/SeamWitnesses.v | n/a | cited |
 | R-05-160 | proofs/SecurityPolicyModel.v | an_unrelated_D_is_not_authorized | claimed |
 | R-05-161 | proofs/ApexTheorem.v | n/a | cited |
+| R-05-161 | proofs/SeamWitnesses.v | n/a | cited |
 | R-05-161 | proofs/SecurityPolicyModel.v | apex_from_pointwise | claimed |
 | R-05-161a | proofs/ApexTheorem.v | n/a | cited |
 | R-05-162 | proofs/ApexTheorem.v | n/a | cited |
