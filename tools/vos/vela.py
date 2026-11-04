@@ -123,9 +123,9 @@ def _tokens(source: bytes) -> list[_Token]:
                 raise VelaError("limit", line, column,
                                 f"literal exceeds {MAX_LITERAL_DIGITS} decimal digits")
             kind = "decimal"
-        elif text[offset:offset + 2] in {"->", "=>", "==", "<="}:
+        elif text[offset:offset + 2] in {"->", "=>", "==", "!=", "<=", ">=", "&&", "||"}:
             spelling, kind = text[offset:offset + 2], "symbol"
-        elif character in "();,:{}=+*":
+        elif character in "();,:{}=+*-!<>":
             spelling, kind = character, "symbol"
         else:
             raise VelaError("syntax", line, column, f"unexpected character {character!r}")
@@ -293,26 +293,49 @@ class _Parser:
     def _expression(self, nesting: int) -> syntax.Expression:
         if nesting > MAX_EXPRESSION_DEPTH:
             raise self._error("limit", f"expression nesting exceeds {MAX_EXPRESSION_DEPTH}")
+        left = self._conjunction(nesting)
+        while self._current().text == "||":
+            token = self._expect("||")
+            left = syntax.expression("binary", "||", token.site, (left, self._conjunction(nesting)))
+        return left
+
+    def _conjunction(self, nesting: int) -> syntax.Expression:
+        left = self._comparison(nesting)
+        while self._current().text == "&&":
+            token = self._expect("&&")
+            left = syntax.expression("binary", "&&", token.site, (left, self._comparison(nesting)))
+        return left
+
+    def _comparison(self, nesting: int) -> syntax.Expression:
         left = self._sum(nesting)
         token = self._current()
-        if token.text in {"==", "<="}:
+        if token.text in {"==", "!=", "<", "<=", ">", ">="}:
             self.offset += 1
             return syntax.expression("binary", token.text, token.site, (left, self._sum(nesting)))
         return left
 
     def _sum(self, nesting: int) -> syntax.Expression:
         left = self._product(nesting)
-        while self._current().text == "+":
-            token = self._expect("+")
-            left = syntax.expression("binary", "+", token.site, (left, self._product(nesting)))
+        while self._current().text in {"+", "-"}:
+            token = self._current()
+            self.offset += 1
+            left = syntax.expression("binary", token.text, token.site, (left, self._product(nesting)))
         return left
 
     def _product(self, nesting: int) -> syntax.Expression:
-        left = self._atom(nesting)
+        left = self._unary(nesting)
         while self._current().text == "*":
             token = self._expect("*")
-            left = syntax.expression("binary", "*", token.site, (left, self._atom(nesting)))
+            left = syntax.expression("binary", "*", token.site, (left, self._unary(nesting)))
         return left
+
+    def _unary(self, nesting: int) -> syntax.Expression:
+        if nesting > MAX_EXPRESSION_DEPTH:
+            raise self._error("limit", f"expression nesting exceeds {MAX_EXPRESSION_DEPTH}")
+        token = self._current()
+        if self._take("!"):
+            return syntax.expression("unary", "!", token.site, (self._unary(nesting + 1),))
+        return self._atom(nesting)
 
     def _atom(self, nesting: int) -> syntax.Expression:
         token = self._current()
@@ -488,6 +511,16 @@ class _Elaborator:
             return value
         if kind == "group":
             return self._evaluate(expression.children[0], environment, depth + 1)
+        if kind == "unary":
+            operand = self._evaluate(expression.children[0], environment, depth + 1)
+            return _Static("bool", not operand.value)
+        if kind == "binary" and name in {"&&", "||"}:
+            left = self._evaluate(expression.children[0], environment, depth + 1)
+            if name == "&&" and not left.value:
+                return _Static("bool", False)
+            if name == "||" and left.value:
+                return _Static("bool", True)
+            return self._evaluate(expression.children[1], environment, depth + 1)
         arguments = tuple(self._evaluate(child, environment, depth + 1) for child in expression.children)
         if kind == "call":
             signature = self.functions[name]
@@ -497,9 +530,19 @@ class _Elaborator:
         left, right = arguments
         if name == "==":
             return _Static("bool", left.value == right.value)
+        if name == "!=":
+            return _Static("bool", left.value != right.value)
         first, second = left.value, right.value
         if name == "<=":
             return _Static("bool", first <= second)
+        if name == "<":
+            return _Static("bool", first < second)
+        if name == ">=":
+            return _Static("bool", first >= second)
+        if name == ">":
+            return _Static("bool", first > second)
+        if name == "-":
+            return _Static("Nat", max(0, first - second))
         if ((name == "+" and first > MAX_STATIC_NAT - second)
                 or (name == "*" and first != 0 and second > MAX_STATIC_NAT // first)):
             raise _error("limit", f"constant result exceeds {MAX_LITERAL_DIGITS} decimal digits", expression.site)
@@ -639,18 +682,35 @@ class _Elaborator:
             if arguments:
                 term = "(" + term + " " + " ".join(argument.gallina for argument in arguments) + ")"
             return self._bounded(signature.result, term, arguments, site)
+        if kind == "unary":
+            operand, = arguments
+            if operand.value_type != "bool":
+                raise _error("type", "'!' operand must be bool", site)
+            return self._bounded("bool", f"(if {operand.gallina} then {_FALSE} else {_TRUE})", arguments, site)
         left, right = arguments
-        if name in {"+", "*"}:
+        if name in {"&&", "||"}:
+            if left.value_type != "bool" or right.value_type != "bool":
+                raise _error("type", f"'{name}' operands must be bool", site)
+            term = (f"(if {left.gallina} then {right.gallina} else {_FALSE})" if name == "&&"
+                    else f"(if {left.gallina} then {_TRUE} else {right.gallina})")
+            return self._bounded("bool", term, arguments, site)
+        if name in {"+", "-", "*"}:
             if left.value_type != "Nat" or right.value_type != "Nat":
                 raise _error("type", f"'{name}' operands must be Nat", site)
-            operation = "add" if name == "+" else "mul"
+            operation = {"+": "add", "-": "sub", "*": "mul"}[name]
             return self._bounded("Nat", f"(Corelib.Init.Nat.{operation} {left.gallina} {right.gallina})", arguments, site)
         if left.value_type != right.value_type:
             raise _error("type", f"'{name}' operands must have the same type", site)
-        if name == "<=":
+        if name in {"<", "<=", ">", ">="}:
             if left.value_type != "Nat":
-                raise _error("type", "'<=' operands must be Nat", site)
-            term = f"(Corelib.Init.Nat.leb {left.gallina} {right.gallina})"
+                raise _error("type", f"'{name}' operands must be Nat", site)
+            operation = "ltb" if name in {"<", ">"} else "leb"
+            if name in {">", ">="}:
+                term = (f"(let vela_cmp_left := {left.gallina} in "
+                        f"let vela_cmp_right := {right.gallina} in "
+                        f"Corelib.Init.Nat.{operation} vela_cmp_right vela_cmp_left)")
+            else:
+                term = f"(Corelib.Init.Nat.{operation} {left.gallina} {right.gallina})"
         elif left.value_type == "Nat":
             term = f"(Corelib.Init.Nat.eqb {left.gallina} {right.gallina})"
         else:
@@ -659,6 +719,8 @@ class _Elaborator:
                     f"let vela_eq_right := {right.gallina} in "
                     "if vela_eq_left then vela_eq_right else "
                     f"(if vela_eq_right then {_FALSE} else {_TRUE}))")
+        if name == "!=":
+            term = f"(if {term} then {_FALSE} else {_TRUE})"
         return self._bounded("bool", term, arguments, site)
 
     def _specialize(self, signature: _Signature, arguments: tuple[_Expression, ...],
