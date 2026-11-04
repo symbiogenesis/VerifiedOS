@@ -20,6 +20,7 @@ image bytes; adding a member cannot rerecord an old image.
 
 import argparse
 import io
+import struct
 import tempfile
 from contextlib import redirect_stderr
 from pathlib import Path
@@ -108,10 +109,18 @@ def _a_dictionary_is_a_parameter() -> None:
 
 
 def _assembled_sites(source: str) -> tuple[list[asm.Site], bytes]:
-    assembled = asm.Assembler(source, "word-sites.s")
-    sections, _symbols, _entry = assembled.assemble()
-    text = next(section for section in sections if section.name == ".text")
-    return assembled.sites, bytes(text.data)
+    with tempfile.TemporaryDirectory() as scratch:
+        program, executable = Path(scratch) / "word-sites.s", Path(scratch) / "word-sites.elf"
+        program.write_text(source, encoding="utf-8", newline="")
+        sites: list[asm.Site] = []
+        asm.assemble_file(program, executable, sites)
+        elf = executable.read_bytes()
+    phoff = struct.unpack_from("<Q", elf, 32)[0]
+    kind, flags, offset, _virtual, physical, size, _memory, _alignment = struct.unpack_from(
+        "<IIQQQQQQ", elf, phoff)
+    ensure((kind, flags, physical) == (1, 5, asm.TEXT_BASE),
+           "the fixture's first ELF segment must load its executable text")
+    return sites, elf[offset:offset + size]
 
 
 def _dictionary_identity_includes_operands() -> None:
@@ -128,7 +137,7 @@ _start:
     ensure([site.word for site in sites] == expected,
            "instruction identity must include immediate, source and destination registers")
     ensure(image == b"".join(word.to_bytes(4, "little") for word in expected),
-           "the recorded words must be the independently specified emitted bytes")
+           "the recorded words must be the independently specified ELF text bytes")
     composed = compose.compose(sites, image, dictionary={0x00128293: 0, 0x00130293: 1})
     ensure([row.entry for row in composed.placed] == ["0", "-", "1", "-", "0", "-"],
            "only complete word matches may take a dictionary entry")
@@ -150,7 +159,7 @@ _start:
     ensure([site.address - asm.TEXT_BASE for site in sites] == [0, 4, 8, 12, 16],
            "instruction identities must follow emitted instruction boundaries")
     ensure(image == b"".join(word.to_bytes(4, "little") for word in expected),
-           "pseudo and alignment metadata must agree with the emitted bytes")
+           "pseudo and alignment metadata must agree with the loaded ELF text bytes")
     composed = compose.compose(sites, image, dictionary={0x00000013: 0, 0x123452B7: 1})
     ensure([row.entry for row in composed.placed] == ["1", "-", "0", "0", "-"],
            "pseudo expansion and repeated alignment nops use complete-word lookup")
