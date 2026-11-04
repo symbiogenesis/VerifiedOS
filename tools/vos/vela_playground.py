@@ -17,12 +17,15 @@ from typing import cast, override
 
 from vos.protocol_json import MAX_BODY_BYTES, decode_message, encode_message
 from vos.vela_ast import MAX_SOURCE_BYTES
+from vos.vela_authoring import LINT_CODES
 from vos.vela_lsp import Server
+from vos.vela_source import SourceSnapshot
 
 MAX_SESSIONS = 8
 SESSION_SECONDS = 1800
 READ_SECONDS = 10
 WORKER_SECONDS = 5
+MAX_AUTHORING_FINDINGS = 8192
 ASSETS = {"/": ("index.html", "text/html; charset=utf-8"),
           "/index.html": ("index.html", "text/html; charset=utf-8"),
           "/app.mjs": ("app.mjs", "text/javascript; charset=utf-8"),
@@ -37,6 +40,9 @@ def _validate_result(response: dict[str, object], request: dict[str, object], di
     if response.get("sourceHash") != digest or type(response.get("ok")) is not bool:
         raise ValueError("compiler worker returned an invalid source identity")
     if response["ok"]:
+        if request["action"] == "authoring":
+            _validate_authoring(response, cast("str", request["source"]))
+            return
         fields = {"ok", "sourceHash", "module", "gallina"} if request["action"] == "compile" else {
             "ok", "sourceHash", "valueType", "value"}
         if set(response) != fields or not all(isinstance(response[key], str) for key in fields - {"ok"}):
@@ -49,14 +55,34 @@ def _validate_result(response: dict[str, object], request: dict[str, object], di
                 raise ValueError("compiler worker returned an invalid typed value")
     else:
         error = response.get("error")
+        kinds = {"syntax", "name", "type", "unsupported", "limit", "encoding"}
+        if request["action"] == "authoring":
+            kinds.update({"inspection-limit", "lint-preview", "format"})
         if (set(response) != {"ok", "sourceHash", "error"} or not isinstance(error, dict)
                 or set(error) != {"kind", "message", "line", "column"}
                 or not isinstance(error["kind"], str)
-                or error["kind"] not in {"syntax", "name", "type", "unsupported", "limit", "encoding"}
+                or error["kind"] not in kinds
                 or not isinstance(error["message"], str)
                 or type(error["line"]) is not int or type(error["column"]) is not int
                 or error["line"] < 1 or error["column"] < 1):
             raise ValueError("compiler worker returned an invalid refusal")
+
+
+def _validate_authoring(response: dict[str, object], source: str) -> None:
+    if set(response) != {"ok", "sourceHash", "findings", "bindingPreview"}:
+        raise ValueError("authoring worker returned an invalid result")
+    findings, preview = response["findings"], response["bindingPreview"]
+    if (not isinstance(findings, list) or len(findings) > MAX_AUTHORING_FINDINGS
+            or not isinstance(preview, str) or len(preview.encode("utf-8")) > MAX_SOURCE_BYTES):
+        raise ValueError("authoring worker returned an invalid or oversized result")
+    snapshot = SourceSnapshot("vela:playground-authoring", 0, source, 1)
+    for finding in findings:
+        if (not isinstance(finding, dict) or set(finding) != {"code", "message", "line", "column"}
+                or not isinstance(finding["code"], str) or finding["code"] not in LINT_CODES
+                or not isinstance(finding["message"], str) or not finding["message"]
+                or type(finding["line"]) is not int or type(finding["column"]) is not int):
+            raise ValueError("authoring worker returned an invalid finding")
+        snapshot.diagnostic_position(finding["line"], finding["column"])
 
 
 def _compiler_response(request: dict[str, object], digest: str) -> dict[str, object]:
@@ -231,7 +257,8 @@ class PlaygroundHandler(BaseHTTPRequestHandler):
                 authorization[0].encode("utf-8"), f"Bearer {self.playground.token}".encode())):
             self._error(401, "Missing or invalid playground token; reopen the printed launch URL")
             return
-        if self.path not in {"/api/session", "/api/close", "/api/lsp", "/api/compile", "/api/evaluate"}:
+        if self.path not in {"/api/session", "/api/close", "/api/lsp", "/api/compile", "/api/evaluate",
+                             "/api/authoring"}:
             self._error(404, "Unknown playground operation")
             return
         lengths = self.headers.get_all("Content-Length", [])
@@ -288,7 +315,7 @@ class PlaygroundHandler(BaseHTTPRequestHandler):
             if session.server.exit_code is not None:
                 del self.playground.sessions[request["session"]]
             return {"messages": messages}
-        expected = {"source"} if self.path == "/api/compile" else {"source", "expression", "valueType"}
+        expected = {"source", "expression", "valueType"} if self.path == "/api/evaluate" else {"source"}
         if set(request) != expected or not all(isinstance(value, str) for value in request.values()):
             raise ValueError("Compiler request has missing, extra or non-text fields")
         source = cast("str", request["source"])
