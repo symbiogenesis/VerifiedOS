@@ -7,10 +7,56 @@ anything. The contained compiler checkout also lived on Windows at
 `C:\Users\symbi\source\repos\verifiedos-cheri-compcert`; a WSL export does not
 copy that mounted Windows directory.
 
+## Current host status
+
+All data in the transferred WSL filesystem and the accompanying Windows
+repositories was migrated on **2026-11-03**. Migration is complete and no longer
+blocks work. Work previously waiting for that data can continue under its
+existing [plan and acceptance predicates](../PLAN.md).
+
+The matching ARM64 distribution is restored as `VerifiedOS-Restored` at
+`C:\WSL\VerifiedOS-Restored` and selected as WSL's default. The existing `Ubuntu`
+distribution remains available. Native build roots, installed opam switches and
+libraries, logs, home directories and configuration are retained in the restored
+Linux filesystem. Both transfer archives passed SHA256 verification before
+restoration. The Windows repository files, hardlinks and symlinks were checked
+against their archive, and the retained private Git worktrees keep their recorded
+revisions and are accessible from both Windows and WSL.
+
+The private compiler and old public checkout are retained respectively at
+`out/migration-retained/20261103/verifiedos-cheri-compcert` and
+`out/migration-retained/20261103/VerifiedOS-old-snapshot` in the active checkout.
+They remain ignored, unindexed local data under the
+[containment rules](../COPYRIGHT.md#terms-this-tree-does-not-carry). Their complete
+Git history and worktrees are retained in addition to the native WSL build trees.
+The installed uv and solver match the [tool prerequisite pin](pyproject.toml) and
+[pinned solver recipe](vos/env.py#z3_install), and
+`python tools/run.py model lane` passes through the restored default distribution
+without warnings.
+
+Local verification records are in
+`out/evidence/host-migration-20261103/summary.json` and
+`out/evidence/host-migration-20261103-relocation/verification.json` in the active
+checkout. The original transfer package remains at
+`D:\VerifiedOS-transfer-20261103-uncompressed`. These records establish local
+data restoration. Existing proof, compiler and census verdicts retain their
+original status under the [validation handoff](../AGENTS.md#tool-execution-and-validation).
+
+The [retained compilation catalog](../docs/implementation/contracts/contained-compiler-reuse.md#retained-incomplete-compilation)
+still binds historical absolute helper paths. A future authenticated reuse attempt
+must account for the relocated private checkout and validate its exact inputs;
+old receipts remain unchanged. Interrupted audits have no resumable checkpoint.
+Full native Sail census generation, validation and replay remain
+[GitHub-hosted Actions work](../docs/implementation/contracts/sail-support-census.md#hosted-only-execution).
+
+## Restore procedure for another computer
+
 The commands below run in **PowerShell**. Replace `Ubuntu` with the old
 distribution's exact name and `E:` with a transfer drive that has enough free
 space. Finish active builds and stop applications using that distribution first.
-The archive and private checkout stay outside the public repository.
+Keep transfer archives and private compiler data unpublished and outside the
+public Git index; the verified current host uses the ignored retention location
+above.
 
 ## 1. Export on the old computer
 
@@ -134,9 +180,12 @@ The repository's hosted-only installation and acceptance rules still apply.
 
 ## 4. Restore the private Windows source and preserve the old public checkout
 
-Run this after copying the transfer drive to the new computer. Restore the
-contained compiler to its original absolute path, with all its Git metadata.
-Refuse an existing destination so a different checkout cannot be overwritten.
+Run this after copying the transfer drive to the new computer. To preserve the
+historical absolute-path bindings during a future restore, restore the contained
+compiler to its original path with all its Git metadata. The
+[current host's retained copies](#current-host-status) use the ignored `out/`
+location instead. Refuse an existing destination so a different checkout cannot
+be overwritten.
 
 ```powershell
 $privateRepo = 'C:\Users\symbi\source\repos\verifiedos-cheri-compcert'

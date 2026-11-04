@@ -708,6 +708,11 @@ its assigned checkout and keeps the host/guest placement rules below.
 
 ## One toolchain, several checkouts
 
+The [current host migration is complete](wsl-migration.md#current-host-status).
+All transferred WSL data and accompanying Windows repository data are restored;
+work waiting only for that migration can continue under its existing acceptance
+predicates. `VerifiedOS-Restored` is the default WSL distribution.
+
 For a new computer, use the [WSL migration guide](wsl-migration.md) to retain the
 old distribution and Windows compiler checkout. Check CPU architecture before
 restoring executable toolchains; historical evidence still requires revalidation.
